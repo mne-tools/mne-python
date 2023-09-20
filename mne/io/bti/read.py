@@ -3,7 +3,7 @@
 
 import numpy as np
 
-from ..utils import read_str
+from ..._fiff.utils import read_str
 
 
 def _unpack_matrix(fid, rows, cols, dtype, out_dtype):

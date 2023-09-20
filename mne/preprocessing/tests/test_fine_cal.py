@@ -9,7 +9,7 @@ import pytest
 from mne import pick_types
 from mne.io import read_raw_fif
 from mne.datasets import testing
-from mne.io.tag import _loc_to_coil_trans
+from mne._fiff.tag import _loc_to_coil_trans
 from mne.preprocessing import (
     read_fine_calibration,
     write_fine_calibration,

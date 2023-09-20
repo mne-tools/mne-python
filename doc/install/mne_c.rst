@@ -1,7 +1,5 @@
 :orphan:
 
-.. include:: ../links.inc
-
 .. _install_mne_c:
 
 Installing MNE-C
@@ -161,12 +159,13 @@ effect or you need a faster graphics adapter.
 Troubleshooting MNE-C installation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-If MNE-C can't find ``libxp.so.6``, download libxp6 from debian_ or similar and
-install it:
+If MNE-C can't find ``libxp.so.6``, you will need to get the package from the original
+author (https://launchpad.net/%7Ezeehio/+archive/ubuntu/libxp) to install it:
 
 .. code-block:: console
 
-    $ sudo dpkg -i libxp6_1.0.2-1ubuntu1_amd64.deb
+    $ sudo add-apt-repository ppa:zeehio/libxp
+    $ sudo apt install libxp6
 
 If MNE-C can't find ``libgfortran.so.1``, you can probably safely link that
 filename to the current version of libfortran that came with your system. On

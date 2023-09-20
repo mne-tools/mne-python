@@ -6,10 +6,12 @@ from collections import defaultdict
 from functools import partial
 
 import numpy as np
+from scipy.optimize import fmin_cobyla
 
 from ..bem import _check_origin
-from ..io.pick import pick_info, pick_types
-from ..io import _loc_to_coil_trans, _coil_trans_to_loc, BaseRaw
+from ..io import BaseRaw
+from .._fiff.pick import pick_info, pick_types
+from .._fiff.tag import _loc_to_coil_trans, _coil_trans_to_loc
 from ..transforms import _find_vector_rotation
 from ..utils import (
     logger,
@@ -255,8 +257,6 @@ def _vector_angle(x, y):
 
 def _adjust_mag_normals(info, data, origin, ext_order):
     """Adjust coil normals using magnetometers and empty-room data."""
-    from scipy.optimize import fmin_cobyla
-
     # in principle we could allow using just mag or mag+grad, but MF uses
     # just mag so let's follow suit
     mag_scale = 100.0

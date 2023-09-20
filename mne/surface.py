@@ -17,11 +17,14 @@ import time
 import warnings
 
 import numpy as np
+from scipy.ndimage import binary_dilation
+from scipy.sparse import coo_matrix, csr_matrix
+from scipy.spatial import ConvexHull, Delaunay
+from scipy.spatial.distance import cdist
 
-from .channels.channels import _get_meg_system
 from .fixes import jit, prange, bincount
-from .io.constants import FIFF
-from .io.pick import pick_types
+from ._fiff.constants import FIFF
+from ._fiff.pick import pick_types
 from .parallel import parallel_func
 from .transforms import (
     transform_surface_to,
@@ -178,8 +181,8 @@ def get_meg_helmet_surf(info, trans=None, verbose=None):
     A built-in helmet is loaded if possible. If not, a helmet surface
     will be approximated based on the sensor locations.
     """
-    from scipy.spatial import ConvexHull, Delaunay
     from .bem import read_bem_surfaces, _fit_sphere
+    from .channels.channels import _get_meg_system
 
     system, have_helmet = _get_meg_system(info)
     if have_helmet:
@@ -325,8 +328,6 @@ def _triangle_neighbors(tris, npts):
     # for ti, tri in enumerate(tris):
     #     for t in tri:
     #         neighbor_tri[t].append(ti)
-    from scipy.sparse import coo_matrix
-
     rows = tris.ravel()
     cols = np.repeat(np.arange(len(tris)), 3)
     data = np.ones(len(cols))
@@ -516,8 +517,6 @@ class _CDist:
         self._xhs = xhs
 
     def query(self, rr):
-        from scipy.spatial.distance import cdist
-
         nearest = list()
         dists = list()
         for r in rr:
@@ -571,7 +570,7 @@ class _DistanceQuery:
     """Wrapper for fast distance queries."""
 
     def __init__(self, xhs, method="BallTree", allow_kdtree=False):
-        assert method in ("BallTree", "cKDTree", "cdist")
+        assert method in ("BallTree", "KDTree", "cdist")
 
         # Fastest for our problems: balltree
         if method == "BallTree":
@@ -582,7 +581,7 @@ class _DistanceQuery:
                     "Nearest-neighbor searches will be significantly "
                     "faster if scikit-learn is installed."
                 )
-                method = "cKDTree"
+                method = "KDTree"
             else:
                 self.query = partial(
                     _safe_query,
@@ -591,18 +590,11 @@ class _DistanceQuery:
                     return_distance=True,
                 )
 
-        # Then cKDTree
-        if method == "cKDTree":
-            try:
-                from scipy.spatial import cKDTree
-            except ImportError:
-                method = "cdist"
-            else:
-                self.query = cKDTree(xhs).query
+        # Then KDTree
+        if method == "KDTree":
+            from scipy.spatial import KDTree
 
-        # KDTree is really only faster for huge (~100k) sets,
-        # (e.g., with leafsize=2048), and it's slower for small (~5k)
-        # sets. We can add it later if we think it will help.
+            self.query = KDTree(xhs).query
 
         # Then the worst: cdist
         if method == "cdist":
@@ -678,8 +670,6 @@ class _CheckInside:
         )
 
     def _init_old(self):
-        from scipy.spatial import Delaunay
-
         self.inner_r = None
         self.cm = self.surf["rr"].mean(0)
         # We could use Delaunay or ConvexHull here, Delaunay is slightly slower
@@ -1411,7 +1401,7 @@ def _decimate_surface_sphere(rr, tris, n_triangles):
     sphere_rr, _ = read_surface(qsphere)
     norms = np.linalg.norm(sphere_rr, axis=1, keepdims=True)
     sphere_rr /= norms
-    idx = _compute_nearest(sphere_rr, ico_surf["rr"], method="cKDTree")
+    idx = _compute_nearest(sphere_rr, ico_surf["rr"], method="KDTree")
     n_dup = len(idx) - len(np.unique(idx))
     if n_dup:
         raise RuntimeError(
@@ -1666,8 +1656,6 @@ def mesh_edges(tris):
 
 @lru_cache(maxsize=10)
 def _mesh_edges(tris=None):
-    from scipy.sparse import coo_matrix
-
     if np.max(tris) > len(np.unique(tris)):
         raise ValueError("Cannot compute adjacency on a selection of triangles.")
 
@@ -1701,8 +1689,6 @@ def mesh_dist(tris, vert):
     dist_matrix : scipy.sparse.csr_matrix
         Sparse matrix with distances between adjacent vertices.
     """
-    from scipy.sparse import csr_matrix
-
     edges = mesh_edges(tris).tocoo()
 
     # Euclidean distances between neighboring vertices
@@ -1904,7 +1890,6 @@ def _marching_cubes(image, level, smooth=0, fill_hole_size=None, use_flying_edge
     )
     from vtkmodules.vtkFiltersGeometry import vtkGeometryFilter
     from vtkmodules.util.numpy_support import vtk_to_numpy, numpy_to_vtk
-    from scipy.ndimage import binary_dilation
 
     if image.ndim != 3:
         raise ValueError(f"3D data must be supplied, got {image.shape}")

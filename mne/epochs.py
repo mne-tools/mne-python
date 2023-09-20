@@ -17,9 +17,11 @@ import operator
 import os.path as op
 
 import numpy as np
+from scipy.interpolate import interp1d
 
-from .io.utils import _construct_bids_filename
-from .io.write import (
+from .event import make_fixed_length_events, _read_events_fif, match_event_names
+from ._fiff.utils import _make_split_fnames
+from ._fiff.write import (
     start_and_end_file,
     start_block,
     end_block,
@@ -35,18 +37,17 @@ from .io.write import (
     _NEXT_FILE_BUFFER,
     INT32_MAX,
 )
-from .io.meas_info import (
+from ._fiff.meas_info import (
     read_meas_info,
     write_meas_info,
     _ensure_infos_match,
     ContainsMixin,
 )
-from .io.open import fiff_open, _get_next_fname
-from .io.tree import dir_tree_find
-from .io.tag import read_tag, read_tag_info
-from .io.constants import FIFF
-from .io.fiff.raw import _get_fname_rep
-from .io.pick import (
+from ._fiff.open import fiff_open, _get_next_fname
+from ._fiff.tree import dir_tree_find
+from ._fiff.tag import read_tag, read_tag_info
+from ._fiff.constants import FIFF
+from ._fiff.pick import (
     channel_indices_by_type,
     channel_type,
     pick_channels,
@@ -55,17 +56,16 @@ from .io.pick import (
     _DATA_CH_TYPES_SPLIT,
     _picks_to_idx,
 )
-from .io.proj import setup_proj, ProjMixin
-from .io.base import BaseRaw, _get_ch_factors
-from .io.meas_info import SetChannelsMixin
+from ._fiff.proj import setup_proj, ProjMixin
+from ._fiff.meas_info import SetChannelsMixin
 from .bem import _check_origin
 from .evoked import EvokedArray
 from .baseline import rescale, _log_rescale, _check_baseline
+from .html_templates import _get_html_template
 from .channels.channels import UpdateChannelsMixin, InterpolationMixin, ReferenceMixin
 from .filter import detrend, FilterMixin, _check_fun
 from .parallel import parallel_func
 
-from .event import _read_events_fif, make_fixed_length_events, match_event_names
 from .fixes import rng_uniform
 from .time_frequency.spectrum import EpochsSpectrum, SpectrumMixin, _validate_method
 from .viz import plot_epochs, plot_epochs_image, plot_topo_image_epochs, plot_drop_log
@@ -119,36 +119,22 @@ def _pack_reject_params(epochs):
     return reject_params
 
 
-def _save_split(epochs, fname, part_idx, n_parts, fmt, split_naming, overwrite):
+def _save_split(epochs, split_fnames, part_idx, n_parts, fmt, overwrite):
     """Split epochs.
 
     Anything new added to this function also needs to be added to
     BaseEpochs.save to account for new file sizes.
     """
     # insert index in filename
-    base, ext = op.splitext(fname)
-    if part_idx > 0:
-        if split_naming == "neuromag":
-            fname = "%s-%d%s" % (base, part_idx, ext)
-        else:
-            assert split_naming == "bids"
-            fname = _construct_bids_filename(base, ext, part_idx, validate=False)
-            _check_fname(fname, overwrite=overwrite)
+    this_fname = split_fnames[part_idx]
+    _check_fname(this_fname, overwrite=overwrite)
 
-    next_fname = None
+    next_fname, next_idx = None, None
     if part_idx < n_parts - 1:
-        if split_naming == "neuromag":
-            next_fname = "%s-%d%s" % (base, part_idx + 1, ext)
-        else:
-            assert split_naming == "bids"
-            next_fname = _construct_bids_filename(
-                base, ext, part_idx + 1, validate=False
-            )
         next_idx = part_idx + 1
-    else:
-        next_idx = None
+        next_fname = split_fnames[next_idx]
 
-    with start_and_end_file(fname) as fid:
+    with start_and_end_file(this_fname) as fid:
         _save_part(fid, epochs, fmt, n_parts, next_fname, next_idx)
 
 
@@ -482,12 +468,18 @@ class BaseEpochs(
     ):  # noqa: D102
         if events is not None:  # RtEpochs can have events=None
             events = _ensure_events(events)
-            events_max = events.max()
-            if events_max > INT32_MAX:
-                raise ValueError(
-                    f"events array values must not exceed {INT32_MAX}, "
-                    f"got {events_max}"
-                )
+            # Allow reading empty epochs (ToDo: Maybe not anymore in the future)
+            if len(events) == 0:
+                self._allow_empty = True
+                selection = None
+            else:
+                self._allow_empty = False
+                events_max = events.max()
+                if events_max > INT32_MAX:
+                    raise ValueError(
+                        f"events array values must not exceed {INT32_MAX}, "
+                        f"got {events_max}"
+                    )
         event_id = _check_event_id(event_id, events)
         self.event_id = event_id
         del event_id
@@ -511,7 +503,7 @@ class BaseEpochs(
             del events
 
             values = list(self.event_id.values())
-            selected = np.where(np.in1d(self.events[:, 2], values))[0]
+            selected = np.where(np.isin(self.events[:, 2], values))[0]
             if selection is None:
                 selection = selected
             else:
@@ -546,7 +538,7 @@ class BaseEpochs(
             )
 
             # then subselect
-            sub = np.where(np.in1d(selection, self.selection))[0]
+            sub = np.where(np.isin(selection, self.selection))[0]
             if isinstance(metadata, list):
                 metadata = [metadata[s] for s in sub]
             elif metadata is not None:
@@ -571,7 +563,9 @@ class BaseEpochs(
             if n_events > 0:
                 logger.info("%d matching events found" % n_events)
             else:
-                raise ValueError("No desired events found.")
+                # Allow reading empty epochs (ToDo: Maybe not anymore in the future)
+                if not self._allow_empty:
+                    raise ValueError("No desired events found.")
         else:
             self.drop_log = tuple()
             self.selection = np.array([], int)
@@ -1104,6 +1098,7 @@ class BaseEpochs(
 
         This would compute the trimmed mean.
         """
+        self._handle_empty("raise", "average")
         if by_event_type:
             evokeds = list()
             for event_type in self.event_id.keys():
@@ -1264,7 +1259,7 @@ class BaseEpochs(
         # pick channels
         picks = _picks_to_idx(self.info, picks, "data_or_ica", ())
         ch_names = [evoked.ch_names[p] for p in picks]
-        evoked.pick_channels(ch_names)
+        evoked.pick(ch_names)
 
         if len(evoked.info["ch_names"]) == 0:
             raise ValueError("No data channel found when averaging.")
@@ -1287,7 +1282,7 @@ class BaseEpochs(
         n_epochs=20,
         n_channels=20,
         title=None,
-        events=None,
+        events=False,
         event_color=None,
         order=None,
         show=True,
@@ -1575,6 +1570,15 @@ class BaseEpochs(
             epoch = np.dot(self._projector, epoch)
         return epoch
 
+    def _handle_empty(self, on_empty, meth):
+        if len(self.events) == 0:
+            msg = (
+                f"epochs.{meth}() can't run because this Epochs-object is empty. "
+                f"You might want to check Epochs.drop_log or Epochs.plot_drop_log()"
+                f" to see why epochs were dropped."
+            )
+            _on_missing(on_empty, msg, error_klass=RuntimeError)
+
     @verbose
     def _get_data(
         self,
@@ -1585,6 +1589,7 @@ class BaseEpochs(
         units=None,
         tmin=None,
         tmax=None,
+        on_empty="warn",
         verbose=None,
     ):
         """Load all data, dropping bad epochs along the way.
@@ -1604,6 +1609,10 @@ class BaseEpochs(
             End time of data to get in seconds.
         %(verbose)s
         """
+        from .io.base import _get_ch_factors
+
+        # Handle empty epochs
+        self._handle_empty(on_empty, "_get_data")
         # if called with 'out=False', the call came from 'drop_bad()'
         # if no reasons to drop, just declare epochs as good and return
         if not out:
@@ -1741,7 +1750,17 @@ class BaseEpochs(
             del drop_log
 
             self._bad_dropped = True
-            logger.info("%d bad epochs dropped" % (n_events - len(good_idx)))
+            n_bads_dropped = n_events - len(good_idx)
+            logger.info(f"{n_bads_dropped} bad epochs dropped")
+
+            if n_bads_dropped == n_events:
+                warn(
+                    "All epochs were dropped!\n"
+                    "You might need to alter reject/flat-criteria "
+                    "or drop bad channels to avoid this. "
+                    "You can use Epochs.plot_drop_log() to see which "
+                    "channels are responsible for the dropping of epochs."
+                )
 
             # adjust the data size if there is a reason to (output or update)
             if out or self.preload:
@@ -1915,8 +1934,6 @@ class BaseEpochs(
 
     @repr_html
     def _repr_html_(self):
-        from .html_templates import repr_templates_env
-
         if self.baseline is None:
             baseline = "off"
         else:
@@ -1939,7 +1956,7 @@ class BaseEpochs(
         else:
             event_strings = None
 
-        t = repr_templates_env.get_template("epochs.html.jinja")
+        t = _get_html_template("repr", "epochs.html.jinja")
         t = t.render(epochs=self, baseline=baseline, events=event_strings)
         return t
 
@@ -2149,13 +2166,14 @@ class BaseEpochs(
 
         epoch_idxs = np.array_split(np.arange(n_epochs), n_parts)
 
+        _check_option("split_naming", split_naming, ("neuromag", "bids"))
+        split_fnames = _make_split_fnames(fname, n_parts, split_naming)
         for part_idx, epoch_idx in enumerate(epoch_idxs):
             this_epochs = self[epoch_idx] if n_parts > 1 else self
             # avoid missing event_ids in splits
             this_epochs.event_id = self.event_id
-            _save_split(
-                this_epochs, fname, part_idx, n_parts, fmt, split_naming, overwrite
-            )
+
+            _save_split(this_epochs, split_fnames, part_idx, n_parts, fmt, overwrite)
 
     @verbose
     def export(self, fname, fmt="auto", *, overwrite=False, verbose=None):
@@ -2347,6 +2365,7 @@ class BaseEpochs(
         tmax=None,
         picks=None,
         proj=False,
+        remove_dc=True,
         *,
         n_jobs=1,
         verbose=None,
@@ -2362,6 +2381,7 @@ class BaseEpochs(
         %(tmin_tmax_psd)s
         %(picks_good_data_noref)s
         %(proj_psd)s
+        %(remove_dc)s
         %(n_jobs)s
         %(verbose)s
         %(method_kw_psd)s
@@ -2391,6 +2411,7 @@ class BaseEpochs(
             tmax=tmax,
             picks=picks,
             proj=proj,
+            remove_dc=remove_dc,
             n_jobs=n_jobs,
             verbose=verbose,
             **method_kw,
@@ -2540,7 +2561,7 @@ class BaseEpochs(
         time_format = _check_time_format(time_format, valid_time_formats)
         # get data
         picks = _picks_to_idx(self.info, picks, "all", exclude=())
-        data = self.get_data()[:, picks, :]
+        data = self._get_data(on_empty="raise")[:, picks, :]
         times = self.times
         n_epochs, n_picks, n_times = data.shape
         data = np.hstack(data).T  # (time*epochs) x signals
@@ -2600,6 +2621,7 @@ class BaseEpochs(
         """
         from .forward import _as_meg_type_inst
 
+        self._handle_empty("raise", "as_type")
         return _as_meg_type_inst(self, ch_type=ch_type, mode=mode)
 
 
@@ -2827,7 +2849,7 @@ def make_metadata(
     id_to_name_map = {v: k for k, v in event_id.items()}
 
     # Only keep events that are of interest
-    events = events[np.in1d(events[:, 2], list(event_id.values()))]
+    events = events[np.isin(events[:, 2], list(event_id.values()))]
     events_df = events_df.loc[events_df["id"].isin(event_id.values()), :]
 
     # Prepare & condition the metadata DataFrame
@@ -2932,7 +2954,7 @@ def make_metadata(
         event_id_timelocked = {
             name: val for name, val in event_id.items() if name in row_events
         }
-        events = events[np.in1d(events[:, 2], list(event_id_timelocked.values()))]
+        events = events[np.isin(events[:, 2], list(event_id_timelocked.values()))]
         metadata = metadata.loc[metadata["event_name"].isin(event_id_timelocked)]
         assert len(events) == len(metadata)
         event_id = event_id_timelocked
@@ -3068,6 +3090,8 @@ class Epochs(BaseEpochs):
         event_repeated="error",
         verbose=None,
     ):  # noqa: D102
+        from .io import BaseRaw
+
         if not isinstance(raw, BaseRaw):
             raise ValueError(
                 "The first argument to `Epochs` must be an "
@@ -3173,40 +3197,17 @@ class EpochsArray(BaseEpochs):
         measure.
     %(info_not_none)s Consider using :func:`mne.create_info` to populate this
         structure.
-    events : None | array of int, shape (n_events, 3)
-        The events typically returned by the read_events function.
-        If some events don't match the events of interest as specified
-        by event_id, they will be marked as 'IGNORED' in the drop log.
-        If None (default), all event values are set to 1 and event time-samples
-        are set to range(n_epochs).
-    tmin : float
-        Start time before event. If nothing provided, defaults to 0.
-    event_id : int | list of int | dict | None
-        The id of the event to consider. If dict,
-        the keys can later be used to access associated events. Example:
-        dict(auditory=1, visual=3). If int, a dict will be created with
-        the id as string. If a list, all events with the IDs specified
-        in the list are used. If None, all events will be used with
-        and a dict is created with string integer names corresponding
-        to the event id integers.
+    %(events_epochs)s
+    %(tmin_epochs)s
+    %(event_id)s
     %(reject_epochs)s
     %(flat)s
-    reject_tmin : scalar | None
-        Start of the time window used to reject epochs (with the default None,
-        the window will start with tmin).
-    reject_tmax : scalar | None
-        End of the time window used to reject epochs (with the default None,
-        the window will end with tmax).
+    %(epochs_reject_tmin_tmax)s
     %(baseline_epochs)s
         Defaults to ``None``, i.e. no baseline correction.
-    proj : bool | 'delayed'
-        Apply SSP projection vectors. See :class:`mne.Epochs` for details.
-    on_missing : str
-        See :class:`mne.Epochs` docstring for details.
-    metadata : instance of pandas.DataFrame | None
-        See :class:`mne.Epochs` docstring for details.
-
-        .. versionadded:: 0.16
+    %(proj_epochs)s
+    %(on_missing_epochs)s
+    %(metadata_epochs)s
     %(selection)s
     %(drop_log)s
 
@@ -3301,7 +3302,7 @@ class EpochsArray(BaseEpochs):
             self._do_baseline = True
         if (
             len(events)
-            != np.in1d(self.events[:, 2], list(self.event_id.values())).sum()
+            != np.isin(self.events[:, 2], list(self.event_id.values())).sum()
         ):
             raise ValueError(
                 "The events must only contain event numbers from " "event_id"
@@ -3433,8 +3434,6 @@ def _get_drop_indices(event_times, method):
 
 def _minimize_time_diff(t_shorter, t_longer):
     """Find a boolean mask to minimize timing differences."""
-    from scipy.interpolate import interp1d
-
     keep = np.ones((len(t_longer)), dtype=bool)
     # special case: length zero or one
     if len(t_shorter) < 2:  # interp1d won't work
@@ -3530,8 +3529,15 @@ def _read_one_epoch_file(f, tree, preload):
 
         # read in the Annotations if they exist
         annotations = _read_annotations_fif(fid, tree)
-        events, mappings = _read_events_fif(fid, tree)
-
+        try:
+            events, mappings = _read_events_fif(fid, tree)
+        except ValueError as e:
+            # Allow reading empty epochs (ToDo: Maybe not anymore in the future)
+            if str(e) == "Could not find any events":
+                events = np.empty((0, 3), dtype=np.int32)
+                mappings = dict()
+            else:
+                raise
         #   Metadata
         metadata = None
         metadata_tree = dir_tree_find(tree, FIFF.FIFFB_MNE_METADATA)
@@ -3762,6 +3768,8 @@ class EpochsFIF(BaseEpochs):
 
     @verbose
     def __init__(self, fname, proj=True, preload=True, verbose=None):  # noqa: D102
+        from .io.base import _get_fname_rep
+
         if _path_like(fname):
             check_fname(
                 fname=fname,
@@ -4053,7 +4061,11 @@ def _concatenate_epochs(
     selection = out.selection
     # offset is the last epoch + tmax + 10 second
     shift = int((10 + tmax) * out.info["sfreq"])
-    events_offset = int(np.max(events[0][:, 0])) + shift
+    # Allow reading empty epochs (ToDo: Maybe not anymore in the future)
+    if out._allow_empty:
+        events_offset = 0
+    else:
+        events_offset = int(np.max(events[0][:, 0])) + shift
     events_overflow = False
     warned = False
     for ii, epochs in enumerate(epochs_list[1:], 1):

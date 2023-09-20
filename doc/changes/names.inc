@@ -34,6 +34,8 @@
 
 .. _Andrew Dykstra: https://github.com/adykstra
 
+.. _Andrew Gilbert: https://github.com/adgilbert
+
 .. _Andrew Quinn: https://github.com/ajquinn
 
 .. _Aniket Pradhan: https://github.com/Aniket-Pradhan
@@ -415,6 +417,8 @@
 .. _Pierre-Antoine Bannier: https://github.com/PABannier
 
 .. _Proloy Das: https://github.com/proloyd
+
+.. _Qian Chu: https://github.com/qian-chu
 
 .. _Qianliang Li: https://www.dtu.dk/english/service/phonebook/person?id=126774
 

@@ -24,14 +24,15 @@ from mne import (
 )
 from mne.transforms import apply_trans
 from mne.io import read_raw_fif, read_raw_ctf, RawArray
-from mne.io.compensator import get_current_comp
+from mne._fiff.compensator import get_current_comp
+from mne._fiff.pick import _picks_to_idx
 from mne.io.ctf.constants import CTF
 from mne.io.ctf.info import _convert_time
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.tests.test_annotations import _assert_annotations_equal
 from mne.utils import _clean_names, catch_logging, _stamp_to_dt, _record_warnings
 from mne.datasets import testing, spm_face, brainstorm
-from mne.io.constants import FIFF
+from mne._fiff.constants import FIFF
 
 ctf_dir = testing.data_path(download=False) / "CTF"
 ctf_fname_continuous = "testdata_ctf.ds"
@@ -366,11 +367,11 @@ def test_saving_picked(tmp_path, comp_grade):
     raw.crop(0, 1).load_data()
     assert raw.compensation_grade == get_current_comp(raw.info) == 0
     assert len(raw.info["comps"]) == 5
-    pick_kwargs = dict(meg=True, ref_meg=False, verbose=True)
+    picks = _picks_to_idx(raw.info, "meg", with_ref_meg=False)
 
     raw.apply_gradient_compensation(comp_grade)
     with catch_logging() as log:
-        raw_pick = raw.copy().pick_types(**pick_kwargs)
+        raw_pick = raw.copy().pick(picks, verbose=True)
     assert len(raw.info["comps"]) == 5
     assert len(raw_pick.info["comps"]) == 0
     log = log.getvalue()

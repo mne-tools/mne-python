@@ -31,7 +31,7 @@ sample_data_raw_file = os.path.join(
 raw = mne.io.read_raw_fif(sample_data_raw_file)
 
 # Here we'll crop to 60 seconds and drop gradiometer channels for speed
-raw.crop(tmax=60.0).pick_types(meg="mag", eeg=True, stim=True, eog=True)
+raw.crop(tmax=60.0).pick(picks=["mag", "eeg", "stim", "eog"])
 raw.load_data()
 
 # %%
@@ -625,7 +625,6 @@ print(template_eog_component)
 #    https://en.wikipedia.org/wiki/Signal_separation
 # .. _`statistically independent`:
 #    https://en.wikipedia.org/wiki/Independence_(probability_theory)
-# .. _`scikit-learn`: https://scikit-learn.org
 # .. _`random seed`: https://en.wikipedia.org/wiki/Random_seed
 # .. _`regular expression`: https://www.regular-expressions.info/
 # .. _`qrs`: https://en.wikipedia.org/wiki/QRS_complex
@@ -656,7 +655,7 @@ print(template_eog_component)
 # recommended by the MNE-Python developers, as it doesn't guarantee optimal
 # results.
 
-filt_raw.pick_types(meg=True, eeg=False, exclude="bads", stim=True).load_data()
+filt_raw.pick(picks=["meg", "stim"], exclude="bads").load_data()
 filt_raw.filter(1, 30, fir_design="firwin")
 
 # peak-to-peak amplitude rejection parameters

@@ -29,12 +29,12 @@ from mne import (
     read_forward_solution,
     convert_forward_solution,
     MixedSourceEstimate,
+    pick_info,
 )
 from mne.source_estimate import _BaseVolSourceEstimate
 from mne.io import read_raw_ctf, read_raw_bti, read_raw_kit, read_info, read_raw_nirx
-from mne.io._digitization import write_dig
-from mne.io.pick import pick_info
-from mne.io.constants import FIFF
+from mne._fiff._digitization import write_dig
+from mne._fiff.constants import FIFF
 from mne.minimum_norm import apply_inverse
 from mne.viz import (
     plot_sparse_source_estimates,

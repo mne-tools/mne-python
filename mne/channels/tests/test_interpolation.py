@@ -14,7 +14,7 @@ from mne.preprocessing.nirs import (
     beer_lambert_law,
 )
 from mne.io import read_raw_nirx
-from mne.io.proj import _has_eeg_average_ref_proj
+from mne._fiff.proj import _has_eeg_average_ref_proj
 from mne.utils import _record_warnings
 
 base_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
@@ -162,7 +162,7 @@ def test_interpolation_eeg(offset, avg_proj, ctol, atol, method):
 
     # check that interpolation fails when preload is False
     epochs_eeg.preload = False
-    with pytest.raises(RuntimeError, match="requires epochs data to be loade"):
+    with pytest.raises(RuntimeError, match="requires epochs data to be load"):
         epochs_eeg.interpolate_bads(**kw)
     epochs_eeg.preload = True
 
@@ -182,7 +182,7 @@ def test_interpolation_eeg(offset, avg_proj, ctol, atol, method):
 
     # check that interpolation works with few channels
     raw_few = raw.copy().crop(0, 0.1).load_data()
-    raw_few.pick_channels(raw_few.ch_names[:1] + raw_few.ch_names[3:4])
+    raw_few.pick(raw_few.ch_names[:1] + raw_few.ch_names[3:4])
     assert len(raw_few.ch_names) == 2
     raw_few.del_proj()
     raw_few.info["bads"] = [raw_few.ch_names[-1]]
@@ -206,7 +206,7 @@ def test_interpolation_meg():
 
     # check that interpolation works when non M/EEG channels are present
     # before MEG channels
-    raw.crop(0, 0.1).load_data().pick_channels(epochs_meg.ch_names)
+    raw.crop(0, 0.1).load_data().pick(epochs_meg.ch_names)
     raw.info.normalize_proj()
     raw.set_channel_types({raw.ch_names[0]: "stim"}, on_unit_change="ignore")
     raw.info["bads"] = [raw.ch_names[1]]

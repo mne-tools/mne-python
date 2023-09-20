@@ -16,6 +16,7 @@ from .channels.channels import UpdateChannelsMixin, InterpolationMixin, Referenc
 from .channels.layout import _merge_ch_data, _pair_grad_sensors
 from .defaults import _INTERPOLATION_DEFAULT, _EXTRAPOLATE_DEFAULT, _BORDER_DEFAULT
 from .filter import detrend, FilterMixin, _check_fun
+from .html_templates import _get_html_template
 from .utils import (
     check_fname,
     logger,
@@ -48,12 +49,12 @@ from .viz import (
 from .viz.evoked import plot_evoked_white, plot_evoked_joint
 from .viz.topomap import _topomap_animation
 
-from .io.constants import FIFF
-from .io.open import fiff_open
-from .io.tag import read_tag
-from .io.tree import dir_tree_find
-from .io.pick import pick_types, _picks_to_idx, _FNIRS_CH_TYPES_SPLIT
-from .io.meas_info import (
+from ._fiff.constants import FIFF
+from ._fiff.open import fiff_open
+from ._fiff.tag import read_tag
+from ._fiff.tree import dir_tree_find
+from ._fiff.pick import pick_types, _picks_to_idx, _FNIRS_CH_TYPES_SPLIT
+from ._fiff.meas_info import (
     ContainsMixin,
     SetChannelsMixin,
     read_meas_info,
@@ -62,8 +63,8 @@ from .io.meas_info import (
     _rename_list,
     _ensure_infos_match,
 )
-from .io.proj import ProjMixin
-from .io.write import (
+from ._fiff.proj import ProjMixin
+from ._fiff.write import (
     start_and_end_file,
     start_block,
     end_block,
@@ -74,7 +75,6 @@ from .io.write import (
     write_float,
     write_complex_float_matrix,
 )
-from .io.base import _check_maxshield, _get_ch_factors
 from .parallel import parallel_func
 from .time_frequency.spectrum import Spectrum, SpectrumMixin, _validate_method
 
@@ -240,6 +240,9 @@ class Evoked(
         -----
         .. versionadded:: 0.24
         """
+        # Avoid circular import
+        from .io.base import _get_ch_factors
+
         picks = _picks_to_idx(self.info, picks, "all", exclude=())
 
         start, stop = self._handle_tmin_tmax(tmin, tmax)
@@ -416,15 +419,13 @@ class Evoked(
 
     @repr_html
     def _repr_html_(self):
-        from .html_templates import repr_templates_env
-
         if self.baseline is None:
             baseline = "off"
         else:
             baseline = tuple([f"{b:.3f}" for b in self.baseline])
             baseline = f"{baseline[0]} – {baseline[1]} s"
 
-        t = repr_templates_env.get_template("evoked.html.jinja")
+        t = _get_html_template("repr", "evoked.html.jinja")
         t = t.render(evoked=self, baseline=baseline)
         return t
 
@@ -1041,6 +1042,7 @@ class Evoked(
         tmax=None,
         picks=None,
         proj=False,
+        remove_dc=True,
         *,
         n_jobs=1,
         verbose=None,
@@ -1056,6 +1058,7 @@ class Evoked(
         %(tmin_tmax_psd)s
         %(picks_good_data_noref)s
         %(proj_psd)s
+        %(remove_dc)s
         %(n_jobs)s
         %(verbose)s
         %(method_kw_psd)s
@@ -1085,6 +1088,7 @@ class Evoked(
             tmax=tmax,
             picks=picks,
             proj=proj,
+            remove_dc=remove_dc,
             reject_by_annotation=False,
             n_jobs=n_jobs,
             verbose=verbose,
@@ -1377,6 +1381,8 @@ def _get_entries(fid, evoked_node, allow_maxshield=False):
 
 def _get_aspect(evoked, allow_maxshield):
     """Get Evoked data aspect."""
+    from .io.base import _check_maxshield
+
     is_maxshield = False
     aspect = dir_tree_find(evoked, FIFF.FIFFB_ASPECT)
     if len(aspect) == 0:
@@ -1637,7 +1643,7 @@ def _read_evoked(fname, condition=None, kind="average", allow_maxshield=False):
                 raise ValueError('kind must be "average" or ' '"standard_error"')
 
             comments, aspect_kinds, t = _get_entries(fid, evoked_node, allow_maxshield)
-            goods = np.in1d(comments, [condition]) & np.in1d(
+            goods = np.isin(comments, [condition]) & np.isin(
                 aspect_kinds, [_aspect_dict[kind]]
             )
             found_cond = np.where(goods)[0]

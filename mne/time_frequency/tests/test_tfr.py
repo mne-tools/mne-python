@@ -304,7 +304,7 @@ def test_time_frequency():
     assert_allclose(np.mean(single_power3, axis=0), power.data[:, :, 1:3])
     assert_allclose(np.mean(single_power4, axis=0), power.data[:, :, 2:4])
 
-    power_pick = power.pick_channels(power.ch_names[:10:2])
+    power_pick = power.pick(power.ch_names[:10:2])
     assert_equal(len(power_pick.ch_names), len(power.ch_names[:10:2]))
     assert_equal(power_pick.data.shape[0], len(power.ch_names[:10:2]))
     power_drop = power.drop_channels(power.ch_names[1:10:2])
@@ -931,7 +931,7 @@ def test_plot_joint():
     assert set(tfr.times) == set(tfr_orig.times)
 
     # test tfr with picked channels
-    tfr.pick_channels(tfr.ch_names[:-1])
+    tfr.pick(tfr.ch_names[:-1])
     tfr.plot_joint(title="auto", colorbar=True, topomap_args=topomap_args)
 
 
@@ -954,10 +954,10 @@ def test_add_channels():
         comment="test",
         method="crazy-tfr",
     )
-    tfr_eeg = tfr.copy().pick_types(meg=False, eeg=True)
-    tfr_meg = tfr.copy().pick_types(meg=True)
-    tfr_stim = tfr.copy().pick_types(meg=False, stim=True)
-    tfr_eeg_meg = tfr.copy().pick_types(meg=True, eeg=True)
+    tfr_eeg = tfr.copy().pick(picks="eeg")
+    tfr_meg = tfr.copy().pick(picks="meg")
+    tfr_stim = tfr.copy().pick(picks="stim")
+    tfr_eeg_meg = tfr.copy().pick(picks=["meg", "eeg"])
     tfr_new = tfr_meg.copy().add_channels([tfr_eeg, tfr_stim])
     assert all(ch in tfr_new.ch_names for ch in tfr_stim.ch_names + tfr_meg.ch_names)
     tfr_new = tfr_meg.copy().add_channels([tfr_eeg])
@@ -1372,8 +1372,8 @@ def test_to_data_frame():
         tfr.to_data_frame(index=np.arange(400))
     # test wide format
     df_wide = tfr.to_data_frame()
-    assert all(np.in1d(tfr.ch_names, df_wide.columns))
-    assert all(np.in1d(["time", "condition", "freq", "epoch"], df_wide.columns))
+    assert all(np.isin(tfr.ch_names, df_wide.columns))
+    assert all(np.isin(["time", "condition", "freq", "epoch"], df_wide.columns))
     # test long format
     df_long = tfr.to_data_frame(long_format=True)
     expected = ("condition", "epoch", "freq", "time", "channel", "ch_type", "value")
@@ -1403,8 +1403,8 @@ def test_to_data_frame():
         tfr.to_data_frame(index=np.arange(400))
     # test wide format
     df_wide = tfr.to_data_frame()
-    assert all(np.in1d(tfr.ch_names, df_wide.columns))
-    assert all(np.in1d(["time", "freq"], df_wide.columns))
+    assert all(np.isin(tfr.ch_names, df_wide.columns))
+    assert all(np.isin(["time", "freq"], df_wide.columns))
     # test long format
     df_long = tfr.to_data_frame(long_format=True)
     expected = ("freq", "time", "channel", "ch_type", "value")
@@ -1455,7 +1455,7 @@ def test_to_data_frame_index(index):
     # test that non-indexed data were present as columns
     non_index = list(set(["condition", "time", "freq", "epoch"]) - set(index))
     if len(non_index):
-        assert all(np.in1d(non_index, df.columns))
+        assert all(np.isin(non_index, df.columns))
 
 
 @pytest.mark.parametrize("time_format", (None, "ms", "timedelta"))

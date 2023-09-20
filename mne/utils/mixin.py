@@ -59,9 +59,9 @@ class SizeMixin:
         hash : int
             The hash
         """
-        from ..evoked import Evoked
+        from ..io import BaseRaw
         from ..epochs import BaseEpochs
-        from ..io.base import BaseRaw
+        from ..evoked import Evoked
 
         if isinstance(self, Evoked):
             return object_hash(dict(info=self.info, data=self.data))
@@ -672,7 +672,8 @@ class ExtendedTimeMixin(TimeMixin):
         # if epochs have frequencies, they are not in time (EpochsTFR)
         # and so do not need to be checked whether they have been
         # appropriately filtered to avoid aliasing
-        from .. import Evoked, BaseEpochs
+        from ..evoked import Evoked
+        from ..epochs import BaseEpochs
         from ..time_frequency import EpochsTFR, AverageTFR
 
         # This should be the list of classes that inherit
@@ -735,7 +736,8 @@ class ExtendedTimeMixin(TimeMixin):
 
     def _update_first_last(self):
         """Update self.first and self.last (sample indices)."""
-        from .. import Evoked, DipoleFixed
+        from ..evoked import Evoked
+        from ..dipole import DipoleFixed
 
         if isinstance(self, (Evoked, DipoleFixed)):
             self.first = int(round(self.times[0] * self.info["sfreq"]))
@@ -765,24 +767,3 @@ def _prepare_read_metadata(metadata):
             metadata = pd.DataFrame.from_records(metadata)
             assert isinstance(metadata, pd.DataFrame)
     return metadata
-
-
-class _FakeNoPandas:  # noqa: D101
-    def __enter__(self):  # noqa: D105
-        def _check(strict=True):
-            if strict:
-                raise RuntimeError("Pandas not installed")
-            else:
-                return False
-
-        import mne
-
-        self._old_check = _check_pandas_installed
-        mne.epochs._check_pandas_installed = _check
-        mne.utils.mixin._check_pandas_installed = _check
-
-    def __exit__(self, *args):  # noqa: D105
-        import mne
-
-        mne.epochs._check_pandas_installed = self._old_check
-        mne.utils.mixin._check_pandas_installed = self._old_check

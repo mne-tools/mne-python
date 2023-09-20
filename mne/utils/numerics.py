@@ -4,7 +4,6 @@
 #
 # License: BSD-3-Clause
 
-import hashlib
 import inspect
 import numbers
 import operator
@@ -18,9 +17,11 @@ from math import ceil, sqrt
 from pathlib import Path
 
 import numpy as np
+from scipy import sparse
 
 from ._logging import logger, warn, verbose
 from .check import check_random_state, _ensure_int, _validate_type
+from .misc import _empty_hash
 from ..fixes import (
     _infer_dimension_,
     svd_flip,
@@ -209,7 +210,7 @@ def _gen_events(n_epochs):
 def _reject_data_segments(data, reject, flat, decim, info, tstep):
     """Reject data segments using peak-to-peak amplitude."""
     from ..epochs import _is_good
-    from ..io.pick import channel_indices_by_type
+    from .._fiff.pick import channel_indices_by_type
 
     data_clean = np.empty_like(data)
     idx_by_type = channel_indices_by_type(info)
@@ -250,9 +251,9 @@ def _reject_data_segments(data, reject, flat, decim, info, tstep):
 
 def _get_inst_data(inst):
     """Get data view from MNE object instance like Raw, Epochs or Evoked."""
-    from ..io.base import BaseRaw
+    from ..io import BaseRaw
     from ..epochs import BaseEpochs
-    from .. import Evoked
+    from ..evoked import Evoked
     from ..time_frequency.tfr import _BaseTFR
 
     _validate_type(inst, (BaseRaw, BaseEpochs, Evoked, _BaseTFR), "Instance")
@@ -418,10 +419,7 @@ def hashfunc(fname, block_size=1048576, hash_type="md5"):  # 2 ** 20
     hash_ : str
         The hexadecimal digest of the hash.
     """
-    if hash_type == "md5":
-        hasher = hashlib.md5()
-    elif hash_type == "sha1":
-        hasher = hashlib.sha1()
+    hasher = _empty_hash(kind=hash_type)
     with open(fname, "rb") as fid:
         while True:
             data = fid.read(block_size)
@@ -650,10 +648,8 @@ def object_hash(x, h=None):
     digest : int
         The digest resulting from the hash.
     """
-    from scipy import sparse
-
     if h is None:
-        h = hashlib.md5()
+        h = _empty_hash()
     if hasattr(x, "keys"):
         # dict-like types
         keys = _sort_keys(x)
@@ -707,8 +703,6 @@ def object_size(x, memo=None):
     size : int
         The estimated size in bytes of the object.
     """
-    from scipy import sparse
-
     # Note: this will not process object arrays properly (since those only)
     # hold references
     if memo is None:
@@ -783,8 +777,6 @@ def object_diff(a, b, pre="", *, allclose=False):
     diffs : str
         A string representation of the differences.
     """
-    from scipy import sparse
-
     out = ""
     if type(a) != type(b):
         # Deal with NamedInt and NamedFloat

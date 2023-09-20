@@ -1,6 +1,6 @@
 # requirements for building docs
 sphinx!=4.1.0,<6
-git+https://github.com/numpy/numpydoc.git@main
+numpydoc
 pydata_sphinx_theme==0.13.3
 git+https://github.com/sphinx-gallery/sphinx-gallery@master
 sphinxcontrib-bibtex>=2.5

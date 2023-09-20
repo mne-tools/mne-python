@@ -5,7 +5,7 @@ import pytest
 from mne.datasets import testing
 from mne import find_events, Epochs, pick_types
 from mne.io import read_raw_fif
-from mne.io.constants import FIFF
+from mne._fiff.constants import FIFF
 from mne.label import read_label
 from mne.minimum_norm import (
     read_inverse_operator,
@@ -139,7 +139,8 @@ def test_tfr_with_inverse_operator(method):
 @testing.requires_testing_data
 @pytest.mark.parametrize("method", INVERSE_METHODS)
 @pytest.mark.parametrize("pick_ori", (None, "normal"))  # XXX vector someday?
-def test_source_psd(method, pick_ori):
+@pytest.mark.parametrize("pca", (True, False))
+def test_source_psd(method, pick_ori, pca):
     """Test source PSD computation from raw."""
     raw = read_raw_fif(fname_data)
     raw.crop(0, 5).load_data()
@@ -160,6 +161,7 @@ def test_source_psd(method, pick_ori):
         n_fft=n_fft,
         overlap=0.0,
         return_sensor=True,
+        pca=pca,
         dB=True,
     )
 

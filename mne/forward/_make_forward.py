@@ -17,10 +17,11 @@ import os.path as op
 import numpy as np
 
 from ._compute_forward import _compute_forwards
-from ..io import read_info, _loc_to_coil_trans, _loc_to_eeg_loc, Info
-from ..io.compensator import get_current_comp, make_compensator
-from ..io.pick import _has_kit_refs, pick_types, pick_info
-from ..io.constants import FIFF, FWD
+from .._fiff.meas_info import read_info, Info
+from .._fiff.tag import _loc_to_coil_trans, _loc_to_eeg_loc
+from .._fiff.compensator import get_current_comp, make_compensator
+from .._fiff.pick import _has_kit_refs, pick_types, pick_info
+from .._fiff.constants import FIFF, FWD
 from ..transforms import (
     _ensure_trans,
     transform_surface_to,
@@ -32,7 +33,7 @@ from ..transforms import (
     invert_transform,
 )
 from ..utils import logger, verbose, warn, _pl, _validate_type, _check_fname
-from ..source_space import (
+from ..source_space._source_space import (
     _ensure_src,
     _filter_source_spaces,
     _make_discrete_source_space,
@@ -624,7 +625,7 @@ def make_forward_solution(
             Support for ``'fsaverage'`` argument.
     src : path-like | instance of SourceSpaces
         Either a path to a source space file or a loaded or generated
-        `~mne.source_space.SourceSpaces`.
+        :class:`~mne.SourceSpaces`.
     bem : path-like | dict
         Filename of the BEM (e.g., ``"sample-5120-5120-5120-bem-sol.fif"``) to
         use, or a loaded sphere model (dict).
@@ -847,7 +848,7 @@ def make_forward_dipole(dipole, bem, info, trans=None, n_jobs=None, *, verbose=N
     data = np.zeros((len(amplitude), len(timepoints)))  # (n_d, n_t)
     row = 0
     for tpind, tp in enumerate(timepoints):
-        amp = amplitude[np.in1d(times, tp)]
+        amp = amplitude[np.isin(times, tp)]
         data[row : row + len(amp), tpind] = amp
         row += len(amp)
 

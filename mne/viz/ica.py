@@ -11,6 +11,7 @@ from functools import partial
 import warnings
 
 import numpy as np
+from scipy.stats import gaussian_kde
 
 from .utils import (
     tight_layout,
@@ -20,17 +21,21 @@ from .utils import (
     _convert_psds,
     _compute_scalings,
     _handle_precompute,
+    _get_plot_ch_type,
 )
 from .topomap import _plot_ica_topomap
 from .epochs import plot_epochs_image
 from .evoked import _butterfly_on_button_press, _butterfly_onpick
-from ..channels.channels import _get_ch_type
-from ..utils import _validate_type, fill_doc
+from ..utils import (
+    _validate_type,
+    fill_doc,
+    _reject_data_segments,
+    verbose,
+)
 from ..defaults import _handle_default, DEFAULTS
-from ..io.meas_info import create_info
-from ..io.pick import pick_types, _picks_to_idx
-from ..io.proj import _has_eeg_average_ref_proj
-from ..utils import _reject_data_segments, verbose
+from .._fiff.meas_info import create_info
+from .._fiff.pick import pick_types, _picks_to_idx
+from .._fiff.proj import _has_eeg_average_ref_proj
 
 
 @fill_doc
@@ -110,7 +115,7 @@ def plot_ica_sources(
 
     .. versionadded:: 0.10.0
     """
-    from ..io.base import BaseRaw
+    from ..io import BaseRaw
     from ..evoked import Evoked
     from ..epochs import BaseEpochs
 
@@ -202,7 +207,6 @@ def _plot_ica_properties(
 ):
     """Plot ICA properties (helper)."""
     from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
-    from scipy.stats import gaussian_kde
 
     topo_ax, image_ax, erp_ax, spec_ax, var_ax = axes
 
@@ -210,7 +214,11 @@ def _plot_ica_properties(
     # --------
     # component topomap
     _plot_ica_topomap(ica, pick, show=False, axes=topo_ax, **topomap_args)
-    topo_ax._ch_type = _get_ch_type(ica, ch_type=None, allow_ref_meg=ica.allow_ref_meg)
+    topo_ax._ch_type = _get_plot_ch_type(
+        ica,
+        ch_type=None,
+        allow_ref_meg=ica.allow_ref_meg,
+    )
 
     # image and erp
     # we create a new epoch with dropped rows
@@ -687,8 +695,7 @@ def _prepare_data_ica_properties(inst, ica, reject_by_annotation=True, reject="a
     data : array of shape (n_epochs, n_ica_sources, n_times)
         A view on epochs ICA sources data.
     """
-    from ..io.base import BaseRaw
-    from ..io import RawArray
+    from ..io import BaseRaw, RawArray
     from ..epochs import BaseEpochs
 
     _validate_type(inst, (BaseRaw, BaseEpochs), "inst", "Raw or Epochs")
@@ -1067,7 +1074,7 @@ def plot_ica_overlay(
         The figure.
     """
     # avoid circular imports
-    from ..io.base import BaseRaw
+    from ..io import BaseRaw
     from ..evoked import Evoked
     from ..preprocessing.ica import _check_start_stop
 
@@ -1109,7 +1116,7 @@ def plot_ica_overlay(
         if picks is not None:
             with inst.info._unlock():
                 inst.info["comps"] = []  # can be safely disabled
-            inst.pick_channels([inst.ch_names[p] for p in picks])
+            inst.pick([inst.ch_names[p] for p in picks])
         evoked_cln = ica.apply(
             inst.copy(),
             exclude=exclude,
@@ -1270,7 +1277,7 @@ def _plot_sources(
 ):
     """Plot the ICA components as a RawArray or EpochsArray."""
     from ._figure import _get_browser
-    from .. import EpochsArray, BaseEpochs
+    from ..epochs import EpochsArray, BaseEpochs
     from ..io import RawArray, BaseRaw
 
     # handle defaults / check arg validity

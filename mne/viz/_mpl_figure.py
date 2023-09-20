@@ -47,18 +47,17 @@ import numpy as np
 from matplotlib import get_backend
 from matplotlib.figure import Figure
 
-from .. import channel_indices_by_type, pick_types
 from ..fixes import _close_event
-from ..annotations import _sync_onset
-from ..io.pick import (
+from .._fiff.pick import (
     _DATA_CH_TYPES_ORDER_DEFAULT,
     _DATA_CH_TYPES_SPLIT,
     _FNIRS_CH_TYPES_SPLIT,
     _EYETRACK_CH_TYPES_SPLIT,
     _VALID_CHANNEL_TYPES,
+    channel_indices_by_type,
+    pick_types,
 )
-from ..utils import Bunch, _click_ch_name, logger
-from . import plot_sensors
+from ..utils import Bunch, _click_ch_name, logger, check_version
 from ._figure import BrowserBase
 from .utils import (
     DraggableLine,
@@ -71,7 +70,7 @@ from .utils import (
     _validate_if_list_of_axes,
     plt_show,
     _fake_scroll,
-    check_version,
+    plot_sensors,
 )
 
 name = "matplotlib"
@@ -81,6 +80,9 @@ with plt.ion():
 #   https://github.com/matplotlib/matplotlib/issues/23298
 #   but wrapping it in ion() context makes it go away.
 #   Moving this bit to a separate function in ../../fixes.py doesn't work.
+#
+#   TODO: Once we require matplotlib 3.6 we should be able to remove this.
+#   It also causes some problems... see mne/viz/utils.py:plt_show() for details.
 
 # CONSTANTS (inches)
 ANNOTATION_FIG_PAD = 0.1
@@ -331,7 +333,7 @@ class MNESelectionFigure(MNEFigure):
         if not len(chs):
             return
         labels = [label.get_text() for label in buttons.labels]
-        inds = np.in1d(parent.mne.ch_names, chs)
+        inds = np.isin(parent.mne.ch_names, chs)
         parent.mne.ch_selections["Custom"] = inds.nonzero()[0]
         buttons.set_active(labels.index("Custom"))
 
@@ -789,6 +791,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
     def _buttonpress(self, event):
         """Handle mouse clicks."""
         from matplotlib.collections import PolyCollection
+        from ..annotations import _sync_onset
 
         butterfly = self.mne.butterfly
         annotating = self.mne.fig_annotation is not None
@@ -1057,21 +1060,13 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         instructions_ax = div.append_axes(
             position="top", size=Fixed(1), pad=Fixed(5 * ANNOTATION_FIG_PAD)
         )
-        # XXX when we support a newer matplotlib (something >3.0) the
-        # instructions can have inline bold formatting:
-        # instructions = '\n'.join(
-        #     [r'$\mathbf{Left‐click~&~drag~on~plot:}$ create/modify annotation',  # noqa E501
-        #      r'$\mathbf{Right‐click~on~plot~annotation:}$ delete annotation',
-        #      r'$\mathbf{Type~in~annotation~window:}$ modify new label name',
-        #      r'$\mathbf{Enter~(or~click~button):}$ add new label to list',
-        #      r'$\mathbf{Esc:}$ exit annotation mode & close this window'])
         instructions = "\n".join(
             [
-                "Left click & drag on plot: create/modify annotation",
-                "Right click on annotation highlight: delete annotation",
-                "Type in this window: modify new label name",
-                "Enter (or click button): add new label to list",
-                "Esc: exit annotation mode & close this dialog window",
+                r"$\mathbf{Left‐click~&~drag~on~plot:}$ create/modify annotation",
+                r"$\mathbf{Right‐click~on~plot~annotation:}$ delete annotation",
+                r"$\mathbf{Type~in~annotation~window:}$ modify new label name",
+                r"$\mathbf{Enter~(or~click~button):}$ add new label to list",
+                r"$\mathbf{Esc:}$ exit annotation mode & close this window",
             ]
         )
         instructions_ax.text(
@@ -1138,15 +1133,13 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         else:
             col = self.mne.annotation_segment_colors[self._get_annotation_labels()[0]]
 
-        # TODO: we would like useblit=True here, but it behaves oddly when the
-        # first span is dragged (subsequent spans seem to work OK)
         rect_kw = _prop_kw("rect", dict(alpha=0.5, facecolor=col))
         selector = SpanSelector(
             self.mne.ax_main,
             self._select_annotation_span,
             "horizontal",
             minspan=0.1,
-            useblit=False,
+            useblit=True,
             button=1,
             **rect_kw,
         )
@@ -1336,11 +1329,19 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
 
     def _select_annotation_span(self, vmin, vmax):
         """Handle annotation span selector."""
+        from ..annotations import _sync_onset
+
         onset = _sync_onset(self.mne.inst, vmin, True) - self.mne.first_time
         duration = vmax - vmin
         buttons = self.mne.fig_annotation.mne.radio_ax.buttons
-        labels = [label.get_text() for label in buttons.labels]
-        if buttons.value_selected is not None:
+        if buttons is None or buttons.value_selected is None:
+            logger.warning(
+                "No annotation-label exists! "
+                "Add one by typing the name and clicking "
+                'on "Add new label" in the annotation-dialog.'
+            )
+        else:
+            labels = [label.get_text() for label in buttons.labels]
             active_idx = labels.index(buttons.value_selected)
             _merge_annotations(
                 onset, onset + duration, labels[active_idx], self.mne.inst.annotations
@@ -1349,12 +1350,6 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
             if not self.mne.visible_annotations[buttons.value_selected]:
                 self.mne.show_hide_annotation_checkboxes.set_active(active_idx)
             self._redraw(update_data=False, annotations=True)
-        else:
-            logger.warning(
-                "No annotation-label exists! "
-                "Add one by typing the name and clicking "
-                'on "Add new label" in the annotation-dialog.'
-            )
 
     def _remove_annotation_hover_line(self):
         """Remove annotation line from the plot and reactivate selector."""
@@ -1366,6 +1361,8 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
 
     def _modify_annotation(self, old_x, new_x):
         """Modify annotation."""
+        from ..annotations import _sync_onset
+
         segment = np.array(np.where(self.mne.annotation_segments == old_x))
         if segment.shape[1] == 0:
             return
@@ -1548,7 +1545,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
 
     def _update_highlighted_sensors(self):
         """Update the sensor plot to show what is selected."""
-        inds = np.in1d(
+        inds = np.isin(
             self.mne.fig_selection.lasso.ch_names, self.mne.ch_names[self.mne.picks]
         ).nonzero()[0]
         self.mne.fig_selection.lasso.select_many(inds)
@@ -1561,7 +1558,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         for this_type in _DATA_CH_TYPES_SPLIT:
             if this_type in self.mne.ch_types:
                 sensor_picks.extend(ch_indices[this_type])
-        sensor_idx = np.in1d(sensor_picks, pick).nonzero()[0]
+        sensor_idx = np.isin(sensor_picks, pick).nonzero()[0]
         # change the sensor color
         fig = self.mne.fig_selection
         fig.lasso.ec[sensor_idx, 0] = float(mark_bad)  # change R of RGBA array
@@ -1873,7 +1870,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         if self.mne.butterfly and self.mne.fig_selection is not None:
             exclude = ("Vertex", "Custom")
             ticklabels = list(self.mne.ch_selections)
-            keep_mask = np.in1d(ticklabels, exclude, invert=True)
+            keep_mask = np.isin(ticklabels, exclude, invert=True)
             ticklabels = [
                 t.replace("Left-", "L-").replace("Right-", "R-") for t in ticklabels
             ]  # avoid having to rotate labels
@@ -2006,7 +2003,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
             else slice(None)
         )
         offsets = self.mne.trace_offsets[offset_ixs]
-        bad_bool = np.in1d(ch_names, self.mne.info["bads"])
+        bad_bool = np.isin(ch_names, self.mne.info["bads"])
         # colors
         good_ch_colors = [self.mne.ch_color_dict[_type] for _type in ch_types]
         ch_colors = to_rgba_array(
@@ -2025,7 +2022,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
                 label.set_color(color)
         # decim
         decim = np.ones_like(picks)
-        data_picks_mask = np.in1d(picks, self.mne.picks_data)
+        data_picks_mask = np.isin(picks, self.mne.picks_data)
         decim[data_picks_mask] = self.mne.decim
         # decim can vary by channel type, so compute different `times` vectors
         decim_times = {
@@ -2052,7 +2049,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
             epoch_ix = np.searchsorted(self.mne.boundary_times, time_range)
             epoch_ix = np.arange(epoch_ix[0], epoch_ix[1])
             epoch_nums = self.mne.inst.selection[epoch_ix[0] : epoch_ix[-1] + 1]
-            (visible_bad_epoch_ix,) = np.in1d(epoch_nums, self.mne.bad_epochs).nonzero()
+            (visible_bad_epoch_ix,) = np.isin(epoch_nums, self.mne.bad_epochs).nonzero()
             while len(self.mne.epoch_traces):
                 self.mne.epoch_traces.pop(-1).remove()
             # handle custom epoch colors (for autoreject integration)

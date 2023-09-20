@@ -7,9 +7,9 @@ import numpy as np
 from mne.datasets.testing import data_path, requires_testing_data
 from mne.io import read_raw_eyelink
 from mne.io.tests.test_raw import _test_raw_reader
-from mne.io.constants import FIFF
-from mne.io.eyelink.eyelink import _adjust_times, _find_overlaps
-from mne.io.pick import _DATA_CH_TYPES_SPLIT
+from mne._fiff.constants import FIFF
+from mne.io.eyelink._utils import _adjust_times, _find_overlaps
+from mne._fiff.pick import _DATA_CH_TYPES_SPLIT
 
 pd = pytest.importorskip("pandas")
 
@@ -209,6 +209,8 @@ def _simulate_eye_tracking_data(in_file, out_file):
                     tokens[4:4] = ["100", "20", "45", "45", "127.0"]  # vel, res, DIN
                     tokens.extend(["1497.0", "5189.0", "512.5", "............."])
                 elif event_type in ("EFIX", "ESACC"):
+                    if event_type == "ESACC":
+                        tokens[5:7] = [".", "."]  # pretend start pos is unknown
                     tokens.extend(["45", "45"])  # resolution
                 elif event_type == "SAMPLES":
                     tokens[1] = "PUPIL"  # simulate raw coordinate data
@@ -279,9 +281,8 @@ def test_multi_block_misc_channels(fname, tmp_path):
     assert np.isnan(data[0, np.logical_and(times > 1, times <= 1.1)]).all()
 
 
-@pytest.mark.xfail(reason="Attributes and test_preloading fail")
 @requires_testing_data
 @pytest.mark.parametrize("this_fname", (fname, fname_href))
 def test_basics(this_fname):
     """Test basics of reading."""
-    _test_raw_reader(read_raw_eyelink, fname=this_fname)
+    _test_raw_reader(read_raw_eyelink, fname=this_fname, test_preloading=False)

@@ -22,6 +22,7 @@ import matplotlib.pyplot as plt
 
 from mne import (
     Epochs,
+    Info,
     read_events,
     pick_types,
     create_info,
@@ -45,8 +46,8 @@ from mne.preprocessing.ica import (
     _ica_explained_variance,
     read_ica_eeglab,
 )
-from mne.io import read_raw_fif, Info, RawArray, read_raw_ctf, read_raw_eeglab
-from mne.io.pick import _DATA_CH_TYPES_SPLIT, get_channel_type_constants
+from mne.io import read_raw_fif, RawArray, read_raw_ctf, read_raw_eeglab
+from mne._fiff.pick import _DATA_CH_TYPES_SPLIT, get_channel_type_constants
 from mne.io.eeglab.eeglab import _check_load_mat
 from mne.rank import _compute_rank_int
 from mne.utils import catch_logging, _record_warnings, check_version
@@ -345,19 +346,28 @@ def test_ica_rank_reduction(method):
 @pytest.mark.parametrize("n_pca_components", (None, 0.999999))
 @pytest.mark.parametrize("proj", (True, False))
 @pytest.mark.parametrize("cov", (False, True))
-@pytest.mark.parametrize("meg", ("mag", True, False))
-@pytest.mark.parametrize("eeg", (False, True))
-def test_ica_projs(n_pca_components, proj, cov, meg, eeg):
+@pytest.mark.parametrize(
+    "picks",
+    (
+        [],
+        ["mag"],
+        ["meg"],
+        ["eeg"],
+        ["eeg", "mag"],
+        ["eeg", "meg"],
+    ),
+)
+def test_ica_projs(n_pca_components, proj, cov, picks):
     """Test that ICA handles projections properly."""
     if cov and not proj:  # proj is always done with cov
         return
-    if not meg and not eeg:  # no channels
+    if not len(picks):  # no channels
         return
-    raw = read_raw_fif(raw_fname).crop(0.5, stop).pick_types(meg=meg, eeg=eeg)
+    raw = read_raw_fif(raw_fname).crop(0.5, stop).pick(picks)
     raw.pick(np.arange(0, len(raw.ch_names), 5))  # just for speed
     raw.info.normalize_proj()
     assert 10 < len(raw.ch_names) < 75
-    if eeg:
+    if "eeg" in picks:
         raw.set_eeg_reference(projection=True)
     raw.load_data()
     raw._data -= raw._data.mean(-1, keepdims=True)
@@ -365,7 +375,7 @@ def test_ica_projs(n_pca_components, proj, cov, meg, eeg):
     assert len(raw.info["projs"]) > 0
     assert not raw.proj
     raw_fit = raw.copy()
-    kwargs = dict(atol=1e-12 if eeg else 1e-20, rtol=1e-8)
+    kwargs = dict(atol=1e-12 if "eeg" in picks else 1e-20, rtol=1e-8)
     if proj:
         raw_fit.apply_proj()
     fit_data = raw_fit.get_data()
@@ -588,10 +598,9 @@ def test_ica_core(method, n_components, noise_cov, n_pca_components, browser_bac
 def short_raw_epochs():
     """Get small data."""
     raw = read_raw_fif(raw_fname).crop(0, 5).load_data()
-    raw.pick_channels(
-        set(raw.ch_names[::10]) | set(["EOG 061", "MEG 1531", "MEG 1441", "MEG 0121"]),
-        ordered=False,
-    )
+    # some gymnastics here because tests fail if the channels get out of order...
+    picks = raw.ch_names[::10] + ["EOG 061", "MEG 1531", "MEG 1441", "MEG 0121"]
+    raw.pick(list(filter(lambda ch: ch in picks, raw.ch_names)))
     assert "eog" in raw
     raw.del_proj()  # avoid warnings
     raw.set_annotations(Annotations([0.5], [0.5], ["BAD"]))
@@ -1002,7 +1011,7 @@ def test_ica_additional(method, tmp_path, short_raw_epochs):
 
     # test passing picks including the marked bad channels
     raw_ = raw.copy()
-    raw_.pick_types(eeg=True)
+    raw_.pick("eeg")
     raw_.info["bads"] = [raw_.ch_names[0]]
     picks = pick_types(raw_.info, eeg=True, exclude=[])
     ica = ICA(n_components=0.99, max_iter="auto")
@@ -1235,7 +1244,7 @@ def test_fit_params_epochs_vs_raw(param_name, param_val, tmp_path):
     n_components = 3
     max_iter = 1
 
-    raw = read_raw_fif(raw_fname).pick_types(meg=False, eeg=True)
+    raw = read_raw_fif(raw_fname).pick("eeg")
     events = read_events(event_name)
     reject = param_val if param_name == "reject" else None
     epochs = Epochs(raw, events=events, reject=reject)
@@ -1427,7 +1436,7 @@ def test_ica_labels():
     # The CTF data are uniquely well suited to testing the ICA.find_bads_
     # methods
     raw = read_raw_ctf(ctf_fname, preload=True)
-    raw.pick_channels(raw.ch_names[:300:10] + raw.ch_names[300:])
+    raw.pick(raw.ch_names[:300:10] + raw.ch_names[300:])
 
     # set the appropriate EEG channels to EOG and ECG
     rename = {"EEG057": "eog", "EEG058": "eog", "EEG059": "ecg"}
@@ -1461,7 +1470,7 @@ def test_ica_labels():
     # derive reference ICA components and append them to raw
     ica_rf = ICA(n_components=2, max_iter=2, allow_ref_meg=True)
     with pytest.warns(UserWarning, match="did not converge"):
-        ica_rf.fit(raw.copy().pick_types(meg=False, ref_meg=True))
+        ica_rf.fit(raw.copy().pick("ref_meg"))
     icacomps = ica_rf.get_sources(raw)
     # rename components so they are auto-detected by find_bads_ref
     icacomps.rename_channels({c: "REF_" + c for c in icacomps.ch_names})

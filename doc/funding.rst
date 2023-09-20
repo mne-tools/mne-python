@@ -65,5 +65,3 @@ institutions include:
 .. |goo| image:: _static/funding/google.svg
 .. |ama| image:: _static/funding/amazon.svg
 .. |czi| image:: _static/funding/czi.svg
-
-.. include:: links.inc

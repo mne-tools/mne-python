@@ -3,7 +3,7 @@
 #
 # License: BSD-3-Clause
 
-from functools import partial, wraps
+from functools import wraps
 import os
 import inspect
 from io import StringIO
@@ -15,9 +15,11 @@ from unittest import SkipTest
 
 import numpy as np
 from numpy.testing import assert_array_equal, assert_allclose
+from scipy import linalg
 
 from ._logging import warn, ClosingStringIO
 from .check import check_version
+from .misc import run_subprocess
 from .numerics import object_diff
 
 
@@ -54,33 +56,9 @@ class _TempDir(str):
         rmtree(self._path, ignore_errors=True)
 
 
-def _requires_module(function, name, *, call):
-    import pytest
-
-    call = ("import %s" % name) if call is None else call
-    reason = "Test %s skipped, requires %s." % (function.__name__, name)
-    try:
-        exec(call) in globals(), locals()
-    except Exception as exc:
-        if len(str(exc)) > 0 and str(exc) != "No module named %s" % name:
-            reason += " Got exception (%s)" % (exc,)
-        skip = True
-    else:
-        skip = False
-    return pytest.mark.skipif(skip, reason=reason)(function)
-
-
-_mne_call = """
-if not has_mne_c():
-    raise ImportError
-"""
-
-_fs_call = """
-if not has_freesurfer():
-    raise ImportError
-"""
-
-requires_mne = partial(_requires_module, name="MNE-C", call=_mne_call)
+def requires_mne(func):
+    """Decorate a function as requiring MNE."""
+    return requires_mne_mark()(func)
 
 
 def requires_mne_mark():
@@ -101,73 +79,35 @@ def requires_openmeeg_mark():
 
 def requires_freesurfer(arg):
     """Require Freesurfer."""
+    import pytest
+
+    reason = "Requires Freesurfer"
     if isinstance(arg, str):
         # Calling as  @requires_freesurfer('progname'): return decorator
         # after checking for progname existence
-        call = """
-from . import run_subprocess
-run_subprocess([%r, '--version'])
-""" % (
-            arg,
-        )
-        return partial(_requires_module, name="Freesurfer (%s)" % (arg,), call=call)
+        reason += f" command: {arg}"
+        try:
+            run_subprocess([arg, "--version"])
+        except Exception:
+            skip = True
+        else:
+            skip = False
+        return pytest.mark.skipif(skip, reason=reason)
     else:
         # Calling directly as @requires_freesurfer: return decorated function
         # and just check env var existence
-        return _requires_module(arg, name="Freesurfer", call=_fs_call)
+        return pytest.mark.skipif(not has_freesurfer(), reason="Requires Freesurfer")(
+            arg
+        )
 
 
-requires_good_network = partial(
-    _requires_module,
-    name="good network connection",
-    call='if int(os.environ.get("MNE_SKIP_NETWORK_TESTS", 0)):\n'
-    "    raise ImportError",
-)
-
-
-# %%
-# Deprecated
-def requires_version(library, min_version="0.0"):
-    """Check for a library version."""
-    warn(
-        f"requires_version({repr(library)}, min_version={repr(min_version)}) "
-        "is deprecated and will be removed in 1.6, use pytest.importorskip("
-        f"{repr(library)}, minversion={repr(min_version)}) instead",
-        FutureWarning,
-    )
+def requires_good_network(func):
     import pytest
 
-    reason = f"Requires {library}"
-    if min_version != "0.0":
-        reason += f" version >= {min_version}"
-    return pytest.mark.skipif(not check_version(library, min_version), reason=reason)
-
-
-def requires_module(function, name, call=None):
-    """Skip a test if package is not available (decorator)."""
-    msg = f"@requires_module({repr(name)}) is deprecated and will be removed " f"in 1.6"
-    if call is None:
-        msg += f" use pytest.importorskip({repr(name)}) instead"
-    else:
-        msg += f" use pytest.mark.skipif instead with the condition:\n\n{call}\n"
-    warn(msg, FutureWarning)
-    return _requires_module(function, name, call=call)
-
-
-_n2ft_call = """
-if 'NEUROMAG2FT_ROOT' not in os.environ:
-    raise ImportError
-"""
-requires_pandas = partial(requires_module, name="pandas")
-requires_pylsl = partial(requires_module, name="pylsl")
-requires_sklearn = partial(requires_module, name="sklearn")
-requires_mne_qt_browser = partial(requires_module, name="mne_qt_browser")
-requires_neuromag2ft = partial(requires_module, name="neuromag2ft", call=_n2ft_call)
-requires_nitime = partial(requires_module, name="nitime")
-requires_h5py = partial(requires_module, name="h5py")
-requires_numpydoc = partial(requires_version, "numpydoc", "1.0")
-
-# %% End deprecated
+    return pytest.mark.skipif(
+        int(os.environ.get("MNE_SKIP_NETWORK_TESTS", 0)),
+        reason="MNE_SKIP_NETWORK_TESTS is set",
+    )(func)
 
 
 def run_command_if_main():
@@ -246,7 +186,7 @@ def buggy_mkl_svd(function):
 
 def assert_and_remove_boundary_annot(annotations, n=1):
     """Assert that there are boundary annotations and remove them."""
-    from ..io.base import BaseRaw
+    from ..io import BaseRaw
 
     if isinstance(annotations, BaseRaw):  # allow either input
         annotations = annotations.annotations
@@ -263,8 +203,8 @@ def assert_object_equal(a, b):
 
 
 def _raw_annot(meas_date, orig_time):
-    from .. import Annotations, create_info
-    from ..annotations import _handle_meas_date
+    from .._fiff.meas_info import create_info
+    from ..annotations import Annotations, _handle_meas_date
     from ..io import RawArray
 
     info = create_info(ch_names=10, sfreq=10.0)
@@ -322,7 +262,7 @@ def assert_meg_snr(
     Mostly useful for operations like Maxwell filtering that modify
     MEG channels while leaving EEG and others intact.
     """
-    from ..io.pick import pick_types
+    from .._fiff.pick import pick_types
 
     picks = pick_types(desired.info, meg=True, exclude=[])
     picks_desired = pick_types(desired.info, meg=True, exclude=[])
@@ -353,8 +293,6 @@ def assert_meg_snr(
 
 def assert_snr(actual, desired, tol):
     """Assert actual and desired arrays are within some SNR tolerance."""
-    from scipy import linalg
-
     with np.errstate(divide="ignore"):  # allow infinite
         snr = linalg.norm(desired, ord="fro") / linalg.norm(desired - actual, ord="fro")
     assert snr >= tol, "%f < %f" % (snr, tol)
@@ -378,8 +316,8 @@ def _dig_sort_key(dig):
 def assert_dig_allclose(info_py, info_bin, limit=None):
     """Assert dig allclose."""
     from ..bem import fit_sphere_to_headshape
-    from ..io.constants import FIFF
-    from ..io.meas_info import Info
+    from .._fiff.constants import FIFF
+    from .._fiff.meas_info import Info
     from ..channels.montage import DigMontage
 
     # test dig positions

@@ -9,9 +9,8 @@ import numpy as np
 from gzip import GzipFile
 from pathlib import Path
 
-from .bem import _bem_find_surface, read_bem_surfaces
-from .io.constants import FIFF
-from .io.meas_info import read_fiducials
+from ._fiff.constants import FIFF
+from ._fiff.meas_info import read_fiducials
 from .transforms import (
     apply_trans,
     invert_transform,
@@ -250,7 +249,7 @@ def get_volume_labels_from_aseg(mgz_fname, return_colors=False, atlas_ids=None):
     elif return_colors:
         raise ValueError("return_colors must be False if atlas_ids are " "provided")
     # restrict to the ones in the MRI, sorted by label name
-    keep = np.in1d(list(atlas_ids.values()), want)
+    keep = np.isin(list(atlas_ids.values()), want)
     keys = sorted(
         (key for ki, key in enumerate(atlas_ids.keys()) if keep[ki]),
         key=lambda x: atlas_ids[x],
@@ -756,6 +755,8 @@ def _get_head_surface(surf, subject, subjects_dir, bem=None, verbose=None):
     -----
     .. versionadded: 0.24
     """
+    from .bem import _bem_find_surface, read_bem_surfaces
+
     _check_option("surf", surf, ("auto", "head", "outer_skin", "head-dense", "seghead"))
     if surf in ("auto", "head", "outer_skin"):
         if bem is not None:
@@ -827,6 +828,8 @@ def _get_skull_surface(surf, subject, subjects_dir, bem=None, verbose=None):
     -----
     .. versionadded: 0.24
     """
+    from .bem import _bem_find_surface
+
     if bem is not None:
         try:
             return _bem_find_surface(bem, surf + "_skull")

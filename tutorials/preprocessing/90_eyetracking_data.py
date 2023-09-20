@@ -35,7 +35,7 @@ from mne.preprocessing.eyetracking import read_eyelink_calibration
 et_fpath = data_path() / "sub-01_task-plr_eyetrack.asc"
 eeg_fpath = data_path() / "sub-01_task-plr_eeg.mff"
 
-raw_et = mne.io.read_raw_eyelink(et_fpath, preload=True, create_annotations=["blinks"])
+raw_et = mne.io.read_raw_eyelink(et_fpath, create_annotations=["blinks"])
 raw_eeg = mne.io.read_raw_egi(eeg_fpath, preload=True, verbose="warning")
 raw_eeg.filter(1, 30)
 
@@ -181,6 +181,7 @@ raw_et.add_channels([raw_eeg], force_update_info=True)
 frontal = ["E19", "E11", "E4", "E12", "E5"]
 occipital = ["E61", "E62", "E78", "E67", "E72", "E77"]
 pupil = ["pupil_right"]
+# picks must be numeric (not string) when passed to `raw.plot(..., order=)`
 picks_idx = mne.pick_channels(
     raw_et.ch_names, frontal + occipital + pupil, ordered=True
 )
@@ -193,14 +194,7 @@ raw_et.plot(events=et_events, event_id=event_dict, event_color="g", order=picks_
 # Now let's extract epochs around our flash events. We should see a clear pupil
 # constriction response to the flashes.
 
-epochs = mne.Epochs(
-    raw_et,
-    events=et_events,
-    event_id=event_dict,
-    tmin=-0.3,
-    tmax=3,
-    preload=True,
-)
+epochs = mne.Epochs(raw_et, events=et_events, event_id=event_dict, tmin=-0.3, tmax=3)
 epochs[:8].plot(events=et_events, event_id=event_dict, order=picks_idx)
 
 # %%

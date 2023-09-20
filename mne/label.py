@@ -12,6 +12,7 @@ import os.path as op
 import re
 
 import numpy as np
+from scipy import linalg, sparse
 
 from .fixes import _safe_svd
 from .morph_map import read_morph_map
@@ -23,7 +24,11 @@ from .source_estimate import (
     extract_label_time_course,
     spatial_src_adjacency,
 )
-from .source_space import add_source_space_distances, SourceSpaces, _ensure_src
+from .source_space._source_space import (
+    add_source_space_distances,
+    SourceSpaces,
+    _ensure_src,
+)
 from .stats.cluster_level import _find_clusters, _get_components
 from .surface import (
     complete_surface_info,
@@ -409,7 +414,7 @@ class Label:
                 )
 
         if self.hemi == other.hemi:
-            keep = np.in1d(self.vertices, other.vertices, True, invert=True)
+            keep = np.isin(self.vertices, other.vertices, True, invert=True)
         else:
             keep = np.arange(len(self.vertices))
 
@@ -482,7 +487,7 @@ class Label:
             return self.copy()
         hemi_src = _get_label_src(self, src)
 
-        if not np.all(np.in1d(self.vertices, hemi_src["vertno"])):
+        if not np.all(np.isin(self.vertices, hemi_src["vertno"])):
             msg = "Source space does not contain all of the label's vertices"
             raise ValueError(msg)
 
@@ -498,7 +503,7 @@ class Label:
         nearest = hemi_src["nearest"]
 
         # find new vertices
-        include = np.in1d(nearest, self.vertices, False)
+        include = np.isin(nearest, self.vertices, False)
         vertices = np.nonzero(include)[0]
 
         # values
@@ -547,7 +552,7 @@ class Label:
         if len(self.vertices) == 0:
             return self.copy()
         hemi_src = _get_label_src(self, src)
-        mask = np.in1d(self.vertices, hemi_src["vertno"])
+        mask = np.isin(self.vertices, hemi_src["vertno"])
         name = self.name if name is None else name
         label = Label(
             self.vertices[mask],
@@ -779,7 +784,7 @@ class Label:
         if vertices is None:
             vertices = np.arange(10242)
 
-        label_verts = vertices[np.in1d(vertices, self.vertices)]
+        label_verts = vertices[np.isin(vertices, self.vertices)]
         return label_verts
 
     def get_tris(self, tris, vertices=None):
@@ -800,7 +805,7 @@ class Label:
             The subset of tris used by the label.
         """
         vertices_ = self.get_vertices_used(vertices)
-        selection = np.all(np.in1d(tris, vertices_).reshape(tris.shape), axis=1)
+        selection = np.all(np.isin(tris, vertices_).reshape(tris.shape), axis=1)
         label_tris = tris[selection]
         if len(np.unique(label_tris)) < len(vertices_):
             logger.info("Surprising label structure. Trying to repair " "triangles.")
@@ -913,8 +918,6 @@ class Label:
 
         .. versionadded:: 0.24
         """
-        from scipy.sparse.csgraph import dijkstra
-
         rr, tris = self._load_surface(subject, subjects_dir, surface)
         adjacency = mesh_dist(tris, rr)
         mask = np.zeros(len(rr))
@@ -922,7 +925,7 @@ class Label:
         border_vert = _mesh_borders(tris, mask)
         # vertices on the edge
         outside_vert = np.setdiff1d(border_vert, self.vertices)
-        dist, _, outside = dijkstra(
+        dist, _, outside = sparse.csgraph.dijkstra(
             adjacency, indices=outside_vert, min_only=True, return_predecessors=True
         )
         dist = dist[self.vertices] * 1e-3  # mm to m
@@ -957,7 +960,7 @@ class Label:
         complete_surface_info(
             surf, do_neighbor_vert=False, do_neighbor_tri=False, copy=False
         )
-        in_ = np.in1d(surf["tris"], self.vertices).reshape(surf["tris"].shape)
+        in_ = np.isin(surf["tris"], self.vertices).reshape(surf["tris"].shape)
         tidx = np.where(in_.all(-1))[0]
         if len(tidx) == 0:
             warn("No complete triangles found, perhaps label is not filled?")
@@ -1307,7 +1310,7 @@ def _split_label_contig(label_to_split, subject=None, subjects_dir=None):
     for div, name, color in zip(label_divs, names, colors):
         # Get indices of dipoles within this division of the label
         verts = np.array(sorted(list(div)), int)
-        vert_indices = np.in1d(verts_arr, verts, assume_unique=True)
+        vert_indices = np.isin(verts_arr, verts, assume_unique=True)
 
         # Set label attributes
         pos = label_to_split.pos[vert_indices]
@@ -1353,8 +1356,6 @@ def split_label(label, parts=2, subject=None, subjects_dir=None, freesurfer=Fals
     projecting all label vertex coordinates onto this axis and dividing them at
     regular spatial intervals.
     """
-    from scipy import linalg
-
     label, subject, subjects_dir = _prep_label_split(label, subject, subjects_dir)
 
     # find the parts
@@ -1644,7 +1645,7 @@ def stc_to_label(
 
 
 def _verts_within_dist(graph, sources, max_dist):
-    """Find all vertices wihin a maximum geodesic distance from source.
+    """Find all vertices within a maximum geodesic distance from source.
 
     Parameters
     ----------
@@ -2455,7 +2456,7 @@ def morph_labels(
     values = filename = None
     for label in labels:
         li = dict(lh=0, rh=1)[label.hemi]
-        vertices = np.where(np.in1d(idxs[li], label.vertices))[0]
+        vertices = np.where(np.isin(idxs[li], label.vertices))[0]
         pos = vert_poss[li][vertices]
         out_labels.append(
             Label(
@@ -2558,8 +2559,6 @@ def _check_values_labels(values, n_labels):
 
 
 def _labels_to_stc_surf(labels, values, tmin, tstep, subject):
-    from scipy import sparse
-
     subject = _check_labels_subject(labels, subject, "subject")
     _check_values_labels(values, len(labels))
     vertices = dict(lh=[], rh=[])

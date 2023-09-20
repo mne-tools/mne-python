@@ -15,7 +15,7 @@ import pytest
 import datetime
 from mne.utils import _stamp_to_dt, object_diff
 from mne import pick_types, read_annotations, concatenate_raws
-from mne.io.constants import FIFF
+from mne._fiff.constants import FIFF
 from mne.io import read_raw_fif, read_raw_brainvision
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.datasets import testing

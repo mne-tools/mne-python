@@ -25,10 +25,11 @@ import mne
 from mne import concatenate_raws, create_info, Annotations, pick_types
 from mne.datasets import testing
 from mne.fixes import _numpy_h5py_dep
-from mne.io import read_raw_fif, RawArray, BaseRaw, Info, _writing_info_hdf5
-from mne.io._digitization import _dig_kind_dict
+from mne.io import read_raw_fif, RawArray, BaseRaw
 from mne.io.base import _get_scaling
-from mne.io.pick import _ELECTRODE_CH_TYPES, _FNIRS_CH_TYPES_SPLIT
+from mne._fiff.meas_info import Info, _writing_info_hdf5, _get_valid_units
+from mne._fiff._digitization import _dig_kind_dict, DigPoint
+from mne._fiff.pick import _ELECTRODE_CH_TYPES, _FNIRS_CH_TYPES_SPLIT
 from mne.utils import (
     _TempDir,
     catch_logging,
@@ -38,11 +39,9 @@ from mne.utils import (
     check_version,
     _import_h5io_funcs,
 )
-from mne.io.meas_info import _get_valid_units
-from mne.io._digitization import DigPoint
-from mne.io.proj import Projection
-from mne.io.utils import _mult_cal_one
-from mne.io.constants import FIFF
+from mne._fiff.proj import Projection
+from mne._fiff.utils import _mult_cal_one
+from mne._fiff.constants import FIFF
 
 raw_fname = op.join(
     op.dirname(__file__), "..", "..", "io", "tests", "data", "test_raw.fif"
@@ -320,8 +319,8 @@ def _test_raw_reader(
     assert raw.__class__.__name__ in repr(raw)  # to test repr
     assert raw.info.__class__.__name__ in repr(raw.info)
     assert isinstance(raw.info["dig"], (type(None), list))
-    data_max = full_data.max()
-    data_min = full_data.min()
+    data_max = np.nanmax(full_data)
+    data_min = np.nanmin(full_data)
     # these limits could be relaxed if we actually find data with
     # huge values (in SI units)
     assert data_max < 1e5

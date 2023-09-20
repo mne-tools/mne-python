@@ -10,6 +10,7 @@ from numpy.testing import (
     assert_allclose,
 )
 
+from mne._fiff.pick import pick_channels_forward
 from mne.datasets import testing
 from mne import (
     read_forward_solution,
@@ -219,7 +220,7 @@ def test_apply_forward():
 
     # Evoked
     evoked = read_evokeds(fname_evoked, condition=0)
-    evoked.pick_types(meg=True)
+    evoked.pick(picks="meg")
     with pytest.warns(RuntimeWarning, match="only .* positive values"):
         evoked = apply_forward(fwd, stc, evoked.info, start=start, stop=stop)
     data = evoked.data
@@ -494,7 +495,7 @@ def test_priors():
         compute_orient_prior(fwd, 0.5)
     fwd_surf_ori = convert_forward_solution(fwd, surf_ori=True)
     orient_prior = compute_orient_prior(fwd_surf_ori, 0.5)
-    assert all(np.in1d(orient_prior, (0.5, 1.0)))
+    assert all(np.isin(orient_prior, (0.5, 1.0)))
     with pytest.raises(ValueError, match="between 0 and 1"):
         compute_orient_prior(fwd_surf_ori, -0.5)
     with pytest.raises(ValueError, match="with fixed orientation"):
@@ -505,8 +506,8 @@ def test_priors():
 def test_equalize_channels():
     """Test equalization of channels for instances of Forward."""
     fwd1 = read_forward_solution(fname_meeg)
-    fwd1.pick_channels(["EEG 001", "EEG 002", "EEG 003"])
-    fwd2 = fwd1.copy().pick_channels(["EEG 002", "EEG 001"], ordered=True)
+    pick_channels_forward(fwd1, include=["EEG 001", "EEG 002", "EEG 003"], copy=False)
+    fwd2 = pick_channels_forward(fwd1, include=["EEG 002", "EEG 001"], ordered=True)
     fwd1, fwd2 = equalize_channels([fwd1, fwd2])
     assert fwd1.ch_names == ["EEG 001", "EEG 002"]
     assert fwd2.ch_names == ["EEG 001", "EEG 002"]

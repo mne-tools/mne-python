@@ -19,11 +19,12 @@ from pathlib import Path
 import shutil
 
 import numpy as np
+from scipy.optimize import fmin_cobyla
 
 from .fixes import _compare_version, _safe_svd
-from .io.constants import FIFF, FWD
-from .io._digitization import _dig_kind_dict, _dig_kind_rev, _dig_kind_ints
-from .io.write import (
+from ._fiff.constants import FIFF, FWD
+from ._fiff._digitization import _dig_kind_dict, _dig_kind_rev, _dig_kind_ints
+from ._fiff.write import (
     start_and_end_file,
     start_block,
     write_float,
@@ -33,9 +34,9 @@ from .io.write import (
     end_block,
     write_string,
 )
-from .io.tag import find_tag
-from .io.tree import dir_tree_find
-from .io.open import fiff_open
+from ._fiff.tag import find_tag
+from ._fiff.tree import dir_tree_find
+from ._fiff.open import fiff_open
 from .surface import (
     read_surface,
     write_surface,
@@ -50,6 +51,7 @@ from .surface import (
     transform_surface_to,
 )
 from .transforms import _ensure_trans, apply_trans, Transform
+from .viz.misc import plot_bem
 from .utils import (
     verbose,
     logger,
@@ -71,7 +73,6 @@ from .utils import (
     _verbose_safe_false,
     _check_head_radius,
 )
-
 
 # ############################################################################
 # Compute BEM solution
@@ -793,8 +794,6 @@ def _one_step(mu, u):
 
 def _fwd_eeg_fit_berg_scherg(m, nterms, nfit):
     """Fit the Berg-Scherg equivalent spherical model dipole parameters."""
-    from scipy.optimize import fmin_cobyla
-
     assert nfit >= 2
     u = dict(nfit=nfit, nterms=nterms)
 
@@ -1118,8 +1117,6 @@ def _fit_sphere_to_headshape(info, dig_kinds, verbose=None):
 
 def _fit_sphere(points, disp="auto"):
     """Fit a sphere to an arbitrary set of points."""
-    from scipy.optimize import fmin_cobyla
-
     if isinstance(disp, str) and disp == "auto":
         disp = True if logger.level <= 20 else False
     # initial guess for center and radius
@@ -1254,8 +1251,6 @@ def make_watershed_bem(
 
     .. versionadded:: 0.10
     """
-    from .viz.misc import plot_bem
-
     env, mri_dir, bem_dir = _prepare_env(subject, subjects_dir)
     tempdir = _TempDir()  # fsl and Freesurfer create some random junk in CWD
     run_subprocess_env = partial(run_subprocess, env=env, cwd=tempdir)
@@ -2131,8 +2126,6 @@ def make_flash_bem(
     outer skin) from a FLASH 5 MRI image synthesized from multiecho FLASH
     images acquired with spin angles of 5 and 30 degrees.
     """
-    from .viz.misc import plot_bem
-
     env, mri_dir, bem_dir = _prepare_env(subject, subjects_dir)
     tempdir = _TempDir()  # fsl and Freesurfer create some random junk in CWD
     run_subprocess_env = partial(run_subprocess, env=env, cwd=tempdir)

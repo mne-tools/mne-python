@@ -62,10 +62,10 @@ from mne import (
 from mne.datasets import testing
 from mne.fixes import _get_img_fdata
 from mne.io import read_info
-from mne.io.constants import FIFF
+from mne._fiff.constants import FIFF
 from mne.morph_map import _make_morph_map_hemi
 from mne.source_estimate import grade_to_tris, _get_vol_mask
-from mne.source_space import _get_src_nn
+from mne.source_space._source_space import _get_src_nn
 from mne.transforms import apply_trans, invert_transform, transform_surface_to
 from mne.minimum_norm import (
     read_inverse_operator,
@@ -173,7 +173,7 @@ def test_spatial_inter_hemi_adjacency():
         use_labels = [
             label.name[:-3]
             for label in labels
-            if np.in1d(label.vertices, has_neighbors).any()
+            if np.isin(label.vertices, has_neighbors).any()
         ]
         assert set(use_labels) - set(good_labels) == set()
 
@@ -405,13 +405,13 @@ def test_stc_attributes():
 
     # Changing .tmin or .tstep re-computes .times
     stc.tmin = 1
-    assert type(stc.tmin) == float
+    assert isinstance(stc.tmin, float)
     assert_array_almost_equal(
         stc.times, [1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9]
     )
 
     stc.tstep = 1
-    assert type(stc.tstep) == float
+    assert isinstance(stc.tstep, float)
     assert_array_almost_equal(
         stc.times, [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0]
     )
@@ -837,7 +837,7 @@ def test_extract_label_time_course_volume(
     assert sum(s["nuse"] for s in src_labels) == 4157
     assert_array_equal(src_labels[-1]["vertno"], [8011, 8032, 8557])
     assert_array_equal(
-        np.where(np.in1d(src[0]["vertno"], [8011, 8032, 8557]))[0], [2672, 2688, 2995]
+        np.where(np.isin(src[0]["vertno"], [8011, 8032, 8557]))[0], [2672, 2688, 2995]
     )
     # triage "labels" argument
     if mri_res:
@@ -908,7 +908,7 @@ def test_extract_label_time_course_volume(
             rtol = 0.0
         for si, s in enumerate(src_labels):
             func = dict(mean=np.mean, max=np.max)[mode]
-            these = vertex_values[np.in1d(src[0]["vertno"], s["vertno"])]
+            these = vertex_values[np.isin(src[0]["vertno"], s["vertno"])]
             assert len(these) == s["nuse"]
             if si == 0 and s["seg_name"] == "Unknown":
                 continue  # unknown is crappy
@@ -1174,7 +1174,7 @@ def test_to_data_frame_index(index):
     # test that non-indexed data were present as columns
     non_index = list(set(["time", "subject"]) - set(index))
     if len(non_index):
-        assert all(np.in1d(non_index, df.columns))
+        assert all(np.isin(non_index, df.columns))
 
 
 @pytest.mark.parametrize("kind", ("surface", "mixed", "volume"))

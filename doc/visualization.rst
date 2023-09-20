@@ -87,15 +87,29 @@ Visualization
    get_browser_backend
    use_browser_backend
 
-.. currentmodule:: mne.viz.eyetracking
+UI Events
+---------
 
-:py:mod:`mne.viz.eyetracking`:
+.. currentmodule:: mne.viz.ui_events
 
-.. automodule:: mne.viz.eyetracking
+:py:mod:`mne.viz.ui_events`:
+
+.. automodule:: mne.viz.ui_events
    :no-members:
    :no-inherited-members:
 
 .. autosummary::
    :toctree: generated/
 
-   plot_gaze
+   subscribe
+   unsubscribe
+   publish
+   link
+   unlink
+   disable_ui_events
+   UIEvent
+   FigureClosing
+   TimeChange
+   PlaybackSpeed
+   ColormapRange
+   VertexSelect
