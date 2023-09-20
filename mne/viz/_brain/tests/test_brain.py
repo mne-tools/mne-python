@@ -560,7 +560,6 @@ def _assert_view_allclose(
 ):
     __tracebackhide__ = True
     r_, d_, a_, e_, f_ = brain.get_view(align=align)
-    azimuth, a_ = azimuth % 360, a_ % 360
     assert_allclose(r_, roll, err_msg="Roll")
     assert_allclose(d_, distance, rtol=1e-5, err_msg="Distance")
     assert_allclose(a_, azimuth, rtol=1e-5, atol=1e-6, err_msg="Azimuth")
@@ -626,8 +625,8 @@ def test_image_screenshot(
     ):
         brain.show_view(**view_args)
         _, _, a_, e_, f_ = brain.get_view()
-        assert_allclose(a_ % 360, azimuth % 360, atol=1e-6)
-        assert_allclose(e_ % 180, elevation % 180)
+        assert_allclose(a_, azimuth, atol=1e-6)
+        assert_allclose(e_, elevation)
         assert_allclose(f_, fp, atol=1e-6)
     img = brain.screenshot(mode="rgba")
     want_size = np.array([size[0] * pixel_ratio, size[1] * pixel_ratio, 4])

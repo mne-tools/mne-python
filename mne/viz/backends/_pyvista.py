@@ -1163,7 +1163,7 @@ def _get_user_camera_direction(plotter, rigid):
 def _get_3d_view(figure, *, rigid=None):
     focalpoint = np.array(figure.plotter.camera_position[1], float)
     _, phi, theta = _get_user_camera_direction(figure.plotter, rigid)
-    azimuth, elevation = np.rad2deg(phi), np.rad2deg(theta)
+    azimuth, elevation = np.rad2deg(phi) % 360, np.rad2deg(theta) % 180
     return (
         figure.plotter.camera.roll,
         figure.plotter.camera.distance,
