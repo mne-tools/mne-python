@@ -196,6 +196,7 @@ class EvokedField:
             self._in_brain_figure = False
 
         self._renderer.set_interaction(interaction)
+        self.plotter = self._renderer.plotter
         self.interaction = interaction
 
         # Prepare the surface maps
@@ -242,7 +243,7 @@ class EvokedField:
         subscribe(self, "contours", self._on_contours)
 
         if not self._in_brain_figure:
-            self._renderer.set_camera(azimuth=10, elevation=60)
+            self._renderer.set_camera(azimuth=10, elevation=60, distance="auto")
             self._renderer.show()
 
     def _prepare_surf_map(self, surf_map, color, alpha):
