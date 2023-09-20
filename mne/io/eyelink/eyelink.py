@@ -35,14 +35,15 @@ def read_raw_eyelink(
     fname : path-like
         Path to the eyelink file (.asc).
     create_annotations : bool | list (default True)
-        Whether to create mne.Annotations from occular events
+        Whether to create :class:`~mne.Annotations` from occular events
         (blinks, fixations, saccades) and experiment messages. If a list, must
-        contain one or more of ['fixations', 'saccades',' blinks', messages'].
-        If True, creates mne.Annotations for both occular events and experiment
-        messages.
+        contain one or more of ``['fixations', 'saccades',' blinks', messages']``.
+        If True, creates :class:`~mne.Annotations` for both occular events and
+        experiment messages.
     apply_offsets : bool (default False)
-        Adjusts the onset time of the mne.Annotations created from Eyelink
-        experiment messages, if offset values exist in the ASCII file.
+        Adjusts the onset time of the :class:`~mne.Annotations` created from Eyelink
+        experiment messages, if offset values exist in the ASCII file. If False, any
+        offset-like values will be prepended to the annotation description.
     find_overlaps : bool (default False)
         Combine left and right eye :class:`mne.Annotations` (blinks, fixations,
         saccades) if their start times and their stop times are both not
@@ -96,17 +97,18 @@ class RawEyelink(BaseRaw):
     Parameters
     ----------
     fname : path-like
-        Path to the data file (.XXX).
+        Path to the eyelink file (.asc).
     create_annotations : bool | list (default True)
-        Whether to create mne.Annotations from occular events
+        Whether to create :class:`~mne.Annotations` from occular events
         (blinks, fixations, saccades) and experiment messages. If a list, must
-        contain one or more of ['fixations', 'saccades',' blinks', messages'].
-        If True, creates mne.Annotations for both occular events and experiment
-        messages.
+        contain one or more of ``['fixations', 'saccades',' blinks', messages']``.
+        If True, creates :class:`~mne.Annotations` for both occular events and
+        experiment messages.
     apply_offsets : bool (default False)
-        Adjusts the onset time of the mne.Annotations created from Eyelink
-        experiment messages, if offset values exist in the ASCII file.
-     find_overlaps : boolean (default False)
+        Adjusts the onset time of the :class:`~mne.Annotations` created from Eyelink
+        experiment messages, if offset values exist in the ASCII file. If False, any
+        offset-like values will be prepended to the annotation description.
+    find_overlaps : boolean (default False)
         Combine left and right eye :class:`mne.Annotations` (blinks, fixations,
         saccades) if their start times and their stop times are both not
         separated by more than overlap_threshold.
@@ -116,7 +118,6 @@ class RawEyelink(BaseRaw):
         the :class:`mne.Annotations` will be kept separate (i.e. "blink_L",
         "blink_R"). If the gap is smaller than the threshold, the
         :class:`mne.Annotations` will be merged (i.e. "blink_both").
-
     %(verbose)s
 
     See Also
