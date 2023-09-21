@@ -31,6 +31,7 @@ the ERP and pupil response to the light flashes (i.e. the pupillary light reflex
 import mne
 from mne.datasets.eyelink import data_path
 from mne.preprocessing.eyetracking import read_eyelink_calibration
+from mne.viz.eyetracking import plot_gaze
 
 et_fpath = data_path() / "eeg-et" / "sub-01_task-plr_eyetrack.asc"
 eeg_fpath = data_path() / "eeg-et" / "sub-01_task-plr_eeg.mff"
@@ -123,7 +124,9 @@ raw_et.plot(scalings=dict(eyegaze=1e3))
 # window 50 ms before and 200 ms after the blink, so that the noisy data surrounding
 # the blink is also interpolated.
 
-mne.preprocessing.eyetracking.interpolate_blinks(raw_et, buffer=(0.05, 0.2))
+mne.preprocessing.eyetracking.interpolate_blinks(
+    raw_et, buffer=(0.05, 0.2), interpolate_gaze=True
+)
 
 # %%
 # .. important:: By default, :func:`~mne.preprocessing.eyetracking.interpolate_blinks`,
@@ -202,7 +205,9 @@ epochs[:8].plot(events=et_events, event_id=event_dict, order=picks_idx)
 # center of the screen. Let's plot the gaze position data to confirm that the
 # participant primarily kept their gaze fixated at the center of the screen.
 
-mne.viz.eyetracking.plot_gaze(epochs, width=1920, height=1080, sigma=2)
+# extract new epochs without baseline correction, only for plotting purposes.
+gaze_epochs = mne.Epochs(raw_et, events=et_events, tmin=-0.3, tmax=3, baseline=None)
+plot_gaze(gaze_epochs, width=1920, height=1080, sigma=2)
 
 # %%
 # .. seealso:: :ref:`tut-eyetrack-heatmap`
