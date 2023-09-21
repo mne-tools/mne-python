@@ -49,6 +49,9 @@ def plot_gaze(
     cmap : matplotlib colormap | str | None
         The :class:`~matplotlib.colors.Colormap` to use. Defaults to ``None``, meaning
         the colormap will default to matplotlib's default.
+    alpha : int | float | None
+        The transparency value of the heatmap. If ``None``, the alpha value is set to 1,
+        meaning the heatmap colors are fully opaque. Default is ``None``.
     vmin : float | None
         The minimum value for the colormap. The unit is seconds, for dwell time
         to the bin coordinate. If ``None``, the minimum value is set to the
