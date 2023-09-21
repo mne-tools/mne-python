@@ -1358,6 +1358,7 @@ exclude : list of str | 'bads'
 
 docdict["exclude_spectrum_get_data"] = _exclude_spectrum.format("")
 docdict["exclude_spectrum_plot"] = _exclude_spectrum.format(" from being drawn")
+docdict["exclude_psd"] = _exclude_spectrum.format("")
 
 docdict[
     "export_edf_note"
