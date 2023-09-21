@@ -734,10 +734,10 @@ def test_extract_label_time_course(kind, vector):
             assert_array_equal(arr[1:], vol_means_t)
 
     # test the different modes
-    modes = ["mean", "mean_flip", "pca_flip", "max", "auto"]
+    modes = ["mean", "mean_flip", "pca_flip", "max", "auto", "raw"]
 
     for mode in modes:
-        if vector and mode not in ("mean", "max", "auto"):
+        if vector and mode not in ("mean", "max", "auto", "raw"):
             with pytest.raises(ValueError, match="when using a vector"):
                 extract_label_time_course(stcs, labels, src, mode=mode)
             continue
@@ -757,7 +757,7 @@ def test_extract_label_time_course(kind, vector):
             else:
                 use_mode = mode
             # XXX we don't check pca_flip, probably should someday...
-            if use_mode in ("mean", "max", "mean_flip"):
+            if use_mode in ("mean", "max", "mean_flip", "raw"):
                 assert_array_almost_equal(tc1[:n_labels], label_tcs[use_mode])
             assert_array_almost_equal(tc1[n_labels:], vol_means_t)
 
