@@ -349,7 +349,9 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
 
         # prep times and picks
         self._time_mask = _time_mask(inst.times, tmin, tmax, sfreq=self.sfreq)
-        self._picks = _picks_to_idx(inst.info, picks, "data",exclude, with_ref_meg=False)
+        self._picks = _picks_to_idx(
+            inst.info, picks, "data", exclude, with_ref_meg=False
+        )
 
         # add the info object. bads and non-data channels were dropped by
         # _picks_to_idx() so we update the info accordingly:
