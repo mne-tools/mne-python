@@ -92,9 +92,6 @@ from ..ui_events import (
 )
 
 
-_ARROW_MOVE = 10  # degrees per press
-
-
 @fill_doc
 class Brain:
     """Class for visualizing a brain.
@@ -373,7 +370,6 @@ class Brain:
         self._annots = {"lh": list(), "rh": list()}
         self._layered_meshes = dict()
         self._actors = dict()
-        self._elevation_rng = [15, 165]  # range of motion of camera on theta
         self._cleaned = False
         # default values for silhouette
         self._silhouette = {
@@ -473,9 +469,7 @@ class Brain:
                         alpha=self._silhouette["alpha"],
                         decimate=self._silhouette["decimate"],
                     )
-                self._renderer.set_camera(
-                    update=False, reset_camera=False, **views_dicts[h][v]
-                )
+                self._set_camera(**views_dicts[h][v])
 
         self.interaction = interaction
         self._closed = False
@@ -497,7 +491,7 @@ class Brain:
             xfm = _estimate_talxfm_rigid(self._subject, self._subjects_dir)
         except Exception:
             logger.info(
-                "Could not estimate rigid Talairach alignment, " "using identity matrix"
+                "Could not estimate rigid Talairach alignment, using identity matrix"
             )
         else:
             self._rigid[:] = xfm
@@ -604,11 +598,10 @@ class Brain:
         self._configure_scalar_bar()
         self._configure_shortcuts()
         self._configure_picking()
-        self._configure_tool_bar()
         self._configure_dock()
+        self._configure_tool_bar()
         self._configure_menu()
         self._configure_status_bar()
-        self._configure_playback()
         self._configure_help()
         # show everything at the end
         self.toggle_interface()
@@ -723,33 +716,12 @@ class Brain:
             it's disabled. If None, the state of time playback is toggled.
             Defaults to None.
         """
-        if value is None:
-            self.playback = not self.playback
-        else:
-            self.playback = value
-
-        # update tool bar icon
-        if self.playback:
-            self._renderer._tool_bar_update_button_icon(name="play", icon_name="pause")
-        else:
-            self._renderer._tool_bar_update_button_icon(name="play", icon_name="play")
-
-        if self.playback:
-            time_data = self._data["time"]
-            max_time = np.max(time_data)
-            if self._current_time == max_time:  # start over
-                self.set_time_point(0)  # first index
-            self._last_tick = time.time()
+        self._renderer._toggle_playback(value)
 
     def reset(self):
-        """Reset view and time step."""
+        """Reset view, current time and time step."""
         self.reset_view()
-        max_time = len(self._data["time"]) - 1
-        if max_time > 0:
-            publish(
-                self,
-                TimeChange(time=self._time_interp_inv(self._data["initial_time_idx"])),
-            )
+        self._renderer._reset_time()
 
     def set_playback_speed(self, speed):
         """Set the time playback speed.
@@ -760,27 +732,6 @@ class Brain:
             The speed of the playback.
         """
         publish(self, PlaybackSpeed(speed=speed))
-
-    @safe_event
-    def _play(self):
-        if self.playback:
-            try:
-                self._advance()
-            except Exception:
-                self.toggle_playback(value=False)
-                raise
-
-    def _advance(self):
-        this_time = time.time()
-        delta = this_time - self._last_tick
-        self._last_tick = time.time()
-        time_data = self._data["time"]
-        time_shift = delta * self.playback_speed
-        max_time = np.max(time_data)
-        time_point = min(self._current_time + time_shift, max_time)
-        publish(self, TimeChange(time=time_point))
-        if time_point == max_time:
-            self.toggle_playback(value=False)
 
     def _configure_time_label(self):
         self.time_actor = self._data.get("time_actor")
@@ -821,47 +772,27 @@ class Brain:
         self.widgets["current_time"].set_value(f"{self._current_time: .3f}")
 
     def _configure_dock_playback_widget(self, name):
-        layout = self._renderer._dock_add_group_box(name)
         len_time = len(self._data["time"]) - 1
-
-        @_auto_weakref
-        def publish_time_change(time_idx):
-            publish(self, TimeChange(time=self._time_interp_inv(time_idx)))
 
         # Time widget
         if len_time < 1:
             self.widgets["time"] = None
-        else:
-            self.widgets["time"] = self._renderer._dock_add_slider(
-                name="Time (s)",
-                value=self._data["time_idx"],
-                rng=[0, len_time],
-                double=True,
-                callback=publish_time_change,
-                compact=False,
-                layout=layout,
-            )
-
-        # Time labels
-        if len_time < 1:
             self.widgets["min_time"] = None
             self.widgets["max_time"] = None
             self.widgets["current_time"] = None
         else:
-            self._configure_dock_time_widget(layout)
 
-        # Playback speed widget
-        if len_time < 1:
-            self.widgets["playback_speed"] = None
-        else:
-            self.widgets["playback_speed"] = self._renderer._dock_add_spin_box(
-                name="Speed",
-                value=self.default_playback_speed_value,
-                rng=self.default_playback_speed_range,
-                callback=self.set_playback_speed,
-                layout=layout,
+            @_auto_weakref
+            def current_time_func():
+                return self._current_time
+
+            self._renderer._enable_time_interaction(
+                self,
+                current_time_func,
+                self._data["time"],
+                self.default_playback_speed_value,
+                self.default_playback_speed_range,
             )
-            subscribe(self, "playback_speed", self._on_playback_speed)
 
         # Time label
         current_time = self._current_time
@@ -1107,16 +1038,6 @@ class Brain:
 
         self._renderer._dock_finalize()
 
-    def _configure_playback(self):
-        self._renderer._playback_initialize(
-            func=self._play,
-            timeout=self.refresh_rate_ms,
-            value=self._data["time_idx"],
-            rng=[0, len(self._data["time"]) - 1],
-            time_widget=self.widgets["time"],
-            play_widget=self.widgets["play"],
-        )
-
     def _configure_mplcanvas(self):
         # Get the fractional components for the brain and mpl
         self.mpl_canvas = self._renderer._window_get_mplcanvas(
@@ -1216,7 +1137,8 @@ class Brain:
         subscribe(self, "vertex_select", self._on_vertex_select)
 
     def _configure_tool_bar(self):
-        self._renderer._tool_bar_initialize(name="Toolbar")
+        if not hasattr(self._renderer, "_tool_bar") or self._renderer._tool_bar is None:
+            self._renderer._tool_bar_initialize(name="Toolbar")
 
         @_auto_weakref
         def save_image(filename):
@@ -1246,17 +1168,6 @@ class Brain:
             func=self.toggle_interface,
             icon_name="visibility_on",
         )
-        self.widgets["play"] = self._renderer._tool_bar_add_play_button(
-            name="play",
-            desc="Play/Pause",
-            func=self.toggle_playback,
-            shortcut=" ",
-        )
-        self._renderer._tool_bar_add_button(
-            name="reset",
-            desc="Reset",
-            func=self.reset,
-        )
         self._renderer._tool_bar_add_button(
             name="scale",
             desc="Auto-Scale",
@@ -1275,23 +1186,18 @@ class Brain:
             shortcut="?",
         )
 
-    def _shift_time(self, shift_func):
-        publish(
-            self,
-            TimeChange(time=shift_func(self._current_time, self.playback_speed)),
-        )
-
-    def _rotate_azimuth(self, value):
-        azimuth = (self._renderer.figure._azimuth + value) % 360
-        self._renderer.set_camera(azimuth=azimuth, reset_camera=False)
-
-    def _rotate_elevation(self, value):
-        elevation = np.clip(
-            self._renderer.figure._elevation + value,
-            self._elevation_rng[0],
-            self._elevation_rng[1],
-        )
-        self._renderer.set_camera(elevation=elevation, reset_camera=False)
+    def _rotate_camera(self, which, value):
+        _, _, azimuth, elevation, _ = self._renderer.get_camera(rigid=self._rigid)
+        kwargs = dict(update=True)
+        if which == "azimuth":
+            value = azimuth + value
+            # Our view_up threshold is 5/175, so let's be safe here
+            if elevation < 7.5 or elevation > 172.5:
+                kwargs["elevation"] = np.clip(elevation, 10, 170)
+        else:
+            value = np.clip(elevation + value, 10, 170)
+        kwargs[which] = value
+        self._set_camera(**kwargs)
 
     def _configure_shortcuts(self):
         # Remove the default key binding
@@ -1302,19 +1208,14 @@ class Brain:
         self.plotter.add_key_event("s", self.apply_auto_scaling)
         self.plotter.add_key_event("r", self.restore_user_scaling)
         self.plotter.add_key_event("c", self.clear_glyphs)
-        self.plotter.add_key_event(
-            "n", partial(self._shift_time, shift_func=lambda x, y: x + y)
-        )
-        self.plotter.add_key_event(
-            "b", partial(self._shift_time, shift_func=lambda x, y: x - y)
-        )
-        for key, func, sign in (
-            ("Left", self._rotate_azimuth, 1),
-            ("Right", self._rotate_azimuth, -1),
-            ("Up", self._rotate_elevation, 1),
-            ("Down", self._rotate_elevation, -1),
+        for key, which, amt in (
+            ("Left", "azimuth", 10),
+            ("Right", "azimuth", -10),
+            ("Up", "elevation", 10),
+            ("Down", "elevation", -10),
         ):
-            self.plotter.add_key_event(key, partial(func, sign * _ARROW_MOVE))
+            self.plotter.clear_events_for_key(key)
+            self.plotter.add_key_event(key, partial(self._rotate_camera, which, amt))
 
     def _configure_menu(self):
         self._renderer._menu_initialize()
@@ -1463,15 +1364,6 @@ class Brain:
                     self.widgets["current_time"].set_value(f"{self._current_time: .3f}")
             self.plot_time_line(update=True)
 
-    def _on_playback_speed(self, event):
-        """Respond to the playback_speed UI event."""
-        if event.speed == self.playback_speed:
-            return
-        self.playback_speed = event.speed
-        if "playback_speed" in self.widgets:
-            with disable_ui_events(self):
-                self.widgets["playback_speed"].set_value(event.speed)
-
     def _on_colormap_range(self, event):
         """Respond to the colormap_range UI event."""
         if event.kind != "distributed_source_power":
@@ -1521,7 +1413,7 @@ class Brain:
             return
 
         if hemi == label.hemi:
-            self.add_label(label, borders=True, reset_camera=False)
+            self.add_label(label, borders=True)
             self.picked_patches[hemi].append(label_id)
 
     def _remove_label_glyph(self, hemi, label_id):
@@ -2106,11 +1998,9 @@ class Brain:
                 )
                 kwargs.update(colorbar_kwargs or {})
                 self._scalar_bar = self._renderer.scalarbar(**kwargs)
-            self._renderer.set_camera(
-                update=False, reset_camera=False, **views_dicts[hemi][v]
-            )
+            self._set_camera(**views_dicts[hemi][v])
 
-        # 4) update the scalar bar and opacity
+        # 4) update the scalar bar and opacity (and render)
         self._update_colormap_range(alpha=alpha)
 
         # 5) enable UI events to interact with the data
@@ -2250,21 +2140,21 @@ class Brain:
             self._data[hemi]["grid_volume_pos"] = volume_pos
             self._data[hemi]["grid_volume_neg"] = volume_neg
         actor_pos, _ = self._renderer.plotter.add_actor(
-            volume_pos, reset_camera=False, name=None, culling=False, render=False
+            volume_pos, name=None, culling=False, reset_camera=False, render=False
         )
         actor_neg = actor_mesh = None
         if volume_neg is not None:
             actor_neg, _ = self._renderer.plotter.add_actor(
-                volume_neg, reset_camera=False, name=None, culling=False, render=False
+                volume_neg, name=None, culling=False, reset_camera=False, render=False
             )
         grid_mesh = self._data[hemi]["grid_mesh"]
         if grid_mesh is not None:
             actor_mesh, prop = self._renderer.plotter.add_actor(
                 grid_mesh,
-                reset_camera=False,
                 name=None,
                 culling=False,
                 pickable=False,
+                reset_camera=False,
                 render=False,
             )
             prop.SetColor(*self._brain_color[:3])
@@ -2292,7 +2182,8 @@ class Brain:
         borders=False,
         hemi=None,
         subdir=None,
-        reset_camera=True,
+        *,
+        reset_camera=None,
     ):
         """Add an ROI label to the image.
 
@@ -2325,8 +2216,7 @@ class Brain:
             for ``$SUBJECTS_DIR/$SUBJECT/label/aparc/lh.cuneus.label``
             ``brain.add_label('cuneus', subdir='aparc')``).
         reset_camera : bool
-            If True, reset the camera view after adding the label. Defaults
-            to True.
+            Deprecated. Use :meth:`show_view` instead.
 
         Notes
         -----
@@ -2433,6 +2323,12 @@ class Brain:
                     keep_idx = np.unique(keep_idx)
             show[keep_idx] = 1
             scalars *= show
+        if reset_camera is not None:
+            warn(
+                "reset_camera is deprecated and will be removed in 1.7, "
+                "use show_view instead",
+                FutureWarning,
+            )
         for _, _, v in self._iter_views(hemi):
             mesh = self._layered_meshes[hemi]
             mesh.add_overlay(
@@ -2442,8 +2338,6 @@ class Brain:
                 opacity=alpha,
                 name=label_name,
             )
-            if reset_camera:
-                self._renderer.set_camera(update=False, **views_dicts[hemi][v])
             if self.time_viewer and self.show_traces and self.traces_mode == "label":
                 label._color = orig_color
                 label._line = line
@@ -2596,7 +2490,6 @@ class Brain:
                 triangles=triangles,
                 color=color,
                 opacity=alpha,
-                reset_camera=False,
                 render=False,
             )
             self._add_actor("head", actor)
@@ -2848,7 +2741,8 @@ class Brain:
                 opacity=alpha,
                 resolution=resolution,
             )
-            self._renderer.set_camera(**views_dicts[hemi][v])
+            self._set_camera(**views_dicts[hemi][v])
+        self._renderer._update()
 
         # Store the foci in the Brain._data dictionary
         data_foci = coords
@@ -3223,7 +3117,7 @@ class Brain:
             _qt_app_exec(self._renderer.figure.store["app"])
 
     @fill_doc
-    def get_view(self, row=0, col=0):
+    def get_view(self, row=0, col=0, *, align=True):
         """Get the camera orientation for a given subplot display.
 
         Parameters
@@ -3232,6 +3126,7 @@ class Brain:
             The row to use, default is the first one.
         col : int
             The column to check, the default is the first one.
+        %(align_view)s
 
         Returns
         -------
@@ -3243,10 +3138,11 @@ class Brain:
         """
         row = _ensure_int(row, "row")
         col = _ensure_int(col, "col")
+        rigid = self._rigid if align else None
         for h in self._hemis:
             for ri, ci, _ in self._iter_views(h):
                 if (row == ri) and (col == ci):
-                    return self._renderer.get_camera()
+                    return self._renderer.get_camera(rigid=rigid)
         return (None,) * 5
 
     @verbose
@@ -3352,24 +3248,39 @@ class Brain:
                 param: val for param, val in view_params.items() if val is not None
             }  # no overwriting with None
             view_params = dict(views_dicts[hemi].get(view), **view_params)
-        xfm = self._rigid if align else None
         for h in self._hemis:
             for ri, ci, _ in self._iter_views(h):
                 if (row is None or row == ri) and (col is None or col == ci):
-                    self._renderer.set_camera(
-                        **view_params,
-                        reset_camera=False,
-                        rigid=xfm,
-                        update=False,
-                    )
+                    self._set_camera(**view_params, align=align)
         if update:
             self._renderer._update()
+
+    def _set_camera(
+        self,
+        *,
+        distance=None,
+        focalpoint=None,
+        update=False,
+        align=True,
+        verbose=None,
+        **kwargs,
+    ):
+        # Wrap to self._renderer.set_camera safely, always passing self._rigid
+        # and using better no-op-like defaults
+        return self._renderer.set_camera(
+            distance=distance,
+            focalpoint=focalpoint,
+            update=update,
+            rigid=self._rigid if align else None,
+            **kwargs,
+        )
 
     def reset_view(self):
         """Reset the camera."""
         for h in self._hemis:
             for _, _, v in self._iter_views(h):
-                self._renderer.set_camera(**views_dicts[h][v], reset_camera=False)
+                self._set_camera(**views_dicts[h][v])
+        self._renderer._update()
 
     def save_image(self, filename=None, mode="rgb"):
         """Save view from all panels to disk.
