@@ -32,8 +32,8 @@ import mne
 from mne.datasets.eyelink import data_path
 from mne.preprocessing.eyetracking import read_eyelink_calibration
 
-et_fpath = data_path() / "sub-01_task-plr_eyetrack.asc"
-eeg_fpath = data_path() / "sub-01_task-plr_eeg.mff"
+et_fpath = data_path() / "eeg-et" / "sub-01_task-plr_eyetrack.asc"
+eeg_fpath = data_path() / "eeg-et" / "sub-01_task-plr_eeg.mff"
 
 raw_et = mne.io.read_raw_eyelink(et_fpath, create_annotations=["blinks"])
 raw_eeg = mne.io.read_raw_egi(eeg_fpath, preload=True, verbose="warning")
@@ -196,6 +196,16 @@ raw_et.plot(events=et_events, event_id=event_dict, event_color="g", order=picks_
 
 epochs = mne.Epochs(raw_et, events=et_events, event_id=event_dict, tmin=-0.3, tmax=3)
 epochs[:8].plot(events=et_events, event_id=event_dict, order=picks_idx)
+
+# %%
+# For this experiment, the participant was instructed to fixate on a crosshair in the
+# center of the screen. Let's plot the gaze position data to confirm that the
+# participant primarily kept their gaze fixated at the center of the screen.
+
+mne.viz.eyetracking.plot_gaze(epochs, width=1920, height=1080, sigma=2)
+
+# %%
+# .. seealso:: :ref:`tut-eyetrack-heatmap`
 
 # %%
 # Finally, let's plot the evoked responses to the light flashes to get a sense of the
