@@ -141,7 +141,7 @@ plot_gaze(
     axes=ax[0],
     show=False,
 )
-ax[0].set_title("Natural)")
+ax[0].set_title("Natural")
 
 plot_gaze(
     epochs["scrambled"],
