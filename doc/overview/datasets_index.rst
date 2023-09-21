@@ -481,15 +481,18 @@ EYELINK
 =======
 :func:`mne.datasets.eyelink.data_path`
 
-A small example dataset from a pupillary light reflex experiment. Both EEG (EGI) and
-eye-tracking (SR Research EyeLink; ASCII format) data were recorded and stored in
-separate files. 1 participant fixated on the screen while short light flashes appeared.
-Event onsets were recorded by a photodiode attached to the screen and were
-sent to both the EEG and eye-tracking systems.
+Two small example datasets of eye-tracking data from SR Research EyeLink. the "eeg-et"
+dataset contains both EEG (EGI) and eye-tracking (ASCII format) data recorded from a
+pupillary light reflex experiment, stored in separate files. 1 participant fixated
+on the screen while short light flashes appeared. Event onsets were recorded by a
+photodiode attached to the screen and were sent to both the EEG and eye-tracking
+systems. The second dataset, in the "freeviewing" directory, contains only eye-tracking
+data (ASCII format) from 1 participant who was free-viewing a natural scene.
 
 .. topic:: Examples
 
     * :ref:`tut-eyetrack`
+    * :ref:`tut-eyetrack-heatmap`
 
 References
 ==========
