@@ -5,14 +5,13 @@ from mne import make_fixed_length_epochs
 from mne.datasets.testing import data_path, requires_testing_data
 from mne.io import read_raw_eyelink
 from mne.preprocessing.eyetracking import interpolate_blinks
-from mne.utils import requires_pandas
 from mne.viz.eyetracking import plot_gaze
 
 fname = data_path(download=False) / "eyetrack" / "test_eyelink.asc"
+pd = pytest.importorskip("pandas")
 
 
 @requires_testing_data
-@requires_pandas
 @pytest.mark.parametrize(
     "fname, axes",
     [(fname, None), (fname, True)],
