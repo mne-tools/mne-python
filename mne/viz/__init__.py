@@ -34,6 +34,9 @@ __getattr__, __dir__, __all__ = lazy.attach(
             "plot_evoked_joint",
             "plot_compare_evokeds",
         ],
+        "evoked_field": [
+            "EvokedField",
+        ],
         "ica": [
             "plot_ica_scores",
             "plot_ica_sources",

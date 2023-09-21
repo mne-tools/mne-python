@@ -48,6 +48,36 @@ fig2 = stc.plot("sample", subjects_dir=data_path / "subjects")
 link(fig1, fig2)  # link the event channels
 
 ########################################################################################
+# Overlaying one figure over another
+# ==================================
+#
+# A common scenario in which the UI event system comes in handy is when
+# plotting multiple things in the same figure. For example, if we want to draw
+# the magnetic fieldlines on top of a source estimate, we can link the UI event
+# channels together, so that when a different time is selected, both the source
+# estimate and the fieldlines are updated together.
+fig_brain = stc.plot("sample", subjects_dir=data_path / "subjects", surface="white")
+fig_brain.show_view(distance=400)  # zoom out a little
+
+field_map = mne.make_field_map(
+    avg_evokeds,
+    trans=data_path / "MEG" / "sample" / "sample_audvis_raw-trans.fif",
+    subject="sample",
+    subjects_dir=data_path / "subjects",
+)
+fig_field = mne.viz.plot_evoked_field(
+    avg_evokeds,
+    field_map,
+    alpha=0.2,
+    fig=fig_brain,  # plot inside the existing source estimate figure
+    time_label=None,  # there is already a time label in the figure
+)
+
+link(fig_brain, fig_field)
+fig_brain.set_time(0.1)  # updates both source estimate and field lines
+
+
+########################################################################################
 # Hooking a custom plot into the event system
 # ===========================================
 # In MNE-Python, each figure has an associated event channel. Drawing routines can

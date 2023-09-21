@@ -45,7 +45,9 @@ mne.viz.plot_alignment(
     surfaces="pial",
     coord_frame="mri",
 )
-evoked.plot_field(maps, time=time, fig=fig, time_label=None, vmax=5e-13)
+evoked.plot_field(
+    maps, time=time, fig=fig, time_label=None, vmax=5e-13, time_viewer=False
+)
 mne.viz.set_3d_view(
     fig,
     azimuth=40,
