@@ -70,6 +70,7 @@ doc/samples
 doc/*.dat
 doc/fil-result
 doc/optipng.exe
+sg_execution_times.rst
 cover
 *.html
 
