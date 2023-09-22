@@ -743,7 +743,6 @@ def test_extract_label_time_course(kind, vector):
                 extract_label_time_course(stcs, labels, src, mode=mode)
             continue
         with _record_warnings():  # SVD convergence on arm64
-            print(stcs)
             label_tc = extract_label_time_course(stcs, labels, src, mode=mode)
         label_tc_method = [
             stc.extract_label_time_course(labels, src, mode=mode) for stc in stcs
