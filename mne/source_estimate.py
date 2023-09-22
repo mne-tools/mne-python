@@ -3594,12 +3594,13 @@ def _gen_extract_label_time_course(
                     label_tc[i] = func(flip, this_data)
 
         # extract label time series for the vol src space (only mean supported)
-        offset = nvert[:-n_mean].sum()  # effectively :2 or :0
-        for i, nv in enumerate(nvert[2:]):
-            if nv != 0:
-                v2 = offset + nv
-                label_tc[n_mode + i] = np.mean(stc.data[offset:v2], axis=0)
-                offset = v2
+        if mode != "raw":
+            offset = nvert[:-n_mean].sum()  # effectively :2 or :0
+            for i, nv in enumerate(nvert[2:]):
+                if nv != 0:
+                    v2 = offset + nv
+                    label_tc[n_mode + i] = np.mean(stc.data[offset:v2], axis=0)
+                    offset = v2
 
         # this is a generator!
         yield label_tc

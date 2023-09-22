@@ -678,6 +678,7 @@ def test_extract_label_time_course(kind, vector):
 
     label_tcs = dict(mean=np.arange(n_labels)[:, None] * np.ones((n_labels, n_times)))
     label_tcs["max"] = label_tcs["mean"]
+    label_tcs["raw"] = label_tcs["mean"]
 
     # compute the mean with sign flip
     label_tcs["mean_flip"] = np.zeros_like(label_tcs["mean"])
@@ -737,11 +738,12 @@ def test_extract_label_time_course(kind, vector):
     modes = ["mean", "mean_flip", "pca_flip", "max", "auto", "raw"]
 
     for mode in modes:
-        if vector and mode not in ("mean", "max", "auto", "raw"):
+        if vector and mode not in ("mean", "max", "auto"):
             with pytest.raises(ValueError, match="when using a vector"):
                 extract_label_time_course(stcs, labels, src, mode=mode)
             continue
         with _record_warnings():  # SVD convergence on arm64
+            print(stcs)
             label_tc = extract_label_time_course(stcs, labels, src, mode=mode)
         label_tc_method = [
             stc.extract_label_time_course(labels, src, mode=mode) for stc in stcs
@@ -749,17 +751,29 @@ def test_extract_label_time_course(kind, vector):
         assert len(label_tc) == n_stcs
         assert len(label_tc_method) == n_stcs
         for tc1, tc2 in zip(label_tc, label_tc_method):
-            assert tc1.shape == (n_labels + len(vol_means),) + end_shape
-            assert tc2.shape == (n_labels + len(vol_means),) + end_shape
-            assert_allclose(tc1, tc2, rtol=1e-8, atol=1e-16)
+            if mode == "raw":
+                assert all(arr.shape[1] == tc1[0].shape[1] for arr in tc1)
+                assert all(arr.shape[1] == tc2[0].shape[1] for arr in tc2)
+                assert (len(tc1), tc1[0].shape[1])  == (n_labels,) + end_shape
+                assert (len(tc2), tc2[0].shape[1]) == (n_labels,) + end_shape
+                for arr1, arr2 in zip(tc1, tc2): # list of arrays
+                    assert_allclose(arr1, arr2, rtol=1e-8, atol=1e-16)
+            else:
+                assert tc1.shape == (n_labels + len(vol_means),) + end_shape
+                assert tc2.shape == (n_labels + len(vol_means),) + end_shape
+                assert_allclose(tc1, tc2, rtol=1e-8, atol=1e-16)
+            # XXX we don't check pca_flip, probably should someday...
             if mode == "auto":
                 use_mode = "mean" if vector else "mean_flip"
             else:
                 use_mode = mode
-            # XXX we don't check pca_flip, probably should someday...
-            if use_mode in ("mean", "max", "mean_flip", "raw"):
+            if use_mode in ("mean", "max", "mean_flip"):
                 assert_array_almost_equal(tc1[:n_labels], label_tcs[use_mode])
-            assert_array_almost_equal(tc1[n_labels:], vol_means_t)
+            elif use_mode == "raw":
+                for arr1, arr2 in zip(tc1[:n_labels], label_tcs[use_mode]): # list of arrays
+                    assert_allclose(arr1, np.tile(arr2, (arr1.shape[0], 1)), rtol=1e-8, atol=1e-16)
+            if mode != "raw":
+                assert_array_almost_equal(tc1[n_labels:], vol_means_t)
 
     # test label with very few vertices (check SVD conditionals)
     label = Label(vertices=src[0]["vertno"][:2], hemi="lh")
