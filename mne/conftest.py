@@ -106,7 +106,7 @@ def pytest_configure(config):
 
     # https://numba.readthedocs.io/en/latest/reference/deprecation.html#deprecation-of-old-style-numba-captured-errors  # noqa: E501
     if "NUMBA_CAPTURED_ERRORS" not in os.environ:
-        os.environ["NUMBA_CAPTURED_ERRORS"] = "old_style"
+        os.environ["NUMBA_CAPTURED_ERRORS"] = "new_style"
 
     # Warnings
     # - Once SciPy updates not to have non-integer and non-tuple errors (1.2.0)
