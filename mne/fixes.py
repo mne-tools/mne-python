@@ -797,7 +797,6 @@ if not has_numba:
 
     prange = range
     bincount = np.bincount
-    mean = np.mean
 
 else:
 
@@ -822,10 +821,6 @@ else:
             for i in range(len(result)):
                 result[i] = func1d(arr[i, :])
         return result
-
-    @jit()
-    def mean(array, axis):  # noqa: D103
-        return _np_apply_along_axis(np.mean, axis, array)
 
 
 ###############################################################################

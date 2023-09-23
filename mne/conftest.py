@@ -104,6 +104,10 @@ def pytest_configure(config):
     if os.getenv("PYTEST_QT_API") is None and os.getenv("QT_API") is not None:
         os.environ["PYTEST_QT_API"] = os.environ["QT_API"]
 
+    # https://numba.readthedocs.io/en/latest/reference/deprecation.html#deprecation-of-old-style-numba-captured-errors  # noqa: E501
+    if "NUMBA_CAPTURED_ERRORS" not in os.environ:
+        os.environ["NUMBA_CAPTURED_ERRORS"] = "old_style"
+
     # Warnings
     # - Once SciPy updates not to have non-integer and non-tuple errors (1.2.0)
     #   we should remove them from here.
