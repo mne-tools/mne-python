@@ -807,21 +807,6 @@ else:
             out[idx] += w
         return out
 
-    # fix because Numba does not support axis kwarg for mean
-    @jit()
-    def _np_apply_along_axis(func1d, axis, arr):
-        assert arr.ndim == 2
-        assert axis in [0, 1]
-        if axis == 0:
-            result = np.empty(arr.shape[1])
-            for i in range(len(result)):
-                result[i] = func1d(arr[:, i])
-        else:
-            result = np.empty(arr.shape[0])
-            for i in range(len(result)):
-                result[i] = func1d(arr[i, :])
-        return result
-
 
 ###############################################################################
 # Matplotlib
