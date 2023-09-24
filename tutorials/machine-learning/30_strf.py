@@ -93,7 +93,6 @@ plt.setp(ax.get_xticklabels(), rotation=45)
 plt.autoscale(tight=True)
 mne.viz.tight_layout()
 
-
 # %%
 # Simulate a neural response
 # --------------------------
@@ -186,7 +185,7 @@ for ii, alpha in enumerate(alphas):
     rf.fit(X_train, y_train)
 
     # Now make predictions about the model output, given input stimuli.
-    scores[ii] = rf.score(X_test, y_test)
+    scores[ii] = rf.score(X_test, y_test).item()
     models.append(rf)
 
 times = rf.delays_ / float(rf.sfreq)
@@ -294,7 +293,7 @@ for ii, alpha in enumerate(alphas):
     rf.fit(X_train, y_train)
 
     # Now make predictions about the model output, given input stimuli.
-    scores_lap[ii] = rf.score(X_test, y_test)
+    scores_lap[ii] = rf.score(X_test, y_test).item()
     models_lap.append(rf)
 
 ix_best_alpha_lap = np.argmax(scores_lap)

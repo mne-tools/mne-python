@@ -3464,6 +3464,7 @@ def plot_sparse_source_estimates(
     plt_show(show)
 
     renderer.show()
+    renderer.set_camera(distance="auto", focalpoint="auto")
     return renderer.scene()
 
 
