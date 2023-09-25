@@ -113,11 +113,11 @@ else
         fi;
     done;
     echo PATTERN="$PATTERN";
+    echo html-pattern-memory > build.txt;
     if [[ $PATTERN ]]; then
         PATTERN="\(${PATTERN::-2}\)";
-        echo html-pattern-memory > build.txt;
     else
-        echo html-noplot > build.txt;
+        PATTERN="run_no_examples_or_tutorials"
     fi;
 fi;
 echo "$PATTERN" > pattern.txt;

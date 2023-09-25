@@ -49,8 +49,6 @@ def test_get_event_channel(event_channels):
     fig.canvas.callbacks.process("close_event", None)
     assert len(event_channels) == 0
 
-    # TODO: Different types of figures: Brain, MNEFigure, Figure3D
-
 
 def test_publish(event_channels):
     """Test publishing UI events."""

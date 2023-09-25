@@ -11,12 +11,11 @@ Authors: Marijn van Vliet <w.m.vanvliet@gmail.com>
 """
 import contextlib
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, List
 import weakref
 import re
 
 from ..utils import warn, fill_doc, _validate_type, logger, verbose
-
 
 # Global dict {fig: channel} containing all currently active event channels.
 _event_channels = weakref.WeakKeyDictionary()
@@ -164,6 +163,35 @@ class VertexSelect(UIEvent):
     vertex_id: int
 
 
+@dataclass
+@fill_doc
+class Contours(UIEvent):
+    """Indicates that the user has changed the contour lines.
+
+    Parameters
+    ----------
+    kind : str
+        The kind of contours lines being changed. The Notes section of the
+        drawing routine publishing this event should mention the possible
+        kinds.
+    contours : list of float
+        The new values at which contour lines need to be drawn.
+
+    Attributes
+    ----------
+    %(ui_event_name_source)s
+    kind : str
+        The kind of contours lines being changed. The Notes section of the
+        drawing routine publishing this event should mention the possible
+        kinds.
+    contours : list of float
+        The new values at which contour lines need to be drawn.
+    """
+
+    kind: str
+    contours: List[str]
+
+
 def _get_event_channel(fig):
     """Get the event channel associated with a figure.
 
@@ -184,6 +212,7 @@ def _get_event_channel(fig):
     """
     import matplotlib
     from ._brain import Brain
+    from .evoked_field import EvokedField
 
     # Create the event channel if it doesn't exist yet
     if fig not in _event_channels:
@@ -213,11 +242,11 @@ def _get_event_channel(fig):
         # Hook up the above callback function to the close event of the figure
         # window. How this is done exactly depends on the various figure types
         # MNE-Python has.
-        _validate_type(fig, (matplotlib.figure.Figure, Brain), "fig")
+        _validate_type(fig, (matplotlib.figure.Figure, Brain, EvokedField), "fig")
         if isinstance(fig, matplotlib.figure.Figure):
             fig.canvas.mpl_connect("close_event", delete_event_channel)
         else:
-            assert isinstance(fig, Brain)  # guaranteed above
+            assert hasattr(fig, "_renderer")  # figures like Brain, EvokedField, etc.
             fig._renderer._window_close_connect(delete_event_channel, after=False)
 
     # Now the event channel exists for sure.
@@ -256,6 +285,7 @@ def publish(fig, event, *, verbose=None):
 
     # Publish the event by calling the registered callback functions.
     event.source = fig
+    logger.debug(f"Publishing {event} on channel {fig}")
     for channel in channels:
         if event.name not in channel:
             channel[event.name] = set()

@@ -83,9 +83,7 @@ from ..utils import (
     _check_option,
     _to_rgb,
 )
-from ._3d_overlay import _LayeredMesh
 from .utils import (
-    mne_analyze_colormap,
     _get_color_list,
     _get_cmap,
     plt_show,
@@ -93,7 +91,7 @@ from .utils import (
     figure_nobar,
     _check_time_unit,
 )
-
+from .evoked_field import EvokedField
 
 verbose_dec = verbose
 FIDUCIAL_ORDER = (FIFF.FIFFV_POINT_LPA, FIFF.FIFFV_POINT_NASION, FIFF.FIFFV_POINT_RPA)
@@ -400,7 +398,11 @@ def plot_evoked_field(
     vmax=None,
     n_contours=21,
     *,
+    show_density=True,
+    alpha=None,
+    interpolation="nearest",
     interaction="terrain",
+    time_viewer="auto",
     verbose=None,
 ):
     """Plot MEG/EEG fields on head surface and helmet in 3D.
@@ -417,149 +419,79 @@ def plot_evoked_field(
     time_label : str | None
         How to print info about the time instant visualized.
     %(n_jobs)s
-    fig : instance of Figure3D | None
+    fig : Figure3D | mne.viz.Brain | None
         If None (default), a new figure will be created, otherwise it will
         plot into the given figure.
 
         .. versionadded:: 0.20
-    vmax : float | None
-        Maximum intensity. Can be None to use the max(abs(data)).
+        .. versionadded:: 1.4
+            ``fig`` can also be a ``Brain`` figure.
+    vmax : float | dict | None
+        Maximum intensity. Can be a dictionary with two entries ``"eeg"`` and ``"meg"``
+        to specify separate values for EEG and MEG fields respectively. Can be
+        ``None`` to use the maximum value of the data.
 
         .. versionadded:: 0.21
+        .. versionadded:: 1.4
+            ``vmax`` can be a dictionary to specify separate values for EEG and
+            MEG fields.
     n_contours : int
         The number of contours.
 
         .. versionadded:: 0.21
+    show_density : bool
+        Whether to draw the field density as an overlay on top of the helmet/head
+        surface. Defaults to ``True``.
+
+        .. versionadded:: 1.6
+    alpha : float | dict | None
+        Opacity of the meshes (between 0 and 1). Can be a dictionary with two
+        entries ``"eeg"`` and ``"meg"`` to specify separate values for EEG and
+        MEG fields respectively. Can be ``None`` to use 1.0 when a single field
+        map is shown, or ``dict(eeg=1.0, meg=0.5)`` when both field maps are shown.
+
+        .. versionadded:: 1.4
+    %(interpolation_brain_time)s
+
+        .. versionadded:: 1.6
     %(interaction_scene)s
         Defaults to ``'terrain'``.
 
         .. versionadded:: 1.1
+    time_viewer : bool | str
+        Display time viewer GUI. Can also be ``"auto"``, which will mean
+        ``True`` if there is more than one time point and ``False`` otherwise.
+
+        .. versionadded:: 1.6
     %(verbose)s
 
     Returns
     -------
-    fig : instance of Figure3D
-        The figure.
+    fig : Figure3D | mne.viz.EvokedField
+        Without the time viewer active, the figure is returned. With the time
+        viewer active, an object is returned that can be used to control
+        different aspects of the figure.
     """
-    # Update the backend
-    from .backends.renderer import _get_renderer
-
-    types = [t for t in ["eeg", "grad", "mag"] if t in evoked]
-    _validate_type(vmax, (None, "numeric"), "vmax")
-    n_contours = _ensure_int(n_contours, "n_contours")
-    _check_option("interaction", interaction, ["trackball", "terrain"])
-
-    time_idx = None
-    if time is None:
-        time = np.mean([evoked.get_peak(ch_type=t)[1] for t in types])
-    del types
-
-    if not evoked.times[0] <= time <= evoked.times[-1]:
-        raise ValueError("`time` (%0.3f) must be inside `evoked.times`" % time)
-    time_idx = np.argmin(np.abs(evoked.times - time))
-
-    # Plot them
-    alphas = [1.0, 0.5]
-    colors = [(0.6, 0.6, 0.6), (1.0, 1.0, 1.0)]
-    colormap = mne_analyze_colormap(format="vtk")
-    colormap_lines = np.concatenate(
-        [
-            np.tile([0.0, 0.0, 255.0, 255.0], (127, 1)),
-            np.tile([0.0, 0.0, 0.0, 255.0], (2, 1)),
-            np.tile([255.0, 0.0, 0.0, 255.0], (127, 1)),
-        ]
+    ef = EvokedField(
+        evoked,
+        surf_maps,
+        time=time,
+        time_label=time_label,
+        n_jobs=n_jobs,
+        fig=fig,
+        vmax=vmax,
+        n_contours=n_contours,
+        alpha=alpha,
+        show_density=show_density,
+        interpolation=interpolation,
+        interaction=interaction,
+        time_viewer=time_viewer,
+        verbose=verbose,
     )
-
-    renderer = _get_renderer(fig, bgcolor=(0.0, 0.0, 0.0), size=(600, 600))
-    renderer.set_interaction(interaction)
-
-    for ii, this_map in enumerate(surf_maps):
-        surf = this_map["surf"]
-        map_data = this_map["data"]
-        map_type = this_map["kind"]
-        map_ch_names = this_map["ch_names"]
-
-        if map_type == "eeg":
-            pick = pick_types(evoked.info, meg=False, eeg=True)
-        else:
-            pick = pick_types(evoked.info, meg=True, eeg=False, ref_meg=False)
-
-        ch_names = [evoked.ch_names[k] for k in pick]
-
-        set_ch_names = set(ch_names)
-        set_map_ch_names = set(map_ch_names)
-        if set_ch_names != set_map_ch_names:
-            message = ["Channels in map and data do not match."]
-            diff = set_map_ch_names - set_ch_names
-            if len(diff):
-                message += ["%s not in data file. " % list(diff)]
-            diff = set_ch_names - set_map_ch_names
-            if len(diff):
-                message += ["%s not in map file." % list(diff)]
-            raise RuntimeError(" ".join(message))
-
-        data = np.dot(map_data, evoked.data[pick, time_idx])
-
-        # Make a solid surface
-        if vmax is None:
-            vmax = np.max(np.abs(data))
-        vmax = float(vmax)
-        alpha = alphas[ii]
-        mesh = _LayeredMesh(
-            renderer=renderer,
-            vertices=surf["rr"],
-            triangles=surf["tris"],
-            normals=surf["nn"],
-        )
-        mesh.map()
-        color = _to_rgb(colors[ii], alpha=True)
-        cmap = np.array(
-            [
-                (
-                    0,
-                    0,
-                    0,
-                    0,
-                ),
-                color,
-            ]
-        )
-        ctable = np.round(cmap * 255).astype(np.uint8)
-        mesh.add_overlay(
-            scalars=np.ones(len(data)),
-            colormap=ctable,
-            rng=[0, 1],
-            opacity=alpha,
-            name="surf",
-        )
-        # Now show our field pattern
-        mesh.add_overlay(
-            scalars=data,
-            colormap=colormap,
-            rng=[-vmax, vmax],
-            opacity=1.0,
-            name="field",
-        )
-
-        # And the field lines on top
-        if n_contours > 0:
-            renderer.contour(
-                surface=surf,
-                scalars=data,
-                contours=n_contours,
-                vmin=-vmax,
-                vmax=vmax,
-                opacity=alpha,
-                colormap=colormap_lines,
-            )
-
-    if time_label is not None:
-        if "%" in time_label:
-            time_label %= 1e3 * evoked.times[time_idx]
-        renderer.text2d(x_window=0.01, y_window=0.01, text=time_label)
-    renderer.set_camera(azimuth=10, elevation=60)
-    renderer.show()
-    return renderer.scene()
+    if ef.time_viewer:
+        return ef
+    else:
+        return ef._renderer.scene()
 
 
 @verbose
@@ -3460,7 +3392,6 @@ def plot_sparse_source_estimates(
         color=brain_color,
         opacity=opacity,
         backface_culling=True,
-        shading=True,
         normals=normals,
         **kwargs,
     )
@@ -3533,6 +3464,7 @@ def plot_sparse_source_estimates(
     plt_show(show)
 
     renderer.show()
+    renderer.set_camera(distance="auto", focalpoint="auto")
     return renderer.scene()
 
 

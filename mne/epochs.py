@@ -691,7 +691,7 @@ class BaseEpochs(
             raw_sfreq = self.info["sfreq"]
         self._raw_sfreq = raw_sfreq
         self._check_consistency()
-        self.set_annotations(annotations)
+        self.set_annotations(annotations, on_missing="ignore")
 
     def _check_consistency(self):
         """Check invariants of epochs object."""

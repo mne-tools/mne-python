@@ -87,7 +87,7 @@ dipoles, residual = mixed_norm(
 )
 
 t = 0.083
-tidx = evoked.time_as_index(t)
+tidx = evoked.time_as_index(t).item()
 for di, dip in enumerate(dipoles, 1):
     print(f"Dipole #{di} GOF at {1000 * t:0.1f} ms: " f"{float(dip.gof[tidx]):0.1f}%")
 
