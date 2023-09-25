@@ -1,4 +1,4 @@
-#%%
+# %%
 
 from ..utils import _validate_type
 
@@ -7,7 +7,8 @@ from ..epochs import Epochs
 from ..evoked import Evoked
 from ..time_frequency.spectrum import BaseSpectrum
 
-#%%
+
+# %%
 def unify_bad_channels(
     insts,
 ):
@@ -15,7 +16,7 @@ def unify_bad_channels(
     inst_type = type(insts[0])
     valid_types = (BaseRaw, Epochs, Evoked, BaseSpectrum)
     for inst in insts:
-        _validate_type(inst, valid_types , "instance type")
+        _validate_type(inst, valid_types, "instance type")
         if type(inst) != inst_type:
             raise ValueError("all insts must be the same type")
     # then interate through the objects to get ch names as set
@@ -25,7 +26,6 @@ def unify_bad_channels(
         all_bads.update(dict.fromkeys(inst.info["bads"]))
     all_bads = list(all_bads)
 
-
     new_instances = []
 
     for inst in insts:
@@ -33,4 +33,3 @@ def unify_bad_channels(
         new_instances.append(inst)
 
     return new_instances
-
