@@ -4,7 +4,14 @@ def unifying_bads(
 ):
     common_bad_channels = []
     # first check that each object is mne object
-
+    inst_types = set(type(insts[0]))
+    valid_types = (Raw, Epochs, Evoked, Spectrum, EpochsSpectrum)
+    for inst in insts:
+        _validate_type(inst, valid_types, "instance type")
+        if type(inst) not in inst_types:
+            raise ValueError(
+                "all insts must be the same type"
+            )
     # then interate through the objects to get ch names as set
     ch_set_1 = list_instances[0].info["bads"]
     common_bad_channels.extend(ch_set_1)
