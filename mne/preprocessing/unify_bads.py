@@ -15,7 +15,10 @@ def unifying_bads(
     # then interate through the objects to get ch names as set
     ch_set_1 = list_instances[0].info["bads"]
     common_bad_channels.extend(ch_set_1)
-
+    all_bads = dict()
+    for inst in insts:
+        all_bads.update(dict.fromkeys(inst.info['bads']))
+    all_bads = list(all_bads)
     for inst in list_instances[1:]:
         ch_set_2 = set(inst.info["bads"])
         set_of_bads = set(common_bad_channels)
