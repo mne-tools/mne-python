@@ -688,6 +688,14 @@ def append_attr_meth_examples(app, what, name, obj, options, lines):
 
 # -- Other extension configuration -------------------------------------------
 
+# Consider using http://magjac.com/graphviz-visual-editor for this
+graphviz_dot_args = [
+    "-Gsep=-0.5",
+    "-Gpad=0.5",
+    "-Nshape=box",
+    "-Nfontsize=20",
+    "-Nfontname=Open Sans,Arial",
+]
 graphviz_output_format = "svg"  # for API usage diagrams
 user_agent = "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Mobile Safari/537.36"  # noqa: E501
 # Can eventually add linkcheck_request_headers if needed
