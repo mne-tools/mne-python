@@ -60,11 +60,11 @@ from mne import (
     write_source_spaces,
 )
 from mne.datasets import testing
-from mne.fixes import _get_img_fdata
+from mne.fixes import _get_img_fdata, _safe_svd
 from mne.io import read_info
 from mne._fiff.constants import FIFF
 from mne.morph_map import _make_morph_map_hemi
-from mne.source_estimate import grade_to_tris, _get_vol_mask
+from mne.source_estimate import grade_to_tris, _get_vol_mask, _prepare_label_extraction
 from mne.source_space._source_space import _get_src_nn
 from mne.transforms import apply_trans, invert_transform, transform_surface_to
 from mne.minimum_norm import (
@@ -685,6 +685,17 @@ def test_extract_label_time_course(kind, vector):
     for i, label in enumerate(labels):
         label_tcs["mean_flip"][i] = i * np.mean(label_sign_flip(label, src[:2]))
 
+    # compute pca_flip
+    label_flip = []
+    for i, label in enumerate(labels):
+        this_flip = i * label_sign_flip(label, src[:2])
+        label_flip.append(this_flip)
+    # compute pca_flip
+    label_tcs["pca_flip"] = np.zeros_like(label_tcs["mean"])
+    for i, (label, flip) in enumerate(zip(labels, label_flip)):
+        sign = np.sign(np.dot(np.full((flip.shape[0]), i), flip))
+        label_tcs["pca_flip"][i] = sign * label_tcs["mean"][i]
+
     # generate some stc's with known data
     stcs = list()
     pad = (((0, 0), (2, 0), (0, 0)), "constant")
@@ -749,32 +760,30 @@ def test_extract_label_time_course(kind, vector):
         ]
         assert len(label_tc) == n_stcs
         assert len(label_tc_method) == n_stcs
-        for tc1, tc2 in zip(label_tc, label_tc_method):
+        for j, (tc1, tc2) in enumerate(zip(label_tc, label_tc_method)):
             if mode == "raw":
                 assert all(arr.shape[1] == tc1[0].shape[1] for arr in tc1)
                 assert all(arr.shape[1] == tc2[0].shape[1] for arr in tc2)
-                assert (len(tc1), tc1[0].shape[1]) == (n_labels,) + end_shape
+                assert (len(tc1), tc1[0].shape[1])  == (n_labels,) + end_shape
                 assert (len(tc2), tc2[0].shape[1]) == (n_labels,) + end_shape
-                for arr1, arr2 in zip(tc1, tc2):  # list of arrays
+                for arr1, arr2 in zip(tc1, tc2): # list of arrays
                     assert_allclose(arr1, arr2, rtol=1e-8, atol=1e-16)
             else:
                 assert tc1.shape == (n_labels + len(vol_means),) + end_shape
                 assert tc2.shape == (n_labels + len(vol_means),) + end_shape
                 assert_allclose(tc1, tc2, rtol=1e-8, atol=1e-16)
-            # XXX we don't check pca_flip, probably should someday...
             if mode == "auto":
                 use_mode = "mean" if vector else "mean_flip"
             else:
                 use_mode = mode
-            if use_mode in ("mean", "max", "mean_flip"):
-                assert_array_almost_equal(tc1[:n_labels], label_tcs[use_mode])
+            if mode == "pca_flip":
+                for arr1, arr2 in zip(tc1, label_tcs[use_mode]):
+                    assert_array_almost_equal(arr1, arr2)
             elif use_mode == "raw":
-                for arr1, arr2 in zip(
-                    tc1[:n_labels], label_tcs[use_mode]
-                ):  # list of arrays
-                    assert_allclose(
-                        arr1, np.tile(arr2, (arr1.shape[0], 1)), rtol=1e-8, atol=1e-16
-                    )
+                for arr1, arr2 in zip(tc1[:n_labels], label_tcs[use_mode]): # list of arrays
+                    assert_allclose(arr1, np.tile(arr2, (arr1.shape[0], 1)), rtol=1e-8, atol=1e-16)
+            elif use_mode in ("mean", "max", "mean_flip"):
+                assert_array_almost_equal(tc1[:n_labels], label_tcs[use_mode])
             if mode != "raw":
                 assert_array_almost_equal(tc1[n_labels:], vol_means_t)
 
