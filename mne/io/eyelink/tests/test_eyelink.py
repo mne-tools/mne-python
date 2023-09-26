@@ -254,7 +254,7 @@ def test_multi_block_misc_channels(fname, tmp_path):
     _simulate_eye_tracking_data(fname, out_file)
 
     with pytest.warns(RuntimeWarning, match="Raw eyegaze coordinates"):
-        raw = read_raw_eyelink(out_file)
+        raw = read_raw_eyelink(out_file, apply_offsets=True)
 
     chs_in_file = [
         "xpos_right",
