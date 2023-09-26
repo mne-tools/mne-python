@@ -14,6 +14,7 @@ from ..epochs import Epochs
 from ..evoked import Evoked
 from ..time_frequency.spectrum import BaseSpectrum
 
+
 def _find_outliers(X, threshold=3.0, max_iter=2, tail=0):
     """Find outliers based on iterated Z-scoring.
 
@@ -61,51 +62,51 @@ def _find_outliers(X, threshold=3.0, max_iter=2, tail=0):
 def unify_bad_channels(insts):
     """Unify bad channels across list of instances.
 
-    This function looks across the list of instances to gather a list of 
-    "bad" channels. Every instance's info["bads"] is set with the same "bad" 
+    This function looks across the list of instances to gather a list of
+    "bad" channels. Every instance's info["bads"] is set with the same "bad"
     channels.
 
     Parameters
     ----------
     insts : list
-        List of instances (:class:`~mne.io.Raw`, :class:`~mne.Epochs`, 
-        :class:`~mne.Evoked`, :class:`~mne.time_frequency.Spectrum`, 
+        List of instances (:class:`~mne.io.Raw`, :class:`~mne.Epochs`,
+        :class:`~mne.Evoked`, :class:`~mne.time_frequency.Spectrum`,
         :class:`~mne.time_frequency.EpochSpectrum`) to unify bad channels.
 
     Returns
     -------
     new_insts : list
         List of instances with bad channels unified across instances.
-        
+
     Notes
     -----
     This function operates in-place.
-    
+
     .. versionadded:: 1.6
     """
     # first check that each object is mne object
     inst_type = type(insts[0])
     valid_types = (BaseRaw, Epochs, Evoked, BaseSpectrum)
     for inst in insts:
-        _validate_type(inst, valid_types , "instance type")
+        _validate_type(inst, valid_types, "instance type")
         if type(inst) != inst_type:
             raise ValueError("All insts must be the same type")
-        
-    #check that input is a list
-    if type(insts) != list :
+
+    # check that input is a list
+    if not isinstance(insts, list):
         raise ValueError(f"insts must be a *list* of mne objects, got {type(insts)}")
-    
+
     if len(insts) == 0:
         raise ValueError("Be sure insts is not empty list")
-        
-    # then interate through the insts to gather bads
+
+    # then iterate through the insts to gather bads
     all_bads = dict()
     for inst in insts:
-        #using dictionary method to remove duplicates & preserve order
+        # using dictionary method to remove duplicates & preserve order
         all_bads.update(dict.fromkeys(inst.info["bads"]))
     all_bads = list(all_bads)
 
-    #apply bads set to all instances
+    # apply bads set to all instances
     new_insts = []
 
     for inst in insts:
