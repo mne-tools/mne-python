@@ -3392,7 +3392,6 @@ def plot_sparse_source_estimates(
         color=brain_color,
         opacity=opacity,
         backface_culling=True,
-        shading=True,
         normals=normals,
         **kwargs,
     )
@@ -3465,6 +3464,7 @@ def plot_sparse_source_estimates(
     plt_show(show)
 
     renderer.show()
+    renderer.set_camera(distance="auto", focalpoint="auto")
     return renderer.scene()
 
 

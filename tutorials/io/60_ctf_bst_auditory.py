@@ -21,7 +21,6 @@ The specifications of this dataset were discussed initially on the
 `FieldTrip bug tracker
 <http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=2300>`__.
 """
-
 # Authors: Mainak Jas <mainak.jas@telecom-paristech.fr>
 #          Eric Larson <larson.eric.d@gmail.com>
 #          Jaakko Leppakangas <jaeilepp@student.jyu.fi>
@@ -38,8 +37,6 @@ from mne import combine_evoked
 from mne.minimum_norm import apply_inverse
 from mne.datasets.brainstorm import bst_auditory
 from mne.io import read_raw_ctf
-
-print(__doc__)
 
 # %%
 # To reduce memory consumption and running time, some of the steps are

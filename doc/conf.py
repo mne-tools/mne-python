@@ -37,6 +37,8 @@ os.environ["_MNE_BROWSER_NO_BLOCK"] = "true"
 os.environ["MNE_BROWSER_OVERVIEW_MODE"] = "hidden"
 os.environ["MNE_BROWSER_THEME"] = "light"
 os.environ["MNE_3D_OPTION_THEME"] = "light"
+# https://numba.readthedocs.io/en/latest/reference/deprecation.html#deprecation-of-old-style-numba-captured-errors  # noqa: E501
+os.environ["NUMBA_CAPTURED_ERRORS"] = "new_style"
 sphinx_logger = sphinx.util.logging.getLogger("mne")
 
 # -- Path setup --------------------------------------------------------------
