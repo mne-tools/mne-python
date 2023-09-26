@@ -764,9 +764,9 @@ def test_extract_label_time_course(kind, vector):
             if mode == "raw":
                 assert all(arr.shape[1] == tc1[0].shape[1] for arr in tc1)
                 assert all(arr.shape[1] == tc2[0].shape[1] for arr in tc2)
-                assert (len(tc1), tc1[0].shape[1])  == (n_labels,) + end_shape
+                assert (len(tc1), tc1[0].shape[1]) == (n_labels,) + end_shape
                 assert (len(tc2), tc2[0].shape[1]) == (n_labels,) + end_shape
-                for arr1, arr2 in zip(tc1, tc2): # list of arrays
+                for arr1, arr2 in zip(tc1, tc2):  # list of arrays
                     assert_allclose(arr1, arr2, rtol=1e-8, atol=1e-16)
             else:
                 assert tc1.shape == (n_labels + len(vol_means),) + end_shape
@@ -780,8 +780,12 @@ def test_extract_label_time_course(kind, vector):
                 for arr1, arr2 in zip(tc1, label_tcs[use_mode]):
                     assert_array_almost_equal(arr1, arr2)
             elif use_mode == "raw":
-                for arr1, arr2 in zip(tc1[:n_labels], label_tcs[use_mode]): # list of arrays
-                    assert_allclose(arr1, np.tile(arr2, (arr1.shape[0], 1)), rtol=1e-8, atol=1e-16)
+                for arr1, arr2 in zip(
+                    tc1[:n_labels], label_tcs[use_mode]
+                ):  # list of arrays
+                    assert_allclose(
+                        arr1, np.tile(arr2, (arr1.shape[0], 1)), rtol=1e-8, atol=1e-16
+                    )
             elif use_mode in ("mean", "max", "mean_flip"):
                 assert_array_almost_equal(tc1[:n_labels], label_tcs[use_mode])
             if mode != "raw":
