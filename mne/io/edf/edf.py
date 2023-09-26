@@ -208,7 +208,7 @@ class RawEDF(BaseRaw):
                 tal_data[0],
                 encoding=encoding,
             )
-            self.set_annotations(annotations)
+            self.set_annotations(annotations, on_missing="warn")
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data."""
