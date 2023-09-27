@@ -84,6 +84,10 @@ def unify_bad_channels(insts):
 
     .. versionadded:: 1.6
     """
+    # check input is not an empty list
+    if len(insts) == 0:
+        raise ValueError("Be sure insts is not empty list")
+
     # first check that each object is mne object
     inst_type = type(insts[0])
     valid_types = (BaseRaw, Epochs, Evoked, BaseSpectrum)
@@ -95,9 +99,7 @@ def unify_bad_channels(insts):
     # check that input is a list
     if not isinstance(insts, list):
         raise ValueError(f"insts must be a *list* of mne objects, got {type(insts)}")
-    # check input is not an empty list
-    if len(insts) == 0:
-        raise ValueError("Be sure insts is not empty list")
+
     # check that all channels have the same name and same number
     ch_names = insts[0].info.ch_names
     diff_chns = []
