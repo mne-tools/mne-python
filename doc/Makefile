@@ -28,7 +28,7 @@ help:
 	@echo "  view             to view the built HTML"
 
 clean:
-	-rm -rf _build auto_examples auto_tutorials generated *.stc *.fif *.nii.gz
+	-rm -rf _build sg_execution_times.rst auto_examples auto_tutorials generated *.stc *.fif *.nii.gz
 
 html:
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) _build/html

@@ -208,7 +208,7 @@ jobs:
           name: List packages
           command: python -m pip list
 
-      # Figure out if we should run a full, pattern, or noplot version
+      # Figure out if we should run a full build or specify a pattern
       - restore_cache:
           keys:
             - data-cache-tiny-1
@@ -311,7 +311,7 @@ jobs:
       - run:
           name: Reduce artifact upload time
           command: |
-            if grep -q html-pattern-memory build.txt || grep -q html-noplot build.txt; then
+            if grep -q html-pattern-memory build.txt; then
               zip -rm doc/_build/html/_downloads.zip doc/_build/html/_downloads
             fi
             for NAME in generated auto_tutorials auto_examples; do

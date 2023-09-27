@@ -55,7 +55,7 @@ decim = 2
 data = loadmat(join(path, "speech_data.mat"))
 raw = data["EEG"].T
 speech = data["envelope"].T
-sfreq = float(data["Fs"])
+sfreq = float(data["Fs"].item())
 sfreq /= decim
 speech = mne.filter.resample(speech, down=decim, npad="auto")
 raw = mne.filter.resample(raw, down=decim, npad="auto")
