@@ -883,7 +883,7 @@ def compute_covariance(
     rank=None,
     verbose=None,
 ):
-    """Estimate noise covariance matrix from epochs.
+    r"""Estimate noise covariance matrix from epochs.
 
     The noise covariance is typically estimated on pre-stimulus periods
     when the stimulus onset is defined from events.
