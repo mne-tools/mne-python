@@ -67,7 +67,7 @@ def unify_bad_channels(insts):
     insts : list
         List of instances (:class:`~mne.io.Raw`, :class:`~mne.Epochs`,
         :class:`~mne.Evoked`, :class:`~mne.time_frequency.Spectrum`,
-        :class:`~mne.time_frequency.EpochSpectrum`) to unify bad channels.
+        :class:`~mne.time_frequency.EpochSpectrum`) across which to unify bad channels.
 
     Returns
     -------
