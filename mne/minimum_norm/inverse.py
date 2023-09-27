@@ -990,7 +990,7 @@ def apply_inverse(
             loose-orientation inverses and ``False`` for free- and
             fixed-orientation inverses. See below.
 
-    The eLORETA paper :footcite:`Pascual-Marqui2011` defines how to compute
+    The eLORETA paper\ :footcite:`Pascual-Marqui2011` defines how to compute
     inverses for fixed- and
     free-orientation inverses. In the free orientation case, the X/Y/Z
     orientation triplet for each location is effectively multiplied by a
