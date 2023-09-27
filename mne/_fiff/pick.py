@@ -1388,16 +1388,12 @@ def _picks_str_to_idx(
                 extra_picks |= set(
                     pick_types(info, meg=use_meg, ref_meg=False, exclude=exclude)
                 )
-        if len(fnirs) > 0 and not kwargs.get("fnirs", False):
-            if len(fnirs) == 1:
-                kwargs["fnirs"] = list(fnirs)[0]
-            else:
-                kwargs["fnirs"] = list(fnirs)
-        if len(eyetrack) > 0 and not kwargs.get("eyetrack", False):
-            if len(eyetrack) == 1:
-                kwargs["eyetrack"] = list(eyetrack)[0]
-            else:
-                kwargs["eyetrack"] = list(eyetrack)
+        if len(fnirs) and not kwargs.get("fnirs", False):
+            idx = 0 if len(fnirs) == 1 else slice(None)
+            kwargs["fnirs"] = list(fnirs)[idx]
+        if len(eyetrack) and not kwargs.get("eyetrack", False):
+            idx = 0 if len(eyetrack) == 1 else slice(None)
+            kwargs["eyetrack"] = list(eyetrack)[idx]  # slice(None) is equivalent to all
         picks_type = pick_types(info, exclude=exclude, **kwargs)
         if len(extra_picks) > 0:
             picks_type = sorted(set(picks_type) | set(extra_picks))
