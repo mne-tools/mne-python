@@ -100,7 +100,7 @@ def unify_bad_channels(insts):
     ch_names = insts[0].ch_names
     diff_chns = []
     for inst in insts[1:]:
-        if inst.info.ch_names != ch_names:
+        if inst.ch_names != ch_names:
             dif = set(inst.info.ch_names) ^ (set(ch_names))
             diff_chns.extend(list(dif))
 
