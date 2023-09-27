@@ -922,7 +922,7 @@ def apply_inverse(
     use_cps=True,
     verbose=None,
 ):
-    """Apply inverse operator to evoked data.
+    r"""Apply inverse operator to evoked data.
 
     Parameters
     ----------
@@ -933,10 +933,10 @@ def apply_inverse(
     lambda2 : float
         The regularization parameter.
     method : "MNE" | "dSPM" | "sLORETA" | "eLORETA"
-        Use minimum norm :footcite:`HamalainenIlmoniemi1994`,
-        dSPM (default) :footcite:`DaleEtAl2000`,
-        sLORETA :footcite:`Pascual-Marqui2002`, or
-        eLORETA :footcite:`Pascual-Marqui2011`.
+        Use minimum norm\ :footcite:`HamalainenIlmoniemi1994`,
+        dSPM (default)\ :footcite:`DaleEtAl2000`,
+        sLORETA\ :footcite:`Pascual-Marqui2002`, or
+        eLORETA\ :footcite:`Pascual-Marqui2011`.
     %(pick_ori)s
     prepared : bool
         If True, do not call :func:`prepare_inverse_operator`.
