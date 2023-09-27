@@ -209,8 +209,11 @@ def equalize_channels(instances, copy=True, verbose=None):
 
 
 def unify_bad_channels(insts):
-    """Unify bad channels across a list of instances, using the union.
+    """Unify bad channels across a list of instances.
 
+    All instances must be of the same type and have matching channel names and channel
+    order. The ``.info["bads"]`` of each instance will be set to the union of
+    ``.info["bads"]`` across all instances.
     Parameters
     ----------
     insts : list
@@ -235,21 +238,17 @@ def unify_bad_channels(insts):
 
     .. versionadded:: 1.6
     """
-    from ..utils import _validate_type
-
     from ..io import BaseRaw
     from ..epochs import Epochs
     from ..evoked import Evoked
     from ..time_frequency.spectrum import BaseSpectrum
 
-    # check that input is a list
+    # ensure input is list-like
     _validate_type(insts, (list, tuple), "instance type")
-
-    # check input is not an empty list
+    # ensure non-empty
     if len(insts) == 0:
         raise ValueError("Be sure insts is not empty list")
-
-    # first check that each object is mne object
+    # ensure all insts are MNE objects, and all the same type
     inst_type = type(insts[0])
     valid_types = (BaseRaw, Epochs, Evoked, BaseSpectrum)
     for inst in insts:
@@ -257,35 +256,26 @@ def unify_bad_channels(insts):
         if type(inst) != inst_type:
             raise ValueError("All insts must be the same type")
 
-    # check that all channels have the same name and same number
+    # ensure all insts have the same channels and channel order
     ch_names = insts[0].ch_names
-    diff_chns = []
     for inst in insts[1:]:
-        if inst.ch_names != ch_names:
-            dif = set(inst.ch_names) ^ (set(ch_names))
-            diff_chns.extend(list(dif))
-            if ch_names.sort() == inst.ch_names.sort():
-                raise ValueError(
-                    "Channel names are sorted differently across"
-                    "instances. Please use"
-                    "mne.channels.equalize_channels."
-                )
+        dif = set(inst.ch_names) ^ set(ch_names)
+        if len(dif):
+            # TODO raise error, we know some chs need to be dropped
+            raise ValueError("")
+        elif inst.ch_names != ch_names:
+            raise ValueError(
+                "Channel names are sorted differently across instances. Please use "
+                "mne.channels.equalize_channels."
+            )
 
-    if len(diff_chns) > 0:
-        raise ValueError(
-            "Channel names are not consistent across instances. Be sure"
-            "consistent naming is used across channels. Mismatched channels"
-            f"are {diff_chns}"
-        )
-
-    # collect bads as dict keys so that insertion order is preserved
-    # then later cast to list.
+    # collect bads as dict keys so that insertion order is preserved, then cast to list
     all_bads = dict()
     for inst in insts:
         all_bads.update(dict.fromkeys(inst.info["bads"]))
     all_bads = list(all_bads)
 
-    # apply bads set to all instances
+    # update bads on all instances
     for inst in insts:
         inst.info["bads"] = all_bads
 
