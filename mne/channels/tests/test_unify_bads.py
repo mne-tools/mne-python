@@ -8,17 +8,17 @@ def test_error_raising(raw, epochs):
         unify_bad_channels("bad input")
     with pytest.raises(ValueError, match=r"empty list"):
         unify_bad_channels([])
-    with pytest.raises(TypeError, match=r"must be an instance of"):
+    with pytest.raises(TypeError, match=r"each object in insts must be an instance of"):
         unify_bad_channels(["bad_instance"])
     with pytest.raises(ValueError, match=r"same type"):
         unify_bad_channels([raw, epochs])
-    with pytest.raises(ValueError, match=r"sorted differently"):
+    with pytest.raises(ValueError, match=r"Channels do not match across"):
         raw_alt1 = raw.copy()
         raw_alt1.drop_channels(raw.info["ch_names"][-1])
         unify_bad_channels([raw, raw_alt1])  # ch diff preserving order
-    with pytest.raises(ValueError, match=r"not consistent"):
+    with pytest.raises(ValueError, match=r"sorted differently"):
         raw_alt2 = raw.copy()
-        new_order = [raw.info["ch_names"][-1]] + raw.info["ch_names"][:-1]
+        new_order = [raw.ch_names[-1]] + raw.ch_names[:-1]
         raw_alt2.reorder_channels(new_order)
         unify_bad_channels([raw, raw_alt2])
 
@@ -35,7 +35,7 @@ def test_bads_compilation(raw):
     controlled across instance types with a MixIn class.
     """
     assert raw.info["bads"] == []
-    chns = raw.info["ch_names"][0:3]
+    chns = raw.ch_names[:3]
     no_bad = raw.copy()
     one_bad = raw.copy()
     one_bad.info["bads"] = [chns[1]]
@@ -48,6 +48,6 @@ def test_bads_compilation(raw):
     # scenario 2: multiple instances passed
     m_out = unify_bad_channels([one_bad, no_bad, three_bad])
     assert len(m_out) == 3, len(m_out)
-    correct_bads = [chns[1], chns[0], chns[2]]
-    for i in range(len(m_out)):
-        assert m_out[i].info["bads"] == correct_bads
+    expected_order = [chns[1], chns[0], chns[2]]
+    for inst in m_out:
+        assert inst.info["bads"] == expected_order
