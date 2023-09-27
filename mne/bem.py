@@ -1202,6 +1202,8 @@ def make_watershed_bem(
 ):
     """Create BEM surfaces using the FreeSurfer watershed algorithm.
 
+    See :ref:`bem_watershed_algorithm` for additional information.
+
     Parameters
     ----------
     subject : str
@@ -2085,6 +2087,8 @@ def make_flash_bem(
     verbose=None,
 ):
     """Create 3-Layer BEM model from prepared flash MRI images.
+
+    See :ref:`bem_flash_algorithm` for additional information.
 
     Parameters
     ----------

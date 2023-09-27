@@ -39,6 +39,7 @@ a file called :file:`bem/watershed/ws.mgz` which contains the brain MRI
 volume. Furthermore, ``mne watershed_bem`` script converts the scalp surface to
 fif format and saves the result to :file:`bem/{<subject>}-head.fif`.
 
+.. _bem_flash_algorithm:
 
 Using FLASH images
 ~~~~~~~~~~~~~~~~~~
