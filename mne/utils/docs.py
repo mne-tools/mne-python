@@ -4660,7 +4660,7 @@ If str, the path to the head<->MRI transform ``*-trans.fif`` file produced
 docdict[
     "trans"
 ] = f"""
-trans : path-like | dict | instance of Transform | None
+trans : path-like | dict | instance of Transform | ``"fsaverage"`` | None
     {_trans_base}
     If trans is None, an identity matrix is assumed.
 """

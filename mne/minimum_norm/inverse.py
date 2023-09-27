@@ -1897,14 +1897,16 @@ def make_inverse_operator(
         Specifies the channels to include. Bad channels (in ``info['bads']``)
         are not used.
     forward : Forward
-        Forward operator.
+        Forward operator. See :func:`~mne.make_forward_solution` to create the operator.
     noise_cov : instance of Covariance
-        The noise covariance matrix.
+        The noise covariance matrix. See :func:`~mne.compute_raw_covariance` and
+        :func:`~mne.compute_covariance` to compute the noise covariance matrix on
+        :classl:`~mne.io.Raw` and :class:`~mne.Epochs` respectively.
     %(loose)s
     %(depth)s
     fixed : bool | 'auto'
         Use fixed source orientations normal to the cortical mantle. If True,
-        the loose parameter must be "auto" or 0. If 'auto', the loose value
+        the loose parameter must be ``"auto"`` or ``0``. If ``'auto'``, the loose value
         is used.
     %(rank_none)s
     %(use_cps)s
