@@ -97,7 +97,7 @@ def unify_bad_channels(insts):
         raise ValueError(f"insts must be a *list* of mne objects, got {type(insts)}")
 
     # check that all channels have the same name and same number
-    ch_names = insts[0].info.ch_names
+    ch_names = insts[0].ch_names
     diff_chns = []
     for inst in insts[1:]:
         if inst.info.ch_names != ch_names:
