@@ -110,7 +110,8 @@ def unify_bad_channels(insts):
             f" Mismatch channels are {diff_chns}"
         )
 
-    # then iterate through the insts to gather bads
+    # collect bads as dict keys so that insertion order is preserved
+    # then later cast to list.
     all_bads = dict()
     for inst in insts:
         all_bads.update(dict.fromkeys(inst.info["bads"]))
