@@ -245,15 +245,15 @@ def unify_bad_channels(insts):
     from ..time_frequency.spectrum import BaseSpectrum
 
     # ensure input is list-like
-    _validate_type(insts, (list, tuple), "instance type")
+    _validate_type(insts, (list, tuple), "insts")
     # ensure non-empty
     if len(insts) == 0:
-        raise ValueError("Be sure insts is not empty list")
+        raise ValueError("insts must not be empty")
     # ensure all insts are MNE objects, and all the same type
     inst_type = type(insts[0])
     valid_types = (BaseRaw, Epochs, Evoked, BaseSpectrum)
     for inst in insts:
-        _validate_type(inst, valid_types, "instance type")
+        _validate_type(inst, valid_types, "each object in insts")
         if type(inst) != inst_type:
             raise ValueError("All insts must be the same type")
 
@@ -262,8 +262,10 @@ def unify_bad_channels(insts):
     for inst in insts[1:]:
         dif = set(inst.ch_names) ^ set(ch_names)
         if len(dif):
-            # TODO raise error, we know some chs need to be dropped
-            raise ValueError("")
+            raise ValueError(
+                "Channels do not match across the objects in insts. Consider calling "
+                "equalize_channels before calling this function."
+            )
         elif inst.ch_names != ch_names:
             raise ValueError(
                 "Channel names are sorted differently across instances. Please use "
