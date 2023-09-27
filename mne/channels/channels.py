@@ -214,6 +214,7 @@ def unify_bad_channels(insts):
     All instances must be of the same type and have matching channel names and channel
     order. The ``.info["bads"]`` of each instance will be set to the union of
     ``.info["bads"]`` across all instances.
+
     Parameters
     ----------
     insts : list
