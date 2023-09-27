@@ -1653,6 +1653,7 @@ def setup_volume_source_space(
     add_interpolator=True,
     sphere_units="m",
     single_volume=False,
+    n_jobs=None,
     *,
     verbose=None,
 ):
@@ -1729,6 +1730,7 @@ def setup_volume_source_space(
         when many labels are used.
 
         .. versionadded:: 0.21
+    %(n_jobs)s
     %(verbose)s
 
     Returns
@@ -1912,6 +1914,7 @@ def setup_volume_source_space(
             mindist,
             mri,
             volume_label,
+            n_jobs=n_jobs,
             vol_info=vol_info,
             single_volume=single_volume,
         )
