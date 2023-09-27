@@ -53,12 +53,10 @@ def coregistration(
     width : int | None
         Specify the width for window (in logical pixels).
         Default is None, which uses ``MNE_COREG_WINDOW_WIDTH`` config value
-        (which defaults to 800).
-    inst : None | str
-        Path to an instance file containing the digitizer data. Compatible for
-        Raw, Epochs, and Evoked files.
-    subject : None | str
-        Name of the mri subject.
+        (which defaults to ``800``).
+    inst : Raw | Epochs | Evoked | path-like | None
+        Instance of path to an instance file containing the digitizer data.
+    %(subject)s
     %(subjects_dir)s
     guess_mri_subject : bool
         When selecting a new head shape file, guess the subject's name based
@@ -68,9 +66,9 @@ def coregistration(
         Default is None, which uses ``MNE_COREG_WINDOW_WIDTH`` config value
         (which defaults to 400).
     head_opacity : float | None
-        The opacity of the head surface in the range [0., 1.].
+        The opacity of the head surface in the range ``[0., 1.]``.
         Default is None, which uses ``MNE_COREG_HEAD_OPACITY`` config value
-        (which defaults to 1.).
+        (which defaults to ``1.``).
     head_high_res : bool | None
         Use a high resolution head surface.
         Default is None, which uses ``MNE_COREG_HEAD_HIGH_RES`` config value

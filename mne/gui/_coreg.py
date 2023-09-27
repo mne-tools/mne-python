@@ -88,8 +88,8 @@ class CoregistrationUI(HasTraits):
 
     Parameters
     ----------
-    info_file : None | str
-        The FIFF file with digitizer data for coregistration.
+    inst : Raw | Epochs | Evoked | path-like | None
+        Instance of path to an instance file containing the digitizer data.
     %(subject)s
     %(subjects_dir)s
     %(fiducials)s
@@ -168,7 +168,7 @@ class CoregistrationUI(HasTraits):
     @verbose
     def __init__(
         self,
-        info_file,
+        inst,
         *,
         subject=None,
         subjects_dir=None,
