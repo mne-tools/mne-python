@@ -1662,12 +1662,12 @@ def setup_volume_source_space(
     subject : str | None
         Subject to process. If None, the path to the MRI volume must be
         absolute to get a volume source space. If a subject name
-        is provided the T1.mgz file will be found automatically.
+        is provided the ``T1.mgz`` file will be found automatically.
         Defaults to None.
     pos : float | dict
         Positions to use for sources. If float, a grid will be constructed
         with the spacing given by ``pos`` in mm, generating a volume source
-        space. If dict, pos['rr'] and pos['nn'] will be used as the source
+        space. If dict, ``pos['rr']`` and ``pos['nn']`` will be used as the source
         space locations (in meters) and normals, respectively, creating a
         discrete source space.
 
@@ -1683,7 +1683,7 @@ def setup_volume_source_space(
         or ``aseg.mgz``, respectively, else it will stay None.
     sphere : ndarray, shape (4,) | ConductorModel | None
         Define spherical source space bounds using origin and radius given
-        by (ox, oy, oz, rad) in ``sphere_units``.
+        by ``(Ox, Oy, Oz, rad)`` in ``sphere_units``.
         Only used if ``bem`` and ``surface`` are both None. Can also be a
         spherical ConductorModel, which will use the origin and radius.
         None (the default) uses a head-digitization fit.
