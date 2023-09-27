@@ -1951,7 +1951,7 @@ def make_inverse_operator(
     and without this information.
 
     For depth weighting, 0.8 is generally good for MEG, and between 2 and 5
-    is good for EEG, see :footcite:`LinEtAl2006a`.
+    is good for EEG, see :footcite:t:`LinEtAl2006a`.
 
     References
     ----------
