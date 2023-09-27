@@ -1785,7 +1785,7 @@ def setup_volume_source_space(
         )
 
     if bem is not None and surface is not None:
-        raise ValueError("Only one of "bem" and "surface" should be specified.")
+        raise ValueError("Only one of 'bem' and 'surface' should be specified.")
 
     if mri is None and subject is not None:
         if volume_label is not None:
