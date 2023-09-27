@@ -648,7 +648,7 @@ def make_bem_model(
 
     .. note:: To get a single layer bem corresponding to the --homog flag in
               the command line tool set the ``conductivity`` parameter
-              to a list/tuple with a single value (e.g. [0.3]).
+              to a float (e.g. ``0.3``).
 
     Parameters
     ----------
@@ -657,11 +657,11 @@ def make_bem_model(
     ico : int | None
         The surface ico downsampling to use, e.g. ``5=20484``, ``4=5120``,
         ``3=1280``. If None, no subsampling is applied.
-    conductivity : array of int, shape (3,) or (1,)
+    conductivity : float | array of float of shape (3,) or (1,)
         The conductivities to use for each shell. Should be a single element
         for a one-layer model, or three elements for a three-layer model.
         Defaults to ``[0.3, 0.006, 0.3]``. The MNE-C default for a
-        single-layer model would be ``[0.3]``.
+        single-layer model is ``[0.3]``.
     %(subjects_dir)s
     %(verbose)s
 
@@ -682,9 +682,11 @@ def make_bem_model(
     -----
     .. versionadded:: 0.10.0
     """
-    conductivity = np.array(conductivity, float)
+    conductivity = np.atleast_1d(conductivity).astype(float)
     if conductivity.ndim != 1 or conductivity.size not in (1, 3):
-        raise ValueError("conductivity must be 1D array-like with 1 or 3 " "elements")
+        raise ValueError(
+            "conductivity must be a float or a 1D array-like with 1 or 3 elements"
+        )
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     subject_dir = subjects_dir / subject
     bem_dir = subject_dir / "bem"
