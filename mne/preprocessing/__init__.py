@@ -56,6 +56,5 @@ __getattr__, __dir__, __all__ = lazy.attach(
         "interpolate": ["equalize_bads", "interpolate_bridged_electrodes"],
         "_css": ["cortical_signal_suppression"],
         "hfc": ["compute_proj_hfc"],
-        "bads": ["unify_bad_channels"],
     },
 )

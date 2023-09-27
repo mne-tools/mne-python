@@ -5,6 +5,8 @@
 #          Andrew Dykstra <andrew.r.dykstra@gmail.com>
 #          Teon Brooks <teon.brooks@gmail.com>
 #          Daniel McCloy <dan.mccloy@gmail.com>
+#          Ana Radanovic <radanovica@protonmail.com>
+#          Erica Peterson <nordme@uw.edu>
 #
 # License: BSD-3-Clause
 
@@ -204,6 +206,80 @@ def equalize_channels(instances, copy=True, verbose=None):
         logger.info("Channels have been re-ordered.")
 
     return equalized_instances
+
+
+def unify_bad_channels(insts):
+    """Unify bad channels across a list of instances.
+
+    All instances must be of the same type and have matching channel names and channel
+    order. The ``.info["bads"]`` of each instance will be set to the union of
+    ``.info["bads"]`` across all instances.
+    Parameters
+    ----------
+    insts : list
+        List of instances (:class:`~mne.io.Raw`, :class:`~mne.Epochs`,
+        :class:`~mne.Evoked`, :class:`~mne.time_frequency.Spectrum`,
+        :class:`~mne.time_frequency.EpochSpectrum`) across which to unify bad channels.
+
+    Returns
+    -------
+    insts : list
+        List of instances with bad channels unified across instances.
+
+    See Also
+    --------
+    mne.channels.equalize_channels
+    mne.channels.rename_channels
+    mne.channels.combine_channels
+
+    Notes
+    -----
+    This function modifies the instances in-place.
+
+    .. versionadded:: 1.6
+    """
+    from ..io import BaseRaw
+    from ..epochs import Epochs
+    from ..evoked import Evoked
+    from ..time_frequency.spectrum import BaseSpectrum
+
+    # ensure input is list-like
+    _validate_type(insts, (list, tuple), "instance type")
+    # ensure non-empty
+    if len(insts) == 0:
+        raise ValueError("Be sure insts is not empty list")
+    # ensure all insts are MNE objects, and all the same type
+    inst_type = type(insts[0])
+    valid_types = (BaseRaw, Epochs, Evoked, BaseSpectrum)
+    for inst in insts:
+        _validate_type(inst, valid_types, "instance type")
+        if type(inst) != inst_type:
+            raise ValueError("All insts must be the same type")
+
+    # ensure all insts have the same channels and channel order
+    ch_names = insts[0].ch_names
+    for inst in insts[1:]:
+        dif = set(inst.ch_names) ^ set(ch_names)
+        if len(dif):
+            # TODO raise error, we know some chs need to be dropped
+            raise ValueError("")
+        elif inst.ch_names != ch_names:
+            raise ValueError(
+                "Channel names are sorted differently across instances. Please use "
+                "mne.channels.equalize_channels."
+            )
+
+    # collect bads as dict keys so that insertion order is preserved, then cast to list
+    all_bads = dict()
+    for inst in insts:
+        all_bads.update(dict.fromkeys(inst.info["bads"]))
+    all_bads = list(all_bads)
+
+    # update bads on all instances
+    for inst in insts:
+        inst.info["bads"] = all_bads
+
+    return insts
 
 
 class ReferenceMixin(MontageMixin):
