@@ -71,7 +71,7 @@ def unify_bad_channels(insts):
 
     Returns
     -------
-    new_insts : list
+    insts : list
         List of instances with bad channels unified across instances.
 
     Notes
