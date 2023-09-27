@@ -18,15 +18,15 @@ def test_instance_support(instance, request, evoked):
 
 def test_error_raising(raw, epochs):
     """Tests input checking."""
-    with pytest.raises(IndexError, match=r"list index"):
+    with pytest.raises(ValueError, match=r"empty list"):
         unify_bad_channels([])
     with pytest.raises(TypeError, match=r"must be an instance of"):
         unify_bad_channels(["bad_instance"])
     with pytest.raises(ValueError, match=r"same type"):
         unify_bad_channels([raw, epochs])
-    with pytest.raises(AssertionError):
+    with pytest.raises(ValueError):
         raw_alt = raw.copy()
-        raw_alt.info["ch_names"] = raw.info["ch_names"][0]
+        raw_alt.drop_channels(raw.info["ch_names"][0])
         unify_bad_channels([raw, raw_alt])
 
 
