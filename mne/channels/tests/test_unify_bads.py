@@ -6,7 +6,7 @@ def test_error_raising(raw, epochs):
     """Tests input checking."""
     with pytest.raises(TypeError, match=r"must be an instance of list"):
         unify_bad_channels("bad input")
-    with pytest.raises(ValueError, match=r"empty list"):
+    with pytest.raises(ValueError, match=r"insts must not be empty"):
         unify_bad_channels([])
     with pytest.raises(TypeError, match=r"each object in insts must be an instance of"):
         unify_bad_channels(["bad_instance"])
