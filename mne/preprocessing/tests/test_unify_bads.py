@@ -18,7 +18,7 @@ def test_instance_support(instance, request, evoked):
 
 def test_error_raising(raw, epochs):
     """Tests input checking."""
-    with pytest.raises(IndexError, match=r"empty list"):
+    with pytest.raises(IndexError, match=r"list index"):
         unify_bad_channels([])
     with pytest.raises(TypeError, match=r"must be an instance of"):
         unify_bad_channels(["bad_instance"])
@@ -42,7 +42,7 @@ def test_bads_compilation(raw):
     chns = raw.info["ch_names"][0:3]
     no_bad = raw.copy()
     one_bad = raw.copy()
-    one_bad.info["bads"] = chns[1]
+    one_bad.info["bads"] = [chns[1]]
     three_bad = raw.copy()
     three_bad.info["bads"] = chns
     # scenario 1: single instance passed with actual bads
