@@ -817,7 +817,7 @@ class EpochAnnotationsMixin:
                     "disk) before 1.0 will yield incorrect results if "
                     "decimation or resampling was performed on the instance, "
                     "we recommend regenerating the Epochs and re-saving them "
-                    "to disk"
+                    "to disk."
                 )
             new_annotations = annotations.copy()
             new_annotations._prune_ch_names(self.info, on_missing)
