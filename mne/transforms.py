@@ -15,7 +15,7 @@ from scipy import linalg
 from scipy.spatial.distance import cdist
 from scipy.special import sph_harm
 
-from .fixes import jit, mean, _get_img_fdata
+from .fixes import jit, _get_img_fdata
 from ._fiff.constants import FIFF
 from ._fiff.open import fiff_open
 from ._fiff.tag import read_tag
@@ -1466,16 +1466,12 @@ def _fit_matched_points(p, x, weights=None, scale=False):
     assert p.ndim == 2
     assert p.shape[1] == 3
     # (weighted) centroids
-    if weights is None:
-        mu_p = mean(p, axis=0)  # eq 23
-        mu_x = mean(x, axis=0)
-        dots = np.dot(p.T, x)
-        dots /= p.shape[0]
-    else:
-        weights_ = np.reshape(weights / weights.sum(), (weights.size, 1))
-        mu_p = np.dot(weights_.T, p)[0]
-        mu_x = np.dot(weights_.T, x)[0]
-        dots = np.dot(p.T, weights_ * x)
+    weights_ = np.full((p.shape[0], 1), 1.0 / max(p.shape[0], 1))
+    if weights is not None:
+        weights_[:] = np.reshape(weights / weights.sum(), (weights.size, 1))
+    mu_p = np.dot(weights_.T, p)[0]
+    mu_x = np.dot(weights_.T, x)[0]
+    dots = np.dot(p.T, weights_ * x)
     Sigma_px = dots - np.outer(mu_p, mu_x)  # eq 24
     # x and p should no longer be used
     A_ij = Sigma_px - Sigma_px.T
