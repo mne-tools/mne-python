@@ -1690,6 +1690,8 @@ def setup_volume_source_space(
     bem : path-like | None | ConductorModel
         Define source space bounds using a BEM file (specifically the inner
         skull surface) or a ConductorModel for a 1-layer of 3-layers BEM.
+        See :func:`~mne.make_bem_model` and :func:`~mne.make_bem_solution` to create a
+        :class:`~mne.bem.ConductorModel`.
     surface : path-like | dict | None
         Define source space bounds using a FreeSurfer surface file. Can
         also be a dictionary with entries ``'rr'`` and ``'tris'``, such as

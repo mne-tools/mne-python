@@ -86,7 +86,11 @@ from .utils import (
 
 
 class ConductorModel(dict):
-    """BEM or sphere model."""
+    """BEM or sphere model.
+
+    See :func:`~mne.make_bem_model` and :func:`~mne.make_bem_solution` to create a
+    :class:`mne.bem.ConductorModel`.
+    """
 
     def __repr__(self):  # noqa: D105
         if self["is_sphere"]:
