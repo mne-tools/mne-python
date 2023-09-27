@@ -51,7 +51,7 @@ reconstructions but it is strongly recommended that they are collected at the
 same time with the MPRAGEs or at least with the same scanner. For easy
 co-registration, the images should have FOV, matrix, slice thickness, gap, and
 slice orientation as the MPRAGE data. For information on suitable pulse
-sequences, see :footcite::t:`FischlEtAl2004`.
+sequences, see :footcite:t:`FischlEtAl2004`.
 
 Creation of the BEM meshes using this method involves the following steps:
 
