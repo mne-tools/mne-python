@@ -113,7 +113,6 @@ def unify_bad_channels(insts):
     # then iterate through the insts to gather bads
     all_bads = dict()
     for inst in insts:
-        # using dictionary method to remove duplicates & preserve order
         all_bads.update(dict.fromkeys(inst.info["bads"]))
     all_bads = list(all_bads)
 
