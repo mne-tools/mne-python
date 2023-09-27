@@ -5,6 +5,8 @@
 #          Andrew Dykstra <andrew.r.dykstra@gmail.com>
 #          Teon Brooks <teon.brooks@gmail.com>
 #          Daniel McCloy <dan.mccloy@gmail.com>
+#          Ana Radanovic <radanovica@protonmail.com>
+#          Erica Peterson <nordme@uw.edu>
 #
 # License: BSD-3-Clause
 
@@ -204,6 +206,90 @@ def equalize_channels(instances, copy=True, verbose=None):
         logger.info("Channels have been re-ordered.")
 
     return equalized_instances
+
+
+def unify_bad_channels(insts):
+    """Unify bad channels across a list of instances, using the union.
+
+    Parameters
+    ----------
+    insts : list
+        List of instances (:class:`~mne.io.Raw`, :class:`~mne.Epochs`,
+        :class:`~mne.Evoked`, :class:`~mne.time_frequency.Spectrum`,
+        :class:`~mne.time_frequency.EpochSpectrum`) across which to unify bad channels.
+
+    Returns
+    -------
+    insts : list
+        List of instances with bad channels unified across instances.
+
+    See Also
+    --------
+    mne.channels.equalize_channels
+    mne.channels.rename_channels
+    mne.channels.combine_channels
+
+    Notes
+    -----
+    This function modifies the instances in-place.
+
+    .. versionadded:: 1.6
+    """
+    from ..utils import _validate_type
+
+    from ..io import BaseRaw
+    from ..epochs import Epochs
+    from ..evoked import Evoked
+    from ..time_frequency.spectrum import BaseSpectrum
+
+    # check that input is a list
+    _validate_type(insts, (list, tuple), "instance type")
+
+    # check input is not an empty list
+    if len(insts) == 0:
+        raise ValueError("Be sure insts is not empty list")
+
+    # first check that each object is mne object
+    inst_type = type(insts[0])
+    valid_types = (BaseRaw, Epochs, Evoked, BaseSpectrum)
+    for inst in insts:
+        _validate_type(inst, valid_types, "instance type")
+        if type(inst) != inst_type:
+            raise ValueError("All insts must be the same type")
+
+    # check that all channels have the same name and same number
+    ch_names = insts[0].ch_names
+    diff_chns = []
+    for inst in insts[1:]:
+        if inst.ch_names != ch_names:
+            dif = set(inst.ch_names) ^ (set(ch_names))
+            diff_chns.extend(list(dif))
+            if ch_names.sort() == inst.ch_names.sort():
+                raise ValueError(
+                    "Channel names are sorted differently across"
+                    "instances. Please use"
+                    "mne.channels.equalize_channels."
+                )
+
+    if len(diff_chns) > 0:
+        raise ValueError(
+            "Channel names are not consistent across instances. Be sure"
+            "consistent naming is used across channels. Mismatched channels"
+            f"are {diff_chns}"
+        )
+
+    # collect bads as dict keys so that insertion order is preserved
+    # then later cast to list.
+    all_bads = dict()
+    for inst in insts:
+        all_bads.update(dict.fromkeys(inst.info["bads"]))
+    all_bads = list(all_bads)
+
+    # apply bads set to all instances
+    for inst in insts:
+        inst.info["bads"] = all_bads
+
+    return insts
 
 
 class ReferenceMixin(MontageMixin):
