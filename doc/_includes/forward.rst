@@ -27,7 +27,7 @@ MEG/EEG and MRI coordinate systems
     :class:`~mne.SourceSpaces`, etc), information about the coordinate frame is
     encoded as a constant integer value. The meaning of those integers is
     determined `in the source code
-    <https://github.com/mne-tools/mne-python/blob/main/mne/io/constants.py#L186-L197>`__.
+    <https://github.com/mne-tools/mne-python/blob/main/mne/_fiff/constants.py#L263-L275>`__.
 
 The coordinate systems used in MNE software (and FreeSurfer) and their
 relationships are depicted in :ref:`coordinate_system_figure`. Except for the
