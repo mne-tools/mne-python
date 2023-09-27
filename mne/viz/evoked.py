@@ -1623,7 +1623,12 @@ def plot_evoked_white(
     _validate_type(axes, (list, tuple, np.ndarray, None), "axes")
     if axes is None:
         _, axes = plt.subplots(
-            n_rows, n_columns, sharex=True, sharey=False, figsize=(8.8, 2.2 * n_rows)
+            n_rows,
+            n_columns,
+            sharex=True,
+            sharey=False,
+            figsize=(8.8, 2.2 * n_rows),
+            constrained_layout=True,
         )
     else:
         axes = np.array(axes)

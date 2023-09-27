@@ -109,7 +109,7 @@ noise_cov_baseline.plot(epochs.info, proj=True)
 # available. Unfortunately it is not easy to tell the effective number of
 # samples, hence, to choose the appropriate regularization.
 # In MNE-Python, regularization is done using advanced regularization methods
-# described in :footcite:p:`EngemannGramfort2015`. For this the 'auto' option
+# described in :footcite:t:`EngemannGramfort2015`. For this the 'auto' option
 # can be used. With this option cross-validation will be used to learn the
 # optimal regularization:
 
