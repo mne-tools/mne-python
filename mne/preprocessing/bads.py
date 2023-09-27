@@ -95,9 +95,22 @@ def unify_bad_channels(insts):
     # check that input is a list
     if not isinstance(insts, list):
         raise ValueError(f"insts must be a *list* of mne objects, got {type(insts)}")
-
+    # check input is not an empty list
     if len(insts) == 0:
         raise ValueError("Be sure insts is not empty list")
+    # check that all channels have the same name and same number
+    ch_names = insts[0].info.ch_names
+    diff_chns = []
+    for inst in insts[1:]:
+        if inst.info.ch_names != ch_names:
+            dif = set(inst.info.ch_names).difference(set(ch_names))
+            diff_chns.extend(list(dif))
+
+    if len(diff_chns) > 0:
+        raise ValueError(
+            "Channel names are not consistent across instances."
+            f" Mismatch channels are {diff_chns}"
+        )
 
     # then iterate through the insts to gather bads
     all_bads = dict()
