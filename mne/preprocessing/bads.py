@@ -62,10 +62,6 @@ def _find_outliers(X, threshold=3.0, max_iter=2, tail=0):
 def unify_bad_channels(insts):
     """Unify bad channels across a list of instances, using the union.
 
-    This function looks across the list of instances to gather a list of
-    "bad" channels. Every instance's info["bads"] is set with the same "bad"
-    channels.
-
     Parameters
     ----------
     insts : list
