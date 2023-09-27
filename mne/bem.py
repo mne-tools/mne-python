@@ -650,14 +650,16 @@ def make_bem_model(
 ):
     """Create a BEM model for a subject.
 
+    Use :func:`~mne.make_bem_solution` to turn the returned surfaces into a
+    :class:`~mne.bem.ConductorModel` suitable for forward calculation.
+
     .. note:: To get a single layer bem corresponding to the --homog flag in
               the command line tool set the ``conductivity`` parameter
               to a float (e.g. ``0.3``).
 
     Parameters
     ----------
-    subject : str
-        The subject.
+    %(subject)s
     ico : int | None
         The surface ico downsampling to use, e.g. ``5=20484``, ``4=5120``,
         ``3=1280``. If None, no subsampling is applied.
@@ -672,8 +674,8 @@ def make_bem_model(
     Returns
     -------
     surfaces : list of dict
-        The BEM surfaces. Use `make_bem_solution` to turn these into a
-        `~mne.bem.ConductorModel` suitable for forward calculation.
+        The BEM surfaces. Use :func:`~mne.make_bem_solution` to turn these into a
+        :class:`~mne.bem.ConductorModel` suitable for forward calculation.
 
     See Also
     --------
@@ -857,7 +859,8 @@ def make_sphere_model(
         center will be calculated from the digitization points in info.
     head_radius : float | str | None
         If float, compute spherical shells for EEG using the given radius.
-        If 'auto', estimate an appropriate radius from the dig points in Info,
+        If ``'auto'``, estimate an appropriate radius from the dig points in the
+        :class:`~mne.Info` provided by the argument ``info``.
         If None, exclude shells (single layer sphere model).
     %(info)s Only needed if ``r0`` or ``head_radius`` are ``'auto'``.
     relative_radii : array-like
@@ -1217,9 +1220,9 @@ def make_watershed_bem(
     volume : str
         Defaults to T1.
     atlas : bool
-        Specify the --atlas option for mri_watershed.
+        Specify the ``--atlas option`` for ``mri_watershed``.
     gcaatlas : bool
-        Specify the --brain_atlas option for mri_watershed.
+        Specify the ``--brain_atlas`` option for ``mri_watershed``.
     preflood : int
         Change the preflood height.
     show : bool
@@ -1433,7 +1436,7 @@ def read_bem_surfaces(
     patch_stats : bool, optional (default False)
         Calculate and add cortical patch statistics to the surfaces.
     s_id : int | None
-        If int, only read and return the surface with the given s_id.
+        If int, only read and return the surface with the given ``s_id``.
         An error will be raised if it doesn't exist. If None, all
         surfaces are read and returned.
     %(on_defects)s
@@ -1444,7 +1447,7 @@ def read_bem_surfaces(
     Returns
     -------
     surf: list | dict
-        A list of dictionaries that each contain a surface. If s_id
+        A list of dictionaries that each contain a surface. If ``s_id``
         is not None, only the requested surface will be returned.
 
     See Also
@@ -1972,8 +1975,7 @@ def convert_flash_mris(
 
     Parameters
     ----------
-    subject : str
-        Subject name.
+    %(subject)s
     flash30 : bool | list of SpatialImage or path-like | SpatialImage | path-like
         If False do not use 30-degree flip angle data.
         The list of flash 5 echos to use. If True it will look for files
@@ -2096,8 +2098,7 @@ def make_flash_bem(
 
     Parameters
     ----------
-    subject : str
-        Subject name.
+    %(subject)s
     overwrite : bool
         Write over existing .surf files in bem folder.
     show : bool
