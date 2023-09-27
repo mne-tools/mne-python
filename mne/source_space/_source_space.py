@@ -1653,6 +1653,7 @@ def setup_volume_source_space(
     add_interpolator=True,
     sphere_units="m",
     single_volume=False,
+    *,
     verbose=None,
 ):
     """Set up a volume source space with grid spacing or discrete source space.
@@ -1689,13 +1690,14 @@ def setup_volume_source_space(
         None (the default) uses a head-digitization fit.
     bem : path-like | None | ConductorModel
         Define source space bounds using a BEM file (specifically the inner
-        skull surface) or a ConductorModel for a 1-layer of 3-layers BEM.
-        See :func:`~mne.make_bem_model` and :func:`~mne.make_bem_solution` to create a
-        :class:`~mne.bem.ConductorModel`.
+        skull surface) or a :class:`~mne.bem.ConductorModel` for a 1-layer of 3-layers
+        BEM. See :func:`~mne.make_bem_model` and :func:`~mne.make_bem_solution` to
+        create a :class:`~mne.bem.ConductorModel`. If provided, ``surface`` must be
+        None.
     surface : path-like | dict | None
         Define source space bounds using a FreeSurfer surface file. Can
         also be a dictionary with entries ``'rr'`` and ``'tris'``, such as
-        those returned by :func:`mne.read_surface`.
+        those returned by :func:`mne.read_surface`. If provided, ``bem`` must be None.
     mindist : float
         Exclude points closer than this distance (mm) to the bounding surface.
     exclude : float
@@ -1783,7 +1785,7 @@ def setup_volume_source_space(
         )
 
     if bem is not None and surface is not None:
-        raise ValueError('Only one of "bem" and "surface" should be ' "specified")
+        raise ValueError("Only one of "bem" and "surface" should be specified.")
 
     if mri is None and subject is not None:
         if volume_label is not None:
