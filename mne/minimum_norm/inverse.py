@@ -1896,7 +1896,7 @@ def make_inverse_operator(
     %(info_not_none)s
         Specifies the channels to include. Bad channels (in ``info['bads']``)
         are not used.
-    forward : dict
+    forward : Forward
         Forward operator.
     noise_cov : instance of Covariance
         The noise covariance matrix.
