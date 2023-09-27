@@ -289,8 +289,8 @@ def test_basics(this_fname):
     _test_raw_reader(read_raw_eyelink, fname=this_fname, test_preloading=False)
 
 
-def test_annotations_without_onset(tmp_path):
-    """Test read of annotations without onset."""
+def test_annotations_without_offset(tmp_path):
+    """Test read of annotations without offset."""
     out_file = tmp_path / "tmp_eyelink.asc"
 
     # create fake dataset
