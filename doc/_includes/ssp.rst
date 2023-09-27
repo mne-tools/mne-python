@@ -80,7 +80,7 @@ the brain, it is necessary to apply the projection to the forward solution in
 the course of inverse computations.
 
 For more information on SSP, please consult the references listed in
-:footcite:`TescheEtAl1995,UusitaloIlmoniemi1997`.
+:footcite:t:`TescheEtAl1995,UusitaloIlmoniemi1997`.
 
 Estimation of the noise subspace
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

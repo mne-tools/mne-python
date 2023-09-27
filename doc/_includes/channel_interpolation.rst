@@ -13,7 +13,7 @@ Spherical spline interpolation (EEG)
    can omit the title from the include:
    channel-interpolation-begin-content
 
-In short, data repair using spherical spline interpolation :footcite:`PerrinEtAl1989` consists of the following steps:
+In short, data repair using spherical spline interpolation\ :footcite:`PerrinEtAl1989` consists of the following steps:
 
 * Project the good and bad electrodes onto a unit sphere
 * Compute a mapping matrix that maps :math:`N` good channels to :math:`M` bad channels
