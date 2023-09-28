@@ -1732,7 +1732,8 @@ def plot_evoked_white(
         ax.legend(loc="upper right", prop=dict(size=10))
         if not isinstance(fig.get_layout_engine(), ConstrainedLayoutEngine):
             params = dict(
-                top=[0.69, 0.82, 0.87][n_rows - 1], bottom=[0.22, 0.13, 0.09][n_rows - 1]
+                top=[0.69, 0.82, 0.87][n_rows - 1],
+                bottom=[0.22, 0.13, 0.09][n_rows - 1],
             )
             if has_sss:
                 params["hspace"] = 0.49
