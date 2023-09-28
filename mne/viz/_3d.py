@@ -2762,8 +2762,7 @@ def plot_volume_source_estimates(
         dist, loc_idx = dist_to_verts.query(ijk[np.newaxis])
         dist, loc_idx = dist[0], loc_idx[0]
         logger.debug(
-            "    Using vertex %d at a distance of %d voxels",
-            (vertices[loc_idx], dist)
+            "    Using vertex %d at a distance of %d voxels", (vertices[loc_idx], dist)
         )
         return loc_idx
 
