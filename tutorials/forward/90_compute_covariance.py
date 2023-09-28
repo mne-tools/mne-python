@@ -142,7 +142,7 @@ evoked.plot_white(noise_cov_reg, time_unit="s")
 # under-regularization.
 #
 # Note that if data have been processed using signal space separation
-# (SSS)\ :footcite:`TauluEtAl2005`,
+# (SSS) :footcite:`TauluEtAl2005`,
 # gradiometers and magnetometers will be displayed jointly because both are
 # reconstructed from the same SSS basis vectors with the same numerical rank.
 # This also implies that both sensor types are not any longer statistically

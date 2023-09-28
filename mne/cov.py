@@ -1009,18 +1009,18 @@ def compute_covariance(
       .. versionadded:: 0.16
     * ``'ledoit_wolf'``
         The Ledoit-Wolf estimator, which uses an
-        empirical formula for the optimal shrinkage value\ :footcite:`LedoitWolf2004`.
+        empirical formula for the optimal shrinkage value :footcite:`LedoitWolf2004`.
     * ``'oas'``
-        The OAS estimator\ :footcite:`ChenEtAl2010`, which uses a different
+        The OAS estimator :footcite:`ChenEtAl2010`, which uses a different
         empricial formula for the optimal shrinkage value.
 
       .. versionadded:: 0.16
     * ``'shrunk'``
         Like 'ledoit_wolf', but with cross-validation for optimal alpha.
     * ``'pca'``
-        Probabilistic PCA with low rank\ :footcite:`TippingBishop1999`.
+        Probabilistic PCA with low rank :footcite:`TippingBishop1999`.
     * ``'factor_analysis'``
-        Factor analysis with low rank\ :footcite:`Barber2012`.
+        Factor analysis with low rank :footcite:`Barber2012`.
 
     ``'ledoit_wolf'`` and ``'pca'`` are similar to ``'shrunk'`` and
     ``'factor_analysis'``, respectively, except that they use

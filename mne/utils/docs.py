@@ -2542,8 +2542,8 @@ docdict[
 _method_psd = r"""
 method : ``'welch'`` | ``'multitaper'``{}
     Spectral estimation method. ``'welch'`` uses Welch's
-    method\ :footcite:p:`Welch1967`, ``'multitaper'`` uses DPSS
-    tapers\ :footcite:p:`Slepian1978`.{}
+    method :footcite:p:`Welch1967`, ``'multitaper'`` uses DPSS
+    tapers :footcite:p:`Slepian1978`.{}
 """
 docdict["method_plot_psd_auto"] = _method_psd.format(
     " | ``'auto'``",

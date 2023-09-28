@@ -933,10 +933,10 @@ def apply_inverse(
     lambda2 : float
         The regularization parameter.
     method : "MNE" | "dSPM" | "sLORETA" | "eLORETA"
-        Use minimum norm\ :footcite:`HamalainenIlmoniemi1994`,
-        dSPM (default)\ :footcite:`DaleEtAl2000`,
-        sLORETA\ :footcite:`Pascual-Marqui2002`, or
-        eLORETA\ :footcite:`Pascual-Marqui2011`.
+        Use minimum norm :footcite:`HamalainenIlmoniemi1994`,
+        dSPM (default) :footcite:`DaleEtAl2000`,
+        sLORETA :footcite:`Pascual-Marqui2002`, or
+        eLORETA :footcite:`Pascual-Marqui2011`.
     %(pick_ori)s
     prepared : bool
         If True, do not call :func:`prepare_inverse_operator`.
@@ -990,7 +990,7 @@ def apply_inverse(
             loose-orientation inverses and ``False`` for free- and
             fixed-orientation inverses. See below.
 
-    The eLORETA paper\ :footcite:`Pascual-Marqui2011` defines how to compute
+    The eLORETA paper :footcite:`Pascual-Marqui2011` defines how to compute
     inverses for fixed- and
     free-orientation inverses. In the free orientation case, the X/Y/Z
     orientation triplet for each location is effectively multiplied by a
