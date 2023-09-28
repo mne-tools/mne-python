@@ -525,8 +525,8 @@ def source_induced_power(
     power : array
         The induced power array with shape (n_sources, n_freqs, n_samples).
     plv : array
-        The phase-locking value array with shape (n_sources, n_freqs, n_samples).
-        Only returned if ``return_plv=True``.
+        The phase-locking value array with shape (n_sources, n_freqs,
+        n_samples). Only returned if ``return_plv=True``.
     """  # noqa: E501
     _check_option("method", method, INVERSE_METHODS)
     _check_ori(pick_ori, inverse_operator["source_ori"], inverse_operator["src"])
@@ -554,7 +554,9 @@ def source_induced_power(
 
     # Run baseline correction
     power = rescale(power, epochs.times[::decim], baseline, baseline_mode, copy=False)
-    return power, plv
+
+    outs = (power, plv) if return_plv else power
+    return outs
 
 
 @verbose
