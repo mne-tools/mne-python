@@ -981,7 +981,7 @@ def compute_covariance(
     -------
     cov : instance of Covariance | list
         The computed covariance. If method equals ``'auto'`` or is a list of str
-        and ``return_estimators`` equals ``True``, a list of covariance estimators is
+        and ``return_estimators=True``, a list of covariance estimators is
         returned (sorted by log-likelihood, from high to low, i.e. from best
         to worst).
 
