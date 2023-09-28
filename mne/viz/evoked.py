@@ -1635,7 +1635,7 @@ def plot_evoked_white(
     for ai, ax in enumerate(axes.flat):
         _validate_type(ax, plt.Axes, "axes.flat[%d]" % (ai,))
     if axes.shape != want_shape:
-        raise ValueError(f"axes must have shape {want_shape}, got " f"{axes.shape}")
+        raise ValueError(f"axes must have shape {want_shape}, got {axes.shape}.")
     fig = axes.flat[0].figure
     if n_columns > 1:
         suptitle = (
