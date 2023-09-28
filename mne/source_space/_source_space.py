@@ -1652,8 +1652,8 @@ def setup_volume_source_space(
     add_interpolator=True,
     sphere_units="m",
     single_volume=False,
-    n_jobs=None,
     *,
+    n_jobs=None,
     verbose=None,
 ):
     """Set up a volume source space with grid spacing or discrete source space.
@@ -1730,6 +1730,8 @@ def setup_volume_source_space(
 
         .. versionadded:: 0.21
     %(n_jobs)s
+
+        .. versionadded:: 1.6
     %(verbose)s
 
     Returns

@@ -1896,7 +1896,7 @@ def make_inverse_operator(
     %(info_not_none)s
         Specifies the channels to include. Bad channels (in ``info['bads']``)
         are not used.
-    forward : Forward
+    forward : instance of Forward
         Forward operator. See :func:`~mne.make_forward_solution` to create the operator.
     noise_cov : instance of Covariance
         The noise covariance matrix. See :func:`~mne.compute_raw_covariance` and
