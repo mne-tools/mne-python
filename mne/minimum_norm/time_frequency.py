@@ -262,6 +262,7 @@ def _compute_pow_plv(
     with_plv,
     pick_ori,
     decim,
+    noise_norm=None,
     verbose=None,
 ):
     """Aux function for induced power and PLV."""
@@ -291,6 +292,9 @@ def _compute_pow_plv(
         power += power_e
         if with_plv:
             plv += plv_e
+
+    if noise_norm is not None:
+        power *= noise_norm[:, :, np.newaxis] ** 2
 
     return power, plv
 
@@ -406,6 +410,7 @@ def _source_induced_power(
             with_power=True,
             pick_ori=pick_ori,
             decim=decim,
+            noise_norm=noise_norm,
         )
         for data in np.array_split(epochs_data, n_jobs)
     )
@@ -418,9 +423,6 @@ def _source_induced_power(
         plv /= len(epochs_data)  # average power over epochs
     else:
         plv = None
-
-    if noise_norm is not None:
-        power *= noise_norm[:, :, np.newaxis] ** 2
 
     return power, plv, vertno
 
