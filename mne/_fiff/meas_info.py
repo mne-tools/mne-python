@@ -998,6 +998,7 @@ def _check_helium_info(helium_info):
     return helium_info
 
 
+# TODO: Add fNIRS convention to loc
 class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
     """Measurement information.
 
@@ -1185,11 +1186,22 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
         kind : int
             The kind of channel, e.g. ``FIFFV_EEG_CH``.
         loc : array, shape (12,)
-            Channel location. For MEG this is the position plus the
-            normal given by a 3x3 rotation matrix. For EEG this is the
-            position followed by reference position (with 6 unused).
-            The values are specified in device coordinates for MEG and in
-            head coordinates for EEG channels, respectively.
+            Channel location information. The first three elements ``[:3]`` always store
+            the nominal channel position. The remaining 9 elements store different
+            information based on the channel type:
+
+            MEG
+                Remaining 9 elements ``[3:]``, contain the EX, EY, and EZ normal
+                triplets (columns) of the coil rotation/orientation matrix.
+            EEG
+                Elements ``[3:6]`` contain the reference channel position.
+            Eyetrack
+                Element ``[3]`` contains information about which eye was tracked
+                (-1 for left, 1 for right), and element ``[4]`` contains information
+                about the the axis of coordinate data (-1 for x-coordinate data, 1 for
+                y-coordinate data).
+            Dipole
+                Elements ``[3:6]`` contain dipole orientation information.
         logno : int
             Logical channel number, conventions in the usage of this
             number vary.
