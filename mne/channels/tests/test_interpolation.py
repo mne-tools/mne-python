@@ -17,6 +17,7 @@ from mne.io import read_raw_nirx
 from mne._fiff.proj import _has_eeg_average_ref_proj
 from mne.utils import _record_warnings
 
+
 base_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
 raw_fname = base_dir / "test_raw.fif"
 event_name = base_dir / "test-eve.fif"
@@ -324,3 +325,14 @@ def test_interpolation_nirs():
     assert raw_haemo.info["bads"] == ["S1_D2 hbo", "S1_D2 hbr"]
     raw_haemo.interpolate_bads()
     assert raw_haemo.info["bads"] == []
+
+
+def test_nan_interpolation(raw):
+    """Test 'nan' method for interpolating bads."""
+    ch_to_interp = [raw.ch_names[0]]
+    raw.info["bads"] = ch_to_interp
+    raw.interpolate_bads(method="nan")
+    ch_to_check = raw.get_data(ch_to_interp)
+    # ch_to_check = pick_channels(raw.info["ch_names"], ch_to_interp, exclude=[])
+    # assert (raw._data[ch_to_check] == np.nan).all()
+    assert np.isnan(ch_to_check).all()
