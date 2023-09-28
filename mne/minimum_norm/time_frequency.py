@@ -409,7 +409,7 @@ def _source_induced_power(
         )
         for data in np.array_split(epochs_data, n_jobs)
     )
-    power = sum(o[0] for o in out)
+    power = sum(o[0] for o in out)  # power shape: (n_verts, n_freqs, n_samps)
     power /= len(epochs_data)  # average power over epochs
 
     if with_plv:
@@ -442,6 +442,7 @@ def source_induced_power(
     baseline_mode="logratio",
     pca=True,
     n_jobs=None,
+    return_plv=True,
     zero_mean=False,
     prepared=False,
     method_params=None,
@@ -506,6 +507,8 @@ def source_induced_power(
         the time-frequency transforms. It reduces the computation times
         e.g. with a dataset that was maxfiltered (true dim is 64).
     %(n_jobs)s
+    return_plv : bool
+        If True, return the phase-locking value array. Else, only return power.
     zero_mean : bool
         Make sure the wavelets are zero mean.
     prepared : bool
@@ -520,7 +523,9 @@ def source_induced_power(
     Returns
     -------
     power : array
-        The induced power.
+        The induced power array with shape (n_sources, n_freqs, n_samples).
+    plv : array
+        The phase-locking value array with shape (n_sources, n_freqs, n_samples).
     """  # noqa: E501
     _check_option("method", method, INVERSE_METHODS)
     _check_ori(pick_ori, inverse_operator["source_ori"], inverse_operator["src"])
@@ -539,6 +544,7 @@ def source_induced_power(
         pick_ori=pick_ori,
         pca=pca,
         n_jobs=n_jobs,
+        with_plv=return_plv,
         method_params=method_params,
         zero_mean=zero_mean,
         prepared=prepared,
