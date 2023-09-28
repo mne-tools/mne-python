@@ -526,6 +526,7 @@ def source_induced_power(
         The induced power array with shape (n_sources, n_freqs, n_samples).
     plv : array
         The phase-locking value array with shape (n_sources, n_freqs, n_samples).
+        Only returned if ``return_plv=True``.
     """  # noqa: E501
     _check_option("method", method, INVERSE_METHODS)
     _check_ori(pick_ori, inverse_operator["source_ori"], inverse_operator["src"])
