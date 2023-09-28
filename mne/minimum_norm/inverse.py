@@ -1901,7 +1901,7 @@ def make_inverse_operator(
     noise_cov : instance of Covariance
         The noise covariance matrix. See :func:`~mne.compute_raw_covariance` and
         :func:`~mne.compute_covariance` to compute the noise covariance matrix on
-        :classl:`~mne.io.Raw` and :class:`~mne.Epochs` respectively.
+        :class:`~mne.io.Raw` and :class:`~mne.Epochs` respectively.
     %(loose)s
     %(depth)s
     fixed : bool | 'auto'
