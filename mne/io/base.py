@@ -2398,7 +2398,7 @@ def _get_ch_factors(inst, units, picks_idxs):
     Returns
     -------
     ch_factors : ndarray of floats, shape(len(picks),)
-        The sacling factors for each channel, ordered according
+        The scaling factors for each channel, ordered according
         to picks.
 
     """
