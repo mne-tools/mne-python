@@ -134,6 +134,12 @@ def test_tfr_with_inverse_operator(method):
     assert np.all(phase_lock > 0)
     assert np.all(phase_lock <= 1)
     assert 5 < np.max(power) < 7
+    # fairly precise spot check that our values match what we had on 2023/09/28
+    # TODO: Also add check for phase_lock
+    if method != "eLORETA":
+        max_inds = np.unravel_index(np.argmax(power), power.shape)
+        assert_allclose(max_inds, [0, 11, 135])
+        assert_allclose(power[max_inds], 6.05, rtol=1e-3)
 
 
 @testing.requires_testing_data
