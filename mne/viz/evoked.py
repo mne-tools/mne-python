@@ -1570,7 +1570,6 @@ def plot_evoked_white(
     """
     from ..cov import whiten_evoked, Covariance, _ensure_cov
     import matplotlib.pyplot as plt
-    from matplotlib.layout_engine import ConstrainedLayoutEngine
 
     time_unit, times = _check_time_unit(time_unit, evoked.times)
 
@@ -1730,14 +1729,6 @@ def plot_evoked_white(
         )
     else:
         ax.legend(loc="upper right", prop=dict(size=10))
-        if not isinstance(fig.get_layout_engine(), ConstrainedLayoutEngine):
-            params = dict(
-                top=[0.69, 0.82, 0.87][n_rows - 1],
-                bottom=[0.22, 0.13, 0.09][n_rows - 1],
-            )
-            if has_sss:
-                params["hspace"] = 0.49
-            fig.subplots_adjust(**params)
     fig.canvas.draw()
 
     plt_show(show)
