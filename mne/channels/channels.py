@@ -781,6 +781,10 @@ class InterpolationMixin:
         Notes
         -----
         .. versionadded:: 0.9.0
+
+        .. warning::
+            Be careful when using ``method="nan"``; the default value
+            ``reset_bads=True`` may not be what you want.
         """
         from .interpolation import (
             _interpolate_bads_eeg,
@@ -828,13 +832,17 @@ class InterpolationMixin:
             eeg_mne = False
         else:
             eeg_mne = True
-        raise RuntimeError()
         _interpolate_bads_meeg(
             self, mode=mode, origin=origin, eeg=eeg_mne, exclude=exclude, method=method
         )
         _interpolate_bads_nirs(self, exclude=exclude, method=method)
 
         if reset_bads is True:
+            if "nan" in method.values():
+                warn(
+                    "interpolate_bads was called with method='nan' and "
+                    "reset_bads=True. here there be dragons."
+                )
             self.info["bads"] = [ch for ch in self.info["bads"] if ch in exclude]
 
         return self

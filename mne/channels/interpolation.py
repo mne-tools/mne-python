@@ -218,7 +218,6 @@ def _interpolate_bads_meeg(
 
         if method[ch_type] == "nan":
             inst._data[picks_bad] = np.nan
-            raise RuntimeError()
             continue
 
         # do MNE based interpolation

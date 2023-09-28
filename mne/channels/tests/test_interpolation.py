@@ -329,10 +329,11 @@ def test_interpolation_nirs():
 
 def test_nan_interpolation(raw):
     """Test 'nan' method for interpolating bads."""
-    ch_to_interp = [raw.ch_names[0]]
+    ch_to_interp = [raw.ch_names[1]]  # don't use channel 0 (type is IAS not MEG)
     raw.info["bads"] = ch_to_interp
     raw.interpolate_bads(method="nan")
-    ch_to_check = raw.get_data(ch_to_interp)
-    # ch_to_check = pick_channels(raw.info["ch_names"], ch_to_interp, exclude=[])
-    # assert (raw._data[ch_to_check] == np.nan).all()
-    assert np.isnan(ch_to_check).all()
+    bad_chs = raw.get_data(ch_to_interp)
+    assert np.isnan(bad_chs).all()
+    raw.drop_channels(ch_to_interp)
+    good_chs = raw.get_data()
+    assert np.isfinite(good_chs).all()
