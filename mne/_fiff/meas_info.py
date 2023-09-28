@@ -1202,7 +1202,6 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
                 y-coordinate data).
             Dipole
                 Elements ``[3:6]`` contain dipole orientation information.
-
         logno : int
             Logical channel number, conventions in the usage of this
             number vary.
