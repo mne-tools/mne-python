@@ -119,18 +119,17 @@ class SourceSpaces(list):
     ----------
     source_spaces : list
         A list of dictionaries containing the source space information.
-    info : dict
+    info : dict | None
         Dictionary with information about the creation of the source space
-        file. Has keys 'working_dir' and 'command_line'.
+        file. Has keys ``'working_dir'`` and ``'command_line'``.
 
     Attributes
     ----------
-    kind : str
-        The kind of source space, one of
-        ``{'surface', 'volume', 'discrete', 'mixed'}``.
+    kind : ``'surface'`` | ``'volume'`` | ``'discrete'`` | ``'mixed'``
+        The kind of source space.
     info : dict
         Dictionary with information about the creation of the source space
-        file. Has keys 'working_dir' and 'command_line'.
+        file. Has keys ``'working_dir'`` and ``'command_line'``.
 
     See Also
     --------
@@ -510,7 +509,7 @@ class SourceSpaces(list):
         Parameters
         ----------
         fname : path-like
-            File to write.
+            File to write, which should end with ``-src.fif`` or ``-src.fif.gz``.
         %(overwrite)s
         %(verbose)s
         """
@@ -540,8 +539,8 @@ class SourceSpaces(list):
         include_discrete : bool
             If True, include discrete source spaces.
         dest : ``'mri'`` | ``'surf'``
-            If 'mri' the volume is defined in the coordinate system of the
-            original T1 image. If 'surf' the coordinate system of the
+            If ``'mri'`` the volume is defined in the coordinate system of the
+            original T1 image. If ``'surf'`` the coordinate system of the
             FreeSurfer surface is used (Surface RAS).
         trans : dict, str, or None
             Either a transformation filename (usually made using mne_analyze)
@@ -559,7 +558,7 @@ class SourceSpaces(list):
             source point.
 
             .. versionchanged:: 0.21.0
-               Support for "sparse" was added.
+               Support for ``"sparse"`` was added.
         use_lut : bool
             If True, assigns a numeric value to each source space that
             corresponds to a color on the freesurfer lookup table.
