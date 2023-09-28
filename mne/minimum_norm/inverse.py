@@ -922,7 +922,7 @@ def apply_inverse(
     use_cps=True,
     verbose=None,
 ):
-    r"""Apply inverse operator to evoked data.
+    """Apply inverse operator to evoked data.
 
     Parameters
     ----------
