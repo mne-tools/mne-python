@@ -1362,7 +1362,7 @@ def _picks_str_to_idx(
     bad_type = None
     picks_type = list()
     kwargs = dict(meg=False)
-    meg, fnirs = set(), set()
+    meg, fnirs, eyetrack = set(), set(), set()
     for pick in picks:
         if pick in _PICK_TYPES_KEYS:
             kwargs[pick] = True
@@ -1370,13 +1370,15 @@ def _picks_str_to_idx(
             meg |= {pick}
         elif pick in _FNIRS_CH_TYPES_SPLIT:
             fnirs |= {pick}
+        elif pick in _EYETRACK_CH_TYPES_SPLIT:
+            eyetrack |= {pick}
         else:
             bad_type = pick
             break
     else:
         # bad_type is None but this could still be empty
         bad_type = list(picks)
-        # triage MEG and FNIRS, which are complicated due to non-bool entries
+        # triage MEG, FNIRS, and eyetrack, which are complicated due to non-bool entries
         extra_picks = set()
         if "ref_meg" not in picks and not with_ref_meg:
             kwargs["ref_meg"] = False
@@ -1386,11 +1388,12 @@ def _picks_str_to_idx(
                 extra_picks |= set(
                     pick_types(info, meg=use_meg, ref_meg=False, exclude=exclude)
                 )
-        if len(fnirs) > 0 and not kwargs.get("fnirs", False):
-            if len(fnirs) == 1:
-                kwargs["fnirs"] = list(fnirs)[0]
-            else:
-                kwargs["fnirs"] = list(fnirs)
+        if len(fnirs) and not kwargs.get("fnirs", False):
+            idx = 0 if len(fnirs) == 1 else slice(None)
+            kwargs["fnirs"] = list(fnirs)[idx]
+        if len(eyetrack) and not kwargs.get("eyetrack", False):
+            idx = 0 if len(eyetrack) == 1 else slice(None)
+            kwargs["eyetrack"] = list(eyetrack)[idx]  # slice(None) is equivalent to all
         picks_type = pick_types(info, exclude=exclude, **kwargs)
         if len(extra_picks) > 0:
             picks_type = sorted(set(picks_type) | set(extra_picks))
