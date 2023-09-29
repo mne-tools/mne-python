@@ -254,9 +254,10 @@ def _interpolate_bads_nirs(inst, method="nearest", exclude=(), verbose=None):
     chs = [inst.info["chs"][i] for i in picks_nirs]
     locs3d = np.array([ch["loc"][:3] for ch in chs])
 
-    _check_option("fnirs_method", method, ["nearest"])
+    fnirs_method = method["fnirs"]
+    _check_option("fnirs_method", fnirs_method, ["nearest", "nan"])
 
-    if method == "nearest":
+    if fnirs_method == "nearest":
         dist = pdist(locs3d)
         dist = squareform(dist)
 
@@ -270,7 +271,7 @@ def _interpolate_bads_nirs(inst, method="nearest", exclude=(), verbose=None):
             closest_idx = np.argmin(dists_to_bad) + (bad % 2)
             inst._data[bad] = inst._data[closest_idx]
     else:
-        assert method == "nan"
+        assert fnirs_method == "nan"
         inst._data[picks_bad] = np.nan
     # TODO: this seems like a bug because it does not respect reset_bads
     inst.info["bads"] = [ch for ch in inst.info["bads"] if ch in exclude]

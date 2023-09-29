@@ -331,7 +331,15 @@ def test_nan_interpolation(raw):
     """Test 'nan' method for interpolating bads."""
     ch_to_interp = [raw.ch_names[1]]  # don't use channel 0 (type is IAS not MEG)
     raw.info["bads"] = ch_to_interp
-    raw.interpolate_bads(method="nan")
+
+    # test that warning appears for reset_bads = True
+    with pytest.warns(RuntimeWarning, match="dragons"):
+        raw.interpolate_bads(method="nan", reset_bads=True)
+
+    # test interpolation
+    ch_to_interp = [raw.ch_names[1]]  # don't use channel 0 (type is IAS not MEG)
+    raw.info["bads"] = ch_to_interp
+    raw.interpolate_bads(method="nan", reset_bads=False)
     bad_chs = raw.get_data(ch_to_interp)
     assert np.isnan(bad_chs).all()
     raw.drop_channels(ch_to_interp)
