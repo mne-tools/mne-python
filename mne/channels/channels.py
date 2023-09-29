@@ -841,7 +841,8 @@ class InterpolationMixin:
             if "nan" in method.values():
                 warn(
                     "interpolate_bads was called with method='nan' and "
-                    "reset_bads=True. here there be dragons."
+                    "reset_bads=True. Information about interpolated channels"
+                    "will not exist. Consider setting reset_bads=False"
                 )
             self.info["bads"] = [ch for ch in self.info["bads"] if ch in exclude]
 

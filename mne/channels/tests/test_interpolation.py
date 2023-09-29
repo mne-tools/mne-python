@@ -333,7 +333,7 @@ def test_nan_interpolation(raw):
     raw.info["bads"] = ch_to_interp
 
     # test that warning appears for reset_bads = True
-    with pytest.warns(RuntimeWarning, match="dragons"):
+    with pytest.warns(RuntimeWarning, match="Consider setting reset_bads=False"):
         raw.interpolate_bads(method="nan", reset_bads=True)
 
     # test interpolation
