@@ -15,8 +15,7 @@ def plot_gaze(
     epochs,
     width,
     height,
-    bin_width=10,
-    sigma=1,
+    sigma=25,
     cmap=None,
     alpha=None,
     vmin=None,
@@ -38,11 +37,6 @@ def plot_gaze(
         The height dimension of the plot canvas. For example, if the eyegaze data units
         are pixels, and the participant screen resolution was 1920x1080, then the height
         should be 1080.
-    bin_width : int
-        The number of eyegaze units per square bin that are used to create the heatmap.
-        Default is 10, meaning that if the eyegaze units are pixels, each bin is 10x10
-        pixels. See the appendix section of :ref:`tut-eyetrack-heatmap` for more
-        detail.
     sigma : int | float
         The amount of smoothing applied to the heatmap data. If ``None``,
         no smoothing is applied. Default is 1.
@@ -76,40 +70,28 @@ def plot_gaze(
     .. versionadded:: 1.6
     """
     from mne import BaseEpochs
+    from mne._fiff.pick import _picks_to_idx
 
     _validate_type(epochs, BaseEpochs, "epochs")
 
-    # Find xpos and ypos channels. if future readers use different channel names than
-    # xpos/ypos, we will need a different way to identify these channels
-    xpos_indices = np.where(np.char.startswith(epochs.ch_names, "xpos"))[0]
-    ypos_indices = np.where(np.char.startswith(epochs.ch_names, "ypos"))[0]
+    pos_picks = _picks_to_idx(epochs.info, "eyegaze")
+    gaze_data = epochs.get_data(picks=pos_picks)
+    gaze_ch_loc = np.array([epochs.info["chs"][idx]["loc"] for idx in pos_picks])
+    x_data = gaze_data[:, np.where(gaze_ch_loc[:, 4] == -1)[0], :]
+    y_data = gaze_data[:, np.where(gaze_ch_loc[:, 4] == 1)[0], :]
 
-    data = epochs.get_data()
-    x_data = data[:, xpos_indices, :]
-    y_data = data[:, ypos_indices, :]
-    if xpos_indices.size > 1:  # binocular recording. Average across eyes
+    if x_data.shape[1] > 1:  # binocular recording. Average across eyes
         logger.info("Detected binocular recording. Averaging positions across eyes.")
         x_data = np.nanmean(x_data, axis=1)  # shape (n_epochs, n_samples)
         y_data = np.nanmean(y_data, axis=1)
-    x_data = x_data.flatten()
-    y_data = y_data.flatten()
-    gaze_data = np.vstack((x_data, y_data)).T  # shape (n_samples, 2)
-    # mask gaze data that is outside screen bounds
-    mask = (
-        (gaze_data[:, 0] > 0)
-        & (gaze_data[:, 1] > 0)
-        & (gaze_data[:, 0] < width)
-        & (gaze_data[:, 1] < height)
-    )
-    canvas = gaze_data[mask].astype(float)
+    x_data, y_data = x_data.flatten(), y_data.flatten()
+    canvas = np.vstack((x_data, y_data)).T  # shape (n_samples, 2)
 
     # Create 2D histogram
-    x_bins = np.linspace(0, width, width // bin_width)
-    y_bins = np.linspace(0, height, height // bin_width)
     hist, _, _ = np.histogram2d(
         canvas[:, 0],
         canvas[:, 1],
-        bins=(x_bins, y_bins),
+        bins=(width, height),
         range=[[0, width], [0, height]],
     )
     hist = hist.T  # transpose to match screen coordinates. i.e. width > height

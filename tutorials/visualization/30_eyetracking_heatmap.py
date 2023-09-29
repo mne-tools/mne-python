@@ -120,10 +120,7 @@ plt.show()
 # customize a :class:`~matplotlib.colors.Colormap` to make some values of the heatmap
 # (in this case, the color black) completely transparent. We'll then use the ``vmin``
 # parameter to force the heatmap to start at a value greater than the darkest value in
-# our previous heatmap, which will make those values transparent. We'll also set the
-# ``alpha`` parameter of :func:`~mne.viz.eyetracking.plot_gaze` to make even the
-# visible colors of the heatmap semi-transparent so that we can see the image
-# underneath.
+# our previous heatmap, which will make the darkest colors of the heatmap transparent.
 
 cmap = plt.get_cmap("jet")
 cmap.set_under("k", alpha=0)  # make the lowest values transparent
@@ -134,9 +131,8 @@ plot_gaze(
     epochs["natural"],
     width=px_width,
     height=px_height,
-    vmin=0.01,
-    alpha=0.8,
-    sigma=5,
+    vmin=0.0003,
+    sigma=50,
     cmap=cmap,
     axes=ax[0],
     show=False,
@@ -147,31 +143,11 @@ plot_gaze(
     epochs["scrambled"],
     width=px_width,
     height=px_height,
-    sigma=5,
-    vmin=0.01,
-    alpha=0.8,
+    sigma=50,
+    vmin=0.0001,
     cmap=cmap,
     axes=ax[1],
     show=False,
 )
 ax[1].set_title("Scrambled")
 plt.show()
-
-
-# %%
-# Appendix: Understanding the ``bin_width`` parameter
-# ---------------------------------------------------
-#
-# The ``bin_width`` parameter of :func:`~mne.viz.eyetracking.plot_gaze` controls the
-# resolution of the heatmap. The heatmap is created by binning the gaze data into
-# square bins of a given width. The value of each bin is the sum of the dwell time
-# (in seconds) of all gaze samples that fall within the bin. The heatmap is then
-# smoothed using a Gaussian filter, which can be controlled via the ``sigma``
-# parameter. If we set ``sigma`` to 0, we can clearly see the binned data:
-
-# make each bin 120x120 pixels and don't smooth the data
-plot_gaze(epochs["natural"], width=px_width, height=px_height, bin_width=120, sigma=0)
-
-# %%
-# Making ``bin_width`` smaller results in a higher resolution heatmap:
-plot_gaze(epochs["natural"], width=px_width, height=px_height, bin_width=20, sigma=0)
