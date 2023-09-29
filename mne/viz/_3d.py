@@ -2650,10 +2650,9 @@ def plot_volume_source_estimates(
     %(subject_none)s
         If ``None``, ``stc.subject`` will be used.
     %(subjects_dir)s
-    mode : str
-        The plotting mode to use. Either 'stat_map' (default) or 'glass_brain'.
-        For "glass_brain", activation absolute values are displayed
-        after being transformed to a standard MNI brain.
+    mode : ``'stat_map'`` | ``'glass_brain'``
+        The plotting mode to use. For ``'glass_brain'``, activation absolute values are
+        displayed after being transformed to a standard MNI brain.
     bg_img : instance of SpatialImage | str
         The background image used in the nilearn plotting function.
         Can also be a string to use the ``bg_img`` file in the subject's
