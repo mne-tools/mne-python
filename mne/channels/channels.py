@@ -914,14 +914,15 @@ class InterpolationMixin:
         _interpolate_bads_meeg(
             self, mode=mode, origin=origin, eeg=eeg_mne, exclude=exclude, method=method
         )
-        _interpolate_bads_nirs(self, exclude=exclude, method=method)
+        _interpolate_bads_nirs(self, exclude=exclude, method=method["fnirs"])
 
         if reset_bads is True:
             if "nan" in method.values():
                 warn(
                     "interpolate_bads was called with method='nan' and "
-                    "reset_bads=True. Information about interpolated channels"
-                    "will not exist. Consider setting reset_bads=False"
+                    "reset_bads=True. Consider setting reset_bads=False so that the "
+                    "nan-containing channels can be easily excluded from later "
+                    "computations."
                 )
             self.info["bads"] = [ch for ch in self.info["bads"] if ch in exclude]
 

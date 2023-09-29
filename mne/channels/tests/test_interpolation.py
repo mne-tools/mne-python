@@ -336,12 +336,16 @@ def test_nan_interpolation(raw):
     with pytest.warns(RuntimeWarning, match="Consider setting reset_bads=False"):
         raw.interpolate_bads(method="nan", reset_bads=True)
 
-    # test interpolation
-    ch_to_interp = [raw.ch_names[1]]  # don't use channel 0 (type is IAS not MEG)
-    raw.info["bads"] = ch_to_interp
-    raw.interpolate_bads(method="nan", reset_bads=False)
+    # despite warning, interpolation still happened, make sure the channel is NaN
     bad_chs = raw.get_data(ch_to_interp)
     assert np.isnan(bad_chs).all()
+
+    # make sure reset_bads=False works as expected
+    raw.info["bads"] = ch_to_interp
+    raw.interpolate_bads(method="nan", reset_bads=False)
+    assert raw.info["bads"] == ch_to_interp
+
+    # make sure other channels are untouched
     raw.drop_channels(ch_to_interp)
     good_chs = raw.get_data()
     assert np.isfinite(good_chs).all()
