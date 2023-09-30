@@ -830,7 +830,8 @@ class InterpolationMixin:
             .. versionadded:: 0.17
         method : dict | None
             Method to use for each channel type.
-            Currently only the key ``"eeg"`` has multiple options:
+            All channel types support "nan".
+            The key ``"eeg"`` has two additional options:
 
             - ``"spline"`` (default)
                 Use spherical spline interpolation.
@@ -838,9 +839,10 @@ class InterpolationMixin:
                 Use minimum-norm projection to a sphere and back.
                 This is the method used for MEG channels.
 
-            The value for ``"meg"`` is ``"MNE"``, and the value for
-            ``"fnirs"`` is ``"nearest"``. The default (None) is thus an alias
-            for::
+            The default value for ``"meg"`` is ``"MNE"``, and the default value
+            for ``"fnirs"`` is ``"nearest"``.
+
+            The default (None) is thus an alias for::
 
                 method=dict(meg="MNE", eeg="spline", fnirs="nearest")
 
@@ -858,6 +860,10 @@ class InterpolationMixin:
         Notes
         -----
         .. versionadded:: 0.9.0
+
+        .. warning::
+            Be careful when using ``method="nan"``; the default value
+            ``reset_bads=True`` may not be what you want.
         """
         from .interpolation import (
             _interpolate_bads_eeg,
@@ -869,9 +875,31 @@ class InterpolationMixin:
         method = _handle_default("interpolation_method", method)
         for key in method:
             _check_option("method[key]", key, ("meg", "eeg", "fnirs"))
-        _check_option("method['eeg']", method["eeg"], ("spline", "MNE"))
-        _check_option("method['meg']", method["meg"], ("MNE",))
-        _check_option("method['fnirs']", method["fnirs"], ("nearest",))
+        _check_option(
+            "method['eeg']",
+            method["eeg"],
+            (
+                "spline",
+                "MNE",
+                "nan",
+            ),
+        )
+        _check_option(
+            "method['meg']",
+            method["meg"],
+            (
+                "MNE",
+                "nan",
+            ),
+        )
+        _check_option(
+            "method['fnirs']",
+            method["fnirs"],
+            (
+                "nearest",
+                "nan",
+            ),
+        )
 
         if len(self.info["bads"]) == 0:
             warn("No bad channels to interpolate. Doing nothing...")
@@ -884,11 +912,18 @@ class InterpolationMixin:
         else:
             eeg_mne = True
         _interpolate_bads_meeg(
-            self, mode=mode, origin=origin, eeg=eeg_mne, exclude=exclude
+            self, mode=mode, origin=origin, eeg=eeg_mne, exclude=exclude, method=method
         )
-        _interpolate_bads_nirs(self, exclude=exclude)
+        _interpolate_bads_nirs(self, exclude=exclude, method=method["fnirs"])
 
         if reset_bads is True:
+            if "nan" in method.values():
+                warn(
+                    "interpolate_bads was called with method='nan' and "
+                    "reset_bads=True. Consider setting reset_bads=False so that the "
+                    "nan-containing channels can be easily excluded from later "
+                    "computations."
+                )
             self.info["bads"] = [ch for ch in self.info["bads"] if ch in exclude]
 
         return self
