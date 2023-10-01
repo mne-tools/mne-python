@@ -80,6 +80,7 @@ from ..utils import (
     _check_on_missing,
     fill_doc,
     _check_fname,
+    check_fname,
     repr_html,
 )
 from ._digitization import (
@@ -2006,6 +2007,8 @@ def read_info(fname, verbose=None):
     -------
     %(info_not_none)s
     """
+    check_fname(fname, "Info", (".fif", ".fif.gz"))
+    fname = _check_fname(fname, must_exist=True, overwrite="read")
     f, tree, _ = fiff_open(fname)
     with f as fid:
         info = read_meas_info(fid, tree)[0]

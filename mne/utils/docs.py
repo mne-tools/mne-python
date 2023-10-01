@@ -1695,6 +1695,15 @@ fname : str
 """
 
 docdict[
+    "fname_fwd"
+] = """
+fname : path-like
+    File name to save the forward solution to. It should end with
+    ``-fwd.fif`` or ``-fwd.fif.gz`` to save to FIF, or ``-fwd.h5`` to save to
+    HDF5.
+"""
+
+docdict[
     "fnirs"
 ] = """
 fnirs : str | list | bool | None
