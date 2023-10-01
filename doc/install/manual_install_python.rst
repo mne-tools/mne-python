@@ -1,7 +1,5 @@
 :orphan:
 
-.. include:: ../links.inc
-
 .. _install-python:
 
 Installing Python

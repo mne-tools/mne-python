@@ -5,7 +5,9 @@
 # License: Simplified BSD
 
 import os.path as op
+
 import numpy as np
+from scipy.spatial import ConvexHull
 
 from .utils import plt_show, _validate_if_list_of_axes
 from .._freesurfer import _get_head_surface, _estimate_talxfm_rigid
@@ -41,7 +43,6 @@ def _plot_dipole_mri_outlines(
 ):
     from matplotlib.collections import LineCollection, PatchCollection
     from matplotlib.patches import Circle
-    from scipy.spatial import ConvexHull
     import matplotlib.pyplot as plt
 
     extra = 'when mode is "outlines"'

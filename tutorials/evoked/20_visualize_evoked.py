@@ -10,7 +10,6 @@ This tutorial shows the different visualization methods for
 
 As usual we'll start by importing the modules we need:
 """
-
 # %%
 
 import numpy as np
@@ -133,7 +132,7 @@ fig = evks["aud/left"].plot_topomap(
 # the estimated magnitude and direction of the magnetic field, using the
 # function :func:`mne.viz.plot_arrowmap`:
 
-mags = evks["aud/left"].copy().pick_types(meg="mag")
+mags = evks["aud/left"].copy().pick(picks="mag")
 mne.viz.plot_arrowmap(mags.data[:, 175], mags.info, extrapolate="local")
 
 # %%

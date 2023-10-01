@@ -20,15 +20,22 @@ from itertools import cycle
 from pathlib import Path
 
 import numpy as np
+from scipy.signal import freqz, group_delay, lfilter, filtfilt, sosfilt, sosfiltfilt
 
+from .._freesurfer import _check_mri, _reorient_image, _read_mri_info, _mri_orientation
 from ..defaults import DEFAULTS
-from .._freesurfer import _reorient_image, _read_mri_info, _check_mri, _mri_orientation
+from ..fixes import _safe_svd
 from ..rank import compute_rank
 from ..surface import read_surface
-from ..io.constants import FIFF
-from ..io.proj import make_projector
-from ..io.pick import _DATA_CH_TYPES_SPLIT, pick_types, pick_info, pick_channels
-from ..source_space import read_source_spaces, SourceSpaces, _ensure_src
+from .._fiff.constants import FIFF
+from .._fiff.proj import make_projector
+from .._fiff.pick import (
+    _DATA_CH_TYPES_SPLIT,
+    pick_types,
+    pick_info,
+    pick_channels,
+    _picks_by_type,
+)
 from ..transforms import apply_trans, _frame_to_str
 from ..utils import (
     logger,
@@ -41,7 +48,6 @@ from ..utils import (
     _on_missing,
     fill_doc,
 )
-from ..io.pick import _picks_by_type
 from ..filter import estimate_ringing_samples
 from .utils import (
     tight_layout,
@@ -140,7 +146,6 @@ def plot_cov(
     """
     import matplotlib.pyplot as plt
     from matplotlib.colors import Normalize
-    from scipy import linalg
     from ..cov import Covariance
 
     info, C, ch_names, idx_names = _index_info_cov(info, cov, exclude)
@@ -197,7 +202,7 @@ def plot_cov(
         )
         for k, (idx, name, unit, scaling, key) in enumerate(idx_names):
             this_C = C[idx][:, idx]
-            s = linalg.svd(this_C, compute_uv=False)
+            s = _safe_svd(this_C, compute_uv=False)
             this_C = Covariance(this_C, [info["ch_names"][ii] for ii in idx], [], [], 0)
             this_info = pick_info(info, idx)
             with this_info._unlock():
@@ -384,6 +389,7 @@ def _plot_mri_contours(
     """
     import matplotlib.pyplot as plt
     from matplotlib import patheffects
+    from ..source_space._source_space import _ensure_src
 
     # For ease of plotting, we will do everything in voxel coordinates.
     _validate_type(show_orientation, (bool, str), "show_orientation")
@@ -672,6 +678,8 @@ def plot_bem(
     on top of the midpoint MRI slice with the BEM boundary drawn for that
     slice.
     """
+    from ..source_space import read_source_spaces, SourceSpaces
+
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     mri_fname = _check_mri(mri, subject, subjects_dir)
 
@@ -693,6 +701,7 @@ def plot_bem(
                 else:
                     raise OSError("Surface %s does not exist." % surf_fname)
 
+    # TODO: Refactor with / improve _ensure_src to do this
     if isinstance(src, (str, Path, os.PathLike)):
         src = Path(src)
         if not src.exists():
@@ -774,7 +783,7 @@ def plot_events(
         Dictionary of event_id integers as keys and colors as values. If None,
         colors are automatically drawn from a default list (cycled through if
         number of events longer than list of default colors). Color can be any
-        valid :doc:`matplotlib color <matplotlib:tutorials/colors/colors>`.
+        valid :ref:`matplotlib color <matplotlib:colors_def>`.
     event_id : dict | None
         Dictionary of event labels (e.g. 'aud_l') as keys and their associated
         event_id values. Labels are used to plot a legend. If None, no legend
@@ -846,7 +855,7 @@ def plot_events(
     min_event = np.min(unique_events_id)
     max_event = np.max(unique_events_id)
     max_x = (
-        events[np.in1d(events[:, 2], unique_events_id), 0].max() - first_samp
+        events[np.isin(events[:, 2], unique_events_id), 0].max() - first_samp
     ) / sfreq
 
     handles, labels = list(), list()
@@ -1108,7 +1117,6 @@ def plot_filter(
     -----
     .. versionadded:: 0.14
     """
-    from scipy.signal import freqz, group_delay, lfilter, filtfilt, sosfilt, sosfiltfilt
     import matplotlib.pyplot as plt
 
     sfreq = float(sfreq)

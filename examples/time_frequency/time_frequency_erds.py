@@ -181,7 +181,7 @@ axline_kw = dict(color="black", linestyle="dashed", linewidth=0.5, alpha=0.5)
 g.map(plt.axhline, y=0, **axline_kw)
 g.map(plt.axvline, x=0, **axline_kw)
 g.set(ylim=(None, 1.5))
-g.set_axis_labels("Time (s)", "ERDS (%)")
+g.set_axis_labels("Time (s)", "ERDS")
 g.set_titles(col_template="{col_name}", row_template="{row_name}")
 g.add_legend(ncol=2, loc="lower center")
 g.fig.subplots_adjust(left=0.1, right=0.9, top=0.9, bottom=0.08)
@@ -194,7 +194,7 @@ g.fig.subplots_adjust(left=0.1, right=0.9, top=0.9, bottom=0.08)
 
 df_mean = (
     df.query("time > 1")
-    .groupby(["condition", "epoch", "band", "channel"])[["value"]]
+    .groupby(["condition", "epoch", "band", "channel"], observed=False)[["value"]]
     .mean()
     .reset_index()
 )
@@ -207,7 +207,7 @@ g = g.map(
     "channel",
     "value",
     "band",
-    n_boot=10,
+    cut=0,
     palette="deep",
     order=["C3", "Cz", "C4"],
     hue_order=freq_bands_of_interest,
@@ -215,7 +215,7 @@ g = g.map(
 ).add_legend(ncol=4, loc="lower center")
 
 g.map(plt.axhline, **axline_kw)
-g.set_axis_labels("", "ERDS (%)")
+g.set_axis_labels("", "ERDS")
 g.set_titles(col_template="{col_name}", row_template="{row_name}")
 g.fig.subplots_adjust(left=0.1, right=0.9, top=0.9, bottom=0.3)
 

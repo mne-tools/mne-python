@@ -4,7 +4,7 @@
 from datetime import datetime
 from glob import glob
 from os.path import basename, join, splitext
-from xml.etree.ElementTree import parse
+from defusedxml.ElementTree import parse
 
 import numpy as np
 

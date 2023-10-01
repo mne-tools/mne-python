@@ -9,7 +9,7 @@ import pytest
 from scipy import sparse
 
 from mne import read_evokeds, read_cov, pick_types
-from mne.io.pick import _picks_by_type
+from mne._fiff.pick import _picks_by_type
 from mne.epochs import make_fixed_length_epochs
 from mne.io import read_raw_fif
 from mne.time_frequency import tfr_morlet
@@ -31,7 +31,6 @@ from mne.utils import (
     _apply_scaling_array,
     _undo_scaling_array,
     _PCA,
-    requires_sklearn,
     _array_equal_nan,
     _julian_to_cal,
     _cal_to_julian,
@@ -56,7 +55,7 @@ def test_get_inst_data():
     raw = read_raw_fif(fname_raw)
     raw.crop(tmax=1.0)
     assert_array_equal(_get_inst_data(raw), raw._data)
-    raw.pick_channels(raw.ch_names[:2])
+    raw.pick(raw.ch_names[:2])
 
     epochs = make_fixed_length_epochs(raw, 0.5)
     assert_array_equal(_get_inst_data(epochs), epochs._data)
@@ -230,7 +229,7 @@ def test_cov_scaling():
     cov2 = read_cov(cov_fname)["data"]
 
     assert_array_equal(cov, cov2)
-    evoked.pick_channels(
+    evoked.pick(
         [evoked.ch_names[k] for k in pick_types(evoked.info, meg=True, eeg=True)]
     )
     picks_list = _picks_by_type(evoked.info)
@@ -433,11 +432,11 @@ def test_hash():
     assert object_hash(np.bool_(True)) != 0
 
 
-@requires_sklearn
 @pytest.mark.parametrize("n_components", (None, 0.9999, 8, "mle"))
 @pytest.mark.parametrize("whiten", (True, False))
 def test_pca(n_components, whiten):
     """Test PCA equivalence."""
+    pytest.importorskip("sklearn")
     from sklearn.decomposition import PCA
 
     n_samples, n_dim = 1000, 10

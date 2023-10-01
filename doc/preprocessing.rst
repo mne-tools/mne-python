@@ -8,8 +8,13 @@ Projections:
 
 .. autosummary::
    :toctree: generated/
+   :template: autosummary/class_no_inherited_members.rst
 
    Projection
+
+.. autosummary::
+   :toctree: generated/
+
    compute_proj_epochs
    compute_proj_evoked
    compute_proj_raw
@@ -52,6 +57,7 @@ Projections:
    get_builtin_ch_adjacencies
    read_ch_adjacency
    equalize_channels
+   unify_bad_channels
    rename_channels
    generate_2d_layout
    make_1020_channel_selections

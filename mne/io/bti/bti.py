@@ -15,12 +15,14 @@ from itertools import count
 
 import numpy as np
 
-from ...utils import logger, verbose, _stamp_to_dt, path_like
+from ..base import BaseRaw
+from ..._fiff.tag import _coil_trans_to_loc, _loc_to_coil_trans
+from ..._fiff.meas_info import _empty_info
+from ..._fiff._digitization import _make_bti_dig_points
+from ...utils import logger, verbose, _stamp_to_dt, path_like, _validate_type
 from ...transforms import combine_transforms, invert_transform, Transform
-from .._digitization import _make_bti_dig_points
-from ..constants import FIFF
-from .. import BaseRaw, _coil_trans_to_loc, _loc_to_coil_trans, _empty_info
-from ..utils import _mult_cal_one, read_str
+from ..._fiff.constants import FIFF
+from ..._fiff.utils import _mult_cal_one, read_str
 from .constants import BTI
 from .read import (
     read_int32,
@@ -923,7 +925,7 @@ def _read_bti_header_pdf(pdf_fname):
         ]
 
         info["extra_data"] = fid.read(start - fid.tell())
-        info["pdf_fname"] = pdf_fname
+        info["pdf"] = pdf_fname
 
     info["total_slices"] = sum(e["pts_in_epoch"] for e in info["epochs"])
 
@@ -1074,6 +1076,7 @@ class RawBTi(BaseRaw):
         preload=False,
         verbose=None,
     ):  # noqa: D102
+        _validate_type(pdf_fname, ("path-like", BytesIO), "pdf_fname")
         info, bti_info = _get_bti_info(
             pdf_fname=pdf_fname,
             config_fname=config_fname,
@@ -1086,14 +1089,15 @@ class RawBTi(BaseRaw):
             sort_by_ch_name=sort_by_ch_name,
             eog_ch=eog_ch,
         )
-        self.bti_ch_labels = [c["chan_label"] for c in bti_info["chs"]]
+        bti_info["bti_ch_labels"] = [c["chan_label"] for c in bti_info["chs"]]
         # make Raw repr work if we have a BytesIO as input
-        if isinstance(pdf_fname, BytesIO):
-            pdf_fname = repr(pdf_fname)
+        filename = bti_info["pdf"]
+        if isinstance(filename, BytesIO):
+            filename = repr(filename)
         super(RawBTi, self).__init__(
             info,
             preload,
-            filenames=[pdf_fname],
+            filenames=[filename],
             raw_extras=[bti_info],
             last_samps=[bti_info["total_slices"] - 1],
             verbose=verbose,
@@ -1102,7 +1106,7 @@ class RawBTi(BaseRaw):
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a segment of data from a file."""
         bti_info = self._raw_extras[fi]
-        fname = bti_info["pdf_fname"]
+        fname_or_bytes = bti_info["pdf"]
         dtype = bti_info["dtype"]
         assert len(bti_info["chs"]) == self._raw_extras[fi]["orig_nchan"]
         n_channels = len(bti_info["chs"])
@@ -1115,7 +1119,7 @@ class RawBTi(BaseRaw):
         block_size = ((int(100e6) // n_bytes) // n_channels) * n_channels
         block_size = min(data_left, block_size)
         # extract data in chunks
-        with _bti_open(fname, "rb") as fid:
+        with _bti_open(fname_or_bytes, "rb") as fid:
             fid.seek(bti_info["bytes_per_slice"] * start, 0)
             for sample_start in np.arange(0, data_left, block_size) // n_channels:
                 count = min(block_size, data_left - sample_start * n_channels)
@@ -1252,6 +1256,13 @@ def _get_bti_info(
     bti_info = _read_bti_header(
         pdf_fname, config_fname, sort_by_ch_name=sort_by_ch_name
     )
+    extras = dict(
+        pdf_fname=pdf_fname,
+        head_shape_fname=head_shape_fname,
+        config_fname=config_fname,
+    )
+    for key, val in extras.items():
+        bti_info[key] = None if isinstance(val, BytesIO) else val
 
     dev_ctf_t = Transform(
         "ctf_meg", "ctf_head", _correct_trans(bti_info["bti_transform"][0])

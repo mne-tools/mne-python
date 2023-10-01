@@ -3,7 +3,6 @@
 Contributing guide
 ==================
 
-.. include:: ../links.inc
 .. highlight:: console
 
 Thanks for taking the time to contribute! MNE-Python is an open-source project
@@ -588,7 +587,7 @@ Describe your changes in the changelog
 --------------------------------------
 
 Include in your changeset a brief description of the change in the
-:ref:`changelog <whats_new>` (:file:`doc/changes/latest.inc`; this can be
+:ref:`changelog <whats_new>` (:file:`doc/changes/devel.rst`; this can be
 skipped for very minor changes like correcting typos in the documentation).
 
 There are different sections of the changelog for each release, and separate
@@ -1028,6 +1027,11 @@ down the road. Here are the guidelines:
       nicely formatted) and the resulting output and figures will be rendered
       as part of the tutorial/example.
 
+- Examples and tutorials should execute as quickly and with as low memory usage as
+  possible while still conveying necessary information. To see current execution
+  times and memory usage, visit the `sg_execution_times page`_. To see unused API
+  entries, see the `sg_api_usage page`_.
+
 `This sample pull request`_ exemplifies many of the conventions listed above:
 it addresses only one problem; it started with an issue to discuss the problem
 and some possible solutions; it is a PR from the user's non-main branch into
@@ -1043,6 +1047,8 @@ it can serve as a useful example of what to expect from the PR review process.
 .. _open a new issue: https://github.com/mne-tools/mne-python/issues/new/choose
 .. _This sample pull request: https://github.com/mne-tools/mne-python/pull/6230
 .. _our user forum: https://mne.discourse.group
+.. _sg_execution_times page: https://mne.tools/dev/sg_execution_times.html
+.. _sg_api_usage page: https://mne.tools/dev/sg_api_usage.html
 
 .. git installation
 

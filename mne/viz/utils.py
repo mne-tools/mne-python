@@ -26,11 +26,13 @@ import webbrowser
 
 from decorator import decorator
 import numpy as np
+from scipy.signal import argrelmax
 
 from ..defaults import _handle_default
-from ..io import show_fiff, Info
-from ..io.constants import FIFF
-from ..io.pick import (
+from .._fiff.constants import FIFF
+from .._fiff.meas_info import Info
+from .._fiff.open import show_fiff
+from .._fiff.pick import (
     channel_type,
     channel_indices_by_type,
     pick_channels,
@@ -43,7 +45,7 @@ from ..io.pick import (
     pick_channels_cov,
     _contains_ch_type,
 )
-from ..io.proj import setup_proj, Projection
+from .._fiff.proj import setup_proj, Projection
 from ..rank import compute_rank
 from ..utils import (
     verbose,
@@ -59,6 +61,7 @@ from ..utils import (
     _to_rgb,
     warn,
     check_version,
+    _check_decim,
 )
 from ..transforms import apply_trans
 
@@ -145,9 +148,19 @@ def plt_show(show=True, fig=None, **kwargs):
 
     if hasattr(fig, "mne") and hasattr(fig.mne, "backend"):
         backend = fig.mne.backend
+        # TODO: This is a hack to deal with the fact that the
+        # with plt.ion():
+        #     BACKEND = get_backend()
+        # an the top of _mpl_figure detects QtAgg during testing even though
+        # we've set the backend to Agg.
+        if backend != "agg":
+            gotten_backend = get_backend()
+            if gotten_backend == "agg":
+                backend = "agg"
     else:
         backend = get_backend()
     if show and backend != "agg":
+        logger.debug(f"Showing plot for backend {repr(backend)}")
         (fig or plt).show(**kwargs)
 
 
@@ -175,9 +188,12 @@ def _show_browser(show=True, block=True, fig=None, **kwargs):
     if backend == "matplotlib":
         plt_show(show, block=block, **kwargs)
     else:
+        from qtpy.QtCore import Qt
         from qtpy.QtWidgets import QApplication
         from .backends._utils import _qt_app_exec
 
+        if fig is not None and os.getenv("_MNE_BROWSER_BACK", "").lower() == "true":
+            fig.setWindowFlags(fig.windowFlags() | Qt.WindowStaysOnBottomHint)
         if show:
             fig.show()
         # If block=False, a Qt-Event-Loop has to be started
@@ -953,8 +969,6 @@ def _find_peaks(evoked, npeaks):
 
     Returns ``npeaks`` biggest peaks as a list of time points.
     """
-    from scipy.signal import argrelmax
-
     gfp = evoked.data.std(axis=0)
     order = len(evoked.times) // 30
     if order < 1:
@@ -1293,6 +1307,7 @@ def _plot_sensors(
     from mpl_toolkits.mplot3d import Axes3D  # noqa: F401 analysis:ignore
     from .topomap import _get_pos_outlines, _draw_outlines
 
+    ch_names = [str(ch_name) for ch_name in ch_names]
     sphere = _check_sphere(sphere, info)
 
     edgecolors = np.repeat(rcParams["axes.edgecolor"], len(colors))
@@ -1431,7 +1446,7 @@ def _compute_scalings(scalings, inst, remove_dc=False, duration=10):
     scalings : dict
         A scalings dictionary with updated values
     """
-    from ..io.base import BaseRaw
+    from ..io import BaseRaw
     from ..epochs import BaseEpochs
 
     scalings = _handle_default("scalings_plot_raw", scalings)
@@ -1771,7 +1786,7 @@ class SelectFromCollection:
             self.selection.pop(sel_ind)
         else:
             self.selection.append(ch_name)
-        inds = np.in1d(self.ch_names, self.selection).nonzero()[0]
+        inds = np.isin(self.ch_names, self.selection).nonzero()[0]
         self.style_sensors(inds)
         self.notify()
 
@@ -2052,9 +2067,6 @@ def _setup_ax_spines(
 
 def _handle_decim(info, decim, lowpass):
     """Handle decim parameter for plotters."""
-    from ..utils.mixin import _check_decim
-    from ..utils import _ensure_int
-
     if isinstance(decim, str) and decim == "auto":
         lp = info["sfreq"] if info["lowpass"] is None else info["lowpass"]
         lp = min(lp, info["sfreq"] if lowpass is None else lowpass)
@@ -2826,7 +2838,7 @@ def _generate_default_filename(ext=".png"):
 
 
 def _prop_kw(kind, val):
-    # Can be removed in when we depend on matplotlib 3.4.3+
+    # Can be removed in when we depend on matplotlib 3.5+
     # https://github.com/matplotlib/matplotlib/pull/20585
     from matplotlib.widgets import SpanSelector
 
@@ -2851,39 +2863,17 @@ def _handle_precompute(precompute):
 def _set_3d_axes_equal(ax):
     """Make axes of 3D plot have equal scale on all dimensions.
 
-    This way spheres appear as actual spheres, cubes as cubes, etc..
-    This is one possible solution to Matplotlib's ``ax.set_aspect('equal')``
-    and ``ax.axis('equal')`` not working for 3D.
+    This way spheres appear as actual spheres, cubes as cubes, etc.
 
     Parameters
     ----------
     ax: matplotlib.axes.Axes
         A matplotlib 3d axis to use.
-
-    Notes
-    -----
-    modified from:
-    https://stackoverflow.com/q/13685386
-
-    Should no longer be necessary for matplotlib >= 3.3.0:
-    https://matplotlib.org/stable/users/prev_whats_new/whats_new_3.3.0.html#axes3d-no-longer-distorts-the-3d-plot-to-match-the-2d-aspect-ratio
     """
-    x_lim, y_lim, z_lim = ax.get_xlim3d(), ax.get_ylim3d(), ax.get_zlim3d()
-
-    def get_range(lim):
-        return lim[1] - lim[0], np.mean(lim)
-
-    x_range, x_mean = get_range(x_lim)
-    y_range, y_mean = get_range(y_lim)
-    z_range, z_mean = get_range(z_lim)
-
-    # The plot bounding box is a sphere in the sense of the infinity
-    # norm, hence I call half the max range the plot radius.
-    plot_radius = 0.5 * max([x_range, y_range, z_range])
-
-    ax.set_xlim3d([x_mean - plot_radius, x_mean + plot_radius])
-    ax.set_ylim3d([y_mean - plot_radius, y_mean + plot_radius])
-    ax.set_zlim3d([z_mean - plot_radius, z_mean + plot_radius])
+    ranges = tuple(
+        np.abs(np.diff(getattr(ax, f"get_{d}lim")())).item() for d in ("x", "y", "z")
+    )
+    ax.set_box_aspect(ranges)
 
 
 def _check_type_projs(projs):
@@ -2910,8 +2900,6 @@ def _get_cmap(colormap, lut=None):
     if colormap is None:
         colormap = rcParams["image.cmap"]
     if isinstance(colormap, str) and colormap in ("mne", "mne_analyze"):
-        from ._3d import mne_analyze_colormap
-
         colormap = mne_analyze_colormap([0, 1, 2], format="matplotlib")
     elif not isinstance(colormap, colors.Colormap):
         colormap = get_cmap(colormap)
@@ -2923,3 +2911,22 @@ def _get_cmap(colormap, lut=None):
             resampled = colormap._resample
         colormap = resampled(lut)
     return colormap
+
+
+def _get_plot_ch_type(inst, ch_type, allow_ref_meg=False):
+    """Choose a single channel type (usually for plotting).
+
+    Usually used in plotting to plot a single datatype, e.g. look for mags,
+    then grads, then ... to plot.
+    """
+    if ch_type is None:
+        allowed_types = list(_DATA_CH_TYPES_SPLIT)
+        allowed_types += ["ref_meg"] if allow_ref_meg else []
+        has_types = inst.get_channel_types(unique=True)
+        for type_ in allowed_types:
+            if type_ in has_types:
+                ch_type = type_
+                break
+        else:
+            raise RuntimeError("No plottable channel types found")
+    return ch_type

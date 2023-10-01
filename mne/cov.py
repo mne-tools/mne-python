@@ -9,6 +9,7 @@ import itertools as itt
 from math import log
 
 import numpy as np
+from scipy.sparse import issparse
 
 from .defaults import (
     _INTERPOLATION_DEFAULT,
@@ -16,20 +17,18 @@ from .defaults import (
     _BORDER_DEFAULT,
     DEFAULTS,
 )
-from .io.write import start_and_end_file
-from .io.proj import (
-    make_projector,
+from .fixes import _safe_svd
+from ._fiff.proj import (
+    make_projector as _make_projector,
     _proj_equal,
-    activate_proj,
+    activate_proj as _activate_proj,
     _check_projs,
     _needs_eeg_average_ref_proj,
     _has_eeg_average_ref_proj,
     _read_proj,
     _write_proj,
 )
-from .io import fiff_open, RawArray
-
-from .io.pick import (
+from ._fiff.pick import (
     pick_types,
     pick_channels_cov,
     pick_channels,
@@ -40,20 +39,10 @@ from .io.pick import (
     _DATA_CH_TYPES_SPLIT,
 )
 
-from .io.constants import FIFF
-from .io.meas_info import _read_bad_channels, create_info, _write_bad_channels
-from .io.tag import find_tag
-from .io.tree import dir_tree_find
-from .io.write import (
-    start_block,
-    end_block,
-    write_int,
-    write_double,
-    write_float_matrix,
-    write_string,
-    _safe_name_list,
-    write_name_list_sanitized,
-)
+from ._fiff.constants import FIFF
+from ._fiff.meas_info import _read_bad_channels, create_info, _write_bad_channels
+from ._fiff.tag import find_tag
+from ._fiff.tree import dir_tree_find
 from .defaults import _handle_default
 from .epochs import Epochs
 from .event import make_fixed_length_events
@@ -223,6 +212,8 @@ class Covariance(dict):
             .. versionadded:: 1.0
         %(verbose)s
         """
+        from ._fiff.write import start_and_end_file
+
         check_fname(
             fname, "covariance", ("-cov.fif", "-cov.fif.gz", "_cov.fif", "_cov.fif.gz")
         )
@@ -314,7 +305,7 @@ class Covariance(dict):
         return self
 
     @verbose
-    @copy_function_doc_to_method_doc(viz.misc.plot_cov)
+    @copy_function_doc_to_method_doc(viz.plot_cov)
     def plot(
         self,
         info,
@@ -325,7 +316,7 @@ class Covariance(dict):
         show=True,
         verbose=None,
     ):
-        return viz.misc.plot_cov(
+        return viz.plot_cov(
             self, info, exclude, colorbar, proj, show_svd, show, verbose
         )
 
@@ -382,7 +373,15 @@ class Covariance(dict):
         %(sphere_topomap_auto)s
         %(image_interp_topomap)s
         %(extrapolate_topomap)s
+
+            .. versionchanged:: 0.21
+
+               - The default was changed to ``'local'`` for MEG sensors.
+               - ``'local'`` was changed to use a convex hull mask
+               - ``'head'`` was changed to extrapolate out to the clipping circle.
         %(border_topomap)s
+
+            .. versionadded:: 0.20
         %(res_topomap)s
         %(size_topomap)s
         %(cmap_topomap)s
@@ -503,6 +502,8 @@ def read_cov(fname, verbose=None):
     --------
     write_cov, compute_covariance, compute_raw_covariance
     """
+    from ._fiff.open import fiff_open
+
     check_fname(
         fname, "covariance", ("-cov.fif", "-cov.fif.gz", "_cov.fif", "_cov.fif.gz")
     )
@@ -708,7 +709,7 @@ def compute_raw_covariance(
     if picks is None:
         # Need to include all channels e.g. if eog rejection is to be used
         picks = np.arange(raw.info["nchan"])
-        pick_mask = np.in1d(picks, _pick_data_channels(raw.info, with_ref_meg=False))
+        pick_mask = np.isin(picks, _pick_data_channels(raw.info, with_ref_meg=False))
     else:
         pick_mask = slice(None)
         picks = _picks_to_idx(raw.info, picks)
@@ -979,8 +980,8 @@ def compute_covariance(
     Returns
     -------
     cov : instance of Covariance | list
-        The computed covariance. If method equals 'auto' or is a list of str
-        and return_estimators equals True, a list of covariance estimators is
+        The computed covariance. If method equals ``'auto'`` or is a list of str
+        and ``return_estimators=True``, a list of covariance estimators is
         returned (sorted by log-likelihood, from high to low, i.e. from best
         to worst).
 
@@ -1008,16 +1009,14 @@ def compute_covariance(
       .. versionadded:: 0.16
     * ``'ledoit_wolf'``
         The Ledoit-Wolf estimator, which uses an
-        empirical formula for the optimal shrinkage value
-        :footcite:`LedoitWolf2004`.
+        empirical formula for the optimal shrinkage value :footcite:`LedoitWolf2004`.
     * ``'oas'``
         The OAS estimator :footcite:`ChenEtAl2010`, which uses a different
         empricial formula for the optimal shrinkage value.
 
       .. versionadded:: 0.16
     * ``'shrunk'``
-        Like 'ledoit_wolf', but with cross-validation
-        for optimal alpha.
+        Like 'ledoit_wolf', but with cross-validation for optimal alpha.
     * ``'pca'``
         Probabilistic PCA with low rank :footcite:`TippingBishop1999`.
     * ``'factor_analysis'``
@@ -1039,7 +1038,7 @@ def compute_covariance(
     The ``method`` parameter allows to regularize the covariance in an
     automated way. It also allows to select between different alternative
     estimation algorithms which themselves achieve regularization.
-    Details are described in :footcite:`EngemannGramfort2015`.
+    Details are described in :footcite:t:`EngemannGramfort2015`.
 
     For more information on the advanced estimation methods, see
     :ref:`the sklearn manual <sklearn:covariance>`.
@@ -1244,6 +1243,8 @@ def _compute_covariance_auto(
     rank,
 ):
     """Compute covariance auto mode."""
+    from .io import RawArray
+
     # rescale to improve numerical stability
     orig_rank = rank
     rank = compute_rank(
@@ -1805,7 +1806,7 @@ def _smart_eigh(
     n_chan = len(ch_names)
 
     # Create the projection operator
-    proj, ncomp, _ = make_projector(projs, ch_names)
+    proj, ncomp, _ = _make_projector(projs, ch_names)
 
     if isinstance(C, Covariance):
         C = C["data"]
@@ -1824,7 +1825,7 @@ def _smart_eigh(
     if proj_subspace and sum(rank.values()) == C.shape[0]:
         return np.ones(n_chan), np.eye(n_chan), np.ones(n_chan, bool)
 
-    dtype = complex if C.dtype == np.complex_ else float
+    dtype = complex if C.dtype == np.complex128 else float
     eig = np.zeros(n_chan, dtype)
     eigvec = np.zeros((n_chan, n_chan), dtype)
     mask = np.zeros(n_chan, bool)
@@ -1955,8 +1956,6 @@ def regularize(
     --------
     mne.compute_covariance
     """  # noqa: E501
-    from scipy import linalg
-
     cov = cov.copy()
     info._check_consistency()
     scalings = _handle_default("scalings_cov_rank", scalings)
@@ -2031,7 +2030,7 @@ def regularize(
 
     if proj:
         projs = info["projs"] + cov_good["projs"]
-        projs = activate_proj(projs)
+        projs = _activate_proj(projs)
 
     for ch_type in idx_cov:
         desc = ch_type.upper()
@@ -2049,10 +2048,10 @@ def regularize(
         this_ch_names = [ch_names[k] for k in idx]
         if rank == "full":
             if proj:
-                P, ncomp, _ = make_projector(projs, this_ch_names)
+                P, ncomp, _ = _make_projector(projs, this_ch_names)
                 if ncomp > 0:
                     # This adjustment ends up being redundant if rank is None:
-                    U = linalg.svd(P)[0][:, :-ncomp]
+                    U = _safe_svd(P)[0][:, :-ncomp]
                     logger.info(
                         "    Created an SSP operator for %s "
                         "(dimension = %d)" % (desc, ncomp)
@@ -2299,7 +2298,7 @@ def whiten_evoked(
 def _read_cov(fid, node, cov_kind, limited=False, verbose=None):
     """Read a noise covariance matrix."""
     #   Find all covariance matrices
-    from scipy import sparse
+    from ._fiff.write import _safe_name_list
 
     covs = dir_tree_find(node, FIFF.FIFFB_MNE_COV)
     if len(covs) == 0:
@@ -2361,7 +2360,7 @@ def _read_cov(fid, node, cov_kind, limited=False, verbose=None):
                     )
 
             else:
-                if not sparse.issparse(tag.data):
+                if not issparse(tag.data):
                     #   Lower diagonal is stored
                     vals = tag.data
                     data = np.zeros((dim, dim))
@@ -2428,6 +2427,16 @@ def _read_cov(fid, node, cov_kind, limited=False, verbose=None):
 
 def _write_cov(fid, cov):
     """Write a noise covariance matrix."""
+    from ._fiff.write import (
+        start_block,
+        end_block,
+        write_int,
+        write_double,
+        write_float_matrix,
+        write_string,
+        write_name_list_sanitized,
+    )
+
     start_block(fid, FIFF.FIFFB_MNE_COV)
 
     #   Dimensions etc.

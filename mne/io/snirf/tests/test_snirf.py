@@ -17,7 +17,8 @@ from mne.preprocessing.nirs import (
     _reorder_nirx,
 )
 from mne.transforms import apply_trans, _get_trans
-from mne.io.constants import FIFF
+from mne._fiff.constants import FIFF
+from mne.utils import catch_logging
 
 
 testing_path = data_path(download=False)
@@ -467,3 +468,80 @@ def test_annotation_duration_from_stim_groups():
     # a = Snirf(snirf_nirsport2_20219, "r+"); print(a.nirs[0].stim[0].data)
     expected_durations = np.full((10,), 10.0)
     assert_equal(expected_durations, raw.annotations.duration)
+
+
+def test_birthday(tmp_path, monkeypatch):
+    """Test birthday parsing."""
+    try:
+        snirf = pytest.importorskip("snirf")
+    except AttributeError as exc:
+        # Until https://github.com/BUNPC/pysnirf2/pull/43 is released
+        pytest.skip(f"snirf import error: {exc}")
+    fname = tmp_path / "test.snirf"
+    with snirf.Snirf(str(fname), "w") as a:
+        a.nirs.appendGroup()
+        a.nirs[0].data.appendGroup()
+        a.nirs[0].data[0].dataTimeSeries = np.zeros((2, 2))
+        a.nirs[0].data[0].time = [0, 1]
+        for i in range(2):
+            a.nirs[0].data[0].measurementList.appendGroup()
+            a.nirs[0].data[0].measurementList[i].sourceIndex = 1
+            a.nirs[0].data[0].measurementList[i].detectorIndex = 1
+            a.nirs[0].data[0].measurementList[i].wavelengthIndex = 1
+            a.nirs[0].data[0].measurementList[i].dataType = 99999
+            a.nirs[0].data[0].measurementList[i].dataTypeIndex = 0
+        a.nirs[0].data[0].measurementList[0].dataTypeLabel = "HbO"
+        a.nirs[0].data[0].measurementList[1].dataTypeLabel = "HbR"
+        a.nirs[0].metaDataTags.SubjectID = "0"
+        a.nirs[0].metaDataTags.MeasurementDate = "2000-01-01"
+        a.nirs[0].metaDataTags.MeasurementTime = "00:00:00"
+        a.nirs[0].metaDataTags.LengthUnit = "m"
+        a.nirs[0].metaDataTags.TimeUnit = "s"
+        a.nirs[0].metaDataTags.FrequencyUnit = "Hz"
+        a.nirs[0].metaDataTags.add("DateOfBirth", "1950-01-01")
+        a.nirs[0].probe.wavelengths = [0, 0]
+        a.nirs[0].probe.sourcePos3D = np.zeros((1, 3))
+        a.nirs[0].probe.detectorPos3D = np.zeros((1, 3))
+        # Until https://github.com/BUNPC/pysnirf2/pull/39 is released
+        monkeypatch.setattr(a._cfg.logger, "info", lambda *args, **kwargs: None)
+        a.save()
+
+    raw = read_raw_snirf(fname)
+    assert raw.info["subject_info"]["birthday"] == (1950, 1, 1)
+
+
+@requires_testing_data
+def test_sample_rate_jitter(tmp_path):
+    """Test handling of jittered sample times."""
+    from shutil import copy2
+
+    # Create a clean copy and ensure it loads without error
+    new_file = tmp_path / "snirf_nirsport2_2019.snirf"
+    copy2(snirf_nirsport2_20219, new_file)
+    read_raw_snirf(new_file)
+
+    # Edit the file and add jitter within tolerance (0.99%)
+    with h5py.File(new_file, "r+") as f:
+        orig_time = np.array(f.get("nirs/data1/time"))
+        acceptable_time_jitter = orig_time.copy()
+        average_time_diff = np.mean(np.diff(orig_time))
+        acceptable_time_jitter[-1] += 0.0099 * average_time_diff
+        del f["nirs/data1/time"]
+        f.flush()
+        f.create_dataset("nirs/data1/time", data=acceptable_time_jitter)
+    with catch_logging("info") as log:
+        read_raw_snirf(new_file)
+    lines = "\n".join(line for line in log.getvalue().splitlines() if "jitter" in line)
+    assert "Found jitter of 0.9" in lines
+
+    # Add jitter of 1.01%, which is greater than allowed tolerance
+    with h5py.File(new_file, "r+") as f:
+        unacceptable_time_jitter = orig_time
+        unacceptable_time_jitter[-1] = unacceptable_time_jitter[-1] + (
+            0.0101 * average_time_diff
+        )
+        del f["nirs/data1/time"]
+        f.flush()
+        f.create_dataset("nirs/data1/time", data=unacceptable_time_jitter)
+    with pytest.warns(RuntimeWarning, match="non-uniformly-sampled data"):
+        read_raw_snirf(new_file, verbose=True)

@@ -148,7 +148,7 @@ significant_channels = [
     ("MEG 2411", "MEG 2421"),
     ("MEG 1621"),
 ]
-_channels = [np.in1d(evoked.ch_names, ch) for ch in significant_channels]
+_channels = [np.isin(evoked.ch_names, ch) for ch in significant_channels]
 
 mask = np.zeros(evoked.data.shape, dtype="bool")
 for _chs, _time in zip(_channels, _times):

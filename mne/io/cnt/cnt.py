@@ -8,13 +8,13 @@ from os import path
 
 import numpy as np
 
+from ..base import BaseRaw
 from ...utils import warn, fill_doc, _check_option
 from ...channels.layout import _topo_to_sphere
-from ..constants import FIFF
-from .._digitization import _make_dig_points
-from ..utils import _mult_cal_one, _find_channels, _create_chs, read_str
-from ..meas_info import _empty_info
-from ..base import BaseRaw
+from ..._fiff.constants import FIFF
+from ..._fiff._digitization import _make_dig_points
+from ..._fiff.utils import _mult_cal_one, _find_channels, _create_chs, read_str
+from ..._fiff.meas_info import _empty_info
 from ...annotations import Annotations
 
 
@@ -145,9 +145,9 @@ def _read_annotations_cnt(fname, data_format="int16"):
             event_type=type(my_events[0]),
             data_format=data_format,
         )
-        duration = np.array(
-            [getattr(e, "Latency", 0.0) for e in my_events], dtype=float
-        )
+        # There is a Latency field but it's not useful for durations, see
+        # https://github.com/mne-tools/mne-python/pull/11828
+        duration = np.zeros(len(my_events), dtype=float)
         accept_reject = _accept_reject_function(
             np.array([e.KeyPad_Accept for e in my_events])
         )

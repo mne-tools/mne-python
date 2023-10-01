@@ -3,7 +3,7 @@
 import numpy as np
 
 from ..evoked import Evoked
-from ..io.pick import _picks_to_idx
+from .._fiff.pick import _picks_to_idx
 from ..utils import verbose, _validate_type, _ensure_int
 
 

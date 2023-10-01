@@ -8,7 +8,6 @@ Statistical inference
 Here we will briefly cover multiple concepts of inferential statistics in an
 introductory manner, and demonstrate how to use some MNE statistical functions.
 """
-
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD-3-Clause
@@ -20,7 +19,7 @@ from functools import partial
 import numpy as np
 from scipy import stats
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D  # noqa, analysis:ignore
+from mpl_toolkits.mplot3d import Axes3D  # noqa: F401, analysis:ignore
 
 import mne
 from mne.stats import (
@@ -250,7 +249,8 @@ ts.append(np.zeros(width * width))
 ps.append(np.zeros(width * width))
 mccs.append(False)
 for ii in range(n_src):
-    ts[-1][ii], ps[-1][ii] = permutation_t_test(X[:, [ii]], verbose=False)[:2]
+    t, p = permutation_t_test(X[:, [ii]], verbose=False)[:2]
+    ts[-1][ii], ps[-1][ii] = t[0], p[0]
 plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
 
 # %%

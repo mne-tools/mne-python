@@ -15,10 +15,10 @@ from scipy import io as sio
 
 from mne import find_events, pick_types
 from mne.io import read_raw_egi, read_evokeds_mff, read_raw_fif
-from mne.io.constants import FIFF
+from mne._fiff.constants import FIFF
 from mne.io.egi.egi import _combine_triggers
 from mne.io.tests.test_raw import _test_raw_reader
-from mne.utils import requires_version, object_diff
+from mne.utils import object_diff
 from mne.datasets.testing import data_path, requires_testing_data
 
 base_dir = Path(__file__).parent / "data"
@@ -364,7 +364,6 @@ def test_io_egi_crop_no_preload():
 
 
 @pytest.mark.filterwarnings("ignore::FutureWarning")
-@requires_version("mffpy", "0.5.7")
 @requires_testing_data
 @pytest.mark.parametrize(
     "idx, cond, tmax, signals, bads",
@@ -381,6 +380,7 @@ def test_io_egi_crop_no_preload():
 )
 def test_io_egi_evokeds_mff(idx, cond, tmax, signals, bads):
     """Test reading evoked MFF file."""
+    pytest.importorskip("mffpy", "0.5.7")
     # expected n channels
     n_eeg = 256
     n_ref = 1
@@ -444,10 +444,10 @@ def test_io_egi_evokeds_mff(idx, cond, tmax, signals, bads):
 
 
 @pytest.mark.filterwarnings("ignore::FutureWarning")
-@requires_version("mffpy", "0.5.7")
 @requires_testing_data
 def test_read_evokeds_mff_bad_input():
     """Test errors are thrown when reading invalid input file."""
+    pytest.importorskip("mffpy", "0.5.7")
     # Test file that is not an MFF
     with pytest.raises(ValueError) as exc_info:
         read_evokeds_mff(egi_fname)

@@ -6,10 +6,11 @@
 import numbers
 
 import numpy as np
+from scipy.stats import pearsonr
 
 from .base import get_coef, BaseEstimator, _check_estimator
+from ..fixes import pinv
 from .time_delaying_ridge import TimeDelayingRidge
-from ..fixes import is_regressor
 from ..utils import _validate_type, verbose, fill_doc
 
 
@@ -128,6 +129,9 @@ class ReceptiveField(BaseEstimator):
         self.n_jobs = n_jobs
         self.edge_correction = edge_correction
 
+    def _more_tags(self):
+        return {"no_validation": True}
+
     def __repr__(self):  # noqa: D105
         s = "tmin, tmax : (%.3f, %.3f), " % (self.tmin, self.tmax)
         estimator = self.estimator
@@ -153,7 +157,11 @@ class ReceptiveField(BaseEstimator):
         if not isinstance(self.estimator_, TimeDelayingRidge):
             # X is now shape (n_times, n_epochs, n_feats, n_delays)
             X = _delay_time_series(
-                X, self.tmin, self.tmax, self.sfreq, fill_mean=self.fit_intercept
+                X,
+                self.tmin,
+                self.tmax,
+                self.sfreq,
+                fill_mean=self.fit_intercept_,
             )
             X = _reshape_for_est(X)
             # Concat times + epochs
@@ -176,14 +184,12 @@ class ReceptiveField(BaseEstimator):
         self : instance
             The instance so you can chain operations.
         """
-        from scipy import linalg
-
         if self.scoring not in _SCORERS.keys():
             raise ValueError(
                 "scoring must be one of %s, got"
                 "%s " % (sorted(_SCORERS.keys()), self.scoring)
             )
-        from sklearn.base import clone
+        from sklearn.base import clone, is_regressor
 
         X, y, _, self._y_dim = self._check_dimensions(X, y)
 
@@ -199,13 +205,15 @@ class ReceptiveField(BaseEstimator):
 
         if isinstance(self.estimator, numbers.Real):
             if self.fit_intercept is None:
-                self.fit_intercept = True
+                self.fit_intercept_ = True
+            else:
+                self.fit_intercept_ = self.fit_intercept
             estimator = TimeDelayingRidge(
                 self.tmin,
                 self.tmax,
                 self.sfreq,
                 alpha=self.estimator,
-                fit_intercept=self.fit_intercept,
+                fit_intercept=self.fit_intercept_,
                 n_jobs=self.n_jobs,
                 edge_correction=self.edge_correction,
             )
@@ -221,7 +229,7 @@ class ReceptiveField(BaseEstimator):
                     "same fit_intercept value or use fit_intercept=None"
                     % (estimator.fit_intercept, self.fit_intercept)
                 )
-            self.fit_intercept = estimator.fit_intercept
+            self.fit_intercept_ = estimator.fit_intercept
         else:
             raise ValueError(
                 "`estimator` must be a float or an instance"
@@ -267,7 +275,7 @@ class ReceptiveField(BaseEstimator):
             # Inverse output covariance
             if y.ndim == 2 and y.shape[1] != 1:
                 y = y - y.mean(0, keepdims=True)
-                inv_Y = linalg.pinv(np.cov(y.T))
+                inv_Y = pinv(np.cov(y.T))
             else:
                 inv_Y = 1.0 / float(n_times * n_epochs - 1)
             del y
@@ -354,6 +362,8 @@ class ReceptiveField(BaseEstimator):
         return scores
 
     def _check_dimensions(self, X, y, predict=False):
+        _validate_type(X, "array-like", "X")
+        _validate_type(y, ("array-like", None), "y")
         X_dim = X.ndim
         y_dim = y.ndim if y is not None else 0
         if X_dim == 2:
@@ -502,8 +512,6 @@ def _reshape_for_est(X_del):
 
 # Create a correlation scikit-learn-style scorer
 def _corr_score(y_true, y, multioutput=None):
-    from scipy.stats import pearsonr
-
     assert multioutput == "raw_values"
     for this_y in (y_true, y):
         if this_y.ndim != 2:

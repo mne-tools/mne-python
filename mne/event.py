@@ -26,12 +26,12 @@ from .utils import (
     _check_on_missing,
     _check_integer_or_list,
 )
-from .io.constants import FIFF
-from .io.tree import dir_tree_find
-from .io.tag import read_tag
-from .io.open import fiff_open
-from .io.write import write_int, start_block, start_and_end_file, end_block
-from .io.pick import pick_channels
+from ._fiff.constants import FIFF
+from ._fiff.tree import dir_tree_find
+from ._fiff.tag import read_tag
+from ._fiff.open import fiff_open
+from ._fiff.write import write_int, start_block, start_and_end_file, end_block
+from ._fiff.pick import pick_channels
 
 
 @fill_doc
@@ -179,10 +179,11 @@ def _read_events_fif(fid, tree):
         if kind == FIFF.FIFF_MNE_EVENT_LIST:
             tag = read_tag(fid, pos)
             event_list = tag.data
-            event_list.shape = (-1, 3)
             break
     if event_list is None:
         raise ValueError("Could not find any events")
+    else:
+        event_list.shape = (-1, 3)
     for d in events["directory"]:
         kind = d.kind
         pos = d.pos
@@ -913,7 +914,7 @@ def shift_time_events(events, ids, tshift, sfreq):
     if ids is None:
         mask = slice(None)
     else:
-        mask = np.in1d(events[:, 2], ids)
+        mask = np.isin(events[:, 2], ids)
     events[mask, 0] += int(tshift * sfreq)
 
     return events
@@ -954,7 +955,7 @@ def make_fixed_length_events(
     -------
     %(events)s
     """
-    from .io.base import BaseRaw
+    from .io import BaseRaw
 
     _validate_type(raw, BaseRaw, "raw")
     _validate_type(id, "int", "id")
@@ -1681,7 +1682,7 @@ def count_events(events, ids=None):
         {1: 2, 11: 0}
     """
     counts = np.bincount(events[:, 2])
-    counts = {i: count for i, count in enumerate(counts) if count > 0}
+    counts = {i: int(count) for i, count in enumerate(counts) if count > 0}
     if ids is not None:
-        return {id: counts.get(id, 0) for id in ids}
+        counts = {id_: counts.get(id_, 0) for id_ in ids}
     return counts

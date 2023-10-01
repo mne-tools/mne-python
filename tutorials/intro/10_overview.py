@@ -70,7 +70,7 @@ print(raw.info)
 # %%
 # `~mne.io.Raw` objects also have several built-in plotting methods; here we
 # show the power spectral density (PSD) for each sensor type with
-# `~mne.io.Raw.plot_psd`, as well as a plot of the raw sensor traces with
+# `~mne.io.Raw.compute_psd`, as well as a plot of the raw sensor traces with
 # `~mne.io.Raw.plot`. In the PSD plot, we'll only plot frequencies below 50 Hz
 # (since our data are low-pass filtered at 40 Hz). In interactive Python
 # sessions, `~mne.io.Raw.plot` is interactive and allows scrolling, scaling,
@@ -349,7 +349,7 @@ aud_evoked.plot_topomap(times=[0.0, 0.08, 0.1, 0.12, 0.2], ch_type="eeg")
 # at each sensor using `~mne.Evoked.plot_topo`:
 
 evoked_diff = mne.combine_evoked([aud_evoked, vis_evoked], weights=[1, -1])
-evoked_diff.pick_types(meg="mag").plot_topo(color="r", legend=False)
+evoked_diff.pick(picks="mag").plot_topo(color="r", legend=False)
 
 ##############################################################################
 # Inverse modeling

@@ -18,14 +18,15 @@ from io import StringIO
 
 import numpy as np
 
-from ...utils import verbose, logger, warn, fill_doc, _DefaultEventParser
-from ..constants import FIFF
-from ..meas_info import _empty_info
 from ..base import BaseRaw
-from ..utils import _read_segments_file, _mult_cal_one
+from ...utils import verbose, logger, warn, fill_doc, _DefaultEventParser
+from ..._fiff.constants import FIFF
+from ..._fiff.meas_info import _empty_info
+from ..._fiff.utils import _read_segments_file, _mult_cal_one
 from ...annotations import Annotations, read_annotations
 from ...channels import make_dig_montage
 from ...defaults import HEAD_SIZE_DEFAULT
+from ...transforms import _sph_to_cart
 
 
 @fill_doc
@@ -60,6 +61,8 @@ class RawBrainVision(BaseRaw):
     --------
     mne.io.Raw : Documentation of attributes and methods.
     """
+
+    _extra_attributes = ("impedances",)
 
     @verbose
     def __init__(
@@ -624,8 +627,6 @@ def _get_hdr_info(hdr_fname, eog, misc, scale):
     # specified in mm
     montage = None
     if cfg.has_section("Coordinates"):
-        from ...transforms import _sph_to_cart
-
         montage_pos = list()
         montage_names = list()
         to_misc = list()
@@ -764,11 +765,11 @@ def _get_hdr_info(hdr_fname, eog, misc, scale):
                 # We convert channels with disabled filters to having
                 # highpass relaxed / no filters
                 highpass = [
-                    float(filt) if filt not in ("NaN", "Off", "DC") else np.Inf
+                    float(filt) if filt not in ("NaN", "Off", "DC") else np.inf
                     for filt in highpass
                 ]
                 info["highpass"] = np.max(np.array(highpass, dtype=np.float64))
-                # Coveniently enough 1 / np.Inf = 0.0, so this works for
+                # Conveniently enough 1 / np.inf = 0.0, so this works for
                 # DC / no highpass filter
                 # filter time constant t [secs] to Hz conversion: 1/2*pi*t
                 info["highpass"] = 1.0 / (2 * np.pi * info["highpass"])
@@ -838,7 +839,7 @@ def _get_hdr_info(hdr_fname, eog, misc, scale):
                 # We convert channels with disabled filters to having
                 # infinitely relaxed / no filters
                 lowpass = [
-                    float(filt) if filt not in ("NaN", "Off", "0") else np.Inf
+                    float(filt) if filt not in ("NaN", "Off", "0") else np.inf
                     for filt in lowpass
                 ]
                 info["lowpass"] = np.max(np.array(lowpass, dtype=np.float64))

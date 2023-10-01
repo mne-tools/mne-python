@@ -15,6 +15,7 @@ Visualization
 
    Brain
    ClickableImage
+   EvokedField
    Figure3D
    add_background_image
    centers_to_edges
@@ -86,3 +87,31 @@ Visualization
    set_browser_backend
    get_browser_backend
    use_browser_backend
+
+UI Events
+---------
+
+.. currentmodule:: mne.viz.ui_events
+
+:py:mod:`mne.viz.ui_events`:
+
+.. automodule:: mne.viz.ui_events
+   :no-members:
+   :no-inherited-members:
+
+.. autosummary::
+   :toctree: generated/
+
+   subscribe
+   unsubscribe
+   publish
+   link
+   unlink
+   disable_ui_events
+   UIEvent
+   ColormapRange
+   Contours
+   FigureClosing
+   PlaybackSpeed
+   TimeChange
+   VertexSelect

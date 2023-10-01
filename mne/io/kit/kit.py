@@ -16,7 +16,8 @@ from pathlib import Path
 
 import numpy as np
 
-from ..pick import pick_types
+from ..._fiff.pick import pick_types
+from ...event import read_events
 from ...utils import (
     verbose,
     logger,
@@ -28,13 +29,12 @@ from ...utils import (
 )
 from ...transforms import apply_trans, als_ras_trans
 from ..base import BaseRaw
-from ..utils import _mult_cal_one
+from ..._fiff.utils import _mult_cal_one
 from ...epochs import BaseEpochs
-from ..constants import FIFF
-from ..meas_info import _empty_info
+from ..._fiff.constants import FIFF
+from ..._fiff.meas_info import _empty_info
 from .constants import KIT, LEGACY_AMP_PARAMS
 from .coreg import read_mrk, _set_dig_kit
-from ...event import read_events
 
 
 FLOAT64 = "<f8"
@@ -116,6 +116,8 @@ class RawKIT(BaseRaw):
     mne.io.Raw : Documentation of attributes and methods.
     """
 
+    _extra_attributes = ("read_stim_ch",)
+
     @verbose
     def __init__(
         self,
@@ -147,7 +149,7 @@ class RawKIT(BaseRaw):
 
         last_samps = [kit_info["n_samples"] - 1]
         self._raw_extras = [kit_info]
-        self._set_stimchannels(info, stim, stim_code)
+        _set_stimchannels(self, info, stim, stim_code)
         super(RawKIT, self).__init__(
             info,
             preload,
@@ -187,75 +189,6 @@ class RawKIT(BaseRaw):
 
         return stim_ch
 
-    @fill_doc
-    def _set_stimchannels(self, info, stim, stim_code):
-        """Specify how the trigger channel is synthesized from analog channels.
-
-        Has to be done before loading data. For a RawKIT instance that has been
-        created with preload=True, this method will raise a
-        NotImplementedError.
-
-        Parameters
-        ----------
-        %(info_not_none)s
-        stim : list of int | '<' | '>'
-            Can be submitted as list of trigger channels.
-            If a list is not specified, the default triggers extracted from
-            misc channels will be used with specified directionality.
-            '<' means that largest values assigned to the first channel
-            in sequence.
-            '>' means the largest trigger assigned to the last channel
-            in sequence.
-        stim_code : 'binary' | 'channel'
-            How to decode trigger values from stim channels. 'binary' read stim
-            channel events as binary code, 'channel' encodes channel number.
-        """
-        if self.preload:
-            raise NotImplementedError("Can't change stim channel after " "loading data")
-        _check_option("stim_code", stim_code, ["binary", "channel"])
-
-        if stim is not None:
-            if isinstance(stim, str):
-                picks = _default_stim_chs(info)
-                if stim == "<":
-                    stim = picks[::-1]
-                elif stim == ">":
-                    stim = picks
-                else:
-                    raise ValueError(
-                        "stim needs to be list of int, '>' or "
-                        "'<', not %r" % str(stim)
-                    )
-            else:
-                stim = np.asarray(stim, int)
-                if stim.max() >= self._raw_extras[0]["nchan"]:
-                    raise ValueError(
-                        "Got stim=%s, but sqd file only has %i channels"
-                        % (stim, self._raw_extras[0]["nchan"])
-                    )
-
-            # modify info
-            nchan = self._raw_extras[0]["nchan"] + 1
-            info["chs"].append(
-                dict(
-                    cal=KIT.CALIB_FACTOR,
-                    logno=nchan,
-                    scanno=nchan,
-                    range=1.0,
-                    unit=FIFF.FIFF_UNIT_NONE,
-                    unit_mul=FIFF.FIFF_UNITM_NONE,
-                    ch_name="STI 014",
-                    coil_type=FIFF.FIFFV_COIL_NONE,
-                    loc=np.full(12, np.nan),
-                    kind=FIFF.FIFFV_STIM_CH,
-                    coord_frame=FIFF.FIFFV_COORD_UNKNOWN,
-                )
-            )
-            info._update_redundant()
-
-        self._raw_extras[0]["stim"] = stim
-        self._raw_extras[0]["stim_code"] = stim_code
-
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data."""
         sqd = self._raw_extras[fi]
@@ -293,6 +226,74 @@ class RawKIT(BaseRaw):
 
                 _mult_cal_one(data_view, block, idx, cals, mult)
         # cals are all unity, so can be ignored
+
+
+def _set_stimchannels(inst, info, stim, stim_code):
+    """Specify how the trigger channel is synthesized from analog channels.
+
+    Has to be done before loading data. For a RawKIT instance that has been
+    created with preload=True, this method will raise a
+    NotImplementedError.
+
+    Parameters
+    ----------
+    %(info_not_none)s
+    stim : list of int | '<' | '>'
+        Can be submitted as list of trigger channels.
+        If a list is not specified, the default triggers extracted from
+        misc channels will be used with specified directionality.
+        '<' means that largest values assigned to the first channel
+        in sequence.
+        '>' means the largest trigger assigned to the last channel
+        in sequence.
+    stim_code : 'binary' | 'channel'
+        How to decode trigger values from stim channels. 'binary' read stim
+        channel events as binary code, 'channel' encodes channel number.
+    """
+    if inst.preload:
+        raise NotImplementedError("Can't change stim channel after loading data")
+    _check_option("stim_code", stim_code, ["binary", "channel"])
+
+    if stim is not None:
+        if isinstance(stim, str):
+            picks = _default_stim_chs(info)
+            if stim == "<":
+                stim = picks[::-1]
+            elif stim == ">":
+                stim = picks
+            else:
+                raise ValueError(
+                    "stim needs to be list of int, '>' or " "'<', not %r" % str(stim)
+                )
+        else:
+            stim = np.asarray(stim, int)
+            if stim.max() >= inst._raw_extras[0]["nchan"]:
+                raise ValueError(
+                    "Got stim=%s, but sqd file only has %i channels"
+                    % (stim, inst._raw_extras[0]["nchan"])
+                )
+
+        # modify info
+        nchan = inst._raw_extras[0]["nchan"] + 1
+        info["chs"].append(
+            dict(
+                cal=KIT.CALIB_FACTOR,
+                logno=nchan,
+                scanno=nchan,
+                range=1.0,
+                unit=FIFF.FIFF_UNIT_NONE,
+                unit_mul=FIFF.FIFF_UNITM_NONE,
+                ch_name="STI 014",
+                coil_type=FIFF.FIFFV_COIL_NONE,
+                loc=np.full(12, np.nan),
+                kind=FIFF.FIFFV_STIM_CH,
+                coord_frame=FIFF.FIFFV_COORD_UNKNOWN,
+            )
+        )
+        info._update_redundant()
+
+    inst._raw_extras[0]["stim"] = stim
+    inst._raw_extras[0]["stim_code"] = stim_code
 
 
 def _default_stim_chs(info):

@@ -7,14 +7,14 @@ import numpy as np
 import datetime
 
 from ..base import BaseRaw
-from ..meas_info import create_info, _format_dig_points
-from ..utils import _mult_cal_one
+from ..nirx.nirx import _convert_fnirs_to_head
+from ..._fiff.meas_info import create_info, _format_dig_points
+from ..._fiff.utils import _mult_cal_one
 from ...annotations import Annotations
 from ...utils import logger, verbose, fill_doc, warn, _check_fname, _import_h5py
-from ..constants import FIFF
-from .._digitization import _make_dig_points
+from ..._fiff.constants import FIFF
+from ..._fiff._digitization import _make_dig_points
 from ...transforms import _frame_to_str, apply_trans
-from ..nirx.nirx import _convert_fnirs_to_head
 from ..._freesurfer import get_mni_fiducials
 
 
@@ -102,7 +102,7 @@ class RawSNIRF(BaseRaw):
                 optode_frame = "head"
 
             snirf_data_type = np.array(
-                dat.get("nirs/data1/measurementList1" "/dataType")
+                dat.get("nirs/data1/measurementList1/dataType")
             ).item()
             if snirf_data_type not in [1, 99999]:
                 # 1 = Continuous Wave
@@ -443,9 +443,9 @@ class RawSNIRF(BaseRaw):
                 info["meas_date"] = meas_date
 
             if "DateOfBirth" in dat.get("nirs/metaDataTags/"):
-                str_birth = np.array((dat.get("/nirs/metaDataTags/" "DateOfBirth")))[
-                    0
-                ].decode()
+                str_birth = (
+                    np.array(dat.get("/nirs/metaDataTags/DateOfBirth")).item().decode()
+                )
                 birth_matched = re.fullmatch(r"(\d+)-(\d+)-(\d+)", str_birth)
                 if birth_matched is not None:
                     birthday = (
@@ -471,7 +471,7 @@ class RawSNIRF(BaseRaw):
             for key in dat["nirs"]:
                 if "stim" in key:
                     data = np.atleast_2d(np.array(dat.get("/nirs/" + key + "/data")))
-                    if data.size > 0:
+                    if data.shape[1] >= 3:
                         desc = _correct_shape(
                             np.array(dat.get("/nirs/" + key + "/name"))
                         )[0]
@@ -526,6 +526,11 @@ def _get_lengthunit_scaling(length_unit):
 
 def _extract_sampling_rate(dat):
     """Extract the sample rate from the time field."""
+    # This is a workaround to provide support for Artinis data.
+    # It allows for a 1% variation in the sampling times relative
+    # to the average sampling rate of the file.
+    MAXIMUM_ALLOWED_SAMPLING_JITTER_PERCENTAGE = 1.0
+
     time_data = np.array(dat.get("nirs/data1/time"))
     sampling_rate = 0
     if len(time_data) == 2:
@@ -533,16 +538,30 @@ def _extract_sampling_rate(dat):
         sampling_rate = 1.0 / (time_data[1] - time_data[0])
     else:
         # specified as time points
-        fs_diff = np.around(np.diff(time_data), decimals=4)
-        if len(np.unique(fs_diff)) == 1:
+        periods = np.diff(time_data)
+        uniq_periods = np.unique(periods.round(decimals=4))
+        if uniq_periods.size == 1:
             # Uniformly sampled data
-            sampling_rate = 1.0 / np.unique(fs_diff).item()
+            sampling_rate = 1.0 / uniq_periods.item()
         else:
-            warn(
-                "MNE does not currently support reading "
-                "SNIRF files with non-uniform sampled data."
+            # Hopefully uniformly sampled data with some precision issues.
+            # This is a workaround to provide support for Artinis data.
+            mean_period = np.mean(periods)
+            sampling_rate = 1.0 / mean_period
+            ideal_times = np.linspace(time_data[0], time_data[-1], time_data.size)
+            max_jitter = np.max(np.abs(time_data - ideal_times))
+            percent_jitter = 100.0 * max_jitter / mean_period
+            msg = (
+                f"Found jitter of {percent_jitter:3f}% in sample times. Sampling "
+                f"rate has been set to {sampling_rate:1f}."
             )
-
+            if percent_jitter > MAXIMUM_ALLOWED_SAMPLING_JITTER_PERCENTAGE:
+                warn(
+                    f"{msg} Note that MNE-Python does not currently support SNIRF "
+                    "files with non-uniformly-sampled data."
+                )
+            else:
+                logger.info(msg)
     time_unit = _get_metadata_str(dat, "TimeUnit")
     time_unit_scaling = _get_timeunit_scaling(time_unit)
     sampling_rate *= time_unit_scaling

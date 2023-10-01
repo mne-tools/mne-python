@@ -4,15 +4,17 @@ from functools import partial
 import numpy as np
 import pytest
 from numpy.testing import assert_array_equal, assert_allclose
+import matplotlib.pyplot as plt
 
 from mne import create_info, make_fixed_length_epochs
 from mne.io import RawArray
 from mne import Annotations
 from mne.time_frequency import read_spectrum
 from mne.time_frequency.multitaper import _psd_from_mt
+from mne.time_frequency.spectrum import SpectrumArray, EpochsSpectrumArray
 
 
-def test_spectrum_errors(raw):
+def test_compute_psd_errors(raw):
     """Test for expected errors in the .compute_psd() method."""
     with pytest.raises(ValueError, match="must not exceed ½ the sampling"):
         raw.compute_psd(fmax=raw.info["sfreq"] * 0.51)
@@ -20,6 +22,8 @@ def test_spectrum_errors(raw):
         raw.compute_psd(foo=None)
     with pytest.raises(TypeError, match="keyword arguments foo, bar for"):
         raw.compute_psd(foo=None, bar=None)
+    with pytest.warns(FutureWarning, match="Complex output support in.*deprecated"):
+        raw.compute_psd(output="complex")
 
 
 @pytest.mark.parametrize("method", ("welch", "multitaper"))
@@ -131,7 +135,7 @@ def _get_inst(inst, request, evoked):
 @pytest.mark.parametrize("inst", ("raw", "epochs", "evoked"))
 def test_spectrum_io(inst, tmp_path, request, evoked):
     """Test save/load of spectrum objects."""
-    pytest.importorskip("h5py")
+    pytest.importorskip("h5io")
     fname = tmp_path / f"{inst}-spectrum.h5"
     inst = _get_inst(inst, request, evoked)
     orig = inst.compute_psd()
@@ -140,18 +144,21 @@ def test_spectrum_io(inst, tmp_path, request, evoked):
     assert orig == loaded
 
 
-def test_spectrum_copy(raw):
+def test_spectrum_copy(raw_spectrum):
     """Test copying Spectrum objects."""
-    spect = raw.compute_psd()
-    spect_copy = spect.copy()
-    assert spect == spect_copy
-    assert id(spect) != id(spect_copy)
+    spect_copy = raw_spectrum.copy()
+    assert raw_spectrum == spect_copy
+    assert id(raw_spectrum) != id(spect_copy)
     spect_copy._freqs = None
-    assert spect.freqs is not None
+    assert raw_spectrum.freqs is not None
 
 
 def test_spectrum_reject_by_annot(raw):
-    """Test rejecting by annotation."""
+    """Test rejecting by annotation.
+
+    Cannot use raw_spectrum fixture here because we're testing reject_by_annotation in
+    .compute_psd() method.
+    """
     spect_no_annot = raw.compute_psd()
     raw.set_annotations(Annotations([1, 5], [3, 3], ["test", "test"]))
     spect_benign_annot = raw.compute_psd()
@@ -164,30 +171,27 @@ def test_spectrum_reject_by_annot(raw):
     assert spect_no_annot != spect_reject_annot
 
 
-def test_spectrum_getitem_raw(raw):
+def test_spectrum_getitem_raw(raw_spectrum):
     """Test Spectrum.__getitem__ for Raw-derived spectra."""
-    spect = raw.compute_psd()
-    want = spect.get_data(slice(1, 3), fmax=7)
-    freq_idx = np.searchsorted(spect.freqs, 7)
-    got = spect[1:3, :freq_idx]
+    want = raw_spectrum.get_data(slice(1, 3), fmax=7)
+    freq_idx = np.searchsorted(raw_spectrum.freqs, 7)
+    got = raw_spectrum[1:3, :freq_idx]
     assert_array_equal(want, got)
 
 
-def test_spectrum_getitem_epochs(epochs):
+def test_spectrum_getitem_epochs(epochs_spectrum):
     """Test Spectrum.__getitem__ for Epochs-derived spectra."""
-    spect = epochs.compute_psd()
     # testing data has just one epoch, its event_id label is "1"
-    want = spect.get_data()
-    got = spect["1"].get_data()
+    want = epochs_spectrum.get_data()
+    got = epochs_spectrum["1"].get_data()
     assert_array_equal(want, got)
 
 
 @pytest.mark.parametrize("method", ("mean", partial(np.std, axis=0)))
-def test_epochs_spectrum_average(epochs, method):
+def test_epochs_spectrum_average(epochs_spectrum, method):
     """Test EpochsSpectrum.average()."""
-    spect = epochs.compute_psd()
-    avg_spect = spect.average(method=method)
-    assert avg_spect.shape == spect.shape[1:]
+    avg_spect = epochs_spectrum.average(method=method)
+    assert avg_spect.shape == epochs_spectrum.shape[1:]
     assert avg_spect._dims == ("channel", "freq")  # no 'epoch'
 
 
@@ -203,6 +207,7 @@ def _agg_helper(df, weights, group_cols):
     return Series(_df)
 
 
+@pytest.mark.filterwarnings("ignore:Complex output support.*:FutureWarning")
 @pytest.mark.parametrize("long_format", (False, True))
 @pytest.mark.parametrize(
     "method, output",
@@ -262,19 +267,20 @@ def test_unaggregated_spectrum_to_data_frame(raw, long_format, method, output):
     assert_frame_equal(agg_df, orig_df, check_categorical=False)
 
 
-@pytest.mark.parametrize("inst", ("raw", "epochs", "evoked"))
+@pytest.mark.parametrize("inst", ("raw_spectrum", "epochs_spectrum", "evoked"))
 def test_spectrum_to_data_frame(inst, request, evoked):
     """Test the to_data_frame method for Spectrum."""
     pytest.importorskip("pandas")
     from pandas.testing import assert_frame_equal
 
     # setup
-    is_epochs = inst == "epochs"
+    is_already_psd = inst in ("raw_spectrum", "epochs_spectrum")
+    is_epochs = inst == "epochs_spectrum"
     inst = _get_inst(inst, request, evoked)
     extra_dim = () if is_epochs else (1,)
     extra_cols = ["freq", "condition", "epoch"] if is_epochs else ["freq"]
     # compute PSD
-    spectrum = inst.compute_psd()
+    spectrum = inst if is_already_psd else inst.compute_psd()
     n_epo, n_chan, n_freq = extra_dim + spectrum.get_data().shape
     # test wide format
     df_wide = spectrum.to_data_frame()
@@ -323,6 +329,7 @@ def test_spectrum_proj(inst, request):
     assert has_proj == no_proj
 
 
+@pytest.mark.filterwarnings("ignore:Complex output support.*:FutureWarning")
 @pytest.mark.parametrize(
     "method, average",
     [
@@ -343,9 +350,9 @@ def test_spectrum_complex(method, average):
     assert len(epochs) == 5
     assert len(epochs.times) == 2 * sfreq
     kwargs = dict(output="complex", method=method)
+    ctx = pytest.warns(UserWarning, match="Zero value")
     if method == "welch":
         kwargs["n_fft"] = sfreq
-        ctx = pytest.warns(UserWarning, match="Zero value")
         want_dims = ("epoch", "channel", "freq")
         want_shape = (5, 1, sfreq // 2 + 1)
         if not average:
@@ -386,3 +393,55 @@ def test_spectrum_kwarg_triaging(raw):
         raw.plot_psd(axes=axes)
     # `ax` is the correct legacy param name
     raw.plot_psd(ax=axes)
+
+
+def _check_spectrum_equivalent(spect1, spect2, tmp_path):
+    data1 = spect1.get_data()
+    data2 = spect2.get_data()
+    assert_array_equal(data1, data2)
+    assert_array_equal(spect1.freqs, spect2.freqs)
+
+
+def test_spectrum_array_errors(epochs_spectrum):
+    """Test EpochsSpectrumArray constructor errors."""
+    data, freqs = epochs_spectrum.get_data(return_freqs=True)
+    info = epochs_spectrum.info
+    with pytest.raises(ValueError, match="Data must be a 3D array"):
+        EpochsSpectrumArray(np.empty((2, 3, 4, 5)), info, freqs)
+    with pytest.raises(ValueError, match=r"number of channels.*good data channels"):
+        EpochsSpectrumArray(data[:, :-1], info, freqs)
+    with pytest.raises(ValueError, match=r"last dimension.*same number of elements"):
+        EpochsSpectrumArray(data[..., :-1], info, freqs)
+    # test mismatching events shape
+    n_epo = data.shape[0] + 1  # +1 so they purposely don't match
+    events = np.vstack(
+        (np.arange(n_epo), np.zeros(n_epo, dtype=int), np.ones(n_epo, dtype=int))
+    ).T
+    with pytest.raises(ValueError, match=r"first dimension.*dimension of `events`"):
+        EpochsSpectrumArray(data, info, freqs, events)
+
+
+@pytest.mark.parametrize("kind", ("raw", "epochs"))
+def test_spectrum_array(kind, tmp_path, request):
+    """Test EpochsSpectrumArray and SpectrumArray constructors."""
+    spectrum = request.getfixturevalue(f"{kind}_spectrum")
+    data, freqs = spectrum.get_data(return_freqs=True)
+    Klass = SpectrumArray if kind == "raw" else EpochsSpectrumArray
+    spect_arr = Klass(data=data, info=spectrum.info, freqs=freqs)
+    _check_spectrum_equivalent(spectrum, spect_arr, tmp_path)
+
+
+@pytest.mark.parametrize("kind", ("raw", "epochs"))
+@pytest.mark.parametrize("array", (False, True))
+def test_plot_spectrum(kind, array, request):
+    """Test plotting (Epochs)Spectrum(Array)."""
+    spectrum = request.getfixturevalue(f"{kind}_spectrum")
+    if array:
+        data, freqs = spectrum.get_data(return_freqs=True)
+        Klass = SpectrumArray if kind == "raw" else EpochsSpectrumArray
+        spectrum = Klass(data=data, info=spectrum.info, freqs=freqs)
+    spectrum.plot(average=True, amplitude=True, spatial_colors=True)
+    spectrum.plot(average=False, amplitude=False, spatial_colors=False)
+    spectrum.plot_topo()
+    spectrum.plot_topomap()
+    plt.close("all")

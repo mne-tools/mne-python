@@ -6,7 +6,7 @@
 
 import numpy as np
 
-from ...io.constants import FIFF
+from ..._fiff.constants import FIFF
 
 
 # specific function to set eyetrack channels

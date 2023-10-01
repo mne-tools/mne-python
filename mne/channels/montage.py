@@ -34,7 +34,7 @@ from ..transforms import (
     _quat_to_affine,
     _ensure_trans,
 )
-from ..io._digitization import (
+from .._fiff._digitization import (
     _count_points_by_type,
     _ensure_fiducials_head,
     _get_dig_eeg,
@@ -46,10 +46,10 @@ from ..io._digitization import (
     _coord_frame_const,
     _get_data_as_dict_from_dig,
 )
-from ..io.meas_info import create_info
-from ..io.open import fiff_open
-from ..io.pick import pick_types, _picks_to_idx, channel_type
-from ..io.constants import FIFF, CHANNEL_LOC_ALIASES
+from .._fiff.meas_info import create_info
+from .._fiff.open import fiff_open
+from .._fiff.pick import pick_types, _picks_to_idx, channel_type
+from .._fiff.constants import FIFF, CHANNEL_LOC_ALIASES
 from ..utils import (
     warn,
     copy_function_doc_to_method_doc,
@@ -60,8 +60,8 @@ from ..utils import (
     _check_fname,
     _on_missing,
     fill_doc,
-    _docdict,
 )
+from ..utils.docs import docdict
 
 from ._dig_montage_utils import _read_dig_montage_egi
 from ._dig_montage_utils import _parse_brainvision_dig_montage
@@ -1275,7 +1275,7 @@ def _set_montage(info, montage, match_case=True, match_alias=False, on_missing="
             f"Not setting position{_pl(extra)} of {len(extra)} {types} "
             f"channel{_pl(extra)} found in montage:\n{names}\n"
             "Consider setting the channel types to be of "
-            f'{_docdict["montage_types"]} '
+            f'{docdict["montage_types"]} '
             "using inst.set_channel_types before calling inst.set_montage, "
             "or omit these channels when creating your montage."
         )

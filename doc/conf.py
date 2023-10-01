@@ -7,6 +7,7 @@
 from datetime import datetime, timezone
 import faulthandler
 import gc
+from importlib.metadata import metadata
 import os
 import subprocess
 import sys
@@ -16,11 +17,11 @@ import warnings
 import numpy as np
 import matplotlib
 import sphinx
+from sphinx.domains.changeset import versionlabels
 from sphinx_gallery.sorting import FileNameSortKey, ExplicitOrder
 from numpydoc import docscrape
 
 import mne
-from mne.fixes import _compare_version
 from mne.tests.test_docstring_parameters import error_ignores
 from mne.utils import (
     linkcode_resolve,  # noqa, analysis:ignore
@@ -36,6 +37,8 @@ os.environ["_MNE_BROWSER_NO_BLOCK"] = "true"
 os.environ["MNE_BROWSER_OVERVIEW_MODE"] = "hidden"
 os.environ["MNE_BROWSER_THEME"] = "light"
 os.environ["MNE_3D_OPTION_THEME"] = "light"
+# https://numba.readthedocs.io/en/latest/reference/deprecation.html#deprecation-of-old-style-numba-captured-errors  # noqa: E501
+os.environ["NUMBA_CAPTURED_ERRORS"] = "new_style"
 sphinx_logger = sphinx.util.logging.getLogger("mne")
 
 # -- Path setup --------------------------------------------------------------
@@ -184,8 +187,9 @@ intersphinx_mapping = {
 docscrape.ClassDoc.extra_public_methods = mne.utils._doc_special_members
 numpydoc_class_members_toctree = False
 numpydoc_show_inherited_class_members = {
-    "mne.SourceSpaces": False,
     "mne.Forward": False,
+    "mne.Projection": False,
+    "mne.SourceSpaces": False,
 }
 numpydoc_attributes_as_param_list = True
 numpydoc_xref_param_type = True
@@ -198,7 +202,7 @@ numpydoc_xref_aliases = {
     "Path": ":class:`python:pathlib.Path`",
     "bool": ":class:`python:bool`",
     # Matplotlib
-    "colormap": ":doc:`colormap <matplotlib:tutorials/colors/colormaps>`",
+    "colormap": ":ref:`colormap <matplotlib:colormaps>`",
     "color": ":doc:`color <matplotlib:api/colors_api>`",
     "Axes": "matplotlib.axes.Axes",
     "Figure": "matplotlib.figure.Figure",
@@ -269,6 +273,8 @@ numpydoc_xref_aliases = {
 }
 numpydoc_xref_ignore = {
     # words
+    "and",
+    "between",
     "instance",
     "instances",
     "of",
@@ -476,6 +482,14 @@ class Resetter(object):
         except Exception:
             pass
         gc.collect()
+
+        # Agg does not call close_event so let's clean up on our own :(
+        # https://github.com/matplotlib/matplotlib/issues/18609
+        mne.viz.ui_events._cleanup_agg()
+        assert len(mne.viz.ui_events._event_channels) == 0, list(
+            mne.viz.ui_events._event_channels
+        )
+
         when = f"mne/conf.py:Resetter.__call__:{when}:{fname}"
         # Support stuff like
         # MNE_SKIP_INSTANCE_ASSERTIONS="Brain,Plotter,BackgroundPlotter,vtkPolyData,_Renderer" make html-memory  # noqa: E501
@@ -577,6 +591,7 @@ sphinx_gallery_conf = {
             "../tutorials/clinical/",
             "../tutorials/simulation/",
             "../tutorials/sample-datasets/",
+            "../tutorials/visualization/",
             "../tutorials/misc/",
         ]
     ),
@@ -605,7 +620,7 @@ sphinx_gallery_conf = {
         r"mne\.Epochs",
         r"mne.datasets.*",
     },
-    "show_api_usage": False,  # disable for now until graph warning fixed
+    "show_api_usage": "unused",
     "api_usage_ignore": (
         "("
         ".*__.*__|"  # built-ins
@@ -673,6 +688,15 @@ def append_attr_meth_examples(app, what, name, obj, options, lines):
 
 # -- Other extension configuration -------------------------------------------
 
+# Consider using http://magjac.com/graphviz-visual-editor for this
+graphviz_dot_args = [
+    "-Gsep=-0.5",
+    "-Gpad=0.5",
+    "-Nshape=box",
+    "-Nfontsize=20",
+    "-Nfontname=Open Sans,Arial",
+]
+graphviz_output_format = "svg"  # for API usage diagrams
 user_agent = "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Mobile Safari/537.36"  # noqa: E501
 # Can eventually add linkcheck_request_headers if needed
 linkcheck_ignore = [  # will be compiled to regex
@@ -751,6 +775,10 @@ nitpick_ignore_regex = [
 ]
 suppress_warnings = ["image.nonlocal_uri"]  # we intentionally link outside
 
+
+# -- Sphinx hacks / overrides ------------------------------------------------
+
+versionlabels["versionadded"] = sphinx.locale._("New in v%s")
 
 # -- Options for HTML output -------------------------------------------------
 
@@ -1295,6 +1323,10 @@ def reset_warnings(gallery_conf, fname):
         "ignore",
         message="Matplotlib is currently using agg, which is a non-GUI backend.*",
     )
+    warnings.filterwarnings(
+        "ignore",
+        message=".*is non-interactive, and thus cannot.*",
+    )
     # seaborn
     warnings.filterwarnings(
         "ignore",
@@ -1316,11 +1348,17 @@ def reset_warnings(gallery_conf, fname):
         category=RuntimeWarning,
     )
     # pandas, via seaborn (examples/time_frequency/time_frequency_erds.py)
-    warnings.filterwarnings(
-        "ignore",
-        message=r"iteritems is deprecated.*Use \.items instead\.",
-        category=FutureWarning,
-    )
+    for message in (
+        "use_inf_as_na option is deprecated.*",
+        r"iteritems is deprecated.*Use \.items instead\.",
+        "is_categorical_dtype is deprecated.*",
+        "The default of observed=False.*",
+    ):
+        warnings.filterwarnings(
+            "ignore",
+            message=message,
+            category=FutureWarning,
+        )
     # pandas in 50_epochs_to_data_frame.py
     warnings.filterwarnings(
         "ignore", message=r"invalid value encountered in cast", category=RuntimeWarning
@@ -1328,6 +1366,15 @@ def reset_warnings(gallery_conf, fname):
     # xarray _SixMetaPathImporter (?)
     warnings.filterwarnings(
         "ignore", message=r"falling back to find_module", category=ImportWarning
+    )
+    # Sphinx deps
+    warnings.filterwarnings(
+        "ignore", message="The str interface for _CascadingStyleSheet.*"
+    )
+    # mne-qt-browser until > 0.5.2 released
+    warnings.filterwarnings(
+        "ignore",
+        r"mne\.io\.pick.channel_indices_by_type is deprecated.*",
     )
 
     # In case we use np.set_printoptions in any tutorials, we only
@@ -1387,22 +1434,16 @@ for icon, classes in icon_class.items():
 
 rst_prolog += """
 .. |ensp| unicode:: U+2002 .. EN SPACE
+
+.. include:: /links.inc
+.. include:: /changes/names.inc
+
+.. currentmodule:: mne
 """
 
 # -- Dependency info ----------------------------------------------------------
 
-try:
-    from importlib.metadata import metadata  # new in Python 3.8
-
-    min_py = metadata("mne")["Requires-Python"]
-except ModuleNotFoundError:
-    from pkg_resources import get_distribution
-
-    info = get_distribution("mne").get_metadata_lines("PKG-INFO")
-    for line in info:
-        if line.strip().startswith("Requires-Python"):
-            min_py = line.split(":")[1]
-min_py = min_py.lstrip(" =<>")
+min_py = metadata("mne")["Requires-Python"].lstrip(" =<>")
 rst_prolog += f"\n.. |min_python_version| replace:: {min_py}\n"
 
 # -- website redirects --------------------------------------------------------
@@ -1564,6 +1605,7 @@ sd = "sample-datasets"
 ml = "machine-learning"
 tf = "time-freq"
 si = "simulation"
+vi = "visualization"
 custom_redirects = {
     # Custom redirects (one HTML path to another, relative to outdir)
     # can be added here as fr->to key->value mappings
@@ -1620,6 +1662,7 @@ custom_redirects = {
     f"{ex}/{co}/mne_inverse_envelope_correlation.html": f"{mne_conn}/{ex}/mne_inverse_envelope_correlation.html",  # noqa E501
     f"{ex}/{co}/mne_inverse_psi_visual.html": f"{mne_conn}/{ex}/mne_inverse_psi_visual.html",  # noqa E501
     f"{ex}/{co}/sensor_connectivity.html": f"{mne_conn}/{ex}/sensor_connectivity.html",  # noqa E501
+    f"{ex}/{vi}/publication_figure.html": f"{tu}/{vi}/10_publication_figure.html",  # noqa E501
 }
 
 

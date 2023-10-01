@@ -2,13 +2,13 @@
 
 from copy import deepcopy
 from datetime import datetime, timezone
-from xml.etree import ElementTree
+from defusedxml import ElementTree
 
 import numpy as np
 
 from ..base import BaseRaw
-from ..meas_info import create_info
-from ..utils import _mult_cal_one
+from ..._fiff.meas_info import create_info
+from ..._fiff.utils import _mult_cal_one
 from ...utils import warn, verbose, _check_fname
 
 

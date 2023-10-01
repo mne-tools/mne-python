@@ -10,6 +10,10 @@
 # License: Simplified BSD
 
 import numpy as np
+from scipy import ndimage, sparse
+from scipy.sparse.csgraph import connected_components
+from scipy.stats import t as tstat, f as fstat
+
 
 from .parametric import f_oneway, ttest_1samp_no_p
 from ..parallel import parallel_func
@@ -34,7 +38,7 @@ def _get_buddies_fallback(r, s, neighbors, indices=None):
         buddies = np.where(r)[0]
     else:
         buddies = indices[r[indices]]
-    buddies = buddies[np.in1d(s[buddies], neighbors, assume_unique=True)]
+    buddies = buddies[np.isin(s[buddies], neighbors, assume_unique=True)]
     r[buddies] = False
     return buddies.tolist()
 
@@ -289,13 +293,9 @@ def _get_clusters_st(x_in, neighbors, max_step=1):
 
 def _get_components(x_in, adjacency, return_list=True):
     """Get connected components from a mask and a adjacency matrix."""
-    from scipy import sparse
-
     if adjacency is False:
         components = np.arange(len(x_in))
     else:
-        from scipy.sparse.csgraph import connected_components
-
         mask = np.logical_and(x_in[adjacency.row], x_in[adjacency.col])
         data = adjacency.data[mask]
         row = adjacency.row[mask]
@@ -381,8 +381,6 @@ def _find_clusters(
     sums : array
         Sum of x values in clusters.
     """
-    from scipy import ndimage
-
     _check_option("tail", tail, [-1, 0, 1])
 
     x = np.asanyarray(x)
@@ -526,8 +524,6 @@ def _find_clusters_1dir_parts(
 
 def _find_clusters_1dir(x, x_in, adjacency, max_step, t_power, ndimage):
     """Actually call the clustering algorithm."""
-    from scipy import sparse
-
     if adjacency is None:
         labels, n_labels = ndimage.label(x_in)
 
@@ -620,8 +616,6 @@ def _pval_from_histogram(T, H0, tail):
 
 
 def _setup_adjacency(adjacency, n_tests, n_times):
-    from scipy import sparse
-
     if not sparse.issparse(adjacency):
         raise ValueError(
             "If adjacency matrix is given, it must be a " "SciPy sparse matrix."
@@ -1138,10 +1132,7 @@ def _permutation_cluster_test(
 
 def _check_fun(X, stat_fun, threshold, tail=0, kind="within"):
     """Check the stat_fun and threshold values."""
-    from scipy import stats
-
     if kind == "within":
-        ppf = stats.t.ppf
         if threshold is None:
             if stat_fun is not None and stat_fun is not ttest_1samp_no_p:
                 warn(
@@ -1150,14 +1141,13 @@ def _check_fun(X, stat_fun, threshold, tail=0, kind="within"):
                 )
             p_thresh = 0.05 / (1 + (tail == 0))
             n_samples = len(X)
-            threshold = -ppf(p_thresh, n_samples - 1)
+            threshold = -tstat.ppf(p_thresh, n_samples - 1)
             if np.sign(tail) < 0:
                 threshold = -threshold
             logger.info("Using a threshold of {:.6f}".format(threshold))
         stat_fun = ttest_1samp_no_p if stat_fun is None else stat_fun
     else:
         assert kind == "between"
-        ppf = stats.f.ppf
         if threshold is None:
             if stat_fun is not None and stat_fun is not f_oneway:
                 warn(
@@ -1169,7 +1159,7 @@ def _check_fun(X, stat_fun, threshold, tail=0, kind="within"):
             p_thresh = 0.05
             dfn = len(X) - 1
             dfd = np.sum([len(x) for x in X]) - len(X)
-            threshold = ppf(1.0 - p_thresh, dfn, dfd)
+            threshold = fstat.ppf(1.0 - p_thresh, dfn, dfd)
             logger.info("Using a threshold of {:.6f}".format(threshold))
         stat_fun = f_oneway if stat_fun is None else stat_fun
     return stat_fun, threshold
@@ -1614,8 +1604,6 @@ def _st_mask_from_s_inds(n_times, n_vertices, vertices, set_as=True):
 @verbose
 def _get_partitions_from_adjacency(adjacency, n_times, verbose=None):
     """Specify disjoint subsets (e.g., hemispheres) based on adjacency."""
-    from scipy import sparse
-
     if isinstance(adjacency, list):
         test = np.ones(len(adjacency))
         test_adj = np.zeros((len(adjacency), len(adjacency)), dtype="bool")

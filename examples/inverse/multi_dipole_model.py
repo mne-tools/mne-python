@@ -48,7 +48,7 @@ bem_fname = bem_dir / "sample-5120-5120-5120-bem-sol.fif"
 # Read the MEG data from the audvis experiment. Make epochs and evokeds for the
 # left and right auditory conditions.
 raw = mne.io.read_raw_fif(raw_fname)
-raw = raw.pick_types(meg=True, eog=True, stim=True)
+raw = raw.pick(picks=["meg", "eog", "stim"])
 info = raw.info
 
 # Create epochs for auditory events
@@ -75,7 +75,7 @@ evoked_right = epochs["right"].average()
 # in MNE-Python.
 
 # Setup conductor model
-cov = mne.read_cov(cov_fname)
+cov = mne.read_cov(cov_fname)  # bad channels were already excluded here
 bem = mne.read_bem_solution(bem_fname)
 
 # Fit two dipoles at t=80ms. The first dipole is fitted using only the sensors
@@ -83,13 +83,14 @@ bem = mne.read_bem_solution(bem_fname)
 # sensors on the right side of the helmet.
 picks_left = read_vectorview_selection("Left", info=info)
 evoked_fit_left = evoked_left.copy().crop(0.08, 0.08)
-evoked_fit_left.pick_channels(picks_left, ordered=False)
-cov_fit_left = cov.copy().pick_channels(picks_left, ordered=False)
+evoked_fit_left.pick(picks_left)
+cov_fit_left = cov.copy().pick_channels(picks_left, ordered=True)
 
 picks_right = read_vectorview_selection("Right", info=info)
+picks_right = list(set(picks_right) - set(info["bads"]))
 evoked_fit_right = evoked_right.copy().crop(0.08, 0.08)
-evoked_fit_right.pick_channels(picks_right, ordered=False)
-cov_fit_right = cov.copy().pick_channels(picks_right, ordered=False)
+evoked_fit_right.pick(picks_right)
+cov_fit_right = cov.copy().pick_channels(picks_right, ordered=True)
 
 # Any SSS projections that are active on this data need to be re-normalized
 # after picking channels.

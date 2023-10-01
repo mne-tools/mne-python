@@ -4,6 +4,7 @@
 # License: BSD-3-Clause
 
 import numpy as np
+from scipy import sparse
 
 from ..utils import _validate_type, _check_option
 from ..utils.check import int_like
@@ -57,8 +58,6 @@ def combine_adjacency(*structure):
     <5600x5600 sparse matrix of type '<class 'numpy.float64'>'
             with 27076 stored elements in COOrdinate format>
     """
-    from scipy import sparse
-
     structure = list(structure)
     for di, dim in enumerate(structure):
         name = f"structure[{di}]"
