@@ -624,6 +624,16 @@ def _setup_hpi_amplitude_fitting(
     on_missing = "raise" if not allow_empty else "ignore"
     hpi_freqs, hpi_pick, hpi_ons = get_chpi_info(info, on_missing=on_missing)
 
+    # check for maxwell filtering
+    for ent in info["proc_history"]:
+        for key in ("sss_info", "max_st"):
+            if len(ent["max_info"]["sss_info"]) > 0:
+                warn(
+                    "Fitting cHPI amplutudes after Maxwell filtering may not to work, "
+                    "consider fitting on the original data"
+                )
+                break
+
     _validate_type(t_window, (str, "numeric"), "t_window")
     if info["line_freq"] is not None:
         line_freqs = np.arange(

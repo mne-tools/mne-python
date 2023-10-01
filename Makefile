@@ -33,8 +33,6 @@ sample_data:
 testing_data:
 	@python -c "import mne; mne.datasets.testing.data_path(verbose=True);"
 
-pytest: test
-
 test-no-network: in
 	sudo unshare -n -- sh -c 'MNE_SKIP_NETWORK_TESTS=1 py.test mne'
 

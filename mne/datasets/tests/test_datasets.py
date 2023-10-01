@@ -306,6 +306,7 @@ def test_phantom(tmp_path, monkeypatch):
     assert op.isfile(tmp_path / "phantom_otaniemi" / "mri" / "T1.mgz")
 
 
+@requires_good_network
 def test_fetch_uncompressed_file(tmp_path):
     """Test downloading an uncompressed file with our fetch function."""
     dataset_dict = dict(
