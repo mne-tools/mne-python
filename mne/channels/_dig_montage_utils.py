@@ -11,7 +11,7 @@
 #
 # License: Simplified BSD
 
-import xml.etree.ElementTree as ElementTree
+from defusedxml import ElementTree
 
 import numpy as np
 

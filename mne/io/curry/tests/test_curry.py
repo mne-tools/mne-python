@@ -16,8 +16,8 @@ from mne.annotations import events_from_annotations
 from mne.bem import _fit_sphere
 from mne.datasets import testing
 from mne.event import find_events
-from mne.io import _loc_to_coil_trans
-from mne.io.constants import FIFF
+from mne._fiff.tag import _loc_to_coil_trans
+from mne._fiff.constants import FIFF
 from mne.io.edf import read_raw_bdf
 from mne.io.bti import read_raw_bti
 from mne.io.curry import read_raw_curry

@@ -13,13 +13,15 @@ from itertools import cycle
 
 import numpy as np
 
-from .. import verbose, get_config, set_config
-from ..annotations import _sync_onset
-from ..defaults import _handle_default
-from ..utils import logger, _validate_type, _check_option
-from ..io.pick import _DATA_CH_TYPES_SPLIT
 from .backends._utils import VALID_BROWSE_BACKENDS
 from .utils import _get_color_list, _setup_plot_projector, _show_browser
+
+from ..defaults import _handle_default
+from ..filter import _overlap_add_filter, _iir_filter
+from ..utils import logger, _validate_type, _check_option
+from .._fiff.pick import _DATA_CH_TYPES_SPLIT
+from ..utils import verbose, get_config, set_config, _get_stim_channel
+from ..fixes import _compare_version
 
 MNE_BROWSER_BACKEND = None
 backend = None
@@ -41,7 +43,7 @@ class BrowserBase(ABC):
     """
 
     def __init__(self, **kwargs):
-        from .. import BaseEpochs
+        from ..epochs import BaseEpochs
         from ..io import BaseRaw
         from ..preprocessing import ICA
 
@@ -85,17 +87,18 @@ class BrowserBase(ABC):
         self.mne.whitened_ch_names = list()
         if hasattr(self.mne, "noise_cov"):
             self.mne.use_noise_cov = self.mne.noise_cov is not None
+        # allow up to 10000 zorder levels for annotations
         self.mne.zorder = dict(
             patch=0,
             grid=1,
             ann=2,
-            events=3,
-            bads=4,
-            data=5,
-            mag=6,
-            grad=7,
-            scalebar=8,
-            vline=9,
+            events=10003,
+            bads=10004,
+            data=10005,
+            mag=10006,
+            grad=10007,
+            scalebar=10008,
+            vline=10009,
         )
         # additional params for epochs (won't affect raw / ICA)
         self.mne.epoch_traces = list()
@@ -176,16 +179,17 @@ class BrowserBase(ABC):
 
     def _update_annotation_segments(self):
         """Update the array of annotation start/end times."""
-        segments = list()
-        raw = self.mne.inst
-        if len(raw.annotations):
-            for idx, annot in enumerate(raw.annotations):
-                annot_start = _sync_onset(raw, annot["onset"])
-                annot_end = annot_start + max(
-                    annot["duration"], 1 / self.mne.info["sfreq"]
-                )
-                segments.append((annot_start, annot_end))
-        self.mne.annotation_segments = np.array(segments)
+        from ..annotations import _sync_onset
+
+        self.mne.annotation_segments = np.array([])
+        if len(self.mne.inst.annotations):
+            annot_start = _sync_onset(self.mne.inst, self.mne.inst.annotations.onset)
+            durations = self.mne.inst.annotations.duration.copy()
+            durations[durations < 1 / self.mne.info["sfreq"]] = (
+                1 / self.mne.info["sfreq"]
+            )
+            annot_end = annot_start + durations
+            self.mne.annotation_segments = np.vstack((annot_start, annot_end)).T
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # PROJECTOR & BADS
@@ -268,8 +272,6 @@ class BrowserBase(ABC):
 
     def _make_butterfly_selections_dict(self):
         """Make an altered copy of the selections dict for butterfly mode."""
-        from ..utils import _get_stim_channel
-
         selections_dict = deepcopy(self.mne.ch_selections)
         # remove potential duplicates
         for selection_group in ("Vertex", "Custom"):
@@ -280,7 +282,7 @@ class BrowserBase(ABC):
             stim_pick = self.mne.ch_names.tolist().index(stim_ch[0])
             for _sel, _picks in selections_dict.items():
                 if _sel != "Misc":
-                    stim_mask = np.in1d(_picks, [stim_pick], invert=True)
+                    stim_mask = np.isin(_picks, [stim_pick], invert=True)
                     selections_dict[_sel] = np.array(_picks)[stim_mask]
         return selections_dict
 
@@ -325,14 +327,12 @@ class BrowserBase(ABC):
 
     def _apply_filter(self, data, start, stop, picks):
         """Filter (with same defaults as raw.filter())."""
-        from ..filter import _overlap_add_filter, _iir_filter
-
         starts, stops = self.mne.filter_bounds
         mask = (starts < stop) & (stops > start)
         starts = np.maximum(starts[mask], start) - start
         stops = np.minimum(stops[mask], stop) - start
         for _start, _stop in zip(starts, stops):
-            _picks = np.where(np.in1d(picks, self.mne.picks_data))[0]
+            _picks = np.where(np.isin(picks, self.mne.picks_data))[0]
             if len(_picks) == 0:
                 break
             this_data = data[_picks, _start:_stop]
@@ -373,8 +373,8 @@ class BrowserBase(ABC):
         this_types = self.mne.ch_types[picks]
         stims = this_types == "stim"
         white = np.logical_and(
-            np.in1d(this_names, self.mne.whitened_ch_names),
-            np.in1d(this_names, self.mne.info["bads"], invert=True),
+            np.isin(this_names, self.mne.whitened_ch_names),
+            np.isin(this_names, self.mne.info["bads"], invert=True),
         )
         norms = np.vectorize(self.mne.scalings.__getitem__)(this_types)
         norms[stims] = data[stims].max(axis=-1)
@@ -415,7 +415,7 @@ class BrowserBase(ABC):
         logger.debug(f"Closing {self.mne.instance_type} browser...")
         # write out bad epochs (after converting epoch numbers to indices)
         if self.mne.instance_type == "epochs":
-            bad_ixs = np.in1d(self.mne.inst.selection, self.mne.bad_epochs).nonzero()[0]
+            bad_ixs = np.isin(self.mne.inst.selection, self.mne.bad_epochs).nonzero()[0]
             self.mne.inst.drop(bad_ixs)
             logger.info(
                 "The following epochs were marked as bad "
@@ -486,7 +486,7 @@ class BrowserBase(ABC):
             show=False,
         )
         # highlight desired channel & disable interactivity
-        inds = np.in1d(fig.lasso.ch_names, [ch_name])
+        inds = np.isin(fig.lasso.ch_names, [ch_name])
         fig.lasso.disconnect()
         fig.lasso.alpha_other = 0.3
         fig.lasso.linewidth_selected = 3
@@ -673,8 +673,7 @@ def _get_browser(show, block, **kwargs):
     # Check mne-qt-browser compatibility
     if backend_name == "qt":
         import mne_qt_browser
-        from .. import BaseEpochs
-        from ..fixes import _compare_version
+        from ..epochs import BaseEpochs
 
         is_ica = kwargs.get("ica", False)
         is_epochs = isinstance(kwargs.get("inst", False), BaseEpochs)

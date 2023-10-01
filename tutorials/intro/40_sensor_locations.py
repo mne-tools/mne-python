@@ -17,9 +17,6 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 
-# the following import is required for matplotlib < 3.2:
-from mpl_toolkits.mplot3d import Axes3D  # noqa
-
 import mne
 
 # %%

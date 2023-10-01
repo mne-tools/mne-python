@@ -5,10 +5,12 @@
 
 import numpy as np
 
-from ..epochs import Epochs, make_fixed_length_events
+from ..epochs import Epochs
+from ..event import make_fixed_length_events
 from ..evoked import EvokedArray
-from ..io.constants import FIFF
-from ..io.pick import pick_info
+from ..fixes import _safe_svd
+from .._fiff.constants import FIFF
+from .._fiff.pick import pick_info
 from ..source_estimate import _make_stc
 from ..time_frequency.tfr import cwt, morlet
 from ..time_frequency.multitaper import (
@@ -38,17 +40,13 @@ def _prepare_source_params(
     lambda2=1.0 / 9.0,
     method="dSPM",
     nave=1,
-    decim=1,
     pca=True,
     pick_ori="normal",
     prepared=False,
     method_params=None,
     use_cps=True,
-    verbose=None,
 ):
     """Prepare inverse operator and params for spectral / TFR analysis."""
-    from scipy import linalg
-
     inv = _check_or_prepare(
         inverse_operator, nave, lambda2, method, method_params, prepared
     )
@@ -71,7 +69,7 @@ def _prepare_source_params(
     )
 
     if pca:
-        U, s, Vh = linalg.svd(K, full_matrices=False)
+        U, s, Vh = _safe_svd(K, full_matrices=False)
         rank = np.sum(s > 1e-8 * s[0])
         K = s[:rank] * U[:, :rank]
         Vh = Vh[:rank]
@@ -103,6 +101,7 @@ def source_band_induced_power(
     prepared=False,
     method_params=None,
     use_cps=True,
+    *,
     verbose=None,
 ):
     """Compute source space induced power in given frequency bands.
@@ -382,7 +381,6 @@ def _source_induced_power(
         prepared=prepared,
         method_params=method_params,
         use_cps=use_cps,
-        verbose=verbose,
     )
 
     inv = inverse_operator
@@ -578,7 +576,7 @@ def compute_source_psd(
     return_sensor=False,
     dB=False,
     *,
-    verbose=None
+    verbose=None,
 ):
     """Compute source power spectral density (PSD).
 
@@ -775,11 +773,10 @@ def _compute_source_psd_epochs(
         prepared=prepared,
         method_params=method_params,
         use_cps=use_cps,
-        verbose=verbose,
     )
     # Simplify code with a tiny (rel. to other computations) penalty for eye
     # mult
-    Vh = np.eye(K.shape[0]) if Vh is None else Vh
+    Vh = np.eye(K.shape[1]) if Vh is None else Vh
 
     # split the inverse operator
     if inv_split is not None:

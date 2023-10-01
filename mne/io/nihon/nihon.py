@@ -8,11 +8,11 @@ from pathlib import Path
 
 import numpy as np
 
-from ...utils import fill_doc, logger, verbose, warn, _check_fname
 from ..base import BaseRaw
-from ..meas_info import create_info
+from ...utils import fill_doc, logger, verbose, warn, _check_fname
+from ..._fiff.meas_info import create_info
 from ...annotations import Annotations
-from ..utils import _mult_cal_one
+from ..._fiff.utils import _mult_cal_one
 
 
 def _ensure_path(fname):
@@ -410,8 +410,6 @@ class RawNihon(BaseRaw):
         ]
 
         raw_extras = dict(cal=cal, offsets=offsets, gains=gains, header=header)
-        self._header = header
-
         for i_ch, ch_name in enumerate(info["ch_names"]):
             t_range = chs[ch_name]["phys_max"] - chs[ch_name]["phys_min"]
             info["chs"][i_ch]["range"] = t_range
@@ -430,7 +428,7 @@ class RawNihon(BaseRaw):
         annots = _read_nihon_annotations(fname)
 
         # Annotate acquisition skips
-        controlblock = self._header["controlblocks"][0]
+        controlblock = header["controlblocks"][0]
         cur_sample = 0
         if controlblock["n_datablocks"] > 1:
             for i_block in range(controlblock["n_datablocks"] - 1):

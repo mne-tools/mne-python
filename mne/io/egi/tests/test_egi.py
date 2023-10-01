@@ -2,6 +2,7 @@
 #          simplified BSD-3 license
 
 
+from copy import deepcopy
 from pathlib import Path
 import os
 import shutil
@@ -12,12 +13,12 @@ from numpy.testing import assert_array_equal, assert_allclose
 import pytest
 from scipy import io as sio
 
-from mne import find_events, pick_types, pick_channels
+from mne import find_events, pick_types
 from mne.io import read_raw_egi, read_evokeds_mff, read_raw_fif
-from mne.io.constants import FIFF
+from mne._fiff.constants import FIFF
 from mne.io.egi.egi import _combine_triggers
 from mne.io.tests.test_raw import _test_raw_reader
-from mne.utils import requires_version, object_diff
+from mne.utils import object_diff
 from mne.datasets.testing import data_path, requires_testing_data
 
 base_dir = Path(__file__).parent / "data"
@@ -161,14 +162,12 @@ def test_io_egi_mff():
     assert raw.info["dig"][0]["kind"] == FIFF.FIFFV_POINT_CARDINAL
     assert raw.info["dig"][3]["kind"] == FIFF.FIFFV_POINT_EEG
     assert raw.info["dig"][-1]["ident"] == 129
-    assert raw.info["custom_ref_applied"] == FIFF.FIFFV_MNE_CUSTOM_REF_ON
+    # This is not a custom reference, it's consistent across all channels
+    assert raw.info["custom_ref_applied"] == FIFF.FIFFV_MNE_CUSTOM_REF_OFF
     ref_loc = raw.info["dig"][-1]["r"]
     eeg_picks = pick_types(raw.info, eeg=True)
     assert len(eeg_picks) == n_eeg + n_ref  # 129
-    # ref channel doesn't store its own loc as ref location
-    # so don't test it
-    ref_pick = pick_channels(raw.info["ch_names"], ["VREF"])
-    eeg_picks = np.setdiff1d(eeg_picks, ref_pick)
+    # ref channel should store its own loc as ref location, so't test it
     for i in eeg_picks:
         loc = raw.info["chs"][i]["loc"]
         assert loc[:3].any(), loc[:3]
@@ -365,7 +364,6 @@ def test_io_egi_crop_no_preload():
 
 
 @pytest.mark.filterwarnings("ignore::FutureWarning")
-@requires_version("mffpy", "0.5.7")
 @requires_testing_data
 @pytest.mark.parametrize(
     "idx, cond, tmax, signals, bads",
@@ -382,6 +380,7 @@ def test_io_egi_crop_no_preload():
 )
 def test_io_egi_evokeds_mff(idx, cond, tmax, signals, bads):
     """Test reading evoked MFF file."""
+    pytest.importorskip("mffpy", "0.5.7")
     # expected n channels
     n_eeg = 256
     n_ref = 1
@@ -445,10 +444,10 @@ def test_io_egi_evokeds_mff(idx, cond, tmax, signals, bads):
 
 
 @pytest.mark.filterwarnings("ignore::FutureWarning")
-@requires_version("mffpy", "0.5.7")
 @requires_testing_data
 def test_read_evokeds_mff_bad_input():
     """Test errors are thrown when reading invalid input file."""
+    pytest.importorskip("mffpy", "0.5.7")
     # Test file that is not an MFF
     with pytest.raises(ValueError) as exc_info:
         read_evokeds_mff(egi_fname)
@@ -523,13 +522,26 @@ def test_meas_date(fname, timestamp, utc_offset):
         (egi_mff_pns_fname, "GSN-HydroCel-257"),  # 257 chan EGI file
     ],
 )
-def test_set_standard_montage(fname, standard_montage):
+def test_set_standard_montage_mff(fname, standard_montage):
     """Test setting a standard montage."""
     raw = read_raw_egi(fname, verbose="warning")
-    dig_before_mon = raw.info["dig"]
+    n_eeg = int(standard_montage.split("-")[-1])
+    n_dig = n_eeg + 3
+    dig_before_mon = deepcopy(raw.info["dig"])
+    assert len(dig_before_mon) == n_dig
+    ref_loc = dig_before_mon[-1]["r"]
+    picks = pick_types(raw.info, eeg=True)
+    assert len(picks) == n_eeg
+    for pick in picks:
+        assert_allclose(raw.info["chs"][pick]["loc"][3:6], ref_loc)
 
     raw.set_montage(standard_montage, match_alias=True, on_missing="ignore")
     dig_after_mon = raw.info["dig"]
 
     # No dig entries should have been dropped while setting montage
-    assert len(dig_before_mon) == len(dig_after_mon)
+    assert len(dig_before_mon) == n_dig
+    assert len(dig_after_mon) == n_dig
+
+    # Check that the reference remained
+    for pick in picks:
+        assert_allclose(raw.info["chs"][pick]["loc"][3:6], ref_loc)

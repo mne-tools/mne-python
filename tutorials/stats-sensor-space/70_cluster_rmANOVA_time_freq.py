@@ -82,7 +82,7 @@ epochs = mne.Epochs(
     preload=True,
     reject=reject,
 )
-epochs.pick_channels([ch_name])  # restrict example to one channel
+epochs.pick([ch_name])  # restrict example to one channel
 
 # %%
 # We have to make sure all conditions have the same counts, as the ANOVA

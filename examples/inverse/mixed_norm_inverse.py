@@ -87,7 +87,7 @@ dipoles, residual = mixed_norm(
 )
 
 t = 0.083
-tidx = evoked.time_as_index(t)
+tidx = evoked.time_as_index(t).item()
 for di, dip in enumerate(dipoles, 1):
     print(f"Dipole #{di} GOF at {1000 * t:0.1f} ms: " f"{float(dip.gof[tidx]):0.1f}%")
 
@@ -120,9 +120,9 @@ for dip in dipoles:
 # %%
 # Plot residual
 ylim = dict(eeg=[-10, 10], grad=[-400, 400], mag=[-600, 600])
-evoked.pick_types(meg=True, eeg=True, exclude="bads")
+evoked.pick(picks=["meg", "eeg"], exclude="bads")
 evoked.plot(ylim=ylim, proj=True, time_unit="s")
-residual.pick_types(meg=True, eeg=True, exclude="bads")
+residual.pick(picks=["meg", "eeg"], exclude="bads")
 residual.plot(ylim=ylim, proj=True, time_unit="s")
 
 # %%

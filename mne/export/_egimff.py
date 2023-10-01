@@ -10,7 +10,7 @@ import os.path as op
 import numpy as np
 
 from ..io.egi.egimff import _import_mffpy
-from ..io.pick import pick_types, pick_channels
+from .._fiff.pick import pick_types, pick_channels
 from ..utils import verbose, warn, _check_fname
 
 

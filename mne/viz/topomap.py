@@ -17,24 +17,25 @@ from numbers import Integral
 import warnings
 
 import numpy as np
-
-from ..baseline import rescale
-from ..channels.channels import _get_ch_type
-from ..channels.layout import (
-    _find_topomap_coords,
-    find_layout,
-    _pair_grad_sensors,
-    _merge_ch_data,
+from scipy.interpolate import (
+    CloughTocher2DInterpolator,
+    NearestNDInterpolator,
+    LinearNDInterpolator,
 )
+from scipy.sparse import csr_matrix
+from scipy.spatial import Delaunay, Voronoi
+from scipy.spatial.distance import pdist, squareform
+
+from .ui_events import publish, subscribe, TimeChange
+from ..baseline import rescale
 from ..defaults import _INTERPOLATION_DEFAULT, _EXTRAPOLATE_DEFAULT, _BORDER_DEFAULT
-from ..io.pick import (
+from .._fiff.pick import (
     pick_types,
     _picks_by_type,
     pick_info,
     pick_channels,
     _pick_data_channels,
     _picks_to_idx,
-    _get_channel_types,
     _MEG_CH_TYPES_SPLIT,
 )
 from ..utils import (
@@ -51,6 +52,7 @@ from ..utils import (
     legacy,
     check_version,
 )
+from ..utils.spectrum import _split_psd_kwargs
 from .utils import (
     tight_layout,
     _setup_vmin_vmax,
@@ -69,10 +71,12 @@ from .utils import (
     _check_type_projs,
     _format_units_psd,
     _prepare_sensor_names,
+    _get_plot_ch_type,
+    plot_sensors,
 )
 from ..defaults import _handle_default
 from ..transforms import apply_trans, invert_transform
-from ..io.meas_info import Info, _simplify_info
+from .._fiff.meas_info import Info, _simplify_info
 
 
 _fnirs_types = ("hbo", "hbr", "fnirs_cw_amplitude", "fnirs_od")
@@ -109,6 +113,8 @@ def _adjust_meg_sphere(sphere, info, ch_type):
 
 def _prepare_topomap_plot(inst, ch_type, sphere=None):
     """Prepare topo plot."""
+    from ..channels.layout import find_layout, _pair_grad_sensors, _find_topomap_coords
+
     info = copy.deepcopy(inst if isinstance(inst, Info) else inst.info)
     sphere, clip_origin = _adjust_meg_sphere(sphere, info, ch_type)
 
@@ -185,7 +191,7 @@ def _prepare_topomap_plot(inst, ch_type, sphere=None):
 
 
 def _average_fnirs_overlaps(info, ch_type, sphere):
-    from scipy.spatial.distance import pdist, squareform
+    from ..channels.layout import _find_topomap_coords
 
     picks = pick_types(info, meg=False, ref_meg=False, fnirs=ch_type, exclude="bads")
     chs = [info["chs"][i] for i in picks]
@@ -240,6 +246,8 @@ def _average_fnirs_overlaps(info, ch_type, sphere):
 
 def _plot_update_evoked_topomap(params, bools):
     """Update topomaps."""
+    from ..channels.layout import _merge_ch_data
+
     projs = [
         proj for ii, proj in enumerate(params["projs"]) if ii in np.where(bools)[0]
     ]
@@ -376,7 +384,15 @@ def plot_projs_topomap(
     %(extrapolate_topomap)s
 
         .. versionadded:: 0.20
+
+        .. versionchanged:: 0.21
+
+           - The default was changed to ``'local'`` for MEG sensors.
+           - ``'local'`` was changed to use a convex hull mask
+           - ``'head'`` was changed to extrapolate out to the clipping circle.
     %(border_topomap)s
+
+        .. versionadded:: 0.20
     %(res_topomap)s
     %(size_topomap)s
     %(cmap_topomap)s
@@ -453,6 +469,7 @@ def _plot_projs_topomap(
     axes=None,
 ):
     import matplotlib.pyplot as plt
+    from ..channels.layout import _merge_ch_data
 
     sphere = _check_sphere(sphere, info)
     projs = _check_type_projs(projs)
@@ -464,8 +481,8 @@ def _plot_projs_topomap(
         proj = _eliminate_zeros(proj)  # gh 5641
         ch_names = _clean_names(proj["data"]["col_names"], remove_whitespace=True)
         if vlim == "joint":
-            ch_idxs = np.where(np.in1d(info["ch_names"], proj["data"]["col_names"]))[0]
-            these_ch_types = _get_channel_types(info, ch_idxs, unique=True)
+            ch_idxs = np.where(np.isin(info["ch_names"], proj["data"]["col_names"]))[0]
+            these_ch_types = info.get_channel_types(ch_idxs, unique=True)
             # each projector should have only one channel type
             assert len(these_ch_types) == 1
             types.append(list(these_ch_types)[0])
@@ -481,7 +498,11 @@ def _plot_projs_topomap(
             ch_type,
             this_sphere,
             clip_origin,
-        ) = _prepare_topomap_plot(use_info, _get_ch_type(use_info, None), sphere=sphere)
+        ) = _prepare_topomap_plot(
+            use_info,
+            _get_plot_ch_type(use_info, None),
+            sphere=sphere,
+        )
         these_outlines = _make_head_outlines(sphere, pos, outlines, clip_origin)
         data = data[data_picks]
         if merge_channels:
@@ -511,7 +532,7 @@ def _plot_projs_topomap(
     vlims = [None for _ in range(len(datas))]
     if vlim == "joint":
         for _ch_type in set(types):
-            idx = np.where(np.in1d(types, _ch_type))[0]
+            idx = np.where(np.isin(types, _ch_type))[0]
             these_data = np.concatenate(np.array(datas, dtype=object)[idx])
             norm = all(these_data >= 0)
             _vl = _setup_vmin_vmax(these_data, vmin=None, vmax=None, norm=norm)
@@ -646,8 +667,6 @@ def _draw_outlines(ax, outlines):
 
 def _get_extra_points(pos, extrapolate, origin, radii):
     """Get coordinates of additional interpolation points."""
-    from scipy.spatial import Delaunay
-
     radii = np.array(radii, float)
     assert radii.shape == (2,)
     x, y = origin
@@ -784,12 +803,6 @@ class _GridData:
     """
 
     def __init__(self, pos, image_interp, extrapolate, origin, radii, border):
-        from scipy.interpolate import (
-            CloughTocher2DInterpolator,
-            NearestNDInterpolator,
-            LinearNDInterpolator,
-        )
-
         # in principle this works in N dimensions, not just 2
         assert pos.ndim == 2 and pos.shape[1] == 2, pos.shape
         _validate_type(border, ("numeric", str), "border")
@@ -873,7 +886,9 @@ def _topomap_plot_sensors(pos_x, pos_y, sensors, ax):
 
 
 def _get_pos_outlines(info, picks, sphere, to_sphere=True):
-    ch_type = _get_ch_type(pick_info(_simplify_info(info), picks), None)
+    from ..channels.layout import _find_topomap_coords
+
+    ch_type = _get_plot_ch_type(pick_info(_simplify_info(info), picks), None)
     orig_sphere = sphere
     sphere, clip_origin = _adjust_meg_sphere(sphere, info, ch_type)
     logger.debug(
@@ -936,7 +951,15 @@ def plot_topomap(
     %(extrapolate_topomap)s
 
         .. versionadded:: 0.18
+
+        .. versionchanged:: 0.21
+
+           - The default was changed to ``'local'`` for MEG sensors.
+           - ``'local'`` was changed to use a convex hull mask
+           - ``'head'`` was changed to extrapolate out to the clipping circle.
     %(border_topomap)s
+
+        .. versionadded:: 0.20
     %(res_topomap)s
     %(size_topomap)s
     %(cmap_topomap_simple)s
@@ -1049,8 +1072,6 @@ _VORONOI_CIRCLE_RES = 100
 
 def _voronoi_topomap(data, pos, outlines, ax, cmap, norm, extent, res):
     """Make a Voronoi diagram on a topomap."""
-    from scipy.spatial import Voronoi
-
     # we need an image axis object so first empty image to plot over
     im = ax.imshow(
         np.zeros((res, res)) * np.nan,
@@ -1150,6 +1171,11 @@ def _plot_topomap(
 ):
     from matplotlib.colors import Normalize
     from matplotlib.widgets import RectangleSelector
+    from ..channels.layout import (
+        _find_topomap_coords,
+        _merge_ch_data,
+        _pair_grad_sensors,
+    )
 
     data = np.asarray(data)
     logger.debug(f"Plotting topomap for {ch_type} data shape {data.shape}")
@@ -1159,10 +1185,9 @@ def _plot_topomap(
         pos = pick_info(pos, picks)
 
         # check if there is only 1 channel type, and n_chans matches the data
-        ch_type = _get_channel_types(pos, unique=True)
+        ch_type = pos.get_channel_types(picks=None, unique=True)
         info_help = (
-            "Pick Info with e.g. mne.pick_info and "
-            "mne.io.pick.channel_indices_by_type."
+            "Pick Info with e.g. mne.pick_info and " "mne.channel_indices_by_type."
         )
         if len(ch_type) > 1:
             raise ValueError("Multiple channel types in Info structure. " + info_help)
@@ -1361,6 +1386,7 @@ def _plot_ica_topomap(
 ):
     """Plot single ica map to axes."""
     from matplotlib.axes import Axes
+    from ..channels.layout import _merge_ch_data
 
     if ica.info is None:
         raise RuntimeError(
@@ -1373,7 +1399,7 @@ def _plot_ica_topomap(
             "axis has to be an instance of matplotlib Axes, "
             "got %s instead." % type(axes)
         )
-    ch_type = _get_ch_type(ica, ch_type, allow_ref_meg=ica.allow_ref_meg)
+    ch_type = _get_plot_ch_type(ica, ch_type, allow_ref_meg=ica.allow_ref_meg)
     if ch_type == "ref_meg":
         logger.info("Cannot produce topographies for MEG reference channels.")
         return
@@ -1543,9 +1569,9 @@ def plot_ica_components(
     supplied).
     """  # noqa E501
     from matplotlib.pyplot import Axes
-
     from ..io import BaseRaw
     from ..epochs import BaseEpochs
+    from ..channels.layout import _merge_ch_data
 
     if ica.info is None:
         raise RuntimeError(
@@ -1565,7 +1591,7 @@ def plot_ica_components(
         max_subplots = nrows * ncols
 
     # handle ch_type=None
-    ch_type = _get_ch_type(ica, ch_type)
+    ch_type = _get_plot_ch_type(ica, ch_type)
 
     figs = []
     if picks is None:
@@ -1792,7 +1818,15 @@ def plot_tfr_topomap(
     %(sphere_topomap_auto)s
     %(image_interp_topomap)s
     %(extrapolate_topomap)s
+
+        .. versionchanged:: 0.21
+
+           - The default was changed to ``'local'`` for MEG sensors.
+           - ``'local'`` was changed to use a convex hull mask
+           - ``'head'`` was changed to extrapolate out to the clipping circle.
     %(border_topomap)s
+
+        .. versionadded:: 0.20
     %(res_topomap)s
     %(size_topomap)s
     %(cmap_topomap)s
@@ -1814,8 +1848,9 @@ def plot_tfr_topomap(
         The figure containing the topography.
     """  # noqa: E501
     import matplotlib.pyplot as plt
+    from ..channels.layout import _merge_ch_data
 
-    ch_type = _get_ch_type(tfr, ch_type)
+    ch_type = _get_plot_ch_type(tfr, ch_type)
 
     picks, pos, merge_channels, names, _, sphere, clip_origin = _prepare_topomap_plot(
         tfr, ch_type, sphere=sphere
@@ -1984,7 +2019,15 @@ def plot_evoked_topomap(
     %(extrapolate_topomap)s
 
         .. versionadded:: 0.18
+
+        .. versionchanged:: 0.21
+
+           - The default was changed to ``'local'`` for MEG sensors.
+           - ``'local'`` was changed to use a convex hull mask
+           - ``'head'`` was changed to extrapolate out to the clipping circle.
     %(border_topomap)s
+
+        .. versionadded:: 0.20
     %(res_topomap)s
     %(size_topomap)s
     %(cmap_topomap)s
@@ -2023,18 +2066,24 @@ def plot_evoked_topomap(
     the same call as the colorbar. Note also that the colorbar will not be
     resized automatically when ``axes`` are provided; use Matplotlib's
     :meth:`axes.set_position() <matplotlib.axes.Axes.set_position>` method or
-    :doc:`gridspec <matplotlib:tutorials/intermediate/arranging_axes>`
-    interface to adjust the colorbar size yourself.
+    :ref:`gridspec <matplotlib:arranging_axes>` interface to adjust the colorbar
+    size yourself.
+
+    When ``time=="interactive"``, the figure will publish and subscribe to the
+    following UI events:
+
+    * :class:`~mne.viz.ui_events.TimeChange` whenever a new time is selected.
     """
     import matplotlib.pyplot as plt
     from matplotlib.gridspec import GridSpec
     from matplotlib.widgets import Slider
     from ..evoked import Evoked
+    from ..channels.layout import _merge_ch_data
 
     _validate_type(evoked, Evoked, "evoked")
     _validate_type(colorbar, bool, "colorbar")
     evoked = evoked.copy()  # make a copy, since we'll be picking
-    ch_type = _get_ch_type(evoked, ch_type)
+    ch_type = _get_plot_ch_type(evoked, ch_type)
     # time units / formatting
     time_unit, _ = _check_time_unit(time_unit, evoked.times)
     scaling_time = 1.0 if time_unit == "s" else 1e3
@@ -2263,6 +2312,8 @@ def plot_evoked_topomap(
             axes[ax_idx].set_title(axes_title)
 
     if interactive:
+        # Add a slider to the figure and start publishing and subscribing to time_change
+        # events.
         kwargs.update(vlim=_vlim)
         axes.append(plt.subplot(gs[1, :-1]))
         slider = Slider(
@@ -2275,22 +2326,32 @@ def plot_evoked_topomap(
         )
         slider.vline.remove()  # remove initial point indicator
         func = _merge_ch_data if merge_channels else lambda x: x
-        changed_callback = partial(
-            _slider_changed,
-            ax=axes[0],
-            data=evoked.data,
-            times=evoked.times,
-            pos=pos,
-            scaling=scaling,
-            func=func,
-            time_format=time_format,
-            scaling_time=scaling_time,
-            kwargs=kwargs,
-        )
-        slider.on_changed(changed_callback)
+
+        def _slider_changed(val):
+            publish(fig, TimeChange(time=val))
+
+        slider.on_changed(_slider_changed)
         ts = np.tile(evoked.times, len(evoked.data)).reshape(evoked.data.shape)
         axes[-1].plot(ts, evoked.data, color="k")
         axes[-1].slider = slider
+
+        subscribe(
+            fig,
+            "time_change",
+            partial(
+                _on_time_change,
+                fig=fig,
+                data=evoked.data,
+                times=evoked.times,
+                pos=pos,
+                scaling=scaling,
+                func=func,
+                time_format=time_format,
+                scaling_time=scaling_time,
+                slider=slider,
+                kwargs=kwargs,
+            ),
+        )
 
     if colorbar:
         if interactive:
@@ -2357,19 +2418,35 @@ def _resize_cbar(cax, n_fig_axes, size=1):
     cax.set_position(cpos)
 
 
-def _slider_changed(
-    val, ax, data, times, pos, scaling, func, time_format, scaling_time, kwargs
+def _on_time_change(
+    event,
+    fig,
+    data,
+    times,
+    pos,
+    scaling,
+    func,
+    time_format,
+    scaling_time,
+    slider,
+    kwargs,
 ):
-    """Handle selection in interactive topomap."""
-    idx = np.argmin(np.abs(times - val))
+    """Handle updating topomap to show a new time."""
+    idx = np.argmin(np.abs(times - event.time))
     data = func(data[:, idx]).ravel() * scaling
+    ax = fig.axes[0]
     ax.clear()
     im, _ = plot_topomap(data, pos, axes=ax, **kwargs)
     if hasattr(ax, "CB"):
         ax.CB.mappable = im
         _resize_cbar(ax.CB.cbar.ax, 2)
     if time_format is not None:
-        ax.set_title(time_format % (val * scaling_time))
+        ax.set_title(time_format % (event.time * scaling_time))
+    # Updating the slider will generate a new time_change event. To prevent an
+    # infinite loop, only update the slider if the time has actually changed.
+    if event.time != slider.val:
+        slider.set_val(event.time)
+    ax.figure.canvas.draw_idle()
 
 
 def _plot_topomap_multi_cbar(
@@ -2517,7 +2594,15 @@ def plot_epochs_psd_topomap(
     %(sphere_topomap_auto)s
     %(image_interp_topomap)s
     %(extrapolate_topomap)s
+
+        .. versionchanged:: 0.21
+
+           - The default was changed to ``'local'`` for MEG sensors.
+           - ``'local'`` was changed to use a convex hull mask
+           - ``'head'`` was changed to extrapolate out to the clipping circle.
     %(border_topomap)s
+
+        .. versionadded:: 0.20
     %(res_topomap)s
     %(size_topomap)s
     %(cmap_topomap)s
@@ -2542,7 +2627,6 @@ def plot_epochs_psd_topomap(
     """
     from ..channels import rename_channels
     from ..time_frequency import Spectrum
-    from ..utils.spectrum import _split_psd_kwargs
 
     init_kw, plot_kw = _split_psd_kwargs(plot_fun=Spectrum.plot_topomap)
     spectrum = epochs.compute_psd(**init_kw)
@@ -2610,7 +2694,15 @@ def plot_psds_topomap(
     %(sphere_topomap_auto)s
     %(image_interp_topomap)s
     %(extrapolate_topomap)s
+
+        .. versionchanged:: 0.21
+
+           - The default was changed to ``'local'`` for MEG sensors.
+           - ``'local'`` was changed to use a convex hull mask
+           - ``'head'`` was changed to extrapolate out to the clipping circle.
     %(border_topomap)s
+
+        .. versionadded:: 0.20
     %(res_topomap)s
     %(size_topomap)s
     %(cmap_topomap)s
@@ -2682,7 +2774,8 @@ def plot_psds_topomap(
     if dB and not normalize:
         band_data = [10 * np.log10(_d) for _d in band_data]
     # handle vmin/vmax
-    if vlim == "joint":
+    joint_vlim = vlim == "joint"
+    if joint_vlim:
         vlim = (np.array(band_data).min(), np.array(band_data).max())
     # unit label
     if unit is None:
@@ -2706,7 +2799,7 @@ def plot_psds_topomap(
     for ax, _mask, _data, (title, (fmin, fmax)) in zip(
         axes, freq_masks, band_data, bands.items()
     ):
-        colorbar = vlim != "joint" or ax == axes[-1]
+        colorbar = (not joint_vlim) or ax == axes[-1]
         _plot_topomap_multi_cbar(
             _data,
             pos,
@@ -2809,6 +2902,7 @@ def _onselect(
     """Handle drawing average tfr over channels called from topomap."""
     import matplotlib.pyplot as plt
     from matplotlib.collections import PathCollection
+    from ..channels.layout import _pair_grad_sensors
 
     ax = eclick.inaxes
     xmin = min(eclick.xdata, erelease.xdata)
@@ -3249,6 +3343,8 @@ def _plot_corrmap(
     show_names=False,
 ):
     """Customize ica.plot_components for corrmap."""
+    from ..channels.layout import _merge_ch_data
+
     if not template:
         title = "Detected components"
         if label is not None:
@@ -3421,6 +3517,12 @@ def plot_arrowmap(
     %(extrapolate_topomap)s
 
         .. versionadded:: 0.18
+
+        .. versionchanged:: 0.21
+
+           - The default was changed to ``'local'`` for MEG sensors.
+           - ``'local'`` was changed to use a convex hull mask
+           - ``'head'`` was changed to extrapolate out to the clipping circle.
     %(sphere_topomap_auto)s
 
     Returns
@@ -3555,6 +3657,7 @@ def plot_bridged_electrodes(
     mne.preprocessing.compute_bridged_electrodes
     """
     import matplotlib.pyplot as plt
+    from ..channels.layout import _find_topomap_coords
 
     if topomap_args is None:
         topomap_args = dict()
@@ -3640,15 +3743,12 @@ def plot_ch_adjacency(info, adjacency, ch_names, kind="2d", edit=False):
     -----
     .. versionadded:: 1.1
     """
-    from scipy import sparse
     import matplotlib as mpl
     import matplotlib.pyplot as plt
 
-    from . import plot_sensors
-
     _validate_type(info, Info, "info")
-    _validate_type(adjacency, (np.ndarray, sparse.csr_matrix), "adjacency")
-    has_sparse = isinstance(adjacency, sparse.csr_matrix)
+    _validate_type(adjacency, (np.ndarray, csr_matrix), "adjacency")
+    has_sparse = isinstance(adjacency, csr_matrix)
 
     if edit and kind == "3d":
         raise ValueError("Editing a 3d adjacency plot is not supported.")
@@ -3864,7 +3964,15 @@ def plot_regression_weights(
     %(sphere_topomap_auto)s
     %(image_interp_topomap)s
     %(extrapolate_topomap)s
+
+        .. versionchanged:: 0.21
+
+           - The default was changed to ``'local'`` for MEG sensors.
+           - ``'local'`` was changed to use a convex hull mask
+           - ``'head'`` was changed to extrapolate out to the clipping circle.
     %(border_topomap)s
+
+        .. versionadded:: 0.20
     %(res_topomap)s
     %(size_topomap)s
     %(cmap_topomap)s
@@ -3887,10 +3995,11 @@ def plot_regression_weights(
     """
     import matplotlib
     import matplotlib.pyplot as plt
+    from ..channels.layout import _merge_ch_data
 
     sphere = _check_sphere(sphere)
     if ch_type is None:
-        ch_types = _get_channel_types(model.info_, unique=True, only_data_chs=True)
+        ch_types = model.info_.get_channel_types(unique=True, only_data_chs=True)
     else:
         ch_types = [ch_type]
     del ch_type

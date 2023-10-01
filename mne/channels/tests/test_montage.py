@@ -22,8 +22,13 @@ from numpy.testing import (
 )
 import matplotlib.pyplot as plt
 
-from mne import __file__ as _mne_file, create_info, read_evokeds, pick_types
-from mne.source_space import get_mni_fiducials
+from mne import (
+    __file__ as _mne_file,
+    create_info,
+    read_evokeds,
+    pick_types,
+)
+from mne.coreg import get_mni_fiducials
 from mne.utils._testing import assert_object_equal
 from mne.channels import (
     get_builtin_montages,
@@ -50,8 +55,8 @@ from mne.channels.montage import (
 from mne.preprocessing import compute_current_source_density
 from mne.utils import assert_dig_allclose, _record_warnings
 from mne.bem import _fit_sphere
-from mne.io.constants import FIFF
-from mne.io._digitization import (
+from mne._fiff.constants import FIFF
+from mne._fiff._digitization import (
     _format_dig_points,
     _get_fid_coords,
     _get_dig_eeg,
@@ -1382,12 +1387,12 @@ def test_set_montage_mgh(rename):
 def test_montage_positions_similar(fname, montage, n_eeg, n_good, bads):
     """Test that montages give spatially similar positions."""
     # 1. Prepare data: load, set bads (if missing), and filter
-    raw = read_raw_fif(fname).pick_types(eeg=True, exclude=())
+    raw = read_raw_fif(fname).pick(picks="eeg")
     if bads is not None:
         assert raw.info["bads"] == []
         raw.info["bads"] = bads
     assert len(raw.ch_names) == n_eeg
-    raw.pick_types(eeg=True, exclude="bads").load_data()
+    raw.pick(picks="eeg", exclude="bads").load_data()
     raw.apply_function(lambda x: x - x.mean())  # remove DC
     raw.filter(None, 40)  # remove line noise
     assert len(raw.ch_names) == n_good

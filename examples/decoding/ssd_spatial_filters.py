@@ -35,7 +35,7 @@ raw = mne.io.read_raw_ctf(fname)
 raw.crop(50.0, 110.0).load_data()  # crop for memory purposes
 raw.resample(sfreq=250)
 
-raw.pick_types(meg=True, eeg=False, ref_meg=False)
+raw.pick_types(meg=True, ref_meg=False)
 
 freqs_sig = 9, 12
 freqs_noise = 8, 13

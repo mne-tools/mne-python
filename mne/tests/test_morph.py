@@ -33,9 +33,9 @@ from mne.datasets import testing
 from mne.fixes import _get_img_fdata
 from mne._freesurfer import _get_mri_info_data, _get_atlas_values
 from mne.minimum_norm import apply_inverse, read_inverse_operator, make_inverse_operator
-from mne.source_space import _add_interpolator, _grid_interp
+from mne.source_space._source_space import _add_interpolator, _grid_interp
 from mne.transforms import quat_to_rot
-from mne.utils import check_version, requires_version, catch_logging, _record_warnings
+from mne.utils import catch_logging, _record_warnings
 
 # Setup paths
 
@@ -192,7 +192,7 @@ def test_xhemi_morph():
     assert vertices_use[0].shape == (n_grade_verts,)
     assert vertices_use[1].shape == (n_src_verts,)
     # ensure it's sufficiently diffirent to manifest round-trip errors
-    assert np.in1d(vertices_use[1], stc.vertices[1]).mean() < 0.3
+    assert np.isin(vertices_use[1], stc.vertices[1]).mean() < 0.3
     morph = compute_source_morph(
         stc,
         "fsaverage_sym",
@@ -244,10 +244,6 @@ def test_surface_source_morph_round_trip(smooth, lower, upper, n_warn, dtype):
     if dtype is complex:
         stc.data = 1j * stc.data
         assert_array_equal(stc.data.real, 0.0)
-    if smooth == "nearest" and not check_version("scipy", "1.3"):
-        with pytest.raises(ValueError, match="required to use nearest"):
-            morph = compute_source_morph(stc, "sample", "fsaverage", **kwargs)
-        return
     with _record_warnings() as w:
         morph = compute_source_morph(stc, "sample", "fsaverage", **kwargs)
     w = [ww for ww in w if "vertices not included" in str(ww.message)]
@@ -297,10 +293,10 @@ def assert_power_preserved(orig, new, limits=(1.0, 1.05)):
         assert min_ < power_ratio < max_, f"Power ratio {kind} = {power_ratio}"
 
 
-@requires_version("h5io")
 @testing.requires_testing_data
 def test_surface_vector_source_morph(tmp_path):
     """Test surface and vector source estimate morph."""
+    pytest.importorskip("h5io")
     inverse_operator_surf = read_inverse_operator(fname_inv_surf)
 
     stc_surf = read_source_estimate(fname_smorph, subject="sample")
@@ -354,12 +350,12 @@ def test_surface_vector_source_morph(tmp_path):
         source_morph_surf.apply(stc_vol)
 
 
-@requires_version("h5io")
 @pytest.mark.slowtest
 @testing.requires_testing_data
 def test_volume_source_morph_basic(tmp_path):
     """Test volume source estimate morph, special cases and exceptions."""
     nib = pytest.importorskip("nibabel")
+    pytest.importorskip("h5io")
     pytest.importorskip("dipy")
     inverse_operator_vol = read_inverse_operator(fname_inv_vol)
     stc_vol = read_source_estimate(fname_vol_w, "sample")
@@ -551,7 +547,6 @@ def test_volume_source_morph_basic(tmp_path):
     assert_allclose(img_vol, img_vol_2)
 
 
-@requires_version("h5io")
 @pytest.mark.slowtest
 @testing.requires_testing_data
 @pytest.mark.parametrize(
@@ -569,6 +564,7 @@ def test_volume_source_morph_round_trip(
 ):
     """Test volume source estimate morph round-trips well."""
     nib = pytest.importorskip("nibabel")
+    pytest.importorskip("h5io")
     pytest.importorskip("dipy")
     from nibabel.processing import resample_from_to
 
@@ -908,7 +904,7 @@ def test_volume_labels_morph(tmp_path, sl, n_real, n_mri, n_orig):
     n_use = (sl.stop - sl.start) // (sl.step or 1)
     # see gh-5224
     evoked = mne.read_evokeds(fname_evoked)[0].crop(0, 0)
-    evoked.pick_channels(evoked.ch_names[:306:8])
+    evoked.pick(evoked.ch_names[:306:8])
     evoked.info.normalize_proj()
     n_ch = len(evoked.ch_names)
     lut, _ = read_freesurfer_lut()
@@ -935,7 +931,7 @@ def test_volume_labels_morph(tmp_path, sl, n_real, n_mri, n_orig):
     assert img.shape == (86, 86, 86, 1)
     n_on = np.array(img.dataobj).astype(bool).sum()
     aseg_img = _get_img_fdata(nib.load(fname_aseg))
-    n_got_real = np.in1d(
+    n_got_real = np.isin(
         aseg_img.ravel(), [lut[name] for name in use_label_names]
     ).sum()
     assert n_got_real == n_real
@@ -1038,11 +1034,11 @@ def test_mixed_source_morph(_mixed_morph_srcs, vector):
     stc = klass(data, vertices, 0, 1, "sample")
     vol_info = _get_mri_info_data(fname_aseg, data=True)
     rrs = np.concatenate([src[2]["rr"][sp["vertno"]] for sp in src[2:]])
-    n_want = np.in1d(_get_atlas_values(vol_info, rrs), ids).sum()
+    n_want = np.isin(_get_atlas_values(vol_info, rrs), ids).sum()
     img = _get_img_fdata(stc.volume().as_volume(src, mri_resolution=False))
     assert img.astype(bool).sum() == n_want
     img_res = nib.load(fname_aseg)
-    n_want = np.in1d(_get_img_fdata(img_res), ids).sum()
+    n_want = np.isin(_get_img_fdata(img_res), ids).sum()
     img = _get_img_fdata(stc.volume().as_volume(src, mri_resolution=True))
     assert img.astype(bool).sum() > n_want  # way more get interpolated into
 
@@ -1053,7 +1049,7 @@ def test_mixed_source_morph(_mixed_morph_srcs, vector):
     stc_fs = morph.apply(stc)
     vol_info = _get_mri_info_data(fname_aseg_fs, data=True)
     rrs = np.concatenate([src_fs[2]["rr"][sp["vertno"]] for sp in src_fs[2:]])
-    n_want = np.in1d(_get_atlas_values(vol_info, rrs), ids).sum()
+    n_want = np.isin(_get_atlas_values(vol_info, rrs), ids).sum()
     with pytest.raises(ValueError, match=r"stc\.subject does not match src s"):
         stc_fs.volume().as_volume(src, mri_resolution=False)
     img = _get_img_fdata(stc_fs.volume().as_volume(src_fs, mri_resolution=False))

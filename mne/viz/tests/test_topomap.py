@@ -28,12 +28,13 @@ from mne import (
     read_cov,
     EvokedArray,
     compute_proj_raw,
+    Projection,
 )
-from mne.io.proj import make_eeg_average_ref_proj, Projection
+from mne._fiff.proj import make_eeg_average_ref_proj
 from mne.io import read_raw_fif, read_info, RawArray
-from mne.io.constants import FIFF
-from mne.io.pick import pick_info, channel_indices_by_type, _picks_to_idx
-from mne.io.compensator import get_current_comp
+from mne._fiff.constants import FIFF
+from mne._fiff.pick import pick_info, channel_indices_by_type, _picks_to_idx
+from mne._fiff.compensator import get_current_comp
 from mne.channels import (
     read_layout,
     make_dig_montage,
@@ -55,7 +56,6 @@ from mne.viz.topomap import (
     plot_ch_adjacency,
 )
 from mne.viz.utils import _find_peaks, _fake_click, _fake_keypress, _fake_scroll
-from mne.utils import requires_sklearn
 
 from mne.viz.tests.test_raw import _proj_status
 
@@ -79,7 +79,7 @@ fast_test = dict(res=8, contours=0, sensors=False)
 def test_plot_topomap_interactive(constrained_layout):
     """Test interactive topomap projection plotting."""
     evoked = read_evokeds(evoked_fname, baseline=(None, 0))[0]
-    evoked.pick_types(meg="mag")
+    evoked.pick(picks="mag")
     with evoked.info._unlock():
         evoked.info["projs"] = []
     assert not evoked.proj
@@ -265,7 +265,7 @@ def test_plot_evoked_topomap_units(evoked, units, scalings, expected_unit):
     #     cbar = cbar[0]
     #     assert cbar.get_title() == expected_unit
     # ...but not all matplotlib versions support it, and we can't use
-    # @requires_version because it's hard figure out exactly which MPL version
+    # check_version because it's hard figure out exactly which MPL version
     # is the cutoff since it relies on a private attribute. Based on some
     # basic testing it's at least matplotlib version >= 3.5.
     # So for now we just do this:
@@ -331,8 +331,8 @@ def test_plot_topomap_basic():
     evoked = read_evokeds(evoked_fname, "Left Auditory", baseline=(None, 0))
     res = 8
     fast_test_noscale = dict(res=res, contours=0, sensors=False)
-    ev_bad = evoked.copy().pick_types(meg=False, eeg=True)
-    ev_bad.pick_channels(ev_bad.ch_names[:2])
+    ev_bad = evoked.copy().pick(picks="eeg")
+    ev_bad.pick(ev_bad.ch_names[:2])
     plt_topomap = partial(ev_bad.plot_topomap, **fast_test)
     plt_topomap(times=ev_bad.times[:2] - 1e-6)  # auto, plots EEG
     evoked.plot_topomap(
@@ -365,7 +365,7 @@ def test_plot_topomap_basic():
     plt.close("all")
     plt_topomap(times=[-0.1, 0.2])
     plt.close("all")
-    evoked_grad = evoked.copy().crop(0, 0).pick_types(meg="grad")
+    evoked_grad = evoked.copy().crop(0, 0).pick(picks="grad")
     mask = np.zeros((204, 1), bool)
     mask[[0, 3, 5, 6]] = True
     names = []
@@ -417,7 +417,7 @@ def test_plot_topomap_basic():
 
     # Plot array
     for ch_type in ("mag", "grad"):
-        evoked_ = evoked.copy().pick_types(eeg=False, meg=ch_type)
+        evoked_ = evoked.copy().pick(picks=ch_type)
         plot_topomap(evoked_.data[:, 0], evoked_.info, **fast_test_noscale)
     # fail with multiple channel types
     pytest.raises(ValueError, plot_topomap, evoked.data[0, :], evoked.info)
@@ -632,7 +632,7 @@ def test_ctf_plotting():
     # smoke test that compensation does not matter
     evoked.plot_topomap(time_unit="s")
     # better test that topomaps can still be used without plotting ref
-    evoked.pick_types(meg=True, ref_meg=False)
+    evoked.pick(picks="meg")
     evoked.plot_topomap()
 
 
@@ -657,8 +657,8 @@ def test_plot_arrowmap(evoked):
 def test_plot_topomap_neuromag122():
     """Test topomap plotting."""
     evoked = read_evokeds(evoked_fname, "Left Auditory", baseline=(None, 0))
-    evoked.pick_types(meg="grad")
-    evoked.pick_channels(evoked.ch_names[:122])
+    evoked.pick(picks="grad")
+    evoked.pick(evoked.ch_names[:122])
     ch_names = ["MEG %03d" % k for k in range(1, 123)]
     for c in evoked.info["chs"]:
         c["coil_type"] = FIFF.FIFFV_COIL_NM_122
@@ -740,9 +740,9 @@ def test_plot_topomap_nirs_overlap(fnirs_epochs):
     plt.close("all")
 
 
-@requires_sklearn
 def test_plot_topomap_nirs_ica(fnirs_epochs):
     """Test plotting nirs ica topomap."""
+    pytest.importorskip("sklearn")
     from mne.preprocessing import ICA
 
     fnirs_epochs = fnirs_epochs.load_data().pick(picks="hbo")

@@ -5,9 +5,9 @@
 Repairing artifacts with ICA
 ============================
 
-This tutorial covers the basics of independent components analysis (ICA) and
-shows how ICA can be used for artifact repair; an extended example illustrates
-repair of ocular and heartbeat artifacts. For conceptual background on ICA, see
+This tutorial covers the basics of independent components analysis (ICA) and shows how
+ICA can be used for artifact repair; an extended example illustrates repair of ocular
+and heartbeat artifacts. For conceptual background on ICA, see
 :ref:`this scikit-learn tutorial
 <sphx_glr_auto_examples_decomposition_plot_ica_blind_source_separation.py>`.
 
@@ -31,7 +31,7 @@ sample_data_raw_file = os.path.join(
 raw = mne.io.read_raw_fif(sample_data_raw_file)
 
 # Here we'll crop to 60 seconds and drop gradiometer channels for speed
-raw.crop(tmax=60.0).pick_types(meg="mag", eeg=True, stim=True, eog=True)
+raw.crop(tmax=60.0).pick(picks=["mag", "eeg", "stim", "eog"])
 raw.load_data()
 
 # %%
@@ -62,7 +62,6 @@ raw.load_data()
 # various source signals are `statistically independent`_ and non-gaussian, it
 # is usually possible to separate the sources using ICA, and then re-construct
 # the sensor signals after excluding the sources that are unwanted.
-#
 #
 # ICA in MNE-Python
 # ~~~~~~~~~~~~~~~~~
@@ -626,7 +625,6 @@ print(template_eog_component)
 #    https://en.wikipedia.org/wiki/Signal_separation
 # .. _`statistically independent`:
 #    https://en.wikipedia.org/wiki/Independence_(probability_theory)
-# .. _`scikit-learn`: https://scikit-learn.org
 # .. _`random seed`: https://en.wikipedia.org/wiki/Random_seed
 # .. _`regular expression`: https://www.regular-expressions.info/
 # .. _`qrs`: https://en.wikipedia.org/wiki/QRS_complex
@@ -657,7 +655,7 @@ print(template_eog_component)
 # recommended by the MNE-Python developers, as it doesn't guarantee optimal
 # results.
 
-filt_raw.pick_types(meg=True, eeg=False, exclude="bads", stim=True).load_data()
+filt_raw.pick(picks=["meg", "stim"], exclude="bads").load_data()
 filt_raw.filter(1, 30, fir_design="firwin")
 
 # peak-to-peak amplitude rejection parameters

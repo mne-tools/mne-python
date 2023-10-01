@@ -35,3 +35,5 @@ ro
 nam
 shs
 pres
+aas
+vor

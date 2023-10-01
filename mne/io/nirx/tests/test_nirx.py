@@ -21,7 +21,7 @@ from mne.preprocessing.nirs import (
     short_channels,
     _reorder_nirx,
 )
-from mne.io.constants import FIFF
+from mne._fiff.constants import FIFF
 
 testing_path = data_path(download=False)
 fname_nirx_15_0 = testing_path / "NIRx" / "nirscout" / "nirx_15_0_recording"

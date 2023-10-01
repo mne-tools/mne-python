@@ -14,8 +14,9 @@ from mne.preprocessing.nirs import (
     beer_lambert_law,
 )
 from mne.io import read_raw_nirx
-from mne.io.proj import _has_eeg_average_ref_proj
-from mne.utils import _record_warnings, requires_version
+from mne._fiff.proj import _has_eeg_average_ref_proj
+from mne.utils import _record_warnings
+
 
 base_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
 raw_fname = base_dir / "test_raw.fif"
@@ -162,7 +163,7 @@ def test_interpolation_eeg(offset, avg_proj, ctol, atol, method):
 
     # check that interpolation fails when preload is False
     epochs_eeg.preload = False
-    with pytest.raises(RuntimeError, match="requires epochs data to be loade"):
+    with pytest.raises(RuntimeError, match="requires epochs data to be load"):
         epochs_eeg.interpolate_bads(**kw)
     epochs_eeg.preload = True
 
@@ -182,7 +183,7 @@ def test_interpolation_eeg(offset, avg_proj, ctol, atol, method):
 
     # check that interpolation works with few channels
     raw_few = raw.copy().crop(0, 0.1).load_data()
-    raw_few.pick_channels(raw_few.ch_names[:1] + raw_few.ch_names[3:4])
+    raw_few.pick(raw_few.ch_names[:1] + raw_few.ch_names[3:4])
     assert len(raw_few.ch_names) == 2
     raw_few.del_proj()
     raw_few.info["bads"] = [raw_few.ch_names[-1]]
@@ -206,7 +207,7 @@ def test_interpolation_meg():
 
     # check that interpolation works when non M/EEG channels are present
     # before MEG channels
-    raw.crop(0, 0.1).load_data().pick_channels(epochs_meg.ch_names)
+    raw.crop(0, 0.1).load_data().pick(epochs_meg.ch_names)
     raw.info.normalize_proj()
     raw.set_channel_types({raw.ch_names[0]: "stim"}, on_unit_change="ignore")
     raw.info["bads"] = [raw.ch_names[1]]
@@ -302,10 +303,10 @@ def test_interpolation_ctf_comp():
     assert raw.info["bads"] == []
 
 
-@requires_version("pymatreader")
 @testing.requires_testing_data
 def test_interpolation_nirs():
     """Test interpolating bad nirs channels."""
+    pytest.importorskip("pymatreader")
     fname = testing_path / "NIRx" / "nirscout" / "nirx_15_2_recording_w_overlap"
     raw_intensity = read_raw_nirx(fname, preload=False)
     raw_od = optical_density(raw_intensity)
@@ -324,3 +325,27 @@ def test_interpolation_nirs():
     assert raw_haemo.info["bads"] == ["S1_D2 hbo", "S1_D2 hbr"]
     raw_haemo.interpolate_bads()
     assert raw_haemo.info["bads"] == []
+
+
+def test_nan_interpolation(raw):
+    """Test 'nan' method for interpolating bads."""
+    ch_to_interp = [raw.ch_names[1]]  # don't use channel 0 (type is IAS not MEG)
+    raw.info["bads"] = ch_to_interp
+
+    # test that warning appears for reset_bads = True
+    with pytest.warns(RuntimeWarning, match="Consider setting reset_bads=False"):
+        raw.interpolate_bads(method="nan", reset_bads=True)
+
+    # despite warning, interpolation still happened, make sure the channel is NaN
+    bad_chs = raw.get_data(ch_to_interp)
+    assert np.isnan(bad_chs).all()
+
+    # make sure reset_bads=False works as expected
+    raw.info["bads"] = ch_to_interp
+    raw.interpolate_bads(method="nan", reset_bads=False)
+    assert raw.info["bads"] == ch_to_interp
+
+    # make sure other channels are untouched
+    raw.drop_channels(ch_to_interp)
+    good_chs = raw.get_data()
+    assert np.isfinite(good_chs).all()

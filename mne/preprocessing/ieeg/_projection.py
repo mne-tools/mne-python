@@ -4,9 +4,10 @@
 
 from itertools import combinations
 import numpy as np
+from scipy.spatial.distance import pdist, squareform
 
 from ...channels import make_dig_montage
-from ...io.pick import _picks_to_idx
+from ..._fiff.pick import _picks_to_idx
 from ...surface import (
     _read_mri_surface,
     fast_cross_3d,
@@ -63,8 +64,6 @@ def project_sensors_onto_brain(
     :ref:`mne watershed_bem` using the T1 or :ref:`mne flash_bem`
     using a FLASH scan.
     """
-    from scipy.spatial.distance import pdist, squareform
-
     n_neighbors = _ensure_int(n_neighbors, "n_neighbors")
     _validate_type(copy, bool, "copy")
     if copy:

@@ -11,6 +11,7 @@ from contextlib import nullcontext
 import warnings
 
 from ..utils import tight_layout
+from ..ui_events import publish, TimeChange
 
 
 class Figure3D(ABC):
@@ -128,7 +129,6 @@ class _AbstractRenderer(ABC):
         triangles,
         color,
         opacity=1.0,
-        shading=False,
         backface_culling=False,
         scalars=None,
         colormap=None,
@@ -139,7 +139,7 @@ class _AbstractRenderer(ABC):
         line_width=1.0,
         normals=None,
         polygon_offset=None,
-        **kwargs
+        **kwargs,
     ):
         """Add a mesh in the scene.
 
@@ -550,7 +550,8 @@ class _AbstractRenderer(ABC):
         distance=None,
         focalpoint=None,
         roll=None,
-        reset_camera=True,
+        *,
+        reset_camera=None,
     ):
         """Configure the camera of the scene.
 
@@ -567,7 +568,7 @@ class _AbstractRenderer(ABC):
         roll : float
             The rotation of the camera along its axis.
         reset_camera : bool
-           If True, reset the camera properties beforehand.
+           Deprecated, used ``distance="auto"`` instead.
         """
         pass
 
@@ -1075,7 +1076,7 @@ class _AbstractDock(ABC):
         style="pushbutton",
         icon=None,
         tooltip=None,
-        layout=None
+        layout=None,
     ):
         pass
 
@@ -1094,7 +1095,7 @@ class _AbstractDock(ABC):
         compact=True,
         double=False,
         tooltip=None,
-        layout=None
+        layout=None,
     ):
         pass
 
@@ -1114,7 +1115,7 @@ class _AbstractDock(ABC):
         double=True,
         step=None,
         tooltip=None,
-        layout=None
+        layout=None,
     ):
         pass
 
@@ -1151,7 +1152,7 @@ class _AbstractDock(ABC):
         is_directory=False,
         icon=False,
         tooltip=None,
-        layout=None
+        layout=None,
     ):
         pass
 
@@ -1220,7 +1221,7 @@ class _AbstractDialog(ABC):
         icon="Warning",
         buttons=[],
         modal=True,
-        window=None
+        window=None,
     ):
         pass
 
@@ -1415,7 +1416,6 @@ class _AbstractBrainMplCanvas(_AbstractMplCanvas):
         """Initialize the MplCanvas."""
         super().__init__(width, height, dpi)
         self.brain = brain
-        self.time_func = brain.callbacks["time"]
 
     def update_plot(self):
         """Update the plot."""
@@ -1434,7 +1434,7 @@ class _AbstractBrainMplCanvas(_AbstractMplCanvas):
         # left click (and maybe drag) in progress in axes
         if event.inaxes != self.axes or event.button != 1:
             return
-        self.time_func(event.xdata, update_widget=True, time_as_index=False)
+        publish(self.brain, TimeChange(time=event.xdata))
 
     on_motion_notify = on_button_press  # for now they can be the same
 

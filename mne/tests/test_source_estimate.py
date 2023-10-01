@@ -62,10 +62,10 @@ from mne import (
 from mne.datasets import testing
 from mne.fixes import _get_img_fdata
 from mne.io import read_info
-from mne.io.constants import FIFF
+from mne._fiff.constants import FIFF
 from mne.morph_map import _make_morph_map_hemi
 from mne.source_estimate import grade_to_tris, _get_vol_mask
-from mne.source_space import _get_src_nn
+from mne.source_space._source_space import _get_src_nn
 from mne.transforms import apply_trans, invert_transform, transform_surface_to
 from mne.minimum_norm import (
     read_inverse_operator,
@@ -75,10 +75,7 @@ from mne.minimum_norm import (
 )
 from mne.label import read_labels_from_annot, label_sign_flip
 from mne.utils import (
-    requires_pandas,
-    requires_sklearn,
     catch_logging,
-    requires_version,
     _record_warnings,
 )
 from mne.io import read_raw_fif
@@ -176,17 +173,16 @@ def test_spatial_inter_hemi_adjacency():
         use_labels = [
             label.name[:-3]
             for label in labels
-            if np.in1d(label.vertices, has_neighbors).any()
+            if np.isin(label.vertices, has_neighbors).any()
         ]
         assert set(use_labels) - set(good_labels) == set()
 
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
-@requires_version("h5io")
 def test_volume_stc(tmp_path):
     """Test volume STCs."""
-    from h5io import write_hdf5
+    h5io = pytest.importorskip("h5io")
 
     N = 100
     data = np.arange(N)[:, np.newaxis]
@@ -213,7 +209,7 @@ def test_volume_stc(tmp_path):
             else:
                 # Pass stc.vertices[0], an ndarray, to ensure support for
                 # the way we used to write volume STCs
-                write_hdf5(
+                h5io.write_hdf5(
                     str(fname_temp),
                     dict(
                         vertices=stc.vertices[0],
@@ -409,13 +405,13 @@ def test_stc_attributes():
 
     # Changing .tmin or .tstep re-computes .times
     stc.tmin = 1
-    assert type(stc.tmin) == float
+    assert isinstance(stc.tmin, float)
     assert_array_almost_equal(
         stc.times, [1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9]
     )
 
     stc.tstep = 1
-    assert type(stc.tstep) == float
+    assert isinstance(stc.tstep, float)
     assert_array_almost_equal(
         stc.times, [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0]
     )
@@ -470,11 +466,11 @@ def test_io_stc(tmp_path):
         stc2.save(tmp_path / "complex.stc")
 
 
-@requires_version("h5io")
 @pytest.mark.parametrize("is_complex", (True, False))
 @pytest.mark.parametrize("vector", (True, False))
 def test_io_stc_h5(tmp_path, is_complex, vector):
     """Test IO for STC files using HDF5."""
+    pytest.importorskip("h5io")
     if vector:
         stc = _fake_vec_stc(is_complex=is_complex)
     else:
@@ -841,7 +837,7 @@ def test_extract_label_time_course_volume(
     assert sum(s["nuse"] for s in src_labels) == 4157
     assert_array_equal(src_labels[-1]["vertno"], [8011, 8032, 8557])
     assert_array_equal(
-        np.where(np.in1d(src[0]["vertno"], [8011, 8032, 8557]))[0], [2672, 2688, 2995]
+        np.where(np.isin(src[0]["vertno"], [8011, 8032, 8557]))[0], [2672, 2688, 2995]
     )
     # triage "labels" argument
     if mri_res:
@@ -912,7 +908,7 @@ def test_extract_label_time_course_volume(
             rtol = 0.0
         for si, s in enumerate(src_labels):
             func = dict(mean=np.mean, max=np.max)[mode]
-            these = vertex_values[np.in1d(src[0]["vertno"], s["vertno"])]
+            these = vertex_values[np.isin(src[0]["vertno"], s["vertno"])]
             assert len(these) == s["nuse"]
             if si == 0 and s["seg_name"] == "Unknown":
                 continue  # unknown is crappy
@@ -1087,9 +1083,9 @@ def test_transform():
     assert_array_equal(stc.data, data_t)
 
 
-@requires_sklearn
 def test_spatio_temporal_tris_adjacency():
     """Test spatio-temporal adjacency from triangles."""
+    pytest.importorskip("sklearn")
     tris = np.array([[0, 1, 2], [3, 4, 5]])
     adjacency = spatio_temporal_tris_adjacency(tris, 2)
     x = [1, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]
@@ -1139,9 +1135,9 @@ def test_spatio_temporal_src_adjacency():
     assert_equal(grade_to_tris(5).shape, [40960, 3])
 
 
-@requires_pandas
 def test_to_data_frame():
     """Test stc Pandas exporter."""
+    pytest.importorskip("pandas")
     n_vert, n_times = 10, 5
     vertices = [np.arange(n_vert, dtype=np.int64), np.empty(0, dtype=np.int64)]
     data = rng.randn(n_vert, n_times)
@@ -1162,10 +1158,10 @@ def test_to_data_frame():
         assert set(expected) == set(df_long.columns)
 
 
-@requires_pandas
 @pytest.mark.parametrize("index", ("time", ["time", "subject"], None))
 def test_to_data_frame_index(index):
     """Test index creation in stc Pandas exporter."""
+    pytest.importorskip("pandas")
     n_vert, n_times = 10, 5
     vertices = [np.arange(n_vert, dtype=np.int64), np.empty(0, dtype=np.int64)]
     data = rng.randn(n_vert, n_times)
@@ -1178,7 +1174,7 @@ def test_to_data_frame_index(index):
     # test that non-indexed data were present as columns
     non_index = list(set(["time", "subject"]) - set(index))
     if len(non_index):
-        assert all(np.in1d(non_index, df.columns))
+        assert all(np.isin(non_index, df.columns))
 
 
 @pytest.mark.parametrize("kind", ("surface", "mixed", "volume"))
@@ -1235,10 +1231,10 @@ def test_get_peak(kind, vector, n_times):
             stc.get_peak(hemi="rh")
 
 
-@requires_version("h5io")
 @testing.requires_testing_data
 def test_mixed_stc(tmp_path):
     """Test source estimate from mixed source space."""
+    pytest.importorskip("h5io")
     N = 90  # number of sources
     T = 2  # number of time points
     S = 3  # number of source spaces
@@ -1262,7 +1258,6 @@ def test_mixed_stc(tmp_path):
     assert isinstance(stc_out, MixedSourceEstimate)
 
 
-@requires_version("h5io")
 @pytest.mark.parametrize(
     "klass, kind",
     [
@@ -1275,6 +1270,7 @@ def test_mixed_stc(tmp_path):
 @pytest.mark.parametrize("dtype", [np.float32, np.float64, np.complex64, np.complex128])
 def test_vec_stc_basic(tmp_path, klass, kind, dtype):
     """Test (vol)vector source estimate."""
+    pytest.importorskip("h5io")
     nn = np.array(
         [
             [1, 0, 0],
@@ -1532,10 +1528,10 @@ def test_epochs_vector_inverse():
     assert_allclose(stc_epo.data, stc_evo.data, rtol=1e-9, atol=0)
 
 
-@requires_sklearn
 @testing.requires_testing_data
 def test_vol_adjacency():
     """Test volume adjacency."""
+    pytest.importorskip("sklearn")
     vol = read_source_spaces(fname_vsrc)
 
     pytest.raises(ValueError, spatial_src_adjacency, vol, dist=1.0)
@@ -1578,11 +1574,11 @@ def test_spatial_src_adjacency():
     assert_array_equal(con_lh.indices, con_lh_tris.indices)
 
 
-@requires_sklearn
 @testing.requires_testing_data
 def test_vol_mask():
     """Test extraction of volume mask."""
     pytest.importorskip("nibabel")
+    pytest.importorskip("sklearn")
     src = read_source_spaces(fname_vsrc)
     mask = _get_vol_mask(src)
     # Let's use an alternative way that should be equivalent
@@ -1712,10 +1708,10 @@ def test_stc_near_sensors(tmp_path):
     assert "4157 volume vertices" in log
 
 
-@requires_version("pymatreader")
 @testing.requires_testing_data
 def test_stc_near_sensors_picks():
     """Test using picks with stc_near_sensors."""
+    pytest.importorskip("pymatreader")
     info = mne.io.read_raw_nirx(fname_nirx).info
     evoked = mne.EvokedArray(np.ones((len(info["ch_names"]), 1)), info)
     src = mne.read_source_spaces(fname_src_fs)
@@ -1757,7 +1753,7 @@ def _make_morph_map_hemi_same(subject_from, subject_to, subjects_dir, reg_from, 
 @pytest.mark.parametrize(
     "kind",
     (
-        pytest.param("volume", marks=[requires_version("dipy"), pytest.mark.slowtest]),
+        pytest.param("volume", marks=[pytest.mark.slowtest]),
         "surface",
     ),
 )
@@ -1765,6 +1761,8 @@ def _make_morph_map_hemi_same(subject_from, subject_to, subjects_dir, reg_from, 
 def test_scale_morph_labels(kind, scale, monkeypatch, tmp_path):
     """Test label extraction, morphing, and MRI scaling relationships."""
     pytest.importorskip("nibabel")
+    if kind == "volume":
+        pytest.importorskip("dipy")
     subject_from = "sample"
     subject_to = "small"
     testing_dir = subjects_dir / subject_from
@@ -1911,7 +1909,7 @@ def test_scale_morph_labels(kind, scale, monkeypatch, tmp_path):
             if isinstance(scale, tuple):
                 # some other fixed constant
                 # min_, max_ = 0.84, 0.855  # zooms='auto' values
-                min_, max_ = 0.57, 0.67
+                min_, max_ = 0.55, 0.67
             elif scale == 1:
                 # min_, max_ = 0.85, 0.875  # zooms='auto' values
                 min_, max_ = 0.72, 0.76

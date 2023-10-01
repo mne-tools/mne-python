@@ -5,7 +5,7 @@
 import numpy as np
 
 from ...io import BaseRaw
-from ...io.constants import FIFF
+from ..._fiff.constants import FIFF
 from ...utils import logger, _check_preload, _validate_type, warn
 
 

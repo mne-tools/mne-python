@@ -1,12 +1,12 @@
 from pathlib import Path
 
+import pytest
 import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_allclose
 from scipy.signal import lfilter
 
 from mne import io
 from mne.time_frequency.ar import _yule_walker, fit_iir_model_raw
-from mne.utils import requires_version
 
 
 raw_fname = (
@@ -14,11 +14,10 @@ raw_fname = (
 )
 
 
-# 0.7 attempts to import nonexistent TimeSeries from Pandas 0.20
-@requires_version("patsy", "0.4")
-@requires_version("statsmodels", "0.8")
 def test_yule_walker():
     """Test Yule-Walker against statsmodels."""
+    pytest.importorskip("patsy", "0.4")
+    pytest.importorskip("statsmodels", "0.8")
     from statsmodels.regression.linear_model import yule_walker as sm_yw
 
     d = np.random.randn(100)
@@ -31,7 +30,7 @@ def test_yule_walker():
 def test_ar_raw():
     """Test fitting AR model on raw data."""
     raw = io.read_raw_fif(raw_fname).crop(0, 2).load_data()
-    raw.pick_types(meg="grad")
+    raw.pick(picks="grad")
     # pick MEG gradiometers
     for order in (2, 5, 10):
         coeffs = fit_iir_model_raw(raw, order)[1][1:]
