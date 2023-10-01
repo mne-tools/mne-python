@@ -1086,15 +1086,22 @@ def test_info_bad():
     info["line_freq"] = 50.0
     info["bads"] = info["ch_names"][:1]
     info["temp"] = ("whatever", 1.0)
-    # After 0.24 these should be pytest.raises calls
-    check, klass = pytest.raises, RuntimeError
-    with check(klass, match=r"info\['temp'\]"):
+    with pytest.raises(RuntimeError, match=r"info\['temp'\]"):
         info["bad_key"] = 1.0
     for key, match in [("sfreq", r"inst\.resample"), ("chs", r"inst\.add_channels")]:
-        with check(klass, match=match):
+        with pytest.raises(RuntimeError, match=match):
             info[key] = info[key]
     with pytest.raises(ValueError, match="between meg<->head"):
         info["dev_head_t"] = Transform("mri", "head", np.eye(4))
+    with pytest.raises(ValueError, match="do not exist in info"):
+        info["bads"] = ["foo"]
+    with pytest.raises(ValueError, match="do not exist in info"):
+        info["bads"] += ["foo"]
+    with pytest.raises(ValueError, match="do not exist in info"):
+        info["bads"].append("foo")
+    with pytest.raises(ValueError, match="do not exist in info"):
+        info["bads"].extend(["foo"])
+    assert info["bads"] == info["ch_names"][:1]  # unchonged
 
 
 def test_get_montage():

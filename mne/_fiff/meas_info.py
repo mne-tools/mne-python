@@ -938,18 +938,52 @@ def _check_ch_keys(ch, ci, name='info["chs"]', check_min=True):
             )
 
 
-# As options are added here, test_meas_info.py:test_info_bad should be updated
-def _check_bads(bads):
+def _check_bads_info_compat(bads, info):
     _validate_type(bads, list, "bads")
-    return bads
+    if not len(bads):
+        return  # e.g. in empty_info
+    for bi, bad in enumerate(bads):
+        _validate_type(bad, str, f"bads[{bi}]")
+    if "ch_names" not in info:  # somewhere in init, or deepcopy, or _empty_info, etc.
+        return
+    missing = [bad for bad in bads if bad not in info["ch_names"]]
+    if len(missing) > 0:
+        raise ValueError(f"bad channel(s) {missing} marked do not exist in info")
 
 
-def _check_description(description):
+class MNEBadsList(list):
+    """Subclass of bads that checks inplace operations."""
+
+    def __init__(self, *, bads, info):
+        _check_bads_info_compat(bads, info)
+        self._mne_info = info
+        super().__init__(bads)
+
+    def extend(self, iterable):
+        if not isinstance(iterable, list):
+            iterable = list(iterable)
+        _check_bads_info_compat(iterable, self._mne_info)
+        return super().extend(iterable)
+
+    def append(self, x):
+        return self.extend([x])
+
+    def __iadd__(self, x):
+        self.extend(x)
+        return self
+
+
+# As options are added here, test_meas_info.py:test_info_bad should be updated
+def _check_bads(bads, *, info):
+    return MNEBadsList(bads=bads, info=info)
+
+
+def _check_description(description, *, info):
     _validate_type(description, (None, str), "info['description']")
     return description
 
 
-def _check_dev_head_t(dev_head_t):
+def _check_dev_head_t(dev_head_t, *, info):
     from ..transforms import Transform, _ensure_trans
 
     _validate_type(dev_head_t, (Transform, None), "info['dev_head_t']")
@@ -958,23 +992,23 @@ def _check_dev_head_t(dev_head_t):
     return dev_head_t
 
 
-def _check_experimenter(experimenter):
+def _check_experimenter(experimenter, *, info):
     _validate_type(experimenter, (None, str), "experimenter")
     return experimenter
 
 
-def _check_line_freq(line_freq):
+def _check_line_freq(line_freq, *, info):
     _validate_type(line_freq, (None, "numeric"), "line_freq")
     line_freq = float(line_freq) if line_freq is not None else line_freq
     return line_freq
 
 
-def _check_subject_info(subject_info):
+def _check_subject_info(subject_info, *, info):
     _validate_type(subject_info, (None, dict), "subject_info")
     return subject_info
 
 
-def _check_device_info(device_info):
+def _check_device_info(device_info, *, info):
     _validate_type(
         device_info,
         (
@@ -986,7 +1020,7 @@ def _check_device_info(device_info):
     return device_info
 
 
-def _check_helium_info(helium_info):
+def _check_helium_info(helium_info, *, info):
     _validate_type(
         helium_info,
         (
@@ -1471,7 +1505,7 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
         "sfreq": "sfreq cannot be set directly. "
         "Please use method inst.resample() instead.",
         "subject_info": _check_subject_info,
-        "temp": lambda x: x,
+        "temp": lambda x, info=None: x,
         "utc_offset": "utc_offset cannot be set directly.",
         "working_dir": "working_dir cannot be set directly.",
         "xplotter_layout": "xplotter_layout cannot be set directly.",
@@ -1481,6 +1515,8 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
         self._unlocked = True
         super().__init__(*args, **kwargs)
         # Deal with h5io writing things as dict
+        if "bads" in self:
+            self["bads"] = MNEBadsList(bads=self["bads"], info=self)
         for key in ("dev_head_t", "ctf_head_t", "dev_ctf_t"):
             _format_trans(self, key)
         for res in self.get("hpi_results", []):
@@ -1525,7 +1561,9 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
                 if not unlocked:
                     raise RuntimeError(self._attributes[key])
             else:
-                val = self._attributes[key](val)  # attribute checker function
+                val = self._attributes[key](
+                    val, info=self
+                )  # attribute checker function
         else:
             raise RuntimeError(
                 f"Info does not support directly setting the key {repr(key)}. "
@@ -1723,16 +1761,6 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
 
     def _check_consistency(self, prepend_error=""):
         """Do some self-consistency checks and datatype tweaks."""
-        missing = [bad for bad in self["bads"] if bad not in self["ch_names"]]
-        if len(missing) > 0:
-            msg = "%sbad channel(s) %s marked do not exist in info"
-            raise RuntimeError(
-                msg
-                % (
-                    prepend_error,
-                    missing,
-                )
-            )
         meas_date = self.get("meas_date")
         if meas_date is not None:
             if (
