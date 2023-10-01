@@ -502,9 +502,9 @@ class RawCNT(BaseRaw):
         emg=(),
         data_format="auto",
         date_format="mm/dd/yy",
+        header="old",
         preload=False,
         verbose=None,
-        header="old",
     ):  # noqa: D102
         _check_option("date_format", date_format, ["mm/dd/yy", "dd/mm/yy"])
         if date_format == "dd/mm/yy":
