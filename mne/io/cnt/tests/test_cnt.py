@@ -37,17 +37,14 @@ def test_old_data():
     # the data has "05/10/200 17:35:31" so it is set to None
     assert raw.info["meas_date"] is None
 
+
 @testing.requires_testing_data
 def test_new_data():
     """Test reading raw cnt files with different header."""
     with pytest.warns(RuntimeWarning, match="number of bytes"):
-        raw = _test_raw_reader(
-            read_raw_cnt, input_fname=fname_new_header, header = "new"
-        )
-
+        raw = _test_raw_reader(read_raw_cnt, input_fname=fname_new_header, header="new")
 
     assert raw.info["bads"] == ["F8"]  # test bads
-
 
 
 @testing.requires_testing_data

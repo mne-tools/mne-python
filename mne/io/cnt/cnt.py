@@ -173,7 +173,7 @@ def read_raw_cnt(
     date_format="mm/dd/yy",
     preload=False,
     verbose=None,
-    header='new',
+    header="new",
 ):
     """Read CNT data as raw object.
 
@@ -350,9 +350,9 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format, he
             fid.seek(data_offset + 75 * ch_idx)
             ch_name = read_str(fid, 10)
             ch_names.append(ch_name)
-            if header == 'new':
+            if header == "new":
                 fid.seek(data_offset + 75 * ch_idx + 14)
-            if header == 'old':
+            if header == "old":
                 fid.seek(data_offset + 75 * ch_idx + 4)
             if np.fromfile(fid, dtype="u1", count=1).item():
                 bads.append(ch_name)
