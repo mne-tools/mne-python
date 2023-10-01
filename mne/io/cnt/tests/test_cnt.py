@@ -22,7 +22,9 @@ fname_bad_spans = data_path / "CNT" / "test_CNT_events_mne_JWoess_clipped.cnt"
 def test_old_data():
     """Test reading raw cnt files."""
     with pytest.warns(RuntimeWarning, match="number of bytes"):
-        read_raw_cnt, input_fname=fname, eog="auto", misc=["NA1", "LEFT_EAR"]
+        raw = _test_raw_reader(
+            read_raw_cnt, input_fname=fname, eog="auto", misc=["NA1", "LEFT_EAR"]
+        )
 
     # make sure we use annotations event if we synthesized stim
     assert len(raw.annotations) == 6
