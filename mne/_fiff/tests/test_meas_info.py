@@ -1089,7 +1089,7 @@ def test_pickle(fname_info, unlocked):
 
 def test_info_bad():
     """Test our info sanity checkers."""
-    info = create_info(2, 1000.0, "eeg")
+    info = create_info(5, 1000.0, "eeg")
     info["description"] = "foo"
     info["experimenter"] = "bar"
     info["line_freq"] = 50.0
@@ -1115,7 +1115,16 @@ def test_info_bad():
     with pytest.raises(ValueError, match="do not exist in info"):
         info["bads"].extend(["foo"])
     assert isinstance(info["bads"], MNEBadsList)
+    x = info["bads"]
+    with pytest.raises(ValueError, match="do not exist in info"):
+        x.append("foo")
     assert info["bads"] == info["ch_names"][:1]  # unchonged
+    x = info["bads"] + info["ch_names"][1:2]
+    assert x == info["ch_names"][:2]
+    assert not isinstance(x, MNEBadsList)  # plain list
+    x = info["ch_names"][1:2] + info["bads"]
+    assert x == info["ch_names"][1::-1]  # like [1, 0] in fancy indexing
+    assert not isinstance(x, MNEBadsList)  # plain list
 
 
 def test_get_montage():
