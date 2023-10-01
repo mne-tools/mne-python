@@ -59,6 +59,7 @@ from mne._fiff.meas_info import (
     _dt_to_stamp,
     _add_timedelta_to_stamp,
     _read_extended_ch_info,
+    MNEBadsList,
 )
 from mne.minimum_norm import (
     make_inverse_operator,
@@ -495,8 +496,8 @@ def test_check_consistency():
 
     # Bad channels that are not in the info object
     info2 = info.copy()
-    info2["bads"] = ["b", "foo", "bar"]
-    pytest.raises(RuntimeError, info2._check_consistency)
+    with pytest.raises(ValueError, match="do not exist"):
+        info2["bads"] = ["b", "foo", "bar"]
 
     # Bad data types
     info2 = info.copy()
@@ -1088,21 +1089,42 @@ def test_pickle(fname_info, unlocked):
 
 def test_info_bad():
     """Test our info sanity checkers."""
-    info = create_info(2, 1000.0, "eeg")
+    info = create_info(5, 1000.0, "eeg")
     info["description"] = "foo"
     info["experimenter"] = "bar"
     info["line_freq"] = 50.0
     info["bads"] = info["ch_names"][:1]
     info["temp"] = ("whatever", 1.0)
-    # After 0.24 these should be pytest.raises calls
-    check, klass = pytest.raises, RuntimeError
-    with check(klass, match=r"info\['temp'\]"):
+    with pytest.raises(RuntimeError, match=r"info\['temp'\]"):
         info["bad_key"] = 1.0
     for key, match in [("sfreq", r"inst\.resample"), ("chs", r"inst\.add_channels")]:
-        with check(klass, match=match):
+        with pytest.raises(RuntimeError, match=match):
             info[key] = info[key]
     with pytest.raises(ValueError, match="between meg<->head"):
         info["dev_head_t"] = Transform("mri", "head", np.eye(4))
+    assert isinstance(info["bads"], MNEBadsList)
+    with pytest.raises(ValueError, match="do not exist in info"):
+        info["bads"] = ["foo"]
+    assert isinstance(info["bads"], MNEBadsList)
+    with pytest.raises(ValueError, match="do not exist in info"):
+        info["bads"] += ["foo"]
+    assert isinstance(info["bads"], MNEBadsList)
+    with pytest.raises(ValueError, match="do not exist in info"):
+        info["bads"].append("foo")
+    assert isinstance(info["bads"], MNEBadsList)
+    with pytest.raises(ValueError, match="do not exist in info"):
+        info["bads"].extend(["foo"])
+    assert isinstance(info["bads"], MNEBadsList)
+    x = info["bads"]
+    with pytest.raises(ValueError, match="do not exist in info"):
+        x.append("foo")
+    assert info["bads"] == info["ch_names"][:1]  # unchonged
+    x = info["bads"] + info["ch_names"][1:2]
+    assert x == info["ch_names"][:2]
+    assert not isinstance(x, MNEBadsList)  # plain list
+    x = info["ch_names"][1:2] + info["bads"]
+    assert x == info["ch_names"][1::-1]  # like [1, 0] in fancy indexing
+    assert not isinstance(x, MNEBadsList)  # plain list
 
 
 def test_get_montage():

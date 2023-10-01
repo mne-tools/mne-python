@@ -976,7 +976,7 @@ def rename_channels(info, mapping, allow_duplicates=False, *, verbose=None):
         raise ValueError("New channel names are not unique, renaming failed")
 
     # do the remapping in info
-    info["bads"] = bads
+    info["bads"] = []
     ch_names_mapping = dict()
     for ch, ch_name in zip(info["chs"], ch_names):
         ch_names_mapping[ch["ch_name"]] = ch_name
@@ -989,6 +989,7 @@ def rename_channels(info, mapping, allow_duplicates=False, *, verbose=None):
                 proj["data"]["col_names"], ch_names_mapping
             )
     info._update_redundant()
+    info["bads"] = bads
     info._check_consistency()
 
 

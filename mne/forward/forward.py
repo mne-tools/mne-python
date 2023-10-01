@@ -458,11 +458,9 @@ def _read_forward_meas_info(tree, fid):
     else:
         raise ValueError("MEG/head coordinate transformation not found")
 
-    info["bads"] = _read_bad_channels(
-        fid, parent_meg, ch_names_mapping=ch_names_mapping
-    )
+    bads = _read_bad_channels(fid, parent_meg, ch_names_mapping=ch_names_mapping)
     # clean up our bad list, old versions could have non-existent bads
-    info["bads"] = [bad for bad in info["bads"] if bad in info["ch_names"]]
+    info["bads"] = [bad for bad in bads if bad in info["ch_names"]]
 
     # Check if a custom reference has been applied
     tag = find_tag(fid, parent_mri, FIFF.FIFF_MNE_CUSTOM_REF)
