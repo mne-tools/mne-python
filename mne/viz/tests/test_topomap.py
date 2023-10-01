@@ -139,7 +139,7 @@ def test_plot_projs_topomap():
     projs = read_proj(ecg_fname)
     info = read_info(raw_fname)
     plot_projs_topomap(projs, info=info, colorbar=True, **fast_test)
-    ax = plt.subplot(111)
+    _, ax = plt.subplots()
     projs[3].plot_topomap(info)
     plot_projs_topomap(projs[:1], info, axes=ax, **fast_test)  # test axes
     triux_info = read_info(triux_fname)
