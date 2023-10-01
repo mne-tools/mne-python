@@ -58,7 +58,7 @@ tmax = 0.5
 
 # Setup for reading the raw data
 raw = mne.io.read_raw_fif(raw_fname, preload=True)
-raw.filter(1, 30)
+raw.filter(1, 25)
 events = mne.read_events(event_fname)
 
 # %%
@@ -75,6 +75,7 @@ epochs = mne.Epochs(
     tmin,
     tmax,
     picks=picks,
+    decim=2,  # just for speed!
     baseline=None,
     reject=reject,
     preload=True,
