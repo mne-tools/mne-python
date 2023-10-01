@@ -3360,7 +3360,7 @@ def _force_update_info(info_base, info_target):
         The Info object(s) you wish to overwrite using info_base. These objects
         will be modified in-place.
     """
-    exclude_keys = ["chs", "ch_names", "nchan"]
+    exclude_keys = ["chs", "ch_names", "nchan", "bads"]
     info_target = np.atleast_1d(info_target).ravel()
     all_infos = np.hstack([info_base, info_target])
     for ii in all_infos:

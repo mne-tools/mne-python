@@ -59,6 +59,7 @@ from mne._fiff.meas_info import (
     _dt_to_stamp,
     _add_timedelta_to_stamp,
     _read_extended_ch_info,
+    MNEBadsList,
 )
 from mne.minimum_norm import (
     make_inverse_operator,
@@ -487,8 +488,8 @@ def test_check_consistency():
 
     # Bad channels that are not in the info object
     info2 = info.copy()
-    info2["bads"] = ["b", "foo", "bar"]
-    pytest.raises(RuntimeError, info2._check_consistency)
+    with pytest.raises(ValueError, match="do not exist"):
+        info2["bads"] = ["b", "foo", "bar"]
 
     # Bad data types
     info2 = info.copy()
@@ -1093,14 +1094,19 @@ def test_info_bad():
             info[key] = info[key]
     with pytest.raises(ValueError, match="between meg<->head"):
         info["dev_head_t"] = Transform("mri", "head", np.eye(4))
+    assert isinstance(info["bads"], MNEBadsList)
     with pytest.raises(ValueError, match="do not exist in info"):
         info["bads"] = ["foo"]
+    assert isinstance(info["bads"], MNEBadsList)
     with pytest.raises(ValueError, match="do not exist in info"):
         info["bads"] += ["foo"]
+    assert isinstance(info["bads"], MNEBadsList)
     with pytest.raises(ValueError, match="do not exist in info"):
         info["bads"].append("foo")
+    assert isinstance(info["bads"], MNEBadsList)
     with pytest.raises(ValueError, match="do not exist in info"):
         info["bads"].extend(["foo"])
+    assert isinstance(info["bads"], MNEBadsList)
     assert info["bads"] == info["ch_names"][:1]  # unchonged
 
 
