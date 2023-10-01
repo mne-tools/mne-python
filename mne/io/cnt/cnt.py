@@ -171,9 +171,9 @@ def read_raw_cnt(
     emg=(),
     data_format="auto",
     date_format="mm/dd/yy",
+    header="old",
     preload=False,
     verbose=None,
-    header="new",
 ):
     """Read CNT data as raw object.
 
@@ -250,13 +250,22 @@ def read_raw_cnt(
         emg=emg,
         data_format=data_format,
         date_format=date_format,
+        header=header,
         preload=preload,
         verbose=verbose,
-        header=header,
     )
 
 
-def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format, header):
+def _get_cnt_info(
+    input_fname,
+    eog,
+    ecg,
+    emg,
+    misc,
+    data_format,
+    date_format,
+    header
+):
     """Read the cnt header."""
     data_offset = 900  # Size of the 'SETUP' header.
     cnt_info = dict()
@@ -351,6 +360,8 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format, he
             fid.seek(data_offset + 75 * ch_idx)
             ch_name = read_str(fid, 10)
             ch_names.append(ch_name)
+
+            # Some files have bad channels marked differently in the header.
             if header == "new":
                 fid.seek(data_offset + 75 * ch_idx + 14)
             if header == "old":
@@ -493,7 +504,7 @@ class RawCNT(BaseRaw):
         date_format="mm/dd/yy",
         preload=False,
         verbose=None,
-        header="new",
+        header="old",
     ):  # noqa: D102
         _check_option("date_format", date_format, ["mm/dd/yy", "dd/mm/yy"])
         if date_format == "dd/mm/yy":
