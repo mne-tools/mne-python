@@ -27,7 +27,7 @@ def test_old_data():
             input_fname=fname,
             eog="auto",
             misc=["NA1", "LEFT_EAR"],
-            header='old'
+            header="old",
         )
 
     # make sure we use annotations event if we synthesized stim
@@ -45,10 +45,7 @@ def test_old_data():
 def test_new_data():
     """Test reading raw cnt files with different header."""
     with pytest.warns(RuntimeWarning, match="Could not parse meas date"):
-        raw = read_raw_cnt(
-            input_fname=fname,
-            header="new"
-        )
+        raw = read_raw_cnt(input_fname=fname, header="new")
 
     assert raw.info["bads"] == ["F8"]  # test bads
 

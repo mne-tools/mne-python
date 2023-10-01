@@ -256,16 +256,7 @@ def read_raw_cnt(
     )
 
 
-def _get_cnt_info(
-        input_fname,
-        eog,
-        ecg,
-        emg,
-        misc,
-        data_format,
-        date_format,
-        header
-        ):
+def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format, header):
     """Read the cnt header."""
     data_offset = 900  # Size of the 'SETUP' header.
     cnt_info = dict()
