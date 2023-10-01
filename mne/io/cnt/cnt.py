@@ -223,7 +223,8 @@ def read_raw_cnt(
     date_format : ``'mm/dd/yy'`` | ``'dd/mm/yy'``
         Format of date in the header. Defaults to ``'mm/dd/yy'``.
     header : ``'new'`` | ``'old'``
-        Defines the header format. Used to describe how bad channels are formatted.
+        Defines the header format. Used to describe how bad channels
+        are formatted.
     %(preload)s
     %(verbose)s
 
@@ -255,7 +256,16 @@ def read_raw_cnt(
     )
 
 
-def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format, header):
+def _get_cnt_info(
+        input_fname,
+        eog,
+        ecg,
+        emg,
+        misc,
+        data_format,
+        date_format,
+        header
+        ):
     """Read the cnt header."""
     data_offset = 900  # Size of the 'SETUP' header.
     cnt_info = dict()
@@ -460,6 +470,9 @@ class RawCNT(BaseRaw):
         Defaults to ``'auto'``.
     date_format : ``'mm/dd/yy'`` | ``'dd/mm/yy'``
         Format of date in the header. Defaults to ``'mm/dd/yy'``.
+    header : ``'new'`` | ``'old'``
+        Defines the header format. Used to describe how bad channels
+        are formatted.
     %(preload)s
     stim_channel : bool | None
         Add a stim channel from the events. Defaults to None to trigger a
@@ -489,6 +502,7 @@ class RawCNT(BaseRaw):
         date_format="mm/dd/yy",
         preload=False,
         verbose=None,
+        header="new",
     ):  # noqa: D102
         _check_option("date_format", date_format, ["mm/dd/yy", "dd/mm/yy"])
         if date_format == "dd/mm/yy":
@@ -498,7 +512,7 @@ class RawCNT(BaseRaw):
 
         input_fname = path.abspath(input_fname)
         info, cnt_info = _get_cnt_info(
-            input_fname, eog, ecg, emg, misc, data_format, _date_format
+            input_fname, eog, ecg, emg, misc, data_format, _date_format, header
         )
         last_samps = [cnt_info["n_samples"] - 1]
         super(RawCNT, self).__init__(
