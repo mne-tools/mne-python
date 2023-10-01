@@ -15,7 +15,6 @@ from mne.annotations import read_annotations
 
 data_path = testing.data_path(download=False)
 fname = data_path / "CNT" / "scan41_short.cnt"
-fname_new_header = data_path / "CNT" / "test_CNT_events_mne_JWoess_clipped.cnt"
 fname_bad_spans = data_path / "CNT" / "test_CNT_events_mne_JWoess_clipped.cnt"
 
 
@@ -24,7 +23,11 @@ def test_old_data():
     """Test reading raw cnt files."""
     with pytest.warns(RuntimeWarning, match="number of bytes"):
         raw = _test_raw_reader(
-            read_raw_cnt, input_fname=fname, eog="auto", misc=["NA1", "LEFT_EAR"]
+            read_raw_cnt,
+            input_fname=fname,
+            eog="auto",
+            misc=["NA1", "LEFT_EAR"],
+            header='old'
         )
 
     # make sure we use annotations event if we synthesized stim
@@ -41,8 +44,11 @@ def test_old_data():
 @testing.requires_testing_data
 def test_new_data():
     """Test reading raw cnt files with different header."""
-    with pytest.warns(RuntimeWarning, match="number of bytes"):
-        raw = _test_raw_reader(read_raw_cnt, input_fname=fname_new_header, header="new")
+    with pytest.warns(RuntimeWarning, match="Could not parse meas date"):
+        raw = read_raw_cnt(
+            input_fname=fname,
+            header="new"
+        )
 
     assert raw.info["bads"] == ["F8"]  # test bads
 
@@ -51,7 +57,7 @@ def test_new_data():
 def test_compare_events_and_annotations():
     """Test comparing annotations and events."""
     with pytest.warns(RuntimeWarning, match="Could not parse meas date"):
-        raw = read_raw_cnt(fname)
+        raw = read_raw_cnt(fname_bad_spans)
     events = np.array(
         [[333, 0, 7], [1010, 0, 7], [1664, 0, 109], [2324, 0, 7], [2984, 0, 109]]
     )
