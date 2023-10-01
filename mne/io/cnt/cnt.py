@@ -173,6 +173,7 @@ def read_raw_cnt(
     date_format="mm/dd/yy",
     preload=False,
     verbose=None,
+    header='new',
 ):
     """Read CNT data as raw object.
 
@@ -221,6 +222,8 @@ def read_raw_cnt(
         Defaults to ``'auto'``.
     date_format : ``'mm/dd/yy'`` | ``'dd/mm/yy'``
         Format of date in the header. Defaults to ``'mm/dd/yy'``.
+    header : ``'new'`` | ``'old'``
+        Defines the header format. Used to describe how bad channels are formatted.
     %(preload)s
     %(verbose)s
 
@@ -248,10 +251,11 @@ def read_raw_cnt(
         date_format=date_format,
         preload=preload,
         verbose=verbose,
+        header=header,
     )
 
 
-def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format):
+def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format, header):
     """Read the cnt header."""
     data_offset = 900  # Size of the 'SETUP' header.
     cnt_info = dict()
@@ -346,7 +350,10 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format):
             fid.seek(data_offset + 75 * ch_idx)
             ch_name = read_str(fid, 10)
             ch_names.append(ch_name)
-            fid.seek(data_offset + 75 * ch_idx + 14)
+            if header == 'new':
+                fid.seek(data_offset + 75 * ch_idx + 14)
+            if header == 'old':
+                fid.seek(data_offset + 75 * ch_idx + 4)
             if np.fromfile(fid, dtype="u1", count=1).item():
                 bads.append(ch_name)
             fid.seek(data_offset + 75 * ch_idx + 19)

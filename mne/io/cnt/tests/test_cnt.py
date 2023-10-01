@@ -15,11 +15,12 @@ from mne.annotations import read_annotations
 
 data_path = testing.data_path(download=False)
 fname = data_path / "CNT" / "scan41_short.cnt"
+fname_new_header = data_path / "CNT" / "test_CNT_events_mne_JWoess_clipped.cnt"
 fname_bad_spans = data_path / "CNT" / "test_CNT_events_mne_JWoess_clipped.cnt"
 
 
 @testing.requires_testing_data
-def test_data():
+def test_old_data():
     """Test reading raw cnt files."""
     with pytest.warns(RuntimeWarning, match="number of bytes"):
         raw = _test_raw_reader(
@@ -35,6 +36,18 @@ def test_data():
 
     # the data has "05/10/200 17:35:31" so it is set to None
     assert raw.info["meas_date"] is None
+
+@testing.requires_testing_data
+def test_new_data():
+    """Test reading raw cnt files with different header."""
+    with pytest.warns(RuntimeWarning, match="number of bytes"):
+        raw = _test_raw_reader(
+            read_raw_cnt, input_fname=fname_new_header, header = "new"
+        )
+
+
+    assert raw.info["bads"] == ["F8"]  # test bads
+
 
 
 @testing.requires_testing_data
