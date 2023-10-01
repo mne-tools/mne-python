@@ -209,6 +209,14 @@ or by doing
 :func:`mne.viz.set_3d_options(antialias=False) <mne.viz.set_3d_options>` within
 a given Python session.
 
+Some hardware-accelerated graphics on linux (e.g., some Intel graphics cards)
+provide an insufficient implementation of OpenGL, and in those cases it can help to
+force software rendering instead with something like:
+
+.. code-block:: console
+
+    $ export LIBGL_ALWAYS_SOFTWARE=true
+
 Another issue that may come up is that the MESA software itself may be out of date
 in certain operating systems, for example CentOS. This may lead to incomplete
 rendering of some 3D plots. A solution is described in this `Github comment <https://github.com/mne-tools/mne-python/issues/7977#issuecomment-729921035>`_.

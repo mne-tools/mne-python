@@ -192,7 +192,7 @@ def _get_artemis123_info(fname, pos_fname=None):
     # load mne loc dictionary
     loc_dict = _load_mne_locs()
     info["chs"] = []
-    info["bads"] = []
+    bads = []
 
     for i, chan in enumerate(header_info["channels"]):
         # build chs struct
@@ -209,7 +209,7 @@ def _get_artemis123_info(fname, pos_fname=None):
         # a value of another ref channel to make writers/readers happy.
         if t["cal"] == 0:
             t["cal"] = 4.716e-10
-            info["bads"].append(t["ch_name"])
+            bads.append(t["ch_name"])
         t["loc"] = loc_dict.get(chan["name"], np.zeros(12))
 
         if chan["name"].startswith("MEG"):
@@ -247,7 +247,7 @@ def _get_artemis123_info(fname, pos_fname=None):
             t["coil_type"] = FIFF.FIFFV_COIL_NONE
             t["kind"] = FIFF.FIFFV_MISC_CH
             t["unit"] = FIFF.FIFF_UNIT_V
-            info["bads"].append(t["ch_name"])
+            bads.append(t["ch_name"])
 
         elif chan["name"].startswith(("AUX", "TRG", "MIO")):
             t["coil_type"] = FIFF.FIFFV_COIL_NONE
@@ -268,10 +268,7 @@ def _get_artemis123_info(fname, pos_fname=None):
         # append this channel to the info
         info["chs"].append(t)
         if chan["FLL_ResetLock"] == "TRUE":
-            info["bads"].append(t["ch_name"])
-
-    # reduce info['bads'] to unique set
-    info["bads"] = list(set(info["bads"]))
+            bads.append(t["ch_name"])
 
     # HPI information
     # print header_info.keys()
@@ -313,6 +310,9 @@ def _get_artemis123_info(fname, pos_fname=None):
 
     info._unlocked = False
     info._update_redundant()
+    # reduce info['bads'] to unique set
+    info["bads"] = list(set(bads))
+    del bads
     return info, header_info
 
 
