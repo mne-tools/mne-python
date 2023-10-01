@@ -22,13 +22,7 @@ fname_bad_spans = data_path / "CNT" / "test_CNT_events_mne_JWoess_clipped.cnt"
 def test_old_data():
     """Test reading raw cnt files."""
     with pytest.warns(RuntimeWarning, match="number of bytes"):
-        raw = _test_raw_reader(
-            read_raw_cnt,
-            input_fname=fname,
-            eog="auto",
-            misc=["NA1", "LEFT_EAR"],
-            header="old",
-        )
+        read_raw_cnt, input_fname=fname, eog="auto", misc=["NA1", "LEFT_EAR"]
 
     # make sure we use annotations event if we synthesized stim
     assert len(raw.annotations) == 6
@@ -54,7 +48,7 @@ def test_new_data():
 def test_compare_events_and_annotations():
     """Test comparing annotations and events."""
     with pytest.warns(RuntimeWarning, match="Could not parse meas date"):
-        raw = read_raw_cnt(fname_bad_spans)
+        raw = read_raw_cnt(fname)
     events = np.array(
         [[333, 0, 7], [1010, 0, 7], [1664, 0, 109], [2324, 0, 7], [2984, 0, 109]]
     )
