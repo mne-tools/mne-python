@@ -50,12 +50,12 @@ Documentation for the related C and MATLAB tools are available here:
 
    Tutorials<../auto_tutorials/index>
    Examples<../auto_examples/index>
-   ../glossary
+   glossary
    Implementation details<implementation>
    design_philosophy
-   Example datasets<datasets_index>
+   Example datasets<datasets>
    Command-line tools<../generated/commands>
-   migrating
+   ../help/migrating
    cookbook
    cite
-   ../cited
+   cited
