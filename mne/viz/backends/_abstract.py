@@ -1396,6 +1396,10 @@ class _AbstractMplCanvas(ABC):
         self.canvas = None
         self.manager = None
 
+    def on_resize(self, event):
+        """Handle resize events."""
+        pass
+
 
 class _AbstractBrainMplCanvas(_AbstractMplCanvas):
     def __init__(self, brain, width, height, dpi):
