@@ -21,7 +21,6 @@ import os
 import sys
 import tempfile
 import traceback
-import warnings
 import webbrowser
 
 from decorator import decorator

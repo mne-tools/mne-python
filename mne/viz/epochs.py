@@ -13,7 +13,6 @@
 
 from collections import Counter
 from copy import deepcopy
-import warnings
 
 import numpy as np
 from scipy.ndimage import gaussian_filter1d
