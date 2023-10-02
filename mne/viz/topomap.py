@@ -121,11 +121,10 @@ def _prepare_topomap_plot(inst, ch_type, sphere=None):
     clean_ch_names = _clean_names(info["ch_names"])
     for ii, this_ch in enumerate(info["chs"]):
         this_ch["ch_name"] = clean_ch_names[ii]
-    info["bads"] = _clean_names(info["bads"])
     for comp in info["comps"]:
         comp["data"]["col_names"] = _clean_names(comp["data"]["col_names"])
-
     info._update_redundant()
+    info["bads"] = _clean_names(info["bads"])
     info._check_consistency()
 
     # special case for merging grad channels

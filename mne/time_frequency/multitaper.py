@@ -341,7 +341,7 @@ def psd_array_multitaper(
     r"""Compute power spectral density (PSD) using a multi-taper method.
 
     The power spectral density is computed with DPSS
-    tapers\ :footcite:p:`Slepian1978`.
+    tapers :footcite:p:`Slepian1978`.
 
     Parameters
     ----------

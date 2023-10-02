@@ -90,13 +90,18 @@ inverse_operator = make_inverse_operator(
 )
 del fwd
 
-# You can write it to disk with::
-#
-#     >>> from mne.minimum_norm import write_inverse_operator
-#     >>> write_inverse_operator('sample_audvis-meg-oct-6-inv.fif',
-#                                inverse_operator)
-
 # %%
+# .. note::
+#
+#     You can write the inverse operator to disk with:
+#
+#     .. code-block::
+#
+#         from mne.minimum_norm import write_inverse_operator
+#         write_inverse_operator(
+#             "sample_audvis-meg-oct-6-inv.fif", inverse_operator
+#         )
+#
 # Compute inverse solution
 # ------------------------
 # We can use this to compute the inverse solution and obtain source time
