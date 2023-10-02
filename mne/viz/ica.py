@@ -14,7 +14,6 @@ import numpy as np
 from scipy.stats import gaussian_kde
 
 from .utils import (
-    tight_layout,
     _make_event_color_dict,
     _get_cmap,
     plt_show,

@@ -87,7 +87,6 @@ from .utils import (
     _get_color_list,
     _get_cmap,
     plt_show,
-    tight_layout,
     figure_nobar,
     _check_time_unit,
 )
