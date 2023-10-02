@@ -219,4 +219,4 @@ plot_gaze(epochs, width=1920, height=1080)
 # Finally, let's plot the evoked responses to the light flashes to get a sense of the
 # average pupillary light response, and the associated ERP in the EEG data.
 
-epochs.apple_baseline().average().plot(picks=occipital + pupil)
+epochs.apply_baseline().average().plot(picks=occipital + pupil)
