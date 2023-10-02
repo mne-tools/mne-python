@@ -1591,6 +1591,32 @@ needed_plot_redirects = {
     "xdawn_denoising.py",
     "xhemi.py",
 }
+api_redirects = {
+    "connectivity",
+    "covariance",
+    "creating_from_arrays",
+    "datasets",
+    "decoding",
+    "events",
+    "export",
+    "file_io",
+    "forward",
+    "inverse",
+    "logging",
+    "most_used_classes",
+    "mri",
+    "preprocessing",
+    "python_reference",
+    "reading_raw_data",
+    "realtime",
+    "report",
+    "sensor_space",
+    "simulation",
+    "source_space",
+    "statistics",
+    "time_frequency",
+    "visualization",
+}
 ex = "auto_examples"
 co = "connectivity"
 mne_conn = "https://mne.tools/mne-connectivity/stable"
@@ -1666,6 +1692,15 @@ custom_redirects = {
 }
 
 
+def check_existing_redirect(path):
+    if os.path.isfile(path):
+        with open(path, "r") as fid:
+            for _ in range(8):
+                next(fid)
+            line = fid.readline()
+            assert "Page Redirection" in line, line
+
+
 def make_redirects(app, exception):
     """Make HTML redirects."""
     # https://www.sphinx-doc.org/en/master/extdev/appapi.html
@@ -1715,6 +1750,16 @@ def make_redirects(app, exception):
         sphinx_logger.info(
             f"Added {len(fnames):3d} HTML plot_* redirects for {out_dir}"
         )
+    # API redirects
+    for page in api_redirects:
+        fname = f"{fname}.html"
+        fr_path = os.path.join(app.outdir, fname)
+        to_path = os.path.join(app.outdir, "api", fname)
+        # allow overwrite if existing file is just a redirect
+        check_existing_redirect(fr_path)
+        with open(fr_path, "w") as fid:
+            fid.write(TEMPLATE.format(to=to_path))
+    sphinx_logger.info(f"Added {len(api_redirects):3d} HTML API redirects")
     # custom redirects
     for fr, to in custom_redirects.items():
         if not to.startswith("http"):
@@ -1728,12 +1773,7 @@ def make_redirects(app, exception):
         fr_path = os.path.join(app.outdir, fr)
         assert fr_path.endswith("html"), fr_path
         # allow overwrite if existing file is just a redirect
-        if os.path.isfile(fr_path):
-            with open(fr_path, "r") as fid:
-                for _ in range(8):
-                    next(fid)
-                line = fid.readline()
-                assert "Page Redirection" in line, line
+        check_existing_redirect(fr_path)
         # handle folders that no longer exist
         if fr_path.split("/")[-2] in (
             "misc",
