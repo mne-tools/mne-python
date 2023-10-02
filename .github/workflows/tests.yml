@@ -65,6 +65,9 @@ jobs:
           - os: ubuntu-latest
             python: '3.11'
             kind: pip-pre
+          - os: macos-latest-xlarge  # arm64
+            python: '3.11'
+            kind: mamba
           - os: macos-latest
             python: '3.8'
             kind: mamba
