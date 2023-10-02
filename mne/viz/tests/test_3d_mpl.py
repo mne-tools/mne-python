@@ -185,12 +185,7 @@ def test_plot_volume_source_estimates_on_vol_labels():
         volume_label=volume_label,
         add_interpolator=False,
     )
-    trans = read_trans(
-        data_dir
-        / "MEG"
-        / "sample"
-        / "sample_audvis_trunc-trans.fif"
-    )
+    trans = read_trans(data_dir / "MEG" / "sample" / "sample_audvis_trunc-trans.fif")
     fwd = make_forward_solution(
         evoked.info,
         trans,
