@@ -980,8 +980,8 @@ def compute_covariance(
     Returns
     -------
     cov : instance of Covariance | list
-        The computed covariance. If method equals 'auto' or is a list of str
-        and return_estimators equals True, a list of covariance estimators is
+        The computed covariance. If method equals ``'auto'`` or is a list of str
+        and ``return_estimators=True``, a list of covariance estimators is
         returned (sorted by log-likelihood, from high to low, i.e. from best
         to worst).
 
@@ -1009,16 +1009,14 @@ def compute_covariance(
       .. versionadded:: 0.16
     * ``'ledoit_wolf'``
         The Ledoit-Wolf estimator, which uses an
-        empirical formula for the optimal shrinkage value
-        :footcite:`LedoitWolf2004`.
+        empirical formula for the optimal shrinkage value :footcite:`LedoitWolf2004`.
     * ``'oas'``
         The OAS estimator :footcite:`ChenEtAl2010`, which uses a different
         empricial formula for the optimal shrinkage value.
 
       .. versionadded:: 0.16
     * ``'shrunk'``
-        Like 'ledoit_wolf', but with cross-validation
-        for optimal alpha.
+        Like 'ledoit_wolf', but with cross-validation for optimal alpha.
     * ``'pca'``
         Probabilistic PCA with low rank :footcite:`TippingBishop1999`.
     * ``'factor_analysis'``
@@ -1040,7 +1038,7 @@ def compute_covariance(
     The ``method`` parameter allows to regularize the covariance in an
     automated way. It also allows to select between different alternative
     estimation algorithms which themselves achieve regularization.
-    Details are described in :footcite:`EngemannGramfort2015`.
+    Details are described in :footcite:t:`EngemannGramfort2015`.
 
     For more information on the advanced estimation methods, see
     :ref:`the sklearn manual <sklearn:covariance>`.

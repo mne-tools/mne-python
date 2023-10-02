@@ -329,6 +329,8 @@ mne.viz.set_3d_view(
 renderer.show()
 
 # %%
+# .. _creating-trans:
+#
 # Defining the head↔MRI ``trans`` using the GUI
 # ---------------------------------------------
 # You can try creating the head↔MRI transform yourself using

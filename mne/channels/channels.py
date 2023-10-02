@@ -5,6 +5,8 @@
 #          Andrew Dykstra <andrew.r.dykstra@gmail.com>
 #          Teon Brooks <teon.brooks@gmail.com>
 #          Daniel McCloy <dan.mccloy@gmail.com>
+#          Ana Radanovic <radanovica@protonmail.com>
+#          Erica Peterson <nordme@uw.edu>
 #
 # License: BSD-3-Clause
 
@@ -204,6 +206,83 @@ def equalize_channels(instances, copy=True, verbose=None):
         logger.info("Channels have been re-ordered.")
 
     return equalized_instances
+
+
+def unify_bad_channels(insts):
+    """Unify bad channels across a list of instances.
+
+    All instances must be of the same type and have matching channel names and channel
+    order. The ``.info["bads"]`` of each instance will be set to the union of
+    ``.info["bads"]`` across all instances.
+
+    Parameters
+    ----------
+    insts : list
+        List of instances (:class:`~mne.io.Raw`, :class:`~mne.Epochs`,
+        :class:`~mne.Evoked`, :class:`~mne.time_frequency.Spectrum`,
+        :class:`~mne.time_frequency.EpochsSpectrum`) across which to unify bad channels.
+
+    Returns
+    -------
+    insts : list
+        List of instances with bad channels unified across instances.
+
+    See Also
+    --------
+    mne.channels.equalize_channels
+    mne.channels.rename_channels
+    mne.channels.combine_channels
+
+    Notes
+    -----
+    This function modifies the instances in-place.
+
+    .. versionadded:: 1.6
+    """
+    from ..io import BaseRaw
+    from ..epochs import Epochs
+    from ..evoked import Evoked
+    from ..time_frequency.spectrum import BaseSpectrum
+
+    # ensure input is list-like
+    _validate_type(insts, (list, tuple), "insts")
+    # ensure non-empty
+    if len(insts) == 0:
+        raise ValueError("insts must not be empty")
+    # ensure all insts are MNE objects, and all the same type
+    inst_type = type(insts[0])
+    valid_types = (BaseRaw, Epochs, Evoked, BaseSpectrum)
+    for inst in insts:
+        _validate_type(inst, valid_types, "each object in insts")
+        if type(inst) != inst_type:
+            raise ValueError("All insts must be the same type")
+
+    # ensure all insts have the same channels and channel order
+    ch_names = insts[0].ch_names
+    for inst in insts[1:]:
+        dif = set(inst.ch_names) ^ set(ch_names)
+        if len(dif):
+            raise ValueError(
+                "Channels do not match across the objects in insts. Consider calling "
+                "equalize_channels before calling this function."
+            )
+        elif inst.ch_names != ch_names:
+            raise ValueError(
+                "Channel names are sorted differently across instances. Please use "
+                "mne.channels.equalize_channels."
+            )
+
+    # collect bads as dict keys so that insertion order is preserved, then cast to list
+    all_bads = dict()
+    for inst in insts:
+        all_bads.update(dict.fromkeys(inst.info["bads"]))
+    all_bads = list(all_bads)
+
+    # update bads on all instances
+    for inst in insts:
+        inst.info["bads"] = all_bads
+
+    return insts
 
 
 class ReferenceMixin(MontageMixin):
@@ -751,7 +830,8 @@ class InterpolationMixin:
             .. versionadded:: 0.17
         method : dict | None
             Method to use for each channel type.
-            Currently only the key ``"eeg"`` has multiple options:
+            All channel types support "nan".
+            The key ``"eeg"`` has two additional options:
 
             - ``"spline"`` (default)
                 Use spherical spline interpolation.
@@ -759,9 +839,10 @@ class InterpolationMixin:
                 Use minimum-norm projection to a sphere and back.
                 This is the method used for MEG channels.
 
-            The value for ``"meg"`` is ``"MNE"``, and the value for
-            ``"fnirs"`` is ``"nearest"``. The default (None) is thus an alias
-            for::
+            The default value for ``"meg"`` is ``"MNE"``, and the default value
+            for ``"fnirs"`` is ``"nearest"``.
+
+            The default (None) is thus an alias for::
 
                 method=dict(meg="MNE", eeg="spline", fnirs="nearest")
 
@@ -779,6 +860,10 @@ class InterpolationMixin:
         Notes
         -----
         .. versionadded:: 0.9.0
+
+        .. warning::
+            Be careful when using ``method="nan"``; the default value
+            ``reset_bads=True`` may not be what you want.
         """
         from .interpolation import (
             _interpolate_bads_eeg,
@@ -790,9 +875,31 @@ class InterpolationMixin:
         method = _handle_default("interpolation_method", method)
         for key in method:
             _check_option("method[key]", key, ("meg", "eeg", "fnirs"))
-        _check_option("method['eeg']", method["eeg"], ("spline", "MNE"))
-        _check_option("method['meg']", method["meg"], ("MNE",))
-        _check_option("method['fnirs']", method["fnirs"], ("nearest",))
+        _check_option(
+            "method['eeg']",
+            method["eeg"],
+            (
+                "spline",
+                "MNE",
+                "nan",
+            ),
+        )
+        _check_option(
+            "method['meg']",
+            method["meg"],
+            (
+                "MNE",
+                "nan",
+            ),
+        )
+        _check_option(
+            "method['fnirs']",
+            method["fnirs"],
+            (
+                "nearest",
+                "nan",
+            ),
+        )
 
         if len(self.info["bads"]) == 0:
             warn("No bad channels to interpolate. Doing nothing...")
@@ -805,11 +912,18 @@ class InterpolationMixin:
         else:
             eeg_mne = True
         _interpolate_bads_meeg(
-            self, mode=mode, origin=origin, eeg=eeg_mne, exclude=exclude
+            self, mode=mode, origin=origin, eeg=eeg_mne, exclude=exclude, method=method
         )
-        _interpolate_bads_nirs(self, exclude=exclude)
+        _interpolate_bads_nirs(self, exclude=exclude, method=method["fnirs"])
 
         if reset_bads is True:
+            if "nan" in method.values():
+                warn(
+                    "interpolate_bads was called with method='nan' and "
+                    "reset_bads=True. Consider setting reset_bads=False so that the "
+                    "nan-containing channels can be easily excluded from later "
+                    "computations."
+                )
             self.info["bads"] = [ch for ch in self.info["bads"] if ch in exclude]
 
         return self
@@ -862,7 +976,7 @@ def rename_channels(info, mapping, allow_duplicates=False, *, verbose=None):
         raise ValueError("New channel names are not unique, renaming failed")
 
     # do the remapping in info
-    info["bads"] = bads
+    info["bads"] = []
     ch_names_mapping = dict()
     for ch, ch_name in zip(info["chs"], ch_names):
         ch_names_mapping[ch["ch_name"]] = ch_name
@@ -875,6 +989,7 @@ def rename_channels(info, mapping, allow_duplicates=False, *, verbose=None):
                 proj["data"]["col_names"], ch_names_mapping
             )
     info._update_redundant()
+    info["bads"] = bads
     info._check_consistency()
 
 

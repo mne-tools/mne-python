@@ -194,7 +194,7 @@ g.fig.subplots_adjust(left=0.1, right=0.9, top=0.9, bottom=0.08)
 
 df_mean = (
     df.query("time > 1")
-    .groupby(["condition", "epoch", "band", "channel"])[["value"]]
+    .groupby(["condition", "epoch", "band", "channel"], observed=False)[["value"]]
     .mean()
     .reset_index()
 )
@@ -207,7 +207,6 @@ g = g.map(
     "channel",
     "value",
     "band",
-    n_boot=10,
     cut=0,
     palette="deep",
     order=["C3", "Cz", "C4"],

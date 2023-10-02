@@ -649,7 +649,7 @@ def test_split_files(tmp_path, mod, monkeypatch):
     assert fname.is_file()
     assert not (tmp_path / "test_split-01_{mod}.fif").is_file()
 
-    # MAX_N_SPLITS exceeeded
+    # MAX_N_SPLITS exceeded
     raw = RawArray(np.zeros((1, 2000000)), create_info(1, 1000.0, "eeg"))
     fname.unlink()
     kwargs = dict(split_size="2MB", overwrite=True, verbose=True)
