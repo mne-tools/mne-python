@@ -24,7 +24,7 @@ from scipy.io import loadmat
 import pytest
 
 from mne import pick_types, Annotations
-from mne.annotations import events_from_annotations, read_annotations
+from mne.annotations import _ndarray_ch_names, events_from_annotations, read_annotations
 from mne.datasets import testing
 from mne.io import read_raw_edf, read_raw_bdf, read_raw_fif, edf, read_raw_gdf
 from mne.io.tests.test_raw import _test_raw_reader
@@ -502,6 +502,81 @@ def test_read_utf8_annotations():
     raw = read_raw_edf(edf_utf8_annotations)
     assert raw.annotations[0]["description"] == "RECORD START"
     assert raw.annotations[1]["description"] == "仰卧"
+
+
+def test_read_annotations_edf(tmp_path):
+    """Test reading annotations from EDF file."""
+    annot = (
+        b"+1.1\x14Event A@@CH1\x14\x00\x00"
+        b"+1.2\x14Event A\x14\x00\x00"
+        b"+1.3\x14Event B@@CH1\x14\x00\x00"
+        b"+1.3\x14Event B@@CH2\x14\x00\x00"
+        b"+1.4\x14Event A@@CH3\x14\x00\x00"
+        b"+1.5\x14Event B\x14\x00\x00"
+    )
+    annot_file = tmp_path / "annotations.edf"
+    with open(annot_file, "wb") as f:
+        f.write(annot)
+
+    # Test reading annotations from channel data
+    with open(annot_file, "rb") as f:
+        tal_channel = _read_ch(
+            f,
+            subtype="EDF",
+            dtype="<i2",
+            samp=-1,
+            dtype_byte=None,
+        )
+
+    # Read annotations without input channel names: annotation as left untouched and
+    # assigned as global
+    annotations = _read_annotations_edf(tal_channel, ch_names=None, encoding="latin1")
+    assert_allclose(annotations.onset, [1.1, 1.2, 1.3, 1.3, 1.4, 1.5])
+    assert not any(annotations.duration)  # all durations are 0
+    assert_array_equal(
+        annotations.description,
+        [
+            "Event A@@CH1",
+            "Event A",
+            "Event B@@CH1",
+            "Event B@@CH2",
+            "Event A@@CH3",
+            "Event B",
+        ],
+    )
+    assert_array_equal(
+        annotations.ch_names, _ndarray_ch_names([(), (), (), (), (), ()])
+    )
+
+    # Read annotations with complete input channel names: each annotation is parsed and
+    # associated to a channel
+    annotations = _read_annotations_edf(
+        tal_channel, ch_names=["CH1", "CH2", "CH3"], encoding="latin1"
+    )
+    assert_allclose(annotations.onset, [1.1, 1.2, 1.3, 1.4, 1.5])
+    assert not any(annotations.duration)  # all durations are 0
+    assert_array_equal(
+        annotations.description, ["Event A", "Event A", "Event B", "Event A", "Event B"]
+    )
+    assert_array_equal(
+        annotations.ch_names,
+        _ndarray_ch_names([("CH1",), (), ("CH1", "CH2"), ("CH3",), ()]),
+    )
+
+    # Read annotations with incomplete input channel names: CH3 is missing from input
+    # channels, turning into a global annotations
+    annotations = _read_annotations_edf(
+        tal_channel, ch_names=["CH1", "CH2"], encoding="latin1"
+    )
+    assert_allclose(annotations.onset, [1.1, 1.2, 1.3, 1.4, 1.5])
+    assert not any(annotations.duration)  # all durations are 0
+    assert_array_equal(
+        annotations.description,
+        ["Event A", "Event A", "Event B", "Event A@@CH3", "Event B"],
+    )
+    assert_array_equal(
+        annotations.ch_names, _ndarray_ch_names([("CH1",), (), ("CH1", "CH2"), (), ()])
+    )
 
 
 def test_read_latin1_annotations(tmp_path):
