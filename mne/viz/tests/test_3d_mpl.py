@@ -186,7 +186,7 @@ def test_plot_volume_source_estimates_on_vol_labels():
         add_interpolator=False,
     )
     trans = read_trans(
-        testing.data_path(download=False)
+        data_dir
         / "MEG"
         / "sample"
         / "sample_audvis_trunc-trans.fif"
