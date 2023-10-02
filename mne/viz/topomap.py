@@ -1883,7 +1883,11 @@ def plot_tfr_topomap(
     vlim = _setup_vmin_vmax(data, *vlim, norm)
     cmap = _setup_cmap(cmap, norm=norm)
 
-    axes = plt.subplots(figsize=(size, size), layout="constrained")[1] if axes is None else axes
+    axes = (
+        plt.subplots(figsize=(size, size), layout="constrained")[1]
+        if axes is None
+        else axes
+    )
     fig = axes.figure
 
     _hide_frame(axes)
