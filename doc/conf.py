@@ -1635,6 +1635,9 @@ vi = "visualization"
 custom_redirects = {
     # Custom redirects (one HTML path to another, relative to outdir)
     # can be added here as fr->to key->value mappings
+    "install/contributing.html": "development/contributing.html",
+    "overview/roadmap.html": "development/roadmap.html",
+    "whats_new.html": "development/whats_new.html",
     f"{tu}/evoked/plot_eeg_erp.html": f"{tu}/evoked/30_eeg_erp.html",
     f"{tu}/evoked/plot_whitened.html": f"{tu}/evoked/40_whitened.html",
     f"{tu}/misc/plot_modifying_data_inplace.html": f"{tu}/intro/15_inplace.html",  # noqa E501
