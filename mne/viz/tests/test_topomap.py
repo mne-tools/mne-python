@@ -72,7 +72,7 @@ layout = read_layout("Vectorview-all")
 cov_fname = base_dir / "test-cov.fif"
 
 
-@pytest.mark.parametrize("constrained_layout", (False, True))
+@pytest.mark.parametrize("layout", (None, "constrained"))
 def test_plot_topomap_interactive(constrained_layout):
     """Test interactive topomap projection plotting."""
     evoked = read_evokeds(evoked_fname, baseline=(None, 0))[0]
@@ -83,7 +83,7 @@ def test_plot_topomap_interactive(constrained_layout):
     evoked.add_proj(compute_proj_evoked(evoked, n_mag=1))
 
     plt.close("all")
-    fig, ax = plt.subplots(constrained_layout=constrained_layout)
+    fig, ax = plt.subplots(layout=layout)
     canvas = fig.canvas
 
     kwargs = dict(

@@ -2028,7 +2028,7 @@ def _plot_mpl_stc(
     del transparent, mapdata
 
     time_label, times = _handle_time(time_label, time_unit, stc.times)
-    fig = plt.figure(figsize=(6, 6)) if figure is None else figure
+    fig = plt.figure(figsize=(6, 6), layout="constrained") if figure is None else figure
     try:
         ax = Axes3D(fig, auto_add_to_figure=False)
     except Exception:  # old mpl
@@ -3396,7 +3396,7 @@ def plot_sparse_source_estimates(
     )
 
     # Show time courses
-    fig = plt.figure(fig_number)
+    fig = plt.figure(fig_number, layout="constrained")
     fig.clf()
     ax = fig.add_subplot(111)
 
@@ -3763,7 +3763,9 @@ def _plot_dipole_mri_orthoview(
     dims = len(data)  # Symmetric size assumed.
     dd = dims // 2
     if ax is None:
-        fig, ax = plt.subplots(1, subplot_kw=dict(projection="3d"))
+        fig, ax = plt.subplots(
+            1, subplot_kw=dict(projection="3d"), layout="constrained"
+        )
     else:
         _validate_type(ax, Axes3D, "ax", "Axes3D", extra='when mode is "orthoview"')
         fig = ax.get_figure()

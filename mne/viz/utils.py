@@ -1496,7 +1496,7 @@ def _prepare_joint_axes(n_maps, figsize=None):
     """
     import matplotlib.pyplot as plt
 
-    fig = plt.figure(figsize=figsize)
+    fig = plt.figure(figsize=figsize, layout="constrained")
     main_ax = fig.add_subplot(212)
     ts = n_maps + 2
     map_ax = [plt.subplot(4, ts, x + 2 + ts) for x in range(n_maps)]

@@ -1730,7 +1730,7 @@ class AverageTFR(_BaseTFR):
         elif isinstance(axes, plt.Axes):
             figs_and_axes = [(ax.get_figure(), ax) for ax in [axes]]
         elif axes is None:
-            figs = [plt.figure() for i in range(n_picks)]
+            figs = [plt.figure(layout="constrained") for i in range(n_picks)]
             figs_and_axes = [(fig, fig.add_subplot(111)) for fig in figs]
         else:
             raise ValueError("axes must be None, plt.Axes, or list " "of plt.Axes.")
@@ -2160,7 +2160,6 @@ class AverageTFR(_BaseTFR):
         #############
         # Finish up #
         #############
-
         if colorbar:
             from matplotlib import ticker
 
@@ -2169,10 +2168,6 @@ class AverageTFR(_BaseTFR):
                 locator = ticker.MaxNLocator(nbins=5)
             cbar.locator = locator
             cbar.update_ticks()
-
-        plt.subplots_adjust(
-            left=0.12, right=0.925, bottom=0.14, top=1.0 if title is not None else 1.2
-        )
 
         # draw the connection lines between time series and topoplots
         lines = [

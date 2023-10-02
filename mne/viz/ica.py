@@ -168,7 +168,7 @@ def _create_properties_layout(figsize=None, fig=None):
     if figsize is None:
         figsize = [7.0, 6.0]
     if fig is None:
-        fig = plt.figure(figsize=figsize, facecolor=[0.95] * 3)
+        fig = plt.figure(figsize=figsize, facecolor=[0.95] * 3, layout="constrained")
 
     axes_params = (
         ("topomap", [0.08, 0.5, 0.3, 0.45]),
@@ -1156,13 +1156,13 @@ def _plot_ica_overlay_raw(*, raw, raw_cln, picks, start, stop, title, show):
     ch_types = raw.get_channel_types(picks=picks, unique=True)
     for ch_type in ch_types:
         if ch_type in ("mag", "grad"):
-            fig, ax = plt.subplots(3, 1, sharex=True, constrained_layout=True)
+            fig, ax = plt.subplots(3, 1, sharex=True, layout="constrained")
         elif ch_type == "eeg" and not _has_eeg_average_ref_proj(
             raw.info, check_active=True
         ):
-            fig, ax = plt.subplots(3, 1, sharex=True, constrained_layout=True)
+            fig, ax = plt.subplots(3, 1, sharex=True, layout="constrained")
         else:
-            fig, ax = plt.subplots(2, 1, sharex=True, constrained_layout=True)
+            fig, ax = plt.subplots(2, 1, sharex=True, layout="constrained")
         fig.suptitle(title)
 
         # select sensors and retrieve data array

@@ -989,7 +989,7 @@ def plot_topomap(
     from matplotlib.colors import Normalize
 
     if axes is None:
-        _, axes = plt.subplots(figsize=(size, size))
+        _, axes = plt.subplots(figsize=(size, size), layout="constrained")
     sphere = _check_sphere(sphere, pos if isinstance(pos, Info) else None)
     _validate_type(cnorm, (Normalize, None), "cnorm")
     if cnorm is not None and (vlim[0] is not None or vlim[1] is not None):
@@ -1883,7 +1883,7 @@ def plot_tfr_topomap(
     vlim = _setup_vmin_vmax(data, *vlim, norm)
     cmap = _setup_cmap(cmap, norm=norm)
 
-    axes = plt.subplots(figsize=(size, size))[1] if axes is None else axes
+    axes = plt.subplots(figsize=(size, size), layout="constrained")[1] if axes is None else axes
     fig = axes.figure
 
     _hide_frame(axes)
@@ -3660,7 +3660,7 @@ def plot_bridged_electrodes(
     topomap_args.setdefault("contours", False)
     sphere = topomap_args.get("sphere", _check_sphere(None))
     if "axes" not in topomap_args:
-        fig, ax = plt.subplots()
+        fig, ax = plt.subplots(layout="constrained")
         topomap_args["axes"] = ax
     else:
         fig = None
@@ -4000,7 +4000,11 @@ def plot_regression_weights(
     axes_was_none = axes is None
     if axes_was_none:
         fig, axes = plt.subplots(
-            nrows, ncols, squeeze=False, figsize=(ncols * 2, nrows * 1.5 + 1)
+            nrows,
+            ncols,
+            squeeze=False,
+            figsize=(ncols * 2, nrows * 1.5 + 1),
+            layout="constrained",
         )
         axes = axes.T.ravel()
     else:

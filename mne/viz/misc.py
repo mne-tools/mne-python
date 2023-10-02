@@ -852,7 +852,7 @@ def plot_events(
 
     fig = None
     if axes is None:
-        fig = plt.figure()
+        fig = plt.figure(layout="constrained")
     ax = axes if axes else plt.gca()
 
     unique_events_id = np.array(unique_events_id)
@@ -952,7 +952,7 @@ def plot_dipole_amplitudes(dipoles, colors=None, show=True):
 
     if colors is None:
         colors = cycle(_get_color_list())
-    fig, ax = plt.subplots(1, 1)
+    fig, ax = plt.subplots(1, 1, layout="constrained")
     xlim = [np.inf, -np.inf]
     for dip, color in zip(dipoles, colors):
         ax.plot(dip.times, dip.amplitude * 1e9, color=color, linewidth=1.5)
@@ -1510,7 +1510,11 @@ def plot_csd(
             continue
 
         fig, axes = plt.subplots(
-            n_rows, n_cols, squeeze=False, figsize=(2 * n_cols + 1, 2.2 * n_rows)
+            n_rows,
+            n_cols,
+            squeeze=False,
+            figsize=(2 * n_cols + 1, 2.2 * n_rows),
+            layout="constrained",
         )
 
         csd_mats = []
@@ -1537,8 +1541,6 @@ def plot_csd(
                 ax.set_title("%.1f Hz." % freq)
 
         plt.suptitle(title)
-        plt.subplots_adjust(top=0.8)
-
         if colorbar:
             cb = plt.colorbar(im, ax=[a for ax_ in axes for a in ax_])
             if mode == "csd":
@@ -1595,7 +1597,7 @@ def plot_chpi_snr(snr_dict, axes=None):
     full_names = dict(mag="magnetometers", grad="gradiometers")
     axes_was_none = axes is None
     if axes_was_none:
-        fig, axes = plt.subplots(len(valid_keys), 1, sharex=True)
+        fig, axes = plt.subplots(len(valid_keys), 1, sharex=True, layout="constrained")
     else:
         fig = axes[0].get_figure()
     if len(axes) != len(valid_keys):
@@ -1629,6 +1631,5 @@ def plot_chpi_snr(snr_dict, axes=None):
     if axes_was_none:
         ax.set(xlabel="Time (s)")
         fig.align_ylabels()
-        fig.subplots_adjust(left=0.1, right=0.825, bottom=0.075, top=0.95, hspace=0.7)
         fig.legend(loc="right", title="cHPI frequencies")
     return fig

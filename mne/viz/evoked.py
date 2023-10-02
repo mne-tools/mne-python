@@ -334,7 +334,7 @@ def _plot_evoked(
         if axes is None:
             axes = dict()
             for sel in group_by:
-                plt.figure()
+                plt.figure(layout="constrained")
                 axes[sel] = plt.axes()
         if not isinstance(axes, dict):
             raise ValueError(
@@ -460,8 +460,7 @@ def _plot_evoked(
 
     fig = None
     if axes is None:
-        fig, axes = plt.subplots(len(ch_types_used), 1)
-        fig.subplots_adjust(left=0.125, bottom=0.1, right=0.975, top=0.92, hspace=0.63)
+        fig, axes = plt.subplots(len(ch_types_used), 1, layout="constrained")
         if isinstance(axes, plt.Axes):
             axes = [axes]
         fig.set_size_inches(6.4, 2 + len(axes))
@@ -1630,7 +1629,7 @@ def plot_evoked_white(
             sharex=True,
             sharey=False,
             figsize=(8.8, 2.2 * n_rows),
-            constrained_layout=True,
+            layout="constrained",
         )
     else:
         axes = np.array(axes)
@@ -1774,7 +1773,7 @@ def plot_snr_estimate(evoked, inv, show=True, axes=None, verbose=None):
     snr, snr_est = estimate_snr(evoked, inv)
     _validate_type(axes, (None, plt.Axes))
     if axes is None:
-        _, ax = plt.subplots(1, 1)
+        _, ax = plt.subplots(1, 1, layout="constrained")
     else:
         ax = axes
         del axes
@@ -2045,11 +2044,6 @@ def plot_evoked_joint(
                 locator = ticker.MaxNLocator(nbins=5)
             cbar.locator = locator
         cbar.update_ticks()
-
-    if not got_axes:
-        plt.subplots_adjust(
-            left=0.1, right=0.93, bottom=0.14, top=1.0 if title is not None else 1.2
-        )
 
     # connection lines
     # draw the connection lines between time series and topoplots
@@ -2943,7 +2937,9 @@ def plot_compare_evokeds(
         axes = ["topo"] * len(ch_types)
     else:
         if axes is None:
-            axes = (plt.subplots(figsize=(8, 6))[1] for _ in ch_types)
+            axes = (
+                plt.subplots(figsize=(8, 6), layout="constrained")[1] for _ in ch_types
+            )
         elif isinstance(axes, plt.Axes):
             axes = [axes]
             _validate_if_list_of_axes(axes, obligatory_len=len(ch_types))
@@ -3017,7 +3013,7 @@ def plot_compare_evokeds(
         from .topo import iter_topography
         from ..channels.layout import find_layout
 
-        fig = plt.figure(figsize=(18, 14))
+        fig = plt.figure(figsize=(18, 14), layout="constrained")
 
         def click_func(
             ax_,
