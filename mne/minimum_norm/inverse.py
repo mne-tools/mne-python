@@ -145,6 +145,16 @@ class InverseOperator(dict):
         )
         return html
 
+    @property
+    def ch_names(self):
+        """Name of channels attached to the inverse operator."""
+        return self["info"].ch_names
+
+    @property
+    def info(self):
+        """:class:`~mne.Info` attached to the inverse operator."""
+        return self["info"]
+
 
 def _pick_channels_inverse_operator(ch_names, inv):
     """Return data channel indices to be used knowing an inverse operator.
