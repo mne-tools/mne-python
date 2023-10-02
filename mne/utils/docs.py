@@ -745,6 +745,14 @@ clim : str | dict
 """
 
 docdict[
+    "cmap"
+] = """
+cmap : matplotlib colormap | str | None
+        The :class:`~matplotlib.colors.Colormap` to use. Defaults to ``None``, meaning
+        the colormap will default to matplotlib's default.
+"""
+
+docdict[
     "cmap_topomap"
 ] = """
 cmap : matplotlib colormap | (colormap, bool) | 'interactive' | None
@@ -769,14 +777,6 @@ docdict[
 cmap : matplotlib colormap | None
     Colormap to use. If None, 'Reds' is used for all positive data,
     otherwise defaults to 'RdBu_r'.
-"""
-
-docdict[
-    "cmap_simple"
-] = """
-cmap : matplotlib colormap | str | None
-        The :class:`~matplotlib.colors.Colormap` to use. Defaults to ``None``, meaning
-        the colormap will default to matplotlib's default.
 """
 
 docdict[
