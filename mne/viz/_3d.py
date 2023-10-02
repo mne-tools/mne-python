@@ -3046,8 +3046,7 @@ def plot_volume_source_estimates(
 
     plot_and_correct(stat_map_img=params["img_idx"], title="", cut_coords=cut_coords)
 
-    if show:
-        plt.show()
+    plt_show(show)
     fig.canvas.mpl_connect(
         "button_press_event", partial(_onclick, params=params, verbose=verbose)
     )

@@ -161,11 +161,15 @@ def test_plot_volume_source_estimates_morph():
 @testing.requires_testing_data
 def test_plot_volume_source_estimates_on_vol_labels():
     """Test plot of source estimate on srcs setup on 2 labels."""
+    pytest.importorskip("nibabel")
+    pytest.importorskip("dipy")
+    pytest.importorskip("nilearn")
     raw = read_raw_fif(
         data_dir / "MEG" / "sample" / "sample_audvis_trunc_raw.fif", preload=False
     )
-    raw.pick("meg").crop(0, 10).load_data()
-    epochs = make_fixed_length_epochs(raw, preload=True)
+    raw.pick("meg").crop(0, 10)
+    raw.pick(raw.ch_names[::2]).del_proj().load_data()
+    epochs = make_fixed_length_epochs(raw, preload=True).apply_baseline((None, None))
     evoked = epochs.average()
     subject = "sample"
     bem = read_bem_solution(
