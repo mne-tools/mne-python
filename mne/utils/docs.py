@@ -772,6 +772,14 @@ cmap : matplotlib colormap | None
 """
 
 docdict[
+    "cmap_simple"
+] = """
+cmap : matplotlib colormap | str | None
+        The :class:`~matplotlib.colors.Colormap` to use. Defaults to ``None``, meaning
+        the colormap will default to matplotlib's default.
+"""
+
+docdict[
     "cnorm"
 ] = """
 cnorm : matplotlib.colors.Normalize | None

@@ -7,7 +7,7 @@ from scipy.ndimage import gaussian_filter
 
 
 from ..utils import plt_show
-from ...utils import _validate_type, logger, fill_doc
+from ...utils import _ensure_int, _validate_type, logger, fill_doc
 
 
 @fill_doc
@@ -19,8 +19,7 @@ def plot_gaze(
     sigma=25,
     cmap=None,
     alpha=1.0,
-    vmin=None,
-    vmax=None,
+    vlim=(None, None),
     axes=None,
     show=True,
 ):
@@ -41,22 +40,11 @@ def plot_gaze(
     sigma : float | None
         The amount of Gaussian smoothing applied to the heatmap data (standard
         deviation in pixels). If ``None``, no smoothing is applied. Default is 25.
-    cmap : matplotlib colormap | str | None
-        The :class:`~matplotlib.colors.Colormap` to use. Defaults to ``None``, meaning
-        the colormap will default to matplotlib's default.
+    %(cmap_simple)s
     alpha : float
         The opacity of the heatmap (default is 1).
-    vmin : float | None
-        The minimum value for the colormap. The unit is seconds, for dwell time
-        to the bin coordinate. If ``None``, the minimum value is set to the
-        minimum value of the heatmap. Default is ``None``.
-    vmax : float | None
-        The maximum value for the colormap. The unit is seconds, for dwell time
-        to the bin coordinate. If ``None``, the maximum value is set to the
-        maximum value of the heatmap. Default is ``None``.
-    axes : matplotlib.axes.Axes | None
-        The axes to plot on. If ``None``, a new figure and axes are created.
-        Default is ``None``.
+    %(vlim_plot_topomap)s
+    %(axes_plot_topomap)s
     %(show)s
 
     Returns
@@ -72,6 +60,10 @@ def plot_gaze(
     from mne._fiff.pick import _picks_to_idx
 
     _validate_type(epochs, BaseEpochs, "epochs")
+    _validate_type(alpha, "numeric", "alpha")
+    _validate_type(sigma, ("numeric", None), "sigma")
+    _ensure_int(width, "width")
+    _ensure_int(width, "height")
 
     pos_picks = _picks_to_idx(epochs.info, "eyegaze")
     gaze_data = epochs.get_data(picks=pos_picks)
@@ -106,8 +98,8 @@ def plot_gaze(
         height=height,
         cmap=cmap,
         alpha=alpha,
-        vmin=vmin,
-        vmax=vmax,
+        vmin=vlim[0],
+        vmax=vlim[1],
         axes=axes,
         show=show,
     )
@@ -160,6 +152,6 @@ def _plot_heatmap_array(
     )
 
     # Prepare the colorbar
-    fig.colorbar(im, ax=ax, label="Dwell time (seconds)")
+    fig.colorbar(im, ax=ax, shrink=0.6, label="Dwell time (seconds)")
     plt_show(show)
     return fig
