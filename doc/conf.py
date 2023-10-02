@@ -1696,6 +1696,7 @@ custom_redirects = {
 
 
 def check_existing_redirect(path):
+    """Make sure existing HTML files are redirects, before overwriting."""
     if os.path.isfile(path):
         with open(path, "r") as fid:
             for _ in range(8):
@@ -1755,7 +1756,7 @@ def make_redirects(app, exception):
         )
     # API redirects
     for page in api_redirects:
-        fname = f"{fname}.html"
+        fname = f"{page}.html"
         fr_path = os.path.join(app.outdir, fname)
         to_path = os.path.join(app.outdir, "api", fname)
         # allow overwrite if existing file is just a redirect
@@ -1798,7 +1799,6 @@ def make_version(app, exception):
         and exception is None
     ):
         return
-    logger = sphinx.util.logging.getLogger("mne")
     try:
         stdout, _ = run_subprocess(["git", "rev-parse", "HEAD"], verbose=False)
     except Exception as exc:
