@@ -528,7 +528,7 @@ def test_read_annotations_edf(tmp_path):
             dtype_byte=None,
         )
 
-    # Read annotations without input channel names: annotation as left untouched and
+    # Read annotations without input channel names: annotations are left untouched and
     # assigned as global
     annotations = _read_annotations_edf(tal_channel, ch_names=None, encoding="latin1")
     assert_allclose(annotations.onset, [1.1, 1.2, 1.3, 1.3, 1.4, 1.5])
