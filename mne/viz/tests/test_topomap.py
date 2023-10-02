@@ -159,11 +159,10 @@ def test_plot_projs_topomap():
 
 @pytest.mark.parametrize("vlim", ("joint", None))
 @pytest.mark.parametrize("meg", ("combined", "separate"))
-def test_plot_projs_topomap_joint(meg, vlim):
+def test_plot_projs_topomap_joint(meg, vlim, raw):
     """Test that plot_projs_topomap works with joint vlim."""
     if vlim is None:
         vlim = (None, None)
-    raw = read_raw_fif(raw_fname).load_data()
     projs = compute_proj_raw(raw, meg=meg)
     fig = plot_projs_topomap(projs, info=raw.info, vlim=vlim, **fast_test)
     assert len(fig.axes) == 4  # 2 mag, 2 grad
