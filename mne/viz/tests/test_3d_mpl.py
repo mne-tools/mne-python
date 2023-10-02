@@ -13,13 +13,21 @@ import numpy as np
 import pytest
 
 from mne import (
-    read_forward_solution,
-    VolSourceEstimate,
-    SourceEstimate,
-    VolVectorSourceEstimate,
+    compute_covariance,
     compute_source_morph,
+    make_fixed_length_epochs,
+    make_forward_solution,
+    read_bem_solution,
+    read_forward_solution,
+    read_trans,
+    setup_volume_source_space,
+    SourceEstimate,
+    VolSourceEstimate,
+    VolVectorSourceEstimate,
 )
 from mne.datasets import testing
+from mne.io import read_raw_fif
+from mne.minimum_norm import apply_inverse, make_inverse_operator
 from mne.utils import catch_logging, _record_warnings
 from mne.viz import plot_volume_source_estimates
 from mne.viz.utils import _fake_click, _fake_keypress
@@ -148,3 +156,59 @@ def test_plot_volume_source_estimates_morph():
         stc.plot(
             sample_src, "sample", subjects_dir, clim=dict(lims=[-1, 2, 3], kind="value")
         )
+
+
+@testing.requires_testing_data
+def test_plot_volume_source_estimates_on_vol_labels():
+    """Test plot of source estimate on srcs setup on 2 labels."""
+    raw = read_raw_fif(
+        data_dir / "MEG" / "sample" / "sample_audvis_trunc_raw.fif", preload=False
+    )
+    raw.pick("meg").crop(0, 10).load_data()
+    epochs = make_fixed_length_epochs(raw, preload=True)
+    evoked = epochs.average()
+    subject = "sample"
+    bem = read_bem_solution(
+        subjects_dir / f"{subject}" / "bem" / "sample-320-bem-sol.fif"
+    )
+    pos = 25.0  # spacing in mm
+    volume_label = [
+        "Right-Cerebral-Cortex",
+        "Left-Cerebral-Cortex",
+    ]
+    src = setup_volume_source_space(
+        subject,
+        subjects_dir=subjects_dir,
+        pos=pos,
+        mri=subjects_dir / subject / "mri" / "aseg.mgz",
+        bem=bem,
+        volume_label=volume_label,
+        add_interpolator=False,
+    )
+    trans = read_trans(
+        testing.data_path(download=False)
+        / "MEG"
+        / "sample"
+        / "sample_audvis_trunc-trans.fif"
+    )
+    fwd = make_forward_solution(
+        evoked.info,
+        trans,
+        src,
+        bem,
+        meg=True,
+        eeg=False,
+        mindist=0,
+        n_jobs=1,
+    )
+    cov = compute_covariance(
+        epochs,
+        tmin=None,
+        tmax=None,
+        method="empirical",
+    )
+    inverse_operator = make_inverse_operator(evoked.info, fwd, cov, loose=1, depth=0.8)
+    stc = apply_inverse(
+        evoked, inverse_operator, 1.0 / 3**2, method="sLORETA", pick_ori=None
+    )
+    stc.plot(src, subject, subjects_dir, initial_time=0.03)
