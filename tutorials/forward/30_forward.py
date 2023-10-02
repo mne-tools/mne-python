@@ -82,7 +82,8 @@ mne.viz.plot_bem(**plot_bem_kwargs)
 # system.
 #
 # Here we assume the coregistration is done, so we just visually check the
-# alignment with the following code.
+# alignment with the following code. See :ref:`creating-trans` for instructions
+# on creating the ``-trans.fif`` file interactively.
 
 # The transformation file obtained by coregistration
 trans = sample_dir / "sample_audvis_raw-trans.fif"

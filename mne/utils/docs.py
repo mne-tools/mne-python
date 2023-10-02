@@ -1696,6 +1696,15 @@ fname : str
 """
 
 docdict[
+    "fname_fwd"
+] = """
+fname : path-like
+    File name to save the forward solution to. It should end with
+    ``-fwd.fif`` or ``-fwd.fif.gz`` to save to FIF, or ``-fwd.h5`` to save to
+    HDF5.
+"""
+
+docdict[
     "fnirs"
 ] = """
 fnirs : str | list | bool | None
@@ -2543,8 +2552,8 @@ docdict[
 _method_psd = r"""
 method : ``'welch'`` | ``'multitaper'``{}
     Spectral estimation method. ``'welch'`` uses Welch's
-    method\ :footcite:p:`Welch1967`, ``'multitaper'`` uses DPSS
-    tapers\ :footcite:p:`Slepian1978`.{}
+    method :footcite:p:`Welch1967`, ``'multitaper'`` uses DPSS
+    tapers :footcite:p:`Slepian1978`.{}
 """
 docdict["method_plot_psd_auto"] = _method_psd.format(
     " | ``'auto'``",
@@ -4661,7 +4670,7 @@ If str, the path to the head<->MRI transform ``*-trans.fif`` file produced
 docdict[
     "trans"
 ] = f"""
-trans : path-like | dict | instance of Transform | None
+trans : path-like | dict | instance of Transform | ``"fsaverage"`` | None
     {_trans_base}
     If trans is None, an identity matrix is assumed.
 """

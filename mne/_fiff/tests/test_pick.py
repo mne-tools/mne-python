@@ -567,8 +567,8 @@ def test_clean_info_bads():
 
     info = pick_info(raw.info, picks_meg)
     info._check_consistency()
-    info["bads"] += ["EEG 053"]
-    pytest.raises(RuntimeError, info._check_consistency)
+    with pytest.raises(ValueError, match="do not exist"):
+        info["bads"] += ["EEG 053"]
     with pytest.raises(ValueError, match="unique"):
         pick_info(raw.info, [0, 0])
 
@@ -658,6 +658,11 @@ def test_picks_to_idx():
         picks_ref, _picks_to_idx(info_ref, "ref_meg", with_ref_meg=False)
     )
     assert_array_equal(picks_meg_ref, _picks_to_idx(info_ref, "meg", with_ref_meg=True))
+    # Eyetrack
+    info = create_info(["a", "b"], 1000.0, ["eyegaze", "pupil"])
+    assert_array_equal(np.arange(2), _picks_to_idx(info, "eyetrack"))
+    assert_array_equal([0], _picks_to_idx(info, "eyegaze"))
+    assert_array_equal([1], _picks_to_idx(info, "pupil"))
 
 
 def test_pick_channels_cov():

@@ -22,6 +22,7 @@ __getattr__, __dir__, __all__ = lazy.attach(
             "_EEG_SELECTIONS",
             "_divide_to_regions",
             "get_builtin_ch_adjacencies",
+            "unify_bad_channels",
         ],
         "layout": [
             "Layout",

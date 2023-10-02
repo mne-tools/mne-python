@@ -1623,14 +1623,19 @@ def plot_evoked_white(
     _validate_type(axes, (list, tuple, np.ndarray, None), "axes")
     if axes is None:
         _, axes = plt.subplots(
-            n_rows, n_columns, sharex=True, sharey=False, figsize=(8.8, 2.2 * n_rows)
+            n_rows,
+            n_columns,
+            sharex=True,
+            sharey=False,
+            figsize=(8.8, 2.2 * n_rows),
+            constrained_layout=True,
         )
     else:
         axes = np.array(axes)
     for ai, ax in enumerate(axes.flat):
         _validate_type(ax, plt.Axes, "axes.flat[%d]" % (ai,))
     if axes.shape != want_shape:
-        raise ValueError(f"axes must have shape {want_shape}, got " f"{axes.shape}")
+        raise ValueError(f"axes must have shape {want_shape}, got {axes.shape}.")
     fig = axes.flat[0].figure
     if n_columns > 1:
         suptitle = (
@@ -1724,12 +1729,6 @@ def plot_evoked_white(
         )
     else:
         ax.legend(loc="upper right", prop=dict(size=10))
-        params = dict(
-            top=[0.69, 0.82, 0.87][n_rows - 1], bottom=[0.22, 0.13, 0.09][n_rows - 1]
-        )
-        if has_sss:
-            params["hspace"] = 0.49
-        fig.subplots_adjust(**params)
     fig.canvas.draw()
 
     plt_show(show)

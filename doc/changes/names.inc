@@ -320,6 +320,8 @@
 
 .. _Mainak Jas: https://jasmainak.github.io
 
+.. _Maksym Balatsko: https://github.com/mbalatsko
+
 .. _Marcin Koculak: https://github.com/mkoculak
 
 .. _Marian Dovgialo: https://github.com/mdovgialo
