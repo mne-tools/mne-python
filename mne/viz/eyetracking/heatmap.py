@@ -18,7 +18,7 @@ def plot_gaze(
     *,
     sigma=25,
     cmap=None,
-    alpha=1.,
+    alpha=1.0,
     vmin=None,
     vmax=None,
     axes=None,
