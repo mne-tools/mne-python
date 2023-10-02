@@ -73,7 +73,7 @@ cov_fname = base_dir / "test-cov.fif"
 
 
 @pytest.mark.parametrize("layout", (None, "constrained"))
-def test_plot_topomap_interactive(constrained_layout):
+def test_plot_topomap_interactive(layout):
     """Test interactive topomap projection plotting."""
     evoked = read_evokeds(evoked_fname, baseline=(None, 0))[0]
     evoked.pick(picks="mag")
