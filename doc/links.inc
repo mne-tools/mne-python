@@ -104,6 +104,7 @@
 .. _anaconda: https://www.anaconda.com/products/individual
 .. _miniconda: https://conda.io/en/latest/miniconda.html
 .. _miniforge: https://github.com/conda-forge/miniforge
+.. _mambaforge: https://mamba.readthedocs.io/en/latest/mamba-installation.html#mamba-install
 .. _installation instructions for Anaconda: http://docs.continuum.io/anaconda/install
 .. _installation instructions for Miniconda: https://conda.io/projects/conda/en/latest/user-guide/install/index.html
 .. _Anaconda troubleshooting guide: http://conda.pydata.org/docs/troubleshooting.html
