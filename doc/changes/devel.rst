@@ -56,6 +56,7 @@ Bugs
 - Fix handling of channel information in annotations when loading data from and exporting to EDF file (:gh:`11960` :gh:`12017` by `Paul Roujansky`_)
 - Add missing ``overwrite`` and ``verbose`` parameters to :meth:`Transform.save() <mne.transforms.Transform.save>` (:gh:`12004` by `Marijn van Vliet`_)
 - Correctly prune channel-specific :class:`~mne.Annotations` when creating :class:`~mne.Epochs` without the channel(s) included in the channel specific annotations (:gh:`12010` by `Mathieu Scheltienne`_)
+- Fix :func:`~mne.viz.plot_volume_source_estimates` with :class:`~mne.VolSourceEstimate` which include a list of vertices (:gh:`12025` by `Mathieu Scheltienne`_)
 
 API changes
 ~~~~~~~~~~~
