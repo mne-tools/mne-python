@@ -156,8 +156,8 @@ eeg_events = mne.find_events(raw_eeg, stim_channel="DIN3")
 event_dict = dict(Flash=2)
 
 # %%
-# Align the eye-tracking data with EEG the data
-# ---------------------------------------------
+# Align the eye-tracking data with EEG data
+# -----------------------------------------
 #
 # In this dataset, eye-tracking and EEG data were recorded simultaneously, but on
 # different systems, so we'll need to align the data before we can analyze them
