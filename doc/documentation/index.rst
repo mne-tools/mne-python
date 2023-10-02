@@ -42,7 +42,7 @@ categories above) are shown in the navigation menu, including the
 :ref:`implementation details<implementation>`, and more.
 Documentation for the related C and MATLAB tools are available here:
 
-- :ref:`MNE-MATLAB <mne_matlab>` (HTML)
+- :ref:`MNE-MATLAB <MNE-MATLAB git repository>` (HTML)
 - `MNE-C <MNE-C manual_>`_ (PDF)
 
 .. toctree::
