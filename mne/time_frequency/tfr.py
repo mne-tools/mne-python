@@ -2287,7 +2287,6 @@ class AverageTFR(_BaseTFR):
                     axes=ax,
                 )
                 ax.set_title(ch_type)
-            fig.tight_layout()
 
     @verbose
     def plot_topo(

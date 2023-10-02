@@ -2372,6 +2372,8 @@ def _figure(toolbar=True, FigureClass=MNEFigure, **kwargs):
     from matplotlib import rc_context
 
     title = kwargs.pop("window_title", None)  # extract title before init
+    if "layout" not in kwargs:
+        kwargs["layout"] = "constrained"
     rc = dict() if toolbar else dict(toolbar="none")
     with rc_context(rc=rc):
         fig = plt.figure(FigureClass=FigureClass, **kwargs)

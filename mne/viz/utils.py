@@ -649,6 +649,8 @@ def figure_nobar(*args, **kwargs):
     old_val = rcParams["toolbar"]
     try:
         rcParams["toolbar"] = "none"
+        if "layout" not in kwargs:
+            kwargs["layout"] = "constrained"
         fig = plt.figure(*args, **kwargs)
         # remove button press catchers (for toolbar)
         cbs = list(fig.canvas.callbacks.callbacks["key_press_event"].keys())

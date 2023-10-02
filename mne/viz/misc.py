@@ -50,7 +50,6 @@ from ..utils import (
 )
 from ..filter import estimate_ringing_samples
 from .utils import (
-    tight_layout,
     _get_color_list,
     _prepare_trellis,
     plt_show,
@@ -172,7 +171,11 @@ def plot_cov(
         C = np.sqrt((C * C.conj()).real)
 
     fig_cov, axes = plt.subplots(
-        1, len(idx_names), squeeze=False, figsize=(3.8 * len(idx_names), 3.7)
+        1,
+        len(idx_names),
+        squeeze=False,
+        figsize=(3.8 * len(idx_names), 3.7),
+        layout="constrained",
     )
     for k, (idx, name, _, _, _) in enumerate(idx_names):
         vlim = np.max(np.abs(C[idx][:, idx]))
@@ -193,12 +196,15 @@ def plot_cov(
             plt.colorbar(im, cax=cax, format="%.0e")
 
     fig_cov.subplots_adjust(0.04, 0.0, 0.98, 0.94, 0.2, 0.26)
-    tight_layout(fig=fig_cov)
 
     fig_svd = None
     if show_svd:
         fig_svd, axes = plt.subplots(
-            1, len(idx_names), squeeze=False, figsize=(3.8 * len(idx_names), 3.7)
+            1,
+            len(idx_names),
+            squeeze=False,
+            figsize=(3.8 * len(idx_names), 3.7),
+            layout="constrained",
         )
         for k, (idx, name, unit, scaling, key) in enumerate(idx_names):
             this_C = C[idx][:, idx]
@@ -233,7 +239,6 @@ def plot_cov(
                 title=name,
                 xlim=[0, len(s) - 1],
             )
-        tight_layout(fig=fig_svd)
 
     plt_show(show)
 
@@ -321,7 +326,7 @@ def plot_source_spectrogram(
     time_grid, freq_grid = np.meshgrid(time_bounds, freq_bounds)
 
     # Plotting the results
-    fig = plt.figure(figsize=(9, 6))
+    fig = plt.figure(figsize=(9, 6), layout="constrained")
     plt.pcolor(time_grid, freq_grid, source_power[:, source_index, :], cmap="Reds")
     ax = plt.gca()
 
@@ -344,7 +349,6 @@ def plot_source_spectrogram(
     plt.grid(True, ls="-")
     if colorbar:
         plt.colorbar()
-    tight_layout(fig=fig)
 
     # Covering frequency gaps with horizontal bars
     for lower_bound, upper_bound in gap_bounds:
@@ -1191,7 +1195,7 @@ def plot_filter(
 
     fig = None
     if axes is None:
-        fig, axes = plt.subplots(len(plot), 1)
+        fig, axes = plt.subplots(len(plot), 1, layout="constrained")
     if isinstance(axes, plt.Axes):
         axes = [axes]
     elif isinstance(axes, np.ndarray):
@@ -1263,7 +1267,6 @@ def plot_filter(
         )
 
     adjust_axes(axes)
-    tight_layout()
     plt_show(show)
     return fig
 
@@ -1357,7 +1360,7 @@ def plot_ideal_filter(
             my_gain.append(gain[ii])
     my_gain = 10 * np.log10(np.maximum(my_gain, 10 ** (alim[0] / 10.0)))
     if axes is None:
-        axes = plt.subplots(1)[1]
+        axes = plt.subplots(1, layout="constrained")[1]
     for transition in transitions:
         axes.axvspan(*transition, color=color, alpha=0.1)
     axes.plot(
@@ -1378,7 +1381,6 @@ def plot_ideal_filter(
     if title:
         axes.set(title=title)
     adjust_axes(axes)
-    tight_layout()
     plt_show(show)
     return axes.figure
 

@@ -54,7 +54,6 @@ from ..utils import (
 )
 from ..utils.spectrum import _split_psd_kwargs
 from .utils import (
-    tight_layout,
     _setup_vmin_vmax,
     _prepare_trellis,
     _check_delayed_ssp,
@@ -441,7 +440,6 @@ def plot_projs_topomap(
     )
     with warnings.catch_warnings(record=True):
         warnings.simplefilter("ignore")
-        tight_layout(fig=fig)
     plt_show(show)
     return fig
 
@@ -1679,9 +1677,6 @@ def plot_ica_components(
                 cbar.set_ticks(_vlim)
             _hide_frame(ax)
         del pos
-        if not user_passed_axes:
-            tight_layout(fig=fig)
-            fig.subplots_adjust(top=0.88, bottom=0.0)
         fig.canvas.draw()
 
         # add title selection interactivity
@@ -2791,7 +2786,9 @@ def plot_psds_topomap(
         _validate_if_list_of_axes(axes, n_axes)
         fig = axes[0].figure
     else:
-        fig, axes = plt.subplots(1, n_axes, figsize=(2 * n_axes, 1.5))
+        fig, axes = plt.subplots(
+            1, n_axes, figsize=(2 * n_axes, 1.5), layout="constrained"
+        )
         if n_axes == 1:
             axes = [axes]
     # loop over subplots/frequency bands
@@ -2826,7 +2823,6 @@ def plot_psds_topomap(
         )
 
     if not user_passed_axes:
-        tight_layout(fig=fig)
         fig.canvas.draw()
         plt_show(show)
     return fig
@@ -2857,7 +2853,9 @@ def plot_layout(layout, picks=None, show_axes=False, show=True):
     """
     import matplotlib.pyplot as plt
 
-    fig = plt.figure(figsize=(max(plt.rcParams["figure.figsize"]),) * 2)
+    fig = plt.figure(
+        figsize=(max(plt.rcParams["figure.figsize"]),) * 2, layout="constrained"
+    )
     ax = fig.add_subplot(111)
     fig.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=None, hspace=None)
     ax.set(xticks=[], yticks=[], aspect="equal")
@@ -2879,7 +2877,6 @@ def plot_layout(layout, picks=None, show_axes=False, show=True):
             x1, x2, y1, y2 = p[0], p[0] + p[2], p[1], p[1] + p[3]
             ax.plot([x1, x1, x2, x2, x1], [y1, y2, y2, y1, y1], color="k")
     ax.axis("off")
-    tight_layout(fig=fig, pad=0, w_pad=0, h_pad=0)
     plt_show(show)
     return fig
 
@@ -3097,7 +3094,6 @@ def _init_anim(
     outlines_ = _draw_outlines(ax, outlines)
 
     params.update({"patch": patch_, "outlines": outlines_})
-    tight_layout(fig=ax.figure)
     return tuple(items) + cont_collections
 
 
@@ -3240,7 +3236,7 @@ def _topomap_animation(
     norm = np.min(data) >= 0
     vmin, vmax = _setup_vmin_vmax(data, vmin, vmax, norm)
 
-    fig = plt.figure(figsize=(6, 5))
+    fig = plt.figure(figsize=(6, 5), layout="constrained")
     shape = (8, 12)
     colspan = shape[1] - 1
     rowspan = shape[0] - bool(butterfly)
@@ -3425,8 +3421,6 @@ def _plot_corrmap(
             border=border,
         )
         _hide_frame(ax)
-    tight_layout(fig=fig)
-    fig.subplots_adjust(top=0.8)
     fig.canvas.draw()
     plt_show(show)
     return fig
@@ -3586,7 +3580,7 @@ def plot_arrowmap(
     )
     outlines = _make_head_outlines(sphere, pos, outlines, clip_origin)
     if axes is None:
-        fig, axes = plt.subplots()
+        fig, axes = plt.subplots(layout="constrained")
     else:
         fig = axes.figure
     plot_topomap(
@@ -3615,9 +3609,6 @@ def plot_arrowmap(
     dyy = -dx.data
     axes.quiver(x, y, dxx, dyy, scale=scale, color="k", lw=1, clip_on=False)
     axes.figure.canvas.draw_idle()
-    with warnings.catch_warnings(record=True):
-        warnings.simplefilter("ignore")
-        tight_layout(fig=fig)
     plt_show(show)
 
     return fig

@@ -312,7 +312,9 @@ def plot_head_positions(
         from mpl_toolkits.mplot3d.art3d import Line3DCollection
         from mpl_toolkits.mplot3d import Axes3D  # noqa: F401, analysis:ignore
 
-        fig, ax = plt.subplots(1, subplot_kw=dict(projection="3d"))
+        fig, ax = plt.subplots(
+            1, subplot_kw=dict(projection="3d"), layout="constrained"
+        )
 
         # First plot the trajectory as a colormap:
         # http://matplotlib.org/examples/pylab_examples/multicolored_line.html
@@ -372,7 +374,6 @@ def plot_head_positions(
         ax.set(xlabel="x", ylabel="y", zlabel="z", xlim=xlim, ylim=ylim, zlim=zlim)
         _set_aspect_equal(ax)
         ax.view_init(30, 45)
-    tight_layout(fig=fig)
     plt_show(show)
     return fig
 
@@ -2937,7 +2938,7 @@ def plot_volume_source_estimates(
     del ijk
 
     # Plot initial figure
-    fig, (axes, ax_time) = plt.subplots(2)
+    fig, (axes, ax_time) = plt.subplots(2, layout="constrained")
     axes.set(xticks=[], yticks=[])
     marker = "o" if len(stc.times) == 1 else None
     ydata = stc.data[loc_idx]
@@ -2948,7 +2949,6 @@ def plot_volume_source_estimates(
     vert_legend = ax_time.legend([h], [""], title="Vertex")
     _update_vertlabel(loc_idx)
     lx = ax_time.axvline(stc.times[time_idx], color="g")
-    fig.tight_layout()
 
     allow_pos_lims = mode != "glass_brain"
     mapdata = _process_clim(clim, colormap, transparent, stc.data, allow_pos_lims)

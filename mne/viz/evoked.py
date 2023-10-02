@@ -30,7 +30,6 @@ from .._fiff.pick import (
 from ..defaults import _handle_default
 from .utils import (
     _draw_proj_checkbox,
-    tight_layout,
     _check_delayed_ssp,
     plt_show,
     _process_times,
@@ -165,7 +164,11 @@ def _line_plot_onselect(
     minidx = np.abs(times - xmin).argmin()
     maxidx = np.abs(times - xmax).argmin()
     fig, axarr = plt.subplots(
-        1, len(ch_types), squeeze=False, figsize=(3 * len(ch_types), 3)
+        1,
+        len(ch_types),
+        squeeze=False,
+        figsize=(3 * len(ch_types), 3),
+        layout="constrained",
     )
 
     for idx, ch_type in enumerate(ch_types):
@@ -211,7 +214,6 @@ def _line_plot_onselect(
 
     unit = "Hz" if psd else time_unit
     fig.suptitle("Average over %.2f%s - %.2f%s" % (xmin, unit, xmax, unit), y=0.1)
-    tight_layout(pad=2.0, fig=fig)
     plt_show()
     if text is not None:
         text.set_visible(False)
