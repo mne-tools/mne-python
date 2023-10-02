@@ -179,6 +179,7 @@ mne.preprocessing.realign_raw(
 )
 # Add EEG channels to the eye-tracking raw object
 raw_et.add_channels([raw_eeg], force_update_info=True)
+del raw_eeg  # free up some memory
 
 # Define a few channel groups of interest and plot the data
 frontal = ["E19", "E11", "E4", "E12", "E5"]
@@ -197,7 +198,11 @@ raw_et.plot(events=et_events, event_id=event_dict, event_color="g", order=picks_
 # Now let's extract epochs around our flash events. We should see a clear pupil
 # constriction response to the flashes.
 
-epochs = mne.Epochs(raw_et, events=et_events, event_id=event_dict, tmin=-0.3, tmax=3)
+# Skip baseline correction for now. We will apply baseline correction later.
+epochs = mne.Epochs(
+    raw_et, events=et_events, event_id=event_dict, tmin=-0.3, tmax=3, baseline=None
+)
+del raw_et  # free up some memory
 epochs[:8].plot(events=et_events, event_id=event_dict, order=picks_idx)
 
 # %%
@@ -205,9 +210,7 @@ epochs[:8].plot(events=et_events, event_id=event_dict, order=picks_idx)
 # center of the screen. Let's plot the gaze position data to confirm that the
 # participant primarily kept their gaze fixated at the center of the screen.
 
-# extract new epochs without baseline correction, only for plotting purposes.
-gaze_epochs = mne.Epochs(raw_et, events=et_events, tmin=-0.3, tmax=3, baseline=None)
-plot_gaze(gaze_epochs, width=1920, height=1080, sigma=2)
+plot_gaze(epochs, width=1920, height=1080)
 
 # %%
 # .. seealso:: :ref:`tut-eyetrack-heatmap`
@@ -216,4 +219,4 @@ plot_gaze(gaze_epochs, width=1920, height=1080, sigma=2)
 # Finally, let's plot the evoked responses to the light flashes to get a sense of the
 # average pupillary light response, and the associated ERP in the EEG data.
 
-epochs.average().plot(picks=occipital + pupil)
+epochs.apple_baseline().average().plot(picks=occipital + pupil)

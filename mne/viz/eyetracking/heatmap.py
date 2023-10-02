@@ -40,7 +40,7 @@ def plot_gaze(
     sigma : float | None
         The amount of Gaussian smoothing applied to the heatmap data (standard
         deviation in pixels). If ``None``, no smoothing is applied. Default is 25.
-    %(cmap_simple)s
+    %(cmap)s
     alpha : float
         The opacity of the heatmap (default is 1).
     %(vlim_plot_topomap)s
