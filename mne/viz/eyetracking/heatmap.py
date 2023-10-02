@@ -15,9 +15,10 @@ def plot_gaze(
     epochs,
     width,
     height,
+    *,
     sigma=25,
     cmap=None,
-    alpha=None,
+    alpha=1.,
     vmin=None,
     vmax=None,
     axes=None,
@@ -27,7 +28,7 @@ def plot_gaze(
 
     Parameters
     ----------
-    epochs : mne.Epochs
+    epochs : instance of Epochs
         The :class:`~mne.Epochs` object containing eyegaze channels.
     width : int
         The width dimension of the plot canvas. For example, if the eyegaze data units
@@ -37,15 +38,14 @@ def plot_gaze(
         The height dimension of the plot canvas. For example, if the eyegaze data units
         are pixels, and the participant screen resolution was 1920x1080, then the height
         should be 1080.
-    sigma : int | float
-        The amount of smoothing applied to the heatmap data. If ``None``,
-        no smoothing is applied. Default is 1.
+    sigma : float | None
+        The amount of Gaussian smoothing applied to the heatmap data (standard
+        deviation in pixels). If ``None``, no smoothing is applied. Default is 25.
     cmap : matplotlib colormap | str | None
         The :class:`~matplotlib.colors.Colormap` to use. Defaults to ``None``, meaning
         the colormap will default to matplotlib's default.
-    alpha : int | float | None
-        The transparency value of the heatmap. If ``None``, the alpha value is set to 1,
-        meaning the heatmap colors are fully opaque. Default is ``None``.
+    alpha : float
+        The opacity of the heatmap (default is 1).
     vmin : float | None
         The minimum value for the colormap. The unit is seconds, for dwell time
         to the bin coordinate. If ``None``, the minimum value is set to the
@@ -57,8 +57,7 @@ def plot_gaze(
     axes : matplotlib.axes.Axes | None
         The axes to plot on. If ``None``, a new figure and axes are created.
         Default is ``None``.
-    show : bool
-        Whether to show the plot. Default is ``True``.
+    %(show)s
 
     Returns
     -------
@@ -88,13 +87,13 @@ def plot_gaze(
     canvas = np.vstack((x_data, y_data)).T  # shape (n_samples, 2)
 
     # Create 2D histogram
+    # Bin into image-like format
     hist, _, _ = np.histogram2d(
-        canvas[:, 0],
         canvas[:, 1],
-        bins=(width, height),
-        range=[[0, width], [0, height]],
+        canvas[:, 0],
+        bins=(height, width),
+        range=[[0, height], [0, width]],
     )
-    hist = hist.T  # transpose to match screen coordinates. i.e. width > height
     # Convert density from samples to seconds
     hist /= epochs.info["sfreq"]
     # Smooth the heatmap
@@ -136,7 +135,7 @@ def _plot_heatmap_array(
         ax = axes
         fig = ax.get_figure()
     else:
-        fig, ax = plt.subplots()
+        fig, ax = plt.subplots(constrained_layout=True)
 
     ax.set_title("Gaze heatmap")
     ax.set_xlabel("X position")
@@ -161,7 +160,6 @@ def _plot_heatmap_array(
     )
 
     # Prepare the colorbar
-    # stackoverflow.com/questions/18195758/set-matplotlib-colorbar-size-to-match-graph
-    fig.colorbar(im, ax=ax, label="Dwell time (seconds)", fraction=0.046, pad=0.04)
+    fig.colorbar(im, ax=ax, label="Dwell time (seconds)")
     plt_show(show)
     return fig

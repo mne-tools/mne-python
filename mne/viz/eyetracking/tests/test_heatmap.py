@@ -1,3 +1,7 @@
+# Authors: Scott Huberty <seh33@uw.edu>
+#
+# License: Simplified BSD
+
 import pytest
 
 import matplotlib.pyplot as plt
