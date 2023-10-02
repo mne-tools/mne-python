@@ -41,7 +41,7 @@ def test_old_data():
 def test_new_data():
     """Test reading raw cnt files with different header."""
     with pytest.warns(RuntimeWarning, match="Could not parse meas date"):
-        raw = read_raw_cnt(input_fname=fname, header="new")
+        raw = read_raw_cnt(input_fname=fname_bad_spans, header="new")
 
     assert raw.info["bads"] == ["F8"]  # test bads
 
