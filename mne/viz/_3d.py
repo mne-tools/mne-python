@@ -2650,10 +2650,9 @@ def plot_volume_source_estimates(
     %(subject_none)s
         If ``None``, ``stc.subject`` will be used.
     %(subjects_dir)s
-    mode : str
-        The plotting mode to use. Either 'stat_map' (default) or 'glass_brain'.
-        For "glass_brain", activation absolute values are displayed
-        after being transformed to a standard MNI brain.
+    mode : ``'stat_map'`` | ``'glass_brain'``
+        The plotting mode to use. For ``'glass_brain'``, activation absolute values are
+        displayed after being transformed to a standard MNI brain.
     bg_img : instance of SpatialImage | str
         The background image used in the nilearn plotting function.
         Can also be a string to use the ``bg_img`` file in the subject's
@@ -2714,10 +2713,11 @@ def plot_volume_source_estimates(
     >>> morph = mne.compute_source_morph(src_sample, subject_to='fsaverage')  # doctest: +SKIP
     >>> fig = stc_vol_sample.plot(morph)  # doctest: +SKIP
     """  # noqa: E501
-    from matplotlib import pyplot as plt, colors
     import nibabel as nib
-    from ..source_estimate import VolSourceEstimate
+    from matplotlib import pyplot as plt, colors
+
     from ..morph import SourceMorph
+    from ..source_estimate import VolSourceEstimate
     from ..source_space._source_space import _ensure_src
 
     if not check_version("nilearn", "0.4"):
@@ -2745,8 +2745,9 @@ def plot_volume_source_estimates(
         level="debug",
     )
     subject = _check_subject(src_subject, subject, first_kind=kind)
-    stc_ijk = np.array(np.unravel_index(stc.vertices[0], img.shape[:3], order="F")).T
-    assert stc_ijk.shape == (len(stc.vertices[0]), 3)
+    vertices = np.hstack(stc.vertices)
+    stc_ijk = np.array(np.unravel_index(vertices, img.shape[:3], order="F")).T
+    assert stc_ijk.shape == (vertices.size, 3)
     del kind
 
     # XXX this assumes zooms are uniform, should probably mult by zooms...
@@ -2756,12 +2757,11 @@ def plot_volume_source_estimates(
         """Convert voxel coordinates to index in stc.data."""
         ijk = _cut_coords_to_ijk(cut_coords, img)
         del cut_coords
-        logger.debug("    Affine remapped cut coords to [%d, %d, %d] idx" % tuple(ijk))
+        logger.debug("    Affine remapped cut coords to [%d, %d, %d] idx", tuple(ijk))
         dist, loc_idx = dist_to_verts.query(ijk[np.newaxis])
         dist, loc_idx = dist[0], loc_idx[0]
         logger.debug(
-            "    Using vertex %d at a distance of %d voxels"
-            % (stc.vertices[0][loc_idx], dist)
+            "    Using vertex %d at a distance of %d voxels", (vertices[loc_idx], dist)
         )
         return loc_idx
 
@@ -2848,7 +2848,7 @@ def plot_volume_source_estimates(
         plot_map_callback(params["img_idx"], title="", cut_coords=cut_coords)
 
     def _update_vertlabel(loc_idx):
-        vert_legend.get_texts()[0].set_text(f"{stc.vertices[0][loc_idx]}")
+        vert_legend.get_texts()[0].set_text(f"{vertices[loc_idx]}")
 
     @verbose_dec
     def _onclick(event, params, verbose=None):
@@ -2932,7 +2932,7 @@ def plot_volume_source_estimates(
             (stc.times[time_idx],)
             + tuple(cut_coords)
             + tuple(ijk)
-            + (stc.vertices[0][loc_idx],)
+            + (vertices[loc_idx],)
         )
     )
     del ijk
@@ -3046,8 +3046,7 @@ def plot_volume_source_estimates(
 
     plot_and_correct(stat_map_img=params["img_idx"], title="", cut_coords=cut_coords)
 
-    if show:
-        plt.show()
+    plt_show(show)
     fig.canvas.mpl_connect(
         "button_press_event", partial(_onclick, params=params, verbose=verbose)
     )
