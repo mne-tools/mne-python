@@ -141,7 +141,7 @@ def morlet(sfreq, freqs, n_cycles=7.0, sigma=None, zero_mean=False):
         s = w * sfreq / (2 * freq * np.pi)  # from SciPy docs
         wavelet_sp = sp_morlet(M, s, w) * np.sqrt(2)  # match our normalization
 
-        _, ax = plt.subplots(constrained_layout=True)
+        _, ax = plt.subplots(layout="constrained")
         colors = {
             ('MNE', 'real'): '#66CCEE',
             ('SciPy', 'real'): '#4477AA',

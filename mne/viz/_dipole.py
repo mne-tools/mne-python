@@ -54,7 +54,7 @@ def _plot_dipole_mri_outlines(
     _check_option("surf", surf, ("white", "pial", None))
     if ax is None:
         _, ax = plt.subplots(
-            1, 3, figsize=(7, 2.5), squeeze=True, constrained_layout=True
+            1, 3, figsize=(7, 2.5), squeeze=True, layout="constrained"
         )
     _validate_if_list_of_axes(ax, 3, name="ax")
     dipoles = _check_concat_dipoles(dipoles)

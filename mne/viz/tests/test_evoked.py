@@ -231,7 +231,7 @@ def test_plot_evoked():
 
 def test_constrained_layout():
     """Test that we handle constrained layouts correctly."""
-    fig, ax = plt.subplots(1, 1, constrained_layout=True)
+    fig, ax = plt.subplots(1, 1, layout="constrained")
     assert fig.get_constrained_layout()
     evoked = mne.read_evokeds(evoked_fname)[0]
     evoked.pick(evoked.ch_names[:2])
