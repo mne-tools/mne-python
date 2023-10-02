@@ -118,7 +118,7 @@ plt.show()
 #
 # We can use matplotlib to plot the gaze heatmaps on top of the stimuli images. We'll
 # customize a :class:`~matplotlib.colors.Colormap` to make some values of the heatmap
-# (in this case, the color black) completely transparent. We'll then use the ``vmin``
+# (in this case, the color black) completely transparent. We'll then use the ``vlim``
 # parameter to force the heatmap to start at a value greater than the darkest value in
 # our previous heatmap, which will make the darkest colors of the heatmap transparent.
 
@@ -131,7 +131,7 @@ plot_gaze(
     epochs["natural"],
     width=px_width,
     height=px_height,
-    vmin=0.0003,
+    vlim=(0.0003, None),
     sigma=50,
     cmap=cmap,
     axes=ax[0],
@@ -144,7 +144,7 @@ plot_gaze(
     width=px_width,
     height=px_height,
     sigma=50,
-    vmin=0.0001,
+    vlim=(0.0001, None),
     cmap=cmap,
     axes=ax[1],
     show=False,
