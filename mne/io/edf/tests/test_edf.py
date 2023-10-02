@@ -563,8 +563,8 @@ def test_read_annotations_edf(tmp_path):
         _ndarray_ch_names([("CH1",), (), ("CH1", "CH2"), ("CH3",), ()]),
     )
 
-    # Read annotations with incomplete input channel names: CH3 is missing from input
-    # channels, turning into a global annotations
+    # Read annotations with incomplete input channel names: "CH3" is missing from input
+    # channels, turning the related annotation into a global one
     annotations = _read_annotations_edf(
         tal_channel, ch_names=["CH1", "CH2"], encoding="latin1"
     )
