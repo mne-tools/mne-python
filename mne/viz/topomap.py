@@ -472,34 +472,46 @@ def _plot_projs_topomap(
     projs = _check_type_projs(projs)
     _validate_type(info, "info", "info")
 
-    types, datas, poss, spheres, outliness, ch_typess = [], [], [], [], [], []
+    # Preprocess projs to deal with joint MEG projectors. If we duplicate these and
+    # split into mag and grad, they should work as expected
+    info_names = _clean_names(info["ch_names"], remove_whitespace=True)
+    use_projs = list()
+    for proj in projs:
+        proj = _eliminate_zeros(proj)  # gh 5641, makes a copy
+        proj["data"]["col_names"] = _clean_names(
+            proj["data"]["col_names"],
+            remove_whitespace=True,
+        )
+        picks = pick_channels(info_names, proj["data"]["col_names"], ordered=True)
+        proj_types = info.get_channel_types(picks)
+        unique_types = sorted(set(proj_types))
+        for type_ in unique_types:
+            proj_picks = np.where([proj_type == type_ for proj_type in proj_types])[0]
+            use_projs.append(copy.deepcopy(proj))
+            use_projs[-1]["data"]["data"] = proj["data"]["data"][:, proj_picks]
+            use_projs[-1]["data"]["col_names"] = [
+                proj["data"]["col_names"][pick] for pick in proj_picks
+            ]
+    projs = use_projs
+
+    datas, poss, spheres, outliness, ch_typess = [], [], [], [], []
     for proj in projs:
         # get ch_names, ch_types, data
-        proj = _eliminate_zeros(proj)  # gh 5641
-        ch_names = _clean_names(proj["data"]["col_names"], remove_whitespace=True)
-        if vlim == "joint":
-            ch_idxs = np.where(np.isin(info["ch_names"], proj["data"]["col_names"]))[0]
-            these_ch_types = info.get_channel_types(ch_idxs, unique=True)
-            # each projector should have only one channel type
-            assert len(these_ch_types) == 1
-            types.append(list(these_ch_types)[0])
         data = proj["data"]["data"].ravel()
-        info_names = _clean_names(info["ch_names"], remove_whitespace=True)
-        picks = pick_channels(info_names, ch_names, ordered=True)
+        picks = pick_channels(info_names, proj["data"]["col_names"], ordered=True)
         use_info = pick_info(info, picks)
+        these_ch_types = use_info.get_channel_types(unique=True)
+        assert len(these_ch_types) == 1  # should be guaranteed above
+        ch_type = these_ch_types[0]
         (
             data_picks,
             pos,
             merge_channels,
             names,
-            ch_type,
+            _,
             this_sphere,
             clip_origin,
-        ) = _prepare_topomap_plot(
-            use_info,
-            _get_plot_ch_type(use_info, None),
-            sphere=sphere,
-        )
+        ) = _prepare_topomap_plot(use_info, ch_type, sphere=sphere)
         these_outlines = _make_head_outlines(sphere, pos, outlines, clip_origin)
         data = data[data_picks]
         if merge_channels:
@@ -528,8 +540,8 @@ def _plot_projs_topomap(
     # handle vmin/vmax
     vlims = [None for _ in range(len(datas))]
     if vlim == "joint":
-        for _ch_type in set(types):
-            idx = np.where(np.isin(types, _ch_type))[0]
+        for _ch_type in set(ch_typess):
+            idx = np.where(np.isin(ch_typess, _ch_type))[0]
             these_data = np.concatenate(np.array(datas, dtype=object)[idx])
             norm = all(these_data >= 0)
             _vl = _setup_vmin_vmax(these_data, vmin=None, vmax=None, norm=norm)
