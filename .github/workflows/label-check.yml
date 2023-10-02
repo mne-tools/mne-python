@@ -1,0 +1,25 @@
+name: Labels
+
+on:  # yamllint disable-line rule:truthy
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - labeled
+      - unlabeled
+      - synchronize
+
+env:
+  LABELS: ${{ join( github.event.pull_request.labels.*.name, ' ' ) }}
+
+jobs:
+  check-type-label:
+    name: ensure labeled
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          echo "Labels: $LABELS"
+          if [[ "$LABELS" != *"BUG"* ]] && [[ "$LABELS" != *"ENH"* ]] && [[ "$LABELS" != *"API"* ]] && [[ "$LABELS" != *"MAINT"* ]]; then
+            echo "Please add a valid type label to this PR"
+            exit 1
+          fi

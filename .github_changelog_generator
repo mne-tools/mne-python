@@ -1,0 +1,7 @@
+project=mne-python
+user=mne-tools
+add-sections={"enh":{"prefix":"**Enhancements**","labels":["ENH"]},"bug":{"prefix":"**Bugfixes**","labels":["BUG"]},"api":{"prefix":"**API changes**","labels":["API"]},"doc":{"prefix":"**Documentation**","labels":["DOC"]},"maintenance":{"prefix":"**Code health**","labels":["MAINT"]}}
+max-issues=2
+issues=no
+compare-link=no
+cache-file=.github_changelog_cache
