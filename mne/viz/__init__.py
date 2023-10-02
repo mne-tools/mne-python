@@ -74,7 +74,6 @@ __getattr__, __dir__, __all__ = lazy.attach(
             "plot_regression_weights",
         ],
         "utils": [
-            "tight_layout",
             "mne_analyze_colormap",
             "compare_fiff",
             "ClickableImage",

@@ -202,63 +202,6 @@ def _show_browser(show=True, block=True, fig=None, **kwargs):
             _qt_app_exec(QApplication.instance())
 
 
-def tight_layout(pad=1.2, h_pad=None, w_pad=None, fig=None):
-    """Adjust subplot parameters to give specified padding.
-
-    .. note:: For plotting please use this function instead of
-              ``plt.tight_layout``.
-
-    Parameters
-    ----------
-    pad : float
-        Padding between the figure edge and the edges of subplots, as a
-        fraction of the font-size.
-    h_pad : float
-        Padding height between edges of adjacent subplots.
-        Defaults to ``pad_inches``.
-    w_pad : float
-        Padding width between edges of adjacent subplots.
-        Defaults to ``pad_inches``.
-    fig : instance of Figure
-        Figure to apply changes to.
-
-    Notes
-    -----
-    This will not force constrained_layout=False if the figure was created
-    with that method.
-    """
-    _validate_type(pad, "numeric", "pad")
-    import matplotlib.pyplot as plt
-
-    fig = plt.gcf() if fig is None else fig
-
-    fig.canvas.draw()
-    constrained = fig.get_constrained_layout()
-    kwargs = dict(pad=pad, h_pad=h_pad, w_pad=w_pad)
-    if constrained:
-        return  # no-op
-    try:  # see https://github.com/matplotlib/matplotlib/issues/2654
-        with warnings.catch_warnings(record=True) as ws:
-            fig.tight_layout(**kwargs)
-    except Exception:
-        try:
-            with warnings.catch_warnings(record=True) as ws:
-                if hasattr(fig, "set_layout_engine"):
-                    fig.set_layout_engine("tight", **kwargs)
-                else:
-                    fig.set_tight_layout(kwargs)
-        except Exception:
-            warn(
-                'Matplotlib function "tight_layout" is not supported.'
-                " Skipping subplot adjustment."
-            )
-            return
-    for w in ws:
-        w_msg = str(w.message) if hasattr(w, "message") else w.get_message()
-        if not w_msg.startswith("This figure includes Axes"):
-            warn(w_msg, w.category, "matplotlib")
-
-
 def _check_delayed_ssp(container):
     """Handle interactive SSP selection."""
     if container.proj is True or all(p["active"] for p in container.info["projs"]):
