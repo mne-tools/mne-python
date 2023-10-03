@@ -205,7 +205,7 @@ def test_fetch_parcellations(tmp_path):
         labels,
         parc="HCPMMP1_round",
         table_name="./left.fsaverage164.label.gii",
-        **kwargs
+        **kwargs,
     )
     orig = op.join(this_subjects_dir, "fsaverage", "label", "lh.HCPMMP1.annot")
     first = hashfunc(orig)

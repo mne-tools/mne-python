@@ -383,7 +383,7 @@ class PSDEstimator(TransformerMixin):
         n_jobs=None,
         normalization="length",
         *,
-        verbose=None
+        verbose=None,
     ):  # noqa: D102
         self.sfreq = sfreq
         self.fmin = fmin
@@ -512,7 +512,7 @@ class FilterEstimator(TransformerMixin):
         iir_params=None,
         fir_design="firwin",
         *,
-        verbose=None
+        verbose=None,
     ):  # noqa: D102
         self.info = info
         self.l_freq = l_freq
@@ -838,7 +838,7 @@ class TemporalFilter(TransformerMixin):
         fir_window="hamming",
         fir_design="firwin",
         *,
-        verbose=None
+        verbose=None,
     ):  # noqa: D102
         self.l_freq = l_freq
         self.h_freq = h_freq
