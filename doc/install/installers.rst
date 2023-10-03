@@ -80,7 +80,7 @@ Got any questions? Let us know on the `MNE Forum`_!
 
 .. raw:: html
 
-  <script async="async" src="../_static/update_installer_version.js"></script>
+  <script async="async" src="../_static/js/update_installer_version.js"></script>
 
 First steps
 ^^^^^^^^^^^
