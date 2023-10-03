@@ -19,7 +19,7 @@
 .. _`MNE-BIDS-Pipeline`: https://mne.tools/mne-bids-pipeline
 .. _`MNE-HCP`: http://mne.tools/mne-hcp
 .. _`MNE-Realtime`: https://mne.tools/mne-realtime
-.. _`MNE-MATLAB git repository`: https://github.com/mne-tools/mne-matlab
+.. _`MNE-MATLAB`: https://github.com/mne-tools/mne-matlab
 .. _`MNE-Docker`: https://github.com/mne-tools/mne-docker
 .. _`MNE-ICAlabel`: https://github.com/mne-tools/mne-icalabel
 .. _`MNE-Connectivity`: https://github.com/mne-tools/mne-connectivity
@@ -104,6 +104,7 @@
 .. _anaconda: https://www.anaconda.com/products/individual
 .. _miniconda: https://conda.io/en/latest/miniconda.html
 .. _miniforge: https://github.com/conda-forge/miniforge
+.. _mambaforge: https://mamba.readthedocs.io/en/latest/mamba-installation.html#mamba-install
 .. _installation instructions for Anaconda: http://docs.continuum.io/anaconda/install
 .. _installation instructions for Miniconda: https://conda.io/projects/conda/en/latest/user-guide/install/index.html
 .. _Anaconda troubleshooting guide: http://conda.pydata.org/docs/troubleshooting.html
