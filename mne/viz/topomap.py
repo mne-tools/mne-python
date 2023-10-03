@@ -2873,7 +2873,6 @@ def plot_layout(layout, picks=None, show_axes=False, show=True):
         figsize=(max(plt.rcParams["figure.figsize"]),) * 2, layout="constrained"
     )
     ax = fig.add_subplot(111)
-    fig.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=None, hspace=None)
     ax.set(xticks=[], yticks=[], aspect="equal")
     outlines = dict(border=([0, 1, 1, 0, 0], [0, 0, 1, 1, 0]))
     _draw_outlines(ax, outlines)
