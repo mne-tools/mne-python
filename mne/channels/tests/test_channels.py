@@ -51,6 +51,7 @@ from mne import (
 )
 from mne.datasets import testing
 from mne.parallel import parallel_func
+from mne.utils import requires_good_network
 
 io_dir = Path(__file__).parent.parent.parent / "io"
 base_dir = io_dir / "tests" / "data"
@@ -362,6 +363,7 @@ def _download_ft_neighbors(target_dir):
 
 
 @pytest.mark.slowtest
+@requires_good_network
 def test_adjacency_matches_ft(tmp_path):
     """Test correspondence of built-in adjacency matrices with FT repo."""
     builtin_neighbors_dir = Path(__file__).parents[1] / "data" / "neighbors"

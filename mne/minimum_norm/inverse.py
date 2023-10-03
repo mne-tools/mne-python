@@ -145,6 +145,16 @@ class InverseOperator(dict):
         )
         return html
 
+    @property
+    def ch_names(self):
+        """Name of channels attached to the inverse operator."""
+        return self["info"].ch_names
+
+    @property
+    def info(self):
+        """:class:`~mne.Info` attached to the inverse operator."""
+        return self["info"]
+
 
 def _pick_channels_inverse_operator(ch_names, inv):
     """Return data channel indices to be used knowing an inverse operator.
@@ -1896,15 +1906,17 @@ def make_inverse_operator(
     %(info_not_none)s
         Specifies the channels to include. Bad channels (in ``info['bads']``)
         are not used.
-    forward : dict
-        Forward operator.
+    forward : instance of Forward
+        Forward operator. See :func:`~mne.make_forward_solution` to create the operator.
     noise_cov : instance of Covariance
-        The noise covariance matrix.
+        The noise covariance matrix. See :func:`~mne.compute_raw_covariance` and
+        :func:`~mne.compute_covariance` to compute the noise covariance matrix on
+        :class:`~mne.io.Raw` and :class:`~mne.Epochs` respectively.
     %(loose)s
     %(depth)s
     fixed : bool | 'auto'
         Use fixed source orientations normal to the cortical mantle. If True,
-        the loose parameter must be "auto" or 0. If 'auto', the loose value
+        the loose parameter must be ``"auto"`` or ``0``. If ``'auto'``, the loose value
         is used.
     %(rank_none)s
     %(use_cps)s
@@ -1951,7 +1963,7 @@ def make_inverse_operator(
     and without this information.
 
     For depth weighting, 0.8 is generally good for MEG, and between 2 and 5
-    is good for EEG, see :footcite:`LinEtAl2006a`.
+    is good for EEG, see :footcite:t:`LinEtAl2006a`.
 
     References
     ----------

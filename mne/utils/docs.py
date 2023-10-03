@@ -1518,6 +1518,56 @@ extrapolate : str
         the head circle.
 """
 
+docdict[
+    "eyelink_apply_offsets"
+] = """
+apply_offsets : bool (default False)
+    Adjusts the onset time of the :class:`~mne.Annotations` created from Eyelink
+    experiment messages, if offset values exist in the ASCII file. If False, any
+    offset-like values will be prepended to the annotation description.
+"""
+
+docdict[
+    "eyelink_create_annotations"
+] = """
+create_annotations : bool | list (default True)
+    Whether to create :class:`~mne.Annotations` from occular events
+    (blinks, fixations, saccades) and experiment messages. If a list, must
+    contain one or more of ``['fixations', 'saccades',' blinks', messages']``.
+    If True, creates :class:`~mne.Annotations` for both occular events and
+    experiment messages.
+"""
+
+docdict[
+    "eyelink_find_overlaps"
+] = """
+find_overlaps : bool (default False)
+    Combine left and right eye :class:`mne.Annotations` (blinks, fixations,
+    saccades) if their start times and their stop times are both not
+    separated by more than overlap_threshold.
+"""
+
+docdict[
+    "eyelink_fname"
+] = """
+fname : path-like
+    Path to the eyelink file (``.asc``)."""
+
+docdict[
+    "eyelink_overlap_threshold"
+] = """
+overlap_threshold : float (default 0.05)
+    Time in seconds. Threshold of allowable time-gap between both the start and
+    stop times of the left and right eyes. If the gap is larger than the threshold,
+    the :class:`mne.Annotations` will be kept separate (i.e. ``"blink_L"``,
+    ``"blink_R"``). If the gap is smaller than the threshold, the
+    :class:`mne.Annotations` will be merged and labeled as ``"blink_both"``.
+    Defaults to ``0.05`` seconds (50 ms), meaning that if the blink start times of
+    the left and right eyes are separated by less than 50 ms, and the blink stop
+    times of the left and right eyes are separated by less than 50 ms, then the
+    blink will be merged into a single :class:`mne.Annotations`.
+"""
+
 # %%
 # F
 
@@ -1692,6 +1742,15 @@ docdict[
 ] = """
 fname : str
     Name of the output file.
+"""
+
+docdict[
+    "fname_fwd"
+] = """
+fname : path-like
+    File name to save the forward solution to. It should end with
+    ``-fwd.fif`` or ``-fwd.fif.gz`` to save to FIF, or ``-fwd.h5`` to save to
+    HDF5.
 """
 
 docdict[
@@ -2542,8 +2601,8 @@ docdict[
 _method_psd = r"""
 method : ``'welch'`` | ``'multitaper'``{}
     Spectral estimation method. ``'welch'`` uses Welch's
-    method\ :footcite:p:`Welch1967`, ``'multitaper'`` uses DPSS
-    tapers\ :footcite:p:`Slepian1978`.{}
+    method :footcite:p:`Welch1967`, ``'multitaper'`` uses DPSS
+    tapers :footcite:p:`Slepian1978`.{}
 """
 docdict["method_plot_psd_auto"] = _method_psd.format(
     " | ``'auto'``",
@@ -4660,7 +4719,7 @@ If str, the path to the head<->MRI transform ``*-trans.fif`` file produced
 docdict[
     "trans"
 ] = f"""
-trans : path-like | dict | instance of Transform | None
+trans : path-like | dict | instance of Transform | ``"fsaverage"`` | None
     {_trans_base}
     If trans is None, an identity matrix is assumed.
 """

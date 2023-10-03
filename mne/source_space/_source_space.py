@@ -119,18 +119,17 @@ class SourceSpaces(list):
     ----------
     source_spaces : list
         A list of dictionaries containing the source space information.
-    info : dict
+    info : dict | None
         Dictionary with information about the creation of the source space
-        file. Has keys 'working_dir' and 'command_line'.
+        file. Has keys ``'working_dir'`` and ``'command_line'``.
 
     Attributes
     ----------
-    kind : str
-        The kind of source space, one of
-        ``{'surface', 'volume', 'discrete', 'mixed'}``.
+    kind : ``'surface'`` | ``'volume'`` | ``'discrete'`` | ``'mixed'``
+        The kind of source space.
     info : dict
         Dictionary with information about the creation of the source space
-        file. Has keys 'working_dir' and 'command_line'.
+        file. Has keys ``'working_dir'`` and ``'command_line'``.
 
     See Also
     --------
@@ -510,7 +509,7 @@ class SourceSpaces(list):
         Parameters
         ----------
         fname : path-like
-            File to write.
+            File to write, which should end with ``-src.fif`` or ``-src.fif.gz``.
         %(overwrite)s
         %(verbose)s
         """
@@ -540,8 +539,8 @@ class SourceSpaces(list):
         include_discrete : bool
             If True, include discrete source spaces.
         dest : ``'mri'`` | ``'surf'``
-            If 'mri' the volume is defined in the coordinate system of the
-            original T1 image. If 'surf' the coordinate system of the
+            If ``'mri'`` the volume is defined in the coordinate system of the
+            original T1 image. If ``'surf'`` the coordinate system of the
             FreeSurfer surface is used (Surface RAS).
         trans : dict, str, or None
             Either a transformation filename (usually made using mne_analyze)
@@ -559,7 +558,7 @@ class SourceSpaces(list):
             source point.
 
             .. versionchanged:: 0.21.0
-               Support for "sparse" was added.
+               Support for ``"sparse"`` was added.
         use_lut : bool
             If True, assigns a numeric value to each source space that
             corresponds to a color on the freesurfer lookup table.
@@ -1653,6 +1652,8 @@ def setup_volume_source_space(
     add_interpolator=True,
     sphere_units="m",
     single_volume=False,
+    *,
+    n_jobs=None,
     verbose=None,
 ):
     """Set up a volume source space with grid spacing or discrete source space.
@@ -1662,12 +1663,12 @@ def setup_volume_source_space(
     subject : str | None
         Subject to process. If None, the path to the MRI volume must be
         absolute to get a volume source space. If a subject name
-        is provided the T1.mgz file will be found automatically.
+        is provided the ``T1.mgz`` file will be found automatically.
         Defaults to None.
     pos : float | dict
         Positions to use for sources. If float, a grid will be constructed
         with the spacing given by ``pos`` in mm, generating a volume source
-        space. If dict, pos['rr'] and pos['nn'] will be used as the source
+        space. If dict, ``pos['rr']`` and ``pos['nn']`` will be used as the source
         space locations (in meters) and normals, respectively, creating a
         discrete source space.
 
@@ -1679,21 +1680,24 @@ def setup_volume_source_space(
         volume source space can then be morphed onto the MRI volume
         using this interpolator. If pos is a dict, this cannot be None.
         If subject name is provided, ``pos`` is a float or ``volume_label``
-        are not provided then the ``mri`` parameter will default to 'T1.mgz'
+        are not provided then the ``mri`` parameter will default to ``'T1.mgz'``
         or ``aseg.mgz``, respectively, else it will stay None.
     sphere : ndarray, shape (4,) | ConductorModel | None
         Define spherical source space bounds using origin and radius given
-        by (ox, oy, oz, rad) in ``sphere_units``.
+        by ``(Ox, Oy, Oz, rad)`` in ``sphere_units``.
         Only used if ``bem`` and ``surface`` are both None. Can also be a
         spherical ConductorModel, which will use the origin and radius.
         None (the default) uses a head-digitization fit.
     bem : path-like | None | ConductorModel
         Define source space bounds using a BEM file (specifically the inner
-        skull surface) or a ConductorModel for a 1-layer of 3-layers BEM.
+        skull surface) or a :class:`~mne.bem.ConductorModel` for a 1-layer of 3-layers
+        BEM. See :func:`~mne.make_bem_model` and :func:`~mne.make_bem_solution` to
+        create a :class:`~mne.bem.ConductorModel`. If provided, ``surface`` must be
+        None.
     surface : path-like | dict | None
         Define source space bounds using a FreeSurfer surface file. Can
         also be a dictionary with entries ``'rr'`` and ``'tris'``, such as
-        those returned by :func:`mne.read_surface`.
+        those returned by :func:`mne.read_surface`. If provided, ``bem`` must be None.
     mindist : float
         Exclude points closer than this distance (mm) to the bounding surface.
     exclude : float
@@ -1725,6 +1729,9 @@ def setup_volume_source_space(
         when many labels are used.
 
         .. versionadded:: 0.21
+    %(n_jobs)s
+
+        .. versionadded:: 1.6
     %(verbose)s
 
     Returns
@@ -1781,7 +1788,7 @@ def setup_volume_source_space(
         )
 
     if bem is not None and surface is not None:
-        raise ValueError('Only one of "bem" and "surface" should be ' "specified")
+        raise ValueError("Only one of 'bem' and 'surface' should be specified.")
 
     if mri is None and subject is not None:
         if volume_label is not None:
@@ -1908,6 +1915,7 @@ def setup_volume_source_space(
             mindist,
             mri,
             volume_label,
+            n_jobs=n_jobs,
             vol_info=vol_info,
             single_volume=single_volume,
         )

@@ -52,7 +52,7 @@ __getattr__, __dir__, __all__ = lazy.attach(
             "read_fine_calibration",
             "write_fine_calibration",
         ],
-        "annotate_nan": ["annotate_nan"],
+        "_annotate_nan": ["annotate_nan"],
         "interpolate": ["equalize_bads", "interpolate_bridged_electrodes"],
         "_css": ["cortical_signal_suppression"],
         "hfc": ["compute_proj_hfc"],
