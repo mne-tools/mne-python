@@ -78,6 +78,9 @@ Got any questions? Let us know on the `MNE Forum`_!
 
         **Supported platforms:** Windows 10 and newer
 
+.. raw:: html
+
+  <script async="async" src="../_static/update_installer_version.js"></script>
 
 First steps
 ^^^^^^^^^^^
@@ -137,7 +140,7 @@ interpreter.
         // just default to showing the first of the 2 macOS tabs
         platform = "macos-intel";
       }
-     $(document).ready(function(){
+      document.addEventListener('DOMContentLoaded', function() {
          let all_tab_nodes = document.querySelectorAll(
              '.platform-selector-tabset')[0].children;
          let input_nodes = [...all_tab_nodes].filter(
