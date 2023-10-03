@@ -1769,7 +1769,8 @@ def make_redirects(app, exception):
             assert os.path.isfile(os.path.join(app.outdir, to)), to
             # handle links to sibling folders
             path_parts = to.split("/")
-            path_parts = [".."] + path_parts[(path_parts.index(tu) + 1) :]
+            if tu in path_parts:
+                path_parts = [".."] + path_parts[(path_parts.index(tu) + 1) :]
             to = os.path.join(*path_parts)
         assert to.endswith("html"), to
         fr_path = os.path.join(app.outdir, fr)
