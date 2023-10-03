@@ -168,7 +168,7 @@ def _create_properties_layout(figsize=None, fig=None):
     if figsize is None:
         figsize = [7.0, 6.0]
     if fig is None:
-        fig = plt.figure(figsize=figsize, facecolor=[0.95] * 3, layout="constrained")
+        fig = plt.figure(figsize=figsize, facecolor=[0.95] * 3)
 
     axes_params = (
         ("topomap", [0.08, 0.5, 0.3, 0.45]),
