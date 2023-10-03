@@ -33,18 +33,18 @@
 *lcmv*.py @britta-wstnr
 
 # Channels
-/mne/channels @agramfort @mscheltienne
+/mne/channels @agramfort @mscheltienne @dengemann
 
 # Core sensor-space classes
-/mne/epochs.py @drammock @agramfort @mscheltienne
-/mne/evoked.py @drammock @agramfort @mscheltienne
-/mne/io/*.* @drammock @cbrnr @agramfort @mscheltienne
+/mne/epochs.py @drammock @agramfort @mscheltienne @dengemann
+/mne/evoked.py @drammock @agramfort @mscheltienne @dengemann
+/mne/io/*.* @drammock @cbrnr @agramfort @mscheltienne @dengemann
 
 # Current-source density
-/mne/preprocessing/_csd.py  @alexrockhill
+/mne/preprocessing/_csd.py  @alexrockhill @dengemann
 
 # Decoding
-/mne/decoding/csp.py @cbrnr @agramfort
+/mne/decoding/csp.py @cbrnr @agramfort @dengemann
 
 # fNIRS
 /mne/preprocessing/nirs @rob-luke
@@ -74,14 +74,14 @@
 /mne/minimum_norm @agramfort
 
 # Preprocessing
-/mne/preprocessing/ica.py @cbrnr @adam2392 @agramfort @mscheltienne
-/mne/preprocessing/infomax_.py @cbrnr @adam2392 @mscheltienne
+/mne/preprocessing/ica.py @cbrnr @adam2392 @agramfort @mscheltienne @dengemann
+/mne/preprocessing/infomax_.py @cbrnr @adam2392 @mscheltienne @dengemann
 /mne/preprocessing/*annotate*.py @mscheltienne
 /mne/preprocessing/bads.py @mscheltienne
 /mne/preprocessing/e*g.py @mscheltienne
 
 # Report
-/mne/report @hoechenberger
+/mne/report @hoechenberger @dengemann
 
 # Simulation
 /mne/simulation/ @agramfort
@@ -96,22 +96,22 @@
 /mne/time_frequency @drammock @adam2392 @mscheltienne
 
 # Viz
-/mne/viz @drammock
+/mne/viz @drammock @dengemann
 /mne/viz/_brain @larsoner @wmvanvliet
 /mne/viz/ui_events.py @wmvanvliet
-/tutorials/visualization @larsoner @wmvanvliet
-/examples/visualization @larsoner
+/tutorials/visualization @larsoner @wmvanvliet @dengemann
+/examples/visualization @larsoner @dengemann
 
 #########################
 # Project-level / other #
 #########################
 
 # Examples and tutorials
-/examples @drammock @agramfort
-/tutorials @drammock @agramfort
+/examples @drammock @agramfort @dengemann
+/tutorials @drammock @agramfort @dengemann
 
 # Non-tutorial documentation text and infrastructure
-/doc @larsoner @drammock @agramfort
+/doc @larsoner @drammock @agramfort @dengemann
 /logo @drammock
 
 # Installation documentation
