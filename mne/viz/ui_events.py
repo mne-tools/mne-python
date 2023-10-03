@@ -135,7 +135,7 @@ class ColormapRange(UIEvent):
     """
 
     kind: str
-    ch_type: str
+    ch_type: Optional[str] = None
     fmin: Optional[float] = None
     fmid: Optional[float] = None
     fmax: Optional[float] = None
