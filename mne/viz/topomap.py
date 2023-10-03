@@ -979,7 +979,7 @@ def plot_topomap(
         .. versionadded:: 0.20
     %(res_topomap)s
     %(size_topomap)s
-    %(cmap_topomap_simple)s
+    %(cmap_topomap)s
     %(vlim_plot_topomap)s
 
         .. versionadded:: 1.2
