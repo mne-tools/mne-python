@@ -89,3 +89,6 @@ recursive-exclude mne/io/brainvision/tests/data *
 recursive-exclude mne/io/egi/tests/data *
 recursive-exclude mne/io/nicolet/tests/data *
 recursive-exclude mne/preprocessing/tests/data *
+
+# Type stubs
+recursive-include mne *.pyi
