@@ -57,6 +57,7 @@ Bugs
 - Add missing ``overwrite`` and ``verbose`` parameters to :meth:`Transform.save() <mne.transforms.Transform.save>` (:gh:`12004` by `Marijn van Vliet`_)
 - Correctly prune channel-specific :class:`~mne.Annotations` when creating :class:`~mne.Epochs` without the channel(s) included in the channel specific annotations (:gh:`12010` by `Mathieu Scheltienne`_)
 - Correctly handle passing ``"eyegaze"`` or ``"pupil"`` to :meth:`mne.io.Raw.pick` (:gh:`12019` by `Scott Huberty`_)
+- Fix bug where :func:`mne.io.read_raw_cnt` would not import bad channels and added header parameter for backwards compatibility (:gh:`11833` by `Jacob Woessner`_)
 
 API changes
 ~~~~~~~~~~~
