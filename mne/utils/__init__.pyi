@@ -87,6 +87,7 @@ from .docs import (
 )
 
 from .fetching import _url_to_local_path as _url_to_local_path
+
 from ._logging import (
     verbose as verbose,
     logger as logger,
@@ -123,6 +124,7 @@ from .misc import (
 )
 
 from .progressbar import ProgressBar as ProgressBar
+
 from ._testing import (
     run_command_if_main as run_command_if_main,
     requires_mne as requires_mne,
