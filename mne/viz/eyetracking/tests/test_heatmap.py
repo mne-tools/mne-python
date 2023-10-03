@@ -10,19 +10,17 @@ import numpy as np
 import mne
 
 
-@pytest.mark.parametrize(
-    "axes",
-    [(None), (True)],
-)
+@pytest.mark.parametrize("axes", [None, True])
 def test_plot_heatmap(axes):
     """Test plot_gaze."""
     # Create a toy epochs instance
     info = info = mne.create_info(
         ch_names=["xpos", "ypos"], sfreq=100, ch_types="eyegaze"
     )
-    # here we pretend that the subject was looking at the center of the screen
-    # we limit the gaze data between 860-1060px horizontally and 440-640px vertically
-    data = np.vstack([np.full((1, 100), 1920 / 2), np.full((1, 100), 1080 / 2)])
+    # simulate a steady fixation at the center of the screen
+    width, height = (1920, 1080)
+    shape = (1, 100)  # x or y, time
+    data = np.vstack([np.full(shape, width / 2), np.full(shape, height / 2)])
     epochs = mne.EpochsArray(data[None, ...], info)
     epochs.info["chs"][0]["loc"][4] = -1
     epochs.info["chs"][1]["loc"][4] = 1

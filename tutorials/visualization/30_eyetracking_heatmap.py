@@ -95,7 +95,7 @@ plot_gaze(
     width=px_width,
     height=px_height,
     sigma=50,
-    cmap="jet",
+    cmap="viridis",
     axes=ax[0],
     show=False,
 )
@@ -105,7 +105,7 @@ plot_gaze(
     width=px_width,
     height=px_height,
     sigma=50,
-    cmap="jet",
+    cmap="viridis",
     axes=ax[1],
     show=False,
 )
@@ -122,7 +122,7 @@ plt.show()
 # parameter to force the heatmap to start at a value greater than the darkest value in
 # our previous heatmap, which will make the darkest colors of the heatmap transparent.
 
-cmap = plt.get_cmap("jet")
+cmap = plt.get_cmap("viridis")
 cmap.set_under("k", alpha=0)  # make the lowest values transparent
 fig, ax = plt.subplots(1, 2, figsize=(10, 5), constrained_layout=True)
 

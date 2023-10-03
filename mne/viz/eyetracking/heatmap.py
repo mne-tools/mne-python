@@ -49,7 +49,7 @@ def plot_gaze(
 
     Returns
     -------
-    fig : instance of matplotlib.figure.Figure
+    fig : instance of Figure
         The resulting figure object for the heatmap plot.
 
     Notes
@@ -62,8 +62,8 @@ def plot_gaze(
     _validate_type(epochs, BaseEpochs, "epochs")
     _validate_type(alpha, "numeric", "alpha")
     _validate_type(sigma, ("numeric", None), "sigma")
-    _ensure_int(width, "width")
-    _ensure_int(width, "height")
+    width = _ensure_int(width, "width")
+    height = _ensure_int(width, "height")
 
     pos_picks = _picks_to_idx(epochs.info, "eyegaze")
     gaze_data = epochs.get_data(picks=pos_picks)
