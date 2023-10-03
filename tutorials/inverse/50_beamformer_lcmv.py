@@ -274,7 +274,7 @@ brain = stc_vec.plot_3d(
     # Could do this for a 3-panel figure:
     # view_layout='horizontal', views=['coronal', 'sagittal', 'axial'],
     brain_kwargs=dict(silhouette=True),
-    **kwargs
+    **kwargs,
 )
 
 # %%

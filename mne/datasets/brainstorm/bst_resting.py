@@ -25,7 +25,7 @@ def data_path(
     download=True,
     accept=False,
     *,
-    verbose=None
+    verbose=None,
 ):  # noqa: D103
     return _download_mne_dataset(
         name="bst_resting",

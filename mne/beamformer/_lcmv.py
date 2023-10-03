@@ -207,7 +207,7 @@ def make_lcmv(
         noise_cov=noise_cov,
         rank=rank,
         pca=False,
-        **depth
+        **depth,
     )
     ch_names = list(info["ch_names"])
 

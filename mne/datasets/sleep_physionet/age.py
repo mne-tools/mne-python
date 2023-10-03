@@ -29,7 +29,7 @@ def fetch_data(
     base_url=BASE_URL,
     on_missing="raise",
     *,
-    verbose=None
+    verbose=None,
 ):  # noqa: D301, E501
     """Get paths to local copies of PhysioNet Polysomnography dataset files.
 
@@ -134,12 +134,12 @@ def fetch_data(
                 psg_fname, pdl = _fetch_one(
                     psg_records["fname"][idx].decode(),
                     psg_records["sha"][idx].decode(),
-                    *params
+                    *params,
                 )
                 hyp_fname, hdl = _fetch_one(
                     hyp_records["fname"][idx].decode(),
                     hyp_records["sha"][idx].decode(),
-                    *params
+                    *params,
                 )
                 fnames.append([psg_fname, hyp_fname])
                 if pdl:
