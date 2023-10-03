@@ -106,7 +106,7 @@ from .cov import (
     write_cov as write_cov,
 )
 
-from dipole import (
+from .dipole import (
     Dipole as Dipole,
     DipoleFixed as DipoleFixed,
     fit_dipole as fit_dipole,
@@ -169,9 +169,9 @@ from .io.base import (
     match_channel_orders as match_channel_orders,
 )
 
-from io.eeglab import read_epochs_eeglab as read_epochs_eeglab
+from .io.eeglab import read_epochs_eeglab as read_epochs_eeglab
 
-from io.kit import read_epochs_kit as read_epochs_kit
+from .io.kit import read_epochs_kit as read_epochs_kit
 
 from ._fiff.meas_info import (
     Info as Info,
