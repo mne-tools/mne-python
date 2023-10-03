@@ -45,7 +45,7 @@ raw = mne.io.read_raw_fif(raw_fname)
 events = mne.find_events(raw)
 epochs = mne.Epochs(
     raw,
-    events,
+    events[:22],  # just for execution speed of the tutorial
     event_id=1,
     tmin=-1,
     tmax=2.5,
@@ -56,7 +56,6 @@ epochs = mne.Epochs(
     ),
     preload=True,
 )
-epochs = epochs[:10]  # just for speed of execution for the tutorial
 
 # We are mostly interested in the beta band since it has been shown to be
 # active for somatosensory stimulation
@@ -121,7 +120,7 @@ brain = stc.plot(
     subjects_dir=subjects_dir,
     hemi="both",
     views="dorsal",
-    initial_time=0.55,
+    initial_time=1.2,
     brain_kwargs=dict(show=False),
     add_data_kwargs=dict(
         fmin=fmax / 10,
@@ -131,7 +130,3 @@ brain = stc.plot(
         colorbar_kwargs=dict(label_font_size=10),
     ),
 )
-
-# You can save a movie like the one on our documentation website with:
-# brain.save_movie(tmin=0.55, tmax=1.5, interpolation='linear',
-#                  time_viewer=True)
