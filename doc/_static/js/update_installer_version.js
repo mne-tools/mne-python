@@ -1,3 +1,5 @@
+import { documentReady } from "./mixin";
+
 async function getRelease() {
     result = await fetch("https://api.github.com/repos/mne-tools/mne-installers/releases/latest");
     data = await result.json();
@@ -50,6 +52,5 @@ async function warnVersion() {
         document.querySelectorAll('.platform-selector-tabset')[0].before(outer);
     }
 }
-document.addEventListener('DOMContentLoaded', function () {
-    warnVersion();
-});
+
+documentReady(warnVersion);
