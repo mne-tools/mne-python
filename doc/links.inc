@@ -19,7 +19,7 @@
 .. _`MNE-BIDS-Pipeline`: https://mne.tools/mne-bids-pipeline
 .. _`MNE-HCP`: http://mne.tools/mne-hcp
 .. _`MNE-Realtime`: https://mne.tools/mne-realtime
-.. _`MNE-MATLAB git repository`: https://github.com/mne-tools/mne-matlab
+.. _`MNE-MATLAB`: https://github.com/mne-tools/mne-matlab
 .. _`MNE-Docker`: https://github.com/mne-tools/mne-docker
 .. _`MNE-ICAlabel`: https://github.com/mne-tools/mne-icalabel
 .. _`MNE-Connectivity`: https://github.com/mne-tools/mne-connectivity
