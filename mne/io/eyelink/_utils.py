@@ -40,7 +40,9 @@ EYELINK_COLS = {
 }
 
 
-def _parse_eyelink_ascii(fname, find_overlaps=True, overlap_threshold=0.05):
+def _parse_eyelink_ascii(
+    fname, find_overlaps=True, overlap_threshold=0.05, apply_offsets=False
+):
     # ======================== Parse ASCII File =========================
     raw_extras = dict()
     raw_extras.update(_parse_recording_blocks(fname))
@@ -49,7 +51,7 @@ def _parse_eyelink_ascii(fname, find_overlaps=True, overlap_threshold=0.05):
     _validate_data(raw_extras)
 
     # ======================== Create DataFrames ========================
-    raw_extras["dfs"] = _create_dataframes(raw_extras)
+    raw_extras["dfs"] = _create_dataframes(raw_extras, apply_offsets)
     del raw_extras["sample_lines"]  # free up memory
     # add column names to dataframes and set the dtype of each column
     col_names, ch_names = _infer_col_names(raw_extras)
@@ -252,7 +254,7 @@ def _get_sfreq_from_ascii(rec_info):
     return float(rec_info[rec_info.index("RATE") + 1])
 
 
-def _create_dataframes(raw_extras):
+def _create_dataframes(raw_extras, apply_offsets):
     """Create pandas.DataFrame for Eyelink samples and events.
 
     Creates a pandas DataFrame for sample_lines and for each
@@ -280,17 +282,22 @@ def _create_dataframes(raw_extras):
     # make dataframe for experiment messages
     if raw_extras["event_lines"]["MSG"]:
         msgs = []
-        for tokens in raw_extras["event_lines"]["MSG"]:
-            timestamp = tokens[0]
-            # if offset token exists, it will be the 1st index and is numeric
-            if tokens[1].lstrip("-").replace(".", "", 1).isnumeric():
-                offset = float(tokens[1])
-                msg = " ".join(str(x) for x in tokens[2:])
-            else:
-                # there is no offset token
+        for token in raw_extras["event_lines"]["MSG"]:
+            if apply_offsets and len(token) == 2:
+                ts, msg = token
                 offset = np.nan
-                msg = " ".join(str(x) for x in tokens[1:])
-            msgs.append([timestamp, offset, msg])
+            elif apply_offsets:
+                ts = token[0]
+                try:
+                    offset = float(token[1])
+                    msg = " ".join(str(x) for x in token[2:])
+                except ValueError:
+                    offset = np.nan
+                    msg = " ".join(str(x) for x in token[1:])
+            else:
+                ts, offset = token[0], np.nan
+                msg = " ".join(str(x) for x in token[1:])
+            msgs.append([ts, offset, msg])
         df_dict["messages"] = pd.DataFrame(msgs)
 
     # make dataframe for recording block start, end times

@@ -567,8 +567,8 @@ def test_clean_info_bads():
 
     info = pick_info(raw.info, picks_meg)
     info._check_consistency()
-    info["bads"] += ["EEG 053"]
-    pytest.raises(RuntimeError, info._check_consistency)
+    with pytest.raises(ValueError, match="do not exist"):
+        info["bads"] += ["EEG 053"]
     with pytest.raises(ValueError, match="unique"):
         pick_info(raw.info, [0, 0])
 

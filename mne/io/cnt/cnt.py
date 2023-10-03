@@ -171,6 +171,7 @@ def read_raw_cnt(
     emg=(),
     data_format="auto",
     date_format="mm/dd/yy",
+    *,
     header="old",
     preload=False,
     verbose=None,
@@ -414,12 +415,12 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format, he
         meas_date=meas_date,
         dig=dig,
         description=session_label,
-        bads=bads,
         subject_info=subject_info,
         chs=chs,
     )
     info._unlocked = False
     info._update_redundant()
+    info["bads"] = bads
     return info, cnt_info
 
 
@@ -493,6 +494,7 @@ class RawCNT(BaseRaw):
         emg=(),
         data_format="auto",
         date_format="mm/dd/yy",
+        *,
         header="old",
         preload=False,
         verbose=None,
