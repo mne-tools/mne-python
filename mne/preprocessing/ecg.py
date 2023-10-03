@@ -530,7 +530,7 @@ def _make_ecg(inst, start, stop, reject_by_annotation=False, verbose=None):
             picks,
             return_times=True,
             **kwargs,
-            reject_by_annotation=reject_by_annotation
+            reject_by_annotation=reject_by_annotation,
         )
     elif isinstance(inst, BaseEpochs):
         ecg = np.hstack(inst.copy().get_data(picks, **kwargs))

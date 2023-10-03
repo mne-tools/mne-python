@@ -76,7 +76,6 @@ fig_field = mne.viz.plot_evoked_field(
 link(fig_brain, fig_field)
 fig_brain.set_time(0.1)  # updates both source estimate and field lines
 
-
 ########################################################################################
 # Hooking a custom plot into the event system
 # ===========================================
