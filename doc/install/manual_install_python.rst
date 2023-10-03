@@ -9,7 +9,7 @@ MNE-Python requires Python and several Python packages. MNE-Python
 version |version| requires Python version |min_python_version| or higher.
 
 We recommend using a conda-based Python installation, such as `Anaconda`_, `Miniconda`_,
-`MiniForge`_, or `Mambaforge`_. For new users we recommend our pre-built `installers`_,
+`MiniForge`_, or `Mambaforge`_. For new users we recommend our pre-built :ref:`installers`,
 which use conda environments under the hood.
 
 
