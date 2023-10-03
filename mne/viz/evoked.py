@@ -958,7 +958,7 @@ def _plot_image(
         cbar = plt.colorbar(im, ax=ax)
         cbar.ax.set_title(ch_unit)
         if cmap[1]:
-            ax.CB = DraggableColorbar(cbar, im)
+            ax.CB = DraggableColorbar(cbar, im, "image", this_type)
 
     ylabel = "Channels" if show_names else "Channel (index)"
     t = titles[this_type] + " (%d channel%s" % (len(data), _pl(data)) + t_end
