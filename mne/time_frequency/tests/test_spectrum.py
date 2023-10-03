@@ -173,14 +173,13 @@ def test_spectrum_reject_by_annot(raw):
 
 def test_spectrum_reject_by_exclude(raw):
     """Test bads are not removed unless exclude="bads"."""
-    with raw.info._unlock():
-        raw.pick("mag")
-        if raw.ch_names != []:
-            raw.info["bads"] = raw.ch_names[0:1]
+    raw.pick("mag")
+    if raw.ch_names != []:
+        raw.info["bads"] = raw.ch_names[0:1]
     spect_no_excld = raw.compute_psd()
     spect_with_excld = raw.compute_psd(exclude="bads")
     assert raw.info["bads"] == spect_no_excld.info["bads"]
-    assert raw.info["bads"] != spect_with_excld.info["bads"]
+    assert spect_with_excld.info["bads"] == []
 
 
 def test_spectrum_getitem_raw(raw_spectrum):
