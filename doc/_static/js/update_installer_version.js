@@ -1,4 +1,9 @@
-import { documentReady } from "./mixin";
+/* inspired by https://tobiasahlin.com/blog/move-from-jquery-to-vanilla-javascript/ */
+
+function documentReady(callback) {
+    if (document.readyState != "loading") callback();
+    else document.addEventListener("DOMContentLoaded", callback);
+}
 
 async function getRelease() {
     result = await fetch("https://api.github.com/repos/mne-tools/mne-installers/releases/latest");
