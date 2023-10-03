@@ -195,7 +195,6 @@ class EvokedField:
             )
             self._in_brain_figure = False
 
-        self._renderer.set_interaction(interaction)
         self.plotter = self._renderer.plotter
         self.interaction = interaction
 
@@ -243,6 +242,7 @@ class EvokedField:
         subscribe(self, "contours", self._on_contours)
 
         if not self._in_brain_figure:
+            self._renderer.set_interaction(interaction)
             self._renderer.set_camera(azimuth=10, elevation=60, distance="auto")
             self._renderer.show()
 
