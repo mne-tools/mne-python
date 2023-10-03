@@ -24,7 +24,7 @@
 #################################################
 
 # Artifact regression
-/mne/preprocessing/_regress.py @wmvanvliet @cbrnr
+/mne/preprocessing/_regress.py @wmvanvliet
 /mne/preprocessing/tests/test_regress.py @wmvanvliet
 
 # Beamforming
@@ -33,7 +33,7 @@
 *lcmv*.py @britta-wstnr
 
 # Channels
-/mne/channels @cbrnr @agramfort @mscheltienne
+/mne/channels @agramfort @mscheltienne
 
 # Core sensor-space classes
 /mne/epochs.py @drammock @agramfort @mscheltienne
@@ -93,10 +93,10 @@
 /mne/_freesurfer.py @alexrockhill @larsoner
 
 # TFR
-/mne/time_frequency @drammock @cbrnr @adam2392 @mscheltienne
+/mne/time_frequency @drammock @adam2392 @mscheltienne
 
 # Viz
-/mne/viz @drammock @cbrnr
+/mne/viz @drammock
 /mne/viz/_brain @larsoner @wmvanvliet
 /mne/viz/ui_events.py @wmvanvliet
 /tutorials/visualization @larsoner @wmvanvliet
@@ -120,5 +120,5 @@
 # Project infrastructure and CIs
 /*.* @larsoner @drammock  # files in the root directory
 /.circleci @larsoner
-/.github @larsoner @cbrnr
+/.github @larsoner
 /tools @larsoner @drammock
