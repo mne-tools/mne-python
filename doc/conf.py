@@ -1714,7 +1714,6 @@ def make_redirects(app, exception):
         and exception is None
     ):
         return
-    logger = sphinx.util.logging.getLogger("mne")
     TEMPLATE = """\
 <!DOCTYPE HTML>
 <html lang="en-US">
