@@ -1337,13 +1337,6 @@ def _plot_sensors(
         connect_picker = kind == "select"
         # make sure no names go off the edge of the canvas
         xmin, ymin, xmax, ymax = fig.get_window_extent().bounds
-        renderer = fig.canvas.get_renderer()
-        extents = [x.get_window_extent(renderer=renderer) for x in ax.texts]
-        xmaxs = np.array([x.max[0] for x in extents])
-        bad_xmax_ixs = np.nonzero(xmaxs > xmax)[0]
-        if len(bad_xmax_ixs):
-            needed_space = (xmaxs[bad_xmax_ixs] - xmax).max() / xmax
-
     if connect_picker:
         picker = partial(
             _onpick_sensor,
