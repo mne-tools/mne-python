@@ -14,6 +14,7 @@ from io import BytesIO
 import operator
 from textwrap import shorten
 import string
+import uuid
 
 import numpy as np
 
@@ -1877,7 +1878,7 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
         return good_channels, bad_channels, ecg, eog
 
     @repr_html
-    def _repr_html_(self, caption=None):
+    def _repr_html_(self, caption=None, duration=None, filenames=None):
         """Summarize info for HTML representation."""
         if isinstance(caption, str):
             html = f"<h4>{caption}</h4>"
@@ -1909,7 +1910,11 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
             projs = None
 
         info_template = _get_html_template("repr", "info.html.jinja")
+        sections = ("General", "Channels", "Data")
+        section_ids = [f"section_{str(uuid.uuid4())}" for _ in sections]
         return html + info_template.render(
+            sections=sections,
+            section_ids=section_ids,
             caption=caption,
             meas_date=meas_date,
             projs=projs,
@@ -1923,6 +1928,8 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
             highpass=self.get("highpass"),
             sfreq=self.get("sfreq"),
             experimenter=self.get("experimenter"),
+            duration=duration,
+            filenames=filenames,
         )
 
     def save(self, fname):
