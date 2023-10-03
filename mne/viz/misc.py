@@ -195,8 +195,6 @@ def plot_cov(
             cax.grid(False)  # avoid mpl warning about auto-removal
             plt.colorbar(im, cax=cax, format="%.0e")
 
-    fig_cov.subplots_adjust(0.04, 0.0, 0.98, 0.94, 0.2, 0.26)
-
     fig_svd = None
     if show_svd:
         fig_svd, axes = plt.subplots(
@@ -241,7 +239,6 @@ def plot_cov(
             )
 
     plt_show(show)
-
     return fig_cov, fig_svd
 
 
@@ -485,7 +482,7 @@ def _plot_mri_contours(
         if slices_as_subplots:
             ax = axs[ai]
         else:
-            fig = _figure_agg(figsize=figsize, dpi=dpi, facecolor="k")
+            fig = _figure_agg(figsize=figsize, dpi=dpi, facecolor="k", layout="constrained")
             ax = fig.add_axes([0, 0, 1, 1], frame_on=False, facecolor="k")
 
         # adjust the orientations for good view
@@ -592,9 +589,6 @@ def _plot_mri_contours(
             figs.append(fig)
 
     if slices_as_subplots:
-        fig.subplots_adjust(
-            left=0.0, bottom=0.0, right=1.0, top=1.0, wspace=0.0, hspace=0.0
-        )
         plt_show(show, fig=fig)
         return fig
     else:

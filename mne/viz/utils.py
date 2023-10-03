@@ -1262,7 +1262,10 @@ def _plot_sensors(
         if kind == "3d":
             subplot_kw.update(projection="3d")
         fig, ax = plt.subplots(
-            1, figsize=(max(rcParams["figure.figsize"]),) * 2, subplot_kw=subplot_kw
+            1,
+            figsize=(max(rcParams["figure.figsize"]),) * 2,
+            subplot_kw=subplot_kw,
+            layout="constrained",
         )
     else:
         fig = ax.get_figure()
@@ -1310,8 +1313,6 @@ def _plot_sensors(
 
         # Equal aspect for 3D looks bad, so only use for 2D
         ax.set(aspect="equal")
-        if axes_was_none:  # we'll show the plot title as the window title
-            fig.subplots_adjust(left=0, bottom=0, right=1, top=1)
         ax.axis("off")  # remove border around figure
     del sphere
 
@@ -1342,7 +1343,6 @@ def _plot_sensors(
         bad_xmax_ixs = np.nonzero(xmaxs > xmax)[0]
         if len(bad_xmax_ixs):
             needed_space = (xmaxs[bad_xmax_ixs] - xmax).max() / xmax
-            fig.subplots_adjust(right=1 - 1.1 * needed_space)
 
     if connect_picker:
         picker = partial(

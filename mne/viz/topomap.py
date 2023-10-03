@@ -4088,8 +4088,5 @@ def plot_regression_weights(
             )
     if axes_was_none:
         fig.suptitle(title)
-        fig.subplots_adjust(
-            top=0.88, bottom=0.06, left=0.025, right=0.911, hspace=0.2, wspace=0.5
-        )
     plt_show(show)
     return fig

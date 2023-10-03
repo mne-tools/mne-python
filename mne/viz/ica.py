@@ -1012,8 +1012,6 @@ def plot_ica_scores(
             ax.set_title("(%s)" % label)
         ax.set_xlabel("ICA components")
         ax.set_xlim(-0.6, len(this_scores) - 0.4)
-    adjust_top = 0.8 if len(fig.axes) == 1 else 0.9
-    fig.subplots_adjust(top=adjust_top)
     fig.canvas.draw()
     plt_show(show)
     return fig
