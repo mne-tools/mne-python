@@ -1070,21 +1070,27 @@ def test_channel_name_limit(tmp_path, monkeypatch, fname):
     apply_inverse(evoked, inv)  # smoke test
 
 
+@pytest.mark.parametrize("protocol", ("highest", "default"))
 @pytest.mark.parametrize("fname_info", (raw_fname, "create_info"))
 @pytest.mark.parametrize("unlocked", (True, False))
-def test_pickle(fname_info, unlocked):
+def test_pickle(fname_info, unlocked, protocol):
     """Test that Info can be (un)pickled."""
     if fname_info == "create_info":
         info = create_info(3, 1000.0, "eeg")
     else:
         info = read_info(fname_info)
+    protocol = getattr(pickle, f"{protocol.upper()}_PROTOCOL")
+    assert isinstance(info["bads"], MNEBadsList)
+    info["bads"] = info["ch_names"][:1]
     assert not info._unlocked
     info._unlocked = unlocked
-    data = pickle.dumps(info)
+    data = pickle.dumps(info, protocol=protocol)
     info_un = pickle.loads(data)  # nosec B301
     assert isinstance(info_un, Info)
     assert_object_equal(info, info_un)
     assert info_un._unlocked == unlocked
+    assert isinstance(info_un["bads"], MNEBadsList)
+    assert info_un["bads"]._mne_info is info_un
 
 
 def test_info_bad():
