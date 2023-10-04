@@ -67,6 +67,10 @@ class EvokedField:
         The number of contours.
 
         .. versionadded:: 0.21
+    contour_line_width : float
+        The line_width of the contour lines.
+
+        .. versionadded:: 1.6
     show_density : bool
         Whether to draw the field density as an overlay on top of the helmet/head
         surface. Defaults to ``True``.
@@ -111,6 +115,7 @@ class EvokedField:
         fig=None,
         vmax=None,
         n_contours=21,
+        contour_line_width=1.0,
         show_density=True,
         alpha=None,
         interpolation="nearest",
@@ -132,6 +137,7 @@ class EvokedField:
 
         self._vmax = _validate_type(vmax, (None, "numeric", dict), "vmax")
         self._n_contours = _ensure_int(n_contours, "n_contours")
+        self._contour_line_width = contour_line_width
         self._time_interpolation = _check_option(
             "interpolation",
             interpolation,
@@ -354,6 +360,7 @@ class EvokedField:
                         vmin=-surf_map["map_vmax"],
                         vmax=surf_map["map_vmax"],
                         colormap=self._colormap_lines,
+                        width=self._contour_line_width,
                     )
         if self._time_label is not None:
             if hasattr(self, "_time_label_actor"):
@@ -442,6 +449,16 @@ class EvokedField:
             callback=self.set_contours,
             layout=layout,
         )
+
+        self._widgets["contours_line_width"] = r._dock_add_slider(
+            name="Thickness",
+            value=1,
+            rng=[0, 10],
+            callback=self.set_contour_line_width,
+            double=True,
+            layout=layout,
+        )
+
         r._dock_finalize()
 
     def _on_time_change(self, event):
@@ -503,9 +520,13 @@ class EvokedField:
                 break
         surf_map["contours"] = event.contours
         self._n_contours = len(event.contours)
+        if event.line_width is not None:
+            self._contour_line_width = event.line_width
         with disable_ui_events(self):
             if "contours" in self._widgets:
                 self._widgets["contours"].set_value(len(event.contours))
+            if "contour_line_width" in self._widgets and event.line_width is not None:
+                self._widgets["contour_line_width"].set_value(event.line_width)
         self._update()
 
     def set_time(self, time):
@@ -540,6 +561,7 @@ class EvokedField:
                     contours=np.linspace(
                         -surf_map["map_vmax"], surf_map["map_vmax"], n_contours
                     ).tolist(),
+                    line_width=self._contour_line_width,
                 ),
             )
 
@@ -574,3 +596,14 @@ class EvokedField:
             current_data = surf_map["data_interp"](self._current_time)
             vmax = float(np.max(current_data))
             self.set_vmax(vmax, type=surf_map["map_kind"])
+
+    def set_contour_line_width(self, line_width):
+        """Set the line_width of the contour lines.
+
+        Parameters
+        ----------
+        line_width : float
+            The desired line_width of the contour lines.
+        """
+        self._contour_line_width = line_width
+        self.set_contours(self._n_contours)

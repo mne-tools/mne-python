@@ -176,6 +176,9 @@ class Contours(UIEvent):
         kinds.
     contours : list of float
         The new values at which contour lines need to be drawn.
+    line_width : float | None
+        The line_width with which to draw the contour lines. Can be ``None`` to
+        indicate to keep using the current line_width.
 
     Attributes
     ----------
@@ -186,10 +189,34 @@ class Contours(UIEvent):
         kinds.
     contours : list of float
         The new values at which contour lines need to be drawn.
+    line_width : float | None
+        The line_width with which to draw the contour lines. Can be ``None`` to
+        indicate to keep using the current line_width.
     """
 
     kind: str
     contours: List[str]
+    line_width: Optional[float]
+
+
+@dataclass
+@fill_doc
+class ChannelsSelect(UIEvent):
+    """Indicates that the user has selected one or more channels.
+
+    Parameters
+    ----------
+    ch_names : list of str
+        The names of the channels that were selected.
+
+    Attributes
+    ----------
+    %(ui_event_name_source)s
+    ch_names : list of str
+        The names of the channels that were selected.
+    """
+
+    ch_names: List[str]
 
 
 def _get_event_channel(fig):
