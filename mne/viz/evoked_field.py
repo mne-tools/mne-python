@@ -48,8 +48,6 @@ class EvokedField:
         the average peak latency (across sensor types) is used.
     time_label : str | None
         How to print info about the time instant visualized.
-    %(n_jobs)s
-    fig : instance of Figure3D | None
         If None (default), a new figure will be created, otherwise it will
         plot into the given figure.
 
@@ -89,6 +87,17 @@ class EvokedField:
         ``True`` if there is more than one time point and ``False`` otherwise.
 
         .. versionadded:: 1.6
+    background : tuple(int, int, int)
+        The color definition of the background: (red, green, blue).
+
+        .. versionadded:: 1.6
+    foreground : matplotlib color
+        Color of the foreground (will be used for colorbars and text).
+        None (default) will use black or white depending on the value
+        of ``background``.
+
+        .. versionadded:: 1.6
+    %(n_jobs)s
     %(verbose)s
 
     Notes
@@ -107,7 +116,6 @@ class EvokedField:
         *,
         time=None,
         time_label="t = %0.0f ms",
-        n_jobs=None,
         fig=None,
         vmax=None,
         n_contours=21,
@@ -116,6 +124,9 @@ class EvokedField:
         interpolation="nearest",
         interaction="terrain",
         time_viewer="auto",
+        background="white",
+        foreground="black",
+        n_jobs=None,
         verbose=None,
     ):
         from .backends.renderer import _get_renderer, _get_3d_backend
@@ -140,6 +151,8 @@ class EvokedField:
         self._interaction = _check_option(
             "interaction", interaction, ["trackball", "terrain"]
         )
+        self._bg_color = background
+        self._fg_color = foreground
 
         surf_map_kinds = [surf_map["kind"] for surf_map in surf_maps]
         if vmax is None:
@@ -190,9 +203,7 @@ class EvokedField:
                     "is currently not supported inside a notebook."
                 )
         else:
-            self._renderer = _get_renderer(
-                fig, bgcolor=(0.0, 0.0, 0.0), size=(600, 600)
-            )
+            self._renderer = _get_renderer(fig, bgcolor=background, size=(600, 600))
             self._in_brain_figure = False
 
         self.plotter = self._renderer.plotter
@@ -226,14 +237,17 @@ class EvokedField:
                     current_time_func=current_time_func,
                     times=evoked.times,
                 )
-            if not self._in_brain_figure or "time_slider" not in fig.widgets:
+            if not self._in_brain_figure:
                 # Draw the time label
                 self._time_label = time_label
                 if time_label is not None:
                     if "%" in time_label:
                         time_label = time_label % np.round(1e3 * time)
                     self._time_label_actor = self._renderer.text2d(
-                        x_window=0.01, y_window=0.01, text=time_label
+                        x_window=0.01,
+                        y_window=0.01,
+                        text=time_label,
+                        color=foreground,
                     )
             self._configure_dock()
 
@@ -364,7 +378,10 @@ class EvokedField:
             if "%" in self._time_label:
                 time_label = self._time_label % np.round(1e3 * self._current_time)
             self._time_label_actor = self._renderer.text2d(
-                x_window=0.01, y_window=0.01, text=time_label
+                x_window=0.01,
+                y_window=0.01,
+                text=time_label,
+                color=self._fg_color,
             )
 
         self._renderer.plotter.update()
