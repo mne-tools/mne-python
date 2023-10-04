@@ -124,8 +124,8 @@ class EvokedField:
         interpolation="nearest",
         interaction="terrain",
         time_viewer="auto",
-        background="white",
-        foreground="black",
+        background="black",
+        foreground=None,
         n_jobs=None,
         verbose=None,
     ):
@@ -151,8 +151,10 @@ class EvokedField:
         self._interaction = _check_option(
             "interaction", interaction, ["trackball", "terrain"]
         )
-        self._bg_color = background
-        self._fg_color = foreground
+        self._bg_color = _to_rgb(background, name="background")
+        if foreground is None:
+            foreground = "w" if sum(self._bg_color) < 2 else "k"
+        self._fg_color = _to_rgb(foreground, name="foreground")
 
         surf_map_kinds = [surf_map["kind"] for surf_map in surf_maps]
         if vmax is None:
