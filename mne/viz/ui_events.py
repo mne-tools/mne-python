@@ -134,7 +134,9 @@ class ColormapRange(UIEvent):
     %(ui_event_name_source)s
     %(fmin_fmid_fmax)s
     %(alpha)s
-    %(colormap)s
+    cmap : str
+        The colormap to use. Either string or matplotlib.colors.Colormap
+        instance.
     """
 
     kind: str
