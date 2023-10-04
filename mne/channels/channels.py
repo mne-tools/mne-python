@@ -1408,7 +1408,7 @@ def read_ch_adjacency(fname, picks=None):
     nb = loadmat(fname)["neighbours"]
     ch_names = _recursive_flatten(nb["label"], str)
     temp_info = create_info(ch_names, 1.)
-    picks = _picks_to_idx(temp_info, picks)
+    picks = _picks_to_idx(temp_info, picks, none='all')
     neighbors = [_recursive_flatten(c, str) for c in nb["neighblabel"].flatten()]
     assert len(ch_names) == len(neighbors)
     adjacency = _ch_neighbor_adjacency(ch_names, neighbors)

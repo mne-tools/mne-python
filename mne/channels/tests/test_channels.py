@@ -244,6 +244,7 @@ def test_get_builtin_ch_adjacencies():
 
 
 def test_read_ch_adjacency(tmp_path):
+   
     """Test reading channel adjacency templates."""
     a = partial(np.array, dtype="<U7")
     # no pep8
@@ -258,10 +259,11 @@ def test_read_ch_adjacency(tmp_path):
         dtype=[("label", "O"), ("neighblabel", "O")],
     )
     mat = dict(neighbours=nbh)
-    mat_fname = tmp_path / "test_mat.mat"
+    mat_fname = tmp_path + "test_mat.mat"
     savemat(mat_fname, mat, oned_as="row")
 
     ch_adjacency, ch_names = read_ch_adjacency(mat_fname)
+
     x = ch_adjacency
     assert_equal(x.shape[0], len(ch_names))
     assert_equal(x.shape, (3, 3))
@@ -299,7 +301,7 @@ def test_read_ch_adjacency(tmp_path):
         dtype=[("label", "O"), ("neighblabel", "O")],
     )
     mat = dict(neighbours=nbh)
-    mat_fname = tmp_path / "test_isolated_mat.mat"
+    mat_fname = tmp_path + "test_isolated_mat.mat"
     savemat(mat_fname, mat, oned_as="row")
     ch_adjacency, ch_names = read_ch_adjacency(mat_fname)
     x = ch_adjacency.todense()
@@ -324,7 +326,7 @@ def test_read_ch_adjacency(tmp_path):
         dtype=[("label", "O"), ("neighblabel", "O")],
     )
     mat = dict(neighbours=nbh)
-    mat_fname = tmp_path / "test_error_mat.mat"
+    mat_fname = tmp_path + "test_error_mat.mat"
     savemat(mat_fname, mat, oned_as="row")
     pytest.raises(ValueError, read_ch_adjacency, mat_fname)
 
@@ -332,6 +334,21 @@ def test_read_ch_adjacency(tmp_path):
     for name in get_builtin_ch_adjacencies():
         ch_adjacency, ch_names = read_ch_adjacency(name)
         assert_equal(ch_adjacency.shape[0], len(ch_names))
+        subset_names = ch_names[::2]
+        subset_ind = np.arange(0, len(ch_names), 2, dtype=np.int64)
+        subset_slice = np.s_[::2]
+        
+        ch_subset_adjacency, ch_subset_names = read_ch_adjacency(name, 
+                                                              subset_names)
+        ch_subset_adjacency_ind, ind_subset_names = read_ch_adjacency(name, 
+                                                              subset_ind)
+        ch_subset_adjacency_slice, slice_subset_names = read_ch_adjacency(name, 
+                                                              subset_slice)
+        #import pdb
+        #pdb.set_trace()
+        assert_array_equal(ch_subset_names, subset_names)
+        assert_array_equal(ind_subset_names, subset_names)
+        assert_array_equal(slice_subset_names, subset_names)
 
 
 def _download_ft_neighbors(target_dir):
