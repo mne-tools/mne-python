@@ -7,15 +7,11 @@
 
 import lazy_loader as lazy
 
-__getattr_lz__, __dir__, __all__ = lazy.attach(
+__getattr__, __dir__, __all__ = lazy.attach(
     __name__,
     submodules=[
         "constants",
         "pick",
-        # Remove these three in 1.6 along with their .py files
-        "proj",
-        "meas_info",
-        "reference",
     ],
     submod_attrs={
         "base": ["BaseRaw", "concatenate_raws", "match_channel_orders"],
@@ -61,42 +57,3 @@ __getattr_lz__, __dir__, __all__ = lazy.attach(
         ],
     },
 )
-
-
-# Remove in 1.6 and change __getattr_lz__ to __getattr__
-from ..utils import warn as _warn
-from .._fiff.reference import (
-    set_eeg_reference as _set_eeg_reference,
-    set_bipolar_reference as _set_bipolar_reference,
-    add_reference_channels as _add_referenc_channels,
-)
-from .._fiff.meas_info import Info as _Info
-
-
-def __getattr__(name):
-    """Try getting attribute from fiff submodule."""
-    if name in (
-        "set_eeg_reference",
-        "set_bipolar_reference",
-        "add_reference_channels",
-    ):
-        _warn(
-            f"mne.io.{name} is deprecated and will be removed in 1.6, "
-            "use mne.{name} instead",
-            FutureWarning,
-        )
-        return globals()[f"_{name}"]
-    elif name == "RawFIF":
-        _warn(
-            "RawFIF is deprecated and will be removed in 1.6, use Raw instead",
-            FutureWarning,
-        )
-        name = "Raw"
-    elif name == "Info":
-        _warn(
-            "mne.io.Info is deprecated and will be removed in 1.6, "
-            "use mne.Info instead",
-            FutureWarning,
-        )
-        return _Info
-    return __getattr_lz__(name)
