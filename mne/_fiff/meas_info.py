@@ -14,6 +14,7 @@ from io import BytesIO
 import operator
 from textwrap import shorten
 import string
+import uuid
 
 import numpy as np
 
@@ -963,7 +964,13 @@ class MNEBadsList(list):
     def extend(self, iterable):
         if not isinstance(iterable, list):
             iterable = list(iterable)
-        _check_bads_info_compat(iterable, self._mne_info)
+        # can happen during pickling
+        try:
+            info = self._mne_info
+        except AttributeError:
+            pass  # can happen during pickling
+        else:
+            _check_bads_info_compat(iterable, info)
         return super().extend(iterable)
 
     def append(self, x):
@@ -1551,6 +1558,7 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
     def __setstate__(self, state):
         """Set state (for pickling)."""
         self._unlocked = state["_unlocked"]
+        self["bads"] = MNEBadsList(bads=self["bads"], info=self)
 
     def __setitem__(self, key, val):
         """Attribute setter."""
@@ -1877,7 +1885,7 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
         return good_channels, bad_channels, ecg, eog
 
     @repr_html
-    def _repr_html_(self, caption=None):
+    def _repr_html_(self, caption=None, duration=None, filenames=None):
         """Summarize info for HTML representation."""
         if isinstance(caption, str):
             html = f"<h4>{caption}</h4>"
@@ -1909,7 +1917,11 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
             projs = None
 
         info_template = _get_html_template("repr", "info.html.jinja")
+        sections = ("General", "Channels", "Data")
+        section_ids = [f"section_{str(uuid.uuid4())}" for _ in sections]
         return html + info_template.render(
+            sections=sections,
+            section_ids=section_ids,
             caption=caption,
             meas_date=meas_date,
             projs=projs,
@@ -1923,6 +1935,8 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
             highpass=self.get("highpass"),
             sfreq=self.get("sfreq"),
             experimenter=self.get("experimenter"),
+            duration=duration,
+            filenames=filenames,
         )
 
     def save(self, fname):

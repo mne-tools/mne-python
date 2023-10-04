@@ -281,7 +281,7 @@ class CSP(TransformerMixin, BaseEstimator):
         name_format="CSP%01d",
         nrows=1,
         ncols="auto",
-        show=True
+        show=True,
     ):
         """Plot topographic patterns of components.
 
@@ -412,7 +412,7 @@ class CSP(TransformerMixin, BaseEstimator):
         name_format="CSP%01d",
         nrows=1,
         ncols="auto",
-        show=True
+        show=True,
     ):
         """Plot topographic filters of components.
 
