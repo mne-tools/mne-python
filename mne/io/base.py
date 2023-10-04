@@ -2069,9 +2069,11 @@ class BaseRaw(
         duration = f"{int(hours):02d}:{int(minutes):02d}:{int(seconds):02d}"
         raw_template = _get_html_template("repr", "raw.html.jinja")
         return raw_template.render(
-            info_repr=self.info._repr_html_(caption=caption),
-            filenames=basenames,
-            duration=duration,
+            info_repr=self.info._repr_html_(
+                caption=caption,
+                filenames=basenames,
+                duration=duration,
+            )
         )
 
     def add_events(self, events, stim_channel=None, replace=False):
