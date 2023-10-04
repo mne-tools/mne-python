@@ -1020,12 +1020,6 @@ def test_get_decimated_surfaces(src, n, nv):
         assert_array_equal(np.unique(s["tris"]), np.arange(nv))
 
 
-def test_deprecation():
-    """Test deprecation of mne.source_space functions."""
-    with pytest.warns(FutureWarning, match="use mne.get_volume_labels_from_src"):
-        mne.source_space.get_volume_labels_from_src
-
-
 # The following code was used to generate small-src.fif.gz.
 # Unfortunately the C code bombs when trying to add source space distances,
 # possibly due to incomplete "faking" of a smaller surface on our part here.

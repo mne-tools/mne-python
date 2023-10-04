@@ -171,6 +171,16 @@ def test_spectrum_reject_by_annot(raw):
     assert spect_no_annot != spect_reject_annot
 
 
+def test_spectrum_bads_exclude(raw):
+    """Test bads are not removed unless exclude="bads"."""
+    raw.pick("mag")  # get rid of IAS channel
+    spect_no_excld = raw.compute_psd()
+    spect_with_excld = raw.compute_psd(exclude="bads")
+    assert raw.info["bads"] == spect_no_excld.info["bads"]
+    assert spect_with_excld.info["bads"] == []
+    assert set(raw.ch_names) - set(spect_with_excld.ch_names) == set(raw.info["bads"])
+
+
 def test_spectrum_getitem_raw(raw_spectrum):
     """Test Spectrum.__getitem__ for Raw-derived spectra."""
     want = raw_spectrum.get_data(slice(1, 3), fmax=7)
@@ -280,7 +290,7 @@ def test_spectrum_to_data_frame(inst, request, evoked):
     extra_dim = () if is_epochs else (1,)
     extra_cols = ["freq", "condition", "epoch"] if is_epochs else ["freq"]
     # compute PSD
-    spectrum = inst if is_already_psd else inst.compute_psd()
+    spectrum = inst if is_already_psd else inst.compute_psd(exclude="bads")
     n_epo, n_chan, n_freq = extra_dim + spectrum.get_data().shape
     # test wide format
     df_wide = spectrum.to_data_frame()
