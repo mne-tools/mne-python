@@ -9,7 +9,7 @@
 
 .. NOTE: changes from first-time contributors should be added to the TOP of
    the relevant section (Enhancements / Bugs / API changes), and should look
-   like this (where xxxx is the pull request number):
+like this (where xxxx is the pull request number):
 
        - description of enhancement/bugfix/API change (:gh:`xxxx` by
          :newcontrib:`Firstname Lastname`)
@@ -23,6 +23,7 @@ Version 1.6.dev0 (development)
 
 Enhancements
 ~~~~~~~~~~~~
+- Add :class:`mne.viz.ui_events.UIEvent` linking for :class:`DraggableColorbar`, allowing users to link figures and change the colormap and its range interactively. This supports :func:`mne.viz.plot_evoked_topomap()`, :func:`mne.viz.plot_ica_components()`, :func:`mne.viz.plot_tfr_topomap()`, :func:`mne.viz.plot_projs_topomap()`, :meth:`Evoked.plot_image()`, and :meth:`Epochs.plot_image()`.
 - Improve tests for saving splits with `Epochs` (:gh:`11884` by `Dmitrii Altukhov`_)
 - Added functionality for linking interactive figures together, such that changing one figure will affect another, see :ref:`tut-ui-events` and :mod:`mne.viz.ui_events`. Current figures implementing UI events are :func:`mne.viz.plot_topomap` and :func:`mne.viz.plot_source_estimates` (:gh:`11685` :gh:`11891` by `Marijn van Vliet`_)
 - HTML anchors for :class:`mne.Report` now reflect the ``section-title`` of the report items rather than using a global incrementor ``global-N`` (:gh:`11890` by `Eric Larson`_)
