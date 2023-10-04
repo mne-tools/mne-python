@@ -122,7 +122,7 @@ class ColormapRange(UIEvent):
     %(alpha)s
     cmap : str
         The colormap to use. Either string or matplotlib.colors.Colormap
-        instance
+        instance.
 
     Attributes
     ----------
