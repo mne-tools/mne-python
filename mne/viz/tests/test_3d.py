@@ -278,8 +278,13 @@ def test_plot_alignment_meg(renderer, system):
         this_info = read_raw_kit(sqd_fname).info
 
     meg = ["helmet", "sensors"]
+    sensor_colors = "k"  # should be upsampled to correct shape
     if system == "KIT":
         meg.append("ref")
+        with pytest.raises(TypeError, match="instance of dict"):
+            plot_alignment(this_info, meg=meg, sensor_colors=sensor_colors)
+        sensor_colors = dict(meg=sensor_colors)
+        sensor_colors["ref_meg"] = ["r"] * len(pick_types(this_info, ref_meg=True))
     fig = plot_alignment(
         this_info,
         read_trans(trans_fname),
@@ -287,6 +292,7 @@ def test_plot_alignment_meg(renderer, system):
         subjects_dir=subjects_dir,
         meg=meg,
         eeg=False,
+        sensor_colors=sensor_colors,
     )
     assert isinstance(fig, Figure3D)
     # count the number of objects: should be n_meg_ch + 1 (helmet) + 1 (head)

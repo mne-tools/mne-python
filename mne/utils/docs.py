@@ -3970,6 +3970,22 @@ selection : iterable | None
 """
 
 docdict[
+    "sensor_colors"
+] = """
+sensor_colors : array-like of color | dict | None
+    Colors to use for the sensor glyphs. Can be None (default) to use default colors.
+    A dict should provide the colors (values) for each channel type (keys), e.g.::
+
+        dict(eeg=eeg_colors)
+
+    Where the value (``eeg_colors`` above) can be broadcast to an array of colors with
+    length that matches the number of channels of that type, i.e., is compatible with
+    :func:`matplotlib.colors.to_rgba_array`. A few examples of this for the case above
+    are the string ``"k"``, a list of ``n_eeg`` color strings, or an NumPy ndarray of
+    shape ``(n_eeg, 3)`` or ``(n_eeg, 4)``.
+"""
+
+docdict[
     "sensors_topomap"
 ] = """
 sensors : bool | str
