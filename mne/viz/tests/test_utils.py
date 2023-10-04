@@ -22,7 +22,7 @@ from mne.viz.utils import (
     _make_event_color_dict,
     concatenate_images,
 )
-from mne.viz.ui_events import subscribe, ColormapRange
+from mne.viz.ui_events import link, subscribe, ColormapRange
 from mne.viz import ClickableImage, add_background_image, mne_analyze_colormap
 from mne.io import read_raw_fif
 from mne.event import read_events
@@ -213,8 +213,11 @@ def test_draggable_colorbar():
     """Test that DraggableColorbar publishes correct UI Events."""
     evokeds = read_evokeds(ave_fname)
     left_auditory = evokeds[0]
+    right_auditory = evokeds[1]
     vmin, vmax = -400, 400
     fig = left_auditory.plot_topomap("interactive", vlim=(vmin, vmax))
+    fig2 = right_auditory.plot_topomap("interactive", vlim=(vmin, vmax))
+    link(fig, fig2)
     callback_calls = []
 
     def callback(event):
@@ -265,3 +268,10 @@ def test_draggable_colorbar():
     event = callback_calls.pop()
     assert event.fmax == vmax
     assert event.fmin == vmin
+    # Test that colormap change in one figure changes that of another one
+    cmap_want = fig.axes[0].CB.cycle[fig.axes[0].CB.index + 1]
+    cmap_old = fig.axes[0].CB.mappable.get_cmap().name
+    _fake_keypress(fig, "down")
+    cmap_new1 = fig.axes[0].CB.mappable.get_cmap().name
+    cmap_new2 = fig2.axes[0].CB.mappable.get_cmap().name
+    assert cmap_new1 == cmap_new2 == cmap_want != cmap_old
