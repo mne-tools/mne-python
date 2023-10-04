@@ -290,7 +290,7 @@ def test_spectrum_to_data_frame(inst, request, evoked):
     extra_dim = () if is_epochs else (1,)
     extra_cols = ["freq", "condition", "epoch"] if is_epochs else ["freq"]
     # compute PSD
-    spectrum = inst if is_already_psd else inst.compute_psd()
+    spectrum = inst if is_already_psd else inst.compute_psd(exclude="bads")
     n_epo, n_chan, n_freq = extra_dim + spectrum.get_data().shape
     # test wide format
     df_wide = spectrum.to_data_frame()
