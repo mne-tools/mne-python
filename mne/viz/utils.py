@@ -1687,6 +1687,7 @@ class DraggableColorbar:
             self.cbar.norm.vmax = event.fmax
         if event.cmap is not None:
             self.cbar.mappable.set_cmap(event.cmap)
+            self.mappable.set_cmap(event.cmap)
         self._update()
 
     def _publish(self):

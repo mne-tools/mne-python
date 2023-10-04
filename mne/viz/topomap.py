@@ -2405,6 +2405,11 @@ def plot_evoked_topomap(
                 kwargs=kwargs,
             ),
         )
+        subscribe(
+            fig,
+            "colormap_range",
+            partial(_on_colormap_range, kwargs=kwargs),
+        )
 
     if colorbar:
         if interactive:
@@ -2502,6 +2507,11 @@ def _on_time_change(
     if event.time != slider.val:
         slider.set_val(event.time)
     ax.figure.canvas.draw_idle()
+
+
+def _on_colormap_range(event, kwargs):
+    """Handle updating colormap range."""
+    kwargs.update(vlim=(event.fmin, event.fmax), cmap=event.cmap)
 
 
 def _plot_topomap_multi_cbar(
