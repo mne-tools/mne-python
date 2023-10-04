@@ -4408,9 +4408,7 @@ tail : int
     the distribution.
 """
 
-docdict[
-    "temporal-window_tfr_notes"
-] = r"""
+_temporal_window_tfr_base = """
 In spectrotemporal analysis (as with traditional fourier methods),
 the temporal and spectral resolution are interrelated: longer temporal windows
 allow more precise frequency estimates; shorter temporal windows "smear"
@@ -4428,10 +4426,14 @@ decrease with frequency, the temporal smoothing decreases and the frequency
 smoothing increases with frequency.*
 Source: `FieldTrip tutorial: Time-frequency analysis using Hanning window,
 multitapers and wavelets <https://www.fieldtriptoolbox.org/tutorial/timefrequencyanalysis>`_.
+"""
 
-In MNE-Python, the temporal window length is defined by the arguments ``freqs``
-and ``n_cycles``, respectively defining the frequencies of interest and the
-number of cycles: :math:`T = \frac{\mathtt{n\_cycles}}{\mathtt{freqs}}`
+docdict["temporal-window_tfr_multitaper_notes"] = (
+    _temporal_window_tfr_base
+    + r"""
+In MNE-Python, the multitaper temporal window length is defined by the arguments
+``freqs`` and ``n_cycles``, respectively defining the frequencies of interest
+and the number of cycles: :math:`T = \frac{\mathtt{n\_cycles}}{\mathtt{freqs}}`
 
 A fixed number of cycles for all frequencies will yield a temporal window which
 decreases with frequency. For example, ``freqs=np.arange(1, 6, 2)`` and
@@ -4439,7 +4441,28 @@ decreases with frequency. For example, ``freqs=np.arange(1, 6, 2)`` and
 
 To use a temporal window with fixed length, the number of cycles has to be
 defined based on the frequency. For example, ``freqs=np.arange(1, 6, 2)`` and
-``n_cycles=freqs / 2`` yields ``T=array([0.5, 0.5, 0.5])``."""  # noqa: E501
+``n_cycles=freqs / 2`` yields ``T=array([0.5, 0.5, 0.5])``."""
+)  # noqa: E501
+
+docdict["temporal-window_tfr_morlet_notes"] = (
+    _temporal_window_tfr_base
+    + r"""
+In MNE-Python, the length of the Morlet wavelet is affected by the arguments
+``freqs`` and ``n_cycles``, which define the frequencies of interest
+and the number of cycles, respectively. For the time-frequency representation,
+the length of the wavelet is defined such that both tails of
+the wavelet extend five standard deviations from the midpoint of its Gaussian
+envelope and that there is a sample at time zero.
+
+The length of the wavelet is thus :math:`10\times\mathtt{sfreq}\cdot\sigma-1`,
+which is equal to :math:`\frac{5}{\pi} \cdot \frac{\mathtt{n\_cycles} \cdot
+\mathtt{sfreq}}{\mathtt{freqs}} - 1`, where
+:math:`\sigma = \frac{\texttt{n\_cycles}}{2\pi f}` corresponds to the standard
+deviation of the wavelet's Gaussian envelope. Note that the length of the
+wavelet must not exceed the length of your signal.
+
+For more information on the Morlet wavelet, see `mne.time_frequency.morlet`."""
+)
 
 _theme = """\
 theme : str | path-like
