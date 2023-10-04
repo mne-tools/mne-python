@@ -182,7 +182,7 @@ eeg_indices = mne.pick_types(info, meg=False, eeg=True)
 print(mne.pick_info(info, eeg_indices)["nchan"])
 
 # %%
-# We can also get a nice HTML representation in IPython like:
+# We can also get a nice HTML representation in IPython like this:
 
 info
 
