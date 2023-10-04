@@ -26,6 +26,7 @@ from .utils import (
     _setup_ax_spines,
     _check_cov,
     _plot_masked_image,
+    SelectFromCollection,
 )
 
 
@@ -195,8 +196,11 @@ def _iter_topography(
         under_ax.set(xlim=[0, 1], ylim=[0, 1])
 
         axs = list()
+
+    shown_ch_names = []
     for idx, name in iter_ch:
         ch_idx = ch_names.index(name)
+        shown_ch_names.append(name)
         if not unified:  # old, slow way
             ax = plt.axes(pos[idx])
             ax.patch.set_facecolor(axis_facecolor)
@@ -237,15 +241,22 @@ def _iter_topography(
             ],
             [1, 0, 2],
         )
-        if not img:
-            under_ax.add_collection(
-                collections.PolyCollection(
-                    verts,
-                    facecolor=axis_facecolor,
-                    edgecolor=axis_spinecolor,
-                    linewidth=1.0,
-                )
-            )  # Not needed for image plots.
+        if not img:  # Not needed for image plots.
+            collection = collections.PolyCollection(
+                verts,
+                facecolor=axis_facecolor,
+                edgecolor=axis_spinecolor,
+            )
+            under_ax.add_collection(collection)
+            fig.lasso = SelectFromCollection(
+                ax=under_ax,
+                collection=collection,
+                names=shown_ch_names,
+                alpha_nonselected=0,
+                alpha_selected=1,
+                linewidth_nonselected=0,
+                linewidth_selected=0.7,
+            )
         for ax in axs:
             yield ax, ax._mne_ch_idx
 
@@ -344,6 +355,9 @@ def _plot_topo_onpick(event, show_func):
     """Onpick callback that shows a single channel in a new figure."""
     # make sure that the swipe gesture in OS-X doesn't open many figures
     orig_ax = event.inaxes
+    if orig_ax.figure.canvas._key in ["shift", "alt"]:
+        return
+
     import matplotlib.pyplot as plt
 
     try:

@@ -199,6 +199,26 @@ class Contours(UIEvent):
     line_width: Optional[float]
 
 
+@dataclass
+@fill_doc
+class ChannelsSelect(UIEvent):
+    """Indicates that the user has selected one or more channels.
+
+    Parameters
+    ----------
+    ch_names : list of str
+        The names of the channels that were selected.
+
+    Attributes
+    ----------
+    %(ui_event_name_source)s
+    ch_names : list of str
+        The names of the channels that were selected.
+    """
+
+    ch_names: List[str]
+
+
 def _get_event_channel(fig):
     """Get the event channel associated with a figure.
 
