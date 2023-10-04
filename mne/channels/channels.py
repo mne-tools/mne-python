@@ -1341,13 +1341,13 @@ def read_ch_adjacency(fname, picks=None):
             built-in channel adjacencies via
             :func:`mne.channels.get_builtin_ch_adjacencies`.
     picks : list
-        Channels to include. Slices and lists of integers will be interpreted 
-        as channel indices. In lists, channel name strings (e.g., 
-         ['MEG0111', 'MEG2623'] will pick the given channels. 
-         None (default) will pick all channels. Note that channels in 
-         info['bads'] will be included if their names or 
-         indices are explicitly provided. Picks must match the template.    
-     
+        Channels to include. Slices and lists of integers will be interpreted
+        as channel indices. In lists, channel name strings (e.g.,
+        ['MEG0111', 'MEG2623'] will pick the given channels.
+        None (default) will pick all channels. Note that channels in
+        info['bads'] will be included if their names or
+        indices are explicitly provided. Picks must match the template.
+
 
     Returns
     -------
@@ -1407,7 +1407,7 @@ def read_ch_adjacency(fname, picks=None):
 
     nb = loadmat(fname)["neighbours"]
     ch_names = _recursive_flatten(nb["label"], str)
-    temp_info = create_info(ch_names, 1.)
+    temp_info = create_info(ch_names, 1.0)
     picks = _picks_to_idx(temp_info, picks, none='all')
     neighbors = [_recursive_flatten(c, str) for c in nb["neighblabel"].flatten()]
     assert len(ch_names) == len(neighbors)

@@ -24,7 +24,7 @@ def test_html_repr():
     os.environ[key] = "True"  # HTML repr on
     info = mne.create_info(10, 256)
     r = info._repr_html_()
-    assert r.startswith("<table")
+    assert r.startswith("<style")
     assert r.endswith("</table>")
     os.environ[key] = "False"  # HTML repr off
     r = info._repr_html_()
