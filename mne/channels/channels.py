@@ -1340,8 +1340,14 @@ def read_ch_adjacency(fname, picks=None):
             You can retrieve the names of all
             built-in channel adjacencies via
             :func:`mne.channels.get_builtin_ch_adjacencies`.
-    %(picks_all)s
-        Picks must match the template.
+    picks : list
+        Channels to include. Slices and lists of integers will be interpreted 
+        as channel indices. In lists, channel name strings (e.g., 
+         ['MEG0111', 'MEG2623'] will pick the given channels. 
+         None (default) will pick all channels. Note that channels in 
+         info['bads'] will be included if their names or 
+         indices are explicitly provided. Picks must match the template.    
+     
 
     Returns
     -------
@@ -1401,19 +1407,14 @@ def read_ch_adjacency(fname, picks=None):
 
     nb = loadmat(fname)["neighbours"]
     ch_names = _recursive_flatten(nb["label"], str)
-    picks = _picks_to_idx(len(ch_names), picks)
+    temp_info = create_info(ch_names, 1.)
+    picks = _picks_to_idx(temp_info, picks)
     neighbors = [_recursive_flatten(c, str) for c in nb["neighblabel"].flatten()]
     assert len(ch_names) == len(neighbors)
     adjacency = _ch_neighbor_adjacency(ch_names, neighbors)
     # picking before constructing matrix is buggy
     adjacency = adjacency[picks][:, picks]
     ch_names = [ch_names[p] for p in picks]
-
-    # make sure MEG channel names contain space after "MEG"
-    for idx, ch_name in enumerate(ch_names):
-        if ch_name.startswith("MEG") and not ch_name[3] == " ":
-            ch_name = ch_name.replace("MEG", "MEG ")
-            ch_names[idx] = ch_name
 
     return adjacency, ch_names
 
