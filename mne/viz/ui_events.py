@@ -116,15 +116,18 @@ class ColormapRange(UIEvent):
     kind : str
         Kind of colormap being updated. The Notes section of the drawing
         routine publishing this event should mention the possible kinds.
+    ch_type : str
+       Type of sensor the data originates from.
     %(fmin_fmid_fmax)s
     %(alpha)s
+    %(colormap)s
 
     Attributes
     ----------
     kind : str
         Kind of colormap being updated. The Notes section of the drawing
         routine publishing this event should mention the possible kinds.
-    sensor_type : str
+    ch_type : str
         Type of sensor the data originates from.
     unit : str
         The unit of the values.
