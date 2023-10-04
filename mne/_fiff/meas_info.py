@@ -963,7 +963,13 @@ class MNEBadsList(list):
     def extend(self, iterable):
         if not isinstance(iterable, list):
             iterable = list(iterable)
-        _check_bads_info_compat(iterable, self._mne_info)
+        # can happen during pickling
+        try:
+            info = self._mne_info
+        except AttributeError:
+            pass  # can happen during pickling
+        else:
+            _check_bads_info_compat(iterable, info)
         return super().extend(iterable)
 
     def append(self, x):
@@ -1551,6 +1557,7 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
     def __setstate__(self, state):
         """Set state (for pickling)."""
         self._unlocked = state["_unlocked"]
+        self["bads"] = MNEBadsList(bads=self["bads"], info=self)
 
     def __setitem__(self, key, val):
         """Attribute setter."""
