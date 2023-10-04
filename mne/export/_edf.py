@@ -13,7 +13,13 @@ import pyedflib
 from datetime import datetime, date
 
 
-def _try_to_set_value(header, key, value, channel_index=None):
+def _try_to_set_value(
+        header,
+        key,
+        value,
+        channel_index=None,
+        warn_raise='warn'
+):
     """Set key/value pairs in EDF header."""
     # many pyedflib set functions are set<X>
     # for example "setPatientName()"
@@ -26,10 +32,17 @@ def _try_to_set_value(header, key, value, channel_index=None):
         else:
             func(channel_index, value)
     except Exception:
-        warn(
-            f"Setting {key} with {value} "
-            f"returned an error."
-        )
+        if warn_raise == 'warn':
+            warn(
+                f"Setting {key} with {value} "
+                f"returned an error. "
+                f'Setting to None instead.'
+            )
+        elif warn_raise == 'raise':
+            raise RuntimeError(
+                f"Setting {key} with {value} "
+                f"returned an error."
+            )
 
 
 @contextmanager
@@ -185,10 +198,10 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
                 ("Label", signal_label),
                 ("Prefilter", filter_str_info),
             ]:
-                func_name = f"set{key}"
-                func = getattr(hdl, func_name)
-                func(idx, val)
-                #_try_to_set_value(hdl, key, val, channel_index=idx)
+                _try_to_set_value(
+                    hdl, key, val,
+                    channel_index=idx, warn_raise='raise'
+                )
 
         # set patient info
         subj_info = raw.info.get("subject_info")
