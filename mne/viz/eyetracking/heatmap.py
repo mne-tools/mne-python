@@ -63,7 +63,7 @@ def plot_gaze(
     _validate_type(alpha, "numeric", "alpha")
     _validate_type(sigma, ("numeric", None), "sigma")
     width = _ensure_int(width, "width")
-    height = _ensure_int(width, "height")
+    height = _ensure_int(height, "height")
 
     pos_picks = _picks_to_idx(epochs.info, "eyegaze")
     gaze_data = epochs.get_data(picks=pos_picks)
