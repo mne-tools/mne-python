@@ -1343,10 +1343,10 @@ def read_ch_adjacency(fname, picks=None):
     picks : list
         Channels to include. Slices and lists of integers will be interpreted
         as channel indices. In lists, channel name strings (e.g.,
-         ['MEG0111', 'MEG2623'] will pick the given channels.
-         None (default) will pick all channels. Note that channels in
-         info['bads'] will be included if their names or
-         indices are explicitly provided. Picks must match the template.
+        ['MEG0111', 'MEG2623'] will pick the given channels.
+        None (default) will pick all channels. Note that channels in
+        info['bads'] will be included if their names or
+        indices are explicitly provided. Picks must match the template.
 
 
     Returns
