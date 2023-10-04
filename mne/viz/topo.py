@@ -457,7 +457,7 @@ def _imshow_tfr(
         else:
             cbar = plt.colorbar(mappable=img, ax=ax)
         if interactive_cmap:
-            ax.CB = DraggableColorbar(cbar, img, kind=None, ch_type=None)
+            ax.CB = DraggableColorbar(cbar, img, kind="tfr_image", ch_type=None)
     ax.RS = RectangleSelector(ax, onselect=onselect)  # reference must be kept
 
     return t_end
