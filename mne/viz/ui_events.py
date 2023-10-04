@@ -120,7 +120,9 @@ class ColormapRange(UIEvent):
        Type of sensor the data originates from.
     %(fmin_fmid_fmax)s
     %(alpha)s
-    %(colormap)s
+    cmap : str
+        The colormap to use. Either string or matplotlib.colors.Colormap
+        instance
 
     Attributes
     ----------
