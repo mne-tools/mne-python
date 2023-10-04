@@ -259,7 +259,7 @@ def test_read_ch_adjacency(tmp_path):
         dtype=[("label", "O"), ("neighblabel", "O")],
     )
     mat = dict(neighbours=nbh)
-    mat_fname = tmp_path + "test_mat.mat"
+    mat_fname = tmp_path / "test_mat.mat"
     savemat(mat_fname, mat, oned_as="row")
 
     ch_adjacency, ch_names = read_ch_adjacency(mat_fname)
@@ -301,7 +301,7 @@ def test_read_ch_adjacency(tmp_path):
         dtype=[("label", "O"), ("neighblabel", "O")],
     )
     mat = dict(neighbours=nbh)
-    mat_fname = tmp_path + "test_isolated_mat.mat"
+    mat_fname = tmp_path / "test_isolated_mat.mat"
     savemat(mat_fname, mat, oned_as="row")
     ch_adjacency, ch_names = read_ch_adjacency(mat_fname)
     x = ch_adjacency.todense()
@@ -326,7 +326,7 @@ def test_read_ch_adjacency(tmp_path):
         dtype=[("label", "O"), ("neighblabel", "O")],
     )
     mat = dict(neighbours=nbh)
-    mat_fname = tmp_path + "test_error_mat.mat"
+    mat_fname = tmp_path / "test_error_mat.mat"
     savemat(mat_fname, mat, oned_as="row")
     pytest.raises(ValueError, read_ch_adjacency, mat_fname)
 
