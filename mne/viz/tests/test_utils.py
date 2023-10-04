@@ -12,6 +12,8 @@ import matplotlib.pyplot as plt
 from mne.viz.utils import (
     compare_fiff,
     _fake_click,
+    _fake_keypress,
+    _fake_scroll,
     _compute_scalings,
     _validate_if_list_of_axes,
     _get_color_list,
@@ -20,15 +22,18 @@ from mne.viz.utils import (
     _make_event_color_dict,
     concatenate_images,
 )
+from mne.viz.ui_events import subscribe, ColormapRange
 from mne.viz import ClickableImage, add_background_image, mne_analyze_colormap
 from mne.io import read_raw_fif
 from mne.event import read_events
 from mne.epochs import Epochs
+from mne import read_evokeds
 
 base_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
 raw_fname = base_dir / "test_raw.fif"
 cov_fname = base_dir / "test-cov.fif"
 ev_fname = base_dir / "test_raw-eve.fif"
+ave_fname = base_dir / "test-ave.fif"
 
 
 def test_setup_vmin_vmax_warns():
@@ -202,3 +207,61 @@ def test_concatenate_images(a_w, a_h, b_w, b_h, axis):
     else:
         want_shape = (max(a_h, b_h), a_w + b_w, 3)
     assert img.shape == want_shape
+
+
+def test_draggable_colorbar():
+    """Test that DraggableColorbar publishes correct UI Events."""
+    evokeds = read_evokeds(ave_fname)
+    left_auditory = evokeds[0]
+    vmin, vmax = -400, 400
+    fig = left_auditory.plot_topomap("interactive", vlim=(vmin, vmax))
+    callback_calls = []
+
+    def callback(event):
+        callback_calls.append(event)
+
+    subscribe(fig, "colormap_range", callback)
+
+    # Test that correct event is published
+    _fake_keypress(fig, "down")
+    _fake_keypress(fig, "up")
+    assert len(callback_calls) == 2
+    event = callback_calls.pop()
+    assert type(event) is ColormapRange
+    # Test that scrolling changes color limits
+    _fake_scroll(fig, 10, 10, 1)
+    event = callback_calls.pop()
+    assert abs(event.fmin) < abs(vmin)
+    assert abs(event.fmax) < abs(vmax)
+    fmin, fmax = event.fmin, event.fmax
+    _fake_scroll(fig, 10, 10, -1)
+    event = callback_calls.pop()
+    assert abs(event.fmin) > abs(fmin)
+    assert abs(event.fmax) > abs(fmax)
+    fmin, fmax = event.fmin, event.fmax
+    # Test that plus and minus change color limits
+    _fake_keypress(fig, "+")
+    event = callback_calls.pop()
+    assert abs(event.fmin) < abs(fmin)
+    assert abs(event.fmax) < abs(fmax)
+    fmin, fmax = event.fmin, event.fmax
+    _fake_keypress(fig, "-")
+    event = callback_calls.pop()
+    assert abs(event.fmin) > abs(fmin)
+    assert abs(event.fmax) > abs(fmax)
+    fmin, fmax = event.fmin, event.fmax
+    # Test that page up and page down change color limits
+    _fake_keypress(fig, "pageup")
+    event = callback_calls.pop()
+    assert event.fmin < fmin
+    assert event.fmax < fmax
+    fmin, fmax = event.fmin, event.fmax
+    _fake_keypress(fig, "pagedown")
+    event = callback_calls.pop()
+    assert event.fmin > fmin
+    assert event.fmax > fmax
+    # Test that space key resets color limits
+    _fake_keypress(fig, " ")
+    event = callback_calls.pop()
+    assert event.fmax == vmax
+    assert event.fmin == vmin
