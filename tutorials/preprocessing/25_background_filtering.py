@@ -613,7 +613,7 @@ plot_filter(
     gain,
     "Chebychev-1 order=8, ripple=1 dB",
     compensate=True,
-    **kwargs
+    **kwargs,
 )
 
 # %%
@@ -632,7 +632,7 @@ plot_filter(
     gain,
     "Chebychev-1 order=8, ripple=6 dB",
     compensate=True,
-    **kwargs
+    **kwargs,
 )
 
 # %%
@@ -655,7 +655,7 @@ plot_filter(
     gain,
     "Chebychev-1 order=8, ripple=6 dB",
     compensate=False,
-    **kwargs
+    **kwargs,
 )
 
 # %%
