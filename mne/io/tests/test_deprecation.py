@@ -4,7 +4,6 @@
 #
 # License: BSD-3-Clause
 
-from mne.io import Raw
 import pytest
 
 
@@ -28,12 +27,3 @@ def test_deprecation():
 
     with pytest.warns(FutureWarning, match=r"mne\.io\.meas_info\.read_info is dep"):
         meas_info.read_info
-    with pytest.warns(FutureWarning, match="RawFIF is deprecated"):
-        mne.io.RawFIF
-    with pytest.warns(FutureWarning, match="RawFIF is deprecated"):
-        from mne.io import RawFIF
-    assert RawFIF is Raw
-    with pytest.warns(FutureWarning, match="set_eeg_reference is deprecated"):
-        mne.io.set_eeg_reference
-    with pytest.warns(FutureWarning, match=r"use mne\.Info instead"):
-        mne.io.Info

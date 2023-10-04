@@ -78,7 +78,7 @@ def _get_psf_ctf(
     norm,
     return_pca_vars,
     vector=False,
-    verbose=None
+    verbose=None,
 ):
     """Get point-spread (PSFs) or cross-talk (CTFs) functions."""
     # check for consistencies in input parameters
@@ -302,7 +302,7 @@ def get_point_spread(
     norm=False,
     return_pca_vars=False,
     vector=False,
-    verbose=None
+    verbose=None,
 ):
     """Get point-spread (PSFs) functions for vertices.
 
@@ -351,7 +351,7 @@ def get_cross_talk(
     norm=False,
     return_pca_vars=False,
     vector=False,
-    verbose=None
+    verbose=None,
 ):
     """Get cross-talk (CTFs) function for vertices.
 

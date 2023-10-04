@@ -2366,6 +2366,7 @@ class BaseEpochs(
         picks=None,
         proj=False,
         remove_dc=True,
+        exclude=(),
         *,
         n_jobs=1,
         verbose=None,
@@ -2382,6 +2383,7 @@ class BaseEpochs(
         %(picks_good_data_noref)s
         %(proj_psd)s
         %(remove_dc)s
+        %(exclude_psd)s
         %(n_jobs)s
         %(verbose)s
         %(method_kw_psd)s
@@ -2410,6 +2412,7 @@ class BaseEpochs(
             tmin=tmin,
             tmax=tmax,
             picks=picks,
+            exclude=exclude,
             proj=proj,
             remove_dc=remove_dc,
             n_jobs=n_jobs,
