@@ -1084,6 +1084,7 @@ class Spectrum(BaseSpectrum):
     %(fmin_fmax_psd)s
     %(tmin_tmax_psd)s
     %(picks_good_data_noref)s
+    %(exclude_psd)s
     %(proj_psd)s
     %(remove_dc)s
     %(reject_by_annotation_psd)s
@@ -1295,6 +1296,7 @@ class EpochsSpectrum(BaseSpectrum, GetEpochsMixin):
     %(fmin_fmax_psd)s
     %(tmin_tmax_psd)s
     %(picks_good_data_noref)s
+    %(exclude_psd)s
     %(proj_psd)s
     %(remove_dc)s
     %(n_jobs)s
@@ -1332,6 +1334,7 @@ class EpochsSpectrum(BaseSpectrum, GetEpochsMixin):
         tmin,
         tmax,
         picks,
+        exclude,
         proj,
         remove_dc,
         *,
@@ -1352,6 +1355,7 @@ class EpochsSpectrum(BaseSpectrum, GetEpochsMixin):
             tmin,
             tmax,
             picks,
+            exclude,
             proj,
             remove_dc,
             n_jobs=n_jobs,
