@@ -1356,12 +1356,15 @@ exclude_frontal : bool
 _exclude_spectrum = """\
 exclude : list of str | 'bads'
     Channel names to exclude{}. If ``'bads'``, channels
-    in ``spectrum.info['bads']`` are excluded; pass an empty list or tuple to
-    plot all channels (including "bad" channels, if any).
+    in ``{}info['bads']`` are excluded; pass an empty list to
+    include all channels (including "bad" channels, if any).
 """
 
-docdict["exclude_spectrum_get_data"] = _exclude_spectrum.format("")
-docdict["exclude_spectrum_plot"] = _exclude_spectrum.format(" from being drawn")
+docdict["exclude_psd"] = _exclude_spectrum.format("", "")
+docdict["exclude_spectrum_get_data"] = _exclude_spectrum.format("", "spectrum.")
+docdict["exclude_spectrum_plot"] = _exclude_spectrum.format(
+    " from being drawn", "spectrum."
+)
 
 docdict[
     "export_edf_note"
@@ -3384,7 +3387,9 @@ docdict["picks_all_data"] = _reflow_param_docstring(
 docdict["picks_all_data_noref"] = _reflow_param_docstring(
     f"{picks_base} all data channels {noref}"
 )
-docdict["picks_all_notypes"] = _reflow_param_docstring(f"{picks_base_notypes} all channels. {reminder}")
+docdict["picks_all_notypes"] = _reflow_param_docstring(
+    f"{picks_base_notypes} all channels. {reminder}"
+)
 docdict["picks_base"] = _reflow_param_docstring(picks_base)
 docdict["picks_good_data"] = _reflow_param_docstring(
     f"{picks_base} good data channels. {reminder}"
