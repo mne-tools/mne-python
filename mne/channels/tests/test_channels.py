@@ -349,7 +349,6 @@ def test_read_ch_adjacency(tmp_path):
     savemat(mat_fname, mat, oned_as="row")
     pytest.raises(ValueError, read_ch_adjacency, mat_fname)
 
-
 def _download_ft_neighbors(target_dir):
     """Download the known neighbors from FieldTrip."""
 
