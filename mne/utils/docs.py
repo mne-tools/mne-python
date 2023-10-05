@@ -4448,7 +4448,7 @@ which is equal to :math:`\frac{5}{\pi} \cdot \frac{\mathtt{n\_cycles} \cdot
 deviation of the wavelet's Gaussian envelope. Note that the length of the
 wavelet must not exceed the length of your signal.
 
-For more information on the Morlet wavelet, see `mne.time_frequency.morlet`."""
+For more information on the Morlet wavelet, see :func:`mne.time_frequency.morlet`."""
 )
 
 docdict["temporal-window_tfr_multitaper_notes"] = (
