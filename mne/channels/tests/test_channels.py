@@ -247,7 +247,6 @@ def test_get_builtin_ch_adjacencies():
 @pytest.mark.parametrize('picks', ['pick-slice', 'pick-arange', 'pick-names'])
 def test_read_builtin_ch_adjacency_picks(name, picks):
     """Test picking channel subsets when reading builtin adjacency matrices."""
-
     ch_adjacency, ch_names = read_ch_adjacency(name)
     assert_equal(ch_adjacency.shape[0], len(ch_names))
     subset_names = ch_names[::2]
