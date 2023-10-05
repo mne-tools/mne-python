@@ -342,8 +342,6 @@ def test_read_ch_adjacency(tmp_path):
         ch_subset_adjacency_slice, slice_subset_names = read_ch_adjacency(
             name, subset_slice
         )
-        # import pdb
-        # pdb.set_trace()
         assert_array_equal(ch_subset_names, subset_names)
         assert_array_equal(ind_subset_names, subset_names)
         assert_array_equal(slice_subset_names, subset_names)
