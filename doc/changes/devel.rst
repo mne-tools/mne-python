@@ -65,6 +65,7 @@ Bugs
 - Fix parsing of eye-link :class:`~mne.Annotations` when ``apply_offsets=False`` is provided to :func:`~mne.io.read_raw_eyelink` (:gh:`12003` by `Mathieu Scheltienne`_)
 - Correctly prune channel-specific :class:`~mne.Annotations` when creating :class:`~mne.Epochs` without the channel(s) included in the channel specific annotations (:gh:`12010` by `Mathieu Scheltienne`_)
 - Fix :func:`~mne.viz.plot_volume_source_estimates` with :class:`~mne.VolSourceEstimate` which include a list of vertices (:gh:`12025` by `Mathieu Scheltienne`_)
+- Add support for non-ASCII characters in Annotations, Evoked comments, etc when saving to FIFF format (:gh:`12080` by `Daniel McCloy`_)
 - Correctly handle passing ``"eyegaze"`` or ``"pupil"`` to :meth:`mne.io.Raw.pick` (:gh:`12019` by `Scott Huberty`_)
 
 API changes
