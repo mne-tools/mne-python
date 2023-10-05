@@ -11,7 +11,22 @@ from ...utils import _pl
 
 
 def _extract(tags, filepath=None, obj=None):
-    """Extract info from XML."""
+    """Extract info from XML.
+
+    Parameters
+    ----------
+    tags : list
+        List of XML tags to extract.
+    filepath : str, optional
+        Path to an XML file.
+    obj : xml.dom.minidom.Document, optional
+        XML document object.
+
+    Returns
+    -------
+    dict
+        A dictionary containing the extracted information.
+    """
     if obj is not None:
         fileobj = obj
     elif filepath is not None:
@@ -28,7 +43,18 @@ def _extract(tags, filepath=None, obj=None):
 
 
 def _get_gains(filepath):
-    """Parse gains."""
+    """Parse gains.
+
+    Parameters
+    ----------
+    filepath : str
+        Path to the gains file.
+
+    Returns
+    -------
+    dict
+        A dictionary containing the gains data.
+    """
     file_obj = parse(filepath)
     objects = file_obj.getElementsByTagName("calibration")
     gains = dict()
@@ -44,7 +70,22 @@ def _get_gains(filepath):
 
 
 def _get_ep_info(filepath):
-    """Get epoch info."""
+    """Get epoch info.
+
+    Parameters
+    ----------
+    filepath : str
+        The path to the directory containing the XML file 'epochs.xml'.
+
+    Returns
+    -------
+    dict
+        A dictionary containing epoch information. It has the following keys:
+        - 'first_samps': a list of the beginning time samples for each epoch
+        - 'last_samps': a list of the ending time samples for each epoch
+        - 'first_blocks': a list of the first blocks for each epoch
+        - 'last_blocks': a list of the last blocks for each epoch
+    """
     epochfile = filepath + "/epochs.xml"
     epochlist = parse(epochfile)
     epochs = epochlist.getElementsByTagName("epoch")
@@ -65,7 +106,35 @@ def _get_ep_info(filepath):
 
 
 def _get_blocks(filepath):
-    """Get info from meta data blocks."""
+    """Get info from meta data blocks.
+
+    Parameters
+    ----------
+    filepath : str
+        The path to the binary file.
+
+    Returns
+    -------
+    signal_blocks : dict
+        A dictionary containing the extracted information from the meta
+        data blocks. The dictionary has the following keys:
+            n_channels : int
+                The number of channels in each block.
+            sfreq : float
+                The sampling frequency in each block.
+            n_blocks : int
+                The total number of blocks.
+            samples_block : ndarray
+                An array containing the number of samples in each block.
+            header_sizes : list
+                A list containing the header sizes of each block.
+
+    Raises
+    ------
+    RuntimeError
+        If the blocks don't have the same amount of channels or
+        sampling frequency, or if there is no data.
+    """
     binfile = os.path.join(filepath)
     n_blocks = 0
     samples_block = []
@@ -121,7 +190,33 @@ def _get_blocks(filepath):
 
 
 def _get_signalfname(filepath):
-    """Get filenames."""
+    """Get filenames.
+
+    This function takes a filepath as input and returns a dictionary
+    containing information about signal files.
+
+    Parameters:
+        ----------
+    filepath : str
+            The path to the directory containing the signal files.
+
+    Returns:
+    -------
+    all_files : dict
+        A dictionary containing information about signal files. It has
+        the following structure:
+            signal_type : dict
+                A dictionary containing the following keys:
+                    signal : str
+                        The name of the signal file.
+                    info : str
+                        The name of the info file.
+
+    Raises:
+    ------
+    FileNotFoundError
+        If no EEG data is found in the all_files dictionary.
+    """
     listfiles = os.listdir(filepath)
     binfiles = list(
         f for f in listfiles if "signal" in f and f[-4:] == ".bin" and f[0] != "."
@@ -151,7 +246,30 @@ def _get_signalfname(filepath):
 
 
 def _block_r(fid):
-    """Read meta data."""
+    """Read meta data.
+
+    Parameters:
+            -----------
+    fid : file object
+                The file object to read from.
+
+    Returns:
+    --------
+    block : dict or None
+        The extracted meta data. It has the following keys:
+            nc : int
+                The number of channels.
+            hl : int
+                The header length.
+            nsamples : int
+                The number of samples.
+            block_size : int
+                The size of the block.
+            header_size : int
+                The size of the header.
+            sfreq : int
+                The sampling frequency.
+    """
     if np.fromfile(fid, dtype=np.dtype("i4"), count=1).item() != 1:  # not meta
         return None
     header_size = np.fromfile(fid, dtype=np.dtype("i4"), count=1).item()

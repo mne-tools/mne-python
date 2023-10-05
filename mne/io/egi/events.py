@@ -80,14 +80,36 @@ def _read_mff_events(filename, sfreq):
 
 
 def _parse_xml(xml_file):
-    """Parse XML file."""
+    """Parse XML file.
+
+    Parameters:
+        ----------
+    xml_file : str
+            The path to the XML file.
+
+    Returns:
+    ----------
+    list
+        A nested list structure representing the parsed XML.
+    """
     xml = parse(xml_file)
     root = xml.getroot()
     return _xml2list(root)
 
 
 def _xml2list(root):
-    """Parse XML item."""
+    """Parse XML item.
+
+    Parameters:
+        ----------
+    root : Element
+            The root element of the XML.
+
+    Returns:
+    ----------
+    list
+        A nested list structure representing the parsed XML.
+    """
     output = []
     for element in root:
         if len(element) > 0:
@@ -106,7 +128,18 @@ def _xml2list(root):
 
 
 def _ns(s):
-    """Remove namespace, but only if there is a namespace to begin with."""
+    """Remove namespace, but only if there is a namespace to begin with.
+
+    Parameters:
+        ----------
+    s : str
+            The XML tag.
+
+    Returns:
+    ----------
+    str
+        The XML tag without the namespace.
+    """
     if "}" in s:
         return "}".join(s.split("}")[1:])
     else:
@@ -152,7 +185,20 @@ def _ns2py_time(nstime):
 
 
 def _combine_triggers(data, remapping=None):
-    """Combine binary triggers."""
+    """Combine binary triggers.
+
+    Parameters
+    ----------
+    data : array-like, shape (n_events, n_samples)
+        The binary trigger data.
+    remapping : array-like, shape (n_events,), optional
+        The event_id remapping. Default is None.
+
+    Returns
+    -------
+    new_trigger : array, shape (n_samples,)
+        The combined trigger array.
+    """
     new_trigger = np.zeros(data.shape[1])
     if data.astype(bool).sum(axis=0).max() > 1:  # ensure no overlaps
         logger.info(

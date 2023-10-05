@@ -18,7 +18,60 @@ from ...utils import verbose, logger, warn, _validate_type, _check_fname
 
 
 def _read_header(fid):
-    """Read EGI binary header."""
+    """Read EGI binary header.
+
+    This function reads an EGI binary header file and extracts various
+    information such as the version number, date and time, sampling rate, number of
+    channels, and other header parameters.
+
+    Parameters
+    ----------
+    fid : file object
+        The file object of the EGI binary file.
+
+    Returns
+    -------
+    info : dict
+        A dictionary containing the header information. The dictionary
+        has the following keys:
+            - version : int
+                The version number of the EGI binary file.
+            - year : int
+                The year of the recording.
+            - month : int
+                The month of the recording.
+            - day : int
+                The day of the recording.
+            - hour : int
+                The hour of the recording.
+            - minute : int
+                The minute of the recording.
+            - second : int
+                The second of the recording.
+            - millisecond : int
+                The millisecond of the recording.
+            - samp_rate : int
+                The sampling rate of the recording.
+            - n_channels : int
+                The number of channels in the recording.
+            - gain : int
+                The gain value used for the recording.
+            - bits : int
+                The number of bits used for encoding the data.
+            - value_range : int
+                The value range of the data.
+
+    Raises
+    ------
+    ValueError
+        If the version number of the EGI binary file is not valid.
+
+    RuntimeError
+        If the floating point precision is undefined.
+
+    NotImplementedError
+        If the EGI binary file is not a continuous file.
+    """
     version = np.fromfile(fid, "<i4", 1)[0]
 
     if version > 6 & ~np.bitwise_and(version, 6):
@@ -81,7 +134,20 @@ def _read_header(fid):
 
 
 def _read_events(fid, info):
-    """Read events."""
+    """Read events.
+
+    Parameters
+    ----------
+    fid : file object
+        The file object to read events from.
+    info : dict
+        A dictionary containing information about the events.
+
+    Returns
+    -------
+    events : np.ndarray
+        The events data.
+    """
     events = np.zeros([info["n_events"], info["n_segments"] * info["n_samples"]])
     fid.seek(36 + info["n_events"] * 4, 0)  # skip header
     for si in range(info["n_samples"]):
@@ -125,9 +191,8 @@ def read_raw_egi(
        Note. Overrides ``exclude`` parameter.
     exclude : None | list
        The event channels to be ignored when creating the synthetic
-       trigger. Defaults to None. If None, channels that have more than
-       one event and the ``sync`` and ``TREV`` channels will be
-       ignored.
+       trigger. Defaults to None. If None, channels that have more than one event and
+       the ``sync`` and ``TREV`` channels will be ignored.
     %(preload)s
 
         .. versionadded:: 0.11
@@ -151,15 +216,17 @@ def read_raw_egi(
 
     Notes
     -----
-    The trigger channel names are based on the arbitrary user dependent event
-    codes used. However this function will attempt to generate a **synthetic
+    The trigger channel names are based on the arbitrary user dependent
+    event codes used. However this function will attempt to generate a
+    **synthetic
     trigger channel** named ``STI 014`` in accordance with the general
     Neuromag / MNE naming pattern.
 
-    The event_id assignment equals ``np.arange(n_events) + 1``. The resulting
-    ``event_id`` mapping is stored as attribute to the resulting raw object but
-    will be ignored when saving to a fiff. Note. The trigger channel is
-    artificially constructed based on timestamps received by the Netstation.
+    The event_id assignment equals ``np.arange(n_events) + 1``. The
+    resulting ``event_id`` mapping is stored as attribute to the resulting raw object
+    but will be ignored when saving to a fiff. Note. The trigger channel is
+    artificially constructed based on timestamps received by the
+    Netstation.
     As a consequence, triggers have only short durations.
 
     This step will fail if events are not mutually exclusive.
@@ -191,7 +258,28 @@ class RawEGI(BaseRaw):
         preload=False,
         channel_naming="E%d",
         verbose=None,
-    ):  # noqa: D102
+    ):
+        """Initialize a new instance of the RawEGI class.
+
+        Parameters
+        ----------
+        input_fname : str
+            The name of the EGI file to read.
+        eog : list | None
+            List of EOG channel names.
+        misc : list | None
+            List of miscellaneous channel names.
+        include : list | None
+            List of event names to include.
+        exclude : list | None
+            List of event names to exclude.
+        preload : bool
+            If True, preload data into memory.
+        channel_naming : str
+            The channel naming template.
+        verbose : bool | str | int | None
+            If not None, override default verbose level.
+        """
         input_fname = str(_check_fname(input_fname, "read", True, "input_fname"))
         if eog is None:
             eog = []
@@ -316,7 +404,25 @@ class RawEGI(BaseRaw):
         )
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
-        """Read a segment of data from a file."""
+        """Read a segment of data from a file.
+
+        Parameters
+        ----------
+        data : ndarray, shape (n_channels, n_times)
+            The data array to store the read segment.
+        idx : int
+            The index of the segment.
+        fi : int
+            The index of the file.
+        start : int
+            The starting sample index.
+        stop : int
+            The ending sample index.
+        cals : ndarray, shape (n_channels,)
+            The calibration factors.
+        mult : float
+            The multiplicative factor.
+        """
         egi_info = self._raw_extras[fi]
         dtype = egi_info["dtype"]
         n_chan_read = egi_info["n_channels"] + egi_info["n_events"]
