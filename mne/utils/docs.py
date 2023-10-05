@@ -3355,10 +3355,14 @@ _picks_types = "str | array-like | slice | None"
 _picks_header = f"picks : {_picks_types}"
 _picks_desc = "Channels to include."
 _picks_int = "Slices and lists of integers will be interpreted as channel " "indices."
-_picks_str_types = "channel *type* strings (e.g., ``['meg', 'eeg']``) will pick channels of those types, "
-_picks_str_names = "channel *name* strings (e.g., ``['MEG0111', 'MEG2623']`` will pick the given channels. "
-_picks_str_values = """Can also be the string values "all" to pick all channels, or "data" to pick :term:`data channels`. """
-_picks_str = f"""In lists, {_picks_str_types}{_picks_str_names}{_picks_str_values} 
+_picks_str_types = """channel *type* strings (e.g., ``['meg', 'eeg']``) will 
+    pick channels of those types,"""
+_picks_str_names = """channel *name* strings (e.g., ``['MEG0111', 'MEG2623']`` 
+    will pick the given channels."""
+_picks_str_values = """Can also be the string values "all" to pick 
+    all channels, or "data" to pick :term:`data channels`."""
+_picks_str = f"""In lists, {_picks_str_types} {_picks_str_names} 
+    {_picks_str_values}
     None (default) will pick"""
 _picks_str_notypes = f"""In lists, {_picks_str_names}
     None (default) will pick"""
@@ -3592,7 +3596,7 @@ projs : bool | None
     the data. If ``None``, use ``projs`` from `~mne.Report` creation.
 """
 
- # %%
+# %%
 # R
 
 docdict[
