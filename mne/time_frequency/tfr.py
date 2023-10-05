@@ -1122,6 +1122,7 @@ def tfr_multitaper(
     Notes
     -----
     %(temporal-window_tfr_multitaper_notes)s
+
     %(time_bandwidth_tfr_notes)s
 
     .. versionadded:: 0.9.0
