@@ -1356,12 +1356,15 @@ exclude_frontal : bool
 _exclude_spectrum = """\
 exclude : list of str | 'bads'
     Channel names to exclude{}. If ``'bads'``, channels
-    in ``spectrum.info['bads']`` are excluded; pass an empty list or tuple to
-    plot all channels (including "bad" channels, if any).
+    in ``{}info['bads']`` are excluded; pass an empty list to
+    include all channels (including "bad" channels, if any).
 """
 
-docdict["exclude_spectrum_get_data"] = _exclude_spectrum.format("")
-docdict["exclude_spectrum_plot"] = _exclude_spectrum.format(" from being drawn")
+docdict["exclude_psd"] = _exclude_spectrum.format("", "")
+docdict["exclude_spectrum_get_data"] = _exclude_spectrum.format("", "spectrum.")
+docdict["exclude_spectrum_plot"] = _exclude_spectrum.format(
+    " from being drawn", "spectrum."
+)
 
 docdict[
     "export_edf_note"
@@ -3964,6 +3967,22 @@ docdict[
 selection : iterable | None
     Iterable of indices of selected epochs. If ``None``, will be
     automatically generated, corresponding to all non-zero events.
+"""
+
+docdict[
+    "sensor_colors"
+] = """
+sensor_colors : array-like of color | dict | None
+    Colors to use for the sensor glyphs. Can be None (default) to use default colors.
+    A dict should provide the colors (values) for each channel type (keys), e.g.::
+
+        dict(eeg=eeg_colors)
+
+    Where the value (``eeg_colors`` above) can be broadcast to an array of colors with
+    length that matches the number of channels of that type, i.e., is compatible with
+    :func:`matplotlib.colors.to_rgba_array`. A few examples of this for the case above
+    are the string ``"k"``, a list of ``n_eeg`` color strings, or an NumPy ndarray of
+    shape ``(n_eeg, 3)`` or ``(n_eeg, 4)``.
 """
 
 docdict[

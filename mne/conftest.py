@@ -158,7 +158,7 @@ def pytest_configure(config):
     # h5py
     ignore:`product` is deprecated as of NumPy.*:DeprecationWarning
     # pandas
-    ignore:.*np\.find_common_type is deprecated.*:DeprecationWarning
+    ignore:In the future `np.long`.*:FutureWarning
     # https://github.com/joblib/joblib/issues/1454
     ignore:.*`byte_bounds` is dep.*:DeprecationWarning
     # numpy distutils used by SciPy
