@@ -1580,9 +1580,7 @@ def plot_chpi_snr(snr_dict, axes=None):
     -----
     If you supply a list of existing `~matplotlib.axes.Axes`, then the figure
     legend will not be drawn automatically. If you still want it, running
-    ``fig.legend(loc='right', title='cHPI frequencies')`` will recreate it,
-    though you may also need to manually adjust the margin to make room for it
-    (e.g., using ``fig.subplots_adjust(right=0.8)``).
+    ``fig.legend(loc='right', title='cHPI frequencies')`` will recreate it.
 
     .. versionadded:: 0.24
     """

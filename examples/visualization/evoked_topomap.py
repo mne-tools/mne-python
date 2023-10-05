@@ -122,7 +122,6 @@ for axes_row, ch_type in zip(axes, ("mag", "eeg")):
 fig = evoked.plot_topomap(
     0.1, ch_type="mag", show_names=True, colorbar=False, size=6, res=128
 )
-fig.subplots_adjust(left=0.01, right=0.99, bottom=0.01, top=0.88)
 fig.suptitle("Auditory response")
 
 # %%

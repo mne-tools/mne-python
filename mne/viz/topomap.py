@@ -1377,9 +1377,6 @@ def _plot_topomap(
                 size="x-small",
             )
 
-    if not axes.figure.get_constrained_layout():
-        axes.figure.subplots_adjust(top=0.95)
-
     if onselect is not None:
         lim = axes.dataLim
         x0, y0, width, height = lim.x0, lim.y0, lim.width, lim.height
@@ -2226,13 +2223,6 @@ def plot_evoked_topomap(
                 f"You must provide {want_axes} axes (one for "
                 f"each time{cbar_err}), got {len(axes)}."
             )
-    # figure margins
-    if not fig.get_constrained_layout():
-        side_margin = plt.rcParams["figure.subplot.wspace"] / (2 * want_axes)
-        top_margin = max(0.05, 0.2 / size)
-        fig.subplots_adjust(
-            left=side_margin, right=1 - side_margin, bottom=0, top=1 - top_margin
-        )
     # find first index that's >= (to rounding error) to each time point
     time_idx = [
         np.where(

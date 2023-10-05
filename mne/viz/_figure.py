@@ -580,16 +580,6 @@ class BrowserBase(ABC):
                 ax.plot((reject, reject), (0, ax.get_ylim()[1]), color="r")
         # finalize
         fig.suptitle(title, y=0.99)
-        if hasattr(fig, "_inch_to_rel"):
-            kwargs = dict(
-                bottom=fig._inch_to_rel(0.5, horiz=False),
-                top=1 - fig._inch_to_rel(0.5, horiz=False),
-                left=fig._inch_to_rel(0.75),
-                right=1 - fig._inch_to_rel(0.25),
-            )
-        else:
-            kwargs = dict()
-        fig.subplots_adjust(hspace=0.7, **kwargs)
         self.mne.fig_histogram = fig
 
         return fig

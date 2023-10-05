@@ -236,8 +236,7 @@ T_obs, clusters, cluster_p_values, H0 = permutation_cluster_1samp_test(
 evoked_data = evoked.data
 times = 1e3 * evoked.times
 
-plt.figure()
-plt.subplots_adjust(0.12, 0.08, 0.96, 0.94, 0.2, 0.43)
+fig = plt.figure(layout="constrained")
 
 T_obs_plot = np.nan * np.ones_like(T_obs)
 for c, p_val in zip(clusters, cluster_p_values):
@@ -253,8 +252,8 @@ ch_idx, f_idx, t_idx = np.unravel_index(
 
 vmax = np.max(np.abs(T_obs))
 vmin = -vmax
-plt.subplot(2, 1, 1)
-plt.imshow(
+ax = fig.subplot(2, 1, 1)
+ax.imshow(
     T_obs[ch_idx],
     cmap=plt.cm.gray,
     extent=[times[0], times[-1], freqs[0], freqs[-1]],
@@ -263,7 +262,7 @@ plt.imshow(
     vmin=vmin,
     vmax=vmax,
 )
-plt.imshow(
+ax.imshow(
     T_obs_plot[ch_idx],
     cmap=plt.cm.RdBu_r,
     extent=[times[0], times[-1], freqs[0], freqs[-1]],
@@ -272,11 +271,9 @@ plt.imshow(
     vmin=vmin,
     vmax=vmax,
 )
-plt.colorbar()
-plt.xlabel("Time (ms)")
-plt.ylabel("Frequency (Hz)")
-plt.title(f"Induced power ({tfr_epochs.ch_names[ch_idx]})")
+fig.colorbar(ax.images[0])
+ax.set(xlabel="Time (ms)", ylabel="Frequency (Hz)")
+ax.set(title=f"Induced power ({tfr_epochs.ch_names[ch_idx]})")
 
-ax2 = plt.subplot(2, 1, 2)
+ax2 = fig.subplot(2, 1, 2)
 evoked.plot(axes=[ax2], time_unit="s")
-plt.show()
