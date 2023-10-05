@@ -84,13 +84,11 @@ def _parse_xml(xml_file):
 
     Parameters
     ----------
-    xml_file : str
-            The path to the XML file.
+    xml_file : str - The path to the XML file.
 
     Returns
     ----------
-    list
-        A nested list structure representing the parsed XML.
+    list - A nested list structure representing the parsed XML.
     """
     xml = parse(xml_file)
     root = xml.getroot()
@@ -102,13 +100,11 @@ def _xml2list(root):
 
     Parameters
     ----------
-    root : Element
-            The root element of the XML.
+    root : Element - The root element of the XML.
 
     Returns
     ----------
-    list
-        A nested list structure representing the parsed XML.
+    list - A nested list structure representing the parsed XML.
     """
     output = []
     for element in root:

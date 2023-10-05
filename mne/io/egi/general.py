@@ -80,11 +80,11 @@ def _get_ep_info(filepath):
     Returns
     -------
     dict
-        A dictionary containing epoch information. It has the following keys:
-        - 'first_samps': a list of the beginning time samples for each epoch
-        - 'last_samps': a list of the ending time samples for each epoch
-        - 'first_blocks': a list of the first blocks for each epoch
-        - 'last_blocks': a list of the last blocks for each epoch
+    A dictionary containing epoch information. It has the following keys:
+    - 'first_samps': a list of the beginning time samples for each epoch
+    - 'last_samps': a list of the ending time samples for each epoch
+    - 'first_blocks': a list of the first blocks for each epoch
+    - 'last_blocks': a list of the last blocks for each epoch
     """
     epochfile = filepath + "/epochs.xml"
     epochlist = parse(epochfile)
@@ -117,17 +117,17 @@ def _get_blocks(filepath):
     -------
     signal_blocks : dict
         A dictionary containing the extracted information from the meta
-        data blocks. The dictionary has the following keys:
-            n_channels : int
-                The number of channels in each block.
-            sfreq : float
-                The sampling frequency in each block.
-            n_blocks : int
-                The total number of blocks.
-            samples_block : ndarray
-                An array containing the number of samples in each block.
-            header_sizes : list
-                A list containing the header sizes of each block.
+    data blocks. The dictionary has the following keys:
+        n_channels : int
+            The number of channels in each block.
+        sfreq : float
+            The sampling frequency in each block.
+        n_blocks : int
+            The total number of blocks.
+        samples_block : ndarray
+            An array containing the number of samples in each block.
+        header_sizes : list
+            A list containing the header sizes of each block.
 
     Raises
     ------
@@ -250,25 +250,11 @@ def _block_r(fid):
 
     Parameters
     -----------
-    fid : file object
-                The file object to read from.
+    fid : file object - The file object to read from.
 
     Returns
     --------
-    block : dict or None
-        The extracted meta data. It has the following keys:
-            nc : int
-                The number of channels.
-            hl : int
-                The header length.
-            nsamples : int
-                The number of samples.
-            block_size : int
-                The size of the block.
-            header_size : int
-                The size of the header.
-            sfreq : int
-                The sampling frequency.
+    block : dict or None - The extracted meta data.
     """
     if np.fromfile(fid, dtype=np.dtype("i4"), count=1).item() != 1:  # not meta
         return None
