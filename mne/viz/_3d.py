@@ -1512,7 +1512,7 @@ def _plot_sensors(
                 actor, _ = renderer.surface(
                     surface=surface,
                     color=color[:3],
-                    opacity=0.25 * color[3],
+                    opacity=sensor_opacity * color[3],
                     backface_culling=False,  # visible from all sides
                 )
                 actors[ch_type].append(actor)
