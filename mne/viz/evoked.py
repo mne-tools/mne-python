@@ -3013,7 +3013,7 @@ def plot_compare_evokeds(
         from .topo import iter_topography
         from ..channels.layout import find_layout
 
-        fig = plt.figure(figsize=(18, 14), layout="constrained")
+        fig = plt.figure(figsize=(18, 14), layout=None)  # Not "constrained" for topo
 
         def click_func(
             ax_,
