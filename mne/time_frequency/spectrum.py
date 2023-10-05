@@ -300,6 +300,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         tmin,
         tmax,
         picks,
+        exclude,
         proj,
         remove_dc,
         *,
@@ -348,7 +349,9 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
 
         # prep times and picks
         self._time_mask = _time_mask(inst.times, tmin, tmax, sfreq=self.sfreq)
-        self._picks = _picks_to_idx(inst.info, picks, "data", with_ref_meg=False)
+        self._picks = _picks_to_idx(
+            inst.info, picks, "data", exclude, with_ref_meg=False
+        )
 
         # add the info object. bads and non-data channels were dropped by
         # _picks_to_idx() so we update the info accordingly:
@@ -1080,6 +1083,7 @@ class Spectrum(BaseSpectrum):
     %(fmin_fmax_psd)s
     %(tmin_tmax_psd)s
     %(picks_good_data_noref)s
+    %(exclude_psd)s
     %(proj_psd)s
     %(remove_dc)s
     %(reject_by_annotation_psd)s
@@ -1121,6 +1125,7 @@ class Spectrum(BaseSpectrum):
         tmin,
         tmax,
         picks,
+        exclude,
         proj,
         remove_dc,
         reject_by_annotation,
@@ -1144,6 +1149,7 @@ class Spectrum(BaseSpectrum):
             tmin,
             tmax,
             picks,
+            exclude,
             proj,
             remove_dc,
             n_jobs=n_jobs,
@@ -1289,6 +1295,7 @@ class EpochsSpectrum(BaseSpectrum, GetEpochsMixin):
     %(fmin_fmax_psd)s
     %(tmin_tmax_psd)s
     %(picks_good_data_noref)s
+    %(exclude_psd)s
     %(proj_psd)s
     %(remove_dc)s
     %(n_jobs)s
@@ -1326,6 +1333,7 @@ class EpochsSpectrum(BaseSpectrum, GetEpochsMixin):
         tmin,
         tmax,
         picks,
+        exclude,
         proj,
         remove_dc,
         *,
@@ -1346,6 +1354,7 @@ class EpochsSpectrum(BaseSpectrum, GetEpochsMixin):
             tmin,
             tmax,
             picks,
+            exclude,
             proj,
             remove_dc,
             n_jobs=n_jobs,
@@ -1458,6 +1467,7 @@ class EpochsSpectrum(BaseSpectrum, GetEpochsMixin):
             tmin=None,
             tmax=None,
             picks=None,
+            exclude=(),
             proj=None,
             remove_dc=None,
             reject_by_annotation=None,
@@ -1560,6 +1570,7 @@ def read_spectrum(fname):
         tmin=None,
         tmax=None,
         picks=None,
+        exclude=(),
         proj=None,
         remove_dc=None,
         reject_by_annotation=None,

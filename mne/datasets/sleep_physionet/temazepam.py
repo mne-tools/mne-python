@@ -104,12 +104,12 @@ def fetch_data(
                 psg_fname, pdl = _fetch_one(
                     records["psg fname"][idx].decode(),
                     records["psg sha"][idx].decode(),
-                    *params
+                    *params,
                 )
                 hyp_fname, hdl = _fetch_one(
                     records["hyp fname"][idx].decode(),
                     records["hyp sha"][idx].decode(),
-                    *params
+                    *params,
                 )
                 fnames.append([psg_fname, hyp_fname])
                 if pdl:

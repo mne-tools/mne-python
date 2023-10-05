@@ -62,6 +62,7 @@ from ..utils import (
     check_version,
     _check_decim,
 )
+from .ui_events import publish, subscribe, ColormapRange
 from ..transforms import apply_trans
 
 
@@ -1506,11 +1507,14 @@ class DraggableColorbar:
     See http://www.ster.kuleuven.be/~pieterd/python/html/plotting/interactive_colorbar.html
     """  # noqa: E501
 
-    def __init__(self, cbar, mappable):
+    def __init__(self, cbar, mappable, kind, ch_type):
         import matplotlib.pyplot as plt
 
         self.cbar = cbar
         self.mappable = mappable
+        self.kind = kind
+        self.ch_type = ch_type
+        self.fig = self.cbar.ax.figure
         self.press = None
         self.cycle = sorted(
             [i for i in dir(plt.cm) if hasattr(getattr(plt.cm, i), "N")]
@@ -1519,6 +1523,7 @@ class DraggableColorbar:
         self.index = self.cycle.index(mappable.get_cmap().name)
         self.lims = (self.cbar.norm.vmin, self.cbar.norm.vmax)
         self.connect()
+        subscribe(self.fig, "colormap_range", self._on_colormap_range)
 
     def connect(self):
         """Connect to all the events we need."""
@@ -1577,7 +1582,7 @@ class DraggableColorbar:
         self.cbar.mappable.set_cmap(cmap)
         _draw_without_rendering(self.cbar)
         self.mappable.set_cmap(cmap)
-        self._update()
+        self._publish()
 
     def on_motion(self, event):
         """Handle mouse movements."""
@@ -1596,7 +1601,7 @@ class DraggableColorbar:
         elif event.button == 3:
             self.cbar.norm.vmin -= (perc * scale) * np.sign(dy)
             self.cbar.norm.vmax += (perc * scale) * np.sign(dy)
-        self._update()
+        self._publish()
 
     def on_release(self, event):
         """Handle release."""
@@ -1608,7 +1613,31 @@ class DraggableColorbar:
         scale = 1.1 if event.step < 0 else 1.0 / 1.1
         self.cbar.norm.vmin *= scale
         self.cbar.norm.vmax *= scale
+        self._publish()
+
+    def _on_colormap_range(self, event):
+        if event.kind != self.kind or event.ch_type != self.ch_type:
+            return
+        if event.fmin is not None:
+            self.cbar.norm.vmin = event.fmin
+        if event.fmax is not None:
+            self.cbar.norm.vmax = event.fmax
+        if event.cmap is not None:
+            self.cbar.mappable.set_cmap(event.cmap)
+            self.mappable.set_cmap(event.cmap)
         self._update()
+
+    def _publish(self):
+        publish(
+            self.fig,
+            ColormapRange(
+                kind=self.kind,
+                ch_type=self.ch_type,
+                fmin=self.cbar.norm.vmin,
+                fmax=self.cbar.norm.vmax,
+                cmap=self.mappable.get_cmap(),
+            ),
+        )
 
     def _update(self):
         from matplotlib.ticker import AutoLocator

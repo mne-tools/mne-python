@@ -200,7 +200,7 @@ numpydoc_xref_aliases = {
     "path-like": ":term:`path-like`",
     "array-like": ":term:`array_like <numpy:array_like>`",
     "Path": ":class:`python:pathlib.Path`",
-    "bool": ":class:`python:bool`",
+    "bool": ":ref:`python:typebool`",
     # Matplotlib
     "colormap": ":ref:`colormap <matplotlib:colormaps>`",
     "color": ":doc:`color <matplotlib:api/colors_api>`",
@@ -1621,6 +1621,7 @@ ex = "auto_examples"
 co = "connectivity"
 mne_conn = "https://mne.tools/mne-connectivity/stable"
 tu = "auto_tutorials"
+pr = "preprocessing"
 di = "discussions"
 sm = "source-modeling"
 fw = "forward"
@@ -1666,7 +1667,7 @@ custom_redirects = {
     f"{tu}/{sd}/plot_phantom_4DBTi.html": f"{tu}/{nv}/90_phantom_4DBTi.html",
     f"{tu}/{sd}/plot_brainstorm_auditory.html": f"{tu}/io/60_ctf_bst_auditory.html",
     f"{tu}/{sd}/plot_sleep.html": f"{tu}/clinical/60_sleep.html",
-    f"{tu}/{di}/plot_background_filtering.html": f"{tu}/preprocessing/25_background_filtering.html",  # noqa E501
+    f"{tu}/{di}/plot_background_filtering.html": f"{tu}/{pr}/25_background_filtering.html",  # noqa E501
     f"{tu}/{di}/plot_background_statistics.html": f"{tu}/{sn}/10_background_stats.html",
     f"{tu}/{sn}/plot_stats_cluster_erp.html": f"{tu}/{sn}/20_erp_stats.html",
     f"{tu}/{sn}/plot_stats_cluster_1samp_test_time_frequency.html": f"{tu}/{sn}/40_cluster_1samp_time_freq.html",  # noqa E501
@@ -1681,7 +1682,7 @@ custom_redirects = {
     f"{tu}/{si}/plot_creating_data_structures.html": f"{tu}/{si}/10_array_objs.html",
     f"{tu}/{si}/plot_point_spread.html": f"{tu}/{si}/70_point_spread.html",
     f"{tu}/{si}/plot_dics.html": f"{tu}/{si}/80_dics.html",
-    f"{tu}/{tf}/plot_eyetracking.html": f"{tu}/preprocessing/90_eyetracking_data.html",
+    f"{tu}/{tf}/plot_eyetracking.html": f"{tu}/{pr}/90_eyetracking_data.html",
     f"{ex}/{co}/mne_inverse_label_connectivity.html": f"{mne_conn}/{ex}/mne_inverse_label_connectivity.html",  # noqa E501
     f"{ex}/{co}/cwt_sensor_connectivity.html": f"{mne_conn}/{ex}/cwt_sensor_connectivity.html",  # noqa E501
     f"{ex}/{co}/mixed_source_space_connectivity.html": f"{mne_conn}/{ex}/mixed_source_space_connectivity.html",  # noqa E501
@@ -1692,6 +1693,7 @@ custom_redirects = {
     f"{ex}/{co}/mne_inverse_psi_visual.html": f"{mne_conn}/{ex}/mne_inverse_psi_visual.html",  # noqa E501
     f"{ex}/{co}/sensor_connectivity.html": f"{mne_conn}/{ex}/sensor_connectivity.html",
     f"{ex}/{vi}/publication_figure.html": f"{tu}/{vi}/10_publication_figure.html",
+    f"{ex}/{vi}/sensor_noise_level.html": f"{tu}/{pr}/50_artifact_correction_ssp.html",
 }
 
 
