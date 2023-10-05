@@ -2763,6 +2763,8 @@ class Brain:
         seeg=True,
         dbs=True,
         max_dist=0.004,
+        *,
+        sensor_colors=None,
         verbose=None,
     ):
         """Add mesh objects to represent sensor positions.
@@ -2778,6 +2780,9 @@ class Brain:
         %(seeg)s
         %(dbs)s
         %(max_dist_ieeg)s
+        %(sensor_colors)s
+
+            .. versionadded:: 1.6
         %(verbose)s
 
         Notes
@@ -2832,6 +2837,7 @@ class Brain:
                     warn_meg,
                     head_surf,
                     self._units,
+                    sensor_colors=sensor_colors,
                 )
                 for item, actors in sensors_actors.items():
                     for actor in actors:

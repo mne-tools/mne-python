@@ -9,6 +9,7 @@
 #
 # License: Simplified BSD
 
+from collections import defaultdict
 import os
 import os.path as op
 import warnings
@@ -604,11 +605,10 @@ def plot_alignment(
         .. versionadded:: 0.16
         .. versionchanged:: 1.0
            Defaults to ``'terrain'``.
-    sensor_colors : array-like | None
-        Colors to use for the sensor glyphs. Can be list-like of color strings
-        (length ``n_sensors``) or array-like of RGB(A) values (shape
-        ``(n_sensors, 3)`` or ``(n_sensors, 4)``). ``None`` (the default) uses
-        the default sensor colors for the :func:`~mne.viz.plot_alignment` GUI.
+    %(sensor_colors)s
+
+        .. versionchanged:: 1.6
+            Support for passing a ``dict`` was added.
     %(verbose)s
 
     Returns
@@ -1437,29 +1437,16 @@ def _plot_sensors(
     sensor_colors=None,
 ):
     """Render sensors in a 3D scene."""
+    from matplotlib.colors import to_rgba_array
+
     defaults = DEFAULTS["coreg"]
     ch_pos, sources, detectors = _ch_pos_in_coord_frame(
         pick_info(info, picks), to_cf_t=to_cf_t, warn_meg=warn_meg
     )
 
-    actors = dict(
-        meg=list(),
-        ref_meg=list(),
-        eeg=list(),
-        fnirs=list(),
-        ecog=list(),
-        seeg=list(),
-        dbs=list(),
-    )
-    locs = dict(
-        eeg=list(),
-        fnirs=list(),
-        ecog=list(),
-        seeg=list(),
-        source=list(),
-        detector=list(),
-    )
-    scalar = 1 if units == "m" else 1e3
+    actors = defaultdict(lambda: list())
+    locs = defaultdict(lambda: list())
+    unit_scalar = 1 if units == "m" else 1e3
     for ch_name, ch_coord in ch_pos.items():
         ch_type = channel_type(info, info.ch_names.index(ch_name))
         # for default picking
@@ -1471,46 +1458,75 @@ def _plot_sensors(
         plot_sensors = (ch_type != "fnirs" or "channels" in fnirs) and (
             ch_type != "eeg" or "original" in eeg
         )
-        color = defaults[ch_type + "_color"]
         # plot sensors
         if isinstance(ch_coord, tuple):  # is meg, plot coil
-            verts, triangles = ch_coord
-            actor, _ = renderer.surface(
-                surface=dict(rr=verts * scalar, tris=triangles),
-                color=color,
-                opacity=0.25,
-                backface_culling=True,
-            )
-            actors[ch_type].append(actor)
-        else:
-            if plot_sensors:
-                locs[ch_type].append(ch_coord)
+            ch_coord = dict(rr=ch_coord[0] * unit_scalar, tris=ch_coord[1])
+        if plot_sensors:
+            locs[ch_type].append(ch_coord)
         if ch_name in sources and "sources" in fnirs:
             locs["source"].append(sources[ch_name])
         if ch_name in detectors and "detectors" in fnirs:
             locs["detector"].append(detectors[ch_name])
+        # Plot these now
         if ch_name in sources and ch_name in detectors and "pairs" in fnirs:
             actor, _ = renderer.tube(  # array of origin and dest points
-                origin=sources[ch_name][np.newaxis] * scalar,
-                destination=detectors[ch_name][np.newaxis] * scalar,
-                radius=0.001 * scalar,
+                origin=sources[ch_name][np.newaxis] * unit_scalar,
+                destination=detectors[ch_name][np.newaxis] * unit_scalar,
+                radius=0.001 * unit_scalar,
             )
             actors[ch_type].append(actor)
+            del ch_type
 
-    # add sensors
-    for sensor_type in locs.keys():
-        if len(locs[sensor_type]) > 0:
-            sens_loc = np.array(locs[sensor_type])
-            sens_loc = sens_loc[~np.isnan(sens_loc).any(axis=1)]
-            scale = defaults[sensor_type + "_scale"]
-            if sensor_colors is None:
-                color = defaults[sensor_type + "_color"]
+    # now actually plot the sensors
+    extra = ""
+    types = (dict, None)
+    if len(locs) == 0:
+        return
+    elif len(locs) == 1:
+        # Upsample from array-like to dict when there is one channel type
+        extra = "(or array-like since only one sensor type is plotted)"
+        if sensor_colors is not None and not isinstance(sensor_colors, dict):
+            sensor_colors = {
+                list(locs)[0]: to_rgba_array(sensor_colors),
+            }
+    else:
+        extra = f"when more than one channel type ({list(locs)}) is plotted"
+    _validate_type(sensor_colors, types, "sensor_colors", extra=extra)
+    del extra, types
+    if sensor_colors is None:
+        sensor_colors = dict()
+    assert isinstance(sensor_colors, dict)
+    for ch_type, sens_loc in locs.items():
+        assert len(sens_loc)  # should be guaranteed above
+        colors = to_rgba_array(sensor_colors.get(ch_type, defaults[ch_type + "_color"]))
+        _check_option(
+            f"len(sensor_colors[{repr(ch_type)}])",
+            colors.shape[0],
+            (len(sens_loc), 1),
+        )
+        scale = defaults[ch_type + "_scale"] * unit_scalar
+        if isinstance(sens_loc[0], dict):  # meg coil
+            if len(colors) == 1:
+                colors = [colors[0]] * len(sens_loc)
+            for surface, color in zip(sens_loc, colors):
+                actor, _ = renderer.surface(
+                    surface=surface,
+                    color=color[:3],
+                    opacity=sensor_opacity * color[3],
+                    backface_culling=False,  # visible from all sides
+                )
+                actors[ch_type].append(actor)
+        else:
+            sens_loc = np.array(sens_loc, float)
+            mask = ~np.isnan(sens_loc).any(axis=1)
+            if len(colors) == 1:
+                # Single color mode (one actor)
                 actor, _ = _plot_glyphs(
                     renderer=renderer,
-                    loc=sens_loc * scalar,
-                    color=color,
-                    scale=scale * scalar,
-                    opacity=sensor_opacity,
+                    loc=sens_loc[mask] * unit_scalar,
+                    color=colors[0, :3],
+                    scale=scale,
+                    opacity=sensor_opacity * colors[0, 3],
                     orient_glyphs=orient_glyphs,
                     scale_by_distance=scale_by_distance,
                     project_points=project_points,
@@ -1518,31 +1534,18 @@ def _plot_sensors(
                     check_inside=check_inside,
                     nearest=nearest,
                 )
-                if sensor_type in ("source", "detector"):
-                    sensor_type = "fnirs"
-                actors[sensor_type].append(actor)
+                actors[ch_type].append(actor)
             else:
-                actor_list = []
-                for idx_sen in range(sens_loc.shape[0]):
-                    sensor_colors = np.asarray(sensor_colors)
-                    if (
-                        sensor_colors.ndim not in (1, 2)
-                        or sensor_colors.shape[0] != sens_loc.shape[0]
-                    ):
-                        raise ValueError(
-                            "sensor_colors should either be None or be "
-                            "array-like with shape (n_sensors,) or "
-                            "(n_sensors, 3) or (n_sensors, 4). Got shape "
-                            f"{sensor_colors.shape}."
-                        )
-                    color = sensor_colors[idx_sen]
-
+                # Multi-color mode (multiple actors)
+                for loc, color, usable in zip(sens_loc, colors, mask):
+                    if not usable:
+                        continue
                     actor, _ = _plot_glyphs(
                         renderer=renderer,
-                        loc=(sens_loc * scalar)[idx_sen, :],
-                        color=color,
-                        scale=scale * scalar,
-                        opacity=sensor_opacity,
+                        loc=loc * unit_scalar,
+                        color=color[:3],
+                        scale=scale,
+                        opacity=sensor_opacity * color[3],
                         orient_glyphs=orient_glyphs,
                         scale_by_distance=scale_by_distance,
                         project_points=project_points,
@@ -1550,40 +1553,31 @@ def _plot_sensors(
                         check_inside=check_inside,
                         nearest=nearest,
                     )
-                    actor_list.append(actor)
-                if sensor_type in ("source", "detector"):
-                    sensor_type = "fnirs"
-                actors[sensor_type].append(actor_list)
-
-    # add projected eeg
-    eeg_indices = pick_types(info, eeg=True)
-    if eeg_indices.size > 0 and "projected" in eeg:
-        logger.info("Projecting sensors to the head surface")
-        eeg_loc = np.array([ch_pos[info.ch_names[idx]] for idx in eeg_indices])
-        eeg_loc = eeg_loc[~np.isnan(eeg_loc).any(axis=1)]
-        eegp_loc, eegp_nn = _project_onto_surface(
-            eeg_loc, head_surf, project_rrs=True, return_nn=True
-        )[2:4]
-        del eeg_loc
-        eegp_loc *= scalar
-        scale = defaults["eegp_scale"] * scalar
-        actor, _ = renderer.quiver3d(
-            x=eegp_loc[:, 0],
-            y=eegp_loc[:, 1],
-            z=eegp_loc[:, 2],
-            u=eegp_nn[:, 0],
-            v=eegp_nn[:, 1],
-            w=eegp_nn[:, 2],
-            color=defaults["eegp_color"],
-            mode="cylinder",
-            scale=scale,
-            opacity=0.6,
-            glyph_height=defaults["eegp_height"],
-            glyph_center=(0.0, -defaults["eegp_height"] / 2.0, 0),
-            glyph_resolution=20,
-            backface_culling=True,
-        )
-        actors["eeg"].append(actor)
+                    actors[ch_type].append(actor)
+        if ch_type == "eeg" and "projected" in eeg:
+            logger.info("Projecting sensors to the head surface")
+            eegp_loc, eegp_nn = _project_onto_surface(
+                sens_loc[mask], head_surf, project_rrs=True, return_nn=True
+            )[2:4]
+            eegp_loc *= unit_scalar
+            actor, _ = renderer.quiver3d(
+                x=eegp_loc[:, 0],
+                y=eegp_loc[:, 1],
+                z=eegp_loc[:, 2],
+                u=eegp_nn[:, 0],
+                v=eegp_nn[:, 1],
+                w=eegp_nn[:, 2],
+                color=defaults["eegp_color"],
+                mode="cylinder",
+                scale=defaults["eegp_scale"] * unit_scalar,
+                opacity=0.6,
+                glyph_height=defaults["eegp_height"],
+                glyph_center=(0.0, -defaults["eegp_height"] / 2.0, 0),
+                glyph_resolution=20,
+                backface_culling=True,
+            )
+            actors["eeg"].append(actor)
+    actors = dict(actors)  # get rid of defaultdict
 
     return actors
 
