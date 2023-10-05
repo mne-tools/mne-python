@@ -103,6 +103,7 @@ extensions = [
     "sphinxcontrib.bibtex",
     "sphinxcontrib.youtube",
     # homegrown
+    "contrib_avatars",
     "gen_commands",
     "gen_names",
     "gh_substitutions",
