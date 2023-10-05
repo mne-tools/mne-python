@@ -431,11 +431,6 @@ def _fig_to_img(fig, *, image_format="png", own_figure=True):
         # matplotlib modifies the passed dict, which is a bug
         mpl_kwargs["pil_kwargs"] = pil_kwargs.copy()
     with warnings.catch_warnings():
-        warnings.filterwarnings(
-            action="ignore",
-            message=".*Axes that are not compatible with tight_layout.*",
-            category=UserWarning,
-        )
         fig.savefig(output, format=image_format, dpi=dpi, **mpl_kwargs)
 
     if own_figure:

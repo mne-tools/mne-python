@@ -498,7 +498,9 @@ for title in ("Without", "With"):
 
 evoked_eeg = epochs.average().pick("eeg")
 evoked_eeg.del_proj().add_proj(ecg_projs).add_proj(eog_projs)
-fig, axes = plt.subplots(1, 3, figsize=(8, 3), sharex=True, sharey=True)
+fig, axes = plt.subplots(
+    1, 3, figsize=(8, 3), sharex=True, sharey=True, layout="constrained"
+)
 for pi, proj in enumerate((False, True, "reconstruct")):
     ax = axes[pi]
     evoked_eeg.plot(proj=proj, axes=ax, spatial_colors=True)
@@ -512,7 +514,6 @@ for pi, proj in enumerate((False, True, "reconstruct")):
     ax.yaxis.set_tick_params(labelbottom=True)
     for text in list(ax.texts):
         text.remove()
-mne.viz.tight_layout()
 
 # %%
 # Note that here the bias in the EEG and magnetometer channels is reduced by

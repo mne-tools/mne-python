@@ -94,7 +94,7 @@ evoked.plot_topomap(times, ch_type="mag", cmap="Spectral_r", res=32, contours=4)
 # and ``'head'`` otherwise. Here we show each option:
 
 extrapolations = ["local", "head", "box"]
-fig, axes = plt.subplots(figsize=(7.5, 4.5), nrows=2, ncols=3)
+fig, axes = plt.subplots(figsize=(7.5, 4.5), nrows=2, ncols=3, layout="constrained")
 
 # Here we look at EEG channels, and use a custom head sphere to get all the
 # sensors to be well within the drawn head surface
@@ -111,7 +111,6 @@ for axes_row, ch_type in zip(axes, ("mag", "eeg")):
             sphere=(0.0, 0.0, 0.0, 0.09),
         )
         ax.set_title("%s %s" % (ch_type.upper(), extr), fontsize=14)
-fig.tight_layout()
 
 # %%
 # More advanced usage

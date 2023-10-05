@@ -1333,7 +1333,6 @@ class _AbstractMplCanvas(ABC):
         """Initialize the MplCanvas."""
         from matplotlib.figure import Figure
 
-        # prefer constrained layout here but live with tight_layout otherwise
         self._extra_events = ("resize",)
         self.fig = Figure(figsize=(width, height), dpi=dpi, layout="constrained")
         self.axes = self.fig.add_subplot(111)

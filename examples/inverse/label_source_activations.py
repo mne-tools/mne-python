@@ -62,7 +62,7 @@ print("Number of vertices : %d" % len(stc_label.data))
 # View source activations
 # -----------------------
 
-fig, ax = plt.subplots(1)
+fig, ax = plt.subplots(1, layout="constrained")
 t = 1e3 * stc_label.times
 ax.plot(t, stc_label.data.T, "k", linewidth=0.5, alpha=0.5)
 pe = [
@@ -81,7 +81,6 @@ ax.set(
     xlim=xlim,
     ylim=ylim,
 )
-mne.viz.tight_layout()
 
 # %%
 # Using vector solutions
@@ -92,7 +91,7 @@ mne.viz.tight_layout()
 pick_ori = "vector"
 stc_vec = apply_inverse(evoked, inverse_operator, lambda2, method, pick_ori=pick_ori)
 data = stc_vec.extract_label_time_course(label, src)
-fig, ax = plt.subplots(1)
+fig, ax = plt.subplots(1, layout="constrained")
 stc_vec_label = stc_vec.in_label(label)
 colors = ["#EE6677", "#228833", "#4477AA"]
 for ii, name in enumerate("XYZ"):
@@ -117,4 +116,3 @@ ax.set(
     xlim=xlim,
     ylim=ylim,
 )
-mne.viz.tight_layout()

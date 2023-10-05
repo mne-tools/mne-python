@@ -156,7 +156,7 @@ label_names = mne.get_volume_labels_from_aseg(fname_aseg)
 label_tc = stc.extract_label_time_course(fname_aseg, src=src)
 
 lidx, tidx = np.unravel_index(np.argmax(label_tc), label_tc.shape)
-fig, ax = plt.subplots(1)
+fig, ax = plt.subplots(1, layout="constrained")
 ax.plot(stc.times, label_tc.T, "k", lw=1.0, alpha=0.5)
 xy = np.array([stc.times[tidx], label_tc[lidx, tidx]])
 xytext = xy + [0.01, 1]
@@ -164,7 +164,6 @@ ax.annotate(label_names[lidx], xy, xytext, arrowprops=dict(arrowstyle="->"), col
 ax.set(xlim=stc.times[[0, -1]], xlabel="Time (s)", ylabel="Activation")
 for key in ("right", "top"):
     ax.spines[key].set_visible(False)
-fig.tight_layout()
 
 # %%
 # We can plot several labels with the most activation in their time course

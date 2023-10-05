@@ -88,7 +88,7 @@ for sub in range(1, 11):
 
 bridged_idx, ed_matrix = ed_data[6]
 
-fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(8, 4))
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(8, 4), layout="constrained")
 fig.suptitle("Subject 6 Electrical Distance Matrix")
 
 # take median across epochs, only use upper triangular, lower is NaNs
@@ -109,8 +109,6 @@ cax2.set_label(r"Electrical Distance ($\mu$$V^2$)")
 for ax in (ax1, ax2):
     ax.set_xlabel("Channel Index")
     ax.set_ylabel("Channel Index")
-
-fig.tight_layout()
 
 # %%
 # Examine the Distribution of Electrical Distances

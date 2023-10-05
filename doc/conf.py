@@ -1290,7 +1290,6 @@ def reset_warnings(gallery_conf, fname):
     warnings.filterwarnings("default", module="sphinx")
     # allow these warnings, but don't show them
     for key in (
-        "The module matplotlib.tight_layout is deprecated",  # nilearn
         "invalid version and will not be supported",  # pyxdf
         "distutils Version classes are deprecated",  # seaborn and neo
         "`np.object` is a deprecated alias for the builtin `object`",  # pyxdf

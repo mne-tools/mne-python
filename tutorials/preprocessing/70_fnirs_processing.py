@@ -308,7 +308,11 @@ epochs["Tapping/Right"].average(picks="hbr").plot_topomap(times=times, **topomap
 # And we can plot the comparison at a single time point for two conditions.
 
 fig, axes = plt.subplots(
-    nrows=2, ncols=4, figsize=(9, 5), gridspec_kw=dict(width_ratios=[1, 1, 1, 0.1])
+    nrows=2,
+    ncols=4,
+    figsize=(9, 5),
+    gridspec_kw=dict(width_ratios=[1, 1, 1, 0.1]),
+    layout="constrained",
 )
 vlim = (-8, 8)
 ts = 9.0
@@ -341,7 +345,6 @@ evoked_diff.plot_topomap(
 for column, condition in enumerate(["Tapping Left", "Tapping Right", "Left-Right"]):
     for row, chroma in enumerate(["HbO", "HbR"]):
         axes[row, column].set_title("{}: {}".format(chroma, condition))
-fig.tight_layout()
 
 # %%
 # Lastly, we can also look at the individual waveforms to see what is
