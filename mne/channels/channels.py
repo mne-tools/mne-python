@@ -1340,7 +1340,6 @@ def read_ch_adjacency(fname, picks=None):
             You can retrieve the names of all
             built-in channel adjacencies via
             :func:`mne.channels.get_builtin_ch_adjacencies`.
-
     %(picks_all_notypes)s
 
     Returns
