@@ -249,7 +249,7 @@ def _block_r(fid):
     """Read meta data.
 
     Parameters
-    -----------
+    ----------
     fid : file object - The file object to read from.
 
     Returns
