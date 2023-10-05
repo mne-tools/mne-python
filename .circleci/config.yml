@@ -159,10 +159,6 @@ jobs:
             echo "Source Sans Pro"
             curl https://codeload.github.com/adobe-fonts/source-sans/tar.gz/3.028R | tar xz -C $HOME/.fonts
             fc-cache -f
-      - run:
-        name: Install chromium for selenium
-        command: |
-          sudo apt install -y chromium-driver chromium
 
       # Load pip cache
       - restore_cache:

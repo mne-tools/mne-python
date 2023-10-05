@@ -4,7 +4,7 @@ set -e
 set -o pipefail
 
 ./tools/setup_xvfb.sh
-sudo apt install -qq graphviz optipng python3.10-venv python3-venv libxft2 ffmpeg
+sudo apt install -qq graphviz optipng python3.10-venv python3-venv libxft2 ffmpeg chromium chromium-driver
 python3.10 -m venv ~/python_env
 echo "set -e" >> $BASH_ENV
 echo "set -o pipefail" >> $BASH_ENV
