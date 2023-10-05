@@ -145,7 +145,8 @@ def _iter_topography(
     from ..channels.layout import find_layout
 
     if fig is None:
-        fig = plt.figure(layout="constrained")
+        # Don't use constrained layout because we place axes manually
+        fig = plt.figure(layout=None)
 
     def format_coord_unified(x, y, pos=None, ch_names=None):
         """Update status bar with channel name under cursor."""
@@ -296,7 +297,8 @@ def _plot_topo(
     )
 
     if axes is None:
-        fig = plt.figure(layout="constrained")
+        # Don't use constrained layout because we place axes manually
+        fig = plt.figure(layout=None)
         axes = plt.axes([0.015, 0.025, 0.97, 0.95])
         axes.set_facecolor(fig_facecolor)
     else:
