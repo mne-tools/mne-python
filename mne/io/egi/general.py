@@ -253,7 +253,7 @@ def _block_r(fid):
     fid : file object - The file object to read from.
 
     Returns
-    --------
+    -------
     block : dict or None - The extracted meta data.
     """
     if np.fromfile(fid, dtype=np.dtype("i4"), count=1).item() != 1:  # not meta

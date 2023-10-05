@@ -87,7 +87,7 @@ def _parse_xml(xml_file):
     xml_file : str - The path to the XML file.
 
     Returns
-    ----------
+    -------
     list - A nested list structure representing the parsed XML.
     """
     xml = parse(xml_file)
@@ -103,7 +103,7 @@ def _xml2list(root):
     root : Element - The root element of the XML.
 
     Returns
-    ----------
+    -------
     list - A nested list structure representing the parsed XML.
     """
     output = []
@@ -132,7 +132,7 @@ def _ns(s):
             The XML tag.
 
     Returns
-    ----------
+    -------
     str
         The XML tag without the namespace.
     """
