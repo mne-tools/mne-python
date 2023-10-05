@@ -780,8 +780,8 @@ def _init_browser_backend():
     global MNE_BROWSER_BACKEND
 
     # check if MNE_BROWSER_BACKEND is not None and valid or get it from config
-    loaded_backend = MNE_BROWSER_BACKEND or get_config(
-        key="MNE_BROWSER_BACKEND", default=None
+    loaded_backend = (
+        get_config(key="MNE_BROWSER_BACKEND", default=None) or MNE_BROWSER_BACKEND
     )
     if loaded_backend is not None:
         set_browser_backend(loaded_backend)
