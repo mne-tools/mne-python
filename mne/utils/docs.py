@@ -4444,7 +4444,7 @@ envelope and that there is a sample at time zero.
 The length of the wavelet is thus :math:`10\times\mathtt{sfreq}\cdot\sigma-1`,
 which is equal to :math:`\frac{5}{\pi} \cdot \frac{\mathtt{n\_cycles} \cdot
 \mathtt{sfreq}}{\mathtt{freqs}} - 1`, where
-:math:`\sigma = \frac{\texttt{n\_cycles}}{2\pi f}` corresponds to the standard
+:math:`\sigma = \frac{\mathtt{n\_cycles}}{2\pi f}` corresponds to the standard
 deviation of the wavelet's Gaussian envelope. Note that the length of the
 wavelet must not exceed the length of your signal.
 
