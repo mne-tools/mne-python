@@ -4429,6 +4429,7 @@ decrease with frequency, the temporal smoothing decreases and the frequency
 smoothing increases with frequency.*
 Source: `FieldTrip tutorial: Time-frequency analysis using Hanning window,
 multitapers and wavelets <https://www.fieldtriptoolbox.org/tutorial/timefrequencyanalysis>`_.
+
 """
 
 docdict["temporal-window_tfr_morlet_notes"] = (
