@@ -4428,22 +4428,6 @@ Source: `FieldTrip tutorial: Time-frequency analysis using Hanning window,
 multitapers and wavelets <https://www.fieldtriptoolbox.org/tutorial/timefrequencyanalysis>`_.
 """
 
-docdict["temporal-window_tfr_multitaper_notes"] = (
-    _temporal_window_tfr_base
-    + r"""
-In MNE-Python, the multitaper temporal window length is defined by the arguments
-``freqs`` and ``n_cycles``, respectively defining the frequencies of interest
-and the number of cycles: :math:`T = \frac{\mathtt{n\_cycles}}{\mathtt{freqs}}`
-
-A fixed number of cycles for all frequencies will yield a temporal window which
-decreases with frequency. For example, ``freqs=np.arange(1, 6, 2)`` and
-``n_cycles=2`` yields ``T=array([2., 0.7, 0.4])``.
-
-To use a temporal window with fixed length, the number of cycles has to be
-defined based on the frequency. For example, ``freqs=np.arange(1, 6, 2)`` and
-``n_cycles=freqs / 2`` yields ``T=array([0.5, 0.5, 0.5])``."""
-)  # noqa: E501
-
 docdict["temporal-window_tfr_morlet_notes"] = (
     _temporal_window_tfr_base
     + r"""
@@ -4463,6 +4447,22 @@ wavelet must not exceed the length of your signal.
 
 For more information on the Morlet wavelet, see `mne.time_frequency.morlet`."""
 )
+
+docdict["temporal-window_tfr_multitaper_notes"] = (
+    _temporal_window_tfr_base
+    + r"""
+In MNE-Python, the multitaper temporal window length is defined by the arguments
+``freqs`` and ``n_cycles``, respectively defining the frequencies of interest
+and the number of cycles: :math:`T = \frac{\mathtt{n\_cycles}}{\mathtt{freqs}}`
+
+A fixed number of cycles for all frequencies will yield a temporal window which
+decreases with frequency. For example, ``freqs=np.arange(1, 6, 2)`` and
+``n_cycles=2`` yields ``T=array([2., 0.7, 0.4])``.
+
+To use a temporal window with fixed length, the number of cycles has to be
+defined based on the frequency. For example, ``freqs=np.arange(1, 6, 2)`` and
+``n_cycles=freqs / 2`` yields ``T=array([0.5, 0.5, 0.5])``."""
+)  # noqa: E501
 
 _theme = """\
 theme : str | path-like
