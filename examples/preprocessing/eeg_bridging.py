@@ -206,7 +206,7 @@ raw.plot(duration=20, scalings=dict(eeg=2e-4))
 # reflect neural or at least anatomical differences as well (i.e. the
 # distance from the sensors to the brain).
 
-fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(8, 4))
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(8, 4), layout="constrained")
 fig.suptitle("Electrical Distance Distribution for EEGBCI Subjects")
 for ax in (ax1, ax2):
     ax.set_ylabel("Count")
@@ -227,7 +227,6 @@ for sub, (bridged_idx, ed_matrix) in ed_data.items():
 
 ax1.axvspan(0, 30, color="r", alpha=0.5)
 ax2.legend(loc=(1.04, 0))
-fig.subplots_adjust(right=0.725, bottom=0.15, wspace=0.4)
 
 # %%
 # For the group of subjects, let's look at their electrical distances

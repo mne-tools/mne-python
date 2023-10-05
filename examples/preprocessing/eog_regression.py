@@ -69,10 +69,9 @@ evoked_after = mne.Epochs(
 epochs_after = mne.Epochs(raw_clean, events, event_id, tmin, tmax, baseline=(tmin, 0))
 evoked_after = epochs_after.average()
 
-fig, ax = plt.subplots(nrows=3, ncols=2, figsize=(10, 7), sharex=True, sharey="row")
+fig, ax = plt.subplots(
+    nrows=3, ncols=2, figsize=(10, 7), sharex=True, sharey="row", layout="constrained"
+)
 evoked_before.plot(axes=ax[:, 0], spatial_colors=True)
 evoked_after.plot(axes=ax[:, 1], spatial_colors=True)
-fig.subplots_adjust(
-    top=0.905, bottom=0.09, left=0.08, right=0.975, hspace=0.325, wspace=0.145
-)
 fig.suptitle("Before --> After")

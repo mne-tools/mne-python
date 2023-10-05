@@ -286,7 +286,7 @@ plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
 N = np.arange(1, 80)
 alpha = 0.05
 p_type_I = 1 - (1 - alpha) ** N
-fig, ax = plt.subplots(figsize=(4, 3))
+fig, ax = plt.subplots(figsize=(4, 3), layout="constrained")
 ax.scatter(N, p_type_I, 3)
 ax.set(
     xlim=N[[0, -1]],
@@ -295,7 +295,6 @@ ax.set(
     ylabel="Probability of at least\none type I error",
 )
 ax.grid(True)
-fig.tight_layout()
 fig.show()
 
 # %%
@@ -612,7 +611,7 @@ plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
 # and the bottom shows p-values for various statistical tests, with the ones
 # with proper control over FWER or FDR with bold titles.
 
-fig = plt.figure(facecolor="w", figsize=(14, 3))
+fig = plt.figure(facecolor="w", figsize=(14, 3), layout="constrained")
 assert len(ts) == len(titles) == len(ps)
 for ii in range(len(ts)):
     ax = [
@@ -620,7 +619,6 @@ for ii in range(len(ts)):
         fig.add_subplot(2, 10, 11 + ii),
     ]
     plot_t_p(ts[ii], ps[ii], titles[ii], mccs[ii], ax)
-fig.tight_layout(pad=0, w_pad=0.05, h_pad=0.1)
 plt.show()
 
 # %%
