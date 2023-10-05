@@ -196,7 +196,7 @@ def _get_signalfname(filepath):
     containing information about signal files.
 
     Parameters:
-        ----------
+    ----------
     filepath : str
             The path to the directory containing the signal files.
 
@@ -249,7 +249,7 @@ def _block_r(fid):
     """Read meta data.
 
     Parameters:
-            -----------
+    -----------
     fid : file object
                 The file object to read from.
 

@@ -83,7 +83,7 @@ def _parse_xml(xml_file):
     """Parse XML file.
 
     Parameters:
-        ----------
+    ----------
     xml_file : str
             The path to the XML file.
 
@@ -101,7 +101,7 @@ def _xml2list(root):
     """Parse XML item.
 
     Parameters:
-        ----------
+    ----------
     root : Element
             The root element of the XML.
 
@@ -131,7 +131,7 @@ def _ns(s):
     """Remove namespace, but only if there is a namespace to begin with.
 
     Parameters:
-        ----------
+    ----------
     s : str
             The XML tag.
 
