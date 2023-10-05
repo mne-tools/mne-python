@@ -1901,7 +1901,7 @@ def _key_pressed_slider(event, params):
     time_viewer.slider.set_val(this_time)
 
 
-def _smooth_plot(this_time, params):
+def _smooth_plot(this_time, params, *, draw=True):
     """Smooth source estimate data and plot with mpl."""
     from ..morph import _hemi_morph
 
@@ -1957,7 +1957,8 @@ def _smooth_plot(this_time, params):
     _set_aspect_equal(ax)
     ax.axis("off")
     ax.set(xlim=[-80, 80], ylim=(-80, 80), zlim=[-80, 80])
-    ax.figure.canvas.draw()
+    if draw:
+        ax.figure.canvas.draw()
 
 
 def _plot_mpl_stc(
@@ -2022,7 +2023,8 @@ def _plot_mpl_stc(
     del transparent, mapdata
 
     time_label, times = _handle_time(time_label, time_unit, stc.times)
-    fig = plt.figure(figsize=(6, 6), layout="constrained") if figure is None else figure
+    # don't use constrained layout because Axes3D does not play well with it
+    fig = plt.figure(figsize=(6, 6), layout=None) if figure is None else figure
     try:
         ax = Axes3D(fig, auto_add_to_figure=False)
     except Exception:  # old mpl
@@ -2072,7 +2074,7 @@ def _plot_mpl_stc(
         time_label=time_label,
         time_unit=time_unit,
     )
-    _smooth_plot(initial_time, params)
+    _smooth_plot(initial_time, params, draw=False)
 
     ax.view_init(**kwargs[hemi][views])
 
@@ -2100,7 +2102,6 @@ def _plot_mpl_stc(
         callback_key = partial(_key_pressed_slider, params=params)
         time_viewer.canvas.mpl_connect("key_press_event", callback_key)
 
-        time_viewer.subplots_adjust(left=0.12, bottom=0.05, right=0.75, top=0.95)
     fig.subplots_adjust(left=0.0, bottom=0.0, right=1.0, top=1.0)
 
     # add colorbar

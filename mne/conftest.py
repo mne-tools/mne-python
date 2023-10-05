@@ -84,6 +84,7 @@ def pytest_configure(config):
         "slowtest",
         "ultraslowtest",
         "pgtest",
+        "pvtest",
         "allow_unclosed",
         "allow_unclosed_pyside2",
     ):
@@ -548,35 +549,35 @@ def browser_backend(request, garbage_collect, monkeypatch):
             mne_qt_browser._browser_instances.clear()
 
 
-@pytest.fixture(params=["pyvistaqt"])
+@pytest.fixture(params=[pytest.param("pyvistaqt", marks=pytest.mark.pvtest)])
 def renderer(request, options_3d, garbage_collect):
     """Yield the 3D backends."""
     with _use_backend(request.param, interactive=False) as renderer:
         yield renderer
 
 
-@pytest.fixture(params=["pyvistaqt"])
+@pytest.fixture(params=[pytest.param("pyvistaqt", marks=pytest.mark.pvtest)])
 def renderer_pyvistaqt(request, options_3d, garbage_collect):
     """Yield the PyVista backend."""
     with _use_backend(request.param, interactive=False) as renderer:
         yield renderer
 
 
-@pytest.fixture(params=["notebook"])
+@pytest.fixture(params=[pytest.param("notebook", marks=pytest.mark.pvtest)])
 def renderer_notebook(request, options_3d):
     """Yield the 3D notebook renderer."""
     with _use_backend(request.param, interactive=False) as renderer:
         yield renderer
 
 
-@pytest.fixture(params=["pyvistaqt"])
+@pytest.fixture(params=[pytest.param("pyvistaqt", marks=pytest.mark.pvtest)])
 def renderer_interactive_pyvistaqt(request, options_3d, qt_windows_closed):
     """Yield the interactive PyVista backend."""
     with _use_backend(request.param, interactive=True) as renderer:
         yield renderer
 
 
-@pytest.fixture(params=["pyvistaqt"])
+@pytest.fixture(params=[pytest.param("pyvistaqt", marks=pytest.mark.pvtest)])
 def renderer_interactive(request, options_3d):
     """Yield the interactive 3D backends."""
     with _use_backend(request.param, interactive=True) as renderer:
