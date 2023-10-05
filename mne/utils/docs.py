@@ -3358,11 +3358,16 @@ _picks_types = "str | array-like | slice | None"
 _picks_header = f"picks : {_picks_types}"
 _picks_desc = "Channels to include."
 _picks_int = "Slices and lists of integers will be interpreted as channel " "indices."
-_picks_str = """In lists, channel *type* strings
-    (e.g., ``['meg', 'eeg']``) will pick channels of those
-    types, channel *name* strings (e.g., ``['MEG0111', 'MEG2623']``
-    will pick the given channels. Can also be the string values
-    "all" to pick all channels, or "data" to pick :term:`data channels`.
+_picks_str_types = """channel *type* strings (e.g., ``['meg', 'eeg']``) will
+    pick channels of those types,"""
+_picks_str_names = """channel *name* strings (e.g., ``['MEG0111', 'MEG2623']``
+    will pick the given channels."""
+_picks_str_values = """Can also be the string values "all" to pick
+    all channels, or "data" to pick :term:`data channels`."""
+_picks_str = f"""In lists, {_picks_str_types} {_picks_str_names}
+    {_picks_str_values}
+    None (default) will pick"""
+_picks_str_notypes = f"""In lists, {_picks_str_names}
     None (default) will pick"""
 _reminder = (
     "Note that channels in ``info['bads']`` *will be included* if "
@@ -3373,12 +3378,17 @@ reminder_nostr = _reminder.format("")
 noref = f"(excluding reference MEG channels). {reminder}"
 picks_base = f"""{_picks_header}
     {_picks_desc} {_picks_int} {_picks_str}"""
+picks_base_notypes = f"""picks : list of int | list of str | slice | None
+    {_picks_desc} {_picks_int} {_picks_str_notypes}"""
 docdict["picks_all"] = _reflow_param_docstring(f"{picks_base} all channels. {reminder}")
 docdict["picks_all_data"] = _reflow_param_docstring(
     f"{picks_base} all data channels. {reminder}"
 )
 docdict["picks_all_data_noref"] = _reflow_param_docstring(
     f"{picks_base} all data channels {noref}"
+)
+docdict["picks_all_notypes"] = _reflow_param_docstring(
+    f"{picks_base_notypes} all channels. {reminder}"
 )
 docdict["picks_base"] = _reflow_param_docstring(picks_base)
 docdict["picks_good_data"] = _reflow_param_docstring(

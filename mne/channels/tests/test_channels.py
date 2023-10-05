@@ -243,6 +243,25 @@ def test_get_builtin_ch_adjacencies():
         assert len(name_and_description) == 2
 
 
+@pytest.mark.parametrize("name", get_builtin_ch_adjacencies())
+@pytest.mark.parametrize("picks", ["pick-slice", "pick-arange", "pick-names"])
+def test_read_builtin_ch_adjacency_picks(name, picks):
+    """Test picking channel subsets when reading builtin adjacency matrices."""
+    ch_adjacency, ch_names = read_ch_adjacency(name)
+    assert_equal(ch_adjacency.shape[0], len(ch_names))
+    subset_names = ch_names[::2]
+    if picks == "pick-slice":
+        subset = slice(None, None, 2)
+    elif picks == "pick-arange":
+        subset = np.arange(0, len(ch_names), 2)
+    else:
+        assert picks == "pick-names"
+        subset = subset_names
+
+    ch_subset_adjacency, ch_subset_names = read_ch_adjacency(name, subset)
+    assert_array_equal(ch_subset_names, subset_names)
+
+
 def test_read_ch_adjacency(tmp_path):
     """Test reading channel adjacency templates."""
     a = partial(np.array, dtype="<U7")
@@ -262,6 +281,7 @@ def test_read_ch_adjacency(tmp_path):
     savemat(mat_fname, mat, oned_as="row")
 
     ch_adjacency, ch_names = read_ch_adjacency(mat_fname)
+
     x = ch_adjacency
     assert_equal(x.shape[0], len(ch_names))
     assert_equal(x.shape, (3, 3))
@@ -327,11 +347,6 @@ def test_read_ch_adjacency(tmp_path):
     mat_fname = tmp_path / "test_error_mat.mat"
     savemat(mat_fname, mat, oned_as="row")
     pytest.raises(ValueError, read_ch_adjacency, mat_fname)
-
-    # Try reading all built-in FieldTrip neighbors
-    for name in get_builtin_ch_adjacencies():
-        ch_adjacency, ch_names = read_ch_adjacency(name)
-        assert_equal(ch_adjacency.shape[0], len(ch_names))
 
 
 def _download_ft_neighbors(target_dir):
