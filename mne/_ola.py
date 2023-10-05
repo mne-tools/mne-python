@@ -281,7 +281,7 @@ class _COLA:
         window="hann",
         tol=1e-10,
         *,
-        verbose=None
+        verbose=None,
     ):
         n_samples = _ensure_int(n_samples, "n_samples")
         n_overlap = _ensure_int(n_overlap, "n_overlap")
