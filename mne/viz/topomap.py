@@ -3666,7 +3666,7 @@ def plot_arrowmap(
     dx, dy = _trigradient(x, y, data)
     dxx = dy.data
     dyy = -dx.data
-    axes.quiver(x, y, dxx, dyy, scale=scale, color="k", lw=1, clip_on=False)
+    axes.quiver(x, y, dxx, dyy, scale=scale, color="k", lw=1)
     plt_show(show)
 
     return fig
