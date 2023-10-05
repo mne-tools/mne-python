@@ -373,17 +373,18 @@ class _PyVistaRenderer(_AbstractRenderer):
         polygon_offset=None,
         **kwargs,
     ):
+        from matplotlib.colors import to_rgba_array
+
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
             rgba = False
-            if color is not None and len(color) == mesh.n_points:
-                if color.shape[1] == 3:
-                    scalars = np.c_[color, np.ones(mesh.n_points)]
-                else:
-                    scalars = color
-                scalars = (scalars * 255).astype("ubyte")
-                color = None
-                rgba = True
+            if color is not None:
+                # See if we need to convert or not
+                check_color = to_rgba_array(color)
+                if len(check_color) == mesh.n_points:
+                    scalars = (check_color * 255).astype("ubyte")
+                    color = None
+                    rgba = True
             if isinstance(colormap, np.ndarray):
                 if colormap.dtype == np.uint8:
                     colormap = colormap.astype(np.float64) / 255.0
@@ -395,24 +396,22 @@ class _PyVistaRenderer(_AbstractRenderer):
                 mesh.GetPointData().SetActiveNormals("Normals")
             else:
                 _compute_normals(mesh)
-            if "rgba" in kwargs:
-                rgba = kwargs["rgba"]
-                kwargs.pop("rgba")
             smooth_shading = self.smooth_shading
             if representation == "wireframe":
                 smooth_shading = False  # never use smooth shading for wf
+            rgba = kwargs.pop("rgba", rgba)
             actor = _add_mesh(
                 plotter=self.plotter,
                 mesh=mesh,
                 color=color,
                 scalars=scalars,
                 edge_color=color,
-                rgba=rgba,
                 opacity=opacity,
                 cmap=colormap,
                 backface_culling=backface_culling,
                 rng=[vmin, vmax],
                 show_scalar_bar=False,
+                rgba=rgba,
                 smooth_shading=smooth_shading,
                 interpolate_before_map=interpolate_before_map,
                 style=representation,
