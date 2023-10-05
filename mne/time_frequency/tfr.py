@@ -1039,6 +1039,7 @@ def tfr_array_morlet(
     Notes
     -----
     %(morlet_notes)s
+
     %(temporal-window_tfr_morlet_notes)s
 
     .. versionadded:: 0.14.0
