@@ -502,7 +502,8 @@ def _draw_proj_checkbox(event, params, draw_current_state=True):
 
     width = max([4.0, max([len(p["desc"]) for p in projs]) / 6.0 + 0.5])
     height = (len(projs) + 1) / 6.0 + 1.5
-    fig_proj = figure_nobar(figsize=(width, height))
+    # We manually place everything here so avoid constrained layouts
+    fig_proj = figure_nobar(figsize=(width, height), layout=None)
     _set_window_title(fig_proj, "SSP projection vectors")
     offset = 1.0 / 6.0 / height
     params["fig_proj"] = fig_proj  # necessary for proper toggling

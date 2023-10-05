@@ -3677,7 +3677,6 @@ def plot_arrowmap(
     dxx = dy.data
     dyy = -dx.data
     axes.quiver(x, y, dxx, dyy, scale=scale, color="k", lw=1, clip_on=False)
-    axes.figure.canvas.draw_idle()
     plt_show(show)
 
     return fig
