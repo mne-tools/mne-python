@@ -2833,7 +2833,8 @@ class Brain:
                     head_surf,
                     self._units,
                 )
-                for item, actors in sensors_actors.items():
+                # sensors_actors can still be None
+                for item, actors in (sensors_actors or {}).items():
                     for actor in actors:
                         self._add_actor(item, actor)
 

@@ -99,6 +99,9 @@ empty_room_raw = mne.io.read_raw_fif(empty_room_file).crop(0, 30)
 empty_room_raw.del_proj()
 
 # %%
+#
+# _ex-noise-level:
+#
 # Visualizing the empty-room noise
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #
@@ -106,7 +109,7 @@ empty_room_raw.del_proj()
 # individual spectrum for each sensor, or an average (with confidence band)
 # across sensors:
 
-spectrum = empty_room_raw.compute_psd()
+spectrum = empty_room_raw.compute_psd(verbose="error")  # ignore zero value warning
 for average in (False, True):
     spectrum.plot(average=average, dB=False, xscale="log", picks="data", exclude="bads")
 
