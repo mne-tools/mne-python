@@ -118,7 +118,7 @@ class MNEFigure(Figure):
             for key in [k for k in kwargs if not hasattr(self.mne, k)]:
                 setattr(self.mne, key, kwargs[key])
 
-    def _close(self, event):
+    def _close(self, event=None):
         """Handle close events."""
         logger.debug(f"Closing {self!r}")
         # remove references from parent fig to child fig
