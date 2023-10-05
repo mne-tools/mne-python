@@ -62,7 +62,7 @@ Bugs
 - Correctly prune channel-specific :class:`~mne.Annotations` when creating :class:`~mne.Epochs` without the channel(s) included in the channel specific annotations (:gh:`12010` by `Mathieu Scheltienne`_)
 - Fix :func:`~mne.viz.plot_volume_source_estimates` with :class:`~mne.VolSourceEstimate` which include a list of vertices (:gh:`12025` by `Mathieu Scheltienne`_)
 - Correctly handle passing ``"eyegaze"`` or ``"pupil"`` to :meth:`mne.io.Raw.pick` (:gh:`12019` by `Scott Huberty`_)
-- Fix bug with :func:`~mne.viz.plot_raw` where :func:`~mne.set_config("MNE_BROWSER_BACKEND", "backend")` would have no effect within a Python session (:gh:`12078` by `Santeri Ruuskanen`_)
+- Fix bug with :func:`~mne.viz.plot_raw` where changing ``MNE_BROWSER_BACKEND`` via :func:`~mne.set_config` would have no effect within a Python session (:gh:`12078` by `Santeri Ruuskanen`_)
 
 API changes
 ~~~~~~~~~~~
