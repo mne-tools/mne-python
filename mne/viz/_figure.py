@@ -535,7 +535,7 @@ class BrowserBase(ABC):
         title = f"Epochs image ({ch_name})"
         fig = self._new_child_figure(figsize=(6, 4), fig_name=None, window_title=title)
         fig.suptitle = title
-        gs = GridSpec(nrows=3, ncols=10)
+        gs = GridSpec(nrows=3, ncols=10, figure=fig)
         fig.add_subplot(gs[:2, :9])
         fig.add_subplot(gs[2, :9])
         fig.add_subplot(gs[:2, 9])

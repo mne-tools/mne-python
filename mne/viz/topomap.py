@@ -2208,7 +2208,7 @@ def plot_evoked_topomap(
         height = size + max(0, 0.1 * (4 - size))
         fig = figure_nobar(figsize=(width * 1.5, height * 1.5))
         g_kwargs = {"left": 0.2, "right": 0.8, "bottom": 0.05, "top": 0.9}
-        gs = GridSpec(nrows, ncols, height_ratios=height_ratios, **g_kwargs)
+        gs = GridSpec(nrows, ncols, height_ratios=height_ratios, figure=fig, **g_kwargs)
         axes = []
         for ax_idx in range(n_times):
             axes.append(plt.subplot(gs[0, ax_idx]))

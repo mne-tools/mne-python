@@ -104,6 +104,13 @@ def pytest_configure(config):
     if os.getenv("PYTEST_QT_API") is None and os.getenv("QT_API") is not None:
         os.environ["PYTEST_QT_API"] = os.environ["QT_API"]
 
+    # suppress:
+    # Debugger warning: It seems that frozen modules are being used, which may
+    # make the debugger miss breakpoints. Please pass -Xfrozen_modules=off
+    # to python to disable frozen modules.
+    if os.getenv("PYDEVD_DISABLE_FILE_VALIDATION") is None:
+        os.environ["PYDEVD_DISABLE_FILE_VALIDATION"] = "1"
+
     # https://numba.readthedocs.io/en/latest/reference/deprecation.html#deprecation-of-old-style-numba-captured-errors  # noqa: E501
     if "NUMBA_CAPTURED_ERRORS" not in os.environ:
         os.environ["NUMBA_CAPTURED_ERRORS"] = "new_style"

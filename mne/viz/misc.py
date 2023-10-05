@@ -482,9 +482,9 @@ def _plot_mri_contours(
         if slices_as_subplots:
             ax = axs[ai]
         else:
-            fig = _figure_agg(
-                figsize=figsize, dpi=dpi, facecolor="k", layout="constrained"
-            )
+            # No need for constrained layout here because we make our axes fill the
+            # entire figure
+            fig = _figure_agg(figsize=figsize, dpi=dpi, facecolor="k")
             ax = fig.add_axes([0, 0, 1, 1], frame_on=False, facecolor="k")
 
         # adjust the orientations for good view

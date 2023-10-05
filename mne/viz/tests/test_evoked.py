@@ -612,7 +612,7 @@ def test_plot_ctf():
     fig = plt.figure()
 
     # create custom axes for topomaps, colorbar and the timeseries
-    gs = gridspec.GridSpec(3, 7, hspace=0.5, top=0.8)
+    gs = gridspec.GridSpec(3, 7, hspace=0.5, top=0.8, figure=fig)
     topo_axes = [
         fig.add_subplot(gs[0, idx * 2 : (idx + 1) * 2]) for idx in range(len(times))
     ]
