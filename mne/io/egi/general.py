@@ -195,12 +195,12 @@ def _get_signalfname(filepath):
     This function takes a filepath as input and returns a dictionary
     containing information about signal files.
 
-    Parameters:
+    Parameters
     ----------
     filepath : str
             The path to the directory containing the signal files.
 
-    Returns:
+    Returns
     -------
     all_files : dict
         A dictionary containing information about signal files. It has
@@ -212,7 +212,7 @@ def _get_signalfname(filepath):
                     info : str
                         The name of the info file.
 
-    Raises:
+    Raises
     ------
     FileNotFoundError
         If no EEG data is found in the all_files dictionary.
@@ -248,12 +248,12 @@ def _get_signalfname(filepath):
 def _block_r(fid):
     """Read meta data.
 
-    Parameters:
+    Parameters
     -----------
     fid : file object
                 The file object to read from.
 
-    Returns:
+    Returns
     --------
     block : dict or None
         The extracted meta data. It has the following keys:

@@ -82,12 +82,12 @@ def _read_mff_events(filename, sfreq):
 def _parse_xml(xml_file):
     """Parse XML file.
 
-    Parameters:
+    Parameters
     ----------
     xml_file : str
             The path to the XML file.
 
-    Returns:
+    Returns
     ----------
     list
         A nested list structure representing the parsed XML.
@@ -100,12 +100,12 @@ def _parse_xml(xml_file):
 def _xml2list(root):
     """Parse XML item.
 
-    Parameters:
+    Parameters
     ----------
     root : Element
             The root element of the XML.
 
-    Returns:
+    Returns
     ----------
     list
         A nested list structure representing the parsed XML.
@@ -130,12 +130,12 @@ def _xml2list(root):
 def _ns(s):
     """Remove namespace, but only if there is a namespace to begin with.
 
-    Parameters:
+    Parameters
     ----------
     s : str
             The XML tag.
 
-    Returns:
+    Returns
     ----------
     str
         The XML tag without the namespace.
