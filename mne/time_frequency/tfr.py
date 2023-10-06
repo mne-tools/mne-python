@@ -114,7 +114,7 @@ def morlet(sfreq, freqs, n_cycles=7.0, sigma=None, zero_mean=False):
 
     Notes
     -----
-    %(morlet_notes)s
+    %(morlet_reference)s
     %(fwhm_morlet_notes)s
 
     References
@@ -948,7 +948,8 @@ def tfr_morlet(
 
     Notes
     -----
-    %(morlet_notes)s
+    %(morlet_reference)s
+    %(temporal_window_tfr_intro)s
     %(temporal_window_tfr_morlet_notes)s
 
     See :func:`mne.time_frequency.morlet` for more information about the
@@ -996,7 +997,7 @@ def tfr_array_morlet(
         Sampling frequency of the data.
     %(freqs_tfr)s
     %(n_cycles_tfr)s
-    zero_mean : bool | False
+    zero_mean : bool
         If True, make sure the wavelets have a mean of zero. default False.
     use_fft : bool
         Use the FFT for convolutions or not. default True.
@@ -1038,7 +1039,7 @@ def tfr_array_morlet(
 
     Notes
     -----
-    %(morlet_notes)s
+    %(morlet_reference)s
     %(temporal_window_tfr_intro)s
     %(temporal_window_tfr_morlet_notes)s
 

@@ -1829,7 +1829,7 @@ that is determined by the duration of the wavelet. In MNE-Python, the duration
 of the wavelet is determined by the ``sigma`` parameter, which gives the
 standard deviation of the wavelet's Gaussian envelope (our wavelets extend to
 ±5 standard deviations to ensure values very close to zero at the endpoints).
-Some authors (e.g., :footcite:`Cohen2019`) recommend specifying and reporting
+Some authors (e.g., :footcite:t:`Cohen2019`) recommend specifying and reporting
 wavelet duration in terms of the full-width half-maximum (FWHM) of the
 wavelet's Gaussian envelope. The FWHM is related to ``sigma`` by the following
 identity: :math:`\mathrm{FWHM} = \sigma \times 2 \sqrt{2 \ln{2}}` (or the
@@ -2668,10 +2668,9 @@ montage_units : str
 """
 
 docdict[
-    "morlet_notes"
+    "morlet_reference"
 ] = """
-The Morlet wavelets follow the formulation in
-:footcite:`Tallon-BaudryEtAl1997`.
+The Morlet wavelets follow the formulation in :footcite:t:`Tallon-BaudryEtAl1997`.
 """
 
 docdict[
