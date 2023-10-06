@@ -40,7 +40,6 @@ from .utils import (
     _make_combine_callable,
     _validate_if_list_of_axes,
     _triage_rank_sss,
-    _connection_line,
     _get_color_list,
     _setup_ax_spines,
     _setup_plot_projector,
@@ -739,6 +738,7 @@ def _plot_lines(
                 else:
                     y_offset = this_ylim[0]
                 this_gfp += y_offset
+                ax.autoscale(False)
                 ax.fill_between(
                     times,
                     y_offset,
@@ -1859,7 +1859,7 @@ def plot_evoked_joint(
     -----
     .. versionadded:: 0.12.0
     """
-    import matplotlib.pyplot as plt
+    from matplotlib.patches import ConnectionPatch
 
     if ts_args is not None and not isinstance(ts_args, dict):
         raise TypeError("ts_args must be dict or None, got type %s" % (type(ts_args),))
@@ -1956,9 +1956,8 @@ def plot_evoked_joint(
 
     # prepare axes for topomap
     if not got_axes:
-        fig, ts_ax, map_ax, cbar_ax = _prepare_joint_axes(
-            len(times_sec), figsize=(8.0, 4.2)
-        )
+        fig, ts_ax, map_ax = _prepare_joint_axes(len(times_sec), figsize=(8.0, 4.2))
+        cbar_ax = None
     else:
         ts_ax = ts_args["axes"]
         del ts_args["axes"]
@@ -1996,20 +1995,10 @@ def plot_evoked_joint(
     old_title = ts_ax.get_title()
     ts_ax.set_title("")
 
-    # XXX BUG destroys ax -> fig assignment if title & axes are passed
     if title is not None:
-        title_ax = fig.add_subplot(4, 3, 2)
         if title == "":
             title = old_title
-        title_ax.text(
-            0.5,
-            0.5,
-            title,
-            transform=title_ax.transAxes,
-            horizontalalignment="center",
-            verticalalignment="center",
-        )
-        title_ax.axis("off")
+        fig.suptitle(title)
 
     # topomap
     contours = topomap_args.get("contours", 6)
@@ -2035,8 +2024,8 @@ def plot_evoked_joint(
     if topomap_args.get("colorbar", True):
         from matplotlib import ticker
 
-        cbar_ax.grid(False)  # auto-removal deprecated as of 2021/10/05
-        cbar = plt.colorbar(map_ax[0].images[0], cax=cbar_ax)
+        cbar = fig.colorbar(map_ax[0].images[0], ax=map_ax, cax=cbar_ax)
+        cbar.ax.grid(False)  # auto-removal deprecated as of 2021/10/05
         if isinstance(contours, (list, np.ndarray)):
             cbar.set_ticks(contours)
         else:
@@ -2047,12 +2036,22 @@ def plot_evoked_joint(
 
     # connection lines
     # draw the connection lines between time series and topoplots
-    lines = [
-        _connection_line(timepoint, fig, ts_ax, map_ax_)
-        for timepoint, map_ax_ in zip(times_ts, map_ax)
-    ]
-    for line in lines:
-        fig.lines.append(line)
+    for timepoint, map_ax_ in zip(times_ts, map_ax):
+        con = ConnectionPatch(
+            xyA=[timepoint, ts_ax.get_ylim()[1]],
+            xyB=[0.5, 0],
+            coordsA="data",
+            coordsB="axes fraction",
+            axesA=ts_ax,
+            axesB=map_ax_,
+            color="grey",
+            linestyle="-",
+            linewidth=1.5,
+            alpha=0.66,
+            zorder=1,
+            clip_on=False,
+        )
+        fig.add_artist(con)
 
     # mark times in time series plot
     for timepoint in times_ts:

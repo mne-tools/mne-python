@@ -300,8 +300,8 @@ def _add_colorbar(
     ax,
     im,
     cmap,
+    *,
     side="right",
-    pad=0.05,
     title=None,
     format=None,
     size="5%",
@@ -309,14 +309,10 @@ def _add_colorbar(
     ch_type=None,
 ):
     """Add a colorbar to an axis."""
-    import matplotlib.pyplot as plt
-    from mpl_toolkits.axes_grid1 import make_axes_locatable
-
-    divider = make_axes_locatable(ax)
-    cax = divider.append_axes(side, size=size, pad=pad)
-    cbar = plt.colorbar(im, cax=cax, format=format)
+    cbar = ax.figure.colorbar(im, format=format)
     if cmap is not None and cmap[1]:
         ax.CB = DraggableColorbar(cbar, im, kind, ch_type)
+    cax = cbar.ax
     if title is not None:
         cax.set_title(title, y=1.05, fontsize=10)
     return cbar, cax
@@ -1470,7 +1466,6 @@ def _plot_ica_topomap(
             axes,
             im,
             cmap,
-            pad=0.05,
             title="AU",
             format="%3.2f",
             kind="ica_topomap",
@@ -1711,7 +1706,6 @@ def plot_ica_components(
                     cmap,
                     title="AU",
                     side="right",
-                    pad=0.05,
                     format=cbar_fmt,
                     kind="ica_comp_topomap",
                     ch_type=ch_type,
@@ -2200,18 +2194,17 @@ def plot_evoked_topomap(
     if interactive:
         height_ratios = [5, 1]
         nrows = 2
-        ncols = want_axes
-        width = size * ncols
+        ncols = n_times
+        width = size * want_axes
         height = size + max(0, 0.1 * (4 - size))
         fig = figure_nobar(figsize=(width * 1.5, height * 1.5))
-        g_kwargs = {"left": 0.2, "right": 0.8, "bottom": 0.05, "top": 0.9}
-        gs = GridSpec(nrows, ncols, height_ratios=height_ratios, figure=fig, **g_kwargs)
+        gs = GridSpec(nrows, ncols, height_ratios=height_ratios, figure=fig)
         axes = []
         for ax_idx in range(n_times):
             axes.append(plt.subplot(gs[0, ax_idx]))
     elif axes is None:
         fig, axes, ncols, nrows = _prepare_trellis(
-            n_times, ncols=ncols, nrows=nrows, colorbar=colorbar, size=size
+            n_times, ncols=ncols, nrows=nrows, size=size
         )
     else:
         nrows, ncols = None, None  # Deactivate ncols when axes were passed
@@ -2223,6 +2216,7 @@ def plot_evoked_topomap(
                 f"You must provide {want_axes} axes (one for "
                 f"each time{cbar_err}), got {len(axes)}."
             )
+    del want_axes
     # find first index that's >= (to rounding error) to each time point
     time_idx = [
         np.where(
@@ -2325,12 +2319,10 @@ def plot_evoked_topomap(
     images, contours_ = [], []
     # loop over times
     for average_idx, (time, this_average) in enumerate(zip(times, average)):
-        adjust_for_cbar = colorbar and ncols is not None and average_idx >= ncols - 1
-        ax_idx = average_idx + 1 if adjust_for_cbar else average_idx
         tp, cn, interp = _plot_topomap(
             data[:, average_idx],
             pos,
-            axes=axes[ax_idx],
+            axes=axes[average_idx],
             mask=mask_[:, average_idx] if mask is not None else None,
             vmin=_vlim[0],
             vmax=_vlim[1],
@@ -2351,13 +2343,13 @@ def plot_evoked_topomap(
                 to_time = time_format % (tmax_ * scaling_time)
                 axes_title = f"{from_time} – {to_time}"
                 del from_time, to_time, tmin_, tmax_
-            axes[ax_idx].set_title(axes_title)
+            axes[average_idx].set_title(axes_title)
 
     if interactive:
         # Add a slider to the figure and start publishing and subscribing to time_change
         # events.
         kwargs.update(vlim=_vlim)
-        axes.append(plt.subplot(gs[1, :-1]))
+        axes.append(fig.add_subplot(gs[1]))
         slider = Slider(
             axes[-1],
             "Time",
@@ -2401,19 +2393,15 @@ def plot_evoked_topomap(
         )
 
     if colorbar:
-        if interactive:
-            cax = plt.subplot(gs[0, -1])
-            _resize_cbar(cax, ncols, size)
-        elif nrows is None or ncols is None:
+        if nrows is None or ncols is None:
             # axes were given by the user, so don't resize the colorbar
             cax = axes[-1]
-        else:  # use the entire last column
-            cax = axes[ncols - 1]
-            _resize_cbar(cax, ncols, size)
+        else:  # use the default behavior
+            cax = None
 
+        cbar = fig.colorbar(images[-1], ax=axes, cax=cax, format=cbar_fmt, shrink=0.6)
         if unit is not None:
-            cax.set_title(unit)
-        cbar = fig.colorbar(images[-1], ax=cax, cax=cax, format=cbar_fmt)
+            cbar.ax.set_title(unit)
         if cn is not None:
             cbar.set_ticks(contours)
         cbar.ax.tick_params(labelsize=7)
@@ -2567,9 +2555,7 @@ def _plot_topomap_multi_cbar(
     )
 
     if colorbar:
-        cbar, cax = _add_colorbar(
-            ax, im, cmap, pad=0.25, title=None, size="10%", format=cbar_fmt
-        )
+        cbar, cax = _add_colorbar(ax, im, cmap, title=None, size="10%", format=cbar_fmt)
         cbar.set_ticks(_vlim)
         if unit is not None:
             cbar.ax.set_ylabel(unit, fontsize=8)

@@ -33,7 +33,6 @@ from mne.utils import (
     Bunch,
     _check_qt_version,
     _TempDir,
-    check_version,
 )
 
 # data from sample dataset
@@ -522,8 +521,9 @@ def pg_backend(request, garbage_collect):
         import mne_qt_browser
 
         mne_qt_browser._browser_instances.clear()
-        if check_version("mne_qt_browser", min_version="0.4"):
-            _assert_no_instances(MNEQtBrowser, f"Closure of {request.node.name}")
+        if not _test_passed(request):
+            return
+        _assert_no_instances(MNEQtBrowser, f"Closure of {request.node.name}")
 
 
 @pytest.fixture(
@@ -880,6 +880,14 @@ def protect_config():
         yield
 
 
+def _test_passed(request):
+    try:
+        outcome = request.node.harvest_rep_call
+    except Exception:
+        outcome = "passed"
+    return outcome == "passed"
+
+
 @pytest.fixture()
 def brain_gc(request):
     """Ensure that brain can be properly garbage collected."""
@@ -905,11 +913,7 @@ def brain_gc(request):
     yield
     close_func()
     # no need to warn if the test itself failed, pytest-harvest helps us here
-    try:
-        outcome = request.node.harvest_rep_call
-    except Exception:
-        outcome = "failed"
-    if outcome != "passed":
+    if not _test_passed(request):
         return
     _assert_no_instances(Brain, "after")
     # Check VTK

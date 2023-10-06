@@ -431,7 +431,6 @@ def _prepare_trellis(
     ncols,
     nrows="auto",
     title=False,
-    colorbar=False,
     size=1.3,
     sharex=False,
     sharey=False,
@@ -459,22 +458,13 @@ def _prepare_trellis(
                     "figure.".format(n_cells, nrows, ncols)
                 )
 
-    if colorbar:
-        ncols += 1
     width = size * ncols
     height = (size + max(0, 0.1 * (4 - size))) * nrows + bool(title) * 0.5
-    height_ratios = None
     fig = _figure(toolbar=False, figsize=(width * 1.5, 0.25 + height * 1.5))
-    gs = GridSpec(nrows, ncols, figure=fig, height_ratios=height_ratios)
+    gs = GridSpec(nrows, ncols, figure=fig)
 
     axes = []
-    if colorbar:
-        # exclude last axis of each row except top row, which is for colorbar
-        exclude = set(range(2 * ncols - 1, nrows * ncols, ncols))
-        ax_idxs = sorted(set(range(nrows * ncols)) - exclude)[: n_cells + 1]
-    else:
-        ax_idxs = range(n_cells)
-    for ax_idx in ax_idxs:
+    for ax_idx in range(n_cells):
         subplot_kw = dict()
         if ax_idx > 0:
             if sharex:
@@ -1468,38 +1458,14 @@ def _setup_cmap(cmap, n_axes=1, norm=False):
 
 
 def _prepare_joint_axes(n_maps, figsize=None):
-    """Prepare axes for topomaps and colorbar in joint plot figure.
-
-    Parameters
-    ----------
-    n_maps: int
-        Number of topomaps to include in the figure
-    figsize: tuple
-        Figure size, see plt.figsize
-
-    Returns
-    -------
-    fig : matplotlib.figure.Figure
-        Figure with initialized axes
-    main_ax: matplotlib.axes._subplots.AxesSubplot
-        Axes in which to put the main plot
-    map_ax: list
-        List of axes for each topomap
-    cbar_ax: matplotlib.axes._subplots.AxesSubplot
-        Axes for colorbar next to topomaps
-    """
     import matplotlib.pyplot as plt
+    from matplotlib.gridspec import GridSpec
 
     fig = plt.figure(figsize=figsize, layout="constrained")
-    main_ax = fig.add_subplot(212)
-    ts = n_maps + 2
-    map_ax = [plt.subplot(4, ts, x + 2 + ts) for x in range(n_maps)]
-    # Position topomap subplots on the second row, starting on the
-    # second column
-    cbar_ax = plt.subplot(4, 5 * (ts + 1), 10 * (ts + 1))
-    # Position colorbar at the very end of a more finely divided
-    # second row of subplots
-    return fig, main_ax, map_ax, cbar_ax
+    gs = GridSpec(2, n_maps, height_ratios=[1, 2], figure=fig)
+    map_ax = [fig.add_subplot(gs[0, x]) for x in range(n_maps)]  # first row
+    main_ax = fig.add_subplot(gs[1, :])  # second row
+    return fig, main_ax, map_ax
 
 
 class DraggableColorbar:
@@ -1844,37 +1810,6 @@ def _merge_annotations(start, stop, description, annotations, current=()):
     duration = end - onset
     annotations.delete(idx)
     annotations.append(onset, duration, description)
-
-
-def _connection_line(x, fig, sourceax, targetax, y=1.0, y_source_transform="transAxes"):
-    """Connect source and target plots with a line.
-
-    Connect source and target plots with a line, such as time series
-    (source) and topolots (target). Primarily used for plot_joint
-    functions.
-    """
-    from matplotlib.lines import Line2D
-
-    trans_fig = fig.transFigure
-    trans_fig_inv = fig.transFigure.inverted()
-
-    xt, yt = trans_fig_inv.transform(targetax.transAxes.transform([0.5, 0.0]))
-    xs, _ = trans_fig_inv.transform(sourceax.transData.transform([x, 0.0]))
-    _, ys = trans_fig_inv.transform(
-        getattr(sourceax, y_source_transform).transform([0.0, y])
-    )
-
-    return Line2D(
-        (xt, xs),
-        (yt, ys),
-        transform=trans_fig,
-        color="grey",
-        linestyle="-",
-        linewidth=1.5,
-        alpha=0.66,
-        zorder=1,
-        clip_on=False,
-    )
 
 
 class DraggableLine:
