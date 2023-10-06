@@ -330,9 +330,9 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
                         try:
                             hdl.writeAnnotation(onset, duration, desc + f"@@{ch_name}")
                         except Exception:
-                            warn(
-                                f"Setting measurement date to {meas_date} "
-                                f"returned an error"
-                            )
-
+                            raise RuntimeError(
+                                    f"writeAnnotation() returned an error "
+                                    f"trying to write {desc} at {onset} "
+                                    f"for {duration} seconds."
+                                )
     del hdl
