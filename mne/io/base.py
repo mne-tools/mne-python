@@ -2640,6 +2640,24 @@ class _RawFidWriter:
         self.cfg = cfg
 
     def write(self, fid, part_idx, prev_fname, next_fname):
+        """Write raw data to a file.
+
+        Parameters
+        ----------
+        fid : file object
+            The file object to which the raw data will be written.
+        part_idx : int
+            The index of the current part being written.
+        prev_fname : str
+            The filename of the previous part.
+        next_fname : str
+            The filename of the next part.
+
+        Returns
+        -------
+        bool
+            True if there are more parts to write, False otherwise.
+        """
         self._check_start_stop_within_bounds()
         start_block(fid, FIFF.FIFFB_MEAS)
         _write_raw_metadata(
