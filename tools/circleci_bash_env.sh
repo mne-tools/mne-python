@@ -4,7 +4,9 @@ set -e
 set -o pipefail
 
 ./tools/setup_xvfb.sh
-sudo apt install -qq graphviz optipng python3.10-venv python3-venv libxft2 ffmpeg snap firefox
+sudo apt install -qq graphviz optipng python3.10-venv python3-venv libxft2 ffmpeg
+wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+sudo apt install ./google-chrome-stable_current_amd64.deb
 python3.10 -m venv ~/python_env
 echo "set -e" >> $BASH_ENV
 echo "set -o pipefail" >> $BASH_ENV
