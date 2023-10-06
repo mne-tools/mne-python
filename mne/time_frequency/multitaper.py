@@ -535,9 +535,7 @@ def tfr_array_multitaper(
     Notes
     -----
     %(temporal_window_tfr_intro)s
-
     %(temporal_window_tfr_multitaper_notes)s
-
     %(time_bandwidth_tfr_notes)s
 
     .. versionadded:: 0.14.0

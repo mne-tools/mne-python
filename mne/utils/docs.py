@@ -1852,7 +1852,7 @@ to get an array of values for ``n_cycles`` that yield the desired FWHM at each
 frequency in ``freqs``.  If you want different FWHM values at each frequency,
 do the same computation with ``desired_fwhm`` as an array of the same shape as
 ``freqs``.
-"""  # noqa E501
+"""
 
 # %%
 # G
@@ -2344,7 +2344,7 @@ docdict[
 ] = """
 label_tc : array | list (or generator) of array, shape (n_labels[, n_orient], n_times)
     Extracted time course for each label and source estimate.
-"""  # noqa: E501
+"""
 
 docdict[
     "labels_eltc"
@@ -2669,8 +2669,10 @@ montage_units : str
 
 docdict[
     "morlet_notes"
-] = """The Morlet wavelets follow the formulation in
-:footcite:`Tallon-BaudryEtAl1997`."""
+] = """
+The Morlet wavelets follow the formulation in
+:footcite:`Tallon-BaudryEtAl1997`.
+"""
 
 docdict[
     "moving"
@@ -4150,7 +4152,7 @@ sphere : float | array-like | instance of ConductorModel | None  | 'auto' | 'eeg
 
     .. versionadded:: 0.20
     .. versionchanged:: 1.1 Added ``'eeglab'`` option.
-"""  # noqa E501
+"""
 
 docdict[
     "split_naming"
@@ -4411,7 +4413,8 @@ tail : int
 
 docdict[
     "temporal_window_tfr_intro"
-] = """In spectrotemporal analysis (as with traditional fourier methods),
+] = """
+In spectrotemporal analysis (as with traditional fourier methods),
 the temporal and spectral resolution are interrelated: longer temporal windows
 allow more precise frequency estimates; shorter temporal windows "smear"
 frequency estimates while providing more precise timing information.
@@ -4427,11 +4430,13 @@ the time and frequency smoothing remains fixed. (b) For temporal windows that
 decrease with frequency, the temporal smoothing decreases and the frequency
 smoothing increases with frequency.*
 Source: `FieldTrip tutorial: Time-frequency analysis using Hanning window,
-multitapers and wavelets <https://www.fieldtriptoolbox.org/tutorial/timefrequencyanalysis>`_."""
+multitapers and wavelets <https://www.fieldtriptoolbox.org/tutorial/timefrequencyanalysis>`_.
+"""  # noqa: E501
 
 docdict[
     "temporal_window_tfr_morlet_notes"
-] = r"""In MNE-Python, the length of the Morlet wavelet is affected by the arguments
+] = r"""
+In MNE-Python, the length of the Morlet wavelet is affected by the arguments
 ``freqs`` and ``n_cycles``, which define the frequencies of interest
 and the number of cycles, respectively. For the time-frequency representation,
 the length of the wavelet is defined such that both tails of
@@ -4445,11 +4450,13 @@ which is equal to :math:`\frac{5}{\pi} \cdot \frac{\mathtt{n\_cycles} \cdot
 deviation of the wavelet's Gaussian envelope. Note that the length of the
 wavelet must not exceed the length of your signal.
 
-For more information on the Morlet wavelet, see :func:`mne.time_frequency.morlet`."""
+For more information on the Morlet wavelet, see :func:`mne.time_frequency.morlet`.
+"""
 
 docdict[
     "temporal_window_tfr_multitaper_notes"
-] = r"""In MNE-Python, the multitaper temporal window length is defined by the arguments
+] = r"""
+In MNE-Python, the multitaper temporal window length is defined by the arguments
 ``freqs`` and ``n_cycles``, respectively defining the frequencies of interest
 and the number of cycles: :math:`T = \frac{\mathtt{n\_cycles}}{\mathtt{freqs}}`
 
@@ -4459,7 +4466,8 @@ decreases with frequency. For example, ``freqs=np.arange(1, 6, 2)`` and
 
 To use a temporal window with fixed length, the number of cycles has to be
 defined based on the frequency. For example, ``freqs=np.arange(1, 6, 2)`` and
-``n_cycles=freqs / 2`` yields ``T=array([0.5, 0.5, 0.5])``."""
+``n_cycles=freqs / 2`` yields ``T=array([0.5, 0.5, 0.5])``.
+"""
 
 _theme = """\
 theme : str | path-like
@@ -4556,7 +4564,8 @@ time_bandwidth : float ``≥ 2.0``
 
 docdict[
     "time_bandwidth_tfr_notes"
-] = r"""In MNE-Python's multitaper functions, the frequency bandwidth is
+] = r"""
+In MNE-Python's multitaper functions, the frequency bandwidth is
 additionally affected by the parameter ``time_bandwidth``.
 The ``n_cycles`` parameter determines the temporal window length based on the
 frequencies of interest: :math:`T = \frac{\mathtt{n\_cycles}}{\mathtt{freqs}}`.

@@ -949,7 +949,6 @@ def tfr_morlet(
     Notes
     -----
     %(morlet_notes)s
-
     %(temporal_window_tfr_morlet_notes)s
 
     See :func:`mne.time_frequency.morlet` for more information about the
@@ -1040,9 +1039,7 @@ def tfr_array_morlet(
     Notes
     -----
     %(morlet_notes)s
-
     %(temporal_window_tfr_intro)s
-
     %(temporal_window_tfr_morlet_notes)s
 
     .. versionadded:: 0.14.0
@@ -1125,9 +1122,7 @@ def tfr_multitaper(
     Notes
     -----
     %(temporal_window_tfr_intro)s
-
     %(temporal_window_tfr_multitaper_notes)s
-
     %(time_bandwidth_tfr_notes)s
 
     .. versionadded:: 0.9.0
