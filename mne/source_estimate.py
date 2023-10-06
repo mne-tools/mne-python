@@ -3240,6 +3240,7 @@ _label_funcs = {
     "mean_flip": lambda flip, data: np.mean(flip * data, axis=0),
     "max": lambda flip, data: np.max(np.abs(data), axis=0),
     "pca_flip": _pca_flip,
+    None: lambda flip, data: data,  # Return Identity: Preserves all vertices.
 }
 
 
@@ -3494,7 +3495,7 @@ def _volume_labels(src, labels, mri_resolution):
 
 
 def _get_default_label_modes():
-    return sorted(_label_funcs.keys()) + ["auto"]
+    return sorted(_label_funcs.keys(), key=lambda x: (x is None, x)) + ["auto"]
 
 
 def _get_allowed_label_modes(stc):
@@ -3572,7 +3573,12 @@ def _gen_extract_label_time_course(
         )
 
         # do the extraction
-        label_tc = np.zeros((n_labels,) + stc.data.shape[1:], dtype=stc.data.dtype)
+        if mode is None:
+            # prepopulate an empty list for easy array-like index-based assignment
+            label_tc = [None] * max(len(label_vertidx), len(src_flip))
+        else:
+            # For other modes, initialize the label_tc array
+            label_tc = np.zeros((n_labels,) + stc.data.shape[1:], dtype=stc.data.dtype)
         for i, (vertidx, flip) in enumerate(zip(label_vertidx, src_flip)):
             if vertidx is not None:
                 if isinstance(vertidx, sparse.csr_matrix):
@@ -3585,15 +3591,13 @@ def _gen_extract_label_time_course(
                     this_data = stc.data[vertidx]
                 label_tc[i] = func(flip, this_data)
 
-        # extract label time series for the vol src space (only mean supported)
-        offset = nvert[:-n_mean].sum()  # effectively :2 or :0
-        for i, nv in enumerate(nvert[2:]):
-            if nv != 0:
-                v2 = offset + nv
-                label_tc[n_mode + i] = np.mean(stc.data[offset:v2], axis=0)
-                offset = v2
-
-        # this is a generator!
+        if mode is not None:
+            offset = nvert[:-n_mean].sum()  # effectively :2 or :0
+            for i, nv in enumerate(nvert[2:]):
+                if nv != 0:
+                    v2 = offset + nv
+                    label_tc[n_mode + i] = np.mean(stc.data[offset:v2], axis=0)
+                    offset = v2
         yield label_tc
 
 

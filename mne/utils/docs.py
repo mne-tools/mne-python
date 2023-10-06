@@ -1203,6 +1203,9 @@ Valid values for ``mode`` are:
 - ``'auto'`` (default)
     Uses ``'mean_flip'`` when a standard source estimate is applied, and
     ``'mean'`` when a vector source estimate is supplied.
+- ``None``
+    No aggregation is performed, and an array of shape ``(n_vertices, n_times)`` is
+    returned.
 
     .. versionadded:: 0.21
        Support for ``'auto'``, vector, and volume source estimates.
