@@ -3,6 +3,7 @@ from pathlib import Path
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
+from selenium.common.exceptions import WebDriverException
 
 
 def generate_contrib_avatars(app, config):
@@ -10,9 +11,14 @@ def generate_contrib_avatars(app, config):
     root = Path(app.srcdir)
     infile = root / "sphinxext" / "_avatar_template.html"
     outfile = root / "_templates" / "avatars.html"
-    options = webdriver.ChromeOptions()
-    options.add_argument("--headless=new")
-    driver = webdriver.Chrome(options=options)
+    try:
+        options = webdriver.FirefoxOptions()
+        options.add_argument("--headless")
+        driver = webdriver.Firefox(options=options)
+    except WebDriverException:
+        options = webdriver.ChromeOptions()
+        options.add_argument("--headless=new")
+        driver = webdriver.Chrome(options=options)
     driver.get(f"file://{infile}")
     wait = WebDriverWait(driver, 20)
     wait.until(lambda d: d.find_element(by=By.ID, value="contributor-avatars"))
