@@ -1556,7 +1556,10 @@ def find_ch_adjacency(info, ch_type):
 
     if conn_name is not None:
         logger.info(f"Reading adjacency matrix for {conn_name}.")
-        return read_ch_adjacency(conn_name)
+        adjacency, ch_names = read_ch_adjacency(conn_name)
+        if conn_name.startswith("neuromag") and info["ch_names"][0].startswith("MEG "):
+            ch_names = [ch_name.replace("MEG", "MEG ") for ch_name in ch_names]
+        return adjacency, ch_names
     logger.info(
         "Could not find a adjacency matrix for the data. "
         "Computing adjacency based on Delaunay triangulations."
