@@ -678,7 +678,7 @@ def test_extract_label_time_course(kind, vector):
 
     label_tcs = dict(mean=np.arange(n_labels)[:, None] * np.ones((n_labels, n_times)))
     label_tcs["max"] = label_tcs["mean"]
-    label_tcs["raw"] = label_tcs["mean"]
+    label_tcs[None] = label_tcs["mean"]
 
     # compute the mean with sign flip
     label_tcs["mean_flip"] = np.zeros_like(label_tcs["mean"])
@@ -746,7 +746,7 @@ def test_extract_label_time_course(kind, vector):
             assert_array_equal(arr[1:], vol_means_t)
 
     # test the different modes
-    modes = ["mean", "mean_flip", "pca_flip", "max", "auto", "raw"]
+    modes = ["mean", "mean_flip", "pca_flip", "max", "auto", None]
 
     for mode in modes:
         if vector and mode not in ("mean", "max", "auto"):
@@ -761,7 +761,7 @@ def test_extract_label_time_course(kind, vector):
         assert len(label_tc) == n_stcs
         assert len(label_tc_method) == n_stcs
         for j, (tc1, tc2) in enumerate(zip(label_tc, label_tc_method)):
-            if mode == "raw":
+            if mode is None:
                 assert all(arr.shape[1] == tc1[0].shape[1] for arr in tc1)
                 assert all(arr.shape[1] == tc2[0].shape[1] for arr in tc2)
                 assert (len(tc1), tc1[0].shape[1]) == (n_labels,) + end_shape
@@ -779,7 +779,7 @@ def test_extract_label_time_course(kind, vector):
             if mode == "pca_flip":
                 for arr1, arr2 in zip(tc1, label_tcs[use_mode]):
                     assert_array_almost_equal(arr1, arr2)
-            elif use_mode == "raw":
+            elif use_mode is None:
                 for arr1, arr2 in zip(
                     tc1[:n_labels], label_tcs[use_mode]
                 ):  # list of arrays
@@ -788,7 +788,7 @@ def test_extract_label_time_course(kind, vector):
                     )
             elif use_mode in ("mean", "max", "mean_flip"):
                 assert_array_almost_equal(tc1[:n_labels], label_tcs[use_mode])
-            if mode != "raw":
+            if mode is not None:
                 assert_array_almost_equal(tc1[n_labels:], vol_means_t)
 
     # test label with very few vertices (check SVD conditionals)
