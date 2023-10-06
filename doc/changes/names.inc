@@ -212,6 +212,8 @@
 
 .. _Ilias Machairas: https://github.com/JungleHippo
 
+.. _Ivan Zubarev: https://github.com/zubara
+
 .. _Ivana Kojcic: https://github.com/ikojcic
 
 .. _Jaakko Leppakangas: https://github.com/jaeilepp
