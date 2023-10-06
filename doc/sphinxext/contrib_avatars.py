@@ -17,7 +17,7 @@ def generate_contrib_avatars(app, config):
         driver = webdriver.Chrome(options=options)
     except WebDriverException:
         options = webdriver.FirefoxOptions()
-        options.add_argument("--headless")
+        options.add_argument("--headless=new")
         driver = webdriver.Firefox(options=options)
     driver.get(f"file://{infile}")
     wait = WebDriverWait(driver, 20)
