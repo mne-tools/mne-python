@@ -331,8 +331,8 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
                             hdl.writeAnnotation(onset, duration, desc + f"@@{ch_name}")
                         except Exception:
                             raise RuntimeError(
-                                    f"writeAnnotation() returned an error "
-                                    f"trying to write {desc} at {onset} "
-                                    f"for {duration} seconds."
-                                )
+                                f"writeAnnotation() returned an error "
+                                f"trying to write {desc} at {onset} "
+                                f"for {duration} seconds."
+                            )
     del hdl
