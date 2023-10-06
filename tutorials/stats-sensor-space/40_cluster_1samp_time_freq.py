@@ -236,7 +236,7 @@ T_obs, clusters, cluster_p_values, H0 = permutation_cluster_1samp_test(
 evoked_data = evoked.data
 times = 1e3 * evoked.times
 
-fig = plt.figure(layout="constrained")
+fig, (ax, ax2) = plt.subplots(2, layout="constrained")
 
 T_obs_plot = np.nan * np.ones_like(T_obs)
 for c, p_val in zip(clusters, cluster_p_values):
@@ -252,7 +252,6 @@ ch_idx, f_idx, t_idx = np.unravel_index(
 
 vmax = np.max(np.abs(T_obs))
 vmin = -vmax
-ax = fig.subplot(2, 1, 1)
 ax.imshow(
     T_obs[ch_idx],
     cmap=plt.cm.gray,
@@ -275,5 +274,4 @@ fig.colorbar(ax.images[0])
 ax.set(xlabel="Time (ms)", ylabel="Frequency (Hz)")
 ax.set(title=f"Induced power ({tfr_epochs.ch_names[ch_idx]})")
 
-ax2 = fig.subplot(2, 1, 2)
 evoked.plot(axes=[ax2], time_unit="s")
