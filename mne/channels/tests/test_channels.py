@@ -465,7 +465,7 @@ def test_1020_selection():
 @testing.requires_testing_data
 def test_find_ch_adjacency():
     """Test computing the adjacency matrix."""
-    raw = read_raw_fif(raw_fname, preload=True)
+    raw = read_raw_fif(raw_fname)
     sizes = {"mag": 828, "grad": 1700, "eeg": 384}
     nchans = {"mag": 102, "grad": 204, "eeg": 60}
     for ch_type in ["mag", "grad", "eeg"]:
@@ -473,6 +473,13 @@ def test_find_ch_adjacency():
         # Silly test for checking the number of neighbors.
         assert_equal(conn.getnnz(), sizes[ch_type])
         assert_equal(len(ch_names), nchans[ch_type])
+        kwargs = dict(exclude=())
+        if ch_type in ("mag", "grad"):
+            kwargs["meg"] = ch_type
+        else:
+            kwargs[ch_type] = True
+        want_names = [raw.ch_names[pick] for pick in pick_types(raw.info, **kwargs)]
+        assert ch_names == want_names
     pytest.raises(ValueError, find_ch_adjacency, raw.info, None)
 
     # Test computing the conn matrix with gradiometers.
@@ -506,7 +513,7 @@ def test_find_ch_adjacency():
 def test_neuromag122_adjacency():
     """Test computing the adjacency matrix of Neuromag122-Data."""
     nm122_fname = testing_path / "misc" / "neuromag122_test_file-raw.fif"
-    raw = read_raw_fif(nm122_fname, preload=True)
+    raw = read_raw_fif(nm122_fname)
     conn, ch_names = find_ch_adjacency(raw.info, "grad")
     assert conn.getnnz() == 1564
     assert len(ch_names) == 122
@@ -515,7 +522,7 @@ def test_neuromag122_adjacency():
 
 def test_drop_channels():
     """Test if dropping channels works with various arguments."""
-    raw = read_raw_fif(raw_fname, preload=True).crop(0, 0.1)
+    raw = read_raw_fif(raw_fname).crop(0, 0.1)
     raw.drop_channels(["MEG 0111"])  # list argument
     raw.drop_channels("MEG 0112")  # str argument
     raw.drop_channels({"MEG 0132", "MEG 0133"})  # set argument
@@ -535,7 +542,7 @@ def test_drop_channels():
 
 def test_pick_channels():
     """Test if picking channels works with various arguments."""
-    raw = read_raw_fif(raw_fname, preload=True).crop(0, 0.1)
+    raw = read_raw_fif(raw_fname).crop(0, 0.1)
 
     # selected correctly 3 channels
     raw.pick(["MEG 0113", "MEG 0112", "MEG 0111"])
