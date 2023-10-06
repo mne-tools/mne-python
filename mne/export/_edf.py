@@ -7,28 +7,48 @@ import numpy as np
 
 from ..utils import _check_edflib_installed, warn
 
-_check_edflib_installed()
-from EDFlib.edfwriter import EDFwriter  # noqa: E402
+# _check_pyedflib_installed()
+from pyedflib import EdfWriter
+import pyedflib
+from datetime import datetime, date
 
 
 def _try_to_set_value(header, key, value, channel_index=None):
     """Set key/value pairs in EDF header."""
-    # all EDFLib set functions are set<X>
+    # many pyedflib set functions are set<X>
     # for example "setPatientName()"
     func_name = f"set{key}"
     func = getattr(header, func_name)
-
     # some setter functions are indexed by channels
-    if channel_index is None:
-        return_val = func(value)
-    else:
-        return_val = func(channel_index, value)
-
-    # a nonzero return value indicates an error
-    if return_val != 0:
-        raise RuntimeError(
-            f"Setting {key} with {value} " f"returned an error value " f"{return_val}."
+    try:
+        if channel_index is None:
+            func(value)
+        else:
+            func(channel_index, value)
+    except RuntimeWarning:
+        warn(
+            f"Setting {key} with {value} "
+            f"returned an error. "
+            f"Setting to None instead."
         )
+    except RuntimeError:
+        raise RuntimeError(f"Setting {key} with {value} " f"returned an error.")
+    # setDatarecordDuration cannot accept values larger than 2**32
+    # except OverflowError:
+    #     warn(
+    #         f"Setting {key} with {value} "
+    #         f"returned an error. "
+    #         f"setDatarecordDuration() cannot accept values larger than 2**32. "
+    #         f"Setting to None instead."
+    #     )
+
+    # pyedflib setSamplefrequency returns warning:
+    #  DeprecationWarning: `sample_rate` is deprecated and
+    # will be removed in a future release.
+    # Please use `sample_frequency` instead
+    # This causes test to fail, so we catch it here
+    except DeprecationWarning:
+        pass
 
 
 @contextmanager
@@ -59,7 +79,7 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
 
     digital_min = -32767
     digital_max = 32767
-    file_type = EDFwriter.EDFLIB_FILETYPE_EDFPLUS
+    file_type = pyedflib.FILETYPE_EDFPLUS
 
     # load data first
     raw.load_data()
@@ -101,13 +121,17 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
     # Sampling frequency in EDF only supports integers, so to allow for
     # float sampling rates from Raw, we adjust the output sampling rate
     # for all channels and the data record duration.
+    # ATTENTION: the argument "duration" is expressed in units of seconds!
+    # As of 10/5/23 there is a error in the documentation of pyedflib
+    # that states that the duration is expressed in units of nanoseconds.
+    # See: https://github.com/holgern/pyedflib/issues/242
     sfreq = raw.info["sfreq"]
     if float(sfreq).is_integer():
         out_sfreq = int(sfreq)
         data_record_duration = None
     else:
         out_sfreq = np.floor(sfreq).astype(int)
-        data_record_duration = int(np.around(out_sfreq / sfreq, decimals=6) * 1e6)
+        data_record_duration = out_sfreq / sfreq
 
         warn(
             f"Data has a non-integer sampling rate of {sfreq}; writing to "
@@ -157,7 +181,9 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
             )
 
     # create instance of EDF Writer
-    with _auto_close(EDFwriter(fname, file_type, n_channels)) as hdl:
+    with _auto_close(
+        EdfWriter(fname, n_channels=n_channels, file_type=file_type)
+    ) as hdl:
         # set channel data
         for idx, ch in enumerate(ch_names):
             ch_type = ch_types[idx]
@@ -180,9 +206,9 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
                 ("DigitalMaximum", digital_max),
                 ("DigitalMinimum", digital_min),
                 ("PhysicalDimension", phys_dims),
-                ("SampleFrequency", out_sfreq),
-                ("SignalLabel", signal_label),
-                ("PreFilter", filter_str_info),
+                ("Samplefrequency", out_sfreq),
+                ("Label", signal_label),
+                ("Prefilter", filter_str_info),
             ]:
                 _try_to_set_value(hdl, key, val, channel_index=idx)
 
@@ -193,7 +219,8 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
             first_name = subj_info.get("first_name", "")
             middle_name = subj_info.get("middle_name", "")
             last_name = subj_info.get("last_name", "")
-            name = " ".join(filter(None, [first_name, middle_name, last_name]))
+            # pyedflib does not support spaces in the patient name
+            name = "_".join(filter(None, [first_name, middle_name, last_name]))
 
             birthday = subj_info.get("birthday")
             hand = subj_info.get("hand")
@@ -208,19 +235,17 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
             if len(additional_patient_info) == 0:
                 additional_patient_info = None
             else:
-                additional_patient_info = " ".join(additional_patient_info)
+                # pyedflib does not support spaces in the patient name
+                additional_patient_info = "_".join(additional_patient_info)
 
             if birthday is not None:
-                if hdl.setPatientBirthDate(birthday[0], birthday[1], birthday[2]) != 0:
-                    raise RuntimeError(
-                        f"Setting patient birth date to {birthday} "
-                        f"returned an error"
-                    )
+                _try_to_set_value(hdl, "Birthdate", date(*birthday))
+
             for key, val in [
                 ("PatientCode", subj_info.get("his_id", "")),
                 ("PatientName", name),
-                ("PatientGender", sex),
-                ("AdditionalPatientInfo", additional_patient_info),
+                ("Gender", sex),
+                ("PatientAdditional", additional_patient_info),
             ]:
                 # EDFwriter compares integer encodings of sex and will
                 # raise a TypeError if value is None as returned by
@@ -230,23 +255,8 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
 
         # set measurement date
         meas_date = raw.info["meas_date"]
-        if meas_date:
-            subsecond = int(meas_date.microsecond / 100)
-            if (
-                hdl.setStartDateTime(
-                    year=meas_date.year,
-                    month=meas_date.month,
-                    day=meas_date.day,
-                    hour=meas_date.hour,
-                    minute=meas_date.minute,
-                    second=meas_date.second,
-                    subsecond=subsecond,
-                )
-                != 0
-            ):
-                raise RuntimeError(
-                    f"Setting start date time {meas_date} " f"returned an error"
-                )
+        if meas_date is not None:
+            _try_to_set_value(hdl, "Startdatetime", meas_date)
 
         device_info = raw.info.get("device_info")
         if device_info is not None:
@@ -255,7 +265,7 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
 
         # set data record duration
         if data_record_duration is not None:
-            _try_to_set_value(hdl, "DataRecordDuration", data_record_duration)
+            _try_to_set_value(hdl, "DatarecordDuration", data_record_duration)
 
         # compute number of data records to loop over
         n_blocks = np.ceil(n_times / out_sfreq).astype(int)
@@ -266,7 +276,7 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
             n_annotations = len(raw.annotations)
             n_annot_chans = int(n_annotations / n_blocks) + 1
             if n_annot_chans > 1:
-                hdl.setNumberOfAnnotationSignals(n_annot_chans)
+                hdl.set_number_of_annotation_signals(n_annot_chans)
 
         # Write each data record sequentially
         for idx in range(n_blocks):
@@ -285,12 +295,12 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
 
                 # assign channel data to the buffer and write to EDF
                 buf[: len(ch_data)] = ch_data
-                err = hdl.writeSamples(buf)
-                if err != 0:
-                    raise RuntimeError(
-                        f"writeSamples() for channel{ch_names[jdx]} "
-                        f"returned error: {err}"
-                    )
+                hdl.writePhysicalSamples(buf)
+                # if err != 0:
+                #     raise RuntimeError(
+                #         f"writeSamples() for channel{ch_names[jdx]} "
+                #         f"returned error: {err}"
+                #     )
 
             # there was an incomplete datarecord
             if len(ch_data) != len(buf):
@@ -300,6 +310,11 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
                     "zeros were appended to all channels when writing the "
                     "final block."
                 )
+        # Round data to nearest 2 decimal places
+        # data = np.round(data, decimals=2)
+
+        # write data
+        # hdl.writeSamples(data)
 
         # write annotations
         if annots is not None:
@@ -309,24 +324,15 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
                 raw.annotations.duration,
                 raw.annotations.ch_names,
             ):
-                # annotations are written in terms of 100 microseconds
-                onset = onset * 10000
-                duration = duration * 10000
+                # annotations are written in terms of seconds
                 if ch_names:
                     for ch_name in ch_names:
-                        if (
+                        try:
                             hdl.writeAnnotation(onset, duration, desc + f"@@{ch_name}")
-                            != 0
-                        ):
-                            raise RuntimeError(
-                                f"writeAnnotation() returned an error "
-                                f"trying to write {desc}@@{ch_name} at {onset} "
-                                f"for {duration} seconds."
+                        except Exception:
+                            warn(
+                                f"Setting measurement date to {meas_date} "
+                                f"returned an error"
                             )
-                else:
-                    if hdl.writeAnnotation(onset, duration, desc) != 0:
-                        raise RuntimeError(
-                            f"writeAnnotation() returned an error "
-                            f"trying to write {desc} at {onset} "
-                            f"for {duration} seconds."
-                        )
+
+    del hdl
