@@ -7,18 +7,13 @@ import numpy as np
 
 from ..utils import _check_edflib_installed, warn
 
-#_check_pyedflib_installed()
+# _check_pyedflib_installed()
 from pyedflib import EdfWriter
 import pyedflib
 from datetime import datetime, date
 
 
-def _try_to_set_value(
-        header,
-        key,
-        value,
-        channel_index=None
-):
+def _try_to_set_value(header, key, value, channel_index=None):
     """Set key/value pairs in EDF header."""
     # many pyedflib set functions are set<X>
     # for example "setPatientName()"
@@ -37,10 +32,7 @@ def _try_to_set_value(
             f"Setting to None instead."
         )
     except RuntimeError:
-        raise RuntimeError(
-            f"Setting {key} with {value} "
-            f"returned an error."
-        )
+        raise RuntimeError(f"Setting {key} with {value} " f"returned an error.")
     # setDatarecordDuration cannot accept values larger than 2**32
     # except OverflowError:
     #     warn(
@@ -57,8 +49,6 @@ def _try_to_set_value(
     # This causes test to fail, so we catch it here
     except DeprecationWarning:
         pass
-
-
 
 
 @contextmanager
@@ -141,7 +131,7 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
         data_record_duration = None
     else:
         out_sfreq = np.floor(sfreq).astype(int)
-        data_record_duration = (out_sfreq / sfreq)
+        data_record_duration = out_sfreq / sfreq
 
         warn(
             f"Data has a non-integer sampling rate of {sfreq}; writing to "
@@ -191,7 +181,9 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
             )
 
     # create instance of EDF Writer
-    with _auto_close(EdfWriter(fname, n_channels=n_channels, file_type=file_type)) as hdl:
+    with _auto_close(
+        EdfWriter(fname, n_channels=n_channels, file_type=file_type)
+    ) as hdl:
         # set channel data
         for idx, ch in enumerate(ch_names):
             ch_type = ch_types[idx]
@@ -218,10 +210,7 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
                 ("Label", signal_label),
                 ("Prefilter", filter_str_info),
             ]:
-                _try_to_set_value(
-                    hdl, key, val,
-                    channel_index=idx
-                )
+                _try_to_set_value(hdl, key, val, channel_index=idx)
 
         # set patient info
         subj_info = raw.info.get("subject_info")
@@ -339,11 +328,7 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
                 if ch_names:
                     for ch_name in ch_names:
                         try:
-                            hdl.writeAnnotation(
-                                onset,
-                                duration,
-                                desc + f"@@{ch_name}"
-                            )
+                            hdl.writeAnnotation(onset, duration, desc + f"@@{ch_name}")
                         except Exception:
                             warn(
                                 f"Setting measurement date to {meas_date} "
