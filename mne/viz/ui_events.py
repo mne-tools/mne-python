@@ -11,9 +11,11 @@ Authors: Marijn van Vliet <w.m.vanvliet@gmail.com>
 """
 import contextlib
 from dataclasses import dataclass
-from typing import Optional, List
+from typing import Optional, List, Union
 import weakref
 import re
+
+from matplotlib.colors import Colormap
 
 from ..utils import warn, fill_doc, _validate_type, logger, verbose
 
@@ -114,26 +116,38 @@ class ColormapRange(UIEvent):
     kind : str
         Kind of colormap being updated. The Notes section of the drawing
         routine publishing this event should mention the possible kinds.
+    ch_type : str
+       Type of sensor the data originates from.
     %(fmin_fmid_fmax)s
     %(alpha)s
+    cmap : str
+        The colormap to use. Either string or matplotlib.colors.Colormap
+        instance.
 
     Attributes
     ----------
     kind : str
         Kind of colormap being updated. The Notes section of the drawing
         routine publishing this event should mention the possible kinds.
+    ch_type : str
+        Type of sensor the data originates from.
     unit : str
         The unit of the values.
     %(ui_event_name_source)s
     %(fmin_fmid_fmax)s
     %(alpha)s
+    cmap : str
+        The colormap to use. Either string or matplotlib.colors.Colormap
+        instance.
     """
 
     kind: str
+    ch_type: Optional[str] = None
     fmin: Optional[float] = None
     fmid: Optional[float] = None
     fmax: Optional[float] = None
     alpha: Optional[bool] = None
+    cmap: Optional[Union[Colormap, str]] = None
 
 
 @dataclass

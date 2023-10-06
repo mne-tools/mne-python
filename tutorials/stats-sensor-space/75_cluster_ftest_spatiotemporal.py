@@ -5,12 +5,10 @@
 Spatiotemporal permutation F-test on full sensor data
 =====================================================
 
-Tests for differential evoked responses in at least
-one condition using a permutation clustering test.
-The FieldTrip neighbor templates will be used to determine
-the adjacency between sensors. This serves as a spatial prior
-to the clustering. Spatiotemporal clusters will then
-be visualized using custom matplotlib code.
+Tests for differential evoked responses in at least one condition using a permutation
+clustering test. The FieldTrip neighbor templates will be used to determine the
+adjacency between sensors. This serves as a spatial prior to the clustering.
+Spatiotemporal clusters will then be visualized using custom matplotlib code.
 
 Here, the unit of observation is epochs from a specific study subject.
 However, the same logic applies when the unit observation is

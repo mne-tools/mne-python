@@ -661,7 +661,9 @@ def _plot_epochs_image(
         this_colorbar = cbar(im, cax=ax["colorbar"])
         this_colorbar.ax.set_ylabel(unit, rotation=270, labelpad=12)
         if cmap[1]:
-            ax_im.CB = DraggableColorbar(this_colorbar, im)
+            ax_im.CB = DraggableColorbar(
+                this_colorbar, im, kind="epochs_image", ch_type=unit
+            )
         with warnings.catch_warnings(record=True):
             warnings.simplefilter("ignore")
             tight_layout(fig=fig)

@@ -298,7 +298,16 @@ def _plot_update_evoked_topomap(params, bools):
 
 
 def _add_colorbar(
-    ax, im, cmap, side="right", pad=0.05, title=None, format=None, size="5%"
+    ax,
+    im,
+    cmap,
+    side="right",
+    pad=0.05,
+    title=None,
+    format=None,
+    size="5%",
+    kind=None,
+    ch_type=None,
 ):
     """Add a colorbar to an axis."""
     import matplotlib.pyplot as plt
@@ -308,7 +317,7 @@ def _add_colorbar(
     cax = divider.append_axes(side, size=size, pad=pad)
     cbar = plt.colorbar(im, cax=cax, format=format)
     if cmap is not None and cmap[1]:
-        ax.CB = DraggableColorbar(cbar, im)
+        ax.CB = DraggableColorbar(cbar, im, kind, ch_type)
     if title is not None:
         cax.set_title(title, y=1.05, fontsize=10)
     return cbar, cax
@@ -587,7 +596,15 @@ def _plot_projs_topomap(
         )
 
         if colorbar:
-            _add_colorbar(ax, im, cmap, title=units, format=cbar_fmt)
+            _add_colorbar(
+                ax,
+                im,
+                cmap,
+                title=units,
+                format=cbar_fmt,
+                kind="projs_topomap",
+                ch_type=_ch_type,
+            )
 
     return ax.get_figure()
 
@@ -973,7 +990,7 @@ def plot_topomap(
         .. versionadded:: 0.20
     %(res_topomap)s
     %(size_topomap)s
-    %(cmap_topomap_simple)s
+    %(cmap_topomap)s
     %(vlim_plot_topomap)s
 
         .. versionadded:: 1.2
@@ -1454,7 +1471,16 @@ def _plot_ica_topomap(
         ch_type=ch_type,
     )[0]
     if colorbar:
-        cbar, cax = _add_colorbar(axes, im, cmap, pad=0.05, title="AU", format="%3.2f")
+        cbar, cax = _add_colorbar(
+            axes,
+            im,
+            cmap,
+            pad=0.05,
+            title="AU",
+            format="%3.2f",
+            kind="ica_topomap",
+            ch_type=ch_type,
+        )
         cbar.ax.tick_params(labelsize=12)
         cbar.set_ticks(vlim)
     _hide_frame(axes)
@@ -1685,7 +1711,15 @@ def plot_ica_components(
             im.axes.set_label(ica._ica_names[ii])
             if colorbar:
                 cbar, cax = _add_colorbar(
-                    ax, im, cmap, title="AU", side="right", pad=0.05, format=cbar_fmt
+                    ax,
+                    im,
+                    cmap,
+                    title="AU",
+                    side="right",
+                    pad=0.05,
+                    format=cbar_fmt,
+                    kind="ica_comp_topomap",
+                    ch_type=ch_type,
                 )
                 cbar.ax.tick_params(labelsize=12)
                 cbar.set_ticks(_vlim)
@@ -1956,7 +1990,15 @@ def plot_tfr_topomap(
         from matplotlib import ticker
 
         units = _handle_default("units", units)["misc"]
-        cbar, cax = _add_colorbar(axes, im, cmap, title=units, format=cbar_fmt)
+        cbar, cax = _add_colorbar(
+            axes,
+            im,
+            cmap,
+            title=units,
+            format=cbar_fmt,
+            kind="tfr_topomap",
+            ch_type=ch_type,
+        )
         if locator is None:
             locator = ticker.MaxNLocator(nbins=5)
         cbar.locator = locator
@@ -2363,6 +2405,11 @@ def plot_evoked_topomap(
                 kwargs=kwargs,
             ),
         )
+        subscribe(
+            fig,
+            "colormap_range",
+            partial(_on_colormap_range, kwargs=kwargs),
+        )
 
     if colorbar:
         if interactive:
@@ -2383,7 +2430,9 @@ def plot_evoked_topomap(
         cbar.ax.tick_params(labelsize=7)
         if cmap[1]:
             for im in images:
-                im.axes.CB = DraggableColorbar(cbar, im)
+                im.axes.CB = DraggableColorbar(
+                    cbar, im, kind="evoked_topomap", ch_type=ch_type
+                )
 
     if proj == "interactive":
         _check_delayed_ssp(evoked)
@@ -2458,6 +2507,11 @@ def _on_time_change(
     if event.time != slider.val:
         slider.set_val(event.time)
     ax.figure.canvas.draw_idle()
+
+
+def _on_colormap_range(event, kwargs):
+    """Handle updating colormap range."""
+    kwargs.update(vlim=(event.fmin, event.fmax), cmap=event.cmap)
 
 
 def _plot_topomap_multi_cbar(
