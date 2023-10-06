@@ -2390,7 +2390,10 @@ def _figure(toolbar=True, FigureClass=MNEFigure, **kwargs):
     # TODO: for some reason for topomaps->_prepare_trellis the layout=constrained does
     # not work the first time (maybe toolbar=False?)
     if kwargs.get("layout") == "constrained":
-        fig.set_layout_engine("constrained")
+        if hasattr(fig, "set_layout_engine"):  # 3.6+
+            fig.set_layout_engine("constrained")
+        else:
+            fig.set_constrained_layout(True)
 
     # add event callbacks
     fig._add_default_callbacks()
