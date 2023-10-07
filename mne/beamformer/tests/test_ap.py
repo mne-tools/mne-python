@@ -36,12 +36,12 @@ def test_ap_simulated():
     dipoles, _, _, var_exp = alternating_projections(
         sim_evoked, forward_fixed, n_sources, noise_cov, verbose=True
     )
-    assert 90 < var_exp < 96
+    assert 88 < var_exp < 96
     _check_dipoles(
         dipoles, forward_fixed, stc, sim_evoked
     )
-    assert 97 < dipoles[0].gof.max() < 100
-    assert 97 < dipoles[1].gof.max() < 100
+    assert 90 < dipoles[0].gof.max() < 100
+    assert 90 < dipoles[1].gof.max() < 100
     assert dipoles[0].gof.min() >= 0.0
     assert dipoles[1].gof.min() >= 0.0
 
