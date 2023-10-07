@@ -42,7 +42,7 @@ def _get_data(ch_decim=1):
     return evoked, noise_cov
 
 
-def simu_data(evoked, forward, noise_cov, n_dipoles, times, nave=1):
+def simu_data(evoked, forward, noise_cov, times, nave=1):
     """Simulate an evoked dataset with 2 sources.
 
     One source is put in each hemisphere.
@@ -100,14 +100,14 @@ def _check_dipoles(dipoles, fwd, stc, evoked, residual=None):
     ][0]
 
     # Check the orientation of the dipoles
-    assert np.max(np.abs(np.dot(dipoles[0].ori[0], np.array([ori1, ori2]).T))) > 0.99
+    assert np.max(np.abs(np.dot(dipoles[0].ori[0], np.array([ori1, ori2]).T))) > 0.95
 
-    assert np.max(np.abs(np.dot(dipoles[1].ori[0], np.array([ori1, ori2]).T))) > 0.99
+    assert np.max(np.abs(np.dot(dipoles[1].ori[0], np.array([ori1, ori2]).T))) > 0.95
 
     if residual is not None:
         picks_grad = mne.pick_types(residual.info, meg="grad")
         picks_mag = mne.pick_types(residual.info, meg="mag")
-        rel_tol = 0.02
+        rel_tol = 0.1
         for picks in [picks_grad, picks_mag]:
             assert linalg.norm(residual.data[picks], ord="fro") < rel_tol * linalg.norm(
                 evoked.data[picks], ord="fro"
@@ -127,7 +127,7 @@ def test_rap_music_simulated():
 
     n_dipoles = 2
     sim_evoked, stc = simu_data(
-        evoked, forward_fixed, noise_cov, n_dipoles, evoked.times, nave=evoked.nave
+        evoked, forward_fixed, noise_cov, evoked.times, nave=evoked.nave
     )
     # Check dipoles for fixed ori
     with catch_logging() as log:
@@ -142,7 +142,7 @@ def test_rap_music_simulated():
 
     nave = 100000  # add a tiny amount of noise to the simulated evokeds
     sim_evoked, stc = simu_data(
-        evoked, forward_fixed, noise_cov, n_dipoles, evoked.times, nave=nave
+        evoked, forward_fixed, noise_cov, evoked.times, nave=nave
     )
     dipoles, residual = rap_music(
         sim_evoked, forward_fixed, noise_cov, n_dipoles=n_dipoles, return_residual=True

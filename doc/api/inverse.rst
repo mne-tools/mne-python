@@ -75,6 +75,7 @@ Inverse Solutions
    apply_dics_tfr_epochs
    rap_music
    trap_music
+   alternating_projections
    make_lcmv_resolution_matrix
 
 .. currentmodule:: mne

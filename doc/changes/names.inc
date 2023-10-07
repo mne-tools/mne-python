@@ -108,8 +108,6 @@
 
 .. _Daniel Strohmeier: https://github.com/joewalter
 
-.. _Daniel Tse: https://github.com/Xiezhibin
-
 .. _Darin Erat Sleiter: https://github.com/dsleiter
 
 .. _David Haslacher: https://github.com/davidhaslacher
@@ -577,6 +575,8 @@
 .. _Yousra Bekhti: https://www.linkedin.com/pub/yousra-bekhti/56/886/421
 
 .. _Yu-Han Luo: https://github.com/yh-luo
+
+.. _Yuval Nadler Realpe: https://github.com/eskimOpigeon/
 
 .. _Zhi Zhang: https://github.com/tczhangzhi/
 

@@ -211,7 +211,6 @@ def rap_music(
     noise_cov,
     n_dipoles=5,
     return_residual=False,
-    *,
     verbose=None,
 ):
     """RAP-MUSIC source localization method.
