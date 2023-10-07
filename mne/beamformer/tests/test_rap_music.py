@@ -127,7 +127,7 @@ def test_rap_music_simulated():
 
     n_dipoles = 2
     sim_evoked, stc = simu_data(
-        evoked, forward_fixed, noise_cov, n_dipoles, evoked.times, nave=evoked.nave
+        evoked, forward_fixed, noise_cov, evoked.times, nave=evoked.nave
     )
     # Check dipoles for fixed ori
     with catch_logging() as log:
@@ -142,7 +142,7 @@ def test_rap_music_simulated():
 
     nave = 100000  # add a tiny amount of noise to the simulated evokeds
     sim_evoked, stc = simu_data(
-        evoked, forward_fixed, noise_cov, n_dipoles, evoked.times, nave=nave
+        evoked, forward_fixed, noise_cov, evoked.times, nave=nave
     )
     dipoles, residual = rap_music(
         sim_evoked, forward_fixed, noise_cov, n_dipoles=n_dipoles, return_residual=True

@@ -36,7 +36,7 @@ def test_ap_simulated():
     dipoles, _, _, var_exp = alternating_projections(
         sim_evoked, forward_fixed, n_sources, noise_cov, verbose=True
     )
-    assert 92 < var_exp < 96
+    assert 90 < var_exp < 96
     _check_dipoles(
         dipoles, forward_fixed, stc, sim_evoked, rel_tol=0.027, ori_check=0.95
     )

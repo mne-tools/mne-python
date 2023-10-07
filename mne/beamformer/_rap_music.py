@@ -211,7 +211,6 @@ def rap_music(
     noise_cov,
     n_dipoles=5,
     return_residual=False,
-    *,
     verbose=None,
 ):
     """RAP-MUSIC source localization method.
@@ -234,8 +233,6 @@ def rap_music(
         The number of dipoles to look for. The default value is 5.
     return_residual : bool
         If True, the residual is returned as an Evoked instance.
-    force_no_rep : bool, optional
-        Forces no repetition of estimated dipoles.
     %(verbose)s
 
     Returns
