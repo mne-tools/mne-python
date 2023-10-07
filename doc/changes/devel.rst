@@ -70,6 +70,7 @@ Bugs
 - Add support for non-ASCII characters in Annotations, Evoked comments, etc when saving to FIFF format (:gh:`12080` by `Daniel McCloy`_)
 - Correctly handle passing ``"eyegaze"`` or ``"pupil"`` to :meth:`mne.io.Raw.pick` (:gh:`12019` by `Scott Huberty`_)
 - Fix bug with :func:`~mne.viz.plot_raw` where changing ``MNE_BROWSER_BACKEND`` via :func:`~mne.set_config` would have no effect within a Python session (:gh:`12078` by `Santeri Ruuskanen`_)
+- Added :func:`mne.beamformer.alternating_projections` and a supporting module :mod:`mne.beamformer._ap.py`, a sparse solver/beamformer-type solver for MEG data (:gh:`11349` by :newcontrib:`Yuval Nadler Realpe`)
 
 API changes
 ~~~~~~~~~~~

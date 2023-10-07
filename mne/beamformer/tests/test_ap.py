@@ -38,7 +38,7 @@ def test_ap_simulated():
     )
     assert 90 < var_exp < 96
     _check_dipoles(
-        dipoles, forward_fixed, stc, sim_evoked, rel_tol=0.027, ori_check=0.95
+        dipoles, forward_fixed, stc, sim_evoked
     )
     assert 97 < dipoles[0].gof.max() < 100
     assert 97 < dipoles[1].gof.max() < 100
@@ -54,7 +54,7 @@ def test_ap_simulated():
     )
 
     _check_dipoles(
-        dipoles, forward_fixed, stc, sim_evoked, residual, rel_tol=0.08, ori_check=0.7
+        dipoles, forward_fixed, stc, sim_evoked, residual
     )
 
     # Check dipoles for free ori
@@ -62,7 +62,7 @@ def test_ap_simulated():
         sim_evoked, forward, n_sources, noise_cov
     )
     _check_dipoles(
-        dipoles, forward_fixed, stc, sim_evoked, residual, rel_tol=0.08, ori_check=0.7
+        dipoles, forward_fixed, stc, sim_evoked, residual
     )
 
     # Check dipoles for free surface ori
@@ -70,7 +70,7 @@ def test_ap_simulated():
         sim_evoked, forward_surf_ori, n_sources, noise_cov
     )
     _check_dipoles(
-        dipoles, forward_fixed, stc, sim_evoked, residual, rel_tol=0.08, ori_check=0.7
+        dipoles, forward_fixed, stc, sim_evoked, residual
     )
 
 
