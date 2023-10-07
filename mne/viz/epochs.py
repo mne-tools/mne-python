@@ -13,7 +13,6 @@
 
 from collections import Counter
 from copy import deepcopy
-import warnings
 
 import numpy as np
 from scipy.ndimage import gaussian_filter1d
@@ -31,7 +30,6 @@ from .._fiff.pick import (
     _VALID_CHANNEL_TYPES,
 )
 from .utils import (
-    tight_layout,
     _setup_vmin_vmax,
     plt_show,
     _check_cov,
@@ -453,7 +451,7 @@ def _validate_fig_and_axes(fig, axes, group_by, evoked, colorbar, clear=False):
         rowspan = 2 if evoked else 3
         shape = (3, 10)
         for this_group in group_by:
-            this_fig = figure()
+            this_fig = figure(layout="constrained")
             _set_window_title(this_fig, this_group)
             subplot2grid(shape, (0, 0), colspan=colspan, rowspan=rowspan, fig=this_fig)
             if evoked:
@@ -602,8 +600,6 @@ def _plot_epochs_image(
     tmax = epochs.times[-1]
 
     ax_im = ax["image"]
-    fig = ax_im.get_figure()
-
     # draw the image
     cmap = _setup_cmap(cmap, norm=norm)
     n_epochs = len(image)
@@ -664,13 +660,10 @@ def _plot_epochs_image(
             ax_im.CB = DraggableColorbar(
                 this_colorbar, im, kind="epochs_image", ch_type=unit
             )
-        with warnings.catch_warnings(record=True):
-            warnings.simplefilter("ignore")
-            tight_layout(fig=fig)
 
     # finish
     plt_show(show)
-    return fig
+    return ax_im.get_figure()
 
 
 def plot_drop_log(
@@ -733,7 +726,7 @@ def plot_drop_log(
     ch_names = np.array(list(scores.keys()))
     counts = np.array(list(scores.values()))
     # init figure, handle easy case (no drops)
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(layout="constrained")
     title = f"{absolute} of {n_epochs_before_drop} epochs removed " f"({percent:.1f}%)"
     if subject is not None:
         title = f"{subject}: {title}"
@@ -755,7 +748,6 @@ def plot_drop_log(
     )
     ax.set_ylabel("% of epochs removed")
     ax.grid(axis="y")
-    tight_layout(pad=1, fig=fig)
     plt_show(show)
     return fig
 

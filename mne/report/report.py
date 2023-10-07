@@ -78,7 +78,7 @@ from ..viz import (
 )
 from ..viz._brain.view import views_dicts
 from ..viz.misc import _plot_mri_contours, _get_bem_plotting_surfaces
-from ..viz.utils import _ndarray_to_fig, tight_layout
+from ..viz.utils import _ndarray_to_fig
 from ..viz._scraper import _mne_qt_browser_screenshot
 from ..forward import read_forward_solution, Forward
 from ..epochs import read_epochs, BaseEpochs
@@ -431,11 +431,6 @@ def _fig_to_img(fig, *, image_format="png", own_figure=True):
         # matplotlib modifies the passed dict, which is a bug
         mpl_kwargs["pil_kwargs"] = pil_kwargs.copy()
     with warnings.catch_warnings():
-        warnings.filterwarnings(
-            action="ignore",
-            message=".*Axes that are not compatible with tight_layout.*",
-            category=UserWarning,
-        )
         fig.savefig(output, format=image_format, dpi=dpi, **mpl_kwargs)
 
     if own_figure:
@@ -1648,7 +1643,6 @@ class Report:
 
         fig = ica.plot_overlay(inst=inst_, show=False, on_baseline="reapply")
         del inst_
-        tight_layout(fig=fig)
         _constrain_fig_resolution(fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES)
         self._add_figure(
             fig=fig,
@@ -1769,9 +1763,6 @@ class Report:
         figs = ica.plot_components(picks=picks, title="", colorbar=True, show=False)
         if not isinstance(figs, list):
             figs = [figs]
-
-        for fig in figs:
-            tight_layout(fig=fig)
 
         title = "ICA component topographies"
         if len(figs) == 1:
@@ -3241,7 +3232,6 @@ class Report:
             init_kwargs.setdefault("fmax", fmax)
             plot_kwargs.setdefault("show", False)
             fig = raw.compute_psd(**init_kwargs).plot(**plot_kwargs)
-            tight_layout(fig=fig)
             _constrain_fig_resolution(fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES)
             self._add_figure(
                 fig=fig,
@@ -3323,7 +3313,6 @@ class Report:
         # hard to see how (6, 4) could work in all number-of-projs by
         # number-of-channel-types conditions...
         fig.set_size_inches((6, 4))
-        tight_layout(fig=fig)
         _constrain_fig_resolution(fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES)
         self._add_figure(
             fig=fig,
@@ -3488,6 +3477,7 @@ class Report:
             len(ch_types) * 2,
             gridspec_kw={"width_ratios": [8, 0.5] * len(ch_types)},
             figsize=(2.5 * len(ch_types), 2),
+            layout="constrained",
         )
         _constrain_fig_resolution(fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES)
         ch_type_ax_map = dict(
@@ -3507,8 +3497,6 @@ class Report:
                 **topomap_kwargs,
             )
             ch_type_ax_map[ch_type][0].set_title(ch_type)
-
-        tight_layout(fig=fig)
 
         with BytesIO() as buff:
             fig.savefig(buff, format="png", pad_inches=0)
@@ -3616,7 +3604,7 @@ class Report:
 
         import matplotlib.pyplot as plt
 
-        fig, ax = plt.subplots(len(ch_types), 1, sharex=True)
+        fig, ax = plt.subplots(len(ch_types), 1, sharex=True, layout="constrained")
         if len(ch_types) == 1:
             ax = [ax]
         for idx, ch_type in enumerate(ch_types):
@@ -3636,7 +3624,6 @@ class Report:
             if idx < len(ch_types) - 1:
                 ax[idx].set_xlabel(None)
 
-        tight_layout(fig=fig)
         _constrain_fig_resolution(fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES)
         title = "Global field power"
         self._add_figure(
@@ -3655,7 +3642,6 @@ class Report:
     ):
         """Render whitened evoked."""
         fig = evoked.plot_white(noise_cov=noise_cov, show=False)
-        tight_layout(fig=fig)
         _constrain_fig_resolution(fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES)
         title = "Whitened"
 
@@ -4003,7 +3989,6 @@ class Report:
                 fig = epochs.plot_drop_log(
                     subject=self.subject, ignore=drop_log_ignore, show=False
                 )
-                tight_layout(fig=fig)
                 _constrain_fig_resolution(
                     fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES
                 )
@@ -4179,18 +4164,17 @@ class Report:
 
                 if backend_is_3d:
                     brain.set_time(t)
-                    fig, ax = plt.subplots(figsize=(4.5, 4.5))
+                    fig, ax = plt.subplots(figsize=(4.5, 4.5), layout="constrained")
                     ax.imshow(brain.screenshot(time_viewer=True, mode="rgb"))
                     ax.axis("off")
-                    tight_layout(fig=fig)
                     _constrain_fig_resolution(
                         fig, max_width=stc_plot_kwargs["size"][0], max_res=MAX_IMG_RES
                     )
                     figs.append(fig)
                     plt.close(fig)
                 else:
-                    fig_lh = plt.figure()
-                    fig_rh = plt.figure()
+                    fig_lh = plt.figure(layout="constrained")
+                    fig_rh = plt.figure(layout="constrained")
 
                     brain_lh = stc.plot(
                         views="lat",
@@ -4210,8 +4194,6 @@ class Report:
                         backend="matplotlib",
                         figure=fig_rh,
                     )
-                    tight_layout(fig=fig_lh)  # TODO is this necessary?
-                    tight_layout(fig=fig_rh)  # TODO is this necessary?
                     _constrain_fig_resolution(
                         fig_lh,
                         max_width=stc_plot_kwargs["size"][0],

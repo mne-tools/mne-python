@@ -172,7 +172,7 @@ fvals, pvals = f_mway_rm(data, factor_levels, effects=effects)
 
 effect_labels = ["modality", "location", "modality by location"]
 
-fig, axes = plt.subplots(3, 1, figsize=(6, 6))
+fig, axes = plt.subplots(3, 1, figsize=(6, 6), layout="constrained")
 
 # let's visualize our effects by computing f-images
 for effect, sig, effect_label, ax in zip(fvals, pvals, effect_labels, axes):
@@ -197,8 +197,6 @@ for effect, sig, effect_label, ax in zip(fvals, pvals, effect_labels, axes):
     ax.set_xlabel("Time (ms)")
     ax.set_ylabel("Frequency (Hz)")
     ax.set_title(f'Time-locked response for "{effect_label}" ({ch_name})')
-
-fig.tight_layout()
 
 # %%
 # Account for multiple comparisons using FDR versus permutation clustering test
@@ -250,7 +248,7 @@ good_clusters = np.where(cluster_p_values < 0.05)[0]
 F_obs_plot = F_obs.copy()
 F_obs_plot[~clusters[np.squeeze(good_clusters)]] = np.nan
 
-fig, ax = plt.subplots(figsize=(6, 4))
+fig, ax = plt.subplots(figsize=(6, 4), layout="constrained")
 for f_image, cmap in zip([F_obs, F_obs_plot], ["gray", "autumn"]):
     c = ax.imshow(
         f_image,
@@ -267,7 +265,6 @@ ax.set_title(
     f'Time-locked response for "modality by location" ({ch_name})\n'
     "cluster-level corrected (p <= 0.05)"
 )
-fig.tight_layout()
 
 # %%
 # Now using FDR:
@@ -276,7 +273,7 @@ mask, _ = fdr_correction(pvals[2])
 F_obs_plot2 = F_obs.copy()
 F_obs_plot2[~mask.reshape(F_obs_plot.shape)] = np.nan
 
-fig, ax = plt.subplots(figsize=(6, 4))
+fig, ax = plt.subplots(figsize=(6, 4), layout="constrained")
 for f_image, cmap in zip([F_obs, F_obs_plot2], ["gray", "autumn"]):
     c = ax.imshow(
         f_image,
@@ -293,7 +290,6 @@ ax.set_title(
     f'Time-locked response for "modality by location" ({ch_name})\n'
     "FDR corrected (p <= 0.05)"
 )
-fig.tight_layout()
 
 # %%
 # Both cluster-level and FDR correction help get rid of potential

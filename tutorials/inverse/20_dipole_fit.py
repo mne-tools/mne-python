@@ -100,6 +100,7 @@ fig, axes = plt.subplots(
     ncols=4,
     figsize=[10.0, 3.4],
     gridspec_kw=dict(width_ratios=[1, 1, 1, 0.1], top=0.85),
+    layout="constrained",
 )
 vmin, vmax = -400, 400  # make sure each plot has same colour range
 
@@ -119,7 +120,6 @@ fig.suptitle(
     "at {:.0f} ms".format(best_time * 1000.0),
     fontsize=16,
 )
-fig.tight_layout()
 
 # %%
 # Estimate the time course of a single dipole with fixed position and

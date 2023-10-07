@@ -76,7 +76,7 @@ for si in range(X.shape[0]):
 # %%
 # The data averaged over all subjects looks like this:
 
-fig, ax = plt.subplots()
+fig, ax = plt.subplots(layout="constrained")
 ax.imshow(X.mean(0), cmap="inferno")
 ax.set(xticks=[], yticks=[], title="Data averaged over subjects")
 
@@ -121,7 +121,7 @@ mccs = [False]  # these are not multiple-comparisons corrected
 
 def plot_t_p(t, p, title, mcc, axes=None):
     if axes is None:
-        fig = plt.figure(figsize=(6, 3))
+        fig = plt.figure(figsize=(6, 3), layout="constrained")
         axes = [fig.add_subplot(121, projection="3d"), fig.add_subplot(122)]
         show = True
     else:
@@ -150,7 +150,7 @@ def plot_t_p(t, p, title, mcc, axes=None):
         xticks=[], yticks=[], zticks=[], xlim=[0, width - 1], ylim=[0, width - 1]
     )
     axes[0].view_init(30, 15)
-    cbar = plt.colorbar(
+    cbar = axes[0].figure.colorbar(
         ax=axes[0],
         shrink=0.75,
         orientation="horizontal",
@@ -172,7 +172,7 @@ def plot_t_p(t, p, title, mcc, axes=None):
         use_p, cmap="inferno", vmin=p_lims[0], vmax=p_lims[1], interpolation="nearest"
     )
     axes[1].set(xticks=[], yticks=[])
-    cbar = plt.colorbar(
+    cbar = axes[1].figure.colorbar(
         ax=axes[1],
         shrink=0.75,
         orientation="horizontal",
@@ -188,8 +188,6 @@ def plot_t_p(t, p, title, mcc, axes=None):
         text = fig.suptitle(title)
         if mcc:
             text.set_weight("bold")
-        plt.subplots_adjust(0, 0.05, 1, 0.9, wspace=0, hspace=0)
-        mne.viz.utils.plt_show()
 
 
 plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
@@ -286,7 +284,7 @@ plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
 N = np.arange(1, 80)
 alpha = 0.05
 p_type_I = 1 - (1 - alpha) ** N
-fig, ax = plt.subplots(figsize=(4, 3))
+fig, ax = plt.subplots(figsize=(4, 3), layout="constrained")
 ax.scatter(N, p_type_I, 3)
 ax.set(
     xlim=N[[0, -1]],
@@ -295,7 +293,6 @@ ax.set(
     ylabel="Probability of at least\none type I error",
 )
 ax.grid(True)
-fig.tight_layout()
 fig.show()
 
 # %%
@@ -612,7 +609,7 @@ plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
 # and the bottom shows p-values for various statistical tests, with the ones
 # with proper control over FWER or FDR with bold titles.
 
-fig = plt.figure(facecolor="w", figsize=(14, 3))
+fig = plt.figure(facecolor="w", figsize=(14, 3), layout="constrained")
 assert len(ts) == len(titles) == len(ps)
 for ii in range(len(ts)):
     ax = [
@@ -620,8 +617,6 @@ for ii in range(len(ts)):
         fig.add_subplot(2, 10, 11 + ii),
     ]
     plot_t_p(ts[ii], ps[ii], titles[ii], mccs[ii], ax)
-fig.tight_layout(pad=0, w_pad=0.05, h_pad=0.1)
-plt.show()
 
 # %%
 # The first three columns show the parametric and non-parametric statistics

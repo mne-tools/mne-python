@@ -54,7 +54,6 @@ from ..utils import (
 )
 from ..utils.spectrum import _split_psd_kwargs
 from .utils import (
-    tight_layout,
     _setup_vmin_vmax,
     _prepare_trellis,
     _check_delayed_ssp,
@@ -301,8 +300,8 @@ def _add_colorbar(
     ax,
     im,
     cmap,
+    *,
     side="right",
-    pad=0.05,
     title=None,
     format=None,
     size="5%",
@@ -310,14 +309,10 @@ def _add_colorbar(
     ch_type=None,
 ):
     """Add a colorbar to an axis."""
-    import matplotlib.pyplot as plt
-    from mpl_toolkits.axes_grid1 import make_axes_locatable
-
-    divider = make_axes_locatable(ax)
-    cax = divider.append_axes(side, size=size, pad=pad)
-    cbar = plt.colorbar(im, cax=cax, format=format)
+    cbar = ax.figure.colorbar(im, format=format)
     if cmap is not None and cmap[1]:
         ax.CB = DraggableColorbar(cbar, im, kind, ch_type)
+    cax = cbar.ax
     if title is not None:
         cax.set_title(title, y=1.05, fontsize=10)
     return cbar, cax
@@ -450,7 +445,6 @@ def plot_projs_topomap(
     )
     with warnings.catch_warnings(record=True):
         warnings.simplefilter("ignore")
-        tight_layout(fig=fig)
     plt_show(show)
     return fig
 
@@ -1020,7 +1014,7 @@ def plot_topomap(
     from matplotlib.colors import Normalize
 
     if axes is None:
-        _, axes = plt.subplots(figsize=(size, size))
+        _, axes = plt.subplots(figsize=(size, size), layout="constrained")
     sphere = _check_sphere(sphere, pos if isinstance(pos, Info) else None)
     _validate_type(cnorm, (Normalize, None), "cnorm")
     if cnorm is not None and (vlim[0] is not None or vlim[1] is not None):
@@ -1379,9 +1373,6 @@ def _plot_topomap(
                 size="x-small",
             )
 
-    if not axes.figure.get_constrained_layout():
-        axes.figure.subplots_adjust(top=0.95)
-
     if onselect is not None:
         lim = axes.dataLim
         x0, y0, width, height = lim.x0, lim.y0, lim.width, lim.height
@@ -1475,7 +1466,6 @@ def _plot_ica_topomap(
             axes,
             im,
             cmap,
-            pad=0.05,
             title="AU",
             format="%3.2f",
             kind="ica_topomap",
@@ -1716,7 +1706,6 @@ def plot_ica_components(
                     cmap,
                     title="AU",
                     side="right",
-                    pad=0.05,
                     format=cbar_fmt,
                     kind="ica_comp_topomap",
                     ch_type=ch_type,
@@ -1725,9 +1714,6 @@ def plot_ica_components(
                 cbar.set_ticks(_vlim)
             _hide_frame(ax)
         del pos
-        if not user_passed_axes:
-            tight_layout(fig=fig)
-            fig.subplots_adjust(top=0.88, bottom=0.0)
         fig.canvas.draw()
 
         # add title selection interactivity
@@ -1934,7 +1920,11 @@ def plot_tfr_topomap(
     vlim = _setup_vmin_vmax(data, *vlim, norm)
     cmap = _setup_cmap(cmap, norm=norm)
 
-    axes = plt.subplots(figsize=(size, size))[1] if axes is None else axes
+    axes = (
+        plt.subplots(figsize=(size, size), layout="constrained")[1]
+        if axes is None
+        else axes
+    )
     fig = axes.figure
 
     _hide_frame(axes)
@@ -2204,18 +2194,17 @@ def plot_evoked_topomap(
     if interactive:
         height_ratios = [5, 1]
         nrows = 2
-        ncols = want_axes
-        width = size * ncols
+        ncols = n_times
+        width = size * want_axes
         height = size + max(0, 0.1 * (4 - size))
         fig = figure_nobar(figsize=(width * 1.5, height * 1.5))
-        g_kwargs = {"left": 0.2, "right": 0.8, "bottom": 0.05, "top": 0.9}
-        gs = GridSpec(nrows, ncols, height_ratios=height_ratios, **g_kwargs)
+        gs = GridSpec(nrows, ncols, height_ratios=height_ratios, figure=fig)
         axes = []
         for ax_idx in range(n_times):
             axes.append(plt.subplot(gs[0, ax_idx]))
     elif axes is None:
         fig, axes, ncols, nrows = _prepare_trellis(
-            n_times, ncols=ncols, nrows=nrows, colorbar=colorbar, size=size
+            n_times, ncols=ncols, nrows=nrows, size=size
         )
     else:
         nrows, ncols = None, None  # Deactivate ncols when axes were passed
@@ -2227,13 +2216,7 @@ def plot_evoked_topomap(
                 f"You must provide {want_axes} axes (one for "
                 f"each time{cbar_err}), got {len(axes)}."
             )
-    # figure margins
-    if not fig.get_constrained_layout():
-        side_margin = plt.rcParams["figure.subplot.wspace"] / (2 * want_axes)
-        top_margin = max(0.05, 0.2 / size)
-        fig.subplots_adjust(
-            left=side_margin, right=1 - side_margin, bottom=0, top=1 - top_margin
-        )
+    del want_axes
     # find first index that's >= (to rounding error) to each time point
     time_idx = [
         np.where(
@@ -2336,12 +2319,10 @@ def plot_evoked_topomap(
     images, contours_ = [], []
     # loop over times
     for average_idx, (time, this_average) in enumerate(zip(times, average)):
-        adjust_for_cbar = colorbar and ncols is not None and average_idx >= ncols - 1
-        ax_idx = average_idx + 1 if adjust_for_cbar else average_idx
         tp, cn, interp = _plot_topomap(
             data[:, average_idx],
             pos,
-            axes=axes[ax_idx],
+            axes=axes[average_idx],
             mask=mask_[:, average_idx] if mask is not None else None,
             vmin=_vlim[0],
             vmax=_vlim[1],
@@ -2362,13 +2343,13 @@ def plot_evoked_topomap(
                 to_time = time_format % (tmax_ * scaling_time)
                 axes_title = f"{from_time} – {to_time}"
                 del from_time, to_time, tmin_, tmax_
-            axes[ax_idx].set_title(axes_title)
+            axes[average_idx].set_title(axes_title)
 
     if interactive:
         # Add a slider to the figure and start publishing and subscribing to time_change
         # events.
         kwargs.update(vlim=_vlim)
-        axes.append(plt.subplot(gs[1, :-1]))
+        axes.append(fig.add_subplot(gs[1]))
         slider = Slider(
             axes[-1],
             "Time",
@@ -2412,19 +2393,15 @@ def plot_evoked_topomap(
         )
 
     if colorbar:
-        if interactive:
-            cax = plt.subplot(gs[0, -1])
-            _resize_cbar(cax, ncols, size)
-        elif nrows is None or ncols is None:
+        if nrows is None or ncols is None:
             # axes were given by the user, so don't resize the colorbar
             cax = axes[-1]
-        else:  # use the entire last column
-            cax = axes[ncols - 1]
-            _resize_cbar(cax, ncols, size)
+        else:  # use the default behavior
+            cax = None
 
+        cbar = fig.colorbar(images[-1], ax=axes, cax=cax, format=cbar_fmt, shrink=0.6)
         if unit is not None:
-            cax.set_title(unit)
-        cbar = fig.colorbar(images[-1], ax=cax, cax=cax, format=cbar_fmt)
+            cbar.ax.set_title(unit)
         if cn is not None:
             cbar.set_ticks(contours)
         cbar.ax.tick_params(labelsize=7)
@@ -2578,9 +2555,7 @@ def _plot_topomap_multi_cbar(
     )
 
     if colorbar:
-        cbar, cax = _add_colorbar(
-            ax, im, cmap, pad=0.25, title=None, size="10%", format=cbar_fmt
-        )
+        cbar, cax = _add_colorbar(ax, im, cmap, title=None, size="10%", format=cbar_fmt)
         cbar.set_ticks(_vlim)
         if unit is not None:
             cbar.ax.set_ylabel(unit, fontsize=8)
@@ -2857,7 +2832,9 @@ def plot_psds_topomap(
         _validate_if_list_of_axes(axes, n_axes)
         fig = axes[0].figure
     else:
-        fig, axes = plt.subplots(1, n_axes, figsize=(2 * n_axes, 1.5))
+        fig, axes = plt.subplots(
+            1, n_axes, figsize=(2 * n_axes, 1.5), layout="constrained"
+        )
         if n_axes == 1:
             axes = [axes]
     # loop over subplots/frequency bands
@@ -2892,7 +2869,6 @@ def plot_psds_topomap(
         )
 
     if not user_passed_axes:
-        tight_layout(fig=fig)
         fig.canvas.draw()
         plt_show(show)
     return fig
@@ -2923,9 +2899,10 @@ def plot_layout(layout, picks=None, show_axes=False, show=True):
     """
     import matplotlib.pyplot as plt
 
-    fig = plt.figure(figsize=(max(plt.rcParams["figure.figsize"]),) * 2)
+    fig = plt.figure(
+        figsize=(max(plt.rcParams["figure.figsize"]),) * 2, layout="constrained"
+    )
     ax = fig.add_subplot(111)
-    fig.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=None, hspace=None)
     ax.set(xticks=[], yticks=[], aspect="equal")
     outlines = dict(border=([0, 1, 1, 0, 0], [0, 0, 1, 1, 0]))
     _draw_outlines(ax, outlines)
@@ -2945,7 +2922,6 @@ def plot_layout(layout, picks=None, show_axes=False, show=True):
             x1, x2, y1, y2 = p[0], p[0] + p[2], p[1], p[1] + p[3]
             ax.plot([x1, x1, x2, x2, x1], [y1, y2, y2, y1, y1], color="k")
     ax.axis("off")
-    tight_layout(fig=fig, pad=0, w_pad=0, h_pad=0)
     plt_show(show)
     return fig
 
@@ -3163,7 +3139,6 @@ def _init_anim(
     outlines_ = _draw_outlines(ax, outlines)
 
     params.update({"patch": patch_, "outlines": outlines_})
-    tight_layout(fig=ax.figure)
     return tuple(items) + cont_collections
 
 
@@ -3306,7 +3281,7 @@ def _topomap_animation(
     norm = np.min(data) >= 0
     vmin, vmax = _setup_vmin_vmax(data, vmin, vmax, norm)
 
-    fig = plt.figure(figsize=(6, 5))
+    fig = plt.figure(figsize=(6, 5), layout="constrained")
     shape = (8, 12)
     colspan = shape[1] - 1
     rowspan = shape[0] - bool(butterfly)
@@ -3491,8 +3466,6 @@ def _plot_corrmap(
             border=border,
         )
         _hide_frame(ax)
-    tight_layout(fig=fig)
-    fig.subplots_adjust(top=0.8)
     fig.canvas.draw()
     plt_show(show)
     return fig
@@ -3652,7 +3625,7 @@ def plot_arrowmap(
     )
     outlines = _make_head_outlines(sphere, pos, outlines, clip_origin)
     if axes is None:
-        fig, axes = plt.subplots()
+        fig, axes = plt.subplots(layout="constrained")
     else:
         fig = axes.figure
     plot_topomap(
@@ -3679,11 +3652,7 @@ def plot_arrowmap(
     dx, dy = _trigradient(x, y, data)
     dxx = dy.data
     dyy = -dx.data
-    axes.quiver(x, y, dxx, dyy, scale=scale, color="k", lw=1, clip_on=False)
-    axes.figure.canvas.draw_idle()
-    with warnings.catch_warnings(record=True):
-        warnings.simplefilter("ignore")
-        tight_layout(fig=fig)
+    axes.quiver(x, y, dxx, dyy, scale=scale, color="k", lw=1)
     plt_show(show)
 
     return fig
@@ -3735,7 +3704,7 @@ def plot_bridged_electrodes(
     topomap_args.setdefault("contours", False)
     sphere = topomap_args.get("sphere", _check_sphere(None))
     if "axes" not in topomap_args:
-        fig, ax = plt.subplots()
+        fig, ax = plt.subplots(layout="constrained")
         topomap_args["axes"] = ax
     else:
         fig = None
@@ -4075,7 +4044,11 @@ def plot_regression_weights(
     axes_was_none = axes is None
     if axes_was_none:
         fig, axes = plt.subplots(
-            nrows, ncols, squeeze=False, figsize=(ncols * 2, nrows * 1.5 + 1)
+            nrows,
+            ncols,
+            squeeze=False,
+            figsize=(ncols * 2, nrows * 1.5 + 1),
+            layout="constrained",
         )
         axes = axes.T.ravel()
     else:
@@ -4143,8 +4116,5 @@ def plot_regression_weights(
             )
     if axes_was_none:
         fig.suptitle(title)
-        fig.subplots_adjust(
-            top=0.88, bottom=0.06, left=0.025, right=0.911, hspace=0.2, wspace=0.5
-        )
     plt_show(show)
     return fig

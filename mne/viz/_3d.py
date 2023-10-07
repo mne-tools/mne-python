@@ -88,7 +88,6 @@ from .utils import (
     _get_color_list,
     _get_cmap,
     plt_show,
-    tight_layout,
     figure_nobar,
     _check_time_unit,
 )
@@ -314,7 +313,9 @@ def plot_head_positions(
         from mpl_toolkits.mplot3d.art3d import Line3DCollection
         from mpl_toolkits.mplot3d import Axes3D  # noqa: F401, analysis:ignore
 
-        fig, ax = plt.subplots(1, subplot_kw=dict(projection="3d"))
+        fig, ax = plt.subplots(
+            1, subplot_kw=dict(projection="3d"), layout="constrained"
+        )
 
         # First plot the trajectory as a colormap:
         # http://matplotlib.org/examples/pylab_examples/multicolored_line.html
@@ -374,7 +375,6 @@ def plot_head_positions(
         ax.set(xlabel="x", ylabel="y", zlabel="z", xlim=xlim, ylim=ylim, zlim=zlim)
         _set_aspect_equal(ax)
         ax.view_init(30, 45)
-    tight_layout(fig=fig)
     plt_show(show)
     return fig
 
@@ -1901,7 +1901,7 @@ def _key_pressed_slider(event, params):
     time_viewer.slider.set_val(this_time)
 
 
-def _smooth_plot(this_time, params):
+def _smooth_plot(this_time, params, *, draw=True):
     """Smooth source estimate data and plot with mpl."""
     from ..morph import _hemi_morph
 
@@ -1957,7 +1957,8 @@ def _smooth_plot(this_time, params):
     _set_aspect_equal(ax)
     ax.axis("off")
     ax.set(xlim=[-80, 80], ylim=(-80, 80), zlim=[-80, 80])
-    ax.figure.canvas.draw()
+    if draw:
+        ax.figure.canvas.draw()
 
 
 def _plot_mpl_stc(
@@ -2022,7 +2023,8 @@ def _plot_mpl_stc(
     del transparent, mapdata
 
     time_label, times = _handle_time(time_label, time_unit, stc.times)
-    fig = plt.figure(figsize=(6, 6)) if figure is None else figure
+    # don't use constrained layout because Axes3D does not play well with it
+    fig = plt.figure(figsize=(6, 6), layout=None) if figure is None else figure
     try:
         ax = Axes3D(fig, auto_add_to_figure=False)
     except Exception:  # old mpl
@@ -2072,7 +2074,7 @@ def _plot_mpl_stc(
         time_label=time_label,
         time_unit=time_unit,
     )
-    _smooth_plot(initial_time, params)
+    _smooth_plot(initial_time, params, draw=False)
 
     ax.view_init(**kwargs[hemi][views])
 
@@ -2100,7 +2102,6 @@ def _plot_mpl_stc(
         callback_key = partial(_key_pressed_slider, params=params)
         time_viewer.canvas.mpl_connect("key_press_event", callback_key)
 
-        time_viewer.subplots_adjust(left=0.12, bottom=0.05, right=0.75, top=0.95)
     fig.subplots_adjust(left=0.0, bottom=0.0, right=1.0, top=1.0)
 
     # add colorbar
@@ -2932,7 +2933,7 @@ def plot_volume_source_estimates(
     del ijk
 
     # Plot initial figure
-    fig, (axes, ax_time) = plt.subplots(2)
+    fig, (axes, ax_time) = plt.subplots(2, layout="constrained")
     axes.set(xticks=[], yticks=[])
     marker = "o" if len(stc.times) == 1 else None
     ydata = stc.data[loc_idx]
@@ -2943,7 +2944,6 @@ def plot_volume_source_estimates(
     vert_legend = ax_time.legend([h], [""], title="Vertex")
     _update_vertlabel(loc_idx)
     lx = ax_time.axvline(stc.times[time_idx], color="g")
-    fig.tight_layout()
 
     allow_pos_lims = mode != "glass_brain"
     mapdata = _process_clim(clim, colormap, transparent, stc.data, allow_pos_lims)
@@ -3390,7 +3390,7 @@ def plot_sparse_source_estimates(
     )
 
     # Show time courses
-    fig = plt.figure(fig_number)
+    fig = plt.figure(fig_number, layout="constrained")
     fig.clf()
     ax = fig.add_subplot(111)
 
@@ -3757,7 +3757,9 @@ def _plot_dipole_mri_orthoview(
     dims = len(data)  # Symmetric size assumed.
     dd = dims // 2
     if ax is None:
-        fig, ax = plt.subplots(1, subplot_kw=dict(projection="3d"))
+        fig, ax = plt.subplots(
+            1, subplot_kw=dict(projection="3d"), layout="constrained"
+        )
     else:
         _validate_type(ax, Axes3D, "ax", "Axes3D", extra='when mode is "orthoview"')
         fig = ax.get_figure()

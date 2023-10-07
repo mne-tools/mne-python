@@ -199,7 +199,7 @@ for i_clu, clu_idx in enumerate(good_cluster_inds):
     mask[ch_inds, :] = True
 
     # initialize figure
-    fig, ax_topo = plt.subplots(1, 1, figsize=(10, 3))
+    fig, ax_topo = plt.subplots(1, 1, figsize=(10, 3), layout="constrained")
 
     # plot average test statistic and mark significant sensors
     f_evoked = mne.EvokedArray(f_map[:, np.newaxis], epochs.info, tmin=0)
@@ -251,10 +251,7 @@ for i_clu, clu_idx in enumerate(good_cluster_inds):
         (ymin, ymax), sig_times[0], sig_times[-1], color="orange", alpha=0.3
     )
 
-    # clean up viz
-    mne.viz.tight_layout(fig=fig)
-    fig.subplots_adjust(bottom=0.05)
-    plt.show()
+plt.show()
 
 # %%
 # Permutation statistic for time-frequencies
@@ -352,7 +349,7 @@ for i_clu, clu_idx in enumerate(good_cluster_inds):
     sig_times = epochs.times[time_inds]
 
     # initialize figure
-    fig, ax_topo = plt.subplots(1, 1, figsize=(10, 3))
+    fig, ax_topo = plt.subplots(1, 1, figsize=(10, 3), layout="constrained")
 
     # create spatial mask
     mask = np.zeros((f_map.shape[0], 1), dtype=bool)
@@ -414,9 +411,7 @@ for i_clu, clu_idx in enumerate(good_cluster_inds):
     ax_colorbar2.set_ylabel("F-stat")
 
     # clean up viz
-    mne.viz.tight_layout(fig=fig)
-    fig.subplots_adjust(bottom=0.05)
-    plt.show()
+plt.show()
 
 
 # %%

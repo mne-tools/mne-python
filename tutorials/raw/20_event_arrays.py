@@ -158,7 +158,6 @@ event_dict = {
 fig = mne.viz.plot_events(
     events, sfreq=raw.info["sfreq"], first_samp=raw.first_samp, event_id=event_dict
 )
-fig.subplots_adjust(right=0.7)  # make room for legend
 
 # %%
 # Plotting events and raw data together

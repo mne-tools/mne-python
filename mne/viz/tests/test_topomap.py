@@ -75,8 +75,8 @@ cov_fname = base_dir / "test-cov.fif"
 fast_test = dict(res=8, contours=0, sensors=False)
 
 
-@pytest.mark.parametrize("constrained_layout", (False, True))
-def test_plot_topomap_interactive(constrained_layout):
+@pytest.mark.parametrize("layout", (None, "constrained"))
+def test_plot_topomap_interactive(layout):
     """Test interactive topomap projection plotting."""
     evoked = read_evokeds(evoked_fname, baseline=(None, 0))[0]
     evoked.pick(picks="mag")
@@ -86,7 +86,7 @@ def test_plot_topomap_interactive(constrained_layout):
     evoked.add_proj(compute_proj_evoked(evoked, n_mag=1))
 
     plt.close("all")
-    fig, ax = plt.subplots(constrained_layout=constrained_layout)
+    fig, ax = plt.subplots(layout=layout)
     canvas = fig.canvas
 
     kwargs = dict(

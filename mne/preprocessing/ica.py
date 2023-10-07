@@ -3366,7 +3366,6 @@ def corrmap(
                 template=True,
                 sphere=sphere,
             )
-        template_fig.subplots_adjust(top=0.8)
         template_fig.canvas.draw()
 
     # first run: use user-selected map

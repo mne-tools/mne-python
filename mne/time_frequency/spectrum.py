@@ -742,7 +742,6 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
             sphere=sphere,
             xlabels_list=xlabels_list,
         )
-        fig.subplots_adjust(hspace=0.3)
         plt_show(show, fig)
         return fig
 

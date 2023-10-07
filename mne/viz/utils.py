@@ -21,7 +21,6 @@ import os
 import sys
 import tempfile
 import traceback
-import warnings
 import webbrowser
 
 from decorator import decorator
@@ -201,63 +200,6 @@ def _show_browser(show=True, block=True, fig=None, **kwargs):
         # somewhere else in the calling code.
         if block:
             _qt_app_exec(QApplication.instance())
-
-
-def tight_layout(pad=1.2, h_pad=None, w_pad=None, fig=None):
-    """Adjust subplot parameters to give specified padding.
-
-    .. note:: For plotting please use this function instead of
-              ``plt.tight_layout``.
-
-    Parameters
-    ----------
-    pad : float
-        Padding between the figure edge and the edges of subplots, as a
-        fraction of the font-size.
-    h_pad : float
-        Padding height between edges of adjacent subplots.
-        Defaults to ``pad_inches``.
-    w_pad : float
-        Padding width between edges of adjacent subplots.
-        Defaults to ``pad_inches``.
-    fig : instance of Figure
-        Figure to apply changes to.
-
-    Notes
-    -----
-    This will not force constrained_layout=False if the figure was created
-    with that method.
-    """
-    _validate_type(pad, "numeric", "pad")
-    import matplotlib.pyplot as plt
-
-    fig = plt.gcf() if fig is None else fig
-
-    fig.canvas.draw()
-    constrained = fig.get_constrained_layout()
-    kwargs = dict(pad=pad, h_pad=h_pad, w_pad=w_pad)
-    if constrained:
-        return  # no-op
-    try:  # see https://github.com/matplotlib/matplotlib/issues/2654
-        with warnings.catch_warnings(record=True) as ws:
-            fig.tight_layout(**kwargs)
-    except Exception:
-        try:
-            with warnings.catch_warnings(record=True) as ws:
-                if hasattr(fig, "set_layout_engine"):
-                    fig.set_layout_engine("tight", **kwargs)
-                else:
-                    fig.set_tight_layout(kwargs)
-        except Exception:
-            warn(
-                'Matplotlib function "tight_layout" is not supported.'
-                " Skipping subplot adjustment."
-            )
-            return
-    for w in ws:
-        w_msg = str(w.message) if hasattr(w, "message") else w.get_message()
-        if not w_msg.startswith("This figure includes Axes"):
-            warn(w_msg, w.category, "matplotlib")
 
 
 def _check_delayed_ssp(container):
@@ -489,7 +431,6 @@ def _prepare_trellis(
     ncols,
     nrows="auto",
     title=False,
-    colorbar=False,
     size=1.3,
     sharex=False,
     sharey=False,
@@ -517,22 +458,13 @@ def _prepare_trellis(
                     "figure.".format(n_cells, nrows, ncols)
                 )
 
-    if colorbar:
-        ncols += 1
     width = size * ncols
     height = (size + max(0, 0.1 * (4 - size))) * nrows + bool(title) * 0.5
-    height_ratios = None
     fig = _figure(toolbar=False, figsize=(width * 1.5, 0.25 + height * 1.5))
-    gs = GridSpec(nrows, ncols, figure=fig, height_ratios=height_ratios)
+    gs = GridSpec(nrows, ncols, figure=fig)
 
     axes = []
-    if colorbar:
-        # exclude last axis of each row except top row, which is for colorbar
-        exclude = set(range(2 * ncols - 1, nrows * ncols, ncols))
-        ax_idxs = sorted(set(range(nrows * ncols)) - exclude)[: n_cells + 1]
-    else:
-        ax_idxs = range(n_cells)
-    for ax_idx in ax_idxs:
+    for ax_idx in range(n_cells):
         subplot_kw = dict()
         if ax_idx > 0:
             if sharex:
@@ -560,7 +492,8 @@ def _draw_proj_checkbox(event, params, draw_current_state=True):
 
     width = max([4.0, max([len(p["desc"]) for p in projs]) / 6.0 + 0.5])
     height = (len(projs) + 1) / 6.0 + 1.5
-    fig_proj = figure_nobar(figsize=(width, height))
+    # We manually place everything here so avoid constrained layouts
+    fig_proj = figure_nobar(figsize=(width, height), layout=None)
     _set_window_title(fig_proj, "SSP projection vectors")
     offset = 1.0 / 6.0 / height
     params["fig_proj"] = fig_proj  # necessary for proper toggling
@@ -707,6 +640,8 @@ def figure_nobar(*args, **kwargs):
     old_val = rcParams["toolbar"]
     try:
         rcParams["toolbar"] = "none"
+        if "layout" not in kwargs:
+            kwargs["layout"] = "constrained"
         fig = plt.figure(*args, **kwargs)
         # remove button press catchers (for toolbar)
         cbs = list(fig.canvas.callbacks.callbacks["key_press_event"].keys())
@@ -1319,7 +1254,10 @@ def _plot_sensors(
         if kind == "3d":
             subplot_kw.update(projection="3d")
         fig, ax = plt.subplots(
-            1, figsize=(max(rcParams["figure.figsize"]),) * 2, subplot_kw=subplot_kw
+            1,
+            figsize=(max(rcParams["figure.figsize"]),) * 2,
+            subplot_kw=subplot_kw,
+            layout="constrained",
         )
     else:
         fig = ax.get_figure()
@@ -1367,8 +1305,6 @@ def _plot_sensors(
 
         # Equal aspect for 3D looks bad, so only use for 2D
         ax.set(aspect="equal")
-        if axes_was_none:  # we'll show the plot title as the window title
-            fig.subplots_adjust(left=0, bottom=0, right=1, top=1)
         ax.axis("off")  # remove border around figure
     del sphere
 
@@ -1393,14 +1329,6 @@ def _plot_sensors(
         connect_picker = kind == "select"
         # make sure no names go off the edge of the canvas
         xmin, ymin, xmax, ymax = fig.get_window_extent().bounds
-        renderer = fig.canvas.get_renderer()
-        extents = [x.get_window_extent(renderer=renderer) for x in ax.texts]
-        xmaxs = np.array([x.max[0] for x in extents])
-        bad_xmax_ixs = np.nonzero(xmaxs > xmax)[0]
-        if len(bad_xmax_ixs):
-            needed_space = (xmaxs[bad_xmax_ixs] - xmax).max() / xmax
-            fig.subplots_adjust(right=1 - 1.1 * needed_space)
-
     if connect_picker:
         picker = partial(
             _onpick_sensor,
@@ -1530,38 +1458,14 @@ def _setup_cmap(cmap, n_axes=1, norm=False):
 
 
 def _prepare_joint_axes(n_maps, figsize=None):
-    """Prepare axes for topomaps and colorbar in joint plot figure.
-
-    Parameters
-    ----------
-    n_maps: int
-        Number of topomaps to include in the figure
-    figsize: tuple
-        Figure size, see plt.figsize
-
-    Returns
-    -------
-    fig : matplotlib.figure.Figure
-        Figure with initialized axes
-    main_ax: matplotlib.axes._subplots.AxesSubplot
-        Axes in which to put the main plot
-    map_ax: list
-        List of axes for each topomap
-    cbar_ax: matplotlib.axes._subplots.AxesSubplot
-        Axes for colorbar next to topomaps
-    """
     import matplotlib.pyplot as plt
+    from matplotlib.gridspec import GridSpec
 
-    fig = plt.figure(figsize=figsize)
-    main_ax = fig.add_subplot(212)
-    ts = n_maps + 2
-    map_ax = [plt.subplot(4, ts, x + 2 + ts) for x in range(n_maps)]
-    # Position topomap subplots on the second row, starting on the
-    # second column
-    cbar_ax = plt.subplot(4, 5 * (ts + 1), 10 * (ts + 1))
-    # Position colorbar at the very end of a more finely divided
-    # second row of subplots
-    return fig, main_ax, map_ax, cbar_ax
+    fig = plt.figure(figsize=figsize, layout="constrained")
+    gs = GridSpec(2, n_maps, height_ratios=[1, 2], figure=fig)
+    map_ax = [fig.add_subplot(gs[0, x]) for x in range(n_maps)]  # first row
+    main_ax = fig.add_subplot(gs[1, :])  # second row
+    return fig, main_ax, map_ax
 
 
 class DraggableColorbar:
@@ -1906,37 +1810,6 @@ def _merge_annotations(start, stop, description, annotations, current=()):
     duration = end - onset
     annotations.delete(idx)
     annotations.append(onset, duration, description)
-
-
-def _connection_line(x, fig, sourceax, targetax, y=1.0, y_source_transform="transAxes"):
-    """Connect source and target plots with a line.
-
-    Connect source and target plots with a line, such as time series
-    (source) and topolots (target). Primarily used for plot_joint
-    functions.
-    """
-    from matplotlib.lines import Line2D
-
-    trans_fig = fig.transFigure
-    trans_fig_inv = fig.transFigure.inverted()
-
-    xt, yt = trans_fig_inv.transform(targetax.transAxes.transform([0.5, 0.0]))
-    xs, _ = trans_fig_inv.transform(sourceax.transData.transform([x, 0.0]))
-    _, ys = trans_fig_inv.transform(
-        getattr(sourceax, y_source_transform).transform([0.0, y])
-    )
-
-    return Line2D(
-        (xt, xs),
-        (yt, ys),
-        transform=trans_fig,
-        color="grey",
-        linestyle="-",
-        linewidth=1.5,
-        alpha=0.66,
-        zorder=1,
-        clip_on=False,
-    )
 
 
 class DraggableLine:

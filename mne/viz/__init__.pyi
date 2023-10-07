@@ -82,7 +82,6 @@ __all__ = [
     "set_3d_view",
     "set_browser_backend",
     "snapshot_brain_montage",
-    "tight_layout",
     "ui_events",
     "use_3d_backend",
     "use_browser_backend",
@@ -149,7 +148,6 @@ from .topomap import (
     plot_regression_weights,
 )
 from .utils import (
-    tight_layout,
     mne_analyze_colormap,
     compare_fiff,
     ClickableImage,

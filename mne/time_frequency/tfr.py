@@ -70,7 +70,6 @@ from ..viz.utils import (
     figure_nobar,
     plt_show,
     _setup_cmap,
-    _connection_line,
     _prepare_joint_axes,
     _setup_vmin_vmax,
     _set_title_multiple_electrodes,
@@ -141,7 +140,7 @@ def morlet(sfreq, freqs, n_cycles=7.0, sigma=None, zero_mean=False):
         s = w * sfreq / (2 * freq * np.pi)  # from SciPy docs
         wavelet_sp = sp_morlet(M, s, w) * np.sqrt(2)  # match our normalization
 
-        _, ax = plt.subplots(constrained_layout=True)
+        _, ax = plt.subplots(layout="constrained")
         colors = {
             ('MNE', 'real'): '#66CCEE',
             ('SciPy', 'real'): '#4477AA',
@@ -1732,7 +1731,7 @@ class AverageTFR(_BaseTFR):
         elif isinstance(axes, plt.Axes):
             figs_and_axes = [(ax.get_figure(), ax) for ax in [axes]]
         elif axes is None:
-            figs = [plt.figure() for i in range(n_picks)]
+            figs = [plt.figure(layout="constrained") for i in range(n_picks)]
             figs_and_axes = [(fig, fig.add_subplot(111)) for fig in figs]
         else:
             raise ValueError("axes must be None, plt.Axes, or list " "of plt.Axes.")
@@ -1921,7 +1920,7 @@ class AverageTFR(_BaseTFR):
 
         .. versionadded:: 0.16.0
         """  # noqa: E501
-        import matplotlib.pyplot as plt
+        from matplotlib.patches import ConnectionPatch
 
         #####################################
         # Handle channels (picks and types) #
@@ -2007,7 +2006,7 @@ class AverageTFR(_BaseTFR):
         # Image plot #
         ##############
 
-        fig, tf_ax, map_ax, cbar_ax = _prepare_joint_axes(n_timefreqs)
+        fig, tf_ax, map_ax = _prepare_joint_axes(n_timefreqs)
 
         cmap = _setup_cmap(cmap)
 
@@ -2162,28 +2161,32 @@ class AverageTFR(_BaseTFR):
         #############
         # Finish up #
         #############
-
         if colorbar:
             from matplotlib import ticker
 
-            cbar = plt.colorbar(ax.images[0], cax=cbar_ax)
+            cbar = fig.colorbar(ax.images[0])
             if locator is None:
                 locator = ticker.MaxNLocator(nbins=5)
             cbar.locator = locator
             cbar.update_ticks()
 
-        plt.subplots_adjust(
-            left=0.12, right=0.925, bottom=0.14, top=1.0 if title is not None else 1.2
-        )
-
         # draw the connection lines between time series and topoplots
-        lines = [
-            _connection_line(
-                time_, fig, tf_ax, map_ax_, y=freq_, y_source_transform="transData"
+        for (time_, freq_), map_ax_ in zip(timefreqs_array, map_ax):
+            con = ConnectionPatch(
+                xyA=[time_, freq_],
+                xyB=[0.5, 0],
+                coordsA="data",
+                coordsB="axes fraction",
+                axesA=tf_ax,
+                axesB=map_ax_,
+                color="grey",
+                linestyle="-",
+                linewidth=1.5,
+                alpha=0.66,
+                zorder=1,
+                clip_on=False,
             )
-            for (time_, freq_), map_ax_ in zip(timefreqs_array, map_ax)
-        ]
-        fig.lines.extend(lines)
+            fig.add_artist(con)
 
         plt_show(show)
         return fig
@@ -2289,7 +2292,6 @@ class AverageTFR(_BaseTFR):
                     axes=ax,
                 )
                 ax.set_title(ch_type)
-            fig.tight_layout()
 
     @verbose
     def plot_topo(
