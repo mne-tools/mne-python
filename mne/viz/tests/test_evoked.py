@@ -231,7 +231,7 @@ def test_plot_evoked():
 
 def test_constrained_layout():
     """Test that we handle constrained layouts correctly."""
-    fig, ax = plt.subplots(1, 1, constrained_layout=True)
+    fig, ax = plt.subplots(1, 1, layout="constrained")
     assert fig.get_constrained_layout()
     evoked = mne.read_evokeds(evoked_fname)[0]
     evoked.pick(evoked.ch_names[:2])
@@ -612,7 +612,7 @@ def test_plot_ctf():
     fig = plt.figure()
 
     # create custom axes for topomaps, colorbar and the timeseries
-    gs = gridspec.GridSpec(3, 7, hspace=0.5, top=0.8)
+    gs = gridspec.GridSpec(3, 7, hspace=0.5, top=0.8, figure=fig)
     topo_axes = [
         fig.add_subplot(gs[0, idx * 2 : (idx + 1) * 2]) for idx in range(len(times))
     ]

@@ -37,6 +37,8 @@ os.environ["_MNE_BROWSER_NO_BLOCK"] = "true"
 os.environ["MNE_BROWSER_OVERVIEW_MODE"] = "hidden"
 os.environ["MNE_BROWSER_THEME"] = "light"
 os.environ["MNE_3D_OPTION_THEME"] = "light"
+# https://numba.readthedocs.io/en/latest/reference/deprecation.html#deprecation-of-old-style-numba-captured-errors  # noqa: E501
+os.environ["NUMBA_CAPTURED_ERRORS"] = "new_style"
 sphinx_logger = sphinx.util.logging.getLogger("mne")
 
 # -- Path setup --------------------------------------------------------------
@@ -101,6 +103,7 @@ extensions = [
     "sphinxcontrib.bibtex",
     "sphinxcontrib.youtube",
     # homegrown
+    "contrib_avatars",
     "gen_commands",
     "gen_names",
     "gh_substitutions",
@@ -198,9 +201,9 @@ numpydoc_xref_aliases = {
     "path-like": ":term:`path-like`",
     "array-like": ":term:`array_like <numpy:array_like>`",
     "Path": ":class:`python:pathlib.Path`",
-    "bool": ":class:`python:bool`",
+    "bool": ":ref:`bool <python:typebool>`",
     # Matplotlib
-    "colormap": ":doc:`colormap <matplotlib:tutorials/colors/colormaps>`",
+    "colormap": ":ref:`colormap <matplotlib:colormaps>`",
     "color": ":doc:`color <matplotlib:api/colors_api>`",
     "Axes": "matplotlib.axes.Axes",
     "Figure": "matplotlib.figure.Figure",
@@ -618,7 +621,7 @@ sphinx_gallery_conf = {
         r"mne\.Epochs",
         r"mne.datasets.*",
     },
-    "show_api_usage": False,  # disable for now until graph warning fixed
+    "show_api_usage": "unused",
     "api_usage_ignore": (
         "("
         ".*__.*__|"  # built-ins
@@ -686,6 +689,15 @@ def append_attr_meth_examples(app, what, name, obj, options, lines):
 
 # -- Other extension configuration -------------------------------------------
 
+# Consider using http://magjac.com/graphviz-visual-editor for this
+graphviz_dot_args = [
+    "-Gsep=-0.5",
+    "-Gpad=0.5",
+    "-Nshape=box",
+    "-Nfontsize=20",
+    "-Nfontname=Open Sans,Arial",
+]
+graphviz_output_format = "svg"  # for API usage diagrams
 user_agent = "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Mobile Safari/537.36"  # noqa: E501
 # Can eventually add linkcheck_request_headers if needed
 linkcheck_ignore = [  # will be compiled to regex
@@ -1279,7 +1291,6 @@ def reset_warnings(gallery_conf, fname):
     warnings.filterwarnings("default", module="sphinx")
     # allow these warnings, but don't show them
     for key in (
-        "The module matplotlib.tight_layout is deprecated",  # nilearn
         "invalid version and will not be supported",  # pyxdf
         "distutils Version classes are deprecated",  # seaborn and neo
         "`np.object` is a deprecated alias for the builtin `object`",  # pyxdf
@@ -1580,10 +1591,37 @@ needed_plot_redirects = {
     "xdawn_denoising.py",
     "xhemi.py",
 }
+api_redirects = {
+    "connectivity",
+    "covariance",
+    "creating_from_arrays",
+    "datasets",
+    "decoding",
+    "events",
+    "export",
+    "file_io",
+    "forward",
+    "inverse",
+    "logging",
+    "most_used_classes",
+    "mri",
+    "preprocessing",
+    "python_reference",
+    "reading_raw_data",
+    "realtime",
+    "report",
+    "sensor_space",
+    "simulation",
+    "source_space",
+    "statistics",
+    "time_frequency",
+    "visualization",
+}
 ex = "auto_examples"
 co = "connectivity"
 mne_conn = "https://mne.tools/mne-connectivity/stable"
 tu = "auto_tutorials"
+pr = "preprocessing"
 di = "discussions"
 sm = "source-modeling"
 fw = "forward"
@@ -1598,36 +1636,39 @@ vi = "visualization"
 custom_redirects = {
     # Custom redirects (one HTML path to another, relative to outdir)
     # can be added here as fr->to key->value mappings
+    "install/contributing.html": "development/contributing.html",
+    "overview/roadmap.html": "development/roadmap.html",
+    "whats_new.html": "development/whats_new.html",
     f"{tu}/evoked/plot_eeg_erp.html": f"{tu}/evoked/30_eeg_erp.html",
     f"{tu}/evoked/plot_whitened.html": f"{tu}/evoked/40_whitened.html",
-    f"{tu}/misc/plot_modifying_data_inplace.html": f"{tu}/intro/15_inplace.html",  # noqa E501
+    f"{tu}/misc/plot_modifying_data_inplace.html": f"{tu}/intro/15_inplace.html",
     f"{tu}/misc/plot_report.html": f"{tu}/intro/70_report.html",
     f"{tu}/misc/plot_seeg.html": f"{tu}/clinical/20_seeg.html",
     f"{tu}/misc/plot_ecog.html": f"{tu}/clinical/30_ecog.html",
     f"{tu}/{ml}/plot_receptive_field.html": f"{tu}/{ml}/30_strf.html",
     f"{tu}/{ml}/plot_sensors_decoding.html": f"{tu}/{ml}/50_decoding.html",
     f"{tu}/{sm}/plot_background_freesurfer.html": f"{tu}/{fw}/10_background_freesurfer.html",  # noqa E501
-    f"{tu}/{sm}/plot_source_alignment.html": f"{tu}/{fw}/20_source_alignment.html",  # noqa E501
+    f"{tu}/{sm}/plot_source_alignment.html": f"{tu}/{fw}/20_source_alignment.html",
     f"{tu}/{sm}/plot_forward.html": f"{tu}/{fw}/30_forward.html",
     f"{tu}/{sm}/plot_eeg_no_mri.html": f"{tu}/{fw}/35_eeg_no_mri.html",
     f"{tu}/{sm}/plot_background_freesurfer_mne.html": f"{tu}/{fw}/50_background_freesurfer_mne.html",  # noqa E501
-    f"{tu}/{sm}/plot_fix_bem_in_blender.html": f"{tu}/{fw}/80_fix_bem_in_blender.html",  # noqa E501
-    f"{tu}/{sm}/plot_compute_covariance.html": f"{tu}/{fw}/90_compute_covariance.html",  # noqa E501
-    f"{tu}/{sm}/plot_object_source_estimate.html": f"{tu}/{nv}/10_stc_class.html",  # noqa E501
+    f"{tu}/{sm}/plot_fix_bem_in_blender.html": f"{tu}/{fw}/80_fix_bem_in_blender.html",
+    f"{tu}/{sm}/plot_compute_covariance.html": f"{tu}/{fw}/90_compute_covariance.html",
+    f"{tu}/{sm}/plot_object_source_estimate.html": f"{tu}/{nv}/10_stc_class.html",
     f"{tu}/{sm}/plot_dipole_fit.html": f"{tu}/{nv}/20_dipole_fit.html",
     f"{tu}/{sm}/plot_mne_dspm_source_localization.html": f"{tu}/{nv}/30_mne_dspm_loreta.html",  # noqa E501
     f"{tu}/{sm}/plot_dipole_orientations.html": f"{tu}/{nv}/35_dipole_orientations.html",  # noqa E501
     f"{tu}/{sm}/plot_mne_solutions.html": f"{tu}/{nv}/40_mne_fixed_free.html",
-    f"{tu}/{sm}/plot_beamformer_lcmv.html": f"{tu}/{nv}/50_beamformer_lcmv.html",  # noqa E501
+    f"{tu}/{sm}/plot_beamformer_lcmv.html": f"{tu}/{nv}/50_beamformer_lcmv.html",
     f"{tu}/{sm}/plot_visualize_stc.html": f"{tu}/{nv}/60_visualize_stc.html",
     f"{tu}/{sm}/plot_eeg_mri_coords.html": f"{tu}/{nv}/70_eeg_mri_coords.html",
     f"{tu}/{sd}/plot_brainstorm_phantom_elekta.html": f"{tu}/{nv}/80_brainstorm_phantom_elekta.html",  # noqa E501
     f"{tu}/{sd}/plot_brainstorm_phantom_ctf.html": f"{tu}/{nv}/85_brainstorm_phantom_ctf.html",  # noqa E501
     f"{tu}/{sd}/plot_phantom_4DBTi.html": f"{tu}/{nv}/90_phantom_4DBTi.html",
-    f"{tu}/{sd}/plot_brainstorm_auditory.html": f"{tu}/io/60_ctf_bst_auditory.html",  # noqa E501
+    f"{tu}/{sd}/plot_brainstorm_auditory.html": f"{tu}/io/60_ctf_bst_auditory.html",
     f"{tu}/{sd}/plot_sleep.html": f"{tu}/clinical/60_sleep.html",
-    f"{tu}/{di}/plot_background_filtering.html": f"{tu}/preprocessing/25_background_filtering.html",  # noqa E501
-    f"{tu}/{di}/plot_background_statistics.html": f"{tu}/{sn}/10_background_stats.html",  # noqa E501
+    f"{tu}/{di}/plot_background_filtering.html": f"{tu}/{pr}/25_background_filtering.html",  # noqa E501
+    f"{tu}/{di}/plot_background_statistics.html": f"{tu}/{sn}/10_background_stats.html",
     f"{tu}/{sn}/plot_stats_cluster_erp.html": f"{tu}/{sn}/20_erp_stats.html",
     f"{tu}/{sn}/plot_stats_cluster_1samp_test_time_frequency.html": f"{tu}/{sn}/40_cluster_1samp_time_freq.html",  # noqa E501
     f"{tu}/{sn}/plot_stats_cluster_time_frequency.html": f"{tu}/{sn}/50_cluster_between_time_freq.html",  # noqa E501
@@ -1638,10 +1679,10 @@ custom_redirects = {
     f"{tu}/{sr}/plot_stats_cluster_time_frequency_repeated_measures_anova.html": f"{tu}/{sn}/70_cluster_rmANOVA_time_freq.html",  # noqa E501
     f"{tu}/{tf}/plot_sensors_time_frequency.html": f"{tu}/{tf}/20_sensors_time_frequency.html",  # noqa E501
     f"{tu}/{tf}/plot_ssvep.html": f"{tu}/{tf}/50_ssvep.html",
-    f"{tu}/{si}/plot_creating_data_structures.html": f"{tu}/{si}/10_array_objs.html",  # noqa E501
+    f"{tu}/{si}/plot_creating_data_structures.html": f"{tu}/{si}/10_array_objs.html",
     f"{tu}/{si}/plot_point_spread.html": f"{tu}/{si}/70_point_spread.html",
     f"{tu}/{si}/plot_dics.html": f"{tu}/{si}/80_dics.html",
-    f"{tu}/{tf}/plot_eyetracking.html": f"{tu}/preprocessing/90_eyetracking_data.html",  # noqa E501
+    f"{tu}/{tf}/plot_eyetracking.html": f"{tu}/{pr}/90_eyetracking_data.html",
     f"{ex}/{co}/mne_inverse_label_connectivity.html": f"{mne_conn}/{ex}/mne_inverse_label_connectivity.html",  # noqa E501
     f"{ex}/{co}/cwt_sensor_connectivity.html": f"{mne_conn}/{ex}/cwt_sensor_connectivity.html",  # noqa E501
     f"{ex}/{co}/mixed_source_space_connectivity.html": f"{mne_conn}/{ex}/mixed_source_space_connectivity.html",  # noqa E501
@@ -1650,9 +1691,20 @@ custom_redirects = {
     f"{ex}/{co}/mne_inverse_envelope_correlation_volume.html": f"{mne_conn}/{ex}/mne_inverse_envelope_correlation_volume.html",  # noqa E501
     f"{ex}/{co}/mne_inverse_envelope_correlation.html": f"{mne_conn}/{ex}/mne_inverse_envelope_correlation.html",  # noqa E501
     f"{ex}/{co}/mne_inverse_psi_visual.html": f"{mne_conn}/{ex}/mne_inverse_psi_visual.html",  # noqa E501
-    f"{ex}/{co}/sensor_connectivity.html": f"{mne_conn}/{ex}/sensor_connectivity.html",  # noqa E501
-    f"{ex}/{vi}/publication_figure.html": f"{tu}/{vi}/10_publication_figure.html",  # noqa E501
+    f"{ex}/{co}/sensor_connectivity.html": f"{mne_conn}/{ex}/sensor_connectivity.html",
+    f"{ex}/{vi}/publication_figure.html": f"{tu}/{vi}/10_publication_figure.html",
+    f"{ex}/{vi}/sensor_noise_level.html": f"{tu}/{pr}/50_artifact_correction_ssp.html",
 }
+
+
+def check_existing_redirect(path):
+    """Make sure existing HTML files are redirects, before overwriting."""
+    if os.path.isfile(path):
+        with open(path, "r") as fid:
+            for _ in range(8):
+                next(fid)
+            line = fid.readline()
+            assert "Page Redirection" in line, line
 
 
 def make_redirects(app, exception):
@@ -1664,7 +1716,6 @@ def make_redirects(app, exception):
         and exception is None
     ):
         return
-    logger = sphinx.util.logging.getLogger("mne")
     TEMPLATE = """\
 <!DOCTYPE HTML>
 <html lang="en-US">
@@ -1704,25 +1755,30 @@ def make_redirects(app, exception):
         sphinx_logger.info(
             f"Added {len(fnames):3d} HTML plot_* redirects for {out_dir}"
         )
+    # API redirects
+    for page in api_redirects:
+        fname = f"{page}.html"
+        fr_path = os.path.join(app.outdir, fname)
+        to_path = os.path.join(app.outdir, "api", fname)
+        # allow overwrite if existing file is just a redirect
+        check_existing_redirect(fr_path)
+        with open(fr_path, "w") as fid:
+            fid.write(TEMPLATE.format(to=to_path))
+    sphinx_logger.info(f"Added {len(api_redirects):3d} HTML API redirects")
     # custom redirects
     for fr, to in custom_redirects.items():
         if not to.startswith("http"):
             assert os.path.isfile(os.path.join(app.outdir, to)), to
             # handle links to sibling folders
             path_parts = to.split("/")
-            assert tu in path_parts, path_parts  # need to refactor otherwise
-            path_parts = [".."] + path_parts[(path_parts.index(tu) + 1) :]
+            if tu in path_parts:
+                path_parts = [".."] + path_parts[(path_parts.index(tu) + 1) :]
             to = os.path.join(*path_parts)
         assert to.endswith("html"), to
         fr_path = os.path.join(app.outdir, fr)
         assert fr_path.endswith("html"), fr_path
         # allow overwrite if existing file is just a redirect
-        if os.path.isfile(fr_path):
-            with open(fr_path, "r") as fid:
-                for _ in range(8):
-                    next(fid)
-                line = fid.readline()
-                assert "Page Redirection" in line, line
+        check_existing_redirect(fr_path)
         # handle folders that no longer exist
         if fr_path.split("/")[-2] in (
             "misc",
@@ -1744,7 +1800,6 @@ def make_version(app, exception):
         and exception is None
     ):
         return
-    logger = sphinx.util.logging.getLogger("mne")
     try:
         stdout, _ = run_subprocess(["git", "rev-parse", "HEAD"], verbose=False)
     except Exception as exc:

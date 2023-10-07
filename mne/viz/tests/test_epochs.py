@@ -244,7 +244,7 @@ def test_plot_overlapping_epochs_with_events(browser_backend, event_id, expected
         assert set(texts) == expected_texts
     # plot one epoch with its defining event plus events at its first & last sample
     # (regression test for https://mne.discourse.group/t/6334)
-    events = np.row_stack(([[0, 0, 4]], events[[0]], [[99, 0, 4]]))
+    events = np.vstack(([[0, 0, 4]], events[[0]], [[99, 0, 4]]))
     fig = epochs[0].plot(events=events, picks="misc", event_id=event_id)
     expected_texts.add("4")
     for text in ("2", "3", "b", "c"):
@@ -272,14 +272,7 @@ def test_plot_epochs_nodata(browser_backend):
 
 @pytest.mark.slowtest
 def test_plot_epochs_image(epochs):
-    """Test plotting of epochs image.
-
-    Note that some of these tests that should pass are triggering MPL
-    UserWarnings about tight_layout not being applied ("tight_layout cannot
-    make axes width small enough to accommodate all axes decorations"). Calling
-    `plt.close('all')` just before the offending test seems to prevent this
-    warning, though it's unclear why.
-    """
+    """Test plotting of epochs image."""
     figs = epochs.plot_image()
     assert len(figs) == 2  # one fig per ch_type (test data has mag, grad)
     assert len(plt.get_fignums()) == 2

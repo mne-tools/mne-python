@@ -182,6 +182,8 @@
 
 .. _George O'Neill: https://georgeoneill.github.io
 
+.. _Gonzalo Reina: https://greina.me/
+
 .. _Guillaume Dumas: https://mila.quebec/en/person/guillaume-dumas
 
 .. _Guillaume Favelier: https://github.com/GuillaumeFavelier
@@ -207,6 +209,8 @@
 .. _Hyonyoung Shin: https://github.com/mcvain
 
 .. _Ilias Machairas: https://github.com/JungleHippo
+
+.. _Ivan Zubarev: https://github.com/zubara
 
 .. _Ivana Kojcic: https://github.com/ikojcic
 
@@ -318,6 +322,8 @@
 
 .. _Mainak Jas: https://jasmainak.github.io
 
+.. _Maksym Balatsko: https://github.com/mbalatsko
+
 .. _Marcin Koculak: https://github.com/mkoculak
 
 .. _Marian Dovgialo: https://github.com/mdovgialo
@@ -415,6 +421,8 @@
 .. _Pierre-Antoine Bannier: https://github.com/PABannier
 
 .. _Proloy Das: https://github.com/proloyd
+
+.. _Qian Chu: https://github.com/qian-chu
 
 .. _Qianliang Li: https://www.dtu.dk/english/service/phonebook/person?id=126774
 

@@ -626,13 +626,15 @@ def make_forward_solution(
     src : path-like | instance of SourceSpaces
         Either a path to a source space file or a loaded or generated
         :class:`~mne.SourceSpaces`.
-    bem : path-like | dict
+    bem : path-like | ConductorModel
         Filename of the BEM (e.g., ``"sample-5120-5120-5120-bem-sol.fif"``) to
-        use, or a loaded sphere model (dict).
+        use, or a loaded :class:`~mne.bem.ConductorModel`. See
+        :func:`~mne.make_bem_model` and :func:`~mne.make_bem_solution` to create a
+        :class:`mne.bem.ConductorModel`.
     meg : bool
-        If True (Default), include MEG computations.
+        If True (default), include MEG computations.
     eeg : bool
-        If True (Default), include EEG computations.
+        If True (default), include EEG computations.
     mindist : float
         Minimum distance of sources from inner skull surface (in mm).
     ignore_ref : bool
@@ -848,7 +850,7 @@ def make_forward_dipole(dipole, bem, info, trans=None, n_jobs=None, *, verbose=N
     data = np.zeros((len(amplitude), len(timepoints)))  # (n_d, n_t)
     row = 0
     for tpind, tp in enumerate(timepoints):
-        amp = amplitude[np.in1d(times, tp)]
+        amp = amplitude[np.isin(times, tp)]
         data[row : row + len(amp), tpind] = amp
         row += len(amp)
 

@@ -102,7 +102,7 @@ def plot_projs_joint(
     n_row = len(ch_types)
     shape = (n_row, n_col)
     fig = plt.figure(
-        figsize=(n_col * 1.1 + 0.5, n_row * 1.8 + 0.5), constrained_layout=True
+        figsize=(n_col * 1.1 + 0.5, n_row * 1.8 + 0.5), layout="constrained"
     )
     ri = 0
     # pick some sufficiently distinct colors (6 per proj type, e.g., ECG,
@@ -127,7 +127,7 @@ def plot_projs_joint(
         these_idxs, these_projs = zip(*these_projs)
         ch_names = ch_names_by_type[ch_type]
         idx = np.where(
-            [np.in1d(ch_names, proj["data"]["col_names"]).all() for proj in these_projs]
+            [np.isin(ch_names, proj["data"]["col_names"]).all() for proj in these_projs]
         )[0]
         used[idx] += 1
         count = len(these_projs)

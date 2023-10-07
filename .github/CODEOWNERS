@@ -32,22 +32,63 @@
 *dics*.py @britta-wstnr @wmvanvliet # related tutorials and examples
 *lcmv*.py @britta-wstnr
 
+# Channels
+/mne/channels @agramfort @mscheltienne @dengemann @jasmainak
+
 # Core sensor-space classes
-/mne/epochs.py @drammock
-/mne/evoked.py @drammock
-/mne/io/*.* @drammock
+/mne/epochs.py @drammock @agramfort @mscheltienne @dengemann
+/mne/evoked.py @drammock @agramfort @mscheltienne @dengemann
+/mne/io/*.* @drammock @cbrnr @agramfort @mscheltienne @dengemann
 
 # Current-source density
-/mne/preprocessing/_csd.py  @alexrockhill
+/mne/preprocessing/_csd.py  @alexrockhill @dengemann
+
+# Decoding
+/mne/decoding/csp.py @cbrnr @agramfort @dengemann
+/mne/decoding/*.py @jasmainak
+
+# fNIRS
+/mne/preprocessing/nirs @rob-luke
+*fnirs*.py @rob-luke
+
+# forward
+/mne/forward/ @agramfort @jasmainak
+*forward*.py @agramfort
 
 # Intracranial
-/mne/preprocessing/ieeg @alexrockhill
-*seeg*.py @alexrockhill
-*ecog*.py @alexrockhill
+/mne/preprocessing/ieeg @alexrockhill @adam2392
+*seeg*.py @alexrockhill @adam2392
+*ecog*.py @alexrockhill @adam2392
+
+# Inverse Sparse
+/mne/inverse_sparse @agramfort
+*mxne*.py @agramfort # related tutorials and examples
+*gamma*.py @agramfort # related tutorials and examples
 
 # IO
-/mne/io/brainvision @sappelhoff
-/mne/export @sappelhoff
+/mne/io/brainvision @sappelhoff @cbrnr @adam2392
+/mne/io/nirx @rob-luke
+/mne/io/snirf @rob-luke
+/mne/export @sappelhoff @cbrnr
+/mne/io/eeglab.py @jasmainak
+/mne/io/eeglab/tests/test_eeglab.py @jasmainak
+
+# Minimum Norm
+/mne/minimum_norm @agramfort
+
+# Preprocessing
+/mne/preprocessing/ica.py @cbrnr @adam2392 @agramfort @mscheltienne @dengemann
+/mne/preprocessing/infomax_.py @cbrnr @adam2392 @mscheltienne @dengemann
+/mne/preprocessing/*annotate*.py @mscheltienne
+/mne/preprocessing/bads.py @mscheltienne
+/mne/preprocessing/e*g.py @mscheltienne
+
+# Report
+/mne/report @hoechenberger @dengemann @jasmainak
+
+# Simulation
+/mne/simulation/ @agramfort
+*simulate*.py @agramfort
 
 # Surface + transforms
 /mne/surface.py @alexrockhill @larsoner
@@ -55,26 +96,32 @@
 /mne/_freesurfer.py @alexrockhill @larsoner
 
 # TFR
-/mne/time_frequency @drammock
+/mne/time_frequency @drammock @adam2392 @mscheltienne
 
 # Viz
-/mne/viz @drammock
+/mne/viz @drammock @dengemann
 /mne/viz/_brain @larsoner @wmvanvliet
 /mne/viz/ui_events.py @wmvanvliet
-/tutorials/visualization @larsoner @wmvanvliet
-/examples/visualization @larsoner
+/tutorials/visualization @larsoner @wmvanvliet @dengemann
+/examples/visualization @larsoner @dengemann
+
+# Datasets
+/mne/datasets/brainstorm @jasmainak
 
 #########################
 # Project-level / other #
 #########################
 
 # Examples and tutorials
-/examples @drammock
-/tutorials @drammock
+/examples @drammock @agramfort @dengemann
+/tutorials @drammock @agramfort @dengemann
 
 # Non-tutorial documentation text and infrastructure
-/doc @larsoner @drammock
+/doc @larsoner @drammock @agramfort @dengemann
 /logo @drammock
+
+# Installation documentation
+/doc/install @hoechenberger
 
 # Project infrastructure and CIs
 /*.* @larsoner @drammock  # files in the root directory

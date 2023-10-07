@@ -7,4 +7,4 @@ EDFlib-Python
 pybv
 imageio>=2.6.1
 imageio-ffmpeg>=0.4.1
-pysnirf2
+snirf

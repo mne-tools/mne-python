@@ -10,7 +10,6 @@ This tutorial shows the different visualization methods for
 
 As usual we'll start by importing the modules we need:
 """
-
 # %%
 
 import numpy as np

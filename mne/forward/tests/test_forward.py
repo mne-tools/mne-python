@@ -197,6 +197,15 @@ def test_io_forward(tmp_path):
     fwd_read = read_forward_solution(fname_temp)
     assert_forward_allclose(fwd, fwd_read)
 
+    h5py = pytest.importorskip("h5py")
+    pytest.importorskip("h5io")
+    fname_h5 = fname_temp.with_suffix(".h5")
+    fwd.save(fname_h5)
+    with h5py.File(fname_h5, "r"):
+        pass  # just checks for hdf5-ness
+    fwd_read = read_forward_solution(fname_h5)
+    assert_forward_allclose(fwd, fwd_read)
+
 
 @testing.requires_testing_data
 def test_apply_forward():
@@ -495,7 +504,7 @@ def test_priors():
         compute_orient_prior(fwd, 0.5)
     fwd_surf_ori = convert_forward_solution(fwd, surf_ori=True)
     orient_prior = compute_orient_prior(fwd_surf_ori, 0.5)
-    assert all(np.in1d(orient_prior, (0.5, 1.0)))
+    assert all(np.isin(orient_prior, (0.5, 1.0)))
     with pytest.raises(ValueError, match="between 0 and 1"):
         compute_orient_prior(fwd_surf_ori, -0.5)
     with pytest.raises(ValueError, match="with fixed orientation"):

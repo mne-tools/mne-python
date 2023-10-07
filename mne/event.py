@@ -914,7 +914,7 @@ def shift_time_events(events, ids, tshift, sfreq):
     if ids is None:
         mask = slice(None)
     else:
-        mask = np.in1d(events[:, 2], ids)
+        mask = np.isin(events[:, 2], ids)
     events[mask, 0] += int(tshift * sfreq)
 
     return events

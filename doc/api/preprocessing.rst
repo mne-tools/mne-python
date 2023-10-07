@@ -57,6 +57,7 @@ Projections:
    get_builtin_ch_adjacencies
    read_ch_adjacency
    equalize_channels
+   unify_bad_channels
    rename_channels
    generate_2d_layout
    make_1020_channel_selections

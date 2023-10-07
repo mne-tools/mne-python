@@ -81,6 +81,7 @@ from ..utils import (
     _stamp_to_dt,
     _on_missing,
     repr_html,
+    _import_h5io_funcs,
 )
 from ..label import Label
 
@@ -164,6 +165,18 @@ class Forward(dict):
     def copy(self):
         """Copy the Forward instance."""
         return Forward(deepcopy(self))
+
+    @verbose
+    def save(self, fname, *, overwrite=False, verbose=None):
+        """Save the forward solution.
+
+        Parameters
+        ----------
+        %(fname_fwd)s
+        %(overwrite)s
+        %(verbose)s
+        """
+        write_forward_solution(fname, self, overwrite=overwrite)
 
     def _get_src_type_and_ori_for_repr(self):
         src_types = np.array([src["type"] for src in self["src"]])
@@ -445,11 +458,9 @@ def _read_forward_meas_info(tree, fid):
     else:
         raise ValueError("MEG/head coordinate transformation not found")
 
-    info["bads"] = _read_bad_channels(
-        fid, parent_meg, ch_names_mapping=ch_names_mapping
-    )
+    bads = _read_bad_channels(fid, parent_meg, ch_names_mapping=ch_names_mapping)
     # clean up our bad list, old versions could have non-existent bads
-    info["bads"] = [bad for bad in info["bads"] if bad in info["ch_names"]]
+    info["bads"] = [bad for bad in bads if bad in info["ch_names"]]
 
     # Check if a custom reference has been applied
     tag = find_tag(fid, parent_mri, FIFF.FIFF_MNE_CUSTOM_REF)
@@ -520,7 +531,8 @@ def read_forward_solution(fname, include=(), exclude=(), *, ordered=None, verbos
     Parameters
     ----------
     fname : path-like
-        The file name, which should end with ``-fwd.fif`` or ``-fwd.fif.gz``.
+        The file name, which should end with ``-fwd.fif``, ``-fwd.fif.gz``,
+        ``_fwd.fif``, ``_fwd.fif.gz``, ``-fwd.h5``, or ``_fwd.h5``.
     include : list, optional
         List of names of channels to include. If empty all channels
         are included.
@@ -554,11 +566,15 @@ def read_forward_solution(fname, include=(), exclude=(), *, ordered=None, verbos
     forward solution with :func:`read_forward_solution`.
     """
     check_fname(
-        fname, "forward", ("-fwd.fif", "-fwd.fif.gz", "_fwd.fif", "_fwd.fif.gz")
+        fname,
+        "forward",
+        ("-fwd.fif", "-fwd.fif.gz", "_fwd.fif", "_fwd.fif.gz", "-fwd.h5", "_fwd.h5"),
     )
     fname = _check_fname(fname=fname, must_exist=True, overwrite="read")
     #   Open the file, create directory
     logger.info("Reading forward solution from %s..." % fname)
+    if fname.suffix == ".h5":
+        return _read_forward_hdf5(fname)
     f, tree, _ = fiff_open(fname)
     with f as fid:
         #   Find all forward solutions
@@ -861,9 +877,7 @@ def write_forward_solution(fname, fwd, overwrite=False, verbose=None):
 
     Parameters
     ----------
-    fname : path-like
-        File name to save the forward solution to. It should end with
-        ``-fwd.fif`` or ``-fwd.fif.gz``.
+    %(fname_fwd)s
     fwd : Forward
         Forward solution.
     %(overwrite)s
@@ -889,13 +903,28 @@ def write_forward_solution(fname, fwd, overwrite=False, verbose=None):
     forward solution with :func:`read_forward_solution`.
     """
     check_fname(
-        fname, "forward", ("-fwd.fif", "-fwd.fif.gz", "_fwd.fif", "_fwd.fif.gz")
+        fname,
+        "forward",
+        ("-fwd.fif", "-fwd.fif.gz", "_fwd.fif", "_fwd.fif.gz", "-fwd.h5", "_fwd.h5"),
     )
 
     # check for file existence and expand `~` if present
     fname = _check_fname(fname, overwrite)
-    with start_and_end_file(fname) as fid:
-        _write_forward_solution(fid, fwd)
+    if fname.suffix == ".h5":
+        _write_forward_hdf5(fname, fwd)
+    else:
+        with start_and_end_file(fname) as fid:
+            _write_forward_solution(fid, fwd)
+
+
+def _write_forward_hdf5(fname, fwd):
+    _, write_hdf5 = _import_h5io_funcs()
+    write_hdf5(fname, dict(fwd=fwd), overwrite=True)
+
+
+def _read_forward_hdf5(fname):
+    read_hdf5, _ = _import_h5io_funcs()
+    return Forward(read_hdf5(fname)["fwd"])
 
 
 def _write_forward_solution(fid, fwd):
@@ -1846,7 +1875,7 @@ def restrict_forward_to_label(fwd, labels):
     # Remove duplicates and sort
     vertices = [np.unique(vert_hemi) for vert_hemi in vertices]
     vertices = [
-        vert_hemi[np.in1d(vert_hemi, s["vertno"])]
+        vert_hemi[np.isin(vert_hemi, s["vertno"])]
         for vert_hemi, s in zip(vertices, fwd["src"])
     ]
     src_sel, _, _ = _stc_src_sel(fwd["src"], vertices, on_missing="raise")

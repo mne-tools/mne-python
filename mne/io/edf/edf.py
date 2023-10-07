@@ -206,9 +206,10 @@ class RawEDF(BaseRaw):
             )
             annotations = _read_annotations_edf(
                 tal_data[0],
+                ch_names=info["ch_names"],
                 encoding=encoding,
             )
-            self.set_annotations(annotations)
+            self.set_annotations(annotations, on_missing="warn")
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data."""
@@ -1548,7 +1549,7 @@ def _find_exclude_idx(ch_names, exclude, include=None):
 def _find_tal_idx(ch_names):
     # Annotations / TAL Channels
     accepted_tal_ch_names = ["EDF Annotations", "BDF Annotations"]
-    tal_channel_idx = np.where(np.in1d(ch_names, accepted_tal_ch_names))[0]
+    tal_channel_idx = np.where(np.isin(ch_names, accepted_tal_ch_names))[0]
     return tal_channel_idx
 
 
@@ -1892,25 +1893,21 @@ def read_raw_gdf(
 
 
 @fill_doc
-def _read_annotations_edf(annotations, encoding="utf8"):
+def _read_annotations_edf(annotations, ch_names=None, encoding="utf8"):
     """Annotation File Reader.
 
     Parameters
     ----------
     annotations : ndarray (n_chans, n_samples) | str
         Channel data in EDF+ TAL format or path to annotation file.
+    ch_names : list of string
+        List of channels' names.
     %(encoding_edf)s
 
     Returns
     -------
-    onset : array of float, shape (n_annotations,)
-        The starting time of annotations in seconds after ``orig_time``.
-    duration : array of float, shape (n_annotations,)
-        Durations of the annotations in seconds.
-    description : array of str, shape (n_annotations,)
-        Array of strings containing description for each annotation. If a
-        string, all the annotations are given the same description. To reject
-        epochs, use description starting with keyword 'bad'. See example above.
+    annot : instance of Annotations
+        The annotations.
     """
     pat = "([+-]\\d+\\.?\\d*)(\x15(\\d+\\.?\\d*))?(\x14.*?)\x14\x00"
     if isinstance(annotations, str):
@@ -1949,7 +1946,11 @@ def _read_annotations_edf(annotations, encoding="utf8"):
         duration = float(ev[2]) if ev[2] else 0
         for description in ev[3].split("\x14")[1:]:
             if description:
-                if "@@" in description:
+                if (
+                    "@@" in description
+                    and ch_names is not None
+                    and description.split("@@")[1] in ch_names
+                ):
                     description, ch_name = description.split("@@")
                     key = f"{onset}_{duration}_{description}"
                 else:
@@ -1979,21 +1980,19 @@ def _read_annotations_edf(annotations, encoding="utf8"):
                 offset = -onset
 
     if events:
-        onset, duration, description, ch_names = zip(*events.values())
+        onset, duration, description, annot_ch_names = zip(*events.values())
     else:
-        onset, duration, description, ch_names = list(), list(), list(), list()
+        onset, duration, description, annot_ch_names = list(), list(), list(), list()
 
-    assert len(onset) == len(duration) == len(description) == len(ch_names)
+    assert len(onset) == len(duration) == len(description) == len(annot_ch_names)
 
-    annotations = Annotations(
+    return Annotations(
         onset=onset,
         duration=duration,
         description=description,
         orig_time=None,
-        ch_names=ch_names,
+        ch_names=annot_ch_names,
     )
-
-    return annotations
 
 
 def _get_annotations_gdf(edf_info, sfreq):

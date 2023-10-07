@@ -765,11 +765,11 @@ def _get_hdr_info(hdr_fname, eog, misc, scale):
                 # We convert channels with disabled filters to having
                 # highpass relaxed / no filters
                 highpass = [
-                    float(filt) if filt not in ("NaN", "Off", "DC") else np.Inf
+                    float(filt) if filt not in ("NaN", "Off", "DC") else np.inf
                     for filt in highpass
                 ]
                 info["highpass"] = np.max(np.array(highpass, dtype=np.float64))
-                # Coveniently enough 1 / np.Inf = 0.0, so this works for
+                # Conveniently enough 1 / np.inf = 0.0, so this works for
                 # DC / no highpass filter
                 # filter time constant t [secs] to Hz conversion: 1/2*pi*t
                 info["highpass"] = 1.0 / (2 * np.pi * info["highpass"])
@@ -839,7 +839,7 @@ def _get_hdr_info(hdr_fname, eog, misc, scale):
                 # We convert channels with disabled filters to having
                 # infinitely relaxed / no filters
                 lowpass = [
-                    float(filt) if filt not in ("NaN", "Off", "0") else np.Inf
+                    float(filt) if filt not in ("NaN", "Off", "0") else np.inf
                     for filt in lowpass
                 ]
                 info["lowpass"] = np.max(np.array(lowpass, dtype=np.float64))

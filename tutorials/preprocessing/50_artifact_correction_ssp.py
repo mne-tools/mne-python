@@ -99,6 +99,9 @@ empty_room_raw = mne.io.read_raw_fif(empty_room_file).crop(0, 30)
 empty_room_raw.del_proj()
 
 # %%
+#
+# _ex-noise-level:
+#
 # Visualizing the empty-room noise
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #
@@ -106,7 +109,7 @@ empty_room_raw.del_proj()
 # individual spectrum for each sensor, or an average (with confidence band)
 # across sensors:
 
-spectrum = empty_room_raw.compute_psd()
+spectrum = empty_room_raw.compute_psd(verbose="error")  # ignore zero value warning
 for average in (False, True):
     spectrum.plot(average=average, dB=False, xscale="log", picks="data", exclude="bads")
 
@@ -495,7 +498,9 @@ for title in ("Without", "With"):
 
 evoked_eeg = epochs.average().pick("eeg")
 evoked_eeg.del_proj().add_proj(ecg_projs).add_proj(eog_projs)
-fig, axes = plt.subplots(1, 3, figsize=(8, 3), sharex=True, sharey=True)
+fig, axes = plt.subplots(
+    1, 3, figsize=(8, 3), sharex=True, sharey=True, layout="constrained"
+)
 for pi, proj in enumerate((False, True, "reconstruct")):
     ax = axes[pi]
     evoked_eeg.plot(proj=proj, axes=ax, spatial_colors=True)
@@ -509,7 +514,6 @@ for pi, proj in enumerate((False, True, "reconstruct")):
     ax.yaxis.set_tick_params(labelbottom=True)
     for text in list(ax.texts):
         text.remove()
-mne.viz.tight_layout()
 
 # %%
 # Note that here the bias in the EEG and magnetometer channels is reduced by

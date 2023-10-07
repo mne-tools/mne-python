@@ -132,7 +132,7 @@ evoked.plot_image(
     mask=significant_points,
     show_names="all",
     titles=None,
-    **time_unit
+    **time_unit,
 )
 plt.colorbar(axes["Left"].images[-1], ax=list(axes.values()), shrink=0.3, label="µV")
 

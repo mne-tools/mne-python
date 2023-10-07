@@ -662,7 +662,11 @@ class Evoked(
         vmax=None,
         n_contours=21,
         *,
+        show_density=True,
+        alpha=None,
+        interpolation="nearest",
         interaction="terrain",
+        time_viewer="auto",
         verbose=None,
     ):
         return plot_evoked_field(
@@ -674,7 +678,11 @@ class Evoked(
             fig=fig,
             vmax=vmax,
             n_contours=n_contours,
+            show_density=show_density,
+            alpha=alpha,
+            interpolation=interpolation,
             interaction=interaction,
+            time_viewer=time_viewer,
             verbose=verbose,
         )
 
@@ -1043,6 +1051,7 @@ class Evoked(
         picks=None,
         proj=False,
         remove_dc=True,
+        exclude=(),
         *,
         n_jobs=1,
         verbose=None,
@@ -1059,6 +1068,7 @@ class Evoked(
         %(picks_good_data_noref)s
         %(proj_psd)s
         %(remove_dc)s
+        %(exclude_psd)s
         %(n_jobs)s
         %(verbose)s
         %(method_kw_psd)s
@@ -1087,6 +1097,7 @@ class Evoked(
             tmin=tmin,
             tmax=tmax,
             picks=picks,
+            exclude=exclude,
             proj=proj,
             remove_dc=remove_dc,
             reject_by_annotation=False,
@@ -1643,7 +1654,7 @@ def _read_evoked(fname, condition=None, kind="average", allow_maxshield=False):
                 raise ValueError('kind must be "average" or ' '"standard_error"')
 
             comments, aspect_kinds, t = _get_entries(fid, evoked_node, allow_maxshield)
-            goods = np.in1d(comments, [condition]) & np.in1d(
+            goods = np.isin(comments, [condition]) & np.isin(
                 aspect_kinds, [_aspect_dict[kind]]
             )
             found_cond = np.where(goods)[0]

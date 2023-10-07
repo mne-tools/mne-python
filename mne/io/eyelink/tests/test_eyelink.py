@@ -3,6 +3,7 @@ from pathlib import Path
 import pytest
 
 import numpy as np
+from numpy.testing import assert_allclose
 
 from mne.datasets.testing import data_path, requires_testing_data
 from mne.io import read_raw_eyelink
@@ -254,7 +255,7 @@ def test_multi_block_misc_channels(fname, tmp_path):
     _simulate_eye_tracking_data(fname, out_file)
 
     with pytest.warns(RuntimeWarning, match="Raw eyegaze coordinates"):
-        raw = read_raw_eyelink(out_file)
+        raw = read_raw_eyelink(out_file, apply_offsets=True)
 
     chs_in_file = [
         "xpos_right",
@@ -286,3 +287,30 @@ def test_multi_block_misc_channels(fname, tmp_path):
 def test_basics(this_fname):
     """Test basics of reading."""
     _test_raw_reader(read_raw_eyelink, fname=this_fname, test_preloading=False)
+
+
+def test_annotations_without_offset(tmp_path):
+    """Test read of annotations without offset."""
+    out_file = tmp_path / "tmp_eyelink.asc"
+
+    # create fake dataset
+    with open(fname_href, "r") as file:
+        lines = file.readlines()
+    ts = lines[-3].split("\t")[0]
+    line = f"MSG\t{ts} test string\n"
+    lines = lines[:-3] + [line] + lines[-3:]
+
+    with open(out_file, "w") as file:
+        file.writelines(lines)
+
+    raw = read_raw_eyelink(out_file, apply_offsets=False)
+    assert raw.annotations[-1]["description"] == "test string"
+    onset1 = raw.annotations[-1]["onset"]
+    assert raw.annotations[1]["description"] == "-2 SYNCTIME"
+    onset2 = raw.annotations[1]["onset"]
+
+    raw = read_raw_eyelink(out_file, apply_offsets=True)
+    assert raw.annotations[-1]["description"] == "test string"
+    assert raw.annotations[1]["description"] == "SYNCTIME"
+    assert_allclose(raw.annotations[-1]["onset"], onset1)
+    assert_allclose(raw.annotations[1]["onset"], onset2 - 2 / raw.info["sfreq"])

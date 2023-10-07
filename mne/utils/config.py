@@ -381,6 +381,10 @@ def set_config(key, value, home_dir=None, set_env=True):
         config[key] = value
         if set_env:
             os.environ[key] = value
+        if key == "MNE_BROWSER_BACKEND":
+            from ..viz._figure import set_browser_backend
+
+            set_browser_backend(value)
 
     # Write all values. This may fail if the default directory is not
     # writeable.

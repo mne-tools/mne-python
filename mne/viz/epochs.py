@@ -13,7 +13,6 @@
 
 from collections import Counter
 from copy import deepcopy
-import warnings
 
 import numpy as np
 from scipy.ndimage import gaussian_filter1d
@@ -31,7 +30,6 @@ from .._fiff.pick import (
     _VALID_CHANNEL_TYPES,
 )
 from .utils import (
-    tight_layout,
     _setup_vmin_vmax,
     plt_show,
     _check_cov,
@@ -284,7 +282,7 @@ def plot_epochs_image(
         group_by = deepcopy(group_by)
     # check for heterogeneous sensor type combinations / "combining" 1 channel
     for this_group, these_picks in group_by.items():
-        this_ch_type = np.array(ch_types)[np.in1d(picks, these_picks)]
+        this_ch_type = np.array(ch_types)[np.isin(picks, these_picks)]
         if len(set(this_ch_type)) > 1:
             types = ", ".join(set(this_ch_type))
             raise ValueError(
@@ -422,7 +420,7 @@ def plot_epochs_image(
     plt_show(show)
     # impose deterministic order of returned objects
     return_order = np.array(sorted(group_by))
-    are_ch_types = np.in1d(return_order, _VALID_CHANNEL_TYPES)
+    are_ch_types = np.isin(return_order, _VALID_CHANNEL_TYPES)
     if any(are_ch_types):
         return_order = np.concatenate(
             (return_order[are_ch_types], return_order[~are_ch_types])
@@ -453,7 +451,7 @@ def _validate_fig_and_axes(fig, axes, group_by, evoked, colorbar, clear=False):
         rowspan = 2 if evoked else 3
         shape = (3, 10)
         for this_group in group_by:
-            this_fig = figure()
+            this_fig = figure(layout="constrained")
             _set_window_title(this_fig, this_group)
             subplot2grid(shape, (0, 0), colspan=colspan, rowspan=rowspan, fig=this_fig)
             if evoked:
@@ -602,8 +600,6 @@ def _plot_epochs_image(
     tmax = epochs.times[-1]
 
     ax_im = ax["image"]
-    fig = ax_im.get_figure()
-
     # draw the image
     cmap = _setup_cmap(cmap, norm=norm)
     n_epochs = len(image)
@@ -661,14 +657,13 @@ def _plot_epochs_image(
         this_colorbar = cbar(im, cax=ax["colorbar"])
         this_colorbar.ax.set_ylabel(unit, rotation=270, labelpad=12)
         if cmap[1]:
-            ax_im.CB = DraggableColorbar(this_colorbar, im)
-        with warnings.catch_warnings(record=True):
-            warnings.simplefilter("ignore")
-            tight_layout(fig=fig)
+            ax_im.CB = DraggableColorbar(
+                this_colorbar, im, kind="epochs_image", ch_type=unit
+            )
 
     # finish
     plt_show(show)
-    return fig
+    return ax_im.get_figure()
 
 
 def plot_drop_log(
@@ -731,7 +726,7 @@ def plot_drop_log(
     ch_names = np.array(list(scores.keys()))
     counts = np.array(list(scores.values()))
     # init figure, handle easy case (no drops)
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(layout="constrained")
     title = f"{absolute} of {n_epochs_before_drop} epochs removed " f"({percent:.1f}%)"
     if subject is not None:
         title = f"{subject}: {title}"
@@ -753,7 +748,6 @@ def plot_drop_log(
     )
     ax.set_ylabel("% of epochs removed")
     ax.grid(axis="y")
-    tight_layout(pad=1, fig=fig)
     plt_show(show)
     return fig
 

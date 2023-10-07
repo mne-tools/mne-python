@@ -205,7 +205,7 @@ def test_fetch_parcellations(tmp_path):
         labels,
         parc="HCPMMP1_round",
         table_name="./left.fsaverage164.label.gii",
-        **kwargs
+        **kwargs,
     )
     orig = op.join(this_subjects_dir, "fsaverage", "label", "lh.HCPMMP1.annot")
     first = hashfunc(orig)
@@ -306,6 +306,7 @@ def test_phantom(tmp_path, monkeypatch):
     assert op.isfile(tmp_path / "phantom_otaniemi" / "mri" / "T1.mgz")
 
 
+@requires_good_network
 def test_fetch_uncompressed_file(tmp_path):
     """Test downloading an uncompressed file with our fetch function."""
     dataset_dict = dict(

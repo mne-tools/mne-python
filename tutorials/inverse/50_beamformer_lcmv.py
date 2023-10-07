@@ -54,7 +54,7 @@ raw_fname = meg_path / "sample_audvis_filt-0-40_raw.fif"
 raw = mne.io.read_raw_fif(raw_fname)
 raw.info["bads"] = ["MEG 2443"]  # bad MEG channel
 
-# Set up the epoching
+# Set up epoching
 event_id = 1  # those are the trials with left-ear auditory stimuli
 tmin, tmax = -0.2, 0.5
 events = mne.find_events(raw)
@@ -274,7 +274,7 @@ brain = stc_vec.plot_3d(
     # Could do this for a 3-panel figure:
     # view_layout='horizontal', views=['coronal', 'sagittal', 'axial'],
     brain_kwargs=dict(silhouette=True),
-    **kwargs
+    **kwargs,
 )
 
 # %%

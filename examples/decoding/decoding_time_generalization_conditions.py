@@ -88,7 +88,7 @@ scores = time_gen.score(
 
 # %%
 # Plot
-fig, ax = plt.subplots(constrained_layout=True)
+fig, ax = plt.subplots(layout="constrained")
 im = ax.matshow(
     scores,
     vmin=0,

@@ -15,6 +15,7 @@ recursive-include tutorials *.py
 recursive-include tutorials *.txt
 
 recursive-include mne *.py
+recursive-include mne *.pyi
 recursive-include mne/data *
 recursive-include mne/icons *
 recursive-include mne/data/helmets *

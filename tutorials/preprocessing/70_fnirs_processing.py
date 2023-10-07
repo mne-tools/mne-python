@@ -12,7 +12,6 @@ topographic representation of the response.
 
 Here we will work with the :ref:`fNIRS motor data <fnirs-motor-dataset>`.
 """
-
 # %%
 
 import numpy as np
@@ -111,7 +110,7 @@ raw_od.plot(n_channels=len(raw_od.ch_names), duration=500, show_scrollbars=False
 # coupling index.
 
 sci = mne.preprocessing.nirs.scalp_coupling_index(raw_od)
-fig, ax = plt.subplots()
+fig, ax = plt.subplots(layout="constrained")
 ax.hist(sci)
 ax.set(xlabel="Scalp Coupling Index", ylabel="Count", xlim=[0, 1])
 
@@ -158,7 +157,6 @@ raw_haemo.filter(0.05, 0.7, h_trans_bandwidth=0.2, l_trans_bandwidth=0.02)
 for when, _raw in dict(Before=raw_haemo_unfiltered, After=raw_haemo).items():
     fig = _raw.compute_psd().plot(average=True, picks="data", exclude="bads")
     fig.suptitle(f"{when} filtering", weight="bold", size="x-large")
-    fig.subplots_adjust(top=0.88)
 
 # %%
 # Extract epochs
@@ -173,7 +171,6 @@ for when, _raw in dict(Before=raw_haemo_unfiltered, After=raw_haemo).items():
 
 events, event_dict = mne.events_from_annotations(raw_haemo)
 fig = mne.viz.plot_events(events, event_id=event_dict, sfreq=raw_haemo.info["sfreq"])
-fig.subplots_adjust(right=0.7)  # make room for the legend
 
 
 # %%
@@ -239,7 +236,7 @@ epochs["Control"].plot_image(
 # pairs that we selected. All the channels in this data are located over the
 # motor cortex, and all channels show a similar pattern in the data.
 
-fig, axes = plt.subplots(nrows=2, ncols=2, figsize=(15, 6))
+fig, axes = plt.subplots(nrows=2, ncols=2, figsize=(15, 6), layout="constrained")
 clims = dict(hbo=[-20, 20], hbr=[-20, 20])
 epochs["Control"].average().plot_image(axes=axes[:, 0], clim=clims)
 epochs["Tapping"].average().plot_image(axes=axes[:, 1], clim=clims)
@@ -309,7 +306,11 @@ epochs["Tapping/Right"].average(picks="hbr").plot_topomap(times=times, **topomap
 # And we can plot the comparison at a single time point for two conditions.
 
 fig, axes = plt.subplots(
-    nrows=2, ncols=4, figsize=(9, 5), gridspec_kw=dict(width_ratios=[1, 1, 1, 0.1])
+    nrows=2,
+    ncols=4,
+    figsize=(9, 5),
+    gridspec_kw=dict(width_ratios=[1, 1, 1, 0.1]),
+    layout="constrained",
 )
 vlim = (-8, 8)
 ts = 9.0
@@ -342,13 +343,12 @@ evoked_diff.plot_topomap(
 for column, condition in enumerate(["Tapping Left", "Tapping Right", "Left-Right"]):
     for row, chroma in enumerate(["HbO", "HbR"]):
         axes[row, column].set_title("{}: {}".format(chroma, condition))
-fig.tight_layout()
 
 # %%
 # Lastly, we can also look at the individual waveforms to see what is
 # driving the topographic plot above.
 
-fig, axes = plt.subplots(nrows=1, ncols=1, figsize=(6, 4))
+fig, axes = plt.subplots(nrows=1, ncols=1, figsize=(6, 4), layout="constrained")
 mne.viz.plot_evoked_topo(
     epochs["Left"].average(picks="hbo"), color="b", axes=axes, legend=False
 )

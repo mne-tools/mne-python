@@ -41,6 +41,6 @@ def test_adjacency_equiv(shape):
     # eventually we might want to keep these as 1's but it's easy enough
     # with a .astype(bool) (also matches sklearn output) so let's leave it
     # for now
-    assert np.in1d(conn, [0, 1, 2, 3]).all()
+    assert np.isin(conn, [0, 1, 2, 3]).all()
     assert conn.shape == conn_sk.shape
     assert_array_equal(conn, conn_sk)

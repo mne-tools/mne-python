@@ -1,4 +1,5 @@
 # Authors: Denis Engemann <denis.engemann@gmail.com>
+#          Ana Radanovic <radanovica@protonmail.com>
 #
 # License: BSD-3-Clause
 
@@ -191,10 +192,14 @@ def _interpolate_bads_meeg(
     eeg=True,
     ref_meg=False,
     exclude=(),
+    *,
+    method=None,
     verbose=None,
 ):
     from ..forward import _map_meg_or_eeg_channels
 
+    if method is None:
+        method = {"meg": "MNE", "eeg": "MNE"}
     bools = dict(meg=meg, eeg=eeg)
     info = _simplify_info(inst.info)
     for ch_type, do in bools.items():
@@ -210,9 +215,15 @@ def _interpolate_bads_meeg(
             continue
         # select the bad channels to be interpolated
         picks_bad = pick_channels(inst.info["ch_names"], bads_type, exclude=[])
+
+        if method[ch_type] == "nan":
+            inst._data[picks_bad] = np.nan
+            continue
+
+        # do MNE based interpolation
         if ch_type == "eeg":
             picks_to = picks_type
-            bad_sel = np.in1d(picks_type, picks_bad)
+            bad_sel = np.isin(picks_type, picks_bad)
         else:
             picks_to = picks_bad
             bad_sel = slice(None)
@@ -243,7 +254,7 @@ def _interpolate_bads_nirs(inst, method="nearest", exclude=(), verbose=None):
     chs = [inst.info["chs"][i] for i in picks_nirs]
     locs3d = np.array([ch["loc"][:3] for ch in chs])
 
-    _check_option("fnirs_method", method, ["nearest"])
+    _check_option("fnirs_method", method, ["nearest", "nan"])
 
     if method == "nearest":
         dist = pdist(locs3d)
@@ -258,7 +269,10 @@ def _interpolate_bads_nirs(inst, method="nearest", exclude=(), verbose=None):
             # Find closest remaining channels for same frequency
             closest_idx = np.argmin(dists_to_bad) + (bad % 2)
             inst._data[bad] = inst._data[closest_idx]
-
-        inst.info["bads"] = [ch for ch in inst.info["bads"] if ch in exclude]
+    else:
+        assert method == "nan"
+        inst._data[picks_bad] = np.nan
+    # TODO: this seems like a bug because it does not respect reset_bads
+    inst.info["bads"] = [ch for ch in inst.info["bads"] if ch in exclude]
 
     return inst

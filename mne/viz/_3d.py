@@ -9,6 +9,7 @@
 #
 # License: Simplified BSD
 
+from collections import defaultdict
 import os
 import os.path as op
 import warnings
@@ -83,17 +84,14 @@ from ..utils import (
     _check_option,
     _to_rgb,
 )
-from ._3d_overlay import _LayeredMesh
 from .utils import (
-    mne_analyze_colormap,
     _get_color_list,
     _get_cmap,
     plt_show,
-    tight_layout,
     figure_nobar,
     _check_time_unit,
 )
-
+from .evoked_field import EvokedField
 
 verbose_dec = verbose
 FIDUCIAL_ORDER = (FIFF.FIFFV_POINT_LPA, FIFF.FIFFV_POINT_NASION, FIFF.FIFFV_POINT_RPA)
@@ -315,7 +313,9 @@ def plot_head_positions(
         from mpl_toolkits.mplot3d.art3d import Line3DCollection
         from mpl_toolkits.mplot3d import Axes3D  # noqa: F401, analysis:ignore
 
-        fig, ax = plt.subplots(1, subplot_kw=dict(projection="3d"))
+        fig, ax = plt.subplots(
+            1, subplot_kw=dict(projection="3d"), layout="constrained"
+        )
 
         # First plot the trajectory as a colormap:
         # http://matplotlib.org/examples/pylab_examples/multicolored_line.html
@@ -375,7 +375,6 @@ def plot_head_positions(
         ax.set(xlabel="x", ylabel="y", zlabel="z", xlim=xlim, ylim=ylim, zlim=zlim)
         _set_aspect_equal(ax)
         ax.view_init(30, 45)
-    tight_layout(fig=fig)
     plt_show(show)
     return fig
 
@@ -400,7 +399,11 @@ def plot_evoked_field(
     vmax=None,
     n_contours=21,
     *,
+    show_density=True,
+    alpha=None,
+    interpolation="nearest",
     interaction="terrain",
+    time_viewer="auto",
     verbose=None,
 ):
     """Plot MEG/EEG fields on head surface and helmet in 3D.
@@ -417,149 +420,79 @@ def plot_evoked_field(
     time_label : str | None
         How to print info about the time instant visualized.
     %(n_jobs)s
-    fig : instance of Figure3D | None
+    fig : Figure3D | mne.viz.Brain | None
         If None (default), a new figure will be created, otherwise it will
         plot into the given figure.
 
         .. versionadded:: 0.20
-    vmax : float | None
-        Maximum intensity. Can be None to use the max(abs(data)).
+        .. versionadded:: 1.4
+            ``fig`` can also be a ``Brain`` figure.
+    vmax : float | dict | None
+        Maximum intensity. Can be a dictionary with two entries ``"eeg"`` and ``"meg"``
+        to specify separate values for EEG and MEG fields respectively. Can be
+        ``None`` to use the maximum value of the data.
 
         .. versionadded:: 0.21
+        .. versionadded:: 1.4
+            ``vmax`` can be a dictionary to specify separate values for EEG and
+            MEG fields.
     n_contours : int
         The number of contours.
 
         .. versionadded:: 0.21
+    show_density : bool
+        Whether to draw the field density as an overlay on top of the helmet/head
+        surface. Defaults to ``True``.
+
+        .. versionadded:: 1.6
+    alpha : float | dict | None
+        Opacity of the meshes (between 0 and 1). Can be a dictionary with two
+        entries ``"eeg"`` and ``"meg"`` to specify separate values for EEG and
+        MEG fields respectively. Can be ``None`` to use 1.0 when a single field
+        map is shown, or ``dict(eeg=1.0, meg=0.5)`` when both field maps are shown.
+
+        .. versionadded:: 1.4
+    %(interpolation_brain_time)s
+
+        .. versionadded:: 1.6
     %(interaction_scene)s
         Defaults to ``'terrain'``.
 
         .. versionadded:: 1.1
+    time_viewer : bool | str
+        Display time viewer GUI. Can also be ``"auto"``, which will mean
+        ``True`` if there is more than one time point and ``False`` otherwise.
+
+        .. versionadded:: 1.6
     %(verbose)s
 
     Returns
     -------
-    fig : instance of Figure3D
-        The figure.
+    fig : Figure3D | mne.viz.EvokedField
+        Without the time viewer active, the figure is returned. With the time
+        viewer active, an object is returned that can be used to control
+        different aspects of the figure.
     """
-    # Update the backend
-    from .backends.renderer import _get_renderer
-
-    types = [t for t in ["eeg", "grad", "mag"] if t in evoked]
-    _validate_type(vmax, (None, "numeric"), "vmax")
-    n_contours = _ensure_int(n_contours, "n_contours")
-    _check_option("interaction", interaction, ["trackball", "terrain"])
-
-    time_idx = None
-    if time is None:
-        time = np.mean([evoked.get_peak(ch_type=t)[1] for t in types])
-    del types
-
-    if not evoked.times[0] <= time <= evoked.times[-1]:
-        raise ValueError("`time` (%0.3f) must be inside `evoked.times`" % time)
-    time_idx = np.argmin(np.abs(evoked.times - time))
-
-    # Plot them
-    alphas = [1.0, 0.5]
-    colors = [(0.6, 0.6, 0.6), (1.0, 1.0, 1.0)]
-    colormap = mne_analyze_colormap(format="vtk")
-    colormap_lines = np.concatenate(
-        [
-            np.tile([0.0, 0.0, 255.0, 255.0], (127, 1)),
-            np.tile([0.0, 0.0, 0.0, 255.0], (2, 1)),
-            np.tile([255.0, 0.0, 0.0, 255.0], (127, 1)),
-        ]
+    ef = EvokedField(
+        evoked,
+        surf_maps,
+        time=time,
+        time_label=time_label,
+        n_jobs=n_jobs,
+        fig=fig,
+        vmax=vmax,
+        n_contours=n_contours,
+        alpha=alpha,
+        show_density=show_density,
+        interpolation=interpolation,
+        interaction=interaction,
+        time_viewer=time_viewer,
+        verbose=verbose,
     )
-
-    renderer = _get_renderer(fig, bgcolor=(0.0, 0.0, 0.0), size=(600, 600))
-    renderer.set_interaction(interaction)
-
-    for ii, this_map in enumerate(surf_maps):
-        surf = this_map["surf"]
-        map_data = this_map["data"]
-        map_type = this_map["kind"]
-        map_ch_names = this_map["ch_names"]
-
-        if map_type == "eeg":
-            pick = pick_types(evoked.info, meg=False, eeg=True)
-        else:
-            pick = pick_types(evoked.info, meg=True, eeg=False, ref_meg=False)
-
-        ch_names = [evoked.ch_names[k] for k in pick]
-
-        set_ch_names = set(ch_names)
-        set_map_ch_names = set(map_ch_names)
-        if set_ch_names != set_map_ch_names:
-            message = ["Channels in map and data do not match."]
-            diff = set_map_ch_names - set_ch_names
-            if len(diff):
-                message += ["%s not in data file. " % list(diff)]
-            diff = set_ch_names - set_map_ch_names
-            if len(diff):
-                message += ["%s not in map file." % list(diff)]
-            raise RuntimeError(" ".join(message))
-
-        data = np.dot(map_data, evoked.data[pick, time_idx])
-
-        # Make a solid surface
-        if vmax is None:
-            vmax = np.max(np.abs(data))
-        vmax = float(vmax)
-        alpha = alphas[ii]
-        mesh = _LayeredMesh(
-            renderer=renderer,
-            vertices=surf["rr"],
-            triangles=surf["tris"],
-            normals=surf["nn"],
-        )
-        mesh.map()
-        color = _to_rgb(colors[ii], alpha=True)
-        cmap = np.array(
-            [
-                (
-                    0,
-                    0,
-                    0,
-                    0,
-                ),
-                color,
-            ]
-        )
-        ctable = np.round(cmap * 255).astype(np.uint8)
-        mesh.add_overlay(
-            scalars=np.ones(len(data)),
-            colormap=ctable,
-            rng=[0, 1],
-            opacity=alpha,
-            name="surf",
-        )
-        # Now show our field pattern
-        mesh.add_overlay(
-            scalars=data,
-            colormap=colormap,
-            rng=[-vmax, vmax],
-            opacity=1.0,
-            name="field",
-        )
-
-        # And the field lines on top
-        if n_contours > 0:
-            renderer.contour(
-                surface=surf,
-                scalars=data,
-                contours=n_contours,
-                vmin=-vmax,
-                vmax=vmax,
-                opacity=alpha,
-                colormap=colormap_lines,
-            )
-
-    if time_label is not None:
-        if "%" in time_label:
-            time_label %= 1e3 * evoked.times[time_idx]
-        renderer.text2d(x_window=0.01, y_window=0.01, text=time_label)
-    renderer.set_camera(azimuth=10, elevation=60)
-    renderer.show()
-    return renderer.scene()
+    if ef.time_viewer:
+        return ef
+    else:
+        return ef._renderer.scene()
 
 
 @verbose
@@ -672,11 +605,10 @@ def plot_alignment(
         .. versionadded:: 0.16
         .. versionchanged:: 1.0
            Defaults to ``'terrain'``.
-    sensor_colors : array-like | None
-        Colors to use for the sensor glyphs. Can be list-like of color strings
-        (length ``n_sensors``) or array-like of RGB(A) values (shape
-        ``(n_sensors, 3)`` or ``(n_sensors, 4)``). ``None`` (the default) uses
-        the default sensor colors for the :func:`~mne.viz.plot_alignment` GUI.
+    %(sensor_colors)s
+
+        .. versionchanged:: 1.6
+            Support for passing a ``dict`` was added.
     %(verbose)s
 
     Returns
@@ -1505,29 +1437,16 @@ def _plot_sensors(
     sensor_colors=None,
 ):
     """Render sensors in a 3D scene."""
+    from matplotlib.colors import to_rgba_array
+
     defaults = DEFAULTS["coreg"]
     ch_pos, sources, detectors = _ch_pos_in_coord_frame(
         pick_info(info, picks), to_cf_t=to_cf_t, warn_meg=warn_meg
     )
 
-    actors = dict(
-        meg=list(),
-        ref_meg=list(),
-        eeg=list(),
-        fnirs=list(),
-        ecog=list(),
-        seeg=list(),
-        dbs=list(),
-    )
-    locs = dict(
-        eeg=list(),
-        fnirs=list(),
-        ecog=list(),
-        seeg=list(),
-        source=list(),
-        detector=list(),
-    )
-    scalar = 1 if units == "m" else 1e3
+    actors = defaultdict(lambda: list())
+    locs = defaultdict(lambda: list())
+    unit_scalar = 1 if units == "m" else 1e3
     for ch_name, ch_coord in ch_pos.items():
         ch_type = channel_type(info, info.ch_names.index(ch_name))
         # for default picking
@@ -1539,46 +1458,75 @@ def _plot_sensors(
         plot_sensors = (ch_type != "fnirs" or "channels" in fnirs) and (
             ch_type != "eeg" or "original" in eeg
         )
-        color = defaults[ch_type + "_color"]
         # plot sensors
         if isinstance(ch_coord, tuple):  # is meg, plot coil
-            verts, triangles = ch_coord
-            actor, _ = renderer.surface(
-                surface=dict(rr=verts * scalar, tris=triangles),
-                color=color,
-                opacity=0.25,
-                backface_culling=True,
-            )
-            actors[ch_type].append(actor)
-        else:
-            if plot_sensors:
-                locs[ch_type].append(ch_coord)
+            ch_coord = dict(rr=ch_coord[0] * unit_scalar, tris=ch_coord[1])
+        if plot_sensors:
+            locs[ch_type].append(ch_coord)
         if ch_name in sources and "sources" in fnirs:
             locs["source"].append(sources[ch_name])
         if ch_name in detectors and "detectors" in fnirs:
             locs["detector"].append(detectors[ch_name])
+        # Plot these now
         if ch_name in sources and ch_name in detectors and "pairs" in fnirs:
             actor, _ = renderer.tube(  # array of origin and dest points
-                origin=sources[ch_name][np.newaxis] * scalar,
-                destination=detectors[ch_name][np.newaxis] * scalar,
-                radius=0.001 * scalar,
+                origin=sources[ch_name][np.newaxis] * unit_scalar,
+                destination=detectors[ch_name][np.newaxis] * unit_scalar,
+                radius=0.001 * unit_scalar,
             )
             actors[ch_type].append(actor)
+            del ch_type
 
-    # add sensors
-    for sensor_type in locs.keys():
-        if len(locs[sensor_type]) > 0:
-            sens_loc = np.array(locs[sensor_type])
-            sens_loc = sens_loc[~np.isnan(sens_loc).any(axis=1)]
-            scale = defaults[sensor_type + "_scale"]
-            if sensor_colors is None:
-                color = defaults[sensor_type + "_color"]
+    # now actually plot the sensors
+    extra = ""
+    types = (dict, None)
+    if len(locs) == 0:
+        return
+    elif len(locs) == 1:
+        # Upsample from array-like to dict when there is one channel type
+        extra = "(or array-like since only one sensor type is plotted)"
+        if sensor_colors is not None and not isinstance(sensor_colors, dict):
+            sensor_colors = {
+                list(locs)[0]: to_rgba_array(sensor_colors),
+            }
+    else:
+        extra = f"when more than one channel type ({list(locs)}) is plotted"
+    _validate_type(sensor_colors, types, "sensor_colors", extra=extra)
+    del extra, types
+    if sensor_colors is None:
+        sensor_colors = dict()
+    assert isinstance(sensor_colors, dict)
+    for ch_type, sens_loc in locs.items():
+        assert len(sens_loc)  # should be guaranteed above
+        colors = to_rgba_array(sensor_colors.get(ch_type, defaults[ch_type + "_color"]))
+        _check_option(
+            f"len(sensor_colors[{repr(ch_type)}])",
+            colors.shape[0],
+            (len(sens_loc), 1),
+        )
+        scale = defaults[ch_type + "_scale"] * unit_scalar
+        if isinstance(sens_loc[0], dict):  # meg coil
+            if len(colors) == 1:
+                colors = [colors[0]] * len(sens_loc)
+            for surface, color in zip(sens_loc, colors):
+                actor, _ = renderer.surface(
+                    surface=surface,
+                    color=color[:3],
+                    opacity=sensor_opacity * color[3],
+                    backface_culling=False,  # visible from all sides
+                )
+                actors[ch_type].append(actor)
+        else:
+            sens_loc = np.array(sens_loc, float)
+            mask = ~np.isnan(sens_loc).any(axis=1)
+            if len(colors) == 1:
+                # Single color mode (one actor)
                 actor, _ = _plot_glyphs(
                     renderer=renderer,
-                    loc=sens_loc * scalar,
-                    color=color,
-                    scale=scale * scalar,
-                    opacity=sensor_opacity,
+                    loc=sens_loc[mask] * unit_scalar,
+                    color=colors[0, :3],
+                    scale=scale,
+                    opacity=sensor_opacity * colors[0, 3],
                     orient_glyphs=orient_glyphs,
                     scale_by_distance=scale_by_distance,
                     project_points=project_points,
@@ -1586,31 +1534,18 @@ def _plot_sensors(
                     check_inside=check_inside,
                     nearest=nearest,
                 )
-                if sensor_type in ("source", "detector"):
-                    sensor_type = "fnirs"
-                actors[sensor_type].append(actor)
+                actors[ch_type].append(actor)
             else:
-                actor_list = []
-                for idx_sen in range(sens_loc.shape[0]):
-                    sensor_colors = np.asarray(sensor_colors)
-                    if (
-                        sensor_colors.ndim not in (1, 2)
-                        or sensor_colors.shape[0] != sens_loc.shape[0]
-                    ):
-                        raise ValueError(
-                            "sensor_colors should either be None or be "
-                            "array-like with shape (n_sensors,) or "
-                            "(n_sensors, 3) or (n_sensors, 4). Got shape "
-                            f"{sensor_colors.shape}."
-                        )
-                    color = sensor_colors[idx_sen]
-
+                # Multi-color mode (multiple actors)
+                for loc, color, usable in zip(sens_loc, colors, mask):
+                    if not usable:
+                        continue
                     actor, _ = _plot_glyphs(
                         renderer=renderer,
-                        loc=(sens_loc * scalar)[idx_sen, :],
-                        color=color,
-                        scale=scale * scalar,
-                        opacity=sensor_opacity,
+                        loc=loc * unit_scalar,
+                        color=color[:3],
+                        scale=scale,
+                        opacity=sensor_opacity * color[3],
                         orient_glyphs=orient_glyphs,
                         scale_by_distance=scale_by_distance,
                         project_points=project_points,
@@ -1618,40 +1553,31 @@ def _plot_sensors(
                         check_inside=check_inside,
                         nearest=nearest,
                     )
-                    actor_list.append(actor)
-                if sensor_type in ("source", "detector"):
-                    sensor_type = "fnirs"
-                actors[sensor_type].append(actor_list)
-
-    # add projected eeg
-    eeg_indices = pick_types(info, eeg=True)
-    if eeg_indices.size > 0 and "projected" in eeg:
-        logger.info("Projecting sensors to the head surface")
-        eeg_loc = np.array([ch_pos[info.ch_names[idx]] for idx in eeg_indices])
-        eeg_loc = eeg_loc[~np.isnan(eeg_loc).any(axis=1)]
-        eegp_loc, eegp_nn = _project_onto_surface(
-            eeg_loc, head_surf, project_rrs=True, return_nn=True
-        )[2:4]
-        del eeg_loc
-        eegp_loc *= scalar
-        scale = defaults["eegp_scale"] * scalar
-        actor, _ = renderer.quiver3d(
-            x=eegp_loc[:, 0],
-            y=eegp_loc[:, 1],
-            z=eegp_loc[:, 2],
-            u=eegp_nn[:, 0],
-            v=eegp_nn[:, 1],
-            w=eegp_nn[:, 2],
-            color=defaults["eegp_color"],
-            mode="cylinder",
-            scale=scale,
-            opacity=0.6,
-            glyph_height=defaults["eegp_height"],
-            glyph_center=(0.0, -defaults["eegp_height"] / 2.0, 0),
-            glyph_resolution=20,
-            backface_culling=True,
-        )
-        actors["eeg"].append(actor)
+                    actors[ch_type].append(actor)
+        if ch_type == "eeg" and "projected" in eeg:
+            logger.info("Projecting sensors to the head surface")
+            eegp_loc, eegp_nn = _project_onto_surface(
+                sens_loc[mask], head_surf, project_rrs=True, return_nn=True
+            )[2:4]
+            eegp_loc *= unit_scalar
+            actor, _ = renderer.quiver3d(
+                x=eegp_loc[:, 0],
+                y=eegp_loc[:, 1],
+                z=eegp_loc[:, 2],
+                u=eegp_nn[:, 0],
+                v=eegp_nn[:, 1],
+                w=eegp_nn[:, 2],
+                color=defaults["eegp_color"],
+                mode="cylinder",
+                scale=defaults["eegp_scale"] * unit_scalar,
+                opacity=0.6,
+                glyph_height=defaults["eegp_height"],
+                glyph_center=(0.0, -defaults["eegp_height"] / 2.0, 0),
+                glyph_resolution=20,
+                backface_culling=True,
+            )
+            actors["eeg"].append(actor)
+    actors = dict(actors)  # get rid of defaultdict
 
     return actors
 
@@ -1975,7 +1901,7 @@ def _key_pressed_slider(event, params):
     time_viewer.slider.set_val(this_time)
 
 
-def _smooth_plot(this_time, params):
+def _smooth_plot(this_time, params, *, draw=True):
     """Smooth source estimate data and plot with mpl."""
     from ..morph import _hemi_morph
 
@@ -2031,7 +1957,8 @@ def _smooth_plot(this_time, params):
     _set_aspect_equal(ax)
     ax.axis("off")
     ax.set(xlim=[-80, 80], ylim=(-80, 80), zlim=[-80, 80])
-    ax.figure.canvas.draw()
+    if draw:
+        ax.figure.canvas.draw()
 
 
 def _plot_mpl_stc(
@@ -2096,7 +2023,8 @@ def _plot_mpl_stc(
     del transparent, mapdata
 
     time_label, times = _handle_time(time_label, time_unit, stc.times)
-    fig = plt.figure(figsize=(6, 6)) if figure is None else figure
+    # don't use constrained layout because Axes3D does not play well with it
+    fig = plt.figure(figsize=(6, 6), layout=None) if figure is None else figure
     try:
         ax = Axes3D(fig, auto_add_to_figure=False)
     except Exception:  # old mpl
@@ -2146,7 +2074,7 @@ def _plot_mpl_stc(
         time_label=time_label,
         time_unit=time_unit,
     )
-    _smooth_plot(initial_time, params)
+    _smooth_plot(initial_time, params, draw=False)
 
     ax.view_init(**kwargs[hemi][views])
 
@@ -2174,7 +2102,6 @@ def _plot_mpl_stc(
         callback_key = partial(_key_pressed_slider, params=params)
         time_viewer.canvas.mpl_connect("key_press_event", callback_key)
 
-        time_viewer.subplots_adjust(left=0.12, bottom=0.05, right=0.75, top=0.95)
     fig.subplots_adjust(left=0.0, bottom=0.0, right=1.0, top=1.0)
 
     # add colorbar
@@ -2718,10 +2645,9 @@ def plot_volume_source_estimates(
     %(subject_none)s
         If ``None``, ``stc.subject`` will be used.
     %(subjects_dir)s
-    mode : str
-        The plotting mode to use. Either 'stat_map' (default) or 'glass_brain'.
-        For "glass_brain", activation absolute values are displayed
-        after being transformed to a standard MNI brain.
+    mode : ``'stat_map'`` | ``'glass_brain'``
+        The plotting mode to use. For ``'glass_brain'``, activation absolute values are
+        displayed after being transformed to a standard MNI brain.
     bg_img : instance of SpatialImage | str
         The background image used in the nilearn plotting function.
         Can also be a string to use the ``bg_img`` file in the subject's
@@ -2782,10 +2708,11 @@ def plot_volume_source_estimates(
     >>> morph = mne.compute_source_morph(src_sample, subject_to='fsaverage')  # doctest: +SKIP
     >>> fig = stc_vol_sample.plot(morph)  # doctest: +SKIP
     """  # noqa: E501
-    from matplotlib import pyplot as plt, colors
     import nibabel as nib
-    from ..source_estimate import VolSourceEstimate
+    from matplotlib import pyplot as plt, colors
+
     from ..morph import SourceMorph
+    from ..source_estimate import VolSourceEstimate
     from ..source_space._source_space import _ensure_src
 
     if not check_version("nilearn", "0.4"):
@@ -2813,8 +2740,9 @@ def plot_volume_source_estimates(
         level="debug",
     )
     subject = _check_subject(src_subject, subject, first_kind=kind)
-    stc_ijk = np.array(np.unravel_index(stc.vertices[0], img.shape[:3], order="F")).T
-    assert stc_ijk.shape == (len(stc.vertices[0]), 3)
+    vertices = np.hstack(stc.vertices)
+    stc_ijk = np.array(np.unravel_index(vertices, img.shape[:3], order="F")).T
+    assert stc_ijk.shape == (vertices.size, 3)
     del kind
 
     # XXX this assumes zooms are uniform, should probably mult by zooms...
@@ -2824,12 +2752,11 @@ def plot_volume_source_estimates(
         """Convert voxel coordinates to index in stc.data."""
         ijk = _cut_coords_to_ijk(cut_coords, img)
         del cut_coords
-        logger.debug("    Affine remapped cut coords to [%d, %d, %d] idx" % tuple(ijk))
+        logger.debug("    Affine remapped cut coords to [%d, %d, %d] idx", tuple(ijk))
         dist, loc_idx = dist_to_verts.query(ijk[np.newaxis])
         dist, loc_idx = dist[0], loc_idx[0]
         logger.debug(
-            "    Using vertex %d at a distance of %d voxels"
-            % (stc.vertices[0][loc_idx], dist)
+            "    Using vertex %d at a distance of %d voxels", (vertices[loc_idx], dist)
         )
         return loc_idx
 
@@ -2916,7 +2843,7 @@ def plot_volume_source_estimates(
         plot_map_callback(params["img_idx"], title="", cut_coords=cut_coords)
 
     def _update_vertlabel(loc_idx):
-        vert_legend.get_texts()[0].set_text(f"{stc.vertices[0][loc_idx]}")
+        vert_legend.get_texts()[0].set_text(f"{vertices[loc_idx]}")
 
     @verbose_dec
     def _onclick(event, params, verbose=None):
@@ -3000,13 +2927,13 @@ def plot_volume_source_estimates(
             (stc.times[time_idx],)
             + tuple(cut_coords)
             + tuple(ijk)
-            + (stc.vertices[0][loc_idx],)
+            + (vertices[loc_idx],)
         )
     )
     del ijk
 
     # Plot initial figure
-    fig, (axes, ax_time) = plt.subplots(2)
+    fig, (axes, ax_time) = plt.subplots(2, layout="constrained")
     axes.set(xticks=[], yticks=[])
     marker = "o" if len(stc.times) == 1 else None
     ydata = stc.data[loc_idx]
@@ -3017,7 +2944,6 @@ def plot_volume_source_estimates(
     vert_legend = ax_time.legend([h], [""], title="Vertex")
     _update_vertlabel(loc_idx)
     lx = ax_time.axvline(stc.times[time_idx], color="g")
-    fig.tight_layout()
 
     allow_pos_lims = mode != "glass_brain"
     mapdata = _process_clim(clim, colormap, transparent, stc.data, allow_pos_lims)
@@ -3114,8 +3040,7 @@ def plot_volume_source_estimates(
 
     plot_and_correct(stat_map_img=params["img_idx"], title="", cut_coords=cut_coords)
 
-    if show:
-        plt.show()
+    plt_show(show)
     fig.canvas.mpl_connect(
         "button_press_event", partial(_onclick, params=params, verbose=verbose)
     )
@@ -3460,13 +3385,12 @@ def plot_sparse_source_estimates(
         color=brain_color,
         opacity=opacity,
         backface_culling=True,
-        shading=True,
         normals=normals,
         **kwargs,
     )
 
     # Show time courses
-    fig = plt.figure(fig_number)
+    fig = plt.figure(fig_number, layout="constrained")
     fig.clf()
     ax = fig.add_subplot(111)
 
@@ -3533,6 +3457,7 @@ def plot_sparse_source_estimates(
     plt_show(show)
 
     renderer.show()
+    renderer.set_camera(distance="auto", focalpoint="auto")
     return renderer.scene()
 
 
@@ -3832,7 +3757,9 @@ def _plot_dipole_mri_orthoview(
     dims = len(data)  # Symmetric size assumed.
     dd = dims // 2
     if ax is None:
-        fig, ax = plt.subplots(1, subplot_kw=dict(projection="3d"))
+        fig, ax = plt.subplots(
+            1, subplot_kw=dict(projection="3d"), layout="constrained"
+        )
     else:
         _validate_type(ax, Axes3D, "ax", "Axes3D", extra='when mode is "orthoview"')
         fig = ax.get_figure()

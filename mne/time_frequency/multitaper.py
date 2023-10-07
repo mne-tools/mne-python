@@ -5,6 +5,7 @@
 
 import numpy as np
 from scipy.fft import rfft, rfftfreq
+from scipy.integrate import trapezoid
 from scipy.signal import get_window
 from scipy.signal.windows import dpss as sp_dpss
 
@@ -116,7 +117,7 @@ def _psd_from_mt_adaptive(x_mt, eigvals, freq_mask, max_iter=250, return_weights
 
     # estimate the variance from an estimate with fixed weights
     psd_est = _psd_from_mt(x_mt, rt_eig[np.newaxis, :, np.newaxis])
-    x_var = np.trapz(psd_est, dx=np.pi / n_freqs) / (2 * np.pi)
+    x_var = trapezoid(psd_est, dx=np.pi / n_freqs) / (2 * np.pi)
     del psd_est
 
     # allocate space for output
@@ -335,12 +336,12 @@ def psd_array_multitaper(
     n_jobs=None,
     *,
     max_iter=150,
-    verbose=None
+    verbose=None,
 ):
     r"""Compute power spectral density (PSD) using a multi-taper method.
 
     The power spectral density is computed with DPSS
-    tapers\ :footcite:p:`Slepian1978`.
+    tapers :footcite:p:`Slepian1978`.
 
     Parameters
     ----------
@@ -474,7 +475,7 @@ def tfr_array_multitaper(
     output="complex",
     n_jobs=None,
     *,
-    verbose=None
+    verbose=None,
 ):
     """Compute Time-Frequency Representation (TFR) using DPSS tapers.
 
@@ -533,7 +534,8 @@ def tfr_array_multitaper(
 
     Notes
     -----
-    %(temporal-window_tfr_notes)s
+    %(temporal_window_tfr_intro)s
+    %(temporal_window_tfr_multitaper_notes)s
     %(time_bandwidth_tfr_notes)s
 
     .. versionadded:: 0.14.0

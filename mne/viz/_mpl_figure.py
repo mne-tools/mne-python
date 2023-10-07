@@ -118,7 +118,7 @@ class MNEFigure(Figure):
             for key in [k for k in kwargs if not hasattr(self.mne, k)]:
                 setattr(self.mne, key, kwargs[key])
 
-    def _close(self, event):
+    def _close(self, event=None):
         """Handle close events."""
         logger.debug(f"Closing {self!r}")
         # remove references from parent fig to child fig
@@ -333,7 +333,7 @@ class MNESelectionFigure(MNEFigure):
         if not len(chs):
             return
         labels = [label.get_text() for label in buttons.labels]
-        inds = np.in1d(parent.mne.ch_names, chs)
+        inds = np.isin(parent.mne.ch_names, chs)
         parent.mne.ch_selections["Custom"] = inds.nonzero()[0]
         buttons.set_active(labels.index("Custom"))
 
@@ -886,9 +886,15 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         fig = super()._create_ch_context_fig(idx)
         plt_show(fig=fig)
 
-    def _new_child_figure(self, fig_name, **kwargs):
+    def _new_child_figure(self, fig_name, *, layout=None, **kwargs):
         """Instantiate a new MNE dialog figure (with event listeners)."""
-        fig = _figure(toolbar=False, parent_fig=self, fig_name=fig_name, **kwargs)
+        fig = _figure(
+            toolbar=False,
+            parent_fig=self,
+            fig_name=fig_name,
+            layout=layout,
+            **kwargs,
+        )
         fig._add_default_callbacks()
         self.mne.child_figs.append(fig)
         if isinstance(fig_name, str):
@@ -1545,7 +1551,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
 
     def _update_highlighted_sensors(self):
         """Update the sensor plot to show what is selected."""
-        inds = np.in1d(
+        inds = np.isin(
             self.mne.fig_selection.lasso.ch_names, self.mne.ch_names[self.mne.picks]
         ).nonzero()[0]
         self.mne.fig_selection.lasso.select_many(inds)
@@ -1558,7 +1564,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         for this_type in _DATA_CH_TYPES_SPLIT:
             if this_type in self.mne.ch_types:
                 sensor_picks.extend(ch_indices[this_type])
-        sensor_idx = np.in1d(sensor_picks, pick).nonzero()[0]
+        sensor_idx = np.isin(sensor_picks, pick).nonzero()[0]
         # change the sensor color
         fig = self.mne.fig_selection
         fig.lasso.ec[sensor_idx, 0] = float(mark_bad)  # change R of RGBA array
@@ -1870,7 +1876,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         if self.mne.butterfly and self.mne.fig_selection is not None:
             exclude = ("Vertex", "Custom")
             ticklabels = list(self.mne.ch_selections)
-            keep_mask = np.in1d(ticklabels, exclude, invert=True)
+            keep_mask = np.isin(ticklabels, exclude, invert=True)
             ticklabels = [
                 t.replace("Left-", "L-").replace("Right-", "R-") for t in ticklabels
             ]  # avoid having to rotate labels
@@ -2003,7 +2009,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
             else slice(None)
         )
         offsets = self.mne.trace_offsets[offset_ixs]
-        bad_bool = np.in1d(ch_names, self.mne.info["bads"])
+        bad_bool = np.isin(ch_names, self.mne.info["bads"])
         # colors
         good_ch_colors = [self.mne.ch_color_dict[_type] for _type in ch_types]
         ch_colors = to_rgba_array(
@@ -2022,7 +2028,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
                 label.set_color(color)
         # decim
         decim = np.ones_like(picks)
-        data_picks_mask = np.in1d(picks, self.mne.picks_data)
+        data_picks_mask = np.isin(picks, self.mne.picks_data)
         decim[data_picks_mask] = self.mne.decim
         # decim can vary by channel type, so compute different `times` vectors
         decim_times = {
@@ -2049,7 +2055,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
             epoch_ix = np.searchsorted(self.mne.boundary_times, time_range)
             epoch_ix = np.arange(epoch_ix[0], epoch_ix[1])
             epoch_nums = self.mne.inst.selection[epoch_ix[0] : epoch_ix[-1] + 1]
-            (visible_bad_epoch_ix,) = np.in1d(epoch_nums, self.mne.bad_epochs).nonzero()
+            (visible_bad_epoch_ix,) = np.isin(epoch_nums, self.mne.bad_epochs).nonzero()
             while len(self.mne.epoch_traces):
                 self.mne.epoch_traces.pop(-1).remove()
             # handle custom epoch colors (for autoreject integration)
@@ -2324,8 +2330,8 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
 class MNELineFigure(MNEFigure):
     """Interactive figure for non-scrolling line plots."""
 
-    def __init__(self, inst, n_axes, figsize, **kwargs):
-        super().__init__(figsize=figsize, inst=inst, **kwargs)
+    def __init__(self, inst, n_axes, figsize, *, layout=None, **kwargs):
+        super().__init__(figsize=figsize, inst=inst, layout=layout, **kwargs)
 
         # AXES: default margins (inches)
         l_margin = 0.8
@@ -2372,6 +2378,8 @@ def _figure(toolbar=True, FigureClass=MNEFigure, **kwargs):
     from matplotlib import rc_context
 
     title = kwargs.pop("window_title", None)  # extract title before init
+    if "layout" not in kwargs:
+        kwargs["layout"] = "constrained"
     rc = dict() if toolbar else dict(toolbar="none")
     with rc_context(rc=rc):
         fig = plt.figure(FigureClass=FigureClass, **kwargs)
@@ -2379,6 +2387,14 @@ def _figure(toolbar=True, FigureClass=MNEFigure, **kwargs):
     fig.mne.backend = BACKEND
     if title is not None:
         _set_window_title(fig, title)
+    # TODO: for some reason for topomaps->_prepare_trellis the layout=constrained does
+    # not work the first time (maybe toolbar=False?)
+    if kwargs.get("layout") == "constrained":
+        if hasattr(fig, "set_layout_engine"):  # 3.6+
+            fig.set_layout_engine("constrained")
+        else:
+            fig.set_constrained_layout(True)
+
     # add event callbacks
     fig._add_default_callbacks()
     return fig
@@ -2409,6 +2425,7 @@ def _line_figure(inst, axes=None, picks=None, **kwargs):
             FigureClass=MNELineFigure,
             figsize=figsize,
             n_axes=n_axes,
+            layout=None,
             **kwargs,
         )
         fig.mne.fig_size_px = fig._get_size_px()  # can't do in __init__
@@ -2483,7 +2500,7 @@ def _init_browser(**kwargs):
     """Instantiate a new MNE browse-style figure."""
     from mne.io import BaseRaw
 
-    fig = _figure(toolbar=False, FigureClass=MNEBrowseFigure, **kwargs)
+    fig = _figure(toolbar=False, FigureClass=MNEBrowseFigure, layout=None, **kwargs)
 
     # splash is ignored (maybe we could do it for mpl if we get_backend() and
     # check if it's Qt... but seems overkill)

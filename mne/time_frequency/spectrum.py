@@ -300,6 +300,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         tmin,
         tmax,
         picks,
+        exclude,
         proj,
         remove_dc,
         *,
@@ -317,11 +318,19 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         # method
         self._inst_type = type(inst)
         method = _validate_method(method, self._get_instance_type_string())
-
+        # don't allow complex output
+        psd_funcs = dict(welch=psd_array_welch, multitaper=psd_array_multitaper)
+        if method_kw.get("output", "") == "complex":
+            warn(
+                f"Complex output support in {type(self).__name__} objects is "
+                "deprecated and will be removed in version 1.7. If you need complex "
+                f"output please use mne.time_frequency.{psd_funcs[method].__name__}() "
+                "instead.",
+                FutureWarning,
+            )
         # triage method and kwargs. partial() doesn't check validity of kwargs,
         # so we do it manually to save compute time if any are invalid.
-        psd_funcs = dict(welch=psd_array_welch, multitaper=psd_array_multitaper)
-        invalid_ix = np.in1d(
+        invalid_ix = np.isin(
             list(method_kw), list(signature(psd_funcs[method]).parameters), invert=True
         )
         if invalid_ix.any():
@@ -340,7 +349,9 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
 
         # prep times and picks
         self._time_mask = _time_mask(inst.times, tmin, tmax, sfreq=self.sfreq)
-        self._picks = _picks_to_idx(inst.info, picks, "data", with_ref_meg=False)
+        self._picks = _picks_to_idx(
+            inst.info, picks, "data", exclude, with_ref_meg=False
+        )
 
         # add the info object. bads and non-data channels were dropped by
         # _picks_to_idx() so we update the info accordingly:
@@ -731,7 +742,6 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
             sphere=sphere,
             xlabels_list=xlabels_list,
         )
-        fig.subplots_adjust(hspace=0.3)
         plt_show(show, fig)
         return fig
 
@@ -1073,6 +1083,7 @@ class Spectrum(BaseSpectrum):
     %(fmin_fmax_psd)s
     %(tmin_tmax_psd)s
     %(picks_good_data_noref)s
+    %(exclude_psd)s
     %(proj_psd)s
     %(remove_dc)s
     %(reject_by_annotation_psd)s
@@ -1114,6 +1125,7 @@ class Spectrum(BaseSpectrum):
         tmin,
         tmax,
         picks,
+        exclude,
         proj,
         remove_dc,
         reject_by_annotation,
@@ -1137,6 +1149,7 @@ class Spectrum(BaseSpectrum):
             tmin,
             tmax,
             picks,
+            exclude,
             proj,
             remove_dc,
             n_jobs=n_jobs,
@@ -1282,6 +1295,7 @@ class EpochsSpectrum(BaseSpectrum, GetEpochsMixin):
     %(fmin_fmax_psd)s
     %(tmin_tmax_psd)s
     %(picks_good_data_noref)s
+    %(exclude_psd)s
     %(proj_psd)s
     %(remove_dc)s
     %(n_jobs)s
@@ -1319,6 +1333,7 @@ class EpochsSpectrum(BaseSpectrum, GetEpochsMixin):
         tmin,
         tmax,
         picks,
+        exclude,
         proj,
         remove_dc,
         *,
@@ -1339,6 +1354,7 @@ class EpochsSpectrum(BaseSpectrum, GetEpochsMixin):
             tmin,
             tmax,
             picks,
+            exclude,
             proj,
             remove_dc,
             n_jobs=n_jobs,
@@ -1451,6 +1467,7 @@ class EpochsSpectrum(BaseSpectrum, GetEpochsMixin):
             tmin=None,
             tmax=None,
             picks=None,
+            exclude=(),
             proj=None,
             remove_dc=None,
             reject_by_annotation=None,
@@ -1553,6 +1570,7 @@ def read_spectrum(fname):
         tmin=None,
         tmax=None,
         picks=None,
+        exclude=(),
         proj=None,
         remove_dc=None,
         reject_by_annotation=None,

@@ -14,7 +14,7 @@ from mne.time_frequency.multitaper import _psd_from_mt
 from mne.time_frequency.spectrum import SpectrumArray, EpochsSpectrumArray
 
 
-def test_spectrum_errors(raw):
+def test_compute_psd_errors(raw):
     """Test for expected errors in the .compute_psd() method."""
     with pytest.raises(ValueError, match="must not exceed ½ the sampling"):
         raw.compute_psd(fmax=raw.info["sfreq"] * 0.51)
@@ -22,6 +22,8 @@ def test_spectrum_errors(raw):
         raw.compute_psd(foo=None)
     with pytest.raises(TypeError, match="keyword arguments foo, bar for"):
         raw.compute_psd(foo=None, bar=None)
+    with pytest.warns(FutureWarning, match="Complex output support in.*deprecated"):
+        raw.compute_psd(output="complex")
 
 
 @pytest.mark.parametrize("method", ("welch", "multitaper"))
@@ -169,6 +171,16 @@ def test_spectrum_reject_by_annot(raw):
     assert spect_no_annot != spect_reject_annot
 
 
+def test_spectrum_bads_exclude(raw):
+    """Test bads are not removed unless exclude="bads"."""
+    raw.pick("mag")  # get rid of IAS channel
+    spect_no_excld = raw.compute_psd()
+    spect_with_excld = raw.compute_psd(exclude="bads")
+    assert raw.info["bads"] == spect_no_excld.info["bads"]
+    assert spect_with_excld.info["bads"] == []
+    assert set(raw.ch_names) - set(spect_with_excld.ch_names) == set(raw.info["bads"])
+
+
 def test_spectrum_getitem_raw(raw_spectrum):
     """Test Spectrum.__getitem__ for Raw-derived spectra."""
     want = raw_spectrum.get_data(slice(1, 3), fmax=7)
@@ -205,6 +217,7 @@ def _agg_helper(df, weights, group_cols):
     return Series(_df)
 
 
+@pytest.mark.filterwarnings("ignore:Complex output support.*:FutureWarning")
 @pytest.mark.parametrize("long_format", (False, True))
 @pytest.mark.parametrize(
     "method, output",
@@ -277,7 +290,7 @@ def test_spectrum_to_data_frame(inst, request, evoked):
     extra_dim = () if is_epochs else (1,)
     extra_cols = ["freq", "condition", "epoch"] if is_epochs else ["freq"]
     # compute PSD
-    spectrum = inst if is_already_psd else inst.compute_psd()
+    spectrum = inst if is_already_psd else inst.compute_psd(exclude="bads")
     n_epo, n_chan, n_freq = extra_dim + spectrum.get_data().shape
     # test wide format
     df_wide = spectrum.to_data_frame()
@@ -326,6 +339,7 @@ def test_spectrum_proj(inst, request):
     assert has_proj == no_proj
 
 
+@pytest.mark.filterwarnings("ignore:Complex output support.*:FutureWarning")
 @pytest.mark.parametrize(
     "method, average",
     [

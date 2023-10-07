@@ -835,7 +835,7 @@ class CoregistrationUI(HasTraits):
             mri_fids=self._add_mri_fiducials,
             hsp=self._add_head_shape_points,
             hpi=self._add_hpi_coils,
-            eeg=self._add_eeg_channels,
+            eeg=self._add_eeg_fnirs_channels,
             head_fids=self._add_head_fiducials,
             helmet=self._add_helmet,
         )
@@ -1217,7 +1217,7 @@ class CoregistrationUI(HasTraits):
             hsp_actors = None
         self._update_actor("head_shape_points", hsp_actors)
 
-    def _add_eeg_channels(self):
+    def _add_eeg_fnirs_channels(self):
         if self._eeg_channels:
             eeg = ["original"]
             picks = pick_types(self._info, eeg=(len(eeg) > 0), fnirs=True)
@@ -1240,8 +1240,7 @@ class CoregistrationUI(HasTraits):
                     check_inside=self._check_inside,
                     nearest=self._nearest,
                 )
-                sens_actors = actors["eeg"]
-                sens_actors.extend(actors["fnirs"])
+                sens_actors = sum(actors.values(), list())
             else:
                 sens_actors = None
         else:
