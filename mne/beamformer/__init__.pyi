@@ -14,7 +14,7 @@ __all__ = [
     "rap_music",
     "read_beamformer",
     "trap_music",
-    "alternating_projections"
+    "alternating_projections",
 ]
 from ._lcmv import (
     make_lcmv,
