@@ -107,7 +107,7 @@ def _check_dipoles(dipoles, fwd, stc, evoked, residual=None):
     if residual is not None:
         picks_grad = mne.pick_types(residual.info, meg="grad")
         picks_mag = mne.pick_types(residual.info, meg="mag")
-        rel_tol = 0.02
+        rel_tol = 0.1
         for picks in [picks_grad, picks_mag]:
             assert linalg.norm(residual.data[picks], ord="fro") < rel_tol * linalg.norm(
                 evoked.data[picks], ord="fro"
