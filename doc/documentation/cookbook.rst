@@ -13,7 +13,7 @@ References below refer to Python functions and objects.
 
 .. _flow_diagram:
 
-.. figure:: images/flow_diagram.svg
+.. figure:: ../_static/flow_diagram.svg
     :alt: MNE Workflow Flowchart
     :align: center
 

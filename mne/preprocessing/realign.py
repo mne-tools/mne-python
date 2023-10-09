@@ -29,7 +29,7 @@ def realign_raw(raw, other, t_raw, t_other, verbose=None):
     t_raw : array-like, shape (n_events,)
         The times of shared events in ``raw`` relative to ``raw.times[0]`` (0).
         Typically these could be events on some TTL channel like
-        ``find_events(raw)[:, 0] - raw.first_event``.
+        ``find_events(raw)[:, 0] - raw.first_samp``.
     t_other : array-like, shape (n_events,)
         The times of shared events in ``other`` relative to ``other.times[0]``.
     %(verbose)s

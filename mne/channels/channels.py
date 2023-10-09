@@ -830,7 +830,8 @@ class InterpolationMixin:
             .. versionadded:: 0.17
         method : dict | None
             Method to use for each channel type.
-            Currently only the key ``"eeg"`` has multiple options:
+            All channel types support "nan".
+            The key ``"eeg"`` has two additional options:
 
             - ``"spline"`` (default)
                 Use spherical spline interpolation.
@@ -838,9 +839,10 @@ class InterpolationMixin:
                 Use minimum-norm projection to a sphere and back.
                 This is the method used for MEG channels.
 
-            The value for ``"meg"`` is ``"MNE"``, and the value for
-            ``"fnirs"`` is ``"nearest"``. The default (None) is thus an alias
-            for::
+            The default value for ``"meg"`` is ``"MNE"``, and the default value
+            for ``"fnirs"`` is ``"nearest"``.
+
+            The default (None) is thus an alias for::
 
                 method=dict(meg="MNE", eeg="spline", fnirs="nearest")
 
@@ -858,6 +860,10 @@ class InterpolationMixin:
         Notes
         -----
         .. versionadded:: 0.9.0
+
+        .. warning::
+            Be careful when using ``method="nan"``; the default value
+            ``reset_bads=True`` may not be what you want.
         """
         from .interpolation import (
             _interpolate_bads_eeg,
@@ -869,9 +875,31 @@ class InterpolationMixin:
         method = _handle_default("interpolation_method", method)
         for key in method:
             _check_option("method[key]", key, ("meg", "eeg", "fnirs"))
-        _check_option("method['eeg']", method["eeg"], ("spline", "MNE"))
-        _check_option("method['meg']", method["meg"], ("MNE",))
-        _check_option("method['fnirs']", method["fnirs"], ("nearest",))
+        _check_option(
+            "method['eeg']",
+            method["eeg"],
+            (
+                "spline",
+                "MNE",
+                "nan",
+            ),
+        )
+        _check_option(
+            "method['meg']",
+            method["meg"],
+            (
+                "MNE",
+                "nan",
+            ),
+        )
+        _check_option(
+            "method['fnirs']",
+            method["fnirs"],
+            (
+                "nearest",
+                "nan",
+            ),
+        )
 
         if len(self.info["bads"]) == 0:
             warn("No bad channels to interpolate. Doing nothing...")
@@ -884,11 +912,18 @@ class InterpolationMixin:
         else:
             eeg_mne = True
         _interpolate_bads_meeg(
-            self, mode=mode, origin=origin, eeg=eeg_mne, exclude=exclude
+            self, mode=mode, origin=origin, eeg=eeg_mne, exclude=exclude, method=method
         )
-        _interpolate_bads_nirs(self, exclude=exclude)
+        _interpolate_bads_nirs(self, exclude=exclude, method=method["fnirs"])
 
         if reset_bads is True:
+            if "nan" in method.values():
+                warn(
+                    "interpolate_bads was called with method='nan' and "
+                    "reset_bads=True. Consider setting reset_bads=False so that the "
+                    "nan-containing channels can be easily excluded from later "
+                    "computations."
+                )
             self.info["bads"] = [ch for ch in self.info["bads"] if ch in exclude]
 
         return self
@@ -941,7 +976,7 @@ def rename_channels(info, mapping, allow_duplicates=False, *, verbose=None):
         raise ValueError("New channel names are not unique, renaming failed")
 
     # do the remapping in info
-    info["bads"] = bads
+    info["bads"] = []
     ch_names_mapping = dict()
     for ch, ch_name in zip(info["chs"], ch_names):
         ch_names_mapping[ch["ch_name"]] = ch_name
@@ -954,6 +989,7 @@ def rename_channels(info, mapping, allow_duplicates=False, *, verbose=None):
                 proj["data"]["col_names"], ch_names_mapping
             )
     info._update_redundant()
+    info["bads"] = bads
     info._check_consistency()
 
 
@@ -1304,8 +1340,7 @@ def read_ch_adjacency(fname, picks=None):
             You can retrieve the names of all
             built-in channel adjacencies via
             :func:`mne.channels.get_builtin_ch_adjacencies`.
-    %(picks_all)s
-        Picks must match the template.
+    %(picks_all_notypes)s
 
     Returns
     -------
@@ -1365,19 +1400,14 @@ def read_ch_adjacency(fname, picks=None):
 
     nb = loadmat(fname)["neighbours"]
     ch_names = _recursive_flatten(nb["label"], str)
-    picks = _picks_to_idx(len(ch_names), picks)
+    temp_info = create_info(ch_names, 1.0)
+    picks = _picks_to_idx(temp_info, picks, none="all")
     neighbors = [_recursive_flatten(c, str) for c in nb["neighblabel"].flatten()]
     assert len(ch_names) == len(neighbors)
     adjacency = _ch_neighbor_adjacency(ch_names, neighbors)
     # picking before constructing matrix is buggy
     adjacency = adjacency[picks][:, picks]
     ch_names = [ch_names[p] for p in picks]
-
-    # make sure MEG channel names contain space after "MEG"
-    for idx, ch_name in enumerate(ch_names):
-        if ch_name.startswith("MEG") and not ch_name[3] == " ":
-            ch_name = ch_name.replace("MEG", "MEG ")
-            ch_names[idx] = ch_name
 
     return adjacency, ch_names
 
@@ -1526,7 +1556,10 @@ def find_ch_adjacency(info, ch_type):
 
     if conn_name is not None:
         logger.info(f"Reading adjacency matrix for {conn_name}.")
-        return read_ch_adjacency(conn_name)
+        adjacency, ch_names = read_ch_adjacency(conn_name)
+        if conn_name.startswith("neuromag") and info["ch_names"][0].startswith("MEG "):
+            ch_names = [ch_name.replace("MEG", "MEG ") for ch_name in ch_names]
+        return adjacency, ch_names
     logger.info(
         "Could not find a adjacency matrix for the data. "
         "Computing adjacency based on Delaunay triangulations."

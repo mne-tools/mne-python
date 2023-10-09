@@ -147,8 +147,7 @@ F_obs, clusters, cluster_p_values, H0 = permutation_cluster_test(
 
 times = 1e3 * epochs_condition_1.times  # change unit to ms
 
-fig, (ax, ax2) = plt.subplots(2, 1, figsize=(6, 4))
-fig.subplots_adjust(0.12, 0.08, 0.96, 0.94, 0.2, 0.43)
+fig, (ax, ax2) = plt.subplots(2, 1, figsize=(6, 4), layout="constrained")
 
 # Compute the difference in evoked to determine which was greater since
 # we used a 1-way ANOVA which tested for a difference in population means

@@ -872,7 +872,7 @@ Running the test suite
     The ``--pdb`` flag will automatically start the python debugger upon test
     failure.
 
-The full test suite can be run by calling ``make test`` from the
+The full test suite can be run by calling ``pytest -m "not ultraslowtest" mne`` from the
 ``mne-python`` root folder. Testing the entire module can be quite
 slow, however, so to run individual tests while working on a new feature, you
 can run the following line::

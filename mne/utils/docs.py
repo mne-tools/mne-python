@@ -1211,6 +1211,9 @@ Valid values for ``mode`` are:
 - ``'auto'`` (default)
     Uses ``'mean_flip'`` when a standard source estimate is applied, and
     ``'mean'`` when a vector source estimate is supplied.
+- ``None``
+    No aggregation is performed, and an array of shape ``(n_vertices, n_times)`` is
+    returned.
 
     .. versionadded:: 0.21
        Support for ``'auto'``, vector, and volume source estimates.
@@ -1364,12 +1367,15 @@ exclude_frontal : bool
 _exclude_spectrum = """\
 exclude : list of str | 'bads'
     Channel names to exclude{}. If ``'bads'``, channels
-    in ``spectrum.info['bads']`` are excluded; pass an empty list or tuple to
-    plot all channels (including "bad" channels, if any).
+    in ``{}info['bads']`` are excluded; pass an empty list to
+    include all channels (including "bad" channels, if any).
 """
 
-docdict["exclude_spectrum_get_data"] = _exclude_spectrum.format("")
-docdict["exclude_spectrum_plot"] = _exclude_spectrum.format(" from being drawn")
+docdict["exclude_psd"] = _exclude_spectrum.format("", "")
+docdict["exclude_spectrum_get_data"] = _exclude_spectrum.format("", "spectrum.")
+docdict["exclude_spectrum_plot"] = _exclude_spectrum.format(
+    " from being drawn", "spectrum."
+)
 
 docdict[
     "export_edf_note"
@@ -1524,6 +1530,56 @@ extrapolate : str
         the head circle when the sensors are contained within the head circle,
         but it can extend beyond the head when sensors are plotted outside
         the head circle.
+"""
+
+docdict[
+    "eyelink_apply_offsets"
+] = """
+apply_offsets : bool (default False)
+    Adjusts the onset time of the :class:`~mne.Annotations` created from Eyelink
+    experiment messages, if offset values exist in the ASCII file. If False, any
+    offset-like values will be prepended to the annotation description.
+"""
+
+docdict[
+    "eyelink_create_annotations"
+] = """
+create_annotations : bool | list (default True)
+    Whether to create :class:`~mne.Annotations` from occular events
+    (blinks, fixations, saccades) and experiment messages. If a list, must
+    contain one or more of ``['fixations', 'saccades',' blinks', messages']``.
+    If True, creates :class:`~mne.Annotations` for both occular events and
+    experiment messages.
+"""
+
+docdict[
+    "eyelink_find_overlaps"
+] = """
+find_overlaps : bool (default False)
+    Combine left and right eye :class:`mne.Annotations` (blinks, fixations,
+    saccades) if their start times and their stop times are both not
+    separated by more than overlap_threshold.
+"""
+
+docdict[
+    "eyelink_fname"
+] = """
+fname : path-like
+    Path to the eyelink file (``.asc``)."""
+
+docdict[
+    "eyelink_overlap_threshold"
+] = """
+overlap_threshold : float (default 0.05)
+    Time in seconds. Threshold of allowable time-gap between both the start and
+    stop times of the left and right eyes. If the gap is larger than the threshold,
+    the :class:`mne.Annotations` will be kept separate (i.e. ``"blink_L"``,
+    ``"blink_R"``). If the gap is smaller than the threshold, the
+    :class:`mne.Annotations` will be merged and labeled as ``"blink_both"``.
+    Defaults to ``0.05`` seconds (50 ms), meaning that if the blink start times of
+    the left and right eyes are separated by less than 50 ms, and the blink stop
+    times of the left and right eyes are separated by less than 50 ms, then the
+    blink will be merged into a single :class:`mne.Annotations`.
 """
 
 # %%
@@ -1703,6 +1759,15 @@ fname : str
 """
 
 docdict[
+    "fname_fwd"
+] = """
+fname : path-like
+    File name to save the forward solution to. It should end with
+    ``-fwd.fif`` or ``-fwd.fif.gz`` to save to FIF, or ``-fwd.h5`` to save to
+    HDF5.
+"""
+
+docdict[
     "fnirs"
 ] = """
 fnirs : str | list | bool | None
@@ -1775,7 +1840,7 @@ that is determined by the duration of the wavelet. In MNE-Python, the duration
 of the wavelet is determined by the ``sigma`` parameter, which gives the
 standard deviation of the wavelet's Gaussian envelope (our wavelets extend to
 ±5 standard deviations to ensure values very close to zero at the endpoints).
-Some authors (e.g., :footcite:`Cohen2019`) recommend specifying and reporting
+Some authors (e.g., :footcite:t:`Cohen2019`) recommend specifying and reporting
 wavelet duration in terms of the full-width half-maximum (FWHM) of the
 wavelet's Gaussian envelope. The FWHM is related to ``sigma`` by the following
 identity: :math:`\mathrm{FWHM} = \sigma \times 2 \sqrt{2 \ln{2}}` (or the
@@ -1798,7 +1863,7 @@ to get an array of values for ``n_cycles`` that yield the desired FWHM at each
 frequency in ``freqs``.  If you want different FWHM values at each frequency,
 do the same computation with ``desired_fwhm`` as an array of the same shape as
 ``freqs``.
-"""  # noqa E501
+"""
 
 # %%
 # G
@@ -2290,7 +2355,7 @@ docdict[
 ] = """
 label_tc : array | list (or generator) of array, shape (n_labels[, n_orient], n_times)
     Extracted time course for each label and source estimate.
-"""  # noqa: E501
+"""
 
 docdict[
     "labels_eltc"
@@ -2550,8 +2615,8 @@ docdict[
 _method_psd = r"""
 method : ``'welch'`` | ``'multitaper'``{}
     Spectral estimation method. ``'welch'`` uses Welch's
-    method\ :footcite:p:`Welch1967`, ``'multitaper'`` uses DPSS
-    tapers\ :footcite:p:`Slepian1978`.{}
+    method :footcite:p:`Welch1967`, ``'multitaper'`` uses DPSS
+    tapers :footcite:p:`Slepian1978`.{}
 """
 docdict["method_plot_psd_auto"] = _method_psd.format(
     " | ``'auto'``",
@@ -2614,10 +2679,9 @@ montage_units : str
 """
 
 docdict[
-    "morlet_notes"
+    "morlet_reference"
 ] = """
-The Morlet wavelets follow the formulation in
-:footcite:`Tallon-BaudryEtAl1997`.
+The Morlet wavelets follow the formulation in :footcite:t:`Tallon-BaudryEtAl1997`.
 """
 
 docdict[
@@ -3304,11 +3368,16 @@ _picks_types = "str | array-like | slice | None"
 _picks_header = f"picks : {_picks_types}"
 _picks_desc = "Channels to include."
 _picks_int = "Slices and lists of integers will be interpreted as channel " "indices."
-_picks_str = """In lists, channel *type* strings
-    (e.g., ``['meg', 'eeg']``) will pick channels of those
-    types, channel *name* strings (e.g., ``['MEG0111', 'MEG2623']``
-    will pick the given channels. Can also be the string values
-    "all" to pick all channels, or "data" to pick :term:`data channels`.
+_picks_str_types = """channel *type* strings (e.g., ``['meg', 'eeg']``) will
+    pick channels of those types,"""
+_picks_str_names = """channel *name* strings (e.g., ``['MEG0111', 'MEG2623']``
+    will pick the given channels."""
+_picks_str_values = """Can also be the string values "all" to pick
+    all channels, or "data" to pick :term:`data channels`."""
+_picks_str = f"""In lists, {_picks_str_types} {_picks_str_names}
+    {_picks_str_values}
+    None (default) will pick"""
+_picks_str_notypes = f"""In lists, {_picks_str_names}
     None (default) will pick"""
 _reminder = (
     "Note that channels in ``info['bads']`` *will be included* if "
@@ -3319,12 +3388,17 @@ reminder_nostr = _reminder.format("")
 noref = f"(excluding reference MEG channels). {reminder}"
 picks_base = f"""{_picks_header}
     {_picks_desc} {_picks_int} {_picks_str}"""
+picks_base_notypes = f"""picks : list of int | list of str | slice | None
+    {_picks_desc} {_picks_int} {_picks_str_notypes}"""
 docdict["picks_all"] = _reflow_param_docstring(f"{picks_base} all channels. {reminder}")
 docdict["picks_all_data"] = _reflow_param_docstring(
     f"{picks_base} all data channels. {reminder}"
 )
 docdict["picks_all_data_noref"] = _reflow_param_docstring(
     f"{picks_base} all data channels {noref}"
+)
+docdict["picks_all_notypes"] = _reflow_param_docstring(
+    f"{picks_base_notypes} all channels. {reminder}"
 )
 docdict["picks_base"] = _reflow_param_docstring(picks_base)
 docdict["picks_good_data"] = _reflow_param_docstring(
@@ -3916,6 +3990,22 @@ selection : iterable | None
 """
 
 docdict[
+    "sensor_colors"
+] = """
+sensor_colors : array-like of color | dict | None
+    Colors to use for the sensor glyphs. Can be None (default) to use default colors.
+    A dict should provide the colors (values) for each channel type (keys), e.g.::
+
+        dict(eeg=eeg_colors)
+
+    Where the value (``eeg_colors`` above) can be broadcast to an array of colors with
+    length that matches the number of channels of that type, i.e., is compatible with
+    :func:`matplotlib.colors.to_rgba_array`. A few examples of this for the case above
+    are the string ``"k"``, a list of ``n_eeg`` color strings, or an NumPy ndarray of
+    shape ``(n_eeg, 3)`` or ``(n_eeg, 4)``.
+"""
+
+docdict[
     "sensors_topomap"
 ] = """
 sensors : bool | str
@@ -4098,7 +4188,7 @@ sphere : float | array-like | instance of ConductorModel | None  | 'auto' | 'eeg
 
     .. versionadded:: 0.20
     .. versionchanged:: 1.1 Added ``'eeglab'`` option.
-"""  # noqa E501
+"""
 
 docdict[
     "split_naming"
@@ -4358,8 +4448,8 @@ tail : int
 """
 
 docdict[
-    "temporal-window_tfr_notes"
-] = r"""
+    "temporal_window_tfr_intro"
+] = """
 In spectrotemporal analysis (as with traditional fourier methods),
 the temporal and spectral resolution are interrelated: longer temporal windows
 allow more precise frequency estimates; shorter temporal windows "smear"
@@ -4377,10 +4467,34 @@ decrease with frequency, the temporal smoothing decreases and the frequency
 smoothing increases with frequency.*
 Source: `FieldTrip tutorial: Time-frequency analysis using Hanning window,
 multitapers and wavelets <https://www.fieldtriptoolbox.org/tutorial/timefrequencyanalysis>`_.
+"""  # noqa: E501
 
-In MNE-Python, the temporal window length is defined by the arguments ``freqs``
-and ``n_cycles``, respectively defining the frequencies of interest and the
-number of cycles: :math:`T = \frac{\mathtt{n\_cycles}}{\mathtt{freqs}}`
+docdict[
+    "temporal_window_tfr_morlet_notes"
+] = r"""
+In MNE-Python, the length of the Morlet wavelet is affected by the arguments
+``freqs`` and ``n_cycles``, which define the frequencies of interest
+and the number of cycles, respectively. For the time-frequency representation,
+the length of the wavelet is defined such that both tails of
+the wavelet extend five standard deviations from the midpoint of its Gaussian
+envelope and that there is a sample at time zero.
+
+The length of the wavelet is thus :math:`10\times\mathtt{sfreq}\cdot\sigma-1`,
+which is equal to :math:`\frac{5}{\pi} \cdot \frac{\mathtt{n\_cycles} \cdot
+\mathtt{sfreq}}{\mathtt{freqs}} - 1`, where
+:math:`\sigma = \frac{\mathtt{n\_cycles}}{2\pi f}` corresponds to the standard
+deviation of the wavelet's Gaussian envelope. Note that the length of the
+wavelet must not exceed the length of your signal.
+
+For more information on the Morlet wavelet, see :func:`mne.time_frequency.morlet`.
+"""
+
+docdict[
+    "temporal_window_tfr_multitaper_notes"
+] = r"""
+In MNE-Python, the multitaper temporal window length is defined by the arguments
+``freqs`` and ``n_cycles``, respectively defining the frequencies of interest
+and the number of cycles: :math:`T = \frac{\mathtt{n\_cycles}}{\mathtt{freqs}}`
 
 A fixed number of cycles for all frequencies will yield a temporal window which
 decreases with frequency. For example, ``freqs=np.arange(1, 6, 2)`` and
@@ -4388,7 +4502,8 @@ decreases with frequency. For example, ``freqs=np.arange(1, 6, 2)`` and
 
 To use a temporal window with fixed length, the number of cycles has to be
 defined based on the frequency. For example, ``freqs=np.arange(1, 6, 2)`` and
-``n_cycles=freqs / 2`` yields ``T=array([0.5, 0.5, 0.5])``."""  # noqa: E501
+``n_cycles=freqs / 2`` yields ``T=array([0.5, 0.5, 0.5])``.
+"""
 
 _theme = """\
 theme : str | path-like
@@ -4668,7 +4783,7 @@ If str, the path to the head<->MRI transform ``*-trans.fif`` file produced
 docdict[
     "trans"
 ] = f"""
-trans : path-like | dict | instance of Transform | None
+trans : path-like | dict | instance of Transform | ``"fsaverage"`` | None
     {_trans_base}
     If trans is None, an identity matrix is assumed.
 """

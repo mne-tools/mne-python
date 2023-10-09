@@ -71,7 +71,7 @@ ax.quiver3D(
     arrow_length_ratio=0.1,
     color="C1",
     linewidth=1,
-    linestyle="dashed"
+    linestyle="dashed",
 )
 
 # %%
@@ -182,7 +182,7 @@ ax.quiver3D(
     *np.concatenate([origin, trigger_effect]).flatten(),
     arrow_length_ratio=0.1,
     color="C2",
-    alpha=0.5
+    alpha=0.5,
 )
 
 # plot the original vector
@@ -199,7 +199,7 @@ ax.text(
     *(projected_point + offset).flat,
     "({}, {}, {})".format(*np.round(projected_point.flat, 2)),
     color="C0",
-    horizontalalignment="right"
+    horizontalalignment="right",
 )
 
 # add dashed arrow showing projection
@@ -210,7 +210,7 @@ ax.quiver3D(
     arrow_length_ratio=0.1,
     color="C1",
     linewidth=1,
-    linestyle="dashed"
+    linestyle="dashed",
 )
 
 # %%

@@ -17,6 +17,7 @@ from mne.io import read_raw_nirx
 from mne._fiff.proj import _has_eeg_average_ref_proj
 from mne.utils import _record_warnings
 
+
 base_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
 raw_fname = base_dir / "test_raw.fif"
 event_name = base_dir / "test-eve.fif"
@@ -324,3 +325,27 @@ def test_interpolation_nirs():
     assert raw_haemo.info["bads"] == ["S1_D2 hbo", "S1_D2 hbr"]
     raw_haemo.interpolate_bads()
     assert raw_haemo.info["bads"] == []
+
+
+def test_nan_interpolation(raw):
+    """Test 'nan' method for interpolating bads."""
+    ch_to_interp = [raw.ch_names[1]]  # don't use channel 0 (type is IAS not MEG)
+    raw.info["bads"] = ch_to_interp
+
+    # test that warning appears for reset_bads = True
+    with pytest.warns(RuntimeWarning, match="Consider setting reset_bads=False"):
+        raw.interpolate_bads(method="nan", reset_bads=True)
+
+    # despite warning, interpolation still happened, make sure the channel is NaN
+    bad_chs = raw.get_data(ch_to_interp)
+    assert np.isnan(bad_chs).all()
+
+    # make sure reset_bads=False works as expected
+    raw.info["bads"] = ch_to_interp
+    raw.interpolate_bads(method="nan", reset_bads=False)
+    assert raw.info["bads"] == ch_to_interp
+
+    # make sure other channels are untouched
+    raw.drop_channels(ch_to_interp)
+    good_chs = raw.get_data()
+    assert np.isfinite(good_chs).all()

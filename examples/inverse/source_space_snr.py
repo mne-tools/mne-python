@@ -51,10 +51,9 @@ snr_stc = stc.estimate_snr(evoked.info, fwd, cov)
 # Plot an average SNR across source points over time:
 ave = np.mean(snr_stc.data, axis=0)
 
-fig, ax = plt.subplots()
+fig, ax = plt.subplots(layout="constrained")
 ax.plot(evoked.times, ave)
 ax.set(xlabel="Time (s)", ylabel="SNR MEG-EEG")
-fig.tight_layout()
 
 # Find time point of maximum SNR
 maxidx = np.argmax(ave)

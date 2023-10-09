@@ -212,7 +212,7 @@ def _plot_connectivity_circle(
 
     # Use a polar axes
     if ax is None:
-        fig = plt.figure(figsize=(8, 8), facecolor=facecolor)
+        fig = plt.figure(figsize=(8, 8), facecolor=facecolor, layout="constrained")
         ax = fig.add_subplot(polar=True)
     else:
         fig = ax.figure

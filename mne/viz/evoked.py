@@ -30,7 +30,6 @@ from .._fiff.pick import (
 from ..defaults import _handle_default
 from .utils import (
     _draw_proj_checkbox,
-    tight_layout,
     _check_delayed_ssp,
     plt_show,
     _process_times,
@@ -41,7 +40,6 @@ from .utils import (
     _make_combine_callable,
     _validate_if_list_of_axes,
     _triage_rank_sss,
-    _connection_line,
     _get_color_list,
     _setup_ax_spines,
     _setup_plot_projector,
@@ -165,7 +163,11 @@ def _line_plot_onselect(
     minidx = np.abs(times - xmin).argmin()
     maxidx = np.abs(times - xmax).argmin()
     fig, axarr = plt.subplots(
-        1, len(ch_types), squeeze=False, figsize=(3 * len(ch_types), 3)
+        1,
+        len(ch_types),
+        squeeze=False,
+        figsize=(3 * len(ch_types), 3),
+        layout="constrained",
     )
 
     for idx, ch_type in enumerate(ch_types):
@@ -211,7 +213,6 @@ def _line_plot_onselect(
 
     unit = "Hz" if psd else time_unit
     fig.suptitle("Average over %.2f%s - %.2f%s" % (xmin, unit, xmax, unit), y=0.1)
-    tight_layout(pad=2.0, fig=fig)
     plt_show()
     if text is not None:
         text.set_visible(False)
@@ -332,7 +333,7 @@ def _plot_evoked(
         if axes is None:
             axes = dict()
             for sel in group_by:
-                plt.figure()
+                plt.figure(layout="constrained")
                 axes[sel] = plt.axes()
         if not isinstance(axes, dict):
             raise ValueError(
@@ -458,8 +459,7 @@ def _plot_evoked(
 
     fig = None
     if axes is None:
-        fig, axes = plt.subplots(len(ch_types_used), 1)
-        fig.subplots_adjust(left=0.125, bottom=0.1, right=0.975, top=0.92, hspace=0.63)
+        fig, axes = plt.subplots(len(ch_types_used), 1, layout="constrained")
         if isinstance(axes, plt.Axes):
             axes = [axes]
         fig.set_size_inches(6.4, 2 + len(axes))
@@ -738,6 +738,7 @@ def _plot_lines(
                 else:
                     y_offset = this_ylim[0]
                 this_gfp += y_offset
+                ax.autoscale(False)
                 ax.fill_between(
                     times,
                     y_offset,
@@ -958,7 +959,7 @@ def _plot_image(
         cbar = plt.colorbar(im, ax=ax)
         cbar.ax.set_title(ch_unit)
         if cmap[1]:
-            ax.CB = DraggableColorbar(cbar, im)
+            ax.CB = DraggableColorbar(cbar, im, "evoked_image", this_type)
 
     ylabel = "Channels" if show_names else "Channel (index)"
     t = titles[this_type] + " (%d channel%s" % (len(data), _pl(data)) + t_end
@@ -1623,14 +1624,19 @@ def plot_evoked_white(
     _validate_type(axes, (list, tuple, np.ndarray, None), "axes")
     if axes is None:
         _, axes = plt.subplots(
-            n_rows, n_columns, sharex=True, sharey=False, figsize=(8.8, 2.2 * n_rows)
+            n_rows,
+            n_columns,
+            sharex=True,
+            sharey=False,
+            figsize=(8.8, 2.2 * n_rows),
+            layout="constrained",
         )
     else:
         axes = np.array(axes)
     for ai, ax in enumerate(axes.flat):
         _validate_type(ax, plt.Axes, "axes.flat[%d]" % (ai,))
     if axes.shape != want_shape:
-        raise ValueError(f"axes must have shape {want_shape}, got " f"{axes.shape}")
+        raise ValueError(f"axes must have shape {want_shape}, got {axes.shape}.")
     fig = axes.flat[0].figure
     if n_columns > 1:
         suptitle = (
@@ -1724,12 +1730,6 @@ def plot_evoked_white(
         )
     else:
         ax.legend(loc="upper right", prop=dict(size=10))
-        params = dict(
-            top=[0.69, 0.82, 0.87][n_rows - 1], bottom=[0.22, 0.13, 0.09][n_rows - 1]
-        )
-        if has_sss:
-            params["hspace"] = 0.49
-        fig.subplots_adjust(**params)
     fig.canvas.draw()
 
     plt_show(show)
@@ -1773,7 +1773,7 @@ def plot_snr_estimate(evoked, inv, show=True, axes=None, verbose=None):
     snr, snr_est = estimate_snr(evoked, inv)
     _validate_type(axes, (None, plt.Axes))
     if axes is None:
-        _, ax = plt.subplots(1, 1)
+        _, ax = plt.subplots(1, 1, layout="constrained")
     else:
         ax = axes
         del axes
@@ -1859,7 +1859,7 @@ def plot_evoked_joint(
     -----
     .. versionadded:: 0.12.0
     """
-    import matplotlib.pyplot as plt
+    from matplotlib.patches import ConnectionPatch
 
     if ts_args is not None and not isinstance(ts_args, dict):
         raise TypeError("ts_args must be dict or None, got type %s" % (type(ts_args),))
@@ -1956,9 +1956,8 @@ def plot_evoked_joint(
 
     # prepare axes for topomap
     if not got_axes:
-        fig, ts_ax, map_ax, cbar_ax = _prepare_joint_axes(
-            len(times_sec), figsize=(8.0, 4.2)
-        )
+        fig, ts_ax, map_ax = _prepare_joint_axes(len(times_sec), figsize=(8.0, 4.2))
+        cbar_ax = None
     else:
         ts_ax = ts_args["axes"]
         del ts_args["axes"]
@@ -1996,20 +1995,10 @@ def plot_evoked_joint(
     old_title = ts_ax.get_title()
     ts_ax.set_title("")
 
-    # XXX BUG destroys ax -> fig assignment if title & axes are passed
     if title is not None:
-        title_ax = fig.add_subplot(4, 3, 2)
         if title == "":
             title = old_title
-        title_ax.text(
-            0.5,
-            0.5,
-            title,
-            transform=title_ax.transAxes,
-            horizontalalignment="center",
-            verticalalignment="center",
-        )
-        title_ax.axis("off")
+        fig.suptitle(title)
 
     # topomap
     contours = topomap_args.get("contours", 6)
@@ -2035,8 +2024,8 @@ def plot_evoked_joint(
     if topomap_args.get("colorbar", True):
         from matplotlib import ticker
 
-        cbar_ax.grid(False)  # auto-removal deprecated as of 2021/10/05
-        cbar = plt.colorbar(map_ax[0].images[0], cax=cbar_ax)
+        cbar = fig.colorbar(map_ax[0].images[0], ax=map_ax, cax=cbar_ax)
+        cbar.ax.grid(False)  # auto-removal deprecated as of 2021/10/05
         if isinstance(contours, (list, np.ndarray)):
             cbar.set_ticks(contours)
         else:
@@ -2045,19 +2034,24 @@ def plot_evoked_joint(
             cbar.locator = locator
         cbar.update_ticks()
 
-    if not got_axes:
-        plt.subplots_adjust(
-            left=0.1, right=0.93, bottom=0.14, top=1.0 if title is not None else 1.2
-        )
-
     # connection lines
     # draw the connection lines between time series and topoplots
-    lines = [
-        _connection_line(timepoint, fig, ts_ax, map_ax_)
-        for timepoint, map_ax_ in zip(times_ts, map_ax)
-    ]
-    for line in lines:
-        fig.lines.append(line)
+    for timepoint, map_ax_ in zip(times_ts, map_ax):
+        con = ConnectionPatch(
+            xyA=[timepoint, ts_ax.get_ylim()[1]],
+            xyB=[0.5, 0],
+            coordsA="data",
+            coordsB="axes fraction",
+            axesA=ts_ax,
+            axesB=map_ax_,
+            color="grey",
+            linestyle="-",
+            linewidth=1.5,
+            alpha=0.66,
+            zorder=1,
+            clip_on=False,
+        )
+        fig.add_artist(con)
 
     # mark times in time series plot
     for timepoint in times_ts:
@@ -2942,7 +2936,9 @@ def plot_compare_evokeds(
         axes = ["topo"] * len(ch_types)
     else:
         if axes is None:
-            axes = (plt.subplots(figsize=(8, 6))[1] for _ in ch_types)
+            axes = (
+                plt.subplots(figsize=(8, 6), layout="constrained")[1] for _ in ch_types
+            )
         elif isinstance(axes, plt.Axes):
             axes = [axes]
             _validate_if_list_of_axes(axes, obligatory_len=len(ch_types))
@@ -3016,7 +3012,7 @@ def plot_compare_evokeds(
         from .topo import iter_topography
         from ..channels.layout import find_layout
 
-        fig = plt.figure(figsize=(18, 14))
+        fig = plt.figure(figsize=(18, 14), layout=None)  # Not "constrained" for topo
 
         def click_func(
             ax_,

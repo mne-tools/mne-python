@@ -144,7 +144,7 @@ actual_pos, actual_ori = mne.dipole.get_phantom_dipoles()
 actual_amp = 100.0  # nAm
 
 fig, (ax1, ax2, ax3) = plt.subplots(
-    nrows=3, ncols=1, figsize=(6, 7), constrained_layout=True
+    nrows=3, ncols=1, figsize=(6, 7), layout="constrained"
 )
 
 diffs = 1000 * np.sqrt(np.sum((dip.pos - actual_pos) ** 2, axis=-1))

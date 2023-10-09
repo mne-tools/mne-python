@@ -7,6 +7,7 @@
 
 from colorsys import rgb_to_hls
 from contextlib import nullcontext
+import platform
 
 import numpy as np
 import pytest
@@ -79,6 +80,8 @@ def test_theme_colors(pg_backend, theme, monkeypatch, tmp_path):
         return  # we could add a ton of conditionals below, but KISS
     is_dark = _qt_is_dark(fig)
     # on Darwin these checks get complicated, so don't bother for now
+    if platform.system() == "Darwin":
+        pytest.skip("Problems on macOS")
     if theme == "dark":
         assert is_dark, theme
     elif theme == "light":
