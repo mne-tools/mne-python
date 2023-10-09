@@ -30,7 +30,73 @@ from .inverse import (
     _subject_from_inverse,
 )
 from ..parallel import parallel_func
-from ..utils import logger, verbose, ProgressBar, _check_option
+from ..utils import logger, verbose, ProgressBar, _check_option, _validate_type
+from ..label import Label, BiHemiLabel  # correct import location????
+
+
+def _restrict_K_to_lbls(labels, K, noise_norm, vertno, pick_ori):
+    """Use labels to choose desired sources in the kernel."""
+    verts_to_use = [[], []]
+    #    labs_by_hemi = [[], [], []]
+    # create mask for K by compiling original vertices from vertno in labels
+    for ii in range(len(labels)):
+        lab = labels[ii]
+        # handle BiHemi labels; ok so long as no overlap w/ single hemi labels
+        if lab.hemi == "both":
+            #            labs_by_hemi[2].append(lab)
+            lverts = np.intersect1d(vertno[0], lab.lh.vertices)
+            rverts = np.intersect1d(vertno[1], lab.rh.vertices)  # output sorted
+            verts_to_use[0] += list(lverts)
+            verts_to_use[1] += list(rverts)
+        else:
+            hidx = 0 if lab.hemi == "lh" else 1
+            #            labs_by_hemi[hidx].append(lab)
+            verts = np.intersect1d(vertno[hidx], lab.vertices)
+            verts_to_use[hidx] += list(verts)
+    # check that we don't have overlapping vertices in our labels
+    try:
+        for i in range(2):
+            assert len(np.unique(verts_to_use[i])) == len(verts_to_use[i])
+    except AssertionError:
+        raise RuntimeError(
+            "Labels cannot have overlapping vertices. "
+            "Please select labels with unique vertices "
+            "and try again."
+        )
+
+    # turn original vertex numbers from vertno into indices for K
+    K_mask = np.searchsorted(vertno[0], verts_to_use[0])
+    r_kmask = np.searchsorted(vertno[1], verts_to_use[1]) + len(vertno[0])
+    K_mask = np.hstack((K_mask, r_kmask))
+
+    # record which original vertices are at each index in out_K
+    ki_keys = list(K_mask)
+    ki_vals = list(range(len(K_mask)))
+    k_idxs = dict(zip(ki_keys, ki_vals))
+
+    # mask K, handling the orientation issue
+    len_allverts = len(vertno[0]) + len(vertno[1])
+    if len(K) == len_allverts:
+        assert pick_ori == "normal"
+        out_K = K[K_mask]
+    else:
+        # here, K = [x0, y0, z0, x1, y1, z1 ...]
+        # we need to drop x, y and z of unused vertices
+        assert not pick_ori == "normal", pick_ori
+        assert len(K) == 3 * len_allverts, (len(K), len_allverts)
+        out_len = len(K_mask) * 3
+        out_K = K[0:out_len]  # get the correct-shaped array
+        for di in range(3):
+            K_pick = K[di::3]
+            out_K[di::3] = K_pick[K_mask]  # set correct values for out
+
+    out_vertno = verts_to_use
+    if noise_norm is not None:
+        out_nn = noise_norm[K_mask]
+    else:
+        out_nn = None
+
+    return out_K, out_nn, out_vertno, k_idxs
 
 
 def _prepare_source_params(
@@ -64,9 +130,41 @@ def _prepare_source_params(
     #   This does all the data transformations to compute the weights for the
     #   eigenleads
     #
+
+    ### OLD WAY
+    # Previously, we fed in a label and allowed label_src_vertno_sel to limit
+    # the sources in K
     K, noise_norm, vertno, _ = _assemble_kernel(
         inv, label, method, pick_ori, use_cps=use_cps
     )
+    # K shape: (3 x n_sources, n_channels) or (n_sources, n_channels)
+    # noise_norm shape: (n_sources, 1)
+    # vertno: [lh_verts, rh_verts]
+
+    ### NEW WAY
+    # Now we're going to assemble the kernel for the whole brain...
+    # ... then perform our own K source restriction here with multiple label
+    # functionality
+    k_idxs = None
+    if label:  # preserve old single label behavior????
+        orig_K, orig_noise_norm, orig_vertno = K, noise_norm, vertno
+        if isinstance(label, Label) or isinstance(label, BiHemiLabel):
+            label = [label]
+            orig_K, orig_noise_norm, orig_vertno, _ = _assemble_kernel(
+                inv, None, method, pick_ori, use_cps=use_cps
+            )
+
+        K2, noise_norm2, vertno2, k_idxs = _restrict_K_to_lbls(
+            label, orig_K, orig_noise_norm, orig_vertno, pick_ori
+        )
+
+        # We need to check that we're getting the same K
+        # from the new way compared to the old way
+        np.testing.assert_allclose(K, K2)
+        if noise_norm is not None:
+            np.testing.assert_allclose(noise_norm, noise_norm2)
+        assert len(vertno[0]) == len(vertno2[0])
+        # raise RuntimeError
 
     if pca:
         U, s, Vh = _safe_svd(K, full_matrices=False)
@@ -78,7 +176,7 @@ def _prepare_source_params(
         Vh = None
     is_free_ori = inverse_operator["source_ori"] == FIFF.FIFFV_MNE_FREE_ORI
 
-    return K, sel, Vh, vertno, is_free_ori, noise_norm
+    return K, sel, Vh, vertno, is_free_ori, noise_norm, k_idxs
 
 
 @verbose
@@ -349,6 +447,38 @@ def _single_epoch_tfr(
     return tfr_e, plv_e
 
 
+def _get_label_power(power, labels, vertno, k_idxs):
+    """Average power across vertices in labels."""
+    (_, ps1, ps2) = power.shape
+    # construct out array with correct shape
+    out_power = np.zeros(shape=(len(labels), ps1, ps2))
+
+    # for each label, compile list of vertices we want
+    for li in np.arange(len(labels)):
+        lab = labels[li]
+        if lab.hemi == "both":
+            lverts = lab.lh.vertices
+            rverts = lab.rh.vertices + len(vertno[0])
+            verts = np.hstack(lverts, rverts)
+        else:
+            assert lab.hemi == "lh" or lab.hemi == "rh"
+            vtx_add = len(vertno[0]) if lab.hemi == "rh" else 0
+            verts = lab.get_vertices_used(vertices=vertno) + vtx_add
+
+        # restrict power to relevant vertices in label
+        lab_mask = np.array([False] * len(power))
+        for vert in verts:
+            lab_mask[k_idxs[vert]] = True  # k_idxs[vert] gives power row index
+        lab_power = power[lab_mask]  # only pass through rows we want
+        assert lab_power.shape == (len(verts), ps1, ps2)
+
+        # set correct out values for label
+        out_power[li, :, :] = np.mean(lab_power, axis=0)
+
+    assert out_power.shape == (len(labels), ps1, ps2)
+    return out_power
+
+
 @verbose
 def _source_induced_power(
     epochs,
@@ -372,8 +502,28 @@ def _source_induced_power(
     verbose=None,
 ):
     """Aux function for source induced power."""
+    if label:
+        _validate_type(
+            label,
+            types=(Label, BiHemiLabel, list, None),
+            type_name=("Label or BiHemiLabel", "list of labels", "None"),
+        )
+        if isinstance(label, list):
+            for item in label:
+                _validate_type(
+                    item, types=(Label, BiHemiLabel), type_name=("Label or BiHemiLabel")
+                )
+            if len(label) > 1 and with_plv:
+                raise RuntimeError(
+                    "Phase-locking value cannot be calculated "
+                    "when averaging induced power within "
+                    "labels. Please set `with_plv` to False or "
+                    "set `label` to None."
+                )
+
     epochs_data = epochs.get_data()
-    K, sel, Vh, vertno, is_free_ori, noise_norm = _prepare_source_params(
+    # K, sel, Vh, vertno, is_free_ori, noise_norm = _prepare_source_params(
+    K, sel, Vh, vertno, is_free_ori, noise_norm, k_id = _prepare_source_params(
         inst=epochs,
         inverse_operator=inverse_operator,
         label=label,
@@ -416,6 +566,17 @@ def _source_induced_power(
     )
     power = sum(o[0] for o in out)  # power shape: (n_verts, n_freqs, n_samps)
     power /= len(epochs_data)  # average power over epochs
+
+    ### OLD WAY: Previously, we output power as n_sources, n_freqs, n_samps
+    ### NEW WAY: Now, we want to output power as n_labels, n_freqs, n_samps
+    if isinstance(label, Label) or isinstance(label, BiHemiLabel):
+        label = [label]
+    if len(label) > 1:  # this preserves old single label behavior???
+        power = _get_label_power(power, label, vertno, k_id)
+        logger.info(
+            "Averaging induced power across vertices within labels "
+            f"for {len(label)} labels."
+        )
 
     if with_plv:
         plv = sum(o[1] for o in out)
