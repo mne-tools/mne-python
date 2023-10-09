@@ -28,13 +28,10 @@ def test_plot_heatmap(axes):
     if axes:
         axes = plt.subplot()
     fig = mne.viz.eyetracking.plot_gaze(
-        epochs, width=1920, height=1080, axes=axes, cmap="Greys"
+        epochs, width=width, height=height, axes=axes, cmap="Greys", sigma=None
     )
     img = fig.axes[0].images[0].get_array()
-    # the pixels in the center of canvas
-    assert 960 in np.where(img)[1]
-    assert np.isclose(np.min(np.where(img)[1]), 860)
-    assert np.isclose(np.max(np.where(img)[1]), 1060)
-    assert 540 in np.where(img)[0]
-    assert np.isclose(np.min(np.where(img)[0]), 440)
-    assert np.isclose(np.max(np.where(img)[0]), 640)
+    # We simulated a 2D histogram where only values of 960 and 540 are present
+    # Check that the heatmap data only contains these values
+    np.testing.assert_array_almost_equal(np.where(img.T)[0], data[0].mean())  # 960
+    np.testing.assert_array_almost_equal(np.where(img.T)[1], data[1].mean())  # 540
