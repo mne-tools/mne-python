@@ -75,14 +75,13 @@ def plot_gaze(
         logger.info("Detected binocular recording. Averaging positions across eyes.")
         x_data = np.nanmean(x_data, axis=1)  # shape (n_epochs, n_samples)
         y_data = np.nanmean(y_data, axis=1)
-    x_data, y_data = x_data.flatten(), y_data.flatten()
-    canvas = np.vstack((x_data, y_data)).T  # shape (n_samples, 2)
+    canvas = np.vstack((x_data.flatten(), y_data.flatten()))  # shape (2, n_samples)
 
     # Create 2D histogram
     # Bin into image-like format
     hist, _, _ = np.histogram2d(
-        canvas[:, 1],
-        canvas[:, 0],
+        canvas[1, :],
+        canvas[0, :],
         bins=(height, width),
         range=[[0, height], [0, width]],
     )
