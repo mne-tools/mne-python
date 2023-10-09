@@ -197,6 +197,15 @@ def test_io_forward(tmp_path):
     fwd_read = read_forward_solution(fname_temp)
     assert_forward_allclose(fwd, fwd_read)
 
+    h5py = pytest.importorskip("h5py")
+    pytest.importorskip("h5io")
+    fname_h5 = fname_temp.with_suffix(".h5")
+    fwd.save(fname_h5)
+    with h5py.File(fname_h5, "r"):
+        pass  # just checks for hdf5-ness
+    fwd_read = read_forward_solution(fname_h5)
+    assert_forward_allclose(fwd, fwd_read)
+
 
 @testing.requires_testing_data
 def test_apply_forward():

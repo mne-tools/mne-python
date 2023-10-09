@@ -33,7 +33,6 @@ from mne.utils import (
     Bunch,
     _check_qt_version,
     _TempDir,
-    check_version,
 )
 
 # data from sample dataset
@@ -84,6 +83,7 @@ def pytest_configure(config):
         "slowtest",
         "ultraslowtest",
         "pgtest",
+        "pvtest",
         "allow_unclosed",
         "allow_unclosed_pyside2",
     ):
@@ -103,6 +103,13 @@ def pytest_configure(config):
     # if present
     if os.getenv("PYTEST_QT_API") is None and os.getenv("QT_API") is not None:
         os.environ["PYTEST_QT_API"] = os.environ["QT_API"]
+
+    # suppress:
+    # Debugger warning: It seems that frozen modules are being used, which may
+    # make the debugger miss breakpoints. Please pass -Xfrozen_modules=off
+    # to python to disable frozen modules.
+    if os.getenv("PYDEVD_DISABLE_FILE_VALIDATION") is None:
+        os.environ["PYDEVD_DISABLE_FILE_VALIDATION"] = "1"
 
     # https://numba.readthedocs.io/en/latest/reference/deprecation.html#deprecation-of-old-style-numba-captured-errors  # noqa: E501
     if "NUMBA_CAPTURED_ERRORS" not in os.environ:
@@ -158,7 +165,7 @@ def pytest_configure(config):
     # h5py
     ignore:`product` is deprecated as of NumPy.*:DeprecationWarning
     # pandas
-    ignore:.*np\.find_common_type is deprecated.*:DeprecationWarning
+    ignore:In the future `np.long`.*:FutureWarning
     # https://github.com/joblib/joblib/issues/1454
     ignore:.*`byte_bounds` is dep.*:DeprecationWarning
     # numpy distutils used by SciPy
@@ -514,8 +521,9 @@ def pg_backend(request, garbage_collect):
         import mne_qt_browser
 
         mne_qt_browser._browser_instances.clear()
-        if check_version("mne_qt_browser", min_version="0.4"):
-            _assert_no_instances(MNEQtBrowser, f"Closure of {request.node.name}")
+        if not _test_passed(request):
+            return
+        _assert_no_instances(MNEQtBrowser, f"Closure of {request.node.name}")
 
 
 @pytest.fixture(
@@ -541,35 +549,35 @@ def browser_backend(request, garbage_collect, monkeypatch):
             mne_qt_browser._browser_instances.clear()
 
 
-@pytest.fixture(params=["pyvistaqt"])
+@pytest.fixture(params=[pytest.param("pyvistaqt", marks=pytest.mark.pvtest)])
 def renderer(request, options_3d, garbage_collect):
     """Yield the 3D backends."""
     with _use_backend(request.param, interactive=False) as renderer:
         yield renderer
 
 
-@pytest.fixture(params=["pyvistaqt"])
+@pytest.fixture(params=[pytest.param("pyvistaqt", marks=pytest.mark.pvtest)])
 def renderer_pyvistaqt(request, options_3d, garbage_collect):
     """Yield the PyVista backend."""
     with _use_backend(request.param, interactive=False) as renderer:
         yield renderer
 
 
-@pytest.fixture(params=["notebook"])
+@pytest.fixture(params=[pytest.param("notebook", marks=pytest.mark.pvtest)])
 def renderer_notebook(request, options_3d):
     """Yield the 3D notebook renderer."""
     with _use_backend(request.param, interactive=False) as renderer:
         yield renderer
 
 
-@pytest.fixture(params=["pyvistaqt"])
+@pytest.fixture(params=[pytest.param("pyvistaqt", marks=pytest.mark.pvtest)])
 def renderer_interactive_pyvistaqt(request, options_3d, qt_windows_closed):
     """Yield the interactive PyVista backend."""
     with _use_backend(request.param, interactive=True) as renderer:
         yield renderer
 
 
-@pytest.fixture(params=["pyvistaqt"])
+@pytest.fixture(params=[pytest.param("pyvistaqt", marks=pytest.mark.pvtest)])
 def renderer_interactive(request, options_3d):
     """Yield the interactive 3D backends."""
     with _use_backend(request.param, interactive=True) as renderer:
@@ -872,6 +880,14 @@ def protect_config():
         yield
 
 
+def _test_passed(request):
+    try:
+        outcome = request.node.harvest_rep_call
+    except Exception:
+        outcome = "passed"
+    return outcome == "passed"
+
+
 @pytest.fixture()
 def brain_gc(request):
     """Ensure that brain can be properly garbage collected."""
@@ -897,11 +913,7 @@ def brain_gc(request):
     yield
     close_func()
     # no need to warn if the test itself failed, pytest-harvest helps us here
-    try:
-        outcome = request.node.harvest_rep_call
-    except Exception:
-        outcome = "failed"
-    if outcome != "passed":
+    if not _test_passed(request):
         return
     _assert_no_instances(Brain, "after")
     # Check VTK

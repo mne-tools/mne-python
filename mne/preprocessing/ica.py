@@ -1372,8 +1372,8 @@ class ICA(ContainsMixin):
             ]
         with info._unlock(update_redundant=True, check_after=True):
             info["chs"] = ch_info
-            info["bads"] = [ch_names[k] for k in self.exclude]
             info["projs"] = []  # make sure projections are removed.
+        info["bads"] = [ch_names[k] for k in self.exclude]
 
     @verbose
     def score_sources(
@@ -3366,7 +3366,6 @@ def corrmap(
                 template=True,
                 sphere=sphere,
             )
-        template_fig.subplots_adjust(top=0.8)
         template_fig.canvas.draw()
 
     # first run: use user-selected map

@@ -68,7 +68,7 @@ cv = KFold(n_splits=2, shuffle=False)
 y_preds = cross_val_predict(clf, X, y, cv=cv)
 
 # Plot the True EMG power and the EMG power predicted from MEG data
-fig, ax = plt.subplots(1, 1, figsize=[10, 4])
+fig, ax = plt.subplots(1, 1, figsize=[10, 4], layout="constrained")
 times = raw.times[meg_epochs.events[:, 0] - raw.first_samp]
 ax.plot(times, y_preds, color="b", label="Predicted EMG")
 ax.plot(times, y, color="r", label="True EMG")
@@ -76,7 +76,6 @@ ax.set_xlabel("Time (s)")
 ax.set_ylabel("EMG Power")
 ax.set_title("SPoC MEG Predictions")
 plt.legend()
-mne.viz.tight_layout()
 plt.show()
 
 ##############################################################################

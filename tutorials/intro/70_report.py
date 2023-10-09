@@ -17,7 +17,7 @@ Compared to a Jupyter notebook, :class:`mne.Report` is easier to deploy, as the
 HTML pages it generates are self-contained and do not require a running Python
 environment. However, it is less flexible as you can't change code and re-run
 something directly within the browser. This tutorial covers the basics of
-building a report. As usual, we'll start by importing the modules and data we
+building a report. As usual, we will start by importing the modules and data we
 need:
 """
 
@@ -203,12 +203,9 @@ report.save("report_cov.html", overwrite=True)
 # ignored; instead, only the explicitly passed projectors will be plotted.
 
 ecg_proj_path = sample_dir / "sample_audvis_ecg-proj.fif"
-eog_proj_path = sample_dir / "sample_audvis_eog-proj.fif"
-
 report = mne.Report(title="Projectors example")
 report.add_projs(info=raw_path, title="Projs from info")
 report.add_projs(info=raw_path, projs=ecg_proj_path, title="ECG projs from path")
-report.add_projs(info=raw_path, projs=eog_proj_path, title="EOG projs from path")
 report.save("report_projs.html", overwrite=True)
 
 # %%
@@ -289,7 +286,11 @@ report.save("report_ica.html", overwrite=True)
 
 report = mne.Report(title="BEM example")
 report.add_bem(
-    subject="sample", subjects_dir=subjects_dir, title="MRI & BEM", decim=20, width=256
+    subject="sample",
+    subjects_dir=subjects_dir,
+    title="MRI & BEM",
+    decim=40,
+    width=256,
 )
 report.save("report_mri_and_bem.html", overwrite=True)
 
@@ -452,7 +453,7 @@ plt.close(fig_2)
 
 mne_logo_path = Path(mne.__file__).parent / "icons" / "mne_icon-cropped.png"
 fig_array = plt.imread(mne_logo_path)
-rotation_angles = np.linspace(start=0, stop=360, num=17)
+rotation_angles = np.linspace(start=0, stop=360, num=8, endpoint=False)
 
 figs = []
 captions = []
@@ -462,7 +463,7 @@ for angle in rotation_angles:
     fig_array_rotated = fig_array_rotated.clip(min=0, max=1)
 
     # Create the figure
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=(3, 3), layout="constrained")
     ax.imshow(fig_array_rotated)
     ax.set_axis_off()
 
@@ -470,17 +471,11 @@ for angle in rotation_angles:
     figs.append(fig)
     captions.append(f"Rotation angle: {round(angle, 1)}°")
 
-# can also be a MNEQtBrowser instance
-with mne.viz.use_browser_backend("qt"):
-    figs.append(raw.plot())
-captions.append("... plus a raw data plot")
-
 report = mne.Report(title="Multiple figures example")
 report.add_figure(fig=figs, title="Fun with figures! 🥳", caption=captions)
 report.save("report_custom_figures.html", overwrite=True)
-for fig in figs[:-1]:
+for fig in figs:
     plt.close(fig)
-figs[-1].close()
 del figs
 
 # %%
@@ -517,7 +512,9 @@ report.save("report_custom_image.html", overwrite=True)
 
 report = mne.Report(title="Tags example")
 report.add_image(
-    image=mne_logo_path, title="MNE Logo", tags=("image", "mne", "logo", "open-source")
+    image=mne_logo_path,
+    title="MNE Logo",
+    tags=("image", "mne", "logo", "open-source"),
 )
 report.save("report_tags.html", overwrite=True)
 
@@ -611,7 +608,7 @@ report.save("report_parse_folder_raw_psd_projs.html", overwrite=True)
 report = mne.Report(
     title="parse_folder example 3", subject="sample", subjects_dir=subjects_dir
 )
-report.parse_folder(data_path=data_path, pattern="", mri_decim=25)
+report.parse_folder(data_path=data_path, pattern="", mri_decim=40)
 report.save("report_parse_folder_mri_bem.html", overwrite=True)
 
 # %%
@@ -638,8 +635,8 @@ report.save("report_parse_folder_mri_bem.html", overwrite=True)
 
 baseline = (None, 0)
 cov_fname = sample_dir / "sample_audvis-cov.fif"
-pattern = "sample_audvis-no-filter-ave.fif"
-evoked = mne.read_evokeds(sample_dir / pattern)[0]
+pattern = "sample_audvis-ave.fif"
+evoked = mne.read_evokeds(sample_dir / pattern)[0].pick("eeg").decimate(4)
 report = mne.Report(
     title="parse_folder example 4", baseline=baseline, cov_fname=cov_fname
 )
@@ -649,22 +646,6 @@ with tempfile.TemporaryDirectory() as path:
         path, pattern=pattern, render_bem=False, n_time_points_evokeds=5
     )
 report.save("report_parse_folder_evoked.html", overwrite=True)
-
-# %%
-# If you want to actually *view* the noise covariance in the report, make sure
-# it is captured by the pattern passed to :meth:`~mne.Report.parse_folder`, and
-# also include a source for an :class:`~mne.Info` object (any of the
-# :class:`~mne.io.Raw`, :class:`~mne.Epochs` or :class:`~mne.Evoked`
-# :file:`.fif` files that contain subject data also contain the measurement
-# information and should work):
-
-pattern = "sample_audvis-cov.fif"
-info_fname = sample_dir / "sample_audvis-ave.fif"
-report = mne.Report(title="parse_folder example 5", info_fname=info_fname)
-report.parse_folder(
-    data_path, pattern=pattern, render_bem=False, n_time_points_evokeds=5
-)
-report.save("report_parse_folder_cov.html", overwrite=True)
 
 # %%
 #

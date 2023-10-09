@@ -769,7 +769,7 @@ def _get_hdr_info(hdr_fname, eog, misc, scale):
                     for filt in highpass
                 ]
                 info["highpass"] = np.max(np.array(highpass, dtype=np.float64))
-                # Coveniently enough 1 / np.inf = 0.0, so this works for
+                # Conveniently enough 1 / np.inf = 0.0, so this works for
                 # DC / no highpass filter
                 # filter time constant t [secs] to Hz conversion: 1/2*pi*t
                 info["highpass"] = 1.0 / (2 * np.pi * info["highpass"])

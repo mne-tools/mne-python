@@ -27,6 +27,7 @@ from mne import (
     create_info,
     read_cov,
     EvokedArray,
+    compute_proj_raw,
     Projection,
 )
 from mne._fiff.proj import make_eeg_average_ref_proj
@@ -71,9 +72,11 @@ ctf_fname = base_dir / "test_ctf_comp_raw.fif"
 layout = read_layout("Vectorview-all")
 cov_fname = base_dir / "test-cov.fif"
 
+fast_test = dict(res=8, contours=0, sensors=False)
 
-@pytest.mark.parametrize("constrained_layout", (False, True))
-def test_plot_topomap_interactive(constrained_layout):
+
+@pytest.mark.parametrize("layout", (None, "constrained"))
+def test_plot_topomap_interactive(layout):
     """Test interactive topomap projection plotting."""
     evoked = read_evokeds(evoked_fname, baseline=(None, 0))[0]
     evoked.pick(picks="mag")
@@ -83,7 +86,7 @@ def test_plot_topomap_interactive(constrained_layout):
     evoked.add_proj(compute_proj_evoked(evoked, n_mag=1))
 
     plt.close("all")
-    fig, ax = plt.subplots(constrained_layout=constrained_layout)
+    fig, ax = plt.subplots(layout=layout)
     canvas = fig.canvas
 
     kwargs = dict(
@@ -135,30 +138,34 @@ def test_plot_projs_topomap():
     """Test plot_projs_topomap."""
     projs = read_proj(ecg_fname)
     info = read_info(raw_fname)
-    fast_test = {"res": 8, "contours": 0, "sensors": False}
     plot_projs_topomap(projs, info=info, colorbar=True, **fast_test)
-    plt.close("all")
-    ax = plt.subplot(111)
+    _, ax = plt.subplots()
     projs[3].plot_topomap(info)
     plot_projs_topomap(projs[:1], info, axes=ax, **fast_test)  # test axes
-    plt.close("all")
     triux_info = read_info(triux_fname)
     plot_projs_topomap(triux_info["projs"][-1:], triux_info, **fast_test)
-    plt.close("all")
     plot_projs_topomap(triux_info["projs"][:1], triux_info, **fast_test)
-    plt.close("all")
     eeg_avg = make_eeg_average_ref_proj(info)
     eeg_avg.plot_topomap(info, **fast_test)
-    plt.close("all")
     # test vlims
     for vlim in ("joint", (-1, 1), (None, 0.5), (0.5, None), (None, None)):
         plot_projs_topomap(projs[:-1], info, vlim=vlim, colorbar=True)
-    plt.close("all")
 
     eeg_proj = make_eeg_average_ref_proj(info)
     info_meg = pick_info(info, pick_types(info, meg=True, eeg=False))
     with pytest.raises(ValueError, match="Missing channels"):
         plot_projs_topomap([eeg_proj], info_meg)
+
+
+@pytest.mark.parametrize("vlim", ("joint", None))
+@pytest.mark.parametrize("meg", ("combined", "separate"))
+def test_plot_projs_topomap_joint(meg, vlim, raw):
+    """Test that plot_projs_topomap works with joint vlim."""
+    if vlim is None:
+        vlim = (None, None)
+    projs = compute_proj_raw(raw, meg=meg)
+    fig = plot_projs_topomap(projs, info=raw.info, vlim=vlim, **fast_test)
+    assert len(fig.axes) == 4  # 2 mag, 2 grad
 
 
 def test_plot_topomap_animation(capsys):
@@ -322,7 +329,6 @@ def test_plot_topomap_basic():
     """Test basics of topomap plotting."""
     evoked = read_evokeds(evoked_fname, "Left Auditory", baseline=(None, 0))
     res = 8
-    fast_test = dict(res=res, contours=0, sensors=False, time_unit="s")
     fast_test_noscale = dict(res=res, contours=0, sensors=False)
     ev_bad = evoked.copy().pick(picks="eeg")
     ev_bad.pick(ev_bad.ch_names[:2])
@@ -649,8 +655,6 @@ def test_plot_arrowmap(evoked):
 @testing.requires_testing_data
 def test_plot_topomap_neuromag122():
     """Test topomap plotting."""
-    res = 8
-    fast_test = dict(res=res, contours=0, sensors=False)
     evoked = read_evokeds(evoked_fname, "Left Auditory", baseline=(None, 0))
     evoked.pick(picks="grad")
     evoked.pick(evoked.ch_names[:122])

@@ -2069,9 +2069,11 @@ class BaseRaw(
         duration = f"{int(hours):02d}:{int(minutes):02d}:{int(seconds):02d}"
         raw_template = _get_html_template("repr", "raw.html.jinja")
         return raw_template.render(
-            info_repr=self.info._repr_html_(caption=caption),
-            filenames=basenames,
-            duration=duration,
+            info_repr=self.info._repr_html_(
+                caption=caption,
+                filenames=basenames,
+                duration=duration,
+            )
         )
 
     def add_events(self, events, stim_channel=None, replace=False):
@@ -2134,6 +2136,7 @@ class BaseRaw(
         tmin=None,
         tmax=None,
         picks=None,
+        exclude=(),
         proj=False,
         remove_dc=True,
         reject_by_annotation=True,
@@ -2151,6 +2154,7 @@ class BaseRaw(
         %(fmin_fmax_psd)s
         %(tmin_tmax_psd)s
         %(picks_good_data_noref)s
+        %(exclude_psd)s
         %(proj_psd)s
         %(remove_dc)s
         %(reject_by_annotation_psd)s
@@ -2182,6 +2186,7 @@ class BaseRaw(
             tmin=tmin,
             tmax=tmax,
             picks=picks,
+            exclude=exclude,
             proj=proj,
             remove_dc=remove_dc,
             reject_by_annotation=reject_by_annotation,
@@ -2398,7 +2403,7 @@ def _get_ch_factors(inst, units, picks_idxs):
     Returns
     -------
     ch_factors : ndarray of floats, shape(len(picks),)
-        The sacling factors for each channel, ordered according
+        The scaling factors for each channel, ordered according
         to picks.
 
     """

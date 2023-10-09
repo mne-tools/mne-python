@@ -73,7 +73,6 @@ The coordinate system is automatically detected for Gowerlabs SNIRF files.
 Continuous Wave Devices
 ***********************
 
-
 .. _import-nirx:
 
 NIRx (directory or hdr)

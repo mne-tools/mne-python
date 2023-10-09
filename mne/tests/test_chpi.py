@@ -423,6 +423,15 @@ def test_calculate_chpi_positions_artemis():
 
 
 @testing.requires_testing_data
+def test_warn_maxwell_filtered():
+    """Test that trying to compute locations on Maxwell filtered data warns."""
+    raw = read_raw_fif(sss_fif_fname).crop(0, 1)
+    with pytest.warns(RuntimeWarning, match="Maxwell filter"):
+        amps = compute_chpi_amplitudes(raw)
+    assert len(amps["times"]) > 0  # but for this file, it does work!
+
+
+@testing.requires_testing_data
 def test_initial_fit_redo():
     """Test that initial fits can be redone based on moments."""
     raw = read_raw_fif(chpi_fif_fname, allow_maxshield="yes")
