@@ -1792,8 +1792,8 @@ def make_custom_redirects(app, exception):
         if to.startswith("http"):
             to_path = to
         else:
-            assert Path(f"{_to}.rst").is_file(), _to
             to_path = Path(app.outdir) / to
+            assert to_path.is_file(), to_path
         # recreate folders that no longer exist
         defunct_gallery_folders = (
             "misc",
