@@ -31,7 +31,6 @@ def test_plot_heatmap(axes):
         epochs, width=width, height=height, axes=axes, cmap="Greys", sigma=None
     )
     img = fig.axes[0].images[0].get_array()
-    # We simulated a 2D histogram where only values of 960 and 540 are present
-    # Check that the heatmap data only contains these values
-    np.testing.assert_array_almost_equal(np.where(img.T)[0], data[0].mean())  # 960
-    np.testing.assert_array_almost_equal(np.where(img.T)[1], data[1].mean())  # 540
+    # We simulated a 2D histogram where only the central pixel (960, 540) was active
+    assert img.T[width // 2, height // 2] == 1  # central pixel is active
+    assert np.sum(img) == 1  # only the central pixel should be active
