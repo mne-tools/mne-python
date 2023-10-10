@@ -1,17 +1,16 @@
 from contextlib import nullcontext
 from functools import partial
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pytest
-from numpy.testing import assert_array_equal, assert_allclose
-import matplotlib.pyplot as plt
+from numpy.testing import assert_allclose, assert_array_equal
 
-from mne import create_info, make_fixed_length_epochs
+from mne import Annotations, create_info, make_fixed_length_epochs
 from mne.io import RawArray
-from mne import Annotations
 from mne.time_frequency import read_spectrum
 from mne.time_frequency.multitaper import _psd_from_mt
-from mne.time_frequency.spectrum import SpectrumArray, EpochsSpectrumArray
+from mne.time_frequency.spectrum import EpochsSpectrumArray, SpectrumArray
 
 
 def test_compute_psd_errors(raw):

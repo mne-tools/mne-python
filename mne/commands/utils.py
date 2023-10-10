@@ -9,8 +9,8 @@ import glob
 import importlib
 import os
 import os.path as op
-from optparse import OptionParser
 import sys
+from optparse import OptionParser
 
 import mne
 
@@ -41,7 +41,7 @@ def load_module(name, path):
         Imported module.
 
     """
-    from importlib.util import spec_from_file_location, module_from_spec
+    from importlib.util import module_from_spec, spec_from_file_location
 
     spec = spec_from_file_location(name, path)
     mod = module_from_spec(spec)

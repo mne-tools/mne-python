@@ -5,11 +5,10 @@
 
 import numpy as np
 
-from .constants import FIFF
-from .tag import Tag
-from .tag import read_tag
-from .write import write_id, start_block, end_block, _write
 from ..utils import logger, verbose
+from .constants import FIFF
+from .tag import Tag, read_tag
+from .write import _write, end_block, start_block, write_id
 
 
 def dir_tree_find(tree, kind):

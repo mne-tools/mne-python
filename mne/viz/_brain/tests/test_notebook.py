@@ -5,6 +5,7 @@
 # executed in a separate IPython kernel.
 
 import pytest
+
 from mne.datasets import testing
 
 
@@ -12,6 +13,7 @@ from mne.datasets import testing
 def test_notebook_alignment(renderer_notebook, brain_gc, nbexec):
     """Test plot alignment in a notebook."""
     import pytest
+
     import mne
 
     with pytest.MonkeyPatch().context() as mp:
@@ -39,14 +41,16 @@ def test_notebook_alignment(renderer_notebook, brain_gc, nbexec):
 @testing.requires_testing_data
 def test_notebook_interactive(renderer_notebook, brain_gc, nbexec):
     """Test interactive modes."""
-    from contextlib import contextmanager
-    from pathlib import Path
     import tempfile
     import time
-    import pytest
-    from numpy.testing import assert_allclose
-    from ipywidgets import Button
+    from contextlib import contextmanager
+    from pathlib import Path
+
     import matplotlib.pyplot as plt
+    import pytest
+    from ipywidgets import Button
+    from numpy.testing import assert_allclose
+
     import mne
     from mne.datasets import testing
 
@@ -128,8 +132,9 @@ def test_notebook_interactive(renderer_notebook, brain_gc, nbexec):
 @testing.requires_testing_data
 def test_notebook_button_counts(renderer_notebook, brain_gc, nbexec):
     """Test button counts."""
-    import mne
     from ipywidgets import Button
+
+    import mne
 
     mne.viz.set_3d_backend("notebook")
     rend = mne.viz.create_3d_figure(size=(100, 100), scene=False)

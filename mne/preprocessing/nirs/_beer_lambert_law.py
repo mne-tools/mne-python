@@ -11,10 +11,10 @@ from scipy import linalg
 from scipy.interpolate import interp1d
 from scipy.io import loadmat
 
-from ...io import BaseRaw
 from ..._fiff.constants import FIFF
+from ...io import BaseRaw
 from ...utils import _validate_type, warn
-from ..nirs import source_detector_distances, _validate_nirs_info
+from ..nirs import _validate_nirs_info, source_detector_distances
 
 
 def beer_lambert_law(raw, ppf=6.0):

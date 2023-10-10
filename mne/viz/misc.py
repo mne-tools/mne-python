@@ -20,42 +20,42 @@ from itertools import cycle
 from pathlib import Path
 
 import numpy as np
-from scipy.signal import freqz, group_delay, lfilter, filtfilt, sosfilt, sosfiltfilt
+from scipy.signal import filtfilt, freqz, group_delay, lfilter, sosfilt, sosfiltfilt
 
-from .._freesurfer import _check_mri, _reorient_image, _read_mri_info, _mri_orientation
+from .._fiff.constants import FIFF
+from .._fiff.pick import (
+    _DATA_CH_TYPES_SPLIT,
+    _picks_by_type,
+    pick_channels,
+    pick_info,
+    pick_types,
+)
+from .._fiff.proj import make_projector
+from .._freesurfer import _check_mri, _mri_orientation, _read_mri_info, _reorient_image
 from ..defaults import DEFAULTS
+from ..filter import estimate_ringing_samples
 from ..fixes import _safe_svd
 from ..rank import compute_rank
 from ..surface import read_surface
-from .._fiff.constants import FIFF
-from .._fiff.proj import make_projector
-from .._fiff.pick import (
-    _DATA_CH_TYPES_SPLIT,
-    pick_types,
-    pick_info,
-    pick_channels,
-    _picks_by_type,
-)
-from ..transforms import apply_trans, _frame_to_str
+from ..transforms import _frame_to_str, apply_trans
 from ..utils import (
+    _check_option,
+    _mask_to_onsets_offsets,
+    _on_missing,
+    _pl,
+    fill_doc,
+    get_subjects_dir,
     logger,
     verbose,
     warn,
-    _check_option,
-    get_subjects_dir,
-    _mask_to_onsets_offsets,
-    _pl,
-    _on_missing,
-    fill_doc,
 )
-from ..filter import estimate_ringing_samples
 from .utils import (
-    tight_layout,
+    _figure_agg,
     _get_color_list,
     _prepare_trellis,
-    plt_show,
-    _figure_agg,
     _validate_type,
+    plt_show,
+    tight_layout,
 )
 
 
@@ -146,6 +146,7 @@ def plot_cov(
     """
     import matplotlib.pyplot as plt
     from matplotlib.colors import Normalize
+
     from ..cov import Covariance
 
     info, C, ch_names, idx_names = _index_info_cov(info, cov, exclude)
@@ -389,6 +390,7 @@ def _plot_mri_contours(
     """
     import matplotlib.pyplot as plt
     from matplotlib import patheffects
+
     from ..source_space._source_space import _ensure_src
 
     # For ease of plotting, we will do everything in voxel coordinates.
@@ -678,7 +680,7 @@ def plot_bem(
     on top of the midpoint MRI slice with the BEM boundary drawn for that
     slice.
     """
-    from ..source_space import read_source_spaces, SourceSpaces
+    from ..source_space import SourceSpaces, read_source_spaces
 
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     mri_fname = _check_mri(mri, subject, subjects_dir)

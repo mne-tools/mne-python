@@ -7,7 +7,7 @@ import pytest
 
 from mne import create_info
 from mne.io import RawArray
-from mne.utils import logger, catch_logging
+from mne.utils import catch_logging, logger
 
 
 def bad_1(x):

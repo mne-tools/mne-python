@@ -7,35 +7,35 @@
 #
 # License: Simplified BSD
 
-from functools import partial
 import warnings
+from functools import partial
 
 import numpy as np
 from scipy.stats import gaussian_kde
 
-from .utils import (
-    tight_layout,
-    _make_event_color_dict,
-    _get_cmap,
-    plt_show,
-    _convert_psds,
-    _compute_scalings,
-    _handle_precompute,
-    _get_plot_ch_type,
-)
-from .topomap import _plot_ica_topomap
-from .epochs import plot_epochs_image
-from .evoked import _butterfly_on_button_press, _butterfly_onpick
+from .._fiff.meas_info import create_info
+from .._fiff.pick import _picks_to_idx, pick_types
+from .._fiff.proj import _has_eeg_average_ref_proj
+from ..defaults import DEFAULTS, _handle_default
 from ..utils import (
+    _reject_data_segments,
     _validate_type,
     fill_doc,
-    _reject_data_segments,
     verbose,
 )
-from ..defaults import _handle_default, DEFAULTS
-from .._fiff.meas_info import create_info
-from .._fiff.pick import pick_types, _picks_to_idx
-from .._fiff.proj import _has_eeg_average_ref_proj
+from .epochs import plot_epochs_image
+from .evoked import _butterfly_on_button_press, _butterfly_onpick
+from .topomap import _plot_ica_topomap
+from .utils import (
+    _compute_scalings,
+    _convert_psds,
+    _get_cmap,
+    _get_plot_ch_type,
+    _handle_precompute,
+    _make_event_color_dict,
+    plt_show,
+    tight_layout,
+)
 
 
 @fill_doc
@@ -115,9 +115,9 @@ def plot_ica_sources(
 
     .. versionadded:: 0.10.0
     """
-    from ..io import BaseRaw
-    from ..evoked import Evoked
     from ..epochs import BaseEpochs
+    from ..evoked import Evoked
+    from ..io import BaseRaw
 
     exclude = ica.exclude
     picks = _picks_to_idx(ica.n_components_, picks, picks_on="components")
@@ -695,8 +695,8 @@ def _prepare_data_ica_properties(inst, ica, reject_by_annotation=True, reject="a
     data : array of shape (n_epochs, n_ica_sources, n_times)
         A view on epochs ICA sources data.
     """
-    from ..io import BaseRaw, RawArray
     from ..epochs import BaseEpochs
+    from ..io import BaseRaw, RawArray
 
     _validate_type(inst, (BaseRaw, BaseEpochs), "inst", "Raw or Epochs")
     if isinstance(inst, BaseRaw):
@@ -1074,8 +1074,8 @@ def plot_ica_overlay(
         The figure.
     """
     # avoid circular imports
-    from ..io import BaseRaw
     from ..evoked import Evoked
+    from ..io import BaseRaw
     from ..preprocessing.ica import _check_start_stop
 
     if ica.current_fit == "unfitted":
@@ -1276,9 +1276,9 @@ def _plot_sources(
     overview_mode=None,
 ):
     """Plot the ICA components as a RawArray or EpochsArray."""
+    from ..epochs import BaseEpochs, EpochsArray
+    from ..io import BaseRaw, RawArray
     from ._figure import _get_browser
-    from ..epochs import EpochsArray, BaseEpochs
-    from ..io import RawArray, BaseRaw
 
     # handle defaults / check arg validity
     is_raw = isinstance(inst, BaseRaw)

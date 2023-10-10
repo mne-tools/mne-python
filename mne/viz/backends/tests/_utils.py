@@ -5,8 +5,9 @@
 #
 # License: Simplified BSD
 
-import pytest
 import warnings
+
+import pytest
 
 
 def has_pyvista():

@@ -9,105 +9,104 @@
 #
 # License: BSD-3-Clause
 
-from functools import partial
-from collections import Counter
-from copy import deepcopy
 import json
 import operator
 import os.path as op
+from collections import Counter
+from copy import deepcopy
+from functools import partial
 
 import numpy as np
 from scipy.interpolate import interp1d
 
-from .event import make_fixed_length_events, _read_events_fif, match_event_names
-from ._fiff.utils import _make_split_fnames
-from ._fiff.write import (
-    start_and_end_file,
-    start_block,
-    end_block,
-    write_int,
-    write_float,
-    write_float_matrix,
-    write_double_matrix,
-    write_complex_float_matrix,
-    write_complex_double_matrix,
-    write_id,
-    write_string,
-    _get_split_size,
-    _NEXT_FILE_BUFFER,
-    INT32_MAX,
-)
+from ._fiff.constants import FIFF
 from ._fiff.meas_info import (
+    ContainsMixin,
+    SetChannelsMixin,
+    _ensure_infos_match,
     read_meas_info,
     write_meas_info,
-    _ensure_infos_match,
-    ContainsMixin,
 )
-from ._fiff.open import fiff_open, _get_next_fname
-from ._fiff.tree import dir_tree_find
-from ._fiff.tag import read_tag, read_tag_info
-from ._fiff.constants import FIFF
+from ._fiff.open import _get_next_fname, fiff_open
 from ._fiff.pick import (
+    _DATA_CH_TYPES_SPLIT,
+    _pick_data_channels,
+    _picks_to_idx,
     channel_indices_by_type,
     channel_type,
     pick_channels,
     pick_info,
-    _pick_data_channels,
-    _DATA_CH_TYPES_SPLIT,
-    _picks_to_idx,
 )
-from ._fiff.proj import setup_proj, ProjMixin
-from ._fiff.meas_info import SetChannelsMixin
+from ._fiff.proj import ProjMixin, setup_proj
+from ._fiff.tag import read_tag, read_tag_info
+from ._fiff.tree import dir_tree_find
+from ._fiff.utils import _make_split_fnames
+from ._fiff.write import (
+    _NEXT_FILE_BUFFER,
+    INT32_MAX,
+    _get_split_size,
+    end_block,
+    start_and_end_file,
+    start_block,
+    write_complex_double_matrix,
+    write_complex_float_matrix,
+    write_double_matrix,
+    write_float,
+    write_float_matrix,
+    write_id,
+    write_int,
+    write_string,
+)
+from .annotations import (
+    EpochAnnotationsMixin,
+    _read_annotations_fif,
+    _write_annotations,
+)
+from .baseline import _check_baseline, _log_rescale, rescale
 from .bem import _check_origin
+from .channels.channels import InterpolationMixin, ReferenceMixin, UpdateChannelsMixin
+from .event import _read_events_fif, make_fixed_length_events, match_event_names
 from .evoked import EvokedArray
-from .baseline import rescale, _log_rescale, _check_baseline
-from .html_templates import _get_html_template
-from .channels.channels import UpdateChannelsMixin, InterpolationMixin, ReferenceMixin
-from .filter import detrend, FilterMixin, _check_fun
-from .parallel import parallel_func
-
+from .filter import FilterMixin, _check_fun, detrend
 from .fixes import rng_uniform
+from .html_templates import _get_html_template
+from .parallel import parallel_func
 from .time_frequency.spectrum import EpochsSpectrum, SpectrumMixin, _validate_method
-from .viz import plot_epochs, plot_epochs_image, plot_topo_image_epochs, plot_drop_log
 from .utils import (
-    _check_fname,
-    check_fname,
-    logger,
-    verbose,
-    repr_html,
-    check_random_state,
-    warn,
-    _pl,
-    sizeof_fmt,
+    ExtendedTimeMixin,
+    GetEpochsMixin,
     SizeMixin,
-    copy_function_doc_to_method_doc,
+    _build_data_frame,
+    _check_combine,
+    _check_event_id,
+    _check_fname,
+    _check_option,
+    _check_pandas_index_arguments,
     _check_pandas_installed,
     _check_preload,
-    GetEpochsMixin,
+    _check_time_format,
+    _convert_times,
+    _ensure_events,
+    _gen_events,
+    _on_missing,
+    _path_like,
+    _pl,
     _prepare_read_metadata,
     _prepare_write_metadata,
-    _check_event_id,
-    _gen_events,
-    _check_option,
-    _check_combine,
-    _build_data_frame,
-    _check_pandas_index_arguments,
-    _convert_times,
     _scale_dataframe_data,
-    _check_time_format,
-    object_size,
-    _on_missing,
     _validate_type,
-    _ensure_events,
-    _path_like,
-    ExtendedTimeMixin,
+    check_fname,
+    check_random_state,
+    copy_function_doc_to_method_doc,
+    logger,
+    object_size,
+    repr_html,
+    sizeof_fmt,
+    verbose,
+    warn,
 )
 from .utils.docs import fill_doc
-from .annotations import (
-    _write_annotations,
-    _read_annotations_fif,
-    EpochAnnotationsMixin,
-)
+from .viz import plot_drop_log, plot_epochs, plot_epochs_image, plot_topo_image_epochs
 
 
 def _pack_reject_params(epochs):
@@ -4315,17 +4314,17 @@ def average_movements(
            estimation, and compensation. NeuroImage 40:541–550, 2008.
     """  # noqa: E501
     from .preprocessing.maxwell import (
-        _trans_sss_basis,
-        _reset_meg_bads,
+        _check_destination,
         _check_usable,
         _col_norm_pinv,
-        _get_n_moments,
-        _get_mf_picks_fix_mags,
-        _prep_mf_coils,
-        _check_destination,
-        _remove_meg_projs_comps,
         _get_coil_scale,
+        _get_mf_picks_fix_mags,
+        _get_n_moments,
         _get_sensor_operator,
+        _prep_mf_coils,
+        _remove_meg_projs_comps,
+        _reset_meg_bads,
+        _trans_sss_basis,
     )
 
     if head_pos is None:

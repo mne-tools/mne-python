@@ -17,68 +17,67 @@ from numbers import Integral
 
 import numpy as np
 
-from ..fixes import _is_last_row
 from .._fiff.pick import (
-    channel_type,
-    _VALID_CHANNEL_TYPES,
-    channel_indices_by_type,
     _DATA_CH_TYPES_SPLIT,
     _PICK_TYPES_DATA_DICT,
+    _VALID_CHANNEL_TYPES,
     _picks_to_idx,
+    channel_indices_by_type,
+    channel_type,
     pick_info,
 )
 from ..defaults import _handle_default
-from .utils import (
-    _draw_proj_checkbox,
-    tight_layout,
-    _check_delayed_ssp,
-    plt_show,
-    _process_times,
-    DraggableColorbar,
-    _setup_cmap,
-    _setup_vmin_vmax,
-    _check_cov,
-    _make_combine_callable,
-    _validate_if_list_of_axes,
-    _triage_rank_sss,
-    _connection_line,
-    _get_color_list,
-    _setup_ax_spines,
-    _setup_plot_projector,
-    _prepare_joint_axes,
-    _check_option,
-    _set_title_multiple_electrodes,
-    _check_time_unit,
-    _plot_masked_image,
-    _trim_ticks,
-    _set_window_title,
-    _prop_kw,
-    _get_cmap,
-)
+from ..fixes import _is_last_row
 from ..utils import (
-    logger,
-    _clean_names,
-    warn,
-    _pl,
-    verbose,
-    _validate_type,
-    _check_if_nan,
     _check_ch_locs,
-    fill_doc,
+    _check_if_nan,
+    _clean_names,
     _is_numeric,
+    _pl,
     _to_rgb,
+    _validate_type,
+    fill_doc,
+    logger,
+    verbose,
+    warn,
 )
-
 from .topo import _plot_evoked_topo
 from .topomap import (
-    _prepare_topomap_plot,
-    plot_topomap,
-    _get_pos_outlines,
-    _draw_outlines,
-    _prepare_topomap,
-    _set_contour_locator,
     _check_sphere,
+    _draw_outlines,
+    _get_pos_outlines,
     _make_head_outlines,
+    _prepare_topomap,
+    _prepare_topomap_plot,
+    _set_contour_locator,
+    plot_topomap,
+)
+from .utils import (
+    DraggableColorbar,
+    _check_cov,
+    _check_delayed_ssp,
+    _check_option,
+    _check_time_unit,
+    _connection_line,
+    _draw_proj_checkbox,
+    _get_cmap,
+    _get_color_list,
+    _make_combine_callable,
+    _plot_masked_image,
+    _prepare_joint_axes,
+    _process_times,
+    _prop_kw,
+    _set_title_multiple_electrodes,
+    _set_window_title,
+    _setup_ax_spines,
+    _setup_cmap,
+    _setup_plot_projector,
+    _setup_vmin_vmax,
+    _triage_rank_sss,
+    _trim_ticks,
+    _validate_if_list_of_axes,
+    plt_show,
+    tight_layout,
 )
 
 
@@ -136,6 +135,7 @@ def _line_plot_onselect(
 ):
     """Draw topomaps from the selected area."""
     import matplotlib.pyplot as plt
+
     from ..channels.layout import _pair_grad_sensors
 
     ch_types = [type_ for type_ in ch_types if type_ in ("eeg", "grad", "mag")]
@@ -607,7 +607,8 @@ def _plot_lines(
     highlight,
 ):
     """Plot data as butterfly plot."""
-    from matplotlib import patheffects, pyplot as plt
+    from matplotlib import patheffects
+    from matplotlib import pyplot as plt
     from matplotlib.widgets import SpanSelector
 
     assert len(axes) == len(ch_types_used)
@@ -1568,8 +1569,9 @@ def plot_evoked_white(
            covariance estimation and spatial whitening of MEG and EEG
            signals, vol. 108, 328-342, NeuroImage.
     """
-    from ..cov import whiten_evoked, Covariance, _ensure_cov
     import matplotlib.pyplot as plt
+
+    from ..cov import Covariance, _ensure_cov, whiten_evoked
 
     time_unit, times = _check_time_unit(time_unit, evoked.times)
 
@@ -1767,6 +1769,7 @@ def plot_snr_estimate(evoked, inv, show=True, axes=None, verbose=None):
     .. versionadded:: 0.9.0
     """
     import matplotlib.pyplot as plt
+
     from ..minimum_norm import estimate_snr
 
     snr, snr_est = estimate_snr(evoked, inv)
@@ -2333,9 +2336,9 @@ def _evoked_sensor_legend(info, picks, ymin, ymax, show_sensors, ax, sphere):
 
 def _draw_colorbar_pce(ax, colors, cmap, colorbar_title, colorbar_ticks):
     """Draw colorbar for plot_compare_evokeds."""
-    from mpl_toolkits.axes_grid1 import make_axes_locatable
     from matplotlib.colorbar import ColorbarBase
     from matplotlib.transforms import Bbox
+    from mpl_toolkits.axes_grid1 import make_axes_locatable
 
     # create colorbar axes
     orig_bbox = ax.get_position()
@@ -2832,6 +2835,7 @@ def plot_compare_evokeds(
     +-------------+----------------+------------------------------------------+
     """
     import matplotlib.pyplot as plt
+
     from ..evoked import Evoked, _check_evokeds_ch_names_times
 
     # build up evokeds into a dict, if it's not already
@@ -3012,8 +3016,8 @@ def plot_compare_evokeds(
         if np.array(picks).ndim < 2:
             picks = [picks]  # enables zipping w/ axes
     else:
-        from .topo import iter_topography
         from ..channels.layout import find_layout
+        from .topo import iter_topography
 
         fig = plt.figure(figsize=(18, 14))
 

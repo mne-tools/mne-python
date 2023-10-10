@@ -7,7 +7,6 @@
 
 from copy import deepcopy
 
-
 ###############################################################################
 # Create a Bunch class that acts like a struct (mybunch.key = val)
 

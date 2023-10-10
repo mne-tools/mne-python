@@ -1,17 +1,16 @@
 from pathlib import Path
 
 import numpy as np
-from numpy.testing import assert_almost_equal
 import pytest
-
-from scipy.linalg import svd, pinv
 import scipy.io as sio
+from numpy.testing import assert_almost_equal
+from scipy.linalg import pinv, svd
 
-from mne.io import read_raw_fif
 from mne import pick_types
+from mne.datasets import testing
+from mne.io import read_raw_fif
 from mne.preprocessing.infomax_ import infomax
 from mne.utils import random_permutation
-from mne.datasets import testing
 
 base_dir = Path(__file__).parent / "data"
 testing_path = testing.data_path(download=False)

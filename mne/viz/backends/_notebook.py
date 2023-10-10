@@ -10,85 +10,83 @@ import os.path as op
 import re
 from contextlib import contextmanager, nullcontext
 
-from IPython.display import display, clear_output
+from ipyevents import Event
+from IPython.display import clear_output, display
 from ipywidgets import (
-    Widget,
-    HBox,
-    VBox,
-    Button,
-    Dropdown,
-    IntSlider,
-    IntText,
-    Text,
-    IntProgress,
-    Play,
-    Label,
     HTML,
-    Checkbox,
-    RadioButtons,
     Accordion,
-    link,
-    Layout,
-    Select,
-    GridBox,
+    BoundedFloatText,
+    Button,
+    Checkbox,
+    Dropdown,
     # non-object-based-abstraction-only widgets, deprecate
     FloatSlider,
-    BoundedFloatText,
+    GridBox,
+    HBox,
+    IntProgress,
+    IntSlider,
+    IntText,
+    Label,
+    Layout,
+    Play,
+    RadioButtons,
+    Select,
+    Text,
+    VBox,
+    Widget,
     jsdlink,
+    link,
 )
-from ipyevents import Event
 
-from .renderer import _TimeInteraction
+from ...utils import _soft_import, check_version
 from ._abstract import (
-    _AbstractAppWindow,
-    _AbstractHBoxLayout,
-    _AbstractVBoxLayout,
-    _AbstractGridLayout,
-    _AbstractWidget,
-    _AbstractCanvas,
-    _AbstractPopup,
-    _AbstractLabel,
-    _AbstractButton,
-    _AbstractSlider,
-    _AbstractCheckBox,
-    _AbstractSpinBox,
-    _AbstractComboBox,
-    _AbstractRadioButtons,
-    _AbstractGroupBox,
-    _AbstractText,
-    _AbstractFileButton,
-    _AbstractPlayMenu,
-    _AbstractProgressBar,
-)
-from ._abstract import (
-    _AbstractDock,
-    _AbstractToolBar,
-    _AbstractMenuBar,
-    _AbstractStatusBar,
-    _AbstractLayout,
-    _AbstractWdgt,
-    _AbstractWindow,
-    _AbstractMplCanvas,
-    _AbstractPlayback,
-    _AbstractBrainMplCanvas,
-    _AbstractMplInterface,
-    _AbstractWidgetList,
     _AbstractAction,
+    _AbstractAppWindow,
+    _AbstractBrainMplCanvas,
+    _AbstractButton,
+    _AbstractCanvas,
+    _AbstractCheckBox,
+    _AbstractComboBox,
     _AbstractDialog,
+    _AbstractDock,
+    _AbstractFileButton,
+    _AbstractGridLayout,
+    _AbstractGroupBox,
+    _AbstractHBoxLayout,
     _AbstractKeyPress,
+    _AbstractLabel,
+    _AbstractLayout,
+    _AbstractMenuBar,
+    _AbstractMplCanvas,
+    _AbstractMplInterface,
+    _AbstractPlayback,
+    _AbstractPlayMenu,
+    _AbstractPopup,
+    _AbstractProgressBar,
+    _AbstractRadioButtons,
+    _AbstractSlider,
+    _AbstractSpinBox,
+    _AbstractStatusBar,
+    _AbstractText,
+    _AbstractToolBar,
+    _AbstractVBoxLayout,
+    _AbstractWdgt,
+    _AbstractWidget,
+    _AbstractWidgetList,
+    _AbstractWindow,
 )
-from ._pyvista import _PyVistaRenderer, Plotter
 from ._pyvista import (
-    _close_3d_figure,  # noqa: F401
+    Plotter,
     _check_3d_figure,  # noqa: F401
+    _close_3d_figure,  # noqa: F401
     _close_all,  # noqa: F401
-    _set_3d_view,  # noqa: F401
+    _PyVistaRenderer,
     _set_3d_title,  # noqa: F401
+    _set_3d_view,  # noqa: F401
     _take_3d_screenshot,  # noqa: F401
 )
 from ._utils import _notebook_vtk_works
-from ...utils import check_version, _soft_import
-
+from .renderer import _TimeInteraction
 
 # dict values are icon names from: https://fontawesome.com/icons
 _ICON_LUT = dict(

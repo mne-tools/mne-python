@@ -7,7 +7,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from mne import what, create_info
+from mne import create_info, what
 from mne.datasets import testing
 from mne.io import RawArray
 from mne.preprocessing import ICA

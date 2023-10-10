@@ -1,10 +1,11 @@
 from collections import OrderedDict
 from pathlib import Path
+
 import numpy as np
 
-from ...utils import logger, fill_doc, verbose
 from ..._fiff.meas_info import create_info
 from ...evoked import EvokedArray
+from ...utils import fill_doc, logger, verbose
 
 
 @fill_doc

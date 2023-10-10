@@ -6,11 +6,11 @@ import re as re
 
 import numpy as np
 
-from ..base import BaseRaw
 from ..._fiff.meas_info import create_info
 from ..._fiff.utils import _mult_cal_one
-from ...utils import logger, verbose, fill_doc, _check_fname
 from ...annotations import Annotations
+from ...utils import _check_fname, fill_doc, logger, verbose
+from ..base import BaseRaw
 
 
 @fill_doc

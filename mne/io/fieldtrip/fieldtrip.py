@@ -6,17 +6,17 @@
 
 import numpy as np
 
-from .utils import (
-    _create_info,
-    _set_tmin,
-    _create_events,
-    _create_event_metadata,
-    _validate_ft_struct,
-)
-from ..array.array import RawArray
-from ...utils import _check_fname, _import_pymatreader_funcs
 from ...epochs import EpochsArray
 from ...evoked import EvokedArray
+from ...utils import _check_fname, _import_pymatreader_funcs
+from ..array.array import RawArray
+from .utils import (
+    _create_event_metadata,
+    _create_events,
+    _create_info,
+    _set_tmin,
+    _validate_ft_struct,
+)
 
 
 def read_raw_fieldtrip(fname, info, data_name="data"):

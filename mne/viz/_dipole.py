@@ -9,11 +9,11 @@ import os.path as op
 import numpy as np
 from scipy.spatial import ConvexHull
 
-from .utils import plt_show, _validate_if_list_of_axes
-from .._freesurfer import _get_head_surface, _estimate_talxfm_rigid
+from .._freesurfer import _estimate_talxfm_rigid, _get_head_surface
 from ..surface import read_surface
-from ..transforms import apply_trans, invert_transform, _get_trans
-from ..utils import _validate_type, _check_option, get_subjects_dir
+from ..transforms import _get_trans, apply_trans, invert_transform
+from ..utils import _check_option, _validate_type, get_subjects_dir
+from .utils import _validate_if_list_of_axes, plt_show
 
 
 def _check_concat_dipoles(dipole):
@@ -41,9 +41,9 @@ def _plot_dipole_mri_outlines(
     surf,
     width,
 ):
+    import matplotlib.pyplot as plt
     from matplotlib.collections import LineCollection, PatchCollection
     from matplotlib.patches import Circle
-    import matplotlib.pyplot as plt
 
     extra = 'when mode is "outlines"'
     trans = _get_trans(trans, fro="head", to="mri")[0]

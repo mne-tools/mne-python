@@ -8,11 +8,11 @@ from pathlib import Path
 
 import numpy as np
 
-from ..base import BaseRaw
-from ...utils import fill_doc, logger, verbose, warn, _check_fname
 from ..._fiff.meas_info import create_info
-from ...annotations import Annotations
 from ..._fiff.utils import _mult_cal_one
+from ...annotations import Annotations
+from ...utils import _check_fname, fill_doc, logger, verbose, warn
+from ..base import BaseRaw
 
 
 def _ensure_path(fname):

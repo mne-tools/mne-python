@@ -19,62 +19,62 @@
 # License: BSD-3-Clause
 
 import copy
-from functools import partial
 import itertools
+from functools import partial
 
 import numpy as np
 from scipy.linalg import orth
 from scipy.optimize import fmin_cobyla
 from scipy.spatial.distance import cdist
 
-from .event import find_events
-from .io import BaseRaw
-from .io.ctf.trans import _make_ctf_coord_trans_set
-from .io.kit.kit import RawKIT as _RawKIT
-from .io.kit.constants import KIT
-from .channels.channels import _get_meg_system
-from ._fiff.meas_info import _simplify_info, Info
+from ._fiff.constants import FIFF
+from ._fiff.meas_info import Info, _simplify_info
 from ._fiff.pick import (
-    pick_types,
+    _picks_to_idx,
     pick_channels,
     pick_channels_regexp,
     pick_info,
-    _picks_to_idx,
+    pick_types,
 )
 from ._fiff.proj import Projection, setup_proj
-from ._fiff.constants import FIFF
-from .forward import _magnetic_dipole_field_vec, _create_meg_coils, _concatenate_coils
-from .cov import make_ad_hoc_cov, compute_whitener
+from .channels.channels import _get_meg_system
+from .cov import compute_whitener, make_ad_hoc_cov
 from .dipole import _make_guesses
+from .event import find_events
 from .fixes import jit
+from .forward import _concatenate_coils, _create_meg_coils, _magnetic_dipole_field_vec
+from .io import BaseRaw
+from .io.ctf.trans import _make_ctf_coord_trans_set
+from .io.kit.constants import KIT
+from .io.kit.kit import RawKIT as _RawKIT
 from .preprocessing.maxwell import (
-    _sss_basis,
+    _get_mf_picks_fix_mags,
     _prep_mf_coils,
     _regularize_out,
-    _get_mf_picks_fix_mags,
+    _sss_basis,
 )
 from .transforms import (
-    apply_trans,
-    invert_transform,
     _angle_between_quats,
-    quat_to_rot,
-    rot_to_quat,
     _fit_matched_points,
     _quat_to_affine,
     als_ras_trans,
+    apply_trans,
+    invert_transform,
+    quat_to_rot,
+    rot_to_quat,
 )
 from .utils import (
-    verbose,
+    ProgressBar,
+    _check_fname,
+    _check_option,
+    _on_missing,
+    _pl,
+    _validate_type,
+    _verbose_safe_false,
     logger,
     use_log_level,
-    _check_fname,
+    verbose,
     warn,
-    _validate_type,
-    ProgressBar,
-    _check_option,
-    _pl,
-    _on_missing,
-    _verbose_safe_false,
 )
 
 # Eventually we should add:

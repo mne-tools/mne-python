@@ -2,9 +2,9 @@ from pathlib import Path
 
 import numpy as np
 
-from mne.io import read_raw_fif
 from mne import pick_types
-from mne.preprocessing import find_ecg_events, create_ecg_epochs
+from mne.io import read_raw_fif
+from mne.preprocessing import create_ecg_epochs, find_ecg_events
 
 data_path = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
 raw_fname = data_path / "test_raw.fif"

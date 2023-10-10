@@ -16,12 +16,13 @@ Examples
 # Authors : Eric Larson, PhD
 
 import sys
+
 import mne
 
 
 def run():
     """Run command."""
-    from mne.commands.utils import get_optparser, _add_verbose_flag
+    from mne.commands.utils import _add_verbose_flag, get_optparser
     from mne.viz import _RAW_CLIP_DEF
 
     parser = get_optparser(__file__, usage="usage: %prog raw [options]")

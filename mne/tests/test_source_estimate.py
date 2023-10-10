@@ -9,76 +9,75 @@ from pathlib import Path
 from shutil import copyfile
 
 import numpy as np
+import pytest
 from numpy.fft import fft
 from numpy.testing import (
+    assert_allclose,
     assert_array_almost_equal,
     assert_array_equal,
-    assert_allclose,
-    assert_equal,
     assert_array_less,
+    assert_equal,
 )
-import pytest
 from scipy import sparse
 from scipy.optimize import fmin_cobyla
 from scipy.spatial.distance import cdist
 
 import mne
 from mne import (
-    stats,
+    Epochs,
+    EvokedArray,
+    Label,
+    MixedSourceEstimate,
+    MixedVectorSourceEstimate,
     SourceEstimate,
+    SourceSpaces,
     VectorSourceEstimate,
     VolSourceEstimate,
-    Label,
-    read_source_spaces,
-    read_evokeds,
-    MixedSourceEstimate,
-    find_events,
-    Epochs,
-    read_source_estimate,
+    VolVectorSourceEstimate,
+    compute_source_morph,
+    convert_forward_solution,
     extract_label_time_course,
-    spatio_temporal_tris_adjacency,
-    stc_near_sensors,
-    spatio_temporal_src_adjacency,
+    find_events,
+    labels_to_stc,
+    pick_info,
+    pick_types,
+    pick_types_forward,
     read_cov,
-    EvokedArray,
-    spatial_inter_hemi_adjacency,
+    read_evokeds,
     read_forward_solution,
+    read_source_estimate,
+    read_source_spaces,
+    read_trans,
+    scale_mri,
+    setup_volume_source_space,
+    spatial_inter_hemi_adjacency,
     spatial_src_adjacency,
     spatial_tris_adjacency,
-    pick_info,
-    SourceSpaces,
-    VolVectorSourceEstimate,
-    read_trans,
-    pick_types,
-    MixedVectorSourceEstimate,
-    setup_volume_source_space,
-    convert_forward_solution,
-    pick_types_forward,
-    compute_source_morph,
-    labels_to_stc,
-    scale_mri,
+    spatio_temporal_src_adjacency,
+    spatio_temporal_tris_adjacency,
+    stats,
+    stc_near_sensors,
     write_source_spaces,
 )
+from mne._fiff.constants import FIFF
 from mne.datasets import testing
 from mne.fixes import _get_img_fdata
-from mne.io import read_info
-from mne._fiff.constants import FIFF
-from mne.morph_map import _make_morph_map_hemi
-from mne.source_estimate import grade_to_tris, _get_vol_mask
-from mne.source_space._source_space import _get_src_nn
-from mne.transforms import apply_trans, invert_transform, transform_surface_to
+from mne.io import read_info, read_raw_fif
+from mne.label import label_sign_flip, read_labels_from_annot
 from mne.minimum_norm import (
-    read_inverse_operator,
     apply_inverse,
     apply_inverse_epochs,
     make_inverse_operator,
+    read_inverse_operator,
 )
-from mne.label import read_labels_from_annot, label_sign_flip
+from mne.morph_map import _make_morph_map_hemi
+from mne.source_estimate import _get_vol_mask, grade_to_tris
+from mne.source_space._source_space import _get_src_nn
+from mne.transforms import apply_trans, invert_transform, transform_surface_to
 from mne.utils import (
-    catch_logging,
     _record_warnings,
+    catch_logging,
 )
-from mne.io import read_raw_fif
 
 data_path = testing.data_path(download=False)
 subjects_dir = data_path / "subjects"

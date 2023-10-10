@@ -2,16 +2,16 @@
 #
 # License: BSD-3-Clause
 
-from numpy.testing import assert_array_equal, assert_allclose
 import numpy as np
-from scipy import stats, sparse
 import pytest
+from numpy.testing import assert_allclose, assert_array_equal
+from scipy import sparse, stats
 
 from mne.stats import permutation_cluster_1samp_test
 from mne.stats.permutations import (
-    permutation_t_test,
     _ci,
     bootstrap_confidence_interval,
+    permutation_t_test,
 )
 
 

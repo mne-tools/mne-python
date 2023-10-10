@@ -9,27 +9,25 @@
 from collections import namedtuple
 from pathlib import Path
 
-import numpy as np
-import pytest
 import matplotlib
 import matplotlib.pyplot as plt
+import numpy as np
+import pytest
 
-from mne import read_events, Epochs, read_cov, compute_proj_evoked
+from mne import Epochs, compute_proj_evoked, read_cov, read_events
 from mne.channels import read_layout
 from mne.io import read_raw_fif
 from mne.time_frequency.tfr import AverageTFR
 from mne.utils import _record_warnings
-
 from mne.viz import (
-    plot_topo_image_epochs,
     _get_presser,
     mne_analyze_colormap,
     plot_evoked_topo,
+    plot_topo_image_epochs,
 )
 from mne.viz.evoked import _line_plot_onselect
+from mne.viz.topo import _imshow_tfr, _plot_update_evoked_topo_proj, iter_topography
 from mne.viz.utils import _fake_click
-
-from mne.viz.topo import _plot_update_evoked_topo_proj, iter_topography, _imshow_tfr
 
 base_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
 evoked_fname = base_dir / "test-ave.fif"

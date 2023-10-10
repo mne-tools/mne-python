@@ -13,30 +13,29 @@ from functools import partial
 from pathlib import Path
 
 import numpy as np
+import pytest
 from numpy.testing import (
+    assert_allclose,
     assert_array_almost_equal,
     assert_array_equal,
     assert_equal,
-    assert_allclose,
 )
 from scipy.io import loadmat
 
-import pytest
-
-from mne import pick_types, Annotations
+from mne import Annotations, pick_types
+from mne._fiff.pick import channel_indices_by_type, get_channel_type_constants
 from mne.annotations import _ndarray_ch_names, events_from_annotations, read_annotations
 from mne.datasets import testing
-from mne.io import read_raw_edf, read_raw_bdf, read_raw_fif, edf, read_raw_gdf
-from mne.io.tests.test_raw import _test_raw_reader
+from mne.io import edf, read_raw_bdf, read_raw_edf, read_raw_fif, read_raw_gdf
 from mne.io.edf.edf import (
+    _edf_str,
+    _parse_prefilter_string,
     _read_annotations_edf,
     _read_ch,
-    _parse_prefilter_string,
-    _edf_str,
     _read_edf_header,
     _read_header,
 )
-from mne._fiff.pick import channel_indices_by_type, get_channel_type_constants
+from mne.io.tests.test_raw import _test_raw_reader
 from mne.tests.test_annotations import _assert_annotations_equal
 
 td_mark = testing._pytest_mark()

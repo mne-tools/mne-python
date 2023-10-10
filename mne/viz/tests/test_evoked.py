@@ -11,30 +11,30 @@
 
 from pathlib import Path
 
-import numpy as np
-from numpy.testing import assert_allclose
-import pytest
 import matplotlib.pyplot as plt
+import numpy as np
+import pytest
 from matplotlib import gridspec
 from matplotlib.collections import PolyCollection
 from mpl_toolkits.axes_grid1.parasite_axes import HostAxes  # spatial_colors
+from numpy.testing import assert_allclose
 
 import mne
 from mne import (
-    read_events,
     Epochs,
-    read_cov,
     compute_covariance,
-    make_fixed_length_events,
     compute_proj_evoked,
+    make_fixed_length_events,
+    read_cov,
+    read_events,
 )
+from mne._fiff.constants import FIFF
+from mne.datasets import testing
 from mne.io import read_raw_fif
+from mne.stats.parametric import _parametric_ci
 from mne.utils import catch_logging
 from mne.viz import plot_compare_evokeds, plot_evoked_white
 from mne.viz.utils import _fake_click, _get_cmap
-from mne.datasets import testing
-from mne._fiff.constants import FIFF
-from mne.stats.parametric import _parametric_ci
 
 base_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
 evoked_fname = base_dir / "test-ave.fif"

@@ -4,7 +4,7 @@
 # License: BSD Style.
 
 from ...utils import verbose
-from ..utils import has_dataset, _data_path_doc, _download_mne_dataset
+from ..utils import _data_path_doc, _download_mne_dataset, has_dataset
 
 
 @verbose

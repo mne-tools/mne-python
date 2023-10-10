@@ -1,25 +1,25 @@
 # Authors: Robert Luke  <mail@robertluke.net>
 #          simplified BSD-3 license
 
-import numpy as np
-from numpy.testing import assert_allclose, assert_almost_equal, assert_equal
 import shutil
-import pytest
 
+import numpy as np
+import pytest
+from numpy.testing import assert_allclose, assert_almost_equal, assert_equal
+
+from mne._fiff.constants import FIFF
 from mne.datasets.testing import data_path, requires_testing_data
-from mne.io import read_raw_snirf, read_raw_nirx
+from mne.io import read_raw_nirx, read_raw_snirf
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.preprocessing.nirs import (
-    optical_density,
+    _reorder_nirx,
     beer_lambert_law,
+    optical_density,
     short_channels,
     source_detector_distances,
-    _reorder_nirx,
 )
-from mne.transforms import apply_trans, _get_trans
-from mne._fiff.constants import FIFF
+from mne.transforms import _get_trans, apply_trans
 from mne.utils import catch_logging
-
 
 testing_path = data_path(download=False)
 # SfNIRS files

@@ -6,12 +6,12 @@
 #
 # License: Simplified BSD
 
-from abc import ABC, abstractmethod, abstractclassmethod
-from contextlib import nullcontext
 import warnings
+from abc import ABC, abstractclassmethod, abstractmethod
+from contextlib import nullcontext
 
+from ..ui_events import TimeChange, publish
 from ..utils import tight_layout
-from ..ui_events import publish, TimeChange
 
 
 class Figure3D(ABC):

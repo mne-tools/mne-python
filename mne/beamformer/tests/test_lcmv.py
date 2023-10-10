@@ -2,48 +2,47 @@ from contextlib import nullcontext
 from copy import deepcopy
 from inspect import signature
 
-import pytest
 import numpy as np
-from scipy import linalg
-from scipy.spatial.distance import cdist
+import pytest
 from numpy.testing import (
+    assert_allclose,
     assert_array_almost_equal,
     assert_array_equal,
-    assert_allclose,
     assert_array_less,
 )
+from scipy import linalg
+from scipy.spatial.distance import cdist
 
 import mne
-from mne.transforms import apply_trans, invert_transform
 from mne import (
-    convert_forward_solution,
-    read_forward_solution,
-    compute_rank,
-    VolVectorSourceEstimate,
-    VolSourceEstimate,
     EvokedArray,
+    VolSourceEstimate,
+    VolVectorSourceEstimate,
+    compute_rank,
+    convert_forward_solution,
     pick_channels_cov,
+    read_forward_solution,
     read_vectorview_selection,
 )
+from mne._fiff.compensator import set_current_comp
+from mne._fiff.constants import FIFF
 from mne.beamformer import (
-    make_lcmv,
+    Beamformer,
     apply_lcmv,
+    apply_lcmv_cov,
     apply_lcmv_epochs,
     apply_lcmv_raw,
-    Beamformer,
-    read_beamformer,
-    apply_lcmv_cov,
     make_dics,
+    make_lcmv,
+    read_beamformer,
 )
 from mne.beamformer._compute_beamformer import _prepare_beamformer_input
 from mne.datasets import testing
-from mne._fiff.compensator import set_current_comp
-from mne._fiff.constants import FIFF
-from mne.minimum_norm import make_inverse_operator, apply_inverse
+from mne.minimum_norm import apply_inverse, make_inverse_operator
 from mne.minimum_norm.tests.test_inverse import _assert_free_ori_match
 from mne.simulation import simulate_evoked
-from mne.utils import object_diff, catch_logging, _record_warnings
-
+from mne.transforms import apply_trans, invert_transform
+from mne.utils import _record_warnings, catch_logging, object_diff
 
 data_path = testing.data_path(download=False)
 fname_raw = data_path / "MEG" / "sample" / "sample_audvis_trunc_raw.fif"

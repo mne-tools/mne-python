@@ -48,40 +48,40 @@ __all__ = [
     "write_info",
 ]
 from . import constants, pick
-from .base import BaseRaw, concatenate_raws, match_channel_orders
+from ._fiff_wrap import (
+    anonymize_info,
+    get_channel_type_constants,
+    read_fiducials,
+    read_info,
+    show_fiff,
+    write_fiducials,
+    write_info,
+)
+from ._read_raw import read_raw
 from .array import RawArray
+from .artemis123 import read_raw_artemis123
+from .base import BaseRaw, concatenate_raws, match_channel_orders
 from .besa import read_evoked_besa
+from .boxy import read_raw_boxy
 from .brainvision import read_raw_brainvision
 from .bti import read_raw_bti
 from .cnt import read_raw_cnt
 from .ctf import read_raw_ctf
 from .curry import read_raw_curry
-from .edf import read_raw_edf, read_raw_bdf, read_raw_gdf
-from .egi import read_raw_egi, read_evokeds_mff
-from .kit import read_raw_kit, read_epochs_kit
-from .fiff import read_raw_fif, Raw
+from .edf import read_raw_bdf, read_raw_edf, read_raw_gdf
+from .eeglab import read_epochs_eeglab, read_raw_eeglab
+from .egi import read_evokeds_mff, read_raw_egi
+from .eximia import read_raw_eximia
+from .eyelink import read_raw_eyelink
+from .fieldtrip import read_epochs_fieldtrip, read_evoked_fieldtrip, read_raw_fieldtrip
+from .fiff import Raw, read_raw_fif
 from .fil import read_raw_fil
+from .hitachi import read_raw_hitachi
+from .kit import read_epochs_kit, read_raw_kit
 from .nedf import read_raw_nedf
 from .nicolet import read_raw_nicolet
-from .artemis123 import read_raw_artemis123
-from .eeglab import read_raw_eeglab, read_epochs_eeglab
-from .eximia import read_raw_eximia
-from .hitachi import read_raw_hitachi
-from .nirx import read_raw_nirx
-from .boxy import read_raw_boxy
-from .snirf import read_raw_snirf
-from .persyst import read_raw_persyst
-from .fieldtrip import read_raw_fieldtrip, read_epochs_fieldtrip, read_evoked_fieldtrip
 from .nihon import read_raw_nihon
+from .nirx import read_raw_nirx
 from .nsx import read_raw_nsx
-from ._read_raw import read_raw
-from .eyelink import read_raw_eyelink
-from ._fiff_wrap import (
-    read_info,
-    write_info,
-    anonymize_info,
-    read_fiducials,
-    write_fiducials,
-    show_fiff,
-    get_channel_type_constants,
-)
+from .persyst import read_raw_persyst
+from .snirf import read_raw_snirf
