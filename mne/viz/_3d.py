@@ -1597,7 +1597,7 @@ def _sensor_shape(coil):
     except ImportError:  # scipy < 1.8
         from scipy.spatial.qhull import QhullError
     id_ = coil["type"] & 0xFFFF
-    pad = True
+    z_value = 0
     # Square figure eight
     if id_ in (
         FIFF.FIFFV_COIL_NM_122,
@@ -1623,6 +1623,8 @@ def _sensor_shape(coil):
         tris = np.concatenate(
             (_make_tris_fan(4), _make_tris_fan(4)[:, ::-1] + 4), axis=0
         )
+        # Offset for visibility (using heuristic for sanely named Neuromag coils)
+        z_value = 0.001 * (1 + coil["chname"].endswith("2"))
     # Square
     elif id_ in (
         FIFF.FIFFV_COIL_POINT_MAGNETOMETER,
@@ -1693,11 +1695,11 @@ def _sensor_shape(coil):
             rr_rot = rrs @ u
             tris = Delaunay(rr_rot[:, :2]).simplices
             tris = np.concatenate((tris, tris[:, ::-1]))
-        pad = False
+        z_value = None
 
     # Go from (x,y) -> (x,y,z)
-    if pad:
-        rrs = np.pad(rrs, ((0, 0), (0, 1)), mode="constant")
+    if z_value is not None:
+        rrs = np.pad(rrs, ((0, 0), (0, 1)), mode="constant", constant_values=z_value)
     assert rrs.ndim == 2 and rrs.shape[1] == 3
     return rrs, tris
 
