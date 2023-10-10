@@ -16,9 +16,10 @@ reconstruct source activity using an LCMV beamformer.
 # %%
 
 import matplotlib.pyplot as plt
+
 import mne
-from mne.datasets import sample, fetch_fsaverage
-from mne.beamformer import make_lcmv, apply_lcmv
+from mne.beamformer import apply_lcmv, make_lcmv
+from mne.datasets import fetch_fsaverage, sample
 
 # %%
 # Introduction to beamformers

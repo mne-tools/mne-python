@@ -23,12 +23,12 @@ import numpy as np
 
 import mne
 from mne.datasets import sample
-from mne.inverse_sparse import mixed_norm, make_stc_from_dipoles
-from mne.minimum_norm import make_inverse_operator, apply_inverse
+from mne.inverse_sparse import make_stc_from_dipoles, mixed_norm
+from mne.minimum_norm import apply_inverse, make_inverse_operator
 from mne.viz import (
-    plot_sparse_source_estimates,
-    plot_dipole_locations,
     plot_dipole_amplitudes,
+    plot_dipole_locations,
+    plot_sparse_source_estimates,
 )
 
 print(__doc__)

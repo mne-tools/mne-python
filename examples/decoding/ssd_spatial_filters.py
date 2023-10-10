@@ -21,6 +21,7 @@ frequencies.
 
 
 import matplotlib.pyplot as plt
+
 import mne
 from mne import Epochs
 from mne.datasets.fieldtrip_cmc import data_path

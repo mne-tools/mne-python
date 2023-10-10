@@ -20,6 +20,7 @@ array to use when converting the continuous data to epochs:
 # %%
 
 import os
+
 import mne
 
 sample_data_folder = mne.datasets.sample.data_path()

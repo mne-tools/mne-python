@@ -23,15 +23,15 @@ trials, or by operating on numpy arrays.
 import numpy as np
 from matplotlib import pyplot as plt
 
-from mne import create_info, Epochs
+from mne import Epochs, create_info
 from mne.baseline import rescale
 from mne.io import RawArray
 from mne.time_frequency import (
+    AverageTFR,
+    tfr_array_morlet,
+    tfr_morlet,
     tfr_multitaper,
     tfr_stockwell,
-    tfr_morlet,
-    tfr_array_morlet,
-    AverageTFR,
 )
 from mne.viz import centers_to_edges
 

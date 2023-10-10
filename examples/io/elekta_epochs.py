@@ -15,8 +15,9 @@ Extract and average epochs accordingly. Modify some averaging parameters and get
 # %%
 
 
-import mne
 import os
+
+import mne
 from mne.datasets import multimodal
 
 fname_raw = os.path.join(multimodal.data_path(), "multimodal_raw.fif")

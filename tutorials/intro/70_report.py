@@ -23,11 +23,13 @@ need:
 
 # %%
 
-from pathlib import Path
 import tempfile
+from pathlib import Path
+
+import matplotlib.pyplot as plt
 import numpy as np
 import scipy.ndimage
-import matplotlib.pyplot as plt
+
 import mne
 
 data_path = Path(mne.datasets.sample.data_path(verbose=False))

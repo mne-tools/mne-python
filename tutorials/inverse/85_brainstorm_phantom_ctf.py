@@ -23,8 +23,8 @@ References
 
 import warnings
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 
 import mne
 from mne import fit_dipole

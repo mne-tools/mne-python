@@ -31,17 +31,17 @@ see also: :ref:`tut-cluster-one-samp-tfr`
 
 # %%
 
-import numpy as np
 import matplotlib.pyplot as plt
-from mpl_toolkits.axes_grid1 import make_axes_locatable
+import numpy as np
 import scipy.stats
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 import mne
-from mne.stats import spatio_temporal_cluster_test, combine_adjacency
-from mne.datasets import sample
 from mne.channels import find_ch_adjacency
-from mne.viz import plot_compare_evokeds
+from mne.datasets import sample
+from mne.stats import combine_adjacency, spatio_temporal_cluster_test
 from mne.time_frequency import tfr_morlet
+from mne.viz import plot_compare_evokeds
 
 # %%
 # Set parameters

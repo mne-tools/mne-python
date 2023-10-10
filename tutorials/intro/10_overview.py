@@ -17,6 +17,7 @@ We begin by importing the necessary Python modules:
 # %%
 
 import numpy as np
+
 import mne
 
 # %%

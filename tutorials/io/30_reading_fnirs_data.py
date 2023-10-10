@@ -159,6 +159,7 @@ have to adapt this depending on the system from which your CSV originated.
 
 import numpy as np
 import pandas as pd
+
 import mne
 
 # sphinx_gallery_thumbnail_number = 2

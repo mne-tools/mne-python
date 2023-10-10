@@ -19,9 +19,10 @@ will only work properly when run in an interactive environment.
 # Author: Marijn van Vliet <w.m.vanvliet@gmail.com>
 #
 # License: BSD-3-Clause
-import mne
 import matplotlib.pyplot as plt
-from mne.viz.ui_events import publish, subscribe, link, TimeChange
+
+import mne
+from mne.viz.ui_events import TimeChange, link, publish, subscribe
 
 # Turn on interactivity
 plt.ion()
