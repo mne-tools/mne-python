@@ -352,7 +352,7 @@ class CoregistrationUI(HasTraits):
             True: dict(azimuth=90, elevation=90),  # front
             False: dict(azimuth=180, elevation=90),
         }  # left
-        self._renderer.set_camera(distance=None, **views[self._lock_fids])
+        self._renderer.set_camera(distance="auto", **views[self._lock_fids])
         self._redraw()
         # XXX: internal plotter/renderer should not be exposed
         if not self._immediate_redraw:
@@ -1042,7 +1042,7 @@ class CoregistrationUI(HasTraits):
         kwargs = dict(front=(90.0, 90.0), left=(180, 90), right=(0.0, 90))
         kwargs = dict(zip(("azimuth", "elevation"), kwargs[view[fid]]))
         if not self._lock_fids:
-            self._renderer.set_camera(distance=None, **kwargs)
+            self._renderer.set_camera(distance="auto", **kwargs)
 
     def _update_fiducials(self):
         fid = self._current_fiducial
@@ -1538,7 +1538,7 @@ class CoregistrationUI(HasTraits):
             collapse = True  # collapsible and collapsed
         else:
             collapse = None  # not collapsible
-        self._renderer._dock_initialize(name="Input", area="left", max_width="350px")
+        self._renderer._dock_initialize(name="Input", area="left", max_width="375px")
         mri_subject_layout = self._renderer._dock_add_group_box(
             name="MRI Subject",
             collapse=collapse,
@@ -1730,7 +1730,7 @@ class CoregistrationUI(HasTraits):
         self._renderer._dock_add_stretch()
 
         self._renderer._dock_initialize(
-            name="Parameters", area="right", max_width="350px"
+            name="Parameters", area="right", max_width="375px"
         )
         mri_scaling_layout = self._renderer._dock_add_group_box(
             name="MRI Scaling",
