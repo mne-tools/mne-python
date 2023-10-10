@@ -2,8 +2,8 @@
 #
 # License: BSD-3-Clause
 
-from numpy.testing import assert_allclose
 import pytest
+from numpy.testing import assert_allclose
 
 import mne
 from mne.datasets import testing

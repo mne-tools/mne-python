@@ -5,14 +5,14 @@
 import ast
 import glob
 import os
-from pathlib import Path
 import sys
+from pathlib import Path
 from types import ModuleType
+
 import pytest
 
 import mne
-from mne.utils import run_subprocess, logger, _pl
-
+from mne.utils import _pl, logger, run_subprocess
 
 # To avoid circular import issues, we have a defined order of submodule
 # priority. A submodule should nest an import from another submodule if and

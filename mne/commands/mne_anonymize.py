@@ -15,9 +15,10 @@ Examples
 
 """
 
-import sys
-import mne
 import os.path as op
+import sys
+
+import mne
 
 ANONYMIZE_FILE_PREFIX = "anon"
 

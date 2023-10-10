@@ -1,41 +1,41 @@
 import gc
 from pathlib import Path
 
-import pytest
 import numpy as np
+import pytest
 from numpy.testing import (
-    assert_array_almost_equal,
-    assert_equal,
-    assert_array_equal,
     assert_allclose,
+    assert_array_almost_equal,
+    assert_array_equal,
+    assert_equal,
 )
 
-from mne._fiff.pick import pick_channels_forward
-from mne.datasets import testing
 from mne import (
-    read_forward_solution,
+    SourceEstimate,
+    VectorSourceEstimate,
     apply_forward,
     apply_forward_raw,
     average_forward_solutions,
-    write_forward_solution,
     convert_forward_solution,
-    SourceEstimate,
     pick_types_forward,
     read_evokeds,
-    VectorSourceEstimate,
+    read_forward_solution,
+    write_forward_solution,
+)
+from mne._fiff.pick import pick_channels_forward
+from mne.channels import equalize_channels
+from mne.datasets import testing
+from mne.forward import (
+    Forward,
+    compute_depth_prior,
+    compute_orient_prior,
+    is_fixed_orient,
+    restrict_forward_to_label,
+    restrict_forward_to_stc,
 )
 from mne.io import read_info
 from mne.label import read_label
 from mne.utils import requires_mne, run_subprocess
-from mne.forward import (
-    restrict_forward_to_stc,
-    restrict_forward_to_label,
-    Forward,
-    is_fixed_orient,
-    compute_orient_prior,
-    compute_depth_prior,
-)
-from mne.channels import equalize_channels
 
 data_path = testing.data_path(download=False)
 fname_meeg = data_path / "MEG" / "sample" / "sample_audvis_trunc-meg-eeg-oct-4-fwd.fif"

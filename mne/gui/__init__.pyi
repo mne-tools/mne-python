@@ -1,2 +1,2 @@
 __all__ = ["_GUIScraper", "coregistration"]
-from ._gui import coregistration, _GUIScraper
+from ._gui import _GUIScraper, coregistration

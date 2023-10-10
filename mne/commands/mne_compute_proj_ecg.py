@@ -15,6 +15,7 @@ Examples
 
 import os
 import sys
+
 import mne
 
 

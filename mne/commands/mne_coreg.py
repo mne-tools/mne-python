@@ -18,7 +18,7 @@ import mne
 
 def run():
     """Run command."""
-    from mne.commands.utils import get_optparser, _add_verbose_flag
+    from mne.commands.utils import _add_verbose_flag, get_optparser
 
     parser = get_optparser(__file__)
 

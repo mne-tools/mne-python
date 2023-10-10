@@ -11,37 +11,36 @@ Actual implementation of _Renderer and _Projection classes.
 #
 # License: Simplified BSD
 
-from contextlib import contextmanager
-from inspect import signature
 import platform
 import re
 import warnings
+from contextlib import contextmanager
+from inspect import signature
 
 import numpy as np
 
-from ._abstract import _AbstractRenderer, Figure3D
-from ._utils import (
-    _get_colormap_from_array,
-    _alpha_blend_background,
-    ALLOWED_QUIVER_MODES,
-    _init_mne_qtapp,
-)
 from ...fixes import _compare_version
-from ...transforms import apply_trans, _cart_to_sph, _sph_to_cart
+from ...transforms import _cart_to_sph, _sph_to_cart, apply_trans
 from ...utils import (
-    copy_base_doc_to_subclass_doc,
     _check_option,
     _require_version,
     _validate_type,
-    warn,
+    copy_base_doc_to_subclass_doc,
     deprecated,
+    warn,
 )
-
+from ._abstract import Figure3D, _AbstractRenderer
+from ._utils import (
+    ALLOWED_QUIVER_MODES,
+    _alpha_blend_background,
+    _get_colormap_from_array,
+    _init_mne_qtapp,
+)
 
 with warnings.catch_warnings():
     warnings.filterwarnings("ignore", category=DeprecationWarning)
     import pyvista
-    from pyvista import Plotter, PolyData, Line, close_all, UnstructuredGrid
+    from pyvista import Line, Plotter, PolyData, UnstructuredGrid, close_all
     from pyvistaqt import BackgroundPlotter
 
     try:
@@ -49,36 +48,36 @@ with warnings.catch_warnings():
     except Exception:  # PV < 0.40
         from pyvista.plotting.plotting import _ALL_PLOTTERS
 
-from vtkmodules.vtkCommonCore import vtkCommand, vtkLookupTable, VTK_UNSIGNED_CHAR
+from vtkmodules.util.numpy_support import numpy_to_vtk
+from vtkmodules.vtkCommonCore import VTK_UNSIGNED_CHAR, vtkCommand, vtkLookupTable
 from vtkmodules.vtkCommonDataModel import VTK_VERTEX, vtkPiecewiseFunction
 from vtkmodules.vtkCommonTransforms import vtkTransform
 from vtkmodules.vtkFiltersCore import vtkCellDataToPointData, vtkGlyph3D
 from vtkmodules.vtkFiltersGeneral import (
-    vtkTransformPolyDataFilter,
     vtkMarchingContourFilter,
+    vtkTransformPolyDataFilter,
 )
 from vtkmodules.vtkFiltersHybrid import vtkPolyDataSilhouette
 from vtkmodules.vtkFiltersSources import (
-    vtkSphereSource,
+    vtkArrowSource,
     vtkConeSource,
     vtkCylinderSource,
-    vtkArrowSource,
-    vtkPlatonicSolidSource,
     vtkGlyphSource2D,
+    vtkPlatonicSolidSource,
+    vtkSphereSource,
 )
 from vtkmodules.vtkImagingCore import vtkImageReslice
 from vtkmodules.vtkRenderingCore import (
-    vtkMapper,
     vtkActor,
     vtkCellPicker,
     vtkColorTransferFunction,
-    vtkPolyDataMapper,
-    vtkVolume,
     vtkCoordinate,
     vtkDataSetMapper,
+    vtkMapper,
+    vtkPolyDataMapper,
+    vtkVolume,
 )
 from vtkmodules.vtkRenderingVolumeOpenGL2 import vtkSmartVolumeMapper
-from vtkmodules.util.numpy_support import numpy_to_vtk
 
 _FIGURES = dict()
 

@@ -4,14 +4,14 @@
 #
 # License: BSD-3-Clause
 
-import pytest
 import numpy as np
+import pytest
 
-from mne.datasets.testing import data_path
-from mne.io import read_raw_nirx, BaseRaw, read_raw_fif
-from mne.preprocessing.nirs import optical_density, beer_lambert_law
-from mne.utils import _validate_type
 from mne.datasets import testing
+from mne.datasets.testing import data_path
+from mne.io import BaseRaw, read_raw_fif, read_raw_nirx
+from mne.preprocessing.nirs import beer_lambert_law, optical_density
+from mne.utils import _validate_type
 
 testing_path = data_path(download=False)
 fname_nirx_15_0 = testing_path / "NIRx" / "nirscout" / "nirx_15_0_recording"

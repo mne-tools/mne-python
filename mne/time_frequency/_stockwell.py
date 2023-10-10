@@ -9,8 +9,8 @@ import numpy as np
 from scipy.fft import fft, fftfreq, ifft
 
 from .._fiff.pick import _pick_data_channels, pick_info
-from ..utils import verbose, logger, fill_doc, _validate_type
 from ..parallel import parallel_func
+from ..utils import _validate_type, fill_doc, logger, verbose
 from .tfr import AverageTFR, _get_data
 
 

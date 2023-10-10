@@ -3,6 +3,7 @@
 # License: BSD-3-Clause
 
 from copy import deepcopy
+
 import numpy as np
 
 from ...utils import logger

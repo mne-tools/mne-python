@@ -10,19 +10,19 @@
 
 import numpy as np
 
+from ..fixes import rng_uniform
+from ..label import Label
 from ..source_estimate import SourceEstimate, VolSourceEstimate
 from ..source_space._source_space import _ensure_src
-from ..fixes import rng_uniform
-from ..utils import (
-    check_random_state,
-    warn,
-    _check_option,
-    fill_doc,
-    _ensure_int,
-    _ensure_events,
-)
-from ..label import Label
 from ..surface import _compute_nearest
+from ..utils import (
+    _check_option,
+    _ensure_events,
+    _ensure_int,
+    check_random_state,
+    fill_doc,
+    warn,
+)
 
 
 @fill_doc

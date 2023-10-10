@@ -1,16 +1,17 @@
+import webbrowser
+
 import pytest
 
-from mne import open_docs, grade_to_tris
+from mne import grade_to_tris, open_docs
 from mne.utils import (
-    copy_function_doc_to_method_doc,
+    catch_logging,
     copy_doc,
-    linkcode_resolve,
+    copy_function_doc_to_method_doc,
     deprecated,
     deprecated_alias,
     legacy,
-    catch_logging,
+    linkcode_resolve,
 )
-import webbrowser
 
 
 @pytest.mark.parametrize("obj", (grade_to_tris,))

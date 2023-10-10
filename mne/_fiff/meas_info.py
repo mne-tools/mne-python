@@ -5,97 +5,97 @@
 #
 # License: BSD-3-Clause
 
-from collections import Counter, OrderedDict
-from collections.abc import Mapping
 import contextlib
-from copy import deepcopy
 import datetime
-from io import BytesIO
 import operator
-from textwrap import shorten
 import string
 import uuid
+from collections import Counter, OrderedDict
+from collections.abc import Mapping
+from copy import deepcopy
+from io import BytesIO
+from textwrap import shorten
 
 import numpy as np
 
+from ..defaults import _handle_default
+from ..html_templates import _get_html_template
+from ..utils import (
+    _check_fname,
+    _check_on_missing,
+    _check_option,
+    _dt_to_stamp,
+    _is_numeric,
+    _on_missing,
+    _pl,
+    _stamp_to_dt,
+    _validate_type,
+    check_fname,
+    fill_doc,
+    logger,
+    object_diff,
+    repr_html,
+    verbose,
+    warn,
+)
+from ._digitization import (
+    DigPoint,
+    _dig_kind_ints,
+    _dig_kind_proper,
+    _dig_kind_rev,
+    _format_dig_points,
+    _get_data_as_dict_from_dig,
+    _read_dig_fif,
+    write_dig,
+)
+from .compensator import get_current_comp
+from .constants import FIFF, _ch_unit_mul_named, _coord_frame_named
+from .ctf_comp import _read_ctf_comp, write_ctf_comp
+from .open import fiff_open
 from .pick import (
+    _DATA_CH_TYPES_SPLIT,
+    _contains_ch_type,
+    _picks_to_idx,
     channel_type,
     get_channel_type_constants,
     pick_types,
-    _picks_to_idx,
-    _contains_ch_type,
-    _DATA_CH_TYPES_SPLIT,
-)
-from .constants import FIFF, _coord_frame_named, _ch_unit_mul_named
-from .open import fiff_open
-from .tree import dir_tree_find
-from .tag import (
-    read_tag,
-    find_tag,
-    _ch_coord_dict,
-    _update_ch_info_named,
-    _rename_list,
-    _int_item,
-    _float_item,
-)
-from .proj import (
-    _read_proj,
-    _write_proj,
-    _uniquify_projs,
-    _normalize_proj,
-    _proj_equal,
-    Projection,
-)
-from .ctf_comp import _read_ctf_comp, write_ctf_comp
-from .write import (
-    start_and_end_file,
-    start_block,
-    end_block,
-    write_string,
-    write_dig_points,
-    write_float,
-    write_int,
-    write_coord_trans,
-    write_ch_info,
-    write_julian,
-    write_float_matrix,
-    write_id,
-    DATE_NONE,
-    _safe_name_list,
-    write_name_list_sanitized,
 )
 from .proc_history import _read_proc_history, _write_proc_history
-from ..html_templates import _get_html_template
-from ..utils import (
-    logger,
-    verbose,
-    warn,
-    object_diff,
-    _validate_type,
-    _stamp_to_dt,
-    _dt_to_stamp,
-    _pl,
-    _is_numeric,
-    _check_option,
-    _on_missing,
-    _check_on_missing,
-    fill_doc,
-    _check_fname,
-    check_fname,
-    repr_html,
+from .proj import (
+    Projection,
+    _normalize_proj,
+    _proj_equal,
+    _read_proj,
+    _uniquify_projs,
+    _write_proj,
 )
-from ._digitization import (
-    _format_dig_points,
-    _dig_kind_proper,
-    DigPoint,
-    _dig_kind_rev,
-    _dig_kind_ints,
-    _read_dig_fif,
+from .tag import (
+    _ch_coord_dict,
+    _float_item,
+    _int_item,
+    _rename_list,
+    _update_ch_info_named,
+    find_tag,
+    read_tag,
 )
-from ._digitization import write_dig, _get_data_as_dict_from_dig
-from .compensator import get_current_comp
-from ..defaults import _handle_default
-
+from .tree import dir_tree_find
+from .write import (
+    DATE_NONE,
+    _safe_name_list,
+    end_block,
+    start_and_end_file,
+    start_block,
+    write_ch_info,
+    write_coord_trans,
+    write_dig_points,
+    write_float,
+    write_float_matrix,
+    write_id,
+    write_int,
+    write_julian,
+    write_name_list_sanitized,
+    write_string,
+)
 
 b = bytes  # alias
 
@@ -636,8 +636,8 @@ class SetChannelsMixin(MontageMixin):
         -----
         .. versionadded:: 0.9.0
         """
-        from ..io import BaseRaw
         from ..channels.channels import rename_channels
+        from ..io import BaseRaw
 
         info = self if isinstance(self, Info) else self.info
 
@@ -1638,7 +1638,7 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
     def __repr__(self):
         """Summarize info instead of printing all."""
         from ..io.kit.constants import KIT_SYSNAMES
-        from ..transforms import _coord_frame_name, Transform
+        from ..transforms import Transform, _coord_frame_name
 
         MAX_WIDTH = 68
         strs = ["<Info | %s non-empty values"]
@@ -2120,7 +2120,7 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
     meas : dict
         Node in tree that contains the info.
     """
-    from ..transforms import invert_transform, Transform
+    from ..transforms import Transform, invert_transform
 
     #   Find the desired blocks
     meas = dir_tree_find(tree, FIFF.FIFFB_MEAS)

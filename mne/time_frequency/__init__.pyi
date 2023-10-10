@@ -60,9 +60,9 @@ from .spectrum import (
     read_spectrum,
 )
 from .tfr import (
-    _BaseTFR,
     AverageTFR,
     EpochsTFR,
+    _BaseTFR,
     fwhm,
     morlet,
     read_tfrs,

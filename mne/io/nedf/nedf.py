@@ -2,14 +2,14 @@
 
 from copy import deepcopy
 from datetime import datetime, timezone
-from defusedxml import ElementTree
 
 import numpy as np
+from defusedxml import ElementTree
 
-from ..base import BaseRaw
 from ..._fiff.meas_info import create_info
 from ..._fiff.utils import _mult_cal_one
-from ...utils import warn, verbose, _check_fname
+from ...utils import _check_fname, verbose, warn
+from ..base import BaseRaw
 
 
 def _getsubnodetext(node, name):

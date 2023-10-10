@@ -6,121 +6,117 @@
 #
 # License: Simplified BSD
 
-from contextlib import contextmanager
 import os
 import platform
 import sys
 import weakref
+from contextlib import contextmanager
 
 import pyvista
-from pyvistaqt.plotting import FileDialog, MainWindow
-from .renderer import _TimeInteraction
-from matplotlib.figure import Figure
 from matplotlib.backends.backend_qt5agg import FigureCanvas
-
+from matplotlib.figure import Figure
+from pyvistaqt.plotting import FileDialog, MainWindow
 from qtpy.QtCore import (
+    QEvent,
+    QLibraryInfo,
+    QLocale,
+    QObject,
     Qt,
     QTimer,
-    QLocale,
-    QLibraryInfo,
-    QEvent,
     # non-object-based-abstraction-only, deprecate
     Signal,
-    QObject,
 )
-from qtpy.QtGui import QIcon, QCursor, QKeyEvent
+from qtpy.QtGui import QCursor, QIcon, QKeyEvent
 from qtpy.QtWidgets import (
+    QButtonGroup,
+    QCheckBox,
     QComboBox,
+    # non-object-based-abstraction-only, deprecate
+    QDockWidget,
+    QDoubleSpinBox,
+    QFileDialog,
+    QGridLayout,
     QGroupBox,
     QHBoxLayout,
     QLabel,
-    QSlider,
-    QDoubleSpinBox,
-    QVBoxLayout,
-    QWidget,
-    QSizePolicy,
-    QProgressBar,
-    QScrollArea,
     QLayout,
-    QCheckBox,
-    QButtonGroup,
-    QRadioButton,
     QLineEdit,
-    QGridLayout,
-    QFileDialog,
-    QPushButton,
-    QMessageBox,
-    # non-object-based-abstraction-only, deprecate
-    QDockWidget,
-    QToolButton,
     QMenuBar,
+    QMessageBox,
+    QProgressBar,
+    QPushButton,
+    QRadioButton,
+    QScrollArea,
+    QSizePolicy,
+    QSlider,
     QSpinBox,
     QStyle,
     QStyleOptionSlider,
+    QToolButton,
+    QVBoxLayout,
+    QWidget,
 )
 
-from ._pyvista import _PyVistaRenderer
-from ._pyvista import (
-    _close_3d_figure,  # noqa: F401
-    _check_3d_figure,  # noqa: F401
-    _close_all,  # noqa: F401
-    _set_3d_view,  # noqa: F401
-    _set_3d_title,  # noqa: F401
-    _take_3d_screenshot,  # noqa: F401
-    _is_mesa,  # noqa: F401
-)
+from ...fixes import _compare_version
+from ...utils import _check_option, get_config
+from ..utils import safe_event
 from ._abstract import (
-    _AbstractAppWindow,
-    _AbstractHBoxLayout,
-    _AbstractVBoxLayout,
-    _AbstractGridLayout,
-    _AbstractWidget,
-    _AbstractCanvas,
-    _AbstractPopup,
-    _AbstractLabel,
-    _AbstractButton,
-    _AbstractSlider,
-    _AbstractCheckBox,
-    _AbstractSpinBox,
-    _AbstractComboBox,
-    _AbstractRadioButtons,
-    _AbstractGroupBox,
-    _AbstractText,
-    _AbstractFileButton,
-    _AbstractPlayMenu,
-    _AbstractProgressBar,
-)
-from ._abstract import (
-    _AbstractDock,
-    _AbstractToolBar,
-    _AbstractMenuBar,
-    _AbstractStatusBar,
-    _AbstractLayout,
-    _AbstractWdgt,
-    _AbstractWindow,
-    _AbstractMplCanvas,
-    _AbstractPlayback,
-    _AbstractBrainMplCanvas,
-    _AbstractMplInterface,
-    _AbstractWidgetList,
     _AbstractAction,
+    _AbstractAppWindow,
+    _AbstractBrainMplCanvas,
+    _AbstractButton,
+    _AbstractCanvas,
+    _AbstractCheckBox,
+    _AbstractComboBox,
     _AbstractDialog,
+    _AbstractDock,
+    _AbstractFileButton,
+    _AbstractGridLayout,
+    _AbstractGroupBox,
+    _AbstractHBoxLayout,
     _AbstractKeyPress,
+    _AbstractLabel,
+    _AbstractLayout,
+    _AbstractMenuBar,
+    _AbstractMplCanvas,
+    _AbstractMplInterface,
+    _AbstractPlayback,
+    _AbstractPlayMenu,
+    _AbstractPopup,
+    _AbstractProgressBar,
+    _AbstractRadioButtons,
+    _AbstractSlider,
+    _AbstractSpinBox,
+    _AbstractStatusBar,
+    _AbstractText,
+    _AbstractToolBar,
+    _AbstractVBoxLayout,
+    _AbstractWdgt,
+    _AbstractWidget,
+    _AbstractWidgetList,
+    _AbstractWindow,
+)
+from ._pyvista import (
+    _check_3d_figure,  # noqa: F401
+    _close_3d_figure,  # noqa: F401
+    _close_all,  # noqa: F401
+    _is_mesa,  # noqa: F401
+    _PyVistaRenderer,
+    _set_3d_title,  # noqa: F401
+    _set_3d_view,  # noqa: F401
+    _take_3d_screenshot,  # noqa: F401
 )
 from ._utils import (
+    _init_mne_qtapp,
+    _qt_app_exec,
+    _qt_detect_theme,
     _qt_disable_paint,
     _qt_get_stylesheet,
     _qt_is_dark,
-    _qt_detect_theme,
     _qt_raise_window,
-    _init_mne_qtapp,
-    _qt_app_exec,
     _qt_safe_window,
 )
-from ..utils import safe_event
-from ...utils import _check_option, get_config
-from ...fixes import _compare_version
-
+from .renderer import _TimeInteraction
 
 # Adapted from matplotlib
 if (
@@ -1416,8 +1412,8 @@ class _QtPlayback(_AbstractPlayback):
 
 class _QtMplInterface(_AbstractMplInterface):
     def _mpl_initialize(self):
-        from qtpy import QtWidgets
         from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
+        from qtpy import QtWidgets
 
         self.canvas = FigureCanvasQTAgg(self.fig)
         FigureCanvasQTAgg.setSizePolicy(

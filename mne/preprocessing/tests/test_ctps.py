@@ -3,11 +3,11 @@
 # License: BSD-3-Clause
 
 import numpy as np
-from numpy.testing import assert_array_equal
 import pytest
+from numpy.testing import assert_array_equal
 
+from mne.preprocessing.ctps_ import _compute_normalized_phase, _prob_kuiper, ctps
 from mne.time_frequency import morlet
-from mne.preprocessing.ctps_ import ctps, _prob_kuiper, _compute_normalized_phase
 
 ###############################################################################
 # Generate testing signal

@@ -8,51 +8,53 @@ import shutil
 from contextlib import nullcontext
 from pathlib import Path
 
-import pytest
+import matplotlib.pyplot as plt
 import numpy as np
+import pytest
 from numpy.testing import (
+    assert_allclose,
     assert_array_almost_equal,
     assert_array_equal,
-    assert_allclose,
     assert_equal,
 )
-from scipy import stats, linalg
+from scipy import linalg, stats
 from scipy.io import loadmat, savemat
-import matplotlib.pyplot as plt
 
 from mne import (
+    Annotations,
     Epochs,
-    Info,
-    read_events,
-    pick_types,
-    create_info,
     EpochsArray,
     EvokedArray,
-    Annotations,
-    pick_channels_regexp,
+    Info,
+    create_info,
     make_ad_hoc_cov,
+    pick_channels_regexp,
+    pick_types,
+    read_events,
 )
+from mne._fiff.pick import _DATA_CH_TYPES_SPLIT, get_channel_type_constants
 from mne.cov import read_cov
+from mne.datasets import testing
+from mne.event import make_fixed_length_events
+from mne.io import RawArray, read_raw_ctf, read_raw_eeglab, read_raw_fif
+from mne.io.eeglab.eeglab import _check_load_mat
 from mne.preprocessing import (
     ICA as _ICA,
+)
+from mne.preprocessing import (
     ica_find_ecg_events,
     ica_find_eog_events,
     read_ica,
 )
 from mne.preprocessing.ica import (
-    get_score_funcs,
-    corrmap,
-    _sort_components,
     _ica_explained_variance,
+    _sort_components,
+    corrmap,
+    get_score_funcs,
     read_ica_eeglab,
 )
-from mne.io import read_raw_fif, RawArray, read_raw_ctf, read_raw_eeglab
-from mne._fiff.pick import _DATA_CH_TYPES_SPLIT, get_channel_type_constants
-from mne.io.eeglab.eeglab import _check_load_mat
 from mne.rank import _compute_rank_int
-from mne.utils import catch_logging, _record_warnings, check_version
-from mne.datasets import testing
-from mne.event import make_fixed_length_events
+from mne.utils import _record_warnings, catch_logging, check_version
 
 data_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
 raw_fname = data_dir / "test_raw.fif"

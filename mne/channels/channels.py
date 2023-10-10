@@ -12,13 +12,13 @@
 
 
 import os.path as op
-from pathlib import Path
+import string
 import sys
 from collections import OrderedDict
-from dataclasses import dataclass
 from copy import deepcopy
+from dataclasses import dataclass
 from functools import partial
-import string
+from pathlib import Path
 from typing import Union
 
 import numpy as np
@@ -27,45 +27,45 @@ from scipy.sparse import csr_matrix, lil_matrix
 from scipy.spatial import Delaunay
 from scipy.stats import zscore
 
-from ..bem import _check_origin
-from ..defaults import HEAD_SIZE_DEFAULT, _handle_default
-from ..utils import (
-    verbose,
-    logger,
-    warn,
-    _check_preload,
-    _validate_type,
-    fill_doc,
-    _check_option,
-    _get_stim_channel,
-    _check_fname,
-    _check_dict_keys,
-    _on_missing,
-    legacy,
-)
 from .._fiff.constants import FIFF
 from .._fiff.meas_info import (  # noqa F401
     Info,
     MontageMixin,
-    create_info,
-    _rename_comps,
     _merge_info,
+    _rename_comps,
     _unit2human,  # TODO: pybv relies on this, should be made public
+    create_info,
 )
 from .._fiff.pick import (
+    _check_excludes_includes,
+    _pick_data_channels,
+    _picks_by_type,
+    _picks_to_idx,
+    channel_indices_by_type,
     channel_type,
+    pick_channels,
     pick_info,
     pick_types,
-    _picks_by_type,
-    _check_excludes_includes,
-    channel_indices_by_type,
-    pick_channels,
-    _picks_to_idx,
-    _pick_data_channels,
 )
-from .._fiff.reference import set_eeg_reference, add_reference_channels
-from .._fiff.tag import _rename_list
 from .._fiff.proj import setup_proj
+from .._fiff.reference import add_reference_channels, set_eeg_reference
+from .._fiff.tag import _rename_list
+from ..bem import _check_origin
+from ..defaults import HEAD_SIZE_DEFAULT, _handle_default
+from ..utils import (
+    _check_dict_keys,
+    _check_fname,
+    _check_option,
+    _check_preload,
+    _get_stim_channel,
+    _on_missing,
+    _validate_type,
+    fill_doc,
+    legacy,
+    logger,
+    verbose,
+    warn,
+)
 
 
 def _get_meg_system(info):
@@ -143,11 +143,11 @@ def equalize_channels(instances, copy=True, verbose=None):
     This function operates inplace.
     """
     from ..cov import Covariance
-    from ..io import BaseRaw
     from ..epochs import BaseEpochs
     from ..evoked import Evoked
     from ..forward import Forward
-    from ..time_frequency import _BaseTFR, CrossSpectralDensity
+    from ..io import BaseRaw
+    from ..time_frequency import CrossSpectralDensity, _BaseTFR
 
     # Instances need to have a `ch_names` attribute and a `pick_channels`
     # method that supports `ordered=True`.
@@ -239,9 +239,9 @@ def unify_bad_channels(insts):
 
     .. versionadded:: 1.6
     """
-    from ..io import BaseRaw
     from ..epochs import Epochs
     from ..evoked import Evoked
+    from ..io import BaseRaw
     from ..time_frequency.spectrum import BaseSpectrum
 
     # ensure input is list-like
@@ -693,8 +693,8 @@ class UpdateChannelsMixin:
         :obj:`numpy.memmap` instance, the memmap will be resized.
         """
         # avoid circular imports
-        from ..io import BaseRaw
         from ..epochs import BaseEpochs
+        from ..io import BaseRaw
 
         _validate_type(add_list, (list, tuple), "Input")
 
@@ -1585,8 +1585,8 @@ def _compute_ch_adjacency(info, ch_type):
     ch_names : list
         The list of channel names present in adjacency matrix.
     """
-    from ..source_estimate import spatial_tris_adjacency
     from ..channels.layout import _find_topomap_coords, _pair_grad_sensors
+    from ..source_estimate import spatial_tris_adjacency
 
     combine_grads = ch_type == "grad" and any(
         [
@@ -1882,9 +1882,9 @@ def combine_channels(
         one virtual channel for each group in ``groups`` (and, if ``keep_stim``
         is ``True``, also containing stimulus channels).
     """
-    from ..io import BaseRaw, RawArray
     from ..epochs import BaseEpochs, EpochsArray
     from ..evoked import Evoked, EvokedArray
+    from ..io import BaseRaw, RawArray
 
     ch_axis = 1 if isinstance(inst, BaseEpochs) else 0
     ch_idx = list(range(inst.info["nchan"]))

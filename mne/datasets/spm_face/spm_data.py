@@ -4,15 +4,14 @@
 
 from functools import partial
 
-from ...utils import verbose, get_config
+from ...utils import get_config, verbose
 from ..utils import (
-    has_dataset,
     _data_path_doc,
+    _download_mne_dataset,
     _get_version,
     _version_doc,
-    _download_mne_dataset,
+    has_dataset,
 )
-
 
 has_spm_data = partial(has_dataset, name="spm")
 

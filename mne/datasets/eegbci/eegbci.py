@@ -5,12 +5,12 @@
 
 import os
 import re
+import time
 from os import path as op
 from pathlib import Path
-import time
 
-from ...utils import _url_to_local_path, verbose, logger
-from ..utils import _do_path_update, _get_path, _log_time_size, _downloader_params
+from ...utils import _url_to_local_path, logger, verbose
+from ..utils import _do_path_update, _downloader_params, _get_path, _log_time_size
 
 # TODO: remove try/except when our min version is py 3.9
 try:

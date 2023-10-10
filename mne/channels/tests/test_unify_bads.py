@@ -1,4 +1,5 @@
 import pytest
+
 from mne.channels import unify_bad_channels
 
 

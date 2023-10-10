@@ -8,24 +8,24 @@ import copy
 import itertools
 from contextlib import nullcontext
 
-import pytest
 import numpy as np
+import pytest
 
 import mne
 from mne.datasets import testing
 from mne.io import read_raw_fieldtrip
-from mne.io.fieldtrip.utils import NOINFO_WARNING, _create_events
 from mne.io.fieldtrip.tests.helpers import (
+    assert_warning_in_record,
+    check_data,
     check_info_fields,
     get_data_paths,
-    get_raw_data,
     get_epochs,
     get_evoked,
-    pandas_not_found_warning_msg,
+    get_raw_data,
     get_raw_info,
-    check_data,
-    assert_warning_in_record,
+    pandas_not_found_warning_msg,
 )
+from mne.io.fieldtrip.utils import NOINFO_WARNING, _create_events
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.utils import _check_pandas_installed, _record_warnings
 

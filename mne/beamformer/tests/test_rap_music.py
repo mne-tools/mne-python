@@ -3,10 +3,10 @@
 #
 # License: BSD-3-Clause
 
-import pytest
 import numpy as np
-from scipy import linalg
+import pytest
 from numpy.testing import assert_allclose
+from scipy import linalg
 
 import mne
 from mne.beamformer import rap_music, trap_music
@@ -14,7 +14,6 @@ from mne.cov import regularize
 from mne.datasets import testing
 from mne.minimum_norm.tests.test_inverse import assert_var_exp_log
 from mne.utils import catch_logging
-
 
 data_path = testing.data_path(download=False)
 fname_ave = data_path / "MEG" / "sample" / "sample_audvis-ave.fif"

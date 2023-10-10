@@ -12,6 +12,7 @@ Examples
 # Authors : Eric Larson <larson.eric.d@gmail.com>
 
 import sys
+
 import mne
 
 

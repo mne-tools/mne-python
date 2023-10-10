@@ -1,61 +1,60 @@
+import copy
 import re
 from pathlib import Path
 
 import numpy as np
+import pytest
 from numpy.testing import (
-    assert_array_almost_equal,
-    assert_equal,
     assert_allclose,
+    assert_array_almost_equal,
     assert_array_equal,
     assert_array_less,
+    assert_equal,
 )
 from scipy import sparse
 
-import pytest
-import copy
-
 import mne
-from mne.datasets import testing
-from mne.label import read_label, label_sign_flip
-from mne.event import read_events
-from mne.epochs import Epochs, EpochsArray, make_fixed_length_epochs
-from mne.forward import restrict_forward_to_stc, apply_forward, is_fixed_orient
-from mne.source_estimate import read_source_estimate, VolSourceEstimate
-from mne.source_space._source_space import _get_src_nn
-from mne.surface import _normal_orth
 from mne import (
-    read_cov,
-    read_forward_solution,
-    read_evokeds,
+    Covariance,
+    EvokedArray,
+    SourceEstimate,
+    combine_evoked,
+    compute_raw_covariance,
+    convert_forward_solution,
+    make_ad_hoc_cov,
+    make_forward_solution,
+    make_sphere_model,
+    pick_channels_forward,
     pick_types,
     pick_types_forward,
-    make_forward_solution,
-    EvokedArray,
-    convert_forward_solution,
-    Covariance,
-    combine_evoked,
-    SourceEstimate,
-    make_sphere_model,
-    make_ad_hoc_cov,
-    pick_channels_forward,
-    compute_raw_covariance,
+    read_cov,
+    read_evokeds,
+    read_forward_solution,
 )
-from mne.io import read_raw_fif, read_info
+from mne.datasets import testing
+from mne.epochs import Epochs, EpochsArray, make_fixed_length_epochs
+from mne.event import read_events
+from mne.forward import apply_forward, is_fixed_orient, restrict_forward_to_stc
+from mne.io import read_info, read_raw_fif
+from mne.label import label_sign_flip, read_label
 from mne.minimum_norm import (
-    apply_inverse,
-    read_inverse_operator,
-    apply_inverse_raw,
-    apply_inverse_epochs,
-    apply_inverse_tfr_epochs,
-    make_inverse_operator,
-    apply_inverse_cov,
-    write_inverse_operator,
-    prepare_inverse_operator,
-    compute_rank_inverse,
     INVERSE_METHODS,
+    apply_inverse,
+    apply_inverse_cov,
+    apply_inverse_epochs,
+    apply_inverse_raw,
+    apply_inverse_tfr_epochs,
+    compute_rank_inverse,
+    make_inverse_operator,
+    prepare_inverse_operator,
+    read_inverse_operator,
+    write_inverse_operator,
 )
+from mne.source_estimate import VolSourceEstimate, read_source_estimate
+from mne.source_space._source_space import _get_src_nn
+from mne.surface import _normal_orth
 from mne.time_frequency import EpochsTFR
-from mne.utils import catch_logging, _record_warnings
+from mne.utils import _record_warnings, catch_logging
 
 test_path = testing.data_path(download=False)
 s_path = test_path / "MEG" / "sample"

@@ -1,22 +1,21 @@
+from itertools import compress
 from pathlib import Path
 
 import numpy as np
-from numpy.testing import assert_allclose, assert_array_equal
 import pytest
-from itertools import compress
+from numpy.testing import assert_allclose, assert_array_equal
 
-from mne import io, pick_types, pick_channels, read_events, Epochs
+from mne import Epochs, io, pick_channels, pick_types, read_events
+from mne._fiff.proj import _has_eeg_average_ref_proj
 from mne.channels.interpolation import _make_interpolation_matrix
 from mne.datasets import testing
+from mne.io import read_raw_nirx
 from mne.preprocessing.nirs import (
+    beer_lambert_law,
     optical_density,
     scalp_coupling_index,
-    beer_lambert_law,
 )
-from mne.io import read_raw_nirx
-from mne._fiff.proj import _has_eeg_average_ref_proj
 from mne.utils import _record_warnings
-
 
 base_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
 raw_fname = base_dir / "test_raw.fif"

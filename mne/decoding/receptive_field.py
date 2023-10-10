@@ -8,10 +8,10 @@ import numbers
 import numpy as np
 from scipy.stats import pearsonr
 
-from .base import get_coef, BaseEstimator, _check_estimator
 from ..fixes import pinv
+from ..utils import _validate_type, fill_doc, verbose
+from .base import BaseEstimator, _check_estimator, get_coef
 from .time_delaying_ridge import TimeDelayingRidge
-from ..utils import _validate_type, verbose, fill_doc
 
 
 @fill_doc

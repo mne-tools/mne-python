@@ -3,47 +3,47 @@
 #
 # License: BSD-3-Clause
 
-from copy import deepcopy
-from pathlib import Path
-from functools import partial
-from io import BytesIO
 import os
 import pathlib
 import pickle
 import shutil
 import sys
+from copy import deepcopy
+from functools import partial
+from io import BytesIO
+from pathlib import Path
 
 import numpy as np
-from numpy.testing import assert_array_almost_equal, assert_array_equal, assert_allclose
 import pytest
+from numpy.testing import assert_allclose, assert_array_almost_equal, assert_array_equal
 
-from mne.datasets import testing
-from mne.filter import filter_data
+from mne import (
+    compute_proj_raw,
+    concatenate_events,
+    create_info,
+    equalize_channels,
+    find_events,
+    make_fixed_length_epochs,
+    pick_channels,
+    pick_info,
+    pick_types,
+)
 from mne._fiff.constants import FIFF
-from mne.io import RawArray, concatenate_raws, read_raw_fif, match_channel_orders, base
 from mne._fiff.open import read_tag, read_tag_info
 from mne._fiff.tag import _read_tag_header
+from mne.annotations import Annotations
+from mne.datasets import testing
+from mne.filter import filter_data
+from mne.io import RawArray, base, concatenate_raws, match_channel_orders, read_raw_fif
 from mne.io.tests.test_raw import _test_concat, _test_raw_reader
-from mne import (
-    concatenate_events,
-    find_events,
-    equalize_channels,
-    compute_proj_raw,
-    pick_types,
-    pick_channels,
-    create_info,
-    pick_info,
-    make_fixed_length_epochs,
-)
 from mne.utils import (
-    assert_object_equal,
     _dt_to_stamp,
-    requires_mne,
-    run_subprocess,
     _record_warnings,
     assert_and_remove_boundary_annot,
+    assert_object_equal,
+    requires_mne,
+    run_subprocess,
 )
-from mne.annotations import Annotations
 
 testing_path = testing.data_path(download=False)
 data_dir = testing_path / "MEG" / "sample"

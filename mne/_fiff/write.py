@@ -3,19 +3,19 @@
 #
 # License: BSD-3-Clause
 
-from contextlib import contextmanager
-from gzip import GzipFile
 import os.path as op
 import re
 import time
 import uuid
+from contextlib import contextmanager
+from gzip import GzipFile
 
 import numpy as np
 from scipy.sparse import csc_matrix, csr_matrix
 
-from .constants import FIFF
-from ..utils import logger, _file_like, _validate_type
+from ..utils import _file_like, _validate_type, logger
 from ..utils.numerics import _cal_to_julian
+from .constants import FIFF
 
 # We choose a "magic" date to store (because meas_date is obligatory)
 # to treat as meas_date=None. This one should be impossible for systems
