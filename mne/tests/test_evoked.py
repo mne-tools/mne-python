@@ -263,6 +263,12 @@ def test_io_evoked(tmp_path):
     ave_complex = read_evokeds(fname_temp)[0]
     assert_allclose(ave.data, ave_complex.data.imag)
 
+    # test non-ascii comments (gh 11684)
+    aves1[0].comment = "🙃"
+    write_evokeds(tmp_path / "evoked-ave.fif", aves1, overwrite=True)
+    aves1_read = read_evokeds(tmp_path / "evoked-ave.fif")[0]
+    assert aves1_read.comment == aves1[0].comment
+
     # test warnings on bad filenames
     fname2 = tmp_path / "test-bad-name.fif"
     with pytest.warns(RuntimeWarning, match="-ave.fif"):

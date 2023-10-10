@@ -14,7 +14,6 @@ import numpy as np
 from scipy.stats import gaussian_kde
 
 from .utils import (
-    tight_layout,
     _make_event_color_dict,
     _get_cmap,
     plt_show,
@@ -767,7 +766,7 @@ def _plot_ica_sources_evoked(evoked, picks, exclude, title, show, ica, labels=No
     if title is None:
         title = "Reconstructed latent sources, time-locked"
 
-    fig, axes = plt.subplots(1)
+    fig, axes = plt.subplots(1, layout="constrained")
     ax = axes
     axes = [axes]
     times = evoked.times * 1e3
@@ -852,7 +851,6 @@ def _plot_ica_sources_evoked(evoked, picks, exclude, title, show, ica, labels=No
     ax.set(title=title, xlim=times[[0, -1]], xlabel="Time (ms)", ylabel="(NA)")
     if len(exclude) > 0:
         plt.legend(loc="best")
-    tight_layout(fig=fig)
 
     texts.append(
         ax.text(
@@ -959,7 +957,9 @@ def plot_ica_scores(
 
     if figsize is None:
         figsize = (6.4 * n_cols, 2.7 * n_rows)
-    fig, axes = plt.subplots(n_rows, n_cols, figsize=figsize, sharex=True, sharey=True)
+    fig, axes = plt.subplots(
+        n_rows, n_cols, figsize=figsize, sharex=True, sharey=True, layout="constrained"
+    )
 
     if isinstance(axes, np.ndarray):
         axes = axes.flatten()
@@ -1012,11 +1012,6 @@ def plot_ica_scores(
             ax.set_title("(%s)" % label)
         ax.set_xlabel("ICA components")
         ax.set_xlim(-0.6, len(this_scores) - 0.4)
-
-    tight_layout(fig=fig)
-
-    adjust_top = 0.8 if len(fig.axes) == 1 else 0.9
-    fig.subplots_adjust(top=adjust_top)
     fig.canvas.draw()
     plt_show(show)
     return fig
@@ -1159,13 +1154,13 @@ def _plot_ica_overlay_raw(*, raw, raw_cln, picks, start, stop, title, show):
     ch_types = raw.get_channel_types(picks=picks, unique=True)
     for ch_type in ch_types:
         if ch_type in ("mag", "grad"):
-            fig, ax = plt.subplots(3, 1, sharex=True, constrained_layout=True)
+            fig, ax = plt.subplots(3, 1, sharex=True, layout="constrained")
         elif ch_type == "eeg" and not _has_eeg_average_ref_proj(
             raw.info, check_active=True
         ):
-            fig, ax = plt.subplots(3, 1, sharex=True, constrained_layout=True)
+            fig, ax = plt.subplots(3, 1, sharex=True, layout="constrained")
         else:
-            fig, ax = plt.subplots(2, 1, sharex=True, constrained_layout=True)
+            fig, ax = plt.subplots(2, 1, sharex=True, layout="constrained")
         fig.suptitle(title)
 
         # select sensors and retrieve data array
@@ -1236,7 +1231,7 @@ def _plot_ica_overlay_evoked(evoked, evoked_cln, title, show):
     if len(ch_types_used) != len(ch_types_used_cln):
         raise ValueError("Raw and clean evokeds must match. Found different channels.")
 
-    fig, axes = plt.subplots(n_rows, 1)
+    fig, axes = plt.subplots(n_rows, 1, layout="constrained")
     if title is None:
         title = "Average signal before (red) and after (black) ICA"
     fig.suptitle(title)
@@ -1248,9 +1243,6 @@ def _plot_ica_overlay_evoked(evoked, evoked_cln, title, show):
             line.set_color("r")
     fig.canvas.draw()
     evoked_cln.plot(axes=axes, show=False, time_unit="s", spatial_colors=False)
-    tight_layout(fig=fig)
-
-    fig.subplots_adjust(top=0.90)
     fig.canvas.draw()
     plt_show(show)
     return fig

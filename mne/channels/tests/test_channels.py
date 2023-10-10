@@ -51,6 +51,7 @@ from mne import (
 )
 from mne.datasets import testing
 from mne.parallel import parallel_func
+from mne.utils import requires_good_network
 
 io_dir = Path(__file__).parent.parent.parent / "io"
 base_dir = io_dir / "tests" / "data"
@@ -242,6 +243,25 @@ def test_get_builtin_ch_adjacencies():
         assert len(name_and_description) == 2
 
 
+@pytest.mark.parametrize("name", get_builtin_ch_adjacencies())
+@pytest.mark.parametrize("picks", ["pick-slice", "pick-arange", "pick-names"])
+def test_read_builtin_ch_adjacency_picks(name, picks):
+    """Test picking channel subsets when reading builtin adjacency matrices."""
+    ch_adjacency, ch_names = read_ch_adjacency(name)
+    assert_equal(ch_adjacency.shape[0], len(ch_names))
+    subset_names = ch_names[::2]
+    if picks == "pick-slice":
+        subset = slice(None, None, 2)
+    elif picks == "pick-arange":
+        subset = np.arange(0, len(ch_names), 2)
+    else:
+        assert picks == "pick-names"
+        subset = subset_names
+
+    ch_subset_adjacency, ch_subset_names = read_ch_adjacency(name, subset)
+    assert_array_equal(ch_subset_names, subset_names)
+
+
 def test_read_ch_adjacency(tmp_path):
     """Test reading channel adjacency templates."""
     a = partial(np.array, dtype="<U7")
@@ -261,6 +281,7 @@ def test_read_ch_adjacency(tmp_path):
     savemat(mat_fname, mat, oned_as="row")
 
     ch_adjacency, ch_names = read_ch_adjacency(mat_fname)
+
     x = ch_adjacency
     assert_equal(x.shape[0], len(ch_names))
     assert_equal(x.shape, (3, 3))
@@ -327,11 +348,6 @@ def test_read_ch_adjacency(tmp_path):
     savemat(mat_fname, mat, oned_as="row")
     pytest.raises(ValueError, read_ch_adjacency, mat_fname)
 
-    # Try reading all built-in FieldTrip neighbors
-    for name in get_builtin_ch_adjacencies():
-        ch_adjacency, ch_names = read_ch_adjacency(name)
-        assert_equal(ch_adjacency.shape[0], len(ch_names))
-
 
 def _download_ft_neighbors(target_dir):
     """Download the known neighbors from FieldTrip."""
@@ -362,6 +378,7 @@ def _download_ft_neighbors(target_dir):
 
 
 @pytest.mark.slowtest
+@requires_good_network
 def test_adjacency_matches_ft(tmp_path):
     """Test correspondence of built-in adjacency matrices with FT repo."""
     builtin_neighbors_dir = Path(__file__).parents[1] / "data" / "neighbors"
@@ -448,7 +465,7 @@ def test_1020_selection():
 @testing.requires_testing_data
 def test_find_ch_adjacency():
     """Test computing the adjacency matrix."""
-    raw = read_raw_fif(raw_fname, preload=True)
+    raw = read_raw_fif(raw_fname)
     sizes = {"mag": 828, "grad": 1700, "eeg": 384}
     nchans = {"mag": 102, "grad": 204, "eeg": 60}
     for ch_type in ["mag", "grad", "eeg"]:
@@ -456,6 +473,13 @@ def test_find_ch_adjacency():
         # Silly test for checking the number of neighbors.
         assert_equal(conn.getnnz(), sizes[ch_type])
         assert_equal(len(ch_names), nchans[ch_type])
+        kwargs = dict(exclude=())
+        if ch_type in ("mag", "grad"):
+            kwargs["meg"] = ch_type
+        else:
+            kwargs[ch_type] = True
+        want_names = [raw.ch_names[pick] for pick in pick_types(raw.info, **kwargs)]
+        assert ch_names == want_names
     pytest.raises(ValueError, find_ch_adjacency, raw.info, None)
 
     # Test computing the conn matrix with gradiometers.
@@ -489,7 +513,7 @@ def test_find_ch_adjacency():
 def test_neuromag122_adjacency():
     """Test computing the adjacency matrix of Neuromag122-Data."""
     nm122_fname = testing_path / "misc" / "neuromag122_test_file-raw.fif"
-    raw = read_raw_fif(nm122_fname, preload=True)
+    raw = read_raw_fif(nm122_fname)
     conn, ch_names = find_ch_adjacency(raw.info, "grad")
     assert conn.getnnz() == 1564
     assert len(ch_names) == 122
@@ -498,7 +522,7 @@ def test_neuromag122_adjacency():
 
 def test_drop_channels():
     """Test if dropping channels works with various arguments."""
-    raw = read_raw_fif(raw_fname, preload=True).crop(0, 0.1)
+    raw = read_raw_fif(raw_fname).crop(0, 0.1)
     raw.drop_channels(["MEG 0111"])  # list argument
     raw.drop_channels("MEG 0112")  # str argument
     raw.drop_channels({"MEG 0132", "MEG 0133"})  # set argument
@@ -518,7 +542,7 @@ def test_drop_channels():
 
 def test_pick_channels():
     """Test if picking channels works with various arguments."""
-    raw = read_raw_fif(raw_fname, preload=True).crop(0, 0.1)
+    raw = read_raw_fif(raw_fname).crop(0, 0.1)
 
     # selected correctly 3 channels
     raw.pick(["MEG 0113", "MEG 0112", "MEG 0111"])

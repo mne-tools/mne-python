@@ -99,7 +99,7 @@ def coh_signal_gen():
 signal1 = coh_signal_gen()
 signal2 = coh_signal_gen()
 
-fig, axes = plt.subplots(2, 2, figsize=(8, 4))
+fig, axes = plt.subplots(2, 2, figsize=(8, 4), layout="constrained")
 
 # Plot the timeseries
 ax = axes[0][0]
@@ -133,7 +133,6 @@ ax.set(
     ylabel="Coherence",
     title="Coherence between the timeseries",
 )
-fig.tight_layout()
 
 # %%
 # Now we put the signals at two locations on the cortex. We construct a

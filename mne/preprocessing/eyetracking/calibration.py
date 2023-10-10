@@ -147,7 +147,7 @@ class Calibration(dict):
             ax = axes
             fig = ax.get_figure()
         else:  # create new figure and axes
-            fig, ax = plt.subplots(constrained_layout=True)
+            fig, ax = plt.subplots(layout="constrained")
         px, py = self["positions"].T
         gaze_x, gaze_y = self["gaze"].T
 

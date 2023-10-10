@@ -124,7 +124,7 @@ print(f"Our real-world coordinates correspond to voxel ({i_}, {j_}, {k_})")
 def imshow_mri(data, img, vox, xyz, suptitle):
     """Show an MRI slice with a voxel annotated."""
     i, j, k = vox
-    fig, ax = plt.subplots(1, figsize=(6, 6))
+    fig, ax = plt.subplots(1, figsize=(6, 6), layout="constrained")
     codes = nibabel.orientations.aff2axcodes(img.affine)
     # Figure out the title based on the code of this axis
     ori_slice = dict(
@@ -157,7 +157,6 @@ def imshow_mri(data, img, vox, xyz, suptitle):
         title=f"{title} view: i={i} ({ori_names[codes[0]]}+)",
     )
     fig.suptitle(suptitle)
-    fig.subplots_adjust(0.1, 0.1, 0.95, 0.85)
     return fig
 
 

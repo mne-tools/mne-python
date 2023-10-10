@@ -419,7 +419,7 @@ def _fit_and_score(
     error_score="raise",
     *,
     verbose=None,
-    position=0
+    position=0,
 ):
     """Fit estimator and compute scores for a given dataset split."""
     #  This code is adapted from sklearn

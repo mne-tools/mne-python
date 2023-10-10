@@ -336,7 +336,7 @@ def psd_array_multitaper(
     n_jobs=None,
     *,
     max_iter=150,
-    verbose=None
+    verbose=None,
 ):
     r"""Compute power spectral density (PSD) using a multi-taper method.
 
@@ -475,7 +475,7 @@ def tfr_array_multitaper(
     output="complex",
     n_jobs=None,
     *,
-    verbose=None
+    verbose=None,
 ):
     """Compute Time-Frequency Representation (TFR) using DPSS tapers.
 
@@ -534,7 +534,8 @@ def tfr_array_multitaper(
 
     Notes
     -----
-    %(temporal-window_tfr_notes)s
+    %(temporal_window_tfr_intro)s
+    %(temporal_window_tfr_multitaper_notes)s
     %(time_bandwidth_tfr_notes)s
 
     .. versionadded:: 0.14.0

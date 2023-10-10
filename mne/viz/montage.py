@@ -20,7 +20,7 @@ def plot_montage(
     sphere=None,
     *,
     axes=None,
-    verbose=None
+    verbose=None,
 ):
     """Plot a montage.
 

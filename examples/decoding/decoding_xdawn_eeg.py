@@ -99,14 +99,13 @@ cm = confusion_matrix(labels, preds)
 cm_normalized = cm.astype(float) / cm.sum(axis=1)[:, np.newaxis]
 
 # Plot confusion matrix
-fig, ax = plt.subplots(1)
+fig, ax = plt.subplots(1, layout="constrained")
 im = ax.imshow(cm_normalized, interpolation="nearest", cmap=plt.cm.Blues)
 ax.set(title="Normalized Confusion matrix")
 fig.colorbar(im)
 tick_marks = np.arange(len(target_names))
 plt.xticks(tick_marks, target_names, rotation=45)
 plt.yticks(tick_marks, target_names)
-fig.tight_layout()
 ax.set(ylabel="True label", xlabel="Predicted label")
 
 # %%
@@ -114,7 +113,10 @@ ax.set(ylabel="True label", xlabel="Predicted label")
 # cross-validation fold) can be used for visualization.
 
 fig, axes = plt.subplots(
-    nrows=len(event_id), ncols=n_filter, figsize=(n_filter, len(event_id) * 2)
+    nrows=len(event_id),
+    ncols=n_filter,
+    figsize=(n_filter, len(event_id) * 2),
+    layout="constrained",
 )
 fitted_xdawn = clf.steps[0][1]
 info = create_info(epochs.ch_names, 1, epochs.get_channel_types())
@@ -131,7 +133,6 @@ for ii, cur_class in enumerate(sorted(event_id)):
         show=False,
     )
     axes[ii, 0].set(ylabel=cur_class)
-fig.tight_layout(h_pad=1.0, w_pad=1.0, pad=0.1)
 
 # %%
 # References

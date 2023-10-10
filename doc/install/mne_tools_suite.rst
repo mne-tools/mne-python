@@ -21,11 +21,10 @@ Related software
   types like functional near-infrared spectroscopy (fNIRS). MNE-Python is
   collaboratively developed and has more than 200 contributors.
 
-- :ref:`MNE MATLAB <mne_matlab>` provides a MATLAB interface to the .fif file
-  format and other MNE data structures, and provides example MATLAB
+- `MNE-MATLAB`_ provides a MATLAB interface to the .fif
+  file format and other MNE data structures, and provides example MATLAB
   implementations of some of the core analysis functionality of MNE-C. It is
-  distributed alongside MNE-C, and can also be downloaded from the `MNE-MATLAB
-  git repository`_.
+  distributed alongside MNE-C, and can also be downloaded from the `MNE-MATLAB`_ GitHub repository.
 
 - :ref:`MNE-CPP <mne_cpp>` provides core MNE functionality implemented in
   C++ and is primarily intended for embedded and real-time applications.

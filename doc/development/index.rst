@@ -29,7 +29,7 @@ experience.
 .. toctree::
    :hidden:
 
-   ../install/contributing
-   ../whats_new
+   contributing
+   whats_new
    roadmap
    governance

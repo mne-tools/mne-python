@@ -980,7 +980,7 @@ def rename_channels(info, mapping, allow_duplicates=False, *, verbose=None):
         raise ValueError("New channel names are not unique, renaming failed")
 
     # do the remapping in info
-    info["bads"] = bads
+    info["bads"] = []
     ch_names_mapping = dict()
     for ch, ch_name in zip(info["chs"], ch_names):
         ch_names_mapping[ch["ch_name"]] = ch_name
@@ -993,6 +993,7 @@ def rename_channels(info, mapping, allow_duplicates=False, *, verbose=None):
                 proj["data"]["col_names"], ch_names_mapping
             )
     info._update_redundant()
+    info["bads"] = bads
     info._check_consistency()
 
 
@@ -1343,8 +1344,7 @@ def read_ch_adjacency(fname, picks=None):
             You can retrieve the names of all
             built-in channel adjacencies via
             :func:`mne.channels.get_builtin_ch_adjacencies`.
-    %(picks_all)s
-        Picks must match the template.
+    %(picks_all_notypes)s
 
     Returns
     -------
@@ -1404,19 +1404,14 @@ def read_ch_adjacency(fname, picks=None):
 
     nb = loadmat(fname)["neighbours"]
     ch_names = _recursive_flatten(nb["label"], str)
-    picks = _picks_to_idx(len(ch_names), picks)
+    temp_info = create_info(ch_names, 1.0)
+    picks = _picks_to_idx(temp_info, picks, none="all")
     neighbors = [_recursive_flatten(c, str) for c in nb["neighblabel"].flatten()]
     assert len(ch_names) == len(neighbors)
     adjacency = _ch_neighbor_adjacency(ch_names, neighbors)
     # picking before constructing matrix is buggy
     adjacency = adjacency[picks][:, picks]
     ch_names = [ch_names[p] for p in picks]
-
-    # make sure MEG channel names contain space after "MEG"
-    for idx, ch_name in enumerate(ch_names):
-        if ch_name.startswith("MEG") and not ch_name[3] == " ":
-            ch_name = ch_name.replace("MEG", "MEG ")
-            ch_names[idx] = ch_name
 
     return adjacency, ch_names
 
@@ -1565,7 +1560,10 @@ def find_ch_adjacency(info, ch_type):
 
     if conn_name is not None:
         logger.info(f"Reading adjacency matrix for {conn_name}.")
-        return read_ch_adjacency(conn_name)
+        adjacency, ch_names = read_ch_adjacency(conn_name)
+        if conn_name.startswith("neuromag") and info["ch_names"][0].startswith("MEG "):
+            ch_names = [ch_name.replace("MEG", "MEG ") for ch_name in ch_names]
+        return adjacency, ch_names
     logger.info(
         "Could not find a adjacency matrix for the data. "
         "Computing adjacency based on Delaunay triangulations."

@@ -118,7 +118,7 @@ class MNEFigure(Figure):
             for key in [k for k in kwargs if not hasattr(self.mne, k)]:
                 setattr(self.mne, key, kwargs[key])
 
-    def _close(self, event):
+    def _close(self, event=None):
         """Handle close events."""
         logger.debug(f"Closing {self!r}")
         # remove references from parent fig to child fig
@@ -886,9 +886,15 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         fig = super()._create_ch_context_fig(idx)
         plt_show(fig=fig)
 
-    def _new_child_figure(self, fig_name, **kwargs):
+    def _new_child_figure(self, fig_name, *, layout=None, **kwargs):
         """Instantiate a new MNE dialog figure (with event listeners)."""
-        fig = _figure(toolbar=False, parent_fig=self, fig_name=fig_name, **kwargs)
+        fig = _figure(
+            toolbar=False,
+            parent_fig=self,
+            fig_name=fig_name,
+            layout=layout,
+            **kwargs,
+        )
         fig._add_default_callbacks()
         self.mne.child_figs.append(fig)
         if isinstance(fig_name, str):
@@ -2324,8 +2330,8 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
 class MNELineFigure(MNEFigure):
     """Interactive figure for non-scrolling line plots."""
 
-    def __init__(self, inst, n_axes, figsize, **kwargs):
-        super().__init__(figsize=figsize, inst=inst, **kwargs)
+    def __init__(self, inst, n_axes, figsize, *, layout=None, **kwargs):
+        super().__init__(figsize=figsize, inst=inst, layout=layout, **kwargs)
 
         # AXES: default margins (inches)
         l_margin = 0.8
@@ -2372,6 +2378,8 @@ def _figure(toolbar=True, FigureClass=MNEFigure, **kwargs):
     from matplotlib import rc_context
 
     title = kwargs.pop("window_title", None)  # extract title before init
+    if "layout" not in kwargs:
+        kwargs["layout"] = "constrained"
     rc = dict() if toolbar else dict(toolbar="none")
     with rc_context(rc=rc):
         fig = plt.figure(FigureClass=FigureClass, **kwargs)
@@ -2379,6 +2387,14 @@ def _figure(toolbar=True, FigureClass=MNEFigure, **kwargs):
     fig.mne.backend = BACKEND
     if title is not None:
         _set_window_title(fig, title)
+    # TODO: for some reason for topomaps->_prepare_trellis the layout=constrained does
+    # not work the first time (maybe toolbar=False?)
+    if kwargs.get("layout") == "constrained":
+        if hasattr(fig, "set_layout_engine"):  # 3.6+
+            fig.set_layout_engine("constrained")
+        else:
+            fig.set_constrained_layout(True)
+
     # add event callbacks
     fig._add_default_callbacks()
     return fig
@@ -2409,6 +2425,7 @@ def _line_figure(inst, axes=None, picks=None, **kwargs):
             FigureClass=MNELineFigure,
             figsize=figsize,
             n_axes=n_axes,
+            layout=None,
             **kwargs,
         )
         fig.mne.fig_size_px = fig._get_size_px()  # can't do in __init__
@@ -2483,7 +2500,7 @@ def _init_browser(**kwargs):
     """Instantiate a new MNE browse-style figure."""
     from mne.io import BaseRaw
 
-    fig = _figure(toolbar=False, FigureClass=MNEBrowseFigure, **kwargs)
+    fig = _figure(toolbar=False, FigureClass=MNEBrowseFigure, layout=None, **kwargs)
 
     # splash is ignored (maybe we could do it for mpl if we get_backend() and
     # check if it's Qt... but seems overkill)

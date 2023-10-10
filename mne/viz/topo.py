@@ -145,7 +145,8 @@ def _iter_topography(
     from ..channels.layout import find_layout
 
     if fig is None:
-        fig = plt.figure()
+        # Don't use constrained layout because we place axes manually
+        fig = plt.figure(layout=None)
 
     def format_coord_unified(x, y, pos=None, ch_names=None):
         """Update status bar with channel name under cursor."""
@@ -296,7 +297,8 @@ def _plot_topo(
     )
 
     if axes is None:
-        fig = plt.figure()
+        # Don't use constrained layout because we place axes manually
+        fig = plt.figure(layout=None)
         axes = plt.axes([0.015, 0.025, 0.97, 0.95])
         axes.set_facecolor(fig_facecolor)
     else:
@@ -457,7 +459,7 @@ def _imshow_tfr(
         else:
             cbar = plt.colorbar(mappable=img, ax=ax)
         if interactive_cmap:
-            ax.CB = DraggableColorbar(cbar, img)
+            ax.CB = DraggableColorbar(cbar, img, kind="tfr_image", ch_type=None)
     ax.RS = RectangleSelector(ax, onselect=onselect)  # reference must be kept
 
     return t_end

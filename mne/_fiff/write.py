@@ -128,7 +128,10 @@ def write_julian(fid, kind, data):
 
 def write_string(fid, kind, data):
     """Write a string tag."""
-    str_data = str(data).encode("latin1")
+    try:
+        str_data = str(data).encode("latin1")
+    except UnicodeEncodeError:
+        str_data = str(data).encode("latin1", errors="xmlcharrefreplace")
     data_size = len(str_data)  # therefore compute size here
     my_dtype = ">a"  # py2/3 compatible on writing -- don't ask me why
     if data_size > 0:

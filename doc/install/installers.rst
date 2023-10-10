@@ -78,6 +78,10 @@ Got any questions? Let us know on the `MNE Forum`_!
 
         **Supported platforms:** Windows 10 and newer
 
+.. raw:: html
+
+   <script async="async" src="../_static/js/update_installer_version.js"></script>
+   <script async="async" src="../_static/js/set_installer_tab.js"></script>
 
 First steps
 ^^^^^^^^^^^
@@ -123,32 +127,3 @@ interpreter.
 
 .. note::
    This information is currently not displayed on the Windows platform.
-
-
-.. raw:: html
-
-    <script type="text/javascript">
-      var platform = "linux";
-      if (navigator.userAgent.indexOf("Win") !== -1) {
-        platform = "windows";
-      }
-      if (navigator.userAgent.indexOf("Mac") !== -1) {
-        // there's no good way to distinguish intel vs M1 in javascript so we
-        // just default to showing the first of the 2 macOS tabs
-        platform = "macos-intel";
-      }
-     $(document).ready(function(){
-         let all_tab_nodes = document.querySelectorAll(
-             '.platform-selector-tabset')[0].children;
-         let input_nodes = [...all_tab_nodes].filter(
-             child => child.nodeName === "INPUT");
-         let tab_label_nodes = [...document.querySelectorAll('.sd-tab-label')];
-         let correct_label = tab_label_nodes.filter(
-             // label.id is drawn from :name: property in the rST, which must
-             // be unique across the whole site (*sigh*)
-             label => label.id.startsWith(platform))[0];
-         let input_id = correct_label.getAttribute('for');
-         let correct_input = input_nodes.filter(node => node.id === input_id)[0];
-         correct_input.checked = true;
-     });
-     </script>
