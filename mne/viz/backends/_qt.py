@@ -12,6 +12,8 @@ import sys
 import weakref
 from contextlib import contextmanager
 
+# importing anything from qtpy forces a Qt API choice as a side effect, which is then
+# used by matplotlib and pyvistaqt
 from qtpy import API_NAME  # noqa: F401, isort: skip
 
 import pyvista
