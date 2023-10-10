@@ -12,14 +12,11 @@ import platform
 import sys
 import weakref
 
-# Do this first to make sure we import the right one before matplotlib/pyvista try
-from qtpy import API_NAME  # noqa: F401, isort:skip
-
 import pyvista
 from pyvistaqt.plotting import FileDialog, MainWindow
 from .renderer import _TimeInteraction
 from matplotlib.figure import Figure
-from matplotlib.backends.backend_qtagg import FigureCanvas
+from matplotlib.backends.backend_qt5agg import FigureCanvas
 
 from qtpy.QtCore import (
     Qt,
