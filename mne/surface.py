@@ -277,7 +277,11 @@ def _scale_helmet_to_sensors(system, surf, info):
     to = np.array(to, float)
     interp = _MatchedDisplacementFieldInterpolator(fro, to)
     new_rr = interp(surf["rr"])
-    quat, sc = _fit_matched_points(surf["rr"], new_rr)
+    try:
+        quat, sc = _fit_matched_points(surf["rr"], new_rr)
+    except np.linalg.LinAlgError:
+        logger.info("Using CAD helmet because fitting failed")
+        return surf
     rot = np.rad2deg(_angle_between_quats(quat[:3]))
     tr = 1000 * np.linalg.norm(quat[3:])
     logger.info(f"    Deforming to match info using {len(fro)} matched points:")
