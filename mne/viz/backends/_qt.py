@@ -16,7 +16,7 @@ import pyvista
 from pyvistaqt.plotting import FileDialog, MainWindow
 from .renderer import _TimeInteraction
 from matplotlib.figure import Figure
-from matplotlib.backends.backend_qt5agg import FigureCanvas
+from matplotlib.backends.backend_qtagg import FigureCanvas
 
 from qtpy.QtCore import (
     Qt,
