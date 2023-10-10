@@ -12,8 +12,10 @@ import sys
 import weakref
 from contextlib import contextmanager
 
+from qtpy import API_NAME  # noqa: F401, isort: skip
+
 import pyvista
-from matplotlib.backends.backend_qt5agg import FigureCanvas
+from matplotlib.backends.backend_qtagg import FigureCanvas
 from matplotlib.figure import Figure
 from pyvistaqt.plotting import FileDialog, MainWindow
 from qtpy.QtCore import (
