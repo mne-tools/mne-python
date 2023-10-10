@@ -134,7 +134,7 @@ def write_string(fid, kind, data):
         str_data = str(data).encode("latin1", errors="xmlcharrefreplace")
     data_size = len(str_data)  # therefore compute size here
     if data_size > 0:
-        _write(fid, str_data, kind, data_size, FIFF.FIFFT_STRING, "S")
+        _write(fid, str_data, kind, data_size, FIFF.FIFFT_STRING, ">S")
 
 
 def write_name_list(fid, kind, data):
