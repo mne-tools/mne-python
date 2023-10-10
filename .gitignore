@@ -52,6 +52,7 @@ mne/viz/_brain/tests/.ipynb_checkpoints
 
 dist/
 doc/_build/
+doc/api/generated/
 doc/generated/
 doc/auto_examples/
 doc/auto_tutorials/
