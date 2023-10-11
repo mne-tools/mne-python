@@ -252,6 +252,12 @@ def test_coreg_gui_pyvista_basic(tmp_path, monkeypatch, renderer_interactive_pyv
         coreg._redraw(verbose="debug")
     log = log.getvalue()
     assert "Drawing helmet" in log
+    assert not coreg._meg_channels
+    coreg._set_meg_channels(True)
+    assert coreg._meg_channels
+    with catch_logging() as log:
+        coreg._redraw(verbose="debug")
+    assert "Drawing meg sensors" in log.getvalue()
     assert coreg._orient_glyphs
     assert coreg._scale_by_distance
     assert coreg._mark_inside
