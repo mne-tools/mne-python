@@ -1,7 +1,7 @@
 """
 =======================================
 Reduce EOG artifacts through regression
-=======================================.
+=======================================
 
 Reduce artifacts by regressing the EOG channels onto the rest of the channels
 and then subtracting the EOG signal.

@@ -1,7 +1,7 @@
 """
 ===============================================
 Compare simulated and estimated source activity
-===============================================.
+===============================================
 
 This example illustrates how to compare the simulated and estimated
 source time courses (STC) by computing different metrics. Simulated
