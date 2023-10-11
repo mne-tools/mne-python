@@ -2331,38 +2331,16 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
 class MNELineFigure(MNEFigure):
     """Interactive figure for non-scrolling line plots."""
 
-    def __init__(self, inst, n_axes, figsize, *, layout=None, **kwargs):
-        super().__init__(figsize=figsize, inst=inst, layout=layout, **kwargs)
-
-        # AXES: default margins (inches)
-        l_margin = 0.8
-        r_margin = 0.2
-        b_margin = 0.65
-        t_margin = 0.35
-        # AXES: default margins (figure-relative coordinates)
-        left = self._inch_to_rel(l_margin)
-        right = 1 - self._inch_to_rel(r_margin)
-        bottom = self._inch_to_rel(b_margin, horiz=False)
-        top = 1 - self._inch_to_rel(t_margin, horiz=False)
-        # AXES: make subplots
-        axes = [self.add_subplot(n_axes, 1, 1)]
-        for ix in range(1, n_axes):
-            axes.append(self.add_subplot(n_axes, 1, ix + 1, sharex=axes[0]))
-        self.subplotpars.update(
-            left=left, bottom=bottom, top=top, right=right, hspace=0.4
+    def __init__(self, inst, n_axes, figsize, *, layout="constrained", **kwargs):
+        super().__init__(
+            figsize=figsize,
+            inst=inst,
+            layout=layout,
+            sharex=True,
+            **kwargs,
         )
-        # save useful things
-        self.mne.ax_list = axes
-
-    def _resize(self, event):
-        """Handle resize event."""
-        old_width, old_height = self.mne.fig_size_px
-        new_width, new_height = self._get_size_px()
-        new_margins = _calc_new_margins(
-            self, old_width, old_height, new_width, new_height
-        )
-        self.subplots_adjust(**new_margins)
-        self.mne.fig_size_px = (new_width, new_height)
+        for ix in range(n_axes):
+            self.add_subplot(n_axes, 1, ix + 1)
 
 
 def _close_all():
@@ -2426,11 +2404,10 @@ def _line_figure(inst, axes=None, picks=None, **kwargs):
             FigureClass=MNELineFigure,
             figsize=figsize,
             n_axes=n_axes,
-            layout="constrained",
             **kwargs,
         )
         fig.mne.fig_size_px = fig._get_size_px()  # can't do in __init__
-        axes = fig.mne.ax_list
+        axes = fig.axes
     return fig, axes
 
 
