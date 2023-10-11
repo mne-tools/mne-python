@@ -10,6 +10,8 @@ This tutorial covers plotting eye-tracking position data as a heatmap.
 
 .. seealso:: :ref:`tut-importing-eyetracking-data`
 
+.. seealso:: :ref:`tut-eyetrack`
+
 """
 
 # %%
@@ -25,11 +27,6 @@ import matplotlib.pyplot as plt
 
 import mne
 from mne.viz.eyetracking import plot_gaze
-
-
-# define variables to pass to the plot_gaze function
-px_width, px_height = 1920, 1080
-cmap = plt.get_cmap("viridis")
 
 task_fpath = mne.datasets.eyelink.data_path() / "freeviewing"
 et_fpath = task_fpath / "sub-01_task-freeview_eyetrack.asc"
@@ -52,9 +49,6 @@ epochs = mne.Epochs(
     raw, events=events, event_id=event_dict, tmin=0, tmax=20, baseline=None
 )
 
-# %%
-# .. seealso:: :ref:`tut-eyetrack`
-#
 
 # %%
 # Plot a heatmap of the eye-tracking data
@@ -66,6 +60,8 @@ epochs = mne.Epochs(
 # screen resolution of the participant screen (1920x1080) as the width and height. We
 # can also use the sigma parameter to smooth the plot.
 
+px_width, px_height = 1920, 1080
+cmap = plt.get_cmap("viridis")
 plot_gaze(epochs["natural"], width=px_width, height=px_height, cmap=cmap, sigma=50)
 
 # %%
