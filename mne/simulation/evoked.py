@@ -8,13 +8,13 @@ import math
 import numpy as np
 from scipy.signal import lfilter
 
+from .._fiff.pick import pick_info
 from ..cov import Covariance, compute_whitener
 from ..epochs import BaseEpochs
 from ..evoked import Evoked
-from .._fiff.pick import pick_info
 from ..forward import apply_forward
 from ..io import BaseRaw
-from ..utils import logger, verbose, check_random_state, _check_preload, _validate_type
+from ..utils import _check_preload, _validate_type, check_random_state, logger, verbose
 
 
 @verbose

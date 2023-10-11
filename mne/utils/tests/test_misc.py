@@ -1,12 +1,12 @@
-from contextlib import nullcontext
 import os
 import subprocess
 import sys
+from contextlib import nullcontext
 
 import pytest
 
 import mne
-from mne.utils import sizeof_fmt, run_subprocess, catch_logging
+from mne.utils import catch_logging, run_subprocess, sizeof_fmt
 
 
 def test_sizeof_fmt():

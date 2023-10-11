@@ -47,30 +47,30 @@ import numpy as np
 from matplotlib import get_backend
 from matplotlib.figure import Figure
 
-from ..fixes import _close_event
 from .._fiff.pick import (
     _DATA_CH_TYPES_ORDER_DEFAULT,
     _DATA_CH_TYPES_SPLIT,
-    _FNIRS_CH_TYPES_SPLIT,
     _EYETRACK_CH_TYPES_SPLIT,
+    _FNIRS_CH_TYPES_SPLIT,
     _VALID_CHANNEL_TYPES,
     channel_indices_by_type,
     pick_types,
 )
-from ..utils import Bunch, _click_ch_name, logger, check_version
+from ..fixes import _close_event
+from ..utils import Bunch, _click_ch_name, check_version, logger
 from ._figure import BrowserBase
 from .utils import (
     DraggableLine,
     _events_off,
     _fake_click,
     _fake_keypress,
+    _fake_scroll,
     _merge_annotations,
     _prop_kw,
     _set_window_title,
     _validate_if_list_of_axes,
-    plt_show,
-    _fake_scroll,
     plot_sensors,
+    plt_show,
 )
 
 name = "matplotlib"
@@ -791,6 +791,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
     def _buttonpress(self, event):
         """Handle mouse clicks."""
         from matplotlib.collections import PolyCollection
+
         from ..annotations import _sync_onset
 
         butterfly = self.mne.butterfly

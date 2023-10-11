@@ -7,23 +7,23 @@ import os
 from copy import deepcopy
 
 import matplotlib.pyplot as plt
-from matplotlib import backend_bases
 import numpy as np
 import pytest
+from matplotlib import backend_bases
 from numpy.testing import assert_allclose
 
 from mne import Annotations, create_info, pick_types
+from mne._fiff.pick import _DATA_CH_TYPES_ORDER_DEFAULT, _PICK_TYPES_DATA_DICT
 from mne.annotations import _sync_onset
 from mne.datasets import testing
 from mne.io import RawArray
-from mne._fiff.pick import _DATA_CH_TYPES_ORDER_DEFAULT, _PICK_TYPES_DATA_DICT
 from mne.utils import (
+    _assert_no_instances,
     _dt_to_stamp,
     _record_warnings,
+    check_version,
     get_config,
     set_config,
-    _assert_no_instances,
-    check_version,
 )
 from mne.viz import plot_raw, plot_sensors
 from mne.viz.utils import _fake_click, _fake_keypress

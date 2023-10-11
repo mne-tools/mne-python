@@ -9,54 +9,53 @@
 
 from pathlib import Path
 
-import numpy as np
-from numpy.testing import assert_array_equal, assert_allclose
-import pytest
 import matplotlib.pyplot as plt
+import numpy as np
+import pytest
 from matplotlib.colors import Colormap
 from matplotlib.figure import Figure
+from numpy.testing import assert_allclose, assert_array_equal
 
 from mne import (
-    make_field_map,
-    read_evokeds,
-    read_trans,
-    read_dipole,
-    SourceEstimate,
-    make_sphere_model,
-    use_coil_def,
-    pick_types,
-    setup_volume_source_space,
-    read_forward_solution,
-    convert_forward_solution,
     MixedSourceEstimate,
+    SourceEstimate,
+    convert_forward_solution,
+    make_field_map,
+    make_sphere_model,
     pick_info,
+    pick_types,
+    read_dipole,
+    read_evokeds,
+    read_forward_solution,
+    read_trans,
+    setup_volume_source_space,
+    use_coil_def,
 )
-from mne.source_estimate import _BaseVolSourceEstimate
-from mne.io import read_raw_ctf, read_raw_bti, read_raw_kit, read_info, read_raw_nirx
 from mne._fiff._digitization import write_dig
 from mne._fiff.constants import FIFF
-from mne.minimum_norm import apply_inverse
-from mne.viz import (
-    plot_sparse_source_estimates,
-    plot_source_estimates,
-    snapshot_brain_montage,
-    plot_head_positions,
-    plot_alignment,
-    Figure3D,
-    plot_brain_colorbar,
-    link_brains,
-    mne_analyze_colormap,
-    Brain,
-    EvokedField,
-)
-from mne.viz._3d import _process_clim, _linearize_map, _get_map_ticks
-from mne.viz.utils import _fake_click, _fake_keypress, _fake_scroll, _get_cmap
-from mne.utils import catch_logging, _record_warnings
+from mne.bem import read_bem_solution, read_bem_surfaces
 from mne.datasets import testing
+from mne.io import read_info, read_raw_bti, read_raw_ctf, read_raw_kit, read_raw_nirx
+from mne.minimum_norm import apply_inverse
+from mne.source_estimate import _BaseVolSourceEstimate
 from mne.source_space import read_source_spaces
 from mne.transforms import Transform
-from mne.bem import read_bem_solution, read_bem_surfaces
-
+from mne.utils import _record_warnings, catch_logging
+from mne.viz import (
+    Brain,
+    EvokedField,
+    Figure3D,
+    link_brains,
+    mne_analyze_colormap,
+    plot_alignment,
+    plot_brain_colorbar,
+    plot_head_positions,
+    plot_source_estimates,
+    plot_sparse_source_estimates,
+    snapshot_brain_montage,
+)
+from mne.viz._3d import _get_map_ticks, _linearize_map, _process_clim
+from mne.viz.utils import _fake_click, _fake_keypress, _fake_scroll, _get_cmap
 
 data_dir = testing.data_path(download=False)
 subjects_dir = data_dir / "subjects"
@@ -208,9 +207,10 @@ def test_plot_evoked_field(renderer):
 def test_plot_evoked_field_notebook(renderer_notebook, nbexec):
     """Test plotting the evoked field inside a notebook."""
     import pytest
-    from mne import read_evokeds, make_field_map
+
+    from mne import make_field_map, read_evokeds
     from mne.datasets import testing
-    from mne.viz import set_3d_backend, Brain, EvokedField, Figure3D
+    from mne.viz import Brain, EvokedField, Figure3D, set_3d_backend
 
     set_3d_backend("notebook")
 

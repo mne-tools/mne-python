@@ -4,10 +4,10 @@
 
 from pathlib import Path
 
+import pytest
+
 from mne.io import read_raw_nicolet
 from mne.io.tests.test_raw import _test_raw_reader
-
-import pytest
 
 base_dir = Path(__file__).parent / "data"
 fname_data = base_dir / "test_nicolet_raw.data"

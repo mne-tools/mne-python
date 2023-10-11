@@ -8,15 +8,15 @@ import numpy as np
 
 from mne.minimum_norm.inverse import InverseOperator
 
-from .inverse import apply_inverse
-from ..evoked import EvokedArray
 from .._fiff.constants import FIFF
 from .._fiff.pick import pick_channels_forward
-from ..utils import logger, verbose, _validate_type
-from ..forward.forward import convert_forward_solution, Forward
-from ..source_estimate import _prepare_label_extraction, _make_stc, _get_src_type
-from ..source_space._source_space import SourceSpaces, _get_vertno
+from ..evoked import EvokedArray
+from ..forward.forward import Forward, convert_forward_solution
 from ..label import Label
+from ..source_estimate import _get_src_type, _make_stc, _prepare_label_extraction
+from ..source_space._source_space import SourceSpaces, _get_vertno
+from ..utils import _validate_type, logger, verbose
+from .inverse import apply_inverse
 
 
 @verbose

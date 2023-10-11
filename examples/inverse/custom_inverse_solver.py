@@ -23,10 +23,10 @@ in order to try out another inverse algorithm.
 
 import numpy as np
 from scipy import linalg
+
 import mne
 from mne.datasets import sample
 from mne.viz import plot_sparse_source_estimates
-
 
 data_path = sample.data_path()
 meg_path = data_path / "MEG" / "sample"
@@ -95,10 +95,10 @@ def apply_solver(solver, evoked, forward, noise_cov, loose=0.2, depth=0.8):
     """
     # Import the necessary private functions
     from mne.inverse_sparse.mxne_inverse import (
-        _prepare_gain,
-        is_fixed_orient,
-        _reapply_source_weighting,
         _make_sparse_stc,
+        _prepare_gain,
+        _reapply_source_weighting,
+        is_fixed_orient,
     )
 
     all_ch_names = evoked.ch_names

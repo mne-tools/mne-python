@@ -9,11 +9,11 @@ from scipy import linalg
 from scipy.signal import fftconvolve
 from scipy.sparse.csgraph import laplacian
 
-from .base import BaseEstimator
 from ..cuda import _setup_cuda_fft_multiply_repeated
 from ..filter import next_fast_len
 from ..fixes import jit
-from ..utils import warn, ProgressBar, logger, _validate_type, _check_option
+from ..utils import ProgressBar, _check_option, _validate_type, logger, warn
+from .base import BaseEstimator
 
 
 def _compute_corrs(

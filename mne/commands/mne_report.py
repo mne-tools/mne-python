@@ -72,7 +72,7 @@ import time
 
 import mne
 from mne.report import Report
-from mne.utils import verbose, logger
+from mne.utils import logger, verbose
 
 
 @verbose
@@ -83,7 +83,7 @@ def log_elapsed(t, verbose=None):
 
 def run():
     """Run command."""
-    from mne.commands.utils import get_optparser, _add_verbose_flag
+    from mne.commands.utils import _add_verbose_flag, get_optparser
 
     parser = get_optparser(__file__)
 

@@ -6,14 +6,14 @@ import numpy as np
 from scipy.fft import irfft, rfft
 
 from .utils import (
-    sizeof_fmt,
-    logger,
-    get_config,
-    warn,
-    _explain_exception,
-    verbose,
-    fill_doc,
     _check_option,
+    _explain_exception,
+    fill_doc,
+    get_config,
+    logger,
+    sizeof_fmt,
+    verbose,
+    warn,
 )
 
 _cuda_capable = False

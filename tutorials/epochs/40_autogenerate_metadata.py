@@ -45,7 +45,9 @@ by calling `mne.events_from_annotations`.
 # %%
 
 from pathlib import Path
+
 import matplotlib.pyplot as plt
+
 import mne
 
 data_dir = Path(mne.datasets.erp_core.data_path())

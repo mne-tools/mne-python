@@ -15,10 +15,12 @@ As usual, we'll start by importing the modules we need, loading some
 # %%
 
 import os
+
 import matplotlib.pyplot as plt
-import seaborn as sns
-import pandas as pd
 import numpy as np
+import pandas as pd
+import seaborn as sns
+
 import mne
 from mne.preprocessing import find_bad_channels_maxwell
 

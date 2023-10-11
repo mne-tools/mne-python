@@ -8,28 +8,28 @@
 import copy
 from pathlib import Path
 
+import matplotlib.pyplot as plt
 import numpy as np
+import pytest
 from numpy.testing import (
+    assert_allclose,
     assert_array_almost_equal,
     assert_array_equal,
-    assert_allclose,
     assert_equal,
 )
-import pytest
-import matplotlib.pyplot as plt
 
+from mne import pick_info, pick_types
+from mne._fiff.constants import FIFF
+from mne._fiff.meas_info import _empty_info
 from mne.channels import (
+    find_layout,
     make_eeg_layout,
     make_grid_layout,
     read_layout,
-    find_layout,
 )
-from mne.defaults import HEAD_SIZE_DEFAULT
 from mne.channels.layout import _box_size, _find_topomap_coords, generate_2d_layout
-from mne import pick_types, pick_info
-from mne.io import read_raw_kit, read_info
-from mne._fiff.meas_info import _empty_info
-from mne._fiff.constants import FIFF
+from mne.defaults import HEAD_SIZE_DEFAULT
+from mne.io import read_info, read_raw_kit
 
 io_dir = Path(__file__).parent.parent.parent / "io"
 fif_fname = io_dir / "tests" / "data" / "test_raw.fif"

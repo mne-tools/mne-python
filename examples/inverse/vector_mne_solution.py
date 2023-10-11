@@ -26,9 +26,10 @@ you to get a better sense of the underlying source geometry.
 # %%
 
 import numpy as np
+
 import mne
 from mne.datasets import sample
-from mne.minimum_norm import read_inverse_operator, apply_inverse
+from mne.minimum_norm import apply_inverse, read_inverse_operator
 
 print(__doc__)
 

@@ -4,9 +4,9 @@
 from datetime import datetime
 from glob import glob
 from os.path import basename, join, splitext
-from defusedxml.ElementTree import parse
 
 import numpy as np
+from defusedxml.ElementTree import parse
 
 from ...utils import logger
 

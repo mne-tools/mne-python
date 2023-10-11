@@ -4,8 +4,8 @@
 import os
 import os.path as op
 
-from ..utils import _manifest_check_download, _get_path
-from ...utils import verbose, get_subjects_dir, set_config
+from ...utils import get_subjects_dir, set_config, verbose
+from ..utils import _get_path, _manifest_check_download
 
 FSAVERAGE_MANIFEST_PATH = op.dirname(__file__)
 

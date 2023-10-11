@@ -4,8 +4,8 @@
 
 
 import numpy as np
-from numpy.testing import assert_array_equal
 import pytest
+from numpy.testing import assert_array_equal
 
 from mne.decoding.time_frequency import TimeFrequency
 

@@ -34,16 +34,17 @@ perform cluster-based permutation tests to estimate significant ERDS values
 # %%
 # As usual, we import everything we need.
 
-import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.colors import TwoSlopeNorm
+import numpy as np
 import pandas as pd
 import seaborn as sns
+from matplotlib.colors import TwoSlopeNorm
+
 import mne
 from mne.datasets import eegbci
 from mne.io import concatenate_raws, read_raw_edf
-from mne.time_frequency import tfr_multitaper
 from mne.stats import permutation_cluster_1samp_test as pcluster_test
+from mne.time_frequency import tfr_multitaper
 
 # %%
 # First, we load and preprocess the data. We use runs 6, 10, and 14 from

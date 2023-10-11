@@ -7,13 +7,13 @@
 # License: Simplified BSD
 
 
-from itertools import cycle
 from functools import partial
+from itertools import cycle
 
 import numpy as np
 
-from .utils import plt_show, _get_cmap
 from ..utils import _validate_type
+from .utils import _get_cmap, plt_show
 
 
 def circular_layout(
@@ -154,9 +154,9 @@ def _plot_connectivity_circle(
     node_linewidth=2.0,
     show=True,
 ):
-    import matplotlib.pyplot as plt
-    import matplotlib.path as m_path
     import matplotlib.patches as m_patches
+    import matplotlib.path as m_path
+    import matplotlib.pyplot as plt
     from matplotlib.projections.polar import PolarAxes
 
     _validate_type(ax, (None, PolarAxes))

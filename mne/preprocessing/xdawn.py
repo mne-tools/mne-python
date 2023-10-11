@@ -7,13 +7,13 @@
 import numpy as np
 from scipy import linalg
 
-from ..cov import Covariance, _regularized_covariance
-from ..decoding import TransformerMixin, BaseEstimator
-from ..epochs import BaseEpochs
-from ..evoked import EvokedArray, Evoked
-from ..io import BaseRaw
 from .._fiff.pick import _pick_data_channels, pick_info
-from ..utils import logger, _check_option
+from ..cov import Covariance, _regularized_covariance
+from ..decoding import BaseEstimator, TransformerMixin
+from ..epochs import BaseEpochs
+from ..evoked import Evoked, EvokedArray
+from ..io import BaseRaw
+from ..utils import _check_option, logger
 
 
 def _construct_signal_from_epochs(epochs, events, sfreq, tmin):

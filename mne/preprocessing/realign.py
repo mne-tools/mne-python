@@ -8,7 +8,7 @@ from numpy.polynomial.polynomial import Polynomial
 from scipy.stats import pearsonr
 
 from ..io import BaseRaw
-from ..utils import _validate_type, warn, logger, verbose
+from ..utils import _validate_type, logger, verbose, warn
 
 
 @verbose

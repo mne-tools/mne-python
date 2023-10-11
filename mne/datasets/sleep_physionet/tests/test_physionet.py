@@ -4,15 +4,17 @@
 # License: BSD Style.
 
 from pathlib import Path
+
 import pytest
 
-
-from mne.utils import requires_good_network
 from mne.datasets.sleep_physionet import age, temazepam
-from mne.datasets.sleep_physionet._utils import _update_sleep_temazepam_records
-from mne.datasets.sleep_physionet._utils import _update_sleep_age_records
-from mne.datasets.sleep_physionet._utils import AGE_SLEEP_RECORDS
-from mne.datasets.sleep_physionet._utils import TEMAZEPAM_SLEEP_RECORDS
+from mne.datasets.sleep_physionet._utils import (
+    AGE_SLEEP_RECORDS,
+    TEMAZEPAM_SLEEP_RECORDS,
+    _update_sleep_age_records,
+    _update_sleep_temazepam_records,
+)
+from mne.utils import requires_good_network
 
 
 @pytest.fixture(scope="session")

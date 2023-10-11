@@ -13,16 +13,15 @@ For a comparison of fits between MNE-C and MNE-Python, see
 
 # %%
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
+from nilearn.datasets import load_mni152_template
+from nilearn.plotting import plot_anat
 
 import mne
-from mne.forward import make_forward_dipole
 from mne.evoked import combine_evoked
+from mne.forward import make_forward_dipole
 from mne.simulation import simulate_evoked
-
-from nilearn.plotting import plot_anat
-from nilearn.datasets import load_mni152_template
 
 data_path = mne.datasets.sample.data_path()
 subjects_dir = data_path / "subjects"

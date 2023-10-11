@@ -8,13 +8,13 @@ import time
 
 import numpy as np
 
+from ..._fiff.constants import FIFF
+from ..._fiff.meas_info import _empty_info
+from ..._fiff.utils import _create_chs, _read_segments_file
+from ...utils import _check_fname, _validate_type, logger, verbose, warn
+from ..base import BaseRaw
 from .egimff import _read_raw_egi_mff
 from .events import _combine_triggers
-from ..base import BaseRaw
-from ..._fiff.utils import _create_chs, _read_segments_file
-from ..._fiff.meas_info import _empty_info
-from ..._fiff.constants import FIFF
-from ...utils import verbose, logger, warn, _validate_type, _check_fname
 
 
 def _read_header(fid):

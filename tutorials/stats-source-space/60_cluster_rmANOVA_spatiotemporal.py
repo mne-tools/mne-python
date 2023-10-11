@@ -23,20 +23,19 @@ across space and time.
 
 # %%
 
+import matplotlib.pyplot as plt
 import numpy as np
 from numpy.random import randn
-import matplotlib.pyplot as plt
 
 import mne
+from mne.datasets import sample
+from mne.minimum_norm import apply_inverse, read_inverse_operator
 from mne.stats import (
-    spatio_temporal_cluster_test,
-    f_threshold_mway_rm,
     f_mway_rm,
+    f_threshold_mway_rm,
+    spatio_temporal_cluster_test,
     summarize_clusters_stc,
 )
-
-from mne.minimum_norm import apply_inverse, read_inverse_operator
-from mne.datasets import sample
 
 print(__doc__)
 

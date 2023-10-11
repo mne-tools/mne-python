@@ -17,14 +17,13 @@ visualized on the average of all the epochs.
 
 # %%
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
+from sklearn.decomposition import PCA, FastICA
 
 import mne
 from mne.datasets import sample
 from mne.decoding import UnsupervisedSpatialFilter
-
-from sklearn.decomposition import PCA, FastICA
 
 print(__doc__)
 

@@ -15,10 +15,10 @@ Generate a bootstrap-icons CSS file with embedded font.
 # License: BSD-3-Clause
 
 
-from pathlib import Path
 import base64
-import rcssmin
+from pathlib import Path
 
+import rcssmin
 
 base_dir = Path(".")
 css_path_in = base_dir / "bootstrap-icons.css"

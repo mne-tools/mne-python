@@ -5,8 +5,8 @@
 import pickle
 from pathlib import Path
 
-import pytest
 import numpy as np
+import pytest
 from numpy.testing import assert_array_equal
 
 from mne.io.kit import read_mrk

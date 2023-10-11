@@ -3,6 +3,7 @@
 # License: Simplified BSD
 
 import pytest
+
 from mne.viz._figure import _get_browser
 
 

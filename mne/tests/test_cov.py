@@ -8,50 +8,49 @@ import sys
 from inspect import signature
 from pathlib import Path
 
+import numpy as np
+import pytest
 from numpy.testing import (
+    assert_allclose,
     assert_array_almost_equal,
     assert_array_equal,
     assert_equal,
-    assert_allclose,
-)
-import pytest
-import numpy as np
-
-from mne.cov import (
-    regularize,
-    whiten_evoked,
-    _auto_low_rank_model,
-    prepare_noise_cov,
-    compute_whitener,
-    _regularized_covariance,
 )
 
 from mne import (
-    read_cov,
-    write_cov,
     Epochs,
-    merge_events,
-    find_events,
-    compute_raw_covariance,
     compute_covariance,
-    read_evokeds,
     compute_proj_raw,
-    pick_channels_cov,
-    pick_types,
+    compute_rank,
+    compute_raw_covariance,
+    create_info,
+    find_events,
     make_ad_hoc_cov,
     make_fixed_length_events,
-    create_info,
+    merge_events,
+    pick_channels_cov,
     pick_info,
-    compute_rank,
+    pick_types,
+    read_cov,
+    read_evokeds,
+    write_cov,
 )
+from mne._fiff.pick import _DATA_CH_TYPES_SPLIT
 from mne.channels import equalize_channels
+from mne.cov import (
+    _auto_low_rank_model,
+    _regularized_covariance,
+    compute_whitener,
+    prepare_noise_cov,
+    regularize,
+    whiten_evoked,
+)
 from mne.datasets import testing
 from mne.fixes import _safe_svd
-from mne.io import read_raw_fif, RawArray, read_raw_ctf, read_info
-from mne._fiff.pick import _DATA_CH_TYPES_SPLIT
+from mne.io import RawArray, read_info, read_raw_ctf, read_raw_fif
 from mne.preprocessing import maxwell_filter
 from mne.rank import _compute_rank_int
-from mne.utils import catch_logging, assert_snr, _record_warnings
+from mne.utils import _record_warnings, assert_snr, catch_logging
 
 base_dir = Path(__file__).parent.parent / "io" / "tests" / "data"
 cov_fname = base_dir / "test-cov.fif"

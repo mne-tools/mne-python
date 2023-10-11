@@ -9,9 +9,10 @@
 #
 # License: BSD-3-Clause
 
-import numpy as np
 import os
 import os.path as op
+
+import numpy as np
 
 from .constants import FIFF
 from .meas_info import _get_valid_units

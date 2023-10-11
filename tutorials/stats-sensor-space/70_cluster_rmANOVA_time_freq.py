@@ -29,13 +29,13 @@ comparisons using False Discovery Rate correction.
 
 # %%
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 
 import mne
-from mne.time_frequency import tfr_morlet
-from mne.stats import f_threshold_mway_rm, f_mway_rm, fdr_correction
 from mne.datasets import sample
+from mne.stats import f_mway_rm, f_threshold_mway_rm, fdr_correction
+from mne.time_frequency import tfr_morlet
 
 print(__doc__)
 

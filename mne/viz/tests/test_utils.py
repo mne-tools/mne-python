@@ -4,30 +4,30 @@
 
 from pathlib import Path
 
-import numpy as np
-from numpy.testing import assert_allclose
-import pytest
 import matplotlib.pyplot as plt
+import numpy as np
+import pytest
+from numpy.testing import assert_allclose
 
+from mne import read_evokeds
+from mne.epochs import Epochs
+from mne.event import read_events
+from mne.io import read_raw_fif
+from mne.viz import ClickableImage, add_background_image, mne_analyze_colormap
+from mne.viz.ui_events import ColormapRange, link, subscribe
 from mne.viz.utils import (
-    compare_fiff,
+    _compute_scalings,
     _fake_click,
     _fake_keypress,
     _fake_scroll,
-    _compute_scalings,
-    _validate_if_list_of_axes,
     _get_color_list,
-    _setup_vmin_vmax,
-    centers_to_edges,
     _make_event_color_dict,
+    _setup_vmin_vmax,
+    _validate_if_list_of_axes,
+    centers_to_edges,
+    compare_fiff,
     concatenate_images,
 )
-from mne.viz.ui_events import link, subscribe, ColormapRange
-from mne.viz import ClickableImage, add_background_image, mne_analyze_colormap
-from mne.io import read_raw_fif
-from mne.event import read_events
-from mne.epochs import Epochs
-from mne import read_evokeds
 
 base_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
 raw_fname = base_dir / "test_raw.fif"

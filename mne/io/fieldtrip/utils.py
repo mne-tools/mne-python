@@ -10,7 +10,7 @@ from ..._fiff.constants import FIFF
 from ..._fiff.meas_info import create_info
 from ..._fiff.pick import pick_info
 from ...transforms import rotation3d_align_z_axis
-from ...utils import warn, _check_pandas_installed
+from ...utils import _check_pandas_installed, warn
 
 _supported_megs = ["neuromag306"]
 

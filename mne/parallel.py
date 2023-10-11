@@ -9,13 +9,13 @@ import multiprocessing
 import os
 
 from .utils import (
+    ProgressBar,
+    _ensure_int,
+    _validate_type,
+    get_config,
     logger,
     verbose,
     warn,
-    ProgressBar,
-    _validate_type,
-    _ensure_int,
-    get_config,
 )
 
 

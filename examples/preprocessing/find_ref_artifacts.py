@@ -32,11 +32,12 @@ This technique is fully described and validated in :footcite:`HannaEtAl2020`
 
 # %%
 
+import numpy as np
+
 import mne
 from mne import io
 from mne.datasets import refmeg_noise
 from mne.preprocessing import ICA
-import numpy as np
 
 print(__doc__)
 

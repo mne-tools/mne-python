@@ -11,60 +11,58 @@
 #
 # License: Simplified BSD
 
-from collections import OrderedDict
-from dataclasses import dataclass
-from copy import deepcopy
 import os.path as op
 import re
+from collections import OrderedDict
+from copy import deepcopy
+from dataclasses import dataclass
 
 import numpy as np
 
-from ..defaults import HEAD_SIZE_DEFAULT
-from .._freesurfer import get_mni_fiducials
-from ..viz import plot_montage
-from ..transforms import (
-    apply_trans,
-    get_ras_to_neuromag_trans,
-    _sph_to_cart,
-    _topo_to_sph,
-    _frame_to_str,
-    Transform,
-    _verbose_frames,
-    _fit_matched_points,
-    _quat_to_affine,
-    _ensure_trans,
-)
 from .._fiff._digitization import (
+    _coord_frame_const,
     _count_points_by_type,
     _ensure_fiducials_head,
-    _get_dig_eeg,
-    _make_dig_points,
-    write_dig,
-    _read_dig_fif,
     _format_dig_points,
-    _get_fid_coords,
-    _coord_frame_const,
     _get_data_as_dict_from_dig,
+    _get_dig_eeg,
+    _get_fid_coords,
+    _make_dig_points,
+    _read_dig_fif,
+    write_dig,
 )
+from .._fiff.constants import CHANNEL_LOC_ALIASES, FIFF
 from .._fiff.meas_info import create_info
 from .._fiff.open import fiff_open
-from .._fiff.pick import pick_types, _picks_to_idx, channel_type
-from .._fiff.constants import FIFF, CHANNEL_LOC_ALIASES
+from .._fiff.pick import _picks_to_idx, channel_type, pick_types
+from .._freesurfer import get_mni_fiducials
+from ..defaults import HEAD_SIZE_DEFAULT
+from ..transforms import (
+    Transform,
+    _ensure_trans,
+    _fit_matched_points,
+    _frame_to_str,
+    _quat_to_affine,
+    _sph_to_cart,
+    _topo_to_sph,
+    _verbose_frames,
+    apply_trans,
+    get_ras_to_neuromag_trans,
+)
 from ..utils import (
-    warn,
-    copy_function_doc_to_method_doc,
-    _pl,
-    verbose,
-    _check_option,
-    _validate_type,
     _check_fname,
+    _check_option,
     _on_missing,
+    _pl,
+    _validate_type,
+    copy_function_doc_to_method_doc,
     fill_doc,
+    verbose,
+    warn,
 )
 from ..utils.docs import docdict
-
-from ._dig_montage_utils import _read_dig_montage_egi
-from ._dig_montage_utils import _parse_brainvision_dig_montage
+from ..viz import plot_montage
+from ._dig_montage_utils import _parse_brainvision_dig_montage, _read_dig_montage_egi
 
 
 @dataclass
@@ -928,7 +926,7 @@ def read_dig_hpts(fname, unit="mm"):
         eeg    F7  -6.1042  -68.2969   45.4939
         ...
     """
-    from ._standard_montage_utils import _str_names, _str
+    from ._standard_montage_utils import _str, _str_names
 
     fname = _check_fname(fname, overwrite="read", must_exist=True)
     _scale = _check_unit_and_get_scaling(unit)
@@ -1592,12 +1590,12 @@ def read_custom_montage(fname, head_size=HEAD_SIZE_DEFAULT, coord_frame=None):
     :func:`make_dig_montage` that takes arrays as input.
     """
     from ._standard_montage_utils import (
-        _read_theta_phi_in_degrees,
-        _read_sfp,
+        _read_brainvision,
         _read_csd,
         _read_elc,
         _read_elp_besa,
-        _read_brainvision,
+        _read_sfp,
+        _read_theta_phi_in_degrees,
         _read_xyz,
     )
 

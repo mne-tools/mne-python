@@ -10,29 +10,29 @@ from copy import deepcopy
 from pathlib import Path
 
 import numpy as np
-from scipy import fftpack
-from numpy.testing import (
-    assert_array_almost_equal,
-    assert_equal,
-    assert_array_equal,
-    assert_allclose,
-)
 import pytest
+from numpy.testing import (
+    assert_allclose,
+    assert_array_almost_equal,
+    assert_array_equal,
+    assert_equal,
+)
+from scipy import fftpack
 
 from mne import (
-    equalize_channels,
-    pick_types,
-    read_evokeds,
-    write_evokeds,
-    combine_evoked,
-    create_info,
-    read_events,
     Epochs,
     EpochsArray,
+    combine_evoked,
+    create_info,
+    equalize_channels,
+    pick_types,
+    read_events,
+    read_evokeds,
+    write_evokeds,
 )
-from mne.evoked import _get_peak, Evoked, EvokedArray
-from mne.io import read_raw_fif
 from mne._fiff.constants import FIFF
+from mne.evoked import Evoked, EvokedArray, _get_peak
+from mne.io import read_raw_fif
 from mne.utils import grand_average
 
 base_dir = Path(__file__).parent.parent / "io" / "tests" / "data"

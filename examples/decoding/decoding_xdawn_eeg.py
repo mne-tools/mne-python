@@ -16,20 +16,18 @@ fed into a logistic regression.
 
 # %%
 
-import numpy as np
 import matplotlib.pyplot as plt
-
-from sklearn.model_selection import StratifiedKFold
-from sklearn.pipeline import make_pipeline
+import numpy as np
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import classification_report, confusion_matrix
+from sklearn.model_selection import StratifiedKFold
+from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import MinMaxScaler
 
-from mne import io, pick_types, read_events, Epochs, EvokedArray, create_info
+from mne import Epochs, EvokedArray, create_info, io, pick_types, read_events
 from mne.datasets import sample
-from mne.preprocessing import Xdawn
 from mne.decoding import Vectorizer
-
+from mne.preprocessing import Xdawn
 
 print(__doc__)
 

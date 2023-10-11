@@ -21,15 +21,14 @@ that was used to create this data.
 
 # sphinx_gallery_thumbnail_number = 7
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
+from scipy.io import loadmat
+from scipy.stats import multivariate_normal
+from sklearn.preprocessing import scale
 
 import mne
 from mne.decoding import ReceptiveField, TimeDelayingRidge
-
-from scipy.stats import multivariate_normal
-from scipy.io import loadmat
-from sklearn.preprocessing import scale
 
 rng = np.random.RandomState(1337)  # To make this example reproducible
 
