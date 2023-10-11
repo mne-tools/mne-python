@@ -2426,7 +2426,7 @@ def _line_figure(inst, axes=None, picks=None, **kwargs):
             FigureClass=MNELineFigure,
             figsize=figsize,
             n_axes=n_axes,
-            layout=None,
+            layout="constrained",
             **kwargs,
         )
         fig.mne.fig_size_px = fig._get_size_px()  # can't do in __init__
