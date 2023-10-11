@@ -27,10 +27,10 @@ Runs a full pipeline using MNE-Python:
 import matplotlib.pyplot as plt
 
 import mne
+from mne import combine_evoked, io
 from mne.datasets import spm_face
+from mne.minimum_norm import apply_inverse, make_inverse_operator
 from mne.preprocessing import ICA, create_eog_epochs
-from mne import io, combine_evoked
-from mne.minimum_norm import make_inverse_operator, apply_inverse
 
 print(__doc__)
 

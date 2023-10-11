@@ -20,10 +20,9 @@ predict all of the time samples of a second set of conditions.
 # %%
 
 import matplotlib.pyplot as plt
-
+from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
-from sklearn.linear_model import LogisticRegression
 
 import mne
 from mne.datasets import sample

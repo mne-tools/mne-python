@@ -8,12 +8,12 @@ from datetime import datetime, timezone
 
 import numpy as np
 
-from ..base import BaseRaw
 from ..._fiff.constants import FIFF
 from ..._fiff.meas_info import create_info
 from ..._fiff.utils import _mult_cal_one
 from ...annotations import Annotations
-from ...utils import logger, verbose, fill_doc, warn, _check_fname
+from ...utils import _check_fname, fill_doc, logger, verbose, warn
+from ..base import BaseRaw
 
 
 @fill_doc

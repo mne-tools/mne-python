@@ -43,9 +43,10 @@ ROI.
 # %%
 
 import matplotlib.pyplot as plt
-import mne
 import numpy as np
 from scipy.stats import ttest_rel
+
+import mne
 
 # %%
 # Data preprocessing

@@ -1,33 +1,33 @@
 """EGI NetStation Load Function."""
 
-from collections import OrderedDict
 import datetime
 import math
 import os.path as op
 import re
-from defusedxml.minidom import parse
+from collections import OrderedDict
 from pathlib import Path
 
 import numpy as np
+from defusedxml.minidom import parse
 
-from .events import _read_events, _combine_triggers
-from .general import (
-    _get_signalfname,
-    _get_ep_info,
-    _extract,
-    _get_blocks,
-    _get_gains,
-    _block_r,
-)
-from ..base import BaseRaw
 from ..._fiff.constants import FIFF
-from ..._fiff.meas_info import _empty_info, create_info, _ensure_meas_date_none_or_dt
+from ..._fiff.meas_info import _empty_info, _ensure_meas_date_none_or_dt, create_info
 from ..._fiff.proj import setup_proj
 from ..._fiff.utils import _create_chs, _mult_cal_one
 from ...annotations import Annotations
 from ...channels.montage import make_dig_montage
-from ...utils import verbose, logger, warn, _check_option, _check_fname
 from ...evoked import EvokedArray
+from ...utils import _check_fname, _check_option, logger, verbose, warn
+from ..base import BaseRaw
+from .events import _combine_triggers, _read_events
+from .general import (
+    _block_r,
+    _extract,
+    _get_blocks,
+    _get_ep_info,
+    _get_gains,
+    _get_signalfname,
+)
 
 REFERENCE_NAMES = ("VREF", "Vertex Reference")
 

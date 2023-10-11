@@ -1,30 +1,28 @@
-from functools import partial
 import os
-from os import path as op
 import re
 import shutil
 import zipfile
+from functools import partial
+from os import path as op
 
 import pooch
 import pytest
 
 from mne import datasets, read_labels_from_annot, write_labels_to_annot
-from mne.datasets import testing, fetch_infant_template, fetch_phantom, fetch_dataset
+from mne.datasets import fetch_dataset, fetch_infant_template, fetch_phantom, testing
 from mne.datasets._fsaverage.base import _set_montage_coreg_path
 from mne.datasets._infant import base as infant_base
 from mne.datasets._phantom import base as phantom_base
 from mne.datasets.utils import _manifest_check_download
-
 from mne.utils import (
-    requires_good_network,
-    get_subjects_dir,
     ArgvSetter,
     _pl,
-    use_log_level,
     catch_logging,
+    get_subjects_dir,
     hashfunc,
+    requires_good_network,
+    use_log_level,
 )
-
 
 subjects_dir = testing.data_path(download=False) / "subjects"
 

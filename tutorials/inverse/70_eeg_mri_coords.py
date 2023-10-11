@@ -16,8 +16,8 @@ the electrodes are in MRI voxel coordinates.
 # %%
 
 import nibabel
-from nilearn.plotting import plot_glass_brain
 import numpy as np
+from nilearn.plotting import plot_glass_brain
 
 import mne
 from mne.channels import compute_native_head_t, read_custom_montage

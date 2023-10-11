@@ -3,19 +3,19 @@
 #
 # License: BSD-3-Clause
 
-from collections.abc import Iterable
+import logging
 import os
 import os.path as op
-import logging
 import tempfile
-from threading import Thread
 import time
+from collections.abc import Iterable
+from threading import Thread
 
 import numpy as np
 
+from ._logging import logger
 from .check import _check_option
 from .config import get_config
-from ._logging import logger
 
 
 class ProgressBar:

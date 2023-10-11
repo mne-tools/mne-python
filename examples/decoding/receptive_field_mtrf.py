@@ -28,16 +28,16 @@ as a decoding model, or simply stimulus reconstruction).
 # %%
 # sphinx_gallery_thumbnail_number = 3
 
-import numpy as np
-import matplotlib.pyplot as plt
-from scipy.io import loadmat
 from os.path import join
 
-import mne
-from mne.decoding import ReceptiveField
+import matplotlib.pyplot as plt
+import numpy as np
+from scipy.io import loadmat
 from sklearn.model_selection import KFold
 from sklearn.preprocessing import scale
 
+import mne
+from mne.decoding import ReceptiveField
 
 # %%
 # Load the data from the publication

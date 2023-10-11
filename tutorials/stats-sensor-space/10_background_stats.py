@@ -16,18 +16,18 @@ introductory manner, and demonstrate how to use some MNE statistical functions.
 
 from functools import partial
 
-import numpy as np
-from scipy import stats
 import matplotlib.pyplot as plt
+import numpy as np
 from mpl_toolkits.mplot3d import Axes3D  # noqa: F401, analysis:ignore
+from scipy import stats
 
 import mne
 from mne.stats import (
-    ttest_1samp_no_p,
     bonferroni_correction,
     fdr_correction,
-    permutation_t_test,
     permutation_cluster_1samp_test,
+    permutation_t_test,
+    ttest_1samp_no_p,
 )
 
 # %%

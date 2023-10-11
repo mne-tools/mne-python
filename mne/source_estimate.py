@@ -14,58 +14,58 @@ import numpy as np
 from scipy import sparse
 from scipy.spatial.distance import cdist, pdist
 
+from ._fiff.constants import FIFF
+from ._fiff.meas_info import Info
+from ._fiff.pick import pick_types
+from ._freesurfer import _get_atlas_values, _get_mri_info_data, read_freesurfer_lut
 from .baseline import rescale
 from .cov import Covariance
 from .evoked import _get_peak
 from .filter import resample
 from .fixes import _safe_svd
-from ._freesurfer import _get_mri_info_data, _get_atlas_values, read_freesurfer_lut
-from ._fiff.constants import FIFF
-from ._fiff.pick import pick_types
-from .surface import read_surface, _get_ico_surface, mesh_edges, _project_onto_surface
 from .source_space._source_space import (
-    _ensure_src,
-    _get_morph_src_reordering,
-    _ensure_src_subject,
     SourceSpaces,
-    _get_src_nn,
     _check_volume_labels,
+    _ensure_src,
+    _ensure_src_subject,
+    _get_morph_src_reordering,
+    _get_src_nn,
 )
+from .surface import _get_ico_surface, _project_onto_surface, mesh_edges, read_surface
 from .transforms import _get_trans, apply_trans
 from .utils import (
-    get_subjects_dir,
-    _check_subject,
-    logger,
-    verbose,
-    _pl,
-    _time_mask,
-    warn,
-    copy_function_doc_to_method_doc,
-    fill_doc,
+    TimeMixin,
+    _build_data_frame,
+    _check_fname,
     _check_option,
-    _validate_type,
+    _check_pandas_index_arguments,
+    _check_pandas_installed,
     _check_src_normal,
     _check_stc_units,
-    _check_pandas_installed,
-    _import_nibabel,
-    _check_pandas_index_arguments,
+    _check_subject,
+    _check_time_format,
     _convert_times,
     _ensure_int,
-    _build_data_frame,
-    _check_time_format,
-    _path_like,
-    sizeof_fmt,
-    object_size,
-    _check_fname,
     _import_h5io_funcs,
-    TimeMixin,
+    _import_nibabel,
+    _path_like,
+    _pl,
+    _time_mask,
+    _validate_type,
+    copy_function_doc_to_method_doc,
+    fill_doc,
+    get_subjects_dir,
+    logger,
+    object_size,
+    sizeof_fmt,
+    verbose,
+    warn,
 )
 from .viz import (
     plot_source_estimates,
     plot_vector_source_estimates,
     plot_volume_source_estimates,
 )
-from ._fiff.meas_info import Info
 
 
 def _read_stc(filename):
@@ -1528,7 +1528,7 @@ class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
             The source estimate restricted to the given label.
         """
         # make sure label and stc are compatible
-        from .label import Label, BiHemiLabel
+        from .label import BiHemiLabel, Label
 
         _validate_type(label, (Label, BiHemiLabel), "label")
         if (
@@ -1853,7 +1853,7 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
         ----------
         .. footbibliography::
         """
-        from .forward import convert_forward_solution, Forward
+        from .forward import Forward, convert_forward_solution
         from .minimum_norm.inverse import _prepare_forward
 
         _validate_type(fwd, Forward, "fwd")
@@ -3283,7 +3283,7 @@ def _prepare_label_extraction(stc, labels, src, mode, allow_empty, use_sparse):
     # of vol src space.
     # If stc=None (i.e. no activation time courses provided) and mode='mean',
     # only computes vertex indices and label_flip will be list of None.
-    from .label import label_sign_flip, Label, BiHemiLabel
+    from .label import BiHemiLabel, Label, label_sign_flip
 
     # if source estimate provided in stc, get vertices from source space and
     # check that they are the same as in the stcs

@@ -5,32 +5,32 @@
 
 import numpy as np
 
+from .._fiff.constants import FIFF
+from .._fiff.pick import pick_info
+from ..baseline import _log_rescale, rescale
 from ..epochs import Epochs
 from ..event import make_fixed_length_events
 from ..evoked import EvokedArray
 from ..fixes import _safe_svd
-from .._fiff.constants import FIFF
-from .._fiff.pick import pick_info
-from ..source_estimate import _make_stc
-from ..time_frequency.tfr import cwt, morlet
-from ..time_frequency.multitaper import (
-    _psd_from_mt,
-    _compute_mt_params,
-    _psd_from_mt_adaptive,
-    _mt_spectra,
-)
-from ..baseline import rescale, _log_rescale
-from .inverse import (
-    combine_xyz,
-    _check_or_prepare,
-    _assemble_kernel,
-    _pick_channels_inverse_operator,
-    INVERSE_METHODS,
-    _check_ori,
-    _subject_from_inverse,
-)
 from ..parallel import parallel_func
-from ..utils import logger, verbose, ProgressBar, _check_option
+from ..source_estimate import _make_stc
+from ..time_frequency.multitaper import (
+    _compute_mt_params,
+    _mt_spectra,
+    _psd_from_mt,
+    _psd_from_mt_adaptive,
+)
+from ..time_frequency.tfr import cwt, morlet
+from ..utils import ProgressBar, _check_option, logger, verbose
+from .inverse import (
+    INVERSE_METHODS,
+    _assemble_kernel,
+    _check_or_prepare,
+    _check_ori,
+    _pick_channels_inverse_operator,
+    _subject_from_inverse,
+    combine_xyz,
+)
 
 
 def _prepare_source_params(

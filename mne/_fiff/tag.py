@@ -3,25 +3,25 @@
 #
 # License: BSD-3-Clause
 
-from functools import partial
 import html
-import struct
 import re
+import struct
+from functools import partial
 
 import numpy as np
 from scipy.sparse import csc_matrix, csr_matrix
 
+from ..utils import _check_option, warn
+from ..utils.numerics import _julian_to_cal
 from .constants import (
     FIFF,
-    _dig_kind_named,
-    _dig_cardinal_named,
-    _ch_kind_named,
     _ch_coil_type_named,
-    _ch_unit_named,
+    _ch_kind_named,
     _ch_unit_mul_named,
+    _ch_unit_named,
+    _dig_cardinal_named,
+    _dig_kind_named,
 )
-from ..utils.numerics import _julian_to_cal
-from ..utils import warn, _check_option
 
 ##############################################################################
 # HELPERS

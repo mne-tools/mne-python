@@ -2,13 +2,13 @@
 #
 # License: BSD-3-Clause
 
-import pytest
 import numpy as np
-from numpy.testing import assert_array_equal, assert_allclose
+import pytest
+from numpy.testing import assert_allclose, assert_array_equal
 from scipy.io import savemat
 
 import mne
-from mne.beamformer import make_lcmv, apply_lcmv, apply_lcmv_cov
+from mne.beamformer import apply_lcmv, apply_lcmv_cov, make_lcmv
 from mne.beamformer.tests.test_lcmv import _get_data
 from mne.datasets import testing
 

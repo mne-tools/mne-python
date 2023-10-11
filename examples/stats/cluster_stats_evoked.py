@@ -20,8 +20,8 @@ import matplotlib.pyplot as plt
 
 import mne
 from mne import io
-from mne.stats import permutation_cluster_test
 from mne.datasets import sample
+from mne.stats import permutation_cluster_test
 
 print(__doc__)
 

@@ -18,6 +18,7 @@ seconds before loading it into RAM to save memory:
 
 import os
 from datetime import timedelta
+
 import mne
 
 sample_data_folder = mne.datasets.sample.data_path()

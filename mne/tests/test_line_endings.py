@@ -4,13 +4,12 @@
 # License: BSD-3-Clause
 
 import os
-from os import path as op
 import sys
+from os import path as op
 
 import pytest
 
 from mne.utils import _get_root_dir
-
 
 skip_files = (
     # known crlf

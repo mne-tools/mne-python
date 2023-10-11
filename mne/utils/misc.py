@@ -3,27 +3,27 @@
 #
 # License: BSD-3-Clause
 
-from contextlib import contextmanager, ExitStack
 import fnmatch
 import gc
 import hashlib
 import inspect
-from math import log
 import os
-from queue import Queue, Empty
-from string import Formatter
 import subprocess
 import sys
-from textwrap import dedent
-from threading import Thread
 import traceback
 import weakref
+from contextlib import ExitStack, contextmanager
+from math import log
+from queue import Empty, Queue
+from string import Formatter
+from textwrap import dedent
+from threading import Thread
 
 import numpy as np
 from decorator import FunctionMaker
 
-from .check import _check_option, _validate_type
 from ._logging import logger, verbose, warn
+from .check import _check_option, _validate_type
 
 # TODO: remove try/except when our min version is py 3.9
 try:

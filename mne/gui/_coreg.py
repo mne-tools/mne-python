@@ -1,66 +1,65 @@
-from contextlib import contextmanager
-from functools import partial
 import inspect
 import os
 import os.path as op
 import platform
-from pathlib import Path
-import time
 import queue
-import threading
 import re
+import threading
+import time
+from contextlib import contextmanager
+from functools import partial
+from pathlib import Path
 
 import numpy as np
-from traitlets import observe, HasTraits, Unicode, Bool, Float
+from traitlets import Bool, Float, HasTraits, Unicode, observe
 
-from ..defaults import DEFAULTS
 from .._fiff.constants import FIFF
-from .._fiff.meas_info import read_info, read_fiducials, write_fiducials
+from .._fiff.meas_info import _empty_info, read_fiducials, read_info, write_fiducials
+from .._fiff.open import dir_tree_find, fiff_open
 from .._fiff.pick import pick_types
-from .._fiff.open import fiff_open, dir_tree_find
-from .._fiff.meas_info import _empty_info
-from ..io._read_raw import _get_supported, read_raw
 from ..bem import make_bem_solution, write_bem_solution
+from ..channels import read_dig_fif
 from ..coreg import (
     Coregistration,
-    _is_mri_subject,
-    scale_mri,
-    bem_fname,
-    _mri_subject_has_bem,
-    fid_fname,
-    _map_fid_name_to_idx,
     _find_head_bem,
+    _is_mri_subject,
+    _map_fid_name_to_idx,
+    _mri_subject_has_bem,
+    bem_fname,
+    fid_fname,
+    scale_mri,
+)
+from ..defaults import DEFAULTS
+from ..io._read_raw import _get_supported, read_raw
+from ..surface import _CheckInside, _DistanceQuery
+from ..transforms import (
+    _ensure_trans,
+    _get_trans,
+    _get_transforms_to_coord_frame,
+    read_trans,
+    rotation_angles,
+    write_trans,
+)
+from ..utils import (
+    _check_fname,
+    _validate_type,
+    check_fname,
+    fill_doc,
+    get_subjects_dir,
+    logger,
+    verbose,
 )
 from ..viz._3d import (
-    _plot_head_surface,
     _plot_head_fiducials,
     _plot_head_shape_points,
-    _plot_mri_fiducials,
-    _plot_hpi_coils,
-    _plot_sensors,
+    _plot_head_surface,
     _plot_helmet,
+    _plot_hpi_coils,
+    _plot_mri_fiducials,
+    _plot_sensors,
 )
 from ..viz.backends._utils import _qt_app_exec, _qt_safe_window
 from ..viz.utils import safe_event
-from ..transforms import (
-    read_trans,
-    write_trans,
-    _ensure_trans,
-    _get_trans,
-    rotation_angles,
-    _get_transforms_to_coord_frame,
-)
-from ..utils import (
-    get_subjects_dir,
-    check_fname,
-    _check_fname,
-    fill_doc,
-    verbose,
-    logger,
-    _validate_type,
-)
-from ..surface import _DistanceQuery, _CheckInside
-from ..channels import read_dig_fif
 
 
 class _WorkerData:

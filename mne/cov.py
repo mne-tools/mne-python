@@ -4,78 +4,80 @@
 #
 # License: BSD-3-Clause
 
-from copy import deepcopy
 import itertools as itt
+from copy import deepcopy
 from math import log
 
 import numpy as np
 from scipy.sparse import issparse
 
-from .defaults import (
-    _INTERPOLATION_DEFAULT,
-    _EXTRAPOLATE_DEFAULT,
-    _BORDER_DEFAULT,
-    DEFAULTS,
+from . import viz
+from ._fiff.constants import FIFF
+from ._fiff.meas_info import _read_bad_channels, _write_bad_channels, create_info
+from ._fiff.pick import (
+    _DATA_CH_TYPES_SPLIT,
+    _pick_data_channels,
+    _picks_by_type,
+    _picks_to_idx,
+    pick_channels,
+    pick_channels_cov,
+    pick_info,
+    pick_types,
 )
-from .fixes import _safe_svd
 from ._fiff.proj import (
-    make_projector as _make_projector,
-    _proj_equal,
-    activate_proj as _activate_proj,
     _check_projs,
-    _needs_eeg_average_ref_proj,
     _has_eeg_average_ref_proj,
+    _needs_eeg_average_ref_proj,
+    _proj_equal,
     _read_proj,
     _write_proj,
 )
-from ._fiff.pick import (
-    pick_types,
-    pick_channels_cov,
-    pick_channels,
-    pick_info,
-    _picks_by_type,
-    _pick_data_channels,
-    _picks_to_idx,
-    _DATA_CH_TYPES_SPLIT,
+from ._fiff.proj import (
+    activate_proj as _activate_proj,
 )
-
-from ._fiff.constants import FIFF
-from ._fiff.meas_info import _read_bad_channels, create_info, _write_bad_channels
+from ._fiff.proj import (
+    make_projector as _make_projector,
+)
 from ._fiff.tag import find_tag
 from ._fiff.tree import dir_tree_find
-from .defaults import _handle_default
+from .defaults import (
+    _BORDER_DEFAULT,
+    _EXTRAPOLATE_DEFAULT,
+    _INTERPOLATION_DEFAULT,
+    DEFAULTS,
+    _handle_default,
+)
 from .epochs import Epochs
 from .event import make_fixed_length_events
 from .evoked import EvokedArray
-from .rank import compute_rank
-from .utils import (
-    check_fname,
-    logger,
-    verbose,
-    check_version,
-    _time_mask,
-    warn,
-    copy_function_doc_to_method_doc,
-    _pl,
-    _undo_scaling_cov,
-    _scaled_array,
-    _validate_type,
-    _check_option,
-    eigh,
-    fill_doc,
-    _on_missing,
-    _check_on_missing,
-    _check_fname,
-    _verbose_safe_false,
-)
-from . import viz
-
 from .fixes import (
     BaseEstimator,
     EmpiricalCovariance,
     _logdet,
+    _safe_svd,
     empirical_covariance,
     log_likelihood,
+)
+from .rank import compute_rank
+from .utils import (
+    _check_fname,
+    _check_on_missing,
+    _check_option,
+    _on_missing,
+    _pl,
+    _scaled_array,
+    _time_mask,
+    _undo_scaling_cov,
+    _validate_type,
+    _verbose_safe_false,
+    check_fname,
+    check_version,
+    copy_function_doc_to_method_doc,
+    eigh,
+    fill_doc,
+    logger,
+    verbose,
+    warn,
 )
 
 
@@ -1330,8 +1332,8 @@ def _compute_covariance_auto(
                 del sc
 
             elif method_ == "shrunk":
-                from sklearn.model_selection import GridSearchCV
                 from sklearn.covariance import ShrunkCovariance
+                from sklearn.model_selection import GridSearchCV
 
                 shrinkage = mp.pop("shrinkage")
                 tuned_parameters = [{"shrinkage": shrinkage}]
@@ -2428,13 +2430,13 @@ def _read_cov(fid, node, cov_kind, limited=False, verbose=None):
 def _write_cov(fid, cov):
     """Write a noise covariance matrix."""
     from ._fiff.write import (
-        start_block,
         end_block,
-        write_int,
+        start_block,
         write_double,
         write_float_matrix,
-        write_string,
+        write_int,
         write_name_list_sanitized,
+        write_string,
     )
 
     start_block(fid, FIFF.FIFFB_MNE_COV)

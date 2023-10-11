@@ -10,6 +10,8 @@ from inspect import signature
 
 import numpy as np
 
+from .._fiff.meas_info import ContainsMixin, Info
+from .._fiff.pick import _pick_data_channels, _picks_to_idx, pick_info
 from ..channels.channels import UpdateChannelsMixin
 from ..channels.layout import _merge_ch_data, find_layout
 from ..defaults import (
@@ -19,8 +21,6 @@ from ..defaults import (
     _handle_default,
 )
 from ..html_templates import _get_html_template
-from .._fiff.meas_info import ContainsMixin, Info
-from .._fiff.pick import _pick_data_channels, _picks_to_idx, pick_info
 from ..utils import (
     GetEpochsMixin,
     _build_data_frame,
@@ -50,13 +50,13 @@ from ..viz.topo import _plot_timeseries, _plot_timeseries_unified, _plot_topo
 from ..viz.topomap import _make_head_outlines, _prepare_topomap_plot, plot_psds_topomap
 from ..viz.utils import (
     _format_units_psd,
+    _get_plot_ch_type,
     _plot_psd,
     _prepare_sensor_names,
     plt_show,
-    _get_plot_ch_type,
 )
 from .multitaper import psd_array_multitaper
-from .psd import psd_array_welch, _check_nfft
+from .psd import _check_nfft, psd_array_welch
 
 
 def _identity_function(x):
@@ -658,8 +658,8 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         """
         # Must nest this _mpl_figure import because of the BACKEND global
         # stuff
-        from .multitaper import _psd_from_mt
         from ..viz._mpl_figure import _line_figure, _split_picks_by_type
+        from .multitaper import _psd_from_mt
 
         # arg checking
         ci = _check_ci(ci)

@@ -28,7 +28,7 @@ based on the TF-MxNE solver, which promotes focal (sparse) sources
 
 import mne
 from mne.datasets import somato
-from mne.inverse_sparse import tf_mixed_norm, make_stc_from_dipoles
+from mne.inverse_sparse import make_stc_from_dipoles, tf_mixed_norm
 from mne.viz import plot_sparse_source_estimates
 
 print(__doc__)

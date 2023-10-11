@@ -5,11 +5,11 @@
 # License: BSD-3-Clause
 
 import re
+
 import numpy as np
 
 from ..._fiff.pick import _picks_to_idx, pick_types
-from ...utils import fill_doc, _check_option, _validate_type
-
+from ...utils import _check_option, _validate_type, fill_doc
 
 # Standardized fNIRS channel name regexs
 _S_D_F_RE = re.compile(r"S(\d+)_D(\d+) (\d+\.?\d*)")

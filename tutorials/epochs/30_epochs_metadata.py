@@ -21,6 +21,7 @@ need and loading the data:
 
 import numpy as np
 import pandas as pd
+
 import mne
 
 kiloword_data_folder = mne.datasets.kiloword.data_path()

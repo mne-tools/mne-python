@@ -6,18 +6,18 @@
 
 import numpy as np
 
-from .constants import CTF
+from ..._fiff.constants import FIFF
 from ...transforms import (
-    combine_transforms,
-    invert_transform,
     Transform,
-    _quat_to_affine,
     _fit_matched_points,
+    _quat_to_affine,
     apply_trans,
+    combine_transforms,
     get_ras_to_neuromag_trans,
+    invert_transform,
 )
 from ...utils import logger
-from ..._fiff.constants import FIFF
+from .constants import CTF
 
 
 def _make_transform_card(fro, to, r_lpa, r_nasion, r_rpa):

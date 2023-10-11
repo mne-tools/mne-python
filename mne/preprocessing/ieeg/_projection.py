@@ -3,20 +3,21 @@
 # License: BSD-3-Clause
 
 from itertools import combinations
+
 import numpy as np
 from scipy.spatial.distance import pdist, squareform
 
-from ...channels import make_dig_montage
 from ..._fiff.pick import _picks_to_idx
+from ...channels import make_dig_montage
 from ...surface import (
+    _compute_nearest,
     _read_mri_surface,
+    _read_patch,
     fast_cross_3d,
     read_surface,
-    _read_patch,
-    _compute_nearest,
 )
-from ...transforms import apply_trans, invert_transform, _cart_to_sph, _ensure_trans
-from ...utils import verbose, get_subjects_dir, _validate_type, _ensure_int
+from ...transforms import _cart_to_sph, _ensure_trans, apply_trans, invert_transform
+from ...utils import _ensure_int, _validate_type, get_subjects_dir, verbose
 
 
 @verbose

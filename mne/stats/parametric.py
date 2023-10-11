@@ -8,8 +8,8 @@ from functools import reduce
 from string import ascii_uppercase
 
 import numpy as np
-from scipy.signal import detrend
 from scipy import stats
+from scipy.signal import detrend
 
 from ..utils import _check_option
 

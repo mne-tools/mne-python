@@ -13,15 +13,21 @@ from itertools import cycle
 
 import numpy as np
 
+from .._fiff.pick import _DATA_CH_TYPES_SPLIT
+from ..defaults import _handle_default
+from ..filter import _iir_filter, _overlap_add_filter
+from ..fixes import _compare_version
+from ..utils import (
+    _check_option,
+    _get_stim_channel,
+    _validate_type,
+    get_config,
+    logger,
+    set_config,
+    verbose,
+)
 from .backends._utils import VALID_BROWSE_BACKENDS
 from .utils import _get_color_list, _setup_plot_projector, _show_browser
-
-from ..defaults import _handle_default
-from ..filter import _overlap_add_filter, _iir_filter
-from ..utils import logger, _validate_type, _check_option
-from .._fiff.pick import _DATA_CH_TYPES_SPLIT
-from ..utils import verbose, get_config, set_config, _get_stim_channel
-from ..fixes import _compare_version
 
 MNE_BROWSER_BACKEND = None
 backend = None
@@ -498,8 +504,8 @@ class BrowserBase(ABC):
         """Show ICA properties for the selected component."""
         from mne.viz.ica import (
             _create_properties_layout,
-            _prepare_data_ica_properties,
             _fast_plot_ica_properties,
+            _prepare_data_ica_properties,
         )
 
         ch_name = self.mne.ch_names[idx]
@@ -529,6 +535,7 @@ class BrowserBase(ABC):
     def _create_epoch_image_fig(self, pick):
         """Show epochs image for the selected channel."""
         from matplotlib.gridspec import GridSpec
+
         from mne.viz import plot_epochs_image
 
         ch_name = self.mne.ch_names[pick]
@@ -663,6 +670,7 @@ def _get_browser(show, block, **kwargs):
     # Check mne-qt-browser compatibility
     if backend_name == "qt":
         import mne_qt_browser
+
         from ..epochs import BaseEpochs
 
         is_ica = kwargs.get("ica", False)

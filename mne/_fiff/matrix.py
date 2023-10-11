@@ -3,16 +3,16 @@
 #
 # License: BSD-3-Clause
 
+from ..utils import logger
 from .constants import FIFF
 from .tag import find_tag, has_tag
 from .write import (
-    write_int,
-    start_block,
     end_block,
+    start_block,
     write_float_matrix,
+    write_int,
     write_name_list,
 )
-from ..utils import logger
 
 
 def _transpose_named_matrix(mat):

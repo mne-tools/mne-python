@@ -6,13 +6,12 @@ import numpy as np
 from scipy.interpolate import interp1d
 from scipy.signal.windows import hann
 
-from ..evoked import Evoked
-from ..epochs import BaseEpochs
-from ..io import BaseRaw
-from ..event import find_events
-
 from .._fiff.pick import _picks_to_idx
-from ..utils import _check_preload, _check_option, fill_doc
+from ..epochs import BaseEpochs
+from ..event import find_events
+from ..evoked import Evoked
+from ..io import BaseRaw
+from ..utils import _check_option, _check_preload, fill_doc
 
 
 def _get_window(start, end):

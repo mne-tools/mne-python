@@ -9,20 +9,18 @@ For each supported file format, implement a test.
 from pathlib import Path
 
 import numpy as np
-
 import pytest
 from numpy.testing import assert_allclose
-from scipy.io import loadmat
 from scipy import linalg
+from scipy.io import loadmat
 
-from mne.channels import make_dig_montage
-from mne import create_info, EvokedArray, pick_types, Epochs, find_events, read_epochs
-from mne.io import read_raw_fif, RawArray
+from mne import Epochs, EvokedArray, create_info, find_events, pick_types, read_epochs
 from mne._fiff.constants import FIFF
-from mne.utils import object_diff
+from mne.channels import make_dig_montage
 from mne.datasets import testing
-
-from mne.preprocessing import compute_current_source_density, compute_bridged_electrodes
+from mne.io import RawArray, read_raw_fif
+from mne.preprocessing import compute_bridged_electrodes, compute_current_source_density
+from mne.utils import object_diff
 
 data_path = testing.data_path(download=False) / "preprocessing"
 eeg_fname = data_path / "test_eeg.mat"

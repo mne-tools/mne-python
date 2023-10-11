@@ -8,53 +8,52 @@ from contextlib import contextmanager
 from pathlib import Path
 
 import numpy as np
-from numpy.testing import assert_allclose, assert_array_equal
 import pytest
+from numpy.testing import assert_allclose, assert_array_equal
 from scipy import sparse
 from scipy.special import sph_harm
 
 import mne
-from mne import compute_raw_covariance, pick_types, concatenate_raws, pick_info
+from mne import compute_raw_covariance, concatenate_raws, pick_info, pick_types
+from mne._fiff.constants import FIFF
 from mne.annotations import _annotations_starts_stops
-from mne.chpi import read_head_pos, filter_chpi
-from mne.forward import _prep_meg_channels
+from mne.chpi import filter_chpi, read_head_pos
 from mne.datasets import testing
-from mne.forward import use_coil_def
+from mne.forward import _prep_meg_channels, use_coil_def
 from mne.io import (
-    read_raw_fif,
+    BaseRaw,
     read_info,
     read_raw_bti,
-    read_raw_kit,
-    BaseRaw,
     read_raw_ctf,
+    read_raw_fif,
+    read_raw_kit,
 )
-from mne._fiff.constants import FIFF
 from mne.preprocessing import (
-    maxwell_filter,
-    find_bad_channels_maxwell,
     annotate_amplitude,
-    compute_maxwell_basis,
-    maxwell_filter_prepare_emptyroom,
     annotate_movement,
+    compute_maxwell_basis,
+    find_bad_channels_maxwell,
+    maxwell_filter,
+    maxwell_filter_prepare_emptyroom,
 )
 from mne.preprocessing.maxwell import (
-    _get_n_moments,
-    _sss_basis_basic,
-    _sh_complex_to_real,
-    _sh_real_to_complex,
-    _sh_negate,
     _bases_complex_to_real,
-    _trans_sss_basis,
     _bases_real_to_complex,
+    _get_n_moments,
     _prep_mf_coils,
+    _sh_complex_to_real,
+    _sh_negate,
+    _sh_real_to_complex,
+    _sss_basis_basic,
+    _trans_sss_basis,
 )
-from mne.rank import _get_rank_sss, _compute_rank_int, compute_rank
+from mne.rank import _compute_rank_int, _get_rank_sss, compute_rank
 from mne.utils import (
-    assert_meg_snr,
-    catch_logging,
     _record_warnings,
-    object_diff,
+    assert_meg_snr,
     buggy_mkl_svd,
+    catch_logging,
+    object_diff,
     use_log_level,
 )
 

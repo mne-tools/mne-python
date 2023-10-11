@@ -86,91 +86,91 @@ __all__ = [
     "use_3d_backend",
     "use_browser_backend",
 ]
-from . import backends, _scraper, ui_events
-from .backends._abstract import Figure3D
-from .backends.renderer import (
-    set_3d_backend,
-    get_3d_backend,
-    use_3d_backend,
-    set_3d_view,
-    set_3d_title,
-    create_3d_figure,
-    close_3d_figure,
-    close_all_3d_figures,
-    get_brain_class,
-)
-from .circle import circular_layout, plot_channel_labels_circle
-from .epochs import plot_drop_log, plot_epochs, plot_epochs_psd, plot_epochs_image
-from .evoked import (
-    plot_evoked,
-    plot_evoked_image,
-    plot_evoked_white,
-    plot_snr_estimate,
-    plot_evoked_topo,
-    plot_evoked_joint,
-    plot_compare_evokeds,
-)
-from .evoked_field import EvokedField
-from .ica import (
-    plot_ica_scores,
-    plot_ica_sources,
-    plot_ica_overlay,
-    _plot_sources,
-    plot_ica_properties,
-)
-from .misc import (
-    plot_cov,
-    plot_csd,
-    plot_bem,
-    plot_events,
-    plot_source_spectrogram,
-    _get_presser,
-    plot_dipole_amplitudes,
-    plot_ideal_filter,
-    plot_filter,
-    adjust_axes,
-    plot_chpi_snr,
-)
-from .montage import plot_montage
-from .raw import plot_raw, plot_raw_psd, plot_raw_psd_topo, _RAW_CLIP_DEF
-from .topo import plot_topo_image_epochs, iter_topography
-from .topomap import (
-    plot_evoked_topomap,
-    plot_projs_topomap,
-    plot_arrowmap,
-    plot_ica_components,
-    plot_tfr_topomap,
-    plot_topomap,
-    plot_epochs_psd_topomap,
-    plot_layout,
-    plot_bridged_electrodes,
-    plot_ch_adjacency,
-    plot_regression_weights,
-)
-from .utils import (
-    mne_analyze_colormap,
-    compare_fiff,
-    ClickableImage,
-    add_background_image,
-    plot_sensors,
-    centers_to_edges,
-    concatenate_images,
-    _get_plot_ch_type,
-)
+from . import _scraper, backends, ui_events
 from ._3d import (
-    plot_sparse_source_estimates,
-    plot_source_estimates,
-    plot_vector_source_estimates,
-    plot_evoked_field,
-    plot_dipole_locations,
-    snapshot_brain_montage,
-    plot_head_positions,
+    link_brains,
     plot_alignment,
     plot_brain_colorbar,
+    plot_dipole_locations,
+    plot_evoked_field,
+    plot_head_positions,
+    plot_source_estimates,
+    plot_sparse_source_estimates,
+    plot_vector_source_estimates,
     plot_volume_source_estimates,
-    link_brains,
     set_3d_options,
+    snapshot_brain_montage,
 )
 from ._brain import Brain
 from ._figure import get_browser_backend, set_browser_backend, use_browser_backend
 from ._proj import plot_projs_joint
+from .backends._abstract import Figure3D
+from .backends.renderer import (
+    close_3d_figure,
+    close_all_3d_figures,
+    create_3d_figure,
+    get_3d_backend,
+    get_brain_class,
+    set_3d_backend,
+    set_3d_title,
+    set_3d_view,
+    use_3d_backend,
+)
+from .circle import circular_layout, plot_channel_labels_circle
+from .epochs import plot_drop_log, plot_epochs, plot_epochs_image, plot_epochs_psd
+from .evoked import (
+    plot_compare_evokeds,
+    plot_evoked,
+    plot_evoked_image,
+    plot_evoked_joint,
+    plot_evoked_topo,
+    plot_evoked_white,
+    plot_snr_estimate,
+)
+from .evoked_field import EvokedField
+from .ica import (
+    _plot_sources,
+    plot_ica_overlay,
+    plot_ica_properties,
+    plot_ica_scores,
+    plot_ica_sources,
+)
+from .misc import (
+    _get_presser,
+    adjust_axes,
+    plot_bem,
+    plot_chpi_snr,
+    plot_cov,
+    plot_csd,
+    plot_dipole_amplitudes,
+    plot_events,
+    plot_filter,
+    plot_ideal_filter,
+    plot_source_spectrogram,
+)
+from .montage import plot_montage
+from .raw import _RAW_CLIP_DEF, plot_raw, plot_raw_psd, plot_raw_psd_topo
+from .topo import iter_topography, plot_topo_image_epochs
+from .topomap import (
+    plot_arrowmap,
+    plot_bridged_electrodes,
+    plot_ch_adjacency,
+    plot_epochs_psd_topomap,
+    plot_evoked_topomap,
+    plot_ica_components,
+    plot_layout,
+    plot_projs_topomap,
+    plot_regression_weights,
+    plot_tfr_topomap,
+    plot_topomap,
+)
+from .utils import (
+    ClickableImage,
+    _get_plot_ch_type,
+    add_background_image,
+    centers_to_edges,
+    compare_fiff,
+    concatenate_images,
+    mne_analyze_colormap,
+    plot_sensors,
+)

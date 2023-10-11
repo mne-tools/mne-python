@@ -14,17 +14,16 @@ import pytest
 from mne._fiff.constants import (
     FIFF,
     FWD,
-    _coord_frame_named,
-    _ch_kind_named,
-    _ch_unit_named,
-    _ch_unit_mul_named,
     _ch_coil_type_named,
-    _dig_kind_named,
+    _ch_kind_named,
+    _ch_unit_mul_named,
+    _ch_unit_named,
+    _coord_frame_named,
     _dig_cardinal_named,
+    _dig_kind_named,
 )
 from mne.forward._make_forward import _read_coil_defs
 from mne.utils import requires_good_network
-
 
 # https://github.com/mne-tools/fiff-constants/commits/master
 REPO = "mne-tools"

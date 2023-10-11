@@ -4,8 +4,8 @@
 import os
 import os.path as op
 
+from ...utils import _check_option, _validate_type, get_subjects_dir, verbose
 from ..utils import _manifest_check_download
-from ...utils import verbose, get_subjects_dir, _check_option, _validate_type
 
 _AGES = "2wk 1mo 2mo 3mo 4.5mo 6mo 7.5mo 9mo 10.5mo 12mo 15mo 18mo 2yr"
 # https://github.com/christian-oreilly/infant_template_paper/releases

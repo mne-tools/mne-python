@@ -11,12 +11,12 @@ minimum-norm inverse method on evoked/raw/epochs data.
 
 # %%
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 
 import mne
 from mne.datasets import sample
-from mne.minimum_norm import make_inverse_operator, apply_inverse
+from mne.minimum_norm import apply_inverse, make_inverse_operator
 
 # %%
 # Process MEG data

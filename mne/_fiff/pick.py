@@ -4,21 +4,21 @@
 #
 # License: BSD-3-Clause
 
-from copy import deepcopy
 import re
+from copy import deepcopy
 
 import numpy as np
 
-from .constants import FIFF
 from ..utils import (
-    logger,
-    verbose,
+    _check_option,
+    _ensure_int,
     _validate_type,
     fill_doc,
-    _ensure_int,
-    _check_option,
+    logger,
+    verbose,
     warn,
 )
+from .constants import FIFF
 
 
 def get_channel_type_constants(include_defaults=False):

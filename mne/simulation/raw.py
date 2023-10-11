@@ -10,47 +10,47 @@ from pathlib import Path
 
 import numpy as np
 
-from ..event import _get_stim_channel
-from .._ola import _Interp2
 from .._fiff.constants import FIFF
 from .._fiff.meas_info import Info
-from .._fiff.pick import pick_types, pick_info, pick_channels, pick_channels_forward
-from ..cov import make_ad_hoc_cov, read_cov, Covariance
+from .._fiff.pick import pick_channels, pick_channels_forward, pick_info, pick_types
+from .._ola import _Interp2
 from ..bem import fit_sphere_to_headshape, make_sphere_model, read_bem_solution
-from ..io import RawArray, BaseRaw
 from ..chpi import (
-    read_head_pos,
-    head_pos_to_trans_rot_t,
-    get_chpi_info,
     _get_hpi_initial_fit,
+    get_chpi_info,
+    head_pos_to_trans_rot_t,
+    read_head_pos,
 )
+from ..cov import Covariance, make_ad_hoc_cov, read_cov
+from ..event import _get_stim_channel
 from ..forward import (
+    _compute_forwards,
     _magnetic_dipole_field_vec,
     _merge_fwds,
-    _stc_src_sel,
-    convert_forward_solution,
-    _prepare_for_forward,
-    _transform_orig_meg_coils,
-    _compute_forwards,
-    _to_forward_dict,
-    restrict_forward_to_stc,
     _prep_meg_channels,
+    _prepare_for_forward,
+    _stc_src_sel,
+    _to_forward_dict,
+    _transform_orig_meg_coils,
+    convert_forward_solution,
+    restrict_forward_to_stc,
 )
-from ..transforms import _get_trans, transform_surface_to
+from ..io import BaseRaw, RawArray
+from ..source_estimate import _BaseSourceEstimate
 from ..source_space._source_space import (
     _ensure_src,
     _set_source_space_vertices,
     setup_volume_source_space,
 )
-from ..source_estimate import _BaseSourceEstimate
 from ..surface import _CheckInside
+from ..transforms import _get_trans, transform_surface_to
 from ..utils import (
-    logger,
-    verbose,
-    check_random_state,
+    _check_preload,
     _pl,
     _validate_type,
-    _check_preload,
+    check_random_state,
+    logger,
+    verbose,
 )
 from .source import SourceSimulator
 

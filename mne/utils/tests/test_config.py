@@ -1,17 +1,18 @@
 import os
 import platform
-import pytest
 from pathlib import Path
 
+import pytest
+
 from mne.utils import (
-    set_config,
+    ClosingStringIO,
+    _get_stim_channel,
     get_config,
     get_config_path,
-    set_memmap_min_size,
-    _get_stim_channel,
-    sys_info,
-    ClosingStringIO,
     get_subjects_dir,
+    set_config,
+    set_memmap_min_size,
+    sys_info,
 )
 
 

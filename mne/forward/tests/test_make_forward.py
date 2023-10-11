@@ -1,55 +1,53 @@
 from itertools import product
 from pathlib import Path
 
-import pytest
 import numpy as np
-from numpy.testing import assert_allclose, assert_array_equal
-from numpy.testing import assert_array_less
+import pytest
+from numpy.testing import assert_allclose, assert_array_equal, assert_array_less
 
-from mne.bem import read_bem_surfaces, make_bem_solution
-from mne.channels import make_standard_montage
-from mne.datasets import testing
-from mne.io import read_raw_fif, read_raw_kit, read_raw_bti, read_info
-from mne._fiff.constants import FIFF
 from mne import (
-    read_forward_solution,
-    write_forward_solution,
-    make_forward_solution,
     convert_forward_solution,
-    setup_volume_source_space,
-    read_source_spaces,
     create_info,
+    get_volume_labels_from_aseg,
+    make_forward_solution,
     make_sphere_model,
-    pick_types_forward,
     pick_info,
     pick_types,
-    read_evokeds,
+    pick_types_forward,
     read_cov,
     read_dipole,
-    get_volume_labels_from_aseg,
+    read_evokeds,
+    read_forward_solution,
+    read_source_spaces,
+    setup_volume_source_space,
+    write_forward_solution,
+)
+from mne._fiff.constants import FIFF
+from mne.bem import make_bem_solution, read_bem_surfaces
+from mne.channels import make_standard_montage
+from mne.datasets import testing
+from mne.dipole import Dipole, fit_dipole
+from mne.forward import Forward, _do_forward_solution, use_coil_def
+from mne.forward._compute_forward import _magnetic_dipole_field_vec
+from mne.forward._make_forward import _create_meg_coils, make_forward_dipole
+from mne.forward.tests.test_forward import assert_forward_allclose
+from mne.io import read_info, read_raw_bti, read_raw_fif, read_raw_kit
+from mne.simulation import simulate_evoked
+from mne.source_estimate import VolSourceEstimate
+from mne.source_space._source_space import (
+    _compare_source_spaces,
+    setup_source_space,
+    write_source_spaces,
 )
 from mne.surface import _get_ico_surface
 from mne.transforms import Transform
 from mne.utils import (
-    requires_mne,
-    run_subprocess,
     catch_logging,
+    requires_mne,
     requires_mne_mark,
     requires_openmeeg_mark,
+    run_subprocess,
 )
-from mne.forward._make_forward import _create_meg_coils, make_forward_dipole
-from mne.forward._compute_forward import _magnetic_dipole_field_vec
-from mne.forward import Forward, _do_forward_solution, use_coil_def
-from mne.dipole import Dipole, fit_dipole
-from mne.simulation import simulate_evoked
-from mne.source_estimate import VolSourceEstimate
-from mne.source_space._source_space import (
-    write_source_spaces,
-    _compare_source_spaces,
-    setup_source_space,
-)
-
-from mne.forward.tests.test_forward import assert_forward_allclose
 
 data_path = testing.data_path(download=False)
 fname_meeg = data_path / "MEG" / "sample" / "sample_audvis_trunc-meg-eeg-oct-4-fwd.fif"

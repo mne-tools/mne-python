@@ -15,13 +15,13 @@ shipped in MNE-python, and display it on the fsaverage template subject.
 # %%
 
 import os.path as op
+
 import numpy as np
 
 import mne
 from mne.channels.montage import get_builtin_montages
 from mne.datasets import fetch_fsaverage
 from mne.viz import set_3d_title, set_3d_view
-
 
 # %%
 # Check all montages against a sphere

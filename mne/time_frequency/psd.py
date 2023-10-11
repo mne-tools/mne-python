@@ -8,7 +8,7 @@ import numpy as np
 from scipy.signal import spectrogram
 
 from ..parallel import parallel_func
-from ..utils import logger, verbose, _check_option, _ensure_int
+from ..utils import _check_option, _ensure_int, logger, verbose
 
 
 # adapted from SciPy

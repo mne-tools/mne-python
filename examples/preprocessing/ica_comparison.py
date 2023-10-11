@@ -18,9 +18,8 @@ are displayed.
 from time import time
 
 import mne
-from mne.preprocessing import ICA
 from mne.datasets import sample
-
+from mne.preprocessing import ICA
 
 print(__doc__)
 

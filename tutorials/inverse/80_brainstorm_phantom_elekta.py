@@ -18,8 +18,8 @@ tutorial dataset. For comparison, see :footcite:`TadelEtAl2011` and
 
 # %%
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 
 import mne
 from mne import find_events, fit_dipole

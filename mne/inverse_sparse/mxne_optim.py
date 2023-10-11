@@ -8,17 +8,17 @@ from math import sqrt
 
 import numpy as np
 
-from .mxne_debiasing import compute_bias
+from ..time_frequency._stft import istft, stft, stft_norm1, stft_norm2
 from ..utils import (
-    logger,
-    verbose,
-    sum_squared,
-    warn,
+    _check_option,
     _get_blas_funcs,
     _validate_type,
-    _check_option,
+    logger,
+    sum_squared,
+    verbose,
+    warn,
 )
-from ..time_frequency._stft import stft_norm1, stft_norm2, stft, istft
+from .mxne_debiasing import compute_bias
 
 
 @functools.lru_cache(None)
