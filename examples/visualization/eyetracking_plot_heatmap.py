@@ -8,9 +8,10 @@ Plotting eye-tracking heatmaps in MNE-Python
 
 This tutorial covers plotting eye-tracking position data as a heatmap.
 
-.. seealso:: :ref:`tut-importing-eyetracking-data`
+.. seealso::
 
-.. seealso:: :ref:`tut-eyetrack`
+    :ref:`tut-importing-eyetracking-data`
+    :ref:`tut-eyetrack`
 
 """
 
