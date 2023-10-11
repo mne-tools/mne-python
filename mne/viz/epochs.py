@@ -302,8 +302,9 @@ def plot_epochs_image(
 
     # check for compatible `fig` / `axes`; instantiate figs if needed; add
     # fig(s) and axes into group_by
+    needs_colorbar = axes is not None
     group_by = _validate_fig_and_axes(
-        fig, axes, group_by, evoked, colorbar, clear=clear
+        fig, axes, group_by, evoked, colorbar=needs_colorbar, clear=clear
     )
 
     # prepare images in advance to get consistent vmin/vmax.
@@ -649,20 +650,26 @@ def _plot_epochs_image(
         ax["evoked"].xaxis.set_major_locator(loc)
         ax["evoked"].yaxis.set_major_locator(AutoLocator())
 
+    fig = ax_im.get_figure()
+
     # draw the colorbar
     if colorbar:
         from matplotlib.pyplot import colorbar as cbar
 
-        this_colorbar = cbar(im, cax=ax["colorbar"])
-        this_colorbar.ax.set_ylabel(unit, rotation=270, labelpad=12)
+        if "colorbar" in ax:  # axes supplied by user
+            this_colorbar = cbar(im, cax=ax["colorbar"])
+            this_colorbar.ax.set_ylabel(unit, rotation=270, labelpad=12)
+        else:  # we created them
+            this_colorbar = fig.colorbar(im, ax=ax_im)
+            this_colorbar.ax.set_title(unit)
         if cmap[1]:
             ax_im.CB = DraggableColorbar(
                 this_colorbar, im, kind="epochs_image", ch_type=unit
             )
 
     # finish
-    plt_show(show)
-    return ax_im.get_figure()
+    plt_show(show, fig=fig)
+    return fig
 
 
 def plot_drop_log(
