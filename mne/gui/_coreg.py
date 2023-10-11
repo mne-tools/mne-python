@@ -105,7 +105,7 @@ class CoregistrationUI(HasTraits):
     meg_channels : bool
         If True, display the MEG channels. Defaults to False.
     fnirs_channels : bool
-        If True, display the MEG channels. Defaults to True.
+        If True, display the fNIRS channels. Defaults to True.
     orient_glyphs : bool
         If True, orient the sensors towards the head surface. Default to False.
     scale_by_distance : bool
