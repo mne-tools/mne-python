@@ -629,8 +629,8 @@ def _setup_hpi_amplitude_fitting(
         for key in ("sss_info", "max_st"):
             if len(ent["max_info"]["sss_info"]) > 0:
                 warn(
-                    "Fitting cHPI amplutudes after Maxwell filtering may not to work, "
-                    "consider fitting on the original data"
+                    "Fitting cHPI amplitudes after Maxwell filtering may not work, "
+                    "consider fitting on the original data."
                 )
                 break
 
