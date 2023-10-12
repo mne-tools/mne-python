@@ -2096,8 +2096,8 @@ def test_expand_user(tmp_path, monkeypatch):
     raw.save(fname=path_home, overwrite=True)
 
 
-@pytest.mark.parametrize("split_size", ["2GB", "5MB"])
 @testing.requires_testing_data
+@pytest.mark.parametrize("split_size", ["2GB", "5MB"])
 def test_zip_io(tmp_path_factory, split_size):
     """Test writin to zip and reading back preserves data."""
     fname = fif_fname.name
@@ -2115,6 +2115,7 @@ def test_zip_io(tmp_path_factory, split_size):
         assert_array_equal(saved_raw.times, loaded_raw.times)
 
 
+@testing.requires_testing_data
 @pytest.mark.parametrize("split_size", ["5MB"])
 def test_zip_splits_number(tmp_path_factory, split_size):
     """Test save to zip produces the same number of splits as regular save."""
