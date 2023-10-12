@@ -5,9 +5,8 @@
 import numpy as np
 from scipy.ndimage import gaussian_filter
 
-
+from ...utils import _ensure_int, _validate_type, fill_doc, logger
 from ..utils import plt_show
-from ...utils import _ensure_int, _validate_type, logger, fill_doc
 
 
 @fill_doc
