@@ -302,10 +302,11 @@ def plot_epochs_image(
 
     # check for compatible `fig` / `axes`; instantiate figs if needed; add
     # fig(s) and axes into group_by
-    needs_colorbar = axes is not None
+    needs_colorbar = colorbar and (axes is not None or fig is not None)
     group_by = _validate_fig_and_axes(
         fig, axes, group_by, evoked, colorbar=needs_colorbar, clear=clear
     )
+    del fig, axes, needs_colorbar, clear
 
     # prepare images in advance to get consistent vmin/vmax.
     # At the same time, create a subsetted epochs object for each group
