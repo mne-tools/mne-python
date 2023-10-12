@@ -131,9 +131,6 @@ def _prepare_source_params(
     #   eigenleads
     #
 
-    ### OLD WAY
-    # Previously, we fed in a label and allowed label_src_vertno_sel to limit
-    # the sources in K
     K, noise_norm, vertno, _ = _assemble_kernel(
         inv, label, method, pick_ori, use_cps=use_cps
     )
@@ -141,30 +138,22 @@ def _prepare_source_params(
     # noise_norm shape: (n_sources, 1)
     # vertno: [lh_verts, rh_verts]
 
-    ### NEW WAY
-    # Now we're going to assemble the kernel for the whole brain...
-    # ... then perform our own K source restriction here with multiple label
-    # functionality
     k_idxs = None
-    if label:  # preserve old single label behavior????
-        orig_K, orig_noise_norm, orig_vertno = K, noise_norm, vertno
-        if isinstance(label, Label) or isinstance(label, BiHemiLabel):
-            label = [label]
-            orig_K, orig_noise_norm, orig_vertno, _ = _assemble_kernel(
-                inv, None, method, pick_ori, use_cps=use_cps
-            )
-
-        K2, noise_norm2, vertno2, k_idxs = _restrict_K_to_lbls(
-            label, orig_K, orig_noise_norm, orig_vertno, pick_ori
+    if not isinstance(label, (Label, BiHemiLabel)):
+        whole_K, whole_noise_norm, whole_vertno, _ = _assemble_kernel(
+            inv, None, method, pick_ori, use_cps=use_cps
         )
-
-        # We need to check that we're getting the same K
-        # from the new way compared to the old way
-        np.testing.assert_allclose(K, K2)
-        if noise_norm is not None:
-            np.testing.assert_allclose(noise_norm, noise_norm2)
-        assert len(vertno[0]) == len(vertno2[0])
-        # raise RuntimeError
+        if isinstance(label, list):
+            K, noise_norm, vertno, k_idxs = _restrict_K_to_lbls(
+                label, whole_K, whole_noise_norm, whole_vertno, pick_ori
+            )
+        else:
+            assert isinstance(label, None)
+            K, noise_norm, vertno = whole_K, whole_noise_norm, whole_vertno
+    elif isinstance(label, (Label, BiHemiLabel)):
+        K, noise_norm, vertno, _ = _assemble_kernel(
+            inv, label, method, pick_ori, use_cps=use_cps
+        )
 
     if pca:
         U, s, Vh = _safe_svd(K, full_matrices=False)
@@ -213,7 +202,8 @@ def source_band_induced_power(
     bands : dict
         Example : bands = dict(alpha=[8, 9]).
     label : Label
-        Restricts the source estimates to a given label.
+        Restricts the source estimates to a given label or list of labels. If
+        labels are provided in a list, power will be averaged over vertices.
     lambda2 : float
         The regularization parameter of the minimum norm.
     method : "MNE" | "dSPM" | "sLORETA" | "eLORETA"
@@ -268,7 +258,10 @@ def source_band_induced_power(
     Returns
     -------
     stcs : dict of SourceEstimate (or VolSourceEstimate)
-        The estimated source space induced power estimates.
+        The estimated source space induced power estimates in shape
+        (n_vertices, n_frequencies, n_samples) if label=None or label=label.
+        For lists of one or more labels, the induced power estimate has shape
+        (n_labels, n_frequencies, n_samples).
     """  # noqa: E501
     _check_option("method", method, INVERSE_METHODS)
 
@@ -511,7 +504,9 @@ def _source_induced_power(
         if isinstance(label, list):
             for item in label:
                 _validate_type(
-                    item, types=(Label, BiHemiLabel), type_name=("Label or BiHemiLabel")
+                    item,
+                    types=(Label, BiHemiLabel),
+                    type_name=("Label or " "BiHemiLabel"),
                 )
             if len(label) > 1 and with_plv:
                 raise RuntimeError(
@@ -522,7 +517,6 @@ def _source_induced_power(
                 )
 
     epochs_data = epochs.get_data()
-    # K, sel, Vh, vertno, is_free_ori, noise_norm = _prepare_source_params(
     K, sel, Vh, vertno, is_free_ori, noise_norm, k_id = _prepare_source_params(
         inst=epochs,
         inverse_operator=inverse_operator,
@@ -567,16 +561,18 @@ def _source_induced_power(
     power = sum(o[0] for o in out)  # power shape: (n_verts, n_freqs, n_samps)
     power /= len(epochs_data)  # average power over epochs
 
-    ### OLD WAY: Previously, we output power as n_sources, n_freqs, n_samps
-    ### NEW WAY: Now, we want to output power as n_labels, n_freqs, n_samps
-    if isinstance(label, Label) or isinstance(label, BiHemiLabel):
-        label = [label]
-    if len(label) > 1:  # this preserves old single label behavior???
+    if isinstance(label, (Label, BiHemiLabel)):
+        logger.info(
+            f"Outputting power for {len(power)} vertices in label" f" {label.name}."
+        )
+    elif isinstance(label, list):
         power = _get_label_power(power, label, vertno, k_id)
         logger.info(
             "Averaging induced power across vertices within labels "
             f"for {len(label)} labels."
         )
+    else:
+        assert isinstance(label, None)
 
     if with_plv:
         plv = sum(o[1] for o in out)
@@ -625,7 +621,8 @@ def source_induced_power(
     freqs : array
         Array of frequencies of interest.
     label : Label
-        Restricts the source estimates to a given label.
+        Restricts the source estimates to a given label or list of labels. If
+        labels are provided in a list, power will be averaged over vertices.
     lambda2 : float
         The regularization parameter of the minimum norm.
     method : "MNE" | "dSPM" | "sLORETA" | "eLORETA"
@@ -686,7 +683,9 @@ def source_induced_power(
     Returns
     -------
     power : array
-        The induced power array with shape (n_sources, n_freqs, n_samples).
+        The induced power array with shape (n_sources, n_freqs, n_samples) if
+        label=None or label=label. For lists of one or more labels, the induced
+        power estimate has shape (n_labels, n_frequencies, n_samples).
     plv : array
         The phase-locking value array with shape (n_sources, n_freqs,
         n_samples). Only returned if ``return_plv=True``.
@@ -933,7 +932,17 @@ def _compute_source_psd_epochs(
     """Generate compute_source_psd_epochs."""
     logger.info("Considering frequencies %g ... %g Hz" % (fmin, fmax))
 
-    K, sel, Vh, vertno, is_free_ori, noise_norm = _prepare_source_params(
+    if label:
+        # TO DO: add multi-label support
+        # since `_prepare_source_params` can handle a list of labels now,
+        # multi-label support should be within reach for psd calc as well
+        _validate_type(
+            label,
+            types=(Label, BiHemiLabel, None),
+            type_name=("Label or BiHemiLabel", "None"),
+        )
+
+    K, sel, Vh, vertno, is_free_ori, noise_norm, _ = _prepare_source_params(
         inst=epochs,
         inverse_operator=inverse_operator,
         label=label,
