@@ -21,19 +21,18 @@ signals.
 # %%
 
 
-import numpy as np
 import matplotlib.pyplot as plt
-
-from mne import Epochs, create_info, events_from_annotations
-from mne.io import concatenate_raws, read_raw_edf
-from mne.datasets import eegbci
-from mne.decoding import CSP
-from mne.time_frequency import AverageTFR
-
+import numpy as np
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.model_selection import StratifiedKFold, cross_val_score
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import LabelEncoder
+
+from mne import Epochs, create_info, events_from_annotations
+from mne.datasets import eegbci
+from mne.decoding import CSP
+from mne.io import concatenate_raws, read_raw_edf
+from mne.time_frequency import AverageTFR
 
 # %%
 # Set parameters and read data

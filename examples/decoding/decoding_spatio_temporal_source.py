@@ -21,17 +21,16 @@ classifier then is trained to selected features of epochs in source space.
 
 # %%
 
-import numpy as np
 import matplotlib.pyplot as plt
-
-from sklearn.pipeline import make_pipeline
-from sklearn.preprocessing import StandardScaler
+import numpy as np
 from sklearn.feature_selection import SelectKBest, f_classif
 from sklearn.linear_model import LogisticRegression
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
 
 import mne
+from mne.decoding import LinearModel, SlidingEstimator, cross_val_multiscore, get_coef
 from mne.minimum_norm import apply_inverse_epochs, read_inverse_operator
-from mne.decoding import cross_val_multiscore, LinearModel, SlidingEstimator, get_coef
 
 print(__doc__)
 

@@ -17,8 +17,8 @@ short words. TFCE is described in :footcite:`SmithNichols2009`.
 
 # %%
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 from scipy.stats import ttest_ind
 
 import mne

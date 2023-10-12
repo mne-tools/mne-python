@@ -19,7 +19,7 @@ import numpy as np
 
 import mne
 from mne.datasets import sample
-from mne.minimum_norm import make_inverse_resolution_matrix, get_point_spread
+from mne.minimum_norm import get_point_spread, make_inverse_resolution_matrix
 
 print(__doc__)
 

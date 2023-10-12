@@ -2,40 +2,40 @@ import copy as cp
 from pathlib import Path
 
 import numpy as np
-from numpy.testing import assert_array_almost_equal, assert_allclose, assert_equal
 import pytest
+from numpy.testing import assert_allclose, assert_array_almost_equal, assert_equal
 from scipy import linalg
 
 from mne import (
+    Epochs,
     compute_proj_epochs,
     compute_proj_evoked,
     compute_proj_raw,
+    compute_raw_covariance,
+    convert_forward_solution,
+    create_info,
     pick_types,
     read_events,
-    Epochs,
-    sensitivity_map,
-    read_source_estimate,
-    compute_raw_covariance,
-    create_info,
     read_forward_solution,
-    convert_forward_solution,
+    read_source_estimate,
+    sensitivity_map,
 )
-from mne.cov import regularize, compute_whitener
-from mne.datasets import testing
-from mne.io import read_raw_fif, RawArray
 from mne._fiff.proj import (
-    make_projector,
-    activate_proj,
-    setup_proj,
-    _needs_eeg_average_ref_proj,
     _EEG_AVREF_PICK_DICT,
+    _needs_eeg_average_ref_proj,
+    activate_proj,
+    make_projector,
+    setup_proj,
 )
+from mne.cov import compute_whitener, regularize
+from mne.datasets import testing
+from mne.io import RawArray, read_raw_fif
 from mne.preprocessing import maxwell_filter
 from mne.proj import (
+    _has_eeg_average_ref_proj,
+    make_eeg_average_ref_proj,
     read_proj,
     write_proj,
-    make_eeg_average_ref_proj,
-    _has_eeg_average_ref_proj,
 )
 from mne.rank import _compute_rank_int
 from mne.utils import _record_warnings

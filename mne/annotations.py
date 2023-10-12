@@ -3,56 +3,55 @@
 #
 # License: BSD-3-Clause
 
-from collections import OrderedDict
-from datetime import datetime, timedelta, timezone
+import json
 import os.path as op
 import re
-from copy import deepcopy
-from itertools import takewhile
-import json
-from collections import Counter
-from collections.abc import Iterable
 import warnings
+from collections import Counter, OrderedDict
+from collections.abc import Iterable
+from copy import deepcopy
+from datetime import datetime, timedelta, timezone
+from itertools import takewhile
 from textwrap import shorten
+
 import numpy as np
 from scipy.io import loadmat
 
-from .utils import (
-    _pl,
-    check_fname,
-    _validate_type,
-    verbose,
-    warn,
-    logger,
-    _check_pandas_installed,
-    _mask_to_onsets_offsets,
-    _DefaultEventParser,
-    _check_dt,
-    _stamp_to_dt,
-    _dt_to_stamp,
-    _check_fname,
-    int_like,
-    _check_option,
-    fill_doc,
-    _on_missing,
-    _is_numeric,
-    _check_dict_keys,
-)
-
-from ._fiff.write import (
-    start_block,
-    end_block,
-    write_float,
-    write_name_list_sanitized,
-    _safe_name_list,
-    write_double,
-    start_and_end_file,
-    write_string,
-)
 from ._fiff.constants import FIFF
 from ._fiff.open import fiff_open
-from ._fiff.tree import dir_tree_find
 from ._fiff.tag import read_tag
+from ._fiff.tree import dir_tree_find
+from ._fiff.write import (
+    _safe_name_list,
+    end_block,
+    start_and_end_file,
+    start_block,
+    write_double,
+    write_float,
+    write_name_list_sanitized,
+    write_string,
+)
+from .utils import (
+    _check_dict_keys,
+    _check_dt,
+    _check_fname,
+    _check_option,
+    _check_pandas_installed,
+    _DefaultEventParser,
+    _dt_to_stamp,
+    _is_numeric,
+    _mask_to_onsets_offsets,
+    _on_missing,
+    _pl,
+    _stamp_to_dt,
+    _validate_type,
+    check_fname,
+    fill_doc,
+    int_like,
+    logger,
+    verbose,
+    warn,
+)
 
 # For testing windows_like_datetime, we monkeypatch "datetime" in this module.
 # Keep the true datetime object around for _validate_type use.
@@ -1184,11 +1183,11 @@ def read_annotations(fname, sfreq="auto", uint16_codec=None, encoding="utf8"):
     ``.txt`` extension.
     """
     from .io.brainvision.brainvision import _read_annotations_brainvision
-    from .io.eeglab.eeglab import _read_annotations_eeglab
-    from .io.edf.edf import _read_annotations_edf
     from .io.cnt.cnt import _read_annotations_cnt
-    from .io.curry.curry import _read_annotations_curry
     from .io.ctf.markers import _read_annotations_ctf
+    from .io.curry.curry import _read_annotations_curry
+    from .io.edf.edf import _read_annotations_edf
+    from .io.eeglab.eeglab import _read_annotations_eeglab
 
     fname = str(
         _check_fname(
@@ -1461,10 +1460,12 @@ def _select_events_based_on_id(events, event_desc):
 
 
 def _check_event_id(event_id, raw):
-    from .io.brainvision.brainvision import _BVEventParser
-    from .io.brainvision.brainvision import _check_bv_annot
-    from .io.brainvision.brainvision import RawBrainVision
     from .io import Raw, RawArray
+    from .io.brainvision.brainvision import (
+        RawBrainVision,
+        _BVEventParser,
+        _check_bv_annot,
+    )
 
     if event_id is None:
         return _DefaultEventParser()

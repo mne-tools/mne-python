@@ -29,21 +29,19 @@ images of faces and body parts.
 
 # %%
 
+import matplotlib.pyplot as plt
 import numpy as np
 from pandas import read_csv
-import matplotlib.pyplot as plt
-
+from sklearn.linear_model import LogisticRegression
+from sklearn.manifold import MDS
+from sklearn.metrics import roc_auc_score
 from sklearn.model_selection import StratifiedKFold
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
-from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import roc_auc_score
-from sklearn.manifold import MDS
 
 import mne
-from mne.io import read_raw_fif, concatenate_raws
 from mne.datasets import visual_92_categories
-
+from mne.io import concatenate_raws, read_raw_fif
 
 print(__doc__)
 

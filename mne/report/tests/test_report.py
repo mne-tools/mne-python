@@ -19,28 +19,27 @@ from matplotlib import pyplot as plt
 
 from mne import (
     Epochs,
+    create_info,
+    pick_channels_cov,
+    read_cov,
     read_events,
     read_evokeds,
-    read_cov,
-    pick_channels_cov,
-    create_info,
 )
+from mne._fiff.write import DATE_NONE
+from mne.datasets import testing
+from mne.epochs import make_metadata
+from mne.io import RawArray, read_info, read_raw_fif
+from mne.preprocessing import ICA
+from mne.report import Report, _ReportScraper, open_report, report
 from mne.report import report as report_mod
 from mne.report.report import (
-    CONTENT_ORDER,
     _ALLOWED_IMAGE_FORMATS,
+    CONTENT_ORDER,
     _webp_supported,
 )
-from mne.io import read_raw_fif, read_info, RawArray
-from mne.datasets import testing
-from mne.report import Report, open_report, _ReportScraper, report
 from mne.utils import Bunch
 from mne.utils._testing import assert_object_equal
 from mne.viz import plot_alignment
-from mne._fiff.write import DATE_NONE
-from mne.preprocessing import ICA
-from mne.epochs import make_metadata
-
 
 data_dir = testing.data_path(download=False)
 subjects_dir = data_dir / "subjects"

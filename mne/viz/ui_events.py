@@ -10,14 +10,14 @@ stay in-sync.
 Authors: Marijn van Vliet <w.m.vanvliet@gmail.com>
 """
 import contextlib
-from dataclasses import dataclass
-from typing import Optional, List, Union
-import weakref
 import re
+import weakref
+from dataclasses import dataclass
+from typing import List, Optional, Union
 
 from matplotlib.colors import Colormap
 
-from ..utils import warn, fill_doc, _validate_type, logger, verbose
+from ..utils import _validate_type, fill_doc, logger, verbose, warn
 
 # Global dict {fig: channel} containing all currently active event channels.
 _event_channels = weakref.WeakKeyDictionary()
@@ -225,6 +225,7 @@ def _get_event_channel(fig):
         channel.
     """
     import matplotlib
+
     from ._brain import Brain
     from .evoked_field import EvokedField
 
@@ -460,8 +461,8 @@ def disable_ui_events(fig):
 
 def _cleanup_agg():
     """Call close_event for Agg canvases to help our doc build."""
-    import matplotlib.figure
     import matplotlib.backends.backend_agg
+    import matplotlib.figure
 
     for key in list(_event_channels):  # we might remove keys as we go
         if isinstance(key, matplotlib.figure.Figure):

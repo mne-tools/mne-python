@@ -14,13 +14,13 @@ First, we get the paths for the evoked data and the source time courses (stcs).
 
 # %%
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 
 import mne
-from mne.datasets import sample, fetch_hcp_mmp_parcellation
-from mne.minimum_norm import apply_inverse, read_inverse_operator
 from mne import read_evokeds
+from mne.datasets import fetch_hcp_mmp_parcellation, sample
+from mne.minimum_norm import apply_inverse, read_inverse_operator
 
 data_path = sample.data_path()
 meg_path = data_path / "MEG" / "sample"

@@ -4,10 +4,10 @@
 
 import numpy as np
 
-from .maxwell import _prep_mf_coils, _sss_basis
 from .._fiff.pick import _picks_to_idx, pick_info
 from .._fiff.proj import Projection
 from ..utils import verbose
+from .maxwell import _prep_mf_coils, _sss_basis
 
 
 @verbose

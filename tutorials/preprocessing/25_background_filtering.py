@@ -140,15 +140,14 @@ MNE-Python.
 # First let's import some useful tools for filtering, and set some default
 # values for our data that are reasonable for M/EEG.
 
+import matplotlib.pyplot as plt
 import numpy as np
 from numpy.fft import fft, fftfreq
 from scipy import signal
-import matplotlib.pyplot as plt
-
-from mne.time_frequency.tfr import morlet
-from mne.viz import plot_filter, plot_ideal_filter
 
 import mne
+from mne.time_frequency.tfr import morlet
+from mne.viz import plot_filter, plot_ideal_filter
 
 sfreq = 1000.0
 f_p = 40.0

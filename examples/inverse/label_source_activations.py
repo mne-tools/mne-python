@@ -18,12 +18,12 @@ also using a sign flip.
 
 # %%
 
-import matplotlib.pyplot as plt
 import matplotlib.patheffects as path_effects
+import matplotlib.pyplot as plt
 
 import mne
 from mne.datasets import sample
-from mne.minimum_norm import read_inverse_operator, apply_inverse
+from mne.minimum_norm import apply_inverse, read_inverse_operator
 
 print(__doc__)
 

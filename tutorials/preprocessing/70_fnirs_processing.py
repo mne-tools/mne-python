@@ -14,12 +14,12 @@ Here we will work with the :ref:`fNIRS motor data <fnirs-motor-dataset>`.
 """
 # %%
 
-import numpy as np
-import matplotlib.pyplot as plt
 from itertools import compress
 
-import mne
+import matplotlib.pyplot as plt
+import numpy as np
 
+import mne
 
 fnirs_data_folder = mne.datasets.fnirs_motor.data_path()
 fnirs_cw_amplitude_dir = fnirs_data_folder / "Participant-1"

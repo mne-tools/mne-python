@@ -35,8 +35,8 @@ https://psychophysiology.cpmc.columbia.edu/software/eBridge/tutorial.html.
 
 # sphinx_gallery_thumbnail_number = 2
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 from matplotlib.colors import LinearSegmentedColormap
 
 import mne

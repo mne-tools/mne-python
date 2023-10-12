@@ -3,53 +3,53 @@
 #
 # License: BSD-3-Clause
 
-from pathlib import Path
+import hashlib
 from copy import deepcopy
 from functools import partial
-import hashlib
+from pathlib import Path
 
-import pytest
 import numpy as np
+import pytest
+from numpy.testing import assert_allclose, assert_array_equal, assert_equal
 from scipy.io import savemat
-from numpy.testing import assert_array_equal, assert_equal, assert_allclose
 
-from mne.channels import (
-    rename_channels,
-    read_ch_adjacency,
-    combine_channels,
-    find_ch_adjacency,
-    make_1020_channel_selections,
-    read_custom_montage,
-    equalize_channels,
-    get_builtin_ch_adjacencies,
-)
-from mne.channels.channels import (
-    _ch_neighbor_adjacency,
-    _compute_ch_adjacency,
-    _BUILTIN_CHANNEL_ADJACENCIES,
-    _BuiltinChannelAdjacency,
-)
-from mne.io import (
-    read_info,
-    read_raw_fif,
-    read_raw_ctf,
-    read_raw_bti,
-    read_raw_eeglab,
-    read_raw_kit,
-    RawArray,
-)
-from mne._fiff.constants import FIFF, _ch_unit_mul_named
 from mne import (
-    pick_types,
-    pick_channels,
+    Epochs,
     EpochsArray,
     EvokedArray,
-    make_ad_hoc_cov,
     create_info,
+    make_ad_hoc_cov,
+    pick_channels,
+    pick_types,
     read_events,
-    Epochs,
+)
+from mne._fiff.constants import FIFF, _ch_unit_mul_named
+from mne.channels import (
+    combine_channels,
+    equalize_channels,
+    find_ch_adjacency,
+    get_builtin_ch_adjacencies,
+    make_1020_channel_selections,
+    read_ch_adjacency,
+    read_custom_montage,
+    rename_channels,
+)
+from mne.channels.channels import (
+    _BUILTIN_CHANNEL_ADJACENCIES,
+    _BuiltinChannelAdjacency,
+    _ch_neighbor_adjacency,
+    _compute_ch_adjacency,
 )
 from mne.datasets import testing
+from mne.io import (
+    RawArray,
+    read_info,
+    read_raw_bti,
+    read_raw_ctf,
+    read_raw_eeglab,
+    read_raw_fif,
+    read_raw_kit,
+)
 from mne.parallel import parallel_func
 from mne.utils import requires_good_network
 

@@ -5,37 +5,36 @@
 
 import numpy as np
 
-from ..source_estimate import SourceEstimate, _BaseSourceEstimate, _make_stc
-from ..minimum_norm.inverse import (
-    combine_xyz,
-    _prepare_forward,
-    _check_reference,
-    _log_exp_var,
-)
+from .._fiff.proj import deactivate_proj
+from ..dipole import Dipole
 from ..fixes import _safe_svd
 from ..forward import is_fixed_orient
-from .._fiff.proj import deactivate_proj
+from ..minimum_norm.inverse import (
+    _check_reference,
+    _log_exp_var,
+    _prepare_forward,
+    combine_xyz,
+)
+from ..source_estimate import SourceEstimate, _BaseSourceEstimate, _make_stc
 from ..utils import (
-    logger,
-    verbose,
     _check_depth,
     _check_option,
-    sum_squared,
     _validate_type,
     check_random_state,
+    logger,
+    sum_squared,
+    verbose,
     warn,
 )
-from ..dipole import Dipole
-
 from .mxne_optim import (
-    mixed_norm_solver,
-    iterative_mixed_norm_solver,
     _Phi,
-    tf_mixed_norm_solver,
-    iterative_tf_mixed_norm_solver,
-    norm_l2inf,
-    norm_epsilon_inf,
     groups_norm2,
+    iterative_mixed_norm_solver,
+    iterative_tf_mixed_norm_solver,
+    mixed_norm_solver,
+    norm_epsilon_inf,
+    norm_l2inf,
+    tf_mixed_norm_solver,
 )
 
 

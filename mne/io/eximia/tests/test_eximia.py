@@ -4,9 +4,9 @@
 from numpy.testing import assert_array_equal
 from scipy import io as sio
 
+from mne.datasets.testing import data_path, requires_testing_data
 from mne.io import read_raw_eximia
 from mne.io.tests.test_raw import _test_raw_reader
-from mne.datasets.testing import data_path, requires_testing_data
 
 testing_path = data_path(download=False)
 

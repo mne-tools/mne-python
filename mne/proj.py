@@ -4,33 +4,33 @@
 
 import numpy as np
 
-from .epochs import Epochs
-from .fixes import _safe_svd
-from .utils import (
-    check_fname,
-    logger,
-    verbose,
-    _check_option,
-    _check_fname,
-    _validate_type,
-)
 from ._fiff.constants import FIFF
 from ._fiff.open import fiff_open
-from ._fiff.pick import pick_types, pick_types_forward, _picks_to_idx
+from ._fiff.pick import _picks_to_idx, pick_types, pick_types_forward
 from ._fiff.proj import (
     Projection,
     _has_eeg_average_ref_proj,
     _read_proj,
-    make_projector,
-    make_eeg_average_ref_proj,
     _write_proj,
+    make_eeg_average_ref_proj,
+    make_projector,
 )
 from ._fiff.write import start_and_end_file
-from .event import make_fixed_length_events
-from .parallel import parallel_func
 from .cov import _check_n_samples
-from .forward import is_fixed_orient, _subject_from_forward, convert_forward_solution
+from .epochs import Epochs
+from .event import make_fixed_length_events
+from .fixes import _safe_svd
+from .forward import _subject_from_forward, convert_forward_solution, is_fixed_orient
+from .parallel import parallel_func
 from .source_estimate import _make_stc
+from .utils import (
+    _check_fname,
+    _check_option,
+    _validate_type,
+    check_fname,
+    logger,
+    verbose,
+)
 
 
 @verbose

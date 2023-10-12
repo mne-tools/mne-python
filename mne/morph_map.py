@@ -18,22 +18,22 @@ from ._fiff.open import fiff_open
 from ._fiff.tag import find_tag
 from ._fiff.tree import dir_tree_find
 from ._fiff.write import (
-    start_block,
     end_block,
-    write_string,
     start_and_end_file,
+    start_block,
     write_float_sparse_rcs,
     write_int,
+    write_string,
 )
 from .surface import (
-    read_surface,
-    _triangle_neighbors,
     _compute_nearest,
-    _normalize_vectors,
-    _get_tri_supp_geom,
     _find_nearest_tri_pts,
+    _get_tri_supp_geom,
+    _normalize_vectors,
+    _triangle_neighbors,
+    read_surface,
 )
-from .utils import get_subjects_dir, warn, logger, verbose
+from .utils import get_subjects_dir, logger, verbose, warn
 
 
 @verbose

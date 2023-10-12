@@ -25,13 +25,13 @@ The procedure consists of:
 
 # %%
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 
 import mne
-from mne.time_frequency import tfr_morlet
-from mne.stats import permutation_cluster_test
 from mne.datasets import sample
+from mne.stats import permutation_cluster_test
+from mne.time_frequency import tfr_morlet
 
 print(__doc__)
 

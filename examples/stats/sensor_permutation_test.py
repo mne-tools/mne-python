@@ -20,8 +20,8 @@ import numpy as np
 
 import mne
 from mne import io
-from mne.stats import permutation_t_test
 from mne.datasets import sample
+from mne.stats import permutation_t_test
 
 print(__doc__)
 

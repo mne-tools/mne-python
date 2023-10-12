@@ -6,7 +6,7 @@
 import numpy as np
 from scipy import sparse
 
-from ..utils import _validate_type, _check_option
+from ..utils import _check_option, _validate_type
 from ..utils.check import int_like
 
 

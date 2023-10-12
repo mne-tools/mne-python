@@ -9,14 +9,14 @@ import os
 import platform
 import sys
 
-import pytest
 import numpy as np
+import pytest
 
 from mne.utils import run_subprocess
-from mne.viz import set_3d_backend, get_3d_backend, Figure3D
+from mne.viz import Figure3D, get_3d_backend, set_3d_backend
+from mne.viz.backends._utils import ALLOWED_QUIVER_MODES
 from mne.viz.backends.renderer import _get_renderer
 from mne.viz.backends.tests._utils import skips_if_not_pyvistaqt
-from mne.viz.backends._utils import ALLOWED_QUIVER_MODES
 
 
 @pytest.mark.parametrize(

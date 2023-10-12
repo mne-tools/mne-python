@@ -2,21 +2,21 @@
 #
 # License: BSD-3-Clause
 
-import numpy as np
-import os.path as op
-import datetime
 import calendar
+import datetime
+import os.path as op
 
+import numpy as np
 from scipy.spatial.distance import cdist
 
-from .utils import _load_mne_locs, _read_pos
-from ..base import BaseRaw
-from ...utils import logger, warn, verbose, _check_fname
-from ..._fiff.utils import _read_segments_file
-from ..._fiff.meas_info import _empty_info
-from ..._fiff._digitization import _make_dig_points, DigPoint
+from ..._fiff._digitization import DigPoint, _make_dig_points
 from ..._fiff.constants import FIFF
-from ...transforms import get_ras_to_neuromag_trans, apply_trans, Transform
+from ..._fiff.meas_info import _empty_info
+from ..._fiff.utils import _read_segments_file
+from ...transforms import Transform, apply_trans, get_ras_to_neuromag_trans
+from ...utils import _check_fname, logger, verbose, warn
+from ..base import BaseRaw
+from .utils import _load_mne_locs, _read_pos
 
 
 @verbose
@@ -341,9 +341,9 @@ class RawArtemis123(BaseRaw):
         add_head_trans=True,
     ):  # noqa: D102
         from ...chpi import (
+            _fit_coil_order_dev_head_trans,
             compute_chpi_amplitudes,
             compute_chpi_locs,
-            _fit_coil_order_dev_head_trans,
         )
 
         input_fname = str(_check_fname(input_fname, "read", True, "input_fname"))

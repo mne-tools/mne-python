@@ -17,11 +17,12 @@ This example shows how to compute and plot source space SNR as in
 
 # sphinx_gallery_thumbnail_number = 2
 
+import matplotlib.pyplot as plt
+import numpy as np
+
 import mne
 from mne.datasets import sample
-from mne.minimum_norm import make_inverse_operator, apply_inverse
-import numpy as np
-import matplotlib.pyplot as plt
+from mne.minimum_norm import apply_inverse, make_inverse_operator
 
 print(__doc__)
 

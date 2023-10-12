@@ -16,9 +16,9 @@ False Discovery Rate (FDR) correction.
 
 # %%
 
+import matplotlib.pyplot as plt
 import numpy as np
 from scipy import stats
-import matplotlib.pyplot as plt
 
 import mne
 from mne import io

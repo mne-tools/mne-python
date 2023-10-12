@@ -5,11 +5,11 @@
 from pathlib import Path
 
 import numpy as np
-from numpy.testing import assert_allclose
 import pytest
+from numpy.testing import assert_allclose
 
-from mne import Epochs, read_evokeds, pick_types
-from mne._fiff.compensator import make_compensator, get_current_comp
+from mne import Epochs, pick_types, read_evokeds
+from mne._fiff.compensator import get_current_comp, make_compensator
 from mne.io import read_raw_fif
 from mne.utils import requires_mne, run_subprocess
 

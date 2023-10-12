@@ -11,8 +11,8 @@ import numpy as np
 import pytest
 from numpy.testing import assert_array_almost_equal, assert_array_equal, assert_equal
 
-from mne import io, Epochs, read_events, pick_types
-from mne.decoding.csp import CSP, _ajd_pham, SPoC
+from mne import Epochs, io, pick_types, read_events
+from mne.decoding.csp import CSP, SPoC, _ajd_pham
 
 data_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
 raw_fname = data_dir / "test_raw.fif"
@@ -283,8 +283,8 @@ def test_regularized_csp():
 def test_csp_pipeline():
     """Test if CSP works in a pipeline."""
     pytest.importorskip("sklearn")
-    from sklearn.svm import SVC
     from sklearn.pipeline import Pipeline
+    from sklearn.svm import SVC
 
     csp = CSP(reg=1, norm_trace=False)
     svc = SVC()

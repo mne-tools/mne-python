@@ -1,66 +1,65 @@
-from contextlib import contextmanager
-from functools import partial
 import inspect
 import os
 import os.path as op
 import platform
-from pathlib import Path
-import time
 import queue
-import threading
 import re
+import threading
+import time
+from contextlib import contextmanager
+from functools import partial
+from pathlib import Path
 
 import numpy as np
-from traitlets import observe, HasTraits, Unicode, Bool, Float
+from traitlets import Bool, Float, HasTraits, Unicode, observe
 
-from ..defaults import DEFAULTS
 from .._fiff.constants import FIFF
-from .._fiff.meas_info import read_info, read_fiducials, write_fiducials
+from .._fiff.meas_info import _empty_info, read_fiducials, read_info, write_fiducials
+from .._fiff.open import dir_tree_find, fiff_open
 from .._fiff.pick import pick_types
-from .._fiff.open import fiff_open, dir_tree_find
-from .._fiff.meas_info import _empty_info
-from ..io._read_raw import _get_supported, read_raw
 from ..bem import make_bem_solution, write_bem_solution
+from ..channels import read_dig_fif
 from ..coreg import (
     Coregistration,
-    _is_mri_subject,
-    scale_mri,
-    bem_fname,
-    _mri_subject_has_bem,
-    fid_fname,
-    _map_fid_name_to_idx,
     _find_head_bem,
+    _is_mri_subject,
+    _map_fid_name_to_idx,
+    _mri_subject_has_bem,
+    bem_fname,
+    fid_fname,
+    scale_mri,
+)
+from ..defaults import DEFAULTS
+from ..io._read_raw import _get_supported, read_raw
+from ..surface import _CheckInside, _DistanceQuery
+from ..transforms import (
+    _ensure_trans,
+    _get_trans,
+    _get_transforms_to_coord_frame,
+    read_trans,
+    rotation_angles,
+    write_trans,
+)
+from ..utils import (
+    _check_fname,
+    _validate_type,
+    check_fname,
+    fill_doc,
+    get_subjects_dir,
+    logger,
+    verbose,
 )
 from ..viz._3d import (
-    _plot_head_surface,
     _plot_head_fiducials,
     _plot_head_shape_points,
-    _plot_mri_fiducials,
-    _plot_hpi_coils,
-    _plot_sensors,
+    _plot_head_surface,
     _plot_helmet,
+    _plot_hpi_coils,
+    _plot_mri_fiducials,
+    _plot_sensors,
 )
 from ..viz.backends._utils import _qt_app_exec, _qt_safe_window
 from ..viz.utils import safe_event
-from ..transforms import (
-    read_trans,
-    write_trans,
-    _ensure_trans,
-    _get_trans,
-    rotation_angles,
-    _get_transforms_to_coord_frame,
-)
-from ..utils import (
-    get_subjects_dir,
-    check_fname,
-    _check_fname,
-    fill_doc,
-    verbose,
-    logger,
-    _validate_type,
-)
-from ..surface import _DistanceQuery, _CheckInside
-from ..channels import read_dig_fif
 
 
 class _WorkerData:
@@ -103,6 +102,10 @@ class CoregistrationUI(HasTraits):
         If True, display the head shape points. Defaults to True.
     eeg_channels : bool
         If True, display the EEG channels. Defaults to True.
+    meg_channels : bool
+        If True, display the MEG channels. Defaults to False.
+    fnirs_channels : bool
+        If True, display the fNIRS channels. Defaults to True.
     orient_glyphs : bool
         If True, orient the sensors towards the head surface. Default to False.
     scale_by_distance : bool
@@ -154,6 +157,8 @@ class CoregistrationUI(HasTraits):
     _hpi_coils = Bool()
     _head_shape_points = Bool()
     _eeg_channels = Bool()
+    _meg_channels = Bool()
+    _fnirs_channels = Bool()
     _head_resolution = Bool()
     _head_opacity = Float()
     _helmet = Bool()
@@ -178,6 +183,8 @@ class CoregistrationUI(HasTraits):
         hpi_coils=None,
         head_shape_points=None,
         eeg_channels=None,
+        meg_channels=None,
+        fnirs_channels=None,
         orient_glyphs=None,
         scale_by_distance=None,
         mark_inside=None,
@@ -232,6 +239,8 @@ class CoregistrationUI(HasTraits):
             hpi_coils=_get_default(hpi_coils, True),
             head_shape_points=_get_default(head_shape_points, True),
             eeg_channels=_get_default(eeg_channels, True),
+            meg_channels=_get_default(meg_channels, False),
+            fnirs_channels=_get_default(fnirs_channels, True),
             head_resolution=_get_default(head_resolution, True),
             head_opacity=_get_default(head_opacity, 0.8),
             helmet=False,
@@ -304,6 +313,8 @@ class CoregistrationUI(HasTraits):
         self._set_hpi_coils(self._defaults["hpi_coils"])
         self._set_head_shape_points(self._defaults["head_shape_points"])
         self._set_eeg_channels(self._defaults["eeg_channels"])
+        self._set_meg_channels(self._defaults["meg_channels"])
+        self._set_fnirs_channels(self._defaults["fnirs_channels"])
         self._set_head_resolution(self._defaults["head_resolution"])
         self._set_helmet(self._defaults["helmet"])
         self._set_grow_hair(self._defaults["grow_hair"])
@@ -352,7 +363,7 @@ class CoregistrationUI(HasTraits):
             True: dict(azimuth=90, elevation=90),  # front
             False: dict(azimuth=180, elevation=90),
         }  # left
-        self._renderer.set_camera(distance=None, **views[self._lock_fids])
+        self._renderer.set_camera(distance="auto", **views[self._lock_fids])
         self._redraw()
         # XXX: internal plotter/renderer should not be exposed
         if not self._immediate_redraw:
@@ -483,6 +494,12 @@ class CoregistrationUI(HasTraits):
     def _set_eeg_channels(self, state):
         self._eeg_channels = bool(state)
 
+    def _set_meg_channels(self, state):
+        self._meg_channels = bool(state)
+
+    def _set_fnirs_channels(self, state):
+        self._fnirs_channels = bool(state)
+
     def _set_head_resolution(self, state):
         self._head_resolution = bool(state)
 
@@ -568,6 +585,8 @@ class CoregistrationUI(HasTraits):
             "hpi": "_set_hpi_coils",
             "hsp": "_set_head_shape_points",
             "eeg": "_set_eeg_channels",
+            "meg": "_set_meg_channels",
+            "fnirs": "_set_fnirs_channels",
         }
         if point in funcs.keys():
             getattr(self, funcs[point])(weight > 0)
@@ -612,6 +631,7 @@ class CoregistrationUI(HasTraits):
             "save_mri_fids",
             # View options
             "helmet",
+            "meg",
             "head_opacity",
             "high_res_head",
             # Digitization source
@@ -705,11 +725,11 @@ class CoregistrationUI(HasTraits):
 
     @observe("_orient_glyphs")
     def _orient_glyphs_changed(self, change=None):
-        self._update_plot(["hpi", "hsp", "eeg"])
+        self._update_plot(["hpi", "hsp", "sensors"])
 
     @observe("_scale_by_distance")
     def _scale_by_distance_changed(self, change=None):
-        self._update_plot(["hpi", "hsp", "eeg"])
+        self._update_plot(["hpi", "hsp", "sensors"])
 
     @observe("_mark_inside")
     def _mark_inside_changed(self, change=None):
@@ -725,7 +745,15 @@ class CoregistrationUI(HasTraits):
 
     @observe("_eeg_channels")
     def _eeg_channels_changed(self, change=None):
-        self._update_plot("eeg")
+        self._update_plot("sensors")
+
+    @observe("_meg_channels")
+    def _meg_channels_changed(self, change=None):
+        self._update_plot("sensors")
+
+    @observe("_fnirs_channels")
+    def _fnirs_channels_changed(self, change=None):
+        self._update_plot("sensors")
 
     @observe("_head_resolution")
     def _head_resolution_changed(self, change=None):
@@ -826,6 +854,7 @@ class CoregistrationUI(HasTraits):
         mri_fids_legend_actor = self._renderer.legend(labels=labels)
         self._update_actor("mri_fids_legend", mri_fids_legend_actor)
 
+    @safe_event
     @verbose
     def _redraw(self, *, verbose=None):
         if not self._redraws_pending:
@@ -835,7 +864,7 @@ class CoregistrationUI(HasTraits):
             mri_fids=self._add_mri_fiducials,
             hsp=self._add_head_shape_points,
             hpi=self._add_hpi_coils,
-            eeg=self._add_eeg_fnirs_channels,
+            sensors=self._add_channels,
             head_fids=self._add_head_fiducials,
             helmet=self._add_helmet,
         )
@@ -958,7 +987,7 @@ class CoregistrationUI(HasTraits):
             "mri_fids",  # MRI first
             "hsp",
             "hpi",
-            "eeg",
+            "sensors",
             "head_fids",  # then dig
             "helmet",
         )
@@ -1042,7 +1071,7 @@ class CoregistrationUI(HasTraits):
         kwargs = dict(front=(90.0, 90.0), left=(180, 90), right=(0.0, 90))
         kwargs = dict(zip(("azimuth", "elevation"), kwargs[view[fid]]))
         if not self._lock_fids:
-            self._renderer.set_camera(distance=None, **kwargs)
+            self._renderer.set_camera(distance="auto", **kwargs)
 
     def _update_fiducials(self):
         fid = self._current_fiducial
@@ -1146,7 +1175,13 @@ class CoregistrationUI(HasTraits):
                     return ret
 
     def _set_sensors_visibility(self, state):
-        sensors = ["head_fiducials", "hpi_coils", "head_shape_points", "eeg_channels"]
+        sensors = [
+            "head_fiducials",
+            "hpi_coils",
+            "head_shape_points",
+            "sensors",
+            "helmet",
+        ]
         for sensor in sensors:
             if sensor in self._actors and self._actors[sensor] is not None:
                 actors = self._actors[sensor]
@@ -1157,7 +1192,13 @@ class CoregistrationUI(HasTraits):
 
     def _update_actor(self, actor_name, actor):
         # XXX: internal plotter/renderer should not be exposed
-        self._renderer.plotter.remove_actor(self._actors.get(actor_name), render=False)
+        # Work around PyVista sequential update bug with iterable until > 0.42.3 is req
+        # https://github.com/pyvista/pyvista/pull/5046
+        actors = self._actors.get(actor_name) or []  # convert None to list
+        if not isinstance(actors, list):
+            actors = [actors]
+        for this_actor in actors:
+            self._renderer.plotter.remove_actor(this_actor, render=False)
         self._actors[actor_name] = actor
 
     def _add_mri_fiducials(self):
@@ -1217,35 +1258,44 @@ class CoregistrationUI(HasTraits):
             hsp_actors = None
         self._update_actor("head_shape_points", hsp_actors)
 
-    def _add_eeg_fnirs_channels(self):
+    def _add_channels(self):
+        plot_types = dict(eeg=False, meg=False, fnirs=False)
         if self._eeg_channels:
-            eeg = ["original"]
-            picks = pick_types(self._info, eeg=(len(eeg) > 0), fnirs=True)
-            if len(picks) > 0:
-                actors = _plot_sensors(
-                    self._renderer,
-                    self._info,
-                    self._to_cf_t,
-                    picks,
-                    meg=False,
-                    eeg=eeg,
-                    fnirs=["sources", "detectors"],
-                    warn_meg=False,
-                    head_surf=self._head_geo,
-                    units="m",
-                    sensor_opacity=self._defaults["sensor_opacity"],
-                    orient_glyphs=self._orient_glyphs,
-                    scale_by_distance=self._scale_by_distance,
-                    surf=self._head_geo,
-                    check_inside=self._check_inside,
-                    nearest=self._nearest,
-                )
-                sens_actors = sum(actors.values(), list())
-            else:
-                sens_actors = None
-        else:
-            sens_actors = None
-        self._update_actor("eeg_channels", sens_actors)
+            plot_types["eeg"] = ["original"]
+        if self._meg_channels:
+            plot_types["meg"] = ["sensors"]
+        if self._fnirs_channels:
+            plot_types["fnirs"] = ["sources", "detectors"]
+        sens_actors = list()
+        # until opacity can be specified using a dict, we need to iterate
+        sensor_opacity = dict(
+            eeg=self._defaults["sensor_opacity"],
+            fnirs=self._defaults["sensor_opacity"],
+            meg=0.25,
+        )
+        for ch_type, plot_type in plot_types.items():
+            picks = pick_types(self._info, ref_meg=False, **{ch_type: True})
+            if not (len(picks) and plot_type):
+                continue
+            logger.debug(f"Drawing {ch_type} sensors")
+            these_actors = _plot_sensors(
+                self._renderer,
+                self._info,
+                self._to_cf_t,
+                picks=picks,
+                warn_meg=False,
+                head_surf=self._head_geo,
+                units="m",
+                sensor_opacity=sensor_opacity[ch_type],
+                orient_glyphs=self._orient_glyphs,
+                scale_by_distance=self._scale_by_distance,
+                surf=self._head_geo,
+                check_inside=self._check_inside,
+                nearest=self._nearest,
+                **plot_types,
+            )
+            sens_actors.extend(sum(these_actors.values(), list()))
+        self._update_actor("sensors", sens_actors)
 
     def _add_head_surface(self):
         bem = None
@@ -1336,7 +1386,7 @@ class CoregistrationUI(HasTraits):
     def _fit_icp_real(self, *, update_head):
         with self._lock(params=True, fitting=True):
             self._current_icp_iterations = 0
-            updates = ["hsp", "hpi", "eeg", "head_fids", "helmet"]
+            updates = ["hsp", "hpi", "sensors", "head_fids", "helmet"]
             if update_head:
                 updates.insert(0, "head")
 
@@ -1534,7 +1584,7 @@ class CoregistrationUI(HasTraits):
             collapse = True  # collapsible and collapsed
         else:
             collapse = None  # not collapsible
-        self._renderer._dock_initialize(name="Input", area="left", max_width="350px")
+        self._renderer._dock_initialize(name="Input", area="left", max_width="375px")
         mri_subject_layout = self._renderer._dock_add_group_box(
             name="MRI Subject",
             collapse=collapse,
@@ -1707,6 +1757,13 @@ class CoregistrationUI(HasTraits):
             tooltip="Enable/Disable MEG helmet",
             layout=view_options_layout,
         )
+        self._widgets["meg"] = self._renderer._dock_add_check_box(
+            name="Show MEG sensors",
+            value=self._helmet,
+            callback=self._set_meg_channels,
+            tooltip="Enable/Disable MEG sensors",
+            layout=view_options_layout,
+        )
         self._widgets["high_res_head"] = self._renderer._dock_add_check_box(
             name="Show high-resolution head",
             value=self._head_resolution,
@@ -1726,7 +1783,7 @@ class CoregistrationUI(HasTraits):
         self._renderer._dock_add_stretch()
 
         self._renderer._dock_initialize(
-            name="Parameters", area="right", max_width="350px"
+            name="Parameters", area="right", max_width="375px"
         )
         mri_scaling_layout = self._renderer._dock_add_group_box(
             name="MRI Scaling",

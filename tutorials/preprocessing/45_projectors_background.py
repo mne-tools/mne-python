@@ -17,10 +17,12 @@ function to make it easier to make several plots that look similar:
 # %%
 
 import os
-import numpy as np
+
 import matplotlib.pyplot as plt
+import numpy as np
 from mpl_toolkits.mplot3d import Axes3D  # noqa
 from scipy.linalg import svd
+
 import mne
 
 

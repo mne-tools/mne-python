@@ -6,14 +6,14 @@
 
 import numpy as np
 
-from ..annotations import _annotations_starts_stops
-from ..utils import logger, verbose, sum_squared, warn, int_like
-from ..filter import filter_data
-from ..epochs import Epochs, BaseEpochs
-from ..io import BaseRaw, RawArray
-from ..evoked import Evoked
 from .._fiff.meas_info import create_info
-from .._fiff.pick import _picks_to_idx, pick_types, pick_channels
+from .._fiff.pick import _picks_to_idx, pick_channels, pick_types
+from ..annotations import _annotations_starts_stops
+from ..epochs import BaseEpochs, Epochs
+from ..evoked import Evoked
+from ..filter import filter_data
+from ..io import BaseRaw, RawArray
+from ..utils import int_like, logger, sum_squared, verbose, warn
 
 
 @verbose

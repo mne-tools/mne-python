@@ -16,7 +16,6 @@ from decorator import FunctionMaker
 from ..defaults import HEAD_SIZE_DEFAULT
 from ._bunch import BunchConst
 
-
 # # # WARNING # # #
 # This list must also be updated in doc/_templates/autosummary/class.rst if it
 # is changed here!

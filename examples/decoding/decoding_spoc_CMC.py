@@ -24,15 +24,14 @@ electromyogram from MEG beta activity using data from
 
 # %%
 import matplotlib.pyplot as plt
+from sklearn.linear_model import Ridge
+from sklearn.model_selection import KFold, cross_val_predict
+from sklearn.pipeline import make_pipeline
 
 import mne
 from mne import Epochs
-from mne.decoding import SPoC
 from mne.datasets.fieldtrip_cmc import data_path
-
-from sklearn.pipeline import make_pipeline
-from sklearn.linear_model import Ridge
-from sklearn.model_selection import KFold, cross_val_predict
+from mne.decoding import SPoC
 
 # Define parameters
 fname = data_path() / "SubjectCMC.ds"

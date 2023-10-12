@@ -22,8 +22,8 @@ and the trials are plotted, sorting by response time.
 # %%
 
 import mne
-from mne.event import define_target_events
 from mne.channels import make_1020_channel_selections
+from mne.event import define_target_events
 
 print(__doc__)
 

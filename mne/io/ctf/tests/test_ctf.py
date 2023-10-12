@@ -3,36 +3,36 @@
 # License: BSD-3-Clause
 
 import copy
-from datetime import datetime, timezone
 import os
-from os import path as op
 import shutil
+from datetime import datetime, timezone
+from os import path as op
 
 import numpy as np
+import pytest
 from numpy import array_equal
 from numpy.testing import assert_allclose, assert_array_equal
-import pytest
 
 import mne
 import mne.io.ctf.info
 from mne import (
-    pick_types,
-    read_annotations,
     create_info,
     events_from_annotations,
     make_forward_solution,
+    pick_types,
+    read_annotations,
 )
-from mne.transforms import apply_trans
-from mne.io import read_raw_fif, read_raw_ctf, RawArray
 from mne._fiff.compensator import get_current_comp
+from mne._fiff.constants import FIFF
 from mne._fiff.pick import _picks_to_idx
+from mne.datasets import brainstorm, spm_face, testing
+from mne.io import RawArray, read_raw_ctf, read_raw_fif
 from mne.io.ctf.constants import CTF
 from mne.io.ctf.info import _convert_time
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.tests.test_annotations import _assert_annotations_equal
-from mne.utils import _clean_names, catch_logging, _stamp_to_dt, _record_warnings
-from mne.datasets import testing, spm_face, brainstorm
-from mne._fiff.constants import FIFF
+from mne.transforms import apply_trans
+from mne.utils import _clean_names, _record_warnings, _stamp_to_dt, catch_logging
 
 ctf_dir = testing.data_path(download=False) / "CTF"
 ctf_fname_continuous = "testdata_ctf.ds"

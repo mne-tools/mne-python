@@ -32,10 +32,11 @@ References
 # %%
 
 import pandas as pd
+
 import mne
-from mne.stats import linear_regression, fdr_correction
-from mne.viz import plot_compare_evokeds
 from mne.datasets import kiloword
+from mne.stats import fdr_correction, linear_regression
+from mne.viz import plot_compare_evokeds
 
 # Load the data
 path = kiloword.data_path() / "kword_metadata-epo.fif"

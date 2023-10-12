@@ -20,8 +20,8 @@ embedding as described in :footcite:`GramfortEtAl2010`.
 
 # %%
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 
 import mne
 from mne import io

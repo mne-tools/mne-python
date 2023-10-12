@@ -5,11 +5,11 @@
 from pathlib import Path
 
 import numpy as np
-from numpy.testing import assert_array_almost_equal, assert_equal
 import pytest
+from numpy.testing import assert_array_almost_equal, assert_equal
 
-from mne import io, Epochs, read_events, pick_types
-from mne.decoding import compute_ems, EMS
+from mne import Epochs, io, pick_types, read_events
+from mne.decoding import EMS, compute_ems
 
 data_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
 raw_fname = data_dir / "test_raw.fif"

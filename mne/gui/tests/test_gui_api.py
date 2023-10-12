@@ -13,9 +13,10 @@ pytest.importorskip("nibabel")
 def test_gui_api(renderer_notebook, nbexec, *, n_warn=0, backend="qt"):
     """Test GUI API."""
     import contextlib
-    import mne
-    import warnings
     import sys
+    import warnings
+
+    import mne
 
     try:
         # Function

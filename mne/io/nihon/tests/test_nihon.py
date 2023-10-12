@@ -4,15 +4,15 @@
 import pytest
 from numpy.testing import assert_array_almost_equal
 
-from mne.io import read_raw_nihon, read_raw_edf
-from mne.io.tests.test_raw import _test_raw_reader
 from mne.datasets import testing
+from mne.io import read_raw_edf, read_raw_nihon
+from mne.io.nihon import nihon
 from mne.io.nihon.nihon import (
+    _read_nihon_annotations,
     _read_nihon_header,
     _read_nihon_metadata,
-    _read_nihon_annotations,
 )
-from mne.io.nihon import nihon
+from mne.io.tests.test_raw import _test_raw_reader
 
 data_path = testing.data_path(download=False)
 

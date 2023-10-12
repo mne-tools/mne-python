@@ -12,33 +12,31 @@ import os.path as op
 
 import numpy as np
 
+from ..._fiff.constants import FIFF
+from ..._fiff.meas_info import read_meas_info
+from ..._fiff.open import _fiff_get_fid, _get_next_fname, fiff_open
+from ..._fiff.tag import read_tag, read_tag_info
+from ..._fiff.tree import dir_tree_find
+from ..._fiff.utils import _mult_cal_one
+from ...annotations import Annotations, _read_annotations_fif
 from ...channels import fix_mag_coil_types
 from ...event import AcqParserFIF
-from ..._fiff.constants import FIFF
-from ..._fiff.open import fiff_open, _fiff_get_fid, _get_next_fname
-from ..._fiff.meas_info import read_meas_info
-from ..._fiff.tree import dir_tree_find
-from ..._fiff.tag import read_tag, read_tag_info
-from ..base import (
-    BaseRaw,
-    _RawShell,
-    _check_raw_compatibility,
-    _check_maxshield,
-    _get_fname_rep,
-)
-from ..._fiff.utils import _mult_cal_one
-
-from ...annotations import Annotations, _read_annotations_fif
-
 from ...utils import (
+    _check_fname,
+    _file_like,
+    _on_missing,
     check_fname,
+    fill_doc,
     logger,
     verbose,
     warn,
-    fill_doc,
-    _file_like,
-    _on_missing,
-    _check_fname,
+)
+from ..base import (
+    BaseRaw,
+    _check_maxshield,
+    _check_raw_compatibility,
+    _get_fname_rep,
+    _RawShell,
 )
 
 

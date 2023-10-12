@@ -18,12 +18,13 @@ To get started with forward modeling see :ref:`tut-forward`.
 
 # %%
 
+import matplotlib.pyplot as plt
 import numpy as np
+
 import mne
 from mne.datasets import sample
-from mne.source_space import compute_distance_to_sensors
 from mne.source_estimate import SourceEstimate
-import matplotlib.pyplot as plt
+from mne.source_space import compute_distance_to_sensors
 
 print(__doc__)
 
