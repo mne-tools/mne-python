@@ -16,7 +16,7 @@ See also:
 - :func:`mne-gui-addons:mne_gui_addons.locate_ieeg`.
 
 .. autosummary::
-   :toctree: generated/
+   :toctree: ../generated/
 
    coreg.get_mni_fiducials
    coreg.estimate_head_mri_t

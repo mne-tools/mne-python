@@ -11,7 +11,7 @@ Datasets
    :no-inherited-members:
 
 .. autosummary::
-   :toctree: generated/
+   :toctree: ../generated/
 
    fetch_dataset
    has_dataset

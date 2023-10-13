@@ -11,7 +11,7 @@ Simulation
 .. currentmodule:: mne.simulation
 
 .. autosummary::
-   :toctree: generated/
+   :toctree: ../generated/
 
    add_chpi
    add_ecg
@@ -33,7 +33,7 @@ Simulation
 .. currentmodule:: mne.simulation.metrics
 
 .. autosummary::
-   :toctree: generated/
+   :toctree: ../generated/
 
    cosine_score
    region_localization_error

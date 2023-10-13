@@ -5,7 +5,7 @@ Events
 .. currentmodule:: mne
 
 .. autosummary::
-   :toctree: generated/
+   :toctree: ../generated/
 
    Annotations
    AcqParserFIF
@@ -35,7 +35,7 @@ Events
 .. currentmodule:: mne.event
 
 .. autosummary::
-   :toctree: generated/
+   :toctree: ../generated/
 
    define_target_events
    match_event_names
@@ -50,7 +50,7 @@ Events
 .. currentmodule:: mne.epochs
 
 .. autosummary::
-   :toctree: generated/
+   :toctree: ../generated/
 
    average_movements
    combine_event_ids

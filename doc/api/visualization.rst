@@ -11,7 +11,7 @@ Visualization
    :no-inherited-members:
 
 .. autosummary::
-   :toctree: generated/
+   :toctree: ../generated/
 
    Brain
    ClickableImage
@@ -99,7 +99,7 @@ Eyetracking
    :no-members:
    :no-inherited-members:
 .. autosummary::
-   :toctree: generated/
+   :toctree: ../generated/
 
    plot_gaze
 
@@ -115,7 +115,7 @@ UI Events
    :no-inherited-members:
 
 .. autosummary::
-   :toctree: generated/
+   :toctree: ../generated/
 
    subscribe
    unsubscribe
