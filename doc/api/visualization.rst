@@ -88,6 +88,21 @@ Visualization
    get_browser_backend
    use_browser_backend
 
+Eyetracking
+-----------
+
+.. currentmodule:: mne.viz.eyetracking
+
+:py:mod:`mne.viz.eyetracking`:
+
+.. automodule:: mne.viz.eyetracking
+   :no-members:
+   :no-inherited-members:
+.. autosummary::
+   :toctree: generated/
+
+   plot_gaze
+
 UI Events
 ---------
 
