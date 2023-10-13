@@ -3,7 +3,9 @@
 # License: Simplified BSD
 
 import os.path as op
+
 import pytest
+
 import mne
 
 

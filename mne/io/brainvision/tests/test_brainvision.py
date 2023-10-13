@@ -4,22 +4,22 @@
 #
 # License: BSD-3-Clause
 
+import datetime
 import re
 import shutil
 from pathlib import Path
 
 import numpy as np
-from numpy.testing import assert_array_equal, assert_allclose
 import pytest
+from numpy.testing import assert_allclose, assert_array_equal
 
-import datetime
-from mne.utils import _stamp_to_dt, object_diff
-from mne import pick_types, read_annotations, concatenate_raws
+from mne import concatenate_raws, pick_types, read_annotations
 from mne._fiff.constants import FIFF
-from mne.io import read_raw_fif, read_raw_brainvision
-from mne.io.tests.test_raw import _test_raw_reader
-from mne.datasets import testing
 from mne.annotations import events_from_annotations
+from mne.datasets import testing
+from mne.io import read_raw_brainvision, read_raw_fif
+from mne.io.tests.test_raw import _test_raw_reader
+from mne.utils import _stamp_to_dt, object_diff
 
 data_dir = Path(__file__).parent / "data"
 vhdr_path = data_dir / "test.vhdr"

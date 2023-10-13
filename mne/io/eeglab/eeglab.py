@@ -9,29 +9,30 @@ from os import PathLike
 from pathlib import Path
 
 import numpy as np
+
 from mne.utils.check import _check_option
 
-from ._eeglab import _readmat
-from ..base import BaseRaw
-from ...event import read_events
 from ..._fiff._digitization import _ensure_fiducials_head
 from ..._fiff.constants import FIFF
 from ..._fiff.meas_info import create_info
 from ..._fiff.pick import _PICK_TYPES_KEYS
-from ..._fiff.utils import _read_segments_file, _find_channels
+from ..._fiff.utils import _find_channels, _read_segments_file
+from ...annotations import Annotations, read_annotations
+from ...channels import make_dig_montage
 from ...defaults import DEFAULTS
+from ...epochs import BaseEpochs
+from ...event import read_events
 from ...utils import (
-    logger,
-    verbose,
-    warn,
-    fill_doc,
     Bunch,
     _check_fname,
     _check_head_radius,
+    fill_doc,
+    logger,
+    verbose,
+    warn,
 )
-from ...channels import make_dig_montage
-from ...epochs import BaseEpochs
-from ...annotations import Annotations, read_annotations
+from ..base import BaseRaw
+from ._eeglab import _readmat
 
 # just fix the scaling for now, EEGLAB doesn't seem to provide this info
 CAL = 1e-6

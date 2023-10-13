@@ -3,23 +3,23 @@
 #
 # License: BSD-3-Clause
 
+import numbers
+import operator
+import os
+import re
 from builtins import input  # no-op here but facilitates testing
 from collections.abc import Sequence
 from difflib import get_close_matches
 from importlib import import_module
 from importlib.metadata import version
-import operator
-import os
-from packaging.version import parse
 from pathlib import Path
-import re
-import numbers
 
 import numpy as np
+from packaging.version import parse
 
-from ..defaults import _handle_default, HEAD_SIZE_DEFAULT
-from ..fixes import _median_complex, _compare_version
-from ._logging import warn, logger, verbose, _record_warnings, _verbose_safe_false
+from ..defaults import HEAD_SIZE_DEFAULT, _handle_default
+from ..fixes import _compare_version, _median_complex
+from ._logging import _record_warnings, _verbose_safe_false, logger, verbose, warn
 
 
 def _ensure_int(x, name="unknown", must_be="an int", *, extra=""):
@@ -316,9 +316,9 @@ def _check_preload(inst, msg):
 
 def _check_compensation_grade(info1, info2, name1, name2="data", ch_names=None):
     """Ensure that objects have same compensation_grade."""
+    from .._fiff.compensator import get_current_comp
     from .._fiff.meas_info import Info
     from .._fiff.pick import pick_channels, pick_info
-    from .._fiff.compensator import get_current_comp
 
     for t_info in (info1, info2):
         if t_info is None:
@@ -754,9 +754,9 @@ def _check_rank(rank):
 
 def _check_one_ch_type(method, info, forward, data_cov=None, noise_cov=None):
     """Check number of sensor types and presence of noise covariance matrix."""
-    from ..cov import make_ad_hoc_cov, Covariance
+    from .._fiff.pick import _contains_ch_type, pick_info
+    from ..cov import Covariance, make_ad_hoc_cov
     from ..time_frequency.csd import CrossSpectralDensity
-    from .._fiff.pick import pick_info, _contains_ch_type
 
     if isinstance(data_cov, CrossSpectralDensity):
         _validate_type(noise_cov, [None, CrossSpectralDensity], "noise_cov")
@@ -946,7 +946,8 @@ def _check_qt_version(*, return_api=False, check_usable_display=True):
     from ..viz.backends._utils import _init_mne_qtapp
 
     try:
-        from qtpy import QtCore, API_NAME as api
+        from qtpy import API_NAME as api
+        from qtpy import QtCore
     except Exception:
         api = version = None
     else:
@@ -969,7 +970,7 @@ def _check_qt_version(*, return_api=False, check_usable_display=True):
 
 
 def _check_sphere(sphere, info=None, sphere_units="m"):
-    from ..bem import fit_sphere_to_headshape, ConductorModel, get_fitting_dig
+    from ..bem import ConductorModel, fit_sphere_to_headshape, get_fitting_dig
 
     if sphere is None:
         sphere = HEAD_SIZE_DEFAULT

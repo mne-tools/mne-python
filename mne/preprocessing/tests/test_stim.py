@@ -5,12 +5,12 @@
 from pathlib import Path
 
 import numpy as np
-from numpy.testing import assert_array_almost_equal
 import pytest
+from numpy.testing import assert_array_almost_equal
 
-from mne.io import read_raw_fif
-from mne.event import read_events
 from mne.epochs import Epochs
+from mne.event import read_events
+from mne.io import read_raw_fif
 from mne.preprocessing.stim import fix_stim_artifact
 
 data_path = Path(__file__).parent.parent.parent / "io" / "tests" / "data"

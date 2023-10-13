@@ -19,13 +19,13 @@ layout.
 # %%
 
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 
 import mne
-from mne.viz import iter_topography
 from mne import io
 from mne.datasets import sample
+from mne.viz import iter_topography
 
 print(__doc__)
 

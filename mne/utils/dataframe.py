@@ -7,8 +7,8 @@ from inspect import signature
 
 import numpy as np
 
-from ._logging import logger, verbose
 from ..defaults import _handle_default
+from ._logging import logger, verbose
 
 
 @verbose
@@ -74,6 +74,7 @@ def _build_data_frame(
     """Build DataFrame from MNE-object-derived data array."""
     # private function; pandas already checked in calling function
     from pandas import DataFrame
+
     from ..source_estimate import _BaseSourceEstimate
 
     # build DataFrame

@@ -6,14 +6,13 @@ from pathlib import Path
 
 import numpy as np
 import pytest
-
 from numpy.testing import assert_allclose
 from scipy.io import loadmat
 
+from mne._fiff.pick import pick_channels, pick_info, pick_types
 from mne.datasets import testing
-from mne.io import read_raw_fil, read_info
+from mne.io import read_info, read_raw_fil
 from mne.preprocessing.hfc import compute_proj_hfc
-from mne._fiff.pick import pick_types, pick_info, pick_channels
 
 fil_path = testing.data_path(download=False) / "FIL"
 fname_root = "sub-noise_ses-001_task-noise220622_run-001"

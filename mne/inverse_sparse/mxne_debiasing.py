@@ -4,9 +4,10 @@
 # License: BSD-3-Clause
 
 from math import sqrt
+
 import numpy as np
 
-from ..utils import check_random_state, logger, verbose, fill_doc
+from ..utils import check_random_state, fill_doc, logger, verbose
 
 
 @fill_doc

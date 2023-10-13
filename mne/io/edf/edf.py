@@ -10,21 +10,20 @@
 #
 # License: BSD-3-Clause
 
-from datetime import datetime, timezone, timedelta
 import os
 import re
+from datetime import datetime, timedelta, timezone
 
 import numpy as np
 from scipy.interpolate import interp1d
 
-from ..base import BaseRaw, _get_scaling
-from ...utils import verbose, logger, warn, _validate_type
-from ..._fiff.utils import _blk_read_lims, _mult_cal_one
-from ..._fiff.meas_info import _empty_info, _unique_channel_names
 from ..._fiff.constants import FIFF
-from ...filter import resample
-from ...utils import fill_doc
+from ..._fiff.meas_info import _empty_info, _unique_channel_names
+from ..._fiff.utils import _blk_read_lims, _mult_cal_one
 from ...annotations import Annotations
+from ...filter import resample
+from ...utils import _validate_type, fill_doc, logger, verbose, warn
+from ..base import BaseRaw, _get_scaling
 
 # common channel type names mapped to internal ch types
 CH_TYPE_MAPPING = {

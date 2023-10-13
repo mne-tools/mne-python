@@ -4,15 +4,15 @@
 #
 # License: BSD-3-Clause
 
-import numpy as np
-from os.path import join
 from os import listdir
+from os.path import join
 
-from .res4 import _make_ctf_name
-from ...utils import logger, warn
+import numpy as np
+
 from ..._fiff.constants import FIFF
 from ...transforms import apply_trans
-
+from ...utils import logger, warn
+from .res4 import _make_ctf_name
 
 _cardinal_dict = dict(
     nasion=FIFF.FIFFV_POINT_NASION,

@@ -13,20 +13,21 @@ introduction and only highlights the simplest use case.
 #
 # License: BSD (3-clause)
 
-import numpy as np
-import matplotlib.pyplot as plt
 from functools import partial
+
+import matplotlib.pyplot as plt
+import numpy as np
 
 import mne
 from mne.datasets import sample
-from mne.minimum_norm import make_inverse_operator, apply_inverse
+from mne.minimum_norm import apply_inverse, make_inverse_operator
 from mne.simulation.metrics import (
-    region_localization_error,
+    cosine_score,
     f1_score,
+    peak_position_error,
     precision_score,
     recall_score,
-    cosine_score,
-    peak_position_error,
+    region_localization_error,
     spatial_deviation_error,
 )
 
@@ -234,7 +235,7 @@ for name, scorer in scorers.items():
     ]
 
 # Plot the results
-f, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, sharex="col", constrained_layout=True)
+f, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, sharex="col", layout="constrained")
 for ax, (title, results) in zip([ax1, ax2, ax3, ax4], region_results.items()):
     ax.plot(thresholds, results, ".-")
     ax.set(title=title, ylabel="score", xlabel="Threshold", xticks=thresholds)
@@ -243,7 +244,7 @@ f.suptitle("Performance scores per threshold")  # Add Super title
 ax1.ticklabel_format(axis="y", style="sci", scilimits=(0, 1))  # tweak RLE
 
 # Cosine score with respect to time
-f, ax1 = plt.subplots(constrained_layout=True)
+f, ax1 = plt.subplots(layout="constrained")
 ax1.plot(stc_true_region.times, cosine_score(stc_true_region, stc_est_region))
 ax1.set(title="Cosine score", xlabel="Time", ylabel="Score")
 
@@ -277,6 +278,6 @@ for name, scorer in scorers.items():
 
 # Plot the results
 for name, results in dipole_results.items():
-    f, ax1 = plt.subplots(constrained_layout=True)
+    f, ax1 = plt.subplots(layout="constrained")
     ax1.plot(thresholds, 100 * np.array(results), ".-")
     ax1.set(title=name, ylabel="Error (cm)", xlabel="Threshold", xticks=thresholds)

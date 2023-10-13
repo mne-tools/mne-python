@@ -23,11 +23,13 @@ need:
 
 # %%
 
-from pathlib import Path
 import tempfile
+from pathlib import Path
+
+import matplotlib.pyplot as plt
 import numpy as np
 import scipy.ndimage
-import matplotlib.pyplot as plt
+
 import mne
 
 data_path = Path(mne.datasets.sample.data_path(verbose=False))
@@ -463,7 +465,7 @@ for angle in rotation_angles:
     fig_array_rotated = fig_array_rotated.clip(min=0, max=1)
 
     # Create the figure
-    fig, ax = plt.subplots(figsize=(3, 3), constrained_layout=True)
+    fig, ax = plt.subplots(figsize=(3, 3), layout="constrained")
     ax.imshow(fig_array_rotated)
     ax.set_axis_off()
 

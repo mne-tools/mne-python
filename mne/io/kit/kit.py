@@ -9,33 +9,33 @@ RawKIT class is adapted from Denis Engemann et al.'s mne_bti2fiff.py.
 #
 # License: BSD-3-Clause
 
-from collections import defaultdict, OrderedDict
-from math import sin, cos
-from os import SEEK_CUR, path as op, PathLike
+from collections import OrderedDict, defaultdict
+from math import cos, sin
+from os import SEEK_CUR, PathLike
+from os import path as op
 from pathlib import Path
 
 import numpy as np
 
-from ..._fiff.pick import pick_types
-from ...event import read_events
-from ...utils import (
-    verbose,
-    logger,
-    warn,
-    fill_doc,
-    _check_option,
-    _stamp_to_dt,
-    _check_fname,
-)
-from ...transforms import apply_trans, als_ras_trans
-from ..base import BaseRaw
-from ..._fiff.utils import _mult_cal_one
-from ...epochs import BaseEpochs
 from ..._fiff.constants import FIFF
 from ..._fiff.meas_info import _empty_info
+from ..._fiff.pick import pick_types
+from ..._fiff.utils import _mult_cal_one
+from ...epochs import BaseEpochs
+from ...event import read_events
+from ...transforms import als_ras_trans, apply_trans
+from ...utils import (
+    _check_fname,
+    _check_option,
+    _stamp_to_dt,
+    fill_doc,
+    logger,
+    verbose,
+    warn,
+)
+from ..base import BaseRaw
 from .constants import KIT, LEGACY_AMP_PARAMS
-from .coreg import read_mrk, _set_dig_kit
-
+from .coreg import _set_dig_kit, read_mrk
 
 FLOAT64 = "<f8"
 UINT32 = "<u4"

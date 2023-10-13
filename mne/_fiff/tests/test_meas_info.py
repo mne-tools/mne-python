@@ -4,73 +4,73 @@
 # License: BSD-3-Clause
 
 import pickle
-from datetime import datetime, timedelta, timezone, date
+import string
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
-import pytest
 import numpy as np
-from numpy.testing import assert_array_equal, assert_allclose
+import pytest
+from numpy.testing import assert_allclose, assert_array_equal
 from scipy import sparse
-import string
 
 from mne import (
-    Epochs,
-    read_events,
-    pick_info,
-    pick_types,
     Annotations,
-    read_evokeds,
+    Epochs,
+    compute_covariance,
     make_forward_solution,
     make_sphere_model,
-    setup_volume_source_space,
-    write_forward_solution,
-    read_forward_solution,
-    write_cov,
+    pick_info,
+    pick_types,
     read_cov,
     read_epochs,
-    compute_covariance,
-)
-from mne.channels import (
-    read_polhemus_fastscan,
-    make_standard_montage,
-    equalize_channels,
-)
-from mne.event import make_fixed_length_events
-from mne.datasets import testing
-from mne.io import read_raw_fif, BaseRaw, read_raw_ctf, RawArray
-from mne._fiff.tag import _coil_trans_to_loc, _loc_to_coil_trans
-from mne._fiff.proj import Projection
-from mne._fiff.constants import FIFF
-from mne._fiff.write import _generate_meas_id, DATE_NONE
-from mne._fiff.meas_info import (
-    Info,
-    create_info,
-    read_fiducials,
-    write_fiducials,
-    read_info,
-    write_info,
-    _merge_info,
-    _force_update_info,
-    RAW_INFO_FIELDS,
-    _bad_chans_comp,
-    _get_valid_units,
-    anonymize_info,
-    _stamp_to_dt,
-    _dt_to_stamp,
-    _add_timedelta_to_stamp,
-    _read_extended_ch_info,
-    MNEBadsList,
-)
-from mne.minimum_norm import (
-    make_inverse_operator,
-    write_inverse_operator,
-    read_inverse_operator,
-    apply_inverse,
+    read_events,
+    read_evokeds,
+    read_forward_solution,
+    setup_volume_source_space,
+    write_cov,
+    write_forward_solution,
 )
 from mne._fiff import meas_info
-from mne._fiff._digitization import _make_dig_points, DigPoint
+from mne._fiff._digitization import DigPoint, _make_dig_points
+from mne._fiff.constants import FIFF
+from mne._fiff.meas_info import (
+    RAW_INFO_FIELDS,
+    Info,
+    MNEBadsList,
+    _add_timedelta_to_stamp,
+    _bad_chans_comp,
+    _dt_to_stamp,
+    _force_update_info,
+    _get_valid_units,
+    _merge_info,
+    _read_extended_ch_info,
+    _stamp_to_dt,
+    anonymize_info,
+    create_info,
+    read_fiducials,
+    read_info,
+    write_fiducials,
+    write_info,
+)
+from mne._fiff.proj import Projection
+from mne._fiff.tag import _coil_trans_to_loc, _loc_to_coil_trans
+from mne._fiff.write import DATE_NONE, _generate_meas_id
+from mne.channels import (
+    equalize_channels,
+    make_standard_montage,
+    read_polhemus_fastscan,
+)
+from mne.datasets import testing
+from mne.event import make_fixed_length_events
+from mne.io import BaseRaw, RawArray, read_raw_ctf, read_raw_fif
+from mne.minimum_norm import (
+    apply_inverse,
+    make_inverse_operator,
+    read_inverse_operator,
+    write_inverse_operator,
+)
 from mne.transforms import Transform
-from mne.utils import catch_logging, assert_object_equal, _empty_hash, _record_warnings
+from mne.utils import _empty_hash, _record_warnings, assert_object_equal, catch_logging
 
 root_dir = Path(__file__).parent.parent.parent
 fiducials_fname = root_dir / "data" / "fsaverage" / "fsaverage-fiducials.fif"

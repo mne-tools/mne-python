@@ -10,24 +10,24 @@ from copy import deepcopy
 
 import numpy as np
 
+from .._fiff.proj import Projection, make_projector
 from ..cov import Covariance, make_ad_hoc_cov
-from ..forward.forward import is_fixed_orient, _restrict_forward_to_src_sel
-from .._fiff.proj import make_projector, Projection
+from ..forward.forward import _restrict_forward_to_src_sel, is_fixed_orient
 from ..minimum_norm.inverse import _get_vertno, _prepare_forward
 from ..source_space._source_space import label_src_vertno_sel
-from ..utils import (
-    verbose,
-    check_fname,
-    _reg_pinv,
-    _check_option,
-    logger,
-    _pl,
-    _check_src_normal,
-    _sym_mat_pow,
-    warn,
-    _import_h5io_funcs,
-)
 from ..time_frequency.csd import CrossSpectralDensity
+from ..utils import (
+    _check_option,
+    _check_src_normal,
+    _import_h5io_funcs,
+    _pl,
+    _reg_pinv,
+    _sym_mat_pow,
+    check_fname,
+    logger,
+    verbose,
+    warn,
+)
 
 
 def _check_proj_match(proj, filters):

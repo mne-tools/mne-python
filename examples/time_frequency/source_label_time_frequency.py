@@ -19,8 +19,8 @@ latter also includes evoked (stimulus-locked) activity.
 
 # %%
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 
 import mne
 from mne import io
@@ -76,8 +76,7 @@ n_cycles = freqs / 3.0  # different number of cycle per frequency
 # subtract the evoked response in order to exclude evoked activity
 epochs_induced = epochs.copy().subtract_evoked()
 
-plt.close("all")
-
+fig, axes = plt.subplots(2, 2, layout="constrained")
 for ii, (this_epochs, title) in enumerate(
     zip([epochs, epochs_induced], ["evoked + induced", "induced only"])
 ):
@@ -99,9 +98,8 @@ for ii, (this_epochs, title) in enumerate(
 
     ##########################################################################
     # View time-frequency plots
-    plt.subplots_adjust(0.1, 0.08, 0.96, 0.94, 0.2, 0.43)
-    plt.subplot(2, 2, 2 * ii + 1)
-    plt.imshow(
+    ax = axes[ii, 0]
+    ax.imshow(
         20 * power,
         extent=[times[0], times[-1], freqs[0], freqs[-1]],
         aspect="auto",
@@ -110,13 +108,10 @@ for ii, (this_epochs, title) in enumerate(
         vmax=30.0,
         cmap="RdBu_r",
     )
-    plt.xlabel("Time (s)")
-    plt.ylabel("Frequency (Hz)")
-    plt.title("Power (%s)" % title)
-    plt.colorbar()
+    ax.set(xlabel="Time (s)", ylabel="Frequency (Hz)", title=f"Power ({title})")
 
-    plt.subplot(2, 2, 2 * ii + 2)
-    plt.imshow(
+    ax = axes[ii, 1]
+    ax.imshow(
         itc,
         extent=[times[0], times[-1], freqs[0], freqs[-1]],
         aspect="auto",
@@ -125,9 +120,5 @@ for ii, (this_epochs, title) in enumerate(
         vmax=0.7,
         cmap="RdBu_r",
     )
-    plt.xlabel("Time (s)")
-    plt.ylabel("Frequency (Hz)")
-    plt.title("ITC (%s)" % title)
-    plt.colorbar()
-
-plt.show()
+    ax.set(xlabel="Time (s)", ylabel="Frequency (Hz)", title=f"ITC ({title})")
+    fig.colorbar(ax.images[0], ax=axes[ii])

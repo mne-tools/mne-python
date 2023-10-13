@@ -18,12 +18,12 @@ label yields higher values.
 
 # %%
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 
 import mne
-from mne.minimum_norm import read_inverse_operator, apply_inverse
 from mne.datasets import sample
+from mne.minimum_norm import apply_inverse, read_inverse_operator
 
 print(__doc__)
 

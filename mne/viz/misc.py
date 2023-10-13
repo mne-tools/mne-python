@@ -20,42 +20,41 @@ from itertools import cycle
 from pathlib import Path
 
 import numpy as np
-from scipy.signal import freqz, group_delay, lfilter, filtfilt, sosfilt, sosfiltfilt
+from scipy.signal import filtfilt, freqz, group_delay, lfilter, sosfilt, sosfiltfilt
 
-from .._freesurfer import _check_mri, _reorient_image, _read_mri_info, _mri_orientation
+from .._fiff.constants import FIFF
+from .._fiff.pick import (
+    _DATA_CH_TYPES_SPLIT,
+    _picks_by_type,
+    pick_channels,
+    pick_info,
+    pick_types,
+)
+from .._fiff.proj import make_projector
+from .._freesurfer import _check_mri, _mri_orientation, _read_mri_info, _reorient_image
 from ..defaults import DEFAULTS
+from ..filter import estimate_ringing_samples
 from ..fixes import _safe_svd
 from ..rank import compute_rank
 from ..surface import read_surface
-from .._fiff.constants import FIFF
-from .._fiff.proj import make_projector
-from .._fiff.pick import (
-    _DATA_CH_TYPES_SPLIT,
-    pick_types,
-    pick_info,
-    pick_channels,
-    _picks_by_type,
-)
-from ..transforms import apply_trans, _frame_to_str
+from ..transforms import _frame_to_str, apply_trans
 from ..utils import (
+    _check_option,
+    _mask_to_onsets_offsets,
+    _on_missing,
+    _pl,
+    fill_doc,
+    get_subjects_dir,
     logger,
     verbose,
     warn,
-    _check_option,
-    get_subjects_dir,
-    _mask_to_onsets_offsets,
-    _pl,
-    _on_missing,
-    fill_doc,
 )
-from ..filter import estimate_ringing_samples
 from .utils import (
-    tight_layout,
+    _figure_agg,
     _get_color_list,
     _prepare_trellis,
-    plt_show,
-    _figure_agg,
     _validate_type,
+    plt_show,
 )
 
 
@@ -146,6 +145,7 @@ def plot_cov(
     """
     import matplotlib.pyplot as plt
     from matplotlib.colors import Normalize
+
     from ..cov import Covariance
 
     info, C, ch_names, idx_names = _index_info_cov(info, cov, exclude)
@@ -172,7 +172,11 @@ def plot_cov(
         C = np.sqrt((C * C.conj()).real)
 
     fig_cov, axes = plt.subplots(
-        1, len(idx_names), squeeze=False, figsize=(3.8 * len(idx_names), 3.7)
+        1,
+        len(idx_names),
+        squeeze=False,
+        figsize=(3.8 * len(idx_names), 3.7),
+        layout="constrained",
     )
     for k, (idx, name, _, _, _) in enumerate(idx_names):
         vlim = np.max(np.abs(C[idx][:, idx]))
@@ -192,13 +196,14 @@ def plot_cov(
             cax.grid(False)  # avoid mpl warning about auto-removal
             plt.colorbar(im, cax=cax, format="%.0e")
 
-    fig_cov.subplots_adjust(0.04, 0.0, 0.98, 0.94, 0.2, 0.26)
-    tight_layout(fig=fig_cov)
-
     fig_svd = None
     if show_svd:
         fig_svd, axes = plt.subplots(
-            1, len(idx_names), squeeze=False, figsize=(3.8 * len(idx_names), 3.7)
+            1,
+            len(idx_names),
+            squeeze=False,
+            figsize=(3.8 * len(idx_names), 3.7),
+            layout="constrained",
         )
         for k, (idx, name, unit, scaling, key) in enumerate(idx_names):
             this_C = C[idx][:, idx]
@@ -233,10 +238,8 @@ def plot_cov(
                 title=name,
                 xlim=[0, len(s) - 1],
             )
-        tight_layout(fig=fig_svd)
 
     plt_show(show)
-
     return fig_cov, fig_svd
 
 
@@ -321,7 +324,7 @@ def plot_source_spectrogram(
     time_grid, freq_grid = np.meshgrid(time_bounds, freq_bounds)
 
     # Plotting the results
-    fig = plt.figure(figsize=(9, 6))
+    fig = plt.figure(figsize=(9, 6), layout="constrained")
     plt.pcolor(time_grid, freq_grid, source_power[:, source_index, :], cmap="Reds")
     ax = plt.gca()
 
@@ -344,7 +347,6 @@ def plot_source_spectrogram(
     plt.grid(True, ls="-")
     if colorbar:
         plt.colorbar()
-    tight_layout(fig=fig)
 
     # Covering frequency gaps with horizontal bars
     for lower_bound, upper_bound in gap_bounds:
@@ -389,6 +391,7 @@ def _plot_mri_contours(
     """
     import matplotlib.pyplot as plt
     from matplotlib import patheffects
+
     from ..source_space._source_space import _ensure_src
 
     # For ease of plotting, we will do everything in voxel coordinates.
@@ -481,6 +484,8 @@ def _plot_mri_contours(
         if slices_as_subplots:
             ax = axs[ai]
         else:
+            # No need for constrained layout here because we make our axes fill the
+            # entire figure
             fig = _figure_agg(figsize=figsize, dpi=dpi, facecolor="k")
             ax = fig.add_axes([0, 0, 1, 1], frame_on=False, facecolor="k")
 
@@ -588,9 +593,6 @@ def _plot_mri_contours(
             figs.append(fig)
 
     if slices_as_subplots:
-        fig.subplots_adjust(
-            left=0.0, bottom=0.0, right=1.0, top=1.0, wspace=0.0, hspace=0.0
-        )
         plt_show(show, fig=fig)
         return fig
     else:
@@ -678,7 +680,7 @@ def plot_bem(
     on top of the midpoint MRI slice with the BEM boundary drawn for that
     slice.
     """
-    from ..source_space import read_source_spaces, SourceSpaces
+    from ..source_space import SourceSpaces, read_source_spaces
 
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     mri_fname = _check_mri(mri, subject, subjects_dir)
@@ -848,7 +850,7 @@ def plot_events(
 
     fig = None
     if axes is None:
-        fig = plt.figure()
+        fig = plt.figure(layout="constrained")
     ax = axes if axes else plt.gca()
 
     unique_events_id = np.array(unique_events_id)
@@ -948,7 +950,7 @@ def plot_dipole_amplitudes(dipoles, colors=None, show=True):
 
     if colors is None:
         colors = cycle(_get_color_list())
-    fig, ax = plt.subplots(1, 1)
+    fig, ax = plt.subplots(1, 1, layout="constrained")
     xlim = [np.inf, -np.inf]
     for dip, color in zip(dipoles, colors):
         ax.plot(dip.times, dip.amplitude * 1e9, color=color, linewidth=1.5)
@@ -1191,7 +1193,7 @@ def plot_filter(
 
     fig = None
     if axes is None:
-        fig, axes = plt.subplots(len(plot), 1)
+        fig, axes = plt.subplots(len(plot), 1, layout="constrained")
     if isinstance(axes, plt.Axes):
         axes = [axes]
     elif isinstance(axes, np.ndarray):
@@ -1263,7 +1265,6 @@ def plot_filter(
         )
 
     adjust_axes(axes)
-    tight_layout()
     plt_show(show)
     return fig
 
@@ -1357,7 +1358,7 @@ def plot_ideal_filter(
             my_gain.append(gain[ii])
     my_gain = 10 * np.log10(np.maximum(my_gain, 10 ** (alim[0] / 10.0)))
     if axes is None:
-        axes = plt.subplots(1)[1]
+        axes = plt.subplots(1, layout="constrained")[1]
     for transition in transitions:
         axes.axvspan(*transition, color=color, alpha=0.1)
     axes.plot(
@@ -1378,7 +1379,6 @@ def plot_ideal_filter(
     if title:
         axes.set(title=title)
     adjust_axes(axes)
-    tight_layout()
     plt_show(show)
     return axes.figure
 
@@ -1508,7 +1508,11 @@ def plot_csd(
             continue
 
         fig, axes = plt.subplots(
-            n_rows, n_cols, squeeze=False, figsize=(2 * n_cols + 1, 2.2 * n_rows)
+            n_rows,
+            n_cols,
+            squeeze=False,
+            figsize=(2 * n_cols + 1, 2.2 * n_rows),
+            layout="constrained",
         )
 
         csd_mats = []
@@ -1535,8 +1539,6 @@ def plot_csd(
                 ax.set_title("%.1f Hz." % freq)
 
         plt.suptitle(title)
-        plt.subplots_adjust(top=0.8)
-
         if colorbar:
             cb = plt.colorbar(im, ax=[a for ax_ in axes for a in ax_])
             if mode == "csd":
@@ -1580,9 +1582,7 @@ def plot_chpi_snr(snr_dict, axes=None):
     -----
     If you supply a list of existing `~matplotlib.axes.Axes`, then the figure
     legend will not be drawn automatically. If you still want it, running
-    ``fig.legend(loc='right', title='cHPI frequencies')`` will recreate it,
-    though you may also need to manually adjust the margin to make room for it
-    (e.g., using ``fig.subplots_adjust(right=0.8)``).
+    ``fig.legend(loc='right', title='cHPI frequencies')`` will recreate it.
 
     .. versionadded:: 0.24
     """
@@ -1593,7 +1593,7 @@ def plot_chpi_snr(snr_dict, axes=None):
     full_names = dict(mag="magnetometers", grad="gradiometers")
     axes_was_none = axes is None
     if axes_was_none:
-        fig, axes = plt.subplots(len(valid_keys), 1, sharex=True)
+        fig, axes = plt.subplots(len(valid_keys), 1, sharex=True, layout="constrained")
     else:
         fig = axes[0].get_figure()
     if len(axes) != len(valid_keys):
@@ -1627,6 +1627,5 @@ def plot_chpi_snr(snr_dict, axes=None):
     if axes_was_none:
         ax.set(xlabel="Time (s)")
         fig.align_ylabels()
-        fig.subplots_adjust(left=0.1, right=0.825, bottom=0.075, top=0.95, hspace=0.7)
         fig.legend(loc="right", title="cHPI frequencies")
     return fig

@@ -14,6 +14,7 @@ We begin by importing the necessary Python modules:
 # %%
 
 import os
+
 import mne
 
 # %%
@@ -34,7 +35,7 @@ print(type(mne.get_config("MNE_USE_CUDA")))
 # %%
 # Note that the string values read from the JSON file are not parsed in any
 # way, so :func:`~mne.get_config` returns a string even for true/false config
-# values, rather than a Python :ref:`boolean <bltin-boolean-values>`.
+# values, rather than a Python :ref:`boolean <python:typebool>`.
 # Similarly, :func:`~mne.set_config` will only set string values (or ``None``
 # values, to unset a variable):
 

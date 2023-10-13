@@ -2,38 +2,37 @@
 #
 # License: BSD-3-Clause
 
-from contextlib import contextmanager
-import inspect
-from textwrap import dedent
 import gc
+import inspect
 import os
 import os.path as op
-from pathlib import Path
 import shutil
 import sys
 import warnings
-import pytest
-from pytest import StashKey
+from contextlib import contextmanager
+from pathlib import Path
+from textwrap import dedent
 from unittest import mock
 
 import numpy as np
+import pytest
+from pytest import StashKey
 
 import mne
-from mne import read_events, pick_types, Epochs
+from mne import Epochs, pick_types, read_events
 from mne.channels import read_layout
 from mne.coreg import create_default_subject
 from mne.datasets import testing
-from mne.fixes import has_numba, _compare_version
-from mne.io import read_raw_fif, read_raw_ctf, read_raw_nirx, read_raw_snirf
+from mne.fixes import _compare_version, has_numba
+from mne.io import read_raw_ctf, read_raw_fif, read_raw_nirx, read_raw_snirf
 from mne.stats import cluster_level
 from mne.utils import (
-    _pl,
-    _assert_no_instances,
-    numerics,
     Bunch,
+    _assert_no_instances,
     _check_qt_version,
+    _pl,
     _TempDir,
-    check_version,
+    numerics,
 )
 
 # data from sample dataset
@@ -84,6 +83,7 @@ def pytest_configure(config):
         "slowtest",
         "ultraslowtest",
         "pgtest",
+        "pvtest",
         "allow_unclosed",
         "allow_unclosed_pyside2",
     ):
@@ -103,6 +103,13 @@ def pytest_configure(config):
     # if present
     if os.getenv("PYTEST_QT_API") is None and os.getenv("QT_API") is not None:
         os.environ["PYTEST_QT_API"] = os.environ["QT_API"]
+
+    # suppress:
+    # Debugger warning: It seems that frozen modules are being used, which may
+    # make the debugger miss breakpoints. Please pass -Xfrozen_modules=off
+    # to python to disable frozen modules.
+    if os.getenv("PYDEVD_DISABLE_FILE_VALIDATION") is None:
+        os.environ["PYDEVD_DISABLE_FILE_VALIDATION"] = "1"
 
     # https://numba.readthedocs.io/en/latest/reference/deprecation.html#deprecation-of-old-style-numba-captured-errors  # noqa: E501
     if "NUMBA_CAPTURED_ERRORS" not in os.environ:
@@ -514,8 +521,9 @@ def pg_backend(request, garbage_collect):
         import mne_qt_browser
 
         mne_qt_browser._browser_instances.clear()
-        if check_version("mne_qt_browser", min_version="0.4"):
-            _assert_no_instances(MNEQtBrowser, f"Closure of {request.node.name}")
+        if not _test_passed(request):
+            return
+        _assert_no_instances(MNEQtBrowser, f"Closure of {request.node.name}")
 
 
 @pytest.fixture(
@@ -541,35 +549,35 @@ def browser_backend(request, garbage_collect, monkeypatch):
             mne_qt_browser._browser_instances.clear()
 
 
-@pytest.fixture(params=["pyvistaqt"])
+@pytest.fixture(params=[pytest.param("pyvistaqt", marks=pytest.mark.pvtest)])
 def renderer(request, options_3d, garbage_collect):
     """Yield the 3D backends."""
     with _use_backend(request.param, interactive=False) as renderer:
         yield renderer
 
 
-@pytest.fixture(params=["pyvistaqt"])
+@pytest.fixture(params=[pytest.param("pyvistaqt", marks=pytest.mark.pvtest)])
 def renderer_pyvistaqt(request, options_3d, garbage_collect):
     """Yield the PyVista backend."""
     with _use_backend(request.param, interactive=False) as renderer:
         yield renderer
 
 
-@pytest.fixture(params=["notebook"])
+@pytest.fixture(params=[pytest.param("notebook", marks=pytest.mark.pvtest)])
 def renderer_notebook(request, options_3d):
     """Yield the 3D notebook renderer."""
     with _use_backend(request.param, interactive=False) as renderer:
         yield renderer
 
 
-@pytest.fixture(params=["pyvistaqt"])
+@pytest.fixture(params=[pytest.param("pyvistaqt", marks=pytest.mark.pvtest)])
 def renderer_interactive_pyvistaqt(request, options_3d, qt_windows_closed):
     """Yield the interactive PyVista backend."""
     with _use_backend(request.param, interactive=True) as renderer:
         yield renderer
 
 
-@pytest.fixture(params=["pyvistaqt"])
+@pytest.fixture(params=[pytest.param("pyvistaqt", marks=pytest.mark.pvtest)])
 def renderer_interactive(request, options_3d):
     """Yield the interactive 3D backends."""
     with _use_backend(request.param, interactive=True) as renderer:
@@ -591,12 +599,12 @@ def _use_backend(backend_name, interactive):
 
 
 def _check_skip_backend(name):
+    from mne.viz.backends._utils import _notebook_vtk_works
     from mne.viz.backends.tests._utils import (
-        has_pyvista,
         has_imageio_ffmpeg,
+        has_pyvista,
         has_pyvistaqt,
     )
-    from mne.viz.backends._utils import _notebook_vtk_works
 
     if not has_pyvista():
         pytest.skip("Test skipped, requires pyvista.")
@@ -621,8 +629,8 @@ def pixel_ratio():
     # _check_qt_version will init an app for us, so no need for us to do it
     if not has_pyvista() or not _check_qt_version():
         return 1.0
-    from qtpy.QtWidgets import QMainWindow
     from qtpy.QtCore import Qt
+    from qtpy.QtWidgets import QMainWindow
 
     app = _init_mne_qtapp()
     app.processEvents()
@@ -872,6 +880,14 @@ def protect_config():
         yield
 
 
+def _test_passed(request):
+    try:
+        outcome = request.node.harvest_rep_call
+    except Exception:
+        outcome = "passed"
+    return outcome == "passed"
+
+
 @pytest.fixture()
 def brain_gc(request):
     """Ensure that brain can be properly garbage collected."""
@@ -897,11 +913,7 @@ def brain_gc(request):
     yield
     close_func()
     # no need to warn if the test itself failed, pytest-harvest helps us here
-    try:
-        outcome = request.node.harvest_rep_call
-    except Exception:
-        outcome = "failed"
-    if outcome != "passed":
+    if not _test_passed(request):
         return
     _assert_no_instances(Brain, "after")
     # Check VTK
@@ -993,10 +1005,10 @@ def numba_conditional(monkeypatch, request):
 def _nbclient():
     try:
         import nbformat
+        import trame  # noqa
+        from ipywidgets import Button  # noqa
         from jupyter_client import AsyncKernelManager
         from nbclient import NotebookClient
-        from ipywidgets import Button  # noqa
-        import trame  # noqa
     except Exception as exc:
         return pytest.skip(f"Skipping Notebook test: {exc}")
     km = AsyncKernelManager(config=None)

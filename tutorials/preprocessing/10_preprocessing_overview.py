@@ -15,7 +15,9 @@ We begin as always by importing the necessary Python modules and loading some
 # %%
 
 import os
+
 import numpy as np
+
 import mne
 
 sample_data_folder = mne.datasets.sample.data_path()

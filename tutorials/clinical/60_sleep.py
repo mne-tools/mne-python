@@ -33,18 +33,15 @@ seconds of data.
 
 # %%
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import FunctionTransformer
 
 import mne
 from mne.datasets.sleep_physionet.age import fetch_data
-
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import accuracy_score
-from sklearn.metrics import confusion_matrix
-from sklearn.metrics import classification_report
-from sklearn.pipeline import make_pipeline
-from sklearn.preprocessing import FunctionTransformer
 
 ##############################################################################
 # Load the data

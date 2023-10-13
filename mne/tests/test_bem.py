@@ -10,40 +10,40 @@ from shutil import copy
 
 import numpy as np
 import pytest
-from numpy.testing import assert_equal, assert_allclose
+from numpy.testing import assert_allclose, assert_equal
 
 import mne
 from mne import (
-    make_bem_model,
-    read_bem_surfaces,
-    write_bem_surfaces,
-    make_bem_solution,
-    read_bem_solution,
-    write_bem_solution,
-    make_sphere_model,
-    Transform,
     Info,
-    write_surface,
+    Transform,
+    make_bem_model,
+    make_bem_solution,
+    make_sphere_model,
+    read_bem_solution,
+    read_bem_surfaces,
+    write_bem_solution,
+    write_bem_surfaces,
     write_head_bem,
+    write_surface,
 )
-from mne.preprocessing.maxfilter import fit_sphere_to_headshape
 from mne._fiff.constants import FIFF
-from mne.transforms import translation
-from mne.datasets import testing
-from mne.utils import catch_logging, check_version
 from mne.bem import (
-    _ico_downsample,
-    _get_ico_map,
-    _order_surfaces,
     _assert_complete_surface,
     _assert_inside,
-    _check_surface_size,
     _bem_find_surface,
-    make_scalp_surfaces,
+    _check_surface_size,
+    _get_ico_map,
+    _ico_downsample,
+    _order_surfaces,
     distance_to_bem,
+    make_scalp_surfaces,
 )
-from mne.surface import read_surface, _get_ico_surface
+from mne.datasets import testing
 from mne.io import read_info
+from mne.preprocessing.maxfilter import fit_sphere_to_headshape
+from mne.surface import _get_ico_surface, read_surface
+from mne.transforms import translation
+from mne.utils import catch_logging, check_version
 
 fname_raw = Path(__file__).parent.parent / "io" / "tests" / "data" / "test_raw.fif"
 subjects_dir = testing.data_path(download=False) / "subjects"

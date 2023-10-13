@@ -13,16 +13,15 @@ For a comparison of fits between MNE-C and MNE-Python, see
 
 # %%
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
+from nilearn.datasets import load_mni152_template
+from nilearn.plotting import plot_anat
 
 import mne
-from mne.forward import make_forward_dipole
 from mne.evoked import combine_evoked
+from mne.forward import make_forward_dipole
 from mne.simulation import simulate_evoked
-
-from nilearn.plotting import plot_anat
-from nilearn.datasets import load_mni152_template
 
 data_path = mne.datasets.sample.data_path()
 subjects_dir = data_path / "subjects"
@@ -100,6 +99,7 @@ fig, axes = plt.subplots(
     ncols=4,
     figsize=[10.0, 3.4],
     gridspec_kw=dict(width_ratios=[1, 1, 1, 0.1], top=0.85),
+    layout="constrained",
 )
 vmin, vmax = -400, 400  # make sure each plot has same colour range
 
@@ -119,7 +119,6 @@ fig.suptitle(
     "at {:.0f} ms".format(best_time * 1000.0),
     fontsize=16,
 )
-fig.tight_layout()
 
 # %%
 # Estimate the time course of a single dipole with fixed position and

@@ -8,8 +8,8 @@ import os.path as op
 
 import numpy as np
 
-from ...utils import verbose, _TempDir, _check_pandas_installed, _on_missing
-from ..utils import _get_path, _downloader_params
+from ...utils import _check_pandas_installed, _on_missing, _TempDir, verbose
+from ..utils import _downloader_params, _get_path
 
 AGE_SLEEP_RECORDS = op.join(op.dirname(__file__), "age_records.csv")
 TEMAZEPAM_SLEEP_RECORDS = op.join(op.dirname(__file__), "temazepam_records.csv")

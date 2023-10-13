@@ -5,22 +5,22 @@
 
 import numpy as np
 
-from ..defaults import _INTERPOLATION_DEFAULT, _EXTRAPOLATE_DEFAULT, _BORDER_DEFAULT
+from .._fiff.pick import _picks_to_idx
+from ..defaults import _BORDER_DEFAULT, _EXTRAPOLATE_DEFAULT, _INTERPOLATION_DEFAULT
 from ..epochs import BaseEpochs
 from ..evoked import Evoked
-from .._fiff.pick import _picks_to_idx
 from ..io import BaseRaw
-from ..utils import (
-    _check_preload,
-    _validate_type,
-    _check_option,
-    verbose,
-    fill_doc,
-    copy_function_doc_to_method_doc,
-    _check_fname,
-    _import_h5io_funcs,
-)
 from ..minimum_norm.inverse import _needs_eeg_average_ref_proj
+from ..utils import (
+    _check_fname,
+    _check_option,
+    _check_preload,
+    _import_h5io_funcs,
+    _validate_type,
+    copy_function_doc_to_method_doc,
+    fill_doc,
+    verbose,
+)
 from ..viz import plot_regression_weights
 
 

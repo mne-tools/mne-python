@@ -9,90 +9,83 @@
 #
 # License: Simplified BSD
 
-from collections import defaultdict
 import os
 import os.path as op
 import warnings
+from collections import defaultdict
 from collections.abc import Iterable
 from dataclasses import dataclass
 from functools import partial
 from itertools import cycle
-from typing import Optional
 from pathlib import Path
+from typing import Optional
 
 import numpy as np
-from scipy.stats import rankdata
 from scipy.spatial import ConvexHull, Delaunay
 from scipy.spatial.distance import cdist
+from scipy.stats import rankdata
 
-from ._dipole import _check_concat_dipoles, _plot_dipole_mri_outlines, _plot_dipole_3d
-from ..defaults import DEFAULTS
-from ..fixes import _crop_colorbar, _get_img_fdata
+from .._fiff.constants import FIFF
+from .._fiff.meas_info import Info, create_info, read_fiducials
+from .._fiff.pick import (
+    _FNIRS_CH_TYPES_SPLIT,
+    _MEG_CH_TYPES_SPLIT,
+    channel_type,
+    pick_info,
+    pick_types,
+)
+from .._fiff.tag import _loc_to_coil_trans
 from .._freesurfer import (
-    _read_mri_info,
     _check_mri,
     _get_head_surface,
     _get_skull_surface,
+    _read_mri_info,
     read_freesurfer_lut,
 )
-from .._fiff.tag import _loc_to_coil_trans
-from .._fiff.pick import (
-    pick_types,
-    channel_type,
-    pick_info,
-    _FNIRS_CH_TYPES_SPLIT,
-    _MEG_CH_TYPES_SPLIT,
-)
-from .._fiff.constants import FIFF
-from .._fiff.meas_info import read_fiducials, create_info, Info
+from ..defaults import DEFAULTS
+from ..fixes import _crop_colorbar, _get_img_fdata
 from ..surface import (
-    get_meg_helmet_surf,
-    _read_mri_surface,
+    _CheckInside,
     _DistanceQuery,
     _project_onto_surface,
+    _read_mri_surface,
     _reorder_ccw,
-    _CheckInside,
+    get_meg_helmet_surf,
 )
 from ..transforms import (
-    apply_trans,
-    rot_to_quat,
-    combine_transforms,
-    _get_trans,
-    _ensure_trans,
     Transform,
-    rotation,
-    read_ras_mni_t,
-    _print_coord_trans,
+    _ensure_trans,
     _find_trans,
-    transform_surface_to,
     _frame_to_str,
+    _get_trans,
     _get_transforms_to_coord_frame,
+    _print_coord_trans,
+    apply_trans,
+    combine_transforms,
+    read_ras_mni_t,
+    rot_to_quat,
+    rotation,
+    transform_surface_to,
 )
 from ..utils import (
-    get_subjects_dir,
-    logger,
+    _check_option,
     _check_subject,
-    verbose,
-    warn,
+    _ensure_int,
+    _import_nibabel,
+    _pl,
+    _to_rgb,
+    _validate_type,
     check_version,
     fill_doc,
-    _pl,
     get_config,
-    _import_nibabel,
-    _ensure_int,
-    _validate_type,
-    _check_option,
-    _to_rgb,
+    get_subjects_dir,
+    logger,
+    verbose,
+    warn,
 )
-from .utils import (
-    _get_color_list,
-    _get_cmap,
-    plt_show,
-    tight_layout,
-    figure_nobar,
-    _check_time_unit,
-)
+from ._dipole import _check_concat_dipoles, _plot_dipole_3d, _plot_dipole_mri_outlines
 from .evoked_field import EvokedField
+from .utils import _check_time_unit, _get_cmap, _get_color_list, figure_nobar, plt_show
 
 verbose_dec = verbose
 FIDUCIAL_ORDER = (FIFF.FIFFV_POINT_LPA, FIFF.FIFFV_POINT_NASION, FIFF.FIFFV_POINT_RPA)
@@ -178,9 +171,10 @@ def plot_head_positions(
     fig : instance of matplotlib.figure.Figure
         The figure.
     """
+    import matplotlib.pyplot as plt
+
     from ..chpi import head_pos_to_trans_rot_t
     from ..preprocessing.maxwell import _check_destination
-    import matplotlib.pyplot as plt
 
     _check_option("mode", mode, ["traces", "field"])
     dest_info = dict(dev_head_t=None) if info is None else info
@@ -311,10 +305,12 @@ def plot_head_positions(
 
     else:  # mode == 'field':
         from matplotlib.colors import Normalize
-        from mpl_toolkits.mplot3d.art3d import Line3DCollection
         from mpl_toolkits.mplot3d import Axes3D  # noqa: F401, analysis:ignore
+        from mpl_toolkits.mplot3d.art3d import Line3DCollection
 
-        fig, ax = plt.subplots(1, subplot_kw=dict(projection="3d"))
+        fig, ax = plt.subplots(
+            1, subplot_kw=dict(projection="3d"), layout="constrained"
+        )
 
         # First plot the trajectory as a colormap:
         # http://matplotlib.org/examples/pylab_examples/multicolored_line.html
@@ -374,7 +370,6 @@ def plot_head_positions(
         ax.set(xlabel="x", ylabel="y", zlabel="z", xlim=xlim, ylim=ylim, zlim=zlim)
         _set_aspect_equal(ax)
         ax.view_init(30, 45)
-    tight_layout(fig=fig)
     plt_show(show)
     return fig
 
@@ -633,9 +628,9 @@ def plot_alignment(
     .. versionadded:: 0.15
     """
     # Update the backend
-    from .backends.renderer import _get_renderer
     from ..bem import ConductorModel, _bem_find_surface, _ensure_bem_surfaces
     from ..source_space._source_space import _ensure_src
+    from .backends.renderer import _get_renderer
 
     meg, eeg, fnirs, warn_meg = _handle_sensor_types(meg, eeg, fnirs)
     _check_option("interaction", interaction, ["trackball", "terrain"])
@@ -1597,7 +1592,7 @@ def _sensor_shape(coil):
     except ImportError:  # scipy < 1.8
         from scipy.spatial.qhull import QhullError
     id_ = coil["type"] & 0xFFFF
-    pad = True
+    z_value = 0
     # Square figure eight
     if id_ in (
         FIFF.FIFFV_COIL_NM_122,
@@ -1623,6 +1618,8 @@ def _sensor_shape(coil):
         tris = np.concatenate(
             (_make_tris_fan(4), _make_tris_fan(4)[:, ::-1] + 4), axis=0
         )
+        # Offset for visibility (using heuristic for sanely named Neuromag coils)
+        z_value = 0.001 * (1 + coil["chname"].endswith("2"))
     # Square
     elif id_ in (
         FIFF.FIFFV_COIL_POINT_MAGNETOMETER,
@@ -1693,11 +1690,11 @@ def _sensor_shape(coil):
             rr_rot = rrs @ u
             tris = Delaunay(rr_rot[:, :2]).simplices
             tris = np.concatenate((tris, tris[:, ::-1]))
-        pad = False
+        z_value = None
 
     # Go from (x,y) -> (x,y,z)
-    if pad:
-        rrs = np.pad(rrs, ((0, 0), (0, 1)), mode="constant")
+    if z_value is not None:
+        rrs = np.pad(rrs, ((0, 0), (0, 1)), mode="constant", constant_values=z_value)
     assert rrs.ndim == 2 and rrs.shape[1] == 3
     return rrs, tris
 
@@ -1901,7 +1898,7 @@ def _key_pressed_slider(event, params):
     time_viewer.slider.set_val(this_time)
 
 
-def _smooth_plot(this_time, params):
+def _smooth_plot(this_time, params, *, draw=True):
     """Smooth source estimate data and plot with mpl."""
     from ..morph import _hemi_morph
 
@@ -1957,7 +1954,8 @@ def _smooth_plot(this_time, params):
     _set_aspect_equal(ax)
     ax.axis("off")
     ax.set(xlim=[-80, 80], ylim=(-80, 80), zlim=[-80, 80])
-    ax.figure.canvas.draw()
+    if draw:
+        ax.figure.canvas.draw()
 
 
 def _plot_mpl_stc(
@@ -1982,11 +1980,12 @@ def _plot_mpl_stc(
 ):
     """Plot source estimate using mpl."""
     import matplotlib.pyplot as plt
-    from mpl_toolkits.mplot3d import Axes3D
-    from matplotlib.widgets import Slider
     import nibabel as nib
+    from matplotlib.widgets import Slider
+    from mpl_toolkits.mplot3d import Axes3D
+
     from ..morph import _get_subject_sphere_tris
-    from ..source_space._source_space import _create_surf_spacing, _check_spacing
+    from ..source_space._source_space import _check_spacing, _create_surf_spacing
 
     if hemi not in ["lh", "rh"]:
         raise ValueError(
@@ -2022,7 +2021,8 @@ def _plot_mpl_stc(
     del transparent, mapdata
 
     time_label, times = _handle_time(time_label, time_unit, stc.times)
-    fig = plt.figure(figsize=(6, 6)) if figure is None else figure
+    # don't use constrained layout because Axes3D does not play well with it
+    fig = plt.figure(figsize=(6, 6), layout=None) if figure is None else figure
     try:
         ax = Axes3D(fig, auto_add_to_figure=False)
     except Exception:  # old mpl
@@ -2072,7 +2072,7 @@ def _plot_mpl_stc(
         time_label=time_label,
         time_unit=time_unit,
     )
-    _smooth_plot(initial_time, params)
+    _smooth_plot(initial_time, params, draw=False)
 
     ax.view_init(**kwargs[hemi][views])
 
@@ -2100,7 +2100,6 @@ def _plot_mpl_stc(
         callback_key = partial(_key_pressed_slider, params=params)
         time_viewer.canvas.mpl_connect("key_press_event", callback_key)
 
-        time_viewer.subplots_adjust(left=0.12, bottom=0.05, right=0.75, top=0.95)
     fig.subplots_adjust(left=0.0, bottom=0.0, right=1.0, top=1.0)
 
     # add colorbar
@@ -2174,7 +2173,7 @@ def link_brains(brains, time=True, camera=False, colorbar=True, picking=False):
 
 
 def _check_volume(stc, src, surface, backend_name):
-    from ..source_estimate import _BaseSurfaceSourceEstimate, _BaseMixedSourceEstimate
+    from ..source_estimate import _BaseMixedSourceEstimate, _BaseSurfaceSourceEstimate
     from ..source_space import SourceSpaces
 
     if isinstance(stc, _BaseSurfaceSourceEstimate):
@@ -2346,8 +2345,8 @@ def plot_source_estimates(
     - https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOccipitalFlattenedPatch
     - https://openwetware.org/wiki/Beauchamp:FreeSurfer
     """  # noqa: E501
-    from .backends.renderer import _get_3d_backend, use_3d_backend
     from ..source_estimate import _BaseSourceEstimate, _check_stc_src
+    from .backends.renderer import _get_3d_backend, use_3d_backend
 
     _check_stc_src(stc, src)
     _validate_type(stc, _BaseSourceEstimate, "stc", "source estimate")
@@ -2435,8 +2434,8 @@ def _plot_stc(
     add_data_kwargs,
     brain_kwargs,
 ):
-    from .backends.renderer import _get_3d_backend, get_brain_class
     from ..source_estimate import _BaseVolSourceEstimate
+    from .backends.renderer import _get_3d_backend, get_brain_class
 
     vec = stc._data_ndim == 3
     subjects_dir = str(get_subjects_dir(subjects_dir=subjects_dir, raise_error=True))
@@ -2708,7 +2707,8 @@ def plot_volume_source_estimates(
     >>> fig = stc_vol_sample.plot(morph)  # doctest: +SKIP
     """  # noqa: E501
     import nibabel as nib
-    from matplotlib import pyplot as plt, colors
+    from matplotlib import colors
+    from matplotlib import pyplot as plt
 
     from ..morph import SourceMorph
     from ..source_estimate import VolSourceEstimate
@@ -2717,8 +2717,8 @@ def plot_volume_source_estimates(
     if not check_version("nilearn", "0.4"):
         raise RuntimeError("This function requires nilearn >= 0.4")
 
-    from nilearn.plotting import plot_stat_map, plot_glass_brain
     from nilearn.image import index_img
+    from nilearn.plotting import plot_glass_brain, plot_stat_map
 
     _check_option("mode", mode, ("stat_map", "glass_brain"))
     plot_func = dict(stat_map=plot_stat_map, glass_brain=plot_glass_brain)[mode]
@@ -2932,7 +2932,7 @@ def plot_volume_source_estimates(
     del ijk
 
     # Plot initial figure
-    fig, (axes, ax_time) = plt.subplots(2)
+    fig, (axes, ax_time) = plt.subplots(2, layout="constrained")
     axes.set(xticks=[], yticks=[])
     marker = "o" if len(stc.times) == 1 else None
     ydata = stc.data[loc_idx]
@@ -2943,7 +2943,6 @@ def plot_volume_source_estimates(
     vert_legend = ax_time.legend([h], [""], title="Vertex")
     _update_vertlabel(loc_idx)
     lx = ax_time.axvline(stc.times[time_idx], color="g")
-    fig.tight_layout()
 
     allow_pos_lims = mode != "glass_brain"
     mapdata = _process_clim(clim, colormap, transparent, stc.data, allow_pos_lims)
@@ -3050,8 +3049,8 @@ def plot_volume_source_estimates(
 
 
 def _check_views(surf, views, hemi, stc=None, backend=None):
-    from ._brain.view import views_dicts
     from ..source_estimate import SourceEstimate
+    from ._brain.view import views_dicts
 
     _validate_type(views, (list, tuple, str), "views")
     views = [views] if isinstance(views, str) else list(views)
@@ -3390,7 +3389,7 @@ def plot_sparse_source_estimates(
     )
 
     # Show time courses
-    fig = plt.figure(fig_number)
+    fig = plt.figure(fig_number, layout="constrained")
     fig.clf()
     ax = fig.add_subplot(111)
 
@@ -3757,7 +3756,9 @@ def _plot_dipole_mri_orthoview(
     dims = len(data)  # Symmetric size assumed.
     dd = dims // 2
     if ax is None:
-        fig, ax = plt.subplots(1, subplot_kw=dict(projection="3d"))
+        fig, ax = plt.subplots(
+            1, subplot_kw=dict(projection="3d"), layout="constrained"
+        )
     else:
         _validate_type(ax, Axes3D, "ax", "Axes3D", extra='when mode is "orthoview"')
         fig = ax.get_figure()

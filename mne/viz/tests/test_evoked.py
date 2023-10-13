@@ -11,30 +11,30 @@
 
 from pathlib import Path
 
-import numpy as np
-from numpy.testing import assert_allclose
-import pytest
 import matplotlib.pyplot as plt
+import numpy as np
+import pytest
 from matplotlib import gridspec
 from matplotlib.collections import PolyCollection
 from mpl_toolkits.axes_grid1.parasite_axes import HostAxes  # spatial_colors
+from numpy.testing import assert_allclose
 
 import mne
 from mne import (
-    read_events,
     Epochs,
-    read_cov,
     compute_covariance,
-    make_fixed_length_events,
     compute_proj_evoked,
+    make_fixed_length_events,
+    read_cov,
+    read_events,
 )
+from mne._fiff.constants import FIFF
+from mne.datasets import testing
 from mne.io import read_raw_fif
+from mne.stats.parametric import _parametric_ci
 from mne.utils import catch_logging
 from mne.viz import plot_compare_evokeds, plot_evoked_white
 from mne.viz.utils import _fake_click, _get_cmap
-from mne.datasets import testing
-from mne._fiff.constants import FIFF
-from mne.stats.parametric import _parametric_ci
 
 base_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
 evoked_fname = base_dir / "test-ave.fif"
@@ -231,7 +231,7 @@ def test_plot_evoked():
 
 def test_constrained_layout():
     """Test that we handle constrained layouts correctly."""
-    fig, ax = plt.subplots(1, 1, constrained_layout=True)
+    fig, ax = plt.subplots(1, 1, layout="constrained")
     assert fig.get_constrained_layout()
     evoked = mne.read_evokeds(evoked_fname)[0]
     evoked.pick(evoked.ch_names[:2])
@@ -612,7 +612,7 @@ def test_plot_ctf():
     fig = plt.figure()
 
     # create custom axes for topomaps, colorbar and the timeseries
-    gs = gridspec.GridSpec(3, 7, hspace=0.5, top=0.8)
+    gs = gridspec.GridSpec(3, 7, hspace=0.5, top=0.8, figure=fig)
     topo_axes = [
         fig.add_subplot(gs[0, idx * 2 : (idx + 1) * 2]) for idx in range(len(times))
     ]

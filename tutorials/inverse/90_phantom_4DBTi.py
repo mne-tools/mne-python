@@ -19,9 +19,11 @@ Data are provided by Jean-Michel Badier from MEG center in Marseille, France.
 # %%
 
 import os.path as op
+
 import numpy as np
-from mne.datasets import phantom_4dbti
+
 import mne
+from mne.datasets import phantom_4dbti
 
 # %%
 # Read data and compute a dipole fit at the peak of the evoked response

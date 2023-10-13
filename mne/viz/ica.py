@@ -7,35 +7,34 @@
 #
 # License: Simplified BSD
 
-from functools import partial
 import warnings
+from functools import partial
 
 import numpy as np
 from scipy.stats import gaussian_kde
 
-from .utils import (
-    tight_layout,
-    _make_event_color_dict,
-    _get_cmap,
-    plt_show,
-    _convert_psds,
-    _compute_scalings,
-    _handle_precompute,
-    _get_plot_ch_type,
-)
-from .topomap import _plot_ica_topomap
-from .epochs import plot_epochs_image
-from .evoked import _butterfly_on_button_press, _butterfly_onpick
+from .._fiff.meas_info import create_info
+from .._fiff.pick import _picks_to_idx, pick_types
+from .._fiff.proj import _has_eeg_average_ref_proj
+from ..defaults import DEFAULTS, _handle_default
 from ..utils import (
+    _reject_data_segments,
     _validate_type,
     fill_doc,
-    _reject_data_segments,
     verbose,
 )
-from ..defaults import _handle_default, DEFAULTS
-from .._fiff.meas_info import create_info
-from .._fiff.pick import pick_types, _picks_to_idx
-from .._fiff.proj import _has_eeg_average_ref_proj
+from .epochs import plot_epochs_image
+from .evoked import _butterfly_on_button_press, _butterfly_onpick
+from .topomap import _plot_ica_topomap
+from .utils import (
+    _compute_scalings,
+    _convert_psds,
+    _get_cmap,
+    _get_plot_ch_type,
+    _handle_precompute,
+    _make_event_color_dict,
+    plt_show,
+)
 
 
 @fill_doc
@@ -115,9 +114,9 @@ def plot_ica_sources(
 
     .. versionadded:: 0.10.0
     """
-    from ..io import BaseRaw
-    from ..evoked import Evoked
     from ..epochs import BaseEpochs
+    from ..evoked import Evoked
+    from ..io import BaseRaw
 
     exclude = ica.exclude
     picks = _picks_to_idx(ica.n_components_, picks, picks_on="components")
@@ -695,8 +694,8 @@ def _prepare_data_ica_properties(inst, ica, reject_by_annotation=True, reject="a
     data : array of shape (n_epochs, n_ica_sources, n_times)
         A view on epochs ICA sources data.
     """
-    from ..io import BaseRaw, RawArray
     from ..epochs import BaseEpochs
+    from ..io import BaseRaw, RawArray
 
     _validate_type(inst, (BaseRaw, BaseEpochs), "inst", "Raw or Epochs")
     if isinstance(inst, BaseRaw):
@@ -767,7 +766,7 @@ def _plot_ica_sources_evoked(evoked, picks, exclude, title, show, ica, labels=No
     if title is None:
         title = "Reconstructed latent sources, time-locked"
 
-    fig, axes = plt.subplots(1)
+    fig, axes = plt.subplots(1, layout="constrained")
     ax = axes
     axes = [axes]
     times = evoked.times * 1e3
@@ -852,7 +851,6 @@ def _plot_ica_sources_evoked(evoked, picks, exclude, title, show, ica, labels=No
     ax.set(title=title, xlim=times[[0, -1]], xlabel="Time (ms)", ylabel="(NA)")
     if len(exclude) > 0:
         plt.legend(loc="best")
-    tight_layout(fig=fig)
 
     texts.append(
         ax.text(
@@ -959,7 +957,9 @@ def plot_ica_scores(
 
     if figsize is None:
         figsize = (6.4 * n_cols, 2.7 * n_rows)
-    fig, axes = plt.subplots(n_rows, n_cols, figsize=figsize, sharex=True, sharey=True)
+    fig, axes = plt.subplots(
+        n_rows, n_cols, figsize=figsize, sharex=True, sharey=True, layout="constrained"
+    )
 
     if isinstance(axes, np.ndarray):
         axes = axes.flatten()
@@ -1012,11 +1012,6 @@ def plot_ica_scores(
             ax.set_title("(%s)" % label)
         ax.set_xlabel("ICA components")
         ax.set_xlim(-0.6, len(this_scores) - 0.4)
-
-    tight_layout(fig=fig)
-
-    adjust_top = 0.8 if len(fig.axes) == 1 else 0.9
-    fig.subplots_adjust(top=adjust_top)
     fig.canvas.draw()
     plt_show(show)
     return fig
@@ -1074,8 +1069,8 @@ def plot_ica_overlay(
         The figure.
     """
     # avoid circular imports
-    from ..io import BaseRaw
     from ..evoked import Evoked
+    from ..io import BaseRaw
     from ..preprocessing.ica import _check_start_stop
 
     if ica.current_fit == "unfitted":
@@ -1159,13 +1154,13 @@ def _plot_ica_overlay_raw(*, raw, raw_cln, picks, start, stop, title, show):
     ch_types = raw.get_channel_types(picks=picks, unique=True)
     for ch_type in ch_types:
         if ch_type in ("mag", "grad"):
-            fig, ax = plt.subplots(3, 1, sharex=True, constrained_layout=True)
+            fig, ax = plt.subplots(3, 1, sharex=True, layout="constrained")
         elif ch_type == "eeg" and not _has_eeg_average_ref_proj(
             raw.info, check_active=True
         ):
-            fig, ax = plt.subplots(3, 1, sharex=True, constrained_layout=True)
+            fig, ax = plt.subplots(3, 1, sharex=True, layout="constrained")
         else:
-            fig, ax = plt.subplots(2, 1, sharex=True, constrained_layout=True)
+            fig, ax = plt.subplots(2, 1, sharex=True, layout="constrained")
         fig.suptitle(title)
 
         # select sensors and retrieve data array
@@ -1236,7 +1231,7 @@ def _plot_ica_overlay_evoked(evoked, evoked_cln, title, show):
     if len(ch_types_used) != len(ch_types_used_cln):
         raise ValueError("Raw and clean evokeds must match. Found different channels.")
 
-    fig, axes = plt.subplots(n_rows, 1)
+    fig, axes = plt.subplots(n_rows, 1, layout="constrained")
     if title is None:
         title = "Average signal before (red) and after (black) ICA"
     fig.suptitle(title)
@@ -1248,9 +1243,6 @@ def _plot_ica_overlay_evoked(evoked, evoked_cln, title, show):
             line.set_color("r")
     fig.canvas.draw()
     evoked_cln.plot(axes=axes, show=False, time_unit="s", spatial_colors=False)
-    tight_layout(fig=fig)
-
-    fig.subplots_adjust(top=0.90)
     fig.canvas.draw()
     plt_show(show)
     return fig
@@ -1276,9 +1268,9 @@ def _plot_sources(
     overview_mode=None,
 ):
     """Plot the ICA components as a RawArray or EpochsArray."""
+    from ..epochs import BaseEpochs, EpochsArray
+    from ..io import BaseRaw, RawArray
     from ._figure import _get_browser
-    from ..epochs import EpochsArray, BaseEpochs
-    from ..io import RawArray, BaseRaw
 
     # handle defaults / check arg validity
     is_raw = isinstance(inst, BaseRaw)

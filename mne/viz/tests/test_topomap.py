@@ -9,55 +9,53 @@
 from functools import partial
 from pathlib import Path
 
-import numpy as np
-from numpy.testing import assert_array_equal, assert_equal, assert_almost_equal
-import pytest
 import matplotlib
 import matplotlib.pyplot as plt
+import numpy as np
+import pytest
 from matplotlib.patches import Circle
+from numpy.testing import assert_almost_equal, assert_array_equal, assert_equal
 
 from mne import (
+    Epochs,
+    EvokedArray,
+    Projection,
+    compute_proj_evoked,
+    compute_proj_raw,
+    create_info,
+    find_layout,
+    make_fixed_length_events,
+    pick_types,
+    read_cov,
     read_evokeds,
     read_proj,
-    make_fixed_length_events,
-    Epochs,
-    compute_proj_evoked,
-    find_layout,
-    pick_types,
-    create_info,
-    read_cov,
-    EvokedArray,
-    compute_proj_raw,
-    Projection,
 )
-from mne._fiff.proj import make_eeg_average_ref_proj
-from mne.io import read_raw_fif, read_info, RawArray
-from mne._fiff.constants import FIFF
-from mne._fiff.pick import pick_info, channel_indices_by_type, _picks_to_idx
 from mne._fiff.compensator import get_current_comp
+from mne._fiff.constants import FIFF
+from mne._fiff.pick import _picks_to_idx, channel_indices_by_type, pick_info
+from mne._fiff.proj import make_eeg_average_ref_proj
 from mne.channels import (
-    read_layout,
+    find_ch_adjacency,
     make_dig_montage,
     make_standard_montage,
-    find_ch_adjacency,
+    read_layout,
 )
 from mne.datasets import testing
+from mne.io import RawArray, read_info, read_raw_fif
 from mne.preprocessing import compute_bridged_electrodes
 from mne.time_frequency.tfr import AverageTFR
-
 from mne.viz import plot_evoked_topomap, plot_projs_topomap, topomap
+from mne.viz.tests.test_raw import _proj_status
 from mne.viz.topomap import (
     _get_pos_outlines,
     _onselect,
-    plot_topomap,
     plot_arrowmap,
-    plot_psds_topomap,
     plot_bridged_electrodes,
     plot_ch_adjacency,
+    plot_psds_topomap,
+    plot_topomap,
 )
-from mne.viz.utils import _find_peaks, _fake_click, _fake_keypress, _fake_scroll
-
-from mne.viz.tests.test_raw import _proj_status
+from mne.viz.utils import _fake_click, _fake_keypress, _fake_scroll, _find_peaks
 
 data_dir = testing.data_path(download=False)
 subjects_dir = data_dir / "subjects"
@@ -75,8 +73,8 @@ cov_fname = base_dir / "test-cov.fif"
 fast_test = dict(res=8, contours=0, sensors=False)
 
 
-@pytest.mark.parametrize("constrained_layout", (False, True))
-def test_plot_topomap_interactive(constrained_layout):
+@pytest.mark.parametrize("layout", (None, "constrained"))
+def test_plot_topomap_interactive(layout):
     """Test interactive topomap projection plotting."""
     evoked = read_evokeds(evoked_fname, baseline=(None, 0))[0]
     evoked.pick(picks="mag")
@@ -86,7 +84,7 @@ def test_plot_topomap_interactive(constrained_layout):
     evoked.add_proj(compute_proj_evoked(evoked, n_mag=1))
 
     plt.close("all")
-    fig, ax = plt.subplots(constrained_layout=constrained_layout)
+    fig, ax = plt.subplots(layout=layout)
     canvas = fig.canvas
 
     kwargs = dict(
@@ -770,8 +768,7 @@ def test_plot_cov_topomap():
 
 def test_plot_topomap_cnorm():
     """Test colormap normalization."""
-    from matplotlib.colors import TwoSlopeNorm
-    from matplotlib.colors import PowerNorm
+    from matplotlib.colors import PowerNorm, TwoSlopeNorm
 
     rng = np.random.default_rng(42)
     v = rng.uniform(low=-1, high=2.5, size=64)

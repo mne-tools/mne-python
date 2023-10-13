@@ -73,7 +73,6 @@ The coordinate system is automatically detected for Gowerlabs SNIRF files.
 Continuous Wave Devices
 ***********************
 
-
 .. _import-nirx:
 
 NIRx (directory or hdr)
@@ -160,6 +159,7 @@ have to adapt this depending on the system from which your CSV originated.
 
 import numpy as np
 import pandas as pd
+
 import mne
 
 # sphinx_gallery_thumbnail_number = 2

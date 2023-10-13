@@ -28,16 +28,16 @@ as a decoding model, or simply stimulus reconstruction).
 # %%
 # sphinx_gallery_thumbnail_number = 3
 
-import numpy as np
-import matplotlib.pyplot as plt
-from scipy.io import loadmat
 from os.path import join
 
-import mne
-from mne.decoding import ReceptiveField
+import matplotlib.pyplot as plt
+import numpy as np
+from scipy.io import loadmat
 from sklearn.model_selection import KFold
 from sklearn.preprocessing import scale
 
+import mne
+from mne.decoding import ReceptiveField
 
 # %%
 # Load the data from the publication
@@ -67,12 +67,11 @@ raw = mne.io.RawArray(raw, info)
 n_channels = len(raw.ch_names)
 
 # Plot a sample of brain and stimulus activity
-fig, ax = plt.subplots()
+fig, ax = plt.subplots(layout="constrained")
 lns = ax.plot(scale(raw[:, :800][0].T), color="k", alpha=0.1)
 ln1 = ax.plot(scale(speech[0, :800]), color="r", lw=2)
 ax.legend([lns[0], ln1[0]], ["EEG", "Speech Envelope"], frameon=False)
 ax.set(title="Sample activity", xlabel="Time (s)")
-mne.viz.tight_layout()
 
 # %%
 # Create and fit a receptive field model
@@ -117,12 +116,11 @@ mean_coefs = coefs.mean(axis=0)
 mean_scores = scores.mean(axis=0)
 
 # Plot mean prediction scores across all channels
-fig, ax = plt.subplots()
+fig, ax = plt.subplots(layout="constrained")
 ix_chs = np.arange(n_channels)
 ax.plot(ix_chs, mean_scores)
 ax.axhline(0, ls="--", color="r")
 ax.set(title="Mean prediction score", xlabel="Channel", ylabel="Score ($r$)")
-mne.viz.tight_layout()
 
 # %%
 # Investigate model coefficients
@@ -134,7 +132,7 @@ mne.viz.tight_layout()
 
 # Print mean coefficients across all time delays / channels (see Fig 1)
 time_plot = 0.180  # For highlighting a specific time.
-fig, ax = plt.subplots(figsize=(4, 8))
+fig, ax = plt.subplots(figsize=(4, 8), layout="constrained")
 max_coef = mean_coefs.max()
 ax.pcolormesh(
     times,
@@ -155,16 +153,14 @@ ax.set(
     xticks=np.arange(tmin, tmax + 0.2, 0.2),
 )
 plt.setp(ax.get_xticklabels(), rotation=45)
-mne.viz.tight_layout()
 
 # Make a topographic map of coefficients for a given delay (see Fig 2C)
 ix_plot = np.argmin(np.abs(time_plot - times))
-fig, ax = plt.subplots()
+fig, ax = plt.subplots(layout="constrained")
 mne.viz.plot_topomap(
     mean_coefs[:, ix_plot], pos=info, axes=ax, show=False, vlim=(-max_coef, max_coef)
 )
 ax.set(title="Topomap of model coefficients\nfor delay %s" % time_plot)
-mne.viz.tight_layout()
 
 # %%
 # Create and fit a stimulus reconstruction model
@@ -240,7 +236,7 @@ max_patterns = np.abs(mean_patterns).max()
 
 y_pred = sr.predict(Y[test])
 time = np.linspace(0, 2.0, 5 * int(sfreq))
-fig, ax = plt.subplots(figsize=(8, 4))
+fig, ax = plt.subplots(figsize=(8, 4), layout="constrained")
 ax.plot(
     time, speech[test][sr.valid_samples_][: int(5 * sfreq)], color="grey", lw=2, ls="--"
 )
@@ -248,7 +244,6 @@ ax.plot(time, y_pred[sr.valid_samples_][: int(5 * sfreq)], color="r", lw=2)
 ax.legend([lns[0], ln1[0]], ["Envelope", "Reconstruction"], frameon=False)
 ax.set(title="Stimulus reconstruction")
 ax.set_xlabel("Time (s)")
-mne.viz.tight_layout()
 
 # %%
 # Investigate model coefficients
@@ -292,7 +287,6 @@ ax[1].set(
     title="Inverse-transformed coefficients\nbetween delays %s and %s"
     % (time_plot[0], time_plot[1])
 )
-mne.viz.tight_layout()
 
 # %%
 # References

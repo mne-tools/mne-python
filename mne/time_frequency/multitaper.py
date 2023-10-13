@@ -9,9 +9,8 @@ from scipy.integrate import trapezoid
 from scipy.signal import get_window
 from scipy.signal.windows import dpss as sp_dpss
 
-
 from ..parallel import parallel_func
-from ..utils import warn, verbose, logger, _check_option
+from ..utils import _check_option, logger, verbose, warn
 
 
 def dpss_windows(N, half_nbw, Kmax, *, sym=True, norm=None, low_bias=True):
@@ -534,7 +533,8 @@ def tfr_array_multitaper(
 
     Notes
     -----
-    %(temporal-window_tfr_notes)s
+    %(temporal_window_tfr_intro)s
+    %(temporal_window_tfr_multitaper_notes)s
     %(time_bandwidth_tfr_notes)s
 
     .. versionadded:: 0.14.0

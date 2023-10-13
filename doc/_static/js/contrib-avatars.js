@@ -47,7 +47,7 @@ async function putAvatarsInPage() {
     }
     // finish
     outer.append(title, inner);
-    document.getElementById("institution-logos").after(outer);
+    document.body.append(outer);
 }
 
 putAvatarsInPage();

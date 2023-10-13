@@ -6,19 +6,19 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from mne import read_evokeds, Epochs, create_info
-from mne.io import read_raw_fif, RawArray
+from mne import Epochs, create_info, read_evokeds
+from mne.io import RawArray, read_raw_fif
 from mne.utils import (
-    warn,
-    set_log_level,
-    set_log_file,
-    filter_out_warnings,
-    verbose,
     _get_call_line,
-    use_log_level,
     catch_logging,
-    logger,
     check,
+    filter_out_warnings,
+    logger,
+    set_log_file,
+    set_log_level,
+    use_log_level,
+    verbose,
+    warn,
 )
 from mne.utils._logging import _frame_info
 

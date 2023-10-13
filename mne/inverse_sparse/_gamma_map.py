@@ -10,11 +10,11 @@ from ..minimum_norm.inverse import _check_reference, _log_exp_var
 from ..utils import logger, verbose, warn
 from .mxne_inverse import (
     _check_ori,
+    _compute_residual,
+    _make_dipoles_sparse,
     _make_sparse_stc,
     _prepare_gain,
     _reapply_source_weighting,
-    _compute_residual,
-    _make_dipoles_sparse,
 )
 
 

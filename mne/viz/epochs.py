@@ -13,39 +13,36 @@
 
 from collections import Counter
 from copy import deepcopy
-import warnings
 
 import numpy as np
 from scipy.ndimage import gaussian_filter1d
 
-from .raw import _setup_channel_selections
-from ..fixes import _sharex
-from ..defaults import _handle_default
-from ..utils import legacy, verbose, logger, warn, fill_doc, _check_option
-from ..utils.spectrum import _split_psd_kwargs
 from .._fiff.meas_info import create_info
-
 from .._fiff.pick import (
-    _picks_to_idx,
     _DATA_CH_TYPES_SPLIT,
     _VALID_CHANNEL_TYPES,
+    _picks_to_idx,
 )
+from ..defaults import _handle_default
+from ..fixes import _sharex
+from ..utils import _check_option, fill_doc, legacy, logger, verbose, warn
+from ..utils.spectrum import _split_psd_kwargs
+from .raw import _setup_channel_selections
 from .utils import (
-    tight_layout,
-    _setup_vmin_vmax,
-    plt_show,
-    _check_cov,
-    _handle_precompute,
-    _compute_scalings,
     DraggableColorbar,
-    _setup_cmap,
-    _handle_decim,
-    _set_title_multiple_electrodes,
-    _make_combine_callable,
-    _set_window_title,
-    _make_event_color_dict,
+    _check_cov,
+    _compute_scalings,
     _get_channel_plotting_order,
+    _handle_decim,
+    _handle_precompute,
+    _make_combine_callable,
+    _make_event_color_dict,
+    _set_title_multiple_electrodes,
+    _set_window_title,
+    _setup_cmap,
+    _setup_vmin_vmax,
     _validate_type,
+    plt_show,
 )
 
 
@@ -432,7 +429,7 @@ def plot_epochs_image(
 
 def _validate_fig_and_axes(fig, axes, group_by, evoked, colorbar, clear=False):
     """Check user-provided fig/axes compatibility with plot_epochs_image."""
-    from matplotlib.pyplot import figure, Axes, subplot2grid
+    from matplotlib.pyplot import Axes, figure, subplot2grid
 
     n_axes = 1 + int(evoked) + int(colorbar)
     ax_names = ("image", "evoked", "colorbar")
@@ -453,7 +450,7 @@ def _validate_fig_and_axes(fig, axes, group_by, evoked, colorbar, clear=False):
         rowspan = 2 if evoked else 3
         shape = (3, 10)
         for this_group in group_by:
-            this_fig = figure()
+            this_fig = figure(layout="constrained")
             _set_window_title(this_fig, this_group)
             subplot2grid(shape, (0, 0), colspan=colspan, rowspan=rowspan, fig=this_fig)
             if evoked:
@@ -602,8 +599,6 @@ def _plot_epochs_image(
     tmax = epochs.times[-1]
 
     ax_im = ax["image"]
-    fig = ax_im.get_figure()
-
     # draw the image
     cmap = _setup_cmap(cmap, norm=norm)
     n_epochs = len(image)
@@ -661,14 +656,13 @@ def _plot_epochs_image(
         this_colorbar = cbar(im, cax=ax["colorbar"])
         this_colorbar.ax.set_ylabel(unit, rotation=270, labelpad=12)
         if cmap[1]:
-            ax_im.CB = DraggableColorbar(this_colorbar, im)
-        with warnings.catch_warnings(record=True):
-            warnings.simplefilter("ignore")
-            tight_layout(fig=fig)
+            ax_im.CB = DraggableColorbar(
+                this_colorbar, im, kind="epochs_image", ch_type=unit
+            )
 
     # finish
     plt_show(show)
-    return fig
+    return ax_im.get_figure()
 
 
 def plot_drop_log(
@@ -716,6 +710,7 @@ def plot_drop_log(
         The figure.
     """
     import matplotlib.pyplot as plt
+
     from ..epochs import _drop_log_stats
 
     percent = _drop_log_stats(drop_log, ignore)
@@ -731,7 +726,7 @@ def plot_drop_log(
     ch_names = np.array(list(scores.keys()))
     counts = np.array(list(scores.values()))
     # init figure, handle easy case (no drops)
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(layout="constrained")
     title = f"{absolute} of {n_epochs_before_drop} epochs removed " f"({percent:.1f}%)"
     if subject is not None:
         title = f"{subject}: {title}"
@@ -753,7 +748,6 @@ def plot_drop_log(
     )
     ax.set_ylabel("% of epochs removed")
     ax.grid(axis="y")
-    tight_layout(pad=1, fig=fig)
     plt_show(show)
     return fig
 

@@ -15,8 +15,8 @@ Let's start out by loading some data.
 
 # %%
 
-import numpy as np
 import nibabel as nib
+import numpy as np
 from scipy import linalg
 
 import mne

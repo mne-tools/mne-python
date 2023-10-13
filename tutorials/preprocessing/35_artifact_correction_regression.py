@@ -40,6 +40,7 @@ blink artifacts, especially during the presentation of visual stimuli.
 
 # %%
 import numpy as np
+
 import mne
 from mne.preprocessing import EOGRegression
 

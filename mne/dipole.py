@@ -5,58 +5,55 @@
 #
 # License: Simplified BSD
 
-from copy import deepcopy
 import functools
-from functools import partial
 import re
+from copy import deepcopy
+from functools import partial
 
 import numpy as np
 from scipy.linalg import eigh
 from scipy.optimize import fmin_cobyla
 
-from .cov import compute_whitener, _ensure_cov
 from ._fiff.constants import FIFF
 from ._fiff.pick import pick_types
-from ._fiff.proj import make_projector, _needs_eeg_average_ref_proj
-from .bem import _fit_sphere
-from .evoked import _read_evoked, _aspect_rev, _write_evokeds
-from .fixes import pinvh, _safe_svd
-from ._freesurfer import read_freesurfer_lut, _get_aseg
-from .transforms import _print_coord_trans, _coord_frame_name, apply_trans
-from .viz.evoked import _plot_evoked
-from ._freesurfer import head_to_mni, head_to_mri
+from ._fiff.proj import _needs_eeg_average_ref_proj, make_projector
+from ._freesurfer import _get_aseg, head_to_mni, head_to_mri, read_freesurfer_lut
+from .bem import _bem_find_surface, _bem_surf_name, _fit_sphere
+from .cov import _ensure_cov, compute_whitener
+from .evoked import _aspect_rev, _read_evoked, _write_evokeds
+from .fixes import _safe_svd, pinvh
+from .forward._compute_forward import _compute_forwards_meeg, _prep_field_computation
 from .forward._make_forward import (
     _get_trans,
-    _setup_bem,
-    _prep_meg_channels,
     _prep_eeg_channels,
+    _prep_meg_channels,
+    _setup_bem,
 )
-from .forward._compute_forward import _compute_forwards_meeg, _prep_field_computation
-
-from .surface import transform_surface_to, _compute_nearest, _points_outside_surface
-from .bem import _bem_find_surface, _bem_surf_name
-from .source_space._source_space import _make_volume_source_space, SourceSpaces
 from .parallel import parallel_func
+from .source_space._source_space import SourceSpaces, _make_volume_source_space
+from .surface import _compute_nearest, _points_outside_surface, transform_surface_to
+from .transforms import _coord_frame_name, _print_coord_trans, apply_trans
 from .utils import (
-    logger,
-    verbose,
-    _time_mask,
-    warn,
-    _check_fname,
-    check_fname,
-    _pl,
-    fill_doc,
-    _check_option,
-    _svd_lwork,
-    _repeated_svd,
-    _get_blas_funcs,
-    _validate_type,
-    copy_function_doc_to_method_doc,
     ExtendedTimeMixin,
     TimeMixin,
+    _check_fname,
+    _check_option,
+    _get_blas_funcs,
+    _pl,
+    _repeated_svd,
+    _svd_lwork,
+    _time_mask,
+    _validate_type,
     _verbose_safe_false,
+    check_fname,
+    copy_function_doc_to_method_doc,
+    fill_doc,
+    logger,
+    verbose,
+    warn,
 )
-from .viz import plot_dipole_locations, plot_dipole_amplitudes
+from .viz import plot_dipole_amplitudes, plot_dipole_locations
+from .viz.evoked import _plot_evoked
 
 
 @fill_doc

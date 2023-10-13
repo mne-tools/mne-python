@@ -16,7 +16,9 @@ object to just 60 seconds before loading it into RAM to save memory:
 # %%
 
 import os
+
 import numpy as np
+
 import mne
 
 sample_data_folder = mne.datasets.sample.data_path()
@@ -158,7 +160,6 @@ event_dict = {
 fig = mne.viz.plot_events(
     events, sfreq=raw.info["sfreq"], first_samp=raw.first_samp, event_id=event_dict
 )
-fig.subplots_adjust(right=0.7)  # make room for legend
 
 # %%
 # Plotting events and raw data together

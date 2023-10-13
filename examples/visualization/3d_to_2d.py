@@ -30,8 +30,12 @@ from matplotlib import pyplot as plt
 
 import mne
 from mne.io.fiff.raw import read_raw_fif
-from mne.viz import ClickableImage  # noqa: F401
-from mne.viz import plot_alignment, set_3d_view, snapshot_brain_montage
+from mne.viz import (
+    ClickableImage,  # noqa: F401
+    plot_alignment,
+    set_3d_view,
+    snapshot_brain_montage,
+)
 
 misc_path = mne.datasets.misc.data_path()
 subjects_dir = misc_path / "ecog"
@@ -129,8 +133,7 @@ ax.set_axis_off()
 lt = mne.channels.read_layout(layout_path / layout_name, scale=False)
 x = lt.pos[:, 0] * float(im.shape[1])
 y = (1 - lt.pos[:, 1]) * float(im.shape[0])  # Flip the y-position
-fig, ax = plt.subplots()
+fig, ax = plt.subplots(layout="constrained")
 ax.imshow(im)
 ax.scatter(x, y, s=80, color="r")
-fig.tight_layout()
 ax.set_axis_off()

@@ -11,62 +11,62 @@ from functools import partial
 from io import BytesIO
 from pathlib import Path
 
-import pytest
-from numpy.testing import (
-    assert_array_equal,
-    assert_array_almost_equal,
-    assert_allclose,
-    assert_equal,
-    assert_array_less,
-)
 import numpy as np
-from numpy.fft import rfft, rfftfreq
+import pytest
 import scipy.signal
+from numpy.fft import rfft, rfftfreq
+from numpy.testing import (
+    assert_allclose,
+    assert_array_almost_equal,
+    assert_array_equal,
+    assert_array_less,
+    assert_equal,
+)
 
 import mne
 from mne import (
-    Epochs,
     Annotations,
-    read_events,
-    pick_events,
-    read_epochs,
+    Epochs,
+    combine_evoked,
+    create_info,
     equalize_channels,
-    pick_types,
+    make_fixed_length_epochs,
+    make_fixed_length_events,
     pick_channels,
+    pick_events,
+    pick_types,
+    read_epochs,
+    read_events,
     read_evokeds,
     write_evokeds,
-    create_info,
-    make_fixed_length_events,
-    make_fixed_length_epochs,
-    combine_evoked,
 )
-from mne.annotations import _handle_meas_date
-from mne.baseline import rescale
-from mne.datasets import testing
-from mne.chpi import read_head_pos, head_pos_to_trans_rot_t
-from mne.event import merge_events
-from mne.io import RawArray, read_raw_fif
 from mne._fiff.constants import FIFF
 from mne._fiff.proj import _has_eeg_average_ref_proj
-from mne._fiff.write import write_int, INT32_MAX, _get_split_size, write_float
-from mne.preprocessing import maxwell_filter
+from mne._fiff.write import INT32_MAX, _get_split_size, write_float, write_int
+from mne.annotations import _handle_meas_date
+from mne.baseline import rescale
+from mne.chpi import head_pos_to_trans_rot_t, read_head_pos
+from mne.datasets import testing
 from mne.epochs import (
-    bootstrap,
-    equalize_epoch_counts,
-    combine_event_ids,
-    EpochsArray,
-    concatenate_epochs,
     BaseEpochs,
-    average_movements,
+    EpochsArray,
     _handle_event_repeated,
+    average_movements,
+    bootstrap,
+    combine_event_ids,
+    concatenate_epochs,
+    equalize_epoch_counts,
     make_metadata,
 )
+from mne.event import merge_events
+from mne.io import RawArray, read_raw_fif
+from mne.preprocessing import maxwell_filter
 from mne.utils import (
+    _dt_to_stamp,
+    assert_meg_snr,
+    catch_logging,
     object_diff,
     use_log_level,
-    catch_logging,
-    assert_meg_snr,
-    _dt_to_stamp,
 )
 
 data_path = testing.data_path(download=False)

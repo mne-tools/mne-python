@@ -7,89 +7,87 @@
 #
 # License: Simplified BSD
 
-from functools import partial
-from io import BytesIO
+import copy
 import os
 import os.path as op
 import time
-import copy
 import traceback
 import warnings
+from functools import partial
+from io import BytesIO
 
 import numpy as np
 from scipy.interpolate import interp1d
 from scipy.sparse import csr_matrix
 from scipy.spatial.distance import cdist
 
-from .colormap import calculate_lut
-from .surface import _Surface
-from .view import views_dicts, _lh_views_dict
-
-from ..utils import (
-    _show_help_fig,
-    _get_color_list,
-    concatenate_images,
-    _generate_default_filename,
-    _save_ndarray_img,
-    safe_event,
-)
-from .._3d import (
-    _process_clim,
-    _handle_time,
-    _check_views,
-    _handle_sensor_types,
-    _plot_sensors,
-    _plot_forward,
-)
-from .._3d_overlay import _LayeredMesh
-from ...defaults import _handle_default, DEFAULTS
+from ..._fiff.meas_info import Info
+from ..._fiff.pick import pick_types
 from ..._freesurfer import (
-    vertex_to_mni,
-    read_talxfm,
-    read_freesurfer_lut,
+    _estimate_talxfm_rigid,
     _get_head_surface,
     _get_skull_surface,
-    _estimate_talxfm_rigid,
+    read_freesurfer_lut,
+    read_talxfm,
+    vertex_to_mni,
 )
-from ..._fiff.pick import pick_types
-from ..._fiff.meas_info import Info
-from ...surface import mesh_edges, _mesh_borders, _marching_cubes, get_meg_helmet_surf
+from ...defaults import DEFAULTS, _handle_default
+from ...surface import _marching_cubes, _mesh_borders, get_meg_helmet_surf, mesh_edges
 from ...transforms import (
     Transform,
-    apply_trans,
     _frame_to_str,
     _get_trans,
     _get_transforms_to_coord_frame,
+    apply_trans,
 )
 from ...utils import (
-    _check_option,
-    logger,
-    verbose,
-    fill_doc,
-    _validate_type,
-    use_log_level,
     Bunch,
-    _ReuseCycle,
-    warn,
-    get_subjects_dir,
-    _check_fname,
-    _to_rgb,
-    _ensure_int,
     _auto_weakref,
+    _check_fname,
+    _check_option,
+    _ensure_int,
     _path_like,
+    _ReuseCycle,
+    _to_rgb,
+    _validate_type,
+    fill_doc,
+    get_subjects_dir,
+    logger,
+    use_log_level,
+    verbose,
+    warn,
 )
-
+from .._3d import (
+    _check_views,
+    _handle_sensor_types,
+    _handle_time,
+    _plot_forward,
+    _plot_sensors,
+    _process_clim,
+)
+from .._3d_overlay import _LayeredMesh
 from ..ui_events import (
+    ColormapRange,
+    PlaybackSpeed,
+    TimeChange,
+    VertexSelect,
+    _get_event_channel,
+    disable_ui_events,
     publish,
     subscribe,
     unsubscribe,
-    TimeChange,
-    PlaybackSpeed,
-    ColormapRange,
-    VertexSelect,
-    disable_ui_events,
-    _get_event_channel,
 )
+from ..utils import (
+    _generate_default_filename,
+    _get_color_list,
+    _save_ndarray_img,
+    _show_help_fig,
+    concatenate_images,
+    safe_event,
+)
+from .colormap import calculate_lut
+from .surface import _Surface
+from .view import _lh_views_dict, views_dicts
 
 
 @fill_doc
@@ -307,7 +305,7 @@ class Brain:
         show=True,
         block=False,
     ):
-        from ..backends.renderer import backend, _get_renderer
+        from ..backends.renderer import _get_renderer, backend
 
         _validate_type(subject, str, "subject")
         self._surf = surf
@@ -987,8 +985,8 @@ class Brain:
             self.mpl_canvas.update_plot()
             self._renderer._update()
 
-        from ...source_estimate import _get_allowed_label_modes
         from ...label import _read_annot_cands
+        from ...source_estimate import _get_allowed_label_modes
 
         dir_name = op.join(self._subjects_dir, self._subject, "label")
         cands = _read_annot_cands(dir_name, raise_error=False)
@@ -1677,8 +1675,9 @@ class Brain:
 
     def _cortex_colormap(self, cortex):
         """Return the colormap corresponding to the cortex."""
-        from .._3d import _get_cmap
         from matplotlib.colors import ListedColormap
+
+        from .._3d import _get_cmap
 
         colormap_map = dict(
             classic=dict(colormap="Greys", vmin=-1, vmax=2),
@@ -2053,8 +2052,8 @@ class Brain:
         self._renderer._update()
 
     def _add_volume_data(self, hemi, src, volume_options):
-        from ..backends._pyvista import _hide_testing_actor
         from ...source_space import SourceSpaces
+        from ..backends._pyvista import _hide_testing_actor
 
         _validate_type(src, SourceSpaces, "src")
         _check_option("src.kind", src.kind, ("volume",))
@@ -2839,7 +2838,8 @@ class Brain:
                     self._units,
                     sensor_colors=sensor_colors,
                 )
-                for item, actors in sensors_actors.items():
+                # sensors_actors can still be None
+                for item, actors in (sensors_actors or {}).items():
                     for actor in actors:
                         self._add_actor(item, actor)
 
@@ -4011,9 +4011,9 @@ class Brain:
 
     def _check_stc(self, hemi, array, vertices):
         from ...source_estimate import (
+            _BaseMixedSourceEstimate,
             _BaseSourceEstimate,
             _BaseSurfaceSourceEstimate,
-            _BaseMixedSourceEstimate,
             _BaseVolSourceEstimate,
         )
 

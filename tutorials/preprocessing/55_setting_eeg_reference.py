@@ -16,6 +16,7 @@ just a few EEG channels so the plots are easier to see:
 # %%
 
 import os
+
 import mne
 
 sample_data_folder = mne.datasets.sample.data_path()

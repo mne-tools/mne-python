@@ -7,12 +7,12 @@ from itertools import chain
 import numpy as np
 from scipy.sparse.csgraph import connected_components
 
-from ..utils import _validate_type, _ensure_int
-from ..io import BaseRaw, RawArray
 from .._fiff.meas_info import create_info
 from ..epochs import BaseEpochs, EpochsArray
 from ..evoked import Evoked, EvokedArray
-from ..transforms import _sph_to_cart, _cart_to_sph
+from ..io import BaseRaw, RawArray
+from ..transforms import _cart_to_sph, _sph_to_cart
+from ..utils import _ensure_int, _validate_type
 
 
 def equalize_bads(insts, interp_thresh=1.0, copy=True):

@@ -10,48 +10,46 @@ from itertools import product
 from pathlib import Path
 
 import numpy as np
+import pytest
+from numpy.testing import (
+    assert_allclose,
+    assert_array_almost_equal,
+    assert_array_equal,
+    assert_array_less,
+    assert_equal,
+)
 from scipy import sparse
 
-from numpy.testing import (
-    assert_array_equal,
-    assert_array_almost_equal,
-    assert_equal,
-    assert_allclose,
-    assert_array_less,
-)
-import pytest
-
-from mne.datasets import testing
 from mne import (
+    grow_labels,
+    labels_to_stc,
+    morph_labels,
+    random_parcellation,
     read_label,
-    stc_to_label,
+    read_labels_from_annot,
     read_source_estimate,
     read_source_spaces,
-    grow_labels,
-    read_labels_from_annot,
-    write_labels_to_annot,
-    split_label,
-    spatial_tris_adjacency,
     read_surface,
-    random_parcellation,
-    morph_labels,
-    labels_to_stc,
+    spatial_tris_adjacency,
+    split_label,
+    stc_to_label,
+    write_labels_to_annot,
 )
+from mne.datasets import testing
 from mne.label import (
     Label,
     _blend_colors,
-    label_sign_flip,
     _load_vert_pos,
-    select_sources,
     _n_colors,
     _read_annot,
     _read_annot_cands,
+    label_sign_flip,
+    select_sources,
 )
-from mne.source_space import SourceSpaces
 from mne.source_estimate import mesh_edges
+from mne.source_space import SourceSpaces
 from mne.surface import _mesh_borders
-from mne.utils import get_subjects_dir, _record_warnings
-
+from mne.utils import _record_warnings, get_subjects_dir
 
 data_path = testing.data_path(download=False)
 subjects_dir = data_path / "subjects"

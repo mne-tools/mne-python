@@ -2,15 +2,14 @@
 #
 # License: BSD-3-Clause
 
-import pytest
-
 import numpy as np
+import pytest
 from numpy.fft import rfft, rfftfreq
 
 from mne import create_info
+from mne._fiff.pick import _pick_data_channels
 from mne.datasets import testing
 from mne.io import RawArray, read_raw_fif
-from mne._fiff.pick import _pick_data_channels
 from mne.preprocessing import oversampled_temporal_projection
 from mne.utils import catch_logging
 

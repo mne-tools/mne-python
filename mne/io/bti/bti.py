@@ -15,29 +15,29 @@ from itertools import count
 
 import numpy as np
 
-from ..base import BaseRaw
-from ..._fiff.tag import _coil_trans_to_loc, _loc_to_coil_trans
-from ..._fiff.meas_info import _empty_info
 from ..._fiff._digitization import _make_bti_dig_points
-from ...utils import logger, verbose, _stamp_to_dt, path_like, _validate_type
-from ...transforms import combine_transforms, invert_transform, Transform
 from ..._fiff.constants import FIFF
+from ..._fiff.meas_info import _empty_info
+from ..._fiff.tag import _coil_trans_to_loc, _loc_to_coil_trans
 from ..._fiff.utils import _mult_cal_one, read_str
+from ...transforms import Transform, combine_transforms, invert_transform
+from ...utils import _stamp_to_dt, _validate_type, logger, path_like, verbose
+from ..base import BaseRaw
 from .constants import BTI
 from .read import (
-    read_int32,
-    read_int16,
-    read_float,
-    read_double,
-    read_transform,
     read_char,
+    read_dev_header,
+    read_double,
+    read_double_matrix,
+    read_float,
+    read_float_matrix,
+    read_int16,
+    read_int16_matrix,
+    read_int32,
     read_int64,
+    read_transform,
     read_uint16,
     read_uint32,
-    read_double_matrix,
-    read_float_matrix,
-    read_int16_matrix,
-    read_dev_header,
 )
 
 FIFF_INFO_DIG_FIELDS = ("kind", "ident", "r", "coord_frame")

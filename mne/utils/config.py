@@ -18,11 +18,10 @@ from functools import partial
 from importlib import import_module
 from pathlib import Path
 
-from .check import _validate_type, _check_qt_version, _check_option, _check_fname
+from ._logging import logger, warn
+from .check import _check_fname, _check_option, _check_qt_version, _validate_type
 from .docs import fill_doc
 from .misc import _pl
-from ._logging import warn, logger
-
 
 _temp_home_dir = None
 
@@ -381,6 +380,10 @@ def set_config(key, value, home_dir=None, set_env=True):
         config[key] = value
         if set_env:
             os.environ[key] = value
+        if key == "MNE_BROWSER_BACKEND":
+            from ..viz._figure import set_browser_backend
+
+            set_browser_backend(value)
 
     # Write all values. This may fail if the default directory is not
     # writeable.

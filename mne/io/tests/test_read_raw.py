@@ -11,8 +11,7 @@ import pytest
 
 from mne.datasets import testing
 from mne.io import read_raw
-from mne.io._read_raw import split_name_ext, _get_readers
-
+from mne.io._read_raw import _get_readers, split_name_ext
 
 base = Path(__file__).parent.parent
 test_base = Path(testing.data_path(download=False))

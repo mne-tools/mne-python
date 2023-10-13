@@ -10,12 +10,12 @@ Examples
 """
 # Authors:  Alexandre Gramfort <alexandre.gramfort@inria.fr>
 
-import sys
 import os
 import os.path as op
+import sys
 
 import mne
-from mne.utils import run_subprocess, get_subjects_dir
+from mne.utils import get_subjects_dir, run_subprocess
 
 
 def freeview_bem_surfaces(subject, subjects_dir, method):

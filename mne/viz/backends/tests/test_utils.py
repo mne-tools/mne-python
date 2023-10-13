@@ -5,6 +5,7 @@
 #
 # License: Simplified BSD
 
+import platform
 from colorsys import rgb_to_hls
 from contextlib import nullcontext
 
@@ -13,18 +14,18 @@ import pytest
 
 from mne import create_info
 from mne.io import RawArray
-from mne.viz.backends._utils import (
-    _get_colormap_from_array,
-    _check_color,
-    _qt_is_dark,
-    _pixmap_to_ndarray,
-)
 from mne.utils import _check_qt_version
+from mne.viz.backends._utils import (
+    _check_color,
+    _get_colormap_from_array,
+    _pixmap_to_ndarray,
+    _qt_is_dark,
+)
 
 
 def test_get_colormap_from_array():
     """Test setting a colormap."""
-    from matplotlib.colors import ListedColormap, LinearSegmentedColormap
+    from matplotlib.colors import LinearSegmentedColormap, ListedColormap
 
     cmap = _get_colormap_from_array()
     assert isinstance(cmap, LinearSegmentedColormap)
@@ -79,6 +80,8 @@ def test_theme_colors(pg_backend, theme, monkeypatch, tmp_path):
         return  # we could add a ton of conditionals below, but KISS
     is_dark = _qt_is_dark(fig)
     # on Darwin these checks get complicated, so don't bother for now
+    if platform.system() == "Darwin":
+        pytest.skip("Problems on macOS")
     if theme == "dark":
         assert is_dark, theme
     elif theme == "light":

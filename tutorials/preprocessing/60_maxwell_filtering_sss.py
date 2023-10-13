@@ -15,10 +15,12 @@ As usual, we'll start by importing the modules we need, loading some
 # %%
 
 import os
+
 import matplotlib.pyplot as plt
-import seaborn as sns
-import pandas as pd
 import numpy as np
+import pandas as pd
+import seaborn as sns
+
 import mne
 from mne.preprocessing import find_bad_channels_maxwell
 
@@ -163,7 +165,7 @@ data_to_plot = pd.DataFrame(
 )
 
 # First, plot the "raw" scores.
-fig, ax = plt.subplots(1, 2, figsize=(12, 8))
+fig, ax = plt.subplots(1, 2, figsize=(12, 8), layout="constrained")
 fig.suptitle(
     f"Automated noisy channel detection: {ch_type}", fontsize=16, fontweight="bold"
 )
@@ -187,9 +189,6 @@ sns.heatmap(
     for x in range(1, len(bins))
 ]
 ax[1].set_title("Scores > Limit", fontweight="bold")
-
-# The figure title should not overlap with the subplots.
-fig.tight_layout(rect=[0, 0.03, 1, 0.95])
 
 # %%
 #

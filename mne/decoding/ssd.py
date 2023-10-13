@@ -6,22 +6,22 @@
 import numpy as np
 from scipy.linalg import eigh
 
-from .mixin import TransformerMixin
-from ..fixes import BaseEstimator
-from ..cov import _regularized_covariance, Covariance
+from .._fiff.pick import _picks_to_idx
+from ..cov import Covariance, _regularized_covariance
 from ..defaults import _handle_default
 from ..filter import filter_data
-from .._fiff.pick import _picks_to_idx
+from ..fixes import BaseEstimator
 from ..rank import compute_rank
 from ..time_frequency import psd_array_welch
 from ..utils import (
-    fill_doc,
-    logger,
     _check_option,
     _time_mask,
     _validate_type,
     _verbose_safe_false,
+    fill_doc,
+    logger,
 )
+from .mixin import TransformerMixin
 
 
 @fill_doc

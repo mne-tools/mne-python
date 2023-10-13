@@ -17,9 +17,9 @@ Visualise PSF and CTF at one vertex for sLORETA.
 import mne
 from mne.datasets import sample
 from mne.minimum_norm import (
-    make_inverse_resolution_matrix,
     get_cross_talk,
     get_point_spread,
+    make_inverse_resolution_matrix,
 )
 
 print(__doc__)

@@ -4,14 +4,14 @@
 # License: BSD-3-Clause
 
 import numpy as np
-from numpy.testing import assert_array_equal
 import pytest
+from numpy.testing import assert_array_equal
 
 from mne import pick_types
-from mne.datasets import testing
-from mne.io.tests.test_raw import _test_raw_reader
-from mne.io.cnt import read_raw_cnt
 from mne.annotations import read_annotations
+from mne.datasets import testing
+from mne.io.cnt import read_raw_cnt
+from mne.io.tests.test_raw import _test_raw_reader
 
 data_path = testing.data_path(download=False)
 fname = data_path / "CNT" / "scan41_short.cnt"

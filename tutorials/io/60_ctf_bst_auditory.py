@@ -29,14 +29,14 @@ The specifications of this dataset were discussed initially on the
 
 # %%
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 
 import mne
 from mne import combine_evoked
-from mne.minimum_norm import apply_inverse
 from mne.datasets.brainstorm import bst_auditory
 from mne.io import read_raw_ctf
+from mne.minimum_norm import apply_inverse
 
 # %%
 # To reduce memory consumption and running time, some of the steps are

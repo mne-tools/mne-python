@@ -4,27 +4,27 @@
 
 
 import numpy as np
+from scipy.ndimage import distance_transform_edt, label
 from scipy.signal import find_peaks
 from scipy.stats import zscore
-from scipy.ndimage import distance_transform_edt, label
 
-from ..io.base import BaseRaw
 from ..annotations import (
     Annotations,
+    _adjust_onset_meas_date,
     _annotations_starts_stops,
     annotations_from_events,
-    _adjust_onset_meas_date,
-)
-from ..transforms import (
-    quat_to_rot,
-    _average_quats,
-    _angle_between_quats,
-    apply_trans,
-    _quat_to_affine,
 )
 from ..filter import filter_data
-from ..transforms import Transform
-from ..utils import _mask_to_onsets_offsets, logger, verbose, _validate_type, _pl
+from ..io.base import BaseRaw
+from ..transforms import (
+    Transform,
+    _angle_between_quats,
+    _average_quats,
+    _quat_to_affine,
+    apply_trans,
+    quat_to_rot,
+)
+from ..utils import _mask_to_onsets_offsets, _pl, _validate_type, logger, verbose
 
 
 @verbose
