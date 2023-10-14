@@ -5,14 +5,14 @@ Forward Modeling
 .. currentmodule:: mne
 
 .. autosummary::
-   :toctree: generated/
+   :toctree: ../generated/
    :template: autosummary/class_no_inherited_members.rst
 
    Forward
    SourceSpaces
 
 .. autosummary::
-   :toctree: generated/
+   :toctree: ../generated/
 
    add_source_space_distances
    apply_forward
@@ -55,7 +55,7 @@ Forward Modeling
 .. currentmodule:: mne.bem
 
 .. autosummary::
-   :toctree: generated/
+   :toctree: ../generated/
 
    ConductorModel
    fit_sphere_to_headshape
