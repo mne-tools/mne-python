@@ -6,7 +6,7 @@ from mne.datasets import testing
 from mne import find_events, Epochs, pick_types
 from mne.io import read_raw_fif
 from mne._fiff.constants import FIFF
-from mne.label import read_label
+from mne.label import read_label, BiHemiLabel
 from mne.minimum_norm import (
     read_inverse_operator,
     apply_inverse_epochs,
@@ -29,6 +29,7 @@ fname_inv = (
 )
 fname_data = data_path / "MEG" / "sample" / "sample_audvis_trunc_raw.fif"
 fname_label = data_path / "MEG" / "sample" / "labels" / "Aud-lh.label"
+fname_label2 = data_path / "MEG" / "sample" / "labels" / "Aud-rh.label"
 
 
 @testing.requires_testing_data
@@ -145,6 +146,189 @@ def test_tfr_with_inverse_operator(method):
         assert_allclose(power[max_inds], 6.05, rtol=1e-3)
 
 
+def test_tfr_multi_label():
+    """Test multi-label functionality."""
+    tmin, tmax, event_id = -0.2, 0.5, 1
+
+    # Setup for reading the raw data
+    raw = read_raw_fif(fname_data)
+    events = find_events(raw, stim_channel="STI 014")
+    inv = read_inverse_operator(fname_inv)
+    inv = prepare_inverse_operator(inv, nave=1, lambda2=1.0 / 9.0, method="dSPM")
+
+    raw.info["bads"] += ["MEG 2443", "EEG 053"]  # bads + 2 more
+
+    # picks MEG gradiometers
+    picks = pick_types(
+        raw.info, meg=True, eeg=False, eog=True, stim=False, exclude="bads"
+    )
+
+    # Load condition 1
+    event_id = 1
+    events3 = events[:3]  # take 3 events to keep the computation time low
+    epochs = Epochs(
+        raw,
+        events3,
+        event_id,
+        tmin,
+        tmax,
+        picks=picks,
+        baseline=(None, 0),
+        reject=dict(grad=4000e-13, eog=150e-6),
+        preload=True,
+    )
+
+    freqs = np.arange(7, 30, 2)
+
+    # prepare labels
+    label = read_label(fname_label)  # lh Aud
+    label2 = read_label(fname_label2)  # rh Aud
+    labels = [label, label2]
+    bad_lab = label.copy()
+    bad_lab.vertices = np.hstack((label.vertices, [2121]))  # add 1 unique vert
+    bad_lbls = [label, bad_lab]
+    print("label verts:", label.vertices.shape)
+
+    # prepare instances of BiHemiLabel
+    fname_lvis = data_path / "MEG" / "sample" / "labels" / "Vis-lh.label"
+    fname_rvis = data_path / "MEG" / "sample" / "labels" / "Vis-rh.label"
+    lvis = read_label(fname_lvis)
+    rvis = read_label(fname_rvis)
+    bihl = BiHemiLabel(lh=label, rh=label2)  # auditory labels
+    bihl.name = "Aud"
+    bihl2 = BiHemiLabel(lh=lvis, rh=rvis)  # visual labels
+    bihl2.name = "Vis"
+    bihls = [bihl, bihl2]
+    bad_bihl = BiHemiLabel(lh=bad_lab, rh=rvis)  # 1 unique vert on lh, rh ok
+    bad_bihls = [bihl, bad_bihl]
+    print("BiHemi label verts:", bihl.lh.vertices.shape, bihl.rh.vertices.shape)
+
+    label_sets = [[labels, bad_lbls], [bihls, bad_bihls]]
+
+    # check error handling
+    print("*****ERROR CHECKING********")
+    # label input errors
+    with pytest.raises(TypeError, match="must be an instance of"):
+        source_induced_power(
+            epochs,
+            inv,
+            freqs,
+            label="bad_input",
+            baseline=(-0.1, 0),
+            baseline_mode="percent",
+            n_cycles=2,
+            n_jobs=None,
+            return_plv=False,
+            method="dSPM",
+            prepared=True,
+        )
+    with pytest.raises(TypeError, match="must be an instance of"):
+        source_induced_power(
+            epochs,
+            inv,
+            freqs,
+            label=[label, "bad_input"],
+            baseline=(-0.1, 0),
+            baseline_mode="percent",
+            n_cycles=2,
+            n_jobs=None,
+            return_plv=False,
+            method="dSPM",
+            prepared=True,
+        )
+
+    # error handling for multi-label and plv
+    with pytest.raises(RuntimeError, match="value cannot be calculated"):
+        source_induced_power(
+            epochs,
+            inv,
+            freqs,
+            labels,
+            baseline=(-0.1, 0),
+            baseline_mode="percent",
+            n_cycles=2,
+            n_jobs=None,
+            return_plv=True,
+            method="dSPM",
+            prepared=True,
+        )
+
+    # check multi-label handling
+    for ltype, lab_set in zip(
+        ("Label", "BiHemi"), label_sets
+    ):  # check both Label and BiHemiLabel types
+        print(f"**********LABEL CLASS {ltype}*********")
+        # check overlapping verts error handling
+        with pytest.raises(RuntimeError, match="overlapping vertices"):
+            print("OVERLAPPING VERTICES")
+            source_induced_power(
+                epochs,
+                inv,
+                freqs,
+                lab_set[1],
+                baseline=(-0.1, 0),
+                baseline_mode="percent",
+                n_cycles=2,
+                n_jobs=None,
+                return_plv=False,
+                method="dSPM",
+                prepared=True,
+            )
+
+        for ori in (None, "normal"):  # check loose and normal orientations
+            print(f"**********ORI={ori}*******")
+            lbl = lab_set[0][0]
+            # check label=Label vs label=[Label]
+            no_list_pow = source_induced_power(
+                epochs,
+                inv,
+                freqs,
+                label=lbl,
+                baseline=(-0.1, 0),
+                baseline_mode="percent",
+                n_cycles=2,
+                pick_ori=ori,
+                n_jobs=None,
+                return_plv=False,
+                method="dSPM",
+                prepared=True,
+            )
+            print("No list power len:", no_list_pow.shape)
+
+            list_pow = source_induced_power(
+                epochs,
+                inv,
+                freqs,
+                label=[lbl],
+                baseline=(-0.1, 0),
+                baseline_mode="percent",
+                n_cycles=2,
+                pick_ori=ori,
+                n_jobs=None,
+                return_plv=False,
+                method="dSPM",
+                prepared=True,
+            )
+            print("List power len:", list_pow.shape)
+
+            # check label=[Label, Label]
+            multi_lab_pow = source_induced_power(
+                epochs,
+                inv,
+                freqs,
+                label=lab_set[0],
+                baseline=(-0.1, 0),
+                baseline_mode="percent",
+                n_cycles=2,
+                pick_ori=ori,
+                n_jobs=None,
+                return_plv=False,
+                method="dSPM",
+                prepared=True,
+            )
+            print("Multi-label power len:", multi_lab_pow.shape)
+
+
 @testing.requires_testing_data
 @pytest.mark.parametrize("method", INVERSE_METHODS)
 @pytest.mark.parametrize("pick_ori", (None, "normal"))  # XXX vector someday?
@@ -216,6 +400,7 @@ def test_source_psd_epochs(method):
     raw = read_raw_fif(fname_data)
     inverse_operator = read_inverse_operator(fname_inv)
     label = read_label(fname_label)
+    label2 = read_label(fname_label2)
 
     event_id, tmin, tmax = 1, -0.2, 0.5
     lambda2 = 1.0 / 9.0
@@ -315,6 +500,23 @@ def test_source_psd_epochs(method):
             method=method,
             pick_ori="normal",
             label=label,
+            bandwidth=0.01,
+            low_bias=True,
+            fmin=fmin,
+            fmax=fmax,
+            return_generator=False,
+            prepared=True,
+        )
+
+    # check error handling for label
+    with pytest.raises(TypeError, match="must be an instance of"):
+        compute_source_psd_epochs(
+            one_epochs,
+            inv,
+            lambda2=lambda2,
+            method=method,
+            pick_ori="normal",
+            label=[label, label2],
             bandwidth=0.01,
             low_bias=True,
             fmin=fmin,

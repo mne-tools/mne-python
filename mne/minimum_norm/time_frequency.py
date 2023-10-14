@@ -37,22 +37,20 @@ from ..label import Label, BiHemiLabel  # correct import location????
 def _restrict_K_to_lbls(labels, K, noise_norm, vertno, pick_ori):
     """Use labels to choose desired sources in the kernel."""
     verts_to_use = [[], []]
-    #    labs_by_hemi = [[], [], []]
     # create mask for K by compiling original vertices from vertno in labels
     for ii in range(len(labels)):
         lab = labels[ii]
         # handle BiHemi labels; ok so long as no overlap w/ single hemi labels
         if lab.hemi == "both":
-            #            labs_by_hemi[2].append(lab)
             lverts = np.intersect1d(vertno[0], lab.lh.vertices)
             rverts = np.intersect1d(vertno[1], lab.rh.vertices)  # output sorted
             verts_to_use[0] += list(lverts)
             verts_to_use[1] += list(rverts)
         else:
             hidx = 0 if lab.hemi == "lh" else 1
-            #            labs_by_hemi[hidx].append(lab)
             verts = np.intersect1d(vertno[hidx], lab.vertices)
             verts_to_use[hidx] += list(verts)
+
     # check that we don't have overlapping vertices in our labels
     try:
         for i in range(2):
@@ -70,9 +68,12 @@ def _restrict_K_to_lbls(labels, K, noise_norm, vertno, pick_ori):
     K_mask = np.hstack((K_mask, r_kmask))
 
     # record which original vertices are at each index in out_K
-    ki_keys = list(K_mask)
+    ki_keys = np.hstack(
+        (np.array(verts_to_use[0]) + 1e6, np.array(verts_to_use[1]) + 2e6)
+    )
     ki_vals = list(range(len(K_mask)))
     k_idxs = dict(zip(ki_keys, ki_vals))
+    # raise RuntimeError
 
     # mask K, handling the orientation issue
     len_allverts = len(vertno[0]) + len(vertno[1])
@@ -130,10 +131,6 @@ def _prepare_source_params(
     #   This does all the data transformations to compute the weights for the
     #   eigenleads
     #
-
-    K, noise_norm, vertno, _ = _assemble_kernel(
-        inv, label, method, pick_ori, use_cps=use_cps
-    )
     # K shape: (3 x n_sources, n_channels) or (n_sources, n_channels)
     # noise_norm shape: (n_sources, 1)
     # vertno: [lh_verts, rh_verts]
@@ -148,7 +145,7 @@ def _prepare_source_params(
                 label, whole_K, whole_noise_norm, whole_vertno, pick_ori
             )
         else:
-            assert isinstance(label, None)
+            assert not label
             K, noise_norm, vertno = whole_K, whole_noise_norm, whole_vertno
     elif isinstance(label, (Label, BiHemiLabel)):
         K, noise_norm, vertno, _ = _assemble_kernel(
@@ -450,13 +447,14 @@ def _get_label_power(power, labels, vertno, k_idxs):
     for li in np.arange(len(labels)):
         lab = labels[li]
         if lab.hemi == "both":
-            lverts = lab.lh.vertices
-            rverts = lab.rh.vertices + len(vertno[0])
-            verts = np.hstack(lverts, rverts)
+            lverts = np.intersect1d(lab.lh.vertices, vertno[0])
+            rverts = np.intersect1d(lab.rh.vertices, vertno[1])
+            verts = np.hstack((lverts + 1e6, rverts + 2e6))
         else:
             assert lab.hemi == "lh" or lab.hemi == "rh"
-            vtx_add = len(vertno[0]) if lab.hemi == "rh" else 0
-            verts = lab.get_vertices_used(vertices=vertno) + vtx_add
+            h_id = 0 if lab.hemi == "lh" else 1
+            vtx_add = 1e6 if lab.hemi == "lh" else 2e6
+            verts = np.intersect1d(vertno[h_id], lab.vertices) + vtx_add
 
         # restrict power to relevant vertices in label
         lab_mask = np.array([False] * len(power))
@@ -506,7 +504,7 @@ def _source_induced_power(
                 _validate_type(
                     item,
                     types=(Label, BiHemiLabel),
-                    type_name=("Label or " "BiHemiLabel"),
+                    type_name=("Label or BiHemiLabel"),
                 )
             if len(label) > 1 and with_plv:
                 raise RuntimeError(
@@ -572,7 +570,7 @@ def _source_induced_power(
             f"for {len(label)} labels."
         )
     else:
-        assert isinstance(label, None)
+        assert not label
 
     if with_plv:
         plv = sum(o[1] for o in out)
