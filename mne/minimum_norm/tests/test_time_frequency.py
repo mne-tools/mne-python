@@ -180,6 +180,9 @@ def test_tfr_multi_label():
 
     freqs = np.arange(7, 30, 2)
 
+    tlen = len(epochs.times)
+    flen = len(freqs)
+
     # prepare labels
     label = read_label(fname_label)  # lh Aud
     label2 = read_label(fname_label2)  # rh Aud
@@ -188,6 +191,9 @@ def test_tfr_multi_label():
     bad_lab.vertices = np.hstack((label.vertices, [2121]))  # add 1 unique vert
     bad_lbls = [label, bad_lab]
     print("label verts:", label.vertices.shape)
+    vlen_lh = len(np.intersect1d(inv["src"][0]["vertno"], label.vertices))
+    vlen_rh = len(np.intersect1d(inv["src"][1]["vertno"], label2.vertices))
+    assert vlen_lh + 1 == vlen_rh == 3
 
     # prepare instances of BiHemiLabel
     fname_lvis = data_path / "MEG" / "sample" / "labels" / "Vis-lh.label"
@@ -206,7 +212,6 @@ def test_tfr_multi_label():
     label_sets = [[labels, bad_lbls], [bihls, bad_bihls]]
 
     # check error handling
-    print("*****ERROR CHECKING********")
     # label input errors
     with pytest.raises(TypeError, match="must be an instance of"):
         source_induced_power(
@@ -254,13 +259,10 @@ def test_tfr_multi_label():
         )
 
     # check multi-label handling
-    for ltype, lab_set in zip(
-        ("Label", "BiHemi"), label_sets
-    ):  # check both Label and BiHemiLabel types
-        print(f"**********LABEL CLASS {ltype}*********")
+    for ltype, lab_set in zip(("Label", "BiHemi"), label_sets):
+        vlen = vlen_lh if ltype == "Label" else vlen_lh + vlen_rh
         # check overlapping verts error handling
         with pytest.raises(RuntimeError, match="overlapping vertices"):
-            print("OVERLAPPING VERTICES")
             source_induced_power(
                 epochs,
                 inv,
@@ -276,8 +278,8 @@ def test_tfr_multi_label():
             )
 
         for ori in (None, "normal"):  # check loose and normal orientations
-            print(f"**********ORI={ori}*******")
             lbl = lab_set[0][0]
+
             # check label=Label vs label=[Label]
             no_list_pow = source_induced_power(
                 epochs,
@@ -293,7 +295,7 @@ def test_tfr_multi_label():
                 method="dSPM",
                 prepared=True,
             )
-            print("No list power len:", no_list_pow.shape)
+            assert no_list_pow.shape == (vlen, flen, tlen)
 
             list_pow = source_induced_power(
                 epochs,
@@ -309,7 +311,7 @@ def test_tfr_multi_label():
                 method="dSPM",
                 prepared=True,
             )
-            print("List power len:", list_pow.shape)
+            assert list_pow.shape == (1, flen, tlen)
 
             # check label=[Label, Label]
             multi_lab_pow = source_induced_power(
@@ -326,7 +328,7 @@ def test_tfr_multi_label():
                 method="dSPM",
                 prepared=True,
             )
-            print("Multi-label power len:", multi_lab_pow.shape)
+            assert multi_lab_pow.shape == (2, flen, tlen)
 
 
 @testing.requires_testing_data
