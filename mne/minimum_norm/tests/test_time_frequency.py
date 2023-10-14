@@ -1,26 +1,24 @@
 import numpy as np
-from numpy.testing import assert_allclose
 import pytest
+from numpy.testing import assert_allclose
 
-from mne.datasets import testing
-from mne import find_events, Epochs, pick_types
-from mne.io import read_raw_fif
+from mne import Epochs, find_events, pick_types
 from mne._fiff.constants import FIFF
-from mne.label import read_label, BiHemiLabel
+from mne.datasets import testing
+from mne.io import read_raw_fif
+from mne.label import BiHemiLabel, read_label
 from mne.minimum_norm import (
-    read_inverse_operator,
+    INVERSE_METHODS,
     apply_inverse_epochs,
     prepare_inverse_operator,
-    INVERSE_METHODS,
+    read_inverse_operator,
 )
 from mne.minimum_norm.time_frequency import (
-    source_band_induced_power,
-    source_induced_power,
     compute_source_psd,
     compute_source_psd_epochs,
+    source_band_induced_power,
+    source_induced_power,
 )
-
-
 from mne.time_frequency.multitaper import psd_array_multitaper
 
 data_path = testing.data_path(download=False)
