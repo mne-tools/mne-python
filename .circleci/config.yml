@@ -263,6 +263,9 @@ jobs:
       - restore_cache:
           keys:
             - data-cache-ucl-opm-auditory
+      - restore_cache:
+          keys:
+            - data-cache-phantom-kit
       - run:
           name: Get data
           # This limit could be increased, but this is helpful for finding slow ones
@@ -424,7 +427,11 @@ jobs:
           key: data-cache-ucl-opm-auditory
           paths:
             - ~/mne_data/auditory_OPM_stationary  # (4 G)
-
+      - save_cache:
+          key: data-cache-phantom-kit
+          paths:
+            - ~/mne_data/MNE-phantom-KIT-data  # (1 G)
+            
 
   linkcheck:
     # there are a few files excluded from this for expediency, see Makefile
