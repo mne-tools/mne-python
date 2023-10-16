@@ -159,6 +159,7 @@ _known_config_types = {
     "MNE_DATASETS_VISUAL_92_CATEGORIES_PATH": "str, path for visual_92_categories data",
     "MNE_DATASETS_KILOWORD_PATH": "str, path for kiloword data",
     "MNE_DATASETS_FIELDTRIP_CMC_PATH": "str, path for fieldtrip_cmc data",
+    "MNE_DATASETS_PHANTOM_KIT_PATH": "str, path for phantom_kit data",
     "MNE_DATASETS_PHANTOM_4DBTI_PATH": "str, path for phantom_4dbti data",
     "MNE_DATASETS_LIMO_PATH": "str, path for limo data",
     "MNE_DATASETS_REFMEG_NOISE_PATH": "str, path for refmeg_noise data",
