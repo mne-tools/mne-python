@@ -174,6 +174,14 @@ MNE_DATASETS["opm"] = dict(
     config_key="MNE_DATASETS_OPM_PATH",
 )
 
+MNE_DATASETS["phantom_kit"] = dict(
+    archive_name="MNE-phantom-KIT-24bit.zip",
+    hash="md5:2AEFCF6DE9DFB8B1F6E8D1B7F768EE4E",
+    url="https://osf.io/download/ed3j8/",
+    folder_name="MNE-phantom-KIT-data",
+    config_key="MNE_DATASETS_PHANTOM_KIT_PATH",
+)
+
 MNE_DATASETS["phantom_4dbti"] = dict(
     archive_name="MNE-phantom-4DBTi.zip",
     hash="md5:938a601440f3ffa780d20a17bae039ff",
