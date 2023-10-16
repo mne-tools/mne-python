@@ -304,15 +304,13 @@ def _add_colorbar(
     im,
     cmap,
     *,
-    side="right",
     title=None,
     format=None,
-    size="5%",
     kind=None,
     ch_type=None,
 ):
     """Add a colorbar to an axis."""
-    cbar = ax.figure.colorbar(im, format=format)
+    cbar = ax.figure.colorbar(im, format=format, shrink=0.6)
     if cmap is not None and cmap[1]:
         ax.CB = DraggableColorbar(cbar, im, kind, ch_type)
     cax = cbar.ax
@@ -1712,7 +1710,6 @@ def plot_ica_components(
                     im,
                     cmap,
                     title="AU",
-                    side="right",
                     format=cbar_fmt,
                     kind="ica_comp_topomap",
                     ch_type=ch_type,
@@ -2564,7 +2561,7 @@ def _plot_topomap_multi_cbar(
     )
 
     if colorbar:
-        cbar, cax = _add_colorbar(ax, im, cmap, title=None, size="10%", format=cbar_fmt)
+        cbar, cax = _add_colorbar(ax, im, cmap, title=None, format=cbar_fmt)
         cbar.set_ticks(_vlim)
         if unit is not None:
             cbar.ax.set_ylabel(unit, fontsize=8)
@@ -3744,7 +3741,7 @@ def plot_bridged_electrodes(
     if title is not None:
         im.axes.set_title(title)
     if colorbar:
-        cax = fig.colorbar(im)
+        cax = fig.colorbar(im, shrink=0.6)
         cax.set_label(r"Electrical Distance ($\mu$$V^2$)")
     return fig
 

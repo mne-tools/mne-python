@@ -5,7 +5,7 @@ Sensor Space Data
 .. currentmodule:: mne
 
 .. autosummary::
-   :toctree: generated/
+   :toctree: ../generated/
 
    combine_evoked
    concatenate_raws
@@ -33,6 +33,6 @@ Sensor Space Data
 .. currentmodule:: mne.baseline
 
 .. autosummary::
-   :toctree: generated/
+   :toctree: ../generated/
 
    rescale
