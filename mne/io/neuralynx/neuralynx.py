@@ -1,8 +1,9 @@
-import os.path as op
-from ..base import BaseRaw
-from ..._fiff.utils import _read_segments_file
+import numpy as np
+
 from ..._fiff.meas_info import create_info
-from ...utils import logger, verbose, fill_doc
+from ..._fiff.utils import _mult_cal_one
+from ...utils import _check_fname, _soft_import, fill_doc, logger, verbose
+from ..base import BaseRaw
 
 
 @fill_doc
@@ -35,14 +36,12 @@ class RawNeuralynx(BaseRaw):
 
     @verbose
     def __init__(self, fname, preload=False, verbose=None):
-        try:
-            from neo.io import NeuralynxIO
-        except Exception:
-            raise ImportError("Missing the neo-python package") from None
+        _soft_import("neo", "Reading NeuralynxIO files", strict=True)
+        from neo.io import NeuralynxIO
 
-        datadir = op.abspath(fname)
+        fname = _check_fname(fname, "read", True, "fname", need_dir=True)
 
-        logger.info(f"Checking files in {datadir}")
+        logger.info(f"Checking files in {fname}")
 
         # get basic file info
         nlx_reader = NeuralynxIO(dirname=fname)
@@ -58,32 +57,31 @@ class RawNeuralynx(BaseRaw):
         n_segments = nlx_reader.header["nb_segment"][0]
         block_id = 0  # assumes there's only one block of recording
         n_total_samples = sum(
-            [
-                nlx_reader.get_signal_size(block_id, segment)
-                for segment in range(n_segments)
-            ]
+            nlx_reader.get_signal_size(block_id, segment)
+            for segment in range(n_segments)
         )
-
-        # loop over found filenames and collect names and store last sample numbers
-        last_samps = []
-        ncs_fnames = []
-
-        for chan_key in nlx_reader.ncs_filenames.keys():
-            ncs_fname = nlx_reader.ncs_filenames[chan_key]
-            ncs_fnames.append(ncs_fname)
-            last_samps.append(
-                n_total_samples - 1
-            )  # assumes the same sample size for all files/channels
-
         super(RawNeuralynx, self).__init__(
             info=info,
-            last_samps=last_samps[0:1],
-            filenames=ncs_fnames,
+            last_samps=[n_total_samples - 1],
+            filenames=[fname],
             preload=preload,
         )
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data."""
-        _read_segments_file(
-            self, data, idx, fi, start, stop, cals, mult, dtype="<i2", n_channels=1
-        )
+        from neo.io import NeuralynxIO
+
+        nlx_reader = NeuralynxIO(dirname=self._filenames[fi])
+        bl = nlx_reader.read(lazy=False)
+        # TODO: This is massively inefficient -- we should not need to read *all*
+        # samples just to get the ones from `idx` channels and `start:stop` time span.
+        # But let's start here and make it efficient later.
+        all_data = np.concatenate(
+            [sig.magnitude for seg in bl[0].segments for sig in seg.analogsignals]
+        ).T
+        # ... but to get something that works, let's do it:
+        block = all_data[:, start:stop]
+        # Convert uV to V
+        block *= 1e-6
+        # Then store the result where it needs to go
+        _mult_cal_one(data, block, idx, cals, mult)

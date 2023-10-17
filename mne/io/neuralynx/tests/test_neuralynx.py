@@ -2,9 +2,9 @@ import numpy as np
 import pytest
 from numpy.testing import assert_allclose
 
+from mne.datasets.testing import data_path, requires_testing_data
 from mne.io import read_raw_neuralynx
 from mne.io.tests.test_raw import _test_raw_reader
-from mne.datasets.testing import data_path, requires_testing_data
 
 testing_path = data_path(download=False) / "neuralynx"
 
@@ -30,6 +30,7 @@ def test_neuralynx():
     d2 = np.concatenate(
         [sig.magnitude for seg in bl[0].segments for sig in seg.analogsignals]
     ).T
+    d2 *= 1e-6  # to V
     t2 = np.concatenate(
         [sig.times.magnitude for seg in bl[0].segments for sig in seg.analogsignals]
     ).T
