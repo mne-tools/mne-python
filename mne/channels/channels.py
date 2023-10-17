@@ -893,7 +893,8 @@ class InterpolationMixin:
         for key in method:
             _check_option("method[key]", key, ("meg", "eeg", "fnirs"))
             _check_option(f"method['{key}']", method[key], valids[key])
-        if _picks_to_idx(self.info, list(method), exclude=()).size == 0:
+        idx = _picks_to_idx(self.info, list(method), exclude=())
+        if idx.size == 0 or len(pick_info(self.info, idx)["bads"]) == 0:
             warn("No bad channels to interpolate. Doing nothing...")
             return self
         logger.info("Interpolating bad channels.")
