@@ -175,6 +175,9 @@ def pytest_configure(config):
     # numpy 2.0 <-> SciPy
     ignore:numpy\.core\._multiarray_umath.*:DeprecationWarning
     ignore:numpy\.core\.numeric is deprecated.*:DeprecationWarning
+    ignore:numpy\.core\.multiarray is deprecated.*:DeprecationWarning
+    # TODO: Should actually fix this one
+    ignore:scipy.signal.morlet2 is deprecated in SciPy.*:DeprecationWarning
     # tqdm (Fedora)
     ignore:.*'tqdm_asyncio' object has no attribute 'last_print_t':pytest.PytestUnraisableExceptionWarning
     # Until mne-qt-browser > 0.5.2 is released
