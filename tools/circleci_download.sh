@@ -110,7 +110,7 @@ else
             if [[ $(cat $FNAME | grep -x ".*datasets.*ucl_opm_auditory.*" | wc -l) -gt 0 ]]; then
                 python -c "import mne; print(mne.datasets.ucl_opm_auditory.data_path(update_path=True))";
             fi;
-            if [[ $(cat $FNAME | grep -x ".*datasets.*phantom-KIT-data.*" | wc -l) -gt 0 ]]; then
+            if [[ $(cat $FNAME | grep -x ".*datasets.*phantom_kit.*" | wc -l) -gt 0 ]]; then
                 python -c "import mne; print(mne.datasets.phantom_kit.data_path(update_path=True))";
             fi;
         fi;
