@@ -872,6 +872,7 @@ class InterpolationMixin:
         )
 
         _check_preload(self, "interpolation")
+        _validate_type(method, (dict, None), "method")
         method = _handle_default("interpolation_method", method)
         for key in method:
             _check_option("method[key]", key, ("meg", "eeg", "fnirs"))
