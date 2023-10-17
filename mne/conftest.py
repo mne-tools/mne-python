@@ -172,6 +172,8 @@ def pytest_configure(config):
     ignore:(\n|.)*numpy\.distutils` is deprecated since NumPy(\n|.)*:DeprecationWarning
     ignore:datetime\.utcfromtimestamp.*is deprecated:DeprecationWarning
     ignore:The numpy\.array_api submodule is still experimental.*:UserWarning
+    # numpy 2.0 <-> SciPy
+    ignore:numpy\.core\._multiarray_umath.*:DeprecationWarning
     # tqdm (Fedora)
     ignore:.*'tqdm_asyncio' object has no attribute 'last_print_t':pytest.PytestUnraisableExceptionWarning
     # Until mne-qt-browser > 0.5.2 is released
