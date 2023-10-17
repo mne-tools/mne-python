@@ -22,7 +22,7 @@ from ..time_frequency.multitaper import (
     _psd_from_mt_adaptive,
 )
 from ..time_frequency.tfr import cwt, morlet
-from ..utils import ProgressBar, _check_option, logger, _validate_type, verbose
+from ..utils import ProgressBar, _check_option, _validate_type, logger, verbose
 from .inverse import (
     INVERSE_METHODS,
     _assemble_kernel,
