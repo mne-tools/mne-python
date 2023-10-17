@@ -16,7 +16,9 @@ data:
 
 import os
 from copy import deepcopy
+
 import numpy as np
+
 import mne
 
 sample_data_folder = mne.datasets.sample.data_path()

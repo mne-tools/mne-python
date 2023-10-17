@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 
-from mne import Epochs, create_info, EpochsArray
+from mne import Epochs, EpochsArray, create_info
 from mne.datasets import testing
 from mne.event import make_fixed_length_events
 from mne.viz import plot_drop_log

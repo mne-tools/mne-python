@@ -4,16 +4,16 @@
 # License: BSD-3-Clause
 
 import os.path as op
-from io import BytesIO, SEEK_SET
 from gzip import GzipFile
+from io import SEEK_SET, BytesIO
 
 import numpy as np
 from scipy.sparse import issparse
 
-from .tag import read_tag_info, read_tag, Tag, _call_dict_names, _matrix_info
-from .tree import make_dir_tree, dir_tree_find
+from ..utils import _file_like, logger, verbose, warn
 from .constants import FIFF
-from ..utils import logger, verbose, _file_like, warn
+from .tag import Tag, _call_dict_names, _matrix_info, read_tag, read_tag_info
+from .tree import dir_tree_find, make_dir_tree
 
 
 class _NoCloseRead:

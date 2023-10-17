@@ -7,8 +7,8 @@ from pathlib import Path
 import numpy as np
 from numpy.testing import assert_array_equal
 
-from mne.io import read_info
 from mne._fiff.constants import FIFF
+from mne.io import read_info
 
 base_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
 raw_fname = base_dir / "test_chpi_raw_sss.fif"

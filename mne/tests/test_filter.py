@@ -1,34 +1,34 @@
 import numpy as np
+import pytest
+from numpy.fft import fft, fftfreq
 from numpy.testing import (
-    assert_array_almost_equal,
-    assert_almost_equal,
-    assert_array_equal,
     assert_allclose,
+    assert_almost_equal,
+    assert_array_almost_equal,
+    assert_array_equal,
     assert_array_less,
 )
-import pytest
-from scipy.signal import resample as sp_resample, butter, freqz, sosfreqz
+from scipy.signal import butter, freqz, sosfreqz
+from scipy.signal import resample as sp_resample
 
-from mne import create_info, Epochs
-from numpy.fft import fft, fftfreq
-from mne.io import RawArray, read_raw_fif
+from mne import Epochs, create_info
 from mne._fiff.pick import _DATA_CH_TYPES_SPLIT
 from mne.filter import (
-    filter_data,
-    resample,
-    _resample_stim_channels,
-    construct_iir_filter,
-    notch_filter,
-    detrend,
-    _overlap_add_filter,
-    _smart_pad,
-    design_mne_c_filter,
-    estimate_ringing_samples,
-    create_filter,
     _length_factors,
+    _overlap_add_filter,
+    _resample_stim_channels,
+    _smart_pad,
+    construct_iir_filter,
+    create_filter,
+    design_mne_c_filter,
+    detrend,
+    estimate_ringing_samples,
+    filter_data,
+    notch_filter,
+    resample,
 )
-
-from mne.utils import sum_squared, catch_logging, requires_mne, run_subprocess
+from mne.io import RawArray, read_raw_fif
+from mne.utils import catch_logging, requires_mne, run_subprocess, sum_squared
 
 
 def test_filter_array():

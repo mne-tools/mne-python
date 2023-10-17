@@ -15,13 +15,13 @@ to temporally whiten the signals.
 
 # %%
 
+import matplotlib.pyplot as plt
 import numpy as np
 from scipy import signal
-import matplotlib.pyplot as plt
 
 import mne
-from mne.time_frequency import fit_iir_model_raw
 from mne.datasets import sample
+from mne.time_frequency import fit_iir_model_raw
 
 print(__doc__)
 

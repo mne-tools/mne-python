@@ -2,7 +2,7 @@
 #
 # License: BSD-3-Clause
 
-from ..utils import verbose, get_config, warn
+from ..utils import get_config, verbose, warn
 
 
 @verbose
@@ -238,13 +238,13 @@ class _GUIScraper:
         try:
             from mne_gui_addons._ieeg_locate import (
                 IntracranialElectrodeLocator,
-            )  # noqa: E501
+            )
         except Exception:
             pass
         else:
             gui_classes = gui_classes + (IntracranialElectrodeLocator,)
-        from sphinx_gallery.scrapers import figure_rst
         from qtpy import QtGui
+        from sphinx_gallery.scrapers import figure_rst
 
         for gui in block_vars["example_globals"].values():
             if (

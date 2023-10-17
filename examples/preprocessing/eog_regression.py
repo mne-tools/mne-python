@@ -22,10 +22,11 @@ explanation that demonstrates more advanced approaches.
 # We begin as always by importing the necessary Python modules and loading some
 # data, in this case the :ref:`MNE sample dataset <sample-dataset>`.
 
+from matplotlib import pyplot as plt
+
 import mne
 from mne.datasets import sample
 from mne.preprocessing import EOGRegression
-from matplotlib import pyplot as plt
 
 print(__doc__)
 

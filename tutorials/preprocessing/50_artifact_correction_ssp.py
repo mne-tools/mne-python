@@ -18,14 +18,16 @@ functions from that submodule:
 # %%
 
 import os
-import numpy as np
+
 import matplotlib.pyplot as plt
+import numpy as np
+
 import mne
 from mne.preprocessing import (
-    create_eog_epochs,
-    create_ecg_epochs,
     compute_proj_ecg,
     compute_proj_eog,
+    create_ecg_epochs,
+    create_eog_epochs,
 )
 
 # %%

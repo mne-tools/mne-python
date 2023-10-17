@@ -3,12 +3,12 @@
 #
 # License : BSD-3-Clause
 
-import pytest
 import numpy as np
-from scipy import linalg
+import pytest
 from numpy.testing import assert_almost_equal, assert_array_almost_equal
+from scipy import linalg
 
-from mne.time_frequency import stft, istft, stftfreq
+from mne.time_frequency import istft, stft, stftfreq
 from mne.time_frequency._stft import stft_norm2
 
 

@@ -17,33 +17,32 @@ from copy import deepcopy
 import numpy as np
 from scipy.ndimage import gaussian_filter1d
 
-from .raw import _setup_channel_selections
-from ..fixes import _sharex
-from ..defaults import _handle_default
-from ..utils import legacy, verbose, logger, warn, fill_doc, _check_option
-from ..utils.spectrum import _split_psd_kwargs
 from .._fiff.meas_info import create_info
-
 from .._fiff.pick import (
-    _picks_to_idx,
     _DATA_CH_TYPES_SPLIT,
     _VALID_CHANNEL_TYPES,
+    _picks_to_idx,
 )
+from ..defaults import _handle_default
+from ..fixes import _sharex
+from ..utils import _check_option, fill_doc, legacy, logger, verbose, warn
+from ..utils.spectrum import _split_psd_kwargs
+from .raw import _setup_channel_selections
 from .utils import (
-    _setup_vmin_vmax,
-    plt_show,
-    _check_cov,
-    _handle_precompute,
-    _compute_scalings,
     DraggableColorbar,
-    _setup_cmap,
-    _handle_decim,
-    _set_title_multiple_electrodes,
-    _make_combine_callable,
-    _set_window_title,
-    _make_event_color_dict,
+    _check_cov,
+    _compute_scalings,
     _get_channel_plotting_order,
+    _handle_decim,
+    _handle_precompute,
+    _make_combine_callable,
+    _make_event_color_dict,
+    _set_title_multiple_electrodes,
+    _set_window_title,
+    _setup_cmap,
+    _setup_vmin_vmax,
     _validate_type,
+    plt_show,
 )
 
 
@@ -303,9 +302,11 @@ def plot_epochs_image(
 
     # check for compatible `fig` / `axes`; instantiate figs if needed; add
     # fig(s) and axes into group_by
+    needs_colorbar = colorbar and (axes is not None or fig is not None)
     group_by = _validate_fig_and_axes(
-        fig, axes, group_by, evoked, colorbar, clear=clear
+        fig, axes, group_by, evoked, colorbar=needs_colorbar, clear=clear
     )
+    del fig, axes, needs_colorbar, clear
 
     # prepare images in advance to get consistent vmin/vmax.
     # At the same time, create a subsetted epochs object for each group
@@ -430,7 +431,7 @@ def plot_epochs_image(
 
 def _validate_fig_and_axes(fig, axes, group_by, evoked, colorbar, clear=False):
     """Check user-provided fig/axes compatibility with plot_epochs_image."""
-    from matplotlib.pyplot import figure, Axes, subplot2grid
+    from matplotlib.pyplot import Axes, figure, subplot2grid
 
     n_axes = 1 + int(evoked) + int(colorbar)
     ax_names = ("image", "evoked", "colorbar")
@@ -650,20 +651,26 @@ def _plot_epochs_image(
         ax["evoked"].xaxis.set_major_locator(loc)
         ax["evoked"].yaxis.set_major_locator(AutoLocator())
 
+    fig = ax_im.get_figure()
+
     # draw the colorbar
     if colorbar:
         from matplotlib.pyplot import colorbar as cbar
 
-        this_colorbar = cbar(im, cax=ax["colorbar"])
-        this_colorbar.ax.set_ylabel(unit, rotation=270, labelpad=12)
+        if "colorbar" in ax:  # axes supplied by user
+            this_colorbar = cbar(im, cax=ax["colorbar"])
+            this_colorbar.ax.set_ylabel(unit, rotation=270, labelpad=12)
+        else:  # we created them
+            this_colorbar = fig.colorbar(im, ax=ax_im)
+            this_colorbar.ax.set_title(unit)
         if cmap[1]:
             ax_im.CB = DraggableColorbar(
                 this_colorbar, im, kind="epochs_image", ch_type=unit
             )
 
     # finish
-    plt_show(show)
-    return ax_im.get_figure()
+    plt_show(show, fig=fig)
+    return fig
 
 
 def plot_drop_log(
@@ -711,6 +718,7 @@ def plot_drop_log(
         The figure.
     """
     import matplotlib.pyplot as plt
+
     from ..epochs import _drop_log_stats
 
     percent = _drop_log_stats(drop_log, ignore)

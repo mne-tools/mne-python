@@ -4,20 +4,18 @@
 # License: BSD-3-Clause
 
 
-import pytest
-
 import numpy as np
-
+import pytest
 from numpy.testing import assert_allclose, assert_array_almost_equal, assert_raises
 
 from mne import create_info
-from mne.channels import make_standard_montage, compute_native_head_t
-from mne.channels.montage import get_builtin_montages, HEAD_SIZE_DEFAULT
-from mne.io import RawArray
 from mne._fiff._digitization import _get_dig_eeg, _get_fid_coords
 from mne._fiff.constants import FIFF
-from mne.preprocessing.nirs import optical_density, beer_lambert_law
-from mne.transforms import _get_trans, _angle_between_quats, rot_to_quat
+from mne.channels import compute_native_head_t, make_standard_montage
+from mne.channels.montage import HEAD_SIZE_DEFAULT, get_builtin_montages
+from mne.io import RawArray
+from mne.preprocessing.nirs import beer_lambert_law, optical_density
+from mne.transforms import _angle_between_quats, _get_trans, rot_to_quat
 
 
 @pytest.mark.parametrize("kind", get_builtin_montages())

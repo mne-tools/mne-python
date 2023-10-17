@@ -16,7 +16,6 @@ from decorator import FunctionMaker
 from ..defaults import HEAD_SIZE_DEFAULT
 from ._bunch import BunchConst
 
-
 # # # WARNING # # #
 # This list must also be updated in doc/_templates/autosummary/class.rst if it
 # is changed here!
@@ -742,6 +741,14 @@ clim : str | dict
 
     Unlike :meth:`stc.plot <mne.SourceEstimate.plot>`, it cannot use
     ``pos_lims``, as the surface plot must show the magnitude.
+"""
+
+docdict[
+    "cmap"
+] = """
+cmap : matplotlib colormap | str | None
+        The :class:`~matplotlib.colors.Colormap` to use. Defaults to ``None``, which
+        will use the matplotlib default colormap.
 """
 
 docdict[

@@ -8,12 +8,11 @@
 
 from pathlib import Path
 
-import numpy as np
-
-import pytest
 import matplotlib.pyplot as plt
+import numpy as np
+import pytest
 
-from mne.channels import read_dig_fif, make_dig_montage, make_standard_montage
+from mne.channels import make_dig_montage, make_standard_montage, read_dig_fif
 
 p_dir = Path(__file__).parent.parent.parent / "io" / "kit" / "tests" / "data"
 elp = p_dir / "test_elp.txt"

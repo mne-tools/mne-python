@@ -1,13 +1,13 @@
 from functools import partial
 from itertools import product
 
-import pytest
-from numpy.testing import assert_array_almost_equal, assert_allclose, assert_array_less
 import numpy as np
+import pytest
 import scipy.stats
+from numpy.testing import assert_allclose, assert_array_almost_equal, assert_array_less
 
 import mne
-from mne.stats.parametric import f_mway_rm, f_threshold_mway_rm, _map_effects
+from mne.stats.parametric import _map_effects, f_mway_rm, f_threshold_mway_rm
 
 # hardcoded external test results, manually transferred
 test_external = {

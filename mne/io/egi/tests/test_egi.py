@@ -2,24 +2,24 @@
 #          simplified BSD-3 license
 
 
-from copy import deepcopy
-from pathlib import Path
 import os
 import shutil
+from copy import deepcopy
 from datetime import datetime, timezone
+from pathlib import Path
 
 import numpy as np
-from numpy.testing import assert_array_equal, assert_allclose
 import pytest
+from numpy.testing import assert_allclose, assert_array_equal
 from scipy import io as sio
 
 from mne import find_events, pick_types
-from mne.io import read_raw_egi, read_evokeds_mff, read_raw_fif
 from mne._fiff.constants import FIFF
+from mne.datasets.testing import data_path, requires_testing_data
+from mne.io import read_evokeds_mff, read_raw_egi, read_raw_fif
 from mne.io.egi.egi import _combine_triggers
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.utils import object_diff
-from mne.datasets.testing import data_path, requires_testing_data
 
 base_dir = Path(__file__).parent / "data"
 egi_fname = base_dir / "test_egi.raw"

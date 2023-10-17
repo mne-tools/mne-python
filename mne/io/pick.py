@@ -5,9 +5,9 @@
 
 from .._fiff import _io_dep_getattr
 from .._fiff.pick import (
-    _picks_to_idx,
     _DATA_CH_TYPES_ORDER_DEFAULT,
     _DATA_CH_TYPES_SPLIT,
+    _picks_to_idx,
 )
 
 __all__ = [

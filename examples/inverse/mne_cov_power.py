@@ -27,7 +27,7 @@ import numpy as np
 
 import mne
 from mne.datasets import sample
-from mne.minimum_norm import make_inverse_operator, apply_inverse_cov
+from mne.minimum_norm import apply_inverse_cov, make_inverse_operator
 
 data_path = sample.data_path()
 subjects_dir = data_path / "subjects"

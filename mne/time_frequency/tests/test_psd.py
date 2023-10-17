@@ -1,12 +1,12 @@
 import numpy as np
-from numpy.testing import assert_array_almost_equal, assert_allclose, assert_array_equal
-from scipy.signal import welch
 import pytest
+from numpy.testing import assert_allclose, assert_array_almost_equal, assert_array_equal
+from scipy.signal import welch
 
-from mne.utils import catch_logging
-from mne.time_frequency import psd_array_welch, psd_array_multitaper
+from mne.time_frequency import psd_array_multitaper, psd_array_welch
 from mne.time_frequency.multitaper import _psd_from_mt
 from mne.time_frequency.psd import _median_biases
+from mne.utils import catch_logging
 
 
 def test_psd_nan():

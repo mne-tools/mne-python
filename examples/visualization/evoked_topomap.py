@@ -20,11 +20,11 @@ additional options.
 # %%
 # sphinx_gallery_thumbnail_number = 5
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 
-from mne.datasets import sample
 from mne import read_evokeds
+from mne.datasets import sample
 
 print(__doc__)
 

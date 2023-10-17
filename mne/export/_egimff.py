@@ -2,16 +2,16 @@
 #
 # License: BSD-3-Clause
 
-import os
-import shutil
 import datetime
+import os
 import os.path as op
+import shutil
 
 import numpy as np
 
+from .._fiff.pick import pick_channels, pick_types
 from ..io.egi.egimff import _import_mffpy
-from .._fiff.pick import pick_types, pick_channels
-from ..utils import verbose, warn, _check_fname
+from ..utils import _check_fname, verbose, warn
 
 
 @verbose

@@ -1,54 +1,54 @@
 import glob
 import os
-from os import path as op
 import shutil
+from os import path as op
 from pathlib import Path
 
 import numpy as np
 import pytest
-from numpy.testing import assert_equal, assert_allclose
+from numpy.testing import assert_allclose, assert_equal
 
 import mne
 from mne import (
     concatenate_raws,
-    read_bem_surfaces,
-    read_surface,
-    read_source_spaces,
     read_bem_solution,
+    read_bem_surfaces,
+    read_source_spaces,
+    read_surface,
 )
 from mne.bem import ConductorModel, convert_flash_mris
 from mne.commands import (
+    mne_anonymize,
     mne_browse_raw,
     mne_bti2fiff,
     mne_clean_eog_ecg,
+    mne_compare_fiff,
     mne_compute_proj_ecg,
     mne_compute_proj_eog,
     mne_coreg,
+    mne_flash_bem,
     mne_kit2fiff,
     mne_make_scalp_surfaces,
     mne_maxfilter,
+    mne_prepare_bem_model,
     mne_report,
-    mne_surf2bem,
-    mne_watershed_bem,
-    mne_compare_fiff,
-    mne_flash_bem,
+    mne_setup_forward_model,
+    mne_setup_source_space,
     mne_show_fiff,
     mne_show_info,
-    mne_what,
-    mne_setup_source_space,
-    mne_setup_forward_model,
-    mne_anonymize,
-    mne_prepare_bem_model,
+    mne_surf2bem,
     mne_sys_info,
+    mne_watershed_bem,
+    mne_what,
 )
 from mne.datasets import testing
-from mne.io import read_raw_fif, read_info
+from mne.io import read_info, read_raw_fif
 from mne.utils import (
-    requires_mne,
-    requires_freesurfer,
     ArgvSetter,
-    _stamp_to_dt,
     _record_warnings,
+    _stamp_to_dt,
+    requires_freesurfer,
+    requires_mne,
 )
 
 base_dir = op.join(op.dirname(__file__), "..", "..", "io", "tests", "data")

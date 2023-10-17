@@ -8,30 +8,30 @@
 # License: BSD-3-Clause
 import numpy as np
 
+from .._fiff.pick import pick_channels, pick_info
 from ..channels import equalize_channels
-from .._fiff.pick import pick_info, pick_channels
-from ..utils import (
-    logger,
-    verbose,
-    _check_one_ch_type,
-    _check_channels_spatial_filter,
-    _check_rank,
-    _check_option,
-    _validate_type,
-    warn,
-)
 from ..forward import _subject_from_forward
-from ..minimum_norm.inverse import combine_xyz, _check_reference, _check_depth
+from ..minimum_norm.inverse import _check_depth, _check_reference, combine_xyz
 from ..rank import compute_rank
-from ..source_estimate import _make_stc, _get_src_type
+from ..source_estimate import _get_src_type, _make_stc
 from ..time_frequency import EpochsTFR
 from ..time_frequency.tfr import _check_tfr_complex
+from ..utils import (
+    _check_channels_spatial_filter,
+    _check_one_ch_type,
+    _check_option,
+    _check_rank,
+    _validate_type,
+    logger,
+    verbose,
+    warn,
+)
 from ._compute_beamformer import (
-    _prepare_beamformer_input,
-    _compute_beamformer,
-    _check_src_type,
     Beamformer,
+    _check_src_type,
+    _compute_beamformer,
     _compute_power,
+    _prepare_beamformer_input,
     _proj_whiten_data,
 )
 

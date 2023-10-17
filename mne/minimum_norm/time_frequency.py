@@ -34,6 +34,7 @@ from .inverse import (
 )
 
 
+
 def _restrict_K_to_lbls(labels, K, noise_norm, vertno, pick_ori):
     """Use labels to choose desired sources in the kernel."""
     verts_to_use = [[], []]

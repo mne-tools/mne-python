@@ -5,22 +5,21 @@
 
 
 import numpy as np
-from numpy.testing import assert_allclose
 import pytest
+from numpy.testing import assert_allclose
 from scipy.linalg import norm
 
-from mne import SourceEstimate
-from mne import read_source_spaces
+from mne import SourceEstimate, read_source_spaces
 from mne.datasets import testing
 from mne.simulation import metrics
 from mne.simulation.metrics import (
     cosine_score,
-    region_localization_error,
+    f1_score,
+    peak_position_error,
     precision_score,
     recall_score,
-    f1_score,
+    region_localization_error,
     roc_auc_score,
-    peak_position_error,
     spatial_deviation_error,
 )
 

@@ -11,7 +11,7 @@ Decoding
    :no-inherited-members:
 
 .. autosummary::
-   :toctree: generated/
+   :toctree: ../generated/
 
    CSP
    EMS
@@ -33,7 +33,7 @@ Decoding
 Functions that assist with decoding and model fitting:
 
 .. autosummary::
-   :toctree: generated/
+   :toctree: ../generated/
 
    compute_ems
    cross_val_multiscore

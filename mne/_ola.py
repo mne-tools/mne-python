@@ -5,7 +5,7 @@
 import numpy as np
 from scipy.signal import get_window
 
-from .utils import _ensure_int, verbose, logger
+from .utils import _ensure_int, logger, verbose
 
 ###############################################################################
 # Class for interpolation between adjacent points

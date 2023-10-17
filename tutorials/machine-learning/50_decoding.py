@@ -25,24 +25,23 @@ Let's start by loading data for a simple two-class problem:
 # %%
 # sphinx_gallery_thumbnail_number = 6
 
-import numpy as np
 import matplotlib.pyplot as plt
-
+import numpy as np
+from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
-from sklearn.linear_model import LogisticRegression
 
 import mne
 from mne.datasets import sample
 from mne.decoding import (
-    SlidingEstimator,
-    GeneralizingEstimator,
-    Scaler,
-    cross_val_multiscore,
-    LinearModel,
-    get_coef,
-    Vectorizer,
     CSP,
+    GeneralizingEstimator,
+    LinearModel,
+    Scaler,
+    SlidingEstimator,
+    Vectorizer,
+    cross_val_multiscore,
+    get_coef,
 )
 
 data_path = sample.data_path()

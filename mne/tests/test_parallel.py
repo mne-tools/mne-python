@@ -2,9 +2,9 @@
 #
 # License: BSD-3-Clause
 
-from contextlib import nullcontext
 import multiprocessing
 import os
+from contextlib import nullcontext
 
 import pytest
 

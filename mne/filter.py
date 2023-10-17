@@ -9,27 +9,26 @@ from scipy import fft, signal
 from scipy.stats import f as fstat
 
 from ._fiff.pick import _picks_to_idx
+from ._ola import _COLA
 from .cuda import (
-    _setup_cuda_fft_multiply_repeated,
     _fft_multiply_repeated,
-    _setup_cuda_fft_resample,
     _fft_resample,
+    _setup_cuda_fft_multiply_repeated,
+    _setup_cuda_fft_resample,
     _smart_pad,
 )
 from .parallel import parallel_func
 from .utils import (
-    logger,
-    verbose,
-    sum_squared,
-    warn,
-    _pl,
-    _check_preload,
-    _validate_type,
     _check_option,
+    _check_preload,
     _ensure_int,
+    _pl,
+    _validate_type,
+    logger,
+    sum_squared,
+    verbose,
+    warn,
 )
-from ._ola import _COLA
-
 
 # These values from Ifeachor and Jervis.
 _length_factors = dict(hann=3.1, hamming=3.3, blackman=5.0)
@@ -1858,9 +1857,9 @@ def _check_filterable(x, kind="filtered", alternative="filter"):
     # using these low-level functions. At the same time, let's
     # help people who might accidentally use low-level functions that they
     # shouldn't use by pushing them in the right direction
-    from .io import BaseRaw
     from .epochs import BaseEpochs
     from .evoked import Evoked
+    from .io import BaseRaw
 
     if isinstance(x, (BaseRaw, BaseEpochs, Evoked)):
         try:
@@ -2583,8 +2582,8 @@ class FilterMixin:
 
         .. versionadded:: 0.15
         """
-        from .io import BaseRaw
         from .annotations import _annotations_starts_stops
+        from .io import BaseRaw
 
         _check_preload(self, "inst.filter")
         if pad is None and method != "iir":

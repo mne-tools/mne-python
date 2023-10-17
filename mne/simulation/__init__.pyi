@@ -12,11 +12,11 @@ __all__ = [
     "simulate_stc",
 ]
 from . import metrics
-from .evoked import simulate_evoked, add_noise
-from .raw import simulate_raw, add_ecg, add_eog, add_chpi
+from .evoked import add_noise, simulate_evoked
+from .raw import add_chpi, add_ecg, add_eog, simulate_raw
 from .source import (
-    select_source_in_label,
-    simulate_stc,
-    simulate_sparse_stc,
     SourceSimulator,
+    select_source_in_label,
+    simulate_sparse_stc,
+    simulate_stc,
 )

@@ -19,8 +19,8 @@ latter also includes evoked (stimulus-locked) activity.
 
 # %%
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 
 import mne
 from mne import io

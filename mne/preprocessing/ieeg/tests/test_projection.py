@@ -5,14 +5,15 @@
 
 import os
 from shutil import copyfile
+
 import numpy as np
-from numpy.testing import assert_allclose
 import pytest
+from numpy.testing import assert_allclose
 
 import mne
+from mne.datasets import testing
 from mne.preprocessing.ieeg import project_sensors_onto_brain
 from mne.preprocessing.ieeg._projection import _project_sensors_onto_inflated
-from mne.datasets import testing
 from mne.transforms import _get_trans
 
 data_path = testing.data_path(download=False)

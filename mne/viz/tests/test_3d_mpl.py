@@ -13,6 +13,9 @@ import numpy as np
 import pytest
 
 from mne import (
+    SourceEstimate,
+    VolSourceEstimate,
+    VolVectorSourceEstimate,
     compute_covariance,
     compute_source_morph,
     make_fixed_length_epochs,
@@ -21,14 +24,11 @@ from mne import (
     read_forward_solution,
     read_trans,
     setup_volume_source_space,
-    SourceEstimate,
-    VolSourceEstimate,
-    VolVectorSourceEstimate,
 )
 from mne.datasets import testing
 from mne.io import read_raw_fif
 from mne.minimum_norm import apply_inverse, make_inverse_operator
-from mne.utils import catch_logging, _record_warnings
+from mne.utils import _record_warnings, catch_logging
 from mne.viz import plot_volume_source_estimates
 from mne.viz.utils import _fake_click, _fake_keypress
 

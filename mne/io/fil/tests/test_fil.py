@@ -2,21 +2,18 @@
 #
 # License: BSD-3-Clause
 
-from numpy import isnan, empty, array
-from numpy.testing import assert_array_equal, assert_array_almost_equal
+import shutil
 from os import remove
 
 import pytest
-import shutil
-
+import scipy.io
+from numpy import array, empty, isnan
+from numpy.testing import assert_array_almost_equal, assert_array_equal
 
 from mne import pick_types
 from mne.datasets import testing
 from mne.io import read_raw_fil
 from mne.io.fil.sensors import _get_pos_units
-
-import scipy.io
-
 
 fil_path = testing.data_path(download=False) / "FIL"
 

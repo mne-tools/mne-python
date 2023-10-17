@@ -8,71 +8,71 @@
 # The computations in this code were primarily derived from Matti Hämäläinen's
 # C code.
 
-from collections import OrderedDict
-from copy import deepcopy
-from functools import partial
 import glob
 import json
 import os
 import os.path as op
-from pathlib import Path
 import shutil
+from collections import OrderedDict
+from copy import deepcopy
+from functools import partial
+from pathlib import Path
 
 import numpy as np
 from scipy.optimize import fmin_cobyla
 
-from .fixes import _compare_version, _safe_svd
+from ._fiff._digitization import _dig_kind_dict, _dig_kind_ints, _dig_kind_rev
 from ._fiff.constants import FIFF, FWD
-from ._fiff._digitization import _dig_kind_dict, _dig_kind_rev, _dig_kind_ints
+from ._fiff.open import fiff_open
+from ._fiff.tag import find_tag
+from ._fiff.tree import dir_tree_find
 from ._fiff.write import (
+    end_block,
     start_and_end_file,
     start_block,
     write_float,
-    write_int,
     write_float_matrix,
+    write_int,
     write_int_matrix,
-    end_block,
     write_string,
 )
-from ._fiff.tag import find_tag
-from ._fiff.tree import dir_tree_find
-from ._fiff.open import fiff_open
+from .fixes import _compare_version, _safe_svd
 from .surface import (
-    read_surface,
-    write_surface,
-    complete_surface_info,
-    _compute_nearest,
-    _get_ico_surface,
-    read_tri,
-    _fast_cross_nd_sum,
-    _get_solids,
     _complete_sphere_surf,
+    _compute_nearest,
+    _fast_cross_nd_sum,
+    _get_ico_surface,
+    _get_solids,
+    complete_surface_info,
     decimate_surface,
+    read_surface,
+    read_tri,
     transform_surface_to,
+    write_surface,
 )
-from .transforms import _ensure_trans, apply_trans, Transform
-from .viz.misc import plot_bem
+from .transforms import Transform, _ensure_trans, apply_trans
 from .utils import (
-    verbose,
-    logger,
-    run_subprocess,
-    get_subjects_dir,
-    warn,
-    _pl,
-    _validate_type,
-    _TempDir,
-    _check_freesurfer_home,
     _check_fname,
+    _check_freesurfer_home,
+    _check_head_radius,
     _check_option,
-    path_like,
+    _ensure_int,
+    _import_h5io_funcs,
     _import_nibabel,
     _on_missing,
-    _import_h5io_funcs,
-    _ensure_int,
     _path_like,
+    _pl,
+    _TempDir,
+    _validate_type,
     _verbose_safe_false,
-    _check_head_radius,
+    get_subjects_dir,
+    logger,
+    path_like,
+    run_subprocess,
+    verbose,
+    warn,
 )
+from .viz.misc import plot_bem
 
 # ############################################################################
 # Compute BEM solution

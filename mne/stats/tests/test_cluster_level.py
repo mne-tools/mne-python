@@ -3,32 +3,31 @@
 #
 # License: BSD-3-Clause
 
-from functools import partial
 import os
+from functools import partial
 
 import numpy as np
-from scipy import sparse, linalg, stats
-from numpy.testing import (
-    assert_equal,
-    assert_array_equal,
-    assert_array_almost_equal,
-    assert_allclose,
-)
 import pytest
+from numpy.testing import (
+    assert_allclose,
+    assert_array_almost_equal,
+    assert_array_equal,
+    assert_equal,
+)
+from scipy import linalg, sparse, stats
 
-from mne import SourceEstimate, VolSourceEstimate, MixedSourceEstimate, SourceSpaces
-from mne.stats import ttest_ind_no_p, combine_adjacency
+from mne import MixedSourceEstimate, SourceEstimate, SourceSpaces, VolSourceEstimate
+from mne.stats import combine_adjacency, ttest_ind_no_p
 from mne.stats.cluster_level import (
-    permutation_cluster_test,
     f_oneway,
     permutation_cluster_1samp_test,
-    spatio_temporal_cluster_test,
+    permutation_cluster_test,
     spatio_temporal_cluster_1samp_test,
-    ttest_1samp_no_p,
+    spatio_temporal_cluster_test,
     summarize_clusters_stc,
+    ttest_1samp_no_p,
 )
-from mne.utils import catch_logging, _record_warnings
-
+from mne.utils import _record_warnings, catch_logging
 
 n_space = 50
 

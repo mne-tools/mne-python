@@ -16,14 +16,14 @@ at which the fix is no longer needed.
 # Imports for SciPy submodules need to stay nested in this module
 # because this module is imported many places (but not always used)!
 
-from contextlib import contextmanager
 import inspect
 import operator as operator_module
-from math import log
-from pprint import pprint
-from io import StringIO
 import os
 import warnings
+from contextlib import contextmanager
+from io import StringIO
+from math import log
+from pprint import pprint
 
 import numpy as np
 
@@ -817,8 +817,9 @@ else:
 # scheduled to be fixed by MPL 3.6
 def _close_event(fig):
     """Force calling of the MPL figure close event."""
-    from .utils import logger
     from matplotlib import backend_bases
+
+    from .utils import logger
 
     try:
         fig.canvas.callbacks.process(

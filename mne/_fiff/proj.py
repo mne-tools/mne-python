@@ -5,36 +5,36 @@
 #
 # License: BSD-3-Clause
 
+import re
 from copy import deepcopy
 from itertools import count
-import re
 
 import numpy as np
 
-from .constants import FIFF
-from .pick import pick_types, pick_info, _electrode_types, _ELECTRODE_CH_TYPES
-from .tag import find_tag, _rename_list
-from .tree import dir_tree_find
-from .write import (
-    write_int,
-    write_float,
-    write_string,
-    write_float_matrix,
-    end_block,
-    start_block,
-    write_name_list_sanitized,
-    _safe_name_list,
-)
-from ..defaults import _INTERPOLATION_DEFAULT, _BORDER_DEFAULT, _EXTRAPOLATE_DEFAULT
+from ..defaults import _BORDER_DEFAULT, _EXTRAPOLATE_DEFAULT, _INTERPOLATION_DEFAULT
 from ..fixes import _safe_svd
 from ..utils import (
+    _check_option,
+    _validate_type,
+    fill_doc,
     logger,
+    object_diff,
     verbose,
     warn,
-    fill_doc,
-    _validate_type,
-    object_diff,
-    _check_option,
+)
+from .constants import FIFF
+from .pick import _ELECTRODE_CH_TYPES, _electrode_types, pick_info, pick_types
+from .tag import _rename_list, find_tag
+from .tree import dir_tree_find
+from .write import (
+    _safe_name_list,
+    end_block,
+    start_block,
+    write_float,
+    write_float_matrix,
+    write_int,
+    write_name_list_sanitized,
+    write_string,
 )
 
 
@@ -309,9 +309,9 @@ class ProjMixin:
             evoked.copy().del_proj(0).apply_proj().plot()
             evoked.apply_proj()  # finally keep both
         """
-        from ..io import BaseRaw
         from ..epochs import BaseEpochs
         from ..evoked import Evoked
+        from ..io import BaseRaw
 
         if self.info["projs"] is None or len(self.info["projs"]) == 0:
             logger.info(

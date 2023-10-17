@@ -2,9 +2,9 @@
 
 import numpy as np
 
-from ..evoked import Evoked
 from .._fiff.pick import _picks_to_idx
-from ..utils import verbose, _validate_type, _ensure_int
+from ..evoked import Evoked
+from ..utils import _ensure_int, _validate_type, verbose
 
 
 def _temp_proj(ref_2, ref_1, raw_data, n_proj=6):

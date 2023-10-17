@@ -4,7 +4,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from mne import create_info, io, pick_types, read_events, Epochs
+from mne import Epochs, create_info, io, pick_types, read_events
 from mne.channels import make_standard_montage
 from mne.preprocessing import equalize_bads, interpolate_bridged_electrodes
 from mne.preprocessing.interpolate import _find_centroid_sphere

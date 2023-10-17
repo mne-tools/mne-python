@@ -24,10 +24,10 @@ from numpy.random import randn
 from scipy import stats as stats
 
 import mne
-from mne.epochs import equalize_epoch_counts
-from mne.stats import spatio_temporal_cluster_1samp_test, summarize_clusters_stc
-from mne.minimum_norm import apply_inverse, read_inverse_operator
 from mne.datasets import sample
+from mne.epochs import equalize_epoch_counts
+from mne.minimum_norm import apply_inverse, read_inverse_operator
+from mne.stats import spatio_temporal_cluster_1samp_test, summarize_clusters_stc
 
 # %%
 # Set parameters
