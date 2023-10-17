@@ -431,7 +431,7 @@ jobs:
           key: data-cache-phantom-kit
           paths:
             - ~/mne_data/MNE-phantom-KIT-data  # (1 G)
-            
+
 
   linkcheck:
     # there are a few files excluded from this for expediency, see Makefile
