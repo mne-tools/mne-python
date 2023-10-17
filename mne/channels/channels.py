@@ -839,8 +839,9 @@ class InterpolationMixin:
 
                 method=dict(meg="MNE", eeg="spline", fnirs="nearest")
 
-            If a :class:`str` is provided, a single channel type is expected in the
-            instance.
+            If a :class:`str` is provided, the method will be applied to all channels
+            types supported and available in the instance. The method ``"nan"`` will
+            replace the channel data with ``np.nan``.
 
             .. warning::
                 Be careful when using ``method="nan"``; the default value
@@ -872,48 +873,49 @@ class InterpolationMixin:
         _check_preload(self, "interpolation")
         _validate_type(method, (dict, str, None), "method")
         method = _handle_default("interpolation_method", method)
+        ch_types = self.get_channel_types(unique=True)
+        if "grad" in ch_types:
+            del ch_types[ch_types.index("grad")]
+            ch_types.append("meg")
+        if "mag" in ch_types:
+            del ch_types[ch_types.index("mag")]
+            if "meg" not in ch_types:
+                ch_types.append("meg")
+        keys2delete = set(method) - set(ch_types)
+        for key in keys2delete:
+            del method[key]
+        logger.info("Setting channel interpolation method to %s.", method)
+        valids = {
+            "eeg": ("spline", "MNE", "nan"),
+            "meg": ("MNE", "nan"),
+            "fnirs": ("nearest", "nan"),
+        }
         for key in method:
             _check_option("method[key]", key, ("meg", "eeg", "fnirs"))
-        _check_option(
-            "method['eeg']",
-            method["eeg"],
-            (
-                "spline",
-                "MNE",
-                "nan",
-            ),
-        )
-        _check_option(
-            "method['meg']",
-            method["meg"],
-            (
-                "MNE",
-                "nan",
-            ),
-        )
-        _check_option(
-            "method['fnirs']",
-            method["fnirs"],
-            (
-                "nearest",
-                "nan",
-            ),
-        )
-
-        if len(self.info["bads"]) == 0:
+            _check_option(f"method['{key}']", method[key], valids[key])
+        if _picks_to_idx(self.info, list(method), exclude=()).size == 0:
             warn("No bad channels to interpolate. Doing nothing...")
             return self
-        logger.info("Interpolating bad channels")
+        logger.info("Interpolating bad channels.")
         origin = _check_origin(origin, self.info)
-        if method["eeg"] == "spline":
+        if "eeg" in method and method["eeg"] == "spline":
             _interpolate_bads_eeg(self, origin=origin, exclude=exclude)
+            eeg_mne = False
+        elif "eeg" not in method:
             eeg_mne = False
         else:
             eeg_mne = True
-        _interpolate_bads_meeg(
-            self, mode=mode, origin=origin, eeg=eeg_mne, exclude=exclude, method=method
-        )
-        _interpolate_bads_nirs(self, exclude=exclude, method=method["fnirs"])
+        if "meg" in method or eeg_mne:
+            _interpolate_bads_meeg(
+                self,
+                mode=mode,
+                origin=origin,
+                eeg=eeg_mne,
+                exclude=exclude,
+                method=method,
+            )
+        if "fnirs" in method:
+            _interpolate_bads_nirs(self, exclude=exclude, method=method["fnirs"])
 
         if reset_bads is True:
             if "nan" in method.values():
