@@ -828,23 +828,23 @@ class InterpolationMixin:
             origin fit.
 
             .. versionadded:: 0.17
-        method : dict | None
+        method : dict | str | None
             Method to use for each channel type.
-            All channel types support "nan".
-            The key ``"eeg"`` has two additional options:
 
-            - ``"spline"`` (default)
-                Use spherical spline interpolation.
-            - ``"MNE"``
-                Use minimum-norm projection to a sphere and back.
-                This is the method used for MEG channels.
+            - ``"meg"`` channels support ``"MNE"`` (default) and ``"nan"``
+            - ``"eeg"`` channels support ``"spline" (default), ``"MNE"`` and ``"nan"``
+            - ``"fnirs"`` channels support ``"nearest"`` (default) and ``"nan"``
 
-            The default value for ``"meg"`` is ``"MNE"``, and the default value
-            for ``"fnirs"`` is ``"nearest"``.
-
-            The default (None) is thus an alias for::
+            None is an alias for::
 
                 method=dict(meg="MNE", eeg="spline", fnirs="nearest")
+
+            If a :class:`str` is provided, a single channel type is expected in the
+            instance.
+
+            .. warning::
+                Be careful when using ``method="nan"``; the default value
+                ``reset_bads=True`` may not be what you want.
 
             .. versionadded:: 0.21
         exclude : list | tuple
@@ -861,9 +861,7 @@ class InterpolationMixin:
         -----
         .. versionadded:: 0.9.0
 
-        .. warning::
-            Be careful when using ``method="nan"``; the default value
-            ``reset_bads=True`` may not be what you want.
+        The ``"MNE"`` method uses minimum-norm projection to a sphere and back.
         """
         from .interpolation import (
             _interpolate_bads_eeg,
@@ -872,7 +870,7 @@ class InterpolationMixin:
         )
 
         _check_preload(self, "interpolation")
-        _validate_type(method, (dict, None), "method")
+        _validate_type(method, (dict, str, None), "method")
         method = _handle_default("interpolation_method", method)
         for key in method:
             _check_option("method[key]", key, ("meg", "eeg", "fnirs"))
