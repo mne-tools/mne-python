@@ -144,6 +144,7 @@ def test_tfr_with_inverse_operator(method):
         assert_allclose(power[max_inds], 6.05, rtol=1e-3)
 
 
+@testing.requires_testing_data
 def test_tfr_multi_label():
     """Test multi-label functionality."""
     tmin, tmax, event_id = -0.2, 0.5, 1
