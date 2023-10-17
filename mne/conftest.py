@@ -174,6 +174,7 @@ def pytest_configure(config):
     ignore:The numpy\.array_api submodule is still experimental.*:UserWarning
     # numpy 2.0 <-> SciPy
     ignore:numpy\.core\._multiarray_umath.*:DeprecationWarning
+    ignore:numpy\.core\.numeric is deprecated.*:DeprecationWarning
     # tqdm (Fedora)
     ignore:.*'tqdm_asyncio' object has no attribute 'last_print_t':pytest.PytestUnraisableExceptionWarning
     # Until mne-qt-browser > 0.5.2 is released
