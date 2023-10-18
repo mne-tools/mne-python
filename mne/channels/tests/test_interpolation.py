@@ -5,11 +5,12 @@ import numpy as np
 import pytest
 from numpy.testing import assert_allclose, assert_array_equal
 
-from mne import Epochs, io, pick_channels, pick_types, read_events
+from mne import Epochs, pick_channels, pick_types, read_events
+from mne._fiff.constants import FIFF
 from mne._fiff.proj import _has_eeg_average_ref_proj
 from mne.channels.interpolation import _make_interpolation_matrix
 from mne.datasets import testing
-from mne.io import read_raw_nirx
+from mne.io import RawArray, read_raw_ctf, read_raw_fif, read_raw_nirx
 from mne.preprocessing.nirs import (
     beer_lambert_law,
     optical_density,
@@ -30,7 +31,7 @@ def _load_data(kind):
     """Load data."""
     # It is more memory efficient to load data in a separate
     # function so it's loaded on-demand
-    raw = io.read_raw_fif(raw_fname)
+    raw = read_raw_fif(raw_fname)
     events = read_events(event_name)
     # subselect channels for speed
     if kind == "eeg":
@@ -86,7 +87,7 @@ def test_interpolation_eeg(offset, avg_proj, ctol, atol, method):
     # Offsetting the coordinate frame should have no effect on the output
     for inst in (raw, epochs_eeg):
         for ch in inst.info["chs"]:
-            if ch["kind"] == io.constants.FIFF.FIFFV_EEG_CH:
+            if ch["kind"] == FIFF.FIFFV_EEG_CH:
                 ch["loc"][:3] += offset
                 ch["loc"][3:6] += offset
         for d in inst.info["dig"]:
@@ -167,7 +168,7 @@ def test_interpolation_eeg(offset, avg_proj, ctol, atol, method):
     epochs_eeg.preload = True
 
     # check that interpolation changes the data in raw
-    raw_eeg = io.RawArray(data=epochs_eeg._data[0], info=epochs_eeg.info)
+    raw_eeg = RawArray(data=epochs_eeg._data[0], info=epochs_eeg.info)
     raw_before = raw_eeg._data[bads_idx]
     raw_after = raw_eeg.interpolate_bads(**kw)._data[bads_idx]
     assert not np.all(raw_before == raw_after)
@@ -220,7 +221,7 @@ def test_interpolation_meg():
     pick = pick_channels(epochs_meg.info["ch_names"], epochs_meg.info["bads"])
 
     # MEG -- raw
-    raw_meg = io.RawArray(data=epochs_meg._data[0], info=epochs_meg.info)
+    raw_meg = RawArray(data=epochs_meg._data[0], info=epochs_meg.info)
     raw_meg.info["bads"] = ["MEG 0141"]
     data1 = raw_meg[pick, :][0][0]
 
@@ -269,7 +270,7 @@ def test_interpolate_meg_ctf():
     tol = 0.05  # assert the new interpol correlates at least .05 "better"
     bad = "MLC22-2622"  # select a good channel to test the interpolation
 
-    raw = io.read_raw_fif(raw_fname_ctf).crop(0, 1.0).load_data()  # 3 secs
+    raw = read_raw_fif(raw_fname_ctf).crop(0, 1.0).load_data()  # 3 secs
     raw.apply_gradient_compensation(3)
 
     # Show that we have to exclude ref_meg for interpolating CTF MEG-channels
@@ -296,7 +297,7 @@ def test_interpolate_meg_ctf():
 def test_interpolation_ctf_comp():
     """Test interpolation with compensated CTF data."""
     raw_fname = testing_path / "CTF" / "somMDYO-18av.ds"
-    raw = io.read_raw_ctf(raw_fname, preload=True)
+    raw = read_raw_ctf(raw_fname, preload=True)
     raw.info["bads"] = [raw.ch_names[5], raw.ch_names[-5]]
     raw.interpolate_bads(mode="fast", origin=(0.0, 0.0, 0.04))
     assert raw.info["bads"] == []
@@ -348,3 +349,17 @@ def test_nan_interpolation(raw):
     raw.drop_channels(ch_to_interp)
     good_chs = raw.get_data()
     assert np.isfinite(good_chs).all()
+
+
+def test_method_str():
+    """Test method argument types."""
+    raw = read_raw_fif(
+        testing_path / "MEG" / "sample" / "sample_audvis_trunc_raw.fif",
+        preload=False,
+    )
+    raw.crop(0, 1).pick(("meg", "eeg"), exclude=()).load_data()
+    raw.copy().interpolate_bads(method="MNE")
+    with pytest.raises(ValueError, match="Invalid value for the"):
+        raw.interpolate_bads(method="spline")
+    raw.pick("eeg", exclude=())
+    raw.interpolate_bads(method="spline")
