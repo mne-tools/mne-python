@@ -351,6 +351,7 @@ def test_nan_interpolation(raw):
     assert np.isfinite(good_chs).all()
 
 
+@testing.requires_testing_data
 def test_method_str():
     """Test method argument types."""
     raw = read_raw_fif(
