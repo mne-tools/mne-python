@@ -2698,10 +2698,10 @@ def make_metadata(
            your epochs time interval, pass the same ``tmin`` and ``tmax``
            values here as you use for your epochs.
 
-        If ``None`` and ``row_events`` is provided, the interval used for metadata
-        generation window is bounded by the ``row_events``. This is can be particularly
-        practical if trial duration varies greatly, but each trial starts with a known
-        event (e.g., a visual cue or fixation).
+        If ``None``, the time window used for metadata generation is bounded by the
+        ``row_events``. This is can be particularly practical if trial duration varies
+        greatly, but each trial starts with a known event (e.g., a visual cue or
+        fixation).
 
         .. note::
            If ``tmin=None``, the first time window for metadata generation starts with
