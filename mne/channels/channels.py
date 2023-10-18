@@ -1014,7 +1014,7 @@ class _BuiltinChannelAdjacency:
 
 
 _ft_neighbor_url_t = string.Template(
-    "https://github.com/fieldtrip/fieldtrip/raw/master/" "template/neighbours/$fname"
+    "https://github.com/fieldtrip/fieldtrip/raw/master/template/neighbours/$fname"
 )
 
 _BUILTIN_CHANNEL_ADJACENCIES = [
