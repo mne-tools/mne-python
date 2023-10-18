@@ -3914,29 +3914,36 @@ def assert_metadata_equal(got, exp):
 
 
 @pytest.mark.parametrize(
-    ("all_event_id", "row_events", "keep_first", "keep_last"),
+    ("all_event_id", "row_events", "tmin", "tmax", "keep_first", "keep_last"),
     [
         (
             {"a/1": 1, "a/2": 2, "b/1": 3, "b/2": 4, "c": 32},  # all events
             None,
+            -0.5,
+            1.5,
             None,
             None,
         ),
-        ({"a/1": 1, "a/2": 2}, None, None, None),  # subset of events
-        (dict(), None, None, None),  # empty set of events
+        ({"a/1": 1, "a/2": 2}, None, -0.5, 1.5, None, None),  # subset of events
+        (dict(), None, -0.5, 1.5, None, None),  # empty set of events
         (
             {"a/1": 1, "a/2": 2, "b/1": 3, "b/2": 4, "c": 32},
             ("a/1", "a/2", "b/1", "b/2"),
+            -0.5,
+            1.5,
             ("a", "b"),
             "c",
         ),
+        # Test when tmin, tmax are None
+        ({"a/1": 1, "a/2": 2}, None, None, 1.5, None, None),  # tmin is None
+        ({"a/1": 1, "a/2": 2}, None, -0.5, None, None, None),  # tmax is None
+        ({"a/1": 1, "a/2": 2}, None, None, None, None, None),  # tmin and tmax are None
     ],
 )
-def test_make_metadata(all_event_id, row_events, keep_first, keep_last):
+def test_make_metadata(all_event_id, row_events, tmin, tmax, keep_first, keep_last):
     """Test that make_metadata works."""
     pytest.importorskip("pandas")
     raw, all_events, _ = _get_data()
-    tmin, tmax = -0.5, 1.5
     sfreq = raw.info["sfreq"]
     kwargs = dict(
         events=all_events,

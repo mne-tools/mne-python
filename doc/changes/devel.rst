@@ -41,6 +41,7 @@ Enhancements
 - By default MNE-Python creates matplotlib figures with ``layout='constrained'`` rather than the default ``layout='tight'`` (:gh:`12050`, :gh:`12103` by `Mathieu Scheltienne`_ and `Eric Larson`_)
 - Enhance :func:`~mne.viz.plot_evoked_field` with a GUI that has controls for time, colormap, and contour lines (:gh:`11942` by `Marijn van Vliet`_)
 - Add :class:`mne.viz.ui_events.UIEvent` linking for interactive colorbars, allowing users to link figures and change the colormap and limits interactively. This supports :func:`~mne.viz.plot_evoked_topomap`, :func:`~mne.viz.plot_ica_components`, :func:`~mne.viz.plot_tfr_topomap`, :func:`~mne.viz.plot_projs_topomap`, :meth:`~mne.Evoked.plot_image`, and :meth:`~mne.Epochs.plot_image` (:gh:`12057` by `Santeri Ruuskanen`_)
+- :func:`~mne.epochs.make_metadata` now accepts ``tmin=None`` and ``tmax=None``, which will bound the time window used for metadata generation by event names (instead of a fixed time). That way, you can now for example generate metadata spanning from one cue or fixation cross to the next, even if trial durations vary throughout the recording (:gh:`12118` by `Richard Höchenberger`_)
 
 Bugs
 ~~~~
