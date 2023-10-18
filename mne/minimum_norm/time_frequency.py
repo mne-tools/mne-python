@@ -567,7 +567,7 @@ def _source_induced_power(
         power = _get_label_power(power, label, vertno, k_id)
         logger.info(
             "Averaging induced power across vertices within labels "
-            f"for {len(label)} labels."
+            f"for {len(label)} label{_pl(label)}."
         )
     else:
         assert not label
