@@ -886,7 +886,6 @@ class InterpolationMixin:
         keys2delete = set(method) - set(ch_types)
         for key in keys2delete:
             del method[key]
-        logger.info("Setting channel interpolation method to %s.", method)
         valids = {
             "eeg": ("spline", "MNE", "nan"),
             "meg": ("MNE", "nan"),
@@ -895,6 +894,7 @@ class InterpolationMixin:
         for key in method:
             _check_option("method[key]", key, ("meg", "eeg", "fnirs"))
             _check_option(f"method['{key}']", method[key], valids[key])
+        logger.info("Setting channel interpolation method to %s.", method)
         idx = _picks_to_idx(self.info, list(method), exclude=(), allow_empty=True)
         if idx.size == 0 or len(pick_info(self.info, idx)["bads"]) == 0:
             warn("No bad channels to interpolate. Doing nothing...")
