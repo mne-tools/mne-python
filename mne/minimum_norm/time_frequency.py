@@ -561,7 +561,7 @@ def _source_induced_power(
 
     if isinstance(label, (Label, BiHemiLabel)):
         logger.info(
-            f"Outputting power for {len(power)} vertices in label" f" {label.name}."
+            f"Outputting power for {len(power)} vertices in label {label.name}."
         )
     elif isinstance(label, list):
         power = _get_label_power(power, label, vertno, k_id)
