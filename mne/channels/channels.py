@@ -861,9 +861,9 @@ class InterpolationMixin:
 
         Notes
         -----
-        .. versionadded:: 0.9.0
-
         The ``"MNE"`` method uses minimum-norm projection to a sphere and back.
+
+        .. versionadded:: 0.9.0
         """
         from .interpolation import (
             _interpolate_bads_eeg,
