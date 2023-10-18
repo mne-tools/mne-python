@@ -864,7 +864,6 @@ class CoregistrationUI(HasTraits):
             mri_fids=self._add_mri_fiducials,
             hsp=self._add_head_shape_points,
             hpi=self._add_hpi_coils,
-            eeg=self._add_eeg_fnirs_channels,
             sensors=self._add_channels,
             head_fids=self._add_head_fiducials,
             helmet=self._add_helmet,

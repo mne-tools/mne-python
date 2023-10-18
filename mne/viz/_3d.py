@@ -818,6 +818,7 @@ def plot_alignment(
     renderer.set_interaction(interaction)
 
     # plot head
+    print(head, bem, subject)
     _, _, head_surf = _plot_head_surface(
         renderer,
         head,
