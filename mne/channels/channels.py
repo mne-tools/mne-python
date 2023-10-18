@@ -840,7 +840,7 @@ class InterpolationMixin:
 
                 method=dict(meg="MNE", eeg="spline", fnirs="nearest")
 
-            If a :class:`str` is provided, the method will be applied to all channels
+            If a :class:`str` is provided, the method will be applied to all channel
             types supported and available in the instance. The method ``"nan"`` will
             replace the channel data with ``np.nan``.
 
@@ -880,7 +880,7 @@ class InterpolationMixin:
         for ch_type in ("meg", "fnirs"):
             for sub_ch_type in _second_rules[ch_type][1].values():
                 if sub_ch_type in ch_types:
-                    del ch_types[ch_types.index(sub_ch_type)]
+                    ch_types.remove(sub_ch_type)
                     if ch_type not in ch_types:
                         ch_types.append(ch_type)
         keys2delete = set(method) - set(ch_types)
@@ -901,7 +901,7 @@ class InterpolationMixin:
             return self
         logger.info("Interpolating bad channels.")
         origin = _check_origin(origin, self.info)
-        if "eeg" in method and method["eeg"] == "spline":
+        if method.get("eeg", "") == "spline":
             _interpolate_bads_eeg(self, origin=origin, exclude=exclude)
             eeg_mne = False
         elif "eeg" not in method:
