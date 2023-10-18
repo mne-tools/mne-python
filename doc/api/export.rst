@@ -11,7 +11,7 @@ Exporting
 .. currentmodule:: mne.export
 
 .. autosummary::
-   :toctree: generated/
+   :toctree: ../generated/
 
    export_epochs
    export_evokeds

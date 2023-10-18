@@ -5,7 +5,7 @@ Covariance computation
 .. currentmodule:: mne
 
 .. autosummary::
-   :toctree: generated/
+   :toctree: ../generated/
 
    Covariance
    compute_covariance

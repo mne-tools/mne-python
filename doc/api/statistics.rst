@@ -16,7 +16,7 @@ Parametric statistics (see :mod:`scipy.stats` and :mod:`statsmodels` for more
 options):
 
 .. autosummary::
-   :toctree: generated/
+   :toctree: ../generated/
 
    ttest_1samp_no_p
    ttest_ind_no_p
@@ -29,7 +29,7 @@ options):
 Mass-univariate multiple comparison correction:
 
 .. autosummary::
-   :toctree: generated/
+   :toctree: ../generated/
 
    bonferroni_correction
    fdr_correction
@@ -37,7 +37,7 @@ Mass-univariate multiple comparison correction:
 Non-parametric (clustering) resampling methods:
 
 .. autosummary::
-   :toctree: generated/
+   :toctree: ../generated/
 
    combine_adjacency
    permutation_cluster_test
@@ -53,7 +53,7 @@ Compute ``adjacency`` matrices for cluster-level statistics:
 .. currentmodule:: mne
 
 .. autosummary::
-   :toctree: generated/
+   :toctree: ../generated/
 
    channels.find_ch_adjacency
    channels.read_ch_adjacency

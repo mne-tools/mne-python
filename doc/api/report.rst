@@ -7,7 +7,7 @@ MNE-Report
 .. currentmodule:: mne
 
 .. autosummary::
-   :toctree: generated/
+   :toctree: ../generated/
 
    Report
    open_report

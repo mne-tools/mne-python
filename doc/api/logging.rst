@@ -5,7 +5,7 @@ Logging and Configuration
 .. currentmodule:: mne
 
 .. autosummary::
-   :toctree: generated/
+   :toctree: ../generated/
 
    get_config_path
    get_config
@@ -28,7 +28,7 @@ Logging and Configuration
    :no-inherited-members:
 
 .. autosummary::
-   :toctree: generated/
+   :toctree: ../generated/
 
    deprecated
    warn
@@ -42,7 +42,7 @@ Logging and Configuration
    :no-inherited-members:
 
 .. autosummary::
-   :toctree: generated/
+   :toctree: ../generated/
 
    get_cuda_memory
    init_cuda

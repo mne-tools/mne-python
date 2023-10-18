@@ -4,7 +4,7 @@ Most-used classes
 .. currentmodule:: mne
 
 .. autosummary::
-   :toctree: generated/
+   :toctree: ../generated/
 
    io.Raw
    Epochs
