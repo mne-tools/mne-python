@@ -2923,7 +2923,7 @@ def make_metadata(
 
         if stop_sample is None:
             # Upper bound: next event of the same type, or the last event (of
-            # any type) if no later event of the same type cannot be found.
+            # any type) if no later event of the same type can be found.
             next_events = events_df.loc[
                 (events_df["sample"] > row_event.sample),
                 :,
