@@ -41,6 +41,7 @@ from .._fiff.pick import (
     _pick_data_channels,
     _picks_by_type,
     _picks_to_idx,
+    _second_rules,
     channel_indices_by_type,
     channel_type,
     pick_channels,
@@ -874,13 +875,14 @@ class InterpolationMixin:
         _validate_type(method, (dict, str, None), "method")
         method = _handle_default("interpolation_method", method)
         ch_types = self.get_channel_types(unique=True)
-        if "grad" in ch_types:
-            del ch_types[ch_types.index("grad")]
-            ch_types.append("meg")
-        if "mag" in ch_types:
-            del ch_types[ch_types.index("mag")]
-            if "meg" not in ch_types:
-                ch_types.append("meg")
+        # figure out if we have "mag" for "meg", "hbo" for "fnirs", ... to filter the
+        # "method" dictionary and keep only keys that correspond to existing channels.
+        for ch_type in ("meg", "fnirs"):
+            for sub_ch_type in _second_rules[ch_type][1].values():
+                if sub_ch_type in ch_types:
+                    del ch_types[ch_types.index(sub_ch_type)]
+                    if ch_type not in ch_types:
+                        ch_types.append(ch_type)
         keys2delete = set(method) - set(ch_types)
         for key in keys2delete:
             del method[key]
@@ -893,7 +895,7 @@ class InterpolationMixin:
         for key in method:
             _check_option("method[key]", key, ("meg", "eeg", "fnirs"))
             _check_option(f"method['{key}']", method[key], valids[key])
-        idx = _picks_to_idx(self.info, list(method), exclude=())
+        idx = _picks_to_idx(self.info, list(method), exclude=(), allow_empty=True)
         if idx.size == 0 or len(pick_info(self.info, idx)["bads"]) == 0:
             warn("No bad channels to interpolate. Doing nothing...")
             return self
