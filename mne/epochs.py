@@ -1680,6 +1680,7 @@ class BaseEpochs(
                 if orig_picks is not None:
                     data = data[:, picks]
                 if units is not None:
+                    data = data.copy()
                     data *= ch_factors[:, np.newaxis]
                 if start != 0 or stop != self.times.size:
                     data = data[..., start:stop]
@@ -1827,6 +1828,7 @@ class BaseEpochs(
         data : array of shape (n_epochs, n_channels, n_times)
             A view on epochs data.
         """
+        warn("The result from get_data() can be a view on the Epochs data, which means that modifying it in-place will modify the data in the Epochs object, making it incorrect.")
         return self._get_data(picks=picks, item=item, units=units, tmin=tmin, tmax=tmax)
 
     @verbose
