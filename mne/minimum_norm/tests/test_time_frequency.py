@@ -230,7 +230,19 @@ def test_tfr_multi_label():
 
     # error handling for multi-label and plv
     with pytest.raises(RuntimeError, match="value cannot be calculated"):
-        source_induced_power(epochs, inv, freqs, labels, **sip_kwargs)
+        source_induced_power(
+            epochs,
+            inv,
+            freqs,
+            labels,
+            baseline=(-0.1, 0),
+            baseline_mode="percent",
+            n_cycles=2,
+            n_jobs=None,
+            return_plv=True,
+            method="dSPM",
+            prepared=True,
+        )
 
     # check multi-label handling
     for ltype, lab_set in zip(("Label", "BiHemi"), label_sets):
