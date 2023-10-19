@@ -131,11 +131,11 @@ class RawNeuralynx(BaseRaw):
                 for signal in seg.analogsignals
             ]
         ).T
+        all_data *= 1e-6  # Convert uV to V
 
-        block = all_data  # shape = (len(idx), n_samples))
-
-        # Convert uV to V
-        block *= 1e-6
+        n_channels = len(nlx_reader.header["signal_channels"]["name"])
+        block = np.zeros((n_channels, stop - start), dtype=data.dtype)
+        block[idx] = all_data  # shape = (n_channels, n_samples)
 
         # Then store the result where it needs to go
         _mult_cal_one(data, block, idx, cals, mult)
