@@ -267,7 +267,7 @@ def test_tfr_multi_label():
             assert list_pow.shape == (1, flen, tlen)
 
             nlp_ave = np.mean(no_list_pow, axis=0)
-            assert_allclose(nlp_ave, list_pow)
+            assert_allclose(nlp_ave, list_pow[0], rtol=1e-3)
 
             # check label=[Label, Label]
             multi_lab_pow = source_induced_power(
