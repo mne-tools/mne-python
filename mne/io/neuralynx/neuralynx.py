@@ -72,16 +72,67 @@ class RawNeuralynx(BaseRaw):
         from neo.io import NeuralynxIO
 
         nlx_reader = NeuralynxIO(dirname=self._filenames[fi])
-        bl = nlx_reader.read(lazy=False)
+        bl = nlx_reader.read(lazy=True)
         # TODO: This is massively inefficient -- we should not need to read *all*
         # samples just to get the ones from `idx` channels and `start:stop` time span.
-        # But let's start here and make it efficient later.
+        # KA: neuralynx stores continuous recording in smaller segments (read in as neo.Segment objects)
+        # below code tries to be more efficient it delays reading into memory (nlx_reader.read(lazy=True)) 
+        # and then reads in the idx chanels and specified times by passing these as arguments in neo.Segment.AnalogSignal.load()
+
+        sr = nlx_reader.header["signal_channels"]["sampling_rate"][0]
+
+        # check that every segment has 1 associated neo.AnalogSignal() object (not sure what multiple analogsignals per neo.Segment would mean)
+        assert sum([len(segment.analogsignals) for segment in bl[0].segments]) == len(bl[0].segments)
+
+        # just a wrapper for readability
+        def _find_first_last_segment(segments, start_spl:int, stop_spl:int, sr:float):
+
+            # gather the start and stop times (in sec) for all signals in segments (assumes 1 signal per segment)
+            # shape = (n_segments, 2) where 2nd dim is (start_time, stop_time)
+            onst_offt = np.array([(signal.t_start.item(), signal.t_stop.item()) for segment in segments for signal in segment.analogsignals])  
+
+            # if start/stop are not speficied, read all segments
+            start_segment = 0
+            stop_segment = len(segments) - 1  # -1 because python indexing
+
+            # determine which segment contains the start sample and which the stop sample if start/stop is specified
+            if start_spl > 0: 
+                start_time = start_spl/sr
+                start_segment = np.where((onst_offt[:, 0] <= start_time) & (onst_offt[:, 1] >= start_time))[0].item()
+            if stop_spl is not None:
+                stop_time = stop_spl/sr
+                stop_segment = np.where((onst_offt[:, 0] <= stop_time) & (onst_offt[:, 1] >= stop_time))[0].item()
+
+            return start_segment, stop_segment, onst_offt
+        
+
+        stop_spl = None if stop == data.shape[-1] else stop  # assume we read until the end if not speficied otherwise
+
+        first_seg, last_seg, start_stop_times = _find_first_last_segment(bl[0].segments, 
+                                                                        start_spl=start, 
+                                                                        stop_spl=stop_spl, 
+                                                                        sr=sr
+                                                                        )
+        
+
+        # now select only segments between the one that containst the start sample
+        # and the one that contains the stop sample
+        sel_times = start_stop_times[first_seg:last_seg+1, :]
+        
+        if (start is not None) or (start > 0):
+            sel_times[0, 0] = start/sr   # for the segment containting the start sample, reset the segment start time to the requested `start` value
+        if stop_spl is not None:
+            sel_times[-1, 1] = stop/sr   # same but for stop sample
+
+        # now load the data arrays via neo.Segment.Analogsignal.load() only from the selected segments and channels
         all_data = np.concatenate(
-            [sig.magnitude for seg in bl[0].segments for sig in seg.analogsignals]
+            [signal.load(channel_indexes=idx, time_slice=(time[0], time[-1])).magnitude for seg, time in zip(bl[0].segments[first_seg:last_seg+1], sel_times) for signal in seg.analogsignals]
         ).T
-        # ... but to get something that works, let's do it:
-        block = all_data[:, start:stop]
+
+        block = all_data  # shape = (len(idx), n_samples))
+
         # Convert uV to V
         block *= 1e-6
+
         # Then store the result where it needs to go
         _mult_cal_one(data, block, idx, cals, mult)
