@@ -72,6 +72,7 @@ Bugs
 - Add support for non-ASCII characters in Annotations, Evoked comments, etc when saving to FIFF format (:gh:`12080` by `Daniel McCloy`_)
 - Correctly handle passing ``"eyegaze"`` or ``"pupil"`` to :meth:`mne.io.Raw.pick` (:gh:`12019` by `Scott Huberty`_)
 - Fix bug with :func:`~mne.viz.plot_raw` where changing ``MNE_BROWSER_BACKEND`` via :func:`~mne.set_config` would have no effect within a Python session (:gh:`12078` by `Santeri Ruuskanen`_)
+- Improve handling of ``method`` argument in the channel interpolation function to support :class:`str` and raise helpful error messages (:gh:`12113` by `Mathieu Scheltienne`_)
 
 API changes
 ~~~~~~~~~~~
