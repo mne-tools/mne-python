@@ -211,121 +211,55 @@ def test_tfr_multi_label():
     label_sets = [[labels, bad_lbls], [bihls, bad_bihls]]
 
     # check error handling
+    sip_kwargs = dict(
+        baseline=(-0.1, 0),
+        baseline_mode="percent",
+        n_cycles=2,
+        n_jobs=None,
+        return_plv=False,
+        method="dSPM",
+        prepared=True,
+    )
     # label input errors
     with pytest.raises(TypeError, match="must be an instance of"):
-        source_induced_power(
-            epochs,
-            inv,
-            freqs,
-            label="bad_input",
-            baseline=(-0.1, 0),
-            baseline_mode="percent",
-            n_cycles=2,
-            n_jobs=None,
-            return_plv=False,
-            method="dSPM",
-            prepared=True,
-        )
+        source_induced_power(epochs, inv, freqs, label="bad_input", **sip_kwargs)
     with pytest.raises(TypeError, match="must be an instance of"):
         source_induced_power(
-            epochs,
-            inv,
-            freqs,
-            label=[label, "bad_input"],
-            baseline=(-0.1, 0),
-            baseline_mode="percent",
-            n_cycles=2,
-            n_jobs=None,
-            return_plv=False,
-            method="dSPM",
-            prepared=True,
+            epochs, inv, freqs, label=[label, "bad_input"], **sip_kwargs
         )
 
     # error handling for multi-label and plv
     with pytest.raises(RuntimeError, match="value cannot be calculated"):
-        source_induced_power(
-            epochs,
-            inv,
-            freqs,
-            labels,
-            baseline=(-0.1, 0),
-            baseline_mode="percent",
-            n_cycles=2,
-            n_jobs=None,
-            return_plv=True,
-            method="dSPM",
-            prepared=True,
-        )
+        source_induced_power(epochs, inv, freqs, labels, **sip_kwargs)
 
     # check multi-label handling
     for ltype, lab_set in zip(("Label", "BiHemi"), label_sets):
         vlen = vlen_lh if ltype == "Label" else vlen_lh + vlen_rh
         # check overlapping verts error handling
         with pytest.raises(RuntimeError, match="overlapping vertices"):
-            source_induced_power(
-                epochs,
-                inv,
-                freqs,
-                lab_set[1],
-                baseline=(-0.1, 0),
-                baseline_mode="percent",
-                n_cycles=2,
-                n_jobs=None,
-                return_plv=False,
-                method="dSPM",
-                prepared=True,
-            )
+            source_induced_power(epochs, inv, freqs, lab_set[1], **sip_kwargs)
 
         for ori in (None, "normal"):  # check loose and normal orientations
+            sip_kwargs.update(pick_ori=ori)
             lbl = lab_set[0][0]
 
             # check label=Label vs label=[Label]
             no_list_pow = source_induced_power(
-                epochs,
-                inv,
-                freqs,
-                label=lbl,
-                baseline=(-0.1, 0),
-                baseline_mode="percent",
-                n_cycles=2,
-                pick_ori=ori,
-                n_jobs=None,
-                return_plv=False,
-                method="dSPM",
-                prepared=True,
+                epochs, inv, freqs, label=lbl, **sip_kwargs
             )
             assert no_list_pow.shape == (vlen, flen, tlen)
 
             list_pow = source_induced_power(
-                epochs,
-                inv,
-                freqs,
-                label=[lbl],
-                baseline=(-0.1, 0),
-                baseline_mode="percent",
-                n_cycles=2,
-                pick_ori=ori,
-                n_jobs=None,
-                return_plv=False,
-                method="dSPM",
-                prepared=True,
+                epochs, inv, freqs, label=[lbl], **sip_kwargs
             )
             assert list_pow.shape == (1, flen, tlen)
 
+            nlp_ave = np.mean(no_list_pow, axis=0)
+            assert_allclose(nlp_ave, list_pow)
+
             # check label=[Label, Label]
             multi_lab_pow = source_induced_power(
-                epochs,
-                inv,
-                freqs,
-                label=lab_set[0],
-                baseline=(-0.1, 0),
-                baseline_mode="percent",
-                n_cycles=2,
-                pick_ori=ori,
-                n_jobs=None,
-                return_plv=False,
-                method="dSPM",
-                prepared=True,
+                epochs, inv, freqs, label=lab_set[0], **sip_kwargs
             )
             assert multi_lab_pow.shape == (2, flen, tlen)
 
