@@ -212,8 +212,10 @@ def test_tfr_multi_label():
 
     # check error handling
     sip_kwargs = dict(
+        # baseline=(-0.1, 0),
+        # baseline_mode="percent",
         baseline=(-0.1, 0),
-        baseline_mode="percent",
+        baseline_mode="mean",
         n_cycles=2,
         n_jobs=None,
         return_plv=False,
