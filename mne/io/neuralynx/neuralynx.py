@@ -121,9 +121,15 @@ class RawNeuralynx(BaseRaw):
         # now load the data arrays via neo.Segment.Analogsignal.load()
         # only from the selected segments and channels
         all_data = np.concatenate(
-            [signal.load(channel_indexes=idx, time_slice=(time[0], time[-1])).magnitude 
-             for seg, time in zip(neo_block[0].segments[first_seg:last_seg+1], sel_times)
-             for signal in seg.analogsignals]
+            [
+                signal.load(
+                    channel_indexes=idx, time_slice=(time[0], time[-1])
+                ).magnitude
+                for seg, time in zip(
+                    bl[0].segments[first_seg : last_seg + 1], sel_times
+                )
+                for signal in seg.analogsignals
+            ]
         ).T
 
         block = all_data  # shape = (len(idx), n_samples))
