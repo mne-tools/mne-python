@@ -14,6 +14,7 @@ from ..cov import make_ad_hoc_cov
 from ..dipole import fit_dipole
 from ..forward import make_field_map, make_forward_dipole
 from ..minimum_norm import apply_inverse, make_inverse_operator
+from ..surface import _normal_orth
 from ..transforms import _get_trans, _get_transforms_to_coord_frame
 from ..utils import _check_option, fill_doc, verbose
 from ..viz import EvokedField, create_3d_figure
@@ -140,21 +141,20 @@ class DipoleFitUI:
         )
 
         self._actors = dict()
+        self._arrows = list()
         self._bem = bem
         self._cov = cov
         self._current_time = initial_time
-        self._dips = dict()
-        self._dips_active = set()
-        self._dips_colors = dict()
-        self._dips_timecourses = dict()
-        self._dips_lines = dict()
+        self._dipoles = list()
         self._evoked = evoked
         self._field_map = field_map
         self._fig_sensors = None
+        self._multi_dipole_method = "MNE"
         self._n_jobs = n_jobs
         self._show_density = show_density
-        self._subject = subject
         self._subjects_dir = subjects_dir
+        self._subject = subject
+        self._time_line = None
         self._to_cf_t = to_cf_t
         self._trans = trans
         self._verbose = verbose
@@ -165,7 +165,7 @@ class DipoleFitUI:
 
     def _configure_main_display(self):
         """Configure main 3D display of the GUI."""
-        fig = create_3d_figure((1900, 1020), bgcolor="white", show=True)
+        fig = create_3d_figure((1500, 1020), bgcolor="white", show=True)
         fig = EvokedField(
             self._evoked,
             self._field_map,
@@ -174,13 +174,17 @@ class DipoleFitUI:
             alpha=1,
             show_density=self._show_density,
             foreground="black",
+            background="white",
             fig=fig,
         )
+        fig.separate_canvas = False  # needed to plot the timeline later
         fig.set_contour_line_width(2)
         fig._renderer.set_camera(
             focalpoint=fit_sphere_to_headshape(self._evoked.info)[1]
         )
-        self._actors["helmet"] = fig._surf_maps[0]["mesh"]._actor
+        helmet_mesh = fig._surf_maps[0]["mesh"]
+        helmet_mesh._polydata.compute_normals()  # needed later
+        self._actors["helmet"] = helmet_mesh._actor
 
         self._actors["sensors"] = _plot_sensors(
             renderer=fig._renderer,
@@ -200,7 +204,7 @@ class DipoleFitUI:
             surf=None,
             check_inside=None,
             nearest=None,
-            sensor_colors="black",
+            sensor_colors="white",
         )["meg"]
 
         self._actors["head"], _, _ = _plot_head_surface(
@@ -214,6 +218,7 @@ class DipoleFitUI:
             alpha=1.0,
         )
 
+        subscribe(fig, "time_change", self._on_time_change)
         self._fig = fig
         return fig._renderer
 
@@ -269,7 +274,7 @@ class DipoleFitUI:
 
         Parameters
         ----------
-        name : "helmet"
+        name : str
             Name of the mesh to toggle.
         show : bool | None
             Whether to show the mesh. If None, the visibility of the mesh is toggled.
@@ -278,7 +283,7 @@ class DipoleFitUI:
         actors = self._actors[name]
         # self._actors[name] is sometimes a list and sometimes not. Make it
         # always be a list to simplify the code.
-        if isinstance(actors, list):
+        if not isinstance(actors, list):
             actors = [actors]
         if show is None:
             show = not actors[0].GetVisibility()
@@ -308,8 +313,26 @@ class DipoleFitUI:
             kwargs = dict(azimuth=45, roll=-90, elevation=60, distance="auto")
         self._renderer.set_camera(**kwargs)
 
+    def _on_time_change(self, event):
+        new_time = (np.clip(event.time, self._evoked.times[0], self._evoked.times[-1]),)
+        # for i in range(len(green_arrows)):
+        #     arrow = green_arrows[i]
+        #     arrow_coords = green_arrow_coords[i]
+        #     arrow_position = green_arrow_pos[i]
+        #     dip_timecourse = dip_timecourses[i]
+        #     scaling = np.interp(
+        #         new_time,
+        #         evoked.times,
+        #         dip_timecourse,
+        #     ) * (0.05 / np.max(np.abs(dip_timecourses)))
+        #     arrow.points = (vertices * scaling) @ arrow_coords + arrow_position
+        if self._time_line is not None:
+            self._time_line.set_xdata([new_time])
+            self._renderer._mplcanvas.update_plot()
+        self._renderer._update()
+
     def _on_sensor_data(self):
-        """Show sensor data."""
+        """Show sensor data and allow sensor selection."""
         if self._fig_sensors is not None:
             return
         fig = self._evoked.plot_topo()
@@ -318,18 +341,30 @@ class DipoleFitUI:
         self._fig_sensors = fig
 
     def _on_sensor_data_close(self, event):
+        """Handle closing of the sensor selection window."""
         self._fig_sensors = None
+        if "sensors" in self._actors:
+            for act in self._actors["sensors"]:
+                act.prop.SetColor(1, 1, 1)
+            self._renderer._update()
 
     def _on_channels_select(self, event):
-        """Show selected channels."""
-        print(event)
+        """Color selected sensor meshes."""
+        selected_channels = set(event.ch_names)
+        if "sensors" in self._actors:
+            for act, ch_name in zip(self._actors["sensors"], self._evoked.ch_names):
+                if ch_name in selected_channels:
+                    act.prop.SetColor(0, 1, 0)
+                else:
+                    act.prop.SetColor(1, 1, 1)
+        self._renderer._update()
 
     def _on_fit_dipole(self):
-        print("Fitting dipole...")
-        evoked_picked = self._evoked
+        """Fit a single dipole."""
+        evoked_picked = self._evoked.copy()
         cov_picked = self._cov
         if self._fig_sensors is not None:
-            picks = self._fig_sensors[0].lasso.selection
+            picks = self._fig_sensors.lasso.selection
             if len(picks) > 0:
                 evoked_picked = evoked_picked.copy().pick(picks)
                 evoked_picked.info.normalize_proj()
@@ -345,16 +380,28 @@ class DipoleFitUI:
             min_dist=0,
             verbose=False,
         )[0]
-        dip_name = f"dip{len(self._dips)}"
-        self._dips[dip_name] = dip
-        self._dips_active.add(dip_name)
         colors = _get_color_list()
-        self._dips_colors[dip_name] = colors[(len(self._dips) - 1) % len(colors)]
+        dip_num = len(self._dipoles)
+        dipole_dict = dict(
+            dip=dip,
+            num=dip_num,
+            name=f"dip{dip_num}",
+            active=True,
+            color=colors[dip_num % len(colors)],
+        )
+        self._dipoles.append(dipole_dict)
+
+        # Draw the arrow on the helmet
+        self._draw_arrow(dipole_dict)
+
+        # Compute dipole timecourse
+        self._on_fit_multi()
 
     def _on_fit_multi(self):
-        print("Fitting dipoles", self._dips_active)
+        """Compute dipole timecourses using a multi-dipole model."""
+        active_dips = [d for d in self._dipoles if d["active"]]
         fwd, _ = make_forward_dipole(
-            [self._dips[d] for d in self._dips_active], self._bem, self._evoked.info
+            [d["dip"] for d in active_dips], self._bem, self._evoked.info
         )
 
         inv = make_inverse_operator(
@@ -365,24 +412,93 @@ class DipoleFitUI:
 
         canvas = self._setup_mplcanvas()
         ymin, ymax = 0, 0
-        for dip_name, timecourse in zip(self._dips_active, timecourses):
-            self._dip_timecourses[dip_name] = timecourse
-            if dip_name in self._dip_lines:
-                self._dip_lines[dip_name].set_ydata(timecourse)
+        for d, timecourse in zip(active_dips, timecourses):
+            d["timecourse"] = timecourse
+            if "line_artist" in d:
+                d["line_artist"].set_ydata(timecourse)
             else:
-                self._dip_lines[dip_name] = canvas.plot(
+                d["line_artist"] = canvas.plot(
                     self._evoked.times,
                     timecourse,
-                    label=dip_name,
-                    color=self._dips_colors[dip_name],
+                    label=d["name"],
+                    color=d["color"],
                 )
             ymin = min(ymin, 1.1 * timecourse.min())
             ymax = max(ymax, 1.1 * timecourse.max())
         canvas.axes.set_ylim(ymin, ymax)
         canvas.update_plot()
 
-    def _on_select_method(self):
-        print("Select method")
+        # Render the arrows in the correct size and orientation
+        active_arrows = [self._arrows[d["name"]] for d in active_dips]
+        arrow_scaling = 0.05 / np.max(np.abs(timecourses))
+        for a, timecourse in zip(active_arrows, timecourses):
+            arrow = a["actor"].GetMapper().GetInput()
+            dip_moment = np.interp(self._current_time, self._evoked.times, timecourse)
+            arrow_size = dip_moment * arrow_scaling
+            arrow.points = (arrow.points * arrow_size) @ a["dip_coords"] + a["pos"]
+            arrow.SetVisibility(True)
+        self._renderer._update()
+
+    def _on_select_method(self, method):
+        self._multi_dipole_method = method
+
+    def _setup_mplcanvas(self):
+        """Configure the matplotlib canvas at the bottom of the window."""
+        if self._renderer._mplcanvas is None:
+            self._renderer._mplcanvas = self._renderer._window_get_mplcanvas(
+                self._fig, 0.3, False, False
+            )
+            self._renderer._window_adjust_mplcanvas_layout()
+        if self._time_line is None:
+            self._time_line = self._renderer._mplcanvas.plot_time_line(
+                self._current_time,
+                label="time",
+                color="black",
+            )
+        return self._renderer._mplcanvas
+
+    def _draw_arrow(self, dipole):
+        """Draw an arrow showing the dipole orientation tangential to the helmet."""
+        dip_pos = dipole["dip"].pos[0]
+        dip_ori = dipole["dip"].ori[0]
+
+        # Get the closest vertex (=point) of the helmet mesh
+        helmet = self._actors["helmet"].GetMapper().GetInput()
+        distances = ((helmet.points - dip_pos) * helmet.point_normals).sum(axis=1)
+        closest_point = np.argmin(distances)
+
+        # Compute the position of the projected dipole
+        norm = helmet.point_normals[closest_point]
+        arrow_position = dip_pos + (distances[closest_point] + 0.003) * norm
+
+        # Create a coordinate system where X and Y are tangential to the helmet
+        helmet_coords = _normal_orth(norm)
+
+        # Project the orientation of the dipole tangential to the helmet
+        dip_ori_helmet = helmet_coords[:2] @ dip_ori @ helmet_coords[:2]
+
+        # Rotate the coordinate system such that Y lies along the dipole orientation
+        dip_coords = np.array([np.cross(dip_ori_helmet, norm), dip_ori_helmet, norm])
+        dip_coords /= np.linalg.norm(dip_coords, axis=1, keepdims=True)
+
+        # Draw the arrow, and collect all relevant information in a dict
+        arrow = _arrow_mesh()
+        vertices, faces = arrow.points.copy(), arrow.faces.copy()
+        actor = self._renderer.plotter.add_mesh(arrow, color=dipole["color"])
+        actor.SetVisibility(False)  # hide for the moment
+        if "arrows" not in self._actors:
+            self._actors["arrows"] = [actor]
+        else:
+            self._actors["arrows"].append(actor)
+        return dict(
+            name=dipole["name"],
+            vertices=vertices,
+            faces=faces,
+            actor=actor,
+            pos=arrow_position,
+            helmet_coords=helmet_coords,
+            dip_coords=dip_coords,
+        )
 
 
 def _arrow_mesh():
