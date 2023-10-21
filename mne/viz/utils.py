@@ -48,6 +48,7 @@ from ..defaults import _handle_default
 from ..rank import compute_rank
 from ..transforms import apply_trans
 from ..utils import (
+    _auto_weakref,
     _check_ch_locs,
     _check_decim,
     _check_option,
@@ -1493,7 +1494,12 @@ class DraggableColorbar:
         self.index = self.cycle.index(mappable.get_cmap().name)
         self.lims = (self.cbar.norm.vmin, self.cbar.norm.vmax)
         self.connect()
-        subscribe(self.fig, "colormap_range", self._on_colormap_range)
+
+        @_auto_weakref
+        def _on_colormap_range(event):
+            return self._on_colormap_range(event)
+
+        subscribe(self.fig, "colormap_range", _on_colormap_range)
 
     def connect(self):
         """Connect to all the events we need."""
