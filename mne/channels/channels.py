@@ -41,6 +41,7 @@ from .._fiff.pick import (
     _pick_data_channels,
     _picks_by_type,
     _picks_to_idx,
+    _second_rules,
     channel_indices_by_type,
     channel_type,
     pick_channels,
@@ -828,23 +829,24 @@ class InterpolationMixin:
             origin fit.
 
             .. versionadded:: 0.17
-        method : dict | None
+        method : dict | str | None
             Method to use for each channel type.
-            All channel types support "nan".
-            The key ``"eeg"`` has two additional options:
 
-            - ``"spline"`` (default)
-                Use spherical spline interpolation.
-            - ``"MNE"``
-                Use minimum-norm projection to a sphere and back.
-                This is the method used for MEG channels.
+            - ``"meg"`` channels support ``"MNE"`` (default) and ``"nan"``
+            - ``"eeg"`` channels support ``"spline"`` (default), ``"MNE"`` and ``"nan"``
+            - ``"fnirs"`` channels support ``"nearest"`` (default) and ``"nan"``
 
-            The default value for ``"meg"`` is ``"MNE"``, and the default value
-            for ``"fnirs"`` is ``"nearest"``.
-
-            The default (None) is thus an alias for::
+            None is an alias for::
 
                 method=dict(meg="MNE", eeg="spline", fnirs="nearest")
+
+            If a :class:`str` is provided, the method will be applied to all channel
+            types supported and available in the instance. The method ``"nan"`` will
+            replace the channel data with ``np.nan``.
+
+            .. warning::
+                Be careful when using ``method="nan"``; the default value
+                ``reset_bads=True`` may not be what you want.
 
             .. versionadded:: 0.21
         exclude : list | tuple
@@ -859,11 +861,9 @@ class InterpolationMixin:
 
         Notes
         -----
-        .. versionadded:: 0.9.0
+        The ``"MNE"`` method uses minimum-norm projection to a sphere and back.
 
-        .. warning::
-            Be careful when using ``method="nan"``; the default value
-            ``reset_bads=True`` may not be what you want.
+        .. versionadded:: 0.9.0
         """
         from .interpolation import (
             _interpolate_bads_eeg,
@@ -872,49 +872,53 @@ class InterpolationMixin:
         )
 
         _check_preload(self, "interpolation")
+        _validate_type(method, (dict, str, None), "method")
         method = _handle_default("interpolation_method", method)
+        ch_types = self.get_channel_types(unique=True)
+        # figure out if we have "mag" for "meg", "hbo" for "fnirs", ... to filter the
+        # "method" dictionary and keep only keys that correspond to existing channels.
+        for ch_type in ("meg", "fnirs"):
+            for sub_ch_type in _second_rules[ch_type][1].values():
+                if sub_ch_type in ch_types:
+                    ch_types.remove(sub_ch_type)
+                    if ch_type not in ch_types:
+                        ch_types.append(ch_type)
+        keys2delete = set(method) - set(ch_types)
+        for key in keys2delete:
+            del method[key]
+        valids = {
+            "eeg": ("spline", "MNE", "nan"),
+            "meg": ("MNE", "nan"),
+            "fnirs": ("nearest", "nan"),
+        }
         for key in method:
             _check_option("method[key]", key, ("meg", "eeg", "fnirs"))
-        _check_option(
-            "method['eeg']",
-            method["eeg"],
-            (
-                "spline",
-                "MNE",
-                "nan",
-            ),
-        )
-        _check_option(
-            "method['meg']",
-            method["meg"],
-            (
-                "MNE",
-                "nan",
-            ),
-        )
-        _check_option(
-            "method['fnirs']",
-            method["fnirs"],
-            (
-                "nearest",
-                "nan",
-            ),
-        )
-
-        if len(self.info["bads"]) == 0:
+            _check_option(f"method['{key}']", method[key], valids[key])
+        logger.info("Setting channel interpolation method to %s.", method)
+        idx = _picks_to_idx(self.info, list(method), exclude=(), allow_empty=True)
+        if idx.size == 0 or len(pick_info(self.info, idx)["bads"]) == 0:
             warn("No bad channels to interpolate. Doing nothing...")
             return self
-        logger.info("Interpolating bad channels")
+        logger.info("Interpolating bad channels.")
         origin = _check_origin(origin, self.info)
-        if method["eeg"] == "spline":
+        if method.get("eeg", "") == "spline":
             _interpolate_bads_eeg(self, origin=origin, exclude=exclude)
+            eeg_mne = False
+        elif "eeg" not in method:
             eeg_mne = False
         else:
             eeg_mne = True
-        _interpolate_bads_meeg(
-            self, mode=mode, origin=origin, eeg=eeg_mne, exclude=exclude, method=method
-        )
-        _interpolate_bads_nirs(self, exclude=exclude, method=method["fnirs"])
+        if "meg" in method or eeg_mne:
+            _interpolate_bads_meeg(
+                self,
+                mode=mode,
+                origin=origin,
+                eeg=eeg_mne,
+                exclude=exclude,
+                method=method,
+            )
+        if "fnirs" in method:
+            _interpolate_bads_nirs(self, exclude=exclude, method=method["fnirs"])
 
         if reset_bads is True:
             if "nan" in method.values():
@@ -1010,7 +1014,7 @@ class _BuiltinChannelAdjacency:
 
 
 _ft_neighbor_url_t = string.Template(
-    "https://github.com/fieldtrip/fieldtrip/raw/master/" "template/neighbours/$fname"
+    "https://github.com/fieldtrip/fieldtrip/raw/master/template/neighbours/$fname"
 )
 
 _BUILTIN_CHANNEL_ADJACENCIES = [
