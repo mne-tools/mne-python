@@ -291,7 +291,7 @@ Macquarie University in Sydney, Australia.
 
 .. topic:: Examples
 
-    * :ref:`tut-phantom-KIT` (coming soon)
+    * :ref:`tut-phantom-KIT`
 
 
 4D Neuroimaging / BTi dataset
