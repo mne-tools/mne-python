@@ -5,7 +5,7 @@
 KIT phantom dataset tutorial
 ============================
 
-Here we read KIT data TODO EXPLAIN.
+Here we read KIT data obtained from a phantom with 49 dipoles to verify source localisation accuracy.
 """
 
 # Authors: Eric Larson <larson.eric.d@gmail.com>
