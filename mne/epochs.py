@@ -1800,7 +1800,9 @@ class BaseEpochs(
             return []
 
     @fill_doc
-    def get_data(self, picks=None, item=None, units=None, tmin=None, tmax=None, copy=True):
+    def get_data(
+        self, picks=None, item=None, units=None, tmin=None, tmax=None, copy=True
+    ):
         """Get all epochs as a 3D array.
 
         Parameters
@@ -1836,7 +1838,9 @@ class BaseEpochs(
         data : array of shape (n_epochs, n_channels, n_times)
             A view on epochs data.
         """
-        return self._get_data(picks=picks, item=item, units=units, tmin=tmin, tmax=tmax, copy=copy)
+        return self._get_data(
+            picks=picks, item=item, units=units, tmin=tmin, tmax=tmax, copy=copy
+        )
 
     @verbose
     def apply_function(
