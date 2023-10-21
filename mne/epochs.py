@@ -1588,6 +1588,7 @@ class BaseEpochs(
         units=None,
         tmin=None,
         tmax=None,
+        copy=True,
         on_empty="warn",
         verbose=None,
     ):
@@ -1671,6 +1672,9 @@ class BaseEpochs(
         # handle units param only if we are going to return data (out==True)
         if (units is not None) and out:
             ch_factors = _get_ch_factors(self, units, picks)
+
+        if copy:
+            data = data.copy()
 
         if self._bad_dropped:
             if not out:
@@ -1796,7 +1800,9 @@ class BaseEpochs(
             return []
 
     @fill_doc
-    def get_data(self, picks=None, item=None, units=None, tmin=None, tmax=None):
+    def get_data(
+        self, picks=None, item=None, units=None, tmin=None, tmax=None, copy=True
+    ):
         """Get all epochs as a 3D array.
 
         Parameters
@@ -1821,13 +1827,19 @@ class BaseEpochs(
             End time of data to get in seconds.
 
             .. versionadded:: 0.24.0
+        copy : bool
+            If true (default) then the object is copied. Otherwise, a
+            view is returned if all the requirements are satisfied. If
+            picks, item, tmin or tmax are not None, a copy is returned.
 
         Returns
         -------
         data : array of shape (n_epochs, n_channels, n_times)
             A view on epochs data.
         """
-        return self._get_data(picks=picks, item=item, units=units, tmin=tmin, tmax=tmax)
+        return self._get_data(
+            picks=picks, item=item, units=units, tmin=tmin, tmax=tmax, copy=copy
+        )
 
     @verbose
     def apply_function(
