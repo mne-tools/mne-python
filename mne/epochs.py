@@ -1588,6 +1588,7 @@ class BaseEpochs(
         units=None,
         tmin=None,
         tmax=None,
+        copy=True,
         on_empty="warn",
         verbose=None,
     ):
@@ -1672,6 +1673,9 @@ class BaseEpochs(
         if (units is not None) and out:
             ch_factors = _get_ch_factors(self, units, picks)
 
+        if copy:
+            data = data.copy()
+
         if self._bad_dropped:
             if not out:
                 return
@@ -1680,7 +1684,6 @@ class BaseEpochs(
                 if orig_picks is not None:
                     data = data[:, picks]
                 if units is not None:
-                    data = data.copy()
                     data *= ch_factors[:, np.newaxis]
                 if start != 0 or stop != self.times.size:
                     data = data[..., start:stop]
@@ -1797,7 +1800,7 @@ class BaseEpochs(
             return []
 
     @fill_doc
-    def get_data(self, picks=None, item=None, units=None, tmin=None, tmax=None):
+    def get_data(self, picks=None, item=None, units=None, tmin=None, tmax=None, copy=True):
         """Get all epochs as a 3D array.
 
         Parameters
@@ -1822,17 +1825,17 @@ class BaseEpochs(
             End time of data to get in seconds.
 
             .. versionadded:: 0.24.0
+        copy : bool
+            If true (default) then the object is copied. Otherwise, a 
+            view is returned if all the requirements are satisfied. If
+            picks, item, tmin or tmax are not None, a copy is returned.
 
         Returns
         -------
         data : array of shape (n_epochs, n_channels, n_times)
             A view on epochs data.
         """
-        warn(
-             f"The result from get_data() can be a view on the Epochs data, "
-             f"which means that modifying it in-place will modify the data "
-             f"in the Epochs object, making it incorrect.")
-        return self._get_data(picks=picks, item=item, units=units, tmin=tmin, tmax=tmax)
+        return self._get_data(picks=picks, item=item, units=units, tmin=tmin, tmax=tmax, copy=copy)
 
     @verbose
     def apply_function(
