@@ -42,25 +42,23 @@ def _restrict_K_to_lbls(labels, K, noise_norm, vertno, pick_ori):
         lab = labels[ii]
         # handle BiHemi labels; ok so long as no overlap w/ single hemi labels
         if lab.hemi == "both":
-            lverts = np.intersect1d(vertno[0], lab.lh.vertices)
-            rverts = np.intersect1d(vertno[1], lab.rh.vertices)  # output sorted
-            verts_to_use[0] += list(lverts)
-            verts_to_use[1] += list(rverts)
+            l_verts = np.intersect1d(vertno[0], lab.lh.vertices)
+            r_verts = np.intersect1d(vertno[1], lab.rh.vertices)  # output sorted
+            verts_to_use[0] += list(l_verts)
+            verts_to_use[1] += list(r_verts)
         else:
             hidx = 0 if lab.hemi == "lh" else 1
             verts = np.intersect1d(vertno[hidx], lab.vertices)
             verts_to_use[hidx] += list(verts)
 
     # check that we don't have overlapping vertices in our labels
-    try:
-        for i in range(2):
-            assert len(np.unique(verts_to_use[i])) == len(verts_to_use[i])
-    except AssertionError:
-        raise RuntimeError(
-            "Labels cannot have overlapping vertices. "
-            "Please select labels with unique vertices "
-            "and try again."
-        )
+    for ii in range(2):
+        if len(np.unique(verts_to_use[ii])) != len(verts_to_use[ii]):
+            raise RuntimeError(
+                "Labels cannot have overlapping vertices. "
+                "Please select labels with unique vertices "
+                "and try again."
+            )
 
     # turn original vertex numbers from vertno into indices for K
     K_mask = np.searchsorted(vertno[0], verts_to_use[0])
@@ -68,12 +66,19 @@ def _restrict_K_to_lbls(labels, K, noise_norm, vertno, pick_ori):
     K_mask = np.hstack((K_mask, r_kmask))
 
     # record which original vertices are at each index in out_K
-    ki_keys = np.hstack(
-        (np.array(verts_to_use[0]) + 1e6, np.array(verts_to_use[1]) + 2e6)
-    )
+    hemis = ("lh", "rh")
+    ki_keys = [
+        (hemis[hi], verts_to_use[hi][ii])
+        for hi in range(2)
+        for ii in range(len(verts_to_use[hi]))
+    ]
     ki_vals = list(range(len(K_mask)))
     k_idxs = dict(zip(ki_keys, ki_vals))
-    # raise RuntimeError
+
+    ki_keys_orig = np.hstack(
+        (np.array(verts_to_use[0]) + 1e6, np.array(verts_to_use[1]) + 2e6)
+    )
+    assert len(ki_keys_orig) == len(ki_keys)
 
     # mask K, handling the orientation issue
     len_allverts = len(vertno[0]) + len(vertno[1])
@@ -446,15 +451,21 @@ def _get_label_power(power, labels, vertno, k_idxs):
     # for each label, compile list of vertices we want
     for li in np.arange(len(labels)):
         lab = labels[li]
+        hemis = ("lh", "rh")
         if lab.hemi == "both":
-            lverts = np.intersect1d(lab.lh.vertices, vertno[0])
-            rverts = np.intersect1d(lab.rh.vertices, vertno[1])
-            verts = np.hstack((lverts + 1e6, rverts + 2e6))
+            l_vnums = np.intersect1d(lab.lh.vertices, vertno[0])
+            r_vnums = np.intersect1d(lab.rh.vertices, vertno[1])
+            all_vnums = [l_vnums, r_vnums]
+            verts = [
+                (hemis[hi], all_vnums[hi][ii])
+                for hi in range(2)
+                for ii in range(len(all_vnums[hi]))
+            ]
         else:
             assert lab.hemi == "lh" or lab.hemi == "rh"
             h_id = 0 if lab.hemi == "lh" else 1
-            vtx_add = 1e6 if lab.hemi == "lh" else 2e6
-            verts = np.intersect1d(vertno[h_id], lab.vertices) + vtx_add
+            vert_nums = np.intersect1d(vertno[h_id], lab.vertices)
+            verts = [(lab.hemi, v) for v in vert_nums]
 
         # restrict power to relevant vertices in label
         lab_mask = np.array([False] * len(power))

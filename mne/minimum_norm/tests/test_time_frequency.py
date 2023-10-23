@@ -217,28 +217,18 @@ def test_tfr_multi_label():
         prepared=True,
     )
     # label input errors
-    with pytest.raises(TypeError, match="must be an instance of Label"):
+    with pytest.raises(TypeError, match="Label or BiHemi"):
         source_induced_power(epochs, inv, freqs, label="bad_input", **sip_kwargs)
-    with pytest.raises(TypeError, match="must be an instance of Label"):
+    with pytest.raises(TypeError, match="Label or BiHemi"):
         source_induced_power(
             epochs, inv, freqs, label=[label, "bad_input"], **sip_kwargs
         )
 
     # error handling for multi-label and plv
+    sip_kwargs_bad = sip_kwargs.copy()
+    sip_kwargs_bad["return_plv"] = True
     with pytest.raises(RuntimeError, match="value cannot be calculated"):
-        source_induced_power(
-            epochs,
-            inv,
-            freqs,
-            labels,
-            baseline=(-0.1, 0),
-            baseline_mode="percent",
-            n_cycles=2,
-            n_jobs=None,
-            return_plv=True,
-            method="dSPM",
-            prepared=True,
-        )
+        source_induced_power(epochs, inv, freqs, labels, **sip_kwargs_bad)
 
     # check multi-label handling
     label_sets = dict(Label=(labels, bad_lbls), BiHemi=(bihls, bad_bihls))
@@ -457,7 +447,7 @@ def test_source_psd_epochs(method):
         )
 
     # check error handling for label
-    with pytest.raises(TypeError, match="must be an instance of Label"):
+    with pytest.raises(TypeError, match="Label or BiHemi"):
         compute_source_psd_epochs(
             one_epochs,
             inv,
