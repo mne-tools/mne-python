@@ -152,6 +152,7 @@ rotation = mne.transforms.rotation(
 evoked.info["dev_head_t"]["trans"][:] = translation @ rotation
 dip, residual = mne.fit_dipole(evoked, cov, sphere, n_jobs=None)
 print(f"Average amplitude: {np.mean(dip.amplitude) * 1e9:0.1f} nAm")
+print(f"Average GOF:       {np.mean(dip.gof):0.1f}%")
 fig = mne.viz.plot_alignment(
     evoked.info,
     trans,
