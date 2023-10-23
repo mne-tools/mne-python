@@ -178,8 +178,8 @@ def test_tfr_multi_label():
 
     freqs = np.arange(7, 30, 2)
 
-    tlen = len(epochs.times)
-    flen = len(freqs)
+    n_times = len(epochs.times)
+    n_freqs = len(freqs)
 
     # prepare labels
     label = read_label(fname_label)  # lh Aud
@@ -188,9 +188,9 @@ def test_tfr_multi_label():
     bad_lab = label.copy()
     bad_lab.vertices = np.hstack((label.vertices, [2121]))  # add 1 unique vert
     bad_lbls = [label, bad_lab]
-    vlen_lh = len(np.intersect1d(inv["src"][0]["vertno"], label.vertices))
-    vlen_rh = len(np.intersect1d(inv["src"][1]["vertno"], label2.vertices))
-    assert vlen_lh + 1 == vlen_rh == 3
+    nverts_lh = len(np.intersect1d(inv["src"][0]["vertno"], label.vertices))
+    nverts_rh = len(np.intersect1d(inv["src"][1]["vertno"], label2.vertices))
+    assert nverts_lh + 1 == nverts_rh == 3
 
     # prepare instances of BiHemiLabel
     fname_lvis = data_path / "MEG" / "sample" / "labels" / "Vis-lh.label"
@@ -206,8 +206,6 @@ def test_tfr_multi_label():
     bad_bihls = [bihl, bad_bihl]
     print("BiHemi label verts:", bihl.lh.vertices.shape, bihl.rh.vertices.shape)
 
-    label_sets = [[labels, bad_lbls], [bihls, bad_bihls]]
-
     # check error handling
     sip_kwargs = dict(
         baseline=(-0.1, 0),
@@ -219,9 +217,9 @@ def test_tfr_multi_label():
         prepared=True,
     )
     # label input errors
-    with pytest.raises(TypeError, match="must be an instance of"):
+    with pytest.raises(TypeError, match="must be an instance of Label"):
         source_induced_power(epochs, inv, freqs, label="bad_input", **sip_kwargs)
-    with pytest.raises(TypeError, match="must be an instance of"):
+    with pytest.raises(TypeError, match="must be an instance of Label"):
         source_induced_power(
             epochs, inv, freqs, label=[label, "bad_input"], **sip_kwargs
         )
@@ -245,7 +243,7 @@ def test_tfr_multi_label():
     # check multi-label handling
     label_sets = dict(Label=(labels, bad_lbls), BiHemi=(bihls, bad_bihls))
     for ltype, lab_set in label_sets.items():
-        vlen = vlen_lh if ltype == "Label" else vlen_lh + vlen_rh
+        n_verts = nverts_lh if ltype == "Label" else nverts_lh + nverts_rh
         # check overlapping verts error handling
         with pytest.raises(RuntimeError, match="overlapping vertices"):
             source_induced_power(epochs, inv, freqs, lab_set[1], **sip_kwargs)
@@ -262,12 +260,12 @@ def test_tfr_multi_label():
             no_list_pow = source_induced_power(
                 epochs, inv, freqs, label=lbl, **sip_kwargs
             )
-            assert no_list_pow.shape == (vlen, flen, tlen)
+            assert no_list_pow.shape == (n_verts, n_freqs, n_times)
 
             list_pow = source_induced_power(
                 epochs, inv, freqs, label=[lbl], **sip_kwargs
             )
-            assert list_pow.shape == (1, flen, tlen)
+            assert list_pow.shape == (1, n_freqs, n_times)
 
             nlp_ave = np.mean(no_list_pow, axis=0)
             assert_allclose(nlp_ave, list_pow[0], rtol=1e-3)
@@ -276,7 +274,7 @@ def test_tfr_multi_label():
             multi_lab_pow = source_induced_power(
                 epochs, inv, freqs, label=lab_set[0], **sip_kwargs
             )
-            assert multi_lab_pow.shape == (2, flen, tlen)
+            assert multi_lab_pow.shape == (2, n_freqs, n_times)
 
 
 @testing.requires_testing_data
@@ -459,7 +457,7 @@ def test_source_psd_epochs(method):
         )
 
     # check error handling for label
-    with pytest.raises(TypeError, match="must be an instance of"):
+    with pytest.raises(TypeError, match="must be an instance of Label"):
         compute_source_psd_epochs(
             one_epochs,
             inv,
