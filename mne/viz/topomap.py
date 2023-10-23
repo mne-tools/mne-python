@@ -2494,6 +2494,7 @@ def _on_time_change(
 
 def _on_colormap_range(event, kwargs):
     """Handle updating colormap range."""
+    logger.debug(f"Updating colormap range to {event.fmin}, {event.fmax}")
     kwargs.update(vlim=(event.fmin, event.fmax), cmap=event.cmap)
 
 
