@@ -164,10 +164,9 @@ def test_tfr_multi_label():
 
     # Load condition 1
     event_id = 1
-    events3 = events[:3]  # take 3 events to keep the computation time low
     epochs = Epochs(
         raw,
-        events3,
+        events[:3],  # take 3 events to keep the computation time low
         event_id,
         tmin,
         tmax,
@@ -189,7 +188,6 @@ def test_tfr_multi_label():
     bad_lab = label.copy()
     bad_lab.vertices = np.hstack((label.vertices, [2121]))  # add 1 unique vert
     bad_lbls = [label, bad_lab]
-    print("label verts:", label.vertices.shape)
     vlen_lh = len(np.intersect1d(inv["src"][0]["vertno"], label.vertices))
     vlen_rh = len(np.intersect1d(inv["src"][1]["vertno"], label2.vertices))
     assert vlen_lh + 1 == vlen_rh == 3
@@ -212,8 +210,6 @@ def test_tfr_multi_label():
 
     # check error handling
     sip_kwargs = dict(
-        # baseline=(-0.1, 0),
-        # baseline_mode="percent",
         baseline=(-0.1, 0),
         baseline_mode="mean",
         n_cycles=2,
@@ -247,12 +243,17 @@ def test_tfr_multi_label():
         )
 
     # check multi-label handling
-    for ltype, lab_set in zip(("Label", "BiHemi"), label_sets):
+    label_sets = dict(Label=(labels, bad_lbls), BiHemi=(bihls, bad_bihls))
+    for ltype, lab_set in label_sets.items():
         vlen = vlen_lh if ltype == "Label" else vlen_lh + vlen_rh
         # check overlapping verts error handling
         with pytest.raises(RuntimeError, match="overlapping vertices"):
             source_induced_power(epochs, inv, freqs, lab_set[1], **sip_kwargs)
 
+        # TODO someday, eliminate both levels of this nested for-loop and use
+        # pytest.mark.parametrize, but not unless/until the data IO and the loading /
+        # preparing of the inverse operator have been made into fixtures (the overhead
+        # of those operations makes it a bad idea to parametrize now)
         for ori in (None, "normal"):  # check loose and normal orientations
             sip_kwargs.update(pick_ori=ori)
             lbl = lab_set[0][0]
@@ -271,7 +272,7 @@ def test_tfr_multi_label():
             nlp_ave = np.mean(no_list_pow, axis=0)
             assert_allclose(nlp_ave, list_pow[0], rtol=1e-3)
 
-            # check label=[Label, Label]
+            # check label=[Label1, Label2]
             multi_lab_pow = source_induced_power(
                 epochs, inv, freqs, label=lab_set[0], **sip_kwargs
             )

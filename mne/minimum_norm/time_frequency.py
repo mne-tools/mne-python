@@ -198,7 +198,7 @@ def source_band_induced_power(
         The inverse operator.
     bands : dict
         Example : bands = dict(alpha=[8, 9]).
-    label : Label
+    label : Label | list of Label
         Restricts the source estimates to a given label or list of labels. If
         labels are provided in a list, power will be averaged over vertices.
     lambda2 : float
@@ -618,9 +618,10 @@ def source_induced_power(
         The inverse operator.
     freqs : array
         Array of frequencies of interest.
-    label : Label
+    label : Label | list of Label
         Restricts the source estimates to a given label or list of labels. If
-        labels are provided in a list, power will be averaged over vertices.
+        labels are provided in a list, power will be averaged over vertices within each
+        label.
     lambda2 : float
         The regularization parameter of the minimum norm.
     method : "MNE" | "dSPM" | "sLORETA" | "eLORETA"
@@ -931,7 +932,7 @@ def _compute_source_psd_epochs(
     logger.info("Considering frequencies %g ... %g Hz" % (fmin, fmax))
 
     if label:
-        # TO DO: add multi-label support
+        # TODO: add multi-label support
         # since `_prepare_source_params` can handle a list of labels now,
         # multi-label support should be within reach for psd calc as well
         _validate_type(
