@@ -4012,6 +4012,80 @@ def test_make_metadata(all_event_id, row_events, tmin, tmax, keep_first, keep_la
     Epochs(raw, events=events, event_id=event_id, metadata=metadata, verbose="warning")
 
 
+def test_make_metadata_bounded_by_row_events():
+    """Test make_metadata() with tmin, tmax set to None."""
+    pytest.importorskip("pandas")
+
+    sfreq = 100
+    duration = 15
+    n_chs = 10
+
+    # Define events and generate annotations
+    experimental_events = [
+        # Beginning of recording until response (1st trial)
+        {"onset": 0.0, "description": "rec_start", "duration": 1 / sfreq},
+        {"onset": 1.0, "description": "cue", "duration": 1 / sfreq},
+        {"onset": 2.0, "description": "stim", "duration": 1 / sfreq},
+        {"onset": 2.5, "description": "resp", "duration": 1 / sfreq},
+        # 2nd trial
+        {"onset": 4.0, "description": "cue", "duration": 1 / sfreq},
+        {"onset": 4.3, "description": "stim", "duration": 1 / sfreq},
+        {"onset": 8.0, "description": "resp", "duration": 1 / sfreq},
+        # 3rd trial until end of the recording
+        {"onset": 10.0, "description": "cue", "duration": 1 / sfreq},
+        {"onset": 12.0, "description": "stim", "duration": 1 / sfreq},
+        {"onset": 13.0, "description": "resp", "duration": 1 / sfreq},
+        {"onset": 14.9, "description": "rec_end", "duration": 1 / sfreq},
+    ]
+
+    annots = mne.Annotations(
+        onset=[e["onset"] for e in experimental_events],
+        description=[e["description"] for e in experimental_events],
+        duration=[e["duration"] for e in experimental_events],
+    )
+
+    # Generate raw data, attach the annotations, and convert to events
+    rng = np.random.default_rng()
+    data = 1e-5 * rng.standard_normal((n_chs, sfreq * duration))
+    info = mne.create_info(
+        ch_names=[f"EEG {i}" for i in range(n_chs)], sfreq=sfreq, ch_types="eeg"
+    )
+
+    raw = mne.io.RawArray(data=data, info=info)
+    raw.set_annotations(annots)
+    events, event_id = mne.events_from_annotations(raw=raw)
+
+    metadata, events_new, event_id_new = mne.epochs.make_metadata(
+        events=events,
+        event_id=event_id,
+        tmin=None,
+        tmax=None,
+        sfreq=raw.info["sfreq"],
+        row_events="cue",
+    )
+
+    # We should have 3 rows in the metadata table in total.
+    # rec_start occurred before the first row_event, so should not be included
+    # rec_end occurred after the last row_event and should be included
+
+    assert len(metadata) == 3
+    assert (metadata["event_name"] == "cue").all()
+    assert (metadata["cue"] == 0.0).all()
+
+    for row in metadata.itertuples():
+        assert row.cue < row.stim < row.resp
+        assert np.isnan(row.rec_start)
+
+    # Beginning of recording until end of 1st trial
+    assert np.isnan(metadata.iloc[0]["rec_end"])
+
+    # 2nd trial
+    assert np.isnan(metadata.iloc[1]["rec_end"])
+
+    # 3rd trial until end of the recording
+    assert metadata.iloc[2]["resp"] < metadata.iloc[2]["rec_end"]
+
+
 def test_events_list():
     """Test that events can be a list."""
     events = [[100, 0, 1], [200, 0, 1], [300, 0, 1]]
