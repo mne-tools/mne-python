@@ -491,7 +491,7 @@ def _get_stim_channel(stim_channel, info, raise_error=True):
 
     Returns
     -------
-    stim_channel : str | list of str
+    stim_channel : list of str
         The name of the stim channel(s) to use
     """
     from .._fiff.pick import pick_types
@@ -520,13 +520,12 @@ def _get_stim_channel(stim_channel, info, raise_error=True):
         return ["STI 014"]
 
     stim_channel = pick_types(info, meg=False, ref_meg=False, stim=True)
-    if len(stim_channel) > 0:
-        stim_channel = [info["ch_names"][ch_] for ch_ in stim_channel]
-    elif raise_error:
+    if len(stim_channel) == 0 and raise_error:
         raise ValueError(
             "No stim channels found. Consider specifying them "
             "manually using the 'stim_channel' parameter."
         )
+    stim_channel = [info["ch_names"][ch_] for ch_ in stim_channel]
     return stim_channel
 
 

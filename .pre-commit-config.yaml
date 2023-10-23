@@ -11,6 +11,7 @@ repos:
     hooks:
       - id: ruff
         name: ruff mne
+        args: ["--fix", "--exit-non-zero-on-fix"]
         files: ^mne/
 
   # Ruff tutorials and examples
@@ -21,7 +22,7 @@ repos:
         name: ruff tutorials and examples
         # D103: missing docstring in public function
         # D400: docstring first line must end with period
-        args: ["--ignore=D103,D400"]
+        args: ["--ignore=D103,D400", "--fix", "--exit-non-zero-on-fix"]
         files: ^tutorials/|^examples/
 
   # Codespell
