@@ -414,7 +414,7 @@ def _fig_to_img(fig, *, image_format="png", own_figure=True):
     dpi = fig.get_dpi()
     logger.debug(
         f"Saving figure with dimension {fig.get_size_inches()} inches with "
-        f"{{dpi}} dpi"
+        f"{dpi} dpi"
     )
 
     # https://pillow.readthedocs.io/en/stable/handbook/image-file-formats.html

@@ -69,7 +69,7 @@ BDFL
 ----
 
 The Project will have a BDFL (Benevolent Dictator for Life), who is currently
-Alexandre Gramfort. As Dictator, the BDFL has the authority to make all final
+Daniel McCloy. As Dictator, the BDFL has the authority to make all final
 decisions for The Project. As Benevolent, the BDFL, in practice, chooses to
 defer that authority to the consensus of the community discussion channels and
 the Steering Council (see below). It is expected, and in the past has been the

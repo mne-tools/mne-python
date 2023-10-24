@@ -8,7 +8,6 @@ import operator
 import os
 import re
 from builtins import input  # no-op here but facilitates testing
-from collections.abc import Sequence
 from difflib import get_close_matches
 from importlib import import_module
 from importlib.metadata import version
@@ -542,7 +541,7 @@ _multi = {
     "path-like": path_like,
     "int-like": (int_like,),
     "callable": (_Callable(),),
-    "array-like": (Sequence, np.ndarray),
+    "array-like": (list, tuple, set, np.ndarray),
 }
 
 
