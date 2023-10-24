@@ -75,11 +75,6 @@ def _restrict_K_to_lbls(labels, K, noise_norm, vertno, pick_ori):
     ki_vals = list(range(len(K_mask)))
     k_idxs = dict(zip(ki_keys, ki_vals))
 
-    ki_keys_orig = np.hstack(
-        (np.array(verts_to_use[0]) + 1e6, np.array(verts_to_use[1]) + 2e6)
-    )
-    assert len(ki_keys_orig) == len(ki_keys)
-
     # mask K, handling the orientation issue
     len_allverts = len(vertno[0]) + len(vertno[1])
     if len(K) == len_allverts:
@@ -452,20 +447,20 @@ def _get_label_power(power, labels, vertno, k_idxs):
     for li in np.arange(len(labels)):
         lab = labels[li]
         hemis = ("lh", "rh")
+        all_vnums = [[], []]
         if lab.hemi == "both":
-            l_vnums = np.intersect1d(lab.lh.vertices, vertno[0])
-            r_vnums = np.intersect1d(lab.rh.vertices, vertno[1])
-            all_vnums = [l_vnums, r_vnums]
-            verts = [
-                (hemis[hi], all_vnums[hi][ii])
-                for hi in range(2)
-                for ii in range(len(all_vnums[hi]))
-            ]
+            all_vnums[0] = np.intersect1d(lab.lh.vertices, vertno[0])
+            all_vnums[1] = np.intersect1d(lab.rh.vertices, vertno[1])
         else:
             assert lab.hemi == "lh" or lab.hemi == "rh"
             h_id = 0 if lab.hemi == "lh" else 1
-            vert_nums = np.intersect1d(vertno[h_id], lab.vertices)
-            verts = [(lab.hemi, v) for v in vert_nums]
+            all_vnums[h_id] = np.intersect1d(vertno[h_id], lab.vertices)
+
+        verts = [
+            (hemis[hi], all_vnums[hi][ii])
+            for hi in range(2)
+            for ii in range(len(all_vnums[hi]))
+        ]
 
         # restrict power to relevant vertices in label
         lab_mask = np.array([False] * len(power))

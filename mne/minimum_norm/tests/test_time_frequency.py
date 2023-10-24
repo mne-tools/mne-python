@@ -376,6 +376,7 @@ def test_source_psd_epochs(method):
     inv = prepare_inverse_operator(
         inverse_operator, nave=1, lambda2=1.0 / 9.0, method="dSPM"
     )
+
     # return list
     stc_psd = compute_source_psd_epochs(
         one_epochs,
@@ -448,17 +449,4 @@ def test_source_psd_epochs(method):
 
     # check error handling for label
     with pytest.raises(TypeError, match="Label or BiHemi"):
-        compute_source_psd_epochs(
-            one_epochs,
-            inv,
-            lambda2=lambda2,
-            method=method,
-            pick_ori="normal",
-            label=[label, label2],
-            bandwidth=0.01,
-            low_bias=True,
-            fmin=fmin,
-            fmax=fmax,
-            return_generator=False,
-            prepared=True,
-        )
+        compute_source_psd_epochs(one_epochs, inv, label=[label, label2])
