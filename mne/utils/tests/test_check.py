@@ -216,7 +216,7 @@ def test_validate_type():
     _validate_type((1, 2, 3), "array-like")
     _validate_type({1, 2, 3}, "array-like")
     with pytest.raises(TypeError, match="array-like"):
-        _validate_type("123", "array-like")
+        _validate_type("123", "array-like")  # a string is not array-like
 
 
 def test_check_range():
