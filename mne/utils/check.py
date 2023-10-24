@@ -542,7 +542,7 @@ _multi = {
     "path-like": path_like,
     "int-like": (int_like,),
     "callable": (_Callable(),),
-    "array-like": (Sequence, np.ndarray),
+    "array-like": (list, tuple, set, np.ndarray),
 }
 
 
