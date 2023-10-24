@@ -2933,10 +2933,14 @@ def make_metadata(
                 window_stop_sample = row_event.sample
             elif next_events.loc[next_events["id"] == row_event.id, :].size > 0:
                 # There's still an event of the same type appearing after the
-                # current event.
-                window_stop_sample = next_events.loc[
-                    next_events["id"] == row_event.id, :
-                ].iloc[0]["sample"]
+                # current event. Stop one sample short, we don't want to include that
+                # last event here, but in the next iteration.
+                window_stop_sample = (
+                    next_events.loc[next_events["id"] == row_event.id, :].iloc[0][
+                        "sample"
+                    ]
+                    - 1
+                )
             else:
                 # There are still events after the current one, but not of the
                 # same type.
