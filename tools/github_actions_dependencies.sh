@@ -18,7 +18,8 @@ else
 	echo "PyQt6"
 	pip install $STD_ARGS --only-binary ":all:" --default-timeout=60 --extra-index-url https://www.riverbankcomputing.com/pypi/simple PyQt6
 	echo "NumPy/SciPy/pandas etc."
-	pip install $STD_ARGS --only-binary ":all:" --default-timeout=60 --extra-index-url "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" "numpy>=2.0.0.dev0" scipy scikit-learn pandas matplotlib pillow statsmodels
+	# As of 2023/10/25 no pandas because they pin to NumPy < 2
+	pip install $STD_ARGS --only-binary ":all:" --default-timeout=60 --extra-index-url "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" "numpy>=2.0.0.dev0" scipy scikit-learn matplotlib pillow statsmodels
 	echo "dipy"
 	pip install $STD_ARGS --only-binary ":all:" --default-timeout=60 --extra-index-url "https://pypi.anaconda.org/scipy-wheels-nightly/simple" dipy
 	echo "H5py"
