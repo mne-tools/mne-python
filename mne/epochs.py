@@ -1588,7 +1588,7 @@ class BaseEpochs(
         units=None,
         tmin=None,
         tmax=None,
-        copy=True,
+        copy=False,
         on_empty="warn",
         verbose=None,
     ):
@@ -1649,6 +1649,8 @@ class BaseEpochs(
         if self.preload:
             # we will store our result in our existing array
             data = self._data
+            if copy:
+                data = data.copy()
         else:
             # we start out with an empty array, allocate only if necessary
             data = np.empty((0, len(self.info["ch_names"]), len(self.times)))
@@ -1672,9 +1674,6 @@ class BaseEpochs(
         # handle units param only if we are going to return data (out==True)
         if (units is not None) and out:
             ch_factors = _get_ch_factors(self, units, picks)
-
-        if copy:
-            data = data.copy()
 
         if self._bad_dropped:
             if not out:
@@ -1828,10 +1827,9 @@ class BaseEpochs(
 
             .. versionadded:: 0.24.0
         copy : bool | None
-            If true (default) then a copy is returned. If false,
-            a view is returned if the requirements are met.
-            If picks, item, tmin or tmax are not None, a copy
-            is returned.
+            Whether to return a copy of the object's data, or (if possible) a view.
+            See :std:label:`basics.copies-and-views <numpy:basics.copies-and-views>`
+            for an explanation. Default is ``True``.
 
         Returns
         -------
