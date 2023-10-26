@@ -748,7 +748,7 @@ def sys_info(
                     mne_version_good = True
                 elif not mne_version_good:
                     mark = "☒" if unicode else "X"
-            out(f"{pre}{mark} " if unicode else " {mark} ")
+            out(f"{pre}{mark} " if unicode else f" {mark} ")
             out(f"{mod_name}".ljust(ljust))
             if mod_name == "vtk":
                 vtk_version = mod.vtkVersion()
