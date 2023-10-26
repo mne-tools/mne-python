@@ -29,9 +29,9 @@ label { cursor: pointer; }
 }
 </style>
 
-<input type="checkbox" id="{{ section_ids[0] }}" hidden aria-hidden="true"/>
-<input type="checkbox" id="{{ section_ids[1] }}" hidden aria-hidden="true"/>
-<input type="checkbox" id="{{ section_ids[2] }}" hidden aria-hidden="true"/>
+<input type="checkbox" id="{{ section_ids[0] }}" hidden aria-hidden="true"{{ "" if collapsed else " checked"}}/>
+<input type="checkbox" id="{{ section_ids[1] }}" hidden aria-hidden="true"{{ "" if collapsed else " checked"}}/>
+<input type="checkbox" id="{{ section_ids[2] }}" hidden aria-hidden="true"{{ "" if collapsed else " checked"}}/>
 
 <table class="table table-hover table-striped table-sm table-responsive small">
     <tr>
