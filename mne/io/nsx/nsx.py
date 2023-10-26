@@ -365,7 +365,7 @@ def _get_hdr_info(fname, stim_channel=True, eog=None, misc=None):
 
     stim_channel_idxs, _ = _check_stim_channel(stim_channel, ch_names)
 
-    nchan = nsx_info["channel_count"]
+    nchan = int(nsx_info["channel_count"])
     logger.info("Setting channel info structure...")
     chs = list()
     pick_mask = np.ones(len(ch_names))
