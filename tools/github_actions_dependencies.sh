@@ -1,5 +1,7 @@
 #!/bin/bash -ef
 
+set -o pipefail
+
 STD_ARGS="--progress-bar off --upgrade"
 if [ ! -z "$CONDA_ENV" ]; then
 	echo "Uninstalling MNE for CONDA_ENV=${CONDA_ENV}"
@@ -18,7 +20,7 @@ else
 	echo "PyQt6"
 	pip install $STD_ARGS --only-binary ":all:" --default-timeout=60 --extra-index-url https://www.riverbankcomputing.com/pypi/simple PyQt6
 	echo "NumPy/SciPy/pandas etc."
-	# As of 2023/10/25 no pandas (or statsmodels) because they pin to NumPy < 2
+	# As of 2023/10/25 no pandas (or statsmodels, nilearn) because they pin to NumPy < 2
 	pip install $STD_ARGS --only-binary ":all:" --default-timeout=60 --extra-index-url "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" "numpy>=2.0.0.dev0" scipy scikit-learn matplotlib pillow
 	echo "dipy"
 	pip install $STD_ARGS --only-binary ":all:" --default-timeout=60 --extra-index-url "https://pypi.anaconda.org/scipy-wheels-nightly/simple" dipy
@@ -28,7 +30,8 @@ else
 	pip install $STD_ARGS --only-binary ":all:" --extra-index-url "https://test.pypi.org/simple" openmeeg
 	# No Numba because it forces an old NumPy version
 	echo "nilearn and openmeeg"
-	pip install $STD_ARGS git+https://github.com/nilearn/nilearn
+	# pip install $STD_ARGS git+https://github.com/nilearn/nilearn
+	pip install $STD_ARGS openmeeg
 	echo "VTK"
 	pip install $STD_ARGS --only-binary ":all:" --extra-index-url "https://wheels.vtk.org" vtk
 	python -c "import vtk"
@@ -46,8 +49,11 @@ else
 	pip install $STD_ARGS git+https://github.com/joblib/joblib@master
 	echo "EDFlib-Python"
 	pip install $STD_ARGS git+https://gitlab.com/Teuniz/EDFlib-Python@master
+	# Until Pandas is fixed, make sure we didn't install it
+	! python -c "import pandas"
 fi
 echo ""
+
 
 # for compat_minimal and compat_old, we don't want to --upgrade
 if [ ! -z "$CONDA_DEPENDENCIES" ]; then
