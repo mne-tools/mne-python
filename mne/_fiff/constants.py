@@ -217,7 +217,7 @@ FIFF.FIFFV_FNIRS_CH = 1100  # Functional near-infrared spectroscopy
 FIFF.FIFFV_TEMPERATURE_CH = 1200  # Functional near-infrared spectroscopy
 FIFF.FIFFV_GALVANIC_CH = 1300  # Galvanic skin response
 FIFF.FIFFV_EYETRACK_CH = 1400  # Eye-tracking
-
+FIFF.FIFFV_MOTION_CH = 1500  # Motion
 _ch_kind_named = {
     key: key
     for key in (
@@ -244,6 +244,7 @@ _ch_kind_named = {
         FIFF.FIFFV_GALVANIC_CH,
         FIFF.FIFFV_TEMPERATURE_CH,
         FIFF.FIFFV_EYETRACK_CH,
+        FIFF.FIFFV_MOTION_CH,
     )
 }
 
@@ -1037,6 +1038,16 @@ FIFF.FIFFV_COIL_FNIRS_TD_MOMENTS_AMPLITUDE = 307  # fNIRS time-domain moments am
 
 FIFF.FIFFV_COIL_EYETRACK_POS = 400  # Eye-tracking gaze position
 FIFF.FIFFV_COIL_EYETRACK_PUPIL = 401  # Eye-tracking pupil size
+
+# Define constants for channel types for Motion data (from Motion-BIDS)
+FIFF.FIFFV_COIL_MOTION_ACCEL = 500  # Motion acceleration
+FIFF.FIFFV_COIL_MOTION_ANGACCEL = 501  # Motion angular acceleration
+FIFF.FIFFV_COIL_MOTION_GYRO = 504  # Motion gyroscope
+FIFF.FIFFV_COIL_MOTION_JNTANG = 505  # Motion joint angle
+FIFF.FIFFV_COIL_MOTION_MAGN = 507  # Motion magnetic field strength
+FIFF.FIFFV_COIL_MOTION_ORNT = 509  # Motion orientation
+FIFF.FIFFV_COIL_MOTION_POS = 510  # Motion position
+FIFF.FIFFV_COIL_MOTION_VEL = 511  # Motion velocity
 
 FIFF.FIFFV_COIL_MCG_42 = 1000  # For testing the MCG software
 

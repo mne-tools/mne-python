@@ -131,6 +131,7 @@ def get_channel_type_constants(include_defaults=False):
         pupil=dict(
             kind=FIFF.FIFFV_EYETRACK_CH, coil_type=FIFF.FIFFV_COIL_EYETRACK_PUPIL
         ),
+        motion=dict(kind=FIFF.FIFFV_MOTION_CH),
     )
     if include_defaults:
         coil_none = dict(coil_type=FIFF.FIFFV_COIL_NONE)
@@ -187,6 +188,7 @@ _first_rule = {
     FIFF.FIFFV_TEMPERATURE_CH: "temperature",
     FIFF.FIFFV_GALVANIC_CH: "gsr",
     FIFF.FIFFV_EYETRACK_CH: "eyetrack",
+    FIFF.FIFFV_MOTION_CH: "motion",
 }
 # How to reduce our categories in channel_type (originally)
 _second_rules = {
@@ -218,6 +220,19 @@ _second_rules = {
             FIFF.FIFFV_COIL_EYETRACK_PUPIL: "pupil",
         },
     ),
+#    "motion": (
+#        "coil_type",
+#        {
+#            FIFF.FIFFV_COIL_MOTION_ACCEL: "acceleration",
+#            FIFF.FIFFV_COIL_MOTION_ANGACCEL: "angular_acceleration",
+#            FIFF.FIFFV_COIL_MOTION_GYRO: "gyroscope",
+#            FIFF.FIFFV_COIL_MOTION_JNTANG: "joint_angle",
+#            FIFF.FIFFV_COIL_MOTION_MAGN: "magnetic_field_strenght",
+#            FIFF.FIFFV_COIL_MOTION_ORNT: "orientation",
+#            FIFF.FIFFV_COIL_MOTION_POS: "position",
+#            FIFF.FIFFV_COIL_MOTION_VEL: "velocity",
+#        },
+#    ),
 }
 
 
@@ -239,7 +254,7 @@ def channel_type(info, idx):
             {'grad', 'mag', 'eeg', 'csd', 'stim', 'eog', 'emg', 'ecg',
              'ref_meg', 'resp', 'exci', 'ias', 'syst', 'misc', 'seeg', 'dbs',
               'bio', 'chpi', 'dipole', 'gof', 'ecog', 'hbo', 'hbr',
-              'temperature', 'gsr', 'eyetrack'}
+              'temperature', 'gsr', 'eyetrack', 'motion'}
     """
     # This is faster than the original _channel_type_old now in test_pick.py
     # because it uses (at most!) two dict lookups plus one conditional
