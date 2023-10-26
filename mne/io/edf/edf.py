@@ -1106,7 +1106,7 @@ def _read_gdf_header(fname, exclude, include=None):
                     "Header information is incorrect for record length. "
                     "Default record length set to 1."
                 )
-            nchan = np.fromfile(fid, UINT32, 1)[0]
+            nchan = int(np.fromfile(fid, UINT32, 1)[0])
             channels = list(range(nchan))
             ch_names = [_edf_str(fid.read(16)).strip() for ch in channels]
             exclude = _find_exclude_idx(ch_names, exclude, include)
@@ -1177,7 +1177,7 @@ def _read_gdf_header(fname, exclude, include=None):
             fid.seek(etp)
             etmode = np.fromfile(fid, UINT8, 1)[0]
             if etmode in (1, 3):
-                sr = np.fromfile(fid, UINT8, 3)
+                sr = np.fromfile(fid, UINT8, 3).astype(np.uint32)
                 event_sr = sr[0]
                 for i in range(1, len(sr)):
                     event_sr = event_sr + sr[i] * 2 ** (i * 8)
@@ -1297,7 +1297,7 @@ def _read_gdf_header(fname, exclude, include=None):
                     "Default record length set to 1."
                 )
 
-            nchan = np.fromfile(fid, UINT16, 1)[0]
+            nchan = int(np.fromfile(fid, UINT16, 1)[0])
             fid.seek(2, 1)  # 2bytes reserved
 
             # Channels (variable header)

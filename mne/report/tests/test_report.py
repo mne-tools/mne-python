@@ -877,6 +877,8 @@ def test_survive_pickle(tmp_path):
 def test_manual_report_2d(tmp_path, invisible_fig):
     """Simulate user manually creating report by adding one file at a time."""
     pytest.importorskip("sklearn")
+    pytest.importorskip("pandas")
+
     from sklearn.exceptions import ConvergenceWarning
 
     r = Report(title="My Report")
