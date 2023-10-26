@@ -767,8 +767,6 @@ def _plot_lines(
             for ii, line in zip(idx, line_list):
                 if ii in bad_ch_idx:
                     line.set_zorder(2)
-                    if spatial_colors is True:
-                        line.set_linestyle("--")
             ax.set_ylabel(ch_unit)
             texts.append(
                 ax.text(
