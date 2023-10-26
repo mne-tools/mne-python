@@ -737,7 +737,16 @@ def sys_info(
         except Exception:
             unavailable.append(mod_name)
         else:
-            out(f"{pre}☑ " if unicode else " + ")
+            mark = "☑" if unicode else "+"
+            mne_extra = ""
+            if mod_name == "mne" and check_version:
+                timeout = 2.0 if check_version is True else float(check_version)
+                mne_version_good, mne_extra = _check_mne_version(timeout)
+                if mne_version_good is None:
+                    mne_version_good = True
+                elif not mne_version_good:
+                    mark = "☒" if unicode else "X"
+            out(f"{pre}{mark} " if unicode else " {mark} ")
             out(f"{mod_name}".ljust(ljust))
             if mod_name == "vtk":
                 vtk_version = mod.vtkVersion()
@@ -765,25 +774,16 @@ def sys_info(
                     out(" (OpenGL unavailable)")
                 else:
                     out(f" (OpenGL {version} via {renderer})")
+            elif mod_name == "mne":
+                out(f" ({mne_extra})")
             # Now comes stuff after the version
-            if last:
-                pre = "   "
-            elif unicode:
-                pre = "│  "
-            else:
-                pre = " | "
-            if mod_name == "mne" and check_version:
-                timeout = 2.0 if check_version is True else float(check_version)
-                mne_version_good, msg = _check_mne_version(timeout)
-                if mne_version_good is None:
-                    mne_version_good = True
-                    mark = ""
-                elif mne_version_good:
-                    mark = "✓ " if unicode else "+ "
-                else:
-                    mark = "✗ " if unicode else "X "
-                out(f"\n{pre}{' ' * ljust}{mark}{msg}")
             if show_paths:
+                if last:
+                    pre = "   "
+                elif unicode:
+                    pre = "│  "
+                else:
+                    pre = " | "
                 out(f'\n{pre}{" " * ljust}{op.dirname(mod.__file__)}')
             out("\n")
 
@@ -809,12 +809,15 @@ def _get_latest_version(timeout):
 def _check_mne_version(timeout):
     rel_ver = _get_latest_version(timeout)
     if rel_ver is None:
-        return None, f"Unable to check latest version on GitHub ({timeout} sec timeout)"
+        return None, (
+            f"unable to check for latest version on GitHub, {timeout} sec timeout"
+        )
+    rel_ver = "1.7.0"
     rel_ver = parse(rel_ver)
     this_ver = parse(import_module("mne").__version__)
     if this_ver > rel_ver:
-        return True, f"Dev version (latest release: {rel_ver})"
+        return True, f"devel, latest release is {rel_ver}"
     if this_ver == rel_ver:
         return True, "On the latest release"
     else:
-        return False, f"A newer version {rel_ver} is available!"
+        return False, f"outdated, release {rel_ver} is available!"
