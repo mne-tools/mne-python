@@ -205,6 +205,7 @@ _known_config_wildcards = (
     "MNE_DATASETS_FNIRS",  # mne-nirs
     "MNE_NIRS",  # mne-nirs
     "MNE_KIT2FIFF",  # mne-kit-gui
+    "MNE_DATASETS_ICALABEL",  # mne-icalabel
 )
 
 
