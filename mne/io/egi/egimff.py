@@ -79,7 +79,7 @@ def _read_mff_header(filepath):
         # by what we need to (e.g., a sample rate of 500 means we can multiply
         # by 1 and divide by 2 rather than multiplying by 500 and dividing by
         # 1000)
-        numerator = signal_blocks["sfreq"]
+        numerator = int(signal_blocks["sfreq"])
         denominator = 1000
         this_gcd = math.gcd(numerator, denominator)
         numerator = numerator // this_gcd
