@@ -538,7 +538,7 @@ def test_sys_info():
     with ArgvSetter((raw_fname,)):
         with pytest.raises(SystemExit, match="1"):
             mne_sys_info.run()
-    with ArgvSetter() as out:
+    with ArgvSetter(["--no-check-version"]) as out:
         mne_sys_info.run()
     assert "numpy" in out.stdout.getvalue()
 

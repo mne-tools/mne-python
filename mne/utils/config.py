@@ -14,7 +14,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
-from functools import partial
+from functools import lru_cache, partial
 from importlib import import_module
 from pathlib import Path
 from urllib.error import URLError
@@ -572,6 +572,7 @@ print(gi.version); \
 print(gi.renderer)"""
 
 
+@lru_cache(maxsize=1)
 def _get_gpu_info():
     # Once https://github.com/pyvista/pyvista/pull/2250 is merged and PyVista
     # does a release, we can triage based on version > 0.33.2
@@ -796,9 +797,10 @@ def sys_info(
 
 
 def _get_latest_version(timeout):
+    # Bandit complains about urlopen, but we know the URL here
     url = "https://api.github.com/repos/mne-tools/mne-python/releases/latest"
     try:
-        with urlopen(url, timeout=timeout) as f:
+        with urlopen(url, timeout=timeout) as f:  # nosec
             response = json.load(f)
     except URLError:
         return None
@@ -812,12 +814,11 @@ def _check_mne_version(timeout):
         return None, (
             f"unable to check for latest version on GitHub, {timeout} sec timeout"
         )
-    rel_ver = "1.7.0"
     rel_ver = parse(rel_ver)
     this_ver = parse(import_module("mne").__version__)
     if this_ver > rel_ver:
         return True, f"devel, latest release is {rel_ver}"
     if this_ver == rel_ver:
-        return True, "On the latest release"
+        return True, "latest release"
     else:
         return False, f"outdated, release {rel_ver} is available!"
