@@ -220,19 +220,19 @@ _second_rules = {
             FIFF.FIFFV_COIL_EYETRACK_PUPIL: "pupil",
         },
     ),
-#    "motion": (
-#        "coil_type",
-#        {
-#            FIFF.FIFFV_COIL_MOTION_ACCEL: "acceleration",
-#            FIFF.FIFFV_COIL_MOTION_ANGACCEL: "angular_acceleration",
-#            FIFF.FIFFV_COIL_MOTION_GYRO: "gyroscope",
-#            FIFF.FIFFV_COIL_MOTION_JNTANG: "joint_angle",
-#            FIFF.FIFFV_COIL_MOTION_MAGN: "magnetic_field_strenght",
-#            FIFF.FIFFV_COIL_MOTION_ORNT: "orientation",
-#            FIFF.FIFFV_COIL_MOTION_POS: "position",
-#            FIFF.FIFFV_COIL_MOTION_VEL: "velocity",
-#        },
-#    ),
+    #    "motion": (
+    #        "coil_type",
+    #        {
+    #            FIFF.FIFFV_COIL_MOTION_ACCEL: "acceleration",
+    #            FIFF.FIFFV_COIL_MOTION_ANGACCEL: "angular_acceleration",
+    #            FIFF.FIFFV_COIL_MOTION_GYRO: "gyroscope",
+    #            FIFF.FIFFV_COIL_MOTION_JNTANG: "joint_angle",
+    #            FIFF.FIFFV_COIL_MOTION_MAGN: "magnetic_field_strenght",
+    #            FIFF.FIFFV_COIL_MOTION_ORNT: "orientation",
+    #            FIFF.FIFFV_COIL_MOTION_POS: "position",
+    #            FIFF.FIFFV_COIL_MOTION_VEL: "velocity",
+    #        },
+    #    ),
 }
 
 
