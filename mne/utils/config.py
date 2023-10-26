@@ -17,6 +17,10 @@ import tempfile
 from functools import partial
 from importlib import import_module
 from pathlib import Path
+from urllib.error import URLError
+from urllib.request import urlopen
+
+from packaging.version import parse
 
 from ._logging import logger, warn
 from .check import _check_fname, _check_option, _check_qt_version, _validate_type
@@ -580,7 +584,14 @@ def _get_gpu_info():
     return out
 
 
-def sys_info(fid=None, show_paths=False, *, dependencies="user", unicode=True):
+def sys_info(
+    fid=None,
+    show_paths=False,
+    *,
+    dependencies="user",
+    unicode=True,
+    check_version=True,
+):
     """Print system information.
 
     This function prints system information useful when triaging bugs.
@@ -599,9 +610,16 @@ def sys_info(fid=None, show_paths=False, *, dependencies="user", unicode=True):
         Include Unicode symbols in output.
 
         .. versionadded:: 0.24
+    check_version : bool | float
+        If True (default), attempt to check that the version of MNE-Python is up to date
+        with the latest release on GitHub. Can be a float to give a different timeout
+        (in sec) from the default (2 sec).
+
+        .. versionadded:: 1.6
     """
     _validate_type(dependencies, str)
     _check_option("dependencies", dependencies, ("user", "developer"))
+    _validate_type(check_version, (bool, "numeric"), "check_version")
     ljust = 24 if dependencies == "developer" else 21
     platform_str = platform.platform()
     if platform.system() == "Darwin" and sys.version_info[:2] < (3, 8):
@@ -694,6 +712,7 @@ def sys_info(fid=None, show_paths=False, *, dependencies="user", unicode=True):
         unicode = unicode and (sys.stdout.encoding.lower().startswith("utf"))
     except Exception:  # in case someone overrides sys.stdout in an unsafe way
         unicode = False
+    mne_version_good = True
     for mi, mod_name in enumerate(use_mod_names):
         # upcoming break
         if mod_name == "":  # break
@@ -746,12 +765,56 @@ def sys_info(fid=None, show_paths=False, *, dependencies="user", unicode=True):
                     out(" (OpenGL unavailable)")
                 else:
                     out(f" (OpenGL {version} via {renderer})")
-            if show_paths:
-                if last:
-                    pre = "   "
-                elif unicode:
-                    pre = "│  "
+            # Now comes stuff after the version
+            if last:
+                pre = "   "
+            elif unicode:
+                pre = "│  "
+            else:
+                pre = " | "
+            if mod_name == "mne" and check_version:
+                timeout = 2.0 if check_version is True else float(check_version)
+                mne_version_good, msg = _check_mne_version(timeout)
+                if mne_version_good is None:
+                    mne_version_good = True
+                    mark = ""
+                elif mne_version_good:
+                    mark = "✓ " if unicode else "+ "
                 else:
-                    pre = " | "
+                    mark = "✗ " if unicode else "X "
+                out(f"\n{pre}{' ' * ljust}{mark}{msg}")
+            if show_paths:
                 out(f'\n{pre}{" " * ljust}{op.dirname(mod.__file__)}')
             out("\n")
+
+    if not mne_version_good:
+        out(
+            "\nTo update to the latest supported release version to get bugfixes and "
+            "improvements, visit "
+            "https://mne.tools/stable/install/updating.html\n"
+        )
+
+
+def _get_latest_version(timeout):
+    url = "https://api.github.com/repos/mne-tools/mne-python/releases/latest"
+    try:
+        with urlopen(url, timeout=timeout) as f:
+            response = json.load(f)
+    except URLError:
+        return None
+    else:
+        return response["tag_name"]
+
+
+def _check_mne_version(timeout):
+    rel_ver = _get_latest_version(timeout)
+    if rel_ver is None:
+        return None, f"Unable to check latest version on GitHub ({timeout} sec timeout)"
+    rel_ver = parse(rel_ver)
+    this_ver = parse(import_module("mne").__version__)
+    if this_ver > rel_ver:
+        return True, f"Dev version (latest release: {rel_ver})"
+    if this_ver == rel_ver:
+        return True, "On the latest release"
+    else:
+        return False, f"A newer version {rel_ver} is available!"
