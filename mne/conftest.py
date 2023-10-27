@@ -92,8 +92,6 @@ def pytest_configure(config):
     # Fixtures
     for fixture in (
         "matplotlib_config",
-        "close_all",
-        "check_verbose",
         "qt_config",
         "protect_config",
     ):
