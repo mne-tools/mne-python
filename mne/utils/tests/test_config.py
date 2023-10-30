@@ -154,16 +154,16 @@ def test_sys_info_check_outdated(monkeypatch):
     assert "(outdated, release " in out
     assert "updating.html" in out
 
-
-@requires_good_network  # because we do make a urllib.open call
-def test_sys_info_check_other(monkeypatch):
-    """Check other sys_info check_version info."""
-    # Timeout
+    # Timeout (will call urllib.open)
     out = ClosingStringIO()
     sys_info(fid=out, check_version=1e-12)
     out = out.getvalue()
     assert re.match(".*unable to check.*timeout.*", out, re.DOTALL) is not None
     assert "updating.html" not in out
+
+
+def test_sys_info_check_other(monkeypatch):
+    """Test other failure modes of the sys info check."""
 
     def bad_open(url, timeout, msg):
         raise URLError(msg)
