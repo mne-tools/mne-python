@@ -803,18 +803,22 @@ def _get_latest_version(timeout):
     try:
         with urlopen(url, timeout=timeout) as f:  # nosec
             response = json.load(f)
-    except URLError:
-        return None
+    except URLError as err:
+        # Triage error type
+        if "SSL" in str(err):
+            return "SSL error"
+        elif "timed out" in str(err):
+            return f"timeout after {timeout} sec"
+        else:
+            return f"unknown error: {str(err)}"
     else:
-        return response["tag_name"]
+        return response["tag_name"].lstrip("v") or "version unknown"
 
 
 def _check_mne_version(timeout):
     rel_ver = _get_latest_version(timeout)
-    if rel_ver is None:
-        return None, (
-            f"unable to check for latest version on GitHub, {timeout} sec timeout"
-        )
+    if not rel_ver[0].isnumeric():
+        return None, (f"unable to check for latest version on GitHub, {rel_ver}")
     rel_ver = parse(rel_ver)
     this_ver = parse(import_module("mne").__version__)
     if this_ver > rel_ver:

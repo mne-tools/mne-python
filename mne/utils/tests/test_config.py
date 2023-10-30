@@ -1,6 +1,9 @@
 import os
 import platform
+import re
+from functools import partial
 from pathlib import Path
+from urllib.error import URLError
 
 import pytest
 
@@ -158,8 +161,29 @@ def test_sys_info_check_other(monkeypatch):
     out = ClosingStringIO()
     sys_info(fid=out, check_version=1e-12)
     out = out.getvalue()
-    assert "(unable to check" in out
+    assert re.match(".*unable to check.*timeout.*", out, re.DOTALL) is not None
     assert "updating.html" not in out
+
+    def bad_open(url, timeout, msg):
+        raise URLError(msg)
+
+    # SSL error
+    out = ClosingStringIO()
+    with monkeypatch.context() as m:
+        m.setattr(mne.utils.config, "urlopen", partial(bad_open, msg="SSL: CERT"))
+        sys_info(fid=out)
+    out = out.getvalue()
+    assert re.match(".*unable to check.*SSL.*", out, re.DOTALL) is not None
+
+    # Other error
+    out = ClosingStringIO()
+    with monkeypatch.context() as m:
+        m.setattr(mne.utils.config, "urlopen", partial(bad_open, msg="foo bar"))
+        sys_info(fid=out)
+    out = out.getvalue()
+    match = re.match(".*unable to .*unknown error: .*foo bar.*", out, re.DOTALL)
+    assert match is not None
+
     # Match
     monkeypatch.setattr(
         mne.utils.config,
@@ -171,6 +195,7 @@ def test_sys_info_check_other(monkeypatch):
     sys_info(fid=out)
     out = out.getvalue()
     assert " 1.5.1 (latest release)" in out
+
     # Devel
     monkeypatch.setattr(mne, "__version__", "1.6.dev0")
     out = ClosingStringIO()
