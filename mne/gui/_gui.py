@@ -7,8 +7,9 @@ from ..utils import get_config, verbose, warn
 
 @verbose
 def coregistration(
-    tabbed=False,
-    split=True,
+    *,
+    tabbed=None,
+    split=None,
     width=None,
     inst=None,
     subject=None,
@@ -18,15 +19,14 @@ def coregistration(
     head_opacity=None,
     head_high_res=None,
     trans=None,
-    scrollable=True,
-    *,
-    orient_to_surface=True,
-    scale_by_distance=True,
-    mark_inside=True,
+    scrollable=None,
+    orient_to_surface=None,
+    scale_by_distance=None,
+    mark_inside=None,
     interaction=None,
     scale=None,
     advanced_rendering=None,
-    head_inside=True,
+    head_inside=None,
     fullscreen=None,
     show=True,
     block=False,
@@ -143,10 +143,10 @@ def coregistration(
     .. youtube:: ALV5qqMHLlQ
     """
     unsupported_params = {
-        "tabbed": (tabbed, False),
-        "split": (split, True),
-        "scrollable": (scrollable, True),
-        "head_inside": (head_inside, True),
+        "tabbed": tabbed,
+        "split": split,
+        "scrollable": scrollable,
+        "head_inside": head_inside,
         "guess_mri_subject": guess_mri_subject,
         "scale": scale,
         "advanced_rendering": advanced_rendering,
@@ -158,22 +158,17 @@ def coregistration(
             to_raise = val is not None
         if to_raise:
             warn(
-                f"The parameter {key} is not supported with"
-                " the pyvistaqt 3d backend. It will be ignored."
+                f"The parameter {key} is deprecated and will be removed in 1.7, do "
+                "not pass a value for it",
+                FutureWarning,
             )
+    del tabbed, split, scrollable, head_inside, guess_mri_subject, scale
+    del advanced_rendering
     config = get_config()
-    if guess_mri_subject is None:
-        guess_mri_subject = config.get("MNE_COREG_GUESS_MRI_SUBJECT", "true") == "true"
     if head_high_res is None:
         head_high_res = config.get("MNE_COREG_HEAD_HIGH_RES", "true") == "true"
-    if advanced_rendering is None:
-        advanced_rendering = (
-            config.get("MNE_COREG_ADVANCED_RENDERING", "true") == "true"
-        )
     if head_opacity is None:
         head_opacity = config.get("MNE_COREG_HEAD_OPACITY", 0.8)
-    if head_inside is None:
-        head_inside = config.get("MNE_COREG_HEAD_INSIDE", "true").lower() == "true"
     if width is None:
         width = config.get("MNE_COREG_WINDOW_WIDTH", 800)
     if height is None:
@@ -183,23 +178,23 @@ def coregistration(
             subjects_dir = config["SUBJECTS_DIR"]
         elif "MNE_COREG_SUBJECTS_DIR" in config:
             subjects_dir = config["MNE_COREG_SUBJECTS_DIR"]
+    false_like = ("false", "0")
     if orient_to_surface is None:
-        orient_to_surface = config.get("MNE_COREG_ORIENT_TO_SURFACE", "") == "true"
+        orient_to_surface = config.get("MNE_COREG_ORIENT_TO_SURFACE", "true").lower()
+        orient_to_surface = orient_to_surface not in false_like
     if scale_by_distance is None:
-        scale_by_distance = config.get("MNE_COREG_SCALE_BY_DISTANCE", "") == "true"
+        scale_by_distance = config.get("MNE_COREG_SCALE_BY_DISTANCE", "true").lower()
+        scale_by_distance = scale_by_distance not in false_like
     if interaction is None:
         interaction = config.get("MNE_COREG_INTERACTION", "terrain")
     if mark_inside is None:
-        mark_inside = config.get("MNE_COREG_MARK_INSIDE", "") == "true"
-    if scale is None:
-        scale = config.get("MNE_COREG_SCENE_SCALE", 0.16)
+        mark_inside = config.get("MNE_COREG_MARK_INSIDE", "true").lower()
+        mark_inside = mark_inside not in false_like
     if fullscreen is None:
         fullscreen = config.get("MNE_COREG_FULLSCREEN", "") == "true"
     head_opacity = float(head_opacity)
-    head_inside = bool(head_inside)
     width = int(width)
     height = int(height)
-    scale = float(scale)
 
     from ..viz.backends.renderer import MNE_3D_BACKEND_TESTING
     from ._coreg import CoregistrationUI
