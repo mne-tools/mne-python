@@ -4114,12 +4114,13 @@ def _concatenate_epochs(
     event_id = deepcopy(out.event_id)
     selection = out.selection
     # offset is the last epoch + tmax + 10 second
-    shift = int((10 + tmax) * out.info["sfreq"])
+    shift = np.int64((10 + tmax) * out.info["sfreq"])
     # Allow reading empty epochs (ToDo: Maybe not anymore in the future)
     if out._allow_empty:
         events_offset = 0
     else:
         events_offset = int(np.max(events[0][:, 0])) + shift
+    events_offset = np.int64(events_offset)
     events_overflow = False
     warned = False
     for ii, epochs in enumerate(epochs_list[1:], 1):
