@@ -92,8 +92,6 @@ def pytest_configure(config):
     # Fixtures
     for fixture in (
         "matplotlib_config",
-        "close_all",
-        "check_verbose",
         "qt_config",
         "protect_config",
     ):
@@ -268,10 +266,7 @@ def matplotlib_config():
     # functionality)
     plt.ioff()
     plt.rcParams["figure.dpi"] = 100
-    try:
-        plt.rcParams["figure.raise_window"] = False
-    except KeyError:  # MPL < 3.3
-        pass
+    plt.rcParams["figure.raise_window"] = False
 
     # Make sure that we always reraise exceptions in handlers
     orig = cbook.CallbackRegistry
