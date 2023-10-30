@@ -11,6 +11,7 @@ repos:
     hooks:
       - id: ruff
         name: ruff mne
+        args: ["--fix"]
         files: ^mne/
 
   # Ruff tutorials and examples
