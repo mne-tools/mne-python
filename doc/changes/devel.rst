@@ -65,6 +65,7 @@ Bugs
 - Fix bug with ``subject_info`` when loading data from and exporting to EDF file (:gh:`11952` by `Paul Roujansky`_)
 - Fix rendering glitches when plotting Neuromag/TRIUX sensors in :func:`mne.viz.plot_alignment` and related functions (:gh:`12098` by `Eric Larson`_)
 - Fix bug with delayed checking of :class:`info["bads"] <mne.Info>` (:gh:`12038` by `Eric Larson`_)
+- Fix bug with :ref:`mne coreg` where points inside the head surface were not shown (:gh:`12147` by `Eric Larson`_)
 - Fix bug with :func:`mne.viz.plot_alignment` where ``sensor_colors`` were not handled properly on a per-channel-type basis (:gh:`12067` by `Eric Larson`_)
 - Fix handling of channel information in annotations when loading data from and exporting to EDF file (:gh:`11960` :gh:`12017` :gh:`12044` by `Paul Roujansky`_)
 - Add missing ``overwrite`` and ``verbose`` parameters to :meth:`Transform.save() <mne.transforms.Transform.save>` (:gh:`12004` by `Marijn van Vliet`_)
@@ -84,3 +85,4 @@ API changes
 - :func:`mne.io.kit.read_mrk` reading pickled files is deprecated using something like ``np.savetxt(fid, pts, delimiter="\t", newline="\n")`` to save your points instead (:gh:`11937` by `Eric Larson`_)
 - Replace legacy ``inst.pick_channels`` and ``inst.pick_types`` with ``inst.pick`` (where ``inst`` is an instance of :class:`~mne.io.Raw`, :class:`~mne.Epochs`, or :class:`~mne.Evoked`) wherever possible (:gh:`11907` by `Clemens Brunner`_)
 - The ``reset_camera`` parameter has been removed in favor of ``distance="auto"`` in :func:`mne.viz.set_3d_view`, :meth:`mne.viz.Brain.show_view`, and related functions (:gh:`12000` by `Eric Larson`_)
+- Several unused parameters from :func:`mne.gui.coregistration` are now deprecated: tabbed, split, scrollable, head_inside, guess_mri_subject, scale, and ``advanced_rendering``. All arguments are also now keyword-only. (:gh:`12147` by `Eric Larson`_)

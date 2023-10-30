@@ -1252,10 +1252,9 @@ def _orient_glyphs(
     proj_pts, proj_nn = _get_nearest(nearest, check_inside, project_to_trans, proj_rr)
     vec = pts - proj_pts  # point to the surface
     nn = proj_nn
+    scalars = np.ones(len(pts))
     if mark_inside and not project_to_surface:
-        scalars = (~check_inside(proj_rr)).astype(int)
-    else:
-        scalars = np.ones(len(pts))
+        scalars[:] = ~check_inside(proj_rr)
     dist = np.linalg.norm(vec, axis=-1, keepdims=True)
     vectors = (250 * dist + 1) * nn
     return scalars, vectors, proj_pts
@@ -1277,28 +1276,16 @@ def _plot_glyphs(
     check_inside=None,
     nearest=None,
 ):
+    from matplotlib.colors import ListedColormap, to_rgba
+
+    _validate_type(mark_inside, bool, "mark_inside")
     if surf is not None and len(loc) > 0:
         defaults = DEFAULTS["coreg"]
         scalars, vectors, proj_pts = _orient_glyphs(
             loc, surf, project_points, mark_inside, check_inside, nearest
         )
         if mark_inside:
-            from matplotlib.colors import ListedColormap
-
-            color = np.append(color, 1)
-            colormap = ListedColormap(
-                np.array(
-                    [
-                        (
-                            0,
-                            0,
-                            0,
-                            1,
-                        ),
-                        color,
-                    ]
-                )
-            )
+            colormap = ListedColormap([to_rgba("darkslategray"), to_rgba(color)])
             color = None
             clim = [0, 1]
         else:
