@@ -155,6 +155,7 @@ def test_sys_info_check_outdated(monkeypatch):
     assert "updating.html" in out
 
 
+@requires_good_network  # because we do make a urllib.open call
 def test_sys_info_check_other(monkeypatch):
     """Check other sys_info check_version info."""
     # Timeout
