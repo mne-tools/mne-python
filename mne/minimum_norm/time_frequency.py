@@ -457,9 +457,9 @@ def _get_label_power(power, labels, vertno, k_idxs):
             all_vnums[h_id] = np.intersect1d(vertno[h_id], lab.vertices)
 
         verts = [
-            (hemis[hi], all_vnums[hi][ii])
+            (hemis[hi], vn)
             for hi in range(2)
-            for ii in range(len(all_vnums[hi]))
+            for vn in all_vnums[hi]
         ]
 
         # restrict power to relevant vertices in label
@@ -505,7 +505,7 @@ def _source_induced_power(
             types=(Label, BiHemiLabel, list, tuple, None),
             type_name=("Label or BiHemiLabel", "list of labels", "None"),
         )
-        if isinstance(label, list):
+        if isinstance(label, (list, tuple)):
             for item in label:
                 _validate_type(
                     item,
@@ -516,8 +516,8 @@ def _source_induced_power(
                 raise RuntimeError(
                     "Phase-locking value cannot be calculated "
                     "when averaging induced power within "
-                    "labels. Please set `with_plv` to False or "
-                    "set `label` to None."
+                    "labels. Please set `with_plv` to False, pass a "
+                    "single `label=label`, or set `label=None`."
                 )
 
     epochs_data = epochs.get_data()
@@ -605,6 +605,7 @@ def source_induced_power(
     baseline_mode="logratio",
     pca=True,
     n_jobs=None,
+    *,
     return_plv=True,
     zero_mean=False,
     prepared=False,
@@ -674,6 +675,8 @@ def source_induced_power(
     %(n_jobs)s
     return_plv : bool
         If True, return the phase-locking value array. Else, only return power.
+
+        .. versionadded:: 1.6
     zero_mean : bool
         Make sure the wavelets are zero mean.
     prepared : bool

@@ -149,7 +149,7 @@ multi_label_power = source_induced_power(
 )
 
 # visually compare evoked power in left and right auditory regions
-fig, axes = plt.subplots(ncols=2)
+fig, axes = plt.subplots(ncols=2, layout="constrained")
 for l_idx, l_power in enumerate(multi_label_power):
     ax = axes[l_idx]
     ax.imshow(
@@ -164,4 +164,3 @@ for l_idx, l_power in enumerate(multi_label_power):
     title = f"{labels[l_idx].hemi.upper()} Evoked Power"
     ax.set(xlabel="Time (s)", ylabel="Frequency (Hz)", title=title)
     fig.colorbar(ax.images[0], ax=ax)
-    fig.tight_layout()
