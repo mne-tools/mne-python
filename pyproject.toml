@@ -140,16 +140,3 @@ exclude = "(dist/)|(build/)|(.*\\.ipynb)"
 
 [tool.bandit.assert_used]
 skips = ["*/test_*.py"] # assert statements are good practice with pytest
-
-[tool.curlylint]
-include = '\.jinja$'
-
-[tool.curlylint.rules]
-aria_role = true
-django_forms_rendering = true
-html_has_lang = true
-image_alt = true
-# indent = 4
-meta_viewport = true
-no_autofocus = true
-tabindex_no_positive = true

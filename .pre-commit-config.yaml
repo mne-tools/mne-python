@@ -40,11 +40,3 @@ repos:
     hooks:
       - id: yamllint
         args: [--strict, -c, .yamllint.yml]
-
-  # curlylint
-  - repo: https://github.com/thibaudcolas/curlylint
-    rev: v0.13.1
-    hooks:
-      - id: curlylint
-        files: \.jinja$
-        args: ["--quiet"]
