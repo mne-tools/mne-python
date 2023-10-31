@@ -1,144 +1,101 @@
-<style>
-label { cursor: pointer; }
-#{{ section_ids[0] }} ~ table [for="{{ section_ids[0] }}"]::before,
-#{{ section_ids[1] }} ~ table [for="{{ section_ids[1] }}"]::before,
-#{{ section_ids[2] }} ~ table [for="{{ section_ids[2] }}"]::before {
-    display: inline-block;
-    content: "►";
-    font-size: 11px;
-    width: 15px;
-    text-align: left;
-}
-
-#{{ section_ids[0] }}:checked ~ table [for="{{ section_ids[0] }}"]::before,
-#{{ section_ids[1] }}:checked ~ table [for="{{ section_ids[1] }}"]::before,
-#{{ section_ids[2] }}:checked ~ table [for="{{ section_ids[2] }}"]::before {
-    content: "▼";
-}
-
-#{{ section_ids[0] }} ~ table tr.{{ section_ids[0] }},
-#{{ section_ids[1] }} ~ table tr.{{ section_ids[1] }},
-#{{ section_ids[2] }} ~ table tr.{{ section_ids[2] }} {
-    visibility: collapse;
-}
-
-#{{ section_ids[0] }}:checked ~ table tr.{{ section_ids[0] }},
-#{{ section_ids[1] }}:checked ~ table tr.{{ section_ids[1] }},
-#{{ section_ids[2] }}:checked ~ table tr.{{ section_ids[2] }} {
-    visibility: visible;
-}
-</style>
-
-<input type="checkbox" id="{{ section_ids[0] }}" hidden aria-hidden="true"/>
-<input type="checkbox" id="{{ section_ids[1] }}" hidden aria-hidden="true"/>
-<input type="checkbox" id="{{ section_ids[2] }}" hidden aria-hidden="true"/>
-
-<table class="table table-hover table-striped table-sm table-responsive small">
-    <tr>
-        <th class="collapsible_header" colspan="2" style="font-weight: bold; text-align: left;">
-            <label for={{ section_ids[0] }}>
-                {{sections[0]}}
-            </label>
-        </th>
-    </tr>
-    <tr class="{{ section_ids[0] }}">
-        <th>Measurement date</th>
-        {% if meas_date is not none %}
-        <td>{{ meas_date }}</td>
-        {% else %}
-        <td>Unknown</td>
-        {% endif %}
-    </tr>
-    <tr class="{{ section_ids[0] }}">
-        <th>Experimenter</th>
-        {% if experimenter is not none %}
-        <td>{{ experimenter }}</td>
-        {% else %}
-        <td>Unknown</td>
-        {% endif %}
-    </tr>
-    <tr class="{{ section_ids[0] }}">
-        <th>Participant</th>
-        {% if subject_info is defined and subject_info is not none %}
+<details{{ "" if collapsed else " open" }}>
+    <summary><strong>{{sections[0]}}</strong></summary>
+    <table class="table table-hover table-striped table-sm table-responsive small">
+        <tr>
+            <th>Measurement date</th>
+            {% if meas_date is not none %}
+            <td>{{ meas_date }}</td>
+            {% else %}
+            <td>Unknown</td>
+            {% endif %}
+        </tr>
+        <tr>
+            <th>Experimenter</th>
+            {% if experimenter is not none %}
+            <td>{{ experimenter }}</td>
+            {% else %}
+            <td>Unknown</td>
+            {% endif %}
+        </tr>
+        <tr>
+            <th>Participant</th>
+            {% if subject_info is defined and subject_info is not none %}
             {% if 'his_id' in subject_info.keys() %}
             <td>{{ subject_info['his_id'] }}</td>
             {% endif %}
-        {% else %}
-        <td>Unknown</td>
-        {% endif %}
-    </tr>
-    <tr>
-        <th class="collapsible_header" colspan="2" style="font-weight: bold; text-align: left;">
-            <label for={{ section_ids[1] }}>
-                {{sections[1]}}
-            </label>
-        </th>
-    </tr>
-    <tr class="{{ section_ids[1] }}">
-        <th>Digitized points</th>
-        {% if dig is not none %}
-        <td>{{ dig|length }} points</td>
-        {% else %}
-        <td>Not available</td>
-        {% endif %}
-    </tr>
-    <tr class="{{ section_ids[1] }}">
-        <th>Good channels</th>
-        <td>{{ good_channels }}</td>
-    </tr>
-    <tr class="{{ section_ids[1] }}">
-        <th>Bad channels</th>
-        <td>{{ bad_channels }}</td>
-    </tr>
-    <tr class="{{ section_ids[1] }}">
-        <th>EOG channels</th>
-        <td>{{ eog }}</td>
-    </tr>
-    <tr class="{{ section_ids[1] }}">
-        <th>ECG channels</th>
-        <td>{{ ecg }}</td>
-    </tr>
-    <tr>
-        <th class="collapsible_header" colspan="2" style="font-weight: bold; text-align: left;">
-            <label for={{ section_ids[2] }}>
-                {{sections[2]}}
-            </label>
-        </th>
-    </tr>
-    {% if sfreq is not none %}
-    <tr class="{{ section_ids[2] }}">
-        <th>Sampling frequency</th>
-        <td>{{ '%0.2f'|format(sfreq) }} Hz</td>
-    </tr>
-    {% endif %}
-    {% if highpass is not none %}
-    <tr class="{{ section_ids[2] }}">
-        <th>Highpass</th>
-        <td>{{ '%0.2f'|format(highpass) }} Hz</td>
-    </tr>
-    {% endif %}
-    {% if lowpass is not none %}
-    <tr class="{{ section_ids[2] }}">
-        <th>Lowpass</th>
-        <td>{{ '%0.2f'|format(lowpass) }} Hz</td>
-    </tr>
-    {% endif %}
-    {% if projs is not none %}
-    <tr class="{{ section_ids[2] }}">
-        <th>Projections</th>
-        <td>{{ projs|join('<br/>') | safe }}</td>
-    </tr>
-    {% endif %}
-    {% if filenames %}
-    <tr class="{{section_ids[2]}}">
-        <th>Filenames</th>
-        <td>{{ filenames|join('<br>') }}</td>
-    </tr>
-    {% endif %}
-    {% if duration %}
-    <tr class="{{section_ids[2]}}">
-        <th>Duration</th>
-        <td>{{ duration }} (HH:MM:SS)</td>
-    </tr>
-    {% endif %}
-</table>
+            {% else %}
+            <td>Unknown</td>
+            {% endif %}
+        </tr>
+    </table>
+    </details>
+    <details{{ "" if collapsed else " open" }}>
+        <summary><strong>{{sections[1]}}</strong></summary>
+        <table class="table table-hover table-striped table-sm table-responsive small">
+            <tr>
+                <th>Digitized points</th>
+                {% if dig is not none %}
+                <td>{{ dig|length }} points</td>
+                {% else %}
+                <td>Not available</td>
+                {% endif %}
+            </tr>
+            <tr>
+                <th>Good channels</th>
+                <td>{{ good_channels }}</td>
+            </tr>
+            <tr>
+                <th>Bad channels</th>
+                <td>{{ bad_channels }}</td>
+            </tr>
+            <tr>
+                <th>EOG channels</th>
+                <td>{{ eog }}</td>
+            </tr>
+            <tr>
+                <th>ECG channels</th>
+                <td>{{ ecg }}</td>
+            </tr>
+        </table>
+        </details>
+        <details{{ "" if collapsed else " open" }}>
+            <summary><strong>{{sections[2]}}</strong></summary>
+            <table class="table table-hover table-striped table-sm table-responsive small">
+                {% if sfreq is not none %}
+                <tr>
+                    <th>Sampling frequency</th>
+                    <td>{{ '%0.2f'|format(sfreq) }} Hz</td>
+                </tr>
+                {% endif %}
+                {% if highpass is not none %}
+                <tr>
+                    <th>Highpass</th>
+                    <td>{{ '%0.2f'|format(highpass) }} Hz</td>
+                </tr>
+                {% endif %}
+                {% if lowpass is not none %}
+                <tr>
+                    <th>Lowpass</th>
+                    <td>{{ '%0.2f'|format(lowpass) }} Hz</td>
+                </tr>
+                {% endif %}
+                {% if projs is not none %}
+                <tr>
+                    <th>Projections</th>
+                    <td>{{ projs|join('<br />') | safe }}</td>
+                </tr>
+                {% endif %}
+                {% if filenames %}
+                <tr>
+                    <th>Filenames</th>
+                    <td>{{ filenames|join('<br>') }}</td>
+                </tr>
+                {% endif %}
+                {% if duration %}
+                <tr>
+                    <th>Duration</th>
+                    <td>{{ duration }} (HH:MM:SS)</td>
+                </tr>
+                {% endif %}
+            </table>
+            </details>

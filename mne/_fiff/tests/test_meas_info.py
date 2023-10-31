@@ -899,11 +899,11 @@ def test_repr_html():
     assert "EEG 053" in info._repr_html_()
 
     html = info._repr_html_()
-    for ch in [
-        "204 Gradiometers",
+    for ch in [  # good channel counts
+        "203 Gradiometers",
         "102 Magnetometers",
         "9 Stimulus",
-        "60 EEG",
+        "59 EEG",
         "1 EOG",
     ]:
         assert ch in html
