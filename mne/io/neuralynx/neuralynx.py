@@ -11,15 +11,19 @@ from ..base import BaseRaw
 
 @fill_doc
 def read_raw_neuralynx(
-    fname, preload=False, verbose=None, exclude_fname_patterns: list = None
+    fname, *, preload=False, exclude_fname_patterns=None, verbose=None
 ):
     """Reader for Neuralynx files.
 
     Parameters
     ----------
     fname : path-like
-        Path to a folder with Neuralynx .ncs files
+        Path to a folder with Neuralynx .ncs files.
     %(preload)s
+    exclude_fname_patterns : list of str
+        List of glob-like string patterns to exclude from channel list.
+        Useful when not all channels have the same number of samples
+        so you can read separate instances.
     %(verbose)s
 
     Returns
