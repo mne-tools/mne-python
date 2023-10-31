@@ -1680,13 +1680,10 @@ class Report:
             cum_explained_var[: len(figs)],
         ):
             caption = (
-                f"ICA component {idx}. " f"Variance explained: {round(100 * rel_var)}%"
+                f"ICA component {picks[idx]}. "
+                f"Variance explained: {100 * rel_var:0.1f}%"
+                f" ({100 * cum_var:0.1f}% cumulative)."
             )
-            if idx == 0:
-                caption += "."
-            else:
-                caption += f" ({round(100 * cum_var)}% cumulative)."
-
             captions.append(caption)
 
         title = "ICA component properties"
