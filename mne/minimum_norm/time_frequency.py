@@ -456,11 +456,7 @@ def _get_label_power(power, labels, vertno, k_idxs):
             h_id = 0 if lab.hemi == "lh" else 1
             all_vnums[h_id] = np.intersect1d(vertno[h_id], lab.vertices)
 
-        verts = [
-            (hemis[hi], vn)
-            for hi in range(2)
-            for vn in all_vnums[hi]
-        ]
+        verts = [(hemis[hi], vn) for hi in range(2) for vn in all_vnums[hi]]
 
         # restrict power to relevant vertices in label
         lab_mask = np.array([False] * len(power))
