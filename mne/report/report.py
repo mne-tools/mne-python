@@ -1669,21 +1669,9 @@ class Report:
         figs = _plot_ica_properties_as_arrays(
             ica=ica, inst=inst, picks=picks, n_jobs=n_jobs
         )
-        # TODO: Maybe use get_explained_variance_ratio for the inst rather than
-        # what was explained during the fit, see gh-11141
-        rel_explained_var = (
-            100 * ica.pca_explained_variance_ / ica.pca_explained_variance_.sum()
-        )
         captions = []
-        cum_var = dict()
         for idx in range(len(figs)):
-            rel_var = rel_explained_var[picks[idx]]
-            cum_var += rel_var
-            caption = (
-                f"ICA component {picks[idx]}. "
-                f"Variance explained: {rel_var:0.1f}%"
-                f" ({cum_var:0.1f}% cumulative across picks)."
-            )
+            caption = f"ICA component {picks[idx]}."
             captions.append(caption)
 
         title = "ICA component properties"
