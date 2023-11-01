@@ -722,6 +722,8 @@ linkcheck_ignore = [  # will be compiled to regex
     "https://doi.org/10.1088/",  # www.tandfonline.com
     "https://doi.org/10.3109/",  # www.tandfonline.com
     "https://www.researchgate.net/profile/",
+    # 500 server error
+    "https://openwetware.org/wiki/Beauchamp:FreeSurfer",
     # 503 Server error
     "https://hal.archives-ouvertes.fr/hal-01848442",
     # Read timed out
