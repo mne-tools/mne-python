@@ -1033,7 +1033,7 @@ def test_epochs_baseline_basic(preload, tmp_path):
     epochs = mne.Epochs(raw, events, None, 0, 1e-3, baseline=None, preload=preload)
     epochs.drop_bad()
     epochs_nobl = epochs.copy()
-    epochs_data = epochs.get_data()
+    epochs_data = epochs.get_data(copy=False)
     assert epochs_data.shape == (1, 2, 2)
     expected = data.copy()
     assert_array_equal(epochs_data[0], expected)
