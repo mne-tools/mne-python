@@ -319,6 +319,7 @@ def test_watershed_bem(tmp_path):
 @testing.requires_testing_data
 def test_flash_bem(tmp_path):
     """Test mne flash_bem."""
+    pytest.importorskip("nibabel")
     check_usage(mne_flash_bem, force_help=True)
     # Copy necessary files to tempdir
     tempdir = Path(str(tmp_path))
