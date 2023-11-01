@@ -8,7 +8,7 @@ Changelog
 
 - Add ``event_id='auto'`` in :func:`mne.events_from_annotations` to accommodate Brainvision markers by `Jona Sassenhagen`_, `Joan Massich`_ and `Eric Larson`_
 
-- Add example on how to simulate raw data using subject anatomy, by `Ivana Kojcic`_,`Eric Larson`_,`Samuel Deslauriers-Gauthier`_ and`Kostiantyn Maksymenko`_
+- Add example on how to simulate raw data using subject anatomy, by `Ivana Kojcic`_, `Eric Larson`_, `Samuel Deslauriers-Gauthier`_ and `Kostiantyn Maksymenko`_
 
 - :func:`mne.beamformer.apply_lcmv_cov` returns static source power after supplying a data covariance matrix to the beamformer filter by `Britta Westner`_ and `Marijn van Vliet`_
 
@@ -159,7 +159,7 @@ Bug
 
 - Fix 32bits annotations in :func:`mne.io.read_raw_cnt` by `Joan Massich`_
 
-- Fix :func:`mne.events_from_annotations` to ignore ``'BAD_'` and ``'EDGE_'`` annotations by default using a new default ``regexp`` by `Eric Larson`_
+- Fix :func:`mne.events_from_annotations` to ignore ``'BAD_'`` and ``'EDGE_'`` annotations by default using a new default ``regexp`` by `Eric Larson`_
 
 - Fix bug in ``mne.preprocessing.mark_flat`` where ``raw.first_samp`` was not taken into account by `kalenkovich`_
 

@@ -132,7 +132,7 @@ Bugs
 
 - Fix use of arguments in :func:`numpy.loadtxt` (:gh:`10189` by :newcontrib:`Federico Zamberlan`)
 
-- Fix documentation of options in :func:`mne.stc_near_sensors` (:gh:`` by :newcontrib:`Nikolai Chapochnikov`)
+- Fix documentation of options in :func:`mne.stc_near_sensors` (:gh:`10007` by :newcontrib:`Nikolai Chapochnikov`)
 
 - :func:`mne.time_frequency.tfr_array_multitaper` now returns results per taper when ``output='complex'`` (:gh:`10281` by `Mikołaj Magnuski`_)
 
