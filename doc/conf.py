@@ -722,6 +722,7 @@ linkcheck_ignore = [  # will be compiled to regex
     "https://doi.org/10.1088/",  # www.tandfonline.com
     "https://doi.org/10.3109/",  # www.tandfonline.com
     "https://www.researchgate.net/profile/",
+    "https://www.intel.com/content/www/us/en/developer/tools/oneapi/onemkl.html",
     # 500 server error
     "https://openwetware.org/wiki/Beauchamp:FreeSurfer",
     # 503 Server error
