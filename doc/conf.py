@@ -723,6 +723,8 @@ linkcheck_ignore = [  # will be compiled to regex
     "https://doi.org/10.3109/",  # www.tandfonline.com
     "https://www.researchgate.net/profile/",
     "https://www.intel.com/content/www/us/en/developer/tools/oneapi/onemkl.html",
+    "https://scholar.google.com/scholar?cites=12188330066413208874&as_ylo=2014",
+    "https://scholar.google.com/scholar?cites=1521584321377182930&as_ylo=2013",
     # 500 server error
     "https://openwetware.org/wiki/Beauchamp:FreeSurfer",
     # 503 Server error
@@ -730,6 +732,7 @@ linkcheck_ignore = [  # will be compiled to regex
     # Read timed out
     "http://www.cs.ucl.ac.uk/staff/d.barber/brml",
     "https://www.cea.fr",
+    "http://www.humanconnectome.org/data",
     # Max retries exceeded
     "https://doi.org/10.7488/ds/1556",
     "https://datashare.is.ed.ac.uk/handle/10283",
