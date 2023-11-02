@@ -667,7 +667,10 @@ class _PyVistaRenderer(_AbstractRenderer):
             grid = UnstructuredGrid(*args)
             if scalars is None:
                 scalars = np.ones((n_points,))
-            grid.point_data["scalars"] = np.array(scalars)
+                mesh_scalars = None
+            else:
+                mesh_scalars = "scalars"
+            grid.point_data["scalars"] = np.array(scalars, float)
             grid.point_data["vec"] = vectors
             if mode == "2darrow":
                 return _arrow_glyph(grid, factor), grid
@@ -714,15 +717,14 @@ class _PyVistaRenderer(_AbstractRenderer):
                     glyph = trp
                 glyph.Update()
                 geom = glyph.GetOutput()
-                mesh = grid.glyph(
-                    orient="vec", scale=scale_mode == "vector", factor=factor, geom=geom
-                )
+                scale = dict(none=False, scalars="scalars", vector="vec")[scale_mode]
+                mesh = grid.glyph(orient="vec", scale=scale, factor=factor, geom=geom)
             actor = _add_mesh(
                 self.plotter,
                 mesh=mesh,
                 color=color,
                 opacity=opacity,
-                scalars=None,
+                scalars=mesh_scalars,
                 colormap=colormap,
                 show_scalar_bar=False,
                 backface_culling=backface_culling,
