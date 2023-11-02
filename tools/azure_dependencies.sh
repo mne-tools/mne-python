@@ -25,7 +25,7 @@ elif [ "${TEST_MODE}" == "pip-pre" ]; then
 	echo "misc"
 	python -m pip install $STD_ARGS imageio-ffmpeg xlrd mffpy python-picard pillow
 	echo "nibabel with workaround"
-	python -m pip install --progress-bar off git+https://github.com/mscheltienne/nibabel.git@np.sctypes
+	python -m pip install --progress-bar off git+https://github.com/nipy/nibabel.git
 	echo "joblib"
 	python -m pip install --progress-bar off git+https://github.com/joblib/joblib@master
 	echo "EDFlib-Python"
