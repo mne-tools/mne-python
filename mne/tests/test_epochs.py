@@ -321,6 +321,15 @@ def test_get_data():
     with pytest.raises(TypeError, match="tmax .* float, None"):
         epochs.get_data(tmin=1, tmax=np.ones(5))
 
+    # Test copy
+    data = epochs.get_data(copy=True)
+    data[0,0,0] = 1
+    assert not np.all(data == epochs.get_data())
+
+    data = epochs.get_data(copy=False)
+    data[0,0,0] = 1
+    assert np.all(data == epochs.get_data())
+
 
 def test_hierarchical():
     """Test hierarchical access."""
