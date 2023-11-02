@@ -913,10 +913,10 @@ def test_manual_report_2d(tmp_path, invisible_fig):
     evoked = evokeds[0].pick("eeg")
 
     with pytest.warns(ConvergenceWarning, match="did not converge"):
-        ica = ICA(n_components=2, max_iter=1, random_state=42).fit(
+        ica = ICA(n_components=3, max_iter=1, random_state=42).fit(
             inst=raw.copy().crop(tmax=1)
         )
-    ica_ecg_scores = ica_eog_scores = np.array([3, 0])
+    ica_ecg_scores = ica_eog_scores = np.array([3, 0, 0])
     ica_ecg_evoked = ica_eog_evoked = epochs_without_metadata.average()
 
     r.add_raw(raw=raw, title="my raw data", tags=("raw",), psd=True, projs=False)
@@ -969,12 +969,13 @@ def test_manual_report_2d(tmp_path, invisible_fig):
         ica=ica,
         title="my ica with raw inst",
         inst=raw.copy().load_data(),
-        picks=[0],
+        picks=[2],
         ecg_evoked=ica_ecg_evoked,
         eog_evoked=ica_eog_evoked,
         ecg_scores=ica_ecg_scores,
         eog_scores=ica_eog_scores,
     )
+    assert "ICA component 2" in r._content[-1].html
     epochs_baseline = epochs_without_metadata.copy().load_data()
     epochs_baseline.apply_baseline((None, 0))
     r.add_ica(

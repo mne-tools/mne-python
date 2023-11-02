@@ -64,6 +64,7 @@ Bugs
 - Fix bug with :meth:`mne.viz.Brain.get_view` where calling :meth:`~mne.viz.Brain.show_view` with returned parameters would change the view (:gh:`12000` by `Eric Larson`_)
 - Fix bug with :meth:`mne.viz.Brain.show_view` where ``distance=None`` would change the view distance (:gh:`12000` by `Eric Larson`_)
 - Fix bug with :meth:`~mne.viz.Brain.add_annotation` when reading an annotation from a file with both hemispheres shown (:gh:`11946` by `Marijn van Vliet`_)
+- Fix bug with reported component number and errant reporting of PCA explained variance as ICA explained variance in :meth:`mne.Report.add_ica` (:gh:`12155` by `Eric Larson`_)
 - Fix bug with axis clip box boundaries in :func:`mne.viz.plot_evoked_topo` and related functions (:gh:`11999` by `Eric Larson`_)
 - Fix bug with ``subject_info`` when loading data from and exporting to EDF file (:gh:`11952` by `Paul Roujansky`_)
 - Fix bug where :class:`mne.Info` HTML representations listed all channel counts instead of good channel counts under the heading "Good channels" (:gh:`12145` by `Eric Larson`_) 
