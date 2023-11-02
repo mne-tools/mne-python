@@ -175,6 +175,15 @@ def add_reference_channels(inst, ref_channels, copy=True):
     -------
     inst : instance of Raw | Epochs | Evoked
         Data with added EEG reference channels.
+
+    Notes
+    -----
+    .. warning::
+        When :doc:`re-referencing
+        </auto_tutorials/preprocessing/55_setting_eeg_reference>`
+        , make sure to apply the montage using :func:`mne.io.Raw.set_montage`
+        only after calling this function. Applying a montage will only set
+        locations of channels that exist at the time it is applied.
     """
     from ..epochs import BaseEpochs
     from ..evoked import Evoked
@@ -239,7 +248,9 @@ def add_reference_channels(inst, ref_channels, copy=True):
         ref_dig_array = np.full(12, np.nan)
         logger.info(
             "Location for this channel is unknown; consider calling "
-            "set_montage() again if needed."
+            "set_montage() after adding new reference channels if needed. "
+            "Applying a montage will only set locations of channels that "
+            "exist at the time it is applied."
         )
 
     for ch in ref_channels:

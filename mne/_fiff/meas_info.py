@@ -412,10 +412,9 @@ class MontageMixin:
             functions.
         .. warning::
             Applying a montage will only set locations of channels that exist
-            at the time it is applied. This means when
-            :doc:`re-referencing
+            at the time it is applied. This means when :doc:`re-referencing
             </auto_tutorials/preprocessing/55_setting_eeg_reference>`
-            make sure to apply the montage after calling
+            make sure to apply the montage only after calling
             :func:`mne.add_reference_channels`
         """
         # How to set up a montage to old named fif file (walk through example)
