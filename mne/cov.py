@@ -1895,9 +1895,8 @@ def regularize(
     .. note:: This function is kept for reasons of backward-compatibility.
               Please consider explicitly using the ``method`` parameter in
               :func:`mne.compute_covariance` to directly combine estimation
-              with regularization in a data-driven fashion. See the `faq
-              <http://mne.tools/dev/overview/faq.html#how-should-i-regularize-the-covariance-matrix>`_
-              for more information.
+              with regularization in a data-driven fashion. See the
+              :ref:`FAQ <faq_how_should_i_regularize>` for more information.
 
     Parameters
     ----------
