@@ -44,7 +44,7 @@ else
 	echo "mne-qt-browser"
 	pip install $STD_ARGS git+https://github.com/mne-tools/mne-qt-browser
 	echo "nibabel with workaround"
-	pip install $STD_ARGS git+https://github.com/mscheltienne/nibabel.git@np.sctypes
+	pip install $STD_ARGS git+https://github.com/nipy/nibabel.git
 	echo "joblib"
 	pip install $STD_ARGS git+https://github.com/joblib/joblib@master
 	echo "EDFlib-Python"

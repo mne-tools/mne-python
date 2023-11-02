@@ -94,3 +94,5 @@ of data.
 .. LINKS
 
 .. _`method chaining`: https://en.wikipedia.org/wiki/Method_chaining
+
+.. include:: ../links.inc
