@@ -31,7 +31,7 @@ def make_data():
 def test_search_light():
     """Test SlidingEstimator."""
     # https://github.com/scikit-learn/scikit-learn/issues/27711
-    if platform.system() == "Windows" and check_version("numpy", "2.0"):
+    if platform.system() == "Windows" and check_version("numpy", "2.0.0.dev0"):
         pytest.skip("sklearn int_t / long long mismatch")
     from sklearn.linear_model import LogisticRegression, Ridge
     from sklearn.metrics import make_scorer, roc_auc_score
