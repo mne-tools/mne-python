@@ -196,6 +196,7 @@ def test_decimate_surface_vtk(n_tri):
 @requires_freesurfer("mris_sphere")
 def test_decimate_surface_sphere():
     """Test sphere mode of decimation."""
+    pytest.importorskip("nibabel")
     rr, tris = _tessellate_sphere(3)
     assert len(rr) == 66
     assert len(tris) == 128

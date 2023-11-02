@@ -190,9 +190,9 @@ def test_io_egi_mff():
         read_raw_egi(egi_mff_fname, include=["Foo"])
     with pytest.raises(ValueError, match="Could not find event"):
         read_raw_egi(egi_mff_fname, exclude=["Bar"])
-    for ii, k in enumerate(include, 1):
-        assert k in raw.event_id
-        assert raw.event_id[k] == ii
+    for ch in include:
+        assert ch in raw.event_id
+        assert raw.event_id[ch] == int(ch[-1])
 
 
 def test_io_egi():

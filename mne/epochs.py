@@ -2675,17 +2675,18 @@ def make_metadata(
     keep_first=None,
     keep_last=None,
 ):
-    """Generate metadata from events for use with `mne.Epochs`.
+    """Automatically generate metadata for use with `mne.Epochs` from events.
 
     This function mimics the epoching process (it constructs time windows
     around time-locked "events of interest") and collates information about
     any other events that occurred within those time windows. The information
-    is returned as a :class:`pandas.DataFrame` suitable for use as
+    is returned as a :class:`pandas.DataFrame`, suitable for use as
     `~mne.Epochs` metadata: one row per time-locked event, and columns
-    indicating presence/absence and latency of each ancillary event type.
+    indicating presence or absence and latency of each ancillary event type.
 
     The function will also return a new ``events`` array and ``event_id``
-    dictionary that correspond to the generated metadata.
+    dictionary that correspond to the generated metadata, which together can then be
+    readily fed into `~mne.Epochs`.
 
     Parameters
     ----------
@@ -2698,9 +2699,9 @@ def make_metadata(
         A mapping from event names (keys) to event IDs (values). The event
         names will be incorporated as columns of the returned metadata
         :class:`~pandas.DataFrame`.
-    tmin, tmax : float
-        Start and end of the time interval for metadata generation in seconds,
-        relative to the time-locked event of the respective time window.
+    tmin, tmax : float | None
+        Start and end of the time interval for metadata generation in seconds, relative
+        to the time-locked event of the respective time window (the "row events").
 
         .. note::
            If you are planning to attach the generated metadata to
@@ -2708,15 +2709,27 @@ def make_metadata(
            your epochs time interval, pass the same ``tmin`` and ``tmax``
            values here as you use for your epochs.
 
+        If ``None``, the time window used for metadata generation is bounded by the
+        ``row_events``. This is can be particularly practical if trial duration varies
+        greatly, but each trial starts with a known event (e.g., a visual cue or
+        fixation).
+
+        .. note::
+           If ``tmin=None``, the first time window for metadata generation starts with
+           the first row event. If ``tmax=None``, the last time window for metadata
+           generation ends with the last event in ``events``.
+
+        .. versionchanged:: 1.6.0
+           Added support for ``None``.
     sfreq : float
         The sampling frequency of the data from which the events array was
         extracted.
     row_events : list of str | str | None
-        Event types around which to create the time windows / for which to
-        create **rows** in the returned metadata :class:`pandas.DataFrame`. If
-        provided, the string(s) must be keys of ``event_id``. If ``None``
-        (default), rows are created for **all** event types present in
-        ``event_id``.
+        Event types around which to create the time windows. For each of these
+        time-locked events, we will create a **row** in the returned metadata
+        :class:`pandas.DataFrame`. If provided, the string(s) must be keys of
+        ``event_id``. If ``None`` (default), rows are created for **all** event types
+        present in ``event_id``.
     keep_first : str | list of str | None
         Specify subsets of :term:`hierarchical event descriptors` (HEDs,
         inspired by :footcite:`BigdelyShamloEtAl2013`) matching events of which
@@ -2791,8 +2804,10 @@ def make_metadata(
     The time window used for metadata generation need not correspond to the
     time window used to create the `~mne.Epochs`, to which the metadata will
     be attached; it may well be much shorter or longer, or not overlap at all,
-    if desired. The can be useful, for example, to include events that occurred
-    before or after an epoch, e.g. during the inter-trial interval.
+    if desired. This can be useful, for example, to include events that
+    occurred before or after an epoch, e.g. during the inter-trial interval.
+    If either ``tmin``, ``tmax``, or both are ``None``, the time window will
+    typically vary, too.
 
     .. versionadded:: 0.23
 
@@ -2802,7 +2817,11 @@ def make_metadata(
     """
     pd = _check_pandas_installed()
 
+    _validate_type(events, types=("array-like",), item_name="events")
     _validate_type(event_id, types=(dict,), item_name="event_id")
+    _validate_type(sfreq, types=("numeric",), item_name="sfreq")
+    _validate_type(tmin, types=("numeric", None), item_name="tmin")
+    _validate_type(tmax, types=("numeric", None), item_name="tmax")
     _validate_type(row_events, types=(None, str, list, tuple), item_name="row_events")
     _validate_type(keep_first, types=(None, str, list, tuple), item_name="keep_first")
     _validate_type(keep_last, types=(None, str, list, tuple), item_name="keep_last")
@@ -2851,8 +2870,8 @@ def make_metadata(
 
     # First and last sample of each epoch, relative to the time-locked event
     # This follows the approach taken in mne.Epochs
-    start_sample = int(round(tmin * sfreq))
-    stop_sample = int(round(tmax * sfreq)) + 1
+    start_sample = None if tmin is None else int(round(tmin * sfreq))
+    stop_sample = None if tmax is None else int(round(tmax * sfreq)) + 1
 
     # Make indexing easier
     # We create the DataFrame before subsetting the events so we end up with
@@ -2898,16 +2917,49 @@ def make_metadata(
     start_idx = stop_idx
     metadata.iloc[:, start_idx:] = None
 
-    # We're all set, let's iterate over all eventns and fill in in the
+    # We're all set, let's iterate over all events and fill in in the
     # respective cells in the metadata. We will subset this to include only
     # `row_events` later
     for row_event in events_df.itertuples(name="RowEvent"):
         row_idx = row_event.Index
         metadata.loc[row_idx, "event_name"] = id_to_name_map[row_event.id]
 
-        # Determine which events fall into the current epoch
-        window_start_sample = row_event.sample + start_sample
-        window_stop_sample = row_event.sample + stop_sample
+        # Determine which events fall into the current time window
+        if start_sample is None:
+            # Lower bound is the current event.
+            window_start_sample = row_event.sample
+        else:
+            # Lower bound is determined by tmin.
+            window_start_sample = row_event.sample + start_sample
+
+        if stop_sample is None:
+            # Upper bound: next event of the same type, or the last event (of
+            # any type) if no later event of the same type can be found.
+            next_events = events_df.loc[
+                (events_df["sample"] > row_event.sample),
+                :,
+            ]
+            if next_events.size == 0:
+                # We've reached the last event in the recording.
+                window_stop_sample = row_event.sample
+            elif next_events.loc[next_events["id"] == row_event.id, :].size > 0:
+                # There's still an event of the same type appearing after the
+                # current event. Stop one sample short, we don't want to include that
+                # last event here, but in the next iteration.
+                window_stop_sample = (
+                    next_events.loc[next_events["id"] == row_event.id, :].iloc[0][
+                        "sample"
+                    ]
+                    - 1
+                )
+            else:
+                # There are still events after the current one, but not of the
+                # same type.
+                window_stop_sample = next_events.iloc[-1]["sample"]
+        else:
+            # Upper bound is determined by tmax.
+            window_stop_sample = row_event.sample + stop_sample
+
         events_in_window = events_df.loc[
             (events_df["sample"] >= window_start_sample)
             & (events_df["sample"] <= window_stop_sample),
@@ -4073,12 +4125,13 @@ def _concatenate_epochs(
     event_id = deepcopy(out.event_id)
     selection = out.selection
     # offset is the last epoch + tmax + 10 second
-    shift = int((10 + tmax) * out.info["sfreq"])
+    shift = np.int64((10 + tmax) * out.info["sfreq"])
     # Allow reading empty epochs (ToDo: Maybe not anymore in the future)
     if out._allow_empty:
         events_offset = 0
     else:
         events_offset = int(np.max(events[0][:, 0])) + shift
+    events_offset = np.int64(events_offset)
     events_overflow = False
     warned = False
     for ii, epochs in enumerate(epochs_list[1:], 1):
