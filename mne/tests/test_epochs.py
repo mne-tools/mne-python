@@ -323,12 +323,10 @@ def test_get_data():
 
     # Test copy
     data = epochs.get_data(copy=True)
-    data[0, 0, 0] = 1
-    assert not np.all(data == epochs.get_data())
+    assert not np.shares_memory(data, epochs._data)
 
     data = epochs.get_data(copy=False)
-    data[0, 0, 0] = 1
-    assert np.all(data == epochs.get_data())
+    assert np.shares_memory(data, epochs._data)
 
 
 def test_hierarchical():
