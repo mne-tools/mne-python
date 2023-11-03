@@ -655,6 +655,9 @@ class _PyVistaRenderer(_AbstractRenderer):
         clim=None,
     ):
         _check_option("mode", mode, ALLOWED_QUIVER_MODES)
+        _validate_type(scale_mode, str, "scale_mode")
+        scale_map = dict(none=False, scalar="scalars", vector="vec")
+        _check_option("scale_mode", scale_mode, list(scale_map))
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
             factor = scale
@@ -667,7 +670,10 @@ class _PyVistaRenderer(_AbstractRenderer):
             grid = UnstructuredGrid(*args)
             if scalars is None:
                 scalars = np.ones((n_points,))
-            grid.point_data["scalars"] = np.array(scalars)
+                mesh_scalars = None
+            else:
+                mesh_scalars = "scalars"
+            grid.point_data["scalars"] = np.array(scalars, float)
             grid.point_data["vec"] = vectors
             if mode == "2darrow":
                 return _arrow_glyph(grid, factor), grid
@@ -715,14 +721,17 @@ class _PyVistaRenderer(_AbstractRenderer):
                 glyph.Update()
                 geom = glyph.GetOutput()
                 mesh = grid.glyph(
-                    orient="vec", scale=scale_mode == "vector", factor=factor, geom=geom
+                    orient="vec",
+                    scale=scale_map[scale_mode],
+                    factor=factor,
+                    geom=geom,
                 )
             actor = _add_mesh(
                 self.plotter,
                 mesh=mesh,
                 color=color,
                 opacity=opacity,
-                scalars=None,
+                scalars=mesh_scalars,
                 colormap=colormap,
                 show_scalar_bar=False,
                 backface_culling=backface_culling,
