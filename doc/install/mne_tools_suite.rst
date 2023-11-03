@@ -112,3 +112,5 @@ Help with installation is available through the `MNE Forum`_. See the
 .. _invertmeeg: https://github.com/LukeTheHecker/invert
 .. _MNE-ARI: https://github.com/john-veillette/mne_ari
 .. _niseq: https://github.com/john-veillette/niseq
+
+.. include:: ../links.inc

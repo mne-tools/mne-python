@@ -2,6 +2,7 @@
 #
 # License: BSD-3-Clause
 
+import platform
 from inspect import signature
 
 import numpy as np
@@ -10,7 +11,7 @@ from numpy.testing import assert_array_equal, assert_equal
 
 from mne.decoding.search_light import GeneralizingEstimator, SlidingEstimator
 from mne.decoding.transformer import Vectorizer
-from mne.utils import _record_warnings, use_log_level
+from mne.utils import _record_warnings, check_version, use_log_level
 
 pytest.importorskip("sklearn")
 
@@ -29,6 +30,9 @@ def make_data():
 
 def test_search_light():
     """Test SlidingEstimator."""
+    # https://github.com/scikit-learn/scikit-learn/issues/27711
+    if platform.system() == "Windows" and check_version("numpy", "2.0.0.dev0"):
+        pytest.skip("sklearn int_t / long long mismatch")
     from sklearn.linear_model import LogisticRegression, Ridge
     from sklearn.metrics import make_scorer, roc_auc_score
     from sklearn.pipeline import make_pipeline

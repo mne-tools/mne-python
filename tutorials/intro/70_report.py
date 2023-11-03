@@ -266,7 +266,7 @@ report = mne.Report(title="ICA example")
 report.add_ica(
     ica=ica,
     title="ICA cleaning",
-    picks=[0, 1],  # only plot the first two components
+    picks=ica.exclude,  # plot the excluded EOG components
     inst=raw,
     eog_evoked=eog_epochs.average(),
     eog_scores=eog_scores,

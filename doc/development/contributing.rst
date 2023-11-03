@@ -215,8 +215,6 @@ Once you have git installed and configured, and before creating your local copy
 of the codebase, go to the `MNE-Python GitHub`_ page and create a `fork`_ into
 your GitHub user account.
 
-.. image:: https://docs.github.com/assets/cb-28613/images/help/repository/fork_button.png
-
 This will create a copy of the MNE-Python codebase inside your GitHub user
 account (this is called "your fork"). Changes you make to MNE-Python will
 eventually get "pushed" to your fork, and will be incorporated into the
@@ -1113,3 +1111,5 @@ it can serve as a useful example of what to expect from the PR review process.
 
 .. _optipng: http://optipng.sourceforge.net/
 .. _optipng for Windows: http://prdownloads.sourceforge.net/optipng/optipng-0.7.7-win32.zip?download
+
+.. include:: ../links.inc

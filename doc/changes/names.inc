@@ -184,7 +184,7 @@
 
 .. _George O'Neill: https://georgeoneill.github.io
 
-.. _Gonzalo Reina: https://greina.me/
+.. _Gonzalo Reina: https://github.com/Gon-reina
 
 .. _Guillaume Dumas: https://mila.quebec/en/person/guillaume-dumas
 

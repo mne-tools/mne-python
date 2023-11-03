@@ -386,6 +386,7 @@ def test_other_volume_source_spaces(tmp_path):
     """Test setting up other volume source spaces."""
     # these are split off because they require the MNE tools, and
     # Travis doesn't seem to like them
+    pytest.importorskip("nibabel")
 
     # let's try the spherical one (no bem or surf supplied)
     temp_name = tmp_path / "temp-src.fif"
@@ -562,6 +563,7 @@ def test_setup_source_space(tmp_path):
 @pytest.mark.parametrize("spacing", [2, 7])
 def test_setup_source_space_spacing(tmp_path, spacing, monkeypatch):
     """Test setting up surface source spaces using a given spacing."""
+    pytest.importorskip("nibabel")
     copytree(subjects_dir / "sample", tmp_path / "sample")
     args = [] if spacing == 7 else ["--spacing", str(spacing)]
     monkeypatch.setenv("SUBJECTS_DIR", str(tmp_path))
