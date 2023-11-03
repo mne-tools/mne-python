@@ -1830,6 +1830,9 @@ def get_phantom_dipoles(kind="vectorview"):
             ``oyama``
               The phantom from :footcite:`OyamaEtAl2015`.
 
+        .. versionchanged:: 1.6
+           Support added for ``'oyama'``.
+
     Returns
     -------
     pos : ndarray, shape (n_dipoles, 3)
