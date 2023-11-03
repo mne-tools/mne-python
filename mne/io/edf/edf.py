@@ -1443,7 +1443,7 @@ def _read_gdf_header(fname, exclude, include=None):
                 else:
                     chn = np.zeros(n_events, dtype=np.uint32)
                     dur = np.ones(n_events, dtype=np.uint32)
-                np.clip(dur, 1, np.inf, out=dur, casting="unsafe")
+                np.maximum(dur, 1, out=dur)
                 events = [n_events, pos, typ, chn, dur]
                 edf_info["event_sfreq"] = event_sr
 

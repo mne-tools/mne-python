@@ -49,6 +49,7 @@ Enhancements
 
 Bugs
 ~~~~
+- Fix bug where :func:`mne.io.read_raw_gdf` would fail due to improper usage of ``np.clip`` (:gh:`12168` by :newcontrib:`Rasmus Aagaard`) 
 - Fix bugs with :func:`mne.preprocessing.realign_raw` where the start of ``other`` was incorrectly cropped; and onsets and durations in ``other.annotations`` were left unsynced with the resampled data (:gh:`11950` by :newcontrib:`Qian Chu`)
 - Fix bug where ``encoding`` argument was ignored when reading annotations from an EDF file (:gh:`11958` by :newcontrib:`Andrew Gilbert`)
 - Mark tests ``test_adjacency_matches_ft`` and ``test_fetch_uncompressed_file`` as network tests (:gh:`12041` by :newcontrib:`Maksym Balatsko`)
