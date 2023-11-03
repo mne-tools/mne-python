@@ -410,6 +410,12 @@ class MontageMixin:
             a montage. Other channel types (e.g., MEG channels) should have
             their positions defined properly using their data reading
             functions.
+        .. warning::
+            Applying a montage will only set locations of channels that exist
+            at the time it is applied. This means when
+            :ref:`re-referencing <tut-set-eeg-ref>`
+            make sure to apply the montage only after calling
+            :func:`mne.add_reference_channels`
         """
         # How to set up a montage to old named fif file (walk through example)
         # https://gist.github.com/massich/f6a9f4799f1fbeb8f5e8f8bc7b07d3df
