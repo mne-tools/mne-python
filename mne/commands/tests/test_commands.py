@@ -319,6 +319,7 @@ def test_watershed_bem(tmp_path):
 @testing.requires_testing_data
 def test_flash_bem(tmp_path):
     """Test mne flash_bem."""
+    pytest.importorskip("nibabel")
     check_usage(mne_flash_bem, force_help=True)
     # Copy necessary files to tempdir
     tempdir = Path(str(tmp_path))
@@ -538,7 +539,7 @@ def test_sys_info():
     with ArgvSetter((raw_fname,)):
         with pytest.raises(SystemExit, match="1"):
             mne_sys_info.run()
-    with ArgvSetter() as out:
+    with ArgvSetter(("--no-check-version",)) as out:
         mne_sys_info.run()
     assert "numpy" in out.stdout.getvalue()
 

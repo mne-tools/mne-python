@@ -44,7 +44,7 @@ def run():
         "--tabbed",
         dest="tabbed",
         action="store_true",
-        default=False,
+        default=None,
         help="Option for small screens: Combine "
         "the data source panel and the coregistration panel "
         "into a single panel with tabs.",
@@ -103,6 +103,7 @@ def run():
         "--simple-rendering",
         action="store_false",
         dest="advanced_rendering",
+        default=None,
         help="Use simplified OpenGL rendering",
     )
     _add_verbose_flag(parser)
@@ -131,7 +132,7 @@ def run():
 
     faulthandler.enable()
     mne.gui.coregistration(
-        options.tabbed,
+        tabbed=options.tabbed,
         inst=options.inst,
         subject=options.subject,
         subjects_dir=subjects_dir,
@@ -139,7 +140,7 @@ def run():
         head_opacity=options.head_opacity,
         head_high_res=head_high_res,
         trans=trans,
-        scrollable=True,
+        scrollable=None,
         interaction=options.interaction,
         scale=options.scale,
         advanced_rendering=options.advanced_rendering,

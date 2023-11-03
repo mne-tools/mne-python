@@ -131,7 +131,7 @@ Bugs
 
 - Fix bug in :func:`mne.io.read_raw_ctf` where invalid measurement dates were not handled properly (:gh:`10957` by `Jean-Remi King`_ and `Eric Larson`_)
 
-- Rendering issues with recent MESA releases can be avoided by setting the new environment variable``MNE_3D_OPTION_MULTI_SAMPLES=1`` or using :func:`mne.viz.set_3d_options` (:gh:`10513` by `Eric Larson`_)
+- Rendering issues with recent MESA releases can be avoided by setting the new environment variable ``MNE_3D_OPTION_MULTI_SAMPLES=1`` or using :func:`mne.viz.set_3d_options` (:gh:`10513` by `Eric Larson`_)
 
 - Fix behavior for the ``pyvista`` 3D renderer's ``quiver3D`` function so that default arguments plot a glyph in ``arrow`` mode (:gh:`10493` by `Alex Rockhill`_)
 

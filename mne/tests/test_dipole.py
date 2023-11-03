@@ -101,6 +101,7 @@ def test_io_dipoles(tmp_path):
 @testing.requires_testing_data
 def test_dipole_fitting_ctf():
     """Test dipole fitting with CTF data."""
+    pytest.importorskip("nibabel")
     raw_ctf = read_raw_ctf(fname_ctf).set_eeg_reference(projection=True)
     events = make_fixed_length_events(raw_ctf, 1)
     evoked = Epochs(raw_ctf, events, 1, 0, 0, baseline=None).average()
@@ -125,6 +126,7 @@ def test_dipole_fitting_ctf():
 @requires_mne
 def test_dipole_fitting(tmp_path):
     """Test dipole fitting."""
+    pytest.importorskip("nibabel")
     amp = 100e-9
     rng = np.random.RandomState(0)
     fname_dtemp = tmp_path / "test.dip"

@@ -184,7 +184,7 @@
 
 .. _George O'Neill: https://georgeoneill.github.io
 
-.. _Gonzalo Reina: https://greina.me/
+.. _Gonzalo Reina: https://github.com/Gon-reina
 
 .. _Guillaume Dumas: https://mila.quebec/en/person/guillaume-dumas
 
@@ -441,6 +441,8 @@
 .. _Ramiro Gatti: https://github.com/ragatti
 
 .. _ramonapariciog: https://github.com/ramonapariciog
+
+.. _Rasmus Aagaard: https://github.com/rasgaard
 
 .. _Rasmus Zetter: https://people.aalto.fi/rasmus.zetter
 

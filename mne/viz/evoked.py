@@ -679,15 +679,17 @@ def _plot_lines(
                     _handle_spatial_colors(
                         colors, info, idx, this_type, psd, ax, sphere
                     )
+                    bad_color = (0.5, 0.5, 0.5)
                 else:
                     if isinstance(_spat_col, (tuple, str)):
                         col = [_spat_col]
                     else:
                         col = ["k"]
+                    bad_color = "r"
                     colors = col * len(idx)
-                    for i in bad_ch_idx:
-                        if i in idx:
-                            colors[idx.index(i)] = "r"
+                for i in bad_ch_idx:
+                    if i in idx:
+                        colors[idx.index(i)] = bad_color
 
                 if zorder == "std":
                     # find the channels with the least activity

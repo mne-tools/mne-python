@@ -2506,6 +2506,7 @@ def _plot_psd(
     if not average:
         picks = np.concatenate(picks_list)
         info = pick_info(inst.info, sel=picks, copy=True)
+        bad_ch_idx = [info["ch_names"].index(ch) for ch in info["bads"]]
         types = np.array(info.get_channel_types())
         ch_types_used = list()
         for this_type in _VALID_CHANNEL_TYPES:
@@ -2538,7 +2539,7 @@ def _plot_psd(
             xlim=(freqs[0], freqs[-1]),
             ylim=None,
             times=freqs,
-            bad_ch_idx=[],
+            bad_ch_idx=bad_ch_idx,
             titles=titles,
             ch_types_used=ch_types_used,
             selectable=True,
