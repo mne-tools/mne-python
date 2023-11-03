@@ -32,56 +32,66 @@
 MNE-Python
 ==========
 
-`MNE-Python software`_ is an open-source Python package for exploring,
+`MNE-Python`_ is an open-source Python package for exploring,
 visualizing, and analyzing human neurophysiological data such as MEG, EEG, sEEG,
 ECoG, and more. It includes modules for data input/output, preprocessing,
 visualization, source estimation, time-frequency analysis, connectivity analysis,
-machine learning, and statistics.
+machine learning, statistics, and more.
 
 
 Documentation
 ^^^^^^^^^^^^^
 
-`MNE documentation`_ for MNE-Python is available online.
+`Documentation`_ for MNE-Python encompasses installation instructions, tutorials,
+and examples for a wide variety of topics, contributing guidelines, and an API
+reference.
 
 
 Forum
 ^^^^^^
 
-Our user forum is https://mne.discourse.group and is the best place to ask
-questions about MNE-Python usage or about the contribution process. It also
-includes job opportunities and other announcements.
+The `user forum`_ is the best place to ask questions about MNE-Python usage or
+the contribution process. The forum also features job opportunities and other
+announcements.
+
+If you find a bug or have an idea for new a new feature that should be added to
+MNE-Python, please use the
+`issue tracker <https://github.com/mne-tools/mne-python/issues/new/choose>`__ of
+our GitHub repository.
 
 
-Installing MNE-Python
-^^^^^^^^^^^^^^^^^^^^^
+Installation
+^^^^^^^^^^^^
 
-To install the latest stable version of MNE-Python, you can use pip_ in a terminal:
+To install the latest stable version of MNE-Python, use pip_ in a terminal:
 
 .. code-block:: console
 
     $ pip install --upgrade mne
 
-- MNE-Python 0.17 was the last release to support Python 2.7
-- MNE-Python 0.18 requires Python 3.5 or higher
-- MNE-Python 0.21 requires Python 3.6 or higher
-- MNE-Python 0.24 requires Python 3.7 or higher
-- MNE-Python 1.4 requires Python 3.8 or higher
+..  note::
+    - MNE-Python 0.17 was the last release to support Python 2.7.
+    - MNE-Python 0.18 requires Python 3.5 or higher.
+    - MNE-Python 0.21 requires Python 3.6 or higher.
+    - MNE-Python 0.24 requires Python 3.7 or higher.
+    - MNE-Python 1.4 requires Python 3.8 or higher.
 
-For more complete instructions and more advanced installation methods (e.g. for
-the latest development version), see the `installation guide`_.
+For more complete instructions, including our standalone installers and more
+advanced installation methods, please refer to the `installation guide`_.
 
 
-Get the latest code
-^^^^^^^^^^^^^^^^^^^
+Get the development version
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-To install the latest version of the code using pip_ open a terminal and type:
+To install the latest development version of MNE-Python using pip_, open a
+terminal and type:
 
 .. code-block:: console
 
     $ pip install --upgrade git+https://github.com/mne-tools/mne-python@main
 
-To get the latest code using `git <https://git-scm.com/>`__, open a terminal and type:
+To clone the repository with `git <https://git-scm.com/>`__, open a terminal
+and type:
 
 .. code-block:: console
 
@@ -93,11 +103,11 @@ Dependencies
 
 The minimum required dependencies to run MNE-Python are:
 
-- Python >= 3.8
-- NumPy >= 1.21.2
-- SciPy >= 1.7.1
-- Matplotlib >= 3.5.0
-- pooch >= 1.5
+- Python ≥ 3.8
+- NumPy ≥ 1.21.2
+- SciPy ≥ 1.7.1
+- Matplotlib ≥ 3.5.0
+- Pooch ≥ 1.5
 - tqdm
 - Jinja2
 - decorator
@@ -105,35 +115,36 @@ The minimum required dependencies to run MNE-Python are:
 
 For full functionality, some functions require:
 
-- Scikit-learn >= 1.0
-- joblib >= 0.15 (for parallelization control)
-- mne-qt-browser >= 0.1 (for fast raw data visualization)
-- Qt5 >= 5.12 via one of the following bindings (for fast raw data visualization and interactive 3D visualization):
+- scikit-learn ≥ 1.0
+- Joblib ≥ 0.15 (for parallelization)
+- mne-qt-browser ≥ 0.1 (for fast raw data visualization)
+- Qt5 ≥ 5.12 via one of the following bindings (for fast raw data visualization and interactive 3D visualization):
 
-  - PyQt6 >= 6.0
-  - PySide6 >= 6.0
-  - PyQt5 >= 5.12
-  - PySide2 >= 5.12
+  - PyQt6 ≥ 6.0
+  - PySide6 ≥ 6.0
+  - PyQt5 ≥ 5.12
+  - PySide2 ≥ 5.12
 
-- Numba >= 0.54.0
-- NiBabel >= 3.2.1
-- OpenMEEG >= 2.5.6
-- Pandas >= 1.3.2
-- Picard >= 0.3
-- CuPy >= 9.0.0 (for NVIDIA CUDA acceleration)
-- DIPY >= 1.4.0
-- Imageio >= 2.8.0
-- PyVista >= 0.32 (for 3D visualization)
-- pyvistaqt >= 0.4 (for 3D visualization)
-- mffpy >= 0.5.7
+- Numba ≥ 0.54.0
+- NiBabel ≥ 3.2.1
+- OpenMEEG ≥ 2.5.6
+- pandas ≥ 1.3.2
+- python-picard ≥ 0.3
+- CuPy ≥ 9.0.0 (for NVIDIA CUDA acceleration)
+- DIPY ≥ 1.4.0
+- imageio ≥ 2.8.0
+- PyVista ≥ 0.32 (for 3D visualization)
+- PyVistaQt ≥ 0.4 (for 3D visualization)
+- mffpy ≥ 0.5.7
 - h5py
 - h5io
 - pymatreader
 
-Contributing to MNE-Python
-^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Please see the documentation on the MNE-Python homepage:
+Contributing
+^^^^^^^^^^^^
+
+Please see the instructions on our documentation website:
 
 https://mne.tools/dev/install/contributing.html
 
@@ -177,7 +188,8 @@ MNE-Python is **BSD-licenced** (BSD-3-Clause):
     damage.**
 
 
-.. _MNE-Python software: https://mne.tools/dev/
-.. _MNE documentation: https://mne.tools/dev/overview/index.html
+.. _MNE-Python: https://mne.tools/dev/
+.. _Documentation: https://mne.tools/dev/overview/index.html
+.. _user forum: https://mne.discourse.group
 .. _installation guide: https://mne.tools/dev/install/index.html
 .. _pip: https://pip.pypa.io/en/stable/
