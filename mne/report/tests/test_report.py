@@ -984,6 +984,7 @@ def test_manual_report_2d(tmp_path, invisible_fig):
         inst=epochs_baseline,
         picks=[0],
     )
+    r.add_ica(ica=ica, title="my ica with picks=None", inst=epochs_baseline, picks=None)
     r.add_covariance(cov=cov, info=raw_fname, title="my cov")
     r.add_forward(
         forward=fwd_fname,
