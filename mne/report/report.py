@@ -587,9 +587,6 @@ def _plot_ica_properties_as_arrays(*, ica, inst, picks, n_jobs):
     """
     import matplotlib.pyplot as plt
 
-    if picks is None:
-        picks = list(range(ica.n_components_))
-
     def _plot_one_ica_property(*, ica, inst, pick):
         figs = ica.plot_properties(inst=inst, picks=pick, show=False)
         assert len(figs) == 1
@@ -1665,6 +1662,9 @@ class Report:
                 f"create ICA properties plots"
             )
             return
+
+        if picks is None:
+            picks = list(range(ica.n_components_))
 
         figs = _plot_ica_properties_as_arrays(
             ica=ica, inst=inst, picks=picks, n_jobs=n_jobs
