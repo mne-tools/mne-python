@@ -21,6 +21,8 @@ from scipy.signal import find_peaks
 import mne
 
 data_path = mne.datasets.phantom_kit.data_path()
+actual_pos, actual_ori = mne.dipole.get_phantom_dipoles("oyama")
+actual_pos, actual_ori = actual_pos[:49], actual_ori[:49]  # only 49 of 50 dipoles
 
 raw = mne.io.read_raw_kit(data_path / "002_phantom_11Hz_100uA.con")
 # cut from ~800 to ~300s for speed, and also at convenient dip stim boundaries
@@ -142,17 +144,22 @@ sphere = mne.make_sphere_model(r0=(0.0, 0.0, 0.0), head_radius=0.08)
 cov = mne.compute_covariance(epochs, tmax=0, method="empirical")
 # We need to correct the ``dev_head_t`` because it's incorrect for these data!
 # relative to the helmet: hleft, forward, up
-translation = mne.transforms.translation(x=0.008, y=-0.025, z=-0.092)
+translation = mne.transforms.translation(x=0.01, y=-0.015, z=-0.088)
 # pitch down (rot about x/R), roll left (rot about y/A), yaw left (rot about z/S)
 rotation = mne.transforms.rotation(
     x=np.deg2rad(5),
-    y=np.deg2rad(-0.5),
+    y=np.deg2rad(-1),
     z=np.deg2rad(-3),
 )
 evoked.info["dev_head_t"]["trans"][:] = translation @ rotation
 dip, residual = mne.fit_dipole(evoked, cov, sphere, n_jobs=None)
 print(f"Average amplitude: {np.mean(dip.amplitude) * 1e9:0.1f} nAm")
 print(f"Average GOF:       {np.mean(dip.gof):0.1f}%")
+diffs = 1000 * np.sqrt(np.sum((dip.pos - actual_pos) ** 2, axis=-1))
+print(f"Average loc error: {np.mean(diffs):0.1f} mm")
+angles = np.rad2deg(np.arccos(np.abs(np.sum(dip.ori * actual_ori, axis=1))))
+print(f"Average ori error: {np.mean(angles):0.1f}°")
+
 fig = mne.viz.plot_alignment(
     evoked.info,
     trans,
@@ -164,4 +171,12 @@ fig = mne.viz.plot_alignment(
 fig = mne.viz.plot_dipole_locations(
     dipoles=dip, mode="arrow", color=(0.2, 1.0, 0.5), fig=fig
 )
+
+actual_amp = np.ones(len(dip))  # misc amp to create Dipole instance
+actual_gof = np.ones(len(dip))  # misc GOF to create Dipole instance
+dip_true = mne.Dipole(dip.times, actual_pos, actual_amp, actual_ori, actual_gof)
+fig = mne.viz.plot_dipole_locations(
+    dipoles=dip_true, mode="arrow", color=(0.0, 0.0, 0.0), fig=fig
+)
+
 mne.viz.set_3d_view(figure=fig, azimuth=90, elevation=90, distance=0.5)

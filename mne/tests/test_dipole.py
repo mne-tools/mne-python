@@ -469,14 +469,25 @@ def _check_roundtrip_fixed(dip, tmp_path):
             assert_allclose(ch_1[key], ch_2[key], err_msg=key)
 
 
-def test_get_phantom_dipoles():
+@pytest.mark.parametrize(
+    "kind, count",
+    [
+        ("vectorview", 32),
+        ("otaniemi", 32),
+        ("oyama", 50),
+    ],
+)
+def test_get_phantom_dipoles(kind, count):
     """Test getting phantom dipole locations."""
-    pytest.raises(ValueError, get_phantom_dipoles, 0)
-    pytest.raises(ValueError, get_phantom_dipoles, "foo")
-    for kind in ("vectorview", "otaniemi"):
-        pos, ori = get_phantom_dipoles(kind)
-        assert pos.shape == (32, 3)
-        assert ori.shape == (32, 3)
+    with pytest.raises(TypeError):
+        get_phantom_dipoles(0)
+    with pytest.raises(ValueError):
+        get_phantom_dipoles("foo")
+    pos, ori = get_phantom_dipoles(kind)
+    assert pos.shape == (count, 3)
+    assert ori.shape == (count, 3)
+    # pos should be orthogonal to ori for all dipoles
+    assert_allclose(np.sum(pos * ori, axis=1), 0.0, atol=1e-7)
 
 
 @testing.requires_testing_data
