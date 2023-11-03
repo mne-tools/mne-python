@@ -180,7 +180,7 @@ def add_reference_channels(inst, ref_channels, copy=True):
     -----
     .. warning::
         When :ref:`re-referencing <tut-set-eeg-ref>`,
-        make sure to apply the montage using :func:`mne.io.Raw.set_montage`
+        make sure to apply the montage using :meth:`mne.io.Raw.set_montage`
         only after calling this function. Applying a montage will only set
         locations of channels that exist at the time it is applied.
     """
