@@ -4,16 +4,16 @@
 #
 # License: BSD-3-Clause
 
-import pytest
-import numpy as np
 import os.path as op
 
-from mne import create_info, EvokedArray, events_from_annotations, Epochs
-from mne.channels import make_standard_montage
-from mne.datasets.testing import data_path, _pytest_param
-from mne.io import read_raw_nirx
-from mne.preprocessing.nirs import optical_density, beer_lambert_law
+import numpy as np
+import pytest
 
+from mne import Epochs, EvokedArray, create_info, events_from_annotations
+from mne.channels import make_standard_montage
+from mne.datasets.testing import _pytest_param, data_path
+from mne.io import read_raw_nirx
+from mne.preprocessing.nirs import beer_lambert_law, optical_density
 
 fname_nirx = op.join(
     data_path(download=False), "NIRx", "nirscout", "nirx_15_2_recording_w_overlap"

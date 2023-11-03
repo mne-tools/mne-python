@@ -5,28 +5,26 @@
 
 from pathlib import Path
 
-import pytest
 import numpy as np
+import pytest
 from numpy.testing import (
-    assert_array_almost_equal,
     assert_allclose,
-    assert_equal,
+    assert_array_almost_equal,
     assert_array_less,
+    assert_equal,
 )
-
 from scipy import fftpack
 
-from mne import read_events, Epochs, make_fixed_length_events
+from mne import Epochs, make_fixed_length_events, read_events
 from mne.io import read_raw_fif
-from mne.time_frequency._stockwell import (
-    tfr_stockwell,
-    _st,
-    _precompute_st_windows,
-    _check_input_st,
-    _st_power_itc,
-)
-
 from mne.time_frequency import AverageTFR, tfr_array_stockwell
+from mne.time_frequency._stockwell import (
+    _check_input_st,
+    _precompute_st_windows,
+    _st,
+    _st_power_itc,
+    tfr_stockwell,
+)
 from mne.utils import _record_warnings
 
 base_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"

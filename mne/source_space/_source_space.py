@@ -6,95 +6,94 @@
 # Many of the computations in this code were derived from Matti Hämäläinen's
 # C code.
 
-from copy import deepcopy
-from functools import partial
 import os
 import os.path as op
+from copy import deepcopy
+from functools import partial
 
 import numpy as np
 from scipy.sparse import csr_matrix, triu
 from scipy.sparse.csgraph import dijkstra
 from scipy.spatial.distance import cdist
 
-from ..bem import read_bem_surfaces, ConductorModel
 from .._fiff.constants import FIFF
-from .._fiff.meas_info import create_info, Info
+from .._fiff.meas_info import Info, create_info
 from .._fiff.open import fiff_open
-from .._fiff.pick import channel_type, _picks_to_idx
+from .._fiff.pick import _picks_to_idx, channel_type
 from .._fiff.tag import find_tag, read_tag
 from .._fiff.tree import dir_tree_find
 from .._fiff.write import (
-    start_block,
-    start_and_end_file,
     end_block,
+    start_and_end_file,
+    start_block,
+    write_coord_trans,
+    write_float_matrix,
+    write_float_sparse_rcs,
     write_id,
     write_int,
-    write_float_sparse_rcs,
-    write_string,
-    write_float_matrix,
     write_int_matrix,
-    write_coord_trans,
+    write_string,
 )
-from ..fixes import _get_img_fdata
-from ..surface import (
-    read_surface,
-    _create_surf_spacing,
-    _get_ico_surface,
-    _tessellate_sphere_surf,
-    _get_surf_neighbors,
-    _normalize_vectors,
-    _triangle_neighbors,
-    mesh_dist,
-    complete_surface_info,
-    _compute_nearest,
-    fast_cross_3d,
-    _CheckInside,
-)
-from ..viz import plot_alignment
 
 # Remove get_mni_fiducials in 1.6 (deprecated)
 from .._freesurfer import (
-    _get_mri_info_data,
+    _check_mri,
     _get_atlas_values,
-    read_freesurfer_lut,
+    _get_mri_info_data,
     get_mni_fiducials,  # noqa: F401
     get_volume_labels_from_aseg,
-    _check_mri,
+    read_freesurfer_lut,
+)
+from ..bem import ConductorModel, read_bem_surfaces
+from ..fixes import _get_img_fdata
+from ..parallel import parallel_func
+from ..surface import (
+    _CheckInside,
+    _compute_nearest,
+    _create_surf_spacing,
+    _get_ico_surface,
+    _get_surf_neighbors,
+    _normalize_vectors,
+    _tessellate_sphere_surf,
+    _triangle_neighbors,
+    complete_surface_info,
+    fast_cross_3d,
+    mesh_dist,
+    read_surface,
+)
+from ..transforms import (
+    Transform,
+    _coord_frame_name,
+    _ensure_trans,
+    _get_trans,
+    _print_coord_trans,
+    _str_to_frame,
+    apply_trans,
+    combine_transforms,
+    invert_transform,
 )
 from ..utils import (
-    get_subjects_dir,
-    check_fname,
-    logger,
-    verbose,
-    fill_doc,
+    _check_fname,
+    _check_option,
+    _check_sphere,
     _ensure_int,
     _get_call_line,
-    warn,
-    object_size,
-    sizeof_fmt,
-    _check_fname,
-    _path_like,
-    _check_sphere,
     _import_nibabel,
-    _validate_type,
-    _check_option,
     _is_numeric,
+    _path_like,
     _pl,
     _suggest,
+    _validate_type,
+    check_fname,
+    fill_doc,
+    get_subjects_dir,
+    logger,
+    object_size,
+    sizeof_fmt,
+    verbose,
+    warn,
 )
-from ..parallel import parallel_func
-from ..transforms import (
-    invert_transform,
-    apply_trans,
-    _print_coord_trans,
-    combine_transforms,
-    _get_trans,
-    _coord_frame_name,
-    Transform,
-    _str_to_frame,
-    _ensure_trans,
-)
-
+from ..viz import plot_alignment
 
 _src_kind_dict = {
     "vol": "volume",
@@ -3093,11 +3092,11 @@ def _compare_source_spaces(src0, src1, mode="exact", nearest=True, dist_tol=1.5e
     Note: this function is also used by forward/tests/test_make_forward.py
     """
     from numpy.testing import (
+        assert_,
         assert_allclose,
         assert_array_equal,
-        assert_equal,
-        assert_,
         assert_array_less,
+        assert_equal,
     )
 
     if mode != "exact" and "approx" not in mode:  # 'nointerp' can be appended

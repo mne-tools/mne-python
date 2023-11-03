@@ -14,6 +14,7 @@ information on creating MNE-Python's data objects from NumPy arrays, see
 # %%
 
 import neo
+
 import mne
 
 # %%

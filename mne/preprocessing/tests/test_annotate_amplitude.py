@@ -4,8 +4,8 @@
 
 import datetime
 import itertools
-from pathlib import Path
 import re
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -15,7 +15,6 @@ from mne.annotations import Annotations
 from mne.datasets import testing
 from mne.io import RawArray, read_raw_fif
 from mne.preprocessing import annotate_amplitude
-
 
 date = datetime.datetime(2021, 12, 10, 7, 52, 24, 405305, tzinfo=datetime.timezone.utc)
 data_path = Path(testing.data_path(download=False))

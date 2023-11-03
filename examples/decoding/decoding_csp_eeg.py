@@ -20,18 +20,17 @@ See https://en.wikipedia.org/wiki/Common_spatial_pattern and
 # %%
 
 
-import numpy as np
 import matplotlib.pyplot as plt
-
-from sklearn.pipeline import Pipeline
+import numpy as np
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.model_selection import ShuffleSplit, cross_val_score
+from sklearn.pipeline import Pipeline
 
-from mne import Epochs, pick_types, events_from_annotations
+from mne import Epochs, events_from_annotations, pick_types
 from mne.channels import make_standard_montage
-from mne.io import concatenate_raws, read_raw_edf
 from mne.datasets import eegbci
 from mne.decoding import CSP
+from mne.io import concatenate_raws, read_raw_edf
 
 print(__doc__)
 

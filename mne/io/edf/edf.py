@@ -10,21 +10,20 @@
 #
 # License: BSD-3-Clause
 
-from datetime import datetime, timezone, timedelta
 import os
 import re
+from datetime import datetime, timedelta, timezone
 
 import numpy as np
 from scipy.interpolate import interp1d
 
-from ..base import BaseRaw, _get_scaling
-from ...utils import verbose, logger, warn, _validate_type
-from ..._fiff.utils import _blk_read_lims, _mult_cal_one
-from ..._fiff.meas_info import _empty_info, _unique_channel_names
 from ..._fiff.constants import FIFF
-from ...filter import resample
-from ...utils import fill_doc
+from ..._fiff.meas_info import _empty_info, _unique_channel_names
+from ..._fiff.utils import _blk_read_lims, _mult_cal_one
 from ...annotations import Annotations
+from ...filter import resample
+from ...utils import _validate_type, fill_doc, logger, verbose, warn
+from ..base import BaseRaw, _get_scaling
 
 # common channel type names mapped to internal ch types
 CH_TYPE_MAPPING = {
@@ -1107,7 +1106,7 @@ def _read_gdf_header(fname, exclude, include=None):
                     "Header information is incorrect for record length. "
                     "Default record length set to 1."
                 )
-            nchan = np.fromfile(fid, UINT32, 1)[0]
+            nchan = int(np.fromfile(fid, UINT32, 1)[0])
             channels = list(range(nchan))
             ch_names = [_edf_str(fid.read(16)).strip() for ch in channels]
             exclude = _find_exclude_idx(ch_names, exclude, include)
@@ -1178,7 +1177,7 @@ def _read_gdf_header(fname, exclude, include=None):
             fid.seek(etp)
             etmode = np.fromfile(fid, UINT8, 1)[0]
             if etmode in (1, 3):
-                sr = np.fromfile(fid, UINT8, 3)
+                sr = np.fromfile(fid, UINT8, 3).astype(np.uint32)
                 event_sr = sr[0]
                 for i in range(1, len(sr)):
                     event_sr = event_sr + sr[i] * 2 ** (i * 8)
@@ -1298,7 +1297,7 @@ def _read_gdf_header(fname, exclude, include=None):
                     "Default record length set to 1."
                 )
 
-            nchan = np.fromfile(fid, UINT16, 1)[0]
+            nchan = int(np.fromfile(fid, UINT16, 1)[0])
             fid.seek(2, 1)  # 2bytes reserved
 
             # Channels (variable header)

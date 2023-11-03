@@ -4,11 +4,11 @@
 # License: BSD-3-Clause
 
 import numpy as np
+import pytest
 from numpy.testing import assert_allclose
 from scipy.interpolate import interp1d
-import pytest
 
-from mne import create_info, find_events, Epochs, Annotations
+from mne import Annotations, Epochs, create_info, find_events
 from mne.io import RawArray
 from mne.preprocessing import realign_raw
 

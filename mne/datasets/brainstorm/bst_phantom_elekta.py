@@ -3,10 +3,10 @@
 # License: BSD-3-Clause
 from ...utils import verbose
 from ..utils import (
-    _get_version,
-    _version_doc,
     _data_path_doc_accept,
     _download_mne_dataset,
+    _get_version,
+    _version_doc,
 )
 
 _description = """

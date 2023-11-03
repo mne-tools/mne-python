@@ -10,10 +10,10 @@ from mne import pick_types
 from mne.datasets import testing
 from mne.io import read_raw_fif
 from mne.preprocessing import (
-    regress_artifact,
-    create_eog_epochs,
     EOGRegression,
+    create_eog_epochs,
     read_eog_regression,
+    regress_artifact,
 )
 
 data_path = testing.data_path(download=False)

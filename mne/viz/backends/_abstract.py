@@ -6,10 +6,10 @@
 #
 # License: Simplified BSD
 
-from abc import ABC, abstractmethod, abstractclassmethod
 import warnings
+from abc import ABC, abstractclassmethod, abstractmethod
 
-from ..ui_events import publish, TimeChange
+from ..ui_events import TimeChange, publish
 
 
 class Figure3D(ABC):

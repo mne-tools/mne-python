@@ -8,13 +8,13 @@ import time
 
 import numpy as np
 
+from ..._fiff.constants import FIFF
+from ..._fiff.meas_info import _empty_info
+from ..._fiff.utils import _create_chs, _read_segments_file
+from ...utils import _check_fname, _validate_type, logger, verbose, warn
+from ..base import BaseRaw
 from .egimff import _read_raw_egi_mff
 from .events import _combine_triggers
-from ..base import BaseRaw
-from ..._fiff.utils import _create_chs, _read_segments_file
-from ..._fiff.meas_info import _empty_info
-from ..._fiff.constants import FIFF
-from ...utils import verbose, logger, warn, _validate_type, _check_fname
 
 
 def _read_header(fid):
@@ -29,7 +29,7 @@ def _read_header(fid):
         )
 
     def my_fread(*x, **y):
-        return np.fromfile(*x, **y)[0]
+        return int(np.fromfile(*x, **y)[0])
 
     info = dict(
         version=version,
@@ -57,8 +57,8 @@ def _read_header(fid):
             dict(
                 n_categories=0,
                 n_segments=1,
-                n_samples=np.fromfile(fid, ">i4", 1)[0],
-                n_events=np.fromfile(fid, ">i2", 1)[0],
+                n_samples=int(np.fromfile(fid, ">i4", 1)[0]),
+                n_events=int(np.fromfile(fid, ">i2", 1)[0]),
                 event_codes=[],
                 category_names=[],
                 category_lengths=[],

@@ -5,28 +5,28 @@
 from pathlib import Path
 
 import numpy as np
+import pytest
+import scipy.io
 from numpy.testing import (
+    assert_allclose,
     assert_array_almost_equal,
     assert_array_equal,
     assert_equal,
-    assert_allclose,
 )
-import pytest
 from scipy import linalg
-import scipy.io
 
 import mne
-from mne import pick_types, Epochs, find_events, read_events
-from mne.datasets.testing import requires_testing_data
-from mne.transforms import apply_trans
-from mne.utils import assert_dig_allclose
-from mne.io import read_raw_fif, read_raw_kit, read_epochs_kit
+from mne import Epochs, find_events, pick_types, read_events
 from mne._fiff.constants import FIFF
-from mne.io.kit.kit import get_kit_info
-from mne.io.kit.coreg import read_sns
+from mne.datasets.testing import requires_testing_data
+from mne.io import read_epochs_kit, read_raw_fif, read_raw_kit
 from mne.io.kit.constants import KIT
+from mne.io.kit.coreg import read_sns
+from mne.io.kit.kit import get_kit_info
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.surface import _get_ico_surface
+from mne.transforms import apply_trans
+from mne.utils import assert_dig_allclose
 
 data_dir = Path(__file__).parent / "data"
 sqd_path = data_dir / "test.sqd"

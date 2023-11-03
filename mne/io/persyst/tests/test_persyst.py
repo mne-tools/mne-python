@@ -5,9 +5,9 @@
 import os
 import shutil
 
+import numpy as np
 import pytest
 from numpy.testing import assert_array_equal
-import numpy as np
 
 from mne.datasets.testing import data_path, requires_testing_data
 from mne.io import read_raw_persyst

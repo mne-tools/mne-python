@@ -221,13 +221,32 @@ from . import (
     minimum_norm,
     preprocessing,
     report,
-    source_space,
     simulation,
+    source_space,
     stats,
     surface,
     time_frequency,
     viz,
 )
+from ._fiff.meas_info import Info, create_info
+from ._fiff.pick import (
+    channel_indices_by_type,
+    channel_type,
+    pick_channels,
+    pick_channels_cov,
+    pick_channels_forward,
+    pick_channels_regexp,
+    pick_info,
+    pick_types,
+    pick_types_forward,
+)
+from ._fiff.proj import Projection
+from ._fiff.reference import (
+    add_reference_channels,
+    set_bipolar_reference,
+    set_eeg_reference,
+)
+from ._fiff.what import what
 from ._freesurfer import (
     get_volume_labels_from_aseg,
     head_to_mni,
@@ -256,9 +275,9 @@ from .bem import (
 )
 from .channels import (
     equalize_channels,
-    rename_channels,
     find_layout,
     read_vectorview_selection,
+    rename_channels,
 )
 from .coreg import (
     create_default_subject,
@@ -300,8 +319,8 @@ from .event import (
 from .evoked import Evoked, EvokedArray, combine_evoked, read_evokeds, write_evokeds
 from .forward import (
     Forward,
-    apply_forward_raw,
     apply_forward,
+    apply_forward_raw,
     average_forward_solutions,
     convert_forward_solution,
     make_field_map,
@@ -320,30 +339,11 @@ from .io import (
 from .io.base import concatenate_raws, match_channel_orders
 from .io.eeglab import read_epochs_eeglab
 from .io.kit import read_epochs_kit
-from ._fiff.meas_info import Info, create_info
-from ._fiff.pick import (
-    channel_indices_by_type,
-    channel_type,
-    pick_channels_cov,
-    pick_channels_forward,
-    pick_channels_regexp,
-    pick_channels,
-    pick_info,
-    pick_types_forward,
-    pick_types,
-)
-from ._fiff.proj import Projection
-from ._fiff.reference import (
-    add_reference_channels,
-    set_bipolar_reference,
-    set_eeg_reference,
-)
-from ._fiff.what import what
 from .label import (
     BiHemiLabel,
+    Label,
     grow_labels,
     label_sign_flip,
-    Label,
     labels_to_stc,
     morph_labels,
     random_parcellation,
@@ -355,13 +355,13 @@ from .label import (
     write_labels_to_annot,
 )
 from .misc import parse_config, read_reject_parameters
-from .morph_map import read_morph_map
 from .morph import (
     SourceMorph,
     compute_source_morph,
     grade_to_vertices,
     read_source_morph,
 )
+from .morph_map import read_morph_map
 from .proj import (
     compute_proj_epochs,
     compute_proj_evoked,
@@ -413,8 +413,8 @@ from .surface import (
 )
 from .transforms import Transform, read_trans, transform_surface_to, write_trans
 from .utils import (
-    get_config_path,
     get_config,
+    get_config_path,
     grand_average,
     open_docs,
     set_cache_dir,

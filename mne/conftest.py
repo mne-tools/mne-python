@@ -2,37 +2,37 @@
 #
 # License: BSD-3-Clause
 
-from contextlib import contextmanager
-import inspect
-from textwrap import dedent
 import gc
+import inspect
 import os
 import os.path as op
-from pathlib import Path
 import shutil
 import sys
 import warnings
-import pytest
-from pytest import StashKey
+from contextlib import contextmanager
+from pathlib import Path
+from textwrap import dedent
 from unittest import mock
 
 import numpy as np
+import pytest
+from pytest import StashKey
 
 import mne
-from mne import read_events, pick_types, Epochs
+from mne import Epochs, pick_types, read_events
 from mne.channels import read_layout
 from mne.coreg import create_default_subject
 from mne.datasets import testing
-from mne.fixes import has_numba, _compare_version
-from mne.io import read_raw_fif, read_raw_ctf, read_raw_nirx, read_raw_snirf
+from mne.fixes import _compare_version, has_numba
+from mne.io import read_raw_ctf, read_raw_fif, read_raw_nirx, read_raw_snirf
 from mne.stats import cluster_level
 from mne.utils import (
-    _pl,
-    _assert_no_instances,
-    numerics,
     Bunch,
+    _assert_no_instances,
     _check_qt_version,
+    _pl,
     _TempDir,
+    numerics,
 )
 
 # data from sample dataset
@@ -92,8 +92,6 @@ def pytest_configure(config):
     # Fixtures
     for fixture in (
         "matplotlib_config",
-        "close_all",
-        "check_verbose",
         "qt_config",
         "protect_config",
     ):
@@ -172,6 +170,14 @@ def pytest_configure(config):
     ignore:(\n|.)*numpy\.distutils` is deprecated since NumPy(\n|.)*:DeprecationWarning
     ignore:datetime\.utcfromtimestamp.*is deprecated:DeprecationWarning
     ignore:The numpy\.array_api submodule is still experimental.*:UserWarning
+    # numpy 2.0 <-> SciPy
+    ignore:numpy\.core\._multiarray_umath.*:DeprecationWarning
+    ignore:numpy\.core\.numeric is deprecated.*:DeprecationWarning
+    ignore:numpy\.core\.multiarray is deprecated.*:DeprecationWarning
+    ignore:The numpy\.fft\.helper has been made private.*:DeprecationWarning
+    # TODO: Should actually fix these two
+    ignore:scipy.signal.morlet2 is deprecated in SciPy.*:DeprecationWarning
+    ignore:The `needs_threshold` and `needs_proba`.*:FutureWarning
     # tqdm (Fedora)
     ignore:.*'tqdm_asyncio' object has no attribute 'last_print_t':pytest.PytestUnraisableExceptionWarning
     # Until mne-qt-browser > 0.5.2 is released
@@ -260,10 +266,7 @@ def matplotlib_config():
     # functionality)
     plt.ioff()
     plt.rcParams["figure.dpi"] = 100
-    try:
-        plt.rcParams["figure.raise_window"] = False
-    except KeyError:  # MPL < 3.3
-        pass
+    plt.rcParams["figure.raise_window"] = False
 
     # Make sure that we always reraise exceptions in handlers
     orig = cbook.CallbackRegistry
@@ -599,12 +602,12 @@ def _use_backend(backend_name, interactive):
 
 
 def _check_skip_backend(name):
+    from mne.viz.backends._utils import _notebook_vtk_works
     from mne.viz.backends.tests._utils import (
-        has_pyvista,
         has_imageio_ffmpeg,
+        has_pyvista,
         has_pyvistaqt,
     )
-    from mne.viz.backends._utils import _notebook_vtk_works
 
     if not has_pyvista():
         pytest.skip("Test skipped, requires pyvista.")
@@ -629,8 +632,8 @@ def pixel_ratio():
     # _check_qt_version will init an app for us, so no need for us to do it
     if not has_pyvista() or not _check_qt_version():
         return 1.0
-    from qtpy.QtWidgets import QMainWindow
     from qtpy.QtCore import Qt
+    from qtpy.QtWidgets import QMainWindow
 
     app = _init_mne_qtapp()
     app.processEvents()
@@ -1005,10 +1008,10 @@ def numba_conditional(monkeypatch, request):
 def _nbclient():
     try:
         import nbformat
+        import trame  # noqa
+        from ipywidgets import Button  # noqa
         from jupyter_client import AsyncKernelManager
         from nbclient import NotebookClient
-        from ipywidgets import Button  # noqa
-        import trame  # noqa
     except Exception as exc:
         return pytest.skip(f"Skipping Notebook test: {exc}")
     km = AsyncKernelManager(config=None)

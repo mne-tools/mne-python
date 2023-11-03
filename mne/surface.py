@@ -8,15 +8,15 @@
 # Many of the computations in this code were derived from Matti Hämäläinen's
 # C code.
 
-from collections import OrderedDict
-from copy import deepcopy
-from functools import partial, lru_cache
-from glob import glob
 import json
-from os import path as op
-from pathlib import Path
 import time
 import warnings
+from collections import OrderedDict
+from copy import deepcopy
+from functools import lru_cache, partial
+from glob import glob
+from os import path as op
+from pathlib import Path
 
 import numpy as np
 from scipy.ndimage import binary_dilation
@@ -24,37 +24,37 @@ from scipy.sparse import coo_matrix, csr_matrix
 from scipy.spatial import ConvexHull, Delaunay
 from scipy.spatial.distance import cdist
 
-from .fixes import jit, prange, bincount
 from ._fiff.constants import FIFF
 from ._fiff.pick import pick_types
+from .fixes import bincount, jit, prange
 from .parallel import parallel_func
 from .transforms import (
-    transform_surface_to,
-    _pol_to_cart,
-    _cart_to_sph,
-    _get_trans,
-    apply_trans,
     Transform,
-    _fit_matched_points,
-    _MatchedDisplacementFieldInterpolator,
     _angle_between_quats,
+    _cart_to_sph,
+    _fit_matched_points,
+    _get_trans,
+    _MatchedDisplacementFieldInterpolator,
+    _pol_to_cart,
+    apply_trans,
+    transform_surface_to,
 )
 from .utils import (
-    logger,
-    verbose,
-    get_subjects_dir,
-    warn,
     _check_fname,
+    _check_freesurfer_home,
     _check_option,
     _ensure_int,
-    _TempDir,
-    run_subprocess,
-    _check_freesurfer_home,
     _hashable_ndarray,
-    fill_doc,
-    _validate_type,
-    _pl,
     _import_nibabel,
+    _pl,
+    _TempDir,
+    _validate_type,
+    fill_doc,
+    get_subjects_dir,
+    logger,
+    run_subprocess,
+    verbose,
+    warn,
 )
 
 _helmet_path = Path(__file__).parent / "data" / "helmets"
@@ -206,7 +206,7 @@ def get_meg_helmet_surf(info, trans=None, *, verbose=None):
     A built-in helmet is loaded if possible. If not, a helmet surface
     will be approximated based on the sensor locations.
     """
-    from .bem import read_bem_surfaces, _fit_sphere
+    from .bem import _fit_sphere, read_bem_surfaces
     from .channels.channels import _get_meg_system
 
     system, have_helmet = _get_meg_system(info)
@@ -837,7 +837,7 @@ class _CheckInside:
 
 def _fread3(fobj):
     """Read 3 bytes and adjust."""
-    b1, b2, b3 = np.fromfile(fobj, ">u1", 3)
+    b1, b2, b3 = np.fromfile(fobj, ">u1", 3).astype(np.int64)
     return (b1 << 16) + (b2 << 8) + b3
 
 
@@ -1396,8 +1396,8 @@ def _decimate_surface_vtk(points, triangles, n_triangles):
     """Aux function."""
     try:
         from vtkmodules.util.numpy_support import numpy_to_vtk, numpy_to_vtkIdTypeArray
-        from vtkmodules.vtkCommonDataModel import vtkPolyData, vtkCellArray
         from vtkmodules.vtkCommonCore import vtkPoints
+        from vtkmodules.vtkCommonDataModel import vtkCellArray, vtkPolyData
         from vtkmodules.vtkFiltersCore import vtkQuadricDecimation
     except ImportError:
         raise ValueError("This function requires the VTK package to be " "installed")
@@ -1946,14 +1946,14 @@ def _marching_cubes(image, level, smooth=0, fill_hole_size=None, use_flying_edge
     # Also vtkDiscreteFlyingEdges3D should be faster.
     # If we ever want not-discrete (continuous/float) marching cubes,
     # we should probably use vtkFlyingEdges3D rather than vtkMarchingCubes.
-    from vtkmodules.vtkCommonDataModel import vtkImageData, vtkDataSetAttributes
+    from vtkmodules.util.numpy_support import numpy_to_vtk, vtk_to_numpy
+    from vtkmodules.vtkCommonDataModel import vtkDataSetAttributes, vtkImageData
     from vtkmodules.vtkFiltersCore import vtkThreshold
     from vtkmodules.vtkFiltersGeneral import (
         vtkDiscreteFlyingEdges3D,
         vtkDiscreteMarchingCubes,
     )
     from vtkmodules.vtkFiltersGeometry import vtkGeometryFilter
-    from vtkmodules.util.numpy_support import vtk_to_numpy, numpy_to_vtk
 
     if image.ndim != 3:
         raise ValueError(f"3D data must be supplied, got {image.shape}")
@@ -2097,8 +2097,8 @@ def get_montage_volume_labels(
     colors : dict
         The Freesurfer lookup table colors for the labels.
     """
+    from ._freesurfer import _get_aseg, read_freesurfer_lut
     from .channels import DigMontage
-    from ._freesurfer import read_freesurfer_lut, _get_aseg
 
     _validate_type(montage, DigMontage, "montage")
     _validate_type(dist, (int, float), "dist")

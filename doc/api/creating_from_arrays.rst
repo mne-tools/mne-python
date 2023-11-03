@@ -5,7 +5,7 @@ Creating data objects from arrays
 .. currentmodule:: mne
 
 .. autosummary::
-   :toctree: generated/
+   :toctree: ../generated/
 
    EvokedArray
    EpochsArray

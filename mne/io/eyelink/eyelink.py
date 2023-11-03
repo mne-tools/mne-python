@@ -8,14 +8,14 @@
 
 from pathlib import Path
 
-from ._utils import _parse_eyelink_ascii, _make_eyelink_annots, _make_gap_annots
-from ..base import BaseRaw
 from ...utils import (
     _check_fname,
     fill_doc,
     logger,
     verbose,
 )
+from ..base import BaseRaw
+from ._utils import _make_eyelink_annots, _make_gap_annots, _parse_eyelink_ascii
 
 
 @fill_doc

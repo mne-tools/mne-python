@@ -12,26 +12,26 @@ from pathlib import Path
 
 import numpy as np
 
+from ._fiff.constants import FIFF
+from ._fiff.open import fiff_open
+from ._fiff.pick import pick_channels
+from ._fiff.tag import read_tag
+from ._fiff.tree import dir_tree_find
+from ._fiff.write import end_block, start_and_end_file, start_block, write_int
 from .utils import (
+    _check_fname,
+    _check_integer_or_list,
+    _check_on_missing,
+    _check_option,
+    _get_stim_channel,
+    _on_missing,
+    _validate_type,
     check_fname,
+    fill_doc,
     logger,
     verbose,
-    _get_stim_channel,
     warn,
-    _validate_type,
-    _check_option,
-    fill_doc,
-    _check_fname,
-    _on_missing,
-    _check_on_missing,
-    _check_integer_or_list,
 )
-from ._fiff.constants import FIFF
-from ._fiff.tree import dir_tree_find
-from ._fiff.tag import read_tag
-from ._fiff.open import fiff_open
-from ._fiff.write import write_int, start_block, start_and_end_file, end_block
-from ._fiff.pick import pick_channels
 
 
 @fill_doc

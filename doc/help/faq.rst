@@ -275,6 +275,7 @@ magnitude.
 Forward and Inverse Solution
 ============================
 
+.. _faq_how_should_i_regularize:
 
 How should I regularize the covariance matrix?
 ----------------------------------------------

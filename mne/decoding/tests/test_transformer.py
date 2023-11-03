@@ -6,23 +6,22 @@
 from pathlib import Path
 
 import numpy as np
-
 import pytest
 from numpy.testing import (
-    assert_array_equal,
-    assert_array_almost_equal,
     assert_allclose,
+    assert_array_almost_equal,
+    assert_array_equal,
     assert_equal,
 )
 
-from mne import io, read_events, Epochs, pick_types
+from mne import Epochs, io, pick_types, read_events
 from mne.decoding import (
-    Scaler,
     FilterEstimator,
     PSDEstimator,
-    Vectorizer,
-    UnsupervisedSpatialFilter,
+    Scaler,
     TemporalFilter,
+    UnsupervisedSpatialFilter,
+    Vectorizer,
 )
 from mne.defaults import DEFAULTS
 from mne.utils import check_version, use_log_level

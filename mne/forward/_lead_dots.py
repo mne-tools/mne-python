@@ -14,8 +14,7 @@ import numpy as np
 from numpy.polynomial import legendre
 
 from ..parallel import parallel_func
-from ..utils import logger, verbose, _get_extra_data_path, fill_doc
-
+from ..utils import _get_extra_data_path, fill_doc, logger, verbose
 
 ##############################################################################
 # FAST LEGENDRE (DERIVATIVE) POLYNOMIALS USING LOOKUP TABLE

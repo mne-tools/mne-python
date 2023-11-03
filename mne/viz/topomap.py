@@ -12,71 +12,74 @@
 
 import copy
 import itertools
+import warnings
 from functools import partial
 from numbers import Integral
-import warnings
 
 import numpy as np
 from scipy.interpolate import (
     CloughTocher2DInterpolator,
-    NearestNDInterpolator,
     LinearNDInterpolator,
+    NearestNDInterpolator,
 )
 from scipy.sparse import csr_matrix
 from scipy.spatial import Delaunay, Voronoi
 from scipy.spatial.distance import pdist, squareform
 
-from .ui_events import publish, subscribe, TimeChange
-from ..baseline import rescale
-from ..defaults import _INTERPOLATION_DEFAULT, _EXTRAPOLATE_DEFAULT, _BORDER_DEFAULT
+from .._fiff.meas_info import Info, _simplify_info
 from .._fiff.pick import (
-    pick_types,
-    _picks_by_type,
-    pick_info,
-    pick_channels,
-    _pick_data_channels,
-    _picks_to_idx,
     _MEG_CH_TYPES_SPLIT,
+    _pick_data_channels,
+    _picks_by_type,
+    _picks_to_idx,
+    pick_channels,
+    pick_info,
+    pick_types,
 )
+from ..baseline import rescale
+from ..defaults import (
+    _BORDER_DEFAULT,
+    _EXTRAPOLATE_DEFAULT,
+    _INTERPOLATION_DEFAULT,
+    _handle_default,
+)
+from ..transforms import apply_trans, invert_transform
 from ..utils import (
-    _clean_names,
-    _time_mask,
-    verbose,
-    logger,
-    fill_doc,
-    _validate_type,
-    _check_sphere,
     _check_option,
+    _check_sphere,
+    _clean_names,
     _is_numeric,
-    warn,
-    legacy,
+    _time_mask,
+    _validate_type,
     check_version,
+    fill_doc,
+    legacy,
+    logger,
+    verbose,
+    warn,
 )
 from ..utils.spectrum import _split_psd_kwargs
+from .ui_events import TimeChange, publish, subscribe
 from .utils import (
-    _setup_vmin_vmax,
-    _prepare_trellis,
-    _check_delayed_ssp,
-    _draw_proj_checkbox,
-    figure_nobar,
-    plt_show,
-    _process_times,
     DraggableColorbar,
-    _get_cmap,
-    _validate_if_list_of_axes,
-    _setup_cmap,
+    _check_delayed_ssp,
     _check_time_unit,
-    _set_3d_axes_equal,
     _check_type_projs,
+    _draw_proj_checkbox,
     _format_units_psd,
-    _prepare_sensor_names,
+    _get_cmap,
     _get_plot_ch_type,
+    _prepare_sensor_names,
+    _prepare_trellis,
+    _process_times,
+    _set_3d_axes_equal,
+    _setup_cmap,
+    _setup_vmin_vmax,
+    _validate_if_list_of_axes,
+    figure_nobar,
     plot_sensors,
+    plt_show,
 )
-from ..defaults import _handle_default
-from ..transforms import apply_trans, invert_transform
-from .._fiff.meas_info import Info, _simplify_info
-
 
 _fnirs_types = ("hbo", "hbr", "fnirs_cw_amplitude", "fnirs_od")
 
@@ -112,7 +115,7 @@ def _adjust_meg_sphere(sphere, info, ch_type):
 
 def _prepare_topomap_plot(inst, ch_type, sphere=None):
     """Prepare topo plot."""
-    from ..channels.layout import find_layout, _pair_grad_sensors, _find_topomap_coords
+    from ..channels.layout import _find_topomap_coords, _pair_grad_sensors, find_layout
 
     info = copy.deepcopy(inst if isinstance(inst, Info) else inst.info)
     sphere, clip_origin = _adjust_meg_sphere(sphere, info, ch_type)
@@ -301,15 +304,13 @@ def _add_colorbar(
     im,
     cmap,
     *,
-    side="right",
     title=None,
     format=None,
-    size="5%",
     kind=None,
     ch_type=None,
 ):
     """Add a colorbar to an axis."""
-    cbar = ax.figure.colorbar(im, format=format)
+    cbar = ax.figure.colorbar(im, format=format, shrink=0.6)
     if cmap is not None and cmap[1]:
         ax.CB = DraggableColorbar(cbar, im, kind, ch_type)
     cax = cbar.ax
@@ -471,6 +472,7 @@ def _plot_projs_topomap(
     axes=None,
 ):
     import matplotlib.pyplot as plt
+
     from ..channels.layout import _merge_ch_data
 
     sphere = _check_sphere(sphere, info)
@@ -1193,6 +1195,7 @@ def _plot_topomap(
 ):
     from matplotlib.colors import Normalize
     from matplotlib.widgets import RectangleSelector
+
     from ..channels.layout import (
         _find_topomap_coords,
         _merge_ch_data,
@@ -1405,6 +1408,7 @@ def _plot_ica_topomap(
 ):
     """Plot single ica map to axes."""
     from matplotlib.axes import Axes
+
     from ..channels.layout import _merge_ch_data
 
     if ica.info is None:
@@ -1596,9 +1600,10 @@ def plot_ica_components(
     supplied).
     """  # noqa E501
     from matplotlib.pyplot import Axes
-    from ..io import BaseRaw
-    from ..epochs import BaseEpochs
+
     from ..channels.layout import _merge_ch_data
+    from ..epochs import BaseEpochs
+    from ..io import BaseRaw
 
     if ica.info is None:
         raise RuntimeError(
@@ -1705,7 +1710,6 @@ def plot_ica_components(
                     im,
                     cmap,
                     title="AU",
-                    side="right",
                     format=cbar_fmt,
                     kind="ica_comp_topomap",
                     ch_type=ch_type,
@@ -1879,6 +1883,7 @@ def plot_tfr_topomap(
         The figure containing the topography.
     """  # noqa: E501
     import matplotlib.pyplot as plt
+
     from ..channels.layout import _merge_ch_data
 
     ch_type = _get_plot_ch_type(tfr, ch_type)
@@ -2120,8 +2125,9 @@ def plot_evoked_topomap(
     import matplotlib.pyplot as plt
     from matplotlib.gridspec import GridSpec
     from matplotlib.widgets import Slider
-    from ..evoked import Evoked
+
     from ..channels.layout import _merge_ch_data
+    from ..evoked import Evoked
 
     _validate_type(evoked, Evoked, "evoked")
     _validate_type(colorbar, bool, "colorbar")
@@ -2488,6 +2494,7 @@ def _on_time_change(
 
 def _on_colormap_range(event, kwargs):
     """Handle updating colormap range."""
+    logger.debug(f"Updating colormap range to {event.fmin}, {event.fmax}")
     kwargs.update(vlim=(event.fmin, event.fmax), cmap=event.cmap)
 
 
@@ -2555,7 +2562,7 @@ def _plot_topomap_multi_cbar(
     )
 
     if colorbar:
-        cbar, cax = _add_colorbar(ax, im, cmap, title=None, size="10%", format=cbar_fmt)
+        cbar, cax = _add_colorbar(ax, im, cmap, title=None, format=cbar_fmt)
         cbar.set_ticks(_vlim)
         if unit is not None:
             cbar.ax.set_ylabel(unit, fontsize=8)
@@ -2943,6 +2950,7 @@ def _onselect(
     """Handle drawing average tfr over channels called from topomap."""
     import matplotlib.pyplot as plt
     from matplotlib.collections import PathCollection
+
     from ..channels.layout import _pair_grad_sensors
 
     ax = eclick.inaxes
@@ -3243,7 +3251,8 @@ def _topomap_animation(
 
     See mne.evoked.Evoked.animate_topomap.
     """
-    from matplotlib import pyplot as plt, animation
+    from matplotlib import animation
+    from matplotlib import pyplot as plt
 
     if ch_type is None:
         ch_type = _picks_by_type(evoked.info)[0][0]
@@ -3577,6 +3586,7 @@ def plot_arrowmap(
     .. footbibliography::
     """
     from matplotlib import pyplot as plt
+
     from ..forward import _map_meg_or_eeg_channels
 
     sphere = _check_sphere(sphere, info_from)
@@ -3691,6 +3701,7 @@ def plot_bridged_electrodes(
     mne.preprocessing.compute_bridged_electrodes
     """
     import matplotlib.pyplot as plt
+
     from ..channels.layout import _find_topomap_coords
 
     if topomap_args is None:
@@ -3731,7 +3742,7 @@ def plot_bridged_electrodes(
     if title is not None:
         im.axes.set_title(title)
     if colorbar:
-        cax = fig.colorbar(im)
+        cax = fig.colorbar(im, shrink=0.6)
         cax.set_label(r"Electrical Distance ($\mu$$V^2$)")
     return fig
 
@@ -4029,6 +4040,7 @@ def plot_regression_weights(
     """
     import matplotlib
     import matplotlib.pyplot as plt
+
     from ..channels.layout import _merge_ch_data
 
     sphere = _check_sphere(sphere)

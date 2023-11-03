@@ -13,20 +13,21 @@ introduction and only highlights the simplest use case.
 #
 # License: BSD (3-clause)
 
-import numpy as np
-import matplotlib.pyplot as plt
 from functools import partial
+
+import matplotlib.pyplot as plt
+import numpy as np
 
 import mne
 from mne.datasets import sample
-from mne.minimum_norm import make_inverse_operator, apply_inverse
+from mne.minimum_norm import apply_inverse, make_inverse_operator
 from mne.simulation.metrics import (
-    region_localization_error,
+    cosine_score,
     f1_score,
+    peak_position_error,
     precision_score,
     recall_score,
-    cosine_score,
-    peak_position_error,
+    region_localization_error,
     spatial_deviation_error,
 )
 

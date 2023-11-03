@@ -11,11 +11,10 @@ from collections import Counter
 
 import numpy as np
 
-from ..utils import logger, warn, Bunch, _validate_type, _check_fname, verbose
-
+from ..utils import Bunch, _check_fname, _validate_type, logger, verbose, warn
 from .constants import FIFF, _coord_frame_named
-from .tree import dir_tree_find
 from .tag import read_tag
+from .tree import dir_tree_find
 from .write import start_and_end_file, write_dig_points
 
 _dig_kind_dict = {
@@ -527,8 +526,8 @@ def _make_dig_points(
 
 def _call_make_dig_points(nasion, lpa, rpa, hpi, extra, convert=True):
     from ..transforms import (
-        apply_trans,
         Transform,
+        apply_trans,
         get_ras_to_neuromag_trans,
     )
 

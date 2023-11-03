@@ -15,11 +15,10 @@ evoked dataset.
 # %%
 
 import matplotlib.pyplot as plt
-
 from nilearn import plotting
 
 import mne
-from mne.minimum_norm import make_inverse_operator, apply_inverse
+from mne.minimum_norm import apply_inverse, make_inverse_operator
 
 # Set dir
 data_path = mne.datasets.sample.data_path()

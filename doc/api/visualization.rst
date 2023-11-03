@@ -11,7 +11,7 @@ Visualization
    :no-inherited-members:
 
 .. autosummary::
-   :toctree: generated/
+   :toctree: ../generated/
 
    Brain
    ClickableImage
@@ -88,6 +88,21 @@ Visualization
    get_browser_backend
    use_browser_backend
 
+Eyetracking
+-----------
+
+.. currentmodule:: mne.viz.eyetracking
+
+:py:mod:`mne.viz.eyetracking`:
+
+.. automodule:: mne.viz.eyetracking
+   :no-members:
+   :no-inherited-members:
+.. autosummary::
+   :toctree: ../generated/
+
+   plot_gaze
+
 UI Events
 ---------
 
@@ -100,7 +115,7 @@ UI Events
    :no-inherited-members:
 
 .. autosummary::
-   :toctree: generated/
+   :toctree: ../generated/
 
    subscribe
    unsubscribe

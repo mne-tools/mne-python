@@ -5,102 +5,99 @@
 #
 # License: BSD-3-Clause
 
-from inspect import isfunction, signature, Parameter
+import json
+import math
+import warnings
 from collections import namedtuple
 from collections.abc import Sequence
 from copy import deepcopy
+from dataclasses import dataclass, is_dataclass
+from inspect import Parameter, isfunction, signature
 from numbers import Integral
 from time import time
-from dataclasses import dataclass, is_dataclass
-from typing import Optional, List, Literal
-import warnings
-
-import math
-import json
+from typing import List, Literal, Optional
 
 import numpy as np
 from scipy import linalg, stats
 from scipy.spatial import distance
 from scipy.special import expit
 
-from .ecg import qrs_detector, _get_ecg_channel_index, _make_ecg, create_ecg_epochs
-from .eog import _find_eog_events, _get_eog_channel_index
-from ..html_templates import _get_html_template
-from .infomax_ import infomax
-
-from ..cov import compute_whitener, Covariance
-from ..evoked import Evoked
-from ..defaults import _BORDER_DEFAULT, _EXTRAPOLATE_DEFAULT, _INTERPOLATION_DEFAULT
+from .._fiff.constants import FIFF
+from .._fiff.meas_info import ContainsMixin, read_meas_info, write_meas_info
+from .._fiff.open import fiff_open
 from .._fiff.pick import (
-    pick_types,
-    pick_channels,
-    pick_info,
-    _picks_to_idx,
     _DATA_CH_TYPES_SPLIT,
+    _contains_ch_type,
+    _picks_by_type,
+    _picks_to_idx,
+    pick_channels,
+    pick_channels_regexp,
+    pick_info,
+    pick_types,
 )
 from .._fiff.proj import make_projector
-from .._fiff.write import (
-    write_double_matrix,
-    write_string,
-    write_name_list,
-    write_int,
-    start_block,
-    end_block,
-)
-from .._fiff.tree import dir_tree_find
-from .._fiff.open import fiff_open
 from .._fiff.tag import read_tag
-from .._fiff.meas_info import write_meas_info, read_meas_info, ContainsMixin
-from .._fiff.constants import FIFF
-from .._fiff.write import start_and_end_file, write_id
-from .._fiff.pick import pick_channels_regexp, _picks_by_type, _contains_ch_type
-from ..io import BaseRaw
-from ..io.eeglab.eeglab import _get_info, _check_load_mat
-
+from .._fiff.tree import dir_tree_find
+from .._fiff.write import (
+    end_block,
+    start_and_end_file,
+    start_block,
+    write_double_matrix,
+    write_id,
+    write_int,
+    write_name_list,
+    write_string,
+)
+from ..channels.layout import _find_topomap_coords
+from ..cov import Covariance, compute_whitener
+from ..defaults import _BORDER_DEFAULT, _EXTRAPOLATE_DEFAULT, _INTERPOLATION_DEFAULT
 from ..epochs import BaseEpochs
+from ..evoked import Evoked
+from ..filter import filter_data
+from ..fixes import _safe_svd
+from ..html_templates import _get_html_template
+from ..io import BaseRaw
+from ..io.eeglab.eeglab import _check_load_mat, _get_info
+from ..utils import (
+    _PCA,
+    Bunch,
+    _check_all_same_channel_names,
+    _check_compensation_grade,
+    _check_fname,
+    _check_on_missing,
+    _check_option,
+    _check_preload,
+    _ensure_int,
+    _get_inst_data,
+    _on_missing,
+    _pl,
+    _reject_data_segments,
+    _require_version,
+    _validate_type,
+    check_fname,
+    check_random_state,
+    compute_corr,
+    copy_function_doc_to_method_doc,
+    fill_doc,
+    int_like,
+    logger,
+    repr_html,
+    verbose,
+    warn,
+)
 from ..viz import (
     plot_ica_components,
+    plot_ica_overlay,
     plot_ica_scores,
     plot_ica_sources,
-    plot_ica_overlay,
 )
 from ..viz.ica import plot_ica_properties
 from ..viz.topomap import _plot_corrmap
-
-from ..channels.layout import _find_topomap_coords
-from ..utils import (
-    logger,
-    check_fname,
-    _check_fname,
-    verbose,
-    _reject_data_segments,
-    check_random_state,
-    _validate_type,
-    compute_corr,
-    _get_inst_data,
-    _ensure_int,
-    repr_html,
-    copy_function_doc_to_method_doc,
-    _pl,
-    warn,
-    Bunch,
-    _check_preload,
-    _check_compensation_grade,
-    fill_doc,
-    _check_option,
-    _PCA,
-    int_like,
-    _require_version,
-    _check_all_same_channel_names,
-    _check_on_missing,
-    _on_missing,
-)
-
-from ..fixes import _safe_svd
-from ..filter import filter_data
 from .bads import _find_outliers
 from .ctps_ import ctps
-
+from .ecg import _get_ecg_channel_index, _make_ecg, create_ecg_epochs, qrs_detector
+from .eog import _find_eog_events, _get_eog_channel_index
+from .infomax_ import infomax
 
 __all__ = (
     "ICA",

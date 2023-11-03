@@ -18,15 +18,15 @@ from io import StringIO
 
 import numpy as np
 
-from ..base import BaseRaw
-from ...utils import verbose, logger, warn, fill_doc, _DefaultEventParser
 from ..._fiff.constants import FIFF
 from ..._fiff.meas_info import _empty_info
-from ..._fiff.utils import _read_segments_file, _mult_cal_one
+from ..._fiff.utils import _mult_cal_one, _read_segments_file
 from ...annotations import Annotations, read_annotations
 from ...channels import make_dig_montage
 from ...defaults import HEAD_SIZE_DEFAULT
 from ...transforms import _sph_to_cart
+from ...utils import _DefaultEventParser, fill_doc, logger, verbose, warn
+from ..base import BaseRaw
 
 
 @fill_doc

@@ -14,8 +14,9 @@ headshape points.
 
 # Authors : Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 
-import sys
 import os
+import sys
+
 import mne
 
 

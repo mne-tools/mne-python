@@ -10,7 +10,7 @@ import numpy as np
 from scipy.special import expit
 from scipy.stats import kurtosis
 
-from ..utils import logger, verbose, check_random_state, random_permutation
+from ..utils import check_random_state, logger, random_permutation, verbose
 
 
 @verbose

@@ -3,39 +3,40 @@
 # License: BSD-3-Clause
 from inspect import signature
 
-import pytest
 import numpy as np
-from numpy.testing import assert_array_less, assert_allclose, assert_array_equal
+import pytest
+from numpy.testing import assert_allclose, assert_array_equal, assert_array_less
+from scipy.sparse import csr_matrix
+from scipy.sparse import eye as speye
 from scipy.spatial.distance import cdist
-from scipy.sparse import csr_matrix, eye as speye
 
 import mne
 from mne import (
     SourceEstimate,
-    VolSourceEstimate,
-    VectorSourceEstimate,
-    read_evokeds,
     SourceMorph,
+    VectorSourceEstimate,
+    VolSourceEstimate,
+    VolVectorSourceEstimate,
     compute_source_morph,
-    read_source_morph,
-    read_source_estimate,
-    read_forward_solution,
+    get_volume_labels_from_aseg,
     grade_to_vertices,
-    setup_volume_source_space,
+    make_ad_hoc_cov,
     make_forward_solution,
     make_sphere_model,
-    make_ad_hoc_cov,
-    VolVectorSourceEstimate,
-    get_volume_labels_from_aseg,
+    read_evokeds,
+    read_forward_solution,
     read_freesurfer_lut,
+    read_source_estimate,
+    read_source_morph,
+    setup_volume_source_space,
 )
+from mne._freesurfer import _get_atlas_values, _get_mri_info_data
 from mne.datasets import testing
 from mne.fixes import _get_img_fdata
-from mne._freesurfer import _get_mri_info_data, _get_atlas_values
-from mne.minimum_norm import apply_inverse, read_inverse_operator, make_inverse_operator
+from mne.minimum_norm import apply_inverse, make_inverse_operator, read_inverse_operator
 from mne.source_space._source_space import _add_interpolator, _grid_interp
 from mne.transforms import quat_to_rot
-from mne.utils import catch_logging, _record_warnings
+from mne.utils import _record_warnings, catch_logging
 
 # Setup paths
 

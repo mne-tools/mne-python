@@ -12,14 +12,14 @@ Currently only for fixed source orientations.
 
 import numpy as np
 import pytest
-from numpy.testing import assert_array_almost_equal, assert_array_equal, assert_
+from numpy.testing import assert_, assert_array_almost_equal, assert_array_equal
 
 import mne
 from mne.datasets import testing
 from mne.minimum_norm.resolution_matrix import make_inverse_resolution_matrix
 from mne.minimum_norm.spatial_resolution import (
-    resolution_metrics,
     _rectify_resolution_matrix,
+    resolution_metrics,
 )
 
 data_path = testing.data_path(download=False)

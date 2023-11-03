@@ -33,8 +33,8 @@ Please note that this tutorial requires 3D plotting dependencies (see
 
 # %%
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 from matplotlib import colormaps
 from mne_bids import BIDSPath, read_raw_bids
 

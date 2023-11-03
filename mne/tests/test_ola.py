@@ -1,6 +1,6 @@
 import numpy as np
-from numpy.testing import assert_allclose
 import pytest
+from numpy.testing import assert_allclose
 
 from mne._ola import _COLA, _Interp2, _Storer
 

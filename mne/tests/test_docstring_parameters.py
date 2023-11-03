@@ -4,9 +4,9 @@
 
 import importlib
 import inspect
+import re
 from pathlib import Path
 from pkgutil import walk_packages
-import re
 
 import pytest
 

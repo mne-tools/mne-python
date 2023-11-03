@@ -17,17 +17,18 @@ Compared to a Jupyter notebook, :class:`mne.Report` is easier to deploy, as the
 HTML pages it generates are self-contained and do not require a running Python
 environment. However, it is less flexible as you can't change code and re-run
 something directly within the browser. This tutorial covers the basics of
-building a report. As usual, we will start by importing the modules and data we
-need:
+building a report. As usual, we will start by importing the modules and data we need:
 """
 
 # %%
 
-from pathlib import Path
 import tempfile
+from pathlib import Path
+
+import matplotlib.pyplot as plt
 import numpy as np
 import scipy.ndimage
-import matplotlib.pyplot as plt
+
 import mne
 
 data_path = Path(mne.datasets.sample.data_path(verbose=False))
@@ -265,7 +266,7 @@ report = mne.Report(title="ICA example")
 report.add_ica(
     ica=ica,
     title="ICA cleaning",
-    picks=[0, 1],  # only plot the first two components
+    picks=ica.exclude,  # plot the excluded EOG components
     inst=raw,
     eog_evoked=eog_epochs.average(),
     eog_scores=eog_scores,

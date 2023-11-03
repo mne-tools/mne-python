@@ -20,10 +20,11 @@ See :ref:`inverse_orientation_constraints` for related information.
 # ---------
 # Load everything we need to perform source localization on the sample dataset.
 
-import mne
 import numpy as np
+
+import mne
 from mne.datasets import sample
-from mne.minimum_norm import make_inverse_operator, apply_inverse
+from mne.minimum_norm import apply_inverse, make_inverse_operator
 
 data_path = sample.data_path()
 meg_path = data_path / "MEG" / "sample"

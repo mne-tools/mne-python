@@ -16,51 +16,50 @@ from scipy import linalg
 from scipy.special import lpmv, sph_harm
 
 from .. import __version__
+from .._fiff.compensator import make_compensator
+from .._fiff.constants import FIFF, FWD
+from .._fiff.meas_info import Info, _simplify_info
+from .._fiff.pick import pick_info, pick_types
+from .._fiff.proc_history import _read_ctc
+from .._fiff.proj import Projection
+from .._fiff.tag import _coil_trans_to_loc, _loc_to_coil_trans
+from .._fiff.write import DATE_NONE, _generate_meas_id
 from ..annotations import _annotations_starts_stops
 from ..bem import _check_origin
+from ..channels.channels import _get_T1T2_mag_inds, fix_mag_coil_types
+from ..fixes import _safe_svd, bincount
+from ..forward import _concatenate_coils, _create_meg_coils, _prep_meg_channels
+from ..io import BaseRaw, RawArray
+from ..surface import _normalize_vectors
 from ..transforms import (
-    _str_to_frame,
-    _get_trans,
     Transform,
-    apply_trans,
-    _find_vector_rotation,
-    _cart_to_sph,
-    _get_n_moments,
-    _sph_to_cart_partials,
-    _deg_ord_idx,
     _average_quats,
+    _cart_to_sph,
+    _deg_ord_idx,
+    _find_vector_rotation,
+    _get_n_moments,
+    _get_trans,
     _sh_complex_to_real,
-    _sh_real_to_complex,
     _sh_negate,
+    _sh_real_to_complex,
+    _sph_to_cart_partials,
+    _str_to_frame,
+    apply_trans,
     quat_to_rot,
     rot_to_quat,
 )
-from ..forward import _concatenate_coils, _prep_meg_channels, _create_meg_coils
-from ..surface import _normalize_vectors
-from .._fiff.compensator import make_compensator
-from .._fiff.constants import FIFF, FWD
-from .._fiff.meas_info import _simplify_info, Info
-from .._fiff.pick import pick_types, pick_info
-from .._fiff.proj import Projection
-from .._fiff.proc_history import _read_ctc
-from .._fiff.write import _generate_meas_id, DATE_NONE
-from .._fiff.tag import _loc_to_coil_trans, _coil_trans_to_loc
-from ..io import BaseRaw, RawArray
 from ..utils import (
-    verbose,
-    logger,
-    _clean_names,
-    warn,
-    _time_mask,
-    _pl,
     _check_option,
+    _clean_names,
     _ensure_int,
+    _pl,
+    _time_mask,
     _validate_type,
+    logger,
     use_log_level,
+    verbose,
+    warn,
 )
-from ..fixes import _safe_svd, bincount
-from ..channels.channels import _get_T1T2_mag_inds, fix_mag_coil_types
-
 
 # Note: MF uses single precision and some algorithms might use
 # truncated versions of constants (e.g., μ0), which could lead to small

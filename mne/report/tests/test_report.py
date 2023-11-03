@@ -19,28 +19,27 @@ from matplotlib import pyplot as plt
 
 from mne import (
     Epochs,
+    create_info,
+    pick_channels_cov,
+    read_cov,
     read_events,
     read_evokeds,
-    read_cov,
-    pick_channels_cov,
-    create_info,
 )
+from mne._fiff.write import DATE_NONE
+from mne.datasets import testing
+from mne.epochs import make_metadata
+from mne.io import RawArray, read_info, read_raw_fif
+from mne.preprocessing import ICA
+from mne.report import Report, _ReportScraper, open_report, report
 from mne.report import report as report_mod
 from mne.report.report import (
-    CONTENT_ORDER,
     _ALLOWED_IMAGE_FORMATS,
+    CONTENT_ORDER,
     _webp_supported,
 )
-from mne.io import read_raw_fif, read_info, RawArray
-from mne.datasets import testing
-from mne.report import Report, open_report, _ReportScraper, report
 from mne.utils import Bunch
 from mne.utils._testing import assert_object_equal
 from mne.viz import plot_alignment
-from mne._fiff.write import DATE_NONE
-from mne.preprocessing import ICA
-from mne.epochs import make_metadata
-
 
 data_dir = testing.data_path(download=False)
 subjects_dir = data_dir / "subjects"
@@ -878,6 +877,8 @@ def test_survive_pickle(tmp_path):
 def test_manual_report_2d(tmp_path, invisible_fig):
     """Simulate user manually creating report by adding one file at a time."""
     pytest.importorskip("sklearn")
+    pytest.importorskip("pandas")
+
     from sklearn.exceptions import ConvergenceWarning
 
     r = Report(title="My Report")
@@ -912,10 +913,10 @@ def test_manual_report_2d(tmp_path, invisible_fig):
     evoked = evokeds[0].pick("eeg")
 
     with pytest.warns(ConvergenceWarning, match="did not converge"):
-        ica = ICA(n_components=2, max_iter=1, random_state=42).fit(
+        ica = ICA(n_components=3, max_iter=1, random_state=42).fit(
             inst=raw.copy().crop(tmax=1)
         )
-    ica_ecg_scores = ica_eog_scores = np.array([3, 0])
+    ica_ecg_scores = ica_eog_scores = np.array([3, 0, 0])
     ica_ecg_evoked = ica_eog_evoked = epochs_without_metadata.average()
 
     r.add_raw(raw=raw, title="my raw data", tags=("raw",), psd=True, projs=False)
@@ -968,12 +969,13 @@ def test_manual_report_2d(tmp_path, invisible_fig):
         ica=ica,
         title="my ica with raw inst",
         inst=raw.copy().load_data(),
-        picks=[0],
+        picks=[2],
         ecg_evoked=ica_ecg_evoked,
         eog_evoked=ica_eog_evoked,
         ecg_scores=ica_ecg_scores,
         eog_scores=ica_eog_scores,
     )
+    assert "ICA component 2" in r._content[-1].html
     epochs_baseline = epochs_without_metadata.copy().load_data()
     epochs_baseline.apply_baseline((None, 0))
     r.add_ica(
@@ -982,6 +984,7 @@ def test_manual_report_2d(tmp_path, invisible_fig):
         inst=epochs_baseline,
         picks=[0],
     )
+    r.add_ica(ica=ica, title="my ica with picks=None", inst=epochs_baseline, picks=None)
     r.add_covariance(cov=cov, info=raw_fname, title="my cov")
     r.add_forward(
         forward=fwd_fname,

@@ -12,7 +12,6 @@ plot the sensor locations and projectors stored in `~mne.Epochs` objects.
 We'll start by importing the modules we need, loading the continuous (raw)
 sample data, and cropping it to save memory:
 """
-
 # %%
 
 import mne

@@ -16,65 +16,64 @@ import numpy as np
 from scipy.fft import fft, ifft
 from scipy.signal import argrelmax
 
-from .multitaper import dpss_windows
-
-from ..baseline import rescale, _check_baseline
+from .._fiff.meas_info import ContainsMixin, Info
+from .._fiff.pick import (
+    _picks_to_idx,
+    channel_type,
+    pick_info,
+)
+from ..baseline import _check_baseline, rescale
+from ..channels.channels import UpdateChannelsMixin
+from ..channels.layout import _find_topomap_coords, _merge_ch_data, _pair_grad_sensors
+from ..defaults import _BORDER_DEFAULT, _EXTRAPOLATE_DEFAULT, _INTERPOLATION_DEFAULT
 from ..filter import next_fast_len
 from ..parallel import parallel_func
 from ..utils import (
-    logger,
-    verbose,
-    _time_mask,
-    _freq_mask,
-    check_fname,
-    sizeof_fmt,
-    GetEpochsMixin,
     ExtendedTimeMixin,
-    _prepare_read_metadata,
-    fill_doc,
-    _prepare_write_metadata,
-    _check_event_id,
-    _gen_events,
+    GetEpochsMixin,
     SizeMixin,
-    _is_numeric,
-    _check_option,
-    _validate_type,
+    _build_data_frame,
     _check_combine,
-    _check_pandas_installed,
+    _check_event_id,
+    _check_option,
     _check_pandas_index_arguments,
+    _check_pandas_installed,
     _check_time_format,
     _convert_times,
-    _build_data_frame,
-    warn,
+    _freq_mask,
+    _gen_events,
     _import_h5io_funcs,
+    _is_numeric,
+    _prepare_read_metadata,
+    _prepare_write_metadata,
+    _time_mask,
+    _validate_type,
+    check_fname,
     copy_function_doc_to_method_doc,
+    fill_doc,
+    logger,
+    sizeof_fmt,
+    verbose,
+    warn,
 )
-from ..channels.channels import UpdateChannelsMixin
-from ..channels.layout import _merge_ch_data, _pair_grad_sensors, _find_topomap_coords
-from ..defaults import _INTERPOLATION_DEFAULT, _EXTRAPOLATE_DEFAULT, _BORDER_DEFAULT
-from .._fiff.pick import (
-    pick_info,
-    _picks_to_idx,
-    channel_type,
-)
-from .._fiff.meas_info import Info, ContainsMixin
-from ..viz.topo import _imshow_tfr, _plot_topo, _imshow_tfr_unified
+from ..viz.topo import _imshow_tfr, _imshow_tfr_unified, _plot_topo
 from ..viz.topomap import (
-    _set_contour_locator,
-    plot_topomap,
-    _get_pos_outlines,
-    plot_tfr_topomap,
     _add_colorbar,
+    _get_pos_outlines,
+    _set_contour_locator,
+    plot_tfr_topomap,
+    plot_topomap,
 )
 from ..viz.utils import (
+    _prepare_joint_axes,
+    _set_title_multiple_electrodes,
+    _setup_cmap,
+    _setup_vmin_vmax,
+    add_background_image,
     figure_nobar,
     plt_show,
-    _setup_cmap,
-    _prepare_joint_axes,
-    _setup_vmin_vmax,
-    _set_title_multiple_electrodes,
-    add_background_image,
 )
+from .multitaper import dpss_windows
 
 
 @fill_doc

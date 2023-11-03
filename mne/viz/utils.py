@@ -10,61 +10,61 @@
 #          Daniel McCloy <dan@mccloy.info>
 #
 # License: Simplified BSD
-from collections import defaultdict
-from contextlib import contextmanager
-from datetime import datetime
-from inspect import signature
 import difflib
-from functools import partial
 import math
 import os
 import sys
 import tempfile
 import traceback
 import webbrowser
+from collections import defaultdict
+from contextlib import contextmanager
+from datetime import datetime
+from functools import partial
+from inspect import signature
 
-from decorator import decorator
 import numpy as np
+from decorator import decorator
 from scipy.signal import argrelmax
 
-from ..defaults import _handle_default
 from .._fiff.constants import FIFF
 from .._fiff.meas_info import Info
 from .._fiff.open import show_fiff
 from .._fiff.pick import (
-    channel_type,
-    channel_indices_by_type,
-    pick_channels,
-    _pick_data_channels,
-    _DATA_CH_TYPES_SPLIT,
     _DATA_CH_TYPES_ORDER_DEFAULT,
+    _DATA_CH_TYPES_SPLIT,
     _VALID_CHANNEL_TYPES,
-    pick_info,
-    _picks_by_type,
-    pick_channels_cov,
     _contains_ch_type,
+    _pick_data_channels,
+    _picks_by_type,
+    channel_indices_by_type,
+    channel_type,
+    pick_channels,
+    pick_channels_cov,
+    pick_info,
 )
-from .._fiff.proj import setup_proj, Projection
+from .._fiff.proj import Projection, setup_proj
+from ..defaults import _handle_default
 from ..rank import compute_rank
+from ..transforms import apply_trans
 from ..utils import (
-    verbose,
-    get_config,
+    _auto_weakref,
     _check_ch_locs,
+    _check_decim,
     _check_option,
-    logger,
-    fill_doc,
-    _pl,
     _check_sphere,
     _ensure_int,
-    _validate_type,
+    _pl,
     _to_rgb,
-    warn,
+    _validate_type,
     check_version,
-    _check_decim,
+    fill_doc,
+    get_config,
+    logger,
+    verbose,
+    warn,
 )
-from .ui_events import publish, subscribe, ColormapRange
-from ..transforms import apply_trans
-
+from .ui_events import ColormapRange, publish, subscribe
 
 _channel_type_prettyprint = {
     "eeg": "EEG channel",
@@ -190,6 +190,7 @@ def _show_browser(show=True, block=True, fig=None, **kwargs):
     else:
         from qtpy.QtCore import Qt
         from qtpy.QtWidgets import QApplication
+
         from .backends._utils import _qt_app_exec
 
         if fig is not None and os.getenv("_MNE_BROWSER_BACK", "").lower() == "true":
@@ -436,6 +437,7 @@ def _prepare_trellis(
     sharey=False,
 ):
     from matplotlib.gridspec import GridSpec
+
     from ._mpl_figure import _figure
 
     if n_cells == 1:
@@ -635,7 +637,8 @@ def figure_nobar(*args, **kwargs):
     fig : instance of Figure
         The figure.
     """
-    from matplotlib import rcParams, pyplot as plt
+    from matplotlib import pyplot as plt
+    from matplotlib import rcParams
 
     old_val = rcParams["toolbar"]
     try:
@@ -1124,10 +1127,10 @@ def plot_sensors(
             )
             # Avoid circular import
             from ..channels import (
-                read_vectorview_selection,
-                _SELECTIONS,
                 _EEG_SELECTIONS,
+                _SELECTIONS,
                 _divide_to_regions,
+                read_vectorview_selection,
             )
 
             if ch_groups == "position":
@@ -1238,10 +1241,11 @@ def _plot_sensors(
     linewidth=2,
 ):
     """Plot sensors."""
-    from matplotlib import rcParams
     import matplotlib.pyplot as plt
+    from matplotlib import rcParams
     from mpl_toolkits.mplot3d import Axes3D  # noqa: F401 analysis:ignore
-    from .topomap import _get_pos_outlines, _draw_outlines
+
+    from .topomap import _draw_outlines, _get_pos_outlines
 
     ch_names = [str(ch_name) for ch_name in ch_names]
     sphere = _check_sphere(sphere, info)
@@ -1375,8 +1379,8 @@ def _compute_scalings(scalings, inst, remove_dc=False, duration=10):
     scalings : dict
         A scalings dictionary with updated values
     """
-    from ..io import BaseRaw
     from ..epochs import BaseEpochs
+    from ..io import BaseRaw
 
     scalings = _handle_default("scalings_plot_raw", scalings)
     if not isinstance(inst, (BaseRaw, BaseEpochs)):
@@ -1490,7 +1494,12 @@ class DraggableColorbar:
         self.index = self.cycle.index(mappable.get_cmap().name)
         self.lims = (self.cbar.norm.vmin, self.cbar.norm.vmax)
         self.connect()
-        subscribe(self.fig, "colormap_range", self._on_colormap_range)
+
+        @_auto_weakref
+        def _on_colormap_range(event):
+            return self._on_colormap_range(event)
+
+        subscribe(self.fig, "colormap_range", _on_colormap_range)
 
     def connect(self):
         """Connect to all the events we need."""
@@ -2442,8 +2451,9 @@ def _plot_psd(
 ):
     # helper function for Spectrum.plot()
     from matplotlib.ticker import ScalarFormatter
-    from .evoked import _plot_lines
+
     from ..stats import _ci
+    from .evoked import _plot_lines
 
     for key, ls in zip(["lowpass", "highpass", "line_freq"], ["--", "--", "-."]):
         if inst.info[key] is not None:
@@ -2496,6 +2506,7 @@ def _plot_psd(
     if not average:
         picks = np.concatenate(picks_list)
         info = pick_info(inst.info, sel=picks, copy=True)
+        bad_ch_idx = [info["ch_names"].index(ch) for ch in info["bads"]]
         types = np.array(info.get_channel_types())
         ch_types_used = list()
         for this_type in _VALID_CHANNEL_TYPES:
@@ -2528,7 +2539,7 @@ def _plot_psd(
             xlim=(freqs[0], freqs[-1]),
             ylim=None,
             times=freqs,
-            bad_ch_idx=[],
+            bad_ch_idx=bad_ch_idx,
             titles=titles,
             ch_types_used=ch_types_used,
             selectable=True,

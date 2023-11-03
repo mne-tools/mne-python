@@ -18,14 +18,14 @@ readable on top of an MRI image.
 
 # %%
 
-import numpy as np
-import nibabel
-import matplotlib.pyplot as plt
 import matplotlib.patheffects as path_effects
+import matplotlib.pyplot as plt
+import nibabel
+import numpy as np
 
 import mne
-from mne.transforms import apply_trans
 from mne.io.constants import FIFF
+from mne.transforms import apply_trans
 
 # %%
 # MRI coordinate frames

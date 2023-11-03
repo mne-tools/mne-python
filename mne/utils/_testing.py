@@ -3,21 +3,21 @@
 #
 # License: BSD-3-Clause
 
-from functools import wraps
-import os
 import inspect
-from io import StringIO
-from shutil import rmtree
+import os
 import sys
 import tempfile
 import traceback
+from functools import wraps
+from io import StringIO
+from shutil import rmtree
 from unittest import SkipTest
 
 import numpy as np
-from numpy.testing import assert_array_equal, assert_allclose
+from numpy.testing import assert_allclose, assert_array_equal
 from scipy import linalg
 
-from ._logging import warn, ClosingStringIO
+from ._logging import ClosingStringIO, warn
 from .check import check_version
 from .misc import run_subprocess
 from .numerics import object_diff
@@ -315,9 +315,9 @@ def _dig_sort_key(dig):
 
 def assert_dig_allclose(info_py, info_bin, limit=None):
     """Assert dig allclose."""
-    from ..bem import fit_sphere_to_headshape
     from .._fiff.constants import FIFF
     from .._fiff.meas_info import Info
+    from ..bem import fit_sphere_to_headshape
     from ..channels.montage import DigMontage
 
     # test dig positions

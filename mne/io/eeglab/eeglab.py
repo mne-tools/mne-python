@@ -9,29 +9,30 @@ from os import PathLike
 from pathlib import Path
 
 import numpy as np
+
 from mne.utils.check import _check_option
 
-from ._eeglab import _readmat
-from ..base import BaseRaw
-from ...event import read_events
 from ..._fiff._digitization import _ensure_fiducials_head
 from ..._fiff.constants import FIFF
 from ..._fiff.meas_info import create_info
 from ..._fiff.pick import _PICK_TYPES_KEYS
-from ..._fiff.utils import _read_segments_file, _find_channels
+from ..._fiff.utils import _find_channels, _read_segments_file
+from ...annotations import Annotations, read_annotations
+from ...channels import make_dig_montage
 from ...defaults import DEFAULTS
+from ...epochs import BaseEpochs
+from ...event import read_events
 from ...utils import (
-    logger,
-    verbose,
-    warn,
-    fill_doc,
     Bunch,
     _check_fname,
     _check_head_radius,
+    fill_doc,
+    logger,
+    verbose,
+    warn,
 )
-from ...channels import make_dig_montage
-from ...epochs import BaseEpochs
-from ...annotations import Annotations, read_annotations
+from ..base import BaseRaw
+from ._eeglab import _readmat
 
 # just fix the scaling for now, EEGLAB doesn't seem to provide this info
 CAL = 1e-6
@@ -164,17 +165,23 @@ def _get_montage_information(eeg, get_pos, *, montage_units):
         )
 
     lpa, rpa, nasion = None, None, None
-    if hasattr(eeg, "chaninfo") and len(eeg.chaninfo.get("nodatchans", [])):
-        for item in list(zip(*eeg.chaninfo["nodatchans"].values())):
-            d = dict(zip(eeg.chaninfo["nodatchans"].keys(), item))
-            if d.get("type", None) != "FID":
+    if hasattr(eeg, "chaninfo") and isinstance(eeg.chaninfo["nodatchans"], dict):
+        nodatchans = eeg.chaninfo["nodatchans"]
+        types = nodatchans.get("type", [])
+        descriptions = nodatchans.get("description", [])
+        xs = nodatchans.get("X", [])
+        ys = nodatchans.get("Y", [])
+        zs = nodatchans.get("Z", [])
+
+        for type_, description, x, y, z in zip(types, descriptions, xs, ys, zs):
+            if type_ != "FID":
                 continue
-            elif d.get("description", None) == "Nasion":
-                nasion = np.array([d["X"], d["Y"], d["Z"]])
-            elif d.get("description", None) == "Right periauricular point":
-                rpa = np.array([d["X"], d["Y"], d["Z"]])
-            elif d.get("description", None) == "Left periauricular point":
-                lpa = np.array([d["X"], d["Y"], d["Z"]])
+            if description == "Nasion":
+                nasion = np.array([x, y, z])
+            elif description == "Right periauricular point":
+                rpa = np.array([x, y, z])
+            elif description == "Left periauricular point":
+                lpa = np.array([x, y, z])
 
     # Always check this even if it's not used
     _check_option("montage_units", montage_units, ("m", "dm", "cm", "mm", "auto"))

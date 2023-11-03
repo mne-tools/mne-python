@@ -6,23 +6,22 @@
 
 import numpy as np
 
-from .constants import FIFF
-from .meas_info import _check_ch_keys
-from .proj import _has_eeg_average_ref_proj, make_eeg_average_ref_proj
-from .proj import setup_proj
-from .pick import pick_types, pick_channels, pick_channels_forward, _ELECTRODE_CH_TYPES
+from ..defaults import DEFAULTS
 from ..fixes import pinv
 from ..utils import (
-    logger,
-    warn,
-    verbose,
-    _validate_type,
-    _check_preload,
     _check_option,
-    fill_doc,
+    _check_preload,
     _on_missing,
+    _validate_type,
+    fill_doc,
+    logger,
+    verbose,
+    warn,
 )
-from ..defaults import DEFAULTS
+from .constants import FIFF
+from .meas_info import _check_ch_keys
+from .pick import _ELECTRODE_CH_TYPES, pick_channels, pick_channels_forward, pick_types
+from .proj import _has_eeg_average_ref_proj, make_eeg_average_ref_proj, setup_proj
 
 
 def _copy_channel(inst, ch_name, new_ch_name):
@@ -176,10 +175,18 @@ def add_reference_channels(inst, ref_channels, copy=True):
     -------
     inst : instance of Raw | Epochs | Evoked
         Data with added EEG reference channels.
+
+    Notes
+    -----
+    .. warning::
+        When :ref:`re-referencing <tut-set-eeg-ref>`,
+        make sure to apply the montage using :meth:`mne.io.Raw.set_montage`
+        only after calling this function. Applying a montage will only set
+        locations of channels that exist at the time it is applied.
     """
-    from ..io import BaseRaw
-    from ..evoked import Evoked
     from ..epochs import BaseEpochs
+    from ..evoked import Evoked
+    from ..io import BaseRaw
 
     # Check to see that data is preloaded
     _check_preload(inst, "add_reference_channels")
@@ -240,7 +247,9 @@ def add_reference_channels(inst, ref_channels, copy=True):
         ref_dig_array = np.full(12, np.nan)
         logger.info(
             "Location for this channel is unknown; consider calling "
-            "set_montage() again if needed."
+            "set_montage() after adding new reference channels if needed. "
+            "Applying a montage will only set locations of channels that "
+            "exist at the time it is applied."
         )
 
     for ch in ref_channels:
@@ -280,9 +289,9 @@ _ref_dict = {
 
 
 def _check_can_reref(inst):
-    from ..io import BaseRaw
-    from ..evoked import Evoked
     from ..epochs import BaseEpochs
+    from ..evoked import Evoked
+    from ..io import BaseRaw
 
     _validate_type(inst, (BaseRaw, BaseEpochs, Evoked), "Instance")
     current_custom = inst.info["custom_ref_applied"]
@@ -530,10 +539,10 @@ def set_bipolar_reference(
 
     .. versionadded:: 0.9.0
     """
-    from .meas_info import create_info
-    from ..io import BaseRaw, RawArray
     from ..epochs import BaseEpochs, EpochsArray
     from ..evoked import EvokedArray
+    from ..io import BaseRaw, RawArray
+    from .meas_info import create_info
 
     _check_can_reref(inst)
     if not isinstance(anode, list):

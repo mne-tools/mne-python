@@ -9,33 +9,33 @@ from contextlib import nullcontext
 from pathlib import Path
 
 import numpy as np
-from numpy.testing import assert_array_equal, assert_allclose, assert_equal
 import pytest
+from numpy.testing import assert_allclose, assert_array_equal, assert_equal
 
 from mne import (
-    pick_channels,
-    pick_types,
     Epochs,
-    read_events,
-    set_eeg_reference,
-    set_bipolar_reference,
+    Projection,
     add_reference_channels,
     create_info,
-    make_sphere_model,
-    make_forward_solution,
-    setup_volume_source_space,
-    pick_channels_forward,
-    read_evokeds,
     find_events,
-    Projection,
+    make_forward_solution,
+    make_sphere_model,
+    pick_channels,
+    pick_channels_forward,
+    pick_types,
+    read_events,
+    read_evokeds,
+    set_bipolar_reference,
+    set_eeg_reference,
+    setup_volume_source_space,
 )
-from mne.epochs import BaseEpochs, make_fixed_length_epochs
-from mne.io import RawArray, read_raw_fif
 from mne._fiff.constants import FIFF
 from mne._fiff.proj import _has_eeg_average_ref_proj
 from mne._fiff.reference import _apply_reference
 from mne.datasets import testing
-from mne.utils import catch_logging, _record_warnings
+from mne.epochs import BaseEpochs, make_fixed_length_epochs
+from mne.io import RawArray, read_raw_fif
+from mne.utils import _record_warnings, catch_logging
 
 base_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
 raw_fname = base_dir / "test_raw.fif"

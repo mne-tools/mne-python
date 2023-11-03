@@ -9,6 +9,7 @@ import faulthandler
 import gc
 from importlib.metadata import metadata
 import os
+from pathlib import Path
 import subprocess
 import sys
 import time
@@ -22,6 +23,7 @@ from sphinx_gallery.sorting import FileNameSortKey, ExplicitOrder
 from numpydoc import docscrape
 
 import mne
+import mne.html_templates._templates
 from mne.tests.test_docstring_parameters import error_ignores
 from mne.utils import (
     linkcode_resolve,  # noqa, analysis:ignore
@@ -40,6 +42,7 @@ os.environ["MNE_3D_OPTION_THEME"] = "light"
 # https://numba.readthedocs.io/en/latest/reference/deprecation.html#deprecation-of-old-style-numba-captured-errors  # noqa: E501
 os.environ["NUMBA_CAPTURED_ERRORS"] = "new_style"
 sphinx_logger = sphinx.util.logging.getLogger("mne")
+mne.html_templates._templates._COLLAPSED = True  # collapse info _repr_html_
 
 # -- Path setup --------------------------------------------------------------
 
@@ -60,8 +63,8 @@ td = datetime.now(tz=timezone.utc)
 # (Sphinx looks at variable changes and rewrites all files if some change)
 copyright = (
     f'2012–{td.year}, MNE Developers. Last updated <time datetime="{td.isoformat()}" class="localized">{td.strftime("%Y-%m-%d %H:%M %Z")}</time>\n'  # noqa: E501
-    '<script type="text/javascript">$(function () { $("time.localized").each(function () { var el = $(this); el.text(new Date(el.attr("datetime")).toLocaleString([], {dateStyle: "medium", timeStyle: "long"})); }); } )</script>'
-)  # noqa: E501
+    '<script type="text/javascript">$(function () { $("time.localized").each(function () { var el = $(this); el.text(new Date(el.attr("datetime")).toLocaleString([], {dateStyle: "medium", timeStyle: "long"})); }); } )</script>'  # noqa: E501
+)
 if os.getenv("MNE_FULL_DATE", "false").lower() != "true":
     copyright = f"2012–{td.year}, MNE Developers. Last updated locally."
 
@@ -719,11 +722,17 @@ linkcheck_ignore = [  # will be compiled to regex
     "https://doi.org/10.1088/",  # www.tandfonline.com
     "https://doi.org/10.3109/",  # www.tandfonline.com
     "https://www.researchgate.net/profile/",
+    "https://www.intel.com/content/www/us/en/developer/tools/oneapi/onemkl.html",
+    "https://scholar.google.com/scholar?cites=12188330066413208874&as_ylo=2014",
+    "https://scholar.google.com/scholar?cites=1521584321377182930&as_ylo=2013",
+    # 500 server error
+    "https://openwetware.org/wiki/Beauchamp:FreeSurfer",
     # 503 Server error
     "https://hal.archives-ouvertes.fr/hal-01848442",
     # Read timed out
     "http://www.cs.ucl.ac.uk/staff/d.barber/brml",
     "https://www.cea.fr",
+    "http://www.humanconnectome.org/data",
     # Max retries exceeded
     "https://doi.org/10.7488/ds/1556",
     "https://datashare.is.ed.ac.uk/handle/10283",
@@ -1636,87 +1645,70 @@ vi = "visualization"
 custom_redirects = {
     # Custom redirects (one HTML path to another, relative to outdir)
     # can be added here as fr->to key->value mappings
-    "install/contributing.html": "development/contributing.html",
-    "overview/roadmap.html": "development/roadmap.html",
-    "whats_new.html": "development/whats_new.html",
-    f"{tu}/evoked/plot_eeg_erp.html": f"{tu}/evoked/30_eeg_erp.html",
-    f"{tu}/evoked/plot_whitened.html": f"{tu}/evoked/40_whitened.html",
-    f"{tu}/misc/plot_modifying_data_inplace.html": f"{tu}/intro/15_inplace.html",
-    f"{tu}/misc/plot_report.html": f"{tu}/intro/70_report.html",
-    f"{tu}/misc/plot_seeg.html": f"{tu}/clinical/20_seeg.html",
-    f"{tu}/misc/plot_ecog.html": f"{tu}/clinical/30_ecog.html",
-    f"{tu}/{ml}/plot_receptive_field.html": f"{tu}/{ml}/30_strf.html",
-    f"{tu}/{ml}/plot_sensors_decoding.html": f"{tu}/{ml}/50_decoding.html",
-    f"{tu}/{sm}/plot_background_freesurfer.html": f"{tu}/{fw}/10_background_freesurfer.html",  # noqa E501
-    f"{tu}/{sm}/plot_source_alignment.html": f"{tu}/{fw}/20_source_alignment.html",
-    f"{tu}/{sm}/plot_forward.html": f"{tu}/{fw}/30_forward.html",
-    f"{tu}/{sm}/plot_eeg_no_mri.html": f"{tu}/{fw}/35_eeg_no_mri.html",
-    f"{tu}/{sm}/plot_background_freesurfer_mne.html": f"{tu}/{fw}/50_background_freesurfer_mne.html",  # noqa E501
-    f"{tu}/{sm}/plot_fix_bem_in_blender.html": f"{tu}/{fw}/80_fix_bem_in_blender.html",
-    f"{tu}/{sm}/plot_compute_covariance.html": f"{tu}/{fw}/90_compute_covariance.html",
-    f"{tu}/{sm}/plot_object_source_estimate.html": f"{tu}/{nv}/10_stc_class.html",
-    f"{tu}/{sm}/plot_dipole_fit.html": f"{tu}/{nv}/20_dipole_fit.html",
-    f"{tu}/{sm}/plot_mne_dspm_source_localization.html": f"{tu}/{nv}/30_mne_dspm_loreta.html",  # noqa E501
-    f"{tu}/{sm}/plot_dipole_orientations.html": f"{tu}/{nv}/35_dipole_orientations.html",  # noqa E501
-    f"{tu}/{sm}/plot_mne_solutions.html": f"{tu}/{nv}/40_mne_fixed_free.html",
-    f"{tu}/{sm}/plot_beamformer_lcmv.html": f"{tu}/{nv}/50_beamformer_lcmv.html",
-    f"{tu}/{sm}/plot_visualize_stc.html": f"{tu}/{nv}/60_visualize_stc.html",
-    f"{tu}/{sm}/plot_eeg_mri_coords.html": f"{tu}/{nv}/70_eeg_mri_coords.html",
-    f"{tu}/{sd}/plot_brainstorm_phantom_elekta.html": f"{tu}/{nv}/80_brainstorm_phantom_elekta.html",  # noqa E501
-    f"{tu}/{sd}/plot_brainstorm_phantom_ctf.html": f"{tu}/{nv}/85_brainstorm_phantom_ctf.html",  # noqa E501
-    f"{tu}/{sd}/plot_phantom_4DBTi.html": f"{tu}/{nv}/90_phantom_4DBTi.html",
-    f"{tu}/{sd}/plot_brainstorm_auditory.html": f"{tu}/io/60_ctf_bst_auditory.html",
-    f"{tu}/{sd}/plot_sleep.html": f"{tu}/clinical/60_sleep.html",
-    f"{tu}/{di}/plot_background_filtering.html": f"{tu}/{pr}/25_background_filtering.html",  # noqa E501
-    f"{tu}/{di}/plot_background_statistics.html": f"{tu}/{sn}/10_background_stats.html",
-    f"{tu}/{sn}/plot_stats_cluster_erp.html": f"{tu}/{sn}/20_erp_stats.html",
-    f"{tu}/{sn}/plot_stats_cluster_1samp_test_time_frequency.html": f"{tu}/{sn}/40_cluster_1samp_time_freq.html",  # noqa E501
-    f"{tu}/{sn}/plot_stats_cluster_time_frequency.html": f"{tu}/{sn}/50_cluster_between_time_freq.html",  # noqa E501
-    f"{tu}/{sn}/plot_stats_spatio_temporal_cluster_sensors.html": f"{tu}/{sn}/75_cluster_ftest_spatiotemporal.html",  # noqa E501
-    f"{tu}/{sr}/plot_stats_cluster_spatio_temporal.html": f"{tu}/{sr}/20_cluster_1samp_spatiotemporal.html",  # noqa E501
-    f"{tu}/{sr}/plot_stats_cluster_spatio_temporal_2samp.html": f"{tu}/{sr}/30_cluster_ftest_spatiotemporal.html",  # noqa E501
-    f"{tu}/{sr}/plot_stats_cluster_spatio_temporal_repeated_measures_anova.html": f"{tu}/{sr}/60_cluster_rmANOVA_spatiotemporal.html",  # noqa E501
-    f"{tu}/{sr}/plot_stats_cluster_time_frequency_repeated_measures_anova.html": f"{tu}/{sn}/70_cluster_rmANOVA_time_freq.html",  # noqa E501
-    f"{tu}/{tf}/plot_sensors_time_frequency.html": f"{tu}/{tf}/20_sensors_time_frequency.html",  # noqa E501
-    f"{tu}/{tf}/plot_ssvep.html": f"{tu}/{tf}/50_ssvep.html",
-    f"{tu}/{si}/plot_creating_data_structures.html": f"{tu}/{si}/10_array_objs.html",
-    f"{tu}/{si}/plot_point_spread.html": f"{tu}/{si}/70_point_spread.html",
-    f"{tu}/{si}/plot_dics.html": f"{tu}/{si}/80_dics.html",
-    f"{tu}/{tf}/plot_eyetracking.html": f"{tu}/{pr}/90_eyetracking_data.html",
-    f"{ex}/{co}/mne_inverse_label_connectivity.html": f"{mne_conn}/{ex}/mne_inverse_label_connectivity.html",  # noqa E501
-    f"{ex}/{co}/cwt_sensor_connectivity.html": f"{mne_conn}/{ex}/cwt_sensor_connectivity.html",  # noqa E501
-    f"{ex}/{co}/mixed_source_space_connectivity.html": f"{mne_conn}/{ex}/mixed_source_space_connectivity.html",  # noqa E501
-    f"{ex}/{co}/mne_inverse_coherence_epochs.html": f"{mne_conn}/{ex}/mne_inverse_coherence_epochs.html",  # noqa E501
-    f"{ex}/{co}/mne_inverse_connectivity_spectrum.html": f"{mne_conn}/{ex}/mne_inverse_connectivity_spectrum.html",  # noqa E501
-    f"{ex}/{co}/mne_inverse_envelope_correlation_volume.html": f"{mne_conn}/{ex}/mne_inverse_envelope_correlation_volume.html",  # noqa E501
-    f"{ex}/{co}/mne_inverse_envelope_correlation.html": f"{mne_conn}/{ex}/mne_inverse_envelope_correlation.html",  # noqa E501
-    f"{ex}/{co}/mne_inverse_psi_visual.html": f"{mne_conn}/{ex}/mne_inverse_psi_visual.html",  # noqa E501
-    f"{ex}/{co}/sensor_connectivity.html": f"{mne_conn}/{ex}/sensor_connectivity.html",
-    f"{ex}/{vi}/publication_figure.html": f"{tu}/{vi}/10_publication_figure.html",
-    f"{ex}/{vi}/sensor_noise_level.html": f"{tu}/{pr}/50_artifact_correction_ssp.html",
+    "install/contributing": "development/contributing",
+    "overview/cite": "documentation/cite",
+    "overview/get_help": "help/index",
+    "overview/roadmap": "development/roadmap",
+    "whats_new": "development/whats_new",
+    f"{tu}/evoked/plot_eeg_erp": f"{tu}/evoked/30_eeg_erp",
+    f"{tu}/evoked/plot_whitened": f"{tu}/evoked/40_whitened",
+    f"{tu}/misc/plot_modifying_data_inplace": f"{tu}/intro/15_inplace",
+    f"{tu}/misc/plot_report": f"{tu}/intro/70_report",
+    f"{tu}/misc/plot_seeg": f"{tu}/clinical/20_seeg",
+    f"{tu}/misc/plot_ecog": f"{tu}/clinical/30_ecog",
+    f"{tu}/{ml}/plot_receptive_field": f"{tu}/{ml}/30_strf",
+    f"{tu}/{ml}/plot_sensors_decoding": f"{tu}/{ml}/50_decoding",
+    f"{tu}/{sm}/plot_background_freesurfer": f"{tu}/{fw}/10_background_freesurfer",
+    f"{tu}/{sm}/plot_source_alignment": f"{tu}/{fw}/20_source_alignment",
+    f"{tu}/{sm}/plot_forward": f"{tu}/{fw}/30_forward",
+    f"{tu}/{sm}/plot_eeg_no_mri": f"{tu}/{fw}/35_eeg_no_mri",
+    f"{tu}/{sm}/plot_background_freesurfer_mne": f"{tu}/{fw}/50_background_freesurfer_mne",  # noqa E501
+    f"{tu}/{sm}/plot_fix_bem_in_blender": f"{tu}/{fw}/80_fix_bem_in_blender",
+    f"{tu}/{sm}/plot_compute_covariance": f"{tu}/{fw}/90_compute_covariance",
+    f"{tu}/{sm}/plot_object_source_estimate": f"{tu}/{nv}/10_stc_class",
+    f"{tu}/{sm}/plot_dipole_fit": f"{tu}/{nv}/20_dipole_fit",
+    f"{tu}/{sm}/plot_mne_dspm_source_localization": f"{tu}/{nv}/30_mne_dspm_loreta",
+    f"{tu}/{sm}/plot_dipole_orientations": f"{tu}/{nv}/35_dipole_orientations",
+    f"{tu}/{sm}/plot_mne_solutions": f"{tu}/{nv}/40_mne_fixed_free",
+    f"{tu}/{sm}/plot_beamformer_lcmv": f"{tu}/{nv}/50_beamformer_lcmv",
+    f"{tu}/{sm}/plot_visualize_stc": f"{tu}/{nv}/60_visualize_stc",
+    f"{tu}/{sm}/plot_eeg_mri_coords": f"{tu}/{nv}/70_eeg_mri_coords",
+    f"{tu}/{sd}/plot_brainstorm_phantom_elekta": f"{tu}/{nv}/80_brainstorm_phantom_elekta",  # noqa E501
+    f"{tu}/{sd}/plot_brainstorm_phantom_ctf": f"{tu}/{nv}/85_brainstorm_phantom_ctf",
+    f"{tu}/{sd}/plot_phantom_4DBTi": f"{tu}/{nv}/90_phantom_4DBTi",
+    f"{tu}/{sd}/plot_brainstorm_auditory": f"{tu}/io/60_ctf_bst_auditory",
+    f"{tu}/{sd}/plot_sleep": f"{tu}/clinical/60_sleep",
+    f"{tu}/{di}/plot_background_filtering": f"{tu}/{pr}/25_background_filtering",
+    f"{tu}/{di}/plot_background_statistics": f"{tu}/{sn}/10_background_stats",
+    f"{tu}/{sn}/plot_stats_cluster_erp": f"{tu}/{sn}/20_erp_stats",
+    f"{tu}/{sn}/plot_stats_cluster_1samp_test_time_frequency": f"{tu}/{sn}/40_cluster_1samp_time_freq",  # noqa E501
+    f"{tu}/{sn}/plot_stats_cluster_time_frequency": f"{tu}/{sn}/50_cluster_between_time_freq",  # noqa E501
+    f"{tu}/{sn}/plot_stats_spatio_temporal_cluster_sensors": f"{tu}/{sn}/75_cluster_ftest_spatiotemporal",  # noqa E501
+    f"{tu}/{sr}/plot_stats_cluster_spatio_temporal": f"{tu}/{sr}/20_cluster_1samp_spatiotemporal",  # noqa E501
+    f"{tu}/{sr}/plot_stats_cluster_spatio_temporal_2samp": f"{tu}/{sr}/30_cluster_ftest_spatiotemporal",  # noqa E501
+    f"{tu}/{sr}/plot_stats_cluster_spatio_temporal_repeated_measures_anova": f"{tu}/{sr}/60_cluster_rmANOVA_spatiotemporal",  # noqa E501
+    f"{tu}/{sr}/plot_stats_cluster_time_frequency_repeated_measures_anova": f"{tu}/{sn}/70_cluster_rmANOVA_time_freq",  # noqa E501
+    f"{tu}/{tf}/plot_sensors_time_frequency": f"{tu}/{tf}/20_sensors_time_frequency",
+    f"{tu}/{tf}/plot_ssvep": f"{tu}/{tf}/50_ssvep",
+    f"{tu}/{si}/plot_creating_data_structures": f"{tu}/{si}/10_array_objs",
+    f"{tu}/{si}/plot_point_spread": f"{tu}/{si}/70_point_spread",
+    f"{tu}/{si}/plot_dics": f"{tu}/{si}/80_dics",
+    f"{tu}/{tf}/plot_eyetracking": f"{tu}/{pr}/90_eyetracking_data",
+    f"{ex}/{co}/mne_inverse_label_connectivity": f"{mne_conn}/{ex}/mne_inverse_label_connectivity",  # noqa E501
+    f"{ex}/{co}/cwt_sensor_connectivity": f"{mne_conn}/{ex}/cwt_sensor_connectivity",
+    f"{ex}/{co}/mixed_source_space_connectivity": f"{mne_conn}/{ex}/mixed_source_space_connectivity",  # noqa E501
+    f"{ex}/{co}/mne_inverse_coherence_epochs": f"{mne_conn}/{ex}/mne_inverse_coherence_epochs",  # noqa E501
+    f"{ex}/{co}/mne_inverse_connectivity_spectrum": f"{mne_conn}/{ex}/mne_inverse_connectivity_spectrum",  # noqa E501
+    f"{ex}/{co}/mne_inverse_envelope_correlation_volume": f"{mne_conn}/{ex}/mne_inverse_envelope_correlation_volume",  # noqa E501
+    f"{ex}/{co}/mne_inverse_envelope_correlation": f"{mne_conn}/{ex}/mne_inverse_envelope_correlation",  # noqa E501
+    f"{ex}/{co}/mne_inverse_psi_visual": f"{mne_conn}/{ex}/mne_inverse_psi_visual",
+    f"{ex}/{co}/sensor_connectivity": f"{mne_conn}/{ex}/sensor_connectivity",
+    f"{ex}/{vi}/publication_figure": f"{tu}/{vi}/10_publication_figure",
+    f"{ex}/{vi}/sensor_noise_level": f"{tu}/{pr}/50_artifact_correction_ssp",
 }
 
-
-def check_existing_redirect(path):
-    """Make sure existing HTML files are redirects, before overwriting."""
-    if os.path.isfile(path):
-        with open(path, "r") as fid:
-            for _ in range(8):
-                next(fid)
-            line = fid.readline()
-            assert "Page Redirection" in line, line
-
-
-def make_redirects(app, exception):
-    """Make HTML redirects."""
-    # https://www.sphinx-doc.org/en/master/extdev/appapi.html
-    # Adapted from sphinxcontrib/redirects (BSD-2-Clause)
-    if not (
-        isinstance(app.builder, sphinx.builders.html.StandaloneHTMLBuilder)
-        and exception is None
-    ):
-        return
-    TEMPLATE = """\
+# Adapted from sphinxcontrib/redirects (BSD-2-Clause)
+REDIRECT_TEMPLATE = """\
 <!DOCTYPE HTML>
 <html lang="en-US">
     <head>
@@ -1730,66 +1722,104 @@ def make_redirects(app, exception):
     <body>
         If you are not redirected automatically, follow this <a href='{to}'>link</a>.
     </body>
-</html>"""  # noqa: E501
-    sphinx_gallery_conf = app.config["sphinx_gallery_conf"]
-    for src_dir, out_dir in zip(
-        sphinx_gallery_conf["examples_dirs"], sphinx_gallery_conf["gallery_dirs"]
-    ):
-        root = os.path.abspath(os.path.join(app.srcdir, src_dir))
+</html>"""
+
+
+def check_existing_redirect(path):
+    """Make sure existing HTML files are redirects, before overwriting."""
+    if path.is_file():
+        with open(path, "r") as fid:
+            for _ in range(8):
+                next(fid)
+            line = fid.readline()
+            if "Page Redirection" not in line:
+                raise RuntimeError(
+                    "Attempted overwrite of HTML file with a redirect, where the "
+                    "original file was not already a redirect."
+                )
+
+
+def _check_valid_builder(app, exception):
+    valid_builder = isinstance(app.builder, sphinx.builders.html.StandaloneHTMLBuilder)
+    return valid_builder and exception is None
+
+
+def make_gallery_redirects(app, exception):
+    """Make HTML redirects for our sphinx gallery pages."""
+    if not _check_valid_builder(app, exception):
+        return
+    sg_conf = app.config["sphinx_gallery_conf"]
+    for src_dir, out_dir in zip(sg_conf["examples_dirs"], sg_conf["gallery_dirs"]):
+        root = (Path(app.srcdir) / src_dir).resolve()
         fnames = [
-            os.path.join(os.path.relpath(dirpath, root), fname)
-            for dirpath, _, fnames in os.walk(root)
-            for fname in fnames
-            if fname in needed_plot_redirects
+            pyfile.relative_to(root)
+            for pyfile in root.rglob(r"**/*.py")
+            if pyfile.name in needed_plot_redirects
         ]
         # plot_ redirects
         for fname in fnames:
-            dirname = os.path.join(app.outdir, out_dir, os.path.dirname(fname))
-            to_fname = os.path.splitext(os.path.basename(fname))[0] + ".html"
+            dirname = Path(app.outdir) / out_dir / fname.parent
+            to_fname = fname.with_suffix(".html").name
             fr_fname = f"plot_{to_fname}"
-            to_path = os.path.join(dirname, to_fname)
-            fr_path = os.path.join(dirname, fr_fname)
-            assert os.path.isfile(to_path), (fname, to_path)
+            to_path = dirname / to_fname
+            fr_path = dirname / fr_fname
+            assert to_path.is_file(), (fname, to_path)
             with open(fr_path, "w") as fid:
-                fid.write(TEMPLATE.format(to=to_fname))
+                fid.write(REDIRECT_TEMPLATE.format(to=to_fname))
         sphinx_logger.info(
             f"Added {len(fnames):3d} HTML plot_* redirects for {out_dir}"
         )
-    # API redirects
+
+
+def make_api_redirects(app, exception):
+    """Make HTML redirects for our API pages."""
+    if not _check_valid_builder(app, exception):
+        return
+
     for page in api_redirects:
         fname = f"{page}.html"
-        fr_path = os.path.join(app.outdir, fname)
-        to_path = os.path.join(app.outdir, "api", fname)
+        fr_path = Path(app.outdir) / fname
+        to_path = Path(app.outdir) / "api" / fname
         # allow overwrite if existing file is just a redirect
         check_existing_redirect(fr_path)
         with open(fr_path, "w") as fid:
-            fid.write(TEMPLATE.format(to=to_path))
+            fid.write(REDIRECT_TEMPLATE.format(to=to_path))
     sphinx_logger.info(f"Added {len(api_redirects):3d} HTML API redirects")
-    # custom redirects
-    for fr, to in custom_redirects.items():
-        if not to.startswith("http"):
-            assert os.path.isfile(os.path.join(app.outdir, to)), to
-            # handle links to sibling folders
-            path_parts = to.split("/")
-            if tu in path_parts:
-                path_parts = [".."] + path_parts[(path_parts.index(tu) + 1) :]
-            to = os.path.join(*path_parts)
-        assert to.endswith("html"), to
-        fr_path = os.path.join(app.outdir, fr)
-        assert fr_path.endswith("html"), fr_path
-        # allow overwrite if existing file is just a redirect
+
+
+def make_custom_redirects(app, exception):
+    """Make HTML redirects for miscellaneous pages."""
+    if not _check_valid_builder(app, exception):
+        return
+
+    for _fr, _to in custom_redirects.items():
+        fr = f"{_fr}.html"
+        to = f"{_to}.html"
+        fr_path = Path(app.outdir) / fr
         check_existing_redirect(fr_path)
-        # handle folders that no longer exist
-        if fr_path.split("/")[-2] in (
+        if to.startswith("http"):
+            to_path = to
+        else:
+            to_path = Path(app.outdir) / to
+            assert to_path.is_file(), to_path
+        # recreate folders that no longer exist
+        defunct_gallery_folders = (
             "misc",
             "discussions",
             "source-modeling",
             "sample-datasets",
             "connectivity",
+        )
+        parts = fr_path.relative_to(Path(app.outdir)).parts
+        if (
+            len(parts) > 1  # whats_new violates this
+            and parts[1] in defunct_gallery_folders
+            and not fr_path.parent.exists()
         ):
-            os.makedirs(os.path.dirname(fr_path), exist_ok=True)
+            os.makedirs(fr_path.parent, exist_ok=True)
+        # write the redirect
         with open(fr_path, "w") as fid:
-            fid.write(TEMPLATE.format(to=to))
+            fid.write(REDIRECT_TEMPLATE.format(to=to_path))
     sphinx_logger.info(f"Added {len(custom_redirects):3d} HTML custom redirects")
 
 
@@ -1818,5 +1848,7 @@ def setup(app):
     app.connect("autodoc-process-docstring", append_attr_meth_examples)
     report_scraper.app = app
     app.connect("builder-inited", report_scraper.copyfiles)
-    app.connect("build-finished", make_redirects)
+    app.connect("build-finished", make_gallery_redirects)
+    app.connect("build-finished", make_api_redirects)
+    app.connect("build-finished", make_custom_redirects)
     app.connect("build-finished", make_version)

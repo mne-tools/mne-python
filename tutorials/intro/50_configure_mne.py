@@ -14,6 +14,7 @@ We begin by importing the necessary Python modules:
 # %%
 
 import os
+
 import mne
 
 # %%

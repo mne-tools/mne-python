@@ -5,16 +5,15 @@
 # License: BSD-3-Clause
 
 import numpy as np
-from numpy.testing import assert_array_equal, assert_allclose, assert_equal
 import pytest
-
+from numpy.testing import assert_allclose, assert_array_equal, assert_equal
 from scipy.signal.windows import hann
 
 import mne
 from mne import read_source_estimate
 from mne.datasets import testing
-from mne.stats.regression import linear_regression, linear_regression_raw
 from mne.io import RawArray
+from mne.stats.regression import linear_regression, linear_regression_raw
 
 data_path = testing.data_path(download=False)
 stc_fname = data_path / "MEG" / "sample" / "sample_audvis_trunc-meg-lh.stc"

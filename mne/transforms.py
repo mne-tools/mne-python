@@ -5,8 +5,8 @@
 #
 # License: BSD-3-Clause
 
-import os
 import glob
+import os
 from copy import deepcopy
 from pathlib import Path
 
@@ -15,28 +15,27 @@ from scipy import linalg
 from scipy.spatial.distance import cdist
 from scipy.special import sph_harm
 
-from .fixes import jit, _get_img_fdata
 from ._fiff.constants import FIFF
 from ._fiff.open import fiff_open
 from ._fiff.tag import read_tag
 from ._fiff.write import start_and_end_file, write_coord_trans
 from .defaults import _handle_default
+from .fixes import _get_img_fdata, jit
 from .utils import (
-    check_fname,
-    logger,
-    verbose,
-    _ensure_int,
-    _validate_type,
-    _path_like,
-    get_subjects_dir,
-    fill_doc,
     _check_fname,
     _check_option,
-    _require_version,
-    wrapped_stdout,
+    _ensure_int,
     _import_nibabel,
+    _path_like,
+    _require_version,
+    _validate_type,
+    check_fname,
+    fill_doc,
+    get_subjects_dir,
+    logger,
+    verbose,
+    wrapped_stdout,
 )
-
 
 # transformation from anterior/left/superior coordinate system to
 # right/anterior/superior:
@@ -1783,16 +1782,16 @@ def _compute_volume_registration(
     nib = _import_nibabel("SDR morph")
     _require_version("dipy", "SDR morph", "0.10.1")
     with np.testing.suppress_warnings():
-        from dipy.align.imaffine import AffineMap
         from dipy.align import (
+            affine,
             affine_registration,
             center_of_mass,
-            translation,
-            rigid,
-            affine,
             imwarp,
             metrics,
+            rigid,
+            translation,
         )
+        from dipy.align.imaffine import AffineMap
 
     # input validation
     _validate_type(moving, nib.spatialimages.SpatialImage, "moving")
@@ -1927,9 +1926,9 @@ def apply_volume_registration(
     """
     _require_version("dipy", "SDR morph", "0.10.1")
     _import_nibabel("SDR morph")
-    from nibabel.spatialimages import SpatialImage
-    from dipy.align.imwarp import DiffeomorphicMap
     from dipy.align.imaffine import AffineMap
+    from dipy.align.imwarp import DiffeomorphicMap
+    from nibabel.spatialimages import SpatialImage
 
     _validate_type(moving, SpatialImage, "moving")
     _validate_type(static, SpatialImage, "static")
@@ -2001,9 +2000,9 @@ def apply_volume_registration_points(
     from .channels import compute_native_head_t, make_dig_montage
 
     _require_version("nibabel", "volume registration", "2.1.0")
+    from dipy.align.imwarp import DiffeomorphicMap
     from nibabel import MGHImage
     from nibabel.spatialimages import SpatialImage
-    from dipy.align.imwarp import DiffeomorphicMap
 
     _validate_type(moving, SpatialImage, "moving")
     _validate_type(static, SpatialImage, "static")

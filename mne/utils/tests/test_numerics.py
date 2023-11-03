@@ -4,45 +4,44 @@ from io import StringIO
 from pathlib import Path
 
 import numpy as np
-from numpy.testing import assert_array_equal, assert_allclose
 import pytest
+from numpy.testing import assert_allclose, assert_array_equal
 from scipy import sparse
 
-from mne import read_evokeds, read_cov, pick_types
+from mne import pick_types, read_cov, read_evokeds
 from mne._fiff.pick import _picks_by_type
 from mne.epochs import make_fixed_length_epochs
 from mne.io import read_raw_fif
 from mne.time_frequency import tfr_morlet
 from mne.utils import (
+    _PCA,
+    _apply_scaling_array,
+    _apply_scaling_cov,
+    _array_equal_nan,
+    _cal_to_julian,
+    _custom_lru_cache,
+    _dt_to_julian,
+    _freq_mask,
     _get_inst_data,
-    hashfunc,
-    sum_squared,
+    _julian_to_cal,
+    _julian_to_dt,
+    _reg_pinv,
+    _ReuseCycle,
+    _time_mask,
+    _undo_scaling_array,
+    _undo_scaling_cov,
     compute_corr,
     create_slices,
-    _time_mask,
-    _freq_mask,
-    random_permutation,
-    _reg_pinv,
-    object_size,
-    object_hash,
-    object_diff,
-    _apply_scaling_cov,
-    _undo_scaling_cov,
-    _apply_scaling_array,
-    _undo_scaling_array,
-    _PCA,
-    _array_equal_nan,
-    _julian_to_cal,
-    _cal_to_julian,
-    _dt_to_julian,
-    _julian_to_dt,
     grand_average,
-    _ReuseCycle,
+    hashfunc,
     numerics,
-    _custom_lru_cache,
+    object_diff,
+    object_hash,
+    object_size,
+    random_permutation,
+    sum_squared,
 )
-from mne.utils.numerics import _LRU_CACHES, _LRU_CACHE_MAXSIZES
-
+from mne.utils.numerics import _LRU_CACHE_MAXSIZES, _LRU_CACHES
 
 base_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
 fname_raw = base_dir / "test_raw.fif"

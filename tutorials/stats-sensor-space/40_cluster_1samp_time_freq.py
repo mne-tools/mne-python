@@ -32,14 +32,14 @@ see also: :ref:`tut-cluster-spatiotemporal-sensor`.
 
 # %%
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 import scipy.stats
 
 import mne
-from mne.time_frequency import tfr_morlet
-from mne.stats import permutation_cluster_1samp_test
 from mne.datasets import sample
+from mne.stats import permutation_cluster_1samp_test
+from mne.time_frequency import tfr_morlet
 
 # %%
 # Set parameters

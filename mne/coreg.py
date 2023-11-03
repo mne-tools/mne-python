@@ -6,75 +6,74 @@
 
 import configparser
 import fnmatch
-from glob import glob, iglob
 import os
 import os.path as op
-import stat
-import sys
 import re
 import shutil
+import stat
+import sys
 from functools import reduce
+from glob import glob, iglob
 
 import numpy as np
 from scipy.optimize import leastsq
 from scipy.spatial.distance import cdist
 
-from ._fiff.meas_info import read_fiducials, write_fiducials, read_info
-from ._fiff.constants import FIFF
-from ._fiff.meas_info import Info
 from ._fiff._digitization import _get_data_as_dict_from_dig
+from ._fiff.constants import FIFF
+from ._fiff.meas_info import Info, read_fiducials, read_info, write_fiducials
 
 # keep get_mni_fiducials for backward compat (no burden to keep in this
 # namespace, too)
 from ._freesurfer import (
     _read_mri_info,
-    get_mni_fiducials,
     estimate_head_mri_t,  # noqa: F401
+    get_mni_fiducials,
 )
-from .label import read_label, Label
+from .bem import read_bem_surfaces, write_bem_surfaces
+from .channels import make_dig_montage
+from .label import Label, read_label
 from .source_space import (
     add_source_space_distances,
     read_source_spaces,  # noqa: F401
     write_source_spaces,
 )
 from .surface import (
-    read_surface,
-    write_surface,
+    _DistanceQuery,
     _normalize_vectors,
     complete_surface_info,
     decimate_surface,
-    _DistanceQuery,
+    read_surface,
+    write_surface,
 )
-from .bem import read_bem_surfaces, write_bem_surfaces
 from .transforms import (
+    Transform,
+    _angle_between_quats,
+    _fit_matched_points,
+    _quat_to_euler,
+    _read_fs_xfm,
+    _write_fs_xfm,
+    apply_trans,
+    combine_transforms,
+    invert_transform,
+    rot_to_quat,
     rotation,
     rotation3d,
     scaling,
     translation,
-    Transform,
-    _read_fs_xfm,
-    _write_fs_xfm,
-    invert_transform,
-    combine_transforms,
-    _quat_to_euler,
-    _fit_matched_points,
-    apply_trans,
-    rot_to_quat,
-    _angle_between_quats,
 )
-from .channels import make_dig_montage
 from .utils import (
+    _check_option,
+    _check_subject,
+    _import_nibabel,
+    _validate_type,
+    fill_doc,
     get_config,
     get_subjects_dir,
     logger,
     pformat,
     verbose,
     warn,
-    fill_doc,
-    _validate_type,
-    _check_subject,
-    _check_option,
-    _import_nibabel,
 )
 from .viz._3d import _fiducial_coords
 

@@ -14,8 +14,9 @@ This example looks at high-frequency SEF responses.
 # %%
 
 
-import mne
 import os
+
+import mne
 from mne.datasets import hf_sef
 
 fname_evoked = os.path.join(hf_sef.data_path(), "MEG/subject_b/hf_sef_15min-ave.fif")

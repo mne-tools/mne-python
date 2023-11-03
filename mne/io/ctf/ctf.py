@@ -9,26 +9,24 @@ import os
 
 import numpy as np
 
+from ..._fiff._digitization import _format_dig_points
+from ..._fiff.utils import _blk_read_lims, _mult_cal_one
 from ...utils import (
-    verbose,
-    logger,
+    _check_fname,
+    _check_option,
     _clean_names,
     fill_doc,
-    _check_option,
-    _check_fname,
+    logger,
+    verbose,
 )
-
 from ..base import BaseRaw
-from ..._fiff.utils import _mult_cal_one, _blk_read_lims
-from ..._fiff._digitization import _format_dig_points
-
-from .res4 import _read_res4, _make_ctf_name
-from .hc import _read_hc
-from .eeg import _read_eeg, _read_pos
-from .trans import _make_ctf_coord_trans_set
-from .info import _compose_meas_info, _read_bad_chans, _annotate_bad_segments
 from .constants import CTF
+from .eeg import _read_eeg, _read_pos
+from .hc import _read_hc
+from .info import _annotate_bad_segments, _compose_meas_info, _read_bad_chans
 from .markers import _read_annotations_ctf_call
+from .res4 import _make_ctf_name, _read_res4
+from .trans import _make_ctf_coord_trans_set
 
 
 @fill_doc

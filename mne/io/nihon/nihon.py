@@ -8,11 +8,11 @@ from pathlib import Path
 
 import numpy as np
 
-from ..base import BaseRaw
-from ...utils import fill_doc, logger, verbose, warn, _check_fname
 from ..._fiff.meas_info import create_info
-from ...annotations import Annotations
 from ..._fiff.utils import _mult_cal_one
+from ...annotations import Annotations
+from ...utils import _check_fname, fill_doc, logger, verbose, warn
+from ..base import BaseRaw
 
 
 def _ensure_path(fname):
@@ -207,7 +207,7 @@ def _read_nihon_header(fname):
                 t_datablock["address"] = t_data_address
 
                 fid.seek(t_data_address + 0x26)
-                t_n_channels = np.fromfile(fid, np.uint8, 1)[0]
+                t_n_channels = np.fromfile(fid, np.uint8, 1)[0].astype(np.int64)
                 t_datablock["n_channels"] = t_n_channels
 
                 t_channels = []
@@ -219,14 +219,14 @@ def _read_nihon_header(fname):
                 t_datablock["channels"] = t_channels
 
                 fid.seek(t_data_address + 0x1C)
-                t_record_duration = np.fromfile(fid, np.uint32, 1)[0]
+                t_record_duration = np.fromfile(fid, np.uint32, 1)[0].astype(np.int64)
                 t_datablock["duration"] = t_record_duration
 
                 fid.seek(t_data_address + 0x1A)
                 sfreq = np.fromfile(fid, np.uint16, 1)[0] & 0x3FFF
-                t_datablock["sfreq"] = sfreq
+                t_datablock["sfreq"] = sfreq.astype(np.int64)
 
-                t_datablock["n_samples"] = int(t_record_duration * sfreq / 10)
+                t_datablock["n_samples"] = np.int64(t_record_duration * sfreq // 10)
                 t_controlblock["datablocks"].append(t_datablock)
             controlblocks.append(t_controlblock)
         header["controlblocks"] = controlblocks

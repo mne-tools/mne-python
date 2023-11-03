@@ -30,6 +30,7 @@ harmonics).
 # %%
 
 from os import path as op
+
 import mne
 
 data_path = op.join(mne.datasets.testing.data_path(verbose=True), "SSS")

@@ -6,53 +6,55 @@ import itertools
 import os
 from pathlib import Path
 
-import pytest
 import numpy as np
+import pytest
 from numpy.testing import (
-    assert_array_equal,
-    assert_equal,
     assert_allclose,
-    assert_array_less,
     assert_almost_equal,
+    assert_array_equal,
+    assert_array_less,
+    assert_equal,
 )
 
 import mne
+from mne import read_trans, write_trans
 from mne.datasets import testing
 from mne.fixes import _get_img_fdata
-from mne import read_trans, write_trans
 from mne.io import read_info
 from mne.transforms import (
-    invert_transform,
-    _get_trans,
-    rotation,
-    rotation3d,
-    rotation_angles,
+    _angle_between_quats,
+    _average_quats,
+    _cart_to_sph,
+    _compute_r2,
+    _euler_to_quat,
     _find_trans,
-    combine_transforms,
-    apply_trans,
-    translation,
-    get_ras_to_neuromag_trans,
+    _find_vector_rotation,
+    _fit_matched_points,
+    _get_trans,
+    _MatchedDisplacementFieldInterpolator,
     _pol_to_cart,
+    _quat_real,
+    _quat_to_affine,
+    _quat_to_euler,
+    _read_fs_xfm,
+    _sph_to_cart,
+    _topo_to_sph,
+    _validate_pipeline,
+    _write_fs_xfm,
+    apply_trans,
+    combine_transforms,
+    get_ras_to_neuromag_trans,
+    invert_transform,
     quat_to_rot,
     rot_to_quat,
-    _angle_between_quats,
-    _find_vector_rotation,
-    _sph_to_cart,
-    _cart_to_sph,
-    _topo_to_sph,
-    _average_quats,
-    _SphericalSurfaceWarp as SphericalSurfaceWarp,
+    rotation,
+    rotation3d,
     rotation3d_align_z_axis,
-    _read_fs_xfm,
-    _write_fs_xfm,
-    _quat_real,
-    _fit_matched_points,
-    _quat_to_euler,
-    _euler_to_quat,
-    _quat_to_affine,
-    _compute_r2,
-    _validate_pipeline,
-    _MatchedDisplacementFieldInterpolator,
+    rotation_angles,
+    translation,
+)
+from mne.transforms import (
+    _SphericalSurfaceWarp as SphericalSurfaceWarp,
 )
 
 data_path = testing.data_path(download=False)

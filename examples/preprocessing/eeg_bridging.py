@@ -10,7 +10,7 @@ applied the gel conducting signal from the scalp to the electrode for one
 electrode connects with the gel conducting signal from another electrode
 "bridging" the two signals. This is undesirable because the signals from the
 two (or more) electrodes are not as independent as they would otherwise be;
-they are very similar to each other introducting additional
+they are very similar to each other introducing additional
 spatial smearing. An algorithm has been developed to detect electrode
 bridging :footcite:`TenkeKayser2001`, which has been implemented in EEGLAB
 :footcite:`DelormeMakeig2004`. Unfortunately, there is not a lot to be
@@ -35,8 +35,8 @@ https://psychophysiology.cpmc.columbia.edu/software/eBridge/tutorial.html.
 
 # sphinx_gallery_thumbnail_number = 2
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 from matplotlib.colors import LinearSegmentedColormap
 
 import mne
