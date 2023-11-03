@@ -1669,6 +1669,8 @@ class Report:
         figs = _plot_ica_properties_as_arrays(
             ica=ica, inst=inst, picks=picks, n_jobs=n_jobs
         )
+        assert len(figs) == len(picks)
+
         captions = []
         for idx in range(len(figs)):
             caption = f"ICA component {picks[idx]}."
