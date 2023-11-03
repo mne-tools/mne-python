@@ -442,6 +442,8 @@
 
 .. _ramonapariciog: https://github.com/ramonapariciog
 
+.. _Rasmus Aagaard: https://github.com/rasgaard
+
 .. _Rasmus Zetter: https://people.aalto.fi/rasmus.zetter
 
 .. _Reza Nasri: https://github.com/rznas
