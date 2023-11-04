@@ -92,7 +92,7 @@ For full functionality, some functions require:
   - `PyQt6 <https://www.riverbankcomputing.com/software/pyqt/>`__ ≥ 6.0
   - `PySide6 <https://doc.qt.io/qtforpython-6/>`__ ≥ 6.0
   - `PyQt5 <https://www.riverbankcomputing.com/software/pyqt/>`__ ≥ 5.12
-  - `PySide2 <https://doc.qt.io/qtforpython-6/gettingstarted/porting_from2.html>` ≥ 5.12
+  - `PySide2 <https://doc.qt.io/qtforpython-6/gettingstarted/porting_from2.html>`__ ≥ 5.12
 
 - `Numba <https://numba.pydata.org>`__ ≥ 0.54.0
 - `NiBabel <https://nipy.org/nibabel/>`__ ≥ 3.2.1
