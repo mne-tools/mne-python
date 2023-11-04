@@ -284,7 +284,7 @@ write_info
 
 def test_documented():
     """Test that public functions and classes are documented."""
-    doc_dir = (Path(__file__).parent.parent.parent / "doc").absolute()
+    doc_dir = (Path(__file__).parent.parent.parent / "doc").resolve()
     doc_file = doc_dir / "python_reference.rst"
     if not doc_file.is_file():
         pytest.skip("Documentation file not found: %s" % doc_file)
