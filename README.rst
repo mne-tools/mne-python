@@ -36,7 +36,8 @@ our GitHub repository.
 Installation
 ^^^^^^^^^^^^
 
-To install the latest stable version of MNE-Python, use pip_ in a terminal:
+To install the latest stable version of MNE-Python with minimal dependencies
+only, use pip_ in a terminal:
 
 .. code-block:: console
 
