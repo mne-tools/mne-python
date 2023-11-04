@@ -135,9 +135,7 @@ evoked = mne.EvokedArray(data, epochs.info, tmin=0, comment="KIT phantom activat
 evoked.plot_joint()
 
 # %%
-# Finally, let's fit dipoles at each dipole's peak activation time and plot the result.
-
-# sphinx_gallery_thumbnail_number = 7
+# Let's fit dipoles at each dipole's peak activation time.
 
 trans = mne.transforms.Transform("head", "mri", np.eye(4))
 sphere = mne.make_sphere_model(r0=(0.0, 0.0, 0.0), head_radius=0.08)
@@ -153,6 +151,12 @@ rotation = mne.transforms.rotation(
 )
 evoked.info["dev_head_t"]["trans"][:] = translation @ rotation
 dip, residual = mne.fit_dipole(evoked, cov, sphere, n_jobs=None)
+
+# %%
+# Finally let's look at the results.
+
+# sphinx_gallery_thumbnail_number = 7
+
 print(f"Average amplitude: {np.mean(dip.amplitude) * 1e9:0.1f} nAm")
 print(f"Average GOF:       {np.mean(dip.gof):0.1f}%")
 diffs = 1000 * np.sqrt(np.sum((dip.pos - actual_pos) ** 2, axis=-1))
