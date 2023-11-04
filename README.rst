@@ -25,7 +25,7 @@
 .. |OpenSSF| image:: https://www.bestpractices.dev/projects/7783/badge
 .. _OpenSSF: https://www.bestpractices.dev/projects/7783
 
-.. |MNE| image:: https://mne.tools/stable/_static/mne_logo.svg
+.. |MNE| image:: https://mne.tools/stable/_static/mne_logo_small.svg
 .. _MNE: https://mne.tools/dev/
 
 
@@ -69,12 +69,8 @@ To install the latest stable version of MNE-Python, use pip_ in a terminal:
 
     $ pip install --upgrade mne
 
-..  note::
-    - MNE-Python 0.17 was the last release to support Python 2.7.
-    - MNE-Python 0.18 requires Python 3.5 or higher.
-    - MNE-Python 0.21 requires Python 3.6 or higher.
-    - MNE-Python 0.24 requires Python 3.7 or higher.
-    - MNE-Python 1.4 requires Python 3.8 or higher.
+The current MNE-Python release requires Python 3.8 or higher. MNE-Python 0.17
+was the last release to support Python 2.7.
 
 For more complete instructions, including our standalone installers and more
 advanced installation methods, please refer to the `installation guide`_.
