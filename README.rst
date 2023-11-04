@@ -1,7 +1,5 @@
 .. -*- mode: rst -*-
 
-|PyPI|_ |conda-forge|_ |Zenodo|_ |Discourse|_ |Codecov|_ |Bandit|_ |OpenSSF|_
-
 |MNE|_
 
 .. |PyPI| image:: https://img.shields.io/pypi/dm/mne.svg?label=PyPI
@@ -13,7 +11,7 @@
 .. |Zenodo| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.592483.svg
 .. _Zenodo: https://doi.org/10.5281/zenodo.592483
 
-.. |Discourse| image:: https://img.shields.io/discourse/status?label=Community&server=https%3A%2F%2Fmne.discourse.group%2F
+.. |Discourse| image:: https://img.shields.io/discourse/status?label=Forum&server=https%3A%2F%2Fmne.discourse.group%2F
 .. _Discourse: https://mne.discourse.group/
 
 .. |Codecov| image:: https://img.shields.io/codecov/c/github/mne-tools/mne-python?label=Coverage
@@ -145,8 +143,19 @@ Please see the instructions on our documentation website:
 https://mne.tools/dev/install/contributing.html
 
 
-Licensing
-^^^^^^^^^
+About
+^^^^^
+
+======= ======================
+CI      |Codecov|_ |Bandit|_
+Package |PyPI|_ |conda-forge|_
+Docs    |Discourse|_
+Meta    |Zenodo|_ |OpenSSF|_
+======= ======================
+
+
+License
+^^^^^^^
 
 MNE-Python is **BSD-licenced** (BSD-3-Clause):
 
