@@ -48,6 +48,7 @@ from ..defaults import _handle_default
 from ..rank import compute_rank
 from ..transforms import apply_trans
 from ..utils import (
+    _auto_weakref,
     _check_ch_locs,
     _check_decim,
     _check_option,
@@ -1493,7 +1494,12 @@ class DraggableColorbar:
         self.index = self.cycle.index(mappable.get_cmap().name)
         self.lims = (self.cbar.norm.vmin, self.cbar.norm.vmax)
         self.connect()
-        subscribe(self.fig, "colormap_range", self._on_colormap_range)
+
+        @_auto_weakref
+        def _on_colormap_range(event):
+            return self._on_colormap_range(event)
+
+        subscribe(self.fig, "colormap_range", _on_colormap_range)
 
     def connect(self):
         """Connect to all the events we need."""
@@ -2524,6 +2530,7 @@ def _plot_psd(
     if not average:
         picks = np.concatenate(picks_list)
         info = pick_info(inst.info, sel=picks, copy=True)
+        bad_ch_idx = [info["ch_names"].index(ch) for ch in info["bads"]]
         types = np.array(info.get_channel_types())
         ch_types_used = list()
         for this_type in _VALID_CHANNEL_TYPES:
@@ -2556,7 +2563,7 @@ def _plot_psd(
             xlim=(freqs[0], freqs[-1]),
             ylim=None,
             times=freqs,
-            bad_ch_idx=[],
+            bad_ch_idx=bad_ch_idx,
             titles=titles,
             ch_types_used=ch_types_used,
             selectable=True,

@@ -79,7 +79,7 @@ def _read_mff_header(filepath):
         # by what we need to (e.g., a sample rate of 500 means we can multiply
         # by 1 and divide by 2 rather than multiplying by 500 and dividing by
         # 1000)
-        numerator = signal_blocks["sfreq"]
+        numerator = int(signal_blocks["sfreq"])
         denominator = 1000
         this_gcd = math.gcd(numerator, denominator)
         numerator = numerator // this_gcd
@@ -507,7 +507,17 @@ class RawMff(BaseRaw):
                 "    Excluding events {%s} ..."
                 % ", ".join([k for i, k in enumerate(event_codes) if i not in include_])
             )
-            events_ids = np.arange(len(include_)) + 1
+            if all(ch.startswith("D") for ch in include_names):
+                # support the DIN format DIN1, DIN2, ..., DIN9, DI10, DI11, ... DI99,
+                # D100, D101, ..., D255 that we get when sending 0-255 triggers on a
+                # parallel port.
+                events_ids = list()
+                for ch in include_names:
+                    while not ch[0].isnumeric():
+                        ch = ch[1:]
+                    events_ids.append(int(ch))
+            else:
+                events_ids = np.arange(len(include_)) + 1
             egi_info["new_trigger"] = _combine_triggers(
                 egi_events[include_], remapping=events_ids
             )

@@ -5,8 +5,8 @@
 The Info data structure
 =======================
 
-This tutorial describes the :class:`mne.Info` data structure, which keeps track
-of various recording details, and is attached to :class:`~mne.io.Raw`,
+This tutorial describes the :class:`mne.Info` data structure, which keeps track of
+various recording details, and is attached to :class:`~mne.io.Raw`,
 :class:`~mne.Epochs`, and :class:`~mne.Evoked` objects.
 
 We will begin by loading the Python modules we need, and loading the same

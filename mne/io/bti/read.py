@@ -48,12 +48,12 @@ def read_int8(fid):
 
 def read_uint16(fid):
     """Read unsigned 16bit integer from bti file."""
-    return _unpack_simple(fid, ">u2", np.uint16)
+    return _unpack_simple(fid, ">u2", np.uint32)
 
 
 def read_int16(fid):
     """Read 16bit integer from bti file."""
-    return _unpack_simple(fid, ">i2", np.int16)
+    return _unpack_simple(fid, ">i2", np.int32)
 
 
 def read_uint32(fid):
@@ -88,7 +88,13 @@ def read_double(fid):
 
 def read_int16_matrix(fid, rows, cols):
     """Read 16bit integer matrix from bti file."""
-    return _unpack_matrix(fid, rows, cols, dtype=">i2", out_dtype=np.int16)
+    return _unpack_matrix(
+        fid,
+        rows,
+        cols,
+        dtype=">i2",
+        out_dtype=np.int32,
+    )
 
 
 def read_float_matrix(fid, rows, cols):

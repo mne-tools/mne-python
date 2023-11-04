@@ -334,7 +334,7 @@ def _test_raw_reader(
     assert meas_date is None or meas_date >= _stamp_to_dt((0, 0))
 
     # test repr_html
-    assert "Good channels" in raw.info._repr_html_()
+    assert "Good channels" in raw._repr_html_()
 
     # test resetting raw
     if test_kwargs:

@@ -326,7 +326,7 @@ print(f"Average number of coils active during recording: {n_active.mean()}")
 # %%
 # Head position data can be computed using
 # :func:`mne.chpi.compute_chpi_locs` and :func:`mne.chpi.compute_head_pos`,
-# or loaded with the:func:`mne.chpi.read_head_pos` function. The
+# or loaded with the :func:`mne.chpi.read_head_pos` function. The
 # :ref:`example data <sample-dataset>` doesn't include cHPI, so here we'll
 # load a :file:`.pos` file used for testing, just to demonstrate:
 

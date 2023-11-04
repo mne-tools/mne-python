@@ -414,7 +414,7 @@ def _fig_to_img(fig, *, image_format="png", own_figure=True):
     dpi = fig.get_dpi()
     logger.debug(
         f"Saving figure with dimension {fig.get_size_inches()} inches with "
-        f"{{dpi}} dpi"
+        f"{dpi} dpi"
     )
 
     # https://pillow.readthedocs.io/en/stable/handbook/image-file-formats.html
@@ -586,9 +586,6 @@ def _plot_ica_properties_as_arrays(*, ica, inst, picks, n_jobs):
         The properties plots as NumPy arrays.
     """
     import matplotlib.pyplot as plt
-
-    if picks is None:
-        picks = list(range(ica.n_components_))
 
     def _plot_one_ica_property(*, ica, inst, pick):
         figs = ica.plot_properties(inst=inst, picks=pick, show=False)
@@ -1666,27 +1663,17 @@ class Report:
             )
             return
 
+        if picks is None:
+            picks = list(range(ica.n_components_))
+
         figs = _plot_ica_properties_as_arrays(
             ica=ica, inst=inst, picks=picks, n_jobs=n_jobs
         )
-        rel_explained_var = (
-            ica.pca_explained_variance_ / ica.pca_explained_variance_.sum()
-        )
-        cum_explained_var = np.cumsum(rel_explained_var)
-        captions = []
-        for idx, rel_var, cum_var in zip(
-            range(len(figs)),
-            rel_explained_var[: len(figs)],
-            cum_explained_var[: len(figs)],
-        ):
-            caption = (
-                f"ICA component {idx}. " f"Variance explained: {round(100 * rel_var)}%"
-            )
-            if idx == 0:
-                caption += "."
-            else:
-                caption += f" ({round(100 * cum_var)}% cumulative)."
+        assert len(figs) == len(picks)
 
+        captions = []
+        for idx in range(len(figs)):
+            caption = f"ICA component {picks[idx]}."
             captions.append(caption)
 
         title = "ICA component properties"
