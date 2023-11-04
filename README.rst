@@ -1,9 +1,7 @@
 .. -*- mode: rst -*-
 
-MNE-Python
-==========
-
-|MNE|_
+|MNE|_ MNE-Python
+=================
 
 `MNE-Python`_ is an open-source Python package for exploring,
 visualizing, and analyzing human neurophysiological data such as MEG, EEG, sEEG,
