@@ -132,7 +132,7 @@ Meta    |Zenodo|_ |OpenSSF|_
 License
 ^^^^^^^
 
-MNE-Python is **BSD-licenced** (BSD-3-Clause):
+MNE-Python is **BSD-licensed** (BSD-3-Clause):
 
     This software is OSI Certified Open Source Software.
     OSI Certified is a certification mark of the Open Source Initiative.
