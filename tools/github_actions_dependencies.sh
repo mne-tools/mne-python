@@ -58,10 +58,10 @@ echo ""
 # for compat_minimal and compat_old, we don't want to --upgrade
 if [ ! -z "$CONDA_DEPENDENCIES" ]; then
 	echo "Installing dependencies for conda"
-	python -m pip install -r requirements_base.txt -r requirements_testing.txt
+	python -m pip install -ev . -r requirements_testing.txt
 else
 	echo "Installing dependencies using pip"
-	python -m pip install $STD_ARGS -r requirements_base.txt -r requirements_testing.txt -r requirements_hdf5.txt
+	python -m pip install $STD_ARGS -ev .[hdf5] -r requirements_testing.txt -r requirements_hdf5.txt
 fi
 echo ""
 
