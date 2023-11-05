@@ -304,7 +304,7 @@ be reflected the next time you open a Python interpreter and ``import mne``
 Finally, we'll add a few dependencies that are not needed for running
 MNE-Python, but are needed for locally running our test suite::
 
-    $ pip install -r requirements_testing.txt
+    $ pip install -r requirements_testing.txt -r requirements_testing_extra.txt
 
 And for building our documentation::
 
