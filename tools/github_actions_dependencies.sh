@@ -61,7 +61,7 @@ if [ ! -z "$CONDA_DEPENDENCIES" ]; then
 	python -m pip install -ve . -r requirements_testing.txt
 else
 	echo "Installing dependencies using pip"
-	python -m pip install $STD_ARGS -ve .[hdf5] -r requirements_testing.txt -r requirements_hdf5.txt
+	python -m pip install $STD_ARGS -ve .[hdf5] -r requirements_testing.txt
 fi
 echo ""
 
