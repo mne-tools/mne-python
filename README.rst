@@ -114,9 +114,7 @@ For full functionality, some functions require:
 Contributing
 ^^^^^^^^^^^^
 
-Please see the instructions on our documentation website:
-
-https://mne.tools/dev/install/contributing.html
+Please see the `contributing guidelines <https://mne.tools/dev/development/contributing.html>`__ on our documentation website.
 
 
 About
