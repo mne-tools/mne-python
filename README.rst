@@ -125,7 +125,7 @@ About
 ======= ======================
 CI      |Codecov|_ |Bandit|_
 Package |PyPI|_ |conda-forge|_
-Docs    |Discourse|_
+Docs    |Docs|_ |Discourse|_
 Meta    |Zenodo|_ |OpenSSF|_
 ======= ======================
 
@@ -180,6 +180,9 @@ MNE-Python is **BSD-licensed** (BSD-3-Clause):
 
 .. |conda-forge| image:: https://img.shields.io/conda/dn/conda-forge/mne.svg?label=Conda
 .. _conda-forge: https://anaconda.org/conda-forge/mne
+
+.. |Docs| image:: https://img.shields.io/badge/Docs-online-green?label=Documentation
+.. _Docs: https://mne.tools/dev/overview/index.html
 
 .. |Zenodo| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.592483.svg
 .. _Zenodo: https://doi.org/10.5281/zenodo.592483
