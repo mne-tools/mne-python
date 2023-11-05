@@ -27,7 +27,7 @@ The `user forum`_ is the best place to ask questions about MNE-Python usage or
 the contribution process. The forum also features job opportunities and other
 announcements.
 
-If you find a bug or have an idea for new a new feature that should be added to
+If you find a bug or have an idea for a new feature that should be added to
 MNE-Python, please use the
 `issue tracker <https://github.com/mne-tools/mne-python/issues/new/choose>`__ of
 our GitHub repository.
