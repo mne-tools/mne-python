@@ -179,7 +179,7 @@ MNE-Python is **BSD-licensed** (BSD-3-Clause):
 .. _conda-forge: https://anaconda.org/conda-forge/mne
 
 .. |Docs| image:: https://img.shields.io/badge/Docs-online-green?label=Documentation
-.. _Docs: https://mne.tools/dev/overview/index.html
+.. _Docs: https://mne.tools/dev/
 
 .. |Zenodo| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.592483.svg
 .. _Zenodo: https://doi.org/10.5281/zenodo.592483
