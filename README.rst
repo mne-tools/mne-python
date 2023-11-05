@@ -126,7 +126,7 @@ About
 CI      |Codecov|_ |Bandit|_
 Package |PyPI|_ |conda-forge|_
 Docs    |Discourse|_
-Meta    |Zenodo|_ |OpenSSF|_
+Meta    |OpenSSF|_ |Zenodo|_
 ======= ======================
 
 
