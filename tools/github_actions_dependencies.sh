@@ -14,7 +14,7 @@ else
 	echo "Install pip-pre dependencies"
 	test "${MNE_CI_KIND}" == "pip-pre"
 	STD_ARGS="$STD_ARGS --pre"
-	python -m pip install $STD_ARGS pip setuptools wheel packaging
+	python -m pip install $STD_ARGS pip
 	echo "Numpy"
 	pip uninstall -yq numpy
 	echo "PyQt6"

@@ -51,7 +51,7 @@ stages:
             displayName: 'Get Python'
           - bash: |
               set -eo pipefail
-              python -m pip install --progress-bar off --upgrade pip setuptools wheel
+              python -m pip install --progress-bar off --upgrade pip build
               python -m pip install --progress-bar off -ve .[hdf5,test_base]
               python -m pip uninstall -yq pytest-qt  # don't want to set up display, etc. for this
               pre-commit install --install-hooks
@@ -107,7 +107,7 @@ stages:
             displayName: 'Get Python'
           - bash: |
               set -e
-              python -m pip install --progress-bar off --upgrade pip setuptools wheel
+              python -m pip install --progress-bar off --upgrade pip
               python -m pip install --progress-bar off "mne-qt-browser[opengl] @ git+https://github.com/mne-tools/mne-qt-browser.git@main" pyvista scikit-learn pytest-error-for-skips python-picard "PyQt6!=6.5.1" qtpy nibabel
               python -m pip uninstall -yq mne
               python -m pip install --progress-bar off --upgrade -e .[test]
@@ -166,7 +166,7 @@ stages:
             displayName: 'Get Python'
           - bash: |
               set -e
-              python -m pip install --progress-bar off --upgrade pip setuptools wheel
+              python -m pip install --progress-bar off --upgrade pip
               python -m pip install --progress-bar off --upgrade --pre --only-binary=\"numpy,scipy,matplotlib,vtk\" numpy scipy matplotlib vtk
               python -c "import vtk"
               python -m pip install --progress-bar off --upgrade -ve .[test]

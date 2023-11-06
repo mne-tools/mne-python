@@ -2,7 +2,7 @@
 
 STD_ARGS="--progress-bar off --upgrade"
 if [ "${TEST_MODE}" == "pip" ]; then
-	python -m pip install --upgrade pip setuptools wheel
+	python -m pip install --upgrade pip
 	python -m pip install --upgrade --only-binary="numba,llvmlite,numpy,scipy,vtk" -ve .[full]
 elif [ "${TEST_MODE}" == "pip-pre" ]; then
 	STD_ARGS="$STD_ARGS --pre"
