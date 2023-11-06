@@ -120,12 +120,10 @@ Please see the `contributing guidelines <https://mne.tools/dev/development/contr
 About
 ^^^^^
 
-======= ======================
-CI      |Codecov|_ |Bandit|_
-Package |PyPI|_ |conda-forge|_
-Docs    |Docs|_ |Discourse|_
-Meta    |Zenodo|_  |OpenSSF|_
-======= ======================
+|Codecov|_ |Bandit|_
+|PyPI|_ |conda-forge|_
+|Docs|_ |Discourse|_
+|Zenodo|_ |OpenSSF|_
 
 
 License
