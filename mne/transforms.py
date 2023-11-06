@@ -2082,7 +2082,7 @@ class _MatchedDisplacementFieldInterpolator:
     and related tests.
     """
 
-    def __init__(self, fro, to):
+    def __init__(self, fro, to, *, extrema=None):
         from scipy.interpolate import LinearNDInterpolator
 
         fro = np.array(fro, float)
@@ -2101,8 +2101,11 @@ class _MatchedDisplacementFieldInterpolator:
         fro = apply_trans(trans, fro)
 
         # Add points at extrema
-        delta = (to.max(axis=0) - to.min(axis=0)) / 2.0
-        extrema = np.array([fro.min(axis=0) - delta, fro.max(axis=0) + delta])
+        if extrema is None:
+            delta = (to.max(axis=0) - to.min(axis=0)) / 2.0
+            assert (delta > 0).all()
+            extrema = np.array([fro.min(axis=0) - delta, fro.max(axis=0) + delta])
+        assert extrema.shape == (2, 3)  # min, max
         self._extrema = np.array(np.meshgrid(*extrema.T)).T.reshape(-1, fro.shape[-1])
         fro_concat = np.concatenate((fro, self._extrema))
         to_concat = np.concatenate((to, self._extrema))
@@ -2112,9 +2115,12 @@ class _MatchedDisplacementFieldInterpolator:
 
     def __call__(self, x):
         assert x.ndim in (1, 2) and x.shape[-1] == 3
+        assert np.isfinite(x).all()
         singleton = x.ndim == 1
         x = apply_trans(self._affine, x)
+        assert np.isfinite(x).all()
         out = self._interp(x)
+        assert np.isfinite(out).all()
         self._last_deltas = np.linalg.norm(x - out, axis=1)
         out = out[0] if singleton else out
         return out

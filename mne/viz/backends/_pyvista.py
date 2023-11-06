@@ -599,6 +599,7 @@ class _PyVistaRenderer(_AbstractRenderer):
         colormap="RdBu",
         normalized_colormap=False,
         reverse_lut=False,
+        opacity=None,
     ):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
@@ -622,6 +623,7 @@ class _PyVistaRenderer(_AbstractRenderer):
                     show_scalar_bar=False,
                     cmap=cmap,
                     smooth_shading=self.smooth_shading,
+                    opacity=opacity,
                 )
         return actor, tube
 

@@ -275,7 +275,9 @@ def _scale_helmet_to_sensors(system, surf, info):
         return surf
     fro = np.array(fro, float)
     to = np.array(to, float)
-    interp = _MatchedDisplacementFieldInterpolator(fro, to)
+    delta = np.ptp(surf["rr"], axis=0) * 0.1  # 10% beyond bounds
+    extrema = np.array([surf["rr"].min(0) - delta, surf["rr"].max(0) + delta])
+    interp = _MatchedDisplacementFieldInterpolator(fro, to, extrema=extrema)
     new_rr = interp(surf["rr"])
     try:
         quat, sc = _fit_matched_points(surf["rr"], new_rr)

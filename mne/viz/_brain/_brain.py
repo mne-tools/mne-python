@@ -32,7 +32,7 @@ from ..._freesurfer import (
     vertex_to_mni,
 )
 from ...defaults import DEFAULTS, _handle_default
-from ...surface import _marching_cubes, _mesh_borders, get_meg_helmet_surf, mesh_edges
+from ...surface import _marching_cubes, _mesh_borders, mesh_edges
 from ...transforms import (
     Transform,
     _frame_to_str,
@@ -62,7 +62,8 @@ from .._3d import (
     _handle_sensor_types,
     _handle_time,
     _plot_forward,
-    _plot_sensors,
+    _plot_helmet,
+    _plot_sensors_3d,
     _process_clim,
 )
 from .._3d_overlay import _LayeredMesh
@@ -2791,7 +2792,7 @@ class Brain:
         from ...preprocessing.ieeg._projection import _project_sensors_onto_inflated
 
         _validate_type(info, Info, "info")
-        meg, eeg, fnirs, warn_meg = _handle_sensor_types(meg, eeg, fnirs)
+        meg, eeg, fnirs, warn_meg, sensor_alpha = _handle_sensor_types(meg, eeg, fnirs)
         picks = pick_types(
             info,
             meg=("sensors" in meg),
@@ -2825,7 +2826,7 @@ class Brain:
         # Do the main plotting
         for _ in self._iter_views("vol"):
             if picks.size > 0:
-                sensors_actors = _plot_sensors(
+                sensors_actors = _plot_sensors_3d(
                     self._renderer,
                     info,
                     to_cf_t,
@@ -2836,6 +2837,7 @@ class Brain:
                     warn_meg,
                     head_surf,
                     self._units,
+                    sensor_alpha=sensor_alpha,
                     sensor_colors=sensor_colors,
                 )
                 # sensors_actors can still be None
@@ -2844,15 +2846,14 @@ class Brain:
                         self._add_actor(item, actor)
 
             if "helmet" in meg and pick_types(info, meg=True).size > 0:
-                surf = get_meg_helmet_surf(info, head_mri_t)
-                verts = surf["rr"] * (1 if self._units == "m" else 1e3)
-                actor, _ = self._renderer.mesh(
-                    *verts.T,
-                    surf["tris"],
-                    color=DEFAULTS["coreg"]["helmet_color"],
-                    opacity=0.25,
-                    reset_camera=False,
-                    render=False,
+                actor, _, _ = _plot_helmet(
+                    self._renderer,
+                    info,
+                    to_cf_t,
+                    head_mri_t,
+                    "mri",
+                    alpha=sensor_alpha["meg_helmet"],
+                    scale=1 if self._units == "m" else 1e3,
                 )
                 self._add_actor("helmet", actor)
 

@@ -56,7 +56,7 @@ from ..viz._3d import (
     _plot_helmet,
     _plot_hpi_coils,
     _plot_mri_fiducials,
-    _plot_sensors,
+    _plot_sensors_3d,
 )
 from ..viz.backends._utils import _qt_app_exec, _qt_safe_window
 from ..viz.utils import safe_event
@@ -1269,35 +1269,29 @@ class CoregistrationUI(HasTraits):
             plot_types["meg"] = ["sensors"]
         if self._fnirs_channels:
             plot_types["fnirs"] = ["sources", "detectors"]
-        sens_actors = list()
-        # until opacity can be specified using a dict, we need to iterate
-        sensor_opacity = dict(
+        sensor_alpha = dict(
             eeg=self._defaults["sensor_opacity"],
             fnirs=self._defaults["sensor_opacity"],
             meg=0.25,
         )
-        for ch_type, plot_type in plot_types.items():
-            picks = pick_types(self._info, ref_meg=False, **{ch_type: True})
-            if not (len(picks) and plot_type):
-                continue
-            logger.debug(f"Drawing {ch_type} sensors")
-            these_actors = _plot_sensors(
-                self._renderer,
-                self._info,
-                self._to_cf_t,
-                picks=picks,
-                warn_meg=False,
-                head_surf=self._head_geo,
-                units="m",
-                sensor_opacity=sensor_opacity[ch_type],
-                orient_glyphs=self._orient_glyphs,
-                scale_by_distance=self._scale_by_distance,
-                surf=self._head_geo,
-                check_inside=self._check_inside,
-                nearest=self._nearest,
-                **plot_types,
-            )
-            sens_actors.extend(sum(these_actors.values(), list()))
+        picks = pick_types(self._info, ref_meg=False, meg=True, eeg=True, fnirs=True)
+        these_actors = _plot_sensors_3d(
+            self._renderer,
+            self._info,
+            self._to_cf_t,
+            picks=picks,
+            warn_meg=False,
+            head_surf=self._head_geo,
+            units="m",
+            sensor_alpha=sensor_alpha,
+            orient_glyphs=self._orient_glyphs,
+            scale_by_distance=self._scale_by_distance,
+            surf=self._head_geo,
+            check_inside=self._check_inside,
+            nearest=self._nearest,
+            **plot_types,
+        )
+        sens_actors = sum(these_actors.values(), list())
         self._update_actor("sensors", sens_actors)
 
     def _add_head_surface(self):
