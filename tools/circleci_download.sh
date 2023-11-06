@@ -59,7 +59,7 @@ else
                 python -c "import mne; print(mne.datasets.brainstorm.bst_phantom_elekta.data_path(update_path=True, accept=True))";
             fi;
             if [[ $(cat $FNAME | grep -x ".*datasets.*phantom_kernel.*" | wc -l) -gt 0 ]]; then
-                python -c "import mne; print(mne.datasets.phantom_kernel.data_path(update_path=True, accept=True))";
+                python -c "import mne; print(mne.datasets.phantom_kernel.data_path(update_path=True))";
             fi;
             if [[ $(cat $FNAME | grep -x ".*datasets.*hcp_mmp_parcellation.*" | wc -l) -gt 0 ]]; then
                 python -c "import mne; print(mne.datasets.sample.data_path(update_path=True))";
