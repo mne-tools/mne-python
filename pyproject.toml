@@ -152,6 +152,7 @@ doc = [
     "ipython!=8.7.0",
     "selenium",
 ]
+dev = ["mne[test,doc]"]
 
 [project.urls]
 Homepage = "https://mne.tools/"
