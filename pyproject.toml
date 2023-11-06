@@ -1,10 +1,10 @@
 [project]
 name = "mne"
 description = "MNE-Python project for MEG and EEG data analysis."
-maintainers = [
+authors = [
     { name = "Alexandre Gramfort", email = "alexandre.gramfort@inria.fr" },
 ]
-dynamic = ["version"]
+maintainers = [{ name = "Dan McCloy", email = "dan@mccloy.info" }]
 license = { text = "BSD-3-Clause" }
 readme = { file = "README.rst", content-type = "text/x-rst" }
 requires-python = ">=3.8"
