@@ -52,7 +52,7 @@ stages:
           - bash: |
               set -eo pipefail
               python -m pip install --progress-bar off --upgrade pip setuptools wheel
-              python -m pip install --progress-bar off -r requirements_base.txt -r requirements_hdf5.txt -r requirements_testing.txt
+              python -m pip install --progress-bar off -ve .[hdf5,test_base]
               python -m pip uninstall -yq pytest-qt  # don't want to set up display, etc. for this
               pre-commit install --install-hooks
             displayName: Install dependencies
@@ -169,8 +169,7 @@ stages:
               python -m pip install --progress-bar off --upgrade pip setuptools wheel
               python -m pip install --progress-bar off --upgrade --pre --only-binary=\"numpy,scipy,matplotlib,vtk\" numpy scipy matplotlib vtk
               python -c "import vtk"
-              python -m pip install --progress-bar off --upgrade -r requirements.txt -r requirements_testing.txt -r requirements_testing_extra.txt
-              python -m pip install -e .
+              python -m pip install --progress-bar off --upgrade -ve .[test]
             displayName: 'Install dependencies with pip'
           - bash: |
               set -e

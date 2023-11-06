@@ -108,18 +108,21 @@ json_authors = [
 
 
 # GET OUR DEPENDENCY VERSIONS
-with open(out_dir / "setup.py", "r") as fid:
-    for line in fid:
-        if line.strip().startswith("python_requires="):
-            version = line.strip().split("=", maxsplit=1)[1].strip("'\",")
-            dependencies = [f"python{version}"]
-            break
-with open(out_dir / "requirements.txt", "r") as fid:
-    for line in fid:
-        req = line.strip()
-        for hard_dep in hard_dependencies:
-            if req.startswith(hard_dep):
-                dependencies.append(req)
+#
+# TODO this needs to be fixed
+#
+# with open(out_dir / "setup.py", "r") as fid:
+#     for line in fid:
+#         if line.strip().startswith("python_requires="):
+#             version = line.strip().split("=", maxsplit=1)[1].strip("'\",")
+#             dependencies = [f"python{version}"]
+#             break
+# with open(out_dir / "requirements.txt", "r") as fid:
+#     for line in fid:
+#         req = line.strip()
+#         for hard_dep in hard_dependencies:
+#             if req.startswith(hard_dep):
+#                 dependencies.append(req)
 
 
 # these must be done outside the boilerplate (no \n allowed in f-strings):
