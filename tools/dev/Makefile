@@ -3,8 +3,8 @@
 dev-activity: check_steering_committee.py
 	python check_steering_committee.py
 
-unacknowledged-bugs: unacknowledged-bug-reports.jq bug-reports-12-to-2-months-old.json
-	@jq -f unacknowledged-bug-reports.jq bug-reports-12-to-2-months-old.json
+unacknowledged-bugs: unacknowledged-issues.jq bug-reports-12-to-2-months-old.json
+	@jq -f unacknowledged-issues.jq bug-reports-12-to-2-months-old.json
 
 bug-reports-12-to-2-months-old.json:
 	@echo "Querying GitHub REST API..."
