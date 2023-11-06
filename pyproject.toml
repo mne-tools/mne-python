@@ -1,6 +1,7 @@
 [project]
 name = "mne"
 description = "MNE-Python project for MEG and EEG data analysis."
+dynamic = ["version"]
 authors = [
     { name = "Alexandre Gramfort", email = "alexandre.gramfort@inria.fr" },
 ]
