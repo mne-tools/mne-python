@@ -30,9 +30,128 @@ classifiers = [
     "Operating System :: MacOS",
     "Programming Language :: Python :: 3",
 ]
+scripts = { mne = "mne.commands.utils:main" }
+dependencies = [
+    "numpy>=1.21.2",
+    "scipy>=1.7.1",
+    "matplotlib>=3.5.0",
+    "tqdm",
+    "pooch>=1.5",
+    "decorator",
+    "packaging",
+    "jinja2",
+    "importlib_resources>=5.10.2; python_version<'3.9'",
+    "lazy_loader>=0.3",
+    "defusedxml",
+]
 
-[project.scripts]
-mne = "mne.commands.utils:main"
+[project.optional-dependencies]
+# Variants with dependencies that will get installed on top of those listed unter
+# project.dependencies
+
+# Leave this one here for backward-compat
+data = []
+
+# Dependencies for MNE-Python functions that use HDF5 I/O
+hdf5 = ["h5io", "pymatreader"]
+
+# Dependencies for full MNE-Python functionality (other than raw/epochs export)
+full = [
+    "mne[hdf5]",
+    "qtpy",
+    "PyQt6",
+    "pyobjc-framework-Cocoa>=5.2.0; platform_system=='Darwin'",
+    "sip",
+    "scikit-learn",
+    "nibabel",
+    "openmeeg>=2.5.5",
+    "numba",
+    "h5py",
+    "pandas",
+    "numexpr",
+    "jupyter",
+    "python-picard",
+    "statsmodels",
+    "joblib",
+    "psutil",
+    "dipy",
+    "vtk",
+    "nilearn",
+    "xlrd",
+    "imageio>=2.6.1",
+    "imageio-ffmpeg>=0.4.1",
+    "traitlets",
+    "pyvista>=0.32,!=0.35.2,!=0.38.0,!=0.38.1,!=0.38.2,!=0.38.3,!=0.38.4,!=0.38.5,!=0.38.6,!=0.42.0",
+    "pyvistaqt>=0.4",
+    "mffpy>=0.5.7",
+    "ipywidgets",
+    "ipympl",
+    "ipyevents",
+    "trame",
+    "trame-vtk",
+    "trame-vuetify",
+    "mne-qt-browser",
+    "darkdetect",
+    "qdarkstyle",
+    "threadpoolctl",
+]
+
+# Dependencies for running basic tests
+test_base = [
+    "pytest",
+    "pytest-cov",
+    "pytest-timeout",
+    "pytest-harvest",
+    "pytest-qt",
+    "ruff",
+    "numpydoc",
+    "codespell",
+    "check-manifest",
+    "tomli; python_version<'3.11'",
+    "twine",
+    "wheel",
+    "pre-commit",
+    "black",
+]
+
+# Dependencies for full testing
+test = [
+    "mne[full]",
+    "nitime",
+    "nbclient",
+    "sphinx-gallery",
+    "eeglabio",
+    "EDFlib-Python",
+    "pybv",
+    "imageio>=2.6.1",
+    "imageio-ffmpeg>=0.4.1",
+    "snirf",
+]
+
+# Dependencies for building the docuemntation
+doc = [
+    "sphinx>=6",
+    "numpydoc",
+    "pydata_sphinx_theme==0.13.3",
+    "sphinx-gallery @ git+https://github.com/sphinx-gallery/sphinx-gallery@master",
+    "sphinxcontrib-bibtex>=2.5",
+    "memory_profiler",
+    "neo",
+    "seaborn!=0.11.2",
+    "sphinx_copybutton",
+    "sphinx-design",
+    "sphinxcontrib-youtube",
+    "mne-bids @ git+https://github.com/mne-tools/mne-bids@main",
+    "pyxdf",
+    "mne-connectivity @ git+https://github.com/mne-tools/mne-connectivity@main",
+    "mne-gui-addons @ git+https://github.com/mne-tools/mne-gui-addons@main",
+    "pygments>=2.13",
+    "pytest",
+    "graphviz",
+    "pyzmq!=24.0.0",
+    "ipython!=8.7.0",
+    "selenium",
+]
 
 [project.urls]
 Homepage = "https://mne.tools/"
@@ -45,6 +164,9 @@ Forum = "https://mne.discourse.group/"
 [build-system]
 requires = ["setuptools>=45", "setuptools_scm[toml]>=6.2", "wheel"]
 build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["mne"]
 
 [tool.setuptools_scm]
 write_to = "mne/_version.py"
