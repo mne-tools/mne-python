@@ -537,7 +537,7 @@ def _get_stim_channel(stim_channel, info, raise_error=True):
 
 def _get_root_dir():
     """Get as close to the repo root as possible."""
-    root_dir = Path(__file__).parent.parent.expanduser().absolute()
+    root_dir = Path(__file__).parents[2]
     up_dir = root_dir.parent
     if (up_dir / "setup.py").is_file() and all(
         (up_dir / x).is_dir() for x in ("mne", "examples", "doc")
