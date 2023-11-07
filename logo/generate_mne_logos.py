@@ -140,7 +140,7 @@ ax.set_ylim(np.ceil(yy), yl[-1])
 
 # only save actual image extent plus a bit of padding
 fig.canvas.draw_idle()
-static_dir = pathlib.Path(__file__).parent / ".." / "doc" / "_static"
+static_dir = pathlib.Path(__file__).parents[1] / "doc" / "_static"
 assert static_dir.is_dir()
 kind_color = dict(
     mne_logo_dark=("0.8", "0.5"),
@@ -159,7 +159,7 @@ for kind, (tag_color, rect_color) in kind_color.items():
 # mne_splash.png
 
 # modify to make the splash screen
-data_dir = pathlib.Path(__file__).parent / ".." / "mne" / "icons"
+data_dir = pathlib.Path(__file__).parents[1] / "mne" / "icons"
 assert data_dir.is_dir()
 tag_patch.set_facecolor("0.7")
 for coll in list(ax.collections):
