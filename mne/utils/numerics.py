@@ -1152,3 +1152,9 @@ def _custom_lru_cache(maxsize):
         return cache_fun
 
     return dec
+
+
+def _array_repr(x):
+    """Produce compact info about float ndarray x."""
+    assert isinstance(x, np.ndarray), type(x)
+    return f"shape : {x.shape}, range : [{np.nanmin(x):+0.2g}, {np.nanmax(x):+0.2g}]"
