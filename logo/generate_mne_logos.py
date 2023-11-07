@@ -27,7 +27,7 @@ tagline_offset_fudge = np.array([0, -100.0])
 
 # font, etc
 rcp = {
-    "font.sans-serif": ["Primetime"],
+    "font.sans-serif": ["Cooper Hewitt"],
     "font.style": "normal",
     "font.weight": "black",
     "font.variant": "normal",
@@ -178,7 +178,7 @@ plt.savefig(op.join(data_dir, "mne_splash.png"), transparent=True)
 patch.remove()
 
 # modify to make an icon
-ax.patches.pop(-1)  # no tag line for our icon
+ax.patches[-1].remove()  # no tag line for our icon
 patch = Ellipse(xy, r, r, clip_on=False, zorder=-1, fc="k")
 ax.add_patch(patch)
 ax.set_ylim(xy[1] + r / 1.9, xy[1] - r / 1.9)
@@ -194,7 +194,7 @@ w_px = 188
 h_px = 45
 center_fudge = np.array([60, 0])
 scale_fudge = 2.1
-rcParams.update({"font.sans-serif": ["Primetime"], "font.weight": "black"})
+rcParams.update({"font.sans-serif": ["Cooper Hewitt"], "font.weight": "black"})
 x = np.linspace(-1.0, 1.0, w_px // 2)
 y = np.linspace(-1.0, 1.0, h_px // 2)
 X, Y = np.meshgrid(x, y)
