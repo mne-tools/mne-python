@@ -4,11 +4,11 @@
 # Created on Mon Jul 20 11:28:16 2015
 # License: BSD-3-Clause
 
-import os.path as op
+import pathlib
 
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib import rcParams
+from matplotlib import rcParams, font_manager
 from matplotlib.colors import LinearSegmentedColormap
 from matplotlib.patches import Ellipse, FancyBboxPatch, PathPatch, Rectangle
 from matplotlib.path import Path
@@ -21,7 +21,7 @@ center_fudge = np.array([15, 30])  # compensate for font bounding box padding
 tagline_scale_fudge = 0.97  # to get justification right
 tagline_offset_fudge = np.array([0, -100.0])
 
-# font, etc
+# font, etc (default to MNE font)
 rcp = {
     "font.sans-serif": ["Primetime"],
     "font.style": "normal",
@@ -33,6 +33,9 @@ rcp = {
 }
 plt.rcdefaults()
 rcParams.update(rcp)
+
+# %%
+# mne_logo.svg and mne_logo_dark.svg
 
 # initialize figure (no axes, margins, etc)
 fig = plt.figure(1, figsize=(5, 2.25), frameon=False, dpi=dpi)
@@ -108,9 +111,17 @@ cs.set_clip_path(mne_clip, transform=im.get_transform())
 # get final position of clipping mask
 mne_corners = mne_clip.get_extents().corners()
 
+# For this make sure that this gives something like ""
+fnt = font_manager.findfont("Cooper Hewitt:style=normal:weight=medium")
+if "Medium" not in fnt or "CooperHewitt" not in fnt:
+    print(
+        f"WARNING: Might not use correct Cooper Hewitt, got {fnt} but want "
+        "CooperHewitt-Medium.otf or similar"
+    )
+
 # add tagline
-rcParams.update({"font.sans-serif": ["Cooper Hewitt"], "font.weight": "300"})
-tag_path = TextPath((0, 0), "MEG + EEG  ANALYSIS & VISUALIZATION")
+with plt.rc_context({"font.sans-serif": ["Cooper Hewitt"], "font.weight": "medium"}):
+    tag_path = TextPath((0, 0), "MEG + EEG  ANALYSIS & VISUALIZATION")
 dims = tag_path.vertices.max(0) - tag_path.vertices.min(0)
 vert = tag_path.vertices - dims / 2.0
 mult = tagline_scale_fudge * (plot_dims / dims).min()
@@ -121,25 +132,35 @@ offset = (
     - tagline_offset_fudge
 )
 tag_clip = Path(offset + vert * mult, tag_path.codes)
-tag_patch = PathPatch(tag_clip, facecolor=(0.6, 0.6, 0.6), edgecolor="none", zorder=10)
+tag_patch = PathPatch(tag_clip, facecolor="0.6", edgecolor="none", zorder=10)
 ax.add_patch(tag_patch)
 yl = ax.get_ylim()
 yy = np.max([tag_clip.vertices.max(0)[-1], tag_clip.vertices.min(0)[-1]])
 ax.set_ylim(np.ceil(yy), yl[-1])
 
 # only save actual image extent plus a bit of padding
-plt.draw()
-static_dir = op.join(op.dirname(__file__), "..", "doc", "_static")
-assert op.isdir(static_dir)
-plt.savefig(op.join(static_dir, "mne_logo.svg"), transparent=True)
-tag_patch.set_facecolor("w")
-rect.set_facecolor("0.5")
-plt.savefig(op.join(static_dir, "mne_logo_dark.svg"), transparent=True)
-tag_patch.set_facecolor("k")
-rect.set_facecolor("w")
+fig.canvas.draw_idle()
+static_dir = pathlib.Path(__file__).parent / ".." / "doc" / "_static"
+assert static_dir.is_dir()
+kind_color = dict(
+    mne_logo_dark=("w", "0.5"),
+    mne_logo_gray=("0.6", "0.5"),
+    mne_logo=("k", "w"),  # always last
+)
+for kind, (tag_color, rect_color) in kind_color.items():
+    tag_patch.set_facecolor(tag_color)
+    rect.set_facecolor(rect_color)
+    fig.savefig(
+        static_dir / f"{kind}.svg",
+        transparent=True,
+    )
+
+# %%
+# mne_splash.png
 
 # modify to make the splash screen
-data_dir = op.join(op.dirname(__file__), "..", "mne", "icons")
+data_dir = pathlib.Path(__file__).parent / ".." / "mne" / "icons"
+assert data_dir.is_dir()
 ax.patches[-1].set_facecolor("w")
 for coll in list(ax.collections):
     coll.remove()
@@ -172,8 +193,14 @@ patch = FancyBboxPatch(
 )
 ax.add_patch(patch)
 fig.set_size_inches((512 / dpi, 512 * (h / w) / dpi))
-plt.savefig(op.join(data_dir, "mne_splash.png"), transparent=True)
+fig.savefig(
+    data_dir / "mne_splash.png",
+    transparent=True,
+)
 patch.remove()
+
+# %%
+# mne_default_icon.png
 
 # modify to make an icon
 ax.patches[-1].remove()  # no tag line for our icon
@@ -183,8 +210,13 @@ ax.set_ylim(xy[1] + r / 1.99, xy[1] - r / 1.99)
 fig.set_size_inches((256 / dpi, 256 / dpi))
 # Qt does not support clip paths in SVG rendering so we have to use PNG here
 # then use "optipng -o7" on it afterward (14% reduction in file size)
-plt.savefig(op.join(data_dir, "mne_default_icon.png"), transparent=True)
-plt.close()
+fig.savefig(
+    data_dir / "mne_default_icon.png",
+    transparent=True,
+)
+
+# %%
+# mne_logo_small.svg
 
 # 188x45 image
 dpi = 96  # for SVG it's different
@@ -192,13 +224,12 @@ w_px = 188
 h_px = 45
 center_fudge = np.array([60, 0])
 scale_fudge = 2.1
-rcParams.update({"font.sans-serif": ["Primetime"], "font.weight": "black"})
 x = np.linspace(-1.0, 1.0, w_px // 2)
 y = np.linspace(-1.0, 1.0, h_px // 2)
 X, Y = np.meshgrid(x, y)
 # initialize figure (no axes, margins, etc)
 fig = plt.figure(
-    1, figsize=(w_px / dpi, h_px / dpi), facecolor="k", frameon=False, dpi=dpi
+    2, figsize=(w_px / dpi, h_px / dpi), facecolor="k", frameon=False, dpi=dpi
 )
 ax = plt.Axes(fig, [0.0, 0.0, 1.0, 1.0])
 ax.set_axis_off()
@@ -230,6 +261,9 @@ xpad = np.abs(np.diff([xmin, xl[1]])) / 20.0
 ypad = np.abs(np.diff([ymax, ymin])) / 20.0
 ax.set_xlim(xmin - xpad, xl[1] + xpad)
 ax.set_ylim(ymax + ypad, ymin - ypad)
-plt.draw()
-plt.savefig(op.join(static_dir, "mne_logo_small.svg"), dpi=dpi, transparent=True)
-plt.close()
+fig.canvas.draw_idle()
+fig.savefig(
+    static_dir / "mne_logo_small.svg",
+    dpi=dpi,
+    transparent=True,
+)
