@@ -23,7 +23,7 @@ tagline_offset_fudge = np.array([0, -100.0])
 
 # font, etc
 rcp = {
-    "font.sans-serif": ["Cooper Hewitt"],
+    "font.sans-serif": ["Primetime"],
     "font.style": "normal",
     "font.weight": "black",
     "font.variant": "normal",
@@ -104,8 +104,7 @@ ax.add_patch(PathPatch(mne_clip, color="w", zorder=0, linewidth=0))
 im.set_clip_path(mne_clip, transform=im.get_transform())
 ax.add_patch(rect)
 rect.set_clip_path(mne_clip, transform=im.get_transform())
-for coll in cs.collections:
-    coll.set_clip_path(mne_clip, transform=im.get_transform())
+cs.set_clip_path(mne_clip, transform=im.get_transform())
 # get final position of clipping mask
 mne_corners = mne_clip.get_extents().corners()
 
@@ -155,7 +154,10 @@ xy = np.mean(bounds, axis=1) - [100, 0]
 r = np.diff(bounds, axis=1).max() * 1.2
 w, h = r, r * (2 / 3)
 box_xy = [xy[0] - w * 0.5, xy[1] - h * (2 / 5)]
-ax.set_ylim(box_xy[1] + h * 1.001, box_xy[1] - h * 0.001)
+ax.set(
+    ylim=(box_xy[1] + h * 1.001, box_xy[1] - h * 0.001),
+    xlim=(box_xy[0] - w * 0.001, box_xy[0] + w * 1.001),
+)
 patch = FancyBboxPatch(
     box_xy,
     w,
@@ -177,7 +179,7 @@ patch.remove()
 ax.patches[-1].remove()  # no tag line for our icon
 patch = Ellipse(xy, r, r, clip_on=False, zorder=-1, fc="k")
 ax.add_patch(patch)
-ax.set_ylim(xy[1] + r / 1.9, xy[1] - r / 1.9)
+ax.set_ylim(xy[1] + r / 1.99, xy[1] - r / 1.99)
 fig.set_size_inches((256 / dpi, 256 / dpi))
 # Qt does not support clip paths in SVG rendering so we have to use PNG here
 # then use "optipng -o7" on it afterward (14% reduction in file size)
