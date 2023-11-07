@@ -161,7 +161,7 @@ for kind, (tag_color, rect_color) in kind_color.items():
 # modify to make the splash screen
 data_dir = pathlib.Path(__file__).parent / ".." / "mne" / "icons"
 assert data_dir.is_dir()
-ax.patches[-1].set_facecolor("0.8")
+tag_patch.set_facecolor("0.8")
 for coll in list(ax.collections):
     coll.remove()
 bounds = np.array(
