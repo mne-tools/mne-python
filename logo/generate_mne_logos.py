@@ -9,15 +9,16 @@ This script makes the logo for MNE.
 # Created on Mon Jul 20 11:28:16 2015
 # License: BSD-3-Clause
 
-import numpy as np
 import os.path as op
+
 import matplotlib.pyplot as plt
+import numpy as np
 from matplotlib import rcParams
-from scipy.stats import multivariate_normal
+from matplotlib.colors import LinearSegmentedColormap
+from matplotlib.patches import Ellipse, FancyBboxPatch, PathPatch, Rectangle
 from matplotlib.path import Path
 from matplotlib.text import TextPath
-from matplotlib.patches import PathPatch, Ellipse, FancyBboxPatch, Rectangle
-from matplotlib.colors import LinearSegmentedColormap
+from scipy.stats import multivariate_normal
 
 # manually set values
 dpi = 300
