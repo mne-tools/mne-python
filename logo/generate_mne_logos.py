@@ -145,7 +145,7 @@ assert static_dir.is_dir()
 kind_color = dict(
     mne_logo_dark=("0.8", "0.5"),
     mne_logo_gray=("0.6", "0.75"),
-    mne_logo=("0.2", "w"),  # always last
+    mne_logo=("0.3", "w"),  # always last
 )
 for kind, (tag_color, rect_color) in kind_color.items():
     tag_patch.set_facecolor(tag_color)
