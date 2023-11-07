@@ -7,7 +7,7 @@ parser = ArgumentParser(description="Generate codemeta.json and CITATION.cff")
 parser.add_argument("release_version", type=str)
 release_version = parser.parse_args().release_version
 
-out_dir = Path(__file__).parent.parent
+out_dir = Path(__file__).parents[1]
 
 # NOTE: ../codemeta.json and ../citation.cff should not be continuously
 #       updated. Run this script only at release time.
