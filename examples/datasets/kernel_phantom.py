@@ -5,7 +5,7 @@ Kernel OPM phantom data
 =======================
 
 In this dataset, a Neuromag phantom was placed inside the Kernel OPM helmet and
-stimulated with a 7 modules active (121 channels). Here we show some example traces.
+stimulated with 7 modules active (121 channels). Here we show some example traces.
 """
 
 import numpy as np
@@ -13,7 +13,7 @@ import numpy as np
 import mne
 
 data_path = mne.datasets.phantom_kernel.data_path()
-fname = mne.datasets.phantom_kernel.data_path() / "phantom_32_100nam_raw.fif"
+fname = data_path / "phantom_32_100nam_raw.fif"
 raw = mne.io.read_raw_fif(fname).load_data()
 events = mne.find_events(raw, stim_channel="STI101")
 
@@ -31,9 +31,8 @@ raw.info["bads"] = [
 raw.drop_channels([ch_name for ch_name in raw.ch_names if ".ave" in ch_name])
 # Add field correction projectors
 raw.add_proj(mne.preprocessing.compute_proj_hfc(raw.info, order=2))
-raw.pick_types(meg=True, eeg=False, stim=False, eog=False, exclude="bads")
+raw.pick("meg", exclude="bads")
 raw.filter(0.5, 40)
-t_peak = 0.016
 epochs = mne.Epochs(
     raw,
     events,
@@ -45,6 +44,7 @@ epochs = mne.Epochs(
 )
 evoked = epochs["17"].average()  # a high-SNR dipole for these data
 fig = evoked.plot()
+t_peak = 0.016  # based on visual inspection of evoked
 fig.axes[0].axvline(t_peak, color="k", ls=":", lw=3, zorder=2)
 
 # %%
@@ -89,8 +89,8 @@ evoked = mne.EvokedArray(np.array(data).T, evoked.info, tmin=0.0)
 del epochs
 dip, residual = mne.fit_dipole(evoked, cov, sphere, n_jobs=None)
 actual_pos, actual_ori = mne.dipole.get_phantom_dipoles()
-actual_amp = np.ones(len(dip))  # misc amp to create Dipole instance
-actual_gof = np.ones(len(dip))  # misc GOF to create Dipole instance
+actual_amp = np.ones(len(dip))  # fake amp, needed to create Dipole instance
+actual_gof = np.ones(len(dip))  # fake GOF, needed to create Dipole instance
 dip_true = mne.Dipole(dip.times, actual_pos, actual_amp, actual_ori, actual_gof)
 
 fig = mne.viz.plot_alignment(

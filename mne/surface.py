@@ -271,7 +271,10 @@ def _scale_helmet_to_sensors(system, surf, info):
         fro.append(f_)
         to.append(np.mean(t_, axis=0))
     if len(fro) < 4:
-        logger.info("Using CAD helmet because fewer than 4 sensors found")
+        logger.info(
+            "Using untransformed helmet, not enough sensors found to deform to match "
+            f"acquisition based on sensor positions (got {len(fro)}, need at least 4)"
+        )
         return surf
     fro = np.array(fro, float)
     to = np.array(to, float)
@@ -281,12 +284,17 @@ def _scale_helmet_to_sensors(system, surf, info):
     new_rr = interp(surf["rr"])
     try:
         quat, sc = _fit_matched_points(surf["rr"], new_rr)
-    except np.linalg.LinAlgError:
-        logger.info("Using CAD helmet because fitting failed")
+    except np.linalg.LinAlgError as exc:
+        logger.info(
+            f"Using untransformed helmet, deformation using {len(fro)} points "
+            f"failed ({exc})"
+        )
         return surf
     rot = np.rad2deg(_angle_between_quats(quat[:3]))
     tr = 1000 * np.linalg.norm(quat[3:])
-    logger.info(f"    Deforming to match info using {len(fro)} matched points:")
+    logger.info(
+        f"    Deforming CAD helmet to match {len(fro)} acquisition sensor positions:"
+    )
     logger.info(f"    1. Affine: {rot:0.1f}°, {tr:0.1f} mm, {sc:0.2f}× scale")
     deltas = interp._last_deltas * 1000
     mu, mx = np.mean(deltas), np.max(deltas)

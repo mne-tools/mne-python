@@ -979,7 +979,7 @@ def _handle_sensor_types(meg, eeg, fnirs):
         fnirs = [fnirs]
 
     alpha_map = dict(
-        meg=dict(sensors="meg", helmet="meg_helmet"),  # ref not separable
+        meg=dict(sensors="meg", helmet="meg_helmet", ref="ref_meg"),
         eeg=dict(original="eeg", projected="eeg_projected"),
         fnirs=dict(channels="fnirs", pairs="fnirs_pairs"),
     )
@@ -1008,6 +1008,13 @@ def _handle_sensor_types(meg, eeg, fnirs):
         _check_option(f"eeg[{xi}]", x, ("original", "projected"))
     for xi, x in enumerate(fnirs):
         _check_option(f"fnirs[{xi}]", x, ("channels", "pairs", "sources", "detectors"))
+    # Add these for our True-only options, too -- eventually should support dict.
+    sensor_alpha.update(
+        seeg=0.8,
+        ecog=0.8,
+        source=sensor_alpha["fnirs"],
+        detector=sensor_alpha["fnirs"],
+    )
     return meg, eeg, fnirs, warn_meg, sensor_alpha
 
 
@@ -1015,10 +1022,12 @@ def _handle_sensor_types(meg, eeg, fnirs):
 def _ch_pos_in_coord_frame(info, to_cf_t, warn_meg=True, verbose=None):
     """Transform positions from head/device/mri to a coordinate frame."""
     from ..forward import _create_meg_coils
+    from ..forward._make_forward import _read_coil_defs
 
     chs = dict(ch_pos=dict(), sources=dict(), detectors=dict())
     unknown_chs = list()  # prepare for chs with unknown coordinate frame
     type_counts = dict()
+    coilset = _read_coil_defs(verbose=False)
     for idx in range(info["nchan"]):
         ch_type = channel_type(info, idx)
         if ch_type in type_counts:
@@ -1037,9 +1046,13 @@ def _ch_pos_in_coord_frame(info, to_cf_t, warn_meg=True, verbose=None):
                 # example, a straight line / 1D geometry)
                 this_coil = [info["chs"][idx]]
                 try:
-                    coil = _create_meg_coils(this_coil, acc="accurate")[0]
+                    coil = _create_meg_coils(
+                        this_coil, acc="accurate", coilset=coilset
+                    )[0]
                 except RuntimeError:  # we don't have an accurate one
-                    coil = _create_meg_coils(this_coil, acc="normal")[0]
+                    coil = _create_meg_coils(this_coil, acc="normal", coilset=coilset)[
+                        0
+                    ]
                 # store verts as ch_coord
                 ch_coord, triangles = _sensor_shape(coil)
                 ch_coord = apply_trans(coil_trans, ch_coord)
@@ -1521,6 +1534,7 @@ def _plot_sensors_3d(
         sensor_colors = dict()
     assert isinstance(sensor_colors, dict)
     for ch_type, sens_loc in locs.items():
+        logger.debug(f"Drawing {ch_type} sensors")
         assert len(sens_loc)  # should be guaranteed above
         colors = to_rgba_array(sensor_colors.get(ch_type, defaults[ch_type + "_color"]))
         _check_option(
