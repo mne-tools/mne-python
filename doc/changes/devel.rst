@@ -38,6 +38,7 @@ Enhancements
 - Add support for writing forward solutions to HDF5 and convenience function :meth:`mne.Forward.save` (:gh:`12036` by `Eric Larson`_)
 - Refactored internals of :func:`mne.read_annotations` (:gh:`11964` by `Paul Roujansky`_)
 - Add support for drawing MEG sensors in :ref:`mne coreg` (:gh:`12098` by `Eric Larson`_)
+- Improve string representation of :class:`mne.Covariance` (:gh:`12181` by `Eric Larson`_)
 - Add ``check_version=True`` to :ref:`mne sys_info` to check for a new release on GitHub (:gh:`12146` by `Eric Larson`_)
 - Bad channels are now colored gray in addition to being dashed when spatial colors are used in :func:`mne.viz.plot_evoked` and related functions (:gh:`12142` by `Eric Larson`_)
 - By default MNE-Python creates matplotlib figures with ``layout='constrained'`` rather than the default ``layout='tight'`` (:gh:`12050`, :gh:`12103` by `Mathieu Scheltienne`_ and `Eric Larson`_)

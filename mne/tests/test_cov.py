@@ -250,6 +250,8 @@ def test_io_cov(tmp_path):
     assert_equal(cov["method"], cov2["method"])
     assert_equal(cov["loglik"], cov2["loglik"])
     assert "Covariance" in repr(cov)
+    assert "range :" in repr(cov)
+    assert "\n" not in repr(cov)
 
     cov2 = read_cov(cov_gz_fname)
     assert_array_almost_equal(cov.data, cov2.data)
