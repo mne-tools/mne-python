@@ -1,10 +1,5 @@
-"""
-===============================================================================
-Script 'mne logo'
-===============================================================================
+"""Generate the MNE-Python logos."""
 
-This script makes the logo for MNE.
-"""
 # @author: drmccloy
 # Created on Mon Jul 20 11:28:16 2015
 # License: BSD-3-Clause
