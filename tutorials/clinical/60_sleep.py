@@ -249,7 +249,7 @@ def eeg_power_band(epochs):
 
     Returns
     -------
-    X : numpy array of shape [n_samples, 5]
+    X : numpy array of shape [n_samples, 5 * n_channels]
         Transformed data.
     """
     # specific frequency bands

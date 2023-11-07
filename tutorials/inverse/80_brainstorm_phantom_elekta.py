@@ -169,8 +169,8 @@ ax3.set_ylabel("Amplitude error (nAm)")
 # Let's plot the positions and the orientations of the actual and the estimated
 # dipoles
 
-actual_amp = np.ones(len(dip))  # misc amp to create Dipole instance
-actual_gof = np.ones(len(dip))  # misc GOF to create Dipole instance
+actual_amp = np.ones(len(dip))  # fake amp, needed to create Dipole instance
+actual_gof = np.ones(len(dip))  # fake GOF, needed to create Dipole instance
 dip_true = mne.Dipole(dip.times, actual_pos, actual_amp, actual_ori, actual_gof)
 
 fig = mne.viz.plot_alignment(

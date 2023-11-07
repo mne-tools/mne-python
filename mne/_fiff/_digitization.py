@@ -293,6 +293,7 @@ def _get_data_as_dict_from_dig(dig, exclude_ref_channel=True):
     # Split up the dig points by category
     hsp, hpi, elp = list(), list(), list()
     fids, dig_ch_pos_location = dict(), list()
+    dig = [] if dig is None else dig
 
     for d in dig:
         if d["kind"] == FIFF.FIFFV_POINT_CARDINAL:
@@ -307,6 +308,8 @@ def _get_data_as_dict_from_dig(dig, exclude_ref_channel=True):
                 dig_ch_pos_location.append(d["r"])
 
     dig_coord_frames = set([d["coord_frame"] for d in dig])
+    if len(dig_coord_frames) == 0:
+        dig_coord_frames = set([FIFF.FIFFV_COORD_HEAD])
     if len(dig_coord_frames) != 1:
         raise RuntimeError(
             "Only single coordinate frame in dig is supported, "

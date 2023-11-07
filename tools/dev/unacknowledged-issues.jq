@@ -1,4 +1,4 @@
-# Processor for `gh issue list` output that displays unacknowledged bug reports
+# Processor for `gh issue list` output that displays unacknowledged issues
 # that are 2-12 months old. The date range is specific to OpenSSF best practices.
 
 # `now` is in seconds since the unix epoch
@@ -28,5 +28,5 @@ map(
     "range": make_pretty_date_range,
     "has_dev_comments": map(select(.devComments > 0)) | length,
     "no_dev_comments": map(select(.devComments == 0) and .state == "OPEN") | length,
-    "unaddressed_bug_reports": map(select(.devComments == 0) | make_issue_url),
+    "unaddressed": map(select(.devComments == 0) | make_issue_url),
 }

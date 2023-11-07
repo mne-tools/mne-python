@@ -49,6 +49,7 @@ Enhancements
 
 Bugs
 ~~~~
+- Fix bug where :func:`mne.io.read_raw_gdf` would fail due to improper usage of ``np.clip`` (:gh:`12168` by :newcontrib:`Rasmus Aagaard`) 
 - Fix bugs with :func:`mne.preprocessing.realign_raw` where the start of ``other`` was incorrectly cropped; and onsets and durations in ``other.annotations`` were left unsynced with the resampled data (:gh:`11950` by :newcontrib:`Qian Chu`)
 - Fix bug where ``encoding`` argument was ignored when reading annotations from an EDF file (:gh:`11958` by :newcontrib:`Andrew Gilbert`)
 - Mark tests ``test_adjacency_matches_ft`` and ``test_fetch_uncompressed_file`` as network tests (:gh:`12041` by :newcontrib:`Maksym Balatsko`)
@@ -70,7 +71,7 @@ Bugs
 - Fix bug where :class:`mne.Info` HTML representations listed all channel counts instead of good channel counts under the heading "Good channels" (:gh:`12145` by `Eric Larson`_) 
 - Fix rendering glitches when plotting Neuromag/TRIUX sensors in :func:`mne.viz.plot_alignment` and related functions (:gh:`12098` by `Eric Larson`_)
 - Fix bug with delayed checking of :class:`info["bads"] <mne.Info>` (:gh:`12038` by `Eric Larson`_)
-- Fix bug with :ref:`mne coreg` where points inside the head surface were not shown (:gh:`12147` by `Eric Larson`_)
+- Fix bug with :ref:`mne coreg` where points inside the head surface were not shown (:gh:`12147`, :gh:`12164` by `Eric Larson`_)
 - Fix bug with :func:`mne.viz.plot_alignment` where ``sensor_colors`` were not handled properly on a per-channel-type basis (:gh:`12067` by `Eric Larson`_)
 - Fix handling of channel information in annotations when loading data from and exporting to EDF file (:gh:`11960` :gh:`12017` :gh:`12044` by `Paul Roujansky`_)
 - Add missing ``overwrite`` and ``verbose`` parameters to :meth:`Transform.save() <mne.transforms.Transform.save>` (:gh:`12004` by `Marijn van Vliet`_)
