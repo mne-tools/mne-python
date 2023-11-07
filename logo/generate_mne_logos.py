@@ -126,7 +126,7 @@ offset = (
     - tagline_offset_fudge
 )
 tag_clip = Path(offset + vert * mult, tag_path.codes)
-tag_patch = PathPatch(tag_clip, facecolor="k", edgecolor="none", zorder=10)
+tag_patch = PathPatch(tag_clip, facecolor=(0.6, 0.6, 0.6), edgecolor="none", zorder=10)
 ax.add_patch(tag_patch)
 yl = ax.get_ylim()
 yy = np.max([tag_clip.vertices.max(0)[-1], tag_clip.vertices.min(0)[-1]])
