@@ -112,15 +112,15 @@ cs.set_clip_path(mne_clip, transform=im.get_transform())
 mne_corners = mne_clip.get_extents().corners()
 
 # For this make sure that this gives something like ""
-fnt = font_manager.findfont("Cooper Hewitt:style=normal:weight=medium")
-if "Medium" not in fnt or "CooperHewitt" not in fnt:
+fnt = font_manager.findfont("Cooper Hewitt:style=normal:weight=light")
+if "Light" not in fnt or "CooperHewitt" not in fnt:
     print(
         f"WARNING: Might not use correct Cooper Hewitt, got {fnt} but want "
-        "CooperHewitt-Medium.otf or similar"
+        "CooperHewitt-Light.otf or similar"
     )
 
 # add tagline
-with plt.rc_context({"font.sans-serif": ["Cooper Hewitt"], "font.weight": "medium"}):
+with plt.rc_context({"font.sans-serif": ["Cooper Hewitt"], "font.weight": "light"}):
     tag_path = TextPath((0, 0), "MEG + EEG  ANALYSIS & VISUALIZATION")
 dims = tag_path.vertices.max(0) - tag_path.vertices.min(0)
 vert = tag_path.vertices - dims / 2.0
