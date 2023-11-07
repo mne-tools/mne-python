@@ -8,7 +8,7 @@ import pathlib
 
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib import rcParams, font_manager
+from matplotlib import font_manager, rcParams
 from matplotlib.colors import LinearSegmentedColormap
 from matplotlib.patches import Ellipse, FancyBboxPatch, PathPatch, Rectangle
 from matplotlib.path import Path
