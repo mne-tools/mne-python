@@ -42,6 +42,7 @@ Datasets
    visual_92_categories.data_path
    phantom_kit.data_path
    phantom_4dbti.data_path
+   phantom_kernel.data_path
    refmeg_noise.data_path
    ssvep.data_path
    erp_core.data_path

@@ -190,6 +190,14 @@ MNE_DATASETS["phantom_4dbti"] = dict(
     config_key="MNE_DATASETS_PHANTOM_4DBTI_PATH",
 )
 
+MNE_DATASETS["phantom_kernel"] = dict(
+    archive_name="MNE-phantom-kernel.tar.gz",
+    hash="md5:4e2ad987dac1a20f95bae8ffeb2d41d6",
+    url="https://osf.io/dj7wz/download?version=1",
+    folder_name="MNE-phantom-kernel-data",
+    config_key="MNE_DATASETS_PHANTOM_KERNEL_PATH",
+)
+
 MNE_DATASETS["sample"] = dict(
     archive_name="MNE-sample-data-processed.tar.gz",
     hash="md5:e8f30c4516abdc12a0c08e6bae57409c",
