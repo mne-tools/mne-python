@@ -168,7 +168,8 @@ requires = ["setuptools>=45", "setuptools_scm[toml]>=6.2", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
-where = ["mne"]
+where = ["."]
+include = ["mne"]
 
 [tool.setuptools_scm]
 write_to = "mne/_version.py"
