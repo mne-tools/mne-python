@@ -97,8 +97,8 @@ full = [
     "threadpoolctl",
 ]
 
-# Dependencies for running basic tests
-test_base = [
+# Dependencies for running the test infrastructure
+test = [
     "pytest",
     "pytest-cov",
     "pytest-timeout",
@@ -115,8 +115,8 @@ test_base = [
     "black",
 ]
 
-# Dependencies for full testing
-test = [
+# Dependencies for being able to run all tests (rare/CIs/advanced devs)
+test_full = [
     "mne[full]",
     "nitime",
     "nbclient",

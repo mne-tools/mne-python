@@ -58,14 +58,14 @@ echo ""
 # for compat_minimal and compat_old, we don't want to --upgrade
 if [ ! -z "$CONDA_DEPENDENCIES" ]; then
 	echo "Installing dependencies for conda"
-	python -m pip install -ve .[test_base]
+	python -m pip install -ve .[test]
 else
 	echo "Installing dependencies using pip"
-	python -m pip install $STD_ARGS -ve .[hdf5,test_base]
+	python -m pip install $STD_ARGS -ve .[hdf5,test]
 fi
 echo ""
 
-if [ "${DEPS}" != "minimal" ]; then
+if [[ "${DEPS}" != "minimal" ]] && [[ -z "$CONDA_ENV" ]] && [[ -z "$CONDA_DEPENDENCIES" ]]; then
 	echo "Installing non-minimal dependencies"
-	python -m pip install $STD_ARGS -ve .[test]
+	python -m pip install $STD_ARGS -ve .[test_full]
 fi
