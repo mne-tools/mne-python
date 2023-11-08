@@ -4205,7 +4205,7 @@ docdict[
     "splash"
 ] = """
 splash : bool
-    If True (default), a splash screen is shown during the appliation startup. Only
+    If True (default), a splash screen is shown during the application startup. Only
     applicable to the ``qt`` backend.
 """
 
