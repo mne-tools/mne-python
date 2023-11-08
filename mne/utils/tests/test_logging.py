@@ -270,7 +270,7 @@ def test_verbose_threads(n_jobs):
         with use_log_level("warning"):
             assert logger.level == logging.WARNING
             parallel, p_fun, got_jobs = parallel_func(my_fun, n_jobs=n_jobs)
-            assert got_jobs == n_jobs
+            assert got_jobs in (1, n_jobs)  # FORCE_SERIAL could be set
             out = parallel(p_fun() for _ in range(5))
             want_levels = [logging.WARNING] * 5
             assert out == want_levels
