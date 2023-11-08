@@ -1,7 +1,7 @@
 #!/bin/bash -ef
 
 STD_ARGS="--progress-bar off --upgrade"
-PIP_OPT= "hdf5"
+PIP_OPT="hdf5"
 if [ "${TEST_MODE}" == "pip" ]; then
 	python -m pip install --upgrade pip
 	python -m pip install --upgrade --only-binary="numba,llvmlite,numpy,scipy,vtk"
@@ -37,4 +37,4 @@ else
 	echo "Unknown run type ${TEST_MODE}"
 	exit 1
 fi
-python -m pip install $EXTRA_ARGS .[test,$PIP_OPT]
+python -m pip install $EXTRA_ARGS -e .[test,$PIP_OPT]
