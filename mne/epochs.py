@@ -1299,6 +1299,7 @@ class BaseEpochs(
         *,
         theme=None,
         overview_mode=None,
+        splash=True,
     ):
         return plot_epochs(
             self,
@@ -1324,6 +1325,7 @@ class BaseEpochs(
             use_opengl=use_opengl,
             theme=theme,
             overview_mode=overview_mode,
+            splash=splash,
         )
 
     @copy_function_doc_to_method_doc(plot_topo_image_epochs)

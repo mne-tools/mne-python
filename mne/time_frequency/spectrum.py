@@ -439,15 +439,17 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         """Check PSD results for correct shape and bad values."""
         assert len(self._dims) == self._data.ndim, (self._dims, self._data.ndim)
         assert self._data.shape == self._shape
-        # negative values OK if the spectrum is really fourier coefficients
-        if "taper" in self._dims:
-            return
         # TODO: should this be more fine-grained (report "chan X in epoch Y")?
         ch_dim = self._dims.index("channel")
-        dims = np.arange(self._data.ndim).tolist()
+        dims = list(range(self._data.ndim))
         dims.pop(ch_dim)
         # take min() across all but the channel axis
-        bad_value = self._data.min(axis=tuple(dims)) <= 0
+        # (if the abs becomes memory intensive we could iterate over channels)
+        use_data = self._data
+        if use_data.dtype.kind == "c":
+            use_data = np.abs(use_data)
+        bad_value = use_data.min(axis=tuple(dims)) == 0
+        bad_value &= ~np.isin(self.ch_names, self.info["bads"])
         if bad_value.any():
             chs = np.array(self.ch_names)[bad_value].tolist()
             s = _pl(bad_value.sum())

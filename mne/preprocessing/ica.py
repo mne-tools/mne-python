@@ -2552,6 +2552,7 @@ class ICA(ContainsMixin):
         *,
         theme=None,
         overview_mode=None,
+        splash=True,
     ):
         return plot_ica_sources(
             self,
@@ -2569,6 +2570,7 @@ class ICA(ContainsMixin):
             use_opengl=use_opengl,
             theme=theme,
             overview_mode=overview_mode,
+            splash=splash,
         )
 
     @copy_function_doc_to_method_doc(plot_ica_scores)

@@ -293,6 +293,19 @@ the MEG center in La Timone hospital in Marseille.
 
     * :ref:`tut-phantom-4Dbti`
 
+Kernel OPM phantom dataset
+==========================
+:func:`mne.datasets.phantom_kernel.data_path`.
+
+This dataset was obtained with a Neuromag phantom in a Kernel Flux (720-sensor)
+system at ILABS at the University of Washington. Only 7 out of 42 possible modules
+were active for testing purposes, yielding 121 channels of data with limited coverage
+(mostly occipital and parietal).
+
+.. topic:: Examples
+
+    * :ref:`ex-kernel-opm-phantom`
+
 OPM
 ===
 :func:`mne.datasets.opm.data_path`
