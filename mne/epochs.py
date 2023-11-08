@@ -1299,7 +1299,7 @@ class BaseEpochs(
         *,
         theme=None,
         overview_mode=None,
-        splash=False,
+        splash=True,
     ):
         return plot_epochs(
             self,
