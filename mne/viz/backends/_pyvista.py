@@ -733,7 +733,7 @@ class _PyVistaRenderer(_AbstractRenderer):
                 mesh=mesh,
                 color=color,
                 opacity=opacity,
-                scalars=mesh_scalars,
+                scalars=mesh_scalars if colormap is not None else None,
                 colormap=colormap,
                 show_scalar_bar=False,
                 backface_culling=backface_culling,
