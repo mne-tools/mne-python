@@ -454,7 +454,7 @@ def test_csd_fourier():
     for (tmin, tmax), as_array in parameters:
         if as_array:
             csd = csd_array_fourier(
-                epochs.get_data(),
+                epochs.get_data(copy=False),
                 sfreq,
                 epochs.tmin,
                 fmin=9,
@@ -510,7 +510,7 @@ def test_csd_multitaper():
     for (tmin, tmax), as_array, adaptive in parameters:
         if as_array:
             csd = csd_array_multitaper(
-                epochs.get_data(),
+                epochs.get_data(copy=False),
                 sfreq,
                 epochs.tmin,
                 adaptive=adaptive,
@@ -578,7 +578,7 @@ def test_csd_morlet():
     for (tmin, tmax), as_array in parameters:
         if as_array:
             csd = csd_array_morlet(
-                epochs.get_data(),
+                epochs.get_data(copy=False),
                 sfreq,
                 freqs,
                 t0=epochs.tmin,
