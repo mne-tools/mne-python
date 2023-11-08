@@ -1,14 +1,11 @@
 #!/bin/bash -ef
 
 STD_ARGS="--progress-bar off --upgrade"
-PIP_OPT="hdf5"
+python -m pip install $STD_ARGS pip setuptools wheel packaging setuptools_scm
 if [ "${TEST_MODE}" == "pip" ]; then
-	python -m pip install --upgrade pip
-	python -m pip install --upgrade --only-binary="numba,llvmlite,numpy,scipy,vtk"
-	PIP_OPT="full"
+	python -m pip install --only-binary="numba,llvmlite,numpy,scipy,vtk" -e .[test,full]
 elif [ "${TEST_MODE}" == "pip-pre" ]; then
 	STD_ARGS="$STD_ARGS --pre"
-	python -m pip install $STD_ARGS pip setuptools wheel packaging setuptools_scm
 	python -m pip install $STD_ARGS --only-binary ":all:" --extra-index-url "https://www.riverbankcomputing.com/pypi/simple" PyQt6 PyQt6-sip PyQt6-Qt6
 	echo "Numpy etc."
 	# As of 2023/10/25 no pandas (or statsmodels) because they pin to NumPy < 2
@@ -33,8 +30,8 @@ elif [ "${TEST_MODE}" == "pip-pre" ]; then
 	echo "EDFlib-Python"
 	python -m pip install $STD_ARGS git+https://gitlab.com/Teuniz/EDFlib-Python@master
 	./tools/check_qt_import.sh PyQt6
+	python -m pip install -e .[test]
 else
 	echo "Unknown run type ${TEST_MODE}"
 	exit 1
 fi
-python -m pip install $EXTRA_ARGS -e .[test,$PIP_OPT]
