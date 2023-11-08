@@ -55,6 +55,7 @@ def plot_ica_sources(
     *,
     theme=None,
     overview_mode=None,
+    splash=True,
 ):
     """Plot estimated latent sources given the unmixing matrix.
 
@@ -99,6 +100,9 @@ def plot_ica_sources(
     %(overview_mode)s
 
         .. versionadded:: 1.1
+    %(splash)s
+
+        .. versionadded:: 1.6
 
     Returns
     -------
@@ -139,6 +143,7 @@ def plot_ica_sources(
             use_opengl=use_opengl,
             theme=theme,
             overview_mode=overview_mode,
+            splash=splash,
         )
     elif isinstance(inst, Evoked):
         if start is not None or stop is not None:
@@ -1266,6 +1271,7 @@ def _plot_sources(
     *,
     theme=None,
     overview_mode=None,
+    splash=True,
 ):
     """Plot the ICA components as a RawArray or EpochsArray."""
     from ..epochs import BaseEpochs, EpochsArray
@@ -1410,6 +1416,7 @@ def _plot_sources(
         use_opengl=use_opengl,
         theme=theme,
         overview_mode=overview_mode,
+        splash=splash,
     )
     if is_epo:
         params.update(

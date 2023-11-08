@@ -786,6 +786,7 @@ def plot_epochs(
     *,
     theme=None,
     overview_mode=None,
+    splash=True,
 ):
     """Visualize epochs.
 
@@ -881,6 +882,9 @@ def plot_epochs(
     %(overview_mode)s
 
         .. versionadded:: 1.1
+    %(splash)s
+
+        .. versionadded:: 1.6
 
     Returns
     -------
@@ -1086,6 +1090,7 @@ def plot_epochs(
         use_opengl=use_opengl,
         theme=theme,
         overview_mode=overview_mode,
+        splash=splash,
     )
 
     fig = _get_browser(show=show, block=block, **params)

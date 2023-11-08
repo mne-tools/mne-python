@@ -38,6 +38,7 @@ Enhancements
 - Add support for writing forward solutions to HDF5 and convenience function :meth:`mne.Forward.save` (:gh:`12036` by `Eric Larson`_)
 - Refactored internals of :func:`mne.read_annotations` (:gh:`11964` by `Paul Roujansky`_)
 - Add support for drawing MEG sensors in :ref:`mne coreg` (:gh:`12098` by `Eric Larson`_)
+- Improve string representation of :class:`mne.Covariance` (:gh:`12181` by `Eric Larson`_)
 - Add ``check_version=True`` to :ref:`mne sys_info` to check for a new release on GitHub (:gh:`12146` by `Eric Larson`_)
 - Bad channels are now colored gray in addition to being dashed when spatial colors are used in :func:`mne.viz.plot_evoked` and related functions (:gh:`12142` by `Eric Larson`_)
 - By default MNE-Python creates matplotlib figures with ``layout='constrained'`` rather than the default ``layout='tight'`` (:gh:`12050`, :gh:`12103` by `Mathieu Scheltienne`_ and `Eric Larson`_)
@@ -45,10 +46,12 @@ Enhancements
 - Add :class:`mne.viz.ui_events.UIEvent` linking for interactive colorbars, allowing users to link figures and change the colormap and limits interactively. This supports :func:`~mne.viz.plot_evoked_topomap`, :func:`~mne.viz.plot_ica_components`, :func:`~mne.viz.plot_tfr_topomap`, :func:`~mne.viz.plot_projs_topomap`, :meth:`~mne.Evoked.plot_image`, and :meth:`~mne.Epochs.plot_image` (:gh:`12057` by `Santeri Ruuskanen`_)
 - :func:`~mne.epochs.make_metadata` now accepts ``tmin=None`` and ``tmax=None``, which will bound the time window used for metadata generation by event names (instead of a fixed time). That way, you can now for example generate metadata spanning from one cue or fixation cross to the next, even if trial durations vary throughout the recording (:gh:`12118` by `Richard Höchenberger`_)
 - Add support for passing multiple labels to :func:`mne.minimum_norm.source_induced_power` (:gh:`12026` by `Erica Peterson`_, `Eric Larson`_, and `Daniel McCloy`_ )
-
+- Added documentation to :meth:`mne.io.Raw.set_montage` and :func:`mne.add_reference_channels` to specify that montages should be set after adding reference channels (:gh:`12160` by `Jacob Woessner`_)
+- Add argument ``splash`` to the function using the ``qt`` browser backend to allow enabling/disabling the splash screen (:gh:`12185` by `Mathieu Scheltienne`_)
 
 Bugs
 ~~~~
+- Fix bug where :func:`mne.io.read_raw_gdf` would fail due to improper usage of ``np.clip`` (:gh:`12168` by :newcontrib:`Rasmus Aagaard`)
 - Fix bugs with :func:`mne.preprocessing.realign_raw` where the start of ``other`` was incorrectly cropped; and onsets and durations in ``other.annotations`` were left unsynced with the resampled data (:gh:`11950` by :newcontrib:`Qian Chu`)
 - Fix bug where ``encoding`` argument was ignored when reading annotations from an EDF file (:gh:`11958` by :newcontrib:`Andrew Gilbert`)
 - Mark tests ``test_adjacency_matches_ft`` and ``test_fetch_uncompressed_file`` as network tests (:gh:`12041` by :newcontrib:`Maksym Balatsko`)
@@ -56,7 +59,9 @@ Bugs
 - Fix bug where ``epochs.get_data(..., scalings=...)`` would errantly modify the preloaded data (:gh:`12121` by :newcontrib:`Pablo Mainar` and `Eric Larson`_)
 - Fix bugs with saving splits for :class:`~mne.Epochs` (:gh:`11876` by `Dmitrii Altukhov`_)
 - Fix bug with multi-plot 3D rendering where only one plot was updated (:gh:`11896` by `Eric Larson`_)
+- Fix bug where ``verbose`` level was not respected inside parallel jobs (:gh:`12154` by `Eric Larson`_)
 - Fix bug where subject birthdays were not correctly read by :func:`mne.io.read_raw_snirf` (:gh:`11912` by `Eric Larson`_)
+- Fix bug where warnings were emitted when computing spectra for channels marked as bad (:gh:`12186` by `Eric Larson`_)
 - Fix bug with :func:`mne.chpi.compute_head_pos` for CTF data where digitization points were modified in-place, producing an incorrect result during a save-load round-trip (:gh:`11934` by `Eric Larson`_)
 - Fix bug where non-compliant stimulus data streams were not ignored by :func:`mne.io.read_raw_snirf` (:gh:`11915` by `Johann Benerradi`_)
 - Fix bug with ``pca=False`` in :func:`mne.minimum_norm.compute_source_psd` (:gh:`11927` by `Alex Gramfort`_)
@@ -68,10 +73,10 @@ Bugs
 - Fix bug with reported component number and errant reporting of PCA explained variance as ICA explained variance in :meth:`mne.Report.add_ica` (:gh:`12155`, :gh:`12167` by `Eric Larson`_ and `Richard Höchenberger`_)
 - Fix bug with axis clip box boundaries in :func:`mne.viz.plot_evoked_topo` and related functions (:gh:`11999` by `Eric Larson`_)
 - Fix bug with ``subject_info`` when loading data from and exporting to EDF file (:gh:`11952` by `Paul Roujansky`_)
-- Fix bug where :class:`mne.Info` HTML representations listed all channel counts instead of good channel counts under the heading "Good channels" (:gh:`12145` by `Eric Larson`_) 
+- Fix bug where :class:`mne.Info` HTML representations listed all channel counts instead of good channel counts under the heading "Good channels" (:gh:`12145` by `Eric Larson`_)
 - Fix rendering glitches when plotting Neuromag/TRIUX sensors in :func:`mne.viz.plot_alignment` and related functions (:gh:`12098` by `Eric Larson`_)
 - Fix bug with delayed checking of :class:`info["bads"] <mne.Info>` (:gh:`12038` by `Eric Larson`_)
-- Fix bug with :ref:`mne coreg` where points inside the head surface were not shown (:gh:`12147` by `Eric Larson`_)
+- Fix bug with :ref:`mne coreg` where points inside the head surface were not shown (:gh:`12147`, :gh:`12164` by `Eric Larson`_)
 - Fix bug with :func:`mne.viz.plot_alignment` where ``sensor_colors`` were not handled properly on a per-channel-type basis (:gh:`12067` by `Eric Larson`_)
 - Fix handling of channel information in annotations when loading data from and exporting to EDF file (:gh:`11960` :gh:`12017` :gh:`12044` by `Paul Roujansky`_)
 - Add missing ``overwrite`` and ``verbose`` parameters to :meth:`Transform.save() <mne.transforms.Transform.save>` (:gh:`12004` by `Marijn van Vliet`_)
@@ -84,6 +89,7 @@ Bugs
 - Fix bug with :func:`~mne.viz.plot_raw` where changing ``MNE_BROWSER_BACKEND`` via :func:`~mne.set_config` would have no effect within a Python session (:gh:`12078` by `Santeri Ruuskanen`_)
 - Improve handling of ``method`` argument in the channel interpolation function to support :class:`str` and raise helpful error messages (:gh:`12113` by `Mathieu Scheltienne`_)
 - Fix combination of ``DIN`` event channels into a single synthetic trigger channel ``STI 014`` by the MFF reader of :func:`mne.io.read_raw_egi` (:gh:`12122` by `Mathieu Scheltienne`_)
+- Fix bug with :func:`mne.io.read_raw_eeglab` and :func:`mne.read_epochs_eeglab` where automatic fiducial detection would fail for certain files (:gh:`12165` by `Clemens Brunner`_)
 
 API changes
 ~~~~~~~~~~~

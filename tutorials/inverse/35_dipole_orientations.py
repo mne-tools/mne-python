@@ -54,8 +54,8 @@ dip_len = len(dip_pos)
 dip_times = [0]
 white = (1.0, 1.0, 1.0)  # RGB values for a white color
 
-actual_amp = np.ones(dip_len)  # misc amp to create Dipole instance
-actual_gof = np.ones(dip_len)  # misc GOF to create Dipole instance
+actual_amp = np.ones(dip_len)  # fake amp, needed to create Dipole instance
+actual_gof = np.ones(dip_len)  # fake GOF, needed to create Dipole instance
 dipoles = mne.Dipole(dip_times, dip_pos, actual_amp, dip_ori, actual_gof)
 trans = mne.read_trans(trans_fname)
 

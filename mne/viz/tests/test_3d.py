@@ -277,10 +277,10 @@ def test_plot_alignment_meg(renderer, system):
         assert system == "KIT"
         this_info = read_raw_kit(sqd_fname).info
 
-    meg = ["helmet", "sensors"]
+    meg = {"helmet": 0.1, "sensors": 0.2}
     sensor_colors = "k"  # should be upsampled to correct shape
     if system == "KIT":
-        meg.append("ref")
+        meg["ref"] = 0.3
         with pytest.raises(TypeError, match="instance of dict"):
             plot_alignment(this_info, meg=meg, sensor_colors=sensor_colors)
         sensor_colors = dict(meg=sensor_colors)
