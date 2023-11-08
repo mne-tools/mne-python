@@ -154,7 +154,7 @@ def _save_part(fid, epochs, fmt, n_parts, next_fname, next_idx):
     start_block(fid, FIFF.FIFFB_MNE_EPOCHS)
 
     # write events out after getting data to ensure bad events are dropped
-    data = epochs.get_data()
+    data = epochs.get_data(copy=False)
 
     _check_option("fmt", fmt, ["single", "double"])
 
@@ -1611,6 +1611,9 @@ class BaseEpochs(
         """
         from .io.base import _get_ch_factors
 
+        if copy is not None:
+            _validate_type(copy, bool, "copy")
+
         # Handle empty epochs
         self._handle_empty(on_empty, "_get_data")
         # if called with 'out=False', the call came from 'drop_bad()'
@@ -1649,8 +1652,6 @@ class BaseEpochs(
         if self.preload:
             # we will store our result in our existing array
             data = self._data
-            if copy:
-                data = data.copy()
         else:
             # we start out with an empty array, allocate only if necessary
             data = np.empty((0, len(self.info["ch_names"]), len(self.times)))
@@ -1674,19 +1675,23 @@ class BaseEpochs(
         # handle units param only if we are going to return data (out==True)
         if (units is not None) and out:
             ch_factors = _get_ch_factors(self, units, picks)
+        else:
+            ch_factors = None
 
         if self._bad_dropped:
             if not out:
                 return
             if self.preload:
-                data = data[select]
-                if orig_picks is not None:
-                    data = data[:, picks]
-                if units is not None:
-                    data *= ch_factors[:, np.newaxis]
-                if start != 0 or stop != self.times.size:
-                    data = data[..., start:stop]
-                return data
+                return self._data_sel_copy_scale(
+                    data,
+                    select=select,
+                    orig_picks=orig_picks,
+                    picks=picks,
+                    ch_factors=ch_factors,
+                    start=start,
+                    stop=stop,
+                    copy=copy,
+                )
 
             # we need to load from disk, drop, and return data
             detrend_picks = self._detrend_picks
@@ -1778,16 +1783,63 @@ class BaseEpochs(
                 good_idx, None, copy=False, drop_event_id=False, select_data=False
             )
 
-        if out:
-            if orig_picks is not None:
-                data = data[:, picks]
-            if units is not None:
-                data *= ch_factors[:, np.newaxis]
-            if start != 0 or stop != self.times.size:
-                data = data[..., start:stop]
-            return data
+        if not out:
+            return
+        return self._data_sel_copy_scale(
+            data,
+            select=slice(None),
+            orig_picks=orig_picks,
+            picks=picks,
+            ch_factors=ch_factors,
+            start=start,
+            stop=stop,
+            copy=copy,
+        )
+
+    def _data_sel_copy_scale(
+        self, data, *, select, orig_picks, picks, ch_factors, start, stop, copy
+    ):
+        # data arg starts out as self._data when data is preloaded
+        data_is_self_data = bool(self.preload)
+        logger.debug(f"Data is self data: {data_is_self_data}")
+        # only two types of epoch subselection allowed
+        assert isinstance(select, (slice, np.ndarray)), type(select)
+        if not isinstance(select, slice):
+            logger.debug("  Copying, fancy indexed epochs")
+            data_is_self_data = False  # copy (fancy indexing)
+        elif select != slice(None):
+            logger.debug("  Slicing epochs")
+        if orig_picks is not None:
+            logger.debug("  Copying, fancy indexed picks")
+            assert isinstance(picks, np.ndarray), type(picks)
+            data_is_self_data = False  # copy (fancy indexing)
         else:
-            return None
+            picks = slice(None)
+        if not all(isinstance(x, slice) and x == slice(None) for x in (select, picks)):
+            data = data[select][:, picks]
+        del picks
+        if start != 0 or stop != self.times.size:
+            logger.debug("  Slicing time")
+            data = data[..., start:stop]  # view (slice)
+        if ch_factors is not None:
+            if data_is_self_data:
+                logger.debug("  Copying, scale factors applied")
+                data = data.copy()
+                data_is_self_data = False
+            data *= ch_factors[:, np.newaxis]
+        if not data_is_self_data:
+            return data
+        if copy is None:
+            warn(
+                "The current default of copy=False will change to copy=True in 1.7. "
+                "Set the value of copy explicitly to avoid this warning",
+                FutureWarning,
+            )
+            copy = False
+        if copy:
+            logger.debug("  Copying, copy=True")
+            data = data.copy()
+        return data
 
     @property
     def _detrend_picks(self):
@@ -1798,9 +1850,17 @@ class BaseEpochs(
         else:
             return []
 
-    @fill_doc
+    @verbose
     def get_data(
-        self, picks=None, item=None, units=None, tmin=None, tmax=None, copy=True
+        self,
+        picks=None,
+        item=None,
+        units=None,
+        tmin=None,
+        tmax=None,
+        *,
+        copy=None,
+        verbose=None,
     ):
         """Get all epochs as a 3D array.
 
@@ -1826,15 +1886,27 @@ class BaseEpochs(
             End time of data to get in seconds.
 
             .. versionadded:: 0.24.0
-        copy : bool | None
+        copy : bool
             Whether to return a copy of the object's data, or (if possible) a view.
-            See :std:label:`basics.copies-and-views <numpy:basics.copies-and-views>`
-            for an explanation. Default is ``True``.
+            See :ref:`the NumPy docs <numpy:basics.copies-and-views>` for an
+            explanation. Default is ``False`` in 1.6 but will change to ``True`` in 1.7,
+            set it explicitly to avoid a warning in some cases. A view is only possible
+            when ``item is None``, ``picks is None``, ``units is None``, and data are
+            preloaded.
+
+            .. warning::
+               Using ``copy=False`` and then modifying the returned ``data`` will in
+               turn modify the Epochs object. Use with caution!
+
+            .. versionchanged:: 1.7
+               The default changed from ``False`` to ``True``.
+        %(verbose)s
 
         Returns
         -------
         data : array of shape (n_epochs, n_channels, n_times)
-            A view on epochs data.
+            The epochs data. Will be a copy when ``copy=True`` and will be a view
+            when possible when ``copy=False``.
         """
         return self._get_data(
             picks=picks, item=item, units=units, tmin=tmin, tmax=tmax, copy=copy
@@ -2104,7 +2176,7 @@ class BaseEpochs(
             warn("Saving epochs with no data")
             total_size = 0
         else:
-            d = self[0].get_data()
+            d = self[0].get_data(copy=False)
             # this should be guaranteed by subclasses
             assert d.dtype in (">f8", "<f8", ">c16", "<c16")
             total_size = d.nbytes * len(self)
@@ -4210,7 +4282,7 @@ def _concatenate_epochs(
     if with_data:
         offsets = np.cumsum(offsets)
         for start, stop, epochs in zip(offsets[:-1], offsets[1:], epochs_list):
-            this_data = epochs.get_data()
+            this_data = epochs.get_data(copy=False)
             if data is None:
                 data = np.empty(
                     (offsets[-1], len(out.ch_names), len(out.times)),

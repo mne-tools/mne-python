@@ -59,8 +59,8 @@ def test_xdawn_picks():
     xd.fit(epochs)
     epochs_out = xd.apply(epochs)["1"]
     assert epochs_out.info["ch_names"] == epochs.ch_names
-    assert not (epochs_out.get_data()[:, 0] != data[:, 0]).any()
-    assert_array_equal(epochs_out.get_data()[:, 1], data[:, 1])
+    assert not (epochs_out.get_data([0])[:, 0] != data[:, 0]).any()
+    assert_array_equal(epochs_out.get_data([1])[:, 0], data[:, 1])
 
 
 def test_xdawn_fit():
@@ -375,7 +375,10 @@ def test_xdawn_decoding_performance():
     )
 
     cv = KFold(n_splits=3, shuffle=False)
-    for pipe, X in ((xdawn_pipe, epochs), (xdawn_trans_pipe, epochs.get_data())):
+    for pipe, X in (
+        (xdawn_pipe, epochs),
+        (xdawn_trans_pipe, epochs.get_data(copy=False)),
+    ):
         predictions = np.empty_like(y, dtype=float)
         for train, test in cv.split(X, y):
             pipe.fit(X[train], y[train])

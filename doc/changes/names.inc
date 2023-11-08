@@ -406,6 +406,8 @@
 
 .. _Pablo-Arias: https://github.com/Pablo-Arias
 
+.. _Pablo Mainar: https://github.com/pablomainar
+
 .. _Padma Sundaram: https://www.nmr.mgh.harvard.edu/user/8071
 
 .. _Paul Pasler: https://github.com/ppasler

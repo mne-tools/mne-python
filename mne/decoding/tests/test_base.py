@@ -317,7 +317,7 @@ def test_get_coef_multiclass_full(n_classes, n_channels, n_times):
     )
     scorer = "roc_auc_ovr_weighted"
     time_gen = GeneralizingEstimator(clf, scorer, verbose=True)
-    X = epochs.get_data()
+    X = epochs.get_data(copy=False)
     y = epochs.events[:, 2]
     n_splits = 3
     cv = StratifiedKFold(n_splits=n_splits)

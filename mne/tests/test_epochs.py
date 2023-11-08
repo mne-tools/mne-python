@@ -85,6 +85,13 @@ event_id_2 = np.int64(2)  # to test non Python int types
 rng = np.random.RandomState(42)
 
 
+pytestmark = [
+    pytest.mark.filterwarnings(
+        "ignore:The current default of copy=False will change to copy=.*:FutureWarning",
+    ),
+]
+
+
 def _create_epochs_with_annotations():
     """Create test dataset of Epochs with Annotations."""
     # set up a test dataset
@@ -276,7 +283,7 @@ reject = dict(grad=1000e-12, mag=4e-12, eeg=80e-6, eog=150e-6)
 flat = dict(grad=1e-15, mag=1e-15)
 
 
-def test_get_data():
+def test_get_data_copy():
     """Test the .get_data() method."""
     raw, events, picks = _get_data()
     event_id = {"a/1": 1, "a/2": 2, "b/1": 3, "b/2": 4}
@@ -325,8 +332,20 @@ def test_get_data():
     data = epochs.get_data(copy=True)
     assert not np.shares_memory(data, epochs._data)
 
-    data = epochs.get_data(copy=False)
+    with pytest.warns(FutureWarning, match="The current default of copy=False will"):
+        data = epochs.get_data(verbose="debug")
     assert np.shares_memory(data, epochs._data)
+    assert data is epochs._data
+    data_orig = data.copy()
+    # picks, item, and units must be None
+    data = epochs.get_data(copy=False, picks=[1])
+    assert not np.shares_memory(data, epochs._data)
+    data = epochs.get_data(copy=False, item=[0])
+    assert not np.shares_memory(data, epochs._data)
+    data = epochs.get_data(copy=False, units=dict(eeg="uV"))
+    assert not np.shares_memory(data, epochs._data)
+    # Make sure we didn't mess up our values
+    assert_allclose(data_orig, epochs._data)
 
 
 def test_hierarchical():

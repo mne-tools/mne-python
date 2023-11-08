@@ -1894,7 +1894,10 @@ def combine_channels(
     ch_idx = list(range(inst.info["nchan"]))
     ch_names = inst.info["ch_names"]
     ch_types = inst.get_channel_types()
-    inst_data = inst.data if isinstance(inst, Evoked) else inst.get_data()
+    kwargs = dict()
+    if isinstance(inst, BaseEpochs):
+        kwargs["copy"] = False
+    inst_data = inst.get_data(**kwargs)
     groups = OrderedDict(deepcopy(groups))
 
     # Convert string values of ``method`` into callables
