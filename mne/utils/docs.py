@@ -4202,6 +4202,14 @@ sphere : float | array-like | instance of ConductorModel | None  | 'auto' | 'eeg
 """
 
 docdict[
+    "splash"
+] = """
+splash : bool
+    If True (default), a splash screen is shown during the appliation startup. Only
+    applicable to the ``qt`` backend.
+"""
+
+docdict[
     "split_naming"
 ] = """
 split_naming : 'neuromag' | 'bids'
