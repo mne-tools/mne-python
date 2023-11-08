@@ -199,5 +199,5 @@ MNE-Python is **BSD-licensed** (BSD-3-Clause):
 .. |OpenSSF| image:: https://www.bestpractices.dev/projects/7783/badge
 .. _OpenSSF: https://www.bestpractices.dev/projects/7783
 
-.. |MNE| image:: https://mne.tools/stable/_static/mne_logo.svg
+.. |MNE| image:: https://mne.tools/stable/_static/mne_logo_gray.svg
 .. _MNE: https://mne.tools/dev/
