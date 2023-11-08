@@ -984,7 +984,7 @@ def _handle_sensor_types(meg, eeg, fnirs):
         fnirs=dict(channels="fnirs", pairs="fnirs_pairs"),
     )
     sensor_alpha = {
-        key: 0.25 if key == "meg_helmet" else 0.8
+        key: dict(meg_helmet=0.25, meg=0.25).get(key, 0.8)
         for ch_dict in alpha_map.values()
         for key in ch_dict.values()
     }
