@@ -30,7 +30,7 @@ elif [ "${TEST_MODE}" == "pip-pre" ]; then
 	echo "EDFlib-Python"
 	python -m pip install $STD_ARGS git+https://gitlab.com/Teuniz/EDFlib-Python@master
 	./tools/check_qt_import.sh PyQt6
-	python -m pip install --pre -e .[hdf5,test]
+	python -m pip install -e --pre .[hdf5,test]
 else
 	echo "Unknown run type ${TEST_MODE}"
 	exit 1

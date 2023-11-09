@@ -12,7 +12,7 @@ elif [ ! -z "$CONDA_DEPENDENCIES" ]; then
 	echo "Using Mamba to install CONDA_DEPENDENCIES=${CONDA_DEPENDENCIES}"
 	mamba install -y $CONDA_DEPENDENCIES
 	# for compat_minimal and compat_old, we don't want to --upgrade
-	STD_ARGS="--progress bar off"
+	STD_ARGS="--progress-bar off"
 	INSTALL_KIND="test"
 else
 	echo "Install pip-pre dependencies"
