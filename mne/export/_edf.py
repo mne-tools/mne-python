@@ -330,7 +330,7 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
                     for ch_name in ch_names:
                         try:
                             hdl.writeAnnotation(onset, duration, desc + f"@@{ch_name}")
-                        except Exception:
+                        except Exception as e:
                             raise RuntimeError(
                                 f"writeAnnotation() returned an error "
                                 f"trying to write {desc} at {onset} "
