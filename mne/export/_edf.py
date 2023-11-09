@@ -3,15 +3,15 @@
 # License: BSD-3-Clause
 
 from contextlib import contextmanager
+from datetime import date
 
 import numpy as np
-
-from ..utils import _check_edflib_installed, warn
+import pyedflib
 
 # _check_pyedflib_installed()
 from pyedflib import EdfWriter
-import pyedflib
-from datetime import datetime, date
+
+from ..utils import warn
 
 
 def _try_to_set_value(header, key, value, channel_index=None):
