@@ -236,7 +236,7 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
             if len(additional_patient_info) == 0:
                 additional_patient_info = None
             else:
-                # pyedflib does not support spaces in the patient name
+                # pyedflib does not support spaces in the patient info
                 additional_patient_info = "_".join(additional_patient_info)
 
             if birthday is not None:
