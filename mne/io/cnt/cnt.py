@@ -169,6 +169,8 @@ def read_raw_cnt(
     emg=(),
     data_format="auto",
     date_format="mm/dd/yy",
+    *,
+    header="old",
     preload=False,
     verbose=None,
 ):
@@ -219,6 +221,9 @@ def read_raw_cnt(
         Defaults to ``'auto'``.
     date_format : ``'mm/dd/yy'`` | ``'dd/mm/yy'``
         Format of date in the header. Defaults to ``'mm/dd/yy'``.
+    header : ``'new'`` | ``'old'``
+        Defines the header format. Used to describe how bad channels
+        are formatted.
     %(preload)s
     %(verbose)s
 
@@ -244,12 +249,13 @@ def read_raw_cnt(
         emg=emg,
         data_format=data_format,
         date_format=date_format,
+        header=header,
         preload=preload,
         verbose=verbose,
     )
 
 
-def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format):
+def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format, header):
     """Read the cnt header."""
     data_offset = 900  # Size of the 'SETUP' header.
     cnt_info = dict()
@@ -344,7 +350,12 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format):
             fid.seek(data_offset + 75 * ch_idx)
             ch_name = read_str(fid, 10)
             ch_names.append(ch_name)
-            fid.seek(data_offset + 75 * ch_idx + 4)
+
+            # Some files have bad channels marked differently in the header.
+            if header == "new":
+                fid.seek(data_offset + 75 * ch_idx + 14)
+            if header == "old":
+                fid.seek(data_offset + 75 * ch_idx + 4)
             if np.fromfile(fid, dtype="u1", count=1).item():
                 bads.append(ch_name)
             fid.seek(data_offset + 75 * ch_idx + 19)
@@ -451,6 +462,9 @@ class RawCNT(BaseRaw):
         Defaults to ``'auto'``.
     date_format : ``'mm/dd/yy'`` | ``'dd/mm/yy'``
         Format of date in the header. Defaults to ``'mm/dd/yy'``.
+    header : ``'new'`` | ``'old'``
+        Defines the header format. Used to describe how bad channels
+        are formatted.
     %(preload)s
     stim_channel : bool | None
         Add a stim channel from the events. Defaults to None to trigger a
@@ -478,6 +492,8 @@ class RawCNT(BaseRaw):
         emg=(),
         data_format="auto",
         date_format="mm/dd/yy",
+        *,
+        header="old",
         preload=False,
         verbose=None,
     ):  # noqa: D102
@@ -489,7 +505,7 @@ class RawCNT(BaseRaw):
 
         input_fname = path.abspath(input_fname)
         info, cnt_info = _get_cnt_info(
-            input_fname, eog, ecg, emg, misc, data_format, _date_format
+            input_fname, eog, ecg, emg, misc, data_format, _date_format, header
         )
         last_samps = [cnt_info["n_samples"] - 1]
         super(RawCNT, self).__init__(
