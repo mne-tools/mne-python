@@ -115,9 +115,9 @@ test = [
     "black",
 ]
 
-# Dependencies for being able to run all tests (rare/CIs/advanced devs)
-test_full = [
-    "mne[full]",
+# Dependencies for being able to run additional tests (rare/CIs/advanced devs)
+test_extra = [
+    "mne[test]",
     "nitime",
     "nbclient",
     "sphinx-gallery",

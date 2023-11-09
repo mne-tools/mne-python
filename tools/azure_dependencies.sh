@@ -22,7 +22,7 @@ elif [ "${TEST_MODE}" == "pip-pre" ]; then
 	python -m pip install --progress-bar off git+https://github.com/pyvista/pyvista
 	python -m pip install --progress-bar off git+https://github.com/pyvista/pyvistaqt
 	echo "misc"
-	python -m pip install $STD_ARGS imageio-ffmpeg xlrd mffpy python-picard pillow
+	python -m pip install $STD_ARGS imageio-ffmpeg xlrd mffpy python-picard pillow traitlets pybv eeglabio
 	echo "nibabel with workaround"
 	python -m pip install --progress-bar off git+https://github.com/nipy/nibabel.git
 	echo "joblib"
@@ -30,7 +30,7 @@ elif [ "${TEST_MODE}" == "pip-pre" ]; then
 	echo "EDFlib-Python"
 	python -m pip install $STD_ARGS git+https://gitlab.com/Teuniz/EDFlib-Python@master
 	./tools/check_qt_import.sh PyQt6
-	python -m pip install -e .[test]
+	python -m pip install -e --pre .[hdf5,test]
 else
 	echo "Unknown run type ${TEST_MODE}"
 	exit 1

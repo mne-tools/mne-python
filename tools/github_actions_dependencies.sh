@@ -40,7 +40,7 @@ else
 	echo "pyvistaqt"
 	pip install $STD_ARGS git+https://github.com/pyvista/pyvistaqt
 	echo "imageio-ffmpeg, xlrd, mffpy, python-picard"
-	pip install $STD_ARGS imageio-ffmpeg xlrd mffpy python-picard patsy
+	pip install $STD_ARGS imageio-ffmpeg xlrd mffpy python-picard patsy traitlets pybv eeglabio
 	echo "mne-qt-browser"
 	pip install $STD_ARGS git+https://github.com/mne-tools/mne-qt-browser
 	echo "nibabel with workaround"
@@ -56,16 +56,15 @@ echo ""
 
 
 # for compat_minimal and compat_old, we don't want to --upgrade
+TEST_ARG="test"
+if [[ "${DEPS}" != "minimal" ]] && [[ -z "$CONDA_ENV" ]] && [[ -z "$CONDA_DEPENDENCIES" ]]; then
+	TEST_ARG="test_extra"
+fi
 if [ ! -z "$CONDA_DEPENDENCIES" ]; then
 	echo "Installing dependencies for conda"
-	python -m pip install -ve .[test]
+	python -m pip install -ve .[$TEST_ARG]
 else
 	echo "Installing dependencies using pip"
-	python -m pip install $STD_ARGS -ve .[hdf5,test]
+	python -m pip install $STD_ARGS -ve .[hdf5,$TEST_ARG]
 fi
 echo ""
-
-if [[ "${DEPS}" != "minimal" ]] && [[ -z "$CONDA_ENV" ]] && [[ -z "$CONDA_DEPENDENCIES" ]]; then
-	echo "Installing non-minimal dependencies"
-	python -m pip install $STD_ARGS -ve .[test_full]
-fi
