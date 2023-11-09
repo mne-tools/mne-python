@@ -2899,6 +2899,8 @@ def plot_compare_evokeds(
         "misc",  # from ICA
         "emg",
         "ref_meg",
+        "eyegaze",
+        "pupil",
     )
     ch_types = [
         t for t in info.get_channel_types(picks=picks, unique=True) if t in all_types
