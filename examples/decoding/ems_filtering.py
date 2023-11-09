@@ -64,7 +64,7 @@ epochs = mne.Epochs(
 epochs.pick("grad")
 
 # Setup the data to use it a scikit-learn way:
-X = epochs.get_data()  # The MEG data
+X = epochs.get_data(copy=False)  # The MEG data
 y = epochs.events[:, 2]  # The conditions indices
 n_epochs, n_channels, n_times = X.shape
 
