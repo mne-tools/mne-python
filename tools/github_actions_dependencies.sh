@@ -4,7 +4,7 @@ set -o pipefail
 
 STD_ARGS="--progress-bar off --upgrade"
 INSTALL_KIND="test_extra,hdf5"
-python -m pip install $STD_ARGS pip build
+python -m pip install $STD_ARGS pip setuptools wheel packaging setuptools_scm
 if [ ! -z "$CONDA_ENV" ]; then
 	echo "Uninstalling MNE for CONDA_ENV=${CONDA_ENV}"
 	conda remove -c conda-forge --force -yq mne
