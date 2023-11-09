@@ -1,3 +1,4 @@
+import logging
 import os
 import re
 import warnings
@@ -6,19 +7,20 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from mne import read_evokeds, Epochs, create_info
-from mne.io import read_raw_fif, RawArray
+from mne import Epochs, create_info, read_evokeds
+from mne.io import RawArray, read_raw_fif
+from mne.parallel import parallel_func
 from mne.utils import (
-    warn,
-    set_log_level,
-    set_log_file,
-    filter_out_warnings,
-    verbose,
     _get_call_line,
-    use_log_level,
     catch_logging,
-    logger,
     check,
+    filter_out_warnings,
+    logger,
+    set_log_file,
+    set_log_level,
+    use_log_level,
+    verbose,
+    warn,
 )
 from mne.utils._logging import _frame_info
 
@@ -252,3 +254,23 @@ def test_verbose_strictness():
         o.meth_2(verbose=False)
     log = log.getvalue()
     assert log == ""
+
+
+@pytest.mark.parametrize("n_jobs", (1, 2))
+def test_verbose_threads(n_jobs):
+    """Test that our verbose level propagates to threads."""
+
+    def my_fun():
+        from mne.utils import logger
+
+        return logger.level
+
+    with use_log_level("info"):
+        assert logger.level == logging.INFO
+        with use_log_level("warning"):
+            assert logger.level == logging.WARNING
+            parallel, p_fun, got_jobs = parallel_func(my_fun, n_jobs=n_jobs)
+            assert got_jobs in (1, n_jobs)  # FORCE_SERIAL could be set
+            out = parallel(p_fun() for _ in range(5))
+            want_levels = [logging.WARNING] * 5
+            assert out == want_levels

@@ -12,6 +12,7 @@ Examples
 # Authors : Eric Larson <larson.eric.d@gmail.com>
 
 import sys
+
 import mne
 
 
@@ -40,6 +41,13 @@ def run():
         action="store_false",
         default=True,
     )
+    parser.add_option(
+        "--no-check-version",
+        dest="check_version",
+        help="Disable MNE-Python remote version checking.",
+        action="store_false",
+        default=True,
+    )
     options, args = parser.parse_args()
     dependencies = "developer" if options.developer else "user"
     if len(args) != 0:
@@ -50,6 +58,7 @@ def run():
         show_paths=options.show_paths,
         dependencies=dependencies,
         unicode=options.unicode,
+        check_version=options.check_version,
     )
 
 

@@ -1,10 +1,97 @@
+[project]
+name = "mne"
+description = "MNE-Python project for MEG and EEG data analysis."
+maintainers = [
+    { name = "Alexandre Gramfort", email = "alexandre.gramfort@inria.fr" },
+]
+dynamic = ["version"]
+license = { text = "BSD-3-Clause" }
+readme = { file = "README.rst", content-type = "text/x-rst" }
+requires-python = ">=3.8"
+keywords = [
+    "neuroscience",
+    "neuroimaging",
+    "MEG",
+    "EEG",
+    "ECoG",
+    "fNIRS",
+    "brain",
+]
+classifiers = [
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved",
+    "Programming Language :: Python",
+    "Topic :: Software Development",
+    "Topic :: Scientific/Engineering",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: POSIX",
+    "Operating System :: Unix",
+    "Operating System :: MacOS",
+    "Programming Language :: Python :: 3",
+]
+
+[project.scripts]
+mne = "mne.commands.utils:main"
+
+[project.urls]
+Homepage = "https://mne.tools/"
+Download = "https://pypi.org/project/scikit-learn/#files"
+"Bug Tracker" = "https://github.com/mne-tools/mne-python/issues/"
+Documentation = "https://mne.tools/"
+Forum = "https://mne.discourse.group/"
+"Source Code" = "https://github.com/mne-tools/mne-python/"
+
+[build-system]
+requires = ["setuptools>=45", "setuptools_scm[toml]>=6.2", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools_scm]
+write_to = "mne/_version.py"
+version_scheme = "release-branch-semver"
+
+[options]
+zip_safe = false            # the package can run out of an .egg file
+include_package_data = true
+
+[tool.setuptools.package-data]
+"mne" = [
+    "data/eegbci_checksums.txt",
+    "data/*.sel",
+    "data/icos.fif.gz",
+    "data/coil_def*.dat",
+    "data/helmets/*.fif.gz",
+    "data/FreeSurferColorLUT.txt",
+    "data/image/*gif",
+    "data/image/*lout",
+    "data/fsaverage/*.fif",
+    "channels/data/layouts/*.lout",
+    "channels/data/layouts/*.lay",
+    "channels/data/montages/*.sfp",
+    "channels/data/montages/*.txt",
+    "channels/data/montages/*.elc",
+    "channels/data/neighbors/*.mat",
+    "datasets/sleep_physionet/SHA1SUMS",
+    "datasets/_fsaverage/*.txt",
+    "datasets/_infant/*.txt",
+    "datasets/_phantom/*.txt",
+    "html/*.js",
+    "html/*.css",
+    "html_templates/repr/*.jinja",
+    "html_templates/report/*.jinja",
+    "icons/*.svg",
+    "icons/*.png",
+    "io/artemis123/resources/*.csv",
+    "io/edf/gdf_encodes.txt",
+]
+
 [tool.codespell]
 ignore-words = "ignore_words.txt"
 builtin = "clear,rare,informal,names,usage"
 skip = "doc/references.bib"
 
 [tool.ruff]
-select = ["E", "F", "W", "D"]
+select = ["E", "F", "W", "D", "I"]
 exclude = ["__init__.py", "constants.py", "resources.py"]
 ignore = [
     "D100", # Missing docstring in public module
@@ -19,12 +106,12 @@ ignore-decorators = [
     "setter",
     "mne.utils.copy_function_doc_to_method_doc",
     "mne.utils.copy_doc",
-    "mne.utils.deprecated"
+    "mne.utils.deprecated",
 ]
 
 [tool.ruff.per-file-ignores]
 "tutorials/time-freq/10_spectrum_class.py" = [
-    "E501" # line too long
+    "E501", # line too long
 ]
 "mne/datasets/*/*.py" = [
     "D103", # Missing docstring in public function
@@ -41,7 +128,7 @@ ignore-decorators = [
 
 [tool.pytest.ini_options]
 addopts = """--durations=20 --doctest-modules -ra --cov-report= --tb=short \
-    --doctest-ignore-import-errors --junit-xml=junit-results.xml \
+    --cov-branch --doctest-ignore-import-errors --junit-xml=junit-results.xml \
     --ignore=doc --ignore=logo --ignore=examples --ignore=tutorials \
     --ignore=mne/gui/_*.py --ignore=mne/icons --ignore=tools \
     --ignore=mne/report/js_and_css \
@@ -52,4 +139,18 @@ junit_family = "xunit2"
 exclude = "(dist/)|(build/)|(.*\\.ipynb)"
 
 [tool.bandit.assert_used]
-skips = ["*/test_*.py"]  # assert statements are good practice with pytest
+skips = ["*/test_*.py"] # assert statements are good practice with pytest
+
+[tool.rstcheck]
+report_level = "WARNING"
+ignore_roles = [
+    "func", "class", "term", "ref", "doc", "gh", "file", "samp", "meth", "mod", "kbd",
+    "newcontrib", "footcite", "footcite:t", "eq", "py:mod", "attr", "py:class", "exc",
+]
+ignore_directives = [
+    "rst-class", "tab-set", "grid", "toctree", "footbibliography", "autosummary",
+    "currentmodule", "automodule", "cssclass", "tabularcolumns", "minigallery",
+    "autoclass", "highlight", "dropdown", "graphviz", "glossary", "autofunction",
+    "bibliography",
+]
+ignore_messages = "^.*(Unknown target name|Undefined substitution referenced)[^`]*$"

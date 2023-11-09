@@ -23,8 +23,7 @@ SI unit (for example radians for position data, and meters for pupil size).
 
 .. seealso:: Some MNE functions may not be available to eyetracking and other
              physiological data, because MNE does not consider them to be data
-             channels. See the :doc:`glossary </glossary>` for more
-             information.
+             channels. See the :ref:`glossary` for more information.
 
 .. _import-eyelink_asc:
 
@@ -79,8 +78,8 @@ at about 8-seconds).
 """
 
 # %%
-from mne.io import read_raw_eyelink
 from mne.datasets import misc
+from mne.io import read_raw_eyelink
 
 # %%
 fpath = misc.data_path() / "eyetracking" / "eyelink"

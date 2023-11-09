@@ -2,10 +2,10 @@
 # License: BSD-3-Clause
 
 import os
-from defusedxml.minidom import parse
 import re
 
 import numpy as np
+from defusedxml.minidom import parse
 
 from ...utils import _pl
 

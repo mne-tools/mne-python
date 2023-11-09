@@ -3,23 +3,25 @@
 #
 # License: BSD-3-Clause
 
-from functools import partial
+import html
+import re
 import struct
+from functools import partial
 
 import numpy as np
 from scipy.sparse import csc_matrix, csr_matrix
 
+from ..utils import _check_option, warn
+from ..utils.numerics import _julian_to_cal
 from .constants import (
     FIFF,
-    _dig_kind_named,
-    _dig_cardinal_named,
-    _ch_kind_named,
     _ch_coil_type_named,
-    _ch_unit_named,
+    _ch_kind_named,
     _ch_unit_mul_named,
+    _ch_unit_named,
+    _dig_cardinal_named,
+    _dig_kind_named,
 )
-from ..utils.numerics import _julian_to_cal
-from ..utils import warn, _check_option
 
 ##############################################################################
 # HELPERS
@@ -265,7 +267,10 @@ def _read_string(fid, tag, shape, rlims):
     """Read a string tag."""
     # Always decode to ISO 8859-1 / latin1 (FIFF standard).
     d = _frombuffer_rows(fid, tag.size, dtype=">c", shape=shape, rlims=rlims)
-    return str(d.tobytes().decode("latin1", "ignore"))
+    string = str(d.tobytes().decode("latin1", "ignore"))
+    if re.search(r"&#[0-9a-fA-F]{6};", string):
+        string = html.unescape(string)
+    return string
 
 
 def _read_complex_float(fid, tag, shape, rlims):

@@ -12,22 +12,21 @@ from pathlib import Path
 
 import numpy as np
 
-from .constants import KIT, FIFF
-from ...channels.montage import (
-    read_polhemus_fastscan,
-    read_dig_polhemus_isotrak,
-    read_custom_montage,
-    _check_dig_shape,
-)
 from ..._fiff._digitization import _make_dig_points
+from ...channels.montage import (
+    _check_dig_shape,
+    read_custom_montage,
+    read_dig_polhemus_isotrak,
+    read_polhemus_fastscan,
+)
 from ...transforms import (
     Transform,
+    als_ras_trans,
     apply_trans,
     get_ras_to_neuromag_trans,
-    als_ras_trans,
 )
-from ...utils import warn, _check_option, _check_fname
-
+from ...utils import _check_fname, _check_option, warn
+from .constants import FIFF, KIT
 
 INT32 = "<i4"
 FLOAT64 = "<f8"
@@ -145,7 +144,7 @@ def _set_dig_kit(mrk, elp, hsp, eeg):
     hpi_results : list
         The hpi results.
     """
-    from ...coreg import fit_matched_points, _decimate_points
+    from ...coreg import _decimate_points, fit_matched_points
 
     if isinstance(hsp, (str, Path, PathLike)):
         hsp = _read_dig_kit(hsp)

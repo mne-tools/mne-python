@@ -4,13 +4,10 @@
 
 # Parts of this code are taken from scikit-learn
 
-import pytest
-
 import numpy as np
+import pytest
 from numpy.testing import assert_almost_equal
-
-from scipy import stats
-from scipy import linalg
+from scipy import linalg, stats
 
 from mne.preprocessing.infomax_ import infomax
 

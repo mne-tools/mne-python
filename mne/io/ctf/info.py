@@ -4,27 +4,25 @@
 #
 # License: BSD-3-Clause
 
-from time import strptime
-from calendar import timegm
 import os.path as op
+from calendar import timegm
+from time import strptime
 
 import numpy as np
 
-from ...utils import logger, warn, _clean_names
-from ...transforms import (
-    apply_trans,
-    _coord_frame_name,
-    invert_transform,
-    combine_transforms,
-)
-from ...annotations import Annotations
+from ..._fiff.constants import FIFF
+from ..._fiff.ctf_comp import _add_kind, _calibrate_comp
 from ..._fiff.meas_info import _empty_info
 from ..._fiff.write import get_new_file_id
-from ..._fiff.ctf_comp import _add_kind, _calibrate_comp
-from ..._fiff.constants import FIFF
-
+from ...annotations import Annotations
+from ...transforms import (
+    _coord_frame_name,
+    apply_trans,
+    combine_transforms,
+    invert_transform,
+)
+from ...utils import _clean_names, logger, warn
 from .constants import CTF
-
 
 _ctf_to_fiff = {
     CTF.CTFV_COIL_LPA: FIFF.FIFFV_POINT_LPA,

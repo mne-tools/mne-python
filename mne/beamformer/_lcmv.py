@@ -7,25 +7,25 @@
 # License: BSD-3-Clause
 import numpy as np
 
-from ..rank import compute_rank
 from .._fiff.meas_info import _simplify_info
 from .._fiff.pick import pick_channels_cov, pick_info
 from ..forward import _subject_from_forward
-from ..minimum_norm.inverse import combine_xyz, _check_reference, _check_depth
-from ..source_estimate import _make_stc, _get_src_type
+from ..minimum_norm.inverse import _check_depth, _check_reference, combine_xyz
+from ..rank import compute_rank
+from ..source_estimate import _get_src_type, _make_stc
 from ..utils import (
+    _check_channels_spatial_filter,
+    _check_info_inv,
+    _check_one_ch_type,
     logger,
     verbose,
-    _check_channels_spatial_filter,
-    _check_one_ch_type,
-    _check_info_inv,
 )
 from ._compute_beamformer import (
-    _prepare_beamformer_input,
-    _compute_power,
-    _compute_beamformer,
-    _check_src_type,
     Beamformer,
+    _check_src_type,
+    _compute_beamformer,
+    _compute_power,
+    _prepare_beamformer_input,
     _proj_whiten_data,
 )
 
@@ -207,7 +207,7 @@ def make_lcmv(
         noise_cov=noise_cov,
         rank=rank,
         pca=False,
-        **depth
+        **depth,
     )
     ch_names = list(info["ch_names"])
 

@@ -8,54 +8,54 @@ from copy import deepcopy
 from pathlib import Path
 
 import numpy as np
-from numpy.testing import assert_allclose, assert_array_equal
 import pytest
+from numpy.testing import assert_allclose, assert_array_equal
 
 from mne import (
-    read_source_spaces,
-    pick_types,
-    read_trans,
-    read_cov,
-    make_sphere_model,
-    create_info,
-    setup_volume_source_space,
-    find_events,
     Epochs,
-    fit_dipole,
-    transform_surface_to,
-    make_ad_hoc_cov,
     SourceEstimate,
-    setup_source_space,
-    read_bem_solution,
-    make_forward_solution,
-    convert_forward_solution,
     VolSourceEstimate,
+    convert_forward_solution,
+    create_info,
+    find_events,
+    fit_dipole,
+    make_ad_hoc_cov,
     make_bem_solution,
+    make_forward_solution,
+    make_sphere_model,
+    pick_types,
+    read_bem_solution,
+    read_cov,
+    read_source_spaces,
+    read_trans,
+    setup_source_space,
+    setup_volume_source_space,
+    transform_surface_to,
 )
+from mne._fiff.constants import FIFF
 from mne.bem import _surfaces_to_bem
 from mne.chpi import (
-    read_head_pos,
     compute_chpi_amplitudes,
     compute_chpi_locs,
     compute_head_pos,
     get_chpi_info,
+    read_head_pos,
 )
-from mne.tests.test_chpi import _assert_quats
 from mne.datasets import testing
-from mne.simulation import (
-    simulate_sparse_stc,
-    simulate_raw,
-    add_eog,
-    add_ecg,
-    add_chpi,
-    add_noise,
-)
-from mne.source_space._source_space import _compare_source_spaces
-from mne.simulation.source import SourceSimulator
+from mne.io import RawArray, read_raw_fif
 from mne.label import Label
+from mne.simulation import (
+    add_chpi,
+    add_ecg,
+    add_eog,
+    add_noise,
+    simulate_raw,
+    simulate_sparse_stc,
+)
+from mne.simulation.source import SourceSimulator
+from mne.source_space._source_space import _compare_source_spaces
 from mne.surface import _get_ico_surface
-from mne.io import read_raw_fif, RawArray
-from mne._fiff.constants import FIFF
+from mne.tests.test_chpi import _assert_quats
 from mne.utils import catch_logging
 
 raw_fname_short = (

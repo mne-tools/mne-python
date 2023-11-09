@@ -22,7 +22,7 @@ the CSD:
 # %%
 import mne
 from mne.datasets import sample
-from mne.time_frequency import csd_fourier, csd_multitaper, csd_morlet
+from mne.time_frequency import csd_fourier, csd_morlet, csd_multitaper
 
 print(__doc__)
 

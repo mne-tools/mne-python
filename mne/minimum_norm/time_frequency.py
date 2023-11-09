@@ -5,32 +5,99 @@
 
 import numpy as np
 
+from .._fiff.constants import FIFF
+from .._fiff.pick import pick_info
+from ..baseline import _log_rescale, rescale
 from ..epochs import Epochs
 from ..event import make_fixed_length_events
 from ..evoked import EvokedArray
 from ..fixes import _safe_svd
-from .._fiff.constants import FIFF
-from .._fiff.pick import pick_info
-from ..source_estimate import _make_stc
-from ..time_frequency.tfr import cwt, morlet
-from ..time_frequency.multitaper import (
-    _psd_from_mt,
-    _compute_mt_params,
-    _psd_from_mt_adaptive,
-    _mt_spectra,
-)
-from ..baseline import rescale, _log_rescale
-from .inverse import (
-    combine_xyz,
-    _check_or_prepare,
-    _assemble_kernel,
-    _pick_channels_inverse_operator,
-    INVERSE_METHODS,
-    _check_ori,
-    _subject_from_inverse,
-)
+from ..label import BiHemiLabel, Label
 from ..parallel import parallel_func
-from ..utils import logger, verbose, ProgressBar, _check_option
+from ..source_estimate import _make_stc
+from ..time_frequency.multitaper import (
+    _compute_mt_params,
+    _mt_spectra,
+    _psd_from_mt,
+    _psd_from_mt_adaptive,
+)
+from ..time_frequency.tfr import cwt, morlet
+from ..utils import ProgressBar, _check_option, _pl, _validate_type, logger, verbose
+from .inverse import (
+    INVERSE_METHODS,
+    _assemble_kernel,
+    _check_or_prepare,
+    _check_ori,
+    _pick_channels_inverse_operator,
+    _subject_from_inverse,
+    combine_xyz,
+)
+
+
+def _restrict_K_to_lbls(labels, K, noise_norm, vertno, pick_ori):
+    """Use labels to choose desired sources in the kernel."""
+    verts_to_use = [[], []]
+    # create mask for K by compiling original vertices from vertno in labels
+    for ii in range(len(labels)):
+        lab = labels[ii]
+        # handle BiHemi labels; ok so long as no overlap w/ single hemi labels
+        if lab.hemi == "both":
+            l_verts = np.intersect1d(vertno[0], lab.lh.vertices)
+            r_verts = np.intersect1d(vertno[1], lab.rh.vertices)  # output sorted
+            verts_to_use[0] += list(l_verts)
+            verts_to_use[1] += list(r_verts)
+        else:
+            hidx = 0 if lab.hemi == "lh" else 1
+            verts = np.intersect1d(vertno[hidx], lab.vertices)
+            verts_to_use[hidx] += list(verts)
+
+    # check that we don't have overlapping vertices in our labels
+    for ii in range(2):
+        if len(np.unique(verts_to_use[ii])) != len(verts_to_use[ii]):
+            raise RuntimeError(
+                "Labels cannot have overlapping vertices. "
+                "Please select labels with unique vertices "
+                "and try again."
+            )
+
+    # turn original vertex numbers from vertno into indices for K
+    K_mask = np.searchsorted(vertno[0], verts_to_use[0])
+    r_kmask = np.searchsorted(vertno[1], verts_to_use[1]) + len(vertno[0])
+    K_mask = np.hstack((K_mask, r_kmask))
+
+    # record which original vertices are at each index in out_K
+    hemis = ("lh", "rh")
+    ki_keys = [
+        (hemis[hi], verts_to_use[hi][ii])
+        for hi in range(2)
+        for ii in range(len(verts_to_use[hi]))
+    ]
+    ki_vals = list(range(len(K_mask)))
+    k_idxs = dict(zip(ki_keys, ki_vals))
+
+    # mask K, handling the orientation issue
+    len_allverts = len(vertno[0]) + len(vertno[1])
+    if len(K) == len_allverts:
+        assert pick_ori == "normal"
+        out_K = K[K_mask]
+    else:
+        # here, K = [x0, y0, z0, x1, y1, z1 ...]
+        # we need to drop x, y and z of unused vertices
+        assert not pick_ori == "normal", pick_ori
+        assert len(K) == 3 * len_allverts, (len(K), len_allverts)
+        out_len = len(K_mask) * 3
+        out_K = K[0:out_len]  # get the correct-shaped array
+        for di in range(3):
+            K_pick = K[di::3]
+            out_K[di::3] = K_pick[K_mask]  # set correct values for out
+
+    out_vertno = verts_to_use
+    if noise_norm is not None:
+        out_nn = noise_norm[K_mask]
+    else:
+        out_nn = None
+
+    return out_K, out_nn, out_vertno, k_idxs
 
 
 def _prepare_source_params(
@@ -64,9 +131,26 @@ def _prepare_source_params(
     #   This does all the data transformations to compute the weights for the
     #   eigenleads
     #
-    K, noise_norm, vertno, _ = _assemble_kernel(
-        inv, label, method, pick_ori, use_cps=use_cps
-    )
+    # K shape: (3 x n_sources, n_channels) or (n_sources, n_channels)
+    # noise_norm shape: (n_sources, 1)
+    # vertno: [lh_verts, rh_verts]
+
+    k_idxs = None
+    if not isinstance(label, (Label, BiHemiLabel)):
+        whole_K, whole_noise_norm, whole_vertno, _ = _assemble_kernel(
+            inv, None, method, pick_ori, use_cps=use_cps
+        )
+        if isinstance(label, list):
+            K, noise_norm, vertno, k_idxs = _restrict_K_to_lbls(
+                label, whole_K, whole_noise_norm, whole_vertno, pick_ori
+            )
+        else:
+            assert not label
+            K, noise_norm, vertno = whole_K, whole_noise_norm, whole_vertno
+    elif isinstance(label, (Label, BiHemiLabel)):
+        K, noise_norm, vertno, _ = _assemble_kernel(
+            inv, label, method, pick_ori, use_cps=use_cps
+        )
 
     if pca:
         U, s, Vh = _safe_svd(K, full_matrices=False)
@@ -78,7 +162,7 @@ def _prepare_source_params(
         Vh = None
     is_free_ori = inverse_operator["source_ori"] == FIFF.FIFFV_MNE_FREE_ORI
 
-    return K, sel, Vh, vertno, is_free_ori, noise_norm
+    return K, sel, Vh, vertno, is_free_ori, noise_norm, k_idxs
 
 
 @verbose
@@ -114,8 +198,9 @@ def source_band_induced_power(
         The inverse operator.
     bands : dict
         Example : bands = dict(alpha=[8, 9]).
-    label : Label
-        Restricts the source estimates to a given label.
+    label : Label | list of Label
+        Restricts the source estimates to a given label or list of labels. If
+        labels are provided in a list, power will be averaged over vertices.
     lambda2 : float
         The regularization parameter of the minimum norm.
     method : "MNE" | "dSPM" | "sLORETA" | "eLORETA"
@@ -170,7 +255,10 @@ def source_band_induced_power(
     Returns
     -------
     stcs : dict of SourceEstimate (or VolSourceEstimate)
-        The estimated source space induced power estimates.
+        The estimated source space induced power estimates in shape
+        (n_vertices, n_frequencies, n_samples) if label=None or label=label.
+        For lists of one or more labels, the induced power estimate has shape
+        (n_labels, n_frequencies, n_samples).
     """  # noqa: E501
     _check_option("method", method, INVERSE_METHODS)
 
@@ -262,6 +350,7 @@ def _compute_pow_plv(
     with_plv,
     pick_ori,
     decim,
+    noise_norm=None,
     verbose=None,
 ):
     """Aux function for induced power and PLV."""
@@ -291,6 +380,9 @@ def _compute_pow_plv(
         power += power_e
         if with_plv:
             plv += plv_e
+
+    if noise_norm is not None:
+        power *= noise_norm[:, :, np.newaxis] ** 2
 
     return power, plv
 
@@ -345,6 +437,41 @@ def _single_epoch_tfr(
     return tfr_e, plv_e
 
 
+def _get_label_power(power, labels, vertno, k_idxs):
+    """Average power across vertices in labels."""
+    (_, ps1, ps2) = power.shape
+    # construct out array with correct shape
+    out_power = np.zeros(shape=(len(labels), ps1, ps2))
+
+    # for each label, compile list of vertices we want
+    for li in np.arange(len(labels)):
+        lab = labels[li]
+        hemis = ("lh", "rh")
+        all_vnums = [[], []]
+        if lab.hemi == "both":
+            all_vnums[0] = np.intersect1d(lab.lh.vertices, vertno[0])
+            all_vnums[1] = np.intersect1d(lab.rh.vertices, vertno[1])
+        else:
+            assert lab.hemi == "lh" or lab.hemi == "rh"
+            h_id = 0 if lab.hemi == "lh" else 1
+            all_vnums[h_id] = np.intersect1d(vertno[h_id], lab.vertices)
+
+        verts = [(hemis[hi], vn) for hi in range(2) for vn in all_vnums[hi]]
+
+        # restrict power to relevant vertices in label
+        lab_mask = np.array([False] * len(power))
+        for vert in verts:
+            lab_mask[k_idxs[vert]] = True  # k_idxs[vert] gives power row index
+        lab_power = power[lab_mask]  # only pass through rows we want
+        assert lab_power.shape == (len(verts), ps1, ps2)
+
+        # set correct out values for label
+        out_power[li, :, :] = np.mean(lab_power, axis=0)
+
+    assert out_power.shape == (len(labels), ps1, ps2)
+    return out_power
+
+
 @verbose
 def _source_induced_power(
     epochs,
@@ -368,8 +495,29 @@ def _source_induced_power(
     verbose=None,
 ):
     """Aux function for source induced power."""
+    if label:
+        _validate_type(
+            label,
+            types=(Label, BiHemiLabel, list, tuple, None),
+            type_name=("Label or BiHemiLabel", "list of labels", "None"),
+        )
+        if isinstance(label, (list, tuple)):
+            for item in label:
+                _validate_type(
+                    item,
+                    types=(Label, BiHemiLabel),
+                    type_name=("Label or BiHemiLabel"),
+                )
+            if len(label) > 1 and with_plv:
+                raise RuntimeError(
+                    "Phase-locking value cannot be calculated "
+                    "when averaging induced power within "
+                    "labels. Please set `with_plv` to False, pass a "
+                    "single `label=label`, or set `label=None`."
+                )
+
     epochs_data = epochs.get_data()
-    K, sel, Vh, vertno, is_free_ori, noise_norm = _prepare_source_params(
+    K, sel, Vh, vertno, is_free_ori, noise_norm, k_id = _prepare_source_params(
         inst=epochs,
         inverse_operator=inverse_operator,
         label=label,
@@ -406,11 +554,25 @@ def _source_induced_power(
             with_power=True,
             pick_ori=pick_ori,
             decim=decim,
+            noise_norm=noise_norm,
         )
         for data in np.array_split(epochs_data, n_jobs)
     )
-    power = sum(o[0] for o in out)
+    power = sum(o[0] for o in out)  # power shape: (n_verts, n_freqs, n_samps)
     power /= len(epochs_data)  # average power over epochs
+
+    if isinstance(label, (Label, BiHemiLabel)):
+        logger.info(
+            f"Outputting power for {len(power)} vertices in label {label.name}."
+        )
+    elif isinstance(label, list):
+        power = _get_label_power(power, label, vertno, k_id)
+        logger.info(
+            "Averaging induced power across vertices within labels "
+            f"for {len(label)} label{_pl(label)}."
+        )
+    else:
+        assert not label
 
     if with_plv:
         plv = sum(o[1] for o in out)
@@ -418,9 +580,6 @@ def _source_induced_power(
         plv /= len(epochs_data)  # average power over epochs
     else:
         plv = None
-
-    if noise_norm is not None:
-        power *= noise_norm[:, :, np.newaxis] ** 2
 
     return power, plv, vertno
 
@@ -442,6 +601,8 @@ def source_induced_power(
     baseline_mode="logratio",
     pca=True,
     n_jobs=None,
+    *,
+    return_plv=True,
     zero_mean=False,
     prepared=False,
     method_params=None,
@@ -460,8 +621,10 @@ def source_induced_power(
         The inverse operator.
     freqs : array
         Array of frequencies of interest.
-    label : Label
-        Restricts the source estimates to a given label.
+    label : Label | list of Label
+        Restricts the source estimates to a given label or list of labels. If
+        labels are provided in a list, power will be averaged over vertices within each
+        label.
     lambda2 : float
         The regularization parameter of the minimum norm.
     method : "MNE" | "dSPM" | "sLORETA" | "eLORETA"
@@ -506,6 +669,10 @@ def source_induced_power(
         the time-frequency transforms. It reduces the computation times
         e.g. with a dataset that was maxfiltered (true dim is 64).
     %(n_jobs)s
+    return_plv : bool
+        If True, return the phase-locking value array. Else, only return power.
+
+        .. versionadded:: 1.6
     zero_mean : bool
         Make sure the wavelets are zero mean.
     prepared : bool
@@ -520,7 +687,12 @@ def source_induced_power(
     Returns
     -------
     power : array
-        The induced power.
+        The induced power array with shape (n_sources, n_freqs, n_samples) if
+        label=None or label=label. For lists of one or more labels, the induced
+        power estimate has shape (n_labels, n_frequencies, n_samples).
+    plv : array
+        The phase-locking value array with shape (n_sources, n_freqs,
+        n_samples). Only returned if ``return_plv=True``.
     """  # noqa: E501
     _check_option("method", method, INVERSE_METHODS)
     _check_ori(pick_ori, inverse_operator["source_ori"], inverse_operator["src"])
@@ -539,6 +711,7 @@ def source_induced_power(
         pick_ori=pick_ori,
         pca=pca,
         n_jobs=n_jobs,
+        with_plv=return_plv,
         method_params=method_params,
         zero_mean=zero_mean,
         prepared=prepared,
@@ -547,7 +720,9 @@ def source_induced_power(
 
     # Run baseline correction
     power = rescale(power, epochs.times[::decim], baseline, baseline_mode, copy=False)
-    return power, plv
+
+    outs = (power, plv) if return_plv else power
+    return outs
 
 
 @verbose
@@ -761,7 +936,17 @@ def _compute_source_psd_epochs(
     """Generate compute_source_psd_epochs."""
     logger.info("Considering frequencies %g ... %g Hz" % (fmin, fmax))
 
-    K, sel, Vh, vertno, is_free_ori, noise_norm = _prepare_source_params(
+    if label:
+        # TODO: add multi-label support
+        # since `_prepare_source_params` can handle a list of labels now,
+        # multi-label support should be within reach for psd calc as well
+        _validate_type(
+            label,
+            types=(Label, BiHemiLabel, None),
+            type_name=("Label or BiHemiLabel", "None"),
+        )
+
+    K, sel, Vh, vertno, is_free_ori, noise_norm, _ = _prepare_source_params(
         inst=epochs,
         inverse_operator=inverse_operator,
         label=label,

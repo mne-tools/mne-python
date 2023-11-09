@@ -5,96 +5,96 @@
 #
 # License: BSD-3-Clause
 
-from collections import Counter, OrderedDict
-from collections.abc import Mapping
 import contextlib
-from copy import deepcopy
 import datetime
-from io import BytesIO
 import operator
-from textwrap import shorten
 import string
+from collections import Counter, OrderedDict, defaultdict
+from collections.abc import Mapping
+from copy import deepcopy
+from io import BytesIO
+from textwrap import shorten
 
 import numpy as np
 
+from ..defaults import _handle_default
+from ..html_templates import _get_html_template
+from ..utils import (
+    _check_fname,
+    _check_on_missing,
+    _check_option,
+    _dt_to_stamp,
+    _is_numeric,
+    _on_missing,
+    _pl,
+    _stamp_to_dt,
+    _validate_type,
+    check_fname,
+    fill_doc,
+    logger,
+    object_diff,
+    repr_html,
+    verbose,
+    warn,
+)
+from ._digitization import (
+    DigPoint,
+    _dig_kind_ints,
+    _dig_kind_proper,
+    _dig_kind_rev,
+    _format_dig_points,
+    _get_data_as_dict_from_dig,
+    _read_dig_fif,
+    write_dig,
+)
+from .compensator import get_current_comp
+from .constants import FIFF, _ch_unit_mul_named, _coord_frame_named
+from .ctf_comp import _read_ctf_comp, write_ctf_comp
+from .open import fiff_open
 from .pick import (
+    _DATA_CH_TYPES_SPLIT,
+    _contains_ch_type,
+    _picks_to_idx,
     channel_type,
     get_channel_type_constants,
     pick_types,
-    _picks_to_idx,
-    _contains_ch_type,
-    _DATA_CH_TYPES_SPLIT,
-)
-from .constants import FIFF, _coord_frame_named, _ch_unit_mul_named
-from .open import fiff_open
-from .tree import dir_tree_find
-from .tag import (
-    read_tag,
-    find_tag,
-    _ch_coord_dict,
-    _update_ch_info_named,
-    _rename_list,
-    _int_item,
-    _float_item,
-)
-from .proj import (
-    _read_proj,
-    _write_proj,
-    _uniquify_projs,
-    _normalize_proj,
-    _proj_equal,
-    Projection,
-)
-from .ctf_comp import _read_ctf_comp, write_ctf_comp
-from .write import (
-    start_and_end_file,
-    start_block,
-    end_block,
-    write_string,
-    write_dig_points,
-    write_float,
-    write_int,
-    write_coord_trans,
-    write_ch_info,
-    write_julian,
-    write_float_matrix,
-    write_id,
-    DATE_NONE,
-    _safe_name_list,
-    write_name_list_sanitized,
 )
 from .proc_history import _read_proc_history, _write_proc_history
-from ..html_templates import _get_html_template
-from ..utils import (
-    logger,
-    verbose,
-    warn,
-    object_diff,
-    _validate_type,
-    _stamp_to_dt,
-    _dt_to_stamp,
-    _pl,
-    _is_numeric,
-    _check_option,
-    _on_missing,
-    _check_on_missing,
-    fill_doc,
-    _check_fname,
-    check_fname,
-    repr_html,
+from .proj import (
+    Projection,
+    _normalize_proj,
+    _proj_equal,
+    _read_proj,
+    _uniquify_projs,
+    _write_proj,
 )
-from ._digitization import (
-    _format_dig_points,
-    _dig_kind_proper,
-    DigPoint,
-    _dig_kind_rev,
-    _dig_kind_ints,
-    _read_dig_fif,
+from .tag import (
+    _ch_coord_dict,
+    _float_item,
+    _int_item,
+    _rename_list,
+    _update_ch_info_named,
+    find_tag,
+    read_tag,
 )
-from ._digitization import write_dig, _get_data_as_dict_from_dig
-from .compensator import get_current_comp
-from ..defaults import _handle_default
-
+from .tree import dir_tree_find
+from .write import (
+    DATE_NONE,
+    _safe_name_list,
+    end_block,
+    start_and_end_file,
+    start_block,
+    write_ch_info,
+    write_coord_trans,
+    write_dig_points,
+    write_float,
+    write_float_matrix,
+    write_id,
+    write_int,
+    write_julian,
+    write_name_list_sanitized,
+    write_string,
+)
 
 b = bytes  # alias
 
@@ -410,6 +410,12 @@ class MontageMixin:
             a montage. Other channel types (e.g., MEG channels) should have
             their positions defined properly using their data reading
             functions.
+        .. warning::
+            Applying a montage will only set locations of channels that exist
+            at the time it is applied. This means when
+            :ref:`re-referencing <tut-set-eeg-ref>`
+            make sure to apply the montage only after calling
+            :func:`mne.add_reference_channels`
         """
         # How to set up a montage to old named fif file (walk through example)
         # https://gist.github.com/massich/f6a9f4799f1fbeb8f5e8f8bc7b07d3df
@@ -635,8 +641,8 @@ class SetChannelsMixin(MontageMixin):
         -----
         .. versionadded:: 0.9.0
         """
-        from ..io import BaseRaw
         from ..channels.channels import rename_channels
+        from ..io import BaseRaw
 
         info = self if isinstance(self, Info) else self.info
 
@@ -939,18 +945,58 @@ def _check_ch_keys(ch, ci, name='info["chs"]', check_min=True):
             )
 
 
-# As options are added here, test_meas_info.py:test_info_bad should be updated
-def _check_bads(bads):
+def _check_bads_info_compat(bads, info):
     _validate_type(bads, list, "bads")
-    return bads
+    if not len(bads):
+        return  # e.g. in empty_info
+    for bi, bad in enumerate(bads):
+        _validate_type(bad, str, f"bads[{bi}]")
+    if "ch_names" not in info:  # somewhere in init, or deepcopy, or _empty_info, etc.
+        return
+    missing = [bad for bad in bads if bad not in info["ch_names"]]
+    if len(missing) > 0:
+        raise ValueError(f"bad channel(s) {missing} marked do not exist in info")
 
 
-def _check_description(description):
+class MNEBadsList(list):
+    """Subclass of bads that checks inplace operations."""
+
+    def __init__(self, *, bads, info):
+        _check_bads_info_compat(bads, info)
+        self._mne_info = info
+        super().__init__(bads)
+
+    def extend(self, iterable):
+        if not isinstance(iterable, list):
+            iterable = list(iterable)
+        # can happen during pickling
+        try:
+            info = self._mne_info
+        except AttributeError:
+            pass  # can happen during pickling
+        else:
+            _check_bads_info_compat(iterable, info)
+        return super().extend(iterable)
+
+    def append(self, x):
+        return self.extend([x])
+
+    def __iadd__(self, x):
+        self.extend(x)
+        return self
+
+
+# As options are added here, test_meas_info.py:test_info_bad should be updated
+def _check_bads(bads, *, info):
+    return MNEBadsList(bads=bads, info=info)
+
+
+def _check_description(description, *, info):
     _validate_type(description, (None, str), "info['description']")
     return description
 
 
-def _check_dev_head_t(dev_head_t):
+def _check_dev_head_t(dev_head_t, *, info):
     from ..transforms import Transform, _ensure_trans
 
     _validate_type(dev_head_t, (Transform, None), "info['dev_head_t']")
@@ -959,23 +1005,23 @@ def _check_dev_head_t(dev_head_t):
     return dev_head_t
 
 
-def _check_experimenter(experimenter):
+def _check_experimenter(experimenter, *, info):
     _validate_type(experimenter, (None, str), "experimenter")
     return experimenter
 
 
-def _check_line_freq(line_freq):
+def _check_line_freq(line_freq, *, info):
     _validate_type(line_freq, (None, "numeric"), "line_freq")
     line_freq = float(line_freq) if line_freq is not None else line_freq
     return line_freq
 
 
-def _check_subject_info(subject_info):
+def _check_subject_info(subject_info, *, info):
     _validate_type(subject_info, (None, dict), "subject_info")
     return subject_info
 
 
-def _check_device_info(device_info):
+def _check_device_info(device_info, *, info):
     _validate_type(
         device_info,
         (
@@ -987,7 +1033,7 @@ def _check_device_info(device_info):
     return device_info
 
 
-def _check_helium_info(helium_info):
+def _check_helium_info(helium_info, *, info):
     _validate_type(
         helium_info,
         (
@@ -1472,7 +1518,7 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
         "sfreq": "sfreq cannot be set directly. "
         "Please use method inst.resample() instead.",
         "subject_info": _check_subject_info,
-        "temp": lambda x: x,
+        "temp": lambda x, info=None: x,
         "utc_offset": "utc_offset cannot be set directly.",
         "working_dir": "working_dir cannot be set directly.",
         "xplotter_layout": "xplotter_layout cannot be set directly.",
@@ -1482,6 +1528,8 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
         self._unlocked = True
         super().__init__(*args, **kwargs)
         # Deal with h5io writing things as dict
+        if "bads" in self:
+            self["bads"] = MNEBadsList(bads=self["bads"], info=self)
         for key in ("dev_head_t", "ctf_head_t", "dev_ctf_t"):
             _format_trans(self, key)
         for res in self.get("hpi_results", []):
@@ -1515,6 +1563,7 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
     def __setstate__(self, state):
         """Set state (for pickling)."""
         self._unlocked = state["_unlocked"]
+        self["bads"] = MNEBadsList(bads=self["bads"], info=self)
 
     def __setitem__(self, key, val):
         """Attribute setter."""
@@ -1526,7 +1575,9 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
                 if not unlocked:
                     raise RuntimeError(self._attributes[key])
             else:
-                val = self._attributes[key](val)  # attribute checker function
+                val = self._attributes[key](
+                    val, info=self
+                )  # attribute checker function
         else:
             raise RuntimeError(
                 f"Info does not support directly setting the key {repr(key)}. "
@@ -1592,7 +1643,7 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
     def __repr__(self):
         """Summarize info instead of printing all."""
         from ..io.kit.constants import KIT_SYSNAMES
-        from ..transforms import _coord_frame_name, Transform
+        from ..transforms import Transform, _coord_frame_name
 
         MAX_WIDTH = 68
         strs = ["<Info | %s non-empty values"]
@@ -1724,16 +1775,6 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
 
     def _check_consistency(self, prepend_error=""):
         """Do some self-consistency checks and datatype tweaks."""
-        missing = [bad for bad in self["bads"] if bad not in self["ch_names"]]
-        if len(missing) > 0:
-            msg = "%sbad channel(s) %s marked do not exist in info"
-            raise RuntimeError(
-                msg
-                % (
-                    prepend_error,
-                    missing,
-                )
-            )
         meas_date = self.get("meas_date")
         if meas_date is not None:
             if (
@@ -1816,40 +1857,28 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
         titles = _handle_default("titles")
 
         # good channels
-        channels = {}
-        ch_types = [channel_type(self, idx) for idx in range(len(self["chs"]))]
-        ch_counts = Counter(ch_types)
-        for ch_type, count in ch_counts.items():
-            if ch_type == "meg":
-                channels["mag"] = len(pick_types(self, meg="mag"))
-                channels["grad"] = len(pick_types(self, meg="grad"))
-            elif ch_type == "eog":
-                pick_eog = pick_types(self, eog=True)
-                eog = ", ".join(np.array(self["ch_names"])[pick_eog])
-            elif ch_type == "ecg":
-                pick_ecg = pick_types(self, ecg=True)
-                ecg = ", ".join(np.array(self["ch_names"])[pick_ecg])
-            channels[ch_type] = count
-
+        good_names = defaultdict(lambda: list())
+        for ci, ch_name in enumerate(self["ch_names"]):
+            if ch_name in self["bads"]:
+                continue
+            ch_type = channel_type(self, ci)
+            good_names[ch_type].append(ch_name)
         good_channels = ", ".join(
-            [f"{v} {titles.get(k, k.upper())}" for k, v in channels.items()]
+            [f"{len(v)} {titles.get(k, k.upper())}" for k, v in good_names.items()]
         )
-
-        if "ecg" not in channels.keys():
-            ecg = "Not available"
-        if "eog" not in channels.keys():
-            eog = "Not available"
+        for key in ("ecg", "eog"):  # ensure these are present
+            if key not in good_names:
+                good_names[key] = list()
+        for key, val in good_names.items():
+            good_names[key] = ", ".join(val) or "Not available"
 
         # bad channels
-        if len(self["bads"]) > 0:
-            bad_channels = ", ".join(self["bads"])
-        else:
-            bad_channels = "None"
+        bad_channels = ", ".join(self["bads"]) or "None"
 
-        return good_channels, bad_channels, ecg, eog
+        return good_channels, bad_channels, good_names["ecg"], good_names["eog"]
 
     @repr_html
-    def _repr_html_(self, caption=None):
+    def _repr_html_(self, caption=None, duration=None, filenames=None):
         """Summarize info for HTML representation."""
         if isinstance(caption, str):
             html = f"<h4>{caption}</h4>"
@@ -1881,7 +1910,9 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
             projs = None
 
         info_template = _get_html_template("repr", "info.html.jinja")
+        sections = ("General", "Channels", "Data")
         return html + info_template.render(
+            sections=sections,
             caption=caption,
             meas_date=meas_date,
             projs=projs,
@@ -1895,6 +1926,8 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
             highpass=self.get("highpass"),
             sfreq=self.get("sfreq"),
             experimenter=self.get("experimenter"),
+            duration=duration,
+            filenames=filenames,
         )
 
     def save(self, fname):
@@ -2078,7 +2111,7 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
     meas : dict
         Node in tree that contains the info.
     """
-    from ..transforms import invert_transform, Transform
+    from ..transforms import Transform, invert_transform
 
     #   Find the desired blocks
     meas = dir_tree_find(tree, FIFF.FIFFB_MEAS)
@@ -3335,7 +3368,7 @@ def _force_update_info(info_base, info_target):
         The Info object(s) you wish to overwrite using info_base. These objects
         will be modified in-place.
     """
-    exclude_keys = ["chs", "ch_names", "nchan"]
+    exclude_keys = ["chs", "ch_names", "nchan", "bads"]
     info_target = np.atleast_1d(info_target).ravel()
     all_infos = np.hstack([info_base, info_target])
     for ii in all_infos:

@@ -19,9 +19,10 @@ will only work properly when run in an interactive environment.
 # Author: Marijn van Vliet <w.m.vanvliet@gmail.com>
 #
 # License: BSD-3-Clause
-import mne
 import matplotlib.pyplot as plt
-from mne.viz.ui_events import publish, subscribe, link, TimeChange
+
+import mne
+from mne.viz.ui_events import TimeChange, link, publish, subscribe
 
 # Turn on interactivity
 plt.ion()
@@ -75,7 +76,6 @@ fig_field = mne.viz.plot_evoked_field(
 
 link(fig_brain, fig_field)
 fig_brain.set_time(0.1)  # updates both source estimate and field lines
-
 
 ########################################################################################
 # Hooking a custom plot into the event system

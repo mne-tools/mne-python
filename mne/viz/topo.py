@@ -14,18 +14,18 @@ import numpy as np
 from scipy import ndimage
 
 from .._fiff.pick import channel_type, pick_types
-from ..utils import _clean_names, _check_option, Bunch, fill_doc, _to_rgb
 from ..defaults import _handle_default
+from ..utils import Bunch, _check_option, _clean_names, _to_rgb, fill_doc
 from .utils import (
+    DraggableColorbar,
+    _check_cov,
     _check_delayed_ssp,
     _draw_proj_checkbox,
+    _plot_masked_image,
+    _setup_ax_spines,
+    _setup_vmin_vmax,
     add_background_image,
     plt_show,
-    _setup_vmin_vmax,
-    DraggableColorbar,
-    _setup_ax_spines,
-    _check_cov,
-    _plot_masked_image,
 )
 
 
@@ -141,11 +141,14 @@ def _iter_topography(
         If True, a single axis will be constructed. The former is
         useful for custom plotting, the latter for speed.
     """
-    from matplotlib import pyplot as plt, collections
+    from matplotlib import collections
+    from matplotlib import pyplot as plt
+
     from ..channels.layout import find_layout
 
     if fig is None:
-        fig = plt.figure()
+        # Don't use constrained layout because we place axes manually
+        fig = plt.figure(layout=None)
 
     def format_coord_unified(x, y, pos=None, ch_names=None):
         """Update status bar with channel name under cursor."""
@@ -296,7 +299,8 @@ def _plot_topo(
     )
 
     if axes is None:
-        fig = plt.figure()
+        # Don't use constrained layout because we place axes manually
+        fig = plt.figure(layout=None)
         axes = plt.axes([0.015, 0.025, 0.97, 0.95])
         axes.set_facecolor(fig_facecolor)
     else:
@@ -457,7 +461,7 @@ def _imshow_tfr(
         else:
             cbar = plt.colorbar(mappable=img, ax=ax)
         if interactive_cmap:
-            ax.CB = DraggableColorbar(cbar, img)
+            ax.CB = DraggableColorbar(cbar, img, kind="tfr_image", ch_type=None)
     ax.RS = RectangleSelector(ax, onselect=onselect)  # reference must be kept
 
     return t_end
@@ -927,8 +931,9 @@ def _plot_evoked_topo(
         Images of evoked responses at sensor locations
     """
     import matplotlib.pyplot as plt
-    from ..cov import whiten_evoked
+
     from ..channels.layout import _merge_ch_data, _pair_grad_sensors, find_layout
+    from ..cov import whiten_evoked
 
     if type(evoked) not in (tuple, list):
         evoked = [evoked]

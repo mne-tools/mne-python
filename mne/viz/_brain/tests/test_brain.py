@@ -12,39 +12,38 @@ import sys
 from pathlib import Path
 from shutil import copyfile
 
-import pytest
 import numpy as np
+import pytest
+from matplotlib import image
+from matplotlib.lines import Line2D
 from numpy.testing import assert_allclose, assert_array_equal
 
 from mne import (
-    read_source_estimate,
-    read_evokeds,
-    read_cov,
-    read_forward_solution,
-    pick_types_forward,
-    SourceEstimate,
-    MixedSourceEstimate,
-    write_surface,
-    VolSourceEstimate,
-    vertex_to_mni,
     Dipole,
+    MixedSourceEstimate,
+    SourceEstimate,
+    VolSourceEstimate,
     create_info,
+    pick_types_forward,
+    read_cov,
+    read_evokeds,
+    read_forward_solution,
+    read_source_estimate,
+    vertex_to_mni,
+    write_surface,
 )
 from mne.channels import make_dig_montage
+from mne.datasets import testing
+from mne.io import read_info
+from mne.label import read_label
 from mne.minimum_norm import apply_inverse, make_inverse_operator
 from mne.source_estimate import _BaseSourceEstimate
 from mne.source_space import read_source_spaces, setup_volume_source_space
-from mne.datasets import testing
-from mne.io import read_info
 from mne.utils import check_version
-from mne.label import read_label
-from mne.viz._brain import Brain, _LinkViewer, _BrainScraper, _LayeredMesh
+from mne.viz import ui_events
+from mne.viz._brain import Brain, _BrainScraper, _LayeredMesh, _LinkViewer
 from mne.viz._brain.colormap import calculate_lut
 from mne.viz.utils import _get_cmap
-from mne.viz import ui_events
-
-from matplotlib import image
-from matplotlib.lines import Line2D
 
 data_path = testing.data_path(download=False)
 subject = "sample"
@@ -738,11 +737,14 @@ def tiny(tmp_path):
 def test_brain_screenshot(renderer_interactive_pyvistaqt, tmp_path, brain_gc):
     """Test time viewer screenshot."""
     # This is broken on Conda + GHA for some reason
+    from qtpy import API_NAME
+
     if (
         os.getenv("CONDA_PREFIX", "") != ""
         and os.getenv("GITHUB_ACTIONS", "") == "true"
+        or API_NAME.lower() == "pyside6"
     ):
-        pytest.skip("Test is unreliable on GitHub Actions conda runs")
+        pytest.skip("Test is unreliable on GitHub Actions conda runs and pyside6")
     tiny_brain, ratio = tiny(tmp_path)
     img_nv = tiny_brain.screenshot(time_viewer=False)
     want = (_TINY_SIZE[1] * ratio, _TINY_SIZE[0] * ratio, 3)
@@ -1096,6 +1098,10 @@ something
 def test_brain_scraper(renderer_interactive_pyvistaqt, brain_gc, tmp_path):
     """Test a simple scraping example."""
     pytest.importorskip("sphinx_gallery")
+    from qtpy import API_NAME
+
+    if API_NAME.lower() == "pyside6":
+        pytest.skip("Error in event loop on PySidie6")
     stc = read_source_estimate(fname_stc, subject="sample")
     size = (600, 400)
     brain = stc.plot(

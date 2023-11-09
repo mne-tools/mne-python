@@ -16,66 +16,64 @@ import numpy as np
 from scipy.fft import fft, ifft
 from scipy.signal import argrelmax
 
-from .multitaper import dpss_windows
-
-from ..baseline import rescale, _check_baseline
+from .._fiff.meas_info import ContainsMixin, Info
+from .._fiff.pick import (
+    _picks_to_idx,
+    channel_type,
+    pick_info,
+)
+from ..baseline import _check_baseline, rescale
+from ..channels.channels import UpdateChannelsMixin
+from ..channels.layout import _find_topomap_coords, _merge_ch_data, _pair_grad_sensors
+from ..defaults import _BORDER_DEFAULT, _EXTRAPOLATE_DEFAULT, _INTERPOLATION_DEFAULT
 from ..filter import next_fast_len
 from ..parallel import parallel_func
 from ..utils import (
-    logger,
-    verbose,
-    _time_mask,
-    _freq_mask,
-    check_fname,
-    sizeof_fmt,
-    GetEpochsMixin,
     ExtendedTimeMixin,
-    _prepare_read_metadata,
-    fill_doc,
-    _prepare_write_metadata,
-    _check_event_id,
-    _gen_events,
+    GetEpochsMixin,
     SizeMixin,
-    _is_numeric,
-    _check_option,
-    _validate_type,
+    _build_data_frame,
     _check_combine,
-    _check_pandas_installed,
+    _check_event_id,
+    _check_option,
     _check_pandas_index_arguments,
+    _check_pandas_installed,
     _check_time_format,
     _convert_times,
-    _build_data_frame,
-    warn,
+    _freq_mask,
+    _gen_events,
     _import_h5io_funcs,
+    _is_numeric,
+    _prepare_read_metadata,
+    _prepare_write_metadata,
+    _time_mask,
+    _validate_type,
+    check_fname,
     copy_function_doc_to_method_doc,
+    fill_doc,
+    logger,
+    sizeof_fmt,
+    verbose,
+    warn,
 )
-from ..channels.channels import UpdateChannelsMixin
-from ..channels.layout import _merge_ch_data, _pair_grad_sensors, _find_topomap_coords
-from ..defaults import _INTERPOLATION_DEFAULT, _EXTRAPOLATE_DEFAULT, _BORDER_DEFAULT
-from .._fiff.pick import (
-    pick_info,
-    _picks_to_idx,
-    channel_type,
-)
-from .._fiff.meas_info import Info, ContainsMixin
-from ..viz.topo import _imshow_tfr, _plot_topo, _imshow_tfr_unified
+from ..viz.topo import _imshow_tfr, _imshow_tfr_unified, _plot_topo
 from ..viz.topomap import (
-    _set_contour_locator,
-    plot_topomap,
-    _get_pos_outlines,
-    plot_tfr_topomap,
     _add_colorbar,
+    _get_pos_outlines,
+    _set_contour_locator,
+    plot_tfr_topomap,
+    plot_topomap,
 )
 from ..viz.utils import (
+    _prepare_joint_axes,
+    _set_title_multiple_electrodes,
+    _setup_cmap,
+    _setup_vmin_vmax,
+    add_background_image,
     figure_nobar,
     plt_show,
-    _setup_cmap,
-    _connection_line,
-    _prepare_joint_axes,
-    _setup_vmin_vmax,
-    _set_title_multiple_electrodes,
-    add_background_image,
 )
+from .multitaper import dpss_windows
 
 
 @fill_doc
@@ -114,7 +112,7 @@ def morlet(sfreq, freqs, n_cycles=7.0, sigma=None, zero_mean=False):
 
     Notes
     -----
-    %(morlet_notes)s
+    %(morlet_reference)s
     %(fwhm_morlet_notes)s
 
     References
@@ -141,7 +139,7 @@ def morlet(sfreq, freqs, n_cycles=7.0, sigma=None, zero_mean=False):
         s = w * sfreq / (2 * freq * np.pi)  # from SciPy docs
         wavelet_sp = sp_morlet(M, s, w) * np.sqrt(2)  # match our normalization
 
-        _, ax = plt.subplots(constrained_layout=True)
+        _, ax = plt.subplots(layout="constrained")
         colors = {
             ('MNE', 'real'): '#66CCEE',
             ('SciPy', 'real'): '#4477AA',
@@ -948,9 +946,9 @@ def tfr_morlet(
 
     Notes
     -----
-    %(morlet_notes)s
-    %(temporal-window_tfr_notes)s
-    %(fwhm_morlet_notes)s
+    %(morlet_reference)s
+    %(temporal_window_tfr_intro)s
+    %(temporal_window_tfr_morlet_notes)s
 
     See :func:`mne.time_frequency.morlet` for more information about the
     Morlet wavelet.
@@ -997,7 +995,7 @@ def tfr_array_morlet(
         Sampling frequency of the data.
     %(freqs_tfr)s
     %(n_cycles_tfr)s
-    zero_mean : bool | False
+    zero_mean : bool
         If True, make sure the wavelets have a mean of zero. default False.
     use_fft : bool
         Use the FFT for convolutions or not. default True.
@@ -1039,8 +1037,9 @@ def tfr_array_morlet(
 
     Notes
     -----
-    %(morlet_notes)s
-    %(temporal-window_tfr_notes)s
+    %(morlet_reference)s
+    %(temporal_window_tfr_intro)s
+    %(temporal_window_tfr_morlet_notes)s
 
     .. versionadded:: 0.14.0
 
@@ -1121,7 +1120,8 @@ def tfr_multitaper(
 
     Notes
     -----
-    %(temporal-window_tfr_notes)s
+    %(temporal_window_tfr_intro)s
+    %(temporal_window_tfr_multitaper_notes)s
     %(time_bandwidth_tfr_notes)s
 
     .. versionadded:: 0.9.0
@@ -1730,7 +1730,7 @@ class AverageTFR(_BaseTFR):
         elif isinstance(axes, plt.Axes):
             figs_and_axes = [(ax.get_figure(), ax) for ax in [axes]]
         elif axes is None:
-            figs = [plt.figure() for i in range(n_picks)]
+            figs = [plt.figure(layout="constrained") for i in range(n_picks)]
             figs_and_axes = [(fig, fig.add_subplot(111)) for fig in figs]
         else:
             raise ValueError("axes must be None, plt.Axes, or list " "of plt.Axes.")
@@ -1919,7 +1919,7 @@ class AverageTFR(_BaseTFR):
 
         .. versionadded:: 0.16.0
         """  # noqa: E501
-        import matplotlib.pyplot as plt
+        from matplotlib.patches import ConnectionPatch
 
         #####################################
         # Handle channels (picks and types) #
@@ -2005,7 +2005,7 @@ class AverageTFR(_BaseTFR):
         # Image plot #
         ##############
 
-        fig, tf_ax, map_ax, cbar_ax = _prepare_joint_axes(n_timefreqs)
+        fig, tf_ax, map_ax = _prepare_joint_axes(n_timefreqs)
 
         cmap = _setup_cmap(cmap)
 
@@ -2160,28 +2160,32 @@ class AverageTFR(_BaseTFR):
         #############
         # Finish up #
         #############
-
         if colorbar:
             from matplotlib import ticker
 
-            cbar = plt.colorbar(ax.images[0], cax=cbar_ax)
+            cbar = fig.colorbar(ax.images[0])
             if locator is None:
                 locator = ticker.MaxNLocator(nbins=5)
             cbar.locator = locator
             cbar.update_ticks()
 
-        plt.subplots_adjust(
-            left=0.12, right=0.925, bottom=0.14, top=1.0 if title is not None else 1.2
-        )
-
         # draw the connection lines between time series and topoplots
-        lines = [
-            _connection_line(
-                time_, fig, tf_ax, map_ax_, y=freq_, y_source_transform="transData"
+        for (time_, freq_), map_ax_ in zip(timefreqs_array, map_ax):
+            con = ConnectionPatch(
+                xyA=[time_, freq_],
+                xyB=[0.5, 0],
+                coordsA="data",
+                coordsB="axes fraction",
+                axesA=tf_ax,
+                axesB=map_ax_,
+                color="grey",
+                linestyle="-",
+                linewidth=1.5,
+                alpha=0.66,
+                zorder=1,
+                clip_on=False,
             )
-            for (time_, freq_), map_ax_ in zip(timefreqs_array, map_ax)
-        ]
-        fig.lines.extend(lines)
+            fig.add_artist(con)
 
         plt_show(show)
         return fig
@@ -2287,7 +2291,6 @@ class AverageTFR(_BaseTFR):
                     axes=ax,
                 )
                 ax.set_title(ch_type)
-            fig.tight_layout()
 
     @verbose
     def plot_topo(

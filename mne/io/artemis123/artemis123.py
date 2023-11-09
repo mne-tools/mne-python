@@ -2,21 +2,21 @@
 #
 # License: BSD-3-Clause
 
-import numpy as np
-import os.path as op
-import datetime
 import calendar
+import datetime
+import os.path as op
 
+import numpy as np
 from scipy.spatial.distance import cdist
 
-from .utils import _load_mne_locs, _read_pos
-from ..base import BaseRaw
-from ...utils import logger, warn, verbose, _check_fname
-from ..._fiff.utils import _read_segments_file
-from ..._fiff.meas_info import _empty_info
-from ..._fiff._digitization import _make_dig_points, DigPoint
+from ..._fiff._digitization import DigPoint, _make_dig_points
 from ..._fiff.constants import FIFF
-from ...transforms import get_ras_to_neuromag_trans, apply_trans, Transform
+from ..._fiff.meas_info import _empty_info
+from ..._fiff.utils import _read_segments_file
+from ...transforms import Transform, apply_trans, get_ras_to_neuromag_trans
+from ...utils import _check_fname, logger, verbose, warn
+from ..base import BaseRaw
+from .utils import _load_mne_locs, _read_pos
 
 
 @verbose
@@ -192,7 +192,7 @@ def _get_artemis123_info(fname, pos_fname=None):
     # load mne loc dictionary
     loc_dict = _load_mne_locs()
     info["chs"] = []
-    info["bads"] = []
+    bads = []
 
     for i, chan in enumerate(header_info["channels"]):
         # build chs struct
@@ -209,7 +209,7 @@ def _get_artemis123_info(fname, pos_fname=None):
         # a value of another ref channel to make writers/readers happy.
         if t["cal"] == 0:
             t["cal"] = 4.716e-10
-            info["bads"].append(t["ch_name"])
+            bads.append(t["ch_name"])
         t["loc"] = loc_dict.get(chan["name"], np.zeros(12))
 
         if chan["name"].startswith("MEG"):
@@ -247,7 +247,7 @@ def _get_artemis123_info(fname, pos_fname=None):
             t["coil_type"] = FIFF.FIFFV_COIL_NONE
             t["kind"] = FIFF.FIFFV_MISC_CH
             t["unit"] = FIFF.FIFF_UNIT_V
-            info["bads"].append(t["ch_name"])
+            bads.append(t["ch_name"])
 
         elif chan["name"].startswith(("AUX", "TRG", "MIO")):
             t["coil_type"] = FIFF.FIFFV_COIL_NONE
@@ -268,10 +268,7 @@ def _get_artemis123_info(fname, pos_fname=None):
         # append this channel to the info
         info["chs"].append(t)
         if chan["FLL_ResetLock"] == "TRUE":
-            info["bads"].append(t["ch_name"])
-
-    # reduce info['bads'] to unique set
-    info["bads"] = list(set(info["bads"]))
+            bads.append(t["ch_name"])
 
     # HPI information
     # print header_info.keys()
@@ -313,6 +310,9 @@ def _get_artemis123_info(fname, pos_fname=None):
 
     info._unlocked = False
     info._update_redundant()
+    # reduce info['bads'] to unique set
+    info["bads"] = list(set(bads))
+    del bads
     return info, header_info
 
 
@@ -341,9 +341,9 @@ class RawArtemis123(BaseRaw):
         add_head_trans=True,
     ):  # noqa: D102
         from ...chpi import (
+            _fit_coil_order_dev_head_trans,
             compute_chpi_amplitudes,
             compute_chpi_locs,
-            _fit_coil_order_dev_head_trans,
         )
 
         input_fname = str(_check_fname(input_fname, "read", True, "input_fname"))

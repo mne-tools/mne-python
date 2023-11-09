@@ -13,6 +13,7 @@ we demonstrate how to localize these custom OPM data in MNE.
 # sphinx_gallery_thumbnail_number = 4
 
 import numpy as np
+
 import mne
 
 data_path = mne.datasets.opm.data_path()

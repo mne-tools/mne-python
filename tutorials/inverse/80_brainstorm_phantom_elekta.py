@@ -18,8 +18,8 @@ tutorial dataset. For comparison, see :footcite:`TadelEtAl2011` and
 
 # %%
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 
 import mne
 from mne import find_events, fit_dipole
@@ -144,7 +144,7 @@ actual_pos, actual_ori = mne.dipole.get_phantom_dipoles()
 actual_amp = 100.0  # nAm
 
 fig, (ax1, ax2, ax3) = plt.subplots(
-    nrows=3, ncols=1, figsize=(6, 7), constrained_layout=True
+    nrows=3, ncols=1, figsize=(6, 7), layout="constrained"
 )
 
 diffs = 1000 * np.sqrt(np.sum((dip.pos - actual_pos) ** 2, axis=-1))
@@ -169,8 +169,8 @@ ax3.set_ylabel("Amplitude error (nAm)")
 # Let's plot the positions and the orientations of the actual and the estimated
 # dipoles
 
-actual_amp = np.ones(len(dip))  # misc amp to create Dipole instance
-actual_gof = np.ones(len(dip))  # misc GOF to create Dipole instance
+actual_amp = np.ones(len(dip))  # fake amp, needed to create Dipole instance
+actual_gof = np.ones(len(dip))  # fake GOF, needed to create Dipole instance
 dip_true = mne.Dipole(dip.times, actual_pos, actual_amp, actual_ori, actual_gof)
 
 fig = mne.viz.plot_alignment(

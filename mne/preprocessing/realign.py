@@ -8,7 +8,7 @@ from numpy.polynomial.polynomial import Polynomial
 from scipy.stats import pearsonr
 
 from ..io import BaseRaw
-from ..utils import _validate_type, warn, logger, verbose
+from ..utils import _validate_type, logger, verbose, warn
 
 
 @verbose
@@ -28,8 +28,9 @@ def realign_raw(raw, other, t_raw, t_other, verbose=None):
         The second raw instance. It will be resampled to match ``raw``.
     t_raw : array-like, shape (n_events,)
         The times of shared events in ``raw`` relative to ``raw.times[0]`` (0).
-        Typically these could be events on some TTL channel like
-        ``find_events(raw)[:, 0] - raw.first_event``.
+        Typically these could be events on some TTL channel such as::
+
+            find_events(raw)[:, 0] / raw.info["sfreq"] - raw.first_time
     t_other : array-like, shape (n_events,)
         The times of shared events in ``other`` relative to ``other.times[0]``.
     %(verbose)s
@@ -92,11 +93,11 @@ def realign_raw(raw, other, t_raw, t_other, verbose=None):
         logger.info(f"Cropping {zero_ord:0.3f} s from the start of raw")
         raw.crop(zero_ord, None)
         t_raw -= zero_ord
-    else:  # need to crop start of other to match raw
-        t_crop = zero_ord / first_ord
+    elif zero_ord < 0:  # need to crop start of other to match raw
+        t_crop = -zero_ord / first_ord
         logger.info(f"Cropping {t_crop:0.3f} s from the start of other")
-        other.crop(-t_crop, None)
-        t_other += t_crop
+        other.crop(t_crop, None)
+        t_other -= t_crop
 
     # 3. Resample data using the first-order term
     nan_ch_names = [

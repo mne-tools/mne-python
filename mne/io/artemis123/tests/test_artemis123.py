@@ -3,16 +3,16 @@
 # License: BSD-3-Clause
 
 import numpy as np
-from numpy.testing import assert_allclose, assert_equal
 import pytest
+from numpy.testing import assert_allclose, assert_equal
 
-from mne.io import read_raw_artemis123
-from mne.io.tests.test_raw import _test_raw_reader
-from mne.datasets import testing
-from mne.io.artemis123.utils import _generate_mne_locs_file, _load_mne_locs
 from mne import pick_types
-from mne.transforms import rot_to_quat, _angle_between_quats
 from mne._fiff.constants import FIFF
+from mne.datasets import testing
+from mne.io import read_raw_artemis123
+from mne.io.artemis123.utils import _generate_mne_locs_file, _load_mne_locs
+from mne.io.tests.test_raw import _test_raw_reader
+from mne.transforms import _angle_between_quats, rot_to_quat
 
 artemis123_dir = testing.data_path(download=False) / "ARTEMIS123"
 short_HPI_dip_fname = (

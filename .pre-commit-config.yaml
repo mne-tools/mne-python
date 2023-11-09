@@ -1,21 +1,22 @@
 repos:
   - repo: https://github.com/psf/black
-    rev: 23.9.1
+    rev: 23.10.1
     hooks:
       - id: black
         args: [--quiet]
 
   # Ruff mne
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.0.291
+    rev: v0.1.4
     hooks:
       - id: ruff
         name: ruff mne
+        args: ["--fix"]
         files: ^mne/
 
   # Ruff tutorials and examples
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.0.291
+    rev: v0.1.4
     hooks:
       - id: ruff
         name: ruff tutorials and examples
@@ -26,7 +27,7 @@ repos:
 
   # Codespell
   - repo: https://github.com/codespell-project/codespell
-    rev: v2.2.5
+    rev: v2.2.6
     hooks:
       - id: codespell
         additional_dependencies:
@@ -40,3 +41,13 @@ repos:
     hooks:
       - id: yamllint
         args: [--strict, -c, .yamllint.yml]
+
+  # rstcheck
+  - repo: https://github.com/rstcheck/rstcheck.git
+    rev: v6.2.0
+    hooks:
+      - id: rstcheck
+        files: ^doc/.*\.(rst|inc)$
+        # https://github.com/rstcheck/rstcheck/issues/199
+        # https://github.com/rstcheck/rstcheck/issues/200
+        exclude: ^doc/(help/faq|install/manual_install|install/mne_c|install/advanced|install/updating|_includes/channel_interpolation|_includes/inverse|_includes/ssp)\.rst$

@@ -28,6 +28,7 @@ https://github.com/ezemikulan/blender_freesurfer by Ezequiel Mikulan.
 
 import os
 import shutil
+
 import mne
 
 data_path = mne.datasets.sample.data_path()

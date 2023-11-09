@@ -10,6 +10,8 @@ from inspect import signature
 
 import numpy as np
 
+from .._fiff.meas_info import ContainsMixin, Info
+from .._fiff.pick import _pick_data_channels, _picks_to_idx, pick_info
 from ..channels.channels import UpdateChannelsMixin
 from ..channels.layout import _merge_ch_data, find_layout
 from ..defaults import (
@@ -19,8 +21,6 @@ from ..defaults import (
     _handle_default,
 )
 from ..html_templates import _get_html_template
-from .._fiff.meas_info import ContainsMixin, Info
-from .._fiff.pick import _pick_data_channels, _picks_to_idx, pick_info
 from ..utils import (
     GetEpochsMixin,
     _build_data_frame,
@@ -50,13 +50,13 @@ from ..viz.topo import _plot_timeseries, _plot_timeseries_unified, _plot_topo
 from ..viz.topomap import _make_head_outlines, _prepare_topomap_plot, plot_psds_topomap
 from ..viz.utils import (
     _format_units_psd,
+    _get_plot_ch_type,
     _plot_psd,
     _prepare_sensor_names,
     plt_show,
-    _get_plot_ch_type,
 )
 from .multitaper import psd_array_multitaper
-from .psd import psd_array_welch, _check_nfft
+from .psd import _check_nfft, psd_array_welch
 
 
 def _identity_function(x):
@@ -300,6 +300,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         tmin,
         tmax,
         picks,
+        exclude,
         proj,
         remove_dc,
         *,
@@ -348,7 +349,9 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
 
         # prep times and picks
         self._time_mask = _time_mask(inst.times, tmin, tmax, sfreq=self.sfreq)
-        self._picks = _picks_to_idx(inst.info, picks, "data", with_ref_meg=False)
+        self._picks = _picks_to_idx(
+            inst.info, picks, "data", exclude, with_ref_meg=False
+        )
 
         # add the info object. bads and non-data channels were dropped by
         # _picks_to_idx() so we update the info accordingly:
@@ -436,15 +439,17 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         """Check PSD results for correct shape and bad values."""
         assert len(self._dims) == self._data.ndim, (self._dims, self._data.ndim)
         assert self._data.shape == self._shape
-        # negative values OK if the spectrum is really fourier coefficients
-        if "taper" in self._dims:
-            return
         # TODO: should this be more fine-grained (report "chan X in epoch Y")?
         ch_dim = self._dims.index("channel")
-        dims = np.arange(self._data.ndim).tolist()
+        dims = list(range(self._data.ndim))
         dims.pop(ch_dim)
         # take min() across all but the channel axis
-        bad_value = self._data.min(axis=tuple(dims)) <= 0
+        # (if the abs becomes memory intensive we could iterate over channels)
+        use_data = self._data
+        if use_data.dtype.kind == "c":
+            use_data = np.abs(use_data)
+        bad_value = use_data.min(axis=tuple(dims)) == 0
+        bad_value &= ~np.isin(self.ch_names, self.info["bads"])
         if bad_value.any():
             chs = np.array(self.ch_names)[bad_value].tolist()
             s = _pl(bad_value.sum())
@@ -655,8 +660,8 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         """
         # Must nest this _mpl_figure import because of the BACKEND global
         # stuff
-        from .multitaper import _psd_from_mt
         from ..viz._mpl_figure import _line_figure, _split_picks_by_type
+        from .multitaper import _psd_from_mt
 
         # arg checking
         ci = _check_ci(ci)
@@ -739,7 +744,6 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
             sphere=sphere,
             xlabels_list=xlabels_list,
         )
-        fig.subplots_adjust(hspace=0.3)
         plt_show(show, fig)
         return fig
 
@@ -1081,6 +1085,7 @@ class Spectrum(BaseSpectrum):
     %(fmin_fmax_psd)s
     %(tmin_tmax_psd)s
     %(picks_good_data_noref)s
+    %(exclude_psd)s
     %(proj_psd)s
     %(remove_dc)s
     %(reject_by_annotation_psd)s
@@ -1122,6 +1127,7 @@ class Spectrum(BaseSpectrum):
         tmin,
         tmax,
         picks,
+        exclude,
         proj,
         remove_dc,
         reject_by_annotation,
@@ -1145,6 +1151,7 @@ class Spectrum(BaseSpectrum):
             tmin,
             tmax,
             picks,
+            exclude,
             proj,
             remove_dc,
             n_jobs=n_jobs,
@@ -1290,6 +1297,7 @@ class EpochsSpectrum(BaseSpectrum, GetEpochsMixin):
     %(fmin_fmax_psd)s
     %(tmin_tmax_psd)s
     %(picks_good_data_noref)s
+    %(exclude_psd)s
     %(proj_psd)s
     %(remove_dc)s
     %(n_jobs)s
@@ -1327,6 +1335,7 @@ class EpochsSpectrum(BaseSpectrum, GetEpochsMixin):
         tmin,
         tmax,
         picks,
+        exclude,
         proj,
         remove_dc,
         *,
@@ -1347,6 +1356,7 @@ class EpochsSpectrum(BaseSpectrum, GetEpochsMixin):
             tmin,
             tmax,
             picks,
+            exclude,
             proj,
             remove_dc,
             n_jobs=n_jobs,
@@ -1459,6 +1469,7 @@ class EpochsSpectrum(BaseSpectrum, GetEpochsMixin):
             tmin=None,
             tmax=None,
             picks=None,
+            exclude=(),
             proj=None,
             remove_dc=None,
             reject_by_annotation=None,
@@ -1561,6 +1572,7 @@ def read_spectrum(fname):
         tmin=None,
         tmax=None,
         picks=None,
+        exclude=(),
         proj=None,
         remove_dc=None,
         reject_by_annotation=None,

@@ -25,7 +25,7 @@ evoked response :footcite:`RivetEtAl2009, RivetEtAl2011`.
 # %%
 
 
-from mne import io, compute_raw_covariance, read_events, pick_types, Epochs
+from mne import Epochs, compute_raw_covariance, io, pick_types, read_events
 from mne.datasets import sample
 from mne.preprocessing import Xdawn
 from mne.viz import plot_epochs_image

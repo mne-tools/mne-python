@@ -4,6 +4,7 @@
 #
 # License: Simplified BSD
 import numpy as np
+
 from ...utils import warn
 from ..ui_events import link
 

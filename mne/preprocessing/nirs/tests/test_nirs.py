@@ -4,30 +4,29 @@
 #
 # License: BSD-3-Clause
 
-import pytest
 import numpy as np
-from numpy.testing import assert_array_equal, assert_array_almost_equal, assert_allclose
+import pytest
+from numpy.testing import assert_allclose, assert_array_almost_equal, assert_array_equal
 
 from mne import create_info
-from mne.datasets.testing import data_path
-from mne.io import read_raw_nirx, RawArray
-from mne.preprocessing.nirs import (
-    optical_density,
-    beer_lambert_law,
-    _fnirs_spread_bads,
-    _validate_nirs_info,
-    _check_channels_ordered,
-    tddr,
-    _channel_frequencies,
-    _channel_chromophore,
-    _fnirs_optode_names,
-    _optode_position,
-    scalp_coupling_index,
-)
-from mne._fiff.pick import _picks_to_idx
-
-from mne.datasets import testing
 from mne._fiff.constants import FIFF
+from mne._fiff.pick import _picks_to_idx
+from mne.datasets import testing
+from mne.datasets.testing import data_path
+from mne.io import RawArray, read_raw_nirx
+from mne.preprocessing.nirs import (
+    _channel_chromophore,
+    _channel_frequencies,
+    _check_channels_ordered,
+    _fnirs_optode_names,
+    _fnirs_spread_bads,
+    _optode_position,
+    _validate_nirs_info,
+    beer_lambert_law,
+    optical_density,
+    scalp_coupling_index,
+    tddr,
+)
 
 fname_nirx_15_0 = (
     data_path(download=False) / "NIRx" / "nirscout" / "nirx_15_0_recording"

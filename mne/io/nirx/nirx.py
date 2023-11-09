@@ -2,34 +2,34 @@
 #
 # License: BSD-3-Clause
 
-from configparser import ConfigParser, RawConfigParser
-import glob as glob
-import re as re
-import os.path as op
 import datetime as dt
+import glob as glob
 import json
+import os.path as op
+import re as re
+from configparser import ConfigParser, RawConfigParser
 
 import numpy as np
 from scipy.io import loadmat
 
-from ._localized_abbr import _localized_abbr
-from ..base import BaseRaw
-from ..._fiff.utils import _mult_cal_one
 from ..._fiff.constants import FIFF
-from ..._fiff.meas_info import create_info, _format_dig_points
-from ...annotations import Annotations
+from ..._fiff.meas_info import _format_dig_points, create_info
+from ..._fiff.utils import _mult_cal_one
 from ..._freesurfer import get_mni_fiducials
-from ...transforms import apply_trans, _get_trans
+from ...annotations import Annotations
+from ...transforms import _get_trans, apply_trans
 from ...utils import (
-    logger,
-    verbose,
-    fill_doc,
-    warn,
     _check_fname,
-    _validate_type,
     _check_option,
     _mask_to_onsets_offsets,
+    _validate_type,
+    fill_doc,
+    logger,
+    verbose,
+    warn,
 )
+from ..base import BaseRaw
+from ._localized_abbr import _localized_abbr
 
 
 @fill_doc

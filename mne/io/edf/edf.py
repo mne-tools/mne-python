@@ -10,21 +10,20 @@
 #
 # License: BSD-3-Clause
 
-from datetime import datetime, timezone, timedelta
 import os
 import re
+from datetime import datetime, timedelta, timezone
 
 import numpy as np
 from scipy.interpolate import interp1d
 
-from ..base import BaseRaw, _get_scaling
-from ...utils import verbose, logger, warn, _validate_type
-from ..._fiff.utils import _blk_read_lims, _mult_cal_one
-from ..._fiff.meas_info import _empty_info, _unique_channel_names
 from ..._fiff.constants import FIFF
-from ...filter import resample
-from ...utils import fill_doc
+from ..._fiff.meas_info import _empty_info, _unique_channel_names
+from ..._fiff.utils import _blk_read_lims, _mult_cal_one
 from ...annotations import Annotations
+from ...filter import resample
+from ...utils import _validate_type, fill_doc, logger, verbose, warn
+from ..base import BaseRaw, _get_scaling
 
 # common channel type names mapped to internal ch types
 CH_TYPE_MAPPING = {
@@ -206,6 +205,7 @@ class RawEDF(BaseRaw):
             )
             annotations = _read_annotations_edf(
                 tal_data[0],
+                ch_names=info["ch_names"],
                 encoding=encoding,
             )
             self.set_annotations(annotations, on_missing="warn")
@@ -1106,7 +1106,7 @@ def _read_gdf_header(fname, exclude, include=None):
                     "Header information is incorrect for record length. "
                     "Default record length set to 1."
                 )
-            nchan = np.fromfile(fid, UINT32, 1)[0]
+            nchan = int(np.fromfile(fid, UINT32, 1)[0])
             channels = list(range(nchan))
             ch_names = [_edf_str(fid.read(16)).strip() for ch in channels]
             exclude = _find_exclude_idx(ch_names, exclude, include)
@@ -1177,7 +1177,7 @@ def _read_gdf_header(fname, exclude, include=None):
             fid.seek(etp)
             etmode = np.fromfile(fid, UINT8, 1)[0]
             if etmode in (1, 3):
-                sr = np.fromfile(fid, UINT8, 3)
+                sr = np.fromfile(fid, UINT8, 3).astype(np.uint32)
                 event_sr = sr[0]
                 for i in range(1, len(sr)):
                     event_sr = event_sr + sr[i] * 2 ** (i * 8)
@@ -1297,7 +1297,7 @@ def _read_gdf_header(fname, exclude, include=None):
                     "Default record length set to 1."
                 )
 
-            nchan = np.fromfile(fid, UINT16, 1)[0]
+            nchan = int(np.fromfile(fid, UINT16, 1)[0])
             fid.seek(2, 1)  # 2bytes reserved
 
             # Channels (variable header)
@@ -1443,7 +1443,7 @@ def _read_gdf_header(fname, exclude, include=None):
                 else:
                     chn = np.zeros(n_events, dtype=np.uint32)
                     dur = np.ones(n_events, dtype=np.uint32)
-                np.clip(dur, 1, np.inf, out=dur)
+                np.maximum(dur, 1, out=dur)
                 events = [n_events, pos, typ, chn, dur]
                 edf_info["event_sfreq"] = event_sr
 
@@ -1878,7 +1878,7 @@ def read_raw_gdf(
     input_fname = os.path.abspath(input_fname)
     ext = os.path.splitext(input_fname)[1][1:].lower()
     if ext != "gdf":
-        raise NotImplementedError(f"Only BDF files are supported, got {ext}.")
+        raise NotImplementedError(f"Only GDF files are supported, got {ext}.")
     return RawGDF(
         input_fname=input_fname,
         eog=eog,
@@ -1892,25 +1892,21 @@ def read_raw_gdf(
 
 
 @fill_doc
-def _read_annotations_edf(annotations, encoding="utf8"):
+def _read_annotations_edf(annotations, ch_names=None, encoding="utf8"):
     """Annotation File Reader.
 
     Parameters
     ----------
     annotations : ndarray (n_chans, n_samples) | str
         Channel data in EDF+ TAL format or path to annotation file.
+    ch_names : list of string
+        List of channels' names.
     %(encoding_edf)s
 
     Returns
     -------
-    onset : array of float, shape (n_annotations,)
-        The starting time of annotations in seconds after ``orig_time``.
-    duration : array of float, shape (n_annotations,)
-        Durations of the annotations in seconds.
-    description : array of str, shape (n_annotations,)
-        Array of strings containing description for each annotation. If a
-        string, all the annotations are given the same description. To reject
-        epochs, use description starting with keyword 'bad'. See example above.
+    annot : instance of Annotations
+        The annotations.
     """
     pat = "([+-]\\d+\\.?\\d*)(\x15(\\d+\\.?\\d*))?(\x14.*?)\x14\x00"
     if isinstance(annotations, str):
@@ -1949,7 +1945,11 @@ def _read_annotations_edf(annotations, encoding="utf8"):
         duration = float(ev[2]) if ev[2] else 0
         for description in ev[3].split("\x14")[1:]:
             if description:
-                if "@@" in description:
+                if (
+                    "@@" in description
+                    and ch_names is not None
+                    and description.split("@@")[1] in ch_names
+                ):
                     description, ch_name = description.split("@@")
                     key = f"{onset}_{duration}_{description}"
                 else:
@@ -1979,21 +1979,19 @@ def _read_annotations_edf(annotations, encoding="utf8"):
                 offset = -onset
 
     if events:
-        onset, duration, description, ch_names = zip(*events.values())
+        onset, duration, description, annot_ch_names = zip(*events.values())
     else:
-        onset, duration, description, ch_names = list(), list(), list(), list()
+        onset, duration, description, annot_ch_names = list(), list(), list(), list()
 
-    assert len(onset) == len(duration) == len(description) == len(ch_names)
+    assert len(onset) == len(duration) == len(description) == len(annot_ch_names)
 
-    annotations = Annotations(
+    return Annotations(
         onset=onset,
         duration=duration,
         description=description,
         orig_time=None,
-        ch_names=ch_names,
+        ch_names=annot_ch_names,
     )
-
-    return annotations
 
 
 def _get_annotations_gdf(edf_info, sfreq):

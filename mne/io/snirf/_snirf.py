@@ -2,20 +2,21 @@
 #
 # License: BSD-3-Clause
 
-import re
-import numpy as np
 import datetime
+import re
 
+import numpy as np
+
+from ..._fiff._digitization import _make_dig_points
+from ..._fiff.constants import FIFF
+from ..._fiff.meas_info import _format_dig_points, create_info
+from ..._fiff.utils import _mult_cal_one
+from ..._freesurfer import get_mni_fiducials
+from ...annotations import Annotations
+from ...transforms import _frame_to_str, apply_trans
+from ...utils import _check_fname, _import_h5py, fill_doc, logger, verbose, warn
 from ..base import BaseRaw
 from ..nirx.nirx import _convert_fnirs_to_head
-from ..._fiff.meas_info import create_info, _format_dig_points
-from ..._fiff.utils import _mult_cal_one
-from ...annotations import Annotations
-from ...utils import logger, verbose, fill_doc, warn, _check_fname, _import_h5py
-from ..._fiff.constants import FIFF
-from ..._fiff._digitization import _make_dig_points
-from ...transforms import _frame_to_str, apply_trans
-from ..._freesurfer import get_mni_fiducials
 
 
 @fill_doc

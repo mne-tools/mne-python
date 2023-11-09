@@ -3,34 +3,30 @@
 author: Marijn van Vliet <w.m.vanvliet@gmail.com>
 """
 from functools import partial
+
 import numpy as np
 from scipy.interpolate import interp1d
 
-
+from .._fiff.pick import pick_types
+from ..defaults import DEFAULTS
+from ..utils import (
+    _auto_weakref,
+    _check_option,
+    _ensure_int,
+    _to_rgb,
+    _validate_type,
+    fill_doc,
+)
 from ._3d_overlay import _LayeredMesh
-from .utils import mne_analyze_colormap
-
 from .ui_events import (
-    publish,
-    subscribe,
     ColormapRange,
     Contours,
     TimeChange,
     disable_ui_events,
+    publish,
+    subscribe,
 )
-
-from ..defaults import DEFAULTS
-
-from ..utils import (
-    _ensure_int,
-    _validate_type,
-    _check_option,
-    _to_rgb,
-    _auto_weakref,
-    fill_doc,
-)
-
-from .._fiff.pick import pick_types
+from .utils import mne_analyze_colormap
 
 
 @fill_doc
@@ -118,7 +114,7 @@ class EvokedField:
         time_viewer="auto",
         verbose=None,
     ):
-        from .backends.renderer import _get_renderer, _get_3d_backend
+        from .backends.renderer import _get_3d_backend, _get_renderer
 
         # Setup figure parameters
         self._evoked = evoked
@@ -195,7 +191,6 @@ class EvokedField:
             )
             self._in_brain_figure = False
 
-        self._renderer.set_interaction(interaction)
         self.plotter = self._renderer.plotter
         self.interaction = interaction
 
@@ -243,6 +238,7 @@ class EvokedField:
         subscribe(self, "contours", self._on_contours)
 
         if not self._in_brain_figure:
+            self._renderer.set_interaction(interaction)
             self._renderer.set_camera(azimuth=10, elevation=60, distance="auto")
             self._renderer.show()
 

@@ -19,9 +19,11 @@ Data are provided by Jean-Michel Badier from MEG center in Marseille, France.
 # %%
 
 import os.path as op
+
 import numpy as np
-from mne.datasets import phantom_4dbti
+
 import mne
+from mne.datasets import phantom_4dbti
 
 # %%
 # Read data and compute a dipole fit at the peak of the evoked response
@@ -67,8 +69,8 @@ print("errors (mm) : %s" % errors)
 
 # %%
 # Plot the dipoles in 3D
-actual_amp = np.ones(len(dip))  # misc amp to create Dipole instance
-actual_gof = np.ones(len(dip))  # misc GOF to create Dipole instance
+actual_amp = np.ones(len(dip))  # fake amp, needed to create Dipole instance
+actual_gof = np.ones(len(dip))  # fake GOF, needed to create Dipole instance
 dip = mne.Dipole(dip.times, pos, actual_amp, ori, actual_gof)
 dip_true = mne.Dipole(dip.times, actual_pos, actual_amp, ori, actual_gof)
 

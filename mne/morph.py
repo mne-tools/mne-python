@@ -15,31 +15,33 @@ from .fixes import _get_img_fdata
 from .morph_map import read_morph_map
 from .parallel import parallel_func
 from .source_estimate import (
+    _BaseSourceEstimate,
     _BaseSurfaceSourceEstimate,
     _BaseVolSourceEstimate,
-    _BaseSourceEstimate,
     _get_ico_tris,
 )
 from .source_space._source_space import SourceSpaces, _ensure_src, _grid_interp
-from .surface import mesh_edges, read_surface, _compute_nearest
+from .surface import _compute_nearest, mesh_edges, read_surface
 from .utils import (
-    logger,
-    verbose,
-    check_version,
-    get_subjects_dir,
-    warn as warn_,
-    fill_doc,
-    _check_option,
-    _validate_type,
     BunchConst,
+    ProgressBar,
     _check_fname,
-    warn,
+    _check_option,
     _custom_lru_cache,
     _ensure_int,
-    ProgressBar,
-    use_log_level,
-    _import_nibabel,
     _import_h5io_funcs,
+    _import_nibabel,
+    _validate_type,
+    check_version,
+    fill_doc,
+    get_subjects_dir,
+    logger,
+    use_log_level,
+    verbose,
+    warn,
+)
+from .utils import (
+    warn as warn_,
 )
 
 
@@ -1026,10 +1028,12 @@ def _get_src_data(src, mri_resolution=True):
 def _triage_output(output):
     _check_option("output", output, ["nifti", "nifti1", "nifti2"])
     if output in ("nifti", "nifti1"):
-        from nibabel import Nifti1Image as NiftiImage, Nifti1Header as NiftiHeader
+        from nibabel import Nifti1Header as NiftiHeader
+        from nibabel import Nifti1Image as NiftiImage
     else:
         assert output == "nifti2"
-        from nibabel import Nifti2Image as NiftiImage, Nifti2Header as NiftiHeader
+        from nibabel import Nifti2Header as NiftiHeader
+        from nibabel import Nifti2Image as NiftiImage
     return NiftiImage, NiftiHeader
 
 
@@ -1140,8 +1144,9 @@ def _interpolate_data(stc, morph, mri_resolution, mri_space, output):
 
 def _compute_morph_sdr(mri_from, mri_to, niter_affine, niter_sdr, zooms):
     """Get a matrix that morphs data from one subject to another."""
-    from .transforms import _compute_volume_registration
     from dipy.align.imaffine import AffineMap
+
+    from .transforms import _compute_volume_registration
 
     pipeline = "all" if niter_sdr else "affines"
     niter = dict(

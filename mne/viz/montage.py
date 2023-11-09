@@ -4,10 +4,10 @@ from copy import deepcopy
 import numpy as np
 from scipy.spatial.distance import cdist
 
-from .utils import plot_sensors
 from .._fiff._digitization import _get_fid_coords
 from .._fiff.meas_info import create_info
-from ..utils import logger, _check_option, _validate_type, verbose
+from ..utils import _check_option, _validate_type, logger, verbose
+from .utils import plot_sensors
 
 
 @verbose
@@ -20,7 +20,7 @@ def plot_montage(
     sphere=None,
     *,
     axes=None,
-    verbose=None
+    verbose=None,
 ):
     """Plot a montage.
 

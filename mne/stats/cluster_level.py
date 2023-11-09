@@ -12,25 +12,25 @@
 import numpy as np
 from scipy import ndimage, sparse
 from scipy.sparse.csgraph import connected_components
-from scipy.stats import t as tstat, f as fstat
+from scipy.stats import f as fstat
+from scipy.stats import t as tstat
 
-
-from .parametric import f_oneway, ttest_1samp_no_p
+from ..fixes import has_numba, jit
 from ..parallel import parallel_func
-from ..fixes import jit, has_numba
-from ..utils import (
-    split_list,
-    logger,
-    verbose,
-    ProgressBar,
-    warn,
-    _pl,
-    check_random_state,
-    _check_option,
-    _validate_type,
-)
-from ..source_estimate import SourceEstimate, VolSourceEstimate, MixedSourceEstimate
+from ..source_estimate import MixedSourceEstimate, SourceEstimate, VolSourceEstimate
 from ..source_space import SourceSpaces
+from ..utils import (
+    ProgressBar,
+    _check_option,
+    _pl,
+    _validate_type,
+    check_random_state,
+    logger,
+    split_list,
+    verbose,
+    warn,
+)
+from .parametric import f_oneway, ttest_1samp_no_p
 
 
 def _get_buddies_fallback(r, s, neighbors, indices=None):

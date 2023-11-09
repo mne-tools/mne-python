@@ -17,10 +17,11 @@ As usual we'll start by importing the modules we need:
 """
 
 # %%
-
 import os
-import numpy as np
+
 import matplotlib.pyplot as plt
+import numpy as np
+
 import mne
 
 # %%

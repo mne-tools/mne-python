@@ -8,13 +8,15 @@
 # Many of the computations in this code were derived from Matti Hämäläinen's
 # C code.
 
-from copy import deepcopy
-from functools import partial, lru_cache
-from collections import OrderedDict
-from glob import glob
-from os import path as op
+import json
 import time
 import warnings
+from collections import OrderedDict
+from copy import deepcopy
+from functools import lru_cache, partial
+from glob import glob
+from os import path as op
+from pathlib import Path
 
 import numpy as np
 from scipy.ndimage import binary_dilation
@@ -22,35 +24,40 @@ from scipy.sparse import coo_matrix, csr_matrix
 from scipy.spatial import ConvexHull, Delaunay
 from scipy.spatial.distance import cdist
 
-from .fixes import jit, prange, bincount
 from ._fiff.constants import FIFF
 from ._fiff.pick import pick_types
+from .fixes import bincount, jit, prange
 from .parallel import parallel_func
 from .transforms import (
-    transform_surface_to,
-    _pol_to_cart,
-    _cart_to_sph,
-    _get_trans,
-    apply_trans,
     Transform,
+    _angle_between_quats,
+    _cart_to_sph,
+    _fit_matched_points,
+    _get_trans,
+    _MatchedDisplacementFieldInterpolator,
+    _pol_to_cart,
+    apply_trans,
+    transform_surface_to,
 )
 from .utils import (
-    logger,
-    verbose,
-    get_subjects_dir,
-    warn,
     _check_fname,
+    _check_freesurfer_home,
     _check_option,
     _ensure_int,
-    _TempDir,
-    run_subprocess,
-    _check_freesurfer_home,
     _hashable_ndarray,
-    fill_doc,
-    _validate_type,
-    _pl,
     _import_nibabel,
+    _pl,
+    _TempDir,
+    _validate_type,
+    fill_doc,
+    get_subjects_dir,
+    logger,
+    run_subprocess,
+    verbose,
+    warn,
 )
+
+_helmet_path = Path(__file__).parent / "data" / "helmets"
 
 
 ###############################################################################
@@ -158,8 +165,26 @@ def _get_head_surface(subject, source, subjects_dir, on_defects, raise_error=Tru
     return surf
 
 
+# New helmets can be written for example with:
+#
+# import os.path as op
+# import mne
+# from mne.io.constants import FIFF
+# surf = mne.read_surface('kernel.obj', return_dict=True)[-1]
+# surf['rr'] *= 1000  # needs to be in mm
+# mne.surface.complete_surface_info(surf, copy=False, do_neighbor_tri=False)
+# surf['coord_frame'] = FIFF.FIFFV_COORD_DEVICE
+# surfs = mne.bem._surfaces_to_bem(
+#     [surf], ids=[FIFF.FIFFV_MNE_SURF_MEG_HELMET], sigmas=[1.],
+#     incomplete='ignore')
+# del surfs[0]['sigma']
+# bem_fname = op.join(op.dirname(mne.__file__), 'data', 'helmets',
+#                     'kernel.fif.gz')
+# mne.write_bem_surfaces(bem_fname, surfs, overwrite=True)
+
+
 @verbose
-def get_meg_helmet_surf(info, trans=None, verbose=None):
+def get_meg_helmet_surf(info, trans=None, *, verbose=None):
     """Load the MEG helmet associated with the MEG sensors.
 
     Parameters
@@ -181,16 +206,17 @@ def get_meg_helmet_surf(info, trans=None, verbose=None):
     A built-in helmet is loaded if possible. If not, a helmet surface
     will be approximated based on the sensor locations.
     """
-    from .bem import read_bem_surfaces, _fit_sphere
+    from .bem import _fit_sphere, read_bem_surfaces
     from .channels.channels import _get_meg_system
 
     system, have_helmet = _get_meg_system(info)
     if have_helmet:
         logger.info("Getting helmet for system %s" % system)
-        fname = op.join(op.split(__file__)[0], "data", "helmets", system + ".fif.gz")
+        fname = _helmet_path / f"{system}.fif.gz"
         surf = read_bem_surfaces(
             fname, False, FIFF.FIFFV_MNE_SURF_MEG_HELMET, verbose=False
         )
+        surf = _scale_helmet_to_sensors(system, surf, info)
     else:
         rr = np.array(
             [
@@ -227,6 +253,54 @@ def get_meg_helmet_surf(info, trans=None, verbose=None):
     transform_surface_to(surf, "head", dev_head_t)
     if trans is not None:
         transform_surface_to(surf, "mri", trans)
+    return surf
+
+
+def _scale_helmet_to_sensors(system, surf, info):
+    fname = _helmet_path / f"{system}_ch_pos.txt"
+    if not fname.is_file():
+        return surf
+    with open(fname) as fid:
+        ch_pos_from = json.load(fid)
+    # find correspondence
+    fro, to = list(), list()
+    for key, f_ in ch_pos_from.items():
+        t_ = [ch["loc"][:3] for ch in info["chs"] if ch["ch_name"].startswith(key)]
+        if not len(t_):
+            continue
+        fro.append(f_)
+        to.append(np.mean(t_, axis=0))
+    if len(fro) < 4:
+        logger.info(
+            "Using untransformed helmet, not enough sensors found to deform to match "
+            f"acquisition based on sensor positions (got {len(fro)}, need at least 4)"
+        )
+        return surf
+    fro = np.array(fro, float)
+    to = np.array(to, float)
+    delta = np.ptp(surf["rr"], axis=0) * 0.1  # 10% beyond bounds
+    extrema = np.array([surf["rr"].min(0) - delta, surf["rr"].max(0) + delta])
+    interp = _MatchedDisplacementFieldInterpolator(fro, to, extrema=extrema)
+    new_rr = interp(surf["rr"])
+    try:
+        quat, sc = _fit_matched_points(surf["rr"], new_rr)
+    except np.linalg.LinAlgError as exc:
+        logger.info(
+            f"Using untransformed helmet, deformation using {len(fro)} points "
+            f"failed ({exc})"
+        )
+        return surf
+    rot = np.rad2deg(_angle_between_quats(quat[:3]))
+    tr = 1000 * np.linalg.norm(quat[3:])
+    logger.info(
+        f"    Deforming CAD helmet to match {len(fro)} acquisition sensor positions:"
+    )
+    logger.info(f"    1. Affine: {rot:0.1f}°, {tr:0.1f} mm, {sc:0.2f}× scale")
+    deltas = interp._last_deltas * 1000
+    mu, mx = np.mean(deltas), np.max(deltas)
+    logger.info(f"    2. Nonlinear displacement: " f"mean={mu:0.1f}, max={mx:0.1f} mm")
+    surf["rr"] = new_rr
+    complete_surface_info(surf, copy=False, verbose=False)
     return surf
 
 
@@ -773,7 +847,7 @@ class _CheckInside:
 
 def _fread3(fobj):
     """Read 3 bytes and adjust."""
-    b1, b2, b3 = np.fromfile(fobj, ">u1", 3)
+    b1, b2, b3 = np.fromfile(fobj, ">u1", 3).astype(np.int64)
     return (b1 << 16) + (b2 << 8) + b3
 
 
@@ -1332,8 +1406,8 @@ def _decimate_surface_vtk(points, triangles, n_triangles):
     """Aux function."""
     try:
         from vtkmodules.util.numpy_support import numpy_to_vtk, numpy_to_vtkIdTypeArray
-        from vtkmodules.vtkCommonDataModel import vtkPolyData, vtkCellArray
         from vtkmodules.vtkCommonCore import vtkPoints
+        from vtkmodules.vtkCommonDataModel import vtkCellArray, vtkPolyData
         from vtkmodules.vtkFiltersCore import vtkQuadricDecimation
     except ImportError:
         raise ValueError("This function requires the VTK package to be " "installed")
@@ -1882,14 +1956,14 @@ def _marching_cubes(image, level, smooth=0, fill_hole_size=None, use_flying_edge
     # Also vtkDiscreteFlyingEdges3D should be faster.
     # If we ever want not-discrete (continuous/float) marching cubes,
     # we should probably use vtkFlyingEdges3D rather than vtkMarchingCubes.
-    from vtkmodules.vtkCommonDataModel import vtkImageData, vtkDataSetAttributes
+    from vtkmodules.util.numpy_support import numpy_to_vtk, vtk_to_numpy
+    from vtkmodules.vtkCommonDataModel import vtkDataSetAttributes, vtkImageData
     from vtkmodules.vtkFiltersCore import vtkThreshold
     from vtkmodules.vtkFiltersGeneral import (
         vtkDiscreteFlyingEdges3D,
         vtkDiscreteMarchingCubes,
     )
     from vtkmodules.vtkFiltersGeometry import vtkGeometryFilter
-    from vtkmodules.util.numpy_support import vtk_to_numpy, numpy_to_vtk
 
     if image.ndim != 3:
         raise ValueError(f"3D data must be supplied, got {image.shape}")
@@ -2033,8 +2107,8 @@ def get_montage_volume_labels(
     colors : dict
         The Freesurfer lookup table colors for the labels.
     """
+    from ._freesurfer import _get_aseg, read_freesurfer_lut
     from .channels import DigMontage
-    from ._freesurfer import read_freesurfer_lut, _get_aseg
 
     _validate_type(montage, DigMontage, "montage")
     _validate_type(dist, (int, float), "dist")

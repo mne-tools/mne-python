@@ -5,33 +5,33 @@
 #
 # License: BSD-3-Clause
 
+import os.path as op
+import re
 from collections import namedtuple
 from datetime import datetime, timezone
-import os.path as op
 from pathlib import Path
-import re
 
 import numpy as np
 
-from ..base import BaseRaw
-from ..ctf.trans import _quaternion_align
 from ..._fiff._digitization import _make_dig_points
+from ..._fiff.constants import FIFF
 from ..._fiff.meas_info import create_info
 from ..._fiff.tag import _coil_trans_to_loc
-from ..._fiff.utils import _read_segments_file, _mult_cal_one
-from ..._fiff.constants import FIFF
+from ..._fiff.utils import _mult_cal_one, _read_segments_file
+from ...annotations import Annotations
 from ...surface import _normal_orth
 from ...transforms import (
-    apply_trans,
     Transform,
-    get_ras_to_neuromag_trans,
-    combine_transforms,
-    invert_transform,
     _angle_between_quats,
+    apply_trans,
+    combine_transforms,
+    get_ras_to_neuromag_trans,
+    invert_transform,
     rot_to_quat,
 )
-from ...utils import check_fname, logger, verbose, _check_fname
-from ...annotations import Annotations
+from ...utils import _check_fname, check_fname, logger, verbose
+from ..base import BaseRaw
+from ..ctf.trans import _quaternion_align
 
 FILE_EXTENSIONS = {
     "Curry 7": {

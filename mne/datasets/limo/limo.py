@@ -3,17 +3,17 @@
 # License: BSD-3-Clause
 
 import os.path as op
-from pathlib import Path
 import time
+from pathlib import Path
 
 import numpy as np
 from scipy.io import loadmat
 
+from ..._fiff.meas_info import create_info
 from ...channels import make_standard_montage
 from ...epochs import EpochsArray
-from ..._fiff.meas_info import create_info
-from ...utils import _check_pandas_installed, verbose, logger
-from ..utils import _get_path, _do_path_update, _log_time_size, _downloader_params
+from ...utils import _check_pandas_installed, logger, verbose
+from ..utils import _do_path_update, _downloader_params, _get_path, _log_time_size
 
 # root url for LIMO files
 root_url = "https://files.de-1.osf.io/v1/resources/52rea/providers/osfstorage/"

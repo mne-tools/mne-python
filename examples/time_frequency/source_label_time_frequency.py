@@ -19,8 +19,8 @@ latter also includes evoked (stimulus-locked) activity.
 
 # %%
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 
 import mne
 from mne import io
@@ -35,8 +35,8 @@ data_path = sample.data_path()
 meg_path = data_path / "MEG" / "sample"
 raw_fname = meg_path / "sample_audvis_raw.fif"
 fname_inv = meg_path / "sample_audvis-meg-oct-6-meg-inv.fif"
-label_name = "Aud-rh"
-fname_label = meg_path / "labels" / f"{label_name}.label"
+label_names = ["Aud-lh", "Aud-rh"]
+fname_labels = [meg_path / "labels" / f"{ln}.label" for ln in label_names]
 
 tmin, tmax, event_id = -0.2, 0.5, 2
 
@@ -70,14 +70,14 @@ epochs = mne.Epochs(
 # Compute a source estimate per frequency band including and excluding the
 # evoked response
 freqs = np.arange(7, 30, 2)  # define frequencies of interest
-label = mne.read_label(fname_label)
+labels = [mne.read_label(fl) for fl in fname_labels]
+label = labels[0]
 n_cycles = freqs / 3.0  # different number of cycle per frequency
 
 # subtract the evoked response in order to exclude evoked activity
 epochs_induced = epochs.copy().subtract_evoked()
 
-plt.close("all")
-
+fig, axes = plt.subplots(2, 2, layout="constrained")
 for ii, (this_epochs, title) in enumerate(
     zip([epochs, epochs_induced], ["evoked + induced", "induced only"])
 ):
@@ -99,9 +99,8 @@ for ii, (this_epochs, title) in enumerate(
 
     ##########################################################################
     # View time-frequency plots
-    plt.subplots_adjust(0.1, 0.08, 0.96, 0.94, 0.2, 0.43)
-    plt.subplot(2, 2, 2 * ii + 1)
-    plt.imshow(
+    ax = axes[ii, 0]
+    ax.imshow(
         20 * power,
         extent=[times[0], times[-1], freqs[0], freqs[-1]],
         aspect="auto",
@@ -110,13 +109,10 @@ for ii, (this_epochs, title) in enumerate(
         vmax=30.0,
         cmap="RdBu_r",
     )
-    plt.xlabel("Time (s)")
-    plt.ylabel("Frequency (Hz)")
-    plt.title("Power (%s)" % title)
-    plt.colorbar()
+    ax.set(xlabel="Time (s)", ylabel="Frequency (Hz)", title=f"Power ({title})")
 
-    plt.subplot(2, 2, 2 * ii + 2)
-    plt.imshow(
+    ax = axes[ii, 1]
+    ax.imshow(
         itc,
         extent=[times[0], times[-1], freqs[0], freqs[-1]],
         aspect="auto",
@@ -125,9 +121,46 @@ for ii, (this_epochs, title) in enumerate(
         vmax=0.7,
         cmap="RdBu_r",
     )
-    plt.xlabel("Time (s)")
-    plt.ylabel("Frequency (Hz)")
-    plt.title("ITC (%s)" % title)
-    plt.colorbar()
+    ax.set(xlabel="Time (s)", ylabel="Frequency (Hz)", title=f"ITC ({title})")
+    fig.colorbar(ax.images[0], ax=axes[ii])
 
-plt.show()
+# %%
+
+##############################################################################
+# In the example above, we averaged power across vertices after calculating
+# power because we provided a single label for power calculation and therefore
+# power of all sources within the single label were returned separately. When
+# we provide a list of labels, power is averaged across sources within each
+# label automatically. With a list of labels, averaging is performed before
+# rescaling, so choose a baseline method appropriately.
+
+
+# Get power from multiple labels
+multi_label_power = source_induced_power(
+    epochs,
+    inverse_operator,
+    freqs,
+    labels,
+    baseline=(-0.1, 0),
+    baseline_mode="mean",
+    n_cycles=n_cycles,
+    n_jobs=None,
+    return_plv=False,
+)
+
+# visually compare evoked power in left and right auditory regions
+fig, axes = plt.subplots(ncols=2, layout="constrained")
+for l_idx, l_power in enumerate(multi_label_power):
+    ax = axes[l_idx]
+    ax.imshow(
+        l_power,
+        extent=[epochs.times[0], epochs.times[-1], freqs[0], freqs[-1]],
+        aspect="auto",
+        origin="lower",
+        vmin=multi_label_power.min(),
+        vmax=multi_label_power.max(),
+        cmap="RdBu_r",
+    )
+    title = f"{labels[l_idx].hemi.upper()} Evoked Power"
+    ax.set(xlabel="Time (s)", ylabel="Frequency (Hz)", title=title)
+    fig.colorbar(ax.images[0], ax=ax)

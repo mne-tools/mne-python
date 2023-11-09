@@ -8,7 +8,7 @@ import os
 
 from ..bem import fit_sphere_to_headshape
 from ..io import read_raw_fif
-from ..utils import logger, verbose, warn, deprecated
+from ..utils import deprecated, logger, verbose, warn
 
 
 def _mxwarn(msg):

@@ -17,22 +17,22 @@ from pathlib import Path
 import numpy as np
 from scipy.spatial.distance import pdist, squareform
 
-from ..transforms import _pol_to_cart, _cart_to_sph
-from .._fiff.pick import pick_types, _picks_to_idx, _FNIRS_CH_TYPES_SPLIT
 from .._fiff.constants import FIFF
 from .._fiff.meas_info import Info
+from .._fiff.pick import _FNIRS_CH_TYPES_SPLIT, _picks_to_idx, pick_types
+from ..transforms import _cart_to_sph, _pol_to_cart
 from ..utils import (
-    _clean_names,
-    warn,
     _check_ch_locs,
-    fill_doc,
     _check_fname,
     _check_option,
     _check_sphere,
+    _clean_names,
+    fill_doc,
     logger,
+    warn,
 )
-from .channels import _get_ch_info
 from ..viz.topomap import plot_layout
+from .channels import _get_ch_info
 
 
 class Layout:

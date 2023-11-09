@@ -4,72 +4,73 @@
 # License: BSD-3-Clause
 
 import pickle
-from datetime import datetime, timedelta, timezone, date
+import string
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
-import pytest
 import numpy as np
-from numpy.testing import assert_array_equal, assert_allclose
+import pytest
+from numpy.testing import assert_allclose, assert_array_equal
 from scipy import sparse
-import string
 
 from mne import (
-    Epochs,
-    read_events,
-    pick_info,
-    pick_types,
     Annotations,
-    read_evokeds,
+    Epochs,
+    compute_covariance,
     make_forward_solution,
     make_sphere_model,
-    setup_volume_source_space,
-    write_forward_solution,
-    read_forward_solution,
-    write_cov,
+    pick_info,
+    pick_types,
     read_cov,
     read_epochs,
-    compute_covariance,
-)
-from mne.channels import (
-    read_polhemus_fastscan,
-    make_standard_montage,
-    equalize_channels,
-)
-from mne.event import make_fixed_length_events
-from mne.datasets import testing
-from mne.io import read_raw_fif, BaseRaw, read_raw_ctf, RawArray
-from mne._fiff.tag import _coil_trans_to_loc, _loc_to_coil_trans
-from mne._fiff.proj import Projection
-from mne._fiff.constants import FIFF
-from mne._fiff.write import _generate_meas_id, DATE_NONE
-from mne._fiff.meas_info import (
-    Info,
-    create_info,
-    read_fiducials,
-    write_fiducials,
-    read_info,
-    write_info,
-    _merge_info,
-    _force_update_info,
-    RAW_INFO_FIELDS,
-    _bad_chans_comp,
-    _get_valid_units,
-    anonymize_info,
-    _stamp_to_dt,
-    _dt_to_stamp,
-    _add_timedelta_to_stamp,
-    _read_extended_ch_info,
-)
-from mne.minimum_norm import (
-    make_inverse_operator,
-    write_inverse_operator,
-    read_inverse_operator,
-    apply_inverse,
+    read_events,
+    read_evokeds,
+    read_forward_solution,
+    setup_volume_source_space,
+    write_cov,
+    write_forward_solution,
 )
 from mne._fiff import meas_info
-from mne._fiff._digitization import _make_dig_points, DigPoint
+from mne._fiff._digitization import DigPoint, _make_dig_points
+from mne._fiff.constants import FIFF
+from mne._fiff.meas_info import (
+    RAW_INFO_FIELDS,
+    Info,
+    MNEBadsList,
+    _add_timedelta_to_stamp,
+    _bad_chans_comp,
+    _dt_to_stamp,
+    _force_update_info,
+    _get_valid_units,
+    _merge_info,
+    _read_extended_ch_info,
+    _stamp_to_dt,
+    anonymize_info,
+    create_info,
+    read_fiducials,
+    read_info,
+    write_fiducials,
+    write_info,
+)
+from mne._fiff.proj import Projection
+from mne._fiff.tag import _coil_trans_to_loc, _loc_to_coil_trans
+from mne._fiff.write import DATE_NONE, _generate_meas_id
+from mne.channels import (
+    equalize_channels,
+    make_standard_montage,
+    read_polhemus_fastscan,
+)
+from mne.datasets import testing
+from mne.event import make_fixed_length_events
+from mne.io import BaseRaw, RawArray, read_raw_ctf, read_raw_fif
+from mne.minimum_norm import (
+    apply_inverse,
+    make_inverse_operator,
+    read_inverse_operator,
+    write_inverse_operator,
+)
 from mne.transforms import Transform
-from mne.utils import catch_logging, assert_object_equal, _empty_hash, _record_warnings
+from mne.utils import _empty_hash, _record_warnings, assert_object_equal, catch_logging
 
 root_dir = Path(__file__).parent.parent.parent
 fiducials_fname = root_dir / "data" / "fsaverage" / "fsaverage-fiducials.fif"
@@ -495,8 +496,8 @@ def test_check_consistency():
 
     # Bad channels that are not in the info object
     info2 = info.copy()
-    info2["bads"] = ["b", "foo", "bar"]
-    pytest.raises(RuntimeError, info2._check_consistency)
+    with pytest.raises(ValueError, match="do not exist"):
+        info2["bads"] = ["b", "foo", "bar"]
 
     # Bad data types
     info2 = info.copy()
@@ -898,11 +899,11 @@ def test_repr_html():
     assert "EEG 053" in info._repr_html_()
 
     html = info._repr_html_()
-    for ch in [
-        "204 Gradiometers",
+    for ch in [  # good channel counts
+        "203 Gradiometers",
         "102 Magnetometers",
         "9 Stimulus",
-        "60 EEG",
+        "59 EEG",
         "1 EOG",
     ]:
         assert ch in html
@@ -1069,40 +1070,67 @@ def test_channel_name_limit(tmp_path, monkeypatch, fname):
     apply_inverse(evoked, inv)  # smoke test
 
 
+@pytest.mark.parametrize("protocol", ("highest", "default"))
 @pytest.mark.parametrize("fname_info", (raw_fname, "create_info"))
 @pytest.mark.parametrize("unlocked", (True, False))
-def test_pickle(fname_info, unlocked):
+def test_pickle(fname_info, unlocked, protocol):
     """Test that Info can be (un)pickled."""
     if fname_info == "create_info":
         info = create_info(3, 1000.0, "eeg")
     else:
         info = read_info(fname_info)
+    protocol = getattr(pickle, f"{protocol.upper()}_PROTOCOL")
+    assert isinstance(info["bads"], MNEBadsList)
+    info["bads"] = info["ch_names"][:1]
     assert not info._unlocked
     info._unlocked = unlocked
-    data = pickle.dumps(info)
+    data = pickle.dumps(info, protocol=protocol)
     info_un = pickle.loads(data)  # nosec B301
     assert isinstance(info_un, Info)
     assert_object_equal(info, info_un)
     assert info_un._unlocked == unlocked
+    assert isinstance(info_un["bads"], MNEBadsList)
+    assert info_un["bads"]._mne_info is info_un
 
 
 def test_info_bad():
     """Test our info sanity checkers."""
-    info = create_info(2, 1000.0, "eeg")
+    info = create_info(5, 1000.0, "eeg")
     info["description"] = "foo"
     info["experimenter"] = "bar"
     info["line_freq"] = 50.0
     info["bads"] = info["ch_names"][:1]
     info["temp"] = ("whatever", 1.0)
-    # After 0.24 these should be pytest.raises calls
-    check, klass = pytest.raises, RuntimeError
-    with check(klass, match=r"info\['temp'\]"):
+    with pytest.raises(RuntimeError, match=r"info\['temp'\]"):
         info["bad_key"] = 1.0
     for key, match in [("sfreq", r"inst\.resample"), ("chs", r"inst\.add_channels")]:
-        with check(klass, match=match):
+        with pytest.raises(RuntimeError, match=match):
             info[key] = info[key]
     with pytest.raises(ValueError, match="between meg<->head"):
         info["dev_head_t"] = Transform("mri", "head", np.eye(4))
+    assert isinstance(info["bads"], MNEBadsList)
+    with pytest.raises(ValueError, match="do not exist in info"):
+        info["bads"] = ["foo"]
+    assert isinstance(info["bads"], MNEBadsList)
+    with pytest.raises(ValueError, match="do not exist in info"):
+        info["bads"] += ["foo"]
+    assert isinstance(info["bads"], MNEBadsList)
+    with pytest.raises(ValueError, match="do not exist in info"):
+        info["bads"].append("foo")
+    assert isinstance(info["bads"], MNEBadsList)
+    with pytest.raises(ValueError, match="do not exist in info"):
+        info["bads"].extend(["foo"])
+    assert isinstance(info["bads"], MNEBadsList)
+    x = info["bads"]
+    with pytest.raises(ValueError, match="do not exist in info"):
+        x.append("foo")
+    assert info["bads"] == info["ch_names"][:1]  # unchonged
+    x = info["bads"] + info["ch_names"][1:2]
+    assert x == info["ch_names"][:2]
+    assert not isinstance(x, MNEBadsList)  # plain list
+    x = info["ch_names"][1:2] + info["bads"]
+    assert x == info["ch_names"][1::-1]  # like [1, 0] in fancy indexing
+    assert not isinstance(x, MNEBadsList)  # plain list
 
 
 def test_get_montage():

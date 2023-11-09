@@ -7,83 +7,82 @@
 # The computations in this code were primarily derived from Matti Hämäläinen's
 # C code.
 
+import os
 import re
+import shutil
+import tempfile
 from copy import deepcopy
 from os import PathLike
+from os import path as op
 from pathlib import Path
 from time import time
 
 import numpy as np
 from scipy import sparse
 
-import shutil
-import os
-from os import path as op
-import tempfile
-
-from ..io import RawArray, BaseRaw
-from ..html_templates import _get_html_template
 from .._fiff.constants import FIFF
-from .._fiff.open import fiff_open
-from .._fiff.tree import dir_tree_find
-from .._fiff.tag import find_tag, read_tag
 from .._fiff.matrix import (
     _read_named_matrix,
     _transpose_named_matrix,
     write_named_matrix,
 )
 from .._fiff.meas_info import (
-    _read_bad_channels,
-    write_info,
-    _write_ch_infos,
-    _read_extended_ch_info,
-    _make_ch_names_mapping,
-    _write_bad_channels,
     Info,
+    _make_ch_names_mapping,
+    _read_bad_channels,
+    _read_extended_ch_info,
+    _write_bad_channels,
+    _write_ch_infos,
+    write_info,
 )
-from .._fiff.pick import pick_channels_forward, pick_info, pick_channels, pick_types
+from .._fiff.open import fiff_open
+from .._fiff.pick import pick_channels, pick_channels_forward, pick_info, pick_types
+from .._fiff.tag import find_tag, read_tag
+from .._fiff.tree import dir_tree_find
 from .._fiff.write import (
-    write_int,
-    start_block,
     end_block,
-    write_coord_trans,
-    write_string,
     start_and_end_file,
+    start_block,
+    write_coord_trans,
     write_id,
+    write_int,
+    write_string,
 )
-from ..evoked import Evoked, EvokedArray
 from ..epochs import BaseEpochs
+from ..evoked import Evoked, EvokedArray
+from ..html_templates import _get_html_template
+from ..io import BaseRaw, RawArray
+from ..label import Label
+from ..source_estimate import _BaseSourceEstimate, _BaseVectorSourceEstimate
 from ..source_space._source_space import (
-    _read_source_spaces_from_tree,
-    find_source_space_hemi,
-    _set_source_space_vertices,
-    _write_source_spaces_to_fid,
     _get_src_nn,
+    _read_source_spaces_from_tree,
+    _set_source_space_vertices,
     _src_kind_dict,
+    _write_source_spaces_to_fid,
+    find_source_space_hemi,
 )
-from ..source_estimate import _BaseVectorSourceEstimate, _BaseSourceEstimate
 from ..surface import _normal_orth
-from ..transforms import transform_surface_to, invert_transform, write_trans
+from ..transforms import invert_transform, transform_surface_to, write_trans
 from ..utils import (
-    _check_fname,
-    get_subjects_dir,
-    has_mne_c,
-    warn,
-    run_subprocess,
-    check_fname,
-    logger,
-    verbose,
-    fill_doc,
-    _validate_type,
     _check_compensation_grade,
+    _check_fname,
     _check_option,
     _check_stc_units,
-    _stamp_to_dt,
-    _on_missing,
-    repr_html,
     _import_h5io_funcs,
+    _on_missing,
+    _stamp_to_dt,
+    _validate_type,
+    check_fname,
+    fill_doc,
+    get_subjects_dir,
+    has_mne_c,
+    logger,
+    repr_html,
+    run_subprocess,
+    verbose,
+    warn,
 )
-from ..label import Label
 
 
 class Forward(dict):
@@ -458,11 +457,9 @@ def _read_forward_meas_info(tree, fid):
     else:
         raise ValueError("MEG/head coordinate transformation not found")
 
-    info["bads"] = _read_bad_channels(
-        fid, parent_meg, ch_names_mapping=ch_names_mapping
-    )
+    bads = _read_bad_channels(fid, parent_meg, ch_names_mapping=ch_names_mapping)
     # clean up our bad list, old versions could have non-existent bads
-    info["bads"] = [bad for bad in info["bads"] if bad in info["ch_names"]]
+    info["bads"] = [bad for bad in bads if bad in info["ch_names"]]
 
     # Check if a custom reference has been applied
     tag = find_tag(fid, parent_mri, FIFF.FIFF_MNE_CUSTOM_REF)

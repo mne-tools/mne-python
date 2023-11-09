@@ -16,9 +16,8 @@ import numpy as np
 
 import mne
 from mne.datasets import sample
-
-from mne.minimum_norm import read_inverse_operator, apply_inverse
-from mne.simulation import simulate_stc, simulate_evoked
+from mne.minimum_norm import apply_inverse, read_inverse_operator
+from mne.simulation import simulate_evoked, simulate_stc
 
 # %%
 # First, we set some parameters.

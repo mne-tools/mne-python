@@ -14,9 +14,9 @@ on data with with sensor artifacts (flux jumps) and random noise.
 
 # %%
 
-import mne
 import numpy as np
 
+import mne
 from mne import find_events, fit_dipole
 from mne.datasets.brainstorm import bst_phantom_elekta
 from mne.io import read_raw_fif

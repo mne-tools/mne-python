@@ -1,44 +1,44 @@
 from copy import deepcopy
 from pathlib import Path
 
-import pytest
 import numpy as np
+import pytest
 from numpy.testing import assert_array_equal
 
 from mne import (
-    pick_channels_regexp,
-    pick_types,
     Epochs,
-    read_forward_solution,
-    rename_channels,
-    pick_info,
-    pick_channels,
-    create_info,
-    make_ad_hoc_cov,
     channel_indices_by_type,
     channel_type,
-    pick_types_forward,
+    create_info,
+    make_ad_hoc_cov,
+    pick_channels,
     pick_channels_cov,
-)
-from mne.io import (
-    read_raw_fif,
-    RawArray,
-    read_raw_bti,
-    read_raw_kit,
-    read_info,
-)
-from mne.channels import make_standard_montage
-from mne.preprocessing import compute_current_source_density
-from mne._fiff.pick import (
-    _picks_by_type,
-    _picks_to_idx,
-    _contains_ch_type,
-    _DATA_CH_TYPES_SPLIT,
-    get_channel_type_constants,
+    pick_channels_regexp,
+    pick_info,
+    pick_types,
+    pick_types_forward,
+    read_forward_solution,
+    rename_channels,
 )
 from mne._fiff.constants import FIFF
+from mne._fiff.pick import (
+    _DATA_CH_TYPES_SPLIT,
+    _contains_ch_type,
+    _picks_by_type,
+    _picks_to_idx,
+    get_channel_type_constants,
+)
+from mne.channels import make_standard_montage
 from mne.datasets import testing
-from mne.utils import catch_logging, assert_object_equal
+from mne.io import (
+    RawArray,
+    read_info,
+    read_raw_bti,
+    read_raw_fif,
+    read_raw_kit,
+)
+from mne.preprocessing import compute_current_source_density
+from mne.utils import assert_object_equal, catch_logging
 
 data_path = testing.data_path(download=False)
 fname_meeg = data_path / "MEG" / "sample" / "sample_audvis_trunc-meg-eeg-oct-4-fwd.fif"
@@ -567,8 +567,8 @@ def test_clean_info_bads():
 
     info = pick_info(raw.info, picks_meg)
     info._check_consistency()
-    info["bads"] += ["EEG 053"]
-    pytest.raises(RuntimeError, info._check_consistency)
+    with pytest.raises(ValueError, match="do not exist"):
+        info["bads"] += ["EEG 053"]
     with pytest.raises(ValueError, match="unique"):
         pick_info(raw.info, [0, 0])
 

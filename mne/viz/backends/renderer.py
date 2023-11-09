@@ -7,25 +7,25 @@
 #
 # License: Simplified BSD
 
-from contextlib import contextmanager
 import importlib
-from functools import partial
 import time
+from contextlib import contextmanager
+from functools import partial
 
 import numpy as np
 
-from ._utils import VALID_3D_BACKENDS
-from .._3d import _get_3d_option
-from ..utils import safe_event
 from ...utils import (
+    _auto_weakref,
+    _check_option,
+    _validate_type,
+    fill_doc,
+    get_config,
     logger,
     verbose,
-    get_config,
-    _check_option,
-    fill_doc,
-    _validate_type,
-    _auto_weakref,
 )
+from .._3d import _get_3d_option
+from ..utils import safe_event
+from ._utils import VALID_3D_BACKENDS
 
 MNE_3D_BACKEND = None
 MNE_3D_BACKEND_TESTING = False
@@ -398,10 +398,10 @@ class _TimeInteraction:
         playback_speed_range=[0.01, 0.1],
     ):
         from ..ui_events import (
+            PlaybackSpeed,
+            TimeChange,
             publish,
             subscribe,
-            TimeChange,
-            PlaybackSpeed,
         )
 
         self._fig = fig
@@ -521,7 +521,7 @@ class _TimeInteraction:
 
     def _toggle_playback(self, value=None):
         """Toggle time playback."""
-        from ..ui_events import publish, TimeChange
+        from ..ui_events import TimeChange, publish
 
         if value is None:
             self._playback = not self._playback
@@ -538,7 +538,7 @@ class _TimeInteraction:
 
     def _reset_time(self):
         """Reset time and playback speed to initial values."""
-        from ..ui_events import publish, TimeChange, PlaybackSpeed
+        from ..ui_events import PlaybackSpeed, TimeChange, publish
 
         publish(self._fig, TimeChange(time=self._init_time))
         publish(self._fig, PlaybackSpeed(speed=self._init_playback_speed))
@@ -553,7 +553,7 @@ class _TimeInteraction:
                 raise
 
     def _advance(self):
-        from ..ui_events import publish, TimeChange
+        from ..ui_events import TimeChange, publish
 
         this_time = time.time()
         delta = this_time - self._last_tick

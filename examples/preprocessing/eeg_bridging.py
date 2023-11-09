@@ -10,7 +10,7 @@ applied the gel conducting signal from the scalp to the electrode for one
 electrode connects with the gel conducting signal from another electrode
 "bridging" the two signals. This is undesirable because the signals from the
 two (or more) electrodes are not as independent as they would otherwise be;
-they are very similar to each other introducting additional
+they are very similar to each other introducing additional
 spatial smearing. An algorithm has been developed to detect electrode
 bridging :footcite:`TenkeKayser2001`, which has been implemented in EEGLAB
 :footcite:`DelormeMakeig2004`. Unfortunately, there is not a lot to be
@@ -35,8 +35,8 @@ https://psychophysiology.cpmc.columbia.edu/software/eBridge/tutorial.html.
 
 # sphinx_gallery_thumbnail_number = 2
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 from matplotlib.colors import LinearSegmentedColormap
 
 import mne
@@ -88,7 +88,7 @@ for sub in range(1, 11):
 
 bridged_idx, ed_matrix = ed_data[6]
 
-fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(8, 4))
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(8, 4), layout="constrained")
 fig.suptitle("Subject 6 Electrical Distance Matrix")
 
 # take median across epochs, only use upper triangular, lower is NaNs
@@ -109,8 +109,6 @@ cax2.set_label(r"Electrical Distance ($\mu$$V^2$)")
 for ax in (ax1, ax2):
     ax.set_xlabel("Channel Index")
     ax.set_ylabel("Channel Index")
-
-fig.tight_layout()
 
 # %%
 # Examine the Distribution of Electrical Distances
@@ -208,7 +206,7 @@ raw.plot(duration=20, scalings=dict(eeg=2e-4))
 # reflect neural or at least anatomical differences as well (i.e. the
 # distance from the sensors to the brain).
 
-fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(8, 4))
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(8, 4), layout="constrained")
 fig.suptitle("Electrical Distance Distribution for EEGBCI Subjects")
 for ax in (ax1, ax2):
     ax.set_ylabel("Count")
@@ -229,7 +227,6 @@ for sub, (bridged_idx, ed_matrix) in ed_data.items():
 
 ax1.axvspan(0, 30, color="r", alpha=0.5)
 ax2.legend(loc=(1.04, 0))
-fig.subplots_adjust(right=0.725, bottom=0.15, wspace=0.4)
 
 # %%
 # For the group of subjects, let's look at their electrical distances

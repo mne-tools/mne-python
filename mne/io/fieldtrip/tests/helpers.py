@@ -3,14 +3,13 @@
 #          Dirk Gütlin <dirk.guetlin@stud.sbg.ac.at>
 #
 # License: BSD-3-Clause
-from functools import partial
 import os
+from functools import partial
 
 import numpy as np
 
 import mne
 from mne.utils import object_diff
-
 
 info_ignored_fields = (
     "file_id",

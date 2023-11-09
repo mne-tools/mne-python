@@ -4,25 +4,25 @@
 
 import numpy as np
 
-from .open import read_tag, fiff_open
+from ..fixes import _csc_matrix_cast
+from ..utils import _check_fname, warn
+from .constants import FIFF
+from .open import fiff_open, read_tag
+from .tag import _float_item, _int_item, find_tag
 from .tree import dir_tree_find
 from .write import (
-    start_block,
+    _safe_name_list,
     end_block,
-    write_int,
+    start_block,
     write_float,
-    write_string,
     write_float_matrix,
-    write_int_matrix,
     write_float_sparse,
     write_id,
+    write_int,
+    write_int_matrix,
     write_name_list_sanitized,
-    _safe_name_list,
+    write_string,
 )
-from .tag import find_tag, _int_item, _float_item
-from .constants import FIFF
-from ..fixes import _csc_matrix_cast
-from ..utils import warn, _check_fname
 
 _proc_keys = [
     "parent_file_id",

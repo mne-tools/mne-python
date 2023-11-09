@@ -8,28 +8,27 @@ from datetime import datetime, timezone
 from pathlib import Path
 from shutil import copyfile
 
-import pytest
 import numpy as np
+import pytest
 from numpy.testing import assert_allclose, assert_array_equal
 
-from mne.annotations import events_from_annotations
+from mne._fiff.constants import FIFF
+from mne._fiff.tag import _loc_to_coil_trans
+from mne.annotations import events_from_annotations, read_annotations
 from mne.bem import _fit_sphere
 from mne.datasets import testing
 from mne.event import find_events
-from mne._fiff.tag import _loc_to_coil_trans
-from mne._fiff.constants import FIFF
-from mne.io.edf import read_raw_bdf
 from mne.io.bti import read_raw_bti
 from mne.io.curry import read_raw_curry
+from mne.io.curry.curry import (
+    FILE_EXTENSIONS,
+    _get_curry_file_structure,
+    _get_curry_version,
+    _read_events_curry,
+)
+from mne.io.edf import read_raw_bdf
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.utils import catch_logging
-from mne.annotations import read_annotations
-from mne.io.curry.curry import (
-    _get_curry_version,
-    _get_curry_file_structure,
-    _read_events_curry,
-    FILE_EXTENSIONS,
-)
 
 data_dir = testing.data_path(download=False)
 curry_dir = data_dir / "curry"

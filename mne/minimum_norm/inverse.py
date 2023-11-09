@@ -11,77 +11,75 @@ import numpy as np
 from scipy import linalg
 from scipy.stats import chi2
 
-from ._eloreta import _compute_eloreta
-from ..fixes import _safe_svd
-from ..io import BaseRaw
 from .._fiff.constants import FIFF
-from .._fiff.open import fiff_open
-from .._fiff.tag import find_tag
 from .._fiff.matrix import (
     _read_named_matrix,
     _transpose_named_matrix,
     write_named_matrix,
 )
+from .._fiff.open import fiff_open
+from .._fiff.pick import channel_type, pick_channels, pick_info, pick_types
 from .._fiff.proj import (
-    _read_proj,
-    make_projector,
-    _write_proj,
-    _needs_eeg_average_ref_proj,
     _electrode_types,
+    _needs_eeg_average_ref_proj,
+    _read_proj,
+    _write_proj,
+    make_projector,
 )
+from .._fiff.tag import find_tag
 from .._fiff.tree import dir_tree_find
 from .._fiff.write import (
-    write_int,
-    write_float_matrix,
+    end_block,
     start_and_end_file,
     start_block,
-    end_block,
-    write_float,
     write_coord_trans,
+    write_float,
+    write_float_matrix,
+    write_int,
     write_string,
 )
-
-from .._fiff.pick import channel_type, pick_info, pick_types, pick_channels
-from ..cov import compute_whitener, _read_cov, _write_cov, Covariance, prepare_noise_cov
+from ..cov import Covariance, _read_cov, _write_cov, compute_whitener, prepare_noise_cov
 from ..epochs import BaseEpochs, EpochsArray
-from ..evoked import EvokedArray, Evoked
+from ..evoked import Evoked, EvokedArray
+from ..fixes import _safe_svd
 from ..forward import (
-    compute_depth_prior,
     _read_forward_meas_info,
-    is_fixed_orient,
+    _select_orient_forward,
+    compute_depth_prior,
     compute_orient_prior,
     convert_forward_solution,
-    _select_orient_forward,
+    is_fixed_orient,
 )
-from ..forward.forward import write_forward_meas_info, _triage_loose
+from ..forward.forward import _triage_loose, write_forward_meas_info
 from ..html_templates import _get_html_template
+from ..io import BaseRaw
+from ..source_estimate import _get_src_type, _make_stc
 from ..source_space._source_space import (
-    _read_source_spaces_from_tree,
     _get_src_nn,
-    find_source_space_hemi,
     _get_vertno,
+    _read_source_spaces_from_tree,
     _write_source_spaces_to_fid,
+    find_source_space_hemi,
     label_src_vertno_sel,
 )
 from ..surface import _normal_orth
-from ..transforms import _ensure_trans, transform_surface_to
 from ..time_frequency.tfr import _check_tfr_complex
-from ..source_estimate import _make_stc, _get_src_type
+from ..transforms import _ensure_trans, transform_surface_to
 from ..utils import (
+    _check_compensation_grade,
+    _check_depth,
+    _check_fname,
+    _check_option,
+    _check_src_normal,
+    _validate_type,
+    _verbose_safe_false,
     check_fname,
     logger,
+    repr_html,
     verbose,
     warn,
-    _validate_type,
-    _check_compensation_grade,
-    _check_option,
-    repr_html,
-    _check_depth,
-    _check_src_normal,
-    _check_fname,
-    _verbose_safe_false,
 )
-
+from ._eloreta import _compute_eloreta
 
 INVERSE_METHODS = ("MNE", "dSPM", "sLORETA", "eLORETA")
 
@@ -144,6 +142,16 @@ class InverseOperator(dict):
             source_orientation=src_ori,
         )
         return html
+
+    @property
+    def ch_names(self):
+        """Name of channels attached to the inverse operator."""
+        return self["info"].ch_names
+
+    @property
+    def info(self):
+        """:class:`~mne.Info` attached to the inverse operator."""
+        return self["info"]
 
 
 def _pick_channels_inverse_operator(ch_names, inv):

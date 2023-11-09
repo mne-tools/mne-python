@@ -16,18 +16,18 @@ multiple times.
 
 # %%
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 
 import mne
-from mne import find_events, Epochs, compute_covariance, make_ad_hoc_cov
+from mne import Epochs, compute_covariance, find_events, make_ad_hoc_cov
 from mne.datasets import sample
 from mne.simulation import (
-    simulate_sparse_stc,
-    simulate_raw,
-    add_noise,
     add_ecg,
     add_eog,
+    add_noise,
+    simulate_raw,
+    simulate_sparse_stc,
 )
 
 print(__doc__)
@@ -50,7 +50,7 @@ rng = np.random.RandomState(0)  # random state (make reproducible)
 
 
 def data_fun(times):
-    """Generate time-staggered sinusoids at harmonics of 10Hz"""
+    """Generate time-staggered sinusoids at harmonics of 10Hz."""
     global n
     n_samp = len(times)
     window = np.zeros(n_samp)

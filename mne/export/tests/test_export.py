@@ -8,35 +8,35 @@ from datetime import datetime, timezone
 from os import remove
 from pathlib import Path
 
-import pytest
 import numpy as np
+import pytest
 from numpy.testing import assert_allclose, assert_array_almost_equal, assert_array_equal
 
 from mne import (
-    read_epochs_eeglab,
+    Annotations,
     Epochs,
+    create_info,
+    read_epochs_eeglab,
     read_evokeds,
     read_evokeds_mff,
-    Annotations,
-    create_info,
 )
-from mne.datasets import testing, misc
+from mne.datasets import misc, testing
 from mne.export import export_evokeds, export_evokeds_mff
 from mne.fixes import _compare_version
 from mne.io import (
     RawArray,
-    read_raw_fif,
-    read_raw_eeglab,
-    read_raw_edf,
     read_raw_brainvision,
-)
-from mne.utils import (
-    object_diff,
-    _check_edflib_installed,
-    _resource_path,
-    _record_warnings,
+    read_raw_edf,
+    read_raw_eeglab,
+    read_raw_fif,
 )
 from mne.tests.test_epochs import _get_data
+from mne.utils import (
+    _check_edflib_installed,
+    _record_warnings,
+    _resource_path,
+    object_diff,
+)
 
 fname_evoked = _resource_path("mne.io.tests.data", "test-ave.fif")
 fname_raw = _resource_path("mne.io.tests.data", "test_raw.fif")

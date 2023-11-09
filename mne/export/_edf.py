@@ -3,6 +3,7 @@
 # License: BSD-3-Clause
 
 from contextlib import contextmanager
+
 import numpy as np
 
 from ..utils import _check_edflib_installed, warn

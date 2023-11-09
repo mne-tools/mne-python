@@ -6,18 +6,17 @@
 from pathlib import Path
 
 import numpy as np
-
-from numpy.testing import assert_array_equal, assert_array_almost_equal, assert_allclose
 import pytest
+from numpy.testing import assert_allclose, assert_array_almost_equal, assert_array_equal
 from scipy import stats
 
 from mne import (
     Epochs,
-    read_events,
-    pick_types,
+    EpochsArray,
     compute_raw_covariance,
     create_info,
-    EpochsArray,
+    pick_types,
+    read_events,
 )
 from mne.decoding import Vectorizer
 from mne.fixes import _safe_svd
@@ -349,11 +348,11 @@ def _simulate_erplike_mixed_data(n_epochs=100, n_channels=10):
 def test_xdawn_decoding_performance():
     """Test decoding performance and extracted pattern on synthetic data."""
     pytest.importorskip("sklearn")
+    from sklearn.linear_model import LogisticRegression
+    from sklearn.metrics import accuracy_score
     from sklearn.model_selection import KFold
     from sklearn.pipeline import make_pipeline
-    from sklearn.linear_model import LogisticRegression
     from sklearn.preprocessing import MinMaxScaler
-    from sklearn.metrics import accuracy_score
 
     n_xdawn_comps = 3
     expected_accuracy = 0.98

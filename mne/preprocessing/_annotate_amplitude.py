@@ -4,15 +4,15 @@
 
 import numpy as np
 
-from ..fixes import jit
-from ..io import BaseRaw
+from .._fiff.pick import _picks_by_type, _picks_to_idx
 from ..annotations import (
     Annotations,
     _adjust_onset_meas_date,
     _annotations_starts_stops,
 )
-from .._fiff.pick import _picks_to_idx, _picks_by_type
-from ..utils import _validate_type, verbose, logger, _mask_to_onsets_offsets
+from ..fixes import jit
+from ..io import BaseRaw
+from ..utils import _mask_to_onsets_offsets, _validate_type, logger, verbose
 
 
 @verbose

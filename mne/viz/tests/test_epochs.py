@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 
-from mne import Epochs, create_info, EpochsArray
+from mne import Epochs, EpochsArray, create_info
 from mne.datasets import testing
 from mne.event import make_fixed_length_events
 from mne.viz import plot_drop_log
@@ -272,14 +272,7 @@ def test_plot_epochs_nodata(browser_backend):
 
 @pytest.mark.slowtest
 def test_plot_epochs_image(epochs):
-    """Test plotting of epochs image.
-
-    Note that some of these tests that should pass are triggering MPL
-    UserWarnings about tight_layout not being applied ("tight_layout cannot
-    make axes width small enough to accommodate all axes decorations"). Calling
-    `plt.close('all')` just before the offending test seems to prevent this
-    warning, though it's unclear why.
-    """
+    """Test plotting of epochs image."""
     figs = epochs.plot_image()
     assert len(figs) == 2  # one fig per ch_type (test data has mag, grad)
     assert len(plt.get_fignums()) == 2

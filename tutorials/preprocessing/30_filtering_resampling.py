@@ -16,8 +16,10 @@ We begin as always by importing the necessary Python modules and loading some
 # %%
 
 import os
-import numpy as np
+
 import matplotlib.pyplot as plt
+import numpy as np
+
 import mne
 
 sample_data_folder = mne.datasets.sample.data_path()
@@ -156,7 +158,6 @@ freqs = (60, 120, 180, 240)
 raw_notch = raw.copy().notch_filter(freqs=freqs, picks=meg_picks)
 for title, data in zip(["Un", "Notch "], [raw, raw_notch]):
     fig = data.compute_psd(fmax=250).plot(average=True, picks="data", exclude="bads")
-    fig.subplots_adjust(top=0.85)
     fig.suptitle("{}filtered".format(title), size="xx-large", weight="bold")
     add_arrows(fig.axes[:2])
 
@@ -176,7 +177,6 @@ raw_notch_fit = raw.copy().notch_filter(
 )
 for title, data in zip(["Un", "spectrum_fit "], [raw, raw_notch_fit]):
     fig = data.compute_psd(fmax=250).plot(average=True, picks="data", exclude="bads")
-    fig.subplots_adjust(top=0.85)
     fig.suptitle("{}filtered".format(title), size="xx-large", weight="bold")
     add_arrows(fig.axes[:2])
 
@@ -212,7 +212,6 @@ raw_downsampled = raw.copy().resample(sfreq=200)
 
 for data, title in zip([raw, raw_downsampled], ["Original", "Downsampled"]):
     fig = data.compute_psd().plot(average=True, picks="data", exclude="bads")
-    fig.subplots_adjust(top=0.9)
     fig.suptitle(title)
     plt.setp(fig.axes, xlim=(0, 300))
 

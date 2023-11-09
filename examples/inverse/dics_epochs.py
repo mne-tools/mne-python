@@ -17,10 +17,11 @@ synchronization (ERS) of beta band activity in the :ref:`somato dataset
 # License: BSD-3-Clause
 
 import numpy as np
+
 import mne
+from mne.beamformer import apply_dics_tfr_epochs, make_dics
 from mne.datasets import somato
-from mne.time_frequency import tfr_morlet, csd_tfr
-from mne.beamformer import make_dics, apply_dics_tfr_epochs
+from mne.time_frequency import csd_tfr, tfr_morlet
 
 print(__doc__)
 
@@ -45,7 +46,7 @@ raw = mne.io.read_raw_fif(raw_fname)
 events = mne.find_events(raw)
 epochs = mne.Epochs(
     raw,
-    events,
+    events[:22],  # just for execution speed of the tutorial
     event_id=1,
     tmin=-1,
     tmax=2.5,
@@ -56,7 +57,6 @@ epochs = mne.Epochs(
     ),
     preload=True,
 )
-epochs = epochs[:10]  # just for speed of execution for the tutorial
 
 # We are mostly interested in the beta band since it has been shown to be
 # active for somatosensory stimulation
@@ -121,7 +121,7 @@ brain = stc.plot(
     subjects_dir=subjects_dir,
     hemi="both",
     views="dorsal",
-    initial_time=0.55,
+    initial_time=1.2,
     brain_kwargs=dict(show=False),
     add_data_kwargs=dict(
         fmin=fmax / 10,
@@ -131,7 +131,3 @@ brain = stc.plot(
         colorbar_kwargs=dict(label_font_size=10),
     ),
 )
-
-# You can save a movie like the one on our documentation website with:
-# brain.save_movie(tmin=0.55, tmax=1.5, interpolation='linear',
-#                  time_viewer=True)

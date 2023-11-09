@@ -23,15 +23,15 @@ simulated sources.
 # We first import the required packages to run this tutorial and define a list
 # of filenames for various things we'll be using.
 import numpy as np
-from scipy.signal import welch, coherence, unit_impulse
 from matplotlib import pyplot as plt
+from scipy.signal import coherence, unit_impulse, welch
 
 import mne
-from mne.simulation import simulate_raw, add_noise
+from mne.beamformer import apply_dics_csd, make_dics
 from mne.datasets import sample
-from mne.minimum_norm import make_inverse_operator, apply_inverse
+from mne.minimum_norm import apply_inverse, make_inverse_operator
+from mne.simulation import add_noise, simulate_raw
 from mne.time_frequency import csd_morlet
-from mne.beamformer import make_dics, apply_dics_csd
 
 # We use the MEG and MRI setup from the MNE-sample dataset
 data_path = sample.data_path(download=False)
@@ -99,7 +99,7 @@ def coh_signal_gen():
 signal1 = coh_signal_gen()
 signal2 = coh_signal_gen()
 
-fig, axes = plt.subplots(2, 2, figsize=(8, 4))
+fig, axes = plt.subplots(2, 2, figsize=(8, 4), layout="constrained")
 
 # Plot the timeseries
 ax = axes[0][0]
@@ -133,7 +133,6 @@ ax.set(
     ylabel="Coherence",
     title="Coherence between the timeseries",
 )
-fig.tight_layout()
 
 # %%
 # Now we put the signals at two locations on the cortex. We construct a

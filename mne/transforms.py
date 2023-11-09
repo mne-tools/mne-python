@@ -5,8 +5,8 @@
 #
 # License: BSD-3-Clause
 
-import os
 import glob
+import os
 from copy import deepcopy
 from pathlib import Path
 
@@ -15,28 +15,27 @@ from scipy import linalg
 from scipy.spatial.distance import cdist
 from scipy.special import sph_harm
 
-from .fixes import jit, _get_img_fdata
 from ._fiff.constants import FIFF
 from ._fiff.open import fiff_open
 from ._fiff.tag import read_tag
 from ._fiff.write import start_and_end_file, write_coord_trans
 from .defaults import _handle_default
+from .fixes import _get_img_fdata, jit
 from .utils import (
-    check_fname,
-    logger,
-    verbose,
-    _ensure_int,
-    _validate_type,
-    _path_like,
-    get_subjects_dir,
-    fill_doc,
     _check_fname,
     _check_option,
-    _require_version,
-    wrapped_stdout,
+    _ensure_int,
     _import_nibabel,
+    _path_like,
+    _require_version,
+    _validate_type,
+    check_fname,
+    fill_doc,
+    get_subjects_dir,
+    logger,
+    verbose,
+    wrapped_stdout,
 )
-
 
 # transformation from anterior/left/superior coordinate system to
 # right/anterior/superior:
@@ -1783,16 +1782,16 @@ def _compute_volume_registration(
     nib = _import_nibabel("SDR morph")
     _require_version("dipy", "SDR morph", "0.10.1")
     with np.testing.suppress_warnings():
-        from dipy.align.imaffine import AffineMap
         from dipy.align import (
+            affine,
             affine_registration,
             center_of_mass,
-            translation,
-            rigid,
-            affine,
             imwarp,
             metrics,
+            rigid,
+            translation,
         )
+        from dipy.align.imaffine import AffineMap
 
     # input validation
     _validate_type(moving, nib.spatialimages.SpatialImage, "moving")
@@ -1927,9 +1926,9 @@ def apply_volume_registration(
     """
     _require_version("dipy", "SDR morph", "0.10.1")
     _import_nibabel("SDR morph")
-    from nibabel.spatialimages import SpatialImage
-    from dipy.align.imwarp import DiffeomorphicMap
     from dipy.align.imaffine import AffineMap
+    from dipy.align.imwarp import DiffeomorphicMap
+    from nibabel.spatialimages import SpatialImage
 
     _validate_type(moving, SpatialImage, "moving")
     _validate_type(static, SpatialImage, "static")
@@ -2001,9 +2000,9 @@ def apply_volume_registration_points(
     from .channels import compute_native_head_t, make_dig_montage
 
     _require_version("nibabel", "volume registration", "2.1.0")
+    from dipy.align.imwarp import DiffeomorphicMap
     from nibabel import MGHImage
     from nibabel.spatialimages import SpatialImage
-    from dipy.align.imwarp import DiffeomorphicMap
 
     _validate_type(moving, SpatialImage, "moving")
     _validate_type(static, SpatialImage, "static")
@@ -2073,3 +2072,55 @@ def apply_volume_registration_points(
     info2.set_montage(montage2)  # converts to head coordinates
 
     return info2, trans2
+
+
+class _MatchedDisplacementFieldInterpolator:
+    """Interpolate from matched points using a displacement field in ND.
+
+    For a demo, see
+    https://gist.github.com/larsoner/fbe32d57996848395854d5e59dff1e10
+    and related tests.
+    """
+
+    def __init__(self, fro, to, *, extrema=None):
+        from scipy.interpolate import LinearNDInterpolator
+
+        fro = np.array(fro, float)
+        to = np.array(to, float)
+        assert fro.shape == to.shape
+        assert fro.ndim == 2
+        # this restriction is only necessary because it's what
+        # _fit_matched_points requires
+        assert fro.shape[1] == 3
+
+        # Prealign using affine + uniform scaling
+        self._quat, self._scale = _fit_matched_points(fro, to, scale=True)
+        trans = _quat_to_affine(self._quat)
+        trans[:3, :3] *= self._scale
+        self._affine = trans
+        fro = apply_trans(trans, fro)
+
+        # Add points at extrema
+        if extrema is None:
+            delta = (to.max(axis=0) - to.min(axis=0)) / 2.0
+            assert (delta > 0).all()
+            extrema = np.array([fro.min(axis=0) - delta, fro.max(axis=0) + delta])
+        assert extrema.shape == (2, 3)  # min, max
+        self._extrema = np.array(np.meshgrid(*extrema.T)).T.reshape(-1, fro.shape[-1])
+        fro_concat = np.concatenate((fro, self._extrema))
+        to_concat = np.concatenate((to, self._extrema))
+
+        # Compute the interpolator (which internally uses Delaunay)
+        self._interp = LinearNDInterpolator(fro_concat, to_concat)
+
+    def __call__(self, x):
+        assert x.ndim in (1, 2) and x.shape[-1] == 3
+        assert np.isfinite(x).all()
+        singleton = x.ndim == 1
+        x = apply_trans(self._affine, x)
+        assert np.isfinite(x).all()
+        out = self._interp(x)
+        assert np.isfinite(out).all()
+        self._last_deltas = np.linalg.norm(x - out, axis=1)
+        out = out[0] if singleton else out
+        return out

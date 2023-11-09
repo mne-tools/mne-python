@@ -8,30 +8,29 @@ from functools import partial
 import numpy as np
 from scipy.optimize import fmin_cobyla
 
+from .._fiff.pick import pick_info, pick_types
+from .._fiff.tag import _coil_trans_to_loc, _loc_to_coil_trans
 from ..bem import _check_origin
 from ..io import BaseRaw
-from .._fiff.pick import pick_info, pick_types
-from .._fiff.tag import _loc_to_coil_trans, _coil_trans_to_loc
 from ..transforms import _find_vector_rotation
 from ..utils import (
+    _check_fname,
+    _check_option,
+    _ensure_int,
+    _pl,
+    _reg_pinv,
+    _validate_type,
+    check_fname,
     logger,
     verbose,
-    check_fname,
-    _check_fname,
-    _pl,
-    _ensure_int,
-    _check_option,
-    _validate_type,
-    _reg_pinv,
 )
-
 from .maxwell import (
     _col_norm_pinv,
-    _trans_sss_basis,
-    _prep_mf_coils,
     _get_grad_point_coilsets,
-    _read_cross_talk,
     _prep_fine_cal,
+    _prep_mf_coils,
+    _read_cross_talk,
+    _trans_sss_basis,
 )
 
 

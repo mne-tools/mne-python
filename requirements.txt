@@ -1,7 +1,7 @@
 # requirements for full MNE-Python functionality (other than raw/epochs export)
 numpy>=1.15.4
 scipy>=1.7.1
-matplotlib>=3.4.3
+matplotlib>=3.5.0
 tqdm
 pooch>=1.5
 decorator

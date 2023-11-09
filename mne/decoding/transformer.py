@@ -6,20 +6,19 @@
 
 import numpy as np
 
-from .mixin import TransformerMixin
-from .base import BaseEstimator
-
-from ..filter import filter_data
-from ..time_frequency import psd_array_multitaper
-from ..utils import fill_doc, _check_option, _validate_type, verbose
 from .._fiff.pick import (
-    pick_info,
-    pick_types,
     _pick_data_channels,
     _picks_by_type,
     _picks_to_idx,
+    pick_info,
+    pick_types,
 )
 from ..cov import _check_scalings_user
+from ..filter import filter_data
+from ..time_frequency import psd_array_multitaper
+from ..utils import _check_option, _validate_type, fill_doc, verbose
+from .base import BaseEstimator
+from .mixin import TransformerMixin
 
 
 class _ConstantScaler:
@@ -383,7 +382,7 @@ class PSDEstimator(TransformerMixin):
         n_jobs=None,
         normalization="length",
         *,
-        verbose=None
+        verbose=None,
     ):  # noqa: D102
         self.sfreq = sfreq
         self.fmin = fmin
@@ -512,7 +511,7 @@ class FilterEstimator(TransformerMixin):
         iir_params=None,
         fir_design="firwin",
         *,
-        verbose=None
+        verbose=None,
     ):  # noqa: D102
         self.info = info
         self.l_freq = l_freq
@@ -838,7 +837,7 @@ class TemporalFilter(TransformerMixin):
         fir_window="hamming",
         fir_design="firwin",
         *,
-        verbose=None
+        verbose=None,
     ):  # noqa: D102
         self.l_freq = l_freq
         self.h_freq = h_freq

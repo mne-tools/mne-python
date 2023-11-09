@@ -11,62 +11,62 @@ from functools import partial
 from io import BytesIO
 from pathlib import Path
 
-import pytest
-from numpy.testing import (
-    assert_array_equal,
-    assert_array_almost_equal,
-    assert_allclose,
-    assert_equal,
-    assert_array_less,
-)
 import numpy as np
-from numpy.fft import rfft, rfftfreq
+import pytest
 import scipy.signal
+from numpy.fft import rfft, rfftfreq
+from numpy.testing import (
+    assert_allclose,
+    assert_array_almost_equal,
+    assert_array_equal,
+    assert_array_less,
+    assert_equal,
+)
 
 import mne
 from mne import (
-    Epochs,
     Annotations,
-    read_events,
-    pick_events,
-    read_epochs,
+    Epochs,
+    combine_evoked,
+    create_info,
     equalize_channels,
-    pick_types,
+    make_fixed_length_epochs,
+    make_fixed_length_events,
     pick_channels,
+    pick_events,
+    pick_types,
+    read_epochs,
+    read_events,
     read_evokeds,
     write_evokeds,
-    create_info,
-    make_fixed_length_events,
-    make_fixed_length_epochs,
-    combine_evoked,
 )
-from mne.annotations import _handle_meas_date
-from mne.baseline import rescale
-from mne.datasets import testing
-from mne.chpi import read_head_pos, head_pos_to_trans_rot_t
-from mne.event import merge_events
-from mne.io import RawArray, read_raw_fif
 from mne._fiff.constants import FIFF
 from mne._fiff.proj import _has_eeg_average_ref_proj
-from mne._fiff.write import write_int, INT32_MAX, _get_split_size, write_float
-from mne.preprocessing import maxwell_filter
+from mne._fiff.write import INT32_MAX, _get_split_size, write_float, write_int
+from mne.annotations import _handle_meas_date
+from mne.baseline import rescale
+from mne.chpi import head_pos_to_trans_rot_t, read_head_pos
+from mne.datasets import testing
 from mne.epochs import (
-    bootstrap,
-    equalize_epoch_counts,
-    combine_event_ids,
-    EpochsArray,
-    concatenate_epochs,
     BaseEpochs,
-    average_movements,
+    EpochsArray,
     _handle_event_repeated,
+    average_movements,
+    bootstrap,
+    combine_event_ids,
+    concatenate_epochs,
+    equalize_epoch_counts,
     make_metadata,
 )
+from mne.event import merge_events
+from mne.io import RawArray, read_raw_fif
+from mne.preprocessing import maxwell_filter
 from mne.utils import (
+    _dt_to_stamp,
+    assert_meg_snr,
+    catch_logging,
     object_diff,
     use_log_level,
-    catch_logging,
-    assert_meg_snr,
-    _dt_to_stamp,
 )
 
 data_path = testing.data_path(download=False)
@@ -3914,29 +3914,36 @@ def assert_metadata_equal(got, exp):
 
 
 @pytest.mark.parametrize(
-    ("all_event_id", "row_events", "keep_first", "keep_last"),
+    ("all_event_id", "row_events", "tmin", "tmax", "keep_first", "keep_last"),
     [
         (
             {"a/1": 1, "a/2": 2, "b/1": 3, "b/2": 4, "c": 32},  # all events
             None,
+            -0.5,
+            1.5,
             None,
             None,
         ),
-        ({"a/1": 1, "a/2": 2}, None, None, None),  # subset of events
-        (dict(), None, None, None),  # empty set of events
+        ({"a/1": 1, "a/2": 2}, None, -0.5, 1.5, None, None),  # subset of events
+        (dict(), None, -0.5, 1.5, None, None),  # empty set of events
         (
             {"a/1": 1, "a/2": 2, "b/1": 3, "b/2": 4, "c": 32},
             ("a/1", "a/2", "b/1", "b/2"),
+            -0.5,
+            1.5,
             ("a", "b"),
             "c",
         ),
+        # Test when tmin, tmax are None
+        ({"a/1": 1, "a/2": 2}, None, None, 1.5, None, None),  # tmin is None
+        ({"a/1": 1, "a/2": 2}, None, -0.5, None, None, None),  # tmax is None
+        ({"a/1": 1, "a/2": 2}, None, None, None, None, None),  # tmin and tmax are None
     ],
 )
-def test_make_metadata(all_event_id, row_events, keep_first, keep_last):
+def test_make_metadata(all_event_id, row_events, tmin, tmax, keep_first, keep_last):
     """Test that make_metadata works."""
     pytest.importorskip("pandas")
     raw, all_events, _ = _get_data()
-    tmin, tmax = -0.5, 1.5
     sfreq = raw.info["sfreq"]
     kwargs = dict(
         events=all_events,
@@ -4003,6 +4010,80 @@ def test_make_metadata(all_event_id, row_events, keep_first, keep_last):
                 )
 
     Epochs(raw, events=events, event_id=event_id, metadata=metadata, verbose="warning")
+
+
+def test_make_metadata_bounded_by_row_events():
+    """Test make_metadata() with tmin, tmax set to None."""
+    pytest.importorskip("pandas")
+
+    sfreq = 100
+    duration = 15
+    n_chs = 10
+
+    # Define events and generate annotations
+    experimental_events = [
+        # Beginning of recording until response (1st trial)
+        {"onset": 0.0, "description": "rec_start", "duration": 1 / sfreq},
+        {"onset": 1.0, "description": "cue", "duration": 1 / sfreq},
+        {"onset": 2.0, "description": "stim", "duration": 1 / sfreq},
+        {"onset": 2.5, "description": "resp", "duration": 1 / sfreq},
+        # 2nd trial
+        {"onset": 4.0, "description": "cue", "duration": 1 / sfreq},
+        {"onset": 4.3, "description": "stim", "duration": 1 / sfreq},
+        {"onset": 8.0, "description": "resp", "duration": 1 / sfreq},
+        # 3rd trial until end of the recording
+        {"onset": 10.0, "description": "cue", "duration": 1 / sfreq},
+        {"onset": 12.0, "description": "stim", "duration": 1 / sfreq},
+        {"onset": 13.0, "description": "resp", "duration": 1 / sfreq},
+        {"onset": 14.9, "description": "rec_end", "duration": 1 / sfreq},
+    ]
+
+    annots = mne.Annotations(
+        onset=[e["onset"] for e in experimental_events],
+        description=[e["description"] for e in experimental_events],
+        duration=[e["duration"] for e in experimental_events],
+    )
+
+    # Generate raw data, attach the annotations, and convert to events
+    rng = np.random.default_rng()
+    data = 1e-5 * rng.standard_normal((n_chs, sfreq * duration))
+    info = mne.create_info(
+        ch_names=[f"EEG {i}" for i in range(n_chs)], sfreq=sfreq, ch_types="eeg"
+    )
+
+    raw = mne.io.RawArray(data=data, info=info)
+    raw.set_annotations(annots)
+    events, event_id = mne.events_from_annotations(raw=raw)
+
+    metadata, events_new, event_id_new = mne.epochs.make_metadata(
+        events=events,
+        event_id=event_id,
+        tmin=None,
+        tmax=None,
+        sfreq=raw.info["sfreq"],
+        row_events="cue",
+    )
+
+    # We should have 3 rows in the metadata table in total.
+    # rec_start occurred before the first row_event, so should not be included
+    # rec_end occurred after the last row_event and should be included
+
+    assert len(metadata) == 3
+    assert (metadata["event_name"] == "cue").all()
+    assert (metadata["cue"] == 0.0).all()
+
+    for row in metadata.itertuples():
+        assert row.cue < row.stim < row.resp
+        assert np.isnan(row.rec_start)
+
+    # Beginning of recording until end of 1st trial
+    assert np.isnan(metadata.iloc[0]["rec_end"])
+
+    # 2nd trial
+    assert np.isnan(metadata.iloc[1]["rec_end"])
+
+    # 3rd trial until end of the recording
+    assert metadata.iloc[2]["resp"] < metadata.iloc[2]["rec_end"]
 
 
 def test_events_list():

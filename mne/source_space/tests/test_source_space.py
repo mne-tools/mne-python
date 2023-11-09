@@ -6,44 +6,45 @@
 from pathlib import Path
 from shutil import copytree
 
-import pytest
 import numpy as np
+import pytest
 from numpy.testing import (
-    assert_array_equal,
     assert_allclose,
-    assert_equal,
+    assert_array_equal,
     assert_array_less,
+    assert_equal,
 )
-from mne.datasets import testing
+
 import mne
 from mne import (
-    read_source_spaces,
-    write_source_spaces,
-    setup_source_space,
-    setup_volume_source_space,
-    add_source_space_distances,
-    read_bem_surfaces,
-    morph_source_spaces,
     SourceEstimate,
-    make_sphere_model,
+    add_source_space_distances,
     compute_source_morph,
+    get_volume_labels_from_src,
+    make_sphere_model,
+    morph_source_spaces,
     pick_types,
     read_bem_solution,
+    read_bem_surfaces,
     read_freesurfer_lut,
+    read_source_spaces,
     read_trans,
-    get_volume_labels_from_src,
+    setup_source_space,
+    setup_volume_source_space,
+    write_source_spaces,
 )
-from mne.fixes import _get_img_fdata
-from mne.utils import run_subprocess, _record_warnings, requires_mne
-from mne.surface import _accumulate_normals, _triangle_neighbors
-from mne.source_estimate import _get_src_type
-from mne.source_space._source_space import _compare_source_spaces
-from mne.source_space import (
-    get_decimated_surfaces,
-    compute_distance_to_sensors,
-)
-from mne._fiff.pick import _picks_to_idx
 from mne._fiff.constants import FIFF
+from mne._fiff.pick import _picks_to_idx
+from mne.datasets import testing
+from mne.fixes import _get_img_fdata
+from mne.source_estimate import _get_src_type
+from mne.source_space import (
+    compute_distance_to_sensors,
+    get_decimated_surfaces,
+)
+from mne.source_space._source_space import _compare_source_spaces
+from mne.surface import _accumulate_normals, _triangle_neighbors
+from mne.utils import _record_warnings, requires_mne, run_subprocess
 
 data_path = testing.data_path(download=False)
 subjects_dir = data_path / "subjects"
@@ -385,6 +386,7 @@ def test_other_volume_source_spaces(tmp_path):
     """Test setting up other volume source spaces."""
     # these are split off because they require the MNE tools, and
     # Travis doesn't seem to like them
+    pytest.importorskip("nibabel")
 
     # let's try the spherical one (no bem or surf supplied)
     temp_name = tmp_path / "temp-src.fif"
@@ -561,6 +563,7 @@ def test_setup_source_space(tmp_path):
 @pytest.mark.parametrize("spacing", [2, 7])
 def test_setup_source_space_spacing(tmp_path, spacing, monkeypatch):
     """Test setting up surface source spaces using a given spacing."""
+    pytest.importorskip("nibabel")
     copytree(subjects_dir / "sample", tmp_path / "sample")
     args = [] if spacing == 7 else ["--spacing", str(spacing)]
     monkeypatch.setenv("SUBJECTS_DIR", str(tmp_path))
@@ -1018,12 +1021,6 @@ def test_get_decimated_surfaces(src, n, nv):
         assert set(s) == {"rr", "tris"}
         assert len(s["rr"]) == nv
         assert_array_equal(np.unique(s["tris"]), np.arange(nv))
-
-
-def test_deprecation():
-    """Test deprecation of mne.source_space functions."""
-    with pytest.warns(FutureWarning, match="use mne.get_volume_labels_from_src"):
-        mne.source_space.get_volume_labels_from_src
 
 
 # The following code was used to generate small-src.fif.gz.

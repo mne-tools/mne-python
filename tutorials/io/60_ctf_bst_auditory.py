@@ -29,14 +29,14 @@ The specifications of this dataset were discussed initially on the
 
 # %%
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 
 import mne
 from mne import combine_evoked
-from mne.minimum_norm import apply_inverse
 from mne.datasets.brainstorm import bst_auditory
 from mne.io import read_raw_ctf
+from mne.minimum_norm import apply_inverse
 
 # %%
 # To reduce memory consumption and running time, some of the steps are
@@ -153,7 +153,7 @@ del saccade_epochs, saccades_events, projs_eog, projs_saccade  # To save memory
 # plotted by adding the event list as a keyword argument. As the bad segments
 # and saccades were added as annotations to the raw data, they are plotted as
 # well.
-raw.plot(block=True)
+raw.plot()
 
 # %%
 # Typical preprocessing step is the removal of power line artifact (50 Hz or

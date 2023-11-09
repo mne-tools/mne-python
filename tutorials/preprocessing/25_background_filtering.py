@@ -140,15 +140,14 @@ MNE-Python.
 # First let's import some useful tools for filtering, and set some default
 # values for our data that are reasonable for M/EEG.
 
+import matplotlib.pyplot as plt
 import numpy as np
 from numpy.fft import fft, fftfreq
 from scipy import signal
-import matplotlib.pyplot as plt
-
-from mne.time_frequency.tfr import morlet
-from mne.viz import plot_filter, plot_ideal_filter
 
 import mne
+from mne.time_frequency.tfr import morlet
+from mne.viz import plot_filter, plot_ideal_filter
 
 sfreq = 1000.0
 f_p = 40.0
@@ -478,7 +477,7 @@ plot_filter(h, sfreq, freq, gain, "Minimum-phase filter", **kwargs)
 # and the time-domain ringing is thus more pronounced for the steep-slope,
 # long-duration filter than the shorter, shallower-slope filter:
 
-axes = plt.subplots(1, 2)[1]
+axes = plt.subplots(1, 2, layout="constrained")[1]
 
 
 def plot_signal(x, offset):
@@ -524,7 +523,6 @@ axes[0].set(
 for text in axes[0].get_yticklabels():
     text.set(rotation=45, size=8)
 axes[1].set(xlim=flim, ylim=(-60, 10), xlabel="Frequency (Hz)", ylabel="Magnitude (dB)")
-mne.viz.tight_layout()
 plt.show()
 
 # %%
@@ -613,7 +611,7 @@ plot_filter(
     gain,
     "Chebychev-1 order=8, ripple=1 dB",
     compensate=True,
-    **kwargs
+    **kwargs,
 )
 
 # %%
@@ -632,7 +630,7 @@ plot_filter(
     gain,
     "Chebychev-1 order=8, ripple=6 dB",
     compensate=True,
-    **kwargs
+    **kwargs,
 )
 
 # %%
@@ -655,7 +653,7 @@ plot_filter(
     gain,
     "Chebychev-1 order=8, ripple=6 dB",
     compensate=False,
-    **kwargs
+    **kwargs,
 )
 
 # %%
@@ -665,7 +663,7 @@ plot_filter(
 # Now let's look at how our shallow and steep Butterworth IIR filters
 # perform on our Morlet signal from before:
 
-axes = plt.subplots(1, 2)[1]
+axes = plt.subplots(1, 2, layout="constrained")[1]
 yticks = np.arange(4) / -30.0
 yticklabels = ["Original", "Noisy", "Butterworth-2", "Butterworth-8"]
 plot_signal(x_orig, offset=yticks[0])
@@ -684,7 +682,6 @@ for text in axes[0].get_yticklabels():
     text.set(rotation=45, size=8)
 axes[1].set(xlim=flim, ylim=(-60, 10), xlabel="Frequency (Hz)", ylabel="Magnitude (dB)")
 mne.viz.adjust_axes(axes)
-mne.viz.tight_layout()
 plt.show()
 
 # %%
@@ -793,7 +790,6 @@ for ax, x_f, title in zip(
     )
 
 mne.viz.adjust_axes(axes)
-mne.viz.tight_layout()
 plt.show()
 
 # %%
@@ -832,7 +828,7 @@ plt.show()
 
 
 def baseline_plot(x):
-    all_axes = plt.subplots(3, 2)[1]
+    all_axes = plt.subplots(3, 2, layout="constrained")[1]
     for ri, (axes, freq) in enumerate(zip(all_axes, [0.1, 0.3, 0.5])):
         for ci, ax in enumerate(axes):
             if ci == 0:
@@ -849,7 +845,6 @@ def baseline_plot(x):
             ax.set(xticks=tticks, ylim=ylim, xlim=xlim, xlabel=xlabel)
             ax.set_ylabel("%0.1f Hz" % freq, rotation=0, horizontalalignment="right")
         mne.viz.adjust_axes(axes)
-    mne.viz.tight_layout()
     plt.suptitle(title)
     plt.show()
 

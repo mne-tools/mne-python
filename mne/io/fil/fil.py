@@ -2,25 +2,24 @@
 #
 # License: BSD-3-Clause
 
-import pathlib
 import json
+import pathlib
 
 import numpy as np
 
-from ..base import BaseRaw
+from ..._fiff._digitization import _make_dig_points
 from ..._fiff.constants import FIFF
 from ..._fiff.meas_info import _empty_info
-from ..._fiff.write import get_new_file_id
 from ..._fiff.utils import _read_segments_file
-from ..._fiff._digitization import _make_dig_points
-from ...transforms import get_ras_to_neuromag_trans, apply_trans, Transform
-from ...utils import warn, fill_doc, verbose, _check_fname
-
+from ..._fiff.write import get_new_file_id
+from ...transforms import Transform, apply_trans, get_ras_to_neuromag_trans
+from ...utils import _check_fname, fill_doc, verbose, warn
+from ..base import BaseRaw
 from .sensors import (
-    _refine_sensor_orientation,
-    _get_pos_units,
-    _size2units,
     _get_plane_vectors,
+    _get_pos_units,
+    _refine_sensor_orientation,
+    _size2units,
 )
 
 

@@ -8,14 +8,14 @@
 
 from pathlib import Path
 
-from ._utils import _parse_eyelink_ascii, _make_eyelink_annots, _make_gap_annots
-from ..base import BaseRaw
 from ...utils import (
     _check_fname,
     fill_doc,
     logger,
     verbose,
 )
+from ..base import BaseRaw
+from ._utils import _make_eyelink_annots, _make_gap_annots, _parse_eyelink_ascii
 
 
 @fill_doc
@@ -28,35 +28,15 @@ def read_raw_eyelink(
     overlap_threshold=0.05,
     verbose=None,
 ):
-    """Reader for an Eyelink .asc file.
+    """Reader for an Eyelink ``.asc`` file.
 
     Parameters
     ----------
-    fname : path-like
-        Path to the eyelink file (.asc).
-    create_annotations : bool | list (default True)
-        Whether to create mne.Annotations from occular events
-        (blinks, fixations, saccades) and experiment messages. If a list, must
-        contain one or more of ['fixations', 'saccades',' blinks', messages'].
-        If True, creates mne.Annotations for both occular events and experiment
-        messages.
-    apply_offsets : bool (default False)
-        Adjusts the onset time of the mne.Annotations created from Eyelink
-        experiment messages, if offset values exist in the ASCII file.
-    find_overlaps : bool (default False)
-        Combine left and right eye :class:`mne.Annotations` (blinks, fixations,
-        saccades) if their start times and their stop times are both not
-        separated by more than overlap_threshold.
-    overlap_threshold : float (default 0.05)
-        Time in seconds. Threshold of allowable time-gap between both the start and
-        stop times of the left and right eyes. If the gap is larger than the threshold,
-        the :class:`mne.Annotations` will be kept separate (i.e. ``"blink_L"``,
-        ``"blink_R"``). If the gap is smaller than the threshold, the
-        :class:`mne.Annotations` will be merged and labeled as ``"blink_both"``.
-        Defaults to ``0.05`` seconds (50 ms), meaning that if the blink start times of
-        the left and right eyes are separated by less than 50 ms, and the blink stop
-        times of the left and right eyes are separated by less than 50 ms, then the
-        blink will be merged into a single :class:`mne.Annotations`.
+    %(eyelink_fname)s
+    %(eyelink_create_annotations)s
+    %(eyelink_apply_offsets)s
+    %(eyelink_find_overlaps)s
+    %(eyelink_overlap_threshold)s
     %(verbose)s
 
     Returns
@@ -95,28 +75,11 @@ class RawEyelink(BaseRaw):
 
     Parameters
     ----------
-    fname : path-like
-        Path to the data file (.XXX).
-    create_annotations : bool | list (default True)
-        Whether to create mne.Annotations from occular events
-        (blinks, fixations, saccades) and experiment messages. If a list, must
-        contain one or more of ['fixations', 'saccades',' blinks', messages'].
-        If True, creates mne.Annotations for both occular events and experiment
-        messages.
-    apply_offsets : bool (default False)
-        Adjusts the onset time of the mne.Annotations created from Eyelink
-        experiment messages, if offset values exist in the ASCII file.
-     find_overlaps : boolean (default False)
-        Combine left and right eye :class:`mne.Annotations` (blinks, fixations,
-        saccades) if their start times and their stop times are both not
-        separated by more than overlap_threshold.
-    overlap_threshold : float (default 0.05)
-        Time in seconds. Threshold of allowable time-gap between the start and
-        stop times of the left and right eyes. If gap is larger than threshold,
-        the :class:`mne.Annotations` will be kept separate (i.e. "blink_L",
-        "blink_R"). If the gap is smaller than the threshold, the
-        :class:`mne.Annotations` will be merged (i.e. "blink_both").
-
+    %(eyelink_fname)s
+    %(eyelink_create_annotations)s
+    %(eyelink_apply_offsets)s
+    %(eyelink_find_overlaps)s
+    %(eyelink_overlap_threshold)s
     %(verbose)s
 
     See Also
@@ -141,7 +104,7 @@ class RawEyelink(BaseRaw):
 
         # ======================== Parse ASCII file ==========================
         eye_ch_data, info, raw_extras = _parse_eyelink_ascii(
-            fname, find_overlaps, overlap_threshold
+            fname, find_overlaps, overlap_threshold, apply_offsets
         )
         # ======================== Create Raw Object =========================
         super(RawEyelink, self).__init__(
