@@ -56,8 +56,7 @@ def test_auto_data():
 
     with pytest.warns(RuntimeWarning, match="number of bytes"):
         raw = _test_raw_reader(
-            read_raw_cnt, input_fname=fname, eog="auto",
-            misc=["NA1", "LEFT_EAR"]
+            read_raw_cnt, input_fname=fname, eog="auto", misc=["NA1", "LEFT_EAR"]
         )
 
     # make sure we use annotations event if we synthesized stim

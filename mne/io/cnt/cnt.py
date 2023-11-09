@@ -224,7 +224,7 @@ def read_raw_cnt(
     header : ``'auto'`` | ``'new'`` | ``'old'``
         Defines the header format. Used to describe how bad channels
         are formatted. If auto, reads using old and new header and
-        if either contain a bad channel make channel bad. 
+        if either contain a bad channel make channel bad.
         Defaults to ``'auto'``.
     %(preload)s
     %(verbose)s
@@ -477,7 +477,7 @@ class RawCNT(BaseRaw):
     header : ``'auto'`` | ``'new'`` | ``'old'``
         Defines the header format. Used to describe how bad channels
         are formatted. If auto, reads using old and new header and
-        if either contain a bad channel make channel bad. 
+        if either contain a bad channel make channel bad.
         Defaults to ``'auto'``.
     %(preload)s
     stim_channel : bool | None
