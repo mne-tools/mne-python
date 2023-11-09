@@ -170,7 +170,7 @@ def read_raw_cnt(
     data_format="auto",
     date_format="mm/dd/yy",
     *,
-    header="old",
+    header="auto",
     preload=False,
     verbose=None,
 ):
@@ -221,9 +221,11 @@ def read_raw_cnt(
         Defaults to ``'auto'``.
     date_format : ``'mm/dd/yy'`` | ``'dd/mm/yy'``
         Format of date in the header. Defaults to ``'mm/dd/yy'``.
-    header : ``'new'`` | ``'old'``
+    header : ``'auto'`` | ``'new'`` | ``'old'``
         Defines the header format. Used to describe how bad channels
-        are formatted.
+        are formatted. If auto, reads using old and new header and
+        if either contain a bad channel make channel bad. 
+        Defaults to ``'auto'``.
     %(preload)s
     %(verbose)s
 
@@ -352,12 +354,22 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format, he
             ch_names.append(ch_name)
 
             # Some files have bad channels marked differently in the header.
+            if header == "auto":
+                fid.seek(data_offset + 75 * ch_idx + 14)
+                if np.fromfile(fid, dtype="u1", count=1).item():
+                    bads.append(ch_name)
+                fid.seek(data_offset + 75 * ch_idx + 4)
+                if np.fromfile(fid, dtype="u1", count=1).item():
+                    bads.append(ch_name)
             if header == "new":
                 fid.seek(data_offset + 75 * ch_idx + 14)
+                if np.fromfile(fid, dtype="u1", count=1).item():
+                    bads.append(ch_name)
             if header == "old":
                 fid.seek(data_offset + 75 * ch_idx + 4)
-            if np.fromfile(fid, dtype="u1", count=1).item():
-                bads.append(ch_name)
+                if np.fromfile(fid, dtype="u1", count=1).item():
+                    bads.append(ch_name)
+
             fid.seek(data_offset + 75 * ch_idx + 19)
             xy = np.fromfile(fid, dtype="f4", count=2)
             xy[1] *= -1  # invert y-axis
@@ -462,9 +474,11 @@ class RawCNT(BaseRaw):
         Defaults to ``'auto'``.
     date_format : ``'mm/dd/yy'`` | ``'dd/mm/yy'``
         Format of date in the header. Defaults to ``'mm/dd/yy'``.
-    header : ``'new'`` | ``'old'``
+    header : ``'auto'`` | ``'new'`` | ``'old'``
         Defines the header format. Used to describe how bad channels
-        are formatted.
+        are formatted. If auto, reads using old and new header and
+        if either contain a bad channel make channel bad. 
+        Defaults to ``'auto'``.
     %(preload)s
     stim_channel : bool | None
         Add a stim channel from the events. Defaults to None to trigger a
@@ -493,7 +507,7 @@ class RawCNT(BaseRaw):
         data_format="auto",
         date_format="mm/dd/yy",
         *,
-        header="old",
+        header="auto",
         preload=False,
         verbose=None,
     ):  # noqa: D102

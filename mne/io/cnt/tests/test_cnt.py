@@ -47,6 +47,31 @@ def test_new_data():
 
 
 @testing.requires_testing_data
+def test_auto_data():
+    """Test reading raw cnt files with automatic header."""
+    with pytest.warns(RuntimeWarning):
+        raw = read_raw_cnt(input_fname=fname_bad_spans)
+
+    assert raw.info["bads"] == ["F8"]
+
+    with pytest.warns(RuntimeWarning, match="number of bytes"):
+        raw = _test_raw_reader(
+            read_raw_cnt, input_fname=fname, eog="auto",
+            misc=["NA1", "LEFT_EAR"]
+        )
+
+    # make sure we use annotations event if we synthesized stim
+    assert len(raw.annotations) == 6
+
+    eog_chs = pick_types(raw.info, eog=True, exclude=[])
+    assert len(eog_chs) == 2  # test eog='auto'
+    assert raw.info["bads"] == ["LEFT_EAR", "VEOGR"]  # test bads
+
+    # the data has "05/10/200 17:35:31" so it is set to None
+    assert raw.info["meas_date"] is None
+
+
+@testing.requires_testing_data
 def test_compare_events_and_annotations():
     """Test comparing annotations and events."""
     with pytest.warns(RuntimeWarning, match="Could not parse meas date"):
