@@ -165,17 +165,23 @@ def _get_montage_information(eeg, get_pos, *, montage_units):
         )
 
     lpa, rpa, nasion = None, None, None
-    if hasattr(eeg, "chaninfo") and len(eeg.chaninfo.get("nodatchans", [])):
-        for item in list(zip(*eeg.chaninfo["nodatchans"].values())):
-            d = dict(zip(eeg.chaninfo["nodatchans"].keys(), item))
-            if d.get("type", None) != "FID":
+    if hasattr(eeg, "chaninfo") and isinstance(eeg.chaninfo["nodatchans"], dict):
+        nodatchans = eeg.chaninfo["nodatchans"]
+        types = nodatchans.get("type", [])
+        descriptions = nodatchans.get("description", [])
+        xs = nodatchans.get("X", [])
+        ys = nodatchans.get("Y", [])
+        zs = nodatchans.get("Z", [])
+
+        for type_, description, x, y, z in zip(types, descriptions, xs, ys, zs):
+            if type_ != "FID":
                 continue
-            elif d.get("description", None) == "Nasion":
-                nasion = np.array([d["X"], d["Y"], d["Z"]])
-            elif d.get("description", None) == "Right periauricular point":
-                rpa = np.array([d["X"], d["Y"], d["Z"]])
-            elif d.get("description", None) == "Left periauricular point":
-                lpa = np.array([d["X"], d["Y"], d["Z"]])
+            if description == "Nasion":
+                nasion = np.array([x, y, z])
+            elif description == "Right periauricular point":
+                rpa = np.array([x, y, z])
+            elif description == "Left periauricular point":
+                lpa = np.array([x, y, z])
 
     # Always check this even if it's not used
     _check_option("montage_units", montage_units, ("m", "dm", "cm", "mm", "auto"))

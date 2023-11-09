@@ -164,6 +164,7 @@ _known_config_types = {
     "MNE_DATASETS_KILOWORD_PATH": "str, path for kiloword data",
     "MNE_DATASETS_FIELDTRIP_CMC_PATH": "str, path for fieldtrip_cmc data",
     "MNE_DATASETS_PHANTOM_4DBTI_PATH": "str, path for phantom_4dbti data",
+    "MNE_DATASETS_PHANTOM_KERNEL_PATH": "str, path for phantom_kernel data",
     "MNE_DATASETS_LIMO_PATH": "str, path for limo data",
     "MNE_DATASETS_REFMEG_NOISE_PATH": "str, path for refmeg_noise data",
     "MNE_DATASETS_SSVEP_PATH": "str, path for ssvep data",
@@ -536,7 +537,7 @@ def _get_stim_channel(stim_channel, info, raise_error=True):
 
 def _get_root_dir():
     """Get as close to the repo root as possible."""
-    root_dir = Path(__file__).parent.parent.expanduser().absolute()
+    root_dir = Path(__file__).parents[1]
     up_dir = root_dir.parent
     if (up_dir / "setup.py").is_file() and all(
         (up_dir / x).is_dir() for x in ("mne", "examples", "doc")

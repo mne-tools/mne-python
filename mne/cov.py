@@ -60,6 +60,7 @@ from .fixes import (
 )
 from .rank import compute_rank
 from .utils import (
+    _array_repr,
     _check_fname,
     _check_on_missing,
     _check_option,
@@ -273,13 +274,10 @@ class Covariance(dict):
         return np.diag(self.data) if self["diag"] else self.data.copy()
 
     def __repr__(self):  # noqa: D105
-        if self.data.ndim == 2:
-            s = "size : %s x %s" % self.data.shape
-        else:  # ndim == 1
-            s = "diagonal : %s" % self.data.size
-        s += ", n_samples : %s" % self.nfree
-        s += ", data : %s" % self.data
-        return "<Covariance | %s>" % s
+        s = "<Covariance | kind : "
+        s += "full" if self.data.ndim == 2 else "diagonal"
+        s += f", {_array_repr(self.data)}, n_samples : {self.nfree}>"
+        return s
 
     def __add__(self, cov):
         """Add Covariance taking into account number of degrees of freedom."""

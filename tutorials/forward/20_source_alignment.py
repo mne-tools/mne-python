@@ -66,8 +66,7 @@ t1_mgh = nib.MGHImage(t1w.dataobj, t1w.affine)
 # to their equivalent locations in another. The three main coordinate frames
 # are:
 #
-# * :blue:`"meg"`: the coordinate frame for the physical locations of MEG
-#   sensors
+# * :blue:`"meg"`: the coordinate frame for the physical locations of MEG sensors
 # * :gray:`"mri"`: the coordinate frame for MRI images, and scalp/skull/brain
 #   surfaces derived from the MRI images
 # * :pink:`"head"`: the coordinate frame for digitized sensor locations and
