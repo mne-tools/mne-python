@@ -3,6 +3,7 @@
 set -o pipefail
 
 STD_ARGS="--progress-bar off --upgrade"
+INSTALL_KIND="test_extra,hdf5"
 if [ ! -z "$CONDA_ENV" ]; then
 	echo "Uninstalling MNE for CONDA_ENV=${CONDA_ENV}"
 	conda remove -c conda-forge --force -yq mne
@@ -10,6 +11,9 @@ if [ ! -z "$CONDA_ENV" ]; then
 elif [ ! -z "$CONDA_DEPENDENCIES" ]; then
 	echo "Using Mamba to install CONDA_DEPENDENCIES=${CONDA_DEPENDENCIES}"
 	mamba install -y $CONDA_DEPENDENCIES
+	# for compat_minimal and compat_old, we don't want to --upgrade
+	STD_ARGS="--progress bar off"
+	INSTALL_KIND="test"
 else
 	echo "Install pip-pre dependencies"
 	test "${MNE_CI_KIND}" == "pip-pre"
@@ -55,13 +59,5 @@ fi
 echo ""
 
 
-# for compat_minimal and compat_old, we don't want to --upgrade
-if [ ! -z "$CONDA_DEPENDENCIES" ]; then
-	STD_ARGS=""
-	INSTALL_KIND="test"
-	echo "Installing dependencies for conda using pip"
-else
-	echo "Installing dependencies using pip"
-	INSTALL_KIND="test_extra,hdf5"
-fi
+echo "Installing test dependencies using pip"
 python -m pip install $STD_ARGS -e .[$INSTALL_KIND]
