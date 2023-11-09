@@ -335,5 +335,5 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
                                 f"writeAnnotation() returned an error "
                                 f"trying to write {desc} at {onset} "
                                 f"for {duration} seconds."
-                            )
+                            ) from e
     del hdl
