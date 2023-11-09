@@ -329,9 +329,15 @@ To build documentation, you will also require `optipng`_:
 - On Windows, unzip :file:`optipng.exe` from the `optipng for Windows`_ archive
   into the :file:`doc/` folder. This step is optional for Windows users.
 
-You can also choose to install some optional linters for reStructuredText::
+There are additional optional dependencies needed to run various tests, such as
+scikit-learn for decoding tests, or nibabel for MRI tests. If you want to run all the
+tests, consider using our MNE installers (which provide these dependencies) or pay
+attention to the skips that ``pytest`` reports and install the relevant libraries.
+For example, this traceback::
 
-    $ conda install -c conda-forge sphinx-autobuild doc8
+    SKIPPED [2] mne/io/eyelink/tests/test_eyelink.py:14: could not import 'pandas': No module named 'pandas'
+
+indicates that ``pandas`` needs to be installed in order to run the Eyelink tests.
 
 
 .. _basic-git:
