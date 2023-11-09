@@ -57,7 +57,7 @@ echo ""
 
 # for compat_minimal and compat_old, we don't want to --upgrade
 TEST_ARG="test"
-if [[ "${DEPS}" != "minimal" ]] && [[ -z "$CONDA_ENV" ]] && [[ -z "$CONDA_DEPENDENCIES" ]]; then
+if [[ "${DEPS}" != "minimal" ]] && [[ -z "$CONDA_DEPENDENCIES" ]]; then
 	TEST_ARG="test_extra"
 fi
 if [ ! -z "$CONDA_DEPENDENCIES" ]; then
