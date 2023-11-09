@@ -71,6 +71,12 @@ def test_regression():
         for v1, v2 in zip(lm1[k], lm2[k]):
             assert_array_equal(v1.data, v2.data)
 
+    # Smoke test for fitting on epochs
+    epochs.load_data()
+    with pytest.warns(RuntimeWarning, match="non-data"):
+        linear_regression(epochs, design_matrix)
+    linear_regression(epochs.copy().pick("eeg"), design_matrix)
+
 
 @testing.requires_testing_data
 def test_continuous_regression_no_overlap():
