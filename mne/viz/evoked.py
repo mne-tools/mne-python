@@ -2939,6 +2939,8 @@ def plot_compare_evokeds(
                 "sensors. This can be extremely slow. Consider using "
                 "mne.viz.plot_topo, which is optimized for speed."
             )
+        topo_title = title
+        topo_true = axes
         axes = ["topo"] * len(ch_types)
     else:
         if axes is None:
@@ -3217,5 +3219,7 @@ def plot_compare_evokeds(
     if cmap is not None:
         _draw_colorbar_pce(ax, _colors, _cmap, colorbar_title, colorbar_ticks)
     # finish
+    if topo_true == 'topo':
+        plt.suptitle(topo_title)
     plt_show(show)
     return [ax.figure]
