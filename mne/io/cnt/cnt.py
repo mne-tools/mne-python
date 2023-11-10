@@ -14,7 +14,7 @@ from ..._fiff.meas_info import _empty_info
 from ..._fiff.utils import _create_chs, _find_channels, _mult_cal_one, read_str
 from ...annotations import Annotations
 from ...channels.layout import _topo_to_sphere
-from ...utils import _check_option, fill_doc, warn
+from ...utils import _check_option, _validate_type, fill_doc, warn
 from ..base import BaseRaw
 from ._utils import (
     CNTEventType3,
@@ -226,6 +226,8 @@ def read_raw_cnt(
         are formatted. If auto, reads using old and new header and
         if either contain a bad channel make channel bad.
         Defaults to ``'auto'``.
+
+        .. versionadded:: 1.6
     %(preload)s
     %(verbose)s
 
@@ -348,24 +350,19 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format, he
         ch_names, cals, baselines, chs, pos = (list(), list(), list(), list(), list())
 
         bads = list()
+        _validate_type(header, str, "header")
+        _check_option("header", header, ("auto", "new", "old"))
         for ch_idx in range(n_channels):  # ELECTLOC fields
             fid.seek(data_offset + 75 * ch_idx)
             ch_name = read_str(fid, 10)
             ch_names.append(ch_name)
 
             # Some files have bad channels marked differently in the header.
-            if header == "auto":
+            if header in ("new", "auto"):
                 fid.seek(data_offset + 75 * ch_idx + 14)
                 if np.fromfile(fid, dtype="u1", count=1).item():
                     bads.append(ch_name)
-                fid.seek(data_offset + 75 * ch_idx + 4)
-                if np.fromfile(fid, dtype="u1", count=1).item():
-                    bads.append(ch_name)
-            if header == "new":
-                fid.seek(data_offset + 75 * ch_idx + 14)
-                if np.fromfile(fid, dtype="u1", count=1).item():
-                    bads.append(ch_name)
-            if header == "old":
+            if header in ("old", "auto"):
                 fid.seek(data_offset + 75 * ch_idx + 4)
                 if np.fromfile(fid, dtype="u1", count=1).item():
                     bads.append(ch_name)
