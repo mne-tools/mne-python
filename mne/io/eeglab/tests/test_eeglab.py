@@ -355,7 +355,7 @@ def test_io_set_epochs(fnames):
         epochs2 = read_epochs_eeglab(epochs_fname_onefile)
     # one warning for each read_epochs_eeglab because both files have epochs
     # associated with multiple events
-    assert_array_equal(epochs.get_data(), epochs2.get_data())
+    assert_array_equal(epochs.get_data(copy=False), epochs2.get_data(copy=False))
 
 
 @testing.requires_testing_data
