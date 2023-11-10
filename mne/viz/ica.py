@@ -226,7 +226,7 @@ def _plot_ica_properties(
 
     # image and erp
     # we create a new epoch with dropped rows
-    epoch_data = epochs_src.get_data()
+    epoch_data = epochs_src.get_data(copy=False)
     epoch_data = np.insert(
         arr=epoch_data,
         obj=(dropped_indices - np.arange(len(dropped_indices))).astype(int),
@@ -744,7 +744,7 @@ def _prepare_data_ica_properties(inst, ica, reject_by_annotation=True, reject="a
         epochs_src = ica.get_sources(inst)
         dropped_indices = []
         kind = "Epochs"
-    return kind, dropped_indices, epochs_src, epochs_src.get_data()
+    return kind, dropped_indices, epochs_src, epochs_src.get_data(copy=False)
 
 
 def _plot_ica_sources_evoked(evoked, picks, exclude, title, show, ica, labels=None):

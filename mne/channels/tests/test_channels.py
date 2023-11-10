@@ -615,7 +615,7 @@ def test_equalize_channels():
     assert raw2.ch_names == ["CH1", "CH2"]
     assert_array_equal(raw2.get_data(), [[1.0], [2.0]])
     assert epochs2.ch_names == ["CH1", "CH2"]
-    assert_array_equal(epochs2.get_data(), [[[3.0], [2.0]]])
+    assert_array_equal(epochs2.get_data(copy=False), [[[3.0], [2.0]]])
     assert cov2.ch_names == ["CH1", "CH2"]
     assert cov2["bads"] == cov["bads"]
     assert ave2.ch_names == ave.ch_names
