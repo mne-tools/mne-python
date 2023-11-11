@@ -818,10 +818,15 @@ class BaseEpochs(
         # check for invalid values
         for rej, kind in zip((reject, flat), ("Rejection", "Flat")):
             for key, val in rej.items():
-                if val is None or val < 0:
+                if callable(val):
+                    continue
+                elif val is not None and val >= 0:
+                    continue
+                else:
                     raise ValueError(
-                        '%s value must be a number >= 0, not "%s"' % (kind, val)
+                        '%s value must be a number >= 0 or a valid function, not "%s"' % (kind, val)
                     )
+
 
         # now check to see if our rejection and flat are getting more
         # restrictive
@@ -3618,6 +3623,8 @@ def _is_good(
 ):
     """Test if data segment e is good according to reject and flat.
 
+    The reject and flat dictionaries can now accept functions as values.
+
     If full_report=True, it will give True/False as well as a list of all
     offending channels.
     """
@@ -3625,18 +3632,29 @@ def _is_good(
     has_printed = False
     checkable = np.ones(len(ch_names), dtype=bool)
     checkable[np.array([c in ignore_chs for c in ch_names], dtype=bool)] = False
+
     for refl, f, t in zip([reject, flat], [np.greater, np.less], ["", "flat"]):
         if refl is not None:
-            for key, thresh in refl.items():
+            for key, criterion in refl.items():
                 idx = channel_type_idx[key]
                 name = key.upper()
                 if len(idx) > 0:
                     e_idx = e[idx]
-                    deltas = np.max(e_idx, axis=1) - np.min(e_idx, axis=1)
                     checkable_idx = checkable[idx]
-                    idx_deltas = np.where(
-                        np.logical_and(f(deltas, thresh), checkable_idx)
-                    )[0]
+
+                    # Check if criterion is a function and apply it
+                    if callable(criterion):
+                        idx_deltas = np.where(
+                            np.logical_and(
+                                criterion(e_idx),
+                                checkable_idx
+                            )
+                        )[0]
+                    else:
+                        deltas = np.max(e_idx, axis=1) - np.min(e_idx, axis=1)
+                        idx_deltas = np.where(
+                            np.logical_and(f(deltas, criterion), checkable_idx)
+                        )[0]
 
                     if len(idx_deltas) > 0:
                         bad_names = [ch_names[idx[i]] for i in idx_deltas]
