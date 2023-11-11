@@ -1166,7 +1166,7 @@ def plot_sensors(
                     colors[pick_idx] = color_vals[ind]
                     break
     title = "Sensor positions (%s)" % ch_type if title is None else title
-    fig = _plot_sensors(
+    fig = _plot_sensors_2d(
         pos,
         info,
         picks,
@@ -1222,7 +1222,7 @@ def _close_event(event, fig):
         fig.lasso.disconnect()
 
 
-def _plot_sensors(
+def _plot_sensors_2d(
     pos,
     info,
     picks,

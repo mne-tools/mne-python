@@ -632,7 +632,7 @@ def plot_alignment(
     from ..source_space._source_space import _ensure_src
     from .backends.renderer import _get_renderer
 
-    meg, eeg, fnirs, warn_meg = _handle_sensor_types(meg, eeg, fnirs)
+    meg, eeg, fnirs, warn_meg, sensor_alpha = _handle_sensor_types(meg, eeg, fnirs)
     _check_option("interaction", interaction, ["trackball", "terrain"])
 
     info = create_info(1, 1000.0, "misc") if info is None else info
@@ -832,7 +832,14 @@ def plot_alignment(
 
     # plot helmet
     if "helmet" in meg and pick_types(info, meg=True).size > 0:
-        _, _, src_surf = _plot_helmet(renderer, info, to_cf_t, head_mri_t, coord_frame)
+        _, _, src_surf = _plot_helmet(
+            renderer,
+            info,
+            to_cf_t,
+            head_mri_t,
+            coord_frame,
+            alpha=sensor_alpha["meg_helmet"],
+        )
 
     # plot surfaces
     if brain and "lh" not in surfs:  # one layer sphere
@@ -872,7 +879,7 @@ def plot_alignment(
     # plot sensors (NB snapshot_brain_montage relies on the last thing being
     # plotted being the sensors, so we need to do this after the surfaces)
     if picks.size > 0:
-        _plot_sensors(
+        _plot_sensors_3d(
             renderer,
             info,
             to_cf_t,
@@ -883,6 +890,7 @@ def plot_alignment(
             warn_meg,
             head_surf,
             "m",
+            sensor_alpha=sensor_alpha,
             sensor_colors=sensor_colors,
         )
 
@@ -965,28 +973,56 @@ def _handle_sensor_types(meg, eeg, fnirs):
     if isinstance(fnirs, str):
         fnirs = [fnirs]
 
+    alpha_map = dict(
+        meg=dict(sensors="meg", helmet="meg_helmet", ref="ref_meg"),
+        eeg=dict(original="eeg", projected="eeg_projected"),
+        fnirs=dict(channels="fnirs", pairs="fnirs_pairs"),
+    )
+    sensor_alpha = {
+        key: dict(meg_helmet=0.25, meg=0.25).get(key, 0.8)
+        for ch_dict in alpha_map.values()
+        for key in ch_dict.values()
+    }
     for kind, var in zip(("eeg", "meg", "fnirs"), (eeg, meg, fnirs)):
-        if not isinstance(var, (list, tuple)) or not all(
-            isinstance(x, str) for x in var
-        ):
-            raise TypeError(f"{kind} must be list or tuple of str, got {type(kind)}")
+        _validate_type(var, (list, tuple, dict), f"{kind}")
+        for ix, x in enumerate(var):
+            which = f"{kind} key {ix}" if isinstance(var, dict) else f"{kind}[{ix}]"
+            _validate_type(x, str, which)
+            if isinstance(var, dict) and x in alpha_map[kind]:
+                alpha = var[x]
+                _validate_type(alpha, "numeric", f"{kind}[{ix}]")
+                if not 0 <= alpha <= 1:
+                    raise ValueError(
+                        f"{kind}[{ix}] alpha value must be between 0 and 1, got {alpha}"
+                    )
+                sensor_alpha[alpha_map[kind][x]] = alpha
+    meg, eeg, fnirs = tuple(meg), tuple(eeg), tuple(fnirs)
     for xi, x in enumerate(meg):
         _check_option(f"meg[{xi}]", x, ("helmet", "sensors", "ref"))
     for xi, x in enumerate(eeg):
         _check_option(f"eeg[{xi}]", x, ("original", "projected"))
     for xi, x in enumerate(fnirs):
         _check_option(f"fnirs[{xi}]", x, ("channels", "pairs", "sources", "detectors"))
-    return meg, eeg, fnirs, warn_meg
+    # Add these for our True-only options, too -- eventually should support dict.
+    sensor_alpha.update(
+        seeg=0.8,
+        ecog=0.8,
+        source=sensor_alpha["fnirs"],
+        detector=sensor_alpha["fnirs"],
+    )
+    return meg, eeg, fnirs, warn_meg, sensor_alpha
 
 
 @verbose
 def _ch_pos_in_coord_frame(info, to_cf_t, warn_meg=True, verbose=None):
     """Transform positions from head/device/mri to a coordinate frame."""
     from ..forward import _create_meg_coils
+    from ..forward._make_forward import _read_coil_defs
 
     chs = dict(ch_pos=dict(), sources=dict(), detectors=dict())
     unknown_chs = list()  # prepare for chs with unknown coordinate frame
     type_counts = dict()
+    coilset = _read_coil_defs(verbose=False)
     for idx in range(info["nchan"]):
         ch_type = channel_type(info, idx)
         if ch_type in type_counts:
@@ -1005,9 +1041,13 @@ def _ch_pos_in_coord_frame(info, to_cf_t, warn_meg=True, verbose=None):
                 # example, a straight line / 1D geometry)
                 this_coil = [info["chs"][idx]]
                 try:
-                    coil = _create_meg_coils(this_coil, acc="accurate")[0]
+                    coil = _create_meg_coils(
+                        this_coil, acc="accurate", coilset=coilset
+                    )[0]
                 except RuntimeError:  # we don't have an accurate one
-                    coil = _create_meg_coils(this_coil, acc="normal")[0]
+                    coil = _create_meg_coils(this_coil, acc="normal", coilset=coilset)[
+                        0
+                    ]
                 # store verts as ch_coord
                 ch_coord, triangles = _sensor_shape(coil)
                 ch_coord = apply_trans(coil_trans, ch_coord)
@@ -1066,14 +1106,22 @@ def _plot_head_surface(
 
 
 def _plot_helmet(
-    renderer, info, to_cf_t, head_mri_t, coord_frame, alpha=0.25, color=None
+    renderer,
+    info,
+    to_cf_t,
+    head_mri_t,
+    coord_frame,
+    *,
+    alpha=0.25,
+    scale=1.0,
 ):
-    color = DEFAULTS["coreg"]["helmet_color"] if color is None else color
+    color = DEFAULTS["coreg"]["helmet_color"]
     src_surf = get_meg_helmet_surf(info, head_mri_t)
     assert src_surf["coord_frame"] == FIFF.FIFFV_COORD_MRI
-    src_surf = transform_surface_to(
-        src_surf, coord_frame, [to_cf_t["mri"], to_cf_t["head"]], copy=True
-    )
+    if to_cf_t is not None:
+        src_surf = transform_surface_to(
+            src_surf, coord_frame, [to_cf_t["mri"], to_cf_t["head"]], copy=True
+        )
     actor, dst_surf = renderer.surface(
         surface=src_surf, color=color, opacity=alpha, backface_culling=False
     )
@@ -1399,7 +1447,7 @@ def _plot_forward(renderer, fwd, fwd_trans, fwd_scale=1, scale=1.5e-3, alpha=1):
     return actors
 
 
-def _plot_sensors(
+def _plot_sensors_3d(
     renderer,
     info,
     to_cf_t,
@@ -1410,7 +1458,7 @@ def _plot_sensors(
     warn_meg,
     head_surf,
     units,
-    sensor_opacity=0.8,
+    sensor_alpha,
     orient_glyphs=False,
     scale_by_distance=False,
     project_points=False,
@@ -1456,6 +1504,7 @@ def _plot_sensors(
                 origin=sources[ch_name][np.newaxis] * unit_scalar,
                 destination=detectors[ch_name][np.newaxis] * unit_scalar,
                 radius=0.001 * unit_scalar,
+                opacity=sensor_alpha["fnirs_pairs"],
             )
             actors[ch_type].append(actor)
             del ch_type
@@ -1480,6 +1529,7 @@ def _plot_sensors(
         sensor_colors = dict()
     assert isinstance(sensor_colors, dict)
     for ch_type, sens_loc in locs.items():
+        logger.debug(f"Drawing {ch_type} sensors")
         assert len(sens_loc)  # should be guaranteed above
         colors = to_rgba_array(sensor_colors.get(ch_type, defaults[ch_type + "_color"]))
         _check_option(
@@ -1488,6 +1538,7 @@ def _plot_sensors(
             (len(sens_loc), 1),
         )
         scale = defaults[ch_type + "_scale"] * unit_scalar
+        this_alpha = sensor_alpha[ch_type]
         if isinstance(sens_loc[0], dict):  # meg coil
             if len(colors) == 1:
                 colors = [colors[0]] * len(sens_loc)
@@ -1495,7 +1546,7 @@ def _plot_sensors(
                 actor, _ = renderer.surface(
                     surface=surface,
                     color=color[:3],
-                    opacity=sensor_opacity * color[3],
+                    opacity=this_alpha * color[3],
                     backface_culling=False,  # visible from all sides
                 )
                 actors[ch_type].append(actor)
@@ -1509,7 +1560,7 @@ def _plot_sensors(
                     loc=sens_loc[mask] * unit_scalar,
                     color=colors[0, :3],
                     scale=scale,
-                    opacity=sensor_opacity * colors[0, 3],
+                    opacity=this_alpha * colors[0, 3],
                     orient_glyphs=orient_glyphs,
                     scale_by_distance=scale_by_distance,
                     project_points=project_points,
@@ -1528,7 +1579,7 @@ def _plot_sensors(
                         loc=loc * unit_scalar,
                         color=color[:3],
                         scale=scale,
-                        opacity=sensor_opacity * color[3],
+                        opacity=this_alpha * color[3],
                         orient_glyphs=orient_glyphs,
                         scale_by_distance=scale_by_distance,
                         project_points=project_points,
@@ -1553,7 +1604,7 @@ def _plot_sensors(
                 color=defaults["eegp_color"],
                 mode="cylinder",
                 scale=defaults["eegp_scale"] * unit_scalar,
-                opacity=0.6,
+                opacity=sensor_alpha["eeg_projected"],
                 glyph_height=defaults["eegp_height"],
                 glyph_center=(0.0, -defaults["eegp_height"] / 2.0, 0),
                 glyph_resolution=20,

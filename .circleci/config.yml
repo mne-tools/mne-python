@@ -223,13 +223,16 @@ jobs:
             - data-cache-fsaverage
       - restore_cache:
           keys:
-            - data-cache-bst-phantom-ctf
-      - restore_cache:
-          keys:
             - data-cache-bst-raw
       - restore_cache:
           keys:
+            - data-cache-bst-phantom-ctf
+      - restore_cache:
+          keys:
             - data-cache-bst-phantom-elekta
+      - restore_cache:
+          keys:
+            - data-cache-bst-phantom-kernel
       - restore_cache:
           keys:
             - data-cache-bst-auditory
@@ -369,17 +372,21 @@ jobs:
           paths:
             - ~/mne_data/MNE-fsaverage-data  # (762 M)
       - save_cache:
-          key: data-cache-bst-phantom-ctf
-          paths:
-            - ~/mne_data/MNE-brainstorm-data/bst_phantom_ctf  # (177 M)
-      - save_cache:
           key: data-cache-bst-raw
           paths:
             - ~/mne_data/MNE-brainstorm-data/bst_raw  # (830 M)
       - save_cache:
+          key: data-cache-bst-phantom-ctf
+          paths:
+            - ~/mne_data/MNE-brainstorm-data/bst_phantom_ctf  # (177 M)
+      - save_cache:
           key: data-cache-bst-phantom-elekta
           paths:
             - ~/mne_data/MNE-brainstorm-data/bst_phantom_elekta  # (1.4 G)
+      - save_cache:
+          key: data-cache-bst-phantom-kernel
+          paths:
+            - ~/mne_data/MNE-phantom-kernel-data  # (362 M)
       - save_cache:
           key: data-cache-bst-auditory
           paths:

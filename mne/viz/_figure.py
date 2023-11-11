@@ -327,7 +327,9 @@ class BrowserBase(ABC):
             )
             ix_stop = ix_start + self.mne.n_epochs
             item = slice(ix_start, ix_stop)
-            data = np.concatenate(self.mne.inst.get_data(item=item), axis=-1)
+            data = np.concatenate(
+                self.mne.inst.get_data(item=item, copy=False), axis=-1
+            )
             times = np.arange(start, stop) / self.mne.info["sfreq"]
             return data, times
 
@@ -554,7 +556,7 @@ class BrowserBase(ABC):
         """Create peak-to-peak histogram of channel amplitudes."""
         epochs = self.mne.inst
         data = OrderedDict()
-        ptp = np.ptp(epochs.get_data(), axis=2)
+        ptp = np.ptp(epochs.get_data(copy=False), axis=2)
         for ch_type in ("eeg", "mag", "grad"):
             if ch_type in epochs:
                 data[ch_type] = ptp.T[self.mne.ch_types == ch_type].ravel()
@@ -659,7 +661,7 @@ def _get_browser(show, block, **kwargs):
     figsize = kwargs.setdefault("figsize", _get_figsize_from_config())
     if figsize is None or np.any(np.array(figsize) < 8):
         kwargs["figsize"] = (8, 8)
-    kwargs["splash"] = True if show else False
+    kwargs["splash"] = kwargs.get("splash", True) and show
     if kwargs.get("theme", None) is None:
         kwargs["theme"] = get_config("MNE_BROWSER_THEME", "auto")
     if kwargs.get("overview_mode", None) is None:

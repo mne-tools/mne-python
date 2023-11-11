@@ -493,7 +493,7 @@ def apply_dics_epochs(epochs, filters, return_generator=False, verbose=None):
     tmin = epochs.times[0]
 
     sel = _check_channels_spatial_filter(epochs.ch_names, filters)
-    data = epochs.get_data()[:, sel, :]
+    data = epochs.get_data(sel)
 
     stcs = _apply_dics(data=data, filters=filters, info=info, tmin=tmin)
 

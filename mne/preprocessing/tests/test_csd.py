@@ -150,7 +150,7 @@ def test_csd_degenerate(evoked_csd_sphere):
     )
     epochs.drop_bad()
     assert len(epochs) == 1
-    assert_allclose(epochs.get_data()[0], evoked.data)
+    assert_allclose(epochs.get_data(item=[0])[0], evoked.data)
     with pytest.raises(RuntimeError, match="Computing CSD requires.*preload"):
         compute_current_source_density(epochs)
     epochs.load_data()
@@ -159,7 +159,7 @@ def test_csd_degenerate(evoked_csd_sphere):
     evoked = compute_current_source_density(evoked)
     assert_allclose(raw.get_data(), evoked.data)
     epochs = compute_current_source_density(epochs)
-    assert_allclose(epochs.get_data()[0], evoked.data)
+    assert_allclose(epochs.get_data(item=[0])[0], evoked.data)
 
 
 def test_csd_fif():

@@ -1159,7 +1159,7 @@ slices of the signal are requested.
 docdict[
     "eeg"
 ] = """
-eeg : bool | str | list
+eeg : bool | str | list | dict
     String options are:
 
     - "original" (default; equivalent to ``True``)
@@ -1169,8 +1169,11 @@ eeg : bool | str | list
         The EEG locations projected onto the scalp, as is done in
         forward modeling
 
-    Can also be a list of these options, or an empty list (``[]``,
-    equivalent of ``False``).
+    Can also be a list of these options, or a dict to specify the alpha values
+    to use, e.g. ``dict(original=0.2, projected=0.8)``.
+
+    .. versionchanged:: 1.6
+       Added support for specifying alpha values as a dict.
 """
 
 docdict[
@@ -1769,11 +1772,16 @@ fname : path-like
 docdict[
     "fnirs"
 ] = """
-fnirs : str | list | bool | None
+fnirs : str | list | dict | bool | None
     Can be "channels", "pairs", "detectors", and/or "sources" to show the
     fNIRS channel locations, optode locations, or line between
     source-detector pairs, or a combination like ``('pairs', 'channels')``.
-    True translates to ``('pairs',)``.
+    True translates to ``('pairs',)``. A dict can also be used to specify
+    alpha values (but only "channels" and "pairs" will be used), e.g.
+    ``dict(channels=0.2, pairs=0.7)``.
+
+    .. versionchanged:: 1.6
+       Added support for specifying alpha values as a dict.
 """
 
 docdict[
@@ -2568,11 +2576,15 @@ measure : 'zscore' | 'correlation'
 docdict[
     "meg"
 ] = """
-meg : str | list | bool | None
+meg : str | list | dict | bool | None
     Can be "helmet", "sensors" or "ref" to show the MEG helmet, sensors or
     reference sensors respectively, or a combination like
     ``('helmet', 'sensors')`` (same as None, default). True translates to
-    ``('helmet', 'sensors', 'ref')``.
+    ``('helmet', 'sensors', 'ref')``. Can also be a dict to specify alpha values,
+    e.g. ``{"helmet": 0.1, "sensors": 0.8}``.
+
+    .. versionchanged:: 1.6
+       Added support for specifying alpha values as a dict.
 """
 
 docdict[
@@ -4187,6 +4199,14 @@ sphere : float | array-like | instance of ConductorModel | None  | 'auto' | 'eeg
 
     .. versionadded:: 0.20
     .. versionchanged:: 1.1 Added ``'eeglab'`` option.
+"""
+
+docdict[
+    "splash"
+] = """
+splash : bool
+    If True (default), a splash screen is shown during the application startup. Only
+    applicable to the ``qt`` backend.
 """
 
 docdict[

@@ -818,7 +818,7 @@ class ICA(ContainsMixin):
             )
 
         # this should be a copy (picks a list of int)
-        data = epochs.get_data()[:, picks]
+        data = epochs.get_data(picks=picks)
         # this will be a view
         if decim is not None:
             data = data[:, :, ::decim]
@@ -1036,7 +1036,7 @@ class ICA(ContainsMixin):
         if not hasattr(self, "mixing_matrix_"):
             raise RuntimeError("No fit available. Please fit ICA.")
         picks = self._get_picks(epochs)
-        data = np.hstack(epochs.get_data()[:, picks])
+        data = np.hstack(epochs.get_data(picks=picks))
         sources = self._transform(data)
         if not concatenate:
             # Put the data back in 3D
@@ -1478,7 +1478,7 @@ class ICA(ContainsMixin):
         elif isinstance(inst, BaseEpochs):
             if isinstance(target, str):
                 pick = _get_target_ch(inst, target)
-                target = inst.get_data()[:, pick]
+                target = inst.get_data(picks=pick)
 
             if hasattr(target, "ndim"):
                 if target.ndim == 3 and min(target.shape) == 1:
@@ -1710,7 +1710,7 @@ class ICA(ContainsMixin):
                         keep_ecg=False,
                         reject_by_annotation=reject_by_annotation,
                     )
-                ).get_data()
+                ).get_data(copy=False)
 
                 if sources.shape[0] == 0:
                     warn(
@@ -1718,7 +1718,7 @@ class ICA(ContainsMixin):
                         "the input parameters."
                     )
             elif isinstance(inst, BaseEpochs):
-                sources = self.get_sources(inst).get_data()
+                sources = self.get_sources(inst).get_data(copy=False)
             else:
                 raise ValueError(
                     "With `ctps` only Raw and Epochs input is " "supported"
@@ -2552,6 +2552,7 @@ class ICA(ContainsMixin):
         *,
         theme=None,
         overview_mode=None,
+        splash=True,
     ):
         return plot_ica_sources(
             self,
@@ -2569,6 +2570,7 @@ class ICA(ContainsMixin):
             use_opengl=use_opengl,
             theme=theme,
             overview_mode=overview_mode,
+            splash=splash,
         )
 
     @copy_function_doc_to_method_doc(plot_ica_scores)

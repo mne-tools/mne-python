@@ -128,7 +128,7 @@ ignore-decorators = [
 
 [tool.pytest.ini_options]
 addopts = """--durations=20 --doctest-modules -ra --cov-report= --tb=short \
-    --doctest-ignore-import-errors --junit-xml=junit-results.xml \
+    --cov-branch --doctest-ignore-import-errors --junit-xml=junit-results.xml \
     --ignore=doc --ignore=logo --ignore=examples --ignore=tutorials \
     --ignore=mne/gui/_*.py --ignore=mne/icons --ignore=tools \
     --ignore=mne/report/js_and_css \

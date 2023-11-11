@@ -1,4 +1,3 @@
-from contextlib import nullcontext
 from functools import partial
 
 import numpy as np
@@ -359,7 +358,6 @@ def test_spectrum_complex(method, average):
     assert len(epochs) == 5
     assert len(epochs.times) == 2 * sfreq
     kwargs = dict(output="complex", method=method)
-    ctx = pytest.warns(UserWarning, match="Zero value")
     if method == "welch":
         kwargs["n_fft"] = sfreq
         want_dims = ("epoch", "channel", "freq")
@@ -371,11 +369,9 @@ def test_spectrum_complex(method, average):
     else:
         assert method == "multitaper"
         assert not average
-        ctx = nullcontext()
         want_dims = ("epoch", "channel", "taper", "freq")
         want_shape = (5, 1, 7, sfreq + 1)
-    with ctx:
-        spectrum = epochs.compute_psd(**kwargs)
+    spectrum = epochs.compute_psd(**kwargs)
     idx = np.argmin(np.abs(spectrum.freqs - freq))
     assert spectrum.freqs[idx] == freq
     assert spectrum._dims == want_dims
@@ -389,6 +385,13 @@ def test_spectrum_complex(method, average):
         coef = coef.mean(-1)  # over segments
     coef = coef.item()
     assert_allclose(np.angle(coef), phase, rtol=1e-4)
+    # Now test that it warns appropriately
+    epochs._data[0, 0, :] = 0  # actually zero for one epoch and ch
+    with pytest.warns(UserWarning, match="Zero value.*channel 0"):
+        epochs.compute_psd(**kwargs)
+    # But not if we mark that channel as bad
+    epochs.info["bads"] = epochs.ch_names[:1]
+    epochs.compute_psd(**kwargs)
 
 
 def test_spectrum_kwarg_triaging(raw):
