@@ -2940,7 +2940,7 @@ def plot_compare_evokeds(
                 "mne.viz.plot_topo, which is optimized for speed."
             )
         topo_title = title
-        topo_disp_title = axes
+        topo_disp_title = True
         axes = ["topo"] * len(ch_types)
     else:
         if axes is None:
