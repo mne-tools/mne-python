@@ -33,7 +33,7 @@
 *lcmv*.py @britta-wstnr
 
 # Channels
-/mne/channels @agramfort @mscheltienne @dengemann
+/mne/channels @agramfort @mscheltienne @dengemann @jasmainak
 
 # Core sensor-space classes
 /mne/epochs.py @drammock @agramfort @mscheltienne @dengemann
@@ -45,13 +45,14 @@
 
 # Decoding
 /mne/decoding/csp.py @cbrnr @agramfort @dengemann
+/mne/decoding/*.py @jasmainak
 
 # fNIRS
 /mne/preprocessing/nirs @rob-luke
 *fnirs*.py @rob-luke
 
 # forward
-/mne/forward/ @agramfort
+/mne/forward/ @agramfort @jasmainak
 *forward*.py @agramfort
 
 # Intracranial
@@ -69,6 +70,8 @@
 /mne/io/nirx @rob-luke
 /mne/io/snirf @rob-luke
 /mne/export @sappelhoff @cbrnr
+/mne/io/eeglab.py @jasmainak
+/mne/io/eeglab/tests/test_eeglab.py @jasmainak
 
 # Minimum Norm
 /mne/minimum_norm @agramfort
@@ -81,7 +84,7 @@
 /mne/preprocessing/e*g.py @mscheltienne
 
 # Report
-/mne/report @hoechenberger @dengemann
+/mne/report @hoechenberger @dengemann @jasmainak
 
 # Simulation
 /mne/simulation/ @agramfort
@@ -101,6 +104,9 @@
 /mne/viz/ui_events.py @wmvanvliet
 /tutorials/visualization @larsoner @wmvanvliet @dengemann
 /examples/visualization @larsoner @dengemann
+
+# Datasets
+/mne/datasets/brainstorm @jasmainak
 
 #########################
 # Project-level / other #

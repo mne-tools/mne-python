@@ -2,32 +2,30 @@ from os import path as op
 from pathlib import Path
 
 import numpy as np
+import pytest
 from numpy.polynomial import legendre
 from numpy.testing import (
     assert_allclose,
+    assert_array_almost_equal,
     assert_array_equal,
     assert_equal,
-    assert_array_almost_equal,
 )
 from scipy.interpolate import interp1d
 
-import pytest
-
 import mne
+from mne import Epochs, make_fixed_length_events, pick_types, read_evokeds
+from mne.datasets import testing
 from mne.forward import _make_surface_mapping, make_field_map
+from mne.forward._field_interpolation import _setup_dots
 from mne.forward._lead_dots import (
     _comp_sum_eeg,
     _comp_sums_meg,
-    _get_legen_table,
     _do_cross_dots,
+    _get_legen_table,
 )
 from mne.forward._make_forward import _create_meg_coils
-from mne.forward._field_interpolation import _setup_dots
-from mne.surface import get_meg_helmet_surf, get_head_surf
-from mne.datasets import testing
-from mne import read_evokeds, pick_types, make_fixed_length_events, Epochs
 from mne.io import read_raw_fif
-
+from mne.surface import get_head_surf, get_meg_helmet_surf
 
 base_dir = op.join(op.dirname(__file__), "..", "..", "io", "tests", "data")
 raw_fname = op.join(base_dir, "test_raw.fif")
@@ -320,4 +318,4 @@ def test_as_meg_type_evoked():
     virt_epochs.info.normalize_proj()
     virt_epochs = virt_epochs.as_type("mag")
     assert all(ch.endswith("_v") for ch in virt_epochs.info["ch_names"])
-    assert_allclose(virt_epochs.get_data().mean(0), virt_evoked.data)
+    assert_allclose(virt_epochs.get_data(copy=False).mean(0), virt_evoked.data)

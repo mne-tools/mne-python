@@ -17,14 +17,13 @@ visualized on the average of all the epochs.
 
 # %%
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
+from sklearn.decomposition import PCA, FastICA
 
 import mne
 from mne.datasets import sample
 from mne.decoding import UnsupervisedSpatialFilter
-
-from sklearn.decomposition import PCA, FastICA
 
 print(__doc__)
 
@@ -59,7 +58,7 @@ epochs = mne.Epochs(
     verbose=False,
 )
 
-X = epochs.get_data()
+X = epochs.get_data(copy=False)
 
 ##############################################################################
 # Transform data with PCA computed on the average ie evoked response

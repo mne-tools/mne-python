@@ -20,8 +20,8 @@ or more distinct topography, reducing the negative impact of volume conduction.
 
 # sphinx_gallery_thumbnail_number = 6
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 
 import mne
 from mne.datasets import sample
@@ -78,8 +78,7 @@ evoked_csd.plot_joint(title="Current Source Density")
 # CSD has parameters ``stiffness`` and ``lambda2`` affecting smoothing and
 # spline flexibility, respectively. Let's see how they affect the solution:
 
-fig, ax = plt.subplots(4, 4)
-fig.subplots_adjust(hspace=0.5)
+fig, ax = plt.subplots(4, 4, layout="constrained")
 fig.set_size_inches(10, 10)
 for i, lambda2 in enumerate([0, 1e-7, 1e-5, 1e-3]):
     for j, m in enumerate([5, 4, 3, 2]):

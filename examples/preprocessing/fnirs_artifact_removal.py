@@ -16,8 +16,8 @@ how artifact correction techniques attempt to correct the data.
 # %%
 
 import os
-import mne
 
+import mne
 from mne.preprocessing.nirs import (
     optical_density,
     temporal_derivative_distribution_repair,

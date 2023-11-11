@@ -3,8 +3,8 @@
 # License: BSD-3-Clause
 
 
-from datetime import datetime, timezone, timedelta
 import re
+from datetime import datetime, timedelta, timezone
 
 import numpy as np
 
@@ -122,6 +122,8 @@ def _parse_recording_blocks(fname):
                 is_recording_block = True
             if is_recording_block:
                 tokens = line.split()
+                if not tokens:
+                    continue  # skip empty lines
                 if tokens[0][0].isnumeric():  # Samples
                     data_dict["sample_lines"].append(tokens)
                 elif tokens[0] in data_dict["event_lines"].keys():

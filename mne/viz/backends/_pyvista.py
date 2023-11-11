@@ -11,37 +11,36 @@ Actual implementation of _Renderer and _Projection classes.
 #
 # License: Simplified BSD
 
-from contextlib import contextmanager
-from inspect import signature
 import platform
 import re
 import warnings
+from contextlib import contextmanager
+from inspect import signature
 
 import numpy as np
 
-from ._abstract import _AbstractRenderer, Figure3D
-from ._utils import (
-    _get_colormap_from_array,
-    _alpha_blend_background,
-    ALLOWED_QUIVER_MODES,
-    _init_mne_qtapp,
-)
 from ...fixes import _compare_version
-from ...transforms import apply_trans, _cart_to_sph, _sph_to_cart
+from ...transforms import _cart_to_sph, _sph_to_cart, apply_trans
 from ...utils import (
-    copy_base_doc_to_subclass_doc,
     _check_option,
     _require_version,
     _validate_type,
-    warn,
+    copy_base_doc_to_subclass_doc,
     deprecated,
+    warn,
 )
-
+from ._abstract import Figure3D, _AbstractRenderer
+from ._utils import (
+    ALLOWED_QUIVER_MODES,
+    _alpha_blend_background,
+    _get_colormap_from_array,
+    _init_mne_qtapp,
+)
 
 with warnings.catch_warnings():
     warnings.filterwarnings("ignore", category=DeprecationWarning)
     import pyvista
-    from pyvista import Plotter, PolyData, Line, close_all, UnstructuredGrid
+    from pyvista import Line, Plotter, PolyData, UnstructuredGrid, close_all
     from pyvistaqt import BackgroundPlotter
 
     try:
@@ -49,36 +48,36 @@ with warnings.catch_warnings():
     except Exception:  # PV < 0.40
         from pyvista.plotting.plotting import _ALL_PLOTTERS
 
-from vtkmodules.vtkCommonCore import vtkCommand, vtkLookupTable, VTK_UNSIGNED_CHAR
+from vtkmodules.util.numpy_support import numpy_to_vtk
+from vtkmodules.vtkCommonCore import VTK_UNSIGNED_CHAR, vtkCommand, vtkLookupTable
 from vtkmodules.vtkCommonDataModel import VTK_VERTEX, vtkPiecewiseFunction
 from vtkmodules.vtkCommonTransforms import vtkTransform
 from vtkmodules.vtkFiltersCore import vtkCellDataToPointData, vtkGlyph3D
 from vtkmodules.vtkFiltersGeneral import (
-    vtkTransformPolyDataFilter,
     vtkMarchingContourFilter,
+    vtkTransformPolyDataFilter,
 )
 from vtkmodules.vtkFiltersHybrid import vtkPolyDataSilhouette
 from vtkmodules.vtkFiltersSources import (
-    vtkSphereSource,
+    vtkArrowSource,
     vtkConeSource,
     vtkCylinderSource,
-    vtkArrowSource,
-    vtkPlatonicSolidSource,
     vtkGlyphSource2D,
+    vtkPlatonicSolidSource,
+    vtkSphereSource,
 )
 from vtkmodules.vtkImagingCore import vtkImageReslice
 from vtkmodules.vtkRenderingCore import (
-    vtkMapper,
     vtkActor,
     vtkCellPicker,
     vtkColorTransferFunction,
-    vtkPolyDataMapper,
-    vtkVolume,
     vtkCoordinate,
     vtkDataSetMapper,
+    vtkMapper,
+    vtkPolyDataMapper,
+    vtkVolume,
 )
 from vtkmodules.vtkRenderingVolumeOpenGL2 import vtkSmartVolumeMapper
-from vtkmodules.util.numpy_support import numpy_to_vtk
 
 _FIGURES = dict()
 
@@ -373,17 +372,18 @@ class _PyVistaRenderer(_AbstractRenderer):
         polygon_offset=None,
         **kwargs,
     ):
+        from matplotlib.colors import to_rgba_array
+
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
             rgba = False
-            if color is not None and len(color) == mesh.n_points:
-                if color.shape[1] == 3:
-                    scalars = np.c_[color, np.ones(mesh.n_points)]
-                else:
-                    scalars = color
-                scalars = (scalars * 255).astype("ubyte")
-                color = None
-                rgba = True
+            if color is not None:
+                # See if we need to convert or not
+                check_color = to_rgba_array(color)
+                if len(check_color) == mesh.n_points:
+                    scalars = (check_color * 255).astype("ubyte")
+                    color = None
+                    rgba = True
             if isinstance(colormap, np.ndarray):
                 if colormap.dtype == np.uint8:
                     colormap = colormap.astype(np.float64) / 255.0
@@ -395,24 +395,22 @@ class _PyVistaRenderer(_AbstractRenderer):
                 mesh.GetPointData().SetActiveNormals("Normals")
             else:
                 _compute_normals(mesh)
-            if "rgba" in kwargs:
-                rgba = kwargs["rgba"]
-                kwargs.pop("rgba")
             smooth_shading = self.smooth_shading
             if representation == "wireframe":
                 smooth_shading = False  # never use smooth shading for wf
+            rgba = kwargs.pop("rgba", rgba)
             actor = _add_mesh(
                 plotter=self.plotter,
                 mesh=mesh,
                 color=color,
                 scalars=scalars,
                 edge_color=color,
-                rgba=rgba,
                 opacity=opacity,
                 cmap=colormap,
                 backface_culling=backface_culling,
                 rng=[vmin, vmax],
                 show_scalar_bar=False,
+                rgba=rgba,
                 smooth_shading=smooth_shading,
                 interpolate_before_map=interpolate_before_map,
                 style=representation,
@@ -601,6 +599,7 @@ class _PyVistaRenderer(_AbstractRenderer):
         colormap="RdBu",
         normalized_colormap=False,
         reverse_lut=False,
+        opacity=None,
     ):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
@@ -624,6 +623,7 @@ class _PyVistaRenderer(_AbstractRenderer):
                     show_scalar_bar=False,
                     cmap=cmap,
                     smooth_shading=self.smooth_shading,
+                    opacity=opacity,
                 )
         return actor, tube
 
@@ -657,6 +657,9 @@ class _PyVistaRenderer(_AbstractRenderer):
         clim=None,
     ):
         _check_option("mode", mode, ALLOWED_QUIVER_MODES)
+        _validate_type(scale_mode, str, "scale_mode")
+        scale_map = dict(none=False, scalar="scalars", vector="vec")
+        _check_option("scale_mode", scale_mode, list(scale_map))
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
             factor = scale
@@ -669,7 +672,10 @@ class _PyVistaRenderer(_AbstractRenderer):
             grid = UnstructuredGrid(*args)
             if scalars is None:
                 scalars = np.ones((n_points,))
-            grid.point_data["scalars"] = np.array(scalars)
+                mesh_scalars = None
+            else:
+                mesh_scalars = "scalars"
+            grid.point_data["scalars"] = np.array(scalars, float)
             grid.point_data["vec"] = vectors
             if mode == "2darrow":
                 return _arrow_glyph(grid, factor), grid
@@ -717,14 +723,17 @@ class _PyVistaRenderer(_AbstractRenderer):
                 glyph.Update()
                 geom = glyph.GetOutput()
                 mesh = grid.glyph(
-                    orient="vec", scale=scale_mode == "vector", factor=factor, geom=geom
+                    orient="vec",
+                    scale=scale_map[scale_mode],
+                    factor=factor,
+                    geom=geom,
                 )
             actor = _add_mesh(
                 self.plotter,
                 mesh=mesh,
                 color=color,
                 opacity=opacity,
-                scalars=None,
+                scalars=mesh_scalars if colormap is not None else None,
                 colormap=colormap,
                 show_scalar_bar=False,
                 backface_culling=backface_culling,

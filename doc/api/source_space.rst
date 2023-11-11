@@ -5,7 +5,7 @@ Source Space Data
 .. currentmodule:: mne
 
 .. autosummary::
-   :toctree: generated/
+   :toctree: ../generated/
 
    BiHemiLabel
    Label

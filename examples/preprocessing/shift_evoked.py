@@ -13,8 +13,8 @@ Shifting time-scale in evoked data
 # %%
 
 import matplotlib.pyplot as plt
+
 import mne
-from mne.viz import tight_layout
 from mne.datasets import sample
 
 print(__doc__)
@@ -60,5 +60,3 @@ evoked.plot(
     titles=dict(grad="Absolute shift: 500 ms"),
     time_unit="s",
 )
-
-tight_layout()

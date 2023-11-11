@@ -8,51 +8,53 @@ import shutil
 from contextlib import nullcontext
 from pathlib import Path
 
-import pytest
+import matplotlib.pyplot as plt
 import numpy as np
+import pytest
 from numpy.testing import (
+    assert_allclose,
     assert_array_almost_equal,
     assert_array_equal,
-    assert_allclose,
     assert_equal,
 )
-from scipy import stats, linalg
+from scipy import linalg, stats
 from scipy.io import loadmat, savemat
-import matplotlib.pyplot as plt
 
 from mne import (
+    Annotations,
     Epochs,
-    Info,
-    read_events,
-    pick_types,
-    create_info,
     EpochsArray,
     EvokedArray,
-    Annotations,
-    pick_channels_regexp,
+    Info,
+    create_info,
     make_ad_hoc_cov,
+    pick_channels_regexp,
+    pick_types,
+    read_events,
 )
+from mne._fiff.pick import _DATA_CH_TYPES_SPLIT, get_channel_type_constants
 from mne.cov import read_cov
+from mne.datasets import testing
+from mne.event import make_fixed_length_events
+from mne.io import RawArray, read_raw_ctf, read_raw_eeglab, read_raw_fif
+from mne.io.eeglab.eeglab import _check_load_mat
 from mne.preprocessing import (
     ICA as _ICA,
+)
+from mne.preprocessing import (
     ica_find_ecg_events,
     ica_find_eog_events,
     read_ica,
 )
 from mne.preprocessing.ica import (
-    get_score_funcs,
-    corrmap,
-    _sort_components,
     _ica_explained_variance,
+    _sort_components,
+    corrmap,
+    get_score_funcs,
     read_ica_eeglab,
 )
-from mne.io import read_raw_fif, RawArray, read_raw_ctf, read_raw_eeglab
-from mne._fiff.pick import _DATA_CH_TYPES_SPLIT, get_channel_type_constants
-from mne.io.eeglab.eeglab import _check_load_mat
 from mne.rank import _compute_rank_int
-from mne.utils import catch_logging, _record_warnings, check_version
-from mne.datasets import testing
-from mne.event import make_fixed_length_events
+from mne.utils import _record_warnings, catch_logging, check_version
 
 data_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
 raw_fname = data_dir / "test_raw.fif"
@@ -106,7 +108,7 @@ def test_ica_full_data_recovery(method):
     evoked = epochs.average()
     n_channels = 5
     data = raw._data[:n_channels].copy()
-    data_epochs = epochs.get_data()
+    data_epochs = epochs.get_data(copy=True)
     data_evoked = evoked.data
     raw.set_annotations(Annotations([0.5], [0.5], ["BAD"]))
     methods = [method]
@@ -135,7 +137,7 @@ def test_ica_full_data_recovery(method):
                 ica.fit(epochs, picks=picks)
             _assert_ica_attributes(ica, epochs.get_data(picks))
             epochs2 = ica.apply(epochs.copy(), **kwargs)
-            data2 = epochs2.get_data()[:, :n_channels]
+            data2 = epochs2.get_data(picks=slice(0, n_channels))
             if ok:
                 assert_allclose(
                     data_epochs[:, :n_channels], data2, rtol=1e-10, atol=1e-15
@@ -542,13 +544,13 @@ def test_ica_core(method, n_components, noise_cov, n_pca_components, browser_bac
     ica = ICA(noise_cov=noise_cov, n_components=n_components, method=method)
     with _record_warnings():  # sometimes warns
         ica.fit(epochs)
-    _assert_ica_attributes(ica, epochs.get_data(), limits=(0.2, 20))
-    data = epochs.get_data()[:, 0, :]
+    _assert_ica_attributes(ica, epochs.get_data(copy=False), limits=(0.2, 20))
+    data = epochs.get_data(picks=[0])[:, 0]
     n_samples = np.prod(data.shape)
     assert_equal(ica.n_samples_, n_samples)
     print(ica)  # to test repr
 
-    sources = ica.get_sources(epochs).get_data()
+    sources = ica.get_sources(epochs).get_data(copy=False)
     assert sources.shape[1] == ica.n_components_
 
     with pytest.raises(ValueError, match="target do not have the same nu"):
@@ -876,7 +878,7 @@ def test_ica_additional(method, tmp_path, short_raw_epochs):
     evoked = epochs.average()
     evoked_data = evoked.data.copy()
     raw_data = raw[:][0].copy()
-    epochs_data = epochs.get_data().copy()
+    epochs_data = epochs.get_data(copy=True)
 
     with pytest.warns(RuntimeWarning, match="longer"):
         idx, scores = ica.find_bads_ecg(
@@ -928,7 +930,7 @@ def test_ica_additional(method, tmp_path, short_raw_epochs):
     assert_equal(len(scores), ica.n_components_)
 
     assert_array_equal(raw_data, raw[:][0])
-    assert_array_equal(epochs_data, epochs.get_data())
+    assert_array_equal(epochs_data, epochs.get_data(copy=False))
     assert_array_equal(evoked_data, evoked.data)
 
     # check score funcs
@@ -982,7 +984,7 @@ def test_ica_additional(method, tmp_path, short_raw_epochs):
     assert ica_epochs.events.shape == epochs.events.shape
     ica_chans = [ch for ch in ica_epochs.ch_names if "ICA" in ch]
     assert ica.n_components_ == len(ica_chans)
-    assert ica.n_components_ == ica_epochs.get_data().shape[1]
+    assert ica.n_components_ == ica_epochs.get_data(copy=False).shape[1]
     assert ica_epochs._raw is None
     assert ica_epochs.preload is True
 
@@ -1114,7 +1116,7 @@ def test_ica_cov(method, cov, tmp_path, short_raw_epochs):
     with _record_warnings():  # ICA does not converge
         ica.fit(raw, picks=np.arange(10))
     _assert_ica_attributes(ica)
-    sources = ica.get_sources(epochs).get_data()
+    sources = ica.get_sources(epochs).get_data(copy=False)
     assert ica.mixing_matrix_.shape == (2, 2)
     assert ica.unmixing_matrix_.shape == (2, 2)
     assert ica.pca_components_.shape == (10, 10)

@@ -13,15 +13,21 @@ from itertools import cycle
 
 import numpy as np
 
+from .._fiff.pick import _DATA_CH_TYPES_SPLIT
+from ..defaults import _handle_default
+from ..filter import _iir_filter, _overlap_add_filter
+from ..fixes import _compare_version
+from ..utils import (
+    _check_option,
+    _get_stim_channel,
+    _validate_type,
+    get_config,
+    logger,
+    set_config,
+    verbose,
+)
 from .backends._utils import VALID_BROWSE_BACKENDS
 from .utils import _get_color_list, _setup_plot_projector, _show_browser
-
-from ..defaults import _handle_default
-from ..filter import _overlap_add_filter, _iir_filter
-from ..utils import logger, _validate_type, _check_option
-from .._fiff.pick import _DATA_CH_TYPES_SPLIT
-from ..utils import verbose, get_config, set_config, _get_stim_channel
-from ..fixes import _compare_version
 
 MNE_BROWSER_BACKEND = None
 backend = None
@@ -321,7 +327,9 @@ class BrowserBase(ABC):
             )
             ix_stop = ix_start + self.mne.n_epochs
             item = slice(ix_start, ix_stop)
-            data = np.concatenate(self.mne.inst.get_data(item=item), axis=-1)
+            data = np.concatenate(
+                self.mne.inst.get_data(item=item, copy=False), axis=-1
+            )
             times = np.arange(start, stop) / self.mne.info["sfreq"]
             return data, times
 
@@ -498,8 +506,8 @@ class BrowserBase(ABC):
         """Show ICA properties for the selected component."""
         from mne.viz.ica import (
             _create_properties_layout,
-            _prepare_data_ica_properties,
             _fast_plot_ica_properties,
+            _prepare_data_ica_properties,
         )
 
         ch_name = self.mne.ch_names[idx]
@@ -529,13 +537,14 @@ class BrowserBase(ABC):
     def _create_epoch_image_fig(self, pick):
         """Show epochs image for the selected channel."""
         from matplotlib.gridspec import GridSpec
+
         from mne.viz import plot_epochs_image
 
         ch_name = self.mne.ch_names[pick]
         title = f"Epochs image ({ch_name})"
         fig = self._new_child_figure(figsize=(6, 4), fig_name=None, window_title=title)
         fig.suptitle = title
-        gs = GridSpec(nrows=3, ncols=10)
+        gs = GridSpec(nrows=3, ncols=10, figure=fig)
         fig.add_subplot(gs[:2, :9])
         fig.add_subplot(gs[2, :9])
         fig.add_subplot(gs[:2, 9])
@@ -547,7 +556,7 @@ class BrowserBase(ABC):
         """Create peak-to-peak histogram of channel amplitudes."""
         epochs = self.mne.inst
         data = OrderedDict()
-        ptp = np.ptp(epochs.get_data(), axis=2)
+        ptp = np.ptp(epochs.get_data(copy=False), axis=2)
         for ch_type in ("eeg", "mag", "grad"):
             if ch_type in epochs:
                 data[ch_type] = ptp.T[self.mne.ch_types == ch_type].ravel()
@@ -580,16 +589,6 @@ class BrowserBase(ABC):
                 ax.plot((reject, reject), (0, ax.get_ylim()[1]), color="r")
         # finalize
         fig.suptitle(title, y=0.99)
-        if hasattr(fig, "_inch_to_rel"):
-            kwargs = dict(
-                bottom=fig._inch_to_rel(0.5, horiz=False),
-                top=1 - fig._inch_to_rel(0.5, horiz=False),
-                left=fig._inch_to_rel(0.75),
-                right=1 - fig._inch_to_rel(0.25),
-            )
-        else:
-            kwargs = dict()
-        fig.subplots_adjust(hspace=0.7, **kwargs)
         self.mne.fig_histogram = fig
 
         return fig
@@ -662,7 +661,7 @@ def _get_browser(show, block, **kwargs):
     figsize = kwargs.setdefault("figsize", _get_figsize_from_config())
     if figsize is None or np.any(np.array(figsize) < 8):
         kwargs["figsize"] = (8, 8)
-    kwargs["splash"] = True if show else False
+    kwargs["splash"] = kwargs.get("splash", True) and show
     if kwargs.get("theme", None) is None:
         kwargs["theme"] = get_config("MNE_BROWSER_THEME", "auto")
     if kwargs.get("overview_mode", None) is None:
@@ -673,6 +672,7 @@ def _get_browser(show, block, **kwargs):
     # Check mne-qt-browser compatibility
     if backend_name == "qt":
         import mne_qt_browser
+
         from ..epochs import BaseEpochs
 
         is_ica = kwargs.get("ica", False)

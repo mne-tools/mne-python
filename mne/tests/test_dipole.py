@@ -4,47 +4,45 @@
 
 import os
 
-import numpy as np
-from numpy.testing import assert_allclose, assert_array_equal, assert_array_less
 import matplotlib.pyplot as plt
+import numpy as np
 import pytest
+from numpy.testing import assert_allclose, assert_array_equal, assert_array_less
 
 from mne import (
-    read_dipole,
-    read_forward_solution,
-    convert_forward_solution,
-    read_evokeds,
-    read_cov,
-    SourceEstimate,
-    write_evokeds,
-    fit_dipole,
-    transform_surface_to,
-    make_sphere_model,
-    pick_types,
-    pick_info,
-    EvokedArray,
-    read_source_spaces,
-    make_ad_hoc_cov,
-    make_forward_solution,
     Dipole,
     DipoleFixed,
     Epochs,
-    make_fixed_length_events,
     Evoked,
+    EvokedArray,
+    SourceEstimate,
+    convert_forward_solution,
+    fit_dipole,
     head_to_mni,
+    make_ad_hoc_cov,
+    make_fixed_length_events,
+    make_forward_solution,
+    make_sphere_model,
+    pick_info,
+    pick_types,
+    read_cov,
+    read_dipole,
+    read_evokeds,
+    read_forward_solution,
+    read_source_spaces,
+    transform_surface_to,
+    write_evokeds,
 )
-from mne.dipole import get_phantom_dipoles, _BDIP_ERROR_KEYS
-from mne.simulation import simulate_evoked
-from mne.datasets import testing
-from mne.utils import requires_mne, run_subprocess, _record_warnings
-from mne.proj import make_eeg_average_ref_proj
-
-from mne.io import read_raw_fif, read_raw_ctf
 from mne._fiff.constants import FIFF
-
-from mne.surface import _compute_nearest
 from mne.bem import _bem_find_surface, read_bem_solution
-from mne.transforms import apply_trans, _get_trans
+from mne.datasets import testing
+from mne.dipole import _BDIP_ERROR_KEYS, get_phantom_dipoles
+from mne.io import read_raw_ctf, read_raw_fif
+from mne.proj import make_eeg_average_ref_proj
+from mne.simulation import simulate_evoked
+from mne.surface import _compute_nearest
+from mne.transforms import _get_trans, apply_trans
+from mne.utils import _record_warnings, requires_mne, run_subprocess
 
 data_path = testing.data_path(download=False)
 meg_path = data_path / "MEG" / "sample"
@@ -103,6 +101,7 @@ def test_io_dipoles(tmp_path):
 @testing.requires_testing_data
 def test_dipole_fitting_ctf():
     """Test dipole fitting with CTF data."""
+    pytest.importorskip("nibabel")
     raw_ctf = read_raw_ctf(fname_ctf).set_eeg_reference(projection=True)
     events = make_fixed_length_events(raw_ctf, 1)
     evoked = Epochs(raw_ctf, events, 1, 0, 0, baseline=None).average()
@@ -127,6 +126,7 @@ def test_dipole_fitting_ctf():
 @requires_mne
 def test_dipole_fitting(tmp_path):
     """Test dipole fitting."""
+    pytest.importorskip("nibabel")
     amp = 100e-9
     rng = np.random.RandomState(0)
     fname_dtemp = tmp_path / "test.dip"

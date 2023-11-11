@@ -6,8 +6,8 @@
 
 import numpy as np
 
+from ...utils import _check_option, _validate_type, fill_doc, logger, verbose
 from ..base import BaseRaw
-from ...utils import verbose, logger, _validate_type, fill_doc, _check_option
 
 
 @fill_doc

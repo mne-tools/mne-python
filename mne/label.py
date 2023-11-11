@@ -4,12 +4,12 @@
 #
 # License: BSD-3-Clause
 
-from collections import defaultdict
-from colorsys import hsv_to_rgb, rgb_to_hsv
 import copy as cp
 import os
 import os.path as op
 import re
+from collections import defaultdict
+from colorsys import hsv_to_rgb, rgb_to_hsv
 
 import numpy as np
 from scipy import linalg, sparse
@@ -25,30 +25,30 @@ from .source_estimate import (
     spatial_src_adjacency,
 )
 from .source_space._source_space import (
-    add_source_space_distances,
     SourceSpaces,
     _ensure_src,
+    add_source_space_distances,
 )
 from .stats.cluster_level import _find_clusters, _get_components
 from .surface import (
-    complete_surface_info,
-    read_surface,
-    fast_cross_3d,
     _mesh_borders,
-    mesh_edges,
+    complete_surface_info,
+    fast_cross_3d,
     mesh_dist,
+    mesh_edges,
+    read_surface,
 )
 from .utils import (
-    get_subjects_dir,
+    _check_fname,
+    _check_option,
     _check_subject,
+    _validate_type,
+    check_random_state,
+    fill_doc,
+    get_subjects_dir,
     logger,
     verbose,
     warn,
-    check_random_state,
-    _validate_type,
-    fill_doc,
-    _check_option,
-    _check_fname,
 )
 
 

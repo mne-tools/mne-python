@@ -2,30 +2,29 @@
 #
 # License: BSD Style.
 
-import sys
 import os
 import os.path as op
+import sys
+import time
 from pathlib import Path
 from shutil import rmtree
-import time
 
 from .. import __version__ as mne_version
-from ..utils import logger, warn, _safe_input
+from ..fixes import _compare_version
+from ..utils import _safe_input, logger, warn
 from .config import (
-    _bst_license_text,
+    MISC_VERSIONED,
     RELEASES,
     TESTING_VERSIONED,
-    MISC_VERSIONED,
+    _bst_license_text,
 )
 from .utils import (
     _dataset_version,
     _do_path_update,
+    _downloader_params,
     _get_path,
     _log_time_size,
-    _downloader_params,
 )
-from ..fixes import _compare_version
-
 
 _FAKE_VERSION = None  # used for monkeypatching while testing versioning
 

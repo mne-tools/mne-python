@@ -6,32 +6,32 @@
 
 import os
 import sys
+from pathlib import Path
 
 import numpy as np
 import pytest
-from pathlib import Path
 
 import mne
-from mne import read_vectorview_selection, pick_channels_cov
-from mne.datasets import testing
+from mne import pick_channels_cov, read_vectorview_selection
 from mne._fiff.pick import _picks_to_idx
+from mne.datasets import testing
 from mne.utils import (
-    check_random_state,
+    Bunch,
+    _check_ch_locs,
     _check_fname,
-    check_fname,
-    _suggest,
-    _check_subject,
     _check_info_inv,
     _check_option,
-    Bunch,
-    check_version,
-    _path_like,
-    _validate_type,
-    _on_missing,
-    _safe_input,
-    _check_ch_locs,
-    _check_sphere,
     _check_range,
+    _check_sphere,
+    _check_subject,
+    _on_missing,
+    _path_like,
+    _safe_input,
+    _suggest,
+    _validate_type,
+    check_fname,
+    check_random_state,
+    check_version,
 )
 
 data_path = testing.data_path(download=False)
@@ -212,6 +212,11 @@ def test_validate_type():
     _validate_type(1, "int-like")
     with pytest.raises(TypeError, match="int-like"):
         _validate_type(False, "int-like")
+    _validate_type([1, 2, 3], "array-like")
+    _validate_type((1, 2, 3), "array-like")
+    _validate_type({1, 2, 3}, "array-like")
+    with pytest.raises(TypeError, match="array-like"):
+        _validate_type("123", "array-like")  # a string is not array-like
 
 
 def test_check_range():

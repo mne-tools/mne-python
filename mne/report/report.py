@@ -6,86 +6,85 @@
 #
 # License: BSD-3-Clause
 
-import io
-import dataclasses
-from dataclasses import dataclass
-from functools import partial
-from typing import Tuple, Optional
-from collections.abc import Sequence
 import base64
-from io import BytesIO, StringIO
+import dataclasses
+import fnmatch
+import io
 import os
 import os.path as op
-from pathlib import Path
-import fnmatch
 import re
-from shutil import copyfile
 import time
 import warnings
 import webbrowser
+from collections.abc import Sequence
+from dataclasses import dataclass
+from functools import partial
+from io import BytesIO, StringIO
+from pathlib import Path
+from shutil import copyfile
+from typing import Optional, Tuple
 
 import numpy as np
 
 from .. import __version__ as MNE_VERSION
-from ..evoked import read_evokeds, Evoked
-from ..event import read_events
-from ..cov import read_cov, Covariance
-from ..html_templates import _get_html_template
-from ..source_estimate import read_source_estimate, SourceEstimate
-from ..transforms import read_trans, Transform
-from ..utils import sys_info
-from .._fiff.meas_info import Info
-from ..defaults import _handle_default
-from ..io import read_raw, BaseRaw
-from ..io._read_raw import _get_supported as _get_extension_reader_map
-from .._fiff.meas_info import read_info
+from .._fiff.meas_info import Info, read_info
 from .._fiff.pick import _DATA_CH_TYPES_SPLIT
+from .._freesurfer import _mri_orientation, _reorient_image
+from ..cov import Covariance, read_cov
+from ..defaults import _handle_default
+from ..epochs import BaseEpochs, read_epochs
+from ..event import read_events
+from ..evoked import Evoked, read_evokeds
+from ..forward import Forward, read_forward_solution
+from ..html_templates import _get_html_template
+from ..io import BaseRaw, read_raw
+from ..io._read_raw import _get_supported as _get_extension_reader_map
+from ..minimum_norm import InverseOperator, read_inverse_operator
+from ..parallel import parallel_func
+from ..preprocessing.ica import read_ica
 from ..proj import read_proj
-from .._freesurfer import _reorient_image, _mri_orientation
+from ..source_estimate import SourceEstimate, read_source_estimate
+from ..surface import dig_mri_distances
+from ..transforms import Transform, read_trans
 from ..utils import (
-    logger,
-    verbose,
-    get_subjects_dir,
-    warn,
-    _ensure_int,
-    fill_doc,
-    _check_option,
-    _validate_type,
-    _safe_input,
-    _path_like,
-    use_log_level,
-    _check_fname,
-    _pl,
     _check_ch_locs,
+    _check_fname,
+    _check_option,
+    _ensure_int,
     _import_h5io_funcs,
+    _import_nibabel,
+    _path_like,
+    _pl,
+    _safe_input,
+    _validate_type,
     _verbose_safe_false,
     check_version,
-    _import_nibabel,
+    fill_doc,
+    get_subjects_dir,
+    logger,
+    sys_info,
+    use_log_level,
+    verbose,
+    warn,
 )
 from ..utils.spectrum import _split_psd_kwargs
 from ..viz import (
-    plot_events,
-    plot_alignment,
-    plot_cov,
-    plot_projs_topomap,
-    plot_compare_evokeds,
-    set_3d_view,
-    get_3d_backend,
     Figure3D,
-    use_browser_backend,
     _get_plot_ch_type,
     create_3d_figure,
+    get_3d_backend,
+    plot_alignment,
+    plot_compare_evokeds,
+    plot_cov,
+    plot_events,
+    plot_projs_topomap,
+    set_3d_view,
+    use_browser_backend,
 )
 from ..viz._brain.view import views_dicts
-from ..viz.misc import _plot_mri_contours, _get_bem_plotting_surfaces
-from ..viz.utils import _ndarray_to_fig, tight_layout
 from ..viz._scraper import _mne_qt_browser_screenshot
-from ..forward import read_forward_solution, Forward
-from ..epochs import read_epochs, BaseEpochs
-from ..preprocessing.ica import read_ica
-from ..surface import dig_mri_distances
-from ..minimum_norm import read_inverse_operator, InverseOperator
-from ..parallel import parallel_func
+from ..viz.misc import _get_bem_plotting_surfaces, _plot_mri_contours
+from ..viz.utils import _ndarray_to_fig
 
 _BEM_VIEWS = ("axial", "sagittal", "coronal")
 
@@ -391,7 +390,7 @@ def _fig_to_img(fig, *, image_format="png", own_figure=True):
         if fig.__class__.__name__ in ("MNEQtBrowser", "PyQtGraphBrowser"):
             img = _mne_qt_browser_screenshot(fig, return_type="ndarray")
         elif isinstance(fig, Figure3D):
-            from ..viz.backends.renderer import backend, MNE_3D_BACKEND_TESTING
+            from ..viz.backends.renderer import MNE_3D_BACKEND_TESTING, backend
 
             backend._check_3d_figure(figure=fig)
             if not MNE_3D_BACKEND_TESTING:
@@ -415,7 +414,7 @@ def _fig_to_img(fig, *, image_format="png", own_figure=True):
     dpi = fig.get_dpi()
     logger.debug(
         f"Saving figure with dimension {fig.get_size_inches()} inches with "
-        f"{{dpi}} dpi"
+        f"{dpi} dpi"
     )
 
     # https://pillow.readthedocs.io/en/stable/handbook/image-file-formats.html
@@ -431,11 +430,6 @@ def _fig_to_img(fig, *, image_format="png", own_figure=True):
         # matplotlib modifies the passed dict, which is a bug
         mpl_kwargs["pil_kwargs"] = pil_kwargs.copy()
     with warnings.catch_warnings():
-        warnings.filterwarnings(
-            action="ignore",
-            message=".*Axes that are not compatible with tight_layout.*",
-            category=UserWarning,
-        )
         fig.savefig(output, format=image_format, dpi=dpi, **mpl_kwargs)
 
     if own_figure:
@@ -592,9 +586,6 @@ def _plot_ica_properties_as_arrays(*, ica, inst, picks, n_jobs):
         The properties plots as NumPy arrays.
     """
     import matplotlib.pyplot as plt
-
-    if picks is None:
-        picks = list(range(ica.n_components_))
 
     def _plot_one_ica_property(*, ica, inst, pick):
         figs = ica.plot_properties(inst=inst, picks=pick, show=False)
@@ -1648,7 +1639,6 @@ class Report:
 
         fig = ica.plot_overlay(inst=inst_, show=False, on_baseline="reapply")
         del inst_
-        tight_layout(fig=fig)
         _constrain_fig_resolution(fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES)
         self._add_figure(
             fig=fig,
@@ -1673,27 +1663,17 @@ class Report:
             )
             return
 
+        if picks is None:
+            picks = list(range(ica.n_components_))
+
         figs = _plot_ica_properties_as_arrays(
             ica=ica, inst=inst, picks=picks, n_jobs=n_jobs
         )
-        rel_explained_var = (
-            ica.pca_explained_variance_ / ica.pca_explained_variance_.sum()
-        )
-        cum_explained_var = np.cumsum(rel_explained_var)
-        captions = []
-        for idx, rel_var, cum_var in zip(
-            range(len(figs)),
-            rel_explained_var[: len(figs)],
-            cum_explained_var[: len(figs)],
-        ):
-            caption = (
-                f"ICA component {idx}. " f"Variance explained: {round(100 * rel_var)}%"
-            )
-            if idx == 0:
-                caption += "."
-            else:
-                caption += f" ({round(100 * cum_var)}% cumulative)."
+        assert len(figs) == len(picks)
 
+        captions = []
+        for idx in range(len(figs)):
+            caption = f"ICA component {picks[idx]}."
             captions.append(caption)
 
         title = "ICA component properties"
@@ -1769,9 +1749,6 @@ class Report:
         figs = ica.plot_components(picks=picks, title="", colorbar=True, show=False)
         if not isinstance(figs, list):
             figs = [figs]
-
-        for fig in figs:
-            tight_layout(fig=fig)
 
         title = "ICA component topographies"
         if len(figs) == 1:
@@ -3241,7 +3218,6 @@ class Report:
             init_kwargs.setdefault("fmax", fmax)
             plot_kwargs.setdefault("show", False)
             fig = raw.compute_psd(**init_kwargs).plot(**plot_kwargs)
-            tight_layout(fig=fig)
             _constrain_fig_resolution(fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES)
             self._add_figure(
                 fig=fig,
@@ -3323,7 +3299,6 @@ class Report:
         # hard to see how (6, 4) could work in all number-of-projs by
         # number-of-channel-types conditions...
         fig.set_size_inches((6, 4))
-        tight_layout(fig=fig)
         _constrain_fig_resolution(fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES)
         self._add_figure(
             fig=fig,
@@ -3488,6 +3463,7 @@ class Report:
             len(ch_types) * 2,
             gridspec_kw={"width_ratios": [8, 0.5] * len(ch_types)},
             figsize=(2.5 * len(ch_types), 2),
+            layout="constrained",
         )
         _constrain_fig_resolution(fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES)
         ch_type_ax_map = dict(
@@ -3507,8 +3483,6 @@ class Report:
                 **topomap_kwargs,
             )
             ch_type_ax_map[ch_type][0].set_title(ch_type)
-
-        tight_layout(fig=fig)
 
         with BytesIO() as buff:
             fig.savefig(buff, format="png", pad_inches=0)
@@ -3616,7 +3590,7 @@ class Report:
 
         import matplotlib.pyplot as plt
 
-        fig, ax = plt.subplots(len(ch_types), 1, sharex=True)
+        fig, ax = plt.subplots(len(ch_types), 1, sharex=True, layout="constrained")
         if len(ch_types) == 1:
             ax = [ax]
         for idx, ch_type in enumerate(ch_types):
@@ -3636,7 +3610,6 @@ class Report:
             if idx < len(ch_types) - 1:
                 ax[idx].set_xlabel(None)
 
-        tight_layout(fig=fig)
         _constrain_fig_resolution(fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES)
         title = "Global field power"
         self._add_figure(
@@ -3655,7 +3628,6 @@ class Report:
     ):
         """Render whitened evoked."""
         fig = evoked.plot_white(noise_cov=noise_cov, show=False)
-        tight_layout(fig=fig)
         _constrain_fig_resolution(fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES)
         title = "Whitened"
 
@@ -4003,7 +3975,6 @@ class Report:
                 fig = epochs.plot_drop_log(
                     subject=self.subject, ignore=drop_log_ignore, show=False
                 )
-                tight_layout(fig=fig)
                 _constrain_fig_resolution(
                     fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES
                 )
@@ -4179,18 +4150,17 @@ class Report:
 
                 if backend_is_3d:
                     brain.set_time(t)
-                    fig, ax = plt.subplots(figsize=(4.5, 4.5))
+                    fig, ax = plt.subplots(figsize=(4.5, 4.5), layout="constrained")
                     ax.imshow(brain.screenshot(time_viewer=True, mode="rgb"))
                     ax.axis("off")
-                    tight_layout(fig=fig)
                     _constrain_fig_resolution(
                         fig, max_width=stc_plot_kwargs["size"][0], max_res=MAX_IMG_RES
                     )
                     figs.append(fig)
                     plt.close(fig)
                 else:
-                    fig_lh = plt.figure()
-                    fig_rh = plt.figure()
+                    fig_lh = plt.figure(layout="constrained")
+                    fig_rh = plt.figure(layout="constrained")
 
                     brain_lh = stc.plot(
                         views="lat",
@@ -4210,8 +4180,6 @@ class Report:
                         backend="matplotlib",
                         figure=fig_rh,
                     )
-                    tight_layout(fig=fig_lh)  # TODO is this necessary?
-                    tight_layout(fig=fig_rh)  # TODO is this necessary?
                     _constrain_fig_resolution(
                         fig_lh,
                         max_width=stc_plot_kwargs["size"][0],

@@ -9,56 +9,49 @@
 #
 # License: BSD-3-Clause
 
-from contextlib import nullcontext
-from copy import deepcopy
-from datetime import timedelta
 import os
 import os.path as op
 import shutil
 from collections import defaultdict
+from contextlib import nullcontext
+from copy import deepcopy
 from dataclasses import dataclass, field
+from datetime import timedelta
 
 import numpy as np
 
-from ..filter import _check_resamp_noop
-from ..event import find_events, concatenate_events
+from .._fiff.compensator import make_compensator, set_current_comp
 from .._fiff.constants import FIFF
-from .._fiff.utils import _make_split_fnames, _check_orig_units
-from .._fiff.pick import (
-    pick_types,
-    pick_channels,
-    pick_info,
-    _picks_to_idx,
-    channel_type,
-)
 from .._fiff.meas_info import (
-    write_meas_info,
-    _ensure_infos_match,
     ContainsMixin,
     SetChannelsMixin,
+    _ensure_infos_match,
     _unit2human,
+    write_meas_info,
 )
-from .._fiff.proj import setup_proj, activate_proj, _proj_equal, ProjMixin
-from ..channels.channels import (
-    UpdateChannelsMixin,
-    InterpolationMixin,
-    ReferenceMixin,
+from .._fiff.pick import (
+    _picks_to_idx,
+    channel_type,
+    pick_channels,
+    pick_info,
+    pick_types,
 )
-from .._fiff.compensator import set_current_comp, make_compensator
+from .._fiff.proj import ProjMixin, _proj_equal, activate_proj, setup_proj
+from .._fiff.utils import _check_orig_units, _make_split_fnames
 from .._fiff.write import (
+    _NEXT_FILE_BUFFER,
+    _get_split_size,
+    end_block,
     start_and_end_file,
     start_block,
-    end_block,
-    write_dau_pack16,
-    write_float,
-    write_double,
     write_complex64,
     write_complex128,
-    write_int,
+    write_dau_pack16,
+    write_double,
+    write_float,
     write_id,
+    write_int,
     write_string,
-    _get_split_size,
-    _NEXT_FILE_BUFFER,
 )
 from ..annotations import (
     Annotations,
@@ -68,49 +61,56 @@ from ..annotations import (
     _sync_onset,
     _write_annotations,
 )
+from ..channels.channels import (
+    InterpolationMixin,
+    ReferenceMixin,
+    UpdateChannelsMixin,
+)
+from ..defaults import _handle_default
+from ..event import concatenate_events, find_events
 from ..filter import (
     FilterMixin,
-    notch_filter,
-    resample,
+    _check_fun,
+    _check_resamp_noop,
     _resamp_ratio_len,
     _resample_stim_channels,
-    _check_fun,
+    notch_filter,
+    resample,
 )
 from ..html_templates import _get_html_template
 from ..parallel import parallel_func
-from ..utils import (
-    _check_fname,
-    _check_pandas_installed,
-    sizeof_fmt,
-    _check_pandas_index_arguments,
-    fill_doc,
-    copy_doc,
-    check_fname,
-    _get_stim_channel,
-    _stamp_to_dt,
-    logger,
-    verbose,
-    _time_mask,
-    warn,
-    SizeMixin,
-    copy_function_doc_to_method_doc,
-    _validate_type,
-    _check_preload,
-    _get_argvalues,
-    _check_option,
-    _build_data_frame,
-    _convert_times,
-    _scale_dataframe_data,
-    _check_time_format,
-    _arange_div,
-    TimeMixin,
-    repr_html,
-    _pl,
-    _file_like,
-)
-from ..defaults import _handle_default
-from ..viz import plot_raw, _RAW_CLIP_DEF
 from ..time_frequency.spectrum import Spectrum, SpectrumMixin, _validate_method
+from ..utils import (
+    SizeMixin,
+    TimeMixin,
+    _arange_div,
+    _build_data_frame,
+    _check_fname,
+    _check_option,
+    _check_pandas_index_arguments,
+    _check_pandas_installed,
+    _check_preload,
+    _check_time_format,
+    _convert_times,
+    _file_like,
+    _get_argvalues,
+    _get_stim_channel,
+    _pl,
+    _scale_dataframe_data,
+    _stamp_to_dt,
+    _time_mask,
+    _validate_type,
+    check_fname,
+    copy_doc,
+    copy_function_doc_to_method_doc,
+    fill_doc,
+    logger,
+    repr_html,
+    sizeof_fmt,
+    verbose,
+    warn,
+)
+from ..viz import _RAW_CLIP_DEF, plot_raw
 
 
 @fill_doc
@@ -1801,6 +1801,7 @@ class BaseRaw(
         *,
         theme=None,
         overview_mode=None,
+        splash=True,
         verbose=None,
     ):
         return plot_raw(
@@ -1838,6 +1839,7 @@ class BaseRaw(
             use_opengl=use_opengl,
             theme=theme,
             overview_mode=overview_mode,
+            splash=splash,
             verbose=verbose,
         )
 

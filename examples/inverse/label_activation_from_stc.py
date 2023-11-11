@@ -17,9 +17,10 @@ formed through merging two labels.
 
 # %%
 
+import matplotlib.pyplot as plt
+
 import mne
 from mne.datasets import sample
-import matplotlib.pyplot as plt
 
 print(__doc__)
 

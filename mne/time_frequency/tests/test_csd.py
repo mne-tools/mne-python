@@ -1,29 +1,30 @@
-import numpy as np
-import pytest
-from pytest import raises
-from numpy.testing import assert_array_equal, assert_allclose
-from os import path as op
 import pickle
 from itertools import product
+from os import path as op
+
+import numpy as np
+import pytest
+from numpy.testing import assert_allclose, assert_array_equal
+from pytest import raises
 
 import mne
 from mne.channels import equalize_channels
-from mne.utils import sum_squared
+from mne.proj import Projection
 from mne.time_frequency import (
-    csd_fourier,
-    csd_multitaper,
-    csd_morlet,
-    csd_array_fourier,
-    csd_array_multitaper,
-    csd_array_morlet,
-    tfr_morlet,
-    csd_tfr,
     CrossSpectralDensity,
-    read_csd,
+    csd_array_fourier,
+    csd_array_morlet,
+    csd_array_multitaper,
+    csd_fourier,
+    csd_morlet,
+    csd_multitaper,
+    csd_tfr,
     pick_channels_csd,
+    read_csd,
+    tfr_morlet,
 )
 from mne.time_frequency.csd import _sym_mat_to_vector, _vector_to_sym_mat
-from mne.proj import Projection
+from mne.utils import sum_squared
 
 base_dir = op.join(op.dirname(__file__), "..", "..", "io", "tests", "data")
 raw_fname = op.join(base_dir, "test_raw.fif")
@@ -453,7 +454,7 @@ def test_csd_fourier():
     for (tmin, tmax), as_array in parameters:
         if as_array:
             csd = csd_array_fourier(
-                epochs.get_data(),
+                epochs.get_data(copy=False),
                 sfreq,
                 epochs.tmin,
                 fmin=9,
@@ -509,7 +510,7 @@ def test_csd_multitaper():
     for (tmin, tmax), as_array, adaptive in parameters:
         if as_array:
             csd = csd_array_multitaper(
-                epochs.get_data(),
+                epochs.get_data(copy=False),
                 sfreq,
                 epochs.tmin,
                 adaptive=adaptive,
@@ -577,7 +578,7 @@ def test_csd_morlet():
     for (tmin, tmax), as_array in parameters:
         if as_array:
             csd = csd_array_morlet(
-                epochs.get_data(),
+                epochs.get_data(copy=False),
                 sfreq,
                 freqs,
                 t0=epochs.tmin,

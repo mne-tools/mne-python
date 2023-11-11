@@ -10,7 +10,7 @@ from functools import partial
 import numpy as np
 from scipy.spatial.distance import cdist
 
-from ...utils import _check_option, fill_doc, _validate_type
+from ...utils import _check_option, _validate_type, fill_doc
 
 
 def _check_stc(stc1, stc2):

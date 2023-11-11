@@ -20,10 +20,11 @@ See :ref:`inverse_orientation_constraints` for related information.
 # ---------
 # Load everything we need to perform source localization on the sample dataset.
 
-import mne
 import numpy as np
+
+import mne
 from mne.datasets import sample
-from mne.minimum_norm import make_inverse_operator, apply_inverse
+from mne.minimum_norm import apply_inverse, make_inverse_operator
 
 data_path = sample.data_path()
 meg_path = data_path / "MEG" / "sample"
@@ -53,8 +54,8 @@ dip_len = len(dip_pos)
 dip_times = [0]
 white = (1.0, 1.0, 1.0)  # RGB values for a white color
 
-actual_amp = np.ones(dip_len)  # misc amp to create Dipole instance
-actual_gof = np.ones(dip_len)  # misc GOF to create Dipole instance
+actual_amp = np.ones(dip_len)  # fake amp, needed to create Dipole instance
+actual_gof = np.ones(dip_len)  # fake GOF, needed to create Dipole instance
 dipoles = mne.Dipole(dip_times, dip_pos, actual_amp, dip_ori, actual_gof)
 trans = mne.read_trans(trans_fname)
 

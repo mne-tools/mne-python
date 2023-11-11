@@ -5,44 +5,44 @@
 from pathlib import Path
 
 import numpy as np
-from numpy.testing import assert_allclose, assert_array_less, assert_array_equal
+import pytest
+from numpy.testing import assert_allclose, assert_array_equal, assert_array_less
 from scipy.interpolate import interp1d
 from scipy.spatial.distance import cdist
-import pytest
 
-from mne import pick_types, pick_info
-from mne.forward._compute_forward import _MAG_FACTOR
-from mne.io import (
-    read_raw_fif,
-    read_raw_artemis123,
-    read_raw_ctf,
-    read_info,
-    RawArray,
-    read_raw_kit,
-)
+from mne import pick_info, pick_types
 from mne._fiff.constants import FIFF
 from mne.chpi import (
+    _chpi_locs_to_times_dig,
+    _compute_good_distances,
+    _get_hpi_initial_fit,
+    _setup_ext_proj,
     compute_chpi_amplitudes,
     compute_chpi_locs,
     compute_chpi_snr,
     compute_head_pos,
-    _setup_ext_proj,
-    _chpi_locs_to_times_dig,
-    _compute_good_distances,
     extract_chpi_locs_ctf,
-    head_pos_to_trans_rot_t,
-    read_head_pos,
-    write_head_pos,
+    extract_chpi_locs_kit,
     filter_chpi,
     get_active_chpi,
     get_chpi_info,
-    _get_hpi_initial_fit,
-    extract_chpi_locs_kit,
+    head_pos_to_trans_rot_t,
+    read_head_pos,
+    write_head_pos,
 )
 from mne.datasets import testing
+from mne.forward._compute_forward import _MAG_FACTOR
+from mne.io import (
+    RawArray,
+    read_info,
+    read_raw_artemis123,
+    read_raw_ctf,
+    read_raw_fif,
+    read_raw_kit,
+)
 from mne.simulation import add_chpi
-from mne.transforms import rot_to_quat, _angle_between_quats
-from mne.utils import catch_logging, assert_meg_snr, verbose, object_diff
+from mne.transforms import _angle_between_quats, rot_to_quat
+from mne.utils import assert_meg_snr, catch_logging, object_diff, verbose
 from mne.viz import plot_head_positions
 
 base_dir = Path(__file__).parent.parent / "io" / "tests" / "data"

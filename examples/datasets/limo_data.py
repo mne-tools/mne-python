@@ -37,15 +37,13 @@ In summary, the example:
 # License: BSD-3-Clause
 
 # %%
-
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 
+from mne import combine_evoked
 from mne.datasets.limo import load_data
 from mne.stats import linear_regression
-from mne.viz import plot_events, plot_compare_evokeds
-from mne import combine_evoked
-
+from mne.viz import plot_compare_evokeds, plot_events
 
 print(__doc__)
 

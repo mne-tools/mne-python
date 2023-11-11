@@ -227,6 +227,7 @@ DEFAULTS = dict(
     coreg=dict(
         mri_fid_opacity=1.0,
         dig_fid_opacity=1.0,
+        # go from unit scaling (e.g., unit-radius sphere) to meters
         mri_fid_scale=5e-3,
         dig_fid_scale=8e-3,
         extra_scale=4e-3,
@@ -235,6 +236,8 @@ DEFAULTS = dict(
         eegp_height=0.1,
         ecog_scale=5e-3,
         seeg_scale=5e-3,
+        meg_scale=1.0,  # sensors are already in SI units
+        ref_meg_scale=1.0,
         dbs_scale=5e-3,
         fnirs_scale=5e-3,
         source_scale=5e-3,

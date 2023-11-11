@@ -4,7 +4,7 @@ File I/O
 .. currentmodule:: mne
 
 .. autosummary::
-   :toctree: generated
+   :toctree: ../generated/
 
    channel_type
    channel_indices_by_type
@@ -60,7 +60,7 @@ File I/O
 Base class:
 
 .. autosummary::
-   :toctree: generated
+   :toctree: ../generated/
    :template: autosummary/class_no_members.rst
 
    BaseEpochs

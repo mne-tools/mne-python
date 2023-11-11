@@ -22,17 +22,16 @@ because the noise is less spatially correlated in MEG than EEG.
 
 # %%
 
-import mne
-from mne import io, EvokedArray
-from mne.datasets import sample
-from mne.decoding import Vectorizer, get_coef
-
-from sklearn.preprocessing import StandardScaler
 from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
+
+import mne
+from mne import EvokedArray, io
+from mne.datasets import sample
 
 # import a linear classifier from mne.decoding
-from mne.decoding import LinearModel
+from mne.decoding import LinearModel, Vectorizer, get_coef
 
 print(__doc__)
 
@@ -61,7 +60,7 @@ labels = epochs.events[:, -1]
 
 # get MEG data
 meg_epochs = epochs.copy().pick(picks="meg", exclude="bads")
-meg_data = meg_epochs.get_data().reshape(len(labels), -1)
+meg_data = meg_epochs.get_data(copy=False).reshape(len(labels), -1)
 
 # %%
 # Decoding in sensor space using a LogisticRegression classifier

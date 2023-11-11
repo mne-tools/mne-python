@@ -6,12 +6,10 @@
 #
 # License: Simplified BSD
 
-from abc import ABC, abstractmethod, abstractclassmethod
-from contextlib import nullcontext
 import warnings
+from abc import ABC, abstractclassmethod, abstractmethod
 
-from ..utils import tight_layout
-from ..ui_events import publish, TimeChange
+from ..ui_events import TimeChange, publish
 
 
 class Figure3D(ABC):
@@ -1333,19 +1331,10 @@ class _AbstractMplInterface(ABC):
 class _AbstractMplCanvas(ABC):
     def __init__(self, width, height, dpi):
         """Initialize the MplCanvas."""
-        from matplotlib import rc_context
         from matplotlib.figure import Figure
 
-        # prefer constrained layout here but live with tight_layout otherwise
-        context = nullcontext
         self._extra_events = ("resize",)
-        try:
-            context = rc_context({"figure.constrained_layout.use": True})
-            self._extra_events = ()
-        except KeyError:
-            pass
-        with context:
-            self.fig = Figure(figsize=(width, height), dpi=dpi)
+        self.fig = Figure(figsize=(width, height), dpi=dpi, layout="constrained")
         self.axes = self.fig.add_subplot(111)
         self.axes.set(xlabel="Time (s)", ylabel="Activation (AU)")
         self.manager = None
@@ -1408,7 +1397,7 @@ class _AbstractMplCanvas(ABC):
 
     def on_resize(self, event):
         """Handle resize events."""
-        tight_layout(fig=self.axes.figure)
+        pass
 
 
 class _AbstractBrainMplCanvas(_AbstractMplCanvas):

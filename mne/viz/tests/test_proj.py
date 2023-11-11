@@ -5,7 +5,7 @@
 import numpy as np
 import pytest
 
-from mne import read_evokeds, pick_types, compute_proj_evoked
+from mne import compute_proj_evoked, pick_types, read_evokeds
 from mne.datasets import testing
 from mne.viz import plot_projs_joint
 

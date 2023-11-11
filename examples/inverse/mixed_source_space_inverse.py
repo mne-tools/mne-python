@@ -15,11 +15,10 @@ evoked dataset.
 # %%
 
 import matplotlib.pyplot as plt
-
 from nilearn import plotting
 
 import mne
-from mne.minimum_norm import make_inverse_operator, apply_inverse
+from mne.minimum_norm import apply_inverse, make_inverse_operator
 
 # Set dir
 data_path = mne.datasets.sample.data_path()
@@ -194,9 +193,8 @@ label_ts = mne.extract_label_time_course(
 )
 
 # plot the times series of 2 labels
-fig, axes = plt.subplots(1)
+fig, axes = plt.subplots(1, layout="constrained")
 axes.plot(1e3 * stc.times, label_ts[0][0, :], "k", label="bankssts-lh")
 axes.plot(1e3 * stc.times, label_ts[0][-1, :].T, "r", label="Brain-stem")
 axes.set(xlabel="Time (ms)", ylabel="MNE current (nAm)")
 axes.legend()
-mne.viz.tight_layout()

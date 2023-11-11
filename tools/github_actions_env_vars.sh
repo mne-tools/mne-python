@@ -4,7 +4,7 @@ set -eo pipefail -x
 # old and minimal use conda
 if [[ "$MNE_CI_KIND" == "old" ]]; then
     echo "Setting conda env vars for old"
-    echo "CONDA_DEPENDENCIES=numpy=1.21.2 scipy=1.7.1 matplotlib=3.4.3 pandas=1.3.2 scikit-learn=1.0" >> $GITHUB_ENV
+    echo "CONDA_DEPENDENCIES=numpy=1.21.2 scipy=1.7.1 matplotlib=3.5.0 pandas=1.3.2 scikit-learn=1.0" >> $GITHUB_ENV
     echo "MNE_IGNORE_WARNINGS_IN_TESTS=true" >> $GITHUB_ENV
     echo "MNE_SKIP_NETWORK_TESTS=1" >> $GITHUB_ENV
 elif [[ "$MNE_CI_KIND" == "minimal" ]]; then

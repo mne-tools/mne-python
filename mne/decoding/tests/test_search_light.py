@@ -2,15 +2,16 @@
 #
 # License: BSD-3-Clause
 
+import platform
 from inspect import signature
 
 import numpy as np
-from numpy.testing import assert_array_equal, assert_equal
 import pytest
+from numpy.testing import assert_array_equal, assert_equal
 
-from mne.utils import _record_warnings, use_log_level
-from mne.decoding.search_light import SlidingEstimator, GeneralizingEstimator
+from mne.decoding.search_light import GeneralizingEstimator, SlidingEstimator
 from mne.decoding.transformer import Vectorizer
+from mne.utils import _record_warnings, check_version, use_log_level
 
 pytest.importorskip("sklearn")
 
@@ -29,9 +30,12 @@ def make_data():
 
 def test_search_light():
     """Test SlidingEstimator."""
-    from sklearn.linear_model import Ridge, LogisticRegression
+    # https://github.com/scikit-learn/scikit-learn/issues/27711
+    if platform.system() == "Windows" and check_version("numpy", "2.0.0.dev0"):
+        pytest.skip("sklearn int_t / long long mismatch")
+    from sklearn.linear_model import LogisticRegression, Ridge
+    from sklearn.metrics import make_scorer, roc_auc_score
     from sklearn.pipeline import make_pipeline
-    from sklearn.metrics import roc_auc_score, make_scorer
 
     with _record_warnings():  # NumPy module import
         from sklearn.ensemble import BaggingClassifier
@@ -172,9 +176,9 @@ def test_search_light():
 
 def test_generalization_light():
     """Test GeneralizingEstimator."""
-    from sklearn.pipeline import make_pipeline
     from sklearn.linear_model import LogisticRegression
     from sklearn.metrics import roc_auc_score
+    from sklearn.pipeline import make_pipeline
 
     logreg = LogisticRegression(solver="liblinear", multi_class="ovr", random_state=0)
 
@@ -283,9 +287,9 @@ def test_verbose_arg(capsys, n_jobs, verbose):
 
 def test_cross_val_predict():
     """Test cross_val_predict with predict_proba."""
-    from sklearn.linear_model import LinearRegression
-    from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
     from sklearn.base import BaseEstimator, clone
+    from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+    from sklearn.linear_model import LinearRegression
     from sklearn.model_selection import cross_val_predict
 
     rng = np.random.RandomState(42)
@@ -320,8 +324,8 @@ def test_cross_val_predict():
 def test_sklearn_compliance():
     """Test LinearModel compliance with sklearn."""
     pytest.importorskip("sklearn")
-    from sklearn.utils.estimator_checks import check_estimator
     from sklearn.linear_model import LogisticRegression
+    from sklearn.utils.estimator_checks import check_estimator
 
     est = SlidingEstimator(LogisticRegression(), allow_2d=True)
 

@@ -3,17 +3,16 @@
 #
 # License: BSD-3-Clause
 
+import json
+import logging
 from collections import OrderedDict
 from copy import deepcopy
-import logging
-import json
 
 import numpy as np
 
+from ._logging import verbose, warn
 from .check import _check_pandas_installed, _check_preload, _validate_type
-from ._logging import warn, verbose
-from .numerics import object_size, object_hash, _time_mask
-
+from .numerics import _time_mask, object_hash, object_size
 
 logger = logging.getLogger("mne")  # one selection here used across mne-python
 logger.propagate = False  # don't propagate (in case of multiple imports)
@@ -59,9 +58,9 @@ class SizeMixin:
         hash : int
             The hash
         """
-        from ..io import BaseRaw
         from ..epochs import BaseEpochs
         from ..evoked import Evoked
+        from ..io import BaseRaw
 
         if isinstance(self, Evoked):
             return object_hash(dict(info=self.info, data=self.data))
@@ -672,9 +671,9 @@ class ExtendedTimeMixin(TimeMixin):
         # if epochs have frequencies, they are not in time (EpochsTFR)
         # and so do not need to be checked whether they have been
         # appropriately filtered to avoid aliasing
-        from ..evoked import Evoked
         from ..epochs import BaseEpochs
-        from ..time_frequency import EpochsTFR, AverageTFR
+        from ..evoked import Evoked
+        from ..time_frequency import AverageTFR, EpochsTFR
 
         # This should be the list of classes that inherit
         _validate_type(self, (BaseEpochs, Evoked, EpochsTFR, AverageTFR), "inst")
@@ -736,8 +735,8 @@ class ExtendedTimeMixin(TimeMixin):
 
     def _update_first_last(self):
         """Update self.first and self.last (sample indices)."""
-        from ..evoked import Evoked
         from ..dipole import DipoleFixed
+        from ..evoked import Evoked
 
         if isinstance(self, (Evoked, DipoleFixed)):
             self.first = int(round(self.times[0] * self.info["sfreq"]))

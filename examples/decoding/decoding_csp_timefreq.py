@@ -21,19 +21,18 @@ signals.
 # %%
 
 
-import numpy as np
 import matplotlib.pyplot as plt
-
-from mne import Epochs, create_info, events_from_annotations
-from mne.io import concatenate_raws, read_raw_edf
-from mne.datasets import eegbci
-from mne.decoding import CSP
-from mne.time_frequency import AverageTFR
-
+import numpy as np
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.model_selection import StratifiedKFold, cross_val_score
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import LabelEncoder
+
+from mne import Epochs, create_info, events_from_annotations
+from mne.datasets import eegbci
+from mne.decoding import CSP
+from mne.io import concatenate_raws, read_raw_edf
+from mne.time_frequency import AverageTFR
 
 # %%
 # Set parameters and read data
@@ -106,7 +105,7 @@ for freq, (fmin, fmax) in enumerate(freq_ranges):
     epochs.drop_bad()
     y = le.fit_transform(epochs.events[:, 2])
 
-    X = epochs.get_data()
+    X = epochs.get_data(copy=False)
 
     # Save mean scores over folds for each frequency and time window
     freq_scores[freq] = np.mean(
@@ -166,7 +165,7 @@ for freq, (fmin, fmax) in enumerate(freq_ranges):
         w_tmax = w_time + w_size / 2.0
 
         # Crop data into time-window of interest
-        X = epochs.copy().crop(w_tmin, w_tmax).get_data()
+        X = epochs.get_data(tmin=w_tmin, tmax=w_tmax, copy=False)
 
         # Save mean scores over folds for each frequency and time window
         tf_scores[freq, t] = np.mean(

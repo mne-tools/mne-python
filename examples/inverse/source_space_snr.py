@@ -17,11 +17,12 @@ This example shows how to compute and plot source space SNR as in
 
 # sphinx_gallery_thumbnail_number = 2
 
+import matplotlib.pyplot as plt
+import numpy as np
+
 import mne
 from mne.datasets import sample
-from mne.minimum_norm import make_inverse_operator, apply_inverse
-import numpy as np
-import matplotlib.pyplot as plt
+from mne.minimum_norm import apply_inverse, make_inverse_operator
 
 print(__doc__)
 
@@ -51,10 +52,9 @@ snr_stc = stc.estimate_snr(evoked.info, fwd, cov)
 # Plot an average SNR across source points over time:
 ave = np.mean(snr_stc.data, axis=0)
 
-fig, ax = plt.subplots()
+fig, ax = plt.subplots(layout="constrained")
 ax.plot(evoked.times, ave)
 ax.set(xlabel="Time (s)", ylabel="SNR MEG-EEG")
-fig.tight_layout()
 
 # Find time point of maximum SNR
 maxidx = np.argmax(ave)

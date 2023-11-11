@@ -91,7 +91,7 @@ builtin = "clear,rare,informal,names,usage"
 skip = "doc/references.bib"
 
 [tool.ruff]
-select = ["E", "F", "W", "D"]
+select = ["E", "F", "W", "D", "I"]
 exclude = ["__init__.py", "constants.py", "resources.py"]
 ignore = [
     "D100", # Missing docstring in public module
@@ -128,7 +128,7 @@ ignore-decorators = [
 
 [tool.pytest.ini_options]
 addopts = """--durations=20 --doctest-modules -ra --cov-report= --tb=short \
-    --doctest-ignore-import-errors --junit-xml=junit-results.xml \
+    --cov-branch --doctest-ignore-import-errors --junit-xml=junit-results.xml \
     --ignore=doc --ignore=logo --ignore=examples --ignore=tutorials \
     --ignore=mne/gui/_*.py --ignore=mne/icons --ignore=tools \
     --ignore=mne/report/js_and_css \
@@ -140,3 +140,17 @@ exclude = "(dist/)|(build/)|(.*\\.ipynb)"
 
 [tool.bandit.assert_used]
 skips = ["*/test_*.py"] # assert statements are good practice with pytest
+
+[tool.rstcheck]
+report_level = "WARNING"
+ignore_roles = [
+    "func", "class", "term", "ref", "doc", "gh", "file", "samp", "meth", "mod", "kbd",
+    "newcontrib", "footcite", "footcite:t", "eq", "py:mod", "attr", "py:class", "exc",
+]
+ignore_directives = [
+    "rst-class", "tab-set", "grid", "toctree", "footbibliography", "autosummary",
+    "currentmodule", "automodule", "cssclass", "tabularcolumns", "minigallery",
+    "autoclass", "highlight", "dropdown", "graphviz", "glossary", "autofunction",
+    "bibliography",
+]
+ignore_messages = "^.*(Unknown target name|Undefined substitution referenced)[^`]*$"

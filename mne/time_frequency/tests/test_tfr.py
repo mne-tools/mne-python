@@ -3,41 +3,41 @@ import re
 from itertools import product
 from pathlib import Path
 
-import numpy as np
-from numpy.testing import assert_array_equal, assert_equal, assert_allclose
-import pytest
 import matplotlib.pyplot as plt
+import numpy as np
+import pytest
+from numpy.testing import assert_allclose, assert_array_equal, assert_equal
 from scipy.signal import morlet2
 
 import mne
 from mne import (
     Epochs,
-    read_events,
-    pick_types,
-    create_info,
     EpochsArray,
     Info,
     Transform,
+    create_info,
+    pick_types,
+    read_events,
 )
 from mne.io import read_raw_fif
-from mne.utils import grand_average, catch_logging
+from mne.tests.test_epochs import assert_metadata_equal
+from mne.time_frequency import tfr_array_morlet, tfr_array_multitaper
 from mne.time_frequency.tfr import (
-    morlet,
-    tfr_morlet,
-    _make_dpss,
-    tfr_multitaper,
     AverageTFR,
-    read_tfrs,
-    write_tfrs,
+    EpochsTFR,
+    _compute_tfr,
+    _make_dpss,
     combine_tfr,
     cwt,
-    _compute_tfr,
-    EpochsTFR,
     fwhm,
+    morlet,
+    read_tfrs,
+    tfr_morlet,
+    tfr_multitaper,
+    write_tfrs,
 )
-from mne.time_frequency import tfr_array_multitaper, tfr_array_morlet
+from mne.utils import catch_logging, grand_average
 from mne.viz.utils import _fake_click, _fake_keypress, _fake_scroll
-from mne.tests.test_epochs import assert_metadata_equal
 
 data_path = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
 raw_fname = data_path / "test_raw.fif"

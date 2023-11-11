@@ -20,10 +20,9 @@ predict all of the time samples of a second set of conditions.
 # %%
 
 import matplotlib.pyplot as plt
-
+from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
-from sklearn.linear_model import LogisticRegression
 
 import mne
 from mne.datasets import sample
@@ -78,17 +77,17 @@ time_gen = GeneralizingEstimator(clf, scoring="roc_auc", n_jobs=None, verbose=Tr
 
 # Fit classifiers on the epochs where the stimulus was presented to the left.
 # Note that the experimental condition y indicates auditory or visual
-time_gen.fit(X=epochs["Left"].get_data(), y=epochs["Left"].events[:, 2] > 2)
+time_gen.fit(X=epochs["Left"].get_data(copy=False), y=epochs["Left"].events[:, 2] > 2)
 
 # %%
 # Score on the epochs where the stimulus was presented to the right.
 scores = time_gen.score(
-    X=epochs["Right"].get_data(), y=epochs["Right"].events[:, 2] > 2
+    X=epochs["Right"].get_data(copy=False), y=epochs["Right"].events[:, 2] > 2
 )
 
 # %%
 # Plot
-fig, ax = plt.subplots(constrained_layout=True)
+fig, ax = plt.subplots(layout="constrained")
 im = ax.matshow(
     scores,
     vmin=0,

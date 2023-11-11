@@ -21,15 +21,14 @@ that was used to create this data.
 
 # sphinx_gallery_thumbnail_number = 7
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
+from scipy.io import loadmat
+from scipy.stats import multivariate_normal
+from sklearn.preprocessing import scale
 
 import mne
 from mne.decoding import ReceptiveField, TimeDelayingRidge
-
-from scipy.stats import multivariate_normal
-from scipy.io import loadmat
-from sklearn.preprocessing import scale
 
 rng = np.random.RandomState(1337)  # To make this example reproducible
 
@@ -86,12 +85,10 @@ kwargs = dict(
     shading="gouraud",
 )
 
-fig, ax = plt.subplots()
+fig, ax = plt.subplots(layout="constrained")
 ax.pcolormesh(delays_sec, freqs, weights, **kwargs)
 ax.set(title="Simulated STRF", xlabel="Time Lags (s)", ylabel="Frequency (Hz)")
 plt.setp(ax.get_xticklabels(), rotation=45)
-plt.autoscale(tight=True)
-mne.viz.tight_layout()
 
 # %%
 # Simulate a neural response
@@ -147,7 +144,7 @@ for ii, iep in enumerate(X_del):
 X_plt = scale(np.hstack(X[:2]).T).T
 y_plt = scale(np.hstack(y[:2]))
 time = np.arange(X_plt.shape[-1]) / sfreq
-_, (ax1, ax2) = plt.subplots(2, 1, figsize=(6, 6), sharex=True)
+_, (ax1, ax2) = plt.subplots(2, 1, figsize=(6, 6), sharex=True, layout="constrained")
 ax1.pcolormesh(time, freqs, X_plt, vmin=0, vmax=4, cmap="Reds", shading="gouraud")
 ax1.set_title("Input auditory features")
 ax1.set(ylim=[freqs.min(), freqs.max()], ylabel="Frequency (Hz)")
@@ -158,7 +155,6 @@ ax2.set(
     xlabel="Time (s)",
     ylabel="Activity (a.u.)",
 )
-mne.viz.tight_layout()
 
 
 # %%
@@ -197,14 +193,19 @@ coefs = best_mod.coef_[0]
 best_pred = best_mod.predict(X_test)[:, 0]
 
 # Plot the original STRF, and the one that we recovered with modeling.
-_, (ax1, ax2) = plt.subplots(1, 2, figsize=(6, 3), sharey=True, sharex=True)
+_, (ax1, ax2) = plt.subplots(
+    1,
+    2,
+    figsize=(6, 3),
+    sharey=True,
+    sharex=True,
+    layout="constrained",
+)
 ax1.pcolormesh(delays_sec, freqs, weights, **kwargs)
 ax2.pcolormesh(times, rf.feature_names, coefs, **kwargs)
 ax1.set_title("Original STRF")
 ax2.set_title("Best Reconstructed STRF")
 plt.setp([iax.get_xticklabels() for iax in [ax1, ax2]], rotation=45)
-plt.autoscale(tight=True)
-mne.viz.tight_layout()
 
 # Plot the actual response and the predicted response on a held out stimulus
 time_pred = np.arange(best_pred.shape[0]) / sfreq
@@ -213,8 +214,6 @@ ax.plot(time_pred, y_test, color="k", alpha=0.2, lw=4)
 ax.plot(time_pred, best_pred, color="r", lw=1)
 ax.set(title="Original and predicted activity", xlabel="Time (s)")
 ax.legend(["Original", "Predicted"])
-plt.autoscale(tight=True)
-mne.viz.tight_layout()
 
 
 # %%
@@ -229,7 +228,7 @@ mne.viz.tight_layout()
 # in :footcite:`TheunissenEtAl2001,WillmoreSmyth2003,HoldgrafEtAl2016`.
 
 # Plot model score for each ridge parameter
-fig = plt.figure(figsize=(10, 4))
+fig = plt.figure(figsize=(10, 4), layout="constrained")
 ax = plt.subplot2grid([2, len(alphas)], [1, 0], 1, len(alphas))
 ax.plot(np.arange(len(alphas)), scores, marker="o", color="r")
 ax.annotate(
@@ -244,7 +243,6 @@ ax.set(
     ylabel="Score ($R^2$)",
     xlim=[-0.4, len(alphas) - 0.6],
 )
-mne.viz.tight_layout()
 
 # Plot the STRF of each ridge parameter
 for ii, (rf, i_alpha) in enumerate(zip(models, alphas)):
@@ -252,9 +250,7 @@ for ii, (rf, i_alpha) in enumerate(zip(models, alphas)):
     ax.pcolormesh(times, rf.feature_names, rf.coef_[0], **kwargs)
     plt.xticks([], [])
     plt.yticks([], [])
-    plt.autoscale(tight=True)
 fig.suptitle("Model coefficients / scores for many ridge parameters", y=1)
-mne.viz.tight_layout()
 
 # %%
 # Using different regularization types
@@ -308,7 +304,7 @@ ix_best_alpha_lap = np.argmax(scores_lap)
 # This matches the "true" receptive field structure and results in a better
 # model fit.
 
-fig = plt.figure(figsize=(10, 6))
+fig = plt.figure(figsize=(10, 6), layout="constrained")
 ax = plt.subplot2grid([3, len(alphas)], [2, 0], 1, len(alphas))
 ax.plot(np.arange(len(alphas)), scores_lap, marker="o", color="r")
 ax.plot(np.arange(len(alphas)), scores, marker="o", color="0.5", ls=":")
@@ -330,7 +326,6 @@ ax.set(
     ylabel="Score ($R^2$)",
     xlim=[-0.4, len(alphas) - 0.6],
 )
-mne.viz.tight_layout()
 
 # Plot the STRF of each ridge parameter
 xlim = times[[0, -1]]
@@ -346,13 +341,19 @@ for ii, (rf_lap, rf, i_alpha) in enumerate(zip(models_lap, models, alphas)):
     if ii == 0:
         ax.set(ylabel="Ridge")
 fig.suptitle("Model coefficients / scores for laplacian regularization", y=1)
-mne.viz.tight_layout()
 
 # %%
 # Plot the original STRF, and the one that we recovered with modeling.
 rf = models[ix_best_alpha]
 rf_lap = models_lap[ix_best_alpha_lap]
-_, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(9, 3), sharey=True, sharex=True)
+_, (ax1, ax2, ax3) = plt.subplots(
+    1,
+    3,
+    figsize=(9, 3),
+    sharey=True,
+    sharex=True,
+    layout="constrained",
+)
 ax1.pcolormesh(delays_sec, freqs, weights, **kwargs)
 ax2.pcolormesh(times, rf.feature_names, rf.coef_[0], **kwargs)
 ax3.pcolormesh(times, rf_lap.feature_names, rf_lap.coef_[0], **kwargs)
@@ -360,8 +361,6 @@ ax1.set_title("Original STRF")
 ax2.set_title("Best Ridge STRF")
 ax3.set_title("Best Laplacian STRF")
 plt.setp([iax.get_xticklabels() for iax in [ax1, ax2, ax3]], rotation=45)
-plt.autoscale(tight=True)
-mne.viz.tight_layout()
 
 # %%
 # References

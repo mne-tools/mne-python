@@ -25,6 +25,7 @@ to exclude ECG artifacts from projection computation.
 
 import os
 import sys
+
 import mne
 
 

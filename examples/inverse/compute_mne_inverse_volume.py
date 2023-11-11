@@ -14,11 +14,11 @@ space and stores the solution in a nifti file for visualisation.
 
 # %%
 
-from nilearn.plotting import plot_stat_map
 from nilearn.image import index_img
+from nilearn.plotting import plot_stat_map
 
-from mne.datasets import sample
 from mne import read_evokeds
+from mne.datasets import sample
 from mne.minimum_norm import apply_inverse, read_inverse_operator
 
 print(__doc__)

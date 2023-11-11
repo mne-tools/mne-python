@@ -3,19 +3,19 @@
 #
 # License: BSD-3-Clause
 
-from contextlib import contextmanager
-from gzip import GzipFile
 import os.path as op
 import re
 import time
 import uuid
+from contextlib import contextmanager
+from gzip import GzipFile
 
 import numpy as np
 from scipy.sparse import csc_matrix, csr_matrix
 
-from .constants import FIFF
-from ..utils import logger, _file_like, _validate_type
+from ..utils import _file_like, _validate_type, logger
 from ..utils.numerics import _cal_to_julian
+from .constants import FIFF
 
 # We choose a "magic" date to store (because meas_date is obligatory)
 # to treat as meas_date=None. This one should be impossible for systems
@@ -128,11 +128,13 @@ def write_julian(fid, kind, data):
 
 def write_string(fid, kind, data):
     """Write a string tag."""
-    str_data = str(data).encode("latin1")
+    try:
+        str_data = str(data).encode("latin1")
+    except UnicodeEncodeError:
+        str_data = str(data).encode("latin1", errors="xmlcharrefreplace")
     data_size = len(str_data)  # therefore compute size here
-    my_dtype = ">a"  # py2/3 compatible on writing -- don't ask me why
     if data_size > 0:
-        _write(fid, str_data, kind, data_size, FIFF.FIFFT_STRING, my_dtype)
+        _write(fid, str_data, kind, data_size, FIFF.FIFFT_STRING, ">S")
 
 
 def write_name_list(fid, kind, data):

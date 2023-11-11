@@ -10,26 +10,26 @@ import numbers
 import numpy as np
 from scipy.fft import rfftfreq
 
-from .tfr import _cwt_array, morlet, _get_nfft, EpochsTFR
-from .._fiff.pick import pick_channels, _picks_to_idx
+from .._fiff.pick import _picks_to_idx, pick_channels
+from ..parallel import parallel_func
+from ..time_frequency.multitaper import (
+    _compute_mt_params,
+    _csd_from_mt,
+    _mt_spectra,
+    _psd_from_mt_adaptive,
+)
 from ..utils import (
-    logger,
-    verbose,
-    warn,
-    copy_function_doc_to_method_doc,
     ProgressBar,
     _check_fname,
     _import_h5io_funcs,
     _validate_type,
+    copy_function_doc_to_method_doc,
+    logger,
+    verbose,
+    warn,
 )
 from ..viz.misc import plot_csd
-from ..time_frequency.multitaper import (
-    _compute_mt_params,
-    _mt_spectra,
-    _csd_from_mt,
-    _psd_from_mt_adaptive,
-)
-from ..parallel import parallel_func
+from .tfr import EpochsTFR, _cwt_array, _get_nfft, morlet
 
 
 @verbose
@@ -717,7 +717,7 @@ def csd_fourier(
     """
     epochs, projs = _prepare_csd(epochs, tmin, tmax, picks, projs)
     return csd_array_fourier(
-        epochs.get_data(),
+        epochs.get_data(copy=False),
         sfreq=epochs.info["sfreq"],
         t0=epochs.tmin,
         fmin=fmin,
@@ -900,7 +900,7 @@ def csd_multitaper(
     """
     epochs, projs = _prepare_csd(epochs, tmin, tmax, picks, projs)
     return csd_array_multitaper(
-        epochs.get_data(),
+        epochs.get_data(copy=False),
         sfreq=epochs.info["sfreq"],
         t0=epochs.tmin,
         fmin=fmin,
@@ -1109,7 +1109,7 @@ def csd_morlet(
     """
     epochs, projs = _prepare_csd(epochs, tmin, tmax, picks, projs)
     return csd_array_morlet(
-        epochs.get_data(),
+        epochs.get_data(copy=False),
         sfreq=epochs.info["sfreq"],
         frequencies=frequencies,
         t0=epochs.tmin,

@@ -9,33 +9,33 @@ from contextlib import nullcontext
 from pathlib import Path
 
 import numpy as np
-from numpy.testing import assert_array_equal, assert_allclose, assert_equal
 import pytest
+from numpy.testing import assert_allclose, assert_array_equal, assert_equal
 
 from mne import (
-    pick_channels,
-    pick_types,
     Epochs,
-    read_events,
-    set_eeg_reference,
-    set_bipolar_reference,
+    Projection,
     add_reference_channels,
     create_info,
-    make_sphere_model,
-    make_forward_solution,
-    setup_volume_source_space,
-    pick_channels_forward,
-    read_evokeds,
     find_events,
-    Projection,
+    make_forward_solution,
+    make_sphere_model,
+    pick_channels,
+    pick_channels_forward,
+    pick_types,
+    read_events,
+    read_evokeds,
+    set_bipolar_reference,
+    set_eeg_reference,
+    setup_volume_source_space,
 )
-from mne.epochs import BaseEpochs, make_fixed_length_epochs
-from mne.io import RawArray, read_raw_fif
 from mne._fiff.constants import FIFF
 from mne._fiff.proj import _has_eeg_average_ref_proj
 from mne._fiff.reference import _apply_reference
 from mne.datasets import testing
-from mne.utils import catch_logging, _record_warnings
+from mne.epochs import BaseEpochs, make_fixed_length_epochs
+from mne.io import RawArray, read_raw_fif
+from mne.utils import _record_warnings, catch_logging
 
 base_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
 raw_fname = base_dir / "test_raw.fif"
@@ -620,12 +620,10 @@ def test_add_reference():
     assert_equal(epochs_ref._data.shape[1], epochs._data.shape[1] + 1)
     _check_channel_names(epochs_ref, "Ref")
     ref_idx = epochs_ref.ch_names.index("Ref")
-    ref_data = epochs_ref.get_data()[:, ref_idx, :]
+    ref_data = epochs_ref.get_data(picks=[ref_idx])[:, 0]
     assert_array_equal(ref_data, 0)
     picks_eeg = pick_types(epochs.info, meg=False, eeg=True)
-    assert_array_equal(
-        epochs.get_data()[:, picks_eeg, :], epochs_ref.get_data()[:, picks_eeg, :]
-    )
+    assert_array_equal(epochs.get_data(picks_eeg), epochs_ref.get_data(picks_eeg))
 
     # add two reference channels to epochs
     raw = read_raw_fif(fif_fname, preload=True)
@@ -650,12 +648,10 @@ def test_add_reference():
     ref_idy = epochs_ref.ch_names.index("M2")
     assert_equal(epochs_ref.info["chs"][ref_idx]["ch_name"], "M1")
     assert_equal(epochs_ref.info["chs"][ref_idy]["ch_name"], "M2")
-    ref_data = epochs_ref.get_data()[:, [ref_idx, ref_idy], :]
+    ref_data = epochs_ref.get_data([ref_idx, ref_idy])
     assert_array_equal(ref_data, 0)
     picks_eeg = pick_types(epochs.info, meg=False, eeg=True)
-    assert_array_equal(
-        epochs.get_data()[:, picks_eeg, :], epochs_ref.get_data()[:, picks_eeg, :]
-    )
+    assert_array_equal(epochs.get_data(picks_eeg), epochs_ref.get_data(picks_eeg))
 
     # add reference channel to evoked
     raw = read_raw_fif(fif_fname, preload=True)
@@ -725,7 +721,7 @@ def test_add_reference():
     data = data.get_data()
     epochs = make_fixed_length_epochs(raw).load_data()
     data_2 = epochs.copy().add_reference_channels(["REF"]).pick(picks="eeg")
-    data_2 = data_2.get_data()[0]
+    data_2 = data_2.get_data(copy=False)[0]
     assert_allclose(data, data_2)
     evoked = epochs.average()
     data_3 = evoked.copy().add_reference_channels(["REF"]).pick(picks="eeg")

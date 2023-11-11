@@ -5,8 +5,8 @@
 # License: Simplified BSD
 
 
-import pytest
 import matplotlib
+import pytest
 
 from mne.viz import plot_channel_labels_circle
 

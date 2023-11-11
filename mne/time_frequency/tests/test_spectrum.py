@@ -1,17 +1,15 @@
-from contextlib import nullcontext
 from functools import partial
 
 import numpy as np
 import pytest
-from numpy.testing import assert_array_equal, assert_allclose
-import matplotlib.pyplot as plt
+from matplotlib.colors import same_color
+from numpy.testing import assert_allclose, assert_array_equal
 
-from mne import create_info, make_fixed_length_epochs
+from mne import Annotations, create_info, make_fixed_length_epochs
 from mne.io import RawArray
-from mne import Annotations
 from mne.time_frequency import read_spectrum
 from mne.time_frequency.multitaper import _psd_from_mt
-from mne.time_frequency.spectrum import SpectrumArray, EpochsSpectrumArray
+from mne.time_frequency.spectrum import EpochsSpectrumArray, SpectrumArray
 
 
 def test_compute_psd_errors(raw):
@@ -360,7 +358,6 @@ def test_spectrum_complex(method, average):
     assert len(epochs) == 5
     assert len(epochs.times) == 2 * sfreq
     kwargs = dict(output="complex", method=method)
-    ctx = pytest.warns(UserWarning, match="Zero value")
     if method == "welch":
         kwargs["n_fft"] = sfreq
         want_dims = ("epoch", "channel", "freq")
@@ -372,11 +369,9 @@ def test_spectrum_complex(method, average):
     else:
         assert method == "multitaper"
         assert not average
-        ctx = nullcontext()
         want_dims = ("epoch", "channel", "taper", "freq")
         want_shape = (5, 1, 7, sfreq + 1)
-    with ctx:
-        spectrum = epochs.compute_psd(**kwargs)
+    spectrum = epochs.compute_psd(**kwargs)
     idx = np.argmin(np.abs(spectrum.freqs - freq))
     assert spectrum.freqs[idx] == freq
     assert spectrum._dims == want_dims
@@ -390,6 +385,13 @@ def test_spectrum_complex(method, average):
         coef = coef.mean(-1)  # over segments
     coef = coef.item()
     assert_allclose(np.angle(coef), phase, rtol=1e-4)
+    # Now test that it warns appropriately
+    epochs._data[0, 0, :] = 0  # actually zero for one epoch and ch
+    with pytest.warns(UserWarning, match="Zero value.*channel 0"):
+        epochs.compute_psd(**kwargs)
+    # But not if we mark that channel as bad
+    epochs.info["bads"] = epochs.ch_names[:1]
+    epochs.compute_psd(**kwargs)
 
 
 def test_spectrum_kwarg_triaging(raw):
@@ -450,8 +452,16 @@ def test_plot_spectrum(kind, array, request):
         data, freqs = spectrum.get_data(return_freqs=True)
         Klass = SpectrumArray if kind == "raw" else EpochsSpectrumArray
         spectrum = Klass(data=data, info=spectrum.info, freqs=freqs)
+    spectrum.info["bads"] = spectrum.ch_names[:1]  # one grad channel
     spectrum.plot(average=True, amplitude=True, spatial_colors=True)
-    spectrum.plot(average=False, amplitude=False, spatial_colors=False)
+    spectrum.plot(average=True, amplitude=False, spatial_colors=False)
+    n_grad = sum(ch_type == "grad" for ch_type in spectrum.get_channel_types())
+    for amp, sc in ((True, True), (False, False)):
+        fig = spectrum.plot(average=False, amplitude=amp, spatial_colors=sc, exclude=())
+        lines = fig.axes[0].lines[2:]  # grads, ignore two vlines
+        assert len(lines) == n_grad
+        bad_color = "0.5" if sc else "r"
+        n_bad = sum(same_color(line.get_color(), bad_color) for line in lines)
+        assert n_bad == 1
     spectrum.plot_topo()
     spectrum.plot_topomap()
-    plt.close("all")

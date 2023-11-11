@@ -10,29 +10,29 @@ from copy import deepcopy
 from pathlib import Path
 
 import numpy as np
-from scipy import fftpack
-from numpy.testing import (
-    assert_array_almost_equal,
-    assert_equal,
-    assert_array_equal,
-    assert_allclose,
-)
 import pytest
+from numpy.testing import (
+    assert_allclose,
+    assert_array_almost_equal,
+    assert_array_equal,
+    assert_equal,
+)
+from scipy import fftpack
 
 from mne import (
-    equalize_channels,
-    pick_types,
-    read_evokeds,
-    write_evokeds,
-    combine_evoked,
-    create_info,
-    read_events,
     Epochs,
     EpochsArray,
+    combine_evoked,
+    create_info,
+    equalize_channels,
+    pick_types,
+    read_events,
+    read_evokeds,
+    write_evokeds,
 )
-from mne.evoked import _get_peak, Evoked, EvokedArray
-from mne.io import read_raw_fif
 from mne._fiff.constants import FIFF
+from mne.evoked import Evoked, EvokedArray, _get_peak
+from mne.io import read_raw_fif
 from mne.utils import grand_average
 
 base_dir = Path(__file__).parent.parent / "io" / "tests" / "data"
@@ -135,7 +135,7 @@ def test_decim():
         expected_times = epochs.times[offset::decim]
         assert_allclose(ev_decim.times, expected_times)
         assert_allclose(ev_ep_decim.times, expected_times)
-        expected_data = epochs.get_data()[:, :, offset::decim].mean(axis=0)
+        expected_data = epochs.get_data(copy=False)[:, :, offset::decim].mean(axis=0)
         assert_allclose(ev_decim.data, expected_data)
         assert_allclose(ev_ep_decim.data, expected_data)
         assert_equal(ev_decim.info["sfreq"], sfreq_new)
@@ -262,6 +262,12 @@ def test_io_evoked(tmp_path):
     ave_complex.save(fname_temp)
     ave_complex = read_evokeds(fname_temp)[0]
     assert_allclose(ave.data, ave_complex.data.imag)
+
+    # test non-ascii comments (gh 11684)
+    aves1[0].comment = "🙃"
+    write_evokeds(tmp_path / "evoked-ave.fif", aves1, overwrite=True)
+    aves1_read = read_evokeds(tmp_path / "evoked-ave.fif")[0]
+    assert aves1_read.comment == aves1[0].comment
 
     # test warnings on bad filenames
     fname2 = tmp_path / "test-bad-name.fif"
@@ -905,7 +911,7 @@ def test_hilbert():
     raw_hilb = raw.apply_hilbert()
     epochs_hilb = epochs.apply_hilbert()
     evoked_hilb = evoked.copy().apply_hilbert()
-    evoked_hilb_2_data = epochs_hilb.get_data().mean(0)
+    evoked_hilb_2_data = epochs_hilb.get_data(copy=False).mean(0)
     assert_allclose(evoked_hilb.data, evoked_hilb_2_data)
     # This one is only approximate because of edge artifacts
     evoked_hilb_3 = Epochs(raw_hilb, events).average()

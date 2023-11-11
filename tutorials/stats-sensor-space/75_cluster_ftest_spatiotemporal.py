@@ -5,12 +5,10 @@
 Spatiotemporal permutation F-test on full sensor data
 =====================================================
 
-Tests for differential evoked responses in at least
-one condition using a permutation clustering test.
-The FieldTrip neighbor templates will be used to determine
-the adjacency between sensors. This serves as a spatial prior
-to the clustering. Spatiotemporal clusters will then
-be visualized using custom matplotlib code.
+Tests for differential evoked responses in at least one condition using a permutation
+clustering test. The FieldTrip neighbor templates will be used to determine the
+adjacency between sensors. This serves as a spatial prior to the clustering.
+Spatiotemporal clusters will then be visualized using custom matplotlib code.
 
 Here, the unit of observation is epochs from a specific study subject.
 However, the same logic applies when the unit observation is
@@ -33,17 +31,17 @@ see also: :ref:`tut-cluster-one-samp-tfr`
 
 # %%
 
-import numpy as np
 import matplotlib.pyplot as plt
-from mpl_toolkits.axes_grid1 import make_axes_locatable
+import numpy as np
 import scipy.stats
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 import mne
-from mne.stats import spatio_temporal_cluster_test, combine_adjacency
-from mne.datasets import sample
 from mne.channels import find_ch_adjacency
-from mne.viz import plot_compare_evokeds
+from mne.datasets import sample
+from mne.stats import combine_adjacency, spatio_temporal_cluster_test
 from mne.time_frequency import tfr_morlet
+from mne.viz import plot_compare_evokeds
 
 # %%
 # Set parameters
@@ -87,7 +85,7 @@ epochs.equalize_event_counts(event_id)
 # Obtain the data as a 3D matrix and transpose it such that
 # the dimensions are as expected for the cluster permutation test:
 # n_epochs × n_times × n_channels
-X = [epochs[event_name].get_data() for event_name in event_id]
+X = [epochs[event_name].get_data(copy=False) for event_name in event_id]
 X = [np.transpose(x, (0, 2, 1)) for x in X]
 
 
@@ -201,7 +199,7 @@ for i_clu, clu_idx in enumerate(good_cluster_inds):
     mask[ch_inds, :] = True
 
     # initialize figure
-    fig, ax_topo = plt.subplots(1, 1, figsize=(10, 3))
+    fig, ax_topo = plt.subplots(1, 1, figsize=(10, 3), layout="constrained")
 
     # plot average test statistic and mark significant sensors
     f_evoked = mne.EvokedArray(f_map[:, np.newaxis], epochs.info, tmin=0)
@@ -253,10 +251,7 @@ for i_clu, clu_idx in enumerate(good_cluster_inds):
         (ymin, ymax), sig_times[0], sig_times[-1], color="orange", alpha=0.3
     )
 
-    # clean up viz
-    mne.viz.tight_layout(fig=fig)
-    fig.subplots_adjust(bottom=0.05)
-    plt.show()
+plt.show()
 
 # %%
 # Permutation statistic for time-frequencies
@@ -354,7 +349,7 @@ for i_clu, clu_idx in enumerate(good_cluster_inds):
     sig_times = epochs.times[time_inds]
 
     # initialize figure
-    fig, ax_topo = plt.subplots(1, 1, figsize=(10, 3))
+    fig, ax_topo = plt.subplots(1, 1, figsize=(10, 3), layout="constrained")
 
     # create spatial mask
     mask = np.zeros((f_map.shape[0], 1), dtype=bool)
@@ -416,9 +411,7 @@ for i_clu, clu_idx in enumerate(good_cluster_inds):
     ax_colorbar2.set_ylabel("F-stat")
 
     # clean up viz
-    mne.viz.tight_layout(fig=fig)
-    fig.subplots_adjust(bottom=0.05)
-    plt.show()
+plt.show()
 
 
 # %%

@@ -11,7 +11,7 @@ Inverse Solutions
 .. currentmodule:: mne.minimum_norm
 
 .. autosummary::
-   :toctree: generated/
+   :toctree: ../generated/
 
    InverseOperator
    apply_inverse
@@ -43,7 +43,7 @@ Inverse Solutions
 .. currentmodule:: mne.inverse_sparse
 
 .. autosummary::
-   :toctree: generated/
+   :toctree: ../generated/
 
    mixed_norm
    tf_mixed_norm
@@ -59,7 +59,7 @@ Inverse Solutions
 .. currentmodule:: mne.beamformer
 
 .. autosummary::
-   :toctree: generated/
+   :toctree: ../generated/
 
    Beamformer
    read_beamformer
@@ -80,7 +80,7 @@ Inverse Solutions
 .. currentmodule:: mne
 
 .. autosummary::
-   :toctree: generated/
+   :toctree: ../generated/
 
    Dipole
    DipoleFixed
@@ -95,6 +95,6 @@ Inverse Solutions
 .. currentmodule:: mne.dipole
 
 .. autosummary::
-   :toctree: generated/
+   :toctree: ../generated/
 
    get_phantom_dipoles

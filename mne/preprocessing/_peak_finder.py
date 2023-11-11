@@ -1,6 +1,6 @@
 import numpy as np
 
-from ..utils import logger, verbose, _pl
+from ..utils import _pl, logger, verbose
 
 
 @verbose

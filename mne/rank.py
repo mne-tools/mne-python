@@ -6,24 +6,24 @@
 import numpy as np
 from scipy import linalg
 
-from .defaults import _handle_default
-from ._fiff.meas_info import _simplify_info, Info
-from ._fiff.pick import _picks_by_type, pick_info, pick_channels_cov, _picks_to_idx
+from ._fiff.meas_info import Info, _simplify_info
+from ._fiff.pick import _picks_by_type, _picks_to_idx, pick_channels_cov, pick_info
 from ._fiff.proj import make_projector
+from .defaults import _handle_default
 from .utils import (
-    logger,
-    _compute_row_norms,
-    _pl,
-    _validate_type,
     _apply_scaling_cov,
-    _undo_scaling_cov,
-    _scaled_array,
-    warn,
-    _check_rank,
-    _on_missing,
-    verbose,
     _check_on_missing,
+    _check_rank,
+    _compute_row_norms,
+    _on_missing,
+    _pl,
+    _scaled_array,
+    _undo_scaling_cov,
+    _validate_type,
     fill_doc,
+    logger,
+    verbose,
+    warn,
 )
 
 
@@ -351,9 +351,9 @@ def compute_rank(
     -----
     .. versionadded:: 0.18
     """
-    from .io import BaseRaw
-    from .epochs import BaseEpochs
     from .cov import Covariance
+    from .epochs import BaseEpochs
+    from .io import BaseRaw
 
     rank = _check_rank(rank)
     scalings = _handle_default("scalings_cov_rank", scalings)
@@ -442,8 +442,7 @@ def compute_rank(
                 if isinstance(inst, BaseRaw):
                     data = inst.get_data(picks, reject_by_annotation="omit")
                 else:  # isinstance(inst, BaseEpochs):
-                    data = inst.get_data()[:, picks, :]
-                    data = np.concatenate(data, axis=1)
+                    data = np.concatenate(inst.get_data(picks), axis=1)
                 if proj:
                     data = np.dot(proj_op, data)
                 this_rank = _estimate_rank_meeg_signals(

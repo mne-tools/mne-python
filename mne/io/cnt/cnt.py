@@ -8,22 +8,20 @@ from os import path
 
 import numpy as np
 
-from ..base import BaseRaw
-from ...utils import warn, fill_doc, _check_option
-from ...channels.layout import _topo_to_sphere
-from ..._fiff.constants import FIFF
 from ..._fiff._digitization import _make_dig_points
-from ..._fiff.utils import _mult_cal_one, _find_channels, _create_chs, read_str
+from ..._fiff.constants import FIFF
 from ..._fiff.meas_info import _empty_info
+from ..._fiff.utils import _create_chs, _find_channels, _mult_cal_one, read_str
 from ...annotations import Annotations
-
-
+from ...channels.layout import _topo_to_sphere
+from ...utils import _check_option, fill_doc, warn
+from ..base import BaseRaw
 from ._utils import (
-    _read_teeg,
-    _get_event_parser,
-    _session_date_2_meas_date,
-    _compute_robust_event_table_position,
     CNTEventType3,
+    _compute_robust_event_table_position,
+    _get_event_parser,
+    _read_teeg,
+    _session_date_2_meas_date,
 )
 
 

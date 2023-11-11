@@ -5,10 +5,11 @@
 # License: Simplified BSD
 
 from math import sqrt
+
 import numpy as np
 
-from ..utils import check_random_state, verbose, logger
 from ..parallel import parallel_func
+from ..utils import check_random_state, logger, verbose
 
 
 def _max_stat(X, X2, perms, dof_scaling):

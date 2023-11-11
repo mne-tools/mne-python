@@ -33,8 +33,8 @@ Please note that this tutorial requires 3D plotting dependencies (see
 
 # %%
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 from matplotlib import colormaps
 from mne_bids import BIDSPath, read_raw_bids
 
@@ -133,9 +133,9 @@ fig = plot_alignment(
     subjects_dir=subjects_dir,
     surfaces=["pial"],
     coord_frame="head",
-    sensor_colors=None,
+    sensor_colors=(1.0, 1.0, 1.0, 0.5),
 )
-mne.viz.set_3d_view(fig, azimuth=0, elevation=70)
+mne.viz.set_3d_view(fig, azimuth=0, elevation=70, focalpoint="auto", distance="auto")
 
 xy, im = snapshot_brain_montage(fig, raw.info)
 
@@ -165,7 +165,8 @@ gamma_power_at_15s = gamma_power_t.to_data_frame(index="time").loc[15]
 gamma_power_at_15s -= gamma_power_at_15s.min()
 gamma_power_at_15s /= gamma_power_at_15s.max()
 rgba = colormaps.get_cmap("viridis")
-sensor_colors = gamma_power_at_15s.map(rgba).tolist()
+sensor_colors = np.array(gamma_power_at_15s.map(rgba).tolist(), float)
+sensor_colors[:, 3] = 0.5
 
 fig = plot_alignment(
     raw.info,
@@ -177,7 +178,7 @@ fig = plot_alignment(
     sensor_colors=sensor_colors,
 )
 
-mne.viz.set_3d_view(fig, azimuth=0, elevation=70)
+mne.viz.set_3d_view(fig, azimuth=0, elevation=70, focalpoint="auto", distance="auto")
 
 xy, im = snapshot_brain_montage(fig, raw.info)
 

@@ -3,80 +3,77 @@
 #
 # License: BSD-3-Clause
 
+import shutil
 from contextlib import nullcontext
+from functools import partial
 from itertools import chain
 from pathlib import Path
-import shutil
-
-import pytest
-
-import numpy as np
-from functools import partial
 from string import ascii_lowercase
 
+import matplotlib.pyplot as plt
+import numpy as np
+import pytest
 from numpy.testing import (
+    assert_allclose,
     assert_array_equal,
     assert_array_less,
-    assert_allclose,
     assert_equal,
 )
-import matplotlib.pyplot as plt
 
 from mne import (
     __file__ as _mne_file,
-    create_info,
-    read_evokeds,
-    pick_types,
 )
-from mne.coreg import get_mni_fiducials
-from mne.utils._testing import assert_object_equal
+from mne import (
+    create_info,
+    pick_types,
+    read_evokeds,
+)
+from mne._fiff._digitization import (
+    _count_points_by_type,
+    _format_dig_points,
+    _get_dig_eeg,
+    _get_fid_coords,
+)
+from mne._fiff.constants import FIFF
+from mne.bem import _fit_sphere
 from mne.channels import (
-    get_builtin_montages,
     DigMontage,
-    read_dig_dat,
-    read_dig_egi,
-    read_dig_captrak,
-    read_dig_fif,
+    compute_dev_head_t,
+    compute_native_head_t,
+    get_builtin_montages,
+    make_dig_montage,
     make_standard_montage,
     read_custom_montage,
-    compute_dev_head_t,
-    make_dig_montage,
-    read_dig_polhemus_isotrak,
-    compute_native_head_t,
-    read_polhemus_fastscan,
-    read_dig_localite,
+    read_dig_captrak,
+    read_dig_dat,
+    read_dig_egi,
+    read_dig_fif,
     read_dig_hpts,
+    read_dig_localite,
+    read_dig_polhemus_isotrak,
+    read_polhemus_fastscan,
 )
 from mne.channels.montage import (
-    transform_to_head,
-    _check_get_coord_frame,
     _BUILTIN_STANDARD_MONTAGES,
+    _check_get_coord_frame,
+    transform_to_head,
 )
-from mne.preprocessing import compute_current_source_density
-from mne.utils import assert_dig_allclose, _record_warnings
-from mne.bem import _fit_sphere
-from mne._fiff.constants import FIFF
-from mne._fiff._digitization import (
-    _format_dig_points,
-    _get_fid_coords,
-    _get_dig_eeg,
-    _count_points_by_type,
-)
-from mne.transforms import _ensure_trans, apply_trans, invert_transform, _get_trans
-from mne.viz._3d import _fiducial_coords
-
-from mne.io.kit import read_mrk
+from mne.coreg import get_mni_fiducials
+from mne.datasets import testing
 from mne.io import (
+    RawArray,
+    read_fiducials,
     read_raw_brainvision,
     read_raw_egi,
     read_raw_fif,
-    read_fiducials,
     read_raw_nirx,
 )
-
-from mne.io import RawArray
-from mne.datasets import testing
-
+from mne.io.kit import read_mrk
+from mne.preprocessing import compute_current_source_density
+from mne.transforms import _ensure_trans, _get_trans, apply_trans, invert_transform
+from mne.utils import _record_warnings, assert_dig_allclose
+from mne.utils._testing import assert_object_equal
+from mne.viz._3d import _fiducial_coords
 
 data_path = testing.data_path(download=False)
 fif_dig_montage_fname = data_path / "montage" / "eeganes07.fif"

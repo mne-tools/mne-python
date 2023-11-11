@@ -3,53 +3,53 @@
 #
 # License: BSD-3-Clause
 
-from pathlib import Path
+import hashlib
 from copy import deepcopy
 from functools import partial
-import hashlib
+from pathlib import Path
 
-import pytest
 import numpy as np
+import pytest
+from numpy.testing import assert_allclose, assert_array_equal, assert_equal
 from scipy.io import savemat
-from numpy.testing import assert_array_equal, assert_equal, assert_allclose
 
-from mne.channels import (
-    rename_channels,
-    read_ch_adjacency,
-    combine_channels,
-    find_ch_adjacency,
-    make_1020_channel_selections,
-    read_custom_montage,
-    equalize_channels,
-    get_builtin_ch_adjacencies,
-)
-from mne.channels.channels import (
-    _ch_neighbor_adjacency,
-    _compute_ch_adjacency,
-    _BUILTIN_CHANNEL_ADJACENCIES,
-    _BuiltinChannelAdjacency,
-)
-from mne.io import (
-    read_info,
-    read_raw_fif,
-    read_raw_ctf,
-    read_raw_bti,
-    read_raw_eeglab,
-    read_raw_kit,
-    RawArray,
-)
-from mne._fiff.constants import FIFF, _ch_unit_mul_named
 from mne import (
-    pick_types,
-    pick_channels,
+    Epochs,
     EpochsArray,
     EvokedArray,
-    make_ad_hoc_cov,
     create_info,
+    make_ad_hoc_cov,
+    pick_channels,
+    pick_types,
     read_events,
-    Epochs,
+)
+from mne._fiff.constants import FIFF, _ch_unit_mul_named
+from mne.channels import (
+    combine_channels,
+    equalize_channels,
+    find_ch_adjacency,
+    get_builtin_ch_adjacencies,
+    make_1020_channel_selections,
+    read_ch_adjacency,
+    read_custom_montage,
+    rename_channels,
+)
+from mne.channels.channels import (
+    _BUILTIN_CHANNEL_ADJACENCIES,
+    _BuiltinChannelAdjacency,
+    _ch_neighbor_adjacency,
+    _compute_ch_adjacency,
 )
 from mne.datasets import testing
+from mne.io import (
+    RawArray,
+    read_info,
+    read_raw_bti,
+    read_raw_ctf,
+    read_raw_eeglab,
+    read_raw_fif,
+    read_raw_kit,
+)
 from mne.parallel import parallel_func
 from mne.utils import requires_good_network
 
@@ -243,6 +243,25 @@ def test_get_builtin_ch_adjacencies():
         assert len(name_and_description) == 2
 
 
+@pytest.mark.parametrize("name", get_builtin_ch_adjacencies())
+@pytest.mark.parametrize("picks", ["pick-slice", "pick-arange", "pick-names"])
+def test_read_builtin_ch_adjacency_picks(name, picks):
+    """Test picking channel subsets when reading builtin adjacency matrices."""
+    ch_adjacency, ch_names = read_ch_adjacency(name)
+    assert_equal(ch_adjacency.shape[0], len(ch_names))
+    subset_names = ch_names[::2]
+    if picks == "pick-slice":
+        subset = slice(None, None, 2)
+    elif picks == "pick-arange":
+        subset = np.arange(0, len(ch_names), 2)
+    else:
+        assert picks == "pick-names"
+        subset = subset_names
+
+    ch_subset_adjacency, ch_subset_names = read_ch_adjacency(name, subset)
+    assert_array_equal(ch_subset_names, subset_names)
+
+
 def test_read_ch_adjacency(tmp_path):
     """Test reading channel adjacency templates."""
     a = partial(np.array, dtype="<U7")
@@ -262,6 +281,7 @@ def test_read_ch_adjacency(tmp_path):
     savemat(mat_fname, mat, oned_as="row")
 
     ch_adjacency, ch_names = read_ch_adjacency(mat_fname)
+
     x = ch_adjacency
     assert_equal(x.shape[0], len(ch_names))
     assert_equal(x.shape, (3, 3))
@@ -327,11 +347,6 @@ def test_read_ch_adjacency(tmp_path):
     mat_fname = tmp_path / "test_error_mat.mat"
     savemat(mat_fname, mat, oned_as="row")
     pytest.raises(ValueError, read_ch_adjacency, mat_fname)
-
-    # Try reading all built-in FieldTrip neighbors
-    for name in get_builtin_ch_adjacencies():
-        ch_adjacency, ch_names = read_ch_adjacency(name)
-        assert_equal(ch_adjacency.shape[0], len(ch_names))
 
 
 def _download_ft_neighbors(target_dir):
@@ -450,7 +465,7 @@ def test_1020_selection():
 @testing.requires_testing_data
 def test_find_ch_adjacency():
     """Test computing the adjacency matrix."""
-    raw = read_raw_fif(raw_fname, preload=True)
+    raw = read_raw_fif(raw_fname)
     sizes = {"mag": 828, "grad": 1700, "eeg": 384}
     nchans = {"mag": 102, "grad": 204, "eeg": 60}
     for ch_type in ["mag", "grad", "eeg"]:
@@ -458,6 +473,13 @@ def test_find_ch_adjacency():
         # Silly test for checking the number of neighbors.
         assert_equal(conn.getnnz(), sizes[ch_type])
         assert_equal(len(ch_names), nchans[ch_type])
+        kwargs = dict(exclude=())
+        if ch_type in ("mag", "grad"):
+            kwargs["meg"] = ch_type
+        else:
+            kwargs[ch_type] = True
+        want_names = [raw.ch_names[pick] for pick in pick_types(raw.info, **kwargs)]
+        assert ch_names == want_names
     pytest.raises(ValueError, find_ch_adjacency, raw.info, None)
 
     # Test computing the conn matrix with gradiometers.
@@ -491,7 +513,7 @@ def test_find_ch_adjacency():
 def test_neuromag122_adjacency():
     """Test computing the adjacency matrix of Neuromag122-Data."""
     nm122_fname = testing_path / "misc" / "neuromag122_test_file-raw.fif"
-    raw = read_raw_fif(nm122_fname, preload=True)
+    raw = read_raw_fif(nm122_fname)
     conn, ch_names = find_ch_adjacency(raw.info, "grad")
     assert conn.getnnz() == 1564
     assert len(ch_names) == 122
@@ -500,7 +522,7 @@ def test_neuromag122_adjacency():
 
 def test_drop_channels():
     """Test if dropping channels works with various arguments."""
-    raw = read_raw_fif(raw_fname, preload=True).crop(0, 0.1)
+    raw = read_raw_fif(raw_fname).crop(0, 0.1)
     raw.drop_channels(["MEG 0111"])  # list argument
     raw.drop_channels("MEG 0112")  # str argument
     raw.drop_channels({"MEG 0132", "MEG 0133"})  # set argument
@@ -520,7 +542,7 @@ def test_drop_channels():
 
 def test_pick_channels():
     """Test if picking channels works with various arguments."""
-    raw = read_raw_fif(raw_fname, preload=True).crop(0, 0.1)
+    raw = read_raw_fif(raw_fname).crop(0, 0.1)
 
     # selected correctly 3 channels
     raw.pick(["MEG 0113", "MEG 0112", "MEG 0111"])
@@ -593,7 +615,7 @@ def test_equalize_channels():
     assert raw2.ch_names == ["CH1", "CH2"]
     assert_array_equal(raw2.get_data(), [[1.0], [2.0]])
     assert epochs2.ch_names == ["CH1", "CH2"]
-    assert_array_equal(epochs2.get_data(), [[[3.0], [2.0]]])
+    assert_array_equal(epochs2.get_data(copy=False), [[[3.0], [2.0]]])
     assert cov2.ch_names == ["CH1", "CH2"]
     assert cov2["bads"] == cov["bads"]
     assert ave2.ch_names == ave.ch_names

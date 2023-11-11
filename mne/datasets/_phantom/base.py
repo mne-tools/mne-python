@@ -4,8 +4,8 @@
 import os
 import os.path as op
 
+from ...utils import _check_option, _validate_type, get_subjects_dir, verbose
 from ..utils import _manifest_check_download
-from ...utils import verbose, get_subjects_dir, _check_option, _validate_type
 
 PHANTOM_MANIFEST_PATH = op.dirname(__file__)
 

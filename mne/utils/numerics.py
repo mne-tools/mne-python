@@ -19,18 +19,18 @@ from pathlib import Path
 import numpy as np
 from scipy import sparse
 
-from ._logging import logger, warn, verbose
-from .check import check_random_state, _ensure_int, _validate_type
-from .misc import _empty_hash
 from ..fixes import (
     _infer_dimension_,
-    svd_flip,
-    stable_cumsum,
     _safe_svd,
-    jit,
     has_numba,
+    jit,
+    stable_cumsum,
+    svd_flip,
 )
+from ._logging import logger, verbose, warn
+from .check import _ensure_int, _validate_type, check_random_state
 from .docs import fill_doc
+from .misc import _empty_hash
 
 
 def split_list(v, n, idx=False):
@@ -209,8 +209,8 @@ def _gen_events(n_epochs):
 
 def _reject_data_segments(data, reject, flat, decim, info, tstep):
     """Reject data segments using peak-to-peak amplitude."""
-    from ..epochs import _is_good
     from .._fiff.pick import channel_indices_by_type
+    from ..epochs import _is_good
 
     data_clean = np.empty_like(data)
     idx_by_type = channel_indices_by_type(info)
@@ -251,9 +251,9 @@ def _reject_data_segments(data, reject, flat, decim, info, tstep):
 
 def _get_inst_data(inst):
     """Get data view from MNE object instance like Raw, Epochs or Evoked."""
-    from ..io import BaseRaw
     from ..epochs import BaseEpochs
     from ..evoked import Evoked
+    from ..io import BaseRaw
     from ..time_frequency.tfr import _BaseTFR
 
     _validate_type(inst, (BaseRaw, BaseEpochs, Evoked, _BaseTFR), "Instance")
@@ -576,9 +576,9 @@ def grand_average(all_inst, interpolate_bads=True, drop_bads=True):
     .. versionadded:: 0.11.0
     """
     # check if all elements in the given list are evoked data
+    from ..channels.channels import equalize_channels
     from ..evoked import Evoked
     from ..time_frequency import AverageTFR
-    from ..channels.channels import equalize_channels
 
     if not all_inst:
         raise ValueError("Please pass a list of Evoked or AverageTFR objects.")
@@ -1152,3 +1152,9 @@ def _custom_lru_cache(maxsize):
         return cache_fun
 
     return dec
+
+
+def _array_repr(x):
+    """Produce compact info about float ndarray x."""
+    assert isinstance(x, np.ndarray), type(x)
+    return f"shape : {x.shape}, range : [{np.nanmin(x):+0.2g}, {np.nanmax(x):+0.2g}]"

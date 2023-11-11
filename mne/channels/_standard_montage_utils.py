@@ -2,20 +2,19 @@
 #          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
 # License: BSD-3-Clause
-from collections import OrderedDict
 import csv
-
 import os.path as op
-import numpy as np
-
+from collections import OrderedDict
 from functools import partial
+
+import numpy as np
 from defusedxml import ElementTree
 
-from .montage import make_dig_montage
 from .._freesurfer import get_mni_fiducials
 from ..transforms import _sph_to_cart
-from ..utils import warn, _pl
+from ..utils import _pl, warn
 from . import __file__ as _CHANNELS_INIT_FILE
+from .montage import make_dig_montage
 
 MONTAGE_PATH = op.join(op.dirname(_CHANNELS_INIT_FILE), "data", "montages")
 

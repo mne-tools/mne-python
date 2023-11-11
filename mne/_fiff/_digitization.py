@@ -11,11 +11,10 @@ from collections import Counter
 
 import numpy as np
 
-from ..utils import logger, warn, Bunch, _validate_type, _check_fname, verbose
-
+from ..utils import Bunch, _check_fname, _validate_type, logger, verbose, warn
 from .constants import FIFF, _coord_frame_named
-from .tree import dir_tree_find
 from .tag import read_tag
+from .tree import dir_tree_find
 from .write import start_and_end_file, write_dig_points
 
 _dig_kind_dict = {
@@ -294,6 +293,7 @@ def _get_data_as_dict_from_dig(dig, exclude_ref_channel=True):
     # Split up the dig points by category
     hsp, hpi, elp = list(), list(), list()
     fids, dig_ch_pos_location = dict(), list()
+    dig = [] if dig is None else dig
 
     for d in dig:
         if d["kind"] == FIFF.FIFFV_POINT_CARDINAL:
@@ -308,6 +308,8 @@ def _get_data_as_dict_from_dig(dig, exclude_ref_channel=True):
                 dig_ch_pos_location.append(d["r"])
 
     dig_coord_frames = set([d["coord_frame"] for d in dig])
+    if len(dig_coord_frames) == 0:
+        dig_coord_frames = set([FIFF.FIFFV_COORD_HEAD])
     if len(dig_coord_frames) != 1:
         raise RuntimeError(
             "Only single coordinate frame in dig is supported, "
@@ -524,8 +526,8 @@ def _make_dig_points(
 
 def _call_make_dig_points(nasion, lpa, rpa, hpi, extra, convert=True):
     from ..transforms import (
-        apply_trans,
         Transform,
+        apply_trans,
         get_ras_to_neuromag_trans,
     )
 

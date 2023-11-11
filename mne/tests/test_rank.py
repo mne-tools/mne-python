@@ -1,26 +1,31 @@
 import itertools
 from pathlib import Path
 
-from numpy.testing import assert_array_equal
 import numpy as np
-
 import pytest
+from numpy.testing import assert_array_equal
 
-from mne import read_evokeds, read_cov, compute_raw_covariance, pick_types, pick_info
+from mne import (
+    compute_raw_covariance,
+    make_fixed_length_epochs,
+    pick_info,
+    pick_types,
+    read_cov,
+    read_evokeds,
+)
+from mne._fiff.pick import _picks_by_type
+from mne._fiff.proj import _has_eeg_average_ref_proj
 from mne.cov import prepare_noise_cov
 from mne.datasets import testing
 from mne.io import read_raw_fif
-from mne._fiff.pick import _picks_by_type
-from mne._fiff.proj import _has_eeg_average_ref_proj
 from mne.proj import compute_proj_raw
 from mne.rank import (
-    estimate_rank,
-    compute_rank,
-    _get_rank_sss,
     _compute_rank_int,
     _estimate_rank_raw,
+    _get_rank_sss,
+    compute_rank,
+    estimate_rank,
 )
-
 
 base_dir = Path(__file__).parent.parent / "io" / "tests" / "data"
 cov_fname = base_dir / "test-cov.fif"
@@ -190,6 +195,19 @@ def test_cov_rank_estimation(rank_method, proj, meg):
                     expected_rank -= n_projs_info
 
             assert rank[ch_type] == expected_rank
+
+
+@pytest.mark.parametrize(
+    "rank_method, proj", [("info", True), ("info", False), (None, True), (None, False)]
+)
+def test_rank_epochs(rank_method, proj):
+    """Test that raw and epochs give the same results in a simple case."""
+    # And a smoke test for epochs
+    raw = read_raw_fif(raw_fname, preload=True)
+    epochs = make_fixed_length_epochs(raw, preload=True, proj=False)
+    rank_raw = compute_rank(raw, rank_method, proj=proj)
+    rank_epochs = compute_rank(epochs, rank_method, proj=proj)
+    assert rank_raw == rank_epochs
 
 
 @pytest.mark.slowtest  # ~3 s apiece on Azure means overall it's slow

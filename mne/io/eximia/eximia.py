@@ -5,10 +5,10 @@
 
 import os.path as op
 
-from ..base import BaseRaw
-from ..._fiff.utils import _read_segments_file, _file_size
 from ..._fiff.meas_info import create_info
-from ...utils import logger, verbose, warn, fill_doc, _check_fname
+from ..._fiff.utils import _file_size, _read_segments_file
+from ...utils import _check_fname, fill_doc, logger, verbose, warn
+from ..base import BaseRaw
 
 
 @fill_doc

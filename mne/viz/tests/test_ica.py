@@ -9,19 +9,19 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 import pytest
-from numpy.testing import assert_equal, assert_array_equal, assert_allclose
+from numpy.testing import assert_allclose, assert_array_equal, assert_equal
 
 from mne import (
-    read_events,
-    Epochs,
-    read_cov,
-    pick_types,
     Annotations,
+    Epochs,
     make_fixed_length_events,
+    pick_types,
+    read_cov,
+    read_events,
 )
 from mne.io import read_raw_fif
 from mne.preprocessing import ICA, create_ecg_epochs, create_eog_epochs
-from mne.utils import catch_logging, _record_warnings
+from mne.utils import _record_warnings, catch_logging
 from mne.viz.ica import _create_properties_layout, plot_ica_properties
 from mne.viz.utils import _fake_click, _fake_keypress
 

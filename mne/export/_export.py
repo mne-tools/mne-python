@@ -4,8 +4,8 @@
 
 import os.path as op
 
+from ..utils import _check_fname, _validate_type, logger, verbose, warn
 from ._egimff import export_evokeds_mff
-from ..utils import logger, verbose, warn, _check_fname, _validate_type
 
 
 @verbose

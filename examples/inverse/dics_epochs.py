@@ -17,10 +17,11 @@ synchronization (ERS) of beta band activity in the :ref:`somato dataset
 # License: BSD-3-Clause
 
 import numpy as np
+
 import mne
+from mne.beamformer import apply_dics_tfr_epochs, make_dics
 from mne.datasets import somato
-from mne.time_frequency import tfr_morlet, csd_tfr
-from mne.beamformer import make_dics, apply_dics_tfr_epochs
+from mne.time_frequency import csd_tfr, tfr_morlet
 
 print(__doc__)
 

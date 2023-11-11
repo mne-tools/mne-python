@@ -9,25 +9,25 @@ import shutil
 from copy import deepcopy
 
 import numpy as np
-from numpy.testing import (
-    assert_array_equal,
-    assert_array_almost_equal,
-    assert_equal,
-    assert_allclose,
-)
 import pytest
+from numpy.testing import (
+    assert_allclose,
+    assert_array_almost_equal,
+    assert_array_equal,
+    assert_equal,
+)
 from scipy import io
 
 import mne
-from mne import write_events, read_epochs_eeglab
-from mne.channels import read_custom_montage
-from mne.io import read_raw_eeglab
-from mne.io.eeglab.eeglab import _get_montage_information, _dol_to_lod
-from mne.io.eeglab._eeglab import _readmat
-from mne.io.tests.test_raw import _test_raw_reader
-from mne.datasets import testing
-from mne.utils import Bunch, _check_pymatreader_installed
+from mne import read_epochs_eeglab, write_events
 from mne.annotations import events_from_annotations, read_annotations
+from mne.channels import read_custom_montage
+from mne.datasets import testing
+from mne.io import read_raw_eeglab
+from mne.io.eeglab._eeglab import _readmat
+from mne.io.eeglab.eeglab import _dol_to_lod, _get_montage_information
+from mne.io.tests.test_raw import _test_raw_reader
+from mne.utils import Bunch, _check_pymatreader_installed
 
 base_dir = testing.data_path(download=False) / "EEGLAB"
 raw_fname_mat = base_dir / "test_raw.set"
@@ -355,7 +355,7 @@ def test_io_set_epochs(fnames):
         epochs2 = read_epochs_eeglab(epochs_fname_onefile)
     # one warning for each read_epochs_eeglab because both files have epochs
     # associated with multiple events
-    assert_array_equal(epochs.get_data(), epochs2.get_data())
+    assert_array_equal(epochs.get_data(copy=False), epochs2.get_data(copy=False))
 
 
 @testing.requires_testing_data

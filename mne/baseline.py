@@ -6,7 +6,7 @@
 
 import numpy as np
 
-from .utils import logger, verbose, _check_option, _validate_type
+from .utils import _check_option, _validate_type, logger, verbose
 
 
 def _log_rescale(baseline, mode="mean"):

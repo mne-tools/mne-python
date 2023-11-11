@@ -3,10 +3,11 @@
 # License: BSD-3-Clause
 
 import numpy as np
-from .mixin import TransformerMixin
-from .base import BaseEstimator
+
 from ..time_frequency.tfr import _compute_tfr
-from ..utils import fill_doc, _check_option, verbose
+from ..utils import _check_option, fill_doc, verbose
+from .base import BaseEstimator
+from .mixin import TransformerMixin
 
 
 @fill_doc

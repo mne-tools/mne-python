@@ -47,30 +47,30 @@ import numpy as np
 from matplotlib import get_backend
 from matplotlib.figure import Figure
 
-from ..fixes import _close_event
 from .._fiff.pick import (
     _DATA_CH_TYPES_ORDER_DEFAULT,
     _DATA_CH_TYPES_SPLIT,
-    _FNIRS_CH_TYPES_SPLIT,
     _EYETRACK_CH_TYPES_SPLIT,
+    _FNIRS_CH_TYPES_SPLIT,
     _VALID_CHANNEL_TYPES,
     channel_indices_by_type,
     pick_types,
 )
-from ..utils import Bunch, _click_ch_name, logger, check_version
+from ..fixes import _close_event
+from ..utils import Bunch, _click_ch_name, check_version, logger
 from ._figure import BrowserBase
 from .utils import (
     DraggableLine,
     _events_off,
     _fake_click,
     _fake_keypress,
+    _fake_scroll,
     _merge_annotations,
     _prop_kw,
     _set_window_title,
     _validate_if_list_of_axes,
-    plt_show,
-    _fake_scroll,
     plot_sensors,
+    plt_show,
 )
 
 name = "matplotlib"
@@ -118,7 +118,7 @@ class MNEFigure(Figure):
             for key in [k for k in kwargs if not hasattr(self.mne, k)]:
                 setattr(self.mne, key, kwargs[key])
 
-    def _close(self, event):
+    def _close(self, event=None):
         """Handle close events."""
         logger.debug(f"Closing {self!r}")
         # remove references from parent fig to child fig
@@ -791,6 +791,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
     def _buttonpress(self, event):
         """Handle mouse clicks."""
         from matplotlib.collections import PolyCollection
+
         from ..annotations import _sync_onset
 
         butterfly = self.mne.butterfly
@@ -886,9 +887,15 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         fig = super()._create_ch_context_fig(idx)
         plt_show(fig=fig)
 
-    def _new_child_figure(self, fig_name, **kwargs):
+    def _new_child_figure(self, fig_name, *, layout=None, **kwargs):
         """Instantiate a new MNE dialog figure (with event listeners)."""
-        fig = _figure(toolbar=False, parent_fig=self, fig_name=fig_name, **kwargs)
+        fig = _figure(
+            toolbar=False,
+            parent_fig=self,
+            fig_name=fig_name,
+            layout=layout,
+            **kwargs,
+        )
         fig._add_default_callbacks()
         self.mne.child_figs.append(fig)
         if isinstance(fig_name, str):
@@ -2324,38 +2331,16 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
 class MNELineFigure(MNEFigure):
     """Interactive figure for non-scrolling line plots."""
 
-    def __init__(self, inst, n_axes, figsize, **kwargs):
-        super().__init__(figsize=figsize, inst=inst, **kwargs)
-
-        # AXES: default margins (inches)
-        l_margin = 0.8
-        r_margin = 0.2
-        b_margin = 0.65
-        t_margin = 0.35
-        # AXES: default margins (figure-relative coordinates)
-        left = self._inch_to_rel(l_margin)
-        right = 1 - self._inch_to_rel(r_margin)
-        bottom = self._inch_to_rel(b_margin, horiz=False)
-        top = 1 - self._inch_to_rel(t_margin, horiz=False)
-        # AXES: make subplots
-        axes = [self.add_subplot(n_axes, 1, 1)]
-        for ix in range(1, n_axes):
-            axes.append(self.add_subplot(n_axes, 1, ix + 1, sharex=axes[0]))
-        self.subplotpars.update(
-            left=left, bottom=bottom, top=top, right=right, hspace=0.4
+    def __init__(self, inst, n_axes, figsize, *, layout="constrained", **kwargs):
+        super().__init__(
+            figsize=figsize,
+            inst=inst,
+            layout=layout,
+            sharex=True,
+            **kwargs,
         )
-        # save useful things
-        self.mne.ax_list = axes
-
-    def _resize(self, event):
-        """Handle resize event."""
-        old_width, old_height = self.mne.fig_size_px
-        new_width, new_height = self._get_size_px()
-        new_margins = _calc_new_margins(
-            self, old_width, old_height, new_width, new_height
-        )
-        self.subplots_adjust(**new_margins)
-        self.mne.fig_size_px = (new_width, new_height)
+        for ix in range(n_axes):
+            self.add_subplot(n_axes, 1, ix + 1)
 
 
 def _close_all():
@@ -2372,6 +2357,8 @@ def _figure(toolbar=True, FigureClass=MNEFigure, **kwargs):
     from matplotlib import rc_context
 
     title = kwargs.pop("window_title", None)  # extract title before init
+    if "layout" not in kwargs:
+        kwargs["layout"] = "constrained"
     rc = dict() if toolbar else dict(toolbar="none")
     with rc_context(rc=rc):
         fig = plt.figure(FigureClass=FigureClass, **kwargs)
@@ -2379,6 +2366,14 @@ def _figure(toolbar=True, FigureClass=MNEFigure, **kwargs):
     fig.mne.backend = BACKEND
     if title is not None:
         _set_window_title(fig, title)
+    # TODO: for some reason for topomaps->_prepare_trellis the layout=constrained does
+    # not work the first time (maybe toolbar=False?)
+    if kwargs.get("layout") == "constrained":
+        if hasattr(fig, "set_layout_engine"):  # 3.6+
+            fig.set_layout_engine("constrained")
+        else:
+            fig.set_constrained_layout(True)
+
     # add event callbacks
     fig._add_default_callbacks()
     return fig
@@ -2412,7 +2407,7 @@ def _line_figure(inst, axes=None, picks=None, **kwargs):
             **kwargs,
         )
         fig.mne.fig_size_px = fig._get_size_px()  # can't do in __init__
-        axes = fig.mne.ax_list
+        axes = fig.axes
     return fig, axes
 
 
@@ -2483,7 +2478,7 @@ def _init_browser(**kwargs):
     """Instantiate a new MNE browse-style figure."""
     from mne.io import BaseRaw
 
-    fig = _figure(toolbar=False, FigureClass=MNEBrowseFigure, **kwargs)
+    fig = _figure(toolbar=False, FigureClass=MNEBrowseFigure, layout=None, **kwargs)
 
     # splash is ignored (maybe we could do it for mpl if we get_backend() and
     # check if it's Qt... but seems overkill)

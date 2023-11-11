@@ -2,8 +2,8 @@
 #
 # License: BSD-3-Clause
 
-from numpy.testing import assert_allclose
 import pytest
+from numpy.testing import assert_allclose
 
 import mne
 from mne.datasets import testing
@@ -29,7 +29,11 @@ def test_decimate():
         epo_3=mne.make_fixed_length_epochs(raw, preload=False).decimate(2).decimate(3),
     )
     for key, other in others.items():
-        assert_allclose(epo.get_data(), other.get_data(), err_msg=key)
+        assert_allclose(
+            epo.get_data(copy=False),
+            other.get_data(copy=False),
+            err_msg=key,
+        )
         assert_allclose(epo.times, other.times, err_msg=key)
     evo = epo.average()
     epo_full = mne.make_fixed_length_epochs(raw, preload=True)

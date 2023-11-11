@@ -4,8 +4,8 @@
 
 import datetime as dt
 
-import pytest
 import numpy as np
+import pytest
 from numpy.testing import assert_allclose, assert_array_less
 
 from mne.channels import make_standard_montage
@@ -13,13 +13,12 @@ from mne.io import read_raw_hitachi
 from mne.io.hitachi.hitachi import _compute_pairs
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.preprocessing.nirs import (
-    source_detector_distances,
-    optical_density,
-    tddr,
     beer_lambert_law,
+    optical_density,
     scalp_coupling_index,
+    source_detector_distances,
+    tddr,
 )
-
 
 CONTENTS = dict()
 CONTENTS[

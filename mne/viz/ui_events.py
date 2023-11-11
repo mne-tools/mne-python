@@ -10,12 +10,14 @@ stay in-sync.
 Authors: Marijn van Vliet <w.m.vanvliet@gmail.com>
 """
 import contextlib
-from dataclasses import dataclass
-from typing import Optional, List
-import weakref
 import re
+import weakref
+from dataclasses import dataclass
+from typing import List, Optional, Union
 
-from ..utils import warn, fill_doc, _validate_type, logger, verbose
+from matplotlib.colors import Colormap
+
+from ..utils import _validate_type, fill_doc, logger, verbose, warn
 
 # Global dict {fig: channel} containing all currently active event channels.
 _event_channels = weakref.WeakKeyDictionary()
@@ -114,26 +116,38 @@ class ColormapRange(UIEvent):
     kind : str
         Kind of colormap being updated. The Notes section of the drawing
         routine publishing this event should mention the possible kinds.
+    ch_type : str
+       Type of sensor the data originates from.
     %(fmin_fmid_fmax)s
     %(alpha)s
+    cmap : str
+        The colormap to use. Either string or matplotlib.colors.Colormap
+        instance.
 
     Attributes
     ----------
     kind : str
         Kind of colormap being updated. The Notes section of the drawing
         routine publishing this event should mention the possible kinds.
+    ch_type : str
+        Type of sensor the data originates from.
     unit : str
         The unit of the values.
     %(ui_event_name_source)s
     %(fmin_fmid_fmax)s
     %(alpha)s
+    cmap : str
+        The colormap to use. Either string or matplotlib.colors.Colormap
+        instance.
     """
 
     kind: str
+    ch_type: Optional[str] = None
     fmin: Optional[float] = None
     fmid: Optional[float] = None
     fmax: Optional[float] = None
     alpha: Optional[bool] = None
+    cmap: Optional[Union[Colormap, str]] = None
 
 
 @dataclass
@@ -231,6 +245,7 @@ def _get_event_channel(fig):
         channel.
     """
     import matplotlib
+
     from ._brain import Brain
     from .evoked_field import EvokedField
 
@@ -466,8 +481,8 @@ def disable_ui_events(fig):
 
 def _cleanup_agg():
     """Call close_event for Agg canvases to help our doc build."""
-    import matplotlib.figure
     import matplotlib.backends.backend_agg
+    import matplotlib.figure
 
     for key in list(_event_channels):  # we might remove keys as we go
         if isinstance(key, matplotlib.figure.Figure):

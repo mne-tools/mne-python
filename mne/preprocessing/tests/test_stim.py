@@ -5,12 +5,12 @@
 from pathlib import Path
 
 import numpy as np
-from numpy.testing import assert_array_almost_equal
 import pytest
+from numpy.testing import assert_array_almost_equal
 
-from mne.io import read_raw_fif
-from mne.event import read_events
 from mne.epochs import Epochs
+from mne.event import read_events
+from mne.io import read_raw_fif
 from mne.preprocessing.stim import fix_stim_artifact
 
 data_path = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
@@ -41,18 +41,18 @@ def test_fix_stim_artifact():
     epochs = fix_stim_artifact(
         epochs, tmin=tmin, tmax=tmax, mode="linear", picks=("eeg", "eog")
     )
-    data = epochs.copy().pick(("eeg", "eog")).get_data()[:, :, tmin_samp:tmax_samp]
+    data = epochs.get_data(("eeg", "eog"))[:, :, tmin_samp:tmax_samp]
     diff_data0 = np.diff(data[0][0])
     diff_data0 -= np.mean(diff_data0)
     assert_array_almost_equal(diff_data0, np.zeros(len(diff_data0)))
 
-    data = epochs.copy().pick(("meg")).get_data()[:, :, tmin_samp:tmax_samp]
+    data = epochs.get_data("meg")[:, :, tmin_samp:tmax_samp]
     diff_data0 = np.diff(data[0][0])
     diff_data0 -= np.mean(diff_data0)
     assert np.all(diff_data0 != 0)
 
     epochs = fix_stim_artifact(epochs, tmin=tmin, tmax=tmax, mode="window")
-    data_from_epochs_fix = epochs.get_data()[:, :, tmin_samp:tmax_samp]
+    data_from_epochs_fix = epochs.get_data(copy=False)[:, :, tmin_samp:tmax_samp]
     assert not np.all(data_from_epochs_fix != 0)
 
     # use window before stimulus in raw
@@ -99,7 +99,7 @@ def test_fix_stim_artifact():
     e_start = int(np.ceil(epochs.info["sfreq"] * epochs.tmin))
     tmin_samp = int(-0.035 * epochs.info["sfreq"]) - e_start
     tmax_samp = int(-0.015 * epochs.info["sfreq"]) - e_start
-    data_from_raw_fix = epochs.get_data()[:, :, tmin_samp:tmax_samp]
+    data_from_raw_fix = epochs.get_data(copy=False)[:, :, tmin_samp:tmax_samp]
     assert np.all(data_from_raw_fix) == 0.0
 
     # use window after stimulus
