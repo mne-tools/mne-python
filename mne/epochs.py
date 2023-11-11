@@ -824,9 +824,9 @@ class BaseEpochs(
                     continue
                 else:
                     raise ValueError(
-                        '%s value must be a number >= 0 or a valid function, not "%s"' % (kind, val)
+                        '%s value must be a number >= 0 or a valid function, not "%s"'
+                        % (kind, val)
                     )
-
 
         # now check to see if our rejection and flat are getting more
         # restrictive
@@ -3645,10 +3645,7 @@ def _is_good(
                     # Check if criterion is a function and apply it
                     if callable(criterion):
                         idx_deltas = np.where(
-                            np.logical_and(
-                                criterion(e_idx),
-                                checkable_idx
-                            )
+                            np.logical_and(criterion(e_idx), checkable_idx)
                         )[0]
                     else:
                         deltas = np.max(e_idx, axis=1) - np.min(e_idx, axis=1)
