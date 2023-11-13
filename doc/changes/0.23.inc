@@ -292,7 +292,7 @@ Bugs
 
 - When creating `~mne.Epochs`, we now ensure that ``reject_tmin`` and ``reject_tmax`` cannot fall outside of the epochs' time interval anymore (:gh:`8821` by `Richard Höchenberger`_)
 
-- `~mne.io.read_raw_bti` erroneously treated response channels as respiratory channels (:gh:`8855` by `Richard Höchenberger`_)
+- `~mne.io.read_raw_bti` erroneously treated response channels as respiratory channels (:gh:`8856` by `Richard Höchenberger`_)
 
 - The RMS trace shown in the time viewer of `~mne.SourceEstimate` plots is now correctly labeled as ``RMS`` (was ``GFP`` before) (:gh:`8965` by `Richard Höchenberger`_)
 

@@ -34,11 +34,11 @@ jobs:
         name: 'Setup flake8 annotations'
       - run: make flake
         name: 'Run flake8'
-      - uses: GuillaumeFavelier/actions-codespell@feat/quiet_level
+      - uses: codespell-project/actions-codespell@v1.0
         with:
           path: ${{ env.CODESPELL_DIRS }}
           skip: ${{ env.CODESPELL_SKIPS }}
-          quiet_level: '3'
           builtin: 'clear,rare,informal,names'
           ignore_words_file: 'ignore_words.txt'
+          uri_ignore_words_list: 'bu'
         name: 'Run codespell'

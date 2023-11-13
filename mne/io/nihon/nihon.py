@@ -392,7 +392,7 @@ class RawNihon(BaseRaw):
         # Get annotations from LOG file
         annots = _read_nihon_annotations(fname)
 
-        # Annotate acqusition skips
+        # Annotate acquisition skips
         controlblock = self._header['controlblocks'][0]
         cur_sample = 0
         if controlblock['n_datablocks'] > 1:

@@ -8,6 +8,7 @@ from copy import deepcopy
 
 import matplotlib
 import matplotlib.pyplot as plt
+from matplotlib import backend_bases
 import numpy as np
 import pytest
 from numpy.testing import assert_allclose
@@ -18,7 +19,7 @@ from mne.datasets import testing
 from mne.io import RawArray
 from mne.utils import _dt_to_stamp, _record_warnings, get_config, set_config
 from mne.viz import plot_raw, plot_sensors
-from mne.viz.utils import _fake_click
+from mne.viz.utils import _fake_click, _fake_keypress
 
 
 def _annotation_helper(raw, browse_backend, events=False):
@@ -334,6 +335,9 @@ def test_plot_raw_selection(raw, browser_backend):
     # test lasso
     # Testing lasso-interactivity of sensor-plot within Qt-backend
     # with QTest doesn't seem to work.
+    want = ['MEG 0111', 'MEG 0112', 'MEG 0113', 'MEG 0131', 'MEG 0132',
+            'MEG 0133']
+    assert want == sorted(fig.mne.ch_names[fig.mne.picks])
     want = ['MEG 0121', 'MEG 0122', 'MEG 0123']
     if ismpl:
         sel_fig._set_custom_selection()  # lasso empty → should do nothing
@@ -727,7 +731,9 @@ def test_plot_raw_psd(raw, raw_orig):
     raw_unchanged = raw.copy()
     # normal mode
     fig = raw.plot_psd(average=False)
-    fig.canvas.resize_event()
+    fig.canvas.callbacks.process(
+        'resize_event',
+        backend_bases.ResizeEvent('resize_event', fig.canvas))
     # specific mode
     picks = pick_types(raw.info, meg='mag', eeg=False)[:4]
     raw.plot_psd(tmax=None, picks=picks, area_mode='range', average=False,
@@ -848,8 +854,8 @@ def test_plot_sensors(raw):
     assert fig.lasso.selection == []
     _fake_click(fig, ax, (0.65, 1), xform='ax', kind='motion')
     _fake_click(fig, ax, (0.65, 0.7), xform='ax', kind='motion')
-    fig.canvas.key_press_event('control')
-    _fake_click(fig, ax, (0, 0.7), xform='ax', kind='release')
+    _fake_keypress(fig, 'control')
+    _fake_click(fig, ax, (0, 0.7), xform='ax', kind='release', key='control')
     assert fig.lasso.selection == ['MEG 0121']
 
     # check that point appearance changes
@@ -858,11 +864,11 @@ def test_plot_sensors(raw):
     assert (fc[:, -1] == [0.5, 1., 0.5]).all()
     assert (ec[:, -1] == [0.25, 1., 0.25]).all()
 
-    _fake_click(fig, ax, (0.7, 1), xform='ax', kind='motion')
+    _fake_click(fig, ax, (0.7, 1), xform='ax', kind='motion', key='control')
     xy = ax.collections[0].get_offsets()
-    _fake_click(fig, ax, xy[2], xform='data')  # single selection
+    _fake_click(fig, ax, xy[2], xform='data', key='control')  # single sel
     assert fig.lasso.selection == ['MEG 0121', 'MEG 0131']
-    _fake_click(fig, ax, xy[2], xform='data')  # deselect
+    _fake_click(fig, ax, xy[2], xform='data', key='control')  # deselect
     assert fig.lasso.selection == ['MEG 0121']
     plt.close('all')
 

@@ -540,6 +540,9 @@ def make_forward_solution(info, trans, src, bem, meg=True, eeg=True,
     ----------
     %(info_str)s
     %(trans)s
+
+        .. versionchanged:: 0.19
+            Support for 'fsaverage' argument.
     src : path-like | instance of SourceSpaces
         If string, should be a source space filename. Can also be an
         instance of loaded or generated SourceSpaces.

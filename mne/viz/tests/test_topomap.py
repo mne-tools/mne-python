@@ -34,7 +34,8 @@ from mne.viz import plot_evoked_topomap, plot_projs_topomap, topomap
 from mne.viz.topomap import (_get_pos_outlines, _onselect, plot_topomap,
                              plot_arrowmap, plot_psds_topomap,
                              plot_bridged_electrodes, plot_ch_adjacency)
-from mne.viz.utils import _find_peaks, _fake_click
+from mne.viz.utils import (_find_peaks, _fake_click, _fake_keypress,
+                           _fake_scroll)
 from mne.utils import requires_sklearn, check_version
 
 
@@ -420,9 +421,9 @@ def test_plot_topomap_basic(monkeypatch):
     # Test interactive cmap
     fig = plot_evoked_topomap(evoked, times=[0., 0.1], ch_type='eeg',
                               cmap=('Reds', True), title='title', **fast_test)
-    fig.canvas.key_press_event('up')
-    fig.canvas.key_press_event(' ')
-    fig.canvas.key_press_event('down')
+    _fake_keypress(fig, 'up')
+    _fake_keypress(fig, ' ')
+    _fake_keypress(fig, 'down')
     cbar = fig.get_axes()[0].CB  # Fake dragging with mouse.
     ax = cbar.cbar.ax
     _fake_click(fig, ax, (0.1, 0.1))
@@ -433,8 +434,8 @@ def test_plot_topomap_basic(monkeypatch):
     _fake_click(fig, ax, (0.1, 0.2), button=3, kind='motion')
     _fake_click(fig, ax, (0.1, 0.3), kind='release')
 
-    fig.canvas.scroll_event(0.5, 0.5, -0.5)  # scroll down
-    fig.canvas.scroll_event(0.5, 0.5, 0.5)  # scroll up
+    _fake_scroll(fig, 0.5, 0.5, -0.5)  # scroll down
+    _fake_scroll(fig, 0.5, 0.5, 0.5)  # scroll up
 
     plt.close('all')
 
@@ -738,6 +739,12 @@ def test_plot_bridged_electrodes():
                                                     vmax=1, show_names=True))
     # two bridged lines plus head outlines
     assert len(fig.axes[0].lines) == 6
+    # test with sphere="eeglab"
+    fig = plot_bridged_electrodes(
+        info, bridged_idx, ed_matrix,
+        topomap_args=dict(names=info.ch_names, sphere="eeglab",
+                          vmax=1, show_names=True)
+    )
 
     with pytest.raises(RuntimeError, match='Expected'):
         plot_bridged_electrodes(info, bridged_idx, np.zeros((5, 6, 7)))

@@ -2033,7 +2033,7 @@ class FilterMixin(object):
 
     @verbose
     def resample(self, sfreq, npad='auto', window='boxcar', n_jobs=None,
-                 pad='edge', *, verbose=None):  # lgtm
+                 pad='edge', *, verbose=None):
         """Resample data.
 
         If appropriate, an anti-aliasing filter is applied before resampling.

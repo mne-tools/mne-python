@@ -19,22 +19,20 @@ related synchronizations (ERS) / desynchronizations (ERD) in the beta band.
 # License: BSD-3-Clause
 
 # %%
-import os.path as op
-
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 
 import mne
-from mne.time_frequency import tfr_morlet, psd_multitaper, psd_welch
 from mne.datasets import somato
+from mne.time_frequency import psd_multitaper, psd_welch, tfr_morlet
 
 # %%
 # Set parameters
 data_path = somato.data_path()
 subject = '01'
 task = 'somato'
-raw_fname = op.join(data_path, 'sub-{}'.format(subject), 'meg',
-                    'sub-{}_task-{}_meg.fif'.format(subject, task))
+raw_fname = (data_path / f'sub-{subject}' / 'meg' /
+             f'sub-{subject}_task-{task}_meg.fif')
 
 # Setup for reading the raw data
 raw = mne.io.read_raw_fif(raw_fname)

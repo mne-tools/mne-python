@@ -6,10 +6,7 @@
 import numpy as np
 
 from ..utils import _check_option
-
-# TODO: Add more localization accuracy functions. For example, distance between
-#       true dipole position (in simulated stc) and the centroid of the
-#       estimated activity.
+from mne.utils import deprecated
 
 
 def _check_stc(stc1, stc2):
@@ -20,6 +17,8 @@ def _check_stc(stc1, stc2):
         raise ValueError('Times of two stcs must match.')
 
 
+@deprecated("This function is deprecated and will be removed in version 1.3, "
+            "use the mne.simulation.metrics module instead.")
 def source_estimate_quantification(stc1, stc2, metric='rms'):
     """Calculate matrix similarities.
 

@@ -327,7 +327,7 @@ def test_plot_psd_epochs(epochs):
     epochs.plot_psd(average=False, spatial_colors=False)
     # test plot_psd_topomap errors
     with pytest.raises(RuntimeError, match='No frequencies in band'):
-        epochs.plot_psd_topomap(bands=[(0, 0.01, 'foo')])
+        epochs.plot_psd_topomap(bands=dict(foo=(0, 0.01)))
     plt.close('all')
     # test defaults
     fig = epochs.plot_psd_topomap()
@@ -338,7 +338,7 @@ def test_plot_psd_epochs(epochs):
     vmax_0 = fig.axes[0].images[0].norm.vmax
     assert all(vmin_0 == ax.images[0].norm.vmin for ax in fig.axes[1:5])
     assert all(vmax_0 == ax.images[0].norm.vmax for ax in fig.axes[1:5])
-    # test support for single-bin bands
+    # test support for single-bin bands and old-style list-of-tuple input
     fig = epochs.plot_psd_topomap(bands=[(20, '20 Hz'), (15, 25, '15-25 Hz')])
     # test with a flat channel
     err_str = 'for channel %s' % epochs.ch_names[2]
@@ -350,7 +350,7 @@ def test_plot_psd_epochs(epochs):
 
 def test_plot_psdtopo_nirs(fnirs_epochs):
     """Test plotting of PSD topography for nirs data."""
-    bands = [(0.2, '0.2 Hz'), (0.4, '0.4 Hz'), (0.8, '0.8 Hz')]
+    bands = {'0.2 Hz': 0.2, '0.4 Hz': 0.4, '0.8 Hz': 0.8}
     fig = fnirs_epochs.plot_psd_topomap(bands=bands)
     assert len(fig.axes) == 6  # 3 band x (plot + cmap)
 

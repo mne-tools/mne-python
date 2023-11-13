@@ -9,9 +9,11 @@ import sys
 import pytest
 from mne.utils import check_version
 
+
 pytestmark = pytest.mark.skipif(
-    sys.platform.startswith('win') or not check_version('ipympl'),
-    reason='nbexec does not work on Windows')
+    (sys.platform.startswith('win') or (not check_version('ipympl')) or
+     check_version('matplotlib', '3.6')),
+    reason='nbexec does not work on Windows or mpl 3.6')
 
 
 def test_widget_abstraction_notebook(nbexec):

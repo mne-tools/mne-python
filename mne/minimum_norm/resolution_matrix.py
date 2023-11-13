@@ -7,7 +7,12 @@ from copy import deepcopy
 
 import numpy as np
 
+<<<<<<< HEAD
 from .. import pick_types, pick_channels_forward, EvokedArray, SourceEstimate
+=======
+from .. import (pick_channels_forward, EvokedArray, SourceEstimate,
+                VectorSourceEstimate)
+>>>>>>> master
 from ..io.constants import FIFF
 from ..utils import logger, verbose
 from ..forward.forward import convert_forward_solution
@@ -139,13 +144,13 @@ def make_inverse_resolution_matrix(forward, inverse_operator, method='dSPM',
 
 
 @verbose
-def _get_psf_ctf(resmat, src, idx, func, mode, n_comp, norm, return_pca_vars,
-                 verbose=None):
+def _get_psf_ctf(resmat, src, idx, *, func, mode, n_comp, norm,
+                 return_pca_vars, vector=False, verbose=None):
     """Get point-spread (PSFs) or cross-talk (CTFs) functions.
 
     Parameters
     ----------
-    resmat : array, shape (n_dipoles, n_dipoles)
+    resmat : array, shape (n_orient_inv * n_dipoles, n_orient_fwd * n_dipoles)
         Forward Operator.
     src : Source Space
         Source space used to compute resolution matrix.
@@ -156,6 +161,7 @@ def _get_psf_ctf(resmat, src, idx, func, mode, n_comp, norm, return_pca_vars,
     %(n_comp_pctf_n)s
     %(norm_pctf)s
     %(return_pca_vars_pctf)s
+    %(vector_pctf)s
     %(verbose)s
 
     Returns
@@ -172,20 +178,44 @@ def _get_psf_ctf(resmat, src, idx, func, mode, n_comp, norm, return_pca_vars,
 
     # get relevant vertices in source space
     verts_all = _vertices_for_get_psf_ctf(idx, src)
-    # vertices used in forward and inverse operator
     vertno_lh = src[0]['vertno']
     vertno_rh = src[1]['vertno']
     vertno = [vertno_lh, vertno_rh]
 
+    n_verts = len(vertno[0]) + len(vertno[1])
+
+    n_r, n_c = resmat.shape
+    if (((n_verts != n_r) and (n_r / 3 != n_verts))
+            or ((n_verts != n_c) and (n_c / 3 != n_verts))):
+        msg = ('Number of vertices (%d) and corresponding dimension of'
+               'resolution matrix ((%d, %d) do not match' %
+               (n_verts, n_r, n_c))
+        raise ValueError(msg)
+
     # the following will operate on columns of funcs
     if func == 'ctf':
         resmat = resmat.T
+        n_r, n_c = n_c, n_r
+
     # Functions and variances per label
     stcs = []
     pca_vars = []
 
+    # if 3 orientations per vertex, redefine indices to columns of resolution
+    # matrix
+    if n_verts != n_c:
+        # change indices to three indices per vertex
+        for [i, verts] in enumerate(verts_all):
+            verts_vec = np.empty(3 * len(verts), dtype=int)
+            for [j, v] in enumerate(verts):
+                verts_vec[3 * j: 3 * j + 3] = \
+                    3 * verts[j] + np.array([0, 1, 2])
+            verts_all[i] = verts_vec  # use these as indices
+
     for verts in verts_all:
         # get relevant PSFs or CTFs for specified vertices
+        if type(verts) is int:
+            verts = [verts]  # to keep array dimensions
         funcs = resmat[:, verts]
 
         # normalise PSFs/CTFs if requested
@@ -198,8 +228,21 @@ def _get_psf_ctf(resmat, src, idx, func, mode, n_comp, norm, return_pca_vars,
             funcs, pca_var = _summarise_psf_ctf(funcs, mode, n_comp,
                                                 return_pca_vars)
 
-        # convert to source estimate
-        stc = SourceEstimate(funcs, vertno, tmin=0., tstep=1.)
+        if not vector:  # if one value per vertex requested
+            if n_verts != n_r:  # if 3 orientations per vertex, combine
+                funcs_int = np.empty([int(n_r / 3), funcs.shape[1]])
+                for i in np.arange(0, n_verts):
+                    funcs_vert = funcs[3 * i:3 * i + 3, :]
+                    funcs_int[i, :] = np.sqrt((funcs_vert ** 2).sum(axis=0))
+                stc = SourceEstimate(funcs_int, vertno, tmin=0., tstep=1.)
+            else:  # use as is
+                stc = SourceEstimate(funcs, vertno, tmin=0., tstep=1.)
+        else:  # STC with orientations
+            # convert to vector source estimate
+            m, n = int(funcs.shape[0] / 3), int(funcs.shape[1])
+            data = funcs.reshape(m, 3, n)
+            stc = VectorSourceEstimate(data, vertno, tmin=0., tstep=1.)
+
         stcs.append(stc)
         pca_vars.append(pca_var)
 
@@ -271,7 +314,6 @@ def _normalise_psf_ctf(funcs, norm):
 
 def _summarise_psf_ctf(funcs, mode, n_comp, return_pca_vars):
     """Summarise PSFs/CTFs across vertices."""
-    from scipy import linalg
     s_var = None  # only computed for return_pca_vars=True
 
     if mode == 'maxval':  # pick PSF/CTF with maximum absolute value
@@ -280,7 +322,7 @@ def _summarise_psf_ctf(funcs, mode, n_comp, return_pca_vars):
             sortidx = np.argsort(absvals)
             maxidx = sortidx[-n_comp:]
         else:  # faster if only one required
-            maxidx = absvals.argmax()
+            maxidx = [absvals.argmax()]
         funcs = funcs[:, maxidx]
 
     elif mode == 'maxnorm':  # pick PSF/CTF with maximum norm
@@ -289,19 +331,22 @@ def _summarise_psf_ctf(funcs, mode, n_comp, return_pca_vars):
             sortidx = np.argsort(norms)
             maxidx = sortidx[-n_comp:]
         else:  # faster if only one required
-            maxidx = norms.argmax()
+            maxidx = [norms.argmax()]
         funcs = funcs[:, maxidx]
 
     elif mode == 'sum':  # sum across PSFs/CTFs
-        funcs = np.sum(funcs, axis=1)
+        funcs = np.sum(funcs, axis=1, keepdims=True)
 
     elif mode == 'mean':  # mean of PSFs/CTFs
-        funcs = np.mean(funcs, axis=1)
+        funcs = np.mean(funcs, axis=1, keepdims=True)
 
     elif mode == 'pca':  # SVD across PSFs/CTFs
         # compute SVD of PSFs/CTFs across vertices
-        u, s, _ = linalg.svd(funcs, full_matrices=False)
-        funcs = u[:, :n_comp]
+        u, s, _ = np.linalg.svd(funcs, full_matrices=False, compute_uv=True)
+        if n_comp > 1:
+            funcs = u[:, :n_comp]
+        else:
+            funcs = u[:, 0, np.newaxis]
         # if explained variances for SVD components requested
         if return_pca_vars:
             # explained variance of individual SVD components
@@ -312,8 +357,8 @@ def _summarise_psf_ctf(funcs, mode, n_comp, return_pca_vars):
 
 
 @verbose
-def get_point_spread(resmat, src, idx, mode=None, n_comp=1, norm=False,
-                     return_pca_vars=False, verbose=None):
+def get_point_spread(resmat, src, idx, mode=None, *, n_comp=1, norm=False,
+                     return_pca_vars=False, vector=False, verbose=None):
     """Get point-spread (PSFs) functions for vertices.
 
     Parameters
@@ -327,6 +372,7 @@ def get_point_spread(resmat, src, idx, mode=None, n_comp=1, norm=False,
     %(n_comp_pctf_n)s
     %(norm_pctf)s
     %(return_pca_vars_pctf)s
+    %(vector_pctf)s
     %(verbose)s
 
     Returns
@@ -335,12 +381,13 @@ def get_point_spread(resmat, src, idx, mode=None, n_comp=1, norm=False,
     %(pca_vars_pctf)s
     """
     return _get_psf_ctf(resmat, src, idx, func='psf', mode=mode, n_comp=n_comp,
-                        norm=norm, return_pca_vars=return_pca_vars)
+                        norm=norm, return_pca_vars=return_pca_vars,
+                        vector=vector)
 
 
 @verbose
-def get_cross_talk(resmat, src, idx, mode=None, n_comp=1, norm=False,
-                   return_pca_vars=False, verbose=None):
+def get_cross_talk(resmat, src, idx, mode=None, *, n_comp=1, norm=False,
+                   return_pca_vars=False, vector=False, verbose=None):
     """Get cross-talk (CTFs) function for vertices.
 
     Parameters
@@ -354,6 +401,7 @@ def get_cross_talk(resmat, src, idx, mode=None, n_comp=1, norm=False,
     %(n_comp_pctf_n)s
     %(norm_pctf)s
     %(return_pca_vars_pctf)s
+    %(vector_pctf)s
     %(verbose)s
 
     Returns
@@ -362,7 +410,8 @@ def get_cross_talk(resmat, src, idx, mode=None, n_comp=1, norm=False,
     %(pca_vars_pctf)s
     """
     return _get_psf_ctf(resmat, src, idx, func='ctf', mode=mode, n_comp=n_comp,
-                        norm=norm, return_pca_vars=return_pca_vars)
+                        norm=norm, return_pca_vars=return_pca_vars,
+                        vector=vector)
 
 
 def _convert_forward_match_inv(fwd, inv):

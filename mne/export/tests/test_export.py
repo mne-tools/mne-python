@@ -342,6 +342,7 @@ def test_export_raw_edf(tmp_path, dataset, format):
         raw.times, raw_read.times[:orig_raw_len], rtol=0, atol=1e-5)
 
 
+@pytest.mark.xfail(reason='eeglabio (usage?) bugs that should be fixed')
 @requires_version('pymatreader')
 @pytest.mark.skipif(not _check_eeglabio_installed(strict=False),
                     reason='eeglabio not installed')

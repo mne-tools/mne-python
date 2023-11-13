@@ -12,7 +12,7 @@ from functools import partial
 
 import numpy as np
 
-from .utils import plt_show
+from .utils import plt_show, _get_cmap
 from ..utils import _validate_type
 
 
@@ -187,8 +187,7 @@ def _plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
         raise ValueError('con has to be 1D or a square matrix')
 
     # get the colormap
-    if isinstance(colormap, str):
-        colormap = plt.get_cmap(colormap)
+    colormap = _get_cmap(colormap)
 
     # Use a polar axes
     if ax is None:

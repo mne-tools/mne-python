@@ -30,12 +30,13 @@ from mne.utils import check_version
 from mne.label import read_label
 from mne.viz._brain import Brain, _LinkViewer, _BrainScraper, _LayeredMesh
 from mne.viz._brain.colormap import calculate_lut
+from mne.viz.utils import _get_cmap
 
-from matplotlib import cm, image
+from matplotlib import image
 from matplotlib.lines import Line2D
 
 data_path = testing.data_path(download=False)
-subject_id = 'sample'
+subject = 'sample'
 subjects_dir = op.join(data_path, 'subjects')
 sample_dir = op.join(data_path, 'MEG', 'sample')
 fname_raw_testing = op.join(sample_dir, 'sample_audvis_trunc_raw.fif')
@@ -45,7 +46,7 @@ fname_label = op.join(sample_dir, 'labels', 'Vis-lh.label')
 fname_cov = op.join(sample_dir, 'sample_audvis_trunc-cov.fif')
 fname_evoked = op.join(sample_dir, 'sample_audvis_trunc-ave.fif')
 fname_fwd = op.join(sample_dir, 'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
-src_fname = op.join(subjects_dir, subject_id, 'bem', 'sample-oct-6-src.fif')
+src_fname = op.join(subjects_dir, subject, 'bem', 'sample-oct-6-src.fif')
 
 
 class _Collection(object):
@@ -178,7 +179,7 @@ def test_brain_init(renderer_pyvistaqt, tmp_path, pixel_ratio, brain_gc):
     title = 'test'
     size = (300, 300)
 
-    kwargs = dict(subject_id=subject_id, subjects_dir=subjects_dir)
+    kwargs = dict(subject=subject, subjects_dir=subjects_dir)
     with pytest.raises(ValueError, match='"size" parameter must be'):
         Brain(hemi=hemi, surf=surf, size=[1, 2, 3], **kwargs)
     with pytest.raises(ValueError, match='.*hemi.*Allowed values.*'):
@@ -197,7 +198,11 @@ def test_brain_init(renderer_pyvistaqt, tmp_path, pixel_ratio, brain_gc):
         Brain(hemi='lh', surf='seghead', **kwargs)
     with pytest.raises(ValueError, match='RGB argument'):
         Brain('sample', cortex='badcolor')
-    Brain(subject_id, hemi=None, surf=None)  # test no surfaces
+    # test no surfaces
+    with pytest.deprecated_call(match='show_toolbar'):  # and subject_id
+        Brain(subject_id=subject, hemi=None, surf=None, show_toolbar=True)
+    with pytest.raises(TypeError, match='missing 1 required positional'):
+        Brain()
     renderer_pyvistaqt.backend._close_all()
 
     brain = Brain(hemi=hemi, surf=surf, size=size, title=title,
@@ -383,14 +388,14 @@ def test_brain_init(renderer_pyvistaqt, tmp_path, pixel_ratio, brain_gc):
     borders = [True, 2]
     alphas = [1, 0.5]
     colors = [None, 'r']
-    brain = Brain(subject_id='fsaverage', hemi='both', size=size,
+    brain = Brain(subject='fsaverage', hemi='both', size=size,
                   surf='inflated', subjects_dir=subjects_dir)
     with pytest.raises(RuntimeError, match="both hemispheres"):
         brain.add_annotation(annots[-1])
     with pytest.raises(ValueError, match="does not exist"):
         brain.add_annotation('foo')
     brain.close()
-    brain = Brain(subject_id='fsaverage', hemi=hemi, size=size,
+    brain = Brain(subject='fsaverage', hemi=hemi, size=size,
                   surf='inflated', subjects_dir=subjects_dir)
     for a, b, p, color in zip(annots, borders, alphas, colors):
         brain.add_annotation(a, b, p, color=color)
@@ -434,6 +439,9 @@ def test_brain_init(renderer_pyvistaqt, tmp_path, pixel_ratio, brain_gc):
     del view_args
     img = brain.screenshot(mode='rgba')
     want_size = np.array([size[0] * pixel_ratio, size[1] * pixel_ratio, 4])
+    # on macOS sometimes matplotlib is HiDPI and VTK is not...
+    factor = 2 if np.allclose(img.shape[:2], want_size[:2] / 2.) else 1
+    want_size[:2] /= factor
     assert_allclose(img.shape, want_size)
     brain.close()
 
@@ -802,7 +810,7 @@ def test_brain_traces(renderer_interactive_pyvistaqt, hemi, src, tmp_path,
         mni = vertex_to_mni(
             vertices=vertex_id,
             hemis=hemi_int,
-            subject=brain._subject_id,
+            subject=brain._subject,
             subjects_dir=brain._subjects_dir
         )
         label = "{}:{} MNI: {}".format(
@@ -929,11 +937,10 @@ def test_calculate_lut():
     calculate_lut(colormap, alpha=alpha, fmin=fmin,
                   fmid=fmid, fmax=fmax, center=center)
     center = 0.0
-    colormap = cm.get_cmap(colormap)
-    calculate_lut(colormap, alpha=alpha, fmin=fmin,
+    cmap = _get_cmap(colormap)
+    calculate_lut(cmap, alpha=alpha, fmin=fmin,
                   fmid=fmid, fmax=fmax, center=center)
 
-    cmap = cm.get_cmap(colormap)
     zero_alpha = np.array([1., 1., 1., 0])
     half_alpha = np.array([1., 1., 1., 0.5])
     atol = 1.5 / 256.
@@ -1039,12 +1046,12 @@ def _create_testing_brain(hemi, surf='inflated', src='surface',
             evoked.info, fwd, noise_cov, loose=1.)
         stc = apply_inverse(evoked, free, pick_ori='vector')
         return stc.plot(
-            subject=subject_id, hemi=hemi, size=size,
+            subject=subject, hemi=hemi, size=size,
             subjects_dir=subjects_dir, colormap='auto',
             **kwargs)
     if src in ('volume', 'mixed'):
         vol_src = setup_volume_source_space(
-            subject_id, 7., mri='aseg.mgz',
+            subject, 7., mri='aseg.mgz',
             volume_label='Left-Cerebellum-Cortex',
             subjects_dir=subjects_dir, add_interpolator=False)
         assert len(vol_src) == 1
@@ -1075,7 +1082,7 @@ def _create_testing_brain(hemi, surf='inflated', src='surface',
         clim['pos_lims'] = clim.pop('lims')
 
     brain_data = getattr(stc, meth)(
-        subject=subject_id, hemi=hemi, surface=surf, size=size,
+        subject=subject, hemi=hemi, surface=surf, size=size,
         subjects_dir=subjects_dir, colormap='auto',
         clim=clim, src=sample_src,
         **kwargs)

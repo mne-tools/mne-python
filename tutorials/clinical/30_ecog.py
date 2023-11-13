@@ -36,7 +36,6 @@ Please note that this tutorial requires 3D plotting dependencies (see
 
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.cm import get_cmap
 from mne_bids import BIDSPath, read_raw_bids
 
 import mne
@@ -148,7 +147,7 @@ gamma_info = gamma_power_t.info
 xy_pts = np.vstack([xy[ch] for ch in raw.info['ch_names']])
 
 # get a colormap to color nearby points similar colors
-cmap = get_cmap('viridis')
+cmap = plt.colormaps['viridis']
 
 # create the figure of the brain with the electrode positions
 fig, ax = plt.subplots(figsize=(5, 5))

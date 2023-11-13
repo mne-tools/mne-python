@@ -76,7 +76,7 @@ def test_mne_python_vs_eeglab():
                                    % (method,
                                       dict(eeg='eeg', mag='meg')[ch_type]))
 
-            # For comparasion against eeglab, make sure the following
+            # For comparison against eeglab, make sure the following
             # parameters have the same value in mne_python and eeglab:
             #
             # - starting point

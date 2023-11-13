@@ -121,7 +121,7 @@ def stat_fun(x):
 
 # Plot
 fig, axes = plt.subplots(4, 1, figsize=(10, 7), sharex=True, sharey=True)
-colors = plt.get_cmap('winter_r')(np.linspace(0, 1, 4))
+colors = plt.colormaps['winter_r'](np.linspace(0, 1, 4))
 for ((freq_name, fmin, fmax), average), color, ax in zip(
         frequency_map, colors, axes.ravel()[::-1]):
     times = average.times * 1e3

@@ -393,7 +393,7 @@ def _first_hpi(fname):
             break
         else:
             raise RuntimeError('Could not find valid HPI in %s' % (fname,))
-    # t is the first enttry
+    # t is the first entry
     assert hpi.ndim == 1
     hpi = hpi[1:]
     hpi.shape = (-1, 5)

@@ -535,8 +535,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
     def _last_time(self):
         return self.last_samp / float(self.info['sfreq'])
 
-    # "Overridden method signature does not match call..." in LGTM
-    def time_as_index(self, times, use_rounding=False, origin=None):  # lgtm
+    def time_as_index(self, times, use_rounding=False, origin=None):
         """Convert time to indices.
 
         Parameters
@@ -1063,7 +1062,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
     @verbose
     def resample(self, sfreq, npad='auto', window='boxcar', stim_picks=None,
                  n_jobs=None, events=None, pad='reflect_limited',
-                 verbose=None):  # lgtm
+                 verbose=None):
         """Resample all channels.
 
         If appropriate, an anti-aliasing filter is applied before resampling.

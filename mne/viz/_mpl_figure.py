@@ -49,6 +49,7 @@ from matplotlib import get_backend
 from matplotlib.figure import Figure
 
 from .. import channel_indices_by_type, pick_types
+from ..fixes import _close_event
 from ..annotations import _sync_onset
 from ..defaults import _handle_default
 from ..io.pick import (_DATA_CH_TYPES_ORDER_DEFAULT, _DATA_CH_TYPES_SPLIT,
@@ -58,9 +59,9 @@ from ..time_frequency import psd_multitaper, psd_welch
 from ..utils import Bunch, _check_option, _check_sphere, _click_ch_name, logger
 from . import plot_sensors
 from ._figure import BrowserBase
-from .utils import (DraggableLine, _events_off, _fake_click,
+from .utils import (DraggableLine, _events_off, _fake_click, _fake_keypress,
                     _merge_annotations, _plot_psd, _prop_kw, _set_window_title,
-                    _validate_if_list_of_axes, plt_show)
+                    _validate_if_list_of_axes, plt_show, _fake_scroll)
 
 name = 'matplotlib'
 plt.ion()
@@ -1972,13 +1973,12 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
     # (check MPL github issue #18609; scheduled to be fixed by MPL 3.6)
     def _close_event(self, fig=None):
         """Force calling of the MPL figure close event."""
-        from ..fixes import _close_event
         fig = fig or self
         _close_event(fig)
 
     def _fake_keypress(self, key, fig=None):
         fig = fig or self
-        fig.canvas.key_press_event(key)
+        _fake_keypress(fig, key)
 
     def _fake_click(self, point, add_points=None, fig=None, ax=None,
                     xform='ax', button=1, kind='press'):
@@ -1999,7 +1999,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
 
     def _fake_scroll(self, x, y, step, fig=None):
         fig = fig or self
-        fig.canvas.scroll_event(x, y, step)
+        _fake_scroll(fig, x, y, step)
 
     def _click_ch_name(self, ch_index, button):
         _click_ch_name(self, ch_index, button)

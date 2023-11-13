@@ -1,4 +1,5 @@
 from os import path as op
+from pathlib import Path
 
 import numpy as np
 from numpy.polynomial import legendre
@@ -39,8 +40,8 @@ def test_field_map_ctf():
     events = make_fixed_length_events(raw, duration=0.5)
     evoked = Epochs(raw, events).average()
     evoked.pick_channels(evoked.ch_names[:50])  # crappy mapping but faster
-    # smoke test
-    make_field_map(evoked, trans=trans_fname, subject='sample',
+    # smoke test - passing trans_fname as pathlib.Path as additional check
+    make_field_map(evoked, trans=Path(trans_fname), subject='sample',
                    subjects_dir=subjects_dir)
 
 

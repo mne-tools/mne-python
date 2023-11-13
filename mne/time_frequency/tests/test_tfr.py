@@ -18,7 +18,7 @@ from mne.time_frequency.tfr import (morlet, tfr_morlet, _make_dpss,
                                     write_tfrs, combine_tfr, cwt, _compute_tfr,
                                     EpochsTFR)
 from mne.time_frequency import tfr_array_multitaper, tfr_array_morlet
-from mne.viz.utils import _fake_click
+from mne.viz.utils import _fake_click, _fake_keypress, _fake_scroll
 from mne.tests.test_epochs import assert_metadata_equal
 
 data_path = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
@@ -610,17 +610,17 @@ def test_plot():
 
     # interactive mode on by default
     fig = tfr.plot(picks=[1], cmap='RdBu_r')[0]
-    fig.canvas.key_press_event('up')
-    fig.canvas.key_press_event(' ')
-    fig.canvas.key_press_event('down')
-    fig.canvas.key_press_event(' ')
-    fig.canvas.key_press_event('+')
-    fig.canvas.key_press_event(' ')
-    fig.canvas.key_press_event('-')
-    fig.canvas.key_press_event(' ')
-    fig.canvas.key_press_event('pageup')
-    fig.canvas.key_press_event(' ')
-    fig.canvas.key_press_event('pagedown')
+    _fake_keypress(fig, 'up')
+    _fake_keypress(fig, ' ')
+    _fake_keypress(fig, 'down')
+    _fake_keypress(fig, ' ')
+    _fake_keypress(fig, '+')
+    _fake_keypress(fig, ' ')
+    _fake_keypress(fig, '-')
+    _fake_keypress(fig, ' ')
+    _fake_keypress(fig, 'pageup')
+    _fake_keypress(fig, ' ')
+    _fake_keypress(fig, 'pagedown')
 
     cbar = fig.get_axes()[0].CB  # Fake dragging with mouse.
     ax = cbar.cbar.ax
@@ -632,8 +632,8 @@ def test_plot():
     _fake_click(fig, ax, (0.1, 0.2), button=3, kind='motion')
     _fake_click(fig, ax, (0.1, 0.3), kind='release')
 
-    fig.canvas.scroll_event(0.5, 0.5, -0.5)  # scroll down
-    fig.canvas.scroll_event(0.5, 0.5, 0.5)  # scroll up
+    _fake_scroll(fig, 0.5, 0.5, -0.5)  # scroll down
+    _fake_scroll(fig, 0.5, 0.5, 0.5)  # scroll up
 
     plt.close('all')
 

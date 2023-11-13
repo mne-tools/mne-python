@@ -34,7 +34,7 @@ from mne.viz import (plot_sparse_source_estimates, plot_source_estimates,
                      plot_alignment, Figure3D,
                      plot_brain_colorbar, link_brains, mne_analyze_colormap)
 from mne.viz._3d import _process_clim, _linearize_map, _get_map_ticks
-from mne.viz.utils import _fake_click
+from mne.viz.utils import _fake_click, _fake_keypress, _fake_scroll, _get_cmap
 from mne.utils import requires_nibabel, catch_logging, _record_warnings
 from mne.datasets import testing
 from mne.source_space import read_source_spaces
@@ -542,7 +542,7 @@ def test_process_clim_round_trip():
     # With some positive data
     out = _process_clim('auto', 'auto', True, 1.)
     want = dict(
-        colormap=plt.get_cmap('hot'),
+        colormap=_get_cmap('hot'),
         clim=dict(kind='value', lims=[1, 1, 1]),
         transparent=True,)
     _assert_mapdata_equal(out, want)
@@ -596,8 +596,8 @@ def test_stc_mpl():
                    colormap='mne')
     time_viewer = fig.time_viewer
     _fake_click(time_viewer, time_viewer.axes[0], (0.5, 0.5))  # change t
-    time_viewer.canvas.key_press_event('ctrl+right')
-    time_viewer.canvas.key_press_event('left')
+    _fake_keypress(time_viewer, 'ctrl+right')
+    _fake_keypress(time_viewer, 'left')
     pytest.raises(ValueError, stc.plot, subjects_dir=subjects_dir,
                   hemi='both', subject='sample', backend='matplotlib')
     pytest.raises(ValueError, stc.plot, subjects_dir=subjects_dir,
@@ -620,11 +620,11 @@ def test_plot_dipole_mri_orthoview(coord_frame, idx, show_all, title):
                                  coord_frame=coord_frame, idx=idx,
                                  show_all=show_all, title=title,
                                  mode='orthoview')
-    fig.canvas.scroll_event(0.5, 0.5, 1)  # scroll up
-    fig.canvas.scroll_event(0.5, 0.5, -1)  # scroll down
-    fig.canvas.key_press_event('up')
-    fig.canvas.key_press_event('down')
-    fig.canvas.key_press_event('a')  # some other key
+    _fake_scroll(fig, 0.5, 0.5, 1)  # scroll up
+    _fake_scroll(fig, 0.5, 0.5, -1)  # scroll down
+    _fake_keypress(fig, 'up')
+    _fake_keypress(fig, 'down')
+    _fake_keypress(fig, 'a')  # some other key
     ax = fig.add_subplot(211)
     with pytest.raises(TypeError, match='instance of Axes3D'):
         dipoles.plot_locations(trans, 'sample', subjects_dir, ax=ax)

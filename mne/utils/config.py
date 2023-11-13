@@ -16,11 +16,10 @@ import sys
 import tempfile
 import re
 
-import numpy as np
-
 from .check import (_validate_type, _check_qt_version, _check_option,
                     _check_fname)
 from .docs import fill_doc
+from .misc import _pl
 from ._logging import warn, logger
 
 
@@ -449,26 +448,23 @@ def _get_root_dir():
 
 
 def _get_numpy_libs():
-    from ._testing import SilenceStdout
-    with SilenceStdout(close=False) as capture:
-        np.show_config()
-    lines = capture.getvalue().split('\n')
-    capture.close()
-    libs = []
-    for li, line in enumerate(lines):
-        for key in ('lapack', 'blas'):
-            if line.startswith('%s_opt_info' % key):
-                lib = lines[li + 1]
-                if 'NOT AVAILABLE' in lib:
-                    lib = 'unknown'
-                else:
-                    try:
-                        lib = lib.split('[')[1].split("'")[1]
-                    except IndexError:
-                        pass  # keep whatever it was
-                libs += ['%s=%s' % (key, lib)]
-    libs = ', '.join(libs)
-    return libs
+    bad_lib = 'unknown linalg bindings'
+    try:
+        from threadpoolctl import threadpool_info
+    except Exception as exc:
+        return bad_lib + f' (threadpoolctl module not found: {exc})'
+    pools = threadpool_info()
+    rename = dict(
+        openblas='OpenBLAS',
+        mkl='MKL',
+    )
+    for pool in pools:
+        if pool['internal_api'] in ('openblas', 'mkl'):
+            return (
+                f'{rename[pool["internal_api"]]} '
+                f'{pool["version"]} with '
+                f'{pool["num_threads"]} thread{_pl(pool["num_threads"])}')
+    return bad_lib
 
 
 _gpu_cmd = """\

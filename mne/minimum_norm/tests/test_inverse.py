@@ -230,6 +230,7 @@ def test_make_inverse_operator_loose(evoked, tmp_path):
     log = log.getvalue()
     assert 'MEG: rank 302 computed' in log
     assert 'limit = 1/%d' % fwd_op['nsource'] in log
+    assert 'Loose (0.2)' in repr(my_inv_op)
     _compare_io(my_inv_op, tempdir=str(tmp_path))
     assert_equal(inverse_operator['units'], 'Am')
     _compare_inverses_approx(my_inv_op, inverse_operator, evoked,
@@ -685,6 +686,7 @@ def test_make_inverse_operator_fixed(evoked, noise_cov):
     assert 'MEG: rank 302 computed from 305' in log
     assert 'EEG channels: 0' in repr(inv_op)
     assert 'MEG channels: 305' in repr(inv_op)
+    assert 'Fixed' in repr(inv_op)
     del fwd_fixed
     inverse_operator_nodepth = read_inverse_operator(fname_inv_fixed_nodepth)
     # XXX We should have this but we don't (MNE-C doesn't restrict info):
@@ -725,6 +727,8 @@ def test_make_inverse_operator_free(evoked, noise_cov):
                                      depth=None, loose=1.)
     inv = make_inverse_operator(evoked.info, fwd, noise_cov,
                                 depth=None, loose=1.)
+    assert 'Free' in repr(inv_surf)
+    assert 'Free' in repr(inv)
     _compare_inverses_approx(inv, inv_surf, evoked, rtol=1e-5, atol=1e-8,
                              check_nn=False, check_K=False)
     for pick_ori in (None, 'vector', 'normal'):

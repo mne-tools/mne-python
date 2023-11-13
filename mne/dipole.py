@@ -251,6 +251,9 @@ class Dipole(TimeMixin):
         Parameters
         ----------
         %(trans)s
+
+            .. versionchanged:: 0.19
+                Support for 'fsaverage' argument.
         %(subject)s
         %(aseg)s
         %(subjects_dir)s

@@ -660,7 +660,7 @@ for i_win, win in enumerate(window_starts):
             abs(windowed_freqs - 12.))].mean(axis=1)
 
 fig, ax = plt.subplots(1)
-colors = plt.get_cmap('Greys')(np.linspace(0, 1, 10))
+colors = plt.colormaps['Greys'](np.linspace(0, 1, 10))
 for i in range(10):
     ax.plot(window_starts, np.array(window_snrs)[:, i], color=colors[i])
 ax.set(title='Time resolved 12 Hz SNR - %is sliding window' % window_length,

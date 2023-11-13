@@ -1,0 +1,29 @@
+<table class="table table-hover">
+    <tr>
+        <th>Condition</th>
+        <td>{{evoked.comment}}</td>
+    </tr>
+    <tr>
+        <th>Data kind</th>
+        <td>{{evoked.kind}}</td>
+    </tr>
+    <tr>
+        <th>Timepoints</th>
+        <td>{{ evoked.data.shape[1] }} samples</td>
+    </tr>
+        <th>Channels</th>
+        <td>{{ evoked.data.shape[0] }} channels</td>
+    </tr>
+    <tr>
+        <th>Number of averaged epochs</th>
+        <td>{{evoked.nave}}</td>
+    </tr>
+    <tr>
+        <th>Time range (secs)</th>
+        <td>{{ evoked.times[0] }} – {{ evoked.times[-1] }}</td>
+    </tr>
+    <tr>
+        <th>Baseline (secs)</th>
+        <td>{{baseline}}</td>
+    </tr>
+</table>

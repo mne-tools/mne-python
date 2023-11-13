@@ -1006,7 +1006,7 @@ def plot_filter(h, sfreq, freq=None, gain=None, title=None, color='#1f77b4',
                 warnings.simplefilter('ignore')
                 gd = group_delay((h['b'], h['a']), omega)[1]
                 if compensate:
-                    gd += group_delay(h['b'].conj(), h['a'].conj(), omega)[1]
+                    gd += group_delay((h['b'].conj(), h['a'].conj()), omega)[1]
             n = estimate_ringing_samples((h['b'], h['a']))
             delta = np.zeros(n)
             delta[0] = 1

@@ -141,7 +141,7 @@ F_obs, clusters, p_values, _ = cluster_stats
 #           an adjacency for time points was automatically taken into
 #           account. That is, at time point N, the time points N - 1 and
 #           N + 1 were considered as adjacent (this is also called "lattice
-#           adjacency"). This is only possbile because we ran the analysis on
+#           adjacency"). This is only possible because we ran the analysis on
 #           2D data (times × channels) per observation ... for 3D data per
 #           observation (e.g., times × frequencies × channels), we will need
 #           to use :func:`mne.stats.combine_adjacency`, as shown further

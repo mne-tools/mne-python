@@ -182,6 +182,7 @@ numpydoc_xref_aliases = {
     'path-like': ':term:`path-like`',
     'array-like': ':term:`array-like`',
     'Path': ':class:`python:pathlib.Path`',
+    'bool': ':class:`python:bool`',
     # Matplotlib
     'colormap': ':doc:`colormap <matplotlib:tutorials/colors/colormaps>`',
     'color': ':doc:`color <matplotlib:api/colors_api>`',
@@ -916,9 +917,14 @@ def reset_warnings(gallery_conf, fname):
         'In future, it will be an error for \'np.bool_\' scalars to',
         # sklearn hasn't updated to SciPy's sym_pos dep
         'The \'sym_pos\' keyword is deprecated',
+        # numba
+        '`np.MachAr` is deprecated',
     ):
         warnings.filterwarnings(  # deal with other modules having bad imports
             'ignore', message=".*%s.*" % key, category=DeprecationWarning)
+    # matplotlib 3.6 in nilearn and pyvista
+    warnings.filterwarnings(
+        'ignore', message='.*cmap function will be deprecated.*')
     # xarray/netcdf4
     warnings.filterwarnings(
         'ignore', message=r'numpy\.ndarray size changed, may indicate.*',
