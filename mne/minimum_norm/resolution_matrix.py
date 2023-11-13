@@ -7,12 +7,10 @@ from copy import deepcopy
 
 import numpy as np
 
-<<<<<<< HEAD
 from .. import pick_types, pick_channels_forward, EvokedArray, SourceEstimate
-=======
 from .. import (pick_channels_forward, EvokedArray, SourceEstimate,
                 VectorSourceEstimate)
->>>>>>> master
+
 from ..io.constants import FIFF
 from ..utils import logger, verbose
 from ..forward.forward import convert_forward_solution
@@ -52,11 +50,10 @@ def make_inverse_resolution_matrix(forward, inverse_operator, method='dSPM',
         Resolution matrix (inverse operator times forward operator). The
         columns of the resolution matrix are the point-spread functions (PSFs)
         and the rows are the cross-talk functions (CTFs).
-        The result of applying the inverse operator to the forward operator.
         If source orientations are not fixed, all source components will be
         computed (i.e. for n_orient_inv > 1 or n_orient_fwd > 1).
         If 'noise_cov' and 'snr' are not None, then source noise estimated from
-        noise covariance matrix will be added to columns of the resolution
+        the noise covariance matrix will be added to columns of the resolution
         matrix (PSFs). In this case, 'resmat' will be of shape
         (n_dipoles, n_orient_fwd * n_dipoles) with values pooled across
         n_orient_inv source orientations per location.
@@ -96,7 +93,7 @@ def make_inverse_resolution_matrix(forward, inverse_operator, method='dSPM',
     if noise_cov is not None:
         inv = prepare_inverse_operator(inv, 1, lambda2, method, copy='non-src')
         info = _prepare_info(inv)
-        # compute source noise poweralph
+        # compute source noise power
         stc = apply_inverse_cov(
             noise_cov, info, inv, nave=1, lambda2=lambda2,
             method=method, pick_ori=None, prepared=True, label=None,
