@@ -4,11 +4,14 @@ set -o pipefail
 
 STD_ARGS="--progress-bar off --upgrade"
 INSTALL_KIND="test_extra,hdf5"
-python -m pip install $STD_ARGS pip setuptools wheel packaging setuptools_scm
 if [ ! -z "$CONDA_ENV" ]; then
 	echo "Uninstalling MNE for CONDA_ENV=${CONDA_ENV}"
 	conda remove -c conda-forge --force -yq mne
 	python -m pip uninstall -y mne
+	# This is needed to avoid a segfault on notebook for some reason
+	if [[ "$MNE_CI_KIND" == "notebook "]]; then
+		python -m pip install --upgrade numpy scipy
+	fi
 elif [ ! -z "$CONDA_DEPENDENCIES" ]; then
 	echo "Using Mamba to install CONDA_DEPENDENCIES=${CONDA_DEPENDENCIES}"
 	mamba install -y $CONDA_DEPENDENCIES
@@ -19,6 +22,7 @@ else
 	echo "Install pip-pre dependencies"
 	test "${MNE_CI_KIND}" == "pip-pre"
 	STD_ARGS="$STD_ARGS --pre"
+	python -m pip install $STD_ARGS pip
 	echo "Numpy"
 	pip uninstall -yq numpy
 	echo "PyQt6"
@@ -57,7 +61,6 @@ else
 	! python -c "import pandas"
 fi
 echo ""
-
 
 echo "Installing test dependencies using pip"
 python -m pip install $STD_ARGS -e .[$INSTALL_KIND]
