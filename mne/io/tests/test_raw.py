@@ -1015,7 +1015,9 @@ def test_resamp_noop():
 @testing.requires_testing_data
 def test_concatenate_raw_dev_head_t():
     """Test concatenating raws with dev-head-t including nans."""
-    raw = read_raw_fif(testing.data_path() / "MEG" / "sample" / "sample_audvis_raw.fif")
+    raw = read_raw_fif(
+        testing.data_path(download=False) / "MEG" / "sample" / "sample_audvis_raw.fif"
+    )
     raw.crop(0, 1).load_data()
     raw.info["dev_head_t"]["trans"][0, 0] = np.nan
     raw2 = raw.copy()
