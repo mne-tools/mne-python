@@ -16,54 +16,49 @@ Clustering statistics API
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 The current clustering statistics code has limited functionality. It should be
 re-worked to create a new ``cluster_based_statistic`` or similar function.
-In particular, the new API should:
 
-1. Support mixed within- and between-subjects designs, different statistical
-   functions, etc. This should be done via a ``design`` argument that mirrors
-   :func:`patsy.dmatrices` or similar community standard (e.g., this is what
-   is used by :class:`statsmodels.regression.linear_model.OLS`).
-2. Have clear tutorials showing how different contrasts can be done (toy data).
-3. Have clear tutorials showing some common analyses on real data (time-freq,
-   sensor space, source space, etc.)
-4. Not introduce any significant speed penalty (e.g., < 10% slower) compared
-   to the existing, more specialized/limited functions.
+The new API will likely be along the lines of::
+
+   cluster_stat(obs, design, *, alpha=0.05, cluster_alpha=0.05, ...)
+
+with:
+
+``obs`` : :class:`pandas.DataFrame`
+    Has columns like "subject", "condition", and "data".
+    The "data" column holds things like :class:`mne.Evoked`,
+    :class:`mne.SourceEstimate`, :class:`mne.Spectrum`, etc.
+``design`` : `str`
+    Likely Wilkisson notation to mirror :func:`patsy.dmatrices` (e.g., this is
+    is used by :class:`statsmodels.regression.linear_model.OLS`). Getting from the
+    string to the design matrix could be done via Patsy or more likely
+    `Formulaic <https://matthewwardrop.github.io/formulaic/>`__.
+
+This generic API will support mixed within- and between-subjects designs,
+different statistical functions/tests, etc. This should be achievable without
+introducing any significant speed penalty (e.g., < 10% slower) compared to the existing
+more specialized/limited functions, since most computation cost is in clustering rather
+than statistical testing.
+
+Clear tutorials will be needed to:
+
+1. Show how different contrasts can be done (toy data).
+2. Show some common analyses on real data (time-freq, sensor space, source space, etc.)
+
+Regression tests will be written to ensure equivalent outputs when compared to FieldTrip
+for cases that FieldTrip also supports.
 
 More details are in :gh:`4859`.
 
-Access to open EEG/MEG databases
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-We should improve the access to open EEG/MEG databases via the
-:mod:`mne.datasets` module, in other words improve our dataset fetchers.
-We have physionet, but much more. Having a consistent API to access multiple
-data sources would be great. See :gh:`2852` and :gh:`3585` for some ideas,
-as well as:
+Modernization of realtime processing
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-- `OpenNEURO <https://openneuro.org>`__
-    "A free and open platform for sharing MRI, MEG, EEG, iEEG, and ECoG data."
-    See for example :gh:`6687`.
-- `Human Connectome Project Datasets <http://www.humanconnectome.org/data>`__
-    Over a 3-year span (2012-2015), the Human Connectome Project (HCP) scanned
-    1,200 healthy adult subjects. The available data includes MR structural
-    scans, behavioral data and (on a subset of the data) resting state and/or
-    task MEG data.
-- `MMN dataset <http://www.fil.ion.ucl.ac.uk/spm/data/eeg_mmn>`__
-    Used for tutorial/publications applying DCM for ERP analysis using SPM.
-- Kymata datasets
-    Current and archived EMEG measurement data, used to test hypotheses in the
-    Kymata atlas. The participants are healthy human adults listening to the
-    radio and/or watching films, and the data is comprised of (averaged) EEG
-    and MEG sensor data and source current reconstructions.
-- `BNCI Horizon <https://bnci-horizon-2020.eu/database/data-sets>`__
-    BCI datasets.
+LSL has become the de facto standard for streaming data from EEG/MEG systems.
+We should deprecate `MNE-Realtime`_ in favor of the newly minted `MNE-LSL`_.
+We should then fully support MNE-LSL using modern coding best practices such as CI
+integration.
 
 In progress
 -----------
-
-Eye-tracking support
-^^^^^^^^^^^^^^^^^^^^
-We had a GSoC student funded to improve support for eye-tracking data, see
-`the GSoC proposal <https://summerofcode.withgoogle.com/programs/2023/projects/nUP0jGKi>`__
-for details.
 
 Diversity, Equity, and Inclusion (DEI)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -72,26 +67,17 @@ contributors, see :gh:`8221`.
 
 First-class OPM support
 ^^^^^^^^^^^^^^^^^^^^^^^
-MNE-Python has support for reading some OPM data formats such as FIF, but
-support is still rudimentary. Support should be added for other manufacturers,
-and standard (and/or novel) preprocessing routines should be added to deal with
-coregistration adjustment, forward modeling, and OPM-specific artifacts.
+MNE-Python has support for reading some OPM data formats such as FIF and FIL/QuSpin.
+Support should be added for other manufacturers, and standard preprocessing routines
+should be added to deal with coregistration adjustment and OPM-specific artifacts.
+See for example :gh:`11275`, :gh:`11276`, :gh:`11579`, :gh:`12179`.
 
 Deep source modeling
 ^^^^^^^^^^^^^^^^^^^^
 Existing source modeling and inverse routines are not explicitly designed to
 deal with deep sources. Advanced algorithms exist from MGH for enhancing
 deep source localization, and these should be implemented and vetted in
-MNE-Python.
-
-Better sEEG/ECoG/DBS support
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Some support already exists for iEEG electrodes in MNE-Python thanks in part
-to standard abstractions. However, iEEG-specific pipeline steps (e.g.,
-electrode localization) and visualizations (e.g., per-shaft topo plots,
-:ref:`time-frequency-viz`) are missing. MNE-Python should work with members of
-the ECoG/sEEG community to work with or build in existing tools, and extend
-native functionality for depth electrodes.
+MNE-Python. See :gh:`6784`.
 
 Time-frequency classes
 ^^^^^^^^^^^^^^^^^^^^^^
@@ -106,25 +92,6 @@ data.
 See related issues :gh:`6290`, :gh:`7671`, :gh:`8026`, :gh:`8724`, :gh:`9045`,
 and PRs :gh:`6609`, :gh:`6629`, :gh:`6672`, :gh:`6673`, :gh:`8397`, and
 :gh:`8892`.
-
-Pediatric and clinical MEG pipelines
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-MNE-Python is in the process of providing automated analysis of BIDS-compliant
-datasets, see `MNE-BIDS-Pipeline`_. By incorporating functionality from the
-`mnefun <https://labsn.github.io/mnefun/overview.html>`__ pipeline,
-which has been used extensively for pediatric data analysis at `I-LABS`_,
-better support for pediatric and clinical data processing can be achieved.
-Multiple processing steps (e.g., eSSS), sanity checks (e.g., cHPI quality),
-and reporting (e.g., SSP joint plots, SNR plots) will be implemented.
-
-Statistics efficiency
-^^^^^^^^^^^^^^^^^^^^^
-A key technique in functional neuroimaging analysis is clustering brain
-activity in adjacent regions prior to statistical analysis. An important
-clustering algorithm — threshold-free cluster enhancement (TFCE) — currently
-relies on computationally expensive permutations for hypothesis testing.
-A faster, probabilistic version of TFCE (pTFCE) is available, and we are in the
-process of implementing this new algorithm.
 
 3D visualization
 ^^^^^^^^^^^^^^^^
@@ -155,12 +122,38 @@ Our documentation has many minor issues, which can be found under the tag
 Completed
 ---------
 
+Improved sEEG/ECoG/DBS support
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+iEEG-specific pipeline steps such as electrode localization and visualizations
+are now available in `MNE-gui-addons`_.
+
+Access to open EEG/MEG databases
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Open EEG/MEG databases are now more easily accessible via standardized tools such as
+`openneuro-py`_.
+
+Eye-tracking support
+^^^^^^^^^^^^^^^^^^^^
+We had a GSoC student funded to improve support for eye-tracking data, see
+`the GSoC proposal <https://summerofcode.withgoogle.com/programs/2023/projects/nUP0jGKi>`__
+for details. An EyeLink data reader and analysis/plotting functions are now available.
+
+Pediatric and clinical MEG pipelines
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+MNE-Python provides automated analysis of BIDS-compliant datasets via
+`MNE-BIDS-Pipeline`_. Functionality from the
+`mnefun <https://labsn.github.io/mnefun/overview.html>`__ pipeline,
+which has been used extensively for pediatric data analysis at `I-LABS`_,
+now provides better support for pediatric and clinical data processing.
+Multiple processing steps (e.g., eSSS), sanity checks (e.g., cHPI quality),
+and reporting (e.g., SSP joint plots, SNR plots) have been added.
+
 Integrate OpenMEEG via improved Python bindings
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-`OpenMEEG <http://openmeeg.github.io>`__ is a state-of-the art solver for
+`OpenMEEG`_ is a state-of-the art solver for
 forward modeling in the field of brain imaging with MEG/EEG. It solves
 numerically partial differential equations (PDE). It is written in C++ with
-Python bindings written in `SWIG <https://github.com/openmeeg/openmeeg>`__.
+Python bindings written in SWIG.
 The ambition of the project is to integrate OpenMEEG into MNE offering to MNE
 the ability to solve more forward problems (cortical mapping, intracranial
 recordings, etc.). Tasks that have been completed:
@@ -170,8 +163,7 @@ recordings, etc.). Tasks that have been completed:
 - Understand how MNE encodes info about sensors (location, orientation,
   integration points etc.) and allow OpenMEEG to be used.
 - Modernize CI systems (e.g., using ``cibuildwheel``).
-
-See `OpenMEEG`_ for details.
+- Automated deployment on PyPI and conda-forge.
 
 .. _time-frequency-viz:
 
