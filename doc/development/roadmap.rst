@@ -28,7 +28,7 @@ with:
     The "data" column holds things like :class:`mne.Evoked`,
     :class:`mne.SourceEstimate`, :class:`mne.time_frequency.Spectrum`, etc.
 ``design`` : `str`
-    Likely Wilkisson notation to mirror :func:`patsy.dmatrices` (e.g., this is
+    Likely Wilkinson notation to mirror :func:`patsy.dmatrices` (e.g., this is
     is used by :class:`statsmodels.regression.linear_model.OLS`). Getting from the
     string to the design matrix could be done via Patsy or more likely
     `Formulaic <https://matthewwardrop.github.io/formulaic/>`__.
