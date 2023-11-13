@@ -3220,6 +3220,6 @@ def plot_compare_evokeds(
         _draw_colorbar_pce(ax, _colors, _cmap, colorbar_title, colorbar_ticks)
     # finish
     if topo_disp_title:
-        plt.suptitle(topo_title)
+        ax.figure.suptitle(topo_title)
     plt_show(show)
     return [ax.figure]
