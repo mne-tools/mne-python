@@ -65,8 +65,14 @@ class RawNeuralynx(BaseRaw):
 
             logger.info("Ignoring .ncs files:\n" + "\n".join(exclude_fnames))
 
-        # get basic file info
-        nlx_reader = NeuralynxIO(dirname=fname, exclude_filename=exclude_fnames)
+        # get basic file info from header, throw Error if NeuralynxIO can't parse
+        try:
+            nlx_reader = NeuralynxIO(dirname=fname, exclude_filename=exclude_fnames)
+        except ValueError as e:
+            raise ValueError(f"It seems some .ncs channels might have different number of samples. "
+                             + "This is likely due to different sampling rates. "
+                             + "Try excluding them with `exclude_fname_patterns` input arg."
+                             + f"\nOriginal neo.NeuralynxIO.parse_header() ValueError:\n{e}")
 
         info = create_info(
             ch_types="seeg",
