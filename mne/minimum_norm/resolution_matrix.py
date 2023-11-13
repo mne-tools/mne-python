@@ -61,7 +61,7 @@ def make_inverse_resolution_matrix(forward, inverse_operator, method='dSPM',
         (n_dipoles, n_orient_fwd * n_dipoles) with values pooled across
         n_orient_inv source orientations per location.
         Note: If the resolution matrix is computed with a noise covariance
-        matrix then only is columns, i.e. PSFs, can meaningfully be
+        matrix then only its columns, i.e. PSFs, can meaningfully be
         interpreted. It must not be used to compute CTFs or resolution metrics
         for CTFs!
     """
