@@ -490,6 +490,7 @@ def test_ica_core(method, n_components, noise_cov, n_pca_components, browser_bac
     repr_html_ = ica._repr_html_()
     assert repr_ == f"<ICA | no decomposition, method: {method}>"
     assert method in repr_html_
+    assert "max_iter=1" in repr_html_
 
     # test fit checker
     with pytest.raises(RuntimeError, match="No fit available"):
