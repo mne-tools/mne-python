@@ -15,11 +15,11 @@ testing_path = data_path(download=False) / "neuralynx"
 
 
 def _nlxheader_to_dict(matdict: Dict) -> Dict:
-    """
-    Helper function to convert the read-in "Header" field into a dict.
+    """Convert the read-in "Header" field into a dict.
+
     All the key-value pairs of Header entries are formatted as strings
     (e.g. np.array("-AdbitVolts 0.000323513")) so we reformat that
-    into dict by spliting at blank spaces
+    into dict by splitting at blank spaces.
     """
     entries = matdict["Header"][
         1::, :
@@ -32,7 +32,8 @@ def _nlxheader_to_dict(matdict: Dict) -> Dict:
     }
 
 
-def read_nlx_mat_chan(matfile: str) -> np.ndarray:
+def _read_nlx_mat_chan(matfile: str) -> np.ndarray:
+    """Read a single channel from a Neuralynx .mat file."""
     mat = loadmat(matfile)
 
     hdr_dict = _nlxheader_to_dict(mat)
@@ -119,7 +120,7 @@ def test_neuralynx():
 
     # (n_chan, n_samples) array, in V
     mat_y = np.stack(
-        [read_nlx_mat_chan(os.path.join(testing_path, ch)) for ch in matchans]
+        [_read_nlx_mat_chan(os.path.join(testing_path, ch)) for ch in matchans]
     )
 
     # ===== Check sample values across MNE-Python, NeuralynxIO and MATLAB ===== #
