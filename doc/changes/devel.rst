@@ -56,6 +56,7 @@ Bugs
 - Fix bug where ``encoding`` argument was ignored when reading annotations from an EDF file (:gh:`11958` by :newcontrib:`Andrew Gilbert`)
 - Mark tests ``test_adjacency_matches_ft`` and ``test_fetch_uncompressed_file`` as network tests (:gh:`12041` by :newcontrib:`Maksym Balatsko`)
 - Fix bug with :func:`mne.channels.read_ch_adjacency` (:gh:`11608` by :newcontrib:`Ivan Zubarev`)
+- Fix bug where ``epochs.get_data(..., scalings=...)`` would errantly modify the preloaded data (:gh:`12121` by :newcontrib:`Pablo Mainar` and `Eric Larson`_)
 - Fix bugs with saving splits for :class:`~mne.Epochs` (:gh:`11876` by `Dmitrii Altukhov`_)
 - Fix bug with multi-plot 3D rendering where only one plot was updated (:gh:`11896` by `Eric Larson`_)
 - Fix bug where ``verbose`` level was not respected inside parallel jobs (:gh:`12154` by `Eric Larson`_)
@@ -92,6 +93,7 @@ Bugs
 
 API changes
 ~~~~~~~~~~~
+- The default for :meth:`mne.Epochs.get_data` of ``copy=False`` will change to ``copy=True`` in 1.7. Set it explicitly to avoid a warning (:gh:`12121` by :newcontrib:`Pablo Mainar` and `Eric Larson`_)
 - ``mne.preprocessing.apply_maxfilter`` and ``mne maxfilter`` have been deprecated and will be removed in 1.7. Use :func:`mne.preprocessing.maxwell_filter` (see :ref:`this tutorial <tut-artifact-sss>`) in Python or the command-line utility from MEGIN ``maxfilter`` and :func:`mne.bem.fit_sphere_to_headshape` instead (:gh:`11938` by `Eric Larson`_)
 - :func:`mne.io.kit.read_mrk` reading pickled files is deprecated using something like ``np.savetxt(fid, pts, delimiter="\t", newline="\n")`` to save your points instead (:gh:`11937` by `Eric Larson`_)
 - Replace legacy ``inst.pick_channels`` and ``inst.pick_types`` with ``inst.pick`` (where ``inst`` is an instance of :class:`~mne.io.Raw`, :class:`~mne.Epochs`, or :class:`~mne.Evoked`) wherever possible (:gh:`11907` by `Clemens Brunner`_)

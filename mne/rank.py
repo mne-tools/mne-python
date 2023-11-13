@@ -442,8 +442,7 @@ def compute_rank(
                 if isinstance(inst, BaseRaw):
                     data = inst.get_data(picks, reject_by_annotation="omit")
                 else:  # isinstance(inst, BaseEpochs):
-                    data = inst.get_data()[:, picks, :]
-                    data = np.concatenate(data, axis=1)
+                    data = np.concatenate(inst.get_data(picks), axis=1)
                 if proj:
                     data = np.dot(proj_op, data)
                 this_rank = _estimate_rank_meeg_signals(

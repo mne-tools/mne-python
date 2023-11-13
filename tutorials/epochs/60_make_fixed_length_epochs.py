@@ -94,7 +94,7 @@ event_related_plot = epochs.plot_image(picks=["MEG 1142"])
 # (for more information on filtering, please see :ref:`tut-filter-resample`).
 
 epochs.load_data().filter(l_freq=8, h_freq=12)
-alpha_data = epochs.get_data()
+alpha_data = epochs.get_data(copy=False)
 
 # %%
 # If desired, separate correlation matrices for each epoch can be obtained.

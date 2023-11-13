@@ -82,7 +82,7 @@ epochs = mne.Epochs(
 epochs.pick(picks="meg", exclude="bads")  # remove stim and EOG
 del raw
 
-X = epochs.get_data()  # MEG signals: n_epochs, n_meg_channels, n_times
+X = epochs.get_data(copy=False)  # MEG signals: n_epochs, n_meg_channels, n_times
 y = epochs.events[:, 2]  # target: auditory left vs visual left
 
 # %%
