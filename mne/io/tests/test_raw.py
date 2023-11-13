@@ -33,6 +33,7 @@ from mne.datasets import testing
 from mne.fixes import _numpy_h5py_dep
 from mne.io import BaseRaw, RawArray, read_raw_fif
 from mne.io.base import _get_scaling
+from mne.transforms import Transform
 from mne.utils import (
     _import_h5io_funcs,
     _raw_annot,
@@ -1012,16 +1013,12 @@ def test_resamp_noop():
     assert_array_equal(data_before, data_after)
 
 
-@testing.requires_testing_data
 def test_concatenate_raw_dev_head_t():
     """Test concatenating raws with dev-head-t including nans."""
-    raw = read_raw_fif(
-        testing.data_path(download=False)
-        / "MEG"
-        / "sample"
-        / "sample_audvis_trunc_raw.fif"
-    )
-    raw.crop(0, 1).load_data()
+    data = np.random.randn(3, 10)
+    info = create_info(3, 1000.0, ["mag", "grad", "grad"])
+    raw = RawArray(data, info)
+    raw.info["dev_head_t"] = Transform("meg", "head", np.eye(4))
     raw.info["dev_head_t"]["trans"][0, 0] = np.nan
     raw2 = raw.copy()
-    raw = concatenate_raws([raw, raw2])
+    concatenate_raws([raw, raw2])
