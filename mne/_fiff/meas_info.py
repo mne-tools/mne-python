@@ -3729,7 +3729,10 @@ def _ensure_infos_match(info1, info2, name, *, on_mismatch="raise"):
     if (info1["dev_head_t"] is None) != (info2["dev_head_t"] is None) or (
         info1["dev_head_t"] is not None
         and not np.allclose(
-            info1["dev_head_t"]["trans"], info2["dev_head_t"]["trans"], rtol=1e-6
+            info1["dev_head_t"]["trans"],
+            info2["dev_head_t"]["trans"],
+            rtol=1e-6,
+            equal_nan=True,
         )
     ):
         msg = (
