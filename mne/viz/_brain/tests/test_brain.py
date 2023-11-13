@@ -662,7 +662,8 @@ def test_single_hemi(hemi, renderer_interactive_pyvistaqt, brain_gc):
 
 @testing.requires_testing_data
 @pytest.mark.slowtest
-def test_brain_save_movie(tmp_path, renderer, brain_gc):
+@pytest.mark.parametrize("interactive_state", (False, True))
+def test_brain_save_movie(tmp_path, renderer, brain_gc, interactive_state):
     """Test saving a movie of a Brain instance."""
     imageio_ffmpeg = pytest.importorskip("imageio_ffmpeg")
     if os.getenv("MNE_CI_KIND", "") == "conda" and platform.system() == "Linux":
@@ -672,7 +673,8 @@ def test_brain_save_movie(tmp_path, renderer, brain_gc):
         hemi="lh", time_viewer=False, cortex=["r", "b"]
     )  # custom binarized
     filename = tmp_path / "brain_test.mov"
-    for interactive_state in (False, True):
+
+    try:
         # for coverage, we set interactivity
         if interactive_state:
             brain._renderer.plotter.enable()
@@ -694,7 +696,8 @@ def test_brain_save_movie(tmp_path, renderer, brain_gc):
         assert_allclose(duration, nsecs, atol=0.2)
 
         os.remove(filename)
-    brain.close()
+    finally:
+        brain.close()
 
 
 _TINY_SIZE = (350, 300)
