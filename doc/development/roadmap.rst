@@ -26,7 +26,7 @@ with:
 ``obs`` : :class:`pandas.DataFrame`
     Has columns like "subject", "condition", and "data".
     The "data" column holds things like :class:`mne.Evoked`,
-    :class:`mne.SourceEstimate`, :class:`mne.Spectrum`, etc.
+    :class:`mne.SourceEstimate`, :class:`mne.time_frequency.Spectrum`, etc.
 ``design`` : `str`
     Likely Wilkisson notation to mirror :func:`patsy.dmatrices` (e.g., this is
     is used by :class:`statsmodels.regression.linear_model.OLS`). Getting from the
@@ -38,6 +38,10 @@ different statistical functions/tests, etc. This should be achievable without
 introducing any significant speed penalty (e.g., < 10% slower) compared to the existing
 more specialized/limited functions, since most computation cost is in clustering rather
 than statistical testing.
+
+The clustering function will return a user-friendly ``ClusterStat`` object or similar
+that retains information about dimensionality, significance, etc. and facilitates
+plotting and interpretation of results.
 
 Clear tutorials will be needed to:
 
