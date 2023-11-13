@@ -75,7 +75,6 @@ def test_neuralynx():
     pytest.importorskip("neo")
 
     from neo.io import NeuralynxIO
-    testing_path = "/home/kriarm/git/mne-testing-data/neuralynx"
 
     excluded_ncs_files = ["LAHCu1.ncs", "LAHCu2.ncs", "LAHCu3.ncs"]
 
