@@ -9,7 +9,7 @@ if [ ! -z "$CONDA_ENV" ]; then
 	conda remove -c conda-forge --force -yq mne
 	python -m pip uninstall -y mne
 	# This is needed to avoid a segfault on notebook for some reason
-	if [[ "$MNE_CI_KIND" == "notebook "]]; then
+	if [[ "$MNE_CI_KIND" == "notebook " ]]; then
 		python -m pip install --upgrade numpy scipy
 	fi
 elif [ ! -z "$CONDA_DEPENDENCIES" ]; then
