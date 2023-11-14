@@ -3542,34 +3542,34 @@ def equalize_epoch_counts(epochs_list, method="mintime"):
     --------
     >>> equalize_epoch_counts([epochs1, epochs2])  # doctest: +SKIP
     """
-    if not all(isinstance(e, (BaseEpochs, EpochsTFR)) for e in epochs_list):
+    if not all(isinstance(epoch, (BaseEpochs, EpochsTFR)) for epoch in epochs_list):
         raise ValueError("All inputs must be Epochs instances")
 
     # make sure bad epochs are dropped
-    for e in epochs_list:
-        # for EpochsTFRs we can set _bad_dropped to True
-        if isinstance(e, EpochsTFR):
-            e._bad_dropped = True
-        if not e._bad_dropped:
-            e.drop_bad()
-    event_times = [e.events[:, 0] for e in epochs_list]
-    indices = _get_drop_indices(event_times, method)
-    for e, inds in zip(epochs_list, indices):
-        e.drop(inds, reason="EQUALIZED_COUNT")
+    for epoch in epochs_list:
+        # for EpochsTFR we can set _bad_dropped to True
+        if isinstance(epoch, EpochsTFR):
+            epoch._bad_dropped = True
+        if not epoch._bad_dropped:
+            epoch.drop_bad()
+    event_indices = [epoch.events[:, 0] for epoch in epochs_list]
+    indices = _get_drop_indices(event_indices, method)
+    for epoch, inds in zip(epochs_list, indices):
+        epoch.drop(inds, reason="EQUALIZED_COUNT")
 
 
-def _get_drop_indices(event_times, method):
+def _get_drop_indices(event_indices, method):
     """Get indices to drop from multiple event timing lists."""
-    small_idx = np.argmin([e.shape[0] for e in event_times])
-    small_e_times = event_times[small_idx]
+    small_idx = np.argmin([e.shape[0] for e in event_indices])
+    small_epoch_indices = event_indices[small_idx]
     _check_option("method", method, ["mintime", "truncate"])
     indices = list()
-    for e in event_times:
+    for event in event_indices:
         if method == "mintime":
-            mask = _minimize_time_diff(small_e_times, e)
+            mask = _minimize_time_diff(small_epoch_indices, event)
         else:
-            mask = np.ones(e.shape[0], dtype=bool)
-            mask[small_e_times.shape[0] :] = False
+            mask = np.ones(event.shape[0], dtype=bool)
+            mask[small_epoch_indices.shape[0] :] = False
         indices.append(np.where(np.logical_not(mask))[0])
 
     return indices
