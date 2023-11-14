@@ -62,8 +62,6 @@ from .annotations import (
     _read_annotations_fif,
     _write_annotations,
 )
-
-from .time_frequency.tfr import EpochsTFR
 from .baseline import _check_baseline, _log_rescale, rescale
 from .bem import _check_origin
 from .channels.channels import InterpolationMixin, ReferenceMixin, UpdateChannelsMixin
@@ -74,6 +72,7 @@ from .fixes import rng_uniform
 from .html_templates import _get_html_template
 from .parallel import parallel_func
 from .time_frequency.spectrum import EpochsSpectrum, SpectrumMixin, _validate_method
+from .time_frequency.tfr import EpochsTFR
 from .utils import (
     ExtendedTimeMixin,
     GetEpochsMixin,
