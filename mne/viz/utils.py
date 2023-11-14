@@ -64,7 +64,13 @@ from ..utils import (
     verbose,
     warn,
 )
-from .ui_events import ChannelsSelect, ColormapRange, publish, subscribe
+from .ui_events import (
+    ChannelsSelect,
+    ColormapRange,
+    disable_ui_events,
+    publish,
+    subscribe,
+)
 
 _channel_type_prettyprint = {
     "eeg": "EEG channel",
@@ -1304,6 +1310,18 @@ def _plot_sensors_2d(
         )
         if kind == "select":
             fig.lasso = SelectFromCollection(ax, pts, names=ch_names)
+
+            def on_select():
+                publish(fig, ChannelsSelect(ch_names=fig.lasso.selection))
+
+            def on_channels_select(event):
+                ch_inds = {name: i for i, name in enumerate(ch_names)}
+                selection_inds = [ch_inds[name] for name in event.ch_names]
+                with disable_ui_events(fig):
+                    fig.lasso.select_many(selection_inds)
+
+            fig.lasso.callbacks.append(on_select)
+            subscribe(fig, "channels_select", on_channels_select)
         else:
             fig.lasso = None
 
@@ -1718,12 +1736,15 @@ class SelectFromCollection:
         self.lasso = LassoSelector(ax, onselect=self.on_select, **line_kw)
         self.selection = list()
         self.selection_inds = np.array([], dtype="int")
+        self.callbacks = list()
 
         # Deselect everything in the beginning.
-        self.style_objects([])
+        self.style_objects()
 
-        # Respond to UI-Events
-        subscribe(self.fig, "channels_select", self._on_channels_select)
+    def notify(self):
+        """Notify listeners that a selection has been made."""
+        for callback in self.callbacks:
+            callback()
 
     def on_select(self, verts):
         """Select a subset from the collection."""
@@ -1740,16 +1761,9 @@ class SelectFromCollection:
             self.selection_inds = np.setdiff1d(self.selection_inds, inds)
         else:
             self.selection_inds = inds
-        ch_names = [self.names[i] for i in self.selection_inds]
-        publish(self.fig, ChannelsSelect(ch_names=ch_names))
-
-    def _on_channels_select(self, event):
-        ch_inds = {name: i for i, name in enumerate(self.names)}
-        self.selection = [name for name in event.ch_names if name in ch_inds]
-        self.selection_inds = np.array(
-            [ch_inds[name] for name in self.selection]
-        ).astype("int")
-        self.style_objects(self.selection_inds)
+        self.selection = [self.names[i] for i in self.selection_inds]
+        self.style_objects()
+        self.notify()
 
     def select_one(self, ind):
         """Select or deselect one sensor."""
@@ -1759,25 +1773,27 @@ class SelectFromCollection:
             self.selection_inds = np.setdiff1d(self.selection_inds, [ind])
         else:
             return  # don't notify()
-        ch_names = [self.names[i] for i in self.selection_inds]
-        publish(self.fig, ChannelsSelect(ch_names=ch_names))
+        self.selection = [self.names[i] for i in self.selection_inds]
+        self.style_objects()
+        self.notify()
 
     def select_many(self, inds):
         """Select many sensors using indices (for predefined selections)."""
         self.selected_inds = inds
-        ch_names = [self.names[i] for i in self.selection_inds]
-        publish(self.fig, ChannelsSelect(ch_names=ch_names))
+        self.selection = [self.names[i] for i in self.selection_inds]
+        self.style_objects()
+        self.notify()
 
-    def style_objects(self, inds):
+    def style_objects(self):
         """Style selected sensors as "active"."""
         # reset
         self.fc[:, -1] = self.alpha_nonselected
         self.ec[:, -1] = self.alpha_nonselected / 2
         self.lw[:] = self.linewidth_nonselected
         # style sensors at `inds`
-        self.fc[inds, -1] = self.alpha_selected
-        self.ec[inds, -1] = self.alpha_selected
-        self.lw[inds] = self.linewidth_selected
+        self.fc[self.selection_inds, -1] = self.alpha_selected
+        self.ec[self.selection_inds, -1] = self.alpha_selected
+        self.lw[self.selection_inds] = self.linewidth_selected
         self.collection.set_facecolors(self.fc)
         self.collection.set_edgecolors(self.ec)
         self.collection.set_linewidths(self.lw)

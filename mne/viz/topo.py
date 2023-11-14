@@ -16,6 +16,7 @@ from scipy import ndimage
 from .._fiff.pick import channel_type, pick_types
 from ..defaults import _handle_default
 from ..utils import Bunch, _check_option, _clean_names, _to_rgb, fill_doc
+from .ui_events import ChannelsSelect, disable_ui_events, publish, subscribe
 from .utils import (
     DraggableColorbar,
     SelectFromCollection,
@@ -261,6 +262,18 @@ def _iter_topography(
                 linewidth_nonselected=0,
                 linewidth_selected=0.7,
             )
+
+            def on_select():
+                publish(fig, ChannelsSelect(ch_names=fig.lasso.selection))
+
+            def on_channels_select(event):
+                ch_inds = {name: i for i, name in enumerate(ch_names)}
+                selection_inds = [ch_inds[name] for name in event.ch_names]
+                with disable_ui_events(fig):
+                    fig.lasso.select_many(selection_inds)
+
+            fig.lasso.callbacks.append(on_select)
+            subscribe(fig, "channels_select", on_channels_select)
         for ax in axs:
             yield ax, ax._mne_ch_idx
 
