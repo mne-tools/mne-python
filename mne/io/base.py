@@ -1088,6 +1088,8 @@ class BaseRaw(
             self._data = self._data.astype(dtype)
 
         args = getfullargspec(fun)[0]
+        if "ch_idx" in args:
+            logger.info("apply_function requested to access ch_idx")
 
         if channel_wise:
             parallel, p_fun, n_jobs = parallel_func(_check_fun, n_jobs)
