@@ -1090,6 +1090,8 @@ class BaseRaw(
         args = getfullargspec(fun)[0]
         if "ch_idx" in args:
             logger.info("apply_function requested to access ch_idx")
+        elif "ch_name" in args:
+            logger.info("apply_function requested to access ch_name")
 
         if channel_wise:
             parallel, p_fun, n_jobs = parallel_func(_check_fun, n_jobs)
@@ -1100,6 +1102,13 @@ class BaseRaw(
                         self._data[idx, :] = _check_fun(
                             fun, data_in[idx, :], **kwargs, ch_idx=idx
                         )
+                    elif "ch_name" in args:
+                        self._data[idx, :] = _check_fun(
+                            fun,
+                            data_in[idx, :],
+                            **kwargs,
+                            ch_name=self.info["ch_names"][idx],
+                        )
                     else:
                         self._data[idx, :] = _check_fun(fun, data_in[idx, :], **kwargs)
             else:
@@ -1107,6 +1116,13 @@ class BaseRaw(
                 if "ch_idx" in args:
                     data_picks_new = parallel(
                         p_fun(fun, data_in[p], **kwargs, ch_idx=p) for p in picks
+                    )
+                elif "ch_name" in args:
+                    data_picks_new = parallel(
+                        p_fun(
+                            fun, data_in[p], **kwargs, ch_name=self.info["ch_names"][p]
+                        )
+                        for p in picks
                     )
                 else:
                     data_picks_new = parallel(

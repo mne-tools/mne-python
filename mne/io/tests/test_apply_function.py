@@ -65,11 +65,17 @@ def test_apply_function_verbose():
 
 
 def test_apply_function_ch_access():
-    """Test apply function is able to access channel idx."""
+    """Test apply_function is able to access channel idx."""
 
     def bad_ch_idx(x, ch_idx):
         """Pass."""
         assert x[0] == ch_idx
+        return x
+
+    def bad_ch_name(x, ch_name):
+        """Pass."""
+        assert isinstance(ch_name, str)
+        assert x[0] == float(ch_name)
         return x
 
     data = np.full((2, 10), np.arange(2).reshape(-1, 1))
@@ -78,3 +84,5 @@ def test_apply_function_ch_access():
     # test ch_idx access in both code paths (parallel / 1 job)
     raw.apply_function(bad_ch_idx)
     raw.apply_function(bad_ch_idx, n_jobs=2)
+    raw.apply_function(bad_ch_name)
+    raw.apply_function(bad_ch_name, n_jobs=2)
