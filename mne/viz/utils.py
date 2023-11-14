@@ -64,13 +64,7 @@ from ..utils import (
     verbose,
     warn,
 )
-from .ui_events import (
-    ChannelsSelect,
-    ColormapRange,
-    disable_ui_events,
-    publish,
-    subscribe,
-)
+from .ui_events import ChannelsSelect, ColormapRange, publish, subscribe
 
 _channel_type_prettyprint = {
     "eeg": "EEG channel",
@@ -1317,8 +1311,7 @@ def _plot_sensors_2d(
             def on_channels_select(event):
                 ch_inds = {name: i for i, name in enumerate(ch_names)}
                 selection_inds = [ch_inds[name] for name in event.ch_names]
-                with disable_ui_events(fig):
-                    fig.lasso.select_many(selection_inds)
+                fig.lasso.select_many(selection_inds)
 
             fig.lasso.callbacks.append(on_select)
             subscribe(fig, "channels_select", on_channels_select)
@@ -1787,7 +1780,6 @@ class SelectFromCollection:
         self.selected_inds = inds
         self.selection = [self.names[i] for i in self.selection_inds]
         self.style_objects()
-        self.notify()
 
     def style_objects(self):
         """Style selected sensors as "active"."""
