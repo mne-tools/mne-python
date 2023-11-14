@@ -114,7 +114,6 @@
 
 .. installation links
 
-.. _requirements file:  https://raw.githubusercontent.com/mne-tools/mne-python/main/requirements.txt
 .. _NVIDIA CUDA GPU processing: https://developer.nvidia.com/cuda-zone
 .. _NVIDIA proprietary drivers: https://www.geforce.com/drivers
 

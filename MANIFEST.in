@@ -1,12 +1,6 @@
 include *.rst
 include LICENSE.txt
 include SECURITY.md
-include requirements.txt
-include requirements_base.txt
-include requirements_hdf5.txt
-include requirements_testing.txt
-include requirements_testing_extra.txt
-include requirements_doc.txt
 include mne/__init__.py
 
 recursive-include examples *.py
