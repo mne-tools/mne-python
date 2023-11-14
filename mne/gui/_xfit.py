@@ -23,7 +23,7 @@ from ..transforms import (
 )
 from ..utils import _check_option, fill_doc, verbose
 from ..viz import EvokedField, create_3d_figure
-from ..viz._3d import _plot_head_surface, _plot_sensors
+from ..viz._3d import _plot_head_surface, _plot_sensors_3d
 from ..viz.ui_events import subscribe
 from ..viz.utils import _get_color_list
 
@@ -201,9 +201,16 @@ class DipoleFitUI:
         fig._renderer.set_camera(
             focalpoint=fit_sphere_to_headshape(self._evoked.info)[1]
         )
-        helmet_mesh = fig._surf_maps[0]["mesh"]
-        helmet_mesh._polydata.compute_normals()  # needed later
-        self._actors["helmet"] = helmet_mesh._actor
+
+        for surf_map in fig._surf_maps:
+            if surf_map["map_kind"] == "meg":
+                helmet_mesh = surf_map["mesh"]
+                helmet_mesh._polydata.compute_normals()  # needed later
+                self._actors["helmet"] = helmet_mesh._actor
+            elif surf_map["map_kind"] == "eeg":
+                head_mesh = surf_map["mesh"]
+                head_mesh._polydata.compute_normals()  # needed later
+                self._actors["head"] = head_mesh._actor
 
         show_meg = (self._ch_type is None or self._ch_type == "meg") and any(
             [m["kind"] == "meg" for m in self._field_map]
@@ -211,6 +218,10 @@ class DipoleFitUI:
         show_eeg = (self._ch_type is None or self._ch_type == "eeg") and any(
             [m["kind"] == "eeg" for m in self._field_map]
         )
+        meg_picks = pick_types(self._evoked.info, meg=show_meg)
+        eeg_picks = pick_types(self._evoked.info, meg=False, eeg=show_eeg)
+        picks = np.concatenate((meg_picks, eeg_picks))
+        self._ch_names = [self._evoked.ch_names[i] for i in picks]
 
         print(f"{show_meg=} {show_eeg=}")
 
@@ -230,25 +241,29 @@ class DipoleFitUI:
                 alpha=0.2,
             )
 
-        sensors = _plot_sensors(
+        sensors = _plot_sensors_3d(
             renderer=fig._renderer,
             info=self._evoked.info,
             to_cf_t=self._to_cf_t,
-            picks=pick_types(self._evoked.info, meg=show_meg, eeg=show_eeg),
+            picks=picks,
             meg=show_meg,
-            eeg=["projected"] if show_eeg else False,
+            eeg=["original"] if show_eeg else False,
             fnirs=False,
             warn_meg=False,
             head_surf=head_surf,
             units="m",
-            sensor_opacity=0.1,
+            sensor_alpha=dict(meg=0.1, eeg=1.0),
             orient_glyphs=False,
             scale_by_distance=False,
             project_points=False,
             surf=None,
             check_inside=None,
             nearest=None,
-            sensor_colors=dict(meg="white", eeg="white"),
+            # sensor_colors=dict(meg="white", eeg="white"),
+            sensor_colors=dict(
+                meg=["white" for _ in meg_picks],
+                eeg=["white" for _ in eeg_picks],
+            ),
         )
         self._actors["sensors"] = list()
         for s in sensors.values():
@@ -380,7 +395,7 @@ class DipoleFitUI:
         """Color selected sensor meshes."""
         selected_channels = set(event.ch_names)
         if "sensors" in self._actors:
-            for act, ch_name in zip(self._actors["sensors"], self._evoked.ch_names):
+            for act, ch_name in zip(self._actors["sensors"], self._ch_names):
                 if ch_name in selected_channels:
                     act.prop.SetColor(0, 1, 0)
                 else:
@@ -417,13 +432,18 @@ class DipoleFitUI:
         dip_num = len(self._dipoles)
         dip_name = f"dip{dip_num}"
         dip_color = colors[dip_num % len(colors)]
-        arrow_mesh = pyvista.PolyData(*_arrow_mesh())
+        if helmet_coords is not None:
+            arrow_mesh = pyvista.PolyData(*_arrow_mesh())
+        else:
+            arrow_mesh = None
         dipole_dict = dict(
             active=True,
             arrow_actor=None,
             arrow_mesh=arrow_mesh,
             color=dip_color,
             dip=dip,
+            fix_ori=True,
+            fix_position=True,
             helmet_coords=helmet_coords,
             helmet_pos=helmet_pos,
             name=dip_name,
@@ -461,9 +481,10 @@ class DipoleFitUI:
         self._renderer.plotter.add_arrows(
             dip.pos[0], dip.ori[0], color=dip_color, mag=0.05
         )
-        dipole_dict["arrow_actor"] = self._renderer.plotter.add_mesh(
-            arrow_mesh, color=dip_color
-        )
+        if arrow_mesh is not None:
+            dipole_dict["arrow_actor"] = self._renderer.plotter.add_mesh(
+                arrow_mesh, color=dip_color
+            )
 
     def _get_helmet_coords(self, dip):
         """Compute the coordinate system used for drawing the big arrows on the helmet.
@@ -471,9 +492,11 @@ class DipoleFitUI:
         In this coordinate system, Z is normal to the helmet surface, and XY
         are tangential to the helmet surface.
         """
-        dip_pos = dip.pos[0]
+        if "helmet" not in self._actors:
+            return None, None
 
         # Get the closest vertex (=point) of the helmet mesh
+        dip_pos = dip.pos[0]
         helmet = self._actors["helmet"].GetMapper().GetInput()
         distances = ((helmet.points - dip_pos) * helmet.point_normals).sum(axis=1)
         closest_point = np.argmin(distances)
@@ -565,6 +588,9 @@ class DipoleFitUI:
         timecourses = [d["timecourse"] for d in active_dips]
         arrow_scaling = 0.05 / np.max(np.abs(timecourses))
         for d, ori, timecourse in zip(active_dips, orientations, timecourses):
+            helmet_coords = d["helmet_coords"]
+            if helmet_coords is None:
+                continue
             dip_ori = [
                 np.interp(self._current_time, self._evoked.times, o) for o in ori
             ]
@@ -573,7 +599,6 @@ class DipoleFitUI:
             arrow_mesh = d["arrow_mesh"]
 
             # Project the orientation of the dipole tangential to the helmet
-            helmet_coords = d["helmet_coords"]
             dip_ori_tan = helmet_coords[:2] @ dip_ori @ helmet_coords[:2]
 
             # Rotate the coordinate system such that Y lies along the dipole
@@ -629,7 +654,7 @@ class DipoleFitUI:
                 break
         else:
             raise ValueError(f"Unknown dipole {dip_name}")
-        dipole["fix_position"] = bool(fix)
+        dipole["fix_ori"] = bool(fix)
         self._fit_timecourses()
 
     def _setup_mplcanvas(self):
