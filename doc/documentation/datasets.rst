@@ -282,6 +282,18 @@ are richly annotated, and can be used for e.g. multiple regression estimation
 of EEG correlates of printed word processing.
 
 
+KIT phantom dataset
+=============================
+:func:`mne.datasets.phantom_kit.data_path`.
+
+This dataset was obtained with a phantom on a KIT system at
+Macquarie University in Sydney, Australia.
+
+.. topic:: Examples
+
+    * :ref:`tut-phantom-KIT`
+
+
 4D Neuroimaging / BTi dataset
 =============================
 :func:`mne.datasets.phantom_4dbti.data_path`.
