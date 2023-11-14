@@ -17,6 +17,7 @@ from contextlib import nullcontext
 from copy import deepcopy
 from dataclasses import dataclass, field
 from datetime import timedelta
+from inspect import getfullargspec
 
 import numpy as np
 
@@ -1086,17 +1087,29 @@ class BaseRaw(
         if dtype is not None and dtype != self._data.dtype:
             self._data = self._data.astype(dtype)
 
+        args = getfullargspec(fun)[0]
+
         if channel_wise:
             parallel, p_fun, n_jobs = parallel_func(_check_fun, n_jobs)
             if n_jobs == 1:
                 # modify data inplace to save memory
                 for idx in picks:
-                    self._data[idx, :] = _check_fun(fun, data_in[idx, :], **kwargs)
+                    if "ch_idx" in args:
+                        self._data[idx, :] = _check_fun(
+                            fun, data_in[idx, :], **kwargs, ch_idx=idx
+                        )
+                    else:
+                        self._data[idx, :] = _check_fun(fun, data_in[idx, :], **kwargs)
             else:
                 # use parallel function
-                data_picks_new = parallel(
-                    p_fun(fun, data_in[p], **kwargs) for p in picks
-                )
+                if "ch_idx" in args:
+                    data_picks_new = parallel(
+                        p_fun(fun, data_in[p], **kwargs, ch_idx=p) for p in picks
+                    )
+                else:
+                    data_picks_new = parallel(
+                        p_fun(fun, data_in[p], **kwargs) for p in picks
+                    )
                 for pp, p in enumerate(picks):
                     self._data[p, :] = data_picks_new[pp]
         else:
