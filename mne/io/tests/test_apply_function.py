@@ -31,12 +31,6 @@ def printer(x):
     return x
 
 
-def bad_ch_idx(x, ch_idx):
-    """Pass."""
-    assert x[0] == ch_idx
-    return x
-
-
 @pytest.mark.slowtest
 def test_apply_function_verbose():
     """Test apply function verbosity."""
@@ -72,6 +66,12 @@ def test_apply_function_verbose():
 
 def test_apply_function_ch_access():
     """Test apply function is able to access channel idx."""
+
+    def bad_ch_idx(x, ch_idx):
+        """Pass."""
+        assert x[0] == ch_idx
+        return x
+
     data = np.full((2, 10), np.arange(2).reshape(-1, 1))
     raw = RawArray(data, create_info(2, 1.0, "mag"))
 
