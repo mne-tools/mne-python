@@ -31,6 +31,12 @@ def printer(x):
     return x
 
 
+def bad_ch_idx(x, ch_idx):
+    """Pass."""
+    assert x[0] == ch_idx
+    return x
+
+
 @pytest.mark.slowtest
 def test_apply_function_verbose():
     """Test apply function verbosity."""
@@ -62,3 +68,18 @@ def test_apply_function_verbose():
         assert out is raw
         raw.apply_function(printer, verbose=True)
         assert sio.getvalue().count("\n") == n_chan
+
+
+def test_apply_function_ch_access():
+    """Test apply function is able to access channel idx."""
+    n_chan = 2
+    n_times = 1
+    ch_names = [str(ii) for ii in range(n_chan)]
+    d = np.zeros((n_chan, n_times))
+    for ch_idx in range(n_chan):
+        d[ch_idx] += ch_idx
+    raw = RawArray(d, create_info(ch_names, 1.0, "mag"))
+
+    # test ch_idx access in both code paths (parallel / 1 job)
+    raw.apply_function(bad_ch_idx)
+    raw.apply_function(bad_ch_idx, n_jobs=2)
