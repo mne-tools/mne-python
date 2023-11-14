@@ -494,7 +494,7 @@ class BrowserBase(ABC):
             show=False,
         )
         # highlight desired channel & disable interactivity
-        fig.lasst.selection_inds = np.isin(fig.lasso.names, [ch_name])
+        fig.lasso.selection_inds = np.isin(fig.lasso.names, [ch_name])
         fig.lasso.disconnect()
         fig.lasso.alpha_other = 0.3
         fig.lasso.linewidth_selected = 3
