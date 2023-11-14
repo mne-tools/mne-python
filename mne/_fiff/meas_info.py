@@ -3726,7 +3726,7 @@ def _ensure_infos_match(info1, info2, name, *, on_mismatch="raise"):
         raise ValueError(f"SSP projectors in {name} must be the same")
     if any(not _proj_equal(p1, p2) for p1, p2 in zip(info2["projs"], info1["projs"])):
         raise ValueError(f"SSP projectors in {name} must be the same")
-    if (info1["dev_head_t"] is None) != (info2["dev_head_t"] is None) or (
+    if (info1["dev_head_t"] is None) ^ (info2["dev_head_t"] is None) or (
         info1["dev_head_t"] is not None
         and not np.allclose(
             info1["dev_head_t"]["trans"],
