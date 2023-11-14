@@ -62,6 +62,8 @@ from .annotations import (
     _read_annotations_fif,
     _write_annotations,
 )
+
+from .time_frequency.tfr import EpochsTFR
 from .baseline import _check_baseline, _log_rescale, rescale
 from .bem import _check_origin
 from .channels.channels import InterpolationMixin, ReferenceMixin, UpdateChannelsMixin
@@ -3514,7 +3516,7 @@ def combine_event_ids(epochs, old_event_ids, new_event_id, copy=True):
 
 
 def equalize_epoch_counts(epochs_list, method="mintime"):
-    """Equalize the number of trials in multiple Epoch instances.
+    """Equalize the number of trials in multiple Epoch or EpochTFR instances.
 
     Parameters
     ----------
@@ -3541,11 +3543,14 @@ def equalize_epoch_counts(epochs_list, method="mintime"):
     --------
     >>> equalize_epoch_counts([epochs1, epochs2])  # doctest: +SKIP
     """
-    if not all(isinstance(e, BaseEpochs) for e in epochs_list):
+    if not all(isinstance(e, (BaseEpochs, EpochsTFR)) for e in epochs_list):
         raise ValueError("All inputs must be Epochs instances")
 
     # make sure bad epochs are dropped
     for e in epochs_list:
+        # for EpochsTFRs we can set _bad_dropped to True
+        if isinstance(e, EpochsTFR):
+            e._bad_dropped = True
         if not e._bad_dropped:
             e.drop_bad()
     event_times = [e.events[:, 0] for e in epochs_list]
