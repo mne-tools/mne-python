@@ -22,7 +22,7 @@ repos:
         name: ruff tutorials and examples
         # D103: missing docstring in public function
         # D400: docstring first line must end with period
-        args: ["--ignore=D103,D400"]
+        args: ["--ignore=D103,D400", "--fix"]
         files: ^tutorials/|^examples/
 
   # Codespell
