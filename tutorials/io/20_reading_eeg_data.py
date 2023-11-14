@@ -39,7 +39,7 @@ passing the ``.vhdr`` header file as the argument.
              `example <https://mne.tools/mne-bids/stable/auto_examples/rename_brainvision_files.html#sphx-glr-auto-examples-rename-brainvision-files-py>`_
              for instructions.
 
-.. note:: For *writing* BrainVision files, take a look at the :py:mod:`mne.export`
+.. note:: For *writing* BrainVision files, take a look at the :mod:`mne.export`
           module, which used the `pybv <https://pypi.org/project/pybv/>`_ Python
           package.
 
