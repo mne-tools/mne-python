@@ -48,6 +48,7 @@ Enhancements
 - Add support for passing multiple labels to :func:`mne.minimum_norm.source_induced_power` (:gh:`12026` by `Erica Peterson`_, `Eric Larson`_, and `Daniel McCloy`_ )
 - Added documentation to :meth:`mne.io.Raw.set_montage` and :func:`mne.add_reference_channels` to specify that montages should be set after adding reference channels (:gh:`12160` by `Jacob Woessner`_)
 - Add argument ``splash`` to the function using the ``qt`` browser backend to allow enabling/disabling the splash screen (:gh:`12185` by `Mathieu Scheltienne`_)
+- :class:`~mne.preprocessing.ICA`'s HTML representation (displayed in Jupyter notebooks and :class:`mne.Report`) now includes all optional fit parameters (e.g., max. number of iterations) (:gh:`12194`, by `Richard Höchenberger`_)
 
 Bugs
 ~~~~
@@ -91,6 +92,7 @@ Bugs
 - Fix combination of ``DIN`` event channels into a single synthetic trigger channel ``STI 014`` by the MFF reader of :func:`mne.io.read_raw_egi` (:gh:`12122` by `Mathieu Scheltienne`_)
 - Fix bug with :func:`mne.io.read_raw_eeglab` and :func:`mne.read_epochs_eeglab` where automatic fiducial detection would fail for certain files (:gh:`12165` by `Clemens Brunner`_)
 - Fix concatenation of ``raws`` with ``np.nan`` in the device to head transformation (:gh:`12198` by `Mathieu Scheltienne`_)
+- Fix bug with :func:`mne.viz.plot_compare_evokeds` where the title was not displayed when ``axes='topo'`` (:gh:`12192` by `Jacob Woessner`_)
 
 API changes
 ~~~~~~~~~~~
