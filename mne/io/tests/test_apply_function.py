@@ -78,6 +78,10 @@ def test_apply_function_ch_access():
         assert x[0] == float(ch_name)
         return x
 
+    def bad_ch_idx_name(x, ch_idx, ch_name):
+        """Pass."""
+        return x
+
     data = np.full((2, 10), np.arange(2).reshape(-1, 1))
     raw = RawArray(data, create_info(2, 1.0, "mag"))
 
@@ -86,3 +90,14 @@ def test_apply_function_ch_access():
     raw.apply_function(bad_ch_idx, n_jobs=2)
     raw.apply_function(bad_ch_name)
     raw.apply_function(bad_ch_name, n_jobs=2)
+
+    # test input catches
+    with pytest.raises(
+        ValueError,
+        match="apply_function cannot access ch_idx or ch_name when channel_wise=False",
+    ):
+        raw.apply_function(bad_ch_idx, channel_wise=False)
+    with pytest.raises(
+        ValueError, match="apply_function cannot access both ch_idx and ch_name"
+    ):
+        raw.apply_function(bad_ch_idx_name)

@@ -1088,7 +1088,17 @@ class BaseRaw(
             self._data = self._data.astype(dtype)
 
         args = getfullargspec(fun)[0]
-        if "ch_idx" in args:
+        if channel_wise is False:
+            if ("ch_idx" in args) or ("ch_name" in args):
+                raise ValueError(
+                    "apply_function cannot access ch_idx or ch_name "
+                    "when channel_wise=False"
+                )
+        elif ("ch_idx" in args) and ("ch_name" in args):
+            raise ValueError(
+                "apply_function cannot access both ch_idx and ch_name. pick one!"
+            )
+        elif "ch_idx" in args:
             logger.info("apply_function requested to access ch_idx")
         elif "ch_name" in args:
             logger.info("apply_function requested to access ch_name")
@@ -1097,39 +1107,37 @@ class BaseRaw(
             parallel, p_fun, n_jobs = parallel_func(_check_fun, n_jobs)
             if n_jobs == 1:
                 # modify data inplace to save memory
-                for idx in picks:
+                for ch_idx in picks:
                     if "ch_idx" in args:
-                        self._data[idx, :] = _check_fun(
-                            fun, data_in[idx, :], **kwargs, ch_idx=idx
-                        )
+                        kwargs.update(ch_idx=ch_idx)
                     elif "ch_name" in args:
-                        self._data[idx, :] = _check_fun(
-                            fun,
-                            data_in[idx, :],
-                            **kwargs,
-                            ch_name=self.info["ch_names"][idx],
-                        )
-                    else:
-                        self._data[idx, :] = _check_fun(fun, data_in[idx, :], **kwargs)
+                        kwargs.update(ch_name=self.info["ch_names"][ch_idx])
+                    self._data[ch_idx, :] = _check_fun(
+                        fun, data_in[ch_idx, :], **kwargs
+                    )
             else:
                 # use parallel function
                 if "ch_idx" in args:
                     data_picks_new = parallel(
-                        p_fun(fun, data_in[p], **kwargs, ch_idx=p) for p in picks
+                        p_fun(fun, data_in[ch_idx], ch_idx=ch_idx, **kwargs)
+                        for ch_idx in picks
                     )
                 elif "ch_name" in args:
                     data_picks_new = parallel(
                         p_fun(
-                            fun, data_in[p], **kwargs, ch_name=self.info["ch_names"][p]
+                            fun,
+                            data_in[ch_idx],
+                            ch_name=self.info["ch_names"][ch_idx],
+                            **kwargs,
                         )
-                        for p in picks
+                        for ch_idx in picks
                     )
                 else:
                     data_picks_new = parallel(
-                        p_fun(fun, data_in[p], **kwargs) for p in picks
+                        p_fun(fun, data_in[ch_idx], **kwargs) for ch_idx in picks
                     )
-                for pp, p in enumerate(picks):
-                    self._data[p, :] = data_picks_new[pp]
+                for run_idx, ch_idx in enumerate(picks):
+                    self._data[ch_idx, :] = data_picks_new[run_idx]
         else:
             self._data[picks, :] = _check_fun(fun, data_in[picks, :], **kwargs)
 
