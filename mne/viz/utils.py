@@ -1741,6 +1741,11 @@ class SelectFromCollection:
         # Deselect everything in the beginning.
         self.style_objects()
 
+    # For backwards compatibility
+    @property
+    def ch_names(self):
+        return self.names
+
     def notify(self):
         """Notify listeners that a selection has been made."""
         for callback in self.callbacks:
