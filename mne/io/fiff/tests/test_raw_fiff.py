@@ -915,7 +915,7 @@ def test_getitem():
         )
         with pytest.raises(ValueError, match="No appropriate channels"):
             raw[slice(-len(raw.ch_names) - 1), slice(None)]
-        with pytest.raises(ValueError, match="must be"):
+        with pytest.raises(IndexError, match="must be"):
             raw[-1000]
 
 

@@ -288,7 +288,7 @@ def test_read_ch_adjacency(tmp_path):
     assert_equal(x[0, 1], False)
     assert_equal(x[0, 2], True)
     assert np.all(x.diagonal())
-    pytest.raises(ValueError, read_ch_adjacency, mat_fname, [0, 3])
+    pytest.raises(IndexError, read_ch_adjacency, mat_fname, [0, 3])
     ch_adjacency, ch_names = read_ch_adjacency(mat_fname, picks=[0, 2])
     assert_equal(ch_adjacency.shape[0], 2)
     assert_equal(len(ch_names), 2)
