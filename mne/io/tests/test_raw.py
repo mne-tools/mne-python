@@ -29,10 +29,10 @@ from mne._fiff.meas_info import Info, _get_valid_units, _writing_info_hdf5
 from mne._fiff.pick import _ELECTRODE_CH_TYPES, _FNIRS_CH_TYPES_SPLIT
 from mne._fiff.proj import Projection
 from mne._fiff.utils import _mult_cal_one
-from mne.datasets import testing
 from mne.fixes import _numpy_h5py_dep
 from mne.io import BaseRaw, RawArray, read_raw_fif
 from mne.io.base import _get_scaling
+from mne.transforms import Transform
 from mne.utils import (
     _import_h5io_funcs,
     _raw_annot,
@@ -603,7 +603,6 @@ def _test_concat(reader, *args):
                 assert_allclose(data, raw1[:, :][0])
 
 
-@testing.requires_testing_data
 def test_time_as_index():
     """Test indexing of raw times."""
     raw = read_raw_fif(raw_fname)
@@ -1011,3 +1010,14 @@ def test_resamp_noop():
     data_before = raw.get_data()
     data_after = raw.resample(sfreq=raw.info["sfreq"]).get_data()
     assert_array_equal(data_before, data_after)
+
+
+def test_concatenate_raw_dev_head_t():
+    """Test concatenating raws with dev-head-t including nans."""
+    data = np.random.randn(3, 10)
+    info = create_info(3, 1000.0, ["mag", "grad", "grad"])
+    raw = RawArray(data, info)
+    raw.info["dev_head_t"] = Transform("meg", "head", np.eye(4))
+    raw.info["dev_head_t"]["trans"][0, 0] = np.nan
+    raw2 = raw.copy()
+    concatenate_raws([raw, raw2])
