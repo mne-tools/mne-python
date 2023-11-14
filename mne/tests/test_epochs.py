@@ -85,6 +85,13 @@ event_id_2 = np.int64(2)  # to test non Python int types
 rng = np.random.RandomState(42)
 
 
+pytestmark = [
+    pytest.mark.filterwarnings(
+        "ignore:The current default of copy=False will change to copy=.*:FutureWarning",
+    ),
+]
+
+
 def _create_epochs_with_annotations():
     """Create test dataset of Epochs with Annotations."""
     # set up a test dataset
@@ -276,7 +283,7 @@ reject = dict(grad=1000e-12, mag=4e-12, eeg=80e-6, eog=150e-6)
 flat = dict(grad=1e-15, mag=1e-15)
 
 
-def test_get_data():
+def test_get_data_copy():
     """Test the .get_data() method."""
     raw, events, picks = _get_data()
     event_id = {"a/1": 1, "a/2": 2, "b/1": 3, "b/2": 4}
@@ -320,6 +327,25 @@ def test_get_data():
 
     with pytest.raises(TypeError, match="tmax .* float, None"):
         epochs.get_data(tmin=1, tmax=np.ones(5))
+
+    # Test copy
+    data = epochs.get_data(copy=True)
+    assert not np.shares_memory(data, epochs._data)
+
+    with pytest.warns(FutureWarning, match="The current default of copy=False will"):
+        data = epochs.get_data(verbose="debug")
+    assert np.shares_memory(data, epochs._data)
+    assert data is epochs._data
+    data_orig = data.copy()
+    # picks, item, and units must be None
+    data = epochs.get_data(copy=False, picks=[1])
+    assert not np.shares_memory(data, epochs._data)
+    data = epochs.get_data(copy=False, item=[0])
+    assert not np.shares_memory(data, epochs._data)
+    data = epochs.get_data(copy=False, units=dict(eeg="uV"))
+    assert not np.shares_memory(data, epochs._data)
+    # Make sure we didn't mess up our values
+    assert_allclose(data_orig, epochs._data)
 
 
 def test_hierarchical():
@@ -1033,7 +1059,7 @@ def test_epochs_baseline_basic(preload, tmp_path):
     epochs = mne.Epochs(raw, events, None, 0, 1e-3, baseline=None, preload=preload)
     epochs.drop_bad()
     epochs_nobl = epochs.copy()
-    epochs_data = epochs.get_data()
+    epochs_data = epochs.get_data(copy=False)
     assert epochs_data.shape == (1, 2, 2)
     expected = data.copy()
     assert_array_equal(epochs_data[0], expected)
@@ -3914,29 +3940,36 @@ def assert_metadata_equal(got, exp):
 
 
 @pytest.mark.parametrize(
-    ("all_event_id", "row_events", "keep_first", "keep_last"),
+    ("all_event_id", "row_events", "tmin", "tmax", "keep_first", "keep_last"),
     [
         (
             {"a/1": 1, "a/2": 2, "b/1": 3, "b/2": 4, "c": 32},  # all events
             None,
+            -0.5,
+            1.5,
             None,
             None,
         ),
-        ({"a/1": 1, "a/2": 2}, None, None, None),  # subset of events
-        (dict(), None, None, None),  # empty set of events
+        ({"a/1": 1, "a/2": 2}, None, -0.5, 1.5, None, None),  # subset of events
+        (dict(), None, -0.5, 1.5, None, None),  # empty set of events
         (
             {"a/1": 1, "a/2": 2, "b/1": 3, "b/2": 4, "c": 32},
             ("a/1", "a/2", "b/1", "b/2"),
+            -0.5,
+            1.5,
             ("a", "b"),
             "c",
         ),
+        # Test when tmin, tmax are None
+        ({"a/1": 1, "a/2": 2}, None, None, 1.5, None, None),  # tmin is None
+        ({"a/1": 1, "a/2": 2}, None, -0.5, None, None, None),  # tmax is None
+        ({"a/1": 1, "a/2": 2}, None, None, None, None, None),  # tmin and tmax are None
     ],
 )
-def test_make_metadata(all_event_id, row_events, keep_first, keep_last):
+def test_make_metadata(all_event_id, row_events, tmin, tmax, keep_first, keep_last):
     """Test that make_metadata works."""
     pytest.importorskip("pandas")
     raw, all_events, _ = _get_data()
-    tmin, tmax = -0.5, 1.5
     sfreq = raw.info["sfreq"]
     kwargs = dict(
         events=all_events,
@@ -4003,6 +4036,80 @@ def test_make_metadata(all_event_id, row_events, keep_first, keep_last):
                 )
 
     Epochs(raw, events=events, event_id=event_id, metadata=metadata, verbose="warning")
+
+
+def test_make_metadata_bounded_by_row_events():
+    """Test make_metadata() with tmin, tmax set to None."""
+    pytest.importorskip("pandas")
+
+    sfreq = 100
+    duration = 15
+    n_chs = 10
+
+    # Define events and generate annotations
+    experimental_events = [
+        # Beginning of recording until response (1st trial)
+        {"onset": 0.0, "description": "rec_start", "duration": 1 / sfreq},
+        {"onset": 1.0, "description": "cue", "duration": 1 / sfreq},
+        {"onset": 2.0, "description": "stim", "duration": 1 / sfreq},
+        {"onset": 2.5, "description": "resp", "duration": 1 / sfreq},
+        # 2nd trial
+        {"onset": 4.0, "description": "cue", "duration": 1 / sfreq},
+        {"onset": 4.3, "description": "stim", "duration": 1 / sfreq},
+        {"onset": 8.0, "description": "resp", "duration": 1 / sfreq},
+        # 3rd trial until end of the recording
+        {"onset": 10.0, "description": "cue", "duration": 1 / sfreq},
+        {"onset": 12.0, "description": "stim", "duration": 1 / sfreq},
+        {"onset": 13.0, "description": "resp", "duration": 1 / sfreq},
+        {"onset": 14.9, "description": "rec_end", "duration": 1 / sfreq},
+    ]
+
+    annots = mne.Annotations(
+        onset=[e["onset"] for e in experimental_events],
+        description=[e["description"] for e in experimental_events],
+        duration=[e["duration"] for e in experimental_events],
+    )
+
+    # Generate raw data, attach the annotations, and convert to events
+    rng = np.random.default_rng()
+    data = 1e-5 * rng.standard_normal((n_chs, sfreq * duration))
+    info = mne.create_info(
+        ch_names=[f"EEG {i}" for i in range(n_chs)], sfreq=sfreq, ch_types="eeg"
+    )
+
+    raw = mne.io.RawArray(data=data, info=info)
+    raw.set_annotations(annots)
+    events, event_id = mne.events_from_annotations(raw=raw)
+
+    metadata, events_new, event_id_new = mne.epochs.make_metadata(
+        events=events,
+        event_id=event_id,
+        tmin=None,
+        tmax=None,
+        sfreq=raw.info["sfreq"],
+        row_events="cue",
+    )
+
+    # We should have 3 rows in the metadata table in total.
+    # rec_start occurred before the first row_event, so should not be included
+    # rec_end occurred after the last row_event and should be included
+
+    assert len(metadata) == 3
+    assert (metadata["event_name"] == "cue").all()
+    assert (metadata["cue"] == 0.0).all()
+
+    for row in metadata.itertuples():
+        assert row.cue < row.stim < row.resp
+        assert np.isnan(row.rec_start)
+
+    # Beginning of recording until end of 1st trial
+    assert np.isnan(metadata.iloc[0]["rec_end"])
+
+    # 2nd trial
+    assert np.isnan(metadata.iloc[1]["rec_end"])
+
+    # 3rd trial until end of the recording
+    assert metadata.iloc[2]["resp"] < metadata.iloc[2]["rec_end"]
 
 
 def test_events_list():

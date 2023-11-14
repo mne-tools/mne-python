@@ -282,6 +282,18 @@ are richly annotated, and can be used for e.g. multiple regression estimation
 of EEG correlates of printed word processing.
 
 
+KIT phantom dataset
+=============================
+:func:`mne.datasets.phantom_kit.data_path`.
+
+This dataset was obtained with a phantom on a KIT system at
+Macquarie University in Sydney, Australia.
+
+.. topic:: Examples
+
+    * :ref:`tut-phantom-KIT`
+
+
 4D Neuroimaging / BTi dataset
 =============================
 :func:`mne.datasets.phantom_4dbti.data_path`.
@@ -292,6 +304,19 @@ the MEG center in La Timone hospital in Marseille.
 .. topic:: Examples
 
     * :ref:`tut-phantom-4Dbti`
+
+Kernel OPM phantom dataset
+==========================
+:func:`mne.datasets.phantom_kernel.data_path`.
+
+This dataset was obtained with a Neuromag phantom in a Kernel Flux (720-sensor)
+system at ILABS at the University of Washington. Only 7 out of 42 possible modules
+were active for testing purposes, yielding 121 channels of data with limited coverage
+(mostly occipital and parietal).
+
+.. topic:: Examples
+
+    * :ref:`ex-kernel-opm-phantom`
 
 OPM
 ===

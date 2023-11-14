@@ -324,11 +324,11 @@ def _download_all_example_data(verbose=True):
     paths = dict()
     for kind in (
         "sample testing misc spm_face somato hf_sef multimodal "
-        "fnirs_motor opm mtrf fieldtrip_cmc kiloword phantom_4dbti "
+        "fnirs_motor opm mtrf fieldtrip_cmc kiloword phantom_kit phantom_4dbti "
         "refmeg_noise ssvep epilepsy_ecog ucl_opm_auditory eyelink "
         "erp_core brainstorm.bst_raw brainstorm.bst_auditory "
         "brainstorm.bst_resting brainstorm.bst_phantom_ctf "
-        "brainstorm.bst_phantom_elekta"
+        "brainstorm.bst_phantom_elekta phantom_kernel"
     ).split():
         mod = importlib.import_module(f"mne.datasets.{kind}")
         data_path_func = getattr(mod, "data_path")

@@ -174,12 +174,28 @@ MNE_DATASETS["opm"] = dict(
     config_key="MNE_DATASETS_OPM_PATH",
 )
 
+MNE_DATASETS["phantom_kit"] = dict(
+    archive_name="MNE-phantom-KIT-24bit.zip",
+    hash="md5:CAF82EE978DD473C7DE6C1034D9CCD45",
+    url="https://osf.io/download/svnt3/",
+    folder_name="MNE-phantom-KIT-data",
+    config_key="MNE_DATASETS_PHANTOM_KIT_PATH",
+)
+
 MNE_DATASETS["phantom_4dbti"] = dict(
     archive_name="MNE-phantom-4DBTi.zip",
     hash="md5:938a601440f3ffa780d20a17bae039ff",
     url="https://osf.io/v2brw/download?version=2",
     folder_name="MNE-phantom-4DBTi",
     config_key="MNE_DATASETS_PHANTOM_4DBTI_PATH",
+)
+
+MNE_DATASETS["phantom_kernel"] = dict(
+    archive_name="MNE-phantom-kernel.tar.gz",
+    hash="md5:4e2ad987dac1a20f95bae8ffeb2d41d6",
+    url="https://osf.io/dj7wz/download?version=1",
+    folder_name="MNE-phantom-kernel-data",
+    config_key="MNE_DATASETS_PHANTOM_KERNEL_PATH",
 )
 
 MNE_DATASETS["sample"] = dict(

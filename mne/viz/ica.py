@@ -55,6 +55,7 @@ def plot_ica_sources(
     *,
     theme=None,
     overview_mode=None,
+    splash=True,
 ):
     """Plot estimated latent sources given the unmixing matrix.
 
@@ -99,6 +100,9 @@ def plot_ica_sources(
     %(overview_mode)s
 
         .. versionadded:: 1.1
+    %(splash)s
+
+        .. versionadded:: 1.6
 
     Returns
     -------
@@ -139,6 +143,7 @@ def plot_ica_sources(
             use_opengl=use_opengl,
             theme=theme,
             overview_mode=overview_mode,
+            splash=splash,
         )
     elif isinstance(inst, Evoked):
         if start is not None or stop is not None:
@@ -221,7 +226,7 @@ def _plot_ica_properties(
 
     # image and erp
     # we create a new epoch with dropped rows
-    epoch_data = epochs_src.get_data()
+    epoch_data = epochs_src.get_data(copy=False)
     epoch_data = np.insert(
         arr=epoch_data,
         obj=(dropped_indices - np.arange(len(dropped_indices))).astype(int),
@@ -739,7 +744,7 @@ def _prepare_data_ica_properties(inst, ica, reject_by_annotation=True, reject="a
         epochs_src = ica.get_sources(inst)
         dropped_indices = []
         kind = "Epochs"
-    return kind, dropped_indices, epochs_src, epochs_src.get_data()
+    return kind, dropped_indices, epochs_src, epochs_src.get_data(copy=False)
 
 
 def _plot_ica_sources_evoked(evoked, picks, exclude, title, show, ica, labels=None):
@@ -1266,6 +1271,7 @@ def _plot_sources(
     *,
     theme=None,
     overview_mode=None,
+    splash=True,
 ):
     """Plot the ICA components as a RawArray or EpochsArray."""
     from ..epochs import BaseEpochs, EpochsArray
@@ -1410,6 +1416,7 @@ def _plot_sources(
         use_opengl=use_opengl,
         theme=theme,
         overview_mode=overview_mode,
+        splash=splash,
     )
     if is_epo:
         params.update(

@@ -9,8 +9,7 @@ import contextlib
 import datetime
 import operator
 import string
-import uuid
-from collections import Counter, OrderedDict
+from collections import Counter, OrderedDict, defaultdict
 from collections.abc import Mapping
 from copy import deepcopy
 from io import BytesIO
@@ -411,6 +410,12 @@ class MontageMixin:
             a montage. Other channel types (e.g., MEG channels) should have
             their positions defined properly using their data reading
             functions.
+        .. warning::
+            Applying a montage will only set locations of channels that exist
+            at the time it is applied. This means when
+            :ref:`re-referencing <tut-set-eeg-ref>`
+            make sure to apply the montage only after calling
+            :func:`mne.add_reference_channels`
         """
         # How to set up a montage to old named fif file (walk through example)
         # https://gist.github.com/massich/f6a9f4799f1fbeb8f5e8f8bc7b07d3df
@@ -1852,37 +1857,25 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
         titles = _handle_default("titles")
 
         # good channels
-        channels = {}
-        ch_types = [channel_type(self, idx) for idx in range(len(self["chs"]))]
-        ch_counts = Counter(ch_types)
-        for ch_type, count in ch_counts.items():
-            if ch_type == "meg":
-                channels["mag"] = len(pick_types(self, meg="mag"))
-                channels["grad"] = len(pick_types(self, meg="grad"))
-            elif ch_type == "eog":
-                pick_eog = pick_types(self, eog=True)
-                eog = ", ".join(np.array(self["ch_names"])[pick_eog])
-            elif ch_type == "ecg":
-                pick_ecg = pick_types(self, ecg=True)
-                ecg = ", ".join(np.array(self["ch_names"])[pick_ecg])
-            channels[ch_type] = count
-
+        good_names = defaultdict(lambda: list())
+        for ci, ch_name in enumerate(self["ch_names"]):
+            if ch_name in self["bads"]:
+                continue
+            ch_type = channel_type(self, ci)
+            good_names[ch_type].append(ch_name)
         good_channels = ", ".join(
-            [f"{v} {titles.get(k, k.upper())}" for k, v in channels.items()]
+            [f"{len(v)} {titles.get(k, k.upper())}" for k, v in good_names.items()]
         )
-
-        if "ecg" not in channels.keys():
-            ecg = "Not available"
-        if "eog" not in channels.keys():
-            eog = "Not available"
+        for key in ("ecg", "eog"):  # ensure these are present
+            if key not in good_names:
+                good_names[key] = list()
+        for key, val in good_names.items():
+            good_names[key] = ", ".join(val) or "Not available"
 
         # bad channels
-        if len(self["bads"]) > 0:
-            bad_channels = ", ".join(self["bads"])
-        else:
-            bad_channels = "None"
+        bad_channels = ", ".join(self["bads"]) or "None"
 
-        return good_channels, bad_channels, ecg, eog
+        return good_channels, bad_channels, good_names["ecg"], good_names["eog"]
 
     @repr_html
     def _repr_html_(self, caption=None, duration=None, filenames=None):
@@ -1918,10 +1911,8 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
 
         info_template = _get_html_template("repr", "info.html.jinja")
         sections = ("General", "Channels", "Data")
-        section_ids = [f"section_{str(uuid.uuid4())}" for _ in sections]
         return html + info_template.render(
             sections=sections,
-            section_ids=section_ids,
             caption=caption,
             meas_date=meas_date,
             projs=projs,
@@ -3735,10 +3726,13 @@ def _ensure_infos_match(info1, info2, name, *, on_mismatch="raise"):
         raise ValueError(f"SSP projectors in {name} must be the same")
     if any(not _proj_equal(p1, p2) for p1, p2 in zip(info2["projs"], info1["projs"])):
         raise ValueError(f"SSP projectors in {name} must be the same")
-    if (info1["dev_head_t"] is None) != (info2["dev_head_t"] is None) or (
+    if (info1["dev_head_t"] is None) ^ (info2["dev_head_t"] is None) or (
         info1["dev_head_t"] is not None
         and not np.allclose(
-            info1["dev_head_t"]["trans"], info2["dev_head_t"]["trans"], rtol=1e-6
+            info1["dev_head_t"]["trans"],
+            info2["dev_head_t"]["trans"],
+            rtol=1e-6,
+            equal_nan=True,
         )
     ):
         msg = (

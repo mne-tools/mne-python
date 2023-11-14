@@ -23,6 +23,7 @@ from sphinx_gallery.sorting import FileNameSortKey, ExplicitOrder
 from numpydoc import docscrape
 
 import mne
+import mne.html_templates._templates
 from mne.tests.test_docstring_parameters import error_ignores
 from mne.utils import (
     linkcode_resolve,  # noqa, analysis:ignore
@@ -41,6 +42,7 @@ os.environ["MNE_3D_OPTION_THEME"] = "light"
 # https://numba.readthedocs.io/en/latest/reference/deprecation.html#deprecation-of-old-style-numba-captured-errors  # noqa: E501
 os.environ["NUMBA_CAPTURED_ERRORS"] = "new_style"
 sphinx_logger = sphinx.util.logging.getLogger("mne")
+mne.html_templates._templates._COLLAPSED = True  # collapse info _repr_html_
 
 # -- Path setup --------------------------------------------------------------
 
@@ -720,11 +722,17 @@ linkcheck_ignore = [  # will be compiled to regex
     "https://doi.org/10.1088/",  # www.tandfonline.com
     "https://doi.org/10.3109/",  # www.tandfonline.com
     "https://www.researchgate.net/profile/",
+    "https://www.intel.com/content/www/us/en/developer/tools/oneapi/onemkl.html",
+    "https://scholar.google.com/scholar?cites=12188330066413208874&as_ylo=2014",
+    "https://scholar.google.com/scholar?cites=1521584321377182930&as_ylo=2013",
+    # 500 server error
+    "https://openwetware.org/wiki/Beauchamp:FreeSurfer",
     # 503 Server error
     "https://hal.archives-ouvertes.fr/hal-01848442",
     # Read timed out
     "http://www.cs.ucl.ac.uk/staff/d.barber/brml",
     "https://www.cea.fr",
+    "http://www.humanconnectome.org/data",
     # Max retries exceeded
     "https://doi.org/10.7488/ds/1556",
     "https://datashare.is.ed.ac.uk/handle/10283",
@@ -1316,6 +1324,8 @@ def reset_warnings(gallery_conf, fname):
         # nilearn
         "pkg_resources is deprecated as an API",
         r"The .* was deprecated in Matplotlib 3\.7",
+        # scipy
+        r"scipy.signal.morlet2 is deprecated in SciPy 1\.12",
     ):
         warnings.filterwarnings(  # deal with other modules having bad imports
             "ignore", message=".*%s.*" % key, category=DeprecationWarning

@@ -163,7 +163,9 @@ _known_config_types = {
     "MNE_DATASETS_VISUAL_92_CATEGORIES_PATH": "str, path for visual_92_categories data",
     "MNE_DATASETS_KILOWORD_PATH": "str, path for kiloword data",
     "MNE_DATASETS_FIELDTRIP_CMC_PATH": "str, path for fieldtrip_cmc data",
+    "MNE_DATASETS_PHANTOM_KIT_PATH": "str, path for phantom_kit data",
     "MNE_DATASETS_PHANTOM_4DBTI_PATH": "str, path for phantom_4dbti data",
+    "MNE_DATASETS_PHANTOM_KERNEL_PATH": "str, path for phantom_kernel data",
     "MNE_DATASETS_LIMO_PATH": "str, path for limo data",
     "MNE_DATASETS_REFMEG_NOISE_PATH": "str, path for refmeg_noise data",
     "MNE_DATASETS_SSVEP_PATH": "str, path for ssvep data",
@@ -495,7 +497,7 @@ def _get_stim_channel(stim_channel, info, raise_error=True):
 
     Returns
     -------
-    stim_channel : str | list of str
+    stim_channel : list of str
         The name of the stim channel(s) to use
     """
     from .._fiff.pick import pick_types
@@ -524,19 +526,18 @@ def _get_stim_channel(stim_channel, info, raise_error=True):
         return ["STI 014"]
 
     stim_channel = pick_types(info, meg=False, ref_meg=False, stim=True)
-    if len(stim_channel) > 0:
-        stim_channel = [info["ch_names"][ch_] for ch_ in stim_channel]
-    elif raise_error:
+    if len(stim_channel) == 0 and raise_error:
         raise ValueError(
             "No stim channels found. Consider specifying them "
             "manually using the 'stim_channel' parameter."
         )
+    stim_channel = [info["ch_names"][ch_] for ch_ in stim_channel]
     return stim_channel
 
 
 def _get_root_dir():
     """Get as close to the repo root as possible."""
-    root_dir = Path(__file__).parent.parent.expanduser().absolute()
+    root_dir = Path(__file__).parents[1]
     up_dir = root_dir.parent
     if (up_dir / "setup.py").is_file() and all(
         (up_dir / x).is_dir() for x in ("mne", "examples", "doc")

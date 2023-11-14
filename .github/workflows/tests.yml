@@ -60,9 +60,6 @@ jobs:
             python: '3.10'
             kind: conda
           - os: ubuntu-latest
-            python: '3.10'
-            kind: notebook
-          - os: ubuntu-latest
             python: '3.11'
             kind: pip-pre
           - os: macos-latest
@@ -87,7 +84,6 @@ jobs:
         with:
           qt: true
           pyvista: false
-        if: matrix.kind != 'notebook'
       # Python (if pip)
       - uses: actions/setup-python@v4
         with:
@@ -103,19 +99,13 @@ jobs:
           miniforge-variant: Mambaforge
           use-mamba: ${{ matrix.kind != 'conda' }}
         if: ${{ !startswith(matrix.kind, 'pip') }}
-      - name: 'Install OSMesa VTK variant'
-        run: |
-          # TODO: As of 2023/02/28, notebook tests need a pinned mesalib
-          mamba install -c conda-forge "vtk>=9.2=*osmesa*" "vtk-base>=9.2=*osmesa*" "mesalib=23.1.4"
-          mamba list
-        if: matrix.kind == 'notebook'
       - run: ./tools/github_actions_dependencies.sh
       # Minimal commands on Linux (macOS stalls)
       - run: ./tools/get_minimal_commands.sh
         if: ${{ startswith(matrix.os, 'ubuntu') }}
       - run: ./tools/github_actions_install.sh
       - run: ./tools/github_actions_infos.sh
-      # Check Qt on non-notebook
+      # Check Qt
       - run: ./tools/check_qt_import.sh $MNE_QT_BACKEND
         if: ${{ env.MNE_QT_BACKEND != '' }}
       - name: Run tests with no testing data

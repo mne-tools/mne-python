@@ -318,4 +318,4 @@ def test_as_meg_type_evoked():
     virt_epochs.info.normalize_proj()
     virt_epochs = virt_epochs.as_type("mag")
     assert all(ch.endswith("_v") for ch in virt_epochs.info["ch_names"])
-    assert_allclose(virt_epochs.get_data().mean(0), virt_evoked.data)
+    assert_allclose(virt_epochs.get_data(copy=False).mean(0), virt_evoked.data)

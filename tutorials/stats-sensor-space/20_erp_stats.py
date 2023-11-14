@@ -90,8 +90,8 @@ adjacency, _ = find_ch_adjacency(epochs.info, "eeg")
 # In this case, inference is done over items. In the same manner, we could
 # also conduct the test over, e.g., subjects.
 X = [
-    long_words.get_data().transpose(0, 2, 1),
-    short_words.get_data().transpose(0, 2, 1),
+    long_words.get_data(copy=False).transpose(0, 2, 1),
+    short_words.get_data(copy=False).transpose(0, 2, 1),
 ]
 tfce = dict(start=0.4, step=0.4)  # ideally start and step would be smaller
 

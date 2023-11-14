@@ -291,31 +291,8 @@ def rotation(x=0, y=0, z=0):
     r : array, shape = (4, 4)
         The rotation matrix.
     """
-    cos_x = np.cos(x)
-    cos_y = np.cos(y)
-    cos_z = np.cos(z)
-    sin_x = np.sin(x)
-    sin_y = np.sin(y)
-    sin_z = np.sin(z)
-    r = np.array(
-        [
-            [
-                cos_y * cos_z,
-                -cos_x * sin_z + sin_x * sin_y * cos_z,
-                sin_x * sin_z + cos_x * sin_y * cos_z,
-                0,
-            ],
-            [
-                cos_y * sin_z,
-                cos_x * cos_z + sin_x * sin_y * sin_z,
-                -sin_x * cos_z + cos_x * sin_y * sin_z,
-                0,
-            ],
-            [-sin_y, sin_x * cos_y, cos_x * cos_y, 0],
-            [0, 0, 0, 1],
-        ],
-        dtype=float,
-    )
+    r = np.eye(4)
+    r[:3, :3] = rotation3d(x=x, y=y, z=z)
     return r
 
 
@@ -2072,3 +2049,55 @@ def apply_volume_registration_points(
     info2.set_montage(montage2)  # converts to head coordinates
 
     return info2, trans2
+
+
+class _MatchedDisplacementFieldInterpolator:
+    """Interpolate from matched points using a displacement field in ND.
+
+    For a demo, see
+    https://gist.github.com/larsoner/fbe32d57996848395854d5e59dff1e10
+    and related tests.
+    """
+
+    def __init__(self, fro, to, *, extrema=None):
+        from scipy.interpolate import LinearNDInterpolator
+
+        fro = np.array(fro, float)
+        to = np.array(to, float)
+        assert fro.shape == to.shape
+        assert fro.ndim == 2
+        # this restriction is only necessary because it's what
+        # _fit_matched_points requires
+        assert fro.shape[1] == 3
+
+        # Prealign using affine + uniform scaling
+        self._quat, self._scale = _fit_matched_points(fro, to, scale=True)
+        trans = _quat_to_affine(self._quat)
+        trans[:3, :3] *= self._scale
+        self._affine = trans
+        fro = apply_trans(trans, fro)
+
+        # Add points at extrema
+        if extrema is None:
+            delta = (to.max(axis=0) - to.min(axis=0)) / 2.0
+            assert (delta > 0).all()
+            extrema = np.array([fro.min(axis=0) - delta, fro.max(axis=0) + delta])
+        assert extrema.shape == (2, 3)  # min, max
+        self._extrema = np.array(np.meshgrid(*extrema.T)).T.reshape(-1, fro.shape[-1])
+        fro_concat = np.concatenate((fro, self._extrema))
+        to_concat = np.concatenate((to, self._extrema))
+
+        # Compute the interpolator (which internally uses Delaunay)
+        self._interp = LinearNDInterpolator(fro_concat, to_concat)
+
+    def __call__(self, x):
+        assert x.ndim in (1, 2) and x.shape[-1] == 3
+        assert np.isfinite(x).all()
+        singleton = x.ndim == 1
+        x = apply_trans(self._affine, x)
+        assert np.isfinite(x).all()
+        out = self._interp(x)
+        assert np.isfinite(out).all()
+        self._last_deltas = np.linalg.norm(x - out, axis=1)
+        out = out[0] if singleton else out
+        return out

@@ -154,7 +154,7 @@ def _save_part(fid, epochs, fmt, n_parts, next_fname, next_idx):
     start_block(fid, FIFF.FIFFB_MNE_EPOCHS)
 
     # write events out after getting data to ensure bad events are dropped
-    data = epochs.get_data()
+    data = epochs.get_data(copy=False)
 
     _check_option("fmt", fmt, ["single", "double"])
 
@@ -1299,6 +1299,7 @@ class BaseEpochs(
         *,
         theme=None,
         overview_mode=None,
+        splash=True,
     ):
         return plot_epochs(
             self,
@@ -1324,6 +1325,7 @@ class BaseEpochs(
             use_opengl=use_opengl,
             theme=theme,
             overview_mode=overview_mode,
+            splash=splash,
         )
 
     @copy_function_doc_to_method_doc(plot_topo_image_epochs)
@@ -1588,6 +1590,7 @@ class BaseEpochs(
         units=None,
         tmin=None,
         tmax=None,
+        copy=False,
         on_empty="warn",
         verbose=None,
     ):
@@ -1609,6 +1612,9 @@ class BaseEpochs(
         %(verbose)s
         """
         from .io.base import _get_ch_factors
+
+        if copy is not None:
+            _validate_type(copy, bool, "copy")
 
         # Handle empty epochs
         self._handle_empty(on_empty, "_get_data")
@@ -1671,19 +1677,23 @@ class BaseEpochs(
         # handle units param only if we are going to return data (out==True)
         if (units is not None) and out:
             ch_factors = _get_ch_factors(self, units, picks)
+        else:
+            ch_factors = None
 
         if self._bad_dropped:
             if not out:
                 return
             if self.preload:
-                data = data[select]
-                if orig_picks is not None:
-                    data = data[:, picks]
-                if units is not None:
-                    data *= ch_factors[:, np.newaxis]
-                if start != 0 or stop != self.times.size:
-                    data = data[..., start:stop]
-                return data
+                return self._data_sel_copy_scale(
+                    data,
+                    select=select,
+                    orig_picks=orig_picks,
+                    picks=picks,
+                    ch_factors=ch_factors,
+                    start=start,
+                    stop=stop,
+                    copy=copy,
+                )
 
             # we need to load from disk, drop, and return data
             detrend_picks = self._detrend_picks
@@ -1775,16 +1785,63 @@ class BaseEpochs(
                 good_idx, None, copy=False, drop_event_id=False, select_data=False
             )
 
-        if out:
-            if orig_picks is not None:
-                data = data[:, picks]
-            if units is not None:
-                data *= ch_factors[:, np.newaxis]
-            if start != 0 or stop != self.times.size:
-                data = data[..., start:stop]
-            return data
+        if not out:
+            return
+        return self._data_sel_copy_scale(
+            data,
+            select=slice(None),
+            orig_picks=orig_picks,
+            picks=picks,
+            ch_factors=ch_factors,
+            start=start,
+            stop=stop,
+            copy=copy,
+        )
+
+    def _data_sel_copy_scale(
+        self, data, *, select, orig_picks, picks, ch_factors, start, stop, copy
+    ):
+        # data arg starts out as self._data when data is preloaded
+        data_is_self_data = bool(self.preload)
+        logger.debug(f"Data is self data: {data_is_self_data}")
+        # only two types of epoch subselection allowed
+        assert isinstance(select, (slice, np.ndarray)), type(select)
+        if not isinstance(select, slice):
+            logger.debug("  Copying, fancy indexed epochs")
+            data_is_self_data = False  # copy (fancy indexing)
+        elif select != slice(None):
+            logger.debug("  Slicing epochs")
+        if orig_picks is not None:
+            logger.debug("  Copying, fancy indexed picks")
+            assert isinstance(picks, np.ndarray), type(picks)
+            data_is_self_data = False  # copy (fancy indexing)
         else:
-            return None
+            picks = slice(None)
+        if not all(isinstance(x, slice) and x == slice(None) for x in (select, picks)):
+            data = data[select][:, picks]
+        del picks
+        if start != 0 or stop != self.times.size:
+            logger.debug("  Slicing time")
+            data = data[..., start:stop]  # view (slice)
+        if ch_factors is not None:
+            if data_is_self_data:
+                logger.debug("  Copying, scale factors applied")
+                data = data.copy()
+                data_is_self_data = False
+            data *= ch_factors[:, np.newaxis]
+        if not data_is_self_data:
+            return data
+        if copy is None:
+            warn(
+                "The current default of copy=False will change to copy=True in 1.7. "
+                "Set the value of copy explicitly to avoid this warning",
+                FutureWarning,
+            )
+            copy = False
+        if copy:
+            logger.debug("  Copying, copy=True")
+            data = data.copy()
+        return data
 
     @property
     def _detrend_picks(self):
@@ -1795,8 +1852,18 @@ class BaseEpochs(
         else:
             return []
 
-    @fill_doc
-    def get_data(self, picks=None, item=None, units=None, tmin=None, tmax=None):
+    @verbose
+    def get_data(
+        self,
+        picks=None,
+        item=None,
+        units=None,
+        tmin=None,
+        tmax=None,
+        *,
+        copy=None,
+        verbose=None,
+    ):
         """Get all epochs as a 3D array.
 
         Parameters
@@ -1821,13 +1888,33 @@ class BaseEpochs(
             End time of data to get in seconds.
 
             .. versionadded:: 0.24.0
+        copy : bool
+            Whether to return a copy of the object's data, or (if possible) a view.
+            See :ref:`the NumPy docs <numpy:basics.copies-and-views>` for an
+            explanation. Default is ``False`` in 1.6 but will change to ``True`` in 1.7,
+            set it explicitly to avoid a warning in some cases. A view is only possible
+            when ``item is None``, ``picks is None``, ``units is None``, and data are
+            preloaded.
+
+            .. warning::
+               Using ``copy=False`` and then modifying the returned ``data`` will in
+               turn modify the Epochs object. Use with caution!
+
+            .. versionchanged:: 1.7
+               The default changed from ``False`` to ``True``.
+
+            .. versionadded:: 1.6
+        %(verbose)s
 
         Returns
         -------
         data : array of shape (n_epochs, n_channels, n_times)
-            A view on epochs data.
+            The epochs data. Will be a copy when ``copy=True`` and will be a view
+            when possible when ``copy=False``.
         """
-        return self._get_data(picks=picks, item=item, units=units, tmin=tmin, tmax=tmax)
+        return self._get_data(
+            picks=picks, item=item, units=units, tmin=tmin, tmax=tmax, copy=copy
+        )
 
     @verbose
     def apply_function(
@@ -2093,7 +2180,7 @@ class BaseEpochs(
             warn("Saving epochs with no data")
             total_size = 0
         else:
-            d = self[0].get_data()
+            d = self[0].get_data(copy=False)
             # this should be guaranteed by subclasses
             assert d.dtype in (">f8", "<f8", ">c16", "<c16")
             total_size = d.nbytes * len(self)
@@ -2664,17 +2751,18 @@ def make_metadata(
     keep_first=None,
     keep_last=None,
 ):
-    """Generate metadata from events for use with `mne.Epochs`.
+    """Automatically generate metadata for use with `mne.Epochs` from events.
 
     This function mimics the epoching process (it constructs time windows
     around time-locked "events of interest") and collates information about
     any other events that occurred within those time windows. The information
-    is returned as a :class:`pandas.DataFrame` suitable for use as
+    is returned as a :class:`pandas.DataFrame`, suitable for use as
     `~mne.Epochs` metadata: one row per time-locked event, and columns
-    indicating presence/absence and latency of each ancillary event type.
+    indicating presence or absence and latency of each ancillary event type.
 
     The function will also return a new ``events`` array and ``event_id``
-    dictionary that correspond to the generated metadata.
+    dictionary that correspond to the generated metadata, which together can then be
+    readily fed into `~mne.Epochs`.
 
     Parameters
     ----------
@@ -2687,9 +2775,9 @@ def make_metadata(
         A mapping from event names (keys) to event IDs (values). The event
         names will be incorporated as columns of the returned metadata
         :class:`~pandas.DataFrame`.
-    tmin, tmax : float
-        Start and end of the time interval for metadata generation in seconds,
-        relative to the time-locked event of the respective time window.
+    tmin, tmax : float | None
+        Start and end of the time interval for metadata generation in seconds, relative
+        to the time-locked event of the respective time window (the "row events").
 
         .. note::
            If you are planning to attach the generated metadata to
@@ -2697,15 +2785,27 @@ def make_metadata(
            your epochs time interval, pass the same ``tmin`` and ``tmax``
            values here as you use for your epochs.
 
+        If ``None``, the time window used for metadata generation is bounded by the
+        ``row_events``. This is can be particularly practical if trial duration varies
+        greatly, but each trial starts with a known event (e.g., a visual cue or
+        fixation).
+
+        .. note::
+           If ``tmin=None``, the first time window for metadata generation starts with
+           the first row event. If ``tmax=None``, the last time window for metadata
+           generation ends with the last event in ``events``.
+
+        .. versionchanged:: 1.6.0
+           Added support for ``None``.
     sfreq : float
         The sampling frequency of the data from which the events array was
         extracted.
     row_events : list of str | str | None
-        Event types around which to create the time windows / for which to
-        create **rows** in the returned metadata :class:`pandas.DataFrame`. If
-        provided, the string(s) must be keys of ``event_id``. If ``None``
-        (default), rows are created for **all** event types present in
-        ``event_id``.
+        Event types around which to create the time windows. For each of these
+        time-locked events, we will create a **row** in the returned metadata
+        :class:`pandas.DataFrame`. If provided, the string(s) must be keys of
+        ``event_id``. If ``None`` (default), rows are created for **all** event types
+        present in ``event_id``.
     keep_first : str | list of str | None
         Specify subsets of :term:`hierarchical event descriptors` (HEDs,
         inspired by :footcite:`BigdelyShamloEtAl2013`) matching events of which
@@ -2780,8 +2880,10 @@ def make_metadata(
     The time window used for metadata generation need not correspond to the
     time window used to create the `~mne.Epochs`, to which the metadata will
     be attached; it may well be much shorter or longer, or not overlap at all,
-    if desired. The can be useful, for example, to include events that occurred
-    before or after an epoch, e.g. during the inter-trial interval.
+    if desired. This can be useful, for example, to include events that
+    occurred before or after an epoch, e.g. during the inter-trial interval.
+    If either ``tmin``, ``tmax``, or both are ``None``, the time window will
+    typically vary, too.
 
     .. versionadded:: 0.23
 
@@ -2791,7 +2893,11 @@ def make_metadata(
     """
     pd = _check_pandas_installed()
 
+    _validate_type(events, types=("array-like",), item_name="events")
     _validate_type(event_id, types=(dict,), item_name="event_id")
+    _validate_type(sfreq, types=("numeric",), item_name="sfreq")
+    _validate_type(tmin, types=("numeric", None), item_name="tmin")
+    _validate_type(tmax, types=("numeric", None), item_name="tmax")
     _validate_type(row_events, types=(None, str, list, tuple), item_name="row_events")
     _validate_type(keep_first, types=(None, str, list, tuple), item_name="keep_first")
     _validate_type(keep_last, types=(None, str, list, tuple), item_name="keep_last")
@@ -2840,8 +2946,8 @@ def make_metadata(
 
     # First and last sample of each epoch, relative to the time-locked event
     # This follows the approach taken in mne.Epochs
-    start_sample = int(round(tmin * sfreq))
-    stop_sample = int(round(tmax * sfreq)) + 1
+    start_sample = None if tmin is None else int(round(tmin * sfreq))
+    stop_sample = None if tmax is None else int(round(tmax * sfreq)) + 1
 
     # Make indexing easier
     # We create the DataFrame before subsetting the events so we end up with
@@ -2887,16 +2993,49 @@ def make_metadata(
     start_idx = stop_idx
     metadata.iloc[:, start_idx:] = None
 
-    # We're all set, let's iterate over all eventns and fill in in the
+    # We're all set, let's iterate over all events and fill in in the
     # respective cells in the metadata. We will subset this to include only
     # `row_events` later
     for row_event in events_df.itertuples(name="RowEvent"):
         row_idx = row_event.Index
         metadata.loc[row_idx, "event_name"] = id_to_name_map[row_event.id]
 
-        # Determine which events fall into the current epoch
-        window_start_sample = row_event.sample + start_sample
-        window_stop_sample = row_event.sample + stop_sample
+        # Determine which events fall into the current time window
+        if start_sample is None:
+            # Lower bound is the current event.
+            window_start_sample = row_event.sample
+        else:
+            # Lower bound is determined by tmin.
+            window_start_sample = row_event.sample + start_sample
+
+        if stop_sample is None:
+            # Upper bound: next event of the same type, or the last event (of
+            # any type) if no later event of the same type can be found.
+            next_events = events_df.loc[
+                (events_df["sample"] > row_event.sample),
+                :,
+            ]
+            if next_events.size == 0:
+                # We've reached the last event in the recording.
+                window_stop_sample = row_event.sample
+            elif next_events.loc[next_events["id"] == row_event.id, :].size > 0:
+                # There's still an event of the same type appearing after the
+                # current event. Stop one sample short, we don't want to include that
+                # last event here, but in the next iteration.
+                window_stop_sample = (
+                    next_events.loc[next_events["id"] == row_event.id, :].iloc[0][
+                        "sample"
+                    ]
+                    - 1
+                )
+            else:
+                # There are still events after the current one, but not of the
+                # same type.
+                window_stop_sample = next_events.iloc[-1]["sample"]
+        else:
+            # Upper bound is determined by tmax.
+            window_stop_sample = row_event.sample + stop_sample
+
         events_in_window = events_df.loc[
             (events_df["sample"] >= window_start_sample)
             & (events_df["sample"] <= window_stop_sample),
@@ -4147,7 +4286,7 @@ def _concatenate_epochs(
     if with_data:
         offsets = np.cumsum(offsets)
         for start, stop, epochs in zip(offsets[:-1], offsets[1:], epochs_list):
-            this_data = epochs.get_data()
+            this_data = epochs.get_data(copy=False)
             if data is None:
                 data = np.empty(
                     (offsets[-1], len(out.ch_names), len(out.times)),

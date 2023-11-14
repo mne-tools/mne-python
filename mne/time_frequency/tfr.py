@@ -2930,7 +2930,7 @@ def _get_data(inst, return_itc):
     if not isinstance(inst, (BaseEpochs, Evoked)):
         raise TypeError("inst must be Epochs or Evoked")
     if isinstance(inst, BaseEpochs):
-        data = inst.get_data()
+        data = inst.get_data(copy=False)
     else:
         if return_itc:
             raise ValueError("return_itc must be False for evoked data")

@@ -89,7 +89,7 @@ def _alpha_blend_background(ctable, background_color):
 def _qt_init_icons():
     from qtpy.QtGui import QIcon
 
-    icons_path = f"{Path(__file__).parent.parent.parent}/icons"
+    icons_path = str(Path(__file__).parents[2] / "icons")
     QIcon.setThemeSearchPaths([icons_path])
     return icons_path
 

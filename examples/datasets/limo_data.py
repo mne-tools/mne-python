@@ -37,7 +37,6 @@ In summary, the example:
 # License: BSD-3-Clause
 
 # %%
-
 import matplotlib.pyplot as plt
 import numpy as np
 

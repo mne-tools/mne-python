@@ -1801,6 +1801,7 @@ class BaseRaw(
         *,
         theme=None,
         overview_mode=None,
+        splash=True,
         verbose=None,
     ):
         return plot_raw(
@@ -1838,6 +1839,7 @@ class BaseRaw(
             use_opengl=use_opengl,
             theme=theme,
             overview_mode=overview_mode,
+            splash=splash,
             verbose=verbose,
         )
 

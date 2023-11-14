@@ -117,8 +117,8 @@ def test_read_epochs(cur_system, version, use_info, monkeypatch):
             if info is None:
                 assert_warning_in_record(NOINFO_WARNING, warn_record)
 
-    mne_data = mne_epoched.get_data()[:, :, :-1]
-    ft_data = epoched_ft.get_data()
+    mne_data = mne_epoched.get_data(copy=False)[:, :, :-1]
+    ft_data = epoched_ft.get_data(copy=False)
 
     check_data(mne_data, ft_data, cur_system)
     check_info_fields(mne_epoched, epoched_ft, use_info)

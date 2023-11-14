@@ -85,7 +85,7 @@ epochs.equalize_event_counts(event_id)
 # Obtain the data as a 3D matrix and transpose it such that
 # the dimensions are as expected for the cluster permutation test:
 # n_epochs × n_times × n_channels
-X = [epochs[event_name].get_data() for event_name in event_id]
+X = [epochs[event_name].get_data(copy=False) for event_name in event_id]
 X = [np.transpose(x, (0, 2, 1)) for x in X]
 
 

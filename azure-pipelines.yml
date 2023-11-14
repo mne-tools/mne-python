@@ -51,8 +51,8 @@ stages:
             displayName: 'Get Python'
           - bash: |
               set -eo pipefail
-              python -m pip install --progress-bar off --upgrade pip setuptools wheel
-              python -m pip install --progress-bar off -r requirements_base.txt -r requirements_hdf5.txt -r requirements_testing.txt
+              python -m pip install --progress-bar off --upgrade pip build
+              python -m pip install --progress-bar off -ve .[hdf5,test]
               python -m pip uninstall -yq pytest-qt  # don't want to set up display, etc. for this
               pre-commit install --install-hooks
             displayName: Install dependencies
@@ -107,8 +107,8 @@ stages:
             displayName: 'Get Python'
           - bash: |
               set -e
-              python -m pip install --progress-bar off --upgrade pip setuptools wheel
-              python -m pip install --progress-bar off "mne-qt-browser[opengl] @ git+https://github.com/mne-tools/mne-qt-browser.git@main" pyvista scikit-learn pytest-error-for-skips python-picard "PyQt6!=6.5.1" qtpy
+              python -m pip install --progress-bar off --upgrade pip
+              python -m pip install --progress-bar off "mne-qt-browser[opengl] @ git+https://github.com/mne-tools/mne-qt-browser.git@main" pyvista scikit-learn pytest-error-for-skips python-picard "PyQt6!=6.5.1" qtpy nibabel sphinx-gallery
               python -m pip uninstall -yq mne
               python -m pip install --progress-bar off --upgrade -e .[test]
             displayName: 'Install dependencies with pip'
@@ -166,11 +166,10 @@ stages:
             displayName: 'Get Python'
           - bash: |
               set -e
-              python -m pip install --progress-bar off --upgrade pip setuptools wheel
+              python -m pip install --progress-bar off --upgrade pip
               python -m pip install --progress-bar off --upgrade --pre --only-binary=\"numpy,scipy,matplotlib,vtk\" numpy scipy matplotlib vtk
               python -c "import vtk"
-              python -m pip install --progress-bar off --upgrade -r requirements.txt -r requirements_testing.txt -r requirements_testing_extra.txt
-              python -m pip install -e .
+              python -m pip install --progress-bar off --upgrade -ve .[full,test_extra]
             displayName: 'Install dependencies with pip'
           - bash: |
               set -e

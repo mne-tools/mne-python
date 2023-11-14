@@ -215,8 +215,6 @@ Once you have git installed and configured, and before creating your local copy
 of the codebase, go to the `MNE-Python GitHub`_ page and create a `fork`_ into
 your GitHub user account.
 
-.. image:: https://docs.github.com/assets/cb-28613/images/help/repository/fork_button.png
-
 This will create a copy of the MNE-Python codebase inside your GitHub user
 account (this is called "your fork"). Changes you make to MNE-Python will
 eventually get "pushed" to your fork, and will be incorporated into the
@@ -306,11 +304,11 @@ be reflected the next time you open a Python interpreter and ``import mne``
 Finally, we'll add a few dependencies that are not needed for running
 MNE-Python, but are needed for locally running our test suite::
 
-    $ pip install -r requirements_testing.txt
+    $ pip install -e .[test]
 
 And for building our documentation::
 
-    $ pip install -r requirements_doc.txt
+    $ pip install -e .[doc]
     $ conda install graphviz
 
 .. note::
@@ -331,9 +329,15 @@ To build documentation, you will also require `optipng`_:
 - On Windows, unzip :file:`optipng.exe` from the `optipng for Windows`_ archive
   into the :file:`doc/` folder. This step is optional for Windows users.
 
-You can also choose to install some optional linters for reStructuredText::
+There are additional optional dependencies needed to run various tests, such as
+scikit-learn for decoding tests, or nibabel for MRI tests. If you want to run all the
+tests, consider using our MNE installers (which provide these dependencies) or pay
+attention to the skips that ``pytest`` reports and install the relevant libraries.
+For example, this traceback::
 
-    $ conda install -c conda-forge sphinx-autobuild doc8
+    SKIPPED [2] mne/io/eyelink/tests/test_eyelink.py:14: could not import 'pandas': No module named 'pandas'
+
+indicates that ``pandas`` needs to be installed in order to run the Eyelink tests.
 
 
 .. _basic-git:
@@ -1113,3 +1117,5 @@ it can serve as a useful example of what to expect from the PR review process.
 
 .. _optipng: http://optipng.sourceforge.net/
 .. _optipng for Windows: http://prdownloads.sourceforge.net/optipng/optipng-0.7.7-win32.zip?download
+
+.. include:: ../links.inc

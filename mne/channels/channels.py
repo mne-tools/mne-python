@@ -104,6 +104,10 @@ def _get_meg_system(info):
                 system = "ARTEMIS123"
                 have_helmet = False
                 break
+            elif coil_type == FIFF.FIFFV_COIL_KERNEL_OPM_MAG_GEN1:
+                system = "Kernel_Flux"
+                have_helmet = True
+                break
     else:
         system = "unknown"
         have_helmet = False
@@ -1894,7 +1898,10 @@ def combine_channels(
     ch_idx = list(range(inst.info["nchan"]))
     ch_names = inst.info["ch_names"]
     ch_types = inst.get_channel_types()
-    inst_data = inst.data if isinstance(inst, Evoked) else inst.get_data()
+    kwargs = dict()
+    if isinstance(inst, BaseEpochs):
+        kwargs["copy"] = False
+    inst_data = inst.get_data(**kwargs)
     groups = OrderedDict(deepcopy(groups))
 
     # Convert string values of ``method`` into callables

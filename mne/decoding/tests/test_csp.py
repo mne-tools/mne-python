@@ -123,7 +123,7 @@ def test_csp():
         preload=True,
         proj=False,
     )
-    epochs_data = epochs.get_data()
+    epochs_data = epochs.get_data(copy=False)
     n_channels = epochs_data.shape[1]
     y = epochs.events[:, -1]
 
@@ -182,7 +182,7 @@ def test_csp():
         proj=False,
         preload=True,
     )
-    epochs_data = epochs.get_data()
+    epochs_data = epochs.get_data(copy=False)
     n_channels = epochs_data.shape[1]
 
     n_channels = epochs_data.shape[1]
@@ -256,7 +256,7 @@ def test_regularized_csp():
     epochs = Epochs(
         raw, events, event_id, tmin, tmax, picks=picks, baseline=(None, 0), preload=True
     )
-    epochs_data = epochs.get_data()
+    epochs_data = epochs.get_data(copy=False)
     n_channels = epochs_data.shape[1]
 
     n_components = 3

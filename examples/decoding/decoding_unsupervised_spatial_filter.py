@@ -58,7 +58,7 @@ epochs = mne.Epochs(
     verbose=False,
 )
 
-X = epochs.get_data()
+X = epochs.get_data(copy=False)
 
 ##############################################################################
 # Transform data with PCA computed on the average ie evoked response
