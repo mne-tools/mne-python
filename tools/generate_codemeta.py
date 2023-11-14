@@ -14,7 +14,6 @@ out_dir = Path(__file__).parents[1]
 #       updated. Run this script only at release time.
 
 package_name = "MNE-Python"
-hard_dependencies = ("numpy", "scipy")
 release_date = str(date.today())
 commit = subprocess.run(
     ["git", "log", "-1", "--pretty=%H"], capture_output=True, text=True
