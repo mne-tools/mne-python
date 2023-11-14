@@ -235,12 +235,13 @@ def _iter_topography(
     if unified:
         under_ax._mne_axs = axs
         # Create a PolyCollection for the axis backgrounds
+        sel_pos = pos[[i[0] for i in iter_ch]]
         verts = np.transpose(
             [
-                pos[:, :2],
-                pos[:, :2] + pos[:, 2:] * [1, 0],
-                pos[:, :2] + pos[:, 2:],
-                pos[:, :2] + pos[:, 2:] * [0, 1],
+                sel_pos[:, :2],
+                sel_pos[:, :2] + sel_pos[:, 2:] * [1, 0],
+                sel_pos[:, :2] + sel_pos[:, 2:],
+                sel_pos[:, :2] + sel_pos[:, 2:] * [0, 1],
             ],
             [1, 0, 2],
         )
