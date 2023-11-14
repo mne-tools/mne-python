@@ -481,9 +481,9 @@ def _check_roundtrip_fixed(dip, tmp_path):
 )
 def test_get_phantom_dipoles(kind, count):
     """Test getting phantom dipole locations."""
-    with pytest.raises(TypeError):
+    with pytest.raises(TypeError, match="must be an instance of"):
         get_phantom_dipoles(0)
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Invalid value for"):
         get_phantom_dipoles("foo")
     pos, ori = get_phantom_dipoles(kind)
     assert pos.shape == (count, 3)
