@@ -95,6 +95,8 @@ Bugs
 - Fix bug with :func:`mne.io.read_raw_eeglab` and :func:`mne.read_epochs_eeglab` where automatic fiducial detection would fail for certain files (:gh:`12165` by `Clemens Brunner`_)
 - Fix concatenation of ``raws`` with ``np.nan`` in the device to head transformation (:gh:`12198` by `Mathieu Scheltienne`_)
 - Fix bug with :func:`mne.viz.plot_compare_evokeds` where the title was not displayed when ``axes='topo'`` (:gh:`12192` by `Jacob Woessner`_)
+- Fix bug with :func:`mne.io.read_raw_cnt` where the bad channels were not properly read (:gh:`12189` by `Jacob Woessner`_)
+
 
 API changes
 ~~~~~~~~~~~
