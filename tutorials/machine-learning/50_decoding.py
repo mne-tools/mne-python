@@ -179,7 +179,7 @@ print("Spatio-temporal: %0.1f%%" % (100 * score,))
 # in the original sensor space to CSP space using the following transformation:
 #
 # .. math::       x_{CSP}(t) = W^{T}x(t)
-#    :label: csp
+#    :name: csp
 #
 # where each column of :math:`W \in R^{C\times C}` is a spatial filter and each
 # row of :math:`x_{CSP}` is a CSP component. The matrix :math:`W` is also
@@ -190,15 +190,15 @@ print("Spatio-temporal: %0.1f%%" % (100 * score,))
 # covariance matrices
 #
 # .. math::       W^{T}\Sigma^{+}W = \lambda^{+}
-#    :label: diagonalize_p
+#    :name: diagonalize_p
 # .. math::       W^{T}\Sigma^{-}W = \lambda^{-}
-#    :label: diagonalize_n
+#    :name: diagonalize_n
 #
 # where :math:`\lambda^{C}` is a diagonal matrix whose entries are the
 # eigenvalues of the following generalized eigenvalue problem
 #
 # .. math::      \Sigma^{+}w = \lambda \Sigma^{-}w
-#    :label: eigen_problem
+#    :name: eigen_problem
 #
 # Large entries in the diagonal matrix corresponds to a spatial filter which
 # gives high variance in one class but low variance in the other. Thus, the
@@ -274,7 +274,7 @@ print("CSP: %0.1f%%" % (100 * scores.mean(),))
 # rewrite Equation :eq:`csp` as follows:
 #
 # .. math::       x(t) = (W^{-1})^{T}x_{CSP}(t)
-#    :label: patterns
+#    :name: patterns
 #
 # The columns of the matrix :math:`(W^{-1})^T` are called spatial patterns.
 # This is also called the mixing matrix. The example :ref:`ex-linear-patterns`
