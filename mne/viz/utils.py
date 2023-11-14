@@ -1746,7 +1746,9 @@ class SelectFromCollection:
     def _on_channels_select(self, event):
         ch_inds = {name: i for i, name in enumerate(self.names)}
         self.selection = [name for name in event.ch_names if name in ch_inds]
-        self.selection_inds = [ch_inds[name] for name in self.selection]
+        self.selection_inds = np.array(
+            [ch_inds[name] for name in self.selection]
+        ).astype("int")
         self.style_objects(self.selection_inds)
 
     def select_one(self, ind):
