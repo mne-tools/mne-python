@@ -1823,6 +1823,13 @@ fun : callable
     fun has to be a timeseries (:class:`numpy.ndarray`). The function must
     operate on an array of shape ``(n_times,)`` {}.
     The function must return an :class:`~numpy.ndarray` shaped like its input.
+
+    .. note::
+        If ``channel_wise=True``, one can optionally access the index or the
+        name of the currently processed channel within the applied function.
+        This can enable tailored computations for different channels.
+        To use this feature, add either ``ch_idx`` or ``ch_name`` as
+        second argument to your function definition.
 """
 docdict["fun_applyfun"] = applyfun_fun_base.format(
     " if ``channel_wise=True`` and ``(len(picks), n_times)`` otherwise"
