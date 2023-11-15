@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _tut-ssvep:
 
@@ -35,9 +34,6 @@ and statistically separate 12 Hz and 15 Hz responses in the different trials.
 Since the evoked response is mainly generated in early visual areas of the
 brain the statistical analysis will be carried out on an occipital
 ROI.
-
-.. contents:: Outline
-   :depth: 2
 """  # noqa: E501
 # Authors: Dominik Welke <dominik.welke@web.de>
 #          Evgenii Kalenkovich <e.kalenkovich@gmail.com>
@@ -47,9 +43,10 @@ ROI.
 # %%
 
 import matplotlib.pyplot as plt
-import mne
 import numpy as np
 from scipy.stats import ttest_rel
+
+import mne
 
 # %%
 # Data preprocessing
@@ -68,34 +65,37 @@ from scipy.stats import ttest_rel
 
 # Load raw data
 data_path = mne.datasets.ssvep.data_path()
-bids_fname = (data_path / 'sub-02' / 'ses-01' / 'eeg' /
-              'sub-02_ses-01_task-ssvep_eeg.vhdr')
+bids_fname = (
+    data_path / "sub-02" / "ses-01" / "eeg" / "sub-02_ses-01_task-ssvep_eeg.vhdr"
+)
 
 raw = mne.io.read_raw_brainvision(bids_fname, preload=True, verbose=False)
-raw.info['line_freq'] = 50.
+raw.info["line_freq"] = 50.0
 
 # Set montage
-montage = mne.channels.make_standard_montage('easycap-M1')
+montage = mne.channels.make_standard_montage("easycap-M1")
 raw.set_montage(montage, verbose=False)
 
 # Set common average reference
-raw.set_eeg_reference('average', projection=False, verbose=False)
+raw.set_eeg_reference("average", projection=False, verbose=False)
 
 # Apply bandpass filter
-raw.filter(l_freq=0.1, h_freq=None, fir_design='firwin', verbose=False)
+raw.filter(l_freq=0.1, h_freq=None, fir_design="firwin", verbose=False)
 
 # Construct epochs
-event_id = {
-    '12hz': 255,
-    '15hz': 155
-}
+event_id = {"12hz": 255, "15hz": 155}
 events, _ = mne.events_from_annotations(raw, verbose=False)
-tmin, tmax = -1., 20.  # in s
+tmin, tmax = -1.0, 20.0  # in s
 baseline = None
 epochs = mne.Epochs(
-    raw, events=events,
-    event_id=[event_id['12hz'], event_id['15hz']], tmin=tmin,
-    tmax=tmax, baseline=baseline, verbose=False)
+    raw,
+    events=events,
+    event_id=[event_id["12hz"], event_id["15hz"]],
+    tmin=tmin,
+    tmax=tmax,
+    baseline=baseline,
+    verbose=False,
+)
 
 # %%
 # Frequency analysis
@@ -135,20 +135,25 @@ epochs = mne.Epochs(
 # function (i.e. applying a boxcar window).
 #
 
-tmin = 1.
-tmax = 20.
-fmin = 1.
-fmax = 90.
-sfreq = epochs.info['sfreq']
+tmin = 1.0
+tmax = 20.0
+fmin = 1.0
+fmax = 90.0
+sfreq = epochs.info["sfreq"]
 
-psds, freqs = mne.time_frequency.psd_welch(
-    epochs,
+spectrum = epochs.compute_psd(
+    "welch",
     n_fft=int(sfreq * (tmax - tmin)),
-    n_overlap=0, n_per_seg=None,
-    tmin=tmin, tmax=tmax,
-    fmin=fmin, fmax=fmax,
-    window='boxcar',
-    verbose=False)
+    n_overlap=0,
+    n_per_seg=None,
+    tmin=tmin,
+    tmax=tmax,
+    fmin=fmin,
+    fmax=fmax,
+    window="boxcar",
+    verbose=False,
+)
+psds, freqs = spectrum.get_data(return_freqs=True)
 
 
 # %%
@@ -168,6 +173,7 @@ psds, freqs = mne.time_frequency.psd_welch(
 #
 # The function below does what we want.
 #
+
 
 def snr_spectrum(psd, noise_n_neighbor_freqs=1, noise_skip_neighbor_freqs=1):
     """Compute SNR spectrum from PSD spectrum using convolution.
@@ -193,17 +199,19 @@ def snr_spectrum(psd, noise_n_neighbor_freqs=1, noise_skip_neighbor_freqs=1):
     """
     # Construct a kernel that calculates the mean of the neighboring
     # frequencies
-    averaging_kernel = np.concatenate((
-        np.ones(noise_n_neighbor_freqs),
-        np.zeros(2 * noise_skip_neighbor_freqs + 1),
-        np.ones(noise_n_neighbor_freqs)))
+    averaging_kernel = np.concatenate(
+        (
+            np.ones(noise_n_neighbor_freqs),
+            np.zeros(2 * noise_skip_neighbor_freqs + 1),
+            np.ones(noise_n_neighbor_freqs),
+        )
+    )
     averaging_kernel /= averaging_kernel.sum()
 
     # Calculate the mean of the neighboring frequencies by convolving with the
     # averaging kernel.
     mean_noise = np.apply_along_axis(
-        lambda psd_: np.convolve(psd_, averaging_kernel, mode='valid'),
-        axis=-1, arr=psd
+        lambda psd_: np.convolve(psd_, averaging_kernel, mode="valid"), axis=-1, arr=psd
     )
 
     # The mean is not defined on the edges so we will pad it with nas. The
@@ -211,9 +219,7 @@ def snr_spectrum(psd, noise_n_neighbor_freqs=1, noise_skip_neighbor_freqs=1):
     # (0, 0) for the other ones.
     edge_width = noise_n_neighbor_freqs + noise_skip_neighbor_freqs
     pad_width = [(0, 0)] * (mean_noise.ndim - 1) + [(edge_width, edge_width)]
-    mean_noise = np.pad(
-        mean_noise, pad_width=pad_width, constant_values=np.nan
-    )
+    mean_noise = np.pad(mean_noise, pad_width=pad_width, constant_values=np.nan)
 
     return psd / mean_noise
 
@@ -243,8 +249,7 @@ def snr_spectrum(psd, noise_n_neighbor_freqs=1, noise_skip_neighbor_freqs=1):
 #
 
 
-snrs = snr_spectrum(psds, noise_n_neighbor_freqs=3,
-                    noise_skip_neighbor_freqs=1)
+snrs = snr_spectrum(psds, noise_n_neighbor_freqs=3, noise_skip_neighbor_freqs=1)
 
 ##############################################################################
 # Plot PSD and SNR spectra
@@ -254,30 +259,35 @@ snrs = snr_spectrum(psds, noise_n_neighbor_freqs=3,
 # PSD is plotted on a log scale.
 #
 
-fig, axes = plt.subplots(2, 1, sharex='all', sharey='none', figsize=(8, 5))
-freq_range = range(np.where(np.floor(freqs) == 1.)[0][0],
-                   np.where(np.ceil(freqs) == fmax - 1)[0][0])
+fig, axes = plt.subplots(2, 1, sharex="all", sharey="none", figsize=(8, 5))
+freq_range = range(
+    np.where(np.floor(freqs) == 1.0)[0][0], np.where(np.ceil(freqs) == fmax - 1)[0][0]
+)
 
 psds_plot = 10 * np.log10(psds)
 psds_mean = psds_plot.mean(axis=(0, 1))[freq_range]
 psds_std = psds_plot.std(axis=(0, 1))[freq_range]
-axes[0].plot(freqs[freq_range], psds_mean, color='b')
+axes[0].plot(freqs[freq_range], psds_mean, color="b")
 axes[0].fill_between(
-    freqs[freq_range], psds_mean - psds_std, psds_mean + psds_std,
-    color='b', alpha=.2)
-axes[0].set(title="PSD spectrum", ylabel='Power Spectral Density [dB]')
+    freqs[freq_range], psds_mean - psds_std, psds_mean + psds_std, color="b", alpha=0.2
+)
+axes[0].set(title="PSD spectrum", ylabel="Power Spectral Density [dB]")
 
 # SNR spectrum
 snr_mean = snrs.mean(axis=(0, 1))[freq_range]
 snr_std = snrs.std(axis=(0, 1))[freq_range]
 
-axes[1].plot(freqs[freq_range], snr_mean, color='r')
+axes[1].plot(freqs[freq_range], snr_mean, color="r")
 axes[1].fill_between(
-    freqs[freq_range], snr_mean - snr_std, snr_mean + snr_std,
-    color='r', alpha=.2)
+    freqs[freq_range], snr_mean - snr_std, snr_mean + snr_std, color="r", alpha=0.2
+)
 axes[1].set(
-    title="SNR spectrum", xlabel='Frequency [Hz]',
-    ylabel='SNR', ylim=[-2, 30], xlim=[fmin, fmax])
+    title="SNR spectrum",
+    xlabel="Frequency [Hz]",
+    ylabel="SNR",
+    ylim=[-2, 30],
+    xlim=[fmin, fmax],
+)
 fig.show()
 
 # %%
@@ -318,7 +328,7 @@ fig.show()
 #
 
 # define stimulation frequency
-stim_freq = 12.
+stim_freq = 12.0
 
 # %%
 # Get index for the stimulation frequency (12 Hz)
@@ -345,20 +355,33 @@ i_bin_45hz = np.argmin(abs(freqs - 45))
 # Get indices for the different trial types
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-i_trial_12hz = np.where(epochs.events[:, 2] == event_id['12hz'])[0]
-i_trial_15hz = np.where(epochs.events[:, 2] == event_id['15hz'])[0]
+i_trial_12hz = np.where(epochs.events[:, 2] == event_id["12hz"])[0]
+i_trial_15hz = np.where(epochs.events[:, 2] == event_id["15hz"])[0]
 
 # %%
 # Get indices of EEG channels forming the ROI
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 # Define different ROIs
-roi_vis = ['POz', 'Oz', 'O1', 'O2', 'PO3', 'PO4', 'PO7',
-           'PO8', 'PO9', 'PO10', 'O9', 'O10']  # visual roi
+roi_vis = [
+    "POz",
+    "Oz",
+    "O1",
+    "O2",
+    "PO3",
+    "PO4",
+    "PO7",
+    "PO8",
+    "PO9",
+    "PO10",
+    "O9",
+    "O10",
+]  # visual roi
 
 # Find corresponding indices using mne.pick_types()
-picks_roi_vis = mne.pick_types(epochs.info, eeg=True, stim=False,
-                               exclude='bads', selection=roi_vis)
+picks_roi_vis = mne.pick_types(
+    epochs.info, eeg=True, stim=False, exclude="bads", selection=roi_vis
+)
 
 # %%
 # Apply the subset, and check the result
@@ -373,7 +396,7 @@ picks_roi_vis = mne.pick_types(epochs.info, eeg=True, stim=False,
 
 snrs_target = snrs[i_trial_12hz, :, i_bin_12hz][:, picks_roi_vis]
 print("sub 2, 12 Hz trials, SNR at 12 Hz")
-print(f'average SNR (occipital ROI): {snrs_target.mean()}')
+print(f"average SNR (occipital ROI): {snrs_target.mean()}")
 
 ##############################################################################
 # Topography of the vSSR
@@ -397,16 +420,17 @@ snrs_12hz_chaverage = snrs_12hz.mean(axis=0)
 
 # plot SNR topography
 fig, ax = plt.subplots(1)
-mne.viz.plot_topomap(snrs_12hz_chaverage, epochs.info, vmin=1., axes=ax)
+mne.viz.plot_topomap(snrs_12hz_chaverage, epochs.info, vlim=(1, None), axes=ax)
 
 print("sub 2, 12 Hz trials, SNR at 12 Hz")
 print("average SNR (all channels): %f" % snrs_12hz_chaverage.mean())
 print("average SNR (occipital ROI): %f" % snrs_target.mean())
 
-tstat_roi_vs_scalp = \
-    ttest_rel(snrs_target.mean(axis=1), snrs_12hz.mean(axis=1))
-print("12 Hz SNR in occipital ROI is significantly larger than 12 Hz SNR over "
-      "all channels: t = %.3f, p = %f" % tstat_roi_vs_scalp)
+tstat_roi_vs_scalp = ttest_rel(snrs_target.mean(axis=1), snrs_12hz.mean(axis=1))
+print(
+    "12 Hz SNR in occipital ROI is significantly larger than 12 Hz SNR over "
+    "all channels: t = %.3f, p = %f" % tstat_roi_vs_scalp
+)
 
 ##############################################################################
 # We can see, that 1) this participant indeed exhibits a cluster of channels
@@ -449,12 +473,10 @@ print("12 Hz SNR in occipital ROI is significantly larger than 12 Hz SNR over "
 snrs_roi = snrs[:, picks_roi_vis, :].mean(axis=1)
 
 freq_plot = [12, 15, 24, 30, 36, 45]
-color_plot = [
-    'darkblue', 'darkgreen', 'mediumblue', 'green', 'blue', 'seagreen'
-]
-xpos_plot = [-5. / 12, -3. / 12, -1. / 12, 1. / 12, 3. / 12, 5. / 12]
+color_plot = ["darkblue", "darkgreen", "mediumblue", "green", "blue", "seagreen"]
+xpos_plot = [-5.0 / 12, -3.0 / 12, -1.0 / 12, 1.0 / 12, 3.0 / 12, 5.0 / 12]
 fig, ax = plt.subplots()
-labels = ['12 Hz trials', '15 Hz trials']
+labels = ["12 Hz trials", "15 Hz trials"]
 x = np.arange(len(labels))  # the label locations
 width = 0.6  # the width of the bars
 res = dict()
@@ -462,28 +484,30 @@ res = dict()
 # loop to plot SNRs at stimulation frequencies and harmonics
 for i, f in enumerate(freq_plot):
     # extract snrs
-    stim_12hz_tmp = \
-        snrs_roi[i_trial_12hz, np.argmin(abs(freqs - f))]
-    stim_15hz_tmp = \
-        snrs_roi[i_trial_15hz, np.argmin(abs(freqs - f))]
+    stim_12hz_tmp = snrs_roi[i_trial_12hz, np.argmin(abs(freqs - f))]
+    stim_15hz_tmp = snrs_roi[i_trial_15hz, np.argmin(abs(freqs - f))]
     SNR_tmp = [stim_12hz_tmp.mean(), stim_15hz_tmp.mean()]
     # plot (with std)
     ax.bar(
-        x + width * xpos_plot[i], SNR_tmp, width / len(freq_plot),
+        x + width * xpos_plot[i],
+        SNR_tmp,
+        width / len(freq_plot),
         yerr=np.std(SNR_tmp),
-        label='%i Hz SNR' % f, color=color_plot[i])
+        label="%i Hz SNR" % f,
+        color=color_plot[i],
+    )
     # store results for statistical comparison
-    res['stim_12hz_snrs_%ihz' % f] = stim_12hz_tmp
-    res['stim_15hz_snrs_%ihz' % f] = stim_15hz_tmp
+    res["stim_12hz_snrs_%ihz" % f] = stim_12hz_tmp
+    res["stim_15hz_snrs_%ihz" % f] = stim_15hz_tmp
 
 # Add some text for labels, title and custom x-axis tick labels, etc.
-ax.set_ylabel('SNR')
-ax.set_title('Average SNR at target frequencies')
+ax.set_ylabel("SNR")
+ax.set_title("Average SNR at target frequencies")
 ax.set_xticks(x)
 ax.set_xticklabels(labels)
-ax.legend(['%i Hz' % f for f in freq_plot], title='SNR at:')
+ax.legend(["%i Hz" % f for f in freq_plot], title="SNR at:")
 ax.set_ylim([0, 70])
-ax.axhline(1, ls='--', c='r')
+ax.axhline(1, ls="--", c="r")
 fig.show()
 
 # %%
@@ -493,36 +517,54 @@ fig.show()
 
 # Compare 12 Hz and 15 Hz SNR in trials after averaging over channels
 
-tstat_12hz_trial_stim = \
-    ttest_rel(res['stim_12hz_snrs_12hz'], res['stim_12hz_snrs_15hz'])
-print("12 Hz Trials: 12 Hz SNR is significantly higher than 15 Hz SNR"
-      ": t = %.3f, p = %f" % tstat_12hz_trial_stim)
+tstat_12hz_trial_stim = ttest_rel(
+    res["stim_12hz_snrs_12hz"], res["stim_12hz_snrs_15hz"]
+)
+print(
+    "12 Hz Trials: 12 Hz SNR is significantly higher than 15 Hz SNR"
+    ": t = %.3f, p = %f" % tstat_12hz_trial_stim
+)
 
-tstat_12hz_trial_1st_harmonic = \
-    ttest_rel(res['stim_12hz_snrs_24hz'], res['stim_12hz_snrs_30hz'])
-print("12 Hz Trials: 24 Hz SNR is significantly higher than 30 Hz SNR"
-      ": t = %.3f, p = %f" % tstat_12hz_trial_1st_harmonic)
+tstat_12hz_trial_1st_harmonic = ttest_rel(
+    res["stim_12hz_snrs_24hz"], res["stim_12hz_snrs_30hz"]
+)
+print(
+    "12 Hz Trials: 24 Hz SNR is significantly higher than 30 Hz SNR"
+    ": t = %.3f, p = %f" % tstat_12hz_trial_1st_harmonic
+)
 
-tstat_12hz_trial_2nd_harmonic = \
-    ttest_rel(res['stim_12hz_snrs_36hz'], res['stim_12hz_snrs_45hz'])
-print("12 Hz Trials: 36 Hz SNR is significantly higher than 45 Hz SNR"
-      ": t = %.3f, p = %f" % tstat_12hz_trial_2nd_harmonic)
+tstat_12hz_trial_2nd_harmonic = ttest_rel(
+    res["stim_12hz_snrs_36hz"], res["stim_12hz_snrs_45hz"]
+)
+print(
+    "12 Hz Trials: 36 Hz SNR is significantly higher than 45 Hz SNR"
+    ": t = %.3f, p = %f" % tstat_12hz_trial_2nd_harmonic
+)
 
 print()
-tstat_15hz_trial_stim = \
-    ttest_rel(res['stim_15hz_snrs_12hz'], res['stim_15hz_snrs_15hz'])
-print("15 Hz trials: 12 Hz SNR is significantly lower than 15 Hz SNR"
-      ": t = %.3f, p = %f" % tstat_15hz_trial_stim)
+tstat_15hz_trial_stim = ttest_rel(
+    res["stim_15hz_snrs_12hz"], res["stim_15hz_snrs_15hz"]
+)
+print(
+    "15 Hz trials: 12 Hz SNR is significantly lower than 15 Hz SNR"
+    ": t = %.3f, p = %f" % tstat_15hz_trial_stim
+)
 
-tstat_15hz_trial_1st_harmonic = \
-    ttest_rel(res['stim_15hz_snrs_24hz'], res['stim_15hz_snrs_30hz'])
-print("15 Hz trials: 24 Hz SNR is significantly lower than 30 Hz SNR"
-      ": t = %.3f, p = %f" % tstat_15hz_trial_1st_harmonic)
+tstat_15hz_trial_1st_harmonic = ttest_rel(
+    res["stim_15hz_snrs_24hz"], res["stim_15hz_snrs_30hz"]
+)
+print(
+    "15 Hz trials: 24 Hz SNR is significantly lower than 30 Hz SNR"
+    ": t = %.3f, p = %f" % tstat_15hz_trial_1st_harmonic
+)
 
-tstat_15hz_trial_2nd_harmonic = \
-    ttest_rel(res['stim_15hz_snrs_36hz'], res['stim_15hz_snrs_45hz'])
-print("15 Hz trials: 36 Hz SNR is significantly lower than 45 Hz SNR"
-      ": t = %.3f, p = %f" % tstat_15hz_trial_2nd_harmonic)
+tstat_15hz_trial_2nd_harmonic = ttest_rel(
+    res["stim_15hz_snrs_36hz"], res["stim_15hz_snrs_45hz"]
+)
+print(
+    "15 Hz trials: 36 Hz SNR is significantly lower than 45 Hz SNR"
+    ": t = %.3f, p = %f" % tstat_15hz_trial_2nd_harmonic
+)
 
 ##############################################################################
 # Debriefing
@@ -554,47 +596,59 @@ print("15 Hz trials: 36 Hz SNR is significantly lower than 45 Hz SNR"
 # that covers the entire epoch:
 #
 
-stim_bandwidth = .5
+stim_bandwidth = 0.5
 
 # shorten data and welch window
 window_lengths = [i for i in range(2, 21, 2)]
 window_snrs = [[]] * len(window_lengths)
 for i_win, win in enumerate(window_lengths):
     # compute spectrogram
-    windowed_psd, windowed_freqs = mne.time_frequency.psd_welch(
-        epochs[str(event_id['12hz'])],
+    this_spectrum = epochs[str(event_id["12hz"])].compute_psd(
+        "welch",
         n_fft=int(sfreq * win),
-        n_overlap=0, n_per_seg=None,
-        tmin=0, tmax=win,
-        window='boxcar',
-        fmin=fmin, fmax=fmax, verbose=False)
+        n_overlap=0,
+        n_per_seg=None,
+        tmin=0,
+        tmax=win,
+        window="boxcar",
+        fmin=fmin,
+        fmax=fmax,
+        verbose=False,
+    )
+    windowed_psd, windowed_freqs = this_spectrum.get_data(return_freqs=True)
     # define a bandwidth of 1 Hz around stimfreq for SNR computation
     bin_width = windowed_freqs[1] - windowed_freqs[0]
-    skip_neighbor_freqs = \
-        round((stim_bandwidth / 2) / bin_width - bin_width / 2. - .5) if (
-            bin_width < stim_bandwidth) else 0
-    n_neighbor_freqs = \
-        int((sum((windowed_freqs <= 13) & (windowed_freqs >= 11)
-                 ) - 1 - 2 * skip_neighbor_freqs) / 2)
+    skip_neighbor_freqs = (
+        round((stim_bandwidth / 2) / bin_width - bin_width / 2.0 - 0.5)
+        if (bin_width < stim_bandwidth)
+        else 0
+    )
+    n_neighbor_freqs = int(
+        (
+            sum((windowed_freqs <= 13) & (windowed_freqs >= 11))
+            - 1
+            - 2 * skip_neighbor_freqs
+        )
+        / 2
+    )
     # compute snr
-    windowed_snrs = \
-        snr_spectrum(
-            windowed_psd,
-            noise_n_neighbor_freqs=n_neighbor_freqs if (
-                n_neighbor_freqs > 0
-            ) else 1,
-            noise_skip_neighbor_freqs=skip_neighbor_freqs)
-    window_snrs[i_win] = \
-        windowed_snrs[
-        :, picks_roi_vis,
-        np.argmin(
-            abs(windowed_freqs - 12.))].mean(axis=1)
+    windowed_snrs = snr_spectrum(
+        windowed_psd,
+        noise_n_neighbor_freqs=n_neighbor_freqs if (n_neighbor_freqs > 0) else 1,
+        noise_skip_neighbor_freqs=skip_neighbor_freqs,
+    )
+    window_snrs[i_win] = windowed_snrs[
+        :, picks_roi_vis, np.argmin(abs(windowed_freqs - 12.0))
+    ].mean(axis=1)
 
 fig, ax = plt.subplots(1)
 ax.boxplot(window_snrs, labels=window_lengths, vert=True)
-ax.set(title='Effect of trial duration on 12 Hz SNR',
-       ylabel='Average SNR', xlabel='Trial duration [s]')
-ax.axhline(1, ls='--', c='r')
+ax.set(
+    title="Effect of trial duration on 12 Hz SNR",
+    ylabel="Average SNR",
+    xlabel="Trial duration [s]",
+)
+ax.axhline(1, ls="--", c="r")
 fig.show()
 
 
@@ -633,40 +687,55 @@ window_snrs = [[]] * len(window_starts)
 
 for i_win, win in enumerate(window_starts):
     # compute spectrogram
-    windowed_psd, windowed_freqs = mne.time_frequency.psd_welch(
-        epochs[str(event_id['12hz'])],
+    this_spectrum = epochs[str(event_id["12hz"])].compute_psd(
+        "welch",
         n_fft=int(sfreq * window_length) - 1,
-        n_overlap=0, n_per_seg=None,
-        window='boxcar',
-        tmin=win, tmax=win + window_length,
-        fmin=fmin, fmax=fmax,
-        verbose=False)
+        n_overlap=0,
+        n_per_seg=None,
+        window="boxcar",
+        tmin=win,
+        tmax=win + window_length,
+        fmin=fmin,
+        fmax=fmax,
+        verbose=False,
+    )
+    windowed_psd, windowed_freqs = this_spectrum.get_data(return_freqs=True)
     # define a bandwidth of 1 Hz around stimfreq for SNR computation
     bin_width = windowed_freqs[1] - windowed_freqs[0]
-    skip_neighbor_freqs = \
-        round((stim_bandwidth / 2) / bin_width - bin_width / 2. - .5) if (
-            bin_width < stim_bandwidth) else 0
-    n_neighbor_freqs = \
-        int((sum((windowed_freqs <= 13) & (windowed_freqs >= 11)
-                 ) - 1 - 2 * skip_neighbor_freqs) / 2)
+    skip_neighbor_freqs = (
+        round((stim_bandwidth / 2) / bin_width - bin_width / 2.0 - 0.5)
+        if (bin_width < stim_bandwidth)
+        else 0
+    )
+    n_neighbor_freqs = int(
+        (
+            sum((windowed_freqs <= 13) & (windowed_freqs >= 11))
+            - 1
+            - 2 * skip_neighbor_freqs
+        )
+        / 2
+    )
     # compute snr
     windowed_snrs = snr_spectrum(
         windowed_psd,
-        noise_n_neighbor_freqs=n_neighbor_freqs if (
-            n_neighbor_freqs > 0) else 1,
-        noise_skip_neighbor_freqs=skip_neighbor_freqs)
-    window_snrs[i_win] = \
-        windowed_snrs[:, picks_roi_vis, np.argmin(
-            abs(windowed_freqs - 12.))].mean(axis=1)
+        noise_n_neighbor_freqs=n_neighbor_freqs if (n_neighbor_freqs > 0) else 1,
+        noise_skip_neighbor_freqs=skip_neighbor_freqs,
+    )
+    window_snrs[i_win] = windowed_snrs[
+        :, picks_roi_vis, np.argmin(abs(windowed_freqs - 12.0))
+    ].mean(axis=1)
 
 fig, ax = plt.subplots(1)
-colors = plt.colormaps['Greys'](np.linspace(0, 1, 10))
+colors = plt.colormaps["Greys"](np.linspace(0, 1, 10))
 for i in range(10):
     ax.plot(window_starts, np.array(window_snrs)[:, i], color=colors[i])
-ax.set(title='Time resolved 12 Hz SNR - %is sliding window' % window_length,
-       ylabel='Average SNR', xlabel='t0 of analysis window [s]')
-ax.axhline(1, ls='--', c='r')
-ax.legend(['individual trials in greyscale'])
+ax.set(
+    title="Time resolved 12 Hz SNR - %is sliding window" % window_length,
+    ylabel="Average SNR",
+    xlabel="t0 of analysis window [s]",
+)
+ax.axhline(1, ls="--", c="r")
+ax.legend(["individual trials in greyscale"])
 fig.show()
 ##############################################################################
 # Well.. turns out this was a bit too optimistic ;)

@@ -65,4 +65,8 @@ ias            Internal Active Shielding data
 
 syst           System status channel information
                (Triux systems only)
+
+temperature    Temperature                               Degrees Celsius
+
+gsr            Galvanic skin response                    Siemens
 =============  ========================================= =================

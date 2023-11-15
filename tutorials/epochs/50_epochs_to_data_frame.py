@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _tut-epochs-dataframe:
 
@@ -25,8 +24,9 @@ import seaborn as sns
 import mne
 
 sample_data_folder = mne.datasets.sample.data_path()
-sample_data_raw_file = (sample_data_folder / 'MEG' / 'sample' /
-                        'sample_audvis_filt-0-40_raw.fif')
+sample_data_raw_file = (
+    sample_data_folder / "MEG" / "sample" / "sample_audvis_filt-0-40_raw.fif"
+)
 raw = mne.io.read_raw_fif(sample_data_raw_file, verbose=False)
 
 # %%
@@ -35,23 +35,39 @@ raw = mne.io.read_raw_fif(sample_data_raw_file, verbose=False)
 # :ref:`tut-reject-epochs-section`), and segment the continuous data into
 # epochs:
 
-sample_data_events_file = (sample_data_folder / 'MEG' / 'sample' /
-                           'sample_audvis_filt-0-40_raw-eve.fif')
+sample_data_events_file = (
+    sample_data_folder / "MEG" / "sample" / "sample_audvis_filt-0-40_raw-eve.fif"
+)
 events = mne.read_events(sample_data_events_file)
 
-event_dict = {'auditory/left': 1, 'auditory/right': 2, 'visual/left': 3,
-              'visual/right': 4}
+event_dict = {
+    "auditory/left": 1,
+    "auditory/right": 2,
+    "visual/left": 3,
+    "visual/right": 4,
+}
 
-reject_criteria = dict(mag=3000e-15,     # 3000 fT
-                       grad=3000e-13,    # 3000 fT/cm
-                       eeg=100e-6,       # 100 µV
-                       eog=200e-6)       # 200 µV
+reject_criteria = dict(
+    mag=3000e-15,  # 3000 fT
+    grad=3000e-13,  # 3000 fT/cm
+    eeg=100e-6,  # 100 µV
+    eog=200e-6,
+)  # 200 µV
 
 tmin, tmax = (-0.2, 0.5)  # epoch from 200 ms before event to 500 ms after it
-baseline = (None, 0)      # baseline period from start of epoch to time=0
+baseline = (None, 0)  # baseline period from start of epoch to time=0
 
-epochs = mne.Epochs(raw, events, event_dict, tmin, tmax, proj=True,
-                    baseline=baseline, reject=reject_criteria, preload=True)
+epochs = mne.Epochs(
+    raw,
+    events,
+    event_dict,
+    tmin,
+    tmax,
+    proj=True,
+    baseline=baseline,
+    reject=reject_criteria,
+    preload=True,
+)
 del raw
 
 # %%
@@ -84,8 +100,7 @@ df.iloc[:5, :10]
 # through the ``scalings`` parameter, or suppressed by passing
 # ``scalings=dict(eeg=1, mag=1, grad=1)``.
 
-df = epochs.to_data_frame(time_format=None,
-                          scalings=dict(eeg=1, mag=1, grad=1))
+df = epochs.to_data_frame(time_format=None, scalings=dict(eeg=1, mag=1, grad=1))
 df.iloc[:5, :10]
 
 # %%
@@ -103,8 +118,7 @@ df.iloc[:5, :10]
 # demonstrate here the effect of ``time_format='timedelta'``, yielding
 # :class:`~pandas.Timedelta` values in the "time" column.
 
-df = epochs.to_data_frame(index=['condition', 'epoch'],
-                          time_format='timedelta')
+df = epochs.to_data_frame(index=["condition", "epoch"], time_format="timedelta")
 df.iloc[:5, :10]
 
 # %%
@@ -118,8 +132,7 @@ df.iloc[:5, :10]
 # (``long_format=True``). Passing ``long_format=True`` will also create an
 # extra column ``ch_type`` indicating the channel type.
 
-long_df = epochs.to_data_frame(time_format=None, index='condition',
-                               long_format=True)
+long_df = epochs.to_data_frame(time_format=None, index="condition", long_format=True)
 long_df.head()
 
 # %%
@@ -131,12 +144,12 @@ long_df.head()
 # in the chosen condition:
 
 plt.figure()
-channels = ['MEG 1332', 'MEG 1342']
-data = long_df.loc['auditory/left'].query('channel in @channels')
+channels = ["MEG 1332", "MEG 1342"]
+data = long_df.loc["auditory/left"].query("channel in @channels")
 # convert channel column (CategoryDtype → string; for a nicer-looking legend)
-data['channel'] = data['channel'].astype(str)
+data["channel"] = data["channel"].astype(str)
 data.reset_index(drop=True, inplace=True)  # speeds things up
-sns.lineplot(x='time', y='value', hue='channel', data=data)
+sns.lineplot(x="time", y="value", hue="channel", data=data)
 
 # %%
 # We can also now use all the power of Pandas for grouping and transforming our
@@ -147,14 +160,20 @@ sns.lineplot(x='time', y='value', hue='channel', data=data)
 # sphinx_gallery_thumbnail_number = 2
 plt.figure()
 df = epochs.to_data_frame(time_format=None)
-peak_latency = (df.filter(regex=r'condition|epoch|MEG 1332|MEG 2123')
-                .groupby(['condition', 'epoch'])
-                .aggregate(lambda x: df['time'].iloc[x.idxmax()])
-                .reset_index()
-                .melt(id_vars=['condition', 'epoch'],
-                      var_name='channel',
-                      value_name='latency of peak')
-                )
-
-ax = sns.violinplot(x='channel', y='latency of peak', hue='condition',
-                    data=peak_latency, palette='deep', saturation=1)
+peak_latency = (
+    df.filter(regex=r"condition|epoch|MEG 1332|MEG 2123")
+    .groupby(["condition", "epoch"])
+    .aggregate(lambda x: df["time"].iloc[x.idxmax()])
+    .reset_index()
+    .melt(
+        id_vars=["condition", "epoch"], var_name="channel", value_name="latency of peak"
+    )
+)
+ax = sns.violinplot(
+    x="channel",
+    y="latency of peak",
+    hue="condition",
+    data=peak_latency,
+    palette="deep",
+    saturation=1,
+)

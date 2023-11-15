@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _tut-configure-mne:
 
@@ -15,6 +14,7 @@ We begin by importing the necessary Python modules:
 # %%
 
 import os
+
 import mne
 
 # %%
@@ -29,18 +29,18 @@ import mne
 # ``key`` parameter (``key`` is the first parameter so you can pass it unnamed
 # if you want):
 
-print(mne.get_config('MNE_USE_CUDA'))
-print(type(mne.get_config('MNE_USE_CUDA')))
+print(mne.get_config("MNE_USE_CUDA"))
+print(type(mne.get_config("MNE_USE_CUDA")))
 
 # %%
 # Note that the string values read from the JSON file are not parsed in any
 # way, so :func:`~mne.get_config` returns a string even for true/false config
-# values, rather than a Python :ref:`boolean <bltin-boolean-values>`.
+# values, rather than a Python :ref:`boolean <python:typebool>`.
 # Similarly, :func:`~mne.set_config` will only set string values (or ``None``
 # values, to unset a variable):
 
 try:
-    mne.set_config('MNE_USE_CUDA', True)
+    mne.set_config("MNE_USE_CUDA", True)
 except TypeError as err:
     print(err)
 
@@ -49,7 +49,7 @@ except TypeError as err:
 # convenient way to check it and provide a fallback in case it doesn't exist:
 # :func:`~mne.get_config` has a ``default`` parameter.
 
-print(mne.get_config('missing_config_key', default='fallback value'))
+print(mne.get_config("missing_config_key", default="fallback value"))
 
 # %%
 # There are also two convenience modes of :func:`~mne.get_config`. The first
@@ -64,7 +64,7 @@ print(mne.get_config())  # same as mne.get_config(key=None)
 # MNE-Python recognizes and uses, regardless of whether they've been set on
 # your system. This is done by passing an empty string ``''`` as the ``key``:
 
-print(mne.get_config(key=''))
+print(mne.get_config(key=""))
 
 # %%
 # It is possible to add config variables that are not part of the recognized
@@ -72,7 +72,7 @@ print(mne.get_config(key=''))
 # yield a warning, however, which is a nice check in cases where you meant to
 # set a valid key but simply misspelled it:
 
-mne.set_config('MNEE_USE_CUUDAA', 'false')
+mne.set_config("MNEE_USE_CUUDAA", "false")
 
 # %%
 # Let's delete that config variable we just created. To unset a config
@@ -80,8 +80,8 @@ mne.set_config('MNEE_USE_CUUDAA', 'false')
 # dealing with an unrecognized key (as far as MNE-Python is concerned) we'll
 # still get a warning, but the key will be unset:
 
-mne.set_config('MNEE_USE_CUUDAA', None)
-assert 'MNEE_USE_CUUDAA' not in mne.get_config('')
+mne.set_config("MNEE_USE_CUUDAA", None)
+assert "MNEE_USE_CUUDAA" not in mne.get_config("")
 
 # %%
 # Where configurations are stored
@@ -119,9 +119,9 @@ print(mne.get_config_path())
 # specific to MNE-Python (and thus is not in the JSON config file):
 
 # make sure it's not in the JSON file (no error means our assertion held):
-assert mne.get_config('PATH', use_env=False) is None
+assert mne.get_config("PATH", use_env=False) is None
 # but it *is* in the environment:
-print(mne.get_config('PATH'))
+print(mne.get_config("PATH"))
 
 # %%
 # Also by default, :func:`~mne.set_config` will set values in both the JSON
@@ -131,12 +131,12 @@ print(mne.get_config('PATH'))
 # the Python :ref:`assert statement <assert>` instead, but it doesn't print any
 # output when it succeeds so it's a little less obvious):
 
-mne.set_config('foo', 'bar', set_env=False)
-print('foo' in os.environ.keys())
-mne.set_config('foo', 'bar')
-print('foo' in os.environ.keys())
-mne.set_config('foo', None)  # unsetting a key deletes var from environment
-print('foo' in os.environ.keys())
+mne.set_config("foo", "bar", set_env=False)
+print("foo" in os.environ.keys())
+mne.set_config("foo", "bar")
+print("foo" in os.environ.keys())
+mne.set_config("foo", None)  # unsetting a key deletes var from environment
+print("foo" in os.environ.keys())
 
 # %%
 # .. _tut-logging:
@@ -150,7 +150,7 @@ print('foo' in os.environ.keys())
 # those messages you see. The default logging level on a fresh install of
 # MNE-Python is ``info``:
 
-print(mne.get_config('MNE_LOGGING_LEVEL'))
+print(mne.get_config("MNE_LOGGING_LEVEL"))
 
 # %%
 # The logging levels that can be set as config variables are ``debug``,
@@ -192,16 +192,22 @@ print(mne.get_config('MNE_LOGGING_LEVEL'))
 # set. First, with log level ``warning``:
 
 
-kit_data_path = os.path.join(os.path.abspath(os.path.dirname(mne.__file__)),
-                             'io', 'kit', 'tests', 'data', 'test.sqd')
-raw = mne.io.read_raw_kit(kit_data_path, verbose='warning')
+kit_data_path = os.path.join(
+    os.path.abspath(os.path.dirname(mne.__file__)),
+    "io",
+    "kit",
+    "tests",
+    "data",
+    "test.sqd",
+)
+raw = mne.io.read_raw_kit(kit_data_path, verbose="warning")
 
 # %%
 # No messages were generated, because none of the messages were of severity
 # "warning" or worse. Next, we'll load the same file with log level ``info``
 # (the default level):
 
-raw = mne.io.read_raw_kit(kit_data_path, verbose='info')
+raw = mne.io.read_raw_kit(kit_data_path, verbose="info")
 
 # %%
 # This time, we got a few messages about extracting information from the file,
@@ -211,7 +217,7 @@ raw = mne.io.read_raw_kit(kit_data_path, verbose='info')
 # manager, which is another way to accomplish the same thing as passing
 # ``verbose='debug'``:
 
-with mne.use_log_level('debug'):
+with mne.use_log_level("debug"):
     raw = mne.io.read_raw_kit(kit_data_path)
 
 # %%

@@ -6,19 +6,23 @@
 #
 # License: Simplified BSD
 
-from abc import ABC, abstractmethod, abstractclassmethod
-from contextlib import nullcontext
 import warnings
+from abc import ABC, abstractclassmethod, abstractmethod
 
-from ..utils import tight_layout
+from ..ui_events import TimeChange, publish
 
 
 class Figure3D(ABC):
     """Class that refers to a 3D figure.
 
     .. note::
-        This class is not meant to be instantiated directly, use
-        :func:`mne.viz.create_3d_figure` instead.
+        This class should not be instantiated directly via
+        ``mne.viz.Figure3D(...)``. Instead, use
+        :func:`mne.viz.create_3d_figure`.
+
+    See Also
+    --------
+    mne.viz.create_3d_figure
     """
 
     # Here we use _init rather than __init__ so that users are less tempted to
@@ -27,8 +31,16 @@ class Figure3D(ABC):
     # params are in public docs.
 
     @abstractclassmethod
-    def _init(self, fig=None, size=(600, 600), bgcolor=(0., 0., 0.),
-              name=None, show=False, shape=(1, 1), splash=False):
+    def _init(
+        self,
+        fig=None,
+        size=(600, 600),
+        bgcolor=(0.0, 0.0, 0.0),
+        name=None,
+        show=False,
+        shape=(1, 1),
+        splash=False,
+    ):
         pass
 
     @property
@@ -44,10 +56,17 @@ class Figure3D(ABC):
 
 
 class _AbstractRenderer(ABC):
-
     @abstractclassmethod
-    def __init__(self, fig=None, size=(600, 600), bgcolor=(0., 0., 0.),
-                 name=None, show=False, shape=(1, 1), splash=False):
+    def __init__(
+        self,
+        fig=None,
+        size=(600, 600),
+        bgcolor=(0.0, 0.0, 0.0),
+        name=None,
+        show=False,
+        shape=(1, 1),
+        splash=False,
+    ):
         """Set up the scene."""
         pass
 
@@ -72,8 +91,7 @@ class _AbstractRenderer(ABC):
         pass
 
     @abstractclassmethod
-    def legend(self, labels, border=False, size=0.1, face='triangle',
-               loc='upper left'):
+    def legend(self, labels, border=False, size=0.1, face="triangle", loc="upper left"):
         """Add a legend to the scene.
 
         Parameters
@@ -101,11 +119,26 @@ class _AbstractRenderer(ABC):
         pass
 
     @abstractclassmethod
-    def mesh(self, x, y, z, triangles, color, opacity=1.0, shading=False,
-             backface_culling=False, scalars=None, colormap=None,
-             vmin=None, vmax=None, interpolate_before_map=True,
-             representation='surface', line_width=1., normals=None,
-             polygon_offset=None, **kwargs):
+    def mesh(
+        self,
+        x,
+        y,
+        z,
+        triangles,
+        color,
+        opacity=1.0,
+        backface_culling=False,
+        scalars=None,
+        colormap=None,
+        vmin=None,
+        vmax=None,
+        interpolate_before_map=True,
+        representation="surface",
+        line_width=1.0,
+        normals=None,
+        polygon_offset=None,
+        **kwargs,
+    ):
         """Add a mesh in the scene.
 
         Parameters
@@ -161,9 +194,20 @@ class _AbstractRenderer(ABC):
         pass
 
     @abstractclassmethod
-    def contour(self, surface, scalars, contours, width=1.0, opacity=1.0,
-                vmin=None, vmax=None, colormap=None,
-                normalized_colormap=False, kind='line', color=None):
+    def contour(
+        self,
+        surface,
+        scalars,
+        contours,
+        width=1.0,
+        opacity=1.0,
+        vmin=None,
+        vmax=None,
+        colormap=None,
+        normalized_colormap=False,
+        kind="line",
+        color=None,
+    ):
         """Add a contour in the scene.
 
         Parameters
@@ -198,10 +242,19 @@ class _AbstractRenderer(ABC):
         pass
 
     @abstractclassmethod
-    def surface(self, surface, color=None, opacity=1.0,
-                vmin=None, vmax=None, colormap=None,
-                normalized_colormap=False, scalars=None,
-                backface_culling=False, polygon_offset=None):
+    def surface(
+        self,
+        surface,
+        color=None,
+        opacity=1.0,
+        vmin=None,
+        vmax=None,
+        colormap=None,
+        normalized_colormap=False,
+        scalars=None,
+        backface_culling=False,
+        polygon_offset=None,
+    ):
         """Add a surface in the scene.
 
         Parameters
@@ -232,9 +285,16 @@ class _AbstractRenderer(ABC):
         pass
 
     @abstractclassmethod
-    def sphere(self, center, color, scale, opacity=1.0,
-               resolution=8, backface_culling=False,
-               radius=None):
+    def sphere(
+        self,
+        center,
+        color,
+        scale,
+        opacity=1.0,
+        resolution=8,
+        backface_culling=False,
+        radius=None,
+    ):
         """Add sphere in the scene.
 
         Parameters
@@ -262,9 +322,19 @@ class _AbstractRenderer(ABC):
         pass
 
     @abstractclassmethod
-    def tube(self, origin, destination, radius=0.001, color='white',
-             scalars=None, vmin=None, vmax=None, colormap='RdBu',
-             normalized_colormap=False, reverse_lut=False):
+    def tube(
+        self,
+        origin,
+        destination,
+        radius=0.001,
+        color="white",
+        scalars=None,
+        vmin=None,
+        vmax=None,
+        colormap="RdBu",
+        normalized_colormap=False,
+        reverse_lut=False,
+    ):
         """Add tube in the scene.
 
         Parameters
@@ -306,11 +376,31 @@ class _AbstractRenderer(ABC):
         pass
 
     @abstractclassmethod
-    def quiver3d(self, x, y, z, u, v, w, color, scale, mode, resolution=8,
-                 glyph_height=None, glyph_center=None, glyph_resolution=None,
-                 opacity=1.0, scale_mode='none', scalars=None,
-                 backface_culling=False, colormap=None, vmin=None, vmax=None,
-                 line_width=2., name=None):
+    def quiver3d(
+        self,
+        x,
+        y,
+        z,
+        u,
+        v,
+        w,
+        color,
+        scale,
+        mode,
+        resolution=8,
+        glyph_height=None,
+        glyph_center=None,
+        glyph_resolution=None,
+        opacity=1.0,
+        scale_mode="none",
+        scalars=None,
+        backface_culling=False,
+        colormap=None,
+        vmin=None,
+        vmax=None,
+        line_width=2.0,
+        name=None,
+    ):
         """Add quiver3d in the scene.
 
         Parameters
@@ -376,7 +466,7 @@ class _AbstractRenderer(ABC):
         pass
 
     @abstractclassmethod
-    def text2d(self, x_window, y_window, text, size=14, color='white'):
+    def text2d(self, x_window, y_window, text, size=14, color="white"):
         """Add 2d text in the scene.
 
         Parameters
@@ -399,7 +489,7 @@ class _AbstractRenderer(ABC):
         pass
 
     @abstractclassmethod
-    def text3d(self, x, y, z, text, width, color='white'):
+    def text3d(self, x, y, z, text, width, color="white"):
         """Add 2d text in the scene.
 
         Parameters
@@ -422,8 +512,7 @@ class _AbstractRenderer(ABC):
         pass
 
     @abstractclassmethod
-    def scalarbar(self, source, color="white", title=None, n_labels=4,
-                  bgcolor=None):
+    def scalarbar(self, source, color="white", title=None, n_labels=4, bgcolor=None):
         """Add a scalar bar in the scene.
 
         Parameters
@@ -452,8 +541,16 @@ class _AbstractRenderer(ABC):
         pass
 
     @abstractclassmethod
-    def set_camera(self, azimuth=None, elevation=None, distance=None,
-                   focalpoint=None, roll=None, reset_camera=True):
+    def set_camera(
+        self,
+        azimuth=None,
+        elevation=None,
+        distance=None,
+        focalpoint=None,
+        roll=None,
+        *,
+        reset_camera=None,
+    ):
         """Configure the camera of the scene.
 
         Parameters
@@ -469,7 +566,7 @@ class _AbstractRenderer(ABC):
         roll : float
             The rotation of the camera along its axis.
         reset_camera : bool
-           If True, reset the camera properties beforehand.
+           Deprecated, used ``distance="auto"`` instead.
         """
         pass
 
@@ -479,7 +576,7 @@ class _AbstractRenderer(ABC):
         pass
 
     @abstractclassmethod
-    def screenshot(self, mode='rgb', filename=None):
+    def screenshot(self, mode="rgb", filename=None):
         """Take a screenshot of the scene.
 
         Parameters
@@ -516,13 +613,13 @@ class _AbstractRenderer(ABC):
         """
         pass
 
+
 # -------------------
 # Widget Abstractions
 # -------------------
 
 
 class _AbstractWidget(ABC):
-
     @abstractclassmethod
     def __init__(self):
         pass
@@ -585,14 +682,12 @@ class _AbstractWidget(ABC):
 
 
 class _AbstractLabel(_AbstractWidget):
-
     @abstractclassmethod
     def __init__(self, value, center=False, selectable=False):
         pass
 
 
 class _AbstractText(_AbstractWidget):
-
     @abstractclassmethod
     def __init__(self, value=None, placeholder=None, callback=None):
         pass
@@ -603,7 +698,6 @@ class _AbstractText(_AbstractWidget):
 
 
 class _AbstractButton(_AbstractWidget):
-
     @abstractclassmethod
     def __init__(self, value, callback, icon=None):
         pass
@@ -618,7 +712,6 @@ class _AbstractButton(_AbstractWidget):
 
 
 class _AbstractSlider(_AbstractWidget):
-
     @abstractclassmethod
     def __init__(self, value, rng, callback, horizontal=True):
         pass
@@ -637,7 +730,6 @@ class _AbstractSlider(_AbstractWidget):
 
 
 class _AbstractProgressBar(_AbstractWidget):
-
     @abstractclassmethod
     def __init__(self, count):
         pass
@@ -648,7 +740,6 @@ class _AbstractProgressBar(_AbstractWidget):
 
 
 class _AbstractCheckBox(_AbstractWidget):
-
     @abstractclassmethod
     def __init__(self, value, callback):
         pass
@@ -663,7 +754,6 @@ class _AbstractCheckBox(_AbstractWidget):
 
 
 class _AbstractSpinBox(_AbstractWidget):
-
     @abstractclassmethod
     def __init__(self, value, rng, callback, step=None):
         pass
@@ -678,7 +768,6 @@ class _AbstractSpinBox(_AbstractWidget):
 
 
 class _AbstractComboBox(_AbstractWidget):
-
     @abstractclassmethod
     def __init__(self, value, items, callback):
         pass
@@ -693,7 +782,6 @@ class _AbstractComboBox(_AbstractWidget):
 
 
 class _AbstractRadioButtons(_AbstractWidget):
-
     @abstractclassmethod
     def __init__(self, value, items, callback):
         pass
@@ -708,22 +796,27 @@ class _AbstractRadioButtons(_AbstractWidget):
 
 
 class _AbstractGroupBox(_AbstractWidget):
-
     @abstractclassmethod
     def __init__(self, name, items):
         pass
 
 
 class _AbstractFileButton(_AbstractWidget):
-
     @abstractclassmethod
-    def __init__(self, callback, content_filter=None, initial_directory=None,
-                 save=False, is_directory=False, icon='folder', window=None):
+    def __init__(
+        self,
+        callback,
+        content_filter=None,
+        initial_directory=None,
+        save=False,
+        is_directory=False,
+        icon="folder",
+        window=None,
+    ):
         pass
 
 
 class _AbstractPlayMenu(_AbstractWidget):
-
     @abstractclassmethod
     def __init__(self, value, rng, callback):
         pass
@@ -750,22 +843,29 @@ class _AbstractPlayMenu(_AbstractWidget):
 
 
 class _AbstractPopup(_AbstractWidget):
-
-    _supported_button_names = ['Ok']
+    _supported_button_names = ["Ok"]
     # TODO: Add back support for below, file browser takes care of most
     # so no big need currently
-    '''
+    """
     # from QMessageBox.StandardButtons
     ['Ok', 'Open', 'Save', 'Cancel', 'Close', 'Discard', 'Apply',
     'Reset', 'RestoreDefaults', 'Help', 'SaveAll', 'Yes',
     'YesToAll', 'No', 'NoToAll', 'Abort', 'Retry', 'Ignore']
-    '''
+    """
 
-    _supported_icon_names = ['question', 'information', 'warning', 'critical']
+    _supported_icon_names = ["question", "information", "warning", "critical"]
 
     @abstractmethod
-    def __init__(self, title, text, info_text=None, callback=None,
-                 icon='Warning', buttons=None, window=None):
+    def __init__(
+        self,
+        title,
+        text,
+        info_text=None,
+        callback=None,
+        icon="Warning",
+        buttons=None,
+        window=None,
+    ):
         pass
 
     @abstractmethod
@@ -777,8 +877,8 @@ class _AbstractPopup(_AbstractWidget):
 # Layouts
 # -------
 
-class _AbstractBoxLayout(ABC):
 
+class _AbstractBoxLayout(ABC):
     @abstractmethod
     def _add_widget(self, widget):
         pass
@@ -789,21 +889,18 @@ class _AbstractBoxLayout(ABC):
 
 
 class _AbstractHBoxLayout(_AbstractBoxLayout):
-
     @abstractmethod
     def __init__(self, height=None, scroll=None):
         pass
 
 
 class _AbstractVBoxLayout(_AbstractBoxLayout):
-
     @abstractmethod
     def __init__(self, width=None, scroll=None):
         pass
 
 
 class _AbstractGridLayout(ABC):
-
     @abstractmethod
     def __init__(self, height=None, width=None, scroll=None):
         pass
@@ -814,7 +911,6 @@ class _AbstractGridLayout(ABC):
 
 
 class _AbstractAppWindow(ABC):
-
     def __init__(self, size=None, fullscreen=False):
         pass
 
@@ -869,7 +965,6 @@ class _AbstractAppWindow(ABC):
 
 
 class _AbstractCanvas(ABC):
-
     def __init__(self, width=None, height=None, dpi=None):
         """Initialize the matplotlib Canvas."""
         pass
@@ -901,6 +996,7 @@ class _AbstractCanvas(ABC):
     def _set_size(self, width=None, height=None):
         pass
 
+
 # ------------------------------------
 # Non-object-based Widget Abstractions
 # ------------------------------------
@@ -914,8 +1010,7 @@ class _AbstractToolBar(ABC):
         pass
 
     @abstractmethod
-    def _tool_bar_add_button(self, name, desc, func, *, icon_name=None,
-                             shortcut=None):
+    def _tool_bar_add_button(self, name, desc, func, *, icon_name=None, shortcut=None):
         pass
 
     @abstractmethod
@@ -941,8 +1036,9 @@ class _AbstractToolBar(ABC):
 
 class _AbstractDock(ABC):
     @abstractmethod
-    def _dock_initialize(self, window=None, name="Controls",
-                         area="left", max_width=None):
+    def _dock_initialize(
+        self, window=None, name="Controls", area="left", max_width=None
+    ):
         pass
 
     @abstractmethod
@@ -966,15 +1062,19 @@ class _AbstractDock(ABC):
         pass
 
     @abstractmethod
-    def _dock_add_label(
-        self, value, *, align=False, layout=None, selectable=False
-    ):
+    def _dock_add_label(self, value, *, align=False, layout=None, selectable=False):
         pass
 
     @abstractmethod
     def _dock_add_button(
-        self, name, callback, *, style='pushbutton', icon=None, tooltip=None,
-        layout=None
+        self,
+        name,
+        callback,
+        *,
+        style="pushbutton",
+        icon=None,
+        tooltip=None,
+        layout=None,
     ):
         pass
 
@@ -983,30 +1083,50 @@ class _AbstractDock(ABC):
         pass
 
     @abstractmethod
-    def _dock_add_slider(self, name, value, rng, callback, *,
-                         compact=True, double=False, tooltip=None,
-                         layout=None):
+    def _dock_add_slider(
+        self,
+        name,
+        value,
+        rng,
+        callback,
+        *,
+        compact=True,
+        double=False,
+        tooltip=None,
+        layout=None,
+    ):
         pass
 
     @abstractmethod
-    def _dock_add_check_box(self, name, value, callback, *, tooltip=None,
-                            layout=None):
+    def _dock_add_check_box(self, name, value, callback, *, tooltip=None, layout=None):
         pass
 
     @abstractmethod
-    def _dock_add_spin_box(self, name, value, rng, callback, *,
-                           compact=True, double=True, step=None,
-                           tooltip=None, layout=None):
+    def _dock_add_spin_box(
+        self,
+        name,
+        value,
+        rng,
+        callback,
+        *,
+        compact=True,
+        double=True,
+        step=None,
+        tooltip=None,
+        layout=None,
+    ):
         pass
 
     @abstractmethod
-    def _dock_add_combo_box(self, name, value, rng, callback, *, compact=True,
-                            tooltip=None, layout=None):
+    def _dock_add_combo_box(
+        self, name, value, rng, callback, *, compact=True, tooltip=None, layout=None
+    ):
         pass
 
     @abstractmethod
-    def _dock_add_radio_buttons(self, value, rng, callback, *, vertical=True,
-                                layout=None):
+    def _dock_add_radio_buttons(
+        self, value, rng, callback, *, vertical=True, layout=None
+    ):
         pass
 
     @abstractmethod
@@ -1014,14 +1134,23 @@ class _AbstractDock(ABC):
         pass
 
     @abstractmethod
-    def _dock_add_text(self, name, value, placeholder, *, callback=None,
-                       layout=None):
+    def _dock_add_text(self, name, value, placeholder, *, callback=None, layout=None):
         pass
 
     @abstractmethod
     def _dock_add_file_button(
-        self, name, desc, func, *, filter=None, initial_directory=None,
-        save=False, is_directory=False, icon=False, tooltip=None, layout=None
+        self,
+        name,
+        desc,
+        func,
+        *,
+        filter=None,
+        initial_directory=None,
+        save=False,
+        is_directory=False,
+        icon=False,
+        tooltip=None,
+        layout=None,
     ):
         pass
 
@@ -1060,8 +1189,7 @@ class _AbstractStatusBar(ABC):
 
 class _AbstractPlayback(ABC):
     @abstractmethod
-    def _playback_initialize(self, func, timeout, value, rng,
-                             time_widget, play_widget):
+    def _playback_initialize(self, func, timeout, value, rng, time_widget, play_widget):
         pass
 
 
@@ -1081,8 +1209,18 @@ class _AbstractKeyPress(ABC):
 
 class _AbstractDialog(ABC):
     @abstractmethod
-    def _dialog_create(self, title, text, info_text, callback, *,
-                       icon='Warning', buttons=[], modal=True, window=None):
+    def _dialog_create(
+        self,
+        title,
+        text,
+        info_text,
+        callback,
+        *,
+        icon="Warning",
+        buttons=[],
+        modal=True,
+        window=None,
+    ):
         pass
 
 
@@ -1092,12 +1230,11 @@ class _AbstractLayout(ABC):
         pass
 
     @abstractmethod
-    def _layout_add_widget(self, layout, widget, stretch=0,
-                           *, row=None, col=None):
+    def _layout_add_widget(self, layout, widget, stretch=0, *, row=None, col=None):
         pass
 
     @abstractmethod
-    def _layout_create(self, orientation='vertical'):
+    def _layout_create(self, orientation="vertical"):
         pass
 
 
@@ -1194,31 +1331,21 @@ class _AbstractMplInterface(ABC):
 class _AbstractMplCanvas(ABC):
     def __init__(self, width, height, dpi):
         """Initialize the MplCanvas."""
-        from matplotlib import rc_context
         from matplotlib.figure import Figure
-        # prefer constrained layout here but live with tight_layout otherwise
-        context = nullcontext
-        self._extra_events = ('resize',)
-        try:
-            context = rc_context({'figure.constrained_layout.use': True})
-            self._extra_events = ()
-        except KeyError:
-            pass
-        with context:
-            self.fig = Figure(figsize=(width, height), dpi=dpi)
+
+        self._extra_events = ("resize",)
+        self.fig = Figure(figsize=(width, height), dpi=dpi, layout="constrained")
         self.axes = self.fig.add_subplot(111)
-        self.axes.set(xlabel='Time (sec)', ylabel='Activation (AU)')
+        self.axes.set(xlabel="Time (s)", ylabel="Activation (AU)")
         self.manager = None
 
     def _connect(self):
-        for event in ('button_press', 'motion_notify') + self._extra_events:
-            self.canvas.mpl_connect(
-                event + '_event', getattr(self, 'on_' + event))
+        for event in ("button_press", "motion_notify") + self._extra_events:
+            self.canvas.mpl_connect(event + "_event", getattr(self, "on_" + event))
 
     def plot(self, x, y, label, update=True, **kwargs):
         """Plot a curve."""
-        line, = self.axes.plot(
-            x, y, label=label, **kwargs)
+        (line,) = self.axes.plot(x, y, label=label, **kwargs)
         if update:
             self.update_plot()
         return line
@@ -1233,7 +1360,7 @@ class _AbstractMplCanvas(ABC):
     def update_plot(self):
         """Update the plot."""
         with warnings.catch_warnings(record=True):
-            warnings.filterwarnings('ignore', 'constrained_layout')
+            warnings.filterwarnings("ignore", "constrained_layout")
             self.canvas.draw()
 
     def set_color(self, bg_color, fg_color):
@@ -1241,12 +1368,12 @@ class _AbstractMplCanvas(ABC):
         self.axes.set_facecolor(bg_color)
         self.axes.xaxis.label.set_color(fg_color)
         self.axes.yaxis.label.set_color(fg_color)
-        self.axes.spines['top'].set_color(fg_color)
-        self.axes.spines['bottom'].set_color(fg_color)
-        self.axes.spines['left'].set_color(fg_color)
-        self.axes.spines['right'].set_color(fg_color)
-        self.axes.tick_params(axis='x', colors=fg_color)
-        self.axes.tick_params(axis='y', colors=fg_color)
+        self.axes.spines["top"].set_color(fg_color)
+        self.axes.spines["bottom"].set_color(fg_color)
+        self.axes.spines["left"].set_color(fg_color)
+        self.axes.spines["right"].set_color(fg_color)
+        self.axes.tick_params(axis="x", colors=fg_color)
+        self.axes.tick_params(axis="y", colors=fg_color)
         self.fig.patch.set_facecolor(bg_color)
 
     def show(self):
@@ -1270,7 +1397,7 @@ class _AbstractMplCanvas(ABC):
 
     def on_resize(self, event):
         """Handle resize events."""
-        tight_layout(fig=self.axes.figure)
+        pass
 
 
 class _AbstractBrainMplCanvas(_AbstractMplCanvas):
@@ -1278,14 +1405,15 @@ class _AbstractBrainMplCanvas(_AbstractMplCanvas):
         """Initialize the MplCanvas."""
         super().__init__(width, height, dpi)
         self.brain = brain
-        self.time_func = brain.callbacks["time"]
 
     def update_plot(self):
         """Update the plot."""
         leg = self.axes.legend(
-            prop={'family': 'monospace', 'size': 'small'},
-            framealpha=0.5, handlelength=1.,
-            facecolor=self.brain._bg_color)
+            prop={"family": "monospace", "size": "small"},
+            framealpha=0.5,
+            handlelength=1.0,
+            facecolor=self.brain._bg_color,
+        )
         for text in leg.get_texts():
             text.set_color(self.brain._fg_color)
         super().update_plot()
@@ -1293,11 +1421,9 @@ class _AbstractBrainMplCanvas(_AbstractMplCanvas):
     def on_button_press(self, event):
         """Handle button presses."""
         # left click (and maybe drag) in progress in axes
-        if (event.inaxes != self.axes or
-                event.button != 1):
+        if event.inaxes != self.axes or event.button != 1:
             return
-        self.time_func(
-            event.xdata, update_widget=True, time_as_index=False)
+        publish(self.brain, TimeChange(time=event.xdata))
 
     on_motion_notify = on_button_press  # for now they can be the same
 
@@ -1308,9 +1434,7 @@ class _AbstractBrainMplCanvas(_AbstractMplCanvas):
 
 
 class _AbstractWindow(ABC):
-    def _window_initialize(
-        self, *, window=None, central_layout=None, fullscreen=False
-    ):
+    def _window_initialize(self, *, window=None, central_layout=None, fullscreen=False):
         self._icons = dict()
         self._window = None
         self._interactor = None
@@ -1351,8 +1475,9 @@ class _AbstractWindow(ABC):
         pass
 
     @abstractmethod
-    def _window_get_mplcanvas(self, brain, interactor_fraction, show_traces,
-                              separate_canvas):
+    def _window_get_mplcanvas(
+        self, brain, interactor_fraction, show_traces, separate_canvas
+    ):
         pass
 
     @abstractmethod

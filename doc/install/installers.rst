@@ -1,5 +1,3 @@
-.. include:: ../links.inc
-
 .. _installers:
 
 MNE-Python installers
@@ -15,14 +13,15 @@ Got any questions? Let us know on the `MNE Forum`_!
 
     .. tab-item:: Linux
         :class-content: text-center
+        :name: linux-installers
 
-        .. button-link:: https://github.com/mne-tools/mne-installers/releases/download/v1.1.0/MNE-Python-1.1.0_0-Linux.sh
+        .. button-link:: https://github.com/mne-tools/mne-installers/releases/download/v1.5.1/MNE-Python-1.5.1_0-Linux.sh
             :ref-type: ref
             :color: primary
             :shadow:
             :class: font-weight-bold mt-3
 
-            |cloud-download-alt| |ensp| Download for Linux
+            |cloud-arrow-down| |ensp| Download for Linux
 
         **Supported platforms:** Ubuntu 18.04 (Bionic Beaver) and newer
 
@@ -30,19 +29,20 @@ Got any questions? Let us know on the `MNE Forum`_!
 
         .. code-block:: console
 
-            $ sh ./MNE-Python-1.1.0_0-Linux.sh
+            $ sh ./MNE-Python-1.5.1_0-Linux.sh
 
 
     .. tab-item:: macOS (Intel)
         :class-content: text-center
+        :name: macos-intel-installers
 
-        .. button-link:: https://github.com/mne-tools/mne-installers/releases/download/v1.1.0/MNE-Python-1.1.0_0-macOS_Intel.pkg
+        .. button-link:: https://github.com/mne-tools/mne-installers/releases/download/v1.5.1/MNE-Python-1.5.1_0-macOS_Intel.pkg
             :ref-type: ref
             :color: primary
             :shadow:
             :class: font-weight-bold mt-3
 
-            |cloud-download-alt| |ensp| Download for macOS (Intel)
+            |cloud-arrow-down| |ensp| Download for macOS (Intel)
 
         **Supported platforms:**
         macOS 10.15 (Catalina) and newer
@@ -50,14 +50,15 @@ Got any questions? Let us know on the `MNE Forum`_!
 
     .. tab-item:: macOS (Apple Silicon)
         :class-content: text-center
+        :name: macos-apple-installers
 
-        .. button-link:: https://github.com/mne-tools/mne-installers/releases/download/v1.1.0/MNE-Python-1.1.0_0-macOS_M1.pkg
+        .. button-link:: https://github.com/mne-tools/mne-installers/releases/download/v1.5.1/MNE-Python-1.5.1_0-macOS_M1.pkg
             :ref-type: ref
             :color: primary
             :shadow:
             :class: font-weight-bold mt-3
 
-            |cloud-download-alt| |ensp| Download for macOS (Apple Silicon)
+            |cloud-arrow-down| |ensp| Download for macOS (Apple Silicon)
 
 
         **Supported platforms:**
@@ -65,17 +66,22 @@ Got any questions? Let us know on the `MNE Forum`_!
 
     .. tab-item:: Windows
         :class-content: text-center
+        :name: windows-installers
 
-        .. button-link:: https://github.com/mne-tools/mne-installers/releases/download/v1.1.0/MNE-Python-1.1.0_0-Windows.exe
+        .. button-link:: https://github.com/mne-tools/mne-installers/releases/download/v1.5.1/MNE-Python-1.5.1_0-Windows.exe
             :ref-type: ref
             :color: primary
             :shadow:
             :class: font-weight-bold mt-3
 
-            |cloud-download-alt| |ensp| Download for Windows
+            |cloud-arrow-down| |ensp| Download for Windows
 
         **Supported platforms:** Windows 10 and newer
 
+.. raw:: html
+
+   <script async="async" src="../_static/js/update_installer_version.js"></script>
+   <script async="async" src="../_static/js/set_installer_tab.js"></script>
 
 First steps
 ^^^^^^^^^^^
@@ -98,7 +104,7 @@ bundles to the ``Applications`` folder on macOS.
 
 
 .. note::
-   |hourglass| |ensp| Depending on your system, it may take a little while for these
+   |hourglass-half| |ensp| Depending on your system, it may take a little while for these
    applications to start, especially on the very first run – which may take
    particularly long on Apple Silicon-based computers. Subsequent runs should
    usually be much faster.
@@ -114,35 +120,10 @@ information, including a line that will read something like:
 
 .. code-block::
 
-   Using Python: /some/directory/mne-python_1.0.0_1/bin/python
+   Using Python: /some/directory/mne-python_1.5.1_0/bin/python
 
 This path is what you need to enter in VS Code when selecting the Python
 interpreter.
 
 .. note::
    This information is currently not displayed on the Windows platform.
-
-
-.. raw:: html
-
-    <script type="text/javascript">
-      var platform = "linux";
-      if (navigator.userAgent.indexOf("Win") !== -1) {
-        platform = "windows";
-      }
-      if (navigator.userAgent.indexOf("Mac") !== -1) {
-        platform = "macos";
-      }
-     $(document).ready(function(){
-         let all_tab_nodes = document.querySelectorAll(
-             '.platform-selector-tabset')[0].children;
-         let input_nodes = [...all_tab_nodes].filter(
-             child => child.nodeName === "INPUT");
-         let tab_label_nodes = [...document.querySelectorAll('.sd-tab-label')];
-         let correct_label = tab_label_nodes.filter(
-             label => label.textContent.trim().toLowerCase() === platform)[0];
-         let hash = correct_label.getAttribute('for');
-         let correct_input = input_nodes.filter(node => node.id === hash)[0];
-         correct_input.checked = true;
-     });
-     </script>

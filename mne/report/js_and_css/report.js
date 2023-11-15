@@ -7,6 +7,12 @@ const refreshScrollSpy = () =>{
   })
 }
 
+const propagateScrollSpyURL = () => {
+  $(window).on('activate.bs.scrollspy', (event) => {
+    history.replaceState({}, "", event.relatedTarget);
+  });
+}
+
 /* Show or hide elements based on their tag */
 const toggleTagVisibility = (tagName) => {
   const tag = tags.find((element) => {
@@ -113,7 +119,7 @@ const addFilterByTagsCheckboxEventHandlers = () => {
 
   filterByTagsDropdownMenuLabels.forEach((label) => {
     // Prevent dropdown menu from closing when clicking on a tag checkbox label
-    label.addEventListener("click", (e) => { 
+    label.addEventListener("click", (e) => {
       e.stopPropagation();
     })
 
@@ -154,11 +160,15 @@ const _handleTocLinkClick = (e) => {
 
     const topBarHeight = document.querySelector('#top-bar').scrollHeight
     const margin = 30 + topBarHeight;
-  
+
     const tocLinkElement = e.target;
     const targetDomId = tocLinkElement.getAttribute('href');
     const targetElement = document.querySelector(targetDomId);
     const top = $(targetElement).offset().top;
+    /* Update URL to reflect the current scroll position */
+    var url = document.URL.replace(/#.*$/, "");
+    url = url + targetDomId;
+    window.location.href = url;
     window.scrollTo(0, top - margin);
 }
 
@@ -216,7 +226,7 @@ const disableGlobalKeyHandler = () => {
   window.onkeydown = null;
 }
 
-/* Disbale processing global key events when a search box is active */
+/* Disable processing global key events when a search box is active */
 const disableGlobalKeysInSearchBox = () => {
   const searchBoxElements = document.querySelectorAll('input.search-input');
   searchBoxElements.forEach((el) => {
@@ -235,6 +245,7 @@ $(document).ready(() => {
   hljs.highlightAll();   // enable highlight.js
   disableGlobalKeysInSearchBox();
   enableGlobalKeyHandler();
+  propagateScrollSpyURL();
 });
 
 window.onresize = () => {

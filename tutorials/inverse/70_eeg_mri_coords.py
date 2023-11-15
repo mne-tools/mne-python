@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _tut-eeg-mri-coords:
 
@@ -17,8 +16,8 @@ the electrodes are in MRI voxel coordinates.
 # %%
 
 import nibabel
-from nilearn.plotting import plot_glass_brain
 import numpy as np
+from nilearn.plotting import plot_glass_brain
 
 import mne
 from mne.channels import compute_native_head_t, read_custom_montage
@@ -43,15 +42,15 @@ from mne.viz import plot_alignment
 # and thus are stored as part of the ``misc`` dataset).
 
 data_path = mne.datasets.sample.data_path()
-subjects_dir = data_path / 'subjects'
-fname_raw = data_path / 'MEG' / 'sample' / 'sample_audvis_raw.fif'
-bem_dir = subjects_dir / 'sample' / 'bem'
-fname_bem = bem_dir / 'sample-5120-5120-5120-bem-sol.fif'
-fname_src = bem_dir / 'sample-oct-6-src.fif'
+subjects_dir = data_path / "subjects"
+fname_raw = data_path / "MEG" / "sample" / "sample_audvis_raw.fif"
+bem_dir = subjects_dir / "sample" / "bem"
+fname_bem = bem_dir / "sample-5120-5120-5120-bem-sol.fif"
+fname_src = bem_dir / "sample-oct-6-src.fif"
 
 misc_path = mne.datasets.misc.data_path()
-fname_T1_electrodes = misc_path / 'sample_eeg_mri' / 'T1_electrodes.mgz'
-fname_mon = misc_path / 'sample_eeg_mri' / 'sample_mri_montage.elc'
+fname_T1_electrodes = misc_path / "sample_eeg_mri" / "T1_electrodes.mgz"
+fname_mon = misc_path / "sample_eeg_mri" / "sample_mri_montage.elc"
 
 ##############################################################################
 # Visualizing the MRI
@@ -65,11 +64,17 @@ fname_mon = misc_path / 'sample_eeg_mri' / 'sample_mri_montage.elc'
 # need. Thus we create a "new" MRI image in MNI coordinates and plot it as:
 
 img = nibabel.load(fname_T1_electrodes)  # original subject MRI w/EEG
-ras_mni_t = mne.transforms.read_ras_mni_t('sample', subjects_dir)  # from FS
-mni_affine = np.dot(ras_mni_t['trans'], img.affine)  # vox->ras->MNI
+ras_mni_t = mne.transforms.read_ras_mni_t("sample", subjects_dir)  # from FS
+mni_affine = np.dot(ras_mni_t["trans"], img.affine)  # vox->ras->MNI
 img_mni = nibabel.Nifti1Image(img.dataobj, mni_affine)  # now in MNI coords!
-plot_glass_brain(img_mni, cmap='hot_black_bone', threshold=0., black_bg=True,
-                 resampling_interpolation='nearest', colorbar=True)
+plot_glass_brain(
+    img_mni,
+    cmap="hot_black_bone",
+    threshold=0.0,
+    black_bg=True,
+    resampling_interpolation="nearest",
+    colorbar=True,
+)
 
 ##########################################################################
 # Getting our MRI voxel EEG locations to head (and MRI surface RAS) coords
@@ -98,7 +103,7 @@ plot_glass_brain(img_mni, cmap='hot_black_bone', threshold=0., black_bg=True,
 #     You can also verify that these are correct (or manually convert voxels
 #     to MRI coords) by looking at the points in Freeview or tkmedit.
 
-dig_montage = read_custom_montage(fname_mon, head_size=None, coord_frame='mri')
+dig_montage = read_custom_montage(fname_mon, head_size=None, coord_frame="mri")
 dig_montage.plot()
 
 ##############################################################################
@@ -114,7 +119,7 @@ print(trans)  # should be mri->head, as the "native" space here is MRI
 # shown by :meth:`~mne.io.Raw.plot_sensors`.
 
 raw = mne.io.read_raw_fif(fname_raw)
-raw.pick_types(meg=False, eeg=True, stim=True, exclude=()).load_data()
+raw.pick(picks=["eeg", "stim"]).load_data()
 raw.set_montage(dig_montage)
 raw.plot_sensors(show_names=True)
 
@@ -125,8 +130,8 @@ raw.plot_sensors(show_names=True)
 raw.set_eeg_reference(projection=True)
 events = mne.find_events(raw)
 epochs = mne.Epochs(raw, events)
-cov = mne.compute_covariance(epochs, tmax=0.)
-evoked = epochs['1'].average()  # trigger 1 in auditory/left
+cov = mne.compute_covariance(epochs, tmax=0.0)
+evoked = epochs["1"].average()  # trigger 1 in auditory/left
 evoked.plot_joint()
 
 ##############################################################################
@@ -136,19 +141,24 @@ evoked.plot_joint()
 # but first we should sanity check that everything is well aligned:
 
 fig = plot_alignment(
-    evoked.info, trans=trans, show_axes=True, surfaces='head-dense',
-    subject='sample', subjects_dir=subjects_dir)
+    evoked.info,
+    trans=trans,
+    show_axes=True,
+    surfaces="head-dense",
+    subject="sample",
+    subjects_dir=subjects_dir,
+)
 
 ##############################################################################
 # Now we can actually compute the forward:
 
 fwd = mne.make_forward_solution(
-    evoked.info, trans=trans, src=fname_src, bem=fname_bem, verbose=True)
+    evoked.info, trans=trans, src=fname_src, bem=fname_bem, verbose=True
+)
 
 ##############################################################################
 # Finally let's compute the inverse and apply it:
 
-inv = mne.minimum_norm.make_inverse_operator(
-    evoked.info, fwd, cov, verbose=True)
+inv = mne.minimum_norm.make_inverse_operator(evoked.info, fwd, cov, verbose=True)
 stc = mne.minimum_norm.apply_inverse(evoked, inv)
 brain = stc.plot(subjects_dir=subjects_dir, initial_time=0.1)

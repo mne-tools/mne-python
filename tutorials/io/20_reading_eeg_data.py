@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 r"""
 .. _tut-imorting-eeg-data:
 
@@ -30,7 +29,7 @@ consisting of
 
 Brain Products provides documentation for their core BrainVision file format.
 The format specification is hosted on the
-`Brain Products website <https://www.brainproducts.com/productdetails.php?id=21&tab=5>`_.
+`Brain Products website <https://www.brainproducts.com/support-resources/brainvision-core-data-format-1-0/>`_.
 
 BrainVision EEG files can be read using :func:`mne.io.read_raw_brainvision`,
 passing the ``.vhdr`` header file as the argument.
@@ -40,7 +39,7 @@ passing the ``.vhdr`` header file as the argument.
              `example <https://mne.tools/mne-bids/stable/auto_examples/rename_brainvision_files.html#sphx-glr-auto-examples-rename-brainvision-files-py>`_
              for instructions.
 
-.. note:: For *writing* BrainVision files, take a look at the :py:mod:`mne.export`
+.. note:: For *writing* BrainVision files, take a look at the :mod:`mne.export`
           module, which used the `pybv <https://pypi.org/project/pybv/>`_ Python
           package.
 

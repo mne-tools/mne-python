@@ -1,44 +1,48 @@
-import os.path as op
+from pathlib import Path
 
 import numpy as np
-from numpy.testing import assert_almost_equal
 import pytest
-
-from scipy.linalg import svd, pinv
 import scipy.io as sio
+from numpy.testing import assert_almost_equal
+from scipy.linalg import pinv, svd
 
-from mne.io import read_raw_fif
 from mne import pick_types
+from mne.datasets import testing
+from mne.io import read_raw_fif
 from mne.preprocessing.infomax_ import infomax
 from mne.utils import random_permutation
-from mne.datasets import testing
 
-base_dir = op.join(op.dirname(__file__), 'data')
+base_dir = Path(__file__).parent / "data"
 testing_path = testing.data_path(download=False)
 
 
 def generate_data_for_comparing_against_eeglab_infomax(ch_type, random_state):
     """Generate data."""
-    data_dir = op.join(testing_path, 'MEG', 'sample')
-    raw_fname = op.join(data_dir, 'sample_audvis_trunc_raw.fif')
+    raw_fname = testing_path / "MEG" / "sample" / "sample_audvis_trunc_raw.fif"
 
     raw = read_raw_fif(raw_fname, preload=True)
 
-    if ch_type == 'eeg':
-        picks = pick_types(raw.info, meg=False, eeg=True, exclude='bads')
+    if ch_type == "eeg":
+        picks = pick_types(raw.info, meg=False, eeg=True, exclude="bads")
     else:
-        picks = pick_types(raw.info, meg=ch_type,
-                           eeg=False, exclude='bads')
+        picks = pick_types(raw.info, meg=ch_type, eeg=False, exclude="bads")
 
     # select a small number of channels for the test
     number_of_channels_to_use = 5
     idx_perm = random_permutation(picks.shape[0], random_state)
     picks = picks[idx_perm[:number_of_channels_to_use]]
 
-    raw.filter(1, 45, picks=picks, filter_length='10s',
-               l_trans_bandwidth=0.5, h_trans_bandwidth=0.5,
-               phase='zero-double', fir_window='hann',
-               fir_design='firwin2')  # use the old way
+    raw.filter(
+        1,
+        45,
+        picks=picks,
+        filter_length="10s",
+        l_trans_bandwidth=0.5,
+        h_trans_bandwidth=0.5,
+        phase="zero-double",
+        fir_window="hann",
+        fir_design="firwin2",
+    )  # use the old way
     X = raw[picks, :][0][:, ::20]
 
     # Subtract the mean
@@ -65,16 +69,16 @@ def test_mne_python_vs_eeglab():
     """Test eeglab vs mne_python infomax code."""
     random_state = 42
 
-    methods = ['infomax', 'extended_infomax']
-    ch_types = ['eeg', 'mag']
+    methods = ["infomax", "extended_infomax"]
+    ch_types = ["eeg", "mag"]
     for ch_type in ch_types:
-        Y = generate_data_for_comparing_against_eeglab_infomax(
-            ch_type, random_state)
+        Y = generate_data_for_comparing_against_eeglab_infomax(ch_type, random_state)
         N, T = Y.shape
         for method in methods:
-            eeglab_results_file = ('eeglab_%s_results_%s_data.mat'
-                                   % (method,
-                                      dict(eeg='eeg', mag='meg')[ch_type]))
+            eeglab_results_file = "eeglab_%s_results_%s_data.mat" % (
+                method,
+                dict(eeg="eeg", mag="meg")[ch_type],
+            )
 
             # For comparison against eeglab, make sure the following
             # parameters have the same value in mne_python and eeglab:
@@ -135,11 +139,11 @@ def test_mne_python_vs_eeglab():
             blowup_fac_eeglab = 0.8
             max_iter_eeglab = 512
 
-            if method == 'infomax':
+            if method == "infomax":
                 anneal_step_eeglab = 0.9
                 use_extended = False
 
-            elif method == 'extended_infomax':
+            elif method == "extended_infomax":
                 anneal_step_eeglab = 0.98
                 use_extended = True
 
@@ -148,18 +152,26 @@ def test_mne_python_vs_eeglab():
             # Call mne_python infomax version using the following syntax
             # to obtain the same result than eeglab version
             unmixing = infomax(
-                Y.T, extended=use_extended, random_state=random_state,
-                max_iter=max_iter_eeglab, l_rate=l_rate_eeglab,
-                block=block_eeglab, w_change=w_change_eeglab,
-                blowup=blowup_eeglab, blowup_fac=blowup_fac_eeglab,
-                n_small_angle=None, anneal_step=anneal_step_eeglab)
+                Y.T,
+                extended=use_extended,
+                random_state=random_state,
+                max_iter=max_iter_eeglab,
+                l_rate=l_rate_eeglab,
+                block=block_eeglab,
+                w_change=w_change_eeglab,
+                blowup=blowup_eeglab,
+                blowup_fac=blowup_fac_eeglab,
+                n_small_angle=None,
+                anneal_step=anneal_step_eeglab,
+            )
 
             # Order the components in the same way that eeglab does
             sources = np.dot(unmixing, Y)
             mixing = pinv(unmixing)
 
-            mvar = np.sum(mixing ** 2, axis=0) * \
-                np.sum(sources ** 2, axis=1) / (N * T - 1)
+            mvar = (
+                np.sum(mixing**2, axis=0) * np.sum(sources**2, axis=1) / (N * T - 1)
+            )
             windex = np.argsort(mvar)[::-1]
 
             unmixing_ordered = unmixing[windex, :]
@@ -169,10 +181,9 @@ def test_mne_python_vs_eeglab():
             # the \ell_inf norm:
             # ||unmixing_mne_python - unmixing_eeglab||_inf
 
-            eeglab_data = sio.loadmat(op.join(base_dir, eeglab_results_file))
-            unmixing_eeglab = eeglab_data['unmixing_eeglab']
+            eeglab_data = sio.loadmat(base_dir / eeglab_results_file)
+            unmixing_eeglab = eeglab_data["unmixing_eeglab"]
 
-            maximum_difference = np.max(np.abs(unmixing_ordered -
-                                               unmixing_eeglab))
+            maximum_difference = np.max(np.abs(unmixing_ordered - unmixing_eeglab))
 
             assert_almost_equal(maximum_difference, 1e-12, decimal=10)

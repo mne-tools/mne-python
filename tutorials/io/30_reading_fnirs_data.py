@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 r"""
 .. _tut-importing-fnirs-data:
 
@@ -39,7 +38,7 @@ The Shared Near Infrared Spectroscopy Format
 is designed by the fNIRS community in an effort to facilitate
 sharing and analysis of fNIRS data. And is the official format of the
 Society for functional near-infrared spectroscopy (SfNIRS).
-The manufacturers Gowerlabs, NIRx, Kernel, and Cortivision
+The manufacturers Gowerlabs, NIRx, Kernel, Artinis, and Cortivision
 export data in the SNIRF format, and these files can be imported in to MNE.
 SNIRF is the preferred format for reading data in to MNE-Python.
 Data stored in the SNIRF format can be read in
@@ -73,7 +72,6 @@ The coordinate system is automatically detected for Gowerlabs SNIRF files.
 ***********************
 Continuous Wave Devices
 ***********************
-
 
 .. _import-nirx:
 
@@ -161,6 +159,7 @@ have to adapt this depending on the system from which your CSV originated.
 
 import numpy as np
 import pandas as pd
+
 import mne
 
 # sphinx_gallery_thumbnail_number = 2
@@ -177,7 +176,7 @@ pd.DataFrame(np.random.normal(size=(16, 100))).to_csv("fnirs.csv")
 # %%
 # Next, we will load the example CSV file.
 
-data = pd.read_csv('fnirs.csv')
+data = pd.read_csv("fnirs.csv")
 
 
 # %%
@@ -189,15 +188,43 @@ data = pd.read_csv('fnirs.csv')
 #              detector numbers and type is either ``hbo``, ``hbr`` or the
 #              wavelength.
 
-ch_names = ['S1_D1 hbo', 'S1_D1 hbr', 'S2_D1 hbo', 'S2_D1 hbr',
-            'S3_D1 hbo', 'S3_D1 hbr', 'S4_D1 hbo', 'S4_D1 hbr',
-            'S5_D2 hbo', 'S5_D2 hbr', 'S6_D2 hbo', 'S6_D2 hbr',
-            'S7_D2 hbo', 'S7_D2 hbr', 'S8_D2 hbo', 'S8_D2 hbr']
-ch_types = ['hbo', 'hbr', 'hbo', 'hbr',
-            'hbo', 'hbr', 'hbo', 'hbr',
-            'hbo', 'hbr', 'hbo', 'hbr',
-            'hbo', 'hbr', 'hbo', 'hbr']
-sfreq = 10.  # in Hz
+ch_names = [
+    "S1_D1 hbo",
+    "S1_D1 hbr",
+    "S2_D1 hbo",
+    "S2_D1 hbr",
+    "S3_D1 hbo",
+    "S3_D1 hbr",
+    "S4_D1 hbo",
+    "S4_D1 hbr",
+    "S5_D2 hbo",
+    "S5_D2 hbr",
+    "S6_D2 hbo",
+    "S6_D2 hbr",
+    "S7_D2 hbo",
+    "S7_D2 hbr",
+    "S8_D2 hbo",
+    "S8_D2 hbr",
+]
+ch_types = [
+    "hbo",
+    "hbr",
+    "hbo",
+    "hbr",
+    "hbo",
+    "hbr",
+    "hbo",
+    "hbr",
+    "hbo",
+    "hbr",
+    "hbo",
+    "hbr",
+    "hbo",
+    "hbr",
+    "hbo",
+    "hbr",
+]
+sfreq = 10.0  # in Hz
 
 
 # %%
@@ -237,7 +264,7 @@ raw = mne.io.RawArray(data, info, verbose=True)
 #           fNIRS with :func:`mne.channels.read_custom_montage` by setting
 #           ``coord_frame`` to ``'mri'``.
 
-montage = mne.channels.make_standard_montage('artinis-octamon')
+montage = mne.channels.make_standard_montage("artinis-octamon")
 raw.set_montage(montage)
 
 # View the position of optodes in 2D to confirm the positions are correct.
@@ -250,11 +277,12 @@ raw.plot_sensors()
 # The ficiduals are marked in blue, green and red.
 # See :ref:`tut-source-alignment` for more details.
 
-subjects_dir = mne.datasets.sample.data_path() / 'subjects'
+subjects_dir = mne.datasets.sample.data_path() / "subjects"
 mne.datasets.fetch_fsaverage(subjects_dir=subjects_dir)
 
-brain = mne.viz.Brain('fsaverage', subjects_dir=subjects_dir,
-                      alpha=0.5, cortex='low_contrast')
+brain = mne.viz.Brain(
+    "fsaverage", subjects_dir=subjects_dir, alpha=0.5, cortex="low_contrast"
+)
 brain.add_head()
-brain.add_sensors(raw.info, trans='fsaverage')
+brain.add_sensors(raw.info, trans="fsaverage")
 brain.show_view(azimuth=90, elevation=90, distance=500)

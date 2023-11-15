@@ -1,12 +1,13 @@
 # License: BSD Style.
 
 from ...utils import verbose
-from ..utils import (_get_version, _version_doc, _download_mne_dataset)
+from ..utils import _download_mne_dataset, _get_version, _version_doc
 
 
 @verbose
-def data_path(path=None, force_update=False, update_path=True,
-              download=True, *, verbose=None):
+def data_path(
+    path=None, force_update=False, update_path=True, download=True, *, verbose=None
+):
     """Get path to local copy of the kiloword dataset.
 
     This is the dataset from :footcite:`DufauEtAl2015`.
@@ -44,14 +45,18 @@ def data_path(path=None, force_update=False, update_path=True,
     .. footbibliography::
     """
     return _download_mne_dataset(
-        name='kiloword', processor='untar', path=path,
-        force_update=force_update, update_path=update_path,
-        download=download)
+        name="kiloword",
+        processor="untar",
+        path=path,
+        force_update=force_update,
+        update_path=update_path,
+        download=download,
+    )
 
 
 def get_version():
     """Get dataset version."""
-    return _get_version('kiloword')
+    return _get_version("kiloword")
 
 
-get_version.__doc__ = _version_doc.format(name='kiloword')
+get_version.__doc__ = _version_doc.format(name="kiloword")

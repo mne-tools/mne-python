@@ -5,22 +5,23 @@
 # License: BSD-3-Clause
 
 import numpy as np
+from scipy import linalg
 
-from .. import EvokedArray, Evoked
+from .._fiff.pick import _pick_data_channels, pick_info
 from ..cov import Covariance, _regularized_covariance
-from ..decoding import TransformerMixin, BaseEstimator
+from ..decoding import BaseEstimator, TransformerMixin
 from ..epochs import BaseEpochs
+from ..evoked import Evoked, EvokedArray
 from ..io import BaseRaw
-from ..io.pick import _pick_data_channels, pick_info
-from ..utils import logger, _check_option
+from ..utils import _check_option, logger
 
 
 def _construct_signal_from_epochs(epochs, events, sfreq, tmin):
     """Reconstruct pseudo continuous signal from epochs."""
     n_epochs, n_channels, n_times = epochs.shape
     tmax = tmin + n_times / float(sfreq)
-    start = (np.min(events[:, 0]) + int(tmin * sfreq))
-    stop = (np.max(events[:, 0]) + int(tmax * sfreq) + 1)
+    start = np.min(events[:, 0]) + int(tmin * sfreq)
+    stop = np.max(events[:, 0]) + int(tmax * sfreq) + 1
 
     n_samples = stop - start
     n_epochs, n_channels, n_times = epochs.shape
@@ -58,7 +59,6 @@ def _least_square_evoked(epochs_data, events, tmin, sfreq):
     toeplitz : array, shape (n_class * n_components, n_channels)
         An concatenated array of toeplitz matrix for each event type.
     """
-    from scipy import linalg
     n_epochs, n_channels, n_times = epochs_data.shape
     tmax = tmin + n_times / float(sfreq)
 
@@ -97,8 +97,18 @@ def _least_square_evoked(epochs_data, events, tmin, sfreq):
     return evokeds, toeplitz
 
 
-def _fit_xdawn(epochs_data, y, n_components, reg=None, signal_cov=None,
-               events=None, tmin=0., sfreq=1., method_params=None, info=None):
+def _fit_xdawn(
+    epochs_data,
+    y,
+    n_components,
+    reg=None,
+    signal_cov=None,
+    events=None,
+    tmin=0.0,
+    sfreq=1.0,
+    method_params=None,
+    info=None,
+):
     """Fit filters and coefs using Xdawn Algorithm.
 
     Xdawn is a spatial filtering method designed to improve the signal
@@ -143,9 +153,8 @@ def _fit_xdawn(epochs_data, y, n_components, reg=None, signal_cov=None,
     evokeds : array, shape (n_class, n_components, n_times)
         The independent evoked responses per condition.
     """
-    from scipy import linalg
     if not isinstance(epochs_data, np.ndarray) or epochs_data.ndim != 3:
-        raise ValueError('epochs_data must be 3D ndarray')
+        raise ValueError("epochs_data must be 3D ndarray")
 
     classes = np.unique(y)
 
@@ -157,40 +166,43 @@ def _fit_xdawn(epochs_data, y, n_components, reg=None, signal_cov=None,
     # Retrieve or compute whitening covariance
     if signal_cov is None:
         signal_cov = _regularized_covariance(
-            np.hstack(epochs_data), reg, method_params, info, rank='full')
+            np.hstack(epochs_data), reg, method_params, info, rank="full"
+        )
     elif isinstance(signal_cov, Covariance):
         signal_cov = signal_cov.data
     if not isinstance(signal_cov, np.ndarray) or (
-            not np.array_equal(signal_cov.shape,
-                               np.tile(epochs_data.shape[1], 2))):
-        raise ValueError('signal_cov must be None, a covariance instance, '
-                         'or an array of shape (n_chans, n_chans)')
+        not np.array_equal(signal_cov.shape, np.tile(epochs_data.shape[1], 2))
+    ):
+        raise ValueError(
+            "signal_cov must be None, a covariance instance, "
+            "or an array of shape (n_chans, n_chans)"
+        )
 
     # Get prototype events
     if events is not None:
-        evokeds, toeplitzs = _least_square_evoked(
-            epochs_data, events, tmin, sfreq)
+        evokeds, toeplitzs = _least_square_evoked(epochs_data, events, tmin, sfreq)
     else:
         evokeds, toeplitzs = list(), list()
         for c in classes:
             # Prototyped response for each class
             evokeds.append(np.mean(epochs_data[y == c, :, :], axis=0))
-            toeplitzs.append(1.)
+            toeplitzs.append(1.0)
 
     filters = list()
     patterns = list()
     for evo, toeplitz in zip(evokeds, toeplitzs):
         # Estimate covariance matrix of the prototype response
         evo = np.dot(evo, toeplitz)
-        evo_cov = _regularized_covariance(evo, reg, method_params, info,
-                                          rank='full')
+        evo_cov = _regularized_covariance(evo, reg, method_params, info, rank="full")
 
         # Fit spatial filters
         try:
             evals, evecs = linalg.eigh(evo_cov, signal_cov)
         except np.linalg.LinAlgError as exp:
-            raise ValueError('Could not compute eigenvalues, ensure '
-                             'proper regularization (%s)' % (exp,))
+            raise ValueError(
+                "Could not compute eigenvalues, ensure "
+                "proper regularization (%s)" % (exp,)
+            )
         evecs = evecs[:, np.argsort(evals)[::-1]]  # sort eigenvectors
         evecs /= np.apply_along_axis(np.linalg.norm, 0, evecs)
         _patterns = np.linalg.pinv(evecs.T)
@@ -243,8 +255,7 @@ class _XdawnTransformer(BaseEstimator, TransformerMixin):
         The Xdawn patterns used to restore the signals for each event type.
     """
 
-    def __init__(self, n_components=2, reg=None, signal_cov=None,
-                 method_params=None):
+    def __init__(self, n_components=2, reg=None, signal_cov=None, method_params=None):
         """Init."""
         self.n_components = n_components
         self.signal_cov = signal_cov
@@ -271,8 +282,13 @@ class _XdawnTransformer(BaseEstimator, TransformerMixin):
         # Main function
         self.classes_ = np.unique(y)
         self.filters_, self.patterns_, _ = _fit_xdawn(
-            X, y, n_components=self.n_components, reg=self.reg,
-            signal_cov=self.signal_cov, method_params=self.method_params)
+            X,
+            y,
+            n_components=self.n_components,
+            reg=self.reg,
+            signal_cov=self.signal_cov,
+            method_params=self.method_params,
+        )
         return self
 
     def transform(self, X):
@@ -292,8 +308,10 @@ class _XdawnTransformer(BaseEstimator, TransformerMixin):
 
         # Check size
         if self.filters_.shape[1] != X.shape[1]:
-            raise ValueError('X must have %i channels, got %i instead.' % (
-                self.filters_.shape[1], X.shape[1]))
+            raise ValueError(
+                "X must have %i channels, got %i instead."
+                % (self.filters_.shape[1], X.shape[1])
+            )
 
         # Transform
         X = np.dot(self.filters_, X)
@@ -322,8 +340,10 @@ class _XdawnTransformer(BaseEstimator, TransformerMixin):
         X, _ = self._check_Xy(X)
         n_epochs, n_comp, n_times = X.shape
         if n_comp != (self.n_components * len(self.classes_)):
-            raise ValueError('X must have %i components, got %i instead' % (
-                self.n_components * len(self.classes_), n_comp))
+            raise ValueError(
+                "X must have %i components, got %i instead"
+                % (self.n_components * len(self.classes_), n_comp)
+            )
 
         # Transform
         return np.dot(self.patterns_.T, X).transpose(1, 0, 2)
@@ -332,13 +352,14 @@ class _XdawnTransformer(BaseEstimator, TransformerMixin):
         """Check X and y types and dimensions."""
         # Check data
         if not isinstance(X, np.ndarray) or X.ndim != 3:
-            raise ValueError('X must be an array of shape (n_epochs, '
-                             'n_channels, n_samples).')
+            raise ValueError(
+                "X must be an array of shape (n_epochs, " "n_channels, n_samples)."
+            )
         if y is None:
             y = np.ones(len(X))
         y = np.asarray(y)
         if len(X) != len(y):
-            raise ValueError('X and y must have the same length')
+            raise ValueError("X and y must have the same length")
         return X, y
 
 
@@ -399,14 +420,16 @@ class Xdawn(_XdawnTransformer):
     .. footbibliography::
     """
 
-    def __init__(self, n_components=2, signal_cov=None, correct_overlap='auto',
-                 reg=None):
+    def __init__(
+        self, n_components=2, signal_cov=None, correct_overlap="auto", reg=None
+    ):
         """Init."""
-        super(Xdawn, self).__init__(n_components=n_components,
-                                    signal_cov=signal_cov, reg=reg)
-        self.correct_overlap = _check_option('correct_overlap',
-                                             correct_overlap,
-                                             ['auto', True, False])
+        super(Xdawn, self).__init__(
+            n_components=n_components, signal_cov=signal_cov, reg=reg
+        )
+        self.correct_overlap = _check_option(
+            "correct_overlap", correct_overlap, ["auto", True, False]
+        )
 
     def fit(self, epochs, y=None):
         """Fit Xdawn from epochs.
@@ -425,31 +448,32 @@ class Xdawn(_XdawnTransformer):
         """
         # Check data
         if not isinstance(epochs, BaseEpochs):
-            raise ValueError('epochs must be an Epochs object.')
+            raise ValueError("epochs must be an Epochs object.")
         picks = _pick_data_channels(epochs.info)
         use_info = pick_info(epochs.info, picks)
-        X = epochs.get_data()[:, picks, :]
+        X = epochs.get_data(picks)
         y = epochs.events[:, 2] if y is None else y
         self.event_id_ = epochs.event_id
 
         # Check that no baseline was applied with correct overlap
         correct_overlap = self.correct_overlap
-        if correct_overlap == 'auto':
+        if correct_overlap == "auto":
             # Events are overlapped if the minimal inter-stimulus
             # interval is smaller than the time window.
             isi = np.diff(np.sort(epochs.events[:, 0]))
-            window = int((epochs.tmax - epochs.tmin) * epochs.info['sfreq'])
+            window = int((epochs.tmax - epochs.tmin) * epochs.info["sfreq"])
             correct_overlap = isi.min() < window
 
         if epochs.baseline and correct_overlap:
-            raise ValueError('Cannot apply correct_overlap if epochs'
-                             ' were baselined.')
+            raise ValueError(
+                "Cannot apply correct_overlap if epochs" " were baselined."
+            )
 
-        events, tmin, sfreq = None, 0., 1.
+        events, tmin, sfreq = None, 0.0, 1.0
         if correct_overlap:
             events = epochs.events
             tmin = epochs.tmin
-            sfreq = epochs.info['sfreq']
+            sfreq = epochs.info["sfreq"]
         self.correct_overlap_ = correct_overlap
 
         # Note: In this original version of Xdawn we compute and keep all
@@ -458,9 +482,17 @@ class Xdawn(_XdawnTransformer):
 
         # Main fitting function
         filters, patterns, evokeds = _fit_xdawn(
-            X, y, n_components=n_components, reg=self.reg,
-            signal_cov=self.signal_cov, events=events, tmin=tmin, sfreq=sfreq,
-            method_params=self.method_params, info=use_info)
+            X,
+            y,
+            n_components=n_components,
+            reg=self.reg,
+            signal_cov=self.signal_cov,
+            events=events,
+            tmin=tmin,
+            sfreq=sfreq,
+            method_params=self.method_params,
+            info=use_info,
+        )
 
         # Re-order filters and patterns according to event_id
         filters = filters.reshape(-1, n_components, filters.shape[-1])
@@ -468,12 +500,14 @@ class Xdawn(_XdawnTransformer):
         self.filters_, self.patterns_, self.evokeds_ = dict(), dict(), dict()
         idx = np.argsort([value for _, value in epochs.event_id.items()])
         for eid, this_filter, this_pattern, this_evo in zip(
-                epochs.event_id, filters[idx], patterns[idx], evokeds[idx]):
+            epochs.event_id, filters[idx], patterns[idx], evokeds[idx]
+        ):
             self.filters_[eid] = this_filter
             self.patterns_[eid] = this_pattern
             n_events = len(epochs[eid])
-            evoked = EvokedArray(this_evo, use_info, tmin=epochs.tmin,
-                                 comment=eid, nave=n_events)
+            evoked = EvokedArray(
+                this_evo, use_info, tmin=epochs.tmin, comment=eid, nave=n_events
+            )
             self.evokeds_[eid] = evoked
         return self
 
@@ -491,18 +525,17 @@ class Xdawn(_XdawnTransformer):
             Spatially filtered signals.
         """  # noqa: E501
         if isinstance(inst, BaseEpochs):
-            X = inst.get_data()
+            X = inst.get_data(copy=False)
         elif isinstance(inst, Evoked):
             X = inst.data
         elif isinstance(inst, np.ndarray):
             X = inst
             if X.ndim not in (2, 3):
-                raise ValueError('X must be 2D or 3D, got %s' % (X.ndim,))
+                raise ValueError("X must be 2D or 3D, got %s" % (X.ndim,))
         else:
-            raise ValueError('Data input must be of Epoch type or numpy array')
+            raise ValueError("Data input must be of Epoch type or numpy array")
 
-        filters = [filt[:self.n_components]
-                   for filt in self.filters_.values()]
+        filters = [filt[: self.n_components] for filt in self.filters_.values()]
         filters = np.concatenate(filters, axis=0)
         X = np.dot(filters, X)
         if X.ndim == 3:
@@ -543,7 +576,7 @@ class Xdawn(_XdawnTransformer):
             event_id = self.event_id_
 
         if not isinstance(inst, (BaseRaw, BaseEpochs, Evoked)):
-            raise ValueError('Data input must be Raw, Epochs or Evoked type')
+            raise ValueError("Data input must be Raw, Epochs or Evoked type")
         picks = _pick_data_channels(inst.info)
 
         # Define the components to keep
@@ -554,20 +587,35 @@ class Xdawn(_XdawnTransformer):
             exclude = list(set(list(default_exclude) + list(exclude)))
 
         if isinstance(inst, BaseRaw):
-            out = self._apply_raw(raw=inst, include=include, exclude=exclude,
-                                  event_id=event_id, picks=picks)
+            out = self._apply_raw(
+                raw=inst,
+                include=include,
+                exclude=exclude,
+                event_id=event_id,
+                picks=picks,
+            )
         elif isinstance(inst, BaseEpochs):
-            out = self._apply_epochs(epochs=inst, include=include, picks=picks,
-                                     exclude=exclude, event_id=event_id)
+            out = self._apply_epochs(
+                epochs=inst,
+                include=include,
+                picks=picks,
+                exclude=exclude,
+                event_id=event_id,
+            )
         elif isinstance(inst, Evoked):
-            out = self._apply_evoked(evoked=inst, include=include, picks=picks,
-                                     exclude=exclude, event_id=event_id)
+            out = self._apply_evoked(
+                evoked=inst,
+                include=include,
+                picks=picks,
+                exclude=exclude,
+                event_id=event_id,
+            )
         return out
 
     def _apply_raw(self, raw, include, exclude, event_id, picks):
         """Aux method."""
         if not raw.preload:
-            raise ValueError('Raw data must be preloaded to apply Xdawn')
+            raise ValueError("Raw data must be preloaded to apply Xdawn")
 
         raws = dict()
         for eid in event_id:
@@ -584,14 +632,13 @@ class Xdawn(_XdawnTransformer):
     def _apply_epochs(self, epochs, include, exclude, event_id, picks):
         """Aux method."""
         if not epochs.preload:
-            raise ValueError('Epochs must be preloaded to apply Xdawn')
+            raise ValueError("Epochs must be preloaded to apply Xdawn")
 
         # special case where epochs come picked but fit was 'unpicked'.
         epochs_dict = dict()
-        data = np.hstack(epochs.get_data()[:, picks])
+        data = np.hstack(epochs.get_data(picks))
 
         for eid in event_id:
-
             data_r = self._pick_sources(data, include, exclude, eid)
             data_r = np.array(np.split(data_r, len(epochs.events), 1))
             epochs_r = epochs.copy().load_data()
@@ -606,7 +653,6 @@ class Xdawn(_XdawnTransformer):
         evokeds = dict()
 
         for eid in event_id:
-
             data_r = self._pick_sources(data, include, exclude, eid)
             evokeds[eid] = evoked.copy()
 
@@ -617,7 +663,7 @@ class Xdawn(_XdawnTransformer):
 
     def _pick_sources(self, data, include, exclude, eid):
         """Aux method."""
-        logger.info('Transforming to Xdawn space')
+        logger.info("Transforming to Xdawn space")
 
         # Apply unmixing
         sources = np.dot(self.filters_[eid], data)
@@ -625,13 +671,13 @@ class Xdawn(_XdawnTransformer):
         if include not in (None, list()):
             mask = np.ones(len(sources), dtype=bool)
             mask[np.unique(include)] = False
-            sources[mask] = 0.
-            logger.info('Zeroing out %i Xdawn components' % mask.sum())
+            sources[mask] = 0.0
+            logger.info("Zeroing out %i Xdawn components" % mask.sum())
         elif exclude not in (None, list()):
             exclude_ = np.unique(exclude)
-            sources[exclude_] = 0.
-            logger.info('Zeroing out %i Xdawn components' % len(exclude_))
-        logger.info('Inverse transforming to sensor space')
+            sources[exclude_] = 0.0
+            logger.info("Zeroing out %i Xdawn components" % len(exclude_))
+        logger.info("Inverse transforming to sensor space")
         data = np.dot(self.patterns_[eid].T, sources)
 
         return data
@@ -639,4 +685,4 @@ class Xdawn(_XdawnTransformer):
     def inverse_transform(self):
         """Not implemented, see Xdawn.apply() instead."""
         # Exists because of _XdawnTransformer
-        raise NotImplementedError('See Xdawn.apply()')
+        raise NotImplementedError("See Xdawn.apply()")

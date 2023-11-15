@@ -6,16 +6,17 @@
 #
 # License: BSD-3-Clause
 
-from inspect import isgenerator
 from collections import namedtuple
+from inspect import isgenerator
 
 import numpy as np
+from scipy import linalg, sparse, stats
 
-from ..source_estimate import SourceEstimate
+from .._fiff.pick import _picks_to_idx, pick_info, pick_types
 from ..epochs import BaseEpochs
 from ..evoked import Evoked, EvokedArray
-from ..utils import logger, _reject_data_segments, warn, fill_doc
-from ..io.pick import pick_types, pick_info, _picks_to_idx
+from ..source_estimate import SourceEstimate
+from ..utils import _reject_data_segments, fill_doc, logger, warn
 
 
 def linear_regression(inst, design_matrix, names=None):
@@ -58,62 +59,71 @@ def linear_regression(inst, design_matrix, names=None):
         ``(n_channels, n_timepoints)``.
     """
     if names is None:
-        names = ['x%i' % i for i in range(design_matrix.shape[1])]
+        names = ["x%i" % i for i in range(design_matrix.shape[1])]
 
     if isinstance(inst, BaseEpochs):
-        picks = pick_types(inst.info, meg=True, eeg=True, ref_meg=True,
-                           stim=False, eog=False, ecg=False,
-                           emg=False, exclude=['bads'])
+        picks = pick_types(
+            inst.info,
+            meg=True,
+            eeg=True,
+            ref_meg=True,
+            stim=False,
+            eog=False,
+            ecg=False,
+            emg=False,
+            exclude=["bads"],
+        )
         if [inst.ch_names[p] for p in picks] != inst.ch_names:
-            warn('Fitting linear model to non-data or bad channels. '
-                 'Check picking')
-        msg = 'Fitting linear model to epochs'
-        data = inst.get_data()
+            warn("Fitting linear model to non-data or bad channels. " "Check picking")
+        msg = "Fitting linear model to epochs"
+        data = inst.get_data(copy=False)
         out = EvokedArray(np.zeros(data.shape[1:]), inst.info, inst.tmin)
     elif isgenerator(inst):
-        msg = 'Fitting linear model to source estimates (generator input)'
+        msg = "Fitting linear model to source estimates (generator input)"
         out = next(inst)
         data = np.array([out.data] + [i.data for i in inst])
     elif isinstance(inst, list) and isinstance(inst[0], SourceEstimate):
-        msg = 'Fitting linear model to source estimates (list input)'
+        msg = "Fitting linear model to source estimates (list input)"
         out = inst[0]
         data = np.array([i.data for i in inst])
     else:
-        raise ValueError('Input must be epochs or iterable of source '
-                         'estimates')
-    logger.info(msg + ', (%s targets, %s regressors)' %
-                (np.product(data.shape[1:]), len(names)))
+        raise ValueError("Input must be epochs or iterable of source " "estimates")
+    logger.info(
+        msg + ", (%s targets, %s regressors)" % (np.prod(data.shape[1:]), len(names))
+    )
     lm_params = _fit_lm(data, design_matrix, names)
-    lm = namedtuple('lm', 'beta stderr t_val p_val mlog10_p_val')
+    lm = namedtuple("lm", "beta stderr t_val p_val mlog10_p_val")
     lm_fits = {}
     for name in names:
         parameters = [p[name] for p in lm_params]
         for ii, value in enumerate(parameters):
             out_ = out.copy()
             if not isinstance(out_, (SourceEstimate, Evoked)):
-                raise RuntimeError('Invalid container.')
+                raise RuntimeError("Invalid container.")
             out_._data[:] = value
             parameters[ii] = out_
         lm_fits[name] = lm(*parameters)
-    logger.info('Done')
+    logger.info("Done")
     return lm_fits
 
 
 def _fit_lm(data, design_matrix, names):
     """Aux function."""
-    from scipy import stats, linalg
     n_samples = len(data)
-    n_features = np.product(data.shape[1:])
+    n_features = np.prod(data.shape[1:])
     if design_matrix.ndim != 2:
-        raise ValueError('Design matrix must be a 2d array')
+        raise ValueError("Design matrix must be a 2d array")
     n_rows, n_predictors = design_matrix.shape
 
     if n_samples != n_rows:
-        raise ValueError('Number of rows in design matrix must be equal '
-                         'to number of observations')
+        raise ValueError(
+            "Number of rows in design matrix must be equal " "to number of observations"
+        )
     if n_predictors != len(names):
-        raise ValueError('Number of regressor names must be equal to '
-                         'number of column in design matrix')
+        raise ValueError(
+            "Number of regressor names must be equal to "
+            "number of column in design matrix"
+        )
 
     y = np.reshape(data, (n_samples, n_features))
     betas, resid_sum_squares, _, _ = linalg.lstsq(a=design_matrix, b=y)
@@ -130,29 +140,41 @@ def _fit_lm(data, design_matrix, names):
         p_val[predictor] = np.empty_like(stderr[predictor])
         t_val[predictor] = np.empty_like(stderr[predictor])
 
-        stderr_pos = (stderr[predictor] > 0)
-        beta_pos = (beta[predictor] > 0)
-        t_val[predictor][stderr_pos] = (beta[predictor][stderr_pos] /
-                                        stderr[predictor][stderr_pos])
+        stderr_pos = stderr[predictor] > 0
+        beta_pos = beta[predictor] > 0
+        t_val[predictor][stderr_pos] = (
+            beta[predictor][stderr_pos] / stderr[predictor][stderr_pos]
+        )
         cdf = stats.t.cdf(np.abs(t_val[predictor][stderr_pos]), df)
-        p_val[predictor][stderr_pos] = np.clip((1. - cdf) * 2., tiny, 1.)
+        p_val[predictor][stderr_pos] = np.clip((1.0 - cdf) * 2.0, tiny, 1.0)
         # degenerate cases
-        mask = (~stderr_pos & beta_pos)
+        mask = ~stderr_pos & beta_pos
         t_val[predictor][mask] = np.inf * np.sign(beta[predictor][mask])
         p_val[predictor][mask] = tiny
         # could do NaN here, but hopefully this is safe enough
-        mask = (~stderr_pos & ~beta_pos)
+        mask = ~stderr_pos & ~beta_pos
         t_val[predictor][mask] = 0
-        p_val[predictor][mask] = 1.
+        p_val[predictor][mask] = 1.0
         mlog10_p_val[predictor] = -np.log10(p_val[predictor])
 
     return beta, stderr, t_val, p_val, mlog10_p_val
 
 
 @fill_doc
-def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
-                          covariates=None, reject=None, flat=None, tstep=1.,
-                          decim=1, picks=None, solver='cholesky'):
+def linear_regression_raw(
+    raw,
+    events,
+    event_id=None,
+    tmin=-0.1,
+    tmax=1,
+    covariates=None,
+    reject=None,
+    flat=None,
+    tstep=1.0,
+    decim=1,
+    picks=None,
+    solver="cholesky",
+):
     """Estimate regression-based evoked potentials/fields by linear modeling.
 
     This models the full M/EEG time course, including correction for
@@ -241,31 +263,38 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
     ----------
     .. footbibliography::
     """
-    from scipy import linalg
     if isinstance(solver, str):
         if solver not in {"cholesky"}:
             raise ValueError("No such solver: {}".format(solver))
-        if solver == 'cholesky':
+        if solver == "cholesky":
+
             def solver(X, y):
                 a = (X.T * X).toarray()  # dot product of sparse matrices
-                return linalg.solve(a, X.T * y, assume_a='pos',
-                                    overwrite_a=True, overwrite_b=True).T
+                return linalg.solve(
+                    a, X.T * y, assume_a="pos", overwrite_a=True, overwrite_b=True
+                ).T
+
     elif callable(solver):
         pass
     else:
         raise TypeError("The solver must be a str or a callable.")
 
     # build data
-    data, info, events = _prepare_rerp_data(raw, events, picks=picks,
-                                            decim=decim)
+    data, info, events = _prepare_rerp_data(raw, events, picks=picks, decim=decim)
 
     if event_id is None:
         event_id = {str(v): v for v in set(events[:, 2])}
 
     # build predictors
     X, conds, cond_length, tmin_s, tmax_s = _prepare_rerp_preds(
-        n_samples=data.shape[1], sfreq=info["sfreq"], events=events,
-        event_id=event_id, tmin=tmin, tmax=tmax, covariates=covariates)
+        n_samples=data.shape[1],
+        sfreq=info["sfreq"],
+        events=events,
+        event_id=event_id,
+        tmin=tmin,
+        tmax=tmax,
+        covariates=covariates,
+    )
 
     # remove "empty" and contaminated data points
     X, data = _clean_rerp_input(X, data, reject, flat, decim, info, tstep)
@@ -273,9 +302,11 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
     # solve linear system
     coefs = solver(X, data.T)
     if coefs.shape[0] != data.shape[0]:
-        raise ValueError("solver output has unexcepted shape. Supply a "
-                         "function that returns coefficients in the form "
-                         "(n_targets, n_features), where targets == channels.")
+        raise ValueError(
+            "solver output has unexcepted shape. Supply a "
+            "function that returns coefficients in the form "
+            "(n_targets, n_features), where targets == channels."
+        )
 
     # construct Evoked objects to be returned from output
     evokeds = _make_evokeds(coefs, conds, cond_length, tmin_s, tmax_s, info)
@@ -293,27 +324,31 @@ def _prepare_rerp_data(raw, events, picks=None, decim=1):
     data, times = raw[:]
     data = data[picks, ::decim]
     if len(set(events[:, 0])) < len(events[:, 0]):
-        raise ValueError("`events` contains duplicate time points. Make "
-                         "sure all entries in the first column of `events` "
-                         "are unique.")
+        raise ValueError(
+            "`events` contains duplicate time points. Make "
+            "sure all entries in the first column of `events` "
+            "are unique."
+        )
 
     events = events.copy()
     events[:, 0] -= raw.first_samp
     events[:, 0] //= decim
     if len(set(events[:, 0])) < len(events[:, 0]):
-        raise ValueError("After decimating, `events` contains duplicate time "
-                         "points. This means some events are too closely "
-                         "spaced for the requested decimation factor. Choose "
-                         "different events, drop close events, or choose a "
-                         "different decimation factor.")
+        raise ValueError(
+            "After decimating, `events` contains duplicate time "
+            "points. This means some events are too closely "
+            "spaced for the requested decimation factor. Choose "
+            "different events, drop close events, or choose a "
+            "different decimation factor."
+        )
 
     return data, info, events
 
 
-def _prepare_rerp_preds(n_samples, sfreq, events, event_id=None, tmin=-.1,
-                        tmax=1, covariates=None):
+def _prepare_rerp_preds(
+    n_samples, sfreq, events, event_id=None, tmin=-0.1, tmax=1, covariates=None
+):
     """Build predictor matrix and metadata (e.g. condition time windows)."""
-    from scipy import sparse
     conds = list(event_id)
     if covariates is not None:
         conds += list(covariates)
@@ -323,14 +358,11 @@ def _prepare_rerp_preds(n_samples, sfreq, events, event_id=None, tmin=-.1,
     if isinstance(tmin, (float, int)):
         tmin_s = {cond: int(round(tmin * sfreq)) for cond in conds}
     else:
-        tmin_s = {cond: int(round(tmin.get(cond, -.1) * sfreq))
-                  for cond in conds}
+        tmin_s = {cond: int(round(tmin.get(cond, -0.1) * sfreq)) for cond in conds}
     if isinstance(tmax, (float, int)):
-        tmax_s = {
-            cond: int(round((tmax * sfreq)) + 1) for cond in conds}
+        tmax_s = {cond: int(round((tmax * sfreq)) + 1) for cond in conds}
     else:
-        tmax_s = {cond: int(round(tmax.get(cond, 1.) * sfreq)) + 1
-                  for cond in conds}
+        tmax_s = {cond: int(round(tmax.get(cond, 1.0) * sfreq)) + 1 for cond in conds}
 
     # Construct predictor matrix
     # We do this by creating one array per event type, shape (lags, samples)
@@ -345,25 +377,26 @@ def _prepare_rerp_preds(n_samples, sfreq, events, event_id=None, tmin=-.1,
         tmin_, tmax_ = tmin_s[cond], tmax_s[cond]
         n_lags = int(tmax_ - tmin_)  # width of matrix
         if cond in event_id:  # for binary predictors
-            ids = ([event_id[cond]]
-                   if isinstance(event_id[cond], int)
-                   else event_id[cond])
-            onsets = -(events[np.in1d(events[:, 2], ids), 0] + tmin_)
+            ids = (
+                [event_id[cond]] if isinstance(event_id[cond], int) else event_id[cond]
+            )
+            onsets = -(events[np.isin(events[:, 2], ids), 0] + tmin_)
             values = np.ones((len(onsets), n_lags))
 
         else:  # for predictors from covariates, e.g. continuous ones
             covs = covariates[cond]
             if len(covs) != len(events):
-                error = ("Condition {0} from ``covariates`` is "
-                         "not the same length as ``events``").format(cond)
+                error = (
+                    "Condition {0} from ``covariates`` is "
+                    "not the same length as ``events``"
+                ).format(cond)
                 raise ValueError(error)
             onsets = -(events[np.where(covs != 0), 0] + tmin_)[0]
             v = np.asarray(covs)[np.nonzero(covs)].astype(float)
             values = np.ones((len(onsets), n_lags)) * v[:, np.newaxis]
 
         cond_length[cond] = len(onsets)
-        xs.append(sparse.dia_matrix((values, onsets),
-                                    shape=(n_samples, n_lags)))
+        xs.append(sparse.dia_matrix((values, onsets), shape=(n_samples, n_lags)))
 
     return sparse.hstack(xs), conds, cond_length, tmin_s, tmax_s
 
@@ -375,8 +408,9 @@ def _clean_rerp_input(X, data, reject, flat, decim, info, tstep):
 
     # reject positions based on extreme steps in the data
     if reject is not None:
-        _, inds = _reject_data_segments(data, reject, flat, decim=None,
-                                        info=info, tstep=tstep)
+        _, inds = _reject_data_segments(
+            data, reject, flat, decim=None, info=info, tstep=tstep
+        )
         for t0, t1 in inds:
             has_val = np.setdiff1d(has_val, range(t0, t1))
 
@@ -393,8 +427,12 @@ def _make_evokeds(coefs, conds, cond_length, tmin_s, tmax_s, info):
     for cond in conds:
         tmin_, tmax_ = tmin_s[cond], tmax_s[cond]
         evokeds[cond] = EvokedArray(
-            coefs[:, cumul:cumul + tmax_ - tmin_], info=info, comment=cond,
-            tmin=tmin_ / float(info["sfreq"]), nave=cond_length[cond],
-            kind='average')  # nave and kind are technically incorrect
+            coefs[:, cumul : cumul + tmax_ - tmin_],
+            info=info,
+            comment=cond,
+            tmin=tmin_ / float(info["sfreq"]),
+            nave=cond_length[cond],
+            kind="average",
+        )  # nave and kind are technically incorrect
         cumul += tmax_ - tmin_
     return evokeds

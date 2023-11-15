@@ -1,12 +1,11 @@
-#!/bin/bash -ef
+#!/bin/bash -e
 
-if [ "$CIRCLE_BRANCH" == "main" ] || [[ $(cat gitlog.txt) == *"[circle full]"* ]]; then
-    echo "Doing a full dev build";
-    echo html_dev-memory > build.txt;
-    python -c "import mne; mne.datasets._download_all_example_data()";
-elif [ "$CIRCLE_BRANCH" == "maint/1.1" ]; then
-    echo "Doing a full stable build";
-    echo html_stable-memory > build.txt;
+set -o pipefail
+export MNE_TQDM=off
+
+if [ "$CIRCLE_BRANCH" == "main" ] || [[ $(cat gitlog.txt) == *"[circle full]"* ]] || [[ "$CIRCLE_BRANCH" == "maint/"* ]]; then
+    echo "Doing a full build";
+    echo html-memory > build.txt;
     python -c "import mne; mne.datasets._download_all_example_data()";
 else
     echo "Doing a partial build";
@@ -59,6 +58,9 @@ else
             if [[ $(cat $FNAME | grep -x ".*brainstorm.*bst_phantom_elekta.*" | wc -l) -gt 0 ]]; then
                 python -c "import mne; print(mne.datasets.brainstorm.bst_phantom_elekta.data_path(update_path=True, accept=True))";
             fi;
+            if [[ $(cat $FNAME | grep -x ".*datasets.*phantom_kernel.*" | wc -l) -gt 0 ]]; then
+                python -c "import mne; print(mne.datasets.phantom_kernel.data_path(update_path=True))";
+            fi;
             if [[ $(cat $FNAME | grep -x ".*datasets.*hcp_mmp_parcellation.*" | wc -l) -gt 0 ]]; then
                 python -c "import mne; print(mne.datasets.sample.data_path(update_path=True))";
                 python -c "import mne; print(mne.datasets.fetch_hcp_mmp_parcellation(subjects_dir=mne.datasets.sample.data_path() / 'subjects', accept=True))";
@@ -84,7 +86,7 @@ else
             if [[ $(cat $FNAME | grep -x ".*datasets.*fnirs_motor.*" | wc -l) -gt 0 ]]; then
                 python -c "import mne; print(mne.datasets.fnirs_motor.data_path(update_path=True))";
             fi;
-            if [[ $(cat $FNAME | grep -x ".*datasets.*opm.*" | wc -l) -gt 0 ]]; then
+            if [[ $(cat $FNAME | grep -x ".*datasets[^_]*opm.*" | wc -l) -gt 0 ]]; then
                 python -c "import mne; print(mne.datasets.opm.data_path(update_path=True))";
             fi;
             if [[ $(cat $FNAME | grep -x ".*datasets.*phantom_4dbti.*" | wc -l) -gt 0 ]]; then
@@ -105,14 +107,23 @@ else
             if [[ $(cat $FNAME | grep -x ".*datasets.*erp_core.*" | wc -l) -gt 0 ]]; then
                 python -c "import mne; print(mne.datasets.erp_core.data_path(update_path=True))";
             fi;
+            if [[ $(cat $FNAME | grep -x ".*datasets.*eyelink.*" | wc -l) -gt 0 ]]; then
+                python -c "import mne; print(mne.datasets.eyelink.data_path(update_path=True))";
+            fi;
+            if [[ $(cat $FNAME | grep -x ".*datasets.*ucl_opm_auditory.*" | wc -l) -gt 0 ]]; then
+                python -c "import mne; print(mne.datasets.ucl_opm_auditory.data_path(update_path=True))";
+            fi;
+            if [[ $(cat $FNAME | grep -x ".*datasets.*phantom_kit.*" | wc -l) -gt 0 ]]; then
+                python -c "import mne; print(mne.datasets.phantom_kit.data_path(update_path=True))";
+            fi;
         fi;
     done;
     echo PATTERN="$PATTERN";
+    echo html-pattern-memory > build.txt;
     if [[ $PATTERN ]]; then
         PATTERN="\(${PATTERN::-2}\)";
-        echo html_dev-pattern-memory > build.txt;
     else
-        echo html_dev-noplot > build.txt;
+        PATTERN="run_no_examples_or_tutorials"
     fi;
 fi;
 echo "$PATTERN" > pattern.txt;

@@ -30,13 +30,13 @@ Without loss of generality we can always decompose any :math:`n`-channel
 measurement :math:`b(t)` into its signal and noise components as
 
 .. math::    b(t) = b_s(t) + b_n(t)
-   :label: additive_model
+   :name: additive_model
 
 Further, if we know that :math:`b_n(t)` is well characterized by a few field
 patterns :math:`b_1 \dotso b_m`, we can express the disturbance as
 
 .. math::    b_n(t) = Uc_n(t) + e(t)\ ,
-   :label: pca
+   :name: pca
 
 where the columns of :math:`U` constitute an orthonormal basis for :math:`b_1
 \dotso b_m`, :math:`c_n(t)` is an :math:`m`-component column vector, and the
@@ -48,12 +48,12 @@ such that the conditions described above are satisfied. We can now construct
 the orthogonal complement operator
 
 .. math::    P_{\perp} = I - UU^\top
-   :label: projector
+   :name: projector
 
 and apply it to :math:`b(t)` in Equation :eq:`additive_model` yielding
 
 .. math::    b_{s}(t) \approx P_{\perp}b(t)\ ,
-   :label: result
+   :name: result
 
 since :math:`P_{\perp}b_n(t) = P_{\perp}(Uc_n(t) + e(t)) \approx 0` and
 :math:`P_{\perp}b_{s}(t) \approx b_{s}(t)`. The projection operator
@@ -80,7 +80,7 @@ the brain, it is necessary to apply the projection to the forward solution in
 the course of inverse computations.
 
 For more information on SSP, please consult the references listed in
-:footcite:`TescheEtAl1995,UusitaloIlmoniemi1997`.
+:footcite:t:`TescheEtAl1995,UusitaloIlmoniemi1997`.
 
 Estimation of the noise subspace
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -102,12 +102,12 @@ typical in EEG analysis to subtract the average reference from all the sensor
 signals :math:`b^{1}(t), ..., b^{n}(t)`. That is:
 
 .. math::	{b}^{j}_{s}(t) = b^{j}(t) - \frac{1}{n}\sum_{k}{b^k(t)}
-   :label: eeg_proj
+   :name: eeg_proj
 
 where the noise term :math:`b_{n}^{j}(t)` is given by
 
 .. math:: 	b_{n}^{j}(t) = \frac{1}{n}\sum_{k}{b^k(t)}
-   :label: noise_term
+   :name: noise_term
 
 Thus, the projector vector :math:`P_{\perp}` will be given by
 :math:`P_{\perp}=\frac{1}{n}[1, 1, ..., 1]`

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _ex-morph-volume:
 
@@ -29,26 +28,26 @@ anatomical MRI, overlaid with the morphed volumetric source estimate.
 import os
 
 import nibabel as nib
-import mne
-from mne.datasets import sample, fetch_fsaverage
-from mne.minimum_norm import apply_inverse, read_inverse_operator
 from nilearn.plotting import plot_glass_brain
+
+import mne
+from mne.datasets import fetch_fsaverage, sample
+from mne.minimum_norm import apply_inverse, read_inverse_operator
 
 print(__doc__)
 
 # %%
 # Setup paths
 sample_dir_raw = sample.data_path()
-sample_dir = os.path.join(sample_dir_raw, 'MEG', 'sample')
-subjects_dir = os.path.join(sample_dir_raw, 'subjects')
+sample_dir = os.path.join(sample_dir_raw, "MEG", "sample")
+subjects_dir = os.path.join(sample_dir_raw, "subjects")
 
-fname_evoked = os.path.join(sample_dir, 'sample_audvis-ave.fif')
-fname_inv = os.path.join(sample_dir, 'sample_audvis-meg-vol-7-meg-inv.fif')
+fname_evoked = os.path.join(sample_dir, "sample_audvis-ave.fif")
+fname_inv = os.path.join(sample_dir, "sample_audvis-meg-vol-7-meg-inv.fif")
 
-fname_t1_fsaverage = os.path.join(subjects_dir, 'fsaverage', 'mri',
-                                  'brain.mgz')
+fname_t1_fsaverage = os.path.join(subjects_dir, "fsaverage", "mri", "brain.mgz")
 fetch_fsaverage(subjects_dir)  # ensure fsaverage src exists
-fname_src_fsaverage = subjects_dir + '/fsaverage/bem/fsaverage-vol-5-src.fif'
+fname_src_fsaverage = subjects_dir + "/fsaverage/bem/fsaverage-vol-5-src.fif"
 
 # %%
 # Compute example data. For reference see :ref:`ex-inverse-volume`.
@@ -58,7 +57,7 @@ evoked = mne.read_evokeds(fname_evoked, condition=0, baseline=(None, 0))
 inverse_operator = read_inverse_operator(fname_inv)
 
 # Apply inverse operator
-stc = apply_inverse(evoked, inverse_operator, 1.0 / 3.0 ** 2, "dSPM")
+stc = apply_inverse(evoked, inverse_operator, 1.0 / 3.0**2, "dSPM")
 
 # To save time
 stc.crop(0.09, 0.09)
@@ -85,9 +84,14 @@ stc.crop(0.09, 0.09)
 
 src_fs = mne.read_source_spaces(fname_src_fsaverage)
 morph = mne.compute_source_morph(
-    inverse_operator['src'], subject_from='sample', subjects_dir=subjects_dir,
-    niter_affine=[10, 10, 5], niter_sdr=[10, 10, 5],  # just for speed
-    src_to=src_fs, verbose=True)
+    inverse_operator["src"],
+    subject_from="sample",
+    subjects_dir=subjects_dir,
+    niter_affine=[10, 10, 5],
+    niter_sdr=[10, 10, 5],  # just for speed
+    src_to=src_fs,
+    verbose=True,
+)
 
 # %%
 # Apply morph to VolSourceEstimate
@@ -120,7 +124,7 @@ stc_fsaverage = morph.apply(stc)
 # :meth:`morph.apply(..., output='nifti1') <mne.SourceMorph.apply>`.
 
 # Create mri-resolution volume of results
-img_fsaverage = morph.apply(stc, mri_resolution=2, output='nifti1')
+img_fsaverage = morph.apply(stc, mri_resolution=2, output="nifti1")
 
 # %%
 # Plot results
@@ -130,10 +134,9 @@ img_fsaverage = morph.apply(stc, mri_resolution=2, output='nifti1')
 t1_fsaverage = nib.load(fname_t1_fsaverage)
 
 # Plot glass brain (change to plot_anat to display an overlaid anatomical T1)
-display = plot_glass_brain(t1_fsaverage,
-                           title='subject results to fsaverage',
-                           draw_cross=False,
-                           annotate=True)
+display = plot_glass_brain(
+    t1_fsaverage, title="subject results to fsaverage", draw_cross=False, annotate=True
+)
 
 # Add functional data as overlay
 display.add_overlay(img_fsaverage, alpha=0.75)

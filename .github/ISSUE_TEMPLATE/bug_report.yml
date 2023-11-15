@@ -1,0 +1,65 @@
+name: 🐛 Bug report
+
+# See the json schema to help you create / update this form
+# https://json.schemastore.org/github-issue-forms.json
+
+description: Tell us about errors in our computations or plots.
+
+labels: ["BUG"]
+
+body:
+
+  - type: markdown
+    attributes:
+      value: |
+        Please use the [MNE-Python forum](https://mne.discourse.group/) to ask (and answer)
+        concrete technical questions or about usage of MNE-Python.
+        Use this form *only* if you think there is a bug in MNE-Python code.
+
+  - type: textarea
+    attributes:
+      label: Description of the problem
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Steps to reproduce
+      description: |
+        Paste here a code snippet or minimal working example
+        ([MWE](https://en.wikipedia.org/wiki/Minimal_Working_Example))
+        to replicate your problem, using one of the
+        [datasets shipped with MNE-Python](https://mne.tools/dev/overview/datasets_index.html),
+        preferably the one called [sample](https://mne.tools/dev/overview/datasets_index.html#sample).
+      render: Python
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Link to data
+      description: |
+        If you couldn't replicate on a built-in dataset, provide a link to a
+        small, anonymized portion of your data that does yield the error.
+
+  - type: textarea
+    attributes:
+      label: Expected results
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Actual results
+      description: |
+        Please provide the actual output, traceback, screenshot, or another description of the results.
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Additional information
+      description: |
+        Tell us about your system: paste the output of `mne.sys_info()` here.
+    validations:
+      required: true

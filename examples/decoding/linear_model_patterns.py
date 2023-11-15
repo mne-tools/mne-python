@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _ex-linear-patterns:
 
@@ -23,51 +22,51 @@ because the noise is less spatially correlated in MEG than EEG.
 
 # %%
 
-import mne
-from mne import io, EvokedArray
-from mne.datasets import sample
-from mne.decoding import Vectorizer, get_coef
-
-from sklearn.preprocessing import StandardScaler
 from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
+
+import mne
+from mne import EvokedArray, io
+from mne.datasets import sample
 
 # import a linear classifier from mne.decoding
-from mne.decoding import LinearModel
+from mne.decoding import LinearModel, Vectorizer, get_coef
 
 print(__doc__)
 
 data_path = sample.data_path()
-sample_path = data_path / 'MEG' / 'sample'
+sample_path = data_path / "MEG" / "sample"
 
 # %%
 # Set parameters
-raw_fname = sample_path / 'sample_audvis_filt-0-40_raw.fif'
-event_fname = sample_path / 'sample_audvis_filt-0-40_raw-eve.fif'
+raw_fname = sample_path / "sample_audvis_filt-0-40_raw.fif"
+event_fname = sample_path / "sample_audvis_filt-0-40_raw-eve.fif"
 tmin, tmax = -0.1, 0.4
 event_id = dict(aud_l=1, vis_l=3)
 
 # Setup for reading the raw data
 raw = io.read_raw_fif(raw_fname, preload=True)
-raw.filter(.5, 25, fir_design='firwin')
+raw.filter(0.5, 25, fir_design="firwin")
 events = mne.read_events(event_fname)
 
 # Read epochs
-epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
-                    decim=2, baseline=None, preload=True)
+epochs = mne.Epochs(
+    raw, events, event_id, tmin, tmax, proj=True, decim=2, baseline=None, preload=True
+)
 del raw
 
 labels = epochs.events[:, -1]
 
-# get MEG and EEG data
-meg_epochs = epochs.copy().pick_types(meg=True, eeg=False)
-meg_data = meg_epochs.get_data().reshape(len(labels), -1)
+# get MEG data
+meg_epochs = epochs.copy().pick(picks="meg", exclude="bads")
+meg_data = meg_epochs.get_data(copy=False).reshape(len(labels), -1)
 
 # %%
 # Decoding in sensor space using a LogisticRegression classifier
 # --------------------------------------------------------------
 
-clf = LogisticRegression(solver='liblinear')  # liblinear is faster than lbfgs
+clf = LogisticRegression(solver="liblinear")  # liblinear is faster than lbfgs
 scaler = StandardScaler()
 
 # create a linear model with LogisticRegression
@@ -78,7 +77,7 @@ X = scaler.fit_transform(meg_data)
 model.fit(X, labels)
 
 # Extract and plot spatial filters and spatial patterns
-for name, coef in (('patterns', model.patterns_), ('filters', model.filters_)):
+for name, coef in (("patterns", model.patterns_), ("filters", model.filters_)):
     # We fitted the linear model onto Z-scored data. To make the filters
     # interpretable, we must reverse this normalization step
     coef = scaler.inverse_transform([coef])[0]
@@ -89,31 +88,33 @@ for name, coef in (('patterns', model.patterns_), ('filters', model.filters_)):
 
     # Plot
     evoked = EvokedArray(coef, meg_epochs.info, tmin=epochs.tmin)
-    evoked.plot_topomap(title='MEG %s' % name, time_unit='s')
+    fig = evoked.plot_topomap()
+    fig.suptitle(f"MEG {name}")
 
 # %%
 # Let's do the same on EEG data using a scikit-learn pipeline
 
-X = epochs.pick_types(meg=False, eeg=True)
+X = epochs.pick(picks="eeg", exclude="bads")
 y = epochs.events[:, 2]
 
 # Define a unique pipeline to sequentially:
 clf = make_pipeline(
-    Vectorizer(),                       # 1) vectorize across time and channels
-    StandardScaler(),                   # 2) normalize features across trials
-    LinearModel(                        # 3) fits a logistic regression
-        LogisticRegression(solver='liblinear')
-    )
+    Vectorizer(),  # 1) vectorize across time and channels
+    StandardScaler(),  # 2) normalize features across trials
+    LinearModel(  # 3) fits a logistic regression
+        LogisticRegression(solver="liblinear")
+    ),
 )
 clf.fit(X, y)
 
 # Extract and plot patterns and filters
-for name in ('patterns_', 'filters_'):
+for name in ("patterns_", "filters_"):
     # The `inverse_transform` parameter will call this method on any estimator
     # contained in the pipeline, in reverse order.
     coef = get_coef(clf, name, inverse_transform=True)
     evoked = EvokedArray(coef, epochs.info, tmin=epochs.tmin)
-    evoked.plot_topomap(title='EEG %s' % name[:-1], time_unit='s')
+    fig = evoked.plot_topomap()
+    fig.suptitle(f"EEG {name[:-1]}")
 
 # %%
 # References

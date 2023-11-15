@@ -7,9 +7,7 @@
     --pst-font-family-monospace: 'Source Code Pro', var(--pst-font-family-monospace-system);
     /* colors that aren't responsive to light/dark mode */
     --mne-color-discord: #5865F2;
-    --mne-color-twitter: #55acee;
     --mne-color-primary: #007bff;
-    --mne-color-primary-text: #fff;
     --mne-color-primary-highlight: #0063cc;
     /* font weight */
     --mne-font-weight-semibold: 600;
@@ -20,6 +18,7 @@ html[data-theme="light"] {
     /* topbar logo links */
     --mne-color-github: #000;
     --mne-color-discourse: #000;
+    --mne-color-mastodon: #2F0C7A;
     /* code block copy button */
     --copybtn-opacity: 0.75;
     /* card header bg color */
@@ -28,7 +27,6 @@ html[data-theme="light"] {
     --mne-color-heading: #003e80;
     /* pydata-sphinx-theme overrides */
     --pst-color-primary: var(--mne-color-primary);
-    --pst-color-primary-text: var(--mne-color-primary-text);
     --pst-color-primary-highlight: var(--mne-color-primary-highlight);
     --pst-color-info: var(--pst-color-primary);
     --pst-color-border: #ccc;
@@ -47,6 +45,7 @@ html[data-theme="dark"] {
     /* topbar logo links */
     --mne-color-github: rgb(240, 246, 252);  /* from their logo SVG */
     --mne-color-discourse: #FFF9AE;  /* from their logo SVG */
+    --mne-color-mastodon: #858AFA;  /* www.joinmastodon.org/en/branding */
     /* code block copy button */
     --copybtn-opacity: 0.25;
     /* card header bg color */
@@ -55,7 +54,6 @@ html[data-theme="dark"] {
     --mne-color-heading: #b8cbe0;
     /* pydata-sphinx-theme overrides */
     --pst-color-primary: var(--mne-color-primary);
-    --pst-color-primary-text: var(--mne-color-primary-text);
     --pst-color-primary-highlight: var(--mne-color-primary-highlight);
     --pst-color-info: var(--pst-color-primary);
     --pst-color-border: #333;
@@ -65,7 +63,7 @@ html[data-theme="dark"] {
     --sg-download-a-background-color: var(--pst-color-primary);
     --sg-download-a-background-image: unset;
     --sg-download-a-border-color: var(--pst-color-border);
-    --sg-download-a-color: #fff;
+    --sg-download-a-color: #000;
     --sg-download-a-hover-background-color: var(--pst-color-primary-highlight);
     --sg-download-a-hover-box-shadow-1: none;
     --sg-download-a-hover-box-shadow-2: none;
@@ -103,6 +101,22 @@ html[data-theme="dark"] img {
 /* prev/next links */
 .prev-next-area a p.prev-next-title {
     color: var(--pst-color-link);
+}
+
+/* make versionadded smaller and inline with param name */
+/* don't do for deprecated / versionchanged; they have extra info (too long to fit) */
+div.versionadded > p {
+    margin-top: 0;
+    margin-bottom: 0;
+}
+div.versionadded {
+    margin: 0;
+    margin-left: 0.5rem;
+    display: inline-block;
+}
+/* when FF supports :has(), change to →  dd > p:has(+div.versionadded) */
+dd>p {
+    display: inline;
 }
 
 /* **************************************************** sphinx-gallery fixes */
@@ -149,6 +163,32 @@ iframe.sg_report {
     display: none;
 }
 
+/* Make our external thumbnails (e.g., mne-gui-addons) act like standard SG ones */
+.sphx-glr-thumbcontainer a.external {
+    bottom: 0;
+    display: block;
+    left: 0;
+    box-sizing: border-box;
+    padding: 150px 10px 0;
+    position: absolute;
+    right: 0;
+    top: 0;
+}
+
+/* TODO: Either pydata-sphinx-theme (for using Bootstrap) or sphinx-gallery (for adding table formatting) should fix this */
+.table-striped-columns>:not(caption)>tr>:nth-child(2n),.table-striped>tbody>tr:nth-of-type(odd)>* {
+    --bs-table-accent-bg: var(--bs-table-striped-bg);
+    color: var(--pst-color-text-base);
+}
+.table-hover>tbody>tr:hover>* {
+    --bs-table-accent-bg: var(--bs-table-hover-bg);
+    color: var(--pst-color-text-base);
+}
+.rendered_html table {
+    color: var(--pst-color-text-base);
+}
+
+
 /* ***************************************************** sphinx-design fixes */
 p.btn a {
     color: unset;
@@ -181,17 +221,17 @@ aside.footnote:last-child {
 }
 
 /* ******************************************************* navbar icon links */
-#navbar-icon-links i.fa-github-square::before {
+#navbar-icon-links i.fa-square-github::before {
     color: var(--mne-color-github);
-}
-#navbar-icon-links i.fa-twitter-square::before {
-    color: var(--mne-color-twitter);
 }
 #navbar-icon-links i.fa-discourse::before {
     color: var(--mne-color-discourse);
 }
 #navbar-icon-links i.fa-discord::before {
     color: var(--mne-color-discord);
+}
+#navbar-icon-links i.fa-mastodon::before {
+    color: var(--mne-color-mastodon);
 }
 
 /* ************************************************************ nav elements */
@@ -289,12 +329,21 @@ div.card {
 
 /* *************************************** homepage funder/institution logos */
 div#funder-logos div.card,
-div#institution-logos div.card,
 div#funder-logos div.card img,
-div#institution-logos div.card img {
+div#institution-logos div.card,
+div#institution-logos div.card img,
+div#contributor-avatars div.card,
+div#contributor-avatars div.card img {
     background-color: unset;
     border: none;
     border-radius: unset;
+}
+div#contributor-avatars div.card img {
+    width: 3em;
+}
+
+.contributor-avatar {
+    clip-path: circle(closest-side);
 }
 
 /* ************************************************************ funders page */
@@ -326,4 +375,7 @@ ul.icon-bullets {
 }
 img.hidden {
     visibility: hidden;
+}
+td.justify {
+    text-align-last: justify;
 }

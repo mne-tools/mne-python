@@ -1,7 +1,7 @@
 """CTF constants."""
 
 # Authors: Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
-#          Eric Larson <larsoner@uw.edu>
+#          Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD-3-Clause
 
@@ -36,4 +36,4 @@ CTF.FUNNY_POS = 1844
 # read_write_data.c
 CTF.HEADER_SIZE = 8
 CTF.BLOCK_SIZE = 2000
-CTF.SYSTEM_CLOCK_CH = 'SCLK01-177'
+CTF.SYSTEM_CLOCK_CH = "SCLK01-177"

@@ -1,5 +1,12 @@
 import numpy as np
 
+try:
+    from scipy.io.matlab import MatlabFunction, MatlabOpaque
+except ImportError:  # scipy < 1.8
+    from scipy.io.matlab.mio5 import MatlabFunction
+    from scipy.io.matlab.mio5_params import MatlabOpaque
+from scipy.io import loadmat
+
 from ...utils import _import_pymatreader_funcs
 
 
@@ -26,13 +33,7 @@ def _todict_from_np_struct(data):  # taken from pymatreader.utils
 
 
 def _handle_scipy_ndarray(data):  # taken from pymatreader.utils
-    try:
-        from scipy.io.matlab import MatlabFunction
-    except ImportError:  # scipy < 1.8
-        from scipy.io.matlab.mio5 import MatlabFunction
-
-    if data.dtype == np.dtype('object') and not \
-            isinstance(data, MatlabFunction):
+    if data.dtype == np.dtype("object") and not isinstance(data, MatlabFunction):
         as_list = []
         for element in data:
             as_list.append(_check_for_scipy_mat_struct(element))
@@ -49,18 +50,13 @@ def _handle_scipy_ndarray(data):  # taken from pymatreader.utils
 
 def _check_for_scipy_mat_struct(data):  # taken from pymatreader.utils
     """Convert all scipy.io.matlab.mio5_params.mat_struct elements."""
-    try:
-        from scipy.io.matlab import MatlabOpaque
-    except ImportError:  # scipy < 1.8
-        from scipy.io.matlab.mio5_params import MatlabOpaque
-
     if isinstance(data, dict):
         for key in data:
             data[key] = _check_for_scipy_mat_struct(data[key])
 
     if isinstance(data, MatlabOpaque):
         try:
-            if data[0][2] == b'string':
+            if data[0][2] == b"string":
                 return None
         except IndexError:
             pass
@@ -73,9 +69,8 @@ def _check_for_scipy_mat_struct(data):  # taken from pymatreader.utils
 
 def _readmat(fname, uint16_codec=None):
     try:
-        read_mat = _import_pymatreader_funcs('EEGLAB I/O')
+        read_mat = _import_pymatreader_funcs("EEGLAB I/O")
     except RuntimeError:  # pymatreader not installed
-        from scipy.io import loadmat
         eeg = loadmat(fname, squeeze_me=True, mat_dtype=False)
         return _check_for_scipy_mat_struct(eeg)
     else:

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _tut-fixed-length-epochs:
 
@@ -31,15 +30,15 @@ the signal.
 
 # %%
 
-import numpy as np
 import matplotlib.pyplot as plt
-import mne
-from mne.preprocessing import compute_proj_ecg
+import numpy as np
 from mne_connectivity import envelope_correlation
 
+import mne
+from mne.preprocessing import compute_proj_ecg
+
 sample_data_folder = mne.datasets.sample.data_path()
-sample_data_raw_file = (sample_data_folder / 'MEG' / 'sample' /
-                        'sample_audvis_raw.fif')
+sample_data_raw_file = sample_data_folder / "MEG" / "sample" / "sample_audvis_raw.fif"
 raw = mne.io.read_raw_fif(sample_data_raw_file)
 
 # %%
@@ -47,8 +46,8 @@ raw = mne.io.read_raw_fif(sample_data_raw_file)
 # for our web server to handle, ignore EEG channels, and remove the heartbeat
 # artifact so we don't get spurious correlations just because of that.
 
-raw.crop(tmax=150).resample(100).pick('meg')
-ecg_proj, _ = compute_proj_ecg(raw, ch_name='MEG 0511')  # No ECG chan
+raw.crop(tmax=150).resample(100).pick("meg")
+ecg_proj, _ = compute_proj_ecg(raw, ch_name="MEG 0511")  # No ECG chan
 raw.add_proj(ecg_proj)
 raw.apply_proj()
 
@@ -71,7 +70,7 @@ epochs = mne.make_fixed_length_epochs(raw, duration=30, preload=False)
 # epochs. When the epochs are averaged, as seen at the bottom of the plot,
 # misalignment between onsets of event-related activity results in noise.
 
-event_related_plot = epochs.plot_image(picks=['MEG 1142'])
+event_related_plot = epochs.plot_image(picks=["MEG 1142"])
 
 # %%
 # For information about creating epochs for event-related analyses, please see
@@ -95,7 +94,7 @@ event_related_plot = epochs.plot_image(picks=['MEG 1142'])
 # (for more information on filtering, please see :ref:`tut-filter-resample`).
 
 epochs.load_data().filter(l_freq=8, h_freq=12)
-alpha_data = epochs.get_data()
+alpha_data = epochs.get_data(copy=False)
 
 # %%
 # If desired, separate correlation matrices for each epoch can be obtained.
@@ -113,15 +112,12 @@ first_30 = corr_matrix[0]
 last_30 = corr_matrix[-1]
 corr_matrices = [first_30, last_30]
 color_lims = np.percentile(np.array(corr_matrices), [5, 95])
-titles = ['First 30 Seconds', 'Last 30 Seconds']
+titles = ["First 30 Seconds", "Last 30 Seconds"]
 
-fig, axes = plt.subplots(nrows=1, ncols=2)
-fig.suptitle('Correlation Matrices from First 30 Seconds and Last 30 Seconds')
+fig, axes = plt.subplots(nrows=1, ncols=2, layout="constrained")
+fig.suptitle("Correlation Matrices from First 30 Seconds and Last 30 Seconds")
 for ci, corr_matrix in enumerate(corr_matrices):
     ax = axes[ci]
     mpbl = ax.imshow(corr_matrix, clim=color_lims)
     ax.set_xlabel(titles[ci])
-fig.subplots_adjust(right=0.8)
-cax = fig.add_axes([0.85, 0.2, 0.025, 0.6])
-cbar = fig.colorbar(ax.images[0], cax=cax)
-cbar.set_label('Correlation Coefficient')
+cbar = fig.colorbar(ax.images[0], label="Correlation Coefficient")

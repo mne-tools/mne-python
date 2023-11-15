@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Utility functions to speed up linear algebraic operations.
 
 In general, things like np.dot and linalg.svd should be used directly
@@ -25,20 +24,20 @@ inputs will be memcopied.
 import functools
 
 import numpy as np
-
+from scipy import linalg
+from scipy._lib._util import _asarray_validated
 
 # For efficiency, names should be str or tuple of str, dtype a builtin
 # NumPy dtype
 
+
 @functools.lru_cache(None)
 def _get_blas_funcs(dtype, names):
-    from scipy import linalg
     return linalg.get_blas_funcs(names, (np.empty(0, dtype),))
 
 
 @functools.lru_cache(None)
 def _get_lapack_funcs(dtype, names):
-    from scipy import linalg
     assert dtype in (np.float64, np.complex128)
     x = np.empty(0, dtype)
     return linalg.get_lapack_funcs(names, (x,))
@@ -47,54 +46,59 @@ def _get_lapack_funcs(dtype, names):
 ###############################################################################
 # linalg.svd and linalg.pinv2
 
+
 def _svd_lwork(shape, dtype=np.float64):
     """Set up SVD calculations on identical-shape float64/complex128 arrays."""
-    from scipy import linalg
     try:
         ds = linalg._decomp_svd
     except AttributeError:  # < 1.8.0
         ds = linalg.decomp_svd
-    gesdd_lwork, gesvd_lwork = _get_lapack_funcs(
-        dtype, ('gesdd_lwork', 'gesvd_lwork'))
+    gesdd_lwork, gesvd_lwork = _get_lapack_funcs(dtype, ("gesdd_lwork", "gesvd_lwork"))
     sdd_lwork = ds._compute_lwork(
-        gesdd_lwork, *shape, compute_uv=True, full_matrices=False)
+        gesdd_lwork, *shape, compute_uv=True, full_matrices=False
+    )
     svd_lwork = ds._compute_lwork(
-        gesvd_lwork, *shape, compute_uv=True, full_matrices=False)
+        gesvd_lwork, *shape, compute_uv=True, full_matrices=False
+    )
     return sdd_lwork, svd_lwork
 
 
 def _repeated_svd(x, lwork, overwrite_a=False):
     """Mimic scipy.linalg.svd, avoid lwork and get_lapack_funcs overhead."""
-    gesdd, gesvd = _get_lapack_funcs(
-        x.dtype, ('gesdd', 'gesvd'))
+    gesdd, gesvd = _get_lapack_funcs(x.dtype, ("gesdd", "gesvd"))
     # this has to use overwrite_a=False in case we need to fall back to gesvd
-    u, s, v, info = gesdd(x, compute_uv=True, lwork=lwork[0],
-                          full_matrices=False, overwrite_a=False)
+    u, s, v, info = gesdd(
+        x, compute_uv=True, lwork=lwork[0], full_matrices=False, overwrite_a=False
+    )
     if info > 0:
         # Fall back to slower gesvd, sometimes gesdd fails
-        u, s, v, info = gesvd(x, compute_uv=True, lwork=lwork[1],
-                              full_matrices=False, overwrite_a=overwrite_a)
+        u, s, v, info = gesvd(
+            x,
+            compute_uv=True,
+            lwork=lwork[1],
+            full_matrices=False,
+            overwrite_a=overwrite_a,
+        )
     if info > 0:
         raise np.linalg.LinAlgError("SVD did not converge")
     if info < 0:
-        raise ValueError('illegal value in %d-th argument of internal gesdd'
-                         % -info)
+        raise ValueError("illegal value in %d-th argument of internal gesdd" % -info)
     return u, s, v
 
 
 ###############################################################################
 # linalg.eigh
 
+
 @functools.lru_cache(None)
 def _get_evd(dtype):
-    from scipy import linalg
     x = np.empty(0, dtype)
     if dtype == np.float64:
-        driver = 'syevd'
+        driver = "syevd"
     else:
         assert dtype == np.complex128
-        driver = 'heevd'
-    evr, = linalg.get_lapack_funcs((driver,), (x,))
+        driver = "heevd"
+    (evr,) = linalg.get_lapack_funcs((driver,), (x,))
     return evr, driver
 
 
@@ -119,8 +123,6 @@ def eigh(a, overwrite_a=False, check_finite=True):
         The normalized eigenvector corresponding to the eigenvalue ``w[i]``
         is the column ``v[:, i]``.
     """
-    from scipy.linalg import LinAlgError
-    from scipy._lib._util import _asarray_validated
     # We use SYEVD, see https://github.com/scipy/scipy/issues/9212
     if check_finite:
         a = _asarray_validated(a, check_finite=check_finite)
@@ -129,13 +131,16 @@ def eigh(a, overwrite_a=False, check_finite=True):
     if info == 0:
         return w, v
     if info < 0:
-        raise ValueError('illegal value in argument %d of internal %s'
-                         % (-info, driver))
+        raise ValueError(
+            "illegal value in argument %d of internal %s" % (-info, driver)
+        )
     else:
-        raise LinAlgError("internal fortran routine failed to converge: "
-                          "%i off-diagonal elements of an "
-                          "intermediate tridiagonal form did not converge"
-                          " to zero." % info)
+        raise linalg.LinAlgError(
+            "internal fortran routine failed to converge: "
+            "%i off-diagonal elements of an "
+            "intermediate tridiagonal form did not converge"
+            " to zero." % info
+        )
 
 
 def sqrtm_sym(A, rcond=1e-7, inv=False):
@@ -169,7 +174,7 @@ def _sym_mat_pow(A, power, rcond=1e-7, reduce_rank=False, return_s=False):
     # Is it positive semi-defidite? If so, keep real
     limit = s[..., -1:] * rcond
     if not (s >= -limit).all():  # allow some tiny small negative ones
-        raise ValueError('Matrix is not positive semi-definite')
+        raise ValueError("Matrix is not positive semi-definite")
     s[s <= limit] = np.inf if power < 0 else 0
     if reduce_rank:
         # These are ordered smallest to largest, so we set the first one
@@ -177,7 +182,7 @@ def _sym_mat_pow(A, power, rcond=1e-7, reduce_rank=False, return_s=False):
         s[..., 0] = np.inf
     if power in (-0.5, 0.5):
         np.sqrt(s, out=s)
-    use_s = 1. / s if power < 0 else s
+    use_s = 1.0 / s if power < 0 else s
     out = np.matmul(u * use_s[..., np.newaxis, :], u.swapaxes(-2, -1).conj())
     if return_s:
         out = (out, s)

@@ -1,59 +1,66 @@
-import os
 import subprocess
+import tomllib
+from argparse import ArgumentParser
 from datetime import date
+from pathlib import Path
 
-from mne import __version__ as release_version
+parser = ArgumentParser(description="Generate codemeta.json and CITATION.cff")
+parser.add_argument("release_version", type=str)
+release_version = parser.parse_args().release_version
+
+out_dir = Path(__file__).parents[1]
 
 # NOTE: ../codemeta.json and ../citation.cff should not be continuously
 #       updated. Run this script only at release time.
 
-package_name = 'MNE-Python'
-hard_dependencies = ('numpy', 'scipy')
+package_name = "MNE-Python"
 release_date = str(date.today())
-commit = subprocess.run(['git', 'log', '-1', '--pretty=%H'],
-                        capture_output=True, text=True).stdout.strip()
+commit = subprocess.run(
+    ["git", "log", "-1", "--pretty=%H"], capture_output=True, text=True
+).stdout.strip()
 
 # KEYWORDS
 keywords = (
-    'MEG',
-    'magnetoencephalography',
-    'EEG',
-    'electroencephalography',
-    'fNIRS',
-    'functional near-infrared spectroscopy',
-    'iEEG',
-    'intracranial EEG',
-    'eCoG',
-    'electrocorticography',
-    'DBS',
-    'deep brain stimulation'
+    "MEG",
+    "magnetoencephalography",
+    "EEG",
+    "electroencephalography",
+    "fNIRS",
+    "functional near-infrared spectroscopy",
+    "iEEG",
+    "intracranial EEG",
+    "eCoG",
+    "electrocorticography",
+    "DBS",
+    "deep brain stimulation",
 )
 
 # add to these as necessary
 compound_surnames = (
-    'García Alanis',
-    'van Vliet',
-    'De Santis',
-    'Dupré la Tour',
-    'de la Torre',
-    'de Montalivet',
-    'van den Bosch',
-    'Van den Bossche',
-    'Van Der Donckt',
-    'van der Meer',
-    'van Harmelen',
-    'Visconti di Oleggio Castello',
+    "García Alanis",
+    "van Vliet",
+    "De Santis",
+    "Dupré la Tour",
+    "de la Torre",
+    "de Montalivet",
+    "van den Bosch",
+    "Van den Bossche",
+    "Van Der Donckt",
+    "van der Meer",
+    "van Harmelen",
+    "Visconti di Oleggio Castello",
+    "van Es",
 )
 
 
 def parse_name(name):
     """Split name blobs from `git shortlog -nse` into first/last/email."""
     # remove commit count
-    _, name_and_email = name.strip().split('\t')
-    name, email = name_and_email.split(' <')
-    email = email.strip('>')
-    email = '' if 'noreply' in email else email  # ignore "noreply" emails
-    name = ' '.join(name.split('.'))             # remove periods from initials
+    _, name_and_email = name.strip().split("\t")
+    name, email = name_and_email.split(" <")
+    email = email.strip(">")
+    email = "" if "noreply" in email else email  # ignore "noreply" emails
+    name = " ".join(name.split("."))  # remove periods from initials
     # handle compound surnames
     for compound_surname in compound_surnames:
         if name.endswith(compound_surname):
@@ -64,62 +71,60 @@ def parse_name(name):
     # handle non-compound surnames
     name_elements = name.split()
     if len(name_elements) == 1:  # mononyms / usernames
-        first = ''
+        first = ""
         last = name
     else:
-        first = ' '.join(name_elements[:-1])
+        first = " ".join(name_elements[:-1])
         last = name_elements[-1]
     return (first, last, email)
 
 
 # MAKE SURE THE RELEASE STRING IS PROPERLY FORMATTED
 try:
-    split_version = list(map(int, release_version.split('.')))
+    split_version = list(map(int, release_version.split(".")))
 except ValueError:
     raise
-msg = f'version string must be X.Y.Z (all integers), got {release_version}'
+msg = (
+    "First argument must be the release version X.Y.Z (all integers), "
+    f"got {release_version}"
+)
 assert len(split_version) == 3, msg
 
 
 # RUN GIT SHORTLOG TO GET ALL AUTHORS, SORTED BY NUMBER OF COMMITS
-args = ['git', 'shortlog', '-nse']
+args = ["git", "shortlog", "-nse"]
 result = subprocess.run(args, capture_output=True, text=True)
-lines = result.stdout.strip().split('\n')
-all_names = [parse_name(line) for line in lines]
+lines = result.stdout.strip().split("\n")
+all_names = [parse_name(line) for line in lines if "[bot]" not in line]
 
 
 # CONSTRUCT JSON AUTHORS LIST
-json_authors = [f'''{{
+json_authors = [
+    f"""{{
            "@type":"Person",
            "email":"{email}",
            "givenName":"{first}",
            "familyName": "{last}"
-        }}''' for (first, last, email) in all_names]
+        }}"""
+    for (first, last, email) in all_names
+]
 
 
 # GET OUR DEPENDENCY VERSIONS
-with open(os.path.join('..', 'setup.py'), 'r') as fid:
-    for line in fid:
-        if line.strip().startswith('python_requires='):
-            version = line.strip().split('=', maxsplit=1)[1].strip("'\",")
-            dependencies = [f'python{version}']
-            break
-with open(os.path.join('..', 'requirements.txt'), 'r') as fid:
-    for line in fid:
-        req = line.strip()
-        for hard_dep in hard_dependencies:
-            if req.startswith(hard_dep):
-                dependencies.append(req)
-
+pyproject = tomllib.loads(
+    (Path(__file__).parents[1] / "pyproject.toml").read_text("utf-8")
+)
+dependencies = [f"python{pyproject['project']['requires-python']}"]
+dependencies.extend(pyproject["project"]["dependencies"])
 
 # these must be done outside the boilerplate (no \n allowed in f-strings):
-json_authors = ',\n        '.join(json_authors)
+json_authors = ",\n        ".join(json_authors)
 dependencies = '",\n        "'.join(dependencies)
 json_keywords = '",\n        "'.join(keywords)
 
 
 # ASSEMBLE COMPLETE JSON
-codemeta_boilerplate = f'''{{
+codemeta_boilerplate = f"""{{
     "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
     "@type": "SoftwareSourceCode",
     "license": "https://spdx.org/licenses/BSD-3-Clause",
@@ -153,37 +158,41 @@ codemeta_boilerplate = f'''{{
         {json_authors}
     ]
 }}
-'''  # noqa E501
+"""  # noqa E501
 
 
 # WRITE TO FILE
-with open(os.path.join('..', 'codemeta.json'), 'w') as codemeta_file:
+with open(out_dir / "codemeta.json", "w") as codemeta_file:
     codemeta_file.write(codemeta_boilerplate)
 
 
 # # # # # # # # # # # # # # #
 # GENERATE CITATION.CFF TOO #
 # # # # # # # # # # # # # # #
-message = ('If you use this software, please cite both the software itself, '
-           'and the paper listed in the preferred-citation field.')
+message = (
+    "If you use this software, please cite both the software itself, "
+    "and the paper listed in the preferred-citation field."
+)
 
 # in CFF, multi-word keywords need to be wrapped in quotes
-cff_keywords = (f'"{kw}"' if ' ' in kw else kw for kw in keywords)
+cff_keywords = (f'"{kw}"' if " " in kw else kw for kw in keywords)
 # make into a bulleted list
-cff_keywords = '\n'.join(f'  - {kw}' for kw in cff_keywords)
+cff_keywords = "\n".join(f"  - {kw}" for kw in cff_keywords)
 
 # TODO: someday would be nice to include ORCiD identifiers too
-cff_authors = [f'  - family-names: {last}\n    given-names: {first}'
-               if first else
-               f'  - name: {last}'
-               for (first, last, _) in all_names]
-cff_authors = '\n'.join(cff_authors)
+cff_authors = [
+    f"  - family-names: {last}\n    given-names: {first}"
+    if first
+    else f"  - name: {last}"
+    for (first, last, _) in all_names
+]
+cff_authors = "\n".join(cff_authors)
 
 # this ↓↓↓ is the meta-DOI that always resolves to the latest release
-zenodo_doi = '10.5281/zenodo.592483'
+zenodo_doi = "10.5281/zenodo.592483"
 
 # ASSEMBLE THE CFF STRING
-cff_boilerplate = f'''\
+cff_boilerplate = f"""\
 cff-version: 1.2.0
 title: "{package_name}"
 message: "{message}"
@@ -228,8 +237,8 @@ preferred-citation:
       given-names: Lauri
     - family-names: Hämäläinen
       given-names: Matti S.
-'''
+"""
 
 # WRITE TO FILE
-with open(os.path.join('..', 'CITATION.cff'), 'w') as cff_file:
+with open(out_dir / "CITATION.cff", "w") as cff_file:
     cff_file.write(cff_boilerplate)

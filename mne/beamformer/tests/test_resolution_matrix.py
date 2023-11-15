@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Authors: Olaf Hauk <olaf.hauk@mrc-cbu.cam.ac.uk>
 #
 # License: BSD-3-Clause
@@ -10,24 +9,23 @@ be the transpose of the leadfield matrix.
 """
 
 from copy import deepcopy
-import os.path as op
+
 import numpy as np
 from numpy.testing import assert_allclose
 
 import mne
-from mne.datasets import testing
 from mne.beamformer import make_lcmv, make_lcmv_resolution_matrix
+from mne.datasets import testing
 
 data_path = testing.data_path(download=False)
-subjects_dir = op.join(data_path, 'subjects')
-fname_inv = op.join(data_path, 'MEG', 'sample',
-                    'sample_audvis_trunc-meg-eeg-oct-6-meg-inv.fif')
-fname_evoked = op.join(data_path, 'MEG', 'sample',
-                       'sample_audvis_trunc-ave.fif')
-fname_raw = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc_raw.fif')
-fname_fwd = op.join(data_path, 'MEG', 'sample',
-                    'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
-fname_cov = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc-cov.fif')
+subjects_dir = data_path / "subjects"
+fname_inv = (
+    data_path / "MEG" / "sample" / "sample_audvis_trunc-meg-eeg-oct-6-meg-inv.fif"
+)
+fname_evoked = data_path / "MEG" / "sample" / "sample_audvis_trunc-ave.fif"
+fname_raw = data_path / "MEG" / "sample" / "sample_audvis_trunc_raw.fif"
+fname_fwd = data_path / "MEG" / "sample" / "sample_audvis_trunc-meg-eeg-oct-4-fwd.fif"
+fname_cov = data_path / "MEG" / "sample" / "sample_audvis_trunc-cov.fif"
 
 
 @testing.requires_testing_data
@@ -37,11 +35,10 @@ def test_resolution_matrix_lcmv():
     forward = mne.read_forward_solution(fname_fwd)
 
     # remove bad channels
-    forward = mne.pick_channels_forward(forward, exclude='bads')
+    forward = mne.pick_channels_forward(forward, exclude="bads")
 
     # forward operator with fixed source orientations
-    forward_fxd = mne.convert_forward_solution(forward, surf_ori=True,
-                                               force_fixed=True)
+    forward_fxd = mne.convert_forward_solution(forward, surf_ori=True, force_fixed=True)
 
     # evoked info
     info = mne.io.read_info(fname_evoked)
@@ -57,12 +54,18 @@ def test_resolution_matrix_lcmv():
 
     # compute beamformer filters
     # reg=0. to make sure noise_cov and data_cov are as similar as possible
-    filters = make_lcmv(info, forward_fxd, data_cov, reg=0.,
-                        noise_cov=noise_cov,
-                        pick_ori=None, rank=None,
-                        weight_norm=None,
-                        reduce_rank=False,
-                        verbose=False)
+    filters = make_lcmv(
+        info,
+        forward_fxd,
+        data_cov,
+        reg=0.0,
+        noise_cov=noise_cov,
+        pick_ori=None,
+        rank=None,
+        weight_norm=None,
+        reduce_rank=False,
+        verbose=False,
+    )
 
     # Compute resolution matrix for beamformer
     resmat_lcmv = make_lcmv_resolution_matrix(filters, forward_fxd, info)
@@ -71,9 +74,9 @@ def test_resolution_matrix_lcmv():
     # transpose of leadfield
 
     # create filters with transposed whitened leadfield as weights
-    forward_fxd = mne.pick_channels_forward(forward_fxd, info['ch_names'])
+    forward_fxd = mne.pick_channels_forward(forward_fxd, info["ch_names"])
     filters_lfd = deepcopy(filters)
-    filters_lfd['weights'][:] = forward_fxd['sol']['data'].T
+    filters_lfd["weights"][:] = forward_fxd["sol"]["data"].T
 
     # compute resolution matrix for filters with transposed leadfield
     resmat_fwd = make_lcmv_resolution_matrix(filters_lfd, forward_fxd, info)
@@ -83,12 +86,11 @@ def test_resolution_matrix_lcmv():
     # Some rows are off by about 0.1 - not yet clear why
     corr = []
 
-    for (f, l) in zip(resmat_fwd, resmat_lcmv):
-
-        corr.append(np.corrcoef(f, l)[0, 1])
+    for f, lf in zip(resmat_fwd, resmat_lcmv):
+        corr.append(np.corrcoef(f, lf)[0, 1])
 
     # all row correlations should at least be above ~0.8
-    assert_allclose(corr, 1., atol=0.2)
+    assert_allclose(corr, 1.0, atol=0.2)
 
     # Maximum row correlation should at least be close to 1
-    assert_allclose(np.max(corr), 1., atol=0.01)
+    assert_allclose(np.max(corr), 1.0, atol=0.01)

@@ -1,6 +1,7 @@
-on: [status]
+on: [status]  # yamllint disable-line rule:truthy
 jobs:
   circleci_artifacts_redirector_job:
+    if: "${{ startsWith(github.event.context, 'ci/circleci: build_docs') }}"
     runs-on: ubuntu-20.04
     name: Run CircleCI artifacts redirector
     steps:
@@ -8,6 +9,7 @@ jobs:
         uses: larsoner/circleci-artifacts-redirector-action@master
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
-          artifact-path: 0/dev/index.html
+          api-token: ${{ secrets.CIRCLECI_TOKEN }}
+          artifact-path: 0/html/sg_execution_times.html
           circleci-jobs: build_docs,build_docs_main
           job-title: Check the rendered docs here!

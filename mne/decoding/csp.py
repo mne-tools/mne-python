@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Authors: Romain Trachel <trachelr@gmail.com>
 #          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Alexandre Barachant <alexandre.barachant@gmail.com>
@@ -10,13 +9,15 @@
 import copy as cp
 
 import numpy as np
+from scipy.linalg import eigh
 
+from ..cov import _regularized_covariance
+from ..defaults import _BORDER_DEFAULT, _EXTRAPOLATE_DEFAULT, _INTERPOLATION_DEFAULT
+from ..evoked import EvokedArray
+from ..fixes import pinv
+from ..utils import _check_option, _validate_type, copy_doc, fill_doc
 from .base import BaseEstimator
 from .mixin import TransformerMixin
-from ..cov import _regularized_covariance
-from ..defaults import _INTERPOLATION_DEFAULT
-from ..fixes import pinv
-from ..utils import fill_doc, _check_option, _validate_type, copy_doc
 
 
 @fill_doc
@@ -97,13 +98,21 @@ class CSP(TransformerMixin, BaseEstimator):
     .. footbibliography::
     """
 
-    def __init__(self, n_components=4, reg=None, log=None, cov_est='concat',
-                 transform_into='average_power', norm_trace=False,
-                 cov_method_params=None, rank=None,
-                 component_order='mutual_info'):
+    def __init__(
+        self,
+        n_components=4,
+        reg=None,
+        log=None,
+        cov_est="concat",
+        transform_into="average_power",
+        norm_trace=False,
+        cov_method_params=None,
+        rank=None,
+        component_order="mutual_info",
+    ):
         # Init default CSP
         if not isinstance(n_components, int):
-            raise ValueError('n_components must be an integer.')
+            raise ValueError("n_components must be an integer.")
         self.n_components = n_components
         self.rank = rank
         self.reg = reg
@@ -114,37 +123,39 @@ class CSP(TransformerMixin, BaseEstimator):
         self.cov_est = cov_est
 
         # Init default transform_into
-        self.transform_into = _check_option('transform_into', transform_into,
-                                            ['average_power', 'csp_space'])
+        self.transform_into = _check_option(
+            "transform_into", transform_into, ["average_power", "csp_space"]
+        )
 
         # Init default log
-        if transform_into == 'average_power':
+        if transform_into == "average_power":
             if log is not None and not isinstance(log, bool):
-                raise ValueError('log must be a boolean if transform_into == '
-                                 '"average_power".')
+                raise ValueError(
+                    "log must be a boolean if transform_into == " '"average_power".'
+                )
         else:
             if log is not None:
-                raise ValueError('log must be a None if transform_into == '
-                                 '"csp_space".')
+                raise ValueError(
+                    "log must be a None if transform_into == " '"csp_space".'
+                )
         self.log = log
 
-        _validate_type(norm_trace, bool, 'norm_trace')
+        _validate_type(norm_trace, bool, "norm_trace")
         self.norm_trace = norm_trace
         self.cov_method_params = cov_method_params
-        self.component_order = _check_option('component_order',
-                                             component_order,
-                                             ('mutual_info', 'alternate'))
+        self.component_order = _check_option(
+            "component_order", component_order, ("mutual_info", "alternate")
+        )
 
     def _check_Xy(self, X, y=None):
         """Check input data."""
         if not isinstance(X, np.ndarray):
-            raise ValueError("X should be of type ndarray (got %s)."
-                             % type(X))
+            raise ValueError("X should be of type ndarray (got %s)." % type(X))
         if y is not None:
             if len(X) != len(y) or len(y) < 1:
-                raise ValueError('X and y must have the same length.')
+                raise ValueError("X and y must have the same length.")
         if X.ndim < 3:
-            raise ValueError('X must have at least 3 dimensions.')
+            raise ValueError("X must have at least 3 dimensions.")
 
     def fit(self, X, y):
         """Estimate the CSP decomposition on epochs.
@@ -167,28 +178,30 @@ class CSP(TransformerMixin, BaseEstimator):
         n_classes = len(self._classes)
         if n_classes < 2:
             raise ValueError("n_classes must be >= 2.")
-        if n_classes > 2 and self.component_order == 'alternate':
-            raise ValueError("component_order='alternate' requires two "
-                             "classes, but data contains {} classes; use "
-                             "component_order='mutual_info' "
-                             "instead.".format(n_classes))
+        if n_classes > 2 and self.component_order == "alternate":
+            raise ValueError(
+                "component_order='alternate' requires two "
+                "classes, but data contains {} classes; use "
+                "component_order='mutual_info' "
+                "instead.".format(n_classes)
+            )
 
         covs, sample_weights = self._compute_covariance_matrices(X, y)
-        eigen_vectors, eigen_values = self._decompose_covs(covs,
-                                                           sample_weights)
-        ix = self._order_components(covs, sample_weights, eigen_vectors,
-                                    eigen_values, self.component_order)
+        eigen_vectors, eigen_values = self._decompose_covs(covs, sample_weights)
+        ix = self._order_components(
+            covs, sample_weights, eigen_vectors, eigen_values, self.component_order
+        )
 
         eigen_vectors = eigen_vectors[:, ix]
 
         self.filters_ = eigen_vectors.T
         self.patterns_ = pinv(eigen_vectors)
 
-        pick_filters = self.filters_[:self.n_components]
+        pick_filters = self.filters_[: self.n_components]
         X = np.asarray([np.dot(pick_filters, epoch) for epoch in X])
 
         # compute features (mean power)
-        X = (X ** 2).mean(axis=2)
+        X = (X**2).mean(axis=2)
 
         # To standardize features
         self.mean_ = X.mean(axis=0)
@@ -215,15 +228,16 @@ class CSP(TransformerMixin, BaseEstimator):
         if not isinstance(X, np.ndarray):
             raise ValueError("X should be of type ndarray (got %s)." % type(X))
         if self.filters_ is None:
-            raise RuntimeError('No filters available. Please first fit CSP '
-                               'decomposition.')
+            raise RuntimeError(
+                "No filters available. Please first fit CSP " "decomposition."
+            )
 
-        pick_filters = self.filters_[:self.n_components]
+        pick_filters = self.filters_[: self.n_components]
         X = np.asarray([np.dot(pick_filters, epoch) for epoch in X])
 
         # compute features (mean band power)
-        if self.transform_into == 'average_power':
-            X = (X ** 2).mean(axis=2)
+        if self.transform_into == "average_power":
+            X = (X**2).mean(axis=2)
             log = True if self.log is None else self.log
             if log:
                 X = np.log(X)
@@ -237,14 +251,38 @@ class CSP(TransformerMixin, BaseEstimator):
         return super().fit_transform(X, y=y, **fit_params)
 
     @fill_doc
-    def plot_patterns(self, info, components=None, ch_type=None,
-                      vmin=None, vmax=None, cmap='RdBu_r', sensors=True,
-                      colorbar=True, scalings=None, units='a.u.', res=64,
-                      size=1, cbar_fmt='%3.1f', name_format='CSP%01d',
-                      show=True, show_names=False, title=None, mask=None,
-                      mask_params=None, outlines='head', contours=6,
-                      image_interp=_INTERPOLATION_DEFAULT, average=None,
-                      sphere=None):
+    def plot_patterns(
+        self,
+        info,
+        components=None,
+        *,
+        average=None,
+        ch_type=None,
+        scalings=None,
+        sensors=True,
+        show_names=False,
+        mask=None,
+        mask_params=None,
+        contours=6,
+        outlines="head",
+        sphere=None,
+        image_interp=_INTERPOLATION_DEFAULT,
+        extrapolate=_EXTRAPOLATE_DEFAULT,
+        border=_BORDER_DEFAULT,
+        res=64,
+        size=1,
+        cmap="RdBu_r",
+        vlim=(None, None),
+        cnorm=None,
+        colorbar=True,
+        cbar_fmt="%3.1f",
+        units=None,
+        axes=None,
+        name_format="CSP%01d",
+        nrows=1,
+        ncols="auto",
+        show=True,
+    ):
         """Plot topographic patterns of components.
 
         The patterns explain how the measured data was generated from the
@@ -255,115 +293,127 @@ class CSP(TransformerMixin, BaseEstimator):
         %(info_not_none)s Used for fitting. If not available, consider using
             :func:`mne.create_info`.
         components : float | array of float | None
-           The patterns to plot. If None, n_components will be shown.
-        ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None
-            The channel type to plot. For 'grad', the gradiometers are
-            collected in pairs and the RMS for each pair is plotted.
-            If None, then first available channel type from order given
-            above is used. Defaults to None.
-        vmin : float | callable
-            The value specifying the lower bound of the color range.
-            If None, and vmax is None, -vmax is used. Else np.min(data).
-            If callable, the output equals vmin(data).
-        vmax : float | callable
-            The value specifying the upper bound of the color range.
-            If None, the maximum absolute value is used. If vmin is None,
-            but vmax is not, default np.min(data).
-            If callable, the output equals vmax(data).
-        cmap : matplotlib colormap | (colormap, bool) | 'interactive' | None
-            Colormap to use. If tuple, the first value indicates the colormap
-            to use and the second value is a boolean defining interactivity. In
-            interactive mode the colors are adjustable by clicking and dragging
-            the colorbar with left and right mouse button. Left mouse button
-            moves the scale up and down and right mouse button adjusts the
-            range. Hitting space bar resets the range. Up and down arrows can
-            be used to change the colormap. If None, 'Reds' is used for all
-            positive data, otherwise defaults to 'RdBu_r'. If 'interactive',
-            translates to (None, True). Defaults to 'RdBu_r'.
-
-            .. warning::  Interactive mode works smoothly only for a small
-                amount of topomaps.
-        sensors : bool | str
-            Add markers for sensor locations to the plot. Accepts matplotlib
-            plot format string (e.g., 'r+' for red plusses). If True,
-            a circle will be used (via .add_artist). Defaults to True.
-        colorbar : bool
-            Plot a colorbar.
+           The patterns to plot. If ``None``, all components will be shown.
+        %(average_plot_evoked_topomap)s
+        %(ch_type_topomap)s
         scalings : dict | float | None
             The scalings of the channel types to be applied for plotting.
             If None, defaults to ``dict(eeg=1e6, grad=1e13, mag=1e15)``.
-        units : dict | str | None
-            The unit of the channel type used for colorbar label. If
-            scale is None the unit is automatically determined.
-        res : int
-            The resolution of the topomap image (n pixels along each side).
-        size : float
-            Side length per topomap in inches.
-        cbar_fmt : str
-            String format for colorbar values.
-        name_format : str
-            String format for topomap values. Defaults to "CSP%%01d".
-        show : bool
-            Show figure if True.
-        show_names : bool | callable
-            If True, show channel names on top of the map. If a callable is
-            passed, channel names will be formatted using the callable; e.g.,
-            to delete the prefix 'MEG ' from all channel names, pass the
-            function lambda x: x.replace('MEG ', ''). If ``mask`` is not None,
-            only significant sensors will be shown.
-        title : str | None
-            Title. If None (default), no title is displayed.
+        %(sensors_topomap)s
+        %(show_names_topomap)s
         %(mask_patterns_topomap)s
         %(mask_params_topomap)s
+        %(contours_topomap)s
         %(outlines_topomap)s
-        contours : int | array of float
-            The number of contour lines to draw. If 0, no contours will be
-            drawn. When an integer, matplotlib ticker locator is used to find
-            suitable values for the contour thresholds (may sometimes be
-            inaccurate, use array for accuracy). If an array, the values
-            represent the levels for the contours. Defaults to 6.
-        %(image_interp_topomap)s
-        average : float | None
-            The time window around a given time to be used for averaging
-            (seconds). For example, 0.01 would translate into window that
-            starts 5 ms before and ends 5 ms after a given time point.
-            Defaults to None, which means no averaging.
         %(sphere_topomap_auto)s
+        %(image_interp_topomap)s
+        %(extrapolate_topomap)s
+
+            .. versionadded:: 1.3
+        %(border_topomap)s
+
+            .. versionadded:: 1.3
+        %(res_topomap)s
+        %(size_topomap)s
+        %(cmap_topomap)s
+        %(vlim_plot_topomap)s
+
+            .. versionadded:: 1.3
+        %(cnorm)s
+
+            .. versionadded:: 1.3
+        %(colorbar_topomap)s
+        %(cbar_fmt_topomap)s
+        %(units_topomap)s
+        %(axes_evoked_plot_topomap)s
+        name_format : str
+            String format for topomap values. Defaults to "CSP%%01d".
+        %(nrows_ncols_topomap)s
+
+            .. versionadded:: 1.3
+        %(show)s
 
         Returns
         -------
         fig : instance of matplotlib.figure.Figure
            The figure.
         """
-        from .. import EvokedArray
+        if units is None:
+            units = "AU"
         if components is None:
             components = np.arange(self.n_components)
 
         # set sampling frequency to have 1 component per time point
         info = cp.deepcopy(info)
         with info._unlock():
-            info['sfreq'] = 1.
+            info["sfreq"] = 1.0
         # create an evoked
         patterns = EvokedArray(self.patterns_.T, info, tmin=0)
         # the call plot_topomap
-        return patterns.plot_topomap(
-            times=components, ch_type=ch_type,
-            vmin=vmin, vmax=vmax, cmap=cmap, colorbar=colorbar, res=res,
-            cbar_fmt=cbar_fmt, sensors=sensors,
-            scalings=scalings, units=units, time_unit='s',
-            time_format=name_format, size=size, show_names=show_names,
-            title=title, mask_params=mask_params, mask=mask, outlines=outlines,
-            contours=contours, image_interp=image_interp, show=show,
-            average=average, sphere=sphere)
+        fig = patterns.plot_topomap(
+            times=components,
+            average=average,
+            ch_type=ch_type,
+            scalings=scalings,
+            sensors=sensors,
+            show_names=show_names,
+            mask=mask,
+            mask_params=mask_params,
+            contours=contours,
+            outlines=outlines,
+            sphere=sphere,
+            image_interp=image_interp,
+            extrapolate=extrapolate,
+            border=border,
+            res=res,
+            size=size,
+            cmap=cmap,
+            vlim=vlim,
+            cnorm=cnorm,
+            colorbar=colorbar,
+            cbar_fmt=cbar_fmt,
+            units=units,
+            axes=axes,
+            time_format=name_format,
+            nrows=nrows,
+            ncols=ncols,
+            show=show,
+        )
+        return fig
 
     @fill_doc
-    def plot_filters(self, info, components=None, ch_type=None,
-                     vmin=None, vmax=None, cmap='RdBu_r', sensors=True,
-                     colorbar=True, scalings=None, units='a.u.', res=64,
-                     size=1, cbar_fmt='%3.1f', name_format='CSP%01d',
-                     show=True, show_names=False, title=None, mask=None,
-                     mask_params=None, outlines='head', contours=6,
-                     image_interp=_INTERPOLATION_DEFAULT, average=None):
+    def plot_filters(
+        self,
+        info,
+        components=None,
+        *,
+        average=None,
+        ch_type=None,
+        scalings=None,
+        sensors=True,
+        show_names=False,
+        mask=None,
+        mask_params=None,
+        contours=6,
+        outlines="head",
+        sphere=None,
+        image_interp=_INTERPOLATION_DEFAULT,
+        extrapolate=_EXTRAPOLATE_DEFAULT,
+        border=_BORDER_DEFAULT,
+        res=64,
+        size=1,
+        cmap="RdBu_r",
+        vlim=(None, None),
+        cnorm=None,
+        colorbar=True,
+        cbar_fmt="%3.1f",
+        units=None,
+        axes=None,
+        name_format="CSP%01d",
+        nrows=1,
+        ncols="auto",
+        show=True,
+    ):
         """Plot topographic filters of components.
 
         The filters are used to extract discriminant neural sources from
@@ -374,111 +424,93 @@ class CSP(TransformerMixin, BaseEstimator):
         %(info_not_none)s Used for fitting. If not available, consider using
             :func:`mne.create_info`.
         components : float | array of float | None
-           The patterns to plot. If None, n_components will be shown.
-        ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None
-            The channel type to plot. For 'grad', the gradiometers are
-            collected in pairs and the RMS for each pair is plotted.
-            If None, then first available channel type from order given
-            above is used. Defaults to None.
-        vmin : float | callable
-            The value specifying the lower bound of the color range.
-            If None, and vmax is None, -vmax is used. Else np.min(data).
-            If callable, the output equals vmin(data).
-        vmax : float | callable
-            The value specifying the upper bound of the color range.
-            If None, the maximum absolute value is used. If vmin is None,
-            but vmax is not, defaults to np.min(data).
-            If callable, the output equals vmax(data).
-        cmap : matplotlib colormap | (colormap, bool) | 'interactive' | None
-            Colormap to use. If tuple, the first value indicates the colormap
-            to use and the second value is a boolean defining interactivity. In
-            interactive mode the colors are adjustable by clicking and dragging
-            the colorbar with left and right mouse button. Left mouse button
-            moves the scale up and down and right mouse button adjusts the
-            range. Hitting space bar resets the range. Up and down arrows can
-            be used to change the colormap. If None, 'Reds' is used for all
-            positive data, otherwise defaults to 'RdBu_r'. If 'interactive',
-            translates to (None, True). Defaults to 'RdBu_r'.
-
-            .. warning::  Interactive mode works smoothly only for a small
-                amount of topomaps.
-        sensors : bool | str
-            Add markers for sensor locations to the plot. Accepts matplotlib
-            plot format string (e.g., 'r+' for red plusses). If True,
-            a circle will be used (via .add_artist). Defaults to True.
-        colorbar : bool
-            Plot a colorbar.
+           The patterns to plot. If ``None``, all components will be shown.
+        %(average_plot_evoked_topomap)s
+        %(ch_type_topomap)s
         scalings : dict | float | None
             The scalings of the channel types to be applied for plotting.
             If None, defaults to ``dict(eeg=1e6, grad=1e13, mag=1e15)``.
-        units : dict | str | None
-            The unit of the channel type used for colorbar label. If
-            scale is None the unit is automatically determined.
-        res : int
-            The resolution of the topomap image (n pixels along each side).
-        size : float
-            Side length per topomap in inches.
-        cbar_fmt : str
-            String format for colorbar values.
+        %(sensors_topomap)s
+        %(show_names_topomap)s
+        %(mask_patterns_topomap)s
+        %(mask_params_topomap)s
+        %(contours_topomap)s
+        %(outlines_topomap)s
+        %(sphere_topomap_auto)s
+        %(image_interp_topomap)s
+        %(extrapolate_topomap)s
+
+            .. versionadded:: 1.3
+        %(border_topomap)s
+
+            .. versionadded:: 1.3
+        %(res_topomap)s
+        %(size_topomap)s
+        %(cmap_topomap)s
+        %(vlim_plot_topomap_psd)s
+
+            .. versionadded:: 1.3
+        %(cnorm)s
+
+            .. versionadded:: 1.3
+        %(colorbar_topomap)s
+        %(cbar_fmt_topomap)s
+        %(units_topomap)s
+        %(axes_evoked_plot_topomap)s
         name_format : str
             String format for topomap values. Defaults to "CSP%%01d".
-        show : bool
-            Show figure if True.
-        show_names : bool | callable
-            If True, show channel names on top of the map. If a callable is
-            passed, channel names will be formatted using the callable; e.g.,
-            to delete the prefix 'MEG ' from all channel names, pass the
-            function lambda x: x.replace('MEG ', ''). If ``mask`` is not None,
-            only significant sensors will be shown.
-        title : str | None
-            Title. If None (default), no title is displayed.
-        mask : ndarray of bool, shape (n_channels, n_times) | None
-            The channels to be marked as significant at a given time point.
-            Indices set to `True` will be considered. Defaults to None.
-        mask_params : dict | None
-            Additional plotting parameters for plotting significant sensors.
-            Default (None) equals::
+        %(nrows_ncols_topomap)s
 
-                dict(marker='o', markerfacecolor='w', markeredgecolor='k',
-                     linewidth=0, markersize=4)
-        %(outlines_topomap)s
-        contours : int | array of float
-            The number of contour lines to draw. If 0, no contours will be
-            drawn. When an integer, matplotlib ticker locator is used to find
-            suitable values for the contour thresholds (may sometimes be
-            inaccurate, use array for accuracy). If an array, the values
-            represent the levels for the contours. Defaults to 6.
-        %(image_interp_topomap)s
-        average : float | None
-            The time window around a given time to be used for averaging
-            (seconds). For example, 0.01 would translate into window that
-            starts 5 ms before and ends 5 ms after a given time point.
-            Defaults to None, which means no averaging.
+            .. versionadded:: 1.3
+        %(show)s
 
         Returns
         -------
         fig : instance of matplotlib.figure.Figure
            The figure.
         """
-        from .. import EvokedArray
+        if units is None:
+            units = "AU"
         if components is None:
             components = np.arange(self.n_components)
 
         # set sampling frequency to have 1 component per time point
         info = cp.deepcopy(info)
         with info._unlock():
-            info['sfreq'] = 1.
+            info["sfreq"] = 1.0
         # create an evoked
         filters = EvokedArray(self.filters_.T, info, tmin=0)
         # the call plot_topomap
-        return filters.plot_topomap(
-            times=components, ch_type=ch_type, vmin=vmin,
-            vmax=vmax, cmap=cmap, colorbar=colorbar, res=res,
-            cbar_fmt=cbar_fmt, sensors=sensors, scalings=scalings, units=units,
-            time_unit='s', time_format=name_format, size=size,
-            show_names=show_names, title=title, mask_params=mask_params,
-            mask=mask, outlines=outlines, contours=contours,
-            image_interp=image_interp, show=show, average=average)
+        fig = filters.plot_topomap(
+            times=components,
+            average=average,
+            ch_type=ch_type,
+            scalings=scalings,
+            sensors=sensors,
+            show_names=show_names,
+            mask=mask,
+            mask_params=mask_params,
+            contours=contours,
+            outlines=outlines,
+            sphere=sphere,
+            image_interp=image_interp,
+            extrapolate=extrapolate,
+            border=border,
+            res=res,
+            size=size,
+            cmap=cmap,
+            vlim=vlim,
+            cnorm=cnorm,
+            colorbar=colorbar,
+            cbar_fmt=cbar_fmt,
+            units=units,
+            axes=axes,
+            time_format=name_format,
+            nrows=nrows,
+            ncols=ncols,
+            show=show,
+        )
+        return fig
 
     def _compute_covariance_matrices(self, X, y):
         _, n_channels, _ = X.shape
@@ -508,34 +540,39 @@ class CSP(TransformerMixin, BaseEstimator):
         x_class = np.transpose(x_class, [1, 0, 2])
         x_class = x_class.reshape(n_channels, -1)
         cov = _regularized_covariance(
-            x_class, reg=self.reg, method_params=self.cov_method_params,
-            rank=self.rank)
+            x_class, reg=self.reg, method_params=self.cov_method_params, rank=self.rank
+        )
         weight = x_class.shape[0]
 
         return cov, weight
 
     def _epoch_cov(self, x_class):
         """Mean of per-epoch covariances."""
-        cov = sum(_regularized_covariance(
-            this_X, reg=self.reg,
-            method_params=self.cov_method_params,
-            rank=self.rank) for this_X in x_class)
+        cov = sum(
+            _regularized_covariance(
+                this_X,
+                reg=self.reg,
+                method_params=self.cov_method_params,
+                rank=self.rank,
+            )
+            for this_X in x_class
+        )
         cov /= len(x_class)
         weight = len(x_class)
 
         return cov, weight
 
     def _decompose_covs(self, covs, sample_weights):
-        from scipy import linalg
         n_classes = len(covs)
         if n_classes == 2:
-            eigen_values, eigen_vectors = linalg.eigh(covs[0], covs.sum(0))
+            eigen_values, eigen_vectors = eigh(covs[0], covs.sum(0))
         else:
             # The multiclass case is adapted from
             # http://github.com/alexandrebarachant/pyRiemann
             eigen_vectors, D = _ajd_pham(covs)
-            eigen_vectors = self._normalize_eigenvectors(eigen_vectors.T, covs,
-                                                         sample_weights)
+            eigen_vectors = self._normalize_eigenvectors(
+                eigen_vectors.T, covs, sample_weights
+            )
             eigen_values = None
         return eigen_vectors, eigen_values
 
@@ -545,12 +582,11 @@ class CSP(TransformerMixin, BaseEstimator):
         mutual_info = []
         for jj in range(eigen_vectors.shape[1]):
             aa, bb = 0, 0
-            for (cov, prob) in zip(covs, class_probas):
-                tmp = np.dot(np.dot(eigen_vectors[:, jj].T, cov),
-                             eigen_vectors[:, jj])
+            for cov, prob in zip(covs, class_probas):
+                tmp = np.dot(np.dot(eigen_vectors[:, jj].T, cov), eigen_vectors[:, jj])
                 aa += prob * np.log(np.sqrt(tmp))
-                bb += prob * (tmp ** 2 - 1)
-            mi = - (aa + (3.0 / 16) * (bb ** 2))
+                bb += prob * (tmp**2 - 1)
+            mi = -(aa + (3.0 / 16) * (bb**2))
             mutual_info.append(mi)
 
         return mutual_info
@@ -560,25 +596,24 @@ class CSP(TransformerMixin, BaseEstimator):
         mean_cov = np.average(covs, axis=0, weights=sample_weights)
 
         for ii in range(eigen_vectors.shape[1]):
-            tmp = np.dot(np.dot(eigen_vectors[:, ii].T, mean_cov),
-                         eigen_vectors[:, ii])
+            tmp = np.dot(np.dot(eigen_vectors[:, ii].T, mean_cov), eigen_vectors[:, ii])
             eigen_vectors[:, ii] /= np.sqrt(tmp)
         return eigen_vectors
 
-    def _order_components(self, covs, sample_weights, eigen_vectors,
-                          eigen_values, component_order):
+    def _order_components(
+        self, covs, sample_weights, eigen_vectors, eigen_values, component_order
+    ):
         n_classes = len(self._classes)
-        if component_order == 'mutual_info' and n_classes > 2:
-            mutual_info = self._compute_mutual_info(covs, sample_weights,
-                                                    eigen_vectors)
+        if component_order == "mutual_info" and n_classes > 2:
+            mutual_info = self._compute_mutual_info(covs, sample_weights, eigen_vectors)
             ix = np.argsort(mutual_info)[::-1]
-        elif component_order == 'mutual_info' and n_classes == 2:
+        elif component_order == "mutual_info" and n_classes == 2:
             ix = np.argsort(np.abs(eigen_values - 0.5))[::-1]
-        elif component_order == 'alternate' and n_classes == 2:
+        elif component_order == "alternate" and n_classes == 2:
             i = np.argsort(eigen_values)
             ix = np.empty_like(i)
-            ix[1::2] = i[:len(i) // 2]
-            ix[0::2] = i[len(i) // 2:][::-1]
+            ix[1::2] = i[: len(i) // 2]
+            ix[0::2] = i[len(i) // 2 :][::-1]
         return ix
 
 
@@ -647,16 +682,16 @@ def _ajd_pham(X, eps=1e-6, max_iter=15):
 
                 decr += n_epochs * (g12 * np.conj(h12) + g21 * h21) / 2.0
 
-                tmp = 1 + 1.j * 0.5 * np.imag(h12 * h21)
-                tmp = np.real(tmp + np.sqrt(tmp ** 2 - h12 * h21))
+                tmp = 1 + 1.0j * 0.5 * np.imag(h12 * h21)
+                tmp = np.real(tmp + np.sqrt(tmp**2 - h12 * h21))
                 tau = np.array([[1, -h12 / tmp], [-h21 / tmp, 1]])
 
                 A[[ii, jj], :] = np.dot(tau, A[[ii, jj], :])
                 tmp = np.c_[A[:, Ii], A[:, Ij]]
-                tmp = np.reshape(tmp, (n_times * n_epochs, 2), order='F')
+                tmp = np.reshape(tmp, (n_times * n_epochs, 2), order="F")
                 tmp = np.dot(tmp, tau.T)
 
-                tmp = np.reshape(tmp, (n_times, n_epochs * 2), order='F')
+                tmp = np.reshape(tmp, (n_times, n_epochs * 2), order="F")
                 A[:, Ii] = tmp[:, :n_epochs]
                 A[:, Ij] = tmp[:, n_epochs:]
                 V[[ii, jj], :] = np.dot(tau, V[[ii, jj], :])
@@ -727,19 +762,31 @@ class SPoC(CSP):
     .. footbibliography::
     """
 
-    def __init__(self, n_components=4, reg=None, log=None,
-                 transform_into='average_power', cov_method_params=None,
-                 rank=None):
+    def __init__(
+        self,
+        n_components=4,
+        reg=None,
+        log=None,
+        transform_into="average_power",
+        cov_method_params=None,
+        rank=None,
+    ):
         """Init of SPoC."""
-        super(SPoC, self).__init__(n_components=n_components, reg=reg, log=log,
-                                   cov_est="epoch", norm_trace=False,
-                                   transform_into=transform_into, rank=rank,
-                                   cov_method_params=cov_method_params)
+        super(SPoC, self).__init__(
+            n_components=n_components,
+            reg=reg,
+            log=log,
+            cov_est="epoch",
+            norm_trace=False,
+            transform_into=transform_into,
+            rank=rank,
+            cov_method_params=cov_method_params,
+        )
         # Covariance estimation have to be done on the single epoch level,
         # unlike CSP where covariance estimation can also be achieved through
         # concatenation of all epochs from the same class.
-        delattr(self, 'cov_est')
-        delattr(self, 'norm_trace')
+        delattr(self, "cov_est")
+        delattr(self, "norm_trace")
 
     def fit(self, X, y):
         """Estimate the SPoC decomposition on epochs.
@@ -756,7 +803,6 @@ class SPoC(CSP):
         self : instance of SPoC
             Returns the modified instance.
         """
-        from scipy import linalg
         self._check_Xy(X, y)
 
         if len(np.unique(y)) < 2:
@@ -775,14 +821,17 @@ class SPoC(CSP):
         covs = np.empty((n_epochs, n_channels, n_channels))
         for ii, epoch in enumerate(X):
             covs[ii] = _regularized_covariance(
-                epoch, reg=self.reg, method_params=self.cov_method_params,
-                rank=self.rank)
+                epoch,
+                reg=self.reg,
+                method_params=self.cov_method_params,
+                rank=self.rank,
+            )
 
         C = covs.mean(0)
         Cz = np.mean(covs * target[:, np.newaxis, np.newaxis], axis=0)
 
         # solve eigenvalue decomposition
-        evals, evecs = linalg.eigh(Cz, C)
+        evals, evecs = eigh(Cz, C)
         evals = evals.real
         evecs = evecs.real
         # sort vectors
@@ -792,14 +841,14 @@ class SPoC(CSP):
         evecs = evecs[:, ix].T
 
         # spatial patterns
-        self.patterns_ = linalg.pinv(evecs).T  # n_channels x n_channels
+        self.patterns_ = pinv(evecs).T  # n_channels x n_channels
         self.filters_ = evecs  # n_channels x n_channels
 
-        pick_filters = self.filters_[:self.n_components]
+        pick_filters = self.filters_[: self.n_components]
         X = np.asarray([np.dot(pick_filters, epoch) for epoch in X])
 
         # compute features (mean band power)
-        X = (X ** 2).mean(axis=-1)
+        X = (X**2).mean(axis=-1)
 
         # To standardize features
         self.mean_ = X.mean(axis=0)

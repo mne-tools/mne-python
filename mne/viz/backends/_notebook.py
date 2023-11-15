@@ -7,50 +7,115 @@
 
 import os
 import os.path as op
+import re
 from contextlib import contextmanager, nullcontext
 
-from IPython.display import display, clear_output
-from ipywidgets import (Widget, HBox, VBox, Button, Dropdown, IntSlider,
-                        IntText, Text, IntProgress, Play, Label, HTML,
-                        Checkbox, RadioButtons, Accordion, link,
-                        Layout, Select, GridBox,
-                        # non-object-based-abstraction-only widgets, deprecate
-                        FloatSlider, BoundedFloatText, jsdlink)
 from ipyevents import Event
+from IPython.display import clear_output, display
+from ipywidgets import (
+    HTML,
+    Accordion,
+    BoundedFloatText,
+    Button,
+    Checkbox,
+    Dropdown,
+    # non-object-based-abstraction-only widgets, deprecate
+    FloatSlider,
+    GridBox,
+    HBox,
+    IntProgress,
+    IntSlider,
+    IntText,
+    Label,
+    Layout,
+    Play,
+    RadioButtons,
+    Select,
+    Text,
+    VBox,
+    Widget,
+    jsdlink,
+    link,
+)
 
-from ._abstract import (_AbstractAppWindow, _AbstractHBoxLayout,
-                        _AbstractVBoxLayout, _AbstractGridLayout,
-                        _AbstractWidget, _AbstractCanvas,
-                        _AbstractPopup, _AbstractLabel,
-                        _AbstractButton, _AbstractSlider,
-                        _AbstractCheckBox, _AbstractSpinBox, _AbstractComboBox,
-                        _AbstractRadioButtons, _AbstractGroupBox,
-                        _AbstractText, _AbstractFileButton,
-                        _AbstractPlayMenu, _AbstractProgressBar)
-from ._abstract import (_AbstractDock, _AbstractToolBar, _AbstractMenuBar,
-                        _AbstractStatusBar, _AbstractLayout, _AbstractWdgt,
-                        _AbstractWindow, _AbstractMplCanvas, _AbstractPlayback,
-                        _AbstractBrainMplCanvas, _AbstractMplInterface,
-                        _AbstractWidgetList, _AbstractAction, _AbstractDialog,
-                        _AbstractKeyPress)
-from ._pyvista import _PyVistaRenderer, Plotter
-from ._pyvista import (_close_3d_figure, _check_3d_figure, _close_all,  # noqa: F401,E501 analysis:ignore
-                       _set_3d_view, _set_3d_title, _take_3d_screenshot)  # noqa: F401,E501 analysis:ignore
-
+from ...utils import _soft_import, check_version
+from ._abstract import (
+    _AbstractAction,
+    _AbstractAppWindow,
+    _AbstractBrainMplCanvas,
+    _AbstractButton,
+    _AbstractCanvas,
+    _AbstractCheckBox,
+    _AbstractComboBox,
+    _AbstractDialog,
+    _AbstractDock,
+    _AbstractFileButton,
+    _AbstractGridLayout,
+    _AbstractGroupBox,
+    _AbstractHBoxLayout,
+    _AbstractKeyPress,
+    _AbstractLabel,
+    _AbstractLayout,
+    _AbstractMenuBar,
+    _AbstractMplCanvas,
+    _AbstractMplInterface,
+    _AbstractPlayback,
+    _AbstractPlayMenu,
+    _AbstractPopup,
+    _AbstractProgressBar,
+    _AbstractRadioButtons,
+    _AbstractSlider,
+    _AbstractSpinBox,
+    _AbstractStatusBar,
+    _AbstractText,
+    _AbstractToolBar,
+    _AbstractVBoxLayout,
+    _AbstractWdgt,
+    _AbstractWidget,
+    _AbstractWidgetList,
+    _AbstractWindow,
+)
+from ._pyvista import (
+    Plotter,
+    _check_3d_figure,  # noqa: F401
+    _close_3d_figure,  # noqa: F401
+    _close_all,  # noqa: F401
+    _PyVistaRenderer,
+    _set_3d_title,  # noqa: F401
+    _set_3d_view,  # noqa: F401
+    _take_3d_screenshot,  # noqa: F401
+)
+from ._utils import _notebook_vtk_works
+from .renderer import _TimeInteraction
 
 # dict values are icon names from: https://fontawesome.com/icons
-_ICON_LUT = dict(help='question', play='play', pause='pause',
-                 reset='history', scale='magic',
-                 clear='trash', movie='video-camera',
-                 restore='replay', screenshot='camera',
-                 visibility_on='eye', visibility_off='eye',
-                 folder='folder', question='question',
-                 information='info', warning='triangle-exclamation',
-                 critical='exclamation')
+_ICON_LUT = dict(
+    help="question",
+    play="play",
+    pause="pause",
+    reset="history",
+    scale="magic",
+    clear="trash",
+    movie="video-camera",
+    restore="replay",
+    screenshot="camera",
+    visibility_on="eye",
+    visibility_off="eye",
+    folder="folder",
+    question="question",
+    information="info",
+    warning="triangle-exclamation",
+    critical="exclamation",
+)
 
-_BASE_MIN_SIZE = '20px'
-_BASE_KWARGS = dict(layout=Layout(
-    min_width=_BASE_MIN_SIZE, min_height=_BASE_MIN_SIZE))
+_BASE_MIN_SIZE = "20px"
+_BASE_KWARGS = dict(layout=Layout(min_width=_BASE_MIN_SIZE, min_height=_BASE_MIN_SIZE))
+
+# TODO: We can drop ipyvtklink once we support PyVista 0.38.1+
+if check_version("pyvista", "0.38.1"):
+    _JUPYTER_BACKEND = "trame"
+else:
+    _JUPYTER_BACKEND = "ipyvtklink"
 
 # %%
 # Widgets
@@ -65,7 +130,6 @@ class _BaseWidget(type(_AbstractWidget), type(Widget)):
 
 
 class _Widget(Widget, _AbstractWidget, metaclass=_BaseWidget):
-
     tooltip = None
 
     def __init__(self):
@@ -105,9 +169,10 @@ class _Widget(Widget, _AbstractWidget, metaclass=_BaseWidget):
             setattr(self.layout, key, val)
 
     def _add_keypress(self, callback):
-        self._event_watcher = Event(source=self, watched_events=['keydown'])
+        self._event_watcher = Event(source=self, watched_events=["keydown"])
         self._event_watcher.on_dom_event(
-            lambda event: callback(event['key'].lower().replace('arrow', '')))
+            lambda event: callback(event["key"].lower().replace("arrow", ""))
+        )
         self._callback = callback
 
     def _trigger_keypress(self, key):
@@ -116,7 +181,7 @@ class _Widget(Widget, _AbstractWidget, metaclass=_BaseWidget):
         self._callback(key)
 
     def _set_focus(self):
-        if hasattr(self, 'focus'):  # added in ipywidgets 8.0
+        if hasattr(self, "focus"):  # added in ipywidgets 8.0
             self.focus()
 
     def _set_layout(self, layout):
@@ -133,33 +198,28 @@ class _Widget(Widget, _AbstractWidget, metaclass=_BaseWidget):
 
 
 class _Label(_Widget, _AbstractLabel, Label, metaclass=_BaseWidget):
-
     def __init__(self, value, center=False, selectable=False):
         _Widget.__init__(self)
         _AbstractLabel.__init__(value, center=center, selectable=selectable)
         kwargs = _BASE_KWARGS.copy()
         if center:
-            kwargs['layout'].justify_content = 'center'
+            kwargs["layout"].justify_content = "center"
         Label.__init__(self, value=value, disabled=True, **kwargs)
 
 
 class _Text(_AbstractText, _Widget, Text, metaclass=_BaseWidget):
-
     def __init__(self, value=None, placeholder=None, callback=None):
-        _AbstractText.__init__(value=value, placeholder=placeholder,
-                               callback=callback)
+        _AbstractText.__init__(value=value, placeholder=placeholder, callback=callback)
         _Widget.__init__(self)
-        Text.__init__(self, value=value, placeholder=placeholder,
-                      **_BASE_KWARGS)
+        Text.__init__(self, value=value, placeholder=placeholder, **_BASE_KWARGS)
         if callback is not None:
-            self.observe(lambda x: callback(x['new']), names='value')
+            self.observe(lambda x: callback(x["new"]), names="value")
 
     def _set_value(self, value):
         self.value = value
 
 
 class _Button(_Widget, _AbstractButton, Button, metaclass=_BaseWidget):
-
     def __init__(self, value, callback, icon=None):
         _Widget.__init__(self)
         _AbstractButton.__init__(value=value, callback=callback)
@@ -176,17 +236,21 @@ class _Button(_Widget, _AbstractButton, Button, metaclass=_BaseWidget):
 
 
 class _Slider(_Widget, _AbstractSlider, IntSlider, metaclass=_BaseWidget):
-
     def __init__(self, value, rng, callback, horizontal=True):
         _Widget.__init__(self)
-        _AbstractSlider.__init__(value=value, rng=rng, callback=callback,
-                                 horizontal=horizontal)
+        _AbstractSlider.__init__(
+            value=value, rng=rng, callback=callback, horizontal=horizontal
+        )
         IntSlider.__init__(
-            self, value=int(value), min=int(rng[0]), max=int(rng[1]),
+            self,
+            value=int(value),
+            min=int(rng[0]),
+            max=int(rng[1]),
             readout=False,
-            orientation='horizontal' if horizontal else 'vertical',
-            **_BASE_KWARGS)
-        self.observe(lambda x: callback(x['new']), names='value')
+            orientation="horizontal" if horizontal else "vertical",
+            **_BASE_KWARGS,
+        )
+        self.observe(lambda x: callback(x["new"]), names="value")
 
     def _set_value(self, value):
         self.value = value
@@ -199,9 +263,7 @@ class _Slider(_Widget, _AbstractSlider, IntSlider, metaclass=_BaseWidget):
         self.max = int(rng[1])
 
 
-class _ProgressBar(_AbstractProgressBar, _Widget, IntProgress,
-                   metaclass=_BaseWidget):
-
+class _ProgressBar(_AbstractProgressBar, _Widget, IntProgress, metaclass=_BaseWidget):
     def __init__(self, count):
         _AbstractProgressBar.__init__(count=count)
         _Widget.__init__(self)
@@ -215,12 +277,11 @@ class _ProgressBar(_AbstractProgressBar, _Widget, IntProgress,
 
 
 class _CheckBox(_Widget, _AbstractCheckBox, Checkbox, metaclass=_BaseWidget):
-
     def __init__(self, value, callback):
         _Widget.__init__(self)
         _AbstractCheckBox.__init__(value=value, callback=callback)
         Checkbox.__init__(self, value=value, **_BASE_KWARGS)
-        self.observe(lambda x: callback(x['new']), names='value')
+        self.observe(lambda x: callback(x["new"]), names="value")
 
     def _set_checked(self, checked):
         self.value = checked
@@ -230,16 +291,13 @@ class _CheckBox(_Widget, _AbstractCheckBox, Checkbox, metaclass=_BaseWidget):
 
 
 class _SpinBox(_Widget, _AbstractSpinBox, IntText, metaclass=_BaseWidget):
-
     def __init__(self, value, rng, callback, step=None):
         _Widget.__init__(self)
-        _AbstractSpinBox.__init__(value=value, rng=rng, callback=callback,
-                                  step=step)
-        IntText.__init__(self, value=value, min=rng[0], max=rng[1],
-                         **_BASE_KWARGS)
+        _AbstractSpinBox.__init__(value=value, rng=rng, callback=callback, step=step)
+        IntText.__init__(self, value=value, min=rng[0], max=rng[1], **_BASE_KWARGS)
         if step is not None:
             self.step = step
-        self.observe(lambda x: callback(x['new']), names='value')
+        self.observe(lambda x: callback(x["new"]), names="value")
 
     def _set_value(self, value):
         self.value = value
@@ -249,12 +307,11 @@ class _SpinBox(_Widget, _AbstractSpinBox, IntText, metaclass=_BaseWidget):
 
 
 class _ComboBox(_AbstractComboBox, _Widget, Dropdown, metaclass=_BaseWidget):
-
     def __init__(self, value, items, callback):
         _AbstractComboBox.__init__(value=value, items=items, callback=callback)
         _Widget.__init__(self)
         Dropdown.__init__(self, value=value, options=items, **_BASE_KWARGS)
-        self.observe(lambda x: callback(x['new']), names='value')
+        self.observe(lambda x: callback(x["new"]), names="value")
 
     def _set_value(self, value):
         self.value = value
@@ -263,16 +320,16 @@ class _ComboBox(_AbstractComboBox, _Widget, Dropdown, metaclass=_BaseWidget):
         return self.value
 
 
-class _RadioButtons(_AbstractRadioButtons, _Widget, RadioButtons,
-                    metaclass=_BaseWidget):
-
+class _RadioButtons(
+    _AbstractRadioButtons, _Widget, RadioButtons, metaclass=_BaseWidget
+):
     def __init__(self, value, items, callback):
-        _AbstractRadioButtons.__init__(
-            value=value, items=items, callback=callback)
+        _AbstractRadioButtons.__init__(value=value, items=items, callback=callback)
         _Widget.__init__(self)
-        RadioButtons.__init__(self, value=value, options=items,
-                              disabled=False, **_BASE_KWARGS)
-        self.observe(lambda x: callback(x['new']), names='value')
+        RadioButtons.__init__(
+            self, value=value, options=items, disabled=False, **_BASE_KWARGS
+        )
+        self.observe(lambda x: callback(x["new"]), names="value")
 
     def _set_value(self, value):
         self.value = value
@@ -282,12 +339,11 @@ class _RadioButtons(_AbstractRadioButtons, _Widget, RadioButtons,
 
 
 class _GroupBox(_AbstractGroupBox, _Widget, Accordion, metaclass=_BaseWidget):
-
     def __init__(self, name, items):
         _AbstractGroupBox.__init__(name=name, items=items)
         _Widget.__init__(self)
         kwargs = _BASE_KWARGS.copy()
-        kwargs['layout'].min_height = f'{100 * len(items)}px'
+        kwargs["layout"].min_height = f"{100 * len(items)}px"
         self._layout = VBox(**kwargs)
         for item in items:
             self._layout.children = self._layout.children + (item,)
@@ -303,69 +359,72 @@ class _GroupBox(_AbstractGroupBox, _Widget, Accordion, metaclass=_BaseWidget):
 
 # modified from:
 # https://gist.github.com/elkhadiy/284900b3ea8a13ed7b777ab93a691719
-class _FilePicker(object):
+class _FilePicker:
     def __init__(self, rows=20, directory_only=False, ignore_dotfiles=True):
         self._callback = None
         self._directory_only = directory_only
         self._ignore_dotfiles = ignore_dotfiles
         self._empty_selection = True
         self._selected_dir = os.getcwd()
-        self._item_layout = Layout(width='auto')
+        self._item_layout = Layout(width="auto")
         self._nb_rows = rows
         self._file_selector = Select(
             options=self._get_selector_options(),
             rows=min(len(os.listdir(self._selected_dir)), self._nb_rows),
-            layout=self._item_layout
+            layout=self._item_layout,
         )
         self._open_button = Button(
-            description='Open',
-            layout=Layout(flex='auto 1 auto', width='auto')
+            description="Open", layout=Layout(flex="auto 1 auto", width="auto")
         )
         self._select_button = Button(
-            description='Select',
-            layout=Layout(flex='auto 1 auto', width='auto')
+            description="Select", layout=Layout(flex="auto 1 auto", width="auto")
         )
         self._cancel_button = Button(
-            description='Cancel',
-            layout=Layout(flex='auto 1 auto', width='auto')
+            description="Cancel", layout=Layout(flex="auto 1 auto", width="auto")
         )
         self._parent_button = Button(
-            icon='chevron-up',
-            layout=Layout(flex='auto 1 auto', width='auto')
+            icon="chevron-up", layout=Layout(flex="auto 1 auto", width="auto")
         )
         self._selection = Text(
-            value=op.join(
-                self._selected_dir, self._file_selector.value),
+            value=op.join(self._selected_dir, self._file_selector.value),
             disabled=True,
-            layout=Layout(flex='1 1 auto', width='auto')
+            layout=Layout(flex="1 1 auto", width="auto"),
         )
-        self._filename = Text(
-            value='',
-            layout=Layout(flex='1 1 auto', width='auto')
-        )
+        self._filename = Text(value="", layout=Layout(flex="1 1 auto", width="auto"))
         self._parent_button.on_click(self._parent_button_clicked)
         self._open_button.on_click(self._open_button_clicked)
         self._select_button.on_click(self._select_button_clicked)
         self._cancel_button.on_click(self._cancel_button_clicked)
         self._file_selector.observe(self._update_path)
 
-        self._widget = VBox([
-            HBox([
-                self._parent_button, HTML(value='Look in:'), self._selection,
-            ]),
-            self._file_selector,
-            HBox([
-                HTML(value='File name'), self._filename, self._open_button,
-                self._select_button, self._cancel_button,
-            ]),
-        ])
+        self._widget = VBox(
+            [
+                HBox(
+                    [
+                        self._parent_button,
+                        HTML(value="Look in:"),
+                        self._selection,
+                    ]
+                ),
+                self._file_selector,
+                HBox(
+                    [
+                        HTML(value="File name"),
+                        self._filename,
+                        self._open_button,
+                        self._select_button,
+                        self._cancel_button,
+                    ]
+                ),
+            ]
+        )
 
     def _get_selector_options(self):
         options = os.listdir(self._selected_dir)
         if self._ignore_dotfiles:
             tmp = list()
             for el in options:
-                if el[0] != '.':
+                if el[0] != ".":
                     tmp.append(el)
             options = tmp
         if self._directory_only:
@@ -375,7 +434,7 @@ class _FilePicker(object):
                     tmp.append(el)
             options = tmp
         if not options:
-            options = ['']
+            options = [""]
             self._empty_selection = True
         else:
             self._empty_selection = False
@@ -384,10 +443,9 @@ class _FilePicker(object):
     def _update_selector_options(self):
         self._file_selector.options = self._get_selector_options()
         self._file_selector.rows = min(
-            len(os.listdir(self._selected_dir)), self._nb_rows)
-        self._selection.value = op.join(
-            self._selected_dir, self._file_selector.value
+            len(os.listdir(self._selected_dir)), self._nb_rows
         )
+        self._selection.value = op.join(self._selected_dir, self._file_selector.value)
         self._filename.value = self._file_selector.value
 
     def show(self):
@@ -414,7 +472,8 @@ class _FilePicker(object):
             self._selected_dir = self._selection.value
             self._file_selector.options = self._get_selector_options()
             self._file_selector.rows = min(
-                len(os.listdir(self._selected_dir)), self._nb_rows)
+                len(os.listdir(self._selected_dir)), self._nb_rows
+            )
 
     def _select_button_clicked(self, button):
         if self._empty_selection:
@@ -435,21 +494,28 @@ class _FilePicker(object):
         self._update_selector_options()
 
     def _update_path(self, change):
-        self._selection.value = op.join(
-            self._selected_dir, self._file_selector.value
-        )
+        self._selection.value = op.join(self._selected_dir, self._file_selector.value)
         self._filename.value = self._file_selector.value
 
 
-class _FileButton(_AbstractFileButton, _Widget, Button,
-                  metaclass=_BaseWidget):
-
-    def __init__(self, callback, content_filter=None, initial_directory=None,
-                 save=False, is_directory=False, icon='folder', window=None):
+class _FileButton(_AbstractFileButton, _Widget, Button, metaclass=_BaseWidget):
+    def __init__(
+        self,
+        callback,
+        content_filter=None,
+        initial_directory=None,
+        save=False,
+        is_directory=False,
+        icon="folder",
+        window=None,
+    ):
         _AbstractFileButton.__init__(
-            callback=callback, content_filter=content_filter,
-            initial_directory=initial_directory, save=save,
-            is_directory=is_directory)
+            callback=callback,
+            content_filter=content_filter,
+            initial_directory=initial_directory,
+            save=save,
+            is_directory=is_directory,
+        )
         _Widget.__init__(self)
         self._file_picker = _FilePicker()
 
@@ -465,7 +531,8 @@ class _FileButton(_AbstractFileButton, _Widget, Button,
                 callback(name)
 
             self._file_picker.connect(
-                callback if window is None else callback_with_show)
+                callback if window is None else callback_with_show
+            )
             self._file_picker.show()
 
         Button.__init__(self, **_BASE_KWARGS)
@@ -474,22 +541,20 @@ class _FileButton(_AbstractFileButton, _Widget, Button,
 
 
 class _PlayMenu(_AbstractPlayMenu, _Widget, VBox, metaclass=_BaseWidget):
-
     def __init__(self, value, rng, callback):
-        _AbstractPlayMenu.__init__(
-            value=value, rng=rng, callback=callback)
+        _AbstractPlayMenu.__init__(value=value, rng=rng, callback=callback)
         _Widget.__init__(self)
         kwargs = _BASE_KWARGS.copy()
-        kwargs['layout'].align_items = 'center'
-        kwargs['layout'].min_height = '100px'
+        kwargs["layout"].align_items = "center"
+        kwargs["layout"].min_height = "100px"
         VBox.__init__(self, **kwargs)
-        self._slider = IntSlider(value=value, min=rng[0], max=rng[1],
-                                 readout=False, continuous_update=False)
-        self._play_widget = Play(
-            value=value, min=rng[0], max=rng[1], interval=250)
+        self._slider = IntSlider(
+            value=value, min=rng[0], max=rng[1], readout=False, continuous_update=False
+        )
+        self._play_widget = Play(value=value, min=rng[0], max=rng[1], interval=250)
         self.children = (self._slider, self._play_widget)
-        link((self._play_widget, 'value'), (self._slider, 'value'))
-        self._slider.observe(lambda x: callback(x['new']), names='value')
+        link((self._play_widget, "value"), (self._slider, "value"))
+        self._slider.observe(lambda x: callback(x["new"]), names="value")
 
     # play, pause, reset and loop require ipywidgets v8.0+ and so are
     # not currently tested, will be added upon release
@@ -511,12 +576,26 @@ class _PlayMenu(_AbstractPlayMenu, _Widget, VBox, metaclass=_BaseWidget):
 
 
 class _Popup(_AbstractPopup, _Widget, VBox, metaclass=_BaseWidget):
-
-    def __init__(self, title, text, info_text=None, callback=None,
-                 icon='warning', buttons=None, window=None):
+    def __init__(
+        self,
+        title,
+        text,
+        info_text=None,
+        callback=None,
+        icon="warning",
+        buttons=None,
+        window=None,
+    ):
         _AbstractPopup.__init__(
-            self, title=title, text=text, info_text=info_text,
-            callback=callback, icon=icon, buttons=buttons, window=window)
+            self,
+            title=title,
+            text=text,
+            info_text=info_text,
+            callback=callback,
+            icon=icon,
+            buttons=buttons,
+            window=window,
+        )
         _Widget.__init__(self)
         VBox.__init__(self, **_BASE_KWARGS)
 
@@ -524,19 +603,19 @@ class _Popup(_AbstractPopup, _Widget, VBox, metaclass=_BaseWidget):
             clear_output()
 
         title_label = _Label(title)
-        title_label._set_style(dict(fontsize='28'))
+        title_label._set_style(dict(fontsize="28"))
         text_label = _Label(text)
-        text_label._set_style(dict(fontsize='18'))
+        text_label._set_style(dict(fontsize="18"))
         self.children = (title_label, text_label)
         if info_text:
             info_text_label = _Label(info_text)
-            info_text_label._set_style(dict(fontsize='12'))
+            info_text_label._set_style(dict(fontsize="12"))
             self.children += (info_text_label,)
 
         self.icon = _ICON_LUT[icon]
 
         if buttons is None:
-            buttons = ['Ok']
+            buttons = ["Ok"]
 
         hbox = HBox()
         self._buttons = dict()
@@ -561,33 +640,31 @@ class _Popup(_AbstractPopup, _Widget, VBox, metaclass=_BaseWidget):
         self._buttons[value].click()
 
 
-class _BoxLayout(object):
-
+class _BoxLayout:
     def _handle_scroll(self, scroll=None):
         kwargs = _BASE_KWARGS.copy()
         if scroll is not None:
-            kwargs['layout'].width = f'{scroll[0]}px'
-            kwargs['layout'].height = f'{scroll[1]}px'
-            kwargs['overflow_x'] = 'scroll'
-            kwargs['overflow_y'] = 'scroll'
+            kwargs["layout"].width = f"{scroll[0]}px"
+            kwargs["layout"].height = f"{scroll[1]}px"
+            kwargs["overflow_x"] = "scroll"
+            kwargs["overflow_y"] = "scroll"
         return kwargs
 
     def _add_widget(self, widget):
         # if pyvista plotter, needs to be shown
         if isinstance(widget, Plotter):
-            widget = widget.show(
-                jupyter_backend='ipyvtklink', return_viewer=True)
+            widget = widget.show(jupyter_backend=_JUPYTER_BACKEND, return_viewer=True)
+        if hasattr(widget, "layout"):
             widget.layout.width = None  # unlock the fixed layout
-        if hasattr(widget, 'layout'):
             widget.layout.margin = "2px 0px 2px 0px"
             if not isinstance(widget, Play):
                 widget.layout.min_width = "0px"
         self.children += (widget,)
 
 
-class _HBoxLayout(_AbstractHBoxLayout, _BoxLayout, _Widget, HBox,
-                  metaclass=_BaseWidget):
-
+class _HBoxLayout(
+    _AbstractHBoxLayout, _BoxLayout, _Widget, HBox, metaclass=_BaseWidget
+):
     def __init__(self, height=None, scroll=None):
         _Widget.__init__(self)
         _BoxLayout.__init__(self)
@@ -599,16 +676,18 @@ class _HBoxLayout(_AbstractHBoxLayout, _BoxLayout, _Widget, HBox,
         _BoxLayout._add_widget(self, widget)
         if self._height is not None:
             for child in self.children:
-                child.layout.height = \
-                    f"{int(self._height / len(self.children))}px"
+                child.layout.height = f"{int(self._height / len(self.children))}px"
 
     def _add_stretch(self, amount=1):
-        self.children += (self, _Label(' ' * 4),)
+        self.children += (
+            self,
+            _Label(" " * 4),
+        )
 
 
-class _VBoxLayout(_AbstractVBoxLayout, _BoxLayout, _Widget, VBox,
-                  metaclass=_BaseWidget):
-
+class _VBoxLayout(
+    _AbstractVBoxLayout, _BoxLayout, _Widget, VBox, metaclass=_BaseWidget
+):
     def __init__(self, width=None, scroll=None):
         _Widget.__init__(self)
         _BoxLayout.__init__(self)
@@ -620,16 +699,16 @@ class _VBoxLayout(_AbstractVBoxLayout, _BoxLayout, _Widget, VBox,
         _BoxLayout._add_widget(self, widget)
         if self._width is not None:
             for child in self.children:
-                child.layout.width = \
-                    f"{int(self._width / len(self.children))}px"
+                child.layout.width = f"{int(self._width / len(self.children))}px"
 
     def _add_stretch(self, amount=1):
-        self.children += (self, _Label(' ' * 4),)
+        self.children += (
+            self,
+            _Label(" " * 4),
+        )
 
 
-class _GridLayout(_AbstractGridLayout, _Widget, GridBox,
-                  metaclass=_BaseWidget):
-
+class _GridLayout(_AbstractGridLayout, _Widget, GridBox, metaclass=_BaseWidget):
     def __init__(self, height=None, width=None):
         _Widget.__init__(self)
         _AbstractVBoxLayout.__init__(height=height, width=width)
@@ -640,16 +719,14 @@ class _GridLayout(_AbstractGridLayout, _Widget, GridBox,
 
 
 class _Canvas(_AbstractCanvas, _Widget, HBox, metaclass=_BaseWidget):
-
     def __init__(self, width, height, dpi):
         import matplotlib.pyplot as plt
+
         _Widget.__init__(self)
-        _AbstractCanvas.__init__(
-            self, width=width, height=height, dpi=dpi)
+        _AbstractCanvas.__init__(self, width=width, height=height, dpi=dpi)
         HBox.__init__(self, **_BASE_KWARGS)
-        plt.ioff()
-        self.fig, self.ax = plt.subplots(dpi=dpi)
-        plt.ion()
+        with plt.ioff():
+            self.fig, self.ax = plt.subplots(dpi=dpi)
         self.children = (self.fig.canvas,)
 
     def _set_size(self, width=None, height=None):
@@ -660,7 +737,6 @@ class _Canvas(_AbstractCanvas, _Widget, HBox, metaclass=_BaseWidget):
 
 
 class _AppWindow(_AbstractAppWindow, _Widget, VBox, metaclass=_BaseWidget):
-
     def __init__(self, size=None, fullscreen=False):
         _AbstractAppWindow.__init__(self)
         _Widget.__init__(self)
@@ -703,25 +779,27 @@ class _AppWindow(_AbstractAppWindow, _Widget, VBox, metaclass=_BaseWidget):
 
 
 class _3DRenderer(_PyVistaRenderer):
-    _kind = 'notebook'
+    _kind = "notebook"
 
     def __init__(self, *args, **kwargs):
-        kwargs['notebook'] = True
+        kwargs["notebook"] = True
         super().__init__(*args, **kwargs)
-        if 'show' in kwargs and kwargs['show']:
+        if "show" in kwargs and kwargs["show"]:
             self.show()
 
     def _update(self):
-        if self.figure.display is not None:
-            self.figure.display.update_canvas()
+        if _JUPYTER_BACKEND == "ipyvtklink":
+            if self.figure.display is not None:
+                self.figure.display.update_canvas()
+        else:
+            super()._update()
 
     @contextmanager
     def _ensure_minimum_sizes(self):
         yield
 
     def show(self):
-        viewer = self.plotter.show(
-            jupyter_backend="ipyvtklink", return_viewer=True)
+        viewer = self.plotter.show(jupyter_backend=_JUPYTER_BACKEND, return_viewer=True)
         viewer.layout.width = None  # unlock the fixed layout
         display(viewer)
 
@@ -732,6 +810,7 @@ class _3DRenderer(_PyVistaRenderer):
 # These are planned to be deprecated in favor of the simpler, object-
 # oriented abstractions above when time allows.
 
+
 # modified from:
 # https://gist.github.com/elkhadiy/284900b3ea8a13ed7b777ab93a691719
 class _FilePckr:
@@ -741,62 +820,65 @@ class _FilePckr:
         self._ignore_dotfiles = ignore_dotfiles
         self._empty_selection = True
         self._selected_dir = os.getcwd()
-        self._item_layout = Layout(width='auto')
+        self._item_layout = Layout(width="auto")
         self._nb_rows = rows
         self._file_selector = Select(
             options=self._get_selector_options(),
             rows=min(len(os.listdir(self._selected_dir)), self._nb_rows),
-            layout=self._item_layout
+            layout=self._item_layout,
         )
         self._open_button = Button(
-            description='Open',
-            layout=Layout(flex='auto 1 auto', width='auto')
+            description="Open", layout=Layout(flex="auto 1 auto", width="auto")
         )
         self._select_button = Button(
-            description='Select',
-            layout=Layout(flex='auto 1 auto', width='auto')
+            description="Select", layout=Layout(flex="auto 1 auto", width="auto")
         )
         self._cancel_button = Button(
-            description='Cancel',
-            layout=Layout(flex='auto 1 auto', width='auto')
+            description="Cancel", layout=Layout(flex="auto 1 auto", width="auto")
         )
         self._parent_button = Button(
-            icon='chevron-up',
-            layout=Layout(flex='auto 1 auto', width='auto')
+            icon="chevron-up", layout=Layout(flex="auto 1 auto", width="auto")
         )
         self._selection = Text(
-            value=os.path.join(
-                self._selected_dir, self._file_selector.value),
+            value=os.path.join(self._selected_dir, self._file_selector.value),
             disabled=True,
-            layout=Layout(flex='1 1 auto', width='auto')
+            layout=Layout(flex="1 1 auto", width="auto"),
         )
-        self._filename = Text(
-            value='',
-            layout=Layout(flex='1 1 auto', width='auto')
-        )
+        self._filename = Text(value="", layout=Layout(flex="1 1 auto", width="auto"))
         self._parent_button.on_click(self._parent_button_clicked)
         self._open_button.on_click(self._open_button_clicked)
         self._select_button.on_click(self._select_button_clicked)
         self._cancel_button.on_click(self._cancel_button_clicked)
         self._file_selector.observe(self._update_path)
 
-        self._widget = VBox([
-            HBox([
-                self._parent_button, HTML(value='Look in:'), self._selection,
-            ]),
-            self._file_selector,
-            HBox([
-                HTML(value='File name'), self._filename, self._open_button,
-                self._select_button, self._cancel_button,
-            ]),
-        ])
+        self._widget = VBox(
+            [
+                HBox(
+                    [
+                        self._parent_button,
+                        HTML(value="Look in:"),
+                        self._selection,
+                    ]
+                ),
+                self._file_selector,
+                HBox(
+                    [
+                        HTML(value="File name"),
+                        self._filename,
+                        self._open_button,
+                        self._select_button,
+                        self._cancel_button,
+                    ]
+                ),
+            ]
+        )
 
     def _get_selector_options(self):
         options = os.listdir(self._selected_dir)
         if self._ignore_dotfiles:
             tmp = list()
             for el in options:
-                if el[0] != '.':
+                if el[0] != ".":
                     tmp.append(el)
             options = tmp
         if self._directory_only:
@@ -806,7 +888,7 @@ class _FilePckr:
                     tmp.append(el)
             options = tmp
         if not options:
-            options = ['']
+            options = [""]
             self._empty_selection = True
         else:
             self._empty_selection = False
@@ -815,7 +897,8 @@ class _FilePckr:
     def _update_selector_options(self):
         self._file_selector.options = self._get_selector_options()
         self._file_selector.rows = min(
-            len(os.listdir(self._selected_dir)), self._nb_rows)
+            len(os.listdir(self._selected_dir)), self._nb_rows
+        )
         self._selection.value = os.path.join(
             self._selected_dir, self._file_selector.value
         )
@@ -844,7 +927,8 @@ class _FilePckr:
             self._selected_dir = self._selection.value
             self._file_selector.options = self._get_selector_options()
             self._file_selector.rows = min(
-                len(os.listdir(self._selected_dir)), self._nb_rows)
+                len(os.listdir(self._selected_dir)), self._nb_rows
+            )
 
     def _select_button_clicked(self, button):
         if self._empty_selection:
@@ -883,8 +967,18 @@ class _IpyKeyPress(_AbstractKeyPress):
 
 
 class _IpyDialog(_AbstractDialog):
-    def _dialog_create(self, title, text, info_text, callback, *,
-                       icon='Warning', buttons=[], modal=True, window=None):
+    def _dialog_create(
+        self,
+        title,
+        text,
+        info_text,
+        callback,
+        *,
+        icon="Warning",
+        buttons=[],
+        modal=True,
+        window=None,
+    ):
         pass
 
 
@@ -892,8 +986,7 @@ class _IpyLayout(_AbstractLayout):
     def _layout_initialize(self, max_width):
         self._layout_max_width = max_width
 
-    def _layout_add_widget(self, layout, widget, stretch=0,
-                           *, row=None, col=None):
+    def _layout_add_widget(self, layout, widget, stretch=0, *, row=None, col=None):
         widget.layout.margin = "2px 0px 2px 0px"
         if not isinstance(widget, Play):
             widget.layout.min_width = "0px"
@@ -912,20 +1005,21 @@ class _IpyLayout(_AbstractLayout):
                 for child in children:
                     child.layout.width = f"{width}px"
 
-    def _layout_create(self, orientation='vertical'):
-        if orientation == 'vertical':
+    def _layout_create(self, orientation="vertical"):
+        if orientation == "vertical":
             layout = VBox()
-        elif orientation == 'horizontal':
+        elif orientation == "horizontal":
             layout = HBox()
         else:
-            assert orientation == 'grid'
+            assert orientation == "grid"
             layout = GridBox()
         return layout
 
 
 class _IpyDock(_AbstractDock, _IpyLayout):
-    def _dock_initialize(self, window=None, name="Controls",
-                         area="left", max_width=None):
+    def _dock_initialize(
+        self, window=None, name="Controls", area="left", max_width=None
+    ):
         if self._docks is None:
             self._docks = dict()
         current_dock = VBox()
@@ -945,26 +1039,35 @@ class _IpyDock(_AbstractDock, _IpyLayout):
         self._dock_layout.layout.visibility = "hidden"
 
     def _dock_add_stretch(self, layout=None):
-        pass
+        layout = self._dock_layout if layout is None else layout
+        widget = HTML(value="", disabled=True)
+        widget.layout.width = "100%"
+        self._layout_add_widget(layout, widget)
+        return _IpyWidget(widget)
 
     def _dock_add_layout(self, vertical=True):
         return VBox() if vertical else HBox()
 
-    def _dock_add_label(
-        self, value, *, align=False, layout=None, selectable=False
-    ):
+    def _dock_add_label(self, value, *, align=False, layout=None, selectable=False):
         layout = self._dock_layout if layout is None else layout
         widget = HTML(value=value, disabled=True)
+        widget.layout.width = "100px"
         self._layout_add_widget(layout, widget)
         return _IpyWidget(widget)
 
     def _dock_add_button(
-        self, name, callback, *, style='pushbutton', icon=None, tooltip=None,
-        layout=None
+        self,
+        name,
+        callback,
+        *,
+        style="pushbutton",
+        icon=None,
+        tooltip=None,
+        layout=None,
     ):
         layout = self._dock_layout if layout is None else layout
         kwargs = dict()
-        if style == 'pushbutton':
+        if style == "pushbutton":
             kwargs["description"] = name
         if tooltip is not None:
             kwargs["tooltip"] = tooltip
@@ -979,17 +1082,24 @@ class _IpyDock(_AbstractDock, _IpyLayout):
         layout = self._dock_layout if layout is None else layout
         if name is not None:
             hlayout = self._dock_add_layout(not compact)
-            self._dock_add_label(
-                value=name, align=not compact, layout=hlayout)
+            self._dock_add_label(value=name, align=not compact, layout=hlayout)
             self._layout_add_widget(layout, hlayout)
             layout = hlayout
         return layout
 
-    def _dock_add_slider(self, name, value, rng, callback, *,
-                         compact=True, double=False, tooltip=None,
-                         layout=None):
-        layout = self._dock_named_layout(
-            name=name, layout=layout, compact=compact)
+    def _dock_add_slider(
+        self,
+        name,
+        value,
+        rng,
+        callback,
+        *,
+        compact=True,
+        double=False,
+        tooltip=None,
+        layout=None,
+    ):
+        layout = self._dock_named_layout(name=name, layout=layout, compact=compact)
         klass = FloatSlider if double else IntSlider
         widget = klass(
             value=value,
@@ -997,29 +1107,32 @@ class _IpyDock(_AbstractDock, _IpyLayout):
             max=rng[1],
             readout=False,
         )
-        widget.observe(_generate_callback(callback), names='value')
+        widget.observe(_generate_callback(callback), names="value")
         self._layout_add_widget(layout, widget)
         return _IpyWidget(widget)
 
-    def _dock_add_check_box(self, name, value, callback, *, tooltip=None,
-                            layout=None):
+    def _dock_add_check_box(self, name, value, callback, *, tooltip=None, layout=None):
         layout = self._dock_layout if layout is None else layout
-        widget = Checkbox(
-            value=value,
-            description=name,
-            indent=False,
-            disabled=False
-        )
+        widget = Checkbox(value=value, description=name, indent=False, disabled=False)
         hbox = HBox([widget])  # fix stretching to the right
-        widget.observe(_generate_callback(callback), names='value')
+        widget.observe(_generate_callback(callback), names="value")
         self._layout_add_widget(layout, hbox)
         return _IpyWidget(widget)
 
-    def _dock_add_spin_box(self, name, value, rng, callback, *,
-                           compact=True, double=True, step=None,
-                           tooltip=None, layout=None):
-        layout = self._dock_named_layout(
-            name=name, layout=layout, compact=compact)
+    def _dock_add_spin_box(
+        self,
+        name,
+        value,
+        rng,
+        callback,
+        *,
+        compact=True,
+        double=True,
+        step=None,
+        tooltip=None,
+        layout=None,
+    ):
+        layout = self._dock_named_layout(name=name, layout=layout, compact=compact)
         klass = BoundedFloatText if double else IntText
         widget = klass(
             value=value,
@@ -1028,24 +1141,25 @@ class _IpyDock(_AbstractDock, _IpyLayout):
         )
         if step is not None:
             widget.step = step
-        widget.observe(_generate_callback(callback), names='value')
+        widget.observe(_generate_callback(callback), names="value")
         self._layout_add_widget(layout, widget)
         return _IpyWidget(widget)
 
-    def _dock_add_combo_box(self, name, value, rng, callback, *, compact=True,
-                            tooltip=None, layout=None):
-        layout = self._dock_named_layout(
-            name=name, layout=layout, compact=compact)
+    def _dock_add_combo_box(
+        self, name, value, rng, callback, *, compact=True, tooltip=None, layout=None
+    ):
+        layout = self._dock_named_layout(name=name, layout=layout, compact=compact)
         widget = Dropdown(
             value=value,
             options=rng,
         )
-        widget.observe(_generate_callback(callback), names='value')
+        widget.observe(_generate_callback(callback), names="value")
         self._layout_add_widget(layout, widget)
         return _IpyWidget(widget)
 
-    def _dock_add_radio_buttons(self, value, rng, callback, *, vertical=True,
-                                layout=None):
+    def _dock_add_radio_buttons(
+        self, value, rng, callback, *, vertical=True, layout=None
+    ):
         # XXX: vertical=False is not supported yet
         layout = self._dock_layout if layout is None else layout
         widget = RadioButtons(
@@ -1053,7 +1167,7 @@ class _IpyDock(_AbstractDock, _IpyLayout):
             value=value,
             disabled=False,
         )
-        widget.observe(_generate_callback(callback), names='value')
+        widget.observe(_generate_callback(callback), names="value")
         self._layout_add_widget(layout, widget)
         return _IpyWidgetList(widget)
 
@@ -1073,18 +1187,27 @@ class _IpyDock(_AbstractDock, _IpyLayout):
         self._layout_add_widget(layout, hlayout)
         return hlayout
 
-    def _dock_add_text(self, name, value, placeholder, *, callback=None,
-                       layout=None):
+    def _dock_add_text(self, name, value, placeholder, *, callback=None, layout=None):
         layout = self._dock_layout if layout is None else layout
         widget = Text(value=value, placeholder=placeholder)
         if callback is not None:
-            widget.observe(_generate_callback(callback), names='value')
+            widget.observe(_generate_callback(callback), names="value")
         self._layout_add_widget(layout, widget)
         return _IpyWidget(widget)
 
     def _dock_add_file_button(
-        self, name, desc, func, *, filter=None, initial_directory=None,
-        save=False, is_directory=False, icon=False, tooltip=None, layout=None
+        self,
+        name,
+        desc,
+        func,
+        *,
+        filter=None,
+        initial_directory=None,
+        save=False,
+        is_directory=False,
+        icon=False,
+        tooltip=None,
+        layout=None,
     ):
         layout = self._dock_layout if layout is None else layout
 
@@ -1094,15 +1217,11 @@ class _IpyDock(_AbstractDock, _IpyLayout):
             self._file_picker.show()
 
         if icon:
-            kwargs = dict(style='toolbutton', icon='folder')
+            kwargs = dict(style="toolbutton", icon="folder")
         else:
             kwargs = dict()
         widget = self._dock_add_button(
-            name=desc,
-            callback=callback,
-            tooltip=tooltip,
-            layout=layout,
-            **kwargs
+            name=desc, callback=callback, tooltip=tooltip, layout=layout, **kwargs
         )
         return widget
 
@@ -1111,6 +1230,7 @@ def _generate_callback(callback, to_float=False):
     def func(data):
         value = data["new"] if "new" in data else data["old"]
         callback(float(value) if to_float else value)
+
     return func
 
 
@@ -1120,13 +1240,13 @@ class _IpyToolBar(_AbstractToolBar, _IpyLayout):
         self._tool_bar = self._tool_bar_layout = HBox()
         self._layout_initialize(None)
 
-    def _tool_bar_add_button(self, name, desc, func, *, icon_name=None,
-                             shortcut=None):
+    def _tool_bar_add_button(self, name, desc, func, *, icon_name=None, shortcut=None):
         icon_name = name if icon_name is None else icon_name
         icon = self._icons[icon_name]
         if icon is None:
             return
         widget = Button(tooltip=desc, icon=icon)
+        widget.layout.width = "50px"
         widget.on_click(lambda x: func())
         self._layout_add_widget(self._tool_bar_layout, widget)
         self.actions[name] = _IpyAction(widget)
@@ -1143,9 +1263,10 @@ class _IpyToolBar(_AbstractToolBar, _IpyLayout):
         pass
 
     def _tool_bar_add_file_button(self, name, desc, func, *, shortcut=None):
-        def callback():
-            fname = self.actions[f"{name}_field"].value
+        def callback(name=name):
+            fname = self.actions[f"{name}_field"]._action.value
             func(None if len(fname) == 0 else fname)
+
         self._tool_bar_add_text(
             name=f"{name}_field",
             value=None,
@@ -1184,7 +1305,8 @@ class _IpyMenuBar(_AbstractMenuBar):
             if button_name in self._menu_actions[name]:
                 self._menu_actions[name][button_name].trigger()
             widget.value = desc
-        widget.observe(_generate_callback(callback), names='value')
+
+        widget.observe(_generate_callback(callback), names="value")
         self._layout_add_widget(self._menu_bar_layout, widget)
 
     def _menu_add_button(self, menu_name, name, desc, func):
@@ -1217,23 +1339,20 @@ class _IpyStatusBar(_AbstractStatusBar, _IpyLayout):
 
 
 class _IpyPlayback(_AbstractPlayback):
-    def _playback_initialize(self, func, timeout, value, rng,
-                             time_widget, play_widget):
+    def _playback_initialize(self, func, timeout, value, rng, time_widget, play_widget):
         play = play_widget._widget
         play.min = rng[0]
         play.max = rng[1]
-        play.value = value
+        play.value = round(value)
         slider = time_widget._widget
-        jsdlink((play, 'value'), (slider, 'value'))
-        jsdlink((slider, 'value'), (play, 'value'))
+        jsdlink((play, "value"), (slider, "value"))
 
 
 class _IpyMplInterface(_AbstractMplInterface):
     def _mpl_initialize(self):
-        from matplotlib.backends.backend_nbagg import (FigureCanvasNbAgg,
-                                                       FigureManager)
-        self.canvas = FigureCanvasNbAgg(self.fig)
-        self.manager = FigureManager(self.canvas, 0)
+        ipympl = _soft_import("ipympl", "Drawing figures into a notebook.", strict=True)
+        self.canvas = ipympl.backend_nbagg.Canvas(self.fig)
+        self.manager = ipympl.backend_nbagg.FigureManager(self.canvas, 0)
 
 
 class _IpyMplCanvas(_AbstractMplCanvas, _IpyMplInterface):
@@ -1250,26 +1369,27 @@ class _IpyBrainMplCanvas(_AbstractBrainMplCanvas, _IpyMplInterface):
 
 
 class _IpyWindow(_AbstractWindow):
-    def _window_initialize(
-        self, *, window=None, central_layout=None, fullscreen=False
-    ):
+    def _window_initialize(self, *, window=None, central_layout=None, fullscreen=False):
         super()._window_initialize()
         self._window_load_icons()
 
     def _window_load_icons(self):
         # from: https://fontawesome.com/icons
-        self._icons["help"] = "question"
+        for key in (
+            "help",
+            "reset",
+            "scale",
+            "clear",
+            "movie",
+            "restore",
+            "screenshot",
+            "visibility_on",
+            "visibility_off",
+            "folder",
+        ):  # noqa: E501
+            self._icons[key] = _ICON_LUT[key]
         self._icons["play"] = None
         self._icons["pause"] = None
-        self._icons["reset"] = "history"
-        self._icons["scale"] = "magic"
-        self._icons["clear"] = "trash"
-        self._icons["movie"] = "video-camera"
-        self._icons["restore"] = "replay"
-        self._icons["screenshot"] = "camera"
-        self._icons["visibility_on"] = "eye"
-        self._icons["visibility_off"] = "eye"
-        self._icons["folder"] = "folder"
 
     def _window_close_connect(self, func, *, after=True):
         pass
@@ -1286,14 +1406,14 @@ class _IpyWindow(_AbstractWindow):
     def _window_get_simple_canvas(self, width, height, dpi):
         return _IpyMplCanvas(width, height, dpi)
 
-    def _window_get_mplcanvas(self, brain, interactor_fraction, show_traces,
-                              separate_canvas):
+    def _window_get_mplcanvas(
+        self, brain, interactor_fraction, show_traces, separate_canvas
+    ):
         w, h = self._window_get_mplcanvas_size(interactor_fraction)
         self._interactor_fraction = interactor_fraction
         self._show_traces = show_traces
         self._separate_canvas = separate_canvas
-        self._mplcanvas = _IpyBrainMplCanvas(
-            brain, w, h, self._window_get_dpi())
+        self._mplcanvas = _IpyBrainMplCanvas(brain, w, h, self._window_get_dpi())
         return self._mplcanvas
 
     def _window_adjust_mplcanvas_layout(self):
@@ -1383,11 +1503,11 @@ class _IpyWidget(_AbstractWdgt):
         pass
 
     def get_tooltip(self):
-        assert hasattr(self._widget, 'tooltip')
+        assert hasattr(self._widget, "tooltip")
         return self._widget.tooltip
 
     def set_tooltip(self, tooltip):
-        assert hasattr(self._widget, 'tooltip')
+        assert hasattr(self._widget, "tooltip")
         self._widget.tooltip = tooltip
 
     def set_style(self, style):
@@ -1409,10 +1529,19 @@ class _IpyAction(_AbstractAction):
         pass
 
 
-class _Renderer(_PyVistaRenderer, _IpyDock, _IpyToolBar, _IpyMenuBar,
-                _IpyStatusBar, _IpyWindow, _IpyPlayback, _IpyDialog,
-                _IpyKeyPress):
-    _kind = 'notebook'
+class _Renderer(
+    _PyVistaRenderer,
+    _IpyDock,
+    _IpyToolBar,
+    _IpyMenuBar,
+    _IpyStatusBar,
+    _IpyWindow,
+    _IpyPlayback,
+    _IpyDialog,
+    _IpyKeyPress,
+    _TimeInteraction,
+):
+    _kind = "notebook"
 
     def __init__(self, *args, **kwargs):
         self._docks = None
@@ -1421,13 +1550,22 @@ class _Renderer(_PyVistaRenderer, _IpyDock, _IpyToolBar, _IpyMenuBar,
         self._status_bar = None
         self._file_picker = _FilePckr(rows=10)
         kwargs["notebook"] = True
-        fullscreen = kwargs.pop('fullscreen', False)
+        fullscreen = kwargs.pop("fullscreen", False)
+        if not _notebook_vtk_works():
+            raise RuntimeError(
+                "Using the notebook backend on Linux requires a compatible "
+                "VTK setup. Consider using Xfvb or xvfb-run to set up a "
+                "working virtual display, or install VTK with OSMesa enabled."
+            )
         super().__init__(*args, **kwargs)
         self._window_initialize(fullscreen=fullscreen)
 
     def _update(self):
-        if self.figure.display is not None:
-            self.figure.display.update_canvas()
+        if _JUPYTER_BACKEND == "ipyvtklink":
+            if self.figure.display is not None:
+                self.figure.display.update_canvas()
+        else:
+            super()._update()
 
     def _display_default_tool_bar(self):
         self._tool_bar_initialize()
@@ -1448,9 +1586,20 @@ class _Renderer(_PyVistaRenderer, _IpyDock, _IpyToolBar, _IpyMenuBar,
         else:
             self._display_default_tool_bar()
         # viewer
-        viewer = self.plotter.show(
-            jupyter_backend="ipyvtklink", return_viewer=True)
-        viewer.layout.width = None  # unlock the fixed layout
+        viewer = self.plotter.show(jupyter_backend=_JUPYTER_BACKEND, return_viewer=True)
+        if _JUPYTER_BACKEND == "trame":
+            # Remove scrollbars, see https://github.com/pyvista/pyvista/pull/4847
+            # which adds this to the iframe PyVista creates. Once that's merged, this
+            # workaround just becomes a redundant but is still safe. And in a worst
+            # (realistic) case, this regex will fail to do any substitution and we just
+            # live with the ugly 90's-style borders. We can probably remove once we
+            # require PyVista 0.43 (assuming the above PR is merged).
+            viewer.value = re.sub(
+                r" style=[\"'](.+)[\"']></iframe>",
+                # value taken from matplotlib's widget
+                r" style='\1; border: 1px solid rgb(221,221,221);' scrolling='no'></iframe>",  # noqa: E501
+                viewer.value,
+            )
         rendering_row = list()
         if self._docks is not None and "left" in self._docks:
             rendering_row.append(self._docks["left"][0])

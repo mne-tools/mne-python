@@ -7,16 +7,34 @@
 import math
 
 import numpy as np
+from scipy.special import expit
+from scipy.stats import kurtosis
 
-from ..utils import logger, verbose, check_random_state, random_permutation
+from ..utils import check_random_state, logger, random_permutation, verbose
 
 
 @verbose
-def infomax(data, weights=None, l_rate=None, block=None, w_change=1e-12,
-            anneal_deg=60., anneal_step=0.9, extended=True, n_subgauss=1,
-            kurt_size=6000, ext_blocks=1, max_iter=200, random_state=None,
-            blowup=1e4, blowup_fac=0.5, n_small_angle=20, use_bias=True,
-            verbose=None, return_n_iter=False):
+def infomax(
+    data,
+    weights=None,
+    l_rate=None,
+    block=None,
+    w_change=1e-12,
+    anneal_deg=60.0,
+    anneal_step=0.9,
+    extended=True,
+    n_subgauss=1,
+    kurt_size=6000,
+    ext_blocks=1,
+    max_iter=200,
+    random_state=None,
+    blowup=1e4,
+    blowup_fac=0.5,
+    n_small_angle=20,
+    use_bias=True,
+    verbose=None,
+    return_n_iter=False,
+):
     """Run (extended) Infomax ICA decomposition on raw data.
 
     Parameters
@@ -100,9 +118,6 @@ def infomax(data, weights=None, l_rate=None, block=None, w_change=1e-12,
            analysis using an extended infomax algorithm for mixed subgaussian
            and supergaussian sources. Neural Computation, 11(2), 417-441, 1999.
     """
-    from scipy.stats import kurtosis
-    from scipy.special import expit
-
     rng = check_random_state(random_state)
 
     # define some default parameters
@@ -119,17 +134,17 @@ def infomax(data, weights=None, l_rate=None, block=None, w_change=1e-12,
 
     # check data shape
     n_samples, n_features = data.shape
-    n_features_square = n_features ** 2
+    n_features_square = n_features**2
 
     # check input parameters
     # heuristic default - may need adjustment for large or tiny data sets
     if l_rate is None:
-        l_rate = 0.01 / math.log(n_features ** 2.0)
+        l_rate = 0.01 / math.log(n_features**2.0)
 
     if block is None:
         block = int(math.floor(math.sqrt(n_samples / 3.0)))
 
-    logger.info('Computing%sInfomax ICA' % ' Extended ' if extended else ' ')
+    logger.info("Computing%sInfomax ICA" % " Extended " if extended else " ")
 
     # collect parameters
     nblock = n_samples // block
@@ -151,7 +166,7 @@ def infomax(data, weights=None, l_rate=None, block=None, w_change=1e-12,
     wts_blowup = False
     blockno = 0
     signcount = 0
-    initial_ext_blocks = ext_blocks   # save the initial value in case of reset
+    initial_ext_blocks = ext_blocks  # save the initial value in case of reset
 
     # for extended Infomax
     if extended:
@@ -165,40 +180,38 @@ def infomax(data, weights=None, l_rate=None, block=None, w_change=1e-12,
         oldsigns = np.zeros(n_features)
 
     # trainings loop
-    olddelta, oldchange = 1., 0.
+    olddelta, oldchange = 1.0, 0.0
     while step < max_iter:
-
         # shuffle data at each step
         permute = random_permutation(n_samples, rng)
 
         # ICA training block
         # loop across block samples
         for t in range(0, lastt, block):
-            u = np.dot(data[permute[t:t + block], :], weights)
+            u = np.dot(data[permute[t : t + block], :], weights)
             u += np.dot(bias, onesrow).T
 
             if extended:
                 # extended ICA update
                 y = np.tanh(u)
-                weights += l_rate * np.dot(weights,
-                                           BI -
-                                           signs[None, :] * np.dot(u.T, y) -
-                                           np.dot(u.T, u))
+                weights += l_rate * np.dot(
+                    weights, BI - signs[None, :] * np.dot(u.T, y) - np.dot(u.T, u)
+                )
                 if use_bias:
-                    bias += l_rate * np.reshape(np.sum(y, axis=0,
-                                                dtype=np.float64) * -2.0,
-                                                (n_features, 1))
+                    bias += l_rate * np.reshape(
+                        np.sum(y, axis=0, dtype=np.float64) * -2.0, (n_features, 1)
+                    )
 
             else:
                 # logistic ICA weights update
                 y = expit(u)
-                weights += l_rate * np.dot(weights,
-                                           BI + np.dot(u.T, (1.0 - 2.0 * y)))
+                weights += l_rate * np.dot(weights, BI + np.dot(u.T, (1.0 - 2.0 * y)))
 
                 if use_bias:
-                    bias += l_rate * np.reshape(np.sum((1.0 - 2.0 * y), axis=0,
-                                                dtype=np.float64),
-                                                (n_features, 1))
+                    bias += l_rate * np.reshape(
+                        np.sum((1.0 - 2.0 * y), axis=0, dtype=np.float64),
+                        (n_features, 1),
+                    )
 
             # check change limit
             max_weight_val = np.max(np.abs(weights))
@@ -213,8 +226,7 @@ def infomax(data, weights=None, l_rate=None, block=None, w_change=1e-12,
             if extended:
                 if ext_blocks > 0 and blockno % ext_blocks == 0:
                     if kurt_size < n_samples:
-                        rp = np.floor(rng.uniform(0, 1, kurt_size) *
-                                      (n_samples - 1))
+                        rp = np.floor(rng.uniform(0, 1, kurt_size) * (n_samples - 1))
                         tpartact = np.dot(data[rp.astype(int), :], weights).T
                     else:
                         tpartact = np.dot(data, weights).T
@@ -223,8 +235,7 @@ def infomax(data, weights=None, l_rate=None, block=None, w_change=1e-12,
                     kurt = kurtosis(tpartact, axis=1, fisher=True)
 
                     if extmomentum != 0:
-                        kurt = (extmomentum * old_kurt +
-                                (1.0 - extmomentum) * kurt)
+                        kurt = extmomentum * old_kurt + (1.0 - extmomentum) * kurt
                         old_kurt = kurt
 
                     # estimate weighted signs
@@ -250,19 +261,21 @@ def infomax(data, weights=None, l_rate=None, block=None, w_change=1e-12,
             delta = oldwtchange.reshape(1, n_features_square)
             change = np.sum(delta * delta, dtype=np.float64)
             if step > 2:
-                angledelta = math.acos(np.sum(delta * olddelta) /
-                                       math.sqrt(change * oldchange))
+                angledelta = math.acos(
+                    np.sum(delta * olddelta) / math.sqrt(change * oldchange)
+                )
                 angledelta *= degconst
 
             if verbose:
                 logger.info(
-                    'step %d - lrate %5f, wchange %8.8f, angledelta %4.1f deg'
-                    % (step, l_rate, change, angledelta))
+                    "step %d - lrate %5f, wchange %8.8f, angledelta %4.1f deg"
+                    % (step, l_rate, change, angledelta)
+                )
 
             # anneal learning rate
             oldweights = weights.copy()
             if angledelta > anneal_deg:
-                l_rate *= anneal_step    # anneal learning rate
+                l_rate *= anneal_step  # anneal learning rate
                 # accumulate angledelta until anneal_deg reaches l_rate
                 olddelta = delta
                 oldchange = change
@@ -305,11 +318,15 @@ def infomax(data, weights=None, l_rate=None, block=None, w_change=1e-12,
 
             if l_rate > min_l_rate:
                 if verbose:
-                    logger.info('... lowering learning rate to %g'
-                                '\n... re-starting...' % l_rate)
+                    logger.info(
+                        "... lowering learning rate to %g"
+                        "\n... re-starting..." % l_rate
+                    )
             else:
-                raise ValueError('Error in Infomax ICA: unmixing_matrix matrix'
-                                 'might not be invertible!')
+                raise ValueError(
+                    "Error in Infomax ICA: unmixing_matrix matrix"
+                    "might not be invertible!"
+                )
 
     # prepare return values
     if return_n_iter:

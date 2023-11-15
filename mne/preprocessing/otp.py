@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Authors: Samu Taulu <staulu@uw.edu>
 #          Eric Larson <larson.eric.d@gmail.com>
 
@@ -8,8 +7,8 @@ from functools import partial
 
 import numpy as np
 
+from .._fiff.pick import _picks_to_idx
 from .._ola import _COLA, _Storer
-from ..io.pick import _picks_to_idx
 from ..surface import _normalize_vectors
 from ..utils import logger, verbose
 
@@ -22,15 +21,14 @@ def _svd_cov(cov, data):
     norm = np.ones((s.size,))
     mask = s > np.finfo(float).eps * s[-1]  # largest is last
     s = np.sqrt(s, out=s)
-    norm[mask] = 1. / s[mask]
+    norm[mask] = 1.0 / s[mask]
     u *= norm
     v = np.dot(u.T[mask], data)
     return u, s, v
 
 
 @verbose
-def oversampled_temporal_projection(raw, duration=10., picks=None,
-                                    verbose=None):
+def oversampled_temporal_projection(raw, duration=10.0, picks=None, verbose=None):
     """Denoise MEG channels using leave-one-out temporal projection.
 
     Parameters
@@ -75,33 +73,39 @@ def oversampled_temporal_projection(raw, duration=10., picks=None,
     ----------
     .. footbibliography::
     """
-    logger.info('Processing MEG data using oversampled temporal projection')
+    logger.info("Processing MEG data using oversampled temporal projection")
     picks = _picks_to_idx(raw.info, picks, exclude=())
     picks_good, picks_bad = list(), list()  # these are indices into picks
     for ii, pi in enumerate(picks):
-        if raw.ch_names[pi] in raw.info['bads']:
+        if raw.ch_names[pi] in raw.info["bads"]:
             picks_bad.append(ii)
         else:
             picks_good.append(ii)
     picks_good = np.array(picks_good, int)
     picks_bad = np.array(picks_bad, int)
 
-    n_samples = int(round(float(duration) * raw.info['sfreq']))
+    n_samples = int(round(float(duration) * raw.info["sfreq"]))
     if n_samples < len(picks_good) - 1:
-        raise ValueError('duration (%s) yielded %s samples, which is fewer '
-                         'than the number of channels -1 (%s)'
-                         % (n_samples / raw.info['sfreq'], n_samples,
-                            len(picks_good) - 1))
+        raise ValueError(
+            "duration (%s) yielded %s samples, which is fewer "
+            "than the number of channels -1 (%s)"
+            % (n_samples / raw.info["sfreq"], n_samples, len(picks_good) - 1)
+        )
     n_overlap = n_samples // 2
     raw_otp = raw.copy().load_data(verbose=False)
     otp = _COLA(
         partial(_otp, picks_good=picks_good, picks_bad=picks_bad),
         _Storer(raw_otp._data, picks=picks),
-        len(raw.times), n_samples, n_overlap, raw.info['sfreq'])
+        len(raw.times),
+        n_samples,
+        n_overlap,
+        raw.info["sfreq"],
+    )
     read_lims = list(range(0, len(raw.times), n_samples)) + [len(raw.times)]
     for start, stop in zip(read_lims[:-1], read_lims[1:]):
-        logger.info('    Denoising % 8.2f - % 8.2f sec'
-                    % tuple(raw.times[[start, stop - 1]]))
+        logger.info(
+            "    Denoising % 8.2f – % 8.2f s" % tuple(raw.times[[start, stop - 1]])
+        )
         otp.feed(raw[picks, start:stop][0])
     return raw_otp
 
@@ -109,8 +113,7 @@ def oversampled_temporal_projection(raw, duration=10., picks=None,
 def _otp(data, picks_good, picks_bad):
     """Perform OTP on one segment of data."""
     if not np.isfinite(data).all():
-        raise RuntimeError('non-finite data (inf or nan) found in raw '
-                           'instance')
+        raise RuntimeError("non-finite data (inf or nan) found in raw " "instance")
     # demean our data
     data_means = np.mean(data, axis=-1, keepdims=True)
     data -= data_means
@@ -126,7 +129,7 @@ def _otp(data, picks_good, picks_bad):
     for mi, pick in enumerate(picks_good):
         # operate on original data
         idx = list(range(mi)) + list(range(mi + 1, len(data_good)))
-        # Equivalent: linalg.svd(data[idx], full_matrices=False)[2]
+        # Equivalent: svd(data[idx], full_matrices=False)[2]
         t_basis = _svd_cov(cov[np.ix_(idx, idx)], data_good[idx])[2]
         x = np.dot(np.dot(data_good[mi], t_basis.T), t_basis)
         x *= norms[mi]

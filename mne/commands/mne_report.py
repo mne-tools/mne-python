@@ -72,51 +72,87 @@ import time
 
 import mne
 from mne.report import Report
-from mne.utils import verbose, logger
+from mne.utils import logger, verbose
 
 
 @verbose
 def log_elapsed(t, verbose=None):
     """Log elapsed time."""
-    logger.info('Report complete in %s seconds' % round(t, 1))
+    logger.info("Report complete in %s seconds" % round(t, 1))
 
 
 def run():
     """Run command."""
-    from mne.commands.utils import get_optparser, _add_verbose_flag
+    from mne.commands.utils import _add_verbose_flag, get_optparser
 
     parser = get_optparser(__file__)
 
-    parser.add_option("-p", "--path", dest="path",
-                      help="Path to folder who MNE-Report must be created")
-    parser.add_option("-i", "--info", dest="info_fname",
-                      help="File from which info dictionary is to be read",
-                      metavar="FILE")
-    parser.add_option("-c", "--cov", dest="cov_fname",
-                      help="File from which noise covariance is to be read",
-                      metavar="FILE")
-    parser.add_option("--bmin", dest="bmin",
-                      help="Time at which baseline correction starts for "
-                      "evokeds", default=None)
-    parser.add_option("--bmax", dest="bmax",
-                      help="Time at which baseline correction stops for "
-                      "evokeds", default=None)
-    parser.add_option("-d", "--subjects-dir", dest="subjects_dir",
-                      help="The subjects directory")
-    parser.add_option("-s", "--subject", dest="subject",
-                      help="The subject name")
-    parser.add_option("--no-browser", dest="no_browser", action='store_false',
-                      help="Do not open MNE-Report in browser")
-    parser.add_option("--overwrite", dest="overwrite", action='store_false',
-                      help="Overwrite html report if it already exists")
-    parser.add_option("-j", "--jobs", dest="n_jobs", help="Number of jobs to"
-                      " run in parallel")
-    parser.add_option("-m", "--mri-decim", type="int", dest="mri_decim",
-                      default=2, help="Integer factor used to decimate "
-                      "BEM plots")
-    parser.add_option("--image-format", type="str", dest="image_format",
-                      default='png', help="Image format to use "
-                      "(can be 'png' or 'svg')")
+    parser.add_option(
+        "-p",
+        "--path",
+        dest="path",
+        help="Path to folder who MNE-Report must be created",
+    )
+    parser.add_option(
+        "-i",
+        "--info",
+        dest="info_fname",
+        help="File from which info dictionary is to be read",
+        metavar="FILE",
+    )
+    parser.add_option(
+        "-c",
+        "--cov",
+        dest="cov_fname",
+        help="File from which noise covariance is to be read",
+        metavar="FILE",
+    )
+    parser.add_option(
+        "--bmin",
+        dest="bmin",
+        help="Time at which baseline correction starts for " "evokeds",
+        default=None,
+    )
+    parser.add_option(
+        "--bmax",
+        dest="bmax",
+        help="Time at which baseline correction stops for " "evokeds",
+        default=None,
+    )
+    parser.add_option(
+        "-d", "--subjects-dir", dest="subjects_dir", help="The subjects directory"
+    )
+    parser.add_option("-s", "--subject", dest="subject", help="The subject name")
+    parser.add_option(
+        "--no-browser",
+        dest="no_browser",
+        action="store_false",
+        help="Do not open MNE-Report in browser",
+    )
+    parser.add_option(
+        "--overwrite",
+        dest="overwrite",
+        action="store_false",
+        help="Overwrite html report if it already exists",
+    )
+    parser.add_option(
+        "-j", "--jobs", dest="n_jobs", help="Number of jobs to" " run in parallel"
+    )
+    parser.add_option(
+        "-m",
+        "--mri-decim",
+        type="int",
+        dest="mri_decim",
+        default=2,
+        help="Integer factor used to decimate " "BEM plots",
+    )
+    parser.add_option(
+        "--image-format",
+        type="str",
+        dest="image_format",
+        default="png",
+        help="Image format to use " "(can be 'png' or 'svg')",
+    )
     _add_verbose_flag(parser)
 
     options, args = parser.parse_args()
@@ -144,12 +180,16 @@ def run():
         baseline = (bmin, bmax)
 
     t0 = time.time()
-    report = Report(info_fname, subjects_dir=subjects_dir,
-                    subject=subject, baseline=baseline,
-                    cov_fname=cov_fname, verbose=verbose,
-                    image_format=image_format)
-    report.parse_folder(path, verbose=verbose, n_jobs=n_jobs,
-                        mri_decim=mri_decim)
+    report = Report(
+        info_fname,
+        subjects_dir=subjects_dir,
+        subject=subject,
+        baseline=baseline,
+        cov_fname=cov_fname,
+        verbose=verbose,
+        image_format=image_format,
+    )
+    report.parse_folder(path, verbose=verbose, n_jobs=n_jobs, mri_decim=mri_decim)
     log_elapsed(time.time() - t0, verbose=verbose)
     report.save(open_browser=open_browser, overwrite=overwrite)
 

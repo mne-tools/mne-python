@@ -1,12 +1,11 @@
-# -*- coding: utf-8 -*-
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 # License: BSD Style.
 
 import os
 import os.path as op
 
-from ..utils import _manifest_check_download, _get_path
-from ...utils import verbose, get_subjects_dir, set_config
+from ...utils import get_subjects_dir, set_config, verbose
+from ..utils import _get_path, _manifest_check_download
 
 FSAVERAGE_MANIFEST_PATH = op.dirname(__file__)
 
@@ -66,19 +65,19 @@ def fetch_fsaverage(subjects_dir=None, *, verbose=None):
     #
     subjects_dir = _set_montage_coreg_path(subjects_dir)
     subjects_dir = op.abspath(op.expanduser(subjects_dir))
-    fs_dir = op.join(subjects_dir, 'fsaverage')
+    fs_dir = op.join(subjects_dir, "fsaverage")
     os.makedirs(fs_dir, exist_ok=True)
     _manifest_check_download(
-        manifest_path=op.join(FSAVERAGE_MANIFEST_PATH, 'root.txt'),
+        manifest_path=op.join(FSAVERAGE_MANIFEST_PATH, "root.txt"),
         destination=op.join(subjects_dir),
-        url='https://osf.io/3bxqt/download?version=2',
-        hash_='5133fe92b7b8f03ae19219d5f46e4177',
+        url="https://osf.io/3bxqt/download?version=2",
+        hash_="5133fe92b7b8f03ae19219d5f46e4177",
     )
     _manifest_check_download(
-        manifest_path=op.join(FSAVERAGE_MANIFEST_PATH, 'bem.txt'),
-        destination=op.join(subjects_dir, 'fsaverage'),
-        url='https://osf.io/7ve8g/download?version=4',
-        hash_='b31509cdcf7908af6a83dc5ee8f49fb1',
+        manifest_path=op.join(FSAVERAGE_MANIFEST_PATH, "bem.txt"),
+        destination=op.join(subjects_dir, "fsaverage"),
+        url="https://osf.io/7ve8g/download?version=4",
+        hash_="b31509cdcf7908af6a83dc5ee8f49fb1",
     )
     return fs_dir
 
@@ -86,9 +85,11 @@ def fetch_fsaverage(subjects_dir=None, *, verbose=None):
 def _get_create_subjects_dir(subjects_dir):
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=False)
     if subjects_dir is None:
-        subjects_dir = _get_path(None, 'MNE_DATA', 'montage coregistration')
-        subjects_dir = op.join(subjects_dir, 'MNE-fsaverage-data')
+        subjects_dir = _get_path(None, "MNE_DATA", "montage coregistration")
+        subjects_dir = op.join(subjects_dir, "MNE-fsaverage-data")
         os.makedirs(subjects_dir, exist_ok=True)
+    else:
+        subjects_dir = str(subjects_dir)
     return subjects_dir
 
 
@@ -97,7 +98,7 @@ def _set_montage_coreg_path(subjects_dir=None):
 
     Parameters
     ----------
-    subjects_dir : str | None
+    subjects_dir : path-like | None
         The path to use as the subjects directory in the MNE-Python
         config file. None will use the existing config variable (i.e.,
         will not change anything), and if it does not exist, will use
@@ -127,5 +128,5 @@ def _set_montage_coreg_path(subjects_dir=None):
     subjects_dir = _get_create_subjects_dir(subjects_dir)
     old_subjects_dir = get_subjects_dir(None, raise_error=False)
     if old_subjects_dir is None:
-        set_config('SUBJECTS_DIR', subjects_dir)
+        set_config("SUBJECTS_DIR", subjects_dir)
     return subjects_dir

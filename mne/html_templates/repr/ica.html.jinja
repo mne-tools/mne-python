@@ -4,6 +4,10 @@
         <td>{{ method }}</td>
     </tr>
     <tr>
+        <th>Fit parameters</th>
+        <td>{% if fit_params %}{% for key, value in fit_params.items() %}{{ key }}={{ value }}<br />{% endfor %}{% else %}&mdash;{% endif %}</td>
+    </tr>
+    <tr>
         <th>Fit</th>
         <td>{% if fit_on %}{{ n_iter }} iterations on {{ fit_on }} ({{ n_samples }} samples){% else %}no{% endif %}</td>
     </tr>
@@ -11,10 +15,6 @@
     <tr>
         <th>ICA components</th>
         <td>{{ n_components }}</td>
-    </tr>
-    <tr>
-        <th>Explained variance</th>
-        <td>{{ (explained_variance * 100) | round(1) }}&nbsp;%</td>
     </tr>
     <tr>
         <th>Available PCA components</th>

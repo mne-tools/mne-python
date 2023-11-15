@@ -1,2 +1,4 @@
-from ._export import export_raw, export_epochs, export_evokeds
-from ._egimff import export_evokeds_mff
+"""Functions for exporting data to non-FIF formats."""
+import lazy_loader as lazy
+
+(__getattr__, __dir__, __all__) = lazy.attach_stub(__name__, __file__)

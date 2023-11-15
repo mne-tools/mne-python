@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _tut-bad-channels:
 
@@ -17,12 +16,15 @@ data:
 
 import os
 from copy import deepcopy
+
 import numpy as np
+
 import mne
 
 sample_data_folder = mne.datasets.sample.data_path()
-sample_data_raw_file = os.path.join(sample_data_folder, 'MEG', 'sample',
-                                    'sample_audvis_raw.fif')
+sample_data_raw_file = os.path.join(
+    sample_data_folder, "MEG", "sample", "sample_audvis_raw.fif"
+)
 raw = mne.io.read_raw_fif(sample_data_raw_file, verbose=False)
 
 # %%
@@ -38,7 +40,7 @@ raw = mne.io.read_raw_fif(sample_data_raw_file, verbose=False)
 # the ``'bads'`` field of the :class:`~mne.Info` object that is attached to
 # :class:`~mne.io.Raw`, :class:`~mne.Epochs`, and :class:`~mne.Evoked` objects.
 
-print(raw.info['bads'])
+print(raw.info["bads"])
 
 # %%
 # Here you can see that the :file:`.fif` file we loaded from disk must have
@@ -53,7 +55,7 @@ print(raw.info['bads'])
 # :func:`~mne.pick_channels_regexp` function (the ``.`` is a wildcard
 # character):
 
-picks = mne.pick_channels_regexp(raw.ch_names, regexp='EEG 05.')
+picks = mne.pick_channels_regexp(raw.ch_names, regexp="EEG 05.")
 raw.plot(order=picks, n_channels=len(picks))
 
 # %%
@@ -63,7 +65,7 @@ raw.plot(order=picks, n_channels=len(picks))
 # `regular expression`_ will pick all the channels that start with 2 and end
 # with 3:
 
-picks = mne.pick_channels_regexp(raw.ch_names, regexp='MEG 2..3')
+picks = mne.pick_channels_regexp(raw.ch_names, regexp="MEG 2..3")
 raw.plot(order=picks, n_channels=len(picks))
 
 # %%
@@ -79,11 +81,11 @@ raw.plot(order=picks, n_channels=len(picks))
 # ``raw.info['bads']`` directly; it's an ordinary Python :class:`list` so the
 # usual list methods will work:
 
-original_bads = deepcopy(raw.info['bads'])
-raw.info['bads'].append('EEG 050')               # add a single channel
-raw.info['bads'].extend(['EEG 051', 'EEG 052'])  # add a list of channels
-bad_chan = raw.info['bads'].pop(-1)  # remove the last entry in the list
-raw.info['bads'] = original_bads     # change the whole list at once
+original_bads = deepcopy(raw.info["bads"])
+raw.info["bads"].append("EEG 050")  # add a single channel
+raw.info["bads"].extend(["EEG 051", "EEG 052"])  # add a list of channels
+bad_chan = raw.info["bads"].pop(-1)  # remove the last entry in the list
+raw.info["bads"] = original_bads  # change the whole list at once
 
 # %%
 # .. admonition:: Blocking execution
@@ -133,9 +135,9 @@ print(np.array(raw.ch_names)[np.setdiff1d(all_eeg, good_eeg)])
 # bad channels were not properly marked:
 
 raw2 = raw.copy()
-raw2.info['bads'] = []
-events = mne.find_events(raw2, stim_channel='STI 014')
-epochs = mne.Epochs(raw2, events=events)['2'].average().plot()
+raw2.info["bads"] = []
+events = mne.find_events(raw2, stim_channel="STI 014")
+epochs = mne.Epochs(raw2, events=events)["2"].average().plot()
 
 # %%
 # The bad EEG channel is not so obvious, but the bad gradiometer is easy to
@@ -224,14 +226,14 @@ raw.crop(tmin=0, tmax=3).load_data()
 # we plot the data before and after interpolation, the affected channels will
 # still plot in red:
 
-eeg_data = raw.copy().pick_types(meg=False, eeg=True, exclude=[])
+eeg_data = raw.copy().pick(picks="eeg")
 eeg_data_interp = eeg_data.copy().interpolate_bads(reset_bads=False)
 
-for title, data in zip(['orig.', 'interp.'], [eeg_data, eeg_data_interp]):
-    with mne.viz.use_browser_backend('matplotlib'):
-        fig = data.plot(butterfly=True, color='#00000022', bad_color='r')
+for title, data in zip(["orig.", "interp."], [eeg_data, eeg_data_interp]):
+    with mne.viz.use_browser_backend("matplotlib"):
+        fig = data.plot(butterfly=True, color="#00000022", bad_color="r")
     fig.subplots_adjust(top=0.9)
-    fig.suptitle(title, size='xx-large', weight='bold')
+    fig.suptitle(title, size="xx-large", weight="bold")
 
 # %%
 # Note that we used the ``exclude=[]`` trick in the call to
@@ -240,11 +242,11 @@ for title, data in zip(['orig.', 'interp.'], [eeg_data, eeg_data_interp]):
 # with the interpolated gradiometer channel; since there are more channels
 # we'll use a more transparent gray color this time:
 
-grad_data = raw.copy().pick_types(meg='grad', exclude=[])
+grad_data = raw.copy().pick(picks="grad")
 grad_data_interp = grad_data.copy().interpolate_bads(reset_bads=False)
 
 for data in (grad_data, grad_data_interp):
-    data.plot(butterfly=True, color='#00000009', bad_color='r')
+    data.plot(butterfly=True, color="#00000009", bad_color="r")
 
 # %%
 # Summary

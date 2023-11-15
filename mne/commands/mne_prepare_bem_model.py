@@ -9,29 +9,37 @@ Examples
 
 """
 
-import sys
 import os
+import sys
+
 import mne
 
 
 def run():
     """Run command."""
-    from mne.commands.utils import get_optparser, _add_verbose_flag
+    from mne.commands.utils import _add_verbose_flag, get_optparser
 
     parser = get_optparser(__file__)
 
-    parser.add_option('--bem', dest='bem_fname',
-                      help='The name of the file containing the '
-                           'triangulations of the BEM surfaces and the '
-                           'conductivities of the compartments. The standard '
-                           'ending for this file is -bem.fif.',
-                      metavar="FILE")
-    parser.add_option('--sol', dest='bem_sol_fname',
-                      help='The name of the resulting file containing BEM '
-                           'solution (geometry matrix). It uses the linear '
-                           'collocation approach. The file should end with '
-                           '-bem-sof.fif.',
-                      metavar='FILE', default=None)
+    parser.add_option(
+        "--bem",
+        dest="bem_fname",
+        help="The name of the file containing the "
+        "triangulations of the BEM surfaces and the "
+        "conductivities of the compartments. The standard "
+        "ending for this file is -bem.fif.",
+        metavar="FILE",
+    )
+    parser.add_option(
+        "--sol",
+        dest="bem_sol_fname",
+        help="The name of the resulting file containing BEM "
+        "solution (geometry matrix). It uses the linear "
+        "collocation approach. The file should end with "
+        "-bem-sof.fif.",
+        metavar="FILE",
+        default=None,
+    )
     _add_verbose_flag(parser)
 
     options, args = parser.parse_args()
@@ -45,10 +53,9 @@ def run():
 
     if bem_sol_fname is None:
         base, _ = os.path.splitext(bem_fname)
-        bem_sol_fname = base + '-sol.fif'
+        bem_sol_fname = base + "-sol.fif"
 
-    bem_model = mne.read_bem_surfaces(bem_fname, patch_stats=False,
-                                      verbose=verbose)
+    bem_model = mne.read_bem_surfaces(bem_fname, patch_stats=False, verbose=verbose)
     bem_solution = mne.make_bem_solution(bem_model, verbose=verbose)
     mne.write_bem_solution(bem_sol_fname, bem_solution)
 

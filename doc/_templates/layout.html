@@ -5,76 +5,16 @@
     {{ super() }}
 {% endblock %}
 
-{%- block content %}
+{% block docs_body %}
+<div>
+  {% block body %} {% endblock %}
+  {% if pagename == 'index' %}
+    {%- include 'homepage.html' -%}
+  {% endif %}
+</div>
+{% endblock %}
 
-  <!-- checkbox to toggle primary sidebar -->
-  <input type="checkbox" class="sidebar-toggle" name="__primary" id="__primary">
-  <label class="overlay overlay-primary" for="__primary"></label>
-
-  <!-- Checkboxes to toggle the secondary sidebar -->
-  <input type="checkbox" class="sidebar-toggle" name="__secondary" id="__secondary">
-  <label class="overlay overlay-secondary" for="__secondary"></label>
-
-  <!-- A search field pop-up that will only show when the search button is clicked -->
-
-  <div class="search-button__wrapper">
-    <div class="search-button__overlay"></div>
-    <div class="search-button__search-container">
-      {% include "../components/search-field.html" %}
-    </div>
-  </div>
-
-  {% include "sections/announcement.html" %}
-
-  {% block docs_navbar %}
-  <nav class="bd-header navbar navbar-light navbar-expand-lg bg-light fixed-top bd-navbar" id="navbar-main">
-    {%- include "sections/header.html" %}
-  </nav>
-  {% endblock %}
-
-  <div class="bd-container container-xl">
-    <div class="bd-container__inner row">
-      {% include "sections/sidebar-primary.html" %}
-      <!-- ↓↓↓↓↓ this chunk is customized ↓↓↓↓↓ -->
-      {% if pagename != 'index' %}
-        {% include "sections/sidebar-secondary.html" %}
-      {% endif %}
-      <!-- ↑↑↑ this chunk is customized ↑↑↑ -->
-
-      {% block docs_main %}
-      <div class="bd-content col">
-
-        <div class="bd-header-article">
-            {% include "sections/header-article.html" %}
-        </div>
-
-        <!-- ↓↓↓↓↓ this chunk is customized ↓↓↓↓↓ -->
-        {% block docs_body %}
-          <div>
-            {% block body %} {% endblock %}
-            {% if pagename == 'index' %}
-              {%- include 'homepage.html' -%}
-            {% endif %}
-          </div>
-        {% endblock %}
-        <!-- ↑↑↑ this chunk is customized ↑↑↑ -->
-
-        {% if theme_show_prev_next %}
-        <footer class="bd-footer-article">
-            {% include "sections/footer-article.html" %}
-        </footer>
-        {% endif %}
-      </div>
-      {% endblock %}
-    </div>
-  </div>
-
-  {# Scripts placed at the end of the page to cut down on time to first content #}
-  <!-- ↓↓↓↓↓ this chunk is customized ↓↓↓↓↓ -->
-  {%- block scripts_end %}
-    <script src="https://mne.tools/versionwarning.js"></script>
+{%- block scripts_end %}
     {{ super() }}
-  {%- endblock %}
-  <!-- ↑↑↑ this chunk is customized ↑↑↑ -->
-
+    <script src="https://mne.tools/versionwarning.js"></script>
 {%- endblock %}

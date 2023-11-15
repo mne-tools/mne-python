@@ -1,0 +1,51 @@
+name: 🛠️ Feature request
+
+# See the json schema to help you create / update this form
+# https://json.schemastore.org/github-issue-forms.json
+
+description: Tell us about algorithms, visualizations, or other functionality you wish MNE-Python included.
+
+labels: ["ENH"]
+
+body:
+
+  - type: markdown
+    attributes:
+      value: |
+        Please use the [MNE-Python forum](https://mne.discourse.group/) to ask (and answer)
+        concrete technical questions or about usage of MNE-Python.
+        Use this form *only* if you want to suggest new features.
+
+  - type: textarea
+    attributes:
+      label: Describe the new feature or enhancement
+      description: |
+        Please provide a clear and concise description of what you want to add or change.
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Describe your proposed implementation
+      description: |
+        Describe how you think the feature or improvement should be implemented (e.g.,
+        as a new method on an existing class? as new capability added to an existing
+        method?)
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Describe possible alternatives
+      description: |
+        If you've suggested an implementation above, list here any alternative
+        implementations you can think of, and brief comments explaining why the chosen
+        implementation is better.
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Additional context
+      description: |
+        Add any other context or screenshots about the feature request here.

@@ -7,24 +7,45 @@
 # License: BSD-3-Clause
 import numpy as np
 
-from ..rank import compute_rank
-from ..io.meas_info import _simplify_info
-from ..io.pick import pick_channels_cov, pick_info
+from .._fiff.meas_info import _simplify_info
+from .._fiff.pick import pick_channels_cov, pick_info
 from ..forward import _subject_from_forward
-from ..minimum_norm.inverse import combine_xyz, _check_reference, _check_depth
-from ..source_estimate import _make_stc, _get_src_type
-from ..utils import (logger, verbose, _check_channels_spatial_filter,
-                     _check_one_ch_type, _check_info_inv)
+from ..minimum_norm.inverse import _check_depth, _check_reference, combine_xyz
+from ..rank import compute_rank
+from ..source_estimate import _get_src_type, _make_stc
+from ..utils import (
+    _check_channels_spatial_filter,
+    _check_info_inv,
+    _check_one_ch_type,
+    logger,
+    verbose,
+)
 from ._compute_beamformer import (
-    _prepare_beamformer_input, _compute_power,
-    _compute_beamformer, _check_src_type, Beamformer, _proj_whiten_data)
+    Beamformer,
+    _check_src_type,
+    _compute_beamformer,
+    _compute_power,
+    _prepare_beamformer_input,
+    _proj_whiten_data,
+)
 
 
 @verbose
-def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
-              pick_ori=None, rank='info',
-              weight_norm='unit-noise-gain-invariant',
-              reduce_rank=False, depth=None, inversion='matrix', verbose=None):
+def make_lcmv(
+    info,
+    forward,
+    data_cov,
+    reg=0.05,
+    noise_cov=None,
+    label=None,
+    pick_ori=None,
+    rank="info",
+    weight_norm="unit-noise-gain-invariant",
+    reduce_rank=False,
+    depth=None,
+    inversion="matrix",
+    verbose=None,
+):
     """Compute LCMV spatial filter.
 
     Parameters
@@ -42,6 +63,15 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
         The noise covariance. If provided, whitening will be done. Providing a
         noise covariance is mandatory if you mix sensor types, e.g.
         gradiometers with magnetometers or EEG with MEG.
+
+        .. note::
+            If ``noise_cov`` is ``None`` and ``weight_norm='unit-noise-gain'``,
+            the unit noise is assumed to be 1 in SI units, e.g., 1 T for
+            magnetometers, 1 V for EEG, so resulting amplitudes will be tiny.
+            Consider using :func:`mne.make_ad_hoc_cov` to provide a
+            ``noise_cov`` to set noise values that are more reasonable for
+            neural data or using ``weight_norm='nai'`` for weight-normalized
+            beamformer output that is scaled by a noise estimate.
     label : instance of Label
         Restricts the LCMV solution to a given label.
     %(pick_ori_bf)s
@@ -133,9 +163,10 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
     .. footbibliography::
     """
     # check number of sensor types present in the data and ensure a noise cov
-    info = _simplify_info(info)
+    info = _simplify_info(info, keep=("proc_history",))
     noise_cov, _, allow_mismatch = _check_one_ch_type(
-        'lcmv', info, forward, data_cov, noise_cov)
+        "lcmv", info, forward, data_cov, noise_cov
+    )
     # XXX we need this extra picking step (can't just rely on minimum norm's
     # because there can be a mismatch. Should probably add an extra arg to
     # _prepare_beamformer_input at some point (later)
@@ -144,58 +175,97 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
     data_rank = compute_rank(data_cov, rank=rank, info=info)
     noise_rank = compute_rank(noise_cov, rank=rank, info=info)
     for key in data_rank:
-        if (key not in noise_rank or data_rank[key] != noise_rank[key]) and \
-                not allow_mismatch:
-            raise ValueError('%s data rank (%s) did not match the noise '
-                             'rank (%s)'
-                             % (key, data_rank[key],
-                                noise_rank.get(key, None)))
+        if (
+            key not in noise_rank or data_rank[key] != noise_rank[key]
+        ) and not allow_mismatch:
+            raise ValueError(
+                "%s data rank (%s) did not match the noise "
+                "rank (%s)" % (key, data_rank[key], noise_rank.get(key, None))
+            )
     del noise_rank
     rank = data_rank
-    logger.info('Making LCMV beamformer with rank %s' % (rank,))
+    logger.info("Making LCMV beamformer with rank %s" % (rank,))
     del data_rank
-    depth = _check_depth(depth, 'depth_sparse')
-    if inversion == 'single':
-        depth['combine_xyz'] = False
+    depth = _check_depth(depth, "depth_sparse")
+    if inversion == "single":
+        depth["combine_xyz"] = False
 
-    is_free_ori, info, proj, vertno, G, whitener, nn, orient_std = \
-        _prepare_beamformer_input(
-            info, forward, label, pick_ori, noise_cov=noise_cov, rank=rank,
-            pca=False, **depth)
-    ch_names = list(info['ch_names'])
+    (
+        is_free_ori,
+        info,
+        proj,
+        vertno,
+        G,
+        whitener,
+        nn,
+        orient_std,
+    ) = _prepare_beamformer_input(
+        info,
+        forward,
+        label,
+        pick_ori,
+        noise_cov=noise_cov,
+        rank=rank,
+        pca=False,
+        **depth,
+    )
+    ch_names = list(info["ch_names"])
 
     data_cov = pick_channels_cov(data_cov, include=ch_names)
     Cm = data_cov._get_square()
-    if 'estimator' in data_cov:
-        del data_cov['estimator']
+    if "estimator" in data_cov:
+        del data_cov["estimator"]
     rank_int = sum(rank.values())
     del rank
 
     # compute spatial filter
     n_orient = 3 if is_free_ori else 1
     W, max_power_ori = _compute_beamformer(
-        G, Cm, reg, n_orient, weight_norm, pick_ori, reduce_rank, rank_int,
-        inversion=inversion, nn=nn, orient_std=orient_std,
-        whitener=whitener)
+        G,
+        Cm,
+        reg,
+        n_orient,
+        weight_norm,
+        pick_ori,
+        reduce_rank,
+        rank_int,
+        inversion=inversion,
+        nn=nn,
+        orient_std=orient_std,
+        whitener=whitener,
+    )
 
     # get src type to store with filters for _make_stc
-    src_type = _get_src_type(forward['src'], vertno)
+    src_type = _get_src_type(forward["src"], vertno)
 
     # get subject to store with filters
     subject_from = _subject_from_forward(forward)
 
     # Is the computed beamformer a scalar or vector beamformer?
-    is_free_ori = is_free_ori if pick_ori in [None, 'vector'] else False
-    is_ssp = bool(info['projs'])
+    is_free_ori = is_free_ori if pick_ori in [None, "vector"] else False
+    is_ssp = bool(info["projs"])
 
     filters = Beamformer(
-        kind='LCMV', weights=W, data_cov=data_cov, noise_cov=noise_cov,
-        whitener=whitener, weight_norm=weight_norm, pick_ori=pick_ori,
-        ch_names=ch_names, proj=proj, is_ssp=is_ssp, vertices=vertno,
-        is_free_ori=is_free_ori, n_sources=forward['nsource'],
-        src_type=src_type, source_nn=forward['source_nn'].copy(),
-        subject=subject_from, rank=rank_int, max_power_ori=max_power_ori,
-        inversion=inversion)
+        kind="LCMV",
+        weights=W,
+        data_cov=data_cov,
+        noise_cov=noise_cov,
+        whitener=whitener,
+        weight_norm=weight_norm,
+        pick_ori=pick_ori,
+        ch_names=ch_names,
+        proj=proj,
+        is_ssp=is_ssp,
+        vertices=vertno,
+        is_free_ori=is_free_ori,
+        n_sources=forward["nsource"],
+        src_type=src_type,
+        source_nn=forward["source_nn"].copy(),
+        subject=subject_from,
+        rank=rank_int,
+        max_power_ori=max_power_ori,
+        inversion=inversion,
+    )
 
     return filters
 
@@ -208,45 +278,51 @@ def _apply_lcmv(data, filters, info, tmin):
     else:
         return_single = False
 
-    W = filters['weights']
+    W = filters["weights"]
 
     for i, M in enumerate(data):
-        if len(M) != len(filters['ch_names']):
-            raise ValueError('data and picks must have the same length')
+        if len(M) != len(filters["ch_names"]):
+            raise ValueError("data and picks must have the same length")
 
         if not return_single:
             logger.info("Processing epoch : %d" % (i + 1))
 
-        M = _proj_whiten_data(M, info['projs'], filters)
+        M = _proj_whiten_data(M, info["projs"], filters)
 
         # project to source space using beamformer weights
         vector = False
-        if filters['is_free_ori']:
+        if filters["is_free_ori"]:
             sol = np.dot(W, M)
-            if filters['pick_ori'] == 'vector':
+            if filters["pick_ori"] == "vector":
                 vector = True
             else:
-                logger.info('combining the current components...')
+                logger.info("combining the current components...")
                 sol = combine_xyz(sol)
         else:
             # Linear inverse: do computation here or delayed
-            if (M.shape[0] < W.shape[0] and
-                    filters['pick_ori'] != 'max-power'):
+            if M.shape[0] < W.shape[0] and filters["pick_ori"] != "max-power":
                 sol = (W, M)
             else:
                 sol = np.dot(W, M)
 
-        tstep = 1.0 / info['sfreq']
+        tstep = 1.0 / info["sfreq"]
 
         # compatibility with 0.16, add src_type as None if not present:
         filters, warn_text = _check_src_type(filters)
 
-        yield _make_stc(sol, vertices=filters['vertices'], tmin=tmin,
-                        tstep=tstep, subject=filters['subject'],
-                        vector=vector, source_nn=filters['source_nn'],
-                        src_type=filters['src_type'], warn_text=warn_text)
+        yield _make_stc(
+            sol,
+            vertices=filters["vertices"],
+            tmin=tmin,
+            tstep=tstep,
+            subject=filters["subject"],
+            vector=vector,
+            source_nn=filters["source_nn"],
+            src_type=filters["src_type"],
+            warn_text=warn_text,
+        )
 
-    logger.info('[done]')
+    logger.info("[done]")
 
 
 @verbose
@@ -287,15 +363,13 @@ def apply_lcmv(evoked, filters, *, verbose=None):
     sel = _check_channels_spatial_filter(evoked.ch_names, filters)
     data = data[sel]
 
-    stc = _apply_lcmv(data=data, filters=filters, info=info,
-                      tmin=tmin)
+    stc = _apply_lcmv(data=data, filters=filters, info=info, tmin=tmin)
 
     return next(stc)
 
 
 @verbose
-def apply_lcmv_epochs(epochs, filters, *, return_generator=False,
-                      verbose=None):
+def apply_lcmv_epochs(epochs, filters, *, return_generator=False, verbose=None):
     """Apply Linearly Constrained Minimum Variance (LCMV) beamformer weights.
 
     Apply Linearly Constrained Minimum Variance (LCMV) beamformer weights
@@ -328,9 +402,8 @@ def apply_lcmv_epochs(epochs, filters, *, return_generator=False,
     tmin = epochs.times[0]
 
     sel = _check_channels_spatial_filter(epochs.ch_names, filters)
-    data = epochs.get_data()[:, sel, :]
-    stcs = _apply_lcmv(data=data, filters=filters, info=info,
-                       tmin=tmin)
+    data = epochs.get_data(sel)
+    stcs = _apply_lcmv(data=data, filters=filters, info=info, tmin=tmin)
 
     if not return_generator:
         stcs = [s for s in stcs]
@@ -409,17 +482,23 @@ def apply_lcmv_cov(data_cov, filters, verbose=None):
     sel_names = [data_cov.ch_names[ii] for ii in sel]
     data_cov = pick_channels_cov(data_cov, sel_names)
 
-    n_orient = filters['weights'].shape[0] // filters['n_sources']
+    n_orient = filters["weights"].shape[0] // filters["n_sources"]
     # Need to project and whiten along both dimensions
-    data = _proj_whiten_data(data_cov['data'].T, data_cov['projs'], filters)
-    data = _proj_whiten_data(data.T, data_cov['projs'], filters)
+    data = _proj_whiten_data(data_cov["data"].T, data_cov["projs"], filters)
+    data = _proj_whiten_data(data.T, data_cov["projs"], filters)
     del data_cov
-    source_power = _compute_power(data, filters['weights'], n_orient)
+    source_power = _compute_power(data, filters["weights"], n_orient)
 
     # compatibility with 0.16, add src_type as None if not present:
     filters, warn_text = _check_src_type(filters)
 
-    return _make_stc(source_power, vertices=filters['vertices'],
-                     src_type=filters['src_type'], tmin=0., tstep=1.,
-                     subject=filters['subject'],
-                     source_nn=filters['source_nn'], warn_text=warn_text)
+    return _make_stc(
+        source_power,
+        vertices=filters["vertices"],
+        src_type=filters["src_type"],
+        tmin=0.0,
+        tstep=1.0,
+        subject=filters["subject"],
+        source_nn=filters["source_nn"],
+        warn_text=warn_text,
+    )

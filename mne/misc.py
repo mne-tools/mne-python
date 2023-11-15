@@ -9,7 +9,7 @@ def parse_config(fname):
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         Config file name.
 
     Returns
@@ -23,7 +23,7 @@ def parse_config(fname):
     """
     reject_params = read_reject_parameters(fname)
 
-    with open(fname, 'r') as f:
+    with open(fname, "r") as f:
         lines = f.readlines()
 
     cat_ind = [i for i, x in enumerate(lines) if "category {" in x]
@@ -33,24 +33,24 @@ def parse_config(fname):
             words = lines[k].split()
             if len(words) >= 2:
                 key = words[0]
-                if key == 'event':
+                if key == "event":
                     event = int(words[1])
                     break
         else:
-            raise ValueError('Could not find event id.')
+            raise ValueError("Could not find event id.")
         event_dict[event] = dict(**reject_params)
         for k in range(ind + 1, ind + 7):
             words = lines[k].split()
             if len(words) >= 2:
                 key = words[0]
-                if key == 'name':
-                    name = ' '.join(words[1:])
+                if key == "name":
+                    name = " ".join(words[1:])
                     if name[0] == '"':
                         name = name[1:]
                     if name[-1] == '"':
                         name = name[:-1]
-                    event_dict[event]['name'] = name
-                if key in ['tmin', 'tmax', 'basemin', 'basemax']:
+                    event_dict[event]["name"] = name
+                if key in ["tmin", "tmax", "basemin", "basemax"]:
                     event_dict[event][key] = float(words[1])
     return event_dict
 
@@ -60,7 +60,7 @@ def read_reject_parameters(fname):
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         Filename to read.
 
     Returns
@@ -68,34 +68,31 @@ def read_reject_parameters(fname):
     params : dict
         The rejection parameters.
     """
-    with open(fname, 'r') as f:
+    with open(fname, "r") as f:
         lines = f.readlines()
 
-    reject_names = ['gradReject', 'magReject', 'eegReject', 'eogReject',
-                    'ecgReject']
-    reject_pynames = ['grad', 'mag', 'eeg', 'eog', 'ecg']
+    reject_names = ["gradReject", "magReject", "eegReject", "eogReject", "ecgReject"]
+    reject_pynames = ["grad", "mag", "eeg", "eog", "ecg"]
     reject = dict()
     for line in lines:
         words = line.split()
         if words[0] in reject_names:
-            reject[reject_pynames[reject_names.index(words[0])]] = \
-                float(words[1])
+            reject[reject_pynames[reject_names.index(words[0])]] = float(words[1])
 
     return reject
 
 
 def read_flat_parameters(fname):
     """Read flat channel rejection parameters from .cov or .ave config file."""
-    with open(fname, 'r') as f:
+    with open(fname, "r") as f:
         lines = f.readlines()
 
-    reject_names = ['gradFlat', 'magFlat', 'eegFlat', 'eogFlat', 'ecgFlat']
-    reject_pynames = ['grad', 'mag', 'eeg', 'eog', 'ecg']
+    reject_names = ["gradFlat", "magFlat", "eegFlat", "eogFlat", "ecgFlat"]
+    reject_pynames = ["grad", "mag", "eeg", "eog", "ecg"]
     flat = dict()
     for line in lines:
         words = line.split()
         if words[0] in reject_names:
-            flat[reject_pynames[reject_names.index(words[0])]] = \
-                float(words[1])
+            flat[reject_pynames[reject_names.index(words[0])]] = float(words[1])
 
     return flat

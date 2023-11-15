@@ -1,3 +1,3 @@
-import os.path as op
+from pathlib import Path
 
-data_dir = op.join(op.dirname(__file__), 'data')
+data_dir = Path(__file__).parent / "data"

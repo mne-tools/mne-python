@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _tut-visualize-raw:
 
@@ -14,15 +13,16 @@ As usual we'll start by importing the modules we need, loading some
 :ref:`example data <sample-dataset>`, and cropping the `~mne.io.Raw`
 object to just 60 seconds before loading it into RAM to save memory:
 """
-
 # %%
 
 import os
+
 import mne
 
 sample_data_folder = mne.datasets.sample.data_path()
-sample_data_raw_file = os.path.join(sample_data_folder, 'MEG', 'sample',
-                                    'sample_audvis_raw.fif')
+sample_data_raw_file = os.path.join(
+    sample_data_folder, "MEG", "sample", "sample_audvis_raw.fif"
+)
 raw = mne.io.read_raw_fif(sample_data_raw_file)
 raw.crop(tmax=60).load_data()
 
@@ -32,13 +32,12 @@ raw.crop(tmax=60).load_data()
 # but `~mne.io.Raw` objects also have several built-in plotting methods:
 #
 # - `~mne.io.Raw.plot`
-# - `~mne.io.Raw.plot_psd`
-# - `~mne.io.Raw.plot_psd_topo`
 # - `~mne.io.Raw.plot_sensors`
 # - `~mne.io.Raw.plot_projs_topomap`
 #
-# The first three are discussed here in detail; the last two are shown briefly
-# and covered in-depth in other tutorials.
+# The first one is discussed here in detail; the last two are shown briefly
+# and covered in-depth in other tutorials. This tutorial also covers a few
+# ways of plotting the spectral content of :class:`~mne.io.Raw` data.
 #
 #
 # Interactive data browsing with ``Raw.plot()``
@@ -114,10 +113,12 @@ raw.plot()
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
 # To visualize the frequency content of continuous data, the `~mne.io.Raw`
-# object provides a `~mne.io.Raw.plot_psd` to plot the `spectral density`_ of
-# the data.
+# object provides a :meth:`~mne.io.Raw.compute_psd` method to compute
+# `spectral density`_ and the resulting :class:`~mne.time_frequency.Spectrum`
+# object has a :meth:`~mne.time_frequency.Spectrum.plot` method:
 
-raw.plot_psd(average=True)
+spectrum = raw.compute_psd()
+spectrum.plot(average=True, picks="data", exclude="bads")
 
 # %%
 # If the data have been filtered, vertical dashed lines will automatically
@@ -128,32 +129,58 @@ raw.plot_psd(average=True)
 # color-coding the channels by location, and more. For example, here is a plot
 # of just a few sensors (specified with the ``picks`` parameter), color-coded
 # by spatial location (via the ``spatial_colors`` parameter, see the
-# documentation of `~mne.io.Raw.plot_psd` for full details):
+# documentation of `~mne.time_frequency.Spectrum.plot` for full details):
 
-midline = ['EEG 002', 'EEG 012', 'EEG 030', 'EEG 048', 'EEG 058', 'EEG 060']
-raw.plot_psd(picks=midline)
+midline = ["EEG 002", "EEG 012", "EEG 030", "EEG 048", "EEG 058", "EEG 060"]
+spectrum.plot(picks=midline, exclude="bads")
+
+# %%
+# It is also possible to plot spectral power estimates across sensors as a
+# scalp topography, using the :class:`~mne.time_frequency.Spectrum`'s
+# :meth:`~mne.time_frequency.Spectrum.plot_topomap` method. The default
+# parameters will plot five frequency bands (δ, θ, α, β, γ), will compute power
+# based on magnetometer channels (if present), and will plot the power
+# estimates on a dB-like log-scale:
+
+spectrum.plot_topomap()
 
 # %%
 # Alternatively, you can plot the PSD for every sensor on its own axes, with
 # the axes arranged spatially to correspond to sensor locations in space, using
-# `~mne.io.Raw.plot_psd_topo`:
+# `~mne.time_frequency.Spectrum.plot_topo`:
 
-raw.plot_psd_topo()
+spectrum.plot_topo()
 
 # %%
 # This plot is also interactive; hovering over each "thumbnail" plot will
 # display the channel name in the bottom left of the plot window, and clicking
 # on a thumbnail plot will create a second figure showing a larger version of
 # the selected channel's spectral density (as if you had called
-# `~mne.io.Raw.plot_psd` on that channel).
+# `~mne.time_frequency.Spectrum.plot` with that channel passed as ``picks``).
 #
-# By default, `~mne.io.Raw.plot_psd_topo` will show only the MEG
+# By default, `~mne.time_frequency.Spectrum.plot_topo` will show only the MEG
 # channels if MEG channels are present; if only EEG channels are found, they
 # will be plotted instead:
 
-raw.copy().pick_types(meg=False, eeg=True).plot_psd_topo()
+spectrum.pick("eeg").plot_topo()
 
 # %%
+# .. note::
+#
+#    Prior to the addition of the :class:`~mne.time_frequency.Spectrum` class,
+#    the above plots were possible via::
+#
+#        raw.plot_psd(average=True)
+#        raw.plot_psd_topo()
+#        raw.pick('eeg').plot_psd_topo()
+#
+#    (there was no ``plot_topomap`` method for :class:`~mne.io.Raw`). The
+#    :meth:`~mne.io.Raw.plot_psd` and :meth:`~mne.io.Raw.plot_psd_topo` methods
+#    of :class:`~mne.io.Raw` objects are still provided to support legacy
+#    analysis scripts, but new code should instead use the
+#    :class:`~mne.time_frequency.Spectrum` object API.
+#
+#
 # Plotting sensor locations from ``Raw`` objects
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
@@ -163,7 +190,7 @@ raw.copy().pick_types(meg=False, eeg=True).plot_psd_topo()
 # details and additional examples are given in the tutorial
 # :ref:`tut-sensor-locations`.
 
-raw.plot_sensors(ch_type='eeg')
+raw.plot_sensors(ch_type="eeg")
 
 # %%
 # .. _`tut-section-raw-plot-proj`:

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _ex-sim-raw-sub:
 
@@ -35,24 +34,24 @@ print(__doc__)
 # to be given to functions.
 
 data_path = sample.data_path()
-subjects_dir = data_path / 'subjects'
-subject = 'sample'
-meg_path = data_path / 'MEG' / subject
+subjects_dir = data_path / "subjects"
+subject = "sample"
+meg_path = data_path / "MEG" / subject
 
 # %%
 # First, we get an info structure from the sample subject.
 
-fname_info = meg_path / 'sample_audvis_raw.fif'
+fname_info = meg_path / "sample_audvis_raw.fif"
 info = mne.io.read_info(fname_info)
-tstep = 1 / info['sfreq']
+tstep = 1 / info["sfreq"]
 
 # %%
 # To simulate sources, we also need a source space. It can be obtained from the
 # forward solution of the sample subject.
 
-fwd_fname = meg_path / 'sample_audvis-meg-eeg-oct-6-fwd.fif'
+fwd_fname = meg_path / "sample_audvis-meg-eeg-oct-6-fwd.fif"
 fwd = mne.read_forward_solution(fwd_fname)
-src = fwd['src']
+src = fwd["src"]
 
 # %%
 # To simulate raw data, we need to define when the activity occurs using events
@@ -61,16 +60,22 @@ src = fwd['src']
 # Here, both are loaded from the sample dataset, but they can also be specified
 # by the user.
 
-fname_event = meg_path / 'sample_audvis_raw-eve.fif'
-fname_cov = meg_path / 'sample_audvis-cov.fif'
+fname_event = meg_path / "sample_audvis_raw-eve.fif"
+fname_cov = meg_path / "sample_audvis-cov.fif"
 
 events = mne.read_events(fname_event)
 noise_cov = mne.read_cov(fname_cov)
 
 # Standard sample event IDs. These values will correspond to the third column
 # in the events matrix.
-event_id = {'auditory/left': 1, 'auditory/right': 2, 'visual/left': 3,
-            'visual/right': 4, 'smiley': 5, 'button': 32}
+event_id = {
+    "auditory/left": 1,
+    "auditory/right": 2,
+    "visual/left": 3,
+    "visual/right": 4,
+    "smiley": 5,
+    "button": 32,
+}
 
 
 # Take only a few events for speed
@@ -93,26 +98,28 @@ events = events[:80]
 # times more) than the ipsilateral.
 
 activations = {
-    'auditory/left':
-        [('G_temp_sup-G_T_transv-lh', 30),          # label, activation (nAm)
-         ('G_temp_sup-G_T_transv-rh', 60)],
-    'auditory/right':
-        [('G_temp_sup-G_T_transv-lh', 60),
-         ('G_temp_sup-G_T_transv-rh', 30)],
-    'visual/left':
-        [('S_calcarine-lh', 30),
-         ('S_calcarine-rh', 60)],
-    'visual/right':
-        [('S_calcarine-lh', 60),
-         ('S_calcarine-rh', 30)],
+    "auditory/left": [
+        ("G_temp_sup-G_T_transv-lh", 30),  # label, activation (nAm)
+        ("G_temp_sup-G_T_transv-rh", 60),
+    ],
+    "auditory/right": [
+        ("G_temp_sup-G_T_transv-lh", 60),
+        ("G_temp_sup-G_T_transv-rh", 30),
+    ],
+    "visual/left": [("S_calcarine-lh", 30), ("S_calcarine-rh", 60)],
+    "visual/right": [("S_calcarine-lh", 60), ("S_calcarine-rh", 30)],
 }
 
-annot = 'aparc.a2009s'
+annot = "aparc.a2009s"
 
 # Load the 4 necessary label names.
-label_names = sorted(set(activation[0]
-                         for activation_list in activations.values()
-                         for activation in activation_list))
+label_names = sorted(
+    set(
+        activation[0]
+        for activation_list in activations.values()
+        for activation in activation_list
+    )
+)
 region_names = list(activations.keys())
 
 # %%
@@ -125,13 +132,13 @@ region_names = list(activations.keys())
 
 
 def data_fun(times, latency, duration):
-    """Function to generate source time courses for evoked responses,
-    parametrized by latency and duration."""
+    """Generate source time courses for evoked responses."""
     f = 15  # oscillating frequency, beta band [Hz]
     sigma = 0.375 * duration
     sinusoid = np.sin(2 * np.pi * f * (times - latency))
-    gf = np.exp(- (times - latency - (sigma / 4.) * rng.rand(1)) ** 2 /
-                (2 * (sigma ** 2)))
+    gf = np.exp(
+        -((times - latency - (sigma / 4.0) * rng.rand(1)) ** 2) / (2 * (sigma**2))
+    )
     return 1e-9 * sinusoid * gf
 
 
@@ -154,7 +161,7 @@ def data_fun(times, latency, duration):
 # event, the second is not used. The third one is the event id, which is
 # different for each of the 4 areas.
 
-times = np.arange(150, dtype=np.float64) / info['sfreq']
+times = np.arange(150, dtype=np.float64) / info["sfreq"]
 duration = 0.03
 rng = np.random.RandomState(7)
 source_simulator = mne.simulation.SourceSimulator(src, tstep=tstep)
@@ -163,20 +170,17 @@ for region_id, region_name in enumerate(region_names, 1):
     events_tmp = events[np.where(events[:, 2] == region_id)[0], :]
     for i in range(2):
         label_name = activations[region_name][i][0]
-        label_tmp = mne.read_labels_from_annot(subject, annot,
-                                               subjects_dir=subjects_dir,
-                                               regexp=label_name,
-                                               verbose=False)
+        label_tmp = mne.read_labels_from_annot(
+            subject, annot, subjects_dir=subjects_dir, regexp=label_name, verbose=False
+        )
         label_tmp = label_tmp[0]
         amplitude_tmp = activations[region_name][i][1]
-        if region_name.split('/')[1][0] == label_tmp.hemi[0]:
+        if region_name.split("/")[1][0] == label_tmp.hemi[0]:
             latency_tmp = 0.115
         else:
             latency_tmp = 0.1
         wf_tmp = data_fun(times, latency_tmp, duration)
-        source_simulator.add_data(label_tmp,
-                                  amplitude_tmp * wf_tmp,
-                                  events_tmp)
+        source_simulator.add_data(label_tmp, amplitude_tmp * wf_tmp, events_tmp)
 
 # To obtain a SourceEstimate object, we need to use `get_stc()` method of
 # SourceSimulator class.
@@ -205,17 +209,16 @@ mne.simulation.add_eog(raw_sim, random_state=0)
 mne.simulation.add_ecg(raw_sim, random_state=0)
 
 # Plot original and simulated raw data.
-raw_sim.plot(title='Simulated raw data')
+raw_sim.plot(title="Simulated raw data")
 
 # %%
 # Extract epochs and compute evoked responsses
 # --------------------------------------------
 #
 
-epochs = mne.Epochs(raw_sim, events, event_id, tmin=-0.2, tmax=0.3,
-                    baseline=(None, 0))
-evoked_aud_left = epochs['auditory/left'].average()
-evoked_vis_right = epochs['visual/right'].average()
+epochs = mne.Epochs(raw_sim, events, event_id, tmin=-0.2, tmax=0.3, baseline=(None, 0))
+evoked_aud_left = epochs["auditory/left"].average()
+evoked_vis_right = epochs["visual/right"].average()
 
 # Visualize the evoked data
 evoked_aud_left.plot(spatial_colors=True)
@@ -231,16 +234,15 @@ evoked_vis_right.plot(spatial_colors=True)
 # As expected, when high activations appear in primary auditory areas, primary
 # visual areas will have low activations and vice versa.
 
-method, lambda2 = 'dSPM', 1. / 9.
+method, lambda2 = "dSPM", 1.0 / 9.0
 inv = mne.minimum_norm.make_inverse_operator(epochs.info, fwd, noise_cov)
-stc_aud = mne.minimum_norm.apply_inverse(
-    evoked_aud_left, inv, lambda2, method)
-stc_vis = mne.minimum_norm.apply_inverse(
-    evoked_vis_right, inv, lambda2, method)
+stc_aud = mne.minimum_norm.apply_inverse(evoked_aud_left, inv, lambda2, method)
+stc_vis = mne.minimum_norm.apply_inverse(evoked_vis_right, inv, lambda2, method)
 stc_diff = stc_aud - stc_vis
 
-brain = stc_diff.plot(subjects_dir=subjects_dir, initial_time=0.1,
-                      hemi='split', views=['lat', 'med'])
+brain = stc_diff.plot(
+    subjects_dir=subjects_dir, initial_time=0.1, hemi="split", views=["lat", "med"]
+)
 
 # %%
 # References

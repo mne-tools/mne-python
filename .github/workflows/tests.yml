@@ -1,0 +1,122 @@
+name: 'Tests'
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.number }}-${{ github.event.ref }}
+  cancel-in-progress: true
+on:  # yamllint disable-line rule:truthy
+  push:
+    branches:
+      - '*'
+  pull_request:
+    branches:
+      - '*'
+
+permissions:
+  contents: read
+
+jobs:
+  style:
+    name: Style
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      - uses: psf/black@stable
+      - uses: pre-commit/action@v3.0.0
+
+  bandit:
+    name: Bandit
+    needs: style
+    runs-on: ubuntu-latest
+    steps:
+      - uses: davidslusser/actions_python_bandit@v1.0.0
+        with:
+          src: "mne"
+          options: "-c pyproject.toml -ll -r"
+          pip_install_command: "pip install bandit[toml]"
+
+  pytest:
+    name: '${{ matrix.os }} / ${{ matrix.kind }} / ${{ matrix.python }}'
+    needs: style
+    timeout-minutes: 70
+    continue-on-error: true
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash -el {0}
+    env:
+      PYTHON_VERSION: '${{ matrix.python }}'
+      MKL_NUM_THREADS: '1'
+      OPENBLAS_NUM_THREADS: '1'
+      PYTHONUNBUFFERED: '1'
+      MNE_CI_KIND: '${{ matrix.kind }}'
+      CI_OS_NAME: '${{ matrix.os }}'
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            python: '3.10'
+            kind: conda
+          - os: ubuntu-latest
+            python: '3.11'
+            kind: pip-pre
+          - os: macos-latest
+            python: '3.8'
+            kind: mamba
+          - os: windows-latest
+            python: '3.10'
+            kind: mamba
+          - os: ubuntu-latest
+            python: '3.8'
+            kind: minimal
+          - os: ubuntu-20.04
+            python: '3.8'
+            kind: old
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - run: ./tools/github_actions_env_vars.sh
+      # Xvfb/OpenGL
+      - uses: pyvista/setup-headless-display-action@main
+        with:
+          qt: true
+          pyvista: false
+      # Python (if pip)
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python }}
+        if: startswith(matrix.kind, 'pip')
+      # Python (if conda)
+      - uses: conda-incubator/setup-miniconda@v2
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          environment-file: ${{ env.CONDA_ENV }}
+          activate-environment: mne
+          miniforge-version: latest
+          miniforge-variant: Mambaforge
+          use-mamba: ${{ matrix.kind != 'conda' }}
+        if: ${{ !startswith(matrix.kind, 'pip') }}
+      - run: ./tools/github_actions_dependencies.sh
+      # Minimal commands on Linux (macOS stalls)
+      - run: ./tools/get_minimal_commands.sh
+        if: ${{ startswith(matrix.os, 'ubuntu') }}
+      - run: ./tools/github_actions_install.sh
+      - run: ./tools/github_actions_infos.sh
+      # Check Qt
+      - run: ./tools/check_qt_import.sh $MNE_QT_BACKEND
+        if: ${{ env.MNE_QT_BACKEND != '' }}
+      - name: Run tests with no testing data
+        run: MNE_SKIP_TESTING_DATASET_TESTS=true pytest -m "not (ultraslowtest or pgtest)" --tb=short --cov=mne --cov-report xml -vv -rfE mne/
+        if: matrix.kind == 'minimal'
+      - run: ./tools/get_testing_version.sh
+      - uses: actions/cache@v3
+        with:
+          key: ${{ env.TESTING_VERSION }}
+          path: ~/mne_data
+      - run: ./tools/github_actions_download.sh
+      - run: ./tools/github_actions_test.sh
+      - uses: codecov/codecov-action@v3
+        if: success()

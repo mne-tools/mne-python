@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _tut-set-eeg-ref:
 
@@ -17,14 +16,16 @@ just a few EEG channels so the plots are easier to see:
 # %%
 
 import os
+
 import mne
 
 sample_data_folder = mne.datasets.sample.data_path()
-sample_data_raw_file = os.path.join(sample_data_folder, 'MEG', 'sample',
-                                    'sample_audvis_raw.fif')
+sample_data_raw_file = os.path.join(
+    sample_data_folder, "MEG", "sample", "sample_audvis_raw.fif"
+)
 raw = mne.io.read_raw_fif(sample_data_raw_file, verbose=False)
 raw.crop(tmax=60).load_data()
-raw.pick(['EEG 0{:02}'.format(n) for n in range(41, 60)])
+raw.pick(["EEG 0{:02}".format(n) for n in range(41, 60)])
 
 # %%
 # Background
@@ -104,14 +105,14 @@ raw.plot()
 # ``copy=False``.
 
 # add new reference channel (all zero)
-raw_new_ref = mne.add_reference_channels(raw, ref_channels=['EEG 999'])
+raw_new_ref = mne.add_reference_channels(raw, ref_channels=["EEG 999"])
 raw_new_ref.plot()
 
 # %%
 # .. KEEP THESE BLOCKS SEPARATE SO FIGURES ARE BIG ENOUGH TO READ
 
 # set reference to `EEG 050`
-raw_new_ref.set_eeg_reference(ref_channels=['EEG 050'])
+raw_new_ref.set_eeg_reference(ref_channels=["EEG 050"])
 raw_new_ref.plot()
 
 # %%
@@ -133,7 +134,7 @@ raw_new_ref.plot()
 
 # sphinx_gallery_thumbnail_number = 4
 # use the average of all channels as reference
-raw_avg_ref = raw.copy().set_eeg_reference(ref_channels='average')
+raw_avg_ref = raw.copy().set_eeg_reference(ref_channels="average")
 raw_avg_ref.plot()
 
 # %%
@@ -146,8 +147,8 @@ raw_avg_ref.plot()
 # :term:`projector` rather than subtracting the reference from the data
 # immediately by specifying ``projection=True``:
 
-raw.set_eeg_reference('average', projection=True)
-print(raw.info['projs'])
+raw.set_eeg_reference("average", projection=True)
+print(raw.info["projs"])
 
 # %%
 # Creating the average reference as a projector has a few advantages:
@@ -168,12 +169,12 @@ print(raw.info['projs'])
 #    empty-room projectors included in the sample data :file:`.fif` file were
 #    only computed for the magnetometers.)
 
-for title, proj in zip(['Original', 'Average'], [False, True]):
-    with mne.viz.use_browser_backend('matplotlib'):
+for title, proj in zip(["Original", "Average"], [False, True]):
+    with mne.viz.use_browser_backend("matplotlib"):
         fig = raw.plot(proj=proj, n_channels=len(raw))
     # make room for title
     fig.subplots_adjust(top=0.9)
-    fig.suptitle('{} reference'.format(title), size='xx-large', weight='bold')
+    fig.suptitle("{} reference".format(title), size="xx-large", weight="bold")
 
 # %%
 # Using an infinite reference (REST)
@@ -186,17 +187,17 @@ for title, proj in zip(['Original', 'Average'], [False, True]):
 # analysis:
 
 raw.del_proj()  # remove our average reference projector first
-sphere = mne.make_sphere_model('auto', 'auto', raw.info)
-src = mne.setup_volume_source_space(sphere=sphere, exclude=30., pos=15.)
+sphere = mne.make_sphere_model("auto", "auto", raw.info)
+src = mne.setup_volume_source_space(sphere=sphere, exclude=30.0, pos=15.0)
 forward = mne.make_forward_solution(raw.info, trans=None, src=src, bem=sphere)
-raw_rest = raw.copy().set_eeg_reference('REST', forward=forward)
+raw_rest = raw.copy().set_eeg_reference("REST", forward=forward)
 
-for title, _raw in zip(['Original', 'REST (∞)'], [raw, raw_rest]):
-    with mne.viz.use_browser_backend('matplotlib'):
+for title, _raw in zip(["Original", "REST (∞)"], [raw, raw_rest]):
+    with mne.viz.use_browser_backend("matplotlib"):
         fig = _raw.plot(n_channels=len(raw), scalings=dict(eeg=5e-5))
     # make room for title
     fig.subplots_adjust(top=0.9)
-    fig.suptitle('{} reference'.format(title), size='xx-large', weight='bold')
+    fig.suptitle("{} reference".format(title), size="xx-large", weight="bold")
 
 # %%
 # Using a bipolar reference
@@ -213,8 +214,7 @@ for title, _raw in zip(['Original', 'REST (∞)'], [raw, raw_rest]):
 # :footcite:`YaoEtAl2019` which creates a new virtual channel
 # named ``EEG 054-EEG 055``.
 
-raw_bip_ref = mne.set_bipolar_reference(raw, anode=['EEG 054'],
-                                        cathode=['EEG 055'])
+raw_bip_ref = mne.set_bipolar_reference(raw, anode=["EEG 054"], cathode=["EEG 055"])
 raw_bip_ref.plot()
 
 # %%

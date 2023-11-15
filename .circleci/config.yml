@@ -11,487 +11,544 @@
 
 version: 2.1
 
+_check_skip: &check_skip
+  name: Check-skip
+  command: |
+    set -e
+    export COMMIT_MESSAGE=$(git log --format=oneline -n 1);
+    if [[ "$CIRCLE_PULL_REQUEST" != "" ]] && ([[ "$COMMIT_MESSAGE" == *"[skip circle]"* ]] || [[ "$COMMIT_MESSAGE" == *"[circle skip]"* ]]); then
+      echo "Skip detected, exiting job ${CIRCLE_JOB} for PR ${CIRCLE_PULL_REQUEST}."
+      circleci-agent step halt;
+    fi
+
 jobs:
-    build_docs:
-      parameters:
-        scheduled:
-          type: string
-          default: "false"
-      docker:
-        - image: cimg/base:current-22.04
-      steps:
-        - restore_cache:
-            keys:
-              - source-cache
-        - checkout
-        - run:
-            name: Complete checkout
-            command: |
-              set -e
-              if ! git remote -v | grep upstream; then
-                git remote add upstream https://github.com/mne-tools/mne-python.git
-              fi
-              git remote set-url upstream https://github.com/mne-tools/mne-python.git
-              git fetch upstream
-        - save_cache:
-            key: source-cache
-            paths:
-              - ".git"
-        - run:
-            name: Check-skip
-            command: |
-              set -e
-              export COMMIT_MESSAGE=$(git log --format=oneline -n 1);
-              if [[ -v CIRCLE_PULL_REQUEST ]] && ([[ "$COMMIT_MESSAGE" == *"[skip circle]"* ]] || [[ "$COMMIT_MESSAGE" == *"[circle skip]"* ]]); then
-                echo "Skip detected, exiting job ${CIRCLE_JOB} for PR ${CIRCLE_PULL_REQUEST}."
-                circleci-agent step halt;
-              fi
-        - run:
-            name: Merge with upstream and triage run
-            command: |
-              set -e
-              echo $(git log -1 --pretty=%B) | tee gitlog.txt
-              echo ${CI_PULL_REQUEST//*pull\//} | tee merge.txt
-              if [[ $(cat merge.txt) != "" ]]; then
-                echo "Merging $(cat merge.txt)";
-                git pull --ff-only upstream "refs/pull/$(cat merge.txt)/merge";
+  pytest-macos-arm64:
+    parameters:
+      scheduled:
+        type: string
+        default: "false"
+    macos:
+      xcode: "14.2.0"
+    resource_class: macos.m1.medium.gen1
+    environment:
+      HOMEBREW_NO_AUTO_UPDATE: 1
+    steps:
+      - checkout
+      - run:
+          <<: *check_skip
+      - run:
+          name: Install Python and dependencies
+          command: |
+            set -eo pipefail
+            brew install python@3.11
+            which python
+            which pip
+            pip install --upgrade pip
+            pip install --upgrade --only-binary "numpy,scipy,dipy,statsmodels" -ve .[full,test_extra]
+            # 3D too slow on Apple's software renderer, and numba causes us problems
+            pip uninstall -y vtk pyvista pyvistaqt numba
+            mkdir -p test-results
+            echo "set -eo pipefail" >> $BASH_ENV
+      - run:
+          command: mne sys_info
+      - run:
+          command: ./tools/get_testing_version.sh && cat testing_version.txt
+      - restore_cache:
+          keys:
+            - data-cache-testing-{{ checksum "testing_version.txt" }}
+      - run:
+          command: python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
+      - save_cache:
+          key: data-cache-testing-{{ checksum "testing_version.txt" }}
+          paths:
+            - ~/mne_data/MNE-testing-data  # (2.5 G)
+      - run:
+          command: pytest -m "not slowtest" --tb=short --cov=mne --cov-report xml -vv mne
+      - run:
+          name: Prepare test data upload
+          command: cp -av junit-results.xml test-results/junit.xml
+      - store_test_results:
+          path: ./test-results
+      # Codecov orb has bugs on macOS (gpg issues)
+      # - codecov/upload
+      - run:
+          command: bash <(curl -s https://codecov.io/bash)
+
+  build_docs:
+    parameters:
+      scheduled:
+        type: string
+        default: "false"
+    docker:
+      - image: cimg/base:current-22.04
+    # large 4 vCPUs 15GB mem
+    # https://discuss.circleci.com/t/changes-to-remote-docker-reporting-pricing/47759
+    resource_class: large
+    steps:
+      - restore_cache:
+          keys:
+            - source-cache
+      - checkout
+      - run:
+          name: Complete checkout
+          command: |
+            set -e
+            if ! git remote -v | grep upstream; then
+              git remote add upstream https://github.com/mne-tools/mne-python.git
+            fi
+            git remote set-url upstream https://github.com/mne-tools/mne-python.git
+            git fetch upstream
+      - save_cache:
+          key: source-cache
+          paths:
+            - ".git"
+      - run:
+          <<: *check_skip
+      - run:
+          name: Merge with upstream and triage run
+          command: |
+            set -e
+            echo $(git log -1 --pretty=%B) | tee gitlog.txt
+            echo ${CI_PULL_REQUEST//*pull\//} | tee merge.txt
+            if [[ $(cat merge.txt) != "" ]]; then
+              echo "Merging $(cat merge.txt)";
+              git pull --ff-only upstream "refs/pull/$(cat merge.txt)/merge";
+            else
+              if [[ "$CIRCLE_BRANCH" == "main" ]]; then
+                KIND=dev
               else
-                if [[ "$CIRCLE_BRANCH" == "main" ]]; then
-                  KIND=dev
+                KIND=stable
+              fi
+              export COMMIT_MESSAGE=$(git log --format=oneline -n 1);
+              if [[ "<< parameters.scheduled >>" == "true" ]]; then
+                echo "Scheduled full build detected, checking if it's required."
+                wget https://mne.tools/${KIND}/_version.txt;
+                REMOTE_VERSION=$(cat _version.txt)
+                THIS_VERSION=$(git rev-parse HEAD)
+                echo "Current ${KIND} SHA: ${REMOTE_VERSION}"
+                echo "This    ${KIND} SHA: ${THIS_VERSION}"
+                if [[ "${THIS_VERSION}" != "${REMOTE_VERSION}" ]]; then
+                  echo "Rebuild required."
                 else
-                  KIND=stable
-                fi
-                export COMMIT_MESSAGE=$(git log --format=oneline -n 1);
-                if [[ "<< parameters.scheduled >>" == "true" ]]; then
-                  echo "Scheduled full build detected, checking if it's required."
-                  wget https://mne.tools/${KIND}/_version.txt;
-                  REMOTE_VERSION=$(cat _version.txt)
-                  THIS_VERSION=$(git rev-parse HEAD)
-                  echo "Current ${KIND} SHA: ${REMOTE_VERSION}"
-                  echo "This    ${KIND} SHA: ${THIS_VERSION}"
-                  if [[ "${THIS_VERSION}" != "${REMOTE_VERSION}" ]]; then
-                    echo "Rebuild required."
-                  else
-                    echo "Rebuild skipped."
-                    circleci-agent step halt;
-                  fi
-                elif [[ "$COMMIT_MESSAGE" == *"[circle deploy]"* ]]; then
-                  echo "Forced deployed build detected, building and deploying docs";
-                else
-                  echo "Waiting until scheduled run to build ${KIND} docs, exiting job ${CIRCLE_JOB}."
+                  echo "Rebuild skipped."
                   circleci-agent step halt;
                 fi
-              fi
-
-        - run:
-            name: Set BASH_ENV
-            command: |
-              set -e
-              ./tools/setup_xvfb.sh
-              sudo apt install -qq graphviz optipng python3.10-venv python3-venv libxft2 ffmpeg
-              python3.10 -m venv ~/python_env
-              echo "set -e" >> $BASH_ENV
-              echo "export OPENBLAS_NUM_THREADS=4" >> $BASH_ENV
-              echo "export XDG_RUNTIME_DIR=/tmp/runtime-circleci" >> $BASH_ENV
-              echo "export MNE_FULL_DATE=true" >> $BASH_ENV
-              source tools/get_minimal_commands.sh
-              echo "export MNE_3D_BACKEND=pyvistaqt" >> $BASH_ENV
-              echo "export MNE_3D_OPTION_MULTI_SAMPLES=1" >> $BASH_ENV
-              echo "export MNE_BROWSER_BACKEND=qt" >> $BASH_ENV
-              echo "export MNE_BROWSER_PRECOMPUTE=false" >> $BASH_ENV
-              echo "export PATH=~/.local/bin/:$PATH" >> $BASH_ENV
-              echo "export DISPLAY=:99" >> $BASH_ENV
-              echo "source ~/python_env/bin/activate" >> $BASH_ENV
-              mkdir -p ~/.local/bin
-              ln -s ~/python_env/bin/python ~/.local/bin/python
-              echo "BASH_ENV:"
-              cat $BASH_ENV
-              mkdir -p ~/mne_data
-              touch pattern.txt
-        - run:
-            name: check neuromag2ft
-            command: |
-              neuromag2ft --version
-
-        - run:
-            name: Install fonts needed for diagrams
-            command: |
-              mkdir -p $HOME/.fonts
-              curl https://codeload.github.com/adobe-fonts/source-code-pro/tar.gz/2.038R-ro/1.058R-it/1.018R-VAR | tar xz -C $HOME/.fonts
-              curl https://codeload.github.com/adobe-fonts/source-sans-pro/tar.gz/3.028R | tar xz -C $HOME/.fonts
-              fc-cache -f
-
-        # Load pip cache
-        - restore_cache:
-            keys:
-              - pip-cache
-        - restore_cache:
-            keys:
-              - user-install-bin-cache-310
-
-        # Hack in uninstalls of libraries as necessary if pip doesn't do the right thing in upgrading for us...
-        - run:
-            name: Get Python running
-            command: |
-              ./tools/circleci_dependencies.sh
-
-        - save_cache:
-            key: pip-cache
-            paths:
-              - ~/.cache/pip
-        - save_cache:
-            key: user-install-bin-cache-310
-            paths:
-              - ~/.local/lib/python3.10/site-packages
-              - ~/.local/bin
-
-        - run:
-            name: Check Qt
-            command: LD_DEBUG=libs python -c "from PySide6.QtWidgets import QApplication, QWidget; app = QApplication([])"
-
-        # Load tiny cache so that ~/.mne does not need to be created below
-        - restore_cache:
-            keys:
-              - data-cache-tiny-0
-
-        # Look at what we have and fail early if there is some library conflict
-        - run:
-            name: Check installation
-            command: |
-               which python
-               QT_DEBUG_PLUGINS=1 mne sys_info -pd
-               python -c "import numpy; numpy.show_config()"
-               LIBGL_DEBUG=verbose python -c "import pyvistaqt; pyvistaqt.BackgroundPlotter(show=True)"
-               python -c "import mne; mne.set_config('MNE_USE_CUDA', 'false')"  # this is needed for the config tutorial
-               python -c "import mne; mne.set_config('MNE_LOGGING_LEVEL', 'info')"
-               python -c "import mne; level = mne.get_config('MNE_LOGGING_LEVEL'); assert level.lower() == 'info', repr(level)"
-        - run:
-            name: List packages
-            command: python -m pip list
-
-        # Figure out if we should run a full, pattern, or noplot version
-        - restore_cache:
-            keys:
-              - data-cache-tiny-1
-        - restore_cache:
-            keys:
-              - data-cache-multimodal
-        - restore_cache:
-            keys:
-              - data-cache-limo
-        - restore_cache:
-            keys:
-              - data-cache-fsaverage
-        - restore_cache:
-            keys:
-              - data-cache-bst-phantom-ctf
-        - restore_cache:
-            keys:
-              - data-cache-bst-raw
-        - restore_cache:
-            keys:
-              - data-cache-bst-phantom-elekta
-        - restore_cache:
-            keys:
-              - data-cache-bst-auditory
-        - restore_cache:
-            keys:
-              - data-cache-bst-resting
-        - restore_cache:
-            keys:
-              - data-cache-fieldtrip
-        - restore_cache:
-            keys:
-              - data-cache-somato
-        - restore_cache:
-            keys:
-              - data-cache-hf-sef
-        - restore_cache:
-            keys:
-              - data-cache-opm
-        - restore_cache:
-            keys:
-              - data-cache-sample
-        - restore_cache:
-            keys:
-              - data-cache-spm-face
-        - restore_cache:
-            keys:
-              - data-cache-testing
-        - restore_cache:
-            keys:
-              - data-cache-visual
-        - run:
-            name: Get data
-            command: |
-              ./tools/circleci_download.sh
-        - run:
-            name: Verify build type
-            command: |
-              echo "PATTERN=$(cat pattern.txt)"
-              echo "BUILD=$(cat build.txt)"
-              ls -al ~/mne_data;
-
-        # Run doctest (if it's full or front) before building the docs
-        - run:
-            name: make test-doc
-            command: |
-              if [[ $(cat gitlog.txt) == *"[circle front]"* ]] || [[ $(cat build.txt) == "html_dev-memory" ]] || [[ $(cat build.txt) == "html_stable-memory" ]]; then
-                make test-doc;
-                mkdir -p doc/_build/test-results/test-doc;
-                cp junit-results.xml doc/_build/test-results/test-doc/junit.xml;
-              fi;
-        # Build docs
-        - run:
-            name: make html
-            command: |
-              PATTERN=$(cat pattern.txt) make -C doc $(cat build.txt);
-        - run:
-            name: Show profiling output
-            when: always
-            command: |
-              if compgen -G "doc/*.dat" > /dev/null; then
-                mkdir -p doc/generated
-                mprof plot doc/*.dat --output doc/generated/memory.png
+              elif [[ "$COMMIT_MESSAGE" == *"[circle deploy]"* ]]; then
+                echo "Forced deployed build detected, building and deploying docs";
               else
-                echo "No profile data found in doc/"
+                echo "Waiting until scheduled run to build ${KIND} docs, exiting job ${CIRCLE_JOB}."
+                circleci-agent step halt;
               fi
-        - run:
-            name: Sanity check system state
-            command: |
+            fi
+
+      - run:
+          name: Set BASH_ENV
+          command: ./tools/circleci_bash_env.sh
+
+      - run:
+          name: check neuromag2ft
+          command: |
+            neuromag2ft --version
+
+      - run:
+          name: Install fonts needed for diagrams
+          command: |
+            mkdir -p $HOME/.fonts
+            echo "Source Code Pro"
+            curl https://codeload.github.com/adobe-fonts/source-code-pro/tar.gz/2.038R-ro/1.058R-it/1.018R-VAR | tar xz -C $HOME/.fonts
+            echo "Source Sans Pro"
+            curl https://codeload.github.com/adobe-fonts/source-sans/tar.gz/3.028R | tar xz -C $HOME/.fonts
+            fc-cache -f
+
+      # Load pip cache
+      - restore_cache:
+          keys:
+            - pip-cache
+      - restore_cache:
+          keys:
+            - user-install-bin-cache-310
+
+      # Hack in uninstalls of libraries as necessary if pip doesn't do the right thing in upgrading for us...
+      - run:
+          name: Get Python running
+          command: |
+            ./tools/circleci_dependencies.sh
+
+      - save_cache:
+          key: pip-cache
+          paths:
+            - ~/.cache/pip
+      - save_cache:
+          key: user-install-bin-cache-310
+          paths:
+            - ~/.local/lib/python3.10/site-packages
+            - ~/.local/bin
+
+      - run:
+          name: Check Qt
+          command: |
+            ./tools/check_qt_import.sh PyQt6
+      # Load tiny cache so that ~/.mne does not need to be created below
+      - restore_cache:
+          keys:
+            - data-cache-tiny-0
+
+      # Look at what we have and fail early if there is some library conflict
+      - run:
+          name: Check installation
+          command: |
+              which python
+              QT_DEBUG_PLUGINS=1 mne sys_info -pd
+              python -c "import numpy; numpy.show_config()"
+              LIBGL_DEBUG=verbose python -c "import pyvistaqt; pyvistaqt.BackgroundPlotter(show=True)"
+              python -c "import mne; mne.set_config('MNE_USE_CUDA', 'false')"  # this is needed for the config tutorial
+              python -c "import mne; mne.set_config('MNE_LOGGING_LEVEL', 'info')"
               python -c "import mne; level = mne.get_config('MNE_LOGGING_LEVEL'); assert level.lower() == 'info', repr(level)"
+      - run:
+          name: List packages
+          command: python -m pip list
 
-        # Reduce upload time of artifacts we will (almost) never look at
-        - run:
-            name: Reduce artifact upload time
-            command: |
-              if grep -q html_dev-pattern-memory build.txt || grep -q html_dev-noplot build.txt; then
-                zip -rm doc/_build/html/_downloads.zip doc/_build/html/_downloads
-              fi
-              for NAME in generated auto_tutorials auto_examples; do
-                zip -rm doc/${NAME}.zip doc/${NAME}
-              done
+      # Figure out if we should run a full build or specify a pattern
+      - restore_cache:
+          keys:
+            - data-cache-tiny-1
+      - restore_cache:
+          keys:
+            - data-cache-multimodal
+      - restore_cache:
+          keys:
+            - data-cache-limo
+      - restore_cache:
+          keys:
+            - data-cache-fsaverage
+      - restore_cache:
+          keys:
+            - data-cache-bst-raw
+      - restore_cache:
+          keys:
+            - data-cache-bst-phantom-ctf
+      - restore_cache:
+          keys:
+            - data-cache-bst-phantom-elekta
+      - restore_cache:
+          keys:
+            - data-cache-bst-phantom-kernel
+      - restore_cache:
+          keys:
+            - data-cache-bst-auditory
+      - restore_cache:
+          keys:
+            - data-cache-bst-resting
+      - restore_cache:
+          keys:
+            - data-cache-fieldtrip
+      - restore_cache:
+          keys:
+            - data-cache-somato
+      - restore_cache:
+          keys:
+            - data-cache-hf-sef
+      - restore_cache:
+          keys:
+            - data-cache-opm
+      - restore_cache:
+          keys:
+            - data-cache-sample
+      - restore_cache:
+          keys:
+            - data-cache-spm-face
+      - restore_cache:
+          keys:
+            - data-cache-testing
+      - restore_cache:
+          keys:
+            - data-cache-visual
+      - restore_cache:
+          keys:
+            - data-cache-ucl-opm-auditory
+      - restore_cache:
+          keys:
+            - data-cache-phantom-kit
+      - run:
+          name: Get data
+          # This limit could be increased, but this is helpful for finding slow ones
+          # (even ~2GB datasets should be downloadable in this time from good
+          # providers)
+          no_output_timeout: 10m
+          command: |
+            ./tools/circleci_download.sh
+      - run:
+          name: Verify build type
+          command: |
+            echo "PATTERN=$(cat pattern.txt)"
+            echo "BUILD=$(cat build.txt)"
+            ls -al ~/mne_data;
 
-        # Save the JUnit file
-        - store_test_results:
-            path: doc/_build/test-results
-        - store_artifacts:
-            path: doc/_build/test-results
-            destination: test-results
-        # Save the SG RST
-        - store_artifacts:
-            path: doc/auto_examples.zip
-        - store_artifacts:
-            path: doc/auto_tutorials.zip
-        - store_artifacts:
-            path: doc/generated.zip
-        # Save the HTML
-        - store_artifacts:
-            path: doc/_build/html/
-            destination: dev
-        - store_artifacts:
-            path: doc/_build/html_stable/
-            destination: stable
-        - persist_to_workspace:
-            root: doc/_build
-            paths:
-              - html
-              - html_stable
+      # Run doctest (if it's full or front) before building the docs
+      - run:
+          name: make test-doc
+          command: |
+            if [[ $(cat gitlog.txt) == *"[circle front]"* ]] || [[ $(cat build.txt) == "html-memory" ]] ; then
+              make test-doc;
+              mkdir -p doc/_build/test-results/test-doc;
+              cp junit-results.xml doc/_build/test-results/test-doc/junit.xml;
+            fi;
+      # Build docs
+      - run:
+          name: make html
+          command: |
+            PATTERN=$(cat pattern.txt) make -C doc $(cat build.txt);
+      - run:
+          name: Show profiling output
+          when: always
+          command: |
+            if compgen -G "doc/*.dat" > /dev/null; then
+              mkdir -p doc/generated
+              mprof plot doc/*.dat --output doc/generated/memory.png
+            else
+              echo "No profile data found in doc/"
+            fi
+      - run:
+          name: Sanity check system state
+          command: |
+            python -c "import mne; level = mne.get_config('MNE_LOGGING_LEVEL'); assert level.lower() == 'info', repr(level)"
 
-        # Keep these separate, maybe better in terms of size limitations (?)
-        - save_cache:
-            key: data-cache-tiny-0  # < 100 M, might as well combine
-            paths:
-              - ~/.mne
-              - ~/mne_data/MNE-kiloword-data  # (28 M)
-              - ~/mne_data/MNE-eegbci-data # (35 M)
-              - ~/mne_data/MNE-misc-data  # (39 M)
-              - ~/mne_data/mTRF_1.5  # (56 M)
-              - ~/mne_data/MNE-phantom-4DBTi  # (77 M)
-        - save_cache:
-            key: data-cache-tiny-1  # more to combine
-            paths:
-              - ~/mne_data/MNE-fNIRS-motor-data  # (71 M)
-              - ~/mne_data/MNE-refmeg-noise-data  # (93 M)
-              - ~/mne_data/physionet-sleep-data  # (95 M)
-        - save_cache:
-            key: data-cache-multimodal
-            paths:
-              - ~/mne_data/MNE-multimodal-data  # (240 M)
-        - save_cache:
-            key: data-cache-limo
-            paths:
-              - ~/mne_data/MNE-limo-data  # (244 M)
-        - save_cache:
-            key: data-cache-fsaverage
-            paths:
-              - ~/mne_data/MNE-fsaverage-data  # (762 M)
-        - save_cache:
-            key: data-cache-bst-phantom-ctf
-            paths:
-              - ~/mne_data/MNE-brainstorm-data/bst_phantom_ctf  # (177 M)
-        - save_cache:
-            key: data-cache-bst-raw
-            paths:
-              - ~/mne_data/MNE-brainstorm-data/bst_raw  # (830 M)
-        - save_cache:
-            key: data-cache-bst-phantom-elekta
-            paths:
-              - ~/mne_data/MNE-brainstorm-data/bst_phantom_elekta  # (1.4 G)
-        - save_cache:
-            key: data-cache-bst-auditory
-            paths:
-              - ~/mne_data/MNE-brainstorm-data/bst_auditory  # (2.9 G)
-        - save_cache:
-            key: data-cache-bst-resting
-            paths:
-              - ~/mne_data/MNE-brainstorm-data/bst_resting  # (4.5 G)
-        - save_cache:
-            key: data-cache-fieldtrip
-            paths:
-              - ~/mne_data/MNE-fieldtrip_cmc-data  # (699 M)
-        - save_cache:
-            key: data-cache-somato
-            paths:
-              - ~/mne_data/MNE-somato-data  # (750 M)
-        - save_cache:
-            key: data-cache-hf-sef
-            paths:
-              - ~/mne_data/HF_SEF  # (1.3 G)
-        - save_cache:
-            key: data-cache-opm
-            paths:
-              - ~/mne_data/MNE-OPM-data  # (1.9 G)
-        - save_cache:
-            key: data-cache-sample
-            paths:
-              - ~/mne_data/MNE-sample-data  # (3.2 G)
-        - save_cache:
-            key: data-cache-spm-face
-            paths:
-              - ~/mne_data/MNE-spm-face  # (1.5 G)
-        - save_cache:
-            key: data-cache-testing
-            paths:
-              - ~/mne_data/MNE-testing-data  # (2.5 G)
-        - save_cache:
-            key: data-cache-visual
-            paths:
-              - ~/mne_data/MNE-visual_92_categories-data  # (6 G)
+      # Reduce upload time of artifacts we will (almost) never look at
+      - run:
+          name: Reduce artifact upload time
+          command: |
+            if grep -q html-pattern-memory build.txt; then
+              zip -rm doc/_build/html/_downloads.zip doc/_build/html/_downloads
+            fi
+            for NAME in generated auto_tutorials auto_examples; do
+              zip -rm doc/${NAME}.zip doc/${NAME}
+            done
 
+      # Save the JUnit file
+      - store_test_results:
+          path: doc/_build/test-results
+      - store_artifacts:
+          path: doc/_build/test-results
+          destination: test-results
+      # Save the SG RST
+      - store_artifacts:
+          path: doc/auto_examples.zip
+      - store_artifacts:
+          path: doc/auto_tutorials.zip
+      - store_artifacts:
+          path: doc/generated.zip
+      # Save the HTML
+      - store_artifacts:
+          path: doc/_build/html/
+          destination: html
+      - persist_to_workspace:
+          root: doc/_build
+          paths:
+            - html
 
-    linkcheck:
-      # there are a few files excluded from this for expediency, see Makefile
-      parameters:
-        scheduled:
-          type: string
-          default: "false"
-      docker:
-        - image: circleci/python:3.9.2-buster
-      steps:
-        - restore_cache:
-            keys:
-              - source-cache
-        - checkout
-        - run:
-            name: Set BASH_ENV
-            command: |
-              set -e
-              echo "set -e" >> $BASH_ENV
-              echo "export PATH=~/.local/bin/:$PATH" >> $BASH_ENV
-        - run:
-            name: Check-skip
-            command: |
-              export COMMIT_MESSAGE=$(git log --format=oneline -n 1);
-              if [[ "$COMMIT_MESSAGE" != *"[circle linkcheck]"* ]] && [ "<< parameters.scheduled >>" != "true" ]; then
-                echo "Skip detected, exiting job ${CIRCLE_JOB}."
-                circleci-agent step halt;
-              fi
-        - restore_cache:
-            keys:
-              - pip-cache
-        - run:
-            name: Get Python running
-            command: |
-              ./tools/circleci_dependencies.sh
-        - run:
-            name: Check installation
-            command: |
-              mne sys_info -pd
-        - run:
-            name: make linkcheck
-            command: |
-              make -C doc linkcheck
-        - run:
-            name: make linkcheck-grep
-            when: always
-            command: |
-              make -C doc linkcheck-grep
-        - store_artifacts:
-            path: doc/_build/linkcheck
-            destination: linkcheck
+      # Keep these separate, maybe better in terms of size limitations (?)
+      - save_cache:
+          key: data-cache-tiny-0  # < 100 M, might as well combine
+          paths:
+            - ~/.mne
+            - ~/mne_data/MNE-kiloword-data  # (28 M)
+            - ~/mne_data/MNE-eegbci-data  # (35 M)
+            - ~/mne_data/MNE-misc-data  # (39 M)
+            - ~/mne_data/mTRF_1.5  # (56 M)
+            - ~/mne_data/MNE-phantom-4DBTi  # (77 M)
+      - save_cache:
+          key: data-cache-tiny-1  # more to combine
+          paths:
+            - ~/mne_data/MNE-fNIRS-motor-data  # (71 M)
+            - ~/mne_data/MNE-refmeg-noise-data  # (93 M)
+            - ~/mne_data/physionet-sleep-data  # (95 M)
+      - save_cache:
+          key: data-cache-multimodal
+          paths:
+            - ~/mne_data/MNE-multimodal-data  # (240 M)
+      - save_cache:
+          key: data-cache-limo
+          paths:
+            - ~/mne_data/MNE-limo-data  # (244 M)
+      - save_cache:
+          key: data-cache-fsaverage
+          paths:
+            - ~/mne_data/MNE-fsaverage-data  # (762 M)
+      - save_cache:
+          key: data-cache-bst-raw
+          paths:
+            - ~/mne_data/MNE-brainstorm-data/bst_raw  # (830 M)
+      - save_cache:
+          key: data-cache-bst-phantom-ctf
+          paths:
+            - ~/mne_data/MNE-brainstorm-data/bst_phantom_ctf  # (177 M)
+      - save_cache:
+          key: data-cache-bst-phantom-elekta
+          paths:
+            - ~/mne_data/MNE-brainstorm-data/bst_phantom_elekta  # (1.4 G)
+      - save_cache:
+          key: data-cache-bst-phantom-kernel
+          paths:
+            - ~/mne_data/MNE-phantom-kernel-data  # (362 M)
+      - save_cache:
+          key: data-cache-bst-auditory
+          paths:
+            - ~/mne_data/MNE-brainstorm-data/bst_auditory  # (2.9 G)
+      - save_cache:
+          key: data-cache-bst-resting
+          paths:
+            - ~/mne_data/MNE-brainstorm-data/bst_resting  # (4.5 G)
+      - save_cache:
+          key: data-cache-fieldtrip
+          paths:
+            - ~/mne_data/MNE-fieldtrip_cmc-data  # (699 M)
+      - save_cache:
+          key: data-cache-somato
+          paths:
+            - ~/mne_data/MNE-somato-data  # (750 M)
+      - save_cache:
+          key: data-cache-hf-sef
+          paths:
+            - ~/mne_data/HF_SEF  # (1.3 G)
+      - save_cache:
+          key: data-cache-opm
+          paths:
+            - ~/mne_data/MNE-OPM-data  # (1.9 G)
+      - save_cache:
+          key: data-cache-sample
+          paths:
+            - ~/mne_data/MNE-sample-data  # (3.2 G)
+      - save_cache:
+          key: data-cache-spm-face
+          paths:
+            - ~/mne_data/MNE-spm-face  # (1.5 G)
+      - save_cache:
+          key: data-cache-testing
+          paths:
+            - ~/mne_data/MNE-testing-data  # (2.5 G)
+      - save_cache:
+          key: data-cache-visual
+          paths:
+            - ~/mne_data/MNE-visual_92_categories-data  # (6 G)
+      - save_cache:
+          key: data-cache-ucl-opm-auditory
+          paths:
+            - ~/mne_data/auditory_OPM_stationary  # (4 G)
+      - save_cache:
+          key: data-cache-phantom-kit
+          paths:
+            - ~/mne_data/MNE-phantom-KIT-data  # (1 G)
 
 
-    deploy:
-      machine:
-        image: ubuntu-2004:202111-01
-      steps:
-        - attach_workspace:
-            at: /tmp/build
-        - restore_cache:
-            keys:
-              - website-cache
-        - run:
-            name: Set BASH_ENV
-            command: |
-              set -e
-              echo "set -e" >> $BASH_ENV
-        # Don't try to deploy if nothing is there or not on the right branch
-        - run:
-            name: Check docs
-            command: |
-              if [ ! -f /tmp/build/html/index.html ] && [ ! -f /tmp/build/html_stable/index.html ]; then
-                echo "No files found to upload (build: ${CIRCLE_BRANCH}).";
-                circleci-agent step halt;
-              fi;
-        - run:
-            name: Fetch docs
-            command: |
-              mkdir -p ~/.ssh
-              echo -e "Host *\nStrictHostKeyChecking no" > ~/.ssh/config
-              chmod og= ~/.ssh/config
-              if [ ! -d ~/mne-tools.github.io ]; then
-                git clone git@github.com:/mne-tools/mne-tools.github.io.git ~/mne-tools.github.io --depth=1
-              fi
-        - run:
-            name: Deploy docs
-            command: |
-              git config --global user.email "circle@mne.com";
-              git config --global user.name "Circle CI";
-              cd ~/mne-tools.github.io;
-              git checkout main
-              git remote -v
-              git fetch origin
-              git reset --hard origin/main
-              git clean -xdf
-              if [ "${CIRCLE_BRANCH}" == "main" ]; then
-                echo "Deploying dev docs for ${CIRCLE_BRANCH}.";
-                rm -Rf dev;
-                cp -a /tmp/build/html dev;
-                git add -A;
-                git commit -m "CircleCI update of dev docs (${CIRCLE_BUILD_NUM}).";
-              else
-                echo "Deploying stable docs for ${CIRCLE_BRANCH}.";
-                rm -Rf stable;
-                cp -a /tmp/build/html_stable stable;
-                git add -A;
-                git commit -m "CircleCI update of stable docs (${CIRCLE_BUILD_NUM}).";
-              fi;
-              git push origin main;
-        - save_cache:
-            key: website-cache
-            paths:
-              - ~/mne_data/MNE-visual_92_categories-data
+  linkcheck:
+    # there are a few files excluded from this for expediency, see Makefile
+    parameters:
+      scheduled:
+        type: string
+        default: "false"
+    docker:
+      - image: cimg/base:current-22.04
+    steps:
+      - restore_cache:
+          keys:
+            - source-cache
+      - checkout
+      - run:
+          name: Check-skip
+          command: |
+            export COMMIT_MESSAGE=$(git log --format=oneline -n 1);
+            if [[ "$COMMIT_MESSAGE" != *"[circle linkcheck]"* ]] && [ "<< parameters.scheduled >>" != "true" ]; then
+              echo "Skip detected, exiting job ${CIRCLE_JOB}."
+              circleci-agent step halt;
+            fi
+      - run:
+          name: Set BASH_ENV
+          command: ./tools/circleci_bash_env.sh
+      - restore_cache:
+          keys:
+            - pip-cache
+      - run:
+          name: Get Python running
+          command: |
+            ./tools/circleci_dependencies.sh
+      - run:
+          name: Check installation
+          command: |
+            mne sys_info -pd
+      - run:
+          name: make linkcheck
+          command: |
+            make -C doc linkcheck
+      - run:
+          name: make linkcheck-grep
+          when: always
+          command: |
+            make -C doc linkcheck-grep
+      - store_artifacts:
+          path: doc/_build/linkcheck
+          destination: linkcheck
+
+
+  deploy:
+    machine:
+      image: ubuntu-2004:202111-01
+    steps:
+      - attach_workspace:
+          at: /tmp/build
+      - restore_cache:
+          keys:
+            - website-cache
+      - run:
+          name: Set BASH_ENV
+          command: |
+            set -e
+            echo "set -e" >> $BASH_ENV
+      # Don't try to deploy if nothing is there or not on the right branch
+      - run:
+          name: Check docs
+          command: |
+            if [ ! -f /tmp/build/html/index.html ] ; then
+              echo "No files found to upload (build: ${CIRCLE_BRANCH}).";
+              circleci-agent step halt;
+            fi;
+      - run:
+          name: Fetch docs
+          command: |
+            mkdir -p ~/.ssh
+            echo -e "Host *\nStrictHostKeyChecking no" > ~/.ssh/config
+            chmod og= ~/.ssh/config
+            if [ ! -d ~/mne-tools.github.io ]; then
+              git clone git@github.com:/mne-tools/mne-tools.github.io.git ~/mne-tools.github.io --depth=1
+            fi
+      - run:
+          name: Deploy docs
+          command: |
+            git config --global user.email "circle@mne.tools";
+            git config --global user.name "Circle CI";
+            cd ~/mne-tools.github.io;
+            git checkout main
+            git remote -v
+            git fetch origin
+            git reset --hard origin/main
+            git clean -xdf
+            if [ "${CIRCLE_BRANCH}" == "main" ]; then
+              echo "Deploying dev docs for ${CIRCLE_BRANCH}.";
+              rm -Rf dev;
+              cp -a /tmp/build/html dev;
+              git add -A;
+              git commit -m "CircleCI update of dev docs (${CIRCLE_BUILD_NUM}).";
+            else
+              echo "Deploying stable docs for ${CIRCLE_BRANCH}.";
+              rm -Rf stable;
+              cp -a /tmp/build/html stable;
+              git add -A;
+              git commit -m "CircleCI update of stable docs (${CIRCLE_BUILD_NUM}).";
+            fi;
+            git push origin main;
+      - save_cache:
+          key: website-cache
+          paths:
+            - ~/mne_data/MNE-visual_92_categories-data
 
 workflows:
   default:
@@ -508,7 +565,7 @@ workflows:
             branches:
               only:
                 - main
-                - maint/1.1
+                - /maint\/.*/
 
   main:
     jobs:
@@ -521,8 +578,7 @@ workflows:
             - build_docs_main
     triggers:
       - schedule:
-          # "At 00:00" (once a day) should be enough "0 0 * * *",
-          # But for testing at first, let's do once an hour (6 AM GMT)
+          # "At 6:00 AM GMT every day"
           cron: "0 6 * * *"
           filters:
             branches:
@@ -531,13 +587,27 @@ workflows:
 
   weekly:
     jobs:
-      - linkcheck:
-          name: linkcheck_weekly
+      - pytest-macos-arm64:
+          name: pytest_macos_arm64_weekly
           scheduled: "true"
     triggers:
       - schedule:
-          # "At 00:00 on Sunday" should be often enough
-          cron: "0 0 * * 0"
+          # "At 6:00 AM GMT every Monday"
+          cron: "0 6 * * 1"
+          filters:
+            branches:
+              only:
+                - main
+
+  monthly:
+    jobs:
+      - linkcheck:
+          name: linkcheck_monthly
+          scheduled: "true"
+    triggers:
+      - schedule:
+          # "At 6:00 AM GMT on the first day of each month"
+          cron: "0 6 1 * *"
           filters:
             branches:
               only:

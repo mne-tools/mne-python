@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _ex-muscle-ica:
 
@@ -23,23 +22,24 @@ artifacts of this kind are much more pronounced in EEG than they are in MEG.
 import mne
 
 data_path = mne.datasets.sample.data_path()
-raw_fname = data_path / 'MEG' / 'sample' / 'sample_audvis_raw.fif'
+raw_fname = data_path / "MEG" / "sample" / "sample_audvis_raw.fif"
 raw = mne.io.read_raw_fif(raw_fname)
 raw.crop(tmin=100, tmax=130)  # take 30 seconds for speed
 
 # pick only EEG channels, muscle artifact is basically not picked up by MEG
 # if you have a simultaneous recording, you may want to do ICA on MEG and EEG
 # separately
-raw.pick_types(eeg=True)
+raw.pick(picks="eeg", exclude="bads")
 
 # ICA works best with a highpass filter applied
 raw.load_data()
-raw.filter(l_freq=1., h_freq=None)
+raw.filter(l_freq=1.0, h_freq=None)
 
 # %%
 # Run ICA
 ica = mne.preprocessing.ICA(
-    n_components=15, method='picard', max_iter='auto', random_state=97)
+    n_components=15, method="picard", max_iter="auto", random_state=97
+)
 ica.fit(raw)
 
 # %%
@@ -86,8 +86,10 @@ ica.plot_overlay(raw, exclude=muscle_idx)
 # and ensure that it gets the same components we did manually.
 muscle_idx_auto, scores = ica.find_bads_muscle(raw)
 ica.plot_scores(scores, exclude=muscle_idx_auto)
-print(f'Manually found muscle artifact ICA components:      {muscle_idx}\n'
-      f'Automatically found muscle artifact ICA components: {muscle_idx_auto}')
+print(
+    f"Manually found muscle artifact ICA components:      {muscle_idx}\n"
+    f"Automatically found muscle artifact ICA components: {muscle_idx_auto}"
+)
 
 # %%
 # Let's now replicate this on the EEGBCI dataset
@@ -95,24 +97,28 @@ print(f'Manually found muscle artifact ICA components:      {muscle_idx}\n'
 
 for sub in (1, 2):
     raw = mne.io.read_raw_edf(
-        mne.datasets.eegbci.load_data(subject=sub, runs=(1,))[0], preload=True)
+        mne.datasets.eegbci.load_data(subject=sub, runs=(1,))[0], preload=True
+    )
     mne.datasets.eegbci.standardize(raw)  # set channel names
-    montage = mne.channels.make_standard_montage('standard_1005')
+    montage = mne.channels.make_standard_montage("standard_1005")
     raw.set_montage(montage)
-    raw.filter(l_freq=1., h_freq=None)
+    raw.filter(l_freq=1.0, h_freq=None)
 
     # Run ICA
     ica = mne.preprocessing.ICA(
-        n_components=15, method='picard', max_iter='auto', random_state=97)
+        n_components=15, method="picard", max_iter="auto", random_state=97
+    )
     ica.fit(raw)
     ica.plot_sources(raw)
     muscle_idx_auto, scores = ica.find_bads_muscle(raw)
     ica.plot_properties(raw, picks=muscle_idx_auto, log_scale=True)
     ica.plot_scores(scores, exclude=muscle_idx_auto)
 
-    print(f'Manually found muscle artifact ICA components:      {muscle_idx}\n'
-          'Automatically found muscle artifact ICA components: '
-          f'{muscle_idx_auto}')
+    print(
+        f"Manually found muscle artifact ICA components:      {muscle_idx}\n"
+        "Automatically found muscle artifact ICA components: "
+        f"{muscle_idx_auto}"
+    )
 
 # %%
 # References

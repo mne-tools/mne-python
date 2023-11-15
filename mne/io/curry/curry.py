@@ -6,24 +6,32 @@
 # License: BSD-3-Clause
 
 import os.path as op
-from collections import namedtuple
 import re
-import numpy as np
+from collections import namedtuple
 from datetime import datetime, timezone
+from pathlib import Path
 
-from ..base import BaseRaw
-from ..meas_info import create_info
-from ..tag import _coil_trans_to_loc
-from ..utils import _read_segments_file, _mult_cal_one
-from ..constants import FIFF
-from ..ctf.trans import _quaternion_align
-from ...surface import _normal_orth
-from ...transforms import (apply_trans, Transform, get_ras_to_neuromag_trans,
-                           combine_transforms, invert_transform,
-                           _angle_between_quats, rot_to_quat)
-from ...utils import (check_fname, check_version, logger, verbose, warn,
-                      _check_fname)
+import numpy as np
+
+from ..._fiff._digitization import _make_dig_points
+from ..._fiff.constants import FIFF
+from ..._fiff.meas_info import create_info
+from ..._fiff.tag import _coil_trans_to_loc
+from ..._fiff.utils import _mult_cal_one, _read_segments_file
 from ...annotations import Annotations
+from ...surface import _normal_orth
+from ...transforms import (
+    Transform,
+    _angle_between_quats,
+    apply_trans,
+    combine_transforms,
+    get_ras_to_neuromag_trans,
+    invert_transform,
+    rot_to_quat,
+)
+from ...utils import _check_fname, check_fname, logger, verbose
+from ..base import BaseRaw
+from ..ctf.trans import _quaternion_align
 
 FILE_EXTENSIONS = {
     "Curry 7": {
@@ -41,19 +49,26 @@ FILE_EXTENSIONS = {
         "events_cef": ".cdt.cef",
         "events_ceo": ".cdt.ceo",
         "hpi": ".cdt.hpi",
-    }
+    },
 }
 CHANTYPES = {"meg": "_MAG1", "eeg": "", "misc": "_OTHERS"}
-FIFFV_CHANTYPES = {"meg": FIFF.FIFFV_MEG_CH, "eeg": FIFF.FIFFV_EEG_CH,
-                   "misc": FIFF.FIFFV_MISC_CH}
-FIFFV_COILTYPES = {"meg": FIFF.FIFFV_COIL_CTF_GRAD, "eeg": FIFF.FIFFV_COIL_EEG,
-                   "misc": FIFF.FIFFV_COIL_NONE}
+FIFFV_CHANTYPES = {
+    "meg": FIFF.FIFFV_MEG_CH,
+    "eeg": FIFF.FIFFV_EEG_CH,
+    "misc": FIFF.FIFFV_MISC_CH,
+}
+FIFFV_COILTYPES = {
+    "meg": FIFF.FIFFV_COIL_CTF_GRAD,
+    "eeg": FIFF.FIFFV_COIL_EEG,
+    "misc": FIFF.FIFFV_COIL_NONE,
+}
 SI_UNITS = dict(V=FIFF.FIFF_UNIT_V, T=FIFF.FIFF_UNIT_T)
 SI_UNIT_SCALE = dict(c=1e-2, m=1e-3, u=1e-6, µ=1e-6, n=1e-9, p=1e-12, f=1e-15)
 
-CurryParameters = namedtuple('CurryParameters',
-                             'n_samples, sfreq, is_ascii, unit_dict, '
-                             'n_chans, dt_start, chanidx_in_file')
+CurryParameters = namedtuple(
+    "CurryParameters",
+    "n_samples, sfreq, is_ascii, unit_dict, " "n_chans, dt_start, chanidx_in_file",
+)
 
 
 def _get_curry_version(file_extension):
@@ -63,18 +78,26 @@ def _get_curry_version(file_extension):
 
 def _get_curry_file_structure(fname, required=()):
     """Store paths to a dict and check for required files."""
-    _msg = "The following required files cannot be found: {0}.\nPlease make " \
-           "sure all required files are located in the same directory as {1}."
-    fname = _check_fname(fname, 'read', True, 'fname')
+    _msg = (
+        "The following required files cannot be found: {0}.\nPlease make "
+        "sure all required files are located in the same directory as {1}."
+    )
+    fname = Path(_check_fname(fname, "read", True, "fname"))
 
     # we don't use os.path.splitext to also handle extensions like .cdt.dpa
-    fname_base, ext = fname.split(".", maxsplit=1)
+    # this won't handle a dot in the filename, but it should handle it in
+    # the parent directories
+    fname_base = fname.name.split(".", maxsplit=1)[0]
+    ext = fname.name[len(fname_base) :]
+    fname_base = str(fname)
+    fname_base = fname_base[: len(fname_base) - len(ext)]
+    del fname
     version = _get_curry_version(ext)
     my_curry = dict()
-    for key in ('info', 'data', 'labels', 'events_cef', 'events_ceo', 'hpi'):
+    for key in ("info", "data", "labels", "events_cef", "events_ceo", "hpi"):
         fname = fname_base + FILE_EXTENSIONS[version][key]
         if op.isfile(fname):
-            _key = 'events' if key.startswith('events') else key
+            _key = "events" if key.startswith("events") else key
             my_curry[_key] = fname
 
     missing = [field for field in required if field not in my_curry]
@@ -89,7 +112,7 @@ def _read_curry_lines(fname, regex_list):
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         Path to a curry file.
     regex_list : list of str
         A list of strings or regular expressions to search within the file.
@@ -132,20 +155,38 @@ def _read_curry_lines(fname, regex_list):
 
 def _read_curry_parameters(fname):
     """Extract Curry params from a Curry info file."""
-    _msg_match = "The sampling frequency and the time steps extracted from " \
-                 "the parameter file do not match."
+    _msg_match = (
+        "The sampling frequency and the time steps extracted from "
+        "the parameter file do not match."
+    )
     _msg_invalid = "sfreq must be greater than 0. Got sfreq = {0}"
 
-    var_names = ['NumSamples', 'SampleFreqHz',
-                 'DataFormat', 'SampleTimeUsec',
-                 'NumChannels',
-                 'StartYear', 'StartMonth', 'StartDay', 'StartHour',
-                 'StartMin', 'StartSec', 'StartMillisec',
-                 'NUM_SAMPLES', 'SAMPLE_FREQ_HZ',
-                 'DATA_FORMAT', 'SAMPLE_TIME_USEC',
-                 'NUM_CHANNELS',
-                 'START_YEAR', 'START_MONTH', 'START_DAY', 'START_HOUR',
-                 'START_MIN', 'START_SEC', 'START_MILLISEC']
+    var_names = [
+        "NumSamples",
+        "SampleFreqHz",
+        "DataFormat",
+        "SampleTimeUsec",
+        "NumChannels",
+        "StartYear",
+        "StartMonth",
+        "StartDay",
+        "StartHour",
+        "StartMin",
+        "StartSec",
+        "StartMillisec",
+        "NUM_SAMPLES",
+        "SAMPLE_FREQ_HZ",
+        "DATA_FORMAT",
+        "SAMPLE_TIME_USEC",
+        "NUM_CHANNELS",
+        "START_YEAR",
+        "START_MONTH",
+        "START_DAY",
+        "START_HOUR",
+        "START_MIN",
+        "START_SEC",
+        "START_MILLISEC",
+    ]
 
     param_dict = dict()
     unit_dict = dict()
@@ -158,14 +199,15 @@ def _read_curry_parameters(fname):
             for type in CHANTYPES:
                 if "DEVICE_PARAMETERS" + CHANTYPES[type] + " START" in line:
                     data_unit = next(fid)
-                    unit_dict[type] = data_unit.replace(" ", "") \
-                        .replace("\n", "").split("=")[-1]
+                    unit_dict[type] = (
+                        data_unit.replace(" ", "").replace("\n", "").split("=")[-1]
+                    )
 
     # look for CHAN_IN_FILE sections, which may or may not exist; issue #8391
     types = ["meg", "eeg", "misc"]
-    chanidx_in_file = _read_curry_lines(fname,
-                                        ["CHAN_IN_FILE" +
-                                         CHANTYPES[key] for key in types])
+    chanidx_in_file = _read_curry_lines(
+        fname, ["CHAN_IN_FILE" + CHANTYPES[key] for key in types]
+    )
 
     n_samples = int(param_dict["numsamples"])
     sfreq = float(param_dict["samplefreqhz"])
@@ -173,14 +215,16 @@ def _read_curry_parameters(fname):
     is_ascii = param_dict["dataformat"] == "ASCII"
     n_channels = int(param_dict["numchannels"])
     try:
-        dt_start = datetime(int(param_dict["startyear"]),
-                            int(param_dict["startmonth"]),
-                            int(param_dict["startday"]),
-                            int(param_dict["starthour"]),
-                            int(param_dict["startmin"]),
-                            int(param_dict["startsec"]),
-                            int(param_dict["startmillisec"]) * 1000,
-                            timezone.utc)
+        dt_start = datetime(
+            int(param_dict["startyear"]),
+            int(param_dict["startmonth"]),
+            int(param_dict["startday"]),
+            int(param_dict["starthour"]),
+            int(param_dict["startmin"]),
+            int(param_dict["startsec"]),
+            int(param_dict["startmillisec"]) * 1000,
+            timezone.utc,
+        )
         # Note that the time zone information is not stored in the Curry info
         # file, and it seems the start time info is in the local timezone
         # of the acquisition system (which is unknown); therefore, just set
@@ -201,83 +245,102 @@ def _read_curry_parameters(fname):
     if true_sfreq <= 0:
         raise ValueError(_msg_invalid.format(true_sfreq))
 
-    return CurryParameters(n_samples, true_sfreq, is_ascii, unit_dict,
-                           n_channels, dt_start, chanidx_in_file)
+    return CurryParameters(
+        n_samples,
+        true_sfreq,
+        is_ascii,
+        unit_dict,
+        n_channels,
+        dt_start,
+        chanidx_in_file,
+    )
 
 
 def _read_curry_info(curry_paths):
     """Extract info from curry parameter files."""
-    curry_params = _read_curry_parameters(curry_paths['info'])
+    curry_params = _read_curry_parameters(curry_paths["info"])
     R = np.eye(4)
     R[[0, 1], [0, 1]] = -1  # rotate 180 deg
     # shift down and back
     # (chosen by eyeballing to make the CTF helmet look roughly correct)
-    R[:3, 3] = [0., -0.015, -0.12]
-    curry_dev_dev_t = Transform('ctf_meg', 'meg', R)
+    R[:3, 3] = [0.0, -0.015, -0.12]
+    curry_dev_dev_t = Transform("ctf_meg", "meg", R)
 
     # read labels from label files
-    label_fname = curry_paths['labels']
+    label_fname = curry_paths["labels"]
     types = ["meg", "eeg", "misc"]
-    labels = _read_curry_lines(label_fname,
-                               ["LABELS" + CHANTYPES[key] for key in types])
-    sensors = _read_curry_lines(label_fname,
-                                ["SENSORS" + CHANTYPES[key] for key in types])
-    normals = _read_curry_lines(label_fname,
-                                ['NORMALS' + CHANTYPES[key] for key in types])
+    labels = _read_curry_lines(
+        label_fname, ["LABELS" + CHANTYPES[key] for key in types]
+    )
+    sensors = _read_curry_lines(
+        label_fname, ["SENSORS" + CHANTYPES[key] for key in types]
+    )
+    normals = _read_curry_lines(
+        label_fname, ["NORMALS" + CHANTYPES[key] for key in types]
+    )
     assert len(labels) == len(sensors) == len(normals)
 
     all_chans = list()
+    dig_ch_pos = dict()
     for key in ["meg", "eeg", "misc"]:
-        chanidx_is_explicit = (len(curry_params.chanidx_in_file["CHAN_IN_FILE"
-                                   + CHANTYPES[key]]) > 0)    # channel index
+        chanidx_is_explicit = (
+            len(curry_params.chanidx_in_file["CHAN_IN_FILE" + CHANTYPES[key]]) > 0
+        )  # channel index
         # position in the datafile may or may not be explicitly declared,
         # based on the CHAN_IN_FILE section in info file
         for ind, chan in enumerate(labels["LABELS" + CHANTYPES[key]]):
-            chanidx = len(all_chans) + 1    # by default, just assume the
+            chanidx = len(all_chans) + 1  # by default, just assume the
             # channel index in the datafile is in order of the channel
             # names as we found them in the labels file
             if chanidx_is_explicit:  # but, if explicitly declared, use
                 # that index number
-                chanidx = int(curry_params.chanidx_in_file["CHAN_IN_FILE"
-                              + CHANTYPES[key]][ind])
-            if chanidx <= 0:   # if chanidx was explicitly declared to be ' 0',
+                chanidx = int(
+                    curry_params.chanidx_in_file["CHAN_IN_FILE" + CHANTYPES[key]][ind]
+                )
+            if chanidx <= 0:  # if chanidx was explicitly declared to be ' 0',
                 # it means the channel is not actually saved in the data file
                 # (e.g. the "Ref" channel), so don't add it to our list.
                 # Git issue #8391
                 continue
-            ch = {"ch_name": chan,
-                  "unit": curry_params.unit_dict[key],
-                  "kind": FIFFV_CHANTYPES[key],
-                  "coil_type": FIFFV_COILTYPES[key],
-                  "ch_idx": chanidx
-                  }
+            ch = {
+                "ch_name": chan,
+                "unit": curry_params.unit_dict[key],
+                "kind": FIFFV_CHANTYPES[key],
+                "coil_type": FIFFV_COILTYPES[key],
+                "ch_idx": chanidx,
+            }
             if key == "eeg":
                 loc = np.array(sensors["SENSORS" + CHANTYPES[key]][ind], float)
                 # XXX just the sensor, where is ref (next 3)?
                 assert loc.shape == (3,)
-                loc /= 1000.  # to meters
+                loc /= 1000.0  # to meters
                 loc = np.concatenate([loc, np.zeros(9)])
-                ch['loc'] = loc
+                ch["loc"] = loc
                 # XXX need to check/ensure this
-                ch['coord_frame'] = FIFF.FIFFV_COORD_HEAD
-            elif key == 'meg':
+                ch["coord_frame"] = FIFF.FIFFV_COORD_HEAD
+                dig_ch_pos[chan] = loc[:3]
+            elif key == "meg":
                 pos = np.array(sensors["SENSORS" + CHANTYPES[key]][ind], float)
-                pos /= 1000.  # to meters
+                pos /= 1000.0  # to meters
                 pos = pos[:3]  # just the inner coil
                 pos = apply_trans(curry_dev_dev_t, pos)
                 nn = np.array(normals["NORMALS" + CHANTYPES[key]][ind], float)
-                assert np.isclose(np.linalg.norm(nn), 1., atol=1e-4)
+                assert np.isclose(np.linalg.norm(nn), 1.0, atol=1e-4)
                 nn /= np.linalg.norm(nn)
                 nn = apply_trans(curry_dev_dev_t, nn, move=False)
                 trans = np.eye(4)
                 trans[:3, 3] = pos
                 trans[:3, :3] = _normal_orth(nn).T
-                ch['loc'] = _coil_trans_to_loc(trans)
-                ch['coord_frame'] = FIFF.FIFFV_COORD_DEVICE
+                ch["loc"] = _coil_trans_to_loc(trans)
+                ch["coord_frame"] = FIFF.FIFFV_COORD_DEVICE
             all_chans.append(ch)
+    dig = _make_dig_points(
+        dig_ch_pos=dig_ch_pos, coord_frame="head", add_missing_fiducials=True
+    )
+    del dig_ch_pos
 
     ch_count = len(all_chans)
-    assert (ch_count == curry_params.n_chans)  # ensure that we have assembled
+    assert ch_count == curry_params.n_chans  # ensure that we have assembled
     # the same number of channels as declared in the info (.DAP) file in the
     # DATA_PARAMETERS section. Git issue #8391
 
@@ -285,48 +348,51 @@ def _read_curry_info(curry_paths):
     # recorded in the datafile.  In general they most likely are already in
     # the correct order, but if the channel index in the data file was
     # explicitly declared we might as well use it.
-    all_chans = sorted(all_chans, key=lambda ch: ch['ch_idx'])
+    all_chans = sorted(all_chans, key=lambda ch: ch["ch_idx"])
 
     ch_names = [chan["ch_name"] for chan in all_chans]
     info = create_info(ch_names, curry_params.sfreq)
     with info._unlock():
-        info['meas_date'] = curry_params.dt_start  # for Git issue #8398
+        info["meas_date"] = curry_params.dt_start  # for Git issue #8398
+        info["dig"] = dig
     _make_trans_dig(curry_paths, info, curry_dev_dev_t)
 
     for ind, ch_dict in enumerate(info["chs"]):
-        all_chans[ind].pop('ch_idx')
+        all_chans[ind].pop("ch_idx")
         ch_dict.update(all_chans[ind])
-        assert ch_dict['loc'].shape == (12,)
-        ch_dict['unit'] = SI_UNITS[all_chans[ind]['unit'][1]]
-        ch_dict['cal'] = SI_UNIT_SCALE[all_chans[ind]['unit'][0]]
+        assert ch_dict["loc"].shape == (12,)
+        ch_dict["unit"] = SI_UNITS[all_chans[ind]["unit"][1]]
+        ch_dict["cal"] = SI_UNIT_SCALE[all_chans[ind]["unit"][0]]
 
     return info, curry_params.n_samples, curry_params.is_ascii
 
 
-_card_dict = {'Left ear': FIFF.FIFFV_POINT_LPA,
-              'Nasion': FIFF.FIFFV_POINT_NASION,
-              'Right ear': FIFF.FIFFV_POINT_RPA}
+_card_dict = {
+    "Left ear": FIFF.FIFFV_POINT_LPA,
+    "Nasion": FIFF.FIFFV_POINT_NASION,
+    "Right ear": FIFF.FIFFV_POINT_RPA,
+}
 
 
 def _make_trans_dig(curry_paths, info, curry_dev_dev_t):
     # Coordinate frame transformations and definitions
-    no_msg = 'Leaving device<->head transform as None'
-    info['dev_head_t'] = None
-    label_fname = curry_paths['labels']
-    key = 'LANDMARKS' + CHANTYPES['meg']
+    no_msg = "Leaving device<->head transform as None"
+    info["dev_head_t"] = None
+    label_fname = curry_paths["labels"]
+    key = "LANDMARKS" + CHANTYPES["meg"]
     lm = _read_curry_lines(label_fname, [key])[key]
     lm = np.array(lm, float)
     lm.shape = (-1, 3)
     if len(lm) == 0:
         # no dig
-        logger.info(no_msg + ' (no landmarks found)')
+        logger.info(no_msg + " (no landmarks found)")
         return
-    lm /= 1000.
-    key = 'LM_REMARKS' + CHANTYPES['meg']
+    lm /= 1000.0
+    key = "LM_REMARKS" + CHANTYPES["meg"]
     remarks = _read_curry_lines(label_fname, [key])[key]
     assert len(remarks) == len(lm)
     with info._unlock():
-        info['dig'] = list()
+        info["dig"] = list()
     cards = dict()
     for remark, r in zip(remarks, lm):
         kind = ident = None
@@ -334,70 +400,83 @@ def _make_trans_dig(curry_paths, info, curry_dev_dev_t):
             kind = FIFF.FIFFV_POINT_CARDINAL
             ident = _card_dict[remark]
             cards[ident] = r
-        elif remark.startswith('HPI'):
+        elif remark.startswith("HPI"):
             kind = FIFF.FIFFV_POINT_HPI
             ident = int(remark[3:]) - 1
         if kind is not None:
-            info['dig'].append(dict(
-                kind=kind, ident=ident, r=r,
-                coord_frame=FIFF.FIFFV_COORD_UNKNOWN))
+            info["dig"].append(
+                dict(kind=kind, ident=ident, r=r, coord_frame=FIFF.FIFFV_COORD_UNKNOWN)
+            )
     with info._unlock():
-        info['dig'].sort(key=lambda x: (x['kind'], x['ident']))
+        info["dig"].sort(key=lambda x: (x["kind"], x["ident"]))
     has_cards = len(cards) == 3
-    has_hpi = 'hpi' in curry_paths
+    has_hpi = "hpi" in curry_paths
     if has_cards and has_hpi:  # have all three
-        logger.info('Composing device<->head transformation from dig points')
-        hpi_u = np.array([d['r'] for d in info['dig']
-                          if d['kind'] == FIFF.FIFFV_POINT_HPI], float)
-        hpi_c = np.ascontiguousarray(
-            _first_hpi(curry_paths['hpi'])[:len(hpi_u), 1:4])
-        unknown_curry_t = _quaternion_align(
-            'unknown', 'ctf_meg', hpi_u, hpi_c, 1e-2)
-        angle = np.rad2deg(_angle_between_quats(
-            np.zeros(3), rot_to_quat(unknown_curry_t['trans'][:3, :3])))
-        dist = 1000 * np.linalg.norm(unknown_curry_t['trans'][:3, 3])
-        logger.info('   Fit a %0.1f° rotation, %0.1f mm translation'
-                    % (angle, dist))
+        logger.info("Composing device<->head transformation from dig points")
+        hpi_u = np.array(
+            [d["r"] for d in info["dig"] if d["kind"] == FIFF.FIFFV_POINT_HPI], float
+        )
+        hpi_c = np.ascontiguousarray(_first_hpi(curry_paths["hpi"])[: len(hpi_u), 1:4])
+        unknown_curry_t = _quaternion_align("unknown", "ctf_meg", hpi_u, hpi_c, 1e-2)
+        angle = np.rad2deg(
+            _angle_between_quats(
+                np.zeros(3), rot_to_quat(unknown_curry_t["trans"][:3, :3])
+            )
+        )
+        dist = 1000 * np.linalg.norm(unknown_curry_t["trans"][:3, 3])
+        logger.info("   Fit a %0.1f° rotation, %0.1f mm translation" % (angle, dist))
         unknown_dev_t = combine_transforms(
-            unknown_curry_t, curry_dev_dev_t, 'unknown', 'meg')
+            unknown_curry_t, curry_dev_dev_t, "unknown", "meg"
+        )
         unknown_head_t = Transform(
-            'unknown', 'head',
+            "unknown",
+            "head",
             get_ras_to_neuromag_trans(
-                *(cards[key] for key in (FIFF.FIFFV_POINT_NASION,
-                                         FIFF.FIFFV_POINT_LPA,
-                                         FIFF.FIFFV_POINT_RPA))))
+                *(
+                    cards[key]
+                    for key in (
+                        FIFF.FIFFV_POINT_NASION,
+                        FIFF.FIFFV_POINT_LPA,
+                        FIFF.FIFFV_POINT_RPA,
+                    )
+                )
+            ),
+        )
         with info._unlock():
-            info['dev_head_t'] = combine_transforms(
-                invert_transform(unknown_dev_t), unknown_head_t, 'meg', 'head')
-            for d in info['dig']:
-                d.update(coord_frame=FIFF.FIFFV_COORD_HEAD,
-                         r=apply_trans(unknown_head_t, d['r']))
+            info["dev_head_t"] = combine_transforms(
+                invert_transform(unknown_dev_t), unknown_head_t, "meg", "head"
+            )
+            for d in info["dig"]:
+                d.update(
+                    coord_frame=FIFF.FIFFV_COORD_HEAD,
+                    r=apply_trans(unknown_head_t, d["r"]),
+                )
     else:
         if has_cards:
-            no_msg += ' (no .hpi file found)'
+            no_msg += " (no .hpi file found)"
         elif has_hpi:
-            no_msg += ' (not all cardinal points found)'
+            no_msg += " (not all cardinal points found)"
         else:
-            no_msg += ' (neither cardinal points nor .hpi file found)'
+            no_msg += " (neither cardinal points nor .hpi file found)"
         logger.info(no_msg)
 
 
 def _first_hpi(fname):
     # Get the first HPI result
-    with open(fname, 'r') as fid:
+    with open(fname, "r") as fid:
         for line in fid:
             line = line.strip()
-            if any(x in line for x in ('FileVersion', 'NumCoils')) or not line:
+            if any(x in line for x in ("FileVersion", "NumCoils")) or not line:
                 continue
             hpi = np.array(line.split(), float)
             break
         else:
-            raise RuntimeError('Could not find valid HPI in %s' % (fname,))
+            raise RuntimeError("Could not find valid HPI in %s" % (fname,))
     # t is the first entry
     assert hpi.ndim == 1
     hpi = hpi[1:]
     hpi.shape = (-1, 5)
-    hpi /= 1000.
+    hpi /= 1000.0
     return hpi
 
 
@@ -406,7 +485,7 @@ def _read_events_curry(fname):
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         Path to a curry event file with extensions .cef, .ceo,
         .cdt.cef, or .cdt.ceo
 
@@ -415,8 +494,12 @@ def _read_events_curry(fname):
     events : ndarray, shape (n_events, 3)
         The array of events.
     """
-    check_fname(fname, 'curry event', ('.cef', '.ceo', '.cdt.cef', '.cdt.ceo'),
-                endings_err=('.cef', '.ceo', '.cdt.cef', '.cdt.ceo'))
+    check_fname(
+        fname,
+        "curry event",
+        (".cef", ".ceo", ".cdt.cef", ".cdt.ceo"),
+        endings_err=(".cef", ".ceo", ".cdt.cef", ".cdt.ceo"),
+    )
 
     events_dict = _read_curry_lines(fname, ["NUMBER_LIST"])
     # The first 3 column seem to contain the event information
@@ -425,7 +508,7 @@ def _read_events_curry(fname):
     return curry_events
 
 
-def _read_annotations_curry(fname, sfreq='auto'):
+def _read_annotations_curry(fname, sfreq="auto"):
     r"""Read events from Curry event files.
 
     Parameters
@@ -443,12 +526,12 @@ def _read_annotations_curry(fname, sfreq='auto'):
     annot : instance of Annotations | None
         The annotations.
     """
-    required = ["events", "info"] if sfreq == 'auto' else ["events"]
+    required = ["events", "info"] if sfreq == "auto" else ["events"]
     curry_paths = _get_curry_file_structure(fname, required)
-    events = _read_events_curry(curry_paths['events'])
+    events = _read_events_curry(curry_paths["events"])
 
-    if sfreq == 'auto':
-        sfreq = _read_curry_parameters(curry_paths['info']).sfreq
+    if sfreq == "auto":
+        sfreq = _read_curry_parameters(curry_paths["info"]).sfreq
 
     onset = events[:, 0] / sfreq
     duration = np.zeros(events.shape[0])
@@ -463,9 +546,9 @@ def read_raw_curry(fname, preload=False, verbose=None):
 
     Parameters
     ----------
-    fname : str
-        Path to a curry file with extensions .dat, .dap, .rs3, .cdt, cdt.dpa,
-        .cdt.cef or .cef.
+    fname : path-like
+        Path to a curry file with extensions ``.dat``, ``.dap``, ``.rs3``,
+        ``.cdt``, ``.cdt.dpa``, ``.cdt.cef`` or ``.cef``.
     %(preload)s
     %(verbose)s
 
@@ -473,6 +556,11 @@ def read_raw_curry(fname, preload=False, verbose=None):
     -------
     raw : instance of RawCurry
         A Raw object containing Curry data.
+        See :class:`mne.io.Raw` for documentation of attributes and methods.
+
+    See Also
+    --------
+    mne.io.Raw : Documentation of attributes and methods of RawCurry.
     """
     return RawCurry(fname, preload, verbose)
 
@@ -482,25 +570,25 @@ class RawCurry(BaseRaw):
 
     Parameters
     ----------
-    fname : str
-        Path to a curry file with extensions .dat, .dap, .rs3, .cdt, cdt.dpa,
-        .cdt.cef or .cef.
+    fname : path-like
+        Path to a curry file with extensions ``.dat``, ``.dap``, ``.rs3``,
+        ``.cdt``, ``.cdt.dpa``, ``.cdt.cef`` or ``.cef``.
     %(preload)s
     %(verbose)s
 
     See Also
     --------
-    mne.io.Raw : Documentation of attribute and methods.
+    mne.io.Raw : Documentation of attributes and methods.
 
     """
 
     @verbose
     def __init__(self, fname, preload=False, verbose=None):
-
         curry_paths = _get_curry_file_structure(
-            fname, required=["info", "data", "labels"])
+            fname, required=["info", "data", "labels"]
+        )
 
-        data_fname = op.abspath(curry_paths['data'])
+        data_fname = op.abspath(curry_paths["data"])
 
         info, n_samples, is_ascii = _read_curry_info(curry_paths)
 
@@ -508,34 +596,38 @@ class RawCurry(BaseRaw):
         raw_extras = dict(is_ascii=is_ascii)
 
         super(RawCurry, self).__init__(
-            info, preload, filenames=[data_fname], last_samps=last_samps,
-            orig_format='int', raw_extras=[raw_extras], verbose=verbose)
+            info,
+            preload,
+            filenames=[data_fname],
+            last_samps=last_samps,
+            orig_format="int",
+            raw_extras=[raw_extras],
+            verbose=verbose,
+        )
 
-        if 'events' in curry_paths:
-            logger.info('Event file found. Extracting Annotations from'
-                        ' %s...' % curry_paths['events'])
-            annots = _read_annotations_curry(curry_paths['events'],
-                                             sfreq=self.info["sfreq"])
+        if "events" in curry_paths:
+            logger.info(
+                "Event file found. Extracting Annotations from"
+                " %s..." % curry_paths["events"]
+            )
+            annots = _read_annotations_curry(
+                curry_paths["events"], sfreq=self.info["sfreq"]
+            )
             self.set_annotations(annots)
         else:
-            logger.info('Event file not found. No Annotations set.')
+            logger.info("Event file not found. No Annotations set.")
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data."""
-        if self._raw_extras[fi]['is_ascii']:
+        if self._raw_extras[fi]["is_ascii"]:
             if isinstance(idx, slice):
                 idx = np.arange(idx.start, idx.stop)
-            kwargs = dict(skiprows=start, usecols=idx)
-            if check_version("numpy", "1.16.0"):
-                kwargs['max_rows'] = stop - start
-            else:
-                warn("Data reading might take longer for ASCII files. Update "
-                     "numpy to version 1.16.0 or greater for more efficient "
-                     "data reading.")
-            block = np.loadtxt(self._filenames[0], **kwargs)[:stop - start].T
-            data_view = data[:, :block.shape[1]]
-            _mult_cal_one(data_view, block, idx, cals, mult)
+            block = np.loadtxt(
+                self._filenames[0], skiprows=start, max_rows=stop - start, ndmin=2
+            ).T
+            _mult_cal_one(data, block, idx, cals, mult)
 
         else:
             _read_segments_file(
-                self, data, idx, fi, start, stop, cals, mult, dtype="<f4")
+                self, data, idx, fi, start, stop, cals, mult, dtype="<f4"
+            )

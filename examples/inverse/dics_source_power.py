@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _ex-inverse-source-power:
 
@@ -22,24 +21,24 @@ synchronization (ERS) of beta band activity in the
 # %%
 
 import numpy as np
+
 import mne
+from mne.beamformer import apply_dics_csd, make_dics
 from mne.datasets import somato
 from mne.time_frequency import csd_morlet
-from mne.beamformer import make_dics, apply_dics_csd
 
 print(__doc__)
 
 # %%
 # Reading the raw data and creating epochs:
 data_path = somato.data_path()
-subject = '01'
-task = 'somato'
-raw_fname = (data_path / f'sub-{subject}' / 'meg' /
-             f'sub-{subject}_task-{task}_meg.fif')
+subject = "01"
+task = "somato"
+raw_fname = data_path / f"sub-{subject}" / "meg" / f"sub-{subject}_task-{task}_meg.fif"
 
 # Use a shorter segment of raw just for speed here
 raw = mne.io.read_raw_fif(raw_fname)
-raw.crop(0, 120)  # one minute for speed (looks similar to using all ~800 sec)
+raw.crop(0, 120)  # one minute for speed (looks similar to using all ~800 s)
 
 # Read epochs
 events = mne.find_events(raw)
@@ -48,10 +47,11 @@ epochs = mne.Epochs(raw, events, event_id=1, tmin=-1.5, tmax=2, preload=True)
 del raw
 
 # Paths to forward operator and FreeSurfer subject directory
-fname_fwd = (data_path / 'derivatives' / f'sub-{subject}' /
-             f'sub-{subject}_task-{task}-fwd.fif')
+fname_fwd = (
+    data_path / "derivatives" / f"sub-{subject}" / f"sub-{subject}_task-{task}-fwd.fif"
+)
 
-subjects_dir = data_path / 'derivatives' / 'freesurfer' / 'subjects'
+subjects_dir = data_path / "derivatives" / "freesurfer" / "subjects"
 
 # %%
 # We are interested in the beta band. Define a range of frequencies, using a
@@ -80,8 +80,15 @@ csd_ers = csd_ers.mean()
 # Computing DICS spatial filters using the CSD that was computed on the entire
 # timecourse.
 fwd = mne.read_forward_solution(fname_fwd)
-filters = make_dics(info, fwd, csd, noise_csd=csd_baseline,
-                    pick_ori='max-power', reduce_rank=True, real_filter=True)
+filters = make_dics(
+    info,
+    fwd,
+    csd,
+    noise_csd=csd_baseline,
+    pick_ori="max-power",
+    reduce_rank=True,
+    real_filter=True,
+)
 del fwd
 
 # %%
@@ -93,9 +100,14 @@ beta_source_power, freqs = apply_dics_csd(csd_ers, filters)
 # %%
 # Visualizing source power during ERS activity relative to the baseline power.
 stc = beta_source_power / baseline_source_power
-message = 'DICS source power in the 12-30 Hz frequency band'
-brain = stc.plot(hemi='both', views='axial', subjects_dir=subjects_dir,
-                 subject=subject, time_label=message)
+message = "DICS source power in the 12-30 Hz frequency band"
+brain = stc.plot(
+    hemi="both",
+    views="axial",
+    subjects_dir=subjects_dir,
+    subject=subject,
+    time_label=message,
+)
 
 # %%
 # References

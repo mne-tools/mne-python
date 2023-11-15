@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _ex-eeg-bridging:
 
@@ -11,7 +10,7 @@ applied the gel conducting signal from the scalp to the electrode for one
 electrode connects with the gel conducting signal from another electrode
 "bridging" the two signals. This is undesirable because the signals from the
 two (or more) electrodes are not as independent as they would otherwise be;
-they are very similar to each other introducting additional
+they are very similar to each other introducing additional
 spatial smearing. An algorithm has been developed to detect electrode
 bridging :footcite:`TenkeKayser2001`, which has been implemented in EEGLAB
 :footcite:`DelormeMakeig2004`. Unfortunately, there is not a lot to be
@@ -36,8 +35,8 @@ https://psychophysiology.cpmc.columbia.edu/software/eBridge/tutorial.html.
 
 # sphinx_gallery_thumbnail_number = 2
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 from matplotlib.colors import LinearSegmentedColormap
 
 import mne
@@ -61,11 +60,11 @@ print(__doc__)
 #           bridging so using the last segment of the data will
 #           give the most conservative estimate.
 
-montage = mne.channels.make_standard_montage('standard_1005')
+montage = mne.channels.make_standard_montage("standard_1005")
 ed_data = dict()  # electrical distance/bridging data
 raw_data = dict()  # store infos for electrode positions
 for sub in range(1, 11):
-    print(f'Computing electrode bridges for subject {sub}')
+    print(f"Computing electrode bridges for subject {sub}")
     raw_fname = mne.datasets.eegbci.load_data(subject=sub, runs=(1,))[0]
     raw = mne.io.read_raw(raw_fname, preload=True, verbose=False)
     mne.datasets.eegbci.standardize(raw)  # set channel names
@@ -89,8 +88,8 @@ for sub in range(1, 11):
 
 bridged_idx, ed_matrix = ed_data[6]
 
-fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(8, 4))
-fig.suptitle('Subject 6 Electrical Distance Matrix')
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(8, 4), layout="constrained")
+fig.suptitle("Subject 6 Electrical Distance Matrix")
 
 # take median across epochs, only use upper triangular, lower is NaNs
 ed_plot = np.zeros(ed_matrix.shape[1:]) * np.nan
@@ -99,19 +98,17 @@ for idx0, idx1 in np.array(triu_idx).T:
     ed_plot[idx0, idx1] = np.nanmedian(ed_matrix[:, idx0, idx1])
 
 # plot full distribution color range
-im1 = ax1.imshow(ed_plot, aspect='auto')
+im1 = ax1.imshow(ed_plot, aspect="auto")
 cax1 = fig.colorbar(im1, ax=ax1)
-cax1.set_label(r'Electrical Distance ($\mu$$V^2$)')
+cax1.set_label(r"Electrical Distance ($\mu$$V^2$)")
 
 # plot zoomed in colors
-im2 = ax2.imshow(ed_plot, aspect='auto', vmax=5)
+im2 = ax2.imshow(ed_plot, aspect="auto", vmax=5)
 cax2 = fig.colorbar(im2, ax=ax2)
-cax2.set_label(r'Electrical Distance ($\mu$$V^2$)')
+cax2.set_label(r"Electrical Distance ($\mu$$V^2$)")
 for ax in (ax1, ax2):
-    ax.set_xlabel('Channel Index')
-    ax.set_ylabel('Channel Index')
-
-fig.tight_layout()
+    ax.set_xlabel("Channel Index")
+    ax.set_ylabel("Channel Index")
 
 # %%
 # Examine the Distribution of Electrical Distances
@@ -126,10 +123,10 @@ fig.tight_layout()
 # without bridged electrodes do not have a peak near zero.
 
 fig, ax = plt.subplots(figsize=(5, 5))
-fig.suptitle('Subject 6 Electrical Distance Matrix Distribution')
+fig.suptitle("Subject 6 Electrical Distance Matrix Distribution")
 ax.hist(ed_matrix[~np.isnan(ed_matrix)], bins=np.linspace(0, 500, 51))
-ax.set_xlabel(r'Electrical Distance ($\mu$$V^2$)')
-ax.set_ylabel('Count (channel pairs for all epochs)')
+ax.set_xlabel(r"Electrical Distance ($\mu$$V^2$)")
+ax.set_ylabel("Count (channel pairs for all epochs)")
 
 # %%
 # Plot Electrical Distances on a Topomap
@@ -146,8 +143,12 @@ ax.set_ylabel('Count (channel pairs for all epochs)')
 # may have inserted the gel syringe tip in too far).
 
 mne.viz.plot_bridged_electrodes(
-    raw_data[6].info, bridged_idx, ed_matrix,
-    title='Subject 6 Bridged Electrodes', topomap_args=dict(vmax=5))
+    raw_data[6].info,
+    bridged_idx,
+    ed_matrix,
+    title="Subject 6 Bridged Electrodes",
+    topomap_args=dict(vlim=(None, 5)),
+)
 
 # %%
 # Plot the Raw Voltage Time Series for Bridged Electrodes
@@ -161,18 +162,30 @@ mne.viz.plot_bridged_electrodes(
 # pairs, meaning that it is unlikely that all four of these electrodes are
 # bridged.
 
-raw = raw_data[6].copy().pick_channels(['F2', 'F4', 'FC2', 'FC4'])
-raw.add_channels([mne.io.RawArray(
-    raw.get_data(ch1) - raw.get_data(ch2),
-    mne.create_info([f'{ch1}-{ch2}'], raw.info['sfreq'], 'eeg'),
-    raw.first_samp) for ch1, ch2 in [('F2', 'F4'), ('FC2', 'FC4')]])
+raw = raw_data[6].copy().pick(["FC2", "FC4", "F2", "F4"])
+raw.add_channels(
+    [
+        mne.io.RawArray(
+            raw.get_data(ch1) - raw.get_data(ch2),
+            mne.create_info([f"{ch1}-{ch2}"], raw.info["sfreq"], "eeg"),
+            raw.first_samp,
+        )
+        for ch1, ch2 in [("F2", "F4"), ("FC2", "FC4")]
+    ]
+)
 raw.plot(duration=20, scalings=dict(eeg=2e-4))
 
-raw = raw_data[1].copy().pick_channels(['F2', 'F4', 'FC2', 'FC4'])
-raw.add_channels([mne.io.RawArray(
-    raw.get_data(ch1) - raw.get_data(ch2),
-    mne.create_info([f'{ch1}-{ch2}'], raw.info['sfreq'], 'eeg'),
-    raw.first_samp) for ch1, ch2 in [('F2', 'F4'), ('FC2', 'FC4')]])
+raw = raw_data[1].copy().pick(["FC2", "FC4", "F2", "F4"])
+raw.add_channels(
+    [
+        mne.io.RawArray(
+            raw.get_data(ch1) - raw.get_data(ch2),
+            mne.create_info([f"{ch1}-{ch2}"], raw.info["sfreq"], "eeg"),
+            raw.first_samp,
+        )
+        for ch1, ch2 in [("F2", "F4"), ("FC2", "FC4")]
+    ]
+)
 raw.plot(duration=20, scalings=dict(eeg=2e-4))
 
 # %%
@@ -193,26 +206,27 @@ raw.plot(duration=20, scalings=dict(eeg=2e-4))
 # reflect neural or at least anatomical differences as well (i.e. the
 # distance from the sensors to the brain).
 
-fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(8, 4))
-fig.suptitle('Electrical Distance Distribution for EEGBCI Subjects')
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(8, 4), layout="constrained")
+fig.suptitle("Electrical Distance Distribution for EEGBCI Subjects")
 for ax in (ax1, ax2):
-    ax.set_ylabel('Count')
-    ax.set_xlabel(r'Electrical Distance ($\mu$$V^2$)')
+    ax.set_ylabel("Count")
+    ax.set_xlabel(r"Electrical Distance ($\mu$$V^2$)")
 
 for sub, (bridged_idx, ed_matrix) in ed_data.items():
     # ed_matrix is upper triangular so exclude bottom half of NaNs
-    hist, edges = np.histogram(ed_matrix[~np.isnan(ed_matrix)].flatten(),
-                               bins=np.linspace(0, 1000, 101))
+    hist, edges = np.histogram(
+        ed_matrix[~np.isnan(ed_matrix)].flatten(), bins=np.linspace(0, 1000, 101)
+    )
     centers = (edges[1:] + edges[:-1]) / 2
     ax1.plot(centers, hist)
-    hist, edges = np.histogram(ed_matrix[~np.isnan(ed_matrix)].flatten(),
-                               bins=np.linspace(0, 30, 21))
+    hist, edges = np.histogram(
+        ed_matrix[~np.isnan(ed_matrix)].flatten(), bins=np.linspace(0, 30, 21)
+    )
     centers = (edges[1:] + edges[:-1]) / 2
-    ax2.plot(centers, hist, label=f'Sub {sub} #={len(bridged_idx)}')
+    ax2.plot(centers, hist, label=f"Sub {sub} #={len(bridged_idx)}")
 
-ax1.axvspan(0, 30, color='r', alpha=0.5)
+ax1.axvspan(0, 30, color="r", alpha=0.5)
 ax2.legend(loc=(1.04, 0))
-fig.subplots_adjust(right=0.725, bottom=0.15, wspace=0.4)
 
 # %%
 # For the group of subjects, let's look at their electrical distances
@@ -224,8 +238,12 @@ fig.subplots_adjust(right=0.725, bottom=0.15, wspace=0.4)
 
 for sub, (bridged_idx, ed_matrix) in ed_data.items():
     mne.viz.plot_bridged_electrodes(
-        raw_data[sub].info, bridged_idx, ed_matrix,
-        title=f'Subject {sub} Bridged Electrodes', topomap_args=dict(vmax=5))
+        raw_data[sub].info,
+        bridged_idx,
+        ed_matrix,
+        title=f"Subject {sub} Bridged Electrodes",
+        topomap_args=dict(vlim=(None, 5)),
+    )
 
 # %%
 # For subjects with many bridged channels like Subject 6 shown in the example
@@ -242,7 +260,8 @@ for sub, (bridged_idx, ed_matrix) in ed_data.items():
 # use subject 2, only one bridged electrode pair
 bridged_idx = ed_data[2][0]
 raw = mne.preprocessing.interpolate_bridged_electrodes(
-    raw_data[2].copy(), bridged_idx=bridged_idx)
+    raw_data[2].copy(), bridged_idx=bridged_idx
+)
 
 # %%
 # Let's make sure that our virtual channel aided the interpolation. We can do
@@ -274,41 +293,73 @@ bridged_data = np.tile(np.mean(data_orig, axis=0), (2, 1))  # copy mean
 bridged_data[0] += 1e-7 * rng.normal(size=raw.times.size)
 bridged_data[1] += 1e-7 * rng.normal(size=raw.times.size)
 # add back simulated data
-raw_sim = raw_sim.add_channels([mne.io.RawArray(
-    bridged_data, mne.create_info([ch0, ch1], raw.info['sfreq'], 'eeg'),
-    raw.first_samp)])
+raw_sim = raw_sim.add_channels(
+    [
+        mne.io.RawArray(
+            bridged_data,
+            mne.create_info([ch0, ch1], raw.info["sfreq"], "eeg"),
+            raw.first_samp,
+        )
+    ]
+)
 raw_sim.set_montage(montage)  # add back channel positions
 
 # use virtual channel method
 raw_virtual = mne.preprocessing.interpolate_bridged_electrodes(
-    raw_sim.copy(), bridged_idx=bridged_idx_simulated)
+    raw_sim.copy(), bridged_idx=bridged_idx_simulated
+)
 data_virtual = raw_virtual.get_data(picks=(idx0, idx1))
 
 # set bads to be bridged electrodes to interpolate without a virtual channel
 raw_comp = raw_sim.copy()
-raw_comp.info['bads'] = [raw_sim.ch_names[idx0], raw_sim.ch_names[idx1]]
+raw_comp.info["bads"] = [raw_sim.ch_names[idx0], raw_sim.ch_names[idx1]]
 raw_comp.interpolate_bads()
 data_comp = raw_comp.get_data(picks=(idx0, idx1))
 
 # compute variance of residuals
-print('Variance of residual (interpolated data - original data)\n\n'
-      'With adding virtual channel:                         {}\n'
-      'Compared to interpolation only using other channels: {}'
-      ''.format(np.mean(np.var(data_virtual - data_orig, axis=1)),
-                np.mean(np.var(data_comp - data_orig, axis=1))))
+print(
+    "Variance of residual (interpolated data - original data)\n\n"
+    "With adding virtual channel:                         {}\n"
+    "Compared to interpolation only using other channels: {}"
+    "".format(
+        np.mean(np.var(data_virtual - data_orig, axis=1)),
+        np.mean(np.var(data_comp - data_orig, axis=1)),
+    )
+)
 
 # plot results
-raw = raw.pick_channels([ch0, ch1])
-raw = raw.add_channels([mne.io.RawArray(
-    np.concatenate([data_virtual, data_virtual - data_orig]),
-    mne.create_info([f'{ch0} virtual', f'{ch1} virtual',
-                     f'{ch0} virtual diff', f'{ch1} virtual diff'],
-                    raw.info['sfreq'], 'eeg'), raw.first_samp)])
-raw = raw.add_channels([mne.io.RawArray(
-    np.concatenate([data_comp, data_comp - data_orig]),
-    mne.create_info([f'{ch0} comp', f'{ch1} comp',
-                     f'{ch0} comp diff', f'{ch1} comp diff'],
-                    raw.info['sfreq'], 'eeg'), raw.first_samp)])
+raw = raw.pick([ch0, ch1])
+raw = raw.add_channels(
+    [
+        mne.io.RawArray(
+            np.concatenate([data_virtual, data_virtual - data_orig]),
+            mne.create_info(
+                [
+                    f"{ch0} virtual",
+                    f"{ch1} virtual",
+                    f"{ch0} virtual diff",
+                    f"{ch1} virtual diff",
+                ],
+                raw.info["sfreq"],
+                "eeg",
+            ),
+            raw.first_samp,
+        )
+    ]
+)
+raw = raw.add_channels(
+    [
+        mne.io.RawArray(
+            np.concatenate([data_comp, data_comp - data_orig]),
+            mne.create_info(
+                [f"{ch0} comp", f"{ch1} comp", f"{ch0} comp diff", f"{ch1} comp diff"],
+                raw.info["sfreq"],
+                "eeg",
+            ),
+            raw.first_samp,
+        )
+    ]
+)
 raw.plot(scalings=dict(eeg=7e-5))
 
 # %%
@@ -332,17 +383,26 @@ rng = np.random.default_rng(11)  # seed for reproducibility
 raw = raw_data[1]
 # typically impedances < 25 kOhm are acceptable for active systems and
 # impedances < 5 kOhm are desirable for a passive system
-impedances = rng.random((len(raw.ch_names,))) * 30
+impedances = (
+    rng.random(
+        (
+            len(
+                raw.ch_names,
+            )
+        )
+    )
+    * 30
+)
 impedances[10] = 80  # set a few bad impendances
 impedances[25] = 99
-cmap = LinearSegmentedColormap.from_list(name='impedance_cmap',
-                                         colors=['g', 'y', 'r'], N=256)
+cmap = LinearSegmentedColormap.from_list(
+    name="impedance_cmap", colors=["g", "y", "r"], N=256
+)
 fig, ax = plt.subplots(figsize=(5, 5))
-im, cn = mne.viz.plot_topomap(impedances, raw.info, axes=ax,
-                              cmap=cmap, vmin=25, vmax=75)
-ax.set_title('Electrode Impendances')
+im, cn = mne.viz.plot_topomap(impedances, raw.info, axes=ax, cmap=cmap, vlim=(25, 75))
+ax.set_title("Electrode Impendances")
 cax = fig.colorbar(im, ax=ax)
-cax.set_label(r'Impedance (k$\Omega$)')
+cax.set_label(r"Impedance (k$\Omega$)")
 
 # %%
 # Summary

@@ -1,0 +1,52 @@
+repos:
+  - repo: https://github.com/psf/black
+    rev: 23.11.0
+    hooks:
+      - id: black
+        args: [--quiet]
+
+  # Ruff mne
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.1.5
+    hooks:
+      - id: ruff
+        name: ruff mne
+        args: ["--fix"]
+        files: ^mne/
+
+  # Ruff tutorials and examples
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.1.5
+    hooks:
+      - id: ruff
+        name: ruff tutorials and examples
+        # D103: missing docstring in public function
+        # D400: docstring first line must end with period
+        args: ["--ignore=D103,D400", "--fix"]
+        files: ^tutorials/|^examples/
+
+  # Codespell
+  - repo: https://github.com/codespell-project/codespell
+    rev: v2.2.6
+    hooks:
+      - id: codespell
+        additional_dependencies:
+          - tomli
+        files: ^mne/|^doc/|^examples/|^tutorials/
+        types_or: [python, bib, rst, inc]
+
+  # yamllint
+  - repo: https://github.com/adrienverge/yamllint.git
+    rev: v1.33.0
+    hooks:
+      - id: yamllint
+        args: [--strict, -c, .yamllint.yml]
+
+  # rstcheck
+  - repo: https://github.com/rstcheck/rstcheck.git
+    rev: v6.2.0
+    hooks:
+      - id: rstcheck
+        additional_dependencies:
+          - tomli
+        files: ^doc/.*\.(rst|inc)$

@@ -6,37 +6,68 @@
 #
 # License: Simplified BSD
 
-from functools import partial
 from collections import OrderedDict
 
 import numpy as np
 
-from ..annotations import _annotations_starts_stops
-from ..filter import create_filter
-from ..io.pick import pick_types, _pick_data_channels, pick_info, pick_channels
-from ..utils import verbose, _validate_type, _check_option
-from ..time_frequency import psd_welch
+from .._fiff.pick import pick_channels, pick_types
 from ..defaults import _handle_default
-from .topo import _plot_topo, _plot_timeseries, _plot_timeseries_unified
-from .utils import (plt_show, _compute_scalings, _handle_decim, _check_cov,
-                    _shorten_path_from_middle, _handle_precompute,
-                    _get_channel_plotting_order, _make_event_color_dict)
+from ..filter import create_filter
+from ..utils import _check_option, _get_stim_channel, _validate_type, legacy, verbose
+from ..utils.spectrum import _split_psd_kwargs
+from .utils import (
+    _check_cov,
+    _compute_scalings,
+    _get_channel_plotting_order,
+    _handle_decim,
+    _handle_precompute,
+    _make_event_color_dict,
+    _shorten_path_from_middle,
+)
 
 _RAW_CLIP_DEF = 1.5
 
 
 @verbose
-def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
-             bgcolor='w', color=None, bad_color='lightgray',
-             event_color='cyan', scalings=None, remove_dc=True, order=None,
-             show_options=False, title=None, show=True, block=False,
-             highpass=None, lowpass=None, filtorder=4,
-             clipping=_RAW_CLIP_DEF, show_first_samp=False,
-             proj=True, group_by='type', butterfly=False, decim='auto',
-             noise_cov=None, event_id=None, show_scrollbars=True,
-             show_scalebars=True, time_format='float',
-             precompute=None, use_opengl=None, *, theme=None,
-             overview_mode=None, verbose=None):
+def plot_raw(
+    raw,
+    events=None,
+    duration=10.0,
+    start=0.0,
+    n_channels=20,
+    bgcolor="w",
+    color=None,
+    bad_color="lightgray",
+    event_color="cyan",
+    scalings=None,
+    remove_dc=True,
+    order=None,
+    show_options=False,
+    title=None,
+    show=True,
+    block=False,
+    highpass=None,
+    lowpass=None,
+    filtorder=4,
+    clipping=_RAW_CLIP_DEF,
+    show_first_samp=False,
+    proj=True,
+    group_by="type",
+    butterfly=False,
+    decim="auto",
+    noise_cov=None,
+    event_id=None,
+    show_scrollbars=True,
+    show_scalebars=True,
+    time_format="float",
+    precompute=None,
+    use_opengl=None,
+    *,
+    theme=None,
+    overview_mode=None,
+    splash=True,
+    verbose=None,
+):
     """Plot raw data.
 
     Parameters
@@ -166,6 +197,9 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     %(overview_mode)s
 
         .. versionadded:: 1.1
+    %(splash)s
+
+        .. versionadded:: 1.6
     %(verbose)s
 
     Returns
@@ -200,39 +234,39 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
 
     %(notes_2d_backend)s
     """
-    from ..io.base import BaseRaw
+    from ..annotations import _annotations_starts_stops
+    from ..io import BaseRaw
     from ._figure import _get_browser
 
     info = raw.info.copy()
-    sfreq = info['sfreq']
-    projs = info['projs']
+    sfreq = info["sfreq"]
+    projs = info["projs"]
     # this will be an attr for which projectors are currently "on" in the plot
     projs_on = np.full_like(projs, proj, dtype=bool)
     # disable projs in info if user doesn't want to see them right away
     if not proj:
         with info._unlock():
-            info['projs'] = list()
+            info["projs"] = list()
 
     # handle defaults / check arg validity
-    color = _handle_default('color', color)
-    scalings = _compute_scalings(scalings, raw, remove_dc=remove_dc,
-                                 duration=duration)
-    if scalings['whitened'] == 'auto':
-        scalings['whitened'] = 1.
-    _validate_type(raw, BaseRaw, 'raw', 'Raw')
+    color = _handle_default("color", color)
+    scalings = _compute_scalings(scalings, raw, remove_dc=remove_dc, duration=duration)
+    if scalings["whitened"] == "auto":
+        scalings["whitened"] = 1.0
+    _validate_type(raw, BaseRaw, "raw", "Raw")
     decim, picks_data = _handle_decim(info, decim, lowpass)
     noise_cov = _check_cov(noise_cov, info)
-    units = _handle_default('units', None)
-    unit_scalings = _handle_default('scalings', None)
-    _check_option('group_by', group_by,
-                  ('selection', 'position', 'original', 'type'))
+    units = _handle_default("units", None)
+    unit_scalings = _handle_default("scalings", None)
+    _check_option("group_by", group_by, ("selection", "position", "original", "type"))
 
     # clipping
-    _validate_type(clipping, (None, 'numeric', str), 'clipping')
+    _validate_type(clipping, (None, "numeric", str), "clipping")
     if isinstance(clipping, str):
-        _check_option('clipping', clipping, ('clamp', 'transparent'),
-                      extra='when a string')
-        clipping = 1. if clipping == 'transparent' else clipping
+        _check_option(
+            "clipping", clipping, ("clamp", "transparent"), extra="when a string"
+        )
+        clipping = 1.0 if clipping == "transparent" else clipping
     elif clipping is not None:
         clipping = float(clipping)
 
@@ -241,22 +275,28 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
 
     # determine IIR filtering parameters
     if highpass is not None and highpass <= 0:
-        raise ValueError(f'highpass must be > 0, got {highpass}')
+        raise ValueError(f"highpass must be > 0, got {highpass}")
     if highpass is None and lowpass is None:
         ba = filt_bounds = None
     else:
         filtorder = int(filtorder)
         if filtorder == 0:
-            method = 'fir'
+            method = "fir"
             iir_params = None
         else:
-            method = 'iir'
-            iir_params = dict(order=filtorder, output='sos', ftype='butter')
-        ba = create_filter(np.zeros((1, int(round(duration * sfreq)))),
-                           sfreq, highpass, lowpass, method=method,
-                           iir_params=iir_params)
+            method = "iir"
+            iir_params = dict(order=filtorder, output="sos", ftype="butter")
+        ba = create_filter(
+            np.zeros((1, int(round(duration * sfreq)))),
+            sfreq,
+            highpass,
+            lowpass,
+            method=method,
+            iir_params=iir_params,
+        )
         filt_bounds = _annotations_starts_stops(
-            raw, ('edge', 'bad_acq_skip'), invert=True)
+            raw, ("edge", "bad_acq_skip"), invert=True
+        )
 
     # compute event times in seconds
     if events is not None:
@@ -270,14 +310,18 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     ch_names = np.array(raw.ch_names)
     ch_types = np.array(raw.get_channel_types())
     order = _get_channel_plotting_order(order, ch_types)
-    n_channels = min(info['nchan'], n_channels, len(order))
+    n_channels = min(info["nchan"], n_channels, len(order))
     # adjust order based on channel selection, if needed
     selections = None
-    if group_by in ('selection', 'position'):
+    if group_by in ("selection", "position"):
         selections = _setup_channel_selections(raw, group_by, order)
         order = np.concatenate(list(selections.values()))
         default_selection = list(selections)[0]
         n_channels = len(selections[default_selection])
+    assert isinstance(order, np.ndarray)
+    assert order.dtype.kind == "i"
+    if order.size == 0:
+        raise RuntimeError("No channels found to plot")
 
     # handle event colors
     event_color_dict = _make_event_color_dict(event_color, events, event_id)
@@ -289,105 +333,121 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
 
     # generate window title; allow instances without a filename (e.g., ICA)
     if title is None:
-        title = '<unknown>'
+        title = "<unknown>"
         fnames = raw._filenames.copy()
         if len(fnames):
             title = fnames.pop(0)
-            extra = f' ... (+ {len(fnames)} more)' if len(fnames) else ''
-            title = f'{title}{extra}'
+            extra = f" ... (+ {len(fnames)} more)" if len(fnames) else ""
+            title = f"{title}{extra}"
             if len(title) > 60:
                 title = _shorten_path_from_middle(title)
     elif not isinstance(title, str):
-        raise TypeError(f'title must be None or a string, got a {type(title)}')
+        raise TypeError(f"title must be None or a string, got a {type(title)}")
 
     # gather parameters and initialize figure
-    _validate_type(use_opengl, (bool, None), 'use_opengl')
+    _validate_type(use_opengl, (bool, None), "use_opengl")
     precompute = _handle_precompute(precompute)
-    params = dict(inst=raw,
-                  info=info,
-                  # channels and channel order
-                  ch_names=ch_names,
-                  ch_types=ch_types,
-                  ch_order=order,
-                  picks=order[:n_channels],
-                  n_channels=n_channels,
-                  picks_data=picks_data,
-                  group_by=group_by,
-                  ch_selections=selections,
-                  # time
-                  t_start=start,
-                  duration=duration,
-                  n_times=raw.n_times,
-                  first_time=first_time,
-                  time_format=time_format,
-                  decim=decim,
-                  # events
-                  event_color_dict=event_color_dict,
-                  event_times=event_times,
-                  event_nums=event_nums,
-                  event_id_rev=event_id_rev,
-                  # preprocessing
-                  projs=projs,
-                  projs_on=projs_on,
-                  apply_proj=proj,
-                  remove_dc=remove_dc,
-                  filter_coefs=ba,
-                  filter_bounds=filt_bounds,
-                  noise_cov=noise_cov,
-                  # scalings
-                  scalings=scalings,
-                  units=units,
-                  unit_scalings=unit_scalings,
-                  # colors
-                  ch_color_bad=bad_color,
-                  ch_color_dict=color,
-                  # display
-                  butterfly=butterfly,
-                  clipping=clipping,
-                  scrollbars_visible=show_scrollbars,
-                  scalebars_visible=show_scalebars,
-                  window_title=title,
-                  bgcolor=bgcolor,
-                  # Qt-specific
-                  precompute=precompute,
-                  use_opengl=use_opengl,
-                  theme=theme,
-                  overview_mode=overview_mode,
-                  )
+    params = dict(
+        inst=raw,
+        info=info,
+        # channels and channel order
+        ch_names=ch_names,
+        ch_types=ch_types,
+        ch_order=order,
+        picks=order[:n_channels],
+        n_channels=n_channels,
+        picks_data=picks_data,
+        group_by=group_by,
+        ch_selections=selections,
+        # time
+        t_start=start,
+        duration=duration,
+        n_times=raw.n_times,
+        first_time=first_time,
+        time_format=time_format,
+        decim=decim,
+        # events
+        event_color_dict=event_color_dict,
+        event_times=event_times,
+        event_nums=event_nums,
+        event_id_rev=event_id_rev,
+        # preprocessing
+        projs=projs,
+        projs_on=projs_on,
+        apply_proj=proj,
+        remove_dc=remove_dc,
+        filter_coefs=ba,
+        filter_bounds=filt_bounds,
+        noise_cov=noise_cov,
+        # scalings
+        scalings=scalings,
+        units=units,
+        unit_scalings=unit_scalings,
+        # colors
+        ch_color_bad=bad_color,
+        ch_color_dict=color,
+        # display
+        butterfly=butterfly,
+        clipping=clipping,
+        scrollbars_visible=show_scrollbars,
+        scalebars_visible=show_scalebars,
+        window_title=title,
+        bgcolor=bgcolor,
+        # Qt-specific
+        precompute=precompute,
+        use_opengl=use_opengl,
+        theme=theme,
+        overview_mode=overview_mode,
+        splash=splash,
+    )
 
     fig = _get_browser(show=show, block=block, **params)
 
     return fig
 
 
+@legacy(alt="Raw.compute_psd().plot()")
 @verbose
-def plot_raw_psd(raw, fmin=0, fmax=np.inf, tmin=None, tmax=None, proj=False,
-                 n_fft=None, n_overlap=0, reject_by_annotation=True,
-                 picks=None, ax=None, color='black', xscale='linear',
-                 area_mode='std', area_alpha=0.33, dB=True, estimate='auto',
-                 show=True, n_jobs=None, average=False, line_alpha=None,
-                 spatial_colors=True, sphere=None, window='hamming',
-                 exclude='bads', verbose=None):
+def plot_raw_psd(
+    raw,
+    fmin=0,
+    fmax=np.inf,
+    tmin=None,
+    tmax=None,
+    proj=False,
+    n_fft=None,
+    n_overlap=0,
+    reject_by_annotation=True,
+    picks=None,
+    ax=None,
+    color="black",
+    xscale="linear",
+    area_mode="std",
+    area_alpha=0.33,
+    dB=True,
+    estimate="auto",
+    show=True,
+    n_jobs=None,
+    average=False,
+    line_alpha=None,
+    spatial_colors=True,
+    sphere=None,
+    window="hamming",
+    exclude="bads",
+    verbose=None,
+):
     """%(plot_psd_doc)s.
 
     Parameters
     ----------
     raw : instance of Raw
         The raw object.
-    fmin : float
-        Start frequency to consider.
-    fmax : float
-        End frequency to consider.
-    tmin : float | None
-        Start time to consider.
-    tmax : float | None
-        End time to consider.
-    proj : bool
-        Apply projection.
+    %(fmin_fmax_psd)s
+    %(tmin_tmax_psd)s
+    %(proj_psd)s
     n_fft : int | None
-        Number of points to use in Welch FFT calculations.
-        Default is None, which uses the minimum of 2048 and the
-        number of time points.
+        Number of points to use in Welch FFT calculations. Default is ``None``,
+        which uses the minimum of 2048 and the number of time points.
     n_overlap : int
         The number of points of overlap between blocks. The default value
         is 0 (no overlap).
@@ -404,7 +464,7 @@ def plot_raw_psd(raw, fmin=0, fmax=np.inf, tmin=None, tmax=None, proj=False,
     %(n_jobs)s
     %(average_plot_psd)s
     %(line_alpha_plot_psd)s
-    %(spatial_colors_plot_psd)s
+    %(spatial_colors_psd)s
     %(sphere_topomap_auto)s
     %(window_psd)s
 
@@ -421,57 +481,58 @@ def plot_raw_psd(raw, fmin=0, fmax=np.inf, tmin=None, tmax=None, proj=False,
     -------
     fig : instance of Figure
         Figure with frequency spectra of the data channels.
+
+    Notes
+    -----
+    %(notes_plot_*_psd_func)s
     """
-    from ._mpl_figure import _psd_figure
-    # handle FFT
-    if n_fft is None:
-        if tmax is None or not np.isfinite(tmax):
-            tmax = raw.times[-1]
-        tmin = 0. if tmin is None else tmin
-        n_fft = min(np.diff(raw.time_as_index([tmin, tmax]))[0] + 1, 2048)
-    # generate figure
-    fig = _psd_figure(
-        inst=raw, proj=proj, picks=picks, axes=ax, tmin=tmin, tmax=tmax,
-        fmin=fmin, fmax=fmax, sphere=sphere, xscale=xscale, dB=dB,
-        average=average, estimate=estimate, area_mode=area_mode,
-        line_alpha=line_alpha, area_alpha=area_alpha, color=color,
-        spatial_colors=spatial_colors, n_jobs=n_jobs, n_fft=n_fft,
-        n_overlap=n_overlap, reject_by_annotation=reject_by_annotation,
-        window=window, exclude=exclude)
-    plt_show(show)
-    return fig
+    from ..time_frequency import Spectrum
+
+    init_kw, plot_kw = _split_psd_kwargs(plot_fun=Spectrum.plot)
+    return raw.compute_psd(**init_kw).plot(**plot_kw)
 
 
+@legacy(alt="Raw.compute_psd().plot_topo()")
 @verbose
-def plot_raw_psd_topo(raw, tmin=0., tmax=None, fmin=0., fmax=100., proj=False,
-                      n_fft=2048, n_overlap=0, layout=None, color='w',
-                      fig_facecolor='k', axis_facecolor='k', dB=True,
-                      show=True, block=False, n_jobs=None, axes=None,
-                      verbose=None):
-    """Plot channel-wise frequency spectra as topography.
+def plot_raw_psd_topo(
+    raw,
+    tmin=0.0,
+    tmax=None,
+    fmin=0.0,
+    fmax=100.0,
+    proj=False,
+    *,
+    n_fft=2048,
+    n_overlap=0,
+    dB=True,
+    layout=None,
+    color="w",
+    fig_facecolor="k",
+    axis_facecolor="k",
+    axes=None,
+    block=False,
+    show=True,
+    n_jobs=None,
+    verbose=None,
+):
+    """Plot power spectral density, separately for each channel.
 
     Parameters
     ----------
     raw : instance of io.Raw
         The raw instance to use.
-    tmin : float
-        Start time for calculations. Defaults to zero.
-    tmax : float | None
-        End time for calculations. If None (default), the end of data is used.
-    fmin : float
-        Start frequency to consider. Defaults to zero.
-    fmax : float
-        End frequency to consider. Defaults to 100.
-    proj : bool
-        Apply projection. Defaults to False.
+    %(tmin_tmax_psd)s
+    %(fmin_fmax_psd_topo)s
+    %(proj_psd)s
     n_fft : int
         Number of points to use in Welch FFT calculations. Defaults to 2048.
     n_overlap : int
         The number of points of overlap between blocks. Defaults to 0
         (no overlap).
+    %(dB_spectrum_plot_topo)s
     layout : instance of Layout | None
         Layout instance specifying sensor positions (does not need to be
-        specified for Neuromag data). If None (default), the correct layout is
+        specified for Neuromag data). If ``None`` (default), the layout is
         inferred from the data.
     color : str | tuple
         A matplotlib-compatible color to use for the curves. Defaults to white.
@@ -481,16 +542,12 @@ def plot_raw_psd_topo(raw, tmin=0., tmax=None, fmin=0., fmax=100., proj=False,
     axis_facecolor : str | tuple
         A matplotlib-compatible color to use for the axis background.
         Defaults to black.
-    dB : bool
-        If True, transform data to decibels. Defaults to True.
-    show : bool
-        Show figure if True. Defaults to True.
+    %(axes_spectrum_plot_topo)s
     block : bool
         Whether to halt program execution until the figure is closed.
         May not work on all systems / platforms. Defaults to False.
+    %(show)s
     %(n_jobs)s
-    axes : instance of matplotlib Axes | None
-        Axes to plot into. If None, axes will be created.
     %(verbose)s
 
     Returns
@@ -498,74 +555,79 @@ def plot_raw_psd_topo(raw, tmin=0., tmax=None, fmin=0., fmax=100., proj=False,
     fig : instance of matplotlib.figure.Figure
         Figure distributing one image per channel across sensor topography.
     """
-    if layout is None:
-        from ..channels.layout import find_layout
-        layout = find_layout(raw.info)
+    from ..time_frequency import Spectrum
 
-    psds, freqs = psd_welch(raw, tmin=tmin, tmax=tmax, fmin=fmin,
-                            fmax=fmax, proj=proj, n_fft=n_fft,
-                            n_overlap=n_overlap, n_jobs=n_jobs)
-    if dB:
-        psds = 10 * np.log10(psds)
-        y_label = 'dB'
-    else:
-        y_label = 'Power'
-    show_func = partial(_plot_timeseries_unified, data=[psds], color=color,
-                        times=[freqs])
-    click_func = partial(_plot_timeseries, data=[psds], color=color,
-                         times=[freqs])
-    picks = _pick_data_channels(raw.info)
-    info = pick_info(raw.info, picks)
-
-    fig = _plot_topo(info, times=freqs, show_func=show_func,
-                     click_func=click_func, layout=layout,
-                     axis_facecolor=axis_facecolor,
-                     fig_facecolor=fig_facecolor, x_label='Frequency (Hz)',
-                     unified=True, y_label=y_label, axes=axes)
-
-    try:
-        plt_show(show, block=block)
-    except TypeError:  # not all versions have this
-        plt_show(show)
-    return fig
+    init_kw, plot_kw = _split_psd_kwargs(plot_fun=Spectrum.plot_topo)
+    return raw.compute_psd(**init_kw).plot_topo(**plot_kw)
 
 
 def _setup_channel_selections(raw, kind, order):
     """Get dictionary of channel groupings."""
-    from ..channels import (read_vectorview_selection, _SELECTIONS,
-                            _EEG_SELECTIONS, _divide_to_regions)
-    from ..utils import _get_stim_channel
-    _check_option('group_by', kind, ('position', 'selection'))
-    if kind == 'position':
+    from ..channels import (
+        _EEG_SELECTIONS,
+        _SELECTIONS,
+        _divide_to_regions,
+        read_vectorview_selection,
+    )
+
+    _check_option("group_by", kind, ("position", "selection"))
+    if kind == "position":
         selections_dict = _divide_to_regions(raw.info)
         keys = _SELECTIONS[1:]  # omit 'Vertex'
     else:  # kind == 'selection'
         from ..channels.channels import _get_ch_info
-        (has_vv_mag, has_vv_grad, *_, has_neuromag_122_grad, has_csd_coils
-         ) = _get_ch_info(raw.info)
+
+        (
+            has_vv_mag,
+            has_vv_grad,
+            *_,
+            has_neuromag_122_grad,
+            has_csd_coils,
+        ) = _get_ch_info(raw.info)
         if not (has_vv_grad or has_vv_mag or has_neuromag_122_grad):
-            raise ValueError("order='selection' only works for Neuromag "
-                             "data. Use order='position' instead.")
+            raise ValueError(
+                "order='selection' only works for Neuromag "
+                "data. Use order='position' instead."
+            )
         selections_dict = OrderedDict()
         # get stim channel (if any)
         stim_ch = _get_stim_channel(None, raw.info, raise_error=False)
-        stim_ch = stim_ch if len(stim_ch) else ['']
-        stim_ch = pick_channels(raw.ch_names, stim_ch)
+        stim_ch = stim_ch if len(stim_ch) else [""]
+        stim_ch = pick_channels(raw.ch_names, stim_ch, ordered=False)
         # loop over regions
         keys = np.concatenate([_SELECTIONS, _EEG_SELECTIONS])
         for key in keys:
             channels = read_vectorview_selection(key, info=raw.info)
-            picks = pick_channels(raw.ch_names, channels)
+            picks = pick_channels(raw.ch_names, channels, ordered=False)
             picks = np.intersect1d(picks, order)
             if not len(picks):
                 continue  # omit empty selections
             selections_dict[key] = np.concatenate([picks, stim_ch])
     # add misc channels
-    misc = pick_types(raw.info, meg=False, eeg=False, stim=True, eog=True,
-                      ecg=True, emg=True, ref_meg=False, misc=True,
-                      resp=True, chpi=True, exci=True, ias=True, syst=True,
-                      seeg=False, bio=True, ecog=False, fnirs=False, dbs=False,
-                      exclude=())
-    if len(misc) and np.in1d(misc, order).any():
-        selections_dict['Misc'] = misc
+    misc = pick_types(
+        raw.info,
+        meg=False,
+        eeg=False,
+        stim=True,
+        eog=True,
+        ecg=True,
+        emg=True,
+        ref_meg=False,
+        misc=True,
+        resp=True,
+        chpi=True,
+        exci=True,
+        ias=True,
+        syst=True,
+        seeg=False,
+        bio=True,
+        ecog=False,
+        fnirs=False,
+        dbs=False,
+        temperature=True,
+        gsr=True,
+        exclude=(),
+    )
+    if len(misc) and np.isin(misc, order).any():
+        selections_dict["Misc"] = misc
     return selections_dict

@@ -6,66 +6,134 @@
 #
 # License: Simplified BSD
 
-from contextlib import contextmanager
 import os
 import platform
 import sys
 import weakref
+from contextlib import contextmanager
+
+# importing anything from qtpy forces a Qt API choice as a side effect, which is then
+# used by matplotlib and pyvistaqt
+from qtpy import API_NAME  # noqa: F401, isort: skip
 
 import pyvista
-from pyvistaqt.plotting import FileDialog, MainWindow
+from matplotlib.backends.backend_qtagg import FigureCanvas
 from matplotlib.figure import Figure
-from matplotlib.backends.backend_qt5agg import FigureCanvas
+from pyvistaqt.plotting import FileDialog, MainWindow
+from qtpy.QtCore import (
+    QEvent,
+    QLibraryInfo,
+    QLocale,
+    QObject,
+    Qt,
+    QTimer,
+    # non-object-based-abstraction-only, deprecate
+    Signal,
+)
+from qtpy.QtGui import QCursor, QIcon, QKeyEvent
+from qtpy.QtWidgets import (
+    QButtonGroup,
+    QCheckBox,
+    QComboBox,
+    # non-object-based-abstraction-only, deprecate
+    QDockWidget,
+    QDoubleSpinBox,
+    QFileDialog,
+    QGridLayout,
+    QGroupBox,
+    QHBoxLayout,
+    QLabel,
+    QLayout,
+    QLineEdit,
+    QMenuBar,
+    QMessageBox,
+    QProgressBar,
+    QPushButton,
+    QRadioButton,
+    QScrollArea,
+    QSizePolicy,
+    QSlider,
+    QSpinBox,
+    QStyle,
+    QStyleOptionSlider,
+    QToolButton,
+    QVBoxLayout,
+    QWidget,
+)
 
-from qtpy.QtCore import (Qt, QTimer, QLocale, QLibraryInfo, QEvent,
-                         # non-object-based-abstraction-only, deprecate
-                         Signal, QObject)
-from qtpy.QtGui import QIcon, QCursor, QKeyEvent
-from qtpy.QtWidgets import (QComboBox, QGroupBox, QHBoxLayout, QLabel,
-                            QSlider, QDoubleSpinBox, QVBoxLayout, QWidget,
-                            QSizePolicy, QProgressBar, QScrollArea,
-                            QLayout, QCheckBox, QButtonGroup, QRadioButton,
-                            QLineEdit, QGridLayout, QFileDialog, QPushButton,
-                            QMessageBox,
-                            # non-object-based-abstraction-only, deprecate
-                            QDockWidget, QToolButton, QMenuBar,
-                            QSpinBox, QStyle, QStyleOptionSlider)
-
-from ._pyvista import _PyVistaRenderer
-from ._pyvista import (_close_3d_figure, _check_3d_figure, _close_all,  # noqa: F401,E501 analysis:ignore
-                       _set_3d_view, _set_3d_title, _take_3d_screenshot)  # noqa: F401,E501 analysis:ignore
-from ._abstract import (_AbstractAppWindow, _AbstractHBoxLayout,
-                        _AbstractVBoxLayout, _AbstractGridLayout,
-                        _AbstractWidget, _AbstractCanvas,
-                        _AbstractPopup, _AbstractLabel, _AbstractButton,
-                        _AbstractSlider, _AbstractCheckBox, _AbstractSpinBox,
-                        _AbstractComboBox, _AbstractRadioButtons,
-                        _AbstractGroupBox, _AbstractText, _AbstractFileButton,
-                        _AbstractPlayMenu, _AbstractProgressBar)
-from ._abstract import (_AbstractDock, _AbstractToolBar, _AbstractMenuBar,
-                        _AbstractStatusBar, _AbstractLayout, _AbstractWdgt,
-                        _AbstractWindow, _AbstractMplCanvas, _AbstractPlayback,
-                        _AbstractBrainMplCanvas, _AbstractMplInterface,
-                        _AbstractWidgetList, _AbstractAction, _AbstractDialog,
-                        _AbstractKeyPress)
-from ._utils import (_qt_disable_paint, _qt_get_stylesheet, _qt_is_dark,
-                     _qt_detect_theme, _qt_raise_window, _init_mne_qtapp,
-                     _qt_app_exec)
-from ..utils import safe_event
-from ...utils import _check_option, get_config
 from ...fixes import _compare_version
-
+from ...utils import _check_option, get_config
+from ..utils import safe_event
+from ._abstract import (
+    _AbstractAction,
+    _AbstractAppWindow,
+    _AbstractBrainMplCanvas,
+    _AbstractButton,
+    _AbstractCanvas,
+    _AbstractCheckBox,
+    _AbstractComboBox,
+    _AbstractDialog,
+    _AbstractDock,
+    _AbstractFileButton,
+    _AbstractGridLayout,
+    _AbstractGroupBox,
+    _AbstractHBoxLayout,
+    _AbstractKeyPress,
+    _AbstractLabel,
+    _AbstractLayout,
+    _AbstractMenuBar,
+    _AbstractMplCanvas,
+    _AbstractMplInterface,
+    _AbstractPlayback,
+    _AbstractPlayMenu,
+    _AbstractPopup,
+    _AbstractProgressBar,
+    _AbstractRadioButtons,
+    _AbstractSlider,
+    _AbstractSpinBox,
+    _AbstractStatusBar,
+    _AbstractText,
+    _AbstractToolBar,
+    _AbstractVBoxLayout,
+    _AbstractWdgt,
+    _AbstractWidget,
+    _AbstractWidgetList,
+    _AbstractWindow,
+)
+from ._pyvista import (
+    _check_3d_figure,  # noqa: F401
+    _close_3d_figure,  # noqa: F401
+    _close_all,  # noqa: F401
+    _is_mesa,  # noqa: F401
+    _PyVistaRenderer,
+    _set_3d_title,  # noqa: F401
+    _set_3d_view,  # noqa: F401
+    _take_3d_screenshot,  # noqa: F401
+)
+from ._utils import (
+    _init_mne_qtapp,
+    _qt_app_exec,
+    _qt_detect_theme,
+    _qt_disable_paint,
+    _qt_get_stylesheet,
+    _qt_is_dark,
+    _qt_raise_window,
+    _qt_safe_window,
+)
+from .renderer import _TimeInteraction
 
 # Adapted from matplotlib
-if (sys.platform == 'darwin' and
-        _compare_version(platform.mac_ver()[0], '>=', '10.16') and
-        QLibraryInfo.version().segments() <= [5, 15, 2]):
+if (
+    sys.platform == "darwin"
+    and _compare_version(platform.mac_ver()[0], ">=", "10.16")
+    and QLibraryInfo.version().segments() <= [5, 15, 2]
+):
     os.environ.setdefault("QT_MAC_WANTS_LAYER", "1")
 
 
 # fix for qscroll needing two layouts, one parent, one child
 def _get_layout(layout):
-    if hasattr(layout, '_parent_layout'):
+    if hasattr(layout, "_parent_layout"):
         return layout._parent_layout
     return layout
 
@@ -77,6 +145,7 @@ def _get_layout(layout):
 # not to conflict, http://www.phyast.pitt.edu/~micheles/python/metatype.html
 # https://stackoverflow.com/questions/28720217/multiple-inheritance-metaclass-conflict
 
+
 class _BaseWidget(type(QWidget), type(_AbstractWidget)):
     pass
 
@@ -84,7 +153,6 @@ class _BaseWidget(type(QWidget), type(_AbstractWidget)):
 # The inheritance has to be in this order for the _Widget and the opposite for
 # the widgets (e.g. _PushButton) that inherit from it, not sure why
 class _Widget(_AbstractWidget, QWidget, metaclass=_BaseWidget):
-
     tooltip = None
     _to_qt = dict(
         escape=Qt.Key_Escape,
@@ -132,16 +200,17 @@ class _Widget(_AbstractWidget, QWidget, metaclass=_BaseWidget):
 
     def _add_keypress(self, callback):
         self.keyPressEvent = lambda event: callback(
-            self._from_qt[event.key()] if event.key() in self._from_qt else
-            event.text())
+            self._from_qt[event.key()] if event.key() in self._from_qt else event.text()
+        )
 
     def _trigger_keypress(self, key):
         if key in self._to_qt:
             key_int = self._to_qt[key]
         else:
-            key_int = getattr(Qt, f'Key_{key.upper()}')
+            key_int = getattr(Qt, f"Key_{key.upper()}")
         self.keyPressEvent(
-            QKeyEvent(QEvent.KeyRelease, key_int, Qt.NoModifier, text=key))
+            QKeyEvent(QEvent.KeyRelease, key_int, Qt.NoModifier, text=key)
+        )
 
     def _set_focus(self):
         self.setFocus()
@@ -154,13 +223,13 @@ class _Widget(_AbstractWidget, QWidget, metaclass=_BaseWidget):
             default_theme = _qt_detect_theme()
         else:
             default_theme = theme
-        theme = get_config('MNE_3D_OPTION_THEME', default_theme)
+        theme = get_config("MNE_3D_OPTION_THEME", default_theme)
         stylesheet = _qt_get_stylesheet(theme)
         self.setStyleSheet(stylesheet)
         if _qt_is_dark(self):
-            QIcon.setThemeName('dark')
+            QIcon.setThemeName("dark")
         else:
-            QIcon.setThemeName('light')
+            QIcon.setThemeName("light")
 
     def _set_size(self, width=None, height=None):
         if width:
@@ -172,7 +241,6 @@ class _Widget(_AbstractWidget, QWidget, metaclass=_BaseWidget):
 
 
 class _Label(QLabel, _AbstractLabel, _Widget, metaclass=_BaseWidget):
-
     def __init__(self, value, center=False, selectable=False):
         _AbstractLabel.__init__(value, center=center, selectable=selectable)
         _Widget.__init__(self)
@@ -186,10 +254,8 @@ class _Label(QLabel, _AbstractLabel, _Widget, metaclass=_BaseWidget):
 
 
 class _Text(QLineEdit, _AbstractText, _Widget, metaclass=_BaseWidget):
-
     def __init__(self, value=None, placeholder=None, callback=None):
-        _AbstractText.__init__(value=value, placeholder=placeholder,
-                               callback=callback)
+        _AbstractText.__init__(value=value, placeholder=placeholder, callback=callback)
         _Widget.__init__(self)
         QLineEdit.__init__(self, value)
         self.setPlaceholderText(placeholder)
@@ -201,11 +267,11 @@ class _Text(QLineEdit, _AbstractText, _Widget, metaclass=_BaseWidget):
 
 
 class _Button(QPushButton, _AbstractButton, _Widget, metaclass=_BaseWidget):
-
     def __init__(self, value, callback, icon=None):
         _AbstractButton.__init__(value=value, callback=callback)
         _Widget.__init__(self)
-        QPushButton.__init__(self)
+        with _disabled_init(_AbstractButton):
+            QPushButton.__init__(self)
         self.setText(value)
         self.released.connect(callback)
         if icon:
@@ -219,12 +285,13 @@ class _Button(QPushButton, _AbstractButton, _Widget, metaclass=_BaseWidget):
 
 
 class _Slider(QSlider, _AbstractSlider, _Widget, metaclass=_BaseWidget):
-
     def __init__(self, value, rng, callback, horizontal=True):
-        _AbstractSlider.__init__(value=value, rng=rng, callback=callback,
-                                 horizontal=horizontal)
+        _AbstractSlider.__init__(
+            value=value, rng=rng, callback=callback, horizontal=horizontal
+        )
         _Widget.__init__(self)
-        QSlider.__init__(self, Qt.Horizontal if horizontal else Qt.Vertical)
+        with _disabled_init(_AbstractSlider):
+            QSlider.__init__(self, Qt.Horizontal if horizontal else Qt.Vertical)
         self.setMinimum(rng[0])
         self.setMaximum(rng[1])
         self.setValue(value)
@@ -240,9 +307,7 @@ class _Slider(QSlider, _AbstractSlider, _Widget, metaclass=_BaseWidget):
         self.setRange(int(rng[0]), int(rng[1]))
 
 
-class _ProgressBar(QProgressBar, _AbstractProgressBar, _Widget,
-                   metaclass=_BaseWidget):
-
+class _ProgressBar(QProgressBar, _AbstractProgressBar, _Widget, metaclass=_BaseWidget):
     def __init__(self, count):
         _AbstractProgressBar.__init__(count=count)
         _Widget.__init__(self)
@@ -257,11 +322,11 @@ class _ProgressBar(QProgressBar, _AbstractProgressBar, _Widget,
 
 
 class _CheckBox(QCheckBox, _AbstractCheckBox, _Widget, metaclass=_BaseWidget):
-
     def __init__(self, value, callback):
         _AbstractCheckBox.__init__(value=value, callback=callback)
         _Widget.__init__(self)
-        QCheckBox.__init__(self)
+        with _disabled_init(_AbstractCheckBox):
+            QCheckBox.__init__(self)
         self.setChecked(value)
         self.stateChanged.connect(lambda x: callback(bool(x)))
 
@@ -272,20 +337,18 @@ class _CheckBox(QCheckBox, _AbstractCheckBox, _Widget, metaclass=_BaseWidget):
         return self.checkState() != Qt.Unchecked
 
 
-class _SpinBox(QDoubleSpinBox, _AbstractSpinBox, _Widget,
-               metaclass=_BaseWidget):
-
+class _SpinBox(QDoubleSpinBox, _AbstractSpinBox, _Widget, metaclass=_BaseWidget):
     def __init__(self, value, rng, callback, step=None):
-        _AbstractSpinBox.__init__(value=value, rng=rng, callback=callback,
-                                  step=step)
+        _AbstractSpinBox.__init__(value=value, rng=rng, callback=callback, step=step)
         _Widget.__init__(self)
-        QDoubleSpinBox.__init__(self)
+        with _disabled_init(_AbstractSpinBox):
+            QDoubleSpinBox.__init__(self)
         self.setAlignment(Qt.AlignCenter)
         self.setMinimum(rng[0])
         self.setMaximum(rng[1])
         self.setKeyboardTracking(False)
         if step is None:
-            self.setSingleStep((rng[1] - rng[0]) / 20.)
+            self.setSingleStep((rng[1] - rng[0]) / 20.0)
         else:
             self.setSingleStep(step)
         self.setValue(value)
@@ -299,11 +362,11 @@ class _SpinBox(QDoubleSpinBox, _AbstractSpinBox, _Widget,
 
 
 class _ComboBox(QComboBox, _AbstractComboBox, _Widget, metaclass=_BaseWidget):
-
     def __init__(self, value, items, callback):
         _AbstractComboBox.__init__(value=value, items=items, callback=callback)
         _Widget.__init__(self)
-        QComboBox.__init__(self)
+        with _disabled_init(_AbstractComboBox):
+            QComboBox.__init__(self)
         self.addItems(items)
         self.setCurrentText(value)
         self.currentTextChanged.connect(callback)
@@ -316,14 +379,12 @@ class _ComboBox(QComboBox, _AbstractComboBox, _Widget, metaclass=_BaseWidget):
         return self.currentText()
 
 
-class _RadioButtons(QVBoxLayout, _AbstractRadioButtons, _Widget,
-                    metaclass=_BaseWidget):
-
+class _RadioButtons(QVBoxLayout, _AbstractRadioButtons, _Widget, metaclass=_BaseWidget):
     def __init__(self, value, items, callback):
-        _AbstractRadioButtons.__init__(
-            value=value, items=items, callback=callback)
+        _AbstractRadioButtons.__init__(value=value, items=items, callback=callback)
         _Widget.__init__(self)
-        QVBoxLayout.__init__(self)
+        with _disabled_init(_AbstractRadioButtons):
+            QVBoxLayout.__init__(self)
         self._button_group = QButtonGroup()
         self._button_group.setExclusive(True)
         for val in items:
@@ -332,8 +393,7 @@ class _RadioButtons(QVBoxLayout, _AbstractRadioButtons, _Widget,
                 button.setChecked(True)
             self._button_group.addButton(button)
             self.addWidget(button)
-        self._button_group.buttonClicked.connect(
-            lambda button: callback(button.text()))
+        self._button_group.buttonClicked.connect(lambda button: callback(button.text()))
 
     def _set_value(self, value):
         for button in self._button_group.buttons():
@@ -345,26 +405,36 @@ class _RadioButtons(QVBoxLayout, _AbstractRadioButtons, _Widget,
 
 
 class _GroupBox(QGroupBox, _AbstractGroupBox, _Widget, metaclass=_BaseWidget):
-
     def __init__(self, name, items):
         _AbstractGroupBox.__init__(name=name, items=items)
         _Widget.__init__(self)
-        QGroupBox.__init__(self, name)
+        with _disabled_init(_AbstractGroupBox):
+            QGroupBox.__init__(self, name)
         self._layout = _VBoxLayout()
         for item in items:
             self._layout._add_widget(item)
         self.setLayout(self._layout)
 
 
-class _FileButton(_Button, _AbstractFileButton, _Widget,
-                  metaclass=_BaseWidget):
-
-    def __init__(self, callback, content_filter=None, initial_directory=None,
-                 save=False, is_directory=False, icon='folder', window=None):
+class _FileButton(_Button, _AbstractFileButton, _Widget, metaclass=_BaseWidget):
+    def __init__(
+        self,
+        callback,
+        content_filter=None,
+        initial_directory=None,
+        save=False,
+        is_directory=False,
+        icon="folder",
+        window=None,
+    ):
         _AbstractFileButton.__init__(
-            callback=callback, content_filter=content_filter,
-            initial_directory=initial_directory, save=save,
-            is_directory=is_directory, window=window)
+            callback=callback,
+            content_filter=content_filter,
+            initial_directory=initial_directory,
+            save=save,
+            is_directory=is_directory,
+            window=window,
+        )
         _Widget.__init__(self)
 
         def fp_callback():
@@ -374,29 +444,27 @@ class _FileButton(_Button, _AbstractFileButton, _Widget,
                 )
             elif save:
                 name = QFileDialog.getSaveFileName(
-                    parent=window, directory=initial_directory,
-                    filter=content_filter)
+                    parent=window, directory=initial_directory, filter=content_filter
+                )
             else:
                 name = QFileDialog.getOpenFileName(
-                    parent=window, directory=initial_directory,
-                    filter=content_filter)
+                    parent=window, directory=initial_directory, filter=content_filter
+                )
             name = name[0] if isinstance(name, tuple) else name
             # handle the cancel button
             if len(name) == 0:
                 return
             callback(name)
 
-        _Button.__init__(self, '', callback=fp_callback, icon=icon)
+        _Button.__init__(self, "", callback=fp_callback, icon=icon)
 
 
-class _PlayMenu(QVBoxLayout, _AbstractPlayMenu, _Widget,
-                metaclass=_BaseWidget):
-
+class _PlayMenu(QVBoxLayout, _AbstractPlayMenu, _Widget, metaclass=_BaseWidget):
     def __init__(self, value, rng, callback):
-        _AbstractPlayMenu.__init__(
-            value=value, rng=rng, callback=callback)
+        _AbstractPlayMenu.__init__(value=value, rng=rng, callback=callback)
         _Widget.__init__(self)
-        QVBoxLayout.__init__(self)
+        with _disabled_init(_AbstractPlayMenu):
+            QVBoxLayout.__init__(self)
         self._slider = QSlider(Qt.Horizontal)
         self._slider.setMinimum(rng[0])
         self._slider.setMaximum(rng[1])
@@ -405,23 +473,23 @@ class _PlayMenu(QVBoxLayout, _AbstractPlayMenu, _Widget,
         self._slider.valueChanged.connect(callback)
         self._nav_hbox = QHBoxLayout()
         self._play_button = QPushButton()
-        self._play_button.setIcon(QIcon.fromTheme('play'))
+        self._play_button.setIcon(QIcon.fromTheme("play"))
         self._nav_hbox.addWidget(self._play_button)
         self._pause_button = QPushButton()
-        self._pause_button.setIcon(QIcon.fromTheme('pause'))
+        self._pause_button.setIcon(QIcon.fromTheme("pause"))
         self._nav_hbox.addWidget(self._pause_button)
         self._reset_button = QPushButton()
-        self._reset_button.setIcon(QIcon.fromTheme('reset'))
+        self._reset_button.setIcon(QIcon.fromTheme("reset"))
         self._nav_hbox.addWidget(self._reset_button)
         self._loop_button = QPushButton()
-        self._loop_button.setIcon(QIcon.fromTheme('restore'))
-        self._loop_button.setStyleSheet('background-color : lightgray;')
+        self._loop_button.setIcon(QIcon.fromTheme("restore"))
+        self._loop_button.setStyleSheet("background-color : lightgray;")
         self._loop_button._checked = True
 
         def loop_callback():
             self._loop_button._checked = not self._loop_button._checked
-            color = 'lightgray' if self._loop_button._checked else 'darkgray'
-            self._loop_button.setStyleSheet(f'background-color : {color};')
+            color = "lightgray" if self._loop_button._checked else "darkgray"
+            self._loop_button.setStyleSheet(f"background-color : {color};")
 
         self._loop_button.released.connect(loop_callback)
         self._nav_hbox.addWidget(self._loop_button)
@@ -439,8 +507,7 @@ class _PlayMenu(QVBoxLayout, _AbstractPlayMenu, _Widget,
         self._timer.setInterval(250)
         self._play_button.released.connect(self._timer.start)
         self._pause_button.released.connect(self._timer.stop)
-        self._reset_button.released.connect(
-            lambda: self._slider.setValue(rng[0]))
+        self._reset_button.released.connect(lambda: self._slider.setValue(rng[0]))
         self.addWidget(self._slider)
         self.addLayout(self._nav_hbox)
 
@@ -461,14 +528,29 @@ class _PlayMenu(QVBoxLayout, _AbstractPlayMenu, _Widget,
 
 
 class _Popup(QMessageBox, _AbstractPopup, _Widget, metaclass=_BaseWidget):
-
-    def __init__(self, title, text, info_text=None, callback=None,
-                 icon='warning', buttons=None, window=None):
+    def __init__(
+        self,
+        title,
+        text,
+        info_text=None,
+        callback=None,
+        icon="warning",
+        buttons=None,
+        window=None,
+    ):
         _AbstractPopup.__init__(
-            self, title=title, text=text, info_text=info_text,
-            callback=callback, icon=icon, buttons=buttons, window=window)
+            self,
+            title=title,
+            text=text,
+            info_text=info_text,
+            callback=callback,
+            icon=icon,
+            buttons=buttons,
+            window=window,
+        )
         _Widget.__init__(self)
-        QMessageBox.__init__(self)
+        with _disabled_init(_AbstractPopup):
+            QMessageBox.__init__(self, parent=window)
         self.setWindowTitle(title)
         self.setText(text)
         # icon is one of _Dialog.supported_icon_names
@@ -478,7 +560,7 @@ class _Popup(QMessageBox, _AbstractPopup, _Widget, metaclass=_BaseWidget):
             self.setInformativeText(info_text)
 
         if buttons is None:
-            buttons = ['Ok']
+            buttons = ["Ok"]
 
         button_ids = list()
         for button in buttons:
@@ -491,8 +573,7 @@ class _Popup(QMessageBox, _AbstractPopup, _Widget, metaclass=_BaseWidget):
         self.setStandardButtons(standard_buttons)
         self.setDefaultButton(default_button)
         if callback:
-            self.buttonClicked.connect(
-                lambda button: callback(button.text().title()))
+            self.buttonClicked.connect(lambda button: callback(button.text().title()))
         _qt_raise_window(self)
         self._show()
 
@@ -501,7 +582,6 @@ class _Popup(QMessageBox, _AbstractPopup, _Widget, metaclass=_BaseWidget):
 
 
 class _ScrollArea(QScrollArea):
-
     def __init__(self, width, height, widget):
         QScrollArea.__init__(self)
         self.setWidget(widget)
@@ -509,9 +589,7 @@ class _ScrollArea(QScrollArea):
         self.setWidgetResizable(True)
 
 
-class _HBoxLayout(QHBoxLayout, _AbstractHBoxLayout, _Widget,
-                  metaclass=_BaseWidget):
-
+class _HBoxLayout(QHBoxLayout, _AbstractHBoxLayout, _Widget, metaclass=_BaseWidget):
     def __init__(self, height=None, scroll=None):
         _AbstractHBoxLayout.__init__(self, height=height, scroll=scroll)
         _Widget.__init__(self)
@@ -521,7 +599,8 @@ class _HBoxLayout(QHBoxLayout, _AbstractHBoxLayout, _Widget,
             self._scroll_widget = QWidget()
             self._parent_layout = QHBoxLayout()
             self._parent_layout.addWidget(
-                _ScrollArea(scroll[0], scroll[1], self._scroll_widget))
+                _ScrollArea(scroll[0], scroll[1], self._scroll_widget)
+            )
             self._scroll_widget.setLayout(self)
 
         self._height = height
@@ -540,9 +619,7 @@ class _HBoxLayout(QHBoxLayout, _AbstractHBoxLayout, _Widget,
         self.addStretch(amount)
 
 
-class _VBoxLayout(QVBoxLayout, _AbstractVBoxLayout, _Widget,
-                  metaclass=_BaseWidget):
-
+class _VBoxLayout(QVBoxLayout, _AbstractVBoxLayout, _Widget, metaclass=_BaseWidget):
     def __init__(self, width=None, scroll=None):
         _AbstractVBoxLayout.__init__(self, width=width, scroll=scroll)
         _Widget.__init__(self)
@@ -552,7 +629,8 @@ class _VBoxLayout(QVBoxLayout, _AbstractVBoxLayout, _Widget,
             self._scroll_widget = QWidget()
             self._parent_layout = QHBoxLayout()
             self._parent_layout.addWidget(
-                _ScrollArea(scroll[0], scroll[1], self._scroll_widget))
+                _ScrollArea(scroll[0], scroll[1], self._scroll_widget)
+            )
             self._scroll_widget.setLayout(self)
 
         self._width = width
@@ -571,9 +649,7 @@ class _VBoxLayout(QVBoxLayout, _AbstractVBoxLayout, _Widget,
         self.addStretch(amount)
 
 
-class _GridLayout(QGridLayout, _AbstractGridLayout, _Widget,
-                  metaclass=_BaseWidget):
-
+class _GridLayout(QGridLayout, _AbstractGridLayout, _Widget, metaclass=_BaseWidget):
     def __init__(self, height=None, width=None):
         _AbstractGridLayout.__init__(self)
         _Widget.__init__(self)
@@ -598,10 +674,8 @@ class _BaseCanvas(type(FigureCanvas), type(_AbstractCanvas)):
 
 
 class _Canvas(FigureCanvas, _AbstractCanvas, metaclass=_BaseCanvas):
-
     def __init__(self, width, height, dpi):
-        _AbstractCanvas.__init__(
-            self, width=width, height=height, dpi=dpi)
+        _AbstractCanvas.__init__(self, width=width, height=height, dpi=dpi)
         self.fig = Figure(figsize=(width, height), dpi=dpi)
         self.ax = self.fig.add_subplot(111, position=[0.15, 0.15, 0.75, 0.75])
         FigureCanvas.__init__(self, self.fig)
@@ -629,15 +703,31 @@ class _Canvas(FigureCanvas, _AbstractCanvas, metaclass=_BaseCanvas):
 # https://github.com/mne-tools/mne-python/issues/9182
 
 
+# This is necessary to make PySide6 happy -- something weird with the
+# __init__ calling causes the _AbstractXYZ class __init__ to be called twice
+@contextmanager
+def _disabled_init(klass):
+    orig = klass.__init__
+    klass.__init__ = lambda *args, **kwargs: None
+    try:
+        yield
+    finally:
+        klass.__init__ = orig
+
+
 class _MNEMainWindow(MainWindow):
     def __init__(self, parent=None, title=None, size=None):
-        MainWindow.__init__(self, parent=parent, title=title, size=size)
+        with _disabled_init(_Widget):
+            MainWindow.__init__(self, parent=parent, title=title, size=size)
         self.setAttribute(Qt.WA_ShowWithoutActivating, True)
+        self.setAttribute(Qt.WA_DeleteOnClose, True)
+        from . import renderer
+
+        if renderer.MNE_3D_BACKEND_TESTING:
+            self.setWindowFlags(self.windowFlags() | Qt.WindowStaysOnBottomHint)
 
 
-class _AppWindow(_AbstractAppWindow, _MNEMainWindow, _Widget,
-                 metaclass=_BaseWidget):
-
+class _AppWindow(_AbstractAppWindow, _MNEMainWindow, _Widget, metaclass=_BaseWidget):
     def __init__(self, size=None, fullscreen=False):
         self._app = _init_mne_qtapp()
         _AbstractAppWindow.__init__(self)
@@ -673,6 +763,7 @@ class _AppWindow(_AbstractAppWindow, _MNEMainWindow, _Widget,
             # functions to call after closing
             for callback in self._after_close_callbacks:
                 callback()
+
         self.closeEvent = closeEvent
 
     def _set_central_layout(self, central_layout):
@@ -721,11 +812,13 @@ class _AppWindow(_AbstractAppWindow, _MNEMainWindow, _Widget,
 
 
 class _3DRenderer(_PyVistaRenderer):
-    _kind = 'qt'
+    _kind = "qt"
 
+    @_qt_safe_window(always_close=False)
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+    @_qt_safe_window()
     def show(self):
         super().show()
         with _qt_disable_paint(self.plotter):
@@ -741,9 +834,6 @@ class _3DRenderer(_PyVistaRenderer):
         # GUI. Therefore, we close after all these events have been processed
         # here.
         self._process_events()
-        splash = getattr(self.figure, 'splash', False)
-        if splash:
-            splash.close()
         _qt_raise_window(self.plotter.app_window)
 
     def _clean(self):
@@ -809,17 +899,40 @@ class _QtKeyPress(_AbstractKeyPress):
 class _QtDialog(_AbstractDialog):
     # from QMessageBox.StandardButtons
     supported_button_names = [
-        "Ok", "Open", "Save", "Cancel", "Close", "Discard", "Apply",
-        "Reset", "RestoreDefaults", "Help", "SaveAll", "Yes",
-        "YesToAll", "No", "NoToAll", "Abort", "Retry", "Ignore"
+        "Ok",
+        "Open",
+        "Save",
+        "Cancel",
+        "Close",
+        "Discard",
+        "Apply",
+        "Reset",
+        "RestoreDefaults",
+        "Help",
+        "SaveAll",
+        "Yes",
+        "YesToAll",
+        "No",
+        "NoToAll",
+        "Abort",
+        "Retry",
+        "Ignore",
     ]
     # from QMessageBox.Icon
-    supported_icon_names = [
-        "NoIcon", "Question", "Information", "Warning", "Critical"
-    ]
+    supported_icon_names = ["NoIcon", "Question", "Information", "Warning", "Critical"]
 
-    def _dialog_create(self, title, text, info_text, callback, *,
-                       icon='Warning', buttons=[], modal=True, window=None):
+    def _dialog_create(
+        self,
+        title,
+        text,
+        info_text,
+        callback,
+        *,
+        icon="Warning",
+        buttons=[],
+        modal=True,
+        window=None,
+    ):
         window = self._window if window is None else window
         widget = QMessageBox(window)
         widget.setWindowTitle(title)
@@ -863,8 +976,7 @@ class _QtLayout(_AbstractLayout):
     def _layout_initialize(self, max_width):
         pass
 
-    def _layout_add_widget(self, layout, widget, stretch=0,
-                           *, row=None, col=None):
+    def _layout_add_widget(self, layout, widget, stretch=0, *, row=None, col=None):
         """Add a widget to an existing layout."""
         if isinstance(widget, QLayout):
             layout.addLayout(widget)
@@ -874,22 +986,23 @@ class _QtLayout(_AbstractLayout):
             else:
                 layout.addWidget(widget, stretch)
 
-    def _layout_create(self, orientation='vertical'):
-        if orientation == 'vertical':
+    def _layout_create(self, orientation="vertical"):
+        if orientation == "vertical":
             layout = QVBoxLayout()
-        elif orientation == 'horizontal':
+        elif orientation == "horizontal":
             layout = QHBoxLayout()
         else:
-            assert orientation == 'grid'
+            assert orientation == "grid"
             layout = QGridLayout()
         return layout
 
 
 class _QtDock(_AbstractDock, _QtLayout):
-    def _dock_initialize(self, window=None, name="Controls",
-                         area="left", max_width=None):
+    def _dock_initialize(
+        self, window=None, name="Controls", area="left", max_width=None
+    ):
         window = self._window if window is None else window
-        qt_area = getattr(Qt, f'{area.capitalize()}DockWidgetArea')
+        qt_area = getattr(Qt, f"{area.capitalize()}DockWidgetArea")
         self._dock, self._dock_layout = _create_dock_widget(
             window, name, qt_area, max_width=max_width
         )
@@ -916,9 +1029,7 @@ class _QtDock(_AbstractDock, _QtLayout):
         layout = QVBoxLayout() if vertical else QHBoxLayout()
         return layout
 
-    def _dock_add_label(
-        self, value, *, align=False, layout=None, selectable=False
-    ):
+    def _dock_add_label(self, value, *, align=False, layout=None, selectable=False):
         layout = self._dock_layout if layout is None else layout
         widget = QLabel()
         if align:
@@ -931,23 +1042,25 @@ class _QtDock(_AbstractDock, _QtLayout):
         return _QtWidget(widget)
 
     def _dock_add_button(
-        self, name, callback, *, style='pushbutton', icon=None, tooltip=None,
-        layout=None
+        self,
+        name,
+        callback,
+        *,
+        style="pushbutton",
+        icon=None,
+        tooltip=None,
+        layout=None,
     ):
         _check_option(
-            parameter='style',
-            value=style,
-            allowed_values=('toolbutton', 'pushbutton')
+            parameter="style", value=style, allowed_values=("toolbutton", "pushbutton")
         )
-        if style == 'toolbutton':
+        if style == "toolbutton":
             widget = QToolButton()
             widget.setText(name)
         else:
             widget = QPushButton(name)
             # Don't change text color upon button press
-            widget.setStyleSheet(
-                'QPushButton:pressed {color: none;}'
-            )
+            widget.setStyleSheet("QPushButton:pressed {color: none;}")
         if icon is not None:
             widget.setIcon(self._icons[icon])
 
@@ -962,17 +1075,24 @@ class _QtDock(_AbstractDock, _QtLayout):
         layout = self._dock_layout if layout is None else layout
         if name is not None:
             hlayout = self._dock_add_layout(not compact)
-            self._dock_add_label(
-                value=name, align=not compact, layout=hlayout)
+            self._dock_add_label(value=name, align=not compact, layout=hlayout)
             self._layout_add_widget(layout, hlayout)
             layout = hlayout
         return layout
 
-    def _dock_add_slider(self, name, value, rng, callback, *,
-                         compact=True, double=False, tooltip=None,
-                         layout=None):
-        layout = self._dock_named_layout(
-            name=name, layout=layout, compact=compact)
+    def _dock_add_slider(
+        self,
+        name,
+        value,
+        rng,
+        callback,
+        *,
+        compact=True,
+        double=False,
+        tooltip=None,
+        layout=None,
+    ):
+        layout = self._dock_named_layout(name=name, layout=layout, compact=compact)
         slider_class = QFloatSlider if double else QSlider
         cast = float if double else int
         widget = slider_class(Qt.Horizontal)
@@ -987,8 +1107,7 @@ class _QtDock(_AbstractDock, _QtLayout):
         self._layout_add_widget(layout, widget)
         return _QtWidget(widget)
 
-    def _dock_add_check_box(self, name, value, callback, *, tooltip=None,
-                            layout=None):
+    def _dock_add_check_box(self, name, value, callback, *, tooltip=None, layout=None):
         layout = self._dock_layout if layout is None else layout
         widget = QCheckBox(name)
         _set_widget_tooltip(widget, tooltip)
@@ -997,11 +1116,20 @@ class _QtDock(_AbstractDock, _QtLayout):
         self._layout_add_widget(layout, widget)
         return _QtWidget(widget)
 
-    def _dock_add_spin_box(self, name, value, rng, callback, *,
-                           compact=True, double=True, step=None,
-                           tooltip=None, layout=None):
-        layout = self._dock_named_layout(
-            name=name, layout=layout, compact=compact)
+    def _dock_add_spin_box(
+        self,
+        name,
+        value,
+        rng,
+        callback,
+        *,
+        compact=True,
+        double=True,
+        step=None,
+        tooltip=None,
+        layout=None,
+    ):
+        layout = self._dock_named_layout(name=name, layout=layout, compact=compact)
         value = value if double else int(value)
         widget = QDoubleSpinBox() if double else QSpinBox()
         _set_widget_tooltip(widget, tooltip)
@@ -1010,7 +1138,7 @@ class _QtDock(_AbstractDock, _QtLayout):
         widget.setMaximum(rng[1])
         widget.setKeyboardTracking(False)
         if step is None:
-            inc = (rng[1] - rng[0]) / 20.
+            inc = (rng[1] - rng[0]) / 20.0
             inc = max(int(round(inc)), 1) if not double else inc
             widget.setSingleStep(inc)
         else:
@@ -1020,10 +1148,10 @@ class _QtDock(_AbstractDock, _QtLayout):
         self._layout_add_widget(layout, widget)
         return _QtWidget(widget)
 
-    def _dock_add_combo_box(self, name, value, rng, callback, *, compact=True,
-                            tooltip=None, layout=None):
-        layout = self._dock_named_layout(
-            name=name, layout=layout, compact=compact)
+    def _dock_add_combo_box(
+        self, name, value, rng, callback, *, compact=True, tooltip=None, layout=None
+    ):
+        layout = self._dock_named_layout(name=name, layout=layout, compact=compact)
         widget = QComboBox()
         _set_widget_tooltip(widget, tooltip)
         widget.addItems(rng)
@@ -1033,8 +1161,9 @@ class _QtDock(_AbstractDock, _QtLayout):
         self._layout_add_widget(layout, widget)
         return _QtWidget(widget)
 
-    def _dock_add_radio_buttons(self, value, rng, callback, *, vertical=True,
-                                layout=None):
+    def _dock_add_radio_buttons(
+        self, value, rng, callback, *, vertical=True, layout=None
+    ):
         layout = self._dock_layout if layout is None else layout
         group_layout = QVBoxLayout() if vertical else QHBoxLayout()
         group = QButtonGroup()
@@ -1047,6 +1176,7 @@ class _QtDock(_AbstractDock, _QtLayout):
 
         def func(button):
             callback(button.text())
+
         group.buttonClicked.connect(func)
         self._layout_add_widget(layout, group_layout)
         return _QtWidgetList(group)
@@ -1059,8 +1189,7 @@ class _QtDock(_AbstractDock, _QtLayout):
         self._layout_add_widget(layout, widget)
         return hlayout
 
-    def _dock_add_text(self, name, value, placeholder, *, callback=None,
-                       layout=None):
+    def _dock_add_text(self, name, value, placeholder, *, callback=None, layout=None):
         layout = self._dock_layout if layout is None else layout
         widget = QLineEdit(value)
         widget.setPlaceholderText(placeholder)
@@ -1070,25 +1199,37 @@ class _QtDock(_AbstractDock, _QtLayout):
         return _QtWidget(widget)
 
     def _dock_add_file_button(
-        self, name, desc, func, *, filter=None, initial_directory=None,
-        save=False, is_directory=False, icon=False, tooltip=None, layout=None
+        self,
+        name,
+        desc,
+        func,
+        *,
+        filter=None,
+        initial_directory=None,
+        save=False,
+        is_directory=False,
+        icon=False,
+        tooltip=None,
+        layout=None,
     ):
         layout = self._dock_layout if layout is None else layout
+        weakself = weakref.ref(self)
 
         def callback():
+            self = weakself()
+            if not self:
+                return
             if is_directory:
                 name = QFileDialog.getExistingDirectory(
-                    directory=initial_directory
+                    parent=self._window, directory=initial_directory
                 )
             elif save:
                 name = QFileDialog.getSaveFileName(
-                    directory=initial_directory,
-                    filter=filter
+                    parent=self._window, directory=initial_directory, filter=filter
                 )
             else:
                 name = QFileDialog.getOpenFileName(
-                    directory=initial_directory,
-                    filter=filter
+                    parent=self._window, directory=initial_directory, filter=filter
                 )
             name = name[0] if isinstance(name, tuple) else name
             # handle the cancel button
@@ -1097,15 +1238,11 @@ class _QtDock(_AbstractDock, _QtLayout):
             func(name)
 
         if icon:
-            kwargs = dict(style='toolbutton', icon='folder')
+            kwargs = dict(style="toolbutton", icon="folder")
         else:
             kwargs = dict()
         button_widget = self._dock_add_button(
-            name=desc,
-            callback=callback,
-            tooltip=tooltip,
-            layout=layout,
-            **kwargs
+            name=desc, callback=callback, tooltip=tooltip, layout=layout, **kwargs
         )
         return button_widget  # It's already a _QtWidget instance
 
@@ -1121,9 +1258,11 @@ class QFloatSlider(QSlider):
         self._opt = QStyleOptionSlider()
         self.initStyleOption(self._opt)
         self._gr = self.style().subControlRect(
-            QStyle.CC_Slider, self._opt, QStyle.SC_SliderGroove, self)
+            QStyle.CC_Slider, self._opt, QStyle.SC_SliderGroove, self
+        )
         self._sr = self.style().subControlRect(
-            QStyle.CC_Slider, self._opt, QStyle.SC_SliderHandle, self)
+            QStyle.CC_Slider, self._opt, QStyle.SC_SliderHandle, self
+        )
         self._precision = 10000
         super().valueChanged.connect(self._convert)
 
@@ -1161,18 +1300,19 @@ class QFloatSlider(QSlider):
         opt = QStyleOptionSlider()
         self.initStyleOption(opt)
         sr = self.style().subControlRect(
-            QStyle.CC_Slider, opt, QStyle.SC_SliderHandle, self)
-        if (event.button() != Qt.LeftButton or sr.contains(event.pos())):
+            QStyle.CC_Slider, opt, QStyle.SC_SliderHandle, self
+        )
+        if event.button() != Qt.LeftButton or sr.contains(event.pos()):
             super().mousePressEvent(event)
             return
         if self.orientation() == Qt.Vertical:
             half = (0.5 * sr.height()) + 0.5
             max_ = self.height()
-            pos = max_ - event.y()
+            pos = max_ - event.pos().y()
         else:
             half = (0.5 * sr.width()) + 0.5
             max_ = self.width()
-            pos = event.x()
+            pos = event.pos().x()
         max_ = max_ - 2 * half
         pos = min(max(pos - half, 0), max_) / max_
         val = self.minimum() + (self.maximum() - self.minimum()) * pos
@@ -1190,12 +1330,10 @@ class _QtToolBar(_AbstractToolBar, _QtLayout):
         self._tool_bar = window.addToolBar(name)
         self._tool_bar_layout = self._tool_bar.layout()
 
-    def _tool_bar_add_button(self, name, desc, func, *, icon_name=None,
-                             shortcut=None):
+    def _tool_bar_add_button(self, name, desc, func, *, icon_name=None, shortcut=None):
         icon_name = name if icon_name is None else icon_name
         icon = self._icons[icon_name]
-        self.actions[name] = _QtAction(self._tool_bar.addAction(
-            icon, desc, func))
+        self.actions[name] = _QtAction(self._tool_bar.addAction(icon, desc, func))
         if shortcut is not None:
             self.actions[name].set_shortcut(shortcut)
 
@@ -1231,17 +1369,17 @@ class _QtToolBar(_AbstractToolBar, _QtLayout):
 
     def _tool_bar_add_play_button(self, name, desc, func, *, shortcut=None):
         self._tool_bar_add_button(
-            name=name, desc=desc, func=func, icon_name=None, shortcut=shortcut)
+            name=name, desc=desc, func=func, icon_name=None, shortcut=shortcut
+        )
 
 
 class _QtMenuBar(_AbstractMenuBar):
     def _menu_initialize(self, window=None):
+        window = self._window if window is None else window
         self._menus = dict()
         self._menu_actions = dict()
-        self._menu_bar = QMenuBar()
+        self._menu_bar = QMenuBar(window)
         self._menu_bar.setNativeMenuBar(False)
-        window = self._window if window is None else window
-        window.setMenuBar(self._menu_bar)
 
     def _menu_add_submenu(self, name, desc):
         self._menus[name] = self._menu_bar.addMenu(desc)
@@ -1249,8 +1387,7 @@ class _QtMenuBar(_AbstractMenuBar):
 
     def _menu_add_button(self, menu_name, name, desc, func):
         menu = self._menus[menu_name]
-        self._menu_actions[menu_name][name] = \
-            _QtAction(menu.addAction(desc, func))
+        self._menu_actions[menu_name][name] = _QtAction(menu.addAction(desc, func))
 
 
 class _QtStatusBar(_AbstractStatusBar, _QtLayout):
@@ -1273,20 +1410,20 @@ class _QtStatusBar(_AbstractStatusBar, _QtLayout):
 
 
 class _QtPlayback(_AbstractPlayback):
-    def _playback_initialize(self, func, timeout, value, rng,
-                             time_widget, play_widget):
+    def _playback_initialize(self, func, timeout, value, rng, time_widget, play_widget):
         self.figure.plotter.add_callback(func, timeout)
 
 
 class _QtMplInterface(_AbstractMplInterface):
     def _mpl_initialize(self):
-        from qtpy import QtWidgets
         from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
+        from qtpy import QtWidgets
+
         self.canvas = FigureCanvasQTAgg(self.fig)
         FigureCanvasQTAgg.setSizePolicy(
             self.canvas,
             QtWidgets.QSizePolicy.Expanding,
-            QtWidgets.QSizePolicy.Expanding
+            QtWidgets.QSizePolicy.Expanding,
         )
         FigureCanvasQTAgg.updateGeometry(self.canvas)
 
@@ -1309,9 +1446,7 @@ class _QtBrainMplCanvas(_AbstractBrainMplCanvas, _QtMplInterface):
 
 
 class _QtWindow(_AbstractWindow):
-    def _window_initialize(
-        self, *, window=None, central_layout=None, fullscreen=False
-    ):
+    def _window_initialize(self, *, window=None, central_layout=None, fullscreen=False):
         super()._window_initialize()
         self._interactor = self.figure.plotter.interactor
         if window is None:
@@ -1354,6 +1489,7 @@ class _QtWindow(_AbstractWindow):
             # functions to call after closing
             for callback in self._window_after_close_callbacks:
                 callback()
+
         self._window.closeEvent = closeEvent
 
     def _window_load_icons(self):
@@ -1397,20 +1533,21 @@ class _QtWindow(_AbstractWindow):
     def _window_get_simple_canvas(self, width, height, dpi):
         return _QtMplCanvas(width, height, dpi)
 
-    def _window_get_mplcanvas(self, brain, interactor_fraction, show_traces,
-                              separate_canvas):
+    def _window_get_mplcanvas(
+        self, brain, interactor_fraction, show_traces, separate_canvas
+    ):
         w, h = self._window_get_mplcanvas_size(interactor_fraction)
         self._interactor_fraction = interactor_fraction
         self._show_traces = show_traces
         self._separate_canvas = separate_canvas
-        self._mplcanvas = _QtBrainMplCanvas(
-            brain, w, h, self._window_get_dpi())
+        self._mplcanvas = _QtBrainMplCanvas(brain, w, h, self._window_get_dpi())
         return self._mplcanvas
 
     def _window_adjust_mplcanvas_layout(self):
         canvas = self._mplcanvas.canvas
         self._mpl_dock, dock_layout = _create_dock_widget(
-            self._window, "Traces", Qt.BottomDockWidgetArea)
+            self._window, "Traces", Qt.BottomDockWidgetArea
+        )
         dock_layout.addWidget(canvas)
 
     def _window_get_cursor(self):
@@ -1425,8 +1562,8 @@ class _QtWindow(_AbstractWindow):
 
     @contextmanager
     def _window_ensure_minimum_sizes(self):
-        sz = self.figure.store['window_size']
-        adjust_mpl = (self._show_traces and not self._separate_canvas)
+        sz = self.figure.store["window_size"]
+        adjust_mpl = self._show_traces and not self._separate_canvas
         # plotter:            pyvista.plotting.qt_plotting.BackgroundPlotter
         # plotter.interactor: vtk.qt.QVTKRenderWindowInteractor.QVTKRenderWindowInteractor -> QWidget  # noqa
         # plotter.app_window: pyvista.plotting.qt_plotting.MainWindow -> QMainWindow  # noqa
@@ -1437,8 +1574,12 @@ class _QtWindow(_AbstractWindow):
         # print('*' * 80)
         # print(0, self._interactor.app_window.size().height(), self._interactor.size().height(), self._mpl_dock.widget().height(), self._mplcanvas.canvas.size().height())  # noqa
         if adjust_mpl:
-            mpl_h = int(round((sz[1] * self._interactor_fraction) /
-                              (1 - self._interactor_fraction)))
+            mpl_h = int(
+                round(
+                    (sz[1] * self._interactor_fraction)
+                    / (1 - self._interactor_fraction)
+                )
+            )
             self._mplcanvas.canvas.setMinimumSize(sz[0], mpl_h)
             self._mpl_dock.widget().setMinimumSize(sz[0], mpl_h)
         try:
@@ -1460,8 +1601,7 @@ class _QtWindow(_AbstractWindow):
             # 4. Compute the extra height required for dock decorations and add
             win_h = win_sz.height()
             if adjust_mpl:
-                win_h += max(
-                    self._mpl_dock.widget().size().height() - mpl_h, 0)
+                win_h += max(self._mpl_dock.widget().size().height() - mpl_h, 0)
             # 5. Resize the window and interactor to the correct size
             #    (not sure why, but this is required on macOS at least)
             self._interactor.window_size = (win_sz.width(), win_h)
@@ -1474,13 +1614,13 @@ class _QtWindow(_AbstractWindow):
             default_theme = _qt_detect_theme()
         else:
             default_theme = theme
-        theme = get_config('MNE_3D_OPTION_THEME', default_theme)
+        theme = get_config("MNE_3D_OPTION_THEME", default_theme)
         stylesheet = _qt_get_stylesheet(theme)
         self._window.setStyleSheet(stylesheet)
         if _qt_is_dark(self._window):
-            QIcon.setThemeName('dark')
+            QIcon.setThemeName("dark")
         else:
-            QIcon.setThemeName('light')
+            QIcon.setThemeName("light")
 
     def _window_create(self):
         return _MNEMainWindow()
@@ -1560,11 +1700,11 @@ class _QtWidget(_AbstractWdgt):
             self._widget.repaint()
 
     def get_tooltip(self):
-        assert hasattr(self._widget, 'toolTip')
+        assert hasattr(self._widget, "toolTip")
         return self._widget.toolTip()
 
     def set_tooltip(self, tooltip):
-        assert hasattr(self._widget, 'setToolTip')
+        assert hasattr(self._widget, "setToolTip")
         self._widget.setToolTip(tooltip)
 
     def set_style(self, style):
@@ -1587,12 +1727,14 @@ class _QtDialogWidget(_QtWidget):
         self._modal = modal
         self._communicator = _QtDialogCommunicator()
         self._communicator.signal_show.connect(self.show)
+        self._widget.setAttribute(Qt.WA_DeleteOnClose, True)
 
     def trigger(self, button):
         button_id = getattr(QMessageBox, button)
         for current_button in self._widget.buttons():
             if self._widget.standardButton(current_button) == button_id:
                 current_button.click()
+                break
 
     def show(self, thread=False):
         if thread:
@@ -1615,16 +1757,27 @@ class _QtAction(_AbstractAction):
         self._action.setShortcut(shortcut)
 
 
-class _Renderer(_PyVistaRenderer, _QtDock, _QtToolBar, _QtMenuBar,
-                _QtStatusBar, _QtWindow, _QtPlayback, _QtDialog,
-                _QtKeyPress):
-    _kind = 'qt'
+class _Renderer(
+    _PyVistaRenderer,
+    _QtDock,
+    _QtToolBar,
+    _QtMenuBar,
+    _QtStatusBar,
+    _QtWindow,
+    _QtPlayback,
+    _QtDialog,
+    _QtKeyPress,
+    _TimeInteraction,
+):
+    _kind = "qt"
 
+    @_qt_safe_window(always_close=False)
     def __init__(self, *args, **kwargs):
-        fullscreen = kwargs.pop('fullscreen', False)
+        fullscreen = kwargs.pop("fullscreen", False)
         super().__init__(*args, **kwargs)
         self._window_initialize(fullscreen=fullscreen)
 
+    @_qt_safe_window()
     def show(self):
         super().show()
         with _qt_disable_paint(self.plotter):
@@ -1641,9 +1794,6 @@ class _Renderer(_PyVistaRenderer, _QtDock, _QtToolBar, _QtMenuBar,
         # GUI. Therefore, we close after all these events have been processed
         # here.
         self._process_events()
-        splash = getattr(self.figure, 'splash', False)
-        if splash:
-            splash.close()
         _qt_raise_window(self.plotter.app_window)
 
 
@@ -1669,10 +1819,10 @@ def _create_dock_widget(window, name, area, *, max_width=None):
     widget.setLayout(dock_layout)
     # Fix resize grip size
     # https://stackoverflow.com/a/65050468/2175965
-    styles = ['margin: 4px;']
+    styles = ["margin: 4px;"]
     if max_width is not None:
-        styles.append(f'max-width: {max_width};')
-    style_sheet = 'QDockWidget { ' + '  \n'.join(styles) + '\n}'
+        styles.append(f"max-width: {max_width};")
+    style_sheet = "QDockWidget { " + "  \n".join(styles) + "\n}"
     dock.setStyleSheet(style_sheet)
     return dock, dock_layout
 
@@ -1680,19 +1830,16 @@ def _create_dock_widget(window, name, area, *, max_width=None):
 @contextmanager
 def _testing_context(interactive):
     from . import renderer
+
     orig_offscreen = pyvista.OFF_SCREEN
     orig_testing = renderer.MNE_3D_BACKEND_TESTING
-    orig_interactive = renderer.MNE_3D_BACKEND_INTERACTIVE
     renderer.MNE_3D_BACKEND_TESTING = True
     if interactive:
         pyvista.OFF_SCREEN = False
-        renderer.MNE_3D_BACKEND_INTERACTIVE = True
     else:
         pyvista.OFF_SCREEN = True
-        renderer.MNE_3D_BACKEND_INTERACTIVE = False
     try:
         yield
     finally:
         pyvista.OFF_SCREEN = orig_offscreen
         renderer.MNE_3D_BACKEND_TESTING = orig_testing
-        renderer.MNE_3D_BACKEND_INTERACTIVE = orig_interactive

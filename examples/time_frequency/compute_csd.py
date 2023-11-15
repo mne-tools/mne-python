@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _ex-csd-matrix:
 
@@ -23,7 +22,7 @@ the CSD:
 # %%
 import mne
 from mne.datasets import sample
-from mne.time_frequency import csd_fourier, csd_multitaper, csd_morlet
+from mne.time_frequency import csd_fourier, csd_morlet, csd_multitaper
 
 print(__doc__)
 
@@ -36,9 +35,9 @@ n_jobs = 1
 # %%
 # Loading the sample dataset.
 data_path = sample.data_path()
-meg_path = data_path / 'MEG' / 'sample'
-fname_raw = meg_path / 'sample_audvis_raw.fif'
-fname_event = meg_path / 'sample_audvis_raw-eve.fif'
+meg_path = data_path / "MEG" / "sample"
+fname_raw = meg_path / "sample_audvis_raw.fif"
+fname_event = meg_path / "sample_audvis_raw-eve.fif"
 raw = mne.io.read_raw_fif(fname_raw)
 events = mne.read_events(fname_event)
 
@@ -48,12 +47,20 @@ events = mne.read_events(fname_event)
 # measurement units, and thus the scalings, differ across sensors. In this
 # example, for speed and clarity, we select a single channel type:
 # gradiometers.
-picks = mne.pick_types(raw.info, meg='grad')
+picks = mne.pick_types(raw.info, meg="grad")
 
 # Make some epochs, based on events with trigger code 1
-epochs = mne.Epochs(raw, events, event_id=1, tmin=-0.2, tmax=1,
-                    picks=picks, baseline=(None, 0),
-                    reject=dict(grad=4000e-13), preload=True)
+epochs = mne.Epochs(
+    raw,
+    events,
+    event_id=1,
+    tmin=-0.2,
+    tmax=1,
+    picks=picks,
+    baseline=(None, 0),
+    reject=dict(grad=4000e-13),
+    preload=True,
+)
 
 # %%
 # Computing CSD matrices using short-term Fourier transform and (adaptive)
@@ -86,9 +93,11 @@ csd_wav = csd_morlet(epochs, frequencies, decim=10, n_jobs=n_jobs)
 # created figures; in this case, each returned list has only one figure
 # so we use a Python trick of including a comma after our variable name
 # to assign the figure (not the list) to our ``fig`` variable:
-plot_dict = {'Short-time Fourier transform': csd_fft,
-             'Adaptive multitapers': csd_mt,
-             'Morlet wavelet transform': csd_wav}
+plot_dict = {
+    "Short-time Fourier transform": csd_fft,
+    "Adaptive multitapers": csd_mt,
+    "Morlet wavelet transform": csd_wav,
+}
 for title, csd in plot_dict.items():
-    fig, = csd.mean().plot()
+    (fig,) = csd.mean().plot()
     fig.suptitle(title)

@@ -1,15 +1,15 @@
 # Author: Jean-Remi King <jeanremi.king@gmail.com>
 #
 # License: BSD-3-Clause
+import logging
 
 import numpy as np
 
-from .mixin import TransformerMixin
-from .base import BaseEstimator, _check_estimator
 from ..fixes import _get_check_scoring
 from ..parallel import parallel_func
-from ..utils import (array_split_idx, ProgressBar,
-                     verbose, fill_doc)
+from ..utils import ProgressBar, _parse_verbose, array_split_idx, fill_doc, verbose
+from .base import BaseEstimator, _check_estimator
+from .mixin import TransformerMixin
 
 
 @fill_doc
@@ -25,6 +25,8 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
     %(base_estimator)s
     %(scoring)s
     %(n_jobs)s
+    %(position)s
+    %(allow_2d)s
     %(verbose)s
 
     Attributes
@@ -34,20 +36,37 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
     """
 
     @verbose
-    def __init__(self, base_estimator, scoring=None, n_jobs=None, *,
-                 verbose=None):  # noqa: D102
+    def __init__(
+        self,
+        base_estimator,
+        scoring=None,
+        n_jobs=None,
+        *,
+        position=0,
+        allow_2d=False,
+        verbose=None,
+    ):  # noqa: D102
         _check_estimator(base_estimator)
-        self._estimator_type = getattr(base_estimator, "_estimator_type", None)
         self.base_estimator = base_estimator
         self.n_jobs = n_jobs
         self.scoring = scoring
+        self.position = position
+        self.allow_2d = allow_2d
+        self.verbose = verbose
+
+    def _more_tags(self):
+        return {"no_validation": True, "requires_fit": False}
+
+    @property
+    def _estimator_type(self):
+        return getattr(self.base_estimator, "_estimator_type", None)
 
     def __repr__(self):  # noqa: D105
-        repr_str = '<' + super(SlidingEstimator, self).__repr__()
-        if hasattr(self, 'estimators_'):
+        repr_str = "<" + super(SlidingEstimator, self).__repr__()
+        if hasattr(self, "estimators_"):
             repr_str = repr_str[:-1]
-            repr_str += ', fitted with %i estimators' % len(self.estimators_)
-        return repr_str + '>'
+            repr_str += ", fitted with %i estimators" % len(self.estimators_)
+        return repr_str + ">"
 
     def fit(self, X, y, **fit_params):
         """Fit a series of independent estimators to the dataset.
@@ -69,18 +88,20 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
         self : object
             Return self.
         """
-        self._check_Xy(X, y)
+        X = self._check_Xy(X, y)
         parallel, p_func, n_jobs = parallel_func(
-            _sl_fit, self.n_jobs, max_jobs=X.shape[-1], verbose=False)
+            _sl_fit, self.n_jobs, max_jobs=X.shape[-1], verbose=False
+        )
         self.estimators_ = list()
-        self.fit_params = fit_params
+        self.fit_params_ = fit_params
+
         # For fitting, the parallelization is across estimators.
-        mesg = 'Fitting %s' % (self.__class__.__name__,)
-        with ProgressBar(X.shape[-1], mesg=mesg) as pb:
+        context = _create_progressbar_context(self, X, "Fitting")
+        with context as pb:
             estimators = parallel(
-                p_func(self.base_estimator, split, y, pb.subset(pb_idx),
-                       **fit_params)
-                for pb_idx, split in array_split_idx(X, n_jobs, axis=-1))
+                p_func(self.base_estimator, split, y, pb.subset(pb_idx), **fit_params)
+                for pb_idx, split in array_split_idx(X, n_jobs, axis=-1)
+            )
 
         # Each parallel job can have a different number of training estimators
         # We can't directly concatenate them because of sklearn's Bagging API
@@ -118,22 +139,25 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
 
     def _transform(self, X, method):
         """Aux. function to make parallel predictions/transformation."""
-        self._check_Xy(X)
+        X = self._check_Xy(X)
         method = _check_method(self.base_estimator, method)
         if X.shape[-1] != len(self.estimators_):
-            raise ValueError('The number of estimators does not match '
-                             'X.shape[-1]')
+            raise ValueError("The number of estimators does not match " "X.shape[-1]")
         # For predictions/transforms the parallelization is across the data and
         # not across the estimators to avoid memory load.
         parallel, p_func, n_jobs = parallel_func(
-            _sl_transform, self.n_jobs, max_jobs=X.shape[-1], verbose=False)
-        mesg = 'Transforming %s' % (self.__class__.__name__,)
+            _sl_transform, self.n_jobs, max_jobs=X.shape[-1], verbose=False
+        )
+
         X_splits = np.array_split(X, n_jobs, axis=-1)
         idx, est_splits = zip(*array_split_idx(self.estimators_, n_jobs))
-        with ProgressBar(X.shape[-1], mesg=mesg) as pb:
-            y_pred = parallel(p_func(est, x, method, pb.subset(pb_idx))
-                              for pb_idx, est, x in zip(
-                                  idx, est_splits, X_splits))
+
+        context = _create_progressbar_context(self, X, "Transforming")
+        with context as pb:
+            y_pred = parallel(
+                p_func(est, x, method, pb.subset(pb_idx))
+                for pb_idx, est, x in zip(idx, est_splits, X_splits)
+            )
 
         y_pred = np.concatenate(y_pred, axis=1)
         return y_pred
@@ -158,7 +182,7 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
         Xt : array, shape (n_samples, n_estimators)
             The transformed values generated by each estimator.
         """  # noqa: E501
-        return self._transform(X, 'transform')
+        return self._transform(X, "transform").astype(X.dtype)
 
     def predict(self, X):
         """Predict each data slice/task with a series of independent estimators.
@@ -180,7 +204,7 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
         y_pred : array, shape (n_samples, n_estimators) | (n_samples, n_tasks, n_targets)
             Predicted values for each estimator/data slice.
         """  # noqa: E501
-        return self._transform(X, 'predict')
+        return self._transform(X, "predict")
 
     def predict_proba(self, X):
         """Predict each data slice with a series of independent estimators.
@@ -202,7 +226,7 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
         y_pred : array, shape (n_samples, n_tasks, n_classes)
             Predicted probabilities for each estimator/data slice/task.
         """  # noqa: E501
-        return self._transform(X, 'predict_proba')
+        return self._transform(X, "predict_proba")
 
     def decision_function(self, X):
         """Estimate distances of each data slice to the hyperplanes.
@@ -225,15 +249,25 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
         -----
         This requires base_estimator to have a ``decision_function`` method.
         """  # noqa: E501
-        return self._transform(X, 'decision_function')
+        return self._transform(X, "decision_function")
 
     def _check_Xy(self, X, y=None):
         """Aux. function to check input data."""
+        X = np.asarray(X)
         if y is not None:
+            y = np.asarray(y)
             if len(X) != len(y) or len(y) < 1:
-                raise ValueError('X and y must have the same length.')
+                raise ValueError("X and y must have the same length.")
         if X.ndim < 3:
-            raise ValueError('X must have at least 3 dimensions.')
+            err = None
+            if not self.allow_2d:
+                err = 3
+            elif X.ndim < 2:
+                err = 2
+            if err:
+                raise ValueError(f"X must have at least {err} dimensions.")
+            X = X[..., np.newaxis]
+        return X
 
     def score(self, X, y):
         """Score each estimator on each task.
@@ -260,10 +294,9 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
         """  # noqa: E501
         check_scoring = _get_check_scoring()
 
-        self._check_Xy(X)
+        X = self._check_Xy(X, y)
         if X.shape[-1] != len(self.estimators_):
-            raise ValueError('The number of estimators does not match '
-                             'X.shape[-1]')
+            raise ValueError("The number of estimators does not match " "X.shape[-1]")
 
         scoring = check_scoring(self.base_estimator, self.scoring)
         y = _fix_auc(scoring, y)
@@ -271,21 +304,25 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
         # For predictions/transforms the parallelization is across the data and
         # not across the estimators to avoid memory load.
         parallel, p_func, n_jobs = parallel_func(
-            _sl_score, self.n_jobs, max_jobs=X.shape[-1])
+            _sl_score, self.n_jobs, max_jobs=X.shape[-1], verbose=False
+        )
         X_splits = np.array_split(X, n_jobs, axis=-1)
         est_splits = np.array_split(self.estimators_, n_jobs)
-        score = parallel(p_func(est, scoring, x, y)
-                         for (est, x) in zip(est_splits, X_splits))
+        score = parallel(
+            p_func(est, scoring, x, y) for (est, x) in zip(est_splits, X_splits)
+        )
 
         score = np.concatenate(score, axis=0)
         return score
 
     @property
     def classes_(self):
-        if not hasattr(self.estimators_[0], 'classes_'):
-            raise AttributeError('classes_ attribute available only if '
-                                 'base_estimator has it, and estimator %s does'
-                                 ' not' % (self.estimators_[0],))
+        if not hasattr(self.estimators_[0], "classes_"):
+            raise AttributeError(
+                "classes_ attribute available only if "
+                "base_estimator has it, and estimator %s does"
+                " not" % (self.estimators_[0],)
+            )
         return self.estimators_[0].classes_
 
 
@@ -303,6 +340,8 @@ def _sl_fit(estimator, X, y, pb, **fit_params):
         X.shape = (n_samples, n_features_1, n_features_2, n_estimators)
     y : array, shape (n_sample, )
         The target values.
+    pb : instance of ProgressBar
+        The progress bar to update.
     fit_params : dict | None
         Parameters to pass to the fit method of the estimator.
 
@@ -312,11 +351,13 @@ def _sl_fit(estimator, X, y, pb, **fit_params):
         The fitted estimators.
     """
     from sklearn.base import clone
+
     estimators_ = list()
     for ii in range(X.shape[-1]):
         est = clone(estimator)
         est.fit(X[..., ii], y, **fit_params)
         estimators_.append(est)
+
         pb.update(ii + 1)
     return estimators_
 
@@ -335,6 +376,8 @@ def _sl_transform(estimators, X, method, pb):
         X.shape = (n_samples, n_features_1, n_features_2, n_estimators)
     method : str
         The estimator method to use (e.g. 'predict', 'transform').
+    pb : instance of ProgressBar
+        The progress bar to update.
 
     Returns
     -------
@@ -348,6 +391,7 @@ def _sl_transform(estimators, X, method, pb):
         if ii == 0:
             y_pred = _sl_init_pred(_y_pred, X)
         y_pred[:, ii, ...] = _y_pred
+
         pb.update(ii + 1)
     return y_pred
 
@@ -396,10 +440,10 @@ def _check_method(estimator, method):
     If method == 'transform'  and estimator does not have 'transform', use
     'predict' instead.
     """
-    if method == 'transform' and not hasattr(estimator, 'transform'):
-        method = 'predict'
+    if method == "transform" and not hasattr(estimator, "transform"):
+        method = "predict"
     if not hasattr(estimator, method):
-        ValueError('base_estimator does not have `%s` method.' % method)
+        ValueError("base_estimator does not have `%s` method." % method)
     return method
 
 
@@ -415,28 +459,35 @@ class GeneralizingEstimator(SlidingEstimator):
     %(base_estimator)s
     %(scoring)s
     %(n_jobs)s
+    %(position)s
+    %(allow_2d)s
     %(verbose)s
     """
 
     def __repr__(self):  # noqa: D105
         repr_str = super(GeneralizingEstimator, self).__repr__()
-        if hasattr(self, 'estimators_'):
+        if hasattr(self, "estimators_"):
             repr_str = repr_str[:-1]
-            repr_str += ', fitted with %i estimators>' % len(self.estimators_)
+            repr_str += ", fitted with %i estimators>" % len(self.estimators_)
         return repr_str
 
     def _transform(self, X, method):
         """Aux. function to make parallel predictions/transformation."""
-        self._check_Xy(X)
+        X = self._check_Xy(X)
         method = _check_method(self.base_estimator, method)
-        mesg = 'Transforming %s' % (self.__class__.__name__,)
+
         parallel, p_func, n_jobs = parallel_func(
-            _gl_transform, self.n_jobs, max_jobs=X.shape[-1], verbose=False)
-        with ProgressBar(X.shape[-1] * len(self.estimators_), mesg=mesg) as pb:
+            _gl_transform, self.n_jobs, max_jobs=X.shape[-1], verbose=False
+        )
+
+        context = _create_progressbar_context(self, X, "Transforming")
+        with context as pb:
             y_pred = parallel(
                 p_func(self.estimators_, x_split, method, pb.subset(pb_idx))
                 for pb_idx, x_split in array_split_idx(
-                    X, n_jobs, axis=-1, n_per_split=len(self.estimators_)))
+                    X, n_jobs, axis=-1, n_per_split=len(self.estimators_)
+                )
+            )
 
         y_pred = np.concatenate(y_pred, axis=2)
         return y_pred
@@ -457,7 +508,7 @@ class GeneralizingEstimator(SlidingEstimator):
         Xt : array, shape (n_samples, n_estimators, n_slices)
             The transformed values generated by each estimator.
         """
-        return self._transform(X, 'transform')
+        return self._transform(X, "transform")
 
     def predict(self, X):
         """Predict each data slice with all possible estimators.
@@ -475,7 +526,7 @@ class GeneralizingEstimator(SlidingEstimator):
         y_pred : array, shape (n_samples, n_estimators, n_slices) | (n_samples, n_estimators, n_slices, n_targets)
             The predicted values for each estimator.
         """  # noqa: E501
-        return self._transform(X, 'predict')
+        return self._transform(X, "predict")
 
     def predict_proba(self, X):
         """Estimate probabilistic estimates of each data slice with all possible estimators.
@@ -497,7 +548,7 @@ class GeneralizingEstimator(SlidingEstimator):
         -----
         This requires ``base_estimator`` to have a ``predict_proba`` method.
         """  # noqa: E501
-        return self._transform(X, 'predict_proba')
+        return self._transform(X, "predict_proba")
 
     def decision_function(self, X):
         """Estimate distances of each data slice to all hyperplanes.
@@ -521,7 +572,7 @@ class GeneralizingEstimator(SlidingEstimator):
         This requires ``base_estimator`` to have a ``decision_function``
         method.
         """  # noqa: E501
-        return self._transform(X, 'decision_function')
+        return self._transform(X, "decision_function")
 
     def score(self, X, y):
         """Score each of the estimators on the tested dimensions.
@@ -543,20 +594,23 @@ class GeneralizingEstimator(SlidingEstimator):
             Score for each estimator / data slice couple.
         """  # noqa: E501
         check_scoring = _get_check_scoring()
-        self._check_Xy(X)
+        X = self._check_Xy(X, y)
         # For predictions/transforms the parallelization is across the data and
         # not across the estimators to avoid memory load.
-        mesg = 'Scoring %s' % (self.__class__.__name__,)
         parallel, p_func, n_jobs = parallel_func(
-            _gl_score, self.n_jobs, max_jobs=X.shape[-1], verbose=False)
+            _gl_score, self.n_jobs, max_jobs=X.shape[-1], verbose=False
+        )
         scoring = check_scoring(self.base_estimator, self.scoring)
         y = _fix_auc(scoring, y)
-        with ProgressBar(X.shape[-1] * len(self.estimators_), mesg=mesg) as pb:
-            score = parallel(p_func(self.estimators_, scoring, x, y,
-                                    pb.subset(pb_idx))
-                             for pb_idx, x in array_split_idx(
-                                 X, n_jobs, axis=-1,
-                                 n_per_split=len(self.estimators_)))
+
+        context = _create_progressbar_context(self, X, "Scoring")
+        with context as pb:
+            score = parallel(
+                p_func(self.estimators_, scoring, x, y, pb.subset(pb_idx))
+                for pb_idx, x in array_split_idx(
+                    X, n_jobs, axis=-1, n_per_split=len(self.estimators_)
+                )
+            )
 
         score = np.concatenate(score, axis=1)
         return score
@@ -573,6 +627,10 @@ def _gl_transform(estimators, X, method, pb):
         The training input samples. For each data slice, a clone estimator
         is fitted independently. The feature dimension can be multidimensional
         e.g. X.shape = (n_samples, n_features_1, n_features_2, n_estimators)
+    method : str
+        The method to call for each estimator.
+    pb : instance of ProgressBar
+        The progress bar to update.
 
     Returns
     -------
@@ -596,6 +654,7 @@ def _gl_transform(estimators, X, method, pb):
         if ii == 0:
             y_pred = _gl_init_pred(_y_pred, X, len(estimators))
         y_pred[:, ii, ...] = _y_pred
+
         pb.update((ii + 1) * n_iter)
     return y_pred
 
@@ -604,8 +663,7 @@ def _gl_init_pred(y_pred, X, n_train):
     """Aux. function to GeneralizingEstimator to initialize y_pred."""
     n_sample, n_iter = X.shape[0], X.shape[-1]
     if y_pred.ndim == 3:
-        y_pred = np.zeros((n_sample, n_train, n_iter, y_pred.shape[-1]),
-                          y_pred.dtype)
+        y_pred = np.zeros((n_sample, n_train, n_iter, y_pred.shape[-1]), y_pred.dtype)
     else:
         y_pred = np.zeros((n_sample, n_train, n_iter), y_pred.dtype)
     return y_pred
@@ -629,6 +687,8 @@ def _gl_score(estimators, scoring, X, y, pb):
         X.shape = (n_samples, n_features_1, n_features_2, n_estimators)
     y : array, shape (n_samples,) | (n_samples, n_targets)
         The target values.
+    pb : instance of ProgressBar
+        The progress bar to update.
 
     Returns
     -------
@@ -646,21 +706,47 @@ def _gl_score(estimators, scoring, X, y, pb):
                 dtype = type(_score)
                 score = np.zeros(score_shape, dtype)
             score[ii, jj, ...] = _score
+
             pb.update(jj * len(estimators) + ii + 1)
     return score
 
 
 def _fix_auc(scoring, y):
     from sklearn.preprocessing import LabelEncoder
+
     # This fixes sklearn's inability to compute roc_auc when y not in [0, 1]
     # scikit-learn/scikit-learn#6874
     if scoring is not None:
-        score_func = getattr(scoring, '_score_func', None)
-        kwargs = getattr(scoring, '_kwargs', {})
-        if (getattr(score_func, '__name__', '') == 'roc_auc_score' and
-                kwargs.get('multi_class', 'raise') == 'raise'):
+        score_func = getattr(scoring, "_score_func", None)
+        kwargs = getattr(scoring, "_kwargs", {})
+        if (
+            getattr(score_func, "__name__", "") == "roc_auc_score"
+            and kwargs.get("multi_class", "raise") == "raise"
+        ):
             if np.ndim(y) != 1 or len(set(y)) != 2:
-                raise ValueError('roc_auc scoring can only be computed for '
-                                 'two-class problems.')
+                raise ValueError(
+                    "roc_auc scoring can only be computed for " "two-class problems."
+                )
             y = LabelEncoder().fit_transform(y)
     return y
+
+
+def _create_progressbar_context(inst, X, message):
+    """Create a progress bar taking into account ``inst.verbose``."""
+    multiply = len(inst.estimators_) if isinstance(inst, GeneralizingEstimator) else 1
+    n_steps = X.shape[-1] * max(1, multiply)
+    mesg = f"{message} {inst.__class__.__name__}"
+
+    which_tqdm = "off" if not _check_verbose(inst.verbose) else None
+    context = ProgressBar(
+        n_steps, mesg=mesg, position=inst.position, which_tqdm=which_tqdm
+    )
+
+    return context
+
+
+def _check_verbose(verbose):
+    """Check if verbose is above or equal 'INFO' level."""
+    logging_level = _parse_verbose(verbose)
+    bool_verbose = logging_level <= logging.INFO
+    return bool_verbose

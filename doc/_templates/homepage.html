@@ -1,8 +1,8 @@
 <!-- homepage gallery -->
 <div class="container">
-  <div class="d-flex flex-wrap flex-row justify-content-center">
+  <div class="d-flex flex-wrap flex-row justify-content-between">
     {% for item in carousel %}
-      <div class="col-12 col-sm-6 col-lg-4 my-2">
+      <div class="col-12 col-sm-6 col-lg-4 px-2 my-2">
         <div class="card frontpage-gallery">
           <a href="{{ item.url }}">
             <img class="card-img institution" src="{{ item.img if item.img.startswith('http') else pathto('_images/' + item.img, 1) }}" alt="{{ item.alt }}">
@@ -41,4 +41,6 @@
       </div>
     {% endfor %}
   </div>
+<!-- contributors -->
+{% include 'avatars.html' %}
 </div>
