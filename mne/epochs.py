@@ -2433,7 +2433,7 @@ class BaseEpochs(
             eq_inds.append(self._keys_to_idx(eq))
 
         event_times = [self.events[e, 0] for e in eq_inds]
-        indices = _get_drop_indices(event_times, method)
+        indices = _get_drop_indices(sample_nums, method)
         # need to re-index indices
         indices = np.concatenate([e[idx] for e, idx in zip(eq_inds, indices)])
         self.drop(indices, reason="EQUALIZED_COUNT")
@@ -3515,7 +3515,7 @@ def combine_event_ids(epochs, old_event_ids, new_event_id, copy=True):
 
 
 def equalize_epoch_counts(epochs_list, method="mintime"):
-    """Equalize the number of trials in multiple Epoch or EpochTFR instances.
+    """Equalize the number of trials in multiple Epochs or EpochsTFR instances.
 
     Parameters
     ----------
@@ -3547,31 +3547,27 @@ def equalize_epoch_counts(epochs_list, method="mintime"):
 
     # make sure bad epochs are dropped
     for epoch in epochs_list:
-        # for EpochsTFR we can set _bad_dropped to True
-        if isinstance(epoch, EpochsTFR):
-            epoch._bad_dropped = True
         if not epoch._bad_dropped:
             epoch.drop_bad()
-    event_indices = [epoch.events[:, 0] for epoch in epochs_list]
-    indices = _get_drop_indices(event_indices, method)
+    sample_nums = [epoch.events[:, 0] for epoch in epochs_list]
+    indices = _get_drop_indices(sample_nums, method)
     for epoch, inds in zip(epochs_list, indices):
         epoch.drop(inds, reason="EQUALIZED_COUNT")
 
 
-def _get_drop_indices(event_indices, method):
+def _get_drop_indices(sample_nums, method):
     """Get indices to drop from multiple event timing lists."""
-    small_idx = np.argmin([e.shape[0] for e in event_indices])
-    small_epoch_indices = event_indices[small_idx]
+    small_idx = np.argmin([e.shape[0] for e in sample_nums])
+    small_epoch_indices = sample_nums[small_idx]
     _check_option("method", method, ["mintime", "truncate"])
     indices = list()
-    for event in event_indices:
+    for event in sample_nums:
         if method == "mintime":
             mask = _minimize_time_diff(small_epoch_indices, event)
         else:
             mask = np.ones(event.shape[0], dtype=bool)
             mask[small_epoch_indices.shape[0] :] = False
         indices.append(np.where(np.logical_not(mask))[0])
-
     return indices
 
 
