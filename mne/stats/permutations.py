@@ -95,7 +95,8 @@ def permutation_t_test(
             my_max_stat(X, X2, p, dof_scaling) for p in np.array_split(perms, n_jobs)
         )
     )
-    max_abs = np.concatenate((max_abs, [np.abs(T_obs).max()]))
+    max_abs = np.concatenate((max_abs,
+                              np.atleast_1d(T_obs.flat[np.abs(T_obs).argmax()])))
     H0 = np.sort(max_abs)
     if tail == 0:
         p_values = (np.abs(H0) >= np.abs(T_obs[:, np.newaxis])).mean(-1)
