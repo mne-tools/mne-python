@@ -212,6 +212,8 @@
 
 .. _Ilias Machairas: https://github.com/JungleHippo
 
+.. _Ivan Skelin: https://github.com/ivan-skelin
+
 .. _Ivan Zubarev: https://github.com/zubara
 
 .. _Ivana Kojcic: https://github.com/ikojcic
@@ -293,6 +295,8 @@
 .. _Keith Doelling: https://github.com/kdoelling1919
 
 .. _Kostiantyn Maksymenko: https://github.com/makkostya
+
+.. _Kristijan Armeni: https://github.com/kristijanarmeni
 
 .. _Kyle Mathewson: https://github.com/kylemath
 
