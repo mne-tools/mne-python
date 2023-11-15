@@ -15,6 +15,7 @@ import os.path as op
 from collections import Counter
 from copy import deepcopy
 from functools import partial
+from inspect import getfullargspec
 
 import numpy as np
 from scipy.interpolate import interp1d
@@ -1955,22 +1956,59 @@ class BaseEpochs(
         if dtype is not None and dtype != self._data.dtype:
             self._data = self._data.astype(dtype)
 
+        args = getfullargspec(fun)[0] + getfullargspec(fun)[4]
+        if channel_wise is False:
+            if ("ch_idx" in args) or ("ch_name" in args):
+                raise ValueError(
+                    "apply_function cannot access ch_idx or ch_name "
+                    "when channel_wise=False"
+                )
+        elif ("ch_idx" in args) and ("ch_name" in args):
+            raise ValueError(
+                "apply_function cannot access both ch_idx and ch_name. pick one!"
+            )
+        elif "ch_idx" in args:
+            logger.info("apply_function requested to access ch_idx")
+        elif "ch_name" in args:
+            logger.info("apply_function requested to access ch_name")
+
         if channel_wise:
             parallel, p_fun, n_jobs = parallel_func(_check_fun, n_jobs)
             if n_jobs == 1:
-                _fun = partial(_check_fun, fun, **kwargs)
+                _fun = partial(_check_fun, fun)
                 # modify data inplace to save memory
-                for idx in picks:
-                    self._data[:, idx, :] = np.apply_along_axis(
-                        _fun, -1, data_in[:, idx, :]
+                for ch_idx in picks:
+                    if "ch_idx" in args:
+                        kwargs.update(ch_idx=ch_idx)
+                    elif "ch_name" in args:
+                        kwargs.update(ch_name=self.info["ch_names"][ch_idx])
+                    self._data[:, ch_idx, :] = np.apply_along_axis(
+                        _fun, -1, data_in[:, ch_idx, :], **kwargs
                     )
             else:
                 # use parallel function
-                data_picks_new = parallel(
-                    p_fun(fun, data_in[:, p, :], **kwargs) for p in picks
-                )
-                for pp, p in enumerate(picks):
-                    self._data[:, p, :] = data_picks_new[pp]
+                _fun = partial(np.apply_along_axis, fun, -1)
+                if "ch_idx" in args:
+                    data_picks_new = parallel(
+                        p_fun(_fun, data_in[:, ch_idx, :], ch_idx=ch_idx, **kwargs)
+                        for ch_idx in picks
+                    )
+                elif "ch_name" in args:
+                    data_picks_new = parallel(
+                        p_fun(
+                            _fun,
+                            data_in[:, ch_idx, :],
+                            ch_name=self.info["ch_names"][ch_idx],
+                            **kwargs,
+                        )
+                        for ch_idx in picks
+                    )
+                else:
+                    data_picks_new = parallel(
+                        p_fun(_fun, data_in[:, ch_idx, :], **kwargs) for ch_idx in picks
+                    )
+                for run_idx, ch_idx in enumerate(picks):
+                    self._data[:, ch_idx, :] = data_picks_new[run_idx]
         else:
             self._data = _check_fun(fun, data_in, **kwargs)
 

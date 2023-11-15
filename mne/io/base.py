@@ -1087,7 +1087,7 @@ class BaseRaw(
         if dtype is not None and dtype != self._data.dtype:
             self._data = self._data.astype(dtype)
 
-        args = getfullargspec(fun)[0]
+        args = getfullargspec(fun)[0] + getfullargspec(fun)[4]
         if channel_wise is False:
             if ("ch_idx" in args) or ("ch_name" in args):
                 raise ValueError(

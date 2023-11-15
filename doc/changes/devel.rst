@@ -90,6 +90,7 @@ Bugs
 - Improve handling of ``method`` argument in the channel interpolation function to support :class:`str` and raise helpful error messages (:gh:`12113` by `Mathieu Scheltienne`_)
 - Fix combination of ``DIN`` event channels into a single synthetic trigger channel ``STI 014`` by the MFF reader of :func:`mne.io.read_raw_egi` (:gh:`12122` by `Mathieu Scheltienne`_)
 - Fix bug with :func:`mne.io.read_raw_eeglab` and :func:`mne.read_epochs_eeglab` where automatic fiducial detection would fail for certain files (:gh:`12165` by `Clemens Brunner`_)
+- Fix bug in :meth:`mne.Epochs.apply_function` where data was handed down incorrectly in parallel processing (:gh:`12206` by `Dominik Welke`_)
 
 API changes
 ~~~~~~~~~~~
