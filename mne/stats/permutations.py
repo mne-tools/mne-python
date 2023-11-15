@@ -17,7 +17,9 @@ def _max_stat(X, X2, perms, dof_scaling):
     n_samples = len(X)
     mus = np.dot(perms, X) / float(n_samples)
     stds = np.sqrt(X2[None, :] - mus * mus) * dof_scaling  # std with splitting
-    max_abs = np.max(np.abs(mus) / (stds / sqrt(n_samples)), axis=1)  # t-max
+    tvals = mus / (stds / sqrt(n_samples))
+    max_abs = np.squeeze(np.take_along_axis(tvals, np.argmax(np.abs(tvals), axis=1,
+                                                             keepdims=True), axis=1))
     return max_abs
 
 
@@ -85,7 +87,7 @@ def permutation_t_test(
     T_obs = np.mean(X, axis=0) / (std0 / sqrt(n_samples))
     rng = check_random_state(seed)
     orders, _, extra = _get_1samp_orders(n_samples, n_permutations, tail, rng)
-    perms = 2 * np.array(orders) - 1  # from 0, 1 -> 1, -1
+    perms = 2 * np.array(orders) - 1  # from 0, 1 -> -1, 1
     logger.info("Permuting %d times%s..." % (len(orders), extra))
     parallel, my_max_stat, n_jobs = parallel_func(_max_stat, n_jobs)
     max_abs = np.concatenate(
@@ -96,11 +98,11 @@ def permutation_t_test(
     max_abs = np.concatenate((max_abs, [np.abs(T_obs).max()]))
     H0 = np.sort(max_abs)
     if tail == 0:
-        p_values = (H0 >= np.abs(T_obs[:, np.newaxis])).mean(-1)
+        p_values = (np.abs(H0) >= np.abs(T_obs[:, np.newaxis])).mean(-1)
     elif tail == 1:
         p_values = (H0 >= T_obs[:, np.newaxis]).mean(-1)
     elif tail == -1:
-        p_values = (-H0 <= T_obs[:, np.newaxis]).mean(-1)
+        p_values = (H0 <= T_obs[:, np.newaxis]).mean(-1)
     return T_obs, p_values, H0
 
 
