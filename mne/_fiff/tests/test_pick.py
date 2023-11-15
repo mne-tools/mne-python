@@ -596,9 +596,9 @@ def test_picks_to_idx():
     # Name indexing
     assert_array_equal([2], _picks_to_idx(info, info["ch_names"][2]))
     assert_array_equal(np.arange(5, 9), _picks_to_idx(info, info["ch_names"][5:9]))
-    with pytest.raises(ValueError, match="must be >= "):
+    with pytest.raises(IndexError, match="must be >= "):
         _picks_to_idx(info, -len(picks) - 1)
-    with pytest.raises(ValueError, match="must be < "):
+    with pytest.raises(IndexError, match="must be < "):
         _picks_to_idx(info, len(picks))
     with pytest.raises(ValueError, match="could not be interpreted"):
         _picks_to_idx(info, ["a", "b"])

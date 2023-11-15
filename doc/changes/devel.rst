@@ -96,6 +96,7 @@ Bugs
 - Fix concatenation of ``raws`` with ``np.nan`` in the device to head transformation (:gh:`12198` by `Mathieu Scheltienne`_)
 - Fix bug with :func:`mne.viz.plot_compare_evokeds` where the title was not displayed when ``axes='topo'`` (:gh:`12192` by `Jacob Woessner`_)
 - Fix bug with :func:`mne.io.read_raw_cnt` where the bad channels were not properly read (:gh:`12189` by `Jacob Woessner`_)
+- Fix bug where iterating over :class:`~mne.io.Raw` would result in an error (:gh:`12205` by `Clemens Brunner`_)
 
 
 API changes
