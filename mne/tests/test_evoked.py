@@ -940,3 +940,38 @@ def test_apply_function_evk():
     applied = evoked.apply_function(fun, n_jobs=None, multiplier=mult)
     assert np.shape(applied.data) == np.shape(evoked_data)
     assert np.equal(applied.data, evoked_data * mult).all()
+
+
+def test_apply_function_evk_ch_access():
+    """Check the apply_function method for evoked data."""
+
+    def bad_ch_idx(x, ch_idx):
+        """Pass."""
+        assert x[0] == ch_idx
+        return x
+
+    def bad_ch_name(x, ch_name):
+        """Pass."""
+        assert isinstance(ch_name, str)
+        assert x[0] == float(ch_name)
+        return x
+
+    def bad_ch_idx_name(x, ch_idx, ch_name):
+        """Pass."""
+        return x
+
+    # create fake evoked data to use for checking apply_function
+    data = np.full((2, 100), np.arange(2).reshape(-1, 1))
+    evoked = EvokedArray(data, create_info(2, 1000.0, "eeg"))
+
+    # test ch_idx access in both code paths (parallel / 1 job)
+    evoked.apply_function(bad_ch_idx)
+    evoked.apply_function(bad_ch_idx, n_jobs=2)
+    evoked.apply_function(bad_ch_name)
+    evoked.apply_function(bad_ch_name, n_jobs=2)
+
+    # test input catches
+    with pytest.raises(
+        ValueError, match="apply_function cannot access both ch_idx and ch_name"
+    ):
+        evoked.apply_function(bad_ch_idx_name)

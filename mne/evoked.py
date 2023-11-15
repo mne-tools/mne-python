@@ -8,6 +8,7 @@
 # License: BSD-3-Clause
 
 from copy import deepcopy
+from inspect import getfullargspec
 
 import numpy as np
 
@@ -267,8 +268,7 @@ class Evoked(
         %(fun_applyfun_evoked)s
         %(picks_all_data_noref)s
         %(dtype_applyfun)s
-        %(n_jobs)s Ignored if ``channel_wise=False`` as the workload
-            is split across channels.
+        %(n_jobs)s
         %(verbose)s
         %(kwargs_fun)s
 
@@ -287,21 +287,51 @@ class Evoked(
         if dtype is not None and dtype != self._data.dtype:
             self._data = self._data.astype(dtype)
 
+        args = getfullargspec(fun)[0] + getfullargspec(fun)[4]
+        if ("ch_idx" in args) and ("ch_name" in args):
+            raise ValueError(
+                "apply_function cannot access both ch_idx and ch_name. pick one!"
+            )
+        elif "ch_idx" in args:
+            logger.info("apply_function requested to access ch_idx")
+        elif "ch_name" in args:
+            logger.info("apply_function requested to access ch_name")
+
         # check the dimension of the incoming evoked data
         _check_option("evoked.ndim", self._data.ndim, [2])
 
         parallel, p_fun, n_jobs = parallel_func(_check_fun, n_jobs)
         if n_jobs == 1:
             # modify data inplace to save memory
-            for idx in picks:
-                self._data[idx, :] = _check_fun(fun, data_in[idx, :], **kwargs)
+            for ch_idx in picks:
+                if "ch_idx" in args:
+                    kwargs.update(ch_idx=ch_idx)
+                elif "ch_name" in args:
+                    kwargs.update(ch_name=self.info["ch_names"][ch_idx])
+                self._data[ch_idx, :] = _check_fun(fun, data_in[ch_idx, :], **kwargs)
         else:
             # use parallel function
-            data_picks_new = parallel(
-                p_fun(fun, data_in[p, :], **kwargs) for p in picks
-            )
-            for pp, p in enumerate(picks):
-                self._data[p, :] = data_picks_new[pp]
+            if "ch_idx" in args:
+                data_picks_new = parallel(
+                    p_fun(fun, data_in[ch_idx, :], ch_idx=ch_idx, **kwargs)
+                    for ch_idx in picks
+                )
+            elif "ch_name" in args:
+                data_picks_new = parallel(
+                    p_fun(
+                        fun,
+                        data_in[ch_idx, :],
+                        ch_name=self.info["ch_names"][ch_idx],
+                        **kwargs,
+                    )
+                    for ch_idx in picks
+                )
+            else:
+                data_picks_new = parallel(
+                    p_fun(fun, data_in[ch_idx, :], **kwargs) for ch_idx in picks
+                )
+            for run_idx, ch_idx in enumerate(picks):
+                self._data[ch_idx, :] = data_picks_new[run_idx]
 
         return self
 
