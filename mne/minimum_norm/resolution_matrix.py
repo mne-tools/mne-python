@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Compute resolution matrix for linear estimators."""
 # Authors: olaf.hauk@mrc-cbu.cam.ac.uk
 #
@@ -6,33 +7,24 @@ from copy import deepcopy
 
 import numpy as np
 
-from .._fiff.constants import FIFF
-from .._fiff.pick import pick_channels_forward, pick_types
-from ..evoked import EvokedArray
-from ..forward.forward import Forward, convert_forward_solution
-from ..label import Label
-from ..minimum_norm.inverse import (
-    InverseOperator,
-    apply_inverse_cov,
-    prepare_inverse_operator,
-)
+from .. import pick_types, pick_channels_forward, EvokedArray, SourceEstimate
+from .. import (pick_channels_forward, EvokedArray, SourceEstimate,
+                VectorSourceEstimate)
+
+from ..io.constants import FIFF
+from ..utils import logger, verbose
+from ..forward.forward import convert_forward_solution
+from ..minimum_norm import (apply_inverse, apply_inverse_cov,
+                            prepare_inverse_operator)
 from ..minimum_norm.spatial_resolution import _rectify_resolution_matrix
-from ..source_estimate import _get_src_type, _make_stc, _prepare_label_extraction
-from ..source_space._source_space import SourceSpaces, _get_vertno
-from ..utils import _validate_type, logger, verbose
-from .inverse import apply_inverse
+from ..source_estimate import _prepare_label_extraction
+from ..label import Label
 
 
 @verbose
-def make_inverse_resolution_matrix(
-    forward,
-    inverse_operator,
-    method="dSPM",
-    lambda2=1.0 / 9.0,
-    noise_cov=None,
-    snr=None,
-    verbose=None,
-):
+def make_inverse_resolution_matrix(forward, inverse_operator, method='dSPM',
+                                   lambda2=1. / 9., noise_cov=None, snr=None,
+                                   verbose=None):
     """Compute resolution matrix for linear inverse operator.
 
     Parameters
@@ -70,13 +62,14 @@ def make_inverse_resolution_matrix(
         interpreted. It must not be used to compute CTFs or resolution metrics
         for CTFs!
     """
-    if noise_cov is None and snr is not None:
-        msg = "snr should be None if noise_cov is None."
+    if (noise_cov is None and snr is not None):
+        msg = 'snr should be None if noise_cov is None.'
         raise ValueError(msg)
 
-    if noise_cov is not None and snr is None:
-        snr = np.sqrt(1.0 / lambda2)
-        logger.info("Inferring snr from lamdba2 as: %f." % snr)
+    if (noise_cov is not None and snr is None):
+        snr = np.sqrt(1. / lambda2)
+        logger.info('Inferring snr from lamdba2 as: %f.' % snr)
+
 
     # make sure forward and inverse operator match
     inv = inverse_operator
@@ -84,36 +77,27 @@ def make_inverse_resolution_matrix(
 
     # don't include bad channels
     # only use good channels from inverse operator
-    bads_inv = inv["info"]["bads"]
+    bads_inv = inv['info']['bads']
     # good channels
-    ch_names = [c for c in inv["info"]["ch_names"] if (c not in bads_inv)]
+    ch_names = [c for c in inv['info']['ch_names'] if (c not in bads_inv)]
     fwd = pick_channels_forward(fwd, ch_names, ordered=True)
 
     # get leadfield matrix from forward solution
-    leadfield = fwd["sol"]["data"]
-    invmat = _get_matrix_from_inverse_operator(inv, fwd, method=method, lambda2=lambda2)
+    leadfield = fwd['sol']['data']
+    invmat = _get_matrix_from_inverse_operator(inv, fwd,
+                                               method=method, lambda2=lambda2)
     resmat = invmat.dot(leadfield)
-    logger.info("Dimensions of resolution matrix: %d by %d." % resmat.shape)
+    logger.info('Dimensions of resolution matrix: %d by %d.' % resmat.shape)
 
     # add source noise power to columns of resolution matrix
     if noise_cov is not None:
-        inv = prepare_inverse_operator(inv, 1, lambda2, method, copy="non-src")
+        inv = prepare_inverse_operator(inv, 1, lambda2, method, copy='non-src')
         info = _prepare_info(inv)
         # compute source noise power
         stc = apply_inverse_cov(
-            noise_cov,
-            info,
-            inv,
-            nave=1,
-            lambda2=lambda2,
-            method=method,
-            pick_ori=None,
-            prepared=True,
-            label=None,
-            method_params=None,
-            use_cps=True,
-            verbose=None,
-        )
+            noise_cov, info, inv, nave=1, lambda2=lambda2,
+            method=method, pick_ori=None, prepared=True, label=None,
+            method_params=None, use_cps=True, verbose=None)
 
         # output will be square-root of power, so take intensities before
         # adding noise
@@ -127,19 +111,21 @@ def make_inverse_resolution_matrix(
         # scaling factor
 
         idx_ch_types = {}
-        idx_ch_types["eeg"] = pick_types(info, eeg=True, meg=False)
-        idx_ch_types["mag"] = pick_types(info, eeg=False, meg="mag")
-        idx_ch_types["gra"] = pick_types(info, eeg=False, meg="grad")
+        idx_ch_types['eeg'] = pick_types(info, eeg=True, meg=False)
+        idx_ch_types['mag'] = pick_types(info, eeg=False, meg='mag')
+        idx_ch_types['gra'] = pick_types(info, eeg=False, meg='grad')
 
         # scaling similar to Samuelsson et al., Neuroimage 2021 (p. 4)
         alphas = {}
         for cht in idx_ch_types:
             # signal intensity of all sources across channels of this type
-            alphas[cht] = np.sqrt((leadfield[idx_ch_types[cht], :] ** 2).mean())
+            alphas[cht] = (
+                np.sqrt((leadfield[idx_ch_types[cht], :]**2).mean()))
             # divided by noise intensity across channels of this type
-            alphas[cht] /= np.sqrt(np.diag(noise_cov.data)[idx_ch_types[cht]].mean())
+            alphas[cht] /= (
+                np.sqrt(np.diag(noise_cov.data)[idx_ch_types[cht]].mean()))
 
-        alpha = (3 * snr) / (alphas["eeg"] + alphas["mag"] + alphas["gra"])
+        alpha = (3 * snr) / (alphas['eeg'] + alphas['mag'] + alphas['gra'])
 
         # # previous attempt to compute scaling via whitened gain matrix
         # whitener = inv['whitener']
@@ -149,66 +135,63 @@ def make_inverse_resolution_matrix(
 
         # Add square root of source noise power to every column, scale
         # depending on SNR
-        resmat = alpha * resmat + np.sqrt(stc.data)
+        # EDIT
+        resmat = resmat + (1 / alpha) * np.sqrt(stc.data)
 
     return resmat
 
 
 @verbose
-def _get_psf_ctf(
-    resmat,
-    src,
-    idx,
-    *,
-    func,
-    mode,
-    n_comp,
-    norm,
-    return_pca_vars,
-    vector=False,
-    verbose=None,
-):
-    """Get point-spread (PSFs) or cross-talk (CTFs) functions."""
+def _get_psf_ctf(resmat, src, idx, *, func, mode, n_comp, norm,
+                 return_pca_vars, vector=False, verbose=None):
+    """Get point-spread (PSFs) or cross-talk (CTFs) functions.
+
+    Parameters
+    ----------
+    resmat : array, shape (n_orient_inv * n_dipoles, n_orient_fwd * n_dipoles)
+        Forward Operator.
+    src : Source Space
+        Source space used to compute resolution matrix.
+    %(idx_pctf)s
+    func : str ('psf' | 'ctf')
+        Whether to produce PSFs or CTFs. Defaults to psf.
+    %(mode_pctf)s
+    %(n_comp_pctf_n)s
+    %(norm_pctf)s
+    %(return_pca_vars_pctf)s
+    %(vector_pctf)s
+    %(verbose)s
+
+    Returns
+    -------
+    %(stcs_pctf)s
+    %(pca_vars_pctf)s
+    """
     # check for consistencies in input parameters
     _check_get_psf_ctf_params(mode, n_comp, return_pca_vars)
 
     # backward compatibility
     if norm is True:
-        norm = "max"
+        norm = 'max'
 
     # get relevant vertices in source space
-    src_orig = src
-    _validate_type(src_orig, (InverseOperator, Forward, SourceSpaces), "src")
-    if not isinstance(src, SourceSpaces):
-        src = src["src"]
     verts_all = _vertices_for_get_psf_ctf(idx, src)
-    vertno = _get_vertno(src)
-    n_verts = sum(len(v) for v in vertno)
-    src_type = _get_src_type(src, vertno)
-    subject = src._subject
-    if vector and src_type == "surface":
-        _validate_type(
-            src_orig,
-            (Forward, InverseOperator),
-            "src",
-            extra="when creating a vector surface source estimate",
-        )
-        nn = src_orig["source_nn"]
-    else:
-        nn = np.repeat(np.eye(3, 3)[np.newaxis], n_verts, 0)
+    vertno_lh = src[0]['vertno']
+    vertno_rh = src[1]['vertno']
+    vertno = [vertno_lh, vertno_rh]
+
+    n_verts = len(vertno[0]) + len(vertno[1])
 
     n_r, n_c = resmat.shape
-    if ((n_verts != n_r) and (n_r / 3 != n_verts)) or (
-        (n_verts != n_c) and (n_c / 3 != n_verts)
-    ):
-        msg = (
-            "Number of vertices (%d) and corresponding dimension of"
-            "resolution matrix (%d, %d) do not match" % (n_verts, n_r, n_c)
-        )
+    if (((n_verts != n_r) and (n_r / 3 != n_verts))
+            or ((n_verts != n_c) and (n_c / 3 != n_verts))):
+        msg = ('Number of vertices (%d) and corresponding dimension of'
+               'resolution matrix ((%d, %d) do not match' %
+               (n_verts, n_r, n_c))
         raise ValueError(msg)
 
     # the following will operate on columns of funcs
-    if func == "ctf":
+    if func == 'ctf':
         resmat = resmat.T
         n_r, n_c = n_c, n_r
 
@@ -223,12 +206,13 @@ def _get_psf_ctf(
         for [i, verts] in enumerate(verts_all):
             verts_vec = np.empty(3 * len(verts), dtype=int)
             for [j, v] in enumerate(verts):
-                verts_vec[3 * j : 3 * j + 3] = 3 * verts[j] + np.array([0, 1, 2])
+                verts_vec[3 * j: 3 * j + 3] = \
+                    3 * verts[j] + np.array([0, 1, 2])
             verts_all[i] = verts_vec  # use these as indices
 
     for verts in verts_all:
         # get relevant PSFs or CTFs for specified vertices
-        if isinstance(verts, int):
+        if type(verts) is int:
             verts = [verts]  # to keep array dimensions
         funcs = resmat[:, verts]
 
@@ -239,28 +223,24 @@ def _get_psf_ctf(
         # summarise PSFs/CTFs across vertices if requested
         pca_var = None  # variances computed only if return_pca_vars=True
         if mode is not None:
-            funcs, pca_var = _summarise_psf_ctf(
-                funcs, mode, n_comp, return_pca_vars, nn
-            )
+            funcs, pca_var = _summarise_psf_ctf(funcs, mode, n_comp,
+                                                return_pca_vars)
 
         if not vector:  # if one value per vertex requested
             if n_verts != n_r:  # if 3 orientations per vertex, combine
                 funcs_int = np.empty([int(n_r / 3), funcs.shape[1]])
                 for i in np.arange(0, n_verts):
-                    funcs_vert = funcs[3 * i : 3 * i + 3, :]
-                    funcs_int[i, :] = np.sqrt((funcs_vert**2).sum(axis=0))
-                funcs = funcs_int
+                    funcs_vert = funcs[3 * i:3 * i + 3, :]
+                    funcs_int[i, :] = np.sqrt((funcs_vert ** 2).sum(axis=0))
+                stc = SourceEstimate(funcs_int, vertno, tmin=0., tstep=1.)
+            else:  # use as is
+                stc = SourceEstimate(funcs, vertno, tmin=0., tstep=1.)
+        else:  # STC with orientations
+            # convert to vector source estimate
+            m, n = int(funcs.shape[0] / 3), int(funcs.shape[1])
+            data = funcs.reshape(m, 3, n)
+            stc = VectorSourceEstimate(data, vertno, tmin=0., tstep=1.)
 
-        stc = _make_stc(
-            funcs,
-            vertno,
-            src_type,
-            tmin=0.0,
-            tstep=1.0,
-            subject=subject,
-            vector=vector,
-            source_nn=nn,
-        )
         stcs.append(stc)
         pca_vars.append(pca_var)
 
@@ -277,11 +257,11 @@ def _get_psf_ctf(
 
 def _check_get_psf_ctf_params(mode, n_comp, return_pca_vars):
     """Check input parameters of _get_psf_ctf() for consistency."""
-    if mode in [None, "sum", "mean"] and n_comp > 1:
-        msg = "n_comp must be 1 for mode=%s." % mode
+    if mode in [None, 'sum', 'mean'] and n_comp > 1:
+        msg = 'n_comp must be 1 for mode=%s.' % mode
         raise ValueError(msg)
-    if mode != "pca" and return_pca_vars:
-        msg = "SVD variances can only be returned if mode=" "pca" "."
+    if mode != 'pca' and return_pca_vars:
+        msg = 'SVD variances can only be returned if mode=''pca''.'
         raise ValueError(msg)
 
 
@@ -292,13 +272,8 @@ def _vertices_for_get_psf_ctf(idx, src):
     if type(idx[0]) is Label:
         # specify without source time courses, gets indices per label
         verts_labs, _ = _prepare_label_extraction(
-            stc=None,
-            labels=idx,
-            src=src,
-            mode="mean",
-            allow_empty=False,
-            use_sparse=False,
-        )
+            stc=None, labels=idx, src=src, mode='mean', allow_empty=False,
+            use_sparse=False)
         # verts_labs can be list of lists
         # concatenate indices per label across hemispheres
         # one list item per label
@@ -306,7 +281,7 @@ def _vertices_for_get_psf_ctf(idx, src):
 
         for v in verts_labs:
             # if two hemispheres present
-            if isinstance(v, list):
+            if type(v) is list:
                 # indices for both hemispheres in one list
                 this_verts = np.concatenate((v[0], v[1]))
             else:
@@ -314,7 +289,7 @@ def _vertices_for_get_psf_ctf(idx, src):
             verts.append(this_verts)
     # check if list of list or just list
     else:
-        if isinstance(idx[0], list):  # if list of list of integers
+        if type(idx[0]) is list:  # if list of list of integers
             verts = idx
         else:  # if list of integers
             verts = [idx]
@@ -325,21 +300,21 @@ def _vertices_for_get_psf_ctf(idx, src):
 def _normalise_psf_ctf(funcs, norm):
     """Normalise PSFs/CTFs in _get_psf_ctf()."""
     # normalise PSFs/CTFs if specified
-    if norm == "max":
+    if norm == 'max':
         maxval = max(-funcs.min(), funcs.max())
         funcs = funcs / maxval
-    elif norm == "norm":  # normalise to maximum norm across columns
+    elif norm == 'norm':  # normalise to maximum norm across columns
         norms = np.linalg.norm(funcs, axis=0)
         funcs = funcs / norms.max()
 
     return funcs
 
 
-def _summarise_psf_ctf(funcs, mode, n_comp, return_pca_vars, nn):
+def _summarise_psf_ctf(funcs, mode, n_comp, return_pca_vars):
     """Summarise PSFs/CTFs across vertices."""
     s_var = None  # only computed for return_pca_vars=True
 
-    if mode == "maxval":  # pick PSF/CTF with maximum absolute value
+    if mode == 'maxval':  # pick PSF/CTF with maximum absolute value
         absvals = np.maximum(-np.min(funcs, axis=0), np.max(funcs, axis=0))
         if n_comp > 1:  # only keep requested number of sorted PSFs/CTFs
             sortidx = np.argsort(absvals)
@@ -348,7 +323,7 @@ def _summarise_psf_ctf(funcs, mode, n_comp, return_pca_vars, nn):
             maxidx = [absvals.argmax()]
         funcs = funcs[:, maxidx]
 
-    elif mode == "maxnorm":  # pick PSF/CTF with maximum norm
+    elif mode == 'maxnorm':  # pick PSF/CTF with maximum norm
         norms = np.linalg.norm(funcs, axis=0)
         if n_comp > 1:  # only keep requested number of sorted PSFs/CTFs
             sortidx = np.argsort(norms)
@@ -357,13 +332,13 @@ def _summarise_psf_ctf(funcs, mode, n_comp, return_pca_vars, nn):
             maxidx = [norms.argmax()]
         funcs = funcs[:, maxidx]
 
-    elif mode == "sum":  # sum across PSFs/CTFs
+    elif mode == 'sum':  # sum across PSFs/CTFs
         funcs = np.sum(funcs, axis=1, keepdims=True)
 
-    elif mode == "mean":  # mean of PSFs/CTFs
+    elif mode == 'mean':  # mean of PSFs/CTFs
         funcs = np.mean(funcs, axis=1, keepdims=True)
 
-    elif mode == "pca":  # SVD across PSFs/CTFs
+    elif mode == 'pca':  # SVD across PSFs/CTFs
         # compute SVD of PSFs/CTFs across vertices
         u, s, _ = np.linalg.svd(funcs, full_matrices=False, compute_uv=True)
         if n_comp > 1:
@@ -380,28 +355,16 @@ def _summarise_psf_ctf(funcs, mode, n_comp, return_pca_vars, nn):
 
 
 @verbose
-def get_point_spread(
-    resmat,
-    src,
-    idx,
-    mode=None,
-    *,
-    n_comp=1,
-    norm=False,
-    return_pca_vars=False,
-    vector=False,
-    verbose=None,
-):
+def get_point_spread(resmat, src, idx, mode=None, *, n_comp=1, norm=False,
+                     return_pca_vars=False, vector=False, verbose=None):
     """Get point-spread (PSFs) functions for vertices.
 
     Parameters
     ----------
     resmat : array, shape (n_dipoles, n_dipoles)
         Forward Operator.
-    src : instance of SourceSpaces | instance of InverseOperator | instance of Forward
+    src : instance of SourceSpaces
         Source space used to compute resolution matrix.
-        Must be an InverseOperator if ``vector=True`` and a surface
-        source space is used.
     %(idx_pctf)s
     %(mode_pctf)s
     %(n_comp_pctf_n)s
@@ -414,43 +377,23 @@ def get_point_spread(
     -------
     %(stcs_pctf)s
     %(pca_vars_pctf)s
-    """  # noqa: E501
-    return _get_psf_ctf(
-        resmat,
-        src,
-        idx,
-        func="psf",
-        mode=mode,
-        n_comp=n_comp,
-        norm=norm,
-        return_pca_vars=return_pca_vars,
-        vector=vector,
-    )
+    """
+    return _get_psf_ctf(resmat, src, idx, func='psf', mode=mode, n_comp=n_comp,
+                        norm=norm, return_pca_vars=return_pca_vars,
+                        vector=vector)
 
 
 @verbose
-def get_cross_talk(
-    resmat,
-    src,
-    idx,
-    mode=None,
-    *,
-    n_comp=1,
-    norm=False,
-    return_pca_vars=False,
-    vector=False,
-    verbose=None,
-):
+def get_cross_talk(resmat, src, idx, mode=None, *, n_comp=1, norm=False,
+                   return_pca_vars=False, vector=False, verbose=None):
     """Get cross-talk (CTFs) function for vertices.
 
     Parameters
     ----------
     resmat : array, shape (n_dipoles, n_dipoles)
         Forward Operator.
-    src : instance of SourceSpaces | instance of InverseOperator | instance of Forward
+    src : instance of SourceSpaces
         Source space used to compute resolution matrix.
-        Must be an InverseOperator if ``vector=True`` and a surface
-        source space is used.
     %(idx_pctf)s
     %(mode_pctf)s
     %(n_comp_pctf_n)s
@@ -463,18 +406,10 @@ def get_cross_talk(
     -------
     %(stcs_pctf)s
     %(pca_vars_pctf)s
-    """  # noqa: E501
-    return _get_psf_ctf(
-        resmat,
-        src,
-        idx,
-        func="ctf",
-        mode=mode,
-        n_comp=n_comp,
-        norm=norm,
-        return_pca_vars=return_pca_vars,
-        vector=vector,
-    )
+    """
+    return _get_psf_ctf(resmat, src, idx, func='ctf', mode=mode, n_comp=n_comp,
+                        norm=norm, return_pca_vars=return_pca_vars,
+                        vector=vector)
 
 
 def _convert_forward_match_inv(fwd, inv):
@@ -483,8 +418,6 @@ def _convert_forward_match_inv(fwd, inv):
     Inverse operator and forward operator must have same surface orientations,
     but can have different source orientation constraints.
     """
-    _validate_type(fwd, Forward, "fwd")
-    _validate_type(inv, InverseOperator, "inverse_operator")
     # did inverse operator use fixed orientation?
     is_fixed_inv = _check_fixed_ori(inv)
     # did forward operator use fixed orientation?
@@ -494,11 +427,13 @@ def _convert_forward_match_inv(fwd, inv):
     # if inv loose: surf_ori must be True
     # if inv free: surf_ori must be False
     if not is_fixed_inv and not is_fixed_fwd:
-        inv_surf_ori = inv._is_surf_ori
-        if inv_surf_ori != fwd["surf_ori"]:
-            fwd = convert_forward_solution(
-                fwd, surf_ori=inv_surf_ori, force_fixed=False
-            )
+        is_loose_inv = not (inv['orient_prior']['data'] == 1.).all()
+
+        if is_loose_inv:
+            if not fwd['surf_ori']:
+                fwd = convert_forward_solution(fwd, surf_ori=True)
+        elif fwd['surf_ori']:  # free orientation, change fwd
+            fwd = convert_forward_solution(fwd, surf_ori=False)
 
     return fwd
 
@@ -508,17 +443,15 @@ def _prepare_info(inverse_operator):
     # in order to convert sub-leadfield matrix to evoked data type (pretending
     # it's an epoch, see in loop below), uses 'info' from inverse solution
     # because this has all the correct projector information
-    info = deepcopy(inverse_operator["info"])
+    info = deepcopy(inverse_operator['info'])
     with info._unlock():
-        info["sfreq"] = 1000.0  # necessary
-        info["projs"] = inverse_operator["projs"]
-        info["custom_ref_applied"] = False
+        info['sfreq'] = 1000.  # necessary
+        info['projs'] = inverse_operator['projs']
     return info
 
 
-def _get_matrix_from_inverse_operator(
-    inverse_operator, forward, method="dSPM", lambda2=1.0 / 9.0
-):
+def _get_matrix_from_inverse_operator(inverse_operator, forward, method='dSPM',
+                                      lambda2=1. / 9.):
     """Get inverse matrix from an inverse operator.
 
     Currently works only for fixed/loose orientation constraints
@@ -549,9 +482,9 @@ def _get_matrix_from_inverse_operator(
     info_inv = _prepare_info(inverse_operator)
 
     # only use channels that are good for inverse operator and forward sol
-    ch_names_inv = info_inv["ch_names"]
+    ch_names_inv = info_inv['ch_names']
     n_chs_inv = len(ch_names_inv)
-    bads_inv = inverse_operator["info"]["bads"]
+    bads_inv = inverse_operator['info']['bads']
 
     # indices of bad channels
     ch_idx_bads = [ch_names_inv.index(ch) for ch in bads_inv]
@@ -561,7 +494,7 @@ def _get_matrix_from_inverse_operator(
     id_mat = np.eye(n_chs_inv)
 
     # convert identity matrix to evoked data type (pretending it's an epoch)
-    ev_id = EvokedArray(id_mat, info=info_inv, tmin=0.0)
+    ev_id = EvokedArray(id_mat, info=info_inv, tmin=0.)
 
     # apply inverse operator to identity matrix in order to get inverse matrix
     # free orientation constraint not possible because apply_inverse would
@@ -574,12 +507,11 @@ def _get_matrix_from_inverse_operator(
     if is_fixed_inv:
         pick_ori = None
     else:
-        pick_ori = "vector"
+        pick_ori = 'vector'
 
     # columns for bad channels will be zero
-    invmat_op = apply_inverse(
-        ev_id, inverse_operator, lambda2=lambda2, method=method, pick_ori=pick_ori
-    )
+    invmat_op = apply_inverse(ev_id, inverse_operator, lambda2=lambda2,
+                              method=method, pick_ori=pick_ori)
 
     # turn source estimate into numpy array
     invmat = invmat_op.data
@@ -606,5 +538,5 @@ def _get_matrix_from_inverse_operator(
 
 def _check_fixed_ori(inst):
     """Check if inverse or forward was computed for fixed orientations."""
-    is_fixed = inst["source_ori"] != FIFF.FIFFV_MNE_FREE_ORI
+    is_fixed = inst['source_ori'] != FIFF.FIFFV_MNE_FREE_ORI
     return is_fixed
