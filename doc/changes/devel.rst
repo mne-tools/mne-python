@@ -48,6 +48,7 @@ Enhancements
 - Add support for passing multiple labels to :func:`mne.minimum_norm.source_induced_power` (:gh:`12026` by `Erica Peterson`_, `Eric Larson`_, and `Daniel McCloy`_ )
 - Added documentation to :meth:`mne.io.Raw.set_montage` and :func:`mne.add_reference_channels` to specify that montages should be set after adding reference channels (:gh:`12160` by `Jacob Woessner`_)
 - Add argument ``splash`` to the function using the ``qt`` browser backend to allow enabling/disabling the splash screen (:gh:`12185` by `Mathieu Scheltienne`_)
+- :meth:`mne.Evoked.apply_function` can now work on full data array, instead of channel wise (analogous to :meth:`mne.io.Raw.apply_function` and :meth:`mne.Epochs.apply_function`). (:gh:`12206` by `Dominik Welke`_)
 
 Bugs
 ~~~~
@@ -100,3 +101,4 @@ API changes
 - Replace legacy ``inst.pick_channels`` and ``inst.pick_types`` with ``inst.pick`` (where ``inst`` is an instance of :class:`~mne.io.Raw`, :class:`~mne.Epochs`, or :class:`~mne.Evoked`) wherever possible (:gh:`11907` by `Clemens Brunner`_)
 - The ``reset_camera`` parameter has been removed in favor of ``distance="auto"`` in :func:`mne.viz.set_3d_view`, :meth:`mne.viz.Brain.show_view`, and related functions (:gh:`12000` by `Eric Larson`_)
 - Several unused parameters from :func:`mne.gui.coregistration` are now deprecated: tabbed, split, scrollable, head_inside, guess_mri_subject, scale, and ``advanced_rendering``. All arguments are also now keyword-only. (:gh:`12147` by `Eric Larson`_)
+- Optional input argument ``channel_wise`` added to :meth:`mne.Evoked.apply_function` (analogous to :meth:`mne.io.Raw.apply_function` and :meth:`mne.Epochs.apply_function`). (:gh:`12206` by `Dominik Welke`_)

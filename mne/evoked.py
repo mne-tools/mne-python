@@ -257,7 +257,14 @@ class Evoked(
 
     @verbose
     def apply_function(
-        self, fun, picks=None, dtype=None, n_jobs=None, verbose=None, **kwargs
+        self,
+        fun,
+        picks=None,
+        dtype=None,
+        n_jobs=None,
+        channel_wise=True,
+        verbose=None,
+        **kwargs,
     ):
         """Apply a function to a subset of channels.
 
@@ -268,7 +275,11 @@ class Evoked(
         %(fun_applyfun_evoked)s
         %(picks_all_data_noref)s
         %(dtype_applyfun)s
-        %(n_jobs)s
+        %(n_jobs)s Ignored if ``channel_wise=False`` as the workload
+            is split across channels.
+        %(channel_wise_applyfun)s
+
+            .. versionadded:: 1.6
         %(verbose)s
         %(kwargs_fun)s
 
@@ -288,7 +299,13 @@ class Evoked(
             self._data = self._data.astype(dtype)
 
         args = getfullargspec(fun)[0] + getfullargspec(fun)[4]
-        if ("ch_idx" in args) and ("ch_name" in args):
+        if channel_wise is False:
+            if ("ch_idx" in args) or ("ch_name" in args):
+                raise ValueError(
+                    "apply_function cannot access ch_idx or ch_name "
+                    "when channel_wise=False"
+                )
+        elif ("ch_idx" in args) and ("ch_name" in args):
             raise ValueError(
                 "apply_function cannot access both ch_idx and ch_name. pick one!"
             )
@@ -300,38 +317,43 @@ class Evoked(
         # check the dimension of the incoming evoked data
         _check_option("evoked.ndim", self._data.ndim, [2])
 
-        parallel, p_fun, n_jobs = parallel_func(_check_fun, n_jobs)
-        if n_jobs == 1:
-            # modify data inplace to save memory
-            for ch_idx in picks:
-                if "ch_idx" in args:
-                    kwargs.update(ch_idx=ch_idx)
-                elif "ch_name" in args:
-                    kwargs.update(ch_name=self.info["ch_names"][ch_idx])
-                self._data[ch_idx, :] = _check_fun(fun, data_in[ch_idx, :], **kwargs)
-        else:
-            # use parallel function
-            if "ch_idx" in args:
-                data_picks_new = parallel(
-                    p_fun(fun, data_in[ch_idx, :], ch_idx=ch_idx, **kwargs)
-                    for ch_idx in picks
-                )
-            elif "ch_name" in args:
-                data_picks_new = parallel(
-                    p_fun(
-                        fun,
-                        data_in[ch_idx, :],
-                        ch_name=self.info["ch_names"][ch_idx],
-                        **kwargs,
+        if channel_wise:
+            parallel, p_fun, n_jobs = parallel_func(_check_fun, n_jobs)
+            if n_jobs == 1:
+                # modify data inplace to save memory
+                for ch_idx in picks:
+                    if "ch_idx" in args:
+                        kwargs.update(ch_idx=ch_idx)
+                    elif "ch_name" in args:
+                        kwargs.update(ch_name=self.info["ch_names"][ch_idx])
+                    self._data[ch_idx, :] = _check_fun(
+                        fun, data_in[ch_idx, :], **kwargs
                     )
-                    for ch_idx in picks
-                )
             else:
-                data_picks_new = parallel(
-                    p_fun(fun, data_in[ch_idx, :], **kwargs) for ch_idx in picks
-                )
-            for run_idx, ch_idx in enumerate(picks):
-                self._data[ch_idx, :] = data_picks_new[run_idx]
+                # use parallel function
+                if "ch_idx" in args:
+                    data_picks_new = parallel(
+                        p_fun(fun, data_in[ch_idx, :], ch_idx=ch_idx, **kwargs)
+                        for ch_idx in picks
+                    )
+                elif "ch_name" in args:
+                    data_picks_new = parallel(
+                        p_fun(
+                            fun,
+                            data_in[ch_idx, :],
+                            ch_name=self.info["ch_names"][ch_idx],
+                            **kwargs,
+                        )
+                        for ch_idx in picks
+                    )
+                else:
+                    data_picks_new = parallel(
+                        p_fun(fun, data_in[ch_idx, :], **kwargs) for ch_idx in picks
+                    )
+                for run_idx, ch_idx in enumerate(picks):
+                    self._data[ch_idx, :] = data_picks_new[run_idx]
+        else:
+            self._data[picks, :] = _check_fun(fun, data_in[picks, :], **kwargs)
 
         return self
 
