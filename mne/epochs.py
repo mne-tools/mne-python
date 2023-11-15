@@ -2434,7 +2434,7 @@ class BaseEpochs(
         for eq in event_ids:
             eq_inds.append(self._keys_to_idx(eq))
 
-        event_times = [self.events[e, 0] for e in eq_inds]
+        sample_nums = [self.events[e, 0] for e in eq_inds]
         indices = _get_drop_indices(sample_nums, method)
         # need to re-index indices
         indices = np.concatenate([e[idx] for e, idx in zip(eq_inds, indices)])
