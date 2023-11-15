@@ -17,7 +17,7 @@ from .. import (
 from ..forward.forward import convert_forward_solution
 from ..io.constants import FIFF
 from ..label import Label
-from ..minimum_norm import apply_inverse, apply_inverse_cov, prepare_inverse_operator
+from ..minimum_norm import apply_inverse, apply_inverse_cov
 from ..minimum_norm.spatial_resolution import _rectify_resolution_matrix
 from ..source_estimate import _prepare_label_extraction
 from ..utils import logger, verbose
