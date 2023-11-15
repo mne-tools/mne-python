@@ -920,6 +920,15 @@ def test_getitem():
 
 
 @testing.requires_testing_data
+def test_iter():
+    """Test iterating over Raw via __getitem__()."""
+    raw = read_raw_fif(fif_fname).pick("eeg")  # 60 EEG channels
+    for i, _ in enumerate(raw):  # iterate over channels
+        pass
+    assert i == 59  # 60 channels means iterating from 0 to 59
+
+
+@testing.requires_testing_data
 def test_proj(tmp_path):
     """Test SSP proj operations."""
     for proj in [True, False]:
