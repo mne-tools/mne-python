@@ -97,7 +97,6 @@ def make_inverse_resolution_matrix(
 
     # add source noise power to columns of resolution matrix
     if noise_cov is not None:
-        inv = prepare_inverse_operator(inv, 1, lambda2, method, copy="non-src")
         info = _prepare_info(inv)
         # compute source noise power
         stc = apply_inverse_cov(
@@ -108,7 +107,7 @@ def make_inverse_resolution_matrix(
             lambda2=lambda2,
             method=method,
             pick_ori=None,
-            prepared=True,
+            prepared=False,
             label=None,
             method_params=None,
             use_cps=True,
