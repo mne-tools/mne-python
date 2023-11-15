@@ -7,8 +7,7 @@ from copy import deepcopy
 import numpy as np
 
 from .._fiff.constants import FIFF
-from .._fiff.pick import pick_channels_forward
-from ..channels import pick_types
+from .._fiff.pick import pick_channels_forward, pick_types
 from ..evoked import EvokedArray
 from ..forward.forward import Forward, convert_forward_solution
 from ..label import Label
