@@ -2749,6 +2749,8 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
         self.method = method
         self.preload = True
         self.metadata = metadata
+        # we need this to allow equalize_epoch_counts to work with EpochsTFRs
+        self._bad_dropped = True
 
     @property
     def _detrend_picks(self):
@@ -2886,7 +2888,7 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
 
         Returns
         -------
-        epochs : instance of Epochs
+        epochs : instance of Epochs or EpochsTFR
             The epochs with indices dropped. Operates in-place.
         """
         from ..epochs import BaseEpochs
