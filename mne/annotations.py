@@ -104,8 +104,13 @@ def _check_o_d_s_c(onset, duration, description, ch_names, metadata):
         _validate_type(md, dict, f"metadata[{ai}]")
     metadata = np.array(metadata, dtype=object)
 
-    if not (len(onset) == len(duration) == len(description) == 
-            len(ch_names) == len(metadata)):
+    if not (
+        len(onset)
+        == len(duration)
+        == len(description)
+        == len(ch_names)
+        == len(metadata)
+    ):
         raise ValueError(
             "Onset, duration, description, ch_names, and metadata must be "
             f"equal in sizes, got {len(onset)}, {len(duration)}, "
@@ -286,8 +291,7 @@ class Annotations:
     """  # noqa: E501
 
     def __init__(
-        self, onset, duration, description, orig_time=None, ch_names=None,
-        metadata=None
+        self, onset, duration, description, orig_time=None, ch_names=None, metadata=None
     ):  # noqa: D102
         self._orig_time = _handle_meas_date(orig_time)
         self.onset, self.duration, self.description, self.ch_names,
@@ -358,8 +362,11 @@ class Annotations:
                 "(got %s != %s)" % (self.orig_time, other.orig_time)
             )
         return self.append(
-            other.onset, other.duration, other.description, other.ch_names, 
-            other._metadata
+            other.onset,
+            other.duration,
+            other.description,
+            other.ch_names,
+            other._metadata,
         )
 
     def __iter__(self):
@@ -373,8 +380,7 @@ class Annotations:
     def __getitem__(self, key, *, with_ch_names=None):
         """Propagate indexing and slicing to the underlying numpy structure."""
         if isinstance(key, int_like):
-            out_keys = ("onset", "duration", "description", "orig_time",
-                        "metadata")
+            out_keys = ("onset", "duration", "description", "orig_time", "metadata")
             out_vals = (
                 self.onset[key],
                 self.duration[key],
@@ -398,8 +404,7 @@ class Annotations:
             )
 
     @fill_doc
-    def append(self, onset, duration, description, ch_names=None,
-               metadata=None):
+    def append(self, onset, duration, description, ch_names=None, metadata=None):
         """Add an annotated segment. Operates inplace.
 
         Parameters
@@ -416,7 +421,7 @@ class Annotations:
         metadata : dict | array-like
             Metadata for the annotation. Can be a dict or an array-like
             object of dicts. If an array-like object, must be the same length
-            as ``onset``.            
+            as ``onset``.
 
             .. versionadded:: 0.23
 
