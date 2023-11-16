@@ -15,7 +15,7 @@ from dataclasses import dataclass, is_dataclass
 from inspect import Parameter, isfunction, signature
 from numbers import Integral
 from time import time
-from typing import List, Literal, Optional
+from typing import Dict, List, Literal, Optional, Union
 
 import numpy as np
 from scipy import linalg, stats
@@ -507,6 +507,7 @@ class ICA(ContainsMixin):
         class _InfosForRepr:
             fit_on: Optional[Literal["raw data", "epochs"]]
             fit_method: Literal["fastica", "infomax", "extended-infomax", "picard"]
+            fit_params: Dict[str, Union[str, float]]
             fit_n_iter: Optional[int]
             fit_n_samples: Optional[int]
             fit_n_components: Optional[int]
@@ -522,6 +523,7 @@ class ICA(ContainsMixin):
             fit_on = "epochs"
 
         fit_method = self.method
+        fit_params = self.fit_params
         fit_n_iter = getattr(self, "n_iter_", None)
         fit_n_samples = getattr(self, "n_samples_", None)
         fit_n_components = getattr(self, "n_components_", None)
@@ -542,6 +544,7 @@ class ICA(ContainsMixin):
         infos_for_repr = _InfosForRepr(
             fit_on=fit_on,
             fit_method=fit_method,
+            fit_params=fit_params,
             fit_n_iter=fit_n_iter,
             fit_n_samples=fit_n_samples,
             fit_n_components=fit_n_components,
@@ -576,6 +579,7 @@ class ICA(ContainsMixin):
         html = t.render(
             fit_on=infos.fit_on,
             method=infos.fit_method,
+            fit_params=infos.fit_params,
             n_iter=infos.fit_n_iter,
             n_samples=infos.fit_n_samples,
             n_components=infos.fit_n_components,

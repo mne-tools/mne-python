@@ -87,7 +87,7 @@ I agree to the following:
 # respective repos, and make a new release of the dataset on GitHub. Then
 # update the checksum in the MNE_DATASETS dict below, and change version
 # here:                  ↓↓↓↓↓         ↓↓↓
-RELEASES = dict(testing="0.149", misc="0.26")
+RELEASES = dict(testing="0.150", misc="0.26")
 TESTING_VERSIONED = f'mne-testing-data-{RELEASES["testing"]}'
 MISC_VERSIONED = f'mne-misc-data-{RELEASES["misc"]}'
 
@@ -111,7 +111,7 @@ MNE_DATASETS = dict()
 # Testing and misc are at the top as they're updated most often
 MNE_DATASETS["testing"] = dict(
     archive_name=f"{TESTING_VERSIONED}.tar.gz",
-    hash="md5:86c47eb83426f48ff17338cb0e379754",
+    hash="md5:0b7452daef4d19132505b5639d695628",
     url=(
         "https://codeload.github.com/mne-tools/mne-testing-data/"
         f'tar.gz/{RELEASES["testing"]}'
@@ -172,6 +172,14 @@ MNE_DATASETS["opm"] = dict(
     url="https://osf.io/p6ae7/download?version=2",
     folder_name="MNE-OPM-data",
     config_key="MNE_DATASETS_OPM_PATH",
+)
+
+MNE_DATASETS["phantom_kit"] = dict(
+    archive_name="MNE-phantom-KIT-24bit.zip",
+    hash="md5:CAF82EE978DD473C7DE6C1034D9CCD45",
+    url="https://osf.io/download/svnt3/",
+    folder_name="MNE-phantom-KIT-data",
+    config_key="MNE_DATASETS_PHANTOM_KIT_PATH",
 )
 
 MNE_DATASETS["phantom_4dbti"] = dict(
