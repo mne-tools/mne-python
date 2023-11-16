@@ -6,6 +6,7 @@
 import json
 import os.path as op
 import re
+import uuid
 import warnings
 from collections import Counter, OrderedDict
 from collections.abc import Iterable
@@ -282,7 +283,31 @@ class Annotations:
         self.onset, self.duration, self.description, self.ch_names = _check_o_d_s_c(
             onset, duration, description, ch_names
         )
+        self._id = np.array([str(uuid.uuid4()) for _ in range(len(self.onset))],
+                            dtype=str)
         self._sort()  # ensure we're sorted
+    
+    # We need this, bc if we create Annotations from events which are not sorted,
+    # and we then directly query for the according IDs, we cannot do this simply by 
+    # index as the Annotations will already on creation be sorted.
+    def _get_id(self, onset, duration, description):
+
+        onset = np.asarray(onset, dtype=float)
+        duration = np.asarray(duration, dtype=float)
+        description = np.asarray(description, dtype=str)
+
+        ids = [None] * len(onset)
+
+        for i, ev in enumerate(zip(onset, duration, description)):
+            # find all matching annotations by onset:
+            idx = np.where((self.onset == ev[0]) & (self.duration == ev[1]) & 
+                           (self.description == ev[2]))[0]
+            if len(idx) > 1:
+                raise ValueError("Found multiple matching annotations")
+            elif len(idx) == 1:
+                ids[i] = self._id[idx[0]]
+
+        return ids
 
     @property
     def orig_time(self):
@@ -359,12 +384,13 @@ class Annotations:
     def __getitem__(self, key, *, with_ch_names=None):
         """Propagate indexing and slicing to the underlying numpy structure."""
         if isinstance(key, int_like):
-            out_keys = ("onset", "duration", "description", "orig_time")
+            out_keys = ("onset", "duration", "description", "orig_time", "_id")
             out_vals = (
                 self.onset[key],
                 self.duration[key],
                 self.description[key],
                 self.orig_time,
+                self._id[key],
             )
             if with_ch_names or (with_ch_names is None and self._any_ch_names()):
                 out_keys += ("ch_names",)
@@ -372,13 +398,18 @@ class Annotations:
             return OrderedDict(zip(out_keys, out_vals))
         else:
             key = list(key) if isinstance(key, tuple) else key
-            return Annotations(
+            annots = Annotations(
                 onset=self.onset[key],
                 duration=self.duration[key],
                 description=self.description[key],
                 orig_time=self.orig_time,
                 ch_names=self.ch_names[key],
             )
+            annots._id = self._id[np.sort(key)]  # Annotations are always sorted
+            return annots
+
+
+
 
     @fill_doc
     def append(self, onset, duration, description, ch_names=None):
@@ -412,10 +443,12 @@ class Annotations:
         onset, duration, description, ch_names = _check_o_d_s_c(
             onset, duration, description, ch_names
         )
+        _id = np.array([str(uuid.uuid4()) for _ in range(len(onset))], dtype=str)
         self.onset = np.append(self.onset, onset)
         self.duration = np.append(self.duration, duration)
         self.description = np.append(self.description, description)
         self.ch_names = np.append(self.ch_names, ch_names)
+        self._id = np.append(self._id, _id)
         self._sort()
         return self
 
@@ -564,6 +597,7 @@ class Annotations:
         self.duration = self.duration[order]
         self.description = self.description[order]
         self.ch_names = self.ch_names[order]
+        self._id = self._id[order]
 
     @verbose
     def crop(
