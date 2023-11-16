@@ -297,6 +297,13 @@ def test_rawarray_edf(tmp_path):
     ):
         raw_bad.export(temp_fname, overwrite=True)
 
+    # include bad measurement date that is non-EDF compliant
+    raw = RawArray(data, info)
+    meas_date = datetime(year=1984, month=1, day=1, tzinfo=timezone.utc)
+    raw.set_meas_date(meas_date)
+    with pytest.raises(ValueError, match="EDF only allows dates from 1985 to 2084"):
+        raw.export(temp_fname, overwrite=True)
+
     # test that warning is raised if there are non-voltage based channels
     raw = RawArray(data, info)
     raw.set_channel_types({"9": "hbr"}, on_unit_change="ignore")
