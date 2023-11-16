@@ -10,6 +10,7 @@ This example looks at high-frequency SEF responses.
 # Author: Jussi Nurminen (jnu@iki.fi)
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 

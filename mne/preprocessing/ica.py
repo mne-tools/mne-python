@@ -4,6 +4,7 @@
 #          Juergen Dammers <j.dammers@fz-juelich.de>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import json
 import math

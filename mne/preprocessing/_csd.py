@@ -1,16 +1,16 @@
-# Copyright 2003-2010 Jürgen Kayser <rjk23@columbia.edu>
-# Copyright 2017 Federico Raimondo <federaimondo@gmail.com> and
-#                Denis A. Engemann <dengemann@gmail.com>
-#
-#
-# The original CSD Toolbox can be find at
-# http://psychophysiology.cpmc.columbia.edu/Software/CSDtoolbox/
-
 # Authors: Denis A. Engeman <denis.engemann@gmail.com>
 #          Alex Rockhill <aprockhill@mailbox.org>
 #
-# License: Relicensed under BSD-3-Clause and adapted with
-#          permission from authors of original GPL code
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
+
+# Copyright 2003-2010 Jürgen Kayser <rjk23@columbia.edu>
+#
+# The original CSD Toolbox can be found at
+# http://psychophysiology.cpmc.columbia.edu/Software/CSDtoolbox/
+#
+# Relicensed under BSD-3-Clause and adapted with permission from authors of original GPL
+# code.
 
 import numpy as np
 from scipy.optimize import minimize_scalar

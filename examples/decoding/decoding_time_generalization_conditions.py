@@ -16,6 +16,7 @@ predict all of the time samples of a second set of conditions.
 #          Denis Engemann <denis.engemann@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 

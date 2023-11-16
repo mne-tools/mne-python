@@ -4,6 +4,7 @@
 
 
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from collections import Counter, OrderedDict
 from functools import partial

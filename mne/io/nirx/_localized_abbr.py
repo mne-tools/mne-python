@@ -2,6 +2,7 @@
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # This file was generated on 2021/01/31 on an Ubuntu system.
 # When getting "unsupported locale setting" on Ubuntu (e.g., with localepurge),

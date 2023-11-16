@@ -5,6 +5,7 @@
 #          Marijn van Vliet <w.m.vanvliet@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from collections import namedtuple
 from inspect import isgenerator
