@@ -743,6 +743,7 @@ def test_init_EpochsTFR():
         tfr = EpochsTFR(info, data=data, times=times_x, freqs=freqs_x)
         del tfr
 
+
 def test_equalize_epochs_tfr_counts():
     """Test equalize_epoch_counts for EpochsTFR."""
     tfr = _create_test_epochstfr()

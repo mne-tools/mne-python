@@ -2663,7 +2663,9 @@ def test_epoch_eq():
     )
     assert epochs_2.drop_log == ((),) * len(epochs_2.events)
     # test mintime method
-    events_1[-1, 0] += 60  # hack to ensure mintime drops something other than the last trial
+    events_1[
+        -1, 0
+    ] += 60  # hack to ensure mintime drops something other than the last trial
     # now run equalize_epoch_counts with mintime method
     equalize_epoch_counts([epochs_1, epochs_2], method="mintime")
     # mintime method should give us the smallest difference between timings of epochs
@@ -2693,9 +2695,9 @@ def test_epoch_eq():
     # test truncate method
     equalize_epoch_counts([epochs_3, epochs_4], method="truncate")
     if len(epochs_3.events) > len(epochs_4.events):
-        assert_equal(epochs_3.events[-2, 0], epochs_3.events.shape[-1,0])
+        assert_equal(epochs_3.events[-2, 0], epochs_3.events.shape[-1, 0])
     elif len(epochs_3.events) < len(epochs_4.events):
-        assert_equal(epochs_4.events[-2, 0], epochs_4.events[-1,0])
+        assert_equal(epochs_4.events[-2, 0], epochs_4.events[-1, 0])
     # both mintime and truncate method sh
     assert_equal(epochs_1.events.shape[0], epochs_3.events.shape[0])
     assert_equal(epochs_3.events.shape[0], epochs_4.events.shape[0])
