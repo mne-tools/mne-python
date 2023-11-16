@@ -3,6 +3,7 @@
 set -o pipefail
 
 STD_ARGS="--progress-bar off --upgrade"
+INSTALL_KIND="test_extra,hdf5"
 if [ ! -z "$CONDA_ENV" ]; then
 	echo "Uninstalling MNE for CONDA_ENV=${CONDA_ENV}"
 	conda remove -c conda-forge --force -yq mne
@@ -10,11 +11,14 @@ if [ ! -z "$CONDA_ENV" ]; then
 elif [ ! -z "$CONDA_DEPENDENCIES" ]; then
 	echo "Using Mamba to install CONDA_DEPENDENCIES=${CONDA_DEPENDENCIES}"
 	mamba install -y $CONDA_DEPENDENCIES
+	# for compat_minimal and compat_old, we don't want to --upgrade
+	STD_ARGS="--progress-bar off"
+	INSTALL_KIND="test"
 else
 	echo "Install pip-pre dependencies"
 	test "${MNE_CI_KIND}" == "pip-pre"
 	STD_ARGS="$STD_ARGS --pre"
-	python -m pip install $STD_ARGS pip setuptools wheel packaging
+	python -m pip install $STD_ARGS pip
 	echo "Numpy"
 	pip uninstall -yq numpy
 	echo "PyQt6"
@@ -40,7 +44,7 @@ else
 	echo "pyvistaqt"
 	pip install $STD_ARGS git+https://github.com/pyvista/pyvistaqt
 	echo "imageio-ffmpeg, xlrd, mffpy, python-picard"
-	pip install $STD_ARGS imageio-ffmpeg xlrd mffpy python-picard patsy
+	pip install $STD_ARGS imageio-ffmpeg xlrd mffpy python-picard patsy traitlets pybv eeglabio
 	echo "mne-qt-browser"
 	pip install $STD_ARGS git+https://github.com/mne-tools/mne-qt-browser
 	echo "nibabel with workaround"
@@ -54,18 +58,5 @@ else
 fi
 echo ""
 
-
-# for compat_minimal and compat_old, we don't want to --upgrade
-if [ ! -z "$CONDA_DEPENDENCIES" ]; then
-	echo "Installing dependencies for conda"
-	python -m pip install -r requirements_base.txt -r requirements_testing.txt
-else
-	echo "Installing dependencies using pip"
-	python -m pip install $STD_ARGS -r requirements_base.txt -r requirements_testing.txt -r requirements_hdf5.txt
-fi
-echo ""
-
-if [ "${DEPS}" != "minimal" ]; then
-	echo "Installing non-minimal dependencies"
-	python -m pip install $STD_ARGS -r requirements_testing_extra.txt
-fi
+echo "Installing test dependencies using pip"
+python -m pip install $STD_ARGS -e .[$INSTALL_KIND]

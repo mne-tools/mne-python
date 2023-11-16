@@ -43,8 +43,8 @@ jobs:
             brew install python@3.11
             which python
             which pip
-            pip install --upgrade pip setuptools wheel
-            pip install --upgrade --only-binary "numpy,scipy,dipy,statsmodels" -ve . -r requirements.txt -r requirements_testing.txt -r requirements_testing_extra.txt PyQt6
+            pip install --upgrade pip
+            pip install --upgrade --only-binary "numpy,scipy,dipy,statsmodels" -ve .[full,test_extra]
             # 3D too slow on Apple's software renderer, and numba causes us problems
             pip uninstall -y vtk pyvista pyvistaqt numba
             mkdir -p test-results
@@ -266,6 +266,9 @@ jobs:
       - restore_cache:
           keys:
             - data-cache-ucl-opm-auditory
+      - restore_cache:
+          keys:
+            - data-cache-phantom-kit
       - run:
           name: Get data
           # This limit could be increased, but this is helpful for finding slow ones
@@ -431,6 +434,10 @@ jobs:
           key: data-cache-ucl-opm-auditory
           paths:
             - ~/mne_data/auditory_OPM_stationary  # (4 G)
+      - save_cache:
+          key: data-cache-phantom-kit
+          paths:
+            - ~/mne_data/MNE-phantom-KIT-data  # (1 G)
 
 
   linkcheck:

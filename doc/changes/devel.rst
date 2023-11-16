@@ -23,6 +23,7 @@ Version 1.6.dev0 (development)
 
 Enhancements
 ~~~~~~~~~~~~
+- Add support for Neuralynx data files with ``mne.io.read_raw_neuralynx`` (:gh:`11969` by :newcontrib:`Kristijan Armeni` and :newcontrib:`Ivan Skelin`)
 - Improve tests for saving splits with :class:`mne.Epochs` (:gh:`11884` by `Dmitrii Altukhov`_)
 - Added functionality for linking interactive figures together, such that changing one figure will affect another, see :ref:`tut-ui-events` and :mod:`mne.viz.ui_events`. Current figures implementing UI events are :func:`mne.viz.plot_topomap` and :func:`mne.viz.plot_source_estimates` (:gh:`11685` :gh:`11891` by `Marijn van Vliet`_)
 - HTML anchors for :class:`mne.Report` now reflect the ``section-title`` of the report items rather than using a global incrementor ``global-N`` (:gh:`11890` by `Eric Larson`_)
@@ -44,10 +45,12 @@ Enhancements
 - By default MNE-Python creates matplotlib figures with ``layout='constrained'`` rather than the default ``layout='tight'`` (:gh:`12050`, :gh:`12103` by `Mathieu Scheltienne`_ and `Eric Larson`_)
 - Enhance :func:`~mne.viz.plot_evoked_field` with a GUI that has controls for time, colormap, and contour lines (:gh:`11942` by `Marijn van Vliet`_)
 - Add :class:`mne.viz.ui_events.UIEvent` linking for interactive colorbars, allowing users to link figures and change the colormap and limits interactively. This supports :func:`~mne.viz.plot_evoked_topomap`, :func:`~mne.viz.plot_ica_components`, :func:`~mne.viz.plot_tfr_topomap`, :func:`~mne.viz.plot_projs_topomap`, :meth:`~mne.Evoked.plot_image`, and :meth:`~mne.Epochs.plot_image` (:gh:`12057` by `Santeri Ruuskanen`_)
+- Add example KIT phantom dataset in :func:`mne.datasets.phantom_kit.data_path` and :ref:`tut-phantom-kit` (:gh:`12105` by `Judy D Zhu`_ and `Eric Larson`_)
 - :func:`~mne.epochs.make_metadata` now accepts ``tmin=None`` and ``tmax=None``, which will bound the time window used for metadata generation by event names (instead of a fixed time). That way, you can now for example generate metadata spanning from one cue or fixation cross to the next, even if trial durations vary throughout the recording (:gh:`12118` by `Richard Höchenberger`_)
 - Add support for passing multiple labels to :func:`mne.minimum_norm.source_induced_power` (:gh:`12026` by `Erica Peterson`_, `Eric Larson`_, and `Daniel McCloy`_ )
 - Added documentation to :meth:`mne.io.Raw.set_montage` and :func:`mne.add_reference_channels` to specify that montages should be set after adding reference channels (:gh:`12160` by `Jacob Woessner`_)
 - Add argument ``splash`` to the function using the ``qt`` browser backend to allow enabling/disabling the splash screen (:gh:`12185` by `Mathieu Scheltienne`_)
+- :class:`~mne.preprocessing.ICA`'s HTML representation (displayed in Jupyter notebooks and :class:`mne.Report`) now includes all optional fit parameters (e.g., max. number of iterations) (:gh:`12194`, by `Richard Höchenberger`_)
 
 Bugs
 ~~~~
@@ -90,6 +93,11 @@ Bugs
 - Improve handling of ``method`` argument in the channel interpolation function to support :class:`str` and raise helpful error messages (:gh:`12113` by `Mathieu Scheltienne`_)
 - Fix combination of ``DIN`` event channels into a single synthetic trigger channel ``STI 014`` by the MFF reader of :func:`mne.io.read_raw_egi` (:gh:`12122` by `Mathieu Scheltienne`_)
 - Fix bug with :func:`mne.io.read_raw_eeglab` and :func:`mne.read_epochs_eeglab` where automatic fiducial detection would fail for certain files (:gh:`12165` by `Clemens Brunner`_)
+- Fix concatenation of ``raws`` with ``np.nan`` in the device to head transformation (:gh:`12198` by `Mathieu Scheltienne`_)
+- Fix bug with :func:`mne.viz.plot_compare_evokeds` where the title was not displayed when ``axes='topo'`` (:gh:`12192` by `Jacob Woessner`_)
+- Fix bug with :func:`mne.io.read_raw_cnt` where the bad channels were not properly read (:gh:`12189` by `Jacob Woessner`_)
+- Fix bug where iterating over :class:`~mne.io.Raw` would result in an error (:gh:`12205` by `Clemens Brunner`_)
+
 
 API changes
 ~~~~~~~~~~~

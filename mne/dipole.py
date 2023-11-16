@@ -1760,6 +1760,36 @@ def fit_dipole(
     return dipoles, residual
 
 
+# Every other row of Table 3 from OyamaEtAl2015
+_OYAMA = """
+0.00 56.29 -27.50
+32.50 56.29 5.00
+0.00 65.00 5.00
+-32.50 56.29 5.00
+0.00 56.29 37.50
+0.00 32.50 61.29
+-56.29 0.00 -27.50
+-56.29 32.50 5.00
+-65.00 0.00 5.00
+-56.29 -32.50 5.00
+-56.29 0.00 37.50
+-32.50 0.00 61.29
+0.00 -56.29 -27.50
+-32.50 -56.29 5.00
+0.00 -65.00 5.00
+32.50 -56.29 5.00
+0.00 -56.29 37.50
+0.00 -32.50 61.29
+56.29 0.00 -27.50
+56.29 -32.50 5.00
+65.00 0.00 5.00
+56.29 32.50 5.00
+56.29 0.00 37.50
+32.50 0.00 61.29
+0.00 0.00 70.00
+"""
+
+
 def get_phantom_dipoles(kind="vectorview"):
     """Get standard phantom dipole locations and orientations.
 
@@ -1772,6 +1802,11 @@ def get_phantom_dipoles(kind="vectorview"):
               The Neuromag VectorView phantom.
             ``otaniemi``
               The older Neuromag phantom used at Otaniemi.
+            ``oyama``
+              The phantom from :footcite:`OyamaEtAl2015`.
+
+        .. versionchanged:: 1.6
+           Support added for ``'oyama'``.
 
     Returns
     -------
@@ -1788,8 +1823,13 @@ def get_phantom_dipoles(kind="vectorview"):
     -----
     The Elekta phantoms have a radius of 79.5mm, and HPI coil locations
     in the XY-plane at the axis extrema (e.g., (79.5, 0), (0, -79.5), ...).
+
+    References
+    ----------
+    .. footbibliography::
     """
-    _check_option("kind", kind, ["vectorview", "otaniemi"])
+    _validate_type(kind, str, "kind")
+    _check_option("kind", kind, ["vectorview", "otaniemi", "oyama"])
     if kind == "vectorview":
         # these values were pulled from a scanned image provided by
         # Elekta folks
@@ -1811,18 +1851,43 @@ def get_phantom_dipoles(kind="vectorview"):
         y = np.concatenate((c, c, -a, -b, c, c, b, a))
         z = np.concatenate((b, a, b, a, b, a, a, b))
         signs = [-1] * 8 + [1] * 16 + [-1] * 8
+    else:
+        assert kind == "oyama"
+        xyz = np.fromstring(_OYAMA.strip().replace("\n", " "), sep=" ").reshape(25, 3)
+        xyz = np.repeat(xyz, 2, axis=0)
+        x, y, z = xyz.T
+        signs = [1] * 50
     pos = np.vstack((x, y, z)).T / 1000.0
+    # For Neuromag-style phantoms,
     # Locs are always in XZ or YZ, and so are the oris. The oris are
     # also in the same plane and tangential, so it's easy to determine
     # the orientation.
+    # For Oyama, vectors are orthogonal to the position vector and oriented with one
+    # pointed toward the north pole (except for the topmost points, which are just xy).
     ori = list()
     for pi, this_pos in enumerate(pos):
         this_ori = np.zeros(3)
         idx = np.where(this_pos == 0)[0]
         # assert len(idx) == 1
+        if len(idx) == 0:  # oyama
+            idx = [np.argmin(this_pos)]
         idx = np.setdiff1d(np.arange(3), idx[0])
         this_ori[idx] = (this_pos[idx][::-1] / np.linalg.norm(this_pos[idx])) * [1, -1]
-        this_ori *= signs[pi]
+        if kind == "oyama":
+            # Ensure it's orthogonal to the position vector
+            pos_unit = this_pos / np.linalg.norm(this_pos)
+            this_ori -= pos_unit * np.dot(this_ori, pos_unit)
+            this_ori /= np.linalg.norm(this_ori)
+            # This was empirically determined by looking at the dipole fits
+            if np.abs(this_ori[2]) >= 1e-6:  # if it's not in the XY plane
+                this_ori *= -1 * np.sign(this_ori[2])  # point downward
+            elif np.abs(this_ori[0]) < 1e-6:  # in the XY plane (at the north pole)
+                this_ori *= -1 * np.sign(this_ori[1])  # point backward
+            # Odd ones create a RH coordinate system with their ori
+            if pi % 2:
+                this_ori = np.cross(pos_unit, this_ori)
+        else:
+            this_ori *= signs[pi]
         # Now we have this quality, which we could uncomment to
         # double-check:
         # np.testing.assert_allclose(np.dot(this_ori, this_pos) /
