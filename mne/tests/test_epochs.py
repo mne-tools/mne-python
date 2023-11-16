@@ -2652,9 +2652,11 @@ def test_epoch_eq():
     epochs_1 = Epochs(raw, events_1, event_id, tmin, tmax, picks=picks)
     events_2 = events[events[:, 2] == event_id_2]
     epochs_2 = Epochs(raw, events_2, event_id_2, tmin, tmax, picks=picks)
+    # events 2 has one more event than events 1
+    epochs_1.drop_bad()  # make sure drops are logged
+    epochs_2.drop_bad()  # make sure drops are logged
     # make sure there is a difference in the number of events
     assert len(epochs_1) != len(epochs_2)
-    # events 2 has one more event than events 1
     # make sure bad epochs are dropped before equalizing epoch counts
     assert_equal(
         len([log for log in epochs_1.drop_log if not log]), len(epochs_1.events)
@@ -2662,6 +2664,9 @@ def test_epoch_eq():
     assert epochs_2.drop_log == ((),) * len(epochs_2.events)
     # test mintime method
     events_1[-1, 0] += 60  # hack to ensure mintime drops something other than the last trial
+    # now run equalize_epoch_counts with mintime method
+    equalize_epoch_counts([epochs_1, epochs_2], method="mintime")
+    # mintime method should give us the smallest difference between timings of epochs
     alleged_mintime = np.sum(np.abs(epochs_1.events[:, 0] - epochs_2.events[:, 0]))
     # test that "mintime" works as expected, by systematically dropping each event from
     # events_2 and ensuring the latencies are actually smallest in the
@@ -2676,10 +2681,13 @@ def test_epoch_eq():
         got_mintime = np.sum(np.abs(latencies))
         print(f"{got_mintime} >= {alleged_mintime}")
         assert got_mintime >= alleged_mintime
-    equalize_epoch_counts([epochs_1, epochs_2], method="mintime")
+    # make sure the number of events is equal
     assert_equal(epochs_1.events.shape[0], epochs_2.events.shape[0])
+    # create new epochs with the same event ids as epochs_1 and epochs_2
     epochs_3 = Epochs(raw, events, event_id, tmin, tmax, picks=picks)
     epochs_4 = Epochs(raw, events, event_id_2, tmin, tmax, picks=picks)
+    epochs_3.drop_bad()  # make sure drops are logged
+    epochs_4.drop_bad()  # make sure drops are logged
     # make sure there is a difference in the number of events
     assert len(epochs_3) != len(epochs_4)
     # test truncate method
@@ -2688,6 +2696,7 @@ def test_epoch_eq():
         assert_equal(epochs_3.events[-2, 0], epochs_3.events.shape[-1,0])
     elif len(epochs_3.events) < len(epochs_4.events):
         assert_equal(epochs_4.events[-2, 0], epochs_4.events[-1,0])
+    # both mintime and truncate method sh
     assert_equal(epochs_1.events.shape[0], epochs_3.events.shape[0])
     assert_equal(epochs_3.events.shape[0], epochs_4.events.shape[0])
 
