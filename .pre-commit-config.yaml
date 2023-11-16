@@ -47,4 +47,6 @@ repos:
     rev: v6.2.0
     hooks:
       - id: rstcheck
+        additional_dependencies:
+          - tomli
         files: ^doc/.*\.(rst|inc)$
