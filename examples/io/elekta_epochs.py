@@ -11,6 +11,7 @@ Extract and average epochs accordingly. Modify some averaging parameters and get
 # Author: Jussi Nurminen (jnu@iki.fi)
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 

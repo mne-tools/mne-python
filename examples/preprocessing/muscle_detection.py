@@ -27,6 +27,7 @@ surrounding "BAD" annotation.
 # Authors: Adonay Nunes <adonay.s.nunes@gmail.com>
 #          Luke Bloy <luke.bloy@gmail.com>
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 

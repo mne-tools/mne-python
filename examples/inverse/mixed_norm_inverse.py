@@ -14,6 +14,7 @@ amplitude bias due to the non-convexity of the L0.5/L2 mixed norm penalty.
 #         Daniel Strohmeier <daniel.strohmeier@tu-ilmenau.de>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 

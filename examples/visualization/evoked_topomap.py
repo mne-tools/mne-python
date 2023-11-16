@@ -16,6 +16,7 @@ additional options.
 #          Alex Rockhill <aprockhill@mailbox.org>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 # sphinx_gallery_thumbnail_number = 5

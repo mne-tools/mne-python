@@ -3,6 +3,7 @@
 #          Teon Brooks <teon.brooks@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import itertools
 from contextlib import nullcontext

@@ -1,6 +1,7 @@
 # Author: Tommy Clausner <Tommy.Clausner@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 from inspect import signature
 
 import numpy as np

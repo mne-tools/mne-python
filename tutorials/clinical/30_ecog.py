@@ -31,6 +31,7 @@ Please note that this tutorial requires 3D plotting dependencies (see
 #          Liberty Hamilton <libertyhamilton@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 

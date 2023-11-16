@@ -52,6 +52,8 @@ Let's get ourselves an idea of what a :class:`mne.SourceEstimate` really
 is. We first set up the environment and load some data:
 """
 
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 # %%
 
 from mne import read_source_estimate

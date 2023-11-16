@@ -13,6 +13,7 @@ fed into a logistic regression.
 # Authors: Alexandre Barachant <alexandre.barachant@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 

@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # Authors : Dominik Krzeminski
 #           Luke Bloy <luke.bloy@gmail.com>
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 """Anonymize raw fif file.
 

@@ -1,4 +1,6 @@
 # noqa: E501
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 """
 .. _tut-spectrum-class:
 

@@ -9,7 +9,8 @@
 #          Clemens Brunner <clemens.brunner@gmail.com>
 #          Daniel McCloy <dan@mccloy.info>
 #
-# License: Simplified BSD
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 import difflib
 import math
 import os

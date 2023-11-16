@@ -2,7 +2,7 @@
 #          Alex Rockhill <aprockhill@mailbox.org>
 #
 # License: BSD-3-Clause
-# Copyright the MNE-Python developers.
+# Copyright the MNE-Python contributors.
 
 # Copyright 2003-2010 Jürgen Kayser <rjk23@columbia.edu>
 #
