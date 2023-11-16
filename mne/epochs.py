@@ -4645,8 +4645,9 @@ def make_fixed_length_epochs(
     )
 
 
-def channel_specific_epoch_rejection(data: np.ndarray,
-                                    outliers: float) -> np.ndarray[bool]:
+def channel_specific_epoch_rejection(
+    data: np.ndarray, outliers: float
+) -> np.ndarray[bool]:
     """Mask outlier epochs for each channel.
 
     Parameters
@@ -4675,6 +4676,4 @@ def channel_specific_epoch_rejection(data: np.ndarray,
     mean = np.mean(abs_data, axis=(-1, 0))  # (channels X (frequency))
     # keep epochs where the maximum voltage is smaller than the mean + (outliers * std)
     keep = max < ((outliers * std) + mean)  # (epochs X channels X (frequency))
-    # set values in 3D data arry to NaN where 2D mask is False
-    data[keep is False] = np.nan
-    return keep, data
+    return keep
