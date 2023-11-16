@@ -1167,7 +1167,7 @@ class BaseEpochs(
                 n_events += 1
 
             if n_events > 0:
-                data /= n_events
+                data = np.nanmean(data)
             else:
                 data.fill(np.nan)
 
@@ -2043,6 +2043,40 @@ class BaseEpochs(
         t = _get_html_template("repr", "epochs.html.jinja")
         t = t.render(epochs=self, baseline=baseline, events=event_strings)
         return t
+
+    def channel_specific_epoch_rejection(self, outliers: float):
+        """Mask outlier epochs for each channel.
+
+        Parameters
+        ----------
+        data : np.ndarray
+            The data to find outliers in. The data should be in the shape
+            (epochs X channels X (frequency) X time).
+        outliers : float
+            The number of standard deviations to use as a cutoff for outliers.
+
+        Returns
+        -------
+        epochs : instance of Epochs
+            The masked epochs object, modified in-place.
+        mask: np.ndarray
+            The array used to mask the epochs. True == Keep epochs,
+            False = reject epochs.
+        """
+        # extract data from Epochs object
+        # get absolut values
+        abs_data = np.abs(self.get_data())  # (epochs X channels X (frequency) X time)
+        # get the maximum voltage per epoch
+        max = np.max(abs_data, axis=-1)  # (epochs X channels X (frequency))
+        # get the standard deviation per channel
+        std = np.std(abs_data, axis=(-1, 0))  # (channels X (frequency))
+        # get the mean per channel
+        mean = np.mean(abs_data, axis=(-1, 0))  # (channels X (frequency))
+        # keep epochs where the maximum voltage is smaller than the mean + (outliers * std)
+        keep = max < ((outliers * std) + mean)  # (epochs X channels X (frequency))
+        # set values to NaN where 2D mask is False in the 3D data array
+        self.get_data()[keep is False] = np.nan
+        return self, keep
 
     @verbose
     def crop(self, tmin=None, tmax=None, include_tmax=True, verbose=None):
@@ -4643,39 +4677,3 @@ def make_fixed_length_epochs(
         proj=proj,
         verbose=verbose,
     )
-
-
-def channel_specific_epoch_rejection(
-    data: np.ndarray, outliers: float
-) -> np.ndarray[bool]:
-    """Mask outlier epochs for each channel.
-
-    Parameters
-    ----------
-    data : np.ndarray
-        The data to find outliers in. The data should be in the shape
-        (epochs X channels X (frequency) X time).
-    outliers : float
-        The number of standard deviations to use as a cutoff for outliers.
-
-    Returns
-    -------
-    np.ndarray[bool] with the shape epochs x channels x (frequency).
-        A boolean array with the first dimension epochs and the second
-        dimension channels. The third dimension is only present if the data
-        is frequency data. The boolean array indicates which epochs should be
-        kept (True) and which should be rejected (False) for each channel.
-    """
-    # get absolut values
-    abs_data = np.abs(data)  # (epochs X channels X (frequency) X time)
-    # get the maximum voltage per epoch
-    max = np.max(abs_data, axis=-1)  # (epochs X channels X (frequency))
-    # get the standard deviation per channel
-    std = np.std(abs_data, axis=(-1, 0))  # (channels X (frequency))
-    # get the mean per channel
-    mean = np.mean(abs_data, axis=(-1, 0))  # (channels X (frequency))
-    # keep epochs where the maximum voltage is smaller than the mean + (outliers * std)
-    keep = max < ((outliers * std) + mean)  # (epochs X channels X (frequency))
-    # set values to NaN where 2D mask is False in the 3D data array
-    data[keep is False] = np.nan
-    return keep
