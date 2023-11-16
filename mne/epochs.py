@@ -4676,4 +4676,6 @@ def channel_specific_epoch_rejection(
     mean = np.mean(abs_data, axis=(-1, 0))  # (channels X (frequency))
     # keep epochs where the maximum voltage is smaller than the mean + (outliers * std)
     keep = max < ((outliers * std) + mean)  # (epochs X channels X (frequency))
+    # set values to NaN where 2D mask is False in the 3D data array
+    data[keep is False] = np.nan
     return keep
