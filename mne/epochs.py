@@ -1965,13 +1965,9 @@ class BaseEpochs(
                     "apply_function cannot access ch_idx or ch_name "
                     "when channel_wise=False"
                 )
-        elif ("ch_idx" in args) and ("ch_name" in args):
-            raise ValueError(
-                "apply_function cannot access both ch_idx and ch_name. pick one!"
-            )
-        elif "ch_idx" in args:
+        if "ch_idx" in args:
             logger.info("apply_function requested to access ch_idx")
-        elif "ch_name" in args:
+        if "ch_name" in args:
             logger.info("apply_function requested to access ch_name")
 
         if channel_wise:
@@ -1982,7 +1978,7 @@ class BaseEpochs(
                 for ch_idx in picks:
                     if "ch_idx" in args:
                         kwargs.update(ch_idx=ch_idx)
-                    elif "ch_name" in args:
+                    if "ch_name" in args:
                         kwargs.update(ch_name=self.info["ch_names"][ch_idx])
                     self._data[:, ch_idx, :] = np.apply_along_axis(
                         _fun, -1, data_in[:, ch_idx, :], **kwargs
@@ -1990,25 +1986,23 @@ class BaseEpochs(
             else:
                 # use parallel function
                 _fun = partial(np.apply_along_axis, fun, -1)
-                if "ch_idx" in args:
-                    data_picks_new = parallel(
-                        p_fun(_fun, data_in[:, ch_idx, :], ch_idx=ch_idx, **kwargs)
-                        for ch_idx in picks
+                data_picks_new = parallel(
+                    p_fun(
+                        _fun,
+                        data_in[:, ch_idx, :],
+                        **{
+                            k: v
+                            for k, v in [
+                                ("ch_name", self.info["ch_names"][ch_idx]),
+                                ("ch_idx", ch_idx),
+                            ]
+                            + [(k, v) for k, v in kwargs.items()]
+                            if (k != "ch_name" or "ch_name" in args)
+                            and (k != "ch_idx" or "ch_idx" in args)
+                        },
                     )
-                elif "ch_name" in args:
-                    data_picks_new = parallel(
-                        p_fun(
-                            _fun,
-                            data_in[:, ch_idx, :],
-                            ch_name=self.info["ch_names"][ch_idx],
-                            **kwargs,
-                        )
-                        for ch_idx in picks
-                    )
-                else:
-                    data_picks_new = parallel(
-                        p_fun(_fun, data_in[:, ch_idx, :], **kwargs) for ch_idx in picks
-                    )
+                    for ch_idx in picks
+                )
                 for run_idx, ch_idx in enumerate(picks):
                     self._data[:, ch_idx, :] = data_picks_new[run_idx]
         else:

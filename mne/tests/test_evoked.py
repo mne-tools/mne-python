@@ -976,7 +976,3 @@ def test_apply_function_evk_ch_access():
         match="apply_function cannot access ch_idx or ch_name when channel_wise=False",
     ):
         evoked.apply_function(bad_ch_idx, channel_wise=False)
-    with pytest.raises(
-        ValueError, match="apply_function cannot access both ch_idx and ch_name"
-    ):
-        evoked.apply_function(bad_ch_idx_name)

@@ -51,8 +51,8 @@ Enhancements
 - Added documentation to :meth:`mne.io.Raw.set_montage` and :func:`mne.add_reference_channels` to specify that montages should be set after adding reference channels (:gh:`12160` by `Jacob Woessner`_)
 - Add argument ``splash`` to the function using the ``qt`` browser backend to allow enabling/disabling the splash screen (:gh:`12185` by `Mathieu Scheltienne`_)
 - :class:`~mne.preprocessing.ICA`'s HTML representation (displayed in Jupyter notebooks and :class:`mne.Report`) now includes all optional fit parameters (e.g., max. number of iterations) (:gh:`12194`, by `Richard Höchenberger`_)
-- :meth:`mne.Evoked.apply_function` can now work on full data array, instead of channel wise (analogous to :meth:`mne.io.Raw.apply_function` and :meth:`mne.Epochs.apply_function`). (:gh:`12206` by `Dominik Welke`_)
-- Custom functions applied via :meth:`mne.io.Raw.apply_function`, :meth:`mne.Epochs.apply_function` or :meth:`mne.Evoked.apply_function` can now use ``ch_idx`` or ``ch_name`` of the currently processed channel (during channel wise processing). (:gh:`12206` by `Dominik Welke`_)
+- :meth:`mne.Evoked.apply_function` can now also work on full data array, instead of just channel wise (analogous to :meth:`mne.io.Raw.apply_function` and :meth:`mne.Epochs.apply_function`). (:gh:`12206` by `Dominik Welke`_)
+- Custom functions applied via :meth:`mne.io.Raw.apply_function`, :meth:`mne.Epochs.apply_function` or :meth:`mne.Evoked.apply_function` can now use ``ch_idx`` or ``ch_name`` to get access to the currently processed channel (during channel wise processing). (:gh:`12206` by `Dominik Welke`_)
 
 Bugs
 ~~~~

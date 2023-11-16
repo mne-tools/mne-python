@@ -305,13 +305,9 @@ class Evoked(
                     "apply_function cannot access ch_idx or ch_name "
                     "when channel_wise=False"
                 )
-        elif ("ch_idx" in args) and ("ch_name" in args):
-            raise ValueError(
-                "apply_function cannot access both ch_idx and ch_name. pick one!"
-            )
-        elif "ch_idx" in args:
+        if "ch_idx" in args:
             logger.info("apply_function requested to access ch_idx")
-        elif "ch_name" in args:
+        if "ch_name" in args:
             logger.info("apply_function requested to access ch_name")
 
         # check the dimension of the incoming evoked data
@@ -324,32 +320,30 @@ class Evoked(
                 for ch_idx in picks:
                     if "ch_idx" in args:
                         kwargs.update(ch_idx=ch_idx)
-                    elif "ch_name" in args:
+                    if "ch_name" in args:
                         kwargs.update(ch_name=self.info["ch_names"][ch_idx])
                     self._data[ch_idx, :] = _check_fun(
                         fun, data_in[ch_idx, :], **kwargs
                     )
             else:
                 # use parallel function
-                if "ch_idx" in args:
-                    data_picks_new = parallel(
-                        p_fun(fun, data_in[ch_idx, :], ch_idx=ch_idx, **kwargs)
-                        for ch_idx in picks
+                data_picks_new = parallel(
+                    p_fun(
+                        fun,
+                        data_in[ch_idx, :],
+                        **{
+                            k: v
+                            for k, v in [
+                                ("ch_name", self.info["ch_names"][ch_idx]),
+                                ("ch_idx", ch_idx),
+                            ]
+                            + [(k, v) for k, v in kwargs.items()]
+                            if (k != "ch_name" or "ch_name" in args)
+                            and (k != "ch_idx" or "ch_idx" in args)
+                        },
                     )
-                elif "ch_name" in args:
-                    data_picks_new = parallel(
-                        p_fun(
-                            fun,
-                            data_in[ch_idx, :],
-                            ch_name=self.info["ch_names"][ch_idx],
-                            **kwargs,
-                        )
-                        for ch_idx in picks
-                    )
-                else:
-                    data_picks_new = parallel(
-                        p_fun(fun, data_in[ch_idx, :], **kwargs) for ch_idx in picks
-                    )
+                    for ch_idx in picks
+                )
                 for run_idx, ch_idx in enumerate(picks):
                     self._data[ch_idx, :] = data_picks_new[run_idx]
         else:

@@ -4622,10 +4622,6 @@ def test_apply_function_ch_access():
         match="apply_function cannot access ch_idx or ch_name when channel_wise=False",
     ):
         ep.apply_function(bad_ch_idx, channel_wise=False)
-    with pytest.raises(
-        ValueError, match="apply_function cannot access both ch_idx and ch_name"
-    ):
-        ep.apply_function(bad_ch_idx_name)
 
 
 @testing.requires_testing_data
