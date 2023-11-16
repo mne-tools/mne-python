@@ -33,7 +33,7 @@ from mne.io import (
 )
 from mne.tests.test_epochs import _get_data
 from mne.utils import (
-    _check_edflib_installed,
+    _check_edfio_installed,
     _record_warnings,
     _resource_path,
     object_diff,
@@ -121,7 +121,7 @@ def test_export_raw_eeglab(tmp_path):
 
 
 @pytest.mark.skipif(
-    not _check_edflib_installed(strict=False), reason="edflib-python not installed"
+    not _check_edfio_installed(strict=False), reason="edfio not installed"
 )
 def test_double_export_edf(tmp_path):
     """Test exporting an EDF file multiple times."""
@@ -194,7 +194,7 @@ def test_double_export_edf(tmp_path):
 
 
 @pytest.mark.skipif(
-    not _check_edflib_installed(strict=False), reason="edflib-python not installed"
+    not _check_edfio_installed(strict=False), reason="edfio not installed"
 )
 def test_export_edf_annotations(tmp_path):
     """Test that exporting EDF preserves annotations."""
@@ -239,7 +239,7 @@ def test_export_edf_annotations(tmp_path):
 
 
 @pytest.mark.skipif(
-    not _check_edflib_installed(strict=False), reason="edflib-python not installed"
+    not _check_edfio_installed(strict=False), reason="edfio not installed"
 )
 def test_rawarray_edf(tmp_path):
     """Test saving a Raw array with integer sfreq to EDF."""
@@ -297,20 +297,6 @@ def test_rawarray_edf(tmp_path):
     ):
         raw_bad.export(temp_fname, overwrite=True)
 
-    # include bad birthday that is non-EDF compliant
-    bad_info = info.copy()
-    bad_info["subject_info"]["birthday"] = (1700, 1, 20)
-    raw = RawArray(data, bad_info)
-    with pytest.raises(RuntimeError, match="Setting patient birth date"):
-        raw.export(temp_fname, overwrite=True)
-
-    # include bad measurement date that is non-EDF compliant
-    raw = RawArray(data, info)
-    meas_date = datetime(year=1984, month=1, day=1, tzinfo=timezone.utc)
-    raw.set_meas_date(meas_date)
-    with pytest.raises(RuntimeError, match="Setting start date time"):
-        raw.export(temp_fname, overwrite=True)
-
     # test that warning is raised if there are non-voltage based channels
     raw = RawArray(data, info)
     raw.set_channel_types({"9": "hbr"}, on_unit_change="ignore")
@@ -337,7 +323,7 @@ def test_rawarray_edf(tmp_path):
 
 
 @pytest.mark.skipif(
-    not _check_edflib_installed(strict=False), reason="edflib-python not installed"
+    not _check_edfio_installed(strict=False), reason="edfio not installed"
 )
 @pytest.mark.parametrize(
     ["dataset", "format"],
