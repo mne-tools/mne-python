@@ -1907,6 +1907,8 @@ class BaseEpochs(
 
             .. versionchanged:: 1.7
                The default changed from ``False`` to ``True``.
+
+            .. versionadded:: 1.6
         %(verbose)s
 
         Returns

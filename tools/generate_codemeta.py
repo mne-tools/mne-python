@@ -1,7 +1,8 @@
+import subprocess
+import tomllib
 from argparse import ArgumentParser
 from datetime import date
 from pathlib import Path
-import subprocess
 
 parser = ArgumentParser(description="Generate codemeta.json and CITATION.cff")
 parser.add_argument("release_version", type=str)
@@ -13,7 +14,6 @@ out_dir = Path(__file__).parents[1]
 #       updated. Run this script only at release time.
 
 package_name = "MNE-Python"
-hard_dependencies = ("numpy", "scipy")
 release_date = str(date.today())
 commit = subprocess.run(
     ["git", "log", "-1", "--pretty=%H"], capture_output=True, text=True
@@ -84,7 +84,10 @@ try:
     split_version = list(map(int, release_version.split(".")))
 except ValueError:
     raise
-msg = f"First argument must be the release version X.Y.Z (all integers), got {release_version}"
+msg = (
+    "First argument must be the release version X.Y.Z (all integers), "
+    f"got {release_version}"
+)
 assert len(split_version) == 3, msg
 
 
@@ -108,19 +111,11 @@ json_authors = [
 
 
 # GET OUR DEPENDENCY VERSIONS
-with open(out_dir / "setup.py", "r") as fid:
-    for line in fid:
-        if line.strip().startswith("python_requires="):
-            version = line.strip().split("=", maxsplit=1)[1].strip("'\",")
-            dependencies = [f"python{version}"]
-            break
-with open(out_dir / "requirements.txt", "r") as fid:
-    for line in fid:
-        req = line.strip()
-        for hard_dep in hard_dependencies:
-            if req.startswith(hard_dep):
-                dependencies.append(req)
-
+pyproject = tomllib.loads(
+    (Path(__file__).parents[1] / "pyproject.toml").read_text("utf-8")
+)
+dependencies = [f"python{pyproject['project']['requires-python']}"]
+dependencies.extend(pyproject["project"]["dependencies"])
 
 # these must be done outside the boilerplate (no \n allowed in f-strings):
 json_authors = ",\n        ".join(json_authors)
