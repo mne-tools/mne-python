@@ -283,15 +283,15 @@ class Annotations:
         self.onset, self.duration, self.description, self.ch_names = _check_o_d_s_c(
             onset, duration, description, ch_names
         )
-        self._id = np.array([str(uuid.uuid4()) for _ in range(len(self.onset))],
-                            dtype=str)
+        self._id = np.array(
+            [str(uuid.uuid4()) for _ in range(len(self.onset))], dtype=str
+        )
         self._sort()  # ensure we're sorted
-    
+
     # We need this, bc if we create Annotations from events which are not sorted,
-    # and we then directly query for the according IDs, we cannot do this simply by 
+    # and we then directly query for the according IDs, we cannot do this simply by
     # index as the Annotations will already on creation be sorted.
     def _get_id(self, onset, duration, description):
-
         onset = np.asarray(onset, dtype=float)
         duration = np.asarray(duration, dtype=float)
         description = np.asarray(description, dtype=str)
@@ -300,8 +300,11 @@ class Annotations:
 
         for i, ev in enumerate(zip(onset, duration, description)):
             # find all matching annotations by onset:
-            idx = np.where((self.onset == ev[0]) & (self.duration == ev[1]) & 
-                           (self.description == ev[2]))[0]
+            idx = np.where(
+                (self.onset == ev[0])
+                & (self.duration == ev[1])
+                & (self.description == ev[2])
+            )[0]
             if len(idx) > 1:
                 raise ValueError("Found multiple matching annotations")
             elif len(idx) == 1:
@@ -407,9 +410,6 @@ class Annotations:
             )
             annots._id = self._id[np.sort(key)]  # Annotations are always sorted
             return annots
-
-
-
 
     @fill_doc
     def append(self, onset, duration, description, ch_names=None):
