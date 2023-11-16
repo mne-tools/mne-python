@@ -59,11 +59,7 @@ def test_permutation_t_test():
 
 @pytest.mark.parametrize(
     "tail_name,tail_code",
-    [
-        ("two-sided", 0),
-        ("less", -1),
-        ("greater", 1)
-    ],
+    [("two-sided", 0), ("less", -1), ("greater", 1)],
 )
 def test_permutation_t_test_tail(tail_name, tail_code):
     """Test that tails work properly."""
