@@ -4645,8 +4645,9 @@ def make_fixed_length_epochs(
     )
 
 
-def channel_specific_epoch_rejection(data: np.ndarray,
-                                    outliers: float) -> np.ndarray[bool]:
+def channel_specific_epoch_rejection(
+    data: np.ndarray, outliers: float
+) -> np.ndarray[bool]:
     """Mask outlier epochs for each channel.
 
     Parameters
