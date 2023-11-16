@@ -348,7 +348,7 @@ def test_resolution_matrix():
         snr=1e-20,
     )
 
-    # resmats should be very close without noise and at high SNR
+    # resolution matrices should be very close without noise and at high SNR
     assert_array_almost_equal(np.abs(rm_mne1), rm_mne1h)
     assert_array_almost_equal(np.abs(rm_mne2), rm_mne2h)
     assert_array_almost_equal(np.abs(rm_mne3), rm_mne3h)
@@ -371,7 +371,7 @@ def test_resolution_matrix():
     ]
     assert_allclose(row_corrs, 1, 0.2)  # eLORETA is different
 
-    # noisy:
+    # for noisy resmats:
     row_corrs = [
         np.corrcoef(rm_mne1h[i, :], rm_mne2h[i, :])[0, 1]
         for i in np.arange(rm_mne1.shape[0])
@@ -408,6 +408,7 @@ def test_resolution_matrix():
     inv = prepare_inverse_operator(
         inverse_operator_fxd, 1, lambda2, "MNE", copy="non-src"
     )
+    # compute noise power in source space (what you get at very low SNR)
     stc = apply_inverse_cov(
         noise_cov,
         evoked.info,
@@ -423,6 +424,7 @@ def test_resolution_matrix():
         verbose=None,
     )
 
+    # scale and compare noise power to all PSFs
     x = np.sqrt(stc.data)
     y = rm_mne1l
     x = x / x.max()
