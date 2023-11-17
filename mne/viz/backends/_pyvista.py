@@ -9,7 +9,8 @@ Actual implementation of _Renderer and _Projection classes.
 #          Guillaume Favelier <guillaume.favelier@gmail.com>
 #          Joan Massich <mailsik@gmail.com>
 #
-# License: Simplified BSD
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import platform
 import re

@@ -30,6 +30,7 @@ perform cluster-based permutation tests to estimate significant ERDS values
 #          Felix Klotzsche <klotzsche@cbs.mpg.de>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 # As usual, we import everything we need.

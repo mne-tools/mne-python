@@ -1,6 +1,7 @@
 # Authors: Olaf Hauk <olaf.hauk@mrc-cbu.cam.ac.uk>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 """Compute resolution metrics from resolution matrix.
 
 Resolution metrics: localisation error, spatial extent, relative amplitude.

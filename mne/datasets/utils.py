@@ -6,7 +6,8 @@
 #          Adam Li <adam2392@gmail.com>
 #          Daniel McCloy <dan@mccloy.info>
 #
-# License: BSD Style.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import importlib
 import inspect

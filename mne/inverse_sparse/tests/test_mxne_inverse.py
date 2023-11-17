@@ -1,7 +1,8 @@
 # Author: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #         Daniel Strohmeier <daniel.strohmeier@tu-ilmenau.de>
 #
-# License: Simplified BSD
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import numpy as np
 import pytest

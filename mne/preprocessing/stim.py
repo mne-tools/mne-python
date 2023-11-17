@@ -1,6 +1,7 @@
 # Authors: Daniel Strohmeier <daniel.strohmeier@tu-ilmenau.de>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import numpy as np
 from scipy.interpolate import interp1d

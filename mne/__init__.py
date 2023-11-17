@@ -1,3 +1,5 @@
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 """MNE software for MEG and EEG data analysis."""
 # PEP0440 compatible formatted version, see:
 # https://www.python.org/dev/peps/pep-0440/

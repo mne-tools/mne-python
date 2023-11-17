@@ -13,7 +13,8 @@ explanation that demonstrates more advanced approaches.
 
 # Author: Marijn van Vliet <w.m.vanvliet@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 # Import packages and load data

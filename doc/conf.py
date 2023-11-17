@@ -3,6 +3,8 @@
 # This file only contains a selection of the most common options. For a full
 # list see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from datetime import datetime, timezone
 import faulthandler

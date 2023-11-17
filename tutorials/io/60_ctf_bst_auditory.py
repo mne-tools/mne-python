@@ -26,6 +26,7 @@ The specifications of this dataset were discussed initially on the
 #          Jaakko Leppakangas <jaeilepp@student.jyu.fi>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 

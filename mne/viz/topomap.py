@@ -8,7 +8,8 @@
 #          Mikołaj Magnuski <mmagnuski@swps.edu.pl>
 #          Marijn van Vliet <w.m.vanvliet@gmail.com>
 #
-# License: Simplified BSD
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import copy
 import itertools

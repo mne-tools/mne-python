@@ -4,7 +4,8 @@
 #          Eric Larson <larson.eric.d@gmail.com>
 #          Robert Luke <mail@robertluke.net>
 #
-# License: Simplified BSD
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from functools import partial
 from pathlib import Path

@@ -5,7 +5,8 @@
 #          Cathy Nangini <cnangini@gmail.com>
 #          Mainak Jas <mainak@neuro.hut.fi>
 #
-# License: Simplified BSD
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from pathlib import Path
 

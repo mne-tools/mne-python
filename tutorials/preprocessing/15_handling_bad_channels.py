@@ -12,6 +12,8 @@ As usual we'll start by importing the modules we need, and loading some example
 data:
 """
 
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 # %%
 
 import os

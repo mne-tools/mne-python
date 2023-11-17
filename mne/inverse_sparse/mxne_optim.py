@@ -1,7 +1,8 @@
 # Author: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #         Daniel Strohmeier <daniel.strohmeier@gmail.com>
 #         Mathurin Massias <mathurin.massias@gmail.com>
-# License: Simplified BSD
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import functools
 from math import sqrt

@@ -4,7 +4,8 @@
 #          Guillaume Favelier <guillaume.favelier@gmail.com>
 #          jona-sassenhagen <jona.sassenhagen@gmail.com>
 #
-# License: Simplified BSD
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 ORIGIN = "auto"
 DIST = "auto"

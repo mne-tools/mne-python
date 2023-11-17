@@ -8,6 +8,7 @@
 #          Clemens Brunner <clemens.brunner@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import os
 import os.path as op

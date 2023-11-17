@@ -4,6 +4,7 @@
 #          Denis A. Engemann <denis.engemann@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # Many of the computations in this code were derived from Matti Hämäläinen's
 # C code.

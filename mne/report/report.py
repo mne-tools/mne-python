@@ -5,6 +5,7 @@
 #          Teon Brooks <teon.brooks@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import base64
 import dataclasses

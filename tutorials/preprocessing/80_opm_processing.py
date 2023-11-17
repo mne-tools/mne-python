@@ -21,6 +21,8 @@ We will cover some of these considerations here by processing the
 :footcite:`SeymourEtAl2022`
 """
 
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 # %%
 
 import matplotlib.pyplot as plt

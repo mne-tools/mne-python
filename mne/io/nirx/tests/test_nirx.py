@@ -1,6 +1,8 @@
 # Authors: Robert Luke  <mail@robertluke.net>
 #          Eric Larson <larson.eric.d@gmail.com>
 #          simplified BSD-3 license
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import datetime as dt
 import os

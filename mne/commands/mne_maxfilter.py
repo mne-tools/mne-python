@@ -13,6 +13,8 @@ headshape points.
 """
 
 # Authors : Martin Luessi <mluessi@nmr.mgh.harvard.edu>
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import os
 import sys

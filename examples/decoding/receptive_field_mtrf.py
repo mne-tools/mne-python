@@ -24,6 +24,7 @@ as a decoding model, or simply stimulus reconstruction).
 #          Nicolas Barascud <nicolas.barascud@ens.fr>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 # sphinx_gallery_thumbnail_number = 3

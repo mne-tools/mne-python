@@ -3,6 +3,7 @@
 # Authors: Clemens Brunner <clemens.brunner@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from pathlib import Path
 from shutil import copyfile

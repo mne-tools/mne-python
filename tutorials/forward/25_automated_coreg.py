@@ -20,6 +20,7 @@ coregistration :footcite:`HouckClaus2020`.
 #         Guillaume Favelier <guillaume.favelier@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import numpy as np
 
