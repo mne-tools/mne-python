@@ -23,6 +23,7 @@ Please note that this tutorial requires 3D plotting dependencies (see
 :ref:`manual-install`) as well as ``mne-bids`` which can be installed using
 ``pip``.
 """
+
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #          Chris Holdgraf <choldgraf@gmail.com>
 #          Adam Li <adam2392@gmail.com>
