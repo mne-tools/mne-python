@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 r"""Create mne report for a folder.
 
 Examples

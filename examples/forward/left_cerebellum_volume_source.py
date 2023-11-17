@@ -13,6 +13,7 @@ segmentation file.
 # Author: Alan Leggitt <alan.leggitt@ucsf.edu>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 

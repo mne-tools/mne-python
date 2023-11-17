@@ -2,6 +2,8 @@
 #          Teon Brooks <teon.brooks@gmail.com>
 #
 #          simplified BSD-3 license
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import datetime
 import time

@@ -3,6 +3,7 @@
 #          Denis Engemann <denis.engemann@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import copy as cp
 import os

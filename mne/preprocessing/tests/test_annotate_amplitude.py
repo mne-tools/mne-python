@@ -1,6 +1,7 @@
 # Author: Mathieu Scheltienne <mathieu.scheltienne@fcbg.ch>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import datetime
 import itertools

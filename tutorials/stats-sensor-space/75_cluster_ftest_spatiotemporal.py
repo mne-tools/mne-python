@@ -28,6 +28,7 @@ see also: :ref:`tut-cluster-one-samp-tfr`
 #          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 

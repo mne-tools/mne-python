@@ -15,6 +15,7 @@ label yields higher values.
 # Author: Luke Bloy <luke.bloy@gmail.com>
 #         Alex Gramfort <alexandre.gramfort@inria.fr>
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 

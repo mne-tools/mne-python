@@ -1,3 +1,5 @@
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 from copy import deepcopy
 from datetime import datetime, timezone
 from io import StringIO

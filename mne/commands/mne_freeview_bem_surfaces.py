@@ -9,6 +9,8 @@ Examples
 
 """
 # Authors:  Alexandre Gramfort <alexandre.gramfort@inria.fr>
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import os
 import os.path as op

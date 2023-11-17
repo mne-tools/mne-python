@@ -4,7 +4,8 @@
 #          Jaakko Leppakangas <jaeilepp@student.jyu.fi>
 #          Daniel McCloy <dan.mccloy@gmail.com>
 #
-# License: Simplified BSD
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from collections import OrderedDict
 

@@ -20,6 +20,7 @@ References
 # Authors: Sheraz Khan <sheraz@khansheraz.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 

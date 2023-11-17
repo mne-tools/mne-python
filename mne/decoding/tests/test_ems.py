@@ -1,6 +1,7 @@
 # Author: Denis A. Engemann <d.engemann@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from pathlib import Path
 

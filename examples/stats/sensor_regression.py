@@ -24,6 +24,7 @@ For the general methodology, see e.g. :footcite:`HaukEtAl2006`.
 #          Jona Sassenhagen <jona.sassenhagen@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 

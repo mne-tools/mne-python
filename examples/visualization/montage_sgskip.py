@@ -11,6 +11,7 @@ shipped in MNE-python, and display it on the fsaverage template subject.
 #          Joan Massich <mailsik@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 

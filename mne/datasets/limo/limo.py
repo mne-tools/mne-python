@@ -1,6 +1,7 @@
 # Authors: Jose C. Garcia Alanis <alanis.jcg@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import os.path as op
 import time

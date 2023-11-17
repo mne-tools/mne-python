@@ -4,6 +4,7 @@
 #          Eric Larson <larson.eric.d@gmail>
 #          Adapted from: https://github.com/pyeparse/pyeparse
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from copy import deepcopy
 

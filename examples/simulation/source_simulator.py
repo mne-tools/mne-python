@@ -14,6 +14,7 @@ introduction and only highlights the simplest use case.
 #         Samuel Deslauriers-Gauthier <sam.deslauriers@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 

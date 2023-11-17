@@ -3,6 +3,7 @@
 #
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from datetime import datetime, timezone
 from pathlib import Path

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _tut-eyetrack-heatmap:
 
@@ -15,6 +14,8 @@ This tutorial covers plotting eye-tracking position data as a heatmap.
 
 """
 
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 # %%
 # Data loading
 # ------------

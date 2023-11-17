@@ -2,6 +2,7 @@
 #          Robert Luke <mail@robertluke.net>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import sys
 from collections import OrderedDict

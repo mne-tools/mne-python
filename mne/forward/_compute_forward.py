@@ -5,6 +5,7 @@
 #          Mark Wronkiewicz <wronk@uw.edu>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # The computations in this code were primarily derived from Matti Hämäläinen's
 # C code.

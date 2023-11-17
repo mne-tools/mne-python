@@ -16,6 +16,7 @@ related synchronizations (ERS) / desynchronizations (ERD) in the beta band.
 #          Richard Höchenberger <richard.hoechenberger@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 import matplotlib.pyplot as plt

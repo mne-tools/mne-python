@@ -2,6 +2,7 @@
 #          Nicolas Barascud <nicolas.barascud@ens.fr>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import shutil
 from datetime import datetime, timedelta, timezone
