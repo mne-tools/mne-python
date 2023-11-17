@@ -296,8 +296,13 @@ jobs:
       # Build docs
       - run:
           name: make html
+          command: |  # we have -o pipefail in #BASH_ENV so we should be okay
+            PATTERN=$(cat pattern.txt) make -C doc $(cat build.txt) program 2>&1 | tee sphinx_log.txt
+      - run:
+          name: Check sphinx log for warnings (which are treated as errors)
+          when: always
           command: |
-            PATTERN=$(cat pattern.txt) make -C doc $(cat build.txt);
+            ! grep "^.* WARNING: .*$" sphinx_log.txt
       - run:
           name: Show profiling output
           when: always
