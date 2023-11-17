@@ -68,7 +68,7 @@ def make_inverse_resolution_matrix(
         Note: If the resolution matrix is computed with a noise covariance
         matrix then only its columns, i.e. PSFs, can meaningfully be
         interpreted. It must not be used to compute CTFs or resolution metrics
-        for CTFs!
+        for CTFs.
     """
     if noise_cov is None and snr is not None:
         msg = "snr should be None if noise_cov is None."
@@ -237,7 +237,7 @@ def _get_psf_ctf(
 
     for verts in verts_all:
         # get relevant PSFs or CTFs for specified vertices
-        if type(verts) is int:
+        if isinstance(verts, int):
             verts = [verts]  # to keep array dimensions
         funcs = resmat[:, verts]
 
@@ -293,7 +293,7 @@ def _vertices_for_get_psf_ctf(idx, src):
     """Get vertices in source space for PSFs/CTFs in _get_psf_ctf()."""
     # idx must be list
     # if label(s) specified get the indices, otherwise just carry on
-    if type(idx[0]) is Label:
+    if isinstance(idx[0], Label):
         # specify without source time courses, gets indices per label
         verts_labs, _ = _prepare_label_extraction(
             stc=None,
@@ -310,7 +310,7 @@ def _vertices_for_get_psf_ctf(idx, src):
 
         for v in verts_labs:
             # if two hemispheres present
-            if type(v) is list:
+            if isinstance(v, list):
                 # indices for both hemispheres in one list
                 this_verts = np.concatenate((v[0], v[1]))
             else:
@@ -318,7 +318,7 @@ def _vertices_for_get_psf_ctf(idx, src):
             verts.append(this_verts)
     # check if list of list or just list
     else:
-        if type(idx[0]) is list:  # if list of list of integers
+        if isinstance(idx[0], list):  # if list of list of integers
             verts = idx
         else:  # if list of integers
             verts = [idx]
