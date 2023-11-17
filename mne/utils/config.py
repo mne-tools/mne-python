@@ -805,7 +805,7 @@ def _get_latest_version(timeout):
     try:
         with urlopen(url, timeout=timeout) as f:  # nosec
             response = json.load(f)
-    except URLError as err:
+    except (URLError, TimeoutError) as err:
         # Triage error type
         if "SSL" in str(err):
             return "SSL error"
