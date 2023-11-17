@@ -297,7 +297,8 @@ jobs:
       - run:
           name: make html
           command: |  # we have -o pipefail in #BASH_ENV so we should be okay
-            PATTERN=$(cat pattern.txt) make -C doc $(cat build.txt) program 2>&1 | tee sphinx_log.txt
+            set -x
+            PATTERN=$(cat pattern.txt) make -C doc $(cat build.txt) 2>&1 | tee sphinx_log.txt
       - run:
           name: Check sphinx log for warnings (which are treated as errors)
           when: always
