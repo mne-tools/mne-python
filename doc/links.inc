@@ -19,7 +19,7 @@
 .. _`MNE-BIDS-Pipeline`: https://mne.tools/mne-bids-pipeline
 .. _`MNE-HCP`: http://mne.tools/mne-hcp
 .. _`MNE-Realtime`: https://mne.tools/mne-realtime
-.. _`MNE-LSL`: https://mne.tools/mne-realtime
+.. _`MNE-LSL`: https://mne.tools/mne-lsl
 .. _`MNE-gui-addons`: https://mne.tools/mne-gui-addons
 .. _`MNE-MATLAB`: https://github.com/mne-tools/mne-matlab
 .. _`MNE-Docker`: https://github.com/mne-tools/mne-docker
