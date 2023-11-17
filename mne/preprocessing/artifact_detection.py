@@ -304,8 +304,8 @@ def compute_average_dev_head_t(raw, pos):
 
     Returns
     -------
-    dev_head_t : array of shape (4, 4)
-        New trans matrix using the averaged good head positions.
+    dev_head_t : instance of Transformation
+        New ``dev_head_t`` transformation using the averaged good head positions.
     """
     sfreq = raw.info["sfreq"]
     seg_good = np.ones(len(raw.times))
