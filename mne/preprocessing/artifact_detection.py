@@ -304,7 +304,7 @@ def compute_average_dev_head_t(raw, pos):
 
     Returns
     -------
-    dev_head_t : instance of Transformation
+    dev_head_t : instance of Transform
         New ``dev_head_t`` transformation using the averaged good head positions.
     """
     sfreq = raw.info["sfreq"]
