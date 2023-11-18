@@ -191,7 +191,7 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
 
         patient = Patient(
             code=subj_info.get("his_id", ""),
-            sex={0: "F", 1: "M", 2: "X", None: "X"}[sex],
+            sex={0: "X", 1: "M", 2: "F", None: "X"}[sex],
             birthdate=dt.date(*birthday),
             name=name.replace(" ", "_"),
             additional=additional_patient_info.split(),
