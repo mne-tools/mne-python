@@ -400,6 +400,29 @@ def test_export_raw_edf(tmp_path, dataset, format):
     assert_allclose(raw.times, raw_read.times[:orig_raw_len], rtol=0, atol=1e-5)
 
 
+@pytest.mark.skipif(
+    not _check_edfio_installed(strict=False), reason="edfio not installed"
+)
+def test_export_raw_edf_does_not_fail_on_empty_header_fields(tmp_path):
+    """Test writing a Raw instance with empty header fields to EDF."""
+    rng = np.random.RandomState(123456)
+
+    ch_types = ["eeg"]
+    info = create_info(len(ch_types), sfreq=1000, ch_types=ch_types)
+    info["subject_info"] = {
+        "his_id": "",
+        "first_name": "",
+        "middle_name": "",
+        "last_name": "",
+    }
+    info["device_info"] = {"type": "123"}
+
+    data = rng.random(size=(len(ch_types), 1000)) * 1e-5
+    raw = RawArray(data, info)
+
+    raw.export(tmp_path / "test.edf", add_ch_type=True)
+
+
 @pytest.mark.xfail(reason="eeglabio (usage?) bugs that should be fixed")
 @pytest.mark.parametrize("preload", (True, False))
 def test_export_epochs_eeglab(tmp_path, preload):

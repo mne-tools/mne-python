@@ -172,9 +172,11 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
         first_name = subj_info.get("first_name", "")
         middle_name = subj_info.get("middle_name", "")
         last_name = subj_info.get("last_name", "")
-        name = " ".join(filter(None, [first_name, middle_name, last_name]))
+        name = "_".join(filter(None, [first_name, middle_name, last_name]))
 
         birthday = subj_info.get("birthday")
+        if birthday is not None:
+            birthday = dt.date(*birthday)
         hand = subj_info.get("hand")
         weight = subj_info.get("weight")
         height = subj_info.get("height")
@@ -184,17 +186,13 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
         for key, value in [("height", height), ("weight", weight), ("hand", hand)]:
             if value:
                 additional_patient_info.append(f"{key}={value}")
-        if len(additional_patient_info) == 0:
-            additional_patient_info = None
-        else:
-            additional_patient_info = " ".join(additional_patient_info)
 
         patient = Patient(
-            code=subj_info.get("his_id", ""),
+            code=subj_info.get("his_id") or "X",
             sex={0: "X", 1: "M", 2: "F", None: "X"}[sex],
-            birthdate=dt.date(*birthday),
-            name=name.replace(" ", "_"),
-            additional=additional_patient_info.split(),
+            birthdate=birthday,
+            name=name or "X",
+            additional=additional_patient_info,
         )
     else:
         patient = None
@@ -211,7 +209,7 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
 
     device_info = raw.info.get("device_info")
     if device_info is not None:
-        device_type = device_info.get("type")
+        device_type = device_info.get("type") or "X"
         recording = Recording(startdate=startdate, equipment_code=device_type)
     else:
         recording = Recording(startdate=startdate)
