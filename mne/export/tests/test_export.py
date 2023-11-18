@@ -174,9 +174,9 @@ def test_double_export_edf(tmp_path):
     # only compare the original length, since extra zeros are appended
     orig_raw_len = len(raw)
     assert_array_almost_equal(
-        raw.get_data(), raw_read.get_data()[:, :orig_raw_len], decimal=4
+        raw.get_data(), raw_read.get_data()[:, :orig_raw_len], decimal=10
     )
-    assert_allclose(raw.times, raw_read.times[:orig_raw_len], rtol=0, atol=1e-5)
+    assert_array_equal(raw.times, raw_read.times[:orig_raw_len])
 
     # check info
     for key in set(raw.info) - {"chs"}:
@@ -279,9 +279,9 @@ def test_rawarray_edf(tmp_path):
     # only compare the original length, since extra zeros are appended
     orig_raw_len = len(raw)
     assert_array_almost_equal(
-        raw.get_data(), raw_read.get_data()[:, :orig_raw_len], decimal=4
+        raw.get_data(), raw_read.get_data()[:, :orig_raw_len], decimal=10
     )
-    assert_allclose(raw.times, raw_read.times[:orig_raw_len], rtol=0, atol=1e-5)
+    assert_array_equal(raw.times, raw_read.times[:orig_raw_len])
 
     # check channel types except for 'bio', which loses its type
     orig_ch_types = raw.get_channel_types()
@@ -312,21 +312,13 @@ def test_rawarray_edf(tmp_path):
 
     # data should match up to the non-accepted channel
     raw_read = read_raw_edf(temp_fname, preload=True)
-    orig_raw_len = len(raw)
-    assert_array_almost_equal(
-        raw.get_data()[:-1, :], raw_read.get_data()[:, :orig_raw_len], decimal=4
-    )
-    assert_allclose(raw.times, raw_read.times[:orig_raw_len], rtol=0, atol=1e-5)
-
-    # the data should still match though
-    raw_read = read_raw_edf(temp_fname, preload=True)
     raw.drop_channels("2")
     assert raw.ch_names == raw_read.ch_names
     orig_raw_len = len(raw)
     assert_array_almost_equal(
-        raw.get_data(), raw_read.get_data()[:, :orig_raw_len], decimal=4
+        raw.get_data()[:-1, :], raw_read.get_data()[:-1, :orig_raw_len], decimal=10
     )
-    assert_allclose(raw.times, raw_read.times[:orig_raw_len], rtol=0, atol=1e-5)
+    assert_array_equal(raw.times, raw_read.times[:orig_raw_len])
 
 
 @pytest.mark.skipif(
@@ -388,7 +380,7 @@ def test_export_raw_edf(tmp_path, dataset, format):
     # will result in a resolution of 0.09 uV. This resolution
     # though is acceptable for most EEG manufacturers.
     assert_array_almost_equal(
-        raw.get_data(), raw_read.get_data()[:, :orig_raw_len], decimal=4
+        raw.get_data(), raw_read.get_data()[:, :orig_raw_len], decimal=8
     )
 
     # Due to the data record duration limitations of EDF files, one
