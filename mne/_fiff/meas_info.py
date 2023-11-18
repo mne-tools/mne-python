@@ -1380,7 +1380,7 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
             The distance limit.
         accept : int
             Whether or not the fit was accepted.
-        coord_trans : instance of Transformation
+        coord_trans : instance of Transform
             The resulting MEG<->head transformation.
 
     * ``hpi_subsystem`` dict:
