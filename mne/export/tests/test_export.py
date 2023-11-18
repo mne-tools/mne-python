@@ -171,12 +171,8 @@ def test_double_export_edf(tmp_path):
     raw.drop_channels("2")
 
     assert raw.ch_names == raw_read.ch_names
-    # only compare the original length, since extra zeros are appended
-    orig_raw_len = len(raw)
-    assert_array_almost_equal(
-        raw.get_data(), raw_read.get_data()[:, :orig_raw_len], decimal=10
-    )
-    assert_array_equal(raw.times, raw_read.times[:orig_raw_len])
+    assert_array_almost_equal(raw.get_data(), raw_read.get_data(), decimal=10)
+    assert_array_equal(raw.times, raw_read.times)
 
     # check info
     for key in set(raw.info) - {"chs"}:
@@ -276,12 +272,8 @@ def test_rawarray_edf(tmp_path):
     raw.drop_channels("2")
 
     assert raw.ch_names == raw_read.ch_names
-    # only compare the original length, since extra zeros are appended
-    orig_raw_len = len(raw)
-    assert_array_almost_equal(
-        raw.get_data(), raw_read.get_data()[:, :orig_raw_len], decimal=10
-    )
-    assert_array_equal(raw.times, raw_read.times[:orig_raw_len])
+    assert_array_almost_equal(raw.get_data(), raw_read.get_data(), decimal=10)
+    assert_array_equal(raw.times, raw_read.times)
 
     # check channel types except for 'bio', which loses its type
     orig_ch_types = raw.get_channel_types()
@@ -314,11 +306,8 @@ def test_rawarray_edf(tmp_path):
     raw_read = read_raw_edf(temp_fname, preload=True)
     raw.drop_channels("2")
     assert raw.ch_names == raw_read.ch_names
-    orig_raw_len = len(raw)
-    assert_array_almost_equal(
-        raw.get_data()[:-1, :], raw_read.get_data()[:-1, :orig_raw_len], decimal=10
-    )
-    assert_array_equal(raw.times, raw_read.times[:orig_raw_len])
+    assert_array_almost_equal(raw.get_data()[:-1], raw_read.get_data()[:-1], decimal=10)
+    assert_array_equal(raw.times, raw_read.times)
 
 
 @pytest.mark.skipif(
