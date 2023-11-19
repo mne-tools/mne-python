@@ -135,7 +135,7 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
                 f"less than the physical min passed in {pmin}.",
             )
         data = np.clip(data, pmin, pmax)
-    signals: list[EdfSignal] = []
+    signals = []
     for idx, ch in enumerate(ch_names):
         ch_type = ch_types[idx]
         signal_label = f"{ch_type.upper()} {ch}" if add_ch_type else ch
