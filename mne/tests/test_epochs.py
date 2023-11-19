@@ -2127,6 +2127,71 @@ def test_reject_epochs(tmp_path):
     assert epochs_cleaned.flat == dict(grad=new_flat["grad"], mag=flat["mag"])
 
 
+@testing.requires_testing_data
+# @pytest.mark.parametrize("fname", (fname_raw_testing))
+def test_callable_reject():
+    raw = read_raw_fif(fname_raw_testing, preload=True)
+    raw.crop(0, 5)
+    raw.del_proj()
+    chans = raw.info['ch_names'][-6:-1]
+    raw.pick(chans)
+    data = raw.get_data()
+
+    # Multipy 20 points of the first channel by 10
+    new_data = data
+    new_data[0, 180:200] *= 1e7
+    new_data[0, 610:880] += 1e-3
+    edit_raw = mne.io.RawArray(new_data, raw.info)
+
+    events = mne.make_fixed_length_events(edit_raw, id=1, duration=1.0, start=0)
+    epochs = mne.Epochs(
+        edit_raw,
+        events,
+        tmin=0,
+        tmax=1,
+        baseline=None,
+        preload=True
+    )
+    assert len(epochs) == 5
+    epochs = mne.Epochs(
+        edit_raw,
+        events,
+        tmin=0,
+        tmax=1,
+        baseline=None,
+        reject=dict(eeg=lambda x: True if (np.median(x, axis=1) > 1e-3).any() else False),
+        preload=True
+    )
+    assert epochs.drop_log[2] != ()
+
+    epochs = mne.Epochs(
+        edit_raw,
+        events,
+        tmin=0,
+        tmax=1,
+        baseline=None,
+        reject=dict(eeg=lambda x: True if (np.max(x, axis=1) > 1).any() else False),
+        preload=True
+    )
+    assert epochs.drop_log[0] != ()
+
+    def reject_criteria(x):
+        max_condition = np.max(x, axis=1) > 1e-2
+        median_condition = np.median(x, axis=1) > 1e-4
+        return True if max_condition.any() or median_condition.any() else False
+
+    epochs = mne.Epochs(
+        edit_raw,
+        events,
+        tmin=0,
+        tmax=1,
+        baseline=None,
+        reject=dict(eeg=reject_criteria),
+        preload=True
+    )
+    assert epochs.drop_log[0] != () and epochs.drop_log[2] != ()
+
+
 def test_preload_epochs():
     """Test preload of epochs."""
     raw, events, picks = _get_data()

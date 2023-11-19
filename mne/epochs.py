@@ -838,33 +838,43 @@ class BaseEpochs(
             "previous ones"
         )
 
+        # Skip this check if old_reject, reject, old_flat, and flat are
+        # callables
+        is_callable = False
+        for rej in (reject, flat, old_reject, old_flat):
+            for key, val in rej.items():
+                if callable(val):
+                    is_callable = True
+
         # copy thresholds for channel types that were used previously, but not
         # passed this time
         for key in set(old_reject) - set(reject):
             reject[key] = old_reject[key]
-        # make sure new thresholds are at least as stringent as the old ones
-        for key in reject:
-            if key in old_reject and reject[key] > old_reject[key]:
-                raise ValueError(
-                    bad_msg.format(
-                        kind="reject",
-                        key=key,
-                        new=reject[key],
-                        old=old_reject[key],
-                        op=">",
-                    )
-                )
 
-        # same for flat thresholds
-        for key in set(old_flat) - set(flat):
-            flat[key] = old_flat[key]
-        for key in flat:
-            if key in old_flat and flat[key] < old_flat[key]:
-                raise ValueError(
-                    bad_msg.format(
-                        kind="flat", key=key, new=flat[key], old=old_flat[key], op="<"
+        if not is_callable:
+            # make sure new thresholds are at least as stringent as the old ones
+            for key in reject:
+                if key in old_reject and reject[key] > old_reject[key]:
+                    raise ValueError(
+                        bad_msg.format(
+                            kind="reject",
+                            key=key,
+                            new=reject[key],
+                            old=old_reject[key],
+                            op=">",
+                        )
                     )
-                )
+
+            # same for flat thresholds
+            for key in set(old_flat) - set(flat):
+                flat[key] = old_flat[key]
+            for key in flat:
+                if key in old_flat and flat[key] < old_flat[key]:
+                    raise ValueError(
+                        bad_msg.format(
+                            kind="flat", key=key, new=flat[key], old=old_flat[key], op="<"
+                        )
+                    )
 
         # after validation, set parameters
         self._bad_dropped = False
@@ -3625,7 +3635,7 @@ def _is_good(
 ):
     """Test if data segment e is good according to reject and flat.
 
-    The reject and flat dictionaries can now accept functions as values.
+    The reject and flat dictionaries can accept functions as values.
 
     If full_report=True, it will give True/False as well as a list of all
     offending channels.
