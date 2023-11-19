@@ -366,7 +366,6 @@ def _soft_import(name, purpose, strict=True):
     # Mapping import namespaces to their pypi package name
     pip_name = dict(
         sklearn="scikit-learn",
-        edfio="edfio",
         mne_bids="mne-bids",
         mne_nirs="mne-nirs",
         mne_features="mne-features",
