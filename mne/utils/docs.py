@@ -1701,11 +1701,14 @@ fir_window : str
 """
 
 _flat_common = """\
-    Reject epochs based on **minimum** peak-to-peak signal amplitude (PTP).
-    Valid **keys** can be any channel type present in the object. The
-    **values** are floats that set the minimum acceptable PTP. If the PTP
-    is smaller than this threshold, the epoch will be dropped. If ``None``
-    then no rejection is performed based on flatness of the signal."""
+    Reject epochs based on **minimum** peak-to-peak signal amplitude (PTP)
+    or a custom function. Valid **keys** can be any channel type present
+    in the object. If using PTP, **values** are floats that set the minimum
+    acceptable PTP. If the PTP is smaller than this threshold, the epoch
+    will be dropped. If ``None`` then no rejection is performed based on
+    flatness of the signal. If a custom function is used than ``flat`` can be
+    used to reject epochs based on any criteria (including maxima and
+    minima)."""
 
 docdict[
     "flat"
@@ -3793,8 +3796,9 @@ docdict["reject_by_annotation_raw"] = (
 )
 
 _reject_common = """\
-    Reject epochs based on **maximum** peak-to-peak signal amplitude (PTP),
-    i.e. the absolute difference between the lowest and the highest signal
+    Reject epochs based on **maximum** peak-to-peak signal amplitude (PTP)
+    or custom functions. Peak-to-peak signal amplitude is defined as
+    the absolute difference between the lowest and the highest signal
     value. In each individual epoch, the PTP is calculated for every channel.
     If the PTP of any one channel exceeds the rejection threshold, the
     respective epoch will be dropped.
@@ -3810,10 +3814,21 @@ _reject_common = """\
                       eog=250e-6      # unit: V (EOG channels)
                       )
 
-    .. note:: Since rejection is based on a signal **difference**
-              calculated for each channel separately, applying baseline
-              correction does not affect the rejection procedure, as the
-              difference will be preserved.
+    Custom rejection criteria can be also be used by passing a callable
+    to the dictionary.
+
+    Example::
+
+        reject = dict(eeg=lambda x: True if (np.max(x, axis=1) >
+                      1e-3).any() else False))
+
+    .. note:: If rejection is based on a signal **difference**
+            calculated for each channel separately, applying baseline
+            correction does not affect the rejection procedure, as the
+            difference will be preserved.
+
+    .. note:: If ``reject`` is a callable, than **any** criteria can be
+            used to reject epochs (including maxima and minima).
 """
 
 docdict[
