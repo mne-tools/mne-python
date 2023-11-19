@@ -20,9 +20,6 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
     TODO: if in future the Info object supports transducer or
     technician information, allow writing those here.
     """
-    # scale to save data in EDF
-    phys_dims = "uV"
-
     # get EEG-related data in uV
     units = dict(
         eeg="uV", ecog="uV", seeg="uV", eog="uV", ecg="uV", emg="uV", bio="uV", dbs="uV"
@@ -158,7 +155,7 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
                 out_sfreq,
                 label=signal_label,
                 transducer_type="",
-                physical_dimension=phys_dims,
+                physical_dimension="uV",
                 physical_range=(pmin, pmax),
                 digital_range=(digital_min, digital_max),
                 prefiltering=filter_str_info,
