@@ -12,6 +12,7 @@ This example shows how to compute and plot source space SNR as in
 #         Kaisu Lankinen <klankinen@mgh.harvard.edu>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 

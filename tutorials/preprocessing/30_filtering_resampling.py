@@ -13,6 +13,8 @@ We begin as always by importing the necessary Python modules and loading some
 (to save memory on the documentation server):
 """
 
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 # %%
 
 import os

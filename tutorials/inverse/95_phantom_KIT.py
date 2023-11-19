@@ -12,6 +12,7 @@ with 2-cycle 11 Hz sinusoidal bursts to verify source localization accuracy.
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 import matplotlib.pyplot as plt

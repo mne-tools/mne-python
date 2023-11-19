@@ -10,6 +10,7 @@ The inverse operator's source space is shown in 3D.
 # Author: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 

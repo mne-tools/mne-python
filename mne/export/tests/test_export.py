@@ -2,6 +2,7 @@
 # Authors: MNE Developers
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from contextlib import nullcontext
 from datetime import datetime, timezone

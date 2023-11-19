@@ -1,6 +1,7 @@
 # Authors: Federico Raimondo <federaimondo@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from collections import OrderedDict
 from datetime import datetime, timezone

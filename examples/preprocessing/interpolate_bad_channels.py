@@ -17,6 +17,7 @@ Only the data in those channels is replaced.
 #          Mainak Jas <mainak.jas@telecom-paristech.fr>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 

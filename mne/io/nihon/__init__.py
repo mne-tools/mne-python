@@ -3,5 +3,6 @@
 # Author: Fede Raimondo <federaimondo@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from .nihon import read_raw_nihon

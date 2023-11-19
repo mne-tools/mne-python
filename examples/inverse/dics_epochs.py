@@ -15,6 +15,7 @@ synchronization (ERS) of beta band activity in the :ref:`somato dataset
 #          Alex Rockhill <aprockhill@mailbox.org>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import numpy as np
 

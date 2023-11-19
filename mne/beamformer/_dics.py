@@ -6,6 +6,7 @@
 #          Roman Goj <roman.goj@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 import numpy as np
 
 from .._fiff.pick import pick_channels, pick_info

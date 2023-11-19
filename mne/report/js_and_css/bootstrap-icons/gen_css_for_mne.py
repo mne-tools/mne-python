@@ -13,6 +13,7 @@ Generate a bootstrap-icons CSS file with embedded font.
 # Author: Richard Höchenberger <richard.hoechenberger@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 
 import base64

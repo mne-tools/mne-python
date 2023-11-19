@@ -1,6 +1,7 @@
 # Author: Jean-Remi King, <jeanremi.king@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import platform
 from inspect import signature

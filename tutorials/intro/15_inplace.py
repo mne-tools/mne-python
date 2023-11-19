@@ -17,6 +17,8 @@ As usual we'll start by importing the modules we need and loading some
 :ref:`example data <sample-dataset>`:
 """
 
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 # %%
 
 import mne

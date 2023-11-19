@@ -1,5 +1,7 @@
 # Authors: Federico Raimondo  <federaimondo@gmail.com>
 #          simplified BSD-3 license
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import pytest
 from numpy.testing import assert_array_almost_equal

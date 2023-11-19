@@ -1,7 +1,8 @@
 # Authors: Juergen Dammers <j.dammers@fz-juelich.de>
 #          Denis Engemann <denis.engemann@gmail.com>
 #
-# License: Simplified BSD
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 import math
 
 import numpy as np

@@ -1,3 +1,5 @@
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 import os
 from ast import literal_eval
 from typing import Dict

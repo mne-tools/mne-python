@@ -1,3 +1,5 @@
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 import functools
 
 _COLLAPSED = False  # will override in doc build
