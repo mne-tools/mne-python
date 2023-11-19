@@ -873,7 +873,11 @@ class BaseEpochs(
                 if key in old_flat and flat[key] < old_flat[key]:
                     raise ValueError(
                         bad_msg.format(
-                            kind="flat", key=key, new=flat[key], old=old_flat[key], op="<"
+                            kind="flat",
+                            key=key,
+                            new=flat[key],
+                            old=old_flat[key],
+                            op="<",
                         )
                     )
 

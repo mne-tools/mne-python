@@ -23,9 +23,9 @@ array to use when converting the continuous data to epochs:
 
 import os
 
-import mne
-
 import numpy as np
+
+import mne
 
 sample_data_folder = mne.datasets.sample.data_path()
 sample_data_raw_file = os.path.join(
@@ -347,7 +347,7 @@ print(epochs.drop_log)
 
 raw.crop(0, 5)
 raw.del_proj()
-chans = raw.info['ch_names'][-5:-1]
+chans = raw.info["ch_names"][-5:-1]
 raw.pick(chans)
 data = raw.get_data()
 
@@ -369,13 +369,13 @@ epochs.plot(scalings=dict(eeg=50e-5))
 # maximum amplitude of the first channel.
 
 epochs = mne.Epochs(
-    edit_raw, 
+    edit_raw,
     events,
     tmin=0,
     tmax=1,
     baseline=None,
     reject=dict(eeg=lambda x: True if (np.max(x, axis=1) > 1e-2).any() else False),
-    preload=True
+    preload=True,
 )
 epochs.plot(scalings=dict(eeg=50e-5))
 
@@ -396,7 +396,7 @@ epochs = mne.Epochs(
     tmax=1,
     baseline=None,
     reject=dict(eeg=lambda x: True if (np.median(x, axis=1) > 1e-4).any() else False),
-    preload=True
+    preload=True,
 )
 epochs.plot(scalings=dict(eeg=50e-5))
 
@@ -419,7 +419,7 @@ epochs = mne.Epochs(
     tmax=1,
     baseline=None,
     reject=dict(eeg=reject_criteria),
-    preload=True
+    preload=True,
 )
 epochs.plot(events=True)
 
