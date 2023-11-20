@@ -6,7 +6,6 @@
 
 from contextlib import nullcontext
 from datetime import datetime, timezone
-from os import remove
 from pathlib import Path
 
 import numpy as np
@@ -289,6 +288,25 @@ def test_measurement_date_outside_range_valid_for_edf(tmp_path):
         raw.export(tmp_path / "test.edf", overwrite=True)
 
 
+@pytest.mark.parametrize(
+    ("physical_range", "exceeded_bound"),
+    [
+        ((-1e6, 0), "maximum"),
+        ((0, 1e6), "minimum"),
+    ],
+)
+def test_export_edf_signal_clipping(tmp_path, physical_range, exceeded_bound):
+    """Test if exporting data exceeding physical min/max clips and emits a warning."""
+    raw = read_raw_fif(fname_raw)
+    raw.pick(picks=["eeg", "ecog", "seeg"]).load_data()
+    temp_fname = tmp_path / "test.edf"
+    with pytest.warns(RuntimeWarning, match=f"The {exceeded_bound}"):
+        raw.export(temp_fname, physical_range=physical_range)
+    raw_read = read_raw_edf(temp_fname, preload=True)
+    assert raw_read.get_data().min() >= physical_range[0]
+    assert raw_read.get_data().max() <= physical_range[1]
+
+
 @pytest.mark.skipif(
     not _check_edfio_installed(strict=False), reason="edfio not installed"
 )
@@ -311,21 +329,6 @@ def test_export_raw_edf(tmp_path, dataset):
     raw.pick(picks=["eeg", "ecog", "seeg"]).load_data()
     orig_ch_names = raw.ch_names
     temp_fname = tmp_path / "test.edf"
-
-    # test runtime errors
-    with pytest.warns() as record:
-        raw.export(temp_fname, physical_range=(-1e6, 0))
-    if dataset == "test":
-        assert any("Data has a non-integer" in str(rec.message) for rec in record)
-    assert any("The maximum" in str(rec.message) for rec in record)
-    remove(temp_fname)
-
-    with pytest.warns() as record:
-        raw.export(temp_fname, physical_range=(0, 1e6))
-    if dataset == "test":
-        assert any("Data has a non-integer" in str(rec.message) for rec in record)
-    assert any("The minimum" in str(rec.message) for rec in record)
-    remove(temp_fname)
 
     if dataset == "test":
         with pytest.warns(RuntimeWarning, match="Data has a non-integer"):
