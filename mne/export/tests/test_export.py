@@ -253,7 +253,12 @@ def test_rawarray_edf(tmp_path):
     assert_array_equal(orig_ch_types, read_ch_types)
     assert raw.info["meas_date"] == raw_read.info["meas_date"]
 
-    # test that warning is raised if there are non-voltage based channels
+
+@_pytest_mark_skipif_edfio_not_installed()
+def test_edf_export_warns_on_non_voltage_channels(tmp_path):
+    """Test saving a Raw array containing a non-voltage channel."""
+    temp_fname = tmp_path / "test.edf"
+
     raw = _create_raw_for_edf_tests()
     raw.set_channel_types({"9": "hbr"}, on_unit_change="ignore")
     with pytest.warns(RuntimeWarning, match="Non-voltage channels"):
