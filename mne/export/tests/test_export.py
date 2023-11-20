@@ -311,13 +311,17 @@ def test_export_edf_signal_clipping(tmp_path, physical_range, exceeded_bound):
     not _check_edfio_installed(strict=False), reason="edfio not installed"
 )
 @pytest.mark.parametrize(
-    "dataset",
+    ("dataset", "warning_msg"),
     [
-        "test",
-        pytest.param("misc", marks=[pytest.mark.slowtest, misc._pytest_mark()]),
+        ("test", "Data has a non-integer"),
+        pytest.param(
+            "misc",
+            "EDF format requires",
+            marks=[pytest.mark.slowtest, misc._pytest_mark()],
+        ),
     ],
 )
-def test_export_raw_edf(tmp_path, dataset):
+def test_export_raw_edf(tmp_path, dataset, warning_msg):
     """Test saving a Raw instance to EDF format."""
     if dataset == "test":
         raw = read_raw_fif(fname_raw)
@@ -330,12 +334,8 @@ def test_export_raw_edf(tmp_path, dataset):
     orig_ch_names = raw.ch_names
     temp_fname = tmp_path / "test.edf"
 
-    if dataset == "test":
-        with pytest.warns(RuntimeWarning, match="Data has a non-integer"):
-            raw.export(temp_fname)
-    elif dataset == "misc":
-        with pytest.warns(RuntimeWarning, match="EDF format requires"):
-            raw.export(temp_fname)
+    with pytest.warns(RuntimeWarning, match=warning_msg):
+        raw.export(temp_fname)
 
     if "epoc" in raw.ch_names:
         raw.drop_channels(["epoc"])
