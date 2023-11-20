@@ -120,16 +120,11 @@ def test_export_raw_eeglab(tmp_path):
         raw.export(temp_fname, overwrite=True)
 
 
-@pytest.mark.skipif(
-    not _check_edfio_installed(strict=False), reason="edfio not installed"
-)
-def test_double_export_edf(tmp_path):
-    """Test exporting an EDF file multiple times."""
-    rng = np.random.RandomState(123456)
+def _create_raw_for_edf_tests(stim_channel_index=None):
+    rng = np.random.RandomState(12345)
     ch_types = [
         "eeg",
         "eeg",
-        "stim",
         "ecog",
         "ecog",
         "seeg",
@@ -139,12 +134,24 @@ def test_double_export_edf(tmp_path):
         "dbs",
         "bio",
     ]
-    info = create_info(len(ch_types), sfreq=1000, ch_types=ch_types)
-    info = info.set_meas_date("2023-09-04 14:53:09.000")
-    data = rng.random(size=(len(ch_types), 1000)) * 1e-5
+    if stim_channel_index is not None:
+        ch_types.insert(stim_channel_index, "stim")
+    ch_names = np.arange(len(ch_types)).astype(str).tolist()
+    info = create_info(ch_names, sfreq=1000, ch_types=ch_types)
+    data = rng.random(size=(len(ch_names), 2000)) * 1e-5
+    return RawArray(data, info)
+
+
+@pytest.mark.skipif(
+    not _check_edfio_installed(strict=False), reason="edfio not installed"
+)
+def test_double_export_edf(tmp_path):
+    """Test exporting an EDF file multiple times."""
+    raw = _create_raw_for_edf_tests(stim_channel_index=2)
+    raw.info.set_meas_date("2023-09-04 14:53:09.000")
 
     # include subject info and measurement date
-    info["subject_info"] = dict(
+    raw.info["subject_info"] = dict(
         his_id="12345",
         first_name="mne",
         last_name="python",
@@ -154,7 +161,6 @@ def test_double_export_edf(tmp_path):
         height=1.75,
         hand=3,
     )
-    raw = RawArray(data, info)
 
     # export once
     temp_fname = tmp_path / "test.edf"
@@ -191,24 +197,7 @@ def test_double_export_edf(tmp_path):
 )
 def test_export_edf_annotations(tmp_path):
     """Test that exporting EDF preserves annotations."""
-    rng = np.random.RandomState(123456)
-    ch_types = [
-        "eeg",
-        "eeg",
-        "ecog",
-        "ecog",
-        "seeg",
-        "eog",
-        "ecg",
-        "emg",
-        "dbs",
-        "bio",
-    ]
-    ch_names = np.arange(len(ch_types)).astype(str).tolist()
-    info = create_info(ch_names, sfreq=1000, ch_types=ch_types)
-    data = rng.random(size=(len(ch_names), 2000)) * 1.0e-5
-    raw = RawArray(data, info)
-
+    raw = _create_raw_for_edf_tests()
     annotations = Annotations(
         onset=[0.01, 0.05, 0.90, 1.05],
         duration=[0, 1, 0, 0],
@@ -234,18 +223,13 @@ def test_export_edf_annotations(tmp_path):
 )
 def test_rawarray_edf(tmp_path):
     """Test saving a Raw array with integer sfreq to EDF."""
-    rng = np.random.RandomState(12345)
-    ch_types = ["eeg", "eeg", "ecog", "seeg", "eog", "ecg", "emg", "dbs", "bio"]
-    ch_names = np.arange(len(ch_types)).astype(str).tolist()
-    info = create_info(ch_names, sfreq=1000, ch_types=ch_types)
-    data = rng.random(size=(len(ch_names), 1000)) * 1e-5
+    raw = _create_raw_for_edf_tests()
 
     # include subject info and measurement date
     subject_info = dict(
         first_name="mne", last_name="python", birthday=(1992, 1, 20), sex=1, hand=3
     )
-    info["subject_info"] = subject_info
-    raw = RawArray(data, info)
+    raw.info["subject_info"] = subject_info
     time_now = datetime.now()
     meas_date = datetime(
         year=time_now.year,
@@ -280,15 +264,15 @@ def test_rawarray_edf(tmp_path):
         raw_bad.export(temp_fname, overwrite=True)
 
     # include bad measurement date that is non-EDF compliant
-    raw = RawArray(data, info)
+    raw = _create_raw_for_edf_tests()
     meas_date = datetime(year=1984, month=1, day=1, tzinfo=timezone.utc)
     raw.set_meas_date(meas_date)
     with pytest.raises(ValueError, match="EDF only allows dates from 1985 to 2084"):
         raw.export(temp_fname, overwrite=True)
 
     # test that warning is raised if there are non-voltage based channels
-    raw = RawArray(data, info)
-    raw.set_channel_types({"8": "hbr"}, on_unit_change="ignore")
+    raw = _create_raw_for_edf_tests()
+    raw.set_channel_types({"9": "hbr"}, on_unit_change="ignore")
     with pytest.warns(RuntimeWarning, match="Non-voltage channels"):
         raw.export(temp_fname, overwrite=True)
 
