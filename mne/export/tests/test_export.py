@@ -226,10 +226,13 @@ def test_rawarray_edf(tmp_path):
     raw = _create_raw_for_edf_tests()
 
     # include subject info and measurement date
-    subject_info = dict(
-        first_name="mne", last_name="python", birthday=(1992, 1, 20), sex=1, hand=3
+    raw.info["subject_info"] = dict(
+        first_name="mne",
+        last_name="python",
+        birthday=(1992, 1, 20),
+        sex=1,
+        hand=3,
     )
-    raw.info["subject_info"] = subject_info
     time_now = datetime.now()
     meas_date = datetime(
         year=time_now.year,
