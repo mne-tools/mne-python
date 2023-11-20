@@ -126,7 +126,6 @@ def test_export_raw_eeglab(tmp_path):
 def test_double_export_edf(tmp_path):
     """Test exporting an EDF file multiple times."""
     rng = np.random.RandomState(123456)
-    format = "edf"
     ch_types = [
         "eeg",
         "eeg",
@@ -158,7 +157,7 @@ def test_double_export_edf(tmp_path):
     raw = RawArray(data, info)
 
     # export once
-    temp_fname = tmp_path / f"test.{format}"
+    temp_fname = tmp_path / "test.edf"
     with pytest.warns(RuntimeWarning, match="Exporting STIM channels"):
         raw.export(temp_fname, add_ch_type=True)
     raw_read = read_raw_edf(temp_fname, infer_types=True, preload=True)
@@ -194,7 +193,6 @@ def test_double_export_edf(tmp_path):
 def test_export_edf_annotations(tmp_path):
     """Test that exporting EDF preserves annotations."""
     rng = np.random.RandomState(123456)
-    format = "edf"
     ch_types = [
         "eeg",
         "eeg",
@@ -221,7 +219,7 @@ def test_export_edf_annotations(tmp_path):
     raw.set_annotations(annotations)
 
     # export
-    temp_fname = tmp_path / f"test.{format}"
+    temp_fname = tmp_path / "test.edf"
     raw.export(temp_fname)
 
     # read in the file
@@ -238,7 +236,6 @@ def test_export_edf_annotations(tmp_path):
 def test_rawarray_edf(tmp_path):
     """Test saving a Raw array with integer sfreq to EDF."""
     rng = np.random.RandomState(12345)
-    format = "edf"
     ch_types = ["eeg", "eeg", "ecog", "seeg", "eog", "ecg", "emg", "dbs", "bio"]
     ch_names = np.arange(len(ch_types)).astype(str).tolist()
     info = create_info(ch_names, sfreq=1000, ch_types=ch_types)
@@ -261,7 +258,7 @@ def test_rawarray_edf(tmp_path):
         tzinfo=timezone.utc,
     )
     raw.set_meas_date(meas_date)
-    temp_fname = tmp_path / f"test.{format}"
+    temp_fname = tmp_path / "test.edf"
 
     raw.export(temp_fname, add_ch_type=True)
     raw_read = read_raw_edf(temp_fname, infer_types=True, preload=True)
@@ -307,13 +304,13 @@ def test_rawarray_edf(tmp_path):
     not _check_edfio_installed(strict=False), reason="edfio not installed"
 )
 @pytest.mark.parametrize(
-    ["dataset", "format"],
+    "dataset",
     [
-        ["test", "edf"],
-        pytest.param("misc", "edf", marks=[pytest.mark.slowtest, misc._pytest_mark()]),
+        "test",
+        pytest.param("misc", marks=[pytest.mark.slowtest, misc._pytest_mark()]),
     ],
 )
-def test_export_raw_edf(tmp_path, dataset, format):
+def test_export_raw_edf(tmp_path, dataset):
     """Test saving a Raw instance to EDF format."""
     if dataset == "test":
         raw = read_raw_fif(fname_raw)
@@ -324,7 +321,7 @@ def test_export_raw_edf(tmp_path, dataset, format):
     # only test with EEG channels
     raw.pick(picks=["eeg", "ecog", "seeg"]).load_data()
     orig_ch_names = raw.ch_names
-    temp_fname = tmp_path / f"test.{format}"
+    temp_fname = tmp_path / "test.edf"
 
     # test runtime errors
     with pytest.warns() as record:
