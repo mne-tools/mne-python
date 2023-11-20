@@ -15,6 +15,8 @@ object from (possibly simulated) data in a :class:`NumPy array
 As usual, we start by importing the modules we need:
 """
 
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 # %%
 
 import mne

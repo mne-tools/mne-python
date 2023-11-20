@@ -24,8 +24,8 @@ clean-cache:
 
 clean: clean-build clean-pyc clean-so clean-ctags clean-cache
 
-wheel_quiet:
-	$(PYTHON) setup.py -q sdist bdist_wheel
+wheel:
+	$(PYTHON) -m build
 
 sample_data:
 	@python -c "import mne; mne.datasets.sample.data_path(verbose=True);"
@@ -57,7 +57,7 @@ codespell:  # running manually
 check-manifest:
 	check-manifest -q --ignore .circleci/config.yml,doc,logo,mne/io/*/tests/data*,mne/io/tests/data,mne/preprocessing/tests/data,.DS_Store,mne/_version.py
 
-check-readme: clean wheel_quiet
+check-readme: clean wheel
 	twine check dist/*
 
 nesting:

@@ -5,6 +5,7 @@
 #          Britta Westner <britta.wstnr@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 import numpy as np
 
 from .._fiff.meas_info import _simplify_info
@@ -402,7 +403,7 @@ def apply_lcmv_epochs(epochs, filters, *, return_generator=False, verbose=None):
     tmin = epochs.times[0]
 
     sel = _check_channels_spatial_filter(epochs.ch_names, filters)
-    data = epochs.get_data()[:, sel, :]
+    data = epochs.get_data(sel)
     stcs = _apply_lcmv(data=data, filters=filters, info=info, tmin=tmin)
 
     if not return_generator:

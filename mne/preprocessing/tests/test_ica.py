@@ -2,6 +2,7 @@
 #         Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import os
 import shutil
@@ -108,7 +109,7 @@ def test_ica_full_data_recovery(method):
     evoked = epochs.average()
     n_channels = 5
     data = raw._data[:n_channels].copy()
-    data_epochs = epochs.get_data()
+    data_epochs = epochs.get_data(copy=True)
     data_evoked = evoked.data
     raw.set_annotations(Annotations([0.5], [0.5], ["BAD"]))
     methods = [method]
@@ -137,7 +138,7 @@ def test_ica_full_data_recovery(method):
                 ica.fit(epochs, picks=picks)
             _assert_ica_attributes(ica, epochs.get_data(picks))
             epochs2 = ica.apply(epochs.copy(), **kwargs)
-            data2 = epochs2.get_data()[:, :n_channels]
+            data2 = epochs2.get_data(picks=slice(0, n_channels))
             if ok:
                 assert_allclose(
                     data_epochs[:, :n_channels], data2, rtol=1e-10, atol=1e-15
@@ -490,6 +491,7 @@ def test_ica_core(method, n_components, noise_cov, n_pca_components, browser_bac
     repr_html_ = ica._repr_html_()
     assert repr_ == f"<ICA | no decomposition, method: {method}>"
     assert method in repr_html_
+    assert "max_iter=1" in repr_html_
 
     # test fit checker
     with pytest.raises(RuntimeError, match="No fit available"):
@@ -544,13 +546,13 @@ def test_ica_core(method, n_components, noise_cov, n_pca_components, browser_bac
     ica = ICA(noise_cov=noise_cov, n_components=n_components, method=method)
     with _record_warnings():  # sometimes warns
         ica.fit(epochs)
-    _assert_ica_attributes(ica, epochs.get_data(), limits=(0.2, 20))
-    data = epochs.get_data()[:, 0, :]
+    _assert_ica_attributes(ica, epochs.get_data(copy=False), limits=(0.2, 20))
+    data = epochs.get_data(picks=[0])[:, 0]
     n_samples = np.prod(data.shape)
     assert_equal(ica.n_samples_, n_samples)
     print(ica)  # to test repr
 
-    sources = ica.get_sources(epochs).get_data()
+    sources = ica.get_sources(epochs).get_data(copy=False)
     assert sources.shape[1] == ica.n_components_
 
     with pytest.raises(ValueError, match="target do not have the same nu"):
@@ -878,7 +880,7 @@ def test_ica_additional(method, tmp_path, short_raw_epochs):
     evoked = epochs.average()
     evoked_data = evoked.data.copy()
     raw_data = raw[:][0].copy()
-    epochs_data = epochs.get_data().copy()
+    epochs_data = epochs.get_data(copy=True)
 
     with pytest.warns(RuntimeWarning, match="longer"):
         idx, scores = ica.find_bads_ecg(
@@ -930,7 +932,7 @@ def test_ica_additional(method, tmp_path, short_raw_epochs):
     assert_equal(len(scores), ica.n_components_)
 
     assert_array_equal(raw_data, raw[:][0])
-    assert_array_equal(epochs_data, epochs.get_data())
+    assert_array_equal(epochs_data, epochs.get_data(copy=False))
     assert_array_equal(evoked_data, evoked.data)
 
     # check score funcs
@@ -984,7 +986,7 @@ def test_ica_additional(method, tmp_path, short_raw_epochs):
     assert ica_epochs.events.shape == epochs.events.shape
     ica_chans = [ch for ch in ica_epochs.ch_names if "ICA" in ch]
     assert ica.n_components_ == len(ica_chans)
-    assert ica.n_components_ == ica_epochs.get_data().shape[1]
+    assert ica.n_components_ == ica_epochs.get_data(copy=False).shape[1]
     assert ica_epochs._raw is None
     assert ica_epochs.preload is True
 
@@ -1116,7 +1118,7 @@ def test_ica_cov(method, cov, tmp_path, short_raw_epochs):
     with _record_warnings():  # ICA does not converge
         ica.fit(raw, picks=np.arange(10))
     _assert_ica_attributes(ica)
-    sources = ica.get_sources(epochs).get_data()
+    sources = ica.get_sources(epochs).get_data(copy=False)
     assert ica.mixing_matrix_.shape == (2, 2)
     assert ica.unmixing_matrix_.shape == (2, 2)
     assert ica.pca_components_.shape == (10, 10)

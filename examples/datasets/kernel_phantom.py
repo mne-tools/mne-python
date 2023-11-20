@@ -8,6 +8,8 @@ In this dataset, a Neuromag phantom was placed inside the Kernel OPM helmet and
 stimulated with 7 modules active (121 channels). Here we show some example traces.
 """
 
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 import numpy as np
 
 import mne
@@ -49,6 +51,7 @@ fig.axes[0].axvline(t_peak, color="k", ls=":", lw=3, zorder=2)
 
 # %%
 # The data covariance has an interesting structure because of densely packed sensors:
+
 cov = mne.compute_covariance(epochs, tmax=-0.01)
 mne.viz.plot_cov(cov, raw.info)
 

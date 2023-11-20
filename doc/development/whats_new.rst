@@ -8,7 +8,7 @@ Changes for each version of MNE-Python are listed below.
 .. toctree::
    :maxdepth: 1
 
-   ../changes/devel.rst
+   ../changes/v1.6.rst
    ../changes/v1.5.rst
    ../changes/v1.4.rst
    ../changes/v1.3.rst

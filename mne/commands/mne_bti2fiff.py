@@ -27,6 +27,8 @@ Examples
 #          Yuval Harpaz <yuvharpaz@gmail.com>
 #
 #          simplified bsd-3 license
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 
 import sys

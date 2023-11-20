@@ -2,6 +2,7 @@
 #         Romain Trachel <trachelr@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from pathlib import Path
 
@@ -55,7 +56,7 @@ def test_scaler(info, method):
     epochs = Epochs(
         raw, events, event_id, tmin, tmax, picks=picks, baseline=(None, 0), preload=True
     )
-    epochs_data = epochs.get_data()
+    epochs_data = epochs.get_data(copy=False)
     y = epochs.events[:, -1]
 
     epochs_data_t = epochs_data.transpose([1, 0, 2])
@@ -115,7 +116,7 @@ def test_scaler(info, method):
         picks=np.arange(len(raw.ch_names)),
     )  # non-data chs
     scaler = Scaler(epochs_bad.info, None)
-    pytest.raises(ValueError, scaler.fit, epochs_bad.get_data(), y)
+    pytest.raises(ValueError, scaler.fit, epochs_bad.get_data(copy=False), y)
 
 
 def test_filterestimator():
@@ -129,7 +130,7 @@ def test_filterestimator():
     epochs = Epochs(
         raw, events, event_id, tmin, tmax, picks=picks, baseline=(None, 0), preload=True
     )
-    epochs_data = epochs.get_data()
+    epochs_data = epochs.get_data(copy=False)
 
     # Add tests for different combinations of l_freq and h_freq
     filt = FilterEstimator(epochs.info, l_freq=40, h_freq=80)
@@ -180,7 +181,7 @@ def test_psdestimator():
     epochs = Epochs(
         raw, events, event_id, tmin, tmax, picks=picks, baseline=(None, 0), preload=True
     )
-    epochs_data = epochs.get_data()
+    epochs_data = epochs.get_data(copy=False)
     psd = PSDEstimator(2 * np.pi, 0, np.inf)
     y = epochs.events[:, -1]
     X = psd.fit_transform(epochs_data, y)
@@ -244,7 +245,7 @@ def test_unsupervised_spatial_filter():
     pytest.raises(ValueError, UnsupervisedSpatialFilter, KernelRidge(2))
 
     # Test fit
-    X = epochs.get_data()
+    X = epochs.get_data(copy=False)
     n_components = 4
     usf = UnsupervisedSpatialFilter(PCA(n_components))
     usf.fit(X)

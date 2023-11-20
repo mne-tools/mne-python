@@ -8,7 +8,8 @@
 #          Mainak Jas <mainak@neuro.hut.fi>
 #          Daniel McCloy <dan.mccloy@gmail.com>
 #
-# License: Simplified BSD
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from copy import deepcopy
 from functools import partial
@@ -2931,7 +2932,7 @@ def plot_compare_evokeds(
     title = _title_helper_pce(
         title, picked_types, picks=orig_picks, ch_names=ch_names, combine=combine
     )
-
+    topo_disp_title = False
     # setup axes
     if do_topo:
         show_sensors = False
@@ -2941,6 +2942,8 @@ def plot_compare_evokeds(
                 "sensors. This can be extremely slow. Consider using "
                 "mne.viz.plot_topo, which is optimized for speed."
             )
+        topo_title = title
+        topo_disp_title = True
         axes = ["topo"] * len(ch_types)
     else:
         if axes is None:
@@ -3225,5 +3228,7 @@ def plot_compare_evokeds(
     if cmap is not None:
         _draw_colorbar_pce(ax, _colors, _cmap, colorbar_title, colorbar_ticks)
     # finish
+    if topo_disp_title:
+        ax.figure.suptitle(topo_title)
     plt_show(show)
     return [ax.figure]

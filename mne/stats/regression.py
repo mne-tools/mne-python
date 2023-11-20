@@ -5,6 +5,7 @@
 #          Marijn van Vliet <w.m.vanvliet@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from collections import namedtuple
 from inspect import isgenerator
@@ -76,7 +77,7 @@ def linear_regression(inst, design_matrix, names=None):
         if [inst.ch_names[p] for p in picks] != inst.ch_names:
             warn("Fitting linear model to non-data or bad channels. " "Check picking")
         msg = "Fitting linear model to epochs"
-        data = inst.get_data()
+        data = inst.get_data(copy=False)
         out = EvokedArray(np.zeros(data.shape[1:]), inst.info, inst.tmin)
     elif isgenerator(inst):
         msg = "Fitting linear model to source estimates (generator input)"

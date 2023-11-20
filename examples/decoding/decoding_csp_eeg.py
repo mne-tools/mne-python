@@ -16,6 +16,7 @@ See https://en.wikipedia.org/wiki/Common_spatial_pattern and
 # Authors: Martin Billinger <martin.billinger@tugraz.at>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 
@@ -78,8 +79,8 @@ labels = epochs.events[:, -1] - 2
 
 # Define a monte-carlo cross-validation generator (reduce variance):
 scores = []
-epochs_data = epochs.get_data()
-epochs_data_train = epochs_train.get_data()
+epochs_data = epochs.get_data(copy=False)
+epochs_data_train = epochs_train.get_data(copy=False)
 cv = ShuffleSplit(10, test_size=0.2, random_state=42)
 cv_split = cv.split(epochs_data_train)
 

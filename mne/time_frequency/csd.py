@@ -3,6 +3,7 @@
 #          Roman Goj <roman.goj@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import copy as cp
 import numbers
@@ -717,7 +718,7 @@ def csd_fourier(
     """
     epochs, projs = _prepare_csd(epochs, tmin, tmax, picks, projs)
     return csd_array_fourier(
-        epochs.get_data(),
+        epochs.get_data(copy=False),
         sfreq=epochs.info["sfreq"],
         t0=epochs.tmin,
         fmin=fmin,
@@ -900,7 +901,7 @@ def csd_multitaper(
     """
     epochs, projs = _prepare_csd(epochs, tmin, tmax, picks, projs)
     return csd_array_multitaper(
-        epochs.get_data(),
+        epochs.get_data(copy=False),
         sfreq=epochs.info["sfreq"],
         t0=epochs.tmin,
         fmin=fmin,
@@ -1109,7 +1110,7 @@ def csd_morlet(
     """
     epochs, projs = _prepare_csd(epochs, tmin, tmax, picks, projs)
     return csd_array_morlet(
-        epochs.get_data(),
+        epochs.get_data(copy=False),
         sfreq=epochs.info["sfreq"],
         frequencies=frequencies,
         t0=epochs.tmin,

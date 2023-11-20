@@ -4,6 +4,7 @@
 #          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import contextlib
 import datetime
@@ -1379,7 +1380,7 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
             The distance limit.
         accept : int
             Whether or not the fit was accepted.
-        coord_trans : instance of Transformation
+        coord_trans : instance of Transform
             The resulting MEG<->head transformation.
 
     * ``hpi_subsystem`` dict:
@@ -3726,10 +3727,13 @@ def _ensure_infos_match(info1, info2, name, *, on_mismatch="raise"):
         raise ValueError(f"SSP projectors in {name} must be the same")
     if any(not _proj_equal(p1, p2) for p1, p2 in zip(info2["projs"], info1["projs"])):
         raise ValueError(f"SSP projectors in {name} must be the same")
-    if (info1["dev_head_t"] is None) != (info2["dev_head_t"] is None) or (
+    if (info1["dev_head_t"] is None) ^ (info2["dev_head_t"] is None) or (
         info1["dev_head_t"] is not None
         and not np.allclose(
-            info1["dev_head_t"]["trans"], info2["dev_head_t"]["trans"], rtol=1e-6
+            info1["dev_head_t"]["trans"],
+            info2["dev_head_t"]["trans"],
+            rtol=1e-6,
+            equal_nan=True,
         )
     ):
         msg = (

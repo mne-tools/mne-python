@@ -16,6 +16,8 @@ creating an :class:`~mne.Epochs` object from (possibly simulated) data in a
 As usual we'll start by importing the modules we need:
 """
 
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 # %%
 
 import mne
@@ -312,7 +314,9 @@ epochs.set_channel_types({"EEG 060": "eeg"})
 shorter_epochs = epochs.copy().crop(tmin=-0.1, tmax=0.1, include_tmax=True)
 
 for name, obj in dict(Original=epochs, Cropped=shorter_epochs).items():
-    print("{} epochs has {} time samples".format(name, obj.get_data().shape[-1]))
+    print(
+        "{} epochs has {} time samples".format(name, obj.get_data(copy=False).shape[-1])
+    )
 
 # %%
 # Cropping removed part of the baseline. When printing the

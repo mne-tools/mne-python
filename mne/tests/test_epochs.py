@@ -3,6 +3,7 @@
 #         Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import pickle
 from copy import deepcopy
@@ -83,6 +84,13 @@ evoked_nf_name = base_dir / "test-nf-ave.fif"
 event_id, tmin, tmax = 1, -0.2, 0.5
 event_id_2 = np.int64(2)  # to test non Python int types
 rng = np.random.RandomState(42)
+
+
+pytestmark = [
+    pytest.mark.filterwarnings(
+        "ignore:The current default of copy=False will change to copy=.*:FutureWarning",
+    ),
+]
 
 
 def _create_epochs_with_annotations():
@@ -276,7 +284,7 @@ reject = dict(grad=1000e-12, mag=4e-12, eeg=80e-6, eog=150e-6)
 flat = dict(grad=1e-15, mag=1e-15)
 
 
-def test_get_data():
+def test_get_data_copy():
     """Test the .get_data() method."""
     raw, events, picks = _get_data()
     event_id = {"a/1": 1, "a/2": 2, "b/1": 3, "b/2": 4}
@@ -320,6 +328,25 @@ def test_get_data():
 
     with pytest.raises(TypeError, match="tmax .* float, None"):
         epochs.get_data(tmin=1, tmax=np.ones(5))
+
+    # Test copy
+    data = epochs.get_data(copy=True)
+    assert not np.shares_memory(data, epochs._data)
+
+    with pytest.warns(FutureWarning, match="The current default of copy=False will"):
+        data = epochs.get_data(verbose="debug")
+    assert np.shares_memory(data, epochs._data)
+    assert data is epochs._data
+    data_orig = data.copy()
+    # picks, item, and units must be None
+    data = epochs.get_data(copy=False, picks=[1])
+    assert not np.shares_memory(data, epochs._data)
+    data = epochs.get_data(copy=False, item=[0])
+    assert not np.shares_memory(data, epochs._data)
+    data = epochs.get_data(copy=False, units=dict(eeg="uV"))
+    assert not np.shares_memory(data, epochs._data)
+    # Make sure we didn't mess up our values
+    assert_allclose(data_orig, epochs._data)
 
 
 def test_hierarchical():
@@ -1033,7 +1060,7 @@ def test_epochs_baseline_basic(preload, tmp_path):
     epochs = mne.Epochs(raw, events, None, 0, 1e-3, baseline=None, preload=preload)
     epochs.drop_bad()
     epochs_nobl = epochs.copy()
-    epochs_data = epochs.get_data()
+    epochs_data = epochs.get_data(copy=False)
     assert epochs_data.shape == (1, 2, 2)
     expected = data.copy()
     assert_array_equal(epochs_data[0], expected)

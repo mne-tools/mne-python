@@ -2,6 +2,7 @@
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import atexit
 import json
@@ -163,6 +164,7 @@ _known_config_types = {
     "MNE_DATASETS_VISUAL_92_CATEGORIES_PATH": "str, path for visual_92_categories data",
     "MNE_DATASETS_KILOWORD_PATH": "str, path for kiloword data",
     "MNE_DATASETS_FIELDTRIP_CMC_PATH": "str, path for fieldtrip_cmc data",
+    "MNE_DATASETS_PHANTOM_KIT_PATH": "str, path for phantom_kit data",
     "MNE_DATASETS_PHANTOM_4DBTI_PATH": "str, path for phantom_4dbti data",
     "MNE_DATASETS_PHANTOM_KERNEL_PATH": "str, path for phantom_kernel data",
     "MNE_DATASETS_LIMO_PATH": "str, path for limo data",
@@ -496,7 +498,7 @@ def _get_stim_channel(stim_channel, info, raise_error=True):
 
     Returns
     -------
-    stim_channel : str | list of str
+    stim_channel : list of str
         The name of the stim channel(s) to use
     """
     from .._fiff.pick import pick_types
@@ -525,13 +527,12 @@ def _get_stim_channel(stim_channel, info, raise_error=True):
         return ["STI 014"]
 
     stim_channel = pick_types(info, meg=False, ref_meg=False, stim=True)
-    if len(stim_channel) > 0:
-        stim_channel = [info["ch_names"][ch_] for ch_ in stim_channel]
-    elif raise_error:
+    if len(stim_channel) == 0 and raise_error:
         raise ValueError(
             "No stim channels found. Consider specifying them "
             "manually using the 'stim_channel' parameter."
         )
+    stim_channel = [info["ch_names"][ch_] for ch_ in stim_channel]
     return stim_channel
 
 
@@ -804,7 +805,7 @@ def _get_latest_version(timeout):
     try:
         with urlopen(url, timeout=timeout) as f:  # nosec
             response = json.load(f)
-    except URLError as err:
+    except (URLError, TimeoutError) as err:
         # Triage error type
         if "SSL" in str(err):
             return "SSL error"

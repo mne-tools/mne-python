@@ -5,7 +5,8 @@
 #          Jaakko Leppakangas <jaeilepp@student.jyu.fi>
 #          Daniel McCloy <dan@mccloy.info>
 #
-# License: Simplified BSD
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import platform
 
@@ -415,7 +416,7 @@ def test_plot_psd_epochs(epochs):
     fig = spectrum.plot_topomap(bands=[(20, "20 Hz"), (15, 25, "15-25 Hz")])
     # test with a flat channel
     err_str = "for channel %s" % epochs.ch_names[2]
-    epochs.get_data()[0, 2, :] = 0
+    epochs.get_data(copy=False)[0, 2, :] = 0
     for dB in [True, False]:
         with pytest.warns(UserWarning, match=err_str):
             epochs.compute_psd().plot(dB=dB)

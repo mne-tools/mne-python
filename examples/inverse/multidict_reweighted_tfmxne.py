@@ -23,6 +23,7 @@ based on the TF-MxNE solver, which promotes focal (sparse) sources
 #         Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 

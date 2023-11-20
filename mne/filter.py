@@ -1,3 +1,5 @@
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 """IIR and FIR filtering and resampling functions."""
 
 from collections import Counter

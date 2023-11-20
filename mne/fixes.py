@@ -10,7 +10,8 @@ at which the fix is no longer needed.
 #          Gael Varoquaux <gael.varoquaux@normalesup.org>
 #          Fabian Pedregosa <fpedregosa@acm.org>
 #          Lars Buitinck <L.J.Buitinck@uva.nl>
-# License: BSD
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # NOTE:
 # Imports for SciPy submodules need to stay nested in this module

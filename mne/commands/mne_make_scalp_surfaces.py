@@ -5,6 +5,8 @@
 #          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
 #
 #          simplified bsd-3 license
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 """Create high-resolution head surfaces for coordinate alignment.
 

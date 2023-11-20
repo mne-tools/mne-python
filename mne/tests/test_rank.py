@@ -1,3 +1,5 @@
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 import itertools
 from pathlib import Path
 
@@ -5,7 +7,14 @@ import numpy as np
 import pytest
 from numpy.testing import assert_array_equal
 
-from mne import compute_raw_covariance, pick_info, pick_types, read_cov, read_evokeds
+from mne import (
+    compute_raw_covariance,
+    make_fixed_length_epochs,
+    pick_info,
+    pick_types,
+    read_cov,
+    read_evokeds,
+)
 from mne._fiff.pick import _picks_by_type
 from mne._fiff.proj import _has_eeg_average_ref_proj
 from mne.cov import prepare_noise_cov
@@ -188,6 +197,19 @@ def test_cov_rank_estimation(rank_method, proj, meg):
                     expected_rank -= n_projs_info
 
             assert rank[ch_type] == expected_rank
+
+
+@pytest.mark.parametrize(
+    "rank_method, proj", [("info", True), ("info", False), (None, True), (None, False)]
+)
+def test_rank_epochs(rank_method, proj):
+    """Test that raw and epochs give the same results in a simple case."""
+    # And a smoke test for epochs
+    raw = read_raw_fif(raw_fname, preload=True)
+    epochs = make_fixed_length_epochs(raw, preload=True, proj=False)
+    rank_raw = compute_rank(raw, rank_method, proj=proj)
+    rank_epochs = compute_rank(epochs, rank_method, proj=proj)
+    assert rank_raw == rank_epochs
 
 
 @pytest.mark.slowtest  # ~3 s apiece on Azure means overall it's slow

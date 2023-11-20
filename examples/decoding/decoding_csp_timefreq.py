@@ -17,6 +17,7 @@ signals.
 #          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 
@@ -105,7 +106,7 @@ for freq, (fmin, fmax) in enumerate(freq_ranges):
     epochs.drop_bad()
     y = le.fit_transform(epochs.events[:, 2])
 
-    X = epochs.get_data()
+    X = epochs.get_data(copy=False)
 
     # Save mean scores over folds for each frequency and time window
     freq_scores[freq] = np.mean(
@@ -165,7 +166,7 @@ for freq, (fmin, fmax) in enumerate(freq_ranges):
         w_tmax = w_time + w_size / 2.0
 
         # Crop data into time-window of interest
-        X = epochs.copy().crop(w_tmin, w_tmax).get_data()
+        X = epochs.get_data(tmin=w_tmin, tmax=w_tmax, copy=False)
 
         # Save mean scores over folds for each frequency and time window
         tf_scores[freq, t] = np.mean(

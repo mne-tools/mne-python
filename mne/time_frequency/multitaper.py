@@ -1,5 +1,7 @@
 # Author : Martin Luessi mluessi@nmr.mgh.harvard.edu (2012)
 # License : BSD-3-Clause
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # Parts of this code were copied from NiTime http://nipy.sourceforge.net/nitime
 

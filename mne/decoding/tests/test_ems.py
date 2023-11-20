@@ -1,6 +1,7 @@
 # Author: Denis A. Engemann <d.engemann@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from pathlib import Path
 
@@ -76,7 +77,7 @@ def test_ems():
     raw.close()
 
     # EMS transformer, check that identical to compute_ems
-    X = epochs.get_data()
+    X = epochs.get_data(copy=False)
     y = epochs.events[:, 2]
     X = X / np.std(X)  # X scaled outside cv in compute_ems
     Xt, coefs = list(), list()

@@ -19,6 +19,7 @@ because the noise is less spatially correlated in MEG than EEG.
 #          Jean-Remi King <jeanremi.king@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 
@@ -60,7 +61,7 @@ labels = epochs.events[:, -1]
 
 # get MEG data
 meg_epochs = epochs.copy().pick(picks="meg", exclude="bads")
-meg_data = meg_epochs.get_data().reshape(len(labels), -1)
+meg_data = meg_epochs.get_data(copy=False).reshape(len(labels), -1)
 
 # %%
 # Decoding in sensor space using a LogisticRegression classifier

@@ -26,6 +26,7 @@ comparisons using False Discovery Rate correction.
 #          Alex Rockhill <aprockhill@mailbox.org>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 

@@ -4,6 +4,7 @@
 
 
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from collections import Counter, OrderedDict
 from functools import partial
@@ -1972,7 +1973,7 @@ def _update_sss_info(
         The moments that were used.
     st_only : bool
         Whether tSSS only was performed.
-    recon_trans : instance of Transformation
+    recon_trans : instance of Transform
         The reconstruction trans.
     extended_proj : ndarray
         Extended external bases.

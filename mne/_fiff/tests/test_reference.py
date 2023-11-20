@@ -3,6 +3,7 @@
 #          Teon Brooks <teon.brooks@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import itertools
 from contextlib import nullcontext
@@ -620,12 +621,10 @@ def test_add_reference():
     assert_equal(epochs_ref._data.shape[1], epochs._data.shape[1] + 1)
     _check_channel_names(epochs_ref, "Ref")
     ref_idx = epochs_ref.ch_names.index("Ref")
-    ref_data = epochs_ref.get_data()[:, ref_idx, :]
+    ref_data = epochs_ref.get_data(picks=[ref_idx])[:, 0]
     assert_array_equal(ref_data, 0)
     picks_eeg = pick_types(epochs.info, meg=False, eeg=True)
-    assert_array_equal(
-        epochs.get_data()[:, picks_eeg, :], epochs_ref.get_data()[:, picks_eeg, :]
-    )
+    assert_array_equal(epochs.get_data(picks_eeg), epochs_ref.get_data(picks_eeg))
 
     # add two reference channels to epochs
     raw = read_raw_fif(fif_fname, preload=True)
@@ -650,12 +649,10 @@ def test_add_reference():
     ref_idy = epochs_ref.ch_names.index("M2")
     assert_equal(epochs_ref.info["chs"][ref_idx]["ch_name"], "M1")
     assert_equal(epochs_ref.info["chs"][ref_idy]["ch_name"], "M2")
-    ref_data = epochs_ref.get_data()[:, [ref_idx, ref_idy], :]
+    ref_data = epochs_ref.get_data([ref_idx, ref_idy])
     assert_array_equal(ref_data, 0)
     picks_eeg = pick_types(epochs.info, meg=False, eeg=True)
-    assert_array_equal(
-        epochs.get_data()[:, picks_eeg, :], epochs_ref.get_data()[:, picks_eeg, :]
-    )
+    assert_array_equal(epochs.get_data(picks_eeg), epochs_ref.get_data(picks_eeg))
 
     # add reference channel to evoked
     raw = read_raw_fif(fif_fname, preload=True)
@@ -725,7 +722,7 @@ def test_add_reference():
     data = data.get_data()
     epochs = make_fixed_length_epochs(raw).load_data()
     data_2 = epochs.copy().add_reference_channels(["REF"]).pick(picks="eeg")
-    data_2 = data_2.get_data()[0]
+    data_2 = data_2.get_data(copy=False)[0]
     assert_allclose(data, data_2)
     evoked = epochs.average()
     data_3 = evoked.copy().add_reference_channels(["REF"]).pick(picks="eeg")

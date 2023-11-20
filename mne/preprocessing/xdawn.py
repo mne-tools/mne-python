@@ -3,6 +3,7 @@
 #          Jean-Remi King <jeanremi.king@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import numpy as np
 from scipy import linalg
@@ -451,7 +452,7 @@ class Xdawn(_XdawnTransformer):
             raise ValueError("epochs must be an Epochs object.")
         picks = _pick_data_channels(epochs.info)
         use_info = pick_info(epochs.info, picks)
-        X = epochs.get_data()[:, picks, :]
+        X = epochs.get_data(picks)
         y = epochs.events[:, 2] if y is None else y
         self.event_id_ = epochs.event_id
 
@@ -525,7 +526,7 @@ class Xdawn(_XdawnTransformer):
             Spatially filtered signals.
         """  # noqa: E501
         if isinstance(inst, BaseEpochs):
-            X = inst.get_data()
+            X = inst.get_data(copy=False)
         elif isinstance(inst, Evoked):
             X = inst.data
         elif isinstance(inst, np.ndarray):
@@ -636,7 +637,7 @@ class Xdawn(_XdawnTransformer):
 
         # special case where epochs come picked but fit was 'unpicked'.
         epochs_dict = dict()
-        data = np.hstack(epochs.get_data()[:, picks])
+        data = np.hstack(epochs.get_data(picks))
 
         for eid in event_id:
             data_r = self._pick_sources(data, include, exclude, eid)

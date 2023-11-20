@@ -11,9 +11,9 @@ on data with with sensor artifacts (flux jumps) and random noise.
 # Author: Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
-
 import numpy as np
 
 import mne
@@ -70,7 +70,7 @@ def compute_bias(raw):
     sphere = mne.make_sphere_model(r0=(0.0, 0.0, 0.0), head_radius=None, verbose=False)
     cov = mne.compute_covariance(epochs, tmax=0, method="oas", rank=None, verbose=False)
     idx = epochs.time_as_index(0.036)[0]
-    data = epochs.get_data()[:, :, idx].T
+    data = epochs.get_data(copy=False)[:, :, idx].T
     evoked = mne.EvokedArray(data, epochs.info, tmin=0.0)
     dip = fit_dipole(evoked, cov, sphere, n_jobs=None, verbose=False)[0]
     actual_pos = mne.dipole.get_phantom_dipoles()[0][dipole_number - 1]

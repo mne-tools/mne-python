@@ -1,6 +1,7 @@
 # Author: Teon Brooks <teon.brooks@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from pathlib import Path
 
@@ -286,9 +287,9 @@ def test_epochs():
     raw = read_raw_kit(sqd_path, stim=None)
     events = read_events(events_path)
     raw_epochs = Epochs(raw, events, None, tmin=0, tmax=0.099, baseline=None)
-    data1 = raw_epochs.get_data()
+    data1 = raw_epochs.get_data(copy=False)
     epochs = read_epochs_kit(epochs_path, events_path)
-    data11 = epochs.get_data()
+    data11 = epochs.get_data(copy=False)
     assert_array_equal(data1, data11)
 
 

@@ -1,3 +1,5 @@
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 from itertools import compress
 from pathlib import Path
 
@@ -232,10 +234,10 @@ def test_interpolation_meg():
     assert len(raw_meg.info["bads"]) == len(raw_meg.info["bads"])
 
     # MEG -- epochs
-    data1 = epochs_meg.get_data()[:, pick, :].ravel()
+    data1 = epochs_meg.get_data(pick).ravel()
     epochs_meg.info.normalize_proj()
     epochs_meg.interpolate_bads(mode="fast")
-    data2 = epochs_meg.get_data()[:, pick, :].ravel()
+    data2 = epochs_meg.get_data(pick).ravel()
     assert np.corrcoef(data1, data2)[0, 1] > thresh
     assert len(epochs_meg.info["bads"]) == 0
 

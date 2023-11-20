@@ -1,6 +1,7 @@
 # Author: Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import numpy as np
 import pytest
@@ -31,7 +32,7 @@ def test_regress_artifact():
     orig_norm = np.linalg.norm(orig_data)
     epochs_clean, betas = regress_artifact(epochs)
     regress_artifact(epochs, betas=betas, copy=False)  # inplace, and w/betas
-    assert_allclose(epochs_clean.get_data(), epochs.get_data())
+    assert_allclose(epochs_clean.get_data(copy=False), epochs.get_data(copy=False))
     clean_data = epochs_clean.get_data("eeg")
     clean_norm = np.linalg.norm(clean_data)
     assert orig_norm / 2 > clean_norm > orig_norm / 10

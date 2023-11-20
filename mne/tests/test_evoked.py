@@ -4,6 +4,7 @@
 #         Mads Jensen <mje.mads@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import pickle
 from copy import deepcopy
@@ -135,7 +136,7 @@ def test_decim():
         expected_times = epochs.times[offset::decim]
         assert_allclose(ev_decim.times, expected_times)
         assert_allclose(ev_ep_decim.times, expected_times)
-        expected_data = epochs.get_data()[:, :, offset::decim].mean(axis=0)
+        expected_data = epochs.get_data(copy=False)[:, :, offset::decim].mean(axis=0)
         assert_allclose(ev_decim.data, expected_data)
         assert_allclose(ev_ep_decim.data, expected_data)
         assert_equal(ev_decim.info["sfreq"], sfreq_new)
@@ -911,7 +912,7 @@ def test_hilbert():
     raw_hilb = raw.apply_hilbert()
     epochs_hilb = epochs.apply_hilbert()
     evoked_hilb = evoked.copy().apply_hilbert()
-    evoked_hilb_2_data = epochs_hilb.get_data().mean(0)
+    evoked_hilb_2_data = epochs_hilb.get_data(copy=False).mean(0)
     assert_allclose(evoked_hilb.data, evoked_hilb_2_data)
     # This one is only approximate because of edge artifacts
     evoked_hilb_3 = Epochs(raw_hilb, events).average()

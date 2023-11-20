@@ -15,6 +15,7 @@ Data are provided by Jean-Michel Badier from MEG center in Marseille, France.
 # Authors: Alex Gramfort <alexandre.gramfort@inria.fr>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 

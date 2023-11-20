@@ -2,6 +2,7 @@
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import inspect
 import os
@@ -101,8 +102,11 @@ docdict[
 ] = """
 adjacency : scipy.sparse.spmatrix | None | False
     Defines adjacency between locations in the data, where "locations" can be
-    spatial vertices, frequency bins, time points, etc. For spatial vertices,
-    see: :func:`mne.channels.find_ch_adjacency`. If ``False``, assumes
+    spatial vertices, frequency bins, time points, etc. For spatial vertices
+    (i.e. sensor space data), see :func:`mne.channels.find_ch_adjacency` or
+    :func:`mne.spatial_inter_hemi_adjacency`. For source space data, see
+    :func:`mne.spatial_src_adjacency` or
+    :func:`mne.spatio_temporal_src_adjacency`. If ``False``, assumes
     no adjacency (each location is treated as independent and unconnected).
     If ``None``, a regular lattice adjacency is assumed, connecting
     each {sp} location to its neighbor(s) along the last dimension

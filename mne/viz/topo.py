@@ -5,7 +5,8 @@
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Eric Larson <larson.eric.d@gmail.com>
 #
-# License: Simplified BSD
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from copy import deepcopy
 from functools import partial
@@ -1242,7 +1243,7 @@ def plot_topo_image_epochs(
     scale_coeffs = [scalings.get(ch_type, 1) for ch_type in ch_types]
     # scale the data
     epochs._data *= np.array(scale_coeffs)[:, np.newaxis]
-    data = epochs.get_data()
+    data = epochs.get_data(copy=False)
     # get vlims for each channel type
     vlim_dict = dict()
     for ch_type in set(ch_types):

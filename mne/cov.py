@@ -3,6 +3,7 @@
 #          Denis A. Engemann <denis.engemann@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import itertools as itt
 from copy import deepcopy

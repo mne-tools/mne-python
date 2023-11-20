@@ -2,6 +2,7 @@
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import numpy as np
 
@@ -516,7 +517,7 @@ def _source_induced_power(
                     "single `label=label`, or set `label=None`."
                 )
 
-    epochs_data = epochs.get_data()
+    epochs_data = epochs.get_data(copy=False)
     K, sel, Vh, vertno, is_free_ori, noise_norm, k_id = _prepare_source_params(
         inst=epochs,
         inverse_operator=inverse_operator,

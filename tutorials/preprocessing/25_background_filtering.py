@@ -1,3 +1,5 @@
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 r"""
 .. _disc-filtering:
 
@@ -61,7 +63,7 @@ coefficients :math:`a_k` can be used to obtain our output data
 :math:`y(n)` in terms of our input data :math:`x(n)` as:
 
 .. math::
-   :label: summations
+   :name: summations
 
     y(n) &= b_0 x(n) + \ldots + b_M x(n-M)
             - a_1 y(n-1) - \ldots - a_N y(n - N)\\

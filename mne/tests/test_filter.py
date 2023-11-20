@@ -1,3 +1,5 @@
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 import numpy as np
 import pytest
 from numpy.fft import fft, fftfreq
@@ -487,7 +489,7 @@ def test_resample_below_1_sample():
     )
     epochs.resample(1)
     assert len(epochs.times) == 1
-    assert epochs.get_data().shape[2] == 1
+    assert epochs.get_data(copy=False).shape[2] == 1
 
 
 @pytest.mark.slowtest

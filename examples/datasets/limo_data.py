@@ -35,9 +35,9 @@ In summary, the example:
 # Authors: Jose C. Garcia Alanis <alanis.jcg@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
-
 import matplotlib.pyplot as plt
 import numpy as np
 

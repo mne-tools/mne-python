@@ -36,6 +36,7 @@ window.
 # Email: carinaforster0611@gmail.com
 
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import numpy as np
 
@@ -142,7 +143,7 @@ baseline_predictor = (
     epochs.copy()
     .crop(*baseline)
     .pick([ch])
-    .get_data()  # convert to NumPy array
+    .get_data(copy=False)  # convert to NumPy array
     .mean(axis=-1)  # average across timepoints
     .squeeze()  # only 1 channel, so remove singleton dimension
 )

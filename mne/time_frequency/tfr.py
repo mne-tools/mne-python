@@ -8,6 +8,8 @@ Morlet code inspired by Matlab code from Sheraz Khan & Brainstorm & SPM
 #           Jean-Remi King <jeanremi.king@gmail.com>
 #
 # License : BSD-3-Clause
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from copy import deepcopy
 from functools import partial
@@ -2930,7 +2932,7 @@ def _get_data(inst, return_itc):
     if not isinstance(inst, (BaseEpochs, Evoked)):
         raise TypeError("inst must be Epochs or Evoked")
     if isinstance(inst, BaseEpochs):
-        data = inst.get_data()
+        data = inst.get_data(copy=False)
     else:
         if return_itc:
             raise ValueError("return_itc must be False for evoked data")

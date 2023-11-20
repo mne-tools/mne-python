@@ -6,6 +6,7 @@
 #          Clement Moutard <clement.moutard@polytechnique.org>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from collections.abc import Sequence
 from pathlib import Path
@@ -25,6 +26,7 @@ from .utils import (
     _check_option,
     _get_stim_channel,
     _on_missing,
+    _pl,
     _validate_type,
     check_fname,
     fill_doc,
@@ -482,6 +484,7 @@ def find_stim_steps(raw, pad_start=None, pad_stop=None, merge=0, stim_channel=No
 def _find_events(
     data,
     first_samp,
+    *,
     verbose=None,
     output="onset",
     consecutive="increasing",
@@ -490,6 +493,7 @@ def _find_events(
     uint_cast=False,
     mask_type="and",
     initial_event=False,
+    ch_name=None,
 ):
     """Help find events."""
     assert data.shape[0] == 1  # data should be only a row vector
@@ -520,9 +524,9 @@ def _find_events(
             events = np.insert(events, 0, [first_samp, 0, initial_value], axis=0)
         else:
             logger.info(
-                "Trigger channel has a non-zero initial value of {} "
-                "(consider using initial_event=True to detect this "
-                "event)".format(initial_value)
+                f"Trigger channel {ch_name} has a non-zero initial value of "
+                "{initial_value} (consider using initial_event=True to detect this "
+                "event)"
             )
 
     events = _mask_trigs(events, mask, mask_type)
@@ -555,22 +559,22 @@ def _find_events(
         logger.info("Removing orphaned onset at the end of the file.")
         onset_idx = np.delete(onset_idx, -1)
 
+    _check_option("output", output, ("onset", "step", "offset"))
     if output == "onset":
         events = events[onset_idx]
     elif output == "step":
         idx = np.union1d(onset_idx, offset_idx)
         events = events[idx]
-    elif output == "offset":
+    else:
+        assert output == "offset"
         event_id = events[onset_idx, 2]
         events = events[offset_idx]
         events[:, 1] = events[:, 2]
         events[:, 2] = event_id
         events[:, 0] -= 1
-    else:
-        raise ValueError("Invalid output parameter %r" % output)
 
-    logger.info("%s events found" % len(events))
-    logger.info("Event IDs: %s" % np.unique(events[:, 2]))
+    logger.info(f"{len(events)} event{_pl(events)} found on stim channel {ch_name}")
+    logger.info(f"Event IDs: {np.unique(events[:, 2])}")
 
     return events
 
@@ -772,7 +776,7 @@ def find_events(
     data, _ = raw[picks, :]
 
     events_list = []
-    for d in data:
+    for d, ch_name in zip(data, stim_channel):
         events = _find_events(
             d[np.newaxis, :],
             raw.first_samp,
@@ -784,6 +788,7 @@ def find_events(
             uint_cast=uint_cast,
             mask_type=mask_type,
             initial_event=initial_event,
+            ch_name=ch_name,
         )
         # add safety check for spurious events (for ex. from neuromag syst.) by
         # checking the number of low sample events

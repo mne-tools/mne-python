@@ -1,3 +1,5 @@
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 from docutils import nodes
 from docutils.parsers.rst import Directive
 from docutils.statemachine import StringList

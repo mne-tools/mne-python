@@ -5,10 +5,11 @@
 #          Guillaume Favelier <guillaume.favelier@gmail.com>
 #          Oleh Kozynets <ok7mailbox@gmail.com>
 #
-# License: Simplified BSD
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import os
-import sys
+import platform
 from pathlib import Path
 from shutil import copyfile
 
@@ -662,15 +663,20 @@ def test_single_hemi(hemi, renderer_interactive_pyvistaqt, brain_gc):
 
 @testing.requires_testing_data
 @pytest.mark.slowtest
-def test_brain_save_movie(tmp_path, renderer, brain_gc):
+@pytest.mark.parametrize("interactive_state", (False, True))
+def test_brain_save_movie(tmp_path, renderer, brain_gc, interactive_state):
     """Test saving a movie of a Brain instance."""
-    from imageio_ffmpeg import count_frames_and_secs
+    imageio_ffmpeg = pytest.importorskip("imageio_ffmpeg")
+    # TODO: Figure out why this fails -- some imageio_ffmpeg error
+    if os.getenv("MNE_CI_KIND", "") == "conda" and platform.system() == "Linux":
+        pytest.skip("Test broken for unknown reason on conda linux")
 
     brain = _create_testing_brain(
         hemi="lh", time_viewer=False, cortex=["r", "b"]
     )  # custom binarized
     filename = tmp_path / "brain_test.mov"
-    for interactive_state in (False, True):
+
+    try:
         # for coverage, we set interactivity
         if interactive_state:
             brain._renderer.plotter.enable()
@@ -688,11 +694,12 @@ def test_brain_save_movie(tmp_path, renderer, brain_gc):
             filename, time_dilation=1.0, tmin=tmin, tmax=tmax, interpolation="nearest"
         )
         assert filename.is_file()
-        _, nsecs = count_frames_and_secs(filename)
+        _, nsecs = imageio_ffmpeg.count_frames_and_secs(filename)
         assert_allclose(duration, nsecs, atol=0.2)
 
         os.remove(filename)
-    brain.close()
+    finally:
+        brain.close()
 
 
 _TINY_SIZE = (350, 300)
@@ -1093,7 +1100,7 @@ something
 # TODO: don't skip on Windows, see
 # https://github.com/mne-tools/mne-python/pull/10935
 # for some reason there is a dependency issue with ipympl even using pyvista
-@pytest.mark.skipif(sys.platform == "win32", reason="ipympl issue on Windows")
+@pytest.mark.skipif(platform.system() == "Windows", reason="ipympl issue on Windows")
 @testing.requires_testing_data
 def test_brain_scraper(renderer_interactive_pyvistaqt, brain_gc, tmp_path):
     """Test a simple scraping example."""

@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 """Create a BEM model for a subject.
 
 Examples

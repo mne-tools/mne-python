@@ -1,10 +1,13 @@
 # Authors: Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
 #          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Eric Larson <larson.eric.d@gmail.com>
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # The computations in this code were primarily derived from Matti Hämäläinen's
 # C code.
 
+import inspect
 from copy import deepcopy
 
 import numpy as np
@@ -260,7 +263,10 @@ def _as_meg_type_inst(inst, ch_type="grad", mode="fast"):
     # compute data by multiplying by the 'gain matrix' from
     # original sensors to virtual sensors
     if hasattr(inst, "get_data"):
-        data = inst.get_data()
+        kwargs = dict()
+        if "copy" in inspect.getfullargspec(inst.get_data).kwonlyargs:
+            kwargs["copy"] = False
+        data = inst.get_data(**kwargs)
     else:
         data = inst.data
 

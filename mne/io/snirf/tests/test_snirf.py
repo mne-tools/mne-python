@@ -1,5 +1,7 @@
 # Authors: Robert Luke  <mail@robertluke.net>
 #          simplified BSD-3 license
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import shutil
 

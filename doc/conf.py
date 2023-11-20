@@ -3,6 +3,8 @@
 # This file only contains a selection of the most common options. For a full
 # list see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from datetime import datetime, timezone
 import faulthandler
@@ -1324,6 +1326,8 @@ def reset_warnings(gallery_conf, fname):
         # nilearn
         "pkg_resources is deprecated as an API",
         r"The .* was deprecated in Matplotlib 3\.7",
+        # scipy
+        r"scipy.signal.morlet2 is deprecated in SciPy 1\.12",
     ):
         warnings.filterwarnings(  # deal with other modules having bad imports
             "ignore", message=".*%s.*" % key, category=DeprecationWarning
