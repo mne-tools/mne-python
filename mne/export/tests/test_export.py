@@ -179,7 +179,6 @@ def test_double_export_edf(tmp_path):
     for key in set(raw.info) - {"chs"}:
         assert raw.info[key] == raw_read.info[key]
 
-    # check channel types except for 'bio', which loses its type
     orig_ch_types = raw.get_channel_types()
     read_ch_types = raw_read.get_channel_types()
     assert_array_equal(orig_ch_types, read_ch_types)
@@ -271,7 +270,6 @@ def test_rawarray_edf(tmp_path):
     assert_array_almost_equal(raw.get_data(), raw_read.get_data(), decimal=10)
     assert_array_equal(raw.times, raw_read.times)
 
-    # check channel types except for 'bio', which loses its type
     orig_ch_types = raw.get_channel_types()
     read_ch_types = raw_read.get_channel_types()
     assert_array_equal(orig_ch_types, read_ch_types)
