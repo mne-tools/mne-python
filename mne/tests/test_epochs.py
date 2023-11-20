@@ -2144,10 +2144,8 @@ def test_callable_reject():
     new_data[0, 610:880] += 1e-3
     edit_raw = mne.io.RawArray(new_data, raw.info)
 
-    events = mne.make_fixed_length_events(
-        edit_raw, id=1, duration=1.0, start=0)
-    epochs = mne.Epochs(edit_raw, events, tmin=0, tmax=1,
-                        baseline=None, preload=True)
+    events = mne.make_fixed_length_events(edit_raw, id=1, duration=1.0, start=0)
+    epochs = mne.Epochs(edit_raw, events, tmin=0, tmax=1, baseline=None, preload=True)
 
     assert len(epochs) == 5
     epochs = mne.Epochs(
@@ -2156,8 +2154,9 @@ def test_callable_reject():
         tmin=0,
         tmax=1,
         baseline=None,
-        reject=dict(eeg=lambda x: True if (
-            np.median(x, axis=1) > 1e-3).any() else False),
+        reject=dict(
+            eeg=lambda x: True if (np.median(x, axis=1) > 1e-3).any() else False
+        ),
         preload=True,
     )
     assert epochs.drop_log[2] != ()
@@ -2168,8 +2167,7 @@ def test_callable_reject():
         tmin=0,
         tmax=1,
         baseline=None,
-        reject=dict(eeg=lambda x: True if (
-            np.max(x, axis=1) > 1).any() else False),
+        reject=dict(eeg=lambda x: True if (np.max(x, axis=1) > 1).any() else False),
         preload=True,
     )
     assert epochs.drop_log[0] != ()
