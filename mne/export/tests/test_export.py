@@ -159,7 +159,8 @@ def test_double_export_edf(tmp_path):
 
     # export once
     temp_fname = tmp_path / f"test.{format}"
-    raw.export(temp_fname, add_ch_type=True)
+    with pytest.warns(RuntimeWarning, match="Exporting STIM channels"):
+        raw.export(temp_fname, add_ch_type=True)
     raw_read = read_raw_edf(temp_fname, infer_types=True, preload=True)
 
     # export again
@@ -184,9 +185,8 @@ def test_double_export_edf(tmp_path):
     assert_array_equal(orig_ch_types, read_ch_types)
 
     # check handling of missing subject metadata
-    del info["subject_info"]["sex"]
-    raw_2 = RawArray(data, info)
-    raw_2.export(temp_fname, add_ch_type=True, overwrite=True)
+    del raw.info["subject_info"]["sex"]
+    raw.export(temp_fname, add_ch_type=True, overwrite=True)
 
 
 @pytest.mark.skipif(
@@ -199,7 +199,6 @@ def test_export_edf_annotations(tmp_path):
     ch_types = [
         "eeg",
         "eeg",
-        "stim",
         "ecog",
         "ecog",
         "seeg",
@@ -241,7 +240,7 @@ def test_rawarray_edf(tmp_path):
     """Test saving a Raw array with integer sfreq to EDF."""
     rng = np.random.RandomState(12345)
     format = "edf"
-    ch_types = ["eeg", "eeg", "stim", "ecog", "seeg", "eog", "ecg", "emg", "dbs", "bio"]
+    ch_types = ["eeg", "eeg", "ecog", "seeg", "eog", "ecg", "emg", "dbs", "bio"]
     ch_names = np.arange(len(ch_types)).astype(str).tolist()
     info = create_info(ch_names, sfreq=1000, ch_types=ch_types)
     data = rng.random(size=(len(ch_names), 1000)) * 1e-5
@@ -267,9 +266,6 @@ def test_rawarray_edf(tmp_path):
 
     raw.export(temp_fname, add_ch_type=True)
     raw_read = read_raw_edf(temp_fname, infer_types=True, preload=True)
-
-    # stim channel should be dropped
-    raw.drop_channels("2")
 
     assert raw.ch_names == raw_read.ch_names
     assert_array_almost_equal(raw.get_data(), raw_read.get_data(), decimal=10)
@@ -298,13 +294,12 @@ def test_rawarray_edf(tmp_path):
 
     # test that warning is raised if there are non-voltage based channels
     raw = RawArray(data, info)
-    raw.set_channel_types({"9": "hbr"}, on_unit_change="ignore")
+    raw.set_channel_types({"8": "hbr"}, on_unit_change="ignore")
     with pytest.warns(RuntimeWarning, match="Non-voltage channels"):
         raw.export(temp_fname, overwrite=True)
 
     # data should match up to the non-accepted channel
     raw_read = read_raw_edf(temp_fname, preload=True)
-    raw.drop_channels("2")
     assert raw.ch_names == raw_read.ch_names
     assert_array_almost_equal(raw.get_data()[:-1], raw_read.get_data()[:-1], decimal=10)
     assert_array_equal(raw.times, raw_read.times)

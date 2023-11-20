@@ -38,6 +38,7 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
         stim_index = np.argwhere(np.array(orig_ch_types) == "stim")
         stim_index = np.atleast_1d(stim_index.squeeze()).tolist()
         drop_chs.extend([raw.ch_names[idx] for idx in stim_index])
+        warn(f"Exporting STIM channels is not supported, dropping indices {stim_index}")
 
     # Add warning if any channel types are not voltage based.
     # Users are expected to only export data that is voltage based,
