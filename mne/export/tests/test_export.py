@@ -327,7 +327,6 @@ def test_export_raw_edf(tmp_path, input_path, warning_msg):
 
     # only test with EEG channels
     raw.pick(picks=["eeg", "ecog", "seeg"]).load_data()
-    orig_ch_names = raw.ch_names
     temp_fname = tmp_path / "test.edf"
 
     with pytest.warns(RuntimeWarning, match=warning_msg):
@@ -337,7 +336,7 @@ def test_export_raw_edf(tmp_path, input_path, warning_msg):
         raw.drop_channels(["epoc"])
 
     raw_read = read_raw_edf(temp_fname, preload=True)
-    assert orig_ch_names == raw_read.ch_names
+    assert raw.ch_names == raw_read.ch_names
     # only compare the original length, since extra zeros are appended
     orig_raw_len = len(raw)
 
