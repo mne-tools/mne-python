@@ -825,9 +825,8 @@ class BaseEpochs(
                     continue
                 else:
                     raise ValueError(
-                        '%s value must be a number >= 0 or a valid function,'
-                        'not "%s"'
-                        % (kind, val)
+                        "%s value must be a number >= 0 or a valid function,"
+                        'not "%s"' % (kind, val)
                     )
 
         # now check to see if our rejection and flat are getting more
