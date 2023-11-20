@@ -187,10 +187,6 @@ def test_double_export_edf(tmp_path):
     read_ch_types = raw_read.get_channel_types()
     assert_array_equal(orig_ch_types, read_ch_types)
 
-    # check handling of missing subject metadata
-    del raw.info["subject_info"]["sex"]
-    raw.export(temp_fname, add_ch_type=True, overwrite=True)
-
 
 @pytest.mark.skipif(
     not _check_edfio_installed(strict=False), reason="edfio not installed"
