@@ -295,6 +295,9 @@ def test_measurement_date_outside_range_valid_for_edf(tmp_path):
         ((0, 1e6), "minimum"),
     ],
 )
+@pytest.mark.skipif(
+    not _check_edfio_installed(strict=False), reason="edfio not installed"
+)
 def test_export_edf_signal_clipping(tmp_path, physical_range, exceeded_bound):
     """Test if exporting data exceeding physical min/max clips and emits a warning."""
     raw = read_raw_fif(fname_raw)
