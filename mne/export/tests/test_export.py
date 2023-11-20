@@ -311,23 +311,19 @@ def test_export_edf_signal_clipping(tmp_path, physical_range, exceeded_bound):
     not _check_edfio_installed(strict=False), reason="edfio not installed"
 )
 @pytest.mark.parametrize(
-    ("dataset", "warning_msg"),
+    ("input_path", "warning_msg"),
     [
-        ("test", "Data has a non-integer"),
+        (fname_raw, "Data has a non-integer"),
         pytest.param(
-            "misc",
+            misc_path / "ecog" / "sample_ecog_ieeg.fif",
             "EDF format requires",
             marks=[pytest.mark.slowtest, misc._pytest_mark()],
         ),
     ],
 )
-def test_export_raw_edf(tmp_path, dataset, warning_msg):
+def test_export_raw_edf(tmp_path, input_path, warning_msg):
     """Test saving a Raw instance to EDF format."""
-    if dataset == "test":
-        raw = read_raw_fif(fname_raw)
-    elif dataset == "misc":
-        fname = misc_path / "ecog" / "sample_ecog_ieeg.fif"
-        raw = read_raw_fif(fname)
+    raw = read_raw_fif(input_path)
 
     # only test with EEG channels
     raw.pick(picks=["eeg", "ecog", "seeg"]).load_data()
