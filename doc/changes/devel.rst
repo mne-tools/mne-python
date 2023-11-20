@@ -1,25 +1,7 @@
-.. NOTE: we use cross-references to highlight new functions and classes.
-   Please follow the examples below like :func:`mne.stats.f_mway_rm`, so the
-   whats_new page will have a link to the function/class documentation.
+.. _changes_1_6_0:
 
-.. NOTE: there are 3 separate sections for changes, based on type:
-   - "Enhancements" for new features
-   - "Bugs" for bug fixes
-   - "API changes" for backward-incompatible changes
-
-.. NOTE: changes from first-time contributors should be added to the TOP of
-   the relevant section (Enhancements / Bugs / API changes), and should look
-   like this (where xxxx is the pull request number):
-
-       - description of enhancement/bugfix/API change (:gh:`xxxx` by
-         :newcontrib:`Firstname Lastname`)
-
-   Also add a corresponding entry for yourself in doc/changes/names.inc
-
-.. _current:
-
-Version 1.6.dev0 (development)
-------------------------------
+Version 1.6.0 (2022-11-20)
+--------------------------
 
 Enhancements
 ~~~~~~~~~~~~
@@ -107,3 +89,44 @@ API changes
 - Replace legacy ``inst.pick_channels`` and ``inst.pick_types`` with ``inst.pick`` (where ``inst`` is an instance of :class:`~mne.io.Raw`, :class:`~mne.Epochs`, or :class:`~mne.Evoked`) wherever possible (:gh:`11907` by `Clemens Brunner`_)
 - The ``reset_camera`` parameter has been removed in favor of ``distance="auto"`` in :func:`mne.viz.set_3d_view`, :meth:`mne.viz.Brain.show_view`, and related functions (:gh:`12000` by `Eric Larson`_)
 - Several unused parameters from :func:`mne.gui.coregistration` are now deprecated: tabbed, split, scrollable, head_inside, guess_mri_subject, scale, and ``advanced_rendering``. All arguments are also now keyword-only. (:gh:`12147` by `Eric Larson`_)
+
+Authors
+~~~~~~~
+* Adam Li
+* Alex Rockhill
+* Alexandre Gramfort
+* Ana Radanovic
+* Andy Gilbert+
+* Clemens Brunner
+* Daniel McCloy
+* Denis A. Engemann
+* Dimitri Papadopoulos Orfanos
+* Dmitrii Altukhov
+* Dominik Welke
+* Eric Larson
+* Erica Peterson
+* Gonzalo Reina
+* Hamza Abdelhedi
+* Ivan Skelin+
+* Ivan Zubarev+
+* Jack Zhang
+* Jacob Woessner
+* Johann Benerradi
+* John Veillette
+* Judy D Zhu
+* Kristijan Armeni+
+* Mainak Jas
+* Maksym Balatsko+
+* Marijn van Vliet
+* Martin Schulz
+* Mathieu Scheltienne
+* Nikolai Chapochnikov
+* Pablo Mainar+
+* Paul Roujansky
+* Qian Chu+
+* Rasmus Aagaard+
+* Richard Höchenberger
+* Rob Luke
+* Santeri Ruuskanen
+* Scott Huberty
+* Stefan Appelhoff
