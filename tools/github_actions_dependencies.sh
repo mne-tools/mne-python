@@ -24,8 +24,10 @@ else
 	echo "PyQt6"
 	pip install $STD_ARGS --only-binary ":all:" --default-timeout=60 --extra-index-url https://www.riverbankcomputing.com/pypi/simple PyQt6
 	echo "NumPy/SciPy/pandas etc."
-	# As of 2023/10/25 no pandas (or statsmodels, nilearn) because they pin to NumPy < 2
-	pip install $STD_ARGS --only-binary ":all:" --default-timeout=60 --extra-index-url "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" "numpy>=2.0.0.dev0" scipy scikit-learn matplotlib pillow
+	# As of 2023/11/20 no NumPy 2.0 because it requires everything using its ABI to
+	# compile against 2.0, and h5py isn't (and probably not VTK either)
+	pip install $STD_ARGS --only-binary "numpy" --default-timeout=60 numpy
+	pip install $STD_ARGS --only-binary ":all:" --default-timeout=60 --extra-index-url "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" scipy scikit-learn matplotlib pillow pandas statsmodels
 	echo "dipy"
 	pip install $STD_ARGS --only-binary ":all:" --default-timeout=60 --extra-index-url "https://pypi.anaconda.org/scipy-wheels-nightly/simple" dipy
 	echo "H5py"
@@ -34,7 +36,7 @@ else
 	pip install $STD_ARGS --only-binary ":all:" --extra-index-url "https://test.pypi.org/simple" openmeeg
 	# No Numba because it forces an old NumPy version
 	echo "nilearn and openmeeg"
-	# pip install $STD_ARGS git+https://github.com/nilearn/nilearn
+	pip install $STD_ARGS git+https://github.com/nilearn/nilearn
 	pip install $STD_ARGS openmeeg
 	echo "VTK"
 	pip install $STD_ARGS --only-binary ":all:" --extra-index-url "https://wheels.vtk.org" vtk
