@@ -163,7 +163,6 @@ def test_double_export_edf(tmp_path):
     raw_read = read_raw_edf(temp_fname, infer_types=True, preload=True)
 
     # export again
-    raw_read.load_data()
     raw_read.export(temp_fname, add_ch_type=True, overwrite=True)
     raw_read = read_raw_edf(temp_fname, infer_types=True, preload=True)
 
