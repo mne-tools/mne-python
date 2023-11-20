@@ -258,21 +258,6 @@ def test_rawarray_edf(tmp_path):
     assert_array_equal(orig_ch_types, read_ch_types)
     assert raw.info["meas_date"] == raw_read.info["meas_date"]
 
-    # channel name can't be longer than 16 characters with the type added
-    raw_bad = raw.copy()
-    raw_bad.rename_channels({"1": "abcdefghijklmnopqrstuvwxyz"})
-    with pytest.raises(RuntimeError, match="Signal label"), pytest.warns(
-        RuntimeWarning, match="Data has a non-integer"
-    ):
-        raw_bad.export(temp_fname, overwrite=True)
-
-    # include bad measurement date that is non-EDF compliant
-    raw = _create_raw_for_edf_tests()
-    meas_date = datetime(year=1984, month=1, day=1, tzinfo=timezone.utc)
-    raw.set_meas_date(meas_date)
-    with pytest.raises(ValueError, match="EDF only allows dates from 1985 to 2084"):
-        raw.export(temp_fname, overwrite=True)
-
     # test that warning is raised if there are non-voltage based channels
     raw = _create_raw_for_edf_tests()
     raw.set_channel_types({"9": "hbr"}, on_unit_change="ignore")
@@ -284,6 +269,28 @@ def test_rawarray_edf(tmp_path):
     assert raw.ch_names == raw_read.ch_names
     assert_array_almost_equal(raw.get_data()[:-1], raw_read.get_data()[:-1], decimal=10)
     assert_array_equal(raw.times, raw_read.times)
+
+
+@pytest.mark.skipif(
+    not _check_edfio_installed(strict=False), reason="edfio not installed"
+)
+def test_channel_label_too_long_for_edf_raises_error(tmp_path):
+    """Test trying to save an EDF where a channel label is longer than 16 characters."""
+    raw = _create_raw_for_edf_tests()
+    raw.rename_channels({"1": "abcdefghijklmnopqrstuvwxyz"})
+    with pytest.raises(RuntimeError, match="Signal label"):
+        raw.export(tmp_path / "test.edf")
+
+
+@pytest.mark.skipif(
+    not _check_edfio_installed(strict=False), reason="edfio not installed"
+)
+def test_measurement_date_outside_range_valid_for_edf(tmp_path):
+    """Test trying to save an EDF with a measurement date before 1985-01-01."""
+    raw = _create_raw_for_edf_tests()
+    raw.set_meas_date(datetime(year=1984, month=1, day=1, tzinfo=timezone.utc))
+    with pytest.raises(ValueError, match="EDF only allows dates from 1985 to 2084"):
+        raw.export(tmp_path / "test.edf", overwrite=True)
 
 
 @pytest.mark.skipif(
