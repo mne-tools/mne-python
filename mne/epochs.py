@@ -825,7 +825,8 @@ class BaseEpochs(
                     continue
                 else:
                     raise ValueError(
-                        '%s value must be a number >= 0 or a valid function, not "%s"'
+                        '%s value must be a number >= 0 or a valid function,'
+                        'not "%s"'
                         % (kind, val)
                     )
 
@@ -853,7 +854,8 @@ class BaseEpochs(
             reject[key] = old_reject[key]
 
         if not is_callable:
-            # make sure new thresholds are at least as stringent as the old ones
+            # make sure new thresholds are at least as stringent
+            # as the old ones
             for key in reject:
                 if key in old_reject and reject[key] > old_reject[key]:
                     raise ValueError(
