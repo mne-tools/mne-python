@@ -157,7 +157,7 @@ dev = ["mne[test,doc]"]
 
 [project.urls]
 Homepage = "https://mne.tools/"
-Download = "https://pypi.org/project/scikit-learn/#files"
+Download = "https://pypi.org/project/mne/#files"
 "Bug Tracker" = "https://github.com/mne-tools/mne-python/issues/"
 Documentation = "https://mne.tools/"
 Forum = "https://mne.discourse.group/"
