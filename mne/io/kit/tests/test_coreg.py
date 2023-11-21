@@ -1,6 +1,7 @@
 # Authors: Christian Brodbeck <christianbrodbeck@nyu.edu>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import pickle
 from pathlib import Path

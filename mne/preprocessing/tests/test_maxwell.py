@@ -1,6 +1,7 @@
 # Author: Mark Wronkiewicz <wronk@uw.edu>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import pathlib
 import re

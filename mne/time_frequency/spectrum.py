@@ -3,6 +3,7 @@
 # Authors: Dan McCloy <dan@mccloy.info>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from copy import deepcopy
 from functools import partial

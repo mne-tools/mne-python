@@ -13,6 +13,7 @@ information see :func:`mne.compute_source_morph`.
 # Author: Christian Brodbeck <christianbrodbeck@nyu.edu>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 

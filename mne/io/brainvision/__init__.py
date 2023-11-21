@@ -4,5 +4,6 @@
 #         Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from .brainvision import read_raw_brainvision

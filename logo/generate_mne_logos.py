@@ -3,6 +3,7 @@
 # @author: drmccloy
 # Created on Mon Jul 20 11:28:16 2015
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import pathlib
 

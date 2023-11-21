@@ -3,7 +3,8 @@
 #          Oleh Kozynets <ok7mailbox@gmail.com>
 #          Guillaume Favelier <guillaume.favelier@gmail.com>
 #
-# License: Simplified BSD
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import numpy as np
 

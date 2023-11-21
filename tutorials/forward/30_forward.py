@@ -11,6 +11,8 @@ For more extensive details and presentation of the general concepts for forward
 modeling, see :ref:`ch_forward`.
 """
 
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 # %%
 
 import mne

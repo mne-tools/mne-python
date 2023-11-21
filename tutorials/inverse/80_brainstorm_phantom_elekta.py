@@ -15,6 +15,7 @@ tutorial dataset. For comparison, see :footcite:`TadelEtAl2011` and
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 

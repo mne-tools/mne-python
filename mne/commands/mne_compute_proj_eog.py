@@ -22,6 +22,8 @@ to exclude ECG artifacts from projection computation.
 """
 # Authors : Alexandre Gramfort, Ph.D.
 #           Martin Luessi, Ph.D.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import os
 import sys

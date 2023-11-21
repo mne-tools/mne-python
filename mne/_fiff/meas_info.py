@@ -4,6 +4,7 @@
 #          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import contextlib
 import datetime
@@ -1379,7 +1380,7 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
             The distance limit.
         accept : int
             Whether or not the fit was accepted.
-        coord_trans : instance of Transformation
+        coord_trans : instance of Transform
             The resulting MEG<->head transformation.
 
     * ``hpi_subsystem`` dict:

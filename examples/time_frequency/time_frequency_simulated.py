@@ -17,6 +17,7 @@ trials, or by operating on numpy arrays.
 #          Alex Rockhill <aprockhill@mailbox.org>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 

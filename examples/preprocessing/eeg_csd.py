@@ -15,6 +15,7 @@ or more distinct topography, reducing the negative impact of volume conduction.
 # Authors: Alex Rockhill <aprockhill@mailbox.org>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 

@@ -5,7 +5,8 @@
 #          Mainak Jas <mainak@neuro.hut.fi>
 #          Mark Wronkiewicz <wronk.mark@gmail.com>
 #
-# License: Simplified BSD
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import re
 

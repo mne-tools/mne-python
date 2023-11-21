@@ -6,6 +6,7 @@
 #          Joan Massich <mailsik@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import datetime
 from contextlib import nullcontext

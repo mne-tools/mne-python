@@ -12,6 +12,7 @@ the electrodes are in MRI voxel coordinates.
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 

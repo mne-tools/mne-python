@@ -1,6 +1,7 @@
 # Author: Proloy Das <pdas6@mgh.harvard.edu>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 import os
 from datetime import datetime, timezone
 

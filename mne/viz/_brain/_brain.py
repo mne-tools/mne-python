@@ -5,7 +5,8 @@
 #          jona-sassenhagen <jona.sassenhagen@gmail.com>
 #          Joan Massich <mailsik@gmail.com>
 #
-# License: Simplified BSD
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import copy
 import os

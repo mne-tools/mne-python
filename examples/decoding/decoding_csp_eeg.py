@@ -16,6 +16,7 @@ See https://en.wikipedia.org/wiki/Common_spatial_pattern and
 # Authors: Martin Billinger <martin.billinger@tugraz.at>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 

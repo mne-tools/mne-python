@@ -19,6 +19,7 @@ Runs a full pipeline using MNE-Python:
 #          Denis Engemann <denis.engemann@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 

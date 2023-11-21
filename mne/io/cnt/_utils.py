@@ -1,6 +1,7 @@
 # Author: Joan Massich <mailsik@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from collections import namedtuple
 from datetime import datetime

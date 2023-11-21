@@ -7,7 +7,8 @@
 #          Teon Brooks <teon.brooks@gmail.com>
 #          Robert Luke <mail@robertluke.net>
 #
-# License: Simplified BSD
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import logging
 from collections import defaultdict

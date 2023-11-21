@@ -17,6 +17,7 @@ embedding as described in :footcite:`GramfortEtAl2010`.
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 
