@@ -957,10 +957,6 @@ def test_apply_function_evk_ch_access():
         assert x[0] == float(ch_name)
         return x
 
-    def bad_ch_idx_name(x, ch_idx, ch_name):
-        """Pass."""
-        return x
-
     # create fake evoked data to use for checking apply_function
     data = np.full((2, 100), np.arange(2).reshape(-1, 1))
     evoked = EvokedArray(data, create_info(2, 1000.0, "eeg"))

@@ -79,10 +79,6 @@ def test_apply_function_ch_access():
         assert x[0] == float(ch_name)
         return x
 
-    def bad_ch_idx_name(x, ch_idx, ch_name):
-        """Pass."""
-        return x
-
     data = np.full((2, 10), np.arange(2).reshape(-1, 1))
     raw = RawArray(data, create_info(2, 1.0, "mag"))
 

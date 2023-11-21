@@ -23,8 +23,8 @@ Version 1.7.dev0 (development)
 
 Enhancements
 ~~~~~~~~~~~~
-- :meth:`mne.Evoked.apply_function` can now also work on full data array, instead of just channel wise (analogous to :meth:`mne.io.Raw.apply_function` and :meth:`mne.Epochs.apply_function`). (:gh:`12206` by `Dominik Welke`_)
-- Custom functions applied via :meth:`mne.io.Raw.apply_function`, :meth:`mne.Epochs.apply_function` or :meth:`mne.Evoked.apply_function` can now use ``ch_idx`` or ``ch_name`` to get access to the currently processed channel (during channel wise processing). (:gh:`12206` by `Dominik Welke`_)
+- :meth:`mne.Evoked.apply_function` can now also work on full data array instead of just channel wise, analogous to :meth:`mne.io.Raw.apply_function` and :meth:`mne.Epochs.apply_function` (:gh:`12206` by `Dominik Welke`_)
+- Custom functions applied via :meth:`mne.io.Raw.apply_function`, :meth:`mne.Epochs.apply_function` or :meth:`mne.Evoked.apply_function` can now use ``ch_idx`` or ``ch_name`` to get access to the currently processed channel during channel wise processing (:gh:`12206` by `Dominik Welke`_)
 
 Bugs
 ~~~~
@@ -32,4 +32,4 @@ Bugs
 
 API changes
 ~~~~~~~~~~~
-- Optional input argument ``channel_wise`` added to :meth:`mne.Evoked.apply_function` (analogous to :meth:`mne.io.Raw.apply_function` and :meth:`mne.Epochs.apply_function`). (:gh:`12206` by `Dominik Welke`_)
+- None yet
