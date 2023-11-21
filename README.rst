@@ -43,7 +43,7 @@ only, use pip_ in a terminal:
 
     $ pip install --upgrade mne
 
-The current MNE-Python release requires Python 3.8 or higher. MNE-Python 0.17
+The current MNE-Python release requires Python 3.9 or higher. MNE-Python 0.17
 was the last release to support Python 2.7.
 
 For more complete instructions, including our standalone installers and more
@@ -73,7 +73,7 @@ Dependencies
 
 The minimum required dependencies to run MNE-Python are:
 
-- `Python <https://www.python.org>`__ ≥ 3.8
+- `Python <https://www.python.org>`__ ≥ 3.9
 - `NumPy <https://numpy.org>`__ ≥ 1.21.2
 - `SciPy <https://scipy.org>`__ ≥ 1.7.1
 - `Matplotlib <https://matplotlib.org>`__ ≥ 3.5.0
