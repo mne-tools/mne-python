@@ -76,7 +76,7 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
         out_sfreq = int(sfreq)
         data_record_duration = None
         # make non-integer second durations work
-        if pad_width := int(np.ceil(n_times / sfreq) * sfreq - n_times):
+        if (pad_width := int(np.ceil(n_times / sfreq) * sfreq - n_times)) > 0:
             warn(
                 f"EDF format requires equal-length data blocks, "
                 f"so {pad_width / sfreq} seconds of "
@@ -196,7 +196,7 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
         patient = None
 
     # set measurement date
-    if meas_date := raw.info["meas_date"]:
+    if (meas_date := raw.info["meas_date"]) is not None:
         startdate = dt.date(meas_date.year, meas_date.month, meas_date.day)
         starttime = dt.time(
             meas_date.hour, meas_date.minute, meas_date.second, meas_date.microsecond
