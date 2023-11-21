@@ -10,7 +10,6 @@ import multiprocessing
 import os
 import os.path as op
 import platform
-import re
 import shutil
 import subprocess
 import sys
@@ -626,16 +625,6 @@ def sys_info(
     _validate_type(check_version, (bool, "numeric"), "check_version")
     ljust = 24 if dependencies == "developer" else 21
     platform_str = platform.platform()
-    if platform.system() == "Darwin" and sys.version_info[:2] < (3, 8):
-        # platform.platform() in Python < 3.8 doesn't call
-        # platform.mac_ver() if we're on Darwin, so we don't get a nice macOS
-        # version number. Therefore, let's do this manually here.
-        macos_ver = platform.mac_ver()[0]
-        macos_architecture = re.findall("Darwin-.*?-(.*)", platform_str)
-        if macos_architecture:
-            macos_architecture = macos_architecture[0]
-            platform_str = f"macOS-{macos_ver}-{macos_architecture}"
-        del macos_ver, macos_architecture
 
     out = partial(print, end="", file=fid)
     out("Platform".ljust(ljust) + platform_str + "\n")

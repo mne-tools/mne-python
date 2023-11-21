@@ -50,3 +50,6 @@ repos:
         additional_dependencies:
           - tomli
         files: ^doc/.*\.(rst|inc)$
+
+ci:
+  autofix_prs: false
