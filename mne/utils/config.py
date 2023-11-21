@@ -10,7 +10,6 @@ import multiprocessing
 import os
 import os.path as op
 import platform
-import re
 import shutil
 import subprocess
 import sys
