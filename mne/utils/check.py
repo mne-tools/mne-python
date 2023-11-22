@@ -11,11 +11,9 @@ import re
 from builtins import input  # no-op here but facilitates testing
 from difflib import get_close_matches
 from importlib import import_module
-from importlib.metadata import version
 from pathlib import Path
 
 import numpy as np
-from packaging.version import parse
 
 from ..defaults import HEAD_SIZE_DEFAULT, _handle_default
 from ..fixes import _compare_version, _median_complex
@@ -368,7 +366,6 @@ def _soft_import(name, purpose, strict=True):
     # Mapping import namespaces to their pypi package name
     pip_name = dict(
         sklearn="scikit-learn",
-        EDFlib="EDFlib-Python",
         mne_bids="mne-bids",
         mne_nirs="mne-nirs",
         mne_features="mne-features",
@@ -411,21 +408,9 @@ def _check_eeglabio_installed(strict=True):
     return _soft_import("eeglabio", "exporting to EEGLab", strict=strict)
 
 
-def _check_edflib_installed(strict=True):
+def _check_edfio_installed(strict=True):
     """Aux function."""
-    out = _soft_import("EDFlib", "exporting to EDF", strict=strict)
-    if out:
-        # EDFlib-Python 1.0.7 is not compatible with NumPy 2.0
-        # https://gitlab.com/Teuniz/EDFlib-Python/-/issues/10
-        ver = version("EDFlib-Python")
-        if parse(ver) <= parse("1.0.7") and parse(np.__version__).major >= 2:
-            if strict:  # pragma: no cover
-                raise RuntimeError(
-                    f"EDFlib version={ver} is not compatible with NumPy 2.0, consider "
-                    "upgrading EDFlib-Python"
-                )
-            out = False
-    return out
+    return _soft_import("edfio", "exporting to EDF", strict=strict)
 
 
 def _check_pybv_installed(strict=True):

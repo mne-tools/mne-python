@@ -243,7 +243,7 @@ Creating the virtual environment
 These instructions will set up a Python environment that is separated from your
 system-level Python and any other managed Python environments on your computer.
 This lets you switch between different versions of Python (MNE-Python requires
-version 3.8 or higher) and also switch between the stable and development
+version 3.9 or higher) and also switch between the stable and development
 versions of MNE-Python (so you can, for example, use the same computer to
 analyze your data with the stable release, and also work with the latest
 development version to fix bugs or add new features). Even if you've already
