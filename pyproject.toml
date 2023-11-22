@@ -95,6 +95,11 @@ full = [
     "darkdetect",
     "qdarkstyle",
     "threadpoolctl",
+    # duplicated in test_extra:
+    "eeglabio",
+    "edfio>=0.2.1",
+    "pybv",
+    "snirf",
 ]
 
 # Dependencies for running the test infrastructure
