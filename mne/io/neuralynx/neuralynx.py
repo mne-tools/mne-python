@@ -46,9 +46,7 @@ class RawNeuralynx(BaseRaw):
     """RawNeuralynx class."""
 
     @verbose
-    def __init__(
-        self, fname, preload=False, verbose=None, exclude_fname_patterns: list = None
-    ):
+    def __init__(self, fname, preload=False, verbose=None, exclude_fname_patterns=None):
         _soft_import("neo", "Reading NeuralynxIO files", strict=True)
         from neo.io import NeuralynxIO
 
