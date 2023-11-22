@@ -23,7 +23,7 @@ Version 1.7.dev0 (development)
 
 Enhancements
 ~~~~~~~~~~~~
-- Speed up export to .edf in :func:`mne.export.export_raw` (:gh:`12218` by :newcontrib:`Florian Hofer`)
+- Speed up export to .edf in :func:`mne.export.export_raw` by using `edfio` instead of `EDFlib-Python` (:gh:`12218` by :newcontrib:`Florian Hofer`)
 
 
 Bugs
