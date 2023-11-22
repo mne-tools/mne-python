@@ -172,6 +172,8 @@
 
 .. _Felix Raimundo: https://github.com/gamazeps
 
+.. _Florian Hofer: https://github.com/hofaflo
+
 .. _Florin Pop: https://github.com/florin-pop
 
 .. _Frederik Weber: https://github.com/Frederik-D-Weber

@@ -122,7 +122,7 @@ test_extra = [
     "nbclient",
     "sphinx-gallery",
     "eeglabio",
-    "EDFlib-Python",
+    "edfio>=0.2.1",
     "pybv",
     "imageio>=2.6.1",
     "imageio-ffmpeg>=0.4.1",
