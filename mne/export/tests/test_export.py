@@ -141,13 +141,12 @@ def _create_raw_for_edf_tests(stim_channel_index=None):
     return RawArray(data, info)
 
 
-def _pytest_mark_skipif_edfio_not_installed():
-    return pytest.mark.skipif(
-        not _check_edfio_installed(strict=False), reason="edfio not installed"
-    )
+edfio_mark = pytest.mark.skipif(
+    not _check_edfio_installed(strict=False), reason="edfio not installed"
+)
 
 
-@_pytest_mark_skipif_edfio_not_installed()
+@edfio_mark()
 def test_double_export_edf(tmp_path):
     """Test exporting an EDF file multiple times."""
     raw = _create_raw_for_edf_tests(stim_channel_index=2)
@@ -191,7 +190,7 @@ def test_double_export_edf(tmp_path):
     assert_array_equal(orig_ch_types, read_ch_types)
 
 
-@_pytest_mark_skipif_edfio_not_installed()
+@edfio_mark()
 def test_export_edf_annotations(tmp_path):
     """Test that exporting EDF preserves annotations."""
     raw = _create_raw_for_edf_tests()
@@ -215,7 +214,7 @@ def test_export_edf_annotations(tmp_path):
     assert_array_equal(raw.annotations.ch_names, raw_read.annotations.ch_names)
 
 
-@_pytest_mark_skipif_edfio_not_installed()
+@edfio_mark()
 def test_rawarray_edf(tmp_path):
     """Test saving a Raw array with integer sfreq to EDF."""
     raw = _create_raw_for_edf_tests()
@@ -254,7 +253,7 @@ def test_rawarray_edf(tmp_path):
     assert raw.info["meas_date"] == raw_read.info["meas_date"]
 
 
-@_pytest_mark_skipif_edfio_not_installed()
+@edfio_mark()
 def test_edf_export_warns_on_non_voltage_channels(tmp_path):
     """Test saving a Raw array containing a non-voltage channel."""
     temp_fname = tmp_path / "test.edf"
@@ -271,7 +270,7 @@ def test_edf_export_warns_on_non_voltage_channels(tmp_path):
     assert_array_equal(raw.times, raw_read.times)
 
 
-@_pytest_mark_skipif_edfio_not_installed()
+@edfio_mark()
 def test_channel_label_too_long_for_edf_raises_error(tmp_path):
     """Test trying to save an EDF where a channel label is longer than 16 characters."""
     raw = _create_raw_for_edf_tests()
@@ -280,7 +279,7 @@ def test_channel_label_too_long_for_edf_raises_error(tmp_path):
         raw.export(tmp_path / "test.edf")
 
 
-@_pytest_mark_skipif_edfio_not_installed()
+@edfio_mark()
 def test_measurement_date_outside_range_valid_for_edf(tmp_path):
     """Test trying to save an EDF with a measurement date before 1985-01-01."""
     raw = _create_raw_for_edf_tests()
@@ -296,7 +295,7 @@ def test_measurement_date_outside_range_valid_for_edf(tmp_path):
         ((0, 1e6), "minimum"),
     ],
 )
-@_pytest_mark_skipif_edfio_not_installed()
+@edfio_mark()
 def test_export_edf_signal_clipping(tmp_path, physical_range, exceeded_bound):
     """Test if exporting data exceeding physical min/max clips and emits a warning."""
     raw = read_raw_fif(fname_raw)
@@ -309,7 +308,7 @@ def test_export_edf_signal_clipping(tmp_path, physical_range, exceeded_bound):
     assert raw_read.get_data().max() <= physical_range[1]
 
 
-@_pytest_mark_skipif_edfio_not_installed()
+@edfio_mark()
 @pytest.mark.parametrize(
     ("input_path", "warning_msg"),
     [
@@ -358,7 +357,7 @@ def test_export_raw_edf(tmp_path, input_path, warning_msg):
     assert_allclose(raw.times, raw_read.times[:orig_raw_len], rtol=0, atol=1e-5)
 
 
-@_pytest_mark_skipif_edfio_not_installed()
+@edfio_mark()
 def test_export_raw_edf_does_not_fail_on_empty_header_fields(tmp_path):
     """Test writing a Raw instance with empty header fields to EDF."""
     rng = np.random.RandomState(123456)
