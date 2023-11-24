@@ -8,6 +8,11 @@
 import numpy as np
 
 from ..._fiff.constants import FIFF
+from ...epochs import BaseEpochs
+from ...evoked import Evoked
+from ...io import BaseRaw
+from ...utils import _check_option, _validate_type
+from .calibration import Calibration
 
 
 # specific function to set eyetrack channels
@@ -165,3 +170,128 @@ def _convert_mm_to_m(array):
 
 def _convert_deg_to_rad(array):
     return array * np.pi / 180.0
+
+
+def convert_units(inst, calibration, to="radians"):
+    """Convert Eyegaze data from pixels to radians or vice versa.
+
+    Parameters
+    ----------
+    inst : instance of Raw, Epochs, or Evoked
+        The Raw, Epochs, or Evoked instance with eyegaze channels.
+    calibration : mne.preprocessing.eyetracking.Calibration
+       instance of  :class:`~mne.preprocessing.eyetracking.Calibration`, containing
+        information about the screen size and viewing distance (in meters), and
+        the screen resolution (in pixels).
+    to : str
+        Must be either ``"radians"`` or ``"pixels"``, indicating the desired unit.
+
+    Returns
+    -------
+    inst : instance of Raw | Epochs | Evoked
+        The Raw, Epochs, or Evoked instance, modified in place.
+    """
+    _validate_type(inst, (BaseRaw, BaseEpochs, Evoked), "inst")
+    _validate_type(calibration, Calibration, "calibration")
+    _check_option("to", to, ("radians", "pixels"))
+    # get screen parameters
+    for key in ["screen_size", "screen_resolution", "screen_distance"]:
+        if key not in calibration or calibration.get(key) is None:
+            raise KeyError(f"Calibration object must have {key} info to convert units")
+    screen_size = calibration["screen_size"]
+    screen_resolution = calibration["screen_resolution"]
+    dist = calibration["screen_distance"]
+
+    # loop through channels and convert units
+    for ch_dict in inst.info["chs"]:
+        if ch_dict["coil_type"] == FIFF.FIFFV_COIL_EYETRACK_POS:
+            unit = ch_dict["unit"]
+            name = ch_dict["ch_name"]
+
+            if ch_dict["loc"][4] == -1:  # x-coordinate
+                size = screen_size[0]
+                res = screen_resolution[0]
+            elif ch_dict["loc"][4] == 1:  # y-coordinate
+                size = screen_size[1]
+                res = screen_resolution[1]
+            else:
+                raise ValueError(
+                    f"loc array not set properly for channel '{name}'. Index 4 should"
+                    f"  be -1 or 1, but got {ch_dict['loc'][4]}"
+                )
+            # check unit, convert, and set new unit
+            if to == "radians":
+                if unit != FIFF.FIFF_UNIT_PX:
+                    raise ValueError(
+                        f"Data must be in pixels in order to convert to radians."
+                        f" Got {unit} for {name}"
+                    )
+                inst.apply_function(
+                    _pix_to_rad_1d, picks=name, size=size, res=res, dist=dist
+                )
+                ch_dict["unit"] = FIFF.FIFF_UNIT_RAD
+            elif to == "pixels":
+                if unit != FIFF.FIFF_UNIT_RAD:
+                    raise ValueError(
+                        f"Data must be in radians in order to convert to pixels."
+                        f" Got {unit} for {name}"
+                    )
+                inst.apply_function(
+                    _rad_to_pix_1d, picks=name, size=size, res=res, dist=dist
+                )
+                ch_dict["unit"] = FIFF.FIFF_UNIT_PX
+    return inst
+
+
+def _pix_to_rad_1d(data, size, res, dist):
+    """Convert pixel coordinates to radians of visual angle.
+
+    Parameters
+    ----------
+    data : array-like, shape (n_samples)
+        A vector of pixel coordinates.
+    size : float
+        The width or height of the screen, in meters.
+    res : int
+        The screen resolution in pixels, along the x or y axis.
+    dist : float
+        The viewing distance from the screen, in meters.
+
+    Returns
+    -------
+    rad : ndarray, shape (n_samples)
+        the data in radians.
+    """
+    # Center the data so that 0 radians will be the center of the screen
+    data -= res / 2
+    # How many screen pixels per meter
+    pix_per_m = res / size
+    # Convert to radians
+    return np.arctan((data * pix_per_m) / dist)
+
+
+def _rad_to_pix_1d(data, size, res, dist):
+    """Convert radians of visual angle to pixel coordinates.
+
+    Parameters
+    ----------
+    data : array-like, shape (n_samples)
+        A vector of pixel coordinates.
+    size : float
+        The length or width of the screen, in meters.
+    res : int
+        The screen resolution in pixels, along the x or y axis.
+    dist : float
+        The viewing distance from the screen, in meters.
+
+    Returns
+    -------
+    pix : ndarray, shape (n_samples)
+        the data in pixels.
+    """
+    # How many screen pixels per meter
+    pix_per_m = res / size
+    # 1. calculate opposite side of triangle
+    # 2. convert from meters to pixels
+    # 3. add half of screen resolution to uncenter the pixel data
+    return np.tan(data) * dist / pix_per_m + res / 2
