@@ -696,6 +696,19 @@ def _check_info_inv(info, forward, data_cov=None, noise_cov=None):
     if noise_cov is not None:
         ch_names = _compare_ch_names(ch_names, noise_cov.ch_names, noise_cov["bads"])
 
+    # inform about excluding any channels apart from bads and reference
+    all_bads = info["bads"] + ref_chs
+    if data_cov is not None:
+        all_bads += data_cov["bads"]
+    if noise_cov is not None:
+        all_bads += noise_cov["bads"]
+    dropped_nonbads = set(info["ch_names"]) - set(ch_names) - set(all_bads)
+    if dropped_nonbads:
+        logger.info(
+            "Excluding channels that are not common to the provided info, "
+            "forward operator, and covariance matrices"
+        )
+
     picks = [info["ch_names"].index(k) for k in ch_names if k in info["ch_names"]]
     return picks
 

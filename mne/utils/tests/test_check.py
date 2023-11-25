@@ -30,6 +30,7 @@ from mne.utils import (
     _safe_input,
     _suggest,
     _validate_type,
+    catch_logging,
     check_fname,
     check_random_state,
     check_version,
@@ -141,12 +142,12 @@ def test_check_info_inv():
     assert [1, 2] not in picks
     # covariance matrix
     data_cov_bads = data_cov.copy()
-    data_cov_bads["bads"] = data_cov_bads.ch_names[0]
+    data_cov_bads["bads"] = [data_cov_bads.ch_names[0]]
     picks = _check_info_inv(epochs.info, forward, data_cov=data_cov_bads)
     assert 0 not in picks
     # noise covariance matrix
     noise_cov_bads = noise_cov.copy()
-    noise_cov_bads["bads"] = noise_cov_bads.ch_names[1]
+    noise_cov_bads["bads"] = [noise_cov_bads.ch_names[1]]
     picks = _check_info_inv(epochs.info, forward, noise_cov=noise_cov_bads)
     assert 1 not in picks
 
@@ -164,10 +165,15 @@ def test_check_info_inv():
     noise_cov = pick_channels_cov(
         noise_cov, include=[noise_cov.ch_names[ii] for ii in range(7, 12)]
     )
-    picks = _check_info_inv(
-        epochs.info, forward, noise_cov=noise_cov, data_cov=data_cov
-    )
-    assert list(range(7, 10)) == picks
+    with catch_logging() as log:
+        picks = _check_info_inv(
+            epochs.info, forward, noise_cov=noise_cov, data_cov=data_cov
+        )
+        assert list(range(7, 10)) == picks
+
+    # make sure to inform the user that channels were dropped
+    log = log.getvalue()
+    assert "Excluding channels" in log
 
 
 def test_check_option():
