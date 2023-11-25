@@ -176,9 +176,8 @@ namespaces = false
 write_to = "mne/_version.py"
 version_scheme = "release-branch-semver"
 
-[options]
-zip_safe = false            # the package can run out of an .egg file
-include_package_data = true
+[tool.setuptools]
+include-package-data = true
 
 [tool.setuptools.package-data]
 "mne" = [
