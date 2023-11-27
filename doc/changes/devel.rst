@@ -28,7 +28,7 @@ Enhancements
 
 Bugs
 ~~~~
-- None yet
+- Allow :func:`mne.viz.plot_compare_evokeds` to plot eyetracking channels, and improve error handling (:gh:`12190` by `Scott Huberty`_)
 
 API changes
 ~~~~~~~~~~~
