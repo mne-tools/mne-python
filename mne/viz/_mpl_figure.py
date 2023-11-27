@@ -1553,7 +1553,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
     def _update_highlighted_sensors(self):
         """Update the sensor plot to show what is selected."""
         inds = np.isin(
-            self.mne.fig_selection.lasso.ch_names, self.mne.ch_names[self.mne.picks]
+            self.mne.fig_selection.lasso.names, self.mne.ch_names[self.mne.picks]
         ).nonzero()[0]
         self.mne.fig_selection.lasso.select_many(inds)
 

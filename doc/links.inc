@@ -19,12 +19,15 @@
 .. _`MNE-BIDS-Pipeline`: https://mne.tools/mne-bids-pipeline
 .. _`MNE-HCP`: http://mne.tools/mne-hcp
 .. _`MNE-Realtime`: https://mne.tools/mne-realtime
+.. _`MNE-LSL`: https://mne.tools/mne-realtime
+.. _`MNE-gui-addons`: https://mne.tools/mne-gui-addons
 .. _`MNE-MATLAB`: https://github.com/mne-tools/mne-matlab
 .. _`MNE-Docker`: https://github.com/mne-tools/mne-docker
 .. _`MNE-ICAlabel`: https://github.com/mne-tools/mne-icalabel
 .. _`MNE-Connectivity`: https://github.com/mne-tools/mne-connectivity
 .. _`MNE-NIRS`: https://github.com/mne-tools/mne-nirs
-.. _OpenMEEG: http://openmeeg.github.io
+.. _OpenMEEG: https://openmeeg.github.io
+.. _openneuro-py: https://pypi.org/project/openneuro-py
 .. _EOSS2: https://chanzuckerberg.com/eoss/proposals/improving-usability-of-core-neuroscience-analysis-tools-with-mne-python
 .. _EOSS4: https://chanzuckerberg.com/eoss/proposals/building-pediatric-and-clinical-data-pipelines-for-mne-python/
 .. _`code of conduct`: https://github.com/mne-tools/.github/blob/main/CODE_OF_CONDUCT.md

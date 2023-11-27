@@ -1061,10 +1061,10 @@ def test_plot_sensors(raw):
     _fake_click(fig, ax, (0, 1), xform="ax")
     fig.canvas.draw()
     assert fig.lasso.selection == []
-    _fake_click(fig, ax, (0.65, 1), xform="ax", kind="motion")
-    _fake_click(fig, ax, (0.65, 0.7), xform="ax", kind="motion")
-    _fake_keypress(fig, "control")
-    _fake_click(fig, ax, (0, 0.7), xform="ax", kind="release", key="control")
+    _fake_click(fig, ax, (-0.11, 0.14), xform="data", kind="motion")
+    _fake_click(fig, ax, (-0.11, 0.065), xform="data", kind="motion")
+    _fake_keypress(fig, "shift")
+    _fake_click(fig, ax, (-0.15, 0.065), xform="data", kind="release", key="shift")
     assert fig.lasso.selection == ["MEG 0121"]
 
     # check that point appearance changes
@@ -1073,11 +1073,11 @@ def test_plot_sensors(raw):
     assert (fc[:, -1] == [0.5, 1.0, 0.5]).all()
     assert (ec[:, -1] == [0.25, 1.0, 0.25]).all()
 
-    _fake_click(fig, ax, (0.7, 1), xform="ax", kind="motion", key="control")
+    _fake_click(fig, ax, (-0.11, 0.065), xform="data", kind="motion", key="shift")
     xy = ax.collections[0].get_offsets()
-    _fake_click(fig, ax, xy[2], xform="data", key="control")  # single sel
+    _fake_click(fig, ax, xy[2], xform="data", key="shift")  # single sel
     assert fig.lasso.selection == ["MEG 0121", "MEG 0131"]
-    _fake_click(fig, ax, xy[2], xform="data", key="control")  # deselect
+    _fake_click(fig, ax, xy[2], xform="data", key="alt")  # deselect
     assert fig.lasso.selection == ["MEG 0121"]
     plt.close("all")
 

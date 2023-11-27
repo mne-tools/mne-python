@@ -1324,6 +1324,8 @@ def reset_warnings(gallery_conf, fname):
         # nilearn
         "pkg_resources is deprecated as an API",
         r"The .* was deprecated in Matplotlib 3\.7",
+        # scipy
+        r"scipy.signal.morlet2 is deprecated in SciPy 1\.12",
     ):
         warnings.filterwarnings(  # deal with other modules having bad imports
             "ignore", message=".*%s.*" % key, category=DeprecationWarning

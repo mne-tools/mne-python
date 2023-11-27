@@ -48,6 +48,7 @@ Enhancements
 - Add support for passing multiple labels to :func:`mne.minimum_norm.source_induced_power` (:gh:`12026` by `Erica Peterson`_, `Eric Larson`_, and `Daniel McCloy`_ )
 - Added documentation to :meth:`mne.io.Raw.set_montage` and :func:`mne.add_reference_channels` to specify that montages should be set after adding reference channels (:gh:`12160` by `Jacob Woessner`_)
 - Add argument ``splash`` to the function using the ``qt`` browser backend to allow enabling/disabling the splash screen (:gh:`12185` by `Mathieu Scheltienne`_)
+- :class:`~mne.preprocessing.ICA`'s HTML representation (displayed in Jupyter notebooks and :class:`mne.Report`) now includes all optional fit parameters (e.g., max. number of iterations) (:gh:`12194`, by `Richard Höchenberger`_)
 
 Bugs
 ~~~~
