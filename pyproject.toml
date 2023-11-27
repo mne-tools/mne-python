@@ -95,6 +95,11 @@ full = [
     "darkdetect",
     "qdarkstyle",
     "threadpoolctl",
+    # duplicated in test_extra:
+    "eeglabio",
+    "edfio>=0.2.1",
+    "pybv",
+    "snirf",
 ]
 
 # Dependencies for running the test infrastructure
@@ -153,7 +158,7 @@ doc = [
     "ipython!=8.7.0",
     "selenium",
 ]
-dev = ["mne[test,doc]"]
+dev = ["mne[test,doc]", "rcssmin"]
 
 [project.urls]
 Homepage = "https://mne.tools/"
