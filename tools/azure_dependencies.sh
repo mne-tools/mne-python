@@ -25,7 +25,7 @@ elif [ "${TEST_MODE}" == "pip-pre" ]; then
 	python -m pip install --progress-bar off git+https://github.com/pyvista/pyvista
 	python -m pip install --progress-bar off git+https://github.com/pyvista/pyvistaqt
 	echo "misc"
-	python -m pip install $STD_ARGS imageio-ffmpeg xlrd mffpy python-picard pillow traitlets pybv eeglabio
+	python -m pip install $STD_ARGS imageio-ffmpeg xlrd mffpy pillow traitlets pybv eeglabio
 	echo "nibabel with workaround"
 	python -m pip install --progress-bar off git+https://github.com/nipy/nibabel.git
 	echo "joblib"

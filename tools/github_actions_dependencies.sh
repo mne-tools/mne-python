@@ -25,7 +25,7 @@ else
 	pip install $STD_ARGS --only-binary ":all:" --default-timeout=60 --extra-index-url https://www.riverbankcomputing.com/pypi/simple PyQt6
 	echo "NumPy/SciPy/pandas etc."
 	pip install $STD_ARGS --only-binary ":all:" --default-timeout=60 --extra-index-url "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" "numpy>=2.0.0.dev0" "scipy>=1.12.0.dev0" scikit-learn matplotlib pillow pandas statsmodels
-	# No dipy, h5py, openmeeg until they update to NumPy 2.0 compat
+	# No dipy, h5py, openmeeg, python-picard (needs numexpr) until they update to NumPy 2.0 compat
 	INSTALL_KIND="test_extra"
 	# echo "dipy"
 	# pip install $STD_ARGS --only-binary ":all:" --default-timeout=60 --extra-index-url "https://pypi.anaconda.org/scipy-wheels-nightly/simple" dipy
@@ -43,8 +43,8 @@ else
 	pip install $STD_ARGS git+https://github.com/pyvista/pyvista
 	echo "pyvistaqt"
 	pip install $STD_ARGS git+https://github.com/pyvista/pyvistaqt
-	echo "imageio-ffmpeg, xlrd, mffpy, python-picard"
-	pip install $STD_ARGS imageio-ffmpeg xlrd mffpy python-picard patsy traitlets pybv eeglabio
+	echo "imageio-ffmpeg, xlrd, mffpy"
+	pip install $STD_ARGS imageio-ffmpeg xlrd mffpy patsy traitlets pybv eeglabio
 	echo "mne-qt-browser"
 	pip install $STD_ARGS git+https://github.com/mne-tools/mne-qt-browser
 	echo "nibabel with workaround"
