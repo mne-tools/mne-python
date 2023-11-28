@@ -93,7 +93,7 @@ full = [
     "trame-vuetify",
     "mne-qt-browser",
     "darkdetect",
-    "qdarkstyle",
+    "qdarkstyle!=3.2.2",
     "threadpoolctl",
     # duplicated in test_extra:
     "eeglabio",
