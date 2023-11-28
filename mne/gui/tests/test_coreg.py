@@ -93,7 +93,7 @@ def test_coreg_gui_pyvista_file_support(
     """Test reading supported files."""
     from mne.gui import coregistration
 
-    if inst_path.suffix == ".snirf":
+    if Path(inst_path).suffix == ".snirf":
         pytest.importorskip("snirf")
 
     if inst_path == "gen_montage":
