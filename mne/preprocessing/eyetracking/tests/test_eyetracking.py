@@ -3,6 +3,7 @@ import pytest
 
 import mne
 from mne._fiff.constants import FIFF
+from mne.datasets.testing import requires_testing_data
 
 # read and preprocess raw data
 fpath = mne.datasets.testing.data_path(download=False)
@@ -17,6 +18,7 @@ epochs = mne.make_fixed_length_epochs(raw, preload=True)
 evoked = epochs.average()
 
 
+@requires_testing_data
 @pytest.mark.parametrize("inst", [raw, epochs, evoked])
 def test_convert_units(inst):
     """Test unit conversion."""

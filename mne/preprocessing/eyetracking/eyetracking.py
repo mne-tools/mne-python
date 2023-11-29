@@ -264,10 +264,10 @@ def _pix_to_rad_1d(data, size, res, dist):
     """
     # Center the data so that 0 radians will be the center of the screen
     data -= res / 2
-    # How many screen pixels per meter
-    pix_per_m = res / size
+    # How many meters is the pixel width or height
+    px_size = size / res
     # Convert to radians
-    return np.arctan((data * pix_per_m) / dist)
+    return np.arctan((data * px_size) / dist)
 
 
 def _rad_to_pix_1d(data, size, res, dist):
@@ -289,9 +289,9 @@ def _rad_to_pix_1d(data, size, res, dist):
     pix : ndarray, shape (n_samples)
         the data in pixels.
     """
-    # How many screen pixels per meter
-    pix_per_m = res / size
+    # How many meters is the pixel width or height
+    px_size = size / res
     # 1. calculate opposite side of triangle
     # 2. convert from meters to pixels
     # 3. add half of screen resolution to uncenter the pixel data
-    return np.tan(data) * dist / pix_per_m + res / 2
+    return np.tan(data) * dist / px_size + res / 2

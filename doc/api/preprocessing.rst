@@ -162,6 +162,7 @@ Projections:
    Calibration
    read_eyelink_calibration
    set_channel_types_eyetrack
+   convert_units
    interpolate_blinks
 
 EEG referencing:
