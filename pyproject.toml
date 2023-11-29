@@ -178,7 +178,6 @@ include = ["mne*"]
 namespaces = false
 
 [tool.setuptools_scm]
-write_to = "mne/_version.py"
 version_scheme = "release-branch-semver"
 
 [tool.setuptools]
