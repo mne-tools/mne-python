@@ -1539,8 +1539,8 @@ def combine_evoked(all_evoked, weights):
 @overload
 def read_evokeds(
     fname,
-    condition: Literal[
-        None
+    condition: Union[
+        Literal[None], List[int], List[str]
     ] = None,  # repeating the default value here to help type the checker
     baseline=None,
     kind="average",
@@ -1554,7 +1554,7 @@ def read_evokeds(
 @overload
 def read_evokeds(
     fname,
-    condition: int,
+    condition: int | str,
     baseline=None,
     kind="average",
     proj=True,
@@ -1567,7 +1567,7 @@ def read_evokeds(
 @verbose
 def read_evokeds(
     fname,
-    condition: Optional[int] = None,
+    condition: Optional[Union[int, str, List[int], List[str]]] = None,
     baseline=None,
     kind="average",
     proj=True,
