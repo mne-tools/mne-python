@@ -10,6 +10,13 @@
 
 from copy import deepcopy
 
+# Once we drop support for Py3.9:
+#
+#     Union -> |
+#     Optional[x] -> None | x
+#     List -> list
+from typing import List, Optional, Union, overload
+
 import numpy as np
 
 from ._fiff.constants import FIFF
@@ -1529,16 +1536,42 @@ def combine_evoked(all_evoked, weights):
     return evoked
 
 
-@verbose
+@overload
 def read_evokeds(
     fname,
-    condition=None,
+    condition: None = None,  # repeating the default value here to help type the checker
     baseline=None,
     kind="average",
     proj=True,
     allow_maxshield=False,
     verbose=None,
-):
+) -> List[Evoked]:
+    ...
+
+
+@overload
+def read_evokeds(
+    fname,
+    condition: int,
+    baseline=None,
+    kind="average",
+    proj=True,
+    allow_maxshield=False,
+    verbose=None,
+) -> Evoked:
+    ...
+
+
+@verbose
+def read_evokeds(
+    fname,
+    condition: Optional[int] = None,
+    baseline=None,
+    kind="average",
+    proj=True,
+    allow_maxshield=False,
+    verbose=None,
+) -> Union[Evoked, List[Evoked]]:
     """Read evoked dataset(s).
 
     Parameters
