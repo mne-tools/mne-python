@@ -15,7 +15,7 @@ from copy import deepcopy
 #     Union -> |
 #     Optional[x] -> None | x
 #     List -> list
-from typing import List, Optional, Union, overload
+from typing import List, Literal, Optional, Union, overload
 
 import numpy as np
 
@@ -1539,7 +1539,9 @@ def combine_evoked(all_evoked, weights):
 @overload
 def read_evokeds(
     fname,
-    condition: None = None,  # repeating the default value here to help type the checker
+    condition: Literal[
+        None
+    ] = None,  # repeating the default value here to help type the checker
     baseline=None,
     kind="average",
     proj=True,
