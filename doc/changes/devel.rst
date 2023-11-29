@@ -29,6 +29,7 @@ Enhancements
 Bugs
 ~~~~
 - Allow :func:`mne.viz.plot_compare_evokeds` to plot eyetracking channels, and improve error handling (:gh:`12190` by `Scott Huberty`_)
+- Fix bug with accessing the last data sample using ``raw[:, -1]`` where an empty array was returned (:gh:`12248` by `Eric Larson`_)
 - Fix bug with type hints in :func:`mne.io.read_raw_neuralynx` (:gh:`12236` by `Richard Höchenberger`_)
 
 API changes
