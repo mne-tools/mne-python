@@ -1554,7 +1554,7 @@ def read_evokeds(
 @overload
 def read_evokeds(
     fname,
-    condition: int | str,
+    condition: Union[int, str],
     baseline=None,
     kind="average",
     proj=True,
