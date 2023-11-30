@@ -22,7 +22,7 @@ else
 	echo "Numpy"
 	pip uninstall -yq numpy
 	echo "PyQt6"
-	pip install $STD_ARGS --only-binary ":all:" --default-timeout=60 --extra-index-url https://www.riverbankcomputing.com/pypi/simple PyQt6 "sip!=6.8.0"
+	pip install $STD_ARGS --only-binary ":all:" --default-timeout=60 --extra-index-url https://www.riverbankcomputing.com/pypi/simple PyQt6 "PyQt6-Qt6!=6.6.1"
 	echo "NumPy/SciPy/pandas etc."
 	pip install $STD_ARGS --only-binary ":all:" --default-timeout=60 --extra-index-url "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" "numpy>=2.0.0.dev0" "scipy>=1.12.0.dev0" scikit-learn matplotlib pillow pandas statsmodels
 	# No dipy, h5py, openmeeg, python-picard (needs numexpr) until they update to NumPy 2.0 compat
