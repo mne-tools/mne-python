@@ -60,6 +60,7 @@ full = [
     "mne[hdf5]",
     "qtpy",
     "PyQt6",
+    "sip!=6.8.0",
     "pyobjc-framework-Cocoa>=5.2.0; platform_system=='Darwin'",
     "sip",
     "scikit-learn",
