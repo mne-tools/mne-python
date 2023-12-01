@@ -3641,7 +3641,7 @@ def _is_good(
 ):
     """Test if data segment e is good according to reject and flat.
 
-    The reject and flat dictionaries can accept functions as values.
+    The reject and flat parameters can accept functions as values.
 
     If full_report=True, it will give True/False as well as a list of all
     offending channels.
