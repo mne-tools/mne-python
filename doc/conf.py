@@ -382,6 +382,7 @@ numpydoc_xref_ignore = {
     "RawBrainVision",
     "RawCurry",
     "RawNIRX",
+    "RawNeuralynx",
     "RawGDF",
     "RawSNIRF",
     "RawBOXY",

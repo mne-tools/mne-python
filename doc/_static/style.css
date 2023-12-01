@@ -59,6 +59,7 @@ html[data-theme="dark"] {
     --pst-color-border: #333;
     --pst-color-background: #000;
     --pst-color-link: #66b0ff;
+    --pst-color-on-background: #1e1e1e;
     /* sphinx-gallery overrides */
     --sg-download-a-background-color: var(--pst-color-primary);
     --sg-download-a-background-image: unset;

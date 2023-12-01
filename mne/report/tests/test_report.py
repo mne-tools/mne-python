@@ -103,6 +103,8 @@ def invisible_fig(monkeypatch):
 @testing.requires_testing_data
 def test_render_report(renderer_pyvistaqt, tmp_path, invisible_fig):
     """Test rendering *.fif files for mne report."""
+    pytest.importorskip("pymatreader")
+
     raw_fname_new = tmp_path / "temp_raw.fif"
     raw_fname_new_bids = tmp_path / "temp_meg.fif"
     ms_fname_new = tmp_path / "temp_ms_raw.fif"
