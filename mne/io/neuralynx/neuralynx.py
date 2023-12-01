@@ -38,7 +38,12 @@ def read_raw_neuralynx(
     --------
     mne.io.Raw : Documentation of attributes and methods of RawNeuralynx.
     """
-    return RawNeuralynx(fname, preload, verbose, exclude_fname_patterns)
+    return RawNeuralynx(
+        fname,
+        preload=preload,
+        exclude_fname_patterns=exclude_fname_patterns,
+        verbose=verbose,
+    )
 
 
 @fill_doc
@@ -47,7 +52,12 @@ class RawNeuralynx(BaseRaw):
 
     @verbose
     def __init__(
-        self, fname, preload=False, verbose=None, exclude_fname_patterns: list = None
+        self,
+        fname,
+        *,
+        preload=False,
+        exclude_fname_patterns=None,
+        verbose=None,
     ):
         _soft_import("neo", "Reading NeuralynxIO files", strict=True)
         from neo.io import NeuralynxIO

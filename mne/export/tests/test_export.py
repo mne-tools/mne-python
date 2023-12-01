@@ -6,7 +6,6 @@
 
 from contextlib import nullcontext
 from datetime import datetime, timezone
-from os import remove
 from pathlib import Path
 
 import numpy as np
@@ -33,7 +32,7 @@ from mne.io import (
 )
 from mne.tests.test_epochs import _get_data
 from mne.utils import (
-    _check_edflib_installed,
+    _check_edfio_installed,
     _record_warnings,
     _resource_path,
     object_diff,
@@ -120,17 +119,11 @@ def test_export_raw_eeglab(tmp_path):
         raw.export(temp_fname, overwrite=True)
 
 
-@pytest.mark.skipif(
-    not _check_edflib_installed(strict=False), reason="edflib-python not installed"
-)
-def test_double_export_edf(tmp_path):
-    """Test exporting an EDF file multiple times."""
-    rng = np.random.RandomState(123456)
-    format = "edf"
+def _create_raw_for_edf_tests(stim_channel_index=None):
+    rng = np.random.RandomState(12345)
     ch_types = [
         "eeg",
         "eeg",
-        "stim",
         "ecog",
         "ecog",
         "seeg",
@@ -140,12 +133,27 @@ def test_double_export_edf(tmp_path):
         "dbs",
         "bio",
     ]
-    info = create_info(len(ch_types), sfreq=1000, ch_types=ch_types)
-    info = info.set_meas_date("2023-09-04 14:53:09.000")
-    data = rng.random(size=(len(ch_types), 1000)) * 1e-5
+    if stim_channel_index is not None:
+        ch_types.insert(stim_channel_index, "stim")
+    ch_names = np.arange(len(ch_types)).astype(str).tolist()
+    info = create_info(ch_names, sfreq=1000, ch_types=ch_types)
+    data = rng.random(size=(len(ch_names), 2000)) * 1e-5
+    return RawArray(data, info)
+
+
+edfio_mark = pytest.mark.skipif(
+    not _check_edfio_installed(strict=False), reason="edfio not installed"
+)
+
+
+@edfio_mark()
+def test_double_export_edf(tmp_path):
+    """Test exporting an EDF file multiple times."""
+    raw = _create_raw_for_edf_tests(stim_channel_index=2)
+    raw.info.set_meas_date("2023-09-04 14:53:09.000")
 
     # include subject info and measurement date
-    info["subject_info"] = dict(
+    raw.info["subject_info"] = dict(
         his_id="12345",
         first_name="mne",
         last_name="python",
@@ -155,15 +163,14 @@ def test_double_export_edf(tmp_path):
         height=1.75,
         hand=3,
     )
-    raw = RawArray(data, info)
 
     # export once
-    temp_fname = tmp_path / f"test.{format}"
-    raw.export(temp_fname, add_ch_type=True)
+    temp_fname = tmp_path / "test.edf"
+    with pytest.warns(RuntimeWarning, match="Exporting STIM channels"):
+        raw.export(temp_fname, add_ch_type=True)
     raw_read = read_raw_edf(temp_fname, infer_types=True, preload=True)
 
     # export again
-    raw_read.load_data()
     raw_read.export(temp_fname, add_ch_type=True, overwrite=True)
     raw_read = read_raw_edf(temp_fname, infer_types=True, preload=True)
 
@@ -171,53 +178,22 @@ def test_double_export_edf(tmp_path):
     raw.drop_channels("2")
 
     assert raw.ch_names == raw_read.ch_names
-    # only compare the original length, since extra zeros are appended
-    orig_raw_len = len(raw)
-    assert_array_almost_equal(
-        raw.get_data(), raw_read.get_data()[:, :orig_raw_len], decimal=4
-    )
-    assert_allclose(raw.times, raw_read.times[:orig_raw_len], rtol=0, atol=1e-5)
+    assert_array_almost_equal(raw.get_data(), raw_read.get_data(), decimal=10)
+    assert_array_equal(raw.times, raw_read.times)
 
     # check info
     for key in set(raw.info) - {"chs"}:
         assert raw.info[key] == raw_read.info[key]
 
-    # check channel types except for 'bio', which loses its type
     orig_ch_types = raw.get_channel_types()
     read_ch_types = raw_read.get_channel_types()
     assert_array_equal(orig_ch_types, read_ch_types)
 
-    # check handling of missing subject metadata
-    del info["subject_info"]["sex"]
-    raw_2 = RawArray(data, info)
-    raw_2.export(temp_fname, add_ch_type=True, overwrite=True)
 
-
-@pytest.mark.skipif(
-    not _check_edflib_installed(strict=False), reason="edflib-python not installed"
-)
+@edfio_mark()
 def test_export_edf_annotations(tmp_path):
     """Test that exporting EDF preserves annotations."""
-    rng = np.random.RandomState(123456)
-    format = "edf"
-    ch_types = [
-        "eeg",
-        "eeg",
-        "stim",
-        "ecog",
-        "ecog",
-        "seeg",
-        "eog",
-        "ecg",
-        "emg",
-        "dbs",
-        "bio",
-    ]
-    ch_names = np.arange(len(ch_types)).astype(str).tolist()
-    info = create_info(ch_names, sfreq=1000, ch_types=ch_types)
-    data = rng.random(size=(len(ch_names), 2000)) * 1.0e-5
-    raw = RawArray(data, info)
-
+    raw = _create_raw_for_edf_tests()
     annotations = Annotations(
         onset=[0.01, 0.05, 0.90, 1.05],
         duration=[0, 1, 0, 0],
@@ -227,7 +203,7 @@ def test_export_edf_annotations(tmp_path):
     raw.set_annotations(annotations)
 
     # export
-    temp_fname = tmp_path / f"test.{format}"
+    temp_fname = tmp_path / "test.edf"
     raw.export(temp_fname)
 
     # read in the file
@@ -238,24 +214,19 @@ def test_export_edf_annotations(tmp_path):
     assert_array_equal(raw.annotations.ch_names, raw_read.annotations.ch_names)
 
 
-@pytest.mark.skipif(
-    not _check_edflib_installed(strict=False), reason="edflib-python not installed"
-)
+@edfio_mark()
 def test_rawarray_edf(tmp_path):
     """Test saving a Raw array with integer sfreq to EDF."""
-    rng = np.random.RandomState(12345)
-    format = "edf"
-    ch_types = ["eeg", "eeg", "stim", "ecog", "seeg", "eog", "ecg", "emg", "dbs", "bio"]
-    ch_names = np.arange(len(ch_types)).astype(str).tolist()
-    info = create_info(ch_names, sfreq=1000, ch_types=ch_types)
-    data = rng.random(size=(len(ch_names), 1000)) * 1e-5
+    raw = _create_raw_for_edf_tests()
 
     # include subject info and measurement date
-    subject_info = dict(
-        first_name="mne", last_name="python", birthday=(1992, 1, 20), sex=1, hand=3
+    raw.info["subject_info"] = dict(
+        first_name="mne",
+        last_name="python",
+        birthday=(1992, 1, 20),
+        sex=1,
+        hand=3,
     )
-    info["subject_info"] = subject_info
-    raw = RawArray(data, info)
     time_now = datetime.now()
     meas_date = datetime(
         year=time_now.year,
@@ -267,125 +238,104 @@ def test_rawarray_edf(tmp_path):
         tzinfo=timezone.utc,
     )
     raw.set_meas_date(meas_date)
-    temp_fname = tmp_path / f"test.{format}"
+    temp_fname = tmp_path / "test.edf"
 
     raw.export(temp_fname, add_ch_type=True)
     raw_read = read_raw_edf(temp_fname, infer_types=True, preload=True)
 
-    # stim channel should be dropped
-    raw.drop_channels("2")
-
     assert raw.ch_names == raw_read.ch_names
-    # only compare the original length, since extra zeros are appended
-    orig_raw_len = len(raw)
-    assert_array_almost_equal(
-        raw.get_data(), raw_read.get_data()[:, :orig_raw_len], decimal=4
-    )
-    assert_allclose(raw.times, raw_read.times[:orig_raw_len], rtol=0, atol=1e-5)
+    assert_array_almost_equal(raw.get_data(), raw_read.get_data(), decimal=10)
+    assert_array_equal(raw.times, raw_read.times)
 
-    # check channel types except for 'bio', which loses its type
     orig_ch_types = raw.get_channel_types()
     read_ch_types = raw_read.get_channel_types()
     assert_array_equal(orig_ch_types, read_ch_types)
     assert raw.info["meas_date"] == raw_read.info["meas_date"]
 
-    # channel name can't be longer than 16 characters with the type added
-    raw_bad = raw.copy()
-    raw_bad.rename_channels({"1": "abcdefghijklmnopqrstuvwxyz"})
-    with pytest.raises(RuntimeError, match="Signal label"), pytest.warns(
-        RuntimeWarning, match="Data has a non-integer"
-    ):
-        raw_bad.export(temp_fname, overwrite=True)
 
-    # include bad birthday that is non-EDF compliant
-    bad_info = info.copy()
-    bad_info["subject_info"]["birthday"] = (1700, 1, 20)
-    raw = RawArray(data, bad_info)
-    with pytest.raises(RuntimeError, match="Setting patient birth date"):
-        raw.export(temp_fname, overwrite=True)
+@edfio_mark()
+def test_edf_export_warns_on_non_voltage_channels(tmp_path):
+    """Test saving a Raw array containing a non-voltage channel."""
+    temp_fname = tmp_path / "test.edf"
 
-    # include bad measurement date that is non-EDF compliant
-    raw = RawArray(data, info)
-    meas_date = datetime(year=1984, month=1, day=1, tzinfo=timezone.utc)
-    raw.set_meas_date(meas_date)
-    with pytest.raises(RuntimeError, match="Setting start date time"):
-        raw.export(temp_fname, overwrite=True)
-
-    # test that warning is raised if there are non-voltage based channels
-    raw = RawArray(data, info)
+    raw = _create_raw_for_edf_tests()
     raw.set_channel_types({"9": "hbr"}, on_unit_change="ignore")
     with pytest.warns(RuntimeWarning, match="Non-voltage channels"):
         raw.export(temp_fname, overwrite=True)
 
     # data should match up to the non-accepted channel
     raw_read = read_raw_edf(temp_fname, preload=True)
-    orig_raw_len = len(raw)
-    assert_array_almost_equal(
-        raw.get_data()[:-1, :], raw_read.get_data()[:, :orig_raw_len], decimal=4
-    )
-    assert_allclose(raw.times, raw_read.times[:orig_raw_len], rtol=0, atol=1e-5)
-
-    # the data should still match though
-    raw_read = read_raw_edf(temp_fname, preload=True)
-    raw.drop_channels("2")
     assert raw.ch_names == raw_read.ch_names
-    orig_raw_len = len(raw)
-    assert_array_almost_equal(
-        raw.get_data(), raw_read.get_data()[:, :orig_raw_len], decimal=4
-    )
-    assert_allclose(raw.times, raw_read.times[:orig_raw_len], rtol=0, atol=1e-5)
+    assert_array_almost_equal(raw.get_data()[:-1], raw_read.get_data()[:-1], decimal=10)
+    assert_array_equal(raw.times, raw_read.times)
 
 
-@pytest.mark.skipif(
-    not _check_edflib_installed(strict=False), reason="edflib-python not installed"
-)
+@edfio_mark()
+def test_channel_label_too_long_for_edf_raises_error(tmp_path):
+    """Test trying to save an EDF where a channel label is longer than 16 characters."""
+    raw = _create_raw_for_edf_tests()
+    raw.rename_channels({"1": "abcdefghijklmnopqrstuvwxyz"})
+    with pytest.raises(RuntimeError, match="Signal label"):
+        raw.export(tmp_path / "test.edf")
+
+
+@edfio_mark()
+def test_measurement_date_outside_range_valid_for_edf(tmp_path):
+    """Test trying to save an EDF with a measurement date before 1985-01-01."""
+    raw = _create_raw_for_edf_tests()
+    raw.set_meas_date(datetime(year=1984, month=1, day=1, tzinfo=timezone.utc))
+    with pytest.raises(ValueError, match="EDF only allows dates from 1985 to 2084"):
+        raw.export(tmp_path / "test.edf", overwrite=True)
+
+
 @pytest.mark.parametrize(
-    ["dataset", "format"],
+    ("physical_range", "exceeded_bound"),
     [
-        ["test", "edf"],
-        pytest.param("misc", "edf", marks=[pytest.mark.slowtest, misc._pytest_mark()]),
+        ((-1e6, 0), "maximum"),
+        ((0, 1e6), "minimum"),
     ],
 )
-def test_export_raw_edf(tmp_path, dataset, format):
+@edfio_mark()
+def test_export_edf_signal_clipping(tmp_path, physical_range, exceeded_bound):
+    """Test if exporting data exceeding physical min/max clips and emits a warning."""
+    raw = read_raw_fif(fname_raw)
+    raw.pick(picks=["eeg", "ecog", "seeg"]).load_data()
+    temp_fname = tmp_path / "test.edf"
+    with pytest.warns(RuntimeWarning, match=f"The {exceeded_bound}"):
+        raw.export(temp_fname, physical_range=physical_range)
+    raw_read = read_raw_edf(temp_fname, preload=True)
+    assert raw_read.get_data().min() >= physical_range[0]
+    assert raw_read.get_data().max() <= physical_range[1]
+
+
+@edfio_mark()
+@pytest.mark.parametrize(
+    ("input_path", "warning_msg"),
+    [
+        (fname_raw, "Data has a non-integer"),
+        pytest.param(
+            misc_path / "ecog" / "sample_ecog_ieeg.fif",
+            "EDF format requires",
+            marks=[pytest.mark.slowtest, misc._pytest_mark()],
+        ),
+    ],
+)
+def test_export_raw_edf(tmp_path, input_path, warning_msg):
     """Test saving a Raw instance to EDF format."""
-    if dataset == "test":
-        raw = read_raw_fif(fname_raw)
-    elif dataset == "misc":
-        fname = misc_path / "ecog" / "sample_ecog_ieeg.fif"
-        raw = read_raw_fif(fname)
+    raw = read_raw_fif(input_path)
 
     # only test with EEG channels
     raw.pick(picks=["eeg", "ecog", "seeg"]).load_data()
-    orig_ch_names = raw.ch_names
-    temp_fname = tmp_path / f"test.{format}"
+    temp_fname = tmp_path / "test.edf"
 
-    # test runtime errors
-    with pytest.warns() as record:
-        raw.export(temp_fname, physical_range=(-1e6, 0))
-    if dataset == "test":
-        assert any("Data has a non-integer" in str(rec.message) for rec in record)
-    assert any("The maximum" in str(rec.message) for rec in record)
-    remove(temp_fname)
-
-    with pytest.warns() as record:
-        raw.export(temp_fname, physical_range=(0, 1e6))
-    if dataset == "test":
-        assert any("Data has a non-integer" in str(rec.message) for rec in record)
-    assert any("The minimum" in str(rec.message) for rec in record)
-    remove(temp_fname)
-
-    if dataset == "test":
-        with pytest.warns(RuntimeWarning, match="Data has a non-integer"):
-            raw.export(temp_fname)
-    elif dataset == "misc":
-        with pytest.warns(RuntimeWarning, match="EDF format requires"):
-            raw.export(temp_fname)
+    with pytest.warns(RuntimeWarning, match=warning_msg):
+        raw.export(temp_fname)
 
     if "epoc" in raw.ch_names:
         raw.drop_channels(["epoc"])
 
     raw_read = read_raw_edf(temp_fname, preload=True)
-    assert orig_ch_names == raw_read.ch_names
+    assert raw.ch_names == raw_read.ch_names
     # only compare the original length, since extra zeros are appended
     orig_raw_len = len(raw)
 
@@ -395,7 +345,7 @@ def test_export_raw_edf(tmp_path, dataset, format):
     # will result in a resolution of 0.09 uV. This resolution
     # though is acceptable for most EEG manufacturers.
     assert_array_almost_equal(
-        raw.get_data(), raw_read.get_data()[:, :orig_raw_len], decimal=4
+        raw.get_data(), raw_read.get_data()[:, :orig_raw_len], decimal=8
     )
 
     # Due to the data record duration limitations of EDF files, one
@@ -405,6 +355,27 @@ def test_export_raw_edf(tmp_path, dataset, format):
     # but will result in an error when say the number of time points
     # is very very large.
     assert_allclose(raw.times, raw_read.times[:orig_raw_len], rtol=0, atol=1e-5)
+
+
+@edfio_mark()
+def test_export_raw_edf_does_not_fail_on_empty_header_fields(tmp_path):
+    """Test writing a Raw instance with empty header fields to EDF."""
+    rng = np.random.RandomState(123456)
+
+    ch_types = ["eeg"]
+    info = create_info(len(ch_types), sfreq=1000, ch_types=ch_types)
+    info["subject_info"] = {
+        "his_id": "",
+        "first_name": "",
+        "middle_name": "",
+        "last_name": "",
+    }
+    info["device_info"] = {"type": "123"}
+
+    data = rng.random(size=(len(ch_types), 1000)) * 1e-5
+    raw = RawArray(data, info)
+
+    raw.export(tmp_path / "test.edf", add_ch_type=True)
 
 
 @pytest.mark.xfail(reason="eeglabio (usage?) bugs that should be fixed")
