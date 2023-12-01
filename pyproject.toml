@@ -118,6 +118,7 @@ test = [
     "wheel",
     "pre-commit",
     "black",
+    "mypy",
 ]
 
 # Dependencies for being able to run additional tests (rare/CIs/advanced devs)
@@ -313,3 +314,10 @@ ignore_directives = [
     "tab-set",
 ]
 ignore_messages = "^.*(Unknown target name|Undefined substitution referenced)[^`]*$"
+
+[tool.mypy]
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = ['mne.evoked', 'mne.io']
+ignore_errors = false

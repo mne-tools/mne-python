@@ -80,17 +80,17 @@ from .viz.evoked import plot_evoked_joint, plot_evoked_white
 from .viz.topomap import _topomap_animation
 
 _aspect_dict = {
-    "average": FIFF.FIFFV_ASPECT_AVERAGE,
-    "standard_error": FIFF.FIFFV_ASPECT_STD_ERR,
-    "single_epoch": FIFF.FIFFV_ASPECT_SINGLE,
-    "partial_average": FIFF.FIFFV_ASPECT_SUBAVERAGE,
-    "alternating_subaverage": FIFF.FIFFV_ASPECT_ALTAVERAGE,
-    "sample_cut_out_by_graph": FIFF.FIFFV_ASPECT_SAMPLE,
-    "power_density_spectrum": FIFF.FIFFV_ASPECT_POWER_DENSITY,
-    "dipole_amplitude_cuvre": FIFF.FIFFV_ASPECT_DIPOLE_WAVE,
-    "squid_modulation_lower_bound": FIFF.FIFFV_ASPECT_IFII_LOW,
-    "squid_modulation_upper_bound": FIFF.FIFFV_ASPECT_IFII_HIGH,
-    "squid_gate_setting": FIFF.FIFFV_ASPECT_GATE,
+    "average": FIFF.FIFFV_ASPECT_AVERAGE,  # type: ignore
+    "standard_error": FIFF.FIFFV_ASPECT_STD_ERR,  # type: ignore
+    "single_epoch": FIFF.FIFFV_ASPECT_SINGLE,  # type: ignore
+    "partial_average": FIFF.FIFFV_ASPECT_SUBAVERAGE,  # type: ignore
+    "alternating_subaverage": FIFF.FIFFV_ASPECT_ALTAVERAGE,  # type: ignore
+    "sample_cut_out_by_graph": FIFF.FIFFV_ASPECT_SAMPLE,  # type: ignore
+    "power_density_spectrum": FIFF.FIFFV_ASPECT_POWER_DENSITY,  # type: ignore
+    "dipole_amplitude_cuvre": FIFF.FIFFV_ASPECT_DIPOLE_WAVE,  # type: ignore
+    "squid_modulation_lower_bound": FIFF.FIFFV_ASPECT_IFII_LOW,  # type: ignore
+    "squid_modulation_upper_bound": FIFF.FIFFV_ASPECT_IFII_HIGH,  # type: ignore
+    "squid_gate_setting": FIFF.FIFFV_ASPECT_GATE,  # type: ignore
 }
 _aspect_rev = {val: key for key, val in _aspect_dict.items()}
 
