@@ -7,7 +7,8 @@
 #          Jona Sassenhagen <jona.sassenhagen@gmail.com>
 #          Daniel McCloy <dan.mccloy@gmail.com>
 #
-# License: Simplified BSD
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from pathlib import Path
 
@@ -437,6 +438,17 @@ def test_plot_compare_evokeds():
         yvals = line.get_ydata()
         assert (yvals < ylim[1]).all()
         assert (yvals > ylim[0]).all()
+    # test plotting eyetracking data
+    plt.close("all")  # close the previous figures as to avoid a too many figs warning
+    info_tmp = mne.create_info(["pupil_left"], evoked.info["sfreq"], ["pupil"])
+    evoked_et = mne.EvokedArray(np.ones_like(evoked.times).reshape(1, -1), info_tmp)
+    figs = plot_compare_evokeds(evoked_et, show_sensors=False)
+    assert len(figs) == 1
+    # test plotting only invalid channel types
+    info_tmp = mne.create_info(["ias"], evoked.info["sfreq"], ["ias"])
+    ev_invalid = mne.EvokedArray(np.ones_like(evoked.times).reshape(1, -1), info_tmp)
+    with pytest.raises(RuntimeError, match="No valid"):
+        plot_compare_evokeds(ev_invalid, picks="all")
     plt.close("all")
 
     # test other CI args

@@ -12,6 +12,8 @@ topographic representation of the response.
 
 Here we will work with the :ref:`fNIRS motor data <fnirs-motor-dataset>`.
 """
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 # %%
 
 from itertools import compress

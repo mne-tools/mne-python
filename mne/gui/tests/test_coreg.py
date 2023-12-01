@@ -1,6 +1,7 @@
 # Author: Christian Brodbeck <christianbrodbeck@nyu.edu>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import os
 from contextlib import nullcontext
@@ -91,6 +92,9 @@ def test_coreg_gui_pyvista_file_support(
 ):
     """Test reading supported files."""
     from mne.gui import coregistration
+
+    if Path(inst_path).suffix == ".snirf":
+        pytest.importorskip("snirf")
 
     if inst_path == "gen_montage":
         # generate a montage fig to use as inst.

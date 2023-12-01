@@ -17,6 +17,8 @@ To see only tag 102:
 """
 
 # Authors : Eric Larson, PhD
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import sys
 

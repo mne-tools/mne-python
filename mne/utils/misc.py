@@ -2,6 +2,7 @@
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import fnmatch
 import gc
@@ -13,6 +14,7 @@ import sys
 import traceback
 import weakref
 from contextlib import ExitStack, contextmanager
+from importlib.resources import files
 from math import log
 from queue import Empty, Queue
 from string import Formatter
@@ -24,12 +26,6 @@ from decorator import FunctionMaker
 
 from ._logging import logger, verbose, warn
 from .check import _check_option, _validate_type
-
-# TODO: remove try/except when our min version is py 3.9
-try:
-    from importlib.resources import files
-except ImportError:
-    from importlib_resources import files
 
 
 # TODO: no longer needed when py3.9 is minimum supported version

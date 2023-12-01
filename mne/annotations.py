@@ -2,6 +2,7 @@
 #          Robert Luke <mail@robertluke.net>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import json
 import os.path as op

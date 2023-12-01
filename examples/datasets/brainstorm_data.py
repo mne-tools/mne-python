@@ -14,6 +14,7 @@ tutorial dataset. For comparison, see :footcite:`TadelEtAl2011` and:
 # Authors: Mainak Jas <mainak.jas@telecom-paristech.fr>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 

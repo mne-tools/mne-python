@@ -2,6 +2,7 @@
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import inspect
 import os
@@ -101,8 +102,11 @@ docdict[
 ] = """
 adjacency : scipy.sparse.spmatrix | None | False
     Defines adjacency between locations in the data, where "locations" can be
-    spatial vertices, frequency bins, time points, etc. For spatial vertices,
-    see: :func:`mne.channels.find_ch_adjacency`. If ``False``, assumes
+    spatial vertices, frequency bins, time points, etc. For spatial vertices
+    (i.e. sensor space data), see :func:`mne.channels.find_ch_adjacency` or
+    :func:`mne.spatial_inter_hemi_adjacency`. For source space data, see
+    :func:`mne.spatial_src_adjacency` or
+    :func:`mne.spatio_temporal_src_adjacency`. If ``False``, assumes
     no adjacency (each location is treated as independent and unconnected).
     If ``None``, a regular lattice adjacency is assumed, connecting
     each {sp} location to its neighbor(s) along the last dimension
@@ -1189,7 +1193,7 @@ docdict[
 Valid values for ``mode`` are:
 
 - ``'max'``
-    Maximum value across vertices at each time point within each label.
+    Maximum absolute value across vertices at each time point within each label.
 - ``'mean'``
     Average across vertices at each time point within each label. Ignores
     orientation of sources for standard source estimates, which varies
@@ -1199,7 +1203,7 @@ Valid values for ``mode`` are:
 - ``'mean_flip'``
     Finds the dominant direction of source space normal vector orientations
     within each label, applies a sign-flip to time series at vertices whose
-    orientation is more than 180° different from the dominant direction, and
+    orientation is more than 90° different from the dominant direction, and
     then averages across vertices at each time point within each label.
 - ``'pca_flip'``
     Applies singular value decomposition to the time courses within each label,
@@ -1459,7 +1463,7 @@ docdict[
 Supported formats:
     - BrainVision (``.vhdr``, ``.vmrk``, ``.eeg``, uses `pybv <https://github.com/bids-standard/pybv>`_)
     - EEGLAB (``.set``, uses :mod:`eeglabio`)
-    - EDF (``.edf``, uses `EDFlib-Python <https://gitlab.com/Teuniz/EDFlib-Python>`_)
+    - EDF (``.edf``, uses `edfio <https://github.com/the-siesta-group/edfio>`_)
 """  # noqa: E501
 
 docdict[

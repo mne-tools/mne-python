@@ -5,6 +5,7 @@
 #          Britta Westner <britta.wstnr@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 import numpy as np
 
 from .._fiff.meas_info import _simplify_info

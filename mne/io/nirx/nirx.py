@@ -1,6 +1,7 @@
 # Authors: Robert Luke <mail@robertluke.net>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import datetime as dt
 import glob as glob

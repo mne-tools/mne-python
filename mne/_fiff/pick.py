@@ -3,6 +3,7 @@
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import re
 from copy import deepcopy
@@ -1299,9 +1300,9 @@ def _picks_to_idx(
             "(%r)" % (picks_on, orig_picks)
         )
     if (picks < -n_chan).any():
-        raise ValueError("All picks must be >= %d, got %r" % (-n_chan, orig_picks))
+        raise IndexError("All picks must be >= %d, got %r" % (-n_chan, orig_picks))
     if (picks >= n_chan).any():
-        raise ValueError(
+        raise IndexError(
             "All picks must be < n_%s (%d), got %r" % (picks_on, n_chan, orig_picks)
         )
     picks %= n_chan  # ensure positive

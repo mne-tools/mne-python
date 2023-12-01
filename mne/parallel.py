@@ -2,7 +2,8 @@
 
 # Author: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
-# License: Simplified BSD
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import logging
 import multiprocessing
