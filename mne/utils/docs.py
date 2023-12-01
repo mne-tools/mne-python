@@ -3815,13 +3815,11 @@ _reject_common = """\
                       eog=250e-6      # unit: V (EOG channels)
                       )
 
-    Custom rejection criteria can be also be used by passing a callable
-    to the dictionary.
+    Custom rejection criteria can be also be used by passing a callable,
+    e.g., to check for 99th percentile of absolute values of any channel
+    across time being bigger than 1mV::
 
-    Example::
-
-        reject = dict(eeg=lambda x: True if (np.max(x, axis=1) >
-                      1e-3).any() else False))
+        reject = dict(eeg=lambda x: (np.percentile(np.abs(x), 99, axis=1) > 1e-3).any())
 
     .. note:: If rejection is based on a signal **difference**
             calculated for each channel separately, applying baseline
