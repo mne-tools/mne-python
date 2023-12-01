@@ -374,7 +374,7 @@ epochs = mne.Epochs(
     tmin=0,
     tmax=1,
     baseline=None,
-    reject=dict(eeg=lambda x: True if (np.max(x, axis=1) > 1e-2).any() else False),
+    reject=dict(eeg=lambda x: (np.max(x, axis=1) > 1e-2).any()),
     preload=True,
 )
 epochs.plot(scalings=dict(eeg=50e-5))
