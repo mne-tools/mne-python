@@ -24,7 +24,7 @@ Version 1.7.dev0 (development)
 Enhancements
 ~~~~~~~~~~~~
 - Speed up export to .edf in :func:`mne.export.export_raw` by using ``edfio`` instead of ``EDFlib-Python`` (:gh:`12218` by :newcontrib:`Florian Hofer`)
-
+- Inform the user about channel discrepancy between provided info, forward operator, and/or covariance matrices in :func:`mne.beamformer.make_lcmv` (:gh:`12238` by :newcontrib:`Nikolai Kapralov`)
 
 Bugs
 ~~~~
