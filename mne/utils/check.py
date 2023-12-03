@@ -705,8 +705,8 @@ def _check_info_inv(info, forward, data_cov=None, noise_cov=None):
     dropped_nonbads = set(info["ch_names"]) - set(ch_names) - set(all_bads)
     if dropped_nonbads:
         logger.info(
-            "Excluding channels that are not common to the provided info, "
-            "forward operator, and covariance matrices"
+            f"Excluding {len(dropped_nonbads)} channel(s) missing from the "
+            "provided info, forward operator, and/or covariance matrices"
         )
 
     picks = [info["ch_names"].index(k) for k in ch_names if k in info["ch_names"]]

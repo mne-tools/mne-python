@@ -171,9 +171,10 @@ def test_check_info_inv():
         )
         assert list(range(7, 10)) == picks
 
-    # make sure to inform the user that channels were dropped
+    # make sure to inform the user that 7 channels were dropped
+    # (there are 10 channels in epochs but only 3 were picked)
     log = log.getvalue()
-    assert "Excluding channels" in log
+    assert "Excluding 7 channel(s) missing" in log
 
 
 def test_check_option():
