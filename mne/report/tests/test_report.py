@@ -57,13 +57,9 @@ trans_fname = sample_meg_dir / "sample_audvis_trunc-trans.fif"
 inv_fname = sample_meg_dir / "sample_audvis_trunc-meg-eeg-oct-6-meg-inv.fif"
 stc_fname = sample_meg_dir / "sample_audvis_trunc-meg"
 mri_fname = subjects_dir / "sample" / "mri" / "T1.mgz"
-bdf_fname = (
-    Path(__file__).parent.parent.parent / "io" / "edf" / "tests" / "data" / "test.bdf"
-)
-edf_fname = (
-    Path(__file__).parent.parent.parent / "io" / "edf" / "tests" / "data" / "test.edf"
-)
-base_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
+bdf_fname = Path(__file__).parents[2] / "io" / "edf" / "tests" / "data" / "test.bdf"
+edf_fname = Path(__file__).parents[2] / "io" / "edf" / "tests" / "data" / "test.edf"
+base_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
 evoked_fname = base_dir / "test-ave.fif"
 nirs_fname = (
     data_dir / "SNIRF" / "NIRx" / "NIRSport2" / "1.0.3" / "2021-05-05_001.snirf"

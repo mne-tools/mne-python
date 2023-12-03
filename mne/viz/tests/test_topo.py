@@ -30,7 +30,7 @@ from mne.viz.evoked import _line_plot_onselect
 from mne.viz.topo import _imshow_tfr, _plot_update_evoked_topo_proj, iter_topography
 from mne.viz.utils import _fake_click
 
-base_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
+base_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
 evoked_fname = base_dir / "test-ave.fif"
 raw_fname = base_dir / "test_raw.fif"
 event_name = base_dir / "test-eve.fif"

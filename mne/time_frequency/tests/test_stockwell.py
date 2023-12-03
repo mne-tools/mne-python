@@ -29,7 +29,7 @@ from mne.time_frequency._stockwell import (
 )
 from mne.utils import _record_warnings
 
-base_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
+base_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
 raw_fname = base_dir / "test_raw.fif"
 raw_ctf_fname = base_dir / "test_ctf_raw.fif"
 

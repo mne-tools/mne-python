@@ -42,7 +42,7 @@ from mne.proj import (
 from mne.rank import _compute_rank_int
 from mne.utils import _record_warnings
 
-base_dir = Path(__file__).parent.parent / "io" / "tests" / "data"
+base_dir = Path(__file__).parents[1] / "io" / "tests" / "data"
 raw_fname = base_dir / "test_raw.fif"
 event_fname = base_dir / "test-eve.fif"
 proj_fname = base_dir / "test-proj.fif"

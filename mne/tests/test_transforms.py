@@ -64,7 +64,7 @@ fname_eve = data_path / "MEG" / "sample" / "sample_audvis_trunc_raw-eve.fif"
 subjects_dir = data_path / "subjects"
 fname_t1 = subjects_dir / "fsaverage" / "mri" / "T1.mgz"
 
-base_dir = Path(__file__).parent.parent / "io" / "tests" / "data"
+base_dir = Path(__file__).parents[1] / "io" / "tests" / "data"
 fname_trans = base_dir / "sample-audvis-raw-trans.txt"
 test_fif_fname = base_dir / "test_raw.fif"
 ctf_fname = base_dir / "test_ctf_raw.fif"
