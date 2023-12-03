@@ -6,7 +6,7 @@ if [ "${TEST_MODE}" == "pip" ]; then
 	python -m pip install --only-binary="numba,llvmlite,numpy,scipy,vtk" -e .[test,full]
 elif [ "${TEST_MODE}" == "pip-pre" ]; then
 	STD_ARGS="$STD_ARGS --pre"
-	python -m pip install $STD_ARGS --only-binary ":all:" --extra-index-url "https://www.riverbankcomputing.com/pypi/simple" PyQt6 PyQt6-sip PyQt6-Qt6 "PyQt6-Qt6!=6.6.1"
+	python -m pip install $STD_ARGS --only-binary ":all:" --extra-index-url "https://www.riverbankcomputing.com/pypi/simple" "PyQt6!=6.6.1" "PyQt6-Qt6!=6.6.1"
 	echo "Numpy etc."
 	# See github_actions_dependencies.sh for comments
 	python -m pip install $STD_ARGS --only-binary "numpy" numpy
