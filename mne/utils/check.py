@@ -706,7 +706,7 @@ def _check_info_inv(info, forward, data_cov=None, noise_cov=None):
     if dropped_nonbads:
         logger.info(
             f"Excluding {len(dropped_nonbads)} channel(s) missing from the "
-            "provided info, forward operator, and/or covariance matrices"
+            "provided forward operator and/or covariance matrices"
         )
 
     picks = [info["ch_names"].index(k) for k in ch_names if k in info["ch_names"]]
