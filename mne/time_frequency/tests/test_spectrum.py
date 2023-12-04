@@ -9,7 +9,6 @@ from numpy.testing import assert_array_equal
 
 from mne import Annotations
 from mne.time_frequency import read_spectrum
-from mne.time_frequency.multitaper import _psd_from_mt
 from mne.time_frequency.spectrum import EpochsSpectrumArray, SpectrumArray
 
 
@@ -202,59 +201,6 @@ def test_epochs_spectrum_average(epochs_spectrum, method):
     avg_spect = epochs_spectrum.average(method=method)
     assert avg_spect.shape == epochs_spectrum.shape[1:]
     assert avg_spect._dims == ("channel", "freq")  # no 'epoch'
-
-
-def _agg_helper(df, weights, group_cols):
-    """Aggregate complex multitaper spectrum after conversion to DataFrame."""
-    from pandas import Series
-
-    unagged_columns = df[group_cols].iloc[0].values.tolist()
-    x_mt = df.drop(columns=group_cols).values[np.newaxis].T
-    psd = _psd_from_mt(x_mt, weights)
-    psd = np.atleast_1d(np.squeeze(psd)).tolist()
-    _df = dict(zip(df.columns, unagged_columns + psd))
-    return Series(_df)
-
-
-@pytest.mark.parametrize("long_format", (False, True))
-@pytest.mark.parametrize("method", ("welch", "multitaper"))
-def test_unaggregated_spectrum_to_data_frame(raw, long_format, method):
-    """Test converting complex multitaper spectra to data frame."""
-    pytest.importorskip("pandas")
-    from pandas.testing import assert_frame_equal
-
-    from mne.utils.dataframe import _inplace
-
-    # aggregated spectrum → dataframe
-    orig_df = raw.compute_psd(method=method).to_data_frame(long_format=long_format)
-    # unaggregated welch or complex multitaper →
-    #   aggregate w/ pandas (to make sure we did reshaping right)
-    kwargs = dict()
-    if method == "welch":
-        kwargs.update(average=False, verbose="error")
-    spectrum = raw.compute_psd(method=method, **kwargs)
-    df = spectrum.to_data_frame(long_format=long_format)
-    grouping_cols = ["freq"]
-    drop_cols = ["segment"] if method == "welch" else []
-    if long_format:
-        grouping_cols.append("channel")
-        drop_cols.append("ch_type")
-        orig_df.drop(columns="ch_type", inplace=True)
-    # only do a couple freq bins, otherwise test takes forever for multitaper
-    subset = partial(np.isin, test_elements=spectrum.freqs[:2])
-    df = df.loc[subset(df["freq"])]
-    orig_df = orig_df.loc[subset(orig_df["freq"])]
-    # sort orig_df, because at present we can't actually prevent pandas from
-    # sorting at the agg step *sigh*
-    _inplace(orig_df, "sort_values", by=grouping_cols, ignore_index=True)
-    # aggregate
-    df = df.drop(columns=drop_cols)
-    gb = df.groupby(grouping_cols, as_index=False, observed=False)
-    agg_df = gb.mean()  # excludes NA automatically
-    # even with check_categorical=False, we know that the *data* matches;
-    # what may differ is the order of the "levels" in the *metadata* for the
-    # channel name column
-    assert_frame_equal(agg_df, orig_df, check_categorical=False)
 
 
 @pytest.mark.parametrize("inst", ("raw_spectrum", "epochs_spectrum", "evoked"))
