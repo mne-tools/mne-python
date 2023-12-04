@@ -856,7 +856,7 @@ def _plot_ica_sources_evoked(evoked, picks, exclude, title, show, ica, labels=No
 
     ax.set(title=title, xlim=times[[0, -1]], xlabel="Time (ms)", ylabel="(NA)")
     if len(lines):
-        ax.legend(loc="best")
+        ax.legend(lines, exclude_labels, loc="best")
 
     texts.append(
         ax.text(

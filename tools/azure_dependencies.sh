@@ -10,7 +10,7 @@ elif [ "${TEST_MODE}" == "pip-pre" ]; then
 	echo "Numpy etc."
 	# See github_actions_dependencies.sh for comments
 	python -m pip install $STD_ARGS --only-binary "numpy" numpy
-	python -m pip install $STD_ARGS --only-binary ":all:" --extra-index-url "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" "numpy>=2.0.0.dev0" "scipy>=1.12.0.dev0" scikit-learn matplotlib pandas statsmodels
+	python -m pip install $STD_ARGS --only-binary ":all:" --extra-index-url "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" "numpy>=2.0.0.dev0" "scipy>=1.12.0.dev0" scikit-learn matplotlib statsmodels
 	# echo "dipy"
 	# python -m pip install $STD_ARGS --only-binary ":all:" --extra-index-url "https://pypi.anaconda.org/scipy-wheels-nightly/simple" dipy
 	# echo "h5py"
