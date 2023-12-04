@@ -319,7 +319,6 @@ ignore_messages = "^.*(Unknown target name|Undefined substitution referenced)[^`
 ignore_errors = true
 scripts_are_modules = true
 
-# Changes to "module" here should be reflected in mypy section of .pre-commit-config.yaml
 [[tool.mypy.overrides]]
 module = ['mne.evoked', 'mne.io']
 ignore_errors = false

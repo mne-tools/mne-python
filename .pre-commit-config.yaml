@@ -56,7 +56,6 @@ repos:
     rev: v1.7.1
     hooks:
       - id: mypy
-        # Changes to "exclude" here should be reflected in mypy section of pyproject.toml
         exclude: ^mne/(beamformer|channels|commands|datasets|decoding|export|forward|gui|html_templates|inverse_sparse|io|minimum_norm|preprocessing|report|simulation|source_space|stats|time_frequency|utils|viz)?/?__init__\.py$
         args: [--strict]
         additional_dependencies: ["numpy==1.26.2"]
