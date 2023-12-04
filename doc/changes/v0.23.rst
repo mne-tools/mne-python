@@ -246,7 +246,7 @@ Bugs
 
 - Fix bug with :func:`mne.grow_labels` where ``overlap=False`` could run forever or raise an error (:gh:`9317` by `Eric Larson`_)
 
-- Fix compatibility bugs with :mod:`mne_realtime` (:gh:`8845` by `Eric Larson`_)
+- Fix compatibility bugs with ``mne_realtime`` (:gh:`8845` by `Eric Larson`_)
 
 - Fix bug with `mne.viz.Brain` where non-inflated surfaces had an X-offset imposed by default (:gh:`8794` by `Eric Larson`_)
 
