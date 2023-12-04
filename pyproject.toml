@@ -42,7 +42,6 @@ dependencies = [
     "packaging",
     "jinja2",
     "lazy_loader>=0.3",
-    "defusedxml",
 ]
 
 [project.optional-dependencies]
@@ -100,6 +99,7 @@ full = [
     "edfio>=0.2.1",
     "pybv",
     "snirf",
+    "defusedxml",
 ]
 
 # Dependencies for running the test infrastructure
