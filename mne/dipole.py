@@ -654,7 +654,9 @@ def _read_dipole_text(fname):
         def_line,
     )
     fields = re.sub(
-        r"\((.*?)\)", lambda match: "/" + match.group(1), fields  # "Q(nAm)", etc.
+        r"\((.*?)\)",
+        lambda match: "/" + match.group(1),
+        fields,  # "Q(nAm)", etc.
     )
     fields = re.sub(
         "(begin|end) ",  # "begin" and "end" with no units
@@ -1522,9 +1524,7 @@ def fit_dipole(
             # Use the minimum distance to the MEG sensors as the radius then
             R = np.dot(
                 np.linalg.inv(info["dev_head_t"]["trans"]), np.hstack([r0, [1.0]])
-            )[
-                :3
-            ]  # r0 -> device
+            )[:3]  # r0 -> device
             R = R - [
                 info["chs"][pick]["loc"][:3]
                 for pick in pick_types(info, meg=True, exclude=[])

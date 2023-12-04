@@ -585,14 +585,16 @@ class UpdateChannelsMixin:
             all_str = all([isinstance(ch, str) for ch in ch_names])
         except TypeError:
             raise ValueError(
-                "'ch_names' must be iterable, got "
-                "type {} ({}).".format(type(ch_names), ch_names)
+                "'ch_names' must be iterable, got " "type {} ({}).".format(
+                    type(ch_names), ch_names
+                )
             )
 
         if not all_str:
             raise ValueError(
-                "Each element in 'ch_names' must be str, got "
-                "{}.".format([type(ch) for ch in ch_names])
+                "Each element in 'ch_names' must be str, got " "{}.".format(
+                    [type(ch) for ch in ch_names]
+                )
             )
 
         missing = [ch for ch in ch_names if ch not in self.ch_names]
@@ -1057,9 +1059,7 @@ _BUILTIN_CHANNEL_ADJACENCIES = [
         name="bti248grad",
         description="BTI 248 gradiometer system",
         fname="bti248grad_neighb.mat",
-        source_url=_ft_neighbor_url_t.substitute(
-            fname="bti248grad_neighb.mat"
-        ),  # noqa: E501
+        source_url=_ft_neighbor_url_t.substitute(fname="bti248grad_neighb.mat"),  # noqa: E501
     ),
     _BuiltinChannelAdjacency(
         name="ctf64",
@@ -1083,25 +1083,19 @@ _BUILTIN_CHANNEL_ADJACENCIES = [
         name="easycap32ch-avg",
         description="",
         fname="easycap32ch-avg_neighb.mat",
-        source_url=_ft_neighbor_url_t.substitute(
-            fname="easycap32ch-avg_neighb.mat"
-        ),  # noqa: E501
+        source_url=_ft_neighbor_url_t.substitute(fname="easycap32ch-avg_neighb.mat"),  # noqa: E501
     ),
     _BuiltinChannelAdjacency(
         name="easycap64ch-avg",
         description="",
         fname="easycap64ch-avg_neighb.mat",
-        source_url=_ft_neighbor_url_t.substitute(
-            fname="easycap64ch-avg_neighb.mat"
-        ),  # noqa: E501
+        source_url=_ft_neighbor_url_t.substitute(fname="easycap64ch-avg_neighb.mat"),  # noqa: E501
     ),
     _BuiltinChannelAdjacency(
         name="easycap128ch-avg",
         description="",
         fname="easycap128ch-avg_neighb.mat",
-        source_url=_ft_neighbor_url_t.substitute(
-            fname="easycap128ch-avg_neighb.mat"
-        ),  # noqa: E501
+        source_url=_ft_neighbor_url_t.substitute(fname="easycap128ch-avg_neighb.mat"),  # noqa: E501
     ),
     _BuiltinChannelAdjacency(
         name="easycapM1",
@@ -1113,25 +1107,19 @@ _BUILTIN_CHANNEL_ADJACENCIES = [
         name="easycapM11",
         description="Easycap M11",
         fname="easycapM11_neighb.mat",
-        source_url=_ft_neighbor_url_t.substitute(
-            fname="easycapM11_neighb.mat"
-        ),  # noqa: E501
+        source_url=_ft_neighbor_url_t.substitute(fname="easycapM11_neighb.mat"),  # noqa: E501
     ),
     _BuiltinChannelAdjacency(
         name="easycapM14",
         description="Easycap M14",
         fname="easycapM14_neighb.mat",
-        source_url=_ft_neighbor_url_t.substitute(
-            fname="easycapM14_neighb.mat"
-        ),  # noqa: E501
+        source_url=_ft_neighbor_url_t.substitute(fname="easycapM14_neighb.mat"),  # noqa: E501
     ),
     _BuiltinChannelAdjacency(
         name="easycapM15",
         description="Easycap M15",
         fname="easycapM15_neighb.mat",
-        source_url=_ft_neighbor_url_t.substitute(
-            fname="easycapM15_neighb.mat"
-        ),  # noqa: E501
+        source_url=_ft_neighbor_url_t.substitute(fname="easycapM15_neighb.mat"),  # noqa: E501
     ),
     _BuiltinChannelAdjacency(
         name="KIT-157",
@@ -1179,49 +1167,37 @@ _BUILTIN_CHANNEL_ADJACENCIES = [
         name="neuromag306mag",
         description="Neuromag306, only magnetometers",
         fname="neuromag306mag_neighb.mat",
-        source_url=_ft_neighbor_url_t.substitute(
-            fname="neuromag306mag_neighb.mat"
-        ),  # noqa: E501
+        source_url=_ft_neighbor_url_t.substitute(fname="neuromag306mag_neighb.mat"),  # noqa: E501
     ),
     _BuiltinChannelAdjacency(
         name="neuromag306planar",
         description="Neuromag306, only planar gradiometers",
         fname="neuromag306planar_neighb.mat",
-        source_url=_ft_neighbor_url_t.substitute(
-            fname="neuromag306planar_neighb.mat"
-        ),  # noqa: E501
+        source_url=_ft_neighbor_url_t.substitute(fname="neuromag306planar_neighb.mat"),  # noqa: E501
     ),
     _BuiltinChannelAdjacency(
         name="neuromag122cmb",
         description="Neuromag122, only combined planar gradiometers",
         fname="neuromag122cmb_neighb.mat",
-        source_url=_ft_neighbor_url_t.substitute(
-            fname="neuromag122cmb_neighb.mat"
-        ),  # noqa: E501
+        source_url=_ft_neighbor_url_t.substitute(fname="neuromag122cmb_neighb.mat"),  # noqa: E501
     ),
     _BuiltinChannelAdjacency(
         name="neuromag306cmb",
         description="Neuromag306, only combined planar gradiometers",
         fname="neuromag306cmb_neighb.mat",
-        source_url=_ft_neighbor_url_t.substitute(
-            fname="neuromag306cmb_neighb.mat"
-        ),  # noqa: E501
+        source_url=_ft_neighbor_url_t.substitute(fname="neuromag306cmb_neighb.mat"),  # noqa: E501
     ),
     _BuiltinChannelAdjacency(
         name="ecog256",
         description="ECOG 256channels, average referenced",
         fname="ecog256_neighb.mat",
-        source_url=_ft_neighbor_url_t.substitute(
-            fname="ecog256_neighb.mat"
-        ),  # noqa: E501
+        source_url=_ft_neighbor_url_t.substitute(fname="ecog256_neighb.mat"),  # noqa: E501
     ),
     _BuiltinChannelAdjacency(
         name="ecog256bipolar",
         description="ECOG 256channels, bipolar referenced",
         fname="ecog256bipolar_neighb.mat",
-        source_url=_ft_neighbor_url_t.substitute(
-            fname="ecog256bipolar_neighb.mat"
-        ),  # noqa: E501
+        source_url=_ft_neighbor_url_t.substitute(fname="ecog256bipolar_neighb.mat"),  # noqa: E501
     ),
     _BuiltinChannelAdjacency(
         name="eeg1010_neighb",
@@ -1263,33 +1239,25 @@ _BUILTIN_CHANNEL_ADJACENCIES = [
         name="language29ch-avg",
         description="MPI for Psycholinguistic: Averaged 29-channel cap",
         fname="language29ch-avg_neighb.mat",
-        source_url=_ft_neighbor_url_t.substitute(
-            fname="language29ch-avg_neighb.mat"
-        ),  # noqa: E501
+        source_url=_ft_neighbor_url_t.substitute(fname="language29ch-avg_neighb.mat"),  # noqa: E501
     ),
     _BuiltinChannelAdjacency(
         name="mpi_59_channels",
         description="MPI for Psycholinguistic: 59-channel cap",
         fname="mpi_59_channels_neighb.mat",
-        source_url=_ft_neighbor_url_t.substitute(
-            fname="mpi_59_channels_neighb.mat"
-        ),  # noqa: E501
+        source_url=_ft_neighbor_url_t.substitute(fname="mpi_59_channels_neighb.mat"),  # noqa: E501
     ),
     _BuiltinChannelAdjacency(
         name="yokogawa160",
         description="",
         fname="yokogawa160_neighb.mat",
-        source_url=_ft_neighbor_url_t.substitute(
-            fname="yokogawa160_neighb.mat"
-        ),  # noqa: E501
+        source_url=_ft_neighbor_url_t.substitute(fname="yokogawa160_neighb.mat"),  # noqa: E501
     ),
     _BuiltinChannelAdjacency(
         name="yokogawa440",
         description="",
         fname="yokogawa440_neighb.mat",
-        source_url=_ft_neighbor_url_t.substitute(
-            fname="yokogawa440_neighb.mat"
-        ),  # noqa: E501
+        source_url=_ft_neighbor_url_t.substitute(fname="yokogawa440_neighb.mat"),  # noqa: E501
     ),
 ]
 

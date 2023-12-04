@@ -265,8 +265,9 @@ class BaseRaw(
         if orig_units:
             if not isinstance(orig_units, dict):
                 raise ValueError(
-                    "orig_units must be of type dict, but got "
-                    " {}".format(type(orig_units))
+                    "orig_units must be of type dict, but got " " {}".format(
+                        type(orig_units)
+                    )
                 )
 
             # original units need to be truncated to 15 chars or renamed
@@ -291,8 +292,9 @@ class BaseRaw(
             if not all(ch_correspond):
                 ch_without_orig_unit = ch_names[ch_correspond.index(False)]
                 raise ValueError(
-                    "Channel {} has no associated original "
-                    "unit.".format(ch_without_orig_unit)
+                    "Channel {} has no associated original " "unit.".format(
+                        ch_without_orig_unit
+                    )
                 )
 
             # Final check of orig_units, editing a unit if it is not a valid

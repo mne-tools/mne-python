@@ -977,9 +977,9 @@ def norm_epsilon(Y, l1_ratio, phi, w_space=1.0, w_time=None):
         p_sum_w2 = np.cumsum(w_time**2)
         p_sum_Yw = np.cumsum(Y * w_time)
         upper = p_sum_Y2 / (Y / w_time) ** 2 - 2.0 * p_sum_Yw / (Y / w_time) + p_sum_w2
-    upper_greater = np.where(
-        upper > w_space**2 * (1.0 - l1_ratio) ** 2 / l1_ratio**2
-    )[0]
+    upper_greater = np.where(upper > w_space**2 * (1.0 - l1_ratio) ** 2 / l1_ratio**2)[
+        0
+    ]
 
     i0 = upper_greater[0] - 1 if upper_greater.size else K - 1
 

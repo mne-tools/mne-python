@@ -2187,8 +2187,9 @@ def link_brains(brains, time=True, camera=False, colorbar=True, picking=False):
 
     if _get_3d_backend() != "pyvistaqt":
         raise NotImplementedError(
-            "Expected 3d backend is pyvistaqt but"
-            " {} was given.".format(_get_3d_backend())
+            "Expected 3d backend is pyvistaqt but" " {} was given.".format(
+                _get_3d_backend()
+            )
         )
     from ._brain import Brain, _LinkViewer
 

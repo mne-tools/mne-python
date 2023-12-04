@@ -497,9 +497,7 @@ class _BaseSourceEstimate(TimeMixin):
     _data_ndim = 2
 
     @verbose
-    def __init__(
-        self, data, vertices, tmin, tstep, subject=None, verbose=None
-    ):  # noqa: D102
+    def __init__(self, data, vertices, tmin, tstep, subject=None, verbose=None):  # noqa: D102
         assert hasattr(self, "_data_ndim"), self.__class__.__name__
         assert hasattr(self, "_src_type"), self.__class__.__name__
         assert hasattr(self, "_src_count"), self.__class__.__name__

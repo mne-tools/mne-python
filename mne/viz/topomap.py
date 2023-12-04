@@ -1220,7 +1220,8 @@ def _plot_topomap(
         elif len(pos["chs"]) != data.shape[0]:
             raise ValueError(
                 "Number of channels in the Info object (%s) and "
-                "the data array (%s) do not match. " % (len(pos["chs"]), data.shape[0])
+                "the data array (%s) do not match. "
+                % (len(pos["chs"]), data.shape[0])
                 + info_help
             )
         else:

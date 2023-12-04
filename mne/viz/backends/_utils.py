@@ -73,8 +73,9 @@ def _check_color(color):
             )
     else:
         raise TypeError(
-            "Expected type is `str` or iterable but "
-            "{} was given.".format(type(color))
+            "Expected type is `str` or iterable but " "{} was given.".format(
+                type(color)
+            )
         )
     return color
 
@@ -327,9 +328,7 @@ QToolBar::handle:vertical {
   height: 16px;
   image: url("%(icons_path)s/toolbar_move_vertical@2x.png");
 }
-""" % dict(
-                    icons_path=icons_path
-                )
+""" % dict(icons_path=icons_path)
         else:
             # Here we are on non-macOS (or on macOS but our sys theme does not
             # match the requested theme)

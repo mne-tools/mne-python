@@ -107,9 +107,7 @@ class Scaler(TransformerMixin, BaseEstimator):
         if ``scalings`` is a dict or None).
     """
 
-    def __init__(
-        self, info=None, scalings=None, with_mean=True, with_std=True
-    ):  # noqa: D102
+    def __init__(self, info=None, scalings=None, with_mean=True, with_std=True):  # noqa: D102
         self.info = info
         self.with_mean = with_mean
         self.with_std = with_std

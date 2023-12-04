@@ -78,8 +78,9 @@ def set_channel_types_eyetrack(inst, mapping):
         ch_type = ch_desc[0].lower()
         if ch_type not in valid_types:
             raise ValueError(
-                "ch_type must be one of {}. "
-                "Got '{}' instead.".format(valid_types, ch_type)
+                "ch_type must be one of {}. " "Got '{}' instead.".format(
+                    valid_types, ch_type
+                )
             )
         if ch_type == "eyegaze":
             coil_type = FIFF.FIFFV_COIL_EYETRACK_POS

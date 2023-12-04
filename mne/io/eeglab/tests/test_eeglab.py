@@ -568,9 +568,7 @@ def test_position_information(three_chanpos_fname):
         input_fname=three_chanpos_fname,
         preload=True,
         montage_units="cm",
-    ).set_montage(
-        None
-    )  # Flush the montage builtin within input_fname
+    ).set_montage(None)  # Flush the montage builtin within input_fname
 
     _assert_array_allclose_nan(
         np.array([ch["loc"] for ch in raw.info["chs"]]), EXPECTED_LOCATIONS_FROM_MONTAGE

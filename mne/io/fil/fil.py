@@ -311,8 +311,9 @@ def _from_tsv(fname, dtypes=None):
         dtypes = [dtypes] * info.shape[1]
     if not len(dtypes) == info.shape[1]:
         raise ValueError(
-            "dtypes length mismatch. Provided: {0}, "
-            "Expected: {1}".format(len(dtypes), info.shape[1])
+            "dtypes length mismatch. Provided: {0}, " "Expected: {1}".format(
+                len(dtypes), info.shape[1]
+            )
         )
     for i, name in enumerate(column_names):
         data_dict[name] = info[:, i].astype(dtypes[i]).tolist()

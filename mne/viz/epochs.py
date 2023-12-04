@@ -468,8 +468,9 @@ def _validate_fig_and_axes(fig, axes, group_by, evoked, colorbar, clear=False):
         # `plot_image`, be forgiving of presence/absence of sensor inset axis.
         if len(fig.axes) not in (n_axes, n_axes + 1):
             raise ValueError(
-                '{}"fig" must contain {} axes, got {}.'
-                "".format(prefix, n_axes, len(fig.axes))
+                '{}"fig" must contain {} axes, got {}.' "".format(
+                    prefix, n_axes, len(fig.axes)
+                )
             )
         if len(list(group_by)) != 1:
             raise ValueError(
@@ -498,8 +499,9 @@ def _validate_fig_and_axes(fig, axes, group_by, evoked, colorbar, clear=False):
     if isinstance(axes, list):
         if len(axes) != n_axes:
             raise ValueError(
-                '{}"axes" must be length {}, got {}.'
-                "".format(prefix, n_axes, len(axes))
+                '{}"axes" must be length {}, got {}.' "".format(
+                    prefix, n_axes, len(axes)
+                )
             )
         # for list of axes to work, must be only one group
         if len(list(group_by)) != 1:

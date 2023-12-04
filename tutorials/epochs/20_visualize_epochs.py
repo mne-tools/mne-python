@@ -245,7 +245,9 @@ epochs["auditory"].plot_image(picks=["MEG 0242", "MEG 0243"], combine="gfp")
 # therefore mask smaller signal fluctuations of interest.
 
 reject_criteria = dict(
-    mag=3000e-15, grad=3000e-13, eeg=150e-6  # 3000 fT  # 3000 fT/cm
+    mag=3000e-15,
+    grad=3000e-13,
+    eeg=150e-6,  # 3000 fT  # 3000 fT/cm
 )  # 150 µV
 epochs.drop_bad(reject=reject_criteria)
 

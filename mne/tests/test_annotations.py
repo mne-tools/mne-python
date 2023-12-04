@@ -425,7 +425,11 @@ def test_raw_reject(first_samp):
     with pytest.warns(RuntimeWarning, match="outside the data range"):
         raw.set_annotations(Annotations([2, 100, 105, 148], [2, 8, 5, 8], "BAD"))
     data, times = raw.get_data(
-        [0, 1, 3, 4], 100, 11200, "omit", return_times=True  # 1-112 s
+        [0, 1, 3, 4],
+        100,
+        11200,
+        "omit",
+        return_times=True,  # 1-112 s
     )
     bad_times = np.concatenate(
         [np.arange(200, 400), np.arange(10000, 10800), np.arange(10500, 11000)]

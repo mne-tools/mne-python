@@ -142,8 +142,9 @@ time_secs = raw.times
 ch_names = raw.ch_names
 n_chan = len(ch_names)  # note: there is no raw.n_channels attribute
 print(
-    "the (cropped) sample data object has {} time samples and {} channels."
-    "".format(n_time_samps, n_chan)
+    "the (cropped) sample data object has {} time samples and {} channels." "".format(
+        n_time_samps, n_chan
+    )
 )
 print("The last time sample is at {} seconds.".format(time_secs[-1]))
 print("The first few channel names are {}.".format(", ".join(ch_names[:3])))
