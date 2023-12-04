@@ -71,6 +71,8 @@ doc/*.dat
 doc/fil-result
 doc/optipng.exe
 sg_execution_times.rst
+sg_api_usage.rst
+sg_api_unused.dot
 cover
 *.html
 
