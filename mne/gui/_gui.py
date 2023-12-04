@@ -84,21 +84,6 @@ def coregistration(
         .. versionchanged:: 1.0
            Default interaction mode if ``None`` and no config setting found
            changed from ``'trackball'`` to ``'terrain'``.
-    scale : float | None
-        The scaling for the scene.
-
-        .. versionadded:: 0.16
-    advanced_rendering : bool
-        Use advanced OpenGL rendering techniques (default True).
-        For some renderers (such as MESA software) this can cause rendering
-        bugs.
-
-        .. versionadded:: 0.18
-    head_inside : bool
-        If True (default), add opaque inner scalp head surface to help occlude
-        points behind the head.
-
-        .. versionadded:: 0.23
     %(fullscreen)s
         Default is None, which uses ``MNE_COREG_FULLSCREEN`` config value
         (which defaults to False).

@@ -5,10 +5,9 @@ from functools import partial
 import numpy as np
 import pytest
 from matplotlib.colors import same_color
-from numpy.testing import assert_allclose, assert_array_equal
+from numpy.testing import assert_array_equal
 
-from mne import Annotations, create_info, make_fixed_length_epochs
-from mne.io import RawArray
+from mne import Annotations
 from mne.time_frequency import read_spectrum
 from mne.time_frequency.multitaper import _psd_from_mt
 from mne.time_frequency.spectrum import EpochsSpectrumArray, SpectrumArray
@@ -23,7 +22,7 @@ def test_compute_psd_errors(raw):
     with pytest.raises(TypeError, match="keyword arguments foo, bar for"):
         raw.compute_psd(foo=None, bar=None)
     # TODO: More code to remove here?
-    with pytest.raises(RuntimeError, match="Complex output support in.*deprecated"):
+    with pytest.raises(RuntimeError, match="Complex output support in.*not supported"):
         raw.compute_psd(output="complex")
 
 
@@ -218,14 +217,11 @@ def _agg_helper(df, weights, group_cols):
     return Series(_df)
 
 
-@pytest.mark.filterwarnings("ignore:Complex output support.*:FutureWarning")
 @pytest.mark.parametrize("long_format", (False, True))
 @pytest.mark.parametrize(
     "method, output",
     [
-        ("welch", "complex"),
         ("welch", "power"),
-        ("multitaper", "complex"),
     ],
 )
 def test_unaggregated_spectrum_to_data_frame(raw, long_format, method, output):
@@ -338,63 +334,6 @@ def test_spectrum_proj(inst, request):
     with has_proj.info._unlock():
         has_proj.info["projs"] = no_proj.info["projs"]
     assert has_proj == no_proj
-
-
-@pytest.mark.filterwarnings("ignore:Complex output support.*:FutureWarning")
-@pytest.mark.parametrize(
-    "method, average",
-    [
-        ("welch", False),
-        ("welch", "mean"),
-        ("multitaper", False),
-    ],
-)
-def test_spectrum_complex(method, average):
-    """Test output='complex' support."""
-    sfreq = 100
-    n = 10 * sfreq
-    freq = 3.0
-    phase = np.pi / 4  # should be recoverable
-    data = np.cos(2 * np.pi * freq * np.arange(n) / sfreq + phase)[np.newaxis]
-    raw = RawArray(data, create_info(1, sfreq, "eeg"))
-    epochs = make_fixed_length_epochs(raw, duration=2.0, preload=True)
-    assert len(epochs) == 5
-    assert len(epochs.times) == 2 * sfreq
-    kwargs = dict(output="complex", method=method)
-    if method == "welch":
-        kwargs["n_fft"] = sfreq
-        want_dims = ("epoch", "channel", "freq")
-        want_shape = (5, 1, sfreq // 2 + 1)
-        if not average:
-            want_dims = want_dims + ("segment",)
-            want_shape = want_shape + (2,)
-            kwargs["average"] = average
-    else:
-        assert method == "multitaper"
-        assert not average
-        want_dims = ("epoch", "channel", "taper", "freq")
-        want_shape = (5, 1, 7, sfreq + 1)
-    spectrum = epochs.compute_psd(**kwargs)
-    idx = np.argmin(np.abs(spectrum.freqs - freq))
-    assert spectrum.freqs[idx] == freq
-    assert spectrum._dims == want_dims
-    assert spectrum.shape == want_shape
-    data = spectrum.get_data()
-    assert data.dtype == np.complex128
-    coef = spectrum.get_data(fmin=freq, fmax=freq).mean(0)
-    if method == "multitaper":
-        coef = coef[..., 0, :]  # first taper
-    elif not average:
-        coef = coef.mean(-1)  # over segments
-    coef = coef.item()
-    assert_allclose(np.angle(coef), phase, rtol=1e-4)
-    # Now test that it warns appropriately
-    epochs._data[0, 0, :] = 0  # actually zero for one epoch and ch
-    with pytest.warns(UserWarning, match="Zero value.*channel 0"):
-        epochs.compute_psd(**kwargs)
-    # But not if we mark that channel as bad
-    epochs.info["bads"] = epochs.ch_names[:1]
-    epochs.compute_psd(**kwargs)
 
 
 def test_spectrum_kwarg_triaging(raw):
