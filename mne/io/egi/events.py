@@ -81,10 +81,8 @@ def _read_mff_events(filename, sfreq):
 
 def _parse_xml(xml_file):
     """Parse XML file."""
-    _soft_import("defusedxml", "reading EGI MFF data")
-    from defusedxml.minidom import parse
-
-    xml = parse(xml_file)
+    defusedxml = _soft_import("defusedxml", "reading EGI MFF data")
+    xml = defusedxml.ElementTree.parse(xml_file)
     root = xml.getroot()
     return _xml2list(root)
 
