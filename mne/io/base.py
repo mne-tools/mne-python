@@ -797,6 +797,9 @@ class BaseRaw(
                 item1 = int(item1)
             if isinstance(item1, (int, np.integer)):
                 start, stop, step = item1, item1 + 1, 1
+                # Need to special case -1, because -1:0 will be empty
+                if start == -1:
+                    stop = None
             else:
                 raise ValueError("Must pass int or slice to __getitem__")
 
