@@ -182,7 +182,6 @@ intersphinx_mapping = {
     ),
     "pybv": ("https://pybv.readthedocs.io/en/latest/", None),
     "pyqtgraph": ("https://pyqtgraph.readthedocs.io/en/latest/", None),
-    "openmeeg": ("https://openmeeg.github.io", None),
 }
 
 
