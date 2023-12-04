@@ -172,18 +172,14 @@ intersphinx_mapping = {
     "patsy": ("https://patsy.readthedocs.io/en/latest", None),
     "pyvista": ("https://docs.pyvista.org", None),
     "imageio": ("https://imageio.readthedocs.io/en/latest", None),
-    "mne_realtime": ("https://mne.tools/mne-realtime", None),
     "picard": ("https://pierreablin.github.io/picard/", None),
-    "qdarkstyle": ("https://qdarkstylesheet.readthedocs.io/en/latest", None),
     "eeglabio": ("https://eeglabio.readthedocs.io/en/latest", None),
     "dipy": (
         "https://dipy.org/documentation/1.7.0/",
         "https://dipy.org/documentation/1.7.0/objects.inv/",
     ),
-    "pooch": ("https://www.fatiando.org/pooch/latest/", None),
     "pybv": ("https://pybv.readthedocs.io/en/latest/", None),
     "pyqtgraph": ("https://pyqtgraph.readthedocs.io/en/latest/", None),
-    "openmeeg": ("https://openmeeg.github.io", None),
 }
 
 
@@ -400,6 +396,10 @@ numpydoc_xref_ignore = {
     "CoregistrationUI",
     "IntracranialElectrodeLocator",
     "mne_qt_browser.figure.MNEQtBrowser",
+    # pooch, since its website is unreliable and users will rarely need the links
+    "pooch.Unzip",
+    "pooch.Untar",
+    "pooch.HTTPDownloader",
 }
 numpydoc_validate = True
 numpydoc_validation_checks = {"all"} | set(error_ignores)
