@@ -399,7 +399,7 @@ numpydoc_xref_ignore = {
     "CoregistrationUI",
     "IntracranialElectrodeLocator",
     "mne_qt_browser.figure.MNEQtBrowser",
-    # pooch, since its website is unreliable and we users will rarely need the links
+    # pooch, since its website is unreliable and users will rarely need the links
     "pooch.Unzip",
     "pooch.Untar",
     "pooch.HTTPDownloader",
