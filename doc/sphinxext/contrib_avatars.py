@@ -25,7 +25,7 @@ MNE_ADD_CONTRIBUTOR_IMAGE=true in your environment to generate it.</p>"""
             driver = webdriver.Chrome(options=options)
         except WebDriverException:
             options = webdriver.FirefoxOptions()
-            options.add_argument("--headless=new")
+            options.add_argument("-headless")
             driver = webdriver.Firefox(options=options)
         driver.get(f"file://{infile}")
         wait = WebDriverWait(driver, 20)
