@@ -5,11 +5,12 @@ repos:
     hooks:
       # lint
       - id: ruff
-        name: ruff mne
+        name: lint mne
         args: ["--fix"]
         files: ^mne/
       # format
       - id: ruff-format
+        name: format mne
         files: ^mne/
 
   # Ruff tutorials and examples
@@ -18,13 +19,14 @@ repos:
     hooks:
       # Lint
       - id: ruff
-        name: ruff tutorials and examples
+        name: lint tutorials and examples
         # D103: missing docstring in public function
         # D400: docstring first line must end with period
         args: ["--ignore=D103,D400", "--fix"]
         files: ^tutorials/|^examples/
       # Format
       - id: ruff-format
+        name: format tutorials and examples
         files: ^tutorials/|^examples/
 
   # Codespell
