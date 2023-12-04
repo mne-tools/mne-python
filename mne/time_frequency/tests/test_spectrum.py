@@ -22,7 +22,8 @@ def test_compute_psd_errors(raw):
         raw.compute_psd(foo=None)
     with pytest.raises(TypeError, match="keyword arguments foo, bar for"):
         raw.compute_psd(foo=None, bar=None)
-    with pytest.warns(FutureWarning, match="Complex output support in.*deprecated"):
+    # TODO: More code to remove here?
+    with pytest.raises(RuntimeError, match="Complex output support in.*deprecated"):
         raw.compute_psd(output="complex")
 
 

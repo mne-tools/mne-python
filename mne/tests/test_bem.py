@@ -37,11 +37,11 @@ from mne.bem import (
     _ico_downsample,
     _order_surfaces,
     distance_to_bem,
+    fit_sphere_to_headshape,
     make_scalp_surfaces,
 )
 from mne.datasets import testing
 from mne.io import read_info
-from mne.preprocessing.maxfilter import fit_sphere_to_headshape
 from mne.surface import _get_ico_surface, read_surface
 from mne.transforms import translation
 from mne.utils import catch_logging, check_version

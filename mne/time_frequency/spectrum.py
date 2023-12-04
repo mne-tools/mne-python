@@ -322,12 +322,11 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         # don't allow complex output
         psd_funcs = dict(welch=psd_array_welch, multitaper=psd_array_multitaper)
         if method_kw.get("output", "") == "complex":
-            warn(
+            raise RuntimeError(
                 f"Complex output support in {type(self).__name__} objects is "
-                "deprecated and will be removed in version 1.7. If you need complex "
+                "not supported. If you need complex "
                 f"output please use mne.time_frequency.{psd_funcs[method].__name__}() "
                 "instead.",
-                FutureWarning,
             )
         # triage method and kwargs. partial() doesn't check validity of kwargs,
         # so we do it manually to save compute time if any are invalid.
