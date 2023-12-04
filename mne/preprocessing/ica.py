@@ -445,7 +445,7 @@ class ICA(ContainsMixin):
         max_iter="auto",
         allow_ref_meg=False,
         verbose=None,
-    ):  # noqa: D102
+    ):
         _validate_type(method, str, "method")
         _validate_type(n_components, (float, "int-like", None))
 

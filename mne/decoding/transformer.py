@@ -107,7 +107,7 @@ class Scaler(TransformerMixin, BaseEstimator):
         if ``scalings`` is a dict or None).
     """
 
-    def __init__(self, info=None, scalings=None, with_mean=True, with_std=True):  # noqa: D102
+    def __init__(self, info=None, scalings=None, with_mean=True, with_std=True):
         self.info = info
         self.with_mean = with_mean
         self.with_std = with_std
@@ -382,7 +382,7 @@ class PSDEstimator(TransformerMixin):
         normalization="length",
         *,
         verbose=None,
-    ):  # noqa: D102
+    ):
         self.sfreq = sfreq
         self.fmin = fmin
         self.fmax = fmax
@@ -511,7 +511,7 @@ class FilterEstimator(TransformerMixin):
         fir_design="firwin",
         *,
         verbose=None,
-    ):  # noqa: D102
+    ):
         self.info = info
         self.l_freq = l_freq
         self.h_freq = h_freq
@@ -624,7 +624,7 @@ class UnsupervisedSpatialFilter(TransformerMixin, BaseEstimator):
         (e.g. epochs).
     """
 
-    def __init__(self, estimator, average=False):  # noqa: D102
+    def __init__(self, estimator, average=False):
         # XXX: Use _check_estimator #3381
         for attr in ("fit", "transform", "fit_transform"):
             if not hasattr(estimator, attr):
@@ -837,7 +837,7 @@ class TemporalFilter(TransformerMixin):
         fir_design="firwin",
         *,
         verbose=None,
-    ):  # noqa: D102
+    ):
         self.l_freq = l_freq
         self.h_freq = h_freq
         self.sfreq = sfreq

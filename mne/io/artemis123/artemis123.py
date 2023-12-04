@@ -340,7 +340,7 @@ class RawArtemis123(BaseRaw):
         verbose=None,
         pos_fname=None,
         add_head_trans=True,
-    ):  # noqa: D102
+    ):
         from ...chpi import (
             _fit_coil_order_dev_head_trans,
             compute_chpi_amplitudes,

@@ -778,7 +778,7 @@ def safe_max_abs_diff(A, ia, B, ib):
 class _Phi:
     """Have phi stft as callable w/o using a lambda that does not pickle."""
 
-    def __init__(self, wsize, tstep, n_coefs, n_times):  # noqa: D102
+    def __init__(self, wsize, tstep, n_coefs, n_times):
         self.wsize = np.atleast_1d(wsize)
         self.tstep = np.atleast_1d(tstep)
         self.n_coefs = np.atleast_1d(n_coefs)
@@ -819,7 +819,7 @@ class _Phi:
 class _PhiT:
     """Have phi.T istft as callable w/o using a lambda that does not pickle."""
 
-    def __init__(self, tstep, n_freqs, n_steps, n_times):  # noqa: D102
+    def __init__(self, tstep, n_freqs, n_steps, n_times):
         self.tstep = tstep
         self.n_freqs = n_freqs
         self.n_steps = n_steps

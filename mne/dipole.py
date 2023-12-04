@@ -130,7 +130,7 @@ class Dipole(TimeMixin):
         nfree=None,
         *,
         verbose=None,
-    ):  # noqa: D102
+    ):
         self._set_times(np.array(times))
         self.pos = np.array(pos)
         self.amplitude = np.array(amplitude)
@@ -481,7 +481,7 @@ class DipoleFixed(ExtendedTimeMixin):
     @verbose
     def __init__(
         self, info, data, times, nave, aspect_kind, comment="", *, verbose=None
-    ):  # noqa: D102
+    ):
         self.info = info
         self.nave = nave
         self._aspect_kind = aspect_kind

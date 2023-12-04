@@ -449,7 +449,7 @@ class RawEEGLAB(BaseRaw):
         uint16_codec=None,
         montage_units="auto",
         verbose=None,
-    ):  # noqa: D102
+    ):
         input_fname = str(_check_fname(input_fname, "read", True, "input_fname"))
         eeg = _check_load_mat(input_fname, uint16_codec)
         if eeg.trials != 1:
@@ -602,7 +602,7 @@ class EpochsEEGLAB(BaseEpochs):
         uint16_codec=None,
         montage_units="auto",
         verbose=None,
-    ):  # noqa: D102
+    ):
         input_fname = str(
             _check_fname(fname=input_fname, must_exist=True, overwrite="read")
         )

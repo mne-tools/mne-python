@@ -46,7 +46,7 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
         position=0,
         allow_2d=False,
         verbose=None,
-    ):  # noqa: D102
+    ):
         _check_estimator(base_estimator)
         self.base_estimator = base_estimator
         self.n_jobs = n_jobs

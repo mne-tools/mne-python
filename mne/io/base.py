@@ -203,7 +203,7 @@ class BaseRaw(
         orig_units=None,
         *,
         verbose=None,
-    ):  # noqa: D102
+    ):
         # wait until the end to preload data, but triage here
         if isinstance(preload, np.ndarray):
             # some functions (e.g., filtering) only work w/64-bit data
@@ -1129,7 +1129,7 @@ class BaseRaw(
         skip_by_annotation=("edge", "bad_acq_skip"),
         pad="reflect_limited",
         verbose=None,
-    ):  # noqa: D102
+    ):
         return super().filter(
             l_freq,
             h_freq,
@@ -2524,7 +2524,7 @@ class _ReadSegmentFileProtector:
 class _RawShell:
     """Create a temporary raw object."""
 
-    def __init__(self):  # noqa: D102
+    def __init__(self):
         self.first_samp = None
         self.last_samp = None
         self._first_time = None

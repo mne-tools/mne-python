@@ -4741,7 +4741,7 @@ def open_docs(kind=None, version=None):
 class _decorator:
     """Inject code or modify the docstring of a class, method, or function."""
 
-    def __init__(self, extra):  # noqa: D102
+    def __init__(self, extra):
         self.kind = self.__class__.__name__
         self.extra = extra
         self.msg = f"NOTE: {{}}() is a {self.kind} {{}}. {self.extra}."
@@ -4861,7 +4861,7 @@ class legacy(_decorator):
         and in a sphinx warning box in the docstring.
     """
 
-    def __init__(self, alt, extra=""):  # noqa: D102
+    def __init__(self, alt, extra=""):
         period = ". " if len(extra) else ""
         extra = f"New code should use {alt}{period}{extra}"
         super().__init__(extra=extra)
