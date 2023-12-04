@@ -172,9 +172,7 @@ intersphinx_mapping = {
     "patsy": ("https://patsy.readthedocs.io/en/latest", None),
     "pyvista": ("https://docs.pyvista.org", None),
     "imageio": ("https://imageio.readthedocs.io/en/latest", None),
-    "mne_realtime": ("https://mne.tools/mne-realtime", None),
     "picard": ("https://pierreablin.github.io/picard/", None),
-    "qdarkstyle": ("https://qdarkstylesheet.readthedocs.io/en/latest", None),
     "eeglabio": ("https://eeglabio.readthedocs.io/en/latest", None),
     "dipy": (
         "https://dipy.org/documentation/1.7.0/",
