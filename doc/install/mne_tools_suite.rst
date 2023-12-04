@@ -100,7 +100,6 @@ Help with installation is available through the `MNE Forum`_. See the
 .. _MNELAB: https://github.com/cbrnr/mnelab
 .. _autoreject: https://autoreject.github.io/
 .. _alphaCSC: https://alphacsc.github.io/
-.. _picard: https://pierreablin.github.io/picard/
 .. _pactools: https://pactools.github.io/
 .. _rsa: https://github.com/wmvanvliet/mne-rsa
 .. _microstate: https://github.com/wmvanvliet/mne_microstates
