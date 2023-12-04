@@ -4532,7 +4532,7 @@ _theme = """\
 theme : str | path-like
     Can be "auto", "light", or "dark" or a path-like to a
     custom stylesheet. For Dark-Mode and automatic Dark-Mode-Detection,
-    :mod:`qdarkstyle` and
+    `qdarkstyle <https://github.com/ColinDuquesnoy/QDarkStyleSheet>`__ and
     `darkdetect <https://github.com/albertosottile/darkdetect>`__,
     respectively, are required.\
     If None (default), the config option {config_option} will be used,

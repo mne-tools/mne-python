@@ -26,6 +26,7 @@
 .. _`MNE-ICAlabel`: https://github.com/mne-tools/mne-icalabel
 .. _`MNE-Connectivity`: https://github.com/mne-tools/mne-connectivity
 .. _`MNE-NIRS`: https://github.com/mne-tools/mne-nirs
+.. _PICARD: https://pierreablin.github.io/picard/
 .. _OpenMEEG: https://openmeeg.github.io
 .. _openneuro-py: https://pypi.org/project/openneuro-py
 .. _EOSS2: https://chanzuckerberg.com/eoss/proposals/improving-usability-of-core-neuroscience-analysis-tools-with-mne-python
