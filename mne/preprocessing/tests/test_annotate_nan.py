@@ -12,9 +12,7 @@ from numpy.testing import assert_array_equal
 import mne
 from mne.preprocessing import annotate_nan
 
-raw_fname = (
-    Path(__file__).parent.parent.parent / "io" / "tests" / "data" / "test_raw.fif"
-)
+raw_fname = Path(__file__).parents[2] / "io" / "tests" / "data" / "test_raw.fif"
 
 
 @pytest.mark.parametrize("meas_date", (None, "orig"))

@@ -26,7 +26,7 @@ from mne.utils import (
 )
 from mne.utils._logging import _frame_info
 
-base_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
+base_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
 fname_raw = base_dir / "test_raw.fif"
 fname_evoked = base_dir / "test-ave.fif"
 fname_log = base_dir / "test-ave.log"

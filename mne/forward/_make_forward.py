@@ -661,7 +661,7 @@ def make_forward_solution(
     followed by :func:`mne.convert_forward_solution`.
 
     .. note::
-        If the BEM solution was computed with :doc:`OpenMEEG <openmeeg:index>`
+        If the BEM solution was computed with `OpenMEEG <https://openmeeg.github.io>`__
         in :func:`mne.make_bem_solution`, then OpenMEEG will automatically
         be used to compute the forward solution.
 

@@ -1784,15 +1784,7 @@ def _get_color_list(annotations=False):
     from matplotlib import rcParams
 
     color_cycle = rcParams.get("axes.prop_cycle")
-
-    if not color_cycle:
-        # Use deprecated color_cycle to avoid KeyErrors in environments
-        # with Python 2.7 and Matplotlib < 1.5
-        # this will already be a list
-        colors = rcParams.get("axes.color_cycle")
-    else:
-        # we were able to use the prop_cycle. Now just convert to list
-        colors = color_cycle.by_key()["color"]
+    colors = color_cycle.by_key()["color"]
 
     # If we want annotations, red is reserved ... remove if present. This
     # checks for the reddish color in MPL dark background style, normal style,
