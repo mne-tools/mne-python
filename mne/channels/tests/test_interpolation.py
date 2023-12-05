@@ -20,7 +20,7 @@ from mne.preprocessing.nirs import (
 )
 from mne.utils import _record_warnings
 
-base_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
+base_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
 raw_fname = base_dir / "test_raw.fif"
 event_name = base_dir / "test-eve.fif"
 raw_fname_ctf = base_dir / "test_ctf_raw.fif"

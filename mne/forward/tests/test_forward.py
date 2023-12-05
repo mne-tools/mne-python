@@ -44,9 +44,7 @@ fname_meeg = data_path / "MEG" / "sample" / "sample_audvis_trunc-meg-eeg-oct-4-f
 fname_meeg_grad = (
     data_path / "MEG" / "sample" / "sample_audvis_trunc-meg-eeg-oct-2-grad-fwd.fif"
 )
-fname_evoked = (
-    Path(__file__).parent.parent.parent / "io" / "tests" / "data" / "test-ave.fif"
-)
+fname_evoked = Path(__file__).parents[2] / "io" / "tests" / "data" / "test-ave.fif"
 label_path = data_path / "MEG" / "sample" / "labels"
 
 

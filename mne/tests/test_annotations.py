@@ -49,7 +49,7 @@ from mne.utils import (
 
 data_path = testing.data_path(download=False)
 data_dir = data_path / "MEG" / "sample"
-fif_fname = Path(__file__).parent.parent / "io" / "tests" / "data" / "test_raw.fif"
+fif_fname = Path(__file__).parents[1] / "io" / "tests" / "data" / "test_raw.fif"
 first_samps = pytest.mark.parametrize("first_samp", (0, 10000))
 edf_reduced = data_path / "EDF" / "test_reduced.edf"
 edf_annot_only = data_path / "EDF" / "SC4001EC-Hypnogram.edf"

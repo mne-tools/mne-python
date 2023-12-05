@@ -12,7 +12,7 @@ from mne.preprocessing import equalize_bads, interpolate_bridged_electrodes
 from mne.preprocessing.interpolate import _find_centroid_sphere
 from mne.transforms import _cart_to_sph
 
-base_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
+base_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
 raw_fname = base_dir / "test_raw.fif"
 event_name = base_dir / "test-eve.fif"
 raw_fname_ctf = base_dir / "test_ctf_raw.fif"
