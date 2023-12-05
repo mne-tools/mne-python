@@ -21,7 +21,7 @@ from ._utils import (
 
 data_path = _data_path  # expose _data_path(..) as data_path(..)
 
-BASE_URL = "https://physionet.org/physiobank/database/sleep-edfx/sleep-cassette/"  # noqa: E501
+BASE_URL = "https://physionet.org/physiobank/database/sleep-edfx/sleep-cassette/"
 
 
 @verbose

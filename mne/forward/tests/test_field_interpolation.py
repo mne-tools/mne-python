@@ -240,13 +240,13 @@ def test_make_field_map_meeg():
         np.sqrt(np.sum(maps[0]["data"] ** 2)),
         19.0903,
         atol=1e-3,
-        rtol=1e-3,  # 16.6088,
+        rtol=1e-3,
     )
     assert_allclose(
         np.sqrt(np.sum(maps[1]["data"] ** 2)),
         19.4748,
         atol=1e-3,
-        rtol=1e-3,  # 20.1245,
+        rtol=1e-3,
     )
 
 
