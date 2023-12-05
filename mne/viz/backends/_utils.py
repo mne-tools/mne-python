@@ -73,9 +73,7 @@ def _check_color(color):
             )
     else:
         raise TypeError(
-            "Expected type is `str` or iterable but " "{} was given.".format(
-                type(color)
-            )
+            f"Expected type is `str` or iterable but {type(color)} was given."
         )
     return color
 
