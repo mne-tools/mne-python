@@ -1458,7 +1458,7 @@ def compute_depth_prior(
         d = np.linalg.norm(
             np.einsum("svj,svk->vjk", G, G),  # vector dot prods
             ord=2,  # ord=2 spectral (largest s.v.)
-            axis=(1, 2),  
+            axis=(1, 2),
         )
         G.shape = (G.shape[0], -1)
 
