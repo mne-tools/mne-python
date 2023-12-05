@@ -117,6 +117,7 @@ test = [
     "twine",
     "wheel",
     "pre-commit",
+    "mypy",
 ]
 
 # Dependencies for being able to run additional tests (rare/CIs/advanced devs)
@@ -309,3 +310,33 @@ ignore_directives = [
     "tab-set",
 ]
 ignore_messages = "^.*(Unknown target name|Undefined substitution referenced)[^`]*$"
+
+[tool.mypy]
+ignore_errors = true
+scripts_are_modules = true
+strict = true
+
+[[tool.mypy.overrides]]
+module = ['mne.evoked', 'mne.io']
+ignore_errors = false
+# Ignore "attr-defined" until we fix stuff like:
+# - BunchConstNamed: '"BunchConstNamed" has no attribute "FIFFB_EVOKED"'
+# - Missing __all__: 'Module "mne.io.snirf" does not explicitly export attribute "read_raw_snirf"'
+# Ignore "no-untyped-call" until we fix stuff like:
+# - 'Call to untyped function "end_block" in typed context'
+# Ignore "no-untyped-def" until we fix stuff like:
+# - 'Function is missing a type annotation'
+# Ignore "misc" until we fix stuff like:
+# - 'Cannot determine type of "_projector" in base class "ProjMixin"'
+# Ignore "assignment" until we fix stuff like:
+# - 'Incompatible types in assignment (expression has type "tuple[str, ...]", variable has type "str")'
+# Ignore "operator" until we fix stuff like:
+# - Unsupported operand types for - ("None" and "int")
+disable_error_code = [
+    'attr-defined',
+    'no-untyped-call',
+    'no-untyped-def',
+    'misc',
+    'assignment',
+    'operator',
+]

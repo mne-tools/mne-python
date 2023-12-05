@@ -9,6 +9,7 @@
 # Copyright the MNE-Python contributors.
 
 from copy import deepcopy
+from typing import List, Union
 
 import numpy as np
 
@@ -1538,7 +1539,7 @@ def read_evokeds(
     proj=True,
     allow_maxshield=False,
     verbose=None,
-):
+) -> Union[List[Evoked], Evoked]:
     """Read evoked dataset(s).
 
     Parameters
