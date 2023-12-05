@@ -45,7 +45,7 @@ from mne.utils import (
 )
 from mne.utils.numerics import _LRU_CACHE_MAXSIZES, _LRU_CACHES
 
-base_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
+base_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
 fname_raw = base_dir / "test_raw.fif"
 ave_fname = base_dir / "test-ave.fif"
 cov_fname = base_dir / "test-cov.fif"

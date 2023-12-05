@@ -59,9 +59,7 @@ from mne.surface import _get_ico_surface
 from mne.tests.test_chpi import _assert_quats
 from mne.utils import catch_logging
 
-raw_fname_short = (
-    Path(__file__).parent.parent.parent / "io" / "tests" / "data" / "test_raw.fif"
-)
+raw_fname_short = Path(__file__).parents[2] / "io" / "tests" / "data" / "test_raw.fif"
 
 data_path = testing.data_path(download=False)
 raw_fname = data_path / "MEG" / "sample" / "sample_audvis_trunc_raw.fif"

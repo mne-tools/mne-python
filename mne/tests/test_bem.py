@@ -46,7 +46,7 @@ from mne.surface import _get_ico_surface, read_surface
 from mne.transforms import translation
 from mne.utils import catch_logging, check_version
 
-fname_raw = Path(__file__).parent.parent / "io" / "tests" / "data" / "test_raw.fif"
+fname_raw = Path(__file__).parents[1] / "io" / "tests" / "data" / "test_raw.fif"
 subjects_dir = testing.data_path(download=False) / "subjects"
 fname_bem_3 = subjects_dir / "sample" / "bem" / "sample-320-320-320-bem.fif"
 fname_bem_1 = subjects_dir / "sample" / "bem" / "sample-320-bem.fif"
