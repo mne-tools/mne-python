@@ -41,9 +41,7 @@ def freeview_bem_surfaces(subject, subjects_dir, method):
 
     if not op.isdir(subject_dir):
         raise ValueError(
-            "Wrong path: '{}'. Check subjects-dir or" "subject argument.".format(
-                subject_dir
-            )
+            f"Wrong path: '{subject_dir}'. Check subjects-dir or subject argument."
         )
 
     env = os.environ.copy()

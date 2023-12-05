@@ -585,16 +585,13 @@ class UpdateChannelsMixin:
             all_str = all([isinstance(ch, str) for ch in ch_names])
         except TypeError:
             raise ValueError(
-                "'ch_names' must be iterable, got " "type {} ({}).".format(
-                    type(ch_names), ch_names
-                )
+                f"'ch_names' must be iterable, got type {type(ch_names)} ({ch_names})."
             )
 
         if not all_str:
             raise ValueError(
-                "Each element in 'ch_names' must be str, got " "{}.".format(
-                    [type(ch) for ch in ch_names]
-                )
+                "Each element in 'ch_names' must be str, got "
+                f"{[type(ch) for ch in ch_names]}."
             )
 
         missing = [ch for ch in ch_names if ch not in self.ch_names]
@@ -1059,7 +1056,7 @@ _BUILTIN_CHANNEL_ADJACENCIES = [
         name="bti248grad",
         description="BTI 248 gradiometer system",
         fname="bti248grad_neighb.mat",
-        source_url=_ft_neighbor_url_t.substitute(fname="bti248grad_neighb.mat"),  # noqa: E501
+        source_url=_ft_neighbor_url_t.substitute(fname="bti248grad_neighb.mat"),
     ),
     _BuiltinChannelAdjacency(
         name="ctf64",
@@ -1083,19 +1080,19 @@ _BUILTIN_CHANNEL_ADJACENCIES = [
         name="easycap32ch-avg",
         description="",
         fname="easycap32ch-avg_neighb.mat",
-        source_url=_ft_neighbor_url_t.substitute(fname="easycap32ch-avg_neighb.mat"),  # noqa: E501
+        source_url=_ft_neighbor_url_t.substitute(fname="easycap32ch-avg_neighb.mat"),
     ),
     _BuiltinChannelAdjacency(
         name="easycap64ch-avg",
         description="",
         fname="easycap64ch-avg_neighb.mat",
-        source_url=_ft_neighbor_url_t.substitute(fname="easycap64ch-avg_neighb.mat"),  # noqa: E501
+        source_url=_ft_neighbor_url_t.substitute(fname="easycap64ch-avg_neighb.mat"),
     ),
     _BuiltinChannelAdjacency(
         name="easycap128ch-avg",
         description="",
         fname="easycap128ch-avg_neighb.mat",
-        source_url=_ft_neighbor_url_t.substitute(fname="easycap128ch-avg_neighb.mat"),  # noqa: E501
+        source_url=_ft_neighbor_url_t.substitute(fname="easycap128ch-avg_neighb.mat"),
     ),
     _BuiltinChannelAdjacency(
         name="easycapM1",

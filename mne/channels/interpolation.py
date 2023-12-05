@@ -166,9 +166,7 @@ def _interpolate_bads_eeg(inst, origin, exclude=None, verbose=None):
     pos_good = pos[goods_idx_pos] - origin
     pos_bad = pos[bads_idx_pos] - origin
     logger.info(
-        "Computing interpolation matrix from {} sensor " "positions".format(
-            len(pos_good)
-        )
+        f"Computing interpolation matrix from {len(pos_good)} sensor positions"
     )
     interpolation = _make_interpolation_matrix(pos_good, pos_bad)
 
