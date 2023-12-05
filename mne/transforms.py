@@ -111,7 +111,7 @@ class Transform(dict):
     ``'ctf_meg'``, ``'unknown'``.
     """
 
-    def __init__(self, fro, to, trans=None):  # noqa: D102
+    def __init__(self, fro, to, trans=None):
         super(Transform, self).__init__()
         # we could add some better sanity checks here
         fro = _to_const(fro)

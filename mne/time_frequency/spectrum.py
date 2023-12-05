@@ -322,12 +322,9 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         # don't allow complex output
         psd_funcs = dict(welch=psd_array_welch, multitaper=psd_array_multitaper)
         if method_kw.get("output", "") == "complex":
-            warn(
-                f"Complex output support in {type(self).__name__} objects is "
-                "deprecated and will be removed in version 1.7. If you need complex "
-                f"output please use mne.time_frequency.{psd_funcs[method].__name__}() "
-                "instead.",
-                FutureWarning,
+            raise ValueError(
+                f"Complex output is not supported in {type(self).__name__} objects. "
+                f"Please use mne.time_frequency.{psd_funcs[method].__name__}() instead."
             )
         # triage method and kwargs. partial() doesn't check validity of kwargs,
         # so we do it manually to save compute time if any are invalid.
@@ -368,8 +365,6 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         )
         if method_kw.get("average", "") in (None, False):
             self._dims += ("segment",)
-        if self._returns_complex_tapers(**method_kw):
-            self._dims = self._dims[:-1] + ("taper",) + self._dims[-1:]
         # record data type (for repr and html_repr)
         self._data_type = (
             "Fourier Coefficients" if "taper" in self._dims else "Power Spectrum"
@@ -411,8 +406,6 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         # instance type
         inst_types = dict(Raw=Raw, Epochs=Epochs, Evoked=Evoked, Array=np.ndarray)
         self._inst_type = inst_types[state["inst_type_str"]]
-        if "weights" in state and state["weights"] is not None:
-            self._mt_weights = state["weights"]
 
     def __repr__(self):
         """Build string representation of the Spectrum object."""
@@ -456,23 +449,14 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
             s = _pl(bad_value.sum())
             warn(f'Zero value in spectrum for channel{s} {", ".join(chs)}', UserWarning)
 
-    def _returns_complex_tapers(self, **method_kw):
-        return method_kw.get("output", "") == "complex" and self.method == "multitaper"
-
     def _compute_spectra(self, data, fmin, fmax, n_jobs, method_kw, verbose):
         # make the spectra
         result = self._psd_func(
             data, self.sfreq, fmin=fmin, fmax=fmax, n_jobs=n_jobs, verbose=verbose
         )
-        # assign ._data (handling unaggregated multitaper output)
-        if self._returns_complex_tapers(**method_kw):
-            fourier_coefs, freqs, weights = result
-            self._data = fourier_coefs
-            self._mt_weights = weights
-        else:
-            psds, freqs = result
-            self._data = psds
-        # assign properties (._data already assigned above)
+        # assign ._data ._freqs, ._shape
+        psds, freqs = result
+        self._data = psds
         self._freqs = freqs
         # this is *expected* shape, it gets asserted later in _check_values()
         # (and then deleted afterwards)
@@ -481,9 +465,6 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         if method_kw.get("average", "") in (None, False):
             n_welch_segments = _compute_n_welch_segments(data.shape[-1], method_kw)
             self._shape += (n_welch_segments,)
-        # insert n_tapers
-        if self._returns_complex_tapers(**method_kw):
-            self._shape = self._shape[:-1] + (self._mt_weights.size,) + self._shape[-1:]
         # we don't need these anymore, and they make save/load harder
         del self._picks
         del self._psd_func
@@ -662,7 +643,6 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         # Must nest this _mpl_figure import because of the BACKEND global
         # stuff
         from ..viz._mpl_figure import _line_figure, _split_picks_by_type
-        from .multitaper import _psd_from_mt
 
         # arg checking
         ci = _check_ci(ci)
@@ -683,12 +663,8 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         (picks_list, units_list, scalings_list, titles_list) = _split_picks_by_type(
             self, picks, units, scalings, titles
         )
-        # handle unaggregated multitaper
-        if hasattr(self, "_mt_weights"):
-            logger.info("Aggregating multitaper estimates before plotting...")
-            _f = partial(_psd_from_mt, weights=self._mt_weights)
         # handle unaggregated Welch
-        elif "segment" in self._dims:
+        if "segment" in self._dims:
             logger.info("Aggregating Welch estimates (median) before plotting...")
             seg_axis = self._dims.index("segment")
             _f = partial(np.nanmedian, axis=seg_axis)
@@ -1059,9 +1035,8 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
             for that channel type.
         """
         units = _handle_default("si_units", None)
-        power = not hasattr(self, "_mt_weights")
         return {
-            ch_type: _format_units_psd(units[ch_type], power=power, latex=latex)
+            ch_type: _format_units_psd(units[ch_type], power=True, latex=latex)
             for ch_type in sorted(self.get_channel_types(unique=True))
         }
 
@@ -1447,12 +1422,7 @@ class EpochsSpectrum(BaseSpectrum, GetEpochsMixin):
                 f"got a {type(method).__name__} ({method})."
             )
         # averaging unaggregated spectral estimates are not supported
-        if hasattr(self, "_mt_weights"):
-            raise NotImplementedError(
-                "Averaging complex spectra is not supported. Consider "
-                "averaging the signals before computing the complex spectrum."
-            )
-        elif "segment" in self._dims:
+        if "segment" in self._dims:
             raise NotImplementedError(
                 "Averaging individual Welch segments across epochs is not "
                 "supported. Consider averaging the signals before computing "

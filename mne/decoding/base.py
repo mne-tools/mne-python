@@ -64,7 +64,7 @@ class LinearModel(BaseEstimator):
         "classes_",
     )
 
-    def __init__(self, model=None):  # noqa: D102
+    def __init__(self, model=None):
         if model is None:
             from sklearn.linear_model import LogisticRegression
 

@@ -497,9 +497,7 @@ class _BaseSourceEstimate(TimeMixin):
     _data_ndim = 2
 
     @verbose
-    def __init__(
-        self, data, vertices, tmin, tstep, subject=None, verbose=None
-    ):  # noqa: D102
+    def __init__(self, data, vertices, tmin, tstep, subject=None, verbose=None):
         assert hasattr(self, "_data_ndim"), self.__class__.__name__
         assert hasattr(self, "_src_type"), self.__class__.__name__
         assert hasattr(self, "_src_count"), self.__class__.__name__
@@ -2001,7 +1999,7 @@ class _BaseVectorSourceEstimate(_BaseSourceEstimate):
     @verbose
     def __init__(
         self, data, vertices=None, tmin=None, tstep=None, subject=None, verbose=None
-    ):  # noqa: D102
+    ):
         assert hasattr(self, "_scalar_class")
         super().__init__(data, vertices, tmin, tstep, subject, verbose)
 
@@ -2138,7 +2136,7 @@ class _BaseVectorSourceEstimate(_BaseSourceEstimate):
         add_data_kwargs=None,
         brain_kwargs=None,
         verbose=None,
-    ):  # noqa: D102
+    ):
         return plot_vector_source_estimates(
             self,
             subject=subject,
@@ -2643,7 +2641,7 @@ class VolVectorSourceEstimate(_BaseVolSourceEstimate, _BaseVectorSourceEstimate)
         add_data_kwargs=None,
         brain_kwargs=None,
         verbose=None,
-    ):  # noqa: D102
+    ):
         return _BaseVectorSourceEstimate.plot(
             self,
             subject=subject,
@@ -2734,7 +2732,7 @@ class _BaseMixedSourceEstimate(_BaseSourceEstimate):
     @verbose
     def __init__(
         self, data, vertices=None, tmin=None, tstep=None, subject=None, verbose=None
-    ):  # noqa: D102
+    ):
         if not isinstance(vertices, list) or len(vertices) < 2:
             raise ValueError(
                 "Vertices must be a list of numpy arrays with "

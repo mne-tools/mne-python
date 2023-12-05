@@ -1144,7 +1144,7 @@ class AcqParserFIF:
         "OldMask",
     )
 
-    def __init__(self, info):  # noqa: D102
+    def __init__(self, info):
         acq_pars = info["acq_pars"]
         if not acq_pars:
             raise ValueError("No acquisition parameters")

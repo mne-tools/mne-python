@@ -20,9 +20,7 @@ TEMAZEPAM_RECORDS_URL = (
 )
 TEMAZEPAM_RECORDS_URL_SHA1 = "f52fffe5c18826a2bd4c5d5cb375bb4a9008c885"
 
-AGE_RECORDS_URL = (
-    "https://physionet.org/physiobank/database/sleep-edfx/SC-subjects.xls"  # noqa: E501
-)
+AGE_RECORDS_URL = "https://physionet.org/physiobank/database/sleep-edfx/SC-subjects.xls"
 AGE_RECORDS_URL_SHA1 = "0ba6650892c5d33a8e2b3f62ce1cc9f30438c54f"
 
 sha1sums_fname = op.join(op.dirname(__file__), "SHA1SUMS")

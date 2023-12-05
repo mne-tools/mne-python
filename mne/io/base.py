@@ -203,7 +203,7 @@ class BaseRaw(
         orig_units=None,
         *,
         verbose=None,
-    ):  # noqa: D102
+    ):
         # wait until the end to preload data, but triage here
         if isinstance(preload, np.ndarray):
             # some functions (e.g., filtering) only work w/64-bit data
@@ -265,8 +265,7 @@ class BaseRaw(
         if orig_units:
             if not isinstance(orig_units, dict):
                 raise ValueError(
-                    "orig_units must be of type dict, but got "
-                    " {}".format(type(orig_units))
+                    f"orig_units must be of type dict, but got {type(orig_units)}"
                 )
 
             # original units need to be truncated to 15 chars or renamed
@@ -291,8 +290,7 @@ class BaseRaw(
             if not all(ch_correspond):
                 ch_without_orig_unit = ch_names[ch_correspond.index(False)]
                 raise ValueError(
-                    "Channel {} has no associated original "
-                    "unit.".format(ch_without_orig_unit)
+                    f"Channel {ch_without_orig_unit} has no associated original unit."
                 )
 
             # Final check of orig_units, editing a unit if it is not a valid
@@ -1127,7 +1125,7 @@ class BaseRaw(
         skip_by_annotation=("edge", "bad_acq_skip"),
         pad="reflect_limited",
         verbose=None,
-    ):  # noqa: D102
+    ):
         return super().filter(
             l_freq,
             h_freq,
@@ -2522,7 +2520,7 @@ class _ReadSegmentFileProtector:
 class _RawShell:
     """Create a temporary raw object."""
 
-    def __init__(self):  # noqa: D102
+    def __init__(self):
         self.first_samp = None
         self.last_samp = None
         self._first_time = None
