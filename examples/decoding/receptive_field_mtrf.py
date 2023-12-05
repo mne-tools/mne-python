@@ -58,8 +58,8 @@ raw = data["EEG"].T
 speech = data["envelope"].T
 sfreq = float(data["Fs"].item())
 sfreq /= decim
-speech = mne.filter.resample(speech, down=decim, npad="auto")
-raw = mne.filter.resample(raw, down=decim, npad="auto")
+speech = mne.filter.resample(speech, down=decim, method="polyphase")
+raw = mne.filter.resample(raw, down=decim, method="polyphase")
 
 # Read in channel positions and create our MNE objects from the raw data
 montage = mne.channels.make_standard_montage("biosemi128")

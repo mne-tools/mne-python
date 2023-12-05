@@ -206,16 +206,53 @@ for title, data in zip(["Un", "spectrum_fit "], [raw, raw_notch_fit]):
 # frequency`_ of the desired new sampling rate. This can be clearly seen in the
 # PSD plot, where a dashed vertical line indicates the filter cutoff; the
 # original data had an existing lowpass at around 172 Hz (see
-# ``raw.info['lowpass']``), and the data resampled from 600 Hz to 200 Hz gets
+# ``raw.info['lowpass']``), and the data resampled from ~600 Hz to 200 Hz gets
 # automatically lowpass filtered at 100 Hz (the `Nyquist frequency`_ for a
 # target rate of 200 Hz):
 
 raw_downsampled = raw.copy().resample(sfreq=200)
+# choose n_fft for Welch PSD to make frequency axes similar resolution
+n_ffts = [4096, int(round(4096 * 200 / raw.info["sfreq"]))]
+fig, axes = plt.subplots(2, 1, sharey=True, layout="constrained", figsize=(10, 6))
+for ax, data, title, n_fft in zip(
+    axes, [raw, raw_downsampled], ["Original", "Downsampled"], n_ffts
+):
+    fig = data.compute_psd(n_fft=n_fft).plot(
+        average=True, picks="data", exclude="bads", axes=ax
+    )
+    ax.set(title=title, xlim=(0, 300))
 
-for data, title in zip([raw, raw_downsampled], ["Original", "Downsampled"]):
-    fig = data.compute_psd().plot(average=True, picks="data", exclude="bads")
-    fig.suptitle(title)
-    plt.setp(fig.axes, xlim=(0, 300))
+# %%
+# By default, MNE-Python resamples using ``method="fft"``, which performs FFT-based
+# resampling via :func:`scipy.signal.resample`. While efficient and good for most
+# biological signals, it has two main potential drawbacks:
+#
+# 1. It assumes periodicity of the signal. We try to overcome this with appropriate
+#    signal padding, but some signal leakage may still occur.
+# 2. It treats the entire signal as a single block. This means that in general effects
+#    are not guaranteed to be localized in time, though in practice they often are.
+#
+# Alternatively, resampling can be performed using ``method="polyphase"`` instead.
+# This uses :func:`scipy.signal.resample_poly` under the hood, which in turn utilizes
+# a three-step process to resample signals (see :func:`scipy.signal.upfirdn` for
+# details). This process guarantees that each resampled output value is only affected by
+# input values within a limited range. In other words, output values are guaranteed to
+# be a result of a specific set of input values.
+#
+# In general, using ``method="polyphase"`` can also be faster than ``method="fft"`` in
+# cases where the desired sampling rate is an integer factor different from the input
+# sampling rate. For example:
+
+n_ffts = [4096, 2048]  # factor of 2 smaller n_fft
+raw_downsampled_poly = raw.copy().resample(sfreq=raw.info["sfreq"] / 2.0, verbose=True)
+fig, axes = plt.subplots(2, 1, sharey=True, layout="constrained", figsize=(10, 6))
+for ax, data, title, n_fft in zip(
+    axes, [raw, raw_downsampled_poly], ["Original", "Downsampled (polyphase)"], n_ffts
+):
+    data.compute_psd(n_fft=n_fft).plot(
+        average=True, picks="data", exclude="bads", axes=ax
+    )
+    ax.set(title=title, xlim=(0, 300))
 
 # %%
 # Because resampling involves filtering, there are some pitfalls to resampling

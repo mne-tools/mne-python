@@ -558,18 +558,25 @@ def test_stc_arithmetic():
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
-def test_stc_methods():
+@pytest.mark.parametrize("kind", ("scalar", "vector"))
+@pytest.mark.parametrize("method", ("fft", "polyphase"))
+def test_stc_methods(kind, method):
     """Test stc methods lh_data, rh_data, bin(), resample()."""
     stc_ = read_source_estimate(fname_stc)
 
-    # Make a vector version of the above source estimate
-    x = stc_.data[:, np.newaxis, :]
-    yz = np.zeros((x.shape[0], 2, x.shape[2]))
-    vec_stc_ = VectorSourceEstimate(
-        np.concatenate((x, yz), 1), stc_.vertices, stc_.tmin, stc_.tstep, stc_.subject
-    )
+    if kind == "vector":
+        # Make a vector version of the above source estimate
+        x = stc_.data[:, np.newaxis, :]
+        yz = np.zeros((x.shape[0], 2, x.shape[2]))
+        stc_ = VectorSourceEstimate(
+            np.concatenate((x, yz), 1),
+            stc_.vertices,
+            stc_.tmin,
+            stc_.tstep,
+            stc_.subject,
+        )
 
-    for stc in [stc_, vec_stc_]:
+    for stc in [stc_]:  # noop to keep diff small
         # lh_data / rh_data
         assert_array_equal(stc.lh_data, stc.data[: len(stc.lh_vertno)])
         assert_array_equal(stc.rh_data, stc.data[len(stc.lh_vertno) :])
@@ -606,13 +613,19 @@ def test_stc_methods():
         stc_new = deepcopy(stc)
         o_sfreq = 1.0 / stc.tstep
         # note that using no padding for this STC reduces edge ringing...
-        stc_new.resample(2 * o_sfreq, npad=0)
+        stc_new.resample(2 * o_sfreq, npad=0, method=method)
         assert stc_new.data.shape[1] == 2 * stc.data.shape[1]
         assert stc_new.tstep == stc.tstep / 2
-        stc_new.resample(o_sfreq, npad=0)
+        stc_new.resample(o_sfreq, npad=0, method=method)
         assert stc_new.data.shape[1] == stc.data.shape[1]
         assert stc_new.tstep == stc.tstep
-        assert_array_almost_equal(stc_new.data, stc.data, 5)
+        if method == "fft":
+            # no low-passing so survives round-trip
+            assert_allclose(stc_new.data, stc.data, atol=1e-5)
+        else:
+            # low-passing means we need something more flexible
+            corr = np.corrcoef(stc_new.data.ravel(), stc.data.ravel())[0, 1]
+            assert 0.99 < corr < 1
 
 
 @testing.requires_testing_data

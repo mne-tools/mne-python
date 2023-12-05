@@ -5,6 +5,7 @@
 from collections import Counter
 from copy import deepcopy
 from functools import partial
+from math import gcd
 
 import numpy as np
 from scipy import fft, signal
@@ -1898,12 +1899,13 @@ def resample(
     x,
     up=1.0,
     down=1.0,
-    npad=100,
-    axis=-1,
-    window="boxcar",
-    n_jobs=None,
-    pad="reflect_limited",
     *,
+    axis=-1,
+    window="auto",
+    n_jobs=None,
+    pad="auto",
+    npad=100,
+    method="fft",
     verbose=None,
 ):
     """Resample an array.
@@ -1918,15 +1920,18 @@ def resample(
         Factor to upsample by.
     down : float
         Factor to downsample by.
-    %(npad)s
     axis : int
         Axis along which to resample (default is the last axis).
     %(window_resample)s
     %(n_jobs_cuda)s
-    %(pad)s
-        The default is ``'reflect_limited'``.
+        ``n_jobs='cuda'`` is only supported when ``method="fft"``.
+    %(pad_resample_auto)s
 
         .. versionadded:: 0.15
+    %(npad_resample)s
+    %(method_resample)s
+
+        .. versionadded:: 1.7
     %(verbose)s
 
     Returns
@@ -1936,26 +1941,16 @@ def resample(
 
     Notes
     -----
+    When using ``method="fft"`` (default),
     This uses (hopefully) intelligent edge padding and frequency-domain
-    windowing improve scipy.signal.resample's resampling method, which
+    windowing improve :func:`scipy.signal.resample`'s resampling method, which
     we have adapted for our use here. Choices of npad and window have
     important consequences, and the default choices should work well
     for most natural signals.
-
-    Resampling arguments are broken into "up" and "down" components for future
-    compatibility in case we decide to use an upfirdn implementation. The
-    current implementation is functionally equivalent to passing
-    up=up/down and down=1.
     """
-    # check explicitly for backwards compatibility
-    if not isinstance(axis, int):
-        err = (
-            "The axis parameter needs to be an integer (got %s). "
-            "The axis parameter was missing from this function for a "
-            "period of time, you might be intending to specify the "
-            "subsequent window parameter." % repr(axis)
-        )
-        raise TypeError(err)
+    _validate_type(method, str, "method")
+    _validate_type(pad, str, "pad")
+    _check_option("method", method, ("fft", "polyphase"))
 
     # make sure our arithmetic will work
     x = _check_filterable(x, "resampled", "resample")
@@ -1963,31 +1958,88 @@ def resample(
     del up, down
     if axis < 0:
         axis = x.ndim + axis
-    orig_last_axis = x.ndim - 1
-    if axis != orig_last_axis:
-        x = x.swapaxes(axis, orig_last_axis)
-    orig_shape = x.shape
-    x_len = orig_shape[-1]
-    if x_len == 0:
-        warn("x has zero length along last axis, returning a copy of x")
+    if x.shape[axis] == 0:
+        warn(f"x has zero length along axis={axis}, returning a copy of x")
         return x.copy()
-    bad_msg = 'npad must be "auto" or an integer'
+
+    # prep for resampling along the last axis (swap axis with last then reshape)
+    out_shape = list(x.shape)
+    out_shape.pop(axis)
+    out_shape.append(final_len)
+    x = np.atleast_2d(x.swapaxes(axis, -1).reshape((-1, x.shape[axis])))
+
+    # do the resampling using FFT or polyphase methods
+    kwargs = dict(pad=pad, window=window, n_jobs=n_jobs)
+    if method == "fft":
+        y = _resample_fft(x, npad=npad, ratio=ratio, final_len=final_len, **kwargs)
+    else:
+        up, down, kwargs["window"] = _prep_polyphase(
+            ratio, x.shape[-1], final_len, window
+        )
+        half_len = len(window) // 2
+        logger.info(
+            f"Polyphase resampling locality: ±{half_len} input sample{_pl(half_len)}"
+        )
+        y = _resample_polyphase(x, up=up, down=down, **kwargs)
+    assert y.shape[-1] == final_len
+
+    # restore dimensions (reshape then swap axis with last)
+    y = y.reshape(out_shape).swapaxes(axis, -1)
+
+    return y
+
+
+def _prep_polyphase(ratio, x_len, final_len, window):
+    if isinstance(window, str) and window == "auto":
+        window = ("kaiser", 5.0)  # SciPy default
+    up = final_len
+    down = x_len
+    g_ = gcd(up, down)
+    up = up // g_
+    down = down // g_
+    # Figure out our signal locality and design window (adapted from SciPy)
+    if not isinstance(window, (list, np.ndarray)):
+        # Design a linear-phase low-pass FIR filter
+        max_rate = max(up, down)
+        f_c = 1.0 / max_rate  # cutoff of FIR filter (rel. to Nyquist)
+        half_len = 10 * max_rate  # reasonable cutoff for sinc-like function
+        window = signal.firwin(2 * half_len + 1, f_c, window=window)
+    return up, down, window
+
+
+def _resample_polyphase(x, *, up, down, pad, window, n_jobs):
+    if pad == "auto":
+        pad = "reflect"
+    kwargs = dict(padtype=pad, window=window, up=up, down=down)
+    _validate_type(
+        n_jobs, (None, "int-like"), "n_jobs", extra="when method='polyphase'"
+    )
+    parallel, p_fun, n_jobs = parallel_func(signal.resample_poly, n_jobs)
+    if n_jobs == 1:
+        y = signal.resample_poly(x, axis=-1, **kwargs)
+    else:
+        y = np.array(parallel(p_fun(x_, **kwargs) for x_ in x))
+    return y
+
+
+def _resample_fft(x_flat, *, ratio, final_len, pad, window, npad, n_jobs):
+    x_len = x_flat.shape[-1]
+    pad = "reflect_limited" if pad == "auto" else pad
+    if (isinstance(window, str) and window == "auto") or window is None:
+        window = "boxcar"
     if isinstance(npad, str):
-        if npad != "auto":
-            raise ValueError(bad_msg)
+        _check_option("npad", npad, ("auto",), extra="when a string")
         # Figure out reasonable pad that gets us to a power of 2
         min_add = min(x_len // 8, 100) * 2
         npad = 2 ** int(np.ceil(np.log2(x_len + min_add))) - x_len
         npad, extra = divmod(npad, 2)
         npads = np.array([npad, npad + extra], int)
     else:
-        if npad != int(npad):
-            raise ValueError(bad_msg)
+        npad = _ensure_int(npad, "npad", extra="or 'auto'")
         npads = np.array([npad, npad], int)
     del npad
 
     # prep for resampling now
-    x_flat = x.reshape((-1, x_len))
     orig_len = x_len + npads.sum()  # length after padding
     new_len = max(int(round(ratio * orig_len)), 1)  # length after resampling
     to_removes = [int(round(ratio * npads[0]))]
@@ -1997,15 +2049,12 @@ def resample(
     # assert np.abs(to_removes[1] - to_removes[0]) <= int(np.ceil(ratio))
 
     # figure out windowing function
-    if window is not None:
-        if callable(window):
-            W = window(fft.fftfreq(orig_len))
-        elif isinstance(window, np.ndarray) and window.shape == (orig_len,):
-            W = window
-        else:
-            W = fft.ifftshift(signal.get_window(window, orig_len))
+    if callable(window):
+        W = window(fft.fftfreq(orig_len))
+    elif isinstance(window, np.ndarray) and window.shape == (orig_len,):
+        W = window
     else:
-        W = np.ones(orig_len)
+        W = fft.ifftshift(signal.get_window(window, orig_len))
     W *= float(new_len) / float(orig_len)
 
     # figure out if we should use CUDA
@@ -2015,7 +2064,7 @@ def resample(
     # use of the 'flat' window is recommended for minimal ringing
     parallel, p_fun, n_jobs = parallel_func(_fft_resample, n_jobs)
     if n_jobs == 1:
-        y = np.zeros((len(x_flat), new_len - to_removes.sum()), dtype=x.dtype)
+        y = np.zeros((len(x_flat), new_len - to_removes.sum()), dtype=x_flat.dtype)
         for xi, x_ in enumerate(x_flat):
             y[xi] = _fft_resample(x_, new_len, npads, to_removes, cuda_dict, pad)
     else:
@@ -2023,12 +2072,6 @@ def resample(
             p_fun(x_, new_len, npads, to_removes, cuda_dict, pad) for x_ in x_flat
         )
         y = np.array(y)
-
-    # Restore the original array shape (modified for resampling)
-    y.shape = orig_shape[:-1] + (y.shape[1],)
-    if axis != orig_last_axis:
-        y = y.swapaxes(axis, orig_last_axis)
-    assert y.shape[axis] == final_len
 
     return y
 
@@ -2635,11 +2678,12 @@ class FilterMixin:
     def resample(
         self,
         sfreq,
+        *,
         npad="auto",
-        window="boxcar",
+        window="auto",
         n_jobs=None,
         pad="edge",
-        *,
+        method="fft",
         verbose=None,
     ):
         """Resample data.
@@ -2656,11 +2700,12 @@ class FilterMixin:
         %(npad)s
         %(window_resample)s
         %(n_jobs_cuda)s
-        %(pad)s
-            The default is ``'edge'``, which pads with the edge values of each
-            vector.
+        %(pad_resample)s
 
             .. versionadded:: 0.15
+        %(method_resample)s
+
+            .. versionadded:: 1.7
         %(verbose)s
 
         Returns
@@ -2691,7 +2736,14 @@ class FilterMixin:
 
         _check_preload(self, "inst.resample")
         self._data = resample(
-            self._data, sfreq, o_sfreq, npad, window=window, n_jobs=n_jobs, pad=pad
+            self._data,
+            sfreq,
+            o_sfreq,
+            npad=npad,
+            window=window,
+            n_jobs=n_jobs,
+            pad=pad,
+            method=method,
         )
         lowpass = self.info.get("lowpass")
         lowpass = np.inf if lowpass is None else lowpass
