@@ -286,7 +286,7 @@ class SourceSpaces(list):
     access, like ``src.kind``.
     """  # noqa: E501
 
-    def __init__(self, source_spaces, info=None):  # noqa: D102
+    def __init__(self, source_spaces, info=None):
         # First check the types is actually a valid config
         _validate_type(source_spaces, list, "source_spaces")
         super(SourceSpaces, self).__init__(source_spaces)  # list

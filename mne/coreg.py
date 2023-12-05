@@ -422,8 +422,8 @@ def fit_matched_points(
     tgt_pts = np.atleast_2d(tgt_pts)
     if src_pts.shape != tgt_pts.shape:
         raise ValueError(
-            "src_pts and tgt_pts must have same shape (got "
-            "{}, {})".format(src_pts.shape, tgt_pts.shape)
+            "src_pts and tgt_pts must have same shape "
+            f"(got {src_pts.shape}, {tgt_pts.shape})"
         )
     if weights is not None:
         weights = np.asarray(weights, src_pts.dtype)

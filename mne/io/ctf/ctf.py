@@ -111,7 +111,7 @@ class RawCTF(BaseRaw):
         preload=False,
         verbose=None,
         clean_names=False,
-    ):  # noqa: D102
+    ):
         # adapted from mne_ctf2fiff.c
         directory = str(
             _check_fname(directory, "read", True, "directory", need_dir=True)

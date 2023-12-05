@@ -457,8 +457,7 @@ def _prepare_trellis(
             naxes = ncols * nrows
             if naxes < n_cells:
                 raise ValueError(
-                    "Cannot plot {} axes in a {} by {} "
-                    "figure.".format(n_cells, nrows, ncols)
+                    f"Cannot plot {n_cells} axes in a {nrows} by {ncols} figure."
                 )
 
     width = size * ncols

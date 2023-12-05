@@ -276,9 +276,7 @@ class Annotations:
     :meth:`Raw.save() <mne.io.Raw.save>` notes for details.
     """  # noqa: E501
 
-    def __init__(
-        self, onset, duration, description, orig_time=None, ch_names=None
-    ):  # noqa: D102
+    def __init__(self, onset, duration, description, orig_time=None, ch_names=None):
         self._orig_time = _handle_meas_date(orig_time)
         self.onset, self.duration, self.description, self.ch_names = _check_o_d_s_c(
             onset, duration, description, ch_names

@@ -55,7 +55,7 @@ class ProgressBar:
         *,
         which_tqdm=None,
         **kwargs,
-    ):  # noqa: D102
+    ):
         # The following mimics this, but with configurable module to use
         # from ..externals.tqdm import auto
         import tqdm

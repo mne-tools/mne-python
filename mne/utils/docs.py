@@ -64,42 +64,32 @@ docdict = BunchConst()
 # %%
 # A
 
-docdict[
-    "accept"
-] = """
+docdict["accept"] = """
 accept : bool
     If True (default False), accept the license terms of this dataset.
 """
 
-docdict[
-    "add_ch_type_export_params"
-] = """
+docdict["add_ch_type_export_params"] = """
 add_ch_type : bool
     Whether to incorporate the channel type into the signal label (e.g. whether
     to store channel "Fz" as "EEG Fz"). Only used for EDF format. Default is
     ``False``.
 """
 
-docdict[
-    "add_data_kwargs"
-] = """
+docdict["add_data_kwargs"] = """
 add_data_kwargs : dict | None
     Additional arguments to brain.add_data (e.g.,
     ``dict(time_label_size=10)``).
 """
 
-docdict[
-    "add_frames"
-] = """
+docdict["add_frames"] = """
 add_frames : int | None
     If int, enable (>=1) or disable (0) the printing of stack frame
     information using formatting. Default (None) does not change the
     formatting. This can add overhead so is meant only for debugging.
 """
 
-docdict[
-    "adjacency_clust"
-] = """
+docdict["adjacency_clust"] = """
 adjacency : scipy.sparse.spmatrix | None | False
     Defines adjacency between locations in the data, where "locations" can be
     spatial vertices, frequency bins, time points, etc. For spatial vertices
@@ -155,25 +145,19 @@ docdict["adjacency_clust_stn"] = (
     docdict["adjacency_clust"].format(**st).format(**groups)
 )
 
-docdict[
-    "adjust_dig_chpi"
-] = """
+docdict["adjust_dig_chpi"] = """
 adjust_dig : bool
     If True, adjust the digitization locations used for fitting based on
     the positions localized at the start of the file.
 """
 
-docdict[
-    "agg_fun_psd_topo"
-] = """
+docdict["agg_fun_psd_topo"] = """
 agg_fun : callable
     The function used to aggregate over frequencies. Defaults to
     :func:`numpy.sum` if ``normalize=True``, else :func:`numpy.mean`.
 """
 
-docdict[
-    "align_view"
-] = """
+docdict["align_view"] = """
 align : bool
     If True, consider view arguments relative to canonical MRI
     directions (closest to MNI for the subject) rather than native MRI
@@ -181,16 +165,12 @@ align : bool
     have large rotations).
 """
 
-docdict[
-    "allow_2d"
-] = """
+docdict["allow_2d"] = """
 allow_2d : bool
     If True, allow 2D data as input (i.e. n_samples, n_features).
 """
 
-docdict[
-    "allow_empty_eltc"
-] = """
+docdict["allow_empty_eltc"] = """
 allow_empty : bool | str
     ``False`` (default) will emit an error if there are labels that have no
     vertices in the source estimate. ``True`` and ``'ignore'`` will return
@@ -202,16 +182,12 @@ allow_empty : bool | str
        Support for "ignore".
 """
 
-docdict[
-    "alpha"
-] = """
+docdict["alpha"] = """
 alpha : float in [0, 1]
     Alpha level to control opacity.
 """
 
-docdict[
-    "anonymize_info_notes"
-] = """
+docdict["anonymize_info_notes"] = """
 Removes potentially identifying information if it exists in ``info``.
 Specifically for each of the following we use:
 
@@ -261,16 +237,12 @@ docdict["applyfun_summary_epochs"] = applyfun_summary.format("epochs", applyfun_
 docdict["applyfun_summary_evoked"] = applyfun_summary.format("evoked", "")
 docdict["applyfun_summary_raw"] = applyfun_summary.format("raw", applyfun_preload)
 
-docdict[
-    "area_alpha_plot_psd"
-] = """\
+docdict["area_alpha_plot_psd"] = """\
 area_alpha : float
     Alpha for the area.
 """
 
-docdict[
-    "area_mode_plot_psd"
-] = """\
+docdict["area_mode_plot_psd"] = """\
 area_mode : str | None
     Mode for plotting area. If 'std', the mean +/- 1 STD (across channels)
     will be plotted. If 'range', the min and max (across channels) will be
@@ -278,18 +250,14 @@ area_mode : str | None
     If None, no area will be plotted. If average=False, no area is plotted.
 """
 
-docdict[
-    "aseg"
-] = """
+docdict["aseg"] = """
 aseg : str
     The anatomical segmentation file. Default ``aparc+aseg``. This may
     be any anatomical segmentation file in the mri subdirectory of the
     Freesurfer subject directory.
 """
 
-docdict[
-    "average_plot_evoked_topomap"
-] = """
+docdict["average_plot_evoked_topomap"] = """
 average : float | array-like of float, shape (n_times,) | None
     The time window (in seconds) around a given time point to be used for
     averaging. For example, 0.2 would translate into a time window that
@@ -303,9 +271,7 @@ average : float | array-like of float, shape (n_times,) | None
        Support for ``array-like`` input.
 """
 
-docdict[
-    "average_plot_psd"
-] = """\
+docdict["average_plot_psd"] = """\
 average : bool
     If False, the PSDs of all channels is displayed. No averaging
     is done and parameters area_mode and area_alpha are ignored. When
@@ -313,9 +279,7 @@ average : bool
     drag) to plot a topomap.
 """
 
-docdict[
-    "average_psd"
-] = """\
+docdict["average_psd"] = """\
 average : str | None
     How to average the segments. If ``mean`` (default), calculate the
     arithmetic mean. If ``median``, calculate the median, corrected for
@@ -323,9 +287,7 @@ average : str | None
     segments.
 """
 
-docdict[
-    "average_tfr"
-] = """
+docdict["average_tfr"] = """
 average : bool, default True
     If ``False`` return an `EpochsTFR` containing separate TFRs for each
     epoch. If ``True`` return an `AverageTFR` containing the average of all
@@ -358,9 +320,7 @@ docdict["axes_cov_plot_topomap"] = _axes_list.format("axes", "be length 1")
 docdict["axes_evoked_plot_topomap"] = _axes_list.format(
     "axes", "match the number of ``times`` provided (unless ``times`` is ``None``)"
 )
-docdict[
-    "axes_montage"
-] = """
+docdict["axes_montage"] = """
 axes : instance of Axes | instance of Axes3D | None
     Axes to draw the sensors to. If ``kind='3d'``, axes must be an instance
     of Axes3D. If None (default), a new axes will be created."""
@@ -380,17 +340,13 @@ docdict["axes_spectrum_plot_topomap"] = _axes_list.format(
     "axes", "match the length of ``bands``"
 )
 
-docdict[
-    "axis_facecolor"
-] = """\
+docdict["axis_facecolor"] = """\
 axis_facecolor : str | tuple
     A matplotlib-compatible color to use for the axis background.
     Defaults to black.
 """
 
-docdict[
-    "azimuth"
-] = """
+docdict["azimuth"] = """
 azimuth : float
     The azimuthal angle of the camera rendering the view in degrees.
 """
@@ -398,17 +354,13 @@ azimuth : float
 # %%
 # B
 
-docdict[
-    "bad_condition_maxwell_cond"
-] = """
+docdict["bad_condition_maxwell_cond"] = """
 bad_condition : str
     How to deal with ill-conditioned SSS matrices. Can be ``"error"``
     (default), ``"warning"``, ``"info"``, or ``"ignore"``.
 """
 
-docdict[
-    "bands_psd_topo"
-] = """
+docdict["bands_psd_topo"] = """
 bands : None | dict | list of tuple
     The frequencies or frequency ranges to plot. If a :class:`dict`, keys will
     be used as subplot titles and values should be either a single frequency
@@ -431,9 +383,7 @@ bands : None | dict | list of tuple
        Allow passing a dict and discourage passing tuples.
 """
 
-docdict[
-    "base_estimator"
-] = """
+docdict["base_estimator"] = """
 base_estimator : object
     The base estimator to iteratively fit on a subset of the dataset.
 """
@@ -452,9 +402,7 @@ baseline : None | tuple of length 2
                 timepoints ``t`` such that ``a <= t <= b``.
 """
 
-docdict[
-    "baseline_epochs"
-] = f"""{_baseline_rescale_base}
+docdict["baseline_epochs"] = f"""{_baseline_rescale_base}
     Correction is applied **to each epoch and channel individually** in the
     following way:
 
@@ -463,9 +411,7 @@ docdict[
 
 """
 
-docdict[
-    "baseline_evoked"
-] = f"""{_baseline_rescale_base}
+docdict["baseline_evoked"] = f"""{_baseline_rescale_base}
     Correction is applied **to each channel individually** in the following
     way:
 
@@ -474,9 +420,7 @@ docdict[
 
 """
 
-docdict[
-    "baseline_report"
-] = f"""{_baseline_rescale_base}
+docdict["baseline_report"] = f"""{_baseline_rescale_base}
     Correction is applied in the following way **to each channel:**
 
     1. Calculate the mean signal of the baseline period.
@@ -487,9 +431,7 @@ docdict[
 
 docdict["baseline_rescale"] = _baseline_rescale_base
 
-docdict[
-    "baseline_stc"
-] = f"""{_baseline_rescale_base}
+docdict["baseline_stc"] = f"""{_baseline_rescale_base}
     Correction is applied **to each source individually** in the following
     way:
 
@@ -505,47 +447,35 @@ docdict[
 
 """
 
-docdict[
-    "block"
-] = """\
+docdict["block"] = """\
 block : bool
     Whether to halt program execution until the figure is closed.
     May not work on all systems / platforms. Defaults to ``False``.
 """
 
-docdict[
-    "border_topomap"
-] = """
+docdict["border_topomap"] = """
 border : float | 'mean'
     Value to extrapolate to on the topomap borders. If ``'mean'`` (default),
     then each extrapolated point has the average value of its neighbours.
 """
 
-docdict[
-    "brain_kwargs"
-] = """
+docdict["brain_kwargs"] = """
 brain_kwargs : dict | None
     Additional arguments to the :class:`mne.viz.Brain` constructor (e.g.,
     ``dict(silhouette=True)``).
 """
 
-docdict[
-    "brain_update"
-] = """
+docdict["brain_update"] = """
 update : bool
     Force an update of the plot. Defaults to True.
 """
 
-docdict[
-    "browser"
-] = """
+docdict["browser"] = """
 fig : matplotlib.figure.Figure | mne_qt_browser.figure.MNEQtBrowser
     Browser instance.
 """
 
-docdict[
-    "buffer_size_clust"
-] = """
+docdict["buffer_size_clust"] = """
 buffer_size : int | None
     Block size to use when computing test statistics. This can significantly
     reduce memory usage when ``n_jobs > 1`` and memory sharing between
@@ -554,9 +484,7 @@ buffer_size : int | None
     a small block of locations at a time.
 """
 
-docdict[
-    "by_event_type"
-] = """
+docdict["by_event_type"] = """
 by_event_type : bool
     When ``False`` (the default) all epochs are processed together and a single
     :class:`~mne.Evoked` object is returned. When ``True``, epochs are first
@@ -571,18 +499,14 @@ by_event_type : bool
 # %%
 # C
 
-docdict[
-    "calibration_maxwell_cal"
-] = """
+docdict["calibration_maxwell_cal"] = """
 calibration : str | None
     Path to the ``'.dat'`` file with fine calibration coefficients.
     File can have 1D or 3D gradiometer imbalance correction.
     This file is machine/site-specific.
 """
 
-docdict[
-    "cbar_fmt_topomap"
-] = """\
+docdict["cbar_fmt_topomap"] = """\
 cbar_fmt : str
     Formatting string for colorbar tick labels. See :ref:`formatspec` for
     details.
@@ -595,17 +519,13 @@ docdict["cbar_fmt_topomap_psd"] = (
 """
 )
 
-docdict[
-    "center"
-] = """
+docdict["center"] = """
 center : float or None
     If not None, center of a divergent colormap, changes the meaning of
     fmin, fmax and fmid.
 """
 
-docdict[
-    "ch_name_ecg"
-] = """
+docdict["ch_name_ecg"] = """
 ch_name : None | str
     The name of the channel to use for ECG peak detection.
     If ``None`` (default), ECG channel is used if present. If ``None`` and
@@ -614,9 +534,7 @@ ch_name : None | str
     MEG channels.
 """
 
-docdict[
-    "ch_name_eog"
-] = """
+docdict["ch_name_eog"] = """
 ch_name : str | list of str | None
     The name of the channel(s) to use for EOG peak detection. If a string,
     can be an arbitrary channel. This doesn't have to be a channel of
@@ -628,9 +546,7 @@ ch_name : str | list of str | None
     If ``None`` (default), use the channel(s) in ``raw`` with type ``eog``.
 """
 
-docdict[
-    "ch_names_annot"
-] = """
+docdict["ch_names_annot"] = """
 ch_names : list | None
     List of lists of channel names associated with the annotations.
     Empty entries are assumed to be associated with no specific channel,
@@ -644,9 +560,7 @@ ch_names : list | None
                     ch_names=[[], ['MEG0111', 'MEG2563'], ['MEG1443']])
 """
 
-docdict[
-    "ch_type_set_eeg_reference"
-] = """
+docdict["ch_type_set_eeg_reference"] = """
 ch_type : list of str | str
     The name of the channel type to apply the reference to.
     Valid channel types are ``'auto'``, ``'eeg'``, ``'ecog'``, ``'seeg'``,
@@ -685,34 +599,26 @@ docdict["channel_wise_applyfun"] = chwise.format("", "")
 docdict["channel_wise_applyfun_epo"] = chwise.format("in each epoch ", "epochs and ")
 
 
-docdict[
-    "check_disjoint_clust"
-] = """
+docdict["check_disjoint_clust"] = """
 check_disjoint : bool
     Whether to check if the connectivity matrix can be separated into disjoint
     sets before clustering. This may lead to faster clustering, especially if
     the second dimension of ``X`` (usually the "time" dimension) is large.
 """
 
-docdict[
-    "chpi_amplitudes"
-] = """
+docdict["chpi_amplitudes"] = """
 chpi_amplitudes : dict
     The time-varying cHPI coil amplitudes, with entries
     "times", "proj", and "slopes".
 """
 
-docdict[
-    "chpi_locs"
-] = """
+docdict["chpi_locs"] = """
 chpi_locs : dict
     The time-varying cHPI coils locations, with entries
     "times", "rrs", "moments", and "gofs".
 """
 
-docdict[
-    "clim"
-] = """
+docdict["clim"] = """
 clim : str | dict
     Colorbar properties specification. If 'auto', set clim automatically
     based on data percentiles. If dict, should contain:
@@ -731,9 +637,7 @@ clim : str | dict
               only divergent colormaps should be used with ``pos_lims``.
 """
 
-docdict[
-    "clim_onesided"
-] = """
+docdict["clim_onesided"] = """
 clim : str | dict
     Colorbar properties specification. If 'auto', set clim automatically
     based on data percentiles. If dict, should contain:
@@ -747,17 +651,13 @@ clim : str | dict
     ``pos_lims``, as the surface plot must show the magnitude.
 """
 
-docdict[
-    "cmap"
-] = """
+docdict["cmap"] = """
 cmap : matplotlib colormap | str | None
         The :class:`~matplotlib.colors.Colormap` to use. Defaults to ``None``, which
         will use the matplotlib default colormap.
 """
 
-docdict[
-    "cmap_topomap"
-] = """
+docdict["cmap_topomap"] = """
 cmap : matplotlib colormap | (colormap, bool) | 'interactive' | None
     Colormap to use. If :class:`tuple`, the first value indicates the colormap
     to use and the second value is a boolean defining interactivity. In
@@ -774,17 +674,13 @@ cmap : matplotlib colormap | (colormap, bool) | 'interactive' | None
         2 topomaps.
 """
 
-docdict[
-    "cmap_topomap_simple"
-] = """
+docdict["cmap_topomap_simple"] = """
 cmap : matplotlib colormap | None
     Colormap to use. If None, 'Reds' is used for all positive data,
     otherwise defaults to 'RdBu_r'.
 """
 
-docdict[
-    "cnorm"
-] = """
+docdict["cnorm"] = """
 cnorm : matplotlib.colors.Normalize | None
     How to normalize the colormap. If ``None``, standard linear normalization
     is performed. If not ``None``, ``vmin`` and ``vmax`` will be ignored.
@@ -793,57 +689,43 @@ cnorm : matplotlib.colors.Normalize | None
     :ref:`the ERDs example<cnorm-example>` for an example of its use.
 """
 
-docdict[
-    "color_matplotlib"
-] = """
+docdict["color_matplotlib"] = """
 color : color
     A list of anything matplotlib accepts: string, RGB, hex, etc.
 """
 
-docdict[
-    "color_plot_psd"
-] = """\
+docdict["color_plot_psd"] = """\
 color : str | tuple
     A matplotlib-compatible color to use. Has no effect when
     spatial_colors=True.
 """
 
-docdict[
-    "color_spectrum_plot_topo"
-] = """\
+docdict["color_spectrum_plot_topo"] = """\
 color : str | tuple
     A matplotlib-compatible color to use for the curves. Defaults to
     white.
 """
 
-docdict[
-    "colorbar_topomap"
-] = """
+docdict["colorbar_topomap"] = """
 colorbar : bool
     Plot a colorbar in the rightmost column of the figure.
 """
 
-docdict[
-    "colormap"
-] = """
+docdict["colormap"] = """
 colormap : str | np.ndarray of float, shape(n_colors, 3 | 4)
     Name of colormap to use or a custom look up table. If array, must
     be (n x 3) or (n x 4) array for with RGB or RGBA values between
     0 and 255.
 """
 
-docdict[
-    "combine"
-] = """
+docdict["combine"] = """
 combine : None | str | callable
     How to combine information across channels. If a :class:`str`, must be
     one of 'mean', 'median', 'std' (standard deviation) or 'gfp' (global
     field power).
 """
 
-docdict[
-    "compute_proj_ecg"
-] = """This function will:
+docdict["compute_proj_ecg"] = """This function will:
 
 #. Filter the ECG data channel.
 
@@ -858,9 +740,7 @@ docdict[
 
 #. Calculate SSP projection vectors on that data to capture the artifacts."""
 
-docdict[
-    "compute_proj_eog"
-] = """This function will:
+docdict["compute_proj_eog"] = """This function will:
 
 #. Filter the EOG data channel.
 
@@ -876,18 +756,14 @@ docdict[
 
 #. Calculate SSP projection vectors on that data to capture the artifacts."""
 
-docdict[
-    "compute_ssp"
-] = """This function aims to find those SSP vectors that
+docdict["compute_ssp"] = """This function aims to find those SSP vectors that
 will project out the ``n`` most prominent signals from the data for each
 specified sensor type. Consequently, if the provided input data contains high
 levels of noise, the produced SSP vectors can then be used to eliminate that
 noise from the data.
 """
 
-docdict[
-    "contours_topomap"
-] = """
+docdict["contours_topomap"] = """
 contours : int | array-like
     The number of contour lines to draw. If ``0``, no contours will be drawn.
     If a positive integer, that number of contour levels are chosen using the
@@ -898,9 +774,7 @@ contours : int | array-like
     corresponding to the contour levels. Default is ``6``.
 """
 
-docdict[
-    "coord_frame_maxwell"
-] = """
+docdict["coord_frame_maxwell"] = """
 coord_frame : str
     The coordinate frame that the ``origin`` is specified in, either
     ``'meg'`` or ``'head'``. For empty-room recordings that do not have
@@ -908,17 +782,13 @@ coord_frame : str
     frame should be used.
 """
 
-docdict[
-    "copy_df"
-] = """
+docdict["copy_df"] = """
 copy : bool
     If ``True``, data will be copied. Otherwise data may be modified in place.
     Defaults to ``True``.
 """
 
-docdict[
-    "create_ecg_epochs"
-] = """This function will:
+docdict["create_ecg_epochs"] = """This function will:
 
 #. Filter the ECG data channel.
 
@@ -927,9 +797,7 @@ docdict[
 #. Create `~mne.Epochs` around the R wave peaks, capturing the heartbeats.
 """
 
-docdict[
-    "create_eog_epochs"
-] = """This function will:
+docdict["create_eog_epochs"] = """This function will:
 
 #. Filter the EOG data channel.
 
@@ -939,9 +807,7 @@ docdict[
 #. Create `~mne.Epochs` around the eyeblinks.
 """
 
-docdict[
-    "cross_talk_maxwell"
-] = """
+docdict["cross_talk_maxwell"] = """
 cross_talk : str | None
     Path to the FIF file with cross-talk correction information.
 """
@@ -955,9 +821,7 @@ dB : bool
     10 × log₁₀(spectral power){}.{}
 """
 
-docdict[
-    "dB_plot_psd"
-] = """\
+docdict["dB_plot_psd"] = """\
 dB : bool
     Plot Power Spectral Density (PSD), in units (amplitude**2/Hz (dB)) if
     ``dB=True``, and ``estimate='power'`` or ``estimate='auto'``. Plot PSD
@@ -973,9 +837,7 @@ docdict["dB_plot_topomap"] = _dB.format(
 docdict["dB_spectrum_plot"] = _dB.format("", "")
 docdict["dB_spectrum_plot_topo"] = _dB.format("", " Ignored if ``normalize=True``.")
 
-docdict[
-    "daysback_anonymize_info"
-] = """
+docdict["daysback_anonymize_info"] = """
 daysback : int | None
     Number of days to subtract from all dates.
     If ``None`` (default), the acquisition date, ``info['meas_date']``,
@@ -983,15 +845,11 @@ daysback : int | None
     ``info['meas_date']`` is ``None`` (i.e., no acquisition date has been set).
 """
 
-docdict[
-    "dbs"
-] = """
+docdict["dbs"] = """
 dbs : bool
     If True (default), show DBS (deep brain stimulation) electrodes.
 """
-docdict[
-    "decim"
-] = """
+docdict["decim"] = """
 decim : int
     Factor by which to subsample the data.
 
@@ -1002,9 +860,7 @@ decim : int
                  may occur.
 """
 
-docdict[
-    "decim_notes"
-] = """
+docdict["decim_notes"] = """
 For historical reasons, ``decim`` / "decimation" refers to simply subselecting
 samples from a given signal. This contrasts with the broader signal processing
 literature, where decimation is defined as (quoting
@@ -1024,9 +880,7 @@ Decimation can be done multiple times. For example,
 ``inst.decimate(4)``.
 """
 
-docdict[
-    "decim_tfr"
-] = """
+docdict["decim_tfr"] = """
 decim : int | slice, default 1
     To reduce memory usage, decimation factor after time-frequency
     decomposition.
@@ -1039,9 +893,7 @@ decim : int | slice, default 1
         artifacts.
 """
 
-docdict[
-    "depth"
-] = """
+docdict["depth"] = """
 depth : None | float | dict
     How to weight (or normalize) the forward using a depth prior.
     If float (default 0.8), it acts as the depth weighting exponent (``exp``)
@@ -1054,9 +906,7 @@ depth : None | float | dict
        Depth bias ignored for ``method='eLORETA'``.
 """
 
-docdict[
-    "destination_maxwell_dest"
-] = """
+docdict["destination_maxwell_dest"] = """
 destination : path-like | array-like, shape (3,) | None
     The destination location for the head. Can be ``None``, which
     will not change the head position, or a path to a FIF file
@@ -1067,9 +917,7 @@ destination : path-like | array-like, shape (3,) | None
     head location).
 """
 
-docdict[
-    "detrend_epochs"
-] = """
+docdict["detrend_epochs"] = """
 detrend : int | None
     If 0 or 1, the data channels (MEG and EEG) will be detrended when
     loaded. 0 is a constant (DC) detrend, 1 is a linear detrend. None
@@ -1080,17 +928,13 @@ detrend : int | None
     (will yield equivalent results but be slower).
 """
 
-docdict[
-    "df_return"
-] = """
+docdict["df_return"] = """
 df : instance of pandas.DataFrame
     A dataframe suitable for usage with other statistical/plotting/analysis
     packages.
 """
 
-docdict[
-    "dig_kinds"
-] = """
+docdict["dig_kinds"] = """
 dig_kinds : list of str | str
     Kind of digitization points to use in the fitting. These can be any
     combination of ('cardinal', 'hpi', 'eeg', 'extra'). Can also
@@ -1099,9 +943,7 @@ dig_kinds : list of str | str
     'eeg' points.
 """
 
-docdict[
-    "dipole"
-] = """
+docdict["dipole"] = """
 dipole : instance of Dipole | list of Dipole
     Dipole object containing position, orientation and amplitude of
     one or more dipoles. Multiple simultaneous dipoles may be defined by
@@ -1112,9 +954,7 @@ dipole : instance of Dipole | list of Dipole
         Added support for a list of :class:`mne.Dipole` instances.
 """
 
-docdict[
-    "distance"
-] = """
+docdict["distance"] = """
 distance : float | "auto" | None
     The distance from the camera rendering the view to the focalpoint
     in plot units (either m or mm). If "auto", the bounds of visible objects will be
@@ -1124,17 +964,13 @@ distance : float | "auto" | None
        ``None`` will no longer change the distance, use ``"auto"`` instead.
 """
 
-docdict[
-    "drop_log"
-] = """
+docdict["drop_log"] = """
 drop_log : tuple | None
     Tuple of tuple of strings indicating which epochs have been marked to
     be ignored.
 """
 
-docdict[
-    "dtype_applyfun"
-] = """
+docdict["dtype_applyfun"] = """
 dtype : numpy.dtype
     Data type to use after applying the function. If None
     (default) the data type is not modified.
@@ -1143,16 +979,12 @@ dtype : numpy.dtype
 # %%
 # E
 
-docdict[
-    "ecog"
-] = """
+docdict["ecog"] = """
 ecog : bool
     If True (default), show ECoG sensors.
 """
 
-docdict[
-    "edf_resamp_note"
-] = """
+docdict["edf_resamp_note"] = """
 :class:`mne.io.Raw` only stores signals with matching sampling frequencies.
 Therefore, if mixed sampling frequency signals are requested, all signals
 are upsampled to the highest loaded sampling frequency. In this case, using
@@ -1160,9 +992,7 @@ preload=True is recommended, as otherwise, edge artifacts appear when
 slices of the signal are requested.
 """
 
-docdict[
-    "eeg"
-] = """
+docdict["eeg"] = """
 eeg : bool | str | list | dict
     String options are:
 
@@ -1180,16 +1010,12 @@ eeg : bool | str | list | dict
        Added support for specifying alpha values as a dict.
 """
 
-docdict[
-    "elevation"
-] = """
+docdict["elevation"] = """
 elevation : float
     The The zenith angle of the camera rendering the view in degrees.
 """
 
-docdict[
-    "eltc_mode_notes"
-] = """
+docdict["eltc_mode_notes"] = """
 Valid values for ``mode`` are:
 
 - ``'max'``
@@ -1228,32 +1054,24 @@ The only modes that work for vector and volume source estimates are ``'mean'``,
 ``'max'``, and ``'auto'``.
 """
 
-docdict[
-    "emit_warning"
-] = """
+docdict["emit_warning"] = """
 emit_warning : bool
     Whether to emit warnings when cropping or omitting annotations.
 """
 
-docdict[
-    "encoding_edf"
-] = """
+docdict["encoding_edf"] = """
 encoding : str
     Encoding of annotations channel(s). Default is "utf8" (the only correct
     encoding according to the EDF+ standard).
 """
 
-docdict[
-    "epochs_preload"
-] = """
+docdict["epochs_preload"] = """
     Load all epochs from disk when creating the object
     or wait before accessing each epoch (more memory
     efficient but can be slower).
 """
 
-docdict[
-    "epochs_reject_tmin_tmax"
-] = """
+docdict["epochs_reject_tmin_tmax"] = """
 reject_tmin, reject_tmax : float | None
     Start and end of the time window used to reject epochs based on
     peak-to-peak (PTP) amplitudes as specified via ``reject`` and ``flat``.
@@ -1264,27 +1082,21 @@ reject_tmin, reject_tmax : float | None
               both, ``reject`` and ``flat``.
 """
 
-docdict[
-    "epochs_tmin_tmax"
-] = """
+docdict["epochs_tmin_tmax"] = """
 tmin, tmax : float
     Start and end time of the epochs in seconds, relative to the time-locked
     event. The closest or matching samples corresponding to the start and end
     time are included. Defaults to ``-0.2`` and ``0.5``, respectively.
 """
 
-docdict[
-    "estimate_plot_psd"
-] = """\
+docdict["estimate_plot_psd"] = """\
 estimate : str, {'auto', 'power', 'amplitude'}
     Can be "power" for power spectral density (PSD), "amplitude" for
     amplitude spectrum density (ASD), or "auto" (default), which uses
     "power" when dB is True and "amplitude" otherwise.
 """
 
-docdict[
-    "event_color"
-] = """
+docdict["event_color"] = """
 event_color : color object | dict | None
     Color(s) to use for :term:`events`. To show all :term:`events` in the same
     color, pass any matplotlib-compatible color. To color events differently,
@@ -1294,9 +1106,7 @@ event_color : color object | dict | None
     color cycle.
 """
 
-docdict[
-    "event_id"
-] = """
+docdict["event_id"] = """
 event_id : int | list of int | dict | None
     The id of the :term:`events` to consider. If dict, the keys can later be
     used to access associated :term:`events`. Example:
@@ -1305,16 +1115,12 @@ event_id : int | list of int | dict | None
     are used. If None, all :term:`events` will be used and a dict is created
     with string integer names corresponding to the event id integers."""
 
-docdict[
-    "event_id_ecg"
-] = """
+docdict["event_id_ecg"] = """
 event_id : int
     The index to assign to found ECG events.
 """
 
-docdict[
-    "event_repeated_epochs"
-] = """
+docdict["event_repeated_epochs"] = """
 event_repeated : str
     How to handle duplicates in ``events[:, 0]``. Can be ``'error'``
     (default), to raise an error, 'drop' to only retain the row occurring
@@ -1324,17 +1130,13 @@ event_repeated : str
     .. versionadded:: 0.19
 """
 
-docdict[
-    "events"
-] = """
+docdict["events"] = """
 events : array of int, shape (n_events, 3)
     The array of :term:`events`. The first column contains the event time in
     samples, with :term:`first_samp` included. The third column contains the
     event id."""
 
-docdict[
-    "events_epochs"
-] = """
+docdict["events_epochs"] = """
 events : array of int, shape (n_events, 3)
     The array of :term:`events`. The first column contains the event time in
     samples, with :term:`first_samp` included. The third column contains the
@@ -1342,9 +1144,7 @@ events : array of int, shape (n_events, 3)
     If some events don't match the events of interest as specified by
     ``event_id``, they will be marked as ``IGNORED`` in the drop log."""
 
-docdict[
-    "evoked_by_event_type_returns"
-] = """
+docdict["evoked_by_event_type_returns"] = """
 evoked : instance of Evoked | list of Evoked
     The averaged epochs.
     When ``by_event_type=True`` was specified, a list is returned containing a
@@ -1353,18 +1153,14 @@ evoked : instance of Evoked | list of Evoked
     dictionary.
 """
 
-docdict[
-    "exclude_clust"
-] = """
+docdict["exclude_clust"] = """
 exclude : bool array or None
     Mask to apply to the data to exclude certain points from clustering
     (e.g., medial wall vertices). Should be the same shape as ``X``.
     If ``None``, no points are excluded.
 """
 
-docdict[
-    "exclude_frontal"
-] = """
+docdict["exclude_frontal"] = """
 exclude_frontal : bool
     If True, exclude points that have both negative Z values
     (below the nasion) and positive Y values (in front of the LPA/RPA).
@@ -1383,9 +1179,7 @@ docdict["exclude_spectrum_plot"] = _exclude_spectrum.format(
     " from being drawn", "spectrum."
 )
 
-docdict[
-    "export_edf_note"
-] = """
+docdict["export_edf_note"] = """
 For EDF exports, only channels measured in Volts are allowed; in MNE-Python
 this means channel types 'eeg', 'ecog', 'seeg', 'emg', 'eog', 'ecg', 'dbs',
 'bio', and 'misc'. 'stim' channels are dropped. Although this function
@@ -1404,9 +1198,7 @@ to store the montage separately and call :attr:`raw.set_montage()
 <mne.io.Raw.set_montage>`.
 """
 
-docdict[
-    "export_eeglab_note"
-] = """
+docdict["export_eeglab_note"] = """
 For EEGLAB exports, channel locations are expanded to full EEGLAB format.
 For more details see :func:`eeglabio.utils.cart_to_eeglab`.
 """
@@ -1416,59 +1208,39 @@ Format of the export. Defaults to ``'auto'``, which will infer the format
     from the filename extension. See supported formats above for more
     information."""
 
-docdict[
-    "export_fmt_params_epochs"
-] = """
+docdict["export_fmt_params_epochs"] = """
 fmt : 'auto' | 'eeglab'
     {}
-""".format(
-    _export_fmt_params_base
-)
+""".format(_export_fmt_params_base)
 
-docdict[
-    "export_fmt_params_evoked"
-] = """
+docdict["export_fmt_params_evoked"] = """
 fmt : 'auto' | 'mff'
     {}
-""".format(
-    _export_fmt_params_base
-)
+""".format(_export_fmt_params_base)
 
-docdict[
-    "export_fmt_params_raw"
-] = """
+docdict["export_fmt_params_raw"] = """
 fmt : 'auto' | 'brainvision' | 'edf' | 'eeglab'
     {}
-""".format(
-    _export_fmt_params_base
-)
+""".format(_export_fmt_params_base)
 
-docdict[
-    "export_fmt_support_epochs"
-] = """\
+docdict["export_fmt_support_epochs"] = """\
 Supported formats:
     - EEGLAB (``.set``, uses :mod:`eeglabio`)
 """
 
-docdict[
-    "export_fmt_support_evoked"
-] = """\
+docdict["export_fmt_support_evoked"] = """\
 Supported formats:
     - MFF (``.mff``, uses :func:`mne.export.export_evokeds_mff`)
 """
 
-docdict[
-    "export_fmt_support_raw"
-] = """\
+docdict["export_fmt_support_raw"] = """\
 Supported formats:
     - BrainVision (``.vhdr``, ``.vmrk``, ``.eeg``, uses `pybv <https://github.com/bids-standard/pybv>`_)
     - EEGLAB (``.set``, uses :mod:`eeglabio`)
     - EDF (``.edf``, uses `edfio <https://github.com/the-siesta-group/edfio>`_)
 """  # noqa: E501
 
-docdict[
-    "export_warning"
-] = """\
+docdict["export_warning"] = """\
 .. warning::
     Since we are exporting to external formats, there's no guarantee that all
     the info will be preserved in the external format. See Notes for details.
@@ -1488,9 +1260,7 @@ docdict["export_warning_note_evoked"] = _export_warning_note_base.format("Evoked
 
 docdict["export_warning_note_raw"] = _export_warning_note_base.format("io.Raw")
 
-docdict[
-    "ext_order_chpi"
-] = """
+docdict["ext_order_chpi"] = """
 ext_order : int
     The external order for SSS-like interfence suppression.
     The SSS bases are used as projection vectors during fitting.
@@ -1500,16 +1270,12 @@ ext_order : int
         detection of true HPI signals.
 """
 
-docdict[
-    "ext_order_maxwell"
-] = """
+docdict["ext_order_maxwell"] = """
 ext_order : int
     Order of external component of spherical expansion.
 """
 
-docdict[
-    "extended_proj_maxwell"
-] = """
+docdict["extended_proj_maxwell"] = """
 extended_proj : list
     The empty-room projection vectors used to extend the external
     SSS basis (i.e., use eSSS).
@@ -1517,9 +1283,7 @@ extended_proj : list
     .. versionadded:: 0.21
 """
 
-docdict[
-    "extrapolate_topomap"
-] = """
+docdict["extrapolate_topomap"] = """
 extrapolate : str
     Options:
 
@@ -1538,18 +1302,14 @@ extrapolate : str
         the head circle.
 """
 
-docdict[
-    "eyelink_apply_offsets"
-] = """
+docdict["eyelink_apply_offsets"] = """
 apply_offsets : bool (default False)
     Adjusts the onset time of the :class:`~mne.Annotations` created from Eyelink
     experiment messages, if offset values exist in the ASCII file. If False, any
     offset-like values will be prepended to the annotation description.
 """
 
-docdict[
-    "eyelink_create_annotations"
-] = """
+docdict["eyelink_create_annotations"] = """
 create_annotations : bool | list (default True)
     Whether to create :class:`~mne.Annotations` from occular events
     (blinks, fixations, saccades) and experiment messages. If a list, must
@@ -1558,24 +1318,18 @@ create_annotations : bool | list (default True)
     experiment messages.
 """
 
-docdict[
-    "eyelink_find_overlaps"
-] = """
+docdict["eyelink_find_overlaps"] = """
 find_overlaps : bool (default False)
     Combine left and right eye :class:`mne.Annotations` (blinks, fixations,
     saccades) if their start times and their stop times are both not
     separated by more than overlap_threshold.
 """
 
-docdict[
-    "eyelink_fname"
-] = """
+docdict["eyelink_fname"] = """
 fname : path-like
     Path to the eyelink file (``.asc``)."""
 
-docdict[
-    "eyelink_overlap_threshold"
-] = """
+docdict["eyelink_overlap_threshold"] = """
 overlap_threshold : float (default 0.05)
     Time in seconds. Threshold of allowable time-gap between both the start and
     stop times of the left and right eyes. If the gap is larger than the threshold,
@@ -1591,9 +1345,7 @@ overlap_threshold : float (default 0.05)
 # %%
 # F
 
-docdict[
-    "f_power_clust"
-] = """
+docdict["f_power_clust"] = """
 t_power : float
     Power to raise the statistical values (usually F-values) by before
     summing (sign will be retained). Note that ``t_power=0`` will give a
@@ -1601,9 +1353,7 @@ t_power : float
     by its statistical score.
 """
 
-docdict[
-    "fiducials"
-] = """
+docdict["fiducials"] = """
 fiducials : list | dict | str
     The fiducials given in the MRI (surface RAS) coordinate
     system. If a dictionary is provided, it must contain the **keys**
@@ -1618,17 +1368,13 @@ fiducials : list | dict | str
     and if absent, falls back to ``'estimated'``.
 """
 
-docdict[
-    "fig_facecolor"
-] = """\
+docdict["fig_facecolor"] = """\
 fig_facecolor : str | tuple
     A matplotlib-compatible color to use for the figure background.
     Defaults to black.
 """
 
-docdict[
-    "filter_length"
-] = """
+docdict["filter_length"] = """
 filter_length : str | int
     Length of the FIR filter to use (if applicable):
 
@@ -1645,16 +1391,12 @@ filter_length : str | int
       this should not be used.
 """
 
-docdict[
-    "filter_length_ecg"
-] = """
+docdict["filter_length_ecg"] = """
 filter_length : str | int | None
     Number of taps to use for filtering.
 """
 
-docdict[
-    "filter_length_notch"
-] = """
+docdict["filter_length_notch"] = """
 filter_length : str | int
     Length of the FIR filter to use (if applicable):
 
@@ -1679,9 +1421,7 @@ filter_length : str | int
     The default in 0.21 is None, but this will change to ``'10s'`` in 0.22.
 """
 
-docdict[
-    "fir_design"
-] = """
+docdict["fir_design"] = """
 fir_design : str
     Can be "firwin" (default) to use :func:`scipy.signal.firwin`,
     or "firwin2" to use :func:`scipy.signal.firwin2`. "firwin" uses
@@ -1691,9 +1431,7 @@ fir_design : str
     .. versionadded:: 0.15
 """
 
-docdict[
-    "fir_window"
-] = """
+docdict["fir_window"] = """
 fir_window : str
     The window to use in FIR design, can be "hamming" (default),
     "hann" (default in 0.13), or "blackman".
@@ -1708,9 +1446,7 @@ _flat_common = """\
     is smaller than this threshold, the epoch will be dropped. If ``None``
     then no rejection is performed based on flatness of the signal."""
 
-docdict[
-    "flat"
-] = f"""
+docdict["flat"] = f"""
 flat : dict | None
 {_flat_common}
 
@@ -1718,9 +1454,7 @@ flat : dict | None
               quality, pass the ``reject_tmin`` and ``reject_tmax`` parameters.
 """
 
-docdict[
-    "flat_drop_bad"
-] = f"""
+docdict["flat_drop_bad"] = f"""
 flat : dict | str | None
 {_flat_common}
     If ``'existing'``, then the flat parameters set during epoch creation are
@@ -1737,9 +1471,7 @@ docdict["fmin_fmax_psd"] = _fmin_fmax.format(
 
 docdict["fmin_fmax_psd_topo"] = _fmin_fmax.format("``fmin=0, fmax=100``.")
 
-docdict[
-    "fmin_fmid_fmax"
-] = """
+docdict["fmin_fmid_fmax"] = """
 fmin : float
     Minimum value in colormap (uses real fmin if None).
 fmid : float
@@ -1749,33 +1481,25 @@ fmax : float
     Maximum value in colormap (uses real max if None).
 """
 
-docdict[
-    "fname_epochs"
-] = """
+docdict["fname_epochs"] = """
 fname : path-like | file-like
     The epochs to load. If a filename, should end with ``-epo.fif`` or
     ``-epo.fif.gz``. If a file-like object, preloading must be used.
 """
 
-docdict[
-    "fname_export_params"
-] = """
+docdict["fname_export_params"] = """
 fname : str
     Name of the output file.
 """
 
-docdict[
-    "fname_fwd"
-] = """
+docdict["fname_fwd"] = """
 fname : path-like
     File name to save the forward solution to. It should end with
     ``-fwd.fif`` or ``-fwd.fif.gz`` to save to FIF, or ``-fwd.h5`` to save to
     HDF5.
 """
 
-docdict[
-    "fnirs"
-] = """
+docdict["fnirs"] = """
 fnirs : str | list | dict | bool | None
     Can be "channels", "pairs", "detectors", and/or "sources" to show the
     fNIRS channel locations, optode locations, or line between
@@ -1788,34 +1512,26 @@ fnirs : str | list | dict | bool | None
        Added support for specifying alpha values as a dict.
 """
 
-docdict[
-    "focalpoint"
-] = """
+docdict["focalpoint"] = """
 focalpoint : tuple, shape (3,) | str | None
     The focal point of the camera rendering the view: (x, y, z) in
     plot units (either m or mm). When ``"auto"``, it is set to the center of
     mass of the visible bounds.
 """
 
-docdict[
-    "forward_set_eeg_reference"
-] = """
+docdict["forward_set_eeg_reference"] = """
 forward : instance of Forward | None
     Forward solution to use. Only used with ``ref_channels='REST'``.
 
     .. versionadded:: 0.21
 """
 
-docdict[
-    "freqs_tfr"
-] = """
+docdict["freqs_tfr"] = """
 freqs : array of float, shape (n_freqs,)
     The frequencies of interest in Hz.
 """
 
-docdict[
-    "fullscreen"
-] = """
+docdict["fullscreen"] = """
 fullscreen : bool
     Whether to start in fullscreen (``True``) or windowed mode
     (``False``).
@@ -1835,17 +1551,13 @@ docdict["fun_applyfun_evoked"] = applyfun_fun_base.format(
     " because it will apply channel-wise"
 )
 
-docdict[
-    "fwd"
-] = """
+docdict["fwd"] = """
 fwd : instance of Forward
     The forward solution. If present, the orientations of the dipoles
     present in the forward solution are displayed.
 """
 
-docdict[
-    "fwhm_morlet_notes"
-] = r"""
+docdict["fwhm_morlet_notes"] = r"""
 Convolution of a signal with a Morlet wavelet will impose temporal smoothing
 that is determined by the duration of the wavelet. In MNE-Python, the duration
 of the wavelet is determined by the ``sigma`` parameter, which gives the
@@ -1879,9 +1591,7 @@ do the same computation with ``desired_fwhm`` as an array of the same shape as
 # %%
 # G
 
-docdict[
-    "get_peak_parameters"
-] = """
+docdict["get_peak_parameters"] = """
 tmin : float | None
     The minimum point in time to be considered for peak getting.
 tmax : float | None
@@ -1911,9 +1621,7 @@ _fill_epochs = ["n_epochs, "] * 3
 docdict["getitem_epochspectrum_return"] = _getitem_base.format(*_fill_epochs)
 docdict["getitem_spectrum_return"] = _getitem_base.format("", "", "")
 
-docdict[
-    "group_by_browse"
-] = """
+docdict["group_by_browse"] = """
 group_by : str
     How to group channels. ``'type'`` groups by channel type,
     ``'original'`` plots in the order of ch_names, ``'selection'`` uses
@@ -1929,17 +1637,13 @@ group_by : str
 # %%
 # H
 
-docdict[
-    "h_freq"
-] = """
+docdict["h_freq"] = """
 h_freq : float | None
     For FIR filters, the upper pass-band edge; for IIR filters, the upper
     cutoff frequency. If None the data are only high-passed.
 """
 
-docdict[
-    "h_trans_bandwidth"
-] = """
+docdict["h_trans_bandwidth"] = """
 h_trans_bandwidth : float | str
     Width of the transition band at the high cut-off frequency in Hz
     (low pass or cutoff 2 in bandpass). Can be "auto"
@@ -1950,9 +1654,7 @@ h_trans_bandwidth : float | str
     Only used for ``method='fir'``.
 """
 
-docdict[
-    "head_pos"
-] = """
+docdict["head_pos"] = """
 head_pos : None | path-like | dict | tuple | array
     Path to the position estimates file. Should be in the format of
     the files produced by MaxFilter. If dict, keys should
@@ -1964,26 +1666,20 @@ head_pos : None | path-like | dict | tuple | array
     :func:`mne.chpi.read_head_pos`.
 """
 
-docdict[
-    "head_pos_maxwell"
-] = """
+docdict["head_pos_maxwell"] = """
 head_pos : array | None
     If array, movement compensation will be performed.
     The array should be of shape (N, 10), holding the position
     parameters as returned by e.g. ``read_head_pos``.
 """
 
-docdict[
-    "head_source"
-] = """
+docdict["head_source"] = """
 head_source : str | list of str
     Head source(s) to use. See the ``source`` option of
     :func:`mne.get_head_surf` for more information.
 """
 
-docdict[
-    "hitachi_fname"
-] = """
+docdict["hitachi_fname"] = """
 fname : list | str
     Path(s) to the Hitachi CSV file(s). This should only be a list for
     multiple probes that were acquired simultaneously.
@@ -1992,9 +1688,7 @@ fname : list | str
         Added support for list-of-str.
 """
 
-docdict[
-    "hitachi_notes"
-] = """
+docdict["hitachi_notes"] = """
 Hitachi does not encode their channel positions, so you will need to
 create a suitable mapping using :func:`mne.channels.make_standard_montage`
 or :func:`mne.channels.make_dig_montage` like (for a 3x5/ETG-7000 example):
@@ -2049,9 +1743,7 @@ then the second row, etc.
 # %%
 # I
 
-docdict[
-    "idx_pctf"
-] = """
+docdict["idx_pctf"] = """
 idx : list of int | list of Label
     Source for indices for which to compute PSFs or CTFs. If mode is None,
     PSFs/CTFs will be returned for all indices. If mode is not None, the
@@ -2065,27 +1757,21 @@ idx : list of int | list of Label
       specified labels.
 """
 
-docdict[
-    "ignore_ref_maxwell"
-] = """
+docdict["ignore_ref_maxwell"] = """
 ignore_ref : bool
     If True, do not include reference channels in compensation. This
     option should be True for KIT files, since Maxwell filtering
     with reference channels is not currently supported.
 """
 
-docdict[
-    "iir_params"
-] = """
+docdict["iir_params"] = """
 iir_params : dict | None
     Dictionary of parameters to use for IIR filtering.
     If ``iir_params=None`` and ``method="iir"``, 4th order Butterworth will be used.
     For more information, see :func:`mne.filter.construct_iir_filter`.
 """
 
-docdict[
-    "image_format_report"
-] = """
+docdict["image_format_report"] = """
 image_format : 'png' | 'svg' | 'gif' | None
     The image format to be used for the report, can be ``'png'``,
     ``'svg'``, or ``'gif'``.
@@ -2093,9 +1779,7 @@ image_format : 'png' | 'svg' | 'gif' | None
     instantiation.
 """
 
-docdict[
-    "image_interp_topomap"
-] = """
+docdict["image_interp_topomap"] = """
 image_interp : str
     The image interpolation to be used. Options are ``'cubic'`` (default)
     to use :class:`scipy.interpolate.CloughTocher2DInterpolator`,
@@ -2103,9 +1787,7 @@ image_interp : str
     ``'linear'`` to use :class:`scipy.interpolate.LinearNDInterpolator`.
 """
 
-docdict[
-    "include_tmax"
-] = """
+docdict["include_tmax"] = """
 include_tmax : bool
     If True (default), include tmax. If False, exclude tmax (similar to how
     Python indexing typically works).
@@ -2139,39 +1821,29 @@ _info_base = (
     "sensors and methods of measurement."
 )
 
-docdict[
-    "info"
-] = f"""
+docdict["info"] = f"""
 info : mne.Info | None
     {_info_base}
 """
 
-docdict[
-    "info_not_none"
-] = f"""
+docdict["info_not_none"] = f"""
 info : mne.Info
     {_info_base}
 """
 
-docdict[
-    "info_str"
-] = f"""
+docdict["info_str"] = f"""
 info : mne.Info | path-like
     {_info_base} If ``path-like``, it should be a :class:`str` or
     :class:`pathlib.Path` to a file with measurement information
     (e.g. :class:`mne.io.Raw`).
 """
 
-docdict[
-    "int_order_maxwell"
-] = """
+docdict["int_order_maxwell"] = """
 int_order : int
     Order of internal component of spherical expansion.
 """
 
-docdict[
-    "interaction_scene"
-] = """
+docdict["interaction_scene"] = """
 interaction : 'trackball' | 'terrain'
     How interactions with the scene via an input device (e.g., mouse or
     trackpad) modify the camera position. If ``'terrain'``, one axis is
@@ -2181,9 +1853,7 @@ interaction : 'trackball' | 'terrain'
     some axes.
 """
 
-docdict[
-    "interaction_scene_none"
-] = """
+docdict["interaction_scene_none"] = """
 interaction : 'trackball' | 'terrain' | None
     How interactions with the scene via an input device (e.g., mouse or
     trackpad) modify the camera position. If ``'terrain'``, one axis is
@@ -2195,27 +1865,21 @@ interaction : 'trackball' | 'terrain' | None
     used.
 """
 
-docdict[
-    "interp"
-] = """
+docdict["interp"] = """
 interp : str
     Either ``'hann'``, ``'cos2'`` (default), ``'linear'``, or ``'zero'``, the type of
     forward-solution interpolation to use between forward solutions
     at different head positions.
 """
 
-docdict[
-    "interpolation_brain_time"
-] = """
+docdict["interpolation_brain_time"] = """
 interpolation : str | None
     Interpolation method (:class:`scipy.interpolate.interp1d` parameter).
     Must be one of ``'linear'``, ``'nearest'``, ``'zero'``, ``'slinear'``,
     ``'quadratic'`` or ``'cubic'``.
 """
 
-docdict[
-    "inversion_bf"
-] = """
+docdict["inversion_bf"] = """
 inversion : 'single' | 'matrix'
     This determines how the beamformer deals with source spaces in "free"
     orientation. Such source spaces define three orthogonal dipoles at each
@@ -2232,9 +1896,7 @@ inversion : 'single' | 'matrix'
 # %%
 # J
 
-docdict[
-    "joint_set_eeg_reference"
-] = """
+docdict["joint_set_eeg_reference"] = """
 joint : bool
     How to handle list-of-str ``ch_type``. If False (default), one projector
     is created per channel type. If True, one projector is created across
@@ -2246,9 +1908,7 @@ joint : bool
 # %%
 # K
 
-docdict[
-    "keep_his_anonymize_info"
-] = """
+docdict["keep_his_anonymize_info"] = """
 keep_his : bool
     If ``True``, ``his_id`` of ``subject_info`` will **not** be overwritten.
     Defaults to ``False``.
@@ -2257,35 +1917,27 @@ keep_his : bool
                  anonymized. Use with caution.
 """
 
-docdict[
-    "kit_elp"
-] = """
+docdict["kit_elp"] = """
 elp : path-like | array of shape (8, 3) | None
     Digitizer points representing the location of the fiducials and the
     marker coils with respect to the digitized head shape, or path to a
     file containing these points.
 """
 
-docdict[
-    "kit_hsp"
-] = """
+docdict["kit_hsp"] = """
 hsp : path-like | array of shape (n_points, 3) | None
     Digitizer head shape points, or path to head shape file. If more than
     10,000 points are in the head shape, they are automatically decimated.
 """
 
-docdict[
-    "kit_mrk"
-] = """
+docdict["kit_mrk"] = """
 mrk : path-like | array of shape (5, 3) | list | None
     Marker points representing the location of the marker coils with
     respect to the MEG sensors, or path to a marker file.
     If list, all of the markers will be averaged together.
 """
 
-docdict[
-    "kit_slope"
-] = r"""
+docdict["kit_slope"] = r"""
 slope : ``'+'`` | ``'-'``
     How to interpret values on KIT trigger channels when synthesizing a
     Neuromag-style stim channel. With ``'+'``\, a positive slope (low-to-high)
@@ -2293,9 +1945,7 @@ slope : ``'+'`` | ``'-'``
     is interpreted as an event.
 """
 
-docdict[
-    "kit_stim"
-] = r"""
+docdict["kit_stim"] = r"""
 stim : list of int | ``'<'`` | ``'>'`` | None
     Channel-value correspondence when converting KIT trigger channels to a
     Neuromag-style stim channel. For ``'<'``\, the largest values are
@@ -2305,25 +1955,19 @@ stim : list of int | ``'<'`` | ``'>'`` | None
     generated.
 """
 
-docdict[
-    "kit_stimcode"
-] = """
+docdict["kit_stimcode"] = """
 stim_code : ``'binary'`` | ``'channel'``
     How to decode trigger values from stim channels. ``'binary'`` read stim
     channel events as binary code, 'channel' encodes channel number.
 """
 
-docdict[
-    "kit_stimthresh"
-] = """
+docdict["kit_stimthresh"] = """
 stimthresh : float | None
     The threshold level for accepting voltage changes in KIT trigger
     channels as a trigger event. If None, stim must also be set to None.
 """
 
-docdict[
-    "kwargs_fun"
-] = """
+docdict["kwargs_fun"] = """
 **kwargs : dict
     Additional keyword arguments to pass to ``fun``.
 """
@@ -2331,26 +1975,20 @@ docdict[
 # %%
 # L
 
-docdict[
-    "l_freq"
-] = """
+docdict["l_freq"] = """
 l_freq : float | None
     For FIR filters, the lower pass-band edge; for IIR filters, the lower
     cutoff frequency. If None the data are only low-passed.
 """
 
-docdict[
-    "l_freq_ecg_filter"
-] = """
+docdict["l_freq_ecg_filter"] = """
 l_freq : float
     Low pass frequency to apply to the ECG channel while finding events.
 h_freq : float
     High pass frequency to apply to the ECG channel while finding events.
 """
 
-docdict[
-    "l_trans_bandwidth"
-] = """
+docdict["l_trans_bandwidth"] = """
 l_trans_bandwidth : float | str
     Width of the transition band at the low cut-off frequency in Hz
     (high pass or cutoff 1 in bandpass). Can be "auto"
@@ -2361,16 +1999,12 @@ l_trans_bandwidth : float | str
     Only used for ``method='fir'``.
 """
 
-docdict[
-    "label_tc_el_returns"
-] = """
+docdict["label_tc_el_returns"] = """
 label_tc : array | list (or generator) of array, shape (n_labels[, n_orient], n_times)
     Extracted time course for each label and source estimate.
 """
 
-docdict[
-    "labels_eltc"
-] = """
+docdict["labels_eltc"] = """
 labels : Label | BiHemiLabel | list | tuple | str
     If using a surface or mixed source space, this should be the
     :class:`~mne.Label`'s for which to extract the time course.
@@ -2387,18 +2021,14 @@ labels : Label | BiHemiLabel | list | tuple | str
        Support for volume source estimates.
 """
 
-docdict[
-    "layout_spectrum_plot_topo"
-] = """\
+docdict["layout_spectrum_plot_topo"] = """\
 layout : instance of Layout | None
     Layout instance specifying sensor positions (does not need to be
     specified for Neuromag data). If ``None`` (default), the layout is
     inferred from the data.
 """
 
-docdict[
-    "line_alpha_plot_psd"
-] = """\
+docdict["line_alpha_plot_psd"] = """\
 line_alpha : float | None
     Alpha for the PSD line. Can be None (default) to use 1.0 when
     ``average=True`` and 0.1 when ``average=False``.
@@ -2425,9 +2055,7 @@ docdict["long_format_df_raw"] = _long_format_df_base.format(*raw)
 docdict["long_format_df_spe"] = _long_format_df_base.format(*spe)
 docdict["long_format_df_stc"] = _long_format_df_base.format(*stc)
 
-docdict[
-    "loose"
-] = """
+docdict["loose"] = """
 loose : float | 'auto' | dict
     Value that weights the source variances of the dipole components
     that are parallel (tangential) to the cortical surface. Can be:
@@ -2446,9 +2074,7 @@ loose : float | 'auto' | dict
 # %%
 # M
 
-docdict[
-    "mag_scale_maxwell"
-] = """
+docdict["mag_scale_maxwell"] = """
 mag_scale : float | str
     The magenetometer scale-factor used to bring the magnetometers
     to approximately the same order of magnitude as the gradiometers
@@ -2458,9 +2084,7 @@ mag_scale : float | str
     59.5 for VectorView).
 """
 
-docdict[
-    "mapping_rename_channels_duplicates"
-] = """
+docdict["mapping_rename_channels_duplicates"] = """
 mapping : dict | callable
     A dictionary mapping the old channel to a new channel name
     e.g. ``{'EEG061' : 'EEG161'}``. Can also be a callable function
@@ -2490,9 +2114,7 @@ docdict["mask_evoked_topomap"] = _mask_base.format(
     "statistical test of the data reaches significance)",
 )
 
-docdict[
-    "mask_params_topomap"
-] = """
+docdict["mask_params_topomap"] = """
 mask_params : dict | None
     Additional plotting parameters for plotting significant sensors.
     Default (None) equals::
@@ -2509,9 +2131,7 @@ docdict["mask_topomap"] = _mask_base.format(
     shape="(n_channels,)", shape_appendix="(s)", example=""
 )
 
-docdict[
-    "match_alias"
-] = """
+docdict["match_alias"] = """
 match_alias : bool | dict
     Whether to use a lookup table to match unrecognized channel location names
     to their known aliases. If True, uses the mapping in
@@ -2522,18 +2142,14 @@ match_alias : bool | dict
     .. versionadded:: 0.23
 """
 
-docdict[
-    "match_case"
-] = """
+docdict["match_case"] = """
 match_case : bool
     If True (default), channel name matching will be case sensitive.
 
     .. versionadded:: 0.20
 """
 
-docdict[
-    "max_dist_ieeg"
-] = """
+docdict["max_dist_ieeg"] = """
 max_dist : float
     The maximum distance to project a sensor to the pial surface in meters.
     Sensors that are greater than this distance from the pial surface will
@@ -2541,17 +2157,13 @@ max_dist : float
     flat brain.
 """
 
-docdict[
-    "max_iter_multitaper"
-] = """
+docdict["max_iter_multitaper"] = """
 max_iter : int
     Maximum number of iterations to reach convergence when combining the
     tapered spectra with adaptive weights (see argument ``adaptive``). This
     argument has not effect if ``adaptive`` is set to ``False``."""
 
-docdict[
-    "max_step_clust"
-] = """
+docdict["max_step_clust"] = """
 max_step : int
     Maximum distance between samples along the second axis of ``X`` to be
     considered adjacent (typically the second axis is the "time" dimension).
@@ -2562,9 +2174,7 @@ max_step : int
     :func:`mne.stats.combine_adjacency`).
 """
 
-docdict[
-    "measure"
-] = """
+docdict["measure"] = """
 measure : 'zscore' | 'correlation'
     Which method to use for finding outliers among the components:
 
@@ -2577,9 +2187,7 @@ measure : 'zscore' | 'correlation'
 
     .. versionadded:: 0.21"""
 
-docdict[
-    "meg"
-] = """
+docdict["meg"] = """
 meg : str | list | dict | bool | None
     Can be "helmet", "sensors" or "ref" to show the MEG helmet, sensors or
     reference sensors respectively, or a combination like
@@ -2591,9 +2199,7 @@ meg : str | list | dict | bool | None
        Added support for specifying alpha values as a dict.
 """
 
-docdict[
-    "metadata_epochs"
-] = """
+docdict["metadata_epochs"] = """
 metadata : instance of pandas.DataFrame | None
     A :class:`pandas.DataFrame` specifying metadata about each epoch.
     If given, ``len(metadata)`` must equal ``len(events)``. The DataFrame
@@ -2607,17 +2213,13 @@ metadata : instance of pandas.DataFrame | None
     .. versionadded:: 0.16
 """
 
-docdict[
-    "method_fir"
-] = """
+docdict["method_fir"] = """
 method : str
     ``'fir'`` will use overlap-add FIR filtering, ``'iir'`` will use IIR
     forward-backward filtering (via :func:`~scipy.signal.filtfilt`).
 """
 
-docdict[
-    "method_kw_psd"
-] = """\
+docdict["method_kw_psd"] = """\
 **method_kw
     Additional keyword arguments passed to the spectral estimation
     function (e.g., ``n_fft, n_overlap, n_per_seg, average, window``
@@ -2643,16 +2245,12 @@ docdict["method_plot_psd_auto"] = _method_psd.format(
 docdict["method_psd"] = _method_psd.format("", "")
 docdict["method_psd_auto"] = _method_psd.format(" | ``'auto'``", "")
 
-docdict[
-    "mode_eltc"
-] = """
+docdict["mode_eltc"] = """
 mode : str
     Extraction mode, see Notes.
 """
 
-docdict[
-    "mode_pctf"
-] = """
+docdict["mode_pctf"] = """
 mode : None | 'mean' | 'max' | 'svd'
     Compute summary of PSFs/CTFs across all indices specified in 'idx'.
     Can be:
@@ -2666,9 +2264,7 @@ mode : None | 'mean' | 'max' | 'svd'
       n_comp first SVD components.
 """
 
-docdict[
-    "montage"
-] = """
+docdict["montage"] = """
 montage : None | str | DigMontage
     A montage containing channel positions. If a string or
     :class:`~mne.channels.DigMontage` is
@@ -2682,9 +2278,7 @@ montage : None | str | DigMontage
 
 docdict["montage_types"] = """EEG/sEEG/ECoG/DBS/fNIRS"""
 
-docdict[
-    "montage_units"
-] = """
+docdict["montage_units"] = """
 montage_units : str
     Units that channel positions are represented in. Defaults to "mm"
     (millimeters), but can be any prefix + "m" combination (including just
@@ -2693,22 +2287,16 @@ montage_units : str
     .. versionadded:: 1.3
 """
 
-docdict[
-    "morlet_reference"
-] = """
+docdict["morlet_reference"] = """
 The Morlet wavelets follow the formulation in :footcite:t:`Tallon-BaudryEtAl1997`.
 """
 
-docdict[
-    "moving"
-] = """
+docdict["moving"] = """
 moving : instance of SpatialImage
     The image to morph ("from" volume).
 """
 
-docdict[
-    "mri_resolution_eltc"
-] = """
+docdict["mri_resolution_eltc"] = """
 mri_resolution : bool
     If True (default), the volume source space will be upsampled to the
     original MRI resolution via trilinear interpolation before the atlas values
@@ -2722,17 +2310,13 @@ mri_resolution : bool
 # %%
 # N
 
-docdict[
-    "n_comp_pctf_n"
-] = """
+docdict["n_comp_pctf_n"] = """
 n_comp : int
     Number of PSF/CTF components to return for mode='max' or mode='svd'.
     Default n_comp=1.
 """
 
-docdict[
-    "n_cycles_tfr"
-] = """
+docdict["n_cycles_tfr"] = """
 n_cycles : int | array of int, shape (n_freqs,)
     Number of cycles in the wavelet, either a fixed number or one per
     frequency. The number of cycles ``n_cycles`` and the frequencies of
@@ -2741,9 +2325,7 @@ n_cycles : int | array of int, shape (n_freqs,)
     and about time and frequency smoothing.
 """
 
-docdict[
-    "n_jobs"
-] = """\
+docdict["n_jobs"] = """\
 n_jobs : int | None
     The number of jobs to run in parallel. If ``-1``, it is set
     to the number of CPU cores. Requires the :mod:`joblib` package.
@@ -2753,25 +2335,19 @@ n_jobs : int | None
     value for ``n_jobs``.
 """
 
-docdict[
-    "n_jobs_cuda"
-] = """
+docdict["n_jobs_cuda"] = """
 n_jobs : int | str
     Number of jobs to run in parallel. Can be ``'cuda'`` if ``cupy``
     is installed properly.
 """
 
-docdict[
-    "n_jobs_fir"
-] = """
+docdict["n_jobs_fir"] = """
 n_jobs : int | str
     Number of jobs to run in parallel. Can be ``'cuda'`` if ``cupy``
     is installed properly and ``method='fir'``.
 """
 
-docdict[
-    "n_pca_components_apply"
-] = """
+docdict["n_pca_components_apply"] = """
 n_pca_components : int | float | None
     The number of PCA components to be kept, either absolute (int)
     or fraction of the explained variance (float). If None (default),
@@ -2779,24 +2355,18 @@ n_pca_components : int | float | None
     in 0.23 all components will be used.
 """
 
-docdict[
-    "n_permutations_clust_all"
-] = """
+docdict["n_permutations_clust_all"] = """
 n_permutations : int | 'all'
     The number of permutations to compute. Can be 'all' to perform
     an exact test.
 """
 
-docdict[
-    "n_permutations_clust_int"
-] = """
+docdict["n_permutations_clust_int"] = """
 n_permutations : int
     The number of permutations to compute.
 """
 
-docdict[
-    "n_proj_vectors"
-] = """
+docdict["n_proj_vectors"] = """
 n_grad : int | float between ``0`` and ``1``
     Number of vectors for gradiometers. Either an integer or a float between 0 and 1
     to select the number of vectors to explain the cumulative variance greater than
@@ -2811,18 +2381,14 @@ n_eeg : int | float between ``0`` and ``1``
     ``n_eeg``.
 """
 
-docdict[
-    "names_topomap"
-] = """\
+docdict["names_topomap"] = """\
 names : None | list
     Labels for the sensors. If a :class:`list`, labels should correspond
     to the order of channels in ``data``. If ``None`` (default), no channel
     names are plotted.
 """
 
-docdict[
-    "nirx_notes"
-] = """
+docdict["nirx_notes"] = """
 This function has only been tested with NIRScout and NIRSport devices,
 and with the NIRStar software version 15 and above and Aurora software
 2021 and above.
@@ -2836,9 +2402,7 @@ mathematical functions the default behaviour is to return the
 saturated data.
 """
 
-docdict[
-    "niter"
-] = """
+docdict["niter"] = """
 niter : dict | tuple | None
     For each phase of the volume registration, ``niter`` is the number of
     iterations per successive stage of optimization. If a tuple is
@@ -2857,9 +2421,7 @@ niter : dict | tuple | None
                    sdr=(5, 5, 3))
 """
 
-docdict[
-    "norm_pctf"
-] = """
+docdict["norm_pctf"] = """
 norm : None | 'max' | 'norm'
     Whether and how to normalise the PSFs and CTFs. This will be applied
     before computing summaries as specified in 'mode'.
@@ -2870,24 +2432,18 @@ norm : None | 'max' | 'norm'
     * 'norm' : Normalize to maximum norm across all PSFs/CTFs.
 """
 
-docdict[
-    "normalization"
-] = """normalization : 'full' | 'length'
+docdict["normalization"] = """normalization : 'full' | 'length'
     Normalization strategy. If "full", the PSD will be normalized by the
     sampling rate as well as the length of the signal (as in
     :ref:`Nitime <nitime:users-guide>`). Default is ``'length'``."""
 
-docdict[
-    "normalize_psd_topo"
-] = """
+docdict["normalize_psd_topo"] = """
 normalize : bool
     If True, each band will be divided by the total power. Defaults to
     False.
 """
 
-docdict[
-    "notes_2d_backend"
-] = """\
+docdict["notes_2d_backend"] = """\
 MNE-Python provides two different backends for browsing plots (i.e.,
 :meth:`raw.plot()<mne.io.Raw.plot>`, :meth:`epochs.plot()<mne.Epochs.plot>`,
 and :meth:`ica.plot_sources()<mne.preprocessing.ICA.plot_sources>`). One is
@@ -2915,9 +2471,7 @@ of :class:`~mne.io.Raw`, :class:`~mne.Epochs`, or :class:`~mne.Evoked`).
 docdict["notes_plot_*_psd_func"] = _notes_plot_psd.format("function")
 docdict["notes_plot_psd_meth"] = _notes_plot_psd.format("method")
 
-docdict[
-    "notes_spectrum_array"
-] = """
+docdict["notes_spectrum_array"] = """
 It is assumed that the data passed in represent spectral *power* (not amplitude,
 phase, model coefficients, etc) and downstream methods (such as
 :meth:`~mne.time_frequency.SpectrumArray.plot`) assume power data. If you pass in
@@ -2925,27 +2479,21 @@ something other than power, at the very least axis labels will be inaccurate (an
 other things may also not work or be incorrect).
 """
 
-docdict[
-    "notes_tmax_included_by_default"
-] = """
+docdict["notes_tmax_included_by_default"] = """
 Unlike Python slices, MNE time intervals by default include **both**
 their end points; ``crop(tmin, tmax)`` returns the interval
 ``tmin <= t <= tmax``. Pass ``include_tmax=False`` to specify the half-open
 interval ``tmin <= t < tmax`` instead.
 """
 
-docdict[
-    "npad"
-] = """
+docdict["npad"] = """
 npad : int | str
     Amount to pad the start and end of the data.
     Can also be ``"auto"`` to use a padding that will result in
     a power-of-two size (can be much faster).
 """
 
-docdict[
-    "nrows_ncols_ica_components"
-] = """
+docdict["nrows_ncols_ica_components"] = """
 nrows, ncols : int | 'auto'
     The number of rows and columns of topographies to plot. If both ``nrows``
     and ``ncols`` are ``'auto'``, will plot up to 20 components in a 5×4 grid,
@@ -2956,9 +2504,7 @@ nrows, ncols : int | 'auto'
     ``nrows='auto', ncols='auto'``.
 """
 
-docdict[
-    "nrows_ncols_topomap"
-] = """
+docdict["nrows_ncols_topomap"] = """
 nrows, ncols : int | 'auto'
     The number of rows and columns of topographies to plot. If either ``nrows``
     or ``ncols`` is ``'auto'``, the necessary number will be inferred. Defaults
@@ -2968,9 +2514,7 @@ nrows, ncols : int | 'auto'
 # %%
 # O
 
-docdict[
-    "offset_decim"
-] = """
+docdict["offset_decim"] = """
 offset : int
     Apply an offset to where the decimation starts relative to the
     sample corresponding to t=0. The offset is in samples at the
@@ -2979,9 +2523,7 @@ offset : int
     .. versionadded:: 0.12
 """
 
-docdict[
-    "on_baseline_ica"
-] = """
+docdict["on_baseline_ica"] = """
 on_baseline : str
     How to handle baseline-corrected epochs or evoked data.
     Can be ``'raise'`` to raise an error, ``'warn'`` (default) to emit a
@@ -2990,9 +2532,7 @@ on_baseline : str
 
     .. versionadded:: 1.2
 """
-docdict[
-    "on_defects"
-] = """
+docdict["on_defects"] = """
 on_defects : 'raise' | 'warn' | 'ignore'
     What to do if the surface is found to have topological defects.
     Can be ``'raise'`` (default) to raise an error, ``'warn'`` to emit a
@@ -3003,9 +2543,7 @@ on_defects : 'raise' | 'warn' | 'ignore'
     fail irrespective of this parameter.
 """
 
-docdict[
-    "on_header_missing"
-] = """
+docdict["on_header_missing"] = """
 on_header_missing : str
     Can be ``'raise'`` (default) to raise an error, ``'warn'`` to emit a
     warning, or ``'ignore'`` to ignore when the FastSCAN header is missing.
@@ -3018,9 +2556,7 @@ Can be ``'raise'`` (default) to raise an error, ``'warn'`` to emit a
     warning, or ``'ignore'`` to ignore when"""
 
 
-docdict[
-    "on_mismatch_info"
-] = f"""
+docdict["on_mismatch_info"] = f"""
 on_mismatch : 'raise' | 'warn' | 'ignore'
     {_on_missing_base} the device-to-head transformation differs between
     instances.
@@ -3028,27 +2564,21 @@ on_mismatch : 'raise' | 'warn' | 'ignore'
     .. versionadded:: 0.24
 """
 
-docdict[
-    "on_missing_ch_names"
-] = f"""
+docdict["on_missing_ch_names"] = f"""
 on_missing : 'raise' | 'warn' | 'ignore'
     {_on_missing_base} entries in ch_names are not present in the raw instance.
 
     .. versionadded:: 0.23.0
 """
 
-docdict[
-    "on_missing_chpi"
-] = f"""
+docdict["on_missing_chpi"] = f"""
 on_missing : 'raise' | 'warn' | 'ignore'
     {_on_missing_base} no cHPI information can be found. If ``'ignore'`` or
     ``'warn'``, all return values will be empty arrays or ``None``. If
     ``'raise'``, an exception will be raised.
 """
 
-docdict[
-    "on_missing_epochs"
-] = """
+docdict["on_missing_epochs"] = """
 on_missing : 'raise' | 'warn' | 'ignore'
     What to do if one or several event ids are not found in the recording.
     Valid keys are 'raise' | 'warn' | 'ignore'
@@ -3060,9 +2590,7 @@ on_missing : 'raise' | 'warn' | 'ignore'
        automatically generated irrespective of this parameter.
 """
 
-docdict[
-    "on_missing_events"
-] = f"""
+docdict["on_missing_events"] = f"""
 on_missing : 'raise' | 'warn' | 'ignore'
     {_on_missing_base} event numbers from ``event_id`` are missing from
     :term:`events`. When numbers from :term:`events` are missing from
@@ -3072,32 +2600,24 @@ on_missing : 'raise' | 'warn' | 'ignore'
     .. versionadded:: 0.21
 """
 
-docdict[
-    "on_missing_fiducials"
-] = f"""
+docdict["on_missing_fiducials"] = f"""
 on_missing : 'raise' | 'warn' | 'ignore'
     {_on_missing_base} some necessary fiducial points are missing.
 """
 
-docdict[
-    "on_missing_fwd"
-] = f"""
+docdict["on_missing_fwd"] = f"""
 on_missing : 'raise' | 'warn' | 'ignore'
     {_on_missing_base} ``stc`` has vertices that are not in ``fwd``.
 """
 
-docdict[
-    "on_missing_montage"
-] = f"""
+docdict["on_missing_montage"] = f"""
 on_missing : 'raise' | 'warn' | 'ignore'
     {_on_missing_base} channels have missing coordinates.
 
     .. versionadded:: 0.20.1
 """
 
-docdict[
-    "on_rank_mismatch"
-] = """
+docdict["on_rank_mismatch"] = """
 on_rank_mismatch : str
     If an explicit MEG value is passed, what to do when it does not match
     an empirically computed rank (only used for covariances).
@@ -3107,18 +2627,14 @@ on_rank_mismatch : str
     .. versionadded:: 0.23
 """
 
-docdict[
-    "on_split_missing"
-] = f"""
+docdict["on_split_missing"] = f"""
 on_split_missing : str
     {_on_missing_base} split file is missing.
 
     .. versionadded:: 0.22
 """
 
-docdict[
-    "ordered"
-] = """
+docdict["ordered"] = """
 ordered : bool
     If True (default False), ensure that the order of the channels in
     the modified instance matches the order of ``ch_names``.
@@ -3128,9 +2644,7 @@ ordered : bool
         The default changed from False in 1.4 to True in 1.5.
 """
 
-docdict[
-    "origin_maxwell"
-] = """
+docdict["origin_maxwell"] = """
 origin : array-like, shape (3,) | str
     Origin of internal and external multipolar moment space in meters.
     The default is ``'auto'``, which means ``(0., 0., 0.)`` when
@@ -3142,9 +2656,7 @@ origin : array-like, shape (3,) | str
     options or specifying the origin manually.
 """
 
-docdict[
-    "out_type_clust"
-] = """
+docdict["out_type_clust"] = """
 out_type : 'mask' | 'indices'
     Output format of clusters within a list.
     If ``'mask'``, returns a list of boolean arrays,
@@ -3157,9 +2669,7 @@ out_type : 'mask' | 'indices'
     Default is ``'indices'``.
 """
 
-docdict[
-    "outlines_topomap"
-] = """
+docdict["outlines_topomap"] = """
 outlines : 'head' | dict | None
     The outlines to be drawn. If 'head', the default head scheme will be
     drawn. If dict, each key refers to a tuple of x and y positions, the values
@@ -3170,9 +2680,7 @@ outlines : 'head' | dict | None
     Defaults to 'head'.
 """
 
-docdict[
-    "overview_mode"
-] = """
+docdict["overview_mode"] = """
 overview_mode : str | None
     Can be "channels", "empty", or "hidden" to set the overview bar mode
     for the ``'qt'`` backend. If None (default), the config option
@@ -3180,9 +2688,7 @@ overview_mode : str | None
     if it's not found.
 """
 
-docdict[
-    "overwrite"
-] = """
+docdict["overwrite"] = """
 overwrite : bool
     If True (default False), overwrite the destination file if it
     exists.
@@ -3208,26 +2714,20 @@ docdict["pad_fir"] = (
 """
 )
 
-docdict[
-    "pca_vars_pctf"
-] = """
+docdict["pca_vars_pctf"] = """
 pca_vars : array, shape (n_comp,) | list of array
     The explained variances of the first n_comp SVD components across the
     PSFs/CTFs for the specified vertices. Arrays for multiple labels are
     returned as list. Only returned if ``mode='svd'`` and ``return_pca_vars=True``.
 """
 
-docdict[
-    "per_sample_metric"
-] = """
+docdict["per_sample_metric"] = """
 per_sample : bool
     If True the metric is computed for each sample
     separately. If False, the metric is spatio-temporal.
 """
 
-docdict[
-    "phase"
-] = """
+docdict["phase"] = """
 phase : str
     Phase of the filter.
     When ``method='fir'``, symmetric linear-phase FIR filters are constructed,
@@ -3247,9 +2747,7 @@ phase : str
     .. versionadded:: 0.13
 """
 
-docdict[
-    "physical_range_export_params"
-] = """
+docdict["physical_range_export_params"] = """
 physical_range : str | tuple
     The physical range of the data. If 'auto' (default), then
     it will infer the physical min and max from the data itself,
@@ -3283,9 +2781,7 @@ pick_ori : None | "normal" | "vector"
 """
 )
 
-docdict[
-    "pick_ori_bf"
-] = """
+docdict["pick_ori_bf"] = """
 pick_ori : None | str
     For forward solutions with fixed orientation, None (default) must be
     used and a scalar beamformer is computed. For free-orientation forward
@@ -3307,9 +2803,7 @@ pick_ori : None | "normal"
     + _pick_ori_novec
 )
 
-docdict[
-    "pick_types_params"
-] = """
+docdict["pick_types_params"] = """
 meg : bool | str
     If True include MEG channels. If string it can be 'mag', 'grad',
     'planar1' or 'planar2' to select only magnetometers, all
@@ -3423,9 +2917,7 @@ docdict["picks_good_data_noref"] = _reflow_param_docstring(
     f"{picks_base} good data channels {noref}"
 )
 docdict["picks_header"] = _picks_header
-docdict[
-    "picks_ica"
-] = """
+docdict["picks_ica"] = """
 picks : int | list of int | slice | None
     Indices of the independent components (ICs) to visualize.
     If an integer, represents the index of the IC to pick.
@@ -3434,24 +2926,18 @@ picks : int | list of int | slice | None
     IC: ``ICA001``. ``None`` will pick all independent components in the order
     fitted.
 """
-docdict[
-    "picks_nostr"
-] = f"""picks : list | slice | None
+docdict["picks_nostr"] = f"""picks : list | slice | None
     {_picks_desc} {_picks_int}
     None (default) will pick all channels. {reminder_nostr}"""
 
-docdict[
-    "picks_plot_projs_joint_trace"
-] = f"""\
+docdict["picks_plot_projs_joint_trace"] = f"""\
 picks_trace : {_picks_types}
     Channels to show alongside the projected time courses. Typically
     these are the ground-truth channels for an artifact (e.g., ``'eog'`` or
     ``'ecg'``). {_picks_int} {_picks_str} no channels.
 """
 
-docdict[
-    "pipeline"
-] = """
+docdict["pipeline"] = """
 pipeline : str | tuple
     The volume registration steps to perform (a ``str`` for a single step,
     or ``tuple`` for a set of sequential steps). The following steps can be
@@ -3490,9 +2976,7 @@ pipeline : str | tuple
         the SDR step.
 """
 
-docdict[
-    "plot_psd_doc"
-] = """\
+docdict["plot_psd_doc"] = """\
 Plot power or amplitude spectra.
 
 Separate plots are drawn for each channel type. When the data have been
@@ -3512,16 +2996,12 @@ pos : array, shape (n_channels, 2){}
 docdict["pos_topomap"] = _pos_topomap.format(" | instance of Info")
 docdict["pos_topomap_psd"] = _pos_topomap.format("")
 
-docdict[
-    "position"
-] = """
+docdict["position"] = """
 position : int
     The position for the progress bar.
 """
 
-docdict[
-    "precompute"
-] = """
+docdict["precompute"] = """
 precompute : bool | str
     Whether to load all data (not just the visible portion) into RAM and
     apply preprocessing (e.g., projectors) to the full data array in a separate
@@ -3536,9 +3016,7 @@ precompute : bool | str
        Support for the MNE_BROWSER_PRECOMPUTE config variable.
 """
 
-docdict[
-    "preload"
-] = """
+docdict["preload"] = """
 preload : bool or str (default False)
     Preload data into memory for data manipulation and faster indexing.
     If True, the data will be preloaded into memory (fast, requires
@@ -3546,9 +3024,7 @@ preload : bool or str (default False)
     file name of a memory-mapped file which is used to store the data
     on the hard drive (slower, requires less memory)."""
 
-docdict[
-    "preload_concatenate"
-] = """
+docdict["preload_concatenate"] = """
 preload : bool, str, or None (default None)
     Preload data into memory for data manipulation and faster indexing.
     If True, the data will be preloaded into memory (fast, requires
@@ -3559,9 +3035,7 @@ preload : bool, str, or None (default None)
     of the instances passed in.
 """
 
-docdict[
-    "proj_epochs"
-] = """
+docdict["proj_epochs"] = """
 proj : bool | 'delayed'
     Apply SSP projection vectors. If proj is 'delayed' and reject is not
     None the single epochs will be projected before the rejection
@@ -3575,9 +3049,7 @@ proj : bool | 'delayed'
     recommended value if SSPs are not used for cleaning the data.
 """
 
-docdict[
-    "proj_plot"
-] = """
+docdict["proj_plot"] = """
 proj : bool | 'interactive' | 'reconstruct'
     If true SSP projections are applied before display. If 'interactive',
     a check box for reversible selection of SSP projection vectors will
@@ -3589,17 +3061,13 @@ proj : bool | 'interactive' | 'reconstruct'
        Support for 'reconstruct' was added.
 """
 
-docdict[
-    "proj_psd"
-] = """\
+docdict["proj_psd"] = """\
 proj : bool
     Whether to apply SSP projection vectors before spectral estimation.
     Default is ``False``.
 """
 
-docdict[
-    "projection_set_eeg_reference"
-] = """
+docdict["projection_set_eeg_reference"] = """
 projection : bool
     If ``ref_channels='average'`` this argument specifies if the
     average reference should be computed as a projection (True) or not
@@ -3611,16 +3079,12 @@ projection : bool
     must be set to ``False`` (the default in this case).
 """
 
-docdict[
-    "projs"
-] = """
+docdict["projs"] = """
 projs : list of Projection
     List of computed projection vectors.
 """
 
-docdict[
-    "projs_report"
-] = """
+docdict["projs_report"] = """
 projs : bool | None
     Whether to add SSP projector plots if projectors are present in
     the data. If ``None``, use ``projs`` from `~mne.Report` creation.
@@ -3629,9 +3093,7 @@ projs : bool | None
 # %%
 # R
 
-docdict[
-    "random_state"
-] = """
+docdict["random_state"] = """
 random_state : None | int | instance of ~numpy.random.RandomState
     A seed for the NumPy random number generator (RNG). If ``None`` (default),
     the seed will be  obtained from the operating system
@@ -3690,24 +3152,18 @@ docdict["rank"] = _rank_base
 docdict["rank_info"] = _rank_base + "\n    The default is ``'info'``."
 docdict["rank_none"] = _rank_base + "\n    The default is ``None``."
 
-docdict[
-    "raw_epochs"
-] = """
+docdict["raw_epochs"] = """
 raw : Raw object
     An instance of `~mne.io.Raw`.
 """
 
-docdict[
-    "raw_sfreq"
-] = """
+docdict["raw_sfreq"] = """
 raw_sfreq : float
     The original Raw object sampling rate. If None, then it is set to
     ``info['sfreq']``.
 """
 
-docdict[
-    "reduce_rank"
-] = """
+docdict["reduce_rank"] = """
 reduce_rank : bool
     If True, the rank of the denominator of the beamformer formula (i.e.,
     during pseudo-inversion) will be reduced by one for each spatial location.
@@ -3719,18 +3175,14 @@ reduce_rank : bool
         ``pick='max_power'`` with weight normalization).
 """
 
-docdict[
-    "ref_channels"
-] = """
+docdict["ref_channels"] = """
 ref_channels : str | list of str
     Name of the electrode(s) which served as the reference in the
     recording. If a name is provided, a corresponding channel is added
     and its data is set to 0. This is useful for later re-referencing.
 """
 
-docdict[
-    "ref_channels_set_eeg_reference"
-] = """
+docdict["ref_channels_set_eeg_reference"] = """
 ref_channels : list of str | str
     Can be:
 
@@ -3742,16 +3194,12 @@ ref_channels : list of str | str
       the data
 """
 
-docdict[
-    "reg_affine"
-] = """
+docdict["reg_affine"] = """
 reg_affine : ndarray of float, shape (4, 4)
     The affine that registers one volume to another.
 """
 
-docdict[
-    "regularize_maxwell_reg"
-] = """
+docdict["regularize_maxwell_reg"] = """
 regularize : str | None
     Basis regularization type, must be ``"in"`` or None.
     ``"in"`` is the same algorithm as the ``-regularize in`` option in
@@ -3768,18 +3216,14 @@ reject_by_annotation : bool
 
 docdict["reject_by_annotation_all"] = _reject_by_annotation_base
 
-docdict[
-    "reject_by_annotation_epochs"
-] = """
+docdict["reject_by_annotation_epochs"] = """
 reject_by_annotation : bool
     Whether to reject based on annotations. If ``True`` (default), epochs
     overlapping with segments whose description begins with ``'bad'`` are
     rejected. If ``False``, no rejection based on annotations is performed.
 """
 
-docdict[
-    "reject_by_annotation_psd"
-] = """\
+docdict["reject_by_annotation_psd"] = """\
 reject_by_annotation : bool
     Whether to omit bad spans of data before spectral estimation. If
     ``True``, spans with annotations whose description begins with
@@ -3817,18 +3261,14 @@ _reject_common = """\
               difference will be preserved.
 """
 
-docdict[
-    "reject_drop_bad"
-] = f"""
+docdict["reject_drop_bad"] = f"""
 reject : dict | str | None
 {_reject_common}
     If ``reject`` is ``None``, no rejection is performed. If ``'existing'``
     (default), then the rejection parameters set at instantiation are used.
 """
 
-docdict[
-    "reject_epochs"
-] = f"""
+docdict["reject_epochs"] = f"""
 reject : dict | None
 {_reject_common}
     .. note:: To constrain the time period used for estimation of signal
@@ -3837,17 +3277,13 @@ reject : dict | None
     If ``reject`` is ``None`` (default), no rejection is performed.
 """
 
-docdict[
-    "remove_dc"
-] = """
+docdict["remove_dc"] = """
 remove_dc : bool
     If ``True``, the mean is subtracted from each segment before computing
     its spectrum.
 """
 
-docdict[
-    "replace_report"
-] = """
+docdict["replace_report"] = """
 replace : bool
     If ``True``, content already present that has the same ``title`` and
     ``section`` will be replaced. Defaults to ``False``, which will cause
@@ -3855,16 +3291,12 @@ replace : bool
     already exists.
 """
 
-docdict[
-    "res_topomap"
-] = """
+docdict["res_topomap"] = """
 res : int
     The resolution of the topomap image (number of pixels along each side).
 """
 
-docdict[
-    "return_pca_vars_pctf"
-] = """
+docdict["return_pca_vars_pctf"] = """
 return_pca_vars : bool
     Whether or not to return the explained variances across the specified
     vertices for individual SVD components. This is only valid if
@@ -3872,9 +3304,7 @@ return_pca_vars : bool
     Default return_pca_vars=False.
 """
 
-docdict[
-    "roll"
-] = """
+docdict["roll"] = """
 roll : float | None
     The roll of the camera rendering the view in degrees.
 """
@@ -3882,9 +3312,7 @@ roll : float | None
 # %%
 # S
 
-docdict[
-    "saturated"
-] = """saturated : str
+docdict["saturated"] = """saturated : str
     Replace saturated segments of data with NaNs, can be:
 
     ``"ignore"``
@@ -3903,9 +3331,7 @@ docdict[
     .. versionadded:: 0.24
 """
 
-docdict[
-    "scalings"
-] = """
+docdict["scalings"] = """
 scalings : 'auto' | dict | None
     Scaling factors for the traces. If a dictionary where any
     value is ``'auto'``, the scaling factor is set to match the 99.5th
@@ -3926,26 +3352,20 @@ scalings : 'auto' | dict | None
         positive direction and 20 µV in the negative direction).
 """
 
-docdict[
-    "scalings_df"
-] = """
+docdict["scalings_df"] = """
 scalings : dict | None
     Scaling factor applied to the channels picked. If ``None``, defaults to
     ``dict(eeg=1e6, mag=1e15, grad=1e13)`` — i.e., converts EEG to µV,
     magnetometers to fT, and gradiometers to fT/cm.
 """
 
-docdict[
-    "scalings_topomap"
-] = """
+docdict["scalings_topomap"] = """
 scalings : dict | float | None
     The scalings of the channel types to be applied for plotting.
     If None, defaults to ``dict(eeg=1e6, grad=1e13, mag=1e15)``.
 """
 
-docdict[
-    "scoring"
-] = """
+docdict["scoring"] = """
 scoring : callable | str | None
     Score function (or loss function) with signature
     ``score_func(y, y_pred, **kwargs)``.
@@ -3955,17 +3375,13 @@ scoring : callable | str | None
     ``scoring=sklearn.metrics.roc_auc_score``).
 """
 
-docdict[
-    "sdr_morph"
-] = """
+docdict["sdr_morph"] = """
 sdr_morph : instance of dipy.align.DiffeomorphicMap
     The class that applies the the symmetric diffeomorphic registration
     (SDR) morph.
 """
 
-docdict[
-    "section_report"
-] = """
+docdict["section_report"] = """
 section : str | None
     The name of the section (or content block) to add the content to. This
     feature is useful for grouping multiple related content elements
@@ -3977,9 +3393,7 @@ section : str | None
     .. versionadded:: 1.1
 """
 
-docdict[
-    "seed"
-] = """
+docdict["seed"] = """
 seed : None | int | instance of ~numpy.random.RandomState
     A seed for the NumPy random number generator (RNG). If ``None`` (default),
     the seed will be  obtained from the operating system
@@ -3989,24 +3403,18 @@ seed : None | int | instance of ~numpy.random.RandomState
     the RNG with a defined state.
 """
 
-docdict[
-    "seeg"
-] = """
+docdict["seeg"] = """
 seeg : bool
     If True (default), show sEEG electrodes.
 """
 
-docdict[
-    "selection"
-] = """
+docdict["selection"] = """
 selection : iterable | None
     Iterable of indices of selected epochs. If ``None``, will be
     automatically generated, corresponding to all non-zero events.
 """
 
-docdict[
-    "sensor_colors"
-] = """
+docdict["sensor_colors"] = """
 sensor_colors : array-like of color | dict | None
     Colors to use for the sensor glyphs. Can be None (default) to use default colors.
     A dict should provide the colors (values) for each channel type (keys), e.g.::
@@ -4020,9 +3428,7 @@ sensor_colors : array-like of color | dict | None
     shape ``(n_eeg, 3)`` or ``(n_eeg, 4)``.
 """
 
-docdict[
-    "sensors_topomap"
-] = """
+docdict["sensors_topomap"] = """
 sensors : bool | str
     Whether to add markers for sensor locations. If :class:`str`, should be a
     valid matplotlib format string (e.g., ``'r+'`` for red plusses, see the
@@ -4030,9 +3436,7 @@ sensors : bool | str
     default), black circles will be used.
 """
 
-docdict[
-    "set_eeg_reference_see_also_notes"
-] = """
+docdict["set_eeg_reference_see_also_notes"] = """
 See Also
 --------
 mne.set_bipolar_reference : Convenience function for creating bipolar
@@ -4082,16 +3486,12 @@ References
 .. footbibliography::
 """
 
-docdict[
-    "show"
-] = """\
+docdict["show"] = """\
 show : bool
     Show the figure if ``True``.
 """
 
-docdict[
-    "show_names_topomap"
-] = """
+docdict["show_names_topomap"] = """
 show_names : bool | callable
     If ``True``, show channel names next to each sensor marker. If callable,
     channel names will be formatted using the callable; e.g., to
@@ -4100,18 +3500,14 @@ show_names : bool | callable
     non-masked sensor names will be shown.
 """
 
-docdict[
-    "show_scalebars"
-] = """
+docdict["show_scalebars"] = """
 show_scalebars : bool
     Whether to show scale bars when the plot is initialized. Can be toggled
     after initialization by pressing :kbd:`s` while the plot window is focused.
     Default is ``True``.
 """
 
-docdict[
-    "show_scrollbars"
-] = """
+docdict["show_scrollbars"] = """
 show_scrollbars : bool
     Whether to show scrollbars when the plot is initialized. Can be toggled
     after initialization by pressing :kbd:`z` ("zen mode") while the plot
@@ -4120,9 +3516,7 @@ show_scrollbars : bool
     .. versionadded:: 0.19.0
 """
 
-docdict[
-    "show_traces"
-] = """
+docdict["show_traces"] = """
 show_traces : bool | str | float
     If True, enable interactive picking of a point on the surface of the
     brain and plot its time course.
@@ -4136,16 +3530,12 @@ show_traces : bool | str | float
     .. versionadded:: 0.20.0
 """
 
-docdict[
-    "size_topomap"
-] = """
+docdict["size_topomap"] = """
 size : float
     Side length of each subplot in inches.
 """
 
-docdict[
-    "skip_by_annotation"
-] = """
+docdict["skip_by_annotation"] = """
 skip_by_annotation : str | list of str
     If a string (or list of str), any annotation segment that begins
     with the given string will not be included in filtering, and
@@ -4157,9 +3547,7 @@ skip_by_annotation : str | list of str
     To disable, provide an empty list. Only used if ``inst`` is raw.
 """
 
-docdict[
-    "skip_by_annotation_maxwell"
-] = """
+docdict["skip_by_annotation_maxwell"] = """
 skip_by_annotation : str | list of str
     If a string (or list of str), any annotation segment that begins
     with the given string will not be included in filtering, and
@@ -4171,24 +3559,18 @@ skip_by_annotation : str | list of str
     To disable, provide an empty list.
 """
 
-docdict[
-    "smooth"
-] = """
+docdict["smooth"] = """
 smooth : float in [0, 1)
     The smoothing factor to be applied. Default 0 is no smoothing.
 """
 
-docdict[
-    "spatial_colors_psd"
-] = """\
+docdict["spatial_colors_psd"] = """\
 spatial_colors : bool
     Whether to color spectrum lines by channel location. Ignored if
     ``average=True``.
 """
 
-docdict[
-    "sphere_topomap_auto"
-] = f"""\
+docdict["sphere_topomap_auto"] = f"""\
 sphere : float | array-like | instance of ConductorModel | None  | 'auto' | 'eeglab'
     The sphere parameters to use for the head outline. Can be array-like of
     shape (4,) to give the X/Y/Z origin and radius in meters, or a single float
@@ -4205,17 +3587,13 @@ sphere : float | array-like | instance of ConductorModel | None  | 'auto' | 'eeg
     .. versionchanged:: 1.1 Added ``'eeglab'`` option.
 """
 
-docdict[
-    "splash"
-] = """
+docdict["splash"] = """
 splash : bool
     If True (default), a splash screen is shown during the application startup. Only
     applicable to the ``qt`` backend.
 """
 
-docdict[
-    "split_naming"
-] = """
+docdict["split_naming"] = """
 split_naming : 'neuromag' | 'bids'
     When splitting files, append a filename partition with the appropriate
     naming schema: for ``'neuromag'``, a split file ``fname.fif`` will be named
@@ -4223,16 +3601,12 @@ split_naming : 'neuromag' | 'bids'
     it will be named ``fname_split-01.fif``, ``fname_split-02.fif``, etc.
 """
 
-docdict[
-    "src_eltc"
-] = """
+docdict["src_eltc"] = """
 src : instance of SourceSpaces
     The source spaces for the source time courses.
 """
 
-docdict[
-    "src_volume_options"
-] = """
+docdict["src_volume_options"] = """
 src : instance of SourceSpaces | None
     The source space corresponding to the source estimate. Only necessary
     if the STC is a volume or mixed source estimate.
@@ -4263,9 +3637,7 @@ volume_options : float | dict | None
     entry.
 """
 
-docdict[
-    "st_fixed_maxwell_only"
-] = """
+docdict["st_fixed_maxwell_only"] = """
 st_fixed : bool
     If True (default), do tSSS using the median head position during the
     ``st_duration`` window. This is the default behavior of MaxFilter
@@ -4287,9 +3659,7 @@ st_only : bool
     .. versionadded:: 0.12
 """
 
-docdict[
-    "standardize_names"
-] = """
+docdict["standardize_names"] = """
 standardize_names : bool
     If True, standardize MEG and EEG channel names to be
     ``'MEG ###'`` and ``'EEG ###'``. If False (default), native
@@ -4307,48 +3677,36 @@ docdict["stat_fun_clust_f"] = _stat_fun_clust_base.format("f_oneway")
 
 docdict["stat_fun_clust_t"] = _stat_fun_clust_base.format("ttest_1samp_no_p")
 
-docdict[
-    "static"
-] = """
+docdict["static"] = """
 static : instance of SpatialImage
     The image to align with ("to" volume).
 """
 
-docdict[
-    "stc_est_metric"
-] = """
+docdict["stc_est_metric"] = """
 stc_est : instance of (Vol|Mixed)SourceEstimate
     The source estimates containing estimated values
     e.g. obtained with a source imaging method.
 """
 
-docdict[
-    "stc_metric"
-] = """
+docdict["stc_metric"] = """
 metric : float | array, shape (n_times,)
     The metric. float if per_sample is False, else
     array with the values computed for each time point.
 """
 
-docdict[
-    "stc_plot_kwargs_report"
-] = """
+docdict["stc_plot_kwargs_report"] = """
 stc_plot_kwargs : dict
     Dictionary of keyword arguments to pass to
     :class:`mne.SourceEstimate.plot`. Only used when plotting in 3D
     mode.
 """
 
-docdict[
-    "stc_true_metric"
-] = """
+docdict["stc_true_metric"] = """
 stc_true : instance of (Vol|Mixed)SourceEstimate
     The source estimates containing correct values.
 """
 
-docdict[
-    "stcs_pctf"
-] = """
+docdict["stcs_pctf"] = """
 stcs : instance of SourceEstimate | list of instances of SourceEstimate
     The PSFs or CTFs as STC objects. All PSFs/CTFs will be returned as
     successive samples in STC objects, in the order they are specified
@@ -4364,9 +3722,7 @@ stcs : instance of SourceEstimate | list of instances of SourceEstimate
     a VectorSourceEstimate object.
 """
 
-docdict[
-    "std_err_by_event_type_returns"
-] = """
+docdict["std_err_by_event_type_returns"] = """
 std_err : instance of Evoked | list of Evoked
     The standard error over epochs.
     When ``by_event_type=True`` was specified, a list is returned containing a
@@ -4375,9 +3731,7 @@ std_err : instance of Evoked | list of Evoked
     dictionary.
 """
 
-docdict[
-    "step_down_p_clust"
-] = """
+docdict["step_down_p_clust"] = """
 step_down_p : float
     To perform a step-down-in-jumps test, pass a p-value for clusters to
     exclude from each successive iteration. Default is zero, perform no
@@ -4386,48 +3740,36 @@ step_down_p : float
     but costs computation time.
 """
 
-docdict[
-    "subject"
-] = """
+docdict["subject"] = """
 subject : str
     The FreeSurfer subject name.
 """
 
-docdict[
-    "subject_label"
-] = """
+docdict["subject_label"] = """
 subject : str | None
     Subject which this label belongs to. Should only be specified if it is not
     specified in the label.
 """
 
-docdict[
-    "subject_none"
-] = """
+docdict["subject_none"] = """
 subject : str | None
     The FreeSurfer subject name.
 """
 
-docdict[
-    "subject_optional"
-] = """
+docdict["subject_optional"] = """
 subject : str
     The FreeSurfer subject name. While not necessary, it is safer to set the
     subject parameter to avoid analysis errors.
 """
 
-docdict[
-    "subjects_dir"
-] = """
+docdict["subjects_dir"] = """
 subjects_dir : path-like | None
     The path to the directory containing the FreeSurfer subjects
     reconstructions. If ``None``, defaults to the ``SUBJECTS_DIR`` environment
     variable.
 """
 
-docdict[
-    "surface"
-] = """surface : str
+docdict["surface"] = """surface : str
     The surface along which to do the computations, defaults to ``'white'``
     (the gray-white matter boundary).
 """
@@ -4435,9 +3777,7 @@ docdict[
 # %%
 # T
 
-docdict[
-    "t_power_clust"
-] = """
+docdict["t_power_clust"] = """
 t_power : float
     Power to raise the statistical values (usually t-values) by before
     summing (sign will be retained). Note that ``t_power=0`` will give a
@@ -4445,24 +3785,18 @@ t_power : float
     by its statistical score.
 """
 
-docdict[
-    "t_window_chpi_t"
-] = """
+docdict["t_window_chpi_t"] = """
 t_window : float
     Time window to use to estimate the amplitudes, default is
     0.2 (200 ms).
 """
 
-docdict[
-    "tags_report"
-] = """
+docdict["tags_report"] = """
 tags : array-like of str | str
     Tags to add for later interactive filtering. Must not contain spaces.
 """
 
-docdict[
-    "tail_clust"
-] = """
+docdict["tail_clust"] = """
 tail : int
     If tail is 1, the statistic is thresholded above threshold.
     If tail is -1, the statistic is thresholded below threshold.
@@ -4470,9 +3804,7 @@ tail : int
     the distribution.
 """
 
-docdict[
-    "temporal_window_tfr_intro"
-] = """
+docdict["temporal_window_tfr_intro"] = """
 In spectrotemporal analysis (as with traditional fourier methods),
 the temporal and spectral resolution are interrelated: longer temporal windows
 allow more precise frequency estimates; shorter temporal windows "smear"
@@ -4492,9 +3824,7 @@ Source: `FieldTrip tutorial: Time-frequency analysis using Hanning window,
 multitapers and wavelets <https://www.fieldtriptoolbox.org/tutorial/timefrequencyanalysis>`_.
 """  # noqa: E501
 
-docdict[
-    "temporal_window_tfr_morlet_notes"
-] = r"""
+docdict["temporal_window_tfr_morlet_notes"] = r"""
 In MNE-Python, the length of the Morlet wavelet is affected by the arguments
 ``freqs`` and ``n_cycles``, which define the frequencies of interest
 and the number of cycles, respectively. For the time-frequency representation,
@@ -4512,9 +3842,7 @@ wavelet must not exceed the length of your signal.
 For more information on the Morlet wavelet, see :func:`mne.time_frequency.morlet`.
 """
 
-docdict[
-    "temporal_window_tfr_multitaper_notes"
-] = r"""
+docdict["temporal_window_tfr_multitaper_notes"] = r"""
 In MNE-Python, the multitaper temporal window length is defined by the arguments
 ``freqs`` and ``n_cycles``, respectively defining the frequencies of interest
 and the number of cycles: :math:`T = \frac{\mathtt{n\_cycles}}{\mathtt{freqs}}`
@@ -4539,26 +3867,16 @@ theme : str | path-like
     defaulting to "auto" if it's not found.\
 """
 
-docdict[
-    "theme_3d"
-] = """
+docdict["theme_3d"] = """
 {theme}
-""".format(
-    theme=_theme.format(config_option="MNE_3D_OPTION_THEME")
-)
+""".format(theme=_theme.format(config_option="MNE_3D_OPTION_THEME"))
 
-docdict[
-    "theme_pg"
-] = """
+docdict["theme_pg"] = """
 {theme}
     Only supported by the ``'qt'`` backend.
-""".format(
-    theme=_theme.format(config_option="MNE_BROWSER_THEME")
-)
+""".format(theme=_theme.format(config_option="MNE_BROWSER_THEME"))
 
-docdict[
-    "thresh"
-] = """
+docdict["thresh"] = """
 thresh : None or float
     Not supported yet.
     If not None, values below thresh will not be visible.
@@ -4582,9 +3900,7 @@ threshold : float | dict | None
 f_test = ("an F-threshold", "an F-statistic")
 docdict["threshold_clust_f"] = _threshold_clust_base.format(*f_test)
 
-docdict[
-    "threshold_clust_f_notes"
-] = """
+docdict["threshold_clust_f_notes"] = """
 For computing a ``threshold`` based on a p-value, use the conversion
 from :meth:`scipy.stats.rv_continuous.ppf`::
 
@@ -4597,9 +3913,7 @@ from :meth:`scipy.stats.rv_continuous.ppf`::
 t_test = ("a t-threshold", "a t-statistic")
 docdict["threshold_clust_t"] = _threshold_clust_base.format(*t_test)
 
-docdict[
-    "threshold_clust_t_notes"
-] = """
+docdict["threshold_clust_t_notes"] = """
 For computing a ``threshold`` based on a p-value, use the conversion
 from :meth:`scipy.stats.rv_continuous.ppf`::
 
@@ -4611,9 +3925,7 @@ For a one-tailed test (``tail=1``), don't divide the p-value by 2.
 For testing the lower tail (``tail=-1``), don't subtract ``pval`` from 1.
 """
 
-docdict[
-    "time_bandwidth_tfr"
-] = """
+docdict["time_bandwidth_tfr"] = """
 time_bandwidth : float ``≥ 2.0``
     Product between the temporal window length (in seconds) and the *full*
     frequency bandwidth (in Hz). This product can be seen as the surface of the
@@ -4621,9 +3933,7 @@ time_bandwidth : float ``≥ 2.0``
     (thus the frequency resolution) and the number of good tapers. See notes
     for additional information."""
 
-docdict[
-    "time_bandwidth_tfr_notes"
-] = r"""
+docdict["time_bandwidth_tfr_notes"] = r"""
 In MNE-Python's multitaper functions, the frequency bandwidth is
 additionally affected by the parameter ``time_bandwidth``.
 The ``n_cycles`` parameter determines the temporal window length based on the
@@ -4659,9 +3969,7 @@ reduce noise in the power estimates by using several (orthogonal) tapers.
     example above, the half-frequency bandwidth is 2 Hz.
 """
 
-docdict[
-    "time_format"
-] = """
+docdict["time_format"] = """
 time_format : 'float' | 'clock'
     Style of time labels on the horizontal axis. If ``'float'``, labels will be
     number of seconds from the start of the recording. If ``'clock'``,
@@ -4689,9 +3997,7 @@ _raw_tf = (
 )
 docdict["time_format_df_raw"] = _time_format_df_base.format(_raw_tf)
 
-docdict[
-    "time_label"
-] = """
+docdict["time_label"] = """
 time_label : str | callable | None
     Format of the time label (a format string, a function that maps
     floating point time values to strings, or None for no label). The
@@ -4699,69 +4005,51 @@ time_label : str | callable | None
     is more than one time point.
 """
 
-docdict[
-    "time_unit"
-] = """\
+docdict["time_unit"] = """\
 time_unit : str
     The units for the time axis, can be "s" (default) or "ms".
 """
 
-docdict[
-    "time_viewer_brain_screenshot"
-] = """
+docdict["time_viewer_brain_screenshot"] = """
 time_viewer : bool
     If True, include time viewer traces. Only used if
     ``time_viewer=True`` and ``separate_canvas=False``.
 """
 
-docdict[
-    "title_none"
-] = """
+docdict["title_none"] = """
 title : str | None
     The title of the generated figure. If ``None`` (default), no title is
     displayed.
 """
 
-docdict[
-    "tmax_raw"
-] = """
+docdict["tmax_raw"] = """
 tmax : float
     End time of the raw data to use in seconds (cannot exceed data duration).
 """
 
-docdict[
-    "tmin"
-] = """
+docdict["tmin"] = """
 tmin : scalar
     Time point of the first sample in data.
 """
 
-docdict[
-    "tmin_epochs"
-] = """
+docdict["tmin_epochs"] = """
 tmin : float
     Start time before event. If nothing provided, defaults to 0.
 """
 
-docdict[
-    "tmin_raw"
-] = """
+docdict["tmin_raw"] = """
 tmin : float
     Start time of the raw data to use in seconds (must be >= 0).
 """
 
-docdict[
-    "tmin_tmax_psd"
-] = """\
+docdict["tmin_tmax_psd"] = """\
 tmin, tmax : float | None
     First and last times to include, in seconds. ``None`` uses the first or
     last time present in the data. Default is ``tmin=None, tmax=None`` (all
     times).
 """
 
-docdict[
-    "tol_kind_rank"
-] = """
+docdict["tol_kind_rank"] = """
 tol_kind : str
     Can be: "absolute" (default) or "relative". Only used if ``tol`` is a
     float, because when ``tol`` is a string the mode is implicitly relative.
@@ -4780,9 +4068,7 @@ tol_kind : str
     .. versionadded:: 0.21.0
 """
 
-docdict[
-    "tol_rank"
-] = """
+docdict["tol_rank"] = """
 tol : float | 'auto'
     Tolerance for singular values to consider non-zero in
     calculating the rank. The singular values are calculated
@@ -4791,9 +4077,7 @@ tol : float | 'auto'
     same thresholding as :func:`scipy.linalg.orth`.
 """
 
-docdict[
-    "topomap_kwargs"
-] = """
+docdict["topomap_kwargs"] = """
 topomap_kwargs : dict | None
     Keyword arguments to pass to the topomap-generating functions.
 """
@@ -4803,26 +4087,18 @@ If str, the path to the head<->MRI transform ``*-trans.fif`` file produced
     during coregistration. Can also be ``'fsaverage'`` to use the built-in
     fsaverage transformation."""
 
-docdict[
-    "trans"
-] = f"""
+docdict["trans"] = f"""
 trans : path-like | dict | instance of Transform | ``"fsaverage"`` | None
     {_trans_base}
     If trans is None, an identity matrix is assumed.
 """
 
-docdict[
-    "trans_not_none"
-] = """
+docdict["trans_not_none"] = """
 trans : str | dict | instance of Transform
     %s
-""" % (
-    _trans_base,
-)
+""" % (_trans_base,)
 
-docdict[
-    "transparent"
-] = """
+docdict["transparent"] = """
 transparent : bool | None
     If True: use a linear transparency between fmin and fmid
     and make values below fmin fully transparent (symmetrically for
@@ -4830,17 +4106,13 @@ transparent : bool | None
     type.
 """
 
-docdict[
-    "tstart_ecg"
-] = """
+docdict["tstart_ecg"] = """
 tstart : float
     Start ECG detection after ``tstart`` seconds. Useful when the beginning
     of the run is noisy.
 """
 
-docdict[
-    "tstep"
-] = """
+docdict["tstep"] = """
 tstep : scalar
     Time step between successive samples in data.
 """
@@ -4848,18 +4120,14 @@ tstep : scalar
 # %%
 # U
 
-docdict[
-    "ui_event_name_source"
-] = """
+docdict["ui_event_name_source"] = """
 name : str
     The name of the event (same as its class name but in snake_case).
 source : matplotlib.figure.Figure | Figure3D
     The figure that published the event.
 """
 
-docdict[
-    "uint16_codec"
-] = """
+docdict["uint16_codec"] = """
 uint16_codec : str | None
     If your set file contains non-ascii characters, sometimes reading
     it may fail and give rise to error message stating that "buffer is
@@ -4868,9 +4136,7 @@ uint16_codec : str | None
     can therefore help you solve this problem.
 """
 
-docdict[
-    "units"
-] = """
+docdict["units"] = """
 units : str | dict | None
     Specify the unit(s) that the data should be returned in. If
     ``None`` (default), the data is returned in the
@@ -4889,9 +4155,7 @@ units : str | dict | None
     channel-type-specific default unit.
 """
 
-docdict[
-    "units_edf_bdf_io"
-] = """
+docdict["units_edf_bdf_io"] = """
 units : dict | str
     The units of the channels as stored in the file. This argument
     is useful only if the units are missing from the original file.
@@ -4910,17 +4174,13 @@ docdict["units_topomap_evoked"] = _units.format(
     "dict | ", "and ``scalings=None`` the unit is automatically determined, otherwise "
 )
 
-docdict[
-    "use_cps"
-] = """
+docdict["use_cps"] = """
 use_cps : bool
     Whether to use cortical patch statistics to define normal orientations for
     surfaces (default True).
 """
 
-docdict[
-    "use_cps_restricted"
-] = """
+docdict["use_cps_restricted"] = """
 use_cps : bool
     Whether to use cortical patch statistics to define normal orientations for
     surfaces (default True).
@@ -4929,9 +4189,7 @@ use_cps : bool
     not in surface orientation, and ``pick_ori='normal'``.
 """
 
-docdict[
-    "use_opengl"
-] = """
+docdict["use_opengl"] = """
 use_opengl : bool | None
     Whether to use OpenGL when rendering the plot (requires ``pyopengl``).
     May increase performance, but effect is dependent on system CPU and
@@ -4946,9 +4204,7 @@ use_opengl : bool | None
 # %%
 # V
 
-docdict[
-    "vector_pctf"
-] = """
+docdict["vector_pctf"] = """
 vector : bool
     Whether to return PSF/CTF as vector source estimate (3 values per
     location) or source estimate object (1 intensity value per location).
@@ -4958,9 +4214,7 @@ vector : bool
     .. versionadded:: 1.2
 """
 
-docdict[
-    "verbose"
-] = """
+docdict["verbose"] = """
 verbose : bool | str | int | None
     Control verbosity of the logging output. If ``None``, use the default
     verbosity level. See the :ref:`logging documentation <tut-logging>` and
@@ -4968,17 +4222,13 @@ verbose : bool | str | int | None
     argument.
 """
 
-docdict[
-    "vertices_volume"
-] = """
+docdict["vertices_volume"] = """
 vertices : list of array of int
     The indices of the dipoles in the source space. Should be a single
     array of shape (n_dipoles,) unless there are subvolumes.
 """
 
-docdict[
-    "view"
-] = """
+docdict["view"] = """
 view : str | None
     The name of the view to show (e.g. "lateral"). Other arguments
     take precedence and modify the camera starting from the ``view``.
@@ -4986,17 +4236,13 @@ view : str | None
     string shortcut options.
 """
 
-docdict[
-    "view_layout"
-] = """
+docdict["view_layout"] = """
 view_layout : str
     Can be "vertical" (default) or "horizontal". When using "horizontal" mode,
     the PyVista backend must be used and hemi cannot be "split".
 """
 
-docdict[
-    "views"
-] = """
+docdict["views"] = """
 views : str | list
     View to use. Using multiple views (list) is not supported for mpl
     backend. See :meth:`Brain.show_view <mne.viz.Brain.show_view>` for
@@ -5032,9 +4278,7 @@ docdict["vlim_plot_topomap_proj"] = _vlim_joint.format(
 )
 docdict["vlim_plot_topomap_psd"] = _vlim_joint.format("topomap", _vlim_callable, "")
 
-docdict[
-    "vmin_vmax_topomap"
-] = """
+docdict["vmin_vmax_topomap"] = """
 vmin, vmax : float | callable | None
     Lower and upper bounds of the colormap, in the same units as the data.
     If ``vmin`` and ``vmax`` are both ``None``, they are set at ± the
@@ -5048,9 +4292,7 @@ vmin, vmax : float | callable | None
 # %%
 # W
 
-docdict[
-    "weight_norm"
-] = """
+docdict["weight_norm"] = """
 weight_norm : str | None
     Can be:
 
@@ -5082,16 +4324,12 @@ weight_norm : str | None
            solution.
 """
 
-docdict[
-    "window_psd"
-] = """\
+docdict["window_psd"] = """\
 window : str | float | tuple
     Windowing function to use. See :func:`scipy.signal.get_window`.
 """
 
-docdict[
-    "window_resample"
-] = """
+docdict["window_resample"] = """
 window : str | tuple
     Frequency-domain window to use in resampling.
     See :func:`scipy.signal.resample`.
@@ -5100,9 +4338,7 @@ window : str | tuple
 # %%
 # X
 
-docdict[
-    "xscale_plot_psd"
-] = """\
+docdict["xscale_plot_psd"] = """\
 xscale : 'linear' | 'log'
     Scale of the frequency axis. Default is ``'linear'``.
 """
@@ -5505,7 +4741,7 @@ def open_docs(kind=None, version=None):
 class _decorator:
     """Inject code or modify the docstring of a class, method, or function."""
 
-    def __init__(self, extra):  # noqa: D102
+    def __init__(self, extra):
         self.kind = self.__class__.__name__
         self.extra = extra
         self.msg = f"NOTE: {{}}() is a {self.kind} {{}}. {self.extra}."
@@ -5625,7 +4861,7 @@ class legacy(_decorator):
         and in a sphinx warning box in the docstring.
     """
 
-    def __init__(self, alt, extra=""):  # noqa: D102
+    def __init__(self, alt, extra=""):
         period = ". " if len(extra) else ""
         extra = f"New code should use {alt}{period}{extra}"
         super().__init__(extra=extra)

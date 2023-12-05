@@ -992,9 +992,9 @@ def _assert_shielding(raw_sss, erm_power, min_factor, max_factor=np.inf, meg="ma
     sss_power = raw_sss[picks][0].ravel()
     sss_power = np.sqrt(np.sum(sss_power * sss_power))
     factor = erm_power / sss_power
-    assert (
-        min_factor <= factor < max_factor
-    ), "Shielding factor not %0.3f <= %0.3f < %0.3f" % (min_factor, factor, max_factor)
+    assert min_factor <= factor < max_factor, (
+        "Shielding factor not %0.3f <= %0.3f < %0.3f" % (min_factor, factor, max_factor)
+    )
 
 
 @buggy_mkl_svd

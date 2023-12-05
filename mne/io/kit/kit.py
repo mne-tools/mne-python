@@ -75,7 +75,7 @@ def _call_digitization(info, mrk, elp, hsp, kit_info):
 class UnsupportedKITFormat(ValueError):
     """Our reader is not guaranteed to work with old files."""
 
-    def __init__(self, sqd_version, *args, **kwargs):  # noqa: D102
+    def __init__(self, sqd_version, *args, **kwargs):
         self.sqd_version = sqd_version
         ValueError.__init__(self, *args, **kwargs)
 
@@ -134,7 +134,7 @@ class RawKIT(BaseRaw):
         allow_unknown_format=False,
         standardize_names=None,
         verbose=None,
-    ):  # noqa: D102
+    ):
         logger.info("Extracting SQD Parameters from %s..." % input_fname)
         input_fname = op.abspath(input_fname)
         self.preload = False
@@ -382,7 +382,7 @@ class EpochsKIT(BaseEpochs):
         allow_unknown_format=False,
         standardize_names=None,
         verbose=None,
-    ):  # noqa: D102
+    ):
         if isinstance(events, (str, PathLike, Path)):
             events = read_events(events)
 

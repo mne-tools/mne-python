@@ -1401,7 +1401,7 @@ class AverageTFR(_BaseTFR):
     @verbose
     def __init__(
         self, info, data, times, freqs, nave, comment=None, method=None, verbose=None
-    ):  # noqa: D102
+    ):
         super().__init__()
         self.info = info
         if data.ndim != 3:
@@ -2699,7 +2699,6 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
         metadata=None,
         verbose=None,
     ):
-        # noqa: D102
         super().__init__()
         self.info = info
         if data.ndim != 4:

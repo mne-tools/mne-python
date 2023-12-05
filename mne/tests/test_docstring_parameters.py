@@ -278,9 +278,7 @@ tddr
 whiten_evoked
 write_fiducials
 write_info
-""".split(
-    "\n"
-)
+""".split("\n")
 
 
 def test_documented():

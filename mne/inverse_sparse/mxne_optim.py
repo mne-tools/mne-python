@@ -778,7 +778,7 @@ def safe_max_abs_diff(A, ia, B, ib):
 class _Phi:
     """Have phi stft as callable w/o using a lambda that does not pickle."""
 
-    def __init__(self, wsize, tstep, n_coefs, n_times):  # noqa: D102
+    def __init__(self, wsize, tstep, n_coefs, n_times):
         self.wsize = np.atleast_1d(wsize)
         self.tstep = np.atleast_1d(tstep)
         self.n_coefs = np.atleast_1d(n_coefs)
@@ -819,7 +819,7 @@ class _Phi:
 class _PhiT:
     """Have phi.T istft as callable w/o using a lambda that does not pickle."""
 
-    def __init__(self, tstep, n_freqs, n_steps, n_times):  # noqa: D102
+    def __init__(self, tstep, n_freqs, n_steps, n_times):
         self.tstep = tstep
         self.n_freqs = n_freqs
         self.n_steps = n_steps
@@ -977,9 +977,9 @@ def norm_epsilon(Y, l1_ratio, phi, w_space=1.0, w_time=None):
         p_sum_w2 = np.cumsum(w_time**2)
         p_sum_Yw = np.cumsum(Y * w_time)
         upper = p_sum_Y2 / (Y / w_time) ** 2 - 2.0 * p_sum_Yw / (Y / w_time) + p_sum_w2
-    upper_greater = np.where(
-        upper > w_space**2 * (1.0 - l1_ratio) ** 2 / l1_ratio**2
-    )[0]
+    upper_greater = np.where(upper > w_space**2 * (1.0 - l1_ratio) ** 2 / l1_ratio**2)[
+        0
+    ]
 
     i0 = upper_greater[0] - 1 if upper_greater.size else K - 1
 

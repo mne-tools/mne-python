@@ -1,17 +1,14 @@
 repos:
-  - repo: https://github.com/psf/black
-    rev: 23.11.0
-    hooks:
-      - id: black
-        args: [--quiet]
-
   # Ruff mne
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.1.6
     hooks:
       - id: ruff
-        name: ruff mne
+        name: ruff lint mne
         args: ["--fix"]
+        files: ^mne/
+      - id: ruff-format
+        name: ruff format mne
         files: ^mne/
 
   # Ruff tutorials and examples
@@ -19,10 +16,13 @@ repos:
     rev: v0.1.6
     hooks:
       - id: ruff
-        name: ruff tutorials and examples
+        name: ruff lint tutorials and examples
         # D103: missing docstring in public function
         # D400: docstring first line must end with period
         args: ["--ignore=D103,D400", "--fix"]
+        files: ^tutorials/|^examples/
+      - id: ruff-format
+        name: ruff format tutorials and examples
         files: ^tutorials/|^examples/
 
   # Codespell
