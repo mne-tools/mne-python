@@ -43,7 +43,6 @@ dependencies = [
     "jinja2",
     "importlib_resources>=5.10.2; python_version<'3.9'",
     "lazy_loader>=0.3",
-    "defusedxml",
 ]
 
 [project.optional-dependencies]
@@ -60,7 +59,8 @@ hdf5 = ["h5io", "pymatreader"]
 full = [
     "mne[hdf5]",
     "qtpy",
-    "PyQt6",
+    "PyQt6!=6.6.1",
+    "PyQt6-Qt6!=6.6.1",
     "pyobjc-framework-Cocoa>=5.2.0; platform_system=='Darwin'",
     "sip",
     "scikit-learn",
@@ -95,6 +95,12 @@ full = [
     "darkdetect",
     "qdarkstyle",
     "threadpoolctl",
+    # duplicated in test_extra:
+    "eeglabio",
+    "EDFlib-Python",
+    "pybv",
+    "snirf",
+    "defusedxml",
 ]
 
 # Dependencies for running the test infrastructure

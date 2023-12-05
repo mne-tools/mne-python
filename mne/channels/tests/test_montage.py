@@ -513,6 +513,8 @@ def test_documented():
 )
 def test_montage_readers(reader, file_content, expected_dig, ext, warning, tmp_path):
     """Test that we have an equivalent of read_montage for all file formats."""
+    if file_content.startswith("<?xml"):
+        pytest.importorskip("defusedxml")
     fname = tmp_path / f"test.{ext}"
     with open(fname, "w") as fid:
         fid.write(file_content)
@@ -1067,6 +1069,7 @@ def test_fif_dig_montage(tmp_path):
 @testing.requires_testing_data
 def test_egi_dig_montage(tmp_path):
     """Test EGI MFF XML dig montage support."""
+    pytest.importorskip("defusedxml")
     dig_montage = read_dig_egi(egi_dig_montage_fname)
     fid, coord = _get_fid_coords(dig_montage.dig)
 
@@ -1123,6 +1126,7 @@ def _pop_montage(dig_montage, ch_name):
 @testing.requires_testing_data
 def test_read_dig_captrak(tmp_path):
     """Test reading a captrak montage file."""
+    pytest.importorskip("defusedxml")
     EXPECTED_CH_NAMES_OLD = [
         "AF3",
         "AF4",
@@ -1933,13 +1937,12 @@ def test_get_builtin_montages():
 def test_plot_montage():
     """Test plotting montage."""
     # gh-8025
+    pytest.importorskip("defusedxml")
     montage = read_dig_captrak(bvct_dig_montage_fname)
     montage.plot()
-    plt.close("all")
 
     f, ax = plt.subplots(1, 1)
     montage.plot(axes=ax)
-    plt.close("all")
 
     with pytest.raises(TypeError, match="must be an instance of Axes"):
         montage.plot(axes=101)

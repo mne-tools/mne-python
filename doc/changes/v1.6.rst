@@ -4,6 +4,7 @@ Version 1.6.1 (unreleased)
 --------------------------
 
 - Fix bug with type hints in :func:`mne.io.read_raw_neuralynx` (:gh:`12236` by `Richard Höchenberger`_)
+- ``defusedxml`` is now an optional (rather than required) dependency and needed when reading EGI-MFF data, NEDF data, and BrainVision montages (:gh:`12264` by `Eric Larson`_)
 
 .. _changes_1_6_0:
 

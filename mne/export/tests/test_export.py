@@ -459,6 +459,7 @@ def test_export_epochs_eeglab(tmp_path, preload):
 def test_export_evokeds_to_mff(tmp_path, fmt, do_history):
     """Test exporting evoked dataset to MFF."""
     pytest.importorskip("mffpy", "0.5.7")
+    pytest.importorskip("defusedxml")
     evoked = read_evokeds_mff(egi_evoked_fname)
     export_fname = tmp_path / "evoked.mff"
     history = [
@@ -515,6 +516,7 @@ def test_export_evokeds_to_mff(tmp_path, fmt, do_history):
 def test_export_to_mff_no_device():
     """Test no device type throws ValueError."""
     pytest.importorskip("mffpy", "0.5.7")
+    pytest.importorskip("defusedxml")
     evoked = read_evokeds_mff(egi_evoked_fname, condition="Category 1")
     evoked.info["device_info"] = None
     with pytest.raises(ValueError, match="No device type."):
