@@ -3,12 +3,10 @@ repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.1.6
     hooks:
-      # lint
       - id: ruff
         name: ruff lint mne
         args: ["--fix"]
         files: ^mne/
-      # format
       - id: ruff-format
         name: ruff format mne
         files: ^mne/
@@ -17,14 +15,12 @@ repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.1.6
     hooks:
-      # Lint
       - id: ruff
         name: ruff lint tutorials and examples
         # D103: missing docstring in public function
         # D400: docstring first line must end with period
         args: ["--ignore=D103,D400", "--fix"]
         files: ^tutorials/|^examples/
-      # Format
       - id: ruff-format
         name: ruff format tutorials and examples
         files: ^tutorials/|^examples/
