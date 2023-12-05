@@ -247,14 +247,11 @@ def test_flat_bad_acq_skip():
     raw = read_raw_fif(skip_fname, preload=True)
     annots, bads = annotate_amplitude(raw, flat=0)
     assert len(annots) == 0
-    assert (
-        bads
-        == [  # MaxFilter finds the same 21 channels
-            "MEG%04d" % (int(num),)
-            for num in "141 331 421 431 611 641 1011 1021 1031 1241 1421 "
-            "1741 1841 2011 2131 2141 2241 2531 2541 2611 2621".split()
-        ]
-    )
+    assert bads == [
+        f"MEG{num:04d}"
+        for num in "141 331 421 431 611 641 1011 1021 1031 1241 1421 "
+        "1741 1841 2011 2131 2141 2241 2531 2541 2611 2621".split()
+    ]  # MaxFilter finds the same 21 channels
 
     # -- overlap of flat segment with bad_acq_skip --
     n_ch, n_times = 11, 1000
