@@ -29,7 +29,7 @@ from mne.rank import (
     estimate_rank,
 )
 
-base_dir = Path(__file__).parent.parent / "io" / "tests" / "data"
+base_dir = Path(__file__).parents[1] / "io" / "tests" / "data"
 cov_fname = base_dir / "test-cov.fif"
 raw_fname = base_dir / "test_raw.fif"
 ave_fname = base_dir / "test-ave.fif"

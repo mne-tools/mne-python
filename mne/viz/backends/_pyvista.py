@@ -26,8 +26,6 @@ from ...utils import (
     _check_option,
     _require_version,
     _validate_type,
-    copy_base_doc_to_subclass_doc,
-    deprecated,
     warn,
 )
 from ._abstract import Figure3D, _AbstractRenderer
@@ -195,7 +193,6 @@ class _Projection:
         self.plotter.render()
 
 
-@copy_base_doc_to_subclass_doc
 class _PyVistaRenderer(_AbstractRenderer):
     """Class managing rendering scene.
 
@@ -843,7 +840,6 @@ class _PyVistaRenderer(_AbstractRenderer):
         *,
         rigid=None,
         update=True,
-        reset_camera=None,
     ):
         _set_3d_view(
             self.figure,
@@ -852,17 +848,9 @@ class _PyVistaRenderer(_AbstractRenderer):
             distance=distance,
             focalpoint=focalpoint,
             roll=roll,
-            reset_camera=reset_camera,
             rigid=rigid,
             update=update,
         )
-
-    @deprecated(
-        "reset_camera is deprecated and will be removed in 1.7, use "
-        "set_camera(distance='auto') instead"
-    )
-    def reset_camera(self):
-        self.plotter.reset_camera()
 
     def screenshot(self, mode="rgb", filename=None):
         return _take_3d_screenshot(figure=self.figure, mode=mode, filename=filename)
@@ -1190,7 +1178,6 @@ def _set_3d_view(
     focalpoint=None,
     distance=None,
     roll=None,
-    reset_camera=None,
     rigid=None,
     update=True,
 ):
@@ -1201,14 +1188,6 @@ def _set_3d_view(
 
     # camera slides along the vector defined from camera position to focal point until
     # all of the actors can be seen (quoting PyVista's docs)
-    if reset_camera is not None:
-        reset_camera = False
-        warn(
-            "reset_camera is deprecated and will be removed in 1.7, use "
-            "distance='auto' instead",
-            FutureWarning,
-        )
-
     # Figure out our current parameters in the transformed space
     _, phi, theta = _get_user_camera_direction(figure.plotter, rigid)
 
