@@ -376,8 +376,7 @@ def plot_projs_topomap(
     %(info_not_none)s Must be associated with the channels in the projectors.
 
         .. versionchanged:: 0.20
-            The positional argument ``layout`` was deprecated and replaced
-            by ``info``.
+            The positional argument ``layout`` was replaced by ``info``.
     %(sensors_topomap)s
     %(show_names_topomap)s
 

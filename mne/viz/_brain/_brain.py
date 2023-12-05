@@ -2183,8 +2183,6 @@ class Brain:
         borders=False,
         hemi=None,
         subdir=None,
-        *,
-        reset_camera=None,
     ):
         """Add an ROI label to the image.
 
@@ -2216,8 +2214,6 @@ class Brain:
             label directory rather than in the label directory itself (e.g.
             for ``$SUBJECTS_DIR/$SUBJECT/label/aparc/lh.cuneus.label``
             ``brain.add_label('cuneus', subdir='aparc')``).
-        reset_camera : bool
-            Deprecated. Use :meth:`show_view` instead.
 
         Notes
         -----
@@ -2324,12 +2320,6 @@ class Brain:
                     keep_idx = np.unique(keep_idx)
             show[keep_idx] = 1
             scalars *= show
-        if reset_camera is not None:
-            warn(
-                "reset_camera is deprecated and will be removed in 1.7, "
-                "use show_view instead",
-                FutureWarning,
-            )
         for _, _, v in self._iter_views(hemi):
             mesh = self._layered_meshes[hemi]
             mesh.add_overlay(
