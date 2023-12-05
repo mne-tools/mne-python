@@ -42,6 +42,7 @@ Bugs
 - Allow :func:`mne.viz.plot_compare_evokeds` to plot eyetracking channels, and improve error handling (:gh:`12190` by `Scott Huberty`_)
 - Fix bug with accessing the last data sample using ``raw[:, -1]`` where an empty array was returned (:gh:`12248` by `Eric Larson`_)
 - Remove incorrect type hints in :func:`mne.io.read_raw_neuralynx` (:gh:`12236` by `Richard Höchenberger`_)
+- ``defusedxml`` is now an optional (rather than required) dependency and needed when reading EGI-MFF data, NEDF data, and BrainVision montages (:gh:`12264` by `Eric Larson`_)
 
 API changes
 ~~~~~~~~~~~

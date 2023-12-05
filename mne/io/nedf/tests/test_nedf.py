@@ -29,6 +29,8 @@ stimhdr = b"""
     <STIMSettings/>
 </nedf>\x00"""
 
+pytest.importorskip("defusedxml")
+
 
 @pytest.mark.parametrize("nacc", (0, 3))
 def test_nedf_header_parser(nacc):
