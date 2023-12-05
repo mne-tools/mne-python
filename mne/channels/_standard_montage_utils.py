@@ -9,11 +9,10 @@ from collections import OrderedDict
 from functools import partial
 
 import numpy as np
-from defusedxml import ElementTree
 
 from .._freesurfer import get_mni_fiducials
 from ..transforms import _sph_to_cart
-from ..utils import _pl, warn
+from ..utils import _pl, _soft_import, warn
 from . import __file__ as _CHANNELS_INIT_FILE
 from .montage import make_dig_montage
 
@@ -344,7 +343,8 @@ def _read_brainvision(fname, head_size):
     # standard electrode positions: X-axis from T7 to T8, Y-axis from Oz to
     # Fpz, Z-axis orthogonal from XY-plane through Cz, fit to a sphere if
     # idealized (when radius=1), specified in millimeters
-    root = ElementTree.parse(fname).getroot()
+    defusedxml = _soft_import("defusedxml", "reading BrainVision montages")
+    root = defusedxml.ElementTree.parse(fname).getroot()
     ch_names = [s.text for s in root.findall("./Electrode/Name")]
     theta = [float(s.text) for s in root.findall("./Electrode/Theta")]
     pol = np.deg2rad(np.array(theta))
