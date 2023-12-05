@@ -314,6 +314,7 @@ ignore_messages = "^.*(Unknown target name|Undefined substitution referenced)[^`
 [tool.mypy]
 ignore_errors = true
 scripts_are_modules = true
+strict = true
 
 [[tool.mypy.overrides]]
 module = ['mne.evoked', 'mne.io']
