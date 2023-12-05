@@ -248,7 +248,7 @@ def test_flat_bad_acq_skip():
     annots, bads = annotate_amplitude(raw, flat=0)
     assert len(annots) == 0
     assert bads == [
-        f"MEG{num:04d}"
+        f"MEG{num.zfill(4)}"
         for num in "141 331 421 431 611 641 1011 1021 1031 1241 1421 "
         "1741 1841 2011 2131 2141 2241 2531 2541 2611 2621".split()
     ]  # MaxFilter finds the same 21 channels
