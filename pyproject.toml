@@ -116,7 +116,6 @@ test = [
     "ruff",
     "numpydoc",
     "codespell",
-    "check-manifest",
     "tomli; python_version<'3.11'",
     "twine",
     "wheel",
