@@ -25,7 +25,7 @@ clean-cache:
 clean: clean-build clean-pyc clean-so clean-ctags clean-cache
 
 wheel:
-	$(PYTHON) -m build
+	$(PYTHON) -m build -w
 
 sample_data:
 	@python -c "import mne; mne.datasets.sample.data_path(verbose=True);"
