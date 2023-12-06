@@ -574,7 +574,6 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         average=False,
         dB=True,
         amplitude=None,
-        estimate=None,
         xscale="linear",
         ci="sd",
         ci_alpha=0.3,
@@ -651,31 +650,16 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         units = _handle_default("units", None)
 
         depr_message = (
-            "The parameter `amplitude` is deprecated and will be replaced by `estimate`"
-            " in MNE 1.8.0. Use `estimate='power'` (the default) to plot a power "
-            "spectral density or `estimate='amplitude'` to plot an amplitude spectral "
-            "density. The deprecated `amplitude='auto'` behavior produced a power "
-            "spectral density if `dB=True` and an amplitude spectral density if "
-            "`dB=False`. These two parameters are now independent of each other."
+            "The default value of `amplitude` will change from `amplitude='auto'` to "
+            "`amplitude=False` in MNE 1.8.0."
         )
-        if amplitude is not None:
-            if estimate is None:
-                warn(depr_message, FutureWarning)
-                if amplitude == "auto":
-                    estimate = "power" if dB else "amplitude"
-                else:  # amplitude is boolean
-                    estimate = "amplitude" if amplitude else "power"
-            else:
-                depr_message += (
-                    " Since you passed values for both `amplitude` and `estimate`, "
-                    "`amplitude` will be ignored."
-                )
-                warn(depr_message, FutureWarning)
+        if amplitude is None or amplitude == "auto":
+            warn(depr_message, FutureWarning)
+            estimate = "power" if dB else "amplitude"
         else:
-            if estimate is None:
-                warn(depr_message, FutureWarning)
-                estimate = "power" if dB else "amplitude"  # old behavior
-        logger.info(f"Plotting spectral density with parameters {estimate=} and {dB=}.")
+            estimate = "amplitude" if amplitude else "power"
+
+        logger.info(f"Plotting {estimate} spectral density ({dB=}).")
 
         # split picks by channel type
         picks = _picks_to_idx(
