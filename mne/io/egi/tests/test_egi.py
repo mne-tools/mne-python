@@ -70,6 +70,7 @@ egi_pause_w1337_skips = [(21956000.0, 40444000.0), (60936000.0, 89332000.0)]
 )
 def test_egi_mff_pause(fname, skip_times, event_times):
     """Test EGI MFF with pauses."""
+    pytest.importorskip("defusedxml")
     if fname == egi_pause_w1337_fname:
         # too slow to _test_raw_reader
         raw = read_raw_egi(fname).load_data()
@@ -129,6 +130,7 @@ def test_egi_mff_pause(fname, skip_times, event_times):
 )
 def test_egi_mff_pause_chunks(fname, tmp_path):
     """Test that on-demand of all short segments works (via I/O)."""
+    pytest.importorskip("defusedxml")
     fname_temp = tmp_path / "test_raw.fif"
     raw_data = read_raw_egi(fname, preload=True).get_data()
     raw = read_raw_egi(fname)
@@ -142,6 +144,7 @@ def test_egi_mff_pause_chunks(fname, tmp_path):
 @requires_testing_data
 def test_io_egi_mff():
     """Test importing EGI MFF simple binary files."""
+    pytest.importorskip("defusedxml")
     # want vars for n chans
     n_ref = 1
     n_eeg = 128
@@ -258,6 +261,7 @@ def test_io_egi():
 @requires_testing_data
 def test_io_egi_pns_mff(tmp_path):
     """Test importing EGI MFF with PNS data."""
+    pytest.importorskip("defusedxml")
     raw = read_raw_egi(egi_mff_pns_fname, include=None, preload=True, verbose="error")
     assert "RawMff" in repr(raw)
     pns_chans = pick_types(raw.info, ecg=True, bio=True, emg=True)
@@ -314,6 +318,7 @@ def test_io_egi_pns_mff(tmp_path):
 @pytest.mark.parametrize("preload", (True, False))
 def test_io_egi_pns_mff_bug(preload):
     """Test importing EGI MFF with PNS data (BUG)."""
+    pytest.importorskip("defusedxml")
     egi_fname_mff = testing_path / "EGI" / "test_egi_pns_bug.mff"
     with pytest.warns(RuntimeWarning, match="EGI PSG sample bug"):
         raw = read_raw_egi(
@@ -356,6 +361,7 @@ def test_io_egi_pns_mff_bug(preload):
 @requires_testing_data
 def test_io_egi_crop_no_preload():
     """Test crop non-preloaded EGI MFF data (BUG)."""
+    pytest.importorskip("defusedxml")
     raw = read_raw_egi(egi_mff_fname, preload=False)
     raw.crop(17.5, 20.5)
     raw.load_data()
@@ -383,6 +389,8 @@ def test_io_egi_crop_no_preload():
 def test_io_egi_evokeds_mff(idx, cond, tmax, signals, bads):
     """Test reading evoked MFF file."""
     pytest.importorskip("mffpy", "0.5.7")
+
+    pytest.importorskip("defusedxml")
     # expected n channels
     n_eeg = 256
     n_ref = 1
@@ -468,6 +476,7 @@ def test_read_evokeds_mff_bad_input():
 @requires_testing_data
 def test_egi_coord_frame():
     """Test that EGI coordinate frame is changed to head."""
+    pytest.importorskip("defusedxml")
     info = read_raw_egi(egi_mff_fname).info
     want_idents = (
         FIFF.FIFFV_POINT_LPA,
@@ -505,6 +514,7 @@ def test_egi_coord_frame():
 )
 def test_meas_date(fname, timestamp, utc_offset):
     """Test meas date conversion."""
+    pytest.importorskip("defusedxml")
     raw = read_raw_egi(fname, verbose="warning")
     dt = datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S.%f%z")
     measdate = dt.astimezone(timezone.utc)
@@ -526,6 +536,7 @@ def test_meas_date(fname, timestamp, utc_offset):
 )
 def test_set_standard_montage_mff(fname, standard_montage):
     """Test setting a standard montage."""
+    pytest.importorskip("defusedxml")
     raw = read_raw_egi(fname, verbose="warning")
     n_eeg = int(standard_montage.split("-")[-1])
     n_dig = n_eeg + 3

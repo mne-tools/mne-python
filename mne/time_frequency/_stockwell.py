@@ -22,7 +22,7 @@ def _check_input_st(x_in, n_fft):
     n_times = x_in.shape[-1]
 
     def _is_power_of_two(n):
-        return not (n > 0 and ((n & (n - 1))))
+        return not (n > 0 and (n & (n - 1)))
 
     if n_fft is None or (not _is_power_of_two(n_fft) and n_times > n_fft):
         # Compute next power of 2

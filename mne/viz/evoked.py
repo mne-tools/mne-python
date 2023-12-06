@@ -2475,8 +2475,7 @@ def _draw_axes_pce(
             ybounds = _trim_ticks(ax.get_yticks(), ymin, ymax)[[0, -1]]
         else:
             raise ValueError(
-                '"truncate_yaxis" must be bool or '
-                '"auto", got {}'.format(truncate_yaxis)
+                f'"truncate_yaxis" must be bool or "auto", got {truncate_yaxis}'
             )
     _setup_ax_spines(
         ax,

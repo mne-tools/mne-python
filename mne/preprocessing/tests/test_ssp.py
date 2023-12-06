@@ -12,7 +12,7 @@ from mne.datasets import testing
 from mne.io import read_raw_ctf, read_raw_fif
 from mne.preprocessing.ssp import compute_proj_ecg, compute_proj_eog
 
-data_path = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
+data_path = Path(__file__).parents[2] / "io" / "tests" / "data"
 raw_fname = data_path / "test_raw.fif"
 dur_use = 5.0
 eog_times = np.array([0.5, 2.3, 3.6, 14.5])

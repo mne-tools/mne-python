@@ -15,7 +15,7 @@ from copy import deepcopy
 class Bunch(dict):
     """Dictionary-like object that exposes its keys as attributes."""
 
-    def __init__(self, **kwargs):  # noqa: D102
+    def __init__(self, **kwargs):
         dict.__init__(self, kwargs)
         self.__dict__ = self
 

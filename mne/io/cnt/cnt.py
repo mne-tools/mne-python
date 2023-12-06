@@ -508,7 +508,7 @@ class RawCNT(BaseRaw):
         header="auto",
         preload=False,
         verbose=None,
-    ):  # noqa: D102
+    ):
         _check_option("date_format", date_format, ["mm/dd/yy", "dd/mm/yy"])
         if date_format == "dd/mm/yy":
             _date_format = "%d/%m/%y %H:%M:%S"

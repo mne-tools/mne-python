@@ -24,7 +24,7 @@ from mne.fixes import _safe_svd
 from mne.io import read_raw_fif
 from mne.preprocessing.xdawn import Xdawn, _XdawnTransformer
 
-base_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
+base_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
 raw_fname = base_dir / "test_raw.fif"
 event_name = base_dir / "test-eve.fif"
 

@@ -7,7 +7,7 @@ from pathlib import Path
 
 from mne.misc import parse_config
 
-ave_fname = Path(__file__).parent.parent / "io" / "tests" / "data" / "test.ave"
+ave_fname = Path(__file__).parents[1] / "io" / "tests" / "data" / "test.ave"
 
 
 def test_parse_ave():

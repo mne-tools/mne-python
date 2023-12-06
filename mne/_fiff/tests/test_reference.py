@@ -38,7 +38,7 @@ from mne.epochs import BaseEpochs, make_fixed_length_epochs
 from mne.io import RawArray, read_raw_fif
 from mne.utils import _record_warnings, catch_logging
 
-base_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
+base_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
 raw_fname = base_dir / "test_raw.fif"
 data_dir = testing.data_path(download=False) / "MEG" / "sample"
 fif_fname = data_dir / "sample_audvis_trunc_raw.fif"

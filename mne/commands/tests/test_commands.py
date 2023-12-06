@@ -31,7 +31,6 @@ from mne.commands import (
     mne_flash_bem,
     mne_kit2fiff,
     mne_make_scalp_surfaces,
-    mne_maxfilter,
     mne_prepare_bem_model,
     mne_report,
     mne_setup_forward_model,
@@ -204,32 +203,6 @@ def test_make_scalp_surfaces(tmp_path, monkeypatch):
     assert_allclose(head_py["rr"], head_c["rr"])
     if not has:
         assert "SUBJECTS_DIR" not in os.environ
-
-
-def test_maxfilter():
-    """Test mne maxfilter."""
-    check_usage(mne_maxfilter)
-    with ArgvSetter(
-        (
-            "-i",
-            raw_fname,
-            "--st",
-            "--movecomp",
-            "--linefreq",
-            "60",
-            "--trans",
-            raw_fname,
-        )
-    ) as out:
-        with pytest.warns(RuntimeWarning, match="Don't use"):
-            os.environ["_MNE_MAXFILTER_TEST"] = "true"
-            try:
-                mne_maxfilter.run()
-            finally:
-                del os.environ["_MNE_MAXFILTER_TEST"]
-        out = out.stdout.getvalue()
-        for check in ("maxfilter", "-trans", "-movecomp"):
-            assert check in out, check
 
 
 @pytest.mark.slowtest

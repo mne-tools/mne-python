@@ -76,7 +76,7 @@ fname_raw_move = data_path / "SSS" / "test_move_anon_raw.fif"
 fname_raw_movecomp_sss = data_path / "SSS" / "test_move_anon_movecomp_raw_sss.fif"
 fname_raw_move_pos = data_path / "SSS" / "test_move_anon_raw.pos"
 
-base_dir = Path(__file__).parent.parent / "io" / "tests" / "data"
+base_dir = Path(__file__).parents[1] / "io" / "tests" / "data"
 raw_fname = base_dir / "test_raw.fif"
 event_name = base_dir / "test-eve.fif"
 evoked_nf_name = base_dir / "test-nf-ave.fif"
