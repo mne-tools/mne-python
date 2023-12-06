@@ -2404,16 +2404,18 @@ def _convert_psds(
     if estimate == "amplitude":
         np.sqrt(psds, out=psds)
         psds *= scaling
-        ylabel = r"$\mathrm{%s/\sqrt{Hz}}$" % unit
+        ylabel = rf"$\mathrm{{{unit}/\sqrt{{Hz}}}}$"
     else:
         psds *= scaling * scaling
         if "/" in unit:
-            unit = "(%s)" % unit
-        ylabel = r"$\mathrm{%s²/Hz}$" % unit
+            unit = f"({unit})"
+        ylabel = rf"$\mathrm{{{unit}²/Hz}}$"
     if dB:
         np.log10(np.maximum(psds, np.finfo(float).tiny), out=psds)
         psds *= 10
-        ylabel += r"$\ \mathrm{(dB)}$"
+        ylabel = r"$\mathrm{dB}\ $" + ylabel
+    ylabel = "Power (" + ylabel if estimate == "power" else "Amplitude (" + ylabel
+    ylabel += ")"
 
     return ylabel
 
