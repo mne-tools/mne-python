@@ -3828,7 +3828,7 @@ _reject_common = """\
 
     .. note:: If ``reject`` is a callable, than **any** criteria can be
             used to reject epochs (including maxima and minima).
-"""
+"""  # noqa: E501
 
 docdict[
     "reject_drop_bad"
