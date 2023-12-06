@@ -819,7 +819,17 @@ class _BaseSourceEstimate(TimeMixin):
         return self  # return self for chaining methods
 
     @verbose
-    def resample(self, sfreq, npad="auto", window="boxcar", n_jobs=None, verbose=None):
+    def resample(
+        self,
+        sfreq,
+        *,
+        npad=100,
+        method="fft",
+        window="auto",
+        pad="auto",
+        n_jobs=None,
+        verbose=None,
+    ):
         """Resample data.
 
         If appropriate, an anti-aliasing filter is applied before resampling.
@@ -833,8 +843,15 @@ class _BaseSourceEstimate(TimeMixin):
             Amount to pad the start and end of the data.
             Can also be "auto" to use a padding that will result in
             a power-of-two size (can be much faster).
-        window : str | tuple
-            Window to use in resampling. See :func:`scipy.signal.resample`.
+        %(method_resample)s
+
+            .. versionadded:: 1.7
+        %(window_resample)s
+
+            .. versionadded:: 1.7
+        %(pad_resample_auto)s
+
+            .. versionadded:: 1.7
         %(n_jobs)s
         %(verbose)s
 
@@ -863,7 +880,9 @@ class _BaseSourceEstimate(TimeMixin):
         data = self.data
         if data.dtype == np.float32:
             data = data.astype(np.float64)
-        self.data = resample(data, sfreq, o_sfreq, npad, n_jobs=n_jobs)
+        self.data = resample(
+            data, sfreq, o_sfreq, npad=npad, window=window, n_jobs=n_jobs, method=method
+        )
 
         # adjust indirectly affected variables
         self.tstep = 1.0 / sfreq

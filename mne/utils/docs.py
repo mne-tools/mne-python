@@ -2245,6 +2245,13 @@ docdict["method_plot_psd_auto"] = _method_psd.format(
 docdict["method_psd"] = _method_psd.format("", "")
 docdict["method_psd_auto"] = _method_psd.format(" | ``'auto'``", "")
 
+docdict["method_resample"] = """
+method : str
+    Resampling method to use. Can be ``"fft"`` (default) or ``"polyphase"``
+    to use FFT-based on polyphase FIR resampling, respectively. These wrap to
+    :func:`scipy.signal.resample` and :func:`scipy.signal.resample_poly`, respectively.
+"""
+
 docdict["mode_eltc"] = """
 mode : str
     Extraction mode, see Notes.
@@ -2488,11 +2495,16 @@ interval ``tmin <= t < tmax`` instead.
 
 docdict["npad"] = """
 npad : int | str
-    Amount to pad the start and end of the data.
-    Can also be ``"auto"`` to use a padding that will result in
-    a power-of-two size (can be much faster).
+    Amount to pad the start and end of the data. Can also be ``"auto"`` to use a padding
+    that will result in a power-of-two size (can be much faster).
 """
 
+docdict["npad_resample"] = (
+    docdict["npad"]
+    + """
+    Only used when ``method="fft"``.
+"""
+)
 docdict["nrows_ncols_ica_components"] = """
 nrows, ncols : int | 'auto'
     The number of rows and columns of topographies to plot. If both ``nrows``
@@ -2698,22 +2710,38 @@ overwrite : bool
 # P
 
 _pad_base = """
-pad : str
-    The type of padding to use. Supports all :func:`numpy.pad` ``mode``
-    options. Can also be ``"reflect_limited"``, which pads with a
-    reflected version of each vector mirrored on the first and last values
+    all :func:`numpy.pad` ``mode`` options. Can also be ``"reflect_limited"``, which
+    pads with a reflected version of each vector mirrored on the first and last values
     of the vector, followed by zeros.
 """
 
-docdict["pad"] = _pad_base
-
 docdict["pad_fir"] = (
-    _pad_base
-    + """
+    """
+pad : str
+    The type of padding to use. Supports """
+    + _pad_base
+    + """\
     Only used for ``method='fir'``.
 """
 )
 
+docdict["pad_resample"] = (  # used when default is not "auto"
+    """
+pad : str
+    The type of padding to use. When ``method="fft"``, supports """
+    + _pad_base
+    + """\
+    When ``method="polyphase"``, supports all modes of :func:`scipy.signal.upfirdn`.
+"""
+)
+
+docdict["pad_resample_auto"] = (  # used when default is "auto"
+    docdict["pad_resample"]
+    + """\
+    The default ("auto") means ``'reflect_limited'`` for ``method='fft'`` and
+    ``'reflect'`` for ``method='polyphase'``.
+"""
+)
 docdict["pca_vars_pctf"] = """
 pca_vars : array, shape (n_comp,) | list of array
     The explained variances of the first n_comp SVD components across the
@@ -4331,8 +4359,12 @@ window : str | float | tuple
 
 docdict["window_resample"] = """
 window : str | tuple
-    Frequency-domain window to use in resampling.
-    See :func:`scipy.signal.resample`.
+    When ``method="fft"``, this is the *frequency-domain* window to use in resampling,
+    and should be the same length as the signal; see :func:`scipy.signal.resample`
+    for details. When ``method="polyphase"``, this is the *time-domain* linear-phase
+    window to use after upsampling the signal; see :func:`scipy.signal.resample_poly`
+    for details. The default ``"auto"`` will use ``"boxcar"`` for ``method="fft"`` and
+    ``("kaiser", 5.0)`` for ``method="polyphase"``.
 """
 
 # %%

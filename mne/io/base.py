@@ -1260,12 +1260,14 @@ class BaseRaw(
     def resample(
         self,
         sfreq,
+        *,
         npad="auto",
-        window="boxcar",
+        window="auto",
         stim_picks=None,
         n_jobs=None,
         events=None,
-        pad="reflect_limited",
+        pad="auto",
+        method="fft",
         verbose=None,
     ):
         """Resample all channels.
@@ -1294,7 +1296,7 @@ class BaseRaw(
         ----------
         sfreq : float
             New sample rate to use.
-        %(npad)s
+        %(npad_resample)s
         %(window_resample)s
         stim_picks : list of int | None
             Stim channels. These channels are simply subsampled or
@@ -1307,10 +1309,12 @@ class BaseRaw(
             An optional event matrix. When specified, the onsets of the events
             are resampled jointly with the data. NB: The input events are not
             modified, but a new array is returned with the raw instead.
-        %(pad)s
-            The default is ``'reflect_limited'``.
+        %(pad_resample_auto)s
 
             .. versionadded:: 0.15
+        %(method_resample)s
+
+            .. versionadded:: 1.7
         %(verbose)s
 
         Returns
@@ -1364,7 +1368,13 @@ class BaseRaw(
             )
 
         kwargs = dict(
-            up=sfreq, down=o_sfreq, npad=npad, window=window, n_jobs=n_jobs, pad=pad
+            up=sfreq,
+            down=o_sfreq,
+            npad=npad,
+            window=window,
+            n_jobs=n_jobs,
+            pad=pad,
+            method=method,
         )
         ratio, n_news = zip(
             *(
