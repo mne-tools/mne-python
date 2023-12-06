@@ -594,52 +594,48 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
 
             .. versionchanged:: 1.5
                 In version 1.5, the default behavior changed so that all
-                :term:`data channels` (not just "good" data channels) are shown
-                by default.
+                :term:`data channels` (not just "good" data channels) are shown by
+                default.
         average : bool
-            Whether to average across channels before plotting. If ``True``,
-            interactive plotting of scalp topography is disabled, and
-            parameters ``ci`` and ``ci_alpha`` control the style of the
-            confidence band around the mean. Default is ``False``.
+            Whether to average across channels before plotting. If ``True``, interactive
+            plotting of scalp topography is disabled, and parameters ``ci`` and
+            ``ci_alpha`` control the style of the confidence band around the mean.
+            Default is ``False``.
         %(dB_spectrum_plot)s
         amplitude : bool | 'auto'
             Whether to plot an amplitude spectrum (``True``) or power spectrum
-            (``False``). If ``'auto'``, will plot a power spectrum when
-            ``dB=True`` and an amplitude spectrum otherwise. Default is
-            ``'auto'``.
+            (``False``). If ``'auto'``, will plot a power spectrum when ``dB=True`` and
+            an amplitude spectrum otherwise. Default is ``'auto'``.
         %(xscale_plot_psd)s
         ci : float | 'sd' | 'range' | None
-            Type of confidence band drawn around the mean when
-            ``average=True``. If ``'sd'`` the band spans ±1 standard deviation
-            across channels. If ``'range'`` the band spans the range across
-            channels at each frequency. If a :class:`float`, it indicates the
-            (bootstrapped) confidence interval to display, and must satisfy
-            ``0 < ci <= 100``. If ``None``, no band is drawn. Default is
-            ``sd``.
+            Type of confidence band drawn around the mean when ``average=True``. If
+            ``'sd'`` the band spans ±1 standard deviation across channels. If
+            ``'range'`` the band spans the range across channels at each frequency. If a
+            :class:`float`, it indicates the (bootstrapped) confidence interval to
+            display, and must satisfy ``0 < ci <= 100``. If ``None``, no band is drawn.
+            Default is ``sd``.
         ci_alpha : float
-            Opacity of the confidence band. Must satisfy
-            ``0 <= ci_alpha <= 1``. Default is 0.3.
+            Opacity of the confidence band. Must satisfy ``0 <= ci_alpha <= 1``. Default
+            is 0.3.
         %(color_plot_psd)s
         alpha : float | None
             Opacity of the spectrum line(s). If :class:`float`, must satisfy
             ``0 <= alpha <= 1``. If ``None``, opacity will be ``1`` when
-            ``average=True`` and ``0.1`` when ``average=False``. Default is
-            ``None``.
+            ``average=True`` and ``0.1`` when ``average=False``. Default is ``None``.
         %(spatial_colors_psd)s
         %(sphere_topomap_auto)s
         %(exclude_spectrum_plot)s
 
             .. versionchanged:: 1.5
-                In version 1.5, the default behavior changed from
-                ``exclude='bads'`` to ``exclude=()``.
+                In version 1.5, the default behavior changed from ``exclude='bads'`` to
+                ``exclude=()``.
         %(axes_spectrum_plot_topomap)s
         %(show)s
 
         Returns
         -------
         fig : instance of matplotlib.figure.Figure
-            Figure with spectra plotted in separate subplots for each channel
-            type.
+            Figure with spectra plotted in separate subplots for each channel type.
         """
         # Must nest this _mpl_figure import because of the BACKEND global
         # stuff
