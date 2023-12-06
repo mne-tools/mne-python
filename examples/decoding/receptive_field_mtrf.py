@@ -17,7 +17,7 @@ as a decoding model, or simply stimulus reconstruction).
 .. _figure 1: https://www.frontiersin.org/articles/10.3389/fnhum.2016.00604/full#F1
 .. _figure 2: https://www.frontiersin.org/articles/10.3389/fnhum.2016.00604/full#F2
 .. _figure 5: https://www.frontiersin.org/articles/10.3389/fnhum.2016.00604/full#F5
-"""  # noqa: E501
+"""
 
 # Authors: Chris Holdgraf <choldgraf@gmail.com>
 #          Eric Larson <larson.eric.d@gmail.com>
@@ -25,9 +25,6 @@ as a decoding model, or simply stimulus reconstruction).
 #
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
-
-# %%
-# sphinx_gallery_thumbnail_number = 3
 
 from os.path import join
 
@@ -130,6 +127,8 @@ ax.set(title="Mean prediction score", xlabel="Channel", ylabel="Score ($r$)")
 # referred to as beta values) are distributed across time delays as well as
 # across the scalp. We will recreate `figure 1`_ and `figure 2`_ from
 # :footcite:`CrosseEtAl2016`.
+
+# sphinx_gallery_thumbnail_number = 3
 
 # Print mean coefficients across all time delays / channels (see Fig 1)
 time_plot = 0.180  # For highlighting a specific time.
