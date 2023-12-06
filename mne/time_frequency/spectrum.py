@@ -573,7 +573,8 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         picks=None,
         average=False,
         dB=True,
-        amplitude="auto",
+        amplitude=None,
+        estimate=None,
         xscale="linear",
         ci="sd",
         ci_alpha=0.3,
@@ -652,10 +653,34 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         scalings = _handle_default("scalings", None)
         titles = _handle_default("titles", None)
         units = _handle_default("units", None)
-        if amplitude == "auto":
-            estimate = "power" if dB else "amplitude"
-        else:  # amplitude is boolean
-            estimate = "amplitude" if amplitude else "power"
+
+        depr_message = (
+            "The parameter `amplitude` is deprecated and will be replaced by `estimate`"
+            " in MNE 1.8.0. Use `estimate='power'` (the default) to plot a power "
+            "spectral density or `estimate='amplitude'` to plot an amplitude spectral "
+            "density. The deprecated `amplitude='auto'` behavior produced a power "
+            "spectral density if `dB=True` and an amplitude spectral density if "
+            "`dB=False`. These two parameters are now independent of each other."
+        )
+        if amplitude is not None:
+            if estimate is None:
+                warn(depr_message, FutureWarning)
+                if amplitude == "auto":
+                    estimate = "power" if dB else "amplitude"
+                else:  # amplitude is boolean
+                    estimate = "amplitude" if amplitude else "power"
+            else:
+                depr_message += (
+                    " Since you passed values for both `amplitude` and `estimate`, "
+                    "`amplitude` will be ignored."
+                )
+                warn(depr_message, FutureWarning)
+        else:
+            if estimate is None:
+                warn(depr_message, FutureWarning)
+                estimate = "power" if dB else "amplitude"  # old behavior
+        logger.info(f"Plotting spectral density with parameters {estimate=} and {dB=}.")
+
         # split picks by channel type
         picks = _picks_to_idx(
             self.info, picks, "data", exclude=exclude, with_ref_meg=False
