@@ -1942,7 +1942,7 @@ def resample(
     Notes
     -----
     When using ``method="fft"`` (default),
-    This uses (hopefully) intelligent edge padding and frequency-domain
+    this uses (hopefully) intelligent edge padding and frequency-domain
     windowing improve :func:`scipy.signal.resample`'s resampling method, which
     we have adapted for our use here. Choices of npad and window have
     important consequences, and the default choices should work well

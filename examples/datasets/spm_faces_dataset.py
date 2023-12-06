@@ -51,7 +51,6 @@ ica.plot_overlay(eog_epochs.average())  # inspect artifact removal
 events = mne.find_events(raw, stim_channel="UPPT001")
 event_ids = {"faces": 1, "scrambled": 2}
 tmin, tmax = -0.2, 0.6
-baseline = None  # no baseline as high-pass is applied
 epochs = mne.Epochs(
     raw,
     events,
