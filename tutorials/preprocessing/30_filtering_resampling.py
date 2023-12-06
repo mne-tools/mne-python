@@ -243,8 +243,14 @@ for ax, data, title, n_fft in zip(
 # cases where the desired sampling rate is an integer factor different from the input
 # sampling rate. For example:
 
+# sphinx_gallery_thumbnail_number = 11
+
 n_ffts = [4096, 2048]  # factor of 2 smaller n_fft
-raw_downsampled_poly = raw.copy().resample(sfreq=raw.info["sfreq"] / 2.0, verbose=True)
+raw_downsampled_poly = raw.copy().resample(
+    sfreq=raw.info["sfreq"] / 2.0,
+    method="polyphase",
+    verbose=True,
+)
 fig, axes = plt.subplots(2, 1, sharey=True, layout="constrained", figsize=(10, 6))
 for ax, data, title, n_fft in zip(
     axes, [raw, raw_downsampled_poly], ["Original", "Downsampled (polyphase)"], n_ffts
