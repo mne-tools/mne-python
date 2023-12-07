@@ -1325,9 +1325,9 @@ def test_resample(tmp_path, preload, n, npad, method):
         raw_resamp.resample(sfreq, n_jobs=None, verbose=True, **kwargs)
     log = log.getvalue()
     if method == "fft":
-        assert "locality" not in log
+        assert "neighborhood" not in log
     else:
-        assert "locality" in log
+        assert "neighborhood" in log
     assert raw_resamp.info["sfreq"] == sfreq
     assert raw.get_data().shape == raw_resamp._data.shape
     assert raw.first_samp == raw_resamp.first_samp

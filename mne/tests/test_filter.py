@@ -383,9 +383,9 @@ def test_resample(method):
         x_rs = resample(x, 1, 2, npad=10, method=method, verbose=True)
     log = log.getvalue()
     if method == "fft":
-        assert "locality" not in log
+        assert "neighborhood" not in log
     else:
-        assert "locality" in log
+        assert "neighborhood" in log
     assert x.shape == (10, 10, 10)
     assert x_rs.shape == (10, 10, 5)
 
@@ -502,9 +502,9 @@ def test_resample_below_1_sample(method):
         epochs.resample(1, method=method, verbose=True)
     log = log.getvalue()
     if method == "fft":
-        assert "locality" not in log
+        assert "neighborhood" not in log
     else:
-        assert "locality" in log
+        assert "neighborhood" in log
     assert len(epochs.times) == 1
     assert epochs.get_data(copy=False).shape[2] == 1
 
