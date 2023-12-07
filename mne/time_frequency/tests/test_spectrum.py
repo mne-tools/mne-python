@@ -276,7 +276,8 @@ def test_spectrum_kwarg_triaging(raw):
     with pytest.warns(RuntimeWarning, match=regex):
         raw.plot_psd(axes=axes)
     # `ax` is the correct legacy param name
-    with warnings.catch_warnings(category=FutureWarning, action="ignore"):
+    with warnings.catch_warnings():
+        warnings.simplefilter(action="ignore", category=FutureWarning)
         raw.plot_psd(ax=axes)
 
 
