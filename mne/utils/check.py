@@ -652,7 +652,8 @@ def _check_if_nan(data, msg=" to be plotted"):
         raise ValueError("Some of the values {} are NaN.".format(msg))
 
 
-def _check_info_inv(info, forward, data_cov=None, noise_cov=None):
+@verbose
+def _check_info_inv(info, forward, data_cov=None, noise_cov=None, verbose=None):
     """Return good channels common to forward model and covariance matrices."""
     from .._fiff.pick import pick_types
 
@@ -763,7 +764,13 @@ def _check_one_ch_type(method, info, forward, data_cov=None, noise_cov=None):
         info_pick = info
     else:
         _validate_type(noise_cov, [None, Covariance], "noise_cov")
-        picks = _check_info_inv(info, forward, data_cov=data_cov, noise_cov=noise_cov)
+        picks = _check_info_inv(
+            info,
+            forward,
+            data_cov=data_cov,
+            noise_cov=noise_cov,
+            verbose=_verbose_safe_false(),
+        )
         info_pick = pick_info(info, picks)
     ch_types = [_contains_ch_type(info_pick, tt) for tt in ("mag", "grad", "eeg")]
     if sum(ch_types) > 1:

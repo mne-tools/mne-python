@@ -167,7 +167,7 @@ def test_check_info_inv():
     )
     with catch_logging() as log:
         picks = _check_info_inv(
-            epochs.info, forward, noise_cov=noise_cov, data_cov=data_cov
+            epochs.info, forward, noise_cov=noise_cov, data_cov=data_cov, verbose=True
         )
         assert list(range(7, 10)) == picks
 
