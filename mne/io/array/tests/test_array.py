@@ -178,7 +178,9 @@ def test_array_raw():
     ch_pos_loc = np.random.randint(60, size=(n_elec, 3)).tolist()
 
     data = np.random.rand(n_elec, ts_size)
-    montage = make_dig_montage(ch_pos=dict(zip(ch_names, ch_pos_loc)), coord_frame="head")
+    montage = make_dig_montage(
+        ch_pos=dict(zip(ch_names, ch_pos_loc)), coord_frame="head"
+    )
     info = create_info(ch_names, Fs, "ecog")
 
     raw = RawArray(data, info)

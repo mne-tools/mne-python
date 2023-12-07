@@ -192,8 +192,12 @@ def _proj_click(idx, fig, browse_backend):
     ssp_fig = fig.mne.fig_proj
     if browse_backend.name == "matplotlib":
         text_lab = ssp_fig.mne.proj_checkboxes.labels[idx]
-        pos = np.mean(text_lab.get_tightbbox(renderer=fig.canvas.get_renderer()), axis=0)
-        fig._fake_click(pos, fig=ssp_fig, ax=ssp_fig.mne.proj_checkboxes.ax, xform="pix")
+        pos = np.mean(
+            text_lab.get_tightbbox(renderer=fig.canvas.get_renderer()), axis=0
+        )
+        fig._fake_click(
+            pos, fig=ssp_fig, ax=ssp_fig.mne.proj_checkboxes.ax, xform="pix"
+        )
     else:
         # _fake_click on QCheckBox is inconsistent across platforms
         # (also see comment in test_plot_raw_selection).
@@ -206,7 +210,9 @@ def _proj_click_all(fig, browse_backend):
     ssp_fig = fig.mne.fig_proj
     if browse_backend.name == "matplotlib":
         fig._fake_click((0.5, 0.5), fig=ssp_fig, ax=ssp_fig.mne.proj_all.ax)
-        fig._fake_click((0.5, 0.5), fig=ssp_fig, ax=ssp_fig.mne.proj_all.ax, kind="release")
+        fig._fake_click(
+            (0.5, 0.5), fig=ssp_fig, ax=ssp_fig.mne.proj_all.ax, kind="release"
+        )
     else:
         # _fake_click on QPushButton is inconsistent across platforms.
         ssp_fig.toggle_all()
@@ -535,7 +541,9 @@ def test_plot_raw_traces(raw, events, browser_backend):
     ismpl = browser_backend.name == "matplotlib"
     with raw.info._unlock():
         raw.info["lowpass"] = 10.0  # allow heavy decim during plotting
-    fig = raw.plot(events=events, order=[1, 7, 5, 2, 3], n_channels=3, group_by="original")
+    fig = raw.plot(
+        events=events, order=[1, 7, 5, 2, 3], n_channels=3, group_by="original"
+    )
     assert hasattr(fig, "mne")  # make sure fig.mne param object is present
     if ismpl:
         assert len(fig.axes) == 5
@@ -621,7 +629,9 @@ def test_plot_raw_groupby(raw, browser_backend, group_by):
     """Test group-by plotting of raw data."""
     with raw.info._unlock():
         raw.info["lowpass"] = 10.0  # allow heavy decim during plotting
-    order = np.arange(len(raw.ch_names))[::-3] if group_by == "position" else [1, 2, 4, 6]
+    order = (
+        np.arange(len(raw.ch_names))[::-3] if group_by == "position" else [1, 2, 4, 6]
+    )
     fig = raw.plot(group_by=group_by, order=order)
     x = fig.mne.traces[0].get_xdata()[10]
     y = fig.mne.traces[0].get_ydata()[10]
@@ -859,7 +869,9 @@ def test_merge_annotations(raw, browser_backend):
         atol=10 / raw.info["sfreq"],
     )
     # drag annotation and merge 2 annotations in focus (selected description)
-    fig._fake_click((1.5, 1.0), add_points=[(3, 1.0)], xform="data", button=1, kind="drag")
+    fig._fake_click(
+        (1.5, 1.0), add_points=[(3, 1.0)], xform="data", button=1, kind="drag"
+    )
     assert len(raw.annotations) == 4
     assert_allclose(
         raw.annotations.onset,
