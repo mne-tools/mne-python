@@ -652,7 +652,8 @@ def _check_if_nan(data, msg=" to be plotted"):
         raise ValueError("Some of the values {} are NaN.".format(msg))
 
 
-def _check_info_inv(info, forward, data_cov=None, noise_cov=None):
+@verbose
+def _check_info_inv(info, forward, data_cov=None, noise_cov=None, verbose=None):
     """Return good channels common to forward model and covariance matrices."""
     from .._fiff.pick import pick_types
 
@@ -695,6 +696,19 @@ def _check_info_inv(info, forward, data_cov=None, noise_cov=None):
     # handle channels from noise cov if noise cov available:
     if noise_cov is not None:
         ch_names = _compare_ch_names(ch_names, noise_cov.ch_names, noise_cov["bads"])
+
+    # inform about excluding any channels apart from bads and reference
+    all_bads = info["bads"] + ref_chs
+    if data_cov is not None:
+        all_bads += data_cov["bads"]
+    if noise_cov is not None:
+        all_bads += noise_cov["bads"]
+    dropped_nonbads = set(info["ch_names"]) - set(ch_names) - set(all_bads)
+    if dropped_nonbads:
+        logger.info(
+            f"Excluding {len(dropped_nonbads)} channel(s) missing from the "
+            "provided forward operator and/or covariance matrices"
+        )
 
     picks = [info["ch_names"].index(k) for k in ch_names if k in info["ch_names"]]
     return picks
@@ -750,7 +764,13 @@ def _check_one_ch_type(method, info, forward, data_cov=None, noise_cov=None):
         info_pick = info
     else:
         _validate_type(noise_cov, [None, Covariance], "noise_cov")
-        picks = _check_info_inv(info, forward, data_cov=data_cov, noise_cov=noise_cov)
+        picks = _check_info_inv(
+            info,
+            forward,
+            data_cov=data_cov,
+            noise_cov=noise_cov,
+            verbose=_verbose_safe_false(),
+        )
         info_pick = pick_info(info, picks)
     ch_types = [_contains_ch_type(info_pick, tt) for tt in ("mag", "grad", "eeg")]
     if sum(ch_types) > 1:
