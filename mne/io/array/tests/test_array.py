@@ -151,7 +151,9 @@ def test_array_raw():
 
     # plotting
     raw2.plot()
-    raw2.compute_psd(tmax=2.0, n_fft=1024).plot(average=True, spatial_colors=False)
+    raw2.compute_psd(tmax=2.0, n_fft=1024).plot(
+        average=True, amplitude=False, spatial_colors=False
+    )
     plt.close("all")
 
     # epoching
@@ -176,13 +178,11 @@ def test_array_raw():
     ch_pos_loc = np.random.randint(60, size=(n_elec, 3)).tolist()
 
     data = np.random.rand(n_elec, ts_size)
-    montage = make_dig_montage(
-        ch_pos=dict(zip(ch_names, ch_pos_loc)), coord_frame="head"
-    )
+    montage = make_dig_montage(ch_pos=dict(zip(ch_names, ch_pos_loc)), coord_frame="head")
     info = create_info(ch_names, Fs, "ecog")
 
     raw = RawArray(data, info)
     raw.set_montage(montage)
     spectrum = raw.compute_psd()
-    spectrum.plot(average=False)  # looking for nonexistent layout
+    spectrum.plot(average=False, amplitude=False)  # looking for nonexistent layout
     spectrum.plot_topo()

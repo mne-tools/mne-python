@@ -1,5 +1,6 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+import warnings
 from functools import partial
 
 import numpy as np
@@ -270,12 +271,13 @@ def test_spectrum_kwarg_triaging(raw):
     import matplotlib.pyplot as plt
 
     regex = r"legacy plot_psd\(\) method.*unexpected keyword.*'axes'.*Try rewriting"
-    fig, axes = plt.subplots(1, 2)
+    _, axes = plt.subplots(1, 2)
     # `axes` is the new param name: technically only valid for Spectrum.plot()
     with pytest.warns(RuntimeWarning, match=regex):
         raw.plot_psd(axes=axes)
     # `ax` is the correct legacy param name
-    raw.plot_psd(ax=axes)
+    with warnings.catch_warnings(category=FutureWarning, action="ignore"):
+        raw.plot_psd(ax=axes)
 
 
 def _check_spectrum_equivalent(spect1, spect2, tmp_path):

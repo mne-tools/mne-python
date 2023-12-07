@@ -192,12 +192,8 @@ def _proj_click(idx, fig, browse_backend):
     ssp_fig = fig.mne.fig_proj
     if browse_backend.name == "matplotlib":
         text_lab = ssp_fig.mne.proj_checkboxes.labels[idx]
-        pos = np.mean(
-            text_lab.get_tightbbox(renderer=fig.canvas.get_renderer()), axis=0
-        )
-        fig._fake_click(
-            pos, fig=ssp_fig, ax=ssp_fig.mne.proj_checkboxes.ax, xform="pix"
-        )
+        pos = np.mean(text_lab.get_tightbbox(renderer=fig.canvas.get_renderer()), axis=0)
+        fig._fake_click(pos, fig=ssp_fig, ax=ssp_fig.mne.proj_checkboxes.ax, xform="pix")
     else:
         # _fake_click on QCheckBox is inconsistent across platforms
         # (also see comment in test_plot_raw_selection).
@@ -210,9 +206,7 @@ def _proj_click_all(fig, browse_backend):
     ssp_fig = fig.mne.fig_proj
     if browse_backend.name == "matplotlib":
         fig._fake_click((0.5, 0.5), fig=ssp_fig, ax=ssp_fig.mne.proj_all.ax)
-        fig._fake_click(
-            (0.5, 0.5), fig=ssp_fig, ax=ssp_fig.mne.proj_all.ax, kind="release"
-        )
+        fig._fake_click((0.5, 0.5), fig=ssp_fig, ax=ssp_fig.mne.proj_all.ax, kind="release")
     else:
         # _fake_click on QPushButton is inconsistent across platforms.
         ssp_fig.toggle_all()
@@ -541,9 +535,7 @@ def test_plot_raw_traces(raw, events, browser_backend):
     ismpl = browser_backend.name == "matplotlib"
     with raw.info._unlock():
         raw.info["lowpass"] = 10.0  # allow heavy decim during plotting
-    fig = raw.plot(
-        events=events, order=[1, 7, 5, 2, 3], n_channels=3, group_by="original"
-    )
+    fig = raw.plot(events=events, order=[1, 7, 5, 2, 3], n_channels=3, group_by="original")
     assert hasattr(fig, "mne")  # make sure fig.mne param object is present
     if ismpl:
         assert len(fig.axes) == 5
@@ -629,9 +621,7 @@ def test_plot_raw_groupby(raw, browser_backend, group_by):
     """Test group-by plotting of raw data."""
     with raw.info._unlock():
         raw.info["lowpass"] = 10.0  # allow heavy decim during plotting
-    order = (
-        np.arange(len(raw.ch_names))[::-3] if group_by == "position" else [1, 2, 4, 6]
-    )
+    order = np.arange(len(raw.ch_names))[::-3] if group_by == "position" else [1, 2, 4, 6]
     fig = raw.plot(group_by=group_by, order=order)
     x = fig.mne.traces[0].get_xdata()[10]
     y = fig.mne.traces[0].get_ydata()[10]
@@ -869,9 +859,7 @@ def test_merge_annotations(raw, browser_backend):
         atol=10 / raw.info["sfreq"],
     )
     # drag annotation and merge 2 annotations in focus (selected description)
-    fig._fake_click(
-        (1.5, 1.0), add_points=[(3, 1.0)], xform="data", button=1, kind="drag"
-    )
+    fig._fake_click((1.5, 1.0), add_points=[(3, 1.0)], xform="data", button=1, kind="drag")
     assert len(raw.annotations) == 4
     assert_allclose(
         raw.annotations.onset,
@@ -938,29 +926,33 @@ def test_plot_raw_psd(raw, raw_orig):
     spectrum = raw.compute_psd()
     # deprecation change handler
     old_defaults = dict(picks="data", exclude="bads")
-    fig = spectrum.plot(average=False)
+    fig = spectrum.plot(average=False, amplitude=False)
     # normal mode
-    fig = spectrum.plot(average=False, **old_defaults)
+    fig = spectrum.plot(average=False, amplitude=False, **old_defaults)
     fig.canvas.callbacks.process(
         "resize_event", backend_bases.ResizeEvent("resize_event", fig.canvas)
     )
     # specific mode
     picks = pick_types(spectrum.info, meg="mag", eeg=False)[:4]
-    spectrum.plot(picks=picks, ci="range", spatial_colors=True, exclude="bads")
-    raw.compute_psd(tmax=20.0).plot(color="yellow", dB=False, alpha=0.4, **old_defaults)
+    spectrum.plot(
+        picks=picks, ci="range", spatial_colors=True, exclude="bads", amplitude=False
+    )
+    raw.compute_psd(tmax=20.0).plot(
+        color="yellow", dB=False, alpha=0.4, amplitude=True, **old_defaults
+    )
     plt.close("all")
     # one axes supplied
     ax = plt.axes()
-    spectrum.plot(picks=picks, axes=ax, average=True, exclude="bads")
+    spectrum.plot(picks=picks, axes=ax, average=True, exclude="bads", amplitude=False)
     plt.close("all")
     # two axes supplied
     _, axs = plt.subplots(2)
-    spectrum.plot(axes=axs, average=True, **old_defaults)
+    spectrum.plot(axes=axs, average=True, amplitude=False, **old_defaults)
     plt.close("all")
     # need 2, got 1
     ax = plt.axes()
     with pytest.raises(ValueError, match="of length 2.*the length is 1"):
-        spectrum.plot(axes=ax, average=True, **old_defaults)
+        spectrum.plot(axes=ax, average=True, amplitude=False, **old_defaults)
     plt.close("all")
     # topo psd
     ax = plt.subplot()
@@ -981,14 +973,13 @@ def test_plot_raw_psd(raw, raw_orig):
         # check grad axes
         title = fig.axes[0].get_title()
         ylabel = fig.axes[0].get_ylabel()
-        ends_dB = ylabel.endswith("mathrm{(dB)}$")
         unit = r"fT/cm/\sqrt{Hz}" if amplitude else "(fT/cm)²/Hz"
         assert title == "Gradiometers", title
         assert unit in ylabel, ylabel
         if dB:
-            assert ends_dB, ylabel
+            assert "dB" in ylabel
         else:
-            assert not ends_dB, ylabel
+            assert "dB" not in ylabel
         # check mag axes
         title = fig.axes[1].get_title()
         ylabel = fig.axes[1].get_ylabel()
@@ -1006,8 +997,8 @@ def test_plot_raw_psd(raw, raw_orig):
     raw = raw_orig.crop(0, 1)
     picks = pick_types(raw.info, meg=True)
     spectrum = raw.compute_psd(picks=picks)
-    spectrum.plot(average=False, **old_defaults)
-    spectrum.plot(average=True, **old_defaults)
+    spectrum.plot(average=False, amplitude=False, **old_defaults)
+    spectrum.plot(average=True, amplitude=False, **old_defaults)
     plt.close("all")
     raw.set_channel_types(
         {
@@ -1018,7 +1009,7 @@ def test_plot_raw_psd(raw, raw_orig):
         },
         verbose="error",
     )
-    fig = raw.compute_psd().plot(**old_defaults)
+    fig = raw.compute_psd().plot(amplitude=False, **old_defaults)
     assert len(fig.axes) == 10
     plt.close("all")
 
@@ -1029,7 +1020,7 @@ def test_plot_raw_psd(raw, raw_orig):
     raw = RawArray(data, info)
     picks = pick_types(raw.info, misc=True)
     spectrum = raw.compute_psd(picks=picks, n_fft=n_fft)
-    spectrum.plot(spatial_colors=False, picks=picks, exclude="bads")
+    spectrum.plot(spatial_colors=False, picks=picks, exclude="bads", amplitude=False)
     plt.close("all")
 
 

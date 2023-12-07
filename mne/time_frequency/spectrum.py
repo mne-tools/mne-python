@@ -605,6 +605,10 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
             Whether to plot an amplitude spectrum (``True``) or power spectrum
             (``False``). If ``'auto'``, will plot a power spectrum when ``dB=True`` and
             an amplitude spectrum otherwise. Default is ``'auto'``.
+
+                .. versionchanged:: 1.8
+                    In version 1.8, the value ``amplitude="auto"`` will be removed. The
+                    default value will change to ``amplitude=False``.
         %(xscale_plot_psd)s
         ci : float | 'sd' | 'range' | None
             Type of confidence band drawn around the mean when ``average=True``. If
