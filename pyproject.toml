@@ -41,9 +41,7 @@ dependencies = [
     "decorator",
     "packaging",
     "jinja2",
-    "importlib_resources>=5.10.2; python_version<'3.9'",
     "lazy_loader>=0.3",
-    "defusedxml",
 ]
 
 [project.optional-dependencies]
@@ -60,7 +58,8 @@ hdf5 = ["h5io", "pymatreader"]
 full = [
     "mne[hdf5]",
     "qtpy",
-    "PyQt6",
+    "PyQt6!=6.6.1",
+    "PyQt6-Qt6!=6.6.1",
     "pyobjc-framework-Cocoa>=5.2.0; platform_system=='Darwin'",
     "sip",
     "scikit-learn",
@@ -93,8 +92,14 @@ full = [
     "trame-vuetify",
     "mne-qt-browser",
     "darkdetect",
-    "qdarkstyle",
+    "qdarkstyle!=3.2.2",
     "threadpoolctl",
+    # duplicated in test_extra:
+    "eeglabio",
+    "edfio>=0.2.1",
+    "pybv",
+    "snirf",
+    "defusedxml",
 ]
 
 # Dependencies for running the test infrastructure
@@ -112,7 +117,7 @@ test = [
     "twine",
     "wheel",
     "pre-commit",
-    "black",
+    "mypy",
 ]
 
 # Dependencies for being able to run additional tests (rare/CIs/advanced devs)
@@ -153,7 +158,7 @@ doc = [
     "ipython!=8.7.0",
     "selenium",
 ]
-dev = ["mne[test,doc]"]
+dev = ["mne[test,doc]", "rcssmin"]
 
 [project.urls]
 Homepage = "https://mne.tools/"
@@ -173,12 +178,10 @@ include = ["mne*"]
 namespaces = false
 
 [tool.setuptools_scm]
-write_to = "mne/_version.py"
 version_scheme = "release-branch-semver"
 
-[options]
-zip_safe = false            # the package can run out of an .egg file
-include_package_data = true
+[tool.setuptools]
+include-package-data = true
 
 [tool.setuptools.package-data]
 "mne" = [
@@ -261,9 +264,6 @@ addopts = """--durations=20 --doctest-modules -ra --cov-report= --tb=short \
     --color=yes --capture=sys"""
 junit_family = "xunit2"
 
-[tool.black]
-exclude = "(dist/)|(build/)|(.*\\.ipynb)"
-
 [tool.bandit.assert_used]
 skips = ["*/test_*.py"] # assert statements are good practice with pytest
 
@@ -310,3 +310,33 @@ ignore_directives = [
     "tab-set",
 ]
 ignore_messages = "^.*(Unknown target name|Undefined substitution referenced)[^`]*$"
+
+[tool.mypy]
+ignore_errors = true
+scripts_are_modules = true
+strict = true
+
+[[tool.mypy.overrides]]
+module = ['mne.evoked', 'mne.io']
+ignore_errors = false
+# Ignore "attr-defined" until we fix stuff like:
+# - BunchConstNamed: '"BunchConstNamed" has no attribute "FIFFB_EVOKED"'
+# - Missing __all__: 'Module "mne.io.snirf" does not explicitly export attribute "read_raw_snirf"'
+# Ignore "no-untyped-call" until we fix stuff like:
+# - 'Call to untyped function "end_block" in typed context'
+# Ignore "no-untyped-def" until we fix stuff like:
+# - 'Function is missing a type annotation'
+# Ignore "misc" until we fix stuff like:
+# - 'Cannot determine type of "_projector" in base class "ProjMixin"'
+# Ignore "assignment" until we fix stuff like:
+# - 'Incompatible types in assignment (expression has type "tuple[str, ...]", variable has type "str")'
+# Ignore "operator" until we fix stuff like:
+# - Unsupported operand types for - ("None" and "int")
+disable_error_code = [
+    'attr-defined',
+    'no-untyped-call',
+    'no-untyped-def',
+    'misc',
+    'assignment',
+    'operator',
+]

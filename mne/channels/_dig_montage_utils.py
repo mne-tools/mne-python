@@ -13,9 +13,8 @@
 # Copyright the MNE-Python contributors.
 
 import numpy as np
-from defusedxml import ElementTree
 
-from ..utils import Bunch, _check_fname, warn
+from ..utils import Bunch, _check_fname, _soft_import, warn
 
 
 def _read_dig_montage_egi(
@@ -28,8 +27,8 @@ def _read_dig_montage_egi(
             "hsp, hpi, elp, point_names, fif must all be " "None if egi is not None"
         )
     _check_fname(fname, overwrite="read", must_exist=True)
-
-    root = ElementTree.parse(fname).getroot()
+    defusedxml = _soft_import("defusedxml", "reading EGI montages")
+    root = defusedxml.ElementTree.parse(fname).getroot()
     ns = root.tag[root.tag.index("{") : root.tag.index("}") + 1]
     sensors = root.find("%ssensorLayout/%ssensors" % (ns, ns))
     fids = dict()
@@ -76,8 +75,8 @@ def _read_dig_montage_egi(
 
 def _parse_brainvision_dig_montage(fname, scale):
     FID_NAME_MAP = {"Nasion": "nasion", "RPA": "rpa", "LPA": "lpa"}
-
-    root = ElementTree.parse(fname).getroot()
+    defusedxml = _soft_import("defusedxml", "reading BrainVision montages")
+    root = defusedxml.ElementTree.parse(fname).getroot()
     sensors = root.find("CapTrakElectrodeList")
 
     fids, dig_ch_pos = dict(), dict()

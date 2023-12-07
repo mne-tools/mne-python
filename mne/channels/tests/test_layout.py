@@ -32,7 +32,7 @@ from mne.channels.layout import _box_size, _find_topomap_coords, generate_2d_lay
 from mne.defaults import HEAD_SIZE_DEFAULT
 from mne.io import read_info, read_raw_kit
 
-io_dir = Path(__file__).parent.parent.parent / "io"
+io_dir = Path(__file__).parents[2] / "io"
 fif_fname = io_dir / "tests" / "data" / "test_raw.fif"
 lout_path = io_dir / "tests" / "data"
 bti_dir = io_dir / "bti" / "tests" / "data"

@@ -73,7 +73,7 @@ from mne.minimum_norm import (
 from mne.transforms import Transform
 from mne.utils import _empty_hash, _record_warnings, assert_object_equal, catch_logging
 
-root_dir = Path(__file__).parent.parent.parent
+root_dir = Path(__file__).parents[2]
 fiducials_fname = root_dir / "data" / "fsaverage" / "fsaverage-fiducials.fif"
 base_dir = root_dir / "io" / "tests" / "data"
 raw_fname = base_dir / "test_raw.fif"

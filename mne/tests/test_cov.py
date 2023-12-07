@@ -53,7 +53,7 @@ from mne.preprocessing import maxwell_filter
 from mne.rank import _compute_rank_int
 from mne.utils import _record_warnings, assert_snr, catch_logging
 
-base_dir = Path(__file__).parent.parent / "io" / "tests" / "data"
+base_dir = Path(__file__).parents[1] / "io" / "tests" / "data"
 cov_fname = base_dir / "test-cov.fif"
 cov_gz_fname = base_dir / "test-cov.fif.gz"
 cov_km_fname = base_dir / "test-km-cov.fif"

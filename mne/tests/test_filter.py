@@ -32,6 +32,8 @@ from mne.filter import (
 from mne.io import RawArray, read_raw_fif
 from mne.utils import catch_logging, requires_mne, run_subprocess, sum_squared
 
+resample_method_parametrize = pytest.mark.parametrize("method", ("fft", "polyphase"))
+
 
 def test_filter_array():
     """Test filtering an array."""
@@ -372,20 +374,27 @@ def test_notch_filters(method, filter_length, line_freq, tol):
     assert_almost_equal(new_power, orig_power, tol)
 
 
-def test_resample():
+@resample_method_parametrize
+def test_resample(method):
     """Test resampling."""
     rng = np.random.RandomState(0)
     x = rng.normal(0, 1, (10, 10, 10))
-    x_rs = resample(x, 1, 2, 10)
+    with catch_logging() as log:
+        x_rs = resample(x, 1, 2, npad=10, method=method, verbose=True)
+    log = log.getvalue()
+    if method == "fft":
+        assert "locality" not in log
+    else:
+        assert "locality" in log
     assert x.shape == (10, 10, 10)
     assert x_rs.shape == (10, 10, 5)
 
     x_2 = x.swapaxes(0, 1)
-    x_2_rs = resample(x_2, 1, 2, 10)
+    x_2_rs = resample(x_2, 1, 2, npad=10, method=method)
     assert_array_equal(x_2_rs.swapaxes(0, 1), x_rs)
 
     x_3 = x.swapaxes(0, 2)
-    x_3_rs = resample(x_3, 1, 2, 10, 0)
+    x_3_rs = resample(x_3, 1, 2, npad=10, axis=0, method=method)
     assert_array_equal(x_3_rs.swapaxes(0, 2), x_rs)
 
     # make sure we cast to array if necessary
@@ -401,12 +410,12 @@ def test_resample_scipy():
             err_msg = "%s: %s" % (N, window)
             x_2_sp = sp_resample(x, 2 * N, window=window)
             for n_jobs in n_jobs_test:
-                x_2 = resample(x, 2, 1, 0, window=window, n_jobs=n_jobs)
+                x_2 = resample(x, 2, 1, npad=0, window=window, n_jobs=n_jobs)
                 assert_allclose(x_2, x_2_sp, atol=1e-12, err_msg=err_msg)
             new_len = int(round(len(x) * (1.0 / 2.0)))
             x_p5_sp = sp_resample(x, new_len, window=window)
             for n_jobs in n_jobs_test:
-                x_p5 = resample(x, 1, 2, 0, window=window, n_jobs=n_jobs)
+                x_p5 = resample(x, 1, 2, npad=0, window=window, n_jobs=n_jobs)
                 assert_allclose(x_p5, x_p5_sp, atol=1e-12, err_msg=err_msg)
 
 
@@ -450,23 +459,25 @@ def test_resamp_stim_channel():
         assert new_data.shape[1] == new_data_len
 
 
-def test_resample_raw():
+@resample_method_parametrize
+def test_resample_raw(method):
     """Test resampling using RawArray."""
     x = np.zeros((1, 1001))
     sfreq = 2048.0
     raw = RawArray(x, create_info(1, sfreq, "eeg"))
-    raw.resample(128, npad=10)
+    raw.resample(128, npad=10, method=method)
     data = raw.get_data()
     assert data.shape == (1, 63)
 
 
-def test_resample_below_1_sample():
+@resample_method_parametrize
+def test_resample_below_1_sample(method):
     """Test resampling doesn't yield datapoints."""
     # Raw
     x = np.zeros((1, 100))
     sfreq = 1000.0
     raw = RawArray(x, create_info(1, sfreq, "eeg"))
-    raw.resample(5)
+    raw.resample(5, method=method)
     assert len(raw.times) == 1
     assert raw.get_data().shape[1] == 1
 
@@ -487,7 +498,13 @@ def test_resample_below_1_sample():
         preload=True,
         verbose=False,
     )
-    epochs.resample(1)
+    with catch_logging() as log:
+        epochs.resample(1, method=method, verbose=True)
+    log = log.getvalue()
+    if method == "fft":
+        assert "locality" not in log
+    else:
+        assert "locality" in log
     assert len(epochs.times) == 1
     assert epochs.get_data(copy=False).shape[2] == 1
 

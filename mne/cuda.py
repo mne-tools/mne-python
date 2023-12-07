@@ -330,7 +330,7 @@ def _fft_resample(x, new_len, npads, to_removes, cuda_dict=None, pad="reflect_li
         Number of samples to remove after resampling.
     cuda_dict : dict
         Dictionary constructed using setup_cuda_multiply_repeated().
-    %(pad)s
+    %(pad_resample)s
         The default is ``'reflect_limited'``.
 
         .. versionadded:: 0.15

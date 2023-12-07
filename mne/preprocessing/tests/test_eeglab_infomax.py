@@ -171,9 +171,7 @@ def test_mne_python_vs_eeglab():
             sources = np.dot(unmixing, Y)
             mixing = pinv(unmixing)
 
-            mvar = (
-                np.sum(mixing**2, axis=0) * np.sum(sources**2, axis=1) / (N * T - 1)
-            )
+            mvar = np.sum(mixing**2, axis=0) * np.sum(sources**2, axis=1) / (N * T - 1)
             windex = np.argsort(mvar)[::-1]
 
             unmixing_ordered = unmixing[windex, :]

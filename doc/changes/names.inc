@@ -26,7 +26,7 @@
 
 .. _Alexandre Barachant: https://alexandre.barachant.org
 
-.. _Andrea Brovelli: https://andrea-brovelli.net
+.. _Andrea Brovelli: https://brovelli.github.io/
 
 .. _Andreas Hojlund: https://github.com/ahoejlund
 
@@ -340,7 +340,7 @@
 
 .. _Mark Alexander Henney: https://github.com/henneysq
 
-.. _Mark Wronkiewicz: https://ml.jpl.nasa.gov/people/wronkiewicz/wronkiewicz.html
+.. _Mark Wronkiewicz: https://github.com/wronk
 
 .. _Marmaduke Woodman: https://github.com/maedoc
 
@@ -546,7 +546,7 @@
 
 .. _Tal Linzen: https://tallinzen.net/
 
-.. _Teon Brooks: https://teonbrooks.com
+.. _Teon Brooks: https://github.com/teonbrooks
 
 .. _Théodore Papadopoulo: https://github.com/papadop
 

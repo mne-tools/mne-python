@@ -55,7 +55,7 @@ codespell:  # running manually
 	@codespell --builtin clear,rare,informal,names,usage -w -i 3 -q 3 -S $(CODESPELL_SKIPS) --ignore-words=ignore_words.txt --uri-ignore-words-list=bu $(CODESPELL_DIRS)
 
 check-manifest:
-	check-manifest -q --ignore .circleci/config.yml,doc,logo,mne/io/*/tests/data*,mne/io/tests/data,mne/preprocessing/tests/data,.DS_Store,mne/_version.py
+	check-manifest -q --ignore .circleci/config.yml,doc,logo,mne/io/*/tests/data*,mne/io/tests/data,mne/preprocessing/tests/data,.DS_Store,.git_archival.txt
 
 check-readme: clean wheel
 	twine check dist/*

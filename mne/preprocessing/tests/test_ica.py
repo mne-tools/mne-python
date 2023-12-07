@@ -57,7 +57,7 @@ from mne.preprocessing.ica import (
 from mne.rank import _compute_rank_int
 from mne.utils import _record_warnings, catch_logging, check_version
 
-data_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
+data_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
 raw_fname = data_dir / "test_raw.fif"
 event_name = data_dir / "test-eve.fif"
 test_cov_name = data_dir / "test-cov.fif"
