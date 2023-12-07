@@ -3219,7 +3219,7 @@ class Report:
             init_kwargs.setdefault("fmax", fmax)
             plot_kwargs.setdefault("show", False)
             with warnings.catch_warnings():
-                warnings.simplefilter(action="ignore", category="FutureWarning")
+                warnings.simplefilter(action="ignore", category=FutureWarning)
                 fig = raw.compute_psd(**init_kwargs).plot(**plot_kwargs)
             _constrain_fig_resolution(fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES)
             self._add_figure(
