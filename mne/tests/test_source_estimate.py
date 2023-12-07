@@ -558,61 +558,73 @@ def test_stc_arithmetic():
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
-def test_stc_methods():
+@pytest.mark.parametrize("kind", ("scalar", "vector"))
+@pytest.mark.parametrize("method", ("fft", "polyphase"))
+def test_stc_methods(kind, method):
     """Test stc methods lh_data, rh_data, bin(), resample()."""
-    stc_ = read_source_estimate(fname_stc)
+    stc = read_source_estimate(fname_stc)
 
-    # Make a vector version of the above source estimate
-    x = stc_.data[:, np.newaxis, :]
-    yz = np.zeros((x.shape[0], 2, x.shape[2]))
-    vec_stc_ = VectorSourceEstimate(
-        np.concatenate((x, yz), 1), stc_.vertices, stc_.tmin, stc_.tstep, stc_.subject
-    )
+    if kind == "vector":
+        # Make a vector version of the above source estimate
+        x = stc.data[:, np.newaxis, :]
+        yz = np.zeros((x.shape[0], 2, x.shape[2]))
+        stc = VectorSourceEstimate(
+            np.concatenate((x, yz), 1),
+            stc.vertices,
+            stc.tmin,
+            stc.tstep,
+            stc.subject,
+        )
 
-    for stc in [stc_, vec_stc_]:
-        # lh_data / rh_data
-        assert_array_equal(stc.lh_data, stc.data[: len(stc.lh_vertno)])
-        assert_array_equal(stc.rh_data, stc.data[len(stc.lh_vertno) :])
+    # lh_data / rh_data
+    assert_array_equal(stc.lh_data, stc.data[: len(stc.lh_vertno)])
+    assert_array_equal(stc.rh_data, stc.data[len(stc.lh_vertno) :])
 
-        # bin
-        binned = stc.bin(0.12)
-        a = np.mean(stc.data[..., : np.searchsorted(stc.times, 0.12)], axis=-1)
-        assert_array_equal(a, binned.data[..., 0])
+    # bin
+    binned = stc.bin(0.12)
+    a = np.mean(stc.data[..., : np.searchsorted(stc.times, 0.12)], axis=-1)
+    assert_array_equal(a, binned.data[..., 0])
 
-        stc = read_source_estimate(fname_stc)
-        stc.subject = "sample"
-        label_lh = read_labels_from_annot(
-            "sample", "aparc", "lh", subjects_dir=subjects_dir
-        )[0]
-        label_rh = read_labels_from_annot(
-            "sample", "aparc", "rh", subjects_dir=subjects_dir
-        )[0]
-        label_both = label_lh + label_rh
-        for label in (label_lh, label_rh, label_both):
-            assert isinstance(stc.shape, tuple) and len(stc.shape) == 2
-            stc_label = stc.in_label(label)
-            if label.hemi != "both":
-                if label.hemi == "lh":
-                    verts = stc_label.vertices[0]
-                else:  # label.hemi == 'rh':
-                    verts = stc_label.vertices[1]
-                n_vertices_used = len(label.get_vertices_used(verts))
-                assert_equal(len(stc_label.data), n_vertices_used)
-        stc_lh = stc.in_label(label_lh)
-        pytest.raises(ValueError, stc_lh.in_label, label_rh)
-        label_lh.subject = "foo"
-        pytest.raises(RuntimeError, stc.in_label, label_lh)
+    stc = read_source_estimate(fname_stc)
+    stc.subject = "sample"
+    label_lh = read_labels_from_annot(
+        "sample", "aparc", "lh", subjects_dir=subjects_dir
+    )[0]
+    label_rh = read_labels_from_annot(
+        "sample", "aparc", "rh", subjects_dir=subjects_dir
+    )[0]
+    label_both = label_lh + label_rh
+    for label in (label_lh, label_rh, label_both):
+        assert isinstance(stc.shape, tuple) and len(stc.shape) == 2
+        stc_label = stc.in_label(label)
+        if label.hemi != "both":
+            if label.hemi == "lh":
+                verts = stc_label.vertices[0]
+            else:  # label.hemi == 'rh':
+                verts = stc_label.vertices[1]
+            n_vertices_used = len(label.get_vertices_used(verts))
+            assert_equal(len(stc_label.data), n_vertices_used)
+    stc_lh = stc.in_label(label_lh)
+    pytest.raises(ValueError, stc_lh.in_label, label_rh)
+    label_lh.subject = "foo"
+    pytest.raises(RuntimeError, stc.in_label, label_lh)
 
-        stc_new = deepcopy(stc)
-        o_sfreq = 1.0 / stc.tstep
-        # note that using no padding for this STC reduces edge ringing...
-        stc_new.resample(2 * o_sfreq, npad=0)
-        assert stc_new.data.shape[1] == 2 * stc.data.shape[1]
-        assert stc_new.tstep == stc.tstep / 2
-        stc_new.resample(o_sfreq, npad=0)
-        assert stc_new.data.shape[1] == stc.data.shape[1]
-        assert stc_new.tstep == stc.tstep
-        assert_array_almost_equal(stc_new.data, stc.data, 5)
+    stc_new = deepcopy(stc)
+    o_sfreq = 1.0 / stc.tstep
+    # note that using no padding for this STC reduces edge ringing...
+    stc_new.resample(2 * o_sfreq, npad=0, method=method)
+    assert stc_new.data.shape[1] == 2 * stc.data.shape[1]
+    assert stc_new.tstep == stc.tstep / 2
+    stc_new.resample(o_sfreq, npad=0, method=method)
+    assert stc_new.data.shape[1] == stc.data.shape[1]
+    assert stc_new.tstep == stc.tstep
+    if method == "fft":
+        # no low-passing so survives round-trip
+        assert_allclose(stc_new.data, stc.data, atol=1e-5)
+    else:
+        # low-passing means we need something more flexible
+        corr = np.corrcoef(stc_new.data.ravel(), stc.data.ravel())[0, 1]
+        assert 0.99 < corr < 1
 
 
 @testing.requires_testing_data
