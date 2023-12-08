@@ -12,6 +12,13 @@ if [ "${MNE_CI_KIND}" == "notebook" ]; then
 else
   USE_DIRS="mne/"
 fi
+JUNIT_PATH="junit-results.xml"
+if [ ! -z "$CONDA_ENV" ]; then  # use installed verison
+  cd ..
+  echo "Executing from $(pwd)"
+  USE_DIRS="mne-python/${USE_DIRS}"
+  JUNIT_PATH="mne-python/${JUNIT_PATH}"
+fi
 set -x
-pytest -m "${CONDITION}" --tb=short --cov=mne --cov-report xml -vv ${USE_DIRS}
+pytest -m "${CONDITION}" --tb=short --cov=mne --cov-report xml --junit-xml=$JUNIT_PATH -vv ${USE_DIRS}
 set +x
