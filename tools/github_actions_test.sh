@@ -24,5 +24,5 @@ if [[ ! -z "$CONDA_ENV" ]] && [[ "${RUNNER_OS}" != "Windows" ]]; then
   echo "Executing from $(pwd)"
 fi
 set -x
-pytest -m "${CONDITION}" --tb=short --cov=mne --cov-report xml --junit-xml=$JUNIT_PATH -vv ${USE_DIRS}
+pytest -m "${CONDITION}" --tb=short --cov=mne --cov-report xml --color=yes --junit-xml=$JUNIT_PATH -vv ${USE_DIRS}
 set +x
