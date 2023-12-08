@@ -23,8 +23,6 @@ on the image.
 # Copyright the MNE-Python contributors.
 
 # %%
-from os.path import dirname
-from pathlib import Path
 
 import numpy as np
 from matplotlib import pyplot as plt
@@ -43,8 +41,7 @@ subjects_dir = misc_path / "ecog"
 ecog_data_fname = subjects_dir / "sample_ecog_ieeg.fif"
 
 # We've already clicked and exported
-layout_path = Path(dirname(mne.__file__)) / "data" / "image"
-layout_name = "custom_layout.lout"
+layout_name = subjects_dir = misc_path / "ecog" / "custom_layout.lout"
 
 # %%
 # Load data
@@ -128,10 +125,10 @@ ax.set_axis_off()
 # # Generate a layout from our clicks and normalize by the image
 # print('Generating and saving layout...')
 # lt = click.to_layout()
-# lt.save(layout_path / layout_name)  # save if we want
+# lt.save(layout_name)  # save if we want
 
 # # We've already got the layout, load it
-lt = mne.channels.read_layout(layout_path / layout_name, scale=False)
+lt = mne.channels.read_layout(layout_name, scale=False)
 x = lt.pos[:, 0] * float(im.shape[1])
 y = (1 - lt.pos[:, 1]) * float(im.shape[0])  # Flip the y-position
 fig, ax = plt.subplots(layout="constrained")

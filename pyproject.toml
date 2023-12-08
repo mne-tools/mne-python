@@ -173,9 +173,18 @@ Forum = "https://mne.discourse.group/"
 
 [tool.hatch.build]
 artifacts = [
-    "/mne/data/**/*.fif",
-    "/mne/data/**/*.fif.gz",
+    "/mne/data/coil_def.dat",
+    "/mne/data/coil_def_Elekta.dat",
+    "/mne/data/eegbci_checksums.txt",
+    "/mne/data/extinction_coef.mat",
+    "/mne/data/FreeSurferColorLUT.txt",
+    "/mne/data/icos.fif.gz",
+    "/mne/data/mne_analyze.sel",
+    "/mne/data/fsaverage/fsaverage*.fif",
+    "/mne/data/helmets/*.fif.gz",
+    "/mne/data/helmets/Kernel_Flux_ch_pos.txt",
     "/mne/icons/**/*.png",
+    "/mne/icons/**/*.svg",
 ] # excluded via .gitignore, but we want to ship those files
 exclude = [
     "/.*",
