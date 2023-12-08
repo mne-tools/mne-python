@@ -771,6 +771,10 @@ def test_io_raw(tmp_path):
     sl = slice(inds[0], inds[1])
     assert_allclose(data[:, sl], raw[:, sl][0], rtol=1e-6, atol=1e-20)
 
+    # missing dir raises informative error
+    with pytest.raises(FileNotFoundError, match="parent directory does not exist"):
+        raw.save(tmp_path / "foo" / "test_raw.fif", split_size="1MB")
+
 
 @pytest.mark.parametrize(
     "fname_in, fname_out",
