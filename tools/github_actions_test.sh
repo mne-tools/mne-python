@@ -13,7 +13,7 @@ else
   USE_DIRS="mne/"
 fi
 JUNIT_PATH="junit-results.xml"
-if [ ! -z "$CONDA_ENV" ]; then
+if [[ ! -z "$CONDA_ENV" ]] && [[ "${RUNNER_OS}" != "Windows" ]]; then
   JUNIT_PATH="$(pwd)/${JUNIT_PATH}"
   # Use the installed version after adding all (excluded) test files
   cd ..
