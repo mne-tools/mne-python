@@ -984,6 +984,11 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config):
             writer.line(f"{timing.ljust(15)}{name}")
 
 
+def pytest_report_header(config, startdir):
+    """Add information to the pytest run header."""
+    return f"MNE {mne.__version__} -- {str(Path(mne.__file__).parent)}"
+
+
 @pytest.fixture(scope="function", params=("Numba", "NumPy"))
 def numba_conditional(monkeypatch, request):
     """Test both code paths on machines that have Numba."""
