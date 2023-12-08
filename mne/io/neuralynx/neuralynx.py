@@ -19,7 +19,6 @@ class AnalogSignalGap(object):
     """
 
     def __init__(self, signal, units, sampling_rate):
-
         self.signal = signal
         self.units = units
         self.sampling_rate = sampling_rate
@@ -27,11 +26,12 @@ class AnalogSignalGap(object):
     def load(self, channel_indexes):
         """Dummy method such that it returns object and we access .magnitude"""
         # self.magnitude = self.magnitude[channel_indexes, :]
-        sig = AnalogSignal(signal=self.signal[channel_indexes, :],
-                           units=self.units,
-                           sampling_rate=self.sampling_rate)
+        sig = AnalogSignal(
+            signal=self.signal[channel_indexes, :],
+            units=self.units,
+            sampling_rate=self.sampling_rate,
+        )
         return sig
-
 
 
 @fill_doc
@@ -127,8 +127,12 @@ class RawNeuralynx(BaseRaw):
         )
 
         # get segment start/stop times
-        start_times = np.array([nlx_reader.segment_t_start(block_id, i) for i in range(n_segments)])
-        stop_times = np.array([nlx_reader.segment_t_stop(block_id, i) for i in range(n_segments)])
+        start_times = np.array(
+            [nlx_reader.segment_t_start(block_id, i) for i in range(n_segments)]
+        )
+        stop_times = np.array(
+            [nlx_reader.segment_t_stop(block_id, i) for i in range(n_segments)]
+        )
 
         # find discontinuous boundaries (of length n-1)
         next_start_times = start_times[1::]
@@ -138,7 +142,7 @@ class RawNeuralynx(BaseRaw):
         # mark as discontinuous any two segments that have
         # start/stop delta larger than sampling period (1/sampling_rate)
 
-        delta = 1/info["sfreq"]
+        delta = 1 / info["sfreq"]
         gaps = seg_diffs > delta
         has_gaps = gaps.any()
 
@@ -147,16 +151,22 @@ class RawNeuralynx(BaseRaw):
         gap_annotations = {}
 
         if has_gaps:
-
-            logger.info(f"N = {gaps.sum()} discontinuous Neo segments detected with delta > {delta} sec.\n(max = {seg_diffs[gaps].max()} sec, min = {seg_diffs[gaps].min()})")
+            logger.info(
+                f"N = {gaps.sum()} discontinuous Neo segments detected " +
+                "with delta > {delta} sec. +\n" +
+                "(max = {seg_diffs[gaps].max()} sec, min = {seg_diffs[gaps].min()})"
+            )
 
             gap_starts = stop_times[:-1][gaps]  # gap starts at segment offset
             gap_stops = start_times[1::][gaps]  # gap stops at segment onset
 
             # (n_gaps,) array of ints giving number of samples per inferred gap
             gap_n_samps = np.array(
-                [len(np.arange(on_spl, off_spl))
-                for on_spl, off_spl in zip(gap_starts*info["sfreq"], gap_stops*info["sfreq"])
+                [
+                    len(np.arange(on_spl, off_spl))
+                    for on_spl, off_spl in zip(
+                        gap_starts * info["sfreq"], gap_stops * info["sfreq"]
+                    )
                 ]
             )
 
@@ -170,68 +180,82 @@ class RawNeuralynx(BaseRaw):
 
             # variable indicating whether each segment is a gap or not
             gap_indicator = np.concatenate(
-                [np.full(len(start_times), fill_value=0),
-                np.full(len(gap_starts), fill_value=1)
+                [
+                    np.full(len(start_times), fill_value=0),
+                    np.full(len(gap_starts), fill_value=1),
                 ]
             )
             gap_indicator = gap_indicator[all_starts_ids].astype(bool)
 
             # store this in a dict to be passed to _raw_extras
             seg_gap_dict = {
-                "onsets": all_starts, # onsets in seconds
+                "onsets": all_starts,  # onsets in seconds
                 "offsets": all_stops,
                 "gap_n_samps": gap_n_samps,
-                "isgap": gap_indicator, # 0 (data segment) or 1 (invalid segment for BAD_SKIP_ACQ)
+                "isgap": gap_indicator,  # 0 (data segment) or 1 (gap segment)
             }
 
             # TMP: annotations dict for use with mne.Annotations
-            gap_annotations = dict(onset=gap_starts, duration=seg_diffs[gaps], orig_time=None, description="BAD_ACQ_SKIP")
+            gap_annotations = dict(
+                onset=gap_starts,
+                duration=seg_diffs[gaps],
+                orig_time=None,
+                description="BAD_ACQ_SKIP",
+            )
 
-            gap_segment_sizes = [
-                n for n in gap_n_samps
-            ]
+            gap_segment_sizes = [n for n in gap_n_samps]
 
         else:
-            logger.info(f"All Neo segments temporally continuous at {delta} sec precision.")
+            logger.info(
+                f"All Neo segments temporally continuous at {delta} sec precision."
+            )
 
         # check that segment[-1] stop and segment[i] start times
         # matched to microsecond precision (1e-6)
-        #breakpoint()
-        #assert_allclose(stop_times[:-1]-start_times[1::], 0, atol=1e-3,
+        # breakpoint()
+        # assert_allclose(stop_times[:-1]-start_times[1::], 0, atol=1e-3,
         #                err_msg="Segments start/end times are not temporally contiguous."
-        #)
+        # )
 
         valid_segment_sizes = [
-            nlx_reader.get_signal_size(block_id, i)
-            for i in range(n_segments)
+            nlx_reader.get_signal_size(block_id, i) for i in range(n_segments)
         ]
 
         if has_gaps:
-            sizes_sorted = np.concatenate([valid_segment_sizes, gap_segment_sizes])[all_starts_ids]
+            sizes_sorted = np.concatenate([valid_segment_sizes, gap_segment_sizes])[
+                all_starts_ids
+            ]
         else:
             sizes_sorted = np.array(valid_segment_sizes)
 
         # now construct an (n_samples,) indicator variable
         sample2segment = np.concatenate(
-            [np.full(shape=(n,), fill_value=i)
-            for i, n in enumerate(sizes_sorted)]
+            [np.full(shape=(n,), fill_value=i) for i, n in enumerate(sizes_sorted)]
         )
 
         # construct an array of shape (n_total_samples,) indicating
         # segment membership for each sample
-        #sample2segment = np.concatenate(
+        # sample2segment = np.concatenate(
         #    [
         #        np.full(shape=(nlx_reader.get_signal_size(block_id, i),), fill_value=i)
         #        for i in range(n_segments)
         #    ]
-        #)
+        # )
 
         super(RawNeuralynx, self).__init__(
             info=info,
             last_samps=[n_total_samples - 1],
             filenames=[fname],
             preload=preload,
-            raw_extras=[dict(smp2seg=sample2segment, exclude_fnames=exclude_fnames, segment_sizes=sizes_sorted, seg_gap_dict=seg_gap_dict, gap_annotations=gap_annotations)],
+            raw_extras=[
+                dict(
+                    smp2seg=sample2segment,
+                    exclude_fnames=exclude_fnames,
+                    segment_sizes=sizes_sorted,
+                    seg_gap_dict=seg_gap_dict,
+                    gap_annotations=gap_annotations,
+                )
+            ],
         )
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
@@ -253,12 +277,12 @@ class RawNeuralynx(BaseRaw):
         ) == len(neo_block[0].segments)
 
         # collect sizes of each segment
-        #segment_sizes = np.array(
+        # segment_sizes = np.array(
         #    [
         #        nlx_reader.get_signal_size(0, segment_id)
         #        for segment_id in range(len(neo_block[0].segments))
         #    ]
-        #)
+        # )
 
         segment_sizes = self._raw_extras[0]["segment_sizes"]
 
@@ -311,7 +335,6 @@ class RawNeuralynx(BaseRaw):
 
         # if gaps were detected correctly insert gap Segments in between valid Segments
         if self._raw_extras[0]["seg_gap_dict"]:
-
             gap_samples = self._raw_extras[0]["seg_gap_dict"]["gap_n_samps"]
             gap_segments = [Segment(f"gap-{i}") for i in range(len(gap_samples))]
 
@@ -320,7 +343,9 @@ class RawNeuralynx(BaseRaw):
             n_chans = np.arange(idx.start, idx.stop, idx.step).size
 
             for seg, n in zip(gap_segments, gap_samples):
-                asig = AnalogSignalGap(signal=np.zeros((n, n_chans)), units="uV", sampling_rate=sfreq * Hz)
+                asig = AnalogSignalGap(
+                    signal=np.zeros((n, n_chans)), units="uV", sampling_rate=sfreq * Hz
+                )
                 seg.analogsignals.append(asig)
 
             n_total_segments = len(neo_block[0].segments + gap_segments)
