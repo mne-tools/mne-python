@@ -172,6 +172,11 @@ Forum = "https://mne.discourse.group/"
 "Source Code" = "https://github.com/mne-tools/mne-python/"
 
 [tool.hatch.build]
+artifacts = [
+    "/mne/data/**/*.fif",
+    "/mne/data/**/*.fif.gz",
+    "/mne/icons/**/*.png",
+] # excluded via .gitignore, but we want to ship those files
 exclude = [
     "/.*",
     "/*.yml",
@@ -189,7 +194,7 @@ exclude = [
     "/ignore_words.txt",
     "/Makefile",
     "/CONTRIBUTING.md",
-]
+] # tracked by git, but we don't want to ship those files
 
 [tool.hatch.version]
 source = "vcs"
