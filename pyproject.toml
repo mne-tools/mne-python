@@ -195,7 +195,6 @@ exclude = [
     "/Makefile",
     "/CITATION.cff",
     "/CONTRIBUTING.md",
-    "/SECURITY.md",
 ] # tracked by git, but we don't want to ship those files
 
 [tool.hatch.version]
