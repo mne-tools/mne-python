@@ -16,7 +16,10 @@ from ..base import BaseRaw
 from neo import AnalogSignal
 
 class AnalogSignalGap(object):
-
+    """Dummy object to represent gaps in Neuralynx data as
+    AnalogSignalProxy-like objects. Propagate `signal`, `units`, and 
+    `sampling_rate` attributes to the `AnalogSignal` object returned by `load()`. 
+    """
     def __init__(self, signal, units, sampling_rate):
 
         self.signal = signal
