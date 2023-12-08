@@ -173,16 +173,11 @@ Forum = "https://mne.discourse.group/"
 
 [tool.hatch.build]
 artifacts = [
-    "/mne/data/coil_def.dat",
-    "/mne/data/coil_def_Elekta.dat",
-    "/mne/data/eegbci_checksums.txt",
-    "/mne/data/FreeSurferColorLUT.txt",
-    "/mne/data/icos.fif.gz",
-    "/mne/data/fsaverage/fsaverage*.fif",
-    "/mne/data/helmets/*.fif.gz",
-    "/mne/data/helmets/Kernel_Flux_ch_pos.txt",
+    "/mne/data/**/*.dat",
+    "/mne/data/**/*.fif",
+    "/mne/data/**/*.fif.gz",
     "/mne/icons/**/*.png",
-] # excluded via .gitignore or exclude below, but we want to ship those files
+] # excluded via .gitignore, but we do want to ship those files
 exclude = [
     "/.*",
     "/*.yml",
@@ -195,11 +190,12 @@ exclude = [
     "/tools",
     "/tutorials",
     "/examples",
-    "/CITATION.cff",
     "/codemeta.json",
     "/ignore_words.txt",
     "/Makefile",
+    "/CITATION.cff",
     "/CONTRIBUTING.md",
+    "/SECURITY.md",
 ] # tracked by git, but we don't want to ship those files
 
 [tool.hatch.version]
