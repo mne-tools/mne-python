@@ -1978,7 +1978,8 @@ def resample(
         )
         half_len = len(window) // 2
         logger.info(
-            f"Polyphase resampling locality: ±{half_len} input sample{_pl(half_len)}"
+            f"Polyphase resampling neighborhood: ±{half_len} "
+            f"input sample{_pl(half_len)}"
         )
         y = _resample_polyphase(x, up=up, down=down, **kwargs)
     assert y.shape[-1] == final_len
@@ -1997,7 +1998,7 @@ def _prep_polyphase(ratio, x_len, final_len, window):
     g_ = gcd(up, down)
     up = up // g_
     down = down // g_
-    # Figure out our signal locality and design window (adapted from SciPy)
+    # Figure out our signal neighborhood and design window (adapted from SciPy)
     if not isinstance(window, (list, np.ndarray)):
         # Design a linear-phase low-pass FIR filter
         max_rate = max(up, down)

@@ -402,6 +402,8 @@
 
 .. _Nikolai Chapochnikov: https://github.com/chapochn
 
+.. _Nikolai Kapralov: https://github.com/ctrltz
+
 .. _Nikolas Chalas: https://github.com/Nichalas
 
 .. _Okba Bekhelifi: https://github.com/okbalefthanded
