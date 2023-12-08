@@ -16,7 +16,10 @@ from ..base import BaseRaw
 from neo import AnalogSignal
 
 class AnalogSignalGap(object):
-
+    """Dummy object to represent gaps in Neuralynx data as
+    AnalogSignalProxy-like objects. Propagate `signal`, `units`, and 
+    `sampling_rate` attributes to the `AnalogSignal` object returned by `load()`. 
+    """
     def __init__(self, signal, units, sampling_rate):
 
         self.signal = signal
@@ -135,17 +138,20 @@ class RawNeuralynx(BaseRaw):
         previous_stop_times = stop_times[:-1]
         seg_diffs = next_start_times - previous_stop_times
 
-        # mark as discontinuous any two segments that have start/stop delta
-        # larger than 0.0001 sec
+        # mark as discontinuous any two segments that have 
+        # start/stop delta larger than sampling period (1/sampling_rate)
+
+        delta = 1/info["sfreq"] 
+        gaps = seg_diffs > delta
+        has_gaps = gaps.any()
+
         seg_gap_dict = {}
         gap_segment_sizes = []
-        delta = 1/info["sfreq"]  # sampling period
-        gaps = ~np.isclose(seg_diffs, 0, atol=delta)
-        has_gaps = gaps.any()
+        gap_annotations = {}
 
         if has_gaps:
 
-            logger.info(f"N = {gaps.sum()} discontinuous Neo segments detected with delta > {delta:.4f} \n(max = {seg_diffs[gaps].max():.3f} sec, min = {seg_diffs[gaps].min():.3f})")
+            logger.info(f"N = {gaps.sum()} discontinuous Neo segments detected with delta > {delta} sec.\n(max = {seg_diffs[gaps].max()} sec, min = {seg_diffs[gaps].min()})")
 
             gap_starts = stop_times[:-1][gaps]  # gap starts at segment offset
             gap_stops = start_times[1::][gaps]  # gap stops at segment onset
@@ -157,18 +163,23 @@ class RawNeuralynx(BaseRaw):
                 ]
             )
 
-            # join
+            # add the inferred gaps into the right place in the segment list
             all_starts_ids = np.argsort(np.concatenate([start_times, gap_starts]))
             all_stops_ids = np.argsort(np.concatenate([stop_times, gap_stops]))
+            
+            # sort the valid segment and gap times by time
+            all_starts = np.concatenate([start_times, gap_starts])[all_starts_ids]
+            all_stops = np.concatenate([stop_times, gap_stops])[all_stops_ids]
+            
+            # variable indicating whether each segment is a gap or not
             gap_indicator = np.concatenate(
                 [np.full(len(start_times), fill_value=0),
                 np.full(len(gap_starts), fill_value=1)
                 ]
             )
-            all_starts = np.concatenate([start_times, gap_starts])[all_starts_ids]
-            all_stops = np.concatenate([stop_times, gap_stops])[all_stops_ids]
             gap_indicator = gap_indicator[all_starts_ids].astype(bool)
 
+            # store this in a dict to be passed to _raw_extras
             seg_gap_dict = {
                 "onsets": all_starts, # onsets in seconds
                 "offsets": all_stops,
@@ -176,6 +187,7 @@ class RawNeuralynx(BaseRaw):
                 "isgap": gap_indicator, # 0 (data segment) or 1 (invalid segment for BAD_SKIP_ACQ)
             }
 
+            # TMP: annotations dict for use with mne.Annotations
             gap_annotations = dict(onset=gap_starts, duration=seg_diffs[gaps], orig_time=None, description="BAD_ACQ_SKIP")
 
             gap_segment_sizes = [
@@ -183,7 +195,7 @@ class RawNeuralynx(BaseRaw):
             ]
 
         else:
-            logger.info(f"All Neo segments temporally continuous at {delta:.3f} sec precision")
+            logger.info(f"All Neo segments temporally continuous at {delta} sec precision.")
 
         # check that segment[-1] stop and segment[i] start times
         # matched to microsecond precision (1e-6)
