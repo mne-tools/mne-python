@@ -19,9 +19,8 @@ if [[ ! -z "$CONDA_ENV" ]] && [[ "${RUNNER_OS}" != "Windows" ]]; then
   cd ..
   INSTALL_PATH=$(python -c "import mne, pathlib; print(str(pathlib.Path(mne.__file__).parents[1]))")
   echo "Copying tests from $(pwd)/mne-python/mne/ to ${INSTALL_PATH}/mne/"
-  chmod -R a+w $TO_PATH/mne
-  rsync -a --partial --progress --prune-empty-dirs --exclude="*.pyc" --include="**/" --include="**/tests/*" --include="**/tests/data/**" --exclude="**" ./mne-python/mne/ ${TO_PATH}/mne/
-  cd $TO_PATH
+  rsync -a --partial --progress --prune-empty-dirs --exclude="*.pyc" --include="**/" --include="**/tests/*" --include="**/tests/data/**" --exclude="**" ./mne-python/mne/ ${INSTALL_PATH}/mne/
+  cd $INSTALL_PATH
   echo "Executing from $(pwd)"
 fi
 set -x
