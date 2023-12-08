@@ -654,8 +654,8 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         units = _handle_default("units", None)
 
         depr_message = (
-            "The default value of `amplitude` will change from `amplitude='auto'` to "
-            "`amplitude=False` in MNE 1.8.0."
+            "The value of `amplitude='auto'` will be removed in MNE 1.8.0, and the new "
+            "default will be `amplitude=False`."
         )
         if amplitude is None or amplitude == "auto":
             warn(depr_message, FutureWarning)
