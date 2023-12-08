@@ -41,7 +41,7 @@ subjects_dir = misc_path / "ecog"
 ecog_data_fname = subjects_dir / "sample_ecog_ieeg.fif"
 
 # We've already clicked and exported
-layout_name = subjects_dir = misc_path / "ecog" / "custom_layout.lout"
+layout_name = subjects_dir / "custom_layout.lout"
 
 # %%
 # Load data
