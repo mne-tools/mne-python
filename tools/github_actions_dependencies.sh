@@ -3,11 +3,15 @@
 set -o pipefail
 
 STD_ARGS="--progress-bar off --upgrade"
+INSTALL_ARGS="-e"
 INSTALL_KIND="test_extra,hdf5"
 if [ ! -z "$CONDA_ENV" ]; then
 	echo "Uninstalling MNE for CONDA_ENV=${CONDA_ENV}"
 	conda remove -c conda-forge --force -yq mne
 	python -m pip uninstall -y mne
+	if [[ "${RUNNER_OS}" != "Windows" ]]; then
+		INSTALL_ARGS=""
+	fi
 elif [ ! -z "$CONDA_DEPENDENCIES" ]; then
 	echo "Using Mamba to install CONDA_DEPENDENCIES=${CONDA_DEPENDENCIES}"
 	mamba install -y $CONDA_DEPENDENCIES
@@ -59,4 +63,4 @@ fi
 echo ""
 
 echo "Installing test dependencies using pip"
-python -m pip install $STD_ARGS -e .[$INSTALL_KIND]
+python -m pip install $STD_ARGS $INSTALL_ARGS .[$INSTALL_KIND]
