@@ -13,9 +13,11 @@ from ..base import BaseRaw
 
 
 class AnalogSignalGap(object):
-    """Dummy object to represent gaps in Neuralynx data as
-    AnalogSignalProxy-like objects. Propagate `signal`, `units`, and
-    `sampling_rate` attributes to the `AnalogSignal` object returned by `load()`.
+    """Dummy object to represent gaps in Neuralynx data.
+
+    Creates a AnalogSignalProxy-like object.
+    Propagate `signal`, `units`, and `sampling_rate` attributes
+    to the `AnalogSignal` object returned by `load()`.
     """
 
     def __init__(self, signal, units, sampling_rate):
@@ -24,7 +26,7 @@ class AnalogSignalGap(object):
         self.sampling_rate = sampling_rate
 
     def load(self, channel_indexes):
-        """Dummy method such that it returns object and we access .magnitude"""
+        """Return AnalogSignal object."""
         # self.magnitude = self.magnitude[channel_indexes, :]
         sig = AnalogSignal(
             signal=self.signal[channel_indexes, :],
@@ -232,13 +234,6 @@ class RawNeuralynx(BaseRaw):
 
         else:
             logger.info(f"All Neo segments temporally continuous at {delta} sec precision.")
-
-        # check that segment[-1] stop and segment[i] start times
-        # matched to microsecond precision (1e-6)
-        #breakpoint()
-        #assert_allclose(stop_times[:-1]-start_times[1::], 0, atol=1e-3,
-        #                err_msg="Segments start/end times are not temporally contiguous."
-        #)
 
         valid_segment_sizes = [
             nlx_reader.get_signal_size(block_id, i) for i in range(n_segments)
