@@ -8,9 +8,9 @@
 The Spectrum and EpochsSpectrum classes: frequency-domain data
 ==============================================================
 
-This tutorial shows how to create and visualize frequency-domain
-representations of your data, starting from continuous :class:`~mne.io.Raw`,
-discontinuous :class:`~mne.Epochs`, or averaged :class:`~mne.Evoked` data.
+This tutorial shows how to create and visualize frequency-domain representations of your
+data, starting from continuous :class:`~mne.io.Raw`, discontinuous :class:`~mne.Epochs`,
+or averaged :class:`~mne.Evoked` data.
 
 As usual we'll start by importing the modules we need, and loading our
 :ref:`sample dataset <sample-dataset>`:

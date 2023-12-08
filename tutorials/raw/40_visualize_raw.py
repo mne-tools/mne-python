@@ -5,13 +5,13 @@
 Built-in plotting methods for Raw objects
 =========================================
 
-This tutorial shows how to plot continuous data as a time series, how to plot
-the spectral density of continuous data, and how to plot the sensor locations
-and projectors stored in `~mne.io.Raw` objects.
+This tutorial shows how to plot continuous data as a time series, how to plot the
+spectral density of continuous data, and how to plot the sensor locations and projectors
+stored in `~mne.io.Raw` objects.
 
 As usual we'll start by importing the modules we need, loading some
-:ref:`example data <sample-dataset>`, and cropping the `~mne.io.Raw`
-object to just 60 seconds before loading it into RAM to save memory:
+:ref:`example data <sample-dataset>`, and cropping the `~mne.io.Raw` object to just 60
+seconds before loading it into RAM to save memory:
 """
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
