@@ -1,3 +1,7 @@
+[build-system]
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
+
 [project]
 name = "mne"
 description = "MNE-Python project for MEG and EEG data analysis."
@@ -112,7 +116,6 @@ test = [
     "ruff",
     "numpydoc",
     "codespell",
-    "check-manifest",
     "tomli; python_version<'3.11'",
     "twine",
     "wheel",
@@ -168,51 +171,29 @@ Documentation = "https://mne.tools/"
 Forum = "https://mne.discourse.group/"
 "Source Code" = "https://github.com/mne-tools/mne-python/"
 
-[build-system]
-requires = ["setuptools>=45", "setuptools_scm[toml]>=6.2", "wheel"]
-build-backend = "setuptools.build_meta"
-
-[tool.setuptools.packages.find]
-where = ["."]
-include = ["mne*"]
-namespaces = false
-
-[tool.setuptools_scm]
-version_scheme = "release-branch-semver"
-
-[tool.setuptools]
-include-package-data = true
-
-[tool.setuptools.package-data]
-"mne" = [
-    "data/eegbci_checksums.txt",
-    "data/*.sel",
-    "data/icos.fif.gz",
-    "data/coil_def*.dat",
-    "data/helmets/*.fif.gz",
-    "data/FreeSurferColorLUT.txt",
-    "data/image/*gif",
-    "data/image/*lout",
-    "data/fsaverage/*.fif",
-    "channels/data/layouts/*.lout",
-    "channels/data/layouts/*.lay",
-    "channels/data/montages/*.sfp",
-    "channels/data/montages/*.txt",
-    "channels/data/montages/*.elc",
-    "channels/data/neighbors/*.mat",
-    "datasets/sleep_physionet/SHA1SUMS",
-    "datasets/_fsaverage/*.txt",
-    "datasets/_infant/*.txt",
-    "datasets/_phantom/*.txt",
-    "html/*.js",
-    "html/*.css",
-    "html_templates/repr/*.jinja",
-    "html_templates/report/*.jinja",
-    "icons/*.svg",
-    "icons/*.png",
-    "io/artemis123/resources/*.csv",
-    "io/edf/gdf_encodes.txt",
+[tool.hatch.build]
+exclude = [
+    "/.*",
+    "/*.yml",
+    "/*.yaml",
+    "/*.toml",
+    "/*.txt",
+    "/mne/**/tests",
+    "/logo",
+    "/doc",
+    "/tools",
+    "/tutorials",
+    "/examples",
+    "/CITATION.cff",
+    "/codemeta.json",
+    "/ignore_words.txt",
+    "/Makefile",
+    "/CONTRIBUTING.md",
 ]
+
+[tool.hatch.version]
+source = "vcs"
+raw-options = { version_scheme = "release-branch-semver" }
 
 [tool.codespell]
 ignore-words = "ignore_words.txt"
