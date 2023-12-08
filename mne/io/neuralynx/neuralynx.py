@@ -4,22 +4,20 @@ import glob
 import os
 
 import numpy as np
-from numpy.testing import assert_allclose
+from neo import AnalogSignal
 
 from ..._fiff.meas_info import create_info
 from ..._fiff.utils import _mult_cal_one
 from ...utils import _check_fname, _soft_import, fill_doc, logger, verbose
-from ...annotations import Annotations
 from ..base import BaseRaw
 
 
-from neo import AnalogSignal
-
 class AnalogSignalGap(object):
     """Dummy object to represent gaps in Neuralynx data as
-    AnalogSignalProxy-like objects. Propagate `signal`, `units`, and 
-    `sampling_rate` attributes to the `AnalogSignal` object returned by `load()`. 
+    AnalogSignalProxy-like objects. Propagate `signal`, `units`, and
+    `sampling_rate` attributes to the `AnalogSignal` object returned by `load()`.
     """
+
     def __init__(self, signal, units, sampling_rate):
 
         self.signal = signal
@@ -28,11 +26,10 @@ class AnalogSignalGap(object):
 
     def load(self, channel_indexes):
         """Dummy method such that it returns object and we access .magnitude"""
-
         # self.magnitude = self.magnitude[channel_indexes, :]
-        sig = AnalogSignal(signal=self.signal[channel_indexes, :], 
+        sig = AnalogSignal(signal=self.signal[channel_indexes, :],
                            units=self.units,
-                           sampling_rate=self.sampling_rate) 
+                           sampling_rate=self.sampling_rate)
         return sig
 
 
@@ -138,10 +135,10 @@ class RawNeuralynx(BaseRaw):
         previous_stop_times = stop_times[:-1]
         seg_diffs = next_start_times - previous_stop_times
 
-        # mark as discontinuous any two segments that have 
+        # mark as discontinuous any two segments that have
         # start/stop delta larger than sampling period (1/sampling_rate)
 
-        delta = 1/info["sfreq"] 
+        delta = 1/info["sfreq"]
         gaps = seg_diffs > delta
         has_gaps = gaps.any()
 
@@ -158,7 +155,7 @@ class RawNeuralynx(BaseRaw):
 
             # (n_gaps,) array of ints giving number of samples per inferred gap
             gap_n_samps = np.array(
-                [len(np.arange(on_spl, off_spl)) 
+                [len(np.arange(on_spl, off_spl))
                 for on_spl, off_spl in zip(gap_starts*info["sfreq"], gap_stops*info["sfreq"])
                 ]
             )
@@ -166,11 +163,11 @@ class RawNeuralynx(BaseRaw):
             # add the inferred gaps into the right place in the segment list
             all_starts_ids = np.argsort(np.concatenate([start_times, gap_starts]))
             all_stops_ids = np.argsort(np.concatenate([stop_times, gap_stops]))
-            
+
             # sort the valid segment and gap times by time
             all_starts = np.concatenate([start_times, gap_starts])[all_starts_ids]
             all_stops = np.concatenate([stop_times, gap_stops])[all_stops_ids]
-            
+
             # variable indicating whether each segment is a gap or not
             gap_indicator = np.concatenate(
                 [np.full(len(start_times), fill_value=0),
@@ -208,7 +205,7 @@ class RawNeuralynx(BaseRaw):
             nlx_reader.get_signal_size(block_id, i)
             for i in range(n_segments)
         ]
-        
+
         if has_gaps:
             sizes_sorted = np.concatenate([valid_segment_sizes, gap_segment_sizes])[all_starts_ids]
         else:
@@ -239,9 +236,9 @@ class RawNeuralynx(BaseRaw):
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data."""
-        from quantities import Hz
         from neo import Segment
         from neo.io import NeuralynxIO
+        from quantities import Hz
 
         nlx_reader = NeuralynxIO(
             dirname=self._filenames[fi],
