@@ -9,17 +9,15 @@ from neo import AnalogSignal
 from ..._fiff.meas_info import create_info
 from ..._fiff.utils import _mult_cal_one
 from ...utils import _check_fname, _soft_import, fill_doc, logger, verbose
-from ...annotations import Annotations
 from ..base import BaseRaw
 
 
-from neo import AnalogSignal
-
 class AnalogSignalGap(object):
     """Dummy object to represent gaps in Neuralynx data as
-    AnalogSignalProxy-like objects. Propagate `signal`, `units`, and 
-    `sampling_rate` attributes to the `AnalogSignal` object returned by `load()`. 
+    AnalogSignalProxy-like objects. Propagate `signal`, `units`, and
+    `sampling_rate` attributes to the `AnalogSignal` object returned by `load()`.
     """
+
     def __init__(self, signal, units, sampling_rate):
 
         self.signal = signal
@@ -28,11 +26,10 @@ class AnalogSignalGap(object):
 
     def load(self, channel_indexes):
         """Dummy method such that it returns object and we access .magnitude"""
-
         # self.magnitude = self.magnitude[channel_indexes, :]
-        sig = AnalogSignal(signal=self.signal[channel_indexes, :], 
+        sig = AnalogSignal(signal=self.signal[channel_indexes, :],
                            units=self.units,
-                           sampling_rate=self.sampling_rate) 
+                           sampling_rate=self.sampling_rate)
         return sig
 
 
