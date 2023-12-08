@@ -79,7 +79,7 @@ print(raw.info)
 # sessions, `~mne.io.Raw.plot` is interactive and allows scrolling, scaling,
 # bad channel marking, annotations, projector toggling, etc.
 
-raw.compute_psd(fmax=50).plot(picks="data", exclude="bads")
+raw.compute_psd(fmax=50).plot(picks="data", exclude="bads", amplitude=False)
 raw.plot(duration=5, n_channels=30)
 
 # %%

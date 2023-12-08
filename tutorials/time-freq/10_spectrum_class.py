@@ -122,7 +122,7 @@ epo_spectrum["visual"]
 # (interpolated scalp topography of power, in specific frequency bands). A few
 # plot options are demonstrated below; see the docstrings for full details.
 
-evk_spectrum.plot(picks="data", exclude="bads")
+evk_spectrum.plot(picks="data", exclude="bads", amplitude=False)
 evk_spectrum.plot_topo(color="k", fig_facecolor="w", axis_facecolor="w")
 
 # %%
