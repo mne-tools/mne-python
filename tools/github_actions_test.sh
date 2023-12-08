@@ -12,6 +12,17 @@ if [ "${MNE_CI_KIND}" == "notebook" ]; then
 else
   USE_DIRS="mne/"
 fi
+JUNIT_PATH="junit-results.xml"
+if [ ! -z "$CONDA_ENV" ]; then
+  JUNIT_PATH="$(pwd)/${JUNIT_PATH}"
+  # Use the installed version after adding all (excluded) test files
+  cd ..
+  INSTALL_PATH=$(python -c "import mne, pathlib; print(str(pathlib.Path(mne.__file__).parents[1]))")
+  echo "Copying tests from $(pwd)/mne-python/mne/ to ${INSTALL_PATH}/mne/"
+  rsync -a --partial --progress --prune-empty-dirs --exclude="*.pyc" --include="**/" --include="**/tests/*" --include="**/tests/data/**" --exclude="**" ./mne-python/mne/ ${TO_PATH}/mne/
+  cd $TO_PATH
+  echo "Executing from $(pwd)"
+fi
 set -x
-pytest -m "${CONDITION}" --tb=short --cov=mne --cov-report xml -vv ${USE_DIRS}
+pytest -m "${CONDITION}" --tb=short --cov=mne --cov-report xml --junit-xml=$JUNIT_PATH -vv ${USE_DIRS}
 set +x
