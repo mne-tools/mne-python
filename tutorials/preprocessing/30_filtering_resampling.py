@@ -123,7 +123,7 @@ mne.viz.plot_filter(filter_params, raw.info["sfreq"], flim=(0.01, 5))
 
 
 def add_arrows(axes):
-    # add some arrows at 60 Hz and its harmonics
+    """Add some arrows at 60 Hz and its harmonics."""
     for ax in axes:
         freqs = ax.lines[-1].get_xdata()
         psds = ax.lines[-1].get_ydata()
@@ -143,7 +143,9 @@ def add_arrows(axes):
             )
 
 
-fig = raw.compute_psd(fmax=250).plot(average=True, picks="data", exclude="bads")
+fig = raw.compute_psd(fmax=250).plot(
+    average=True, amplitude=False, picks="data", exclude="bads"
+)
 add_arrows(fig.axes[:2])
 
 # %%
@@ -159,7 +161,9 @@ meg_picks = mne.pick_types(raw.info, meg=True)
 freqs = (60, 120, 180, 240)
 raw_notch = raw.copy().notch_filter(freqs=freqs, picks=meg_picks)
 for title, data in zip(["Un", "Notch "], [raw, raw_notch]):
-    fig = data.compute_psd(fmax=250).plot(average=True, picks="data", exclude="bads")
+    fig = data.compute_psd(fmax=250).plot(
+        average=True, amplitude=False, picks="data", exclude="bads"
+    )
     fig.suptitle("{}filtered".format(title), size="xx-large", weight="bold")
     add_arrows(fig.axes[:2])
 
@@ -178,7 +182,9 @@ raw_notch_fit = raw.copy().notch_filter(
     freqs=freqs, picks=meg_picks, method="spectrum_fit", filter_length="10s"
 )
 for title, data in zip(["Un", "spectrum_fit "], [raw, raw_notch_fit]):
-    fig = data.compute_psd(fmax=250).plot(average=True, picks="data", exclude="bads")
+    fig = data.compute_psd(fmax=250).plot(
+        average=True, amplitude=False, picks="data", exclude="bads"
+    )
     fig.suptitle("{}filtered".format(title), size="xx-large", weight="bold")
     add_arrows(fig.axes[:2])
 
@@ -218,7 +224,7 @@ for ax, data, title, n_fft in zip(
     axes, [raw, raw_downsampled], ["Original", "Downsampled"], n_ffts
 ):
     fig = data.compute_psd(n_fft=n_fft).plot(
-        average=True, picks="data", exclude="bads", axes=ax
+        average=True, amplitude=False, picks="data", exclude="bads", axes=ax
     )
     ax.set(title=title, xlim=(0, 300))
 
@@ -256,7 +262,7 @@ for ax, data, title, n_fft in zip(
     axes, [raw, raw_downsampled_poly], ["Original", "Downsampled (polyphase)"], n_ffts
 ):
     data.compute_psd(n_fft=n_fft).plot(
-        average=True, picks="data", exclude="bads", axes=ax
+        average=True, amplitude=False, picks="data", exclude="bads", axes=ax
     )
     ax.set(title=title, xlim=(0, 300))
 

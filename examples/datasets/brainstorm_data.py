@@ -41,7 +41,9 @@ raw.set_channel_types({"EEG058": "eog"})
 raw.set_eeg_reference("average", projection=True)
 
 # show power line interference and remove it
-raw.compute_psd(tmax=60).plot(average=False, picks="data", exclude="bads")
+raw.compute_psd(tmax=60).plot(
+    average=False, amplitude=False, picks="data", exclude="bads"
+)
 raw.notch_filter(np.arange(60, 181, 60), fir_design="firwin")
 
 events = mne.find_events(raw, stim_channel="UPPT001")

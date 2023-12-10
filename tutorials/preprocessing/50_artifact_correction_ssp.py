@@ -116,7 +116,14 @@ empty_room_raw.del_proj()
 raw.info["bads"] = ["MEG 2443"]
 spectrum = empty_room_raw.compute_psd()
 for average in (False, True):
-    spectrum.plot(average=average, dB=False, xscale="log", picks="data", exclude="bads")
+    spectrum.plot(
+        average=average,
+        dB=False,
+        amplitude=True,
+        xscale="log",
+        picks="data",
+        exclude="bads",
+    )
 
 # %%
 # Creating the empty-room projectors
