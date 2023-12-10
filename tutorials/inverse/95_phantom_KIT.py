@@ -40,7 +40,7 @@ raw.plot(**raw_plot_kwargs)
 # boxcar windowing of the 11 Hz sinusoid.
 
 spectrum = raw.copy().crop(0, 60).compute_psd(n_fft=10000)
-fig = spectrum.plot()
+fig = spectrum.plot(amplitude=False)
 fig.axes[0].set_xlim(0, 50)
 dip_freq = 11.0
 fig.axes[0].axvline(dip_freq, color="r", ls="--", lw=2, zorder=4)
