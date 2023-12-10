@@ -102,7 +102,6 @@ jobs:
       # Minimal commands on Linux (macOS stalls)
       - run: ./tools/get_minimal_commands.sh
         if: ${{ startswith(matrix.os, 'ubuntu') }}
-      - run: ./tools/github_actions_install.sh
       - run: ./tools/github_actions_infos.sh
       # Check Qt
       - run: ./tools/check_qt_import.sh $MNE_QT_BACKEND

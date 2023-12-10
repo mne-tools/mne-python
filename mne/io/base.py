@@ -2563,6 +2563,13 @@ MAX_N_SPLITS = 100
 def _write_raw(raw_fid_writer, fpath, split_naming, overwrite):
     """Write raw file with splitting."""
     dir_path = fpath.parent
+    _check_fname(
+        dir_path,
+        overwrite="read",
+        must_exist=True,
+        name="parent directory",
+        need_dir=True,
+    )
     # We have to create one extra filename here to make the for loop below happy,
     # but it will raise an error if it actually gets used
     split_fnames = _make_split_fnames(
