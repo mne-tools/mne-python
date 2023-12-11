@@ -18,6 +18,12 @@ class AnalogSignalGap(object):
     Creates a AnalogSignalProxy-like object.
     Propagate `signal`, `units`, and `sampling_rate` attributes
     to the `AnalogSignal` object returned by `load()`.
+
+    Parameters
+    ----------
+    signal : array-like
+        Array of shape (n_channels, n_samples) containing the data.
+
     """
 
     def __init__(self, signal, units, sampling_rate):
@@ -29,7 +35,7 @@ class AnalogSignalGap(object):
         """Return AnalogSignal object."""
         # self.magnitude = self.magnitude[channel_indexes, :]
         sig = AnalogSignal(
-            signal=self.signal[channel_indexes, :],
+            signal=self.signal[:, channel_indexes],
             units=self.units,
             sampling_rate=self.sampling_rate,
         )
@@ -148,10 +154,6 @@ class RawNeuralynx(BaseRaw):
         # the sample sizes of all segments
         n_segments = nlx_reader.header["nb_segment"][0]
         block_id = 0  # assumes there's only one block of recording
-        n_total_samples = sum(
-            nlx_reader.get_signal_size(block_id, segment)
-            for segment in range(n_segments)
-        )
 
         # get segment start/stop times
         start_times = np.array(
@@ -168,20 +170,19 @@ class RawNeuralynx(BaseRaw):
 
         # mark as discontinuous any two segments that have
         # start/stop delta larger than sampling period (1/sampling_rate)
-
+        logger.info("Checking for temporal discontinuities in Neo data segments.")
         delta = 1 / info["sfreq"]
         gaps = seg_diffs > delta
         has_gaps = gaps.any()
 
         seg_gap_dict = {}
-        gap_segment_sizes = []
-        gap_annotations = {}
 
         if has_gaps:
             logger.info(
-                f"N = {gaps.sum()} discontinuous Neo segments detected " +
-                "with delta > {delta} sec. +\n" +
-                "(max = {seg_diffs[gaps].max()} sec, min = {seg_diffs[gaps].min()})"
+                f"N = {gaps.sum()} discontinuous Neo segments detected "
+                + f"with delta > {delta} sec.\n"
+                + f"(max = {seg_diffs[gaps].max()} sec, min = {seg_diffs[gaps].min()})"
+                + "\nAnnotating gaps as BAD_ACQ_SKIP."
             )
 
             gap_starts = stop_times[:-1][gaps]  # gap starts at segment offset
@@ -197,13 +198,8 @@ class RawNeuralynx(BaseRaw):
                 ]
             )
 
-            # add the inferred gaps into the right place in the segment list
+            # get sort indices for all segments (valid and gap) in ascending order
             all_starts_ids = np.argsort(np.concatenate([start_times, gap_starts]))
-            all_stops_ids = np.argsort(np.concatenate([stop_times, gap_stops]))
-
-            # sort the valid segment and gap times by time
-            all_starts = np.concatenate([start_times, gap_starts])[all_starts_ids]
-            all_stops = np.concatenate([stop_times, gap_stops])[all_stops_ids]
 
             # variable indicating whether each segment is a gap or not
             gap_indicator = np.concatenate(
@@ -216,21 +212,9 @@ class RawNeuralynx(BaseRaw):
 
             # store this in a dict to be passed to _raw_extras
             seg_gap_dict = {
-                "onsets": all_starts,  # onsets in seconds
-                "offsets": all_stops,
                 "gap_n_samps": gap_n_samps,
                 "isgap": gap_indicator,  # 0 (data segment) or 1 (gap segment)
             }
-
-            # TMP: annotations dict for use with mne.Annotations
-            gap_annotations = dict(
-                onset=gap_starts,
-                duration=seg_diffs[gaps],
-                orig_time=None,
-                description="BAD_ACQ_SKIP",
-            )
-
-            gap_segment_sizes = [n for n in gap_n_samps]
 
         else:
             logger.info(f"All Neo segments temporally continuous at {delta} sec precision.")
@@ -240,7 +224,7 @@ class RawNeuralynx(BaseRaw):
         ]
 
         if has_gaps:
-            sizes_sorted = np.concatenate([valid_segment_sizes, gap_segment_sizes])[
+            sizes_sorted = np.concatenate([valid_segment_sizes, gap_n_samps])[
                 all_starts_ids
             ]
         else:
@@ -251,18 +235,30 @@ class RawNeuralynx(BaseRaw):
             [np.full(shape=(n,), fill_value=i) for i, n in enumerate(sizes_sorted)]
         )
 
-        # construct an array of shape (n_total_samples,) indicating
-        # segment membership for each sample
-        # sample2segment = np.concatenate(
-        #    [
-        #        np.full(shape=(nlx_reader.get_signal_size(block_id, i),), fill_value=i)
-        #        for i in range(n_segments)
-        #    ]
-        # )
+        if has_gaps:
+            gap_seg_ids = np.unique(sample2segment)[gap_indicator]
+            gap_start_ids = np.array(
+                [np.where(sample2segment == seg_id)[0][0] for seg_id in gap_seg_ids]
+            )
+
+            # recreate time axis for gap annotations
+            mne_times = np.arange(0, len(sample2segment)) / info["sfreq"]
+
+            assert len(gap_start_ids) == len(gap_n_samps)
+            annotations = dict(
+                onset=[mne_times[onset_id] for onset_id in gap_start_ids],
+                duration=[
+                    mne_times[onset_id + (n - 1)] - mne_times[onset_id]
+                    for onset_id, n in zip(gap_start_ids, gap_n_samps)
+                ],
+                descriptions=["BAD_ACQ_SKIP" for _ in gap_start_ids],
+            )
+        else:
+            annotations = None
 
         super(RawNeuralynx, self).__init__(
             info=info,
-            last_samps=[n_total_samples - 1],
+            last_samps=[sizes_sorted.sum() - 1],
             filenames=[fname],
             preload=preload,
             raw_extras=[
@@ -271,7 +267,7 @@ class RawNeuralynx(BaseRaw):
                     exclude_fnames=exclude_fnames,
                     segment_sizes=sizes_sorted,
                     seg_gap_dict=seg_gap_dict,
-                    gap_annotations=gap_annotations,
+                    gap_annotations=annotations,
                 )
             ],
         )
@@ -356,7 +352,7 @@ class RawNeuralynx(BaseRaw):
             gap_samples = self._raw_extras[0]["seg_gap_dict"]["gap_n_samps"]
             gap_segments = [Segment(f"gap-{i}") for i in range(len(gap_samples))]
 
-            # create AnalogSignal objects representing gap data
+            # create AnalogSignal objects representing gap data filled with 0's
             sfreq = nlx_reader.get_signal_sampling_rate()
             n_chans = np.arange(idx.start, idx.stop, idx.step).size
 
@@ -368,12 +364,14 @@ class RawNeuralynx(BaseRaw):
 
             n_total_segments = len(neo_block[0].segments + gap_segments)
             segments_arr = np.zeros((n_total_segments,), dtype=object)
+
+            # insert inferred gap segments at the right place in between valid segments
             isgap = self._raw_extras[0]["seg_gap_dict"]["isgap"]
             segments_arr[~isgap] = neo_block[0].segments
             segments_arr[isgap] = gap_segments
 
         # now load data from selected segments/channels via
-        # neo.Segment.AnalogSignal.load()
+        # neo.Segment.AnalogSignal.load() or AnalogSignalGap.load()
         all_data = np.concatenate(
             [
                 signal.load(channel_indexes=idx).magnitude[
