@@ -290,14 +290,6 @@ class RawNeuralynx(BaseRaw):
             [len(segment.analogsignals) for segment in neo_block[0].segments]
         ) == len(neo_block[0].segments)
 
-        # collect sizes of each segment
-        # segment_sizes = np.array(
-        #    [
-        #        nlx_reader.get_signal_size(0, segment_id)
-        #        for segment_id in range(len(neo_block[0].segments))
-        #    ]
-        # )
-
         segment_sizes = self._raw_extras[0]["segment_sizes"]
 
         # construct a (n_segments, 2) array of the first and last
