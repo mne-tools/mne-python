@@ -1398,7 +1398,7 @@ class _BaseSourceEstimate(TimeMixin):
         if self.subject is not None:
             default_index = ["subject", "time"]
             mindex.append(("subject", np.repeat(self.subject, data.shape[0])))
-        times = _convert_times(self, times, time_format)
+        times = _convert_times(times, time_format)
         mindex.append(("time", times))
         # triage surface vs volume source estimates
         col_names = list()

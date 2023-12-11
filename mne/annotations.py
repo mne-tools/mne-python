@@ -444,7 +444,7 @@ class Annotations:
         self.description = np.delete(self.description, idx)
         self.ch_names = np.delete(self.ch_names, idx)
 
-    def to_data_frame(self, time_format=None):
+    def to_data_frame(self, time_format="datetime"):
         """Export annotations in tabular structure as a pandas DataFrame.
 
         Parameters
@@ -467,10 +467,7 @@ class Annotations:
             dt = _handle_meas_date(0)
         time_format = _check_time_format(time_format, valid_time_formats, dt)
         dt = dt.replace(tzinfo=None)
-        # hack Annotations object to temporarily have an .info attribute
-        self.info = dict(meas_date=dt)
-        times = _convert_times(self, self.onset, time_format)
-        del self.info
+        times = _convert_times(self.onset, time_format, dt)
         df = dict(onset=times, duration=self.duration, description=self.description)
         if self._any_ch_names():
             df.update(ch_names=self.ch_names)
