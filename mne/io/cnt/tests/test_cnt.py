@@ -2,6 +2,7 @@
 #         Joan Massich <mailsik@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import numpy as np
 import pytest
@@ -19,8 +20,41 @@ fname_bad_spans = data_path / "CNT" / "test_CNT_events_mne_JWoess_clipped.cnt"
 
 
 @testing.requires_testing_data
-def test_data():
+def test_old_data():
     """Test reading raw cnt files."""
+    with pytest.warns(RuntimeWarning, match="number of bytes"):
+        raw = _test_raw_reader(
+            read_raw_cnt, input_fname=fname, eog="auto", misc=["NA1", "LEFT_EAR"]
+        )
+
+    # make sure we use annotations event if we synthesized stim
+    assert len(raw.annotations) == 6
+
+    eog_chs = pick_types(raw.info, eog=True, exclude=[])
+    assert len(eog_chs) == 2  # test eog='auto'
+    assert raw.info["bads"] == ["LEFT_EAR", "VEOGR"]  # test bads
+
+    # the data has "05/10/200 17:35:31" so it is set to None
+    assert raw.info["meas_date"] is None
+
+
+@testing.requires_testing_data
+def test_new_data():
+    """Test reading raw cnt files with different header."""
+    with pytest.warns(RuntimeWarning):
+        raw = read_raw_cnt(input_fname=fname_bad_spans, header="new")
+
+    assert raw.info["bads"] == ["F8"]  # test bads
+
+
+@testing.requires_testing_data
+def test_auto_data():
+    """Test reading raw cnt files with automatic header."""
+    with pytest.warns(RuntimeWarning):
+        raw = read_raw_cnt(input_fname=fname_bad_spans)
+
+    assert raw.info["bads"] == ["F8"]
+
     with pytest.warns(RuntimeWarning, match="number of bytes"):
         raw = _test_raw_reader(
             read_raw_cnt, input_fname=fname, eog="auto", misc=["NA1", "LEFT_EAR"]

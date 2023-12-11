@@ -2,6 +2,7 @@
 #          Scott Huberty <seh33@uw.edu>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 
 import numpy as np
@@ -77,8 +78,7 @@ def set_channel_types_eyetrack(inst, mapping):
         ch_type = ch_desc[0].lower()
         if ch_type not in valid_types:
             raise ValueError(
-                "ch_type must be one of {}. "
-                "Got '{}' instead.".format(valid_types, ch_type)
+                f"ch_type must be one of {valid_types}. Got '{ch_type}' instead."
             )
         if ch_type == "eyegaze":
             coil_type = FIFF.FIFFV_COIL_EYETRACK_POS

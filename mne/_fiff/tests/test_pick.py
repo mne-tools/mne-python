@@ -1,3 +1,5 @@
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 from copy import deepcopy
 from pathlib import Path
 
@@ -44,7 +46,7 @@ data_path = testing.data_path(download=False)
 fname_meeg = data_path / "MEG" / "sample" / "sample_audvis_trunc-meg-eeg-oct-4-fwd.fif"
 fname_mc = data_path / "SSS" / "test_move_anon_movecomp_raw_sss.fif"
 
-io_dir = Path(__file__).parent.parent.parent / "io"
+io_dir = Path(__file__).parents[2] / "io"
 ctf_fname = io_dir / "tests" / "data" / "test_ctf_raw.fif"
 fif_fname = io_dir / "tests" / "data" / "test_raw.fif"
 
@@ -596,9 +598,9 @@ def test_picks_to_idx():
     # Name indexing
     assert_array_equal([2], _picks_to_idx(info, info["ch_names"][2]))
     assert_array_equal(np.arange(5, 9), _picks_to_idx(info, info["ch_names"][5:9]))
-    with pytest.raises(ValueError, match="must be >= "):
+    with pytest.raises(IndexError, match="must be >= "):
         _picks_to_idx(info, -len(picks) - 1)
-    with pytest.raises(ValueError, match="must be < "):
+    with pytest.raises(IndexError, match="must be < "):
         _picks_to_idx(info, len(picks))
     with pytest.raises(ValueError, match="could not be interpreted"):
         _picks_to_idx(info, ["a", "b"])

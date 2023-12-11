@@ -2,6 +2,7 @@
 #          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import html
 import re
@@ -44,7 +45,7 @@ class Tag:
         Position of Tag is the original file.
     """
 
-    def __init__(self, kind, type_, size, next, pos=None):  # noqa: D102
+    def __init__(self, kind, type_, size, next, pos=None):
         self.kind = int(kind)
         self.type = int(type_)
         self.size = int(size)

@@ -3,6 +3,7 @@
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # The computations in this code were primarily derived from Matti Hämäläinen's
 # C code.
@@ -1455,8 +1456,10 @@ def compute_depth_prior(
         #     d[k] = linalg.svdvals(x)[0]
         G.shape = (G.shape[0], -1, 3)
         d = np.linalg.norm(
-            np.einsum("svj,svk->vjk", G, G), ord=2, axis=(1, 2)  # vector dot prods
-        )  # ord=2 spectral (largest s.v.)
+            np.einsum("svj,svk->vjk", G, G),  # vector dot prods
+            ord=2,  # ord=2 spectral (largest s.v.)
+            axis=(1, 2),
+        )
         G.shape = (G.shape[0], -1)
 
     # XXX Currently the fwd solns never have "patch_areas" defined

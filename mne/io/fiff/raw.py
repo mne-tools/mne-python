@@ -5,6 +5,7 @@
 #          Teon Brooks <teon.brooks@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import copy
 import os
@@ -96,7 +97,7 @@ class Raw(BaseRaw):
         preload=False,
         on_split_missing="raise",
         verbose=None,
-    ):  # noqa: D102
+    ):
         raws = []
         do_check_ext = not _file_like(fname)
         next_fname = fname

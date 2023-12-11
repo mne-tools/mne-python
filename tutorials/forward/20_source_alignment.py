@@ -13,6 +13,8 @@ understanding the different coordinate frames involved in this process.
 Let's start out by loading some data.
 """
 
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 # %%
 
 import nibabel as nib

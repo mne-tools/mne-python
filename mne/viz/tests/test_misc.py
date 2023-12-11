@@ -5,7 +5,8 @@
 #          Cathy Nangini <cnangini@gmail.com>
 #          Mainak Jas <mainak@neuro.hut.fi>
 #
-# License: Simplified BSD
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from pathlib import Path
 
@@ -50,7 +51,7 @@ inv_fname = (
 evoked_fname = data_path / "MEG" / "sample" / "sample_audvis-ave.fif"
 dip_fname = data_path / "MEG" / "sample" / "sample_audvis_trunc_set1.dip"
 chpi_fif_fname = data_path / "SSS" / "test_move_anon_raw.fif"
-base_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
+base_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
 raw_fname = base_dir / "test_raw.fif"
 cov_fname = base_dir / "test-cov.fif"
 event_fname = base_dir / "test-eve.fif"

@@ -4,6 +4,7 @@
 #          Juergen Dammers <j.dammers@fz-juelich.de>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import json
 import math
@@ -444,7 +445,7 @@ class ICA(ContainsMixin):
         max_iter="auto",
         allow_ref_meg=False,
         verbose=None,
-    ):  # noqa: D102
+    ):
         _validate_type(method, str, "method")
         _validate_type(n_components, (float, "int-like", None))
 

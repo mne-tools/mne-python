@@ -2,6 +2,7 @@
 #         Romain Trachel <trachelr@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from pathlib import Path
 
@@ -29,7 +30,7 @@ from mne.utils import check_version, use_log_level
 tmin, tmax = -0.2, 0.5
 event_id = dict(aud_l=1, vis_l=3)
 start, stop = 0, 8
-data_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
+data_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
 raw_fname = data_dir / "test_raw.fif"
 event_name = data_dir / "test-eve.fif"
 

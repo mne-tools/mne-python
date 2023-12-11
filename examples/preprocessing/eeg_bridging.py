@@ -30,6 +30,7 @@ https://psychophysiology.cpmc.columbia.edu/software/eBridge/tutorial.html.
 # Authors: Alex Rockhill <aprockhill@mailbox.org>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 

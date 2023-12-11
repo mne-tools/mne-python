@@ -2,6 +2,7 @@
 #         Victoria Peterson <victoriapeterson09@gmail.com>
 #         Thomas S. Binns <t.s.binns@outlook.com>
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import numpy as np
 import pytest

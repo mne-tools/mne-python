@@ -1,6 +1,7 @@
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from pathlib import Path
 
@@ -48,7 +49,7 @@ rng = np.random.RandomState(0)
 
 def test_helmet():
     """Test loading helmet surfaces."""
-    base_dir = Path(__file__).parent.parent / "io"
+    base_dir = Path(__file__).parents[1] / "io"
     fname_raw = base_dir / "tests" / "data" / "test_raw.fif"
     fname_kit_raw = base_dir / "kit" / "tests" / "data" / "test_bin_raw.fif"
     fname_bti_raw = base_dir / "bti" / "tests" / "data" / "exported4D_linux_raw.fif"

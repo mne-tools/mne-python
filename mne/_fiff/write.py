@@ -2,6 +2,7 @@
 #          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import os.path as op
 import re

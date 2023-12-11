@@ -4,6 +4,7 @@
 #          Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import os
 
@@ -110,7 +111,7 @@ class RawCTF(BaseRaw):
         preload=False,
         verbose=None,
         clean_names=False,
-    ):  # noqa: D102
+    ):
         # adapted from mne_ctf2fiff.c
         directory = str(
             _check_fname(directory, "read", True, "directory", need_dir=True)

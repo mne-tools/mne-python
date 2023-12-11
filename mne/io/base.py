@@ -8,6 +8,7 @@
 #          Clemens Brunner <clemens.brunner@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import os
 import os.path as op
@@ -202,7 +203,7 @@ class BaseRaw(
         orig_units=None,
         *,
         verbose=None,
-    ):  # noqa: D102
+    ):
         # wait until the end to preload data, but triage here
         if isinstance(preload, np.ndarray):
             # some functions (e.g., filtering) only work w/64-bit data
@@ -264,8 +265,7 @@ class BaseRaw(
         if orig_units:
             if not isinstance(orig_units, dict):
                 raise ValueError(
-                    "orig_units must be of type dict, but got "
-                    " {}".format(type(orig_units))
+                    f"orig_units must be of type dict, but got {type(orig_units)}"
                 )
 
             # original units need to be truncated to 15 chars or renamed
@@ -290,8 +290,7 @@ class BaseRaw(
             if not all(ch_correspond):
                 ch_without_orig_unit = ch_names[ch_correspond.index(False)]
                 raise ValueError(
-                    "Channel {} has no associated original "
-                    "unit.".format(ch_without_orig_unit)
+                    f"Channel {ch_without_orig_unit} has no associated original unit."
                 )
 
             # Final check of orig_units, editing a unit if it is not a valid
@@ -796,6 +795,9 @@ class BaseRaw(
                 item1 = int(item1)
             if isinstance(item1, (int, np.integer)):
                 start, stop, step = item1, item1 + 1, 1
+                # Need to special case -1, because -1:0 will be empty
+                if start == -1:
+                    stop = None
             else:
                 raise ValueError("Must pass int or slice to __getitem__")
 
@@ -1123,7 +1125,7 @@ class BaseRaw(
         skip_by_annotation=("edge", "bad_acq_skip"),
         pad="reflect_limited",
         verbose=None,
-    ):  # noqa: D102
+    ):
         return super().filter(
             l_freq,
             h_freq,
@@ -1258,12 +1260,14 @@ class BaseRaw(
     def resample(
         self,
         sfreq,
+        *,
         npad="auto",
-        window="boxcar",
+        window="auto",
         stim_picks=None,
         n_jobs=None,
         events=None,
-        pad="reflect_limited",
+        pad="auto",
+        method="fft",
         verbose=None,
     ):
         """Resample all channels.
@@ -1292,7 +1296,7 @@ class BaseRaw(
         ----------
         sfreq : float
             New sample rate to use.
-        %(npad)s
+        %(npad_resample)s
         %(window_resample)s
         stim_picks : list of int | None
             Stim channels. These channels are simply subsampled or
@@ -1305,10 +1309,12 @@ class BaseRaw(
             An optional event matrix. When specified, the onsets of the events
             are resampled jointly with the data. NB: The input events are not
             modified, but a new array is returned with the raw instead.
-        %(pad)s
-            The default is ``'reflect_limited'``.
+        %(pad_resample_auto)s
 
             .. versionadded:: 0.15
+        %(method_resample)s
+
+            .. versionadded:: 1.7
         %(verbose)s
 
         Returns
@@ -1362,7 +1368,13 @@ class BaseRaw(
             )
 
         kwargs = dict(
-            up=sfreq, down=o_sfreq, npad=npad, window=window, n_jobs=n_jobs, pad=pad
+            up=sfreq,
+            down=o_sfreq,
+            npad=npad,
+            window=window,
+            n_jobs=n_jobs,
+            pad=pad,
+            method=method,
         )
         ratio, n_news = zip(
             *(
@@ -2518,7 +2530,7 @@ class _ReadSegmentFileProtector:
 class _RawShell:
     """Create a temporary raw object."""
 
-    def __init__(self):  # noqa: D102
+    def __init__(self):
         self.first_samp = None
         self.last_samp = None
         self._first_time = None
@@ -2551,6 +2563,13 @@ MAX_N_SPLITS = 100
 def _write_raw(raw_fid_writer, fpath, split_naming, overwrite):
     """Write raw file with splitting."""
     dir_path = fpath.parent
+    _check_fname(
+        dir_path,
+        overwrite="read",
+        must_exist=True,
+        name="parent directory",
+        need_dir=True,
+    )
     # We have to create one extra filename here to make the for loop below happy,
     # but it will raise an error if it actually gets used
     split_fnames = _make_split_fnames(

@@ -1,28 +1,28 @@
 repos:
-  - repo: https://github.com/psf/black
-    rev: 23.11.0
-    hooks:
-      - id: black
-        args: [--quiet]
-
   # Ruff mne
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.1.5
+    rev: v0.1.6
     hooks:
       - id: ruff
-        name: ruff mne
+        name: ruff lint mne
         args: ["--fix"]
+        files: ^mne/
+      - id: ruff-format
+        name: ruff format mne
         files: ^mne/
 
   # Ruff tutorials and examples
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.1.5
+    rev: v0.1.6
     hooks:
       - id: ruff
-        name: ruff tutorials and examples
+        name: ruff lint tutorials and examples
         # D103: missing docstring in public function
         # D400: docstring first line must end with period
-        args: ["--ignore=D103,D400"]
+        args: ["--ignore=D103,D400", "--fix"]
+        files: ^tutorials/|^examples/
+      - id: ruff-format
+        name: ruff format tutorials and examples
         files: ^tutorials/|^examples/
 
   # Codespell
@@ -47,4 +47,18 @@ repos:
     rev: v6.2.0
     hooks:
       - id: rstcheck
+        additional_dependencies:
+          - tomli
         files: ^doc/.*\.(rst|inc)$
+
+  # mypy
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.7.1
+    hooks:
+      - id: mypy
+        # Avoid the conflict between mne/__init__.py and mne/__init__.pyi by ignoring the former
+        exclude: ^mne/(beamformer|channels|commands|datasets|decoding|export|forward|gui|html_templates|inverse_sparse|io|minimum_norm|preprocessing|report|simulation|source_space|stats|time_frequency|utils|viz)?/?__init__\.py$
+        additional_dependencies: ["numpy==1.26.2"]
+
+ci:
+  autofix_prs: false

@@ -7,7 +7,8 @@
 #          Teon Brooks <teon.brooks@gmail.com>
 #          Robert Luke <mail@robertluke.net>
 #
-# License: Simplified BSD
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import logging
 from collections import defaultdict
@@ -57,7 +58,7 @@ class Layout:
         The type of Layout (e.g. 'Vectorview-all').
     """
 
-    def __init__(self, box, pos, names, ids, kind):  # noqa: D102
+    def __init__(self, box, pos, names, ids, kind):
         self.box = box
         self.pos = pos
         self.names = names

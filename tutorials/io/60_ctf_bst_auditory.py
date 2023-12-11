@@ -26,6 +26,7 @@ The specifications of this dataset were discussed initially on the
 #          Jaakko Leppakangas <jaeilepp@student.jyu.fi>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 
@@ -164,10 +165,14 @@ raw.plot()
 # saving mode we do the filtering at evoked stage, which is not something you
 # usually would do.
 if not use_precomputed:
-    raw.compute_psd(tmax=np.inf, picks="meg").plot(picks="data", exclude="bads")
+    raw.compute_psd(tmax=np.inf, picks="meg").plot(
+        picks="data", exclude="bads", amplitude=False
+    )
     notches = np.arange(60, 181, 60)
     raw.notch_filter(notches, phase="zero-double", fir_design="firwin2")
-    raw.compute_psd(tmax=np.inf, picks="meg").plot(picks="data", exclude="bads")
+    raw.compute_psd(tmax=np.inf, picks="meg").plot(
+        picks="data", exclude="bads", amplitude=False
+    )
 
 # %%
 # We also lowpass filter the data at 100 Hz to remove the hf components.

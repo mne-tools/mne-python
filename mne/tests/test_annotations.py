@@ -2,6 +2,7 @@
 #          Robert Luke <mail@robertluke.net>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import sys
 from collections import OrderedDict
@@ -48,7 +49,7 @@ from mne.utils import (
 
 data_path = testing.data_path(download=False)
 data_dir = data_path / "MEG" / "sample"
-fif_fname = Path(__file__).parent.parent / "io" / "tests" / "data" / "test_raw.fif"
+fif_fname = Path(__file__).parents[1] / "io" / "tests" / "data" / "test_raw.fif"
 first_samps = pytest.mark.parametrize("first_samp", (0, 10000))
 edf_reduced = data_path / "EDF" / "test_reduced.edf"
 edf_annot_only = data_path / "EDF" / "SC4001EC-Hypnogram.edf"
@@ -424,7 +425,11 @@ def test_raw_reject(first_samp):
     with pytest.warns(RuntimeWarning, match="outside the data range"):
         raw.set_annotations(Annotations([2, 100, 105, 148], [2, 8, 5, 8], "BAD"))
     data, times = raw.get_data(
-        [0, 1, 3, 4], 100, 11200, "omit", return_times=True  # 1-112 s
+        [0, 1, 3, 4],
+        100,
+        11200,
+        "omit",
+        return_times=True,  # 1-112 s
     )
     bad_times = np.concatenate(
         [np.arange(200, 400), np.arange(10000, 10800), np.arange(10500, 11000)]

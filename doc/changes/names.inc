@@ -26,7 +26,7 @@
 
 .. _Alexandre Barachant: https://alexandre.barachant.org
 
-.. _Andrea Brovelli: https://andrea-brovelli.net
+.. _Andrea Brovelli: https://brovelli.github.io/
 
 .. _Andreas Hojlund: https://github.com/ahoejlund
 
@@ -172,6 +172,8 @@
 
 .. _Felix Raimundo: https://github.com/gamazeps
 
+.. _Florian Hofer: https://github.com/hofaflo
+
 .. _Florin Pop: https://github.com/florin-pop
 
 .. _Frederik Weber: https://github.com/Frederik-D-Weber
@@ -211,6 +213,8 @@
 .. _Hyonyoung Shin: https://github.com/mcvain
 
 .. _Ilias Machairas: https://github.com/JungleHippo
+
+.. _Ivan Skelin: https://github.com/ivan-skelin
 
 .. _Ivan Zubarev: https://github.com/zubara
 
@@ -294,6 +298,8 @@
 
 .. _Kostiantyn Maksymenko: https://github.com/makkostya
 
+.. _Kristijan Armeni: https://github.com/kristijanarmeni
+
 .. _Kyle Mathewson: https://github.com/kylemath
 
 .. _Larry Eisenman:  https://github.com/lneisenman
@@ -334,7 +340,7 @@
 
 .. _Mark Alexander Henney: https://github.com/henneysq
 
-.. _Mark Wronkiewicz: https://ml.jpl.nasa.gov/people/wronkiewicz/wronkiewicz.html
+.. _Mark Wronkiewicz: https://github.com/wronk
 
 .. _Marmaduke Woodman: https://github.com/maedoc
 
@@ -395,6 +401,8 @@
 .. _Niklas Wilming: https://github.com/nwilming
 
 .. _Nikolai Chapochnikov: https://github.com/chapochn
+
+.. _Nikolai Kapralov: https://github.com/ctrltz
 
 .. _Nikolas Chalas: https://github.com/Nichalas
 
@@ -538,7 +546,7 @@
 
 .. _Tal Linzen: https://tallinzen.net/
 
-.. _Teon Brooks: https://teonbrooks.com
+.. _Teon Brooks: https://github.com/teonbrooks
 
 .. _Théodore Papadopoulo: https://github.com/papadop
 

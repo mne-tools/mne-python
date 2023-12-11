@@ -1,6 +1,7 @@
 # Author: Jaakko Leppakangas <jaeilepp@student.jyu.fi>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import calendar
 import datetime
@@ -182,7 +183,7 @@ class RawNicolet(BaseRaw):
         misc=(),
         preload=False,
         verbose=None,
-    ):  # noqa: D102
+    ):
         input_fname = path.abspath(input_fname)
         info, header_info = _get_nicolet_info(input_fname, ch_type, eog, ecg, emg, misc)
         last_samps = [header_info["num_samples"] - 1]

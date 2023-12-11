@@ -2,6 +2,7 @@
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import logging
 import os
@@ -54,7 +55,7 @@ class ProgressBar:
         *,
         which_tqdm=None,
         **kwargs,
-    ):  # noqa: D102
+    ):
         # The following mimics this, but with configurable module to use
         # from ..externals.tqdm import auto
         import tqdm

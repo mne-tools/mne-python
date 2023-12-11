@@ -16,6 +16,7 @@ frequencies.
 # Author: Denis A. Engemann <denis.engemann@gmail.com>
 #         Victoria Peterson <victoriapeterson09@gmail.com>
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 

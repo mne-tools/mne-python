@@ -7,6 +7,8 @@
 #          Teon Brooks <teon.brooks@gmail.com>
 #
 #          simplified BSD-3 license
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import functools
 import os.path as op
@@ -70,7 +72,7 @@ def _instantiate_default_info_chs():
 class _bytes_io_mock_context:
     """Make a context for BytesIO."""
 
-    def __init__(self, target):  # noqa: D102
+    def __init__(self, target):
         self.target = target
 
     def __enter__(self):  # noqa: D105
@@ -1075,7 +1077,7 @@ class RawBTi(BaseRaw):
         eog_ch=("E63", "E64"),
         preload=False,
         verbose=None,
-    ):  # noqa: D102
+    ):
         _validate_type(pdf_fname, ("path-like", BytesIO), "pdf_fname")
         info, bti_info = _get_bti_info(
             pdf_fname=pdf_fname,

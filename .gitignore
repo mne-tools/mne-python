@@ -41,7 +41,6 @@ MNE-brainstorm-data*
 physionet-sleep-data*
 MEGSIM*
 build
-mne/_version.py
 coverage
 htmlcov
 .cache/
@@ -71,6 +70,8 @@ doc/*.dat
 doc/fil-result
 doc/optipng.exe
 sg_execution_times.rst
+sg_api_usage.rst
+sg_api_unused.dot
 cover
 *.html
 

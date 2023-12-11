@@ -1,6 +1,8 @@
 """Tools for data interpolation."""
 
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from itertools import chain
 
@@ -121,8 +123,7 @@ def interpolate_bridged_electrodes(inst, bridged_idx, bad_limit=4):
     pos = montage.get_positions()
     if pos["coord_frame"] != "head":
         raise RuntimeError(
-            "Montage channel positions must be in ``head``"
-            "got {}".format(pos["coord_frame"])
+            f"Montage channel positions must be in ``head`` got {pos['coord_frame']}"
         )
     # store bads orig to put back at the end
     bads_orig = inst.info["bads"]

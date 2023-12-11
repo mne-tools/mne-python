@@ -2,6 +2,8 @@
 #          Teon Brooks <teon.brooks@gmail.com>
 #
 #          simplified BSD-3 license
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import datetime
 import time
@@ -191,7 +193,7 @@ class RawEGI(BaseRaw):
         preload=False,
         channel_naming="E%d",
         verbose=None,
-    ):  # noqa: D102
+    ):
         input_fname = str(_check_fname(input_fname, "read", True, "input_fname"))
         if eog is None:
             eog = []

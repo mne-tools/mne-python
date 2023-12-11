@@ -15,6 +15,8 @@ from repeatedly typing ``mne.preprocessing`` we'll directly import a handful of
 functions from that submodule:
 """
 
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 # %%
 
 import os
@@ -114,7 +116,14 @@ empty_room_raw.del_proj()
 raw.info["bads"] = ["MEG 2443"]
 spectrum = empty_room_raw.compute_psd()
 for average in (False, True):
-    spectrum.plot(average=average, dB=False, xscale="log", picks="data", exclude="bads")
+    spectrum.plot(
+        average=average,
+        dB=False,
+        amplitude=True,
+        xscale="log",
+        picks="data",
+        exclude="bads",
+    )
 
 # %%
 # Creating the empty-room projectors

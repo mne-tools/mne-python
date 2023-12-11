@@ -1,6 +1,7 @@
 # Author: Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from pathlib import Path
 
@@ -45,7 +46,7 @@ from mne.transforms import _angle_between_quats, rot_to_quat
 from mne.utils import assert_meg_snr, catch_logging, object_diff, verbose
 from mne.viz import plot_head_positions
 
-base_dir = Path(__file__).parent.parent / "io" / "tests" / "data"
+base_dir = Path(__file__).parents[1] / "io" / "tests" / "data"
 ctf_fname = base_dir / "test_ctf_raw.fif"
 hp_fif_fname = base_dir / "test_chpi_raw_sss.fif"
 hp_fname = base_dir / "test_chpi_raw_hp.txt"

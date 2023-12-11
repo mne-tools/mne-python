@@ -1,14 +1,15 @@
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 """Import NeuroElectrics DataFormat (NEDF) files."""
 
 from copy import deepcopy
 from datetime import datetime, timezone
 
 import numpy as np
-from defusedxml import ElementTree
 
 from ..._fiff.meas_info import create_info
 from ..._fiff.utils import _mult_cal_one
-from ...utils import _check_fname, verbose, warn
+from ...utils import _check_fname, _soft_import, verbose, warn
 from ..base import BaseRaw
 
 
@@ -50,6 +51,7 @@ def _parse_nedf_header(header):
     n_samples : int
         The number of data samples.
     """
+    defusedxml = _soft_import("defusedxml", "reading NEDF data")
     info = {}
     # nedf files have three accelerometer channels sampled at 100Hz followed
     # by five EEG samples + TTL trigger sampled at 500Hz
@@ -67,7 +69,7 @@ def _parse_nedf_header(header):
     headerend = header.find(b"\0")
     if headerend == -1:
         raise RuntimeError("End of header null not found")
-    headerxml = ElementTree.fromstring(header[:headerend])
+    headerxml = defusedxml.ElementTree.fromstring(header[:headerend])
     nedfversion = headerxml.findtext("NEDFversion", "")
     if nedfversion not in ["1.3", "1.4"]:
         warn("NEDFversion unsupported, use with caution")

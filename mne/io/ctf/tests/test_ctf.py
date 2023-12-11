@@ -1,6 +1,7 @@
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import copy
 import os
@@ -91,9 +92,7 @@ def test_read_ctf(tmp_path):
             args = (
                 str(ch_num + 1),
                 raw.ch_names[ch_num],
-            ) + tuple(
-                "%0.5f" % x for x in 100 * pos[ii]
-            )  # convert to cm
+            ) + tuple("%0.5f" % x for x in 100 * pos[ii])  # convert to cm
             fid.write(("\t".join(args) + "\n").encode("ascii"))
     pos_read_old = np.array([raw.info["chs"][p]["loc"][:3] for p in picks])
     with pytest.warns(RuntimeWarning, match="RMSP .* changed to a MISC ch"):

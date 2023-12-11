@@ -1,6 +1,7 @@
 # Authors: Federico Raimondo <federaimondo@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from collections import OrderedDict
 from datetime import datetime, timezone
@@ -177,8 +178,7 @@ def _read_nihon_header(fname):
         control_block = np.fromfile(fid, "|S16", 1).astype("U16")[0]
         if control_block not in _valid_headers:
             raise ValueError(
-                "Not a valid Nihon Kohden EEG file "
-                "(control block {})".format(version)
+                f"Not a valid Nihon Kohden EEG file (control block {version})"
             )
 
         fid.seek(0x17FE)

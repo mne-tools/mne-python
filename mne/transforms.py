@@ -4,6 +4,7 @@
 #          Christian Brodbeck <christianbrodbeck@nyu.edu>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import glob
 import os
@@ -110,7 +111,7 @@ class Transform(dict):
     ``'ctf_meg'``, ``'unknown'``.
     """
 
-    def __init__(self, fro, to, trans=None):  # noqa: D102
+    def __init__(self, fro, to, trans=None):
         super(Transform, self).__init__()
         # we could add some better sanity checks here
         fro = _to_const(fro)
@@ -291,31 +292,8 @@ def rotation(x=0, y=0, z=0):
     r : array, shape = (4, 4)
         The rotation matrix.
     """
-    cos_x = np.cos(x)
-    cos_y = np.cos(y)
-    cos_z = np.cos(z)
-    sin_x = np.sin(x)
-    sin_y = np.sin(y)
-    sin_z = np.sin(z)
-    r = np.array(
-        [
-            [
-                cos_y * cos_z,
-                -cos_x * sin_z + sin_x * sin_y * cos_z,
-                sin_x * sin_z + cos_x * sin_y * cos_z,
-                0,
-            ],
-            [
-                cos_y * sin_z,
-                cos_x * cos_z + sin_x * sin_y * sin_z,
-                -sin_x * cos_z + cos_x * sin_y * sin_z,
-                0,
-            ],
-            [-sin_y, sin_x * cos_y, cos_x * cos_y, 0],
-            [0, 0, 0, 1],
-        ],
-        dtype=float,
-    )
+    r = np.eye(4)
+    r[:3, :3] = rotation3d(x=x, y=y, z=z)
     return r
 
 

@@ -37,7 +37,7 @@ Enhancements
 ~~~~~~~~~~~~
 .. - Add something cool (:gh:`9192` **by new contributor** |New Contributor|_)
 
-- Add `pooch` to system information reports (:gh:`9801` **by new contributor** |Joshua Teves|_)
+- Add ``pooch`` to system information reports (:gh:`9801` **by new contributor** |Joshua Teves|_)
 
 - Get annotation descriptions from the name field of SNIRF stimulus groups when reading SNIRF files via `mne.io.read_raw_snirf` (:gh:`9575` **by new contributor** |Darin Erat Sleiter|_)
 
@@ -191,7 +191,7 @@ Enhancements
 
 - All functions for reading and writing files should now automatically handle ``~`` (the tilde character) and expand it to the user's home directory. Should you come across any function that doesn't do it, please do let us know! (:gh:`9613`, :gh:`9845` by `Richard Höchenberger`_)
 
-- All functions accepting a FreeSurfer subjects directory via a ``subjects_dir`` parameter can now consume :py:class:`pathlib.Path` objects too (used to be only strings) (:gh:`9613` by `Richard Höchenberger`_)
+- All functions accepting a FreeSurfer subjects directory via a ``subjects_dir`` parameter can now consume :class:`pathlib.Path` objects too (used to be only strings) (:gh:`9613` by `Richard Höchenberger`_)
 
 - Add support for colormap normalization in :meth:`mne.time_frequency.AverageTFR.plot` (:gh:`9851` by `Clemens Brunner`_)
 

@@ -22,6 +22,7 @@ you to get a better sense of the underlying source geometry.
 # Author: Marijn van Vliet <w.m.vanvliet@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 

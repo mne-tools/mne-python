@@ -17,6 +17,7 @@ This is useful to:
 # Author: Mainak Jas <mainak.jas@telecom-paristech.fr>
 
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 

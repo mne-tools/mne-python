@@ -26,6 +26,8 @@ We'll begin by loading the Python modules we need, and loading the same
 to just 60 seconds before loading it into RAM:
 """
 
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 # %%
 
 import numpy as np

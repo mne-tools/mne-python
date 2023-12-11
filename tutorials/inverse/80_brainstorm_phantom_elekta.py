@@ -15,6 +15,7 @@ tutorial dataset. For comparison, see :footcite:`TadelEtAl2011` and
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 
@@ -52,7 +53,9 @@ raw.info["bads"] = ["MEG1933", "MEG2421"]
 # noise (five peaks around 300 Hz). Here, we use only the first 30 seconds
 # to save memory:
 
-raw.compute_psd(tmax=30).plot(average=False, picks="data", exclude="bads")
+raw.compute_psd(tmax=30).plot(
+    average=False, amplitude=False, picks="data", exclude="bads"
+)
 
 # %%
 # Our phantom produces sinusoidal bursts at 20 Hz:

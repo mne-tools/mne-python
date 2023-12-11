@@ -14,6 +14,8 @@ Examples
 """
 
 # Authors : Eric Larson, PhD
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import sys
 
@@ -123,7 +125,8 @@ def run():
     parser.add_option(
         "--clipping",
         dest="clipping",
-        help="Enable trace clipping mode, either 'clamp' or " "'transparent'",
+        help="Enable trace clipping mode. Can be 'clamp', 'transparent', a float, "
+        "or 'none'.",
         default=_RAW_CLIP_DEF,
     )
     parser.add_option(

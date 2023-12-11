@@ -3,6 +3,7 @@
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import numpy as np
 
@@ -51,9 +52,7 @@ class RawArray(BaseRaw):
     """
 
     @verbose
-    def __init__(
-        self, data, info, first_samp=0, copy="auto", verbose=None
-    ):  # noqa: D102
+    def __init__(self, data, info, first_samp=0, copy="auto", verbose=None):
         _validate_type(info, "info", "info")
         _check_option("copy", copy, ("data", "info", "both", "auto", None))
         dtype = np.complex128 if np.any(np.iscomplex(data)) else np.float64

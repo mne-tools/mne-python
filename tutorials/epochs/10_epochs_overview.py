@@ -16,6 +16,8 @@ creating an :class:`~mne.Epochs` object from (possibly simulated) data in a
 As usual we'll start by importing the modules we need:
 """
 
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 # %%
 
 import mne

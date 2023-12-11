@@ -13,6 +13,8 @@ We begin as always by importing the necessary Python modules and loading some
 (to save memory on the documentation server):
 """
 
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 # %%
 
 import os
@@ -121,7 +123,7 @@ mne.viz.plot_filter(filter_params, raw.info["sfreq"], flim=(0.01, 5))
 
 
 def add_arrows(axes):
-    # add some arrows at 60 Hz and its harmonics
+    """Add some arrows at 60 Hz and its harmonics."""
     for ax in axes:
         freqs = ax.lines[-1].get_xdata()
         psds = ax.lines[-1].get_ydata()
@@ -141,7 +143,9 @@ def add_arrows(axes):
             )
 
 
-fig = raw.compute_psd(fmax=250).plot(average=True, picks="data", exclude="bads")
+fig = raw.compute_psd(fmax=250).plot(
+    average=True, amplitude=False, picks="data", exclude="bads"
+)
 add_arrows(fig.axes[:2])
 
 # %%
@@ -157,7 +161,9 @@ meg_picks = mne.pick_types(raw.info, meg=True)
 freqs = (60, 120, 180, 240)
 raw_notch = raw.copy().notch_filter(freqs=freqs, picks=meg_picks)
 for title, data in zip(["Un", "Notch "], [raw, raw_notch]):
-    fig = data.compute_psd(fmax=250).plot(average=True, picks="data", exclude="bads")
+    fig = data.compute_psd(fmax=250).plot(
+        average=True, amplitude=False, picks="data", exclude="bads"
+    )
     fig.suptitle("{}filtered".format(title), size="xx-large", weight="bold")
     add_arrows(fig.axes[:2])
 
@@ -176,7 +182,9 @@ raw_notch_fit = raw.copy().notch_filter(
     freqs=freqs, picks=meg_picks, method="spectrum_fit", filter_length="10s"
 )
 for title, data in zip(["Un", "spectrum_fit "], [raw, raw_notch_fit]):
-    fig = data.compute_psd(fmax=250).plot(average=True, picks="data", exclude="bads")
+    fig = data.compute_psd(fmax=250).plot(
+        average=True, amplitude=False, picks="data", exclude="bads"
+    )
     fig.suptitle("{}filtered".format(title), size="xx-large", weight="bold")
     add_arrows(fig.axes[:2])
 
@@ -204,16 +212,59 @@ for title, data in zip(["Un", "spectrum_fit "], [raw, raw_notch_fit]):
 # frequency`_ of the desired new sampling rate. This can be clearly seen in the
 # PSD plot, where a dashed vertical line indicates the filter cutoff; the
 # original data had an existing lowpass at around 172 Hz (see
-# ``raw.info['lowpass']``), and the data resampled from 600 Hz to 200 Hz gets
+# ``raw.info['lowpass']``), and the data resampled from ~600 Hz to 200 Hz gets
 # automatically lowpass filtered at 100 Hz (the `Nyquist frequency`_ for a
 # target rate of 200 Hz):
 
 raw_downsampled = raw.copy().resample(sfreq=200)
+# choose n_fft for Welch PSD to make frequency axes similar resolution
+n_ffts = [4096, int(round(4096 * 200 / raw.info["sfreq"]))]
+fig, axes = plt.subplots(2, 1, sharey=True, layout="constrained", figsize=(10, 6))
+for ax, data, title, n_fft in zip(
+    axes, [raw, raw_downsampled], ["Original", "Downsampled"], n_ffts
+):
+    fig = data.compute_psd(n_fft=n_fft).plot(
+        average=True, amplitude=False, picks="data", exclude="bads", axes=ax
+    )
+    ax.set(title=title, xlim=(0, 300))
 
-for data, title in zip([raw, raw_downsampled], ["Original", "Downsampled"]):
-    fig = data.compute_psd().plot(average=True, picks="data", exclude="bads")
-    fig.suptitle(title)
-    plt.setp(fig.axes, xlim=(0, 300))
+# %%
+# By default, MNE-Python resamples using ``method="fft"``, which performs FFT-based
+# resampling via :func:`scipy.signal.resample`. While efficient and good for most
+# biological signals, it has two main potential drawbacks:
+#
+# 1. It assumes periodicity of the signal. We try to overcome this with appropriate
+#    signal padding, but some signal leakage may still occur.
+# 2. It treats the entire signal as a single block. This means that in general effects
+#    are not guaranteed to be localized in time, though in practice they often are.
+#
+# Alternatively, resampling can be performed using ``method="polyphase"`` instead.
+# This uses :func:`scipy.signal.resample_poly` under the hood, which in turn utilizes
+# a three-step process to resample signals (see :func:`scipy.signal.upfirdn` for
+# details). This process guarantees that each resampled output value is only affected by
+# input values within a limited range. In other words, output values are guaranteed to
+# be a result of a specific set of input values.
+#
+# In general, using ``method="polyphase"`` can also be faster than ``method="fft"`` in
+# cases where the desired sampling rate is an integer factor different from the input
+# sampling rate. For example:
+
+# sphinx_gallery_thumbnail_number = 11
+
+n_ffts = [4096, 2048]  # factor of 2 smaller n_fft
+raw_downsampled_poly = raw.copy().resample(
+    sfreq=raw.info["sfreq"] / 2.0,
+    method="polyphase",
+    verbose=True,
+)
+fig, axes = plt.subplots(2, 1, sharey=True, layout="constrained", figsize=(10, 6))
+for ax, data, title, n_fft in zip(
+    axes, [raw, raw_downsampled_poly], ["Original", "Downsampled (polyphase)"], n_ffts
+):
+    data.compute_psd(n_fft=n_fft).plot(
+        average=True, amplitude=False, picks="data", exclude="bads", axes=ax
+    )
+    ax.set(title=title, xlim=(0, 300))
 
 # %%
 # Because resampling involves filtering, there are some pitfalls to resampling

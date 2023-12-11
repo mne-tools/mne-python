@@ -17,6 +17,8 @@ different stimulus (word). As usual we'll start by importing the modules we
 need and loading the data:
 """
 
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 # %%
 
 import numpy as np
@@ -114,7 +116,7 @@ print(epochs["Concreteness > 6 and WordFrequency < 1"])
 # MNE-Python will try the traditional method first before falling back on rich
 # metadata querying.
 
-epochs["solenoid"].compute_psd().plot(picks="data", exclude="bads")
+epochs["solenoid"].compute_psd().plot(picks="data", exclude="bads", amplitude=False)
 
 # %%
 # One use of the Pandas query string approach is to select specific words for

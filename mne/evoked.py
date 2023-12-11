@@ -6,8 +6,10 @@
 #          Jona Sassenhagen <jona.sassenhagen@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from copy import deepcopy
+from typing import List, Union
 
 import numpy as np
 
@@ -173,7 +175,7 @@ class Evoked(
         allow_maxshield=False,
         *,
         verbose=None,
-    ):  # noqa: D102
+    ):
         _validate_type(proj, bool, "'proj'")
         # Read the requested data
         fname = str(_check_fname(fname=fname, must_exist=True, overwrite="read"))
@@ -1317,7 +1319,7 @@ class EvokedArray(Evoked):
         baseline=None,
         *,
         verbose=None,
-    ):  # noqa: D102
+    ):
         dtype = np.complex128 if np.iscomplexobj(data) else np.float64
         data = np.asanyarray(data, dtype=dtype)
 
@@ -1539,7 +1541,7 @@ def read_evokeds(
     proj=True,
     allow_maxshield=False,
     verbose=None,
-):
+) -> Union[List[Evoked], Evoked]:
     """Read evoked dataset(s).
 
     Parameters

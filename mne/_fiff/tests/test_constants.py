@@ -1,6 +1,7 @@
 # Author: Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import os
 import re
@@ -384,16 +385,16 @@ def test_constants(tmp_path):
     for key in fif["coil"]:
         if key not in _missing_coil_def and key not in coil_def:
             bad_list.append(("    %s," % key).ljust(10) + "  # " + fif["coil"][key][1])
-    assert (
-        len(bad_list) == 0
-    ), "\nIn fiff-constants, missing from coil_def:\n" + "\n".join(bad_list)
+    assert len(bad_list) == 0, (
+        "\nIn fiff-constants, missing from coil_def:\n" + "\n".join(bad_list)
+    )
     # Assert that enum(coil) has all `coil_def.dat` entries
     for key, desc in zip(coil_def, coil_desc):
         if key not in fif["coil"]:
             bad_list.append(("    %s," % key).ljust(10) + "  # " + desc)
-    assert (
-        len(bad_list) == 0
-    ), "In coil_def, missing  from fiff-constants:\n" + "\n".join(bad_list)
+    assert len(bad_list) == 0, (
+        "In coil_def, missing  from fiff-constants:\n" + "\n".join(bad_list)
+    )
 
 
 @pytest.mark.parametrize(

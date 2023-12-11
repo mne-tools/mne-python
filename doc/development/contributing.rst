@@ -243,7 +243,7 @@ Creating the virtual environment
 These instructions will set up a Python environment that is separated from your
 system-level Python and any other managed Python environments on your computer.
 This lets you switch between different versions of Python (MNE-Python requires
-version 3.8 or higher) and also switch between the stable and development
+version 3.9 or higher) and also switch between the stable and development
 versions of MNE-Python (so you can, for example, use the same computer to
 analyze your data with the stable release, and also work with the latest
 development version to fix bugs or add new features). Even if you've already
@@ -304,11 +304,11 @@ be reflected the next time you open a Python interpreter and ``import mne``
 Finally, we'll add a few dependencies that are not needed for running
 MNE-Python, but are needed for locally running our test suite::
 
-    $ pip install -r requirements_testing.txt
+    $ pip install -e ".[test]"
 
 And for building our documentation::
 
-    $ pip install -r requirements_doc.txt
+    $ pip install -e ".[doc]"
     $ conda install graphviz
 
 .. note::
@@ -329,9 +329,15 @@ To build documentation, you will also require `optipng`_:
 - On Windows, unzip :file:`optipng.exe` from the `optipng for Windows`_ archive
   into the :file:`doc/` folder. This step is optional for Windows users.
 
-You can also choose to install some optional linters for reStructuredText::
+There are additional optional dependencies needed to run various tests, such as
+scikit-learn for decoding tests, or nibabel for MRI tests. If you want to run all the
+tests, consider using our MNE installers (which provide these dependencies) or pay
+attention to the skips that ``pytest`` reports and install the relevant libraries.
+For example, this traceback::
 
-    $ conda install -c conda-forge sphinx-autobuild doc8
+    SKIPPED [2] mne/io/eyelink/tests/test_eyelink.py:14: could not import 'pandas': No module named 'pandas'
+
+indicates that ``pandas`` needs to be installed in order to run the Eyelink tests.
 
 
 .. _basic-git:

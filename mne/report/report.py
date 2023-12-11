@@ -5,6 +5,7 @@
 #          Teon Brooks <teon.brooks@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import base64
 import dataclasses
@@ -3217,7 +3218,9 @@ class Report:
             init_kwargs, plot_kwargs = _split_psd_kwargs(kwargs=add_psd)
             init_kwargs.setdefault("fmax", fmax)
             plot_kwargs.setdefault("show", False)
-            fig = raw.compute_psd(**init_kwargs).plot(**plot_kwargs)
+            with warnings.catch_warnings():
+                warnings.simplefilter(action="ignore", category=FutureWarning)
+                fig = raw.compute_psd(**init_kwargs).plot(**plot_kwargs)
             _constrain_fig_resolution(fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES)
             self._add_figure(
                 fig=fig,
@@ -3784,7 +3787,7 @@ class Report:
             if fmax > 0.5 * epochs.info["sfreq"]:
                 fmax = np.inf
 
-        fig = epochs_for_psd.compute_psd(fmax=fmax).plot(show=False)
+        fig = epochs_for_psd.compute_psd(fmax=fmax).plot(amplitude=False, show=False)
         _constrain_fig_resolution(fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES)
         duration = round(epoch_duration * len(epochs_for_psd), 1)
         caption = (

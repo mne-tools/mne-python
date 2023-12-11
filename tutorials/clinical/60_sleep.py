@@ -30,6 +30,7 @@ seconds of data.
 #          Joan Massich <mailsik@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 
@@ -218,6 +219,7 @@ for ax, title, epochs in zip([ax1, ax2], ["Alice", "Bob"], [epochs_train, epochs
             axes=ax,
             show=False,
             average=True,
+            amplitude=False,
             spatial_colors=False,
             picks="data",
             exclude="bads",

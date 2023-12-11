@@ -8,6 +8,8 @@ Morlet code inspired by Matlab code from Sheraz Khan & Brainstorm & SPM
 #           Jean-Remi King <jeanremi.king@gmail.com>
 #
 # License : BSD-3-Clause
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from copy import deepcopy
 from functools import partial
@@ -1399,7 +1401,7 @@ class AverageTFR(_BaseTFR):
     @verbose
     def __init__(
         self, info, data, times, freqs, nave, comment=None, method=None, verbose=None
-    ):  # noqa: D102
+    ):
         super().__init__()
         self.info = info
         if data.ndim != 3:
@@ -2697,7 +2699,6 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
         metadata=None,
         verbose=None,
     ):
-        # noqa: D102
         super().__init__()
         self.info = info
         if data.ndim != 4:

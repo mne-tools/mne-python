@@ -3,12 +3,14 @@
 # Authors: Clemens Brunner <clemens.brunner@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 
 from functools import partial
 from pathlib import Path
 
 from ..utils import fill_doc
+from .base import BaseRaw
 
 
 def _read_unsupported(fname, **kwargs):
@@ -109,7 +111,7 @@ def split_name_ext(fname):
 
 
 @fill_doc
-def read_raw(fname, *, preload=False, verbose=None, **kwargs):
+def read_raw(fname, *, preload=False, verbose=None, **kwargs) -> BaseRaw:
     """Read raw file.
 
     This function is a convenient wrapper for readers defined in `mne.io`. The

@@ -1,6 +1,7 @@
 # Author: Jean-Remi King <jeanremi.king@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import numpy as np
 
@@ -73,7 +74,7 @@ class TimeFrequency(TransformerMixin, BaseEstimator):
         output="complex",
         n_jobs=1,
         verbose=None,
-    ):  # noqa: D102
+    ):
         """Init TimeFrequency transformer."""
         # Check non-average output
         output = _check_option("output", output, ["complex", "power", "phase"])

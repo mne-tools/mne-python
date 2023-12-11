@@ -1,6 +1,7 @@
 # Author: Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import gc
 import inspect
@@ -981,6 +982,11 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config):
         timings = [timing.rjust(rjust) for timing in timings]
         for name, timing in zip(names, timings):
             writer.line(f"{timing.ljust(15)}{name}")
+
+
+def pytest_report_header(config, startdir):
+    """Add information to the pytest run header."""
+    return f"MNE {mne.__version__} -- {str(Path(mne.__file__).parent)}"
 
 
 @pytest.fixture(scope="function", params=("Numba", "NumPy"))
