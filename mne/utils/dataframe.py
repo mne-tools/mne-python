@@ -45,7 +45,8 @@ def _convert_times(inst, times, time_format):
     elif time_format == "timedelta":
         times = to_timedelta(times, unit="s")
     elif time_format == "datetime":
-        times = to_timedelta(times + inst.first_time, unit="s") + inst.info["meas_date"]
+        first_time = getattr(inst, "first_time", 0)  # Annotations don't have it
+        times = to_timedelta(times + first_time, unit="s") + inst.info["meas_date"]
     return times
 
 
