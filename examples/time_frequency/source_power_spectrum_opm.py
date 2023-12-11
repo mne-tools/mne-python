@@ -82,7 +82,7 @@ for kind in kinds:
     fig = (
         raws[kind]
         .compute_psd(n_fft=n_fft, proj=True)
-        .plot(picks="data", exclude="bads")
+        .plot(picks="data", exclude="bads", amplitude=True)
     )
     fig.suptitle(titles[kind])
 
