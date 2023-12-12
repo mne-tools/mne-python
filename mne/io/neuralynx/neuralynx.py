@@ -4,12 +4,15 @@ import glob
 import os
 
 import numpy as np
-from neo import AnalogSignal
 
 from ..._fiff.meas_info import create_info
 from ..._fiff.utils import _mult_cal_one
 from ...utils import _check_fname, _soft_import, fill_doc, logger, verbose
 from ..base import BaseRaw
+
+_soft_import("neo", "Reading NeuralynxIO files", strict=True)
+from neo import AnalogSignal
+from neo.io import NeuralynxIO
 
 
 class AnalogSignalGap(object):
@@ -98,9 +101,6 @@ class RawNeuralynx(BaseRaw):
         exclude_fname_patterns=None,
         verbose=None,
     ):
-        _soft_import("neo", "Reading NeuralynxIO files", strict=True)
-        from neo.io import NeuralynxIO
-
         fname = _check_fname(fname, "read", True, "fname", need_dir=True)
 
         logger.info(f"Checking files in {fname}")
