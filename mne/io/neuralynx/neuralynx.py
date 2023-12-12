@@ -10,10 +10,6 @@ from ..._fiff.utils import _mult_cal_one
 from ...utils import _check_fname, _soft_import, fill_doc, logger, verbose
 from ..base import BaseRaw
 
-_soft_import("neo", "Reading NeuralynxIO files", strict=True)
-from neo import AnalogSignal
-from neo.io import NeuralynxIO
-
 
 class AnalogSignalGap(object):
     """Dummy object to represent gaps in Neuralynx data.
@@ -44,7 +40,9 @@ class AnalogSignalGap(object):
 
     def load(self, channel_indexes):
         """Return AnalogSignal object."""
-        # self.magnitude = self.magnitude[channel_indexes, :]
+        _soft_import("neo", "Reading NeuralynxIO files", strict=True)
+        from neo import AnalogSignal
+
         sig = AnalogSignal(
             signal=self.signal[:, channel_indexes],
             units=self.units,
@@ -102,6 +100,9 @@ class RawNeuralynx(BaseRaw):
         verbose=None,
     ):
         fname = _check_fname(fname, "read", True, "fname", need_dir=True)
+
+        _soft_import("neo", "Reading NeuralynxIO files", strict=True)
+        from neo.io import NeuralynxIO
 
         logger.info(f"Checking files in {fname}")
 
