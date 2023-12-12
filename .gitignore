@@ -24,7 +24,7 @@ junit-results.xml
 !mne/data/**/*.dat
 !mne/data/**/*.fif
 !mne/data/**/*.fif.gz
-/mne/icons/**/*.png
+!mne/icons/**/*.png
 .DS_Store
 events.eve
 foo-lh.label
