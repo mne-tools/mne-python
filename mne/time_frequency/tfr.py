@@ -1333,7 +1333,7 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin)
         # prepare extra columns / multiindex
         mindex = list()
         times = np.tile(times, n_epochs * n_freqs)
-        times = _convert_times(self, times, time_format)
+        times = _convert_times(times, time_format, self.info["meas_date"])
         mindex.append(("time", times))
         freqs = self.freqs
         freqs = np.tile(np.repeat(freqs, n_times), n_epochs)
