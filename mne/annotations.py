@@ -452,7 +452,7 @@ class Annotations:
         ----------
         %(time_format_df_raw)s
 
-            ..versionadded:: 1.7
+            .. versionadded:: 1.7
 
         Returns
         -------
