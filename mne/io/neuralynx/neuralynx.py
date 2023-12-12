@@ -7,6 +7,7 @@ import numpy as np
 
 from ..._fiff.meas_info import create_info
 from ..._fiff.utils import _mult_cal_one
+from ...annotations import Annotations
 from ...utils import _check_fname, _soft_import, fill_doc, logger, verbose
 from ..base import BaseRaw
 
@@ -221,6 +222,7 @@ class RawNeuralynx(BaseRaw):
             [np.full(shape=(n,), fill_value=i) for i, n in enumerate(sizes_sorted)]
         )
 
+        # construct Annotations()
         if has_gaps:
             gap_seg_ids = np.unique(sample2segment)[gap_indicator]
             gap_start_ids = np.array(
@@ -231,13 +233,13 @@ class RawNeuralynx(BaseRaw):
             mne_times = np.arange(0, len(sample2segment)) / info["sfreq"]
 
             assert len(gap_start_ids) == len(gap_n_samps)
-            annotations = dict(
+            annotations = Annotations(
                 onset=[mne_times[onset_id] for onset_id in gap_start_ids],
                 duration=[
                     mne_times[onset_id + (n - 1)] - mne_times[onset_id]
                     for onset_id, n in zip(gap_start_ids, gap_n_samps)
                 ],
-                descriptions=["BAD_ACQ_SKIP" for _ in gap_start_ids],
+                description=["BAD_ACQ_SKIP" for _ in gap_start_ids],
             )
         else:
             annotations = None
@@ -253,10 +255,11 @@ class RawNeuralynx(BaseRaw):
                     exclude_fnames=exclude_fnames,
                     segment_sizes=sizes_sorted,
                     seg_gap_dict=seg_gap_dict,
-                    gap_annotations=annotations,
                 )
             ],
         )
+
+        self.set_annotations(annotations)
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data."""
