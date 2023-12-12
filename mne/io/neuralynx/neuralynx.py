@@ -17,13 +17,21 @@ class AnalogSignalGap(object):
 
     Creates a AnalogSignalProxy-like object.
     Propagate `signal`, `units`, and `sampling_rate` attributes
-    to the `AnalogSignal` object returned by `load()`.
+    to the `AnalogSignal` init returned by `load()`.
 
     Parameters
     ----------
     signal : array-like
         Array of shape (n_channels, n_samples) containing the data.
+    units : str
+        Units of the data. (e.g., 'uV')
+    sampling_rate : quantity
+        Sampling rate of the data. (e.g., 4000 * pq.Hz)
 
+    Returns
+    -------
+    sig : instance of AnalogSignal
+        A AnalogSignal object representing a gap in Neuralynx data.
     """
 
     def __init__(self, signal, units, sampling_rate):
