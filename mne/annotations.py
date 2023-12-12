@@ -444,6 +444,7 @@ class Annotations:
         self.description = np.delete(self.description, idx)
         self.ch_names = np.delete(self.ch_names, idx)
 
+    @fill_doc
     def to_data_frame(self, time_format="datetime"):
         """Export annotations in tabular structure as a pandas DataFrame.
 
