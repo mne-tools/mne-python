@@ -20,6 +20,11 @@ junit-results.xml
 *.tmproj
 *.png
 *.dat
+# make sure we ship data files
+!mne/data/**/*.dat
+!mne/data/**/*.fif
+!mne/data/**/*.fif.gz
+/mne/icons/**/*.png
 .DS_Store
 events.eve
 foo-lh.label
@@ -27,7 +32,6 @@ foo.lout
 bar.lout
 foobar.lout
 epochs_data.mat
-memmap*.dat
 tmp-*.w
 tmtags
 auto_examples
@@ -67,7 +71,6 @@ coverage.xml
 tags
 doc/coverages
 doc/samples
-doc/*.dat
 doc/fil-result
 doc/optipng.exe
 sg_execution_times.rst
