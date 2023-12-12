@@ -42,31 +42,6 @@ class AnalogSignalGap(object):
         return sig
 
 
-
-class AnalogSignalGap(object):
-    """Dummy object to represent gaps in Neuralynx data.
-
-    Creates a AnalogSignalProxy-like object.
-    Propagate `signal`, `units`, and `sampling_rate` attributes
-    to the `AnalogSignal` object returned by `load()`.
-    """
-
-    def __init__(self, signal, units, sampling_rate):
-        self.signal = signal
-        self.units = units
-        self.sampling_rate = sampling_rate
-
-    def load(self, channel_indexes):
-        """Return AnalogSignal object."""
-        # self.magnitude = self.magnitude[channel_indexes, :]
-        sig = AnalogSignal(
-            signal=self.signal[channel_indexes, :],
-            units=self.units,
-            sampling_rate=self.sampling_rate,
-        )
-        return sig
-
-
 @fill_doc
 def read_raw_neuralynx(
     fname, *, preload=False, exclude_fname_patterns=None, verbose=None
@@ -217,7 +192,9 @@ class RawNeuralynx(BaseRaw):
             }
 
         else:
-            logger.info(f"All Neo segments temporally continuous at {delta} sec precision.")
+            logger.info(
+                f"All Neo segments temporally continuous at {delta} sec precision."
+            )
 
         valid_segment_sizes = [
             nlx_reader.get_signal_size(block_id, i) for i in range(n_segments)
