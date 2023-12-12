@@ -62,6 +62,7 @@ tutorials/misc/report.h5
 tutorials/io/fnirs.csv
 pip-log.txt
 .coverage*
+!.coveragerc
 coverage.xml
 tags
 doc/coverages
@@ -93,6 +94,7 @@ cover
 .venv/
 venv/
 *.json
+!codemeta.json
 .hypothesis/
 .ruff_cache/
 .ipynb_checkpoints/
