@@ -5,6 +5,7 @@
 # Copyright the MNE-Python contributors.
 
 import hashlib
+import warnings
 from copy import deepcopy
 from functools import partial
 from pathlib import Path
@@ -484,30 +485,54 @@ def test_find_ch_adjacency():
     pytest.raises(ValueError, find_ch_adjacency, raw.info, None)
 
     # Test computing the conn matrix with gradiometers.
-    conn, ch_names = _compute_ch_adjacency(raw.info, "grad")
+    idx = pick_types(raw.info, meg="grad", exclude=())
+    conn, ch_names = _compute_ch_adjacency(raw.info, idx)
     assert_equal(conn.getnnz(), 2680)
 
-    # Test ch_type=None.
+    # Test picks=None.
     raw.pick(picks="mag")
     find_ch_adjacency(raw.info, None)
 
+    # Test explicit picks
+    adj, ch_names = find_ch_adjacency(raw.info, picks=raw.ch_names[:10])
+    adj2, ch_names2 = read_ch_adjacency("neuromag306mag", picks=raw.ch_names[:10])
+    assert not (adj - adj2).toarray().any()
+    assert ch_names == ch_names2
+
+    # TODO: This test is strange, raw and bti148 adjacency matrix do not have the same
+    # channel names. Previously, it was loading the bti148 adjacency matrix without the
+    # 'mag' channel selection confirming the existence of the channel names in the raw
+    # object, and asserting:
+    #     assert 'A1' in ch_names  # returned by find_ch_adjacency
+    # while in practice, 'A1' is not in raw.ch_names
     bti_fname = testing_path / "BTi" / "erm_HFH" / "c,rfDC"
     bti_config_name = testing_path / "BTi" / "erm_HFH" / "config"
     raw = read_raw_bti(bti_fname, bti_config_name, None)
-    _, ch_names = find_ch_adjacency(raw.info, "mag")
-    assert "A1" in ch_names
+    with pytest.raises(ValueError, match="could not be interpreted as channel names"):
+        find_ch_adjacency(raw.info, "mag")
 
+    # TODO: same as above, with 'assert "MLC11" in ch_names'.
     ctf_fname = testing_path / "CTF" / "testdata_ctf_short.ds"
     raw = read_raw_ctf(ctf_fname)
-    _, ch_names = find_ch_adjacency(raw.info, "mag")
-    assert "MLC11" in ch_names
+    with pytest.raises(ValueError, match="could not be interpreted as channel names"):
+        _, ch_names = find_ch_adjacency(raw.info, "mag")
 
-    pytest.raises(ValueError, find_ch_adjacency, raw.info, "eog")
+    assert "eog" not in raw.get_channel_types()
+    with pytest.raises(ValueError, match="could not be interpreted as channel names"):
+        find_ch_adjacency(raw.info, "eog")
 
     raw_kit = read_raw_kit(fname_kit_157)
     neighb, ch_names = find_ch_adjacency(raw_kit.info, "mag")
     assert neighb.data.size == 1329
     assert ch_names[0] == "MEG 001"
+
+    # TODO: remove deprecation test in MNE 1.7
+    with pytest.warns(DeprecationWarning, match="'ch_type' parameter is deprecated"):
+        find_ch_adjacency(raw_kit.info, ch_type="mag")
+    with warnings.catch_warnings():
+        warnings.simplefilter(action="ignore", category=DeprecationWarning)
+        with pytest.raises(ValueError, match="Cannot use both 'ch_type' and 'picks'"):
+            find_ch_adjacency(raw_kit.info, picks="mag", ch_type="mag")
 
 
 @testing.requires_testing_data

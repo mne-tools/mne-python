@@ -1294,7 +1294,6 @@ def get_builtin_ch_adjacencies(*, descriptions=False):
         return sorted([m.name for m in _BUILTIN_CHANNEL_ADJACENCIES], key=str.casefold)
 
 
-@fill_doc
 def read_ch_adjacency(fname, picks=None):
     """Read a channel adjacency ("neighbors") file that ships with MNE.
 
@@ -1312,7 +1311,10 @@ def read_ch_adjacency(fname, picks=None):
 
             You can retrieve the names of all built-in channel adjacencies via
             :func:`mne.channels.get_builtin_ch_adjacencies`.
-    %(picks_all_notypes)s
+    picks : list of str | None
+        Channels to include. In lists, channel *name* strings (e.g., ``['MEG0111',
+        'MEG2623']`` will pick the given channels. None (default) will pick all
+        channels. Note that channel types or indices can not be provided.
 
     Returns
     -------
@@ -1372,7 +1374,12 @@ def read_ch_adjacency(fname, picks=None):
 
     nb = loadmat(fname)["neighbours"]
     ch_names = _recursive_flatten(nb["label"], str)
-    temp_info = create_info(ch_names, 1.0)
+    ch_names_ = (
+        [ch_name.replace("MEG", "MEG ") for ch_name in ch_names]
+        if ch_adj_name.startswith("neuromag")
+        else ch_names
+    )
+    temp_info = create_info(ch_names_, 1.0)
     picks = _picks_to_idx(temp_info, picks, none="all")
     neighbors = [_recursive_flatten(c, str) for c in nb["neighblabel"].flatten()]
     assert len(ch_names) == len(neighbors)
@@ -1380,6 +1387,8 @@ def read_ch_adjacency(fname, picks=None):
     # picking before constructing matrix is buggy
     adjacency = adjacency[picks][:, picks]
     ch_names = [ch_names[p] for p in picks]
+    if ch_adj_name.startswith("neuromag"):
+        ch_names = [ch_name.replace("MEG", "MEG ") for ch_name in ch_names]
 
     return adjacency, ch_names
 
@@ -1492,7 +1501,7 @@ def find_ch_adjacency(info, picks=None, *, ch_type=None):
         picks = ch_type
 
     picks = _picks_to_idx(info, picks, none="all")
-    ch_types = set(channel_type(info, p) for p in picks)
+    ch_types = tuple(set(channel_type(info, p) for p in picks))
     if len(ch_types) != 1:
         raise ValueError(f"picks must yield only one channel type. Got {ch_types}.")
     ch_type = ch_types[0]
@@ -1544,9 +1553,9 @@ def find_ch_adjacency(info, picks=None, *, ch_type=None):
 
     if conn_name is not None:
         logger.info(f"Reading adjacency matrix for {conn_name}.")
-        adjacency, ch_names = read_ch_adjacency(conn_name, picks=picks)
-        if conn_name.startswith("neuromag") and info["ch_names"][0].startswith("MEG "):
-            ch_names = [ch_name.replace("MEG", "MEG ") for ch_name in ch_names]
+        adjacency, ch_names = read_ch_adjacency(
+            conn_name, picks=[info["ch_names"][p] for p in picks]
+        )
         return adjacency, ch_names
     logger.info(
         "Could not find a adjacency matrix for the data. "
@@ -1577,7 +1586,7 @@ def _compute_ch_adjacency(info, picks):
     from ..channels.layout import _find_topomap_coords, _pair_grad_sensors
     from ..source_estimate import spatial_tris_adjacency
 
-    ch_types = set(channel_type(info, p) for p in picks)
+    ch_types = tuple(set(channel_type(info, p) for p in picks))
     assert len(ch_types) == 1  # sanity check
     ch_type = ch_types[0]
 
