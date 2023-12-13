@@ -265,6 +265,7 @@ class RawNeuralynx(BaseRaw):
         """Read a chunk of raw data."""
         from neo import Segment
         from neo.io import NeuralynxIO
+        # quantities is a dependency of neo so we are guaranteed it exists
         from quantities import Hz
 
         nlx_reader = NeuralynxIO(
