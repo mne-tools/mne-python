@@ -93,7 +93,7 @@ X = [np.transpose(x, (0, 2, 1)) for x in X]
 # %%
 # Find the FieldTrip neighbor definition to setup sensor adjacency
 # ----------------------------------------------------------------
-adjacency, ch_names = find_ch_adjacency(epochs.info, ch_type="mag")
+adjacency, ch_names = find_ch_adjacency(epochs.info, picks="mag")
 
 print(type(adjacency))  # it's a sparse matrix!
 
