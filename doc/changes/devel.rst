@@ -51,4 +51,4 @@ Bugs
 
 API changes
 ~~~~~~~~~~~
-- None yet
+- Deprecate argument ``ch_type`` in :func`~mne.channels.find_ch_adjacency` in favor of ``picks`` to enable channel selection (:gh:`12293` by `Mathieu Scheltienne`_)
