@@ -175,10 +175,8 @@ class RawNeuralynx(BaseRaw):
         # (n_gaps,) array of ints giving number of samples per inferred gap
         gap_n_samps = np.array(
             [
-                len(np.arange(on_spl, off_spl))
-                for on_spl, off_spl in zip(
-                    gap_starts * info["sfreq"], gap_stops * info["sfreq"]
-                )
+                int(round(stop * info["sfreq"])) - int(round(start * info["sfreq"]))
+                for start, stop in zip(gap_starts, gap_stops)
             ]
         ).astype(int)  # force an int array (if no gaps, empty array is a float)
 
