@@ -1309,8 +1309,8 @@ def read_ch_adjacency(fname, picks=None):
         matrix that ships with MNE-Python.
 
         .. note::
-            You can retrieve the names of all
-            built-in channel adjacencies via
+
+            You can retrieve the names of all built-in channel adjacencies via
             :func:`mne.channels.get_builtin_ch_adjacencies`.
     %(picks_all_notypes)s
 
@@ -1330,13 +1330,13 @@ def read_ch_adjacency(fname, picks=None):
 
     Notes
     -----
-    If the neighbor definition you need is not shipped by MNE-Python,
-    you may use :func:`find_ch_adjacency` to compute the
-    adjacency matrix based on your 2D sensor locations.
+    If the neighbor definition you need is not shipped by MNE-Python, you may use
+    :func:`find_ch_adjacency` to compute the adjacency matrix based on your 2D sensor
+    locations.
 
     Note that depending on your use case, you may need to additionally use
-    :func:`mne.stats.combine_adjacency` to prepare a final "adjacency"
-    to pass to the eventual function.
+    :func:`mne.stats.combine_adjacency` to prepare a final "adjacency" to pass to the
+    eventual function.
     """
     if op.isabs(fname):
         fname = str(
@@ -1392,9 +1392,8 @@ def _ch_neighbor_adjacency(ch_names, neighbors):
     ch_names : list of str
         The channel names.
     neighbors : list of list
-        A list of list of channel names. The neighbors to
-        which the channels in ch_names are connected with.
-        Must be of the same length as ch_names.
+        A list of list of channel names. The neighbors to which the channels in ch_names
+        are connected with. Must be of the same length as ch_names.
 
     Returns
     -------
