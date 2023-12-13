@@ -1387,7 +1387,7 @@ def read_ch_adjacency(fname, picks=None):
     # picking before constructing matrix is buggy
     adjacency = adjacency[picks][:, picks]
     ch_names = [ch_names[p] for p in picks]
-    if ch_adj_name.startswith("neuromag"):
+    if fname.startswith("neuromag"):
         ch_names = [ch_name.replace("MEG", "MEG ") for ch_name in ch_names]
 
     return adjacency, ch_names
