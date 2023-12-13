@@ -2935,7 +2935,7 @@ docdict["picks_all_data_noref"] = _reflow_param_docstring(
     f"{picks_base} all data channels {noref}"
 )
 docdict["picks_all_notypes"] = _reflow_param_docstring(
-    f"{picks_base_notypes} all channels. {reminder}"
+    f"{picks_base_notypes} all channels. Note that channel types can not be provided."
 )
 docdict["picks_base"] = _reflow_param_docstring(picks_base)
 docdict["picks_good_data"] = _reflow_param_docstring(
