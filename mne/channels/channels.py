@@ -1376,7 +1376,7 @@ def read_ch_adjacency(fname, picks=None):
     ch_names = _recursive_flatten(nb["label"], str)
     ch_names_ = (
         [ch_name.replace("MEG", "MEG ") for ch_name in ch_names]
-        if ch_adj_name.startswith("neuromag")
+        if fname.startswith("neuromag")
         else ch_names
     )
     temp_info = create_info(ch_names_, 1.0)
