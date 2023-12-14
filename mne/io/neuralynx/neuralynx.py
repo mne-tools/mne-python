@@ -122,12 +122,18 @@ class RawNeuralynx(BaseRaw):
         try:
             nlx_reader = NeuralynxIO(dirname=fname, exclude_filename=exclude_fnames)
         except ValueError as e:
-            raise ValueError(
-                "It seems some .ncs channels might have different number of samples. "
-                + "This is likely due to different sampling rates. "
-                + "Try excluding them with `exclude_fname_patterns` input arg."
-                + f"\nOriginal neo.NeuralynxIO.parse_header() ValueError:\n{e}"
-            )
+            # give a more informative error message and what the user can do about it
+            if "Incompatible section structures across streams" in e.__str__():
+                raise ValueError(
+                    "It seems .ncs channels have different numbers of samples. "
+                    + "This is likely due to different sampling rates. "
+                    + "Try reading in only channels with uniform sampling rate "
+                    + "by excluding other channels with `exclude_fname_patterns` "
+                    + "input argument."
+                    + f"\nOriginal neo.NeuralynxRawIO._parse_header() ValueError:\n{e}"
+                )
+            else:
+                raise e  # any other Neo error, just raise it
 
         info = create_info(
             ch_types="seeg",
@@ -316,13 +322,11 @@ class RawNeuralynx(BaseRaw):
         # array containing Segments
         segments_arr = np.array(neo_block[0].segments, dtype=object)
 
-        # if gaps were detected correctly insert gap Segments in between valid Segments
-        # if self._raw_extras[0]["seg_gap_dict"]:
+        # if gaps were detected, correctly insert gap Segments in between valid Segments
         gap_samples = self._raw_extras[0]["seg_gap_dict"]["gap_n_samps"]
         gap_segments = [Segment(f"gap-{i}") for i in range(len(gap_samples))]
 
         # create AnalogSignal objects representing gap data filled with 0's
-        # breakpoint()
         sfreq = nlx_reader.get_signal_sampling_rate()
         n_chans = (
             np.arange(idx.start, idx.stop, idx.step).size
