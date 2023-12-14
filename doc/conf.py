@@ -269,6 +269,7 @@ numpydoc_xref_aliases = {
     "EOGRegression": "mne.preprocessing.EOGRegression",
     "Spectrum": "mne.time_frequency.Spectrum",
     "EpochsSpectrum": "mne.time_frequency.EpochsSpectrum",
+    "EpochsFIF": "mne.Epochs",
     "RawBOXY": "mne.io.Raw",
     "RawBrainVision": "mne.io.Raw",
     "RawBTi": "mne.io.Raw",
@@ -778,6 +779,7 @@ nitpick_ignore = [
 ]
 nitpick_ignore_regex = [
     ("py:.*", r"mne\.io\.BaseRaw.*"),
+    ("py:.*", r"mne\.io\..*\.Raw.*"),  # RawEDF etc.
     ("py:.*", r"mne\.BaseEpochs.*"),
     (
         "py:obj",
