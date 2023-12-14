@@ -295,10 +295,10 @@ ignore_messages = "^.*(Unknown target name|Undefined substitution referenced)[^`
 [tool.mypy]
 ignore_errors = true
 scripts_are_modules = true
-strict = true
+strict = false
 
 [[tool.mypy.overrides]]
-module = ['mne.evoked', 'mne.io']
+module = ['mne.annotations', 'mne.epochs', 'mne.evoked', 'mne.io']
 ignore_errors = false
 # Ignore "attr-defined" until we fix stuff like:
 # - BunchConstNamed: '"BunchConstNamed" has no attribute "FIFFB_EVOKED"'
