@@ -269,6 +269,27 @@ numpydoc_xref_aliases = {
     "EOGRegression": "mne.preprocessing.EOGRegression",
     "Spectrum": "mne.time_frequency.Spectrum",
     "EpochsSpectrum": "mne.time_frequency.EpochsSpectrum",
+    "EpochsFIF": "mne.Epochs",
+    "RawBOXY": "mne.io.Raw",
+    "RawBrainVision": "mne.io.Raw",
+    "RawBTi": "mne.io.Raw",
+    "RawCTF": "mne.io.Raw",
+    "RawCurry": "mne.io.Raw",
+    "RawEDF": "mne.io.Raw",
+    "RawEEGLAB": "mne.io.Raw",
+    "RawEGI": "mne.io.Raw",
+    "RawEximia": "mne.io.Raw",
+    "RawEyelink": "mne.io.Raw",
+    "RawFIL": "mne.io.Raw",
+    "RawGDF": "mne.io.Raw",
+    "RawHitachi": "mne.io.Raw",
+    "RawKIT": "mne.io.Raw",
+    "RawNedf": "mne.io.Raw",
+    "RawNeuralynx": "mne.io.Raw",
+    "RawNihon": "mne.io.Raw",
+    "RawNIRX": "mne.io.Raw",
+    "RawPersyst": "mne.io.Raw",
+    "RawSNIRF": "mne.io.Raw",
     # dipy
     "dipy.align.AffineMap": "dipy.align.imaffine.AffineMap",
     "dipy.align.DiffeomorphicMap": "dipy.align.imwarp.DiffeomorphicMap",
@@ -367,34 +388,12 @@ numpydoc_xref_ignore = {
     "n_moments",
     "n_patterns",
     "n_new_events",
-    # Undocumented (on purpose)
-    "RawKIT",
-    "RawEximia",
-    "RawEGI",
-    "RawEEGLAB",
-    "RawEDF",
-    "RawCTF",
-    "RawBTi",
-    "RawBrainVision",
-    "RawCurry",
-    "RawNIRX",
-    "RawNeuralynx",
-    "RawGDF",
-    "RawSNIRF",
-    "RawBOXY",
-    "RawPersyst",
-    "RawNihon",
-    "RawNedf",
-    "RawHitachi",
-    "RawFIL",
-    "RawEyelink",
     # sklearn subclasses
     "mapping",
     "to",
     "any",
     # unlinkable
     "CoregistrationUI",
-    "IntracranialElectrodeLocator",
     "mne_qt_browser.figure.MNEQtBrowser",
     # pooch, since its website is unreliable and users will rarely need the links
     "pooch.Unzip",
@@ -779,8 +778,12 @@ nitpick_ignore = [
     ("py:class", "None.  Remove all items from od."),
 ]
 nitpick_ignore_regex = [
-    ("py:.*", r"mne\.io\.BaseRaw.*"),
-    ("py:.*", r"mne\.BaseEpochs.*"),
+    # Classes whose methods we purposefully do not document
+    ("py:.*", r"mne\.io\.BaseRaw.*"),  # use mne.io.Raw
+    ("py:.*", r"mne\.BaseEpochs.*"),  # use mne.Epochs
+    # Type hints for undocumented types
+    ("py:.*", r"mne\.io\..*\.Raw.*"),  # RawEDF etc.
+    ("py:.*", r"mne\.epochs\.EpochsFIF.*"),
     (
         "py:obj",
         "(filename|metadata|proj|times|tmax|tmin|annotations|ch_names|compensation_grade|filenames|first_samp|first_time|last_samp|n_times|proj|times|tmax|tmin)",

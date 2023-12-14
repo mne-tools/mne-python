@@ -174,7 +174,7 @@ def read_raw_cnt(
     header="auto",
     preload=False,
     verbose=None,
-):
+) -> "RawCNT":
     """Read CNT data as raw object.
 
     .. Note::

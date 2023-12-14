@@ -24,7 +24,7 @@ def _ensure_path(fname):
 
 
 @fill_doc
-def read_raw_nihon(fname, preload=False, verbose=None):
+def read_raw_nihon(fname, preload=False, verbose=None) -> "RawNihon":
     """Reader for an Nihon Kohden EEG file.
 
     Parameters
