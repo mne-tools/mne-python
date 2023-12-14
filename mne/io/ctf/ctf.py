@@ -33,7 +33,7 @@ from .trans import _make_ctf_coord_trans_set
 @fill_doc
 def read_raw_ctf(
     directory, system_clock="truncate", preload=False, clean_names=False, verbose=None
-) -> "RawCTF":
+) -> BaseRaw:
     """Raw object from CTF directory.
 
     Parameters
@@ -55,11 +55,6 @@ def read_raw_ctf(
     -------
     raw : instance of RawCTF
         The raw data.
-        See :class:`mne.io.Raw` for documentation of attributes and methods.
-
-    See Also
-    --------
-    mne.io.Raw : Documentation of attributes and methods of RawCTF.
 
     Notes
     -----
