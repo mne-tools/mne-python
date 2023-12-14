@@ -780,6 +780,7 @@ nitpick_ignore = [
 nitpick_ignore_regex = [
     ("py:.*", r"mne\.io\.BaseRaw.*"),
     ("py:.*", r"mne\.io\..*\.Raw.*"),  # RawEDF etc.
+    ("py:.*", r"mne\.epochs\.EpochsFIF.*"),  # EpochsFIF type hint
     ("py:.*", r"mne\.BaseEpochs.*"),
     (
         "py:obj",
