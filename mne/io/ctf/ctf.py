@@ -33,7 +33,7 @@ from .trans import _make_ctf_coord_trans_set
 @fill_doc
 def read_raw_ctf(
     directory, system_clock="truncate", preload=False, clean_names=False, verbose=None
-):
+) -> "RawCTF":
     """Raw object from CTF directory.
 
     Parameters

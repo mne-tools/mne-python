@@ -293,7 +293,7 @@ def read_raw_eeglab(
     uint16_codec=None,
     montage_units="auto",
     verbose=None,
-):
+) -> "RawEEGLAB":
     r"""Read an EEGLAB .set file.
 
     Parameters

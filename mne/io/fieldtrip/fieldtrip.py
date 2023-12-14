@@ -20,7 +20,7 @@ from .utils import (
 )
 
 
-def read_raw_fieldtrip(fname, info, data_name="data"):
+def read_raw_fieldtrip(fname, info, data_name="data") -> RawArray:
     """Load continuous (raw) data from a FieldTrip preprocessing structure.
 
     This function expects to find single trial raw data (FT_DATATYPE_RAW) in

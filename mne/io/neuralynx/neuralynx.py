@@ -14,7 +14,7 @@ from ..base import BaseRaw
 @fill_doc
 def read_raw_neuralynx(
     fname, *, preload=False, exclude_fname_patterns=None, verbose=None
-):
+) -> "RawNeuralynx":
     """Reader for Neuralynx files.
 
     Parameters

@@ -1150,7 +1150,9 @@ def _write_annotations_txt(fname, annot):
 
 
 @fill_doc
-def read_annotations(fname, sfreq="auto", uint16_codec=None, encoding="utf8"):
+def read_annotations(
+    fname, sfreq="auto", uint16_codec=None, encoding="utf8"
+) -> Annotations:
     r"""Read annotations from a file.
 
     This function reads a ``.fif``, ``.fif.gz``, ``.vmrk``, ``.amrk``,
@@ -1183,7 +1185,7 @@ def read_annotations(fname, sfreq="auto", uint16_codec=None, encoding="utf8"):
 
     Returns
     -------
-    annot : instance of Annotations | None
+    annot : instance of Annotations
         The annotations.
 
     Notes

@@ -23,7 +23,7 @@ from .utils import _load_mne_locs, _read_pos
 @verbose
 def read_raw_artemis123(
     input_fname, preload=False, verbose=None, pos_fname=None, add_head_trans=True
-):
+) -> "RawArtemis123":
     """Read Artemis123 data as raw object.
 
     Parameters
