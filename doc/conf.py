@@ -778,10 +778,12 @@ nitpick_ignore = [
     ("py:class", "None.  Remove all items from od."),
 ]
 nitpick_ignore_regex = [
-    ("py:.*", r"mne\.io\.BaseRaw.*"),
+    # Classes whose methods we purposefully do not document
+    ("py:.*", r"mne\.io\.BaseRaw.*"),  # use mne.io.Raw
+    ("py:.*", r"mne\.BaseEpochs.*"),  # use mne.Epochs
+    # Type hints for undocumented types
     ("py:.*", r"mne\.io\..*\.Raw.*"),  # RawEDF etc.
-    ("py:.*", r"mne\.epochs\.EpochsFIF.*"),  # EpochsFIF type hint
-    ("py:.*", r"mne\.BaseEpochs.*"),
+    ("py:.*", r"mne\.epochs\.EpochsFIF.*"),
     (
         "py:obj",
         "(filename|metadata|proj|times|tmax|tmin|annotations|ch_names|compensation_grade|filenames|first_samp|first_time|last_samp|n_times|proj|times|tmax|tmin)",
