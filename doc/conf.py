@@ -270,6 +270,8 @@ numpydoc_xref_aliases = {
     "Spectrum": "mne.time_frequency.Spectrum",
     "EpochsSpectrum": "mne.time_frequency.EpochsSpectrum",
     "EpochsFIF": "mne.Epochs",
+    "EpochsEEGLAB": "mne.Epochs",
+    "EpochsKIT": "mne.Epochs",
     "RawBOXY": "mne.io.Raw",
     "RawBrainVision": "mne.io.Raw",
     "RawBTi": "mne.io.Raw",
@@ -685,11 +687,7 @@ def append_attr_meth_examples(app, what, name, obj, options, lines):
 
 .. minigallery:: {1}
 
-""".format(
-                name.split(".")[-1], name
-            ).split(
-                "\n"
-            )
+""".format(name.split(".")[-1], name).split("\n")
 
 
 # -- Other extension configuration -------------------------------------------
