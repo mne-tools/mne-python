@@ -781,7 +781,7 @@ nitpick_ignore_regex = [
     ("py:.*", r"mne\.BaseEpochs.*"),  # use mne.Epochs
     # Type hints for undocumented types
     ("py:.*", r"mne\.io\..*\.Raw.*"),  # RawEDF etc.
-    ("py:.*", r"mne\.epochs\.EpochsFIF.*"),
+    ("py:.*", r"mne\.epochs\.Epochs.*"),  # EpochsKIT
     (
         "py:obj",
         "(filename|metadata|proj|times|tmax|tmin|annotations|ch_names|compensation_grade|filenames|first_samp|first_time|last_samp|n_times|proj|times|tmax|tmin)",
