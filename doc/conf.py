@@ -6,32 +6,32 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-from datetime import datetime, timezone
 import faulthandler
 import gc
-from importlib.metadata import metadata
 import os
-from pathlib import Path
 import subprocess
 import sys
 import time
 import warnings
+from datetime import datetime, timezone
+from importlib.metadata import metadata
+from pathlib import Path
 
-import numpy as np
 import matplotlib
+import numpy as np
 import sphinx
-from sphinx.domains.changeset import versionlabels
-from sphinx_gallery.sorting import FileNameSortKey, ExplicitOrder
 from numpydoc import docscrape
+from sphinx.domains.changeset import versionlabels
+from sphinx_gallery.sorting import ExplicitOrder, FileNameSortKey
 
 import mne
 import mne.html_templates._templates
 from mne.tests.test_docstring_parameters import error_ignores
 from mne.utils import (
-    linkcode_resolve,  # noqa, analysis:ignore
     _assert_no_instances,
-    sizeof_fmt,
+    linkcode_resolve,  # noqa, analysis:ignore
     run_subprocess,
+    sizeof_fmt,
 )
 from mne.viz import Brain  # noqa
 
@@ -270,6 +270,8 @@ numpydoc_xref_aliases = {
     "Spectrum": "mne.time_frequency.Spectrum",
     "EpochsSpectrum": "mne.time_frequency.EpochsSpectrum",
     "EpochsFIF": "mne.Epochs",
+    "EpochsEEGLAB": "mne.Epochs",
+    "EpochsKIT": "mne.Epochs",
     "RawBOXY": "mne.io.Raw",
     "RawBrainVision": "mne.io.Raw",
     "RawBTi": "mne.io.Raw",
@@ -685,11 +687,7 @@ def append_attr_meth_examples(app, what, name, obj, options, lines):
 
 .. minigallery:: {1}
 
-""".format(
-                name.split(".")[-1], name
-            ).split(
-                "\n"
-            )
+""".format(name.split(".")[-1], name).split("\n")
 
 
 # -- Other extension configuration -------------------------------------------
@@ -784,6 +782,7 @@ nitpick_ignore_regex = [
     # Type hints for undocumented types
     ("py:.*", r"mne\.io\..*\.Raw.*"),  # RawEDF etc.
     ("py:.*", r"mne\.epochs\.EpochsFIF.*"),
+    ("py:.*", r"mne\.io\..*\.Epochs.*"),  # EpochsKIT etc.
     (
         "py:obj",
         "(filename|metadata|proj|times|tmax|tmin|annotations|ch_names|compensation_grade|filenames|first_samp|first_time|last_samp|n_times|proj|times|tmax|tmin)",

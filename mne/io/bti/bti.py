@@ -1435,7 +1435,7 @@ def read_raw_bti(
     eog_ch=("E63", "E64"),
     preload=False,
     verbose=None,
-) -> "RawBTi":
+) -> RawBTi:
     """Raw object from 4D Neuroimaging MagnesWH3600 data.
 
     .. note::

@@ -83,7 +83,9 @@ def read_raw_fieldtrip(fname, info, data_name="data") -> RawArray:
     return raw
 
 
-def read_epochs_fieldtrip(fname, info, data_name="data", trialinfo_column=0):
+def read_epochs_fieldtrip(
+    fname, info, data_name="data", trialinfo_column=0
+) -> EpochsArray:
     """Load epoched data from a FieldTrip preprocessing structure.
 
     This function expects to find epoched data in the structure data_name is

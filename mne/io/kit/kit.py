@@ -981,7 +981,7 @@ def read_epochs_kit(
     allow_unknown_format=False,
     standardize_names=False,
     verbose=None,
-):
+) -> EpochsKIT:
     """Reader function for Ricoh/KIT epochs files.
 
     Parameters
