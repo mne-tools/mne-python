@@ -174,10 +174,7 @@ intersphinx_mapping = {
     "imageio": ("https://imageio.readthedocs.io/en/latest", None),
     "picard": ("https://pierreablin.github.io/picard/", None),
     "eeglabio": ("https://eeglabio.readthedocs.io/en/latest", None),
-    "dipy": (
-        "https://dipy.org/documentation/1.7.0/",
-        "https://dipy.org/documentation/1.7.0/objects.inv/",
-    ),
+    "dipy": ("https://docs.dipy.org/stable", None),
     "pybv": ("https://pybv.readthedocs.io/en/latest/", None),
     "pyqtgraph": ("https://pyqtgraph.readthedocs.io/en/latest/", None),
 }
@@ -479,6 +476,8 @@ class Resetter(object):
         plt.ioff()
         plt.rcParams["animation.embed_limit"] = 40.0
         plt.rcParams["figure.raise_window"] = False
+        # https://github.com/sphinx-gallery/sphinx-gallery/pull/1243#issue-2043332860
+        plt.rcParams["animation.html"] = "html5"
         # neo holds on to an exception, which in turn holds a stack frame,
         # which will keep alive the global vars during SG execution
         try:
