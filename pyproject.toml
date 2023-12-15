@@ -144,6 +144,7 @@ doc = [
     "pydata_sphinx_theme==0.13.3",
     "sphinx-gallery",
     "sphinxcontrib-bibtex>=2.5",
+    "sphinxcontrib-towncrier",
     "memory_profiler",
     "neo",
     "seaborn!=0.11.2",
@@ -289,6 +290,7 @@ ignore_directives = [
     "toctree",
     "rst-class",
     "tab-set",
+    "towncrier-draft-entries",
 ]
 ignore_messages = "^.*(Unknown target name|Undefined substitution referenced)[^`]*$"
 
@@ -321,3 +323,40 @@ disable_error_code = [
     'assignment',
     'operator',
 ]
+
+[tool.towncrier]
+package = "mne"
+directory = "doc/changes/devel/"
+filename = "doc/changes/devel.rst"
+title_format = "{version} ({project_date})"
+issue_format = "`#{issue} <https://github.com/mne-tools/mne-python/pulls/{issue}>`__"
+
+[[tool.towncrier.type]]
+directory = "notable"
+name = "Notable changes"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "dependency"
+name = "Dependencies"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "bugfix"
+name = "Bugfixes"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "deprecation"
+name = "Deprecations and API changes"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "enhancement"
+name = "Enhancements"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "other"
+name = "Other changes"
+showcontent = true
