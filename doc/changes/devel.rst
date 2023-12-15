@@ -37,7 +37,7 @@ Enhancements
 ~~~~~~~~~~~~
 - Speed up export to .edf in :func:`mne.export.export_raw` by using ``edfio`` instead of ``EDFlib-Python`` (:gh:`12218` by :newcontrib:`Florian Hofer`)
 - Inform the user about channel discrepancy between provided info, forward operator, and/or covariance matrices in :func:`mne.beamformer.make_lcmv` (:gh:`12238` by :newcontrib:`Nikolai Kapralov`)
-- We added type hints for the return values of raw, epochs, and evoked reading functions. Development environments like VS Code or PyCharm will now provide more help when using these functions in your code. (:gh:`12250` by `Richard Höchenberger`_ and `Eric Larson`_)
+- We added type hints for the return values of raw, epochs, and evoked reading functions. Development environments like VS Code or PyCharm will now provide more help when using these functions in your code. (:gh:`12250`, :gh:`12297` by `Richard Höchenberger`_ and `Eric Larson`_)
 - Add ``method="polyphase"`` to :meth:`mne.io.Raw.resample` and related functions to allow resampling using :func:`scipy.signal.upfirdn` (:gh:`12268` by `Eric Larson`_)
 - The package build backend was switched from ``setuptools`` to ``hatchling``. This will only affect users who build and install MNE-Python from source. (:gh:`12269`, :gh:`12281` by `Richard Höchenberger`_)
 - :meth:`mne.Annotations.to_data_frame` can now output different formats for the ``onset`` column: seconds, milliseconds, datetime objects, and timedelta objects. (:gh:`12289` by `Daniel McCloy`_)
