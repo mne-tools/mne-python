@@ -103,6 +103,7 @@ def read_raw_egi(
     exclude=None,
     preload=False,
     channel_naming="E%d",
+    events_as_annotations=False,
     verbose=None,
 ) -> "RawEGI":
     """Read EGI simple binary as raw object.
@@ -170,7 +171,15 @@ def read_raw_egi(
     input_fname = str(input_fname)
     if input_fname.rstrip("/\\").endswith(".mff"):  # allows .mff or .mff/
         return _read_raw_egi_mff(
-            input_fname, eog, misc, include, exclude, preload, channel_naming, verbose
+            input_fname,
+            eog,
+            misc,
+            include,
+            exclude,
+            preload,
+            channel_naming,
+            events_as_annotations,
+            verbose,
         )
     return RawEGI(
         input_fname, eog, misc, include, exclude, preload, channel_naming, verbose

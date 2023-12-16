@@ -142,7 +142,8 @@ def test_egi_mff_pause_chunks(fname, tmp_path):
 
 
 @requires_testing_data
-def test_io_egi_mff():
+@pytest.mark.parametrize("events_as_annotations", (True, False))
+def test_io_egi_mff(events_as_annotations):
     """Test importing EGI MFF simple binary files."""
     pytest.importorskip("defusedxml")
     # want vars for n chans
@@ -150,7 +151,7 @@ def test_io_egi_mff():
     n_eeg = 128
     n_card = 3
 
-    raw = read_raw_egi(egi_mff_fname, include=None)
+    raw = read_raw_egi(egi_mff_fname, events_as_annotations=events_as_annotations)
     assert "RawMff" in repr(raw)
     assert raw.orig_format == "single"
     include = ["DIN1", "DIN2", "DIN3", "DIN4", "DIN5", "DIN7"]
@@ -160,6 +161,7 @@ def test_io_egi_mff():
         include=include,
         channel_naming="EEG %03d",
         test_scaling=False,  # XXX probably some bug
+        events_as_annotations=events_as_annotations,
     )
     assert raw.info["sfreq"] == 1000.0
     assert len(raw.info["dig"]) == n_card + n_eeg + n_ref
@@ -198,6 +200,20 @@ def test_io_egi_mff():
     for ch in include:
         assert ch in raw.event_id
         assert raw.event_id[ch] == int(ch[-1])
+    # test converting stim triggers to annotations
+    if events_as_annotations:
+        # Grab the first annotation. Should be the first "DIN1" event.
+        assert len(raw.annotations)
+        onset, dur, desc, _ = raw.annotations[0].values()
+        assert np.isclose(onset, 2.438)
+        assert np.isclose(dur, 0)
+        assert desc == "DIN1"
+        # grab the DIN1 channel
+        din1 = raw.get_data(picks="DIN1")
+        # Check that the time in sec of first event is the same as the first annotation
+        pin_hi_idx = np.where(din1 == 1)[1]
+        pin_hi_sec = pin_hi_idx / raw.info["sfreq"]
+        assert np.isclose(pin_hi_sec[0], onset)
 
 
 def test_io_egi():
