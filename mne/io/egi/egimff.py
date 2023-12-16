@@ -498,7 +498,7 @@ class RawMff(BaseRaw):
                             more_excludes.append(ii)
                 if len(exclude_inds) + len(more_excludes) == len(event_codes):
                     warn(
-                        "Did not find any event code with more than one " "event.",
+                        "Did not find any event code with more than one event.",
                         RuntimeWarning,
                     )
                 else:
@@ -626,7 +626,7 @@ class RawMff(BaseRaw):
             np.concatenate([idx[key] for key in keys]), np.arange(len(chs))
         ):
             raise ValueError(
-                "Currently interlacing EEG and PNS channels" "is not supported"
+                "Currently interlacing EEG and PNS channels is not supported"
             )
         egi_info["kind_bounds"] = [0]
         for key in keys:
