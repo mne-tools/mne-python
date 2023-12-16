@@ -669,9 +669,6 @@ class RawMff(BaseRaw):
             verbose=verbose,
         )
 
-        if channel_naming:
-            pass
-
         # Annotate acquisition skips
         for first, prev_last in zip(
             egi_info["first_samps"][1:], egi_info["last_samps"][:-1]
