@@ -66,7 +66,7 @@ def _read_nlx_mat_chan(matfile: str) -> np.ndarray:
 
 
 def _read_nlx_mat_chan_keep_gaps(matfile: str) -> np.ndarray:
-    """Read a single channel from a Neuralynx .mat file."""
+    """Read a single channel from a Neuralynx .mat file and keep invalid samples."""
     mat = loadmat(matfile)
 
     hdr_dict = _nlxheader_to_dict(mat)
