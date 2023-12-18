@@ -202,7 +202,7 @@ def _convert_eeg(chunks, n_eeg, n_tot):
 
 
 @verbose
-def read_raw_nedf(filename, preload=False, verbose=None):
+def read_raw_nedf(filename, preload=False, verbose=None) -> RawNedf:
     """Read NeuroElectrics .nedf files.
 
     NEDF file versions starting from 1.3 are supported.

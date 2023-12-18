@@ -13,7 +13,7 @@ from ..base import BaseRaw
 
 
 @fill_doc
-def read_raw_eximia(fname, preload=False, verbose=None):
+def read_raw_eximia(fname, preload=False, verbose=None) -> "RawEximia":
     """Reader for an eXimia EEG file.
 
     Parameters

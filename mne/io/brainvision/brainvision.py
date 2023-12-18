@@ -921,7 +921,7 @@ def read_raw_brainvision(
     scale=1.0,
     preload=False,
     verbose=None,
-):
+) -> RawBrainVision:
     """Reader for Brain Vision EEG file.
 
     Parameters

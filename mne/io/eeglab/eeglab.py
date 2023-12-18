@@ -293,7 +293,7 @@ def read_raw_eeglab(
     uint16_codec=None,
     montage_units="auto",
     verbose=None,
-):
+) -> "RawEEGLAB":
     r"""Read an EEGLAB .set file.
 
     Parameters
@@ -349,7 +349,7 @@ def read_epochs_eeglab(
     uint16_codec=None,
     montage_units="auto",
     verbose=None,
-):
+) -> "EpochsEEGLAB":
     r"""Reader function for EEGLAB epochs files.
 
     Parameters

@@ -20,7 +20,7 @@ from .utils import (
 )
 
 
-def read_raw_fieldtrip(fname, info, data_name="data"):
+def read_raw_fieldtrip(fname, info, data_name="data") -> RawArray:
     """Load continuous (raw) data from a FieldTrip preprocessing structure.
 
     This function expects to find single trial raw data (FT_DATATYPE_RAW) in
@@ -83,7 +83,9 @@ def read_raw_fieldtrip(fname, info, data_name="data"):
     return raw
 
 
-def read_epochs_fieldtrip(fname, info, data_name="data", trialinfo_column=0):
+def read_epochs_fieldtrip(
+    fname, info, data_name="data", trialinfo_column=0
+) -> EpochsArray:
     """Load epoched data from a FieldTrip preprocessing structure.
 
     This function expects to find epoched data in the structure data_name is

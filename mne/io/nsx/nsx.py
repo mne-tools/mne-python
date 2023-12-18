@@ -88,7 +88,7 @@ nsx_header_dict = {
 @fill_doc
 def read_raw_nsx(
     input_fname, stim_channel=True, eog=None, misc=None, preload=False, *, verbose=None
-):
+) -> "RawNSX":
     """Reader function for NSx (Blackrock Microsystems) files.
 
     Parameters

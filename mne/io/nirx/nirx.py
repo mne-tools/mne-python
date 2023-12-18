@@ -34,7 +34,9 @@ from ._localized_abbr import _localized_abbr
 
 
 @fill_doc
-def read_raw_nirx(fname, saturated="annotate", preload=False, verbose=None):
+def read_raw_nirx(
+    fname, saturated="annotate", preload=False, verbose=None
+) -> "RawNIRX":
     """Reader for a NIRX fNIRS recording.
 
     Parameters

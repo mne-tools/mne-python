@@ -3850,7 +3850,7 @@ def _read_one_epoch_file(f, tree, preload):
 
 
 @verbose
-def read_epochs(fname, proj=True, preload=True, verbose=None):
+def read_epochs(fname, proj=True, preload=True, verbose=None) -> "EpochsFIF":
     """Read epochs from a fif file.
 
     Parameters
