@@ -273,7 +273,7 @@ class RawNeuralynx(BaseRaw):
             [len(segment.analogsignals) for segment in neo_block[0].segments]
         ) == len(neo_block[0].segments)
 
-        segment_sizes = self._raw_extras[0]["segment_sizes"]
+        segment_sizes = self._raw_extras[fi]["segment_sizes"]
 
         # construct a (n_segments, 2) array of the first and last
         # sample index for each segment relative to the start of the recording
@@ -323,7 +323,7 @@ class RawNeuralynx(BaseRaw):
         segments_arr = np.array(neo_block[0].segments, dtype=object)
 
         # if gaps were detected, correctly insert gap Segments in between valid Segments
-        gap_samples = self._raw_extras[0]["seg_gap_dict"]["gap_n_samps"]
+        gap_samples = self._raw_extras[fi]["seg_gap_dict"]["gap_n_samps"]
         gap_segments = [Segment(f"gap-{i}") for i in range(len(gap_samples))]
 
         # create AnalogSignal objects representing gap data filled with 0's
