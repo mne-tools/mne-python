@@ -973,7 +973,7 @@ def tfr_morlet(
 
 @verbose
 def tfr_array_morlet(
-    epoch_data,
+    data,
     sfreq,
     freqs,
     n_cycles=7.0,
@@ -983,6 +983,7 @@ def tfr_array_morlet(
     output="complex",
     n_jobs=None,
     verbose=None,
+    epoch_data=None,
 ):
     """Compute Time-Frequency Representation (TFR) using Morlet wavelets.
 
@@ -991,7 +992,7 @@ def tfr_array_morlet(
 
     Parameters
     ----------
-    epoch_data : array of shape (n_epochs, n_channels, n_times)
+    data : array of shape (n_epochs, n_channels, n_times)
         The epochs.
     sfreq : float | int
         Sampling frequency of the data.
@@ -1019,7 +1020,7 @@ def tfr_array_morlet(
     Returns
     -------
     out : array
-        Time frequency transform of epoch_data.
+        Time frequency transform of ``data``.
 
         - if ``output in ('complex', 'phase', 'power')``, array of shape
           ``(n_epochs, n_chans, n_freqs, n_times)``
@@ -1049,8 +1050,15 @@ def tfr_array_morlet(
     ----------
     .. footbibliography::
     """
+    if epoch_data is not None:
+        warn(
+            "The parameter for providing data will be switched from `epoch_data` to "
+            "`data` in 1.8. Use the `data` parameter to avoid this warning.",
+            FutureWarning,
+        )
+
     return _compute_tfr(
-        epoch_data=epoch_data,
+        epoch_data=data,
         freqs=freqs,
         sfreq=sfreq,
         method="morlet",
