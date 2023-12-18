@@ -49,6 +49,7 @@ Bugs
 - Remove incorrect type hints in :func:`mne.io.read_raw_neuralynx` (:gh:`12236` by `Richard Höchenberger`_)
 - Fix bug where parent directory existence was not checked properly in :meth:`mne.io.Raw.save` (:gh:`12282` by `Eric Larson`_)
 - ``defusedxml`` is now an optional (rather than required) dependency and needed when reading EGI-MFF data, NEDF data, and BrainVision montages (:gh:`12264` by `Eric Larson`_)
+- Correctly handle temporal gaps in Neuralynx `.ncs` files via :func:`mne.io.read_raw_neuralynx` (:gh:`12279` by `Kristijan Armeni`_ and `Eric Larson`_)
 
 API changes
 ~~~~~~~~~~~
