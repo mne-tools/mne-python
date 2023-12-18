@@ -172,12 +172,6 @@ Forum = "https://mne.discourse.group/"
 "Source Code" = "https://github.com/mne-tools/mne-python/"
 
 [tool.hatch.build]
-artifacts = [
-    "/mne/data/**/*.dat",
-    "/mne/data/**/*.fif",
-    "/mne/data/**/*.fif.gz",
-    "/mne/icons/**/*.png",
-] # excluded via .gitignore, but we do want to ship those files
 exclude = [
     "/.*",
     "/*.yml",
@@ -301,10 +295,10 @@ ignore_messages = "^.*(Unknown target name|Undefined substitution referenced)[^`
 [tool.mypy]
 ignore_errors = true
 scripts_are_modules = true
-strict = true
+strict = false
 
 [[tool.mypy.overrides]]
-module = ['mne.evoked', 'mne.io']
+module = ['mne.annotations', 'mne.epochs', 'mne.evoked', 'mne.io']
 ignore_errors = false
 # Ignore "attr-defined" until we fix stuff like:
 # - BunchConstNamed: '"BunchConstNamed" has no attribute "FIFFB_EVOKED"'

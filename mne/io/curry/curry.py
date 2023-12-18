@@ -542,7 +542,7 @@ def _read_annotations_curry(fname, sfreq="auto"):
 
 
 @verbose
-def read_raw_curry(fname, preload=False, verbose=None):
+def read_raw_curry(fname, preload=False, verbose=None) -> "RawCurry":
     """Read raw data from Curry files.
 
     Parameters

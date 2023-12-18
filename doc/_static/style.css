@@ -380,3 +380,9 @@ img.hidden {
 td.justify {
     text-align-last: justify;
 }
+
+/* Matplotlib HTML5 video embedding */
+div.sphx-glr-animation video {
+    max-width: 100%;
+    height: auto;
+}
