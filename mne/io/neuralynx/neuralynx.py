@@ -131,7 +131,7 @@ class RawNeuralynx(BaseRaw):
                     + "by excluding other channels with `exclude_fname_patterns` "
                     + "input argument."
                     + f"\nOriginal neo.NeuralynxRawIO._parse_header() ValueError:\n{e}"
-                )
+                ) from None
             else:
                 raise
 
