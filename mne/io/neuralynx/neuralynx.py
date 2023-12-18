@@ -201,7 +201,7 @@ class RawNeuralynx(BaseRaw):
         # store this in a dict to be passed to _raw_extras
         seg_gap_dict = {
             "gap_n_samps": gap_n_samps,
-            "isgap": gap_indicator,  # 0 (data segment) or 1 (gap segment)
+            "isgap": gap_indicator,  # False (data segment) or True (gap segment)
         }
 
         valid_segment_sizes = [
@@ -233,7 +233,7 @@ class RawNeuralynx(BaseRaw):
                 mne_times[onset_id + (n - 1)] - mne_times[onset_id]
                 for onset_id, n in zip(gap_start_ids, gap_n_samps)
             ],
-            description=["BAD_ACQ_SKIP" for _ in gap_start_ids],
+            description=["BAD_ACQ_SKIP"] * len(gap_start_ids),
         )
 
         super(RawNeuralynx, self).__init__(
