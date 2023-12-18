@@ -510,6 +510,10 @@ def tfr_array_multitaper(
           coherence across trials.
     %(n_jobs)s
     %(verbose)s
+    epoch_data : None
+        Deprecated parameter for providing epoched data as of 1.7, will be replaced with
+        the ``data`` parameter in 1.8. New code should use the ``data`` parameter. If
+        ``epoch_data`` is not ``None``, a warning will be raised.
 
     Returns
     -------

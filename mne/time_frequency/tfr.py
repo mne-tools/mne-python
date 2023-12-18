@@ -1016,6 +1016,10 @@ def tfr_array_morlet(
         The number of epochs to process at the same time. The parallelization
         is implemented across channels. Default 1.
     %(verbose)s
+    epoch_data : None
+        Deprecated parameter for providing epoched data as of 1.7, will be replaced with
+        the ``data`` parameter in 1.8. New code should use the ``data`` parameter. If
+        ``epoch_data`` is not ``None``, a warning will be raised.
 
     Returns
     -------
