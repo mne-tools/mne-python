@@ -130,7 +130,7 @@ class RawNeuralynx(BaseRaw):
                     + "Try reading in only channels with uniform sampling rate "
                     + "by excluding other channels with `exclude_fname_patterns` "
                     + "input argument."
-                    + f"\nOriginal neo.NeuralynxRawIO._parse_header() ValueError:\n{e}"
+                    + f"\nOriginal neo.NeuralynxRawIO ValueError:\n{e}"
                 ) from None
             else:
                 raise
