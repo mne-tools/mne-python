@@ -133,7 +133,7 @@ class RawNeuralynx(BaseRaw):
                     + f"\nOriginal neo.NeuralynxRawIO._parse_header() ValueError:\n{e}"
                 )
             else:
-                raise e  # any other Neo error, just raise it
+                raise
 
         info = create_info(
             ch_types="seeg",
