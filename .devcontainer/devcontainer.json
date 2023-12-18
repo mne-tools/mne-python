@@ -1,0 +1,150 @@
+{
+  "name": "mne-dev",
+  // "image": "mcr.microsoft.com/devcontainers/base:debian-11",
+  "build": { "dockerfile": "Dockerfile" },
+  "containerEnv": {
+    "PYTHONNOUSERSITE": "true", // Make Python ignore the user's site-packages folder if it exists
+    "XDG_RUNTIME_DIR": "/home/vscode/.cache/xdgr"
+  },
+  "features": {
+    // See https://containers.dev/features
+    // APT packages
+    "ghcr.io/rocker-org/devcontainer-features/apt-packages:1": {
+      "packages": "mesa-utils,libegl1,^libxcb.*-dev,libx11-xcb-dev,libglu1-mesa-dev,libxrender-dev,libxi-dev,libxkbcommon-dev,libxkbcommon-x11-dev"
+    },
+    // Git
+    "ghcr.io/devcontainers/features/git:1": {
+      "version": "os-provided",
+      "ppa": "true"
+    },
+    // Conda and Mamba
+    "ghcr.io/mamba-org/devcontainer-features/micromamba:1": {
+      "channels": "conda-forge",
+      "packages": "conda mamba ipython jupyterlab mne"
+    },
+    // Docker interface with host's Docker service
+    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {},
+    // Zsh plugins
+    "ghcr.io/devcontainers-contrib/features/zsh-plugins:0": {
+      "plugins": "zsh-autosuggestions zsh-syntax-highlighting history-substring-search",
+      "omzPlugins": "https://github.com/zsh-users/zsh-autosuggestions https://github.com/zsh-users/zsh-syntax-highlighting"
+    },
+    // Desktop and VNC access
+    "ghcr.io/devcontainers/features/desktop-lite:1": {}
+  },
+  // Configure tool-specific properties.
+  "customizations": {
+    // Configure properties specific to VS Code.
+    "vscode": {
+      "settings": {
+        "editor.formatOnSave": true,
+        "editor.formatOnSaveMode": "file",
+        "editor.formatOnType": true,
+        "editor.renderWhitespace": "trailing",
+        "[python]": {
+          "editor.formatOnSave": true,
+          "editor.codeActionsOnSave": {
+            "source.fixAll": true,
+            "source.organizeImports": true
+          },
+          "editor.defaultFormatter": "charliermarsh.ruff"
+        },
+        "notebook.formatOnSave.enabled": true,
+        "notebook.codeActionsOnSave": {
+          "source.fixAll": true,
+          "source.organizeImports": true
+        },
+        "[javascript]": {
+          "editor.defaultFormatter": "esbenp.prettier-vscode"
+        },
+        "editor.rulers": [88],
+        "python.analysis.typeCheckingMode": "basic",
+        "python.testing.pytestEnabled": true,
+        "python.defaultInterpreterPath": "/opt/conda/bin/python",
+        "debugpy.debugJustMyCode": false,
+        "terminal.integrated.defaultProfile.linux": "zsh", // Make zsh the default shell.
+        // Screencast settings
+        "screencastMode.keyboardOverlayTimeout": 5000,
+        "screencastMode.mouseIndicatorSize": 50,
+        // Disable telemetry and experiments
+        "telemetry.telemetryLevel": "off",
+        "gitlens.telemetry.enabled": false,
+        "redhat.telemetry.enabled": false,
+        "workbench.enableExperiments": false, // Should not be necessary if telemetry is off, but let's make it explicit.
+        // Avoid accumulation of unused forwarded ports.
+        "remote.restoreForwardedPorts": false
+      },
+      // Add the IDs of extensions you want installed when the container is created.
+      "extensions": [
+        // Python Development
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "ms-toolsai.jupyter",
+        "charliermarsh.ruff",
+        // MNE-Python snippets
+        "hoechenberger.mne-python-extension",
+        // "ms-python.debugpy@prerelease", // TODO remove prerelease tag once stable release is published
+        // JavaScript & TypeScript Development
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        // Git
+        "GitHub.vscode-pull-request-github",
+        "eamodio.gitlens",
+        // Docker
+        "ms-azuretools.vscode-docker",
+        // TOML
+        "tamasfe.even-better-toml",
+        // YAML
+        "redhat.vscode-yaml",
+        // Spell checking
+        "streetsidesoftware.code-spell-checker",
+        // Resource monitor
+        "mutantdino.resourcemonitor",
+        // Path / filename autocomplete
+        "ionutvmi.path-autocomplete"
+      ]
+    }
+  },
+  // Use 'forwardPorts' to make a list of ports inside the container available locally.
+  "forwardPorts": [5901, 6080],
+  "portsAttributes": {
+    "5901": {
+      "label": "vnc"
+    },
+    "6080": {
+      "label": "vnc web"
+    }
+  },
+  // Use 'postCreateCommand' to run commands after the container is created.
+  "postCreateCommand": {
+    // Initialize shells to use conda and mamba
+    "init-mamba-shell": "mamba init --quiet zsh",
+    // Force pip to always install "globally": This will work in a virtual environment, but fail with the system Python, which is
+    // precicely what we want: prevent users from accidentally cluttering their user site-packages folder
+    "disable-pip-user-installs": "pip config set install.system true",
+    // Install MNE in editabe mode, and set up pre-commit hooks
+    "install-mne-editable": "pip install -e '.[full,dev,test_extra]' && pre-commit install",
+    // Create XDG_RUNTIME_DIR
+    "create-xdg-runtime-dir": "mkdir -p -m 0700 $XDG_RUNTIME_DIR"
+  },
+  // Set `remoteUser` to `root` to connect as root instead. More info: https://aka.ms/vscode-remote/containers/non-root.
+  "remoteUser": "vscode",
+  "postStartCommand": {
+    // Do all git-config-related things here, otherwise we may run into problems; see:
+    // https://github.com/microsoft/vscode-remote-release/issues/6810
+    //
+    // Set git default branch name
+    "set-git-default-branch-name": "git config --global init.defaultBranch main",
+    // Work around "dubious ownership in repository" error
+    "fix-git-ownership-issue": "git config --global --add safe.directory ${containerWorkspaceFolder}",
+    // Use VS Code as default git editor, diff, and merge tool
+    "set-vscode-as-git-editor": "git config --global core.editor 'code --wait --reuse-window'",
+    "add-vscode-as-git-difftool": "git config --global --replace-all difftool.default-difftool.cmd 'code --wait --diff $LOCAL $REMOTE'",
+    "set-vscode-as-git-difftool": "git config --global --replace-all diff.tool default-difftool",
+    "add-vscode-as-git-mergetool": "git config --global --replace-all mergetool.code.cmd 'code --wait --merge $REMOTE $LOCAL $BASE $MERGED'",
+    "set-vscode-as-git-mergetool": "git config --global --replace-all merge.tool code",
+    // Show indicator for "dirty" git repositories in the shell prompt.
+    // This can be slow on large repositories and should be disabled in that case.
+    "enable-dirty-git-repo-indicator": "git config --global --replace-all devcontainers-theme.show-dirty 1"
+  }
+}
