@@ -17,7 +17,7 @@
 html[data-theme="light"] {
     /* topbar logo links */
     --mne-color-github: #000;
-    --mne-color-discourse: #000;
+    --mne-color-discourse: #d0232b;
     --mne-color-mastodon: #2F0C7A;
     /* code block copy button */
     --copybtn-opacity: 0.75;
@@ -222,16 +222,16 @@ aside.footnote:last-child {
 }
 
 /* ******************************************************* navbar icon links */
-#navbar-icon-links i.fa-square-github::before {
+.navbar-icon-links i.fa-square-github::before {
     color: var(--mne-color-github);
 }
-#navbar-icon-links i.fa-discourse::before {
+.navbar-icon-links i.fa-discourse::before {
     color: var(--mne-color-discourse);
 }
-#navbar-icon-links i.fa-discord::before {
+.navbar-icon-links i.fa-discord::before {
     color: var(--mne-color-discord);
 }
-#navbar-icon-links i.fa-mastodon::before {
+.navbar-icon-links i.fa-mastodon::before {
     color: var(--mne-color-mastodon);
 }
 
