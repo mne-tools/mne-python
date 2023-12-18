@@ -1,4 +1,6 @@
-# Authors: MNE Developers
+# Authors: Joshua Teves & Peter Molfese
+# Affiliation: National Institutes of Health (NIH)
+# Added: December 2023 ~ Version 1.7
 #
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
