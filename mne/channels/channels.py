@@ -40,10 +40,8 @@ from .._fiff.meas_info import (  # noqa F401
 from .._fiff.pick import (
     _check_excludes_includes,
     _pick_data_channels,
-    _picks_by_type,
     _picks_to_idx,
     _second_rules,
-    channel_indices_by_type,
     channel_type,
     pick_channels,
     pick_info,
@@ -1296,7 +1294,6 @@ def get_builtin_ch_adjacencies(*, descriptions=False):
         return sorted([m.name for m in _BUILTIN_CHANNEL_ADJACENCIES], key=str.casefold)
 
 
-@fill_doc
 def read_ch_adjacency(fname, picks=None):
     """Read a channel adjacency ("neighbors") file that ships with MNE.
 
@@ -1311,10 +1308,13 @@ def read_ch_adjacency(fname, picks=None):
         matrix that ships with MNE-Python.
 
         .. note::
-            You can retrieve the names of all
-            built-in channel adjacencies via
+
+            You can retrieve the names of all built-in channel adjacencies via
             :func:`mne.channels.get_builtin_ch_adjacencies`.
-    %(picks_all_notypes)s
+    picks : list of str | None
+        Channels to include. In lists, channel *name* strings (e.g., ``['MEG0111',
+        'MEG2623']`` will pick the given channels. None (default) will pick all
+        channels. Note that channel types or indices can not be provided.
 
     Returns
     -------
@@ -1332,13 +1332,13 @@ def read_ch_adjacency(fname, picks=None):
 
     Notes
     -----
-    If the neighbor definition you need is not shipped by MNE-Python,
-    you may use :func:`find_ch_adjacency` to compute the
-    adjacency matrix based on your 2D sensor locations.
+    If the neighbor definition you need is not shipped by MNE-Python, you may use
+    :func:`find_ch_adjacency` to compute the adjacency matrix based on your 2D sensor
+    locations.
 
     Note that depending on your use case, you may need to additionally use
-    :func:`mne.stats.combine_adjacency` to prepare a final "adjacency"
-    to pass to the eventual function.
+    :func:`mne.stats.combine_adjacency` to prepare a final "adjacency" to pass to the
+    eventual function.
     """
     if op.isabs(fname):
         fname = str(
@@ -1374,7 +1374,12 @@ def read_ch_adjacency(fname, picks=None):
 
     nb = loadmat(fname)["neighbours"]
     ch_names = _recursive_flatten(nb["label"], str)
-    temp_info = create_info(ch_names, 1.0)
+    ch_names_ = (
+        [ch_name.replace("MEG", "MEG ") for ch_name in ch_names]
+        if fname.startswith("neuromag")
+        else ch_names
+    )
+    temp_info = create_info(ch_names_, 1.0)
     picks = _picks_to_idx(temp_info, picks, none="all")
     neighbors = [_recursive_flatten(c, str) for c in nb["neighblabel"].flatten()]
     assert len(ch_names) == len(neighbors)
@@ -1382,6 +1387,8 @@ def read_ch_adjacency(fname, picks=None):
     # picking before constructing matrix is buggy
     adjacency = adjacency[picks][:, picks]
     ch_names = [ch_names[p] for p in picks]
+    if fname.startswith("neuromag"):
+        ch_names = [ch_name.replace("MEG", "MEG ") for ch_name in ch_names]
 
     return adjacency, ch_names
 
@@ -1394,9 +1401,8 @@ def _ch_neighbor_adjacency(ch_names, neighbors):
     ch_names : list of str
         The channel names.
     neighbors : list of list
-        A list of list of channel names. The neighbors to
-        which the channels in ch_names are connected with.
-        Must be of the same length as ch_names.
+        A list of list of channel names. The neighbors to which the channels in ch_names
+        are connected with. Must be of the same length as ch_names.
 
     Returns
     -------
@@ -1424,20 +1430,25 @@ def _ch_neighbor_adjacency(ch_names, neighbors):
 
 
 @fill_doc
-def find_ch_adjacency(info, ch_type):
+def find_ch_adjacency(info, picks=None, *, ch_type=None):
     """Find the adjacency matrix for the given channels.
 
     This function tries to infer the appropriate adjacency matrix template
     for the given channels. If a template is not found, the adjacency matrix
     is computed using Delaunay triangulation based on 2D sensor locations.
 
+    .. note::
+
+        This function only supports channels ``'mag'``, ``'grad'``, ``'eeg'``. It can
+        only operate on a single channel type at a time. Please ensure a single channel
+        type is selected through the ``picks`` parameter.
+
     Parameters
     ----------
     %(info_not_none)s
+    %(picks_all_data)s Note that the channel selection must yield a single channel type.
     ch_type : str | None
-        The channel type for computing the adjacency matrix. Currently
-        supports ``'mag'``, ``'grad'``, ``'eeg'`` and ``None``.
-        If ``None``, the info must contain only one channel type.
+        Deprecated, use ``picks`` instead.
 
     Returns
     -------
@@ -1464,6 +1475,7 @@ def find_ch_adjacency(info, ch_type):
     :func:`read_ch_adjacency` directly.
 
     .. warning::
+
         If Delaunay triangulation is used to calculate the adjacency matrix it
         may yield partially unexpected results (e.g., include unwanted edges
         between non-adjacent sensors). Therefore, it is recommended to check
@@ -1476,15 +1488,25 @@ def find_ch_adjacency(info, ch_type):
     """
     from ..io.kit.constants import KIT_NEIGHBORS
 
-    if ch_type is None:
-        picks = channel_indices_by_type(info)
-        if sum([len(p) != 0 for p in picks.values()]) != 1:
-            raise ValueError(
-                "info must contain only one channel type if " "ch_type is None."
-            )
-        ch_type = channel_type(info, 0)
-    else:
+    # TODO: Remove in 1.7 the deprecation of 'ch_type' in favor of 'picks'.
+    if ch_type is not None:
+        warn(
+            "The 'ch_type' parameter is deprecated and will be removed in "
+            "MNE-Python 1.7. Use 'picks' instead.",
+            DeprecationWarning,
+        )
+        if picks is not None:
+            raise ValueError("Cannot use both 'ch_type' and 'picks'.")
         _check_option("ch_type", ch_type, ["mag", "grad", "eeg"])
+        picks = ch_type
+
+    picks = _picks_to_idx(info, picks, none="all")
+    ch_types = tuple(set(channel_type(info, p) for p in picks))
+    if len(ch_types) != 1:
+        raise ValueError(f"picks must yield only one channel type. Got {ch_types}.")
+    ch_type = ch_types[0]
+    _check_option("picks", ch_type, ["mag", "grad", "eeg"])
+
     (
         has_vv_mag,
         has_vv_grad,
@@ -1500,7 +1522,6 @@ def find_ch_adjacency(info, ch_type):
         has_neuromag_122_grad,
         has_csd_coils,
     ) = _get_ch_info(info)
-    conn_name = None
     if has_vv_mag and ch_type == "mag":
         conn_name = "neuromag306mag"
     elif has_vv_grad and ch_type == "grad":
@@ -1527,40 +1548,47 @@ def find_ch_adjacency(info, ch_type):
             conn_name = "ctf151"
     elif n_kit_grads > 0:
         conn_name = KIT_NEIGHBORS.get(info["kit_system_id"])
+    else:
+        conn_name = None
 
     if conn_name is not None:
         logger.info(f"Reading adjacency matrix for {conn_name}.")
-        adjacency, ch_names = read_ch_adjacency(conn_name)
-        if conn_name.startswith("neuromag") and info["ch_names"][0].startswith("MEG "):
-            ch_names = [ch_name.replace("MEG", "MEG ") for ch_name in ch_names]
+        adjacency, ch_names = read_ch_adjacency(
+            conn_name, picks=[info["ch_names"][p] for p in picks]
+        )
         return adjacency, ch_names
     logger.info(
         "Could not find a adjacency matrix for the data. "
         "Computing adjacency based on Delaunay triangulations."
     )
-    return _compute_ch_adjacency(info, ch_type)
+    return _compute_ch_adjacency(info, picks)
 
 
 @fill_doc
-def _compute_ch_adjacency(info, ch_type):
+def _compute_ch_adjacency(info, picks):
     """Compute channel adjacency matrix using Delaunay triangulations.
 
     Parameters
     ----------
     %(info_not_none)s
-    ch_type : str
-        The channel type for computing the adjacency matrix. Currently
-        supports ``'mag'``, ``'grad'`` and ``'eeg'``.
+    picks : array of int of shape (n_channels,)
+        The channel indices used to compute the adjacency matrix. Currently
+        supports ``'mag'``, ``'grad'`` and ``'eeg'``. Should only yield a single channel
+        type.
 
     Returns
     -------
     ch_adjacency : scipy.sparse.csr_matrix, shape (n_channels, n_channels)
         The adjacency matrix.
-    ch_names : list
-        The list of channel names present in adjacency matrix.
+    ch_names : list of str
+        The list of channel names present in the adjacency matrix.
     """
     from ..channels.layout import _find_topomap_coords, _pair_grad_sensors
     from ..source_estimate import spatial_tris_adjacency
+
+    ch_types = tuple(set(channel_type(info, p) for p in picks))
+    assert len(ch_types) == 1  # sanity check
+    ch_type = ch_types[0]
 
     combine_grads = ch_type == "grad" and any(
         [
@@ -1569,15 +1597,13 @@ def _compute_ch_adjacency(info, ch_type):
         ]
     )
 
-    picks = dict(_picks_by_type(info, exclude=[]))[ch_type]
     ch_names = [info["ch_names"][pick] for pick in picks]
     if combine_grads:
         pairs = _pair_grad_sensors(info, topomap_coords=False, exclude=[])
         if len(pairs) != len(picks):
             raise RuntimeError(
-                "Cannot find a pair for some of the "
-                "gradiometers. Cannot compute adjacency "
-                "matrix."
+                "Cannot find a pair for some of the gradiometers. Cannot compute "
+                "adjacency matrix."
             )
         # only for one of the pair
         xy = _find_topomap_coords(info, picks[::2], sphere=HEAD_SIZE_DEFAULT)
