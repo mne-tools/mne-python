@@ -169,7 +169,7 @@ class RawNeuralynx(BaseRaw):
 
         logger.info(
             f"N = {gaps.sum()} discontinuous Neo segments detected "
-            + f"with delta > {delta} sec."
+            + f"with delta > {delta} sec. "
             + "Annotating gaps as BAD_ACQ_SKIP."
             if gaps.any()
             else "No discontinuities detected."
