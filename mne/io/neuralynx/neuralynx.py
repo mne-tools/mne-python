@@ -123,7 +123,7 @@ class RawNeuralynx(BaseRaw):
             nlx_reader = NeuralynxIO(dirname=fname, exclude_filename=exclude_fnames)
         except ValueError as e:
             # give a more informative error message and what the user can do about it
-            if "Incompatible section structures across streams" in e.__str__():
+            if "Incompatible section structures across streams" in str(e):
                 raise ValueError(
                     "It seems .ncs channels have different numbers of samples. "
                     + "This is likely due to different sampling rates. "
