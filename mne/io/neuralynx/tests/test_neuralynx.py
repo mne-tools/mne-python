@@ -15,6 +15,7 @@ from mne.io.tests.test_raw import _test_raw_reader
 
 testing_path = data_path(download=False) / "neuralynx"
 
+
 def _nlxheader_to_dict(matdict: Dict) -> Dict:
     """Convert the read-in "Header" field into a dict.
 
