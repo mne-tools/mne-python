@@ -55,7 +55,7 @@ raw = concatenate_raws([read_raw_edf(f, preload=True) for f in fnames])
 
 raw.rename_channels(lambda x: x.strip("."))  # remove dots from channel names
 # rename descriptions to be more easily interpretable
-raw.annotations.rename_descriptions(dict(T1='hands', T2='feet'))
+raw.annotations.rename_descriptions(dict(T1="hands", T2="feet"))
 
 # %%
 # Now we can create 5-second epochs around events of interest.
@@ -64,7 +64,7 @@ event_ids = dict(hands=2, feet=3)  # map event IDs to tasks
 
 epochs = mne.Epochs(
     raw,
-    event_id=['hands', 'feet'],
+    event_id=["hands", "feet"],
     tmin=tmin - 0.5,
     tmax=tmax + 0.5,
     picks=("C3", "Cz", "C4"),

@@ -41,7 +41,7 @@ subject = 1
 runs = [6, 10, 14]
 raw_fnames = eegbci.load_data(subject, runs)
 raw = concatenate_raws([read_raw_edf(f) for f in raw_fnames])
-raw.annotations.rename(dict(T1='hands', T2='feet'))
+raw.annotations.rename(dict(T1="hands", T2="feet"))
 
 # Extract information from the raw file
 sfreq = raw.info["sfreq"]
@@ -94,7 +94,7 @@ for freq, (fmin, fmax) in enumerate(freq_ranges):
     # Extract epochs from filtered data, padded by window size
     epochs = Epochs(
         raw_filter,
-        event_id=['hands', 'feet'],
+        event_id=["hands", "feet"],
         tmin=tmin - w_size,
         tmax=tmax + w_size,
         proj=False,
@@ -146,7 +146,7 @@ for freq, (fmin, fmax) in enumerate(freq_ranges):
     # Extract epochs from filtered data, padded by window size
     epochs = Epochs(
         raw_filter,
-        event_id=['hands', 'feet'],
+        event_id=["hands", "feet"],
         tmin=tmin - w_size,
         tmax=tmax + w_size,
         proj=False,

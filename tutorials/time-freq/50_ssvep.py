@@ -84,7 +84,7 @@ raw.set_eeg_reference("average", projection=False, verbose=False)
 raw.filter(l_freq=0.1, h_freq=None, fir_design="firwin", verbose=False)
 
 # Construct epochs
-raw.annotations.rename({'Stimulus/S255': "12hz", "Stimulus/S155": "15hz"})
+raw.annotations.rename({"Stimulus/S255": "12hz", "Stimulus/S155": "15hz"})
 tmin, tmax = -1.0, 20.0  # in s
 baseline = None
 epochs = mne.Epochs(
