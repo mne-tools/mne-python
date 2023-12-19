@@ -17,7 +17,7 @@ from ..nirx.nirx import _read_csv_rows_cols
 
 
 @fill_doc
-def read_raw_hitachi(fname, preload=False, verbose=None):
+def read_raw_hitachi(fname, preload=False, verbose=None) -> "RawHitachi":
     """Reader for a Hitachi fNIRS recording.
 
     Parameters

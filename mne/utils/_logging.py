@@ -159,7 +159,7 @@ class use_log_level:
     This message will be printed!
     """
 
-    def __init__(self, verbose=None, *, add_frames=None):  # noqa: D102
+    def __init__(self, verbose=None, *, add_frames=None):
         self._level = verbose
         self._add_frames = add_frames
         self._old_frames = _filter.add_frames

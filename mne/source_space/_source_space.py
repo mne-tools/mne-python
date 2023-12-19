@@ -35,13 +35,10 @@ from .._fiff.write import (
     write_int_matrix,
     write_string,
 )
-
-# Remove get_mni_fiducials in 1.6 (deprecated)
 from .._freesurfer import (
     _check_mri,
     _get_atlas_values,
     _get_mri_info_data,
-    get_mni_fiducials,  # noqa: F401
     get_volume_labels_from_aseg,
     read_freesurfer_lut,
 )
@@ -289,7 +286,7 @@ class SourceSpaces(list):
     access, like ``src.kind``.
     """  # noqa: E501
 
-    def __init__(self, source_spaces, info=None):  # noqa: D102
+    def __init__(self, source_spaces, info=None):
         # First check the types is actually a valid config
         _validate_type(source_spaces, list, "source_spaces")
         super(SourceSpaces, self).__init__(source_spaces)  # list

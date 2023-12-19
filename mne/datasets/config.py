@@ -88,7 +88,7 @@ I agree to the following:
 # respective repos, and make a new release of the dataset on GitHub. Then
 # update the checksum in the MNE_DATASETS dict below, and change version
 # here:                  ↓↓↓↓↓         ↓↓↓
-RELEASES = dict(testing="0.150", misc="0.26")
+RELEASES = dict(testing="0.150", misc="0.27")
 TESTING_VERSIONED = f'mne-testing-data-{RELEASES["testing"]}'
 MISC_VERSIONED = f'mne-misc-data-{RELEASES["misc"]}'
 
@@ -126,7 +126,7 @@ MNE_DATASETS["testing"] = dict(
 )
 MNE_DATASETS["misc"] = dict(
     archive_name=f"{MISC_VERSIONED}.tar.gz",  # 'mne-misc-data',
-    hash="md5:868b484fadd73b1d1a3535b7194a0d03",
+    hash="md5:e343d3a00cb49f8a2f719d14f4758afe",
     url=(
         "https://codeload.github.com/mne-tools/mne-misc-data/tar.gz/"
         f'{RELEASES["misc"]}'

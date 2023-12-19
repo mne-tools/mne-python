@@ -78,8 +78,8 @@ Sometimes, new features or bugfixes become available that are important to your
 research and you just can't wait for the next official release of MNE-Python to
 start taking advantage of them. In such cases, you can use ``pip`` to install
 the *development version* of MNE-Python. Ensure to activate the MNE conda
-environment first by running ``conda activate name_of_environment``.
+environment first by running ``conda activate mne``.
 
 .. code-block:: console
 
-    $ pip install -U --no-deps git+https://github.com/mne-tools/mne-python@main
+    $ pip install -U --no-deps https://github.com/mne-tools/mne-python/archive/refs/heads/main.zip

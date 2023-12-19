@@ -6,32 +6,32 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-from datetime import datetime, timezone
 import faulthandler
 import gc
-from importlib.metadata import metadata
 import os
-from pathlib import Path
 import subprocess
 import sys
 import time
 import warnings
+from datetime import datetime, timezone
+from importlib.metadata import metadata
+from pathlib import Path
 
-import numpy as np
 import matplotlib
+import numpy as np
 import sphinx
-from sphinx.domains.changeset import versionlabels
-from sphinx_gallery.sorting import FileNameSortKey, ExplicitOrder
 from numpydoc import docscrape
+from sphinx.domains.changeset import versionlabels
+from sphinx_gallery.sorting import ExplicitOrder, FileNameSortKey
 
 import mne
 import mne.html_templates._templates
 from mne.tests.test_docstring_parameters import error_ignores
 from mne.utils import (
-    linkcode_resolve,  # noqa, analysis:ignore
     _assert_no_instances,
-    sizeof_fmt,
+    linkcode_resolve,  # noqa, analysis:ignore
     run_subprocess,
+    sizeof_fmt,
 )
 from mne.viz import Brain  # noqa
 
@@ -172,18 +172,11 @@ intersphinx_mapping = {
     "patsy": ("https://patsy.readthedocs.io/en/latest", None),
     "pyvista": ("https://docs.pyvista.org", None),
     "imageio": ("https://imageio.readthedocs.io/en/latest", None),
-    "mne_realtime": ("https://mne.tools/mne-realtime", None),
     "picard": ("https://pierreablin.github.io/picard/", None),
-    "qdarkstyle": ("https://qdarkstylesheet.readthedocs.io/en/latest", None),
     "eeglabio": ("https://eeglabio.readthedocs.io/en/latest", None),
-    "dipy": (
-        "https://dipy.org/documentation/1.7.0/",
-        "https://dipy.org/documentation/1.7.0/objects.inv/",
-    ),
-    "pooch": ("https://www.fatiando.org/pooch/latest/", None),
+    "dipy": ("https://docs.dipy.org/stable", None),
     "pybv": ("https://pybv.readthedocs.io/en/latest/", None),
     "pyqtgraph": ("https://pyqtgraph.readthedocs.io/en/latest/", None),
-    "openmeeg": ("https://openmeeg.github.io", None),
 }
 
 
@@ -273,6 +266,29 @@ numpydoc_xref_aliases = {
     "EOGRegression": "mne.preprocessing.EOGRegression",
     "Spectrum": "mne.time_frequency.Spectrum",
     "EpochsSpectrum": "mne.time_frequency.EpochsSpectrum",
+    "EpochsFIF": "mne.Epochs",
+    "EpochsEEGLAB": "mne.Epochs",
+    "EpochsKIT": "mne.Epochs",
+    "RawBOXY": "mne.io.Raw",
+    "RawBrainVision": "mne.io.Raw",
+    "RawBTi": "mne.io.Raw",
+    "RawCTF": "mne.io.Raw",
+    "RawCurry": "mne.io.Raw",
+    "RawEDF": "mne.io.Raw",
+    "RawEEGLAB": "mne.io.Raw",
+    "RawEGI": "mne.io.Raw",
+    "RawEximia": "mne.io.Raw",
+    "RawEyelink": "mne.io.Raw",
+    "RawFIL": "mne.io.Raw",
+    "RawGDF": "mne.io.Raw",
+    "RawHitachi": "mne.io.Raw",
+    "RawKIT": "mne.io.Raw",
+    "RawNedf": "mne.io.Raw",
+    "RawNeuralynx": "mne.io.Raw",
+    "RawNihon": "mne.io.Raw",
+    "RawNIRX": "mne.io.Raw",
+    "RawPersyst": "mne.io.Raw",
+    "RawSNIRF": "mne.io.Raw",
     # dipy
     "dipy.align.AffineMap": "dipy.align.imaffine.AffineMap",
     "dipy.align.DiffeomorphicMap": "dipy.align.imwarp.DiffeomorphicMap",
@@ -371,34 +387,17 @@ numpydoc_xref_ignore = {
     "n_moments",
     "n_patterns",
     "n_new_events",
-    # Undocumented (on purpose)
-    "RawKIT",
-    "RawEximia",
-    "RawEGI",
-    "RawEEGLAB",
-    "RawEDF",
-    "RawCTF",
-    "RawBTi",
-    "RawBrainVision",
-    "RawCurry",
-    "RawNIRX",
-    "RawGDF",
-    "RawSNIRF",
-    "RawBOXY",
-    "RawPersyst",
-    "RawNihon",
-    "RawNedf",
-    "RawHitachi",
-    "RawFIL",
-    "RawEyelink",
     # sklearn subclasses
     "mapping",
     "to",
     "any",
     # unlinkable
     "CoregistrationUI",
-    "IntracranialElectrodeLocator",
     "mne_qt_browser.figure.MNEQtBrowser",
+    # pooch, since its website is unreliable and users will rarely need the links
+    "pooch.Unzip",
+    "pooch.Untar",
+    "pooch.HTTPDownloader",
 }
 numpydoc_validate = True
 numpydoc_validation_checks = {"all"} | set(error_ignores)
@@ -479,6 +478,8 @@ class Resetter(object):
         plt.ioff()
         plt.rcParams["animation.embed_limit"] = 40.0
         plt.rcParams["figure.raise_window"] = False
+        # https://github.com/sphinx-gallery/sphinx-gallery/pull/1243#issue-2043332860
+        plt.rcParams["animation.html"] = "html5"
         # neo holds on to an exception, which in turn holds a stack frame,
         # which will keep alive the global vars during SG execution
         try:
@@ -685,11 +686,7 @@ def append_attr_meth_examples(app, what, name, obj, options, lines):
 
 .. minigallery:: {1}
 
-""".format(
-                name.split(".")[-1], name
-            ).split(
-                "\n"
-            )
+""".format(name.split(".")[-1], name).split("\n")
 
 
 # -- Other extension configuration -------------------------------------------
@@ -778,8 +775,13 @@ nitpick_ignore = [
     ("py:class", "None.  Remove all items from od."),
 ]
 nitpick_ignore_regex = [
-    ("py:.*", r"mne\.io\.BaseRaw.*"),
-    ("py:.*", r"mne\.BaseEpochs.*"),
+    # Classes whose methods we purposefully do not document
+    ("py:.*", r"mne\.io\.BaseRaw.*"),  # use mne.io.Raw
+    ("py:.*", r"mne\.BaseEpochs.*"),  # use mne.Epochs
+    # Type hints for undocumented types
+    ("py:.*", r"mne\.io\..*\.Raw.*"),  # RawEDF etc.
+    ("py:.*", r"mne\.epochs\.EpochsFIF.*"),
+    ("py:.*", r"mne\.io\..*\.Epochs.*"),  # EpochsKIT etc.
     (
         "py:obj",
         "(filename|metadata|proj|times|tmax|tmin|annotations|ch_names|compensation_grade|filenames|first_samp|first_time|last_samp|n_times|proj|times|tmax|tmin)",

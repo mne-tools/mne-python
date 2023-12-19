@@ -20,10 +20,9 @@ jobs:
     timeout-minutes: 3
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - uses: psf/black@stable
       - uses: pre-commit/action@v3.0.0
 
   bandit:
@@ -63,16 +62,16 @@ jobs:
             python: '3.11'
             kind: pip-pre
           - os: macos-latest
-            python: '3.8'
+            python: '3.9'
             kind: mamba
           - os: windows-latest
             python: '3.10'
             kind: mamba
           - os: ubuntu-latest
-            python: '3.8'
+            python: '3.9'
             kind: minimal
           - os: ubuntu-20.04
-            python: '3.8'
+            python: '3.9'
             kind: old
     steps:
       - uses: actions/checkout@v4
@@ -85,12 +84,12 @@ jobs:
           qt: true
           pyvista: false
       # Python (if pip)
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python }}
         if: startswith(matrix.kind, 'pip')
       # Python (if conda)
-      - uses: conda-incubator/setup-miniconda@v2
+      - uses: conda-incubator/setup-miniconda@v3
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           environment-file: ${{ env.CONDA_ENV }}
@@ -103,7 +102,6 @@ jobs:
       # Minimal commands on Linux (macOS stalls)
       - run: ./tools/get_minimal_commands.sh
         if: ${{ startswith(matrix.os, 'ubuntu') }}
-      - run: ./tools/github_actions_install.sh
       - run: ./tools/github_actions_infos.sh
       # Check Qt
       - run: ./tools/check_qt_import.sh $MNE_QT_BACKEND

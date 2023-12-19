@@ -18,7 +18,7 @@ from ..base import BaseRaw
 
 
 @fill_doc
-def read_raw_persyst(fname, preload=False, verbose=None):
+def read_raw_persyst(fname, preload=False, verbose=None) -> "RawPersyst":
     """Reader for a Persyst (.lay/.dat) recording.
 
     Parameters

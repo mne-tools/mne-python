@@ -1567,7 +1567,7 @@ def read_raw_edf(
     encoding="utf8",
     *,
     verbose=None,
-):
+) -> RawEDF:
     """Reader function for EDF and EDF+ files.
 
     Parameters
@@ -1701,7 +1701,7 @@ def read_raw_bdf(
     encoding="utf8",
     *,
     verbose=None,
-):
+) -> RawEDF:
     """Reader function for BDF files.
 
     Parameters
@@ -1828,7 +1828,7 @@ def read_raw_gdf(
     include=None,
     preload=False,
     verbose=None,
-):
+) -> RawGDF:
     """Reader function for GDF files.
 
     Parameters

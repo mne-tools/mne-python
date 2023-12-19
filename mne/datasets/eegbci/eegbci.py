@@ -7,18 +7,12 @@
 import os
 import re
 import time
+from importlib.resources import files
 from os import path as op
 from pathlib import Path
 
 from ...utils import _url_to_local_path, logger, verbose
 from ..utils import _do_path_update, _downloader_params, _get_path, _log_time_size
-
-# TODO: remove try/except when our min version is py 3.9
-try:
-    from importlib.resources import files
-except ImportError:
-    from importlib_resources import files
-
 
 EEGMI_URL = "https://physionet.org/files/eegmmidb/1.0.0/"
 
