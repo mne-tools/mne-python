@@ -61,3 +61,4 @@ dependencies:
   - mamba
   - lazy_loader
   - defusedxml
+  - neo

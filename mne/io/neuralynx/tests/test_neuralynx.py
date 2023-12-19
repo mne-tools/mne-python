@@ -15,6 +15,8 @@ from mne.io.tests.test_raw import _test_raw_reader
 
 testing_path = data_path(download=False) / "neuralynx"
 
+pytest.importorskip("neo")
+
 
 def _nlxheader_to_dict(matdict: Dict) -> Dict:
     """Convert the read-in "Header" field into a dict.
@@ -108,8 +110,6 @@ expected_chan_names = ["LAHC1", "LAHC2", "LAHC3", "xAIR1", "xEKG1"]
 @requires_testing_data
 def test_neuralynx():
     """Test basic reading."""
-    pytest.importorskip("neo")
-
     from neo.io import NeuralynxIO
 
     excluded_ncs_files = [
