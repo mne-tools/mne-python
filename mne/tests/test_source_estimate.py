@@ -247,6 +247,34 @@ def test_volume_stc(tmp_path):
             assert_array_equal(stc.vertices[0], stc_new.vertices[0])
             assert_array_almost_equal(stc.data, stc_new.data)
 
+@testing.requires_testing_data
+def test_save_stc_as_gifti(tmp_path):
+    """Save the stc as a gifti file and export."""
+    nib = pytest.importorskip("nibabel")
+    surfpath_src = bem_path / "sample-oct-6-src.fif"
+    surfpath_stc = data_path / "MEG" / "sample" / "sample_audvis_trunc-meg"
+    src = read_source_spaces(surfpath_src) #need source space
+    stc = read_source_estimate(surfpath_stc) #need stc
+    assert isinstance(src, SourceSpaces)
+    assert isinstance(stc, SourceEstimate)
+
+    surf_fname = tmp_path / "stc_write"
+
+    stc.save_as_surface(surf_fname, src)
+
+    #did structural get written?
+    img_lh = nib.load(f'{surf_fname}-lh.gii')
+    img_rh = nib.load(f'{surf_fname}-rh.gii')
+    assert isinstance(img_lh, nib.gifti.gifti.GiftiImage)
+    assert isinstance(img_rh, nib.gifti.gifti.GiftiImage)
+
+    #did time series get written? 
+    img_timelh = nib.load(f'{surf_fname}-lh.time.gii')
+    img_timerh = nib.load(f'{surf_fname}-rh.time.gii')
+    assert isinstance(img_timelh, nib.gifti.gifti.GiftiImage)
+    assert isinstance(img_timerh, nib.gifti.gifti.GiftiImage)
+
+    
 
 @testing.requires_testing_data
 def test_stc_as_volume():
