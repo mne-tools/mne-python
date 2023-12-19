@@ -42,6 +42,7 @@ from mne.utils import (
     _record_warnings,
     assert_and_remove_boundary_annot,
     assert_object_equal,
+    catch_logging,
     requires_mne,
     run_subprocess,
 )
@@ -52,7 +53,7 @@ fif_fname = data_dir / "sample_audvis_trunc_raw.fif"
 ms_fname = testing_path / "SSS" / "test_move_anon_raw.fif"
 skip_fname = testing_path / "misc" / "intervalrecording_raw.fif"
 
-base_dir = Path(__file__).parent.parent.parent / "tests" / "data"
+base_dir = Path(__file__).parents[2] / "tests" / "data"
 test_fif_fname = base_dir / "test_raw.fif"
 test_fif_gz_fname = base_dir / "test_raw.fif.gz"
 ctf_fname = base_dir / "test_ctf_raw.fif"
@@ -770,6 +771,10 @@ def test_io_raw(tmp_path):
     sl = slice(inds[0], inds[1])
     assert_allclose(data[:, sl], raw[:, sl][0], rtol=1e-6, atol=1e-20)
 
+    # missing dir raises informative error
+    with pytest.raises(FileNotFoundError, match="parent directory does not exist"):
+        raw.save(tmp_path / "foo" / "test_raw.fif", split_size="1MB")
+
 
 @pytest.mark.parametrize(
     "fname_in, fname_out",
@@ -1290,23 +1295,28 @@ def test_resample_equiv():
 @pytest.mark.slowtest
 @testing.requires_testing_data
 @pytest.mark.parametrize(
-    "preload, n, npad",
+    "preload, n, npad, method",
     [
-        (True, 512, "auto"),
-        (False, 512, 0),
+        (True, 512, "auto", "fft"),
+        (True, 512, "auto", "polyphase"),
+        (False, 512, 0, "fft"),  # only test one with non-preload because it's slow
     ],
 )
-def test_resample(tmp_path, preload, n, npad):
+def test_resample(tmp_path, preload, n, npad, method):
     """Test resample (with I/O and multiple files)."""
+    kwargs = dict(npad=npad, method=method)
     raw = read_raw_fif(fif_fname)
     raw.crop(0, raw.times[n - 1])
+    # Reduce to a few MEG channels and a few stim channels to speed up
+    n_meg = 5
+    raw.pick(raw.ch_names[:n_meg] + raw.ch_names[312:320])  # 10 MEG + 3 STIM + 5 EEG
     assert len(raw.times) == n
     if preload:
         raw.load_data()
     raw_resamp = raw.copy()
     sfreq = raw.info["sfreq"]
     # test parallel on upsample
-    raw_resamp.resample(sfreq * 2, n_jobs=2, npad=npad)
+    raw_resamp.resample(sfreq * 2, n_jobs=2, **kwargs)
     assert raw_resamp.n_times == len(raw_resamp.times)
     raw_resamp.save(tmp_path / "raw_resamp-raw.fif")
     raw_resamp = read_raw_fif(tmp_path / "raw_resamp-raw.fif", preload=True)
@@ -1315,7 +1325,13 @@ def test_resample(tmp_path, preload, n, npad):
     assert raw_resamp.get_data().shape[1] == raw_resamp.n_times
     assert raw.get_data().shape[0] == raw_resamp._data.shape[0]
     # test non-parallel on downsample
-    raw_resamp.resample(sfreq, n_jobs=None, npad=npad)
+    with catch_logging() as log:
+        raw_resamp.resample(sfreq, n_jobs=None, verbose=True, **kwargs)
+    log = log.getvalue()
+    if method == "fft":
+        assert "neighborhood" not in log
+    else:
+        assert "neighborhood" in log
     assert raw_resamp.info["sfreq"] == sfreq
     assert raw.get_data().shape == raw_resamp._data.shape
     assert raw.first_samp == raw_resamp.first_samp
@@ -1324,18 +1340,12 @@ def test_resample(tmp_path, preload, n, npad):
     # works (hooray). Note that the stim channels had to be sub-sampled
     # without filtering to be accurately preserved
     # note we have to treat MEG and EEG+STIM channels differently (tols)
-    assert_allclose(
-        raw.get_data()[:306, 200:-200],
-        raw_resamp._data[:306, 200:-200],
-        rtol=1e-2,
-        atol=1e-12,
-    )
-    assert_allclose(
-        raw.get_data()[306:, 200:-200],
-        raw_resamp._data[306:, 200:-200],
-        rtol=1e-2,
-        atol=1e-7,
-    )
+    want_meg = raw.get_data()[:n_meg, 200:-200]
+    got_meg = raw_resamp._data[:n_meg, 200:-200]
+    want_non_meg = raw.get_data()[n_meg:, 200:-200]
+    got_non_meg = raw_resamp._data[n_meg:, 200:-200]
+    assert_allclose(got_meg, want_meg, rtol=1e-2, atol=1e-12)
+    assert_allclose(want_non_meg, got_non_meg, rtol=1e-2, atol=1e-7)
 
     # now check multiple file support w/resampling, as order of operations
     # (concat, resample) should not affect our data
@@ -1344,9 +1354,9 @@ def test_resample(tmp_path, preload, n, npad):
     raw3 = raw.copy()
     raw4 = raw.copy()
     raw1 = concatenate_raws([raw1, raw2])
-    raw1.resample(10.0, npad=npad)
-    raw3.resample(10.0, npad=npad)
-    raw4.resample(10.0, npad=npad)
+    raw1.resample(10.0, **kwargs)
+    raw3.resample(10.0, **kwargs)
+    raw4.resample(10.0, **kwargs)
     raw3 = concatenate_raws([raw3, raw4])
     assert_array_equal(raw1._data, raw3._data)
     assert_array_equal(raw1._first_samps, raw3._first_samps)
@@ -1364,12 +1374,12 @@ def test_resample(tmp_path, preload, n, npad):
     # basic decimation
     stim = [1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0]
     raw = RawArray([stim], create_info(1, len(stim), ["stim"]))
-    assert_allclose(raw.resample(8.0, npad=npad)._data, [[1, 1, 0, 0, 1, 1, 0, 0]])
+    assert_allclose(raw.resample(8.0, **kwargs)._data, [[1, 1, 0, 0, 1, 1, 0, 0]])
 
     # decimation of multiple stim channels
     raw = RawArray(2 * [stim], create_info(2, len(stim), 2 * ["stim"]))
     assert_allclose(
-        raw.resample(8.0, npad=npad, verbose="error")._data,
+        raw.resample(8.0, **kwargs, verbose="error")._data,
         [[1, 1, 0, 0, 1, 1, 0, 0], [1, 1, 0, 0, 1, 1, 0, 0]],
     )
 
@@ -1377,19 +1387,19 @@ def test_resample(tmp_path, preload, n, npad):
     # done naively
     stim = [0, 0, 0, 1, 1, 0, 0, 0]
     raw = RawArray([stim], create_info(1, len(stim), ["stim"]))
-    assert_allclose(raw.resample(4.0, npad=npad)._data, [[0, 1, 1, 0]])
+    assert_allclose(raw.resample(4.0, **kwargs)._data, [[0, 1, 1, 0]])
 
     # two events are merged in this case (warning)
     stim = [0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0]
     raw = RawArray([stim], create_info(1, len(stim), ["stim"]))
     with pytest.warns(RuntimeWarning, match="become unreliable"):
-        raw.resample(8.0, npad=npad)
+        raw.resample(8.0, **kwargs)
 
     # events are dropped in this case (warning)
     stim = [0, 1, 1, 0, 0, 1, 1, 0]
     raw = RawArray([stim], create_info(1, len(stim), ["stim"]))
     with pytest.warns(RuntimeWarning, match="become unreliable"):
-        raw.resample(4.0, npad=npad)
+        raw.resample(4.0, **kwargs)
 
     # test resampling events: this should no longer give a warning
     # we often have first_samp != 0, include it here too
@@ -1400,7 +1410,7 @@ def test_resample(tmp_path, preload, n, npad):
     first_samp = len(stim) // 2
     raw = RawArray([stim], create_info(1, o_sfreq, ["stim"]), first_samp=first_samp)
     events = find_events(raw)
-    raw, events = raw.resample(n_sfreq, events=events, npad=npad)
+    raw, events = raw.resample(n_sfreq, events=events, **kwargs)
     # Try index into raw.times with resampled events:
     raw.times[events[:, 0] - raw.first_samp]
     n_fsamp = int(first_samp * sfreq_ratio)  # how it's calc'd in base.py
@@ -1425,16 +1435,16 @@ def test_resample(tmp_path, preload, n, npad):
     # test copy flag
     stim = [1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0]
     raw = RawArray([stim], create_info(1, len(stim), ["stim"]))
-    raw_resampled = raw.copy().resample(4.0, npad=npad)
+    raw_resampled = raw.copy().resample(4.0, **kwargs)
     assert raw_resampled is not raw
-    raw_resampled = raw.resample(4.0, npad=npad)
+    raw_resampled = raw.resample(4.0, **kwargs)
     assert raw_resampled is raw
 
     # resample should still work even when no stim channel is present
     raw = RawArray(np.random.randn(1, 100), create_info(1, 100, ["eeg"]))
     with raw.info._unlock():
         raw.info["lowpass"] = 50.0
-    raw.resample(10, npad=npad)
+    raw.resample(10, **kwargs)
     assert raw.info["lowpass"] == 5.0
     assert len(raw) == 10
 

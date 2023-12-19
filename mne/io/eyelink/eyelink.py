@@ -28,7 +28,7 @@ def read_raw_eyelink(
     find_overlaps=False,
     overlap_threshold=0.05,
     verbose=None,
-):
+) -> "RawEyelink":
     """Reader for an Eyelink ``.asc`` file.
 
     Parameters

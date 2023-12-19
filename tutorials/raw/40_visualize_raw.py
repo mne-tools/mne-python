@@ -5,13 +5,13 @@
 Built-in plotting methods for Raw objects
 =========================================
 
-This tutorial shows how to plot continuous data as a time series, how to plot
-the spectral density of continuous data, and how to plot the sensor locations
-and projectors stored in `~mne.io.Raw` objects.
+This tutorial shows how to plot continuous data as a time series, how to plot the
+spectral density of continuous data, and how to plot the sensor locations and projectors
+stored in `~mne.io.Raw` objects.
 
 As usual we'll start by importing the modules we need, loading some
-:ref:`example data <sample-dataset>`, and cropping the `~mne.io.Raw`
-object to just 60 seconds before loading it into RAM to save memory:
+:ref:`example data <sample-dataset>`, and cropping the `~mne.io.Raw` object to just 60
+seconds before loading it into RAM to save memory:
 """
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
@@ -120,7 +120,7 @@ raw.plot()
 # object has a :meth:`~mne.time_frequency.Spectrum.plot` method:
 
 spectrum = raw.compute_psd()
-spectrum.plot(average=True, picks="data", exclude="bads")
+spectrum.plot(average=True, picks="data", exclude="bads", amplitude=False)
 
 # %%
 # If the data have been filtered, vertical dashed lines will automatically
@@ -134,7 +134,7 @@ spectrum.plot(average=True, picks="data", exclude="bads")
 # documentation of `~mne.time_frequency.Spectrum.plot` for full details):
 
 midline = ["EEG 002", "EEG 012", "EEG 030", "EEG 048", "EEG 058", "EEG 060"]
-spectrum.plot(picks=midline, exclude="bads")
+spectrum.plot(picks=midline, exclude="bads", amplitude=False)
 
 # %%
 # It is also possible to plot spectral power estimates across sensors as a

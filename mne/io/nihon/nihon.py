@@ -24,7 +24,7 @@ def _ensure_path(fname):
 
 
 @fill_doc
-def read_raw_nihon(fname, preload=False, verbose=None):
+def read_raw_nihon(fname, preload=False, verbose=None) -> "RawNihon":
     """Reader for an Nihon Kohden EEG file.
 
     Parameters
@@ -178,8 +178,7 @@ def _read_nihon_header(fname):
         control_block = np.fromfile(fid, "|S16", 1).astype("U16")[0]
         if control_block not in _valid_headers:
             raise ValueError(
-                "Not a valid Nihon Kohden EEG file "
-                "(control block {})".format(version)
+                f"Not a valid Nihon Kohden EEG file (control block {version})"
             )
 
         fid.seek(0x17FE)

@@ -30,7 +30,7 @@ from mne.viz.utils import (
     concatenate_images,
 )
 
-base_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
+base_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
 raw_fname = base_dir / "test_raw.fif"
 cov_fname = base_dir / "test-cov.fif"
 ev_fname = base_dir / "test_raw-eve.fif"

@@ -144,7 +144,7 @@ epochs.plot_sensors(kind="topomap", ch_type="all")
 # :class:`~mne.time_frequency.EpochsSpectrum`'s
 # :meth:`~mne.time_frequency.EpochsSpectrum.plot` method.
 
-epochs["auditory"].compute_psd().plot(picks="eeg", exclude="bads")
+epochs["auditory"].compute_psd().plot(picks="eeg", exclude="bads", amplitude=False)
 
 # %%
 # It is also possible to plot spectral power estimates across sensors as a
@@ -245,7 +245,9 @@ epochs["auditory"].plot_image(picks=["MEG 0242", "MEG 0243"], combine="gfp")
 # therefore mask smaller signal fluctuations of interest.
 
 reject_criteria = dict(
-    mag=3000e-15, grad=3000e-13, eeg=150e-6  # 3000 fT  # 3000 fT/cm
+    mag=3000e-15,  # 3000 fT
+    grad=3000e-13,  # 3000 fT/cm
+    eeg=150e-6,
 )  # 150 µV
 epochs.drop_bad(reject=reject_criteria)
 

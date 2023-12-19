@@ -2475,8 +2475,7 @@ def _draw_axes_pce(
             ybounds = _trim_ticks(ax.get_yticks(), ymin, ymax)[[0, -1]]
         else:
             raise ValueError(
-                '"truncate_yaxis" must be bool or '
-                '"auto", got {}'.format(truncate_yaxis)
+                f'"truncate_yaxis" must be bool or "auto", got {truncate_yaxis}'
             )
     _setup_ax_spines(
         ax,
@@ -2900,6 +2899,8 @@ def plot_compare_evokeds(
         "misc",  # from ICA
         "emg",
         "ref_meg",
+        "eyegaze",
+        "pupil",
     )
     ch_types = [
         t for t in info.get_channel_types(picks=picks, unique=True) if t in all_types
@@ -3002,7 +3003,13 @@ def plot_compare_evokeds(
         colorbar_ticks,
     ) = _handle_styles_pce(styles, linestyles, colors, cmap, conditions)
     # From now on there is only 1 channel type
-    assert len(ch_types) == 1
+    if not len(ch_types):
+        got_idx = _picks_to_idx(info, picks=orig_picks)
+        got = np.unique(np.array(info.get_channel_types())[got_idx]).tolist()
+        raise RuntimeError(
+            f"No valid channel type(s) provided. Got {got}. Valid channel types are:"
+            f"\n{all_types}."
+        )
     ch_type = ch_types[0]
     # some things that depend on ch_type:
     units = _handle_default("units")[ch_type]

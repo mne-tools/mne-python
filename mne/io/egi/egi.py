@@ -104,7 +104,7 @@ def read_raw_egi(
     preload=False,
     channel_naming="E%d",
     verbose=None,
-):
+) -> "RawEGI":
     """Read EGI simple binary as raw object.
 
     .. note:: This function attempts to create a synthetic trigger channel.
@@ -193,7 +193,7 @@ class RawEGI(BaseRaw):
         preload=False,
         channel_naming="E%d",
         verbose=None,
-    ):  # noqa: D102
+    ):
         input_fname = str(_check_fname(input_fname, "read", True, "input_fname"))
         if eog is None:
             eog = []

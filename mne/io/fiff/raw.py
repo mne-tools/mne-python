@@ -97,7 +97,7 @@ class Raw(BaseRaw):
         preload=False,
         on_split_missing="raise",
         verbose=None,
-    ):  # noqa: D102
+    ):
         raws = []
         do_check_ext = not _file_like(fname)
         next_fname = fname
@@ -502,7 +502,7 @@ def _check_entry(first, nent):
 @fill_doc
 def read_raw_fif(
     fname, allow_maxshield=False, preload=False, on_split_missing="raise", verbose=None
-):
+) -> Raw:
     """Reader function for Raw FIF data.
 
     Parameters

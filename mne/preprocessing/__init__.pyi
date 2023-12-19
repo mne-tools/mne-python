@@ -7,7 +7,6 @@ __all__ = [
     "annotate_movement",
     "annotate_muscle_zscore",
     "annotate_nan",
-    "apply_maxfilter",
     "compute_average_dev_head_t",
     "compute_bridged_electrodes",
     "compute_current_source_density",
@@ -77,7 +76,6 @@ from .ica import (
 )
 from .infomax_ import infomax
 from .interpolate import equalize_bads, interpolate_bridged_electrodes
-from .maxfilter import apply_maxfilter
 from .maxwell import (
     compute_maxwell_basis,
     find_bad_channels_maxwell,

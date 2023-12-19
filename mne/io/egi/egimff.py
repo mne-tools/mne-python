@@ -10,7 +10,6 @@ from collections import OrderedDict
 from pathlib import Path
 
 import numpy as np
-from defusedxml.minidom import parse
 
 from ..._fiff.constants import FIFF
 from ..._fiff.meas_info import _empty_info, _ensure_meas_date_none_or_dt, create_info
@@ -19,7 +18,7 @@ from ..._fiff.utils import _create_chs, _mult_cal_one
 from ...annotations import Annotations
 from ...channels.montage import make_dig_montage
 from ...evoked import EvokedArray
-from ...utils import _check_fname, _check_option, logger, verbose, warn
+from ...utils import _check_fname, _check_option, _soft_import, logger, verbose, warn
 from ..base import BaseRaw
 from .events import _combine_triggers, _read_events
 from .general import (
@@ -36,6 +35,9 @@ REFERENCE_NAMES = ("VREF", "Vertex Reference")
 
 def _read_mff_header(filepath):
     """Read mff header."""
+    _soft_import("defusedxml", "reading EGI MFF data")
+    from defusedxml.minidom import parse
+
     all_files = _get_signalfname(filepath)
     eeg_file = all_files["EEG"]["signal"]
     eeg_info_file = all_files["EEG"]["info"]
@@ -289,6 +291,9 @@ def _get_eeg_calibration_info(filepath, egi_info):
 
 def _read_locs(filepath, egi_info, channel_naming):
     """Read channel locations."""
+    _soft_import("defusedxml", "reading EGI MFF data")
+    from defusedxml.minidom import parse
+
     fname = op.join(filepath, "coordinates.xml")
     if not op.exists(fname):
         logger.warn("File coordinates.xml not found, not setting channel locations")

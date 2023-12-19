@@ -2175,7 +2175,7 @@ def _get_neighbors(loc, image, voxels, thresh, dist_params):
                 next_loc = tuple(next_loc)
                 if (
                     image[next_loc] > thresh
-                    and image[next_loc] < image[loc]
+                    and image[next_loc] <= image[loc]
                     and next_loc not in voxels
                 ):
                     neighbors.add(next_loc)

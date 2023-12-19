@@ -465,7 +465,7 @@ class BaseEpochs(
         raw_sfreq=None,
         annotations=None,
         verbose=None,
-    ):  # noqa: D102
+    ):
         if events is not None:  # RtEpochs can have events=None
             events = _ensure_events(events)
             # Allow reading empty epochs (ToDo: Maybe not anymore in the future)
@@ -2661,7 +2661,7 @@ class BaseEpochs(
         # prepare extra columns / multiindex
         mindex = list()
         times = np.tile(times, n_epochs)
-        times = _convert_times(self, times, time_format)
+        times = _convert_times(times, time_format, self.info["meas_date"])
         mindex.append(("time", times))
         rev_event_id = {v: k for k, v in self.event_id.items()}
         conditions = [rev_event_id[k] for k in self.events[:, 2]]
@@ -3231,7 +3231,7 @@ class Epochs(BaseEpochs):
         metadata=None,
         event_repeated="error",
         verbose=None,
-    ):  # noqa: D102
+    ):
         from .io import BaseRaw
 
         if not isinstance(raw, BaseRaw):
@@ -3403,7 +3403,7 @@ class EpochsArray(BaseEpochs):
         drop_log=None,
         raw_sfreq=None,
         verbose=None,
-    ):  # noqa: D102
+    ):
         dtype = np.complex128 if np.any(np.iscomplex(data)) else np.float64
         data = np.asanyarray(data, dtype=dtype)
         if data.ndim != 3:
@@ -3850,7 +3850,7 @@ def _read_one_epoch_file(f, tree, preload):
 
 
 @verbose
-def read_epochs(fname, proj=True, preload=True, verbose=None):
+def read_epochs(fname, proj=True, preload=True, verbose=None) -> "EpochsFIF":
     """Read epochs from a fif file.
 
     Parameters
@@ -3873,9 +3873,7 @@ def read_epochs(fname, proj=True, preload=True, verbose=None):
 class _RawContainer:
     """Helper for a raw data container."""
 
-    def __init__(
-        self, fid, data_tag, event_samps, epoch_shape, cals, fmt
-    ):  # noqa: D102
+    def __init__(self, fid, data_tag, event_samps, epoch_shape, cals, fmt):
         self.fid = fid
         self.data_tag = data_tag
         self.event_samps = event_samps
@@ -3909,7 +3907,7 @@ class EpochsFIF(BaseEpochs):
     """
 
     @verbose
-    def __init__(self, fname, proj=True, preload=True, verbose=None):  # noqa: D102
+    def __init__(self, fname, proj=True, preload=True, verbose=None):
         from .io.base import _get_fname_rep
 
         if _path_like(fname):

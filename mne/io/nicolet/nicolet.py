@@ -19,7 +19,7 @@ from ..base import BaseRaw
 @fill_doc
 def read_raw_nicolet(
     input_fname, ch_type, eog=(), ecg=(), emg=(), misc=(), preload=False, verbose=None
-):
+) -> "RawNicolet":
     """Read Nicolet data as raw object.
 
     ..note:: This reader takes data files with the extension ``.data`` as an
@@ -183,7 +183,7 @@ class RawNicolet(BaseRaw):
         misc=(),
         preload=False,
         verbose=None,
-    ):  # noqa: D102
+    ):
         input_fname = path.abspath(input_fname)
         info, header_info = _get_nicolet_info(input_fname, ch_type, eog, ecg, emg, misc)
         last_samps = [header_info["num_samples"] - 1]

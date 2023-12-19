@@ -26,8 +26,6 @@ from ...utils import (
     _check_option,
     _require_version,
     _validate_type,
-    copy_base_doc_to_subclass_doc,
-    deprecated,
     warn,
 )
 from ._abstract import Figure3D, _AbstractRenderer
@@ -110,7 +108,6 @@ class PyVistaFigure(Figure3D):
         off_screen=False,
         notebook=False,
         splash=False,
-        multi_samples=None,
     ):
         self._plotter = plotter
         self.display = None
@@ -125,7 +122,6 @@ class PyVistaFigure(Figure3D):
         self.store["shape"] = shape
         self.store["off_screen"] = off_screen
         self.store["border"] = False
-        self.store["multi_samples"] = multi_samples
         self.store["line_smoothing"] = True
         self.store["polygon_smoothing"] = True
         self.store["point_smoothing"] = True
@@ -195,7 +191,6 @@ class _Projection:
         self.plotter.render()
 
 
-@copy_base_doc_to_subclass_doc
 class _PyVistaRenderer(_AbstractRenderer):
     """Class managing rendering scene.
 
@@ -237,12 +232,12 @@ class _PyVistaRenderer(_AbstractRenderer):
             notebook=notebook,
             smooth_shading=smooth_shading,
             splash=splash,
-            multi_samples=multi_samples,
         )
         self.font_family = "arial"
         self.tube_n_sides = 20
         self.antialias = _get_3d_option("antialias")
         self.depth_peeling = _get_3d_option("depth_peeling")
+        self.multi_samples = multi_samples
         self.smooth_shading = smooth_shading
         if isinstance(fig, int):
             saved_fig = _FIGURES.get(fig)
@@ -843,7 +838,6 @@ class _PyVistaRenderer(_AbstractRenderer):
         *,
         rigid=None,
         update=True,
-        reset_camera=None,
     ):
         _set_3d_view(
             self.figure,
@@ -852,17 +846,9 @@ class _PyVistaRenderer(_AbstractRenderer):
             distance=distance,
             focalpoint=focalpoint,
             roll=roll,
-            reset_camera=reset_camera,
             rigid=rigid,
             update=update,
         )
-
-    @deprecated(
-        "reset_camera is deprecated and will be removed in 1.7, use "
-        "set_camera(distance='auto') instead"
-    )
-    def reset_camera(self):
-        self.plotter.reset_camera()
 
     def screenshot(self, mode="rgb", filename=None):
         return _take_3d_screenshot(figure=self.figure, mode=mode, filename=filename)
@@ -892,7 +878,10 @@ class _PyVistaRenderer(_AbstractRenderer):
                 plotter.disable_anti_aliasing()
             else:
                 if not bad_system:
-                    plotter.enable_anti_aliasing(aa_type="msaa")
+                    plotter.enable_anti_aliasing(
+                        aa_type="msaa",
+                        multi_samples=self.multi_samples,
+                    )
 
     def remove_mesh(self, mesh_data):
         actor, _ = mesh_data
@@ -1190,7 +1179,6 @@ def _set_3d_view(
     focalpoint=None,
     distance=None,
     roll=None,
-    reset_camera=None,
     rigid=None,
     update=True,
 ):
@@ -1201,14 +1189,6 @@ def _set_3d_view(
 
     # camera slides along the vector defined from camera position to focal point until
     # all of the actors can be seen (quoting PyVista's docs)
-    if reset_camera is not None:
-        reset_camera = False
-        warn(
-            "reset_camera is deprecated and will be removed in 1.7, use "
-            "distance='auto' instead",
-            FutureWarning,
-        )
-
     # Figure out our current parameters in the transformed space
     _, phi, theta = _get_user_camera_direction(figure.plotter, rigid)
 
