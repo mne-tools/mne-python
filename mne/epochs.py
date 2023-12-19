@@ -3277,8 +3277,13 @@ class Epochs(BaseEpochs):
                 if all([my_id in event_id_tmp for my_id in event_id]):
                     event_id = {my_id: event_id_tmp[my_id] for my_id in event_id}
                     # remove any non-selected annotations
-                    raw.annotations.delete([i for i, desc in enumerate(raw.annotations.description)
-                                            if desc not in event_id])
+                    raw.annotations.delete(
+                        [
+                            i
+                            for i, desc in enumerate(raw.annotations.description)
+                            if desc not in event_id
+                        ]
+                    )
                 else:
                     event_id_not_found = [
                         my_id for my_id in event_id if my_id not in event_id_tmp
