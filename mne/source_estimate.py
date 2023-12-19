@@ -1584,7 +1584,6 @@ class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
         )
         return label_stc
     
-    @verbose
     def save_as_surface(self, fname, src, scale=1, scale_rr=1e3):
         """Save a surface source estimate (stc) as a GIFTI file.
 
