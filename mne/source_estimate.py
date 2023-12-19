@@ -1584,24 +1584,27 @@ class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
         )
         return label_stc
     
-    
+    @verbose
     def save_as_surface(self, fname, src, scale=1, scale_rr=1e3):
-        """Function for exporting STC to GIFTI file
+        """Save a surface source estimate (stc) as a GIFTI file.
+
         Parameters
-        ------------
-        self : stc object
-            instance of stc to export
-        fname : string
+        ----------
+        fname : path-like
             filename basename to save files as
-            Will write anatomical gifti plus time series gifti for lh/rh
+            Will write anatomical gifti plus time series gifti for both lh/rh
+            ex: 
+                "basename" --> "basename.lh.gii" and "basename.lh.time.gii"
+                           --> "basename.rh.gii" and "basename.rh.time.gii"
         src : source solution (surface) object
             the source space of the forward solution
         scale : int
             scale of functional values
         scale_rr : float
             Value to scale source solution
+        
         Notes
-        ------------
+        ----------
         Creates gifti files for source solution and time courses of STC
         .. versionadded:: 1.7
         """
@@ -1619,12 +1622,24 @@ class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
         ss[0]['rr'] *= scale_rr
         ss[1]['rr'] *= scale_rr
         
-        lh.append(nib.gifti.gifti.GiftiDataArray(data=ss[0]['rr'], intent='NIFTI_INTENT_POINTSET', datatype='NIFTI_TYPE_FLOAT32'))
-        rh.append(nib.gifti.gifti.GiftiDataArray(data=ss[1]['rr'], intent='NIFTI_INTENT_POINTSET', datatype='NIFTI_TYPE_FLOAT32'))
+        lh.append(nib.gifti.gifti.GiftiDataArray(
+            data=ss[0]['rr'], 
+            intent='NIFTI_INTENT_POINTSET', 
+            datatype='NIFTI_TYPE_FLOAT32'))
+        rh.append(nib.gifti.gifti.GiftiDataArray(
+            data=ss[1]['rr'], 
+            intent='NIFTI_INTENT_POINTSET', 
+            datatype='NIFTI_TYPE_FLOAT32'))
         
         # Make the topology DataArray
-        lh.append(nib.gifti.gifti.GiftiDataArray(data=ss[0]['tris'], intent='NIFTI_INTENT_TRIANGLE', datatype='NIFTI_TYPE_INT32'))
-        rh.append(nib.gifti.gifti.GiftiDataArray(data=ss[1]['tris'], intent='NIFTI_INTENT_TRIANGLE', datatype='NIFTI_TYPE_INT32'))
+        lh.append(nib.gifti.gifti.GiftiDataArray(
+            data=ss[0]['tris'], 
+            intent='NIFTI_INTENT_TRIANGLE', 
+            datatype='NIFTI_TYPE_INT32'))
+        rh.append(nib.gifti.gifti.GiftiDataArray(
+            data=ss[1]['tris'], 
+            intent='NIFTI_INTENT_TRIANGLE', 
+            datatype='NIFTI_TYPE_INT32'))
         
         # Make the output GIFTI for anatomicals
         topo_gi_lh = nib.gifti.gifti.GiftiImage(darrays=lh)
