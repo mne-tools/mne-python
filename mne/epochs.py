@@ -3731,9 +3731,7 @@ def read_epochs(fname, proj=True, preload=True, verbose=None):
 class _RawContainer:
     """Helper for a raw data container."""
 
-    def __init__(
-        self, fid, data_tag, event_samps, epoch_shape, cals, fmt
-    ):  # noqa: D102
+    def __init__(self, fid, data_tag, event_samps, epoch_shape, cals, fmt):  # noqa: D102
         self.fid = fid
         self.data_tag = data_tag
         self.event_samps = event_samps

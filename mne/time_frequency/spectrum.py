@@ -446,14 +446,21 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
     def _returns_complex_tapers(self, **method_kw):
         return method_kw.get("output", "") == "complex" and self.method == "multitaper"
 
-    def _compute_spectra(self, data, fmin, fmax, n_jobs, method_kw, annotations=None, verbose=None):
+    def _compute_spectra(
+        self, data, fmin, fmax, n_jobs, method_kw, annotations=None, verbose=None
+    ):
         # make the spectra
         if annotations:
             # fencepost
             start = self.events[0, 0] - self.inst.first_samp
             duration = int(round(annotations.duration[0] * self.sfreq))
             result_tmp = self._psd_func(
-                data[:, start: start + duration], self.sfreq, fmin=fmin, fmax=fmax, n_jobs=n_jobs, verbose=verbose
+                data[:, start : start + duration],
+                self.sfreq,
+                fmin=fmin,
+                fmax=fmax,
+                n_jobs=n_jobs,
+                verbose=verbose,
             )
             data_out = np.zeros((self.events.shape[0],) + result_tmp[0].shape)
             data_out[0] = result_tmp[0]
@@ -461,17 +468,28 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
             if self._returns_complex_tapers(**method_kw):
                 weights = np.zeros((self.events.shape[0],) + result_tmp[2].shape)
                 weights[0] = result_tmp[2]
-            for i, (start, duration_s) in enumerate(zip(self.events[1:, 0], annotations.duration[1:])):
+            for i, (start, duration_s) in enumerate(
+                zip(self.events[1:, 0], annotations.duration[1:])
+            ):
                 start -= self.inst.first_samp
                 duration = int(round(duration_s * self.sfreq))
                 result_tmp = self._psd_func(
-                    data[:, start: start + duration], self.sfreq, fmin=fmin, fmax=fmax, n_jobs=n_jobs, verbose=verbose
+                    data[:, start : start + duration],
+                    self.sfreq,
+                    fmin=fmin,
+                    fmax=fmax,
+                    n_jobs=n_jobs,
+                    verbose=verbose,
                 )
                 data_out[i + 1] = result_tmp[0]
                 assert np.array_equal(result_tmp[1], freqs)
                 if self._returns_complex_tapers(**method_kw):
                     weights[i + 1] = result_tmp[2]
-            result = (data_out, freqs, weights) if self._returns_complex_tapers(**method_kw) else (data_out, freqs)
+            result = (
+                (data_out, freqs, weights)
+                if self._returns_complex_tapers(**method_kw)
+                else (data_out, freqs)
+            )
         else:
             result = self._psd_func(
                 data, self.sfreq, fmin=fmin, fmax=fmax, n_jobs=n_jobs, verbose=verbose
@@ -1377,21 +1395,30 @@ class EpochsSpectrum(BaseSpectrum, GetEpochsMixin):
             **method_kw,
         )
         from ..io import BaseRaw
+
         # get just the data we want
         if isinstance(self.inst, BaseRaw):
             data = self.inst.get_data(self._picks)
         else:
             data = self.inst._get_data(picks=self._picks, on_empty="raise")[
-                :, :, self._time_mask]
+                :, :, self._time_mask
+            ]
         # set metadata
         if ragged_epochs:
             self.events, self.event_id = events_from_annotations(self.inst)
             if reject_by_annotation:  # remove bad annotations
-                self.events = np.delete(self.events, [descr.lower().startswith("bad")
-                                                      for descr in self.inst.annotations.description],
-                                        axis=0)
+                self.events = np.delete(
+                    self.events,
+                    [
+                        descr.lower().startswith("bad")
+                        for descr in self.inst.annotations.description
+                    ],
+                    axis=0,
+                )
             # select only events in the time interval
-            self.events = self.events[self._time_mask[self.events[:, 0] - self.inst.first_samp]]
+            self.events = self.events[
+                self._time_mask[self.events[:, 0] - self.inst.first_samp]
+            ]
             self.selection = np.arange(self.events.shape[0])
             self.drop_log = [()] * self.events.shape[0]
         else:
@@ -1402,8 +1429,18 @@ class EpochsSpectrum(BaseSpectrum, GetEpochsMixin):
             # we need these for __getitem__()
             self.drop_log = deepcopy(self.inst.drop_log)
         # compute the spectra
-        self._compute_spectra(data, fmin, fmax, n_jobs, method_kw, self.inst.annotations if ragged_epochs else None, verbose)
-        self._shape = ((self.events.shape[0] if ragged_epochs else len(self.inst)),) + self._shape
+        self._compute_spectra(
+            data,
+            fmin,
+            fmax,
+            n_jobs,
+            method_kw,
+            self.inst.annotations if ragged_epochs else None,
+            verbose,
+        )
+        self._shape = (
+            (self.events.shape[0] if ragged_epochs else len(self.inst)),
+        ) + self._shape
         self._dims = ("epoch",) + self._dims
         # check for correct shape and bad values
         self._check_values()

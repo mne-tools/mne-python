@@ -110,7 +110,12 @@ from ..utils import (
 )
 from ..defaults import _handle_default
 from ..viz import plot_raw, _RAW_CLIP_DEF
-from ..time_frequency.spectrum import Spectrum, SpectrumMixin, _validate_method, EpochsSpectrum
+from ..time_frequency.spectrum import (
+    Spectrum,
+    SpectrumMixin,
+    _validate_method,
+    EpochsSpectrum,
+)
 
 
 @fill_doc
@@ -264,8 +269,9 @@ class BaseRaw(
         if orig_units:
             if not isinstance(orig_units, dict):
                 raise ValueError(
-                    "orig_units must be of type dict, but got "
-                    " {}".format(type(orig_units))
+                    "orig_units must be of type dict, but got " " {}".format(
+                        type(orig_units)
+                    )
                 )
 
             # original units need to be truncated to 15 chars or renamed
@@ -290,8 +296,9 @@ class BaseRaw(
             if not all(ch_correspond):
                 ch_without_orig_unit = ch_names[ch_correspond.index(False)]
                 raise ValueError(
-                    "Channel {} has no associated original "
-                    "unit.".format(ch_without_orig_unit)
+                    "Channel {} has no associated original " "unit.".format(
+                        ch_without_orig_unit
+                    )
                 )
 
             # Final check of orig_units, editing a unit if it is not a valid
@@ -2176,7 +2183,7 @@ class BaseRaw(
         """
         method = _validate_method(method, type(self).__name__)
         self._set_legacy_nfft_default(tmin, tmax, method, method_kw)
-        _validate_type(ragged_epochs, (bool, str, list), 'ragged_epochs')
+        _validate_type(ragged_epochs, (bool, str, list), "ragged_epochs")
         kwargs = dict(
             inst=self,
             method=method,
@@ -2191,9 +2198,10 @@ class BaseRaw(
             ragged_epochs=ragged_epochs,
             n_jobs=n_jobs,
             verbose=verbose,
-            **method_kw,)
+            **method_kw,
+        )
         if ragged_epochs:
-            kwargs['ragged_epochs'] = ragged_epochs
+            kwargs["ragged_epochs"] = ragged_epochs
         return (EpochsSpectrum if ragged_epochs else Spectrum)(**kwargs)
 
     @verbose
