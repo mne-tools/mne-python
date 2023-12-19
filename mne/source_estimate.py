@@ -1584,35 +1584,6 @@ class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
         )
         return label_stc
     
-    def _get_decimated_surfaces(self, src):
-        """Helper function to make exporting GIFTI surfaces easier
-        Parameters
-        -----------
-        src : instance of SourceSpaces
-        Returns
-        -----------
-        surfaces : list of dict
-            The decimated surfaces present in the source space. Each dict
-            which contains 'rr' and 'tris' keys for vertices positions and
-            triangle indices.
-        Notes
-            .. versionadded:: 1.7
-        """
-        surfaces = []
-        for s in src:
-            if s['type'] != 'surf':
-                continue
-            rr = s['rr']
-            use_tris = s['use_tris']
-            vertno = s['vertno']
-            ss = {}
-            ss['rr'] = rr[vertno]
-            reindex = np.full(len(rr), -1, int)
-            reindex[vertno] = np.arange(len(vertno))
-            ss['tris'] = reindex[use_tris]
-            assert (ss['tris'] >= 0).all()
-            surfaces.append(ss)
-        return surfaces
     
     def save_as_surface(self, fname, src, scale=1, scale_rr=1e3):
         """Function for exporting STC to GIFTI file
@@ -1635,8 +1606,9 @@ class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
         .. versionadded:: 1.7
         """
         nib = _import_nibabel()
+        from .source_space import get_decimated_surfaces
 
-        ss = self._get_decimated_surfaces(src)
+        ss = get_decimated_surfaces(src)
         stc = self
 
         # Create lists to put DataArrays into
