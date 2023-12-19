@@ -62,6 +62,7 @@ from .annotations import (
     EpochAnnotationsMixin,
     _read_annotations_fif,
     _write_annotations,
+    events_from_annotations
 )
 from .baseline import _check_baseline, _log_rescale, rescale
 from .bem import _check_origin
@@ -3212,7 +3213,7 @@ class Epochs(BaseEpochs):
     def __init__(
         self,
         raw,
-        events,
+        events=None,
         event_id=None,
         tmin=-0.2,
         tmax=0.5,
@@ -3248,6 +3249,14 @@ class Epochs(BaseEpochs):
 
         # keep track of original sfreq (needed for annotations)
         raw_sfreq = raw.info["sfreq"]
+
+        # get events from annotations if no events given
+        if events is None:
+            events, event_id_tmp = events_from_annotations(raw)
+            if events.size == 0:
+                raise RuntimeError("No events found in raw.annotations")
+            if event_id is None:
+                event_id = event_id_tmp
 
         # call BaseEpochs constructor
         super(Epochs, self).__init__(

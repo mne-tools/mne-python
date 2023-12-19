@@ -992,6 +992,13 @@ def test_filter(tmp_path):
     assert_allclose(epochs.get_data(), data_filt, atol=1e-17)
 
 
+def test_epochs_init():
+    """Test epoch instantiation."""
+    raw, events = _get_data()[:2]
+    with pytest.raises(RuntimeError, match="No events found in raw.annotations"):
+        Epochs(raw)
+
+
 def test_epochs_hash():
     """Test epoch hashing."""
     raw, events = _get_data()[:2]
