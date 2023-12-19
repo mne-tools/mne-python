@@ -1002,13 +1002,9 @@ def test_epochs_from_annotations():
             events, raw.info["sfreq"], first_samp=raw.first_samp
         )
     )
-    with pytest.raises(
-        RuntimeError, match="not found in annotations"
-    ):
+    with pytest.raises(RuntimeError, match="not found in annotations"):
         Epochs(raw, event_id="foo")
-    with pytest.raises(
-        RuntimeError, match="not found in annotations"
-    ):
+    with pytest.raises(RuntimeError, match="not found in annotations"):
         Epochs(raw, event_id=["foo"])
 
 
