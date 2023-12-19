@@ -3245,6 +3245,7 @@ class Epochs(BaseEpochs):
                 "instance of mne.io.BaseRaw"
             )
         info = deepcopy(raw.info)
+        annotations = raw.annotations.copy()
 
         # proj is on when applied in Raw
         proj = proj or raw.proj
@@ -3277,7 +3278,7 @@ class Epochs(BaseEpochs):
                 if all([my_id in event_id_tmp for my_id in event_id]):
                     event_id = {my_id: event_id_tmp[my_id] for my_id in event_id}
                     # remove any non-selected annotations
-                    raw.annotations.delete(
+                    annotations.delete(
                         [
                             i
                             for i, desc in enumerate(raw.annotations.description)
@@ -3316,7 +3317,7 @@ class Epochs(BaseEpochs):
             event_repeated=event_repeated,
             verbose=verbose,
             raw_sfreq=raw_sfreq,
-            annotations=raw.annotations,
+            annotations=annotations,
         )
 
     @verbose
