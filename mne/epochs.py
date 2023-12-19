@@ -62,7 +62,7 @@ from .annotations import (
     EpochAnnotationsMixin,
     _read_annotations_fif,
     _write_annotations,
-    events_from_annotations
+    events_from_annotations,
 )
 from .baseline import _check_baseline, _log_rescale, rescale
 from .bem import _check_origin
