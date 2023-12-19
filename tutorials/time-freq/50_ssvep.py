@@ -84,14 +84,12 @@ raw.set_eeg_reference("average", projection=False, verbose=False)
 raw.filter(l_freq=0.1, h_freq=None, fir_design="firwin", verbose=False)
 
 # Construct epochs
-event_id = {"12hz": 255, "15hz": 155}
-events, _ = mne.events_from_annotations(raw, verbose=False)
+raw.annotations.rename({'Stimulus/255': "12Hz", "Stimulus/155": "15hz"})
 tmin, tmax = -1.0, 20.0  # in s
 baseline = None
 epochs = mne.Epochs(
     raw,
-    events=events,
-    event_id=[event_id["12hz"], event_id["15hz"]],
+    event_id=["12hz", "15hz"],
     tmin=tmin,
     tmax=tmax,
     baseline=baseline,

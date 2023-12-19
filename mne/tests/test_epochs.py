@@ -992,11 +992,24 @@ def test_filter(tmp_path):
     assert_allclose(epochs.get_data(), data_filt, atol=1e-17)
 
 
-def test_epochs_init():
-    """Test epoch instantiation."""
+def test_epochs_from_annotations():
+    """Test epoch instantiation using annotations."""
     raw, events = _get_data()[:2]
-    with pytest.raises(RuntimeError, match="No events found in raw.annotations"):
+    with pytest.raises(RuntimeError, match="No annotations found in the raw object"):
         Epochs(raw)
+    raw.set_annotations(
+        mne.annotations_from_events(
+            events, raw.info["sfreq"], first_samp=raw.first_samp
+        )
+    )
+    with pytest.raises(
+        RuntimeError, match="not found in annotations"
+    ):
+        Epochs(raw, event_id="foo")
+    with pytest.raises(
+        RuntimeError, match="not found in annotations"
+    ):
+        Epochs(raw, event_id=["foo"])
 
 
 def test_epochs_hash():

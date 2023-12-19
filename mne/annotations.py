@@ -14,6 +14,7 @@ from copy import deepcopy
 from datetime import datetime, timedelta, timezone
 from itertools import takewhile
 from textwrap import shorten
+from typing import Callable
 
 import numpy as np
 from scipy.io import loadmat

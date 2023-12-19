@@ -27,7 +27,7 @@ from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.model_selection import ShuffleSplit, cross_val_score
 from sklearn.pipeline import Pipeline
 
-from mne import Epochs, events_from_annotations, pick_types
+from mne import Epochs, pick_types
 from mne.channels import make_standard_montage
 from mne.datasets import eegbci
 from mne.decoding import CSP
@@ -54,18 +54,15 @@ raw.set_montage(montage)
 # Apply band-pass filter
 raw.filter(7.0, 30.0, fir_design="firwin", skip_by_annotation="edge")
 
-events, _ = events_from_annotations(raw, event_id=dict(T1=2, T2=3))
-
 picks = pick_types(raw.info, meg=False, eeg=True, stim=False, eog=False, exclude="bads")
 
 # Read epochs (train will be done only between 1 and 2s)
 # Testing will be done with a running classifier
 epochs = Epochs(
     raw,
-    events,
-    event_id,
-    tmin,
-    tmax,
+    event_id=dict(T1=2, T2=3),
+    tmin=tmin,
+    tmax=tmax,
     proj=True,
     picks=picks,
     baseline=None,

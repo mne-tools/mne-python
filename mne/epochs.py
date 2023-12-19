@@ -3175,6 +3175,10 @@ class Epochs(BaseEpochs):
 
     Notes
     -----
+    When Epochs are constructed using only a raw object (from the annotations
+    stored in the raw object), the duration of the events are ignored since
+    Epochs must be the same time length by design.
+
     When accessing data, Epochs are detrended, baseline-corrected, and
     decimated, then projectors are (optionally) applied.
 
@@ -3254,9 +3258,31 @@ class Epochs(BaseEpochs):
         if events is None:
             events, event_id_tmp = events_from_annotations(raw)
             if events.size == 0:
-                raise RuntimeError("No events found in raw.annotations")
+                raise RuntimeError(
+                    "No annotations found in the raw object."
+                    "Either `events` must be provided or the raw"
+                    "object must have annotations to construct epochs"
+                )
+            if all(raw.annotations.duration == 0):
+                logger.info(
+                    "Ignoring annotation durations, only fixed "
+                    "duration epochs are currently supported"
+                )
             if event_id is None:
                 event_id = event_id_tmp
+            # if event_id is the names of events, map to events integers
+            elif isinstance(event_id, (str, list, tuple)):
+                if isinstance(event_id, str):
+                    event_id = [event_id]
+                if all([my_id in event_id_tmp for my_id in event_id]):
+                    event_id = {my_id: event_id_tmp[my_id] for my_id in event_id}
+                else:
+                    event_id_not_found = [
+                        my_id for my_id in event_id if my_id not in event_id_tmp
+                    ]
+                    raise RuntimeError(
+                        f"event_id(s) {event_id_not_found} not found in annotations"
+                    )
 
         # call BaseEpochs constructor
         super(Epochs, self).__init__(
