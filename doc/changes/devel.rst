@@ -53,4 +53,4 @@ Bugs
 
 API changes
 ~~~~~~~~~~~
-- None yet
+- The parameter for providing data to :func:`mne.time_frequency.tfr_array_morlet` and :func:`mne.time_frequency.tfr_array_multitaper` has been switched from ``epoch_data`` to ``data``. Only use the ``data`` parameter to avoid a warning (:gh:`12308` by `Thomas Binns`_)
