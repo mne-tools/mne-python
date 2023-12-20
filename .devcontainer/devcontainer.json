@@ -64,7 +64,6 @@
         "python.testing.pytestEnabled": true,
         "python.defaultInterpreterPath": "/opt/conda/bin/python",
         "debugpy.debugJustMyCode": false,
-        "terminal.integrated.defaultProfile.linux": "zsh", // Make zsh the default shell.
         // Screencast settings
         "screencastMode.keyboardOverlayTimeout": 5000,
         "screencastMode.mouseIndicatorSize": 50,
@@ -120,7 +119,7 @@
   // Use 'postCreateCommand' to run commands after the container is created.
   "postCreateCommand": {
     // Initialize shells to use conda and mamba
-    "init-mamba-shell": "mamba init --quiet zsh",
+    "init-mamba-shell": "mamba init --quiet zsh bash",
     // Force pip to always install "globally": This will work in a virtual environment, but fail with the system Python, which is
     // precicely what we want: prevent users from accidentally cluttering their user site-packages folder
     "disable-pip-user-installs": "pip config set install.system true",
