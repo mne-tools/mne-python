@@ -9,7 +9,6 @@ jobs:
     name: Check towncrier entry in doc/changes/devel/
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
       - uses: larsoner/action-towncrier-changelog@co  # revert to scientific-python @ 0.1.1 once bug is fixed
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
