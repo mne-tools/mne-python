@@ -3113,7 +3113,7 @@ class Epochs(BaseEpochs):
     ----------
     %(raw_epochs)s
     %(events_epochs)s
-        .. versionchanged:: 1.7
+        .. versionchanged:: 1.7 Allow ``events=None`` to use ``raw.annotations``.
     %(event_id)s
     %(epochs_tmin_tmax)s
     %(baseline_epochs)s
