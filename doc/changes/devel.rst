@@ -42,7 +42,6 @@ Enhancements
 - The package build backend was switched from ``setuptools`` to ``hatchling``. This will only affect users who build and install MNE-Python from source. (:gh:`12269`, :gh:`12281` by `Richard Höchenberger`_)
 - :meth:`mne.Annotations.to_data_frame` can now output different formats for the ``onset`` column: seconds, milliseconds, datetime objects, and timedelta objects. (:gh:`12289` by `Daniel McCloy`_)
 - :class:`mne.Epochs` can now be constructed using :class:`mne.Annotations` stored in the ``raw`` object, allowing ``events=None``. (:gh:`12311` by `Alex Rockhill`_)
-- Add :meth:`mne.Annotations.rename_descriptions` to conveniently rename descriptions (:gh:`12311` by `Alex Rockhill`_)
 
 Bugs
 ~~~~
