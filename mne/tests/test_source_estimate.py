@@ -247,6 +247,7 @@ def test_volume_stc(tmp_path):
             assert_array_equal(stc.vertices[0], stc_new.vertices[0])
             assert_array_almost_equal(stc.data, stc_new.data)
 
+
 @testing.requires_testing_data
 def test_save_stc_as_gifti(tmp_path):
     """Save the stc as a gifti file and export."""
