@@ -1595,7 +1595,7 @@ class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
             for example ``"basename"`` will write ``"basename.lh.gii"``,
             ``"basename.lh.time.gii"``, ``"basename.rh.gii"``, and
             ``"basename.rh.time.gii"``.
-        src : source solution (surface) object
+        src : instance of SourceSpaces
             The source space of the forward solution.
         scale : int
             Scale of functional values.
