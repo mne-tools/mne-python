@@ -176,10 +176,7 @@ intersphinx_mapping = {
     "picard": ("https://pierreablin.github.io/picard/", None),
     "qdarkstyle": ("https://qdarkstylesheet.readthedocs.io/en/latest", None),
     "eeglabio": ("https://eeglabio.readthedocs.io/en/latest", None),
-    "dipy": (
-        "https://dipy.org/documentation/1.7.0/",
-        "https://dipy.org/documentation/1.7.0/objects.inv/",
-    ),
+    "dipy": ("https://docs.dipy.org/stable/", None),
     "pooch": ("https://www.fatiando.org/pooch/latest/", None),
     "pybv": ("https://pybv.readthedocs.io/en/latest/", None),
     "pyqtgraph": ("https://pyqtgraph.readthedocs.io/en/latest/", None),
