@@ -3261,7 +3261,7 @@ class Epochs(BaseEpochs):
             events, event_id_tmp = events_from_annotations(raw)
             if events.size == 0:
                 raise RuntimeError(
-                    "No useable annotations found in the raw object. "
+                    "No usable annotations found in the raw object. "
                     "Either `events` must be provided or the raw "
                     "object must have annotations to construct epochs"
                 )
