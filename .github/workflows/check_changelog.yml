@@ -1,4 +1,4 @@
-name: Check PR change log
+name: Changelog
 
 on:  # yamllint disable-line rule:truthy
   pull_request:
@@ -6,9 +6,10 @@ on:  # yamllint disable-line rule:truthy
 
 jobs:
   changelog_checker:
-    name: Check if towncrier change log entry is correct
+    name: Check towncrier entry in doc/changes/devel/
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
       - uses: scientific-python/action-towncrier-changelog@0.1.1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
