@@ -51,9 +51,8 @@ mne.html_templates._templates._COLLAPSED = True  # collapse info _repr_html_
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
-curdir = os.path.dirname(__file__)
-sys.path.append(os.path.abspath(os.path.join(curdir, "..", "mne")))
-sys.path.append(os.path.abspath(os.path.join(curdir, "sphinxext")))
+curpath = Path(__file__).parent.resolve(strict=True)
+sys.path.append(str(curpath / "sphinxext"))
 
 
 # -- Project information -----------------------------------------------------
@@ -107,6 +106,7 @@ extensions = [
     "sphinx_gallery.gen_gallery",
     "sphinxcontrib.bibtex",
     "sphinxcontrib.youtube",
+    "sphinxcontrib.towncrier.ext",
     # homegrown
     "contrib_avatars",
     "gen_commands",
@@ -123,7 +123,7 @@ templates_path = ["_templates"]
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
-exclude_patterns = ["_includes"]
+exclude_patterns = ["_includes", "changes/devel"]
 
 # The suffix of source filenames.
 source_suffix = ".rst"
@@ -148,6 +148,10 @@ modindex_common_prefix = ["mne."]
 # -- Sphinx-Copybutton configuration -----------------------------------------
 copybutton_prompt_text = r">>> |\.\.\. |\$ "
 copybutton_prompt_is_regexp = True
+
+# -- sphinxcontrib-towncrier configuration -----------------------------------
+
+towncrier_draft_working_directory = str(curpath.parent)
 
 # -- Intersphinx configuration -----------------------------------------------
 
@@ -804,7 +808,7 @@ html_theme = "pydata_sphinx_theme"
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
-switcher_version_match = "dev" if release.endswith("dev0") else version
+switcher_version_match = "dev" if ".dev" in version else version
 html_theme_options = {
     "icon_links": [
         dict(
