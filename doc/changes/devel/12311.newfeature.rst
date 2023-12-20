@@ -1,0 +1,1 @@
+:class:`mne.Epochs` can now be constructed using :class:`mne.Annotations` stored in the ``raw`` object, allowing ``events=None``. By `Alex Rockhill`_.
