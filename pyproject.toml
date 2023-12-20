@@ -104,6 +104,7 @@ full = [
     "pybv",
     "snirf",
     "defusedxml",
+    "neo",
 ]
 
 # Dependencies for running the test infrastructure
@@ -135,6 +136,7 @@ test_extra = [
     "imageio>=2.6.1",
     "imageio-ffmpeg>=0.4.1",
     "snirf",
+    "neo",
 ]
 
 # Dependencies for building the docuemntation
