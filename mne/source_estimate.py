@@ -1591,10 +1591,10 @@ class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
         ----------
         fname : path-like
             filename basename to save files as
-            Will write anatomical gifti plus time series gifti for both lh/rh
-            ex: 
-                "basename" --> "basename.lh.gii" and "basename.lh.time.gii"
-                           --> "basename.rh.gii" and "basename.rh.time.gii"
+            Will write anatomical gifti plus time series gifti for both lh/rh,
+            for example ``"basename"`` will write ``"basename.lh.gii"``, 
+            ``"basename.lh.time.gii"``, ``"basename.rh.gii"``, and
+            ``"basename.rh.time.gii"``.
         src : source solution (surface) object
             the source space of the forward solution
         scale : int
