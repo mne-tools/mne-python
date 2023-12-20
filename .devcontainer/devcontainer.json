@@ -30,7 +30,9 @@
       "omzPlugins": "https://github.com/zsh-users/zsh-autosuggestions https://github.com/zsh-users/zsh-syntax-highlighting"
     },
     // Desktop and VNC access
-    "ghcr.io/devcontainers/features/desktop-lite:1": {}
+    "ghcr.io/devcontainers/features/desktop-lite:1": {
+      "password": "mne"
+    }
   },
   // Configure tool-specific properties.
   "customizations": {
