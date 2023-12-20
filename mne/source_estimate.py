@@ -31,6 +31,7 @@ from .source_space._source_space import (
     _ensure_src_subject,
     _get_morph_src_reordering,
     _get_src_nn,
+    get_decimated_surfaces,
 )
 from .surface import _get_ico_surface, _project_onto_surface, mesh_edges, read_surface
 from .transforms import _get_trans, apply_trans
@@ -1609,7 +1610,6 @@ class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
         .. versionadded:: 1.7
         """
         nib = _import_nibabel()
-        from .source_space import get_decimated_surfaces
 
         ss = get_decimated_surfaces(src)
         stc = self
