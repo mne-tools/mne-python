@@ -1583,7 +1583,7 @@ class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
             subject=self.subject,
         )
         return label_stc
-    
+
     def save_as_surface(self, fname, src, scale=1, scale_rr=1e3):
         """Save a surface source estimate (stc) as a GIFTI file.
 
@@ -1592,7 +1592,7 @@ class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
         fname : path-like
             filename basename to save files as
             Will write anatomical gifti plus time series gifti for both lh/rh,
-            for example ``"basename"`` will write ``"basename.lh.gii"``, 
+            for example ``"basename"`` will write ``"basename.lh.gii"``,
             ``"basename.lh.time.gii"``, ``"basename.rh.gii"``, and
             ``"basename.rh.time.gii"``.
         src : source solution (surface) object
@@ -1601,9 +1601,9 @@ class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
             scale of functional values
         scale_rr : float
             Value to scale source solution
-        
+
         Notes
-        ----------
+        -----
         Creates gifti files for source solution and time courses of STC
 
         .. versionadded:: 1.7
@@ -1617,65 +1617,76 @@ class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
         # Create lists to put DataArrays into
         lh = []
         rh = []
-        
+
         # Coerce rr to be in mm (MNE uses meters)
-        ss[0]['rr'] *= scale_rr
-        ss[1]['rr'] *= scale_rr
-        
-        lh.append(nib.gifti.gifti.GiftiDataArray(
-            data=ss[0]['rr'], 
-            intent='NIFTI_INTENT_POINTSET', 
-            datatype='NIFTI_TYPE_FLOAT32'))
-        rh.append(nib.gifti.gifti.GiftiDataArray(
-            data=ss[1]['rr'], 
-            intent='NIFTI_INTENT_POINTSET', 
-            datatype='NIFTI_TYPE_FLOAT32'))
-        
+        ss[0]["rr"] *= scale_rr
+        ss[1]["rr"] *= scale_rr
+
+        lh.append(
+            nib.gifti.gifti.GiftiDataArray(
+                data=ss[0]["rr"],
+                intent="NIFTI_INTENT_POINTSET",
+                datatype="NIFTI_TYPE_FLOAT32",
+            )
+        )
+        rh.append(
+            nib.gifti.gifti.GiftiDataArray(
+                data=ss[1]["rr"],
+                intent="NIFTI_INTENT_POINTSET",
+                datatype="NIFTI_TYPE_FLOAT32",
+            )
+        )
+
         # Make the topology DataArray
-        lh.append(nib.gifti.gifti.GiftiDataArray(
-            data=ss[0]['tris'], 
-            intent='NIFTI_INTENT_TRIANGLE', 
-            datatype='NIFTI_TYPE_INT32'))
-        rh.append(nib.gifti.gifti.GiftiDataArray(
-            data=ss[1]['tris'], 
-            intent='NIFTI_INTENT_TRIANGLE', 
-            datatype='NIFTI_TYPE_INT32'))
-        
+        lh.append(
+            nib.gifti.gifti.GiftiDataArray(
+                data=ss[0]["tris"],
+                intent="NIFTI_INTENT_TRIANGLE",
+                datatype="NIFTI_TYPE_INT32",
+            )
+        )
+        rh.append(
+            nib.gifti.gifti.GiftiDataArray(
+                data=ss[1]["tris"],
+                intent="NIFTI_INTENT_TRIANGLE",
+                datatype="NIFTI_TYPE_INT32",
+            )
+        )
+
         # Make the output GIFTI for anatomicals
         topo_gi_lh = nib.gifti.gifti.GiftiImage(darrays=lh)
         topo_gi_rh = nib.gifti.gifti.GiftiImage(darrays=rh)
-        
-        #actually save the files
+
+        # actually save the files
         nib.save(topo_gi_lh, f"{fname}-lh.gii")
         nib.save(topo_gi_rh, f"{fname}-rh.gii")
-        
+
         # Make the Time Series data arrays
         lh_ts = []
         rh_ts = []
-        
+
         for t in range(stc.shape[1]):
             lh_ts.append(
                 nib.gifti.gifti.GiftiDataArray(
                     data=stc.lh_data[:, t] * scale,
-                    intent='NIFTI_INTENT_POINTSET',
-                    datatype='NIFTI_TYPE_FLOAT32'
+                    intent="NIFTI_INTENT_POINTSET",
+                    datatype="NIFTI_TYPE_FLOAT32",
                 )
             )
-            
+
             rh_ts.append(
                 nib.gifti.gifti.GiftiDataArray(
                     data=stc.rh_data[:, t] * scale,
-                    intent='NIFTI_INTENT_POINTSET',
-                    datatype='NIFTI_TYPE_FLOAT32'
+                    intent="NIFTI_INTENT_POINTSET",
+                    datatype="NIFTI_TYPE_FLOAT32",
                 )
             )
-            
-        #save the time series
+
+        # save the time series
         ts_gi_lh = nib.gifti.gifti.GiftiImage(darrays=lh_ts)
         ts_gi_rh = nib.gifti.gifti.GiftiImage(darrays=rh_ts)
         nib.save(ts_gi_lh, f"{fname}-lh.time.gii")
         nib.save(ts_gi_rh, f"{fname}-rh.time.gii")
-
 
     def expand(self, vertices):
         """Expand SourceEstimate to include more vertices.
