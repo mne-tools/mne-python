@@ -1605,6 +1605,7 @@ class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
         Notes
         ----------
         Creates gifti files for source solution and time courses of STC
+
         .. versionadded:: 1.7
         """
         nib = _import_nibabel()
