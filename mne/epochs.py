@@ -3113,6 +3113,7 @@ class Epochs(BaseEpochs):
     ----------
     %(raw_epochs)s
     %(events_epochs)s
+        .. versionchanged:: 1.7
     %(event_id)s
     %(epochs_tmin_tmax)s
     %(baseline_epochs)s
@@ -3260,8 +3261,8 @@ class Epochs(BaseEpochs):
             events, event_id_tmp = events_from_annotations(raw)
             if events.size == 0:
                 raise RuntimeError(
-                    "No annotations found in the raw object."
-                    "Either `events` must be provided or the raw"
+                    "No useable annotations found in the raw object. "
+                    "Either `events` must be provided or the raw "
                     "object must have annotations to construct epochs"
                 )
             if any(raw.annotations.duration > 0):

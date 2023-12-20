@@ -104,7 +104,7 @@ raw.set_montage(montage)
 epoch_length = 25  # seconds
 epochs = mne.Epochs(
     raw,
-    event_id=["onset"],
+    event_id="onset",
     tmin=13,
     tmax=13 + epoch_length,
     baseline=None,
