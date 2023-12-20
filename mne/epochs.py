@@ -3264,7 +3264,7 @@ class Epochs(BaseEpochs):
                     "Either `events` must be provided or the raw"
                     "object must have annotations to construct epochs"
                 )
-            if all(raw.annotations.duration == 0):
+            if any(raw.annotations.duration > 0):
                 logger.info(
                     "Ignoring annotation durations, only fixed "
                     "duration epochs are currently supported"
@@ -3286,11 +3286,9 @@ class Epochs(BaseEpochs):
                         ]
                     )
                 else:
-                    event_id_not_found = [
-                        my_id for my_id in event_id if my_id not in event_id_tmp
-                    ]
                     raise RuntimeError(
-                        f"event_id(s) {event_id_not_found} not found in annotations"
+                        f"event_id(s) {set(event_id).difference(set(event_id_tmp))} "
+                        "not found in annotations"
                     )
 
         # call BaseEpochs constructor
