@@ -1592,7 +1592,7 @@ class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
         ----------
         fname : path-like
             Filename basename to save files as.
-            Will write anatomical gifti plus time series gifti for both lh/rh,
+            Will write anatomical GIFTI plus time series GIFTI for both lh/rh,
             for example ``"basename"`` will write ``"basename.lh.gii"``,
             ``"basename.lh.time.gii"``, ``"basename.rh.gii"``, and
             ``"basename.rh.time.gii"``.
