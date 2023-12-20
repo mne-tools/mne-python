@@ -1590,21 +1590,21 @@ class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
         Parameters
         ----------
         fname : path-like
-            filename basename to save files as
+            Filename basename to save files as.
             Will write anatomical gifti plus time series gifti for both lh/rh,
             for example ``"basename"`` will write ``"basename.lh.gii"``,
             ``"basename.lh.time.gii"``, ``"basename.rh.gii"``, and
             ``"basename.rh.time.gii"``.
         src : source solution (surface) object
-            the source space of the forward solution
+            The source space of the forward solution.
         scale : int
-            scale of functional values
+            Scale of functional values.
         scale_rr : float
-            Value to scale source solution
+            Value to scale source solution.
 
         Notes
         -----
-        Creates gifti files for source solution and time courses of STC
+        Creates gifti files for source solution and time courses of STC.
 
         .. versionadded:: 1.7
         """
