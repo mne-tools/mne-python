@@ -15,7 +15,7 @@
     // Git
     "ghcr.io/devcontainers/features/git:1": {
       "version": "os-provided",
-      "ppa": "true"
+      "ppa": false
     },
     // Conda and Mamba
     "ghcr.io/mamba-org/devcontainer-features/micromamba:1": {
