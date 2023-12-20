@@ -146,6 +146,7 @@ doc = [
     "pydata_sphinx_theme==0.13.3",
     "sphinx-gallery",
     "sphinxcontrib-bibtex>=2.5",
+    "sphinxcontrib-towncrier",
     "memory_profiler",
     "neo",
     "seaborn!=0.11.2",
@@ -291,6 +292,7 @@ ignore_directives = [
     "toctree",
     "rst-class",
     "tab-set",
+    "towncrier-draft-entries",
 ]
 ignore_messages = "^.*(Unknown target name|Undefined substitution referenced)[^`]*$"
 
