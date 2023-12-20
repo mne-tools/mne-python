@@ -349,13 +349,13 @@ name = "Bugfixes"
 showcontent = true
 
 [[tool.towncrier.type]]
-directory = "deprecation"
-name = "Deprecations and API changes"
+directory = "apichange"
+name = "API changes by deprecation"
 showcontent = true
 
 [[tool.towncrier.type]]
-directory = "enhancement"
-name = "Enhancements"
+directory = "newfeature"
+name = "New features"
 showcontent = true
 
 [[tool.towncrier.type]]

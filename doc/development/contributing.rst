@@ -595,7 +595,7 @@ Include in your changeset a brief description of the change in the
 properly-named ``.rst`` files to create a change log. This can be
 skipped for very minor changes like correcting typos in the documentation.
 
-There are five separate sections for changes, based on change type.
+There are six separate sections for changes, based on change type.
 To add a changelog entry to a given section, name it as
 :file:`doc/changes/devel/<PR-number>.<type>.rst`. The types are:
 
@@ -606,9 +606,9 @@ dependency
     the minimum version of an existing dependency.
 bugfix
     For bug fixes. Can change code behavior with no deprecation period.
-deprecation
+apichange
     Code behavior changes that require a deprecation period.
-enhancement
+newfeature
     For new features.
 other
     For changes that don't fit into any of the above categories, e.g.,
