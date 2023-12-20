@@ -591,42 +591,54 @@ Describe your changes in the changelog
 --------------------------------------
 
 Include in your changeset a brief description of the change in the
-:ref:`changelog <whats_new>` (:file:`doc/changes/devel.rst`; this can be
-skipped for very minor changes like correcting typos in the documentation).
+:ref:`changelog <whats_new>` using towncrier_ format, which aggregates small,
+properly-named ``.rst`` files to create a change log. This can be
+skipped for very minor changes like correcting typos in the documentation.
 
-There are different sections of the changelog for each release, and separate
-**subsections for bugfixes, new features, and changes to the public API.**
-Please be sure to add your entry to the appropriate subsection.
+There are six separate sections for changes, based on change type.
+To add a changelog entry to a given section, name it as
+:file:`doc/changes/devel/<PR-number>.<type>.rst`. The types are:
 
-The styling and positioning of the entry depends on whether you are a
-first-time contributor or have been mentioned in the changelog before.
+notable
+    For overarching changes, e.g., adding type hints package-wide. These are rare.
+dependency
+    For changes to dependencies, e.g., adding a new dependency or changing
+    the minimum version of an existing dependency.
+bugfix
+    For bug fixes. Can change code behavior with no deprecation period.
+apichange
+    Code behavior changes that require a deprecation period.
+newfeature
+    For new features.
+other
+    For changes that don't fit into any of the above categories, e.g.,
+    internal refactorings.
 
-First-time contributors
-"""""""""""""""""""""""
+For example, for an enhancement PR with number 12345, the changelog entry should be
+added as a new file :file:`doc/changes/devel/12345.enhancement.rst`. The file should
+contain:
 
-Welcome to MNE-Python! We're very happy to have you here. 🤗 And to ensure you
-get proper credit for your work, please add a changelog entry with the
-following pattern **at the top** of the respective subsection (bugs,
-enhancements, etc.):
+1. A brief description of the change, typically in a single line of one or two
+   sentences.
+2. reST links to **public** API endpoints like functions (``:func:``),
+   classes (``:class``), and methods (``:meth:``). If changes are only internal
+   to private functions/attributes, mention internal refactoring rather than name
+   the private attributes changed.
+3. Author credit. If you are a new contributor (we're very happy to have you here! 🤗),
+   you should using the ``:newcontrib:`` reST role, whereas previous contributors should
+   use a standard reST link to their name. For example, a new contributor could write:
 
-.. code-block:: rst
+   .. code-block:: rst
 
+      Short description of the changes, by :newcontrib:`Firstname Lastname`.
 
-  Bugs
-  ----
+   And an previous contributor could write:
 
-  - Short description of the changes (:gh:`0000` by :newcontrib:`Firstname Lastname`)
+   .. code-block:: rst
 
-  - ...
+      Short description of the changes, by `Firstname Lastname`_.
 
-where ``0000`` must be replaced with the respective GitHub pull request (PR)
-number, and ``Firstname Lastname`` must be replaced with your full name.
-
-It is usually best to wait to add a line to the changelog until your PR is
-finalized, to avoid merge conflicts (since the changelog is updated with
-almost every PR).
-
-Lastly, make sure that your name is included in the list of authors in
+Make sure that your name is included in the list of authors in
 :file:`doc/changes/names.inc`, otherwise the documentation build will fail.
 To add an author name, append a line with the following pattern (note
 how the syntax is different from that used in the changelog):
@@ -638,27 +650,13 @@ how the syntax is different from that used in the changelog):
 Many contributors opt to link to their GitHub profile that way. Have a look
 at the existing entries in the file to get some inspiration.
 
-Recurring contributors
-""""""""""""""""""""""
-
-The changelog entry should follow the following patterns:
-
-.. code-block:: rst
-
-    - Short description of the changes from one contributor (:gh:`0000` by `Contributor Name`_)
-    - Short description of the changes from several contributors (:gh:`0000` by `Contributor Name`_, `Second Contributor`_, and `Third Contributor`_)
-
-where ``0000`` must be replaced with the respective GitHub pull request (PR)
-number. Mind the Oxford comma in the case of multiple contributors.
-
 Sometimes, changes that shall appear as a single changelog entry are spread out
-across multiple PRs. In this case, name all relevant PRs, separated by
-commas:
+across multiple PRs. In this case, edit the existing towncrier file for the relevant
+change, and append additional PR numbers in parentheticals with the ``:gh:`` role like:
 
 .. code-block:: rst
 
-    - Short description of the changes from one contributor in multiple PRs (:gh:`0000`, :gh:`1111` by `Contributor Name`_)
-    - Short description of the changes from several contributors in multiple PRs (:gh:`0000`, :gh:`1111` by `Contributor Name`_, `Second Contributor`_, and `Third Contributor`_)
+    Short description of the changes, by `Firstname Lastname`_. (:gh:`12346`)
 
 Test locally before opening pull requests (PRs)
 -----------------------------------------------

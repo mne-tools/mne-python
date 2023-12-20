@@ -15,6 +15,8 @@ from mne.io.tests.test_raw import _test_raw_reader
 
 testing_path = data_path(download=False) / "neuralynx"
 
+pytest.importorskip("neo")
+
 
 def _nlxheader_to_dict(matdict: Dict) -> Dict:
     """Convert the read-in "Header" field into a dict.
@@ -65,14 +67,42 @@ def _read_nlx_mat_chan(matfile: str) -> np.ndarray:
     return x
 
 
-mne_testing_ncs = [
-    "LAHC1.ncs",
-    "LAHC2.ncs",
-    "LAHC3.ncs",
-    "LAHCu1.ncs",  # the 'u' files are going to be filtered out
-    "xAIR1.ncs",
-    "xEKG1.ncs",
-]
+def _read_nlx_mat_chan_keep_gaps(matfile: str) -> np.ndarray:
+    """Read a single channel from a Neuralynx .mat file and keep invalid samples."""
+    mat = loadmat(matfile)
+
+    hdr_dict = _nlxheader_to_dict(mat)
+
+    # Nlx2MatCSC.m reads the data in N equal-sized (512-item) chunks
+    # this array (1, n_chunks) stores the number of valid samples
+    # per chunk (the last chunk is usually shorter)
+    n_valid_samples = mat["NumberOfValidSamples"].ravel()
+
+    # read in the artificial zeros so that
+    # we can compare with the mne padded arrays
+    ncs_records_with_gaps = [9, 15, 20]
+    for i in ncs_records_with_gaps:
+        n_valid_samples[i] = 512
+
+    # concatenate chunks, respecting the number of valid samples
+    x = np.concatenate(
+        [mat["Samples"][0:n, i] for i, n in enumerate(n_valid_samples)]
+    )  # in ADBits
+
+    # this value is the same for all channels and
+    # converts data from ADBits to Volts
+    conversionf = literal_eval(hdr_dict["ADBitVolts"])
+    x = x * conversionf
+
+    # if header says input was inverted at acquisition
+    # (possibly for spike detection or so?), flip it back
+    # NeuralynxIO does this under the hood in NeuralynxIO.parse_header()
+    # see this discussion: https://github.com/NeuralEnsemble/python-neo/issues/819
+    if hdr_dict["InputInverted"] == "True":
+        x *= -1
+
+    return x
+
 
 expected_chan_names = ["LAHC1", "LAHC2", "LAHC3", "xAIR1", "xEKG1"]
 
@@ -80,15 +110,20 @@ expected_chan_names = ["LAHC1", "LAHC2", "LAHC3", "xAIR1", "xEKG1"]
 @requires_testing_data
 def test_neuralynx():
     """Test basic reading."""
-    pytest.importorskip("neo")
-
     from neo.io import NeuralynxIO
 
-    excluded_ncs_files = ["LAHCu1.ncs", "LAHCu2.ncs", "LAHCu3.ncs"]
+    excluded_ncs_files = [
+        "LAHCu1.ncs",
+        "LAHC1_3_gaps.ncs",
+        "LAHC2_3_gaps.ncs",
+    ]
 
     # ==== MNE-Python ==== #
+    fname_patterns = ["*u*.ncs", "*3_gaps.ncs"]
     raw = read_raw_neuralynx(
-        fname=testing_path, preload=True, exclude_fname_patterns=["*u*.ncs"]
+        fname=testing_path,
+        preload=True,
+        exclude_fname_patterns=fname_patterns,
     )
 
     # test that channel selection worked
@@ -136,5 +171,52 @@ def test_neuralynx():
     )  # data
 
     _test_raw_reader(
-        read_raw_neuralynx, fname=testing_path, exclude_fname_patterns=["*u*.ncs"]
+        read_raw_neuralynx,
+        fname=testing_path,
+        exclude_fname_patterns=fname_patterns,
+    )
+
+
+@requires_testing_data
+def test_neuralynx_gaps():
+    """Test gap detection."""
+    # ignore files with no gaps
+    ignored_ncs_files = [
+        "LAHC1.ncs",
+        "LAHC2.ncs",
+        "LAHC3.ncs",
+        "xAIR1.ncs",
+        "xEKG1.ncs",
+        "LAHCu1.ncs",
+    ]
+    raw = read_raw_neuralynx(
+        fname=testing_path,
+        preload=True,
+        exclude_fname_patterns=ignored_ncs_files,
+    )
+    mne_y, _ = raw.get_data(return_times=True)  # in V
+
+    # there should be 2 channels with 3 gaps (of 130 samples in total)
+    n_expected_gaps = 3
+    n_expected_missing_samples = 130
+    assert len(raw.annotations) == n_expected_gaps, "Wrong number of gaps detected"
+    assert (
+        (mne_y[0, :] == 0).sum() == n_expected_missing_samples
+    ), "Number of true and inferred missing samples differ"
+
+    # read in .mat files containing original gaps
+    matchans = ["LAHC1_3_gaps.mat", "LAHC2_3_gaps.mat"]
+
+    # (n_chan, n_samples) array, in V
+    mat_y = np.stack(
+        [
+            _read_nlx_mat_chan_keep_gaps(os.path.join(testing_path, ch))
+            for ch in matchans
+        ]
+    )
+
+    # compare originally modified .ncs arrays with MNE-padded arrays
+    # and test that we back-inserted 0's at the right places
+    assert_allclose(
+        mne_y, mat_y, rtol=1e-6, err_msg="MNE and Nlx2MatCSC.m not all close"
     )
