@@ -995,7 +995,9 @@ def test_filter(tmp_path):
 def test_epochs_from_annotations():
     """Test epoch instantiation using annotations."""
     raw, events = _get_data()[:2]
-    with pytest.raises(RuntimeError, match="No annotations found in the raw object"):
+    with pytest.raises(
+        RuntimeError, match="No usable annotations found in the raw object"
+    ):
         Epochs(raw)
     raw.set_annotations(
         mne.annotations_from_events(
