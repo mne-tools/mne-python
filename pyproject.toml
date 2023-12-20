@@ -324,6 +324,43 @@ disable_error_code = [
     'operator',
 ]
 
+[tool.towncrier]
+package = "mne"
+directory = "doc/changes/devel/"
+filename = "doc/changes/devel.rst"
+title_format = "{version} ({project_date})"
+issue_format = "`#{issue} <https://github.com/mne-tools/mne-python/pulls/{issue}>`__"
+
+[[tool.towncrier.type]]
+directory = "notable"
+name = "Notable changes"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "dependency"
+name = "Dependencies"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "bugfix"
+name = "Bugfixes"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "apichange"
+name = "API changes by deprecation"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "newfeature"
+name = "New features"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "other"
+name = "Other changes"
+showcontent = true
+
 [tool.changelog-bot]
 [tool.changelog-bot.towncrier_changelog]
 enabled = true
