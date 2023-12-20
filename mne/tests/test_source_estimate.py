@@ -250,7 +250,7 @@ def test_volume_stc(tmp_path):
 
 @testing.requires_testing_data
 def test_save_stc_as_gifti(tmp_path):
-    """Save the stc as a gifti file and export."""
+    """Save the stc as a GIFTI file and export."""
     nib = pytest.importorskip("nibabel")
     surfpath_src = bem_path / "sample-oct-6-src.fif"
     surfpath_stc = data_path / "MEG" / "sample" / "sample_audvis_trunc-meg"
