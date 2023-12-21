@@ -3288,7 +3288,7 @@ class Epochs(BaseEpochs):
                     )
                 else:
                     raise RuntimeError(
-                        f"event_id(s) {set(event_id) -set(event_id_tmp)} "
+                        f"event_id(s) {set(event_id) - set(event_id_tmp)} "
                         "not found in annotations"
                     )
 
