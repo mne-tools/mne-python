@@ -49,7 +49,7 @@ raw = concatenate_raws([read_raw_edf(f, preload=True) for f in raw_fnames])
 eegbci.standardize(raw)  # set channel names
 montage = make_standard_montage("standard_1005")
 raw.set_montage(montage)
-raw.annotations.rename(dict(T1='hands', T2='feet'))
+raw.annotations.rename(dict(T1="hands", T2="feet"))
 
 # Apply band-pass filter
 raw.filter(7.0, 30.0, fir_design="firwin", skip_by_annotation="edge")
@@ -60,7 +60,7 @@ picks = pick_types(raw.info, meg=False, eeg=True, stim=False, eog=False, exclude
 # Testing will be done with a running classifier
 epochs = Epochs(
     raw,
-    event_id=['hands', 'feet'],
+    event_id=["hands", "feet"],
     tmin=tmin,
     tmax=tmax,
     proj=True,
