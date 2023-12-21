@@ -12,11 +12,6 @@
     "ghcr.io/rocker-org/devcontainer-features/apt-packages:1": {
       "packages": "mesa-utils,libegl1,^libxcb.*-dev,libx11-xcb-dev,libglu1-mesa-dev,libxrender-dev,libxi-dev,libxkbcommon-dev,libxkbcommon-x11-dev"
     },
-    // Git
-    "ghcr.io/devcontainers/features/git:1": {
-      "version": "os-provided",
-      "ppa": false
-    },
     // Conda and Mamba
     "ghcr.io/mamba-org/devcontainer-features/micromamba:1": {
       "channels": "conda-forge",
