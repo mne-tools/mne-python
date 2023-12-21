@@ -53,4 +53,4 @@ for stub in found_stubs:
     to = file_re.sub(rf"{directory}{pr_num}.\1.rst", fro)
     print(f"Renaming {fro} to {to}")
     if real:
-        subprocess.check_call(["git", "mv", fro, to])
+        subprocess.check_call(["mv", fro, to])
