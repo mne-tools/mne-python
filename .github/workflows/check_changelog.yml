@@ -12,8 +12,6 @@ jobs:
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       BOT_USERNAME: changelog-bot
-      GIT_COMMITTER_NAME: "MNE CI Bot"
-      GIT_COMMITTER_EMAIL: "username@users.noreply.github.com"
     defaults:
       run:
         shell: bash -el {0}
@@ -22,7 +20,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.head_ref }}
+          ref: ${{ github.event.pull_request.head.ref }}
       - run: actions/setup-python@v5
       - run: |
           pip install --upgrade towncrier pygithub
