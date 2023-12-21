@@ -3283,7 +3283,9 @@ class Epochs(BaseEpochs):
                 if set(event_id).issubset(set(event_id_tmp)):
                     event_id = {my_id: event_id_tmp[my_id] for my_id in event_id}
                     # remove any non-selected annotations
-                    annotations.delete(~np.isin(raw.annotations.description, list(event_id)))
+                    annotations.delete(
+                        ~np.isin(raw.annotations.description, list(event_id))
+                    )
                 else:
                     raise RuntimeError(
                         f"event_id(s) {set(event_id) -set(event_id_tmp)} "
