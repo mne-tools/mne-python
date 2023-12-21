@@ -9,17 +9,15 @@ jobs:
   changelog_checker:
     name: Check towncrier entry in doc/changes/devel/
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
+    # permissions:
+    #   contents: write
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.head.ref }}
+          ref: ${{ github.head_ref }}
       - run: actions/setup-python@v5
-      - run: |
-          set -eo pipefail
-          pip install --upgrade towncrier pygithub
-          python ./.github/actions/rename_towncrier/rename_towncrier.py
+      - run: pip install --upgrade towncrier pygithub
+      - run: python ./.github/actions/rename_towncrier/rename_towncrier.py
       - uses: stefanzweifel/git-auto-commit-action@v5
         id: commit-action
         with:
