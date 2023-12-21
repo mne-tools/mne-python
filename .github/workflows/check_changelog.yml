@@ -9,9 +9,6 @@ jobs:
   changelog_checker:
     name: Check towncrier entry in doc/changes/devel/
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        shell: bash -el {0}
     permissions:
       contents: write
     steps:
@@ -20,6 +17,7 @@ jobs:
           ref: ${{ github.event.pull_request.head.ref }}
       - run: actions/setup-python@v5
       - run: |
+          set -eo pipefail
           pip install --upgrade towncrier pygithub
           python ./.github/actions/rename_towncrier/rename_towncrier.py
       - uses: stefanzweifel/git-auto-commit-action@v5
