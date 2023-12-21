@@ -3112,6 +3112,12 @@ class Epochs(BaseEpochs):
     Parameters
     ----------
     %(raw_epochs)s
+
+        .. note::
+            ``Epochs`` can be constructed using only a ``raw`` object from the
+            annotations stored in the ``raw`` object, however, the duration of
+            the events are ignored since ``Epochs`` must be the same time length
+            by design.
     %(events_epochs)s
 
         .. versionchanged:: 1.7
@@ -3178,10 +3184,6 @@ class Epochs(BaseEpochs):
 
     Notes
     -----
-    When Epochs are constructed using only a raw object (from the annotations
-    stored in the raw object), the duration of the events are ignored since
-    Epochs must be the same time length by design.
-
     When accessing data, Epochs are detrended, baseline-corrected, and
     decimated, then projectors are (optionally) applied.
 
