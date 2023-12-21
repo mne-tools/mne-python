@@ -1645,7 +1645,7 @@ class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
             data = getattr(self, f"{hemi}_data") * scale
             ts = [
                 nib.gifti.gifti.GiftiDataArray(
-                    data=data[:, idx],
+                    data=data[:, idx].astype(np.float32),
                     intent="NIFTI_INTENT_POINTSET",
                     datatype="NIFTI_TYPE_FLOAT32",
                 )
