@@ -28,7 +28,6 @@ jobs:
       - run: exit 1
         if: steps.commit-action.outputs.changes_detected == 'false'
       - uses: larsoner/action-towncrier-changelog@co  # revert to scientific-python @ 0.1.1 once bug is fixed
-        with:
-          env:
-            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-            BOT_USERNAME: changelog-bot
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BOT_USERNAME: changelog-bot
