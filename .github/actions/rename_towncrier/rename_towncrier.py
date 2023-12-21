@@ -54,15 +54,3 @@ for stub in found_stubs:
     print(f"Renaming {fro} to {to}")
     if real:
         subprocess.check_call(["git", "mv", fro, to])
-else:
-    exit(0)
-if real:
-    subprocess.check_call(
-        ["git", "commit", "-am", f"DOC: Rename towncrier file(s) for PR {pr_num}"]
-    )
-    subprocess.check_call(["git", "push"])
-    print(
-        "Pushed commit to GitHub, exiting with failing status to prevent further "
-        "checks"
-    )
-    exit(1)  # don't proceed with other checks

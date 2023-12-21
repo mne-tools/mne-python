@@ -17,13 +17,18 @@ jobs:
     defaults:
       run:
         shell: bash -el {0}
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.head.ref }}
-          token: ${{ secrets.WORKFLOW_GIT_ACCESS_TOKEN }}
+          ref: ${{ github.head_ref }}
       - run: actions/setup-python@v5
       - run: |
           pip install --upgrade towncrier pygithub
           python ./.github/actions/rename_towncrier/rename_towncrier.py
-      - uses: larsoner/action-towncrier-changelog@co  # revert to scientific-python @ 0.1.1 once bug is fixed
+      - uses: stefanzweifel/git-auto-commit-action@v5
+        id: commit-action
+      - run: exit 1
+        if: steps.commit-action.outputs.changes_detected == 'false'
+        # - uses: larsoner/action-towncrier-changelog@co  # revert to scientific-python @ 0.1.1 once bug is fixed
