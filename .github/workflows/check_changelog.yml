@@ -9,9 +9,6 @@ jobs:
   changelog_checker:
     name: Check towncrier entry in doc/changes/devel/
     runs-on: ubuntu-latest
-    env:
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      BOT_USERNAME: changelog-bot
     defaults:
       run:
         shell: bash -el {0}
@@ -27,6 +24,12 @@ jobs:
           python ./.github/actions/rename_towncrier/rename_towncrier.py
       - uses: stefanzweifel/git-auto-commit-action@v5
         id: commit-action
+        with:
+          commit_message: "DOC: Update changelog entry to PR ${{ github.event.pull_request.number }}"
       - run: exit 1
         if: steps.commit-action.outputs.changes_detected == 'false'
         # - uses: larsoner/action-towncrier-changelog@co  # revert to scientific-python @ 0.1.1 once bug is fixed
+        #   with:
+        #     env:
+        #       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        #       BOT_USERNAME: changelog-bot
