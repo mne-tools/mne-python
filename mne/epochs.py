@@ -3114,14 +3114,14 @@ class Epochs(BaseEpochs):
     %(raw_epochs)s
 
         .. note::
-            ``Epochs`` can be constructed using only a ``raw`` object from the
-            ``annotations`` stored in the ``raw`` object, however, the duration of
-            the ``annotations`` is ignored since ``Epochs`` must be the same
-            time length by design.
+            If ``raw`` contains annotations, ``Epochs`` can be constructed around
+            ``raw.annotations.onset``, but note that the durations of the annotations
+            are ignored in this case.
     %(events_epochs)s
 
         .. versionchanged:: 1.7
-            Allow ``events=None`` to use ``raw.annotations``.
+            Allow ``events=None`` to use ``raw.annotations.onset`` as the source of
+            epoch times.
     %(event_id)s
     %(epochs_tmin_tmax)s
     %(baseline_epochs)s
@@ -3271,28 +3271,22 @@ class Epochs(BaseEpochs):
                 )
             if any(raw.annotations.duration > 0):
                 logger.info(
-                    "Ignoring annotation durations, only fixed "
-                    "duration epochs are currently supported"
+                    "Ignoring annotation durations and creating fixed-duration epochs "
+                    "around annotation onsets."
                 )
             if event_id is None:
                 event_id = event_id_tmp
             # if event_id is the names of events, map to events integers
-            elif isinstance(event_id, (str, list, tuple)):
-                if isinstance(event_id, str):
-                    event_id = [event_id]
-                if all([my_id in event_id_tmp for my_id in event_id]):
+            if isinstance(event_id, str):
+                event_id = [event_id]
+            if isinstance(event_id, (list, tuple, set)):
+                if set(event_id).issubset(set(event_id_tmp)):
                     event_id = {my_id: event_id_tmp[my_id] for my_id in event_id}
                     # remove any non-selected annotations
-                    annotations.delete(
-                        [
-                            i
-                            for i, desc in enumerate(raw.annotations.description)
-                            if desc not in event_id
-                        ]
-                    )
+                    annotations.delete(~np.isin(raw.annotations.description, list(event_id)))
                 else:
                     raise RuntimeError(
-                        f"event_id(s) {set(event_id).difference(set(event_id_tmp))} "
+                        f"event_id(s) {set(event_id) -set(event_id_tmp)} "
                         "not found in annotations"
                     )
 

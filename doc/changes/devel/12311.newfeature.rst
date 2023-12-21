@@ -1,1 +1,1 @@
-:class:`mne.Epochs` can now be constructed using :class:`mne.Annotations` stored in the ``raw`` object, allowing ``events=None``. By `Alex Rockhill`_.
+:class:`mne.Epochs` can now be constructed using :class:`mne.Annotations` stored in the ``raw`` object, by specifying ``events=None``. By `Alex Rockhill`_.

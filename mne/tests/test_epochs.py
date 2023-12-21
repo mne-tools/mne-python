@@ -1006,8 +1006,6 @@ def test_epochs_from_annotations():
     )
     with pytest.raises(RuntimeError, match="not found in annotations"):
         Epochs(raw, event_id="foo")
-    with pytest.raises(RuntimeError, match="not found in annotations"):
-        Epochs(raw, event_id=["foo"])
 
 
 def test_epochs_hash():
