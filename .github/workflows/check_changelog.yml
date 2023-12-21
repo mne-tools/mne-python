@@ -17,6 +17,8 @@ jobs:
           repository: ${{ github.event.pull_request.head.repo.full_name }}
           ref: ${{ github.event.pull_request.head.ref }}
       - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
       - run: pip install --upgrade towncrier pygithub
       - run: python ./.github/actions/rename_towncrier/rename_towncrier.py
       - uses: stefanzweifel/git-auto-commit-action@v5
@@ -25,8 +27,8 @@ jobs:
           commit_message: "DOC: Update changelog entry to PR ${{ github.event.pull_request.number }}"
       - run: exit 1
         if: steps.commit-action.outputs.changes_detected == 'false'
-        # - uses: larsoner/action-towncrier-changelog@co  # revert to scientific-python @ 0.1.1 once bug is fixed
-        #   with:
-        #     env:
-        #       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        #       BOT_USERNAME: changelog-bot
+      - uses: larsoner/action-towncrier-changelog@co  # revert to scientific-python @ 0.1.1 once bug is fixed
+        with:
+          env:
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            BOT_USERNAME: changelog-bot
