@@ -4,13 +4,13 @@ on:  # yamllint disable-line rule:truthy
   pull_request:
     types: [opened, synchronize, labeled, unlabeled]
 
-# https://joht.github.io/johtizen/build/2022/01/20/github-actions-push-into-repository.html#git-commit-within-a-pull-request#example-4
+permissions:
+  contents: read
+
 jobs:
   changelog_checker:
     name: Check towncrier entry in doc/changes/devel/
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     steps:
       - uses: actions/checkout@v4
         with:
@@ -21,12 +21,7 @@ jobs:
           python-version: '3.12'
       - run: pip install --upgrade towncrier pygithub
       - run: python ./.github/actions/rename_towncrier/rename_towncrier.py
-      - uses: stefanzweifel/git-auto-commit-action@v5
-        id: commit-action
-        with:
-          commit_message: "DOC: Update changelog entry to PR ${{ github.event.pull_request.number }}"
-      - run: exit 1
-        if: steps.commit-action.outputs.changes_detected == 'false'
+      - uses: autofix-ci/action@d3e591514b99d0fca6779455ff8338516663f7cc
       - uses: larsoner/action-towncrier-changelog@co  # revert to scientific-python @ 0.1.1 once bug is fixed
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
