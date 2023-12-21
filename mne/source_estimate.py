@@ -1619,7 +1619,7 @@ class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
             darrays = list()
             darrays.append(
                 nib.gifti.gifti.GiftiDataArray(
-                    data=s["rr"] * scale_rr,
+                    data=(s["rr"] * scale_rr).astype(np.float32),
                     intent="NIFTI_INTENT_POINTSET",
                     datatype="NIFTI_TYPE_FLOAT32",
                 )
@@ -1628,7 +1628,7 @@ class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
             # Make the topology DataArray
             darrays.append(
                 nib.gifti.gifti.GiftiDataArray(
-                    data=s["tris"],
+                    data=s["tris"].astype(np.int32),
                     intent="NIFTI_INTENT_TRIANGLE",
                     datatype="NIFTI_TYPE_INT32",
                 )
