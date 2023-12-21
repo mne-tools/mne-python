@@ -3115,9 +3115,9 @@ class Epochs(BaseEpochs):
 
         .. note::
             ``Epochs`` can be constructed using only a ``raw`` object from the
-            annotations stored in the ``raw`` object, however, the duration of
-            the events are ignored since ``Epochs`` must be the same time length
-            by design.
+            ``annotations`` stored in the ``raw`` object, however, the duration of
+            the ``annotations`` is ignored since ``Epochs`` must be the same
+            time length by design.
     %(events_epochs)s
 
         .. versionchanged:: 1.7
