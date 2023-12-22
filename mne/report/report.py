@@ -2383,7 +2383,7 @@ class Report:
         )
         self._add_or_replace(
             title=title,
-            section=None,
+            section=section,
             tags=tags,
             html_partial=html_partial,
             replace=replace,

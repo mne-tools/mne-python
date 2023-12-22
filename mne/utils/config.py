@@ -684,6 +684,7 @@ def sys_info(
         "mne-connectivity",
         "mne-icalabel",
         "mne-bids-pipeline",
+        "neo",
         "",
     )
     if dependencies == "developer":

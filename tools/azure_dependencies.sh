@@ -9,12 +9,13 @@ elif [ "${TEST_MODE}" == "pip-pre" ]; then
 	python -m pip install $STD_ARGS --only-binary ":all:" --extra-index-url "https://www.riverbankcomputing.com/pypi/simple" "PyQt6!=6.6.1" PyQt6-sip PyQt6-Qt6 "PyQt6-Qt6!=6.6.1"
 	echo "Numpy etc."
 	# See github_actions_dependencies.sh for comments
-	python -m pip install $STD_ARGS --only-binary "numpy" numpy
-	python -m pip install $STD_ARGS --only-binary ":all:" --extra-index-url "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" "numpy>=2.0.0.dev0" "scipy>=1.12.0.dev0" scikit-learn matplotlib statsmodels
+	# Until https://github.com/scipy/scipy/issues/19605 and
+	# https://github.com/scipy/scipy/issues/19713 are resolved, we can't use the NumPy
+	# 2.0 wheels :(
+	python -m pip install $STD_ARGS --only-binary numpy scipy h5py
+	python -m pip install $STD_ARGS --only-binary ":all:" --extra-index-url "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" scikit-learn matplotlib statsmodels
 	# echo "dipy"
 	# python -m pip install $STD_ARGS --only-binary ":all:" --extra-index-url "https://pypi.anaconda.org/scipy-wheels-nightly/simple" dipy
-	# echo "h5py"
-	# python -m pip install $STD_ARGS --only-binary ":all:" -f "https://7933911d6844c6c53a7d-47bd50c35cd79bd838daf386af554a83.ssl.cf2.rackcdn.com" h5py
 	# echo "OpenMEEG"
 	# pip install $STD_ARGS --only-binary ":all:" --extra-index-url "https://test.pypi.org/simple" openmeeg
 	echo "vtk"

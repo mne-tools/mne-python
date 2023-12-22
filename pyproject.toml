@@ -104,6 +104,7 @@ full = [
     "pybv",
     "snirf",
     "defusedxml",
+    "neo",
 ]
 
 # Dependencies for running the test infrastructure
@@ -135,6 +136,7 @@ test_extra = [
     "imageio>=2.6.1",
     "imageio-ffmpeg>=0.4.1",
     "snirf",
+    "neo",
 ]
 
 # Dependencies for building the docuemntation
@@ -144,6 +146,7 @@ doc = [
     "pydata_sphinx_theme==0.13.3",
     "sphinx-gallery",
     "sphinxcontrib-bibtex>=2.5",
+    "sphinxcontrib-towncrier",
     "memory_profiler",
     "neo",
     "seaborn!=0.11.2",
@@ -289,6 +292,7 @@ ignore_directives = [
     "toctree",
     "rst-class",
     "tab-set",
+    "towncrier-draft-entries",
 ]
 ignore_messages = "^.*(Unknown target name|Undefined substitution referenced)[^`]*$"
 
@@ -321,3 +325,46 @@ disable_error_code = [
     'assignment',
     'operator',
 ]
+
+[tool.towncrier]
+package = "mne"
+directory = "doc/changes/devel/"
+filename = "doc/changes/devel.rst"
+title_format = "{version} ({project_date})"
+issue_format = "`#{issue} <https://github.com/mne-tools/mne-python/pulls/{issue}>`__"
+
+[[tool.towncrier.type]]
+directory = "notable"
+name = "Notable changes"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "dependency"
+name = "Dependencies"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "bugfix"
+name = "Bugfixes"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "apichange"
+name = "API changes by deprecation"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "newfeature"
+name = "New features"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "other"
+name = "Other changes"
+showcontent = true
+
+[tool.changelog-bot]
+[tool.changelog-bot.towncrier_changelog]
+enabled = true
+verify_pr_number = true
+changelog_skip_label = "no-changelog-entry-needed"

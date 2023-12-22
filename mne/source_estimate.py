@@ -31,6 +31,7 @@ from .source_space._source_space import (
     _ensure_src_subject,
     _get_morph_src_reordering,
     _get_src_nn,
+    get_decimated_surfaces,
 )
 from .surface import _get_ico_surface, _project_onto_surface, mesh_edges, read_surface
 from .transforms import _get_trans, apply_trans
@@ -1583,6 +1584,77 @@ class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
             subject=self.subject,
         )
         return label_stc
+
+    def save_as_surface(self, fname, src, *, scale=1, scale_rr=1e3):
+        """Save a surface source estimate (stc) as a GIFTI file.
+
+        Parameters
+        ----------
+        fname : path-like
+            Filename basename to save files as.
+            Will write anatomical GIFTI plus time series GIFTI for both lh/rh,
+            for example ``"basename"`` will write ``"basename.lh.gii"``,
+            ``"basename.lh.time.gii"``, ``"basename.rh.gii"``, and
+            ``"basename.rh.time.gii"``.
+        src : instance of SourceSpaces
+            The source space of the forward solution.
+        scale : float
+            Scale factor to apply to the data (functional) values.
+        scale_rr : float
+            Scale factor for the source vertex positions. The default (1e3) will
+            scale from meters to millimeters, which is more standard for GIFTI files.
+
+        Notes
+        -----
+        .. versionadded:: 1.7
+        """
+        nib = _import_nibabel()
+        _check_option("src.kind", src.kind, ("surface", "mixed"))
+        ss = get_decimated_surfaces(src)
+        assert len(ss) == 2  # should be guaranteed by _check_option above
+
+        # Create lists to put DataArrays into
+        hemis = ("lh", "rh")
+        for s, hemi in zip(ss, hemis):
+            darrays = list()
+            darrays.append(
+                nib.gifti.gifti.GiftiDataArray(
+                    data=(s["rr"] * scale_rr).astype(np.float32),
+                    intent="NIFTI_INTENT_POINTSET",
+                    datatype="NIFTI_TYPE_FLOAT32",
+                )
+            )
+
+            # Make the topology DataArray
+            darrays.append(
+                nib.gifti.gifti.GiftiDataArray(
+                    data=s["tris"].astype(np.int32),
+                    intent="NIFTI_INTENT_TRIANGLE",
+                    datatype="NIFTI_TYPE_INT32",
+                )
+            )
+
+            # Make the output GIFTI for anatomicals
+            topo_gi_hemi = nib.gifti.gifti.GiftiImage(darrays=darrays)
+
+            # actually save the file
+            nib.save(topo_gi_hemi, f"{fname}-{hemi}.gii")
+
+            # Make the Time Series data arrays
+            ts = []
+            data = getattr(self, f"{hemi}_data") * scale
+            ts = [
+                nib.gifti.gifti.GiftiDataArray(
+                    data=data[:, idx].astype(np.float32),
+                    intent="NIFTI_INTENT_POINTSET",
+                    datatype="NIFTI_TYPE_FLOAT32",
+                )
+                for idx in range(data.shape[1])
+            ]
+
+            # save the time series
+            ts_gi = nib.gifti.gifti.GiftiImage(darrays=ts)
+            nib.save(ts_gi, f"{fname}-{hemi}.time.gii")
 
     def expand(self, vertices):
         """Expand SourceEstimate to include more vertices.
