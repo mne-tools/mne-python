@@ -2057,7 +2057,7 @@ class BaseRaw(
 
     def __repr__(self):  # noqa: D105
         name = self.filenames[0]
-        name = "" if name is None else op.basename(name) + ", "
+        name = "" if name is None else op.basename(str(name)) + ", "
         size_str = str(sizeof_fmt(self._size))  # str in case it fails -> None
         size_str += ", data%s loaded" % ("" if self.preload else " not")
         s = "%s%s x %s (%0.1f s), ~%s" % (

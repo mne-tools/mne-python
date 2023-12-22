@@ -4,7 +4,6 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-import os.path as op
 from gzip import GzipFile
 from io import SEEK_SET, BytesIO
 
@@ -12,6 +11,7 @@ import numpy as np
 from scipy.sparse import issparse
 
 from ..utils import _file_like, logger, verbose, warn
+from pathlib import Path
 from .constants import FIFF
 from .tag import Tag, _call_dict_names, _matrix_info, read_tag, read_tag_info
 from .tree import dir_tree_find, make_dir_tree
@@ -45,13 +45,14 @@ def _fiff_get_fid(fname):
         fid = _NoCloseRead(fname)
         fid.seek(0)
     else:
-        fname = str(fname)
-        if op.splitext(fname)[1].lower() == ".gz":
+        if isinstance(fname, str):
+            fname = Path(fname)
+        if fname.suffix.lower() == ".gz":
             logger.debug("Using gzip")
             fid = GzipFile(fname, "rb")  # Open in binary mode
         else:
             logger.debug("Using normal I/O")
-            fid = open(fname, "rb")  # Open in binary mode
+            fid = fname.open("rb")  # Open in binary mode
     return fid
 
 
@@ -59,6 +60,8 @@ def _get_next_fname(fid, fname, tree):
     """Get the next filename in split files."""
     nodes_list = dir_tree_find(tree, FIFF.FIFFB_REF)
     next_fname = None
+    if fname == "File-like":
+        fname = Path()
     for nodes in nodes_list:
         next_fname = None
         for ent in nodes["directory"]:
@@ -70,14 +73,14 @@ def _get_next_fname(fid, fname, tree):
                     break
             if ent.kind == FIFF.FIFF_REF_FILE_NAME:
                 tag = read_tag(fid, ent.pos)
-                next_fname = op.join(op.dirname(fname), tag.data)
+                next_fname = fname.parent / tag.data
             if ent.kind == FIFF.FIFF_REF_FILE_NUM:
                 # Some files don't have the name, just the number. So
                 # we construct the name from the current name.
                 if next_fname is not None:
                     continue
                 next_num = read_tag(fid, ent.pos).data.item()
-                path, base = op.split(fname)
+                path, base = fname.parent, fname.name
                 idx = base.find(".")
                 idx2 = base.rfind("-")
                 num_str = base[idx2 + 1 : idx]
@@ -86,14 +89,10 @@ def _get_next_fname(fid, fname, tree):
 
                 if idx2 < 0 and next_num == 1:
                     # this is the first file, which may not be numbered
-                    next_fname = op.join(
-                        path, "%s-%d.%s" % (base[:idx], next_num, base[idx + 1 :])
-                    )
+                    next_fname = path / f"{base[:idx]}-{next_num:d}.{base[idx + 1 :]}"
                     continue
 
-                next_fname = op.join(
-                    path, "%s-%d.%s" % (base[:idx2], next_num, base[idx + 1 :])
-                )
+                next_fname = path / f"{base[:idx2]}-{next_num:d}.{base[idx + 1 :]}"
         if next_fname is not None:
             break
     return next_fname

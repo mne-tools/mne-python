@@ -13,6 +13,7 @@ from copy import deepcopy
 from functools import partial
 from io import BytesIO
 from pathlib import Path
+import zipfile
 
 import numpy as np
 import pytest
@@ -2113,3 +2114,43 @@ def test_expand_user(tmp_path, monkeypatch):
 
     raw = read_raw_fif(fname=path_home, preload=True)
     raw.save(fname=path_home, overwrite=True)
+
+
+@testing.requires_testing_data
+@pytest.mark.parametrize("split_size", ["2GB", "5MB"])
+def test_zip_io(tmp_path_factory, split_size):
+    """Test writin to zip and reading back preserves data."""
+    fname = fif_fname.name
+    zip_fname = tmp_path_factory.mktemp("zipfile_reading") / (fname + ".zip")
+    saved_raw = read_raw_fif(fif_fname).crop(0, 1)
+
+    with zipfile.ZipFile(zip_fname, "w") as zip_:
+        saved_raw.save(zipfile.Path(zip_, fname), split_size=split_size)
+
+    with zipfile.ZipFile(zip_fname) as zip_:
+        loaded_raw = read_raw_fif(zipfile.Path(zip_, fname))
+
+        assert_object_equal(saved_raw.get_data(), loaded_raw.get_data())
+        assert saved_raw.info["ch_names"] == loaded_raw.info["ch_names"]
+        assert_array_equal(saved_raw.times, loaded_raw.times)
+
+
+@testing.requires_testing_data
+@pytest.mark.parametrize("split_size", ["5MB"])
+def test_zip_splits_number(tmp_path_factory, split_size):
+    """Test save to zip produces the same number of splits as regular save."""
+    dst_dir_reg = tmp_path_factory.mktemp("zipfile_splits_reg")
+    dst_dir_zip = tmp_path_factory.mktemp("zipfile_splits_zip")
+    fname = fif_fname.name
+    zip_fname = dst_dir_zip / (fname + ".zip")
+    saved_raw = read_raw_fif(fif_fname).crop(0, 3)
+
+    saved_raw.save(dst_dir_reg / fname, split_size=split_size, buffer_size_sec=1)
+    with zipfile.ZipFile(zip_fname, "w") as zip_:
+        saved_raw.save(
+            zipfile.Path(zip_, fname), split_size=split_size, buffer_size_sec=1
+        )
+
+    assert len(list(dst_dir_reg.iterdir())) > 1
+    with zipfile.ZipFile(zip_fname, "r") as zip_:
+        assert len(list(dst_dir_reg.iterdir())) == len(zip_.namelist())

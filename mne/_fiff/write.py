@@ -4,12 +4,14 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-import os.path as op
+from contextlib import contextmanager
+from gzip import GzipFile
 import re
 import time
 import uuid
-from contextlib import contextmanager
-from gzip import GzipFile
+from pathlib import Path
+import zipfile
+import io
 
 import numpy as np
 from scipy.sparse import csc_matrix, csr_matrix
@@ -276,6 +278,26 @@ def end_block(fid, kind):
     write_int(fid, FIFF.FIFF_BLOCK_END, kind)
 
 
+class SeekableZipWriteFile(io.BufferedIOBase):
+    def __init__(self, fid):
+        self._fid = fid
+        self._seek = 0
+
+    def write(self, data):
+        n_bytes = self._fid.write(data)
+        self._seek += n_bytes
+        return n_bytes
+
+    def close(self):
+        self._fid.close()
+
+    def writable(self):
+        return self._fid.writable()
+
+    def tell(self):
+        return self._seek
+
+
 def start_file(fname, id_=None):
     """Open a fif file for writing and writes the compulsory header tags.
 
@@ -293,15 +315,18 @@ def start_file(fname, id_=None):
         fid = fname
         fid.seek(0)
     else:
-        fname = str(fname)
-        if op.splitext(fname)[1].lower() == ".gz":
+        if isinstance(fname, str):
+            fname = Path(fname)
+        if str(fname).lower().endswith(".gz"):
             logger.debug("Writing using gzip")
             # defaults to compression level 9, which is barely smaller but much
             # slower. 2 offers a good compromise.
             fid = GzipFile(fname, "wb", compresslevel=2)
         else:
             logger.debug("Writing using normal I/O")
-            fid = open(fname, "wb")
+            fid = fname.open("wb")  # Open in binary mode
+            if isinstance(fname, zipfile.Path):
+                fid = SeekableZipWriteFile(fid)
     #   Write the compulsory items
     write_id(fid, FIFF.FIFF_FILE_ID, id_)
     write_int(fid, FIFF.FIFF_DIR_POINTER, -1)
