@@ -9,7 +9,7 @@
   "build": { "dockerfile": "Dockerfile" }, // Only through the Dockerfile we can enforce ARM64
   "containerEnv": {
     "PYTHONNOUSERSITE": "true", // Make Python ignore the user's site-packages folder if it exists
-    "XDG_RUNTIME_DIR": "/home/mne-user/.cache/xdgr"
+    "XDG_RUNTIME_DIR": "/home/mne-user/.cache/xdgr" // For VNC
   },
   "features": {
     // See https://containers.dev/features
