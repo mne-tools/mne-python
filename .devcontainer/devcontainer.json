@@ -30,7 +30,7 @@
     "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {},
     // Zsh plugins
     "ghcr.io/devcontainers-contrib/features/zsh-plugins:0": {
-      "plugins": "zsh-autosuggestions zsh-syntax-highlighting history-substring-search",
+      "plugins": "git pip zsh-autosuggestions zsh-syntax-highlighting history-substring-search",
       "omzPlugins": "https://github.com/zsh-users/zsh-autosuggestions https://github.com/zsh-users/zsh-syntax-highlighting"
     },
     // Desktop and VNC access
