@@ -2514,7 +2514,7 @@ class FilterMixin:
             https://gist.github.com/larsoner/bbac101d50176611136b
 
         .. versionadded:: 0.9.0
-        
+
         When working on SourceEstimates the sample rate of the original data is inferred from tstep.
 
         References
@@ -2531,11 +2531,12 @@ class FilterMixin:
         >>> evoked.plot()  # doctest:+SKIP
         """  # noqa: E501
         from .source_estimate import _BaseSourceEstimate
+
         if not isinstance(self, _BaseSourceEstimate):
             _check_preload(self, "inst.savgol_filter")
             s_freq = self.info["sfreq"]
         else:
-            s_freq = 1/self.tstep 
+            s_freq = 1 / self.tstep
         h_freq = float(h_freq)
         if h_freq >= s_freq / 2.0:
             raise ValueError("h_freq must be less than half the sample rate")
@@ -2628,7 +2629,7 @@ class FilterMixin:
         .. note:: If n_jobs > 1, more memory is required as
                   ``len(picks) * n_times`` additional time points need to
                   be temporarily stored in memory.
-        
+
         .. note:: When working on SourceEstimates the sample rate of the original data is inferred from tstep.
 
         For more information, see the tutorials
@@ -2640,6 +2641,7 @@ class FilterMixin:
         from .annotations import _annotations_starts_stops
         from .io import BaseRaw
         from .source_estimate import _BaseSourceEstimate
+
         if not isinstance(self, _BaseSourceEstimate):
             _check_preload(self, "inst.filter")
             update_info, picks = _filt_check_picks(self.info, picks, l_freq, h_freq)
@@ -2685,7 +2687,7 @@ class FilterMixin:
             )
         # update info if filter is applied to all data channels/vertices,
         # and it's not a band-stop filter
-        if not isinstance(self, _BaseSourceEstimate): 
+        if not isinstance(self, _BaseSourceEstimate):
             _filt_update_info(self.info, update_info, l_freq, h_freq)
         else:
             self.l_freq = l_freq
@@ -2845,6 +2847,7 @@ class FilterMixin:
         inverse, and computing the envelope in source space.
         """
         from .source_estimate import _BaseSourceEstimate
+
         if not isinstance(self, _BaseSourceEstimate):
             _check_preload(self, "inst.apply_hilbert")
             picks = _picks_to_idx(self.info, picks, exclude=(), with_ref_meg=False)

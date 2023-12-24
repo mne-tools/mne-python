@@ -22,9 +22,9 @@ from ._freesurfer import _get_atlas_values, _get_mri_info_data, read_freesurfer_
 from .baseline import rescale
 from .cov import Covariance
 from .evoked import _get_peak
-from .parallel import parallel_func
 from .filter import FilterMixin, _check_fun, resample
 from .fixes import _safe_svd
+from .parallel import parallel_func
 from .source_space._source_space import (
     SourceSpaces,
     _check_volume_labels,
@@ -496,10 +496,7 @@ def _verify_source_estimate_compat(a, b):
         )
 
 
-class _BaseSourceEstimate(
-    TimeMixin,
-    FilterMixin
-    ):
+class _BaseSourceEstimate(TimeMixin, FilterMixin):
     _data_ndim = 2
 
     @verbose
