@@ -2630,7 +2630,7 @@ class FilterMixin:
                   ``len(picks) * n_times`` additional time points need to
                   be temporarily stored in memory.
 
-        .. note:: When working on SourceEstimates the sample rate of the original 
+        .. note:: When working on SourceEstimates the sample rate of the original
                     data is inferred from tstep.
 
         For more information, see the tutorials
