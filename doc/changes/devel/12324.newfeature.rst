@@ -1,0 +1,1 @@
+Add ``tol`` parameter to :meth:`mne.annotations.events_from_annotations`, by `Michiru Kaneda`_
