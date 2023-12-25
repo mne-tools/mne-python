@@ -4,6 +4,6 @@
 
 Enhancements
 ~~~~~~~~~~~~
-- Add tol parameter to :meth:`mne.annotations.events_from_annotations`. (:gh:`` by `Michiru Kaneda`_)
+- Add ``tol`` parameter to :meth:`mne.annotations.events_from_annotations`. (:gh:`12324` by `Michiru Kaneda`_)
 
 .. towncrier-draft-entries:: Version |release| (development)
