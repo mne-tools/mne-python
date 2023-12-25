@@ -1,0 +1,1 @@
+Fix ``mne.io.edf.edf._parse_prefilter_string`` to add prefilter information as ``np.nan`` when the prefilter information does not exist, by `Michiru Kaneda`_

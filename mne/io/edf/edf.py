@@ -758,26 +758,18 @@ def _get_info(
     return info, edf_info, orig_units
 
 
+def _extract_filter_value(s, prefix, suffix):
+    if prefix in s:
+        start = s.find(prefix) + len(prefix)
+        end = s.find(suffix, start)
+        return s[start:end].strip()
+    return np.nan
+
+
 def _parse_prefilter_string(prefiltering):
     """Parse prefilter string from EDF+ and BDF headers."""
-    highpass = np.array(
-        [
-            v
-            for hp in [
-                re.findall(r"HP:\s*([0-9]+[.]*[0-9]*)", filt) for filt in prefiltering
-            ]
-            for v in hp
-        ]
-    )
-    lowpass = np.array(
-        [
-            v
-            for hp in [
-                re.findall(r"LP:\s*([0-9]+[.]*[0-9]*)", filt) for filt in prefiltering
-            ]
-            for v in hp
-        ]
-    )
+    highpass = [_extract_filter_value(s, "HP:", "Hz") for s in prefiltering]
+    lowpass = [_extract_filter_value(s, "LP:", "Hz") for s in prefiltering]
     return highpass, lowpass
 
 

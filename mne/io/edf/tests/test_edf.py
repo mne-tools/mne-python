@@ -644,13 +644,18 @@ def test_edf_prefilter_parse():
 
     prefilter_unfiltered_ch = prefilter_normal_multi_ch + [""]
     highpass, lowpass = _parse_prefilter_string(prefilter_unfiltered_ch)
-    assert_array_equal(highpass, ["1"] * 10)
-    assert_array_equal(lowpass, ["30"] * 10)
+    assert_array_equal(highpass, ["1"] * 10 + [np.nan])
+    assert_array_equal(lowpass, ["30"] * 10 + [np.nan])
 
     prefilter_edf_specs_doc = ["HP:0.1Hz LP:75Hz N:50Hz"]
     highpass, lowpass = _parse_prefilter_string(prefilter_edf_specs_doc)
     assert_array_equal(highpass, ["0.1"])
     assert_array_equal(lowpass, ["75"])
+
+    prefilter_edf_specs_doc = ["", "HP:0.1Hz LP:75Hz N:50Hz", ""]
+    highpass, lowpass = _parse_prefilter_string(prefilter_edf_specs_doc)
+    assert_array_equal(highpass, [np.nan, "0.1", np.nan])
+    assert_array_equal(lowpass, [np.nan, "75", np.nan])
 
 
 @testing.requires_testing_data
