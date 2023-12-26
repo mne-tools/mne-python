@@ -8,51 +8,57 @@
 #          Clemens Brunner <clemens.brunner@gmail.com>
 #
 # License: BSD-3-Clause
-# Copyright the MNE-Python contributors.
 
+from contextlib import nullcontext
+from copy import deepcopy
+from datetime import timedelta
 import os
 import os.path as op
 import shutil
 from collections import defaultdict
-from contextlib import nullcontext
-from copy import deepcopy
 from dataclasses import dataclass, field
-from datetime import timedelta
 
 import numpy as np
 
-from .._fiff.compensator import make_compensator, set_current_comp
+from ..filter import _check_resamp_noop
+from ..event import find_events, concatenate_events
 from .._fiff.constants import FIFF
-from .._fiff.meas_info import (
-    ContainsMixin,
-    SetChannelsMixin,
-    _ensure_infos_match,
-    _unit2human,
-    write_meas_info,
-)
+from .._fiff.utils import _make_split_fnames, _check_orig_units
 from .._fiff.pick import (
-    _picks_to_idx,
-    channel_type,
+    pick_types,
     pick_channels,
     pick_info,
-    pick_types,
+    _picks_to_idx,
+    channel_type,
 )
-from .._fiff.proj import ProjMixin, _proj_equal, activate_proj, setup_proj
-from .._fiff.utils import _check_orig_units, _make_split_fnames
+from .._fiff.meas_info import (
+    write_meas_info,
+    _ensure_infos_match,
+    ContainsMixin,
+    SetChannelsMixin,
+    _unit2human,
+)
+from .._fiff.proj import setup_proj, activate_proj, _proj_equal, ProjMixin
+from ..channels.channels import (
+    UpdateChannelsMixin,
+    InterpolationMixin,
+    ReferenceMixin,
+)
+from .._fiff.compensator import set_current_comp, make_compensator
 from .._fiff.write import (
-    _NEXT_FILE_BUFFER,
-    _get_split_size,
-    end_block,
     start_and_end_file,
     start_block,
+    end_block,
+    write_dau_pack16,
+    write_float,
+    write_double,
     write_complex64,
     write_complex128,
-    write_dau_pack16,
-    write_double,
-    write_float,
-    write_id,
     write_int,
+    write_id,
     write_string,
+    _get_split_size,
+    _NEXT_FILE_BUFFER,
 )
 from ..annotations import (
     Annotations,
@@ -62,56 +68,54 @@ from ..annotations import (
     _sync_onset,
     _write_annotations,
 )
-from ..channels.channels import (
-    InterpolationMixin,
-    ReferenceMixin,
-    UpdateChannelsMixin,
-)
-from ..defaults import _handle_default
-from ..event import concatenate_events, find_events
 from ..filter import (
     FilterMixin,
-    _check_fun,
-    _check_resamp_noop,
-    _resamp_ratio_len,
-    _resample_stim_channels,
     notch_filter,
     resample,
+    _resamp_ratio_len,
+    _resample_stim_channels,
+    _check_fun,
 )
 from ..html_templates import _get_html_template
 from ..parallel import parallel_func
-from ..time_frequency.spectrum import Spectrum, SpectrumMixin, _validate_method
 from ..utils import (
-    SizeMixin,
-    TimeMixin,
-    _arange_div,
-    _build_data_frame,
     _check_fname,
-    _check_option,
-    _check_pandas_index_arguments,
     _check_pandas_installed,
-    _check_preload,
-    _check_time_format,
-    _convert_times,
-    _file_like,
-    _get_argvalues,
-    _get_stim_channel,
-    _pl,
-    _scale_dataframe_data,
-    _stamp_to_dt,
-    _time_mask,
-    _validate_type,
-    check_fname,
-    copy_doc,
-    copy_function_doc_to_method_doc,
-    fill_doc,
-    logger,
-    repr_html,
     sizeof_fmt,
+    _check_pandas_index_arguments,
+    fill_doc,
+    copy_doc,
+    check_fname,
+    _get_stim_channel,
+    _stamp_to_dt,
+    logger,
     verbose,
+    _time_mask,
     warn,
+    SizeMixin,
+    copy_function_doc_to_method_doc,
+    _validate_type,
+    _check_preload,
+    _get_argvalues,
+    _check_option,
+    _build_data_frame,
+    _convert_times,
+    _scale_dataframe_data,
+    _check_time_format,
+    _arange_div,
+    TimeMixin,
+    repr_html,
+    _pl,
+    _file_like,
 )
-from ..viz import _RAW_CLIP_DEF, plot_raw
+from ..defaults import _handle_default
+from ..viz import plot_raw, _RAW_CLIP_DEF
+from ..time_frequency.spectrum import (
+    Spectrum,
+    SpectrumMixin,
+    _validate_method,
+    EpochsSpectrum,
+)
 
 
 @fill_doc
@@ -203,7 +207,7 @@ class BaseRaw(
         orig_units=None,
         *,
         verbose=None,
-    ):
+    ):  # noqa: D102
         # wait until the end to preload data, but triage here
         if isinstance(preload, np.ndarray):
             # some functions (e.g., filtering) only work w/64-bit data
@@ -265,7 +269,9 @@ class BaseRaw(
         if orig_units:
             if not isinstance(orig_units, dict):
                 raise ValueError(
-                    f"orig_units must be of type dict, but got {type(orig_units)}"
+                    "orig_units must be of type dict, but got " " {}".format(
+                        type(orig_units)
+                    )
                 )
 
             # original units need to be truncated to 15 chars or renamed
@@ -290,7 +296,9 @@ class BaseRaw(
             if not all(ch_correspond):
                 ch_without_orig_unit = ch_names[ch_correspond.index(False)]
                 raise ValueError(
-                    f"Channel {ch_without_orig_unit} has no associated original unit."
+                    "Channel {} has no associated original " "unit.".format(
+                        ch_without_orig_unit
+                    )
                 )
 
             # Final check of orig_units, editing a unit if it is not a valid
@@ -795,9 +803,6 @@ class BaseRaw(
                 item1 = int(item1)
             if isinstance(item1, (int, np.integer)):
                 start, stop, step = item1, item1 + 1, 1
-                # Need to special case -1, because -1:0 will be empty
-                if start == -1:
-                    stop = None
             else:
                 raise ValueError("Must pass int or slice to __getitem__")
 
@@ -1125,7 +1130,7 @@ class BaseRaw(
         skip_by_annotation=("edge", "bad_acq_skip"),
         pad="reflect_limited",
         verbose=None,
-    ):
+    ):  # noqa: D102
         return super().filter(
             l_freq,
             h_freq,
@@ -1260,14 +1265,12 @@ class BaseRaw(
     def resample(
         self,
         sfreq,
-        *,
         npad="auto",
-        window="auto",
+        window="boxcar",
         stim_picks=None,
         n_jobs=None,
         events=None,
-        pad="auto",
-        method="fft",
+        pad="reflect_limited",
         verbose=None,
     ):
         """Resample all channels.
@@ -1296,7 +1299,7 @@ class BaseRaw(
         ----------
         sfreq : float
             New sample rate to use.
-        %(npad_resample)s
+        %(npad)s
         %(window_resample)s
         stim_picks : list of int | None
             Stim channels. These channels are simply subsampled or
@@ -1309,12 +1312,10 @@ class BaseRaw(
             An optional event matrix. When specified, the onsets of the events
             are resampled jointly with the data. NB: The input events are not
             modified, but a new array is returned with the raw instead.
-        %(pad_resample_auto)s
+        %(pad)s
+            The default is ``'reflect_limited'``.
 
             .. versionadded:: 0.15
-        %(method_resample)s
-
-            .. versionadded:: 1.7
         %(verbose)s
 
         Returns
@@ -1368,13 +1369,7 @@ class BaseRaw(
             )
 
         kwargs = dict(
-            up=sfreq,
-            down=o_sfreq,
-            npad=npad,
-            window=window,
-            n_jobs=n_jobs,
-            pad=pad,
-            method=method,
+            up=sfreq, down=o_sfreq, npad=npad, window=window, n_jobs=n_jobs, pad=pad
         )
         ratio, n_news = zip(
             *(
@@ -1813,7 +1808,6 @@ class BaseRaw(
         *,
         theme=None,
         overview_mode=None,
-        splash=True,
         verbose=None,
     ):
         return plot_raw(
@@ -1851,7 +1845,6 @@ class BaseRaw(
             use_opengl=use_opengl,
             theme=theme,
             overview_mode=overview_mode,
-            splash=splash,
             verbose=verbose,
         )
 
@@ -2083,11 +2076,9 @@ class BaseRaw(
         duration = f"{int(hours):02d}:{int(minutes):02d}:{int(seconds):02d}"
         raw_template = _get_html_template("repr", "raw.html.jinja")
         return raw_template.render(
-            info_repr=self.info._repr_html_(
-                caption=caption,
-                filenames=basenames,
-                duration=duration,
-            )
+            info_repr=self.info._repr_html_(caption=caption),
+            filenames=basenames,
+            duration=duration,
         )
 
     def add_events(self, events, stim_channel=None, replace=False):
@@ -2150,10 +2141,10 @@ class BaseRaw(
         tmin=None,
         tmax=None,
         picks=None,
-        exclude=(),
         proj=False,
         remove_dc=True,
         reject_by_annotation=True,
+        ragged_epochs=False,
         *,
         n_jobs=1,
         verbose=None,
@@ -2168,18 +2159,19 @@ class BaseRaw(
         %(fmin_fmax_psd)s
         %(tmin_tmax_psd)s
         %(picks_good_data_noref)s
-        %(exclude_psd)s
         %(proj_psd)s
         %(remove_dc)s
         %(reject_by_annotation_psd)s
+        %(ragged_epochs)s
         %(n_jobs)s
         %(verbose)s
         %(method_kw_psd)s
 
         Returns
         -------
-        spectrum : instance of Spectrum
-            The spectral representation of the data.
+        spectrum : instance of Spectrum | instance of EpochsSpectrum
+            The spectral representation of the data. If ``ragged_epochs`` is not ``False``
+            an :class:`mne.time_frequency.EpochsSpectrum` will be returned.
 
         Notes
         -----
@@ -2191,23 +2183,26 @@ class BaseRaw(
         """
         method = _validate_method(method, type(self).__name__)
         self._set_legacy_nfft_default(tmin, tmax, method, method_kw)
-
-        return Spectrum(
-            self,
+        _validate_type(ragged_epochs, (bool, str, list), "ragged_epochs")
+        kwargs = dict(
+            inst=self,
             method=method,
             fmin=fmin,
             fmax=fmax,
             tmin=tmin,
             tmax=tmax,
             picks=picks,
-            exclude=exclude,
             proj=proj,
             remove_dc=remove_dc,
             reject_by_annotation=reject_by_annotation,
+            ragged_epochs=ragged_epochs,
             n_jobs=n_jobs,
             verbose=verbose,
             **method_kw,
         )
+        if ragged_epochs:
+            kwargs["ragged_epochs"] = ragged_epochs
+        return (EpochsSpectrum if ragged_epochs else Spectrum)(**kwargs)
 
     @verbose
     def to_data_frame(
@@ -2271,9 +2266,7 @@ class BaseRaw(
         data = _scale_dataframe_data(self, data, picks, scalings)
         # prepare extra columns / multiindex
         mindex = list()
-        times = _convert_times(
-            times, time_format, self.info["meas_date"], self.first_time
-        )
+        times = _convert_times(self, times, time_format)
         mindex.append(("time", times))
         # build DataFrame
         df = _build_data_frame(
@@ -2419,7 +2412,7 @@ def _get_ch_factors(inst, units, picks_idxs):
     Returns
     -------
     ch_factors : ndarray of floats, shape(len(picks),)
-        The scaling factors for each channel, ordered according
+        The sacling factors for each channel, ordered according
         to picks.
 
     """
@@ -2532,7 +2525,7 @@ class _ReadSegmentFileProtector:
 class _RawShell:
     """Create a temporary raw object."""
 
-    def __init__(self):
+    def __init__(self):  # noqa: D102
         self.first_samp = None
         self.last_samp = None
         self._first_time = None
@@ -2565,13 +2558,6 @@ MAX_N_SPLITS = 100
 def _write_raw(raw_fid_writer, fpath, split_naming, overwrite):
     """Write raw file with splitting."""
     dir_path = fpath.parent
-    _check_fname(
-        dir_path,
-        overwrite="read",
-        must_exist=True,
-        name="parent directory",
-        need_dir=True,
-    )
     # We have to create one extra filename here to make the for loop below happy,
     # but it will raise an error if it actually gets used
     split_fnames = _make_split_fnames(
@@ -2755,7 +2741,7 @@ def _write_raw_data(
     sk_onsets, sk_ends = _annotations_starts_stops(raw, "bad_acq_skip")
     do_skips = False
     if len(sk_onsets) > 0:
-        if np.isin(sk_onsets, firsts).all() and np.isin(sk_ends, lasts).all():
+        if np.in1d(sk_onsets, firsts).all() and np.in1d(sk_ends, lasts).all():
             do_skips = True
         else:
             if part_idx == 0:
