@@ -843,7 +843,7 @@ def test_events_from_annot_with_tolerance():
         event_id={"0": 0, "1": 1, "2": 2},
         chunk_duration=30.0,
         use_rounding=True,
-        tol=1e-6,
+        tol=1e-8,
     )
     assert events.shape == (3, 3)
     assert (events[:, 0] == [0, 3000, 6000]).all()
@@ -853,7 +853,16 @@ def test_events_from_annot_with_tolerance():
         event_id={"0": 0, "1": 1, "2": 2},
         chunk_duration=30.0,
         use_rounding=False,
-        tol=1e-6,
+        tol=1e-8,
+    )
+    assert events.shape == (3, 3)
+    assert (events[:, 0] == [0, 3000, 6000]).all()
+    assert (events[:, 2] == [0, 1, 2]).all()
+    # Default values of use_rounding=True, tol=1e-8
+    events, _ = events_from_annotations(
+        raw,
+        event_id={"0": 0, "1": 1, "2": 2},
+        chunk_duration=30.0,
     )
     assert events.shape == (3, 3)
     assert (events[:, 0] == [0, 3000, 6000]).all()

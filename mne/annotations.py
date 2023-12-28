@@ -1529,7 +1529,7 @@ def events_from_annotations(
     regexp=r"^(?![Bb][Aa][Dd]|[Ee][Dd][Gg][Ee]).*$",
     use_rounding=True,
     chunk_duration=None,
-    tol=0,
+    tol=1e-8,
     verbose=None,
 ):
     """Get :term:`events` and ``event_id`` from an Annotations object.
