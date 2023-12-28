@@ -768,8 +768,8 @@ def _extract_filter_value(s, prefix, suffix):
 
 def _parse_prefilter_string(prefiltering):
     """Parse prefilter string from EDF+ and BDF headers."""
-    highpass = [_extract_filter_value(s, "HP:", "Hz") for s in prefiltering]
-    lowpass = [_extract_filter_value(s, "LP:", "Hz") for s in prefiltering]
+    highpass = np.array([_extract_filter_value(s, "HP:", "Hz") for s in prefiltering])
+    lowpass = np.array([_extract_filter_value(s, "LP:", "Hz") for s in prefiltering])
     return highpass, lowpass
 
 
