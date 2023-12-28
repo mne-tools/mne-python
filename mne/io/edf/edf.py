@@ -913,8 +913,14 @@ def _read_edf_header(fname, exclude, infer_types, include=None):
         else:
             ch_types, ch_names = ["EEG"] * nchan, ch_labels
 
-        exclude = _find_exclude_idx(ch_names, exclude, include)
+        orig_ch_names = ch_names.copy()
+        # tal channel index is checked before making channel names unique
         tal_idx = _find_tal_idx(ch_names)
+
+        # make sure channel names are unique
+        ch_names = _unique_channel_names(ch_names)
+
+        exclude = _find_exclude_idx(ch_names, exclude, include)
         exclude = np.concatenate([exclude, tal_idx])
         sel = np.setdiff1d(np.arange(len(ch_names)), exclude)
         for ch in channels:
@@ -935,9 +941,6 @@ def _read_edf_header(fname, exclude, infer_types, include=None):
 
         ch_names = [ch_names[idx] for idx in sel]
         units = [units[idx] for idx in sel]
-
-        # make sure channel names are unique
-        ch_names = _unique_channel_names(ch_names)
         orig_units = dict(zip(ch_names, units))
 
         physical_min = np.array([float(_edf_str_num(fid.read(8))) for ch in channels])[
@@ -961,6 +964,7 @@ def _read_edf_header(fname, exclude, infer_types, include=None):
         # Populate edf_info
         edf_info.update(
             ch_names=ch_names,
+            orig_ch_names=orig_ch_names,
             ch_types=ch_types,
             data_offset=header_nbytes,
             digital_max=digital_max,
@@ -1111,6 +1115,8 @@ def _read_gdf_header(fname, exclude, include=None):
             nchan = int(np.fromfile(fid, UINT32, 1)[0])
             channels = list(range(nchan))
             ch_names = [_edf_str(fid.read(16)).strip() for ch in channels]
+            orig_ch_names = ch_names.copy()
+            ch_names = _unique_channel_names(ch_names)
             exclude = _find_exclude_idx(ch_names, exclude, include)
             sel = np.setdiff1d(np.arange(len(ch_names)), exclude)
             fid.seek(80 * len(channels), 1)  # transducer
@@ -1149,6 +1155,7 @@ def _read_gdf_header(fname, exclude, include=None):
             edf_info.update(
                 bytes_tot=bytes_tot,
                 ch_names=ch_names,
+                orig_ch_names=orig_ch_names,
                 data_offset=header_nbytes,
                 digital_min=digital_min,
                 digital_max=digital_max,
@@ -1307,6 +1314,8 @@ def _read_gdf_header(fname, exclude, include=None):
             # Channels (variable header)
             channels = list(range(nchan))
             ch_names = [_edf_str(fid.read(16)).strip() for ch in channels]
+            orig_ch_names = ch_names.copy()
+            ch_names = _unique_channel_names(ch_names)
             exclude = _find_exclude_idx(ch_names, exclude, include)
             sel = np.setdiff1d(np.arange(len(ch_names)), exclude)
 
@@ -1391,6 +1400,7 @@ def _read_gdf_header(fname, exclude, include=None):
             edf_info.update(
                 bytes_tot=bytes_tot,
                 ch_names=ch_names,
+                orig_ch_names=orig_ch_names,
                 data_offset=header_nbytes,
                 dtype_byte=dtype_byte,
                 dtype_np=dtype_np,
