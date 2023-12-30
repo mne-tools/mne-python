@@ -239,7 +239,7 @@ for title, data in zip(["orig.", "interp."], [eeg_data, eeg_data_interp]):
 
 # %%
 # Note that we used the ``exclude=[]`` trick in the call to
-# :meth:`pick()` method from the instance of `~mne.io.Raw` to make sure the bad channels were not
+# :meth:`~mne.io.Raw.pick()` to make sure the bad channels were not
 # automatically dropped from the selection. Here is the corresponding example
 # with the interpolated gradiometer channel; since there are more channels
 # we'll use a more transparent gray color this time:
