@@ -238,7 +238,7 @@ for title, data in zip(["orig.", "interp."], [eeg_data, eeg_data_interp]):
     fig.suptitle(title, size="xx-large", weight="bold")
 
 # %%
-# Note that we used the ``exclude=[]`` trick in the call to
+# Note that we called the method:
 # :meth:`~mne.io.Raw.pick()` to make sure the bad channels were not
 # automatically dropped from the selection. Here is the corresponding example
 # with the interpolated gradiometer channel; since there are more channels
