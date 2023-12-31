@@ -62,6 +62,7 @@ from .annotations import (
     EpochAnnotationsMixin,
     _read_annotations_fif,
     _write_annotations,
+    events_from_annotations,
 )
 from .baseline import _check_baseline, _log_rescale, rescale
 from .bem import _check_origin
@@ -487,10 +488,7 @@ class BaseEpochs(
         if events is not None:  # RtEpochs can have events=None
             for key, val in self.event_id.items():
                 if val not in events[:, 2]:
-                    msg = "No matching events found for %s " "(event id %i)" % (
-                        key,
-                        val,
-                    )
+                    msg = f"No matching events found for {key} (event id {val})"
                     _on_missing(on_missing, msg)
 
             # ensure metadata matches original events size
@@ -3104,6 +3102,40 @@ def make_metadata(
     return metadata, events, event_id
 
 
+def _events_from_annotations(raw, events, event_id, annotations, on_missing):
+    """Generate events and event_ids from annotations."""
+    events, event_id_tmp = events_from_annotations(raw)
+    if events.size == 0:
+        raise RuntimeError(
+            "No usable annotations found in the raw object. "
+            "Either `events` must be provided or the raw "
+            "object must have annotations to construct epochs"
+        )
+    if any(raw.annotations.duration > 0):
+        logger.info(
+            "Ignoring annotation durations and creating fixed-duration epochs "
+            "around annotation onsets."
+        )
+    if event_id is None:
+        event_id = event_id_tmp
+    # if event_id is the names of events, map to events integers
+    if isinstance(event_id, str):
+        event_id = [event_id]
+    if isinstance(event_id, (list, tuple, set)):
+        if not set(event_id).issubset(set(event_id_tmp)):
+            msg = (
+                "No matching annotations found for event_id(s) "
+                f"{set(event_id) - set(event_id_tmp)}"
+            )
+            _on_missing(on_missing, msg)
+        # remove extras if on_missing not error
+        event_id = set(event_id) & set(event_id_tmp)
+        event_id = {my_id: event_id_tmp[my_id] for my_id in event_id}
+        # remove any non-selected annotations
+        annotations.delete(~np.isin(raw.annotations.description, list(event_id)))
+    return events, event_id, annotations
+
+
 @fill_doc
 class Epochs(BaseEpochs):
     """Epochs extracted from a Raw instance.
@@ -3111,7 +3143,16 @@ class Epochs(BaseEpochs):
     Parameters
     ----------
     %(raw_epochs)s
+
+        .. note::
+            If ``raw`` contains annotations, ``Epochs`` can be constructed around
+            ``raw.annotations.onset``, but note that the durations of the annotations
+            are ignored in this case.
     %(events_epochs)s
+
+        .. versionchanged:: 1.7
+            Allow ``events=None`` to use ``raw.annotations.onset`` as the source of
+            epoch times.
     %(event_id)s
     %(epochs_tmin_tmax)s
     %(baseline_epochs)s
@@ -3212,7 +3253,7 @@ class Epochs(BaseEpochs):
     def __init__(
         self,
         raw,
-        events,
+        events=None,
         event_id=None,
         tmin=-0.2,
         tmax=0.5,
@@ -3240,6 +3281,7 @@ class Epochs(BaseEpochs):
                 "instance of mne.io.BaseRaw"
             )
         info = deepcopy(raw.info)
+        annotations = raw.annotations.copy()
 
         # proj is on when applied in Raw
         proj = proj or raw.proj
@@ -3248,6 +3290,12 @@ class Epochs(BaseEpochs):
 
         # keep track of original sfreq (needed for annotations)
         raw_sfreq = raw.info["sfreq"]
+
+        # get events from annotations if no events given
+        if events is None:
+            events, event_id, annotations = _events_from_annotations(
+                raw, events, event_id, annotations, on_missing
+            )
 
         # call BaseEpochs constructor
         super(Epochs, self).__init__(
@@ -3273,7 +3321,7 @@ class Epochs(BaseEpochs):
             event_repeated=event_repeated,
             verbose=verbose,
             raw_sfreq=raw_sfreq,
-            annotations=raw.annotations,
+            annotations=annotations,
         )
 
     @verbose
