@@ -788,7 +788,7 @@ def src_volume_labels():
     """Create a 7mm source space with labels."""
     pytest.importorskip("nibabel")
     volume_labels = mne.get_volume_labels_from_aseg(fname_aseg)
-    with pytest.warns(RuntimeWarning, match="Found no usable.*Left-vessel.*"):
+    with pytest.warns(RuntimeWarning, match="Found no usable.*t-vessel.*"):
         src = mne.setup_volume_source_space(
             "sample",
             7.0,

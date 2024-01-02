@@ -654,10 +654,9 @@ def _plot_epochs_image(
 
     # draw the colorbar
     if colorbar:
-        from matplotlib.pyplot import colorbar as cbar
-
         if "colorbar" in ax:  # axes supplied by user
-            this_colorbar = cbar(im, cax=ax["colorbar"])
+            cax = ax["colorbar"]
+            this_colorbar = cax.figure.colorbar(im, cax=cax)
             this_colorbar.ax.set_ylabel(unit, rotation=270, labelpad=12)
         else:  # we created them
             this_colorbar = fig.colorbar(im, ax=ax_im)
