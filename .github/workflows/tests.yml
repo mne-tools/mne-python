@@ -89,14 +89,12 @@ jobs:
           python-version: ${{ matrix.python }}
         if: startswith(matrix.kind, 'pip')
       # Python (if conda)
-      - uses: conda-incubator/setup-miniconda@v3
+      - uses: mamba-org/setup-micromamba@v1
         with:
-          python-version: ${{ env.PYTHON_VERSION }}
           environment-file: ${{ env.CONDA_ENV }}
-          activate-environment: mne
-          miniforge-version: latest
-          miniforge-variant: Mambaforge
-          use-mamba: ${{ matrix.kind != 'conda' }}
+          environment-name: mne
+          create-args: >-
+            python=${{ env.PYTHON_VERSION }}
         if: ${{ !startswith(matrix.kind, 'pip') }}
       - run: ./tools/github_actions_dependencies.sh
       # Minimal commands on Linux (macOS stalls)
