@@ -96,6 +96,7 @@ jobs:
           create-args: >-
             python=${{ env.PYTHON_VERSION }}
             mamba
+            fmt!=10.2.0
         if: ${{ !startswith(matrix.kind, 'pip') }}
       - run: ./tools/github_actions_dependencies.sh
       # Minimal commands on Linux (macOS stalls)
