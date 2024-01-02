@@ -92,7 +92,6 @@ jobs:
       - uses: mamba-org/setup-micromamba@v1
         with:
           environment-file: ${{ env.CONDA_ENV }}
-          environment-name: mne
           create-args: >-
             python=${{ env.PYTHON_VERSION }}
         if: ${{ !startswith(matrix.kind, 'pip') }}
