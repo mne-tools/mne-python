@@ -557,6 +557,7 @@ class Evoked(
         background_color="w",
         noise_cov=None,
         exclude="bads",
+        select=False,
         show=True,
     ):
         """
@@ -582,6 +583,7 @@ class Evoked(
             background_color=background_color,
             noise_cov=noise_cov,
             exclude=exclude,
+            select=select,
             show=show,
         )
 
