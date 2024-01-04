@@ -870,9 +870,12 @@ class InterpolationMixin:
         .. versionadded:: 0.9.0
         """
         from .interpolation import (
+            _interpolate_bads_nan,
             _interpolate_bads_eeg,
             _interpolate_bads_meeg,
             _interpolate_bads_nirs,
+            _interpolate_bads_ecog,
+            _interpolate_bads_seeg,
         )
 
         _check_preload(self, "interpolation")
@@ -894,9 +897,11 @@ class InterpolationMixin:
             "eeg": ("spline", "MNE", "nan"),
             "meg": ("MNE", "nan"),
             "fnirs": ("nearest", "nan"),
+            "ecog": ("spline", "nan"),
+            "seeg": ("spline", "nan"),
         }
         for key in method:
-            _check_option("method[key]", key, ("meg", "eeg", "fnirs"))
+            _check_option("method[key]", key, tuple(valids.keys()))
             _check_option(f"method['{key}']", method[key], valids[key])
         logger.info("Setting channel interpolation method to %s.", method)
         idx = _picks_to_idx(self.info, list(method), exclude=(), allow_empty=True)
@@ -905,24 +910,27 @@ class InterpolationMixin:
             return self
         logger.info("Interpolating bad channels.")
         origin = _check_origin(origin, self.info)
+        for ch_type, interp in method.items():
+            if interp == "nan":
+                _interpolate_bads_nan(self, ch_type, exclude=exclude)
         if method.get("eeg", "") == "spline":
             _interpolate_bads_eeg(self, origin=origin, exclude=exclude)
-            eeg_mne = False
-        elif "eeg" not in method:
-            eeg_mne = False
-        else:
-            eeg_mne = True
-        if "meg" in method or eeg_mne:
+        if method.get("meg", "") == "MNE" or method.get("eeg", "") == "MNE":
             _interpolate_bads_meeg(
                 self,
                 mode=mode,
+                meg=method.get("meg", "") == "MNE",
+                eeg=method.get("eeg", "") == "MNE",
                 origin=origin,
-                eeg=eeg_mne,
                 exclude=exclude,
                 method=method,
             )
-        if "fnirs" in method:
-            _interpolate_bads_nirs(self, exclude=exclude, method=method["fnirs"])
+        if method.get("fnirs", "") == "nearest":
+            _interpolate_bads_nirs(self, exclude=exclude)
+        if method.get("ecog", "") == "spline":
+            _interpolate_bads_ecog(self, origin=origin, exclude=exclude)
+        if method.get("seeg", "") == "spline":
+            _interpolate_bads_seeg(self, exclude=exclude)
 
         if reset_bads is True:
             if "nan" in method.values():
