@@ -156,46 +156,16 @@ def write_name_list_sanitized(fid, kind, lst, name):
 def _safe_name_list(lst, operation, name):
     if operation == "write":
         assert isinstance(lst, (list, tuple, np.ndarray)), type(lst)
-        if any(
-            "{COLON}" in val or "{COMMA}" in val
-            for val2 in lst
-            for val in ([val2] if isinstance(val2, str) else val2)
-        ):
-            raise ValueError(
-                f'The substring "{{COLON}}" or "{{COMMA}}" in {name} not supported.'
-            )
-        if not lst:
-            return ""
-        if isinstance(lst[0], str):
-            return ":".join(val.replace(":", "{COLON}") for val in lst)
-        return ",".join(
-            ":".join(
-                val.replace(":", "{COLON}").replace(",", "{COMMA}") for val in val2
-            )
-            for val2 in lst
-        )
+        if any("{COLON}" in val for val in lst):
+            raise ValueError(f'The substring "{{COLON}}" in {name} not supported.')
+        return ":".join(val.replace(":", "{COLON}") for val in lst)
     else:
         # take a sanitized string and return a list of strings
         assert operation == "read"
         assert lst is None or isinstance(lst, str)
         if not lst:  # None or empty string
             return []
-        if "," in lst:
-            return [
-                (
-                    [
-                        val.replace("{COLON}", ":").replace("{COMMA}", ",")
-                        for val in val2.split(":")
-                    ]
-                    if val2
-                    else list()
-                )
-                for val2 in lst.split(",")
-            ]
-        return [
-            val.replace("{COLON}", ":").replace("{COMMA}", ",")
-            for val in lst.split(":")
-        ]
+        return [val.replace("{COLON}", ":") for val in lst.split(":")]
 
 
 def write_float_matrix(fid, kind, mat):

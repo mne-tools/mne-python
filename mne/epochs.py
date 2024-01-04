@@ -66,12 +66,7 @@ from .annotations import (
 )
 from .baseline import _check_baseline, _log_rescale, rescale
 from .bem import _check_origin
-from .channels.channels import (
-    InterpolationMixin,
-    ReferenceMixin,
-    UpdateChannelsMixin,
-    interpolate_bads,
-)
+from .channels.channels import InterpolationMixin, ReferenceMixin, UpdateChannelsMixin
 from .event import _read_events_fif, make_fixed_length_events, match_event_names
 from .evoked import EvokedArray
 from .filter import FilterMixin, _check_fun, detrend
@@ -1415,7 +1410,6 @@ class BaseEpochs(
         self._get_data(out=False, verbose=verbose)
         return self
 
-    @copy_function_doc_to_method_doc(interpolate_bads)
     def interpolate_bads(
         self,
         reset_bads=True,
@@ -1423,17 +1417,25 @@ class BaseEpochs(
         origin="auto",
         method=None,
         exclude=(),
+        *,
+        interp_chs=None,
         verbose=None,
     ):
-        """Interpolate bad channels per epoch.
+        """Interpolate bad channels, optionally different channels on each epoch.
+
+        Operates in-place.
 
         Parameters
         ----------
-        interp_chs : list
-            A list containing channels to interpolate for each epoch.
+        %(reset_bads)s
         %(mode_interp)s
         %(origin_interp)s
         %(method_interp)s
+        %(exclude_interp)s
+        interp_chs : list | None
+            The channels to interpolate on each epoch. Must be the same
+            length as the epochs and each list entry must be a list of channels
+            to interpolate for each epoch.
         %(verbose)s
 
         Returns
@@ -1443,9 +1445,19 @@ class BaseEpochs(
 
         Notes
         -----
+        The ``"MNE"`` method uses minimum-norm projection to a sphere and back.
+
         .. versionadded:: 1.7
         """
-        _check_preload(self, "epochs.interpolate_bads_per_epoch")
+        if interp_chs is None:
+            return super().interpolate_bads(
+                reset_bads=reset_bads,
+                mode=mode,
+                origin=origin,
+                method=method,
+                exclude=exclude,
+            )
+        _check_preload(self, "epochs.interpolate_bads")
         if len(interp_chs) != len(self):
             raise ValueError(
                 "The length of ``interp_chs`` must be "
@@ -1463,8 +1475,16 @@ class BaseEpochs(
                 logger.debug(f"Interpolating {this_interp_chs} on epoch {epoch_idx}")
                 epoch = self[epoch_idx]
                 epoch.info["bads"] = list(this_interp_chs)
-                epoch.interpolate_bads(mode=mode, origin=origin, method=method)
+                epoch.interpolate_bads(
+                    reset_bads=epoch_idx == 0,  # check once for warning
+                    mode=mode,
+                    origin=origin,
+                    method=method,
+                    exclude=exclude,
+                )
                 self._data[epoch_idx] = epoch._data
+                if epoch_idx == 0:
+                    self.info["bads"] = epoch.info["bads"]
         return self
 
     def drop_log_stats(self, ignore=("IGNORED",)):

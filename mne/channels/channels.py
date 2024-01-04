@@ -813,6 +813,7 @@ class InterpolationMixin:
         origin="auto",
         method=None,
         exclude=(),
+        *,
         verbose=None,
     ):
         """Interpolate bad MEG and EEG channels.
@@ -834,9 +835,7 @@ class InterpolationMixin:
 
             .. versionadded:: 0.21
 
-        exclude : list | tuple
-            The channels to exclude from interpolation. If excluded a bad
-            channel will stay in bads.
+        %(exclude_interp)s
         %(verbose)s
 
         Returns

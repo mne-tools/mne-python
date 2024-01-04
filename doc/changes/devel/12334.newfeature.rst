@@ -1,1 +1,1 @@
-Allow :meth:`mne.Epochs.interpolate_bads` to interpolate channels only on selected epochs for which they are bad, by `Alex Rockhill`_
+Allow :meth:`mne.Epochs.interpolate_bads` to interpolate channels only on selected epochs for which they are bad using ``interp_chs``, by `Alex Rockhill`_

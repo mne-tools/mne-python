@@ -517,14 +517,7 @@ def has_tag(node, kind):
 
 
 def _rename_list(bads, ch_names_mapping):
-    if not bads:
-        return bads
-    if isinstance(bads[0], str):
-        return [ch_names_mapping.get(bad, bad) for bad in bads]
-    else:
-        return [
-            [ch_names_mapping.get(bad, bad) for bad in bads_list] for bads_list in bads
-        ]
+    return [ch_names_mapping.get(bad, bad) for bad in bads]
 
 
 def _int_item(x):

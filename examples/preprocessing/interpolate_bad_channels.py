@@ -67,8 +67,7 @@ drop_epochs = np.array([len(entry) >= 5 for entry in epochs.drop_log])
 del epochs
 
 epochs = mne.Epochs(raw, events=events, preload=True)
-epochs.info["bads"] = interpolate_channels
-epochs.interpolate_bads()
+epochs.interpolate_bads(interp_chs=interpolate_channels)
 epochs = epochs[~drop_epochs]
 epochs.average().plot()
 

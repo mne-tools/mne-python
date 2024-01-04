@@ -951,15 +951,10 @@ def _check_bads_info_compat(bads, info):
     if not len(bads):
         return  # e.g. in empty_info
     for bi, bad in enumerate(bads):
-        _validate_type(bad, (str, list, tuple), f"bads[{bi}]")
+        _validate_type(bad, str, f"bads[{bi}]")
     if "ch_names" not in info:  # somewhere in init, or deepcopy, or _empty_info, etc.
         return
-    missing = [
-        bad
-        for bads_list in bads
-        for bad in ([bads_list] if isinstance(bads_list, str) else bads_list)
-        if bad not in info["ch_names"]
-    ]
+    missing = [bad for bad in bads if bad not in info["ch_names"]]
     if len(missing) > 0:
         raise ValueError(f"bad channel(s) {missing} marked do not exist in info")
 
@@ -2574,13 +2569,8 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
     info["dig"] = _format_dig_points(dig)
     info["bads"] = bads
     info._update_redundant()
-    if clean_bads and info["bads"]:
-        if isinstance(info["bads"][0], str):
-            info["bads"] = [b for b in bads if b in info["ch_names"]]
-        else:
-            info["bads"] = [
-                [b for b in bads_list if b in info["ch_names"]] for bads_list in bads
-            ]
+    if clean_bads:
+        info["bads"] = [b for b in bads if b in info["ch_names"]]
     info["projs"] = projs
     info["comps"] = comps
     info["acq_pars"] = acq_pars

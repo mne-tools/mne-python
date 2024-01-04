@@ -670,14 +670,7 @@ def pick_info(info, sel=(), copy=True, verbose=None):
     with info._unlock():
         info["chs"] = [info["chs"][k] for k in sel]
     info._update_redundant()
-    if info["bads"]:
-        if isinstance(info["bads"][0], str):
-            info["bads"] = [ch for ch in info["bads"] if ch in info["ch_names"]]
-        else:
-            info["bads"] = [
-                [ch for ch in bads_list if ch in info["ch_names"]]
-                for bads_list in info["bads"]
-            ]
+    info["bads"] = [ch for ch in info["bads"] if ch in info["ch_names"]]
     if "comps" in info:
         comps = deepcopy(info["comps"])
         for c in comps:

@@ -1168,6 +1168,12 @@ exclude_frontal : bool
     (below the nasion) and positive Y values (in front of the LPA/RPA).
 """
 
+docdict["exclude_interp"] = """
+exclude : list | tuple
+    The channels to exclude from interpolation. If excluded a bad
+    channel will stay in bads.
+"""
+
 _exclude_spectrum = """\
 exclude : list of str | 'bads'
     Channel names to exclude{}. If ``'bads'``, channels

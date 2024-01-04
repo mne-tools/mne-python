@@ -720,7 +720,7 @@ def test_reject():
         assert "is a noop" in log
 
 
-def test_interpolate_bads_per_epochs():
+def test_interpolate_bads_per_epoch():
     """Test interpolating bad channels per epoch."""
     raw, events, _ = _get_data()
     names = raw.ch_names[::5]
@@ -743,15 +743,15 @@ def test_interpolate_bads_per_epochs():
         preload=True,
     )
     with pytest.raises(ValueError, match="length of ``interp_chs``"):
-        epochs.interpolate_bads_per_epoch([])
+        epochs.interpolate_bads(interp_chs=[])
     interp_chs = [tuple() for _ in range(len(epochs))]
     interp_chs[0] = ("foo",)
     with pytest.raises(ValueError, match="Channels .* not found"):
-        epochs.interpolate_bads_per_epoch(interp_chs)
+        epochs.interpolate_bads(interp_chs=interp_chs)
 
     interp_chs[0] = (epochs.ch_names[0],)
     data_before = epochs.get_data().copy()
-    data_after = epochs.interpolate_bads_per_epoch(interp_chs).get_data()
+    data_after = epochs.interpolate_bads(interp_chs=interp_chs).get_data()
     assert not np.array_equal(data_before[0], data_after[0])
 
 
