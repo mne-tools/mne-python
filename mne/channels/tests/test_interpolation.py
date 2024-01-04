@@ -367,7 +367,7 @@ def test_interpolation_ieeg():
     for i, ch in enumerate(epochs_seeg.ch_names[2:]):
         ch_pos[ch] = n0 + (n1 - n0) * (i + 2)
     raw_seeg.set_montage(make_dig_montage(ch_pos, **pos))
-    raw_after = raw_seeg.interpolate_bads(method=dict(seeg="linear"))._data[bads_idx]
+    raw_after = raw_seeg.interpolate_bads(method=dict(seeg="spline"))._data[bads_idx]
     assert not np.all(raw_before == raw_after)
 
 
