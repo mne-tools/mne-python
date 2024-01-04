@@ -66,7 +66,12 @@ from .annotations import (
 )
 from .baseline import _check_baseline, _log_rescale, rescale
 from .bem import _check_origin
-from .channels.channels import InterpolationMixin, ReferenceMixin, UpdateChannelsMixin
+from .channels.channels import (
+    InterpolationMixin,
+    ReferenceMixin,
+    UpdateChannelsMixin,
+    interpolate_bads,
+)
 from .event import _read_events_fif, make_fixed_length_events, match_event_names
 from .evoked import EvokedArray
 from .filter import FilterMixin, _check_fun, detrend
@@ -1410,13 +1415,14 @@ class BaseEpochs(
         self._get_data(out=False, verbose=verbose)
         return self
 
-    @verbose
-    def interpolate_bads_per_epoch(
+    @copy_function_doc_to_method_doc(interpolate_bads)
+    def interpolate_bads(
         self,
-        interp_chs,
+        reset_bads=True,
         mode="accurate",
         origin="auto",
         method=None,
+        exclude=(),
         verbose=None,
     ):
         """Interpolate bad channels per epoch.

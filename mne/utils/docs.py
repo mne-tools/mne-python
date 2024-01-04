@@ -3357,6 +3357,11 @@ res : int
     The resolution of the topomap image (number of pixels along each side).
 """
 
+docdict["reset_bads"] = """
+reset_bads : bool
+    If True, remove the bads from info.
+"""
+
 docdict["return_pca_vars_pctf"] = """
 return_pca_vars : bool
     Whether or not to return the explained variances across the specified

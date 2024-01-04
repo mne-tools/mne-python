@@ -821,8 +821,7 @@ class InterpolationMixin:
 
         Parameters
         ----------
-        reset_bads : bool
-            If True, remove the bads from info.
+        %(reset_bads)s
         %(mode_interp)s
         %(origin_interp)s
 
