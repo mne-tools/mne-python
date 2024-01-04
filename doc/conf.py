@@ -1302,6 +1302,7 @@ def reset_warnings(gallery_conf, fname):
     for key in (
         "invalid version and will not be supported",  # pyxdf
         "distutils Version classes are deprecated",  # seaborn and neo
+        "is_categorical_dtype is deprecated",  # seaborn
         "`np.object` is a deprecated alias for the builtin `object`",  # pyxdf
         # nilearn, should be fixed in > 0.9.1
         "In future, it will be an error for 'np.bool_' scalars to",
