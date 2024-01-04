@@ -1,0 +1,1 @@
+Add :meth:`mne.Epochs.interpolate_bads_per_channel` to interpolate channels only on selected epochs for which they are bad, by `Alex Rockhill`_
