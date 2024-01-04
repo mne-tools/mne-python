@@ -870,11 +870,11 @@ class InterpolationMixin:
         .. versionadded:: 0.9.0
         """
         from .interpolation import (
-            _interpolate_bads_nan,
+            _interpolate_bads_ecog,
             _interpolate_bads_eeg,
             _interpolate_bads_meeg,
+            _interpolate_bads_nan,
             _interpolate_bads_nirs,
-            _interpolate_bads_ecog,
             _interpolate_bads_seeg,
         )
 
