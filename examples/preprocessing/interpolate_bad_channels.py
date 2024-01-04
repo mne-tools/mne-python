@@ -53,11 +53,12 @@ evoked_interp_mne.plot(exclude=[], picks=("grad", "eeg"))
 # %%
 # You can also interpolate bad channels per epoch
 raw = mne.io.read_raw(meg_path / "sample_audvis_raw.fif")
+raw.pick("eeg")  # just to speed up execution
 events = mne.read_events(meg_path / "sample_audvis_raw-eve.fif")
 epochs = mne.Epochs(raw, events=events)
 
 # try to only remove bad channels on some epochs to save EEG 053
-epochs.drop_bad(reject=dict(grad=4000e-13, mag=4e-12, eeg=100e-6))
+epochs.drop_bad(reject=dict(eeg=100e-6))
 
 interpolate_channels = [
     entry if len(entry) < 5 else tuple() for entry in epochs.drop_log
@@ -65,11 +66,10 @@ interpolate_channels = [
 drop_epochs = np.array([len(entry) >= 5 for entry in epochs.drop_log])
 del epochs
 
-epochs = mne.Epochs(raw, events=events)
+epochs = mne.Epochs(raw, events=events, preload=True)
 epochs.interpolate_bads_per_epoch(interpolate_channels)
 epochs = epochs[~drop_epochs]
 epochs.average().plot()
-
 
 # %%
 # References
