@@ -913,8 +913,9 @@ class InterpolationMixin:
             if len(pick_info(self.info, idx)["bads"]) == 0:
                 method.pop(ch_type)
         logger.info("Interpolating bad channels.")
-        if not all(np.array(list(method.values())) == 'nan') and \
-                set(method.keys()) - set(['seeg']):
+        if not all(np.array(list(method.values())) == "nan") and set(
+            method.keys()
+        ) - set(["seeg"]):
             origin = _check_origin(origin, self.info)
         for ch_type, interp in method.items():
             if interp == "nan":
