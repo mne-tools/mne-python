@@ -6,14 +6,14 @@
 
 import numpy as np
 from numpy.polynomial.legendre import legval
+from scipy.interpolate import RectBivariateSpline
 from scipy.linalg import pinv
 from scipy.spatial.distance import pdist, squareform
-from scipy.interpolate import RectBivariateSpline
 
 from .._fiff.meas_info import _simplify_info
 from .._fiff.pick import pick_channels, pick_info, pick_types
 from ..surface import _normalize_vectors
-from ..utils import _check_option, _validate_type, logger, verbose, warn
+from ..utils import _validate_type, logger, verbose, warn
 
 
 def _calc_h(cosang, stiffness=4, n_legendre_terms=50):
@@ -358,6 +358,5 @@ def _interpolate_bads_seeg(inst, exclude=None, tol=2e-3, verbose=None):
         )
         y = np.arange(inst._data.shape[-1])
         inst._data[bads_shaft] = RectBivariateSpline(
-            x=ts[goods_shaft_idx], y=y,
-            z=inst._data[goods_shaft]
+            x=ts[goods_shaft_idx], y=y, z=inst._data[goods_shaft]
         )(x=ts[bads_shaft_idx], y=y)  # 3
