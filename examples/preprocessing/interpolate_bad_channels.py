@@ -24,6 +24,7 @@ Only the data in those channels is replaced.
 # sphinx_gallery_thumbnail_number = 2
 
 import numpy as np
+
 import mne
 from mne.datasets import sample
 
@@ -58,8 +59,9 @@ epochs = mne.Epochs(raw, events=events)
 # try to only remove bad channels on some epochs to save EEG 053
 epochs.drop_bad(reject=dict(grad=4000e-13, mag=4e-12, eeg=100e-6))
 
-interpolate_channels = [entry if len(entry) < 5 else tuple()
-                        for entry in epochs.drop_log]
+interpolate_channels = [
+    entry if len(entry) < 5 else tuple() for entry in epochs.drop_log
+]
 drop_epochs = np.array([len(entry) >= 5 for entry in epochs.drop_log])
 del epochs
 
