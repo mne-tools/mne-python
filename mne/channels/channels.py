@@ -908,8 +908,14 @@ class InterpolationMixin:
         if idx.size == 0 or len(pick_info(self.info, idx)["bads"]) == 0:
             warn("No bad channels to interpolate. Doing nothing...")
             return self
+        for ch_type in method.copy():
+            idx = _picks_to_idx(self.info, ch_type, exclude=(), allow_empty=True)
+            if len(pick_info(self.info, idx)["bads"]) == 0:
+                method.pop(ch_type)
         logger.info("Interpolating bad channels.")
-        origin = _check_origin(origin, self.info)
+        if not all(np.array(list(method.values())) == 'nan') and \
+                set(method.keys()) - set(['seeg']):
+            origin = _check_origin(origin, self.info)
         for ch_type, interp in method.items():
             if interp == "nan":
                 _interpolate_bads_nan(self, ch_type, exclude=exclude)

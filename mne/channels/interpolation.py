@@ -13,7 +13,7 @@ from scipy.interpolate import RectBivariateSpline
 from .._fiff.meas_info import _simplify_info
 from .._fiff.pick import pick_channels, pick_info, pick_types
 from ..surface import _normalize_vectors
-from ..utils import _check_option, _validate_type, logger, verbose, warn
+from ..utils import _validate_type, logger, verbose, warn
 
 
 def _calc_h(cosang, stiffness=4, n_legendre_terms=50):
@@ -346,6 +346,8 @@ def _interpolate_bads_seeg(inst, exclude=None, tol=2e-3, verbose=None):
             )
         bads_shaft = np.array([idx for idx in picks_bad if idx in shaft])
         goods_shaft = shaft[~np.in1d(shaft, bads_shaft)]
+        logger.debug(f'Interpolating {np.array(inst.ch_names)[bads_shaft]} using '
+                     f'data from {np.array(inst.ch_names)[goods_shaft]}')
         bads_shaft_idx = np.where(np.in1d(shaft, bads_shaft))[0]
         goods_shaft_idx = np.where(~np.in1d(shaft, bads_shaft))[0]
         for bad in bads_shaft:

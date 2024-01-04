@@ -1,0 +1,1 @@
+Allow :meth:`mne.io.Raw.interpolate_bads` and :meth:`mne.Epochs.interpolate_bads` to work on ``ecog`` and ``seeg`` data, by `Alex Rockhill`_
