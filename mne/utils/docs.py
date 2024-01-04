@@ -2221,6 +2221,23 @@ method : str
     forward-backward filtering (via :func:`~scipy.signal.filtfilt`).
 """
 
+docdict["method_interp"] = """
+method : dict | str | None
+    Method to use for each channel type.
+
+    - ``"meg"`` channels support ``"MNE"`` (default) and ``"nan"``
+    - ``"eeg"`` channels support ``"spline"`` (default), ``"MNE"`` and ``"nan"``
+    - ``"fnirs"`` channels support ``"nearest"`` (default) and ``"nan"``
+
+    None is an alias for::
+
+        method=dict(meg="MNE", eeg="spline", fnirs="nearest")
+
+    If a :class:`str` is provided, the method will be applied to all channel
+    types supported and available in the instance. The method ``"nan"`` will
+    replace the channel data with ``np.nan``.
+"""
+
 docdict["method_kw_psd"] = """\
 **method_kw
     Additional keyword arguments passed to the spectral estimation
@@ -2257,6 +2274,13 @@ method : str
 docdict["mode_eltc"] = """
 mode : str
     Extraction mode, see Notes.
+"""
+
+docdict["mode_interp"] = """
+mode : str
+    Either ``'accurate'`` or ``'fast'``, determines the quality of the
+    Legendre polynomial expansion used for interpolation of channels
+    using the minimum-norm method.
 """
 
 docdict["mode_pctf"] = """
@@ -2656,6 +2680,13 @@ ordered : bool
     .. versionadded:: 0.20.0
     .. versionchanged:: 1.5
         The default changed from False in 1.4 to True in 1.5.
+"""
+
+docdict["origin_interp"] = """
+origin : array-like, shape (3,) | str
+    Origin of the sphere in the head coordinate frame and in meters.
+    Can be ``'auto'`` (default), which means a head-digitization-based
+    origin fit.
 """
 
 docdict["origin_maxwell"] = """

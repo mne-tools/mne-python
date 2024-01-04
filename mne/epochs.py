@@ -1410,6 +1410,57 @@ class BaseEpochs(
         self._get_data(out=False, verbose=verbose)
         return self
 
+    @verbose
+    def interpolate_bads_per_epoch(
+        self,
+        interp_chs,
+        mode="accurate",
+        origin="auto",
+        method=None,
+        verbose=None,
+    ):
+        """Interpolate bad channels per epoch.
+
+        Parameters
+        ----------
+        interp_chs : list
+            A list containing channels to interpolate for each epoch.
+        %(mode_interp)s
+        %(origin_interp)s
+        %(method_interp)s
+        %(verbose)s
+
+        Returns
+        -------
+        epochs : instance of Epochs
+            The epochs with bad channels interpolated per epoch. Operates in-place.
+
+        Notes
+        -----
+        .. versionadded:: 1.7
+        """
+        _check_preload(self, "epochs.interpolate_bads_per_epoch")
+        if len(interp_chs) != len(self):
+            raise ValueError(
+                "The length of ``interp_chs`` must be "
+                f"the same as the the number of epochs ({len(self)}), "
+                f"got {len(interp_chs)}"
+            )
+        for i, this_interp_ch in enumerate(interp_chs):
+            chs_not_found = [ch for ch in this_interp_ch if ch not in self.ch_names]
+            if chs_not_found:
+                raise ValueError(
+                    f"Channels {chs_not_found} not found " f"for interp_chs[{i}]"
+                )
+        for epoch_idx, this_interp_chs in enumerate(interp_chs):
+            if this_interp_chs:
+                logger.debug(f"Interpolating {this_interp_chs} on epoch {epoch_idx}")
+                epoch = self[epoch_idx]
+                epoch.info["bads"] = list(this_interp_chs)
+                epoch.interpolate_bads(mode=mode, origin=origin, method=method)
+                self._data[epoch_idx] = epoch._data
+        return self
+
     def drop_log_stats(self, ignore=("IGNORED",)):
         """Compute the channel stats based on a drop_log from Epochs.
 

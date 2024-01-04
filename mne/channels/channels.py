@@ -823,36 +823,18 @@ class InterpolationMixin:
         ----------
         reset_bads : bool
             If True, remove the bads from info.
-        mode : str
-            Either ``'accurate'`` or ``'fast'``, determines the quality of the
-            Legendre polynomial expansion used for interpolation of channels
-            using the minimum-norm method.
-        origin : array-like, shape (3,) | str
-            Origin of the sphere in the head coordinate frame and in meters.
-            Can be ``'auto'`` (default), which means a head-digitization-based
-            origin fit.
+        %(mode_interp)s
+        %(origin_interp)s
 
             .. versionadded:: 0.17
-        method : dict | str | None
-            Method to use for each channel type.
-
-            - ``"meg"`` channels support ``"MNE"`` (default) and ``"nan"``
-            - ``"eeg"`` channels support ``"spline"`` (default), ``"MNE"`` and ``"nan"``
-            - ``"fnirs"`` channels support ``"nearest"`` (default) and ``"nan"``
-
-            None is an alias for::
-
-                method=dict(meg="MNE", eeg="spline", fnirs="nearest")
-
-            If a :class:`str` is provided, the method will be applied to all channel
-            types supported and available in the instance. The method ``"nan"`` will
-            replace the channel data with ``np.nan``.
+        %(method_interp)s
 
             .. warning::
                 Be careful when using ``method="nan"``; the default value
                 ``reset_bads=True`` may not be what you want.
 
             .. versionadded:: 0.21
+
         exclude : list | tuple
             The channels to exclude from interpolation. If excluded a bad
             channel will stay in bads.

@@ -720,6 +720,40 @@ def test_reject():
         assert "is a noop" in log
 
 
+def test_interpolate_bads_per_epochs():
+    raw, events, _ = _get_data()
+    names = raw.ch_names[::5]
+    assert "MEG 2443" in names
+    raw.pick(names).load_data()
+    assert "eog" in raw
+    raw.info.normalize_proj()
+    picks = np.arange(len(raw.ch_names))
+    # cull the list just to contain the relevant event
+    events = events[events[:, 2] == event_id, :]
+    assert len(events) == 7
+    # test interpolate bads per epoch
+    epochs = Epochs(
+        raw,
+        events,
+        event_id,
+        tmin,
+        tmax,
+        picks=picks,
+        preload=True,
+    )
+    with pytest.raises(ValueError, match="length of ``interp_chs``"):
+        epochs.interpolate_bads_per_epoch([])
+    interp_chs = [tuple() for _ in range(len(epochs))]
+    interp_chs[0] = ("foo",)
+    with pytest.raises(ValueError, match="Channels .* not found"):
+        epochs.interpolate_bads_per_epoch(interp_chs)
+
+    interp_chs[0] = (epochs.ch_names[0],)
+    data_before = epochs.get_data().copy()
+    data_after = epochs.interpolate_bads_per_epoch(interp_chs).get_data()
+    assert not np.array_equal(data_before[0], data_after[0])
+
+
 def test_reject_by_annotations_reject_tmin_reject_tmax():
     """Test reject_by_annotations with reject_tmin and reject_tmax defined."""
     # 10 seconds of data, event at 2s, bad segment from 1s to 1.5s
