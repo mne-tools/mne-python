@@ -621,7 +621,7 @@ contain:
 1. A brief description of the change, typically in a single line of one or two
    sentences.
 2. reST links to **public** API endpoints like functions (``:func:``),
-   classes (``:class``), and methods (``:meth:``). If changes are only internal
+   classes (``:class:``), and methods (``:meth:``). If changes are only internal
    to private functions/attributes, mention internal refactoring rather than name
    the private attributes changed.
 3. Author credit. If you are a new contributor (we're very happy to have you here! 🤗),
