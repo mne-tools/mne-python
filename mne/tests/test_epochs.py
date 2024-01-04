@@ -721,6 +721,7 @@ def test_reject():
 
 
 def test_interpolate_bads_per_epochs():
+    """Test interpolating bad channels per epoch."""
     raw, events, _ = _get_data()
     names = raw.ch_names[::5]
     assert "MEG 2443" in names
