@@ -64,7 +64,9 @@ class Layout:
         self.box = box
         self.pos = pos
         self.names = names
-        self.ids = ids
+        self.ids = np.array(ids)
+        if self.ids.ndim != 1:
+            raise ValueError("The channel indices should be a 1D array-like.")
         self.kind = kind
 
     def copy(self):
