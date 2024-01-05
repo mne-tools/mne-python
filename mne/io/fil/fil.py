@@ -25,7 +25,9 @@ from .sensors import (
 
 
 @verbose
-def read_raw_fil(binfile, precision="single", preload=False, *, verbose=None):
+def read_raw_fil(
+    binfile, precision="single", preload=False, *, verbose=None
+) -> "RawFIL":
     """Raw object from FIL-OPMEG formatted data.
 
     Parameters

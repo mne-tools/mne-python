@@ -913,7 +913,7 @@ def read_raw_kit(
     allow_unknown_format=False,
     standardize_names=False,
     verbose=None,
-):
+) -> RawKIT:
     r"""Reader function for Ricoh/KIT conversion to FIF.
 
     Parameters
@@ -981,7 +981,7 @@ def read_epochs_kit(
     allow_unknown_format=False,
     standardize_names=False,
     verbose=None,
-):
+) -> EpochsKIT:
     """Reader function for Ricoh/KIT epochs files.
 
     Parameters

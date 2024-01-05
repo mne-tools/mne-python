@@ -84,14 +84,12 @@ raw.set_eeg_reference("average", projection=False, verbose=False)
 raw.filter(l_freq=0.1, h_freq=None, fir_design="firwin", verbose=False)
 
 # Construct epochs
-event_id = {"12hz": 255, "15hz": 155}
-events, _ = mne.events_from_annotations(raw, verbose=False)
+raw.annotations.rename({"Stimulus/S255": "12hz", "Stimulus/S155": "15hz"})
 tmin, tmax = -1.0, 20.0  # in s
 baseline = None
 epochs = mne.Epochs(
     raw,
-    events=events,
-    event_id=[event_id["12hz"], event_id["15hz"]],
+    event_id=["12hz", "15hz"],
     tmin=tmin,
     tmax=tmax,
     baseline=baseline,
@@ -356,8 +354,8 @@ i_bin_45hz = np.argmin(abs(freqs - 45))
 # Get indices for the different trial types
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-i_trial_12hz = np.where(epochs.events[:, 2] == event_id["12hz"])[0]
-i_trial_15hz = np.where(epochs.events[:, 2] == event_id["15hz"])[0]
+i_trial_12hz = np.where(epochs.annotations.description == "12hz")[0]
+i_trial_15hz = np.where(epochs.annotations.description == "15hz")[0]
 
 # %%
 # Get indices of EEG channels forming the ROI
@@ -604,7 +602,7 @@ window_lengths = [i for i in range(2, 21, 2)]
 window_snrs = [[]] * len(window_lengths)
 for i_win, win in enumerate(window_lengths):
     # compute spectrogram
-    this_spectrum = epochs[str(event_id["12hz"])].compute_psd(
+    this_spectrum = epochs["12hz"].compute_psd(
         "welch",
         n_fft=int(sfreq * win),
         n_overlap=0,
@@ -688,7 +686,7 @@ window_snrs = [[]] * len(window_starts)
 
 for i_win, win in enumerate(window_starts):
     # compute spectrogram
-    this_spectrum = epochs[str(event_id["12hz"])].compute_psd(
+    this_spectrum = epochs["12hz"].compute_psd(
         "welch",
         n_fft=int(sfreq * window_length) - 1,
         n_overlap=0,

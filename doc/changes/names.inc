@@ -348,6 +348,8 @@
 
 .. _Martin Luessi: https://github.com/mluessi
 
+.. _Martin Oberg: https://github.com/obergmartin
+
 .. _Martin Schulz: https://github.com/marsipu
 
 .. _Mathieu Scheltienne: https://github.com/mscheltienne
@@ -401,6 +403,8 @@
 .. _Niklas Wilming: https://github.com/nwilming
 
 .. _Nikolai Chapochnikov: https://github.com/chapochn
+
+.. _Nikolai Kapralov: https://github.com/ctrltz
 
 .. _Nikolas Chalas: https://github.com/Nichalas
 

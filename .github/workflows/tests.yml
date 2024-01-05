@@ -20,7 +20,7 @@ jobs:
     timeout-minutes: 3
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
       - uses: pre-commit/action@v3.0.0
@@ -84,25 +84,24 @@ jobs:
           qt: true
           pyvista: false
       # Python (if pip)
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python }}
         if: startswith(matrix.kind, 'pip')
       # Python (if conda)
-      - uses: conda-incubator/setup-miniconda@v3
+      - uses: mamba-org/setup-micromamba@v1
         with:
-          python-version: ${{ env.PYTHON_VERSION }}
           environment-file: ${{ env.CONDA_ENV }}
-          activate-environment: mne
-          miniforge-version: latest
-          miniforge-variant: Mambaforge
-          use-mamba: ${{ matrix.kind != 'conda' }}
+          environment-name: mne
+          create-args: >-
+            python=${{ env.PYTHON_VERSION }}
+            mamba
+            fmt!=10.2.0
         if: ${{ !startswith(matrix.kind, 'pip') }}
       - run: ./tools/github_actions_dependencies.sh
       # Minimal commands on Linux (macOS stalls)
       - run: ./tools/get_minimal_commands.sh
         if: ${{ startswith(matrix.os, 'ubuntu') }}
-      - run: ./tools/github_actions_install.sh
       - run: ./tools/github_actions_infos.sh
       # Check Qt
       - run: ./tools/check_qt_import.sh $MNE_QT_BACKEND

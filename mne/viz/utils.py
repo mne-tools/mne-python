@@ -2360,29 +2360,12 @@ def _make_combine_callable(combine):
 def _convert_psds(
     psds, dB, estimate, scaling, unit, ch_names=None, first_dim="channel"
 ):
-    """Convert PSDs to dB (if necessary) and appropriate units.
-
-    The following table summarizes the relationship between the value of
-    parameters ``dB`` and ``estimate``, and the type of plot and corresponding
-    units.
-
-    | dB    | estimate    | plot | units             |
-    |-------+-------------+------+-------------------|
-    | True  | 'power'     | PSD  | amp**2/Hz (dB)    |
-    | True  | 'amplitude' | ASD  | amp/sqrt(Hz) (dB) |
-    | True  | 'auto'      | PSD  | amp**2/Hz (dB)    |
-    | False | 'power'     | PSD  | amp**2/Hz         |
-    | False | 'amplitude' | ASD  | amp/sqrt(Hz)      |
-    | False | 'auto'      | ASD  | amp/sqrt(Hz)      |
-
-    where amp are the units corresponding to the variable, as specified by
-    ``unit``.
-    """
+    """Convert PSDs to dB (if necessary) and appropriate units."""
     _check_option("first_dim", first_dim, ["channel", "epoch"])
     where = np.where(psds.min(1) <= 0)[0]
     if len(where) > 0:
-        # Construct a helpful error message, depending on whether the first
-        # dimension of `psds` are channels or epochs.
+        # Construct a helpful error message, depending on whether the first dimension of
+        # `psds` corresponds to channels or epochs.
         if dB:
             bad_value = "Infinite"
         else:
@@ -2404,16 +2387,18 @@ def _convert_psds(
     if estimate == "amplitude":
         np.sqrt(psds, out=psds)
         psds *= scaling
-        ylabel = r"$\mathrm{%s/\sqrt{Hz}}$" % unit
+        ylabel = rf"$\mathrm{{{unit}/\sqrt{{Hz}}}}$"
     else:
         psds *= scaling * scaling
         if "/" in unit:
-            unit = "(%s)" % unit
-        ylabel = r"$\mathrm{%s²/Hz}$" % unit
+            unit = f"({unit})"
+        ylabel = rf"$\mathrm{{{unit}²/Hz}}$"
     if dB:
         np.log10(np.maximum(psds, np.finfo(float).tiny), out=psds)
         psds *= 10
-        ylabel += r"$\ \mathrm{(dB)}$"
+        ylabel = r"$\mathrm{dB}\ $" + ylabel
+    ylabel = "Power (" + ylabel if estimate == "power" else "Amplitude (" + ylabel
+    ylabel += ")"
 
     return ylabel
 

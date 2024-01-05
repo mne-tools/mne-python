@@ -65,10 +65,6 @@ stages:
             displayName: make nesting
             condition: always()
           - bash: |
-              make check-manifest
-            displayName: make check-manifest
-            condition: always()
-          - bash: |
               make check-readme
             displayName: make check-readme
             condition: always()

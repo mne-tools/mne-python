@@ -3,11 +3,15 @@
 set -o pipefail
 
 STD_ARGS="--progress-bar off --upgrade"
+INSTALL_ARGS="-e"
 INSTALL_KIND="test_extra,hdf5"
 if [ ! -z "$CONDA_ENV" ]; then
 	echo "Uninstalling MNE for CONDA_ENV=${CONDA_ENV}"
 	conda remove -c conda-forge --force -yq mne
 	python -m pip uninstall -y mne
+	if [[ "${RUNNER_OS}" != "Windows" ]]; then
+		INSTALL_ARGS=""
+	fi
 elif [ ! -z "$CONDA_DEPENDENCIES" ]; then
 	echo "Using Mamba to install CONDA_DEPENDENCIES=${CONDA_DEPENDENCIES}"
 	mamba install -y $CONDA_DEPENDENCIES
@@ -24,7 +28,7 @@ else
 	echo "PyQt6"
 	pip install $STD_ARGS --only-binary ":all:" --default-timeout=60 --extra-index-url https://www.riverbankcomputing.com/pypi/simple "PyQt6!=6.6.1" "PyQt6-Qt6!=6.6.1"
 	echo "NumPy/SciPy/pandas etc."
-	pip install $STD_ARGS --only-binary ":all:" --default-timeout=60 --extra-index-url "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" "numpy>=2.0.0.dev0" "scipy>=1.12.0.dev0" scikit-learn matplotlib pillow statsmodels
+	pip install $STD_ARGS --only-binary ":all:" --default-timeout=60 --extra-index-url "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" "numpy>=2.0.0.dev0" "scipy>=1.12.0.dev0" "scikit-learn==1.4.dev0" matplotlib pillow statsmodels
 	# No pandas, dipy, h5py, openmeeg, python-picard (needs numexpr) until they update to NumPy 2.0 compat
 	INSTALL_KIND="test_extra"
 	# echo "dipy"
@@ -59,4 +63,4 @@ fi
 echo ""
 
 echo "Installing test dependencies using pip"
-python -m pip install $STD_ARGS -e .[$INSTALL_KIND]
+python -m pip install $STD_ARGS $INSTALL_ARGS .[$INSTALL_KIND]

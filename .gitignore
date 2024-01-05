@@ -20,6 +20,11 @@ junit-results.xml
 *.tmproj
 *.png
 *.dat
+# make sure we ship data files
+!mne/data/**/*.dat
+!mne/data/**/*.fif
+!mne/data/**/*.fif.gz
+!mne/icons/**/*.png
 .DS_Store
 events.eve
 foo-lh.label
@@ -27,7 +32,6 @@ foo.lout
 bar.lout
 foobar.lout
 epochs_data.mat
-memmap*.dat
 tmp-*.w
 tmtags
 auto_examples
@@ -41,7 +45,6 @@ MNE-brainstorm-data*
 physionet-sleep-data*
 MEGSIM*
 build
-mne/_version.py
 coverage
 htmlcov
 .cache/
@@ -63,11 +66,11 @@ tutorials/misc/report.h5
 tutorials/io/fnirs.csv
 pip-log.txt
 .coverage*
+!.coveragerc
 coverage.xml
 tags
 doc/coverages
 doc/samples
-doc/*.dat
 doc/fil-result
 doc/optipng.exe
 sg_execution_times.rst
@@ -94,6 +97,7 @@ cover
 .venv/
 venv/
 *.json
+!codemeta.json
 .hypothesis/
 .ruff_cache/
 .ipynb_checkpoints/

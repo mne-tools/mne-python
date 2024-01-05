@@ -141,7 +141,7 @@ raw.plot(duration=60, order=mag_channels, n_channels=len(mag_channels), remove_d
 # use :meth:`~mne.io.Raw.compute_psd` to illustrate.
 
 fig = raw.compute_psd(tmax=np.inf, fmax=250).plot(
-    average=True, picks="data", exclude="bads"
+    average=True, amplitude=False, picks="data", exclude="bads"
 )
 # add some arrows at 60 Hz and its harmonics:
 for ax in fig.axes[1:]:

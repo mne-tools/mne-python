@@ -38,6 +38,8 @@ from .utils import (
     _check_fname,
     _check_option,
     _check_pandas_installed,
+    _check_time_format,
+    _convert_times,
     _DefaultEventParser,
     _dt_to_stamp,
     _is_numeric,
@@ -442,8 +444,15 @@ class Annotations:
         self.description = np.delete(self.description, idx)
         self.ch_names = np.delete(self.ch_names, idx)
 
-    def to_data_frame(self):
+    @fill_doc
+    def to_data_frame(self, time_format="datetime"):
         """Export annotations in tabular structure as a pandas DataFrame.
+
+        Parameters
+        ----------
+        %(time_format_df_raw)s
+
+            .. versionadded:: 1.7
 
         Returns
         -------
@@ -453,12 +462,14 @@ class Annotations:
             annotations are channel-specific.
         """
         pd = _check_pandas_installed(strict=True)
+        valid_time_formats = ["ms", "timedelta", "datetime"]
         dt = _handle_meas_date(self.orig_time)
         if dt is None:
             dt = _handle_meas_date(0)
+        time_format = _check_time_format(time_format, valid_time_formats, dt)
         dt = dt.replace(tzinfo=None)
-        onsets_dt = [dt + timedelta(seconds=o) for o in self.onset]
-        df = dict(onset=onsets_dt, duration=self.duration, description=self.description)
+        times = _convert_times(self.onset, time_format, dt)
+        df = dict(onset=times, duration=self.duration, description=self.description)
         if self._any_ch_names():
             df.update(ch_names=self.ch_names)
         df = pd.DataFrame(df)
@@ -1139,7 +1150,9 @@ def _write_annotations_txt(fname, annot):
 
 
 @fill_doc
-def read_annotations(fname, sfreq="auto", uint16_codec=None, encoding="utf8"):
+def read_annotations(
+    fname, sfreq="auto", uint16_codec=None, encoding="utf8"
+) -> Annotations:
     r"""Read annotations from a file.
 
     This function reads a ``.fif``, ``.fif.gz``, ``.vmrk``, ``.amrk``,
@@ -1172,7 +1185,7 @@ def read_annotations(fname, sfreq="auto", uint16_codec=None, encoding="utf8"):
 
     Returns
     -------
-    annot : instance of Annotations | None
+    annot : instance of Annotations
         The annotations.
 
     Notes

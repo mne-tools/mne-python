@@ -15,7 +15,7 @@ from ..base import BaseRaw
 
 
 @fill_doc
-def read_raw_boxy(fname, preload=False, verbose=None):
+def read_raw_boxy(fname, preload=False, verbose=None) -> "RawBOXY":
     """Reader for an optical imaging recording.
 
     This function has been tested using the ISS Imagent I and II systems

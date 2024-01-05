@@ -1416,7 +1416,8 @@ def test_repr():
     assert r == "<Annotations | 0 segments>"
 
 
-def test_annotation_to_data_frame():
+@pytest.mark.parametrize("time_format", (None, "ms", "datetime", "timedelta"))
+def test_annotation_to_data_frame(time_format):
     """Test annotation class to data frame conversion."""
     pytest.importorskip("pandas")
     onset = np.arange(1, 10)
@@ -1427,11 +1428,15 @@ def test_annotation_to_data_frame():
         onset=onset, duration=durations, description=description, orig_time=0
     )
 
-    df = a.to_data_frame()
+    df = a.to_data_frame(time_format=time_format)
     for col in ["onset", "duration", "description"]:
         assert col in df.columns
     assert df.description[0] == "yy"
-    assert (df.onset[1] - df.onset[0]).seconds == 1
+    want = 1000 if time_format == "ms" else 1
+    got = df.onset[1] - df.onset[0]
+    if time_format in ("datetime", "timedelta"):
+        got = got.seconds
+    assert want == got
     assert df.groupby("description").count().onset["yy"] == 9
 
 

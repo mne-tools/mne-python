@@ -21,7 +21,9 @@ from ..nirx.nirx import _convert_fnirs_to_head
 
 
 @fill_doc
-def read_raw_snirf(fname, optode_frame="unknown", preload=False, verbose=None):
+def read_raw_snirf(
+    fname, optode_frame="unknown", preload=False, verbose=None
+) -> "RawSNIRF":
     """Reader for a continuous wave SNIRF data.
 
     .. note:: This reader supports the .snirf file type only,

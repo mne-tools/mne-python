@@ -62,7 +62,7 @@ def test_scaler(info, method):
     epochs_data_t = epochs_data.transpose([1, 0, 2])
     if method in ("mean", "median"):
         if not check_version("sklearn"):
-            with pytest.raises(ImportError, match="No module"):
+            with pytest.raises((ImportError, RuntimeError), match=" module "):
                 Scaler(info, method)
             return
 

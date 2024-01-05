@@ -396,9 +396,9 @@ def test_plot_psd_epochs(epochs):
     """Test plotting epochs psd (+topomap)."""
     spectrum = epochs.compute_psd()
     old_defaults = dict(picks="data", exclude="bads")
-    spectrum.plot(average=True, spatial_colors=False, **old_defaults)
-    spectrum.plot(average=False, spatial_colors=True, **old_defaults)
-    spectrum.plot(average=False, spatial_colors=False, **old_defaults)
+    spectrum.plot(average=True, amplitude=False, spatial_colors=False, **old_defaults)
+    spectrum.plot(average=False, amplitude=False, spatial_colors=True, **old_defaults)
+    spectrum.plot(average=False, amplitude=False, spatial_colors=False, **old_defaults)
     # test plot_psd_topomap errors
     with pytest.raises(RuntimeError, match="No frequencies in band"):
         spectrum.plot_topomap(bands=dict(foo=(0, 0.01)))
@@ -497,7 +497,7 @@ def test_plot_psd_epochs_ctf(raw_ctf):
         for dB in [True, False]:
             spectrum.plot(dB=dB)
     spectrum.drop_channels(["EEG060"])
-    spectrum.plot(spatial_colors=False, average=False, **old_defaults)
+    spectrum.plot(spatial_colors=False, average=False, amplitude=False, **old_defaults)
     with pytest.raises(RuntimeError, match="No frequencies in band"):
         spectrum.plot_topomap(bands=[(0, 0.01, "foo")])
     spectrum.plot_topomap()
