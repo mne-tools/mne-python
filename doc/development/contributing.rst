@@ -592,7 +592,7 @@ Describe your changes in the changelog
 
 Include in your changeset a brief description of the change in the
 :ref:`changelog <whats_new>` using towncrier_ format, which aggregates small,
-properly-named ``.rst`` files to create a change log. This can be
+properly-named ``.rst`` files to create a changelog. This can be
 skipped for very minor changes like correcting typos in the documentation.
 
 There are six separate sections for changes, based on change type.
