@@ -141,6 +141,7 @@ class Layout:
         """
         return plot_layout(self, picks=picks, show_axes=show_axes, show=show)
 
+    @fill_doc
     def pick(self, picks=None, exclude=(), *, verbose=None):
         """Pick a subset of channels.
 
