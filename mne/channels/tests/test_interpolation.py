@@ -358,7 +358,7 @@ def test_interpolation_ieeg():
     raw_seeg = RawArray(data=epochs_seeg._data[0], info=epochs_seeg.info)
     raw_before = raw_seeg._data[bads_idx]
     with pytest.raises(RuntimeError, match="Only 2 contact positions"):
-        raw_seeg.interpolate_bads(method=dict(seeg="linear"))._data[bads_idx]
+        raw_seeg.interpolate_bads(method=dict(seeg="spline"))._data[bads_idx]
     montage = raw_seeg.get_montage()
     pos = montage.get_positions()
     ch_pos = pos.pop("ch_pos")

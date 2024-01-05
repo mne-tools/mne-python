@@ -345,13 +345,13 @@ def _interpolate_bads_seeg(inst, exclude=None, tol=2e-3, verbose=None):
                 "interpolation, fix the positions or exclude this channel"
             )
         bads_shaft = np.array([idx for idx in picks_bad if idx in shaft])
-        goods_shaft = shaft[~np.in1d(shaft, bads_shaft)]
+        goods_shaft = shaft[~np.isin(shaft, bads_shaft)]
         logger.debug(
             f"Interpolating {np.array(inst.ch_names)[bads_shaft]} using "
             f"data from {np.array(inst.ch_names)[goods_shaft]}"
         )
-        bads_shaft_idx = np.where(np.in1d(shaft, bads_shaft))[0]
-        goods_shaft_idx = np.where(~np.in1d(shaft, bads_shaft))[0]
+        bads_shaft_idx = np.where(np.isin(shaft, bads_shaft))[0]
+        goods_shaft_idx = np.where(~np.isin(shaft, bads_shaft))[0]
         for bad in bads_shaft:
             picks_bad.remove(bad)  # interpolating, remove
         ts = np.array(
