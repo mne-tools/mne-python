@@ -2888,7 +2888,7 @@ def plot_layout(layout, picks=None, show_axes=False, show=True):
     ----------
     layout : None | Layout
         Layout instance specifying sensor positions.
-    %(picks_nostr)s
+    %(picks_layout)s
     show_axes : bool
             Show layout axes if True. Defaults to False.
     show : bool
@@ -2912,10 +2912,8 @@ def plot_layout(layout, picks=None, show_axes=False, show=True):
     ax.set(xticks=[], yticks=[], aspect="equal")
     outlines = dict(border=([0, 1, 1, 0, 0], [0, 0, 1, 1, 0]))
     _draw_outlines(ax, outlines)
-    picks = _picks_to_idx(len(layout.names), picks)
-    pos = layout.pos[picks]
-    names = np.array(layout.names)[picks]
-    for ii, (p, ch_id) in enumerate(zip(pos, names)):
+    layout = layout.copy().pick(picks)
+    for ii, (p, ch_id) in enumerate(zip(layout.pos, layout.names)):
         center_pos = np.array((p[0] + p[2] / 2.0, p[1] + p[3] / 2.0))
         ax.annotate(
             ch_id,

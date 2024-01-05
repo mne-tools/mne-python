@@ -12,6 +12,7 @@
 
 import logging
 from collections import defaultdict
+from copy import deepcopy
 from itertools import combinations
 from pathlib import Path
 
@@ -28,6 +29,7 @@ from ..utils import (
     _check_option,
     _check_sphere,
     _clean_names,
+    _ensure_int,
     fill_doc,
     logger,
     warn,
@@ -64,6 +66,10 @@ class Layout:
         self.names = names
         self.ids = ids
         self.kind = kind
+
+    def copy(self):
+        """Return a copy of the layout."""
+        return deepcopy(self)
 
     def save(self, fname, overwrite=False):
         """Save Layout to disk.
@@ -134,6 +140,83 @@ class Layout:
         .. versionadded:: 0.12.0
         """
         return plot_layout(self, picks=picks, show_axes=show_axes, show=show)
+
+    def pick(self, picks=None, exclude=(), *, verbose=None):
+        """Pick a subset of channels.
+
+        Parameters
+        ----------
+        %(picks_layout)s
+        exclude : str | int | array-like of str or int
+            Set of channels to exclude, only used when ``picks`` is set to ``'all'`` or
+            ``None``. Exclude will not drop channels explicitly provided in ``picks``.
+        %(verbose)s
+
+            .. versionadded:: 0.24.0
+
+        Returns
+        -------
+        layout : instance of Layout
+            The modified layout.
+        """
+        # sadly, all the picking functions operates on an 'info' object which is missing
+        # for a layout, thus we have to do the extra work here.
+        if (isinstance(picks, str) and picks == "all") or (picks is None):
+            picks = deepcopy(self.names)
+            apply_exclude = True
+        elif isinstance(picks, str):
+            picks = [picks]
+            apply_exclude = False
+        elif isinstance(picks, slice):
+            picks = np.arange(len(self.names))[picks]
+            apply_exclude = False
+        else:
+            picks = deepcopy(picks)
+            apply_exclude = False
+        if apply_exclude:
+            exclude = [exclude] if isinstance(exclude, str) else deepcopy(exclude)
+        for var, var_name in ((picks, "picks"), (exclude, "exclude")):
+            if var_name == "exclude" and not apply_exclude:
+                continue
+            if not isinstance(var, (list, tuple, set, np.ndarray)):
+                raise TypeError(
+                    f"'{var_name}' must be a list, tuple, set or ndarray. "
+                    f"Got {type(var)} instead."
+                )
+            for k, elt in enumerate(var):
+                if isinstance(elt, str) and elt in self.names:
+                    var[k] = self.names.index(elt)
+                    continue
+                elif isinstance(elt, str):
+                    raise ValueError(
+                        f"The channel name {elt} provided in {var_name} does not match "
+                        "any channels from the layout."
+                    )
+                try:
+                    var[k] = _ensure_int(elt)
+                except TypeError:
+                    raise TypeError(
+                        f"All elements in '{var_name}' must be integers or strings."
+                    )
+                if not (0 <= var[k] < len(self.names)):
+                    raise ValueError(
+                        f"The value {elt} provided in {var_name} does not match any "
+                        f"channels from the layout. The layout has {len(self.names)} "
+                        "channels."
+                    )
+            if len(var) != len(set(var)):
+                warn(
+                    f"The provided '{var_name}' has duplicates which will be ignored.",
+                    RuntimeWarning,
+                )
+        if apply_exclude:
+            picks = np.array(list(set(picks) - set(exclude)))
+        else:
+            picks = np.array(list(set(picks)))
+        self.pos = self.pos[picks]
+        self.ids = self.ids[picks]
+        self.names = [self.names[k] for k in picks]
+        return self
 
 
 def _read_lout(fname):
