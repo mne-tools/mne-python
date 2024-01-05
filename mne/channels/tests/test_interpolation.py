@@ -335,7 +335,7 @@ def test_interpolation_ieeg():
     """Test interpolation for sEEG and ECoG."""
     raw, epochs_eeg = _load_data("eeg")
     bads = ["EEG 012"]
-    bads_idx = np.where(np.in1d(epochs_eeg.ch_names, bads))[0]
+    bads_idx = np.where(np.isin(epochs_eeg.ch_names, bads))[0]
 
     epochs_ecog = epochs_eeg.copy().set_channel_types(
         {ch: "ecog" for ch in epochs_eeg.ch_names}
