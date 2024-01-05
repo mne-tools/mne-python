@@ -839,11 +839,12 @@ class BaseEpochs(
                         )
                 else:
                     raise ValueError(
-                            """The dictionary elements in %s must be in the
+                        """The dictionary elements in %s must be in the
                             form of a collection that contains a callable or value
                             in the first element and a collection or string
-                            in the second element""" % rej
-                        )
+                            in the second element"""
+                        % rej
+                    )
 
         # now check to see if our rejection and flat are getting more
         # restrictive
