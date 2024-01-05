@@ -795,10 +795,6 @@ class BaseEpochs(
         reject = deepcopy(reject) if reject is not None else dict()
         flat = deepcopy(flat) if flat is not None else dict()
         for rej, kind in zip((reject, flat), ("reject", "flat")):
-            if not isinstance(rej, dict):
-                raise TypeError(
-                    "reject and flat must be dict or None, not %s" % type(rej)
-                )
             bads = set(rej.keys()) - set(idx.keys())
             if len(bads) > 0:
                 raise KeyError("Unknown channel types found in %s: %s" % (kind, bads))
@@ -818,16 +814,38 @@ class BaseEpochs(
 
         # check for invalid values
         for rej, kind in zip((reject, flat), ("Rejection", "Flat")):
+            if not isinstance(rej, dict):
+                raise TypeError(
+                    "reject and flat must be dict or None, not %s" % type(rej)
+                )
+
+            # Check if each reject/flat dict is a tuple that contains a
+            # callable function and a collection or string
             for key, val in rej.items():
-                if callable(val):
-                    continue
-                elif val is not None and val >= 0:
-                    continue
+                if isinstance(val, (list, tuple)):
+                    if callable(val[0]):
+                        continue
+                    elif val[0] is not None and val[0] >= 0:
+                        continue
+                    else:
+                        raise ValueError(
+                            "%s criteria must be a number >= 0 or a valid"
+                            ' callable, not "%s"' % (kind, val)
+                        )
+                    if isinstance(val[1], (list, tuple, str)):
+                        continue
+                    else:
+                        raise ValueError(
+                            "%s reason must be a collection or string, "
+                            "not %s" % (kind, type(val[1]))
+                        )
                 else:
                     raise ValueError(
-                        "%s value must be a number >= 0 or a valid function,"
-                        'not "%s"' % (kind, val)
-                    )
+                            """The dictionary elements in %s must be in the
+                            form of a collection that contains a callable or value
+                            in the first element and a collection or string
+                            in the second element""" % rej
+                        )
 
         # now check to see if our rejection and flat are getting more
         # restrictive
@@ -3647,7 +3665,8 @@ def _is_good(
 
     for refl, f, t in zip([reject, flat], [np.greater, np.less], ["", "flat"]):
         if refl is not None:
-            for key, criterion in refl.items():
+            for key, refl in refl.items():
+                criterion = refl[0]
                 idx = channel_type_idx[key]
                 name = key.upper()
                 if len(idx) > 0:
