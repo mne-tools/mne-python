@@ -975,7 +975,15 @@ def _plot_evoked_topo(
     if layout is None:
         layout = find_layout(info, exclude=exclude)
     else:
-        layout = layout.pick("all", exclude=_picks_to_idx(info, "all", exclude=exclude))
+        layout = layout.pick(
+            "all",
+            exclude=_picks_to_idx(
+                info,
+                exclude if exclude != "bads" else info["bads"],
+                exclude=(),
+                allow_empty=True,
+            ),
+        )
 
     if not merge_channels:
         # XXX. at the moment we are committed to 1- / 2-sensor-types layouts
