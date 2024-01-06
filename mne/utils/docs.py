@@ -2956,7 +2956,7 @@ picks : int | list of int | slice | None
     IC: ``ICA001``. ``None`` will pick all independent components in the order fitted.
 """
 docdict["picks_layout"] = """
-picks : array-like | slice | ``'all'`` | None
+picks : array-like of str or int | slice | ``'all'`` | None
     Channels to include in the layout. Slices and lists of integers will be interpreted
     as channel indices. Can also be the string value ``'all'`` to pick all channels.
     None (default) will pick all channels.

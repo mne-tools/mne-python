@@ -77,6 +77,10 @@ class Layout:
         -------
         layout : instance of Layout
             A deepcopy of the layout.
+
+        Notes
+        -----
+        .. versionadded:: 1.7
         """
         return deepcopy(self)
 
@@ -162,12 +166,14 @@ class Layout:
             ``None``. Exclude will not drop channels explicitly provided in ``picks``.
         %(verbose)s
 
-            .. versionadded:: 0.24.0
-
         Returns
         -------
         layout : instance of Layout
             The modified layout.
+
+        Notes
+        -----
+        .. versionadded:: 1.7
         """
         # sadly, all the picking functions operates on an 'info' object which is missing
         # for a layout, thus we have to do the extra work here.
