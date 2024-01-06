@@ -619,7 +619,7 @@ def find_layout(info, ch_type=None, exclude="bads"):
     idx = [ii for ii, name in enumerate(layout.names) if name not in exclude]
     layout.names = [layout.names[ii] for ii in idx]
     layout.pos = layout.pos[idx]
-    layout.ids = [layout.ids[ii] for ii in idx]
+    layout.ids = layout.ids[idx]
 
     return layout
 

@@ -224,23 +224,17 @@ def test_make_grid_layout(tmp_path):
 
 def test_find_layout():
     """Test finding layout."""
-    pytest.raises(ValueError, find_layout, _get_test_info(), ch_type="meep")
+    with pytest.raises(ValueError, match="Invalid value for the 'ch_type'"):
+        find_layout(_get_test_info(), ch_type="meep")
 
     sample_info = read_info(fif_fname)
-    grads = pick_types(sample_info, meg="grad")
-    sample_info2 = pick_info(sample_info, grads)
-
-    mags = pick_types(sample_info, meg="mag")
-    sample_info3 = pick_info(sample_info, mags)
-
-    # mock new convention
+    sample_info2 = pick_info(sample_info, pick_types(sample_info, meg="grad"))
+    sample_info3 = pick_info(sample_info, pick_types(sample_info, meg="mag"))
     sample_info4 = copy.deepcopy(sample_info)
-    for ii, name in enumerate(sample_info4["ch_names"]):
+    for ii, name in enumerate(sample_info4["ch_names"]):  # mock new convention
         new = name.replace(" ", "")
         sample_info4["chs"][ii]["ch_name"] = new
-
-    eegs = pick_types(sample_info, meg=False, eeg=True)
-    sample_info5 = pick_info(sample_info, eegs)
+    sample_info5 = pick_info(sample_info, pick_types(sample_info, meg=False, eeg=True))
 
     lout = find_layout(sample_info, ch_type=None)
     assert lout.kind == "Vectorview-all"
