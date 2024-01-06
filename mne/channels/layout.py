@@ -32,6 +32,7 @@ from ..utils import (
     _ensure_int,
     fill_doc,
     logger,
+    verbose,
     warn,
 )
 from ..viz.topomap import plot_layout
@@ -52,9 +53,9 @@ class Layout:
     pos : array, shape=(n_channels, 4)
         The unit-normalized positions of the channels in 2d
         (x, y, width, height).
-    names : list
+    names : list of str
         The channel names.
-    ids : list
+    ids : array-like of int
         The channel ids.
     kind : str
         The type of Layout (e.g. 'Vectorview-all').
@@ -70,7 +71,13 @@ class Layout:
         self.kind = kind
 
     def copy(self):
-        """Return a copy of the layout."""
+        """Return a copy of the layout.
+
+        Returns
+        -------
+        layout : instance of Layout
+            A deepcopy of the layout.
+        """
         return deepcopy(self)
 
     def save(self, fname, overwrite=False):
@@ -143,7 +150,7 @@ class Layout:
         """
         return plot_layout(self, picks=picks, show_axes=show_axes, show=show)
 
-    @fill_doc
+    @verbose
     def pick(self, picks=None, exclude=(), *, verbose=None):
         """Pick a subset of channels.
 
@@ -174,10 +181,19 @@ class Layout:
             picks = np.arange(len(self.names))[picks]
             apply_exclude = False
         else:
-            picks = deepcopy(picks)
+            try:
+                picks = [_ensure_int(picks)]
+            except TypeError:
+                picks = list(deepcopy(picks))
             apply_exclude = False
         if apply_exclude:
-            exclude = [exclude] if isinstance(exclude, str) else deepcopy(exclude)
+            if isinstance(exclude, str):
+                exclude = [exclude]
+            else:
+                try:
+                    exclude = [_ensure_int(exclude)]
+                except TypeError:
+                    exclude = list(deepcopy(exclude))
         for var, var_name in ((picks, "picks"), (exclude, "exclude")):
             if var_name == "exclude" and not apply_exclude:
                 continue

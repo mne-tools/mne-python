@@ -23,6 +23,7 @@ from mne import pick_info, pick_types
 from mne._fiff.constants import FIFF
 from mne._fiff.meas_info import _empty_info
 from mne.channels import (
+    Layout,
     find_layout,
     make_eeg_layout,
     make_grid_layout,
@@ -92,6 +93,18 @@ def _get_test_info():
     test_info._update_redundant()
     test_info._check_consistency()
     return test_info
+
+
+@pytest.fixture(scope="module")
+def layout():
+    """Get a layout."""
+    return Layout(
+        (0.1, 0.2, 0.1, 1.2),
+        pos=np.array([[0, 0, 0.1, 0.1], [0.2, 0.2, 0.1, 0.1], [0.4, 0.4, 0.1, 0.1]]),
+        names=["0", "1", "2"],
+        ids=[0, 1, 2],
+        kind="test",
+    )
 
 
 def test_io_layout_lout(tmp_path):
@@ -398,3 +411,65 @@ def test_generate_2d_layout():
     # Make sure background image normalizing is correct
     lt_bg = generate_2d_layout(xy, bg_image=bg_image)
     assert_allclose(lt_bg.pos[:, :2].max(), xy.max() / float(sbg))
+
+
+def test_layout_copy(layout):
+    """Test copying a layout."""
+    layout2 = layout.copy()
+    assert_allclose(layout.pos, layout2.pos)
+    assert layout.names == layout2.names
+    layout2.names[0] = "foo"
+    layout2.pos[0, 0] = 0.8
+    assert layout.names != layout2.names
+    assert layout.pos[0, 0] != layout2.pos[0, 0]
+
+
+@pytest.mark.parametrize(
+    "picks, exclude",
+    [
+        ([0, 1], ()),
+        (["0", 1], ()),
+        (None, ["2"]),
+        (None, "2"),
+        (None, [2]),
+        (None, 2),
+        ("all", 2),
+        ("all", "2"),
+        (slice(0, 2), ()),
+        (("0", "1"), ("0", "1")),
+        (("0", 1), ("0", "1")),
+        (("0", 1), (0, "1")),
+    ],
+)
+def test_layout_pick(layout, picks, exclude):
+    """Test selection of channels in a layout."""
+    layout2 = layout.copy()
+    layout2.pick(picks, exclude)
+    assert layout2.names == layout.names[:2]
+    assert_allclose(layout2.pos, layout.pos[:2, :])
+
+
+def test_layout_pick_more(layout):
+    """Test more channel selection in a layout."""
+    layout2 = layout.copy()
+    layout2.pick(0)
+    assert len(layout2.names) == 1
+    assert layout2.names[0] == layout.names[0]
+    assert_allclose(layout2.pos, layout.pos[:1, :])
+
+    layout2 = layout.copy()
+    layout2.pick("all", exclude=("0", "1"))
+    assert len(layout2.names) == 1
+    assert layout2.names[0] == layout.names[2]
+    assert_allclose(layout2.pos, layout.pos[2:, :])
+
+    layout2 = layout.copy()
+    layout2.pick("all", exclude=("0", 1))
+    assert len(layout2.names) == 1
+    assert layout2.names[0] == layout.names[2]
+    assert_allclose(layout2.pos, layout.pos[2:, :])
+
+
+def test_layout_pick_errors(layout):
+    """Test validation of layout.pick."""
+    pass
