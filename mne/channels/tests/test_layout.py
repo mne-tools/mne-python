@@ -472,4 +472,29 @@ def test_layout_pick_more(layout):
 
 def test_layout_pick_errors(layout):
     """Test validation of layout.pick."""
-    pass
+    with pytest.raises(TypeError, match="must be a list, tuple, set or ndarray"):
+        layout.pick(lambda x: x)
+    with pytest.raises(TypeError, match="must be a list, tuple, set or ndarray"):
+        layout.pick(None, lambda x: x)
+    with pytest.raises(TypeError, match="must be integers or strings"):
+        layout.pick([0, lambda x: x])
+    with pytest.raises(TypeError, match="must be integers or strings"):
+        layout.pick(None, [0, lambda x: x])
+    with pytest.raises(ValueError, match="does not match any channels"):
+        layout.pick("foo")
+    with pytest.raises(ValueError, match="does not match any channels"):
+        layout.pick(None, "foo")
+    with pytest.raises(ValueError, match="does not match any channels"):
+        layout.pick(101)
+    with pytest.raises(ValueError, match="does not match any channels"):
+        layout.pick(None, 101)
+    with pytest.warns(RuntimeWarning, match="has duplicates which will be ignored"):
+        layout.copy().pick(["0", "0"])
+    with pytest.warns(RuntimeWarning, match="has duplicates which will be ignored"):
+        layout.copy().pick(["0", 0])
+    with pytest.warns(RuntimeWarning, match="has duplicates which will be ignored"):
+        layout.copy().pick(None, ["0", "0"])
+    with pytest.warns(RuntimeWarning, match="has duplicates which will be ignored"):
+        layout.copy().pick(None, ["0", 0])
+    with pytest.raises(RuntimeError, match="selection yielded no remaining channels"):
+        layout.copy().pick(None, ["0", "1", "2"])

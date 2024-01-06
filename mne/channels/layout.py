@@ -184,7 +184,7 @@ class Layout:
             try:
                 picks = [_ensure_int(picks)]
             except TypeError:
-                picks = list(deepcopy(picks))
+                picks = list(picks) if isinstance(picks, tuple) else deepcopy(picks)
             apply_exclude = False
         if apply_exclude:
             if isinstance(exclude, str):
@@ -193,7 +193,11 @@ class Layout:
                 try:
                     exclude = [_ensure_int(exclude)]
                 except TypeError:
-                    exclude = list(deepcopy(exclude))
+                    exclude = (
+                        list(exclude)
+                        if isinstance(exclude, tuple)
+                        else deepcopy(exclude)
+                    )
         for var, var_name in ((picks, "picks"), (exclude, "exclude")):
             if var_name == "exclude" and not apply_exclude:
                 continue
@@ -230,6 +234,12 @@ class Layout:
                 )
         if apply_exclude:
             picks = np.array(list(set(picks) - set(exclude)))
+            if len(picks) == 0:
+                raise RuntimeError(
+                    "The channel selection yielded no remaining channels. Please edit "
+                    "the arguments 'picks' and 'exclude' to include at least one "
+                    "channel."
+                )
         else:
             picks = np.array(list(set(picks)))
         self.pos = self.pos[picks]
