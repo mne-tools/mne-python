@@ -921,8 +921,8 @@ class InterpolationMixin:
                 _interpolate_bads_nan(self, ch_type, exclude=exclude)
         if method.get("eeg", "") == "spline":
             _interpolate_bads_eeg(self, origin=origin, exclude=exclude)
-        eeg_mne = method.get("meg", "") == "MNE"
-        meg_mne = method.get("eeg", "") == "MNE"
+        meg_mne = method.get("meg", "") == "MNE"
+        eeg_mne = method.get("eeg", "") == "MNE"
         if meg_mne or eeg_mne:
             _interpolate_bads_meeg(
                 self,

@@ -322,12 +322,9 @@ def _interpolate_bads_seeg(inst, exclude=None, tol=2e-3, verbose=None):
         n1 = pos[bad]
         n2 = pos[np.argmin(dist[bad])]  # 1
         # https://mathworld.wolfram.com/Point-LineDistance3-Dimensional.html
-        shaft_dists = np.array(
-            [
-                np.linalg.norm(np.cross((n0 - n1), (n0 - n2))) / np.linalg.norm(n2 - n1)
-                for n0 in pos
-            ]
-        )
+        shaft_dists = np.linalg.norm(
+            np.cross((pos - n1), (pos - n2)), axis=1
+        ) / np.linalg.norm(n2 - n1)
         shaft = np.where(shaft_dists < tol)[0]  # 2
         if shaft.size < 3:
             raise RuntimeError(
