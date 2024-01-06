@@ -901,7 +901,7 @@ class InterpolationMixin:
             "seeg": ("spline", "nan"),
         }
         for key in method:
-            _check_option("method[key]", key, tuple(valids.keys()))
+            _check_option("method[key]", key, tuple(valids))
             _check_option(f"method['{key}']", method[key], valids[key])
         logger.info("Setting channel interpolation method to %s.", method)
         idx = _picks_to_idx(self.info, list(method), exclude=(), allow_empty=True)
@@ -913,21 +913,22 @@ class InterpolationMixin:
             if len(pick_info(self.info, idx)["bads"]) == 0:
                 method.pop(ch_type)
         logger.info("Interpolating bad channels.")
-        if not all(np.array(list(method.values())) == "nan") and set(
-            method.keys()
-        ) - set(["seeg"]):
+        needs_origin = [key != "seeg" and val != "nan" for key, val in method.items()]
+        if any(needs_origin):
             origin = _check_origin(origin, self.info)
         for ch_type, interp in method.items():
             if interp == "nan":
                 _interpolate_bads_nan(self, ch_type, exclude=exclude)
         if method.get("eeg", "") == "spline":
             _interpolate_bads_eeg(self, origin=origin, exclude=exclude)
-        if method.get("meg", "") == "MNE" or method.get("eeg", "") == "MNE":
+        eeg_mne = method.get("meg", "") == "MNE"
+        meg_mne = method.get("eeg", "") == "MNE"
+        if meg_mne or eeg_mne:
             _interpolate_bads_meeg(
                 self,
                 mode=mode,
-                meg=method.get("meg", "") == "MNE",
-                eeg=method.get("eeg", "") == "MNE",
+                meg=meg_mne,
+                eeg=eeg_mne,
                 origin=origin,
                 exclude=exclude,
                 method=method,

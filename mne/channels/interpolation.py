@@ -296,18 +296,12 @@ def _interpolate_bads_nirs(inst, exclude=(), verbose=None):
 def _interpolate_bads_seeg(inst, exclude=None, tol=2e-3, verbose=None):
     if exclude is None:
         exclude = list()
-    bads_idx = np.zeros(len(inst.ch_names), dtype=bool)
-    goods_idx = np.zeros(len(inst.ch_names), dtype=bool)
-
     picks = pick_types(inst.info, meg=False, seeg=True, exclude=exclude)
     inst.info._check_consistency()
-    bads_idx[picks] = [inst.ch_names[ch] in inst.info["bads"] for ch in picks]
+    bads_idx = np.isin(np.array(inst.ch_names)[picks], inst.info["bads"])
 
-    if len(picks) < 3 or bads_idx.sum() == 0:
+    if len(picks) == 0 or bads_idx.sum() == 0:
         return
-
-    goods_idx[picks] = True
-    goods_idx[bads_idx] = False
 
     pos = inst._get_channel_positions(picks)
 
@@ -330,10 +324,7 @@ def _interpolate_bads_seeg(inst, exclude=None, tol=2e-3, verbose=None):
         # https://mathworld.wolfram.com/Point-LineDistance3-Dimensional.html
         shaft_dists = np.array(
             [
-                0
-                if all(n0 == n1) or all(n0 == n2)
-                else np.linalg.norm(np.cross((n0 - n1), (n0 - n2)))
-                / np.linalg.norm(n2 - n1)
+                np.linalg.norm(np.cross((n0 - n1), (n0 - n2))) / np.linalg.norm(n2 - n1)
                 for n0 in pos
             ]
         )
@@ -345,7 +336,7 @@ def _interpolate_bads_seeg(inst, exclude=None, tol=2e-3, verbose=None):
                 "interpolation, fix the positions or exclude this channel"
             )
         bads_shaft = np.array([idx for idx in picks_bad if idx in shaft])
-        goods_shaft = shaft[~np.isin(shaft, bads_shaft)]
+        goods_shaft = shaft[np.isin(shaft, bads_shaft, invert=True)]
         logger.debug(
             f"Interpolating {np.array(inst.ch_names)[bads_shaft]} using "
             f"data from {np.array(inst.ch_names)[goods_shaft]}"
