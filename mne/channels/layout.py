@@ -190,7 +190,9 @@ class Layout:
             try:
                 picks = [_ensure_int(picks)]
             except TypeError:
-                picks = list(picks) if isinstance(picks, tuple) else deepcopy(picks)
+                picks = (
+                    list(picks) if isinstance(picks, (tuple, set)) else deepcopy(picks)
+                )
             apply_exclude = False
         if apply_exclude:
             if isinstance(exclude, str):
@@ -201,7 +203,7 @@ class Layout:
                 except TypeError:
                     exclude = (
                         list(exclude)
-                        if isinstance(exclude, tuple)
+                        if isinstance(exclude, (tuple, set))
                         else deepcopy(exclude)
                     )
         for var, var_name in ((picks, "picks"), (exclude, "exclude")):

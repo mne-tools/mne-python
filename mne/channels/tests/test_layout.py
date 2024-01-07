@@ -439,6 +439,9 @@ def test_layout_copy(layout):
         (("0", "1"), ("0", "1")),
         (("0", 1), ("0", "1")),
         (("0", 1), (0, "1")),
+        (set(["0", 1]), ()),
+        (set([0, 1]), set()),
+        (None, set([2])),
     ],
 )
 def test_layout_pick(layout, picks, exclude):
