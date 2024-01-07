@@ -214,6 +214,10 @@ class Layout:
                     f"'{var_name}' must be a list, tuple, set or ndarray. "
                     f"Got {type(var)} instead."
                 )
+            if isinstance(var, np.ndarray) and var.ndim != 1:
+                raise ValueError(
+                    f"'{var_name}' must be a 1D array-like. Got {var.ndim}D instead."
+                )
             for k, elt in enumerate(var):
                 if isinstance(elt, str) and elt in self.names:
                     var[k] = self.names.index(elt)
@@ -240,8 +244,10 @@ class Layout:
                     f"The provided '{var_name}' has duplicates which will be ignored.",
                     RuntimeWarning,
                 )
+        picks = picks.astype(int) if isinstance(picks, np.ndarray) else picks
+        exclude = exclude.astype(int) if isinstance(exclude, np.ndarray) else exclude
         if apply_exclude:
-            picks = np.array(list(set(picks) - set(exclude)))
+            picks = np.array(list(set(picks) - set(exclude)), dtype=int)
             if len(picks) == 0:
                 raise RuntimeError(
                     "The channel selection yielded no remaining channels. Please edit "
@@ -249,7 +255,7 @@ class Layout:
                     "channel."
                 )
         else:
-            picks = np.array(list(set(picks)))
+            picks = np.array(list(set(picks)), dtype=int)
         self.pos = self.pos[picks]
         self.ids = self.ids[picks]
         self.names = [self.names[k] for k in picks]

@@ -442,6 +442,9 @@ def test_layout_copy(layout):
         (set(["0", 1]), ()),
         (set([0, 1]), set()),
         (None, set([2])),
+        (np.array([0, 1]), ()),
+        (None, np.array([2])),
+        (np.array(["0", "1"]), ()),
     ],
 )
 def test_layout_pick(layout, picks, exclude):
@@ -501,3 +504,5 @@ def test_layout_pick_errors(layout):
         layout.copy().pick(None, ["0", 0])
     with pytest.raises(RuntimeError, match="selection yielded no remaining channels"):
         layout.copy().pick(None, ["0", "1", "2"])
+    with pytest.raises(ValueError, match="must be a 1D array-like"):
+        layout.copy().pick(None, np.array([[0, 1]]))
