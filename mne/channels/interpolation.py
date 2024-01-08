@@ -326,14 +326,14 @@ def _interpolate_bads_seeg(inst, exclude=None, tol=2e-3, verbose=None):
             np.cross((pos - n1), (pos - n2)), axis=1
         ) / np.linalg.norm(n2 - n1)
         shaft = np.where(shaft_dists < tol)[0]  # 2
-        if shaft.size < 3:
-            raise RuntimeError(
-                f"Only {shaft.size} contact positions in a line "
-                f" found for {inst.ch_names[bad]}, 3 required for "
-                "interpolation, fix the positions or exclude this channel"
-            )
         bads_shaft = np.array([idx for idx in picks_bad if idx in shaft])
         goods_shaft = shaft[np.isin(shaft, bads_shaft, invert=True)]
+        if goods_shaft.size < 2:
+            raise RuntimeError(
+                f"{goods_shaft.size} good contact(s) found in a line "
+                f" with {inst.ch_names[bad]}, at least 2 are required for "
+                "interpolation. Dropping this channel is recommended."
+            )
         logger.debug(
             f"Interpolating {np.array(inst.ch_names)[bads_shaft]} using "
             f"data from {np.array(inst.ch_names)[goods_shaft]}"
