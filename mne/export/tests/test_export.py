@@ -169,16 +169,12 @@ def test_double_export_edf(tmp_path):
 
     # export once
     temp_fname = tmp_path / "test.edf"
-    with pytest.warns(RuntimeWarning, match="Exporting STIM channels"):
-        raw.export(temp_fname, add_ch_type=True)
+    raw.export(temp_fname, add_ch_type=True)
     raw_read = read_raw_edf(temp_fname, infer_types=True, preload=True)
 
     # export again
     raw_read.export(temp_fname, add_ch_type=True, overwrite=True)
     raw_read = read_raw_edf(temp_fname, infer_types=True, preload=True)
-
-    # stim channel should be dropped
-    raw.drop_channels("2")
 
     assert raw.ch_names == raw_read.ch_names
     assert_array_almost_equal(raw.get_data(), raw_read.get_data(), decimal=10)
