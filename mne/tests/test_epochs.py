@@ -574,7 +574,7 @@ def test_reject():
         reasons = tuple(epochs.ch_name[bad_idx] for bad_idx in bad_idxs)
         return len(bad_idxs), reasons
 
-    bad_types = [my_reject_1, my_reject_2, ("Hi" "Hi"), (1, 1)]
+    bad_types = [my_reject_1, my_reject_2, ("Hi" "Hi"), (1, 1), None]
     for val in bad_types:  # protect against bad types
         for kwarg in ("reject", "flat"):
             pytest.raises(
