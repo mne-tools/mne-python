@@ -77,6 +77,7 @@ from .utils import (
     copy_function_doc_to_method_doc,
     eigh,
     fill_doc,
+    legacy,
     logger,
     verbose,
     warn,
