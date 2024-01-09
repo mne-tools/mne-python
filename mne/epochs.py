@@ -700,9 +700,8 @@ class BaseEpochs(
         assert hasattr(self, "_times_readonly")
         assert not self.times.flags["WRITEABLE"]
         assert isinstance(self.drop_log, tuple)
-        print("self.drop_log", self.drop_log)
         assert all(isinstance(log, tuple) for log in self.drop_log)
-        assert all(isinstance(s, (str,tuple)) for log in self.drop_log for s in log)
+        assert all(isinstance(s, str) for log in self.drop_log for s in log)
 
     def reset_drop_log_selection(self):
         """Reset the drop_log and selection entries.
@@ -820,20 +819,7 @@ class BaseEpochs(
             for rej, kind in zip((reject, flat), ("Rejection", "Flat")):
                 for key, val in rej.items():
                     name = f"{kind} dict value for {key}"
-                    if isinstance(val, (list, tuple)):
-                        _validate_type(
-                            val[0], ("numeric", "callable"),
-                            val[0], "float, int, or callable"
-                        )
-                        if (
-                            isinstance(val[0], (int, float)) and
-                            (val[0] is None or val[0] < 0)
-                        ):
-                            raise ValueError(
-                                """If using numerical %s criteria, the value
-                                must be >= 0 Not '%s'.""" % (kind, val[0])
-                            )
-                        _validate_type(val[1], ("str", "array-like"), val[1])
+                    if callable(val):
                         continue
                     _validate_type(val, "numeric", name, extra="or callable")
                     if val is None or val < 0:
@@ -3721,20 +3707,30 @@ def _is_good(
     for refl, f, t in zip([reject, flat], [np.greater, np.less], ["", "flat"]):
         if refl is not None:
             for key, refl in refl.items():
-                if isinstance(refl, (tuple, list)):
-                    criterion = refl[0]
-                else:
-                    criterion = refl
+                criterion = refl
                 idx = channel_type_idx[key]
                 name = key.upper()
                 if len(idx) > 0:
                     e_idx = e[idx]
                     checkable_idx = checkable[idx]
-
                     # Check if criterion is a function and apply it
                     if callable(criterion):
+                        result = criterion(e_idx)
+                        _validate_type(result, tuple, result, "tuple")
+                        if len(result) != 2:
+                            raise TypeError(
+                                "Function criterion must return a "
+                                "tuple of length 2"
+                            )
+                        cri_truth, reasons = result
+                        _validate_type(cri_truth, (bool, np.bool_),
+                                       cri_truth, "bool")
+                        _validate_type(
+                            reasons, (str, list, tuple),
+                            reasons, "str, list, or tuple"
+                        )
                         idx_deltas = np.where(
-                            np.logical_and(criterion(e_idx), checkable_idx)
+                            np.logical_and(cri_truth, checkable_idx)
                         )[0]
                     else:
                         deltas = np.max(e_idx, axis=1) - np.min(e_idx, axis=1)
@@ -3743,14 +3739,16 @@ def _is_good(
                         )[0]
 
                     if len(idx_deltas) > 0:
-                        if isinstance(refl, (tuple, list)):
-                            reasons = list(refl[1])
-                            for idx, reason in enumerate(reasons):
-                                if isinstance(reason, str):
-                                    reasons[idx] = (reason,)
-                                if isinstance(reason, list):
-                                    reasons[idx] = tuple(reason)
-                            bad_tuple += tuple(reasons)
+                        # Check to verify that refl is a callable that returns
+                        # (bool, reason). Reason must be a str/list/tuple.
+                        # If using tuple
+                        if callable(refl):
+                            if isinstance(reasons, (tuple, list)):
+                                for idx, reason in enumerate(reasons):
+                                    _validate_type(reason, str, reason, "str")
+                                bad_tuple += tuple(reasons)
+                            if isinstance(reasons, str):
+                                bad_tuple += (reasons,)
                         else:
                             bad_names = [ch_names[idx[i]] for i in idx_deltas]
                             if not has_printed:

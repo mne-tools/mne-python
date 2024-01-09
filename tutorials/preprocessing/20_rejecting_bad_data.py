@@ -366,7 +366,9 @@ epochs.plot(scalings=dict(eeg=50e-5))
 # spike in amplitude and one large increase in amplitude.
 
 # Let's try to reject the epoch containing the spike in amplitude based on the
-# maximum amplitude of the first channel.
+# maximum amplitude of the first channel. Please note that the callable in
+# ``reject`` must return a (good, reason) tuple. Where the good must be bool
+# and reason must be a str, list, or tuple where each entry is a str.
 
 epochs = mne.Epochs(
     edit_raw,
@@ -374,7 +376,7 @@ epochs = mne.Epochs(
     tmin=0,
     tmax=1,
     baseline=None,
-    reject=dict(eeg=lambda x: (np.max(x, axis=1) > 1e-2).any()),
+    reject=dict(eeg=lambda x: ((np.max(x, axis=1) > 1e-2).any(), "max amp")),
     preload=True,
 )
 epochs.plot(scalings=dict(eeg=50e-5))
@@ -395,7 +397,9 @@ epochs = mne.Epochs(
     tmin=0,
     tmax=1,
     baseline=None,
-    reject=dict(eeg=lambda x: (np.median(x, axis=1) > 1e-4).any()),
+    reject=dict(
+        eeg=lambda x: ((np.median(x, axis=1) > 1e-4).any(), "median amp")
+        ),
     preload=True,
 )
 epochs.plot(scalings=dict(eeg=50e-5))
@@ -409,7 +413,10 @@ epochs.plot(scalings=dict(eeg=50e-5))
 def reject_criteria(x):
     max_condition = np.max(x, axis=1) > 1e-2
     median_condition = np.median(x, axis=1) > 1e-4
-    return True if max_condition.any() or median_condition.any() else False
+    return (
+        (max_condition.any() or median_condition.any()),
+        ["max amp", "median amp"]
+    )
 
 
 epochs = mne.Epochs(

@@ -3291,9 +3291,10 @@ _reject_common = """\
 
     Custom rejection criteria can be also be used by passing a callable,
     e.g., to check for 99th percentile of absolute values of any channel
-    across time being bigger than 1mV::
+    across time being bigger than 1mV. The callable must return a good, reason tuple.
+    Where good must be bool and reason must be str, list, or tuple where each entry is a str.::
 
-        reject = dict(eeg=lambda x: (np.percentile(np.abs(x), 99, axis=1) > 1e-3).any())
+        reject = dict(eeg=lambda x: ((np.percentile(np.abs(x), 99, axis=1) > 1e-3).any(),  "> 1mV somewhere"))
 
     .. note:: If rejection is based on a signal **difference**
             calculated for each channel separately, applying baseline

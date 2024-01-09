@@ -550,7 +550,7 @@ def test_reject():
         preload=False,
         reject=dict(eeg=np.inf),
     )
-    for val in (-1, (-1, 'Hi')):  # protect against older MNE-C types
+    for val in (-1, -2):  # protect against older MNE-C types
         for kwarg in ("reject", "flat"):
             pytest.raises(
                 ValueError,
@@ -564,7 +564,17 @@ def test_reject():
                 preload=False,
                 **{kwarg: dict(grad=val)},
             )
-    bad_types = ['Hi', ('Hi' 'Hi'), (1, 1)]
+
+    def my_reject_1(epoch_data):
+        bad_idxs = np.where(np.percentile(epoch_data, axis=1) > 1e-35)
+        return len(bad_idxs) > 0
+
+    def my_reject_2(epoch_data):
+        bad_idxs = np.where(np.percentile(epoch_data, axis=1) > 1e-35)
+        reasons = tuple(epochs.ch_name[bad_idx] for bad_idx in bad_idxs)
+        return len(bad_idxs), reasons
+
+    bad_types = [my_reject_1, my_reject_2, ('Hi' 'Hi'), (1, 1)]
     for val in bad_types:  # protect against bad types
         for kwarg in ("reject", "flat"):
             pytest.raises(
@@ -576,7 +586,7 @@ def test_reject():
                 tmin,
                 tmax,
                 picks=picks_meg,
-                preload=False,
+                preload=True,
                 **{kwarg: dict(grad=val)},
             )
     pytest.raises(
@@ -2211,7 +2221,10 @@ def test_callable_reject():
     def reject_criteria(x):
         max_condition = np.max(x, axis=1) > 1e-2
         median_condition = np.median(x, axis=1) > 1e-4
-        (max_condition.any() or median_condition.any(), "eeg max or median")
+        return (
+            (max_condition.any() or median_condition.any()),
+            "eeg max or median"
+        )
 
     epochs = mne.Epochs(
         edit_raw,
