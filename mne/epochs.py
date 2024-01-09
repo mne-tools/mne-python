@@ -799,8 +799,7 @@ class BaseEpochs(
                 )
             bads = set(rej.keys()) - set(idx.keys())
             if len(bads) > 0:
-                raise KeyError(
-                    "Unknown channel types found in %s: %s" % (kind, bads))
+                raise KeyError("Unknown channel types found in %s: %s" % (kind, bads))
 
         for key in idx.keys():
             # don't throw an error if rejection/flat would do nothing
@@ -815,7 +814,7 @@ class BaseEpochs(
                     "%s." % (key.upper(), key.upper())
                 )
 
-        # check for invalid values
+            # check for invalid values
             for rej, kind in zip((reject, flat), ("Rejection", "Flat")):
                 for key, val in rej.items():
                     name = f"{kind} dict value for {key}"
@@ -825,7 +824,8 @@ class BaseEpochs(
                     if val is None or val < 0:
                         raise ValueError(
                             """If using numerical %s criteria, the value
-                                must be >= 0 Not '%s'.""" % (kind, val)
+                                must be >= 0 Not '%s'."""
+                            % (kind, val)
                         )
 
         # now check to see if our rejection and flat are getting more
@@ -1547,16 +1547,15 @@ class BaseEpochs(
 
         if indices.ndim > 1:
             raise ValueError("indices must be a scalar or a 1-d array")
-        # Check if indices and reasons are of the same length 
+        # Check if indices and reasons are of the same length
         # if using collection to drop epochs
-        if (isinstance(reason, (list, tuple))):
+        if isinstance(reason, (list, tuple)):
             if len(indices) != len(reason):
                 raise ValueError(
                     "If using a list or tuple as the reason, "
                     "indices and reasons must be of the same length, got "
                     f"{len(indices)} and {len(reason)}"
                 )
-
 
         if indices.dtype == bool:
             indices = np.where(indices)[0]
@@ -3719,19 +3718,16 @@ def _is_good(
                         _validate_type(result, tuple, result, "tuple")
                         if len(result) != 2:
                             raise TypeError(
-                                "Function criterion must return a "
-                                "tuple of length 2"
+                                "Function criterion must return a " "tuple of length 2"
                             )
                         cri_truth, reasons = result
-                        _validate_type(cri_truth, (bool, np.bool_),
-                                       cri_truth, "bool")
+                        _validate_type(cri_truth, (bool, np.bool_), cri_truth, "bool")
                         _validate_type(
-                            reasons, (str, list, tuple),
-                            reasons, "str, list, or tuple"
+                            reasons, (str, list, tuple), reasons, "str, list, or tuple"
                         )
-                        idx_deltas = np.where(
-                            np.logical_and(cri_truth, checkable_idx)
-                        )[0]
+                        idx_deltas = np.where(np.logical_and(cri_truth, checkable_idx))[
+                            0
+                        ]
                     else:
                         deltas = np.max(e_idx, axis=1) - np.min(e_idx, axis=1)
                         idx_deltas = np.where(

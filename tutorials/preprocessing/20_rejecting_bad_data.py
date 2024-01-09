@@ -397,9 +397,7 @@ epochs = mne.Epochs(
     tmin=0,
     tmax=1,
     baseline=None,
-    reject=dict(
-        eeg=lambda x: ((np.median(x, axis=1) > 1e-4).any(), "median amp")
-        ),
+    reject=dict(eeg=lambda x: ((np.median(x, axis=1) > 1e-4).any(), "median amp")),
     preload=True,
 )
 epochs.plot(scalings=dict(eeg=50e-5))
@@ -413,10 +411,7 @@ epochs.plot(scalings=dict(eeg=50e-5))
 def reject_criteria(x):
     max_condition = np.max(x, axis=1) > 1e-2
     median_condition = np.median(x, axis=1) > 1e-4
-    return (
-        (max_condition.any() or median_condition.any()),
-        ["max amp", "median amp"]
-    )
+    return ((max_condition.any() or median_condition.any()), ["max amp", "median amp"])
 
 
 epochs = mne.Epochs(
