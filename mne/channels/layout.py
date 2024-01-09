@@ -175,8 +175,9 @@ class Layout:
         -----
         .. versionadded:: 1.7
         """
-        # sadly, all the picking functions operates on an 'info' object which is missing
-        # for a layout, thus we have to do the extra work here.
+        # TODO: all the picking functions operates on an 'info' object which is missing
+        # for a layout, thus we have to do the extra work here. The logic below can be
+        # replaced when https://github.com/mne-tools/mne-python/issues/11913 is solved.
         if (isinstance(picks, str) and picks == "all") or (picks is None):
             picks = deepcopy(self.names)
             apply_exclude = True
@@ -184,7 +185,12 @@ class Layout:
             picks = [picks]
             apply_exclude = False
         elif isinstance(picks, slice):
-            picks = np.arange(len(self.names))[picks]
+            try:
+                picks = np.arange(len(self.names))[picks]
+            except TypeError:
+                raise TypeError(
+                    "If a slice is provided, it must be a slice of integers."
+                )
             apply_exclude = False
         else:
             try:

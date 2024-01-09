@@ -506,3 +506,5 @@ def test_layout_pick_errors(layout):
         layout.copy().pick(None, ["0", "1", "2"])
     with pytest.raises(ValueError, match="must be a 1D array-like"):
         layout.copy().pick(None, np.array([[0, 1]]))
+    with pytest.raises(TypeError, match="slice of integers"):
+        layout.copy().pick(slice("2342342342", 0, 3), ())
