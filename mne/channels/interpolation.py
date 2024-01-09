@@ -292,6 +292,26 @@ def _interpolate_bads_nirs(inst, exclude=(), verbose=None):
     return inst
 
 
+def _find_seeg_electrode_shaft(pos, tol=2e-3):
+    # 1) find nearest neighbor to define the electrode shaft line
+    # 2) find all contacts on the same line
+
+    dist = squareform(pdist(pos))
+    np.fill_diagonal(dist, np.inf)
+
+    shafts = list()
+    for i, n1 in enumerate(pos):
+        if any([i in shaft for shaft in shafts]):
+            continue
+        n2 = pos[np.argmin(dist[i])]  # 1
+        # https://mathworld.wolfram.com/Point-LineDistance3-Dimensional.html
+        shaft_dists = np.linalg.norm(
+            np.cross((pos - n1), (pos - n2)), axis=1
+        ) / np.linalg.norm(n2 - n1)
+        shafts.append(np.where(shaft_dists < tol)[0])  # 2
+    return shafts
+
+
 @verbose
 def _interpolate_bads_seeg(inst, exclude=None, tol=2e-3, verbose=None):
     if exclude is None:
@@ -308,31 +328,21 @@ def _interpolate_bads_seeg(inst, exclude=None, tol=2e-3, verbose=None):
     # Make sure only sEEG are used
     bads_idx_pos = bads_idx[picks]
 
-    # for each bad contact:
-    # 1) find nearest neighbor to define the electrode shaft line
-    # 2) find all contacts on the same line
-    # 3) interpolate the bad contacts
+    shafts = _find_seeg_electrode_shaft(pos, tol=tol)
 
-    dist = squareform(pdist(pos))
-    np.fill_diagonal(dist, np.inf)
-
+    # interpolate the bad contacts
     picks_bad = list(np.where(bads_idx_pos)[0])
-    while picks_bad:
-        bad = picks_bad[0]
-        n1 = pos[bad]
-        n2 = pos[np.argmin(dist[bad])]  # 1
-        # https://mathworld.wolfram.com/Point-LineDistance3-Dimensional.html
-        shaft_dists = np.linalg.norm(
-            np.cross((pos - n1), (pos - n2)), axis=1
-        ) / np.linalg.norm(n2 - n1)
-        shaft = np.where(shaft_dists < tol)[0]  # 2
+    for shaft in shafts:
         bads_shaft = np.array([idx for idx in picks_bad if idx in shaft])
+        if bads_shaft.size == 0:
+            continue
         goods_shaft = shaft[np.isin(shaft, bads_shaft, invert=True)]
         if goods_shaft.size < 2:
             raise RuntimeError(
                 f"{goods_shaft.size} good contact(s) found in a line "
-                f" with {inst.ch_names[bad]}, at least 2 are required for "
-                "interpolation. Dropping this channel is recommended."
+                f" with {np.array(inst.ch_names)[bads_shaft]}, "
+                "at least 2 are required for interpolation. "
+                "Dropping this channel/these channels is recommended."
             )
         logger.debug(
             f"Interpolating {np.array(inst.ch_names)[bads_shaft]} using "
@@ -340,14 +350,15 @@ def _interpolate_bads_seeg(inst, exclude=None, tol=2e-3, verbose=None):
         )
         bads_shaft_idx = np.where(np.isin(shaft, bads_shaft))[0]
         goods_shaft_idx = np.where(~np.isin(shaft, bads_shaft))[0]
-        for bad in bads_shaft:
-            picks_bad.remove(bad)  # interpolating, remove
+        n1, n2 = pos[shaft][:2]
         ts = np.array(
             [
-                np.dot(n1 - n0, n2 - n1) / np.linalg.norm(n2 - n1) ** 2
+                -np.dot(n1 - n0, n2 - n1) / np.linalg.norm(n2 - n1) ** 2
                 for n0 in pos[shaft]
             ]
         )
+        if np.any(np.diff(ts) < 0):
+            ts *= -1
         y = np.arange(inst._data.shape[-1])
         inst._data[bads_shaft] = RectBivariateSpline(
             x=ts[goods_shaft_idx], y=y, z=inst._data[goods_shaft]
