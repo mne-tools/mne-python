@@ -331,34 +331,40 @@ def test_interpolation_nirs():
 
 
 @testing.requires_testing_data
-def test_interpolation_ieeg():
+def test_interpolation_ecog():
     """Test interpolation for sEEG and ECoG."""
     raw, epochs_eeg = _load_data("eeg")
     bads = ["EEG 012"]
-    bads_idx = np.where(np.isin(epochs_eeg.ch_names, bads))[0]
+    bads_mask = np.isin(epochs_eeg.ch_names, bads)
 
-    epochs_ecog = epochs_eeg.copy().set_channel_types(
+    epochs_ecog = epochs_eeg.set_channel_types(
         {ch: "ecog" for ch in epochs_eeg.ch_names}
     )
     epochs_ecog.info["bads"] = bads
 
     # check that interpolation changes the data in raw
     raw_ecog = RawArray(data=epochs_ecog._data[0], info=epochs_ecog.info)
-    raw_before = raw_ecog._data[bads_idx]
-    raw_after = raw_ecog.interpolate_bads(method=dict(ecog="spline"))._data[bads_idx]
-    assert not np.all(raw_before == raw_after)
+    raw_before = raw_ecog.copy()
+    raw_after = raw_ecog.interpolate_bads(method=dict(ecog="spline"))
+    assert not np.all(raw_before._data[bads_mask] == raw_after._data[bads_mask])
+    assert_array_equal(raw_before._data[~bads_mask], raw_after._data[~bads_mask])
 
-    epochs_seeg = epochs_eeg.copy().set_channel_types(
+
+@testing.requires_testing_data
+def test_interpolation_seeg():
+    raw, epochs_eeg = _load_data("eeg")
+    bads = ["EEG 012"]
+    bads_mask = np.isin(epochs_eeg.ch_names, bads)
+    epochs_seeg = epochs_eeg.set_channel_types(
         {ch: "seeg" for ch in epochs_eeg.ch_names}
     )
-
     epochs_seeg.info["bads"] = bads
 
     # check that interpolation changes the data in raw
     raw_seeg = RawArray(data=epochs_seeg._data[0], info=epochs_seeg.info)
-    raw_before = raw_seeg._data[bads_idx]
+    raw_before = raw_seeg.copy()
     with pytest.raises(RuntimeError, match="1 good contact"):
-        raw_seeg.interpolate_bads(method=dict(seeg="spline"))._data[bads_idx]
+        raw_seeg.interpolate_bads(method=dict(seeg="spline"))
     montage = raw_seeg.get_montage()
     pos = montage.get_positions()
     ch_pos = pos.pop("ch_pos")
@@ -367,8 +373,9 @@ def test_interpolation_ieeg():
     for i, ch in enumerate(epochs_seeg.ch_names[2:]):
         ch_pos[ch] = n0 + (n1 - n0) * (i + 2)
     raw_seeg.set_montage(make_dig_montage(ch_pos, **pos))
-    raw_after = raw_seeg.interpolate_bads(method=dict(seeg="spline"))._data[bads_idx]
-    assert not np.all(raw_before == raw_after)
+    raw_after = raw_seeg.interpolate_bads(method=dict(seeg="spline"))
+    assert not np.all(raw_before._data[bads_mask] == raw_after._data[bads_mask])
+    assert_array_equal(raw_before._data[~bads_mask], raw_after._data[~bads_mask])
 
 
 def test_nan_interpolation(raw):
