@@ -39,7 +39,7 @@ from ._fiff.pick import (
     pick_info,
 )
 from ._fiff.proj import ProjMixin, setup_proj
-from ._fiff.tag import read_tag, read_tag_info
+from ._fiff.tag import _read_tag_header, read_tag
 from ._fiff.tree import dir_tree_find
 from ._fiff.utils import _make_split_fnames
 from ._fiff.write import (
@@ -3779,8 +3779,7 @@ def _read_one_epoch_file(f, tree, preload):
             elif kind == FIFF.FIFF_EPOCH:
                 # delay reading until later
                 fid.seek(pos, 0)
-                data_tag = read_tag_info(fid)
-                data_tag.pos = pos
+                data_tag = _read_tag_header(fid, pos)
                 data_tag.type = data_tag.type ^ (1 << 30)
             elif kind in [FIFF.FIFF_MNE_BASELINE_MIN, 304]:
                 # Constant 304 was used before v0.11
