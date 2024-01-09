@@ -60,11 +60,13 @@ def pick_info_to_idx(
     """
     _validate_type(info, Info, "info")
     if exclude == "bads":
-        exclude = info["bads"]
+        exclude = np.array([info["ch_names"].index(ch) for ch in info["bads"]], dtype=np.int32)  # noqa: E501
     else:
         exclude = _ensure_int_array_pick_exclude_with_info(info, exclude, "exclude")
     if picks is None or picks == "all":
         picks = np.arange(len(info["ch_names"]))
+    elif picks == "bads":
+        exclude = np.array([info["ch_names"].index(ch) for ch in info["bads"]], dtype=np.int32)  # noqa: E501
     elif picks == "data":
         return _pick_data_to_idx(info, exclude)
     else:
