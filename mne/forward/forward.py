@@ -245,6 +245,7 @@ class Forward(dict):
     def ch_names(self):
         return self["info"]["ch_names"]
 
+    @legacy
     def pick_channels(self, ch_names, ordered=False):
         """Pick channels from this forward operator.
 
@@ -270,6 +271,16 @@ class Forward(dict):
         return pick_channels_forward(
             self, ch_names, exclude=[], ordered=ordered, copy=False, verbose=False
         )
+
+    def pick(self, picks, exclude):
+        """Pick channels from the forward operator.
+
+        Replaces:
+        - Forward.pick_channels
+        - pick_channels_forward
+        - pick_types_forward
+        """
+        pass
 
 
 def _block_diag(A, n):
