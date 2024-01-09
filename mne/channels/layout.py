@@ -65,7 +65,7 @@ class Layout:
         self.ids = ids
         self.kind = kind
 
-    def save(self, fname, overwrite=False):
+    def save(self, fname, *, overwrite=False):
         """Save Layout to disk.
 
         Parameters
