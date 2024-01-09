@@ -700,8 +700,9 @@ class BaseEpochs(
         assert hasattr(self, "_times_readonly")
         assert not self.times.flags["WRITEABLE"]
         assert isinstance(self.drop_log, tuple)
+        print("self.drop_log", self.drop_log)
         assert all(isinstance(log, tuple) for log in self.drop_log)
-        assert all(isinstance(s, str) for log in self.drop_log for s in log)
+        assert all(isinstance(s, (str,tuple)) for log in self.drop_log for s in log)
 
     def reset_drop_log_selection(self):
         """Reset the drop_log and selection entries.
@@ -793,9 +794,14 @@ class BaseEpochs(
         reject = deepcopy(reject) if reject is not None else dict()
         flat = deepcopy(flat) if flat is not None else dict()
         for rej, kind in zip((reject, flat), ("reject", "flat")):
+            if not isinstance(rej, dict):
+                raise TypeError(
+                    "reject and flat must be dict or None, not %s" % type(rej)
+                )
             bads = set(rej.keys()) - set(idx.keys())
             if len(bads) > 0:
-                raise KeyError("Unknown channel types found in %s: %s" % (kind, bads))
+                raise KeyError(
+                    "Unknown channel types found in %s: %s" % (kind, bads))
 
         for key in idx.keys():
             # don't throw an error if rejection/flat would do nothing
@@ -811,40 +817,30 @@ class BaseEpochs(
                 )
 
         # check for invalid values
-        for rej, kind in zip((reject, flat), ("Rejection", "Flat")):
-            if not isinstance(rej, dict):
-                raise TypeError(
-                    "reject and flat must be dict or None, not %s" % type(rej)
-                )
-
-            # Check if each reject/flat dict is a tuple that contains a
-            # callable function and a collection or string
-            for key, val in rej.items():
-                if isinstance(val, (list, tuple)):
-                    if callable(val[0]):
-                        continue
-                    elif val[0] is not None and val[0] >= 0:
-                        continue
-                    else:
-                        raise ValueError(
-                            "%s criteria must be a number >= 0 or a valid"
-                            ' callable, not "%s"' % (kind, val)
+            for rej, kind in zip((reject, flat), ("Rejection", "Flat")):
+                for key, val in rej.items():
+                    name = f"{kind} dict value for {key}"
+                    if isinstance(val, (list, tuple)):
+                        _validate_type(
+                            val[0], ("numeric", "callable"),
+                            val[0], "float, int, or callable"
                         )
-                    if isinstance(val[1], (list, tuple, str)):
+                        if (
+                            isinstance(val[0], (int, float)) and
+                            (val[0] is None or val[0] < 0)
+                        ):
+                            raise ValueError(
+                                """If using numerical %s criteria, the value
+                                must be >= 0 Not '%s'.""" % (kind, val[0])
+                            )
+                        _validate_type(val[1], ("str", "array-like"), val[1])
                         continue
-                    else:
+                    _validate_type(val, "numeric", name, extra="or callable")
+                    if val is None or val < 0:
                         raise ValueError(
-                            "%s reason must be a collection or string, "
-                            "not %s" % (kind, type(val[1]))
+                            """If using numerical %s criteria, the value
+                                must be >= 0 Not '%s'.""" % (kind, val)
                         )
-                else:
-                    raise ValueError(
-                        """The dictionary elements in %s must be in the
-                            form of a collection that contains a callable or value
-                            in the first element and a collection or string
-                            in the second element"""
-                        % rej
-                    )
 
         # now check to see if our rejection and flat are getting more
         # restrictive
@@ -1565,6 +1561,16 @@ class BaseEpochs(
 
         if indices.ndim > 1:
             raise ValueError("indices must be a scalar or a 1-d array")
+        # Check if indices and reasons are of the same length 
+        # if using collection to drop epochs
+        if (isinstance(reason, (list, tuple))):
+            if len(indices) != len(reason):
+                raise ValueError(
+                    "If using a list or tuple as the reason, "
+                    "indices and reasons must be of the same length, got "
+                    f"{len(indices)} and {len(reason)}"
+                )
+
 
         if indices.dtype == bool:
             indices = np.where(indices)[0]
@@ -1767,7 +1773,7 @@ class BaseEpochs(
                 is_good, bad_tuple = self._is_good_epoch(epoch, verbose=verbose)
                 if not is_good:
                     assert isinstance(bad_tuple, tuple)
-                    assert all(isinstance(x, str) for x in bad_tuple)
+                    assert all(isinstance(x, (str, tuple)) for x in bad_tuple)
                     drop_log[sel] = drop_log[sel] + bad_tuple
                     continue
                 good_idx.append(idx)
@@ -3715,7 +3721,10 @@ def _is_good(
     for refl, f, t in zip([reject, flat], [np.greater, np.less], ["", "flat"]):
         if refl is not None:
             for key, refl in refl.items():
-                criterion = refl[0]
+                if isinstance(refl, (tuple, list)):
+                    criterion = refl[0]
+                else:
+                    criterion = refl
                 idx = channel_type_idx[key]
                 name = key.upper()
                 if len(idx) > 0:
@@ -3734,17 +3743,26 @@ def _is_good(
                         )[0]
 
                     if len(idx_deltas) > 0:
-                        bad_names = [ch_names[idx[i]] for i in idx_deltas]
-                        if not has_printed:
-                            logger.info(
-                                "    Rejecting %s epoch based on %s : "
-                                "%s" % (t, name, bad_names)
-                            )
-                            has_printed = True
-                        if not full_report:
-                            return False
+                        if isinstance(refl, (tuple, list)):
+                            reasons = list(refl[1])
+                            for idx, reason in enumerate(reasons):
+                                if isinstance(reason, str):
+                                    reasons[idx] = (reason,)
+                                if isinstance(reason, list):
+                                    reasons[idx] = tuple(reason)
+                            bad_tuple += tuple(reasons)
                         else:
-                            bad_tuple += tuple(bad_names)
+                            bad_names = [ch_names[idx[i]] for i in idx_deltas]
+                            if not has_printed:
+                                logger.info(
+                                    "    Rejecting %s epoch based on %s : "
+                                    "%s" % (t, name, bad_names)
+                                )
+                                has_printed = True
+                            if not full_report:
+                                return False
+                            else:
+                                bad_tuple += tuple(bad_names)
 
     if not full_report:
         return True
