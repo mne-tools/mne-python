@@ -332,7 +332,7 @@ def test_interpolation_nirs():
 
 @testing.requires_testing_data
 def test_interpolation_ecog():
-    """Test interpolation for sEEG and ECoG."""
+    """Test interpolation for ECoG."""
     raw, epochs_eeg = _load_data("eeg")
     bads = ["EEG 012"]
     bads_mask = np.isin(epochs_eeg.ch_names, bads)
@@ -352,6 +352,7 @@ def test_interpolation_ecog():
 
 @testing.requires_testing_data
 def test_interpolation_seeg():
+    """Test interpolation for sEEG."""
     raw, epochs_eeg = _load_data("eeg")
     bads = ["EEG 012"]
     bads_mask = np.isin(epochs_eeg.ch_names, bads)
