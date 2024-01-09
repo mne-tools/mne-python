@@ -32,7 +32,7 @@ def pick_ch_names_to_idx(
     ch_names = list(ch_names) if isinstance(ch_names, (set, tuple)) else ch_names
     exclude = _ensure_int_array_pick_exclude_with_ch_names(ch_names, exclude, "exclude")
     if picks is None or picks == "all":
-        picks = np.arange(len(ch_names))
+        picks = np.arange(len(ch_names), dtype=np.int32)
     else:
         picks = _ensure_int_array_pick_exclude_with_ch_names(ch_names, picks, "picks")
     return np.setdiff1d(picks, exclude, assume_unique=True).astype(np.int32)
@@ -64,7 +64,7 @@ def pick_info_to_idx(
     else:
         exclude = _ensure_int_array_pick_exclude_with_info(info, exclude, "exclude")
     if picks is None or picks == "all":
-        picks = np.arange(len(info["ch_names"]))
+        picks = np.arange(len(info["ch_names"]), dtype=np.int32)
     elif picks == "bads":
         exclude = np.array([info["ch_names"].index(ch) for ch in info["bads"]], dtype=np.int32)  # noqa: E501
     elif picks == "data":
