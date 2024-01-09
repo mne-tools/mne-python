@@ -85,14 +85,14 @@ class Layout:
         height = self.pos[:, 3]
         fname = _check_fname(fname, overwrite=overwrite, name=fname)
         if fname.suffix == ".lout":
-            out_str = "%8.2f %8.2f %8.2f %8.2f\n" % self.box
+            out_str = "%8.6f %8.6f %8.6f %8.6f\n" % self.box
         elif fname.suffix == ".lay":
             out_str = ""
         else:
-            raise ValueError("Unknown layout type. Should be of type " ".lout or .lay.")
+            raise ValueError("Unknown layout type. Should be of type .lout or .lay.")
 
         for ii in range(x.shape[0]):
-            out_str += "%03d %8.2f %8.2f %8.2f %8.2f %s\n" % (
+            out_str += "%03d %8.6f %8.6f %8.6f %8.6f %s\n" % (
                 self.ids[ii],
                 x[ii],
                 y[ii],
