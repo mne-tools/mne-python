@@ -3293,10 +3293,7 @@ def test_drop_epochs():
     selection_tuple = epochs_tuple.selection.copy()
     epochs_tuple.drop((2, 3, 4), reason=([["list"], "string", ("tuple",)]))
     n_events = len(epochs.events)
-    assert_equal(
-        [epochs_tuple.drop_log[k] for k in selection_tuple[[2, 3, 4]]],
-        [["list"], ["string"], ["tuple"]],
-    )
+    assert [epochs_tuple.drop_log[k] for k in selection_tuple[[2, 3, 4]]] == [("list",), ("string",), ("tuple",)]
 
 
 @pytest.mark.parametrize("preload", (True, False))
