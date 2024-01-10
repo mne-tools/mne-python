@@ -823,9 +823,8 @@ class BaseEpochs(
                     _validate_type(val, "numeric", name, extra="or callable")
                     if val is None or val < 0:
                         raise ValueError(
-                            """If using numerical %s criteria, the value
-                                must be >= 0 Not '%s'."""
-                            % (kind, val)
+                            f"If using numerical {name} criteria, the value "
+                            f"must be >= 0, not {repr(val)}"
                         )
 
         # now check to see if our rejection and flat are getting more
