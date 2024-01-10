@@ -2977,11 +2977,11 @@ def make_metadata(
         *last_cols,
     ]
 
-    data = np.empty((len(events_df), len(columns)))
+    data = np.empty((len(events_df), len(columns)), float)
     metadata = pd.DataFrame(data=data, columns=columns, index=events_df.index)
 
     # Event names
-    metadata.iloc[:, 0] = ""
+    metadata["event_name"] = ""
 
     # Event times
     start_idx = 1
@@ -2990,7 +2990,7 @@ def make_metadata(
 
     # keep_first and keep_last names
     start_idx = stop_idx
-    metadata.iloc[:, start_idx:] = None
+    metadata[columns[start_idx:]] = ""
 
     # We're all set, let's iterate over all events and fill in in the
     # respective cells in the metadata. We will subset this to include only
