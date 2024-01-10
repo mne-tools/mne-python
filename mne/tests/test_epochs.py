@@ -2219,7 +2219,7 @@ def test_callable_reject():
     def reject_criteria(x):
         max_condition = np.max(x, axis=1) > 1e-2
         median_condition = np.median(x, axis=1) > 1e-4
-        return ((max_condition.any() or median_condition.any()), "eeg max or median")
+        return (max_condition.any() or median_condition.any()), "eeg max or median"
 
     epochs = mne.Epochs(
         edit_raw,
