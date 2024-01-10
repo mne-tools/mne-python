@@ -3718,7 +3718,7 @@ def _is_good(
                         _validate_type(result, tuple, result, "tuple")
                         if len(result) != 2:
                             raise TypeError(
-                                "Function criterion must return a " "tuple of length 2"
+                                "Function criterion must return a tuple of length 2"
                             )
                         cri_truth, reasons = result
                         _validate_type(cri_truth, (bool, np.bool_), cri_truth, "bool")
