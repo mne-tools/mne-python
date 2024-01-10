@@ -137,7 +137,6 @@ def fiff_open(fname, preload=False, verbose=None):
         raise
 
 
-# @profile
 def _fiff_open(fname, fid, preload):
     # do preloading of entire file
     if preload:
@@ -315,7 +314,7 @@ def _show_tree(
         for k, kn, size, pos, type_ in zip(kinds[:-1], kinds[1:], sizes, poss, types):
             if not tag_found and k != tag_id:
                 continue
-            tag = Tag(k, size, 0, -1, pos)
+            tag = Tag(kind=k, type=type_, size=size, next=FIFF.FIFFV_NEXT_NONE, pos=pos)
             if read_limit is None or size <= read_limit:
                 try:
                     tag = read_tag(fid, pos)

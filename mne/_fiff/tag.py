@@ -424,7 +424,7 @@ for key, dtype in _simple_dict.items():
     _call_dict_names[key] = dtype
 
 
-def read_tag(fid, pos, shape=None, rlims=None, *, advance=True):
+def read_tag(fid, pos, shape=None, rlims=None):
     """Read a Tag from a file at a given position.
 
     Parameters
@@ -441,10 +441,6 @@ def read_tag(fid, pos, shape=None, rlims=None, *, advance=True):
         Note that data are assumed to be stored row-major in the file. Only to
         be used with data stored as a vector (not implemented for matrices
         yet).
-    advance : bool
-        If True (default), advance to next tag position after reading.
-
-        .. versionadded:: 1.7
 
     Returns
     -------

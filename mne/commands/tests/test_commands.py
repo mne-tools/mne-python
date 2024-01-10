@@ -43,7 +43,7 @@ from mne.commands import (
     mne_what,
 )
 from mne.datasets import testing
-from mne.io import read_info, read_raw_fif
+from mne.io import read_info, read_raw_fif, show_fiff
 from mne.utils import (
     ArgvSetter,
     _record_warnings,
@@ -100,13 +100,22 @@ def test_compare_fiff():
     check_usage(mne_compare_fiff)
 
 
-def test_show_fiff():
+def test_show_fiff(tmp_path):
     """Test mne compare_fiff."""
     check_usage(mne_show_fiff)
     with ArgvSetter((raw_fname,)):
         mne_show_fiff.run()
     with ArgvSetter((raw_fname, "--tag=102")):
         mne_show_fiff.run()
+    bad_fname = tmp_path / "test_bad_raw.fif"
+    with open(bad_fname, "wb") as fout:
+        with open(raw_fname, "rb") as fin:
+            fout.write(fin.read(100000))
+    with pytest.warns(RuntimeWarning, match="Invalid tag"):
+        lines = show_fiff(str(bad_fname), output=list)
+    last_line = lines[-1]
+    assert ">>>>BAD" in last_line
+    assert "302  = FIFF_EPOCH (734412b >f4)" in last_line
 
 
 @requires_mne
