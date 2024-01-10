@@ -278,7 +278,9 @@ DEFAULTS = dict(
         combine_xyz="fro",
         allow_fixed_depth=True,
     ),
-    interpolation_method=dict(eeg="spline", meg="MNE", fnirs="nearest"),
+    interpolation_method=dict(
+        eeg="spline", meg="MNE", fnirs="nearest", ecog="spline", seeg="spline"
+    ),
     volume_options=dict(
         alpha=None,
         resolution=1.0,

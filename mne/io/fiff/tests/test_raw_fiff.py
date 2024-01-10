@@ -30,8 +30,7 @@ from mne import (
     pick_types,
 )
 from mne._fiff.constants import FIFF
-from mne._fiff.open import read_tag, read_tag_info
-from mne._fiff.tag import _read_tag_header
+from mne._fiff.tag import _read_tag_header, read_tag
 from mne.annotations import Annotations
 from mne.datasets import testing
 from mne.filter import filter_data
@@ -2044,8 +2043,7 @@ def test_bad_acq(fname):
     raw = read_raw_fif(fname, allow_maxshield="yes").load_data()
     with open(fname, "rb") as fid:
         for ent in raw._raw_extras[0]["ent"]:
-            fid.seek(ent.pos, 0)
-            tag = _read_tag_header(fid)
+            tag = _read_tag_header(fid, ent.pos)
             # hack these, others (kind, type) should be correct
             tag.pos, tag.next = ent.pos, ent.next
             assert tag == ent
@@ -2085,9 +2083,9 @@ def test_corrupted(tmp_path, offset):
     # at the end, so use the skip one (straight from acq).
     raw = read_raw_fif(skip_fname)
     with open(skip_fname, "rb") as fid:
-        tag = read_tag_info(fid)
-        tag = read_tag(fid)
-        dirpos = int(tag.data.item())
+        file_id_tag = read_tag(fid, 0)
+        dir_pos_tag = read_tag(fid, file_id_tag.next_pos)
+        dirpos = int(dir_pos_tag.data.item())
         assert dirpos == 12641532
         fid.seek(0)
         data = fid.read(dirpos + offset)
