@@ -1757,7 +1757,7 @@ class BaseEpochs(
                 is_good, bad_tuple = self._is_good_epoch(epoch, verbose=verbose)
                 if not is_good:
                     assert isinstance(bad_tuple, tuple)
-                    assert all(isinstance(x, (str, tuple)) for x in bad_tuple)
+                    assert all(isinstance(x, str)) for x in bad_tuple)
                     drop_log[sel] = drop_log[sel] + bad_tuple
                     continue
                 good_idx.append(idx)
