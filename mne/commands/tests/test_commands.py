@@ -112,7 +112,7 @@ def test_show_fiff(tmp_path):
         with open(raw_fname, "rb") as fin:
             fout.write(fin.read(100000))
     with pytest.warns(RuntimeWarning, match="Invalid tag"):
-        lines = show_fiff(str(bad_fname), output=list)
+        lines = show_fiff(bad_fname, output=list)
     last_line = lines[-1]
     assert last_line.endswith(">>>>BAD @9015")
     assert "302  = FIFF_EPOCH (734412b >f4)" in last_line
