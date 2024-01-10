@@ -16,13 +16,12 @@ from scipy import ndimage
 
 from .._fiff.pick import channel_type, pick_types
 from ..defaults import _handle_default
-from ..utils import Bunch, _check_option, _clean_names, _to_rgb, fill_doc
+from ..utils import Bunch, _check_option, _clean_names, _is_numeric, _to_rgb, fill_doc
 from .utils import (
     DraggableColorbar,
     _check_cov,
     _check_delayed_ssp,
     _draw_proj_checkbox,
-    _is_numeric,
     _plot_masked_image,
     _setup_ax_spines,
     _setup_vmin_vmax,
