@@ -1107,12 +1107,14 @@ event_color : color object | dict | None
 """
 
 docdict["event_id"] = """
-event_id : int | list of int | dict | None
+event_id : int | list of int | dict | str | list of str | None
     The id of the :term:`events` to consider. If dict, the keys can later be
     used to access associated :term:`events`. Example:
     dict(auditory=1, visual=3). If int, a dict will be created with the id as
-    string. If a list, all :term:`events` with the IDs specified in the list
-    are used. If None, all :term:`events` will be used and a dict is created
+    string. If a list of int, all :term:`events` with the IDs specified in the list
+    are used. If a str or list of str, ``events`` must be ``None`` to use annotations
+    and then the IDs must be the name(s) of the annotations to use.
+    If None, all :term:`events` will be used and a dict is created
     with string integer names corresponding to the event id integers."""
 
 docdict["event_id_ecg"] = """
