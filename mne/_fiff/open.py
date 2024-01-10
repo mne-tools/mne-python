@@ -353,7 +353,7 @@ def _show_tree(
                         )
                     else:
                         postpend += " ... type=" + str(type(tag.data))
-                postpend = ">" * 20 + "BAD" if not good else postpend
+                postpend = ">" * 20 + f"BAD @{pos}" if not good else postpend
                 matrix_info = _matrix_info(tag)
                 if matrix_info is not None:
                     _, type_, _, _ = matrix_info
