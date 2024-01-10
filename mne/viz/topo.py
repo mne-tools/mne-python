@@ -10,7 +10,6 @@
 
 from copy import deepcopy
 from functools import partial
-from numbers import Real
 
 import numpy as np
 from scipy import ndimage
@@ -23,6 +22,7 @@ from .utils import (
     _check_cov,
     _check_delayed_ssp,
     _draw_proj_checkbox,
+    _is_numeric,
     _plot_masked_image,
     _setup_ax_spines,
     _setup_vmin_vmax,
@@ -632,12 +632,12 @@ def _plot_timeseries(
         else:
             ax.set_ylabel(y_label)
 
-    if vline:
-        vline = [vline] if isinstance(vline, Real) else vline
+    if vline is not None:
+        vline = [vline] if _is_numeric(vline) else vline
         for vline_ in vline:
             plt.axvline(vline_, color=hvline_color, linewidth=1.0, linestyle="--")
-    if hline:
-        hline = [hline] if isinstance(hline, Real) else hline
+    if hline is not None:
+        hline = [hline] if _is_numeric(hline) else hline
         for hline_ in hline:
             plt.axhline(hline_, color=hvline_color, linewidth=1.0, zorder=10)
 
