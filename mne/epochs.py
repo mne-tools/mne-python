@@ -1533,7 +1533,7 @@ class BaseEpochs(
             mask to apply (where True values get removed). Events are
             correspondingly modified.
         reason : list | tuple | str
-            Reason for dropping the epochs ('ECG', 'timeout', 'blink' etc).
+            Reason(s) for dropping the epochs ('ECG', 'timeout', 'blink' etc).
             Default: 'USER'.
         %(verbose)s
 
@@ -3714,7 +3714,7 @@ def _is_good(
                     # Check if criterion is a function and apply it
                     if callable(criterion):
                         result = criterion(e_idx)
-                        _validate_type(result, tuple, result, "tuple")
+                        _validate_type(result, tuple, "reject/flat output")
                         if len(result) != 2:
                             raise TypeError(
                                 "Function criterion must return a tuple of length 2"
@@ -3738,12 +3738,11 @@ def _is_good(
                         # (bool, reason). Reason must be a str/list/tuple.
                         # If using tuple
                         if callable(refl):
-                            if isinstance(reasons, (tuple, list)):
-                                for idx, reason in enumerate(reasons):
-                                    _validate_type(reason, str, reason, "str")
-                                bad_tuple += tuple(reasons)
                             if isinstance(reasons, str):
-                                bad_tuple += (reasons,)
+                                reasons = (reasons,)
+                            for idx, reason in enumerate(reasons):
+                                _validate_type(reason, str, f"reasons[{idx}]")
+                            bad_tuple += tuple(reasons)
                         else:
                             bad_names = [ch_names[idx[i]] for i in idx_deltas]
                             if not has_printed:
