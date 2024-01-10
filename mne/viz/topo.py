@@ -8,9 +8,9 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-import numbers
 from copy import deepcopy
 from functools import partial
+from numbers import Real
 
 import numpy as np
 from scipy import ndimage
@@ -633,11 +633,11 @@ def _plot_timeseries(
             ax.set_ylabel(y_label)
 
     if vline:
-        vline = [vline] if isinstance(vline, numbers.Real) else vline
+        vline = [vline] if isinstance(vline, Real) else vline
         for vline_ in vline:
             plt.axvline(vline_, color=hvline_color, linewidth=1.0, linestyle="--")
     if hline:
-        hline = [hline] if isinstance(hline, numbers.Real) else hline
+        hline = [hline] if isinstance(hline, Real) else hline
         for hline_ in hline:
             plt.axhline(hline_, color=hvline_color, linewidth=1.0, zorder=10)
 
