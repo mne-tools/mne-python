@@ -1218,7 +1218,7 @@ def plot_evoked_topo(
         If true SSP projections are applied before display. If 'interactive',
         a check box for reversible selection of SSP projection vectors will
         be shown.
-    vline : list of float | None
+    vline : list of float | float| None
         The values at which to show a vertical line.
     fig_background : None | ndarray
         A background image for the figure. This must work with a call to
