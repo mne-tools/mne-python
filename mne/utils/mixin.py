@@ -209,23 +209,14 @@ class GetEpochsMixin:
             key_selection = inst.selection[select]
             drop_log = list(inst.drop_log)
             if reason is not None:
-                # Used for multiple reasons
-                if isinstance(reason, tuple):
-                    reason = list(reason)
-
-                if isinstance(reason, list):
-                    for i, idx in enumerate(
-                        np.setdiff1d(inst.selection, key_selection)
-                    ):
-                        r = reason[i]
-                        if isinstance(r, str):
-                            r = (r,)
-                        if isinstance(r, list):
-                            r = tuple(r)
-                        drop_log[idx] = r
-                else:
-                    for idx in np.setdiff1d(inst.selection, key_selection):
-                        drop_log[idx] = (reason,)
+                _validate_type(reason, (list, tuple, str), "reason")
+                if isinstance(reason, str):
+                    reason = (reason,)
+                reason = tuple(reason)
+                for i, idx in enumerate(
+                    np.setdiff1d(inst.selection, key_selection)
+                ):
+                    drop_log[idx] = reason
             inst.drop_log = tuple(drop_log)
             inst.selection = key_selection
             del drop_log
