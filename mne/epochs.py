@@ -1537,7 +1537,7 @@ class BaseEpochs(
         if indices.ndim > 1:
             raise ValueError("indices must be a scalar or a 1-d array")
 
-        if indices.dtype == bool:
+        if indices.dtype == np.dtype(bool):
             indices = np.where(indices)[0]
         try_idx = np.where(indices < 0, indices + len(self.events), indices)
 

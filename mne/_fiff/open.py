@@ -263,7 +263,7 @@ def show_fiff(
             tag_id=tag,
             show_bytes=show_bytes,
         )
-    if output == str:
+    if output is str:
         out = "\n".join(out)
     return out
 

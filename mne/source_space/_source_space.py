@@ -2408,7 +2408,7 @@ def _grid_interp(from_shape, to_shape, trans, order=1, inuse=None):
     shape = (np.prod(to_shape), np.prod(from_shape))
     if inuse is None:
         inuse = np.ones(shape[1], bool)
-    assert inuse.dtype == bool
+    assert inuse.dtype == np.dtype(bool)
     assert inuse.shape == (shape[1],)
     data, indices, indptr = _grid_interp_jit(from_shape, to_shape, trans, order, inuse)
     data = np.concatenate(data)
