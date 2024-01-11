@@ -211,6 +211,7 @@ ignore = [
     "D104", # Missing docstring in public package
     "D413", # Missing blank line after last section
     "F841", # local variable 'x' is assigned to but never used
+    "E203", # whitespace before ':', unstable in preview mode
 ]
 
 [tool.ruff.pydocstyle]
