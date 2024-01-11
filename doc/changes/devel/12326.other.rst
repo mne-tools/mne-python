@@ -1,0 +1,1 @@
+Updated preprocessing tutorial for using inst.pick() instead of pick_types() entries, by `btkcodedev`_.
