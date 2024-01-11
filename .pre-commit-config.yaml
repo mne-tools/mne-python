@@ -7,14 +7,13 @@ repos:
         name: ruff lint mne
         args: ["--fix"]
         files: ^mne/
+      - id: ruff
+        name: ruff lint mne preview
+        args: ["--fix", "--preview", "--extend-select=NPY201"]
+        files: ^mne/
       - id: ruff-format
         name: ruff format mne
         files: ^mne/
-
-  # Ruff tutorials and examples
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.1.11
-    hooks:
       - id: ruff
         name: ruff lint tutorials and examples
         # D103: missing docstring in public function

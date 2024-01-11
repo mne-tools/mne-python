@@ -278,7 +278,9 @@ def test_crop(tmp_path):
     assert raw_read.annotations is not None
     assert len(raw_read.annotations.onset) == 0
     # test saving and reloading cropped annotations in raw instance
-    info = create_info([f"EEG{i+1}" for i in range(3)], ch_types=["eeg"] * 3, sfreq=50)
+    info = create_info(
+        [f"EEG{i + 1}" for i in range(3)], ch_types=["eeg"] * 3, sfreq=50
+    )
     raw = RawArray(np.zeros((3, 50 * 20)), info)
     annotation = mne.Annotations([8, 12, 15], [2] * 3, [1, 2, 3])
     raw = raw.set_annotations(annotation)

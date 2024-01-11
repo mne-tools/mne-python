@@ -2271,7 +2271,7 @@ class Report:
         elif caption is None and len(figs) == 1:
             captions = [None]
         elif caption is None and len(figs) > 1:
-            captions = [f"Figure {i+1}" for i in range(len(figs))]
+            captions = [f"Figure {i + 1}" for i in range(len(figs))]
         else:
             captions = tuple(caption)
 
@@ -3143,7 +3143,7 @@ class Report:
 
         del orig_annotations
 
-        captions = [f"Segment {i+1} of {len(images)}" for i in range(len(images))]
+        captions = [f"Segment {i + 1} of {len(images)}" for i in range(len(images))]
 
         self._add_slider(
             figs=None,
