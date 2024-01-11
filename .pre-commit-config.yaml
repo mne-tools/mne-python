@@ -9,7 +9,7 @@ repos:
         files: ^mne/
       - id: ruff
         name: ruff lint mne preview
-        args: ["--fix", "--preview", "--extend-select=NPY201"]
+        args: ["--fix", "--preview", "--select=NPY201"]
         files: ^mne/
       - id: ruff-format
         name: ruff format mne
