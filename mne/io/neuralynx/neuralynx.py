@@ -22,7 +22,7 @@ class AnalogSignalGap(object):
     Parameters
     ----------
     signal : array-like
-        Array of shape (n_channels, n_samples) containing the data.
+        Array of shape (n_samples, n_chans) containing the data.
     units : str
         Units of the data. (e.g., 'uV')
     sampling_rate : quantity
@@ -39,13 +39,20 @@ class AnalogSignalGap(object):
         self.units = units
         self.sampling_rate = sampling_rate
 
-    def load(self, channel_indexes):
+    def load(self, **kwargs):
         """Return AnalogSignal object."""
         _soft_import("neo", "Reading NeuralynxIO files", strict=True)
         from neo import AnalogSignal
 
+        # `kwargs` is a dummy argument to mirror the
+        # AnalogSignalProxy.load() call signature which
+        # accepts `channel_indexes`` argument; but here we don't need
+        # any extra data selection arguments since
+        # self.signal array is already in the correct shape
+        # (channel dimension is based on `idx` variable)
+
         sig = AnalogSignal(
-            signal=self.signal[:, channel_indexes],
+            signal=self.signal,
             units=self.units,
             sampling_rate=self.sampling_rate,
         )
