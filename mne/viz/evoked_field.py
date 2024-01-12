@@ -548,7 +548,7 @@ class EvokedField:
         ----------
         vmax : float
             The new maximum value of the color range.
-        type : 'meg' | 'eeg'
+        kind : 'meg' | 'eeg'
             Which field map to apply the new color range to.
         """
         _check_option("type", kind, ["eeg", "meg"])
