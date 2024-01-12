@@ -148,8 +148,7 @@ class RawNeuralynx(BaseRaw):
             sfreq=nlx_reader.get_signal_sampling_rate(),
         )
 
-        # find total number of samples per .ncs file (`channel`) by summing
-        # the sample sizes of all segments
+        # Neo reads only valid contiguous .ncs samples grouped as segments
         n_segments = nlx_reader.header["nb_segment"][0]
         block_id = 0  # assumes there's only one block of recording
 
@@ -167,7 +166,7 @@ class RawNeuralynx(BaseRaw):
         seg_diffs = next_start_times - previous_stop_times
 
         # mark as discontinuous any two segments that have
-        # start/stop delta larger than sampling period (1/sampling_rate)
+        # start/stop delta larger than sampling period (1.5/sampling_rate)
         logger.info("Checking for temporal discontinuities in Neo data segments.")
         delta = 1.5 / info["sfreq"]
         gaps = seg_diffs > delta
