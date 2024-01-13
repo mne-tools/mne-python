@@ -272,9 +272,7 @@ mne.viz.plot_topomap(
     show=False,
     vlim=(-max_coef, max_coef),
 )
-ax[0].set(
-    title=f"Model coefficients\nbetween delays {time_plot[0]} and {time_plot[1]}"
-)
+ax[0].set(title=f"Model coefficients\nbetween delays {time_plot[0]} and {time_plot[1]}")
 
 mne.viz.plot_topomap(
     np.mean(mean_patterns[:, ix_plot], axis=1),
