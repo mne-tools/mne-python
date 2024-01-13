@@ -384,14 +384,7 @@ rng = np.random.default_rng(11)  # seed for reproducibility
 raw = raw_data[1]
 # typically impedances < 25 kOhm are acceptable for active systems and
 # impedances < 5 kOhm are desirable for a passive system
-impedances = (
-    rng.random(
-        len(
-            raw.ch_names,
-        )
-    )
-    * 30
-)
+impedances = rng.random(len(raw.ch_names)) * 30
 impedances[10] = 80  # set a few bad impendances
 impedances[25] = 99
 cmap = LinearSegmentedColormap.from_list(
