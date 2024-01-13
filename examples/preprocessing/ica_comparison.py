@@ -55,7 +55,7 @@ def run_ica(method, fit_params=None):
     t0 = time()
     ica.fit(raw, reject=reject)
     fit_time = time() - t0
-    title = "ICA decomposition using %s (took %.1fs)" % (method, fit_time)
+    title = f"ICA decomposition using {method} (took {fit_time:%.1f}s)"
     ica.plot_components(title=title)
 
 

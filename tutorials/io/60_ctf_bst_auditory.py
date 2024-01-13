@@ -208,9 +208,7 @@ diffs = np.concatenate([[min_diff + 1], np.diff(onsets)])
 onsets = onsets[diffs > min_diff]
 assert len(onsets) == len(events)
 diffs = 1000.0 * (events[:, 0] - onsets) / raw.info["sfreq"]
-print(
-    "Trigger delay removed (μ ± σ): %0.1f ± %0.1f ms" % (np.mean(diffs), np.std(diffs))
-)
+print(f"Trigger delay removed (μ ± σ): {np.mean(diffs):0.1f} ± {np.std(diffs):0.1f} ms")
 events[:, 0] = onsets
 del sound_data, diffs
 

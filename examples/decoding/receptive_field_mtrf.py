@@ -102,7 +102,7 @@ Y = Y.T
 coefs = np.zeros((n_splits, n_channels, n_delays))
 scores = np.zeros((n_splits, n_channels))
 for ii, (train, test) in enumerate(cv.split(speech)):
-    print("split %s / %s" % (ii + 1, n_splits))
+    print(f"split {ii + 1} / {n_splits}")
     rf.fit(speech[train], Y[train])
     scores[ii] = rf.score(speech[test], Y[test])
     # coef_ is shape (n_outputs, n_features, n_delays). we only have 1 feature
@@ -212,7 +212,7 @@ coefs = np.zeros((n_splits, n_channels, n_delays))
 patterns = coefs.copy()
 scores = np.zeros((n_splits,))
 for ii, (train, test) in enumerate(cv.split(speech)):
-    print("split %s / %s" % (ii + 1, n_splits))
+    print(f"split {ii + 1} / {n_splits}")
     sr.fit(Y[train], speech[train])
     scores[ii] = sr.score(Y[test], speech[test])[0]
     # coef_ is shape (n_outputs, n_features, n_delays). We have 128 features
@@ -273,7 +273,7 @@ mne.viz.plot_topomap(
     vlim=(-max_coef, max_coef),
 )
 ax[0].set(
-    title="Model coefficients\nbetween delays %s and %s" % (time_plot[0], time_plot[1])
+    title=f"Model coefficients\nbetween delays {time_plot[0]} and {time_plot[1]}"
 )
 
 mne.viz.plot_topomap(
@@ -284,8 +284,10 @@ mne.viz.plot_topomap(
     vlim=(-max_patterns, max_patterns),
 )
 ax[1].set(
-    title="Inverse-transformed coefficients\nbetween delays %s and %s"
-    % (time_plot[0], time_plot[1])
+    title=(
+        f"Inverse-transformed coefficients\nbetween delays {time_plot[0]} and "
+        f"{time_plot[1]}"
+    )
 )
 
 # %%

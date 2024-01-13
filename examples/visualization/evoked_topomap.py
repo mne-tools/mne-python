@@ -111,7 +111,7 @@ for axes_row, ch_type in zip(axes, ("mag", "eeg")):
             colorbar=False,
             sphere=(0.0, 0.0, 0.0, 0.09),
         )
-        ax.set_title("%s %s" % (ch_type.upper(), extr), fontsize=14)
+        ax.set_title(f"{ch_type.upper()} {extr}", fontsize=14)
 
 # %%
 # More advanced usage
