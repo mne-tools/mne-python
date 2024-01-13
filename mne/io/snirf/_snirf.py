@@ -59,7 +59,7 @@ def read_raw_snirf(
 
 
 def _open(fname):
-    return open(fname, "r", encoding="latin-1")
+    return open(fname, encoding="latin-1")
 
 
 @fill_doc
@@ -415,10 +415,10 @@ class RawSNIRF(BaseRaw):
                 info["dig"] = dig
 
             str_date = _correct_shape(
-                np.array((dat.get("/nirs/metaDataTags/MeasurementDate")))
+                np.array(dat.get("/nirs/metaDataTags/MeasurementDate"))
             )[0].decode("UTF-8")
             str_time = _correct_shape(
-                np.array((dat.get("/nirs/metaDataTags/MeasurementTime")))
+                np.array(dat.get("/nirs/metaDataTags/MeasurementTime"))
             )[0].decode("UTF-8")
             str_datetime = str_date + str_time
 

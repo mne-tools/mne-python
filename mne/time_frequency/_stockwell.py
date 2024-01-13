@@ -34,8 +34,8 @@ def _check_input_st(x_in, n_fft):
         )
     if n_times < n_fft:
         logger.info(
-            'The input signal is shorter ({}) than "n_fft" ({}). '
-            "Applying zero padding.".format(x_in.shape[-1], n_fft)
+            f'The input signal is shorter ({x_in.shape[-1]}) than "n_fft" ({n_fft}). '
+            "Applying zero padding."
         )
         zero_pad = n_fft - n_times
         pad_array = np.zeros(x_in.shape[:-1] + (zero_pad,), x_in.dtype)

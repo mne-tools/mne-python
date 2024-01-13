@@ -1496,7 +1496,7 @@ def _check_event_id(event_id, raw):
     else:
         raise ValueError(
             "Invalid type for event_id (should be None, str, "
-            "dict or callable). Got {}".format(type(event_id))
+            f"dict or callable). Got {type(event_id)}."
         )
 
 
@@ -1512,7 +1512,7 @@ def _check_event_description(event_desc, events):
         event_desc = np.asarray(event_desc)
         if event_desc.ndim != 1:
             raise ValueError(
-                "event_desc must be 1D, got shape {}".format(event_desc.shape)
+                f"event_desc must be 1D, got shape {event_desc.shape}"
             )
         event_desc = dict(zip(event_desc, map(str, event_desc)))
     elif callable(event_desc):
@@ -1520,7 +1520,7 @@ def _check_event_description(event_desc, events):
     else:
         raise ValueError(
             "Invalid type for event_desc (should be None, list, "
-            "1darray, dict or callable). Got {}".format(type(event_desc))
+            f"1darray, dict or callable). Got {type(event_desc)}."
         )
 
     return event_desc

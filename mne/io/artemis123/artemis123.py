@@ -83,7 +83,7 @@ def _get_artemis123_info(fname, pos_fname=None):
     header_info["comments"] = ""
     header_info["channels"] = []
 
-    with open(header, "r") as fid:
+    with open(header) as fid:
         # section flag
         # 0 - None
         # 1 - main header
@@ -173,7 +173,7 @@ def _get_artemis123_info(fname, pos_fname=None):
     # build description
     desc = ""
     for k in ["Purpose", "Notes"]:
-        desc += "{} : {}\n".format(k, header_info[k])
+        desc += f"{k} : {header_info[k]}\n"
     desc += "Comments : {}".format(header_info["comments"])
 
     info.update(

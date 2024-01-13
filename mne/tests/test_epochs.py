@@ -1786,7 +1786,7 @@ def _assert_splits(fname, n, size):
     bad_fname = next_fnames.pop(-1)
     for ii, this_fname in enumerate(next_fnames[:-1]):
         assert this_fname.is_file(), f"Missing file: {this_fname}"
-        with open(this_fname, "r") as fid:
+        with open(this_fname) as fid:
             fid.seek(0, 2)
             file_size = fid.tell()
         min_ = 0.1 if ii < len(next_fnames) - 1 else 0.1

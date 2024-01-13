@@ -839,10 +839,8 @@ def _check_method_params(
 
     if not all(k in accepted_methods for k in method):
         raise ValueError(
-            "Invalid {name} ({method}). Accepted values (individually or "
-            'in a list) are any of "{accepted_methods}" or None.'.format(
-                name=name, method=method, accepted_methods=accepted_methods
-            )
+            f"Invalid {name} ({method}). Accepted values (individually or "
+            f"in a list) are any of '{accepted_methods}' or None."
         )
     if not (isinstance(rank, str) and rank == "full"):
         if was_auto:

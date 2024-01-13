@@ -2254,7 +2254,7 @@ class AverageTFR(_BaseTFR):
 
         fig = figure_nobar()
         fig.suptitle(
-            "{:.2f} s - {:.2f} s, {:.2f} Hz - {:.2f} Hz".format(tmin, tmax, fmin, fmax),
+            f"{tmin:.2f} s - {tmax:.2f} s, {fmin:.2f} Hz - {fmax:.2f} Hz",
             y=0.04,
         )
 
@@ -2748,7 +2748,7 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
         # check consistency:
         assert len(selection) == len(events)
         assert len(drop_log) >= len(events)
-        assert len(selection) == sum((len(dl) == 0 for dl in drop_log))
+        assert len(selection) == sum(len(dl) == 0 for dl in drop_log)
         event_id = _check_event_id(event_id, events)
         self.data = data
         self._set_times(np.array(times, dtype=float))
@@ -3164,19 +3164,19 @@ def _get_timefreqs(tfr, timefreqs):
     if isinstance(timefreqs, dict):
         for k, v in timefreqs.items():
             for item in (k, v):
-                if len(item) != 2 or any((not _is_numeric(n) for n in item)):
+                if len(item) != 2 or any(not _is_numeric(n) for n in item):
                     raise ValueError(timefreq_error_msg, item)
     elif timefreqs is not None:
         if not hasattr(timefreqs, "__len__"):
             raise ValueError(timefreq_error_msg, timefreqs)
-        if len(timefreqs) == 2 and all((_is_numeric(v) for v in timefreqs)):
+        if len(timefreqs) == 2 and all(_is_numeric(v) for v in timefreqs):
             timefreqs = [tuple(timefreqs)]  # stick a pair of numbers in a list
         else:
             for item in timefreqs:
                 if (
                     hasattr(item, "__len__")
                     and len(item) == 2
-                    and all((_is_numeric(n) for n in item))
+                    and all(_is_numeric(n) for n in item)
                 ):
                     pass
                 else:

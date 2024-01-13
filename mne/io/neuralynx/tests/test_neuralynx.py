@@ -2,7 +2,6 @@
 # Copyright the MNE-Python contributors.
 import os
 from ast import literal_eval
-from typing import Dict
 
 import numpy as np
 import pytest
@@ -18,7 +17,7 @@ testing_path = data_path(download=False) / "neuralynx"
 pytest.importorskip("neo")
 
 
-def _nlxheader_to_dict(matdict: Dict) -> Dict:
+def _nlxheader_to_dict(matdict: dict) -> dict:
     """Convert the read-in "Header" field into a dict.
 
     All the key-value pairs of Header entries are formatted as strings

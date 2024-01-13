@@ -1481,7 +1481,7 @@ def plot_evoked_image(
 
 def _plot_update_evoked(params, bools):
     """Update the plot evoked lines."""
-    picks, evoked = [params[k] for k in ("picks", "evoked")]
+    picks, evoked = (params[k] for k in ("picks", "evoked"))
     projs = [
         proj for ii, proj in enumerate(params["projs"]) if ii in np.where(bools)[0]
     ]
@@ -1878,7 +1878,7 @@ def plot_evoked_joint(
     got_axes = False
     illegal_args = {"show", "times", "exclude"}
     for args in (ts_args, topomap_args):
-        if any((x in args for x in illegal_args)):
+        if any(x in args for x in illegal_args):
             raise ValueError(
                 "Don't pass any of {} as *_args.".format(", ".join(list(illegal_args)))
             )
@@ -2106,8 +2106,8 @@ def _validate_style_keys_pce(styles, conditions, tags):
     styles = deepcopy(styles)
     if not set(styles).issubset(tags.union(conditions)):
         raise ValueError(
-            'The keys in "styles" ({}) must match the keys in '
-            '"evokeds" ({}).'.format(list(styles), conditions)
+            f'The keys in "styles" ({list(styles)}) must match the keys in '
+            f'"evokeds" ({conditions}).'
         )
     # make sure all the keys are in there
     for cond in conditions:
@@ -2145,26 +2145,20 @@ def _validate_colors_pce(colors, cmap, conditions, tags):
     if isinstance(colors, (list, tuple, np.ndarray)):
         if len(conditions) > len(colors):
             raise ValueError(
-                "Trying to plot {} conditions, but there are only"
-                " {} colors{}. Please specify colors manually.".format(
-                    len(conditions), len(colors), err_suffix
-                )
+                f"Trying to plot {len(conditions)} conditions, but there are only "
+                f"{len(colors)} colors{err_suffix}. Please specify colors manually."
             )
         colors = dict(zip(conditions, colors))
     # should be a dict by now...
     if not isinstance(colors, dict):
         raise TypeError(
-            '"colors" must be a dict, list, or None; got {}.'.format(
-                type(colors).__name__
-            )
+            f'"colors" must be a dict, list, or None; got {type(colors).__name__}.'
         )
     # validate color dict keys
     if not set(colors).issubset(tags.union(conditions)):
         raise ValueError(
-            'If "colors" is a dict its keys ({}) must '
-            'match the keys/conditions in "evokeds" ({}).'.format(
-                list(colors), conditions
-            )
+            f'If "colors" is a dict its keys ({list(colors)}) must match the '
+            f'keys/conditions in "evokeds" ({conditions}).'
         )
     # validate color dict values
     color_vals = list(colors.values())
@@ -2218,9 +2212,8 @@ def _validate_linestyles_pce(linestyles, conditions, tags):
     if isinstance(linestyles, (list, tuple, np.ndarray)):
         if len(conditions) > len(linestyles):
             raise ValueError(
-                "Trying to plot {} conditions, but there are "
-                "only {} linestyles. Please specify linestyles "
-                "manually.".format(len(conditions), len(linestyles))
+                f"Trying to plot {len(conditions)} conditions, but there are only "
+                f"{len(linestyles)} linestyles. Please specify linestyles manually."
             )
         linestyles = dict(zip(conditions, linestyles))
     # should be a dict by now...
@@ -2233,10 +2226,8 @@ def _validate_linestyles_pce(linestyles, conditions, tags):
     # validate linestyle dict keys
     if not set(linestyles).issubset(tags.union(conditions)):
         raise ValueError(
-            'If "linestyles" is a dict its keys ({}) must '
-            'match the keys/conditions in "evokeds" ({}).'.format(
-                list(linestyles), conditions
-            )
+            f'If "linestyles" is a dict its keys ({list(linestyles)}) must match the '
+            f'keys/conditions in "evokeds" ({conditions}).'
         )
     # normalize linestyle values (so we can accurately count unique linestyles
     # later). See https://github.com/matplotlib/matplotlib/blob/master/matplotlibrc.template#L131-L133  # noqa
@@ -2500,7 +2491,7 @@ def _get_data_and_ci(evoked, combine, combine_func, picks, scaling=1, ci_fun=Non
     data = np.array([evk.data[picks] * scaling for evk in evoked])
     # combine across sensors
     if combine is not None:
-        logger.info('combining channels using "{}"'.format(combine))
+        logger.info(f'combining channels using "{combine}"')
         data = combine_func(data)
     # get confidence band
     if ci_fun is not None:
@@ -2528,9 +2519,7 @@ def _get_ci_function_pce(ci, do_topo=False):
         return partial(_ci, ci=ci, method=method)
     else:
         raise TypeError(
-            '"ci" must be None, bool, float or callable, got {}'.format(
-                type(ci).__name__
-            )
+            f'"ci" must be None, bool, float or callable, got {type(ci).__name__}'
         )
 
 
@@ -2575,7 +2564,7 @@ def _title_helper_pce(title, picked_types, picks, ch_names, combine):
     if title is not None and len(title) and isinstance(combine, str) and do_combine:
         _comb = combine.upper() if combine == "gfp" else combine
         _comb = "std. dev." if _comb == "std" else _comb
-        title += " ({})".format(_comb)
+        title += f" ({_comb})"
     return title
 
 
@@ -2861,7 +2850,7 @@ def plot_compare_evokeds(
     if not isinstance(evokeds, dict):
         raise TypeError(
             '"evokeds" must be a dict, list, or instance of '
-            "mne.Evoked; got {}".format(type(evokeds).__name__)
+            f"mne.Evoked; got {type(evokeds).__name__}"
         )
     evokeds = deepcopy(evokeds)  # avoid modifying dict outside function scope
     for cond, evoked in evokeds.items():

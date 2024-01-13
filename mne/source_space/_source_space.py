@@ -2333,7 +2333,7 @@ def _vol_vertex(width, height, jj, kk, pp):
 
 
 def _src_vol_dims(s):
-    w, h, d = [s[f"mri_{key}"] for key in ("width", "height", "depth")]
+    w, h, d = (s[f"mri_{key}"] for key in ("width", "height", "depth"))
     return w, h, d, np.prod([w, h, d])
 
 
@@ -2897,7 +2897,7 @@ def _get_vertex_map_nn(
         subjects_dir / s / "surf" / f"{hemi}.sphere.reg"
         for s in (subject_from, subject_to)
     ]
-    reg_fro, reg_to = [read_surface(r, return_dict=True)[-1] for r in regs]
+    reg_fro, reg_to = (read_surface(r, return_dict=True)[-1] for r in regs)
     if to_neighbor_tri is not None:
         reg_to["neighbor_tri"] = to_neighbor_tri
     if "neighbor_tri" not in reg_to:

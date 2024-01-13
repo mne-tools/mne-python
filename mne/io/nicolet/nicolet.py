@@ -84,7 +84,7 @@ def _get_nicolet_info(fname, ch_type, eog, ecg, emg, misc):
 
     logger.info("Reading header...")
     header_info = dict()
-    with open(header, "r") as fid:
+    with open(header) as fid:
         for line in fid:
             var, value = line.split("=")
             if var == "elec_names":

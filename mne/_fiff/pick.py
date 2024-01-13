@@ -1078,8 +1078,8 @@ def _check_excludes_includes(chs, info=None, allow_bads=False):
                 chs = info["bads"]
         else:
             raise ValueError(
-                'include/exclude must be list, tuple, ndarray, or "bads". '
-                + "You provided type {}".format(type(chs))
+                'include/exclude must be list, tuple, ndarray, or "bads". You provided '
+                f"type {type(chs)}."
             )
     return chs
 

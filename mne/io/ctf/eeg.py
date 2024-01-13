@@ -79,7 +79,7 @@ def _read_pos(directory, transformations):
     fname = fname[0]
     digs = list()
     i = 2000
-    with open(fname, "r") as fid:
+    with open(fname) as fid:
         for line in fid:
             line = line.strip()
             if len(line) > 0:

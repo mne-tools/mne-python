@@ -12,7 +12,7 @@ from ...utils import _check_fname, _soft_import, fill_doc, logger, verbose
 from ..base import BaseRaw
 
 
-class AnalogSignalGap(object):
+class AnalogSignalGap:
     """Dummy object to represent gaps in Neuralynx data.
 
     Creates a AnalogSignalProxy-like object.

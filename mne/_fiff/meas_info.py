@@ -482,7 +482,7 @@ class SetChannelsMixin(MontageMixin):
         n_zero = np.sum(np.sum(np.abs(pos), axis=1) == 0)
         if n_zero > 1:  # XXX some systems have origin (0, 0, 0)
             raise ValueError(
-                "Could not extract channel positions for " "{} channels".format(n_zero)
+                f"Could not extract channel positions for {n_zero} channels"
             )
         return pos
 
@@ -1659,7 +1659,7 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
                     non_empty -= 1  # don't count as non-empty
             elif k == "bads":
                 if v:
-                    entr = "{} items (".format(len(v))
+                    entr = f"{len(v)} items ("
                     entr += ", ".join(v)
                     entr = shorten(entr, MAX_WIDTH, placeholder=" ...") + ")"
                 else:
@@ -1699,7 +1699,7 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
                 else:
                     entr = ""
             elif k in ["sfreq", "lowpass", "highpass"]:
-                entr = "{:.1f} Hz".format(v)
+                entr = f"{v:.1f} Hz"
             elif isinstance(v, str):
                 entr = shorten(v, MAX_WIDTH, placeholder=" ...")
             elif k == "chs":
@@ -1719,7 +1719,7 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
                 try:
                     this_len = len(v)
                 except TypeError:
-                    entr = "{}".format(v) if v is not None else ""
+                    entr = f"{v}" if v is not None else ""
                 else:
                     if this_len > 0:
                         entr = "%d item%s (%s)" % (

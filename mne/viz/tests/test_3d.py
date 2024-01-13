@@ -125,7 +125,7 @@ def test_plot_sparse_source_estimates(renderer_interactive, brain_gc):
     vertices = [s["vertno"] for s in sample_src]
     n_time = 5
     n_verts = sum(len(v) for v in vertices)
-    stc_data = np.zeros((n_verts * n_time))
+    stc_data = np.zeros(n_verts * n_time)
     stc_size = stc_data.size
     stc_data[
         (np.random.rand(stc_size // 20) * stc_size).astype(int)
@@ -748,7 +748,7 @@ def test_process_clim_plot(renderer_interactive, brain_gc):
     vertices = [s["vertno"] for s in sample_src]
     n_time = 5
     n_verts = sum(len(v) for v in vertices)
-    stc_data = np.random.RandomState(0).rand((n_verts * n_time))
+    stc_data = np.random.RandomState(0).rand(n_verts * n_time)
     stc_data.shape = (n_verts, n_time)
     stc = SourceEstimate(stc_data, vertices, 1, 1, "sample")
 
@@ -870,7 +870,7 @@ def test_stc_mpl():
     vertices = [s["vertno"] for s in sample_src]
     n_time = 5
     n_verts = sum(len(v) for v in vertices)
-    stc_data = np.ones((n_verts * n_time))
+    stc_data = np.ones(n_verts * n_time)
     stc_data.shape = (n_verts, n_time)
     stc = SourceEstimate(stc_data, vertices, 1, 1, "sample")
     stc.plot(
@@ -1198,7 +1198,7 @@ def test_link_brains(renderer_interactive):
     vertices = [s["vertno"] for s in sample_src]
     n_time = 5
     n_verts = sum(len(v) for v in vertices)
-    stc_data = np.zeros((n_verts * n_time))
+    stc_data = np.zeros(n_verts * n_time)
     stc_size = stc_data.size
     stc_data[
         (np.random.rand(stc_size // 20) * stc_size).astype(int)

@@ -2124,7 +2124,7 @@ def read_vectorview_selection(name, fname=None, info=None, verbose=None):
 
     # use this to make sure we find at least one match for each name
     name_found = {n: False for n in name}
-    with open(fname, "r") as fid:
+    with open(fname) as fid:
         sel = []
         for line in fid:
             line = line.strip()

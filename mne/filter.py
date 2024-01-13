@@ -2471,10 +2471,8 @@ def _triage_filter_params(
 def _check_resamp_noop(sfreq, o_sfreq, rtol=1e-6):
     if np.isclose(sfreq, o_sfreq, atol=0, rtol=rtol):
         logger.info(
-            (
-                f"Sampling frequency of the instance is already {sfreq}, "
-                "returning unmodified."
-            )
+            f"Sampling frequency of the instance is already {sfreq}, returning "
+            "unmodified."
         )
         return True
     return False

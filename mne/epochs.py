@@ -696,7 +696,7 @@ class BaseEpochs(
         if hasattr(self, "events"):
             assert len(self.selection) == len(self.events)
             assert len(self.drop_log) >= len(self.events)
-        assert len(self.selection) == sum((len(dl) == 0 for dl in self.drop_log))
+        assert len(self.selection) == sum(len(dl) == 0 for dl in self.drop_log)
         assert hasattr(self, "_times_readonly")
         assert not self.times.flags["WRITEABLE"]
         assert isinstance(self.drop_log, tuple)
@@ -2400,7 +2400,7 @@ class BaseEpochs(
             # 3. do this for every input
             event_ids = [
                 [
-                    k for k in ids if all((tag in k.split("/") for tag in id_))
+                    k for k in ids if all(tag in k.split("/") for tag in id_)
                 ]  # ids matching all tags
                 if all(id__ not in ids for id__ in id_)
                 else id_  # straight pass for non-tag inputs
@@ -3632,7 +3632,7 @@ def _minimize_time_diff(t_shorter, t_longer):
             idx = np.argmin(np.abs(t_longer - t_shorter))
             keep[idx] = True
         return keep
-    scores = np.ones((len(t_longer)))
+    scores = np.ones(len(t_longer))
     x1 = np.arange(len(t_shorter))
     # The first set of keep masks to test
     kwargs = dict(copy=False, bounds_error=False, assume_sorted=True)

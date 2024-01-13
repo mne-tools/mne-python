@@ -322,7 +322,7 @@ def read_events(
         masked_len = event_list.shape[0]
         if masked_len < unmasked_len:
             warn(
-                "{} of {} events masked".format(unmasked_len - masked_len, unmasked_len)
+                f"{unmasked_len - masked_len} of {unmasked_len} events masked"
             )
     out = event_list
     if return_event_id:

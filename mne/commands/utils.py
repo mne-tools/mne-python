@@ -68,7 +68,7 @@ def get_optparser(cmdpath, usage=None, prog_prefix="mne", version=None):
     command = command[len(prog_prefix) + 1 :]  # +1 is for `_` character
 
     # Set prog
-    prog = prog_prefix + " {}".format(command)
+    prog = prog_prefix + f" {command}"
 
     # Set version
     if version is None:

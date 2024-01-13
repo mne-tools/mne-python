@@ -626,7 +626,7 @@ def _read_dipole_text(fname):
     # There is a bug in older np.loadtxt regarding skipping fields,
     # so just read the data ourselves (need to get name and header anyway)
     data = list()
-    with open(fname, "r") as fid:
+    with open(fname) as fid:
         for line in fid:
             if not (line.startswith("%") or line.startswith("#")):
                 need_header = False
@@ -776,7 +776,7 @@ def _write_dipole_text(fname, dip):
 
     # NB CoordinateSystem is hard-coded as Head here
     with open(fname, "wb") as fid:
-        fid.write('# CoordinateSystem "Head"\n'.encode("utf-8"))
+        fid.write(b'# CoordinateSystem "Head"\n')
         fid.write((header + "\n").encode("utf-8"))
         np.savetxt(fid, out, fmt=fmt)
         if dip.name is not None:

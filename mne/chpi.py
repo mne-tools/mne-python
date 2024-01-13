@@ -307,7 +307,7 @@ def extract_chpi_locs_kit(raw, stim_channel="MISC 064", *, verbose=None):
     assert dtype.itemsize == header["size"], (dtype.itemsize, header["size"])
     all_data = list()
     for fname in raw._filenames:
-        with open(fname, "r") as fid:
+        with open(fname) as fid:
             fid.seek(header["offset"])
             all_data.append(
                 np.fromfile(fid, dtype, count=header["count"]).reshape(-1, n_coils)
@@ -1617,11 +1617,8 @@ def get_active_chpi(raw, *, on_missing="raise", verbose=None):
     # check whether we have a neuromag system
     if system not in ["122m", "306m"]:
         raise NotImplementedError(
-            (
-                "Identifying active HPI channels"
-                " is not implemented for other systems"
-                " than neuromag."
-            )
+            "Identifying active HPI channels is not implemented for other systems than "
+            "neuromag."
         )
     # extract hpi info
     chpi_info = get_chpi_info(raw.info, on_missing=on_missing)

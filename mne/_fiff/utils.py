@@ -340,7 +340,7 @@ def _construct_bids_filename(base, ext, part_idx, validate=True):
         )
     suffix = deconstructed_base[-1]
     base = "_".join(deconstructed_base[:-1])
-    use_fname = "{}_split-{:02}_{}{}".format(base, part_idx + 1, suffix, ext)
+    use_fname = f"{base}_split-{part_idx + 1:02}_{suffix}{ext}"
     if dirname:
         use_fname = op.join(dirname, use_fname)
     return use_fname

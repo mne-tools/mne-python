@@ -87,7 +87,7 @@ def _dataset_version(path, name):
     """Get the version of the dataset."""
     ver_fname = op.join(path, "version.txt")
     if op.exists(ver_fname):
-        with open(ver_fname, "r") as fid:
+        with open(ver_fname) as fid:
             version = fid.readline().strip()  # version is on first line
     else:
         logger.debug(f"Version file missing: {ver_fname}")
@@ -762,7 +762,7 @@ def fetch_hcp_mmp_parcellation(
 def _manifest_check_download(manifest_path, destination, url, hash_):
     import pooch
 
-    with open(manifest_path, "r") as fid:
+    with open(manifest_path) as fid:
         names = [name.strip() for name in fid.readlines()]
     manifest_path = op.basename(manifest_path)
     need = list()

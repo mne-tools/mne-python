@@ -169,7 +169,7 @@ def _interpolate_bads_eeg(inst, origin, exclude=None, ecog=False, verbose=None):
     logger.info(f"Computing interpolation matrix from {len(pos_good)} sensor positions")
     interpolation = _make_interpolation_matrix(pos_good, pos_bad)
 
-    logger.info("Interpolating {} sensors".format(len(pos_bad)))
+    logger.info(f"Interpolating {len(pos_bad)} sensors")
     _do_interp_dots(inst, interpolation, goods_idx, bads_idx)
 
 

@@ -65,7 +65,7 @@ def read_raw_nirx(
 
 
 def _open(fname):
-    return open(fname, "r", encoding="latin-1")
+    return open(fname, encoding="latin-1")
 
 
 @fill_doc

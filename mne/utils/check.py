@@ -431,8 +431,8 @@ def _check_pandas_index_arguments(index, valid):
         index = [index]
     if not isinstance(index, list):
         raise TypeError(
-            "index must be `None` or a string or list of strings,"
-            " got type {}.".format(type(index))
+            "index must be `None` or a string or list of strings, got type "
+            f"{type(index)}."
         )
     invalid = set(index) - set(valid)
     if invalid:
@@ -452,8 +452,8 @@ def _check_time_format(time_format, valid, meas_date=None):
     if time_format not in valid and time_format is not None:
         valid_str = '", "'.join(valid)
         raise ValueError(
-            '"{}" is not a valid time format. Valid options are '
-            '"{}" and None.'.format(time_format, valid_str)
+            f'"{time_format}" is not a valid time format. Valid options are '
+            f'"{valid_str}" and None.'
         )
     # allow datetime only if meas_date available
     if time_format == "datetime" and meas_date is None:
@@ -649,7 +649,7 @@ def _path_like(item):
 def _check_if_nan(data, msg=" to be plotted"):
     """Raise if any of the values are NaN."""
     if not np.isfinite(data).all():
-        raise ValueError("Some of the values {} are NaN.".format(msg))
+        raise ValueError(f"Some of the values {msg} are NaN.")
 
 
 @verbose

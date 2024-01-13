@@ -542,7 +542,7 @@ def _get_hdr_info(hdr_fname, eog, misc, scale):
     # Try to get measurement date from marker file
     # Usually saved with a marker "New Segment", see BrainVision documentation
     regexp = r"^Mk\d+=New Segment,.*,\d+,\d+,-?\d+,(\d{20})$"
-    with open(mrk_fname, "r") as tmp_mrk_f:
+    with open(mrk_fname) as tmp_mrk_f:
         lines = tmp_mrk_f.readlines()
 
     for line in lines:
@@ -636,7 +636,7 @@ def _get_hdr_info(hdr_fname, eog, misc, scale):
             ch_name = ch_dict[ch[0]]
             montage_names.append(ch_name)
             # 1: radius, 2: theta, 3: phi
-            rad, theta, phi = [float(c) for c in ch[1].split(",")]
+            rad, theta, phi = (float(c) for c in ch[1].split(","))
             pol = np.deg2rad(theta)
             az = np.deg2rad(phi)
             # Coordinates could be "idealized" (spherical head model)
@@ -656,9 +656,9 @@ def _get_hdr_info(hdr_fname, eog, misc, scale):
         if len(to_misc) > 0:
             misc += to_misc
             warn(
-                "No coordinate information found for channels {}. "
-                "Setting channel types to misc. To avoid this warning, set "
-                "channel types explicitly.".format(to_misc)
+                f"No coordinate information found for channels {to_misc}. Setting "
+                "channel types to misc. To avoid this warning, set channel types "
+                "explicitly."
             )
 
     if np.isnan(cals).any():

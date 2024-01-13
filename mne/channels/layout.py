@@ -1181,7 +1181,7 @@ def generate_2d_layout(
     if ch_indices is None:
         ch_indices = np.arange(xy.shape[0])
     if ch_names is None:
-        ch_names = ["{}".format(i) for i in ch_indices]
+        ch_names = list(map(str, ch_indices))
 
     if len(ch_names) != len(ch_indices):
         raise ValueError("# channel names and indices must be equal")
@@ -1205,7 +1205,7 @@ def generate_2d_layout(
     # Create box and pos variable
     box = _box_size(np.vstack([x, y]).T, padding=pad)
     box = (0, 0, box[0], box[1])
-    w, h = [np.array([i] * x.shape[0]) for i in [w, h]]
+    w, h = (np.array([i] * x.shape[0]) for i in [w, h])
     loc_params = np.vstack([x, y, w, h]).T
 
     layout = Layout(box, loc_params, ch_names, ch_indices, name)

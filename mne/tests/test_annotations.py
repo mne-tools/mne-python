@@ -1206,7 +1206,7 @@ def test_date_none(tmp_path):
     n_chans = 139
     n_samps = 20
     data = np.random.random_sample((n_chans, n_samps))
-    ch_names = ["E{}".format(x) for x in range(n_chans)]
+    ch_names = [f"E{x}" for x in range(n_chans)]
     ch_types = ["eeg"] * n_chans
     info = create_info(ch_names=ch_names, ch_types=ch_types, sfreq=2048)
     assert info["meas_date"] is None
@@ -1252,7 +1252,7 @@ def test_crop_when_negative_orig_time(windows_like_datetime):
     assert len(annot) == 10
 
     # Crop with negative tmin, tmax
-    tmin, tmax = [orig_time_stamp + t for t in (0.25, 0.75)]
+    tmin, tmax = (orig_time_stamp + t for t in (0.25, 0.75))
     assert tmin < 0 and tmax < 0
     crop_annot = annot.crop(tmin=tmin, tmax=tmax)
     assert_allclose(crop_annot.onset, [0.3, 0.4, 0.5, 0.6, 0.7])
@@ -1355,7 +1355,7 @@ def test_annotations_from_events():
 
     # 4. Try passing callable
     # -------------------------------------------------------------------------
-    event_desc = lambda d: "event{}".format(d)  # noqa:E731
+    event_desc = lambda d: f"event{d}"  # noqa:E731
     annots = annotations_from_events(
         events,
         sfreq=raw.info["sfreq"],
