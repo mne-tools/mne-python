@@ -1511,9 +1511,7 @@ def _check_event_description(event_desc, events):
     elif isinstance(event_desc, Iterable):
         event_desc = np.asarray(event_desc)
         if event_desc.ndim != 1:
-            raise ValueError(
-                f"event_desc must be 1D, got shape {event_desc.shape}"
-            )
+            raise ValueError(f"event_desc must be 1D, got shape {event_desc.shape}")
         event_desc = dict(zip(event_desc, map(str, event_desc)))
     elif callable(event_desc):
         pass

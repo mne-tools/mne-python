@@ -105,7 +105,7 @@ offset = n_times_run1
 for idx in [1, 2]:
     csv_fname = data_path / "MEG" / "bst_auditory" / f"events_bad_0{idx}.csv"
     df = pd.read_csv(csv_fname, header=None, names=["onset", "duration", "id", "label"])
-    print("Events from run {0}:".format(idx))
+    print(f"Events from run {idx}:")
     print(df)
 
     df["onset"] += offset * (idx - 1)

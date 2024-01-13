@@ -386,10 +386,8 @@ raw = raw_data[1]
 # impedances < 5 kOhm are desirable for a passive system
 impedances = (
     rng.random(
-        (
-            len(
-                raw.ch_names,
-            )
+        len(
+            raw.ch_names,
         )
     )
     * 30

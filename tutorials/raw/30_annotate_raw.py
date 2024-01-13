@@ -230,7 +230,7 @@ for ann in raw.annotations:
     descr = ann["description"]
     start = ann["onset"]
     end = ann["onset"] + ann["duration"]
-    print("'{}' goes from {} to {}".format(descr, start, end))
+    print(f"'{descr}' goes from {start} to {end}")
 
 # %%
 # Note that iterating, indexing and slicing `~mne.Annotations` all

@@ -307,7 +307,7 @@ y_pred = pipe.predict(epochs_test)
 y_test = epochs_test.events[:, 2]
 acc = accuracy_score(y_test, y_pred)
 
-print("Accuracy score: {}".format(acc))
+print(f"Accuracy score: {acc}")
 
 ##############################################################################
 # In short, yes. We can predict Bob's sleeping stages based on Alice's data.
