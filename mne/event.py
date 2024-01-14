@@ -967,7 +967,7 @@ def make_fixed_length_events(
     duration, overlap = float(duration), float(overlap)
     if not 0 <= overlap < duration:
         raise ValueError(
-            "overlap must be >=0 but < duration (%s), got %s" % (duration, overlap)
+            f"overlap must be >=0 but < duration ({duration}), got {overlap}"
         )
 
     start = raw.time_as_index(start, use_rounding=True)[0]

@@ -2013,7 +2013,7 @@ class BaseEpochs(
             s += f"\n and {not_shown_events} more events ..."
         class_name = self.__class__.__name__
         class_name = "Epochs" if class_name == "BaseEpochs" else class_name
-        return "<%s | %s>" % (class_name, s)
+        return f"<{class_name} | {s}>"
 
     @repr_html
     def _repr_html_(self):
@@ -3691,8 +3691,7 @@ def _is_good(
                         bad_names = [ch_names[idx[i]] for i in idx_deltas]
                         if not has_printed:
                             logger.info(
-                                "    Rejecting %s epoch based on %s : "
-                                "%s" % (t, name, bad_names)
+                                f"    Rejecting {t} epoch based on {name} : {bad_names}"
                             )
                             has_printed = True
                         if not full_report:
@@ -3808,12 +3807,12 @@ def _read_one_epoch_file(f, tree, preload):
         n_samp = last - first + 1
         logger.info("    Found the data of interest:")
         logger.info(
-            "        t = %10.2f ... %10.2f ms"
-            % (1000 * first / info["sfreq"], 1000 * last / info["sfreq"])
+            f"        t = {1000 * first / info['sfreq']:10.2f} ... "
+            f"{1000 * last / info['sfreq']:10.2f} ms"
         )
         if info["comps"] is not None:
             logger.info(
-                "        %d CTF compensation matrices available" % len(info["comps"])
+                f"        {len(info['comps'])} CTF compensation matrices available"
             )
 
         # Inspect the data
@@ -4203,7 +4202,7 @@ def _concatenate_epochs(
     """Auxiliary function for concatenating epochs."""
     if not isinstance(epochs_list, (list, tuple)):
         raise TypeError(
-            "epochs_list must be a list or tuple, got %s" % (type(epochs_list),)
+            f"epochs_list must be a list or tuple, got {type(epochs_list)}"
         )
 
     # to make warning messages only occur once during concatenation
@@ -4212,8 +4211,7 @@ def _concatenate_epochs(
     for ei, epochs in enumerate(epochs_list):
         if not isinstance(epochs, BaseEpochs):
             raise TypeError(
-                "epochs_list[%d] must be an instance of Epochs, "
-                "got %s" % (ei, type(epochs))
+                f"epochs_list[{ei}] must be an instance of Epochs, got {type(epochs)}"
             )
 
         if (
@@ -4223,8 +4221,8 @@ def _concatenate_epochs(
         ):
             warned = True
             warn(
-                "Concatenation of Annotations within Epochs is not supported "
-                "yet. All annotations will be dropped."
+                "Concatenation of Annotations within Epochs is not supported yet. All "
+                "annotations will be dropped."
             )
 
             # create a copy, so that the Annotations are not modified in place
@@ -4517,7 +4515,7 @@ def average_movements(
 
     if not isinstance(epochs, BaseEpochs):
         raise TypeError(
-            "epochs must be an instance of Epochs, not %s" % (type(epochs),)
+            f"epochs must be an instance of Epochs, not {type(epochs)}"
         )
     orig_sfreq = epochs.info["sfreq"] if orig_sfreq is None else orig_sfreq
     orig_sfreq = float(orig_sfreq)
@@ -4529,7 +4527,7 @@ def average_movements(
     origin = _check_origin(origin, epochs.info, "head")
     recon_trans = _check_destination(destination, epochs.info, True)
 
-    logger.info("Aligning and averaging up to %s epochs" % (len(epochs.events)))
+    logger.info(f"Aligning and averaging up to {len(epochs.events)} epochs")
     if not np.array_equal(epochs.events[:, 0], np.unique(epochs.events[:, 0])):
         raise RuntimeError("Epochs must have monotonically increasing events")
     info_to = epochs.info.copy()
@@ -4571,12 +4569,12 @@ def average_movements(
         loc_str = ", ".join("%0.1f" % tr for tr in (trans[:3, 3] * 1000))
         if last_trans is None or not np.allclose(last_trans, trans):
             logger.info(
-                "    Processing epoch %s (device location: %s mm)" % (ei + 1, loc_str)
+                f"    Processing epoch {ei + 1} (device location: {loc_str} mm)"
             )
             reuse = False
             last_trans = trans
         else:
-            logger.info("    Processing epoch %s (device location: same)" % (ei + 1,))
+            logger.info(f"    Processing epoch {ei + 1} (device location: same)")
             reuse = True
         epoch = epoch.copy()  # because we operate inplace
         if not reuse:
@@ -4625,7 +4623,7 @@ def average_movements(
         data, info_to, picks, n_events=count, kind="average", comment=epochs._name
     )
     _remove_meg_projs_comps(evoked, ignore_ref)
-    logger.info("Created Evoked dataset from %s epochs" % (count,))
+    logger.info(f"Created Evoked dataset from {count} epochs")
     return (evoked, mapping) if return_mapping else evoked
 
 
