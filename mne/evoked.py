@@ -1420,18 +1420,14 @@ def _check_evokeds_ch_names_times(all_evoked):
     for ii, ev in enumerate(all_evoked[1:]):
         if ev.ch_names != ch_names:
             if set(ev.ch_names) != set(ch_names):
-                raise ValueError(
-                    f"{evoked} and {ev} do not contain the same channels."
-                )
+                raise ValueError(f"{evoked} and {ev} do not contain the same channels.")
             else:
                 warn("Order of channels differs, reordering channels ...")
                 ev = ev.copy()
                 ev.reorder_channels(ch_names)
                 all_evoked[ii + 1] = ev
         if not np.max(np.abs(ev.times - evoked.times)) < 1e-7:
-            raise ValueError(
-                f"{evoked} and {ev} do not contain the same time instants"
-            )
+            raise ValueError(f"{evoked} and {ev} do not contain the same time instants")
     return all_evoked
 
 

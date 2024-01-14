@@ -4201,9 +4201,7 @@ def _concatenate_epochs(
 ):
     """Auxiliary function for concatenating epochs."""
     if not isinstance(epochs_list, (list, tuple)):
-        raise TypeError(
-            f"epochs_list must be a list or tuple, got {type(epochs_list)}"
-        )
+        raise TypeError(f"epochs_list must be a list or tuple, got {type(epochs_list)}")
 
     # to make warning messages only occur once during concatenation
     warned = False
@@ -4514,9 +4512,7 @@ def average_movements(
     from .chpi import head_pos_to_trans_rot_t
 
     if not isinstance(epochs, BaseEpochs):
-        raise TypeError(
-            f"epochs must be an instance of Epochs, not {type(epochs)}"
-        )
+        raise TypeError(f"epochs must be an instance of Epochs, not {type(epochs)}")
     orig_sfreq = epochs.info["sfreq"] if orig_sfreq is None else orig_sfreq
     orig_sfreq = float(orig_sfreq)
     if isinstance(head_pos, np.ndarray):
