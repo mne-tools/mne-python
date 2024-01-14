@@ -194,9 +194,7 @@ class ReceptiveField(BaseEstimator):
         X, y, _, self._y_dim = self._check_dimensions(X, y)
 
         if self.tmin > self.tmax:
-            raise ValueError(
-                f"tmin ({self.tmin}) must be at most tmax ({self.tmax})"
-            )
+            raise ValueError(f"tmin ({self.tmin}) must be at most tmax ({self.tmax})")
         # Initialize delays
         self.delays_ = _times_to_delays(self.tmin, self.tmax, self.sfreq)
 

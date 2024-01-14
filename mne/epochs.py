@@ -818,9 +818,7 @@ class BaseEpochs(
         for rej, kind in zip((reject, flat), ("Rejection", "Flat")):
             for key, val in rej.items():
                 if val is None or val < 0:
-                    raise ValueError(
-                        f'{kind} value must be a number >= 0, not "{val}"'
-                    )
+                    raise ValueError(f'{kind} value must be a number >= 0, not "{val}"')
 
         # now check to see if our rejection and flat are getting more
         # restrictive

@@ -266,9 +266,7 @@ def get_coef(estimator, attr="filters_", inverse_transform=False):
         coef = coef[np.newaxis]  # fake a sample dimension
         squeeze_first_dim = True
     elif not hasattr(est, attr):
-        raise ValueError(
-            f"This estimator does not have a {attr} attribute:\n{est}"
-        )
+        raise ValueError(f"This estimator does not have a {attr} attribute:\n{est}")
     else:
         coef = getattr(est, attr)
 
