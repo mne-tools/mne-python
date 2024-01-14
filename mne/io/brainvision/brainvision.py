@@ -111,7 +111,7 @@ class RawBrainVision(BaseRaw):
 
         orig_format = "single" if isinstance(fmt, dict) else fmt
         raw_extras = dict(offsets=offsets, fmt=fmt, order=order, n_samples=n_samples)
-        super(RawBrainVision, self).__init__(
+        super().__init__(
             info,
             last_samps=[n_samples - 1],
             filenames=[data_fname],
@@ -124,7 +124,7 @@ class RawBrainVision(BaseRaw):
 
         self.set_montage(montage)
 
-        settings, cfg, cinfo, _ = _aux_hdr_info(hdr_fname)
+        settings, _, _, _ = _aux_hdr_info(hdr_fname)
         split_settings = settings.splitlines()
         self.impedances = _parse_impedance(split_settings, self.info["meas_date"])
 
@@ -988,9 +988,7 @@ class _BVEventParser(_DefaultEventParser):
         elif description in _OTHER_ACCEPTED_MARKERS:
             code = _OTHER_ACCEPTED_MARKERS[description]
         else:
-            code = super(_BVEventParser, self).__call__(
-                description, offset=_OTHER_OFFSET
-            )
+            code = super().__call__(description, offset=_OTHER_OFFSET)
         return code
 
 

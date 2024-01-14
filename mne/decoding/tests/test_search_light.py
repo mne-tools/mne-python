@@ -146,7 +146,7 @@ def test_search_light():
     # pipeline
     class _LogRegTransformer(LogisticRegression):
         def transform(self, X):
-            return super(_LogRegTransformer, self).predict_proba(X)[..., 1]
+            return super().predict_proba(X)[..., 1]
 
     logreg_transformer = _LogRegTransformer(
         random_state=0, multi_class="ovr", solver="liblinear"

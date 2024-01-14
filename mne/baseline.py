@@ -187,8 +187,8 @@ def _check_baseline(baseline, times, sfreq, on_baseline_outside_data="raise"):
     # check default value of baseline and `tmin=0`
     if baseline == (None, 0) and tmin == 0:
         raise ValueError(
-            "Baseline interval is only one sample. Use "
-            "`baseline=(0, 0)` if this is desired."
+            "Baseline interval is only one sample. Use `baseline=(0, 0)` if this is "
+            "desired."
         )
 
     baseline_tmin, baseline_tmax = baseline
@@ -209,9 +209,8 @@ def _check_baseline(baseline, times, sfreq, on_baseline_outside_data="raise"):
 
     if (baseline_tmin < tmin - tstep) or (baseline_tmax > tmax + tstep):
         msg = (
-            f"Baseline interval [{baseline_tmin}, {baseline_tmax}] s "
-            f"is outside of epochs data [{tmin}, {tmax}] s. Epochs were "
-            f"probably cropped."
+            f"Baseline interval [{baseline_tmin}, {baseline_tmax}] s is outside of "
+            f"epochs data [{tmin}, {tmax}] s. Epochs were probably cropped."
         )
         if on_baseline_outside_data == "raise":
             raise ValueError(msg)

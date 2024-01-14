@@ -363,7 +363,7 @@ class RawArtemis123(BaseRaw):
 
         last_samps = [header_info.get("num_samples", 1) - 1]
 
-        super(RawArtemis123, self).__init__(
+        super().__init__(
             info,
             preload,
             filenames=[input_fname],

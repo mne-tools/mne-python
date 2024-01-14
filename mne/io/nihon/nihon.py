@@ -415,7 +415,7 @@ class RawNihon(BaseRaw):
             info["chs"][i_ch]["range"] = t_range
             info["chs"][i_ch]["cal"] = 1 / t_range
 
-        super(RawNihon, self).__init__(
+        super().__init__(
             info,
             preload=preload,
             last_samps=(n_samples - 1,),

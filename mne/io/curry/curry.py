@@ -596,7 +596,7 @@ class RawCurry(BaseRaw):
         last_samps = [n_samples - 1]
         raw_extras = dict(is_ascii=is_ascii)
 
-        super(RawCurry, self).__init__(
+        super().__init__(
             info,
             preload,
             filenames=[data_fname],

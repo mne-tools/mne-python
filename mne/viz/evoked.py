@@ -1695,10 +1695,10 @@ def plot_evoked_white(
 
         for ch, sub_picks in picks_list:
             this_rank = rank_[ch]
-            title = "{0} ({2}{1})".format(
+            title = "{} ({}{})".format(
                 titles_[ch] if n_columns > 1 else ch,
-                this_rank,
                 "rank " if n_columns > 1 else "",
+                this_rank,
             )
             label = noise_cov.get("method", "empirical")
 

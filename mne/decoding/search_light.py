@@ -63,7 +63,7 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
         return getattr(self.base_estimator, "_estimator_type", None)
 
     def __repr__(self):  # noqa: D105
-        repr_str = "<" + super(SlidingEstimator, self).__repr__()
+        repr_str = "<" + super().__repr__()
         if hasattr(self, "estimators_"):
             repr_str = repr_str[:-1]
             repr_str += ", fitted with %i estimators" % len(self.estimators_)
@@ -466,7 +466,7 @@ class GeneralizingEstimator(SlidingEstimator):
     """
 
     def __repr__(self):  # noqa: D105
-        repr_str = super(GeneralizingEstimator, self).__repr__()
+        repr_str = super().__repr__()
         if hasattr(self, "estimators_"):
             repr_str = repr_str[:-1]
             repr_str += ", fitted with %i estimators>" % len(self.estimators_)

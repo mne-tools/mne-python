@@ -1096,7 +1096,7 @@ class RawBTi(BaseRaw):
         filename = bti_info["pdf"]
         if isinstance(filename, BytesIO):
             filename = repr(filename)
-        super(RawBTi, self).__init__(
+        super().__init__(
             info,
             preload,
             filenames=[filename],

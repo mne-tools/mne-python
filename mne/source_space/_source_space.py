@@ -289,7 +289,7 @@ class SourceSpaces(list):
     def __init__(self, source_spaces, info=None):
         # First check the types is actually a valid config
         _validate_type(source_spaces, list, "source_spaces")
-        super(SourceSpaces, self).__init__(source_spaces)  # list
+        super().__init__(source_spaces)  # list
         self.kind  # will raise an error if there is a problem
         if info is None:
             self.info = dict()

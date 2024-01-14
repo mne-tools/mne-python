@@ -170,7 +170,7 @@ class RawBOXY(BaseRaw):
         assert len(raw_extras["offsets"]) == delta + 1
         if filetype == "non-parsed":
             delta //= raw_extras["source_num"]
-        super(RawBOXY, self).__init__(
+        super().__init__(
             info,
             preload,
             filenames=[fname],

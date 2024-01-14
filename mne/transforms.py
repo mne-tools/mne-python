@@ -112,7 +112,7 @@ class Transform(dict):
     """
 
     def __init__(self, fro, to, trans=None):
-        super(Transform, self).__init__()
+        super().__init__()
         # we could add some better sanity checks here
         fro = _to_const(fro)
         to = _to_const(to)

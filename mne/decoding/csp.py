@@ -771,7 +771,7 @@ class SPoC(CSP):
         rank=None,
     ):
         """Init of SPoC."""
-        super(SPoC, self).__init__(
+        super().__init__(
             n_components=n_components,
             reg=reg,
             log=log,
@@ -871,4 +871,4 @@ class SPoC(CSP):
             If self.transform_into == 'csp_space' then returns the data in CSP
             space and shape is (n_epochs, n_sources, n_times).
         """
-        return super(SPoC, self).transform(X)
+        return super().transform(X)

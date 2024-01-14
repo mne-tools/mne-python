@@ -110,9 +110,9 @@ def _apply_rap_music(
         oris[k] = source_ori
         poss[k] = source_pos
 
-        logger.info("source %s found: p = %s" % (k + 1, source_idx))
+        logger.info(f"source {k + 1} found: p = {source_idx}")
         if n_orient == 3:
-            logger.info("ori = %s %s %s" % tuple(oris[k]))
+            logger.info("ori = {} {} {}".format(*tuple(oris[k])))
 
         projection = _compute_proj(A[:, : k + 1])
         G_proj = np.einsum("ab,bso->aso", projection, G)

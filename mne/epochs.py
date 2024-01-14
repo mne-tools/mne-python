@@ -3298,7 +3298,7 @@ class Epochs(BaseEpochs):
             )
 
         # call BaseEpochs constructor
-        super(Epochs, self).__init__(
+        super().__init__(
             info,
             None,
             events,
@@ -3467,7 +3467,7 @@ class EpochsArray(BaseEpochs):
         info = info.copy()  # do not modify original info
         tmax = (data.shape[2] - 1) / info["sfreq"] + tmin
 
-        super(EpochsArray, self).__init__(
+        super().__init__(
             info,
             data,
             events,
@@ -4081,7 +4081,7 @@ class EpochsFIF(BaseEpochs):
         # call BaseEpochs constructor
         # again, ensure we're retaining the baseline period originally loaded
         # from disk without trying to re-apply baseline correction
-        super(EpochsFIF, self).__init__(
+        super().__init__(
             info,
             data,
             events,

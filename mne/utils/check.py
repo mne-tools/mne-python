@@ -8,7 +8,6 @@ import numbers
 import operator
 import os
 import re
-from builtins import input  # no-op here but facilitates testing
 from difflib import get_close_matches
 from importlib import import_module
 from pathlib import Path

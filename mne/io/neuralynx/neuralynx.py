@@ -236,7 +236,7 @@ class RawNeuralynx(BaseRaw):
             description=["BAD_ACQ_SKIP"] * len(gap_start_ids),
         )
 
-        super(RawNeuralynx, self).__init__(
+        super().__init__(
             info=info,
             last_samps=[sizes_sorted.sum() - 1],
             filenames=[fname],

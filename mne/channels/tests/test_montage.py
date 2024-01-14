@@ -579,7 +579,7 @@ def test_read_dig_dat(tmp_path):
         for row in rows:
             name = row[0].rjust(10)
             data = "\t".join(map(str, row[1:]))
-            fid.write("%s\t%s\n" % (name, data))
+            fid.write(f"{name}\t{data}\n")
     # construct expected value
     idents = {
         78: FIFF.FIFFV_POINT_NASION,

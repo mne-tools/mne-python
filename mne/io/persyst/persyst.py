@@ -226,7 +226,7 @@ class RawPersyst(BaseRaw):
 
         raw_extras = {"dtype": dtype, "n_chs": n_chs, "n_samples": n_samples}
         # create Raw object
-        super(RawPersyst, self).__init__(
+        super().__init__(
             info,
             preload,
             filenames=[dat_fpath],
