@@ -77,7 +77,7 @@ def rescale(data, times, baseline, mode="mean", copy=True, picks=None, verbose=N
         imin = np.where(times >= bmin)[0]
         if len(imin) == 0:
             raise ValueError(
-                "bmin is too large (%s), it exceeds the largest " "time value" % (bmin,)
+                f"bmin is too large ({bmin}), it exceeds the largest time value"
             )
         imin = int(imin[0])
     if bmax is None:
@@ -86,14 +86,13 @@ def rescale(data, times, baseline, mode="mean", copy=True, picks=None, verbose=N
         imax = np.where(times <= bmax)[0]
         if len(imax) == 0:
             raise ValueError(
-                "bmax is too small (%s), it is smaller than the "
-                "smallest time value" % (bmax,)
+                f"bmax is too small ({bmax}), it is smaller than the smallest time "
+                "value"
             )
         imax = int(imax[-1]) + 1
     if imin >= imax:
         raise ValueError(
-            "Bad rescaling slice (%s:%s) from time values %s, %s"
-            % (imin, imax, bmin, bmax)
+            f"Bad rescaling slice ({imin}:{imax}) from time values {bmin}, {bmax}"
         )
 
     # technically this is inefficient when `picks` is given, but assuming
@@ -204,8 +203,8 @@ def _check_baseline(baseline, times, sfreq, on_baseline_outside_data="raise"):
 
     if baseline_tmin > baseline_tmax:
         raise ValueError(
-            "Baseline min (%s) must be less than baseline max (%s)"
-            % (baseline_tmin, baseline_tmax)
+            f"Baseline min ({baseline_tmin}) must be less than baseline max ("
+            f"{baseline_tmax})"
         )
 
     if (baseline_tmin < tmin - tstep) or (baseline_tmax > tmax + tstep):

@@ -65,15 +65,15 @@ def _check_o_d_s_c(onset, duration, description, ch_names):
     onset = np.atleast_1d(np.array(onset, dtype=float))
     if onset.ndim != 1:
         raise ValueError(
-            "Onset must be a one dimensional array, got %s "
-            "(shape %s)." % (onset.ndim, onset.shape)
+            f"Onset must be a one dimensional array, got {onset.ndim} (shape "
+            f"{onset.shape})."
         )
     duration = np.array(duration, dtype=float)
     if duration.ndim == 0 or duration.shape == (1,):
         duration = np.repeat(duration, len(onset))
     if duration.ndim != 1:
         raise ValueError(
-            "Duration must be a one dimensional array, " "got %d." % (duration.ndim,)
+            f"Duration must be a one dimensional array, got {duration.ndim}."
         )
 
     description = np.array(description, dtype=str)
@@ -81,8 +81,7 @@ def _check_o_d_s_c(onset, duration, description, ch_names):
         description = np.repeat(description, len(onset))
     if description.ndim != 1:
         raise ValueError(
-            "Description must be a one dimensional array, "
-            "got %d." % (description.ndim,)
+            f"Description must be a one dimensional array, got {description.ndim}."
         )
     _safe_name_list(description, "write", "description")
 
@@ -305,10 +304,10 @@ class Annotations:
     def __repr__(self):
         """Show the representation."""
         counter = Counter(self.description)
-        kinds = ", ".join(["%s (%s)" % k for k in sorted(counter.items())])
+        kinds = ", ".join(["{} ({})".format(*k) for k in sorted(counter.items())])
         kinds = (": " if len(kinds) > 0 else "") + kinds
         ch_specific = ", channel-specific" if self._any_ch_names() else ""
-        s = "Annotations | %s segment%s%s%s" % (
+        s = "Annotations | {} segment{}{}{}".format(
             len(self.onset),
             _pl(len(self.onset)),
             ch_specific,
@@ -341,9 +340,8 @@ class Annotations:
             self._orig_time = other.orig_time
         if self.orig_time != other.orig_time:
             raise ValueError(
-                "orig_time should be the same to "
-                "add/concatenate 2 annotations "
-                "(got %s != %s)" % (self.orig_time, other.orig_time)
+                "orig_time should be the same to add/concatenate 2 annotations (got "
+                f"{self.orig_time} != {other.orig_time})"
             )
         return self.append(
             other.onset, other.duration, other.description, other.ch_names
@@ -621,10 +619,10 @@ class Annotations:
         del tmin, tmax
         if absolute_tmin > absolute_tmax:
             raise ValueError(
-                "tmax should be greater than or equal to tmin "
-                "(%s < %s)." % (absolute_tmin, absolute_tmax)
+                f"tmax should be greater than or equal to tmin ({absolute_tmin} < "
+                f"{absolute_tmax})."
             )
-        logger.debug("Cropping annotations %s - %s" % (absolute_tmin, absolute_tmax))
+        logger.debug(f"Cropping annotations {absolute_tmin} - {absolute_tmax}")
 
         onsets, durations, descriptions, ch_names = [], [], [], []
         out_of_bounds, clip_left_elem, clip_right_elem = [], [], []
@@ -1638,7 +1636,7 @@ def events_from_annotations(
 
     events = np.c_[inds, np.zeros(len(inds)), values].astype(int)
 
-    logger.info("Used Annotations descriptions: %s" % (list(event_id_.keys()),))
+    logger.info(f"Used Annotations descriptions: {list(event_id_.keys())}")
 
     return events, event_id_
 

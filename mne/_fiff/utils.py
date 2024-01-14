@@ -239,9 +239,8 @@ def _read_segments_file(
             block = np.fromfile(fid, dtype, count)
             if block.size != count:
                 raise RuntimeError(
-                    "Incorrect number of samples (%s != %s), "
-                    "please report this error to MNE-Python "
-                    "developers" % (block.size, count)
+                    f"Incorrect number of samples ({block.size} != {count}), please "
+                    "report this error to MNE-Python developers"
                 )
             block = block.reshape(n_channels, -1, order="F")
             n_samples = block.shape[1]  # = count // n_channels
