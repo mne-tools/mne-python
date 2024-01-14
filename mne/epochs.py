@@ -508,8 +508,8 @@ class BaseEpochs(
                 selection = np.array(selection, int)
             if selection.shape != (len(selected),):
                 raise ValueError(
-                    "selection must be shape %s got shape %s"
-                    % (selected.shape, selection.shape)
+                    f"selection must be shape {selected.shape} got shape "
+                    f"{selection.shape}"
                 )
             self.selection = selection
             if drop_log is None:
@@ -665,7 +665,7 @@ class BaseEpochs(
         # do the rest
         valid_proj = [True, "delayed", False]
         if proj not in valid_proj:
-            raise ValueError('"proj" must be one of %s, not %s' % (valid_proj, proj))
+            raise ValueError(f'"proj" must be one of {valid_proj}, not {proj}')
         if proj == "delayed":
             self._do_delayed_proj = True
             logger.info("Entering delayed SSP mode.")
@@ -799,7 +799,7 @@ class BaseEpochs(
                 )
             bads = set(rej.keys()) - set(idx.keys())
             if len(bads) > 0:
-                raise KeyError("Unknown channel types found in %s: %s" % (kind, bads))
+                raise KeyError(f"Unknown channel types found in {kind}: {bads}")
 
         for key in idx.keys():
             # don't throw an error if rejection/flat would do nothing
@@ -810,8 +810,8 @@ class BaseEpochs(
                 # self.allow_missing_reject_keys check to allow users to
                 # provide keys that don't exist in data
                 raise ValueError(
-                    "No %s channel found. Cannot reject based on "
-                    "%s." % (key.upper(), key.upper())
+                    f"No {key.upper()} channel found. Cannot reject based on "
+                    f"{key.upper()}."
                 )
 
         # check for invalid values
@@ -819,7 +819,7 @@ class BaseEpochs(
             for key, val in rej.items():
                 if val is None or val < 0:
                     raise ValueError(
-                        '%s value must be a number >= 0, not "%s"' % (kind, val)
+                        f'{kind} value must be a number >= 0, not "{val}"'
                     )
 
         # now check to see if our rejection and flat are getting more
@@ -1984,9 +1984,9 @@ class BaseEpochs(
 
     def __repr__(self):
         """Build string representation."""
-        s = " %s events " % len(self.events)
+        s = f" {len(self.events)} events "
         s += "(all good)" if self._bad_dropped else "(good & bad)"
-        s += ", %g – %g s" % (self.tmin, self.tmax)
+        s += f", {self.tmin:g} – {self.tmax:g} s"
         s += ", baseline "
         if self.baseline is None:
             s += "off"
@@ -2000,12 +2000,12 @@ class BaseEpochs(
             ):
                 s += " (baseline period was cropped after baseline correction)"
 
-        s += ", ~%s" % (sizeof_fmt(self._size),)
-        s += ", data%s loaded" % ("" if self.preload else " not")
+        s += f", ~{sizeof_fmt(self._size)}"
+        s += f", data{'' if self.preload else ' not'} loaded"
         s += ", with metadata" if self.metadata is not None else ""
         max_events = 10
         counts = [
-            "%r: %i" % (k, sum(self.events[:, 2] == v))
+            f"{k!r}: {sum(self.events[:, 2] == v)}"
             for k, v in list(self.event_id.items())[:max_events]
         ]
         if len(self.event_id) > 0:

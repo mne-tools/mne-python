@@ -320,9 +320,8 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
     def classes_(self):
         if not hasattr(self.estimators_[0], "classes_"):
             raise AttributeError(
-                "classes_ attribute available only if "
-                "base_estimator has it, and estimator %s does"
-                " not" % (self.estimators_[0],)
+                "classes_ attribute available only if base_estimator has it, and "
+                f"estimator {self.estimators_[0]} does not"
             )
         return self.estimators_[0].classes_
 

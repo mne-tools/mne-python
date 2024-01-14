@@ -60,7 +60,7 @@ def test_datasets_basic(tmp_path, monkeypatch):
         else:
             assert dataset.get_version() is None
             assert not datasets.has_dataset(dname)
-        print("%s: %s" % (dname, datasets.has_dataset(dname)))
+        print(f"{dname}: {datasets.has_dataset(dname)}")
     tempdir = str(tmp_path)
     # Explicitly test one that isn't preset (given the config)
     monkeypatch.setenv("MNE_DATASETS_SAMPLE_PATH", tempdir)
