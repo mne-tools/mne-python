@@ -377,9 +377,7 @@ def test_flash_bem(tmp_path):
         assert_equal(tris.min(), 0)
         assert_equal(rr.shape[0], tris.max() + 1)
         # compare to the testing flash surfaces
-        rr_c, tris_c = read_surface(
-            op.join(subjects_dir, "sample", "bem", f"{s}.surf")
-        )
+        rr_c, tris_c = read_surface(op.join(subjects_dir, "sample", "bem", f"{s}.surf"))
         assert_allclose(rr, rr_c, **kwargs)
         assert_allclose(tris, tris_c, **kwargs)
 
