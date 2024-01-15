@@ -118,7 +118,7 @@ brain.add_text(0.1, 0.9, "SourceEstimate", "title", font_size=16)
 
 shape = stc.data.shape
 
-print(f"The data has {shape} vertex locations with {shape} sample points each." % shape)
+print(f"The data has {shape} vertex locations with {shape} sample points each.")
 
 # %%
 # We see that stc carries 7498 time series of 25 samples length. Those time

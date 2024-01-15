@@ -81,7 +81,7 @@ def compute_bias(raw):
 bias = compute_bias(raw)
 print(f"Raw bias: {np.mean(bias):0.1f}mm (worst: {np.max(bias):0.1f}mm)")
 bias_clean = compute_bias(raw_clean)
-print(f"OTP bias: {np.mean(bias_clean):0.1f}mm (worst: {np.max(bias_clean):0.1fm}m)")
+print(f"OTP bias: {np.mean(bias_clean):0.1f}mm (worst: {np.max(bias_clean):0.1f}m)")
 
 # %%
 # References
