@@ -821,51 +821,52 @@ def test_events_from_annot_onset_alingment():
 
 def test_events_from_annot_with_tolerance():
     """Test events_from_annotations w/ and w/o tolerance."""
-    info = create_info(ch_names=1, sfreq=100.0)
-    raw = RawArray(data=np.empty((1, 10000)), info=info, first_samp=0)
-    meas_date = _handle_meas_date(32730.12)
+    info = create_info(ch_names=1, sfreq=100)
+    raw = RawArray(data=np.empty((1, 1000)), info=info, first_samp=0)
+    meas_date = _handle_meas_date(0)
     with raw.info._unlock(check_after=True):
         raw.info["meas_date"] = meas_date
-    annot = Annotations([32730.12, 32760.12, 32790.12], 30.0, ["0", "1", "2"], 0)
-    raw._annotations = annot
+    annot = Annotations([2.02, 3.02, 4.02], 1, ["0", "1", "2"], 0)
+    raw.set_annotations(annot)
+
     events, _ = events_from_annotations(
         raw,
         event_id={"0": 0, "1": 1, "2": 2},
-        chunk_duration=30.0,
+        chunk_duration=1,
         use_rounding=True,
         tol=0,
     )
     assert events.shape == (2, 3)
-    assert (events[:, 0] == [0, 6000]).all()
+    assert (events[:, 0] == [202, 402]).all()
     assert (events[:, 2] == [0, 2]).all()
     events, _ = events_from_annotations(
         raw,
         event_id={"0": 0, "1": 1, "2": 2},
-        chunk_duration=30.0,
+        chunk_duration=1,
         use_rounding=True,
         tol=1e-8,
     )
     assert events.shape == (3, 3)
-    assert (events[:, 0] == [0, 3000, 6000]).all()
+    assert (events[:, 0] == [202, 302, 402]).all()
     assert (events[:, 2] == [0, 1, 2]).all()
     events, _ = events_from_annotations(
         raw,
         event_id={"0": 0, "1": 1, "2": 2},
-        chunk_duration=30.0,
+        chunk_duration=1,
         use_rounding=False,
         tol=1e-8,
     )
     assert events.shape == (3, 3)
-    assert (events[:, 0] == [0, 3000, 6000]).all()
+    assert (events[:, 0] == [202, 302, 401]).all()
     assert (events[:, 2] == [0, 1, 2]).all()
     # Default values of use_rounding=True, tol=1e-8
     events, _ = events_from_annotations(
         raw,
         event_id={"0": 0, "1": 1, "2": 2},
-        chunk_duration=30.0,
+        chunk_duration=1,
     )
     assert events.shape == (3, 3)
-    assert (events[:, 0] == [0, 3000, 6000]).all()
+    assert (events[:, 0] == [202, 302, 402]).all()
     assert (events[:, 2] == [0, 1, 2]).all()
 
 
