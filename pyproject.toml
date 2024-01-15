@@ -210,6 +210,7 @@ ignore = [
     "D100", # Missing docstring in public module
     "D104", # Missing docstring in public package
     "D413", # Missing blank line after last section
+    "UP031", # Use format specifiers instead of percent format
 ]
 
 [tool.ruff.pydocstyle]
