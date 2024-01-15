@@ -8,6 +8,7 @@ import numbers
 import operator
 import os
 import re
+from builtins import input  # noqa: UP029
 from difflib import get_close_matches
 from importlib import import_module
 from pathlib import Path
