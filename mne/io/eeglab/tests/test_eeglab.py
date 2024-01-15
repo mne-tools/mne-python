@@ -71,7 +71,7 @@ montage_path = base_dir / "test_chans.locs"
 def test_io_set_raw(fname):
     """Test importing EEGLAB .set files."""
     montage = read_custom_montage(montage_path)
-    montage.ch_names = ["EEG {0:03d}".format(ii) for ii in range(len(montage.ch_names))]
+    montage.ch_names = [f"EEG {ii:03d}" for ii in range(len(montage.ch_names))]
 
     kws = dict(reader=read_raw_eeglab, input_fname=fname)
     if fname.name == "test_raw_chanloc.set":

@@ -647,7 +647,7 @@ class RawMff(BaseRaw):
         self._filenames = [file_bin]
         self._raw_extras = [egi_info]
 
-        super(RawMff, self).__init__(
+        super().__init__(
             info,
             preload=preload,
             orig_format="single",

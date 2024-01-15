@@ -268,7 +268,7 @@ def _get_hitachi_info(fname, S_offset, D_offset, ignore_names):
         "3x11": "ETG-4000",
     }
     _check_option("Hitachi mode", mode, sorted(names))
-    n_row, n_col = [int(x) for x in mode.split("x")]
+    n_row, n_col = (int(x) for x in mode.split("x"))
     logger.info(f"Constructing pairing matrix for {names[mode]} ({mode})")
     pairs = _compute_pairs(n_row, n_col, n=1 + (mode == "3x3"))
     assert n_nirs == len(pairs) * 2

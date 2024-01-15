@@ -554,7 +554,7 @@ def read_lta(fname, verbose=None):
         The affine transformation described by the lta file.
     """
     _check_fname(fname, "read", must_exist=True)
-    with open(fname, "r") as fid:
+    with open(fname) as fid:
         lines = fid.readlines()
     # 0 is linear vox2vox, 1 is linear ras2ras
     trans_type = int(lines[0].split("=")[1].strip()[0])
@@ -715,7 +715,7 @@ def _get_lut(fname=None):
         ("A", "<i8"),
     ]
     lut = {d[0]: list() for d in dtype}
-    with open(fname, "r") as fid:
+    with open(fname) as fid:
         for line in fid:
             line = line.strip()
             if line.startswith("#") or not line:

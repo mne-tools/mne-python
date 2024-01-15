@@ -145,7 +145,7 @@ print(
     f"the (cropped) sample data object has {n_time_samps} time samples and "
     f"{n_chan} channels."
 )
-print("The last time sample is at {} seconds.".format(time_secs[-1]))
+print(f"The last time sample is at {time_secs[-1]} seconds.")
 print("The first few channel names are {}.".format(", ".join(ch_names[:3])))
 print()  # insert a blank line in the output
 

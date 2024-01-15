@@ -423,7 +423,7 @@ def test_plot_compare_evokeds():
     red.data *= 1.5
     blue.data /= 1.5
     evoked_dict = {"aud/l": blue, "aud/r": red, "vis": evoked}
-    huge_dict = {"cond{}".format(i): ev for i, ev in enumerate([evoked] * 11)}
+    huge_dict = {f"cond{i}": ev for i, ev in enumerate([evoked] * 11)}
     plot_compare_evokeds(evoked_dict)  # dict
     plot_compare_evokeds([[red, evoked], [blue, evoked]])  # list of lists
     figs = plot_compare_evokeds({"cond": [blue, red, evoked]})  # dict of list

@@ -1340,7 +1340,7 @@ def test_shielding_factor(tmp_path):
     assert counts[0] == 3
     # Show it by rewriting the 3D as 1D and testing it
     temp_fname = tmp_path / "test_cal.dat"
-    with open(fine_cal_fname_3d, "r") as fid:
+    with open(fine_cal_fname_3d) as fid:
         with open(temp_fname, "w") as fid_out:
             for line in fid:
                 fid_out.write(" ".join(line.strip().split(" ")[:14]) + "\n")

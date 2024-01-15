@@ -67,7 +67,7 @@ def _check_before_reference(inst, ref_from, ref_to, ch_type):
     else:
         extra = "channels supplied"
     if len(ref_to) == 0:
-        raise ValueError("No %s to apply the reference to" % (extra,))
+        raise ValueError(f"No {extra} to apply the reference to")
 
     # After referencing, existing SSPs might not be valid anymore.
     projs_to_remove = []
@@ -301,8 +301,8 @@ def _check_can_reref(inst):
         FIFF.FIFFV_MNE_CUSTOM_REF_OFF,
     ):
         raise RuntimeError(
-            "Cannot set new reference on data with custom "
-            "reference type %r" % (_ref_dict[current_custom],)
+            "Cannot set new reference on data with custom reference type "
+            f"{_ref_dict[current_custom]!r}"
         )
 
 
@@ -363,8 +363,8 @@ def set_eeg_reference(
     if projection:  # average reference projector
         if ref_channels != "average":
             raise ValueError(
-                "Setting projection=True is only supported for "
-                'ref_channels="average", got %r.' % (ref_channels,)
+                'Setting projection=True is only supported for ref_channels="average", '
+                f"got {ref_channels!r}."
             )
         # We need verbose='error' here in case we add projs sequentially
         if _has_eeg_average_ref_proj(inst.info, ch_type=ch_type, verbose="error"):

@@ -1573,7 +1573,7 @@ class Brain:
             mni = " MNI: " + ", ".join("%5.1f" % m for m in mni)
         else:
             mni = ""
-        label = "{}:{}{}".format(hemi_str, str(vertex_id).ljust(6), mni)
+        label = f"{hemi_str}:{str(vertex_id).ljust(6)}{mni}"
         act_data, smooth = self.act_data_smooth[hemi]
         if smooth is not None:
             act_data = smooth[vertex_id].dot(act_data)[0]
@@ -1907,8 +1907,8 @@ class Brain:
         if array.ndim == 3:
             if array.shape[1] != 3:
                 raise ValueError(
-                    "If array has 3 dimensions, array.shape[1] "
-                    "must equal 3, got %s" % (array.shape[1],)
+                    "If array has 3 dimensions, array.shape[1] must equal 3, got "
+                    f"{array.shape[1]}"
                 )
         fmin, fmid, fmax = _update_limits(fmin, fmid, fmax, center, array)
         if colormap == "auto":
@@ -1921,13 +1921,13 @@ class Brain:
         elif isinstance(smoothing_steps, int):
             if smoothing_steps < 0:
                 raise ValueError(
-                    "Expected value of `smoothing_steps` is"
-                    " positive but {} was given.".format(smoothing_steps)
+                    "Expected value of `smoothing_steps` is positive but "
+                    f"{smoothing_steps} was given."
                 )
         else:
             raise TypeError(
-                "Expected type of `smoothing_steps` is int or"
-                " NoneType but {} was given.".format(type(smoothing_steps))
+                "Expected type of `smoothing_steps` is int or NoneType but "
+                f"{type(smoothing_steps)} was given."
             )
 
         self._data["stc"] = stc

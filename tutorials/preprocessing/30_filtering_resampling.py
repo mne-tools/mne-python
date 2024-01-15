@@ -78,9 +78,7 @@ for cutoff in (0.1, 0.2):
             duration=60, proj=False, n_channels=len(raw.ch_names), remove_dc=False
         )
     fig.subplots_adjust(top=0.9)
-    fig.suptitle(
-        "High-pass filtered at {} Hz".format(cutoff), size="xx-large", weight="bold"
-    )
+    fig.suptitle(f"High-pass filtered at {cutoff} Hz", size="xx-large", weight="bold")
 
 # %%
 # Looks like 0.1 Hz was not quite high enough to fully remove the slow drifts.
@@ -164,7 +162,7 @@ for title, data in zip(["Un", "Notch "], [raw, raw_notch]):
     fig = data.compute_psd(fmax=250).plot(
         average=True, amplitude=False, picks="data", exclude="bads"
     )
-    fig.suptitle("{}filtered".format(title), size="xx-large", weight="bold")
+    fig.suptitle(f"{title}filtered", size="xx-large", weight="bold")
     add_arrows(fig.axes[:2])
 
 # %%
@@ -185,7 +183,7 @@ for title, data in zip(["Un", "spectrum_fit "], [raw, raw_notch_fit]):
     fig = data.compute_psd(fmax=250).plot(
         average=True, amplitude=False, picks="data", exclude="bads"
     )
-    fig.suptitle("{}filtered".format(title), size="xx-large", weight="bold")
+    fig.suptitle(f"{title}filtered", size="xx-large", weight="bold")
     add_arrows(fig.axes[:2])
 
 # %%

@@ -549,7 +549,7 @@ class UpdateChannelsMixin:
         for ch_name in ch_names:
             ii = self.ch_names.index(ch_name)
             if ii in idx:
-                raise ValueError("Channel name repeated: %s" % (ch_name,))
+                raise ValueError(f"Channel name repeated: {ch_name}")
             idx.append(ii)
         return self._pick_drop_channels(idx)
 
@@ -982,7 +982,7 @@ def rename_channels(info, mapping, allow_duplicates=False, *, verbose=None):
     elif callable(mapping):
         new_names = [(ci, mapping(ch_name)) for ci, ch_name in enumerate(ch_names)]
     else:
-        raise ValueError("mapping must be callable or dict, not %s" % (type(mapping),))
+        raise ValueError(f"mapping must be callable or dict, not {type(mapping)}")
 
     # check we got all strings out of the mapping
     for new_name in new_names:
@@ -2110,9 +2110,7 @@ def read_vectorview_selection(name, fname=None, info=None, verbose=None):
         else:
             spacing = "old"
     elif info is not None:
-        raise TypeError(
-            "info must be an instance of Info or None, not %s" % (type(info),)
-        )
+        raise TypeError(f"info must be an instance of Info or None, not {type(info)}")
     else:  # info is None
         spacing = "old"
 
@@ -2124,7 +2122,7 @@ def read_vectorview_selection(name, fname=None, info=None, verbose=None):
 
     # use this to make sure we find at least one match for each name
     name_found = {n: False for n in name}
-    with open(fname, "r") as fid:
+    with open(fname) as fid:
         sel = []
         for line in fid:
             line = line.strip()

@@ -1133,8 +1133,8 @@ def read_label(filename, subject=None, color=None, *, verbose=None):
         hemi = "rh"
     else:
         raise ValueError(
-            "Cannot find which hemisphere it is. File should end"
-            " with lh.label or rh.label: %s" % (basename,)
+            "Cannot find which hemisphere it is. File should end with lh.label or "
+            f"rh.label: {basename}"
         )
 
     # find name
@@ -1147,7 +1147,7 @@ def read_label(filename, subject=None, color=None, *, verbose=None):
     name = "%s-%s" % (basename_, hemi)
 
     # read the file
-    with open(filename, "r") as fid:
+    with open(filename) as fid:
         comment = fid.readline().replace("\n", "")[1:]
         nv = int(fid.readline())
         data = np.empty((5, nv))

@@ -99,7 +99,7 @@ def _mgh_or_standard(basename, head_size, coord_frame="unknown"):
 
     pos = np.array(pos) / 1000.0
     ch_pos = _check_dupes_odict(ch_names_, pos)
-    nasion, lpa, rpa = [ch_pos.pop(n) for n in fid_names]
+    nasion, lpa, rpa = (ch_pos.pop(n) for n in fid_names)
     if head_size is None:
         scale = 1.0
     else:
@@ -109,7 +109,7 @@ def _mgh_or_standard(basename, head_size, coord_frame="unknown"):
     # if we are in MRI/MNI coordinates, we need to replace nasion, LPA, and RPA
     # with those of fsaverage for ``trans='fsaverage'`` to work
     if coord_frame == "mri":
-        lpa, nasion, rpa = [x["r"].copy() for x in get_mni_fiducials("fsaverage")]
+        lpa, nasion, rpa = (x["r"].copy() for x in get_mni_fiducials("fsaverage"))
     nasion *= scale
     lpa *= scale
     rpa *= scale
@@ -184,7 +184,7 @@ def _read_sfp(fname, head_size):
     ch_pos = _check_dupes_odict(ch_names, pos)
     del xs, ys, zs, ch_names
     # no one grants that fid names are there.
-    nasion, lpa, rpa = [ch_pos.pop(n, None) for n in fid_names]
+    nasion, lpa, rpa = (ch_pos.pop(n, None) for n in fid_names)
 
     if head_size is not None:
         scale = head_size / np.median(np.linalg.norm(pos, axis=-1))
@@ -274,7 +274,7 @@ def _read_elc(fname, head_size):
         pos *= head_size / np.median(np.linalg.norm(pos, axis=1))
 
     ch_pos = _check_dupes_odict(ch_names_, pos)
-    nasion, lpa, rpa = [ch_pos.pop(n, None) for n in fid_names]
+    nasion, lpa, rpa = (ch_pos.pop(n, None) for n in fid_names)
 
     return make_dig_montage(
         ch_pos=ch_pos, coord_frame="unknown", nasion=nasion, lpa=lpa, rpa=rpa
@@ -304,7 +304,7 @@ def _read_theta_phi_in_degrees(fname, head_size, fid_names=None, add_fiducials=F
 
     nasion, lpa, rpa = None, None, None
     if fid_names is not None:
-        nasion, lpa, rpa = [ch_pos.pop(n, None) for n in fid_names]
+        nasion, lpa, rpa = (ch_pos.pop(n, None) for n in fid_names)
 
     return make_dig_montage(
         ch_pos=ch_pos, coord_frame="unknown", nasion=nasion, lpa=lpa, rpa=rpa
@@ -332,7 +332,7 @@ def _read_elp_besa(fname, head_size):
 
     fid_names = ("Nz", "LPA", "RPA")
     # No one grants that the fid names actually exist.
-    nasion, lpa, rpa = [ch_pos.pop(n, None) for n in fid_names]
+    nasion, lpa, rpa = (ch_pos.pop(n, None) for n in fid_names)
 
     return make_dig_montage(ch_pos=ch_pos, nasion=nasion, lpa=lpa, rpa=rpa)
 
@@ -383,7 +383,7 @@ def _read_xyz(fname):
     ch_names = []
     pos = []
     file_format = op.splitext(fname)[1].lower()
-    with open(fname, "r") as f:
+    with open(fname) as f:
         if file_format != ".xyz":
             f.readline()  # skip header
         delimiter = "," if file_format == ".csv" else "\t"

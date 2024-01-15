@@ -155,16 +155,16 @@ def test_raw(pdf, config, hs, exported, tmp_path):
     )
     assert len(ex.info["dig"]) in (3563, 5154)
     assert_dig_allclose(ex.info, ra.info, limit=100)
-    coil1, coil2 = [
+    coil1, coil2 = (
         np.concatenate([d["loc"].flatten() for d in r_.info["chs"][:NCH]])
         for r_ in (ra, ex)
-    ]
+    )
     assert_array_almost_equal(coil1, coil2, 7)
 
-    loc1, loc2 = [
+    loc1, loc2 = (
         np.concatenate([d["loc"].flatten() for d in r_.info["chs"][:NCH]])
         for r_ in (ra, ex)
-    ]
+    )
     assert_allclose(loc1, loc2)
 
     assert_allclose(ra[:NCH][0], ex[:NCH][0])

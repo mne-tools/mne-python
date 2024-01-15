@@ -658,9 +658,9 @@ def test_split_files(tmp_path, mod, monkeypatch):
         m.setattr(base, "MAX_N_SPLITS", 2)
         with pytest.raises(RuntimeError, match="Exceeded maximum number of splits"):
             raw.save(fname, split_naming="bids", **kwargs)
-    fname_1, fname_2, fname_3 = [
+    fname_1, fname_2, fname_3 = (
         (tmp_path / f"test_split-{ii:02d}_{mod}.fif") for ii in range(1, 4)
-    ]
+    )
     assert not fname.is_file()
     assert fname_1.is_file()
     assert fname_2.is_file()
@@ -669,7 +669,7 @@ def test_split_files(tmp_path, mod, monkeypatch):
         m.setattr(base, "MAX_N_SPLITS", 2)
         with pytest.raises(RuntimeError, match="Exceeded maximum number of splits"):
             raw.save(fname, split_naming="neuromag", **kwargs)
-    fname_2, fname_3 = [(tmp_path / f"test_{mod}-{ii}.fif") for ii in range(1, 3)]
+    fname_2, fname_3 = ((tmp_path / f"test_{mod}-{ii}.fif") for ii in range(1, 3))
     assert fname.is_file()
     assert fname_2.is_file()
     assert not fname_3.is_file()
