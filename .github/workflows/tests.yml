@@ -59,7 +59,7 @@ jobs:
             python: '3.10'
             kind: conda
           - os: ubuntu-latest
-            python: '3.11'
+            python: '3.12'
             kind: pip-pre
           - os: macos-latest
             python: '3.9'
