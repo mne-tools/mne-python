@@ -1349,7 +1349,7 @@ def make_watershed_bem(
             )
 
             # Create symbolic links
-            surf_out = op.join(bem_dir, f"{s}.surf" % s)
+            surf_out = op.join(bem_dir, f"{s}.surf")
             if not overwrite and op.exists(surf_out):
                 skip_symlink = True
             else:
