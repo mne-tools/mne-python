@@ -388,6 +388,8 @@
 
 .. _Moritz Gerster: https://github.com/moritz-gerster
 
+.. _Motofumi Fushimi: https://github.com/motofumi-fushimi/motofumi-fushimi.github.io
+
 .. _Natalie Klein: https://github.com/natalieklein
 
 .. _Nathalie Gayraud: https://github.com/ngayraud

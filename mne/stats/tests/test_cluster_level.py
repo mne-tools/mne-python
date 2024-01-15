@@ -610,7 +610,7 @@ def test_permutation_adjacency_equiv(numba_conditional):
         )
         # make sure our output datatype is correct
         assert isinstance(clusters[0], np.ndarray)
-        assert clusters[0].dtype == bool
+        assert clusters[0].dtype == np.dtype(bool)
         assert_array_equal(clusters[0].shape, X.shape[1:])
 
         # make sure all comparisons were done; for TFCE, no perm
@@ -847,7 +847,7 @@ def test_output_equiv(shape, out_type, adjacency):
                 assert isinstance(clu[0], slice)
             else:
                 assert isinstance(clu, np.ndarray)
-                assert clu.dtype == bool
+                assert clu.dtype == np.dtype(bool)
                 assert clu.shape == shape
             got_mask[clu] = n
         else:

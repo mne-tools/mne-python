@@ -151,7 +151,7 @@ def _compute_proj(
                 nrow=1,
                 ncol=u.size,
             )
-            desc = f"{kind}-{desc_prefix}-PCA-{k+1:02d}"
+            desc = f"{kind}-{desc_prefix}-PCA-{k + 1:02d}"
             logger.info("Adding projection: %s", desc)
             proj = Projection(
                 active=False,

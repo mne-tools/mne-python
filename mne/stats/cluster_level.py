@@ -479,7 +479,7 @@ def _find_clusters(
                     len_c = c.stop - c.start
                 elif isinstance(c, tuple):
                     len_c = len(c)
-                elif c.dtype == bool:
+                elif c.dtype == np.dtype(bool):
                     len_c = np.sum(c)
                 else:
                     len_c = len(c)
@@ -1634,7 +1634,7 @@ def _reshape_clusters(clusters, sample_shape):
     """Reshape cluster masks or indices to be of the correct shape."""
     # format of the bool mask and indices are ndarrays
     if len(clusters) > 0 and isinstance(clusters[0], np.ndarray):
-        if clusters[0].dtype == bool:  # format of mask
+        if clusters[0].dtype == np.dtype(bool):  # format of mask
             clusters = [c.reshape(sample_shape) for c in clusters]
         else:  # format of indices
             clusters = [np.unravel_index(c, sample_shape) for c in clusters]

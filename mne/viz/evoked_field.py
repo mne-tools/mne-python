@@ -473,7 +473,9 @@ class EvokedField:
         if self._show_density:
             surf_map["mesh"].update_overlay(name="field", rng=[vmin, vmax])
             # Update the GUI widgets
-            if type == "meg":
+            # TODO: type is undefined here and only avoids a flake warning because it's
+            # a builtin!
+            if type == "meg":  # noqa: E721
                 scaling = DEFAULTS["scalings"]["grad"]
             else:
                 scaling = DEFAULTS["scalings"]["eeg"]
