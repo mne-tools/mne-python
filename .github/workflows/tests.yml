@@ -56,16 +56,16 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            python: '3.12'
-            kind: conda
-          - os: ubuntu-latest
             python: '3.11'
             kind: pip-pre
-          - os: macos-latest
+          - os: ubuntu-latest
             python: '3.12'
+            kind: conda
+          - os: macos-latest
+            python: '3.11'
             kind: mamba
           - os: windows-latest
-            python: '3.12'
+            python: '3.10'
             kind: mamba
           - os: ubuntu-latest
             python: '3.9'
@@ -89,6 +89,8 @@ jobs:
           python-version: ${{ matrix.python }}
         if: startswith(matrix.kind, 'pip')
       # Python (if conda)
+      - run: sed -i '/numba/d' environment.yml  # TODO: Remove when numba 0.59 lands on conda-forge
+        if: matrix.os == 'ubuntu-latest' && startswith(matrix.kind, 'conda') && matrix.python == '3.12'
       - uses: mamba-org/setup-micromamba@v1
         with:
           environment-file: ${{ env.CONDA_ENV }}
