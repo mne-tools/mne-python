@@ -488,10 +488,10 @@ def test_average_movements():
 
 def _assert_drop_log_types(drop_log):
     __tracebackhide__ = True
-    assert isinstance(drop_log, (tuple, list)), """drop_log should be tuple
+    assert isinstance(drop_log, tuple), """drop_log should be tuple
     or list"""
     assert all(
-        isinstance(log, (tuple, list)) for log in drop_log
+        isinstance(log, tuple) for log in drop_log
     ), "drop_log[ii] should be tuple or list"
     assert all(
         isinstance(s, str) for log in drop_log for s in log
@@ -2192,8 +2192,8 @@ def test_callable_reject():
 
     events = mne.make_fixed_length_events(edit_raw, id=1, duration=1.0, start=0)
     epochs = mne.Epochs(edit_raw, events, tmin=0, tmax=1, baseline=None, preload=True)
-
     assert len(epochs) == 5
+
     epochs = mne.Epochs(
         edit_raw,
         events,
@@ -2203,7 +2203,7 @@ def test_callable_reject():
         reject=dict(eeg=lambda x: ((np.median(x, axis=1) > 1e-3).any(), "eeg median")),
         preload=True,
     )
-    assert epochs.drop_log[2] != ()
+    assert epochs.drop_log[2] == ('eeg median',)
 
     epochs = mne.Epochs(
         edit_raw,
@@ -2211,10 +2211,10 @@ def test_callable_reject():
         tmin=0,
         tmax=1,
         baseline=None,
-        reject=dict(eeg=lambda x: ((np.max(x, axis=1) > 1).any(), "eeg max")),
+        reject=dict(eeg=lambda x: ((np.max(x, axis=1) > 1).any(), ("eeg max",))),
         preload=True,
     )
-    assert epochs.drop_log[0] != ()
+    assert epochs.drop_log[0] == ("eeg max",)
 
     def reject_criteria(x):
         max_condition = np.max(x, axis=1) > 1e-2
@@ -2230,9 +2230,19 @@ def test_callable_reject():
         reject=dict(eeg=reject_criteria),
         preload=True,
     )
-    print(epochs.drop_log)
-    assert epochs.drop_log[0] != () and epochs.drop_log[2] != ()
+    assert epochs.drop_log[0] == ("eeg max or median",) and epochs.drop_log[2] == ("eeg max or median",)
 
+    # Test reasons must be str or tuple of str
+    with pytest.raises(TypeError):
+        epochs = mne.Epochs(
+            edit_raw,
+            events,
+            tmin=0,
+            tmax=1,
+            baseline=None,
+            reject=dict(eeg=lambda x: ((np.median(x, axis=1) > 1e-3).any(), ("eeg median", 2))),
+            preload=True,
+        )
 
 def test_preload_epochs():
     """Test preload of epochs."""
@@ -3267,7 +3277,9 @@ def test_drop_epochs():
     # Bound checks
     pytest.raises(IndexError, epochs.drop, [len(epochs.events)])
     pytest.raises(IndexError, epochs.drop, [-len(epochs.events) - 1])
-    pytest.raises(ValueError, epochs.drop, [[1, 2], [3, 4]])
+    pytest.raises(TypeError, epochs.drop, [[1, 2], [3, 4]])
+    with pytest.raises(TypeError):
+        epochs.drop([1], reason=('a', 'b', 2))
 
     # Test selection attribute
     assert_array_equal(epochs.selection, np.where(events[:, 2] == event_id)[0])
@@ -3291,12 +3303,12 @@ def test_drop_epochs():
     raw, events, picks = _get_data()
     epochs_tuple = Epochs(raw, events, event_id, tmin, tmax, picks=picks, preload=True)
     selection_tuple = epochs_tuple.selection.copy()
-    epochs_tuple.drop((2, 3, 4), reason=([["list"], "string", ("tuple",)]))
+    epochs_tuple.drop((2, 3, 4), reason=('a', 'b'))
     n_events = len(epochs.events)
     assert [epochs_tuple.drop_log[k] for k in selection_tuple[[2, 3, 4]]] == [
-        ("list",),
-        ("string",),
-        ("tuple",),
+        ("a", 'b'),
+        ("a", 'b'),
+        ("a", 'b'),
     ]
 
 

@@ -1534,6 +1534,7 @@ class BaseEpochs(
             correspondingly modified.
         reason : list | tuple | str
             Reason(s) for dropping the epochs ('ECG', 'timeout', 'blink' etc).
+            Reason(s) are applied to all indices specified.
             Default: 'USER'.
         %(verbose)s
 
@@ -1545,16 +1546,9 @@ class BaseEpochs(
         indices = np.atleast_1d(indices)
 
         if indices.ndim > 1:
-            raise ValueError("indices must be a scalar or a 1-d array")
+            raise TypeError("indices must be a scalar or a 1-d array")
         # Check if indices and reasons are of the same length
         # if using collection to drop epochs
-        if isinstance(reason, (list, tuple)):
-            if len(indices) != len(reason):
-                raise ValueError(
-                    "If using a list or tuple as the reason, "
-                    "indices and reasons must be of the same length, got "
-                    f"{len(indices)} and {len(reason)}"
-                )
 
         if indices.dtype == bool:
             indices = np.where(indices)[0]
@@ -1757,7 +1751,7 @@ class BaseEpochs(
                 is_good, bad_tuple = self._is_good_epoch(epoch, verbose=verbose)
                 if not is_good:
                     assert isinstance(bad_tuple, tuple)
-                    assert all(isinstance(x, str)) for x in bad_tuple)
+                    assert all(isinstance(x, str) for x in bad_tuple)
                     drop_log[sel] = drop_log[sel] + bad_tuple
                     continue
                 good_idx.append(idx)
@@ -3741,7 +3735,7 @@ def _is_good(
                             if isinstance(reasons, str):
                                 reasons = (reasons,)
                             for idx, reason in enumerate(reasons):
-                                _validate_type(reason, str, f"reasons[{idx}]")
+                                _validate_type(reason, str, reason)
                             bad_tuple += tuple(reasons)
                         else:
                             bad_names = [ch_names[idx[i]] for i in idx_deltas]

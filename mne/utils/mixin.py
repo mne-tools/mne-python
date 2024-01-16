@@ -178,7 +178,7 @@ class GetEpochsMixin:
         ----------
         item: slice, array-like, str, or list
             see `__getitem__` for details.
-        reason: str
+        reason: str, list/tuple of str
             entry in `drop_log` for unselected epochs
         copy: bool
             return a copy of the current object
@@ -210,6 +210,9 @@ class GetEpochsMixin:
             drop_log = list(inst.drop_log)
             if reason is not None:
                 _validate_type(reason, (list, tuple, str), "reason")
+                if isinstance(reason, (list, tuple)):
+                    for r in reason:
+                        _validate_type(r, str, r)
                 if isinstance(reason, str):
                     reason = (reason,)
                 reason = tuple(reason)
