@@ -1335,6 +1335,8 @@ def reset_warnings(gallery_conf, fname):
         r"The .* was deprecated in Matplotlib 3\.7",
         # scipy
         r"scipy.signal.morlet2 is deprecated in SciPy 1\.12",
+        # Matplotlib->tz
+        r"datetime\.datetime\.utcfromtimestamp",
     ):
         warnings.filterwarnings(  # deal with other modules having bad imports
             "ignore", message=".*%s.*" % key, category=DeprecationWarning
