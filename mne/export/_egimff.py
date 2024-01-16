@@ -73,7 +73,7 @@ def export_evokeds_mff(fname, evoked, history=None, *, overwrite=False, verbose=
     if op.exists(fname):
         os.remove(fname) if op.isfile(fname) else shutil.rmtree(fname)
     writer = mffpy.Writer(fname)
-    current_time = pytz.utc.localize(datetime.datetime.utcnow())
+    current_time = pytz.utc.localize(datetime.datetime.now(datetime.UTC))
     writer.addxml("fileInfo", recordTime=current_time)
     try:
         device = info["device_info"]["type"]

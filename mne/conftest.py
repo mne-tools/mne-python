@@ -189,6 +189,8 @@ def pytest_configure(config):
     ignore:`row_stack` alias is deprecated.*:DeprecationWarning
     # Matplotlib->tz
     ignore:datetime.datetime.utcfromtimestamp.*:DeprecationWarning
+    # joblib
+    ignore:ast\.Num is deprecated.*:DeprecationWarning
     """  # noqa: E501
     for warning_line in warning_lines.split("\n"):
         warning_line = warning_line.strip()
