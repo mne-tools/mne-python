@@ -1,6 +1,6 @@
 .. _changes_1_6_1:
 
-Version 1.6.1 (unreleased)
+Version 1.6.1 (2024-01-16)
 --------------------------
 
 - Fix bug with type hints in :func:`mne.io.read_raw_neuralynx` (:gh:`12236` by `Richard Höchenberger`_)
