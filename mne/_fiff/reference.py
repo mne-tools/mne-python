@@ -154,6 +154,29 @@ def _apply_reference(inst, ref_from, ref_to=None, forward=None, ch_type="auto"):
 
     return inst, ref_data
 
+def _apply_dict_reference(inst, ref_dict, ch_type="auto"):
+    """Apply a dict-based custom EEG referencing scheme."""
+    # ref_to = _check_before_reference(inst, ref_from, ref_to, ch_type)
+
+    # # Compute reference
+    # if len(ref_from) > 0:
+    #     # this is guaranteed below, but we should avoid the crazy pick_channels
+    #     # behavior that [] gives all. Also use ordered=True just to make sure
+    #     # that all supplied channels actually exist.
+    #     assert len(ref_to) > 0
+    #     ref_names = ref_from
+    #     ref_from = pick_channels(inst.ch_names, ref_from, ordered=True)
+    #     ref_to = pick_channels(inst.ch_names, ref_to, ordered=True)
+
+    #     data = inst._data
+    #     ref_data = data[..., ref_from, :].mean(-2, keepdims=True)
+    #     data[..., ref_to, :] -= ref_data
+    #     ref_data = ref_data[..., 0, :]
+
+    # else:
+    #     ref_data = None
+
+    # return inst, ref_data
 
 @fill_doc
 def add_reference_channels(inst, ref_channels, copy=True):
@@ -430,7 +453,10 @@ def set_eeg_reference(
             "reference."
         )
 
-    return _apply_reference(inst, ref_channels, ch_sel, forward, ch_type=ch_type)
+    if ref_channels is dict:
+        return _apply_dict_reference(inst, ref_channels, ch_type=ch_type)
+    else:
+        return _apply_reference(inst, ref_channels, ch_sel, forward, ch_type=ch_type)
 
 
 def _get_ch_type(inst, ch_type):
