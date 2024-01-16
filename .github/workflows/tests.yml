@@ -89,7 +89,10 @@ jobs:
           python-version: ${{ matrix.python }}
         if: startswith(matrix.kind, 'pip')
       # Python (if conda)
-      - run: sed -i '/numba/d' environment.yml  # TODO: Remove when numba 0.59 lands on conda-forge
+      - name: Remove numba and dipy
+        run: |  # TODO: Remove when numba 0.59 and dipy 1.8 land on conda-forge
+          sed -i '/numba/d' environment.yml
+          sed -i '/dipy/d' environment.yml
         if: matrix.os == 'ubuntu-latest' && startswith(matrix.kind, 'conda') && matrix.python == '3.12'
       - uses: mamba-org/setup-micromamba@v1
         with:
