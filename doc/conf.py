@@ -1339,6 +1339,7 @@ def reset_warnings(gallery_conf, fname):
         r"datetime\.datetime\.utcfromtimestamp",
         # joblib
         r"ast\.Num is deprecated",
+        r"Attribute n is deprecated and will be removed in Python 3\.14",
     ):
         warnings.filterwarnings(  # deal with other modules having bad imports
             "ignore", message=".*%s.*" % key, category=DeprecationWarning

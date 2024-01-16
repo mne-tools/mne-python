@@ -50,7 +50,6 @@ def export_evokeds_mff(fname, evoked, history=None, *, overwrite=False, verbose=
     using MFF read functions.
     """
     mffpy = _import_mffpy("Export evokeds to MFF.")
-    import pytz
 
     info = evoked[0].info
     if np.round(info["sfreq"]) != info["sfreq"]:
@@ -73,7 +72,7 @@ def export_evokeds_mff(fname, evoked, history=None, *, overwrite=False, verbose=
     if op.exists(fname):
         os.remove(fname) if op.isfile(fname) else shutil.rmtree(fname)
     writer = mffpy.Writer(fname)
-    current_time = pytz.utc.localize(datetime.datetime.now(datetime.UTC))
+    current_time = datetime.datetime.now(datetime.UTC)
     writer.addxml("fileInfo", recordTime=current_time)
     try:
         device = info["device_info"]["type"]

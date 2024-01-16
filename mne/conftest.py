@@ -191,6 +191,7 @@ def pytest_configure(config):
     ignore:datetime.datetime.utcfromtimestamp.*:DeprecationWarning
     # joblib
     ignore:ast\.Num is deprecated.*:DeprecationWarning
+    ignore:Attribute n is deprecated and will be removed in Python 3\.14.*:DeprecationWarning
     """  # noqa: E501
     for warning_line in warning_lines.split("\n"):
         warning_line = warning_line.strip()
