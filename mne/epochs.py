@@ -508,8 +508,8 @@ class BaseEpochs(
                 selection = np.array(selection, int)
             if selection.shape != (len(selected),):
                 raise ValueError(
-                    "selection must be shape %s got shape %s"
-                    % (selected.shape, selection.shape)
+                    f"selection must be shape {selected.shape} got shape "
+                    f"{selection.shape}"
                 )
             self.selection = selection
             if drop_log is None:
@@ -665,7 +665,7 @@ class BaseEpochs(
         # do the rest
         valid_proj = [True, "delayed", False]
         if proj not in valid_proj:
-            raise ValueError('"proj" must be one of %s, not %s' % (valid_proj, proj))
+            raise ValueError(f'"proj" must be one of {valid_proj}, not {proj}')
         if proj == "delayed":
             self._do_delayed_proj = True
             logger.info("Entering delayed SSP mode.")
@@ -696,7 +696,7 @@ class BaseEpochs(
         if hasattr(self, "events"):
             assert len(self.selection) == len(self.events)
             assert len(self.drop_log) >= len(self.events)
-        assert len(self.selection) == sum((len(dl) == 0 for dl in self.drop_log))
+        assert len(self.selection) == sum(len(dl) == 0 for dl in self.drop_log)
         assert hasattr(self, "_times_readonly")
         assert not self.times.flags["WRITEABLE"]
         assert isinstance(self.drop_log, tuple)
@@ -799,7 +799,7 @@ class BaseEpochs(
                 )
             bads = set(rej.keys()) - set(idx.keys())
             if len(bads) > 0:
-                raise KeyError("Unknown channel types found in %s: %s" % (kind, bads))
+                raise KeyError(f"Unknown channel types found in {kind}: {bads}")
 
         for key in idx.keys():
             # don't throw an error if rejection/flat would do nothing
@@ -810,10 +810,11 @@ class BaseEpochs(
                 # self.allow_missing_reject_keys check to allow users to
                 # provide keys that don't exist in data
                 raise ValueError(
-                    "No %s channel found. Cannot reject based on "
-                    "%s." % (key.upper(), key.upper())
+                    f"No {key.upper()} channel found. Cannot reject based on "
+                    f"{key.upper()}."
                 )
 
+<<<<<<< HEAD
             # check for invalid values
             for rej, kind in zip((reject, flat), ("Rejection", "Flat")):
                 for key, val in rej.items():
@@ -826,6 +827,13 @@ class BaseEpochs(
                             f"If using numerical {name} criteria, the value "
                             f"must be >= 0, not {repr(val)}"
                         )
+=======
+        # check for invalid values
+        for rej, kind in zip((reject, flat), ("Rejection", "Flat")):
+            for key, val in rej.items():
+                if val is None or val < 0:
+                    raise ValueError(f'{kind} value must be a number >= 0, not "{val}"')
+>>>>>>> 2040898ac14e79353b7a23a07e177d1633298c0f
 
         # now check to see if our rejection and flat are getting more
         # restrictive
@@ -1550,7 +1558,7 @@ class BaseEpochs(
         # Check if indices and reasons are of the same length
         # if using collection to drop epochs
 
-        if indices.dtype == bool:
+        if indices.dtype == np.dtype(bool):
             indices = np.where(indices)[0]
         try_idx = np.where(indices < 0, indices + len(self.events), indices)
 
@@ -1997,9 +2005,9 @@ class BaseEpochs(
 
     def __repr__(self):
         """Build string representation."""
-        s = " %s events " % len(self.events)
+        s = f" {len(self.events)} events "
         s += "(all good)" if self._bad_dropped else "(good & bad)"
-        s += ", %g – %g s" % (self.tmin, self.tmax)
+        s += f", {self.tmin:g} – {self.tmax:g} s"
         s += ", baseline "
         if self.baseline is None:
             s += "off"
@@ -2013,12 +2021,12 @@ class BaseEpochs(
             ):
                 s += " (baseline period was cropped after baseline correction)"
 
-        s += ", ~%s" % (sizeof_fmt(self._size),)
-        s += ", data%s loaded" % ("" if self.preload else " not")
+        s += f", ~{sizeof_fmt(self._size)}"
+        s += f", data{'' if self.preload else ' not'} loaded"
         s += ", with metadata" if self.metadata is not None else ""
         max_events = 10
         counts = [
-            "%r: %i" % (k, sum(self.events[:, 2] == v))
+            f"{k!r}: {sum(self.events[:, 2] == v)}"
             for k, v in list(self.event_id.items())[:max_events]
         ]
         if len(self.event_id) > 0:
@@ -2028,7 +2036,7 @@ class BaseEpochs(
             s += f"\n and {not_shown_events} more events ..."
         class_name = self.__class__.__name__
         class_name = "Epochs" if class_name == "BaseEpochs" else class_name
-        return "<%s | %s>" % (class_name, s)
+        return f"<{class_name} | {s}>"
 
     @repr_html
     def _repr_html_(self):
@@ -2413,7 +2421,7 @@ class BaseEpochs(
             # 3. do this for every input
             event_ids = [
                 [
-                    k for k in ids if all((tag in k.split("/") for tag in id_))
+                    k for k in ids if all(tag in k.split("/") for tag in id_)
                 ]  # ids matching all tags
                 if all(id__ not in ids for id__ in id_)
                 else id_  # straight pass for non-tag inputs
@@ -3315,7 +3323,7 @@ class Epochs(BaseEpochs):
             )
 
         # call BaseEpochs constructor
-        super(Epochs, self).__init__(
+        super().__init__(
             info,
             None,
             events,
@@ -3484,7 +3492,7 @@ class EpochsArray(BaseEpochs):
         info = info.copy()  # do not modify original info
         tmax = (data.shape[2] - 1) / info["sfreq"] + tmin
 
-        super(EpochsArray, self).__init__(
+        super().__init__(
             info,
             data,
             events,
@@ -3649,7 +3657,7 @@ def _minimize_time_diff(t_shorter, t_longer):
             idx = np.argmin(np.abs(t_longer - t_shorter))
             keep[idx] = True
         return keep
-    scores = np.ones((len(t_longer)))
+    scores = np.ones(len(t_longer))
     x1 = np.arange(len(t_shorter))
     # The first set of keep masks to test
     kwargs = dict(copy=False, bounds_error=False, assume_sorted=True)
@@ -3728,6 +3736,7 @@ def _is_good(
                         )[0]
 
                     if len(idx_deltas) > 0:
+<<<<<<< HEAD
                         # Check to verify that refl is a callable that returns
                         # (bool, reason). Reason must be a str/list/tuple.
                         # If using tuple
@@ -3737,6 +3746,16 @@ def _is_good(
                             for idx, reason in enumerate(reasons):
                                 _validate_type(reason, str, reason)
                             bad_tuple += tuple(reasons)
+=======
+                        bad_names = [ch_names[idx[i]] for i in idx_deltas]
+                        if not has_printed:
+                            logger.info(
+                                f"    Rejecting {t} epoch based on {name} : {bad_names}"
+                            )
+                            has_printed = True
+                        if not full_report:
+                            return False
+>>>>>>> 2040898ac14e79353b7a23a07e177d1633298c0f
                         else:
                             bad_names = [ch_names[idx[i]] for i in idx_deltas]
                             if not has_printed:
@@ -3858,12 +3877,12 @@ def _read_one_epoch_file(f, tree, preload):
         n_samp = last - first + 1
         logger.info("    Found the data of interest:")
         logger.info(
-            "        t = %10.2f ... %10.2f ms"
-            % (1000 * first / info["sfreq"], 1000 * last / info["sfreq"])
+            f"        t = {1000 * first / info['sfreq']:10.2f} ... "
+            f"{1000 * last / info['sfreq']:10.2f} ms"
         )
         if info["comps"] is not None:
             logger.info(
-                "        %d CTF compensation matrices available" % len(info["comps"])
+                f"        {len(info['comps'])} CTF compensation matrices available"
             )
 
         # Inspect the data
@@ -4129,7 +4148,7 @@ class EpochsFIF(BaseEpochs):
         # call BaseEpochs constructor
         # again, ensure we're retaining the baseline period originally loaded
         # from disk without trying to re-apply baseline correction
-        super(EpochsFIF, self).__init__(
+        super().__init__(
             info,
             data,
             events,
@@ -4252,9 +4271,7 @@ def _concatenate_epochs(
 ):
     """Auxiliary function for concatenating epochs."""
     if not isinstance(epochs_list, (list, tuple)):
-        raise TypeError(
-            "epochs_list must be a list or tuple, got %s" % (type(epochs_list),)
-        )
+        raise TypeError(f"epochs_list must be a list or tuple, got {type(epochs_list)}")
 
     # to make warning messages only occur once during concatenation
     warned = False
@@ -4262,8 +4279,7 @@ def _concatenate_epochs(
     for ei, epochs in enumerate(epochs_list):
         if not isinstance(epochs, BaseEpochs):
             raise TypeError(
-                "epochs_list[%d] must be an instance of Epochs, "
-                "got %s" % (ei, type(epochs))
+                f"epochs_list[{ei}] must be an instance of Epochs, got {type(epochs)}"
             )
 
         if (
@@ -4273,8 +4289,8 @@ def _concatenate_epochs(
         ):
             warned = True
             warn(
-                "Concatenation of Annotations within Epochs is not supported "
-                "yet. All annotations will be dropped."
+                "Concatenation of Annotations within Epochs is not supported yet. All "
+                "annotations will be dropped."
             )
 
             # create a copy, so that the Annotations are not modified in place
@@ -4566,9 +4582,7 @@ def average_movements(
     from .chpi import head_pos_to_trans_rot_t
 
     if not isinstance(epochs, BaseEpochs):
-        raise TypeError(
-            "epochs must be an instance of Epochs, not %s" % (type(epochs),)
-        )
+        raise TypeError(f"epochs must be an instance of Epochs, not {type(epochs)}")
     orig_sfreq = epochs.info["sfreq"] if orig_sfreq is None else orig_sfreq
     orig_sfreq = float(orig_sfreq)
     if isinstance(head_pos, np.ndarray):
@@ -4579,7 +4593,7 @@ def average_movements(
     origin = _check_origin(origin, epochs.info, "head")
     recon_trans = _check_destination(destination, epochs.info, True)
 
-    logger.info("Aligning and averaging up to %s epochs" % (len(epochs.events)))
+    logger.info(f"Aligning and averaging up to {len(epochs.events)} epochs")
     if not np.array_equal(epochs.events[:, 0], np.unique(epochs.events[:, 0])):
         raise RuntimeError("Epochs must have monotonically increasing events")
     info_to = epochs.info.copy()
@@ -4621,12 +4635,12 @@ def average_movements(
         loc_str = ", ".join("%0.1f" % tr for tr in (trans[:3, 3] * 1000))
         if last_trans is None or not np.allclose(last_trans, trans):
             logger.info(
-                "    Processing epoch %s (device location: %s mm)" % (ei + 1, loc_str)
+                f"    Processing epoch {ei + 1} (device location: {loc_str} mm)"
             )
             reuse = False
             last_trans = trans
         else:
-            logger.info("    Processing epoch %s (device location: same)" % (ei + 1,))
+            logger.info(f"    Processing epoch {ei + 1} (device location: same)")
             reuse = True
         epoch = epoch.copy()  # because we operate inplace
         if not reuse:
@@ -4675,7 +4689,7 @@ def average_movements(
         data, info_to, picks, n_events=count, kind="average", comment=epochs._name
     )
     _remove_meg_projs_comps(evoked, ignore_ref)
-    logger.info("Created Evoked dataset from %s epochs" % (count,))
+    logger.info(f"Created Evoked dataset from {count} epochs")
     return (evoked, mapping) if return_mapping else evoked
 
 

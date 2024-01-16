@@ -295,7 +295,7 @@ def test_annotations_without_offset(tmp_path):
     out_file = tmp_path / "tmp_eyelink.asc"
 
     # create fake dataset
-    with open(fname_href, "r") as file:
+    with open(fname_href) as file:
         lines = file.readlines()
     ts = lines[-3].split("\t")[0]
     line = f"MSG\t{ts} test string\n"

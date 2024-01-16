@@ -1415,7 +1415,7 @@ def _compute_scalings(scalings, inst, remove_dc=False, duration=10):
             time_middle = np.mean(inst.times)
             tmin = np.clip(time_middle - n_secs / 2.0, inst.times.min(), None)
             tmax = np.clip(time_middle + n_secs / 2.0, None, inst.times.max())
-            smin, smax = [int(round(x * inst.info["sfreq"])) for x in (tmin, tmax)]
+            smin, smax = (int(round(x * inst.info["sfreq"])) for x in (tmin, tmax))
             data = inst._read_segment(smin, smax)
         elif isinstance(inst, BaseEpochs):
             # Load a random subset of epochs up to 100mb in size
@@ -2350,9 +2350,8 @@ def _make_combine_callable(combine):
             combine = combine_dict[combine]
         except KeyError:
             raise ValueError(
-                '"combine" must be None, a callable, or one of '
-                '"mean", "median", "std", or "gfp"; got {}'
-                "".format(combine)
+                '"combine" must be None, a callable, or one of "mean", "median", "std",'
+                f' or "gfp"; got {combine}'
             )
     return combine
 

@@ -23,7 +23,7 @@ from functools import partial
 from io import BytesIO, StringIO
 from pathlib import Path
 from shutil import copyfile
-from typing import Optional, Tuple
+from typing import Optional
 
 import numpy as np
 
@@ -302,11 +302,11 @@ class _ContentElement:
     name: str
     section: Optional[str]
     dom_id: str
-    tags: Tuple[str]
+    tags: tuple[str]
     html: str
 
 
-def _check_tags(tags) -> Tuple[str]:
+def _check_tags(tags) -> tuple[str]:
     # Must be iterable, but not a string
     if isinstance(tags, str):
         tags = (tags,)
@@ -1005,7 +1005,7 @@ class Report:
                 ]
                 section_htmls = [el.html for el in section_elements]
                 section_tags = tuple(
-                    sorted((set([t for el in section_elements for t in el.tags])))
+                    sorted(set([t for el in section_elements for t in el.tags]))
                 )
                 section_dom_id = self._get_dom_id(
                     section=None,  # root level of document
@@ -2271,7 +2271,7 @@ class Report:
         elif caption is None and len(figs) == 1:
             captions = [None]
         elif caption is None and len(figs) > 1:
-            captions = [f"Figure {i+1}" for i in range(len(figs))]
+            captions = [f"Figure {i + 1}" for i in range(len(figs))]
         else:
             captions = tuple(caption)
 
@@ -3143,7 +3143,7 @@ class Report:
 
         del orig_annotations
 
-        captions = [f"Segment {i+1} of {len(images)}" for i in range(len(images))]
+        captions = [f"Segment {i + 1} of {len(images)}" for i in range(len(images))]
 
         self._add_slider(
             figs=None,

@@ -467,7 +467,7 @@ class RawEEGLAB(BaseRaw):
             data_fname = _check_eeglab_fname(input_fname, eeg.data)
             logger.info("Reading %s" % data_fname)
 
-            super(RawEEGLAB, self).__init__(
+            super().__init__(
                 info,
                 preload,
                 filenames=[data_fname],
@@ -491,7 +491,7 @@ class RawEEGLAB(BaseRaw):
             data = np.empty((n_chan, n_times), dtype=float)
             data[:n_chan] = eeg.data
             data *= CAL
-            super(RawEEGLAB, self).__init__(
+            super().__init__(
                 info,
                 data,
                 filenames=[input_fname],
@@ -694,7 +694,7 @@ class EpochsEEGLAB(BaseEpochs):
         assert data.shape == (eeg.trials, eeg.nbchan, eeg.pnts)
         tmin, tmax = eeg.xmin, eeg.xmax
 
-        super(EpochsEEGLAB, self).__init__(
+        super().__init__(
             info,
             data,
             events,

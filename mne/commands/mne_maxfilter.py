@@ -222,7 +222,7 @@ def run():
             out_fname = prefix + "_sss.fif"
 
     if origin is not None and os.path.exists(origin):
-        with open(origin, "r") as fid:
+        with open(origin) as fid:
             origin = fid.readlines()[0].strip()
 
     origin = mne.preprocessing.apply_maxfilter(

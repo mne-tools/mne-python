@@ -1210,20 +1210,20 @@ Format of the export. Defaults to ``'auto'``, which will infer the format
     from the filename extension. See supported formats above for more
     information."""
 
-docdict["export_fmt_params_epochs"] = """
+docdict["export_fmt_params_epochs"] = f"""
 fmt : 'auto' | 'eeglab'
-    {}
-""".format(_export_fmt_params_base)
+    {_export_fmt_params_base}
+"""
 
-docdict["export_fmt_params_evoked"] = """
+docdict["export_fmt_params_evoked"] = f"""
 fmt : 'auto' | 'mff'
-    {}
-""".format(_export_fmt_params_base)
+    {_export_fmt_params_base}
+"""
 
-docdict["export_fmt_params_raw"] = """
+docdict["export_fmt_params_raw"] = f"""
 fmt : 'auto' | 'brainvision' | 'edf' | 'eeglab'
-    {}
-""".format(_export_fmt_params_base)
+    {_export_fmt_params_base}
+"""
 
 docdict["export_fmt_support_epochs"] = """\
 Supported formats:

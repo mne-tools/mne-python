@@ -100,16 +100,16 @@ class ConductorModel(dict):
             if rad is None:  # no radius / MEG only
                 extra = "Sphere (no layers): r0=[%s] mm" % center
             else:
-                extra = "Sphere (%s layer%s): r0=[%s] R=%1.f mm" % (
+                extra = "Sphere ({} layer{}): r0=[{}] R={:1.0f} mm".format(
                     len(self["layers"]) - 1,
                     _pl(self["layers"]),
                     center,
                     rad * 1000.0,
                 )
         else:
-            extra = "BEM (%s layer%s)" % (len(self["surfs"]), _pl(self["surfs"]))
-            extra += " solver=%s" % self["solver"]
-        return "<ConductorModel | %s>" % extra
+            extra = f"BEM ({len(self['surfs'])} layer{_pl(self['surfs'])})"
+            extra += f" solver={self['solver']}"
+        return f"<ConductorModel | {extra}>"
 
     def copy(self):
         """Return copy of ConductorModel instance."""
@@ -542,8 +542,9 @@ def _assert_complete_surface(surf, incomplete="raise"):
     # Center of mass....
     cm = surf["rr"].mean(axis=0)
     logger.info(
-        "%s CM is %6.2f %6.2f %6.2f mm"
-        % (_bem_surf_name[surf["id"]], 1000 * cm[0], 1000 * cm[1], 1000 * cm[2])
+        "{} CM is {:6.2f} {:6.2f} {:6.2f} mm".format(
+            _bem_surf_name[surf["id"]], 1000 * cm[0], 1000 * cm[1], 1000 * cm[2]
+        )
     )
     tot_angle = _get_solids(surf["rr"][surf["tris"]], cm[np.newaxis, :])[0]
     prop = tot_angle / (2 * np.pi)
@@ -897,18 +898,18 @@ def make_sphere_model(
         param = locals()[name]
         if isinstance(param, str):
             if param != "auto":
-                raise ValueError('%s, if str, must be "auto" not "%s"' % (name, param))
+                raise ValueError(f'{name}, if str, must be "auto" not "{param}"')
     relative_radii = np.array(relative_radii, float).ravel()
     sigmas = np.array(sigmas, float).ravel()
     if len(relative_radii) != len(sigmas):
         raise ValueError(
-            "relative_radii length (%s) must match that of "
-            "sigmas (%s)" % (len(relative_radii), len(sigmas))
+            f"relative_radii length ({len(relative_radii)}) must match that of sigmas ("
+            f"{len(sigmas)})"
         )
     if len(sigmas) <= 1 and head_radius is not None:
         raise ValueError(
-            "at least 2 sigmas must be supplied if "
-            "head_radius is not None, got %s" % (len(sigmas),)
+            "at least 2 sigmas must be supplied if head_radius is not None, got "
+            f"{len(sigmas)}"
         )
     if (isinstance(r0, str) and r0 == "auto") or (
         isinstance(head_radius, str) and head_radius == "auto"
@@ -964,8 +965,7 @@ def make_sphere_model(
                 )
             )
         logger.info(
-            "Set up EEG sphere model with scalp radius %7.1f mm\n"
-            % (1000 * head_radius,)
+            f"Set up EEG sphere model with scalp radius {1000 * head_radius:7.1f} mm\n"
         )
     return sphere
 
@@ -1082,7 +1082,7 @@ def get_fitting_dig(info, dig_kinds="auto", exclude_frontal=True, verbose=None):
 
     if len(hsp) <= 10:
         kinds_str = ", ".join(['"%s"' % _dig_kind_rev[d] for d in sorted(dig_kinds)])
-        msg = "Only %s head digitization points of the specified kind%s (%s,)" % (
+        msg = "Only {} head digitization points of the specified kind{} ({},)".format(
             len(hsp),
             _pl(dig_kinds),
             kinds_str,
@@ -1105,22 +1105,22 @@ def _fit_sphere_to_headshape(info, dig_kinds, verbose=None):
         dev_head_t = Transform("meg", "head")
     head_to_dev = _ensure_trans(dev_head_t, "head", "meg")
     origin_device = apply_trans(head_to_dev, origin_head)
-    logger.info("Fitted sphere radius:".ljust(30) + "%0.1f mm" % (radius * 1e3,))
+    logger.info("Fitted sphere radius:".ljust(30) + f"{radius * 1e3:0.1f} mm")
     _check_head_radius(radius)
 
     # > 2 cm away from head center in X or Y is strange
     if np.linalg.norm(origin_head[:2]) > 0.02:
         warn(
-            "(X, Y) fit (%0.1f, %0.1f) more than 20 mm from "
-            "head frame origin" % tuple(1e3 * origin_head[:2])
+            "(X, Y) fit ({:0.1f}, {:0.1f}) more than 20 mm from head frame "
+            "origin".format(*tuple(1e3 * origin_head[:2]))
         )
     logger.info(
         "Origin head coordinates:".ljust(30)
-        + "%0.1f %0.1f %0.1f mm" % tuple(1e3 * origin_head)
+        + "{:0.1f} {:0.1f} {:0.1f} mm".format(*tuple(1e3 * origin_head))
     )
     logger.info(
         "Origin device coordinates:".ljust(30)
-        + "%0.1f %0.1f %0.1f mm" % tuple(1e3 * origin_device)
+        + "{:0.1f} {:0.1f} {:0.1f} mm".format(*tuple(1e3 * origin_device))
     )
     return radius, origin_head, origin_device
 
@@ -1163,15 +1163,13 @@ def _check_origin(origin, info, coord_frame="head", disp=False):
     if isinstance(origin, str):
         if origin != "auto":
             raise ValueError(
-                'origin must be a numerical array, or "auto", ' "not %s" % (origin,)
+                f'origin must be a numerical array, or "auto", not {origin}'
             )
         if coord_frame == "head":
             R, origin = fit_sphere_to_headshape(
                 info, verbose=_verbose_safe_false(), units="m"
             )[:2]
-            logger.info(
-                "    Automatic origin fit: head of radius %0.1f mm" % (R * 1000.0,)
-            )
+            logger.info(f"    Automatic origin fit: head of radius {R * 1000:0.1f} mm")
             del R
         else:
             origin = (0.0, 0.0, 0.0)
@@ -1179,12 +1177,12 @@ def _check_origin(origin, info, coord_frame="head", disp=False):
     if origin.shape != (3,):
         raise ValueError("origin must be a 3-element array")
     if disp:
-        origin_str = ", ".join(["%0.1f" % (o * 1000) for o in origin])
-        msg = "    Using origin %s mm in the %s frame" % (origin_str, coord_frame)
+        origin_str = ", ".join([f"{o * 1000:0.1f}" for o in origin])
+        msg = f"    Using origin {origin_str} mm in the {coord_frame} frame"
         if coord_frame == "meg" and info["dev_head_t"] is not None:
             o_dev = apply_trans(info["dev_head_t"], origin)
-            origin_str = ", ".join("%0.1f" % (o * 1000,) for o in o_dev)
-            msg += " (%s mm in the head frame)" % (origin_str,)
+            origin_str = ", ".join(f"{o * 1000:0.1f}" for o in o_dev)
+            msg += f" ({origin_str} mm in the head frame)"
         logger.info(msg)
     return origin
 
@@ -1299,7 +1297,7 @@ def make_watershed_bem(
     if gcaatlas:
         fname = op.join(env["FREESURFER_HOME"], "average", "RB_all_withskull_*.gca")
         fname = sorted(glob.glob(fname))[::-1][0]
-        logger.info("Using GCA atlas: %s" % (fname,))
+        logger.info(f"Using GCA atlas: {fname}")
         cmd += [
             "-atlas",
             "-brain_atlas",
@@ -1326,9 +1324,8 @@ def make_watershed_bem(
         ]
     # report and run
     logger.info(
-        "\nRunning mri_watershed for BEM segmentation with the "
-        "following parameters:\n\nResults dir = %s\nCommand = %s\n"
-        % (ws_dir, " ".join(cmd))
+        "\nRunning mri_watershed for BEM segmentation with the following parameters:\n"
+        f"\nResults dir = {ws_dir}\nCommand = {' '.join(cmd)}\n"
     )
     os.makedirs(op.join(ws_dir))
     run_subprocess_env(cmd)
@@ -1337,12 +1334,12 @@ def make_watershed_bem(
         new_info = _extract_volume_info(T1_mgz)
         if not new_info:
             warn(
-                "nibabel is not available or the volume info is invalid."
-                "Volume info not updated in the written surface."
+                "nibabel is not available or the volume info is invalid. Volume info "
+                "not updated in the written surface."
             )
         surfs = ["brain", "inner_skull", "outer_skull", "outer_skin"]
         for s in surfs:
-            surf_ws_out = op.join(ws_dir, "%s_%s_surface" % (subject, s))
+            surf_ws_out = op.join(ws_dir, f"{subject}_{s}_surface")
 
             rr, tris, volume_info = read_surface(surf_ws_out, read_metadata=True)
             # replace volume info, 'head' stays
@@ -1352,7 +1349,7 @@ def make_watershed_bem(
             )
 
             # Create symbolic links
-            surf_out = op.join(bem_dir, "%s.surf" % s)
+            surf_out = op.join(bem_dir, f"{s}.surf")
             if not overwrite and op.exists(surf_out):
                 skip_symlink = True
             else:
@@ -1363,9 +1360,8 @@ def make_watershed_bem(
 
         if skip_symlink:
             logger.info(
-                "Unable to create all symbolic links to .surf files "
-                "in bem folder. Use --overwrite option to recreate "
-                "them."
+                "Unable to create all symbolic links to .surf files in bem folder. Use "
+                "--overwrite option to recreate them."
             )
             dest = op.join(bem_dir, "watershed")
         else:
@@ -1373,8 +1369,8 @@ def make_watershed_bem(
             dest = bem_dir
 
     logger.info(
-        "\nThank you for waiting.\nThe BEM triangulations for this "
-        "subject are now available at:\n%s." % dest
+        "\nThank you for waiting.\nThe BEM triangulations for this subject are now "
+        f"available at:\n{dest}."
     )
 
     # Write a head file for coregistration
@@ -1399,7 +1395,7 @@ def make_watershed_bem(
             show=True,
         )
 
-    logger.info("Created %s\n\nComplete." % (fname_head,))
+    logger.info(f"Created {fname_head}\n\nComplete.")
 
 
 def _extract_volume_info(mgz):
@@ -1929,9 +1925,7 @@ def _prepare_env(subject, subjects_dir):
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     subject_dir = subjects_dir / subject
     if not subject_dir.is_dir():
-        raise RuntimeError(
-            'Could not find the subject data directory "%s"' % (subject_dir,)
-        )
+        raise RuntimeError(f'Could not find the subject data directory "{subject_dir}"')
     env.update(SUBJECT=subject, SUBJECTS_DIR=str(subjects_dir), FREESURFER_HOME=fs_home)
     mri_dir = subject_dir / "mri"
     bem_dir = subject_dir / "bem"
@@ -2152,11 +2146,9 @@ def make_flash_bem(
     flash_path.mkdir(exist_ok=True, parents=True)
 
     logger.info(
-        "\nProcessing the flash MRI data to produce BEM meshes with "
-        "the following parameters:\n"
-        "SUBJECTS_DIR = %s\n"
-        "SUBJECT = %s\n"
-        "Result dir = %s\n" % (subjects_dir, subject, bem_dir / "flash")
+        "\nProcessing the flash MRI data to produce BEM meshes with the following "
+        f"parameters:\nSUBJECTS_DIR = {subjects_dir}\nSUBJECT = {subject}\nResult dir ="
+        f"{bem_dir / 'flash'}\n"
     )
     # Step 4 : Register with MPRAGE
     flash5 = flash_path / "flash5.mgz"

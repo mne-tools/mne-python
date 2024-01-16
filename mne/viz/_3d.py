@@ -2197,9 +2197,7 @@ def link_brains(brains, time=True, camera=False, colorbar=True, picking=False):
         raise ValueError("The collection of brains is empty.")
     for brain in brains:
         if not isinstance(brain, Brain):
-            raise TypeError(
-                "Expected type is Brain but" " {} was given.".format(type(brain))
-            )
+            raise TypeError("Expected type is Brain but" f" {type(brain)} was given.")
         # enable time viewer if necessary
         brain.setup_time_viewer()
     subjects = [brain._subject for brain in brains]

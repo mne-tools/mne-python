@@ -307,7 +307,7 @@ class RawEGI(BaseRaw):
         orig_format = (
             egi_info["orig_format"] if egi_info["orig_format"] != "float" else "single"
         )
-        super(RawEGI, self).__init__(
+        super().__init__(
             info,
             preload,
             orig_format=orig_format,

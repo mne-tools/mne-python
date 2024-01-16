@@ -92,9 +92,7 @@ scores = cross_val_score(clf, epochs_data_train, labels, cv=cv, n_jobs=None)
 # Printing the results
 class_balance = np.mean(labels == labels[0])
 class_balance = max(class_balance, 1.0 - class_balance)
-print(
-    "Classification accuracy: %f / Chance level: %f" % (np.mean(scores), class_balance)
-)
+print(f"Classification accuracy: {np.mean(scores)} / Chance level: {class_balance}")
 
 # plot CSP patterns estimated on full data for visualization
 csp.fit_transform(epochs_data, labels)
