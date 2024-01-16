@@ -2203,7 +2203,7 @@ def test_callable_reject():
         reject=dict(eeg=lambda x: ((np.median(x, axis=1) > 1e-3).any(), "eeg median")),
         preload=True,
     )
-    assert epochs.drop_log[2] == ('eeg median',)
+    assert epochs.drop_log[2] == ("eeg median",)
 
     epochs = mne.Epochs(
         edit_raw,
@@ -2230,7 +2230,9 @@ def test_callable_reject():
         reject=dict(eeg=reject_criteria),
         preload=True,
     )
-    assert epochs.drop_log[0] == ("eeg max or median",) and epochs.drop_log[2] == ("eeg max or median",)
+    assert epochs.drop_log[0] == ("eeg max or median",) and epochs.drop_log[2] == (
+        "eeg max or median",
+    )
 
     # Test reasons must be str or tuple of str
     with pytest.raises(TypeError):
@@ -2240,9 +2242,12 @@ def test_callable_reject():
             tmin=0,
             tmax=1,
             baseline=None,
-            reject=dict(eeg=lambda x: ((np.median(x, axis=1) > 1e-3).any(), ("eeg median", 2))),
+            reject=dict(
+                eeg=lambda x: ((np.median(x, axis=1) > 1e-3).any(), ("eeg median", 2))
+            ),
             preload=True,
         )
+
 
 def test_preload_epochs():
     """Test preload of epochs."""
@@ -3279,7 +3284,7 @@ def test_drop_epochs():
     pytest.raises(IndexError, epochs.drop, [-len(epochs.events) - 1])
     pytest.raises(TypeError, epochs.drop, [[1, 2], [3, 4]])
     with pytest.raises(TypeError):
-        epochs.drop([1], reason=('a', 'b', 2))
+        epochs.drop([1], reason=("a", "b", 2))
 
     # Test selection attribute
     assert_array_equal(epochs.selection, np.where(events[:, 2] == event_id)[0])
@@ -3303,12 +3308,12 @@ def test_drop_epochs():
     raw, events, picks = _get_data()
     epochs_tuple = Epochs(raw, events, event_id, tmin, tmax, picks=picks, preload=True)
     selection_tuple = epochs_tuple.selection.copy()
-    epochs_tuple.drop((2, 3, 4), reason=('a', 'b'))
+    epochs_tuple.drop((2, 3, 4), reason=("a", "b"))
     n_events = len(epochs.events)
     assert [epochs_tuple.drop_log[k] for k in selection_tuple[[2, 3, 4]]] == [
-        ("a", 'b'),
-        ("a", 'b'),
-        ("a", 'b'),
+        ("a", "b"),
+        ("a", "b"),
+        ("a", "b"),
     ]
 
 
