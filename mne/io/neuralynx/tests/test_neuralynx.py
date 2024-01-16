@@ -229,7 +229,4 @@ def test_neuralynx_gaps():
 
     raw.pick("LAHC2")
     assert raw.ch_names == ["LAHC2"]
-    try:
-        raw.load_data()
-    except Exception:
-        pytest.fail("Loading data fails after picking one channel with gaps.")
+    raw.load_data()  # before gh-12357 this would fail
