@@ -814,7 +814,6 @@ class BaseEpochs(
                     f"{key.upper()}."
                 )
 
-<<<<<<< HEAD
             # check for invalid values
             for rej, kind in zip((reject, flat), ("Rejection", "Flat")):
                 for key, val in rej.items():
@@ -827,13 +826,6 @@ class BaseEpochs(
                             f"If using numerical {name} criteria, the value "
                             f"must be >= 0, not {repr(val)}"
                         )
-=======
-        # check for invalid values
-        for rej, kind in zip((reject, flat), ("Rejection", "Flat")):
-            for key, val in rej.items():
-                if val is None or val < 0:
-                    raise ValueError(f'{kind} value must be a number >= 0, not "{val}"')
->>>>>>> 2040898ac14e79353b7a23a07e177d1633298c0f
 
         # now check to see if our rejection and flat are getting more
         # restrictive
@@ -3736,7 +3728,6 @@ def _is_good(
                         )[0]
 
                     if len(idx_deltas) > 0:
-<<<<<<< HEAD
                         # Check to verify that refl is a callable that returns
                         # (bool, reason). Reason must be a str/list/tuple.
                         # If using tuple
@@ -3746,16 +3737,6 @@ def _is_good(
                             for idx, reason in enumerate(reasons):
                                 _validate_type(reason, str, reason)
                             bad_tuple += tuple(reasons)
-=======
-                        bad_names = [ch_names[idx[i]] for i in idx_deltas]
-                        if not has_printed:
-                            logger.info(
-                                f"    Rejecting {t} epoch based on {name} : {bad_names}"
-                            )
-                            has_printed = True
-                        if not full_report:
-                            return False
->>>>>>> 2040898ac14e79353b7a23a07e177d1633298c0f
                         else:
                             bad_names = [ch_names[idx[i]] for i in idx_deltas]
                             if not has_printed:
