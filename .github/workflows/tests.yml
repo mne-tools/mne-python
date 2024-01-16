@@ -93,6 +93,7 @@ jobs:
         run: |  # TODO: Remove when numba 0.59 and dipy 1.8 land on conda-forge
           sed -i '/numba/d' environment.yml
           sed -i '/dipy/d' environment.yml
+          sed -i 's/- mne$/- mne-base/' environment.yml
         if: matrix.os == 'ubuntu-latest' && startswith(matrix.kind, 'conda') && matrix.python == '3.12'
       - uses: mamba-org/setup-micromamba@v1
         with:
