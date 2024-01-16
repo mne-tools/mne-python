@@ -36,6 +36,7 @@ from mne._fiff._digitization import write_dig
 from mne._fiff.constants import FIFF
 from mne.bem import read_bem_solution, read_bem_surfaces
 from mne.datasets import testing
+from mne.defaults import DEFAULTS
 from mne.io import read_info, read_raw_bti, read_raw_ctf, read_raw_kit, read_raw_nirx
 from mne.minimum_norm import apply_inverse
 from mne.source_estimate import _BaseVolSourceEstimate
@@ -196,8 +197,16 @@ def test_plot_evoked_field(renderer):
     assert isinstance(fig, EvokedField)
     fig._rescale()
     fig.set_time(0.05)
+    assert fig._current_time == 0.05
     fig.set_contours(10)
-    fig.set_vmax(2)
+    assert fig._n_contours == 10
+    assert fig._widgets["contours"].get_value() == 10
+    fig.set_vmax(2e-12, kind="meg")
+    assert fig._surf_maps[1]["contours"][-1] == 2e-12
+    assert (
+        fig._widgets["vmax_slider_meg"].get_value()
+        == DEFAULTS["scalings"]["grad"] * 2e-12
+    )
 
     fig = evoked.plot_field(maps, time_viewer=False)
     assert isinstance(fig, Figure3D)
