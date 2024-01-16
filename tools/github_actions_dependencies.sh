@@ -7,7 +7,7 @@ INSTALL_ARGS="-e"
 INSTALL_KIND="test_extra,hdf5"
 if [ ! -z "$CONDA_ENV" ]; then
 	echo "Uninstalling MNE for CONDA_ENV=${CONDA_ENV}"
-	conda remove -c conda-forge --force -yq mne
+	conda remove -c conda-forge --force -yq mne-base
 	python -m pip uninstall -y mne
 	if [[ "${RUNNER_OS}" != "Windows" ]]; then
 		INSTALL_ARGS=""
