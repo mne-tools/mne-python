@@ -154,6 +154,7 @@ def _apply_reference(inst, ref_from, ref_to=None, forward=None, ch_type="auto"):
 
     return inst, ref_data
 
+
 def _apply_dict_reference(inst, ref_dict, ch_type="auto"):
     """Apply a dict-based custom EEG referencing scheme."""
     # ref_to = _check_before_reference(inst, ref_from, ref_to, ch_type)
@@ -177,6 +178,7 @@ def _apply_dict_reference(inst, ref_dict, ch_type="auto"):
     #     ref_data = None
 
     # return inst, ref_data
+
 
 @fill_doc
 def add_reference_channels(inst, ref_channels, copy=True):
