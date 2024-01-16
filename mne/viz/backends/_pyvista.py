@@ -756,9 +756,8 @@ class _PyVistaRenderer(_AbstractRenderer):
                     actor.GetTextProperty().SetJustificationToRight()
                 else:
                     raise ValueError(
-                        "Expected values for `justification`"
-                        "are `left`, `center` or `right` but "
-                        "got {} instead.".format(justification)
+                        "Expected values for `justification` are `left`, `center` or "
+                        f"`right` but got {justification} instead."
                     )
         _hide_testing_actor(actor)
         return actor

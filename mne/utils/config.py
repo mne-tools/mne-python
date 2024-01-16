@@ -217,7 +217,7 @@ _known_config_wildcards = (
 
 def _load_config(config_path, raise_error=False):
     """Safely load a config file."""
-    with open(config_path, "r") as fid:
+    with open(config_path) as fid:
         try:
             config = json.load(fid)
         except ValueError:

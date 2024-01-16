@@ -60,13 +60,14 @@ class RawArray(BaseRaw):
         data = np.asanyarray(orig_data, dtype=dtype)
         if data.ndim != 2:
             raise ValueError(
-                "Data must be a 2D array of shape (n_channels, "
-                "n_samples), got shape %s" % (data.shape,)
+                "Data must be a 2D array of shape (n_channels, n_samples), got shape "
+                f"{data.shape}"
             )
         if len(data) != len(info["ch_names"]):
             raise ValueError(
-                "len(data) (%s) does not match "
-                'len(info["ch_names"]) (%s)' % (len(data), len(info["ch_names"]))
+                'len(data) ({}) does not match len(info["ch_names"]) ({})'.format(
+                    len(data), len(info["ch_names"])
+                )
             )
         assert len(info["ch_names"]) == info["nchan"]
         if copy in ("auto", "info", "both"):
@@ -76,15 +77,15 @@ class RawArray(BaseRaw):
                 data = data.copy()
         elif copy != "auto" and data is not orig_data:
             raise ValueError(
-                "data copying was not requested by copy=%r but "
-                "it was required to get to double floating point "
-                "precision" % (copy,)
+                f"data copying was not requested by copy={copy!r} but it was required "
+                "to get to double floating point precision"
             )
         logger.info(
-            "Creating RawArray with %s data, n_channels=%s, n_times=%s"
-            % (dtype.__name__, data.shape[0], data.shape[1])
+            "Creating RawArray with {} data, n_channels={}, n_times={}".format(
+                dtype.__name__, data.shape[0], data.shape[1]
+            )
         )
-        super(RawArray, self).__init__(
+        super().__init__(
             info, data, first_samps=(int(first_samp),), dtype=dtype, verbose=verbose
         )
         logger.info(

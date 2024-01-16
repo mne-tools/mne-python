@@ -785,7 +785,7 @@ def read_dig_dat(fname):
 
     fname = _check_fname(fname, overwrite="read", must_exist=True)
 
-    with open(fname, "r") as fid:
+    with open(fname) as fid:
         lines = fid.readlines()
 
     ch_names, poss = list(), list()
@@ -796,8 +796,8 @@ def read_dig_dat(fname):
             continue
         elif len(items) != 5:
             raise ValueError(
-                "Error reading %s, line %s has unexpected number of entries:\n"
-                "%s" % (fname, i, line.rstrip())
+                f"Error reading {fname}, line {i} has unexpected number of entries:\n"
+                f"{line.rstrip()}"
             )
         num = items[1]
         if num == "67":
@@ -1352,7 +1352,7 @@ def _read_isotrak_elp_points(fname):
         and 'points'.
     """
     value_pattern = r"\-?\d+\.?\d*e?\-?\d*"
-    coord_pattern = r"({0})\s+({0})\s+({0})\s*$".format(value_pattern)
+    coord_pattern = rf"({value_pattern})\s+({value_pattern})\s+({value_pattern})\s*$"
 
     with open(fname) as fid:
         file_str = fid.read()
@@ -1474,11 +1474,9 @@ def read_dig_polhemus_isotrak(fname, ch_names=None, unit="m"):
             data["ch_pos"] = OrderedDict(zip(ch_names, points))
         else:
             raise ValueError(
-                (
-                    "Length of ``ch_names`` does not match the number of points"
-                    " in {fname}. Expected ``ch_names`` length {n_points:d},"
-                    " given {n_chnames:d}"
-                ).format(fname=fname, n_points=points.shape[0], n_chnames=len(ch_names))
+                "Length of ``ch_names`` does not match the number of points in "
+                f"{fname}. Expected ``ch_names`` length {points.shape[0]}, given "
+                f"{len(ch_names)}"
             )
 
     return make_dig_montage(**data)
@@ -1486,7 +1484,7 @@ def read_dig_polhemus_isotrak(fname, ch_names=None, unit="m"):
 
 def _is_polhemus_fastscan(fname):
     header = ""
-    with open(fname, "r") as fid:
+    with open(fname) as fid:
         for line in fid:
             if not line.startswith("%"):
                 break
@@ -1621,7 +1619,7 @@ def read_custom_montage(fname, head_size=HEAD_SIZE_DEFAULT, coord_frame=None):
 
     if ext in SUPPORTED_FILE_EXT["eeglab"]:
         if head_size is None:
-            raise ValueError("``head_size`` cannot be None for '{}'".format(ext))
+            raise ValueError(f"``head_size`` cannot be None for '{ext}'")
         ch_names, pos = _read_eeglab_locations(fname)
         scale = head_size / np.median(np.linalg.norm(pos, axis=-1))
         pos *= scale
@@ -1642,7 +1640,7 @@ def read_custom_montage(fname, head_size=HEAD_SIZE_DEFAULT, coord_frame=None):
 
     elif ext in SUPPORTED_FILE_EXT["generic (Theta-phi in degrees)"]:
         if head_size is None:
-            raise ValueError("``head_size`` cannot be None for '{}'".format(ext))
+            raise ValueError(f"``head_size`` cannot be None for '{ext}'")
         montage = _read_theta_phi_in_degrees(
             fname, head_size=head_size, fid_names=("Nz", "LPA", "RPA")
         )

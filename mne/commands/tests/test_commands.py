@@ -130,7 +130,7 @@ def test_clean_eog_ecg(tmp_path):
     with ArgvSetter(("-i", use_fname, "--quiet")):
         mne_clean_eog_ecg.run()
     for key, count in (("proj", 2), ("-eve", 3)):
-        fnames = glob.glob(op.join(tempdir, "*%s.fif" % key))
+        fnames = glob.glob(op.join(tempdir, f"*{key}.fif"))
         assert len(fnames) == count
 
 
@@ -277,14 +277,14 @@ def test_watershed_bem(tmp_path):
             mne_watershed_bem.run()
     os.chmod(new_fname, old_mode)
     for s in ("outer_skin", "outer_skull", "inner_skull"):
-        assert not op.isfile(op.join(subject_path_new, "bem", "%s.surf" % s))
+        assert not op.isfile(op.join(subject_path_new, "bem", f"{s}.surf"))
     with ArgvSetter(args):
         mne_watershed_bem.run()
 
     kwargs = dict(rtol=1e-5, atol=1e-5)
     for s in ("outer_skin", "outer_skull", "inner_skull"):
         rr, tris, vol_info = read_surface(
-            op.join(subject_path_new, "bem", "%s.surf" % s), read_metadata=True
+            op.join(subject_path_new, "bem", f"{s}.surf"), read_metadata=True
         )
         assert_equal(len(tris), 20480)
         assert_equal(tris.min(), 0)
@@ -372,14 +372,12 @@ def test_flash_bem(tmp_path):
 
     kwargs = dict(rtol=1e-5, atol=1e-5)
     for s in ("outer_skin", "outer_skull", "inner_skull"):
-        rr, tris = read_surface(op.join(subject_path_new, "bem", "%s.surf" % s))
+        rr, tris = read_surface(op.join(subject_path_new, "bem", f"{s}.surf"))
         assert_equal(len(tris), 5120)
         assert_equal(tris.min(), 0)
         assert_equal(rr.shape[0], tris.max() + 1)
         # compare to the testing flash surfaces
-        rr_c, tris_c = read_surface(
-            op.join(subjects_dir, "sample", "bem", "%s.surf" % s)
-        )
+        rr_c, tris_c = read_surface(op.join(subjects_dir, "sample", "bem", f"{s}.surf"))
         assert_allclose(rr, rr_c, **kwargs)
         assert_allclose(tris, tris_c, **kwargs)
 

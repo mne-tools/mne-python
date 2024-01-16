@@ -120,7 +120,7 @@ def _set_cuda_device(device_id, verbose=None):
     import cupy
 
     cupy.cuda.Device(device_id).use()
-    logger.info("Now using CUDA device {}".format(device_id))
+    logger.info(f"Now using CUDA device {device_id}")
 
 
 ###############################################################################

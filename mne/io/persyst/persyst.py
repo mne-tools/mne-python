@@ -226,7 +226,7 @@ class RawPersyst(BaseRaw):
 
         raw_extras = {"dtype": dtype, "n_chs": n_chs, "n_samples": n_samples}
         # create Raw object
-        super(RawPersyst, self).__init__(
+        super().__init__(
             info,
             preload,
             filenames=[dat_fpath],
@@ -351,7 +351,7 @@ def _read_lay_contents(fname):
 
     # initialize all section to empty str
     section = ""
-    with open(fname, "r") as fin:
+    with open(fname) as fin:
         for line in fin:
             # break a line into a status, key and value
             status, key, val = _process_lay_line(line, section)

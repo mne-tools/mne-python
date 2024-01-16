@@ -44,7 +44,7 @@ else
 	pip install $STD_ARGS --only-binary ":all:" --extra-index-url "https://wheels.vtk.org" vtk
 	python -c "import vtk"
 	echo "PyVista"
-	pip install $STD_ARGS git+https://github.com/pyvista/pyvista
+	pip install $STD_ARGS git+https://github.com/drammock/pyvista@numpy-2-compat
 	echo "pyvistaqt"
 	pip install $STD_ARGS git+https://github.com/pyvista/pyvistaqt
 	echo "imageio-ffmpeg, xlrd, mffpy"

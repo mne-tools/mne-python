@@ -535,7 +535,7 @@ def _read_bad_chans(directory, info):
     if not op.exists(fname):
         return []
     mapping = dict(zip(_clean_names(info["ch_names"]), info["ch_names"]))
-    with open(fname, "r") as fid:
+    with open(fname) as fid:
         bad_chans = [mapping[f.strip()] for f in fid.readlines()]
     return bad_chans
 
@@ -549,7 +549,7 @@ def _annotate_bad_segments(directory, start_time, meas_date):
     onsets = []
     durations = []
     desc = []
-    with open(fname, "r") as fid:
+    with open(fname) as fid:
         for f in fid.readlines():
             tmp = f.strip().split()
             desc.append("bad_%s" % tmp[0])

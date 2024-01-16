@@ -1406,8 +1406,8 @@ class _BaseSourceEstimate(TimeMixin):
         kinds = ["VOL"] * len(self.vertices)
         if isinstance(self, (_BaseSurfaceSourceEstimate, _BaseMixedSourceEstimate)):
             kinds[:2] = ["LH", "RH"]
-        for ii, (kind, vertno) in enumerate(zip(kinds, self.vertices)):
-            col_names.extend(["{}_{}".format(kind, vert) for vert in vertno])
+        for kind, vertno in zip(kinds, self.vertices):
+            col_names.extend([f"{kind}_{vert}" for vert in vertno])
         # build DataFrame
         df = _build_data_frame(
             self,

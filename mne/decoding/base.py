@@ -109,13 +109,12 @@ class LinearModel(BaseEstimator):
         X, y = np.asarray(X), np.asarray(y)
         if X.ndim != 2:
             raise ValueError(
-                "LinearModel only accepts 2-dimensional X, got "
-                "%s instead." % (X.shape,)
+                f"LinearModel only accepts 2-dimensional X, got {X.shape} instead."
             )
         if y.ndim > 2:
             raise ValueError(
-                "LinearModel only accepts up to 2-dimensional y, "
-                "got %s instead." % (y.shape,)
+                f"LinearModel only accepts up to 2-dimensional y, got {y.shape} "
+                "instead."
             )
 
         # fit the Model
@@ -267,9 +266,7 @@ def get_coef(estimator, attr="filters_", inverse_transform=False):
         coef = coef[np.newaxis]  # fake a sample dimension
         squeeze_first_dim = True
     elif not hasattr(est, attr):
-        raise ValueError(
-            "This estimator does not have a %s attribute:\n%s" % (attr, est)
-        )
+        raise ValueError(f"This estimator does not have a {attr} attribute:\n{est}")
     else:
         coef = getattr(est, attr)
 
@@ -281,7 +278,7 @@ def get_coef(estimator, attr="filters_", inverse_transform=False):
     if inverse_transform:
         if not hasattr(estimator, "steps") and not hasattr(est, "estimators_"):
             raise ValueError(
-                "inverse_transform can only be applied onto " "pipeline estimators."
+                "inverse_transform can only be applied onto pipeline estimators."
             )
         # The inverse_transform parameter will call this method on any
         # estimator contained in the pipeline, in reverse order.
@@ -458,15 +455,13 @@ def _fit_and_score(
             if return_train_score:
                 train_score = error_score
             warn(
-                "Classifier fit failed. The score on this train-test"
-                " partition for these parameters will be set to %f. "
-                "Details: \n%r" % (error_score, e)
+                "Classifier fit failed. The score on this train-test partition for "
+                f"these parameters will be set to {error_score}. Details: \n{e!r}"
             )
         else:
             raise ValueError(
-                "error_score must be the string 'raise' or a"
-                " numeric value. (Hint: if using 'raise', please"
-                " make sure that it has been spelled correctly.)"
+                "error_score must be the string 'raise' or a numeric value. (Hint: if "
+                "using 'raise', please make sure that it has been spelled correctly.)"
             )
 
     else:

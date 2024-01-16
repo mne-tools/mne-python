@@ -331,7 +331,7 @@ class Vectorizer(TransformerMixin):
         X = np.asarray(X)
         if X.ndim not in (2, 3):
             raise ValueError(
-                "X should be of 2 or 3 dimensions but has shape " "%s" % (X.shape,)
+                "X should be of 2 or 3 dimensions but has shape " f"{X.shape}"
             )
         return X.reshape(X.shape[:-1] + self.features_shape_)
 

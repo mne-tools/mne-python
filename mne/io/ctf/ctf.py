@@ -164,7 +164,7 @@ class RawCTF(BaseRaw):
                 f"file(s): {missing_names}, and the following file(s) had no "
                 f"valid samples: {no_samps}"
             )
-        super(RawCTF, self).__init__(
+        super().__init__(
             info,
             preload,
             first_samps=first_samps,
