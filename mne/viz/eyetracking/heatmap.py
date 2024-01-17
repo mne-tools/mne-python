@@ -7,10 +7,6 @@ import numpy as np
 from scipy.ndimage import gaussian_filter
 
 from ..._fiff.constants import FIFF
-from ...preprocessing.eyetracking.utils import (
-    _check_calibration,
-    get_screen_visual_angle,
-)
 from ...utils import _validate_type, fill_doc, logger
 from ..utils import plt_show
 
@@ -67,6 +63,11 @@ def plot_gaze(
     """
     from mne import BaseEpochs
     from mne._fiff.pick import _picks_to_idx
+
+    from ...preprocessing.eyetracking.utils import (
+        _check_calibration,
+        get_screen_visual_angle,
+    )
 
     _validate_type(epochs, BaseEpochs, "epochs")
     _validate_type(alpha, "numeric", "alpha")
