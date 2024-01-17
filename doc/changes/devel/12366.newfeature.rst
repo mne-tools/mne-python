@@ -1,1 +1,1 @@
-Add support for `dict` type argument ``ref_channels`` to :func:`mne._fiff.reference.set_eeg_reference`, by `Qian Chu`_.
+Add support for `dict` type argument ``ref_channels`` to :func:`mne.set_eeg_reference`, to allow flexible re-referencing, by `Qian Chu`_.
