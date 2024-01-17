@@ -180,9 +180,9 @@ def convert_units(inst, calibration, to="radians"):
     inst : instance of Raw, Epochs, or Evoked
         The Raw, Epochs, or Evoked instance with eyegaze channels.
     calibration : Calibration
-       instance of  Calibration, containing
-        information about the screen size and viewing distance (in meters), and
-        the screen resolution (in pixels).
+        Instance of  Calibration, containing information about the screen size
+        (in meters), viewing distance (in meters), and the screen resolution
+        (in pixels).
     to : str
         Must be either ``"radians"`` or ``"pixels"``, indicating the desired unit.
 

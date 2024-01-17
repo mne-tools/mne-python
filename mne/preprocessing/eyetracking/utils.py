@@ -26,8 +26,8 @@ def get_screen_visual_angle(calibration):
 
     Parameters
     ----------
-    Calibration : Calibration
-        an instance of Calibration. Must have valid values for ``"screen_size"`` and
+    calibration : Calibration
+        An instance of Calibration. Must have valid values for ``"screen_size"`` and
         ``"screen_distance"`` keys.
 
     Returns
