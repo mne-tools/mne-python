@@ -1,0 +1,2 @@
+Added a helper function :func:`mne.preprocessing.eyetracking.convert_units` to convert pixel-on-screen eyegaze data to radians of visual angle. Also added a helper function :func:`mne.preprocessing.eyetracking.get_screen_visual_angle` to get the visual angle that the participant screen subtends.
+
