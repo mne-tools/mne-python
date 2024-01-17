@@ -8,3 +8,4 @@
 from .eyetracking import set_channel_types_eyetrack, convert_units
 from .calibration import Calibration, read_eyelink_calibration
 from ._pupillometry import interpolate_blinks
+from .utils import get_screen_visual_angle

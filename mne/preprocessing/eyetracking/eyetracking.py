@@ -11,8 +11,9 @@ from ..._fiff.constants import FIFF
 from ...epochs import BaseEpochs
 from ...evoked import Evoked
 from ...io import BaseRaw
-from ...utils import _check_option, _validate_type
+from ...utils import _check_option, _validate_type, logger, warn
 from .calibration import Calibration
+from .utils import _check_calibration
 
 
 # specific function to set eyetrack channels
@@ -173,14 +174,14 @@ def _convert_deg_to_rad(array):
 
 
 def convert_units(inst, calibration, to="radians"):
-    """Convert Eyegaze data from pixels to radians or vice versa.
+    """Convert Eyegaze data from pixels to radians of visual angle or vice versa.
 
     Parameters
     ----------
     inst : instance of Raw, Epochs, or Evoked
         The Raw, Epochs, or Evoked instance with eyegaze channels.
-    calibration : mne.preprocessing.eyetracking.Calibration
-       instance of  :class:`~mne.preprocessing.eyetracking.Calibration`, containing
+    calibration : Calibration
+       instance of  Calibration, containing
         information about the screen size and viewing distance (in meters), and
         the screen resolution (in pixels).
     to : str
@@ -190,19 +191,23 @@ def convert_units(inst, calibration, to="radians"):
     -------
     inst : instance of Raw | Epochs | Evoked
         The Raw, Epochs, or Evoked instance, modified in place.
+
+    Notes
+    -----
+    .. versionadded:: 1.7
     """
     _validate_type(inst, (BaseRaw, BaseEpochs, Evoked), "inst")
     _validate_type(calibration, Calibration, "calibration")
     _check_option("to", to, ("radians", "pixels"))
+    _check_calibration(calibration)
+
     # get screen parameters
-    for key in ["screen_size", "screen_resolution", "screen_distance"]:
-        if key not in calibration or calibration.get(key) is None:
-            raise KeyError(f"Calibration object must have {key} info to convert units")
     screen_size = calibration["screen_size"]
     screen_resolution = calibration["screen_resolution"]
     dist = calibration["screen_distance"]
 
     # loop through channels and convert units
+    converted_chs = []
     for ch_dict in inst.info["chs"]:
         if ch_dict["coil_type"] == FIFF.FIFFV_COIL_EYETRACK_POS:
             unit = ch_dict["unit"]
@@ -240,6 +245,11 @@ def convert_units(inst, calibration, to="radians"):
                     _rad_to_pix_1d, picks=name, size=size, res=res, dist=dist
                 )
                 ch_dict["unit"] = FIFF.FIFF_UNIT_PX
+            converted_chs.append(name)
+    if converted_chs:
+        logger.info(f"Converted {converted_chs} to {to}.")
+    else:
+        warn("Could not find any eyegaze channels. Doing nothing.", UserWarning)
     return inst
 
 
@@ -291,7 +301,7 @@ def _rad_to_pix_1d(data, size, res, dist):
     """
     # How many meters is the pixel width or height
     px_size = size / res
-    # 1. calculate opposite side of triangle
-    # 2. convert from meters to pixels
-    # 3. add half of screen resolution to uncenter the pixel data
+    # 1. calculate length of opposite side of triangle (in meters)
+    # 2. convert meters to pixel coordinates
+    # 3. add half of screen resolution to uncenter the pixel data (0,0 is top left)
     return np.tan(data) * dist / px_size + res / 2

@@ -35,6 +35,7 @@ et_fpath = task_fpath / "sub-01_task-freeview_eyetrack.asc"
 stim_fpath = task_fpath / "stim" / "naturalistic.png"
 
 raw = mne.io.read_raw_eyelink(et_fpath)
+calibrations = mne.preprocessing.eyetracking.read_eyelink_calibration(et_fpath)
 
 # %%
 # Process and epoch the data
@@ -62,9 +63,12 @@ epochs = mne.Epochs(
 # screen resolution of the participant screen (1920x1080) as the width and height. We
 # can also use the sigma parameter to smooth the plot.
 
+calibrations[0]["screen_resolution"] = (1920, 1080)
+calibrations[0]["screen_size"] = (0.53, 0.3)
+calibrations[0]["screen_distance"] = 0.9
 px_width, px_height = 1920, 1080
 cmap = plt.get_cmap("viridis")
-plot_gaze(epochs["natural"], width=px_width, height=px_height, cmap=cmap, sigma=50)
+plot_gaze(epochs["natural"], calibration=calibrations[0], cmap=cmap, sigma=50)
 
 # %%
 # Overlaying plots with images
@@ -81,10 +85,26 @@ ax = plt.subplot()
 ax.imshow(plt.imread(stim_fpath))
 plot_gaze(
     epochs["natural"],
-    width=px_width,
-    height=px_height,
+    calibration=calibrations[0],
     vlim=(0.0003, None),
     sigma=50,
     cmap=cmap,
     axes=ax,
+)
+
+# %%
+# Displaying the heatmap in with units of visual angle
+# ----------------------------------------------------
+#
+# In scientific publications it is common to report report gaze data as the visual angle
+# from the participants eye to the screen. We can convert the units of our gaze data to
+# radians of visual angle before plotting the heatmap:
+
+# %%
+epochs.load_data()
+mne.preprocessing.eyetracking.convert_units(epochs, calibrations[0], to="radians")
+plot_gaze(
+    epochs["natural"],
+    calibration=calibrations[0],
+    sigma=50,
 )
