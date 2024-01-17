@@ -187,6 +187,15 @@ def pytest_configure(config):
     ignore:Mesa version 10\.2\.4 is too old for translucent.*:RuntimeWarning
     # Matplotlib <-> NumPy 2.0
     ignore:`row_stack` alias is deprecated.*:DeprecationWarning
+    # Matplotlib->tz
+    ignore:datetime.datetime.utcfromtimestamp.*:DeprecationWarning
+    # joblib
+    ignore:ast\.Num is deprecated.*:DeprecationWarning
+    ignore:Attribute n is deprecated and will be removed in Python 3\.14.*:DeprecationWarning
+    # numpydoc
+    ignore:ast\.NameConstant is deprecated and will be removed in Python 3\.14.*:DeprecationWarning
+    # pooch
+    ignore:Python 3\.14 will, by default, filter extracted tar archives.*:DeprecationWarning
     """  # noqa: E501
     for warning_line in warning_lines.split("\n"):
         warning_line = warning_line.strip()
