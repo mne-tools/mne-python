@@ -148,6 +148,8 @@
     "set-vscode-as-git-mergetool": "git config --global --replace-all merge.tool code",
     // Show indicator for "dirty" git repositories in the shell prompt.
     // This can be slow on large repositories and should be disabled in that case.
-    "enable-dirty-git-repo-indicator": "git config --global --replace-all devcontainers-theme.show-dirty 1"
+    "enable-dirty-git-repo-indicator": "git config --global --replace-all devcontainers-theme.show-dirty 1",
+    // Make "git blame" ignore certain commits
+    "set-git-blame-ignore-revs": "git config --local blame.ignoreRevsFile .git-blame-ignore-revs"
   }
 }
