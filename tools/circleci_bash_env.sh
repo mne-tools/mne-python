@@ -17,6 +17,7 @@ source tools/get_minimal_commands.sh
 echo "export MNE_3D_BACKEND=pyvistaqt" >> $BASH_ENV
 echo "export MNE_BROWSER_BACKEND=qt" >> $BASH_ENV
 echo "export MNE_BROWSER_PRECOMPUTE=false" >> $BASH_ENV
+echo "export MNE_ADD_CONTRIBUTOR_IMAGE=true" >> $BASH_ENV
 echo "export PATH=~/.local/bin/:$PATH" >> $BASH_ENV
 echo "export DISPLAY=:99" >> $BASH_ENV
 echo "source ~/python_env/bin/activate" >> $BASH_ENV

@@ -1,0 +1,1 @@
+Speed up raw FIF reading when using small buffer sizes by `Eric Larson`_.

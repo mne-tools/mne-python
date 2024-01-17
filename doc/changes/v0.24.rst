@@ -37,7 +37,7 @@ Enhancements
 ~~~~~~~~~~~~
 .. - Add something cool (:gh:`9192` **by new contributor** |New Contributor|_)
 
-- Add `pooch` to system information reports (:gh:`9801` **by new contributor** |Joshua Teves|_)
+- Add ``pooch`` to system information reports (:gh:`9801` **by new contributor** |Joshua Teves|_)
 
 - Get annotation descriptions from the name field of SNIRF stimulus groups when reading SNIRF files via `mne.io.read_raw_snirf` (:gh:`9575` **by new contributor** |Darin Erat Sleiter|_)
 

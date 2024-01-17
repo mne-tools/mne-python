@@ -36,7 +36,7 @@ from mne.evoked import Evoked, EvokedArray, _get_peak
 from mne.io import read_raw_fif
 from mne.utils import grand_average
 
-base_dir = Path(__file__).parent.parent / "io" / "tests" / "data"
+base_dir = Path(__file__).parents[1] / "io" / "tests" / "data"
 fname = base_dir / "test-ave.fif"
 fname_gz = base_dir / "test-ave.fif.gz"
 raw_fname = base_dir / "test_raw.fif"

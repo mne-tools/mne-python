@@ -76,7 +76,7 @@ fname_raw_move = data_path / "SSS" / "test_move_anon_raw.fif"
 fname_raw_movecomp_sss = data_path / "SSS" / "test_move_anon_movecomp_raw_sss.fif"
 fname_raw_move_pos = data_path / "SSS" / "test_move_anon_raw.pos"
 
-base_dir = Path(__file__).parent.parent / "io" / "tests" / "data"
+base_dir = Path(__file__).parents[1] / "io" / "tests" / "data"
 raw_fname = base_dir / "test_raw.fif"
 event_name = base_dir / "test-eve.fif"
 evoked_nf_name = base_dir / "test-nf-ave.fif"
@@ -992,6 +992,26 @@ def test_filter(tmp_path):
     assert_allclose(epochs.get_data(), data_filt, atol=1e-17)
 
 
+def test_epochs_from_annotations():
+    """Test epoch instantiation using annotations."""
+    raw, events = _get_data()[:2]
+    with pytest.raises(
+        RuntimeError, match="No usable annotations found in the raw object"
+    ):
+        Epochs(raw)
+    raw.set_annotations(
+        mne.annotations_from_events(
+            events, raw.info["sfreq"], first_samp=raw.first_samp
+        )
+    )
+    # test on_missing
+    with pytest.raises(ValueError, match="No matching annotations"):
+        Epochs(raw, event_id="foo")
+    # test on_missing warn
+    with pytest.warns(match="No matching annotations"):
+        Epochs(raw, event_id=["1", "foo"], on_missing="warn")
+
+
 def test_epochs_hash():
     """Test epoch hashing."""
     raw, events = _get_data()[:2]
@@ -1766,7 +1786,7 @@ def _assert_splits(fname, n, size):
     bad_fname = next_fnames.pop(-1)
     for ii, this_fname in enumerate(next_fnames[:-1]):
         assert this_fname.is_file(), f"Missing file: {this_fname}"
-        with open(this_fname, "r") as fid:
+        with open(this_fname) as fid:
             fid.seek(0, 2)
             file_size = fid.tell()
         min_ = 0.1 if ii < len(next_fnames) - 1 else 0.1

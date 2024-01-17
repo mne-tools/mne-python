@@ -6,32 +6,32 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-from datetime import datetime, timezone
 import faulthandler
 import gc
-from importlib.metadata import metadata
 import os
-from pathlib import Path
 import subprocess
 import sys
 import time
 import warnings
+from datetime import datetime, timezone
+from importlib.metadata import metadata
+from pathlib import Path
 
-import numpy as np
 import matplotlib
+import numpy as np
 import sphinx
-from sphinx.domains.changeset import versionlabels
-from sphinx_gallery.sorting import FileNameSortKey, ExplicitOrder
 from numpydoc import docscrape
+from sphinx.domains.changeset import versionlabels
+from sphinx_gallery.sorting import ExplicitOrder, FileNameSortKey
 
 import mne
 import mne.html_templates._templates
 from mne.tests.test_docstring_parameters import error_ignores
 from mne.utils import (
-    linkcode_resolve,  # noqa, analysis:ignore
     _assert_no_instances,
-    sizeof_fmt,
+    linkcode_resolve,  # noqa, analysis:ignore
     run_subprocess,
+    sizeof_fmt,
 )
 from mne.viz import Brain  # noqa
 
@@ -51,9 +51,8 @@ mne.html_templates._templates._COLLAPSED = True  # collapse info _repr_html_
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
-curdir = os.path.dirname(__file__)
-sys.path.append(os.path.abspath(os.path.join(curdir, "..", "mne")))
-sys.path.append(os.path.abspath(os.path.join(curdir, "sphinxext")))
+curpath = Path(__file__).parent.resolve(strict=True)
+sys.path.append(str(curpath / "sphinxext"))
 
 
 # -- Project information -----------------------------------------------------
@@ -107,6 +106,7 @@ extensions = [
     "sphinx_gallery.gen_gallery",
     "sphinxcontrib.bibtex",
     "sphinxcontrib.youtube",
+    "sphinxcontrib.towncrier.ext",
     # homegrown
     "contrib_avatars",
     "gen_commands",
@@ -123,7 +123,7 @@ templates_path = ["_templates"]
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
-exclude_patterns = ["_includes"]
+exclude_patterns = ["_includes", "changes/devel"]
 
 # The suffix of source filenames.
 source_suffix = ".rst"
@@ -149,6 +149,10 @@ modindex_common_prefix = ["mne."]
 copybutton_prompt_text = r">>> |\.\.\. |\$ "
 copybutton_prompt_is_regexp = True
 
+# -- sphinxcontrib-towncrier configuration -----------------------------------
+
+towncrier_draft_working_directory = str(curpath.parent)
+
 # -- Intersphinx configuration -----------------------------------------------
 
 intersphinx_mapping = {
@@ -172,18 +176,11 @@ intersphinx_mapping = {
     "patsy": ("https://patsy.readthedocs.io/en/latest", None),
     "pyvista": ("https://docs.pyvista.org", None),
     "imageio": ("https://imageio.readthedocs.io/en/latest", None),
-    "mne_realtime": ("https://mne.tools/mne-realtime", None),
     "picard": ("https://pierreablin.github.io/picard/", None),
-    "qdarkstyle": ("https://qdarkstylesheet.readthedocs.io/en/latest", None),
     "eeglabio": ("https://eeglabio.readthedocs.io/en/latest", None),
-    "dipy": (
-        "https://dipy.org/documentation/1.7.0/",
-        "https://dipy.org/documentation/1.7.0/objects.inv/",
-    ),
-    "pooch": ("https://www.fatiando.org/pooch/latest/", None),
+    "dipy": ("https://docs.dipy.org/stable", None),
     "pybv": ("https://pybv.readthedocs.io/en/latest/", None),
     "pyqtgraph": ("https://pyqtgraph.readthedocs.io/en/latest/", None),
-    "openmeeg": ("https://openmeeg.github.io", None),
 }
 
 
@@ -273,6 +270,29 @@ numpydoc_xref_aliases = {
     "EOGRegression": "mne.preprocessing.EOGRegression",
     "Spectrum": "mne.time_frequency.Spectrum",
     "EpochsSpectrum": "mne.time_frequency.EpochsSpectrum",
+    "EpochsFIF": "mne.Epochs",
+    "EpochsEEGLAB": "mne.Epochs",
+    "EpochsKIT": "mne.Epochs",
+    "RawBOXY": "mne.io.Raw",
+    "RawBrainVision": "mne.io.Raw",
+    "RawBTi": "mne.io.Raw",
+    "RawCTF": "mne.io.Raw",
+    "RawCurry": "mne.io.Raw",
+    "RawEDF": "mne.io.Raw",
+    "RawEEGLAB": "mne.io.Raw",
+    "RawEGI": "mne.io.Raw",
+    "RawEximia": "mne.io.Raw",
+    "RawEyelink": "mne.io.Raw",
+    "RawFIL": "mne.io.Raw",
+    "RawGDF": "mne.io.Raw",
+    "RawHitachi": "mne.io.Raw",
+    "RawKIT": "mne.io.Raw",
+    "RawNedf": "mne.io.Raw",
+    "RawNeuralynx": "mne.io.Raw",
+    "RawNihon": "mne.io.Raw",
+    "RawNIRX": "mne.io.Raw",
+    "RawPersyst": "mne.io.Raw",
+    "RawSNIRF": "mne.io.Raw",
     "Calibration": "mne.preprocessing.eyetracking.Calibration",
     # dipy
     "dipy.align.AffineMap": "dipy.align.imaffine.AffineMap",
@@ -372,34 +392,17 @@ numpydoc_xref_ignore = {
     "n_moments",
     "n_patterns",
     "n_new_events",
-    # Undocumented (on purpose)
-    "RawKIT",
-    "RawEximia",
-    "RawEGI",
-    "RawEEGLAB",
-    "RawEDF",
-    "RawCTF",
-    "RawBTi",
-    "RawBrainVision",
-    "RawCurry",
-    "RawNIRX",
-    "RawGDF",
-    "RawSNIRF",
-    "RawBOXY",
-    "RawPersyst",
-    "RawNihon",
-    "RawNedf",
-    "RawHitachi",
-    "RawFIL",
-    "RawEyelink",
     # sklearn subclasses
     "mapping",
     "to",
     "any",
     # unlinkable
     "CoregistrationUI",
-    "IntracranialElectrodeLocator",
     "mne_qt_browser.figure.MNEQtBrowser",
+    # pooch, since its website is unreliable and users will rarely need the links
+    "pooch.Unzip",
+    "pooch.Untar",
+    "pooch.HTTPDownloader",
 }
 numpydoc_validate = True
 numpydoc_validation_checks = {"all"} | set(error_ignores)
@@ -480,6 +483,8 @@ class Resetter(object):
         plt.ioff()
         plt.rcParams["animation.embed_limit"] = 40.0
         plt.rcParams["figure.raise_window"] = False
+        # https://github.com/sphinx-gallery/sphinx-gallery/pull/1243#issue-2043332860
+        plt.rcParams["animation.html"] = "html5"
         # neo holds on to an exception, which in turn holds a stack frame,
         # which will keep alive the global vars during SG execution
         try:
@@ -779,8 +784,13 @@ nitpick_ignore = [
     ("py:class", "None.  Remove all items from od."),
 ]
 nitpick_ignore_regex = [
-    ("py:.*", r"mne\.io\.BaseRaw.*"),
-    ("py:.*", r"mne\.BaseEpochs.*"),
+    # Classes whose methods we purposefully do not document
+    ("py:.*", r"mne\.io\.BaseRaw.*"),  # use mne.io.Raw
+    ("py:.*", r"mne\.BaseEpochs.*"),  # use mne.Epochs
+    # Type hints for undocumented types
+    ("py:.*", r"mne\.io\..*\.Raw.*"),  # RawEDF etc.
+    ("py:.*", r"mne\.epochs\.EpochsFIF.*"),
+    ("py:.*", r"mne\.io\..*\.Epochs.*"),  # EpochsKIT etc.
     (
         "py:obj",
         "(filename|metadata|proj|times|tmax|tmin|annotations|ch_names|compensation_grade|filenames|first_samp|first_time|last_samp|n_times|proj|times|tmax|tmin)",
@@ -803,7 +813,7 @@ html_theme = "pydata_sphinx_theme"
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
-switcher_version_match = "dev" if release.endswith("dev0") else version
+switcher_version_match = "dev" if ".dev" in version else version
 html_theme_options = {
     "icon_links": [
         dict(
@@ -1305,6 +1315,7 @@ def reset_warnings(gallery_conf, fname):
     for key in (
         "invalid version and will not be supported",  # pyxdf
         "distutils Version classes are deprecated",  # seaborn and neo
+        "is_categorical_dtype is deprecated",  # seaborn
         "`np.object` is a deprecated alias for the builtin `object`",  # pyxdf
         # nilearn, should be fixed in > 0.9.1
         "In future, it will be an error for 'np.bool_' scalars to",
@@ -1329,6 +1340,15 @@ def reset_warnings(gallery_conf, fname):
         r"The .* was deprecated in Matplotlib 3\.7",
         # scipy
         r"scipy.signal.morlet2 is deprecated in SciPy 1\.12",
+        # Matplotlib->tz
+        r"datetime\.datetime\.utcfromtimestamp",
+        # joblib
+        r"ast\.Num is deprecated",
+        r"Attribute n is deprecated and will be removed in Python 3\.14",
+        # numpydoc
+        r"ast\.NameConstant is deprecated and will be removed in Python 3\.14",
+        # pooch
+        r"Python 3\.14 will, by default, filter extracted tar archives.*",
     ):
         warnings.filterwarnings(  # deal with other modules having bad imports
             "ignore", message=".*%s.*" % key, category=DeprecationWarning

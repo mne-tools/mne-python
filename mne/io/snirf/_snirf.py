@@ -21,7 +21,9 @@ from ..nirx.nirx import _convert_fnirs_to_head
 
 
 @fill_doc
-def read_raw_snirf(fname, optode_frame="unknown", preload=False, verbose=None):
+def read_raw_snirf(
+    fname, optode_frame="unknown", preload=False, verbose=None
+) -> "RawSNIRF":
     """Reader for a continuous wave SNIRF data.
 
     .. note:: This reader supports the .snirf file type only,
@@ -57,7 +59,7 @@ def read_raw_snirf(fname, optode_frame="unknown", preload=False, verbose=None):
 
 
 def _open(fname):
-    return open(fname, "r", encoding="latin-1")
+    return open(fname, encoding="latin-1")
 
 
 @fill_doc
@@ -413,10 +415,10 @@ class RawSNIRF(BaseRaw):
                 info["dig"] = dig
 
             str_date = _correct_shape(
-                np.array((dat.get("/nirs/metaDataTags/MeasurementDate")))
+                np.array(dat.get("/nirs/metaDataTags/MeasurementDate"))
             )[0].decode("UTF-8")
             str_time = _correct_shape(
-                np.array((dat.get("/nirs/metaDataTags/MeasurementTime")))
+                np.array(dat.get("/nirs/metaDataTags/MeasurementTime"))
             )[0].decode("UTF-8")
             str_datetime = str_date + str_time
 
@@ -458,7 +460,7 @@ class RawSNIRF(BaseRaw):
                     with info._unlock():
                         info["subject_info"]["birthday"] = birthday
 
-            super(RawSNIRF, self).__init__(
+            super().__init__(
                 info,
                 preload,
                 filenames=[fname],

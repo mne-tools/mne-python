@@ -174,7 +174,7 @@ def read_raw_cnt(
     header="auto",
     preload=False,
     verbose=None,
-):
+) -> "RawCNT":
     """Read CNT data as raw object.
 
     .. Note::
@@ -508,7 +508,7 @@ class RawCNT(BaseRaw):
         header="auto",
         preload=False,
         verbose=None,
-    ):  # noqa: D102
+    ):
         _check_option("date_format", date_format, ["mm/dd/yy", "dd/mm/yy"])
         if date_format == "dd/mm/yy":
             _date_format = "%d/%m/%y %H:%M:%S"
@@ -520,7 +520,7 @@ class RawCNT(BaseRaw):
             input_fname, eog, ecg, emg, misc, data_format, _date_format, header
         )
         last_samps = [cnt_info["n_samples"] - 1]
-        super(RawCNT, self).__init__(
+        super().__init__(
             info,
             preload,
             filenames=[input_fname],

@@ -29,7 +29,7 @@ from mne.time_frequency._stockwell import (
 )
 from mne.utils import _record_warnings
 
-base_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
+base_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
 raw_fname = base_dir / "test_raw.fif"
 raw_ctf_fname = base_dir / "test_ctf_raw.fif"
 
@@ -87,7 +87,7 @@ def test_stockwell_core():
     width = 0.5
     freqs = fftpack.fftfreq(len(pulse), 1.0 / sfreq)
     fmin, fmax = 1.0, 100.0
-    start_f, stop_f = [np.abs(freqs - f).argmin() for f in (fmin, fmax)]
+    start_f, stop_f = (np.abs(freqs - f).argmin() for f in (fmin, fmax))
     W = _precompute_st_windows(n_samp, start_f, stop_f, sfreq, width)
 
     st_pulse = _st(pulse, start_f, W)

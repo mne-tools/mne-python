@@ -321,9 +321,7 @@ def read_events(
         event_list = _mask_trigs(event_list, mask, mask_type)
         masked_len = event_list.shape[0]
         if masked_len < unmasked_len:
-            warn(
-                "{} of {} events masked".format(unmasked_len - masked_len, unmasked_len)
-            )
+            warn(f"{unmasked_len - masked_len} of {unmasked_len} events masked")
     out = event_list
     if return_event_id:
         if event_id is None:
@@ -969,7 +967,7 @@ def make_fixed_length_events(
     duration, overlap = float(duration), float(overlap)
     if not 0 <= overlap < duration:
         raise ValueError(
-            "overlap must be >=0 but < duration (%s), got %s" % (duration, overlap)
+            f"overlap must be >=0 but < duration ({duration}), got {overlap}"
         )
 
     start = raw.time_as_index(start, use_rounding=True)[0]
@@ -1144,7 +1142,7 @@ class AcqParserFIF:
         "OldMask",
     )
 
-    def __init__(self, info):  # noqa: D102
+    def __init__(self, info):
         acq_pars = info["acq_pars"]
         if not acq_pars:
             raise ValueError("No acquisition parameters")

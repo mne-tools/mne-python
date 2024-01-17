@@ -376,8 +376,7 @@ def plot_projs_topomap(
     %(info_not_none)s Must be associated with the channels in the projectors.
 
         .. versionchanged:: 0.20
-            The positional argument ``layout`` was deprecated and replaced
-            by ``info``.
+            The positional argument ``layout`` was replaced by ``info``.
     %(sensors_topomap)s
     %(show_names_topomap)s
 
@@ -1219,9 +1218,8 @@ def _plot_topomap(
             raise ValueError("Multiple channel types in Info structure. " + info_help)
         elif len(pos["chs"]) != data.shape[0]:
             raise ValueError(
-                "Number of channels in the Info object (%s) and "
-                "the data array (%s) do not match. " % (len(pos["chs"]), data.shape[0])
-                + info_help
+                f"Number of channels in the Info object ({len(pos['chs'])}) and the "
+                f"data array ({data.shape[0]}) do not match." + info_help
             )
         else:
             ch_type = ch_type.pop()
@@ -1252,9 +1250,9 @@ def _plot_topomap(
     )
     if pos.ndim != 2:
         error = (
-            "{ndim}D array supplied as electrode positions, where a 2D "
-            "array was expected"
-        ).format(ndim=pos.ndim)
+            f"{pos.ndim}D array supplied as electrode positions, where a 2D array was "
+            "expected"
+        )
         raise ValueError(error + " " + pos_help)
     elif pos.shape[1] == 3:
         error = (
@@ -3452,10 +3450,10 @@ def _plot_corrmap(
 
     for ii, data_, ax, subject, idx in zip(picks, data, axes, subjs, indices):
         if template:
-            ttl = "Subj. {}, {}".format(subject, ica._ica_names[idx])
+            ttl = f"Subj. {subject}, {ica._ica_names[idx]}"
             ax.set_title(ttl, fontsize=12)
         else:
-            ax.set_title("Subj. {}".format(subject))
+            ax.set_title(f"Subj. {subject}")
         if merge_channels:
             data_, _ = _merge_ch_data(data_, ch_type, [])
         _vlim = _setup_vmin_vmax(data_, None, None)

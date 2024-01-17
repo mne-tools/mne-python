@@ -464,7 +464,7 @@ def _make_trans_dig(curry_paths, info, curry_dev_dev_t):
 
 def _first_hpi(fname):
     # Get the first HPI result
-    with open(fname, "r") as fid:
+    with open(fname) as fid:
         for line in fid:
             line = line.strip()
             if any(x in line for x in ("FileVersion", "NumCoils")) or not line:
@@ -472,7 +472,7 @@ def _first_hpi(fname):
             hpi = np.array(line.split(), float)
             break
         else:
-            raise RuntimeError("Could not find valid HPI in %s" % (fname,))
+            raise RuntimeError(f"Could not find valid HPI in {fname}")
     # t is the first entry
     assert hpi.ndim == 1
     hpi = hpi[1:]
@@ -542,7 +542,7 @@ def _read_annotations_curry(fname, sfreq="auto"):
 
 
 @verbose
-def read_raw_curry(fname, preload=False, verbose=None):
+def read_raw_curry(fname, preload=False, verbose=None) -> "RawCurry":
     """Read raw data from Curry files.
 
     Parameters
@@ -596,7 +596,7 @@ class RawCurry(BaseRaw):
         last_samps = [n_samples - 1]
         raw_extras = dict(is_ascii=is_ascii)
 
-        super(RawCurry, self).__init__(
+        super().__init__(
             info,
             preload,
             filenames=[data_fname],

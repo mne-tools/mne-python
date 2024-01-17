@@ -729,7 +729,7 @@ def _write_proj(fid, projs, *, ch_names_mapping=None):
 def _check_projs(projs, copy=True):
     """Check that projs is a list of Projection."""
     if not isinstance(projs, (list, tuple)):
-        raise TypeError("projs must be a list or tuple, got %s" % (type(projs),))
+        raise TypeError(f"projs must be a list or tuple, got {type(projs)}")
     for pi, p in enumerate(projs):
         if not isinstance(p, Projection):
             raise TypeError(

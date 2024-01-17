@@ -57,13 +57,9 @@ trans_fname = sample_meg_dir / "sample_audvis_trunc-trans.fif"
 inv_fname = sample_meg_dir / "sample_audvis_trunc-meg-eeg-oct-6-meg-inv.fif"
 stc_fname = sample_meg_dir / "sample_audvis_trunc-meg"
 mri_fname = subjects_dir / "sample" / "mri" / "T1.mgz"
-bdf_fname = (
-    Path(__file__).parent.parent.parent / "io" / "edf" / "tests" / "data" / "test.bdf"
-)
-edf_fname = (
-    Path(__file__).parent.parent.parent / "io" / "edf" / "tests" / "data" / "test.edf"
-)
-base_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
+bdf_fname = Path(__file__).parents[2] / "io" / "edf" / "tests" / "data" / "test.bdf"
+edf_fname = Path(__file__).parents[2] / "io" / "edf" / "tests" / "data" / "test.edf"
+base_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
 evoked_fname = base_dir / "test-ave.fif"
 nirs_fname = (
     data_dir / "SNIRF" / "NIRx" / "NIRSport2" / "1.0.3" / "2021-05-05_001.snirf"
@@ -103,6 +99,8 @@ def invisible_fig(monkeypatch):
 @testing.requires_testing_data
 def test_render_report(renderer_pyvistaqt, tmp_path, invisible_fig):
     """Test rendering *.fif files for mne report."""
+    pytest.importorskip("pymatreader")
+
     raw_fname_new = tmp_path / "temp_raw.fif"
     raw_fname_new_bids = tmp_path / "temp_meg.fif"
     ms_fname_new = tmp_path / "temp_ms_raw.fif"

@@ -71,7 +71,7 @@ montage_path = base_dir / "test_chans.locs"
 def test_io_set_raw(fname):
     """Test importing EEGLAB .set files."""
     montage = read_custom_montage(montage_path)
-    montage.ch_names = ["EEG {0:03d}".format(ii) for ii in range(len(montage.ch_names))]
+    montage.ch_names = [f"EEG {ii:03d}" for ii in range(len(montage.ch_names))]
 
     kws = dict(reader=read_raw_eeglab, input_fname=fname)
     if fname.name == "test_raw_chanloc.set":
@@ -568,9 +568,7 @@ def test_position_information(three_chanpos_fname):
         input_fname=three_chanpos_fname,
         preload=True,
         montage_units="cm",
-    ).set_montage(
-        None
-    )  # Flush the montage builtin within input_fname
+    ).set_montage(None)  # Flush the montage builtin within input_fname
 
     _assert_array_allclose_nan(
         np.array([ch["loc"] for ch in raw.info["chs"]]), EXPECTED_LOCATIONS_FROM_MONTAGE

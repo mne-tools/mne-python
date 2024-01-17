@@ -38,7 +38,7 @@ from mne.utils import catch_logging
 from mne.viz import plot_compare_evokeds, plot_evoked_white
 from mne.viz.utils import _fake_click, _get_cmap
 
-base_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
+base_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
 evoked_fname = base_dir / "test-ave.fif"
 raw_fname = base_dir / "test_raw.fif"
 raw_sss_fname = base_dir / "test_chpi_raw_sss.fif"
@@ -423,7 +423,7 @@ def test_plot_compare_evokeds():
     red.data *= 1.5
     blue.data /= 1.5
     evoked_dict = {"aud/l": blue, "aud/r": red, "vis": evoked}
-    huge_dict = {"cond{}".format(i): ev for i, ev in enumerate([evoked] * 11)}
+    huge_dict = {f"cond{i}": ev for i, ev in enumerate([evoked] * 11)}
     plot_compare_evokeds(evoked_dict)  # dict
     plot_compare_evokeds([[red, evoked], [blue, evoked]])  # list of lists
     figs = plot_compare_evokeds({"cond": [blue, red, evoked]})  # dict of list
@@ -438,6 +438,17 @@ def test_plot_compare_evokeds():
         yvals = line.get_ydata()
         assert (yvals < ylim[1]).all()
         assert (yvals > ylim[0]).all()
+    # test plotting eyetracking data
+    plt.close("all")  # close the previous figures as to avoid a too many figs warning
+    info_tmp = mne.create_info(["pupil_left"], evoked.info["sfreq"], ["pupil"])
+    evoked_et = mne.EvokedArray(np.ones_like(evoked.times).reshape(1, -1), info_tmp)
+    figs = plot_compare_evokeds(evoked_et, show_sensors=False)
+    assert len(figs) == 1
+    # test plotting only invalid channel types
+    info_tmp = mne.create_info(["ias"], evoked.info["sfreq"], ["ias"])
+    ev_invalid = mne.EvokedArray(np.ones_like(evoked.times).reshape(1, -1), info_tmp)
+    with pytest.raises(RuntimeError, match="No valid"):
+        plot_compare_evokeds(ev_invalid, picks="all")
     plt.close("all")
 
     # test other CI args

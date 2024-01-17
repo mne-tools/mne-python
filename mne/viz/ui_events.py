@@ -15,7 +15,7 @@ import contextlib
 import re
 import weakref
 from dataclasses import dataclass
-from typing import List, Optional, Union
+from typing import Optional, Union
 
 from matplotlib.colors import Colormap
 
@@ -205,7 +205,7 @@ class Contours(UIEvent):
     """
 
     kind: str
-    contours: List[str]
+    contours: list[str]
 
 
 def _get_event_channel(fig):

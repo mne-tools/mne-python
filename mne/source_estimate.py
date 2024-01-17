@@ -31,6 +31,7 @@ from .source_space._source_space import (
     _ensure_src_subject,
     _get_morph_src_reordering,
     _get_src_nn,
+    get_decimated_surfaces,
 )
 from .surface import _get_ico_surface, _project_onto_surface, mesh_edges, read_surface
 from .transforms import _get_trans, apply_trans
@@ -497,9 +498,7 @@ class _BaseSourceEstimate(TimeMixin):
     _data_ndim = 2
 
     @verbose
-    def __init__(
-        self, data, vertices, tmin, tstep, subject=None, verbose=None
-    ):  # noqa: D102
+    def __init__(self, data, vertices, tmin, tstep, subject=None, verbose=None):
         assert hasattr(self, "_data_ndim"), self.__class__.__name__
         assert hasattr(self, "_src_type"), self.__class__.__name__
         assert hasattr(self, "_src_count"), self.__class__.__name__
@@ -821,7 +820,17 @@ class _BaseSourceEstimate(TimeMixin):
         return self  # return self for chaining methods
 
     @verbose
-    def resample(self, sfreq, npad="auto", window="boxcar", n_jobs=None, verbose=None):
+    def resample(
+        self,
+        sfreq,
+        *,
+        npad=100,
+        method="fft",
+        window="auto",
+        pad="auto",
+        n_jobs=None,
+        verbose=None,
+    ):
         """Resample data.
 
         If appropriate, an anti-aliasing filter is applied before resampling.
@@ -835,8 +844,15 @@ class _BaseSourceEstimate(TimeMixin):
             Amount to pad the start and end of the data.
             Can also be "auto" to use a padding that will result in
             a power-of-two size (can be much faster).
-        window : str | tuple
-            Window to use in resampling. See :func:`scipy.signal.resample`.
+        %(method_resample)s
+
+            .. versionadded:: 1.7
+        %(window_resample)s
+
+            .. versionadded:: 1.7
+        %(pad_resample_auto)s
+
+            .. versionadded:: 1.7
         %(n_jobs)s
         %(verbose)s
 
@@ -865,7 +881,9 @@ class _BaseSourceEstimate(TimeMixin):
         data = self.data
         if data.dtype == np.float32:
             data = data.astype(np.float64)
-        self.data = resample(data, sfreq, o_sfreq, npad, n_jobs=n_jobs)
+        self.data = resample(
+            data, sfreq, o_sfreq, npad=npad, window=window, n_jobs=n_jobs, method=method
+        )
 
         # adjust indirectly affected variables
         self.tstep = 1.0 / sfreq
@@ -1381,15 +1399,15 @@ class _BaseSourceEstimate(TimeMixin):
         if self.subject is not None:
             default_index = ["subject", "time"]
             mindex.append(("subject", np.repeat(self.subject, data.shape[0])))
-        times = _convert_times(self, times, time_format)
+        times = _convert_times(times, time_format)
         mindex.append(("time", times))
         # triage surface vs volume source estimates
         col_names = list()
         kinds = ["VOL"] * len(self.vertices)
         if isinstance(self, (_BaseSurfaceSourceEstimate, _BaseMixedSourceEstimate)):
             kinds[:2] = ["LH", "RH"]
-        for ii, (kind, vertno) in enumerate(zip(kinds, self.vertices)):
-            col_names.extend(["{}_{}".format(kind, vert) for vert in vertno])
+        for kind, vertno in zip(kinds, self.vertices):
+            col_names.extend([f"{kind}_{vert}" for vert in vertno])
         # build DataFrame
         df = _build_data_frame(
             self,
@@ -1566,6 +1584,77 @@ class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
             subject=self.subject,
         )
         return label_stc
+
+    def save_as_surface(self, fname, src, *, scale=1, scale_rr=1e3):
+        """Save a surface source estimate (stc) as a GIFTI file.
+
+        Parameters
+        ----------
+        fname : path-like
+            Filename basename to save files as.
+            Will write anatomical GIFTI plus time series GIFTI for both lh/rh,
+            for example ``"basename"`` will write ``"basename.lh.gii"``,
+            ``"basename.lh.time.gii"``, ``"basename.rh.gii"``, and
+            ``"basename.rh.time.gii"``.
+        src : instance of SourceSpaces
+            The source space of the forward solution.
+        scale : float
+            Scale factor to apply to the data (functional) values.
+        scale_rr : float
+            Scale factor for the source vertex positions. The default (1e3) will
+            scale from meters to millimeters, which is more standard for GIFTI files.
+
+        Notes
+        -----
+        .. versionadded:: 1.7
+        """
+        nib = _import_nibabel()
+        _check_option("src.kind", src.kind, ("surface", "mixed"))
+        ss = get_decimated_surfaces(src)
+        assert len(ss) == 2  # should be guaranteed by _check_option above
+
+        # Create lists to put DataArrays into
+        hemis = ("lh", "rh")
+        for s, hemi in zip(ss, hemis):
+            darrays = list()
+            darrays.append(
+                nib.gifti.gifti.GiftiDataArray(
+                    data=(s["rr"] * scale_rr).astype(np.float32),
+                    intent="NIFTI_INTENT_POINTSET",
+                    datatype="NIFTI_TYPE_FLOAT32",
+                )
+            )
+
+            # Make the topology DataArray
+            darrays.append(
+                nib.gifti.gifti.GiftiDataArray(
+                    data=s["tris"].astype(np.int32),
+                    intent="NIFTI_INTENT_TRIANGLE",
+                    datatype="NIFTI_TYPE_INT32",
+                )
+            )
+
+            # Make the output GIFTI for anatomicals
+            topo_gi_hemi = nib.gifti.gifti.GiftiImage(darrays=darrays)
+
+            # actually save the file
+            nib.save(topo_gi_hemi, f"{fname}-{hemi}.gii")
+
+            # Make the Time Series data arrays
+            ts = []
+            data = getattr(self, f"{hemi}_data") * scale
+            ts = [
+                nib.gifti.gifti.GiftiDataArray(
+                    data=data[:, idx].astype(np.float32),
+                    intent="NIFTI_INTENT_POINTSET",
+                    datatype="NIFTI_TYPE_FLOAT32",
+                )
+                for idx in range(data.shape[1])
+            ]
+
+            # save the time series
+            ts_gi = nib.gifti.gifti.GiftiImage(darrays=ts)
+            nib.save(ts_gi, f"{fname}-{hemi}.time.gii")
 
     def expand(self, vertices):
         """Expand SourceEstimate to include more vertices.
@@ -2001,7 +2090,7 @@ class _BaseVectorSourceEstimate(_BaseSourceEstimate):
     @verbose
     def __init__(
         self, data, vertices=None, tmin=None, tstep=None, subject=None, verbose=None
-    ):  # noqa: D102
+    ):
         assert hasattr(self, "_scalar_class")
         super().__init__(data, vertices, tmin, tstep, subject, verbose)
 
@@ -2138,7 +2227,7 @@ class _BaseVectorSourceEstimate(_BaseSourceEstimate):
         add_data_kwargs=None,
         brain_kwargs=None,
         verbose=None,
-    ):  # noqa: D102
+    ):
         return plot_vector_source_estimates(
             self,
             subject=subject,
@@ -2643,7 +2732,7 @@ class VolVectorSourceEstimate(_BaseVolSourceEstimate, _BaseVectorSourceEstimate)
         add_data_kwargs=None,
         brain_kwargs=None,
         verbose=None,
-    ):  # noqa: D102
+    ):
         return _BaseVectorSourceEstimate.plot(
             self,
             subject=subject,
@@ -2734,7 +2823,7 @@ class _BaseMixedSourceEstimate(_BaseSourceEstimate):
     @verbose
     def __init__(
         self, data, vertices=None, tmin=None, tstep=None, subject=None, verbose=None
-    ):  # noqa: D102
+    ):
         if not isinstance(vertices, list) or len(vertices) < 2:
             raise ValueError(
                 "Vertices must be a list of numpy arrays with "

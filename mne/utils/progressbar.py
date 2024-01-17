@@ -55,7 +55,7 @@ class ProgressBar:
         *,
         which_tqdm=None,
         **kwargs,
-    ):  # noqa: D102
+    ):
         # The following mimics this, but with configurable module to use
         # from ..externals.tqdm import auto
         import tqdm
@@ -137,8 +137,7 @@ class ProgressBar:
 
     def __iter__(self):
         """Iterate to auto-increment the pbar with 1."""
-        for x in self._tqdm:
-            yield x
+        yield from self._tqdm
 
     def subset(self, idx):
         """Make a joblib-friendly index subset updater.
@@ -188,7 +187,7 @@ class ProgressBar:
 
 class _UpdateThread(Thread):
     def __init__(self, pb):
-        super(_UpdateThread, self).__init__(daemon=True)
+        super().__init__(daemon=True)
         self._mne_run = True
         self._mne_pb = pb
 

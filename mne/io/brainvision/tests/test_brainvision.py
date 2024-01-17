@@ -133,14 +133,14 @@ def _mocked_meas_date_data(tmp_path_factory):
     """Prepare files for mocked_meas_date_file fixture."""
     # Prepare the files
     tmp_path = tmp_path_factory.mktemp("brainvision_mocked_meas_date")
-    vhdr_fname, vmrk_fname, eeg_fname = [
+    vhdr_fname, vmrk_fname, eeg_fname = (
         tmp_path / ff.name for ff in [vhdr_path, vmrk_path, eeg_path]
-    ]
+    )
     for orig, dest in zip([vhdr_path, eeg_path], [vhdr_fname, eeg_fname]):
         shutil.copyfile(orig, dest)
 
     # Get the marker information
-    with open(vmrk_path, "r") as fin:
+    with open(vmrk_path) as fin:
         lines = fin.readlines()
 
     return vhdr_fname, vmrk_fname, lines
@@ -331,7 +331,7 @@ def test_ch_names_comma(tmp_path):
         shutil.copyfile(src, tmp_path / dest)
 
     comma_vhdr = tmp_path / "test.vhdr"
-    with open(comma_vhdr, "r") as fin:
+    with open(comma_vhdr) as fin:
         lines = fin.readlines()
 
     new_lines = []

@@ -116,7 +116,14 @@ empty_room_raw.del_proj()
 raw.info["bads"] = ["MEG 2443"]
 spectrum = empty_room_raw.compute_psd()
 for average in (False, True):
-    spectrum.plot(average=average, dB=False, xscale="log", picks="data", exclude="bads")
+    spectrum.plot(
+        average=average,
+        dB=False,
+        amplitude=True,
+        xscale="log",
+        picks="data",
+        exclude="bads",
+    )
 
 # %%
 # Creating the empty-room projectors
@@ -173,7 +180,7 @@ for title, projs in [
     with mne.viz.use_browser_backend("matplotlib"):
         fig = raw.plot(proj=True, order=mags, duration=1, n_channels=2)
     fig.subplots_adjust(top=0.9)  # make room for title
-    fig.suptitle("{} projectors".format(title), size="xx-large", weight="bold")
+    fig.suptitle(f"{title} projectors", size="xx-large", weight="bold")
 
 # %%
 # The effect is sometimes easier to see on averaged data. Here we use an
@@ -340,7 +347,7 @@ for title, proj in [("Without", empty_room_projs), ("With", ecg_projs)]:
     with mne.viz.use_browser_backend("matplotlib"):
         fig = raw.plot(order=artifact_picks, n_channels=len(artifact_picks))
     fig.subplots_adjust(top=0.9)  # make room for title
-    fig.suptitle("{} ECG projectors".format(title), size="xx-large", weight="bold")
+    fig.suptitle(f"{title} ECG projectors", size="xx-large", weight="bold")
 
 # %%
 # Finally, note that above we passed ``reject=None`` to the
@@ -452,7 +459,7 @@ for title in ("Without", "With"):
     with mne.viz.use_browser_backend("matplotlib"):
         fig = raw.plot(order=artifact_picks, n_channels=len(artifact_picks))
     fig.subplots_adjust(top=0.9)  # make room for title
-    fig.suptitle("{} EOG projectors".format(title), size="xx-large", weight="bold")
+    fig.suptitle(f"{title} EOG projectors", size="xx-large", weight="bold")
 
 # %%
 # Notice that the small peaks in the first to magnetometer channels (``MEG

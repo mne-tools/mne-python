@@ -111,8 +111,8 @@ class Transform(dict):
     ``'ctf_meg'``, ``'unknown'``.
     """
 
-    def __init__(self, fro, to, trans=None):  # noqa: D102
-        super(Transform, self).__init__()
+    def __init__(self, fro, to, trans=None):
+        super().__init__()
         # we could add some better sanity checks here
         fro = _to_const(fro)
         to = _to_const(to)
@@ -237,13 +237,9 @@ def _find_trans(subject, subjects_dir=None):
 
     trans_fnames = glob.glob(str(subjects_dir / subject / "*-trans.fif"))
     if len(trans_fnames) < 1:
-        raise RuntimeError(
-            "Could not find the transformation for " "{subject}".format(subject=subject)
-        )
+        raise RuntimeError(f"Could not find the transformation for {subject}")
     elif len(trans_fnames) > 1:
-        raise RuntimeError(
-            "Found multiple transformations for " "{subject}".format(subject=subject)
-        )
+        raise RuntimeError(f"Found multiple transformations for {subject}")
     return Path(trans_fnames[0])
 
 
@@ -1554,7 +1550,7 @@ def read_ras_mni_t(subject, subjects_dir=None):
 def _read_fs_xfm(fname):
     """Read a Freesurfer transform from a .xfm file."""
     assert fname.endswith(".xfm")
-    with open(fname, "r") as fid:
+    with open(fname) as fid:
         logger.debug("Reading FreeSurfer talairach.xfm file:\n%s" % fname)
 
         # read lines until we get the string 'Linear_Transform', which precedes

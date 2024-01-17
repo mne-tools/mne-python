@@ -187,6 +187,15 @@ def pytest_configure(config):
     ignore:Mesa version 10\.2\.4 is too old for translucent.*:RuntimeWarning
     # Matplotlib <-> NumPy 2.0
     ignore:`row_stack` alias is deprecated.*:DeprecationWarning
+    # Matplotlib->tz
+    ignore:datetime.datetime.utcfromtimestamp.*:DeprecationWarning
+    # joblib
+    ignore:ast\.Num is deprecated.*:DeprecationWarning
+    ignore:Attribute n is deprecated and will be removed in Python 3\.14.*:DeprecationWarning
+    # numpydoc
+    ignore:ast\.NameConstant is deprecated and will be removed in Python 3\.14.*:DeprecationWarning
+    # pooch
+    ignore:Python 3\.14 will, by default, filter extracted tar archives.*:DeprecationWarning
     """  # noqa: E501
     for warning_line in warning_lines.split("\n"):
         warning_line = warning_line.strip()
@@ -274,7 +283,7 @@ def matplotlib_config():
 
     class CallbackRegistryReraise(orig):
         def __init__(self, exception_handler=None, signals=None):
-            super(CallbackRegistryReraise, self).__init__(exception_handler)
+            super().__init__(exception_handler)
 
     cbook.CallbackRegistry = CallbackRegistryReraise
 
@@ -788,7 +797,7 @@ def src_volume_labels():
     """Create a 7mm source space with labels."""
     pytest.importorskip("nibabel")
     volume_labels = mne.get_volume_labels_from_aseg(fname_aseg)
-    with pytest.warns(RuntimeWarning, match="Found no usable.*Left-vessel.*"):
+    with pytest.warns(RuntimeWarning, match="Found no usable.*t-vessel.*"):
         src = mne.setup_volume_source_space(
             "sample",
             7.0,
@@ -982,6 +991,11 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config):
         timings = [timing.rjust(rjust) for timing in timings]
         for name, timing in zip(names, timings):
             writer.line(f"{timing.ljust(15)}{name}")
+
+
+def pytest_report_header(config, startdir):
+    """Add information to the pytest run header."""
+    return f"MNE {mne.__version__} -- {str(Path(mne.__file__).parent)}"
 
 
 @pytest.fixture(scope="function", params=("Numba", "NumPy"))

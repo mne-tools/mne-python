@@ -457,8 +457,7 @@ def _prepare_trellis(
             naxes = ncols * nrows
             if naxes < n_cells:
                 raise ValueError(
-                    "Cannot plot {} axes in a {} by {} "
-                    "figure.".format(n_cells, nrows, ncols)
+                    f"Cannot plot {n_cells} axes in a {nrows} by {ncols} figure."
                 )
 
     width = size * ncols
@@ -1416,7 +1415,7 @@ def _compute_scalings(scalings, inst, remove_dc=False, duration=10):
             time_middle = np.mean(inst.times)
             tmin = np.clip(time_middle - n_secs / 2.0, inst.times.min(), None)
             tmax = np.clip(time_middle + n_secs / 2.0, None, inst.times.max())
-            smin, smax = [int(round(x * inst.info["sfreq"])) for x in (tmin, tmax)]
+            smin, smax = (int(round(x * inst.info["sfreq"])) for x in (tmin, tmax))
             data = inst._read_segment(smin, smax)
         elif isinstance(inst, BaseEpochs):
             # Load a random subset of epochs up to 100mb in size
@@ -1784,15 +1783,7 @@ def _get_color_list(annotations=False):
     from matplotlib import rcParams
 
     color_cycle = rcParams.get("axes.prop_cycle")
-
-    if not color_cycle:
-        # Use deprecated color_cycle to avoid KeyErrors in environments
-        # with Python 2.7 and Matplotlib < 1.5
-        # this will already be a list
-        colors = rcParams.get("axes.color_cycle")
-    else:
-        # we were able to use the prop_cycle. Now just convert to list
-        colors = color_cycle.by_key()["color"]
+    colors = color_cycle.by_key()["color"]
 
     # If we want annotations, red is reserved ... remove if present. This
     # checks for the reddish color in MPL dark background style, normal style,
@@ -2359,9 +2350,8 @@ def _make_combine_callable(combine):
             combine = combine_dict[combine]
         except KeyError:
             raise ValueError(
-                '"combine" must be None, a callable, or one of '
-                '"mean", "median", "std", or "gfp"; got {}'
-                "".format(combine)
+                '"combine" must be None, a callable, or one of "mean", "median", "std",'
+                f' or "gfp"; got {combine}'
             )
     return combine
 
@@ -2369,29 +2359,12 @@ def _make_combine_callable(combine):
 def _convert_psds(
     psds, dB, estimate, scaling, unit, ch_names=None, first_dim="channel"
 ):
-    """Convert PSDs to dB (if necessary) and appropriate units.
-
-    The following table summarizes the relationship between the value of
-    parameters ``dB`` and ``estimate``, and the type of plot and corresponding
-    units.
-
-    | dB    | estimate    | plot | units             |
-    |-------+-------------+------+-------------------|
-    | True  | 'power'     | PSD  | amp**2/Hz (dB)    |
-    | True  | 'amplitude' | ASD  | amp/sqrt(Hz) (dB) |
-    | True  | 'auto'      | PSD  | amp**2/Hz (dB)    |
-    | False | 'power'     | PSD  | amp**2/Hz         |
-    | False | 'amplitude' | ASD  | amp/sqrt(Hz)      |
-    | False | 'auto'      | ASD  | amp/sqrt(Hz)      |
-
-    where amp are the units corresponding to the variable, as specified by
-    ``unit``.
-    """
+    """Convert PSDs to dB (if necessary) and appropriate units."""
     _check_option("first_dim", first_dim, ["channel", "epoch"])
     where = np.where(psds.min(1) <= 0)[0]
     if len(where) > 0:
-        # Construct a helpful error message, depending on whether the first
-        # dimension of `psds` are channels or epochs.
+        # Construct a helpful error message, depending on whether the first dimension of
+        # `psds` corresponds to channels or epochs.
         if dB:
             bad_value = "Infinite"
         else:
@@ -2413,16 +2386,18 @@ def _convert_psds(
     if estimate == "amplitude":
         np.sqrt(psds, out=psds)
         psds *= scaling
-        ylabel = r"$\mathrm{%s/\sqrt{Hz}}$" % unit
+        ylabel = rf"$\mathrm{{{unit}/\sqrt{{Hz}}}}$"
     else:
         psds *= scaling * scaling
         if "/" in unit:
-            unit = "(%s)" % unit
-        ylabel = r"$\mathrm{%s²/Hz}$" % unit
+            unit = f"({unit})"
+        ylabel = rf"$\mathrm{{{unit}²/Hz}}$"
     if dB:
         np.log10(np.maximum(psds, np.finfo(float).tiny), out=psds)
         psds *= 10
-        ylabel += r"$\ \mathrm{(dB)}$"
+        ylabel = r"$\mathrm{dB}\ $" + ylabel
+    ylabel = "Power (" + ylabel if estimate == "power" else "Amplitude (" + ylabel
+    ylabel += ")"
 
     return ylabel
 

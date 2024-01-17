@@ -41,7 +41,7 @@ from mne.time_frequency.tfr import (
 from mne.utils import catch_logging, grand_average
 from mne.viz.utils import _fake_click, _fake_keypress, _fake_scroll
 
-data_path = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
+data_path = Path(__file__).parents[2] / "io" / "tests" / "data"
 raw_fname = data_path / "test_raw.fif"
 event_fname = data_path / "test-eve.fif"
 raw_ctf_fname = data_path / "test_ctf_raw.fif"

@@ -45,12 +45,8 @@ calibrations = mne.preprocessing.eyetracking.read_eyelink_calibration(et_fpath)
 
 mne.preprocessing.eyetracking.interpolate_blinks(raw, interpolate_gaze=True)
 raw.annotations.rename({"dvns": "natural"})  # more intuitive
-event_ids = {"natural": 1}
-events, event_dict = mne.events_from_annotations(raw, event_id=event_ids)
 
-epochs = mne.Epochs(
-    raw, events=events, event_id=event_dict, tmin=0, tmax=20, baseline=None
-)
+epochs = mne.Epochs(raw, event_id=["natural"], tmin=0, tmax=20, baseline=None)
 
 
 # %%

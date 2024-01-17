@@ -35,13 +35,10 @@ from .._fiff.write import (
     write_int_matrix,
     write_string,
 )
-
-# Remove get_mni_fiducials in 1.6 (deprecated)
 from .._freesurfer import (
     _check_mri,
     _get_atlas_values,
     _get_mri_info_data,
-    get_mni_fiducials,  # noqa: F401
     get_volume_labels_from_aseg,
     read_freesurfer_lut,
 )
@@ -289,10 +286,10 @@ class SourceSpaces(list):
     access, like ``src.kind``.
     """  # noqa: E501
 
-    def __init__(self, source_spaces, info=None):  # noqa: D102
+    def __init__(self, source_spaces, info=None):
         # First check the types is actually a valid config
         _validate_type(source_spaces, list, "source_spaces")
-        super(SourceSpaces, self).__init__(source_spaces)  # list
+        super().__init__(source_spaces)  # list
         self.kind  # will raise an error if there is a problem
         if info is None:
             self.info = dict()
@@ -2336,7 +2333,7 @@ def _vol_vertex(width, height, jj, kk, pp):
 
 
 def _src_vol_dims(s):
-    w, h, d = [s[f"mri_{key}"] for key in ("width", "height", "depth")]
+    w, h, d = (s[f"mri_{key}"] for key in ("width", "height", "depth"))
     return w, h, d, np.prod([w, h, d])
 
 
@@ -2411,7 +2408,7 @@ def _grid_interp(from_shape, to_shape, trans, order=1, inuse=None):
     shape = (np.prod(to_shape), np.prod(from_shape))
     if inuse is None:
         inuse = np.ones(shape[1], bool)
-    assert inuse.dtype == bool
+    assert inuse.dtype == np.dtype(bool)
     assert inuse.shape == (shape[1],)
     data, indices, indptr = _grid_interp_jit(from_shape, to_shape, trans, order, inuse)
     data = np.concatenate(data)
@@ -2900,7 +2897,7 @@ def _get_vertex_map_nn(
         subjects_dir / s / "surf" / f"{hemi}.sphere.reg"
         for s in (subject_from, subject_to)
     ]
-    reg_fro, reg_to = [read_surface(r, return_dict=True)[-1] for r in regs]
+    reg_fro, reg_to = (read_surface(r, return_dict=True)[-1] for r in regs)
     if to_neighbor_tri is not None:
         reg_to["neighbor_tri"] = to_neighbor_tri
     if "neighbor_tri" not in reg_to:

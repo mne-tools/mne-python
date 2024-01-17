@@ -285,9 +285,7 @@ brain.show_view("medial")
 
 inds_t, inds_v = [
     (clusters[cluster_ind]) for ii, cluster_ind in enumerate(good_cluster_inds)
-][
-    0
-]  # first cluster
+][0]  # first cluster
 
 times = np.arange(X[0].shape[1]) * tstep * 1e3
 

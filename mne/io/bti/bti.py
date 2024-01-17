@@ -72,7 +72,7 @@ def _instantiate_default_info_chs():
 class _bytes_io_mock_context:
     """Make a context for BytesIO."""
 
-    def __init__(self, target):  # noqa: D102
+    def __init__(self, target):
         self.target = target
 
     def __enter__(self):  # noqa: D105
@@ -138,7 +138,7 @@ def _rename_channels(names, ecg_ch="E31", eog_ch=("E63", "E64")):
         List of names, channel names in Neuromag style
     """
     new = list()
-    ref_mag, ref_grad, eog, eeg, ext = [count(1) for _ in range(5)]
+    ref_mag, ref_grad, eog, eeg, ext = (count(1) for _ in range(5))
     for i, name in enumerate(names, 1):
         if name.startswith("A"):
             name = "MEG %3.3d" % i
@@ -176,7 +176,7 @@ def _read_head_shape(fname):
         dig_points = read_double_matrix(fid, _n_dig_points, 3)
 
     # reorder to lpa, rpa, nasion so = is direct.
-    nasion, lpa, rpa = [idx_points[_, :] for _ in [2, 0, 1]]
+    nasion, lpa, rpa = (idx_points[_, :] for _ in [2, 0, 1])
     hpi = idx_points[3 : len(idx_points), :]
 
     return nasion, lpa, rpa, hpi, dig_points
@@ -1077,7 +1077,7 @@ class RawBTi(BaseRaw):
         eog_ch=("E63", "E64"),
         preload=False,
         verbose=None,
-    ):  # noqa: D102
+    ):
         _validate_type(pdf_fname, ("path-like", BytesIO), "pdf_fname")
         info, bti_info = _get_bti_info(
             pdf_fname=pdf_fname,
@@ -1096,7 +1096,7 @@ class RawBTi(BaseRaw):
         filename = bti_info["pdf"]
         if isinstance(filename, BytesIO):
             filename = repr(filename)
-        super(RawBTi, self).__init__(
+        super().__init__(
             info,
             preload,
             filenames=[filename],
@@ -1435,7 +1435,7 @@ def read_raw_bti(
     eog_ch=("E63", "E64"),
     preload=False,
     verbose=None,
-):
+) -> RawBTi:
     """Raw object from 4D Neuroimaging MagnesWH3600 data.
 
     .. note::

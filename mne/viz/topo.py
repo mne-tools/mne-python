@@ -16,7 +16,7 @@ from scipy import ndimage
 
 from .._fiff.pick import channel_type, pick_types
 from ..defaults import _handle_default
-from ..utils import Bunch, _check_option, _clean_names, _to_rgb, fill_doc
+from ..utils import Bunch, _check_option, _clean_names, _is_numeric, _to_rgb, fill_doc
 from .utils import (
     DraggableColorbar,
     _check_cov,
@@ -631,10 +631,14 @@ def _plot_timeseries(
         else:
             ax.set_ylabel(y_label)
 
-    if vline:
-        plt.axvline(vline, color=hvline_color, linewidth=1.0, linestyle="--")
-    if hline:
-        plt.axhline(hline, color=hvline_color, linewidth=1.0, zorder=10)
+    if vline is not None:
+        vline = [vline] if _is_numeric(vline) else vline
+        for vline_ in vline:
+            plt.axvline(vline_, color=hvline_color, linewidth=1.0, linestyle="--")
+    if hline is not None:
+        hline = [hline] if _is_numeric(hline) else hline
+        for hline_ in hline:
+            plt.axhline(hline_, color=hvline_color, linewidth=1.0, zorder=10)
 
     if colorbar:
         plt.colorbar()
