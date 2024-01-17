@@ -45,10 +45,8 @@
       "settings": {
         "editor.formatOnSave": true,
         "editor.formatOnSaveMode": "file",
-        "editor.formatOnType": true,
         "editor.renderWhitespace": "trailing",
         "[python]": {
-          "editor.formatOnSave": true,
           "editor.codeActionsOnSave": {
             "source.fixAll": true,
             "source.organizeImports": true
