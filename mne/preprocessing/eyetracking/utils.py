@@ -33,7 +33,7 @@ def get_screen_visual_angle(calibration):
     Returns
     -------
     visual angle in radians : ndarray, shape (2,)
-        The visual angle of the monitor width and height, respectively
+        The visual angle of the monitor width and height, respectively.
     """
     _validate_type(calibration, Calibration, "calibration")
     _check_calibration(calibration, want_keys=("screen_size", "screen_distance"))
