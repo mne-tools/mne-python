@@ -226,14 +226,6 @@ class RawNeuralynx(BaseRaw):
         # get the start sample index for each gap segment ()
         gap_start_ids = np.cumsum(np.hstack([[0], sizes_sorted[:-1]]))[gap_indicator]
 
-        # construct Annotations()
-        #gap_seg_ids = np.unique(sample2segment)[gap_indicator]
-        #gap_start_ids = np.array(
-        #    [np.where(sample2segment == seg_id)[0][0] for seg_id in gap_seg_ids]
-        #)
-
-        #assert (gap_start_ids2 == gap_start_ids).all()
-
         # recreate time axis for gap annotations
         mne_times = np.arange(0, len(sample2segment)) / info["sfreq"]
 
