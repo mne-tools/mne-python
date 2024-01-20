@@ -184,7 +184,7 @@ class _Surface:
         else:
             self.curv = None
             self.bin_curv = None
-            color = np.ones((self.coords.shape[0]))
+            color = np.ones(self.coords.shape[0])
         # morphometry (curvature) normalization in order to get gray cortex
         # TODO: delete self.grey_curv after cortex parameter
         # will be fully supported

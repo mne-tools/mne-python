@@ -297,7 +297,7 @@ def test_io_egi_pns_mff(tmp_path):
     egi_fname_mat = testing_path / "EGI" / "test_egi_pns.mat"
     mc = sio.loadmat(egi_fname_mat)
     for ch_name, ch_idx, mat_name in zip(pns_names, pns_chans, mat_names):
-        print("Testing {}".format(ch_name))
+        print(f"Testing {ch_name}")
         mc_key = [x for x in mc.keys() if mat_name in x][0]
         cal = raw.info["chs"][ch_idx]["cal"]
         mat_data = mc[mc_key] * cal
@@ -349,7 +349,7 @@ def test_io_egi_pns_mff_bug(preload):
         "EMGLeg",
     ]
     for ch_name, ch_idx, mat_name in zip(pns_names, pns_chans, mat_names):
-        print("Testing {}".format(ch_name))
+        print(f"Testing {ch_name}")
         mc_key = [x for x in mc.keys() if mat_name in x][0]
         cal = raw.info["chs"][ch_idx]["cal"]
         mat_data = mc[mc_key] * cal

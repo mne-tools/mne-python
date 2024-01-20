@@ -658,8 +658,7 @@ class BaseRaw(
             delta = 0
         elif self.info["meas_date"] is None:
             raise ValueError(
-                'origin must be None when info["meas_date"] '
-                "is None, got %s" % (origin,)
+                f'origin must be None when info["meas_date"] is None, got {origin}'
             )
         else:
             first_samp_in_abs_time = self.info["meas_date"] + timedelta(
@@ -668,7 +667,7 @@ class BaseRaw(
             delta = (origin - first_samp_in_abs_time).total_seconds()
         times = np.atleast_1d(times) + delta
 
-        return super(BaseRaw, self).time_as_index(times, use_rounding)
+        return super().time_as_index(times, use_rounding)
 
     @property
     def _raw_lengths(self):
@@ -2696,7 +2695,7 @@ class _RawFidWriter:
         # we've done something wrong if we hit this
         n_times_max = len(self.raw.times)
         error_msg = (
-            "Can't write raw file with no data: {0} -> {1} (max: {2}) requested"
+            "Can't write raw file with no data: {} -> {} (max: {}) requested"
         ).format(self.start, self.stop, n_times_max)
         if self.start >= self.stop or self.stop > n_times_max:
             raise RuntimeError(error_msg)

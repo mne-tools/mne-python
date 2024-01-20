@@ -1362,7 +1362,7 @@ def _create_testing_brain(
     rng = np.random.RandomState(0)
     vertices = [s["vertno"] for s in sample_src]
     n_verts = sum(len(v) for v in vertices)
-    stc_data = np.zeros((n_verts * n_time))
+    stc_data = np.zeros(n_verts * n_time)
     stc_size = stc_data.size
     stc_data[(rng.rand(stc_size // 20) * stc_size).astype(int)] = rng.rand(
         stc_data.size // 20

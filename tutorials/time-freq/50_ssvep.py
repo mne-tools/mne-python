@@ -422,13 +422,13 @@ fig, ax = plt.subplots(1)
 mne.viz.plot_topomap(snrs_12hz_chaverage, epochs.info, vlim=(1, None), axes=ax)
 
 print("sub 2, 12 Hz trials, SNR at 12 Hz")
-print("average SNR (all channels): %f" % snrs_12hz_chaverage.mean())
-print("average SNR (occipital ROI): %f" % snrs_target.mean())
+print(f"average SNR (all channels): {snrs_12hz_chaverage.mean()}")
+print(f"average SNR (occipital ROI): {snrs_target.mean()}")
 
 tstat_roi_vs_scalp = ttest_rel(snrs_target.mean(axis=1), snrs_12hz.mean(axis=1))
 print(
-    "12 Hz SNR in occipital ROI is significantly larger than 12 Hz SNR over "
-    "all channels: t = %.3f, p = %f" % tstat_roi_vs_scalp
+    "12 Hz SNR in occipital ROI is significantly larger than 12 Hz SNR over all "
+    f"channels: t = {tstat_roi_vs_scalp[0]:.3f}, p = {tstat_roi_vs_scalp[1]}"
 )
 
 ##############################################################################
@@ -520,24 +520,24 @@ tstat_12hz_trial_stim = ttest_rel(
     res["stim_12hz_snrs_12hz"], res["stim_12hz_snrs_15hz"]
 )
 print(
-    "12 Hz Trials: 12 Hz SNR is significantly higher than 15 Hz SNR"
-    ": t = %.3f, p = %f" % tstat_12hz_trial_stim
+    "12 Hz Trials: 12 Hz SNR is significantly higher than 15 Hz SNR: t = "
+    f"{tstat_12hz_trial_stim[0]:.3f}, p = {tstat_12hz_trial_stim[1]}"
 )
 
 tstat_12hz_trial_1st_harmonic = ttest_rel(
     res["stim_12hz_snrs_24hz"], res["stim_12hz_snrs_30hz"]
 )
 print(
-    "12 Hz Trials: 24 Hz SNR is significantly higher than 30 Hz SNR"
-    ": t = %.3f, p = %f" % tstat_12hz_trial_1st_harmonic
+    "12 Hz Trials: 24 Hz SNR is significantly higher than 30 Hz SNR: t = "
+    f"{tstat_12hz_trial_1st_harmonic[0]:.3f}, p = {tstat_12hz_trial_1st_harmonic[1]}"
 )
 
 tstat_12hz_trial_2nd_harmonic = ttest_rel(
     res["stim_12hz_snrs_36hz"], res["stim_12hz_snrs_45hz"]
 )
 print(
-    "12 Hz Trials: 36 Hz SNR is significantly higher than 45 Hz SNR"
-    ": t = %.3f, p = %f" % tstat_12hz_trial_2nd_harmonic
+    "12 Hz Trials: 36 Hz SNR is significantly higher than 45 Hz SNR: t = "
+    f"{tstat_12hz_trial_2nd_harmonic[0]:.3f}, p = {tstat_12hz_trial_2nd_harmonic[1]}"
 )
 
 print()
@@ -545,24 +545,24 @@ tstat_15hz_trial_stim = ttest_rel(
     res["stim_15hz_snrs_12hz"], res["stim_15hz_snrs_15hz"]
 )
 print(
-    "15 Hz trials: 12 Hz SNR is significantly lower than 15 Hz SNR"
-    ": t = %.3f, p = %f" % tstat_15hz_trial_stim
+    "15 Hz trials: 12 Hz SNR is significantly lower than 15 Hz SNR: t = "
+    f"{tstat_15hz_trial_stim[0]:.3f}, p = {tstat_15hz_trial_stim[1]}"
 )
 
 tstat_15hz_trial_1st_harmonic = ttest_rel(
     res["stim_15hz_snrs_24hz"], res["stim_15hz_snrs_30hz"]
 )
 print(
-    "15 Hz trials: 24 Hz SNR is significantly lower than 30 Hz SNR"
-    ": t = %.3f, p = %f" % tstat_15hz_trial_1st_harmonic
+    "15 Hz trials: 24 Hz SNR is significantly lower than 30 Hz SNR: t = "
+    f"{tstat_15hz_trial_1st_harmonic[0]:.3f}, p = {tstat_15hz_trial_1st_harmonic[1]}"
 )
 
 tstat_15hz_trial_2nd_harmonic = ttest_rel(
     res["stim_15hz_snrs_36hz"], res["stim_15hz_snrs_45hz"]
 )
 print(
-    "15 Hz trials: 36 Hz SNR is significantly lower than 45 Hz SNR"
-    ": t = %.3f, p = %f" % tstat_15hz_trial_2nd_harmonic
+    "15 Hz trials: 36 Hz SNR is significantly lower than 45 Hz SNR: t = "
+    f"{tstat_15hz_trial_2nd_harmonic[0]:.3f}, p = {tstat_15hz_trial_2nd_harmonic[1]}"
 )
 
 ##############################################################################

@@ -1145,7 +1145,7 @@ def _check_fun(X, stat_fun, threshold, tail=0, kind="within"):
             threshold = -tstat.ppf(p_thresh, n_samples - 1)
             if np.sign(tail) < 0:
                 threshold = -threshold
-            logger.info("Using a threshold of {:.6f}".format(threshold))
+            logger.info(f"Using a threshold of {threshold:.6f}")
         stat_fun = ttest_1samp_no_p if stat_fun is None else stat_fun
     else:
         assert kind == "between"
@@ -1161,7 +1161,7 @@ def _check_fun(X, stat_fun, threshold, tail=0, kind="within"):
             dfn = len(X) - 1
             dfd = np.sum([len(x) for x in X]) - len(X)
             threshold = fstat.ppf(1.0 - p_thresh, dfn, dfd)
-            logger.info("Using a threshold of {:.6f}".format(threshold))
+            logger.info(f"Using a threshold of {threshold:.6f}")
         stat_fun = f_oneway if stat_fun is None else stat_fun
     return stat_fun, threshold
 

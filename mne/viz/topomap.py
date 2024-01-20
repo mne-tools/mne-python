@@ -1250,9 +1250,9 @@ def _plot_topomap(
     )
     if pos.ndim != 2:
         error = (
-            "{ndim}D array supplied as electrode positions, where a 2D "
-            "array was expected"
-        ).format(ndim=pos.ndim)
+            f"{pos.ndim}D array supplied as electrode positions, where a 2D array was "
+            "expected"
+        )
         raise ValueError(error + " " + pos_help)
     elif pos.shape[1] == 3:
         error = (
@@ -3450,10 +3450,10 @@ def _plot_corrmap(
 
     for ii, data_, ax, subject, idx in zip(picks, data, axes, subjs, indices):
         if template:
-            ttl = "Subj. {}, {}".format(subject, ica._ica_names[idx])
+            ttl = f"Subj. {subject}, {ica._ica_names[idx]}"
             ax.set_title(ttl, fontsize=12)
         else:
-            ax.set_title("Subj. {}".format(subject))
+            ax.set_title(f"Subj. {subject}")
         if merge_channels:
             data_, _ = _merge_ch_data(data_, ch_type, [])
         _vlim = _setup_vmin_vmax(data_, None, None)

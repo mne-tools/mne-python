@@ -7,7 +7,7 @@ INSTALL_ARGS="-e"
 INSTALL_KIND="test_extra,hdf5"
 if [ ! -z "$CONDA_ENV" ]; then
 	echo "Uninstalling MNE for CONDA_ENV=${CONDA_ENV}"
-	conda remove -c conda-forge --force -yq mne
+	conda remove -c conda-forge --force -yq mne-base
 	python -m pip uninstall -y mne
 	if [[ "${RUNNER_OS}" != "Windows" ]]; then
 		INSTALL_ARGS=""
@@ -44,7 +44,7 @@ else
 	pip install $STD_ARGS --only-binary ":all:" --extra-index-url "https://wheels.vtk.org" vtk
 	python -c "import vtk"
 	echo "PyVista"
-	pip install $STD_ARGS git+https://github.com/pyvista/pyvista
+	pip install $STD_ARGS git+https://github.com/drammock/pyvista@numpy-2-compat
 	echo "pyvistaqt"
 	pip install $STD_ARGS git+https://github.com/pyvista/pyvistaqt
 	echo "imageio-ffmpeg, xlrd, mffpy"

@@ -134,24 +134,24 @@ class ReceptiveField(BaseEstimator):
         return {"no_validation": True}
 
     def __repr__(self):  # noqa: D105
-        s = "tmin, tmax : (%.3f, %.3f), " % (self.tmin, self.tmax)
+        s = f"tmin, tmax : ({self.tmin:.3f}, {self.tmax:.3f}), "
         estimator = self.estimator
         if not isinstance(estimator, str):
             estimator = type(self.estimator)
-        s += "estimator : %s, " % (estimator,)
+        s += f"estimator : {estimator}, "
         if hasattr(self, "coef_"):
             if self.feature_names is not None:
                 feats = self.feature_names
                 if len(feats) == 1:
-                    s += "feature: %s, " % feats[0]
+                    s += f"feature: {feats[0]}, "
                 else:
-                    s += "features : [%s, ..., %s], " % (feats[0], feats[-1])
+                    s += f"features : [{feats[0]}, ..., {feats[-1]}], "
             s += "fit: True"
         else:
             s += "fit: False"
         if hasattr(self, "scores_"):
-            s += "scored (%s)" % self.scoring
-        return "<ReceptiveField | %s>" % s
+            s += f"scored ({self.scoring})"
+        return f"<ReceptiveField | {s}>"
 
     def _delay_and_reshape(self, X, y=None):
         """Delay and reshape the variables."""
@@ -187,17 +187,14 @@ class ReceptiveField(BaseEstimator):
         """
         if self.scoring not in _SCORERS.keys():
             raise ValueError(
-                "scoring must be one of %s, got"
-                "%s " % (sorted(_SCORERS.keys()), self.scoring)
+                f"scoring must be one of {sorted(_SCORERS.keys())}, got {self.scoring} "
             )
         from sklearn.base import clone, is_regressor
 
         X, y, _, self._y_dim = self._check_dimensions(X, y)
 
         if self.tmin > self.tmax:
-            raise ValueError(
-                "tmin (%s) must be at most tmax (%s)" % (self.tmin, self.tmax)
-            )
+            raise ValueError(f"tmin ({self.tmin}) must be at most tmax ({self.tmax})")
         # Initialize delays
         self.delays_ = _times_to_delays(self.tmin, self.tmax, self.sfreq)
 
@@ -225,17 +222,16 @@ class ReceptiveField(BaseEstimator):
                 and estimator.fit_intercept != self.fit_intercept
             ):
                 raise ValueError(
-                    "Estimator fit_intercept (%s) != initialization "
-                    "fit_intercept (%s), initialize ReceptiveField with the "
-                    "same fit_intercept value or use fit_intercept=None"
-                    % (estimator.fit_intercept, self.fit_intercept)
+                    f"Estimator fit_intercept ({estimator.fit_intercept}) != "
+                    f"initialization fit_intercept ({self.fit_intercept}), initialize "
+                    "ReceptiveField with the same fit_intercept value or use "
+                    "fit_intercept=None"
                 )
             self.fit_intercept_ = estimator.fit_intercept
         else:
             raise ValueError(
-                "`estimator` must be a float or an instance"
-                " of `BaseEstimator`,"
-                " got type %s." % type(self.estimator)
+                "`estimator` must be a float or an instance of `BaseEstimator`, got "
+                f"type {self.estimator}."
             )
         self.estimator_ = estimator
         del estimator
@@ -249,8 +245,8 @@ class ReceptiveField(BaseEstimator):
         # Update feature names if we have none
         if (self.feature_names is not None) and (len(self.feature_names) != n_feats):
             raise ValueError(
-                "n_features in X does not match feature names "
-                "(%s != %s)" % (n_feats, len(self.feature_names))
+                f"n_features in X does not match feature names ({n_feats} != "
+                f"{len(self.feature_names)})"
             )
 
         # Create input features
@@ -377,8 +373,8 @@ class ReceptiveField(BaseEstimator):
                     y = y[:, np.newaxis, :]  # epochs
                 else:
                     raise ValueError(
-                        "y must be shape (n_times[, n_epochs]"
-                        "[,n_outputs], got %s" % (y.shape,)
+                        "y must be shape (n_times[, n_epochs][,n_outputs], got "
+                        f"{y.shape}"
                     )
         elif X.ndim == 3:
             if y is not None:
@@ -390,24 +386,22 @@ class ReceptiveField(BaseEstimator):
                     )
         else:
             raise ValueError(
-                "X must be shape (n_times[, n_epochs],"
-                " n_features), got %s" % (X.shape,)
+                f"X must be shape (n_times[, n_epochs], n_features), got {X.shape}"
             )
         if y is not None:
             if X.shape[0] != y.shape[0]:
                 raise ValueError(
-                    "X and y do not have the same n_times\n"
-                    "%s != %s" % (X.shape[0], y.shape[0])
+                    f"X and y do not have the same n_times\n{X.shape[0]} != "
+                    f"{y.shape[0]}"
                 )
             if X.shape[1] != y.shape[1]:
                 raise ValueError(
-                    "X and y do not have the same n_epochs\n"
-                    "%s != %s" % (X.shape[1], y.shape[1])
+                    f"X and y do not have the same n_epochs\n{X.shape[1]} != "
+                    f"{y.shape[1]}"
                 )
             if predict and y.shape[-1] != len(self.estimator_.coef_):
                 raise ValueError(
-                    "Number of outputs does not match"
-                    " estimator coefficients dimensions"
+                    "Number of outputs does not match estimator coefficients dimensions"
                 )
         return X, y, X_dim, y_dim
 
@@ -517,7 +511,7 @@ def _corr_score(y_true, y, multioutput=None):
     for this_y in (y_true, y):
         if this_y.ndim != 2:
             raise ValueError(
-                "inputs must be shape (samples, outputs), got %s" % (this_y.shape,)
+                f"inputs must be shape (samples, outputs), got {this_y.shape}"
             )
     return np.array([pearsonr(y_true[:, ii], y[:, ii])[0] for ii in range(y.shape[-1])])
 

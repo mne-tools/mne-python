@@ -253,7 +253,7 @@ def run():
     ch_name = options.ch_name
 
     if bad_fname is not None:
-        with open(bad_fname, "r") as fid:
+        with open(bad_fname) as fid:
             bads = [w.rstrip() for w in fid.readlines()]
         print("Bad channels read : %s" % bads)
     else:

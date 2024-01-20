@@ -87,12 +87,12 @@ class RawEximia(BaseRaw):
         n_samples, extra = divmod(n_bytes, (n_chan * 2))
         if extra != 0:
             warn(
-                "Incorrect number of samples in file (%s), the file is "
-                "likely truncated" % (n_samples,)
+                f"Incorrect number of samples in file ({n_samples}), the file is likely"
+                " truncated"
             )
         for ch, cal in zip(info["chs"], cals):
             ch["cal"] = cal
-        super(RawEximia, self).__init__(
+        super().__init__(
             info,
             preload=preload,
             last_samps=(n_samples - 1,),

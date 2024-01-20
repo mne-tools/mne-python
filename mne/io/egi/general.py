@@ -151,7 +151,7 @@ def _get_signalfname(filepath):
         elif len(infobj.getElementsByTagName("PNSData")):
             signal_type = "PNS"
         all_files[signal_type] = {
-            "signal": "signal{}.bin".format(bin_num_str),
+            "signal": f"signal{bin_num_str}.bin",
             "info": infofile,
         }
     if "EEG" not in all_files:

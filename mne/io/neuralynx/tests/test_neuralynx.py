@@ -2,7 +2,6 @@
 # Copyright the MNE-Python contributors.
 import os
 from ast import literal_eval
-from typing import Dict
 
 import numpy as np
 import pytest
@@ -18,7 +17,7 @@ testing_path = data_path(download=False) / "neuralynx"
 pytest.importorskip("neo")
 
 
-def _nlxheader_to_dict(matdict: Dict) -> Dict:
+def _nlxheader_to_dict(matdict: dict) -> dict:
     """Convert the read-in "Header" field into a dict.
 
     All the key-value pairs of Header entries are formatted as strings
@@ -220,3 +219,14 @@ def test_neuralynx_gaps():
     assert_allclose(
         mne_y, mat_y, rtol=1e-6, err_msg="MNE and Nlx2MatCSC.m not all close"
     )
+
+    # test that channel selection works
+    raw = read_raw_neuralynx(
+        fname=testing_path,
+        preload=False,
+        exclude_fname_patterns=ignored_ncs_files,
+    )
+
+    raw.pick("LAHC2")
+    assert raw.ch_names == ["LAHC2"]
+    raw.load_data()  # before gh-12357 this would fail
