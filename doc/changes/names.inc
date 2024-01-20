@@ -66,9 +66,9 @@
 
 .. _Britta Westner: https://britta-wstnr.github.io
 
-.. _Balasubramanian T K: https://github.com/btkcodedev
-
 .. _Bruno Nicenboim: https://bnicenboim.github.io
+
+.. _btkcodedev: https://github.com/btkcodedev
 
 .. _buildqa: https://github.com/buildqa
 
