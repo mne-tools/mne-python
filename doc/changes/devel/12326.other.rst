@@ -1,1 +1,1 @@
-Updated preprocessing tutorial for using inst.pick() instead of pick_types() entries, by `btkcodedev`_.
+Updated the text in the preprocessing tutorial to use :class:`mne.io.Raw.pick()` instead of the legacy :class:`mne.io.Raw.pick_types()`, by :newcontrib:`btkcodedev`.
