@@ -77,6 +77,7 @@ def _interpolate_blinks(raw, buffer, blink_annots, interpolate_gaze):
     logger.info("Interpolating missing data during blinks...")
     pre_buffer, post_buffer = buffer
     # iterate over each eyetrack channel and interpolate the blinks
+    interpolated_chs = []
     for ci, ch_info in enumerate(raw.info["chs"]):
         if interpolate_gaze:  # interpolate over all eyetrack channels
             if ch_info["kind"] != FIFF.FIFFV_EYETRACK_CH:
@@ -106,4 +107,12 @@ def _interpolate_blinks(raw, buffer, blink_annots, interpolate_gaze):
             raw._data[ci, non_blink_indices],
         )
         # Replace the samples at the blink_indices with the interpolated values
+        assert len(blink_indices)
         raw._data[ci, blink_indices] = interpolated_samples
+        interpolated_chs.append(ch_info["ch_name"])
+    if interpolated_chs:
+        logger.info(
+            f"Interpolated {len(interpolated_chs)} channels: {interpolated_chs}"
+        )
+    else:
+        warn("No channels were interpolated.")

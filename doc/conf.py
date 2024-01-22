@@ -691,11 +691,7 @@ def append_attr_meth_examples(app, what, name, obj, options, lines):
 
 .. minigallery:: {1}
 
-""".format(
-                name.split(".")[-1], name
-            ).split(
-                "\n"
-            )
+""".format(name.split(".")[-1], name).split("\n")
 
 
 # -- Other extension configuration -------------------------------------------

@@ -48,7 +48,7 @@ repos:
       - id: rstcheck
         additional_dependencies:
           - tomli
-        files: ^doc/.*\.(rst|inc)$
+        files: ^mne/|^doc/
 
   # mypy
   - repo: https://github.com/pre-commit/mirrors-mypy

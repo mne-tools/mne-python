@@ -175,6 +175,12 @@ def _convert_deg_to_rad(array):
 def convert_units(inst, calibration, to="radians"):
     """Convert Eyegaze data from pixels to radians of visual angle or vice versa.
 
+    .. warning::
+        Currently, depending on the units (pixels or radians), eyegaze channels may not
+        be reported correctly in visualization functions like :meth:`mne.io.Raw.plot`.
+        They will be shown  correctly in :func:`mne.viz.eyetracking.plot_gaze`.
+        See :gh:`11879` for more information.
+
     Parameters
     ----------
     inst : instance of Raw, Epochs, or Evoked
@@ -193,6 +199,21 @@ def convert_units(inst, calibration, to="radians"):
 
     Notes
     -----
+    .. Important:: There are important considerations to keep in mind when using this
+                   function:
+
+                   * Converting between on-screen pixels and visual angle is not a
+                     linear transformation. If the visual angle subtends less than
+                     approximately ``.44`` radians (``25`` degrees), the conversion
+                     could be considered to be approximately linear. However, as the
+                     visual angle increases, the conversion becomes increasingly
+                     non-linear. This may lead to unexpected results after converting
+                     between pixels and visual angle.
+
+                   * This function assumes that the head is fixed in place and aligned
+                     with the center of the screen, such that gaze to the center of the
+                     screen results in a visual angle of ``0`` radians.
+
     .. versionadded:: 1.7
     """
     _validate_type(inst, (BaseRaw, BaseEpochs, Evoked), "inst")
@@ -231,7 +252,7 @@ def convert_units(inst, calibration, to="radians"):
                         f" Got {unit} for {name}"
                     )
                 inst.apply_function(
-                    _pix_to_rad_1d, picks=name, size=size, res=res, dist=dist
+                    _pix_to_rad, picks=name, size=size, res=res, dist=dist
                 )
                 ch_dict["unit"] = FIFF.FIFF_UNIT_RAD
             elif to == "pixels":
@@ -241,18 +262,31 @@ def convert_units(inst, calibration, to="radians"):
                         f" Got {unit} for {name}"
                     )
                 inst.apply_function(
-                    _rad_to_pix_1d, picks=name, size=size, res=res, dist=dist
+                    _rad_to_pix, picks=name, size=size, res=res, dist=dist
                 )
                 ch_dict["unit"] = FIFF.FIFF_UNIT_PX
             converted_chs.append(name)
     if converted_chs:
         logger.info(f"Converted {converted_chs} to {to}.")
+        if to == "radians":
+            # check if any values are greaater than .44 radians
+            # (25 degrees) and warn user
+            data = inst.get_data(picks=converted_chs)
+            if np.any(np.abs(data) > 0.52):
+                warn(
+                    "Some visual angle values subtend greater than .52 radians "
+                    "(30 degrees), meaning that the conversion between pixels "
+                    "and visual angle may be very non-linear. Take caution when "
+                    "interpreting these values. Max visual angle value in data:"
+                    f" {np.round(np.nanmax(data), 2)} radians.",
+                    UserWarning,
+                )
     else:
         warn("Could not find any eyegaze channels. Doing nothing.", UserWarning)
     return inst
 
 
-def _pix_to_rad_1d(data, size, res, dist):
+def _pix_to_rad(data, size, res, dist):
     """Convert pixel coordinates to radians of visual angle.
 
     Parameters
@@ -279,19 +313,10 @@ def _pix_to_rad_1d(data, size, res, dist):
     return np.arctan((data * px_size) / dist)
 
 
-def _rad_to_pix_1d(data, size, res, dist):
+def _rad_to_pix(data, size, res, dist):
     """Convert radians of visual angle to pixel coordinates.
 
-    Parameters
-    ----------
-    data : array-like, shape (n_samples)
-        A vector of pixel coordinates.
-    size : float
-        The length or width of the screen, in meters.
-    res : int
-        The screen resolution in pixels, along the x or y axis.
-    dist : float
-        The viewing distance from the screen, in meters.
+    See the parameters section of _pix_to_rad for more information.
 
     Returns
     -------
