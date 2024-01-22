@@ -204,7 +204,7 @@ builtin = "clear,rare,informal,names,usage"
 skip = "doc/references.bib"
 
 [tool.ruff]
-select = ["E", "F", "W", "D", "I", "UP"]
+select = ["A", "B006", "D", "E", "F", "I", "W", "UP"]
 exclude = ["__init__.py", "constants.py", "resources.py"]
 ignore = [
     "D100", # Missing docstring in public module

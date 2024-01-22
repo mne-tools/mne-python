@@ -254,18 +254,18 @@ def test_one_channel_elec_bug(version):
 @pytest.mark.filterwarnings("ignore:.*number of bytes.*:RuntimeWarning")
 @pytest.mark.parametrize("version", all_versions)
 @pytest.mark.parametrize("type", ["averaged", "epoched", "raw"])
-def test_throw_exception_on_cellarray(version, type):
+def test_throw_exception_on_cellarray(version, type_):
     """Test for a meaningful exception when the data is a cell array."""
-    fname = get_data_paths("cellarray") / f"{type}_{version}.mat"
+    fname = get_data_paths("cellarray") / f"{type_}_{version}.mat"
     info = get_raw_info("CNT")
     with pytest.raises(
         RuntimeError, match="Loading of data in cell arrays " "is not supported"
     ):
-        if type == "averaged":
+        if type_ == "averaged":
             mne.read_evoked_fieldtrip(fname, info)
-        elif type == "epoched":
+        elif type_ == "epoched":
             mne.read_epochs_fieldtrip(fname, info)
-        elif type == "raw":
+        elif type_ == "raw":
             mne.io.read_raw_fieldtrip(fname, info)
 
 

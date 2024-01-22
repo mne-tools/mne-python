@@ -211,9 +211,9 @@ def _infer_check_export_fmt(fmt, fname, supported_formats):
 
     if fmt not in supported_formats:
         supported = []
-        for format, extensions in supported_formats.items():
+        for fmt, extensions in supported_formats.items():
             ext_str = ", ".join(f"*.{ext}" for ext in extensions)
-            supported.append(f"{format} ({ext_str})")
+            supported.append(f"{fmt} ({ext_str})")
 
         supported_str = ", ".join(supported)
         raise ValueError(
