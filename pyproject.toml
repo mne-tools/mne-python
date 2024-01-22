@@ -72,6 +72,7 @@ full = [
     "numba",
     "h5py",
     "pandas",
+    "pyarrow",  # only needed to avoid a deprecation warning in pandas
     "numexpr",
     "jupyter",
     "python-picard",
