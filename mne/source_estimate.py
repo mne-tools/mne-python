@@ -2476,7 +2476,7 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
         src,
         dest="mri",
         mri_resolution=False,
-        format="nifti1",
+        format="nifti1",  # noqa: A002
         *,
         overwrite=False,
         verbose=None,
@@ -2525,7 +2525,13 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
         )
         nib.save(img, fname)
 
-    def as_volume(self, src, dest="mri", mri_resolution=False, format="nifti1"):
+    def as_volume(
+        self,
+        src,
+        dest="mri",
+        mri_resolution=False,
+        format="nifti1",  # noqa: A002
+    ):
         """Export volume source estimate as a nifti object.
 
         Parameters

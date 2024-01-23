@@ -78,7 +78,7 @@ class _bytes_io_mock_context:
     def __enter__(self):  # noqa: D105
         return self.target
 
-    def __exit__(self, type, value, tb):  # noqa: D105
+    def __exit__(self, exception_type, value, tb):  # noqa: D105
         pass
 
 

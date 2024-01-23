@@ -1136,7 +1136,7 @@ class _AbstractDock(ABC):
         desc,
         func,
         *,
-        filter=None,
+        filter_=None,
         initial_directory=None,
         save=False,
         is_directory=False,
@@ -1209,7 +1209,7 @@ class _AbstractDialog(ABC):
         callback,
         *,
         icon="Warning",
-        buttons=[],
+        buttons=(),
         modal=True,
         window=None,
     ):
