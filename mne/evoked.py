@@ -942,7 +942,8 @@ class Evoked(
             If True, return also the amplitude at the maximum response.
         strict : bool
             If True, raise an error if values are all positive when detecting
-            a minimum, or all negative when detecting a maximum.
+            a minimum (mode='neg'), or all negative when detecting a maximum
+            (mode='pos'). Defaults to True.
 
             .. versionadded:: 0.16
 
@@ -1976,7 +1977,8 @@ def _get_peak(data, times, tmin=None, tmax=None, mode="abs", strict=True):
         Defaults to 'abs'.
     strict : bool
         If True, raise an error if values are all positive when detecting
-        a minimum, or all negative when detecting a maximum.
+        a minimum (mode='neg'), or all negative when detecting a maximum
+        (mode='pos'). Defaults to True.
     Returns
     -------
     max_loc : int
