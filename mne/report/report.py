@@ -2998,7 +2998,7 @@ class Report:
         """Do nothing when entering the context block."""
         return self
 
-    def __exit__(self, type, value, traceback):
+    def __exit__(self, exception_type, value, traceback):
         """Save the report when leaving the context block."""
         if self.fname is not None:
             self.save(self.fname, open_browser=False, overwrite=True)

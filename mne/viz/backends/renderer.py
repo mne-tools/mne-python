@@ -391,7 +391,7 @@ class _TimeInteraction:
         current_time_func,
         times,
         init_playback_speed=0.01,
-        playback_speed_range=[0.01, 0.1],
+        playback_speed_range=(0.01, 0.1),
     ):
         from ..ui_events import (
             PlaybackSpeed,

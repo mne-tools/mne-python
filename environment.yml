@@ -6,6 +6,7 @@ dependencies:
   - pip
   - numpy
   - scipy
+  - openblas!=0.3.26  # until https://github.com/conda-forge/scipy-feedstock/pull/268 lands
   - matplotlib
   - tqdm
   - pooch>=1.5
@@ -14,6 +15,7 @@ dependencies:
   - packaging
   - numba
   - pandas
+  - pyarrow
   - xlrd
   - scikit-learn
   - h5py
