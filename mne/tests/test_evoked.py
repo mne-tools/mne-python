@@ -598,12 +598,12 @@ def test_get_peak():
     evoked_all_pos_outlier.data[0, 15] = 1e-20
 
     ch_name, time_idx, max_amp = evoked_all_neg_outlier.get_peak(
-        mode="max", return_amplitude=True
+        mode="pos", return_amplitude=True, strict=False
     )
     assert_equal(max_amp, -1e-20)
 
     ch_name, time_idx, min_amp = evoked_all_pos_outlier.get_peak(
-        mode="min", return_amplitude=True
+        mode="neg", return_amplitude=True, strict=False
     )
     assert_equal(min_amp, 1e-20)
 

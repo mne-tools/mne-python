@@ -914,6 +914,7 @@ class Evoked(
         time_as_index=False,
         merge_grads=False,
         return_amplitude=False,
+        strict=True,
     ):
         """Get location and latency of peak amplitude.
 
@@ -939,6 +940,9 @@ class Evoked(
             If True, compute peak from merged gradiometer data.
         return_amplitude : bool
             If True, return also the amplitude at the maximum response.
+        strict : bool
+            If True, raise an error if values are all positive when detecting
+            a minimum, or all negative when detecting a maximum.
 
             .. versionadded:: 0.16
 
@@ -1032,7 +1036,7 @@ class Evoked(
             data, _ = _merge_ch_data(data, ch_type, [])
             ch_names = [ch_name[:-1] + "X" for ch_name in ch_names[::2]]
 
-        ch_idx, time_idx, max_amp = _get_peak(data, self.times, tmin, tmax, mode)
+        ch_idx, time_idx, max_amp = _get_peak(data, self.times, tmin, tmax, mode, strict)
 
         out = (ch_names[ch_idx], time_idx if time_as_index else self.times[time_idx])
 
@@ -1949,7 +1953,7 @@ def _write_evokeds(fname, evoked, check=True, *, on_mismatch="raise", overwrite=
         end_block(fid, FIFF.FIFFB_MEAS)
 
 
-def _get_peak(data, times, tmin=None, tmax=None, mode="abs"):
+def _get_peak(data, times, tmin=None, tmax=None, mode="abs", strict=True):
     """Get feature-index and time of maximum signal from 2D array.
 
     Note. This is a 'getter', not a 'finder'. For non-evoked type
@@ -1965,14 +1969,14 @@ def _get_peak(data, times, tmin=None, tmax=None, mode="abs"):
         The minimum point in time to be considered for peak getting.
     tmax : float | None
         The maximum point in time to be considered for peak getting.
-    mode : {'pos', 'neg', 'abs', 'min', 'max'}
+    mode : {'pos', 'neg', 'abs'}
         How to deal with the sign of the data. If 'pos' only positive
         values will be considered. If 'neg' only negative values will
         be considered. If 'abs' absolute values will be considered.
-        If 'min' the smallest value will be returned. If 'max'
-        the largest value will be returned.
         Defaults to 'abs'.
-
+    strict : bool
+        If True, raise an error if values are all positive when detecting
+        a minimum, or all negative when detecting a maximum.
     Returns
     -------
     max_loc : int
@@ -1982,7 +1986,7 @@ def _get_peak(data, times, tmin=None, tmax=None, mode="abs"):
     max_amp : float
         Amplitude of the maximum response.
     """
-    _check_option("mode", mode, ["abs", "neg", "pos", "min", "max"])
+    _check_option("mode", mode, ["abs", "neg", "pos"])
 
     if tmin is None:
         tmin = times[0]
@@ -2010,17 +2014,17 @@ def _get_peak(data, times, tmin=None, tmax=None, mode="abs"):
 
     maxfun = np.argmax
     if mode == "pos":
-        if not np.any(data[~mask] > 0):
-            raise ValueError(
-                "No positive values encountered. Cannot " "operate in pos mode."
-            )
+        if strict:
+            if not np.any(data[~mask] > 0):
+                raise ValueError(
+                    "No positive values encountered. Cannot " "operate in pos mode."
+                )
     elif mode == "neg":
-        if not np.any(data[~mask] < 0):
-            raise ValueError(
-                "No negative values encountered. Cannot " "operate in neg mode."
-            )
-        maxfun = np.argmin
-    if mode == "min":
+        if strict:
+            if not np.any(data[~mask] < 0):
+                raise ValueError(
+                    "No negative values encountered. Cannot " "operate in neg mode."
+                )
         maxfun = np.argmin
 
     masked_index = np.ma.array(np.abs(data) if mode == "abs" else data, mask=mask)
