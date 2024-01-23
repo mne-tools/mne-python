@@ -1344,6 +1344,10 @@ def reset_warnings(gallery_conf, fname):
         r"ast\.NameConstant is deprecated and will be removed in Python 3\.14",
         # pooch
         r"Python 3\.14 will, by default, filter extracted tar archives.*",
+        # seaborn
+        r"DataFrameGroupBy\.apply operated on the grouping columns.*",
+        # pandas
+        r"\nPyarrow will become a required dependency of pandas.*",
     ):
         warnings.filterwarnings(  # deal with other modules having bad imports
             "ignore", message=".*%s.*" % key, category=DeprecationWarning

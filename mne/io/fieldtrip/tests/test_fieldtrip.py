@@ -253,7 +253,7 @@ def test_one_channel_elec_bug(version):
 @pytest.mark.filterwarnings("ignore:.*parse meas date.*:RuntimeWarning")
 @pytest.mark.filterwarnings("ignore:.*number of bytes.*:RuntimeWarning")
 @pytest.mark.parametrize("version", all_versions)
-@pytest.mark.parametrize("type", ["averaged", "epoched", "raw"])
+@pytest.mark.parametrize("type_", ["averaged", "epoched", "raw"])
 def test_throw_exception_on_cellarray(version, type_):
     """Test for a meaningful exception when the data is a cell array."""
     fname = get_data_paths("cellarray") / f"{type_}_{version}.mat"
