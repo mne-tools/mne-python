@@ -2047,11 +2047,12 @@ def _make_volume_source_space(
     volume_labels=None,
     do_neighbors=True,
     n_jobs=None,
-    vol_info={},
+    vol_info=None,
     single_volume=False,
 ):
     """Make a source space which covers the volume bounded by surf."""
     # Figure out the grid size in the MRI coordinate frame
+    vol_info = {} if vol_info is None else vol_info
     if "rr" in surf:
         mins = np.min(surf["rr"], axis=0)
         maxs = np.max(surf["rr"], axis=0)

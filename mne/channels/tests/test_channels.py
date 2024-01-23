@@ -438,8 +438,8 @@ def test_1020_selection():
     raw = raw.rename_channels(dict(zip(raw.ch_names, montage.ch_names)))
     raw.set_montage(montage)
 
-    for input in ("a_string", 100, raw, [1, 2]):
-        pytest.raises(TypeError, make_1020_channel_selections, input)
+    for input_ in ("a_string", 100, raw, [1, 2]):
+        pytest.raises(TypeError, make_1020_channel_selections, input_)
 
     sels = make_1020_channel_selections(raw.info)
     # are all frontal channels placed before all occipital channels?

@@ -56,13 +56,13 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            python: '3.10'
-            kind: conda
-          - os: ubuntu-latest
             python: '3.11'
             kind: pip-pre
+          - os: ubuntu-latest
+            python: '3.12'
+            kind: conda
           - os: macos-latest
-            python: '3.9'
+            python: '3.11'
             kind: mamba
           - os: windows-latest
             python: '3.10'
@@ -89,6 +89,12 @@ jobs:
           python-version: ${{ matrix.python }}
         if: startswith(matrix.kind, 'pip')
       # Python (if conda)
+      - name: Remove numba and dipy
+        run: |  # TODO: Remove when numba 0.59 and dipy 1.8 land on conda-forge
+          sed -i '/numba/d' environment.yml
+          sed -i '/dipy/d' environment.yml
+          sed -i 's/- mne$/- mne-base/' environment.yml
+        if: matrix.os == 'ubuntu-latest' && startswith(matrix.kind, 'conda') && matrix.python == '3.12'
       - uses: mamba-org/setup-micromamba@v1
         with:
           environment-file: ${{ env.CONDA_ENV }}
@@ -110,7 +116,7 @@ jobs:
         run: MNE_SKIP_TESTING_DATASET_TESTS=true pytest -m "not (ultraslowtest or pgtest)" --tb=short --cov=mne --cov-report xml -vv -rfE mne/
         if: matrix.kind == 'minimal'
       - run: ./tools/get_testing_version.sh
-      - uses: actions/cache@v3
+      - uses: actions/cache@v4
         with:
           key: ${{ env.TESTING_VERSION }}
           path: ~/mne_data

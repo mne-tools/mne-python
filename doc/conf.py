@@ -1335,6 +1335,19 @@ def reset_warnings(gallery_conf, fname):
         r"The .* was deprecated in Matplotlib 3\.7",
         # scipy
         r"scipy.signal.morlet2 is deprecated in SciPy 1\.12",
+        # Matplotlib->tz
+        r"datetime\.datetime\.utcfromtimestamp",
+        # joblib
+        r"ast\.Num is deprecated",
+        r"Attribute n is deprecated and will be removed in Python 3\.14",
+        # numpydoc
+        r"ast\.NameConstant is deprecated and will be removed in Python 3\.14",
+        # pooch
+        r"Python 3\.14 will, by default, filter extracted tar archives.*",
+        # seaborn
+        r"DataFrameGroupBy\.apply operated on the grouping columns.*",
+        # pandas
+        r"\nPyarrow will become a required dependency of pandas.*",
     ):
         warnings.filterwarnings(  # deal with other modules having bad imports
             "ignore", message=".*%s.*" % key, category=DeprecationWarning
@@ -1373,6 +1386,7 @@ def reset_warnings(gallery_conf, fname):
         r"iteritems is deprecated.*Use \.items instead\.",
         "is_categorical_dtype is deprecated.*",
         "The default of observed=False.*",
+        "When grouping with a length-1 list-like.*",
     ):
         warnings.filterwarnings(
             "ignore",
