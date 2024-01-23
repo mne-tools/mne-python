@@ -73,7 +73,7 @@ def test_how_to_deal_with_warnings():
     assert len(w) == 1
 
 
-def clean_lines(lines=[]):
+def clean_lines(lines=()):
     """Scrub filenames for checking logging output (in test_logging)."""
     return [line if "Reading " not in line else "Reading test file" for line in lines]
 

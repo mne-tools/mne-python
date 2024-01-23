@@ -116,7 +116,7 @@ jobs:
         run: MNE_SKIP_TESTING_DATASET_TESTS=true pytest -m "not (ultraslowtest or pgtest)" --tb=short --cov=mne --cov-report xml -vv -rfE mne/
         if: matrix.kind == 'minimal'
       - run: ./tools/get_testing_version.sh
-      - uses: actions/cache@v3
+      - uses: actions/cache@v4
         with:
           key: ${{ env.TESTING_VERSION }}
           path: ~/mne_data

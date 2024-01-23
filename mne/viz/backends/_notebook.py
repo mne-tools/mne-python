@@ -976,7 +976,7 @@ class _IpyDialog(_AbstractDialog):
         callback,
         *,
         icon="Warning",
-        buttons=[],
+        buttons=(),
         modal=True,
         window=None,
     ):
@@ -1202,7 +1202,7 @@ class _IpyDock(_AbstractDock, _IpyLayout):
         desc,
         func,
         *,
-        filter=None,
+        filter_=None,
         initial_directory=None,
         save=False,
         is_directory=False,

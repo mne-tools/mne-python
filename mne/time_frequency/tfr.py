@@ -1468,7 +1468,7 @@ class AverageTFR(_BaseTFR):
         mask_cmap="Greys",
         mask_alpha=0.1,
         combine=None,
-        exclude=[],
+        exclude=(),
         cnorm=None,
         verbose=None,
     ):
@@ -1667,7 +1667,7 @@ class AverageTFR(_BaseTFR):
         exclude=None,
         copy=True,
         source_plot_joint=False,
-        topomap_args=dict(),
+        topomap_args=None,
         ch_type=None,
         cnorm=None,
         verbose=None,
@@ -1676,6 +1676,8 @@ class AverageTFR(_BaseTFR):
 
         See self.plot() for parameters description.
         """
+        _validate_type(topomap_args, (dict, None), "topomap_args")
+        topomap_args = {} if topomap_args is None else topomap_args
         import matplotlib.pyplot as plt
 
         # channel selection
@@ -1821,7 +1823,7 @@ class AverageTFR(_BaseTFR):
         title=None,
         yscale="auto",
         combine="mean",
-        exclude=[],
+        exclude=(),
         topomap_args=None,
         image_args=None,
         verbose=None,

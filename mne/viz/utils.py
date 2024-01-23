@@ -243,12 +243,12 @@ def _validate_if_list_of_axes(axes, obligatory_len=None, name="axes"):
             )
 
 
-def mne_analyze_colormap(limits=[5, 10, 15], format="vtk"):
+def mne_analyze_colormap(limits=(5, 10, 15), format="vtk"):  # noqa: A002
     """Return a colormap similar to that used by mne_analyze.
 
     Parameters
     ----------
-    limits : list (or array) of length 3 or 6
+    limits : array-like of length 3 or 6
         Bounds for the colormap, which will be mirrored across zero if length
         3, or completely specified (and potentially asymmetric) if length 6.
     format : str

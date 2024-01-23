@@ -549,7 +549,7 @@ class Evoked(
         scalings=None,
         title=None,
         proj=False,
-        vline=[0.0],
+        vline=(0.0,),
         fig_background=None,
         merge_grads=False,
         legend=True,
