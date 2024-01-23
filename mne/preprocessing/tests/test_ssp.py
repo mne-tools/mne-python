@@ -69,6 +69,9 @@ def test_compute_proj_ecg(short_raw, average):
     # XXX: better tests
 
     # without setting a bad channel, this should throw a warning
+    # (first with a call that makes sure we copy the mutable default "reject")
+    with pytest.warns(RuntimeWarning, match="longer than the signal"):
+        compute_proj_ecg(raw.copy().pick("mag"), l_freq=None, h_freq=None)
     with pytest.warns(RuntimeWarning, match="No good epochs found"):
         projs, events, drop_log = compute_proj_ecg(
             raw,

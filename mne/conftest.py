@@ -196,6 +196,10 @@ def pytest_configure(config):
     ignore:ast\.NameConstant is deprecated and will be removed in Python 3\.14.*:DeprecationWarning
     # pooch
     ignore:Python 3\.14 will, by default, filter extracted tar archives.*:DeprecationWarning
+    # pandas
+    ignore:\n*Pyarrow will become a required dependency of pandas.*:DeprecationWarning
+    # pyvista <-> NumPy 2.0
+    ignore:__array_wrap__ must accept context and return_scalar arguments.*:DeprecationWarning
     """  # noqa: E501
     for warning_line in warning_lines.split("\n"):
         warning_line = warning_line.strip()

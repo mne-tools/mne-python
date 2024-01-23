@@ -1907,7 +1907,7 @@ class CoregistrationUI(HasTraits):
             func=self._save_trans,
             tooltip="Save the transform file to disk",
             layout=save_trans_layout,
-            filter="Head->MRI transformation (*-trans.fif *_trans.fif)",
+            filter_="Head->MRI transformation (*-trans.fif *_trans.fif)",
             initial_directory=str(Path(self._info_file).parent),
         )
         self._widgets["load_trans"] = self._renderer._dock_add_file_button(
@@ -1916,7 +1916,7 @@ class CoregistrationUI(HasTraits):
             func=self._load_trans,
             tooltip="Load the transform file from disk",
             layout=save_trans_layout,
-            filter="Head->MRI transformation (*-trans.fif *_trans.fif)",
+            filter_="Head->MRI transformation (*-trans.fif *_trans.fif)",
             initial_directory=str(Path(self._info_file).parent),
         )
         self._renderer._layout_add_widget(trans_layout, save_trans_layout)
