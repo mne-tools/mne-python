@@ -72,6 +72,7 @@ full = [
     "numba",
     "h5py",
     "pandas",
+    "pyarrow",  # only needed to avoid a deprecation warning in pandas
     "numexpr",
     "jupyter",
     "python-picard",
@@ -109,7 +110,7 @@ full = [
 
 # Dependencies for running the test infrastructure
 test = [
-    "pytest!=8.0.0rc1",
+    "pytest!=8.0.0rc1,!=8.0.0rc2",
     "pytest-cov",
     "pytest-timeout",
     "pytest-harvest",
