@@ -9,7 +9,7 @@ def _check_calibration(
 ):
     missing_keys = []
     for key in want_keys:
-        if key not in calibration or calibration.get(key) is None:
+        if calibration.get(key, None) is None:
             missing_keys.append(key)
 
     if missing_keys:
