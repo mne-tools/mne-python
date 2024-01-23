@@ -1036,7 +1036,9 @@ class Evoked(
             data, _ = _merge_ch_data(data, ch_type, [])
             ch_names = [ch_name[:-1] + "X" for ch_name in ch_names[::2]]
 
-        ch_idx, time_idx, max_amp = _get_peak(data, self.times, tmin, tmax, mode, strict)
+        ch_idx, time_idx, max_amp = _get_peak(
+            data, self.times, tmin, tmax, mode, strict
+        )
 
         out = (ch_names[ch_idx], time_idx if time_as_index else self.times[time_idx])
 
@@ -1977,6 +1979,7 @@ def _get_peak(data, times, tmin=None, tmax=None, mode="abs", strict=True):
     strict : bool
         If True, raise an error if values are all positive when detecting
         a minimum, or all negative when detecting a maximum.
+
     Returns
     -------
     max_loc : int
