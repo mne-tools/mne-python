@@ -1175,7 +1175,7 @@ def pytest_runtest_makereport(item, call):
 
 
 @pytest.fixture(scope="function")
-def eyetrack_cal(request):
+def eyetrack_cal():
     """Create a toy calibration instance."""
     screen_size = (0.4, 0.225)  # width, height in meters
     screen_resolution = (1920, 1080)
@@ -1205,7 +1205,7 @@ def eyetrack_cal(request):
 
 
 @pytest.fixture(scope="function")
-def eyetrack_raw(request):
+def eyetrack_raw():
     """Create a toy raw instance with eyetracking channels."""
     # simulate a steady fixation at the center pixel of a 1920x1080 resolution screen
     shape = (1, 100)  # x or y, time

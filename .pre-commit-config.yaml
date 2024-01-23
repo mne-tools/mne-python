@@ -19,7 +19,7 @@ repos:
         # D103: missing docstring in public function
         # D400: docstring first line must end with period
         args: ["--ignore=D103,D400", "--fix"]
-        files: ^tutorials/|^examples/
+        files: ^mne/|^doc/
       - id: ruff-format
         name: ruff format tutorials and examples
         files: ^tutorials/|^examples/
@@ -48,7 +48,7 @@ repos:
       - id: rstcheck
         additional_dependencies:
           - tomli
-        files: ^mne/|^doc/
+        files: ^doc/.*\.(rst|inc)$
 
   # mypy
   - repo: https://github.com/pre-commit/mirrors-mypy

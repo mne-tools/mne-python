@@ -278,7 +278,7 @@ def convert_units(inst, calibration, to="radians"):
                     "(30 degrees), meaning that the conversion between pixels "
                     "and visual angle may be very non-linear. Take caution when "
                     "interpreting these values. Max visual angle value in data:"
-                    f" {np.round(np.nanmax(data), 2)} radians.",
+                    f" {np.nanmax(data):0.2f} radians.",
                     UserWarning,
                 )
     else:
@@ -316,7 +316,7 @@ def _pix_to_rad(data, size, res, dist):
 def _rad_to_pix(data, size, res, dist):
     """Convert radians of visual angle to pixel coordinates.
 
-    See the parameters section of _pix_to_rad for more information.
+    See the parameters section of _pix_to_rad for more information.;.
 
     Returns
     -------
