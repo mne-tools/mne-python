@@ -1965,10 +1965,12 @@ def _get_peak(data, times, tmin=None, tmax=None, mode="abs"):
         The minimum point in time to be considered for peak getting.
     tmax : float | None
         The maximum point in time to be considered for peak getting.
-    mode : {'pos', 'neg', 'abs'}
+    mode : {'pos', 'neg', 'abs', 'min', 'max'}
         How to deal with the sign of the data. If 'pos' only positive
         values will be considered. If 'neg' only negative values will
         be considered. If 'abs' absolute values will be considered.
+        If 'min' the smallest value will be returned. If 'max'
+        the largest value will be returned.
         Defaults to 'abs'.
 
     Returns
@@ -1980,7 +1982,7 @@ def _get_peak(data, times, tmin=None, tmax=None, mode="abs"):
     max_amp : float
         Amplitude of the maximum response.
     """
-    _check_option("mode", mode, ["abs", "neg", "pos"])
+    _check_option("mode", mode, ["abs", "neg", "pos", "min", "max"])
 
     if tmin is None:
         tmin = times[0]
@@ -2017,6 +2019,8 @@ def _get_peak(data, times, tmin=None, tmax=None, mode="abs"):
             raise ValueError(
                 "No negative values encountered. Cannot " "operate in neg mode."
             )
+        maxfun = np.argmin
+    if mode == "min":
         maxfun = np.argmin
 
     masked_index = np.ma.array(np.abs(data) if mode == "abs" else data, mask=mask)

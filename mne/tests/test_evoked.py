@@ -589,6 +589,20 @@ def test_get_peak():
     with pytest.raises(ValueError, match="No positive values"):
         evoked_all_neg.get_peak(mode="pos")
 
+    # Test finding minimum and maximum values
+    evoked_all_neg_outlier = evoked_all_neg.copy()
+    evoked_all_pos_outlier = evoked_all_pos.copy()
+
+    # Add an outlier to the data
+    evoked_all_neg_outlier.data[0, 15] = -1e-20
+    evoked_all_pos_outlier.data[0, 15] = 1e-20
+
+    ch_name, time_idx, max_amp = evoked_all_neg_outlier.get_peak(mode="max", return_amplitude=True)
+    assert_equal(max_amp, -1e-20)
+
+    ch_name, time_idx, min_amp = evoked_all_pos_outlier.get_peak(mode="min", return_amplitude=True)
+    assert_equal(min_amp, 1e-20)
+
     # Test interaction between `mode` and `tmin` / `tmax`
     # For the test, create an Evoked where half of the values are negative
     # and the rest is positive
