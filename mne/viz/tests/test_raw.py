@@ -973,7 +973,9 @@ def test_plot_raw_psd(raw, raw_orig):
     # with channel information not available
     for idx in range(len(raw.info["chs"])):
         raw.info["chs"][idx]["loc"] = np.zeros(12)
-    with pytest.warns(RuntimeWarning, match="locations not available"):
+    with _record_warnings(), pytest.warns(
+        RuntimeWarning, match="locations not available"
+    ):
         raw.compute_psd().plot(spatial_colors=True, average=False)
     # with a flat channel
     raw[5, :] = 0

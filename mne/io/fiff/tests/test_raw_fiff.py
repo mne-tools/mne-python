@@ -2098,7 +2098,9 @@ def test_corrupted(tmp_path, offset):
     bad_fname = tmp_path / "test_raw.fif"
     with open(bad_fname, "wb") as fid:
         fid.write(data)
-    with pytest.warns(RuntimeWarning, match=".*tag directory.*corrupt.*"):
+    with _record_warnings(), pytest.warns(
+        RuntimeWarning, match=".*tag directory.*corrupt.*"
+    ):
         raw_bad = read_raw_fif(bad_fname)
     assert_allclose(raw.get_data(), raw_bad.get_data())
 

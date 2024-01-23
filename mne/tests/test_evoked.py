@@ -34,7 +34,7 @@ from mne import (
 from mne._fiff.constants import FIFF
 from mne.evoked import Evoked, EvokedArray, _get_peak
 from mne.io import read_raw_fif
-from mne.utils import grand_average
+from mne.utils import _record_warnings, grand_average
 
 base_dir = Path(__file__).parents[1] / "io" / "tests" / "data"
 fname = base_dir / "test-ave.fif"
@@ -799,7 +799,7 @@ def test_time_as_index_and_crop():
     )
     evoked.crop(evoked.tmin, evoked.tmax, include_tmax=False)
     n_times = len(evoked.times)
-    with pytest.warns(RuntimeWarning, match="tmax is set to"):
+    with _record_warnings(), pytest.warns(RuntimeWarning, match="tmax is set to"):
         evoked.crop(tmin, tmax, include_tmax=False)
     assert len(evoked.times) == n_times
     assert_allclose(evoked.times[[0, -1]], [tmin, tmax - delta], atol=atol)

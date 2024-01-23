@@ -38,7 +38,7 @@ from mne.report.report import (
     CONTENT_ORDER,
     _webp_supported,
 )
-from mne.utils import Bunch
+from mne.utils import Bunch, _record_warnings
 from mne.utils._testing import assert_object_equal
 from mne.viz import plot_alignment
 
@@ -1053,7 +1053,9 @@ def test_manual_report_3d(tmp_path, renderer):
     add_kwargs = dict(
         trans=trans_fname, info=info, subject="sample", subjects_dir=subjects_dir
     )
-    with pytest.warns(RuntimeWarning, match="could not be calculated"):
+    with _record_warnings(), pytest.warns(
+        RuntimeWarning, match="could not be calculated"
+    ):
         r.add_trans(title="coreg no dig", **add_kwargs)
     with info._unlock():
         info["dig"] = dig
