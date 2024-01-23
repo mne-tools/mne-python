@@ -1335,6 +1335,15 @@ def reset_warnings(gallery_conf, fname):
         r"The .* was deprecated in Matplotlib 3\.7",
         # scipy
         r"scipy.signal.morlet2 is deprecated in SciPy 1\.12",
+        # Matplotlib->tz
+        r"datetime\.datetime\.utcfromtimestamp",
+        # joblib
+        r"ast\.Num is deprecated",
+        r"Attribute n is deprecated and will be removed in Python 3\.14",
+        # numpydoc
+        r"ast\.NameConstant is deprecated and will be removed in Python 3\.14",
+        # pooch
+        r"Python 3\.14 will, by default, filter extracted tar archives.*",
     ):
         warnings.filterwarnings(  # deal with other modules having bad imports
             "ignore", message=".*%s.*" % key, category=DeprecationWarning
