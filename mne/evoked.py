@@ -1981,6 +1981,7 @@ def _get_peak(data, times, tmin=None, tmax=None, mode="abs", strict=True):
         If True, raise an error if values are all positive when detecting
         a minimum (mode='neg'), or all negative when detecting a maximum
         (mode='pos'). Defaults to True.
+
     Returns
     -------
     max_loc : int
