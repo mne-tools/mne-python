@@ -29,7 +29,6 @@ import mne.html_templates._templates
 from mne.tests.test_docstring_parameters import error_ignores
 from mne.utils import (
     _assert_no_instances,
-    linkcode_resolve,  # noqa, analysis:ignore
     run_subprocess,
     sizeof_fmt,
 )
@@ -446,7 +445,7 @@ numpydoc_validation_exclude = {  # set of regex
 # -- Sphinx-gallery configuration --------------------------------------------
 
 
-class Resetter(object):
+class Resetter:
     """Simple class to make the str(obj) static for Sphinx build env hash."""
 
     def __init__(self):
@@ -1754,7 +1753,7 @@ REDIRECT_TEMPLATE = """\
 def check_existing_redirect(path):
     """Make sure existing HTML files are redirects, before overwriting."""
     if path.is_file():
-        with open(path, "r") as fid:
+        with open(path) as fid:
             for _ in range(8):
                 next(fid)
             line = fid.readline()
