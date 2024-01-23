@@ -570,7 +570,7 @@ def test_reject():
 
     def my_reject_2(epoch_data):
         bad_idxs = np.where(np.percentile(epoch_data, 90, axis=1) > 1e-35)
-        reasons = 'a' * len(bad_idxs[0])
+        reasons = "a" * len(bad_idxs[0])
         return len(bad_idxs), reasons
 
     bad_types = [my_reject_1, my_reject_2, ("Hi" "Hi"), (1, 1), None]
@@ -578,7 +578,7 @@ def test_reject():
         for kwarg in ("reject", "flat"):
             with pytest.raises(
                 TypeError,
-                match=r".* must be an instance of .* got <class '.*'> instead."
+                match=r".* must be an instance of .* got <class '.*'> instead.",
             ):
                 Epochs(
                     raw,
@@ -3282,24 +3282,14 @@ def test_drop_epochs():
     events1 = events[events[:, 2] == event_id]
 
     # Bound checks
-    with pytest.raises(
-        IndexError,
-        match=r"Epoch index .* is out of bounds"
-    ):
+    with pytest.raises(IndexError, match=r"Epoch index .* is out of bounds"):
         epochs.drop([len(epochs.events)])
-    with pytest.raises(
-        IndexError,
-        match=r"Epoch index .* is out of bounds"
-    ):
+    with pytest.raises(IndexError, match=r"Epoch index .* is out of bounds"):
         epochs.drop([-len(epochs.events) - 1])
-    with pytest.raises(
-        TypeError,
-        match="indices must be a scalar or a 1-d array"
-    ):
+    with pytest.raises(TypeError, match="indices must be a scalar or a 1-d array"):
         epochs.drop([[1, 2], [3, 4]])
     with pytest.raises(
-        TypeError,
-        match=r".* must be an instance of .* got <class '.*'> instead."
+        TypeError, match=r".* must be an instance of .* got <class '.*'> instead."
     ):
         epochs.drop([1], reason=("a", "b", 2))
 
