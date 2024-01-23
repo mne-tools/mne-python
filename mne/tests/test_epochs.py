@@ -565,29 +565,32 @@ def test_reject():
             )
 
     def my_reject_1(epoch_data):
-        bad_idxs = np.where(np.percentile(epoch_data, axis=1) > 1e-35)
+        bad_idxs = np.where(np.percentile(epoch_data, 90, axis=1) > 1e-35)
         return len(bad_idxs) > 0
 
     def my_reject_2(epoch_data):
-        bad_idxs = np.where(np.percentile(epoch_data, axis=1) > 1e-35)
-        reasons = tuple(epochs.ch_name[bad_idx] for bad_idx in bad_idxs)
+        bad_idxs = np.where(np.percentile(epoch_data, 90, axis=1) > 1e-35)
+        reasons = 'a' * len(bad_idxs[0])
         return len(bad_idxs), reasons
 
     bad_types = [my_reject_1, my_reject_2, ("Hi" "Hi"), (1, 1), None]
     for val in bad_types:  # protect against bad types
         for kwarg in ("reject", "flat"):
-            pytest.raises(
+            with pytest.raises(
                 TypeError,
-                Epochs,
-                raw,
-                events,
-                event_id,
-                tmin,
-                tmax,
-                picks=picks_meg,
-                preload=True,
-                **{kwarg: dict(grad=val)},
-            )
+                match=r".* must be an instance of .* got <class '.*'> instead."
+            ):
+                Epochs(
+                    raw,
+                    events,
+                    event_id,
+                    tmin,
+                    tmax,
+                    picks=picks_meg,
+                    preload=True,
+                    **{kwarg: dict(grad=val)},
+                )
+
     pytest.raises(
         KeyError,
         Epochs,
@@ -3279,10 +3282,25 @@ def test_drop_epochs():
     events1 = events[events[:, 2] == event_id]
 
     # Bound checks
-    pytest.raises(IndexError, epochs.drop, [len(epochs.events)])
-    pytest.raises(IndexError, epochs.drop, [-len(epochs.events) - 1])
-    pytest.raises(TypeError, epochs.drop, [[1, 2], [3, 4]])
-    with pytest.raises(TypeError):
+    with pytest.raises(
+        IndexError,
+        match=r"Epoch index .* is out of bounds"
+    ):
+        epochs.drop([len(epochs.events)])
+    with pytest.raises(
+        IndexError,
+        match=r"Epoch index .* is out of bounds"
+    ):
+        epochs.drop([-len(epochs.events) - 1])
+    with pytest.raises(
+        TypeError,
+        match="indices must be a scalar or a 1-d array"
+    ):
+        epochs.drop([[1, 2], [3, 4]])
+    with pytest.raises(
+        TypeError,
+        match=r".* must be an instance of .* got <class '.*'> instead."
+    ):
         epochs.drop([1], reason=("a", "b", 2))
 
     # Test selection attribute
