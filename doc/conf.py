@@ -1382,6 +1382,7 @@ def reset_warnings(gallery_conf, fname):
         r"iteritems is deprecated.*Use \.items instead\.",
         "is_categorical_dtype is deprecated.*",
         "The default of observed=False.*",
+        "When grouping with a length-1 list-like.*",
     ):
         warnings.filterwarnings(
             "ignore",
