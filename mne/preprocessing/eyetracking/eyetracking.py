@@ -291,7 +291,7 @@ def _pix_to_rad(data, size, res, dist):
 
     Parameters
     ----------
-    data : array-like, shape (n_samples)
+    data : array-like, shape (n_samples,)
         A vector of pixel coordinates.
     size : float
         The width or height of the screen, in meters.
@@ -316,7 +316,7 @@ def _pix_to_rad(data, size, res, dist):
 def _rad_to_pix(data, size, res, dist):
     """Convert radians of visual angle to pixel coordinates.
 
-    See the parameters section of _pix_to_rad for more information.;.
+    See the parameters section of _pix_to_rad for more information.
 
     Returns
     -------

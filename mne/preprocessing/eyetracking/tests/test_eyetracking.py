@@ -50,6 +50,13 @@ def test_convert_units(eyetrack_raw, eyetrack_cal):
         bad_cal["screen_distance"] = None
         mne.preprocessing.eyetracking.convert_units(raw, bad_cal, "radians")
 
+    with pytest.raises(UserWarning, match="Some visual angle values"):
+        cal_tmp = cal.copy()
+        cal_tmp["screen_distance"] = 0.3
+        raw_tmp = raw.copy()
+        raw_tmp._data[0, :10] = 1900  # gaze to extremity of screen
+        mne.preprocessing.eyetracking.convert_units(raw_tmp, cal_tmp, "radians")
+
     with pytest.raises(ValueError, match="loc array not set"):
         raw_missing = raw.copy()
         raw_missing.info["chs"][0]["loc"] = np.zeros(12)
