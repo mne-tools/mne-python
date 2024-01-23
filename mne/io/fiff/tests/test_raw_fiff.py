@@ -7,6 +7,7 @@
 import os
 import pathlib
 import pickle
+import platform
 import shutil
 import sys
 from copy import deepcopy
@@ -42,6 +43,7 @@ from mne.utils import (
     assert_and_remove_boundary_annot,
     assert_object_equal,
     catch_logging,
+    check_version,
     requires_mne,
     run_subprocess,
 )
@@ -1023,6 +1025,8 @@ def test_proj(tmp_path):
 @pytest.mark.parametrize("preload", [False, True, "memmap.dat"])
 def test_preload_modify(preload, tmp_path):
     """Test preloading and modifying data."""
+    if platform.system() == "Windows" and check_version("numpy", "2.0.0dev"):
+        pytest.skip("Problem on Windows, see numpy/issues/25665")
     rng = np.random.RandomState(0)
     raw = read_raw_fif(fif_fname, preload=preload)
 
@@ -1926,6 +1930,8 @@ def test_equalize_channels():
 def test_memmap(tmp_path):
     """Test some interesting memmapping cases."""
     # concatenate_raw
+    if platform.system() == "Windows" and check_version("numpy", "2.0.0dev"):
+        pytest.skip("Problem on Windows, see numpy/issues/25665")
     memmaps = [str(tmp_path / str(ii)) for ii in range(3)]
     raw_0 = read_raw_fif(test_fif_fname, preload=memmaps[0])
     assert raw_0._data.filename == memmaps[0]
