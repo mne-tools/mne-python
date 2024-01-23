@@ -3781,7 +3781,7 @@ def stc_near_sensors(
     subjects_dir=None,
     src=None,
     picks=None,
-    surface="pial",
+    surface=None,
     verbose=None,
 ):
     """Create a STC from ECoG, sEEG and DBS sensor data.
@@ -3821,8 +3821,8 @@ def stc_near_sensors(
 
         .. versionadded:: 0.24
     surface : str | None
-        The surface to use if ``src=None``. Default is the pial surface.
-        If None, the source space surface will be used.
+        The surface to use. If ``src=None``, defaults to the pial surface.
+        Otherwise, the source space surface will be used.
 
         .. versionadded:: 0.24.1
     %(verbose)s
@@ -3876,12 +3876,14 @@ def stc_near_sensors(
     _validate_type(mode, str, "mode")
     _validate_type(src, (None, SourceSpaces), "src")
     _check_option("mode", mode, ("sum", "single", "nearest", "weighted"))
+    if src is None and surface is None:
+        surface = "pial"
 
     # create a copy of Evoked using ecog, seeg and dbs
     if picks is None:
         picks = pick_types(evoked.info, ecog=True, seeg=True, dbs=True)
     evoked = evoked.copy().pick(picks)
-    frames = set(evoked.info["chs"][pick]["coord_frame"] for pick in picks)
+    frames = set(ch["coord_frame"] for ch in evoked.info["chs"])
     if not frames == {FIFF.FIFFV_COORD_HEAD}:
         raise RuntimeError(
             "Channels must be in the head coordinate frame, " f"got {sorted(frames)}"
