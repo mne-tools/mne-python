@@ -582,7 +582,7 @@ def test_reject():
     for kwarg in ("reject", "flat"):
         with pytest.raises(
             TypeError,
-            match=r".* must be an instance of numeric, got <class 'function'> instead."
+            match=r".* must be an instance of numeric, got <class 'function'> instead.",
         ):
             Epochs(
                 raw,
@@ -2227,7 +2227,9 @@ def test_callable_reject():
         baseline=None,
         preload=True,
     )
-    epochs.drop_bad(reject=dict(eeg=lambda x: ((np.median(x, axis=1) > 1e-3).any(), "eeg median")))
+    epochs.drop_bad(
+        reject=dict(eeg=lambda x: ((np.median(x, axis=1) > 1e-3).any(), "eeg median"))
+    )
 
     assert epochs.drop_log[2] == ("eeg median",)
 
@@ -2239,7 +2241,9 @@ def test_callable_reject():
         baseline=None,
         preload=True,
     )
-    epochs.drop_bad(reject=dict(eeg=lambda x: ((np.max(x, axis=1) > 1).any(), ("eeg max",))))
+    epochs.drop_bad(
+        reject=dict(eeg=lambda x: ((np.max(x, axis=1) > 1).any(), ("eeg max",)))
+    )
 
     assert epochs.drop_log[0] == ("eeg max",)
 
@@ -3353,6 +3357,7 @@ def test_drop_epochs():
         ("a", "b"),
         ("a", "b"),
     ]
+
 
 @pytest.mark.parametrize("preload", (True, False))
 def test_drop_epochs_mult(preload):

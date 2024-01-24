@@ -379,7 +379,9 @@ epochs = mne.Epochs(
     preload=True,
 )
 
-epochs.drop_bad(reject=dict(eeg=lambda x: ((np.max(x, axis=1) > 1e-2).any(), "max amp")))
+epochs.drop_bad(
+    reject=dict(eeg=lambda x: ((np.max(x, axis=1) > 1e-2).any(), "max amp"))
+)
 epochs.plot(scalings=dict(eeg=50e-5))
 
 # %%
@@ -401,7 +403,9 @@ epochs = mne.Epochs(
     preload=True,
 )
 
-epochs.drop_bad(reject=dict(eeg=lambda x: ((np.median(x, axis=1) > 1e-4).any(), "median amp")))
+epochs.drop_bad(
+    reject=dict(eeg=lambda x: ((np.median(x, axis=1) > 1e-4).any(), "median amp"))
+)
 epochs.plot(scalings=dict(eeg=50e-5))
 
 # %%
