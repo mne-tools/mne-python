@@ -649,7 +649,8 @@ def pick_info(info, sel=(), copy=True, verbose=None):
         return info
     elif len(sel) == 0:
         raise ValueError("No channels match the selection.")
-    n_unique = len(np.unique(np.arange(len(info["ch_names"]))[sel]))
+    ch_set = set(info["ch_names"][k] for k in sel)
+    n_unique = len(ch_set)
     if n_unique != len(sel):
         raise ValueError(
             "Found %d / %d unique names, sel is not unique" % (n_unique, len(sel))
@@ -687,6 +688,15 @@ def pick_info(info, sel=(), copy=True, verbose=None):
     if info.get("custom_ref_applied", False) and not _electrode_types(info):
         with info._unlock():
             info["custom_ref_applied"] = FIFF.FIFFV_MNE_CUSTOM_REF_OFF
+    # remove unused projectors
+    if info.get("projs", []):
+        projs = list()
+        for p in info["projs"]:
+            if any(ch_name in ch_set for ch_name in p["data"]["col_names"]):
+                projs.append(p)
+        if len(projs) != len(info["projs"]):
+            with info._unlock():
+                info["projs"] = projs
     info._check_consistency()
 
     return info
