@@ -178,7 +178,7 @@ def test_compute_proj_parallel(short_raw):
             filter_length=100,
         )
     raw_2 = short_raw.copy()
-    with pytest.warns(RuntimeWarning, match="Attenuation"):
+    with _record_warnings(), pytest.warns(RuntimeWarning, match="Attenuation"):
         projs_2, _ = compute_proj_eog(
             raw_2,
             n_eeg=2,
