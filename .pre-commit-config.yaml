@@ -11,9 +11,6 @@ repos:
         name: ruff lint mne preview
         args: ["--fix", "--preview", "--select=NPY201"]
         files: ^mne/
-      - id: ruff-format
-        name: ruff format mne
-        files: ^mne/
       - id: ruff
         name: ruff lint tutorials and examples
         # D103: missing docstring in public function
@@ -21,8 +18,8 @@ repos:
         args: ["--ignore=D103,D400", "--fix"]
         files: ^mne/|^doc/
       - id: ruff-format
-        name: ruff format tutorials and examples
-        files: ^tutorials/|^examples/
+        name: ruff format
+        files: ^mne/|^doc/|^tutorials/|^examples/
 
   # Codespell
   - repo: https://github.com/codespell-project/codespell
