@@ -1,1 +1,1 @@
-For developers, ``pytest>=8.0`` is now required for development, by `Eric Larson`_.
+For developers, ``pytest>=8.0`` is now required for running unit tests, by `Eric Larson`_.
