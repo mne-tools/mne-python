@@ -1,0 +1,1 @@
+For developers, ``pytest>=8.0`` is now required for development, by `Eric Larson`_.
