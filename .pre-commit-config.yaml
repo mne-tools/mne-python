@@ -18,7 +18,6 @@ repos:
         args: ["--ignore=D103,D400", "--fix"]
         files: ^doc/|^tutorials/|^examples/
       - id: ruff-format
-        name: ruff format
         files: ^mne/|^doc/|^tutorials/|^examples/
 
   # Codespell
