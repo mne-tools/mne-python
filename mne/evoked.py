@@ -1041,7 +1041,12 @@ class Evoked(
             ch_names = [ch_name[:-1] + "X" for ch_name in ch_names[::2]]
 
         ch_idx, time_idx, max_amp = _get_peak(
-            data, self.times, tmin, tmax, mode, strict=strict,
+            data,
+            self.times,
+            tmin,
+            tmax,
+            mode,
+            strict=strict,
         )
 
         out = (ch_names[ch_idx], time_idx if time_as_index else self.times[time_idx])
