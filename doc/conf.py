@@ -29,11 +29,13 @@ import mne.html_templates._templates
 from mne.tests.test_docstring_parameters import error_ignores
 from mne.utils import (
     _assert_no_instances,
+    linkcode_resolve,
     run_subprocess,
     sizeof_fmt,
 )
 from mne.viz import Brain  # noqa
 
+assert linkcode_resolve is not None  # avoid flake warnings, used by numpydoc
 matplotlib.use("agg")
 faulthandler.enable()
 os.environ["_MNE_BROWSER_NO_BLOCK"] = "true"
@@ -61,12 +63,12 @@ td = datetime.now(tz=timezone.utc)
 
 # We need to triage which date type we use so that incremental builds work
 # (Sphinx looks at variable changes and rewrites all files if some change)
-copyright = (
+copyright = (  # noqa: A001
     f'2012–{td.year}, MNE Developers. Last updated <time datetime="{td.isoformat()}" class="localized">{td.strftime("%Y-%m-%d %H:%M %Z")}</time>\n'  # noqa: E501
     '<script type="text/javascript">$(function () { $("time.localized").each(function () { var el = $(this); el.text(new Date(el.attr("datetime")).toLocaleString([], {dateStyle: "medium", timeStyle: "long"})); }); } )</script>'  # noqa: E501
 )
 if os.getenv("MNE_FULL_DATE", "false").lower() != "true":
-    copyright = f"2012–{td.year}, MNE Developers. Last updated locally."
+    copyright = f"2012–{td.year}, MNE Developers. Last updated locally."  # noqa: A001
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -452,9 +454,11 @@ class Resetter:
         self.t0 = time.time()
 
     def __repr__(self):
+        """Make a stable repr."""
         return f"<{self.__class__.__name__}>"
 
     def __call__(self, gallery_conf, fname, when):
+        """Do the reset."""
         import matplotlib.pyplot as plt
 
         try:
