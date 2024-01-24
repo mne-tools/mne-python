@@ -7,7 +7,6 @@
 import os
 import pathlib
 import pickle
-import platform
 import shutil
 import sys
 from copy import deepcopy
@@ -43,7 +42,6 @@ from mne.utils import (
     assert_and_remove_boundary_annot,
     assert_object_equal,
     catch_logging,
-    check_version,
     requires_mne,
     run_subprocess,
 )
@@ -903,7 +901,7 @@ def test_io_complex(tmp_path, dtype):
 @testing.requires_testing_data
 def test_getitem():
     """Test getitem/indexing of Raw."""
-    for preload in [False, True, "memmap.dat"]:
+    for preload in [False, True, "memmap1.dat"]:
         raw = read_raw_fif(fif_fname, preload=preload)
         data, times = raw[0, :]
         data1, times1 = raw[0]
@@ -1022,11 +1020,9 @@ def test_proj(tmp_path):
 
 
 @testing.requires_testing_data
-@pytest.mark.parametrize("preload", [False, True, "memmap.dat"])
+@pytest.mark.parametrize("preload", [False, True, "memmap2.dat"])
 def test_preload_modify(preload, tmp_path):
     """Test preloading and modifying data."""
-    if platform.system() == "Windows" and check_version("numpy", "2.0.0dev"):
-        pytest.skip("Problem on Windows, see numpy/issues/25665")
     rng = np.random.RandomState(0)
     raw = read_raw_fif(fif_fname, preload=preload)
 
@@ -1930,9 +1926,7 @@ def test_equalize_channels():
 def test_memmap(tmp_path):
     """Test some interesting memmapping cases."""
     # concatenate_raw
-    if platform.system() == "Windows" and check_version("numpy", "2.0.0dev"):
-        pytest.skip("Problem on Windows, see numpy/issues/25665")
-    memmaps = [str(tmp_path / str(ii)) for ii in range(3)]
+    memmaps = [str(tmp_path / str(ii)) for ii in range(4)]
     raw_0 = read_raw_fif(test_fif_fname, preload=memmaps[0])
     assert raw_0._data.filename == memmaps[0]
     raw_1 = read_raw_fif(test_fif_fname, preload=memmaps[1])
@@ -1957,8 +1951,8 @@ def test_memmap(tmp_path):
     # now let's see if .copy() actually works; it does, but eventually
     # we should make it optionally memmap to a new filename rather than
     # create an in-memory version (filename=None)
-    raw_0 = read_raw_fif(test_fif_fname, preload=memmaps[0])
-    assert raw_0._data.filename == memmaps[0]
+    raw_0 = read_raw_fif(test_fif_fname, preload=memmaps[3])
+    assert raw_0._data.filename == memmaps[3]
     assert raw_0._data[:1, 3:5].all()
     raw_1 = raw_0.copy()
     assert isinstance(raw_1._data, np.memmap)
