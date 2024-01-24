@@ -600,12 +600,12 @@ def test_get_peak():
     ch_name, time_idx, max_amp = evoked_all_neg_outlier.get_peak(
         mode="pos", return_amplitude=True, strict=False
     )
-    assert_equal(max_amp, -1e-20)
+    assert max_amp == -1e-20
 
     ch_name, time_idx, min_amp = evoked_all_pos_outlier.get_peak(
         mode="neg", return_amplitude=True, strict=False
     )
-    assert_equal(min_amp, 1e-20)
+    assert min_amp == 1e-20
 
     # Test interaction between `mode` and `tmin` / `tmax`
     # For the test, create an Evoked where half of the values are negative

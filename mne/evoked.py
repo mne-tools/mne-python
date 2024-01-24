@@ -914,6 +914,7 @@ class Evoked(
         time_as_index=False,
         merge_grads=False,
         return_amplitude=False,
+        *,
         strict=True,
     ):
         """Get location and latency of peak amplitude.
@@ -940,12 +941,14 @@ class Evoked(
             If True, compute peak from merged gradiometer data.
         return_amplitude : bool
             If True, return also the amplitude at the maximum response.
+
+            .. versionadded:: 0.16
         strict : bool
             If True, raise an error if values are all positive when detecting
             a minimum (mode='neg'), or all negative when detecting a maximum
             (mode='pos'). Defaults to True.
 
-            .. versionadded:: 0.16
+            .. versionadded:: 1.7
 
         Returns
         -------
@@ -1038,7 +1041,7 @@ class Evoked(
             ch_names = [ch_name[:-1] + "X" for ch_name in ch_names[::2]]
 
         ch_idx, time_idx, max_amp = _get_peak(
-            data, self.times, tmin, tmax, mode, strict
+            data, self.times, tmin, tmax, mode, strict=strict,
         )
 
         out = (ch_names[ch_idx], time_idx if time_as_index else self.times[time_idx])
@@ -1956,7 +1959,7 @@ def _write_evokeds(fname, evoked, check=True, *, on_mismatch="raise", overwrite=
         end_block(fid, FIFF.FIFFB_MEAS)
 
 
-def _get_peak(data, times, tmin=None, tmax=None, mode="abs", strict=True):
+def _get_peak(data, times, tmin=None, tmax=None, mode="abs", *, strict=True):
     """Get feature-index and time of maximum signal from 2D array.
 
     Note. This is a 'getter', not a 'finder'. For non-evoked type
@@ -2019,17 +2022,15 @@ def _get_peak(data, times, tmin=None, tmax=None, mode="abs", strict=True):
 
     maxfun = np.argmax
     if mode == "pos":
-        if strict:
-            if not np.any(data[~mask] > 0):
-                raise ValueError(
-                    "No positive values encountered. Cannot " "operate in pos mode."
-                )
+        if strict and not np.any(data[~mask] > 0):
+            raise ValueError(
+                "No positive values encountered. Cannot " "operate in pos mode."
+            )
     elif mode == "neg":
-        if strict:
-            if not np.any(data[~mask] < 0):
-                raise ValueError(
-                    "No negative values encountered. Cannot " "operate in neg mode."
-                )
+        if strict and not np.any(data[~mask] < 0):
+            raise ValueError(
+                "No negative values encountered. Cannot " "operate in neg mode."
+            )
         maxfun = np.argmin
 
     masked_index = np.ma.array(np.abs(data) if mode == "abs" else data, mask=mask)
