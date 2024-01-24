@@ -16,7 +16,7 @@ repos:
         # D103: missing docstring in public function
         # D400: docstring first line must end with period
         args: ["--ignore=D103,D400", "--fix"]
-        files: ^mne/|^doc/
+        files: ^doc/|^tutorials/|^examples/
       - id: ruff-format
         name: ruff format
         files: ^mne/|^doc/|^tutorials/|^examples/
