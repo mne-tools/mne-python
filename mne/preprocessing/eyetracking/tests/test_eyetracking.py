@@ -52,7 +52,7 @@ def test_convert_units(eyetrack_raw, eyetrack_cal):
 
     with pytest.raises(UserWarning, match="Some visual angle values"):
         cal_tmp = cal.copy()
-        cal_tmp["screen_distance"] = 0.3
+        cal_tmp["screen_distance"] = 0.1
         raw_tmp = raw.copy()
         raw_tmp._data[0, :10] = 1900  # gaze to extremity of screen
         mne.preprocessing.eyetracking.convert_units(raw_tmp, cal_tmp, "radians")
