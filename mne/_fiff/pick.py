@@ -259,7 +259,7 @@ def channel_type(info, idx):
 
 
 @verbose
-def pick_channels(ch_names, include, exclude=[], ordered=None, *, verbose=None):
+def pick_channels(ch_names, include, exclude=(), ordered=None, *, verbose=None):
     """Pick channels by names.
 
     Returns the indices of ``ch_names`` in ``include`` but not in ``exclude``.
@@ -706,7 +706,7 @@ def _has_kit_refs(info, picks):
 
 @verbose
 def pick_channels_forward(
-    orig, include=[], exclude=[], ordered=None, copy=True, *, verbose=None
+    orig, include=(), exclude=(), ordered=None, copy=True, *, verbose=None
 ):
     """Pick channels from forward operator.
 
@@ -797,8 +797,8 @@ def pick_types_forward(
     seeg=False,
     ecog=False,
     dbs=False,
-    include=[],
-    exclude=[],
+    include=(),
+    exclude=(),
 ):
     """Pick by channel type and names from a forward operator.
 
@@ -893,7 +893,7 @@ def channel_indices_by_type(info, picks=None):
 
 @verbose
 def pick_channels_cov(
-    orig, include=[], exclude="bads", ordered=None, copy=True, *, verbose=None
+    orig, include=(), exclude="bads", ordered=None, copy=True, *, verbose=None
 ):
     """Pick channels from covariance matrix.
 

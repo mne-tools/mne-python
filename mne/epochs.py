@@ -3684,7 +3684,7 @@ def _is_good(
     reject,
     flat,
     full_report=False,
-    ignore_chs=[],
+    ignore_chs=(),
     verbose=None,
 ):
     """Test if data segment e is good according to reject and flat.
@@ -4685,7 +4685,7 @@ def make_fixed_length_epochs(
     reject_by_annotation=True,
     proj=True,
     overlap=0.0,
-    id=1,
+    id=1,  # noqa: A002
     verbose=None,
 ):
     """Divide continuous raw data into equal-sized consecutive epochs.
