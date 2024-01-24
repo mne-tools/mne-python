@@ -338,7 +338,7 @@ print(epochs.drop_log)
 # Sometimes it is useful to reject epochs based criteria other than
 # peak-to-peak amplitudes. For example, we might want to reject epochs
 # based on the maximum or minimum amplitude of a channel.
-# In this case, the :class:`mne.Epochs` class constructor also accepts
+# In this case, the `mne.Epochs.drop_bad` function also accepts
 # callables (functions) in the ``reject`` and ``flat`` parameters. This
 # allows us to define functions to reject epochs based on our desired criteria.
 #
@@ -376,9 +376,10 @@ epochs = mne.Epochs(
     tmin=0,
     tmax=1,
     baseline=None,
-    reject=dict(eeg=lambda x: ((np.max(x, axis=1) > 1e-2).any(), "max amp")),
     preload=True,
 )
+
+epochs.drop_bad(reject=dict(eeg=lambda x: ((np.max(x, axis=1) > 1e-2).any(), "max amp")))
 epochs.plot(scalings=dict(eeg=50e-5))
 
 # %%
@@ -397,9 +398,10 @@ epochs = mne.Epochs(
     tmin=0,
     tmax=1,
     baseline=None,
-    reject=dict(eeg=lambda x: ((np.median(x, axis=1) > 1e-4).any(), "median amp")),
     preload=True,
 )
+
+epochs.drop_bad(reject=dict(eeg=lambda x: ((np.median(x, axis=1) > 1e-4).any(), "median amp")))
 epochs.plot(scalings=dict(eeg=50e-5))
 
 # %%
@@ -420,9 +422,10 @@ epochs = mne.Epochs(
     tmin=0,
     tmax=1,
     baseline=None,
-    reject=dict(eeg=reject_criteria),
     preload=True,
 )
+
+epochs.drop_bad(reject=dict(eeg=reject_criteria))
 epochs.plot(events=True)
 
 # %%

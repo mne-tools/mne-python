@@ -787,7 +787,7 @@ class BaseEpochs(
         self.baseline = baseline
         return self
 
-    def _reject_setup(self, reject, flat):
+    def _reject_setup(self, reject, flat, *, allow_callable=False):
         """Set self._reject_time and self._channel_type_idx."""
         idx = channel_indices_by_type(self.info)
         reject = deepcopy(reject) if reject is not None else dict()
@@ -818,9 +818,12 @@ class BaseEpochs(
             for rej, kind in zip((reject, flat), ("Rejection", "Flat")):
                 for key, val in rej.items():
                     name = f"{kind} dict value for {key}"
-                    if callable(val):
+                    if callable(val) and allow_callable:
                         continue
-                    _validate_type(val, "numeric", name, extra="or callable")
+                    extra_str = ""
+                    if allow_callable:
+                        extra_str = "or callable"
+                    _validate_type(val, "numeric", name, extra=extra_str)
                     if val is None or val < 0:
                         raise ValueError(
                             f"If using numerical {name} criteria, the value "
@@ -844,7 +847,7 @@ class BaseEpochs(
         # make sure new thresholds are at least as stringent as the old ones
         for key in reject:
             # Skip this check if old_reject and reject are callables
-            if callable(reject[key]):
+            if callable(reject[key]) and allow_callable:
                 continue
             if key in old_reject and reject[key] > old_reject[key]:
                 raise ValueError(
@@ -861,7 +864,7 @@ class BaseEpochs(
         for key in set(old_flat) - set(flat):
             flat[key] = old_flat[key]
         for key in flat:
-            if callable(flat[key]):
+            if callable(flat[key]) and allow_callable:
                 continue
             if key in old_flat and flat[key] < old_flat[key]:
                 raise ValueError(
@@ -1416,7 +1419,7 @@ class BaseEpochs(
             flat = self.flat
         if any(isinstance(rej, str) and rej != "existing" for rej in (reject, flat)):
             raise ValueError('reject and flat, if strings, must be "existing"')
-        self._reject_setup(reject, flat)
+        self._reject_setup(reject, flat, allow_callable=True)
         self._get_data(out=False, verbose=verbose)
         return self
 

@@ -549,6 +549,19 @@ def test_reject():
         preload=False,
         reject=dict(eeg=np.inf),
     )
+
+    # Good function
+    def my_reject_1(epoch_data):
+        bad_idxs = np.where(np.percentile(epoch_data, 90, axis=1) > 1e-35)
+        reasons = "a" * len(bad_idxs[0])
+        return len(bad_idxs) > 0, reasons
+
+    # Bad function
+    def my_reject_2(epoch_data):
+        bad_idxs = np.where(np.percentile(epoch_data, 90, axis=1) > 1e-35)
+        reasons = "a" * len(bad_idxs[0])
+        return len(bad_idxs), reasons
+
     for val in (-1, -2):  # protect against older MNE-C types
         for kwarg in ("reject", "flat"):
             pytest.raises(
@@ -564,23 +577,33 @@ def test_reject():
                 **{kwarg: dict(grad=val)},
             )
 
-    def my_reject_1(epoch_data):
-        bad_idxs = np.where(np.percentile(epoch_data, 90, axis=1) > 1e-35)
-        return len(bad_idxs) > 0
+    # Check that reject and flat in constructor are not callables
+    val = my_reject_1
+    for kwarg in ("reject", "flat"):
+        with pytest.raises(
+            TypeError,
+            match=r".* must be an instance of numeric, got <class 'function'> instead."
+        ):
+            Epochs(
+                raw,
+                events,
+                event_id,
+                tmin,
+                tmax,
+                picks=picks_meg,
+                preload=False,
+                **{kwarg: dict(grad=val)},
+            )
 
-    def my_reject_2(epoch_data):
-        bad_idxs = np.where(np.percentile(epoch_data, 90, axis=1) > 1e-35)
-        reasons = "a" * len(bad_idxs[0])
-        return len(bad_idxs), reasons
-
-    bad_types = [my_reject_1, my_reject_2, ("Hi" "Hi"), (1, 1), None]
+    # Check if callable returns a tuple with reasons
+    bad_types = [my_reject_2, ("Hi" "Hi"), (1, 1), None]
     for val in bad_types:  # protect against bad types
         for kwarg in ("reject", "flat"):
             with pytest.raises(
                 TypeError,
                 match=r".* must be an instance of .* got <class '.*'> instead.",
             ):
-                Epochs(
+                epochs = Epochs(
                     raw,
                     events,
                     event_id,
@@ -588,8 +611,8 @@ def test_reject():
                     tmax,
                     picks=picks_meg,
                     preload=True,
-                    **{kwarg: dict(grad=val)},
                 )
+                epochs.drop_bad(**{kwarg: dict(grad=val)})
 
     pytest.raises(
         KeyError,
@@ -2202,9 +2225,10 @@ def test_callable_reject():
         tmin=0,
         tmax=1,
         baseline=None,
-        reject=dict(eeg=lambda x: ((np.median(x, axis=1) > 1e-3).any(), "eeg median")),
         preload=True,
     )
+    epochs.drop_bad(reject=dict(eeg=lambda x: ((np.median(x, axis=1) > 1e-3).any(), "eeg median")))
+
     assert epochs.drop_log[2] == ("eeg median",)
 
     epochs = mne.Epochs(
@@ -2213,9 +2237,10 @@ def test_callable_reject():
         tmin=0,
         tmax=1,
         baseline=None,
-        reject=dict(eeg=lambda x: ((np.max(x, axis=1) > 1).any(), ("eeg max",))),
         preload=True,
     )
+    epochs.drop_bad(reject=dict(eeg=lambda x: ((np.max(x, axis=1) > 1).any(), ("eeg max",))))
+
     assert epochs.drop_log[0] == ("eeg max",)
 
     def reject_criteria(x):
@@ -2229,25 +2254,31 @@ def test_callable_reject():
         tmin=0,
         tmax=1,
         baseline=None,
-        reject=dict(eeg=reject_criteria),
         preload=True,
     )
+    epochs.drop_bad(reject=dict(eeg=reject_criteria))
+
     assert epochs.drop_log[0] == ("eeg max or median",) and epochs.drop_log[2] == (
         "eeg max or median",
     )
 
     # Test reasons must be str or tuple of str
-    with pytest.raises(TypeError):
+    with pytest.raises(
+        TypeError,
+        match=r".* must be an instance of str, got <class 'int'> instead.",
+    ):
         epochs = mne.Epochs(
             edit_raw,
             events,
             tmin=0,
             tmax=1,
             baseline=None,
+            preload=True,
+        )
+        epochs.drop_bad(
             reject=dict(
                 eeg=lambda x: ((np.median(x, axis=1) > 1e-3).any(), ("eeg median", 2))
-            ),
-            preload=True,
+            )
         )
 
 
@@ -3322,7 +3353,6 @@ def test_drop_epochs():
         ("a", "b"),
         ("a", "b"),
     ]
-
 
 @pytest.mark.parametrize("preload", (True, False))
 def test_drop_epochs_mult(preload):

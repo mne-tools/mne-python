@@ -1442,14 +1442,11 @@ fir_window : str
 """
 
 _flat_common = """\
-    Reject epochs based on **minimum** peak-to-peak signal amplitude (PTP)
-    or a custom function. Valid **keys** can be any channel type present
-    in the object. If using PTP, **values** are floats that set the minimum
-    acceptable PTP. If the PTP is smaller than this threshold, the epoch
-    will be dropped. If ``None`` then no rejection is performed based on
-    flatness of the signal. If a custom function is used than ``flat`` can be
-    used to reject epochs based on any criteria (including maxima and
-    minima)."""
+    Reject epochs based on **minimum** peak-to-peak signal amplitude (PTP).
+    Valid **keys** can be any channel type present in the object. The
+    **values** are floats that set the minimum acceptable PTP. If the PTP
+    is smaller than this threshold, the epoch will be dropped. If ``None``
+    then no rejection is performed based on flatness of the signal."""
 
 docdict["flat"] = f"""
 flat : dict | None
@@ -1459,9 +1456,16 @@ flat : dict | None
               quality, pass the ``reject_tmin`` and ``reject_tmax`` parameters.
 """
 
-docdict["flat_drop_bad"] = f"""
+docdict["flat_drop_bad"] = """
 flat : dict | str | None
-{_flat_common}
+    Reject epochs based on **minimum** peak-to-peak signal amplitude (PTP)
+    or a custom function. Valid **keys** can be any channel type present
+    in the object. If using PTP, **values** are floats that set the minimum
+    acceptable PTP. If the PTP is smaller than this threshold, the epoch
+    will be dropped. If ``None`` then no rejection is performed based on
+    flatness of the signal. If a custom function is used than ``flat`` can be
+    used to reject epochs based on any criteria (including maxima and
+    minima).
     If ``'existing'``, then the flat parameters set during epoch creation are
     used.
 """
@@ -3271,6 +3275,31 @@ docdict["reject_by_annotation_raw"] = (
 )
 
 _reject_common = """\
+    Reject epochs based on **maximum** peak-to-peak signal amplitude (PTP),
+    i.e. the absolute difference between the lowest and the highest signal
+    value. In each individual epoch, the PTP is calculated for every channel.
+    If the PTP of any one channel exceeds the rejection threshold, the
+    respective epoch will be dropped.
+
+    The dictionary keys correspond to the different channel types; valid
+    **keys** can be any channel type present in the object.
+
+    Example::
+
+        reject = dict(grad=4000e-13,  # unit: T / m (gradiometers)
+                      mag=4e-12,      # unit: T (magnetometers)
+                      eeg=40e-6,      # unit: V (EEG channels)
+                      eog=250e-6      # unit: V (EOG channels)
+                      )
+
+    .. note:: Since rejection is based on a signal **difference**
+              calculated for each channel separately, applying baseline
+              correction does not affect the rejection procedure, as the
+              difference will be preserved.
+"""
+
+docdict["reject_drop_bad"] = """
+reject : dict | str | None
     Reject epochs based on **maximum** peak-to-peak signal amplitude (PTP)
     or custom functions. Peak-to-peak signal amplitude is defined as
     the absolute difference between the lowest and the highest signal
@@ -3303,14 +3332,9 @@ _reject_common = """\
 
     .. note:: If ``reject`` is a callable, than **any** criteria can be
             used to reject epochs (including maxima and minima).
-"""  # noqa: E501
-
-docdict["reject_drop_bad"] = f"""
-reject : dict | str | None
-{_reject_common}
     If ``reject`` is ``None``, no rejection is performed. If ``'existing'``
     (default), then the rejection parameters set at instantiation are used.
-"""
+"""  # noqa: E501
 
 docdict["reject_epochs"] = f"""
 reject : dict | None
