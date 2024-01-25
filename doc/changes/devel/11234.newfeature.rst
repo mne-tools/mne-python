@@ -1,0 +1,16 @@
+.. _mne_11234:
+
+PR #11234: New Feature
+
+Changes
+-------
+- Detecting Bad EEG/MEG channels using the Local outlier factor (LOF) algorithm
+
+Contributors
+------------
+Velu Prabhakar Kumaravel (vpr.kumaravel@gmail.com)
+
+See Also
+--------
+KumaravelEtAl2022
+
