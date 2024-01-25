@@ -38,7 +38,7 @@ picks = np.r_[
 raw.filter(None, 40, picks=picks)
 # Apply reference regression
 mne.preprocessing.regress_artifact(
-    raw, picks="meg", picks_artifact=picks_artifact, copy=False
+    raw, picks="meg", picks_artifact=picks_artifact, copy=False, proj=False
 )
 plot_scalings = dict(mag=5e-12)  # large-amplitude sinusoids
 raw_plot_kwargs = dict(duration=15, n_channels=50, scalings=plot_scalings)
