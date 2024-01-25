@@ -268,7 +268,7 @@ def show_fiff(
     return out
 
 
-def _find_type(value, fmts=["FIFF_"], exclude=["FIFF_UNIT"]):
+def _find_type(value, fmts=("FIFF_",), exclude=("FIFF_UNIT",)):
     """Find matching values."""
     value = int(value)
     vals = [

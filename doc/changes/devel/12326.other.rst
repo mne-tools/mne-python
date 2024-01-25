@@ -1,0 +1,1 @@
+Updated the text in the preprocessing tutorial to use :class:`mne.io.Raw.pick()` instead of the legacy :class:`mne.io.Raw.pick_types()`, by :newcontrib:`btkcodedev`.

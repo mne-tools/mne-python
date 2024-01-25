@@ -799,7 +799,7 @@ class _Phi:
         else:
             return np.hstack([x @ op for op in self.ops]) / np.sqrt(self.n_dicts)
 
-    def norm(self, z, ord=2):
+    def norm(self, z, ord=2):  # noqa: A002
         """Squared L2 norm if ord == 2 and L1 norm if order == 1."""
         if ord not in (1, 2):
             raise ValueError(
