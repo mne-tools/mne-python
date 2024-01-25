@@ -29,7 +29,17 @@ raw = mne.io.read_raw_kit(data_path / "002_phantom_11Hz_100uA.con")
 # cut from ~800 to ~300s for speed, and also at convenient dip stim boundaries
 # chosen by examining MISC 017 by eye.
 raw.crop(11.5, 302.9).load_data()
-raw.filter(None, 40)  # 11 Hz stimulation, no need to keep higher freqs
+# 11 Hz stimulation, no need to keep higher freqs
+picks_artifact = ["MISC 001", "MISC 002", "MISC 003"]
+picks = np.r_[
+    mne.pick_types(raw.info, meg=True),
+    mne.pick_channels(raw.info["ch_names"], picks_artifact),
+]
+raw.filter(None, 40, picks=picks)
+# Apply reference regression
+mne.preprocessing.regress_artifact(
+    raw, picks="meg", picks_artifact=picks_artifact, copy=False
+)
 plot_scalings = dict(mag=5e-12)  # large-amplitude sinusoids
 raw_plot_kwargs = dict(duration=15, n_channels=50, scalings=plot_scalings)
 raw.plot(**raw_plot_kwargs)
