@@ -2,14 +2,17 @@
 #           Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
 # License : BSD-3-Clause
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from copy import deepcopy
 
 import numpy as np
+from scipy.fft import fft, fftfreq, ifft
 
-from ..io.pick import _pick_data_channels, pick_info
-from ..utils import verbose, logger, fill_doc, _validate_type
+from .._fiff.pick import _pick_data_channels, pick_info
 from ..parallel import parallel_func
+from ..utils import _validate_type, fill_doc, logger, verbose
 from .tfr import AverageTFR, _get_data
 
 
@@ -19,7 +22,7 @@ def _check_input_st(x_in, n_fft):
     n_times = x_in.shape[-1]
 
     def _is_power_of_two(n):
-        return not (n > 0 and ((n & (n - 1))))
+        return not (n > 0 and (n & (n - 1)))
 
     if n_fft is None or (not _is_power_of_two(n_fft) and n_times > n_fft):
         # Compute next power of 2
@@ -31,8 +34,8 @@ def _check_input_st(x_in, n_fft):
         )
     if n_times < n_fft:
         logger.info(
-            'The input signal is shorter ({}) than "n_fft" ({}). '
-            "Applying zero padding.".format(x_in.shape[-1], n_fft)
+            f'The input signal is shorter ({x_in.shape[-1]}) than "n_fft" ({n_fft}). '
+            "Applying zero padding."
         )
         zero_pad = n_fft - n_times
         pad_array = np.zeros(x_in.shape[:-1] + (zero_pad,), x_in.dtype)
@@ -44,8 +47,6 @@ def _check_input_st(x_in, n_fft):
 
 def _precompute_st_windows(n_samp, start_f, stop_f, sfreq, width):
     """Precompute stockwell Gaussian windows (in the freq domain)."""
-    from scipy.fft import fft, fftfreq
-
     tw = fftfreq(n_samp, 1.0 / sfreq) / n_samp
     tw = np.r_[tw[:1], tw[1:][::-1]]
 
@@ -81,8 +82,6 @@ def _st(x, start_f, windows):
 
 def _st_power_itc(x, start_f, compute_itc, zero_pad, decim, W):
     """Aux function."""
-    from scipy.fft import fft, ifft
-
     n_samp = x.shape[-1]
     n_out = n_samp - zero_pad
     n_out = n_out // decim + bool(n_out % decim)
@@ -173,8 +172,6 @@ def tfr_array_stockwell(
     ----------
     .. footbibliography::
     """
-    from scipy.fft import fftfreq
-
     _validate_type(data, np.ndarray, "data")
     if data.ndim != 3:
         raise ValueError(

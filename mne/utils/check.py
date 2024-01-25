@@ -2,21 +2,22 @@
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
-from builtins import input  # no-op here but facilitates testing
-from difflib import get_close_matches
-from importlib import import_module
+import numbers
 import operator
 import os
-from pathlib import Path
 import re
-import numbers
+from builtins import input  # noqa: UP029
+from difflib import get_close_matches
+from importlib import import_module
+from pathlib import Path
 
 import numpy as np
 
-from ..fixes import _median_complex, _compare_version
-from .docs import deprecated
-from ._logging import warn, logger, verbose, _record_warnings, _verbose_safe_false
+from ..defaults import HEAD_SIZE_DEFAULT, _handle_default
+from ..fixes import _compare_version, _median_complex
+from ._logging import _record_warnings, _verbose_safe_false, logger, verbose, warn
 
 
 def _ensure_int(x, name="unknown", must_be="an int", *, extra=""):
@@ -33,6 +34,16 @@ def _ensure_int(x, name="unknown", must_be="an int", *, extra=""):
     except TypeError:
         raise TypeError(f"{name} must be {must_be}{extra}, got {type(x)}")
     return x
+
+
+def _check_integer_or_list(arg, name):
+    """Validate arguments that should be an integer or a list.
+
+    Always returns a list.
+    """
+    if not isinstance(arg, list):
+        arg = [_ensure_int(arg, name=name, must_be="an integer or a list")]
+    return arg
 
 
 def check_fname(fname, filetype, endings, endings_err=()):
@@ -221,7 +232,7 @@ def _check_fname(
     *,
     verbose=None,
 ):
-    """Check for file existence, and return string of its absolute path."""
+    """Check for file existence, and return its absolute path."""
     _validate_type(fname, "path-like", name)
     fname = Path(fname).expanduser().absolute()
 
@@ -247,7 +258,7 @@ def _check_fname(
             if not os.access(fname, os.R_OK):
                 raise PermissionError(f"{name} does not have read permissions: {fname}")
     elif must_exist:
-        raise FileNotFoundError(f"{name} does not exist: {fname}")
+        raise FileNotFoundError(f'{name} does not exist: "{fname}"')
 
     return fname
 
@@ -297,13 +308,15 @@ def _check_preload(inst, msg):
                 "loaded. Use preload=True (or string) in the constructor or "
                 "%s.load_data()." % (name, name)
             )
+        if name == "epochs":
+            inst._handle_empty("raise", msg)
 
 
 def _check_compensation_grade(info1, info2, name1, name2="data", ch_names=None):
     """Ensure that objects have same compensation_grade."""
-    from ..io import Info
-    from ..io.pick import pick_channels, pick_info
-    from ..io.compensator import get_current_comp
+    from .._fiff.compensator import get_current_comp
+    from .._fiff.meas_info import Info
+    from .._fiff.pick import pick_channels, pick_info
 
     for t_info in (info1, info2):
         if t_info is None:
@@ -353,7 +366,6 @@ def _soft_import(name, purpose, strict=True):
     # Mapping import namespaces to their pypi package name
     pip_name = dict(
         sklearn="scikit-learn",
-        EDFlib="EDFlib-Python",
         mne_bids="mne-bids",
         mne_nirs="mne-nirs",
         mne_features="mne-features",
@@ -396,9 +408,9 @@ def _check_eeglabio_installed(strict=True):
     return _soft_import("eeglabio", "exporting to EEGLab", strict=strict)
 
 
-def _check_edflib_installed(strict=True):
+def _check_edfio_installed(strict=True):
     """Aux function."""
-    return _soft_import("EDFlib", "exporting to EDF", strict=strict)
+    return _soft_import("edfio", "exporting to EDF", strict=strict)
 
 
 def _check_pybv_installed(strict=True):
@@ -419,8 +431,8 @@ def _check_pandas_index_arguments(index, valid):
         index = [index]
     if not isinstance(index, list):
         raise TypeError(
-            "index must be `None` or a string or list of strings,"
-            " got type {}.".format(type(index))
+            "index must be `None` or a string or list of strings, got type "
+            f"{type(index)}."
         )
     invalid = set(index) - set(valid)
     if invalid:
@@ -440,8 +452,8 @@ def _check_time_format(time_format, valid, meas_date=None):
     if time_format not in valid and time_format is not None:
         valid_str = '", "'.join(valid)
         raise ValueError(
-            '"{}" is not a valid time format. Valid options are '
-            '"{}" and None.'.format(time_format, valid_str)
+            f'"{time_format}" is not a valid time format. Valid options are '
+            f'"{valid_str}" and None.'
         )
     # allow datetime only if meas_date available
     if time_format == "datetime" and meas_date is None:
@@ -466,7 +478,7 @@ def _check_ch_locs(info, picks=None, ch_type=None):
         The channel type to restrict the check to. If ``None``, check all
         channel types. If provided, ``picks`` must be ``None``.
     """
-    from ..io.pick import _picks_to_idx, pick_info
+    from .._fiff.pick import _picks_to_idx, pick_info
 
     if picks is not None and ch_type is not None:
         raise ValueError("Either picks or ch_type may be provided, not both")
@@ -515,6 +527,7 @@ _multi = {
     "path-like": path_like,
     "int-like": (int_like,),
     "callable": (_Callable(),),
+    "array-like": (list, tuple, set, np.ndarray),
 }
 
 
@@ -528,9 +541,8 @@ def _validate_type(item, types=None, item_name=None, type_name=None, *, extra=""
     types : type | str | tuple of types | tuple of str
          The types to be checked against.
          If str, must be one of {'int', 'int-like', 'str', 'numeric', 'info',
-         'path-like', 'callable'}.
-         If a tuple of str is passed, use 'int-like' and not 'int' for
-         integers.
+         'path-like', 'callable', 'array-like'}.
+         If a tuple of str is passed, use 'int-like' and not 'int' for integers.
     item_name : str | None
         Name of the item to show inside the error message.
     type_name : str | None
@@ -543,7 +555,7 @@ def _validate_type(item, types=None, item_name=None, type_name=None, *, extra=""
         _ensure_int(item, name=item_name, extra=extra)
         return  # terminate prematurely
     elif types == "info":
-        from mne.io import Info as types
+        from .._fiff.meas_info import Info as types
 
     if not isinstance(types, (list, tuple)):
         types = [types]
@@ -637,12 +649,13 @@ def _path_like(item):
 def _check_if_nan(data, msg=" to be plotted"):
     """Raise if any of the values are NaN."""
     if not np.isfinite(data).all():
-        raise ValueError("Some of the values {} are NaN.".format(msg))
+        raise ValueError(f"Some of the values {msg} are NaN.")
 
 
-def _check_info_inv(info, forward, data_cov=None, noise_cov=None):
+@verbose
+def _check_info_inv(info, forward, data_cov=None, noise_cov=None, verbose=None):
     """Return good channels common to forward model and covariance matrices."""
-    from .. import pick_types
+    from .._fiff.pick import pick_types
 
     # get a list of all channel names:
     fwd_ch_names = forward["info"]["ch_names"]
@@ -683,6 +696,19 @@ def _check_info_inv(info, forward, data_cov=None, noise_cov=None):
     # handle channels from noise cov if noise cov available:
     if noise_cov is not None:
         ch_names = _compare_ch_names(ch_names, noise_cov.ch_names, noise_cov["bads"])
+
+    # inform about excluding any channels apart from bads and reference
+    all_bads = info["bads"] + ref_chs
+    if data_cov is not None:
+        all_bads += data_cov["bads"]
+    if noise_cov is not None:
+        all_bads += noise_cov["bads"]
+    dropped_nonbads = set(info["ch_names"]) - set(ch_names) - set(all_bads)
+    if dropped_nonbads:
+        logger.info(
+            f"Excluding {len(dropped_nonbads)} channel(s) missing from the "
+            "provided forward operator and/or covariance matrices"
+        )
 
     picks = [info["ch_names"].index(k) for k in ch_names if k in info["ch_names"]]
     return picks
@@ -727,10 +753,9 @@ def _check_rank(rank):
 
 def _check_one_ch_type(method, info, forward, data_cov=None, noise_cov=None):
     """Check number of sensor types and presence of noise covariance matrix."""
-    from ..cov import make_ad_hoc_cov, Covariance
+    from .._fiff.pick import _contains_ch_type, pick_info
+    from ..cov import Covariance, make_ad_hoc_cov
     from ..time_frequency.csd import CrossSpectralDensity
-    from ..io.pick import pick_info
-    from ..channels.channels import _contains_ch_type
 
     if isinstance(data_cov, CrossSpectralDensity):
         _validate_type(noise_cov, [None, CrossSpectralDensity], "noise_cov")
@@ -739,7 +764,13 @@ def _check_one_ch_type(method, info, forward, data_cov=None, noise_cov=None):
         info_pick = info
     else:
         _validate_type(noise_cov, [None, Covariance], "noise_cov")
-        picks = _check_info_inv(info, forward, data_cov=data_cov, noise_cov=noise_cov)
+        picks = _check_info_inv(
+            info,
+            forward,
+            data_cov=data_cov,
+            noise_cov=noise_cov,
+            verbose=_verbose_safe_false(),
+        )
         info_pick = pick_info(info, picks)
     ch_types = [_contains_ch_type(info_pick, tt) for tt in ("mag", "grad", "eeg")]
     if sum(ch_types) > 1:
@@ -763,8 +794,6 @@ def _check_one_ch_type(method, info, forward, data_cov=None, noise_cov=None):
 
 def _check_depth(depth, kind="depth_mne"):
     """Check depth options."""
-    from ..defaults import _handle_default
-
     if not isinstance(depth, dict):
         depth = dict(exp=None if depth is None else float(depth))
     return _handle_default(kind, depth)
@@ -922,7 +951,8 @@ def _check_qt_version(*, return_api=False, check_usable_display=True):
     from ..viz.backends._utils import _init_mne_qtapp
 
     try:
-        from qtpy import QtCore, API_NAME as api
+        from qtpy import API_NAME as api
+        from qtpy import QtCore
     except Exception:
         api = version = None
     else:
@@ -945,8 +975,7 @@ def _check_qt_version(*, return_api=False, check_usable_display=True):
 
 
 def _check_sphere(sphere, info=None, sphere_units="m"):
-    from ..defaults import HEAD_SIZE_DEFAULT
-    from ..bem import fit_sphere_to_headshape, ConductorModel, get_fitting_dig
+    from ..bem import ConductorModel, fit_sphere_to_headshape, get_fitting_dig
 
     if sphere is None:
         sphere = HEAD_SIZE_DEFAULT
@@ -1190,12 +1219,6 @@ def _to_rgb(*args, name="color", alpha=False):
             f'Invalid RGB{"A" if alpha else ""} argument(s) for {name}: '
             f"{repr(args)}"
         ) from None
-
-
-@deprecated("has_nibabel is deprecated and will be removed in 1.5")
-def has_nibabel():
-    """Check if nibabel is installed."""
-    return check_version("nibabel")  # pragma: no cover
 
 
 def _import_nibabel(why="use MRI files"):

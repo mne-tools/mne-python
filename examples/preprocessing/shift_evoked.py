@@ -9,12 +9,13 @@ Shifting time-scale in evoked data
 # Author: Mainak Jas <mainak@neuro.hut.fi>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 
 import matplotlib.pyplot as plt
+
 import mne
-from mne.viz import tight_layout
 from mne.datasets import sample
 
 print(__doc__)
@@ -27,8 +28,7 @@ fname = meg_path / "sample_audvis-ave.fif"
 condition = "Left Auditory"
 evoked = mne.read_evokeds(fname, condition=condition, baseline=(None, 0), proj=True)
 
-ch_names = evoked.info["ch_names"]
-picks = mne.pick_channels(ch_names=ch_names, include=["MEG 2332"])
+picks = ["MEG 2332"]
 
 # Create subplots
 f, (ax1, ax2, ax3) = plt.subplots(3)
@@ -61,5 +61,3 @@ evoked.plot(
     titles=dict(grad="Absolute shift: 500 ms"),
     time_unit="s",
 )
-
-tight_layout()

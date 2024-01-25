@@ -16,16 +16,18 @@ uses :mod:`nibabel` under the hood). We'll also use a special :mod:`Matplotlib
 readable on top of an MRI image.
 """
 
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 # %%
 
-import numpy as np
-import nibabel
-import matplotlib.pyplot as plt
 import matplotlib.patheffects as path_effects
+import matplotlib.pyplot as plt
+import nibabel
+import numpy as np
 
 import mne
-from mne.transforms import apply_trans
 from mne.io.constants import FIFF
+from mne.transforms import apply_trans
 
 # %%
 # MRI coordinate frames
@@ -124,7 +126,7 @@ print(f"Our real-world coordinates correspond to voxel ({i_}, {j_}, {k_})")
 def imshow_mri(data, img, vox, xyz, suptitle):
     """Show an MRI slice with a voxel annotated."""
     i, j, k = vox
-    fig, ax = plt.subplots(1, figsize=(6, 6))
+    fig, ax = plt.subplots(1, figsize=(6, 6), layout="constrained")
     codes = nibabel.orientations.aff2axcodes(img.affine)
     # Figure out the title based on the code of this axis
     ori_slice = dict(
@@ -157,7 +159,6 @@ def imshow_mri(data, img, vox, xyz, suptitle):
         title=f"{title} view: i={i} ({ori_names[codes[0]]}+)",
     )
     fig.suptitle(suptitle)
-    fig.subplots_adjust(0.1, 0.1, 0.95, 0.85)
     return fig
 
 
@@ -329,6 +330,7 @@ renderer.show()
 
 rr_vox = apply_trans(np.linalg.inv(Torig), rr_mm)
 fig = imshow_mri(data, t1, vox, {"Scanner RAS": xyz_ras}, "MRI slice")
+
 # Based on how imshow_mri works, the "X" here is the last dim of the MRI vol,
 # the "Y" is the middle dim, and the "Z" is the first dim, so now that our
 # points are in the correct coordinate frame, we need to ask matplotlib to

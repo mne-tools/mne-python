@@ -17,21 +17,22 @@ trials, or by operating on numpy arrays.
 #          Alex Rockhill <aprockhill@mailbox.org>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 
 import numpy as np
 from matplotlib import pyplot as plt
 
-from mne import create_info, Epochs
+from mne import Epochs, create_info
 from mne.baseline import rescale
 from mne.io import RawArray
 from mne.time_frequency import (
+    AverageTFR,
+    tfr_array_morlet,
+    tfr_morlet,
     tfr_multitaper,
     tfr_stockwell,
-    tfr_morlet,
-    tfr_array_morlet,
-    AverageTFR,
 )
 from mne.viz import centers_to_edges
 
@@ -57,9 +58,9 @@ data = rng.randn(len(ch_names), n_times * n_epochs + 200)  # buffer
 # Add a 50 Hz sinusoidal burst to the noise and ramp it.
 t = np.arange(n_times, dtype=np.float64) / sfreq
 signal = np.sin(np.pi * 2.0 * 50.0 * t)  # 50 Hz sinusoid signal
-signal[np.logical_or(t < 0.45, t > 0.55)] = 0.0  # Hard windowing
+signal[np.logical_or(t < 0.45, t > 0.55)] = 0.0  # hard windowing
 on_time = np.logical_and(t >= 0.45, t <= 0.55)
-signal[on_time] *= np.hanning(on_time.sum())  # Ramping
+signal[on_time] *= np.hanning(on_time.sum())  # ramping
 data[:, 100:-100] += np.tile(signal, n_epochs)  # add signal
 
 raw = RawArray(data, info)
@@ -100,7 +101,7 @@ epochs.average().plot()
 freqs = np.arange(5.0, 100.0, 3.0)
 vmin, vmax = -3.0, 3.0  # Define our color limits.
 
-fig, axs = plt.subplots(1, 3, figsize=(15, 5), sharey=True)
+fig, axs = plt.subplots(1, 3, figsize=(15, 5), sharey=True, layout="constrained")
 for n_cycles, time_bandwidth, ax, title in zip(
     [freqs / 2, freqs, freqs / 2],  # number of cycles
     [2.0, 4.0, 8.0],  # time bandwidth
@@ -130,7 +131,6 @@ for n_cycles, time_bandwidth, ax, title in zip(
         show=False,
         colorbar=False,
     )
-plt.tight_layout()
 
 ##############################################################################
 # Stockwell (S) transform
@@ -143,15 +143,14 @@ plt.tight_layout()
 # we control the spectral / temporal resolution by specifying different widths
 # of the gaussian window using the ``width`` parameter.
 
-fig, axs = plt.subplots(1, 3, figsize=(15, 5), sharey=True)
+fig, axs = plt.subplots(1, 3, figsize=(15, 5), sharey=True, layout="constrained")
 fmin, fmax = freqs[[0, -1]]
 for width, ax in zip((0.2, 0.7, 3.0), axs):
     power = tfr_stockwell(epochs, fmin=fmin, fmax=fmax, width=width)
     power.plot(
         [0], baseline=(0.0, 0.1), mode="mean", axes=ax, show=False, colorbar=False
     )
-    ax.set_title("Sim: Using S transform, width = {:0.1f}".format(width))
-plt.tight_layout()
+    ax.set_title(f"Sim: Using S transform, width = {width:0.1f}")
 
 # %%
 # Morlet Wavelets
@@ -162,7 +161,7 @@ plt.tight_layout()
 # temporal resolution with the ``n_cycles`` parameter, which defines the
 # number of cycles to include in the window.
 
-fig, axs = plt.subplots(1, 3, figsize=(15, 5), sharey=True)
+fig, axs = plt.subplots(1, 3, figsize=(15, 5), sharey=True, layout="constrained")
 all_n_cycles = [1, 3, freqs / 2.0]
 for n_cycles, ax in zip(all_n_cycles, axs):
     power = tfr_morlet(epochs, freqs=freqs, n_cycles=n_cycles, return_itc=False)
@@ -178,7 +177,6 @@ for n_cycles, ax in zip(all_n_cycles, axs):
     )
     n_cycles = "scaled by freqs" if not isinstance(n_cycles, int) else n_cycles
     ax.set_title(f"Sim: Using Morlet wavelet, n_cycles = {n_cycles}")
-plt.tight_layout()
 
 # %%
 # Narrow-bandpass Filter and Hilbert Transform
@@ -189,7 +187,7 @@ plt.tight_layout()
 # important so that you isolate only one oscillation of interest, generally
 # the width of this filter is recommended to be about 2 Hz.
 
-fig, axs = plt.subplots(1, 3, figsize=(15, 5), sharey=True)
+fig, axs = plt.subplots(1, 3, figsize=(15, 5), sharey=True, layout="constrained")
 bandwidths = [1.0, 2.0, 4.0]
 for bandwidth, ax in zip(bandwidths, axs):
     data = np.zeros((len(ch_names), freqs.size, epochs.times.size), dtype=complex)
@@ -233,7 +231,6 @@ for bandwidth, ax in zip(bandwidths, axs):
         f"bandwidth = {bandwidth}, "
         f"transition bandwidth = {4 * bandwidth}"
     )
-plt.tight_layout()
 
 # %%
 # Calculating a TFR without averaging over epochs
@@ -277,12 +274,9 @@ power = tfr_array_morlet(
 )
 # Baseline the output
 rescale(power, epochs.times, (0.0, 0.1), mode="mean", copy=False)
-fig, ax = plt.subplots()
+fig, ax = plt.subplots(layout="constrained")
 x, y = centers_to_edges(epochs.times * 1000, freqs)
 mesh = ax.pcolormesh(x, y, power[0], cmap="RdBu_r", vmin=vmin, vmax=vmax)
 ax.set_title("TFR calculated on a numpy array")
 ax.set(ylim=freqs[[0, -1]], xlabel="Time (ms)")
 fig.colorbar(mesh)
-plt.tight_layout()
-
-plt.show()

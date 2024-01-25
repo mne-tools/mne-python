@@ -1,6 +1,7 @@
 # Authors: Federico Raimondo <federaimondo@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from collections import OrderedDict
 from datetime import datetime, timezone
@@ -8,11 +9,11 @@ from pathlib import Path
 
 import numpy as np
 
-from ...utils import fill_doc, logger, verbose, warn, _check_fname
-from ..base import BaseRaw
-from ..meas_info import create_info
+from ..._fiff.meas_info import create_info
+from ..._fiff.utils import _mult_cal_one
 from ...annotations import Annotations
-from ..utils import _mult_cal_one
+from ...utils import _check_fname, fill_doc, logger, verbose, warn
+from ..base import BaseRaw
 
 
 def _ensure_path(fname):
@@ -23,7 +24,7 @@ def _ensure_path(fname):
 
 
 @fill_doc
-def read_raw_nihon(fname, preload=False, verbose=None):
+def read_raw_nihon(fname, preload=False, verbose=None) -> "RawNihon":
     """Reader for an Nihon Kohden EEG file.
 
     Parameters
@@ -69,7 +70,7 @@ def _read_nihon_metadata(fname):
         warn("No PNT file exists. Metadata will be blank")
         return metadata
     logger.info("Found PNT file, reading metadata.")
-    with open(pnt_fname, "r") as fid:
+    with open(pnt_fname) as fid:
         version = np.fromfile(fid, "|S16", 1).astype("U16")[0]
         if version not in _valid_headers:
             raise ValueError(f"Not a valid Nihon Kohden PNT file ({version})")
@@ -134,7 +135,7 @@ def _read_21e_file(fname):
         logger.info("Found 21E file, reading channel names.")
         for enc in _encodings:
             try:
-                with open(e_fname, "r", encoding=enc) as fid:
+                with open(e_fname, encoding=enc) as fid:
                     keep_parsing = False
                     for line in fid:
                         if line.startswith("["):
@@ -168,17 +169,16 @@ def _read_nihon_header(fname):
     _chan_labels = _read_21e_file(fname)
     header = {}
     logger.info(f"Reading header from {fname}")
-    with open(fname, "r") as fid:
+    with open(fname) as fid:
         version = np.fromfile(fid, "|S16", 1).astype("U16")[0]
         if version not in _valid_headers:
-            raise ValueError("Not a valid Nihon Kohden EEG file ({})".format(version))
+            raise ValueError(f"Not a valid Nihon Kohden EEG file ({version})")
 
         fid.seek(0x0081)
         control_block = np.fromfile(fid, "|S16", 1).astype("U16")[0]
         if control_block not in _valid_headers:
             raise ValueError(
-                "Not a valid Nihon Kohden EEG file "
-                "(control block {})".format(version)
+                f"Not a valid Nihon Kohden EEG file (control block {version})"
             )
 
         fid.seek(0x17FE)
@@ -207,7 +207,7 @@ def _read_nihon_header(fname):
                 t_datablock["address"] = t_data_address
 
                 fid.seek(t_data_address + 0x26)
-                t_n_channels = np.fromfile(fid, np.uint8, 1)[0]
+                t_n_channels = np.fromfile(fid, np.uint8, 1)[0].astype(np.int64)
                 t_datablock["n_channels"] = t_n_channels
 
                 t_channels = []
@@ -219,14 +219,14 @@ def _read_nihon_header(fname):
                 t_datablock["channels"] = t_channels
 
                 fid.seek(t_data_address + 0x1C)
-                t_record_duration = np.fromfile(fid, np.uint32, 1)[0]
+                t_record_duration = np.fromfile(fid, np.uint32, 1)[0].astype(np.int64)
                 t_datablock["duration"] = t_record_duration
 
                 fid.seek(t_data_address + 0x1A)
                 sfreq = np.fromfile(fid, np.uint16, 1)[0] & 0x3FFF
-                t_datablock["sfreq"] = sfreq
+                t_datablock["sfreq"] = sfreq.astype(np.int64)
 
-                t_datablock["n_samples"] = int(t_record_duration * sfreq / 10)
+                t_datablock["n_samples"] = np.int64(t_record_duration * sfreq // 10)
                 t_controlblock["datablocks"].append(t_datablock)
             controlblocks.append(t_controlblock)
         header["controlblocks"] = controlblocks
@@ -284,10 +284,10 @@ def _read_nihon_annotations(fname):
         warn("No LOG file exists. Annotations will not be read")
         return dict(onset=[], duration=[], description=[])
     logger.info("Found LOG file, reading events.")
-    with open(log_fname, "r") as fid:
+    with open(log_fname) as fid:
         version = np.fromfile(fid, "|S16", 1).astype("U16")[0]
         if version not in _valid_headers:
-            raise ValueError("Not a valid Nihon Kohden LOG file ({})".format(version))
+            raise ValueError(f"Not a valid Nihon Kohden LOG file ({version})")
 
         fid.seek(0x91)
         n_logblocks = np.fromfile(fid, np.uint8, 1)[0]
@@ -410,14 +410,12 @@ class RawNihon(BaseRaw):
         ]
 
         raw_extras = dict(cal=cal, offsets=offsets, gains=gains, header=header)
-        self._header = header
-
         for i_ch, ch_name in enumerate(info["ch_names"]):
             t_range = chs[ch_name]["phys_max"] - chs[ch_name]["phys_min"]
             info["chs"][i_ch]["range"] = t_range
             info["chs"][i_ch]["cal"] = 1 / t_range
 
-        super(RawNihon, self).__init__(
+        super().__init__(
             info,
             preload=preload,
             last_samps=(n_samples - 1,),
@@ -430,7 +428,7 @@ class RawNihon(BaseRaw):
         annots = _read_nihon_annotations(fname)
 
         # Annotate acquisition skips
-        controlblock = self._header["controlblocks"][0]
+        controlblock = header["controlblocks"][0]
         cur_sample = 0
         if controlblock["n_datablocks"] > 1:
             for i_block in range(controlblock["n_datablocks"] - 1):

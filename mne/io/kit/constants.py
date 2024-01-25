@@ -4,8 +4,9 @@
 #          Christian Brodbeck <christianbrodbeck@nyu.edu>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
-from ..constants import FIFF
+from ..._fiff.constants import FIFF
 from ...utils import BunchConst
 
 

@@ -1,14 +1,15 @@
 # Author: Joan Massich <mailsik@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
-from struct import Struct
 from collections import namedtuple
-from math import modf
 from datetime import datetime
+from math import modf
 from os import SEEK_END
-import numpy as np
+from struct import Struct
 
+import numpy as np
 
 from ...utils import warn
 

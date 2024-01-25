@@ -1,31 +1,33 @@
 # Authors: George O'Neill <g.o'neill@ucl.ac.uk>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
-import pathlib
 import json
+import pathlib
 
 import numpy as np
 
-from ..constants import FIFF
-from ..meas_info import _empty_info
-from ..write import get_new_file_id
+from ..._fiff._digitization import _make_dig_points
+from ..._fiff.constants import FIFF
+from ..._fiff.meas_info import _empty_info
+from ..._fiff.utils import _read_segments_file
+from ..._fiff.write import get_new_file_id
+from ...transforms import Transform, apply_trans, get_ras_to_neuromag_trans
+from ...utils import _check_fname, fill_doc, verbose, warn
 from ..base import BaseRaw
-from ..utils import _read_segments_file
-from .._digitization import _make_dig_points
-from ...transforms import get_ras_to_neuromag_trans, apply_trans, Transform
-from ...utils import warn, fill_doc, verbose, _check_fname
-
 from .sensors import (
-    _refine_sensor_orientation,
-    _get_pos_units,
-    _size2units,
     _get_plane_vectors,
+    _get_pos_units,
+    _refine_sensor_orientation,
+    _size2units,
 )
 
 
 @verbose
-def read_raw_fil(binfile, precision="single", preload=False, *, verbose=None):
+def read_raw_fil(
+    binfile, precision="single", preload=False, *, verbose=None
+) -> "RawFIL":
     """Raw object from FIL-OPMEG formatted data.
 
     Parameters
@@ -90,9 +92,7 @@ class RawFIL(BaseRaw):
         files = _get_file_names(binfile)
 
         chans = _from_tsv(files["chans"])
-        chanpos = _from_tsv(files["positions"])
         nchans = len(chans["name"])
-        nlocs = len(chanpos["name"])
         nsamples = _determine_nsamples(files["bin"], nchans, precision) - 1
         sample_info["nsamples"] = nsamples
 
@@ -101,19 +101,27 @@ class RawFIL(BaseRaw):
 
         chans["pos"] = [None] * nchans
         chans["ori"] = [None] * nchans
+        if files["positions"].is_file():
+            chanpos = _from_tsv(files["positions"])
+            nlocs = len(chanpos["name"])
+            for ii in range(0, nlocs):
+                idx = chans["name"].index(chanpos["name"][ii])
+                tmp = np.array(
+                    [chanpos["Px"][ii], chanpos["Py"][ii], chanpos["Pz"][ii]]
+                )
+                chans["pos"][idx] = tmp.astype(np.float64)
+                tmp = np.array(
+                    [chanpos["Ox"][ii], chanpos["Oy"][ii], chanpos["Oz"][ii]]
+                )
+                chans["ori"][idx] = tmp.astype(np.float64)
+        else:
+            warn("No sensor position information found.")
 
-        for ii in range(0, nlocs):
-            idx = chans["name"].index(chanpos["name"][ii])
-            tmp = np.array([chanpos["Px"][ii], chanpos["Py"][ii], chanpos["Pz"][ii]])
-            chans["pos"][idx] = tmp.astype(np.float64)
-            tmp = np.array([chanpos["Ox"][ii], chanpos["Oy"][ii], chanpos["Oz"][ii]])
-            chans["ori"][idx] = tmp.astype(np.float64)
-
-        with open(files["meg"], "r") as fid:
+        with open(files["meg"]) as fid:
             meg = json.load(fid)
         info = _compose_meas_info(meg, chans)
 
-        super(RawFIL, self).__init__(
+        super().__init__(
             info,
             preload,
             filenames=[files["bin"]],
@@ -123,7 +131,7 @@ class RawFIL(BaseRaw):
         )
 
         if files["coordsystem"].is_file():
-            with open(files["coordsystem"], "r") as fid:
+            with open(files["coordsystem"]) as fid:
                 csys = json.load(fid)
             hc = csys["HeadCoilCoordinates"]
 
@@ -180,7 +188,8 @@ def _convert_channel_info(chans):
     """Convert the imported _channels.tsv into the chs element of raw.info."""
     nmeg = nstim = nmisc = nref = 0
 
-    units, sf = _get_pos_units(chans["pos"])
+    if not all(p is None for p in chans["pos"]):
+        _, sf = _get_pos_units(chans["pos"])
 
     chs = list()
     for ii in range(len(chans["name"])):
@@ -304,8 +313,8 @@ def _from_tsv(fname, dtypes=None):
         dtypes = [dtypes] * info.shape[1]
     if not len(dtypes) == info.shape[1]:
         raise ValueError(
-            "dtypes length mismatch. Provided: {0}, "
-            "Expected: {1}".format(len(dtypes), info.shape[1])
+            f"dtypes length mismatch. Provided: {len(dtypes)}, "
+            f"Expected: {info.shape[1]}"
         )
     for i, name in enumerate(column_names):
         data_dict[name] = info[:, i].astype(dtypes[i]).tolist()

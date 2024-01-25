@@ -3,14 +3,15 @@
 #          Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import numpy as np
 
-from ._peak_finder import peak_finder
-from .. import pick_types, pick_channels
-from ..utils import logger, verbose, _pl, _validate_type
-from ..filter import filter_data
+from .._fiff.pick import pick_channels, pick_types
 from ..epochs import Epochs
+from ..filter import filter_data
+from ..utils import _pl, _validate_type, logger, verbose
+from ._peak_finder import peak_finder
 
 
 @verbose
@@ -68,6 +69,7 @@ def find_eog_events(
     """
     # Getting EOG Channel
     eog_inds = _get_eog_channel_index(ch_name, raw)
+    eog_names = np.array(raw.ch_names)[eog_inds]  # for logging
     logger.info("EOG channel index for this subject is: %s" % eog_inds)
 
     # Reject bad segments.
@@ -79,6 +81,7 @@ def find_eog_events(
 
     eog_events = _find_eog_events(
         eog,
+        ch_names=eog_names,
         event_id=event_id,
         l_freq=l_freq,
         h_freq=h_freq,
@@ -97,6 +100,8 @@ def find_eog_events(
 @verbose
 def _find_eog_events(
     eog,
+    *,
+    ch_names,
     event_id,
     l_freq,
     h_freq,
@@ -137,8 +142,9 @@ def _find_eog_events(
         ]
     )
     temp = np.sqrt(np.sum(filteog**2, axis=1))
-
     indexmax = np.argmax(temp)
+    if ch_names is not None:  # it can be None if called from ica_find_eog_events
+        logger.info(f"Selecting channel {ch_names[indexmax]} for blink detection")
 
     # easier to detect peaks with filtering.
     filteog = filter_data(

@@ -1,19 +1,18 @@
 # Authors: Denis A. Engemann <denis.engemann@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # Parts of this code are taken from scikit-learn
 
-import pytest
-
 import numpy as np
+import pytest
 from numpy.testing import assert_almost_equal
-
-from scipy import stats
-from scipy import linalg
+from scipy import linalg, stats
 
 from mne.preprocessing.infomax_ import infomax
-from mne.utils import requires_sklearn
+
+pytest.importorskip("sklearn")
 
 
 def center_and_norm(x, axis=-1):
@@ -32,7 +31,6 @@ def center_and_norm(x, axis=-1):
     x /= x.std(axis=0)
 
 
-@requires_sklearn
 def test_infomax_blowup():
     """Test the infomax algorithm blowup condition."""
     # scipy.stats uses the global RNG:
@@ -72,7 +70,6 @@ def test_infomax_blowup():
     assert_almost_equal(np.dot(s2_, s2) / n_samples, 1, decimal=2)
 
 
-@requires_sklearn
 def test_infomax_simple():
     """Test the infomax algorithm on very simple data."""
     rng = np.random.RandomState(0)
@@ -133,7 +130,6 @@ def test_infomax_weights_ini():
     assert_almost_equal(w2, weights)
 
 
-@requires_sklearn
 def test_non_square_infomax():
     """Test non-square infomax."""
     rng = np.random.RandomState(0)

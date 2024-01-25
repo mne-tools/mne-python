@@ -1,30 +1,30 @@
-from functools import partial
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 import os
-from os import path as op
 import re
 import shutil
 import zipfile
+from functools import partial
+from os import path as op
 
 import pooch
 import pytest
 
 from mne import datasets, read_labels_from_annot, write_labels_to_annot
-from mne.datasets import testing, fetch_infant_template, fetch_phantom, fetch_dataset
+from mne.datasets import fetch_dataset, fetch_infant_template, fetch_phantom, testing
 from mne.datasets._fsaverage.base import _set_montage_coreg_path
 from mne.datasets._infant import base as infant_base
 from mne.datasets._phantom import base as phantom_base
 from mne.datasets.utils import _manifest_check_download
-
 from mne.utils import (
-    requires_good_network,
-    get_subjects_dir,
     ArgvSetter,
     _pl,
-    use_log_level,
     catch_logging,
+    get_subjects_dir,
     hashfunc,
+    requires_good_network,
+    use_log_level,
 )
-
 
 subjects_dir = testing.data_path(download=False) / "subjects"
 
@@ -60,7 +60,7 @@ def test_datasets_basic(tmp_path, monkeypatch):
         else:
             assert dataset.get_version() is None
             assert not datasets.has_dataset(dname)
-        print("%s: %s" % (dname, datasets.has_dataset(dname)))
+        print(f"{dname}: {datasets.has_dataset(dname)}")
     tempdir = str(tmp_path)
     # Explicitly test one that isn't preset (given the config)
     monkeypatch.setenv("MNE_DATASETS_SAMPLE_PATH", tempdir)
@@ -205,7 +205,7 @@ def test_fetch_parcellations(tmp_path):
         labels,
         parc="HCPMMP1_round",
         table_name="./left.fsaverage164.label.gii",
-        **kwargs
+        **kwargs,
     )
     orig = op.join(this_subjects_dir, "fsaverage", "label", "lh.HCPMMP1.annot")
     first = hashfunc(orig)
@@ -306,6 +306,7 @@ def test_phantom(tmp_path, monkeypatch):
     assert op.isfile(tmp_path / "phantom_otaniemi" / "mri" / "T1.mgz")
 
 
+@requires_good_network
 def test_fetch_uncompressed_file(tmp_path):
     """Test downloading an uncompressed file with our fetch function."""
     dataset_dict = dict(

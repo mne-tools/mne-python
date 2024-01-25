@@ -7,22 +7,23 @@
 #          Ivana Kojcic <ivana.kojcic@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import numpy as np
 
-from ..source_estimate import SourceEstimate, VolSourceEstimate
-from ..source_space import _ensure_src
 from ..fixes import rng_uniform
-from ..utils import (
-    check_random_state,
-    warn,
-    _check_option,
-    fill_doc,
-    _ensure_int,
-    _ensure_events,
-)
 from ..label import Label
+from ..source_estimate import SourceEstimate, VolSourceEstimate
+from ..source_space._source_space import _ensure_src
 from ..surface import _compute_nearest
+from ..utils import (
+    _check_option,
+    _ensure_events,
+    _ensure_int,
+    check_random_state,
+    fill_doc,
+    warn,
+)
 
 
 @fill_doc
@@ -557,13 +558,13 @@ class SourceSimulator:
             wf_stop = self._last_samples[ind[i]]
 
             # Recover the indices of the event that should be in the chunk
-            waveform_ind = np.in1d(
+            waveform_ind = np.isin(
                 np.arange(wf_start, wf_stop + 1),
                 np.arange(start_sample, stop_sample + 1),
             )
 
             # Recover the indices that correspond to the overlap
-            stc_ind = np.in1d(
+            stc_ind = np.isin(
                 np.arange(start_sample, stop_sample + 1),
                 np.arange(wf_start, wf_stop + 1),
             )

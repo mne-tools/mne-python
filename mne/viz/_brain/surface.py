@@ -4,13 +4,15 @@
 #          Guillaume Favelier <guillaume.favelier@gmail.com>
 #          jona-sassenhagen <jona.sassenhagen@gmail.com>
 #
-# License: Simplified BSD
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from os import path as path
 
 import numpy as np
-from ...utils import _check_option, get_subjects_dir, _check_fname, _validate_type
-from ...surface import complete_surface_info, read_surface, read_curvature, _read_patch
+
+from ...surface import _read_patch, complete_surface_info, read_curvature, read_surface
+from ...utils import _check_fname, _check_option, _validate_type, get_subjects_dir
 
 
 class _Surface:
@@ -175,12 +177,17 @@ class _Surface:
     def load_curvature(self):
         """Load in curvature values from the ?h.curv file."""
         curv_path = path.join(self.data_path, "surf", "%s.curv" % self.hemi)
-        self.curv = read_curvature(curv_path, binary=False)
-        self.bin_curv = np.array(self.curv > 0, np.int64)
+        if path.isfile(curv_path):
+            self.curv = read_curvature(curv_path, binary=False)
+            self.bin_curv = np.array(self.curv > 0, np.int64)
+            color = (self.curv > 0).astype(float)
+        else:
+            self.curv = None
+            self.bin_curv = None
+            color = np.ones(self.coords.shape[0])
         # morphometry (curvature) normalization in order to get gray cortex
         # TODO: delete self.grey_curv after cortex parameter
         # will be fully supported
-        color = (self.curv > 0).astype(float)
         color = 0.5 - (color - 0.5) / 3
         color = color[:, np.newaxis] * [1, 1, 1]
         self.grey_curv = color

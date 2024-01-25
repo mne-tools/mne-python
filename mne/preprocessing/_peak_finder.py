@@ -1,6 +1,8 @@
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 import numpy as np
 
-from ..utils import logger, verbose, _pl
+from ..utils import _pl, logger, verbose
 
 
 @verbose

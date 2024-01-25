@@ -1,6 +1,7 @@
 # Author: Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import glob
 import os
@@ -10,48 +11,46 @@ from itertools import product
 from pathlib import Path
 
 import numpy as np
+import pytest
+from numpy.testing import (
+    assert_allclose,
+    assert_array_almost_equal,
+    assert_array_equal,
+    assert_array_less,
+    assert_equal,
+)
 from scipy import sparse
 
-from numpy.testing import (
-    assert_array_equal,
-    assert_array_almost_equal,
-    assert_equal,
-    assert_allclose,
-    assert_array_less,
-)
-import pytest
-
-from mne.datasets import testing
 from mne import (
+    grow_labels,
+    labels_to_stc,
+    morph_labels,
+    random_parcellation,
     read_label,
-    stc_to_label,
+    read_labels_from_annot,
     read_source_estimate,
     read_source_spaces,
-    grow_labels,
-    read_labels_from_annot,
-    write_labels_to_annot,
-    split_label,
-    spatial_tris_adjacency,
     read_surface,
-    random_parcellation,
-    morph_labels,
-    labels_to_stc,
+    spatial_tris_adjacency,
+    split_label,
+    stc_to_label,
+    write_labels_to_annot,
 )
+from mne.datasets import testing
 from mne.label import (
     Label,
     _blend_colors,
-    label_sign_flip,
     _load_vert_pos,
-    select_sources,
     _n_colors,
     _read_annot,
     _read_annot_cands,
+    label_sign_flip,
+    select_sources,
 )
-from mne.source_space import SourceSpaces
 from mne.source_estimate import mesh_edges
+from mne.source_space import SourceSpaces
 from mne.surface import _mesh_borders
-from mne.utils import requires_sklearn, get_subjects_dir, _record_warnings
-
+from mne.utils import _record_warnings, get_subjects_dir
 
 data_path = testing.data_path(download=False)
 subjects_dir = data_path / "subjects"
@@ -65,7 +64,7 @@ fwd_fname = data_path / "MEG" / "sample" / "sample_audvis_trunc-meg-eeg-oct-6-fw
 src_bad_fname = data_path / "subjects" / "fsaverage" / "bem" / "fsaverage-ico-5-src.fif"
 label_dir = subjects_dir / "sample" / "label" / "aparc"
 
-test_path = Path(__file__).parent.parent / "io" / "tests" / "data"
+test_path = Path(__file__).parents[1] / "io" / "tests" / "data"
 label_fname = test_path / "test-lh.label"
 label_rh_fname = test_path / "test-rh.label"
 
@@ -300,11 +299,11 @@ def test_label_fill_restrict(fname):
     assert src[0]["nearest"] is not None
 
     # check label vertices
-    vertices_status = np.in1d(src[0]["nearest"], label.vertices)
+    vertices_status = np.isin(src[0]["nearest"], label.vertices)
     vertices_in = np.nonzero(vertices_status)[0]
     vertices_out = np.nonzero(np.logical_not(vertices_status))[0]
     assert_array_equal(label_src.vertices, vertices_in)
-    assert_array_equal(np.in1d(vertices_out, label_src.vertices), False)
+    assert_array_equal(np.isin(vertices_out, label_src.vertices), False)
 
     # check values
     value_idx = np.digitize(src[0]["nearest"][vertices_in], vert_in_src, True)
@@ -352,7 +351,7 @@ def test_label_io(tmp_path):
     with open(dest, "wb") as fid:
         pickle.dump(label, fid, pickle.HIGHEST_PROTOCOL)
     with open(dest, "rb") as fid:
-        label2 = pickle.load(fid)
+        label2 = pickle.load(fid)  # nosec B301
     assert_labels_equal(label, label2)
 
 
@@ -431,8 +430,8 @@ def test_morph_labels():
     for lf, ls, lfs in zip(parc_fsaverage, parc_sample, parc_fssamp):
         assert lf.hemi == ls.hemi == lfs.hemi
         assert lf.name == ls.name == lfs.name
-        perc_1 = np.in1d(lfs.vertices, ls.vertices).mean() * 100
-        perc_2 = np.in1d(ls.vertices, lfs.vertices).mean() * 100
+        perc_1 = np.isin(lfs.vertices, ls.vertices).mean() * 100
+        perc_2 = np.isin(ls.vertices, lfs.vertices).mean() * 100
         # Ideally this would be 100%, but we do not use the same algorithm
         # as FreeSurfer ...
         assert perc_1 > 92
@@ -731,7 +730,7 @@ def test_write_labels_to_annot(tmp_path):
     label0 = labels_lh[0]
     label1 = labels_reloaded[-1]
     assert_equal(label1.name, "unknown-lh")
-    assert np.all(np.in1d(label0.vertices, label1.vertices))
+    assert np.all(np.isin(label0.vertices, label1.vertices))
 
     # unnamed labels
     labels4 = labels[:]
@@ -739,11 +738,11 @@ def test_write_labels_to_annot(tmp_path):
     pytest.raises(ValueError, write_labels_to_annot, labels4, annot_fname=fnames[0])
 
 
-@requires_sklearn
 @testing.requires_testing_data
 def test_split_label():
     """Test splitting labels."""
     pytest.importorskip("nibabel")
+    pytest.importorskip("sklearn")
     aparc = read_labels_from_annot(
         "fsaverage", "aparc", "lh", regexp="lingual", subjects_dir=subjects_dir
     )
@@ -839,10 +838,10 @@ def test_split_label():
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
-@requires_sklearn
 def test_stc_to_label():
     """Test stc_to_label."""
     pytest.importorskip("nibabel")
+    pytest.importorskip("sklearn")
     src = read_source_spaces(fwd_fname)
     src_bad = read_source_spaces(src_bad_fname)
     stc = read_source_estimate(stc_fname, "sample")
@@ -937,7 +936,7 @@ def test_morph():
         label.values.fill(1)
         label = label.morph(None, "fsaverage", 5, grade, subjects_dir, 1)
         label = label.morph("fsaverage", "sample", 5, None, subjects_dir, 2)
-        assert np.in1d(label_orig.vertices, label.vertices).all()
+        assert np.isin(label_orig.vertices, label.vertices).all()
         assert len(label.vertices) < 3 * len(label_orig.vertices)
         vals.append(label.vertices)
     assert_array_equal(vals[0], vals[1])
@@ -973,7 +972,7 @@ def test_grow_labels():
         labels, seeds, tgt_hemis, should_be_in, tgt_names
     ):
         assert np.any(label.vertices == seed)
-        assert np.all(np.in1d(sh, label.vertices))
+        assert np.all(np.isin(sh, label.vertices))
         assert_equal(label.hemi, hemi)
         assert_equal(label.name, name)
 
@@ -1243,14 +1242,14 @@ def test_label_geometry(fname, area):
     rr, tris = read_surface(subjects_dir / "sample" / "surf" / "lh.white")
     mask = np.zeros(len(rr), bool)
     mask[label.vertices] = 1
-    border_mask = np.in1d(label.vertices, _mesh_borders(tris, mask))
+    border_mask = np.isin(label.vertices, _mesh_borders(tris, mask))
     # The distances of the border vertices is smaller than that of non-border
     lo, mi, hi = np.percentile(dist[border_mask], (0, 50, 100))
     assert 0.1e-3 < lo < 0.5e-3 < mi < 1.0e-3 < hi < 2.0e-3
     lo, mi, hi = np.percentile(dist[~border_mask], (0, 50, 100))
     assert 0.5e-3 < lo < 1.0e-3 < mi < 9.0e-3 < hi < 25e-3
     # check that the distances are close but uniformly <= than euclidean
-    assert not np.in1d(outside, label.vertices).any()
+    assert not np.isin(outside, label.vertices).any()
     border_dist = dist[border_mask]
     border_euc = 1e-3 * np.linalg.norm(
         rr[label.vertices[border_mask]] - rr[outside[border_mask]], axis=1

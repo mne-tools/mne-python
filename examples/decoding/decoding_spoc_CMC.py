@@ -21,18 +21,18 @@ electromyogram from MEG beta activity using data from
 #         Jean-Remi King <jeanremi.king@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 import matplotlib.pyplot as plt
+from sklearn.linear_model import Ridge
+from sklearn.model_selection import KFold, cross_val_predict
+from sklearn.pipeline import make_pipeline
 
 import mne
 from mne import Epochs
-from mne.decoding import SPoC
 from mne.datasets.fieldtrip_cmc import data_path
-
-from sklearn.pipeline import make_pipeline
-from sklearn.linear_model import Ridge
-from sklearn.model_selection import KFold, cross_val_predict
+from mne.decoding import SPoC
 
 # Define parameters
 fname = data_path() / "SubjectCMC.ds"
@@ -40,11 +40,11 @@ raw = mne.io.read_raw_ctf(fname)
 raw.crop(50.0, 200.0)  # crop for memory purposes
 
 # Filter muscular activity to only keep high frequencies
-emg = raw.copy().pick_channels(["EMGlft"]).load_data()
+emg = raw.copy().pick(["EMGlft"]).load_data()
 emg.filter(20.0, None)
 
 # Filter MEG data to focus on beta band
-raw.pick_types(meg=True, ref_meg=True, eeg=False, eog=False).load_data()
+raw.pick(picks=["meg", "ref_meg"]).load_data()
 raw.filter(15.0, 30.0)
 
 # Build epochs as sliding windows over the continuous raw file
@@ -68,7 +68,7 @@ cv = KFold(n_splits=2, shuffle=False)
 y_preds = cross_val_predict(clf, X, y, cv=cv)
 
 # Plot the True EMG power and the EMG power predicted from MEG data
-fig, ax = plt.subplots(1, 1, figsize=[10, 4])
+fig, ax = plt.subplots(1, 1, figsize=[10, 4], layout="constrained")
 times = raw.times[meg_epochs.events[:, 0] - raw.first_samp]
 ax.plot(times, y_preds, color="b", label="Predicted EMG")
 ax.plot(times, y, color="r", label="True EMG")
@@ -76,7 +76,6 @@ ax.set_xlabel("Time (s)")
 ax.set_ylabel("EMG Power")
 ax.set_title("SPoC MEG Predictions")
 plt.legend()
-mne.viz.tight_layout()
 plt.show()
 
 ##############################################################################

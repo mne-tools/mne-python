@@ -5,6 +5,7 @@
 #          Mark Wronkiewicz <wronk@uw.edu>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # The computations in this code were primarily derived from Matti Hämäläinen's
 # C code.
@@ -15,17 +16,17 @@
 # 2) EEG and MEG: forward solutions for inverse methods. Mosher, Leahy, and
 #        Lewis, 1999. Generalized discussion of forward solutions.
 
-import numpy as np
 from copy import deepcopy
 
-from ..fixes import jit, bincount
-from ..io.constants import FIFF
-from ..parallel import parallel_func
-from ..surface import _project_onto_surface, _jit_cross
-from ..transforms import apply_trans, invert_transform
-from ..utils import logger, verbose, _pl, warn, fill_doc, _check_option
-from ..bem import _make_openmeeg_geometry, _import_openmeeg
+import numpy as np
 
+from .._fiff.constants import FIFF
+from ..bem import _import_openmeeg, _make_openmeeg_geometry
+from ..fixes import bincount, jit
+from ..parallel import parallel_func
+from ..surface import _jit_cross, _project_onto_surface
+from ..transforms import apply_trans, invert_transform
+from ..utils import _check_option, _pl, fill_doc, logger, verbose, warn
 
 # #############################################################################
 # COIL SPECIFICATION AND FIELD COMPUTATION MATRIX

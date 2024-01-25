@@ -10,15 +10,16 @@ desired location(s) in a :class:`mne.SourceEstimate` and then corrupt the
 signal with point-spread by applying a forward and inverse solution.
 """
 
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 # %%
 
 import numpy as np
 
 import mne
 from mne.datasets import sample
-
-from mne.minimum_norm import read_inverse_operator, apply_inverse
-from mne.simulation import simulate_stc, simulate_evoked
+from mne.minimum_norm import apply_inverse, read_inverse_operator
+from mne.simulation import simulate_evoked, simulate_stc
 
 # %%
 # First, we set some parameters.
@@ -42,7 +43,6 @@ data_path = sample.data_path()
 subjects_dir = data_path / "subjects"
 fname_fwd = data_path / "MEG" / "sample" / "sample_audvis-meg-oct-6-fwd.fif"
 fname_inv = data_path / "MEG" / "sample" / "sample_audvis-meg-oct-6-meg-fixed-inv.fif"
-
 fname_evoked = data_path / "MEG" / "sample" / "sample_audvis-ave.fif"
 
 # %%
@@ -55,7 +55,6 @@ fwd["info"]["bads"] = []
 inv_op = read_inverse_operator(fname_inv)
 
 raw = mne.io.read_raw_fif(data_path / "MEG" / "sample" / "sample_audvis_raw.fif")
-
 raw.info["bads"] = []
 raw.set_eeg_reference(projection=True)
 events = mne.find_events(raw)

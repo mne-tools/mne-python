@@ -2,9 +2,11 @@
 #          Frank Fishburn
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 
 import numpy as np
+from scipy.signal import butter, filtfilt
 
 from ...io import BaseRaw
 from ...utils import _validate_type, verbose
@@ -85,8 +87,6 @@ def _TDDR(signal, sample_rate):
     # Outputs:
     #   signals_corrected: A [sample x channel] matrix of corrected optical
     #   density data
-    from scipy.signal import butter, filtfilt
-
     signal = np.array(signal)
     if len(signal.shape) != 1:
         for ch in range(signal.shape[1]):
@@ -111,7 +111,6 @@ def _TDDR(signal, sample_rate):
     tune = 4.685
     D = np.sqrt(np.finfo(signal.dtype).eps)
     mu = np.inf
-    iter = 0
 
     # Step 1. Compute temporal derivative of the signal
     deriv = np.diff(signal_low)
@@ -120,8 +119,7 @@ def _TDDR(signal, sample_rate):
     w = np.ones(deriv.shape)
 
     # Step 3. Iterative estimation of robust weights
-    while iter < 50:
-        iter = iter + 1
+    for _ in range(50):
         mu0 = mu
 
         # Step 3a. Estimate weighted mean

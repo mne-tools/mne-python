@@ -13,9 +13,12 @@ this tutorial deals specifically with EEG, we'll also restrict the dataset to
 just a few EEG channels so the plots are easier to see:
 """
 
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 # %%
 
 import os
+
 import mne
 
 sample_data_folder = mne.datasets.sample.data_path()
@@ -24,7 +27,7 @@ sample_data_raw_file = os.path.join(
 )
 raw = mne.io.read_raw_fif(sample_data_raw_file, verbose=False)
 raw.crop(tmax=60).load_data()
-raw.pick(["EEG 0{:02}".format(n) for n in range(41, 60)])
+raw.pick([f"EEG 0{n:02}" for n in range(41, 60)])
 
 # %%
 # Background
@@ -173,7 +176,7 @@ for title, proj in zip(["Original", "Average"], [False, True]):
         fig = raw.plot(proj=proj, n_channels=len(raw))
     # make room for title
     fig.subplots_adjust(top=0.9)
-    fig.suptitle("{} reference".format(title), size="xx-large", weight="bold")
+    fig.suptitle(f"{title} reference", size="xx-large", weight="bold")
 
 # %%
 # Using an infinite reference (REST)
@@ -196,7 +199,7 @@ for title, _raw in zip(["Original", "REST (∞)"], [raw, raw_rest]):
         fig = _raw.plot(n_channels=len(raw), scalings=dict(eeg=5e-5))
     # make room for title
     fig.subplots_adjust(top=0.9)
-    fig.suptitle("{} reference".format(title), size="xx-large", weight="bold")
+    fig.suptitle(f"{title} reference", size="xx-large", weight="bold")
 
 # %%
 # Using a bipolar reference

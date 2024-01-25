@@ -1,3 +1,5 @@
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 import glob
 from importlib import import_module
 import os
@@ -51,8 +53,8 @@ def generate_commands_rst(app=None):
         from sphinx.util.display import status_iterator
     except Exception:
         from sphinx.util import status_iterator
-    root = Path(__file__).parent.parent.parent.absolute()
-    out_dir = (root / "doc" / "generated").absolute()
+    root = Path(__file__).parents[2]
+    out_dir = root / "doc" / "generated"
     out_dir.mkdir(exist_ok=True)
     out_fname = out_dir / "commands.rst.new"
 

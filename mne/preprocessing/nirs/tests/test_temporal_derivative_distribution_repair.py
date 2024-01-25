@@ -1,15 +1,16 @@
 # Authors: Robert Luke <mail@robertluke.net>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
-import pytest
 import numpy as np
+import pytest
 from numpy.testing import assert_allclose
 
+from mne.datasets import testing
 from mne.datasets.testing import data_path
 from mne.io import read_raw_nirx
 from mne.preprocessing.nirs import beer_lambert_law, optical_density, tddr
-from mne.datasets import testing
 
 fname_nirx_15_2 = (
     data_path(download=False) / "NIRx" / "nirscout" / "nirx_15_2_recording"

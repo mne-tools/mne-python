@@ -6,37 +6,37 @@
 #          Joan Massich <mailsik@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
+import datetime
 from contextlib import nullcontext
 from functools import partial
 from pathlib import Path
 
 import numpy as np
+import pytest
 from numpy.testing import (
+    assert_allclose,
     assert_array_almost_equal,
     assert_array_equal,
     assert_equal,
-    assert_allclose,
 )
 from scipy.io import loadmat
 
-import pytest
-
-from mne import pick_types, Annotations
-from mne.annotations import events_from_annotations, read_annotations
+from mne import Annotations, pick_types
+from mne._fiff.pick import channel_indices_by_type, get_channel_type_constants
+from mne.annotations import _ndarray_ch_names, events_from_annotations, read_annotations
 from mne.datasets import testing
-from mne.utils import requires_pandas
-from mne.io import read_raw_edf, read_raw_bdf, read_raw_fif, edf, read_raw_gdf
-from mne.io.tests.test_raw import _test_raw_reader
+from mne.io import edf, read_raw_bdf, read_raw_edf, read_raw_fif, read_raw_gdf
 from mne.io.edf.edf import (
+    _edf_str,
+    _parse_prefilter_string,
     _read_annotations_edf,
     _read_ch,
-    _parse_prefilter_string,
-    _edf_str,
     _read_edf_header,
     _read_header,
 )
-from mne.io.pick import channel_indices_by_type, get_channel_type_constants
+from mne.io.tests.test_raw import _test_raw_reader
 from mne.tests.test_annotations import _assert_annotations_equal
 
 td_mark = testing._pytest_mark()
@@ -118,19 +118,53 @@ def test_edf_temperature(monkeypatch):
     assert raw.get_channel_types()[0] == "temperature"
 
 
+@testing.requires_testing_data
 def test_subject_info(tmp_path):
     """Test exposure of original channel units."""
-    raw = read_raw_edf(edf_path)
-    assert raw.info["subject_info"] is None  # XXX this is arguably a bug
+    raw = read_raw_edf(edf_stim_resamp_path, preload=True)
+
+    # check subject_info from `info`
+    assert raw.info["subject_info"] is not None
+    want = {
+        "his_id": "X",
+        "sex": 1,
+        "birthday": (1967, 10, 9),
+        "last_name": "X",
+    }
+    for key, val in want.items():
+        assert raw.info["subject_info"][key] == val, key
+
+    # check "subject_info" from `_raw_extras`
     edf_info = raw._raw_extras[0]
     assert edf_info["subject_info"] is not None
-    want = {"id": "X", "sex": "X", "birthday": "X", "name": "X"}
+    want = {
+        "id": "X",
+        "sex": "M",
+        "birthday": datetime.datetime(1967, 10, 9, 0, 0),
+        "name": "X",
+    }
     for key, val in want.items():
         assert edf_info["subject_info"][key] == val, key
+
+    # add information
+    raw.info["subject_info"]["hand"] = 0
+
+    # save raw to FIF and load it back
     fname = tmp_path / "test_raw.fif"
     raw.save(fname)
     raw = read_raw_fif(fname)
-    assert raw.info["subject_info"] is None  # XXX should eventually round-trip
+
+    # check subject_info from `info`
+    assert raw.info["subject_info"] is not None
+    want = {
+        "his_id": "X",
+        "sex": 1,
+        "birthday": (1967, 10, 9),
+        "last_name": "X",
+        "hand": 0,
+    }
+    for key, val in want.items():
+        assert raw.info["subject_info"][key] == val
 
 
 def test_bdf_data():
@@ -193,8 +227,53 @@ def test_bdf_crop_save_stim_channel(tmp_path):
 def test_edf_others(fname, stim_channel):
     """Test EDF with various sampling rates and overlapping annotations."""
     _test_raw_reader(
-        read_raw_edf, input_fname=fname, stim_channel=stim_channel, verbose="error"
+        read_raw_edf,
+        input_fname=fname,
+        stim_channel=stim_channel,
+        verbose="error",
+        test_preloading=False,
+        preload=True,  # no preload=False for mixed sfreqs
     )
+
+
+@testing.requires_testing_data
+@pytest.mark.parametrize("stim_channel", (None, False, "auto"))
+def test_edf_different_sfreqs(stim_channel):
+    """Test EDF with various sampling rates."""
+    rng = np.random.RandomState(0)
+    # load with and without preloading, should produce the same results
+    raw1 = read_raw_edf(
+        input_fname=edf_reduced,
+        stim_channel=stim_channel,
+        verbose="error",
+        preload=False,
+    )
+    raw2 = read_raw_edf(
+        input_fname=edf_reduced,
+        stim_channel=stim_channel,
+        verbose="error",
+        preload=True,
+    )
+
+    picks = rng.permutation(np.arange(len(raw1.ch_names) - 1))[:10]
+    data1, times1 = raw1[picks, :]
+    data2, times2 = raw2[picks, :]
+    assert_allclose(data1, data2, err_msg="Data mismatch with preload")
+    assert_allclose(times1, times2)
+
+    # loading slices should throw a warning as they have different
+    # edge artifacts than when loading the entire file at once
+    with pytest.warns(RuntimeWarning, match="mixed sampling frequencies"):
+        data1, times1 = raw1[picks, :512]
+    data2, times2 = raw2[picks, :512]
+
+    # should NOT throw a warning when loading channels that have all the same
+    # sampling frequency - here, no edge artifacts can appear
+    picks = np.arange(15, 20)  # these channels all have 512 Hz
+    data1, times1 = raw1[picks, :512]
+    data2, times2 = raw2[picks, :512]
+    assert_allclose(data1, data2, err_msg="Data mismatch with preload")
+    assert_allclose(times1, times2)
 
 
 def test_edf_data_broken(tmp_path):
@@ -277,19 +356,19 @@ def test_parse_annotation(tmp_path):
 
     want_onset, want_duration, want_description = zip(
         *[
-            [180.0, 0.0, "Lights off"],
-            [180.0, 0.0, "Close door"],
-            [180.0, 0.0, "Lights off"],
-            [180.0, 0.0, "Close door"],
             [3.14, 4.2, "nothing"],
+            [180.0, 0.0, "Lights off"],
+            [180.0, 0.0, "Close door"],
+            [180.0, 0.0, "Lights off"],
+            [180.0, 0.0, "Close door"],
             [1800.2, 25.5, "Apnea"],
         ]
     )
     for tal_channel in [tal_channel_A, tal_channel_B]:
-        onset, duration, description = _read_annotations_edf([tal_channel])
-        assert_allclose(onset, want_onset)
-        assert_allclose(duration, want_duration)
-        assert description == want_description
+        annotations = _read_annotations_edf([tal_channel])
+        assert_allclose(annotations.onset, want_onset)
+        assert_allclose(annotations.duration, want_duration)
+        assert_array_equal(annotations.description, want_description)
 
 
 def test_find_events_backward_compatibility():
@@ -333,10 +412,10 @@ def test_no_data_channels():
         read_raw_edf(edf_annot_only)
 
 
-@requires_pandas
 @pytest.mark.parametrize("fname", [edf_path, bdf_path])
 def test_to_data_frame(fname):
     """Test EDF/BDF Raw Pandas exporter."""
+    pytest.importorskip("pandas")
     ext = fname.suffix
     if ext == ".edf":
         raw = read_raw_edf(fname, preload=True, verbose="error")
@@ -399,20 +478,14 @@ def test_read_annot(tmp_path):
     with open(annot_file, "wb") as f:
         f.write(annot)
 
-    onset, duration, desc = _read_annotations_edf(annotations=str(annot_file))
-    annotation = Annotations(
-        onset=onset, duration=duration, description=desc, orig_time=None
-    )
-    _assert_annotations_equal(annotation, EXPECTED_ANNOTATIONS)
+    annotations = _read_annotations_edf(annotations=str(annot_file))
+    _assert_annotations_equal(annotations, EXPECTED_ANNOTATIONS)
 
     # Now test when reading from buffer of data
     with open(annot_file, "rb") as fid:
         ch_data = np.fromfile(fid, dtype="<i2", count=len(annot))
-    onset, duration, desc = _read_annotations_edf([ch_data])
-    annotation = Annotations(
-        onset=onset, duration=duration, description=desc, orig_time=None
-    )
-    _assert_annotations_equal(annotation, EXPECTED_ANNOTATIONS)
+    annotations = _read_annotations_edf([ch_data])
+    _assert_annotations_equal(annotations, EXPECTED_ANNOTATIONS)
 
 
 @testing.requires_testing_data
@@ -429,6 +502,81 @@ def test_read_utf8_annotations():
     raw = read_raw_edf(edf_utf8_annotations)
     assert raw.annotations[0]["description"] == "RECORD START"
     assert raw.annotations[1]["description"] == "仰卧"
+
+
+def test_read_annotations_edf(tmp_path):
+    """Test reading annotations from EDF file."""
+    annot = (
+        b"+1.1\x14Event A@@CH1\x14\x00\x00"
+        b"+1.2\x14Event A\x14\x00\x00"
+        b"+1.3\x14Event B@@CH1\x14\x00\x00"
+        b"+1.3\x14Event B@@CH2\x14\x00\x00"
+        b"+1.4\x14Event A@@CH3\x14\x00\x00"
+        b"+1.5\x14Event B\x14\x00\x00"
+    )
+    annot_file = tmp_path / "annotations.edf"
+    with open(annot_file, "wb") as f:
+        f.write(annot)
+
+    # Test reading annotations from channel data
+    with open(annot_file, "rb") as f:
+        tal_channel = _read_ch(
+            f,
+            subtype="EDF",
+            dtype="<i2",
+            samp=-1,
+            dtype_byte=None,
+        )
+
+    # Read annotations without input channel names: annotations are left untouched and
+    # assigned as global
+    annotations = _read_annotations_edf(tal_channel, ch_names=None, encoding="latin1")
+    assert_allclose(annotations.onset, [1.1, 1.2, 1.3, 1.3, 1.4, 1.5])
+    assert not any(annotations.duration)  # all durations are 0
+    assert_array_equal(
+        annotations.description,
+        [
+            "Event A@@CH1",
+            "Event A",
+            "Event B@@CH1",
+            "Event B@@CH2",
+            "Event A@@CH3",
+            "Event B",
+        ],
+    )
+    assert_array_equal(
+        annotations.ch_names, _ndarray_ch_names([(), (), (), (), (), ()])
+    )
+
+    # Read annotations with complete input channel names: each annotation is parsed and
+    # associated to a channel
+    annotations = _read_annotations_edf(
+        tal_channel, ch_names=["CH1", "CH2", "CH3"], encoding="latin1"
+    )
+    assert_allclose(annotations.onset, [1.1, 1.2, 1.3, 1.4, 1.5])
+    assert not any(annotations.duration)  # all durations are 0
+    assert_array_equal(
+        annotations.description, ["Event A", "Event A", "Event B", "Event A", "Event B"]
+    )
+    assert_array_equal(
+        annotations.ch_names,
+        _ndarray_ch_names([("CH1",), (), ("CH1", "CH2"), ("CH3",), ()]),
+    )
+
+    # Read annotations with incomplete input channel names: "CH3" is missing from input
+    # channels, turning the related annotation into a global one
+    annotations = _read_annotations_edf(
+        tal_channel, ch_names=["CH1", "CH2"], encoding="latin1"
+    )
+    assert_allclose(annotations.onset, [1.1, 1.2, 1.3, 1.4, 1.5])
+    assert not any(annotations.duration)  # all durations are 0
+    assert_array_equal(
+        annotations.description,
+        ["Event A", "Event A", "Event B", "Event A@@CH3", "Event B"],
+    )
+    assert_array_equal(
+        annotations.ch_names, _ndarray_ch_names([("CH1",), (), ("CH1", "CH2"), (), ()])
+    )
 
 
 def test_read_latin1_annotations(tmp_path):
@@ -448,9 +596,19 @@ def test_read_latin1_annotations(tmp_path):
         b"+1.8\x14\xf4\x14\x00\x00"  # +1.8 ô
         b"+1.9\x14\xfb\x14\x00\x00"  # +1.9 û
     )
-    annot_file = tmp_path / "annotations.txt"
+    annot_file = tmp_path / "annotations.edf"
     with open(annot_file, "wb") as f:
         f.write(annot)
+
+    # Test reading directly from file
+    annotations = read_annotations(fname=annot_file, encoding="latin1")
+    assert_allclose(annotations.onset, [1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9])
+    assert not any(annotations.duration)  # all durations are 0
+    assert_array_equal(
+        annotations.description, ["é", "à", "è", "ù", "â", "ê", "î", "ô", "û"]
+    )
+
+    # Test reading annotations from channel data
     with open(annot_file, "rb") as f:
         tal_channel = _read_ch(
             f,
@@ -459,16 +617,17 @@ def test_read_latin1_annotations(tmp_path):
             samp=-1,
             dtype_byte=None,
         )
-    onset, duration, description = _read_annotations_edf(
-        tal_channel,
-        encoding="latin1",
+    annotations = _read_annotations_edf(tal_channel, encoding="latin1")
+    assert_allclose(annotations.onset, [1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9])
+    assert not any(annotations.duration)  # all durations are 0
+    assert_array_equal(
+        annotations.description, ["é", "à", "è", "ù", "â", "ê", "î", "ô", "û"]
     )
-    assert onset == (1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9)
-    assert not any(duration)  # all durations are 0
-    assert description == ("é", "à", "è", "ù", "â", "ê", "î", "ô", "û")
 
     with pytest.raises(Exception, match="Encountered invalid byte in"):
         _read_annotations_edf(tal_channel)  # default encoding="utf8" fails
+    with pytest.raises(Exception, match="'utf-8' codec can't decode.*"):
+        _read_annotations_edf(str(annot_file))  # default encoding="utf8" fails
 
 
 def test_edf_prefilter_parse():

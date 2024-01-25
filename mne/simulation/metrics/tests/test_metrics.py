@@ -1,27 +1,26 @@
 # Authors: Kostiantyn Maksymenko <kostiantyn.maksymenko@gmail.com>
 #          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 
 import numpy as np
-from numpy.testing import assert_allclose
 import pytest
+from numpy.testing import assert_allclose
 from scipy.linalg import norm
 
-from mne import SourceEstimate
-from mne import read_source_spaces
+from mne import SourceEstimate, read_source_spaces
 from mne.datasets import testing
-from mne.utils import requires_sklearn
 from mne.simulation import metrics
 from mne.simulation.metrics import (
     cosine_score,
-    region_localization_error,
+    f1_score,
+    peak_position_error,
     precision_score,
     recall_score,
-    f1_score,
+    region_localization_error,
     roc_auc_score,
-    peak_position_error,
     spatial_deviation_error,
 )
 
@@ -77,9 +76,9 @@ def test_cosine_score():
 
 
 @testing.requires_testing_data
-@requires_sklearn
 def test_region_localization_error():
     """Test simulation metrics."""
+    pytest.importorskip("sklearn")
     src = read_source_spaces(src_fname)
     vert1 = [src[0]["vertno"][0:1], []]
     vert2 = [src[0]["vertno"][1:2], []]
@@ -99,9 +98,9 @@ def test_region_localization_error():
 
 
 @testing.requires_testing_data
-@requires_sklearn
 def test_precision_score():
     """Test simulation metrics."""
+    pytest.importorskip("sklearn")
     from sklearn.exceptions import UndefinedMetricWarning
 
     src = read_source_spaces(src_fname)
@@ -131,9 +130,9 @@ def test_precision_score():
 
 
 @testing.requires_testing_data
-@requires_sklearn
 def test_recall_score():
     """Test simulation metrics."""
+    pytest.importorskip("sklearn")
     src = read_source_spaces(src_fname)
     vert1 = [src[0]["vertno"][0:2], []]
     vert2 = [src[0]["vertno"][1:3], []]
@@ -160,9 +159,9 @@ def test_recall_score():
 
 
 @testing.requires_testing_data
-@requires_sklearn
 def test_f1_score():
     """Test simulation metrics."""
+    pytest.importorskip("sklearn")
     src = read_source_spaces(src_fname)
     vert1 = [src[0]["vertno"][0:2], []]
     vert2 = [src[0]["vertno"][1:3], []]
@@ -185,9 +184,9 @@ def test_f1_score():
 
 
 @testing.requires_testing_data
-@requires_sklearn
 def test_roc_auc_score():
     """Test simulation metrics."""
+    pytest.importorskip("sklearn")
     src = read_source_spaces(src_fname)
     vert1 = [src[0]["vertno"][0:4], []]
     vert2 = [src[0]["vertno"][0:4], []]

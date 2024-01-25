@@ -1,12 +1,14 @@
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 from pathlib import Path
 
 import numpy as np
 
-from mne.io import read_raw_fif
 from mne import pick_types
-from mne.preprocessing import find_ecg_events, create_ecg_epochs
+from mne.io import read_raw_fif
+from mne.preprocessing import create_ecg_epochs, find_ecg_events
 
-data_path = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
+data_path = Path(__file__).parents[2] / "io" / "tests" / "data"
 raw_fname = data_path / "test_raw.fif"
 event_fname = data_path / "test-eve.fif"
 proj_fname = data_path / "test-proj.fif"
@@ -15,7 +17,7 @@ proj_fname = data_path / "test-proj.fif"
 def test_find_ecg():
     """Test find ECG peaks."""
     # Test if ECG analysis will work on data that is not preloaded
-    raw = read_raw_fif(raw_fname, preload=False).pick_types(meg=True)
+    raw = read_raw_fif(raw_fname, preload=False).pick(picks="meg")
     raw.pick(raw.ch_names[::10] + ["MEG 2641"])
     raw.info.normalize_proj()
 
@@ -92,7 +94,7 @@ def test_find_ecg():
     raw.set_channel_types({"MEG 2641": "ecg"}, on_unit_change="ignore")
     create_ecg_epochs(raw)
 
-    raw.pick_types(meg=True)  # remove ECG
+    raw.pick(picks="meg")  # remove ECG
     assert "MEG 2641" not in raw.ch_names
     ecg_epochs = create_ecg_epochs(raw, keep_ecg=False)
     assert len(ecg_epochs.events) == n_events

@@ -1,49 +1,50 @@
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 import gc
 from pathlib import Path
 
-import pytest
 import numpy as np
+import pytest
 from numpy.testing import (
-    assert_array_almost_equal,
-    assert_equal,
-    assert_array_equal,
     assert_allclose,
+    assert_array_almost_equal,
+    assert_array_equal,
+    assert_equal,
 )
 
-from mne.datasets import testing
 from mne import (
-    read_forward_solution,
+    SourceEstimate,
+    VectorSourceEstimate,
     apply_forward,
     apply_forward_raw,
     average_forward_solutions,
-    write_forward_solution,
     convert_forward_solution,
-    SourceEstimate,
     pick_types_forward,
     read_evokeds,
-    VectorSourceEstimate,
+    read_forward_solution,
+    write_forward_solution,
+)
+from mne._fiff.pick import pick_channels_forward
+from mne.channels import equalize_channels
+from mne.datasets import testing
+from mne.forward import (
+    Forward,
+    compute_depth_prior,
+    compute_orient_prior,
+    is_fixed_orient,
+    restrict_forward_to_label,
+    restrict_forward_to_stc,
 )
 from mne.io import read_info
 from mne.label import read_label
 from mne.utils import requires_mne, run_subprocess
-from mne.forward import (
-    restrict_forward_to_stc,
-    restrict_forward_to_label,
-    Forward,
-    is_fixed_orient,
-    compute_orient_prior,
-    compute_depth_prior,
-)
-from mne.channels import equalize_channels
 
 data_path = testing.data_path(download=False)
 fname_meeg = data_path / "MEG" / "sample" / "sample_audvis_trunc-meg-eeg-oct-4-fwd.fif"
 fname_meeg_grad = (
     data_path / "MEG" / "sample" / "sample_audvis_trunc-meg-eeg-oct-2-grad-fwd.fif"
 )
-fname_evoked = (
-    Path(__file__).parent.parent.parent / "io" / "tests" / "data" / "test-ave.fif"
-)
+fname_evoked = Path(__file__).parents[2] / "io" / "tests" / "data" / "test-ave.fif"
 label_path = data_path / "MEG" / "sample" / "labels"
 
 
@@ -196,6 +197,15 @@ def test_io_forward(tmp_path):
     fwd_read = read_forward_solution(fname_temp)
     assert_forward_allclose(fwd, fwd_read)
 
+    h5py = pytest.importorskip("h5py")
+    pytest.importorskip("h5io")
+    fname_h5 = fname_temp.with_suffix(".h5")
+    fwd.save(fname_h5)
+    with h5py.File(fname_h5, "r"):
+        pass  # just checks for hdf5-ness
+    fwd_read = read_forward_solution(fname_h5)
+    assert_forward_allclose(fwd, fwd_read)
+
 
 @testing.requires_testing_data
 def test_apply_forward():
@@ -219,7 +229,7 @@ def test_apply_forward():
 
     # Evoked
     evoked = read_evokeds(fname_evoked, condition=0)
-    evoked.pick_types(meg=True)
+    evoked.pick(picks="meg")
     with pytest.warns(RuntimeWarning, match="only .* positive values"):
         evoked = apply_forward(fwd, stc, evoked.info, start=start, stop=stop)
     data = evoked.data
@@ -494,7 +504,7 @@ def test_priors():
         compute_orient_prior(fwd, 0.5)
     fwd_surf_ori = convert_forward_solution(fwd, surf_ori=True)
     orient_prior = compute_orient_prior(fwd_surf_ori, 0.5)
-    assert all(np.in1d(orient_prior, (0.5, 1.0)))
+    assert all(np.isin(orient_prior, (0.5, 1.0)))
     with pytest.raises(ValueError, match="between 0 and 1"):
         compute_orient_prior(fwd_surf_ori, -0.5)
     with pytest.raises(ValueError, match="with fixed orientation"):
@@ -505,8 +515,8 @@ def test_priors():
 def test_equalize_channels():
     """Test equalization of channels for instances of Forward."""
     fwd1 = read_forward_solution(fname_meeg)
-    fwd1.pick_channels(["EEG 001", "EEG 002", "EEG 003"])
-    fwd2 = fwd1.copy().pick_channels(["EEG 002", "EEG 001"], ordered=True)
+    pick_channels_forward(fwd1, include=["EEG 001", "EEG 002", "EEG 003"], copy=False)
+    fwd2 = pick_channels_forward(fwd1, include=["EEG 002", "EEG 001"], ordered=True)
     fwd1, fwd2 = equalize_channels([fwd1, fwd2])
     assert fwd1.ch_names == ["EEG 001", "EEG 002"]
     assert fwd2.ch_names == ["EEG 001", "EEG 002"]

@@ -1,11 +1,12 @@
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import datetime as dt
 
-import pytest
 import numpy as np
+import pytest
 from numpy.testing import assert_allclose, assert_array_less
 
 from mne.channels import make_standard_montage
@@ -13,18 +14,15 @@ from mne.io import read_raw_hitachi
 from mne.io.hitachi.hitachi import _compute_pairs
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.preprocessing.nirs import (
-    source_detector_distances,
-    optical_density,
-    tddr,
     beer_lambert_law,
+    optical_density,
     scalp_coupling_index,
+    source_detector_distances,
+    tddr,
 )
 
-
 CONTENTS = dict()
-CONTENTS[
-    "1.18"
-] = b"""\
+CONTENTS["1.18"] = b"""\
 Header,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 File Version,1.18,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 Patient Information,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
@@ -129,9 +127,7 @@ Probe1,CH1(700.1),CH1(829.1),CH2(699.3),CH2(827.9),CH3(699.3),CH3(827.9),CH4(698
 """  # noqa: E501
 
 
-CONTENTS[
-    "1.25"
-] = b"""\
+CONTENTS["1.25"] = b"""\
 Header
 File Version,1.25
 Patient Information

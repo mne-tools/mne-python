@@ -3,17 +3,17 @@
 #         Jean-Remi King <jeanremi.king@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from collections import Counter
 
 import numpy as np
 
-from .mixin import TransformerMixin, EstimatorMixin
-from .base import _set_cv
-from ..io.pick import _picks_to_idx
+from .._fiff.pick import _picks_to_idx, pick_info, pick_types
 from ..parallel import parallel_func
 from ..utils import logger, verbose
-from .. import pick_types, pick_info
+from .base import _set_cv
+from .mixin import EstimatorMixin, TransformerMixin
 
 
 class EMS(TransformerMixin, EstimatorMixin):

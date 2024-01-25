@@ -5,29 +5,30 @@
 #          Britta Westner <britta.wstnr@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from copy import deepcopy
 
 import numpy as np
 
+from .._fiff.proj import Projection, make_projector
 from ..cov import Covariance, make_ad_hoc_cov
-from ..forward.forward import is_fixed_orient, _restrict_forward_to_src_sel
-from ..io.proj import make_projector, Projection
+from ..forward.forward import _restrict_forward_to_src_sel, is_fixed_orient
 from ..minimum_norm.inverse import _get_vertno, _prepare_forward
-from ..source_space import label_src_vertno_sel
-from ..utils import (
-    verbose,
-    check_fname,
-    _reg_pinv,
-    _check_option,
-    logger,
-    _pl,
-    _check_src_normal,
-    _sym_mat_pow,
-    warn,
-    _import_h5io_funcs,
-)
+from ..source_space._source_space import label_src_vertno_sel
 from ..time_frequency.csd import CrossSpectralDensity
+from ..utils import (
+    _check_option,
+    _check_src_normal,
+    _import_h5io_funcs,
+    _pl,
+    _reg_pinv,
+    _sym_mat_pow,
+    check_fname,
+    logger,
+    verbose,
+    warn,
+)
 
 
 def _check_proj_match(proj, filters):
@@ -119,14 +120,13 @@ def _prepare_beamformer_input(
         nn[...] = [0, 0, 1]  # align to local +Z coordinate
     if pick_ori is not None and not is_free_ori:
         raise ValueError(
-            "Normal or max-power orientation (got %r) can only be picked when "
-            "a forward operator with free orientation is used." % (pick_ori,)
+            f"Normal or max-power orientation (got {pick_ori!r}) can only be picked "
+            "when a forward operator with free orientation is used."
         )
     if pick_ori == "normal" and not forward["surf_ori"]:
         raise ValueError(
-            "Normal orientation can only be picked when a "
-            "forward operator oriented in surface coordinates is "
-            "used."
+            "Normal orientation can only be picked when a forward operator oriented in "
+            "surface coordinates is used."
         )
     _check_src_normal(pick_ori, forward["src"])
     del forward, info
@@ -504,21 +504,21 @@ class Beamformer(dict):
         if self["subject"] is None:
             subject = "unknown"
         else:
-            subject = '"%s"' % (self["subject"],)
-        out = "<Beamformer | %s, subject %s, %s vert, %s ch" % (
+            subject = f'"{self["subject"]}"'
+        out = "<Beamformer | {}, subject {}, {} vert, {} ch".format(
             self["kind"],
             subject,
             n_verts,
             n_channels,
         )
         if self["pick_ori"] is not None:
-            out += ", %s ori" % (self["pick_ori"],)
+            out += f', {self["pick_ori"]} ori'
         if self["weight_norm"] is not None:
-            out += ", %s norm" % (self["weight_norm"],)
+            out += f', {self["weight_norm"]} norm'
         if self.get("inversion") is not None:
-            out += ", %s inversion" % (self["inversion"],)
+            out += f', {self["inversion"]} inversion'
         if "rank" in self:
-            out += ", rank %s" % (self["rank"],)
+            out += f', rank {self["rank"]}'
         out += ">"
         return out
 
@@ -536,7 +536,7 @@ class Beamformer(dict):
         """
         _, write_hdf5 = _import_h5io_funcs()
 
-        ending = "-%s.h5" % (self["kind"].lower(),)
+        ending = f'-{self["kind"].lower()}.h5'
         check_fname(fname, self["kind"], (ending,))
         csd_orig = None
         try:

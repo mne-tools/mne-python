@@ -4,37 +4,36 @@
 #          Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import os
 
 import numpy as np
 
-from .._digitization import _format_dig_points
+from ..._fiff._digitization import _format_dig_points
+from ..._fiff.utils import _blk_read_lims, _mult_cal_one
 from ...utils import (
-    verbose,
-    logger,
+    _check_fname,
+    _check_option,
     _clean_names,
     fill_doc,
-    _check_option,
-    _check_fname,
+    logger,
+    verbose,
 )
-
 from ..base import BaseRaw
-from ..utils import _mult_cal_one, _blk_read_lims
-
-from .res4 import _read_res4, _make_ctf_name
-from .hc import _read_hc
-from .eeg import _read_eeg, _read_pos
-from .trans import _make_ctf_coord_trans_set
-from .info import _compose_meas_info, _read_bad_chans, _annotate_bad_segments
 from .constants import CTF
+from .eeg import _read_eeg, _read_pos
+from .hc import _read_hc
+from .info import _annotate_bad_segments, _compose_meas_info, _read_bad_chans
 from .markers import _read_annotations_ctf_call
+from .res4 import _make_ctf_name, _read_res4
+from .trans import _make_ctf_coord_trans_set
 
 
 @fill_doc
 def read_raw_ctf(
     directory, system_clock="truncate", preload=False, clean_names=False, verbose=None
-):
+) -> "RawCTF":
     """Raw object from CTF directory.
 
     Parameters
@@ -56,11 +55,6 @@ def read_raw_ctf(
     -------
     raw : instance of RawCTF
         The raw data.
-        See :class:`mne.io.Raw` for documentation of attributes and methods.
-
-    See Also
-    --------
-    mne.io.Raw : Documentation of attributes and methods of RawCTF.
 
     Notes
     -----
@@ -112,7 +106,7 @@ class RawCTF(BaseRaw):
         preload=False,
         verbose=None,
         clean_names=False,
-    ):  # noqa: D102
+    ):
         # adapted from mne_ctf2fiff.c
         directory = str(
             _check_fname(directory, "read", True, "directory", need_dir=True)
@@ -170,7 +164,7 @@ class RawCTF(BaseRaw):
                 f"file(s): {missing_names}, and the following file(s) had no "
                 f"valid samples: {no_samps}"
             )
-        super(RawCTF, self).__init__(
+        super().__init__(
             info,
             preload,
             first_samps=first_samps,
@@ -193,9 +187,8 @@ class RawCTF(BaseRaw):
         )
         annot = marker_annot if annot is None else annot + marker_annot
         self.set_annotations(annot)
-
         if clean_names:
-            self._clean_names()
+            _clean_names_inst(self)
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data."""
@@ -222,15 +215,14 @@ class RawCTF(BaseRaw):
                 _mult_cal_one(data_view, this_data, idx, cals, mult)
                 offset += n_read
 
-    def _clean_names(self):
-        """Clean up CTF suffixes from channel names."""
-        mapping = dict(zip(self.ch_names, _clean_names(self.ch_names)))
 
-        self.rename_channels(mapping)
-
-        for comp in self.info["comps"]:
-            for key in ("row_names", "col_names"):
-                comp["data"][key] = _clean_names(comp["data"][key])
+def _clean_names_inst(inst):
+    """Clean up CTF suffixes from channel names."""
+    mapping = dict(zip(inst.ch_names, _clean_names(inst.ch_names)))
+    inst.rename_channels(mapping)
+    for comp in inst.info["comps"]:
+        for key in ("row_names", "col_names"):
+            comp["data"][key] = _clean_names(comp["data"][key])
 
 
 def _get_sample_info(fname, res4, system_clock):

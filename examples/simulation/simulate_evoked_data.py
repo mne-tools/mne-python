@@ -11,17 +11,18 @@ Use :func:`~mne.simulation.simulate_sparse_stc` to simulate evoked data.
 #         Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 
 import mne
 from mne.datasets import sample
+from mne.simulation import simulate_evoked, simulate_sparse_stc
 from mne.time_frequency import fit_iir_model_raw
 from mne.viz import plot_sparse_source_estimates
-from mne.simulation import simulate_sparse_stc, simulate_evoked
 
 print(__doc__)
 

@@ -1,3 +1,6 @@
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
+import logging
 import os
 import re
 import warnings
@@ -6,23 +9,24 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from mne import read_evokeds, Epochs, create_info
-from mne.io import read_raw_fif, RawArray
+from mne import Epochs, create_info, read_evokeds
+from mne.io import RawArray, read_raw_fif
+from mne.parallel import parallel_func
 from mne.utils import (
-    warn,
-    set_log_level,
-    set_log_file,
-    filter_out_warnings,
-    verbose,
     _get_call_line,
-    use_log_level,
     catch_logging,
-    logger,
     check,
+    filter_out_warnings,
+    logger,
+    set_log_file,
+    set_log_level,
+    use_log_level,
+    verbose,
+    warn,
 )
 from mne.utils._logging import _frame_info
 
-base_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
+base_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
 fname_raw = base_dir / "test_raw.fif"
 fname_evoked = base_dir / "test-ave.fif"
 fname_log = base_dir / "test-ave.log"
@@ -69,7 +73,7 @@ def test_how_to_deal_with_warnings():
     assert len(w) == 1
 
 
-def clean_lines(lines=[]):
+def clean_lines(lines=()):
     """Scrub filenames for checking logging output (in test_logging)."""
     return [line if "Reading " not in line else "Reading test file" for line in lines]
 
@@ -80,11 +84,11 @@ def test_logging_options(tmp_path):
         with pytest.raises(ValueError, match="Invalid value for the 'verbose"):
             set_log_level("foo")
         test_name = tmp_path / "test.log"
-        with open(fname_log, "r") as old_log_file:
+        with open(fname_log) as old_log_file:
             # [:-1] used to strip an extra "No baseline correction applied"
             old_lines = clean_lines(old_log_file.readlines())
             old_lines.pop(-1)
-        with open(fname_log_2, "r") as old_log_file_2:
+        with open(fname_log_2) as old_log_file_2:
             old_lines_2 = clean_lines(old_log_file_2.readlines())
             old_lines_2.pop(14)
             old_lines_2.pop(-1)
@@ -108,7 +112,7 @@ def test_logging_options(tmp_path):
             assert fid.readlines() == []
         # SHOULD print
         evoked = read_evokeds(fname_evoked, condition=1, verbose=True)
-        with open(test_name, "r") as new_log_file:
+        with open(test_name) as new_log_file:
             new_lines = clean_lines(new_log_file.readlines())
         assert new_lines == old_lines
         set_log_file(None)  # Need to do this to close the old file
@@ -127,7 +131,7 @@ def test_logging_options(tmp_path):
             assert fid.readlines() == []
         # SHOULD print
         evoked = read_evokeds(fname_evoked, condition=1)
-        with open(test_name, "r") as new_log_file:
+        with open(test_name) as new_log_file:
             new_lines = clean_lines(new_log_file.readlines())
         assert new_lines == old_lines
         # check to make sure appending works (and as default, raises a warning)
@@ -135,7 +139,7 @@ def test_logging_options(tmp_path):
         with pytest.warns(RuntimeWarning, match="appended to the file"):
             set_log_file(test_name)
         evoked = read_evokeds(fname_evoked, condition=1)
-        with open(test_name, "r") as new_log_file:
+        with open(test_name) as new_log_file:
             new_lines = clean_lines(new_log_file.readlines())
         assert new_lines == old_lines_2
 
@@ -144,7 +148,7 @@ def test_logging_options(tmp_path):
         # this line needs to be called to actually do some logging
         evoked = read_evokeds(fname_evoked, condition=1)
         del evoked
-        with open(test_name, "r") as new_log_file:
+        with open(test_name) as new_log_file:
             new_lines = clean_lines(new_log_file.readlines())
         assert new_lines == old_lines
     with catch_logging() as log:
@@ -252,3 +256,23 @@ def test_verbose_strictness():
         o.meth_2(verbose=False)
     log = log.getvalue()
     assert log == ""
+
+
+@pytest.mark.parametrize("n_jobs", (1, 2))
+def test_verbose_threads(n_jobs):
+    """Test that our verbose level propagates to threads."""
+
+    def my_fun():
+        from mne.utils import logger
+
+        return logger.level
+
+    with use_log_level("info"):
+        assert logger.level == logging.INFO
+        with use_log_level("warning"):
+            assert logger.level == logging.WARNING
+            parallel, p_fun, got_jobs = parallel_func(my_fun, n_jobs=n_jobs)
+            assert got_jobs in (1, n_jobs)  # FORCE_SERIAL could be set
+            out = parallel(p_fun() for _ in range(5))
+            want_levels = [logging.WARNING] * 5
+            assert out == want_levels

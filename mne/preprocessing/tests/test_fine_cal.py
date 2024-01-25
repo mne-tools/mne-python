@@ -2,22 +2,23 @@
 #          Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 import numpy as np
-from numpy.testing import assert_allclose
 import pytest
+from numpy.testing import assert_allclose
 
 from mne import pick_types
-from mne.io import read_raw_fif
+from mne._fiff.tag import _loc_to_coil_trans
 from mne.datasets import testing
-from mne.io.tag import _loc_to_coil_trans
+from mne.io import read_raw_fif
 from mne.preprocessing import (
-    read_fine_calibration,
-    write_fine_calibration,
     compute_fine_calibration,
     maxwell_filter,
+    read_fine_calibration,
+    write_fine_calibration,
 )
 from mne.preprocessing.tests.test_maxwell import _assert_shielding
-from mne.transforms import rot_to_quat, _angle_between_quats
+from mne.transforms import _angle_between_quats, rot_to_quat
 from mne.utils import object_diff
 
 # Define fine calibration filepaths

@@ -1,15 +1,16 @@
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from pathlib import Path
 
 import numpy as np
-from numpy.testing import assert_array_equal
 import pytest
+from numpy.testing import assert_array_equal
 
 from mne.parallel import parallel_func
-from mne.utils import ProgressBar, array_split_idx, use_log_level, catch_logging
+from mne.utils import ProgressBar, array_split_idx, catch_logging, use_log_level
 
 
 def test_progressbar(monkeypatch):

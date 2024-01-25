@@ -8,7 +8,8 @@
 #          Mainak Jas <mainak@neuro.hut.fi>
 #          Daniel McCloy <dan.mccloy@gmail.com>
 #
-# License: Simplified BSD
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from copy import deepcopy
 from functools import partial
@@ -17,72 +18,66 @@ from numbers import Integral
 
 import numpy as np
 
-from ..fixes import _is_last_row
-from ..io.pick import (
-    channel_type,
-    _VALID_CHANNEL_TYPES,
-    channel_indices_by_type,
+from .._fiff.pick import (
     _DATA_CH_TYPES_SPLIT,
-    _pick_inst,
-    _get_channel_types,
     _PICK_TYPES_DATA_DICT,
+    _VALID_CHANNEL_TYPES,
     _picks_to_idx,
+    channel_indices_by_type,
+    channel_type,
     pick_info,
 )
 from ..defaults import _handle_default
-from .utils import (
-    _draw_proj_checkbox,
-    tight_layout,
-    _check_delayed_ssp,
-    plt_show,
-    _process_times,
-    DraggableColorbar,
-    _setup_cmap,
-    _setup_vmin_vmax,
-    _check_cov,
-    _make_combine_callable,
-    _validate_if_list_of_axes,
-    _triage_rank_sss,
-    _connection_line,
-    _get_color_list,
-    _setup_ax_spines,
-    _setup_plot_projector,
-    _prepare_joint_axes,
-    _check_option,
-    _set_title_multiple_electrodes,
-    _check_time_unit,
-    _plot_masked_image,
-    _trim_ticks,
-    _set_window_title,
-    _prop_kw,
-    _get_cmap,
-)
+from ..fixes import _is_last_row
 from ..utils import (
-    logger,
-    _clean_names,
-    warn,
-    _pl,
-    verbose,
-    _validate_type,
-    _check_if_nan,
     _check_ch_locs,
-    fill_doc,
+    _check_if_nan,
+    _clean_names,
     _is_numeric,
+    _pl,
     _to_rgb,
+    _validate_type,
+    fill_doc,
+    logger,
+    verbose,
+    warn,
 )
-
 from .topo import _plot_evoked_topo
 from .topomap import (
-    _prepare_topomap_plot,
-    plot_topomap,
-    _get_pos_outlines,
-    _draw_outlines,
-    _prepare_topomap,
-    _set_contour_locator,
     _check_sphere,
+    _draw_outlines,
+    _get_pos_outlines,
     _make_head_outlines,
+    _prepare_topomap,
+    _prepare_topomap_plot,
+    _set_contour_locator,
+    plot_topomap,
 )
-from ..channels.layout import _pair_grad_sensors, find_layout
+from .utils import (
+    DraggableColorbar,
+    _check_cov,
+    _check_delayed_ssp,
+    _check_option,
+    _check_time_unit,
+    _draw_proj_checkbox,
+    _get_cmap,
+    _get_color_list,
+    _make_combine_callable,
+    _plot_masked_image,
+    _prepare_joint_axes,
+    _process_times,
+    _prop_kw,
+    _set_title_multiple_electrodes,
+    _set_window_title,
+    _setup_ax_spines,
+    _setup_cmap,
+    _setup_plot_projector,
+    _setup_vmin_vmax,
+    _triage_rank_sss,
+    _trim_ticks,
+    _validate_if_list_of_axes,
+    plt_show,
+)
 
 
 def _butterfly_onpick(event, params):
@@ -140,6 +135,8 @@ def _line_plot_onselect(
     """Draw topomaps from the selected area."""
     import matplotlib.pyplot as plt
 
+    from ..channels.layout import _pair_grad_sensors
+
     ch_types = [type_ for type_ in ch_types if type_ in ("eeg", "grad", "mag")]
     if len(ch_types) == 0:
         raise ValueError(
@@ -167,7 +164,11 @@ def _line_plot_onselect(
     minidx = np.abs(times - xmin).argmin()
     maxidx = np.abs(times - xmax).argmin()
     fig, axarr = plt.subplots(
-        1, len(ch_types), squeeze=False, figsize=(3 * len(ch_types), 3)
+        1,
+        len(ch_types),
+        squeeze=False,
+        figsize=(3 * len(ch_types), 3),
+        layout="constrained",
     )
 
     for idx, ch_type in enumerate(ch_types):
@@ -213,7 +214,6 @@ def _line_plot_onselect(
 
     unit = "Hz" if psd else time_unit
     fig.suptitle("Average over %.2f%s - %.2f%s" % (xmin, unit, xmax, unit), y=0.1)
-    tight_layout(pad=2.0, fig=fig)
     plt_show()
     if text is not None:
         text.set_visible(False)
@@ -226,8 +226,8 @@ def _line_plot_onselect(
 def _topo_closed(events, ax, lines, fill):
     """Remove lines from evoked plot as topomap is closed."""
     for line in lines:
-        ax.lines.remove(line)
-    ax.patches.remove(fill)
+        line.remove()
+    fill.remove()
     ax.get_figure().canvas.draw()
 
 
@@ -334,7 +334,7 @@ def _plot_evoked(
         if axes is None:
             axes = dict()
             for sel in group_by:
-                plt.figure()
+                plt.figure(layout="constrained")
                 axes[sel] = plt.axes()
         if not isinstance(axes, dict):
             raise ValueError(
@@ -390,9 +390,9 @@ def _plot_evoked(
                 ax.set_xlabel("")
         ims = [ax.images[0] for ax in axes.values()]
         clims = np.array([im.get_clim() for im in ims])
-        min, max = clims.min(), clims.max()
+        min_, max_ = clims.min(), clims.max()
         for im in ims:
-            im.set_clim(min, max)
+            im.set_clim(min_, max_)
         figs = [ax.get_figure() for ax in axes.values()]
         if len(set(figs)) == 1:
             return figs[0]
@@ -452,7 +452,7 @@ def _plot_evoked(
 
         picks = np.array([pick for pick in picks if pick not in exclude])
 
-    types = np.array(_get_channel_types(info, picks), str)
+    types = np.array(info.get_channel_types(picks), str)
     ch_types_used = list()
     for this_type in _VALID_CHANNEL_TYPES:
         if this_type in types:
@@ -460,8 +460,7 @@ def _plot_evoked(
 
     fig = None
     if axes is None:
-        fig, axes = plt.subplots(len(ch_types_used), 1)
-        fig.subplots_adjust(left=0.125, bottom=0.1, right=0.975, top=0.92, hspace=0.63)
+        fig, axes = plt.subplots(len(ch_types_used), 1, layout="constrained")
         if isinstance(axes, plt.Axes):
             axes = [axes]
         fig.set_size_inches(6.4, 2 + len(axes))
@@ -609,7 +608,8 @@ def _plot_lines(
     highlight,
 ):
     """Plot data as butterfly plot."""
-    from matplotlib import patheffects, pyplot as plt
+    from matplotlib import patheffects
+    from matplotlib import pyplot as plt
     from matplotlib.widgets import SpanSelector
 
     assert len(axes) == len(ch_types_used)
@@ -680,15 +680,17 @@ def _plot_lines(
                     _handle_spatial_colors(
                         colors, info, idx, this_type, psd, ax, sphere
                     )
+                    bad_color = (0.5, 0.5, 0.5)
                 else:
                     if isinstance(_spat_col, (tuple, str)):
                         col = [_spat_col]
                     else:
                         col = ["k"]
+                    bad_color = "r"
                     colors = col * len(idx)
-                    for i in bad_ch_idx:
-                        if i in idx:
-                            colors[idx.index(i)] = "r"
+                for i in bad_ch_idx:
+                    if i in idx:
+                        colors[idx.index(i)] = bad_color
 
                 if zorder == "std":
                     # find the channels with the least activity
@@ -740,6 +742,7 @@ def _plot_lines(
                 else:
                     y_offset = this_ylim[0]
                 this_gfp += y_offset
+                ax.autoscale(False)
                 ax.fill_between(
                     times,
                     y_offset,
@@ -861,9 +864,9 @@ def _add_nave(ax, nave):
     if nave is not None:
         ax.annotate(
             r"N$_{\mathrm{ave}}$=%d" % nave,
-            ha="left",
+            ha="right",
             va="bottom",
-            xy=(0, 1),
+            xy=(1, 1),
             xycoords="axes fraction",
             xytext=(0, 5),
             textcoords="offset pixels",
@@ -960,7 +963,7 @@ def _plot_image(
         cbar = plt.colorbar(im, ax=ax)
         cbar.ax.set_title(ch_unit)
         if cmap[1]:
-            ax.CB = DraggableColorbar(cbar, im)
+            ax.CB = DraggableColorbar(cbar, im, "evoked_image", this_type)
 
     ylabel = "Channels" if show_names else "Channel (index)"
     t = titles[this_type] + " (%d channel%s" % (len(data), _pl(data)) + t_end
@@ -1168,7 +1171,7 @@ def plot_evoked_topo(
     scalings=None,
     title=None,
     proj=False,
-    vline=[0.0],
+    vline=(0.0,),
     fig_background=None,
     merge_grads=False,
     legend=True,
@@ -1215,7 +1218,7 @@ def plot_evoked_topo(
         If true SSP projections are applied before display. If 'interactive',
         a check box for reversible selection of SSP projection vectors will
         be shown.
-    vline : list of float | None
+    vline : list of float | float| None
         The values at which to show a vertical line.
     fig_background : None | ndarray
         A background image for the figure. This must work with a call to
@@ -1478,7 +1481,7 @@ def plot_evoked_image(
 
 def _plot_update_evoked(params, bools):
     """Update the plot evoked lines."""
-    picks, evoked = [params[k] for k in ("picks", "evoked")]
+    picks, evoked = (params[k] for k in ("picks", "evoked"))
     projs = [
         proj for ii, proj in enumerate(params["projs"]) if ii in np.where(bools)[0]
     ]
@@ -1570,8 +1573,9 @@ def plot_evoked_white(
            covariance estimation and spatial whitening of MEG and EEG
            signals, vol. 108, 328-342, NeuroImage.
     """
-    from ..cov import whiten_evoked, Covariance, _ensure_cov
     import matplotlib.pyplot as plt
+
+    from ..cov import Covariance, _ensure_cov, whiten_evoked
 
     time_unit, times = _check_time_unit(time_unit, evoked.times)
 
@@ -1625,14 +1629,19 @@ def plot_evoked_white(
     _validate_type(axes, (list, tuple, np.ndarray, None), "axes")
     if axes is None:
         _, axes = plt.subplots(
-            n_rows, n_columns, sharex=True, sharey=False, figsize=(8.8, 2.2 * n_rows)
+            n_rows,
+            n_columns,
+            sharex=True,
+            sharey=False,
+            figsize=(8.8, 2.2 * n_rows),
+            layout="constrained",
         )
     else:
         axes = np.array(axes)
     for ai, ax in enumerate(axes.flat):
         _validate_type(ax, plt.Axes, "axes.flat[%d]" % (ai,))
     if axes.shape != want_shape:
-        raise ValueError(f"axes must have shape {want_shape}, got " f"{axes.shape}")
+        raise ValueError(f"axes must have shape {want_shape}, got {axes.shape}.")
     fig = axes.flat[0].figure
     if n_columns > 1:
         suptitle = (
@@ -1686,10 +1695,10 @@ def plot_evoked_white(
 
         for ch, sub_picks in picks_list:
             this_rank = rank_[ch]
-            title = "{0} ({2}{1})".format(
+            title = "{} ({}{})".format(
                 titles_[ch] if n_columns > 1 else ch,
-                this_rank,
                 "rank " if n_columns > 1 else "",
+                this_rank,
             )
             label = noise_cov.get("method", "empirical")
 
@@ -1726,12 +1735,6 @@ def plot_evoked_white(
         )
     else:
         ax.legend(loc="upper right", prop=dict(size=10))
-        params = dict(
-            top=[0.69, 0.82, 0.87][n_rows - 1], bottom=[0.22, 0.13, 0.09][n_rows - 1]
-        )
-        if has_sss:
-            params["hspace"] = 0.49
-        fig.subplots_adjust(**params)
     fig.canvas.draw()
 
     plt_show(show)
@@ -1770,12 +1773,13 @@ def plot_snr_estimate(evoked, inv, show=True, axes=None, verbose=None):
     .. versionadded:: 0.9.0
     """
     import matplotlib.pyplot as plt
+
     from ..minimum_norm import estimate_snr
 
     snr, snr_est = estimate_snr(evoked, inv)
     _validate_type(axes, (None, plt.Axes))
     if axes is None:
-        _, ax = plt.subplots(1, 1)
+        _, ax = plt.subplots(1, 1, layout="constrained")
     else:
         ax = axes
         del axes
@@ -1861,7 +1865,7 @@ def plot_evoked_joint(
     -----
     .. versionadded:: 0.12.0
     """
-    import matplotlib.pyplot as plt
+    from matplotlib.patches import ConnectionPatch
 
     if ts_args is not None and not isinstance(ts_args, dict):
         raise TypeError("ts_args must be dict or None, got type %s" % (type(ts_args),))
@@ -1874,7 +1878,7 @@ def plot_evoked_joint(
     got_axes = False
     illegal_args = {"show", "times", "exclude"}
     for args in (ts_args, topomap_args):
-        if any((x in args for x in illegal_args)):
+        if any(x in args for x in illegal_args):
             raise ValueError(
                 "Don't pass any of {} as *_args.".format(", ".join(list(illegal_args)))
             )
@@ -1912,9 +1916,9 @@ def plot_evoked_joint(
         if proj == "reconstruct":
             evoked._reconstruct_proj()
     topomap_args["proj"] = ts_args["proj"] = False  # don't reapply
-    evoked = _pick_inst(evoked, picks, exclude, copy=False)
+    evoked.pick(picks, exclude=exclude)
     info = evoked.info
-    ch_types = _get_channel_types(info, unique=True, only_data_chs=True)
+    ch_types = info.get_channel_types(unique=True, only_data_chs=True)
 
     # if multiple sensor types: one plot per channel type, recursive call
     if len(ch_types) > 1:
@@ -1925,14 +1929,14 @@ def plot_evoked_joint(
             )
         figs = list()
         for this_type in ch_types:  # pick only the corresponding channel type
-            ev_ = evoked.copy().pick_channels(
+            ev_ = evoked.copy().pick(
                 [
                     info["ch_names"][idx]
                     for idx in range(info["nchan"])
                     if channel_type(info, idx) == this_type
                 ]
             )
-            if len(_get_channel_types(ev_.info, unique=True)) > 1:
+            if len(ev_.info.get_channel_types(unique=True)) > 1:
                 raise RuntimeError(
                     "Possibly infinite loop due to channel "
                     "selection problem. This should never "
@@ -1958,9 +1962,8 @@ def plot_evoked_joint(
 
     # prepare axes for topomap
     if not got_axes:
-        fig, ts_ax, map_ax, cbar_ax = _prepare_joint_axes(
-            len(times_sec), figsize=(8.0, 4.2)
-        )
+        fig, ts_ax, map_ax = _prepare_joint_axes(len(times_sec), figsize=(8.0, 4.2))
+        cbar_ax = None
     else:
         ts_ax = ts_args["axes"]
         del ts_args["axes"]
@@ -1998,20 +2001,10 @@ def plot_evoked_joint(
     old_title = ts_ax.get_title()
     ts_ax.set_title("")
 
-    # XXX BUG destroys ax -> fig assignment if title & axes are passed
     if title is not None:
-        title_ax = fig.add_subplot(4, 3, 2)
         if title == "":
             title = old_title
-        title_ax.text(
-            0.5,
-            0.5,
-            title,
-            transform=title_ax.transAxes,
-            horizontalalignment="center",
-            verticalalignment="center",
-        )
-        title_ax.axis("off")
+        fig.suptitle(title)
 
     # topomap
     contours = topomap_args.get("contours", 6)
@@ -2037,8 +2030,8 @@ def plot_evoked_joint(
     if topomap_args.get("colorbar", True):
         from matplotlib import ticker
 
-        cbar_ax.grid(False)  # auto-removal deprecated as of 2021/10/05
-        cbar = plt.colorbar(map_ax[0].images[0], cax=cbar_ax)
+        cbar = fig.colorbar(map_ax[0].images[0], ax=map_ax, cax=cbar_ax, shrink=0.8)
+        cbar.ax.grid(False)  # auto-removal deprecated as of 2021/10/05
         if isinstance(contours, (list, np.ndarray)):
             cbar.set_ticks(contours)
         else:
@@ -2047,19 +2040,24 @@ def plot_evoked_joint(
             cbar.locator = locator
         cbar.update_ticks()
 
-    if not got_axes:
-        plt.subplots_adjust(
-            left=0.1, right=0.93, bottom=0.14, top=1.0 if title is not None else 1.2
-        )
-
     # connection lines
     # draw the connection lines between time series and topoplots
-    lines = [
-        _connection_line(timepoint, fig, ts_ax, map_ax_)
-        for timepoint, map_ax_ in zip(times_ts, map_ax)
-    ]
-    for line in lines:
-        fig.lines.append(line)
+    for timepoint, map_ax_ in zip(times_ts, map_ax):
+        con = ConnectionPatch(
+            xyA=[timepoint, ts_ax.get_ylim()[1]],
+            xyB=[0.5, 0],
+            coordsA="data",
+            coordsB="axes fraction",
+            axesA=ts_ax,
+            axesB=map_ax_,
+            color="grey",
+            linestyle="-",
+            linewidth=1.5,
+            alpha=0.66,
+            zorder=1,
+            clip_on=False,
+        )
+        fig.add_artist(con)
 
     # mark times in time series plot
     for timepoint in times_ts:
@@ -2108,8 +2106,8 @@ def _validate_style_keys_pce(styles, conditions, tags):
     styles = deepcopy(styles)
     if not set(styles).issubset(tags.union(conditions)):
         raise ValueError(
-            'The keys in "styles" ({}) must match the keys in '
-            '"evokeds" ({}).'.format(list(styles), conditions)
+            f'The keys in "styles" ({list(styles)}) must match the keys in '
+            f'"evokeds" ({conditions}).'
         )
     # make sure all the keys are in there
     for cond in conditions:
@@ -2147,26 +2145,20 @@ def _validate_colors_pce(colors, cmap, conditions, tags):
     if isinstance(colors, (list, tuple, np.ndarray)):
         if len(conditions) > len(colors):
             raise ValueError(
-                "Trying to plot {} conditions, but there are only"
-                " {} colors{}. Please specify colors manually.".format(
-                    len(conditions), len(colors), err_suffix
-                )
+                f"Trying to plot {len(conditions)} conditions, but there are only "
+                f"{len(colors)} colors{err_suffix}. Please specify colors manually."
             )
         colors = dict(zip(conditions, colors))
     # should be a dict by now...
     if not isinstance(colors, dict):
         raise TypeError(
-            '"colors" must be a dict, list, or None; got {}.'.format(
-                type(colors).__name__
-            )
+            f'"colors" must be a dict, list, or None; got {type(colors).__name__}.'
         )
     # validate color dict keys
     if not set(colors).issubset(tags.union(conditions)):
         raise ValueError(
-            'If "colors" is a dict its keys ({}) must '
-            'match the keys/conditions in "evokeds" ({}).'.format(
-                list(colors), conditions
-            )
+            f'If "colors" is a dict its keys ({list(colors)}) must match the '
+            f'keys/conditions in "evokeds" ({conditions}).'
         )
     # validate color dict values
     color_vals = list(colors.values())
@@ -2220,9 +2212,8 @@ def _validate_linestyles_pce(linestyles, conditions, tags):
     if isinstance(linestyles, (list, tuple, np.ndarray)):
         if len(conditions) > len(linestyles):
             raise ValueError(
-                "Trying to plot {} conditions, but there are "
-                "only {} linestyles. Please specify linestyles "
-                "manually.".format(len(conditions), len(linestyles))
+                f"Trying to plot {len(conditions)} conditions, but there are only "
+                f"{len(linestyles)} linestyles. Please specify linestyles manually."
             )
         linestyles = dict(zip(conditions, linestyles))
     # should be a dict by now...
@@ -2235,10 +2226,8 @@ def _validate_linestyles_pce(linestyles, conditions, tags):
     # validate linestyle dict keys
     if not set(linestyles).issubset(tags.union(conditions)):
         raise ValueError(
-            'If "linestyles" is a dict its keys ({}) must '
-            'match the keys/conditions in "evokeds" ({}).'.format(
-                list(linestyles), conditions
-            )
+            f'If "linestyles" is a dict its keys ({list(linestyles)}) must match the '
+            f'keys/conditions in "evokeds" ({conditions}).'
         )
     # normalize linestyle values (so we can accurately count unique linestyles
     # later). See https://github.com/matplotlib/matplotlib/blob/master/matplotlibrc.template#L131-L133  # noqa
@@ -2336,9 +2325,9 @@ def _evoked_sensor_legend(info, picks, ymin, ymax, show_sensors, ax, sphere):
 
 def _draw_colorbar_pce(ax, colors, cmap, colorbar_title, colorbar_ticks):
     """Draw colorbar for plot_compare_evokeds."""
-    from mpl_toolkits.axes_grid1 import make_axes_locatable
     from matplotlib.colorbar import ColorbarBase
     from matplotlib.transforms import Bbox
+    from mpl_toolkits.axes_grid1 import make_axes_locatable
 
     # create colorbar axes
     orig_bbox = ax.get_position()
@@ -2477,8 +2466,7 @@ def _draw_axes_pce(
             ybounds = _trim_ticks(ax.get_yticks(), ymin, ymax)[[0, -1]]
         else:
             raise ValueError(
-                '"truncate_yaxis" must be bool or '
-                '"auto", got {}'.format(truncate_yaxis)
+                f'"truncate_yaxis" must be bool or "auto", got {truncate_yaxis}'
             )
     _setup_ax_spines(
         ax,
@@ -2503,7 +2491,7 @@ def _get_data_and_ci(evoked, combine, combine_func, picks, scaling=1, ci_fun=Non
     data = np.array([evk.data[picks] * scaling for evk in evoked])
     # combine across sensors
     if combine is not None:
-        logger.info('combining channels using "{}"'.format(combine))
+        logger.info(f'combining channels using "{combine}"')
         data = combine_func(data)
     # get confidence band
     if ci_fun is not None:
@@ -2531,9 +2519,7 @@ def _get_ci_function_pce(ci, do_topo=False):
         return partial(_ci, ci=ci, method=method)
     else:
         raise TypeError(
-            '"ci" must be None, bool, float or callable, got {}'.format(
-                type(ci).__name__
-            )
+            f'"ci" must be None, bool, float or callable, got {type(ci).__name__}'
         )
 
 
@@ -2578,7 +2564,7 @@ def _title_helper_pce(title, picked_types, picks, ch_names, combine):
     if title is not None and len(title) and isinstance(combine, str) and do_combine:
         _comb = combine.upper() if combine == "gfp" else combine
         _comb = "std. dev." if _comb == "std" else _comb
-        title += " ({})".format(_comb)
+        title += f" ({_comb})"
     return title
 
 
@@ -2656,8 +2642,8 @@ def plot_compare_evokeds(
         :class:`dict` of :class:`ints <int>` or :class:`floats <float>`
         indicating steps or percentiles (respectively) along the colormap. If
         ``cmap`` is ``None``, list elements or dict values of ``colors`` must
-        be :class:`ints <int>` or valid :doc:`matplotlib colors
-        <matplotlib:tutorials/colors/colors>`; lists are cycled through
+        be :class:`ints <int>` or valid :ref:`matplotlib colors
+        <matplotlib:colors_def>`; lists are cycled through
         sequentially,
         while dicts must have keys matching the keys or conditions of an
         ``evokeds`` dict (see Notes for details). If ``None``, the current
@@ -2835,6 +2821,7 @@ def plot_compare_evokeds(
     +-------------+----------------+------------------------------------------+
     """
     import matplotlib.pyplot as plt
+
     from ..evoked import Evoked, _check_evokeds_ch_names_times
 
     # build up evokeds into a dict, if it's not already
@@ -2863,7 +2850,7 @@ def plot_compare_evokeds(
     if not isinstance(evokeds, dict):
         raise TypeError(
             '"evokeds" must be a dict, list, or instance of '
-            "mne.Evoked; got {}".format(type(evokeds).__name__)
+            f"mne.Evoked; got {type(evokeds).__name__}"
         )
     evokeds = deepcopy(evokeds)  # avoid modifying dict outside function scope
     for cond, evoked in evokeds.items():
@@ -2901,9 +2888,11 @@ def plot_compare_evokeds(
         "misc",  # from ICA
         "emg",
         "ref_meg",
+        "eyegaze",
+        "pupil",
     )
     ch_types = [
-        t for t in _get_channel_types(info, picks=picks, unique=True) if t in all_types
+        t for t in info.get_channel_types(picks=picks, unique=True) if t in all_types
     ]
     picks_by_type = channel_indices_by_type(info, picks)
     # discard picks from non-data channels (e.g., ref_meg)
@@ -2931,7 +2920,7 @@ def plot_compare_evokeds(
     title = _title_helper_pce(
         title, picked_types, picks=orig_picks, ch_names=ch_names, combine=combine
     )
-
+    topo_disp_title = False
     # setup axes
     if do_topo:
         show_sensors = False
@@ -2941,10 +2930,14 @@ def plot_compare_evokeds(
                 "sensors. This can be extremely slow. Consider using "
                 "mne.viz.plot_topo, which is optimized for speed."
             )
+        topo_title = title
+        topo_disp_title = True
         axes = ["topo"] * len(ch_types)
     else:
         if axes is None:
-            axes = (plt.subplots(figsize=(8, 6))[1] for _ in ch_types)
+            axes = (
+                plt.subplots(figsize=(8, 6), layout="constrained")[1] for _ in ch_types
+            )
         elif isinstance(axes, plt.Axes):
             axes = [axes]
             _validate_if_list_of_axes(axes, obligatory_len=len(ch_types))
@@ -2999,7 +2992,13 @@ def plot_compare_evokeds(
         colorbar_ticks,
     ) = _handle_styles_pce(styles, linestyles, colors, cmap, conditions)
     # From now on there is only 1 channel type
-    assert len(ch_types) == 1
+    if not len(ch_types):
+        got_idx = _picks_to_idx(info, picks=orig_picks)
+        got = np.unique(np.array(info.get_channel_types())[got_idx]).tolist()
+        raise RuntimeError(
+            f"No valid channel type(s) provided. Got {got}. Valid channel types are:"
+            f"\n{all_types}."
+        )
     ch_type = ch_types[0]
     # some things that depend on ch_type:
     units = _handle_default("units")[ch_type]
@@ -3015,9 +3014,10 @@ def plot_compare_evokeds(
         if np.array(picks).ndim < 2:
             picks = [picks]  # enables zipping w/ axes
     else:
+        from ..channels.layout import find_layout
         from .topo import iter_topography
 
-        fig = plt.figure(figsize=(18, 14))
+        fig = plt.figure(figsize=(18, 14), layout=None)  # Not "constrained" for topo
 
         def click_func(
             ax_,
@@ -3216,5 +3216,7 @@ def plot_compare_evokeds(
     if cmap is not None:
         _draw_colorbar_pce(ax, _colors, _cmap, colorbar_title, colorbar_ticks)
     # finish
+    if topo_disp_title:
+        ax.figure.suptitle(topo_title)
     plt_show(show)
     return [ax.figure]

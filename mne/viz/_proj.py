@@ -2,18 +2,19 @@
 
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #
-# License: Simplified BSD
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from copy import deepcopy
 
 import numpy as np
 
+from .._fiff.pick import _picks_to_idx
+from ..defaults import DEFAULTS
+from ..utils import _pl, _validate_type, verbose, warn
 from .evoked import _plot_evoked
 from .topomap import _plot_projs_topomap
-from .utils import plt_show, _check_type_projs
-from ..defaults import DEFAULTS
-from ..io.pick import _picks_to_idx
-from ..utils import _validate_type, warn, _pl, verbose
+from .utils import _check_type_projs, plt_show
 
 
 @verbose
@@ -62,6 +63,7 @@ def plot_projs_joint(
     .. versionadded:: 1.1
     """
     import matplotlib.pyplot as plt
+
     from ..evoked import Evoked
 
     _validate_type(evoked, Evoked, "evoked")
@@ -102,7 +104,7 @@ def plot_projs_joint(
     n_row = len(ch_types)
     shape = (n_row, n_col)
     fig = plt.figure(
-        figsize=(n_col * 1.1 + 0.5, n_row * 1.8 + 0.5), constrained_layout=True
+        figsize=(n_col * 1.1 + 0.5, n_row * 1.8 + 0.5), layout="constrained"
     )
     ri = 0
     # pick some sufficiently distinct colors (6 per proj type, e.g., ECG,
@@ -127,7 +129,7 @@ def plot_projs_joint(
         these_idxs, these_projs = zip(*these_projs)
         ch_names = ch_names_by_type[ch_type]
         idx = np.where(
-            [np.in1d(ch_names, proj["data"]["col_names"]).all() for proj in these_projs]
+            [np.isin(ch_names, proj["data"]["col_names"]).all() for proj in these_projs]
         )[0]
         used[idx] += 1
         count = len(these_projs)
@@ -152,7 +154,7 @@ def plot_projs_joint(
             ax_.set_xlabel(f"projs[{idx}]", fontsize="small")
         unit = DEFAULTS["units"][ch_type]
         # traces
-        this_evoked = evoked.copy().pick_channels(ch_names)
+        this_evoked = evoked.copy().pick(ch_names)
         p = np.concatenate([p["data"]["data"] for p in these_projs])
         assert p.shape == (len(these_projs), len(this_evoked.data))
         traces = np.dot(p, this_evoked.data)

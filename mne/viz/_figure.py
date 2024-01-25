@@ -3,7 +3,8 @@
 # Authors: Daniel McCloy <dan@mccloy.info>
 #          Martin Schulz <dev@earthman-music.de>
 #
-# License: Simplified BSD
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 import importlib
 from abc import ABC, abstractmethod
 from collections import OrderedDict
@@ -13,11 +14,19 @@ from itertools import cycle
 
 import numpy as np
 
-from .. import verbose, get_config, set_config
-from ..annotations import _sync_onset
+from .._fiff.pick import _DATA_CH_TYPES_SPLIT
 from ..defaults import _handle_default
-from ..utils import logger, _validate_type, _check_option
-from ..io.pick import _DATA_CH_TYPES_SPLIT
+from ..filter import _iir_filter, _overlap_add_filter
+from ..fixes import _compare_version
+from ..utils import (
+    _check_option,
+    _get_stim_channel,
+    _validate_type,
+    get_config,
+    logger,
+    set_config,
+    verbose,
+)
 from .backends._utils import VALID_BROWSE_BACKENDS
 from .utils import _get_color_list, _setup_plot_projector, _show_browser
 
@@ -41,7 +50,7 @@ class BrowserBase(ABC):
     """
 
     def __init__(self, **kwargs):
-        from .. import BaseEpochs
+        from ..epochs import BaseEpochs
         from ..io import BaseRaw
         from ..preprocessing import ICA
 
@@ -85,17 +94,18 @@ class BrowserBase(ABC):
         self.mne.whitened_ch_names = list()
         if hasattr(self.mne, "noise_cov"):
             self.mne.use_noise_cov = self.mne.noise_cov is not None
+        # allow up to 10000 zorder levels for annotations
         self.mne.zorder = dict(
             patch=0,
             grid=1,
             ann=2,
-            events=3,
-            bads=4,
-            data=5,
-            mag=6,
-            grad=7,
-            scalebar=8,
-            vline=9,
+            events=10003,
+            bads=10004,
+            data=10005,
+            mag=10006,
+            grad=10007,
+            scalebar=10008,
+            vline=10009,
         )
         # additional params for epochs (won't affect raw / ICA)
         self.mne.epoch_traces = list()
@@ -163,10 +173,10 @@ class BrowserBase(ABC):
             if color != red and key in labels:
                 next(color_cycle)
         for idx, key in enumerate(labels):
-            if key in segment_colors:
-                continue
-            elif key.lower().startswith("bad") or key.lower().startswith("edge"):
+            if key.lower().startswith("bad") or key.lower().startswith("edge"):
                 segment_colors[key] = red
+            elif key in segment_colors:
+                continue
             else:
                 segment_colors[key] = next(color_cycle)
         self.mne.annotation_segment_colors = segment_colors
@@ -176,16 +186,17 @@ class BrowserBase(ABC):
 
     def _update_annotation_segments(self):
         """Update the array of annotation start/end times."""
-        segments = list()
-        raw = self.mne.inst
-        if len(raw.annotations):
-            for idx, annot in enumerate(raw.annotations):
-                annot_start = _sync_onset(raw, annot["onset"])
-                annot_end = annot_start + max(
-                    annot["duration"], 1 / self.mne.info["sfreq"]
-                )
-                segments.append((annot_start, annot_end))
-        self.mne.annotation_segments = np.array(segments)
+        from ..annotations import _sync_onset
+
+        self.mne.annotation_segments = np.array([])
+        if len(self.mne.inst.annotations):
+            annot_start = _sync_onset(self.mne.inst, self.mne.inst.annotations.onset)
+            durations = self.mne.inst.annotations.duration.copy()
+            durations[durations < 1 / self.mne.info["sfreq"]] = (
+                1 / self.mne.info["sfreq"]
+            )
+            annot_end = annot_start + durations
+            self.mne.annotation_segments = np.vstack((annot_start, annot_end)).T
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # PROJECTOR & BADS
@@ -268,8 +279,6 @@ class BrowserBase(ABC):
 
     def _make_butterfly_selections_dict(self):
         """Make an altered copy of the selections dict for butterfly mode."""
-        from ..utils import _get_stim_channel
-
         selections_dict = deepcopy(self.mne.ch_selections)
         # remove potential duplicates
         for selection_group in ("Vertex", "Custom"):
@@ -280,7 +289,7 @@ class BrowserBase(ABC):
             stim_pick = self.mne.ch_names.tolist().index(stim_ch[0])
             for _sel, _picks in selections_dict.items():
                 if _sel != "Misc":
-                    stim_mask = np.in1d(_picks, [stim_pick], invert=True)
+                    stim_mask = np.isin(_picks, [stim_pick], invert=True)
                     selections_dict[_sel] = np.array(_picks)[stim_mask]
         return selections_dict
 
@@ -319,20 +328,20 @@ class BrowserBase(ABC):
             )
             ix_stop = ix_start + self.mne.n_epochs
             item = slice(ix_start, ix_stop)
-            data = np.concatenate(self.mne.inst.get_data(item=item), axis=-1)
+            data = np.concatenate(
+                self.mne.inst.get_data(item=item, copy=False), axis=-1
+            )
             times = np.arange(start, stop) / self.mne.info["sfreq"]
             return data, times
 
     def _apply_filter(self, data, start, stop, picks):
         """Filter (with same defaults as raw.filter())."""
-        from ..filter import _overlap_add_filter, _iir_filter
-
         starts, stops = self.mne.filter_bounds
         mask = (starts < stop) & (stops > start)
         starts = np.maximum(starts[mask], start) - start
         stops = np.minimum(stops[mask], stop) - start
         for _start, _stop in zip(starts, stops):
-            _picks = np.where(np.in1d(picks, self.mne.picks_data))[0]
+            _picks = np.where(np.isin(picks, self.mne.picks_data))[0]
             if len(_picks) == 0:
                 break
             this_data = data[_picks, _start:_stop]
@@ -373,8 +382,8 @@ class BrowserBase(ABC):
         this_types = self.mne.ch_types[picks]
         stims = this_types == "stim"
         white = np.logical_and(
-            np.in1d(this_names, self.mne.whitened_ch_names),
-            np.in1d(this_names, self.mne.info["bads"], invert=True),
+            np.isin(this_names, self.mne.whitened_ch_names),
+            np.isin(this_names, self.mne.info["bads"], invert=True),
         )
         norms = np.vectorize(self.mne.scalings.__getitem__)(this_types)
         norms[stims] = data[stims].max(axis=-1)
@@ -415,7 +424,7 @@ class BrowserBase(ABC):
         logger.debug(f"Closing {self.mne.instance_type} browser...")
         # write out bad epochs (after converting epoch numbers to indices)
         if self.mne.instance_type == "epochs":
-            bad_ixs = np.in1d(self.mne.inst.selection, self.mne.bad_epochs).nonzero()[0]
+            bad_ixs = np.isin(self.mne.inst.selection, self.mne.bad_epochs).nonzero()[0]
             self.mne.inst.drop(bad_ixs)
             logger.info(
                 "The following epochs were marked as bad "
@@ -486,7 +495,7 @@ class BrowserBase(ABC):
             show=False,
         )
         # highlight desired channel & disable interactivity
-        inds = np.in1d(fig.lasso.ch_names, [ch_name])
+        inds = np.isin(fig.lasso.ch_names, [ch_name])
         fig.lasso.disconnect()
         fig.lasso.alpha_other = 0.3
         fig.lasso.linewidth_selected = 3
@@ -498,8 +507,8 @@ class BrowserBase(ABC):
         """Show ICA properties for the selected component."""
         from mne.viz.ica import (
             _create_properties_layout,
-            _prepare_data_ica_properties,
             _fast_plot_ica_properties,
+            _prepare_data_ica_properties,
         )
 
         ch_name = self.mne.ch_names[idx]
@@ -529,13 +538,14 @@ class BrowserBase(ABC):
     def _create_epoch_image_fig(self, pick):
         """Show epochs image for the selected channel."""
         from matplotlib.gridspec import GridSpec
+
         from mne.viz import plot_epochs_image
 
         ch_name = self.mne.ch_names[pick]
         title = f"Epochs image ({ch_name})"
         fig = self._new_child_figure(figsize=(6, 4), fig_name=None, window_title=title)
         fig.suptitle = title
-        gs = GridSpec(nrows=3, ncols=10)
+        gs = GridSpec(nrows=3, ncols=10, figure=fig)
         fig.add_subplot(gs[:2, :9])
         fig.add_subplot(gs[2, :9])
         fig.add_subplot(gs[:2, 9])
@@ -547,7 +557,7 @@ class BrowserBase(ABC):
         """Create peak-to-peak histogram of channel amplitudes."""
         epochs = self.mne.inst
         data = OrderedDict()
-        ptp = np.ptp(epochs.get_data(), axis=2)
+        ptp = np.ptp(epochs.get_data(copy=False), axis=2)
         for ch_type in ("eeg", "mag", "grad"):
             if ch_type in epochs:
                 data[ch_type] = ptp.T[self.mne.ch_types == ch_type].ravel()
@@ -580,16 +590,6 @@ class BrowserBase(ABC):
                 ax.plot((reject, reject), (0, ax.get_ylim()[1]), color="r")
         # finalize
         fig.suptitle(title, y=0.99)
-        if hasattr(fig, "_inch_to_rel"):
-            kwargs = dict(
-                bottom=fig._inch_to_rel(0.5, horiz=False),
-                top=1 - fig._inch_to_rel(0.5, horiz=False),
-                left=fig._inch_to_rel(0.75),
-                right=1 - fig._inch_to_rel(0.25),
-            )
-        else:
-            kwargs = dict()
-        fig.subplots_adjust(hspace=0.7, **kwargs)
         self.mne.fig_histogram = fig
 
         return fig
@@ -662,7 +662,7 @@ def _get_browser(show, block, **kwargs):
     figsize = kwargs.setdefault("figsize", _get_figsize_from_config())
     if figsize is None or np.any(np.array(figsize) < 8):
         kwargs["figsize"] = (8, 8)
-    kwargs["splash"] = True if show else False
+    kwargs["splash"] = kwargs.get("splash", True) and show
     if kwargs.get("theme", None) is None:
         kwargs["theme"] = get_config("MNE_BROWSER_THEME", "auto")
     if kwargs.get("overview_mode", None) is None:
@@ -673,8 +673,8 @@ def _get_browser(show, block, **kwargs):
     # Check mne-qt-browser compatibility
     if backend_name == "qt":
         import mne_qt_browser
-        from .. import BaseEpochs
-        from ..fixes import _compare_version
+
+        from ..epochs import BaseEpochs
 
         is_ica = kwargs.get("ica", False)
         is_epochs = isinstance(kwargs.get("inst", False), BaseEpochs)

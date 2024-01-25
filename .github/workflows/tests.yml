@@ -2,7 +2,7 @@ name: 'Tests'
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.number }}-${{ github.event.ref }}
   cancel-in-progress: true
-on:
+on:  # yamllint disable-line rule:truthy
   push:
     branches:
       - '*'
@@ -19,12 +19,22 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
-    - uses: actions/checkout@v3
-    - uses: actions/setup-python@v4
-      with:
-        python-version: '3.11'
-    - uses: psf/black@stable
-    - uses: pre-commit/action@v3.0.0
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: pre-commit/action@v3.0.0
+
+  bandit:
+    name: Bandit
+    needs: style
+    runs-on: ubuntu-latest
+    steps:
+      - uses: davidslusser/actions_python_bandit@v1.0.0
+        with:
+          src: "mne"
+          options: "-c pyproject.toml -ll -r"
+          pip_install_command: "pip install bandit[toml]"
 
   pytest:
     name: '${{ matrix.os }} / ${{ matrix.kind }} / ${{ matrix.python }}'
@@ -45,26 +55,26 @@ jobs:
     strategy:
       matrix:
         include:
-        - os: ubuntu-latest
-          python: '3.10'
-          kind: conda
-        - os: ubuntu-latest
-          python: '3.10'
-          kind: notebook
-        - os: ubuntu-latest
-          python: '3.11'
-          kind: pip-pre
-        - os: macos-latest
-          python: '3.8'
-          kind: mamba
-        - os: ubuntu-latest
-          python: '3.8'
-          kind: minimal
-        - os: ubuntu-20.04
-          python: '3.8'
-          kind: old
+          - os: ubuntu-latest
+            python: '3.11'
+            kind: pip-pre
+          - os: ubuntu-latest
+            python: '3.12'
+            kind: conda
+          - os: macos-latest
+            python: '3.11'
+            kind: mamba
+          - os: windows-latest
+            python: '3.10'
+            kind: mamba
+          - os: ubuntu-latest
+            python: '3.9'
+            kind: minimal
+          - os: ubuntu-20.04
+            python: '3.9'
+            kind: old
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - run: ./tools/github_actions_env_vars.sh
@@ -73,42 +83,40 @@ jobs:
         with:
           qt: true
           pyvista: false
-        if: matrix.kind != 'notebook'
       # Python (if pip)
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python }}
         if: startswith(matrix.kind, 'pip')
       # Python (if conda)
-      - uses: conda-incubator/setup-miniconda@v2
+      - name: Remove numba and dipy
+        run: |  # TODO: Remove when numba 0.59 and dipy 1.8 land on conda-forge
+          sed -i '/numba/d' environment.yml
+          sed -i '/dipy/d' environment.yml
+          sed -i 's/- mne$/- mne-base/' environment.yml
+        if: matrix.os == 'ubuntu-latest' && startswith(matrix.kind, 'conda') && matrix.python == '3.12'
+      - uses: mamba-org/setup-micromamba@v1
         with:
-          activate-environment: ${{ env.CONDA_ACTIVATE_ENV }}
-          python-version: ${{ env.PYTHON_VERSION }}
           environment-file: ${{ env.CONDA_ENV }}
-          miniforge-version: latest
-          miniforge-variant: Mambaforge
-          use-mamba: ${{ matrix.kind != 'conda' }}
+          environment-name: mne
+          create-args: >-
+            python=${{ env.PYTHON_VERSION }}
+            mamba
+            fmt!=10.2.0
         if: ${{ !startswith(matrix.kind, 'pip') }}
-      - name: 'Install OSMesa VTK variant'
-        run: |
-          # TODO: As of 2023/02/28, notebook tests need a pinned mesalib
-          mamba install -c conda-forge "vtk>=9.2=*osmesa*" "mesalib=21.2.5"
-          mamba list
-        if: matrix.kind == 'notebook'
       - run: ./tools/github_actions_dependencies.sh
       # Minimal commands on Linux (macOS stalls)
       - run: ./tools/get_minimal_commands.sh
         if: ${{ startswith(matrix.os, 'ubuntu') }}
-      - run: ./tools/github_actions_install.sh
       - run: ./tools/github_actions_infos.sh
-      # Check Qt on non-notebook
+      # Check Qt
       - run: ./tools/check_qt_import.sh $MNE_QT_BACKEND
         if: ${{ env.MNE_QT_BACKEND != '' }}
       - name: Run tests with no testing data
         run: MNE_SKIP_TESTING_DATASET_TESTS=true pytest -m "not (ultraslowtest or pgtest)" --tb=short --cov=mne --cov-report xml -vv -rfE mne/
         if: matrix.kind == 'minimal'
       - run: ./tools/get_testing_version.sh
-      - uses: actions/cache@v3
+      - uses: actions/cache@v4
         with:
           key: ${{ env.TESTING_VERSION }}
           path: ~/mne_data

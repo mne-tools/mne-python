@@ -2,13 +2,14 @@
 # Authors: Daniel McCloy <dan@mccloy.info>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from inspect import signature
 
 import numpy as np
 
-from ._logging import logger, verbose
 from ..defaults import _handle_default
+from ._logging import logger, verbose
 
 
 @verbose
@@ -34,7 +35,7 @@ def _scale_dataframe_data(inst, data, picks, scalings):
     return data
 
 
-def _convert_times(inst, times, time_format):
+def _convert_times(times, time_format, meas_date=None, first_time=0):
     """Convert vector of time in seconds to ms, datetime, or timedelta."""
     # private function; pandas already checked in calling function
     from pandas import to_timedelta
@@ -44,7 +45,7 @@ def _convert_times(inst, times, time_format):
     elif time_format == "timedelta":
         times = to_timedelta(times, unit="s")
     elif time_format == "datetime":
-        times = to_timedelta(times + inst.first_time, unit="s") + inst.info["meas_date"]
+        times = to_timedelta(times + first_time, unit="s") + meas_date
     return times
 
 
@@ -74,6 +75,7 @@ def _build_data_frame(
     """Build DataFrame from MNE-object-derived data array."""
     # private function; pandas already checked in calling function
     from pandas import DataFrame
+
     from ..source_estimate import _BaseSourceEstimate
 
     # build DataFrame

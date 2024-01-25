@@ -4,74 +4,76 @@
 #          Lorenzo De Santis <lorenzo.de-santis@u-psud.fr>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # The computations in this code were primarily derived from Matti Hämäläinen's
 # C code.
 
-from collections import OrderedDict
-from copy import deepcopy
-from functools import partial
 import glob
 import json
 import os
 import os.path as op
-from pathlib import Path
 import shutil
+from collections import OrderedDict
+from copy import deepcopy
+from functools import partial
+from pathlib import Path
 
 import numpy as np
+from scipy.optimize import fmin_cobyla
 
-from .fixes import _compare_version
-from .io.constants import FIFF, FWD
-from .io._digitization import _dig_kind_dict, _dig_kind_rev, _dig_kind_ints
-from .io.write import (
+from ._fiff._digitization import _dig_kind_dict, _dig_kind_ints, _dig_kind_rev
+from ._fiff.constants import FIFF, FWD
+from ._fiff.open import fiff_open
+from ._fiff.tag import find_tag
+from ._fiff.tree import dir_tree_find
+from ._fiff.write import (
+    end_block,
     start_and_end_file,
     start_block,
     write_float,
-    write_int,
     write_float_matrix,
+    write_int,
     write_int_matrix,
-    end_block,
     write_string,
 )
-from .io.tag import find_tag
-from .io.tree import dir_tree_find
-from .io.open import fiff_open
+from .fixes import _compare_version, _safe_svd
 from .surface import (
-    read_surface,
-    write_surface,
-    complete_surface_info,
-    _compute_nearest,
-    _get_ico_surface,
-    read_tri,
-    _fast_cross_nd_sum,
-    _get_solids,
     _complete_sphere_surf,
+    _compute_nearest,
+    _fast_cross_nd_sum,
+    _get_ico_surface,
+    _get_solids,
+    complete_surface_info,
     decimate_surface,
+    read_surface,
+    read_tri,
     transform_surface_to,
+    write_surface,
 )
-from .transforms import _ensure_trans, apply_trans, Transform
+from .transforms import Transform, _ensure_trans, apply_trans
 from .utils import (
-    verbose,
-    logger,
-    run_subprocess,
-    get_subjects_dir,
-    warn,
-    _pl,
-    _validate_type,
-    _TempDir,
-    _check_freesurfer_home,
     _check_fname,
+    _check_freesurfer_home,
+    _check_head_radius,
     _check_option,
-    path_like,
+    _ensure_int,
+    _import_h5io_funcs,
     _import_nibabel,
     _on_missing,
-    _import_h5io_funcs,
-    _ensure_int,
     _path_like,
+    _pl,
+    _TempDir,
+    _validate_type,
     _verbose_safe_false,
-    _check_head_radius,
+    get_subjects_dir,
+    logger,
+    path_like,
+    run_subprocess,
+    verbose,
+    warn,
 )
-
+from .viz.misc import plot_bem
 
 # ############################################################################
 # Compute BEM solution
@@ -85,7 +87,11 @@ from .utils import (
 
 
 class ConductorModel(dict):
-    """BEM or sphere model."""
+    """BEM or sphere model.
+
+    See :func:`~mne.make_bem_model` and :func:`~mne.make_bem_solution` to create a
+    :class:`mne.bem.ConductorModel`.
+    """
 
     def __repr__(self):  # noqa: D105
         if self["is_sphere"]:
@@ -94,16 +100,16 @@ class ConductorModel(dict):
             if rad is None:  # no radius / MEG only
                 extra = "Sphere (no layers): r0=[%s] mm" % center
             else:
-                extra = "Sphere (%s layer%s): r0=[%s] R=%1.f mm" % (
+                extra = "Sphere ({} layer{}): r0=[{}] R={:1.0f} mm".format(
                     len(self["layers"]) - 1,
                     _pl(self["layers"]),
                     center,
                     rad * 1000.0,
                 )
         else:
-            extra = "BEM (%s layer%s)" % (len(self["surfs"]), _pl(self["surfs"]))
-            extra += " solver=%s" % self["solver"]
-        return "<ConductorModel | %s>" % extra
+            extra = f"BEM ({len(self['surfs'])} layer{_pl(self['surfs'])})"
+            extra += f" solver={self['solver']}"
+        return f"<ConductorModel | {extra}>"
 
     def copy(self):
         """Return copy of ConductorModel instance."""
@@ -409,8 +415,8 @@ def make_bem_solution(surfs, *, solver="mne", verbose=None):
     surfs : list of dict
         The BEM surfaces to use (from :func:`mne.make_bem_model`).
     solver : str
-        Can be ``'mne'`` (default) to use MNE-Python, or ``'openmeeg'`` to use
-        the :doc:`OpenMEEG <openmeeg:index>` package.
+        Can be ``'mne'`` (default) to use MNE-Python, or ``'openmeeg'`` to use the
+        `OpenMEEG <https://openmeeg.github.io>`__ package.
 
         .. versionadded:: 1.2
     %(verbose)s
@@ -536,8 +542,9 @@ def _assert_complete_surface(surf, incomplete="raise"):
     # Center of mass....
     cm = surf["rr"].mean(axis=0)
     logger.info(
-        "%s CM is %6.2f %6.2f %6.2f mm"
-        % (_bem_surf_name[surf["id"]], 1000 * cm[0], 1000 * cm[1], 1000 * cm[2])
+        "{} CM is {:6.2f} {:6.2f} {:6.2f} mm".format(
+            _bem_surf_name[surf["id"]], 1000 * cm[0], 1000 * cm[1], 1000 * cm[2]
+        )
     )
     tot_angle = _get_solids(surf["rr"][surf["tris"]], cm[np.newaxis, :])[0]
     prop = tot_angle / (2 * np.pi)
@@ -645,30 +652,32 @@ def make_bem_model(
 ):
     """Create a BEM model for a subject.
 
+    Use :func:`~mne.make_bem_solution` to turn the returned surfaces into a
+    :class:`~mne.bem.ConductorModel` suitable for forward calculation.
+
     .. note:: To get a single layer bem corresponding to the --homog flag in
               the command line tool set the ``conductivity`` parameter
-              to a list/tuple with a single value (e.g. [0.3]).
+              to a float (e.g. ``0.3``).
 
     Parameters
     ----------
-    subject : str
-        The subject.
+    %(subject)s
     ico : int | None
         The surface ico downsampling to use, e.g. ``5=20484``, ``4=5120``,
         ``3=1280``. If None, no subsampling is applied.
-    conductivity : array of int, shape (3,) or (1,)
+    conductivity : float | array of float of shape (3,) or (1,)
         The conductivities to use for each shell. Should be a single element
         for a one-layer model, or three elements for a three-layer model.
         Defaults to ``[0.3, 0.006, 0.3]``. The MNE-C default for a
-        single-layer model would be ``[0.3]``.
+        single-layer model is ``[0.3]``.
     %(subjects_dir)s
     %(verbose)s
 
     Returns
     -------
     surfaces : list of dict
-        The BEM surfaces. Use `make_bem_solution` to turn these into a
-        `~mne.bem.ConductorModel` suitable for forward calculation.
+        The BEM surfaces. Use :func:`~mne.make_bem_solution` to turn these into a
+        :class:`~mne.bem.ConductorModel` suitable for forward calculation.
 
     See Also
     --------
@@ -681,9 +690,11 @@ def make_bem_model(
     -----
     .. versionadded:: 0.10.0
     """
-    conductivity = np.array(conductivity, float)
+    conductivity = np.atleast_1d(conductivity).astype(float)
     if conductivity.ndim != 1 or conductivity.size not in (1, 3):
-        raise ValueError("conductivity must be 1D array-like with 1 or 3 " "elements")
+        raise ValueError(
+            "conductivity must be a float or a 1D array-like with 1 or 3 elements"
+        )
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     subject_dir = subjects_dir / subject
     bem_dir = subject_dir / "bem"
@@ -752,15 +763,13 @@ def _fwd_eeg_get_multi_sphere_model_coeffs(m, n_terms):
 
 def _compose_linear_fitting_data(mu, u):
     """Get the linear fitting data."""
-    from scipy import linalg
-
     k1 = np.arange(1, u["nterms"])
     mu1ns = mu[0] ** k1
     # data to be fitted
     y = u["w"][:-1] * (u["fn"][1:] - mu1ns * u["fn"][0])
     # model matrix
     M = u["w"][:-1, np.newaxis] * (mu[1:] ** k1[:, np.newaxis] - mu1ns[:, np.newaxis])
-    uu, sing, vv = linalg.svd(M, full_matrices=False)
+    uu, sing, vv = _safe_svd(M, full_matrices=False)
     ncomp = u["nfit"] - 1
     uu, sing, vv = uu[:, :ncomp], sing[:ncomp], vv[:ncomp]
     return y, uu, sing, vv
@@ -795,8 +804,6 @@ def _one_step(mu, u):
 
 def _fwd_eeg_fit_berg_scherg(m, nterms, nfit):
     """Fit the Berg-Scherg equivalent spherical model dipole parameters."""
-    from scipy.optimize import fmin_cobyla
-
     assert nfit >= 2
     u = dict(nfit=nfit, nterms=nterms)
 
@@ -854,7 +861,8 @@ def make_sphere_model(
         center will be calculated from the digitization points in info.
     head_radius : float | str | None
         If float, compute spherical shells for EEG using the given radius.
-        If 'auto', estimate an appropriate radius from the dig points in Info,
+        If ``'auto'``, estimate an appropriate radius from the dig points in the
+        :class:`~mne.Info` provided by the argument ``info``.
         If None, exclude shells (single layer sphere model).
     %(info)s Only needed if ``r0`` or ``head_radius`` are ``'auto'``.
     relative_radii : array-like
@@ -890,18 +898,18 @@ def make_sphere_model(
         param = locals()[name]
         if isinstance(param, str):
             if param != "auto":
-                raise ValueError('%s, if str, must be "auto" not "%s"' % (name, param))
+                raise ValueError(f'{name}, if str, must be "auto" not "{param}"')
     relative_radii = np.array(relative_radii, float).ravel()
     sigmas = np.array(sigmas, float).ravel()
     if len(relative_radii) != len(sigmas):
         raise ValueError(
-            "relative_radii length (%s) must match that of "
-            "sigmas (%s)" % (len(relative_radii), len(sigmas))
+            f"relative_radii length ({len(relative_radii)}) must match that of sigmas ("
+            f"{len(sigmas)})"
         )
     if len(sigmas) <= 1 and head_radius is not None:
         raise ValueError(
-            "at least 2 sigmas must be supplied if "
-            "head_radius is not None, got %s" % (len(sigmas),)
+            "at least 2 sigmas must be supplied if head_radius is not None, got "
+            f"{len(sigmas)}"
         )
     if (isinstance(r0, str) and r0 == "auto") or (
         isinstance(head_radius, str) and head_radius == "auto"
@@ -957,8 +965,7 @@ def make_sphere_model(
                 )
             )
         logger.info(
-            "Set up EEG sphere model with scalp radius %7.1f mm\n"
-            % (1000 * head_radius,)
+            f"Set up EEG sphere model with scalp radius {1000 * head_radius:7.1f} mm\n"
         )
     return sphere
 
@@ -1075,7 +1082,7 @@ def get_fitting_dig(info, dig_kinds="auto", exclude_frontal=True, verbose=None):
 
     if len(hsp) <= 10:
         kinds_str = ", ".join(['"%s"' % _dig_kind_rev[d] for d in sorted(dig_kinds)])
-        msg = "Only %s head digitization points of the specified kind%s (%s,)" % (
+        msg = "Only {} head digitization points of the specified kind{} ({},)".format(
             len(hsp),
             _pl(dig_kinds),
             kinds_str,
@@ -1098,30 +1105,28 @@ def _fit_sphere_to_headshape(info, dig_kinds, verbose=None):
         dev_head_t = Transform("meg", "head")
     head_to_dev = _ensure_trans(dev_head_t, "head", "meg")
     origin_device = apply_trans(head_to_dev, origin_head)
-    logger.info("Fitted sphere radius:".ljust(30) + "%0.1f mm" % (radius * 1e3,))
+    logger.info("Fitted sphere radius:".ljust(30) + f"{radius * 1e3:0.1f} mm")
     _check_head_radius(radius)
 
     # > 2 cm away from head center in X or Y is strange
     if np.linalg.norm(origin_head[:2]) > 0.02:
         warn(
-            "(X, Y) fit (%0.1f, %0.1f) more than 20 mm from "
-            "head frame origin" % tuple(1e3 * origin_head[:2])
+            "(X, Y) fit ({:0.1f}, {:0.1f}) more than 20 mm from head frame "
+            "origin".format(*tuple(1e3 * origin_head[:2]))
         )
     logger.info(
         "Origin head coordinates:".ljust(30)
-        + "%0.1f %0.1f %0.1f mm" % tuple(1e3 * origin_head)
+        + "{:0.1f} {:0.1f} {:0.1f} mm".format(*tuple(1e3 * origin_head))
     )
     logger.info(
         "Origin device coordinates:".ljust(30)
-        + "%0.1f %0.1f %0.1f mm" % tuple(1e3 * origin_device)
+        + "{:0.1f} {:0.1f} {:0.1f} mm".format(*tuple(1e3 * origin_device))
     )
     return radius, origin_head, origin_device
 
 
 def _fit_sphere(points, disp="auto"):
     """Fit a sphere to an arbitrary set of points."""
-    from scipy.optimize import fmin_cobyla
-
     if isinstance(disp, str) and disp == "auto":
         disp = True if logger.level <= 20 else False
     # initial guess for center and radius
@@ -1158,15 +1163,13 @@ def _check_origin(origin, info, coord_frame="head", disp=False):
     if isinstance(origin, str):
         if origin != "auto":
             raise ValueError(
-                'origin must be a numerical array, or "auto", ' "not %s" % (origin,)
+                f'origin must be a numerical array, or "auto", not {origin}'
             )
         if coord_frame == "head":
             R, origin = fit_sphere_to_headshape(
                 info, verbose=_verbose_safe_false(), units="m"
             )[:2]
-            logger.info(
-                "    Automatic origin fit: head of radius %0.1f mm" % (R * 1000.0,)
-            )
+            logger.info(f"    Automatic origin fit: head of radius {R * 1000:0.1f} mm")
             del R
         else:
             origin = (0.0, 0.0, 0.0)
@@ -1174,12 +1177,12 @@ def _check_origin(origin, info, coord_frame="head", disp=False):
     if origin.shape != (3,):
         raise ValueError("origin must be a 3-element array")
     if disp:
-        origin_str = ", ".join(["%0.1f" % (o * 1000) for o in origin])
-        msg = "    Using origin %s mm in the %s frame" % (origin_str, coord_frame)
+        origin_str = ", ".join([f"{o * 1000:0.1f}" for o in origin])
+        msg = f"    Using origin {origin_str} mm in the {coord_frame} frame"
         if coord_frame == "meg" and info["dev_head_t"] is not None:
             o_dev = apply_trans(info["dev_head_t"], origin)
-            origin_str = ", ".join("%0.1f" % (o * 1000,) for o in o_dev)
-            msg += " (%s mm in the head frame)" % (origin_str,)
+            origin_str = ", ".join(f"{o * 1000:0.1f}" for o in o_dev)
+            msg += f" ({origin_str} mm in the head frame)"
         logger.info(msg)
     return origin
 
@@ -1205,6 +1208,8 @@ def make_watershed_bem(
 ):
     """Create BEM surfaces using the FreeSurfer watershed algorithm.
 
+    See :ref:`bem_watershed_algorithm` for additional information.
+
     Parameters
     ----------
     subject : str
@@ -1214,9 +1219,9 @@ def make_watershed_bem(
     volume : str
         Defaults to T1.
     atlas : bool
-        Specify the --atlas option for mri_watershed.
+        Specify the ``--atlas option`` for ``mri_watershed``.
     gcaatlas : bool
-        Specify the --brain_atlas option for mri_watershed.
+        Specify the ``--brain_atlas`` option for ``mri_watershed``.
     preflood : int
         Change the preflood height.
     show : bool
@@ -1256,8 +1261,6 @@ def make_watershed_bem(
 
     .. versionadded:: 0.10
     """
-    from .viz.misc import plot_bem
-
     env, mri_dir, bem_dir = _prepare_env(subject, subjects_dir)
     tempdir = _TempDir()  # fsl and Freesurfer create some random junk in CWD
     run_subprocess_env = partial(run_subprocess, env=env, cwd=tempdir)
@@ -1294,7 +1297,7 @@ def make_watershed_bem(
     if gcaatlas:
         fname = op.join(env["FREESURFER_HOME"], "average", "RB_all_withskull_*.gca")
         fname = sorted(glob.glob(fname))[::-1][0]
-        logger.info("Using GCA atlas: %s" % (fname,))
+        logger.info(f"Using GCA atlas: {fname}")
         cmd += [
             "-atlas",
             "-brain_atlas",
@@ -1321,9 +1324,8 @@ def make_watershed_bem(
         ]
     # report and run
     logger.info(
-        "\nRunning mri_watershed for BEM segmentation with the "
-        "following parameters:\n\nResults dir = %s\nCommand = %s\n"
-        % (ws_dir, " ".join(cmd))
+        "\nRunning mri_watershed for BEM segmentation with the following parameters:\n"
+        f"\nResults dir = {ws_dir}\nCommand = {' '.join(cmd)}\n"
     )
     os.makedirs(op.join(ws_dir))
     run_subprocess_env(cmd)
@@ -1332,12 +1334,12 @@ def make_watershed_bem(
         new_info = _extract_volume_info(T1_mgz)
         if not new_info:
             warn(
-                "nibabel is not available or the volume info is invalid."
-                "Volume info not updated in the written surface."
+                "nibabel is not available or the volume info is invalid. Volume info "
+                "not updated in the written surface."
             )
         surfs = ["brain", "inner_skull", "outer_skull", "outer_skin"]
         for s in surfs:
-            surf_ws_out = op.join(ws_dir, "%s_%s_surface" % (subject, s))
+            surf_ws_out = op.join(ws_dir, f"{subject}_{s}_surface")
 
             rr, tris, volume_info = read_surface(surf_ws_out, read_metadata=True)
             # replace volume info, 'head' stays
@@ -1347,7 +1349,7 @@ def make_watershed_bem(
             )
 
             # Create symbolic links
-            surf_out = op.join(bem_dir, "%s.surf" % s)
+            surf_out = op.join(bem_dir, f"{s}.surf")
             if not overwrite and op.exists(surf_out):
                 skip_symlink = True
             else:
@@ -1358,9 +1360,8 @@ def make_watershed_bem(
 
         if skip_symlink:
             logger.info(
-                "Unable to create all symbolic links to .surf files "
-                "in bem folder. Use --overwrite option to recreate "
-                "them."
+                "Unable to create all symbolic links to .surf files in bem folder. Use "
+                "--overwrite option to recreate them."
             )
             dest = op.join(bem_dir, "watershed")
         else:
@@ -1368,8 +1369,8 @@ def make_watershed_bem(
             dest = bem_dir
 
     logger.info(
-        "\nThank you for waiting.\nThe BEM triangulations for this "
-        "subject are now available at:\n%s." % dest
+        "\nThank you for waiting.\nThe BEM triangulations for this subject are now "
+        f"available at:\n{dest}."
     )
 
     # Write a head file for coregistration
@@ -1394,7 +1395,7 @@ def make_watershed_bem(
             show=True,
         )
 
-    logger.info("Created %s\n\nComplete." % (fname_head,))
+    logger.info(f"Created {fname_head}\n\nComplete.")
 
 
 def _extract_volume_info(mgz):
@@ -1432,7 +1433,7 @@ def read_bem_surfaces(
     patch_stats : bool, optional (default False)
         Calculate and add cortical patch statistics to the surfaces.
     s_id : int | None
-        If int, only read and return the surface with the given s_id.
+        If int, only read and return the surface with the given ``s_id``.
         An error will be raised if it doesn't exist. If None, all
         surfaces are read and returned.
     %(on_defects)s
@@ -1443,7 +1444,7 @@ def read_bem_surfaces(
     Returns
     -------
     surf: list | dict
-        A list of dictionaries that each contain a surface. If s_id
+        A list of dictionaries that each contain a surface. If ``s_id``
         is not None, only the requested surface will be returned.
 
     See Also
@@ -1747,6 +1748,7 @@ _bem_surf_name = {
     FIFF.FIFFV_BEM_SURF_ID_SKULL: "outer skull",
     FIFF.FIFFV_BEM_SURF_ID_HEAD: "outer skin ",
     FIFF.FIFFV_BEM_SURF_ID_UNKNOWN: "unknown    ",
+    FIFF.FIFFV_MNE_SURF_MEG_HELMET: "MEG helmet ",
 }
 _sm_surf_name = {
     FIFF.FIFFV_BEM_SURF_ID_BRAIN: "brain",
@@ -1754,6 +1756,7 @@ _sm_surf_name = {
     FIFF.FIFFV_BEM_SURF_ID_SKULL: "outer skull",
     FIFF.FIFFV_BEM_SURF_ID_HEAD: "outer skin ",
     FIFF.FIFFV_BEM_SURF_ID_UNKNOWN: "unknown    ",
+    FIFF.FIFFV_MNE_SURF_MEG_HELMET: "helmet",
 }
 
 
@@ -1846,7 +1849,8 @@ def _write_bem_surfaces_block(fid, surfs):
     """Write bem surfaces to open file handle."""
     for surf in surfs:
         start_block(fid, FIFF.FIFFB_BEM_SURF)
-        write_float(fid, FIFF.FIFF_BEM_SIGMA, surf["sigma"])
+        if "sigma" in surf:
+            write_float(fid, FIFF.FIFF_BEM_SIGMA, surf["sigma"])
         write_int(fid, FIFF.FIFF_BEM_SURF_ID, surf["id"])
         write_int(fid, FIFF.FIFF_MNE_COORD_FRAME, surf["coord_frame"])
         write_int(fid, FIFF.FIFF_BEM_SURF_NNODE, surf["np"])
@@ -1921,9 +1925,7 @@ def _prepare_env(subject, subjects_dir):
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     subject_dir = subjects_dir / subject
     if not subject_dir.is_dir():
-        raise RuntimeError(
-            'Could not find the subject data directory "%s"' % (subject_dir,)
-        )
+        raise RuntimeError(f'Could not find the subject data directory "{subject_dir}"')
     env.update(SUBJECT=subject, SUBJECTS_DIR=str(subjects_dir), FREESURFER_HOME=fs_home)
     mri_dir = subject_dir / "mri"
     bem_dir = subject_dir / "bem"
@@ -1971,8 +1973,7 @@ def convert_flash_mris(
 
     Parameters
     ----------
-    subject : str
-        Subject name.
+    %(subject)s
     flash30 : bool | list of SpatialImage or path-like | SpatialImage | path-like
         If False do not use 30-degree flip angle data.
         The list of flash 5 echos to use. If True it will look for files
@@ -2060,7 +2061,7 @@ def convert_flash_mris(
                 (pm_dir / "flash5.mgz"),
             ]
             run_subprocess_env(cmd)
-            (pm_dir / "flash5_reg.mgz").unlink()
+            (pm_dir / "flash5_reg.mgz").unlink(missing_ok=True)
         else:
             logger.info("Synthesized flash 5 volume is already there")
     else:
@@ -2091,10 +2092,11 @@ def make_flash_bem(
 ):
     """Create 3-Layer BEM model from prepared flash MRI images.
 
+    See :ref:`bem_flash_algorithm` for additional information.
+
     Parameters
     ----------
-    subject : str
-        Subject name.
+    %(subject)s
     overwrite : bool
         Write over existing .surf files in bem folder.
     show : bool
@@ -2133,8 +2135,6 @@ def make_flash_bem(
     outer skin) from a FLASH 5 MRI image synthesized from multiecho FLASH
     images acquired with spin angles of 5 and 30 degrees.
     """
-    from .viz.misc import plot_bem
-
     env, mri_dir, bem_dir = _prepare_env(subject, subjects_dir)
     tempdir = _TempDir()  # fsl and Freesurfer create some random junk in CWD
     run_subprocess_env = partial(run_subprocess, env=env, cwd=tempdir)
@@ -2146,11 +2146,9 @@ def make_flash_bem(
     flash_path.mkdir(exist_ok=True, parents=True)
 
     logger.info(
-        "\nProcessing the flash MRI data to produce BEM meshes with "
-        "the following parameters:\n"
-        "SUBJECTS_DIR = %s\n"
-        "SUBJECT = %s\n"
-        "Result dir = %s\n" % (subjects_dir, subject, bem_dir / "flash")
+        "\nProcessing the flash MRI data to produce BEM meshes with the following "
+        f"parameters:\nSUBJECTS_DIR = {subjects_dir}\nSUBJECT = {subject}\nResult dir ="
+        f"{bem_dir / 'flash'}\n"
     )
     # Step 4 : Register with MPRAGE
     flash5 = flash_path / "flash5.mgz"

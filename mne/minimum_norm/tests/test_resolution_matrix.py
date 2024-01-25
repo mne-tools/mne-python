@@ -3,19 +3,21 @@
 #         Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from contextlib import nullcontext
+
 import numpy as np
-from numpy.testing import assert_array_almost_equal, assert_array_equal, assert_allclose
 import pytest
+from numpy.testing import assert_allclose, assert_array_almost_equal, assert_array_equal
 
 import mne
 from mne.datasets import testing
 from mne.minimum_norm.resolution_matrix import (
-    make_inverse_resolution_matrix,
+    _vertices_for_get_psf_ctf,
     get_cross_talk,
     get_point_spread,
-    _vertices_for_get_psf_ctf,
+    make_inverse_resolution_matrix,
 )
 
 data_path = testing.data_path(download=False)

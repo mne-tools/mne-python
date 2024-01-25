@@ -20,23 +20,23 @@ across space and time.
 #          Denis Engemannn <denis.engemann@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 
+import matplotlib.pyplot as plt
 import numpy as np
 from numpy.random import randn
-import matplotlib.pyplot as plt
 
 import mne
+from mne.datasets import sample
+from mne.minimum_norm import apply_inverse, read_inverse_operator
 from mne.stats import (
-    spatio_temporal_cluster_test,
-    f_threshold_mway_rm,
     f_mway_rm,
+    f_threshold_mway_rm,
+    spatio_temporal_cluster_test,
     summarize_clusters_stc,
 )
-
-from mne.minimum_norm import apply_inverse, read_inverse_operator
-from mne.datasets import sample
 
 print(__doc__)
 
@@ -285,9 +285,7 @@ brain.show_view("medial")
 
 inds_t, inds_v = [
     (clusters[cluster_ind]) for ii, cluster_ind in enumerate(good_cluster_inds)
-][
-    0
-]  # first cluster
+][0]  # first cluster
 
 times = np.arange(X[0].shape[1]) * tstep * 1e3
 

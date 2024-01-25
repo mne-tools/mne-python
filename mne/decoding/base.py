@@ -5,13 +5,16 @@
 #          Jean-Remi King <jeanremi.king@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
-import numpy as np
 import datetime as dt
 import numbers
+
+import numpy as np
+
+from ..fixes import BaseEstimator, _check_fit_params, _get_check_scoring
 from ..parallel import parallel_func
-from ..fixes import BaseEstimator, is_classifier, _get_check_scoring
-from ..utils import warn, verbose
+from ..utils import verbose, warn
 
 
 class LinearModel(BaseEstimator):
@@ -51,14 +54,37 @@ class LinearModel(BaseEstimator):
     .. footbibliography::
     """
 
-    def __init__(self, model=None):  # noqa: D102
+    _model_attr_wrap = (
+        "transform",
+        "predict",
+        "predict_proba",
+        "_estimator_type",
+        "decision_function",
+        "score",
+        "classes_",
+    )
+
+    def __init__(self, model=None):
         if model is None:
             from sklearn.linear_model import LogisticRegression
 
             model = LogisticRegression(solver="liblinear")
 
         self.model = model
-        self._estimator_type = getattr(model, "_estimator_type", None)
+
+    def _more_tags(self):
+        return {"no_validation": True}
+
+    def __getattr__(self, attr):
+        """Wrap to model for some attributes."""
+        if attr in LinearModel._model_attr_wrap:
+            return getattr(self.model, attr)
+        elif attr == "fit_transform" and hasattr(self.model, "fit_transform"):
+            return super().__getattr__(self, "_fit_transform")
+        return super().__getattr__(self, attr)
+
+    def _fit_transform(self, X, y):
+        return self.fit(X, y).transform(X)
 
     def fit(self, X, y, **fit_params):
         """Estimate the coefficients of the linear model.
@@ -83,13 +109,12 @@ class LinearModel(BaseEstimator):
         X, y = np.asarray(X), np.asarray(y)
         if X.ndim != 2:
             raise ValueError(
-                "LinearModel only accepts 2-dimensional X, got "
-                "%s instead." % (X.shape,)
+                f"LinearModel only accepts 2-dimensional X, got {X.shape} instead."
             )
         if y.ndim > 2:
             raise ValueError(
-                "LinearModel only accepts up to 2-dimensional y, "
-                "got %s instead." % (y.shape,)
+                f"LinearModel only accepts up to 2-dimensional y, got {y.shape} "
+                "instead."
             )
 
         # fit the Model
@@ -120,117 +145,19 @@ class LinearModel(BaseEstimator):
             filters = filters[0]
         return filters
 
-    def transform(self, X):
-        """Transform the data using the linear model.
-
-        Parameters
-        ----------
-        X : array, shape (n_samples, n_features)
-            The data to transform.
-
-        Returns
-        -------
-        y_pred : array, shape (n_samples,)
-            The predicted targets.
-        """
-        return self.model.transform(X)
-
-    def fit_transform(self, X, y):
-        """Fit the data and transform it using the linear model.
-
-        Parameters
-        ----------
-        X : array, shape (n_samples, n_features)
-            The training input samples to estimate the linear coefficients.
-        y : array, shape (n_samples,)
-            The target values.
-
-        Returns
-        -------
-        y_pred : array, shape (n_samples,)
-            The predicted targets.
-        """
-        return self.fit(X, y).transform(X)
-
-    def predict(self, X):
-        """Compute predictions of y from X.
-
-        Parameters
-        ----------
-        X : array, shape (n_samples, n_features)
-            The data used to compute the predictions.
-
-        Returns
-        -------
-        y_pred : array, shape (n_samples,)
-            The predictions.
-        """
-        return self.model.predict(X)
-
-    def predict_proba(self, X):
-        """Compute probabilistic predictions of y from X.
-
-        Parameters
-        ----------
-        X : array, shape (n_samples, n_features)
-            The data used to compute the predictions.
-
-        Returns
-        -------
-        y_pred : array, shape (n_samples, n_classes)
-            The probabilities.
-        """
-        return self.model.predict_proba(X)
-
-    def decision_function(self, X):
-        """Compute distance from the decision function of y from X.
-
-        Parameters
-        ----------
-        X : array, shape (n_samples, n_features)
-            The data used to compute the predictions.
-
-        Returns
-        -------
-        y_pred : array, shape (n_samples, n_classes)
-            The distances.
-        """
-        return self.model.decision_function(X)
-
-    def score(self, X, y):
-        """Score the linear model computed on the given test data.
-
-        Parameters
-        ----------
-        X : array, shape (n_samples, n_features)
-            The data to transform.
-        y : array, shape (n_samples,)
-            The target values.
-
-        Returns
-        -------
-        score : float
-            Score of the linear model.
-        """
-        return self.model.score(X, y)
-
-    # Needed for sklearn 1.3+
-    @property
-    def classes_(self):
-        """The classes (pass-through to model)."""
-        return self.model.classes_
-
 
 def _set_cv(cv, estimator=None, X=None, y=None):
     """Set the default CV depending on whether clf is classifier/regressor."""
     # Detect whether classification or regression
+    from sklearn.base import is_classifier
+
     if estimator in ["classifier", "regressor"]:
         est_is_classifier = estimator == "classifier"
     else:
         est_is_classifier = is_classifier(estimator)
     # Setup CV
     from sklearn import model_selection as models
-    from sklearn.model_selection import check_cv, StratifiedKFold, KFold
+    from sklearn.model_selection import KFold, StratifiedKFold, check_cv
 
     if isinstance(cv, (int, np.int64)):
         XFold = StratifiedKFold if est_is_classifier else KFold
@@ -339,9 +266,7 @@ def get_coef(estimator, attr="filters_", inverse_transform=False):
         coef = coef[np.newaxis]  # fake a sample dimension
         squeeze_first_dim = True
     elif not hasattr(est, attr):
-        raise ValueError(
-            "This estimator does not have a %s attribute:\n%s" % (attr, est)
-        )
+        raise ValueError(f"This estimator does not have a {attr} attribute:\n{est}")
     else:
         coef = getattr(est, attr)
 
@@ -353,7 +278,7 @@ def get_coef(estimator, attr="filters_", inverse_transform=False):
     if inverse_transform:
         if not hasattr(estimator, "steps") and not hasattr(est, "estimators_"):
             raise ValueError(
-                "inverse_transform can only be applied onto " "pipeline estimators."
+                "inverse_transform can only be applied onto pipeline estimators."
             )
         # The inverse_transform parameter will call this method on any
         # estimator contained in the pipeline, in reverse order.
@@ -440,10 +365,9 @@ def cross_val_multiscore(
         Array of scores of the estimator for each run of the cross validation.
     """
     # This code is copied from sklearn
-
-    from sklearn.base import clone
-    from sklearn.utils import indexable
+    from sklearn.base import clone, is_classifier
     from sklearn.model_selection._split import check_cv
+    from sklearn.utils import indexable
 
     check_scoring = _get_check_scoring()
 
@@ -495,11 +419,10 @@ def _fit_and_score(
     error_score="raise",
     *,
     verbose=None,
-    position=0
+    position=0,
 ):
     """Fit estimator and compute scores for a given dataset split."""
     #  This code is adapted from sklearn
-    from ..fixes import _check_fit_params
     from sklearn.utils.metaestimators import _safe_split
     from sklearn.utils.validation import _num_samples
 
@@ -532,15 +455,13 @@ def _fit_and_score(
             if return_train_score:
                 train_score = error_score
             warn(
-                "Classifier fit failed. The score on this train-test"
-                " partition for these parameters will be set to %f. "
-                "Details: \n%r" % (error_score, e)
+                "Classifier fit failed. The score on this train-test partition for "
+                f"these parameters will be set to {error_score}. Details: \n{e!r}"
             )
         else:
             raise ValueError(
-                "error_score must be the string 'raise' or a"
-                " numeric value. (Hint: if using 'raise', please"
-                " make sure that it has been spelled correctly.)"
+                "error_score must be the string 'raise' or a numeric value. (Hint: if "
+                "using 'raise', please make sure that it has been spelled correctly.)"
             )
 
     else:

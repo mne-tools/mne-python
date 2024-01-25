@@ -17,23 +17,22 @@ which is ordered based on the locations of the regions in the axial plane.
 #          Nicolas P. Rougier (graph code borrowed from his matplotlib gallery)
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
+from mne_connectivity.viz import plot_connectivity_circle
 
 import mne
 from mne.datasets import sample
 from mne.minimum_norm import (
-    read_inverse_operator,
-    make_inverse_resolution_matrix,
     get_point_spread,
+    make_inverse_resolution_matrix,
+    read_inverse_operator,
 )
-
 from mne.viz import circular_layout
-from mne_connectivity.viz import plot_connectivity_circle
-
 
 print(__doc__)
 

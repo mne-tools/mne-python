@@ -3,33 +3,33 @@
 #
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from datetime import datetime, timezone
 from pathlib import Path
 from shutil import copyfile
 
-import pytest
 import numpy as np
+import pytest
 from numpy.testing import assert_allclose, assert_array_equal
 
-from mne.annotations import events_from_annotations
+from mne._fiff.constants import FIFF
+from mne._fiff.tag import _loc_to_coil_trans
+from mne.annotations import events_from_annotations, read_annotations
 from mne.bem import _fit_sphere
 from mne.datasets import testing
 from mne.event import find_events
-from mne.io import _loc_to_coil_trans
-from mne.io.constants import FIFF
-from mne.io.edf import read_raw_bdf
 from mne.io.bti import read_raw_bti
 from mne.io.curry import read_raw_curry
+from mne.io.curry.curry import (
+    FILE_EXTENSIONS,
+    _get_curry_file_structure,
+    _get_curry_version,
+    _read_events_curry,
+)
+from mne.io.edf import read_raw_bdf
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.utils import catch_logging
-from mne.annotations import read_annotations
-from mne.io.curry.curry import (
-    _get_curry_version,
-    _get_curry_file_structure,
-    _read_events_curry,
-    FILE_EXTENSIONS,
-)
 
 data_dir = testing.data_path(download=False)
 curry_dir = data_dir / "curry"
@@ -325,7 +325,7 @@ def test_check_missing_files():
 
 
 def _mock_info_file(src, dst, sfreq, time_step):
-    with open(src, "r") as in_file, open(dst, "w") as out_file:
+    with open(src) as in_file, open(dst, "w") as out_file:
         for line in in_file:
             if "SampleFreqHz" in line:
                 out_file.write(line.replace("500", str(sfreq)))

@@ -1,11 +1,13 @@
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 """Test reading BESA fileformats."""
 import inspect
-import pytest
 from pathlib import Path
 
-from mne.io import read_evoked_besa
-from mne.channels import read_custom_montage
+import pytest
 
+from mne.channels import read_custom_montage
+from mne.io import read_evoked_besa
 
 FILE = Path(inspect.getfile(inspect.currentframe()))
 data_dir = FILE.parent / "data"

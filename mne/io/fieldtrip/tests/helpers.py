@@ -3,14 +3,14 @@
 #          Dirk Gütlin <dirk.guetlin@stud.sbg.ac.at>
 #
 # License: BSD-3-Clause
-from functools import partial
+# Copyright the MNE-Python contributors.
 import os
+from functools import partial
 
 import numpy as np
 
 import mne
 from mne.utils import object_diff
-
 
 info_ignored_fields = (
     "file_id",
@@ -185,7 +185,7 @@ def get_epochs(system):
         else:
             event_id = [int(cfg_local["eventvalue"])]
 
-        event_id = [id for id in event_id if id in events[:, 2]]
+        event_id = [id_ for id_ in event_id if id_ in events[:, 2]]
 
     epochs = mne.Epochs(
         raw_data,

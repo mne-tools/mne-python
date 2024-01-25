@@ -3,23 +3,24 @@
 #          Dirk Gütlin <dirk.guetlin@stud.sbg.ac.at>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import numpy as np
 
-from .utils import (
-    _create_info,
-    _set_tmin,
-    _create_events,
-    _create_event_metadata,
-    _validate_ft_struct,
-)
-from ...utils import _check_fname, _import_pymatreader_funcs
-from ..array.array import RawArray
 from ...epochs import EpochsArray
 from ...evoked import EvokedArray
+from ...utils import _check_fname, _import_pymatreader_funcs
+from ..array.array import RawArray
+from .utils import (
+    _create_event_metadata,
+    _create_events,
+    _create_info,
+    _set_tmin,
+    _validate_ft_struct,
+)
 
 
-def read_raw_fieldtrip(fname, info, data_name="data"):
+def read_raw_fieldtrip(fname, info, data_name="data") -> RawArray:
     """Load continuous (raw) data from a FieldTrip preprocessing structure.
 
     This function expects to find single trial raw data (FT_DATATYPE_RAW) in
@@ -82,7 +83,9 @@ def read_raw_fieldtrip(fname, info, data_name="data"):
     return raw
 
 
-def read_epochs_fieldtrip(fname, info, data_name="data", trialinfo_column=0):
+def read_epochs_fieldtrip(
+    fname, info, data_name="data", trialinfo_column=0
+) -> EpochsArray:
     """Load epoched data from a FieldTrip preprocessing structure.
 
     This function expects to find epoched data in the structure data_name is

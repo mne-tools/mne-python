@@ -1,24 +1,27 @@
 # Authors: Denis A. Engemann  <denis.engemann@gmail.com>
 #          simplified BSD-3 license
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 
-from pathlib import Path
 import os
 import shutil
+from copy import deepcopy
 from datetime import datetime, timezone
+from pathlib import Path
 
 import numpy as np
-from numpy.testing import assert_array_equal, assert_allclose
 import pytest
+from numpy.testing import assert_allclose, assert_array_equal
 from scipy import io as sio
 
-from mne import find_events, pick_types, pick_channels
-from mne.io import read_raw_egi, read_evokeds_mff, read_raw_fif
-from mne.io.constants import FIFF
+from mne import find_events, pick_types
+from mne._fiff.constants import FIFF
+from mne.datasets.testing import data_path, requires_testing_data
+from mne.io import read_evokeds_mff, read_raw_egi, read_raw_fif
 from mne.io.egi.egi import _combine_triggers
 from mne.io.tests.test_raw import _test_raw_reader
-from mne.utils import requires_version, object_diff
-from mne.datasets.testing import data_path, requires_testing_data
+from mne.utils import object_diff
 
 base_dir = Path(__file__).parent / "data"
 egi_fname = base_dir / "test_egi.raw"
@@ -67,6 +70,7 @@ egi_pause_w1337_skips = [(21956000.0, 40444000.0), (60936000.0, 89332000.0)]
 )
 def test_egi_mff_pause(fname, skip_times, event_times):
     """Test EGI MFF with pauses."""
+    pytest.importorskip("defusedxml")
     if fname == egi_pause_w1337_fname:
         # too slow to _test_raw_reader
         raw = read_raw_egi(fname).load_data()
@@ -126,6 +130,7 @@ def test_egi_mff_pause(fname, skip_times, event_times):
 )
 def test_egi_mff_pause_chunks(fname, tmp_path):
     """Test that on-demand of all short segments works (via I/O)."""
+    pytest.importorskip("defusedxml")
     fname_temp = tmp_path / "test_raw.fif"
     raw_data = read_raw_egi(fname, preload=True).get_data()
     raw = read_raw_egi(fname)
@@ -139,6 +144,7 @@ def test_egi_mff_pause_chunks(fname, tmp_path):
 @requires_testing_data
 def test_io_egi_mff():
     """Test importing EGI MFF simple binary files."""
+    pytest.importorskip("defusedxml")
     # want vars for n chans
     n_ref = 1
     n_eeg = 128
@@ -161,14 +167,12 @@ def test_io_egi_mff():
     assert raw.info["dig"][0]["kind"] == FIFF.FIFFV_POINT_CARDINAL
     assert raw.info["dig"][3]["kind"] == FIFF.FIFFV_POINT_EEG
     assert raw.info["dig"][-1]["ident"] == 129
-    assert raw.info["custom_ref_applied"] == FIFF.FIFFV_MNE_CUSTOM_REF_ON
+    # This is not a custom reference, it's consistent across all channels
+    assert raw.info["custom_ref_applied"] == FIFF.FIFFV_MNE_CUSTOM_REF_OFF
     ref_loc = raw.info["dig"][-1]["r"]
     eeg_picks = pick_types(raw.info, eeg=True)
     assert len(eeg_picks) == n_eeg + n_ref  # 129
-    # ref channel doesn't store its own loc as ref location
-    # so don't test it
-    ref_pick = pick_channels(raw.info["ch_names"], ["VREF"])
-    eeg_picks = np.setdiff1d(eeg_picks, ref_pick)
+    # ref channel should store its own loc as ref location, so't test it
     for i in eeg_picks:
         loc = raw.info["chs"][i]["loc"]
         assert loc[:3].any(), loc[:3]
@@ -191,9 +195,9 @@ def test_io_egi_mff():
         read_raw_egi(egi_mff_fname, include=["Foo"])
     with pytest.raises(ValueError, match="Could not find event"):
         read_raw_egi(egi_mff_fname, exclude=["Bar"])
-    for ii, k in enumerate(include, 1):
-        assert k in raw.event_id
-        assert raw.event_id[k] == ii
+    for ch in include:
+        assert ch in raw.event_id
+        assert raw.event_id[ch] == int(ch[-1])
 
 
 def test_io_egi():
@@ -257,6 +261,7 @@ def test_io_egi():
 @requires_testing_data
 def test_io_egi_pns_mff(tmp_path):
     """Test importing EGI MFF with PNS data."""
+    pytest.importorskip("defusedxml")
     raw = read_raw_egi(egi_mff_pns_fname, include=None, preload=True, verbose="error")
     assert "RawMff" in repr(raw)
     pns_chans = pick_types(raw.info, ecg=True, bio=True, emg=True)
@@ -292,7 +297,7 @@ def test_io_egi_pns_mff(tmp_path):
     egi_fname_mat = testing_path / "EGI" / "test_egi_pns.mat"
     mc = sio.loadmat(egi_fname_mat)
     for ch_name, ch_idx, mat_name in zip(pns_names, pns_chans, mat_names):
-        print("Testing {}".format(ch_name))
+        print(f"Testing {ch_name}")
         mc_key = [x for x in mc.keys() if mat_name in x][0]
         cal = raw.info["chs"][ch_idx]["cal"]
         mat_data = mc[mc_key] * cal
@@ -313,6 +318,7 @@ def test_io_egi_pns_mff(tmp_path):
 @pytest.mark.parametrize("preload", (True, False))
 def test_io_egi_pns_mff_bug(preload):
     """Test importing EGI MFF with PNS data (BUG)."""
+    pytest.importorskip("defusedxml")
     egi_fname_mff = testing_path / "EGI" / "test_egi_pns_bug.mff"
     with pytest.warns(RuntimeWarning, match="EGI PSG sample bug"):
         raw = read_raw_egi(
@@ -343,7 +349,7 @@ def test_io_egi_pns_mff_bug(preload):
         "EMGLeg",
     ]
     for ch_name, ch_idx, mat_name in zip(pns_names, pns_chans, mat_names):
-        print("Testing {}".format(ch_name))
+        print(f"Testing {ch_name}")
         mc_key = [x for x in mc.keys() if mat_name in x][0]
         cal = raw.info["chs"][ch_idx]["cal"]
         mat_data = mc[mc_key] * cal
@@ -355,6 +361,7 @@ def test_io_egi_pns_mff_bug(preload):
 @requires_testing_data
 def test_io_egi_crop_no_preload():
     """Test crop non-preloaded EGI MFF data (BUG)."""
+    pytest.importorskip("defusedxml")
     raw = read_raw_egi(egi_mff_fname, preload=False)
     raw.crop(17.5, 20.5)
     raw.load_data()
@@ -365,7 +372,6 @@ def test_io_egi_crop_no_preload():
 
 
 @pytest.mark.filterwarnings("ignore::FutureWarning")
-@requires_version("mffpy", "0.5.7")
 @requires_testing_data
 @pytest.mark.parametrize(
     "idx, cond, tmax, signals, bads",
@@ -382,6 +388,9 @@ def test_io_egi_crop_no_preload():
 )
 def test_io_egi_evokeds_mff(idx, cond, tmax, signals, bads):
     """Test reading evoked MFF file."""
+    pytest.importorskip("mffpy", "0.5.7")
+
+    pytest.importorskip("defusedxml")
     # expected n channels
     n_eeg = 256
     n_ref = 1
@@ -445,10 +454,10 @@ def test_io_egi_evokeds_mff(idx, cond, tmax, signals, bads):
 
 
 @pytest.mark.filterwarnings("ignore::FutureWarning")
-@requires_version("mffpy", "0.5.7")
 @requires_testing_data
 def test_read_evokeds_mff_bad_input():
     """Test errors are thrown when reading invalid input file."""
+    pytest.importorskip("mffpy", "0.5.7")
     # Test file that is not an MFF
     with pytest.raises(ValueError) as exc_info:
         read_evokeds_mff(egi_fname)
@@ -467,6 +476,7 @@ def test_read_evokeds_mff_bad_input():
 @requires_testing_data
 def test_egi_coord_frame():
     """Test that EGI coordinate frame is changed to head."""
+    pytest.importorskip("defusedxml")
     info = read_raw_egi(egi_mff_fname).info
     want_idents = (
         FIFF.FIFFV_POINT_LPA,
@@ -504,6 +514,7 @@ def test_egi_coord_frame():
 )
 def test_meas_date(fname, timestamp, utc_offset):
     """Test meas date conversion."""
+    pytest.importorskip("defusedxml")
     raw = read_raw_egi(fname, verbose="warning")
     dt = datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S.%f%z")
     measdate = dt.astimezone(timezone.utc)
@@ -523,13 +534,27 @@ def test_meas_date(fname, timestamp, utc_offset):
         (egi_mff_pns_fname, "GSN-HydroCel-257"),  # 257 chan EGI file
     ],
 )
-def test_set_standard_montage(fname, standard_montage):
+def test_set_standard_montage_mff(fname, standard_montage):
     """Test setting a standard montage."""
+    pytest.importorskip("defusedxml")
     raw = read_raw_egi(fname, verbose="warning")
-    dig_before_mon = raw.info["dig"]
+    n_eeg = int(standard_montage.split("-")[-1])
+    n_dig = n_eeg + 3
+    dig_before_mon = deepcopy(raw.info["dig"])
+    assert len(dig_before_mon) == n_dig
+    ref_loc = dig_before_mon[-1]["r"]
+    picks = pick_types(raw.info, eeg=True)
+    assert len(picks) == n_eeg
+    for pick in picks:
+        assert_allclose(raw.info["chs"][pick]["loc"][3:6], ref_loc)
 
     raw.set_montage(standard_montage, match_alias=True, on_missing="ignore")
     dig_after_mon = raw.info["dig"]
 
     # No dig entries should have been dropped while setting montage
-    assert len(dig_before_mon) == len(dig_after_mon)
+    assert len(dig_before_mon) == n_dig
+    assert len(dig_after_mon) == n_dig
+
+    # Check that the reference remained
+    for pick in picks:
+        assert_allclose(raw.info["chs"][pick]["loc"][3:6], ref_loc)

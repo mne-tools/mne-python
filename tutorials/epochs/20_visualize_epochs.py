@@ -12,7 +12,8 @@ plot the sensor locations and projectors stored in `~mne.Epochs` objects.
 We'll start by importing the modules we need, loading the continuous (raw)
 sample data, and cropping it to save memory:
 """
-
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 # %%
 
 import mne
@@ -105,12 +106,11 @@ epochs.add_proj(ecg_projs)
 epochs.apply_proj()
 
 # %%
-# Just as we saw in the :ref:`tut-section-raw-plot-proj` section, we can plot
-# the projectors present in an `~mne.Epochs` object using the same
-# `~mne.Epochs.plot_projs_topomap` method. Since the original three
-# empty-room magnetometer projectors were inherited from the
-# `~mne.io.Raw` file, and we added two ECG projectors for each sensor
-# type, we should see nine projector topomaps:
+# Just as we saw in the :ref:`tut-section-raw-plot-proj` section, we can plot the
+# projectors present in an `~mne.Epochs` object using the same
+# `~mne.Epochs.plot_projs_topomap` method. Since the original three empty-room
+# magnetometer projectors were inherited from the `~mne.io.Raw` file, and we added two
+# ECG projectors for each sensor type, we should see nine projector topomaps:
 
 epochs.plot_projs_topomap(vlim="joint")
 
@@ -118,9 +118,8 @@ epochs.plot_projs_topomap(vlim="joint")
 # Note that these field maps illustrate aspects of the signal that *have
 # already been removed* (because projectors in `~mne.io.Raw` data are
 # applied by default when epoching, and because we called
-# `~mne.Epochs.apply_proj` after adding additional ECG projectors from
-# file). You can check this by examining the ``'active'`` field of the
-# projectors:
+# `~mne.Epochs.apply_proj` after adding additional ECG projectors from file).
+# You can check this by examining the ``'active'`` field of the projectors:
 
 print(all(proj["active"] for proj in epochs.info["projs"]))
 
@@ -145,7 +144,7 @@ epochs.plot_sensors(kind="topomap", ch_type="all")
 # :class:`~mne.time_frequency.EpochsSpectrum`'s
 # :meth:`~mne.time_frequency.EpochsSpectrum.plot` method.
 
-epochs["auditory"].compute_psd().plot(picks="eeg", exclude="bads")
+epochs["auditory"].compute_psd().plot(picks="eeg", exclude="bads", amplitude=False)
 
 # %%
 # It is also possible to plot spectral power estimates across sensors as a
@@ -246,7 +245,9 @@ epochs["auditory"].plot_image(picks=["MEG 0242", "MEG 0243"], combine="gfp")
 # therefore mask smaller signal fluctuations of interest.
 
 reject_criteria = dict(
-    mag=3000e-15, grad=3000e-13, eeg=150e-6  # 3000 fT  # 3000 fT/cm
+    mag=3000e-15,  # 3000 fT
+    grad=3000e-13,  # 3000 fT/cm
+    eeg=150e-6,
 )  # 150 µV
 epochs.drop_bad(reject=reject_criteria)
 

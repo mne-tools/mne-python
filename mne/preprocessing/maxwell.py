@@ -4,6 +4,7 @@
 
 
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from collections import Counter, OrderedDict
 from functools import partial
@@ -12,51 +13,54 @@ from os import path as op
 from pathlib import Path
 
 import numpy as np
+from scipy import linalg
+from scipy.special import lpmv, sph_harm
 
 from .. import __version__
+from .._fiff.compensator import make_compensator
+from .._fiff.constants import FIFF, FWD
+from .._fiff.meas_info import Info, _simplify_info
+from .._fiff.pick import pick_info, pick_types
+from .._fiff.proc_history import _read_ctc
+from .._fiff.proj import Projection
+from .._fiff.tag import _coil_trans_to_loc, _loc_to_coil_trans
+from .._fiff.write import DATE_NONE, _generate_meas_id
 from ..annotations import _annotations_starts_stops
 from ..bem import _check_origin
+from ..channels.channels import _get_T1T2_mag_inds, fix_mag_coil_types
+from ..fixes import _safe_svd, bincount
+from ..forward import _concatenate_coils, _create_meg_coils, _prep_meg_channels
+from ..io import BaseRaw, RawArray
+from ..surface import _normalize_vectors
 from ..transforms import (
-    _str_to_frame,
-    _get_trans,
     Transform,
-    apply_trans,
-    _find_vector_rotation,
-    _cart_to_sph,
-    _get_n_moments,
-    _sph_to_cart_partials,
-    _deg_ord_idx,
     _average_quats,
+    _cart_to_sph,
+    _deg_ord_idx,
+    _find_vector_rotation,
+    _get_n_moments,
+    _get_trans,
     _sh_complex_to_real,
-    _sh_real_to_complex,
     _sh_negate,
+    _sh_real_to_complex,
+    _sph_to_cart_partials,
+    _str_to_frame,
+    apply_trans,
     quat_to_rot,
     rot_to_quat,
 )
-from ..forward import _concatenate_coils, _prep_meg_channels, _create_meg_coils
-from ..surface import _normalize_vectors
-from ..io.compensator import make_compensator
-from ..io.constants import FIFF, FWD
-from ..io.meas_info import _simplify_info, Info
-from ..io.proc_history import _read_ctc
-from ..io.write import _generate_meas_id, DATE_NONE
-from ..io import _loc_to_coil_trans, _coil_trans_to_loc, BaseRaw, RawArray, Projection
-from ..io.pick import pick_types, pick_info
 from ..utils import (
-    verbose,
-    logger,
-    _clean_names,
-    warn,
-    _time_mask,
-    _pl,
     _check_option,
+    _clean_names,
     _ensure_int,
+    _pl,
+    _time_mask,
     _validate_type,
+    logger,
     use_log_level,
+    verbose,
+    warn,
 )
-from ..fixes import _safe_svd, bincount
-from ..channels.channels import _get_T1T2_mag_inds, fix_mag_coil_types
-
 
 # Note: MF uses single precision and some algorithms might use
 # truncated versions of constants (e.g., μ0), which could lead to small
@@ -515,8 +519,12 @@ def _prep_maxwell_filter(
     #
     sss_cal = dict()
     if calibration is not None:
+        # Modifies info in place, so make a copy for recon later
+        info_recon = info.copy()
         calibration, sss_cal = _update_sensor_geometry(info, calibration, ignore_ref)
         mag_or_fine.fill(True)  # all channels now have some mag-type data
+    else:
+        info_recon = info
 
     # Determine/check the origin of the expansion
     origin = _check_origin(origin, info, coord_frame, disp=True)
@@ -549,7 +557,8 @@ def _prep_maxwell_filter(
     #
     exp = dict(origin=origin_head, int_order=int_order, ext_order=0)
     all_coils = _prep_mf_coils(info, ignore_ref)
-    S_recon = _trans_sss_basis(exp, all_coils, recon_trans, coil_scale)
+    all_coils_recon = _prep_mf_coils(info_recon, ignore_ref)
+    S_recon = _trans_sss_basis(exp, all_coils_recon, recon_trans, coil_scale)
     exp["ext_order"] = ext_order
     exp["extended_proj"] = extended_proj
     del extended_proj
@@ -1181,8 +1190,6 @@ def _get_decomp(
     mult,
 ):
     """Get a decomposition matrix and pseudoinverse matrices."""
-    from scipy import linalg
-
     #
     # Fine calibration processing (point-like magnetometers and calib. coeffs)
     #
@@ -1374,7 +1381,7 @@ def _get_mf_picks_fix_mags(info, int_order, ext_order, ignore_ref=False, verbose
         FIFF.FIFFV_COIL_CTF_REF_GRAD,
         FIFF.FIFFV_COIL_CTF_OFFDIAG_REF_GRAD,
     ]
-    mag_or_fine[np.in1d(coil_types, ctf_grads)] = False
+    mag_or_fine[np.isin(coil_types, ctf_grads)] = False
     msg = "    Processing %s gradiometers and %s magnetometers" % (
         len(grad_picks),
         len(mag_picks),
@@ -1463,8 +1470,6 @@ def _get_mag_mask(coils):
 
 def _sss_basis_basic(exp, coils, mag_scale=100.0, method="standard"):
     """Compute SSS basis using non-optimized (but more readable) algorithms."""
-    from scipy.special import sph_harm
-
     int_order, ext_order = exp["int_order"], exp["ext_order"]
     origin = exp["origin"]
     assert "extended_proj" not in exp  # advanced option not supported
@@ -1855,8 +1860,6 @@ def _alegendre_deriv(order, degree, val):
     dPlm : float
         Associated Legendre function derivative
     """
-    from scipy.special import lpmv
-
     assert order >= 0
     return (
         order * val * lpmv(order, degree, val)
@@ -1975,7 +1978,7 @@ def _update_sss_info(
         The moments that were used.
     st_only : bool
         Whether tSSS only was performed.
-    recon_trans : instance of Transformation
+    recon_trans : instance of Transform
         The reconstruction trans.
     extended_proj : ndarray
         Extended external bases.
@@ -2058,8 +2061,6 @@ def _overlap_projector(data_int, data_res, corr):
     # computation
 
     # we use np.linalg.norm instead of sp.linalg.norm here: ~2x faster!
-    from scipy import linalg
-
     n = np.linalg.norm(data_int)
     n = 1.0 if n == 0 else n  # all-zero data should gracefully continue
     data_int = _orth_overwrite((data_int / n).T)
@@ -2888,8 +2889,6 @@ def compute_maxwell_basis(
     ----------
     .. footbibliography::
     """
-    from ..io import RawArray
-
     _validate_type(info, Info, "info")
     raw = RawArray(np.zeros((len(info["ch_names"]), 1)), info.copy(), verbose=False)
     logger.info("Computing Maxwell basis")

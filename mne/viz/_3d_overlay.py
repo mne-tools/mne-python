@@ -3,7 +3,8 @@
 # Authors: Guillaume Favelier <guillaume.favelier@gmail.com>
 #          Eric Larson <larson.eric.d@gmail.com>
 #
-# License: Simplified BSD
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from collections import OrderedDict
 
@@ -22,8 +23,9 @@ class _Overlay:
         self._name = name
 
     def to_colors(self):
-        from ._3d import _get_cmap
         from matplotlib.colors import Colormap, ListedColormap
+
+        from ._3d import _get_cmap
 
         if isinstance(self._colormap, str):
             cmap = _get_cmap(self._colormap)

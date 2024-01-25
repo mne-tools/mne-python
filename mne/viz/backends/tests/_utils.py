@@ -3,10 +3,12 @@
 #          Joan Massich <mailsik@gmail.com>
 #          Guillaume Favelier <guillaume.favelier@gmail.com>
 #
-# License: Simplified BSD
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
+
+import warnings
 
 import pytest
-import warnings
 
 
 def has_pyvista():

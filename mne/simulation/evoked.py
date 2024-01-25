@@ -3,14 +3,19 @@
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 import math
 
 import numpy as np
+from scipy.signal import lfilter
 
-from ..cov import compute_whitener
-from ..io.pick import pick_info
+from .._fiff.pick import pick_info
+from ..cov import Covariance, compute_whitener
+from ..epochs import BaseEpochs
+from ..evoked import Evoked
 from ..forward import apply_forward
-from ..utils import logger, verbose, check_random_state, _check_preload, _validate_type
+from ..io import BaseRaw
+from ..utils import _check_preload, _validate_type, check_random_state, logger, verbose
 
 
 @verbose
@@ -132,11 +137,6 @@ def add_noise(inst, cov, iir_filter=None, random_state=None, verbose=None):
 
 def _add_noise(inst, cov, iir_filter, random_state, allow_subselection=True):
     """Add noise, possibly with channel subselection."""
-    from ..cov import Covariance
-    from ..io import BaseRaw
-    from ..epochs import BaseEpochs
-    from ..evoked import Evoked
-
     _validate_type(cov, Covariance, "cov")
     _validate_type(
         inst, (BaseRaw, BaseEpochs, Evoked), "inst", "Raw, Epochs, or Evoked"
@@ -152,7 +152,7 @@ def _add_noise(inst, cov, iir_filter, random_state, allow_subselection=True):
     picks = gen_picks = slice(None)
     if allow_subselection:
         use_chs = list(set(info["ch_names"]) & set(cov["names"]))
-        picks = np.where(np.in1d(info["ch_names"], use_chs))[0]
+        picks = np.where(np.isin(info["ch_names"], use_chs))[0]
         logger.info(
             "Adding noise to %d/%d channels (%d channels in cov)"
             % (len(picks), len(info["chs"]), len(cov["names"]))
@@ -172,8 +172,6 @@ def _generate_noise(
     info, cov, iir_filter, random_state, n_samples, zi=None, picks=None
 ):
     """Create spatially colored and temporally IIR-filtered noise."""
-    from scipy.signal import lfilter
-
     rng = check_random_state(random_state)
     _, _, colorer = compute_whitener(
         cov, info, pca=True, return_colorer=True, picks=picks, verbose=False

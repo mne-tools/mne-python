@@ -3,23 +3,24 @@
 #         Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
+import datetime
 import re
 import shutil
 from pathlib import Path
 
 import numpy as np
-from numpy.testing import assert_array_equal, assert_allclose
 import pytest
+from numpy.testing import assert_allclose, assert_array_equal
 
-import datetime
-from mne.utils import _stamp_to_dt, object_diff
-from mne import pick_types, read_annotations, concatenate_raws
-from mne.io.constants import FIFF
-from mne.io import read_raw_fif, read_raw_brainvision
-from mne.io.tests.test_raw import _test_raw_reader
-from mne.datasets import testing
+from mne import concatenate_raws, pick_types, read_annotations
+from mne._fiff.constants import FIFF
 from mne.annotations import events_from_annotations
+from mne.datasets import testing
+from mne.io import read_raw_brainvision, read_raw_fif
+from mne.io.tests.test_raw import _test_raw_reader
+from mne.utils import _stamp_to_dt, object_diff
 
 data_dir = Path(__file__).parent / "data"
 vhdr_path = data_dir / "test.vhdr"
@@ -132,14 +133,14 @@ def _mocked_meas_date_data(tmp_path_factory):
     """Prepare files for mocked_meas_date_file fixture."""
     # Prepare the files
     tmp_path = tmp_path_factory.mktemp("brainvision_mocked_meas_date")
-    vhdr_fname, vmrk_fname, eeg_fname = [
+    vhdr_fname, vmrk_fname, eeg_fname = (
         tmp_path / ff.name for ff in [vhdr_path, vmrk_path, eeg_path]
-    ]
+    )
     for orig, dest in zip([vhdr_path, eeg_path], [vhdr_fname, eeg_fname]):
         shutil.copyfile(orig, dest)
 
     # Get the marker information
-    with open(vmrk_path, "r") as fin:
+    with open(vmrk_path) as fin:
         lines = fin.readlines()
 
     return vhdr_fname, vmrk_fname, lines
@@ -330,7 +331,7 @@ def test_ch_names_comma(tmp_path):
         shutil.copyfile(src, tmp_path / dest)
 
     comma_vhdr = tmp_path / "test.vhdr"
-    with open(comma_vhdr, "r") as fin:
+    with open(comma_vhdr) as fin:
         lines = fin.readlines()
 
     new_lines = []

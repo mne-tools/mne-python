@@ -2,6 +2,7 @@
 #          Teon Brooks <teon.brooks@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import base64
 import copy
@@ -19,27 +20,27 @@ from matplotlib import pyplot as plt
 
 from mne import (
     Epochs,
+    create_info,
+    pick_channels_cov,
+    read_cov,
     read_events,
     read_evokeds,
-    read_cov,
-    pick_channels_cov,
-    create_info,
 )
+from mne._fiff.write import DATE_NONE
+from mne.datasets import testing
+from mne.epochs import make_metadata
+from mne.io import RawArray, read_info, read_raw_fif
+from mne.preprocessing import ICA
+from mne.report import Report, _ReportScraper, open_report, report
 from mne.report import report as report_mod
 from mne.report.report import (
-    CONTENT_ORDER,
     _ALLOWED_IMAGE_FORMATS,
+    CONTENT_ORDER,
     _webp_supported,
 )
-from mne.io import read_raw_fif, read_info, RawArray
-from mne.datasets import testing
-from mne.report import Report, open_report, _ReportScraper, report
-from mne.utils import Bunch, requires_version, requires_sklearn
+from mne.utils import Bunch
+from mne.utils._testing import assert_object_equal
 from mne.viz import plot_alignment
-from mne.io.write import DATE_NONE
-from mne.preprocessing import ICA
-from mne.epochs import make_metadata
-
 
 data_dir = testing.data_path(download=False)
 subjects_dir = data_dir / "subjects"
@@ -56,13 +57,9 @@ trans_fname = sample_meg_dir / "sample_audvis_trunc-trans.fif"
 inv_fname = sample_meg_dir / "sample_audvis_trunc-meg-eeg-oct-6-meg-inv.fif"
 stc_fname = sample_meg_dir / "sample_audvis_trunc-meg"
 mri_fname = subjects_dir / "sample" / "mri" / "T1.mgz"
-bdf_fname = (
-    Path(__file__).parent.parent.parent / "io" / "edf" / "tests" / "data" / "test.bdf"
-)
-edf_fname = (
-    Path(__file__).parent.parent.parent / "io" / "edf" / "tests" / "data" / "test.edf"
-)
-base_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
+bdf_fname = Path(__file__).parents[2] / "io" / "edf" / "tests" / "data" / "test.bdf"
+edf_fname = Path(__file__).parents[2] / "io" / "edf" / "tests" / "data" / "test.edf"
+base_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
 evoked_fname = base_dir / "test-ave.fif"
 nirs_fname = (
     data_dir / "SNIRF" / "NIRx" / "NIRSport2" / "1.0.3" / "2021-05-05_001.snirf"
@@ -102,6 +99,8 @@ def invisible_fig(monkeypatch):
 @testing.requires_testing_data
 def test_render_report(renderer_pyvistaqt, tmp_path, invisible_fig):
     """Test rendering *.fif files for mne report."""
+    pytest.importorskip("pymatreader")
+
     raw_fname_new = tmp_path / "temp_raw.fif"
     raw_fname_new_bids = tmp_path / "temp_meg.fif"
     ms_fname_new = tmp_path / "temp_ms_raw.fif"
@@ -129,7 +128,7 @@ def test_render_report(renderer_pyvistaqt, tmp_path, invisible_fig):
     evoked_fname = tmp_path / "temp-ave.fif"
     # Speed it up by picking channels
     raw = read_raw_fif(raw_fname_new)
-    raw.pick_channels(["MEG 0111", "MEG 0121", "EEG 001", "EEG 002"])
+    raw.pick(["MEG 0111", "MEG 0121", "EEG 001", "EEG 002"])
     raw.del_proj()
     raw.set_eeg_reference(projection=True).load_data()
     epochs = Epochs(raw, read_events(events_fname), 1, -0.2, 0.2)
@@ -401,7 +400,10 @@ def test_report_raw_psd_and_date(tmp_path):
 def test_render_add_sections(renderer, tmp_path):
     """Test adding figures/images to section."""
     pytest.importorskip("nibabel")
-    from pyvista.plotting import plotting
+    try:
+        from pyvista.plotting.plotter import _ALL_PLOTTERS
+    except Exception:  # PV < 0.40
+        from pyvista.plotting.plotting import _ALL_PLOTTERS
 
     report = Report(subjects_dir=subjects_dir)
     # Check add_figure functionality
@@ -427,15 +429,15 @@ def test_render_add_sections(renderer, tmp_path):
         report.add_image(image="foobar.xxx", title="H")
 
     evoked = read_evokeds(evoked_fname, condition="Left Auditory", baseline=(-0.2, 0.0))
-    n_before = len(plotting._ALL_PLOTTERS)
+    n_before = len(_ALL_PLOTTERS)
     fig = plot_alignment(
         evoked.info, trans_fname, subject="sample", subjects_dir=subjects_dir
     )
     n_after = n_before + 1
-    assert n_after == len(plotting._ALL_PLOTTERS)
+    assert n_after == len(_ALL_PLOTTERS)
 
     report.add_figure(fig=fig, title="random image")
-    assert n_after == len(plotting._ALL_PLOTTERS)  # not closed
+    assert n_after == len(_ALL_PLOTTERS)  # not closed
     assert repr(report)
     fname = tmp_path / "test.html"
     report.save(fname, open_browser=False)
@@ -593,9 +595,9 @@ def test_validate_input():
     items_new, captions_new, comments_new = values
 
 
-@requires_version("h5io")
 def test_open_report(tmp_path):
     """Test the open_report function."""
+    pytest.importorskip("h5io")
     hdf5 = str(tmp_path / "report.h5")
 
     # Test creating a new report through the open_report function
@@ -661,9 +663,31 @@ def test_add_or_replace(tags):
     r = Report()
     fig1, fig2 = _get_example_figures()
     r.add_figure(fig=fig1, title="duplicate", tags=("foo",) if tags else ())
+    r_state = r.__getstate__()
+    html = r.html
+    r_state_after = r.__getstate__()
+    assert_object_equal(r_state, r_state_after)
+    html_2 = r.html
+    assert html == html_2  # stays the same
+    r_state_after = r.__getstate__()
+    assert_object_equal(r_state, r_state_after)
+    assert ' id="global' not in "\n".join(html)
+    assert ' id="duplicate" ' in html[0]
+    assert ' id="duplicate-' not in "\n".join(html)
     r.add_figure(fig=fig2, title="duplicate", tags=("foo",) if tags else ())
+    html = r.html
+    assert ' id="duplicate" ' in html[0]
+    assert ' id="duplicate-1" ' in html[1]
+    assert ' id="duplicate-2" ' not in "\n".join(html)
     r.add_figure(fig=fig1, title="duplicate", tags=("bar",) if tags else ())
+    html = r.html
+    assert ' id="duplicate" ' in html[0]
+    assert ' id="duplicate-1" ' in html[1]
+    assert ' id="duplicate-2" ' in html[2]
+    assert ' id="duplicate-3" ' not in "\n".join(html)
     r.add_figure(fig=fig2, title="nonduplicate", tags=("foo",) if tags else ())
+    html = r.html
+    assert ' id="nonduplicate" ' in html[3]
     # By default, replace=False, so all figures should be there
     assert len(r.html) == 4
     assert len(r._content) == 4
@@ -684,6 +708,50 @@ def test_add_or_replace(tags):
     assert r.html[0] == old_r.html[0]
     assert r.html[1] == old_r.html[1]
     assert r.html[3] == old_r.html[3]
+    # same DOM IDs
+    html = r.html
+    assert ' id="duplicate" ' in html[0]
+    assert ' id="duplicate-1" ' in html[1]
+    assert ' id="duplicate-2" ' in html[2]
+    assert ' id="duplicate-3" ' not in "\n".join(html)
+    assert ' id="global' not in "\n".join(html)
+
+    # Now we change our max dup limit and should end up with a `global-`
+    r._dup_limit = 2
+    r.add_figure(
+        fig=fig2,
+        title="duplicate",
+        replace=True,
+    )
+    html = r.html
+    assert ' id="duplicate" ' in html[0]
+    assert ' id="duplicate-1" ' in html[1]
+    assert ' id="duplicate-2" ' in html[2]  # dom_id preserved
+    assert ' id="global' not in "\n".join(html)
+    r.add_figure(
+        fig=fig2,
+        title="duplicate",
+    )  # append, should end up with global-1 ID
+    html = r.html
+    assert len(html) == 5
+    assert ' id="global-1" ' in html[4]
+
+    # And if we add a duplicate in a different section, it gets a different
+    # DOM ID
+    old_html = html
+    section = "<div whatever 😀   etc."
+    sec_san = "_div_whatever___etc_"
+    r.add_figure(
+        fig=fig2,
+        title="duplicate",
+        section=section,
+        replace=True,  # should have no effect
+    )
+    html = r.html
+    assert len(html) == 6
+    assert html[:5] == old_html
+    assert f' id="{sec_san}" ' in html[5]  # section anchor
+    assert f' id="{sec_san}-duplicate" ' in html[5]  # and section-title anchor
 
 
 def test_add_or_replace_section():
@@ -704,22 +772,19 @@ def test_add_or_replace_section():
 
     # Replace our one occurrence of title 'a' in section 'B'
     r.add_figure(fig=fig2, title="a", section="B", replace=True)
-    r._dom_id = 3  # help out the .html property
     assert len(r._content) == 3
     assert len(r.html) == 3
     assert r.html[0] == old_r.html[0]
     assert r.html[1] != old_r.html[1]
     assert r.html[2] == old_r.html[2]
     r.add_figure(fig=fig1, title="a", section="B", replace=True)
-    r._dom_id = 3
     assert r.html[0] == old_r.html[0]
-    assert r.html[1].replace("global-4", "global-2") == old_r.html[1]
+    assert r.html[1] == old_r.html[1]
     assert r.html[2] == old_r.html[2]
     r.add_figure(fig=fig1, title="a", section="C", replace=True)
-    r._dom_id = 3
     assert r.html[0] == old_r.html[0]
-    assert r.html[1].replace("global-4", "global-2") == old_r.html[1]
-    assert r.html[2] != old_r.html[2]
+    assert r.html[1] == old_r.html[1]
+    assert r.html[2] == old_r.html[2]
 
 
 def test_scraper(tmp_path):
@@ -798,7 +863,7 @@ def test_survive_pickle(tmp_path):
     # Pickle report object to simulate multiprocessing with joblib
     report = Report(info_fname=raw_fname_new)
     pickled_report = pickle.dumps(report)
-    report = pickle.loads(pickled_report)
+    report = pickle.loads(pickled_report)  # nosec B301
 
     # Just test if no errors occur
     report.parse_folder(tmp_path, render_bem=False)
@@ -807,15 +872,17 @@ def test_survive_pickle(tmp_path):
 
 
 @pytest.mark.slowtest  # ~30 s on Azure Windows
-@requires_sklearn
 @testing.requires_testing_data
 def test_manual_report_2d(tmp_path, invisible_fig):
     """Simulate user manually creating report by adding one file at a time."""
+    pytest.importorskip("sklearn")
+    pytest.importorskip("pandas")
+
     from sklearn.exceptions import ConvergenceWarning
 
     r = Report(title="My Report")
     raw = read_raw_fif(raw_fname)
-    raw.pick_channels(raw.ch_names[:6]).crop(10, None)
+    raw.pick(raw.ch_names[:6]).crop(10, None)
     raw.info.normalize_proj()
     cov = read_cov(cov_fname)
     cov = pick_channels_cov(cov, raw.ch_names)
@@ -845,10 +912,10 @@ def test_manual_report_2d(tmp_path, invisible_fig):
     evoked = evokeds[0].pick("eeg")
 
     with pytest.warns(ConvergenceWarning, match="did not converge"):
-        ica = ICA(n_components=2, max_iter=1, random_state=42).fit(
+        ica = ICA(n_components=3, max_iter=1, random_state=42).fit(
             inst=raw.copy().crop(tmax=1)
         )
-    ica_ecg_scores = ica_eog_scores = np.array([3, 0])
+    ica_ecg_scores = ica_eog_scores = np.array([3, 0, 0])
     ica_ecg_evoked = ica_eog_evoked = epochs_without_metadata.average()
 
     r.add_raw(raw=raw, title="my raw data", tags=("raw",), psd=True, projs=False)
@@ -901,12 +968,13 @@ def test_manual_report_2d(tmp_path, invisible_fig):
         ica=ica,
         title="my ica with raw inst",
         inst=raw.copy().load_data(),
-        picks=[0],
+        picks=[2],
         ecg_evoked=ica_ecg_evoked,
         eog_evoked=ica_eog_evoked,
         ecg_scores=ica_ecg_scores,
         eog_scores=ica_eog_scores,
     )
+    assert "ICA component 2" in r._content[-1].html
     epochs_baseline = epochs_without_metadata.copy().load_data()
     epochs_baseline.apply_baseline((None, 0))
     r.add_ica(
@@ -915,6 +983,7 @@ def test_manual_report_2d(tmp_path, invisible_fig):
         inst=epochs_baseline,
         picks=[0],
     )
+    r.add_ica(ica=ica, title="my ica with picks=None", inst=epochs_baseline, picks=None)
     r.add_covariance(cov=cov, info=raw_fname, title="my cov")
     r.add_forward(
         forward=fwd_fname,

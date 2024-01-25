@@ -4,6 +4,7 @@
 #          Denis A. Engemann <denis.engemann@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # Many of the computations in this code were derived from Matti Hämäläinen's
 # C code.
@@ -11,28 +12,29 @@
 import os
 
 import numpy as np
+from scipy.sparse import csr_matrix, eye
 
-from .io.constants import FIFF
-from .io.open import fiff_open
-from .io.tag import find_tag
-from .io.tree import dir_tree_find
-from .io.write import (
-    start_block,
+from ._fiff.constants import FIFF
+from ._fiff.open import fiff_open
+from ._fiff.tag import find_tag
+from ._fiff.tree import dir_tree_find
+from ._fiff.write import (
     end_block,
-    write_string,
     start_and_end_file,
+    start_block,
     write_float_sparse_rcs,
     write_int,
+    write_string,
 )
 from .surface import (
-    read_surface,
-    _triangle_neighbors,
     _compute_nearest,
-    _normalize_vectors,
-    _get_tri_supp_geom,
     _find_nearest_tri_pts,
+    _get_tri_supp_geom,
+    _normalize_vectors,
+    _triangle_neighbors,
+    read_surface,
 )
-from .utils import get_subjects_dir, warn, logger, verbose
+from .utils import get_subjects_dir, logger, verbose, warn
 
 
 @verbose
@@ -207,13 +209,11 @@ def _make_morph_map(subject_from, subject_to, subjects_dir, xhemi):
 
 def _make_morph_map_hemi(subject_from, subject_to, subjects_dir, reg_from, reg_to):
     """Construct morph map for one hemisphere."""
-    from scipy.sparse import csr_matrix, eye as speye
-
     # add speedy short-circuit for self-maps
     if subject_from == subject_to and reg_from == reg_to:
         fname = subjects_dir / subject_from / "surf" / reg_from
         n_pts = len(read_surface(fname, verbose=False)[0])
-        return speye(n_pts, n_pts, format="csr")
+        return eye(n_pts, n_pts, format="csr")
 
     # load surfaces and normalize points to be on unit sphere
     fname = subjects_dir / subject_from / "surf" / reg_from
@@ -224,7 +224,7 @@ def _make_morph_map_hemi(subject_from, subject_to, subjects_dir, reg_from, reg_t
     _normalize_vectors(to_rr)
 
     # from surface: get nearest neighbors, find triangles for each vertex
-    nn_pts_idx = _compute_nearest(from_rr, to_rr, method="cKDTree")
+    nn_pts_idx = _compute_nearest(from_rr, to_rr, method="KDTree")
     from_pt_tris = _triangle_neighbors(from_tri, len(from_rr))
     from_pt_tris = [from_pt_tris[pt_idx].astype(int) for pt_idx in nn_pts_idx]
     from_pt_lens = np.cumsum([0] + [len(x) for x in from_pt_tris])

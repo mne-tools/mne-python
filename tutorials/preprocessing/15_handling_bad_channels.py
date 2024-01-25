@@ -12,11 +12,15 @@ As usual we'll start by importing the modules we need, and loading some example
 data:
 """
 
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 # %%
 
 import os
 from copy import deepcopy
+
 import numpy as np
+
 import mne
 
 sample_data_folder = mne.datasets.sample.data_path()
@@ -224,7 +228,7 @@ raw.crop(tmin=0, tmax=3).load_data()
 # we plot the data before and after interpolation, the affected channels will
 # still plot in red:
 
-eeg_data = raw.copy().pick_types(meg=False, eeg=True, exclude=[])
+eeg_data = raw.copy().pick(picks="eeg")
 eeg_data_interp = eeg_data.copy().interpolate_bads(reset_bads=False)
 
 for title, data in zip(["orig.", "interp."], [eeg_data, eeg_data_interp]):
@@ -234,13 +238,14 @@ for title, data in zip(["orig.", "interp."], [eeg_data, eeg_data_interp]):
     fig.suptitle(title, size="xx-large", weight="bold")
 
 # %%
-# Note that we used the ``exclude=[]`` trick in the call to
-# :meth:`~mne.io.Raw.pick_types` to make sure the bad channels were not
+# Note that the method :meth:`~mne.io.Raw.pick()` default
+# arguments includes ``exclude=()`` which ensures that bad
+# channels are not
 # automatically dropped from the selection. Here is the corresponding example
 # with the interpolated gradiometer channel; since there are more channels
 # we'll use a more transparent gray color this time:
 
-grad_data = raw.copy().pick_types(meg="grad", exclude=[])
+grad_data = raw.copy().pick(picks="grad")
 grad_data_interp = grad_data.copy().interpolate_bads(reset_bads=False)
 
 for data in (grad_data, grad_data_interp):

@@ -1,14 +1,15 @@
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from functools import partial
+
 import numpy as np
 
 from ..defaults import _handle_default
 from ..fixes import _safe_svd
-from ..utils import warn, logger, sqrtm_sym, eigh
-
+from ..utils import eigh, logger, sqrtm_sym, warn
 
 # For the reference implementation of eLORETA (force_equal=False),
 # 0 < loose <= 1 all produce solutions that are (more or less)
@@ -26,7 +27,7 @@ from ..utils import warn, logger, sqrtm_sym, eigh
 
 def _compute_eloreta(inv, lambda2, options):
     """Compute the eLORETA solution."""
-    from .inverse import compute_rank_inverse, _compute_reginv
+    from .inverse import _compute_reginv, compute_rank_inverse
 
     options = _handle_default("eloreta_options", options)
     eps, max_iter = options["eps"], options["max_iter"]

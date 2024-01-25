@@ -1,15 +1,217 @@
+[build-system]
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
+
+[project]
+name = "mne"
+description = "MNE-Python project for MEG and EEG data analysis."
+dynamic = ["version"]
+authors = [
+    { name = "Alexandre Gramfort", email = "alexandre.gramfort@inria.fr" },
+]
+maintainers = [{ name = "Dan McCloy", email = "dan@mccloy.info" }]
+license = { text = "BSD-3-Clause" }
+readme = { file = "README.rst", content-type = "text/x-rst" }
+requires-python = ">=3.9"
+keywords = [
+    "neuroscience",
+    "neuroimaging",
+    "MEG",
+    "EEG",
+    "ECoG",
+    "fNIRS",
+    "brain",
+]
+classifiers = [
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved",
+    "Programming Language :: Python",
+    "Topic :: Software Development",
+    "Topic :: Scientific/Engineering",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: POSIX",
+    "Operating System :: Unix",
+    "Operating System :: MacOS",
+    "Programming Language :: Python :: 3",
+]
+scripts = { mne = "mne.commands.utils:main" }
+dependencies = [
+    "numpy>=1.21.2",
+    "scipy>=1.7.1",
+    "matplotlib>=3.5.0",
+    "tqdm",
+    "pooch>=1.5",
+    "decorator",
+    "packaging",
+    "jinja2",
+    "lazy_loader>=0.3",
+]
+
+[project.optional-dependencies]
+# Variants with dependencies that will get installed on top of those listed unter
+# project.dependencies
+
+# Leave this one here for backward-compat
+data = []
+
+# Dependencies for MNE-Python functions that use HDF5 I/O
+hdf5 = ["h5io", "pymatreader"]
+
+# Dependencies for full MNE-Python functionality (other than raw/epochs export)
+full = [
+    "mne[hdf5]",
+    "qtpy",
+    "PyQt6!=6.6.1",
+    "PyQt6-Qt6!=6.6.1",
+    "pyobjc-framework-Cocoa>=5.2.0; platform_system=='Darwin'",
+    "sip",
+    "scikit-learn",
+    "nibabel",
+    "openmeeg>=2.5.5",
+    "numba",
+    "h5py",
+    "pandas",
+    "pyarrow",  # only needed to avoid a deprecation warning in pandas
+    "numexpr",
+    "jupyter",
+    "python-picard",
+    "statsmodels",
+    "joblib",
+    "psutil",
+    "dipy",
+    "vtk",
+    "nilearn",
+    "xlrd",
+    "imageio>=2.6.1",
+    "imageio-ffmpeg>=0.4.1",
+    "traitlets",
+    "pyvista>=0.32,!=0.35.2,!=0.38.0,!=0.38.1,!=0.38.2,!=0.38.3,!=0.38.4,!=0.38.5,!=0.38.6,!=0.42.0",
+    "pyvistaqt>=0.4",
+    "mffpy>=0.5.7",
+    "ipywidgets",
+    "ipympl",
+    "ipyevents",
+    "trame",
+    "trame-vtk",
+    "trame-vuetify",
+    "mne-qt-browser",
+    "darkdetect",
+    "qdarkstyle!=3.2.2",
+    "threadpoolctl",
+    # duplicated in test_extra:
+    "eeglabio",
+    "edfio>=0.2.1",
+    "pybv",
+    "snirf",
+    "defusedxml",
+    "neo",
+]
+
+# Dependencies for running the test infrastructure
+test = [
+    "pytest!=8.0.0rc1,!=8.0.0rc2",
+    "pytest-cov",
+    "pytest-timeout",
+    "pytest-harvest",
+    "pytest-qt",
+    "ruff",
+    "numpydoc",
+    "codespell",
+    "tomli; python_version<'3.11'",
+    "twine",
+    "wheel",
+    "pre-commit",
+    "mypy",
+]
+
+# Dependencies for being able to run additional tests (rare/CIs/advanced devs)
+test_extra = [
+    "mne[test]",
+    "nitime",
+    "nbclient",
+    "sphinx-gallery",
+    "eeglabio",
+    "edfio>=0.2.1",
+    "pybv",
+    "imageio>=2.6.1",
+    "imageio-ffmpeg>=0.4.1",
+    "snirf",
+    "neo",
+]
+
+# Dependencies for building the docuemntation
+doc = [
+    "sphinx>=6",
+    "numpydoc",
+    "pydata_sphinx_theme==0.13.3",
+    "sphinx-gallery",
+    "sphinxcontrib-bibtex>=2.5",
+    "sphinxcontrib-towncrier",
+    "memory_profiler",
+    "neo",
+    "seaborn!=0.11.2",
+    "sphinx_copybutton",
+    "sphinx-design",
+    "sphinxcontrib-youtube",
+    "mne-bids",
+    "pyxdf",
+    "mne-connectivity",
+    "mne-gui-addons",
+    "pygments>=2.13",
+    "pytest",
+    "graphviz",
+    "pyzmq!=24.0.0",
+    "ipython!=8.7.0",
+    "selenium",
+]
+dev = ["mne[test,doc]", "rcssmin"]
+
+[project.urls]
+Homepage = "https://mne.tools/"
+Download = "https://pypi.org/project/mne/#files"
+"Bug Tracker" = "https://github.com/mne-tools/mne-python/issues/"
+Documentation = "https://mne.tools/"
+Forum = "https://mne.discourse.group/"
+"Source Code" = "https://github.com/mne-tools/mne-python/"
+
+[tool.hatch.build]
+exclude = [
+    "/.*",
+    "/*.yml",
+    "/*.yaml",
+    "/*.toml",
+    "/*.txt",
+    "/mne/**/tests",
+    "/logo",
+    "/doc",
+    "/tools",
+    "/tutorials",
+    "/examples",
+    "/codemeta.json",
+    "/ignore_words.txt",
+    "/Makefile",
+    "/CITATION.cff",
+    "/CONTRIBUTING.md",
+] # tracked by git, but we don't want to ship those files
+
+[tool.hatch.version]
+source = "vcs"
+raw-options = { version_scheme = "release-branch-semver" }
+
 [tool.codespell]
 ignore-words = "ignore_words.txt"
 builtin = "clear,rare,informal,names,usage"
 skip = "doc/references.bib"
 
 [tool.ruff]
-select = ["E", "F", "W", "D"]
-exclude = ["__init__.py", "constants.py", "fixes.py", "resources.py"]
+select = ["A", "B006", "D", "E", "F", "I", "W", "UP"]
+exclude = ["__init__.py", "constants.py", "resources.py"]
 ignore = [
     "D100", # Missing docstring in public module
     "D104", # Missing docstring in public package
     "D413", # Missing blank line after last section
+    "UP031", # Use format specifiers instead of percent format
 ]
 
 [tool.ruff.pydocstyle]
@@ -19,12 +221,12 @@ ignore-decorators = [
     "setter",
     "mne.utils.copy_function_doc_to_method_doc",
     "mne.utils.copy_doc",
-    "mne.utils.deprecated"
+    "mne.utils.deprecated",
 ]
 
 [tool.ruff.per-file-ignores]
 "tutorials/time-freq/10_spectrum_class.py" = [
-    "E501" # line too long
+    "E501", # line too long
 ]
 "mne/datasets/*/*.py" = [
     "D103", # Missing docstring in public function
@@ -41,12 +243,130 @@ ignore-decorators = [
 
 [tool.pytest.ini_options]
 addopts = """--durations=20 --doctest-modules -ra --cov-report= --tb=short \
-    --doctest-ignore-import-errors --junit-xml=junit-results.xml \
+    --cov-branch --doctest-ignore-import-errors --junit-xml=junit-results.xml \
     --ignore=doc --ignore=logo --ignore=examples --ignore=tutorials \
     --ignore=mne/gui/_*.py --ignore=mne/icons --ignore=tools \
     --ignore=mne/report/js_and_css \
     --color=yes --capture=sys"""
 junit_family = "xunit2"
 
-[tool.black]
-exclude = "(dist/)|(build/)|(.*\\.ipynb)"
+[tool.bandit.assert_used]
+skips = ["*/test_*.py"] # assert statements are good practice with pytest
+
+[tool.rstcheck]
+report_level = "WARNING"
+ignore_roles = [
+    "attr",
+    "class",
+    "doc",
+    "eq",
+    "exc",
+    "file",
+    "footcite",
+    "footcite:t",
+    "func",
+    "gh",
+    "kbd",
+    "meth",
+    "mod",
+    "newcontrib",
+    "py:mod",
+    "ref",
+    "samp",
+    "term",
+]
+ignore_directives = [
+    "autoclass",
+    "autofunction",
+    "automodule",
+    "autosummary",
+    "bibliography",
+    "cssclass",
+    "currentmodule",
+    "dropdown",
+    "footbibliography",
+    "glossary",
+    "graphviz",
+    "grid",
+    "highlight",
+    "minigallery",
+    "tabularcolumns",
+    "toctree",
+    "rst-class",
+    "tab-set",
+    "towncrier-draft-entries",
+]
+ignore_messages = "^.*(Unknown target name|Undefined substitution referenced)[^`]*$"
+
+[tool.mypy]
+ignore_errors = true
+scripts_are_modules = true
+strict = false
+
+[[tool.mypy.overrides]]
+module = ['mne.annotations', 'mne.epochs', 'mne.evoked', 'mne.io']
+ignore_errors = false
+# Ignore "attr-defined" until we fix stuff like:
+# - BunchConstNamed: '"BunchConstNamed" has no attribute "FIFFB_EVOKED"'
+# - Missing __all__: 'Module "mne.io.snirf" does not explicitly export attribute "read_raw_snirf"'
+# Ignore "no-untyped-call" until we fix stuff like:
+# - 'Call to untyped function "end_block" in typed context'
+# Ignore "no-untyped-def" until we fix stuff like:
+# - 'Function is missing a type annotation'
+# Ignore "misc" until we fix stuff like:
+# - 'Cannot determine type of "_projector" in base class "ProjMixin"'
+# Ignore "assignment" until we fix stuff like:
+# - 'Incompatible types in assignment (expression has type "tuple[str, ...]", variable has type "str")'
+# Ignore "operator" until we fix stuff like:
+# - Unsupported operand types for - ("None" and "int")
+disable_error_code = [
+    'attr-defined',
+    'no-untyped-call',
+    'no-untyped-def',
+    'misc',
+    'assignment',
+    'operator',
+]
+
+[tool.towncrier]
+package = "mne"
+directory = "doc/changes/devel/"
+filename = "doc/changes/devel.rst"
+title_format = "{version} ({project_date})"
+issue_format = "`#{issue} <https://github.com/mne-tools/mne-python/pulls/{issue}>`__"
+
+[[tool.towncrier.type]]
+directory = "notable"
+name = "Notable changes"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "dependency"
+name = "Dependencies"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "bugfix"
+name = "Bugfixes"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "apichange"
+name = "API changes by deprecation"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "newfeature"
+name = "New features"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "other"
+name = "Other changes"
+showcontent = true
+
+[tool.changelog-bot]
+[tool.changelog-bot.towncrier_changelog]
+enabled = true
+verify_pr_number = true
+changelog_skip_label = "no-changelog-entry-needed"

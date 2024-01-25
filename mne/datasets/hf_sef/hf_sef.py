@@ -1,13 +1,15 @@
 #!/usr/bin/env python2
 # Authors: Jussi Nurminen <jnu@iki.fi>
-# License: BSD Style.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 
-import os.path as op
 import os
-from ...utils import verbose, _check_option
-from ..utils import _get_path, _do_path_update, _download_mne_dataset
+import os.path as op
+
+from ...utils import _check_option, verbose
 from ..config import MNE_DATASETS
+from ..utils import _do_path_update, _download_mne_dataset, _get_path
 
 
 @verbose

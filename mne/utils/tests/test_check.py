@@ -3,35 +3,37 @@
 #          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import os
 import sys
+from pathlib import Path
 
 import numpy as np
 import pytest
-from pathlib import Path
 
 import mne
-from mne import read_vectorview_selection
+from mne import pick_channels_cov, read_vectorview_selection
+from mne._fiff.pick import _picks_to_idx
 from mne.datasets import testing
-from mne.io.pick import pick_channels_cov, _picks_to_idx
 from mne.utils import (
-    check_random_state,
+    Bunch,
+    _check_ch_locs,
     _check_fname,
-    check_fname,
-    _suggest,
-    _check_subject,
     _check_info_inv,
     _check_option,
-    Bunch,
-    check_version,
-    _path_like,
-    _validate_type,
-    _on_missing,
-    _safe_input,
-    _check_ch_locs,
-    _check_sphere,
     _check_range,
+    _check_sphere,
+    _check_subject,
+    _on_missing,
+    _path_like,
+    _safe_input,
+    _suggest,
+    _validate_type,
+    catch_logging,
+    check_fname,
+    check_random_state,
+    check_version,
 )
 
 data_path = testing.data_path(download=False)
@@ -99,7 +101,7 @@ def _get_data():
     left_temporal_channels = read_vectorview_selection("Left-temporal")
     picks = mne.pick_types(raw.info, meg=True, selection=left_temporal_channels)
     picks = picks[::2]
-    raw.pick_channels([raw.ch_names[ii] for ii in picks])
+    raw.pick([raw.ch_names[ii] for ii in picks])
     del picks
 
     raw.info.normalize_proj()  # avoid projection warnings
@@ -140,12 +142,12 @@ def test_check_info_inv():
     assert [1, 2] not in picks
     # covariance matrix
     data_cov_bads = data_cov.copy()
-    data_cov_bads["bads"] = data_cov_bads.ch_names[0]
+    data_cov_bads["bads"] = [data_cov_bads.ch_names[0]]
     picks = _check_info_inv(epochs.info, forward, data_cov=data_cov_bads)
     assert 0 not in picks
     # noise covariance matrix
     noise_cov_bads = noise_cov.copy()
-    noise_cov_bads["bads"] = noise_cov_bads.ch_names[1]
+    noise_cov_bads["bads"] = [noise_cov_bads.ch_names[1]]
     picks = _check_info_inv(epochs.info, forward, noise_cov=noise_cov_bads)
     assert 1 not in picks
 
@@ -156,17 +158,23 @@ def test_check_info_inv():
     assert 0 not in picks
 
     # pick channels in all inputs and make sure common set is returned
-    epochs.pick_channels([epochs.ch_names[ii] for ii in range(10)])
+    epochs.pick([epochs.ch_names[ii] for ii in range(10)])
     data_cov = pick_channels_cov(
         data_cov, include=[data_cov.ch_names[ii] for ii in range(5, 20)]
     )
     noise_cov = pick_channels_cov(
         noise_cov, include=[noise_cov.ch_names[ii] for ii in range(7, 12)]
     )
-    picks = _check_info_inv(
-        epochs.info, forward, noise_cov=noise_cov, data_cov=data_cov
-    )
-    assert list(range(7, 10)) == picks
+    with catch_logging() as log:
+        picks = _check_info_inv(
+            epochs.info, forward, noise_cov=noise_cov, data_cov=data_cov, verbose=True
+        )
+        assert list(range(7, 10)) == picks
+
+    # make sure to inform the user that 7 channels were dropped
+    # (there are 10 channels in epochs but only 3 were picked)
+    log = log.getvalue()
+    assert "Excluding 7 channel(s) missing" in log
 
 
 def test_check_option():
@@ -212,6 +220,11 @@ def test_validate_type():
     _validate_type(1, "int-like")
     with pytest.raises(TypeError, match="int-like"):
         _validate_type(False, "int-like")
+    _validate_type([1, 2, 3], "array-like")
+    _validate_type((1, 2, 3), "array-like")
+    _validate_type({1, 2, 3}, "array-like")
+    with pytest.raises(TypeError, match="array-like"):
+        _validate_type("123", "array-like")  # a string is not array-like
 
 
 def test_check_range():

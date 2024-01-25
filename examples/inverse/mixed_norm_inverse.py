@@ -14,6 +14,7 @@ amplitude bias due to the non-convexity of the L0.5/L2 mixed norm penalty.
 #         Daniel Strohmeier <daniel.strohmeier@tu-ilmenau.de>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 
@@ -23,12 +24,12 @@ import numpy as np
 
 import mne
 from mne.datasets import sample
-from mne.inverse_sparse import mixed_norm, make_stc_from_dipoles
-from mne.minimum_norm import make_inverse_operator, apply_inverse
+from mne.inverse_sparse import make_stc_from_dipoles, mixed_norm
+from mne.minimum_norm import apply_inverse, make_inverse_operator
 from mne.viz import (
-    plot_sparse_source_estimates,
-    plot_dipole_locations,
     plot_dipole_amplitudes,
+    plot_dipole_locations,
+    plot_sparse_source_estimates,
 )
 
 print(__doc__)
@@ -87,7 +88,7 @@ dipoles, residual = mixed_norm(
 )
 
 t = 0.083
-tidx = evoked.time_as_index(t)
+tidx = evoked.time_as_index(t).item()
 for di, dip in enumerate(dipoles, 1):
     print(f"Dipole #{di} GOF at {1000 * t:0.1f} ms: " f"{float(dip.gof[tidx]):0.1f}%")
 
@@ -120,9 +121,9 @@ for dip in dipoles:
 # %%
 # Plot residual
 ylim = dict(eeg=[-10, 10], grad=[-400, 400], mag=[-600, 600])
-evoked.pick_types(meg=True, eeg=True, exclude="bads")
+evoked.pick(picks=["meg", "eeg"], exclude="bads")
 evoked.plot(ylim=ylim, proj=True, time_unit="s")
-residual.pick_types(meg=True, eeg=True, exclude="bads")
+residual.pick(picks=["meg", "eeg"], exclude="bads")
 residual.plot(ylim=ylim, proj=True, time_unit="s")
 
 # %%
@@ -136,7 +137,7 @@ plot_sparse_source_estimates(
     forward["src"],
     stc,
     bgcolor=(1, 1, 1),
-    fig_name="%s (cond %s)" % (solver, condition),
+    fig_name=f"{solver} (cond {condition})",
     opacity=0.1,
 )
 
@@ -158,7 +159,7 @@ plot_sparse_source_estimates(
     src_fsaverage,
     stc_fsaverage,
     bgcolor=(1, 1, 1),
-    fig_name="Morphed %s (cond %s)" % (solver, condition),
+    fig_name=f"Morphed {solver} (cond {condition})",
     opacity=0.1,
 )
 

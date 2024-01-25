@@ -1,24 +1,25 @@
 # Author: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #         Daniel Strohmeier <daniel.strohmeier@gmail.com>
 #         Mathurin Massias <mathurin.massias@gmail.com>
-# License: Simplified BSD
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import functools
 from math import sqrt
 
 import numpy as np
 
-from .mxne_debiasing import compute_bias
+from ..time_frequency._stft import istft, stft, stft_norm1, stft_norm2
 from ..utils import (
-    logger,
-    verbose,
-    sum_squared,
-    warn,
+    _check_option,
     _get_blas_funcs,
     _validate_type,
-    _check_option,
+    logger,
+    sum_squared,
+    verbose,
+    warn,
 )
-from ..time_frequency._stft import stft_norm1, stft_norm2, stft, istft
+from .mxne_debiasing import compute_bias
 
 
 @functools.lru_cache(None)
@@ -777,7 +778,7 @@ def safe_max_abs_diff(A, ia, B, ib):
 class _Phi:
     """Have phi stft as callable w/o using a lambda that does not pickle."""
 
-    def __init__(self, wsize, tstep, n_coefs, n_times):  # noqa: D102
+    def __init__(self, wsize, tstep, n_coefs, n_times):
         self.wsize = np.atleast_1d(wsize)
         self.tstep = np.atleast_1d(tstep)
         self.n_coefs = np.atleast_1d(n_coefs)
@@ -798,7 +799,7 @@ class _Phi:
         else:
             return np.hstack([x @ op for op in self.ops]) / np.sqrt(self.n_dicts)
 
-    def norm(self, z, ord=2):
+    def norm(self, z, ord=2):  # noqa: A002
         """Squared L2 norm if ord == 2 and L1 norm if order == 1."""
         if ord not in (1, 2):
             raise ValueError(
@@ -818,7 +819,7 @@ class _Phi:
 class _PhiT:
     """Have phi.T istft as callable w/o using a lambda that does not pickle."""
 
-    def __init__(self, tstep, n_freqs, n_steps, n_times):  # noqa: D102
+    def __init__(self, tstep, n_freqs, n_steps, n_times):
         self.tstep = tstep
         self.n_freqs = n_freqs
         self.n_steps = n_steps
@@ -976,9 +977,9 @@ def norm_epsilon(Y, l1_ratio, phi, w_space=1.0, w_time=None):
         p_sum_w2 = np.cumsum(w_time**2)
         p_sum_Yw = np.cumsum(Y * w_time)
         upper = p_sum_Y2 / (Y / w_time) ** 2 - 2.0 * p_sum_Yw / (Y / w_time) + p_sum_w2
-    upper_greater = np.where(
-        upper > w_space**2 * (1.0 - l1_ratio) ** 2 / l1_ratio**2
-    )[0]
+    upper_greater = np.where(upper > w_space**2 * (1.0 - l1_ratio) ** 2 / l1_ratio**2)[
+        0
+    ]
 
     i0 = upper_greater[0] - 1 if upper_greater.size else K - 1
 

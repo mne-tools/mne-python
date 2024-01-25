@@ -11,6 +11,7 @@ See :footcite:`WipfNagarajan2009` for details.
 #         Daniel Strohmeier <daniel.strohmeier@tu-ilmenau.de>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 
@@ -20,9 +21,9 @@ import mne
 from mne.datasets import sample
 from mne.inverse_sparse import gamma_map, make_stc_from_dipoles
 from mne.viz import (
-    plot_sparse_source_estimates,
-    plot_dipole_locations,
     plot_dipole_amplitudes,
+    plot_dipole_locations,
+    plot_sparse_source_estimates,
 )
 
 print(__doc__)
@@ -82,7 +83,7 @@ plot_dipole_locations(
 # %%
 # Show the evoked response and the residual for gradiometers
 ylim = dict(grad=[-120, 120])
-evoked.pick_types(meg="grad", exclude="bads")
+evoked.pick(picks="grad", exclude="bads")
 evoked.plot(
     titles=dict(grad="Evoked Response Gradiometers"),
     ylim=ylim,
@@ -90,7 +91,7 @@ evoked.plot(
     time_unit="s",
 )
 
-residual.pick_types(meg="grad", exclude="bads")
+residual.pick(picks="grad", exclude="bads")
 residual.plot(
     titles=dict(grad="Residuals Gradiometers"), ylim=ylim, proj=True, time_unit="s"
 )

@@ -14,13 +14,17 @@ We'll start by importing the Python modules we need; we'll also define a short
 function to make it easier to make several plots that look similar:
 """
 
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 # %%
 
 import os
-import numpy as np
+
 import matplotlib.pyplot as plt
+import numpy as np
 from mpl_toolkits.mplot3d import Axes3D  # noqa
 from scipy.linalg import svd
+
 import mne
 
 
@@ -71,7 +75,7 @@ ax.quiver3D(
     arrow_length_ratio=0.1,
     color="C1",
     linewidth=1,
-    linestyle="dashed"
+    linestyle="dashed",
 )
 
 # %%
@@ -85,7 +89,7 @@ ax.quiver3D(
 #     ``plot(*point)`` expands to ``plot(3, 2, 5)``.
 #
 # Notice that we used matrix multiplication to compute the projection of our
-# point :math:`(3, 2, 5)`onto the :math:`x, y` plane:
+# point :math:`(3, 2, 5)` onto the :math:`x, y` plane:
 #
 # .. math::
 #
@@ -182,7 +186,7 @@ ax.quiver3D(
     *np.concatenate([origin, trigger_effect]).flatten(),
     arrow_length_ratio=0.1,
     color="C2",
-    alpha=0.5
+    alpha=0.5,
 )
 
 # plot the original vector
@@ -199,7 +203,7 @@ ax.text(
     *(projected_point + offset).flat,
     "({}, {}, {})".format(*np.round(projected_point.flat, 2)),
     color="C0",
-    horizontalalignment="right"
+    horizontalalignment="right",
 )
 
 # add dashed arrow showing projection
@@ -210,7 +214,7 @@ ax.quiver3D(
     arrow_length_ratio=0.1,
     color="C1",
     linewidth=1,
-    linestyle="dashed"
+    linestyle="dashed",
 )
 
 # %%
@@ -363,12 +367,12 @@ print(first_projector["active"])
 # look at just the magnetometers, and a 2-second sample from the beginning of
 # the file.
 
-mags = raw.copy().crop(tmax=2).pick_types(meg="mag")
+mags = raw.copy().crop(tmax=2).pick(picks="mag")
 for proj in (False, True):
     with mne.viz.use_browser_backend("matplotlib"):
         fig = mags.plot(butterfly=True, proj=proj)
     fig.subplots_adjust(top=0.9)
-    fig.suptitle("proj={}".format(proj), size="xx-large", weight="bold")
+    fig.suptitle(f"proj={proj}", size="xx-large", weight="bold")
 
 # %%
 # Additional ways of visualizing projectors are covered in the tutorial
@@ -434,12 +438,12 @@ raw.add_proj(ecg_projs)
 # empty room SSP projectors, to the data with both empty room and ECG
 # projectors:
 
-mags_ecg = raw.copy().crop(tmax=2).pick_types(meg="mag")
+mags_ecg = raw.copy().crop(tmax=2).pick(picks="mag")
 for data, title in zip([mags, mags_ecg], ["Without", "With"]):
     with mne.viz.use_browser_backend("matplotlib"):
         fig = data.plot(butterfly=True, proj=True)
     fig.subplots_adjust(top=0.9)
-    fig.suptitle("{} ECG projector".format(title), size="xx-large", weight="bold")
+    fig.suptitle(f"{title} ECG projector", size="xx-large", weight="bold")
 
 # %%
 # When are projectors "applied"?

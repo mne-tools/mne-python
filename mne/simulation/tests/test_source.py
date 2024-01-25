@@ -2,21 +2,21 @@
 #         Samuel Deslauriers-Gauthier <sam.deslauriers@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import numpy as np
-from numpy.testing import assert_array_almost_equal, assert_array_equal, assert_equal
 import pytest
+from numpy.testing import assert_array_almost_equal, assert_array_equal, assert_equal
 
-from mne.datasets import testing
 from mne import (
-    read_label,
-    read_forward_solution,
-    pick_types_forward,
     convert_forward_solution,
+    pick_types_forward,
+    read_forward_solution,
+    read_label,
 )
+from mne.datasets import testing
 from mne.label import Label
-from mne.simulation import simulate_stc, simulate_sparse_stc, SourceSimulator
-
+from mne.simulation import SourceSimulator, simulate_sparse_stc, simulate_stc
 
 data_path = testing.data_path(download=False)
 fname_fwd = data_path / "MEG" / "sample" / "sample_audvis_trunc-meg-eeg-oct-6-fwd.fif"

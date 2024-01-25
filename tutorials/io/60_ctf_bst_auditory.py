@@ -21,25 +21,23 @@ The specifications of this dataset were discussed initially on the
 `FieldTrip bug tracker
 <http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=2300>`__.
 """
-
 # Authors: Mainak Jas <mainak.jas@telecom-paristech.fr>
 #          Eric Larson <larson.eric.d@gmail.com>
 #          Jaakko Leppakangas <jaeilepp@student.jyu.fi>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 
 import mne
 from mne import combine_evoked
-from mne.minimum_norm import apply_inverse
 from mne.datasets.brainstorm import bst_auditory
 from mne.io import read_raw_ctf
-
-print(__doc__)
+from mne.minimum_norm import apply_inverse
 
 # %%
 # To reduce memory consumption and running time, some of the steps are
@@ -107,7 +105,7 @@ offset = n_times_run1
 for idx in [1, 2]:
     csv_fname = data_path / "MEG" / "bst_auditory" / f"events_bad_0{idx}.csv"
     df = pd.read_csv(csv_fname, header=None, names=["onset", "duration", "id", "label"])
-    print("Events from run {0}:".format(idx))
+    print(f"Events from run {idx}:")
     print(df)
 
     df["onset"] += offset * (idx - 1)
@@ -156,7 +154,7 @@ del saccade_epochs, saccades_events, projs_eog, projs_saccade  # To save memory
 # plotted by adding the event list as a keyword argument. As the bad segments
 # and saccades were added as annotations to the raw data, they are plotted as
 # well.
-raw.plot(block=True)
+raw.plot()
 
 # %%
 # Typical preprocessing step is the removal of power line artifact (50 Hz or
@@ -167,10 +165,14 @@ raw.plot(block=True)
 # saving mode we do the filtering at evoked stage, which is not something you
 # usually would do.
 if not use_precomputed:
-    raw.compute_psd(tmax=np.inf, picks="meg").plot(picks="data", exclude="bads")
+    raw.compute_psd(tmax=np.inf, picks="meg").plot(
+        picks="data", exclude="bads", amplitude=False
+    )
     notches = np.arange(60, 181, 60)
     raw.notch_filter(notches, phase="zero-double", fir_design="firwin2")
-    raw.compute_psd(tmax=np.inf, picks="meg").plot(picks="data", exclude="bads")
+    raw.compute_psd(tmax=np.inf, picks="meg").plot(
+        picks="data", exclude="bads", amplitude=False
+    )
 
 # %%
 # We also lowpass filter the data at 100 Hz to remove the hf components.
@@ -206,9 +208,7 @@ diffs = np.concatenate([[min_diff + 1], np.diff(onsets)])
 onsets = onsets[diffs > min_diff]
 assert len(onsets) == len(events)
 diffs = 1000.0 * (events[:, 0] - onsets) / raw.info["sfreq"]
-print(
-    "Trigger delay removed (μ ± σ): %0.1f ± %0.1f ms" % (np.mean(diffs), np.std(diffs))
-)
+print(f"Trigger delay removed (μ ± σ): {np.mean(diffs):0.1f} ± {np.std(diffs):0.1f} ms")
 events[:, 0] = onsets
 del sound_data, diffs
 

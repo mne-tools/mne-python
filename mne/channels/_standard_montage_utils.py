@@ -2,20 +2,19 @@
 #          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
 # License: BSD-3-Clause
-from collections import OrderedDict
+# Copyright the MNE-Python contributors.
 import csv
-
 import os.path as op
+from collections import OrderedDict
+from functools import partial
+
 import numpy as np
 
-from functools import partial
-import xml.etree.ElementTree as ElementTree
-
-from .montage import make_dig_montage
 from .._freesurfer import get_mni_fiducials
 from ..transforms import _sph_to_cart
-from ..utils import warn, _pl
+from ..utils import _pl, _soft_import, warn
 from . import __file__ as _CHANNELS_INIT_FILE
+from .montage import make_dig_montage
 
 MONTAGE_PATH = op.join(op.dirname(_CHANNELS_INIT_FILE), "data", "montages")
 
@@ -100,7 +99,7 @@ def _mgh_or_standard(basename, head_size, coord_frame="unknown"):
 
     pos = np.array(pos) / 1000.0
     ch_pos = _check_dupes_odict(ch_names_, pos)
-    nasion, lpa, rpa = [ch_pos.pop(n) for n in fid_names]
+    nasion, lpa, rpa = (ch_pos.pop(n) for n in fid_names)
     if head_size is None:
         scale = 1.0
     else:
@@ -110,7 +109,7 @@ def _mgh_or_standard(basename, head_size, coord_frame="unknown"):
     # if we are in MRI/MNI coordinates, we need to replace nasion, LPA, and RPA
     # with those of fsaverage for ``trans='fsaverage'`` to work
     if coord_frame == "mri":
-        lpa, nasion, rpa = [x["r"].copy() for x in get_mni_fiducials("fsaverage")]
+        lpa, nasion, rpa = (x["r"].copy() for x in get_mni_fiducials("fsaverage"))
     nasion *= scale
     lpa *= scale
     rpa *= scale
@@ -124,6 +123,7 @@ standard_montage_look_up_table = {
     "EGI_256": _egi_256,
     "easycap-M1": partial(_easycap, basename="easycap-M1.txt"),
     "easycap-M10": partial(_easycap, basename="easycap-M10.txt"),
+    "easycap-M43": partial(_easycap, basename="easycap-M43.txt"),
     "GSN-HydroCel-128": partial(_hydrocel, basename="GSN-HydroCel-128.sfp"),
     "GSN-HydroCel-129": partial(_hydrocel, basename="GSN-HydroCel-129.sfp"),
     "GSN-HydroCel-256": partial(_hydrocel, basename="GSN-HydroCel-256.sfp"),
@@ -184,7 +184,7 @@ def _read_sfp(fname, head_size):
     ch_pos = _check_dupes_odict(ch_names, pos)
     del xs, ys, zs, ch_names
     # no one grants that fid names are there.
-    nasion, lpa, rpa = [ch_pos.pop(n, None) for n in fid_names]
+    nasion, lpa, rpa = (ch_pos.pop(n, None) for n in fid_names)
 
     if head_size is not None:
         scale = head_size / np.median(np.linalg.norm(pos, axis=-1))
@@ -274,7 +274,7 @@ def _read_elc(fname, head_size):
         pos *= head_size / np.median(np.linalg.norm(pos, axis=1))
 
     ch_pos = _check_dupes_odict(ch_names_, pos)
-    nasion, lpa, rpa = [ch_pos.pop(n, None) for n in fid_names]
+    nasion, lpa, rpa = (ch_pos.pop(n, None) for n in fid_names)
 
     return make_dig_montage(
         ch_pos=ch_pos, coord_frame="unknown", nasion=nasion, lpa=lpa, rpa=rpa
@@ -304,7 +304,7 @@ def _read_theta_phi_in_degrees(fname, head_size, fid_names=None, add_fiducials=F
 
     nasion, lpa, rpa = None, None, None
     if fid_names is not None:
-        nasion, lpa, rpa = [ch_pos.pop(n, None) for n in fid_names]
+        nasion, lpa, rpa = (ch_pos.pop(n, None) for n in fid_names)
 
     return make_dig_montage(
         ch_pos=ch_pos, coord_frame="unknown", nasion=nasion, lpa=lpa, rpa=rpa
@@ -332,7 +332,7 @@ def _read_elp_besa(fname, head_size):
 
     fid_names = ("Nz", "LPA", "RPA")
     # No one grants that the fid names actually exist.
-    nasion, lpa, rpa = [ch_pos.pop(n, None) for n in fid_names]
+    nasion, lpa, rpa = (ch_pos.pop(n, None) for n in fid_names)
 
     return make_dig_montage(ch_pos=ch_pos, nasion=nasion, lpa=lpa, rpa=rpa)
 
@@ -343,7 +343,8 @@ def _read_brainvision(fname, head_size):
     # standard electrode positions: X-axis from T7 to T8, Y-axis from Oz to
     # Fpz, Z-axis orthogonal from XY-plane through Cz, fit to a sphere if
     # idealized (when radius=1), specified in millimeters
-    root = ElementTree.parse(fname).getroot()
+    defusedxml = _soft_import("defusedxml", "reading BrainVision montages")
+    root = defusedxml.ElementTree.parse(fname).getroot()
     ch_names = [s.text for s in root.findall("./Electrode/Name")]
     theta = [float(s.text) for s in root.findall("./Electrode/Theta")]
     pol = np.deg2rad(np.array(theta))
@@ -382,7 +383,7 @@ def _read_xyz(fname):
     ch_names = []
     pos = []
     file_format = op.splitext(fname)[1].lower()
-    with open(fname, "r") as f:
+    with open(fname) as f:
         if file_format != ".xyz":
             f.readline()  # skip header
         delimiter = "," if file_format == ".csv" else "\t"

@@ -35,6 +35,7 @@ see :ref:`manual-install`.
 #          Alex Rockhill <aprockhill@mailbox.org>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 
@@ -57,8 +58,7 @@ fetch_fsaverage(subjects_dir=subjects_dir, verbose=True)  # downloads if needed
 
 raw = mne.io.read_raw(misc_path / "seeg" / "sample_seeg_ieeg.fif")
 
-events, event_id = mne.events_from_annotations(raw)
-epochs = mne.Epochs(raw, events, event_id, detrend=1, baseline=None)
+epochs = mne.Epochs(raw, detrend=1, baseline=None)
 epochs = epochs["Response"][0]  # just process one epoch of data for speed
 
 # %%
@@ -197,7 +197,7 @@ brain.show_view(azimuth=120, elevation=90, distance=0.25)
 # %%
 # Next, we'll get the epoch data and plot its amplitude over time.
 
-epochs.plot()
+epochs.plot(events=True)
 
 # %%
 # We can visualize this raw data on the ``fsaverage`` brain (in MNI space) as

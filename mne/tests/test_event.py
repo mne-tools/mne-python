@@ -2,44 +2,45 @@
 #         Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 import os
 from pathlib import Path
 
 import numpy as np
+import pytest
 from numpy.testing import (
+    assert_allclose,
     assert_array_almost_equal,
     assert_array_equal,
     assert_equal,
-    assert_allclose,
 )
-import pytest
 
 from mne import (
-    read_events,
-    write_events,
-    make_fixed_length_events,
-    find_events,
-    pick_events,
-    find_stim_steps,
-    pick_channels,
-    read_evokeds,
-    Epochs,
-    create_info,
-    compute_raw_covariance,
     Annotations,
+    Epochs,
+    compute_raw_covariance,
     count_events,
-)
-from mne.io import read_raw_fif, RawArray
-from mne.event import (
-    define_target_events,
-    merge_events,
-    AcqParserFIF,
-    shift_time_events,
-    match_event_names,
+    create_info,
+    find_events,
+    find_stim_steps,
+    make_fixed_length_events,
+    pick_channels,
+    pick_events,
+    read_events,
+    read_evokeds,
+    write_events,
 )
 from mne.datasets import testing
+from mne.event import (
+    AcqParserFIF,
+    define_target_events,
+    match_event_names,
+    merge_events,
+    shift_time_events,
+)
+from mne.io import RawArray, read_raw_fif
 
-base_dir = Path(__file__).parent.parent / "io" / "tests" / "data"
+base_dir = Path(__file__).parents[1] / "io" / "tests" / "data"
 fname = base_dir / "test-eve.fif"
 fname_raw = base_dir / "test_raw.fif"
 fname_gz = base_dir / "test-eve.fif.gz"
@@ -402,7 +403,7 @@ def test_find_events():
 
     # test error message for raw without stim channels
     raw = read_raw_fif(raw_fname, preload=True)
-    raw.pick_types(meg=True, stim=False)
+    raw.pick(picks="meg")
     # raw does not have annotations
     with pytest.raises(ValueError, match="'stim_channel'"):
         find_events(raw)
@@ -423,6 +424,12 @@ def test_pick_events():
         pick_events(events, include=[1, 2], step=True),
         [[1, 0, 1], [2, 1, 0], [4, 4, 2], [5, 2, 0]],
     )
+
+    with pytest.raises(TypeError, match="must be an integer or a list"):
+        pick_events(events, include=1.2)
+
+    with pytest.raises(TypeError, match="must be an integer or a list"):
+        pick_events(events, include={"a": 1})
 
 
 def test_make_fixed_length_events():
@@ -576,18 +583,17 @@ def test_acqparser_averaging():
             fname_ave_elekta, cat["comment"], baseline=(-0.05, 0), proj=False
         )
         ev_mag = ev.copy()
-        ev_mag.pick_channels(["MEG0111"])
+        ev_mag.pick(["MEG0111"])
         ev_grad = ev.copy()
-        ev_grad.pick_channels(["MEG2643", "MEG1622"])
+        ev_grad.pick(["MEG2643", "MEG1622"])
         ev_ref_mag = ev_ref.copy()
-        ev_ref_mag.pick_channels(["MEG0111"])
+        ev_ref_mag.pick(["MEG0111"])
         ev_ref_grad = ev_ref.copy()
-        ev_ref_grad.pick_channels(["MEG2643", "MEG1622"], ordered=False)
+        ev_ref_grad.pick(["MEG2643", "MEG1622"])
         assert_allclose(ev_mag.data, ev_ref_mag.data, rtol=0, atol=1e-15)  # tol = 1 fT
-        # Elekta put these in a different order
-        assert ev_grad.ch_names[::-1] == ev_ref_grad.ch_names
+        assert ev_grad.ch_names == ev_ref_grad.ch_names
         assert_allclose(
-            ev_grad.data[::-1], ev_ref_grad.data, rtol=0, atol=1e-13
+            ev_grad.data, ev_ref_grad.data, rtol=0, atol=1e-13
         )  # tol = 1 fT/cm
 
 

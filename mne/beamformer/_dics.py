@@ -6,32 +6,33 @@
 #          Roman Goj <roman.goj@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 import numpy as np
 
+from .._fiff.pick import pick_channels, pick_info
 from ..channels import equalize_channels
-from ..io.pick import pick_info, pick_channels
-from ..utils import (
-    logger,
-    verbose,
-    _check_one_ch_type,
-    _check_channels_spatial_filter,
-    _check_rank,
-    _check_option,
-    _validate_type,
-    warn,
-)
 from ..forward import _subject_from_forward
-from ..minimum_norm.inverse import combine_xyz, _check_reference, _check_depth
+from ..minimum_norm.inverse import _check_depth, _check_reference, combine_xyz
 from ..rank import compute_rank
-from ..source_estimate import _make_stc, _get_src_type
+from ..source_estimate import _get_src_type, _make_stc
 from ..time_frequency import EpochsTFR
 from ..time_frequency.tfr import _check_tfr_complex
+from ..utils import (
+    _check_channels_spatial_filter,
+    _check_one_ch_type,
+    _check_option,
+    _check_rank,
+    _validate_type,
+    logger,
+    verbose,
+    warn,
+)
 from ._compute_beamformer import (
-    _prepare_beamformer_input,
-    _compute_beamformer,
-    _check_src_type,
     Beamformer,
+    _check_src_type,
+    _compute_beamformer,
     _compute_power,
+    _prepare_beamformer_input,
     _proj_whiten_data,
 )
 
@@ -239,9 +240,8 @@ def make_dics(
             for key in csd_rank:
                 if key not in noise_rank or csd_rank[key] != noise_rank[key]:
                     raise ValueError(
-                        "%s data rank (%s) did not match the "
-                        "noise rank (%s)"
-                        % (key, csd_rank[key], noise_rank.get(key, None))
+                        f"{key} data rank ({csd_rank[key]}) did not match the noise "
+                        f"rank ({noise_rank.get(key, None)})"
                     )
         csd_int_rank.append(sum(csd_rank.values()))
 
@@ -493,7 +493,7 @@ def apply_dics_epochs(epochs, filters, return_generator=False, verbose=None):
     tmin = epochs.times[0]
 
     sel = _check_channels_spatial_filter(epochs.ch_names, filters)
-    data = epochs.get_data()[:, sel, :]
+    data = epochs.get_data(sel)
 
     stcs = _apply_dics(data=data, filters=filters, info=info, tmin=tmin)
 

@@ -10,12 +10,13 @@ of your data (frequency and time-frequency). Here we'll work on Epochs.
 
 We will use this dataset: :ref:`somato-dataset`. It contains so-called event
 related synchronizations (ERS) / desynchronizations (ERD) in the beta band.
-"""  # noqa: E501
+"""
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #          Richard Höchenberger <richard.hoechenberger@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 import matplotlib.pyplot as plt
@@ -65,7 +66,9 @@ epochs = mne.Epochs(
 
 # %%
 # Let's first check out all channel types by averaging across epochs.
-epochs.compute_psd(fmin=2.0, fmax=40.0).plot(average=True, picks="data", exclude="bads")
+epochs.compute_psd(fmin=2.0, fmax=40.0).plot(
+    average=True, amplitude=False, picks="data", exclude="bads"
+)
 
 # %%
 # Now, let's take a look at the spatial distributions of the PSD, averaged
@@ -209,7 +212,7 @@ power, itc = tfr_morlet(
 power.plot_topo(baseline=(-0.5, 0), mode="logratio", title="Average power")
 power.plot([82], baseline=(-0.5, 0), mode="logratio", title=power.ch_names[82])
 
-fig, axes = plt.subplots(1, 2, figsize=(7, 4), constrained_layout=True)
+fig, axes = plt.subplots(1, 2, figsize=(7, 4), layout="constrained")
 topomap_kw = dict(
     ch_type="grad", tmin=0.5, tmax=1.5, baseline=(-0.5, 0), mode="logratio", show=False
 )

@@ -26,24 +26,23 @@ images of faces and body parts.
 #          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 
+import matplotlib.pyplot as plt
 import numpy as np
 from pandas import read_csv
-import matplotlib.pyplot as plt
-
+from sklearn.linear_model import LogisticRegression
+from sklearn.manifold import MDS
+from sklearn.metrics import roc_auc_score
 from sklearn.model_selection import StratifiedKFold
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
-from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import roc_auc_score
-from sklearn.manifold import MDS
 
 import mne
-from mne.io import read_raw_fif, concatenate_raws
 from mne.datasets import visual_92_categories
-
+from mne.io import concatenate_raws, read_raw_fif
 
 print(__doc__)
 
@@ -150,7 +149,7 @@ for ii, train_class in enumerate(classes):
 ##############################################################################
 # Plot
 labels = [""] * 5 + ["face"] + [""] * 11 + ["bodypart"] + [""] * 6
-fig, ax = plt.subplots(1)
+fig, ax = plt.subplots(1, layout="constrained")
 im = ax.matshow(confusion, cmap="RdBu_r", clim=[0.3, 0.7])
 ax.set_yticks(range(len(classes)))
 ax.set_yticklabels(labels)
@@ -159,14 +158,13 @@ ax.set_xticklabels(labels, rotation=40, ha="left")
 ax.axhline(11.5, color="k")
 ax.axvline(11.5, color="k")
 plt.colorbar(im)
-plt.tight_layout()
 plt.show()
 
 ##############################################################################
 # Confusion matrix related to mental representations have been historically
 # summarized with dimensionality reduction using multi-dimensional scaling [1].
 # See how the face samples cluster together.
-fig, ax = plt.subplots(1)
+fig, ax = plt.subplots(1, layout="constrained")
 mds = MDS(2, random_state=0, dissimilarity="precomputed")
 chance = 0.5
 summary = mds.fit_transform(chance - confusion)
@@ -186,7 +184,6 @@ for color, name in zip(colors, set(names)):
     )
 ax.axis("off")
 ax.legend(loc="lower right", scatterpoints=1, ncol=2)
-plt.tight_layout()
 plt.show()
 
 ##############################################################################

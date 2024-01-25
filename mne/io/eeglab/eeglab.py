@@ -3,6 +3,7 @@
 #          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import os.path as op
 from os import PathLike
@@ -10,27 +11,29 @@ from pathlib import Path
 
 import numpy as np
 
-from ._eeglab import _readmat
-from .._digitization import _ensure_fiducials_head
-from ..constants import FIFF
-from ..meas_info import create_info
-from ..pick import _PICK_TYPES_KEYS
-from ..utils import _read_segments_file, _find_channels
-from ..base import BaseRaw
+from mne.utils.check import _check_option
+
+from ..._fiff._digitization import _ensure_fiducials_head
+from ..._fiff.constants import FIFF
+from ..._fiff.meas_info import create_info
+from ..._fiff.pick import _PICK_TYPES_KEYS
+from ..._fiff.utils import _find_channels, _read_segments_file
+from ...annotations import Annotations, read_annotations
+from ...channels import make_dig_montage
 from ...defaults import DEFAULTS
+from ...epochs import BaseEpochs
+from ...event import read_events
 from ...utils import (
-    logger,
-    verbose,
-    warn,
-    fill_doc,
     Bunch,
     _check_fname,
     _check_head_radius,
+    fill_doc,
+    logger,
+    verbose,
+    warn,
 )
-from ...channels import make_dig_montage
-from ...epochs import BaseEpochs
-from ...event import read_events
-from ...annotations import Annotations, read_annotations
+from ..base import BaseRaw
+from ._eeglab import _readmat
 
 # just fix the scaling for now, EEGLAB doesn't seem to provide this info
 CAL = 1e-6
@@ -88,10 +91,10 @@ def _check_load_mat(fname, uint16_codec):
     return eeg
 
 
-def _to_loc(ll, scale_units=1.0):
+def _to_loc(ll):
     """Check if location exists."""
     if isinstance(ll, (int, float)) or len(ll) > 0:
-        return ll * scale_units
+        return ll
     else:
         return np.nan
 
@@ -119,7 +122,7 @@ def _eeg_has_montage_information(eeg):
     return has_pos
 
 
-def _get_montage_information(eeg, get_pos, scale_units=1.0):
+def _get_montage_information(eeg, get_pos, *, montage_units):
     """Get channel name, type and montage information from ['chanlocs']."""
     ch_names, ch_types, pos_ch_names, pos = list(), list(), list(), list()
     unknown_types = dict()
@@ -143,9 +146,9 @@ def _get_montage_information(eeg, get_pos, scale_units=1.0):
 
         # channel loc
         if get_pos:
-            loc_x = _to_loc(chanloc["X"], scale_units=scale_units)
-            loc_y = _to_loc(chanloc["Y"], scale_units=scale_units)
-            loc_z = _to_loc(chanloc["Z"], scale_units=scale_units)
+            loc_x = _to_loc(chanloc["X"])
+            loc_y = _to_loc(chanloc["Y"])
+            loc_z = _to_loc(chanloc["Z"])
             locs = np.r_[-loc_y, loc_x, loc_z]
             pos_ch_names.append(chanloc["labels"])
             pos.append(locs)
@@ -163,25 +166,37 @@ def _get_montage_information(eeg, get_pos, scale_units=1.0):
         )
 
     lpa, rpa, nasion = None, None, None
-    if hasattr(eeg, "chaninfo") and len(eeg.chaninfo.get("nodatchans", [])):
-        for item in list(zip(*eeg.chaninfo["nodatchans"].values())):
-            d = dict(zip(eeg.chaninfo["nodatchans"].keys(), item))
-            if d.get("type", None) != "FID":
-                continue
-            elif d.get("description", None) == "Nasion":
-                nasion = np.array([d["X"], d["Y"], d["Z"]])
-            elif d.get("description", None) == "Right periauricular point":
-                rpa = np.array([d["X"], d["Y"], d["Z"]])
-            elif d.get("description", None) == "Left periauricular point":
-                lpa = np.array([d["X"], d["Y"], d["Z"]])
+    if hasattr(eeg, "chaninfo") and isinstance(eeg.chaninfo["nodatchans"], dict):
+        nodatchans = eeg.chaninfo["nodatchans"]
+        types = nodatchans.get("type", [])
+        descriptions = nodatchans.get("description", [])
+        xs = nodatchans.get("X", [])
+        ys = nodatchans.get("Y", [])
+        zs = nodatchans.get("Z", [])
 
+        for type_, description, x, y, z in zip(types, descriptions, xs, ys, zs):
+            if type_ != "FID":
+                continue
+            if description == "Nasion":
+                nasion = np.array([x, y, z])
+            elif description == "Right periauricular point":
+                rpa = np.array([x, y, z])
+            elif description == "Left periauricular point":
+                lpa = np.array([x, y, z])
+
+    # Always check this even if it's not used
+    _check_option("montage_units", montage_units, ("m", "dm", "cm", "mm", "auto"))
     if pos_ch_names:
-        pos_array = np.array(pos)
+        pos_array = np.array(pos, float)
+        pos_array.shape = (-1, 3)
 
         # roughly estimate head radius and check if its reasonable
-        is_nan_pos = np.isnan(pos).all(axis=1)
+        is_nan_pos = np.isnan(pos).any(axis=1)
         if not is_nan_pos.all():
             mean_radius = np.mean(np.linalg.norm(pos_array[~is_nan_pos], axis=1))
+            scale_units = _handle_montage_units(montage_units, mean_radius)
+            mean_radius *= scale_units
+            pos_array *= scale_units
             additional_info = (
                 " Check if the montage_units argument is correct (the default "
                 'is "mm", but your channel positions may be in different units'
@@ -203,7 +218,7 @@ def _get_montage_information(eeg, get_pos, scale_units=1.0):
     return ch_names, ch_types, montage
 
 
-def _get_info(eeg, eog=(), scale_units=1.0):
+def _get_info(eeg, *, eog, montage_units):
     """Get measurement info."""
     # add the ch_names and info['chs'][idx]['loc']
     if not isinstance(eeg.chanlocs, np.ndarray) and eeg.nbchan == 1:
@@ -217,7 +232,7 @@ def _get_info(eeg, eog=(), scale_units=1.0):
     if eeg_has_ch_names_info:
         has_pos = _eeg_has_montage_information(eeg)
         ch_names, ch_types, eeg_montage = _get_montage_information(
-            eeg, has_pos, scale_units=scale_units
+            eeg, has_pos, montage_units=montage_units
         )
         update_ch_names = False
     else:  # if eeg.chanlocs is empty, we still need default chan names
@@ -254,14 +269,17 @@ def _set_dig_montage_in_init(self, montage):
         self.set_montage(montage + make_dig_montage(ch_pos=ch_pos, coord_frame="head"))
 
 
-def _handle_montage_units(montage_units):
-    n_char_unit = len(montage_units)
-    if montage_units[-1:] != "m" or n_char_unit > 2:
-        raise ValueError(
-            '``montage_units`` has to be in prefix + "m" format'
-            f', got "{montage_units}"'
-        )
-
+def _handle_montage_units(montage_units, mean_radius):
+    if montage_units == "auto":
+        # radius should be between 0.05 and 0.11 meters
+        if mean_radius < 0.25:
+            montage_units = "m"
+        elif mean_radius < 2.5:
+            montage_units = "dm"
+        elif mean_radius < 25:
+            montage_units = "cm"
+        else:  # mean_radius >= 25
+            montage_units = "mm"
     prefix = montage_units[:-1]
     scale_units = 1 / DEFAULTS["prefixes"][prefix]
     return scale_units
@@ -273,9 +291,9 @@ def read_raw_eeglab(
     eog=(),
     preload=False,
     uint16_codec=None,
-    montage_units="mm",
+    montage_units="auto",
     verbose=None,
-):
+) -> "RawEEGLAB":
     r"""Read an EEGLAB .set file.
 
     Parameters
@@ -292,6 +310,9 @@ def read_raw_eeglab(
         stored in a separate binary file.
     %(uint16_codec)s
     %(montage_units)s
+
+        .. versionchanged:: 1.6
+           Support for ``'auto'`` was added and is the new default.
     %(verbose)s
 
     Returns
@@ -326,9 +347,9 @@ def read_epochs_eeglab(
     eog=(),
     *,
     uint16_codec=None,
-    montage_units="mm",
+    montage_units="auto",
     verbose=None,
-):
+) -> "EpochsEEGLAB":
     r"""Reader function for EEGLAB epochs files.
 
     Parameters
@@ -359,6 +380,9 @@ def read_epochs_eeglab(
         Defaults to empty tuple.
     %(uint16_codec)s
     %(montage_units)s
+
+        .. versionchanged:: 1.6
+           Support for ``'auto'`` was added and is the new default.
     %(verbose)s
 
     Returns
@@ -423,9 +447,9 @@ class RawEEGLAB(BaseRaw):
         preload=False,
         *,
         uint16_codec=None,
-        montage_units="mm",
+        montage_units="auto",
         verbose=None,
-    ):  # noqa: D102
+    ):
         input_fname = str(_check_fname(input_fname, "read", True, "input_fname"))
         eeg = _check_load_mat(input_fname, uint16_codec)
         if eeg.trials != 1:
@@ -436,15 +460,14 @@ class RawEEGLAB(BaseRaw):
             )
 
         last_samps = [eeg.pnts - 1]
-        scale_units = _handle_montage_units(montage_units)
-        info, eeg_montage, _ = _get_info(eeg, eog=eog, scale_units=scale_units)
+        info, eeg_montage, _ = _get_info(eeg, eog=eog, montage_units=montage_units)
 
         # read the data
         if isinstance(eeg.data, str):
             data_fname = _check_eeglab_fname(input_fname, eeg.data)
             logger.info("Reading %s" % data_fname)
 
-            super(RawEEGLAB, self).__init__(
+            super().__init__(
                 info,
                 preload,
                 filenames=[data_fname],
@@ -468,7 +491,7 @@ class RawEEGLAB(BaseRaw):
             data = np.empty((n_chan, n_times), dtype=float)
             data[:n_chan] = eeg.data
             data *= CAL
-            super(RawEEGLAB, self).__init__(
+            super().__init__(
                 info,
                 data,
                 filenames=[input_fname],
@@ -478,7 +501,7 @@ class RawEEGLAB(BaseRaw):
             )
 
         # create event_ch from annotations
-        annot = read_annotations(input_fname)
+        annot = read_annotations(input_fname, uint16_codec=uint16_codec)
         self.set_annotations(annot)
         _check_boundary(annot, None)
 
@@ -577,9 +600,9 @@ class EpochsEEGLAB(BaseEpochs):
         reject_tmax=None,
         eog=(),
         uint16_codec=None,
-        montage_units="mm",
+        montage_units="auto",
         verbose=None,
-    ):  # noqa: D102
+    ):
         input_fname = str(
             _check_fname(fname=input_fname, must_exist=True, overwrite="read")
         )
@@ -648,8 +671,7 @@ class EpochsEEGLAB(BaseEpochs):
             events = read_events(events)
 
         logger.info("Extracting parameters from %s..." % input_fname)
-        scale_units = _handle_montage_units(montage_units)
-        info, eeg_montage, _ = _get_info(eeg, eog=eog, scale_units=scale_units)
+        info, eeg_montage, _ = _get_info(eeg, eog=eog, montage_units=montage_units)
 
         for key, val in event_id.items():
             if val not in events[:, 2]:
@@ -672,7 +694,7 @@ class EpochsEEGLAB(BaseEpochs):
         assert data.shape == (eeg.trials, eeg.nbchan, eeg.pnts)
         tmin, tmax = eeg.xmin, eeg.xmax
 
-        super(EpochsEEGLAB, self).__init__(
+        super().__init__(
             info,
             data,
             events,

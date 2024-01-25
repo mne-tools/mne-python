@@ -1,27 +1,28 @@
 # Author: Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #
-# License: Simplified BSD
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
-import pytest
 import numpy as np
-from numpy.testing import assert_array_almost_equal, assert_allclose
+import pytest
+from numpy.testing import assert_allclose, assert_array_almost_equal
 
 import mne
-from mne.datasets import testing
 from mne import (
-    read_cov,
-    read_forward_solution,
-    read_evokeds,
-    convert_forward_solution,
     VectorSourceEstimate,
+    convert_forward_solution,
+    pick_types_forward,
+    read_cov,
+    read_evokeds,
+    read_forward_solution,
 )
 from mne.cov import regularize
+from mne.datasets import testing
+from mne.dipole import Dipole
 from mne.inverse_sparse import gamma_map
 from mne.inverse_sparse.mxne_inverse import make_stc_from_dipoles
 from mne.minimum_norm.tests.test_inverse import assert_stc_res, assert_var_exp_log
-from mne import pick_types_forward
 from mne.utils import assert_stcs_equal, catch_logging
-from mne.dipole import Dipole
 
 data_path = testing.data_path(download=False)
 fname_evoked = data_path / "MEG" / "sample" / "sample_audvis-ave.fif"

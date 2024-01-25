@@ -3,15 +3,19 @@
 #          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import os.path as op
 
 import numpy as np
+from scipy import linalg
+from scipy.interpolate import interp1d
+from scipy.io import loadmat
 
+from ..._fiff.constants import FIFF
 from ...io import BaseRaw
-from ...io.constants import FIFF
 from ...utils import _validate_type, warn
-from ..nirs import source_detector_distances, _validate_nirs_info
+from ..nirs import _validate_nirs_info, source_detector_distances
 
 
 def beer_lambert_law(raw, ppf=6.0):
@@ -29,8 +33,6 @@ def beer_lambert_law(raw, ppf=6.0):
     raw : instance of Raw
         The modified raw instance.
     """
-    from scipy import linalg
-
     raw = raw.copy().load_data()
     _validate_type(raw, BaseRaw, "raw")
     _validate_type(ppf, "numeric", "ppf")
@@ -88,9 +90,6 @@ def _load_absorption(freqs):
     #
     # Returns data as [[HbO2(freq1), Hb(freq1)],
     #                  [HbO2(freq2), Hb(freq2)]]
-    from scipy.io import loadmat
-    from scipy.interpolate import interp1d
-
     extinction_fname = op.join(
         op.dirname(__file__), "..", "..", "data", "extinction_coef.mat"
     )

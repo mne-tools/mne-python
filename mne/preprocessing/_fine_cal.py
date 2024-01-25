@@ -1,35 +1,37 @@
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from collections import defaultdict
 from functools import partial
 
 import numpy as np
+from scipy.optimize import fmin_cobyla
 
+from .._fiff.pick import pick_info, pick_types
+from .._fiff.tag import _coil_trans_to_loc, _loc_to_coil_trans
 from ..bem import _check_origin
-from ..io.pick import pick_info, pick_types
-from ..io import _loc_to_coil_trans, _coil_trans_to_loc, BaseRaw
+from ..io import BaseRaw
 from ..transforms import _find_vector_rotation
 from ..utils import (
+    _check_fname,
+    _check_option,
+    _ensure_int,
+    _pl,
+    _reg_pinv,
+    _validate_type,
+    check_fname,
     logger,
     verbose,
-    check_fname,
-    _check_fname,
-    _pl,
-    _ensure_int,
-    _check_option,
-    _validate_type,
-    _reg_pinv,
 )
-
 from .maxwell import (
     _col_norm_pinv,
-    _trans_sss_basis,
-    _prep_mf_coils,
     _get_grad_point_coilsets,
-    _read_cross_talk,
     _prep_fine_cal,
+    _prep_mf_coils,
+    _read_cross_talk,
+    _trans_sss_basis,
 )
 
 
@@ -255,8 +257,6 @@ def _vector_angle(x, y):
 
 def _adjust_mag_normals(info, data, origin, ext_order):
     """Adjust coil normals using magnetometers and empty-room data."""
-    from scipy.optimize import fmin_cobyla
-
     # in principle we could allow using just mag or mag+grad, but MF uses
     # just mag so let's follow suit
     mag_scale = 100.0
@@ -512,7 +512,7 @@ def read_fine_calibration(fname):
     fname = _check_fname(fname, overwrite="read", must_exist=True)
     check_fname(fname, "cal", (".dat",))
     ch_names, locs, imb_cals = list(), list(), list()
-    with open(fname, "r") as fid:
+    with open(fname) as fid:
         for line in fid:
             if line[0] in "#\n":
                 continue

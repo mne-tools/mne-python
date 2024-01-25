@@ -3,80 +3,87 @@
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # The computations in this code were primarily derived from Matti Hämäläinen's
 # C code.
 
+import os
 import re
+import shutil
+import tempfile
 from copy import deepcopy
 from os import PathLike
+from os import path as op
 from pathlib import Path
 from time import time
 
 import numpy as np
+from scipy import sparse
 
-import shutil
-import os
-from os import path as op
-import tempfile
-
-from ..io import RawArray, Info
-from ..io.constants import FIFF
-from ..io.open import fiff_open
-from ..io.tree import dir_tree_find
-from ..io.tag import find_tag, read_tag
-from ..io.matrix import _read_named_matrix, _transpose_named_matrix, write_named_matrix
-from ..io.meas_info import (
-    _read_bad_channels,
-    write_info,
-    _write_ch_infos,
-    _read_extended_ch_info,
+from .._fiff.constants import FIFF
+from .._fiff.matrix import (
+    _read_named_matrix,
+    _transpose_named_matrix,
+    write_named_matrix,
+)
+from .._fiff.meas_info import (
+    Info,
     _make_ch_names_mapping,
+    _read_bad_channels,
+    _read_extended_ch_info,
     _write_bad_channels,
+    _write_ch_infos,
+    write_info,
 )
-from ..io.pick import pick_channels_forward, pick_info, pick_channels, pick_types
-from ..io.write import (
-    write_int,
-    start_block,
+from .._fiff.open import fiff_open
+from .._fiff.pick import pick_channels, pick_channels_forward, pick_info, pick_types
+from .._fiff.tag import find_tag, read_tag
+from .._fiff.tree import dir_tree_find
+from .._fiff.write import (
     end_block,
-    write_coord_trans,
-    write_string,
     start_and_end_file,
+    start_block,
+    write_coord_trans,
     write_id,
+    write_int,
+    write_string,
 )
-from ..io.base import BaseRaw
-from ..evoked import Evoked, EvokedArray
 from ..epochs import BaseEpochs
-from ..source_space import (
-    _read_source_spaces_from_tree,
-    find_source_space_hemi,
-    _set_source_space_vertices,
-    _write_source_spaces_to_fid,
+from ..evoked import Evoked, EvokedArray
+from ..html_templates import _get_html_template
+from ..io import BaseRaw, RawArray
+from ..label import Label
+from ..source_estimate import _BaseSourceEstimate, _BaseVectorSourceEstimate
+from ..source_space._source_space import (
     _get_src_nn,
+    _read_source_spaces_from_tree,
+    _set_source_space_vertices,
     _src_kind_dict,
+    _write_source_spaces_to_fid,
+    find_source_space_hemi,
 )
-from ..source_estimate import _BaseVectorSourceEstimate, _BaseSourceEstimate
 from ..surface import _normal_orth
-from ..transforms import transform_surface_to, invert_transform, write_trans
+from ..transforms import invert_transform, transform_surface_to, write_trans
 from ..utils import (
-    _check_fname,
-    get_subjects_dir,
-    has_mne_c,
-    warn,
-    run_subprocess,
-    check_fname,
-    logger,
-    verbose,
-    fill_doc,
-    _validate_type,
     _check_compensation_grade,
+    _check_fname,
     _check_option,
     _check_stc_units,
-    _stamp_to_dt,
+    _import_h5io_funcs,
     _on_missing,
+    _stamp_to_dt,
+    _validate_type,
+    check_fname,
+    fill_doc,
+    get_subjects_dir,
+    has_mne_c,
+    logger,
     repr_html,
+    run_subprocess,
+    verbose,
+    warn,
 )
-from ..label import Label
 
 
 class Forward(dict):
@@ -159,6 +166,18 @@ class Forward(dict):
         """Copy the Forward instance."""
         return Forward(deepcopy(self))
 
+    @verbose
+    def save(self, fname, *, overwrite=False, verbose=None):
+        """Save the forward solution.
+
+        Parameters
+        ----------
+        %(fname_fwd)s
+        %(overwrite)s
+        %(verbose)s
+        """
+        write_forward_solution(fname, self, overwrite=overwrite)
+
     def _get_src_type_and_ori_for_repr(self):
         src_types = np.array([src["type"] for src in self["src"]])
 
@@ -206,8 +225,6 @@ class Forward(dict):
 
     @repr_html
     def _repr_html_(self):
-        from ..html_templates import repr_templates_env
-
         (
             good_chs,
             bad_chs,
@@ -215,7 +232,7 @@ class Forward(dict):
             _,
         ) = self["info"]._get_chs_for_repr()
         src_descr, src_ori = self._get_src_type_and_ori_for_repr()
-        t = repr_templates_env.get_template("forward.html.jinja")
+        t = _get_html_template("repr", "forward.html.jinja")
         html = t.render(
             good_channels=good_chs,
             bad_channels=bad_chs,
@@ -278,13 +295,12 @@ def _block_diag(A, n):
         The matrix
     n : int
         The block size
+
     Returns
     -------
     bd : scipy.sparse.spmatrix
         The block diagonal matrix
     """
-    from scipy import sparse
-
     if sparse.issparse(A):  # then make block sparse
         raise NotImplementedError("sparse reversal not implemented yet")
     ma, na = A.shape
@@ -442,11 +458,9 @@ def _read_forward_meas_info(tree, fid):
     else:
         raise ValueError("MEG/head coordinate transformation not found")
 
-    info["bads"] = _read_bad_channels(
-        fid, parent_meg, ch_names_mapping=ch_names_mapping
-    )
+    bads = _read_bad_channels(fid, parent_meg, ch_names_mapping=ch_names_mapping)
     # clean up our bad list, old versions could have non-existent bads
-    info["bads"] = [bad for bad in info["bads"] if bad in info["ch_names"]]
+    info["bads"] = [bad for bad in bads if bad in info["ch_names"]]
 
     # Check if a custom reference has been applied
     tag = find_tag(fid, parent_mri, FIFF.FIFF_MNE_CUSTOM_REF)
@@ -517,7 +531,8 @@ def read_forward_solution(fname, include=(), exclude=(), *, ordered=None, verbos
     Parameters
     ----------
     fname : path-like
-        The file name, which should end with ``-fwd.fif`` or ``-fwd.fif.gz``.
+        The file name, which should end with ``-fwd.fif``, ``-fwd.fif.gz``,
+        ``_fwd.fif``, ``_fwd.fif.gz``, ``-fwd.h5``, or ``_fwd.h5``.
     include : list, optional
         List of names of channels to include. If empty all channels
         are included.
@@ -551,11 +566,15 @@ def read_forward_solution(fname, include=(), exclude=(), *, ordered=None, verbos
     forward solution with :func:`read_forward_solution`.
     """
     check_fname(
-        fname, "forward", ("-fwd.fif", "-fwd.fif.gz", "_fwd.fif", "_fwd.fif.gz")
+        fname,
+        "forward",
+        ("-fwd.fif", "-fwd.fif.gz", "_fwd.fif", "_fwd.fif.gz", "-fwd.h5", "_fwd.h5"),
     )
     fname = _check_fname(fname=fname, must_exist=True, overwrite="read")
     #   Open the file, create directory
     logger.info("Reading forward solution from %s..." % fname)
+    if fname.suffix == ".h5":
+        return _read_forward_hdf5(fname)
     f, tree, _ = fiff_open(fname)
     with f as fid:
         #   Find all forward solutions
@@ -737,8 +756,6 @@ def convert_forward_solution(
     fwd : Forward
         The modified forward solution.
     """
-    from scipy import sparse
-
     fwd = fwd.copy() if copy else fwd
 
     if force_fixed is True:
@@ -860,9 +877,7 @@ def write_forward_solution(fname, fwd, overwrite=False, verbose=None):
 
     Parameters
     ----------
-    fname : path-like
-        File name to save the forward solution to. It should end with
-        ``-fwd.fif`` or ``-fwd.fif.gz``.
+    %(fname_fwd)s
     fwd : Forward
         Forward solution.
     %(overwrite)s
@@ -888,13 +903,28 @@ def write_forward_solution(fname, fwd, overwrite=False, verbose=None):
     forward solution with :func:`read_forward_solution`.
     """
     check_fname(
-        fname, "forward", ("-fwd.fif", "-fwd.fif.gz", "_fwd.fif", "_fwd.fif.gz")
+        fname,
+        "forward",
+        ("-fwd.fif", "-fwd.fif.gz", "_fwd.fif", "_fwd.fif.gz", "-fwd.h5", "_fwd.h5"),
     )
 
     # check for file existence and expand `~` if present
     fname = _check_fname(fname, overwrite)
-    with start_and_end_file(fname) as fid:
-        _write_forward_solution(fid, fwd)
+    if fname.suffix == ".h5":
+        _write_forward_hdf5(fname, fwd)
+    else:
+        with start_and_end_file(fname) as fid:
+            _write_forward_solution(fid, fwd)
+
+
+def _write_forward_hdf5(fname, fwd):
+    _, write_hdf5 = _import_h5io_funcs()
+    write_hdf5(fname, dict(fwd=fwd), overwrite=True)
+
+
+def _read_forward_hdf5(fname):
+    read_hdf5, _ = _import_h5io_funcs()
+    return Forward(read_hdf5(fname)["fwd"])
 
 
 def _write_forward_solution(fid, fwd):
@@ -1426,8 +1456,10 @@ def compute_depth_prior(
         #     d[k] = linalg.svdvals(x)[0]
         G.shape = (G.shape[0], -1, 3)
         d = np.linalg.norm(
-            np.einsum("svj,svk->vjk", G, G), ord=2, axis=(1, 2)  # vector dot prods
-        )  # ord=2 spectral (largest s.v.)
+            np.einsum("svj,svk->vjk", G, G),  # vector dot prods
+            ord=2,  # ord=2 spectral (largest s.v.)
+            axis=(1, 2),
+        )
         G.shape = (G.shape[0], -1)
 
     # XXX Currently the fwd solns never have "patch_areas" defined
@@ -1845,7 +1877,7 @@ def restrict_forward_to_label(fwd, labels):
     # Remove duplicates and sort
     vertices = [np.unique(vert_hemi) for vert_hemi in vertices]
     vertices = [
-        vert_hemi[np.in1d(vert_hemi, s["vertno"])]
+        vert_hemi[np.isin(vert_hemi, s["vertno"])]
         for vert_hemi, s in zip(vertices, fwd["src"])
     ]
     src_sel, _, _ = _stc_src_sel(fwd["src"], vertices, on_missing="raise")

@@ -1,9 +1,11 @@
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 import numpy as np
-from numpy.testing import assert_almost_equal, assert_allclose, assert_array_equal
-from scipy import stats
 import pytest
+from numpy.testing import assert_allclose, assert_almost_equal, assert_array_equal
+from scipy import stats
 
-from mne.stats import fdr_correction, bonferroni_correction
+from mne.stats import bonferroni_correction, fdr_correction
 
 
 def test_bonferroni_pval_clip():

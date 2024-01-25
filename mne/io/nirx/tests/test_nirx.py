@@ -1,27 +1,29 @@
 # Authors: Robert Luke  <mail@robertluke.net>
 #          Eric Larson <larson.eric.d@gmail.com>
 #          simplified BSD-3 license
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
-import shutil
-import os
 import datetime as dt
-import numpy as np
+import os
+import shutil
 
+import numpy as np
 import pytest
 from numpy.testing import assert_allclose, assert_array_equal
 
 from mne import pick_types
+from mne._fiff.constants import FIFF
 from mne.datasets.testing import data_path, requires_testing_data
 from mne.io import read_raw_nirx
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.preprocessing import annotate_nan
-from mne.transforms import apply_trans, _get_trans
 from mne.preprocessing.nirs import (
-    source_detector_distances,
-    short_channels,
     _reorder_nirx,
+    short_channels,
+    source_detector_distances,
 )
-from mne.io.constants import FIFF
+from mne.transforms import _get_trans, apply_trans
 
 testing_path = data_path(download=False)
 fname_nirx_15_0 = testing_path / "NIRx" / "nirscout" / "nirx_15_0_recording"

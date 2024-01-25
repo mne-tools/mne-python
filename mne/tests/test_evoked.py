@@ -4,38 +4,39 @@
 #         Mads Jensen <mje.mads@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import pickle
 from copy import deepcopy
 from pathlib import Path
 
 import numpy as np
-from scipy import fftpack
-from numpy.testing import (
-    assert_array_almost_equal,
-    assert_equal,
-    assert_array_equal,
-    assert_allclose,
-)
 import pytest
+from numpy.testing import (
+    assert_allclose,
+    assert_array_almost_equal,
+    assert_array_equal,
+    assert_equal,
+)
+from scipy import fftpack
 
 from mne import (
-    equalize_channels,
-    pick_types,
-    read_evokeds,
-    write_evokeds,
-    combine_evoked,
-    create_info,
-    read_events,
     Epochs,
     EpochsArray,
+    combine_evoked,
+    create_info,
+    equalize_channels,
+    pick_types,
+    read_events,
+    read_evokeds,
+    write_evokeds,
 )
-from mne.evoked import _get_peak, Evoked, EvokedArray
+from mne._fiff.constants import FIFF
+from mne.evoked import Evoked, EvokedArray, _get_peak
 from mne.io import read_raw_fif
-from mne.io.constants import FIFF
-from mne.utils import requires_pandas, grand_average
+from mne.utils import grand_average
 
-base_dir = Path(__file__).parent.parent / "io" / "tests" / "data"
+base_dir = Path(__file__).parents[1] / "io" / "tests" / "data"
 fname = base_dir / "test-ave.fif"
 fname_gz = base_dir / "test-ave.fif.gz"
 raw_fname = base_dir / "test_raw.fif"
@@ -135,7 +136,7 @@ def test_decim():
         expected_times = epochs.times[offset::decim]
         assert_allclose(ev_decim.times, expected_times)
         assert_allclose(ev_ep_decim.times, expected_times)
-        expected_data = epochs.get_data()[:, :, offset::decim].mean(axis=0)
+        expected_data = epochs.get_data(copy=False)[:, :, offset::decim].mean(axis=0)
         assert_allclose(ev_decim.data, expected_data)
         assert_allclose(ev_ep_decim.data, expected_data)
         assert_equal(ev_decim.info["sfreq"], sfreq_new)
@@ -262,6 +263,12 @@ def test_io_evoked(tmp_path):
     ave_complex.save(fname_temp)
     ave_complex = read_evokeds(fname_temp)[0]
     assert_allclose(ave.data, ave_complex.data.imag)
+
+    # test non-ascii comments (gh 11684)
+    aves1[0].comment = "🙃"
+    write_evokeds(tmp_path / "evoked-ave.fif", aves1, overwrite=True)
+    aves1_read = read_evokeds(tmp_path / "evoked-ave.fif")[0]
+    assert aves1_read.comment == aves1[0].comment
 
     # test warnings on bad filenames
     fname2 = tmp_path / "test-bad-name.fif"
@@ -410,10 +417,18 @@ def test_evoked_resample(tmp_path):
     assert ave_new.info["lowpass"] == 25.0
 
 
+def test_evoked_resamp_noop():
+    """Tests resampling doesn't affect data if sfreq is identical."""
+    ave = read_evokeds(fname, 0)
+    data_before = ave.data
+    data_after = ave.resample(sfreq=ave.info["sfreq"]).data
+    assert_array_equal(data_before, data_after)
+
+
 def test_evoked_filter():
     """Test filtering evoked data."""
     # this is mostly a smoke test as the Epochs and raw tests are more complete
-    ave = read_evokeds(fname, 0).pick_types(meg="grad")
+    ave = read_evokeds(fname, 0).pick(picks="grad")
     ave.data[:] = 1.0
     assert round(ave.info["lowpass"]) == 172
     ave_filt = ave.copy().filter(None, 40.0, fir_design="firwin")
@@ -431,9 +446,9 @@ def test_evoked_detrend():
     assert_allclose(ave.data[picks], ave_normal.data[picks], rtol=1e-8, atol=1e-16)
 
 
-@requires_pandas
 def test_to_data_frame():
     """Test evoked Pandas exporter."""
+    pytest.importorskip("pandas")
     ave = read_evokeds(fname, 0)
     # test index checking
     with pytest.raises(ValueError, match="options. Valid index options are"):
@@ -448,7 +463,7 @@ def test_to_data_frame():
     assert "time" in df.index.names
     # test wide and long formats
     df_wide = ave.to_data_frame()
-    assert all(np.in1d(ave.ch_names, df_wide.columns))
+    assert all(np.isin(ave.ch_names, df_wide.columns))
     df_long = ave.to_data_frame(long_format=True)
     expected = ("time", "channel", "ch_type", "value")
     assert set(expected) == set(df_long.columns)
@@ -462,16 +477,14 @@ def test_to_data_frame():
     assert_array_equal(df.values[:, 2], ave.data[2] * 1e15)
 
 
-@requires_pandas
 @pytest.mark.parametrize("time_format", (None, "ms", "timedelta"))
 def test_to_data_frame_time_format(time_format):
     """Test time conversion in evoked Pandas exporter."""
-    from pandas import Timedelta
-
+    pd = pytest.importorskip("pandas")
     ave = read_evokeds(fname, 0)
     # test time_format
     df = ave.to_data_frame(time_format=time_format)
-    dtypes = {None: np.float64, "ms": np.int64, "timedelta": Timedelta}
+    dtypes = {None: np.float64, "ms": np.int64, "timedelta": pd.Timedelta}
     assert isinstance(df["time"].iloc[0], dtypes[time_format])
 
 
@@ -576,6 +589,24 @@ def test_get_peak():
     with pytest.raises(ValueError, match="No positive values"):
         evoked_all_neg.get_peak(mode="pos")
 
+    # Test finding minimum and maximum values
+    evoked_all_neg_outlier = evoked_all_neg.copy()
+    evoked_all_pos_outlier = evoked_all_pos.copy()
+
+    # Add an outlier to the data
+    evoked_all_neg_outlier.data[0, 15] = -1e-20
+    evoked_all_pos_outlier.data[0, 15] = 1e-20
+
+    ch_name, time_idx, max_amp = evoked_all_neg_outlier.get_peak(
+        mode="pos", return_amplitude=True, strict=False
+    )
+    assert max_amp == -1e-20
+
+    ch_name, time_idx, min_amp = evoked_all_pos_outlier.get_peak(
+        mode="neg", return_amplitude=True, strict=False
+    )
+    assert min_amp == 1e-20
+
     # Test interaction between `mode` and `tmin` / `tmax`
     # For the test, create an Evoked where half of the values are negative
     # and the rest is positive
@@ -623,19 +654,19 @@ def test_pick_channels_mixin():
     ch_names = evoked.ch_names[:3]
 
     ch_names_orig = evoked.ch_names
-    dummy = evoked.copy().pick_channels(ch_names)
+    dummy = evoked.copy().pick(ch_names)
     assert_equal(ch_names, dummy.ch_names)
     assert_equal(ch_names_orig, evoked.ch_names)
     assert_equal(len(ch_names_orig), len(evoked.data))
 
-    evoked.pick_channels(ch_names)
+    evoked.pick(ch_names)
     assert_equal(ch_names, evoked.ch_names)
     assert_equal(len(ch_names), len(evoked.data))
 
     evoked = read_evokeds(fname, condition=0, proj=True)
     assert "meg" in evoked
     assert "eeg" in evoked
-    evoked.pick_types(meg=False, eeg=True)
+    evoked.pick(picks="eeg")
     assert "meg" not in evoked
     assert "eeg" in evoked
     assert len(evoked.ch_names) == 60
@@ -802,10 +833,10 @@ def test_add_channels():
     ]
     with evoked.info._unlock():
         evoked.info["hpi_subsystem"] = dict(hpi_coils=hpi_coils, ncoil=2)
-    evoked_eeg = evoked.copy().pick_types(meg=False, eeg=True)
-    evoked_meg = evoked.copy().pick_types(meg=True)
-    evoked_stim = evoked.copy().pick_types(meg=False, stim=True)
-    evoked_eeg_meg = evoked.copy().pick_types(meg=True, eeg=True)
+    evoked_eeg = evoked.copy().pick(picks="eeg")
+    evoked_meg = evoked.copy().pick(picks="meg")
+    evoked_stim = evoked.copy().pick(picks="stim")
+    evoked_eeg_meg = evoked.copy().pick(picks=["meg", "eeg"])
     evoked_new = evoked_meg.copy().add_channels([evoked_eeg, evoked_stim])
     assert all(
         ch in evoked_new.ch_names for ch in evoked_stim.ch_names + evoked_meg.ch_names
@@ -889,7 +920,7 @@ def test_hilbert():
     """Test hilbert on raw, epochs, and evoked."""
     raw = read_raw_fif(raw_fname).load_data()
     raw.del_proj()
-    raw.pick_channels(raw.ch_names[:2])
+    raw.pick(raw.ch_names[:2])
     events = read_events(event_name)
     epochs = Epochs(raw, events)
     with pytest.raises(RuntimeError, match="requires epochs data to be load"):
@@ -899,7 +930,7 @@ def test_hilbert():
     raw_hilb = raw.apply_hilbert()
     epochs_hilb = epochs.apply_hilbert()
     evoked_hilb = evoked.copy().apply_hilbert()
-    evoked_hilb_2_data = epochs_hilb.get_data().mean(0)
+    evoked_hilb_2_data = epochs_hilb.get_data(copy=False).mean(0)
     assert_allclose(evoked_hilb.data, evoked_hilb_2_data)
     # This one is only approximate because of edge artifacts
     evoked_hilb_3 = Epochs(raw_hilb, events).average()

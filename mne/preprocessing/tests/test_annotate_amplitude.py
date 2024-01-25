@@ -1,11 +1,12 @@
 # Author: Mathieu Scheltienne <mathieu.scheltienne@fcbg.ch>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import datetime
 import itertools
-from pathlib import Path
 import re
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -15,7 +16,6 @@ from mne.annotations import Annotations
 from mne.datasets import testing
 from mne.io import RawArray, read_raw_fif
 from mne.preprocessing import annotate_amplitude
-
 
 date = datetime.datetime(2021, 12, 10, 7, 52, 24, 405305, tzinfo=datetime.timezone.utc)
 data_path = Path(testing.data_path(download=False))
@@ -247,11 +247,11 @@ def test_flat_bad_acq_skip():
     raw = read_raw_fif(skip_fname, preload=True)
     annots, bads = annotate_amplitude(raw, flat=0)
     assert len(annots) == 0
-    assert bads == [  # MaxFilter finds the same 21 channels
-        "MEG%04d" % (int(num),)
+    assert bads == [
+        f"MEG{num.zfill(4)}"
         for num in "141 331 421 431 611 641 1011 1021 1031 1241 1421 "
         "1741 1841 2011 2131 2141 2241 2531 2541 2611 2621".split()
-    ]
+    ]  # MaxFilter finds the same 21 channels
 
     # -- overlap of flat segment with bad_acq_skip --
     n_ch, n_times = 11, 1000

@@ -12,16 +12,18 @@ This example shows how to compute and plot source space SNR as in
 #         Kaisu Lankinen <klankinen@mgh.harvard.edu>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 
 # sphinx_gallery_thumbnail_number = 2
 
+import matplotlib.pyplot as plt
+import numpy as np
+
 import mne
 from mne.datasets import sample
-from mne.minimum_norm import make_inverse_operator, apply_inverse
-import numpy as np
-import matplotlib.pyplot as plt
+from mne.minimum_norm import apply_inverse, make_inverse_operator
 
 print(__doc__)
 
@@ -51,10 +53,9 @@ snr_stc = stc.estimate_snr(evoked.info, fwd, cov)
 # Plot an average SNR across source points over time:
 ave = np.mean(snr_stc.data, axis=0)
 
-fig, ax = plt.subplots()
+fig, ax = plt.subplots(layout="constrained")
 ax.plot(evoked.times, ave)
 ax.set(xlabel="Time (s)", ylabel="SNR MEG-EEG")
-fig.tight_layout()
 
 # Find time point of maximum SNR
 maxidx = np.argmax(ave)
@@ -77,7 +78,7 @@ brain = snr_stc.plot(**kwargs)
 # ---
 # Next we do the same for EEG and plot the result on the cortex:
 
-evoked_eeg = evoked.copy().pick_types(eeg=True, meg=False)
+evoked_eeg = evoked.copy().pick(picks="eeg", exclude="bads")
 inv_op_eeg = make_inverse_operator(evoked_eeg.info, fwd, cov, fixed=True, verbose=True)
 stc_eeg = apply_inverse(evoked_eeg, inv_op_eeg, lambda2, "MNE", verbose=True)
 snr_stc_eeg = stc_eeg.estimate_snr(evoked_eeg.info, fwd, cov)

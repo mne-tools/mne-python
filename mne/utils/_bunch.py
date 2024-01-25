@@ -4,9 +4,9 @@
 #          Joan Massich <mailsik@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from copy import deepcopy
-
 
 ###############################################################################
 # Create a Bunch class that acts like a struct (mybunch.key = val)
@@ -15,7 +15,7 @@ from copy import deepcopy
 class Bunch(dict):
     """Dictionary-like object that exposes its keys as attributes."""
 
-    def __init__(self, **kwargs):  # noqa: D102
+    def __init__(self, **kwargs):
         dict.__init__(self, kwargs)
         self.__dict__ = self
 

@@ -23,6 +23,7 @@ Please note that this tutorial requires 3D plotting dependencies (see
 :ref:`manual-install`) as well as ``mne-bids`` which can be installed using
 ``pip``.
 """
+
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #          Chris Holdgraf <choldgraf@gmail.com>
 #          Adam Li <adam2392@gmail.com>
@@ -30,11 +31,12 @@ Please note that this tutorial requires 3D plotting dependencies (see
 #          Liberty Hamilton <libertyhamilton@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 from matplotlib import colormaps
 from mne_bids import BIDSPath, read_raw_bids
 
@@ -52,8 +54,7 @@ subjects_dir = sample_path / "subjects"
 # Load in data and perform basic preprocessing
 # --------------------------------------------
 #
-# Let's load some ECoG electrode data with `mne-bids
-# <https://mne.tools/mne-bids/>`_.
+# Let's load some ECoG electrode data with `MNE-BIDS`_.
 #
 # .. note::
 #     Downsampling is just to save execution time in this example, you should
@@ -75,7 +76,7 @@ bids_path = BIDSPath(
 raw = read_raw_bids(bids_path=bids_path, verbose="error")
 
 # Pick only the ECoG channels, removing the EKG channels
-raw.pick_types(ecog=True)
+raw.pick(picks="ecog")
 
 # Load the data
 raw.load_data()
@@ -99,15 +100,11 @@ montage.add_mni_fiducials(subjects_dir)
 # at the posterior commissure)
 raw.set_montage(montage)
 
-# Find the annotated events
-events, event_id = mne.events_from_annotations(raw)
-
 # Make a 25 second epoch that spans before and after the seizure onset
 epoch_length = 25  # seconds
 epochs = mne.Epochs(
     raw,
-    events,
-    event_id=event_id["onset"],
+    event_id="onset",
     tmin=13,
     tmax=13 + epoch_length,
     baseline=None,
@@ -134,9 +131,9 @@ fig = plot_alignment(
     subjects_dir=subjects_dir,
     surfaces=["pial"],
     coord_frame="head",
-    sensor_colors=None,
+    sensor_colors=(1.0, 1.0, 1.0, 0.5),
 )
-mne.viz.set_3d_view(fig, azimuth=0, elevation=70)
+mne.viz.set_3d_view(fig, azimuth=0, elevation=70, focalpoint="auto", distance="auto")
 
 xy, im = snapshot_brain_montage(fig, raw.info)
 
@@ -166,7 +163,8 @@ gamma_power_at_15s = gamma_power_t.to_data_frame(index="time").loc[15]
 gamma_power_at_15s -= gamma_power_at_15s.min()
 gamma_power_at_15s /= gamma_power_at_15s.max()
 rgba = colormaps.get_cmap("viridis")
-sensor_colors = gamma_power_at_15s.map(rgba).tolist()
+sensor_colors = np.array(gamma_power_at_15s.map(rgba).tolist(), float)
+sensor_colors[:, 3] = 0.5
 
 fig = plot_alignment(
     raw.info,
@@ -178,7 +176,7 @@ fig = plot_alignment(
     sensor_colors=sensor_colors,
 )
 
-mne.viz.set_3d_view(fig, azimuth=0, elevation=70)
+mne.viz.set_3d_view(fig, azimuth=0, elevation=70, focalpoint="auto", distance="auto")
 
 xy, im = snapshot_brain_montage(fig, raw.info)
 

@@ -9,13 +9,15 @@ Examples
 
 """
 # Authors:  Alexandre Gramfort <alexandre.gramfort@inria.fr>
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
-import sys
 import os
 import os.path as op
+import sys
 
 import mne
-from mne.utils import run_subprocess, get_subjects_dir
+from mne.utils import get_subjects_dir, run_subprocess
 
 
 def freeview_bem_surfaces(subject, subjects_dir, method):
@@ -39,8 +41,7 @@ def freeview_bem_surfaces(subject, subjects_dir, method):
 
     if not op.isdir(subject_dir):
         raise ValueError(
-            "Wrong path: '{}'. Check subjects-dir or"
-            "subject argument.".format(subject_dir)
+            f"Wrong path: '{subject_dir}'. Check subjects-dir or subject argument."
         )
 
     env = os.environ.copy()

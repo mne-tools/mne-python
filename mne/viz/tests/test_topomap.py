@@ -4,66 +4,66 @@
 #          Eric Larson <larson.eric.d@gmail.com>
 #          Robert Luke <mail@robertluke.net>
 #
-# License: Simplified BSD
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from functools import partial
 from pathlib import Path
 
-import numpy as np
-from numpy.testing import assert_array_equal, assert_equal, assert_almost_equal
-import pytest
 import matplotlib
 import matplotlib.pyplot as plt
+import numpy as np
+import pytest
 from matplotlib.patches import Circle
+from numpy.testing import assert_almost_equal, assert_array_equal, assert_equal
 
 from mne import (
+    Epochs,
+    EvokedArray,
+    Projection,
+    compute_proj_evoked,
+    compute_proj_raw,
+    create_info,
+    find_layout,
+    make_fixed_length_events,
+    pick_types,
+    read_cov,
     read_evokeds,
     read_proj,
-    make_fixed_length_events,
-    Epochs,
-    compute_proj_evoked,
-    find_layout,
-    pick_types,
-    create_info,
-    read_cov,
-    EvokedArray,
 )
-from mne.io.proj import make_eeg_average_ref_proj, Projection
-from mne.io import read_raw_fif, read_info, RawArray
-from mne.io.constants import FIFF
-from mne.io.pick import pick_info, channel_indices_by_type, _picks_to_idx
-from mne.io.compensator import get_current_comp
+from mne._fiff.compensator import get_current_comp
+from mne._fiff.constants import FIFF
+from mne._fiff.pick import _picks_to_idx, channel_indices_by_type, pick_info
+from mne._fiff.proj import make_eeg_average_ref_proj
 from mne.channels import (
-    read_layout,
+    find_ch_adjacency,
     make_dig_montage,
     make_standard_montage,
-    find_ch_adjacency,
+    read_layout,
 )
 from mne.datasets import testing
+from mne.io import RawArray, read_info, read_raw_fif
 from mne.preprocessing import compute_bridged_electrodes
 from mne.time_frequency.tfr import AverageTFR
-
 from mne.viz import plot_evoked_topomap, plot_projs_topomap, topomap
+from mne.viz.tests.test_raw import _proj_status
 from mne.viz.topomap import (
     _get_pos_outlines,
     _onselect,
-    plot_topomap,
     plot_arrowmap,
-    plot_psds_topomap,
     plot_bridged_electrodes,
     plot_ch_adjacency,
+    plot_psds_topomap,
+    plot_topomap,
 )
-from mne.viz.utils import _find_peaks, _fake_click, _fake_keypress, _fake_scroll
-from mne.utils import requires_sklearn
-
-from mne.viz.tests.test_raw import _proj_status
+from mne.viz.utils import _fake_click, _fake_keypress, _fake_scroll, _find_peaks
 
 data_dir = testing.data_path(download=False)
 subjects_dir = data_dir / "subjects"
 ecg_fname = data_dir / "MEG" / "sample" / "sample_audvis_ecg-proj.fif"
 triux_fname = data_dir / "SSS" / "TRIUX" / "triux_bmlhus_erm_raw.fif"
 
-base_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
+base_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
 evoked_fname = base_dir / "test-ave.fif"
 raw_fname = base_dir / "test_raw.fif"
 event_name = base_dir / "test-eve.fif"
@@ -71,19 +71,21 @@ ctf_fname = base_dir / "test_ctf_comp_raw.fif"
 layout = read_layout("Vectorview-all")
 cov_fname = base_dir / "test-cov.fif"
 
+fast_test = dict(res=8, contours=0, sensors=False)
 
-@pytest.mark.parametrize("constrained_layout", (False, True))
-def test_plot_topomap_interactive(constrained_layout):
+
+@pytest.mark.parametrize("layout", (None, "constrained"))
+def test_plot_topomap_interactive(layout):
     """Test interactive topomap projection plotting."""
     evoked = read_evokeds(evoked_fname, baseline=(None, 0))[0]
-    evoked.pick_types(meg="mag")
+    evoked.pick(picks="mag")
     with evoked.info._unlock():
         evoked.info["projs"] = []
     assert not evoked.proj
     evoked.add_proj(compute_proj_evoked(evoked, n_mag=1))
 
     plt.close("all")
-    fig, ax = plt.subplots(constrained_layout=constrained_layout)
+    fig, ax = plt.subplots(layout=layout)
     canvas = fig.canvas
 
     kwargs = dict(
@@ -135,30 +137,34 @@ def test_plot_projs_topomap():
     """Test plot_projs_topomap."""
     projs = read_proj(ecg_fname)
     info = read_info(raw_fname)
-    fast_test = {"res": 8, "contours": 0, "sensors": False}
     plot_projs_topomap(projs, info=info, colorbar=True, **fast_test)
-    plt.close("all")
-    ax = plt.subplot(111)
+    _, ax = plt.subplots()
     projs[3].plot_topomap(info)
     plot_projs_topomap(projs[:1], info, axes=ax, **fast_test)  # test axes
-    plt.close("all")
     triux_info = read_info(triux_fname)
     plot_projs_topomap(triux_info["projs"][-1:], triux_info, **fast_test)
-    plt.close("all")
     plot_projs_topomap(triux_info["projs"][:1], triux_info, **fast_test)
-    plt.close("all")
     eeg_avg = make_eeg_average_ref_proj(info)
     eeg_avg.plot_topomap(info, **fast_test)
-    plt.close("all")
     # test vlims
     for vlim in ("joint", (-1, 1), (None, 0.5), (0.5, None), (None, None)):
         plot_projs_topomap(projs[:-1], info, vlim=vlim, colorbar=True)
-    plt.close("all")
 
     eeg_proj = make_eeg_average_ref_proj(info)
     info_meg = pick_info(info, pick_types(info, meg=True, eeg=False))
     with pytest.raises(ValueError, match="Missing channels"):
         plot_projs_topomap([eeg_proj], info_meg)
+
+
+@pytest.mark.parametrize("vlim", ("joint", None))
+@pytest.mark.parametrize("meg", ("combined", "separate"))
+def test_plot_projs_topomap_joint(meg, vlim, raw):
+    """Test that plot_projs_topomap works with joint vlim."""
+    if vlim is None:
+        vlim = (None, None)
+    projs = compute_proj_raw(raw, meg=meg)
+    fig = plot_projs_topomap(projs, info=raw.info, vlim=vlim, **fast_test)
+    assert len(fig.axes) == 4  # 2 mag, 2 grad
 
 
 def test_plot_topomap_animation(capsys):
@@ -257,7 +263,7 @@ def test_plot_evoked_topomap_units(evoked, units, scalings, expected_unit):
     #     cbar = cbar[0]
     #     assert cbar.get_title() == expected_unit
     # ...but not all matplotlib versions support it, and we can't use
-    # @requires_version because it's hard figure out exactly which MPL version
+    # check_version because it's hard figure out exactly which MPL version
     # is the cutoff since it relies on a private attribute. Based on some
     # basic testing it's at least matplotlib version >= 3.5.
     # So for now we just do this:
@@ -322,10 +328,9 @@ def test_plot_topomap_basic():
     """Test basics of topomap plotting."""
     evoked = read_evokeds(evoked_fname, "Left Auditory", baseline=(None, 0))
     res = 8
-    fast_test = dict(res=res, contours=0, sensors=False, time_unit="s")
     fast_test_noscale = dict(res=res, contours=0, sensors=False)
-    ev_bad = evoked.copy().pick_types(meg=False, eeg=True)
-    ev_bad.pick_channels(ev_bad.ch_names[:2])
+    ev_bad = evoked.copy().pick(picks="eeg")
+    ev_bad.pick(ev_bad.ch_names[:2])
     plt_topomap = partial(ev_bad.plot_topomap, **fast_test)
     plt_topomap(times=ev_bad.times[:2] - 1e-6)  # auto, plots EEG
     evoked.plot_topomap(
@@ -358,7 +363,7 @@ def test_plot_topomap_basic():
     plt.close("all")
     plt_topomap(times=[-0.1, 0.2])
     plt.close("all")
-    evoked_grad = evoked.copy().crop(0, 0).pick_types(meg="grad")
+    evoked_grad = evoked.copy().crop(0, 0).pick(picks="grad")
     mask = np.zeros((204, 1), bool)
     mask[[0, 3, 5, 6]] = True
     names = []
@@ -410,7 +415,7 @@ def test_plot_topomap_basic():
 
     # Plot array
     for ch_type in ("mag", "grad"):
-        evoked_ = evoked.copy().pick_types(eeg=False, meg=ch_type)
+        evoked_ = evoked.copy().pick(picks=ch_type)
         plot_topomap(evoked_.data[:, 0], evoked_.info, **fast_test_noscale)
     # fail with multiple channel types
     pytest.raises(ValueError, plot_topomap, evoked.data[0, :], evoked.info)
@@ -457,14 +462,21 @@ def test_plot_topomap_basic():
 
     # change to no-proj mode
     evoked = read_evokeds(evoked_fname, "Left Auditory", baseline=(None, 0), proj=False)
+    plt.close("all")
     fig1 = evoked.plot_topomap(
         "interactive", ch_type="mag", proj="interactive", **fast_test
     )
-    _fake_click(fig1, fig1.axes[1], (0.5, 0.5))  # click slider
+    # TODO: Clicking the slider creates a *new* image rather than updating
+    # the data directly. This makes it so that the projection is not applied
+    # to the correct matplotlib Image object.
+    # _fake_click(fig1, fig1.axes[1], (0.5, 0.5))  # click slider
     data_max = np.max(fig1.axes[0].images[0]._A)
-    fig2 = plt.gcf()
-    _fake_click(fig2, fig2.axes[0], (0.075, 0.775))  # toggle projector
+    proj_fig = plt.figure(plt.get_fignums()[-1])
+    assert fig1.mne.proj_checkboxes.get_status() == [False, False, False]
+    pos = proj_fig.axes[0].texts[0].get_position() + np.array([0.01, 0])
+    _fake_click(proj_fig, proj_fig.axes[0], pos)  # toggle projector
     # make sure projector gets toggled
+    assert fig1.mne.proj_checkboxes.get_status() == [True, False, False]
     assert np.max(fig1.axes[0].images[0]._A) != data_max
 
     for ch in evoked.info["chs"]:
@@ -618,7 +630,7 @@ def test_ctf_plotting():
     # smoke test that compensation does not matter
     evoked.plot_topomap(time_unit="s")
     # better test that topomaps can still be used without plotting ref
-    evoked.pick_types(meg=True, ref_meg=False)
+    evoked.pick(picks="meg")
     evoked.plot_topomap()
 
 
@@ -642,11 +654,9 @@ def test_plot_arrowmap(evoked):
 @testing.requires_testing_data
 def test_plot_topomap_neuromag122():
     """Test topomap plotting."""
-    res = 8
-    fast_test = dict(res=res, contours=0, sensors=False)
     evoked = read_evokeds(evoked_fname, "Left Auditory", baseline=(None, 0))
-    evoked.pick_types(meg="grad")
-    evoked.pick_channels(evoked.ch_names[:122])
+    evoked.pick(picks="grad")
+    evoked.pick(evoked.ch_names[:122])
     ch_names = ["MEG %03d" % k for k in range(1, 123)]
     for c in evoked.info["chs"]:
         c["coil_type"] = FIFF.FIFFV_COIL_NM_122
@@ -728,9 +738,9 @@ def test_plot_topomap_nirs_overlap(fnirs_epochs):
     plt.close("all")
 
 
-@requires_sklearn
 def test_plot_topomap_nirs_ica(fnirs_epochs):
     """Test plotting nirs ica topomap."""
+    pytest.importorskip("sklearn")
     from mne.preprocessing import ICA
 
     fnirs_epochs = fnirs_epochs.load_data().pick(picks="hbo")
@@ -759,8 +769,7 @@ def test_plot_cov_topomap():
 
 def test_plot_topomap_cnorm():
     """Test colormap normalization."""
-    from matplotlib.colors import TwoSlopeNorm
-    from matplotlib.colors import PowerNorm
+    from matplotlib.colors import PowerNorm, TwoSlopeNorm
 
     rng = np.random.default_rng(42)
     v = rng.uniform(low=-1, high=2.5, size=64)

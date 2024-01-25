@@ -21,6 +21,8 @@ We will cover some of these considerations here by processing the
 :footcite:`SeymourEtAl2022`
 """
 
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 # %%
 
 import matplotlib.pyplot as plt
@@ -57,7 +59,7 @@ step = 300
 data_ds, time_ds = raw[picks[::5], :stop]
 data_ds, time_ds = data_ds[:, ::step] * amp_scale, time_ds[::step]
 
-fig, ax = plt.subplots(constrained_layout=True)
+fig, ax = plt.subplots(layout="constrained")
 plot_kwargs = dict(lw=1, alpha=0.5)
 ax.plot(time_ds, data_ds.T - np.mean(data_ds, axis=1), **plot_kwargs)
 ax.grid(True)
@@ -111,7 +113,7 @@ regress.apply(raw, copy=False)
 data_ds, _ = raw[picks[::5], :stop]
 data_ds = data_ds[:, ::step] * amp_scale
 
-fig, ax = plt.subplots(constrained_layout=True)
+fig, ax = plt.subplots(layout="constrained")
 ax.plot(time_ds, data_ds.T - np.mean(data_ds, axis=1), **plot_kwargs)
 ax.grid(True, ls=":")
 ax.set(title="After reference regression", **set_kwargs)
@@ -139,7 +141,7 @@ raw.add_proj(projs).apply_proj(verbose="error")
 data_ds, _ = raw[picks[::5], :stop]
 data_ds = data_ds[:, ::step] * amp_scale
 
-fig, ax = plt.subplots(constrained_layout=True)
+fig, ax = plt.subplots(layout="constrained")
 ax.plot(time_ds, data_ds.T - np.mean(data_ds, axis=1), **plot_kwargs)
 ax.grid(True, ls=":")
 ax.set(title="After HFC", **set_kwargs)
@@ -168,7 +170,7 @@ psd_post_hfc = raw.compute_psd(**psd_kwargs)
 
 shielding = 10 * np.log10(psd_pre[:] / psd_post_reg[:])
 
-fig, ax = plt.subplots(constrained_layout=True)
+fig, ax = plt.subplots(layout="constrained")
 ax.plot(psd_post_reg.freqs, shielding.T, **plot_kwargs)
 ax.grid(True, ls=":")
 ax.set(xticks=psd_post_reg.freqs)
@@ -182,7 +184,7 @@ ax.set(
 
 shielding = 10 * np.log10(psd_pre[:] / psd_post_hfc[:])
 
-fig, ax = plt.subplots(constrained_layout=True)
+fig, ax = plt.subplots(layout="constrained")
 ax.plot(psd_post_hfc.freqs, shielding.T, **plot_kwargs)
 ax.grid(True, ls=":")
 ax.set(xticks=psd_post_hfc.freqs)
@@ -215,7 +217,7 @@ raw.filter(2, 40, picks="meg")
 # plot
 data_ds, _ = raw[picks[::5], :stop]
 data_ds = data_ds[:, ::step] * amp_scale
-fig, ax = plt.subplots(constrained_layout=True)
+fig, ax = plt.subplots(layout="constrained")
 plot_kwargs = dict(lw=1, alpha=0.5)
 ax.plot(time_ds, data_ds.T - np.mean(data_ds, axis=1), **plot_kwargs)
 ax.grid(True)

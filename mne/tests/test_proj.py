@@ -1,46 +1,48 @@
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 import copy as cp
 from pathlib import Path
 
 import numpy as np
-from numpy.testing import assert_array_almost_equal, assert_allclose, assert_equal
 import pytest
+from numpy.testing import assert_allclose, assert_array_almost_equal, assert_equal
 from scipy import linalg
 
 from mne import (
+    Epochs,
     compute_proj_epochs,
     compute_proj_evoked,
     compute_proj_raw,
+    compute_raw_covariance,
+    convert_forward_solution,
+    create_info,
     pick_types,
     read_events,
-    Epochs,
-    sensitivity_map,
-    read_source_estimate,
-    compute_raw_covariance,
-    create_info,
     read_forward_solution,
-    convert_forward_solution,
+    read_source_estimate,
+    sensitivity_map,
 )
-from mne.cov import regularize, compute_whitener
-from mne.datasets import testing
-from mne.io import read_raw_fif, RawArray
-from mne.io.proj import (
-    make_projector,
-    activate_proj,
-    setup_proj,
-    _needs_eeg_average_ref_proj,
+from mne._fiff.proj import (
     _EEG_AVREF_PICK_DICT,
+    _needs_eeg_average_ref_proj,
+    activate_proj,
+    make_projector,
+    setup_proj,
 )
+from mne.cov import compute_whitener, regularize
+from mne.datasets import testing
+from mne.io import RawArray, read_raw_fif
 from mne.preprocessing import maxwell_filter
 from mne.proj import (
+    _has_eeg_average_ref_proj,
+    make_eeg_average_ref_proj,
     read_proj,
     write_proj,
-    make_eeg_average_ref_proj,
-    _has_eeg_average_ref_proj,
 )
 from mne.rank import _compute_rank_int
 from mne.utils import _record_warnings
 
-base_dir = Path(__file__).parent.parent / "io" / "tests" / "data"
+base_dir = Path(__file__).parents[1] / "io" / "tests" / "data"
 raw_fname = base_dir / "test_raw.fif"
 event_fname = base_dir / "test-eve.fif"
 proj_fname = base_dir / "test-proj.fif"
@@ -63,13 +65,13 @@ def test_bad_proj():
     picks = picks[2:18:3]
     _check_warnings(raw, events, picks)
     # still bad
-    raw.pick_channels([raw.ch_names[ii] for ii in picks])
+    raw.pick([raw.ch_names[ii] for ii in picks])
     _check_warnings(raw, events)
     # "fixed"
     raw.info.normalize_proj()  # avoid projection warnings
     _check_warnings(raw, events, count=0)
     # eeg avg ref is okay
-    raw = read_raw_fif(raw_fname, preload=True).pick_types(meg=False, eeg=True)
+    raw = read_raw_fif(raw_fname, preload=True).pick(picks="eeg")
     raw.set_eeg_reference(projection=True)
     _check_warnings(raw, events, count=0)
     raw.info["bads"] = raw.ch_names[:10]
@@ -502,8 +504,8 @@ def test_needs_eeg_average_ref_proj():
 def test_sss_proj():
     """Test `meg` proj option."""
     raw = read_raw_fif(raw_fname)
-    raw.crop(0, 1.0).load_data().pick_types(meg=True, exclude=())
-    raw.pick_channels(raw.ch_names[:51]).del_proj()
+    raw.crop(0, 1.0).load_data().pick(picks="meg")
+    raw.pick(raw.ch_names[:51]).del_proj()
     raw_sss = maxwell_filter(raw, int_order=5, ext_order=2)
     sss_rank = 21  # really low due to channel picking
     assert len(raw_sss.info["projs"]) == 0
@@ -550,3 +552,20 @@ def test_setup_proj():
     assert _needs_eeg_average_ref_proj(raw.info)
     raw.del_proj()
     setup_proj(raw.info)
+
+
+@testing.requires_testing_data
+def test_compute_proj_explained_variance():
+    """Test computation based on the explained variance."""
+    raw = read_raw_fif(sample_path / "sample_audvis_trunc_raw.fif", preload=False)
+    raw.crop(0, 5).load_data()
+    raw.del_proj("all")
+    with pytest.warns(RuntimeWarning, match="Too few samples"):
+        projs = compute_proj_raw(raw, duration=None, n_grad=0.7, n_mag=0.9, n_eeg=0.8)
+    for type_, n_vector_ in (("planar", 0.7), ("axial", 0.9), ("eeg", 0.8)):
+        explained_var = [
+            proj["explained_var"]
+            for proj in projs
+            if proj["desc"].split("-")[0] == type_
+        ]
+        assert n_vector_ <= sum(explained_var)

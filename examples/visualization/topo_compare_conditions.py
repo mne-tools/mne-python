@@ -15,15 +15,16 @@ layout plot of the related evoked responses.
 #          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 
 
 import matplotlib.pyplot as plt
-import mne
 
-from mne.viz import plot_evoked_topo
+import mne
 from mne.datasets import sample
+from mne.viz import plot_evoked_topo
 
 print(__doc__)
 

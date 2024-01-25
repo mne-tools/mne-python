@@ -3,6 +3,7 @@
 # Authors: Clemens Brunner <clemens.brunner@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from pathlib import Path
 from shutil import copyfile
@@ -11,10 +12,9 @@ import pytest
 
 from mne.datasets import testing
 from mne.io import read_raw
-from mne.io._read_raw import split_name_ext, readers
+from mne.io._read_raw import _get_readers, split_name_ext
 
-
-base = Path(__file__).parent.parent
+base = Path(__file__).parents[1]
 test_base = Path(testing.data_path(download=False))
 
 
@@ -80,7 +80,7 @@ def test_read_raw_supported(fname):
 def test_split_name_ext():
     """Test file name extension splitting."""
     # test known extensions
-    for ext in readers:
+    for ext in _get_readers():
         assert split_name_ext(f"test{ext}")[1] == ext
 
     # test unsupported extensions

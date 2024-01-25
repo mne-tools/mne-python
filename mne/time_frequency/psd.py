@@ -1,13 +1,16 @@
 # Authors : Alexandre Gramfort, alexandre.gramfort@inria.fr (2011)
 #           Denis A. Engemann <denis.engemann@gmail.com>
 # License : BSD-3-Clause
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from functools import partial
 
 import numpy as np
+from scipy.signal import spectrogram
 
 from ..parallel import parallel_func
-from ..utils import logger, verbose, _check_option, _ensure_int
+from ..utils import _check_option, _ensure_int, logger, verbose
 
 
 # adapted from SciPy
@@ -109,6 +112,7 @@ def psd_array_welch(
     n_jobs=None,
     average="mean",
     window="hamming",
+    remove_dc=True,
     *,
     output="power",
     verbose=None,
@@ -143,6 +147,8 @@ def psd_array_welch(
     %(window_psd)s
 
         .. versionadded:: 0.22.0
+    %(remove_dc)s
+
     output : str
         The format of the returned ``psds`` array, ``'complex'`` or
         ``'power'``:
@@ -176,6 +182,7 @@ def psd_array_welch(
     """
     _check_option("average", average, (None, False, "mean", "median"))
     _check_option("output", output, ("power", "complex"))
+    detrend = "constant" if remove_dc else False
     mode = "complex" if output == "complex" else "psd"
     n_fft = _ensure_int(n_fft, "n_fft")
     n_overlap = _ensure_int(n_overlap, "n_overlap")
@@ -206,11 +213,10 @@ def psd_array_welch(
         f"{n_overlap} overlap and {window} window"
     )
 
-    from scipy.signal import spectrogram
-
     parallel, my_spect_func, n_jobs = parallel_func(_spect_func, n_jobs=n_jobs)
     func = partial(
         spectrogram,
+        detrend=detrend,
         noverlap=n_overlap,
         nperseg=n_per_seg,
         nfft=n_fft,

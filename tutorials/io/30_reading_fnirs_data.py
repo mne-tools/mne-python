@@ -1,3 +1,5 @@
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 r"""
 .. _tut-importing-fnirs-data:
 
@@ -38,7 +40,7 @@ The Shared Near Infrared Spectroscopy Format
 is designed by the fNIRS community in an effort to facilitate
 sharing and analysis of fNIRS data. And is the official format of the
 Society for functional near-infrared spectroscopy (SfNIRS).
-The manufacturers Gowerlabs, NIRx, Kernel, and Cortivision
+The manufacturers Gowerlabs, NIRx, Kernel, Artinis, and Cortivision
 export data in the SNIRF format, and these files can be imported in to MNE.
 SNIRF is the preferred format for reading data in to MNE-Python.
 Data stored in the SNIRF format can be read in
@@ -72,7 +74,6 @@ The coordinate system is automatically detected for Gowerlabs SNIRF files.
 ***********************
 Continuous Wave Devices
 ***********************
-
 
 .. _import-nirx:
 
@@ -160,6 +161,7 @@ have to adapt this depending on the system from which your CSV originated.
 
 import numpy as np
 import pandas as pd
+
 import mne
 
 # sphinx_gallery_thumbnail_number = 2

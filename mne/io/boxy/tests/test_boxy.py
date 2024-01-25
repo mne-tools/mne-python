@@ -1,11 +1,12 @@
 # Authors: Kyle Mathewson, Jonathan Kuziek <kuziek@ualberta.ca>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
-import pytest
 import numpy as np
-from numpy.testing import assert_allclose, assert_array_equal, assert_array_less
+import pytest
 import scipy.io as spio
+from numpy.testing import assert_allclose, assert_array_equal, assert_array_less
 
 from mne import pick_types
 from mne.datasets import testing

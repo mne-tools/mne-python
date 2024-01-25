@@ -3,18 +3,23 @@
 #          Romain Trachel <trachelr@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import numpy as np
 
-from .mixin import TransformerMixin
-from .base import BaseEstimator
-
-from .. import pick_types
+from .._fiff.pick import (
+    _pick_data_channels,
+    _picks_by_type,
+    _picks_to_idx,
+    pick_info,
+    pick_types,
+)
+from ..cov import _check_scalings_user
 from ..filter import filter_data
 from ..time_frequency import psd_array_multitaper
-from ..utils import fill_doc, _check_option, _validate_type, verbose
-from ..io.pick import pick_info, _pick_data_channels, _picks_by_type, _picks_to_idx
-from ..cov import _check_scalings_user
+from ..utils import _check_option, _validate_type, fill_doc, verbose
+from .base import BaseEstimator
+from .mixin import TransformerMixin
 
 
 class _ConstantScaler:
@@ -102,9 +107,7 @@ class Scaler(TransformerMixin, BaseEstimator):
         if ``scalings`` is a dict or None).
     """
 
-    def __init__(
-        self, info=None, scalings=None, with_mean=True, with_std=True
-    ):  # noqa: D102
+    def __init__(self, info=None, scalings=None, with_mean=True, with_std=True):
         self.info = info
         self.with_mean = with_mean
         self.with_std = with_std
@@ -328,7 +331,7 @@ class Vectorizer(TransformerMixin):
         X = np.asarray(X)
         if X.ndim not in (2, 3):
             raise ValueError(
-                "X should be of 2 or 3 dimensions but has shape " "%s" % (X.shape,)
+                "X should be of 2 or 3 dimensions but has shape " f"{X.shape}"
             )
         return X.reshape(X.shape[:-1] + self.features_shape_)
 
@@ -378,8 +381,8 @@ class PSDEstimator(TransformerMixin):
         n_jobs=None,
         normalization="length",
         *,
-        verbose=None
-    ):  # noqa: D102
+        verbose=None,
+    ):
         self.sfreq = sfreq
         self.fmin = fmin
         self.fmax = fmax
@@ -487,10 +490,9 @@ class FilterEstimator(TransformerMixin):
 
     Notes
     -----
-    This is primarily meant for use in conjunction with
-    :class:`mne_realtime.RtEpochs`. In general it is not recommended in a
-    normal processing pipeline as it may result in edge artifacts. Use with
-    caution.
+    This is primarily meant for use in realtime applications.
+    In general it is not recommended in a normal processing pipeline as it may result
+    in edge artifacts. Use with caution.
     """
 
     def __init__(
@@ -507,8 +509,8 @@ class FilterEstimator(TransformerMixin):
         iir_params=None,
         fir_design="firwin",
         *,
-        verbose=None
-    ):  # noqa: D102
+        verbose=None,
+    ):
         self.info = info
         self.l_freq = l_freq
         self.h_freq = h_freq
@@ -621,7 +623,7 @@ class UnsupervisedSpatialFilter(TransformerMixin, BaseEstimator):
         (e.g. epochs).
     """
 
-    def __init__(self, estimator, average=False):  # noqa: D102
+    def __init__(self, estimator, average=False):
         # XXX: Use _check_estimator #3381
         for attr in ("fit", "transform", "fit_transform"):
             if not hasattr(estimator, attr):
@@ -833,8 +835,8 @@ class TemporalFilter(TransformerMixin):
         fir_window="hamming",
         fir_design="firwin",
         *,
-        verbose=None
-    ):  # noqa: D102
+        verbose=None,
+    ):
         self.l_freq = l_freq
         self.h_freq = h_freq
         self.sfreq = sfreq

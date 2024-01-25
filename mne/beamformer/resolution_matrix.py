@@ -2,11 +2,12 @@
 # Authors: olaf.hauk@mrc-cbu.cam.ac.uk
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 import numpy as np
 
-from ..io.pick import pick_channels, pick_info, pick_channels_forward
+from .._fiff.pick import pick_channels, pick_channels_forward, pick_info
 from ..evoked import EvokedArray
-from ..utils import logger, fill_doc
+from ..utils import fill_doc, logger
 from ._lcmv import apply_lcmv
 
 

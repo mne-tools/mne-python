@@ -3,64 +3,63 @@
 #          Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from copy import deepcopy
 from pathlib import Path
 
 import numpy as np
-from numpy.testing import assert_allclose, assert_array_equal
 import pytest
+from numpy.testing import assert_allclose, assert_array_equal
 
 from mne import (
-    read_source_spaces,
-    pick_types,
-    read_trans,
-    read_cov,
-    make_sphere_model,
-    create_info,
-    setup_volume_source_space,
-    find_events,
     Epochs,
-    fit_dipole,
-    transform_surface_to,
-    make_ad_hoc_cov,
     SourceEstimate,
-    setup_source_space,
-    read_bem_solution,
-    make_forward_solution,
-    convert_forward_solution,
     VolSourceEstimate,
+    convert_forward_solution,
+    create_info,
+    find_events,
+    fit_dipole,
+    make_ad_hoc_cov,
     make_bem_solution,
+    make_forward_solution,
+    make_sphere_model,
+    pick_types,
+    read_bem_solution,
+    read_cov,
+    read_source_spaces,
+    read_trans,
+    setup_source_space,
+    setup_volume_source_space,
+    transform_surface_to,
 )
+from mne._fiff.constants import FIFF
 from mne.bem import _surfaces_to_bem
 from mne.chpi import (
-    read_head_pos,
     compute_chpi_amplitudes,
     compute_chpi_locs,
     compute_head_pos,
     get_chpi_info,
+    read_head_pos,
 )
-from mne.tests.test_chpi import _assert_quats
 from mne.datasets import testing
-from mne.simulation import (
-    simulate_sparse_stc,
-    simulate_raw,
-    add_eog,
-    add_ecg,
-    add_chpi,
-    add_noise,
-)
-from mne.source_space import _compare_source_spaces
-from mne.simulation.source import SourceSimulator
+from mne.io import RawArray, read_raw_fif
 from mne.label import Label
+from mne.simulation import (
+    add_chpi,
+    add_ecg,
+    add_eog,
+    add_noise,
+    simulate_raw,
+    simulate_sparse_stc,
+)
+from mne.simulation.source import SourceSimulator
+from mne.source_space._source_space import _compare_source_spaces
 from mne.surface import _get_ico_surface
-from mne.io import read_raw_fif, RawArray
-from mne.io.constants import FIFF
+from mne.tests.test_chpi import _assert_quats
 from mne.utils import catch_logging
 
-raw_fname_short = (
-    Path(__file__).parent.parent.parent / "io" / "tests" / "data" / "test_raw.fif"
-)
+raw_fname_short = Path(__file__).parents[2] / "io" / "tests" / "data" / "test_raw.fif"
 
 data_path = testing.data_path(download=False)
 raw_fname = data_path / "MEG" / "sample" / "sample_audvis_trunc_raw.fif"
@@ -90,7 +89,7 @@ def _assert_iter_sim(raw_sim, raw_new, new_event_id):
 def test_iterable():
     """Test iterable support for simulate_raw."""
     raw = read_raw_fif(raw_fname_short).load_data()
-    raw.pick_channels(raw.ch_names[:10] + ["STI 014"])
+    raw.pick(raw.ch_names[:10] + ["STI 014"])
     src = setup_volume_source_space(
         pos=dict(rr=[[-0.05, 0, 0], [0.1, 0, 0]], nn=[[0, 1.0, 0], [0, 1.0, 0]])
     )
@@ -211,7 +210,7 @@ def raw_data():
     data_picks = pick_types(raw.info, meg=True, eeg=True)
     other_picks = pick_types(raw.info, meg=False, stim=True, eog=True)
     picks = np.sort(np.concatenate((data_picks[::16], other_picks)))
-    raw = raw.pick_channels([raw.ch_names[p] for p in picks])
+    raw = raw.pick([raw.ch_names[p] for p in picks])
     raw.info.normalize_proj()
     ecg = RawArray(
         np.zeros((1, len(raw.times))),
@@ -260,7 +259,7 @@ def test_simulate_raw_sphere(raw_data, tmp_path):
     cov["projs"] = raw.info["projs"]
     raw.info["bads"] = raw.ch_names[:1]
     sphere_norad = make_sphere_model("auto", None, raw.info)
-    raw_meg = raw.copy().pick_types(meg=True)
+    raw_meg = raw.copy().pick("meg")
     raw_sim = simulate_raw(
         raw_meg.info, stc, trans, src, sphere_norad, head_pos=head_pos_sim
     )
@@ -273,14 +272,10 @@ def test_simulate_raw_sphere(raw_data, tmp_path):
     del raw_sim
 
     # make sure it works with EEG-only and MEG-only
-    raw_sim_meg = simulate_raw(
-        raw.copy().pick_types(meg=True, eeg=False).info, stc, trans, src, sphere
-    )
-    raw_sim_eeg = simulate_raw(
-        raw.copy().pick_types(meg=False, eeg=True).info, stc, trans, src, sphere
-    )
+    raw_sim_meg = simulate_raw(raw.copy().pick("meg").info, stc, trans, src, sphere)
+    raw_sim_eeg = simulate_raw(raw.copy().pick("eeg").info, stc, trans, src, sphere)
     raw_sim_meeg = simulate_raw(
-        raw.copy().pick_types(meg=True, eeg=True).info, stc, trans, src, sphere
+        raw.copy().pick(["meg", "eeg"]).info, stc, trans, src, sphere
     )
     for this_raw in (raw_sim_meg, raw_sim_eeg, raw_sim_meeg):
         add_eog(this_raw, random_state=seed)
@@ -436,7 +431,7 @@ def test_simulate_round_trip(raw_data):
     """Test simulate_raw round trip calculations."""
     # Check a diagonal round-trip
     raw, src, stc, trans, sphere = raw_data
-    raw.pick_types(meg=True, stim=True)
+    raw.pick(["meg", "stim"])
     bem = read_bem_solution(bem_1_fname)
     old_bem = bem.copy()
     old_src = src.copy()
@@ -465,7 +460,7 @@ def test_simulate_round_trip(raw_data):
         this_raw = simulate_raw(
             raw.info, stc, use_trans, use_src, use_bem, forward=use_fwd
         )
-        this_raw.pick_types(meg=True, eeg=True)
+        this_raw.pick(["meg", "eeg"])
         assert old_bem["surfs"][0]["coord_frame"] == bem["surfs"][0]["coord_frame"]
         assert trans == old_trans
         _compare_source_spaces(src, old_src)
@@ -555,7 +550,7 @@ def test_simulation_cascade():
     """Test that cascading operations do not overwrite data."""
     # Create 10 second raw dataset with zeros in the data matrix
     raw_null = read_raw_fif(raw_chpi_fname, allow_maxshield="yes")
-    raw_null.crop(0, 1).pick_types(meg=True).load_data()
+    raw_null.crop(0, 1).pick("meg").load_data()
     raw_null.apply_function(lambda x: np.zeros_like(x))
     assert_array_equal(raw_null.get_data(), 0.0)
 

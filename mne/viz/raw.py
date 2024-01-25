@@ -4,27 +4,26 @@
 #          Jaakko Leppakangas <jaeilepp@student.jyu.fi>
 #          Daniel McCloy <dan.mccloy@gmail.com>
 #
-# License: Simplified BSD
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from collections import OrderedDict
 
 import numpy as np
 
-from ..annotations import _annotations_starts_stops
-from ..filter import create_filter
-from ..io.pick import pick_types, pick_channels
-from ..time_frequency import Spectrum
-from ..utils import legacy, verbose, _validate_type, _check_option
-from ..utils.spectrum import _split_psd_kwargs
+from .._fiff.pick import pick_channels, pick_types
 from ..defaults import _handle_default
+from ..filter import create_filter
+from ..utils import _check_option, _get_stim_channel, _validate_type, legacy, verbose
+from ..utils.spectrum import _split_psd_kwargs
 from .utils import (
-    _compute_scalings,
-    _handle_decim,
     _check_cov,
-    _shorten_path_from_middle,
-    _handle_precompute,
+    _compute_scalings,
     _get_channel_plotting_order,
+    _handle_decim,
+    _handle_precompute,
     _make_event_color_dict,
+    _shorten_path_from_middle,
 )
 
 _RAW_CLIP_DEF = 1.5
@@ -67,6 +66,7 @@ def plot_raw(
     *,
     theme=None,
     overview_mode=None,
+    splash=True,
     verbose=None,
 ):
     """Plot raw data.
@@ -198,6 +198,9 @@ def plot_raw(
     %(overview_mode)s
 
         .. versionadded:: 1.1
+    %(splash)s
+
+        .. versionadded:: 1.6
     %(verbose)s
 
     Returns
@@ -232,7 +235,8 @@ def plot_raw(
 
     %(notes_2d_backend)s
     """
-    from ..io.base import BaseRaw
+    from ..annotations import _annotations_starts_stops
+    from ..io import BaseRaw
     from ._figure import _get_browser
 
     info = raw.info.copy()
@@ -395,6 +399,7 @@ def plot_raw(
         use_opengl=use_opengl,
         theme=theme,
         overview_mode=overview_mode,
+        splash=splash,
     )
 
     fig = _get_browser(show=show, block=block, **params)
@@ -482,6 +487,8 @@ def plot_raw_psd(
     -----
     %(notes_plot_*_psd_func)s
     """
+    from ..time_frequency import Spectrum
+
     init_kw, plot_kw = _split_psd_kwargs(plot_fun=Spectrum.plot)
     return raw.compute_psd(**init_kw).plot(**plot_kw)
 
@@ -549,6 +556,8 @@ def plot_raw_psd_topo(
     fig : instance of matplotlib.figure.Figure
         Figure distributing one image per channel across sensor topography.
     """
+    from ..time_frequency import Spectrum
+
     init_kw, plot_kw = _split_psd_kwargs(plot_fun=Spectrum.plot_topo)
     return raw.compute_psd(**init_kw).plot_topo(**plot_kw)
 
@@ -556,12 +565,11 @@ def plot_raw_psd_topo(
 def _setup_channel_selections(raw, kind, order):
     """Get dictionary of channel groupings."""
     from ..channels import (
-        read_vectorview_selection,
-        _SELECTIONS,
         _EEG_SELECTIONS,
+        _SELECTIONS,
         _divide_to_regions,
+        read_vectorview_selection,
     )
-    from ..utils import _get_stim_channel
 
     _check_option("group_by", kind, ("position", "selection"))
     if kind == "position":
@@ -621,6 +629,6 @@ def _setup_channel_selections(raw, kind, order):
         gsr=True,
         exclude=(),
     )
-    if len(misc) and np.in1d(misc, order).any():
+    if len(misc) and np.isin(misc, order).any():
         selections_dict["Misc"] = misc
     return selections_dict

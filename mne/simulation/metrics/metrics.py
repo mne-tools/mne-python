@@ -3,12 +3,15 @@
 #          Kostiantyn Maksymenko <kostiantyn.maksymenko@gmail.com>
 #          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from functools import partial
 
 import numpy as np
-from mne.utils import _check_option, fill_doc, _validate_type
+from scipy.spatial.distance import cdist
+
+from ...utils import _check_option, _validate_type, fill_doc
 
 
 def _check_stc(stc1, stc2):
@@ -194,8 +197,6 @@ def _abs_col_sum(x):
 
 def _dle(p, q, src, stc):
     """Aux function to compute dipole localization error."""
-    from scipy.spatial.distance import cdist
-
     p = _abs_col_sum(p)
     q = _abs_col_sum(q)
     idx1 = np.nonzero(p)[0]

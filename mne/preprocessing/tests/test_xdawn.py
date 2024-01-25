@@ -2,29 +2,29 @@
 #          Jean-Remi King <jeanremi.king@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from pathlib import Path
 
 import numpy as np
-
-from numpy.testing import assert_array_equal, assert_array_almost_equal, assert_allclose
 import pytest
-from scipy import linalg, stats
+from numpy.testing import assert_allclose, assert_array_almost_equal, assert_array_equal
+from scipy import stats
 
 from mne import (
     Epochs,
-    read_events,
-    pick_types,
+    EpochsArray,
     compute_raw_covariance,
     create_info,
-    EpochsArray,
+    pick_types,
+    read_events,
 )
 from mne.decoding import Vectorizer
+from mne.fixes import _safe_svd
 from mne.io import read_raw_fif
-from mne.utils import requires_sklearn
 from mne.preprocessing.xdawn import Xdawn, _XdawnTransformer
 
-base_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
+base_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
 raw_fname = base_dir / "test_raw.fif"
 event_name = base_dir / "test-eve.fif"
 
@@ -60,8 +60,8 @@ def test_xdawn_picks():
     xd.fit(epochs)
     epochs_out = xd.apply(epochs)["1"]
     assert epochs_out.info["ch_names"] == epochs.ch_names
-    assert not (epochs_out.get_data()[:, 0] != data[:, 0]).any()
-    assert_array_equal(epochs_out.get_data()[:, 1], data[:, 1])
+    assert not (epochs_out.get_data([0])[:, 0] != data[:, 0]).any()
+    assert_array_equal(epochs_out.get_data([1])[:, 0], data[:, 1])
 
 
 def test_xdawn_fit():
@@ -132,7 +132,7 @@ def test_xdawn_apply_transform():
     """Test Xdawn apply and transform."""
     # Get data
     raw, events, picks = _get_data()
-    raw.pick_types(eeg=True, meg=False)
+    raw.pick(picks="eeg")
     epochs = Epochs(
         raw,
         events,
@@ -174,16 +174,16 @@ def test_xdawn_apply_transform():
     assert_array_almost_equal(denoise["cond2"]._data, denoise_shfl["cond2"]._data)
 
 
-@requires_sklearn
 def test_xdawn_regularization():
     """Test Xdawn with regularization."""
+    pytest.importorskip("sklearn")
     # Get data, this time MEG so we can test proper reg/ch type support
     raw = read_raw_fif(raw_fname, verbose=False, preload=True)
     events = read_events(event_name)
     picks = pick_types(
         raw.info, meg=True, eeg=False, stim=False, ecg=False, eog=False, exclude="bads"
     )[::8]
-    raw.pick_channels([raw.ch_names[pick] for pick in picks])
+    raw.pick([raw.ch_names[pick] for pick in picks])
     del picks
     raw.info.normalize_proj()
     epochs = Epochs(
@@ -235,9 +235,9 @@ def test_xdawn_regularization():
     #     xd.fit(epochs)
 
 
-@requires_sklearn
 def test_XdawnTransformer():
     """Test _XdawnTransformer."""
+    pytest.importorskip("sklearn")
     # Get data
     raw, events, picks = _get_data()
     raw.del_proj()
@@ -327,7 +327,7 @@ def _simulate_erplike_mixed_data(n_epochs=100, n_channels=10):
     epoch_data[y == 0, informative_ch_idx, :] += nontarget_template
     epoch_data[y == 1, informative_ch_idx, :] += target_template
 
-    mixing_mat = linalg.svd(rng.randn(n_channels, n_channels))[0]
+    mixing_mat = _safe_svd(rng.randn(n_channels, n_channels))[0]
     mixed_epoch_data = np.dot(mixing_mat.T, epoch_data).transpose((1, 0, 2))
 
     events = np.zeros((n_epochs, 3), dtype=int)
@@ -335,7 +335,7 @@ def _simulate_erplike_mixed_data(n_epochs=100, n_channels=10):
     events[:, 2] = y
 
     info = create_info(
-        ch_names=["C{:02d}".format(i) for i in range(n_channels)],
+        ch_names=[f"C{i:02d}" for i in range(n_channels)],
         ch_types=["eeg"] * n_channels,
         sfreq=sfreq,
     )
@@ -346,14 +346,14 @@ def _simulate_erplike_mixed_data(n_epochs=100, n_channels=10):
     return epochs, mixing_mat
 
 
-@requires_sklearn
 def test_xdawn_decoding_performance():
     """Test decoding performance and extracted pattern on synthetic data."""
+    pytest.importorskip("sklearn")
+    from sklearn.linear_model import LogisticRegression
+    from sklearn.metrics import accuracy_score
     from sklearn.model_selection import KFold
     from sklearn.pipeline import make_pipeline
-    from sklearn.linear_model import LogisticRegression
     from sklearn.preprocessing import MinMaxScaler
-    from sklearn.metrics import accuracy_score
 
     n_xdawn_comps = 3
     expected_accuracy = 0.98
@@ -376,7 +376,10 @@ def test_xdawn_decoding_performance():
     )
 
     cv = KFold(n_splits=3, shuffle=False)
-    for pipe, X in ((xdawn_pipe, epochs), (xdawn_trans_pipe, epochs.get_data())):
+    for pipe, X in (
+        (xdawn_pipe, epochs),
+        (xdawn_trans_pipe, epochs.get_data(copy=False)),
+    ):
         predictions = np.empty_like(y, dtype=float)
         for train, test in cv.split(X, y):
             pipe.fit(X[train], y[train])

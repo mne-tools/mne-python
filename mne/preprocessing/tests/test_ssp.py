@@ -1,16 +1,18 @@
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 from pathlib import Path
 
+import numpy as np
 import pytest
 from numpy.testing import assert_array_almost_equal
-import numpy as np
 
-from mne.io import read_raw_fif, read_raw_ctf
-from mne.io.proj import make_projector, activate_proj
-from mne.preprocessing.ssp import compute_proj_ecg, compute_proj_eog
-from mne.datasets import testing
 from mne import pick_types
+from mne._fiff.proj import activate_proj, make_projector
+from mne.datasets import testing
+from mne.io import read_raw_ctf, read_raw_fif
+from mne.preprocessing.ssp import compute_proj_ecg, compute_proj_eog
 
-data_path = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
+data_path = Path(__file__).parents[2] / "io" / "tests" / "data"
 raw_fname = data_path / "test_raw.fif"
 dur_use = 5.0
 eog_times = np.array([0.5, 2.3, 3.6, 14.5])
@@ -20,7 +22,7 @@ ctf_fname = testing.data_path(download=False) / "CTF" / "testdata_ctf.ds"
 @pytest.fixture()
 def short_raw():
     """Create a short, picked raw instance."""
-    raw = read_raw_fif(raw_fname).crop(0, 7).pick_types(meg=True, eeg=True, eog=True)
+    raw = read_raw_fif(raw_fname).crop(0, 7).pick(["meg", "eeg", "eog"])
     raw.pick(raw.ch_names[:306:10] + raw.ch_names[306:]).load_data()
     raw.info.normalize_proj()
     return raw
@@ -67,6 +69,9 @@ def test_compute_proj_ecg(short_raw, average):
     # XXX: better tests
 
     # without setting a bad channel, this should throw a warning
+    # (first with a call that makes sure we copy the mutable default "reject")
+    with pytest.warns(RuntimeWarning, match="longer than the signal"):
+        compute_proj_ecg(raw.copy().pick("mag"), l_freq=None, h_freq=None)
     with pytest.warns(RuntimeWarning, match="No good epochs found"):
         projs, events, drop_log = compute_proj_ecg(
             raw,

@@ -1,7 +1,8 @@
 # Authors: Denis Engemann <denis.engemann@gmail.com>
 #          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
-# License: Simplified BSD
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import sys
 from pathlib import Path
@@ -9,29 +10,31 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 import pytest
-from numpy.testing import assert_equal, assert_array_equal
+from numpy.testing import assert_allclose, assert_array_equal, assert_equal
 
 from mne import (
-    read_events,
-    Epochs,
-    read_cov,
-    pick_types,
     Annotations,
+    Epochs,
     make_fixed_length_events,
+    pick_types,
+    read_cov,
+    read_events,
 )
 from mne.io import read_raw_fif
 from mne.preprocessing import ICA, create_ecg_epochs, create_eog_epochs
-from mne.utils import requires_sklearn, catch_logging, _record_warnings
+from mne.utils import _record_warnings, catch_logging
 from mne.viz.ica import _create_properties_layout, plot_ica_properties
 from mne.viz.utils import _fake_click, _fake_keypress
 
-base_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
+base_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
 evoked_fname = base_dir / "test-ave.fif"
 raw_fname = base_dir / "test_raw.fif"
 cov_fname = base_dir / "test-cov.fif"
 event_name = base_dir / "test-eve.fif"
 event_id, tmin, tmax = 1, -0.1, 0.2
 raw_ctf_fname = base_dir / "test_ctf_raw.fif"
+
+pytest.importorskip("sklearn")
 
 
 def _get_raw(preload=False):
@@ -59,7 +62,6 @@ def _get_epochs():
     return epochs
 
 
-@requires_sklearn
 def test_plot_ica_components():
     """Test plotting of ICA solutions."""
     res = 8
@@ -138,7 +140,6 @@ def test_plot_ica_components():
 
 
 @pytest.mark.slowtest
-@requires_sklearn
 def test_plot_ica_properties():
     """Test plotting of ICA properties."""
     raw = _get_raw(preload=True).crop(0, 5)
@@ -148,7 +149,7 @@ def test_plot_ica_properties():
     events = make_fixed_length_events(raw)
     picks = _get_picks(raw)[:6]
     pick_names = [raw.ch_names[k] for k in picks]
-    raw.pick_channels(pick_names)
+    raw.pick(pick_names)
     reject = dict(grad=4000e-13, mag=4e-12)
 
     epochs = Epochs(
@@ -227,7 +228,7 @@ def test_plot_ica_properties():
 
     # Test merging grads.
     pick_names = raw.ch_names[:15:2] + raw.ch_names[1:15:2]
-    raw = _get_raw(preload=True).pick_channels(pick_names, ordered=False)
+    raw = _get_raw(preload=True).pick(pick_names)
     raw.crop(0, 5)
     raw.info.normalize_proj()
     ica = ICA(random_state=0, max_iter=1)
@@ -238,7 +239,7 @@ def test_plot_ica_properties():
 
     # Test handling of zeros
     ica = ICA(random_state=0, max_iter=1)
-    epochs.pick_channels(pick_names, ordered=False)
+    epochs.pick(pick_names)
     with pytest.warns(UserWarning, match="did not converge"):
         ica.fit(epochs)
     epochs._data[0] = 0
@@ -262,13 +263,12 @@ def test_plot_ica_properties():
     ica.plot_properties(raw_annot, reject_by_annotation=False, **topoargs)
 
 
-@requires_sklearn
 def test_plot_ica_sources(raw_orig, browser_backend, monkeypatch):
     """Test plotting of ICA panel."""
     raw = raw_orig.copy().crop(0, 1)
     picks = _get_picks(raw)
     epochs = _get_epochs()
-    raw.pick_channels([raw.ch_names[k] for k in picks])
+    raw.pick([raw.ch_names[k] for k in picks])
     ica_picks = pick_types(
         raw.info, meg=True, eeg=False, stim=False, ecg=False, eog=False, exclude="bads"
     )
@@ -319,7 +319,7 @@ def test_plot_ica_sources(raw_orig, browser_backend, monkeypatch):
     assert browser_backend._get_n_figs() == 0
     del long_raw
 
-    # test with annotations
+    # test with annotations and a measurement date
     orig_annot = raw.annotations
     raw.set_annotations(Annotations([0.2], [0.1], "Test"))
     fig = ica.plot_sources(raw)
@@ -328,6 +328,22 @@ def test_plot_ica_sources(raw_orig, browser_backend, monkeypatch):
         assert len(fig.mne.ax_hscroll.collections) == 1
     else:
         assert len(fig.mne.regions) == 1
+        assert_allclose(fig.mne.regions[0].getRegion(), (0.2, 0.3))
+
+    # test with annotations and no measurement date
+    orig_meas_date = raw.info["meas_date"]
+    raw.set_meas_date(None)
+    assert raw.first_samp != 0
+    raw.set_annotations(Annotations([0.2], [0.1], "Test"))
+    fig = ica.plot_sources(raw)
+    if browser_backend.name == "matplotlib":
+        assert len(fig.mne.ax_main.collections) == 1
+        assert len(fig.mne.ax_hscroll.collections) == 1
+    else:
+        assert len(fig.mne.regions) == 1
+        assert_allclose(fig.mne.regions[0].getRegion(), (0.2, 0.3))
+
+    raw.set_meas_date(orig_meas_date)
     raw.set_annotations(orig_annot)
 
     # test error handling
@@ -357,6 +373,10 @@ def test_plot_ica_sources(raw_orig, browser_backend, monkeypatch):
     ica.exclude = [0]
     ica.plot_sources(evoked)
 
+    # regression test for `IndexError` when passing non-consecutive picks or consecutive
+    # picks not including `0` (https://github.com/mne-tools/mne-python/pull/11808)
+    ica.plot_sources(evoked, picks=1)
+
     # pretend find_bads_eog() yielded some results
     ica.labels_ = {"eog": [0], "eog/0/crazy-channel": [0]}
     ica.plot_sources(evoked)  # now with labels
@@ -367,7 +387,6 @@ def test_plot_ica_sources(raw_orig, browser_backend, monkeypatch):
 
 
 @pytest.mark.slowtest
-@requires_sklearn
 def test_plot_ica_overlay():
     """Test plotting of ICA cleaning."""
     raw = _get_raw(preload=True)
@@ -416,7 +435,6 @@ def _get_geometry(fig):
         return fig.axes[0].get_geometry()  # pragma: no cover
 
 
-@requires_sklearn
 def test_plot_ica_scores():
     """Test plotting of ICA scores."""
     raw = _get_raw()
@@ -455,7 +473,6 @@ def test_plot_ica_scores():
         ica.plot_scores([0.2])
 
 
-@requires_sklearn
 def test_plot_instance_components(browser_backend):
     """Test plotting of components as instances of raw and epochs."""
     raw = _get_raw()

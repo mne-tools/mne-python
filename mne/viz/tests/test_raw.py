@@ -1,28 +1,30 @@
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #
-# License: Simplified BSD
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import itertools
 import os
 from copy import deepcopy
 
 import matplotlib.pyplot as plt
-from matplotlib import backend_bases
 import numpy as np
 import pytest
+from matplotlib import backend_bases
 from numpy.testing import assert_allclose
 
 from mne import Annotations, create_info, pick_types
+from mne._fiff.pick import _DATA_CH_TYPES_ORDER_DEFAULT, _PICK_TYPES_DATA_DICT
 from mne.annotations import _sync_onset
 from mne.datasets import testing
 from mne.io import RawArray
-from mne.io.pick import _DATA_CH_TYPES_ORDER_DEFAULT, _PICK_TYPES_DATA_DICT
 from mne.utils import (
+    _assert_no_instances,
     _dt_to_stamp,
     _record_warnings,
+    check_version,
     get_config,
     set_config,
-    _assert_no_instances,
 )
 from mne.viz import plot_raw, plot_sensors
 from mne.viz.utils import _fake_click, _fake_keypress
@@ -745,6 +747,63 @@ def test_plot_annotations(raw, browser_backend):
         assert fig.mne.regions[0].isVisible()
 
 
+@pytest.mark.parametrize("active_annot_idx", (0, 1, 2))
+def test_overlapping_annotation_deletion(raw, browser_backend, active_annot_idx):
+    """Test deletion of annotations via right-click."""
+    ismpl = browser_backend.name == "matplotlib"
+    if not ismpl and not check_version("mne_qt_browser", "0.5.2"):
+        pytest.xfail("Old mne-qt-browser")
+    with raw.info._unlock():
+        raw.info["lowpass"] = 10.0
+    annot_labels = list("abc")
+    # the test applies to the middle three annotations; those before and after are
+    # there to ensure our bookkeeping works
+    annot = Annotations(
+        onset=[3, 3.4, 3.7, 13, 13.4, 13.7, 19, 19.4, 19.7],
+        duration=[2, 1, 3] * 3,
+        description=annot_labels * 3,
+    )
+    raw.set_annotations(annot)
+    start = 10
+    duration = 8
+    fig = raw.plot(start=start, duration=duration)
+
+    def _get_visible_labels(fig_dot_mne):
+        if ismpl:
+            # MPL backend's `fig.mne.annotation_texts` → only the visible ones
+            visible_labels = [x.get_text() for x in fig_dot_mne.annotation_texts]
+        else:
+            # PyQtGraph backend's `fig.mne.regions` → all annots (even offscreen ones)
+            # so we need to (1) get annotations from fig.mne.inst, and (2) compute
+            # ourselves which ones are visible.
+            _annot = fig_dot_mne.inst.annotations
+            _start = start + fig_dot_mne.inst.first_time
+            _end = _start + duration
+            visible_indices = np.nonzero(
+                np.logical_and(_annot.onset > _start, _annot.onset < _end)
+            )
+            visible_labels = np.array(
+                [x.label_item.toPlainText() for x in fig_dot_mne.regions]
+            )[visible_indices].tolist()
+        return visible_labels
+
+    assert annot_labels == _get_visible_labels(fig.mne)
+    fig._fake_keypress("a")  # start annotation mode
+    if ismpl:
+        buttons = fig.mne.fig_annotation.mne.radio_ax.buttons
+        buttons.set_active(active_annot_idx)
+        current_active = buttons.value_selected
+    else:
+        buttons = fig.mne.fig_annotation.description_cmbx
+        buttons.setCurrentIndex(active_annot_idx)
+        current_active = buttons.currentText()
+    assert current_active == annot_labels[active_annot_idx]
+    # x value of 14 is in area that overlaps all 3 visible annotations
+    fig._fake_click((14, 1.0), xform="data", button=3)
+    expected = set(annot_labels) - set(annot_labels[active_annot_idx])
+    assert expected == set(_get_visible_labels(fig.mne))
+
+
 @pytest.mark.parametrize("hide_which", ([], [0], [1], [0, 1]))
 def test_remove_annotations(raw, hide_which, browser_backend):
     """Test that right-click doesn't remove hidden annotation spans."""
@@ -763,8 +822,93 @@ def test_remove_annotations(raw, hide_which, browser_backend):
             hide_key = descriptions[hide_idx]
             fig.mne.visible_annotations[hide_key] = False
         fig._update_regions_visible()
-    fig._fake_click((2.5, 0.1), xform="data", button=3)
+    # always click twice: should not affect hidden annotation spans
+    for _ in descriptions:
+        fig._fake_click((2.5, 0.1), xform="data", button=3)
     assert len(raw.annotations) == len(hide_which)
+
+
+def test_merge_annotations(raw, browser_backend):
+    """Test merging of annotations in the Qt backend.
+
+    Let's not bother in figuring out on which sample the _fake_click actually
+    dropped the annotation, especially with the 600.614 Hz weird sampling rate.
+    -> atol = 10 / raw.info["sfreq"]
+    """
+    if browser_backend.name == "matplotlib":
+        pytest.skip("The MPL backend does not support draggable annotations.")
+    elif not check_version("mne_qt_browser", "0.5.3"):
+        pytest.xfail("mne_qt_browser < 0.5.3 does not merge annotations properly")
+    annot = Annotations(
+        onset=[1, 3, 4, 5, 7, 8],
+        duration=[1, 0.5, 0.8, 1, 0.5, 0.5],
+        description=["bad_test", "bad_test", "bad_test", "test", "test", "test"],
+    )
+    raw.set_annotations(annot)
+    fig = raw.plot()
+    fig._fake_keypress("a")  # start annotation mode
+    assert len(raw.annotations) == 6
+    assert_allclose(
+        raw.annotations.onset,
+        np.array([1, 3, 4, 5, 7, 8]) + raw.first_samp / raw.info["sfreq"],
+        atol=10 / raw.info["sfreq"],
+    )
+    # drag edge and merge 2 annotations in focus (selected description)
+    fig._fake_click(
+        (3.5, 1.0), add_points=[(4.2, 1.0)], xform="data", button=1, kind="drag"
+    )
+    assert len(raw.annotations) == 5
+    assert_allclose(
+        raw.annotations.onset,
+        np.array([1, 3, 5, 7, 8]) + raw.first_samp / raw.info["sfreq"],
+        atol=10 / raw.info["sfreq"],
+    )
+    assert_allclose(
+        raw.annotations.duration,
+        np.array([1, 1.8, 1, 0.5, 0.5]),
+        atol=10 / raw.info["sfreq"],
+    )
+    # drag annotation and merge 2 annotations in focus (selected description)
+    fig._fake_click(
+        (1.5, 1.0), add_points=[(3, 1.0)], xform="data", button=1, kind="drag"
+    )
+    assert len(raw.annotations) == 4
+    assert_allclose(
+        raw.annotations.onset,
+        np.array([2.5, 5, 7, 8]) + raw.first_samp / raw.info["sfreq"],
+        atol=10 / raw.info["sfreq"],
+    )
+    assert_allclose(
+        raw.annotations.duration,
+        np.array([2.3, 1, 0.5, 0.5]),
+        atol=10 / raw.info["sfreq"],
+    )
+    # drag edge and merge 2 annotations not in focus
+    fig._fake_click(
+        (7.5, 1.0), add_points=[(8.2, 1.0)], xform="data", button=1, kind="drag"
+    )
+    assert len(raw.annotations) == 3
+    assert_allclose(
+        raw.annotations.onset,
+        np.array([2.5, 5, 7]) + raw.first_samp / raw.info["sfreq"],
+        atol=10 / raw.info["sfreq"],
+    )
+    assert_allclose(
+        raw.annotations.duration, np.array([2.3, 1, 1.5]), atol=10 / raw.info["sfreq"]
+    )
+    # drag annotation and merge 2 annotations not in focus
+    fig._fake_click(
+        (5.6, 1.0), add_points=[(7.2, 1.0)], xform="data", button=1, kind="drag"
+    )
+    assert len(raw.annotations) == 2
+    assert_allclose(
+        raw.annotations.onset,
+        np.array([2.5, 6.6]) + raw.first_samp / raw.info["sfreq"],
+        atol=10 / raw.info["sfreq"],
+    )
+    assert_allclose(
+        raw.annotations.duration, np.array([2.3, 1.9]), atol=10 / raw.info["sfreq"]
+    )
 
 
 @pytest.mark.parametrize("filtorder", (0, 2))  # FIR, IIR
@@ -794,29 +938,33 @@ def test_plot_raw_psd(raw, raw_orig):
     spectrum = raw.compute_psd()
     # deprecation change handler
     old_defaults = dict(picks="data", exclude="bads")
-    fig = spectrum.plot(average=False)
+    fig = spectrum.plot(average=False, amplitude=False)
     # normal mode
-    fig = spectrum.plot(average=False, **old_defaults)
+    fig = spectrum.plot(average=False, amplitude=False, **old_defaults)
     fig.canvas.callbacks.process(
         "resize_event", backend_bases.ResizeEvent("resize_event", fig.canvas)
     )
     # specific mode
     picks = pick_types(spectrum.info, meg="mag", eeg=False)[:4]
-    spectrum.plot(picks=picks, ci="range", spatial_colors=True, exclude="bads")
-    raw.compute_psd(tmax=20.0).plot(color="yellow", dB=False, alpha=0.4, **old_defaults)
+    spectrum.plot(
+        picks=picks, ci="range", spatial_colors=True, exclude="bads", amplitude=False
+    )
+    raw.compute_psd(tmax=20.0).plot(
+        color="yellow", dB=False, alpha=0.4, amplitude=True, **old_defaults
+    )
     plt.close("all")
     # one axes supplied
     ax = plt.axes()
-    spectrum.plot(picks=picks, axes=ax, average=True, exclude="bads")
+    spectrum.plot(picks=picks, axes=ax, average=True, exclude="bads", amplitude=False)
     plt.close("all")
     # two axes supplied
     _, axs = plt.subplots(2)
-    spectrum.plot(axes=axs, average=True, **old_defaults)
+    spectrum.plot(axes=axs, average=True, amplitude=False, **old_defaults)
     plt.close("all")
     # need 2, got 1
     ax = plt.axes()
     with pytest.raises(ValueError, match="of length 2.*the length is 1"):
-        spectrum.plot(axes=ax, average=True, **old_defaults)
+        spectrum.plot(axes=ax, average=True, amplitude=False, **old_defaults)
     plt.close("all")
     # topo psd
     ax = plt.subplot()
@@ -837,14 +985,13 @@ def test_plot_raw_psd(raw, raw_orig):
         # check grad axes
         title = fig.axes[0].get_title()
         ylabel = fig.axes[0].get_ylabel()
-        ends_dB = ylabel.endswith("mathrm{(dB)}$")
         unit = r"fT/cm/\sqrt{Hz}" if amplitude else "(fT/cm)²/Hz"
         assert title == "Gradiometers", title
         assert unit in ylabel, ylabel
         if dB:
-            assert ends_dB, ylabel
+            assert "dB" in ylabel
         else:
-            assert not ends_dB, ylabel
+            assert "dB" not in ylabel
         # check mag axes
         title = fig.axes[1].get_title()
         ylabel = fig.axes[1].get_ylabel()
@@ -862,8 +1009,8 @@ def test_plot_raw_psd(raw, raw_orig):
     raw = raw_orig.crop(0, 1)
     picks = pick_types(raw.info, meg=True)
     spectrum = raw.compute_psd(picks=picks)
-    spectrum.plot(average=False, **old_defaults)
-    spectrum.plot(average=True, **old_defaults)
+    spectrum.plot(average=False, amplitude=False, **old_defaults)
+    spectrum.plot(average=True, amplitude=False, **old_defaults)
     plt.close("all")
     raw.set_channel_types(
         {
@@ -874,7 +1021,7 @@ def test_plot_raw_psd(raw, raw_orig):
         },
         verbose="error",
     )
-    fig = raw.compute_psd().plot(**old_defaults)
+    fig = raw.compute_psd().plot(amplitude=False, **old_defaults)
     assert len(fig.axes) == 10
     plt.close("all")
 
@@ -885,7 +1032,7 @@ def test_plot_raw_psd(raw, raw_orig):
     raw = RawArray(data, info)
     picks = pick_types(raw.info, misc=True)
     spectrum = raw.compute_psd(picks=picks, n_fft=n_fft)
-    spectrum.plot(spatial_colors=False, picks=picks, exclude="bads")
+    spectrum.plot(spatial_colors=False, picks=picks, exclude="bads", amplitude=False)
     plt.close("all")
 
 

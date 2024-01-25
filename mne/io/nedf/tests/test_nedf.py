@@ -2,14 +2,15 @@
 # Author: Tristan Stenner <nedf@nicht.dienstli.ch>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import pytest
 from numpy.testing import assert_allclose, assert_array_equal
 
 from mne import find_events
-from mne.io.constants import FIFF
-from mne.io.nedf import read_raw_nedf, _parse_nedf_header
+from mne._fiff.constants import FIFF
 from mne.datasets import testing
+from mne.io.nedf import _parse_nedf_header, read_raw_nedf
 from mne.io.tests.test_raw import _test_raw_reader
 
 eeg_path = testing.data_path(download=False, verbose=True)
@@ -27,6 +28,8 @@ stimhdr = b"""
     </EEGSettings>
     <STIMSettings/>
 </nedf>\x00"""
+
+pytest.importorskip("defusedxml")
 
 
 @pytest.mark.parametrize("nacc", (0, 3))

@@ -10,9 +10,9 @@ without a proper 6-month deprecation cycle.
 
 | Version | Supported                |
 | ------- | ------------------------ |
-| 1.5.x   | :heavy_check_mark: (dev) |
-| 1.4.x   | :heavy_check_mark:       |
-| < 1.4   | :x:                      |
+| 1.7.x   | :heavy_check_mark: (dev) |
+| 1.6.x   | :heavy_check_mark:       |
+| < 1.6   | :x:                      |
 
 ## Reporting a Vulnerability
 
@@ -21,7 +21,7 @@ recorded with a variety of devices/modalities (EEG, MEG, ECoG, fNIRS, etc).
 It is not expected that using MNE-Python will lead to security
 vulnerabilities under normal use cases (i.e., running without administrator
 privileges). However, if you think you have found a security vulnerability
-in MNE-Python, **please do not report it as a GitHub issue**, in order to 
+in MNE-Python, **please do not report it as a GitHub issue**, in order to
 keep the vulnerability confidential. Instead, please report it to
 mne-core-dev-team@groups.io and include a description and proof-of-concept
 that is [short and self-contained](http://www.sscce.org/).

@@ -1,10 +1,12 @@
 # Author: John Samuelsson <johnsam@mit.edu>
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import numpy as np
 
+from .._fiff.pick import _picks_to_idx
 from ..evoked import Evoked
-from ..io.pick import _picks_to_idx
-from ..utils import verbose, _validate_type, _ensure_int
+from ..utils import _ensure_int, _validate_type, verbose
 
 
 def _temp_proj(ref_2, ref_1, raw_data, n_proj=6):

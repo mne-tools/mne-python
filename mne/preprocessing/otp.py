@@ -2,13 +2,14 @@
 #          Eric Larson <larson.eric.d@gmail.com>
 
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from functools import partial
 
 import numpy as np
 
+from .._fiff.pick import _picks_to_idx
 from .._ola import _COLA, _Storer
-from ..io.pick import _picks_to_idx
 from ..surface import _normalize_vectors
 from ..utils import logger, verbose
 
@@ -129,7 +130,7 @@ def _otp(data, picks_good, picks_bad):
     for mi, pick in enumerate(picks_good):
         # operate on original data
         idx = list(range(mi)) + list(range(mi + 1, len(data_good)))
-        # Equivalent: linalg.svd(data[idx], full_matrices=False)[2]
+        # Equivalent: svd(data[idx], full_matrices=False)[2]
         t_basis = _svd_cov(cov[np.ix_(idx, idx)], data_good[idx])[2]
         x = np.dot(np.dot(data_good[mi], t_basis.T), t_basis)
         x *= norms[mi]

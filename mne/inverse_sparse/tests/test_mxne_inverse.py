@@ -1,32 +1,35 @@
 # Author: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #         Daniel Strohmeier <daniel.strohmeier@tu-ilmenau.de>
 #
-# License: Simplified BSD
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import numpy as np
-from numpy.testing import (
-    assert_array_almost_equal,
-    assert_allclose,
-    assert_array_less,
-    assert_array_equal,
-)
 import pytest
+from numpy.testing import (
+    assert_allclose,
+    assert_array_almost_equal,
+    assert_array_equal,
+    assert_array_less,
+)
 
 import mne
+from mne import convert_forward_solution, read_cov, read_evokeds, read_forward_solution
 from mne.datasets import testing
-from mne.label import read_label
-from mne import read_cov, read_forward_solution, read_evokeds, convert_forward_solution
-from mne.inverse_sparse import mixed_norm, tf_mixed_norm
-from mne.inverse_sparse.mxne_inverse import make_stc_from_dipoles, _split_gof
-from mne.inverse_sparse.mxne_inverse import _compute_mxne_sure
-from mne.inverse_sparse.mxne_optim import norm_l2inf
-from mne.minimum_norm import apply_inverse, make_inverse_operator
-from mne.minimum_norm.tests.test_inverse import assert_var_exp_log, assert_stc_res
-from mne.utils import assert_stcs_equal, catch_logging, _record_warnings
 from mne.dipole import Dipole
+from mne.inverse_sparse import mixed_norm, tf_mixed_norm
+from mne.inverse_sparse.mxne_inverse import (
+    _compute_mxne_sure,
+    _split_gof,
+    make_stc_from_dipoles,
+)
+from mne.inverse_sparse.mxne_optim import norm_l2inf
+from mne.label import read_label
+from mne.minimum_norm import apply_inverse, make_inverse_operator
+from mne.minimum_norm.tests.test_inverse import assert_stc_res, assert_var_exp_log
+from mne.simulation import simulate_evoked, simulate_sparse_stc
 from mne.source_estimate import VolSourceEstimate
-from mne.simulation import simulate_sparse_stc, simulate_evoked
-
+from mne.utils import _record_warnings, assert_stcs_equal, catch_logging
 
 data_path = testing.data_path(download=False)
 # NOTE: These use the ave and cov from sample dataset (no _trunc)

@@ -1,6 +1,7 @@
 # Authors: Olaf Hauk <olaf.hauk@mrc-cbu.cam.ac.uk>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 """Compute resolution metrics from resolution matrix.
 
 Resolution metrics: localisation error, spatial extent, relative amplitude.
@@ -8,8 +9,8 @@ Metrics can be computed for point-spread and cross-talk functions (PSFs/CTFs).
 """
 import numpy as np
 
-from .. import SourceEstimate
-from ..utils import logger, verbose, _check_option
+from ..source_estimate import SourceEstimate
+from ..utils import _check_option, logger, verbose
 
 
 @verbose

@@ -15,13 +15,14 @@ or more distinct topography, reducing the negative impact of volume conduction.
 # Authors: Alex Rockhill <aprockhill@mailbox.org>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 
 # sphinx_gallery_thumbnail_number = 6
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 
 import mne
 from mne.datasets import sample
@@ -34,9 +35,7 @@ data_path = sample.data_path()
 # Load sample subject data
 meg_path = data_path / "MEG" / "sample"
 raw = mne.io.read_raw_fif(meg_path / "sample_audvis_raw.fif")
-raw = raw.pick_types(
-    meg=False, eeg=True, eog=True, ecg=True, stim=True, exclude=raw.info["bads"]
-).load_data()
+raw = raw.pick(picks=["eeg", "eog", "ecg", "stim"], exclude="bads").load_data()
 events = mne.find_events(raw)
 raw.set_eeg_reference(projection=True).apply_proj()
 
@@ -50,8 +49,8 @@ raw_csd.plot()
 # %%
 # Also look at the power spectral densities:
 
-raw.compute_psd().plot(picks="data", exclude="bads")
-raw_csd.compute_psd().plot(picks="data", exclude="bads")
+raw.compute_psd().plot(picks="data", exclude="bads", amplitude=False)
+raw_csd.compute_psd().plot(picks="data", exclude="bads", amplitude=False)
 
 # %%
 # CSD can also be computed on Evoked (averaged) data.
@@ -80,8 +79,7 @@ evoked_csd.plot_joint(title="Current Source Density")
 # CSD has parameters ``stiffness`` and ``lambda2`` affecting smoothing and
 # spline flexibility, respectively. Let's see how they affect the solution:
 
-fig, ax = plt.subplots(4, 4)
-fig.subplots_adjust(hspace=0.5)
+fig, ax = plt.subplots(4, 4, layout="constrained")
 fig.set_size_inches(10, 10)
 for i, lambda2 in enumerate([0, 1e-7, 1e-5, 1e-3]):
     for j, m in enumerate([5, 4, 3, 2]):

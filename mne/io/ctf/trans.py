@@ -3,20 +3,21 @@
 # Author: Eric Larson <larson.eric.d<gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import numpy as np
 
+from ..._fiff.constants import FIFF
 from ...transforms import (
-    combine_transforms,
-    invert_transform,
     Transform,
-    _quat_to_affine,
     _fit_matched_points,
+    _quat_to_affine,
     apply_trans,
+    combine_transforms,
     get_ras_to_neuromag_trans,
+    invert_transform,
 )
 from ...utils import logger
-from ..constants import FIFF
 from .constants import CTF
 
 

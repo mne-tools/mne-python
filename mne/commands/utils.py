@@ -4,13 +4,14 @@
 #          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import glob
 import importlib
 import os
 import os.path as op
-from optparse import OptionParser
 import sys
+from optparse import OptionParser
 
 import mne
 
@@ -41,7 +42,7 @@ def load_module(name, path):
         Imported module.
 
     """
-    from importlib.util import spec_from_file_location, module_from_spec
+    from importlib.util import module_from_spec, spec_from_file_location
 
     spec = spec_from_file_location(name, path)
     mod = module_from_spec(spec)
@@ -67,7 +68,7 @@ def get_optparser(cmdpath, usage=None, prog_prefix="mne", version=None):
     command = command[len(prog_prefix) + 1 :]  # +1 is for `_` character
 
     # Set prog
-    prog = prog_prefix + " {}".format(command)
+    prog = prog_prefix + f" {command}"
 
     # Set version
     if version is None:
@@ -105,6 +106,6 @@ def main():
         print_help()
     else:
         cmd = sys.argv[1]
-        cmd = importlib.import_module(".mne_%s" % (cmd,), "mne.commands")
+        cmd = importlib.import_module(f".mne_{cmd}", "mne.commands")
         sys.argv = sys.argv[1:]
         cmd.run()

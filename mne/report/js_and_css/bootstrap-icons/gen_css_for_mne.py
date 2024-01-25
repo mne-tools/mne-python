@@ -13,12 +13,13 @@ Generate a bootstrap-icons CSS file with embedded font.
 # Author: Richard Höchenberger <richard.hoechenberger@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 
-from pathlib import Path
 import base64
-import rcssmin
+from pathlib import Path
 
+import rcssmin
 
 base_dir = Path(".")
 css_path_in = base_dir / "bootstrap-icons.css"

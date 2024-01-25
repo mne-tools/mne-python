@@ -2,19 +2,21 @@
 #          Teon Brooks <teon.brooks@gmail.com>
 #
 #          simplified BSD-3 license
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import datetime
 import time
 
 import numpy as np
 
+from ..._fiff.constants import FIFF
+from ..._fiff.meas_info import _empty_info
+from ..._fiff.utils import _create_chs, _read_segments_file
+from ...utils import _check_fname, _validate_type, logger, verbose, warn
+from ..base import BaseRaw
 from .egimff import _read_raw_egi_mff
 from .events import _combine_triggers
-from ..base import BaseRaw
-from ..utils import _read_segments_file, _create_chs
-from ..meas_info import _empty_info
-from ..constants import FIFF
-from ...utils import verbose, logger, warn, _validate_type, _check_fname
 
 
 def _read_header(fid):
@@ -29,7 +31,7 @@ def _read_header(fid):
         )
 
     def my_fread(*x, **y):
-        return np.fromfile(*x, **y)[0]
+        return int(np.fromfile(*x, **y)[0])
 
     info = dict(
         version=version,
@@ -57,8 +59,8 @@ def _read_header(fid):
             dict(
                 n_categories=0,
                 n_segments=1,
-                n_samples=np.fromfile(fid, ">i4", 1)[0],
-                n_events=np.fromfile(fid, ">i2", 1)[0],
+                n_samples=int(np.fromfile(fid, ">i4", 1)[0]),
+                n_events=int(np.fromfile(fid, ">i2", 1)[0]),
                 event_codes=[],
                 category_names=[],
                 category_lengths=[],
@@ -102,7 +104,7 @@ def read_raw_egi(
     preload=False,
     channel_naming="E%d",
     verbose=None,
-):
+) -> "RawEGI":
     """Read EGI simple binary as raw object.
 
     .. note:: This function attempts to create a synthetic trigger channel.
@@ -178,6 +180,8 @@ def read_raw_egi(
 class RawEGI(BaseRaw):
     """Raw object from EGI simple binary file."""
 
+    _extra_attributes = ("event_id",)
+
     @verbose
     def __init__(
         self,
@@ -189,7 +193,7 @@ class RawEGI(BaseRaw):
         preload=False,
         channel_naming="E%d",
         verbose=None,
-    ):  # noqa: D102
+    ):
         input_fname = str(_check_fname(input_fname, "read", True, "input_fname"))
         if eog is None:
             eog = []
@@ -303,7 +307,7 @@ class RawEGI(BaseRaw):
         orig_format = (
             egi_info["orig_format"] if egi_info["orig_format"] != "float" else "single"
         )
-        super(RawEGI, self).__init__(
+        super().__init__(
             info,
             preload,
             orig_format=orig_format,

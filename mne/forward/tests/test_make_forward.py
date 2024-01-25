@@ -1,61 +1,59 @@
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 from itertools import product
 from pathlib import Path
 
-import pytest
 import numpy as np
-from numpy.testing import assert_allclose, assert_array_equal
-from numpy.testing import assert_array_less
+import pytest
+from numpy.testing import assert_allclose, assert_array_equal, assert_array_less
 
-from mne.bem import read_bem_surfaces, make_bem_solution
-from mne.channels import make_standard_montage
-from mne.datasets import testing
-from mne.io import read_raw_fif, read_raw_kit, read_raw_bti, read_info
-from mne.io.constants import FIFF
 from mne import (
-    read_forward_solution,
-    write_forward_solution,
-    make_forward_solution,
     convert_forward_solution,
-    setup_volume_source_space,
-    read_source_spaces,
     create_info,
+    get_volume_labels_from_aseg,
+    make_forward_solution,
     make_sphere_model,
-    pick_types_forward,
     pick_info,
     pick_types,
-    read_evokeds,
+    pick_types_forward,
     read_cov,
     read_dipole,
-    get_volume_labels_from_aseg,
+    read_evokeds,
+    read_forward_solution,
+    read_source_spaces,
+    setup_volume_source_space,
+    write_forward_solution,
+)
+from mne._fiff.constants import FIFF
+from mne.bem import make_bem_solution, read_bem_surfaces
+from mne.channels import make_standard_montage
+from mne.datasets import testing
+from mne.dipole import Dipole, fit_dipole
+from mne.forward import Forward, _do_forward_solution, use_coil_def
+from mne.forward._compute_forward import _magnetic_dipole_field_vec
+from mne.forward._make_forward import _create_meg_coils, make_forward_dipole
+from mne.forward.tests.test_forward import assert_forward_allclose
+from mne.io import read_info, read_raw_bti, read_raw_fif, read_raw_kit
+from mne.simulation import simulate_evoked
+from mne.source_estimate import VolSourceEstimate
+from mne.source_space._source_space import (
+    _compare_source_spaces,
+    setup_source_space,
+    write_source_spaces,
 )
 from mne.surface import _get_ico_surface
 from mne.transforms import Transform
 from mne.utils import (
-    requires_mne,
-    run_subprocess,
     catch_logging,
+    requires_mne,
     requires_mne_mark,
     requires_openmeeg_mark,
+    run_subprocess,
 )
-from mne.forward._make_forward import _create_meg_coils, make_forward_dipole
-from mne.forward._compute_forward import _magnetic_dipole_field_vec
-from mne.forward import Forward, _do_forward_solution, use_coil_def
-from mne.dipole import Dipole, fit_dipole
-from mne.simulation import simulate_evoked
-from mne.source_estimate import VolSourceEstimate
-from mne.source_space import (
-    write_source_spaces,
-    _compare_source_spaces,
-    setup_source_space,
-)
-
-from mne.forward.tests.test_forward import assert_forward_allclose
 
 data_path = testing.data_path(download=False)
 fname_meeg = data_path / "MEG" / "sample" / "sample_audvis_trunc-meg-eeg-oct-4-fwd.fif"
-fname_raw = (
-    Path(__file__).parent.parent.parent / "io" / "tests" / "data" / "test_raw.fif"
-)
+fname_raw = Path(__file__).parents[2] / "io" / "tests" / "data" / "test_raw.fif"
 fname_evo = data_path / "MEG" / "sample" / "sample_audvis_trunc-ave.fif"
 fname_cov = data_path / "MEG" / "sample" / "sample_audvis_trunc-cov.fif"
 fname_dip = data_path / "MEG" / "sample" / "sample_audvis_trunc_set1.dip"
@@ -66,7 +64,7 @@ fname_bem = subjects_dir / "sample" / "bem" / "sample-1280-1280-1280-bem-sol.fif
 fname_aseg = subjects_dir / "sample" / "mri" / "aseg.mgz"
 fname_bem_meg = subjects_dir / "sample" / "bem" / "sample-1280-bem-sol.fif"
 
-io_path = Path(__file__).parent.parent.parent / "io"
+io_path = Path(__file__).parents[2] / "io"
 bti_dir = io_path / "bti" / "tests" / "data"
 kit_dir = io_path / "kit" / "tests" / "data"
 trans_path = kit_dir / "trans-sample.fif"
@@ -657,7 +655,7 @@ def test_make_forward_dipole(tmp_path):
 
     # Only use magnetometers for speed!
     picks = pick_types(evoked.info, meg="mag", eeg=False)[::8]
-    evoked.pick_channels([evoked.ch_names[p] for p in picks])
+    evoked.pick([evoked.ch_names[p] for p in picks])
     evoked.info.normalize_proj()
     info = evoked.info
 

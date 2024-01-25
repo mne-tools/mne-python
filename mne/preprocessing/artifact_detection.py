@@ -1,27 +1,31 @@
 # Authors: Adonay Nunes <adonay.s.nunes@gmail.com>
 #          Luke Bloy <luke.bloy@gmail.com>
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 
 import numpy as np
+from scipy.ndimage import distance_transform_edt, label
+from scipy.signal import find_peaks
+from scipy.stats import zscore
 
-from ..io.base import BaseRaw
 from ..annotations import (
     Annotations,
+    _adjust_onset_meas_date,
     _annotations_starts_stops,
     annotations_from_events,
-    _adjust_onset_meas_date,
-)
-from ..transforms import (
-    quat_to_rot,
-    _average_quats,
-    _angle_between_quats,
-    apply_trans,
-    _quat_to_affine,
 )
 from ..filter import filter_data
-from .. import Transform
-from ..utils import _mask_to_onsets_offsets, logger, verbose, _validate_type, _pl
+from ..io.base import BaseRaw
+from ..transforms import (
+    Transform,
+    _angle_between_quats,
+    _average_quats,
+    _quat_to_affine,
+    apply_trans,
+    quat_to_rot,
+)
+from ..utils import _mask_to_onsets_offsets, _pl, _validate_type, logger, verbose
 
 
 @verbose
@@ -78,9 +82,6 @@ def annotate_muscle_zscore(
     ----------
     .. footbibliography::
     """
-    from scipy.stats import zscore
-    from scipy.ndimage import label
-
     raw_copy = raw.copy()
 
     if ch_type is None:
@@ -99,10 +100,10 @@ def annotate_muscle_zscore(
         logger.info("Using %s sensors for muscle artifact detection" % (ch_type))
 
     if ch_type in ("mag", "grad"):
-        raw_copy.pick_types(meg=ch_type, ref_meg=False)
+        raw_copy.pick(ch_type)
     else:
         ch_type = {"meg": False, ch_type: True}
-        raw_copy.pick_types(**ch_type)
+        raw_copy.pick(**ch_type)
 
     raw_copy.filter(
         filter_freq[0],
@@ -166,9 +167,9 @@ def annotate_movement(
         The position and quaternion parameters from cHPI fitting. Obtained
         with `mne.chpi` functions.
     rotation_velocity_limit : float
-        Head rotation velocity limit in radians per second.
+        Head rotation velocity limit in degrees per second.
     translation_velocity_limit : float
-        Head translation velocity limit in radians per second.
+        Head translation velocity limit in meters per second.
     mean_distance_limit : float
         Head position limit from mean recording in meters.
     use_dev_head_trans : 'average' (default) | 'info'
@@ -303,8 +304,8 @@ def compute_average_dev_head_t(raw, pos):
 
     Returns
     -------
-    dev_head_t : array of shape (4, 4)
-        New trans matrix using the averaged good head positions.
+    dev_head_t : instance of Transform
+        New ``dev_head_t`` transformation using the averaged good head positions.
     """
     sfreq = raw.info["sfreq"]
     seg_good = np.ones(len(raw.times))
@@ -365,9 +366,6 @@ def compute_average_dev_head_t(raw, pos):
 
 def _annotations_from_mask(times, mask, annot_name, orig_time=None):
     """Construct annotations from boolean mask of the data."""
-    from scipy.ndimage import distance_transform_edt
-    from scipy.signal import find_peaks
-
     mask_tf = distance_transform_edt(mask)
     # Overcome the shortcoming of find_peaks
     # in finding a marginal peak, by
@@ -601,7 +599,7 @@ def annotate_break(
     # Log some info
     n_breaks = len(break_annotations)
     break_times = [
-        f"{o:.1f} – {o+d:.1f} s [{d:.1f} s]"
+        f"{o:.1f} – {o + d:.1f} s [{d:.1f} s]"
         for o, d in zip(break_annotations.onset, break_annotations.duration)
     ]
     break_times = "\n    ".join(break_times)

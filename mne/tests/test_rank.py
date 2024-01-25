@@ -1,28 +1,35 @@
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 import itertools
 from pathlib import Path
 
-from numpy.testing import assert_array_equal
 import numpy as np
-
 import pytest
+from numpy.testing import assert_array_equal
 
-from mne import read_evokeds, read_cov, compute_raw_covariance, pick_types, pick_info
+from mne import (
+    compute_raw_covariance,
+    make_fixed_length_epochs,
+    pick_info,
+    pick_types,
+    read_cov,
+    read_evokeds,
+)
+from mne._fiff.pick import _picks_by_type
+from mne._fiff.proj import _has_eeg_average_ref_proj
 from mne.cov import prepare_noise_cov
 from mne.datasets import testing
 from mne.io import read_raw_fif
-from mne.io.pick import _picks_by_type, _get_channel_types
-from mne.io.proj import _has_eeg_average_ref_proj
 from mne.proj import compute_proj_raw
 from mne.rank import (
-    estimate_rank,
-    compute_rank,
-    _get_rank_sss,
     _compute_rank_int,
     _estimate_rank_raw,
+    _get_rank_sss,
+    compute_rank,
+    estimate_rank,
 )
 
-
-base_dir = Path(__file__).parent.parent / "io" / "tests" / "data"
+base_dir = Path(__file__).parents[1] / "io" / "tests" / "data"
 cov_fname = base_dir / "test-cov.fif"
 raw_fname = base_dir / "test_raw.fif"
 ave_fname = base_dir / "test-ave.fif"
@@ -169,8 +176,8 @@ def test_cov_rank_estimation(rank_method, proj, meg):
             )
 
             # count channel types
-            ch_types = _get_channel_types(this_info)
-            n_eeg, n_mag, n_grad = [ch_types.count(k) for k in ["eeg", "mag", "grad"]]
+            ch_types = this_info.get_channel_types()
+            n_eeg, n_mag, n_grad = (ch_types.count(k) for k in ["eeg", "mag", "grad"])
             n_meg = n_mag + n_grad
             has_sss = n_meg > 0 and len(this_info["proc_history"]) > 0
             if has_sss:
@@ -192,6 +199,19 @@ def test_cov_rank_estimation(rank_method, proj, meg):
             assert rank[ch_type] == expected_rank
 
 
+@pytest.mark.parametrize(
+    "rank_method, proj", [("info", True), ("info", False), (None, True), (None, False)]
+)
+def test_rank_epochs(rank_method, proj):
+    """Test that raw and epochs give the same results in a simple case."""
+    # And a smoke test for epochs
+    raw = read_raw_fif(raw_fname, preload=True)
+    epochs = make_fixed_length_epochs(raw, preload=True, proj=False)
+    rank_raw = compute_rank(raw, rank_method, proj=proj)
+    rank_epochs = compute_rank(epochs, rank_method, proj=proj)
+    assert rank_raw == rank_epochs
+
+
 @pytest.mark.slowtest  # ~3 s apiece on Azure means overall it's slow
 @testing.requires_testing_data
 @pytest.mark.parametrize("fname, rank_orig", ((hp_fif_fname, 120), (mf_fif_fname, 67)))
@@ -208,7 +228,7 @@ def test_cov_rank_estimation(rank_method, proj, meg):
 )
 def test_maxfilter_get_rank(n_proj, fname, rank_orig, meg, tol_kind, tol):
     """Test maxfilter rank lookup."""
-    raw = read_raw_fif(fname).crop(0, 5).load_data().pick_types(meg=True)
+    raw = read_raw_fif(fname).crop(0, 5).load_data().pick("meg")
     assert raw.info["projs"] == []
     mf = raw.info["proc_history"][0]["max_info"]
     assert mf["sss_info"]["nfree"] == rank_orig
@@ -272,7 +292,7 @@ def test_maxfilter_get_rank(n_proj, fname, rank_orig, meg, tol_kind, tol):
 def test_explicit_bads_pick():
     """Test when bads channels are explicitly passed + default picks=None."""
     raw = read_raw_fif(raw_fname).crop(0, 5).load_data()
-    raw.pick_types(eeg=True, meg=True, ref_meg=True)
+    raw.pick(picks=["eeg", "meg", "ref_meg"])
 
     # Covariance
     # Default picks=None

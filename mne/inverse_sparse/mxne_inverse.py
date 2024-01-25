@@ -1,40 +1,41 @@
 # Author: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #         Daniel Strohmeier <daniel.strohmeier@gmail.com>
 #
-# License: Simplified BSD
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import numpy as np
 
-from ..source_estimate import SourceEstimate, _BaseSourceEstimate, _make_stc
+from .._fiff.proj import deactivate_proj
+from ..dipole import Dipole
+from ..fixes import _safe_svd
+from ..forward import is_fixed_orient
 from ..minimum_norm.inverse import (
-    combine_xyz,
-    _prepare_forward,
     _check_reference,
     _log_exp_var,
+    _prepare_forward,
+    combine_xyz,
 )
-from ..forward import is_fixed_orient
-from ..io.proj import deactivate_proj
+from ..source_estimate import SourceEstimate, _BaseSourceEstimate, _make_stc
 from ..utils import (
-    logger,
-    verbose,
     _check_depth,
     _check_option,
-    sum_squared,
     _validate_type,
     check_random_state,
+    logger,
+    sum_squared,
+    verbose,
     warn,
 )
-from ..dipole import Dipole
-
 from .mxne_optim import (
-    mixed_norm_solver,
-    iterative_mixed_norm_solver,
     _Phi,
-    tf_mixed_norm_solver,
-    iterative_tf_mixed_norm_solver,
-    norm_l2inf,
-    norm_epsilon_inf,
     groups_norm2,
+    iterative_mixed_norm_solver,
+    iterative_tf_mixed_norm_solver,
+    mixed_norm_solver,
+    norm_epsilon_inf,
+    norm_l2inf,
+    tf_mixed_norm_solver,
 )
 
 
@@ -456,8 +457,6 @@ def mixed_norm(
     ----------
     .. footbibliography::
     """
-    from scipy import linalg
-
     _validate_type(alpha, ("numeric", str), "alpha")
     if isinstance(alpha, str):
         _check_option("alpha", alpha, ("sure",))
@@ -520,7 +519,7 @@ def mixed_norm(
     M = np.dot(whitener, M)
 
     if time_pca:
-        U, s, Vh = linalg.svd(M, full_matrices=False)
+        U, s, Vh = _safe_svd(M, full_matrices=False)
         if not isinstance(time_pca, bool) and isinstance(time_pca, int):
             U = U[:, :time_pca]
             s = s[:time_pca]

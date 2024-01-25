@@ -1,15 +1,16 @@
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Joan Massich <mailsik@gmail.com>
 #
-# License: BSD Style.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import os
 import os.path as op
 
 import numpy as np
 
-from ...utils import verbose, _TempDir, _check_pandas_installed, _on_missing
-from ..utils import _get_path, _downloader_params
+from ...utils import _check_pandas_installed, _on_missing, _TempDir, verbose
+from ..utils import _downloader_params, _get_path
 
 AGE_SLEEP_RECORDS = op.join(op.dirname(__file__), "age_records.csv")
 TEMAZEPAM_SLEEP_RECORDS = op.join(op.dirname(__file__), "temazepam_records.csv")
@@ -19,9 +20,7 @@ TEMAZEPAM_RECORDS_URL = (
 )
 TEMAZEPAM_RECORDS_URL_SHA1 = "f52fffe5c18826a2bd4c5d5cb375bb4a9008c885"
 
-AGE_RECORDS_URL = (
-    "https://physionet.org/physiobank/database/sleep-edfx/SC-subjects.xls"  # noqa: E501
-)
+AGE_RECORDS_URL = "https://physionet.org/physiobank/database/sleep-edfx/SC-subjects.xls"
 AGE_RECORDS_URL_SHA1 = "0ba6650892c5d33a8e2b3f62ce1cc9f30438c54f"
 
 sha1sums_fname = op.join(op.dirname(__file__), "SHA1SUMS")
@@ -133,9 +132,7 @@ def _update_sleep_temazepam_records(fname=TEMAZEPAM_SLEEP_RECORDS):
             "level_3": "drug",
         }
     )
-    data["id"] = [
-        "ST7{:02d}{:1d}".format(s, n) for s, n in zip(data.subject, data["night nr"])
-    ]
+    data["id"] = [f"ST7{s:02d}{n:1d}" for s, n in zip(data.subject, data["night nr"])]
 
     data = pd.merge(sha1_df, data, how="outer", on="id")
     data["record type"] = (
@@ -199,9 +196,7 @@ def _update_sleep_age_records(fname=AGE_SLEEP_RECORDS):
         {1: "female", 2: "male"}
     )
 
-    data["id"] = [
-        "SC4{:02d}{:1d}".format(s, n) for s, n in zip(data.subject, data.night)
-    ]
+    data["id"] = [f"SC4{s:02d}{n:1d}" for s, n in zip(data.subject, data.night)]
 
     data = data.set_index("id").join(sha1_df.set_index("id")).dropna()
 

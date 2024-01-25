@@ -1,9 +1,9 @@
 # Authors: Eric Larson <larson.eric.d@gmail.com>
-# License: BSD Style.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from ...utils import verbose
-from ..utils import _data_path_doc, _get_version, _version_doc, _download_mne_dataset
-
+from ..utils import _data_path_doc, _download_mne_dataset, _get_version, _version_doc
 
 _NAME = "ucl_opm_auditory"
 _PROCESSOR = "unzip"

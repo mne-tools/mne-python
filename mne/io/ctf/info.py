@@ -3,29 +3,27 @@
 # Author: Eric Larson <larson.eric.d<gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
-from time import strptime
-from calendar import timegm
 import os.path as op
+from calendar import timegm
+from time import strptime
 
 import numpy as np
 
-from ...utils import logger, warn, _clean_names
-from ...transforms import (
-    apply_trans,
-    _coord_frame_name,
-    invert_transform,
-    combine_transforms,
-)
+from ..._fiff.constants import FIFF
+from ..._fiff.ctf_comp import _add_kind, _calibrate_comp
+from ..._fiff.meas_info import _empty_info
+from ..._fiff.write import get_new_file_id
 from ...annotations import Annotations
-
-from ..meas_info import _empty_info
-from ..write import get_new_file_id
-from ..ctf_comp import _add_kind, _calibrate_comp
-from ..constants import FIFF
-
+from ...transforms import (
+    _coord_frame_name,
+    apply_trans,
+    combine_transforms,
+    invert_transform,
+)
+from ...utils import _clean_names, logger, warn
 from .constants import CTF
-
 
 _ctf_to_fiff = {
     CTF.CTFV_COIL_LPA: FIFF.FIFFV_POINT_LPA,
@@ -354,7 +352,7 @@ def _conv_comp(comp, first, last, chs):
     n_col = comp[first]["ncoeff"]
     col_names = comp[first]["sensors"][:n_col]
     row_names = [comp[p]["sensor_name"] for p in range(first, last + 1)]
-    mask = np.in1d(col_names, ch_names)  # missing channels excluded
+    mask = np.isin(col_names, ch_names)  # missing channels excluded
     col_names = np.array(col_names)[mask].tolist()
     n_col = len(col_names)
     n_row = len(row_names)
@@ -537,7 +535,7 @@ def _read_bad_chans(directory, info):
     if not op.exists(fname):
         return []
     mapping = dict(zip(_clean_names(info["ch_names"]), info["ch_names"]))
-    with open(fname, "r") as fid:
+    with open(fname) as fid:
         bad_chans = [mapping[f.strip()] for f in fid.readlines()]
     return bad_chans
 
@@ -551,7 +549,7 @@ def _annotate_bad_segments(directory, start_time, meas_date):
     onsets = []
     durations = []
     desc = []
-    with open(fname, "r") as fid:
+    with open(fname) as fid:
         for f in fid.readlines():
             tmp = f.strip().split()
             desc.append("bad_%s" % tmp[0])

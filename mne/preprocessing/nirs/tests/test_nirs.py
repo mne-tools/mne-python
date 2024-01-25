@@ -3,31 +3,31 @@
 #          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
-import pytest
 import numpy as np
-from numpy.testing import assert_array_equal, assert_array_almost_equal, assert_allclose
+import pytest
+from numpy.testing import assert_allclose, assert_array_almost_equal, assert_array_equal
 
 from mne import create_info
-from mne.datasets.testing import data_path
-from mne.io import read_raw_nirx, RawArray
-from mne.preprocessing.nirs import (
-    optical_density,
-    beer_lambert_law,
-    _fnirs_spread_bads,
-    _validate_nirs_info,
-    _check_channels_ordered,
-    tddr,
-    _channel_frequencies,
-    _channel_chromophore,
-    _fnirs_optode_names,
-    _optode_position,
-    scalp_coupling_index,
-)
-from mne.io.pick import _picks_to_idx
-
+from mne._fiff.constants import FIFF
+from mne._fiff.pick import _picks_to_idx
 from mne.datasets import testing
-from mne.io.constants import FIFF
+from mne.datasets.testing import data_path
+from mne.io import RawArray, read_raw_nirx
+from mne.preprocessing.nirs import (
+    _channel_chromophore,
+    _channel_frequencies,
+    _check_channels_ordered,
+    _fnirs_optode_names,
+    _fnirs_spread_bads,
+    _optode_position,
+    _validate_nirs_info,
+    beer_lambert_law,
+    optical_density,
+    scalp_coupling_index,
+    tddr,
+)
 
 fname_nirx_15_0 = (
     data_path(download=False) / "NIRx" / "nirscout" / "nirx_15_0_recording"
@@ -198,7 +198,7 @@ def test_fnirs_channel_naming_and_order_readers(fname):
     # The ordering must be increasing for the pairs, if provided
     raw_names_reversed = raw.copy().ch_names
     raw_names_reversed.reverse()
-    raw_reversed = raw.copy().pick_channels(raw_names_reversed, ordered=True)
+    raw_reversed = raw.copy().pick(raw_names_reversed)
     with pytest.raises(ValueError, match="The frequencies.*sorted.*"):
         _check_channels_ordered(raw_reversed.info, [850, 760])
     # So if we flip the second argument it should pass again

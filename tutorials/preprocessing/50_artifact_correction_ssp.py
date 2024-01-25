@@ -15,17 +15,21 @@ from repeatedly typing ``mne.preprocessing`` we'll directly import a handful of
 functions from that submodule:
 """
 
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 # %%
 
 import os
-import numpy as np
+
 import matplotlib.pyplot as plt
+import numpy as np
+
 import mne
 from mne.preprocessing import (
-    create_eog_epochs,
-    create_ecg_epochs,
     compute_proj_ecg,
     compute_proj_eog,
+    create_ecg_epochs,
+    create_eog_epochs,
 )
 
 # %%
@@ -99,6 +103,9 @@ empty_room_raw = mne.io.read_raw_fif(empty_room_file).crop(0, 30)
 empty_room_raw.del_proj()
 
 # %%
+#
+# _ex-noise-level:
+#
 # Visualizing the empty-room noise
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #
@@ -106,9 +113,17 @@ empty_room_raw.del_proj()
 # individual spectrum for each sensor, or an average (with confidence band)
 # across sensors:
 
+raw.info["bads"] = ["MEG 2443"]
 spectrum = empty_room_raw.compute_psd()
 for average in (False, True):
-    spectrum.plot(average=average, dB=False, xscale="log", picks="data", exclude="bads")
+    spectrum.plot(
+        average=average,
+        dB=False,
+        amplitude=True,
+        xscale="log",
+        picks="data",
+        exclude="bads",
+    )
 
 # %%
 # Creating the empty-room projectors
@@ -165,7 +180,7 @@ for title, projs in [
     with mne.viz.use_browser_backend("matplotlib"):
         fig = raw.plot(proj=True, order=mags, duration=1, n_channels=2)
     fig.subplots_adjust(top=0.9)  # make room for title
-    fig.suptitle("{} projectors".format(title), size="xx-large", weight="bold")
+    fig.suptitle(f"{title} projectors", size="xx-large", weight="bold")
 
 # %%
 # The effect is sometimes easier to see on averaged data. Here we use an
@@ -332,7 +347,7 @@ for title, proj in [("Without", empty_room_projs), ("With", ecg_projs)]:
     with mne.viz.use_browser_backend("matplotlib"):
         fig = raw.plot(order=artifact_picks, n_channels=len(artifact_picks))
     fig.subplots_adjust(top=0.9)  # make room for title
-    fig.suptitle("{} ECG projectors".format(title), size="xx-large", weight="bold")
+    fig.suptitle(f"{title} ECG projectors", size="xx-large", weight="bold")
 
 # %%
 # Finally, note that above we passed ``reject=None`` to the
@@ -444,7 +459,7 @@ for title in ("Without", "With"):
     with mne.viz.use_browser_backend("matplotlib"):
         fig = raw.plot(order=artifact_picks, n_channels=len(artifact_picks))
     fig.subplots_adjust(top=0.9)  # make room for title
-    fig.suptitle("{} EOG projectors".format(title), size="xx-large", weight="bold")
+    fig.suptitle(f"{title} EOG projectors", size="xx-large", weight="bold")
 
 # %%
 # Notice that the small peaks in the first to magnetometer channels (``MEG
@@ -495,7 +510,9 @@ for title in ("Without", "With"):
 
 evoked_eeg = epochs.average().pick("eeg")
 evoked_eeg.del_proj().add_proj(ecg_projs).add_proj(eog_projs)
-fig, axes = plt.subplots(1, 3, figsize=(8, 3), sharex=True, sharey=True)
+fig, axes = plt.subplots(
+    1, 3, figsize=(8, 3), sharex=True, sharey=True, layout="constrained"
+)
 for pi, proj in enumerate((False, True, "reconstruct")):
     ax = axes[pi]
     evoked_eeg.plot(proj=proj, axes=ax, spatial_colors=True)
@@ -509,7 +526,6 @@ for pi, proj in enumerate((False, True, "reconstruct")):
     ax.yaxis.set_tick_params(labelbottom=True)
     for text in list(ax.texts):
         text.remove()
-mne.viz.tight_layout()
 
 # %%
 # Note that here the bias in the EEG and magnetometer channels is reduced by

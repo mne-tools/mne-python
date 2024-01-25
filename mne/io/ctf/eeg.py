@@ -3,16 +3,17 @@
 # Author: Eric Larson <larson.eric.d<gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
+
+from os import listdir
+from os.path import join
 
 import numpy as np
-from os.path import join
-from os import listdir
 
-from ...utils import logger, warn
-from ..constants import FIFF
-from .res4 import _make_ctf_name
+from ..._fiff.constants import FIFF
 from ...transforms import apply_trans
-
+from ...utils import logger, warn
+from .res4 import _make_ctf_name
 
 _cardinal_dict = dict(
     nasion=FIFF.FIFFV_POINT_NASION,
@@ -78,7 +79,7 @@ def _read_pos(directory, transformations):
     fname = fname[0]
     digs = list()
     i = 2000
-    with open(fname, "r") as fid:
+    with open(fname) as fid:
         for line in fid:
             line = line.strip()
             if len(line) > 0:

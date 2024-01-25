@@ -7,7 +7,8 @@
 #          Teon Brooks <teon.brooks@gmail.com>
 #          Robert Luke <mail@robertluke.net>
 #
-# License: Simplified BSD
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import logging
 from collections import defaultdict
@@ -15,21 +16,23 @@ from itertools import combinations
 from pathlib import Path
 
 import numpy as np
+from scipy.spatial.distance import pdist, squareform
 
-from ..transforms import _pol_to_cart, _cart_to_sph
-from ..io.pick import pick_types, _picks_to_idx, _FNIRS_CH_TYPES_SPLIT
-from ..io.constants import FIFF
-from ..io.meas_info import Info
+from .._fiff.constants import FIFF
+from .._fiff.meas_info import Info
+from .._fiff.pick import _FNIRS_CH_TYPES_SPLIT, _picks_to_idx, pick_types
+from ..transforms import _cart_to_sph, _pol_to_cart
 from ..utils import (
-    _clean_names,
-    warn,
     _check_ch_locs,
-    fill_doc,
     _check_fname,
     _check_option,
     _check_sphere,
+    _clean_names,
+    fill_doc,
     logger,
+    warn,
 )
+from ..viz.topomap import plot_layout
 from .channels import _get_ch_info
 
 
@@ -55,7 +58,7 @@ class Layout:
         The type of Layout (e.g. 'Vectorview-all').
     """
 
-    def __init__(self, box, pos, names, ids, kind):  # noqa: D102
+    def __init__(self, box, pos, names, ids, kind):
         self.box = box
         self.pos = pos
         self.names = names
@@ -82,7 +85,7 @@ class Layout:
         height = self.pos[:, 3]
         fname = _check_fname(fname, overwrite=overwrite, name=fname)
         if fname.suffix == ".lout":
-            out_str = "%8.2f %8.2f %8.2f %8.2f\n" % self.box
+            out_str = "{:8.2f} {:8.2f} {:8.2f} {:8.2f}\n".format(*self.box)
         elif fname.suffix == ".lay":
             out_str = ""
         else:
@@ -104,7 +107,7 @@ class Layout:
 
     def __repr__(self):
         """Return the string representation."""
-        return "<Layout | %s - Channels: %s ...>" % (
+        return "<Layout | {} - Channels: {} ...>".format(
             self.kind,
             ", ".join(self.names[:3]),
         )
@@ -130,8 +133,6 @@ class Layout:
         -----
         .. versionadded:: 0.12.0
         """
-        from ..viz.topomap import plot_layout
-
         return plot_layout(self, picks=picks, show_axes=show_axes, show=show)
 
 
@@ -552,10 +553,10 @@ def _find_kit_layout(info, n_grads):
     kit_layout : str | None
         String naming the detected KIT layout or ``None`` if layout is missing.
     """
+    from ..io.kit.constants import KIT_LAYOUT
+
     if info["kit_system_id"] is not None:
         # avoid circular import
-        from ..io.kit.constants import KIT_LAYOUT
-
         return KIT_LAYOUT.get(info["kit_system_id"])
     elif n_grads == 160:
         return "KIT-160"
@@ -644,7 +645,6 @@ def _box_size(points, width=None, height=None, padding=0.0):
     height : float
         Height of the box
     """
-    from scipy.spatial.distance import pdist
 
     def xdiff(a, b):
         return np.abs(a[0] - b[0])
@@ -773,8 +773,6 @@ def _auto_topomap_coords(info, picks, ignore_overlap, to_sphere, sphere):
     locs : array, shape = (n_sensors, 2)
         An array of positions of the 2 dimensional map.
     """
-    from scipy.spatial.distance import pdist, squareform
-
     sphere = _check_sphere(sphere, info)
     logger.debug(f"Generating coords using: {sphere}")
 
@@ -1183,7 +1181,7 @@ def generate_2d_layout(
     if ch_indices is None:
         ch_indices = np.arange(xy.shape[0])
     if ch_names is None:
-        ch_names = ["{}".format(i) for i in ch_indices]
+        ch_names = list(map(str, ch_indices))
 
     if len(ch_names) != len(ch_indices):
         raise ValueError("# channel names and indices must be equal")
@@ -1207,7 +1205,7 @@ def generate_2d_layout(
     # Create box and pos variable
     box = _box_size(np.vstack([x, y]).T, padding=pad)
     box = (0, 0, box[0], box[1])
-    w, h = [np.array([i] * x.shape[0]) for i in [w, h]]
+    w, h = (np.array([i] * x.shape[0]) for i in [w, h])
     loc_params = np.vstack([x, y, w, h]).T
 
     layout = Layout(box, loc_params, ch_names, ch_indices, name)

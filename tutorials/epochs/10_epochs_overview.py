@@ -16,6 +16,8 @@ creating an :class:`~mne.Epochs` object from (possibly simulated) data in a
 As usual we'll start by importing the modules we need:
 """
 
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 # %%
 
 import mne
@@ -183,7 +185,7 @@ print(epochs.drop_log[-4:])
 # The :class:`~mne.Epochs` object can be visualized (and browsed interactively)
 # using its :meth:`~mne.Epochs.plot` method:
 
-epochs.plot(n_epochs=10)
+epochs.plot(n_epochs=10, events=True)
 
 # %%
 # Notice that the individual epochs are sequentially numbered along the bottom
@@ -270,7 +272,7 @@ print(epochs["buttonpress"][[0, 1, 2, 3]])  # same as previous line
 # so in interactive/exploratory sessions you may want to create a
 # :meth:`~mne.Epochs.copy` first.
 
-epochs_eeg = epochs.copy().pick_types(meg=False, eeg=True)
+epochs_eeg = epochs.copy().pick(picks="eeg")
 print(epochs_eeg.ch_names)
 
 new_order = ["EEG 002", "STI 014", "EOG 061", "MEG 2521"]
@@ -312,7 +314,7 @@ epochs.set_channel_types({"EEG 060": "eeg"})
 shorter_epochs = epochs.copy().crop(tmin=-0.1, tmax=0.1, include_tmax=True)
 
 for name, obj in dict(Original=epochs, Cropped=shorter_epochs).items():
-    print("{} epochs has {} time samples".format(name, obj.get_data().shape[-1]))
+    print(f"{name} epochs has {obj.get_data(copy=False).shape[-1]} time samples")
 
 # %%
 # Cropping removed part of the baseline. When printing the
@@ -366,7 +368,7 @@ meg_data = epochs.get_data(picks=["mag", "grad"])
 channel_4_6_8 = epochs.get_data(picks=slice(4, 9, 2))
 
 for name, arr in dict(EOG=eog_data, MEG=meg_data, Slice=channel_4_6_8).items():
-    print("{} contains {} channels".format(name, arr.shape[1]))
+    print(f"{name} contains {arr.shape[1]} channels")
 
 # %%
 # Note that if your analysis requires repeatedly extracting single epochs from

@@ -6,36 +6,36 @@
 #          Adam Li <adam2392@gmail.com>
 #          Daniel McCloy <dan@mccloy.info>
 #
-# License: BSD Style.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
-from collections import OrderedDict
 import importlib
 import inspect
 import logging
 import os
 import os.path as op
-from pathlib import Path
 import sys
-import time
 import tempfile
+import time
 import zipfile
+from collections import OrderedDict
+from pathlib import Path
 
 import numpy as np
 
-from .config import _hcp_mmp_license_text, MNE_DATASETS
-from ..label import read_labels_from_annot, Label, write_labels_to_annot
+from ..label import Label, read_labels_from_annot, write_labels_to_annot
 from ..utils import (
-    get_config,
-    set_config,
-    logger,
-    _validate_type,
-    verbose,
-    get_subjects_dir,
     _pl,
     _safe_input,
+    _validate_type,
+    get_config,
+    get_subjects_dir,
+    logger,
+    set_config,
+    verbose,
 )
-from ..utils.docs import docdict, _docformat
-
+from ..utils.docs import _docformat, docdict
+from .config import MNE_DATASETS, _hcp_mmp_license_text
 
 _data_path_doc = """Get path to local copy of {name} dataset.
 
@@ -87,7 +87,7 @@ def _dataset_version(path, name):
     """Get the version of the dataset."""
     ver_fname = op.join(path, "version.txt")
     if op.exists(ver_fname):
-        with open(ver_fname, "r") as fid:
+        with open(ver_fname) as fid:
             version = fid.readline().strip()  # version is on first line
     else:
         logger.debug(f"Version file missing: {ver_fname}")
@@ -103,7 +103,7 @@ def _get_path(path, key, name):
     # 1. Input
     _validate_type(path, ("path-like", None), path)
     if path is not None:
-        return path
+        return Path(path).expanduser()
     # 2. get_config(key) — unless key is None or "" (special get_config values)
     # 3. get_config('MNE_DATA')
     path = get_config(key or "MNE_DATA", get_config("MNE_DATA"))
@@ -133,7 +133,7 @@ def _get_path(path, key, name):
                 "write permissions, for ex:data_path"
                 "('/home/xyz/me2/')" % (path)
             )
-    return Path(path)
+    return Path(path).expanduser()
 
 
 def _do_path_update(path, update_path, key, name):
@@ -147,8 +147,8 @@ def _do_path_update(path, update_path, key, name):
                 answer = "y"
             else:
                 msg = (
-                    "Do you want to set the path:\n    %s\nas the default "
-                    "%s dataset path in the mne-python config [y]/n? " % (path, name)
+                    f"Do you want to set the path:\n    {path}\nas the default {name} "
+                    "dataset path in the mne-python config [y]/n? "
                 )
                 answer = _safe_input(msg, alt="pass update_path=True")
             if answer.lower() == "n":
@@ -213,6 +213,7 @@ def _download_mne_dataset(
 ):
     """Aux function for downloading internal MNE datasets."""
     import pooch
+
     from mne.datasets._fetch import fetch_dataset
 
     _check_in_testing_and_raise(name, download)
@@ -324,11 +325,11 @@ def _download_all_example_data(verbose=True):
     paths = dict()
     for kind in (
         "sample testing misc spm_face somato hf_sef multimodal "
-        "fnirs_motor opm mtrf fieldtrip_cmc kiloword phantom_4dbti "
+        "fnirs_motor opm mtrf fieldtrip_cmc kiloword phantom_kit phantom_4dbti "
         "refmeg_noise ssvep epilepsy_ecog ucl_opm_auditory eyelink "
         "erp_core brainstorm.bst_raw brainstorm.bst_auditory "
         "brainstorm.bst_resting brainstorm.bst_phantom_ctf "
-        "brainstorm.bst_phantom_elekta"
+        "brainstorm.bst_phantom_elekta phantom_kernel"
     ).split():
         mod = importlib.import_module(f"mne.datasets.{kind}")
         data_path_func = getattr(mod, "data_path")
@@ -341,12 +342,12 @@ def _download_all_example_data(verbose=True):
     # Now for the exceptions:
     from . import (
         eegbci,
-        sleep_physionet,
-        limo,
         fetch_fsaverage,
-        fetch_infant_template,
         fetch_hcp_mmp_parcellation,
+        fetch_infant_template,
         fetch_phantom,
+        limo,
+        sleep_physionet,
     )
 
     eegbci.load_data(1, [6, 10, 14], update_path=True)
@@ -746,7 +747,7 @@ def fetch_hcp_mmp_parcellation(
             assert used.all()
         assert len(labels_out) == 46
         for hemi, side in (("lh", "left"), ("rh", "right")):
-            table_name = "./%s.fsaverage164.label.gii" % (side,)
+            table_name = f"./{side}.fsaverage164.label.gii"
             write_labels_to_annot(
                 labels_out,
                 "fsaverage",
@@ -761,7 +762,7 @@ def fetch_hcp_mmp_parcellation(
 def _manifest_check_download(manifest_path, destination, url, hash_):
     import pooch
 
-    with open(manifest_path, "r") as fid:
+    with open(manifest_path) as fid:
         names = [name.strip() for name in fid.readlines()]
     manifest_path = op.basename(manifest_path)
     need = list()
@@ -786,18 +787,17 @@ def _manifest_check_download(manifest_path, destination, url, hash_):
                 fname=op.basename(fname_path),
             )
 
-            logger.info("Extracting missing file%s" % (_pl(need),))
+            logger.info(f"Extracting missing file{_pl(need)}")
             with zipfile.ZipFile(fname_path, "r") as ff:
                 members = set(f for f in ff.namelist() if not f.endswith("/"))
                 missing = sorted(members.symmetric_difference(set(names)))
                 if len(missing):
                     raise RuntimeError(
-                        "Zip file did not have correct names:"
-                        "\n%s" % ("\n".join(missing))
+                        "Zip file did not have correct names:\n{'\n'.join(missing)}"
                     )
                 for name in need:
                     ff.extract(name, path=destination)
-        logger.info("Successfully extracted %d file%s" % (len(need), _pl(need)))
+        logger.info(f"Successfully extracted {len(need)} file{_pl(need)}")
 
 
 def _log_time_size(t0, sz):

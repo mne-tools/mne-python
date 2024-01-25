@@ -6,76 +6,78 @@
 #          Jona Sassenhagen <jona.sassenhagen@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from copy import deepcopy
+from typing import Union
 
 import numpy as np
 
-from .baseline import rescale, _log_rescale, _check_baseline
-from .channels.channels import UpdateChannelsMixin, SetChannelsMixin, InterpolationMixin
+from ._fiff.constants import FIFF
+from ._fiff.meas_info import (
+    ContainsMixin,
+    SetChannelsMixin,
+    _ensure_infos_match,
+    _read_extended_ch_info,
+    _rename_list,
+    read_meas_info,
+    write_meas_info,
+)
+from ._fiff.open import fiff_open
+from ._fiff.pick import _FNIRS_CH_TYPES_SPLIT, _picks_to_idx, pick_types
+from ._fiff.proj import ProjMixin
+from ._fiff.tag import read_tag
+from ._fiff.tree import dir_tree_find
+from ._fiff.write import (
+    end_block,
+    start_and_end_file,
+    start_block,
+    write_complex_float_matrix,
+    write_float,
+    write_float_matrix,
+    write_id,
+    write_int,
+    write_string,
+)
+from .baseline import _check_baseline, _log_rescale, rescale
+from .channels.channels import InterpolationMixin, ReferenceMixin, UpdateChannelsMixin
 from .channels.layout import _merge_ch_data, _pair_grad_sensors
-from .defaults import _INTERPOLATION_DEFAULT, _EXTRAPOLATE_DEFAULT, _BORDER_DEFAULT
-from .filter import detrend, FilterMixin, _check_fun
+from .defaults import _BORDER_DEFAULT, _EXTRAPOLATE_DEFAULT, _INTERPOLATION_DEFAULT
+from .filter import FilterMixin, _check_fun, detrend
+from .html_templates import _get_html_template
+from .parallel import parallel_func
+from .time_frequency.spectrum import Spectrum, SpectrumMixin, _validate_method
 from .utils import (
-    check_fname,
-    logger,
-    verbose,
-    warn,
-    sizeof_fmt,
-    repr_html,
+    ExtendedTimeMixin,
     SizeMixin,
-    copy_function_doc_to_method_doc,
-    _validate_type,
-    fill_doc,
-    _check_option,
     _build_data_frame,
-    _check_pandas_installed,
+    _check_fname,
+    _check_option,
     _check_pandas_index_arguments,
+    _check_pandas_installed,
+    _check_preload,
+    _check_time_format,
     _convert_times,
     _scale_dataframe_data,
-    _check_time_format,
-    _check_preload,
-    _check_fname,
-    TimeMixin,
+    _validate_type,
+    check_fname,
+    copy_function_doc_to_method_doc,
+    fill_doc,
+    logger,
+    repr_html,
+    sizeof_fmt,
+    verbose,
+    warn,
 )
 from .viz import (
     plot_evoked,
-    plot_evoked_topomap,
     plot_evoked_field,
     plot_evoked_image,
     plot_evoked_topo,
+    plot_evoked_topomap,
 )
-from .viz.evoked import plot_evoked_white, plot_evoked_joint
+from .viz.evoked import plot_evoked_joint, plot_evoked_white
 from .viz.topomap import _topomap_animation
-
-from .io.constants import FIFF
-from .io.open import fiff_open
-from .io.tag import read_tag
-from .io.tree import dir_tree_find
-from .io.pick import pick_types, _picks_to_idx, _FNIRS_CH_TYPES_SPLIT
-from .io.meas_info import (
-    ContainsMixin,
-    read_meas_info,
-    write_meas_info,
-    _read_extended_ch_info,
-    _rename_list,
-    _ensure_infos_match,
-)
-from .io.proj import ProjMixin
-from .io.write import (
-    start_and_end_file,
-    start_block,
-    end_block,
-    write_int,
-    write_string,
-    write_float_matrix,
-    write_id,
-    write_float,
-    write_complex_float_matrix,
-)
-from .io.base import _check_maxshield, _get_ch_factors
-from .parallel import parallel_func
-from .time_frequency.spectrum import Spectrum, SpectrumMixin, _validate_method
 
 _aspect_dict = {
     "average": FIFF.FIFFV_ASPECT_AVERAGE,
@@ -98,10 +100,11 @@ class Evoked(
     ProjMixin,
     ContainsMixin,
     UpdateChannelsMixin,
+    ReferenceMixin,
     SetChannelsMixin,
     InterpolationMixin,
     FilterMixin,
-    TimeMixin,
+    ExtendedTimeMixin,
     SizeMixin,
     SpectrumMixin,
 ):
@@ -172,7 +175,7 @@ class Evoked(
         allow_maxshield=False,
         *,
         verbose=None,
-    ):  # noqa: D102
+    ):
         _validate_type(proj, bool, "'proj'")
         # Read the requested data
         fname = str(_check_fname(fname=fname, must_exist=True, overwrite="read"))
@@ -238,6 +241,9 @@ class Evoked(
         -----
         .. versionadded:: 0.24
         """
+        # Avoid circular import
+        from .io.base import _get_ch_factors
+
         picks = _picks_to_idx(self.info, picks, "all", exclude=())
 
         start, stop = self._handle_tmin_tmax(tmin, tmax)
@@ -394,8 +400,8 @@ class Evoked(
             comment += "..."
         else:
             comment = self.comment
-        s = "'%s' (%s, N=%s)" % (comment, self.kind, self.nave)
-        s += ", %0.5g – %0.5g s" % (self.times[0], self.times[-1])
+        s = f"'{comment}' ({self.kind}, N={self.nave})"
+        s += f", {self.times[0]:0.5g} – {self.times[-1]:0.5g} s"
         s += ", baseline "
         if self.baseline is None:
             s += "off"
@@ -409,20 +415,18 @@ class Evoked(
             ):
                 s += " (baseline period was cropped after baseline correction)"
         s += ", %s ch" % self.data.shape[0]
-        s += ", ~%s" % (sizeof_fmt(self._size),)
-        return "<Evoked | %s>" % s
+        s += f", ~{sizeof_fmt(self._size)}"
+        return f"<Evoked | {s}>"
 
     @repr_html
     def _repr_html_(self):
-        from .html_templates import repr_templates_env
-
         if self.baseline is None:
             baseline = "off"
         else:
             baseline = tuple([f"{b:.3f}" for b in self.baseline])
             baseline = f"{baseline[0]} – {baseline[1]} s"
 
-        t = repr_templates_env.get_template("evoked.html.jinja")
+        t = _get_html_template("repr", "evoked.html.jinja")
         t = t.render(evoked=self, baseline=baseline)
         return t
 
@@ -545,7 +549,7 @@ class Evoked(
         scalings=None,
         title=None,
         proj=False,
-        vline=[0.0],
+        vline=(0.0,),
         fig_background=None,
         merge_grads=False,
         legend=True,
@@ -659,7 +663,11 @@ class Evoked(
         vmax=None,
         n_contours=21,
         *,
+        show_density=True,
+        alpha=None,
+        interpolation="nearest",
         interaction="terrain",
+        time_viewer="auto",
         verbose=None,
     ):
         return plot_evoked_field(
@@ -671,7 +679,11 @@ class Evoked(
             fig=fig,
             vmax=vmax,
             n_contours=n_contours,
+            show_density=show_density,
+            alpha=alpha,
+            interpolation=interpolation,
             interaction=interaction,
+            time_viewer=time_viewer,
             verbose=verbose,
         )
 
@@ -902,6 +914,8 @@ class Evoked(
         time_as_index=False,
         merge_grads=False,
         return_amplitude=False,
+        *,
+        strict=True,
     ):
         """Get location and latency of peak amplitude.
 
@@ -929,6 +943,12 @@ class Evoked(
             If True, return also the amplitude at the maximum response.
 
             .. versionadded:: 0.16
+        strict : bool
+            If True, raise an error if values are all positive when detecting
+            a minimum (mode='neg'), or all negative when detecting a maximum
+            (mode='pos'). Defaults to True.
+
+            .. versionadded:: 1.7
 
         Returns
         -------
@@ -1020,7 +1040,14 @@ class Evoked(
             data, _ = _merge_ch_data(data, ch_type, [])
             ch_names = [ch_name[:-1] + "X" for ch_name in ch_names[::2]]
 
-        ch_idx, time_idx, max_amp = _get_peak(data, self.times, tmin, tmax, mode)
+        ch_idx, time_idx, max_amp = _get_peak(
+            data,
+            self.times,
+            tmin,
+            tmax,
+            mode,
+            strict=strict,
+        )
 
         out = (ch_names[ch_idx], time_idx if time_as_index else self.times[time_idx])
 
@@ -1039,6 +1066,8 @@ class Evoked(
         tmax=None,
         picks=None,
         proj=False,
+        remove_dc=True,
+        exclude=(),
         *,
         n_jobs=1,
         verbose=None,
@@ -1054,6 +1083,8 @@ class Evoked(
         %(tmin_tmax_psd)s
         %(picks_good_data_noref)s
         %(proj_psd)s
+        %(remove_dc)s
+        %(exclude_psd)s
         %(n_jobs)s
         %(verbose)s
         %(method_kw_psd)s
@@ -1082,7 +1113,9 @@ class Evoked(
             tmin=tmin,
             tmax=tmax,
             picks=picks,
+            exclude=exclude,
             proj=proj,
+            remove_dc=remove_dc,
             reject_by_annotation=False,
             n_jobs=n_jobs,
             verbose=verbose,
@@ -1238,7 +1271,7 @@ class Evoked(
         data = _scale_dataframe_data(self, data, picks, scalings)
         # prepare extra columns / multiindex
         mindex = list()
-        times = _convert_times(self, times, time_format)
+        times = _convert_times(times, time_format, self.info["meas_date"])
         mindex.append(("time", times))
         # build DataFrame
         df = _build_data_frame(
@@ -1299,20 +1332,20 @@ class EvokedArray(Evoked):
         baseline=None,
         *,
         verbose=None,
-    ):  # noqa: D102
+    ):
         dtype = np.complex128 if np.iscomplexobj(data) else np.float64
         data = np.asanyarray(data, dtype=dtype)
 
         if data.ndim != 2:
             raise ValueError(
-                "Data must be a 2D array of shape (n_channels, "
-                "n_samples), got shape %s" % (data.shape,)
+                "Data must be a 2D array of shape (n_channels, n_samples), got shape "
+                f"{data.shape}"
             )
 
         if len(info["ch_names"]) != np.shape(data)[0]:
             raise ValueError(
-                "Info (%s) and data (%s) must have same number "
-                "of channels." % (len(info["ch_names"]), np.shape(data)[0])
+                f"Info ({len(info['ch_names'])}) and data ({np.shape(data)[0]}) must "
+                "have same number of channels."
             )
 
         self.data = data
@@ -1334,8 +1367,7 @@ class EvokedArray(Evoked):
         _validate_type(self.kind, "str", "kind")
         if self.kind not in _aspect_dict:
             raise ValueError(
-                'unknown kind "%s", should be "average" or '
-                '"standard_error"' % (self.kind,)
+                f'unknown kind "{self.kind}", should be "average" or "standard_error"'
             )
         self._aspect_kind = _aspect_dict[self.kind]
 
@@ -1375,6 +1407,8 @@ def _get_entries(fid, evoked_node, allow_maxshield=False):
 
 def _get_aspect(evoked, allow_maxshield):
     """Get Evoked data aspect."""
+    from .io.base import _check_maxshield
+
     is_maxshield = False
     aspect = dir_tree_find(evoked, FIFF.FIFFB_ASPECT)
     if len(aspect) == 0:
@@ -1401,18 +1435,14 @@ def _check_evokeds_ch_names_times(all_evoked):
     for ii, ev in enumerate(all_evoked[1:]):
         if ev.ch_names != ch_names:
             if set(ev.ch_names) != set(ch_names):
-                raise ValueError(
-                    "%s and %s do not contain the same channels." % (evoked, ev)
-                )
+                raise ValueError(f"{evoked} and {ev} do not contain the same channels.")
             else:
                 warn("Order of channels differs, reordering channels ...")
                 ev = ev.copy()
                 ev.reorder_channels(ch_names)
                 all_evoked[ii + 1] = ev
         if not np.max(np.abs(ev.times - evoked.times)) < 1e-7:
-            raise ValueError(
-                "%s and %s do not contain the same time instants" % (evoked, ev)
-            )
+            raise ValueError(f"{evoked} and {ev} do not contain the same time instants")
     return all_evoked
 
 
@@ -1519,7 +1549,7 @@ def read_evokeds(
     proj=True,
     allow_maxshield=False,
     verbose=None,
-):
+) -> Union[list[Evoked], Evoked]:
     """Read evoked dataset(s).
 
     Parameters
@@ -1635,23 +1665,22 @@ def _read_evoked(fname, condition=None, kind="average", allow_maxshield=False):
                 raise ValueError('kind must be "average" or ' '"standard_error"')
 
             comments, aspect_kinds, t = _get_entries(fid, evoked_node, allow_maxshield)
-            goods = np.in1d(comments, [condition]) & np.in1d(
+            goods = np.isin(comments, [condition]) & np.isin(
                 aspect_kinds, [_aspect_dict[kind]]
             )
             found_cond = np.where(goods)[0]
             if len(found_cond) != 1:
                 raise ValueError(
-                    'condition "%s" (%s) not found, out of '
-                    "found datasets:\n%s" % (condition, kind, t)
+                    f'condition "{condition}" ({kind}) not found, out of found '
+                    f"datasets:\n{t}"
                 )
             condition = found_cond[0]
         elif condition is None:
             if len(evoked_node) > 1:
                 _, _, conditions = _get_entries(fid, evoked_node, allow_maxshield)
                 raise TypeError(
-                    "Evoked file has more than one "
-                    "condition, the condition parameters "
-                    "must be specified from:\n%s" % conditions
+                    "Evoked file has more than one condition, the condition parameters "
+                    f"must be specified from:\n{conditions}"
                 )
             else:
                 condition = 0
@@ -1785,19 +1814,18 @@ def _read_evoked(fname, condition=None, kind="average", allow_maxshield=False):
         del first, last
         if nsamp is not None and data.shape[1] != nsamp:
             raise ValueError(
-                "Incorrect number of samples (%d instead of "
-                " %d)" % (data.shape[1], nsamp)
+                f"Incorrect number of samples ({data.shape[1]} instead of {nsamp})"
             )
         logger.info("    Found the data of interest:")
         logger.info(
-            "        t = %10.2f ... %10.2f ms (%s)"
-            % (1000 * times[0], 1000 * times[-1], comment)
+            f"        t = {1000 * times[0]:10.2f} ... {1000 * times[-1]:10.2f} ms ("
+            f"{comment})"
         )
         if info["comps"] is not None:
             logger.info(
-                "        %d CTF compensation matrices available" % len(info["comps"])
+                f"        {len(info['comps'])} CTF compensation matrices available"
             )
-        logger.info("        nave = %d - aspect type = %d" % (nave, aspect_kind))
+        logger.info(f"        nave = {nave} - aspect type = {aspect_kind}")
 
     # Calibrate
     cals = np.array(
@@ -1936,7 +1964,7 @@ def _write_evokeds(fname, evoked, check=True, *, on_mismatch="raise", overwrite=
         end_block(fid, FIFF.FIFFB_MEAS)
 
 
-def _get_peak(data, times, tmin=None, tmax=None, mode="abs"):
+def _get_peak(data, times, tmin=None, tmax=None, mode="abs", *, strict=True):
     """Get feature-index and time of maximum signal from 2D array.
 
     Note. This is a 'getter', not a 'finder'. For non-evoked type
@@ -1957,6 +1985,10 @@ def _get_peak(data, times, tmin=None, tmax=None, mode="abs"):
         values will be considered. If 'neg' only negative values will
         be considered. If 'abs' absolute values will be considered.
         Defaults to 'abs'.
+    strict : bool
+        If True, raise an error if values are all positive when detecting
+        a minimum (mode='neg'), or all negative when detecting a maximum
+        (mode='pos'). Defaults to True.
 
     Returns
     -------
@@ -1995,12 +2027,12 @@ def _get_peak(data, times, tmin=None, tmax=None, mode="abs"):
 
     maxfun = np.argmax
     if mode == "pos":
-        if not np.any(data[~mask] > 0):
+        if strict and not np.any(data[~mask] > 0):
             raise ValueError(
                 "No positive values encountered. Cannot " "operate in pos mode."
             )
     elif mode == "neg":
-        if not np.any(data[~mask] < 0):
+        if strict and not np.any(data[~mask] < 0):
             raise ValueError(
                 "No negative values encountered. Cannot " "operate in neg mode."
             )

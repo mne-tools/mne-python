@@ -1,46 +1,48 @@
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 import os
 from functools import reduce
 from glob import glob
 from shutil import copyfile
 
-import pytest
 import numpy as np
+import pytest
 from numpy.testing import (
-    assert_array_almost_equal,
     assert_allclose,
+    assert_array_almost_equal,
     assert_array_equal,
     assert_array_less,
 )
 
 import mne
+from mne._fiff.constants import FIFF
+from mne.channels import DigMontage
+from mne.coreg import (
+    Coregistration,
+    _is_mri_subject,
+    coregister_fiducials,
+    create_default_subject,
+    fit_matched_points,
+    get_mni_fiducials,
+    scale_labels,
+    scale_mri,
+    scale_source_space,
+)
 from mne.datasets import testing
+from mne.io import read_fiducials, read_info
+from mne.source_space import write_source_spaces
 from mne.transforms import (
     Transform,
-    apply_trans,
-    rotation,
-    translation,
-    scaling,
-    read_trans,
     _angle_between_quats,
-    rot_to_quat,
+    apply_trans,
     invert_transform,
+    read_trans,
+    rot_to_quat,
+    rotation,
+    scaling,
+    translation,
 )
-from mne.coreg import (
-    fit_matched_points,
-    create_default_subject,
-    scale_mri,
-    _is_mri_subject,
-    scale_labels,
-    scale_source_space,
-    coregister_fiducials,
-    get_mni_fiducials,
-    Coregistration,
-)
-from mne.io import read_fiducials, read_info
-from mne.io.constants import FIFF
 from mne.utils import catch_logging
-from mne.source_space import write_source_spaces
-from mne.channels import DigMontage
 
 data_path = testing.data_path(download=False)
 subjects_dir = data_path / "subjects"

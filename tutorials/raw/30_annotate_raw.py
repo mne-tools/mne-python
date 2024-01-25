@@ -14,10 +14,13 @@ raw data in this tutorial) cropping the `~mne.io.Raw` object to just 60
 seconds before loading it into RAM to save memory:
 """
 
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 # %%
 
 import os
 from datetime import timedelta
+
 import mne
 
 sample_data_folder = mne.datasets.sample.data_path()
@@ -227,7 +230,7 @@ for ann in raw.annotations:
     descr = ann["description"]
     start = ann["onset"]
     end = ann["onset"] + ann["duration"]
-    print("'{}' goes from {} to {}".format(descr, start, end))
+    print(f"'{descr}' goes from {start} to {end}")
 
 # %%
 # Note that iterating, indexing and slicing `~mne.Annotations` all

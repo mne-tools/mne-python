@@ -11,6 +11,7 @@ within a label.
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 
@@ -19,7 +20,7 @@ import matplotlib.pyplot as plt
 import mne
 from mne import io
 from mne.datasets import sample
-from mne.minimum_norm import read_inverse_operator, compute_source_psd
+from mne.minimum_norm import compute_source_psd, read_inverse_operator
 
 print(__doc__)
 

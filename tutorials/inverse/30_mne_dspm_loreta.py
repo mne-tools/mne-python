@@ -9,14 +9,16 @@ The aim of this tutorial is to teach you how to compute and apply a linear
 minimum-norm inverse method on evoked/raw/epochs data.
 """
 
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 # %%
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 
 import mne
 from mne.datasets import sample
-from mne.minimum_norm import make_inverse_operator, apply_inverse
+from mne.minimum_norm import apply_inverse, make_inverse_operator
 
 # %%
 # Process MEG data
@@ -90,13 +92,18 @@ inverse_operator = make_inverse_operator(
 )
 del fwd
 
-# You can write it to disk with::
-#
-#     >>> from mne.minimum_norm import write_inverse_operator
-#     >>> write_inverse_operator('sample_audvis-meg-oct-6-inv.fif',
-#                                inverse_operator)
-
 # %%
+# .. note::
+#
+#     You can write the inverse operator to disk with:
+#
+#     .. code-block::
+#
+#         from mne.minimum_norm import write_inverse_operator
+#         write_inverse_operator(
+#             "sample_audvis-meg-oct-6-inv.fif", inverse_operator
+#         )
+#
 # Compute inverse solution
 # ------------------------
 # We can use this to compute the inverse solution and obtain source time

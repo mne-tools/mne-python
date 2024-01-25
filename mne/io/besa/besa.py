@@ -1,10 +1,13 @@
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 from collections import OrderedDict
 from pathlib import Path
+
 import numpy as np
 
-from ...utils import logger, fill_doc, verbose
-from ..meas_info import create_info
+from ..._fiff.meas_info import create_info
 from ...evoked import EvokedArray
+from ...utils import fill_doc, logger, verbose
 
 
 @fill_doc

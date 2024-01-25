@@ -26,16 +26,18 @@ harmonics).
 #          Daniel McCloy <dan@mccloy.info>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 
 from os import path as op
+
 import mne
 
 data_path = op.join(mne.datasets.testing.data_path(verbose=True), "SSS")
 fname_raw = op.join(data_path, "test_move_anon_raw.fif")
 raw = mne.io.read_raw_fif(fname_raw, allow_maxshield="yes").load_data()
-raw.compute_psd().plot(picks="data", exclude="bads")
+raw.compute_psd().plot(picks="data", exclude="bads", amplitude=False)
 
 # %%
 # We can use `mne.chpi.get_chpi_info` to retrieve the coil frequencies,

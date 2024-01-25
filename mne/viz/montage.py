@@ -1,9 +1,15 @@
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 """Functions to plot EEG sensor montages or digitizer montages."""
 from copy import deepcopy
+
 import numpy as np
-from ..utils import logger, _check_option, _validate_type, verbose
-from . import plot_sensors
-from ..io._digitization import _get_fid_coords
+from scipy.spatial.distance import cdist
+
+from .._fiff._digitization import _get_fid_coords
+from .._fiff.meas_info import create_info
+from ..utils import _check_option, _validate_type, logger, verbose
+from .utils import plot_sensors
 
 
 @verbose
@@ -16,7 +22,7 @@ def plot_montage(
     sphere=None,
     *,
     axes=None,
-    verbose=None
+    verbose=None,
 ):
     """Plot a montage.
 
@@ -44,9 +50,7 @@ def plot_montage(
     fig : instance of matplotlib.figure.Figure
         The figure object.
     """
-    from scipy.spatial.distance import cdist
     from ..channels import DigMontage, make_dig_montage
-    from .. import create_info
 
     _check_option("kind", kind, ["topomap", "3d"])
     _validate_type(montage, DigMontage, item_name="montage")
@@ -68,9 +72,9 @@ def plot_montage(
         n_chans = pos.shape[0]
         n_dupes = dupes.shape[0]
         idx = np.setdiff1d(np.arange(len(pos)), dupes[:, 1]).tolist()
-        logger.info("{} duplicate electrode labels found:".format(n_dupes))
+        logger.info(f"{n_dupes} duplicate electrode labels found:")
         logger.info(", ".join([ch_names[d[0]] + "/" + ch_names[d[1]] for d in dupes]))
-        logger.info("Plotting {} unique labels.".format(n_chans - n_dupes))
+        logger.info(f"Plotting {n_chans - n_dupes} unique labels.")
         ch_names = [ch_names[i] for i in idx]
         ch_pos = dict(zip(ch_names, pos[idx, :]))
         # XXX: this might cause trouble if montage was originally in head

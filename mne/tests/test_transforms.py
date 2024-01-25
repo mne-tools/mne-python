@@ -1,57 +1,61 @@
 # Author: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import itertools
 import os
 from pathlib import Path
 
-import pytest
 import numpy as np
+import pytest
 from numpy.testing import (
-    assert_array_equal,
-    assert_equal,
     assert_allclose,
-    assert_array_less,
     assert_almost_equal,
+    assert_array_equal,
+    assert_array_less,
+    assert_equal,
 )
 
 import mne
+from mne import read_trans, write_trans
 from mne.datasets import testing
 from mne.fixes import _get_img_fdata
-from mne import read_trans, write_trans
 from mne.io import read_info
 from mne.transforms import (
-    invert_transform,
-    _get_trans,
-    rotation,
-    rotation3d,
-    rotation_angles,
+    _angle_between_quats,
+    _average_quats,
+    _cart_to_sph,
+    _compute_r2,
+    _euler_to_quat,
     _find_trans,
-    combine_transforms,
-    apply_trans,
-    translation,
-    get_ras_to_neuromag_trans,
+    _find_vector_rotation,
+    _fit_matched_points,
+    _get_trans,
+    _MatchedDisplacementFieldInterpolator,
     _pol_to_cart,
+    _quat_real,
+    _quat_to_affine,
+    _quat_to_euler,
+    _read_fs_xfm,
+    _sph_to_cart,
+    _topo_to_sph,
+    _validate_pipeline,
+    _write_fs_xfm,
+    apply_trans,
+    combine_transforms,
+    get_ras_to_neuromag_trans,
+    invert_transform,
     quat_to_rot,
     rot_to_quat,
-    _angle_between_quats,
-    _find_vector_rotation,
-    _sph_to_cart,
-    _cart_to_sph,
-    _topo_to_sph,
-    _average_quats,
-    _SphericalSurfaceWarp as SphericalSurfaceWarp,
+    rotation,
+    rotation3d,
     rotation3d_align_z_axis,
-    _read_fs_xfm,
-    _write_fs_xfm,
-    _quat_real,
-    _fit_matched_points,
-    _quat_to_euler,
-    _euler_to_quat,
-    _quat_to_affine,
-    _compute_r2,
-    _validate_pipeline,
+    rotation_angles,
+    translation,
+)
+from mne.transforms import (
+    _SphericalSurfaceWarp as SphericalSurfaceWarp,
 )
 
 data_path = testing.data_path(download=False)
@@ -60,7 +64,7 @@ fname_eve = data_path / "MEG" / "sample" / "sample_audvis_trunc_raw-eve.fif"
 subjects_dir = data_path / "subjects"
 fname_t1 = subjects_dir / "fsaverage" / "mri" / "T1.mgz"
 
-base_dir = Path(__file__).parent.parent / "io" / "tests" / "data"
+base_dir = Path(__file__).parents[1] / "io" / "tests" / "data"
 fname_trans = base_dir / "sample-audvis-raw-trans.txt"
 test_fif_fname = base_dir / "test_raw.fif"
 ctf_fname = base_dir / "test_ctf_raw.fif"
@@ -630,3 +634,19 @@ def test_volume_registration():
         ],
         atol=0.001,
     )
+
+
+def test_displacement_field():
+    """Test that our matched point deformation works."""
+    to = np.array([[5, 4, 1], [6, 1, 0], [4, -1, 1], [3, 3, 0]], float)
+    fro = np.array([[0, 2, 2], [2, 2, 1], [2, 0, 2], [0, 0, 1]], float)
+    interp = _MatchedDisplacementFieldInterpolator(fro, to)
+    fro_t = interp(fro)
+    assert_allclose(to, fro_t, atol=1e-12)
+    # check midpoints (should all be decent)
+    for a in range(len(to)):
+        for b in range(a + 1, len(to)):
+            to_ = np.mean(to[[a, b]], axis=0)
+            fro_ = np.mean(fro[[a, b]], axis=0)
+            fro_t = interp(fro_)
+            assert_allclose(to_, fro_t, atol=1e-12)

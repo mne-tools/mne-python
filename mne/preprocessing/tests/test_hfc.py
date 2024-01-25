@@ -1,24 +1,24 @@
 # Authors: George O'Neill <g.o'neill@ucl.ac.uk>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from pathlib import Path
 
 import numpy as np
 import pytest
-
 from numpy.testing import assert_allclose
 from scipy.io import loadmat
 
+from mne._fiff.pick import pick_channels, pick_info, pick_types
 from mne.datasets import testing
-from mne.io import read_raw_fil, read_info
+from mne.io import read_info, read_raw_fil
 from mne.preprocessing.hfc import compute_proj_hfc
-from mne.io.pick import pick_types, pick_info, pick_channels
 
 fil_path = testing.data_path(download=False) / "FIL"
 fname_root = "sub-noise_ses-001_task-noise220622_run-001"
 
-io_dir = Path(__file__).parent.parent.parent / "io"
+io_dir = Path(__file__).parents[2] / "io"
 ctf_fname = io_dir / "tests" / "data" / "test_ctf_raw.fif"
 fif_fname = io_dir / "tests" / "data" / "test_raw.fif"
 

@@ -1,51 +1,51 @@
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 from copy import deepcopy
 from datetime import datetime, timezone
 from io import StringIO
 from pathlib import Path
 
 import numpy as np
-from numpy.testing import assert_array_equal, assert_allclose
 import pytest
+from numpy.testing import assert_allclose, assert_array_equal
 from scipy import sparse
 
-from mne import read_evokeds, read_cov, pick_types
-from mne.io.pick import _picks_by_type
+from mne import pick_types, read_cov, read_evokeds
+from mne._fiff.pick import _picks_by_type
 from mne.epochs import make_fixed_length_epochs
 from mne.io import read_raw_fif
 from mne.time_frequency import tfr_morlet
 from mne.utils import (
+    _PCA,
+    _apply_scaling_array,
+    _apply_scaling_cov,
+    _array_equal_nan,
+    _cal_to_julian,
+    _custom_lru_cache,
+    _dt_to_julian,
+    _freq_mask,
     _get_inst_data,
-    hashfunc,
-    sum_squared,
+    _julian_to_cal,
+    _julian_to_dt,
+    _reg_pinv,
+    _ReuseCycle,
+    _time_mask,
+    _undo_scaling_array,
+    _undo_scaling_cov,
     compute_corr,
     create_slices,
-    _time_mask,
-    _freq_mask,
-    random_permutation,
-    _reg_pinv,
-    object_size,
-    object_hash,
-    object_diff,
-    _apply_scaling_cov,
-    _undo_scaling_cov,
-    _apply_scaling_array,
-    _undo_scaling_array,
-    _PCA,
-    requires_sklearn,
-    _array_equal_nan,
-    _julian_to_cal,
-    _cal_to_julian,
-    _dt_to_julian,
-    _julian_to_dt,
     grand_average,
-    _ReuseCycle,
+    hashfunc,
     numerics,
-    _custom_lru_cache,
+    object_diff,
+    object_hash,
+    object_size,
+    random_permutation,
+    sum_squared,
 )
-from mne.utils.numerics import _LRU_CACHES, _LRU_CACHE_MAXSIZES
+from mne.utils.numerics import _LRU_CACHE_MAXSIZES, _LRU_CACHES
 
-
-base_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
+base_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
 fname_raw = base_dir / "test_raw.fif"
 ave_fname = base_dir / "test-ave.fif"
 cov_fname = base_dir / "test-cov.fif"
@@ -56,7 +56,7 @@ def test_get_inst_data():
     raw = read_raw_fif(fname_raw)
     raw.crop(tmax=1.0)
     assert_array_equal(_get_inst_data(raw), raw._data)
-    raw.pick_channels(raw.ch_names[:2])
+    raw.pick(raw.ch_names[:2])
 
     epochs = make_fixed_length_epochs(raw, 0.5)
     assert_array_equal(_get_inst_data(epochs), epochs._data)
@@ -230,7 +230,7 @@ def test_cov_scaling():
     cov2 = read_cov(cov_fname)["data"]
 
     assert_array_equal(cov, cov2)
-    evoked.pick_channels(
+    evoked.pick(
         [evoked.ch_names[k] for k in pick_types(evoked.info, meg=True, eeg=True)]
     )
     picks_list = _picks_by_type(evoked.info)
@@ -433,11 +433,11 @@ def test_hash():
     assert object_hash(np.bool_(True)) != 0
 
 
-@requires_sklearn
 @pytest.mark.parametrize("n_components", (None, 0.9999, 8, "mle"))
 @pytest.mark.parametrize("whiten", (True, False))
 def test_pca(n_components, whiten):
     """Test PCA equivalence."""
+    pytest.importorskip("sklearn")
     from sklearn.decomposition import PCA
 
     n_samples, n_dim = 1000, 10

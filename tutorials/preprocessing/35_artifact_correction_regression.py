@@ -38,8 +38,11 @@ data. The :ref:`MNE-Sample <sample-dataset>` dataset has some clear, large
 blink artifacts, especially during the presentation of visual stimuli.
 """
 
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 # %%
 import numpy as np
+
 import mne
 from mne.preprocessing import EOGRegression
 

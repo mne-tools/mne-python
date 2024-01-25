@@ -2,56 +2,59 @@
 #          Robert Luke <mail@robertluke.net>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
-from collections import OrderedDict
-from datetime import datetime, timedelta, timezone
+import json
 import os.path as op
 import re
-from copy import deepcopy
-from itertools import takewhile
-import json
-from collections import Counter
-from collections.abc import Iterable
 import warnings
+from collections import Counter, OrderedDict
+from collections.abc import Iterable
+from copy import deepcopy
+from datetime import datetime, timedelta, timezone
+from itertools import takewhile
 from textwrap import shorten
+
 import numpy as np
+from scipy.io import loadmat
 
-from .utils import (
-    _pl,
-    check_fname,
-    _validate_type,
-    verbose,
-    warn,
-    logger,
-    _check_pandas_installed,
-    _mask_to_onsets_offsets,
-    _DefaultEventParser,
-    _check_dt,
-    _stamp_to_dt,
-    _dt_to_stamp,
-    _check_fname,
-    int_like,
-    _check_option,
-    fill_doc,
-    _on_missing,
-    _is_numeric,
-    _check_dict_keys,
-)
-
-from .io.write import (
-    start_block,
+from ._fiff.constants import FIFF
+from ._fiff.open import fiff_open
+from ._fiff.tag import read_tag
+from ._fiff.tree import dir_tree_find
+from ._fiff.write import (
+    _safe_name_list,
     end_block,
+    start_and_end_file,
+    start_block,
+    write_double,
     write_float,
     write_name_list_sanitized,
-    _safe_name_list,
-    write_double,
-    start_file,
     write_string,
 )
-from .io.constants import FIFF
-from .io.open import fiff_open
-from .io.tree import dir_tree_find
-from .io.tag import read_tag
+from .utils import (
+    _check_dict_keys,
+    _check_dt,
+    _check_fname,
+    _check_option,
+    _check_pandas_installed,
+    _check_time_format,
+    _convert_times,
+    _DefaultEventParser,
+    _dt_to_stamp,
+    _is_numeric,
+    _mask_to_onsets_offsets,
+    _on_missing,
+    _pl,
+    _stamp_to_dt,
+    _validate_type,
+    check_fname,
+    fill_doc,
+    int_like,
+    logger,
+    verbose,
+    warn,
+)
 
 # For testing windows_like_datetime, we monkeypatch "datetime" in this module.
 # Keep the true datetime object around for _validate_type use.
@@ -62,15 +65,15 @@ def _check_o_d_s_c(onset, duration, description, ch_names):
     onset = np.atleast_1d(np.array(onset, dtype=float))
     if onset.ndim != 1:
         raise ValueError(
-            "Onset must be a one dimensional array, got %s "
-            "(shape %s)." % (onset.ndim, onset.shape)
+            f"Onset must be a one dimensional array, got {onset.ndim} (shape "
+            f"{onset.shape})."
         )
     duration = np.array(duration, dtype=float)
     if duration.ndim == 0 or duration.shape == (1,):
         duration = np.repeat(duration, len(onset))
     if duration.ndim != 1:
         raise ValueError(
-            "Duration must be a one dimensional array, " "got %d." % (duration.ndim,)
+            f"Duration must be a one dimensional array, got {duration.ndim}."
         )
 
     description = np.array(description, dtype=str)
@@ -78,8 +81,7 @@ def _check_o_d_s_c(onset, duration, description, ch_names):
         description = np.repeat(description, len(onset))
     if description.ndim != 1:
         raise ValueError(
-            "Description must be a one dimensional array, "
-            "got %d." % (description.ndim,)
+            f"Description must be a one dimensional array, got {description.ndim}."
         )
     _safe_name_list(description, "write", "description")
 
@@ -275,9 +277,7 @@ class Annotations:
     :meth:`Raw.save() <mne.io.Raw.save>` notes for details.
     """  # noqa: E501
 
-    def __init__(
-        self, onset, duration, description, orig_time=None, ch_names=None
-    ):  # noqa: D102
+    def __init__(self, onset, duration, description, orig_time=None, ch_names=None):
         self._orig_time = _handle_meas_date(orig_time)
         self.onset, self.duration, self.description, self.ch_names = _check_o_d_s_c(
             onset, duration, description, ch_names
@@ -304,10 +304,10 @@ class Annotations:
     def __repr__(self):
         """Show the representation."""
         counter = Counter(self.description)
-        kinds = ", ".join(["%s (%s)" % k for k in sorted(counter.items())])
+        kinds = ", ".join(["{} ({})".format(*k) for k in sorted(counter.items())])
         kinds = (": " if len(kinds) > 0 else "") + kinds
         ch_specific = ", channel-specific" if self._any_ch_names() else ""
-        s = "Annotations | %s segment%s%s%s" % (
+        s = "Annotations | {} segment{}{}{}".format(
             len(self.onset),
             _pl(len(self.onset)),
             ch_specific,
@@ -340,9 +340,8 @@ class Annotations:
             self._orig_time = other.orig_time
         if self.orig_time != other.orig_time:
             raise ValueError(
-                "orig_time should be the same to "
-                "add/concatenate 2 annotations "
-                "(got %s != %s)" % (self.orig_time, other.orig_time)
+                "orig_time should be the same to add/concatenate 2 annotations (got "
+                f"{self.orig_time} != {other.orig_time})"
             )
         return self.append(
             other.onset, other.duration, other.description, other.ch_names
@@ -443,8 +442,15 @@ class Annotations:
         self.description = np.delete(self.description, idx)
         self.ch_names = np.delete(self.ch_names, idx)
 
-    def to_data_frame(self):
+    @fill_doc
+    def to_data_frame(self, time_format="datetime"):
         """Export annotations in tabular structure as a pandas DataFrame.
+
+        Parameters
+        ----------
+        %(time_format_df_raw)s
+
+            .. versionadded:: 1.7
 
         Returns
         -------
@@ -454,16 +460,29 @@ class Annotations:
             annotations are channel-specific.
         """
         pd = _check_pandas_installed(strict=True)
+        valid_time_formats = ["ms", "timedelta", "datetime"]
         dt = _handle_meas_date(self.orig_time)
         if dt is None:
             dt = _handle_meas_date(0)
+        time_format = _check_time_format(time_format, valid_time_formats, dt)
         dt = dt.replace(tzinfo=None)
-        onsets_dt = [dt + timedelta(seconds=o) for o in self.onset]
-        df = dict(onset=onsets_dt, duration=self.duration, description=self.description)
+        times = _convert_times(self.onset, time_format, dt)
+        df = dict(onset=times, duration=self.duration, description=self.description)
         if self._any_ch_names():
             df.update(ch_names=self.ch_names)
         df = pd.DataFrame(df)
         return df
+
+    def count(self):
+        """Count annotations.
+
+        Returns
+        -------
+        counts : dict
+            A dictionary containing unique annotation descriptions as keys with their
+            counts as values.
+        """
+        return count_annotations(self)
 
     def _any_ch_names(self):
         return any(len(ch) for ch in self.ch_names)
@@ -540,7 +559,7 @@ class Annotations:
         elif fname.suffix == ".csv":
             _write_annotations_csv(fname, self)
         else:
-            with start_file(fname) as fid:
+            with start_and_end_file(fname) as fid:
                 _write_annotations(fid, self)
 
     def _sort(self):
@@ -600,10 +619,10 @@ class Annotations:
         del tmin, tmax
         if absolute_tmin > absolute_tmax:
             raise ValueError(
-                "tmax should be greater than or equal to tmin "
-                "(%s < %s)." % (absolute_tmin, absolute_tmax)
+                f"tmax should be greater than or equal to tmin ({absolute_tmin} < "
+                f"{absolute_tmax})."
             )
-        logger.debug("Cropping annotations %s - %s" % (absolute_tmin, absolute_tmax))
+        logger.debug(f"Cropping annotations {absolute_tmin} - {absolute_tmax}")
 
         onsets, durations, descriptions, ch_names = [], [], [], []
         out_of_bounds, clip_left_elem, clip_right_elem = [], [], []
@@ -805,7 +824,7 @@ class EpochAnnotationsMixin:
                     "disk) before 1.0 will yield incorrect results if "
                     "decimation or resampling was performed on the instance, "
                     "we recommend regenerating the Epochs and re-saving them "
-                    "to disk"
+                    "to disk."
                 )
             new_annotations = annotations.copy()
             new_annotations._prune_ch_names(self.info, on_missing)
@@ -1128,7 +1147,10 @@ def _write_annotations_txt(fname, annot):
         np.savetxt(fid, data, delimiter=",", fmt="%s")
 
 
-def read_annotations(fname, sfreq="auto", uint16_codec=None):
+@fill_doc
+def read_annotations(
+    fname, sfreq="auto", uint16_codec=None, encoding="utf8"
+) -> Annotations:
     r"""Read annotations from a file.
 
     This function reads a ``.fif``, ``.fif.gz``, ``.vmrk``, ``.amrk``,
@@ -1156,10 +1178,12 @@ def read_annotations(fname, sfreq="auto", uint16_codec=None):
         too small". ``uint16_codec`` allows to specify what codec (for example:
         ``'latin1'`` or ``'utf-8'``) should be used when reading character
         arrays and can therefore help you solve this problem.
+    %(encoding_edf)s
+        Only used when reading EDF annotations.
 
     Returns
     -------
-    annot : instance of Annotations | None
+    annot : instance of Annotations
         The annotations.
 
     Notes
@@ -1169,11 +1193,11 @@ def read_annotations(fname, sfreq="auto", uint16_codec=None):
     ``.txt`` extension.
     """
     from .io.brainvision.brainvision import _read_annotations_brainvision
-    from .io.eeglab.eeglab import _read_annotations_eeglab
-    from .io.edf.edf import _read_annotations_edf
     from .io.cnt.cnt import _read_annotations_cnt
-    from .io.curry.curry import _read_annotations_curry
     from .io.ctf.markers import _read_annotations_ctf
+    from .io.curry.curry import _read_annotations_curry
+    from .io.edf.edf import _read_annotations_edf
+    from .io.eeglab.eeglab import _read_annotations_eeglab
 
     fname = str(
         _check_fname(
@@ -1191,15 +1215,7 @@ def read_annotations(fname, sfreq="auto", uint16_codec=None):
         with ff as fid:
             annotations = _read_annotations_fif(fid, tree)
     elif name.endswith("txt"):
-        orig_time = _read_annotations_txt_parse_header(fname)
-        onset, duration, description, ch_names = _read_annotations_txt(fname)
-        annotations = Annotations(
-            onset=onset,
-            duration=duration,
-            description=description,
-            orig_time=orig_time,
-            ch_names=ch_names,
-        )
+        annotations = _read_annotations_txt(fname)
 
     elif name.endswith(("vmrk", "amrk")):
         annotations = _read_annotations_brainvision(fname, sfreq=sfreq)
@@ -1220,12 +1236,7 @@ def read_annotations(fname, sfreq="auto", uint16_codec=None):
         annotations = _read_annotations_eeglab(fname, uint16_codec=uint16_codec)
 
     elif name.endswith(("edf", "bdf", "gdf")):
-        onset, duration, description = _read_annotations_edf(fname)
-        onset = np.array(onset, dtype=float)
-        duration = np.array(duration, dtype=float)
-        annotations = Annotations(
-            onset=onset, duration=duration, description=description, orig_time=None
-        )
+        annotations = _read_annotations_edf(fname, encoding=encoding)
 
     elif name.startswith("events_") and fname.endswith("mat"):
         annotations = _read_brainstorm_annotations(fname)
@@ -1297,12 +1308,11 @@ def _read_brainstorm_annotations(fname, orig_time=None):
     annot : instance of Annotations | None
         The annotations.
     """
-    from scipy import io
 
     def get_duration_from_times(t):
         return t[1] - t[0] if t.shape[0] == 2 else np.zeros(len(t[0]))
 
-    annot_data = io.loadmat(fname)
+    annot_data = loadmat(fname)
     onsets, durations, descriptions = (list(), list(), list())
     for label, _, _, _, times, _, _ in annot_data["events"][0]:
         onsets.append(times[0])
@@ -1358,7 +1368,18 @@ def _read_annotations_txt(fname):
             _safe_name_list(ch.decode().strip(), "read", f"ch_names[{ci}]")
             for ci, ch in enumerate(ch_names)
         ]
-    return onset, duration, desc, ch_names
+
+    orig_time = _read_annotations_txt_parse_header(fname)
+
+    annotations = Annotations(
+        onset=onset,
+        duration=duration,
+        description=desc,
+        orig_time=orig_time,
+        ch_names=ch_names,
+    )
+
+    return annotations
 
 
 def _read_annotations_fif(fid, tree):
@@ -1449,17 +1470,19 @@ def _select_events_based_on_id(events, event_desc):
 
 
 def _check_event_id(event_id, raw):
-    from .io.brainvision.brainvision import _BVEventParser
-    from .io.brainvision.brainvision import _check_bv_annot
-    from .io.brainvision.brainvision import RawBrainVision
-    from .io import RawFIF, RawArray
+    from .io import Raw, RawArray
+    from .io.brainvision.brainvision import (
+        RawBrainVision,
+        _BVEventParser,
+        _check_bv_annot,
+    )
 
     if event_id is None:
         return _DefaultEventParser()
     elif event_id == "auto":
         if isinstance(raw, RawBrainVision):
             return _BVEventParser()
-        elif isinstance(raw, (RawFIF, RawArray)) and _check_bv_annot(
+        elif isinstance(raw, (Raw, RawArray)) and _check_bv_annot(
             raw.annotations.description
         ):
             logger.info("Non-RawBrainVision raw using branvision markers")
@@ -1471,7 +1494,7 @@ def _check_event_id(event_id, raw):
     else:
         raise ValueError(
             "Invalid type for event_id (should be None, str, "
-            "dict or callable). Got {}".format(type(event_id))
+            f"dict or callable). Got {type(event_id)}."
         )
 
 
@@ -1486,16 +1509,14 @@ def _check_event_description(event_desc, events):
     elif isinstance(event_desc, Iterable):
         event_desc = np.asarray(event_desc)
         if event_desc.ndim != 1:
-            raise ValueError(
-                "event_desc must be 1D, got shape {}".format(event_desc.shape)
-            )
+            raise ValueError(f"event_desc must be 1D, got shape {event_desc.shape}")
         event_desc = dict(zip(event_desc, map(str, event_desc)))
     elif callable(event_desc):
         pass
     else:
         raise ValueError(
             "Invalid type for event_desc (should be None, list, "
-            "1darray, dict or callable). Got {}".format(type(event_desc))
+            f"1darray, dict or callable). Got {type(event_desc)}."
         )
 
     return event_desc
@@ -1595,9 +1616,7 @@ def events_from_annotations(
         inds = values = np.array([]).astype(int)
         for annot in annotations[event_sel]:
             annot_offset = annot["onset"] + annot["duration"]
-            _onsets = np.arange(
-                start=annot["onset"], stop=annot_offset, step=chunk_duration
-            )
+            _onsets = np.arange(annot["onset"], annot_offset, chunk_duration)
             good_events = annot_offset - _onsets >= chunk_duration
             if good_events.any():
                 _onsets = _onsets[good_events]
@@ -1615,7 +1634,7 @@ def events_from_annotations(
 
     events = np.c_[inds, np.zeros(len(inds)), values].astype(int)
 
-    logger.info("Used Annotations descriptions: %s" % (list(event_id_.keys()),))
+    logger.info(f"Used Annotations descriptions: {list(event_id_.keys())}")
 
     return events, event_id_
 
@@ -1694,3 +1713,27 @@ def _adjust_onset_meas_date(annot, raw):
     # account the first_samp / first_time.
     if raw.info["meas_date"] is not None:
         annot.onset += raw.first_time
+
+
+def count_annotations(annotations):
+    """Count annotations.
+
+    Parameters
+    ----------
+    annotations : mne.Annotations
+        The annotations instance.
+
+    Returns
+    -------
+    counts : dict
+        A dictionary containing unique annotation descriptions as keys with their
+        counts as values.
+
+    Examples
+    --------
+        >>> annotations = mne.Annotations([0, 1, 2], [1, 2, 1], ["T0", "T1", "T0"])
+        >>> count_annotations(annotations)
+        {'T0': 2, 'T1': 1}
+    """
+    types, counts = np.unique(annotations.description, return_counts=True)
+    return {str(t): int(count) for t, count in zip(types, counts)}

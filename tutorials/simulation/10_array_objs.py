@@ -11,6 +11,8 @@ existing :class:`NumPy array <numpy.ndarray>` of (real or synthetic) data.
 We begin by importing the necessary Python modules:
 """
 
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 # %%
 
 import numpy as np
@@ -148,7 +150,7 @@ data = np.array(
 )
 
 simulated_epochs = mne.EpochsArray(data, info)
-simulated_epochs.plot(picks="misc", show_scrollbars=False)
+simulated_epochs.plot(picks="misc", show_scrollbars=False, events=True)
 
 # %%
 # Since we did not supply an events array, the `~mne.EpochsArray` constructor
@@ -212,9 +214,8 @@ evoked_array.plot()
 # decomposition for estimation of power spectra. Or you may wish to
 # process pre-computed power spectra in MNE.
 # Following the same logic, it is possible to instantiate averaged power
-# spectrum using the :class:`~mne.time_frequency.Spectrum` class.
-# This is slightly
-# experimental at the moment but works. An API for doing this may follow.
+# spectrum using the :class:`~mne.time_frequency.SpectrumArray` or
+# :class:`~mne.time_frequency.EpochsSpectrumArray` classes.
 
 # compute power spectrum
 
@@ -224,39 +225,11 @@ psd, freqs = mne.time_frequency.psd_array_welch(
 
 psd_ave = psd.mean(0)
 
-# map to `~mne.time_frequency.Spectrum` class and explore API
+info = mne.create_info(["Ch 1", "Ch2"], sfreq=sampling_freq, ch_types="eeg")
+spectrum = mne.time_frequency.SpectrumArray(
+    data=psd_ave,
+    freqs=freqs,
+    info=info,
+)
 
-
-def spectrum_from_array(
-    data: np.ndarray,  # spectral features
-    freqs: np.ndarray,  # frequencies
-    inst_info: mne.Info,  # the meta data of MNE instance
-) -> mne.time_frequency.Spectrum:  # Spectrum object
-    """Create MNE averaged power spectrum object from custom data"""
-    state = dict(
-        method="my_welch",
-        data=data,
-        sfreq=inst_info["sfreq"],
-        dims=("channel", "freq"),
-        freqs=freqs,
-        inst_type_str="Raw",
-        data_type="Averaged Power Spectrum",
-        info=inst_info,
-    )
-    defaults = dict(
-        method=None,
-        fmin=None,
-        fmax=None,
-        tmin=None,
-        tmax=None,
-        picks=None,
-        proj=None,
-        reject_by_annotation=None,
-        n_jobs=None,
-        verbose=None,
-    )
-    return mne.time_frequency.Spectrum(state, **defaults)
-
-
-spectrum = spectrum_from_array(data=psd_ave, freqs=freqs, inst_info=info)
-spectrum.plot(picks=[0, 1], spatial_colors=False, exclude="bads")
+spectrum.plot(spatial_colors=False, amplitude=False)

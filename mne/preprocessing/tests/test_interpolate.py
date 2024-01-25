@@ -1,16 +1,18 @@
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 import itertools
 from pathlib import Path
 
 import numpy as np
 import pytest
 
-from mne import create_info, io, pick_types, read_events, Epochs
+from mne import Epochs, create_info, io, pick_types, read_events
 from mne.channels import make_standard_montage
 from mne.preprocessing import equalize_bads, interpolate_bridged_electrodes
 from mne.preprocessing.interpolate import _find_centroid_sphere
 from mne.transforms import _cart_to_sph
 
-base_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
+base_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
 raw_fname = base_dir / "test_raw.fif"
 event_name = base_dir / "test-eve.fif"
 raw_fname_ctf = base_dir / "test_ctf_raw.fif"

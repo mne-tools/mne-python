@@ -2,13 +2,15 @@
 
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
-# License: Simplified BSD
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from math import sqrt
+
 import numpy as np
 
-from ..utils import check_random_state, verbose, logger
 from ..parallel import parallel_func
+from ..utils import check_random_state, logger, verbose
 
 
 def _max_stat(X, X2, perms, dof_scaling):
@@ -144,7 +146,7 @@ def bootstrap_confidence_interval(
     rng = check_random_state(random_state)
     boot_indices = rng.choice(indices, replace=True, size=(n_bootstraps, len(indices)))
     stat = np.array([stat_fun(arr[inds]) for inds in boot_indices])
-    ci = (((1 - ci) / 2) * 100, ((1 - ((1 - ci) / 2))) * 100)
+    ci = (((1 - ci) / 2) * 100, (1 - ((1 - ci) / 2)) * 100)
     ci_low, ci_up = np.percentile(stat, ci, axis=0)
     return np.array([ci_low, ci_up])
 
@@ -156,6 +158,6 @@ def _ci(arr, ci=0.95, method="bootstrap", n_bootstraps=2000, random_state=None):
             arr, ci=ci, n_bootstraps=n_bootstraps, random_state=random_state
         )
     else:
-        from . import _parametric_ci
+        from .parametric import _parametric_ci
 
         return _parametric_ci(arr, ci=ci)

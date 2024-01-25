@@ -1,34 +1,40 @@
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
-# License: Simplified BSD
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from pathlib import Path
 
-import numpy as np
-from numpy.testing import assert_allclose
-import pytest
 import matplotlib.pyplot as plt
+import numpy as np
+import pytest
+from numpy.testing import assert_allclose
 
+from mne import read_evokeds
+from mne.epochs import Epochs
+from mne.event import read_events
+from mne.io import read_raw_fif
+from mne.viz import ClickableImage, add_background_image, mne_analyze_colormap
+from mne.viz.ui_events import ColormapRange, link, subscribe
 from mne.viz.utils import (
-    compare_fiff,
-    _fake_click,
     _compute_scalings,
-    _validate_if_list_of_axes,
+    _fake_click,
+    _fake_keypress,
+    _fake_scroll,
     _get_color_list,
-    _setup_vmin_vmax,
-    centers_to_edges,
     _make_event_color_dict,
+    _setup_vmin_vmax,
+    _validate_if_list_of_axes,
+    centers_to_edges,
+    compare_fiff,
     concatenate_images,
 )
-from mne.viz import ClickableImage, add_background_image, mne_analyze_colormap
-from mne.io import read_raw_fif
-from mne.event import read_events
-from mne.epochs import Epochs
 
-base_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
+base_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
 raw_fname = base_dir / "test_raw.fif"
 cov_fname = base_dir / "test-cov.fif"
 ev_fname = base_dir / "test_raw-eve.fif"
+ave_fname = base_dir / "test-ave.fif"
 
 
 def test_setup_vmin_vmax_warns():
@@ -135,7 +141,7 @@ def test_auto_scale():
     with pytest.raises(ValueError, match="Must supply either Raw or Epochs"):
         _compute_scalings(scalings_def, rand_data)
     epochs = epochs[0].load_data()
-    epochs.pick_types(eeg=True, meg=False)
+    epochs.pick(picks="eeg")
 
 
 def test_validate_if_list_of_axes():
@@ -202,3 +208,71 @@ def test_concatenate_images(a_w, a_h, b_w, b_h, axis):
     else:
         want_shape = (max(a_h, b_h), a_w + b_w, 3)
     assert img.shape == want_shape
+
+
+def test_draggable_colorbar():
+    """Test that DraggableColorbar publishes correct UI Events."""
+    evokeds = read_evokeds(ave_fname)
+    left_auditory = evokeds[0]
+    right_auditory = evokeds[1]
+    vmin, vmax = -400, 400
+    fig = left_auditory.plot_topomap("interactive", vlim=(vmin, vmax))
+    fig2 = right_auditory.plot_topomap("interactive", vlim=(vmin, vmax))
+    link(fig, fig2)
+    callback_calls = []
+
+    def callback(event):
+        callback_calls.append(event)
+
+    subscribe(fig, "colormap_range", callback)
+
+    # Test that correct event is published
+    _fake_keypress(fig, "down")
+    _fake_keypress(fig, "up")
+    assert len(callback_calls) == 2
+    event = callback_calls.pop()
+    assert type(event) is ColormapRange
+    # Test that scrolling changes color limits
+    _fake_scroll(fig, 10, 10, 1)
+    event = callback_calls.pop()
+    assert abs(event.fmin) < abs(vmin)
+    assert abs(event.fmax) < abs(vmax)
+    fmin, fmax = event.fmin, event.fmax
+    _fake_scroll(fig, 10, 10, -1)
+    event = callback_calls.pop()
+    assert abs(event.fmin) > abs(fmin)
+    assert abs(event.fmax) > abs(fmax)
+    fmin, fmax = event.fmin, event.fmax
+    # Test that plus and minus change color limits
+    _fake_keypress(fig, "+")
+    event = callback_calls.pop()
+    assert abs(event.fmin) < abs(fmin)
+    assert abs(event.fmax) < abs(fmax)
+    fmin, fmax = event.fmin, event.fmax
+    _fake_keypress(fig, "-")
+    event = callback_calls.pop()
+    assert abs(event.fmin) > abs(fmin)
+    assert abs(event.fmax) > abs(fmax)
+    fmin, fmax = event.fmin, event.fmax
+    # Test that page up and page down change color limits
+    _fake_keypress(fig, "pageup")
+    event = callback_calls.pop()
+    assert event.fmin < fmin
+    assert event.fmax < fmax
+    fmin, fmax = event.fmin, event.fmax
+    _fake_keypress(fig, "pagedown")
+    event = callback_calls.pop()
+    assert event.fmin > fmin
+    assert event.fmax > fmax
+    # Test that space key resets color limits
+    _fake_keypress(fig, " ")
+    event = callback_calls.pop()
+    assert event.fmax == vmax
+    assert event.fmin == vmin
+    # Test that colormap change in one figure changes that of another one
+    cmap_want = fig.axes[0].CB.cycle[fig.axes[0].CB.index + 1]
+    cmap_old = fig.axes[0].CB.mappable.get_cmap().name
+    _fake_keypress(fig, "down")
+    cmap_new1 = fig.axes[0].CB.mappable.get_cmap().name
+    cmap_new2 = fig2.axes[0].CB.mappable.get_cmap().name
+    assert cmap_new1 == cmap_new2 == cmap_want != cmap_old

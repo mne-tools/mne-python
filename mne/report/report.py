@@ -5,95 +5,94 @@
 #          Teon Brooks <teon.brooks@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
-import io
-import dataclasses
-from dataclasses import dataclass
-from typing import Tuple, Optional
-from collections.abc import Sequence
 import base64
-from io import BytesIO, StringIO
+import dataclasses
+import fnmatch
+import io
 import os
 import os.path as op
-from pathlib import Path
-import fnmatch
 import re
-from shutil import copyfile
 import time
 import warnings
 import webbrowser
+from collections.abc import Sequence
+from dataclasses import dataclass
+from functools import partial
+from io import BytesIO, StringIO
+from pathlib import Path
+from shutil import copyfile
+from typing import Optional
 
 import numpy as np
 
 from .. import __version__ as MNE_VERSION
-from .. import (
-    read_evokeds,
-    read_events,
-    read_cov,
-    read_source_estimate,
-    read_trans,
-    sys_info,
-    Evoked,
-    SourceEstimate,
-    Covariance,
-    Info,
-    Transform,
-)
-from ..channels import _get_ch_type
+from .._fiff.meas_info import Info, read_info
+from .._fiff.pick import _DATA_CH_TYPES_SPLIT
+from .._freesurfer import _mri_orientation, _reorient_image
+from ..cov import Covariance, read_cov
 from ..defaults import _handle_default
-from ..io import read_raw, read_info, BaseRaw
-from ..io._read_raw import supported as extension_reader_map
-from ..io.pick import _DATA_CH_TYPES_SPLIT
+from ..epochs import BaseEpochs, read_epochs
+from ..event import read_events
+from ..evoked import Evoked, read_evokeds
+from ..forward import Forward, read_forward_solution
+from ..html_templates import _get_html_template
+from ..io import BaseRaw, read_raw
+from ..io._read_raw import _get_supported as _get_extension_reader_map
+from ..minimum_norm import InverseOperator, read_inverse_operator
+from ..parallel import parallel_func
+from ..preprocessing.ica import read_ica
 from ..proj import read_proj
-from .._freesurfer import _reorient_image, _mri_orientation
+from ..source_estimate import SourceEstimate, read_source_estimate
+from ..surface import dig_mri_distances
+from ..transforms import Transform, read_trans
 from ..utils import (
-    logger,
-    verbose,
-    get_subjects_dir,
-    warn,
-    _ensure_int,
-    fill_doc,
-    _check_option,
-    _validate_type,
-    _safe_input,
-    _path_like,
-    use_log_level,
-    _check_fname,
-    _pl,
     _check_ch_locs,
+    _check_fname,
+    _check_option,
+    _ensure_int,
     _import_h5io_funcs,
+    _import_nibabel,
+    _path_like,
+    _pl,
+    _safe_input,
+    _validate_type,
     _verbose_safe_false,
     check_version,
-    _import_nibabel,
+    fill_doc,
+    get_subjects_dir,
+    logger,
+    sys_info,
+    use_log_level,
+    verbose,
+    warn,
 )
 from ..utils.spectrum import _split_psd_kwargs
 from ..viz import (
-    plot_events,
-    plot_alignment,
-    plot_cov,
-    plot_projs_topomap,
-    plot_compare_evokeds,
-    set_3d_view,
-    get_3d_backend,
     Figure3D,
+    _get_plot_ch_type,
+    create_3d_figure,
+    get_3d_backend,
+    plot_alignment,
+    plot_compare_evokeds,
+    plot_cov,
+    plot_events,
+    plot_projs_topomap,
+    set_3d_view,
     use_browser_backend,
 )
-from ..viz.misc import _plot_mri_contours, _get_bem_plotting_surfaces
-from ..viz.utils import _ndarray_to_fig, tight_layout
+from ..viz._brain.view import views_dicts
 from ..viz._scraper import _mne_qt_browser_screenshot
-from ..forward import read_forward_solution, Forward
-from ..epochs import read_epochs, BaseEpochs
-from ..preprocessing.ica import read_ica
-from .. import dig_mri_distances
-from ..minimum_norm import read_inverse_operator, InverseOperator
-from ..parallel import parallel_func
+from ..viz.misc import _get_bem_plotting_surfaces, _plot_mri_contours
+from ..viz.utils import _ndarray_to_fig
 
 _BEM_VIEWS = ("axial", "sagittal", "coronal")
 
 
 # For raw files, we want to support different suffixes + extensions for all
 # supported file formats
-SUPPORTED_READ_RAW_EXTENSIONS = tuple(extension_reader_map.keys())
+SUPPORTED_READ_RAW_EXTENSIONS = tuple(_get_extension_reader_map())
 RAW_EXTENSIONS = []
 for ext in SUPPORTED_READ_RAW_EXTENSIONS:
     RAW_EXTENSIONS.append(f"raw{ext}")
@@ -150,8 +149,23 @@ MAX_IMG_RES = 100  # in dots per inch
 MAX_IMG_WIDTH = 850  # in pixels
 
 
-def _get_ch_types(inst):
+def _get_data_ch_types(inst):
     return [ch_type for ch_type in _DATA_CH_TYPES_SPLIT if ch_type in inst]
+
+
+def _id_sanitize(title):
+    """Sanitize title for use as DOM id."""
+    _validate_type(title, str, "title")
+    # replace any whitespace runs with underscores
+    title = re.sub(r"\s+", "_", title)
+    # replace any non-alphanumeric (plus dash and underscore) with underscores
+    # (this is very greedy but should be safe enough)
+    title = re.sub("[^a-zA-Z0-9_-]", "_", title)
+    return title
+
+
+def _renderer(kind):
+    return _get_html_template("report", kind).render
 
 
 ###############################################################################
@@ -159,10 +173,7 @@ def _get_ch_types(inst):
 
 
 def _html_header_element(*, lang, include, js, css, title, tags, mne_logo_img):
-    from ..html_templates import report_templates_env
-
-    t = report_templates_env.get_template("header.html.jinja")
-    t_rendered = t.render(
+    return _renderer("header.html.jinja")(
         lang=lang,
         include=include,
         js=js,
@@ -171,50 +182,35 @@ def _html_header_element(*, lang, include, js, css, title, tags, mne_logo_img):
         tags=tags,
         mne_logo_img=mne_logo_img,
     )
-    return t_rendered
 
 
 def _html_footer_element(*, mne_version, date):
-    from ..html_templates import report_templates_env
-
-    t = report_templates_env.get_template("footer.html.jinja")
-    t_rendered = t.render(mne_version=mne_version, date=date)
-    return t_rendered
+    return _renderer("footer.html.jinja")(mne_version=mne_version, date=date)
 
 
 def _html_toc_element(*, titles, dom_ids, tags):
-    from ..html_templates import report_templates_env
-
-    t = report_templates_env.get_template("toc.html.jinja")
-    t_rendered = t.render(titles=titles, dom_ids=dom_ids, tags=tags)
-    return t_rendered
+    return _renderer("toc.html.jinja")(titles=titles, dom_ids=dom_ids, tags=tags)
 
 
-def _html_forward_sol_element(*, id, repr, sensitivity_maps, title, tags):
-    from ..html_templates import report_templates_env
-
-    t = report_templates_env.get_template("forward.html.jinja")
-    t_rendered = t.render(
-        id=id, repr=repr, sensitivity_maps=sensitivity_maps, tags=tags, title=title
+def _html_forward_sol_element(*, id_, repr_, sensitivity_maps, title, tags):
+    return _renderer("forward.html.jinja")(
+        id=id_,
+        repr=repr_,
+        sensitivity_maps=sensitivity_maps,
+        tags=tags,
+        title=title,
     )
-    return t_rendered
 
 
-def _html_inverse_operator_element(*, id, repr, source_space, title, tags):
-    from ..html_templates import report_templates_env
-
-    t = report_templates_env.get_template("inverse.html.jinja")
-    t_rendered = t.render(
-        id=id, repr=repr, source_space=source_space, tags=tags, title=title
+def _html_inverse_operator_element(*, id_, repr_, source_space, title, tags):
+    return _renderer("inverse.html.jinja")(
+        id=id_, repr=repr_, source_space=source_space, tags=tags, title=title
     )
-    return t_rendered
 
 
 def _html_slider_element(
-    *, id, images, captions, start_idx, image_format, title, tags, klass=""
+    *, id_, images, captions, start_idx, image_format, title, tags, klass=""
 ):
-    from ..html_templates import report_templates_env
-
     captions_ = []
     for caption in captions:
         if caption is None:
@@ -222,9 +218,8 @@ def _html_slider_element(
         captions_.append(caption)
     del captions
 
-    t = report_templates_env.get_template("slider.html.jinja")
-    t_rendered = t.render(
-        id=id,
+    return _renderer("slider.html.jinja")(
+        id=id_,
         images=images,
         captions=captions_,
         tags=tags,
@@ -233,17 +228,13 @@ def _html_slider_element(
         image_format=image_format,
         klass=klass,
     )
-    return t_rendered
 
 
 def _html_image_element(
-    *, id, img, image_format, caption, show, div_klass, img_klass, title, tags
+    *, id_, img, image_format, caption, show, div_klass, img_klass, title, tags
 ):
-    from ..html_templates import report_templates_env
-
-    t = report_templates_env.get_template("image.html.jinja")
-    t_rendered = t.render(
-        id=id,
+    return _renderer("image.html.jinja")(
+        id=id_,
         img=img,
         caption=caption,
         tags=tags,
@@ -253,30 +244,31 @@ def _html_image_element(
         img_klass=img_klass,
         show=show,
     )
-    return t_rendered
 
 
-def _html_code_element(*, id, code, language, title, tags):
-    from ..html_templates import report_templates_env
-
-    t = report_templates_env.get_template("code.html.jinja")
-    t_rendered = t.render(id=id, code=code, language=language, title=title, tags=tags)
-    return t_rendered
-
-
-def _html_section_element(*, id, div_klass, htmls, title, tags):
-    from ..html_templates import report_templates_env
-
-    t = report_templates_env.get_template("section.html.jinja")
-    t_rendered = t.render(
-        id=id, div_klass=div_klass, htmls=htmls, title=title, tags=tags
+def _html_code_element(*, id_, code, language, title, tags):
+    return _renderer("code.html.jinja")(
+        id=id_,
+        code=code,
+        language=language,
+        title=title,
+        tags=tags,
     )
-    return t_rendered
+
+
+def _html_section_element(*, id_, div_klass, htmls, title, tags):
+    return _renderer("section.html.jinja")(
+        id=id_,
+        div_klass=div_klass,
+        htmls=htmls,
+        title=title,
+        tags=tags,
+    )
 
 
 def _html_bem_element(
     *,
-    id,
+    id_,
     div_klass,
     html_slider_axial,
     html_slider_sagittal,
@@ -284,11 +276,8 @@ def _html_bem_element(
     title,
     tags,
 ):
-    from ..html_templates import report_templates_env
-
-    t = report_templates_env.get_template("bem.html.jinja")
-    t_rendered = t.render(
-        id=id,
+    return _renderer("bem.html.jinja")(
+        id=id_,
         div_klass=div_klass,
         html_slider_axial=html_slider_axial,
         html_slider_sagittal=html_slider_sagittal,
@@ -296,15 +285,16 @@ def _html_bem_element(
         title=title,
         tags=tags,
     )
-    return t_rendered
 
 
-def _html_element(*, id, div_klass, html, title, tags):
-    from ..html_templates import report_templates_env
-
-    t = report_templates_env.get_template("html.html.jinja")
-    t_rendered = t.render(id=id, div_klass=div_klass, html=html, title=title, tags=tags)
-    return t_rendered
+def _html_element(*, id_, div_klass, html, title, tags):
+    return _renderer("html.html.jinja")(
+        id=id_,
+        div_klass=div_klass,
+        html=html,
+        title=title,
+        tags=tags,
+    )
 
 
 @dataclass
@@ -312,11 +302,11 @@ class _ContentElement:
     name: str
     section: Optional[str]
     dom_id: str
-    tags: Tuple[str]
+    tags: tuple[str]
     html: str
 
 
-def _check_tags(tags) -> Tuple[str]:
+def _check_tags(tags) -> tuple[str]:
     # Must be iterable, but not a string
     if isinstance(tags, str):
         tags = (tags,)
@@ -400,9 +390,8 @@ def _fig_to_img(fig, *, image_format="png", own_figure=True):
         # check instead
         if fig.__class__.__name__ in ("MNEQtBrowser", "PyQtGraphBrowser"):
             img = _mne_qt_browser_screenshot(fig, return_type="ndarray")
-            print(img.shape, img.max(), img.min(), img.mean())
         elif isinstance(fig, Figure3D):
-            from ..viz.backends.renderer import backend, MNE_3D_BACKEND_TESTING
+            from ..viz.backends.renderer import MNE_3D_BACKEND_TESTING, backend
 
             backend._check_3d_figure(figure=fig)
             if not MNE_3D_BACKEND_TESTING:
@@ -426,7 +415,7 @@ def _fig_to_img(fig, *, image_format="png", own_figure=True):
     dpi = fig.get_dpi()
     logger.debug(
         f"Saving figure with dimension {fig.get_size_inches()} inches with "
-        f"{{dpi}} dpi"
+        f"{dpi} dpi"
     )
 
     # https://pillow.readthedocs.io/en/stable/handbook/image-file-formats.html
@@ -442,11 +431,6 @@ def _fig_to_img(fig, *, image_format="png", own_figure=True):
         # matplotlib modifies the passed dict, which is a bug
         mpl_kwargs["pil_kwargs"] = pil_kwargs.copy()
     with warnings.catch_warnings():
-        warnings.filterwarnings(
-            action="ignore",
-            message=".*Axes that are not compatible with tight_layout.*",
-            category=UserWarning,
-        )
         fig.savefig(output, format=image_format, dpi=dpi, **mpl_kwargs)
 
     if own_figure:
@@ -537,7 +521,6 @@ def _get_bem_contour_figs_as_arrays(
 
 def _iterate_trans_views(function, alpha, **kwargs):
     """Auxiliary function to iterate over views in trans fig."""
-    from ..viz import create_3d_figure
     from ..viz.backends.renderer import MNE_3D_BACKEND_TESTING
 
     # TODO: Eventually maybe we should expose the size option?
@@ -556,7 +539,6 @@ def _iterate_trans_views(function, alpha, **kwargs):
 
 def _itv(function, fig, **kwargs):
     from ..viz.backends.renderer import MNE_3D_BACKEND_TESTING, backend
-    from ..viz._brain.view import views_dicts
 
     function(fig=fig, **kwargs)
 
@@ -605,9 +587,6 @@ def _plot_ica_properties_as_arrays(*, ica, inst, picks, n_jobs):
         The properties plots as NumPy arrays.
     """
     import matplotlib.pyplot as plt
-
-    if picks is None:
-        picks = list(range(ica.n_components_))
 
     def _plot_one_ica_property(*, ica, inst, pick):
         figs = ica.plot_properties(inst=inst, picks=pick, show=False)
@@ -860,8 +839,9 @@ class Report:
         self.title = title
         self.image_format = _check_image_format(None, image_format)
         self.projs = projs
-
+        # dom_id is mostly for backward compat and testing nowadays
         self._dom_id = 0
+        self._dup_limit = 10000  # should be enough duplicates
         self._content = []
         self.include = []
         self.lang = "en-us"  # language setting for the HTML file
@@ -925,6 +905,7 @@ class Report:
             "image_format",
             "info_fname",
             "_dom_id",
+            # dup_limit omitted because we never change it from default
             "raw_psd",
             "projs",
             "subjects_dir",
@@ -935,18 +916,27 @@ class Report:
             "fname",
         )
 
-    def _get_dom_id(self, increment=True):
-        """Get unique ID for content to append to the DOM.
-
-        This method is just a counter.
-
-        increment : bool
-            Whether to increment the counter. If ``False``, simply returns the
-            latest DOM ID used.
-        """
-        if increment:
-            self._dom_id += 1
-
+    def _get_dom_id(self, *, section, title, extra_exclude=None):
+        """Get unique ID for content to append to the DOM."""
+        _validate_type(title, str, "title")
+        _validate_type(section, (str, None), "section")
+        if section is not None:
+            title = f"{section}-{title}"
+        dom_id = _id_sanitize(title)
+        del title, section
+        # find a new unique ID
+        dom_ids = set(c.dom_id for c in self._content)
+        if extra_exclude:
+            assert isinstance(extra_exclude, set), type(extra_exclude)
+            dom_ids.update(extra_exclude)
+        if dom_id not in dom_ids:
+            return dom_id
+        for ii in range(1, self._dup_limit):  # should be enough duplicates...
+            dom_id_inc = f"{dom_id}-{ii}"
+            if dom_id_inc not in dom_ids:
+                return dom_id_inc
+        # But let's not fail if the limit is low
+        self._dom_id += 1
         return f"global-{self._dom_id}"
 
     def _validate_topomap_kwargs(self, topomap_kwargs):
@@ -989,7 +979,7 @@ class Report:
         tags : list of tuple of str
             The tags corresponding to the HTML representations.
         """
-        section_dom_ids = []
+        section_dom_ids = set()
         htmls = []
         dom_ids = []
         titles = []
@@ -1015,21 +1005,18 @@ class Report:
                 ]
                 section_htmls = [el.html for el in section_elements]
                 section_tags = tuple(
-                    sorted((set([t for el in section_elements for t in el.tags])))
+                    sorted(set([t for el in section_elements for t in el.tags]))
                 )
-                # Generate a unique DOM ID, but don't alter the global counter
-                if section_dom_ids:
-                    section_dom_id = section_dom_ids[-1]
-                else:
-                    section_dom_id = self._get_dom_id(increment=False)
-
-                label, counter = section_dom_id.split("-")
-                section_dom_id = f"{label}-{int(counter) + 1}"
-                section_dom_ids.append(section_dom_id)
+                section_dom_id = self._get_dom_id(
+                    section=None,  # root level of document
+                    title=content_element.section,
+                    extra_exclude=section_dom_ids,
+                )
+                section_dom_ids.add(section_dom_id)
 
                 # Finally, create the section HTML element.
                 section_html = _html_section_element(
-                    id=section_dom_id,
+                    id_=section_dom_id,
                     htmls=section_htmls,
                     tags=section_tags,
                     title=content_element.section,
@@ -1653,7 +1640,6 @@ class Report:
 
         fig = ica.plot_overlay(inst=inst_, show=False, on_baseline="reapply")
         del inst_
-        tight_layout(fig=fig)
         _constrain_fig_resolution(fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES)
         self._add_figure(
             fig=fig,
@@ -1669,7 +1655,7 @@ class Report:
     def _add_ica_properties(
         self, *, ica, picks, inst, n_jobs, image_format, section, tags, replace
     ):
-        ch_type = _get_ch_type(inst=ica.info, ch_type=None)
+        ch_type = _get_plot_ch_type(inst=ica.info, ch_type=None)
         if not _check_ch_locs(info=ica.info, ch_type=ch_type):
             ch_type_name = _handle_default("titles")[ch_type]
             warn(
@@ -1678,27 +1664,17 @@ class Report:
             )
             return
 
+        if picks is None:
+            picks = list(range(ica.n_components_))
+
         figs = _plot_ica_properties_as_arrays(
             ica=ica, inst=inst, picks=picks, n_jobs=n_jobs
         )
-        rel_explained_var = (
-            ica.pca_explained_variance_ / ica.pca_explained_variance_.sum()
-        )
-        cum_explained_var = np.cumsum(rel_explained_var)
-        captions = []
-        for idx, rel_var, cum_var in zip(
-            range(len(figs)),
-            rel_explained_var[: len(figs)],
-            cum_explained_var[: len(figs)],
-        ):
-            caption = (
-                f"ICA component {idx}. " f"Variance explained: {round(100 * rel_var)}%"
-            )
-            if idx == 0:
-                caption += "."
-            else:
-                caption += f" ({round(100 * cum_var)}% cumulative)."
+        assert len(figs) == len(picks)
 
+        captions = []
+        for idx in range(len(figs)):
+            caption = f"ICA component {picks[idx]}."
             captions.append(caption)
 
         title = "ICA component properties"
@@ -1762,7 +1738,7 @@ class Report:
         )
 
     def _add_ica_components(self, *, ica, picks, image_format, section, tags, replace):
-        ch_type = _get_ch_type(inst=ica.info, ch_type=None)
+        ch_type = _get_plot_ch_type(inst=ica.info, ch_type=None)
         if not _check_ch_locs(info=ica.info, ch_type=ch_type):
             ch_type_name = _handle_default("titles")[ch_type]
             warn(
@@ -1774,9 +1750,6 @@ class Report:
         figs = ica.plot_components(picks=picks, title="", colorbar=True, show=False)
         if not isinstance(figs, list):
             figs = [figs]
-
-        for fig in figs:
-            tight_layout(fig=fig)
 
         title = "ICA component topographies"
         if len(figs) == 1:
@@ -2071,7 +2044,7 @@ class Report:
         return remove_idx
 
     @fill_doc
-    def _add_or_replace(self, *, title, section, dom_id, tags, html, replace=False):
+    def _add_or_replace(self, *, title, section, tags, html_partial, replace=False):
         """Append HTML content report, or replace it if it already exists.
 
         Parameters
@@ -2079,19 +2052,21 @@ class Report:
         title : str
             The title entry.
         %(section_report)s
-        dom_id : str
-            A unique element ``id`` in the DOM.
         tags : tuple of str
             The tags associated with the added element.
-        html : str
-            The HTML.
+        html_partial : callable
+            Callable that renders a HTML string, called as::
+
+                html_partial(id_=...)
         replace : bool
             Whether to replace existing content if the title and section match.
+            If an object is replaced, its dom_id is preserved.
         """
-        assert isinstance(html, str)  # otherwise later will break
+        assert callable(html_partial), type(html_partial)
 
+        # Temporarily set HTML and dom_id to dummy values
         new_content = _ContentElement(
-            name=title, section=section, dom_id=dom_id, tags=tags, html=html
+            name=title, section=section, dom_id="", tags=tags, html=""
         )
 
         append = True
@@ -2102,25 +2077,31 @@ class Report:
                 if (element.name, element.section) == (title, section)
             ]
             if matches:
+                dom_id = self._content[matches[-1]].dom_id
                 self._content[matches[-1]] = new_content
                 append = False
         if append:
+            dom_id = self._get_dom_id(section=section, title=title)
             self._content.append(new_content)
+        new_content.dom_id = dom_id
+        new_content.html = html_partial(id_=dom_id)
+        assert isinstance(new_content.html, str), type(new_content.html)
 
     def _add_code(self, *, code, title, language, section, tags, replace):
         if isinstance(code, Path):
             code = Path(code).read_text()
-
-        dom_id = self._get_dom_id()
-        html = _html_code_element(
-            tags=tags, title=title, id=dom_id, code=code, language=language
+        html_partial = partial(
+            _html_code_element,
+            tags=tags,
+            title=title,
+            code=code,
+            language=language,
         )
         self._add_or_replace(
-            dom_id=dom_id,
             title=title,
             section=section,
             tags=tags,
-            html=html,
+            html_partial=html_partial,
             replace=replace,
         )
 
@@ -2198,8 +2179,8 @@ class Report:
         section,
         replace,
     ):
-        dom_id = self._get_dom_id()
-        html = _html_image_element(
+        html_partial = partial(
+            _html_image_element,
             img=img,
             div_klass="custom-image",
             img_klass="custom-image",
@@ -2207,15 +2188,13 @@ class Report:
             caption=caption,
             show=True,
             image_format=image_format,
-            id=dom_id,
             tags=tags,
         )
         self._add_or_replace(
-            dom_id=dom_id,
             title=title,
             section=section,
             tags=tags,
-            html=html,
+            html_partial=html_partial,
             replace=replace,
         )
 
@@ -2292,7 +2271,7 @@ class Report:
         elif caption is None and len(figs) == 1:
             captions = [None]
         elif caption is None and len(figs) > 1:
-            captions = [f"Figure {i+1}" for i in range(len(figs))]
+            captions = [f"Figure {i + 1}" for i in range(len(figs))]
         else:
             captions = tuple(caption)
 
@@ -2395,16 +2374,18 @@ class Report:
         .. versionadded:: 0.24.0
         """
         tags = _check_tags(tags)
-        dom_id = self._get_dom_id()
-        html_element = _html_element(
-            id=dom_id, html=html, title=title, tags=tags, div_klass="custom-html"
+        html_partial = partial(
+            _html_element,
+            html=html,
+            title=title,
+            tags=tags,
+            div_klass="custom-html",
         )
         self._add_or_replace(
-            dom_id=dom_id,
             title=title,
-            section=None,
+            section=section,
             tags=tags,
-            html=html_element,
+            html_partial=html_partial,
             replace=replace,
         )
 
@@ -2493,9 +2474,8 @@ class Report:
                 for fig in figs
             ]
 
-        dom_id = self._get_dom_id()
-        html = _html_slider_element(
-            id=dom_id,
+        html_partial = partial(
+            _html_slider_element,
             title=title,
             captions=captions,
             tags=tags,
@@ -2504,7 +2484,7 @@ class Report:
             start_idx=start_idx,
             klass=klass,
         )
-        return html, dom_id
+        return html_partial
 
     def _add_slider(
         self,
@@ -2521,7 +2501,7 @@ class Report:
         klass="",
         own_figure=True,
     ):
-        html, dom_id = self._render_slider(
+        html_partial = self._render_slider(
             figs=figs,
             imgs=imgs,
             title=title,
@@ -2535,9 +2515,8 @@ class Report:
         self._add_or_replace(
             title=title,
             section=section,
-            dom_id=dom_id,
             tags=tags,
-            html=html,
+            html_partial=html_partial,
             replace=replace,
         )
 
@@ -3019,7 +2998,7 @@ class Report:
         """Do nothing when entering the context block."""
         return self
 
-    def __exit__(self, type, value, traceback):
+    def __exit__(self, exception_type, value, traceback):
         """Save the report when leaving the context block."""
         if self.fname is not None:
             self.save(self.fname, open_browser=False, overwrite=True)
@@ -3085,7 +3064,7 @@ class Report:
         # Render the slider
         captions = [f"Slice index: {i * decim}" for i in range(len(figs))]
         start_idx = int(round(len(figs) / 2))
-        html, _ = self._render_slider(
+        html_partial = self._render_slider(
             figs=figs,
             imgs=None,
             captions=captions,
@@ -3096,7 +3075,9 @@ class Report:
             klass="bem col-md",
             own_figure=True,
         )
-
+        # If we replace a BEM section this could end up like `axial-1`, but
+        # we never refer to it in the TOC so it's probably okay
+        html = html_partial(id_=self._get_dom_id(section="bem", title=orientation))
         return html
 
     def _add_html_repr(self, *, inst, title, tags, section, replace, div_klass):
@@ -3136,7 +3117,7 @@ class Report:
         try:
             raw.set_annotations(None)
 
-            # Create the figure once and re-use it for performance reasons
+            # Create the figure once and reuse it for performance reasons
             with use_browser_backend("matplotlib"):
                 fig = raw.plot(
                     butterfly=True,
@@ -3162,7 +3143,7 @@ class Report:
 
         del orig_annotations
 
-        captions = [f"Segment {i+1} of {len(images)}" for i in range(len(images))]
+        captions = [f"Segment {i + 1} of {len(images)}" for i in range(len(images))]
 
         self._add_slider(
             figs=None,
@@ -3237,8 +3218,9 @@ class Report:
             init_kwargs, plot_kwargs = _split_psd_kwargs(kwargs=add_psd)
             init_kwargs.setdefault("fmax", fmax)
             plot_kwargs.setdefault("show", False)
-            fig = raw.compute_psd(**init_kwargs).plot(**plot_kwargs)
-            tight_layout(fig=fig)
+            with warnings.catch_warnings():
+                warnings.simplefilter(action="ignore", category=FutureWarning)
+                fig = raw.compute_psd(**init_kwargs).plot(**plot_kwargs)
             _constrain_fig_resolution(fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES)
             self._add_figure(
                 fig=fig,
@@ -3320,7 +3302,6 @@ class Report:
         # hard to see how (6, 4) could work in all number-of-projs by
         # number-of-channel-types conditions...
         fig.set_size_inches((6, 4))
-        tight_layout(fig=fig)
         _constrain_fig_resolution(fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES)
         self._add_figure(
             fig=fig,
@@ -3359,10 +3340,9 @@ class Report:
         else:
             sensitivity_maps_html = ""
 
-        dom_id = self._get_dom_id()
-        html = _html_forward_sol_element(
-            id=dom_id,
-            repr=forward._repr_html_(),
+        html_partial = partial(
+            _html_forward_sol_element,
+            repr_=forward._repr_html_(),
             sensitivity_maps=sensitivity_maps_html,
             title=title,
             tags=tags,
@@ -3370,9 +3350,8 @@ class Report:
         self._add_or_replace(
             title=title,
             section=section,
-            dom_id=dom_id,
             tags=tags,
-            html=html,
+            html_partial=html_partial,
             replace=replace,
         )
 
@@ -3413,22 +3392,21 @@ class Report:
         #     set_3d_view(fig, focalpoint=(0., 0., 0.06))
         #     img = _fig_to_img(fig=fig, image_format=image_format)
 
-        #     dom_id = self._get_dom_id()
-        #     src_img_html = _html_image_element(
+        #     src_img_html = partial(
+        #         _html_image_element,
         #         img=img,
         #         div_klass='inverse-operator source-space',
         #         img_klass='inverse-operator source-space',
         #         title='Source space', caption=None, show=True,
-        #         image_format=image_format, id=dom_id,
+        #         image_format=image_format,
         #         tags=tags
         #     )
         # else:
         src_img_html = ""
 
-        dom_id = self._get_dom_id()
-        html = _html_inverse_operator_element(
-            id=dom_id,
-            repr=inverse_operator._repr_html_(),
+        html_partial = partial(
+            _html_inverse_operator_element,
+            repr_=inverse_operator._repr_html_(),
             source_space=src_img_html,
             title=title,
             tags=tags,
@@ -3436,9 +3414,8 @@ class Report:
         self._add_or_replace(
             title=title,
             section=section,
-            dom_id=dom_id,
             tags=tags,
-            html=html,
+            html_partial=html_partial,
             replace=replace,
         )
 
@@ -3489,6 +3466,7 @@ class Report:
             len(ch_types) * 2,
             gridspec_kw={"width_ratios": [8, 0.5] * len(ch_types)},
             figsize=(2.5 * len(ch_types), 2),
+            layout="constrained",
         )
         _constrain_fig_resolution(fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES)
         ch_type_ax_map = dict(
@@ -3508,8 +3486,6 @@ class Report:
                 **topomap_kwargs,
             )
             ch_type_ax_map[ch_type][0].set_title(ch_type)
-
-        tight_layout(fig=fig)
 
         with BytesIO() as buff:
             fig.savefig(buff, format="png", pad_inches=0)
@@ -3617,7 +3593,7 @@ class Report:
 
         import matplotlib.pyplot as plt
 
-        fig, ax = plt.subplots(len(ch_types), 1, sharex=True)
+        fig, ax = plt.subplots(len(ch_types), 1, sharex=True, layout="constrained")
         if len(ch_types) == 1:
             ax = [ax]
         for idx, ch_type in enumerate(ch_types):
@@ -3637,7 +3613,6 @@ class Report:
             if idx < len(ch_types) - 1:
                 ax[idx].set_xlabel(None)
 
-        tight_layout(fig=fig)
         _constrain_fig_resolution(fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES)
         title = "Global field power"
         self._add_figure(
@@ -3656,7 +3631,6 @@ class Report:
     ):
         """Render whitened evoked."""
         fig = evoked.plot_white(noise_cov=noise_cov, show=False)
-        tight_layout(fig=fig)
         _constrain_fig_resolution(fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES)
         title = "Whitened"
 
@@ -3685,7 +3659,7 @@ class Report:
         n_jobs,
         replace,
     ):
-        ch_types = _get_ch_types(evoked)
+        ch_types = _get_data_ch_types(evoked)
         self._add_evoked_joint(
             evoked=evoked,
             ch_types=ch_types,
@@ -3813,7 +3787,7 @@ class Report:
             if fmax > 0.5 * epochs.info["sfreq"]:
                 fmax = np.inf
 
-        fig = epochs_for_psd.compute_psd(fmax=fmax).plot(show=False)
+        fig = epochs_for_psd.compute_psd(fmax=fmax).plot(amplitude=False, show=False)
         _constrain_fig_resolution(fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES)
         duration = round(epoch_duration * len(epochs_for_psd), 1)
         caption = (
@@ -3831,16 +3805,18 @@ class Report:
         )
 
     def _add_html_element(self, *, html, title, tags, section, replace, div_klass):
-        dom_id = self._get_dom_id()
-        html = _html_element(
-            div_klass=div_klass, id=dom_id, tags=tags, title=title, html=html
+        html_partial = partial(
+            _html_element,
+            div_klass=div_klass,
+            tags=tags,
+            title=title,
+            html=html,
         )
         self._add_or_replace(
             title=title,
             section=section,
-            dom_id=dom_id,
             tags=tags,
-            html=html,
+            html_partial=html_partial,
             replace=replace,
         )
 
@@ -3955,7 +3931,7 @@ class Report:
             )
 
         # ERP/ERF image(s)
-        ch_types = _get_ch_types(epochs)
+        ch_types = _get_data_ch_types(epochs)
         epochs.load_data()
 
         for ch_type in ch_types:
@@ -4002,7 +3978,6 @@ class Report:
                 fig = epochs.plot_drop_log(
                     subject=self.subject, ignore=drop_log_ignore, show=False
                 )
-                tight_layout(fig=fig)
                 _constrain_fig_resolution(
                     fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES
                 )
@@ -4178,18 +4153,17 @@ class Report:
 
                 if backend_is_3d:
                     brain.set_time(t)
-                    fig, ax = plt.subplots(figsize=(4.5, 4.5))
+                    fig, ax = plt.subplots(figsize=(4.5, 4.5), layout="constrained")
                     ax.imshow(brain.screenshot(time_viewer=True, mode="rgb"))
                     ax.axis("off")
-                    tight_layout(fig=fig)
                     _constrain_fig_resolution(
                         fig, max_width=stc_plot_kwargs["size"][0], max_res=MAX_IMG_RES
                     )
                     figs.append(fig)
                     plt.close(fig)
                 else:
-                    fig_lh = plt.figure()
-                    fig_rh = plt.figure()
+                    fig_lh = plt.figure(layout="constrained")
+                    fig_rh = plt.figure(layout="constrained")
 
                     brain_lh = stc.plot(
                         views="lat",
@@ -4209,8 +4183,6 @@ class Report:
                         backend="matplotlib",
                         figure=fig_rh,
                     )
-                    tight_layout(fig=fig_lh)  # TODO is this necessary?
-                    tight_layout(fig=fig_rh)  # TODO is this necessary?
                     _constrain_fig_resolution(
                         fig_lh,
                         max_width=stc_plot_kwargs["size"][0],
@@ -4294,9 +4266,8 @@ class Report:
         html_slider_sagittal = htmls["sagittal"] if "sagittal" in htmls else ""
         html_slider_coronal = htmls["coronal"] if "coronal" in htmls else ""
 
-        dom_id = self._get_dom_id()
-        html = _html_bem_element(
-            id=dom_id,
+        html_partial = partial(
+            _html_bem_element,
             div_klass="bem",
             html_slider_axial=html_slider_axial,
             html_slider_sagittal=html_slider_sagittal,
@@ -4307,9 +4278,8 @@ class Report:
         self._add_or_replace(
             title=title,
             section=None,  # no nesting
-            dom_id=dom_id,
             tags=tags,
-            html=html,
+            html_partial=html_partial,
             replace=replace,
         )
 

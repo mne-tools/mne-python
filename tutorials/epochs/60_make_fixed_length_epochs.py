@@ -28,13 +28,16 @@ the signal.
         $ pip install mne-connectivity
 """
 
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 # %%
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
+from mne_connectivity import envelope_correlation
+
 import mne
 from mne.preprocessing import compute_proj_ecg
-from mne_connectivity import envelope_correlation
 
 sample_data_folder = mne.datasets.sample.data_path()
 sample_data_raw_file = sample_data_folder / "MEG" / "sample" / "sample_audvis_raw.fif"
@@ -93,7 +96,7 @@ event_related_plot = epochs.plot_image(picks=["MEG 1142"])
 # (for more information on filtering, please see :ref:`tut-filter-resample`).
 
 epochs.load_data().filter(l_freq=8, h_freq=12)
-alpha_data = epochs.get_data()
+alpha_data = epochs.get_data(copy=False)
 
 # %%
 # If desired, separate correlation matrices for each epoch can be obtained.
@@ -113,13 +116,10 @@ corr_matrices = [first_30, last_30]
 color_lims = np.percentile(np.array(corr_matrices), [5, 95])
 titles = ["First 30 Seconds", "Last 30 Seconds"]
 
-fig, axes = plt.subplots(nrows=1, ncols=2)
+fig, axes = plt.subplots(nrows=1, ncols=2, layout="constrained")
 fig.suptitle("Correlation Matrices from First 30 Seconds and Last 30 Seconds")
 for ci, corr_matrix in enumerate(corr_matrices):
     ax = axes[ci]
     mpbl = ax.imshow(corr_matrix, clim=color_lims)
     ax.set_xlabel(titles[ci])
-fig.subplots_adjust(right=0.8)
-cax = fig.add_axes([0.85, 0.2, 0.025, 0.6])
-cbar = fig.colorbar(ax.images[0], cax=cax)
-cbar.set_label("Correlation Coefficient")
+cbar = fig.colorbar(ax.images[0], label="Correlation Coefficient")

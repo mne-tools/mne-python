@@ -2,30 +2,39 @@
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
-from contextlib import contextmanager, ExitStack
 import fnmatch
 import gc
+import hashlib
 import inspect
-from math import log
 import os
-from queue import Queue, Empty
-from string import Formatter
 import subprocess
 import sys
-from threading import Thread
 import traceback
+import weakref
+from contextlib import ExitStack, contextmanager
+from importlib.resources import files
+from math import log
+from queue import Empty, Queue
+from string import Formatter
+from textwrap import dedent
+from threading import Thread
 
 import numpy as np
+from decorator import FunctionMaker
 
-from ..utils import _check_option, _validate_type
 from ._logging import logger, verbose, warn
+from .check import _check_option, _validate_type
 
-# TODO: remove try/except when our min version is py 3.9
-try:
-    from importlib.resources import files
-except ImportError:
-    from importlib_resources import files
+
+# TODO: no longer needed when py3.9 is minimum supported version
+def _empty_hash(kind="md5"):
+    func = getattr(hashlib, kind)
+    if "usedforsecurity" in inspect.signature(func).parameters:
+        return func(usedforsecurity=False)
+    else:
+        return func()
 
 
 def _pl(x, non_pl="", pl="s"):
@@ -147,20 +156,7 @@ def run_subprocess(command, return_code=False, verbose=None, *args, **kwargs):
                     break
                 else:
                     out = out.decode("utf-8")
-                    # Strip newline at end of the string, otherwise we'll end
-                    # up with two subsequent newlines (as the logger adds one)
-                    #
-                    # XXX Once we drop support for Python <3.9, uncomment the
-                    # following line and remove the if/else block below.
-                    #
-                    # log_out = out.removesuffix('\n')
-                    if sys.version_info[:2] >= (3, 9):
-                        log_out = out.removesuffix("\n")
-                    elif out.endswith("\n"):
-                        log_out = out[:-1]
-                    else:
-                        log_out = out
-
+                    log_out = out.removesuffix("\n")
                     logger.info(log_out)
                     all_out += out
 
@@ -171,19 +167,7 @@ def run_subprocess(command, return_code=False, verbose=None, *args, **kwargs):
                     break
                 else:
                     err = err.decode("utf-8")
-                    # Strip newline at end of the string, otherwise we'll end
-                    # up with two subsequent newlines (as the logger adds one)
-                    #
-                    # XXX Once we drop support for Python <3.9, uncomment the
-                    # following line and remove the if/else block below.
-                    #
-                    # err_out = err.removesuffix('\n')
-                    if sys.version_info[:2] >= (3, 9):
-                        err_out = err.removesuffix("\n")
-                    elif err.endswith("\n"):
-                        err_out = err[:-1]
-                    else:
-                        err_out = err
+                    err_out = err.removesuffix("\n")
 
                     # Leave this as logger.warning rather than warn(...) to
                     # mirror the logger.info above for stdout. This function
@@ -475,3 +459,46 @@ def repr_html(f):
             return f(*args, **kwargs)
 
     return wrapper
+
+
+def _auto_weakref(function):
+    """Create weakrefs to self (or other free vars in __closure__) then evaluate.
+
+    When a nested function is defined within an instance method, and the function makes
+    use of ``self``, it creates a reference cycle that the Python garbage collector is
+    not smart enough to resolve, so the parent object is never GC'd. (The reference to
+    ``self`` becomes part of the ``__closure__`` of the nested function).
+
+    This decorator allows the nested function to access ``self`` without increasing the
+    reference counter on ``self``, which will prevent the memory leak. If the referent
+    is not found (usually because already GC'd) it will short-circuit the decorated
+    function and return ``None``.
+    """
+    names = function.__code__.co_freevars
+    assert len(names) == len(function.__closure__)
+    __weakref_values__ = dict()
+    evaldict = dict(__weakref_values__=__weakref_values__)
+    for name, value in zip(names, function.__closure__):
+        __weakref_values__[name] = weakref.ref(value.cell_contents)
+    body = dedent(inspect.getsource(function))
+    body = body.splitlines()
+    for li, line in enumerate(body):
+        if line.startswith(" "):
+            body = body[li:]
+            break
+    old_body = "\n".join(body)
+    body = """\
+def %(name)s(%(signature)s):
+"""
+    for name in names:
+        body += f"""
+    {name} = __weakref_values__[{repr(name)}]()
+    if {name} is None:
+        return
+"""
+    body = body + old_body
+    fm = FunctionMaker(function)
+    fun = fm.make(body, evaldict, addsource=True)
+    fun.__globals__.update(function.__globals__)
+    assert fun.__closure__ is None, fun.__closure__
+    return fun

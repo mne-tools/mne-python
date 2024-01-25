@@ -1,5 +1,3 @@
-.. include:: ../links.inc
-
 .. _installers:
 
 MNE-Python installers
@@ -17,7 +15,7 @@ Got any questions? Let us know on the `MNE Forum`_!
         :class-content: text-center
         :name: linux-installers
 
-        .. button-link:: https://github.com/mne-tools/mne-installers/releases/download/v1.4.0/MNE-Python-1.4.0_0-Linux.sh
+        .. button-link:: https://github.com/mne-tools/mne-installers/releases/download/v1.6.1/MNE-Python-1.6.1_0-Linux.sh
             :ref-type: ref
             :color: primary
             :shadow:
@@ -31,14 +29,14 @@ Got any questions? Let us know on the `MNE Forum`_!
 
         .. code-block:: console
 
-            $ sh ./MNE-Python-1.4.0_0-Linux.sh
+            $ sh ./MNE-Python-1.6.1_0-Linux.sh
 
 
     .. tab-item:: macOS (Intel)
         :class-content: text-center
         :name: macos-intel-installers
 
-        .. button-link:: https://github.com/mne-tools/mne-installers/releases/download/v1.4.0/MNE-Python-1.4.0_0-macOS_Intel.pkg
+        .. button-link:: https://github.com/mne-tools/mne-installers/releases/download/v1.6.1/MNE-Python-1.6.1_0-macOS_Intel.pkg
             :ref-type: ref
             :color: primary
             :shadow:
@@ -54,7 +52,7 @@ Got any questions? Let us know on the `MNE Forum`_!
         :class-content: text-center
         :name: macos-apple-installers
 
-        .. button-link:: https://github.com/mne-tools/mne-installers/releases/download/v1.4.0/MNE-Python-1.4.0_0-macOS_M1.pkg
+        .. button-link:: https://github.com/mne-tools/mne-installers/releases/download/v1.6.1/MNE-Python-1.6.1_0-macOS_M1.pkg
             :ref-type: ref
             :color: primary
             :shadow:
@@ -70,7 +68,7 @@ Got any questions? Let us know on the `MNE Forum`_!
         :class-content: text-center
         :name: windows-installers
 
-        .. button-link:: https://github.com/mne-tools/mne-installers/releases/download/v1.4.0/MNE-Python-1.4.0_0-Windows.exe
+        .. button-link:: https://github.com/mne-tools/mne-installers/releases/download/v1.6.1/MNE-Python-1.6.1_0-Windows.exe
             :ref-type: ref
             :color: primary
             :shadow:
@@ -80,6 +78,10 @@ Got any questions? Let us know on the `MNE Forum`_!
 
         **Supported platforms:** Windows 10 and newer
 
+.. raw:: html
+
+   <script async="async" src="../_static/js/update_installer_version.js"></script>
+   <script async="async" src="../_static/js/set_installer_tab.js"></script>
 
 First steps
 ^^^^^^^^^^^
@@ -118,39 +120,10 @@ information, including a line that will read something like:
 
 .. code-block::
 
-   Using Python: /some/directory/mne-python_1.4.0_0/bin/python
+   Using Python: /some/directory/mne-python_1.6.1_0/bin/python
 
 This path is what you need to enter in VS Code when selecting the Python
 interpreter.
 
 .. note::
    This information is currently not displayed on the Windows platform.
-
-
-.. raw:: html
-
-    <script type="text/javascript">
-      var platform = "linux";
-      if (navigator.userAgent.indexOf("Win") !== -1) {
-        platform = "windows";
-      }
-      if (navigator.userAgent.indexOf("Mac") !== -1) {
-        // there's no good way to distinguish intel vs M1 in javascript so we
-        // just default to showing the first of the 2 macOS tabs
-        platform = "macos-intel";
-      }
-     $(document).ready(function(){
-         let all_tab_nodes = document.querySelectorAll(
-             '.platform-selector-tabset')[0].children;
-         let input_nodes = [...all_tab_nodes].filter(
-             child => child.nodeName === "INPUT");
-         let tab_label_nodes = [...document.querySelectorAll('.sd-tab-label')];
-         let correct_label = tab_label_nodes.filter(
-             // label.id is drawn from :name: property in the rST, which must
-             // be unique across the whole site (*sigh*)
-             label => label.id.startsWith(platform))[0];
-         let input_id = correct_label.getAttribute('for');
-         let correct_input = input_nodes.filter(node => node.id === input_id)[0];
-         correct_input.checked = true;
-     });
-     </script>

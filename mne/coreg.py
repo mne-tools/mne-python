@@ -3,76 +3,78 @@
 # Authors: Christian Brodbeck <christianbrodbeck@nyu.edu>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import configparser
 import fnmatch
-from glob import glob, iglob
 import os
 import os.path as op
-import stat
-import sys
 import re
 import shutil
+import stat
+import sys
 from functools import reduce
+from glob import glob, iglob
 
 import numpy as np
+from scipy.optimize import leastsq
+from scipy.spatial.distance import cdist
 
-from .io import read_fiducials, write_fiducials, read_info
-from .io.constants import FIFF
-from .io.meas_info import Info
-from .io._digitization import _get_data_as_dict_from_dig
+from ._fiff._digitization import _get_data_as_dict_from_dig
+from ._fiff.constants import FIFF
+from ._fiff.meas_info import Info, read_fiducials, read_info, write_fiducials
 
 # keep get_mni_fiducials for backward compat (no burden to keep in this
 # namespace, too)
 from ._freesurfer import (
     _read_mri_info,
-    get_mni_fiducials,
     estimate_head_mri_t,  # noqa: F401
+    get_mni_fiducials,
 )
-from .label import read_label, Label
+from .bem import read_bem_surfaces, write_bem_surfaces
+from .channels import make_dig_montage
+from .label import Label, read_label
 from .source_space import (
     add_source_space_distances,
     read_source_spaces,  # noqa: F401
     write_source_spaces,
 )
 from .surface import (
-    read_surface,
-    write_surface,
+    _DistanceQuery,
     _normalize_vectors,
     complete_surface_info,
     decimate_surface,
-    _DistanceQuery,
+    read_surface,
+    write_surface,
 )
-from .bem import read_bem_surfaces, write_bem_surfaces
 from .transforms import (
+    Transform,
+    _angle_between_quats,
+    _fit_matched_points,
+    _quat_to_euler,
+    _read_fs_xfm,
+    _write_fs_xfm,
+    apply_trans,
+    combine_transforms,
+    invert_transform,
+    rot_to_quat,
     rotation,
     rotation3d,
     scaling,
     translation,
-    Transform,
-    _read_fs_xfm,
-    _write_fs_xfm,
-    invert_transform,
-    combine_transforms,
-    _quat_to_euler,
-    _fit_matched_points,
-    apply_trans,
-    rot_to_quat,
-    _angle_between_quats,
 )
-from .channels import make_dig_montage
 from .utils import (
+    _check_option,
+    _check_subject,
+    _import_nibabel,
+    _validate_type,
+    fill_doc,
     get_config,
     get_subjects_dir,
     logger,
     pformat,
     verbose,
     warn,
-    fill_doc,
-    _validate_type,
-    _check_subject,
-    _check_option,
-    _import_nibabel,
 )
 from .viz._3d import _fiducial_coords
 
@@ -224,8 +226,8 @@ def create_default_subject(fs_home=None, update=False, subjects_dir=None, verbos
         dirname = os.path.join(fs_src, name)
         if not os.path.isdir(dirname):
             raise OSError(
-                "Freesurfer fsaverage seems to be incomplete: No "
-                "directory named %s found in %s" % (name, fs_src)
+                "Freesurfer fsaverage seems to be incomplete: No directory named "
+                f"{name} found in {fs_src}"
             )
 
     # make sure destination does not already exist
@@ -239,9 +241,9 @@ def create_default_subject(fs_home=None, update=False, subjects_dir=None, verbos
         )
     elif (not update) and os.path.exists(dest):
         raise OSError(
-            "Can not create fsaverage because %r already exists in "
-            "subjects_dir %r. Delete or rename the existing fsaverage "
-            "subject folder." % ("fsaverage", subjects_dir)
+            "Can not create fsaverage because {!r} already exists in "
+            "subjects_dir {!r}. Delete or rename the existing fsaverage "
+            "subject folder.".format("fsaverage", subjects_dir)
         )
 
     # copy fsaverage from freesurfer
@@ -284,8 +286,6 @@ def _decimate_points(pts, res=10):
     pts : array, shape = (n_points, 3)
         The decimated points.
     """
-    from scipy.spatial.distance import cdist
-
     pts = np.asarray(pts)
 
     # find the bin edges for the voxel space
@@ -304,8 +304,8 @@ def _decimate_points(pts, res=10):
     mids = np.c_[x, y, z] + res / 2.0
 
     # each point belongs to at most one voxel center, so figure those out
-    # (cKDTree faster than BallTree for these small problems)
-    tree = _DistanceQuery(mids, method="cKDTree")
+    # (KDTree faster than BallTree for these small problems)
+    tree = _DistanceQuery(mids, method="KDTree")
     _, mid_idx = tree.query(pts)
 
     # then figure out which to actually use based on proximity
@@ -422,19 +422,15 @@ def fit_matched_points(
     tgt_pts = np.atleast_2d(tgt_pts)
     if src_pts.shape != tgt_pts.shape:
         raise ValueError(
-            "src_pts and tgt_pts must have same shape (got "
-            "{}, {})".format(src_pts.shape, tgt_pts.shape)
+            "src_pts and tgt_pts must have same shape "
+            f"(got {src_pts.shape}, {tgt_pts.shape})"
         )
     if weights is not None:
         weights = np.asarray(weights, src_pts.dtype)
         if weights.ndim != 1 or weights.size not in (src_pts.shape[0], 1):
             raise ValueError(
-                "weights (shape=%s) must be None or have shape "
-                "(%s,)"
-                % (
-                    weights.shape,
-                    src_pts.shape[0],
-                )
+                f"weights (shape={weights.shape}) must be None or have shape "
+                f"({src_pts.shape[0]},)"
             )
         weights = weights[:, np.newaxis]
 
@@ -477,8 +473,6 @@ def fit_matched_points(
 
 
 def _generic_fit(src_pts, tgt_pts, param_info, weights, x0):
-    from scipy.optimize import leastsq
-
     if param_info[1]:  # translate
         src_pts = np.hstack((src_pts, np.ones((len(src_pts), 1))))
 
@@ -543,7 +537,7 @@ def _generic_fit(src_pts, tgt_pts, param_info, weights, x0):
     else:
         raise NotImplementedError(
             "The specified parameter combination is not implemented: "
-            "rotate=%r, translate=%r, scale=%r" % param_info
+            "rotate={!r}, translate={!r}, scale={!r}".format(*param_info)
         )
 
     x, _, _, _, _ = leastsq(error, x0, full_output=True)
@@ -829,8 +823,8 @@ def read_mri_cfg(subject, subjects_dir=None):
 
     if not fname.exists():
         raise OSError(
-            "%r does not seem to be a scaled mri subject: %r does "
-            "not exist." % (subject, fname)
+            f"{subject!r} does not seem to be a scaled mri subject: {fname!r} does not"
+            "exist."
         )
 
     logger.info("Reading MRI cfg file %s" % fname)
@@ -918,8 +912,8 @@ def _scale_params(subject_to, subject_from, scale, subjects_dir):
     scale = np.atleast_1d(scale)
     if scale.ndim != 1 or scale.shape[0] not in (1, 3):
         raise ValueError(
-            "Invalid shape for scale parameter. Need scalar "
-            "or array of length 3. Got shape %s." % (scale.shape,)
+            "Invalid shape for scale parameter. Need scalar or array of length 3. Got "
+            f"shape {scale.shape}."
         )
     n_params = len(scale)
     return str(subjects_dir), subject_from, scale, n_params == 1
@@ -1107,14 +1101,14 @@ def scale_mri(
         if np.isclose(scale[1], scale[0]) and np.isclose(scale[2], scale[0]):
             scale = scale[0]  # speed up scaling conditionals using a singleton
     elif scale.shape != (1,):
-        raise ValueError("scale must have shape (3,) or (1,), got %s" % (scale.shape,))
+        raise ValueError(f"scale must have shape (3,) or (1,), got {scale.shape}")
 
     # make sure we have an empty target directory
     dest = subject_dirname.format(subject=subject_to, subjects_dir=subjects_dir)
     if os.path.exists(dest):
         if not overwrite:
             raise OSError(
-                "Subject directory for %s already exists: %r" % (subject_to, dest)
+                f"Subject directory for {subject_to} already exists: {dest!r}"
             )
         shutil.rmtree(dest)
 
@@ -1553,7 +1547,9 @@ class Coregistration:
         low_res_path = _find_head_bem(self._subject, self._subjects_dir, high_res=False)
         if high_res_path is None and low_res_path is None:
             raise RuntimeError(
-                "No standard head model was " f"found for subject {self._subject}"
+                "No standard head model was "
+                f"found for subject {self._subject} in "
+                f"{self._subjects_dir}"
             )
         if high_res_path is not None:
             self._bem_high_res = _read_surface(
@@ -1990,9 +1986,9 @@ class Coregistration:
         return self
 
     def _setup_icp(self, n_scale_params):
-        head_pts = list()
-        mri_pts = list()
-        weights = list()
+        head_pts = [np.zeros((0, 3))]
+        mri_pts = [np.zeros((0, 3))]
+        weights = [np.zeros(0)]
         if self._has_dig_data and self._hsp_weight > 0:  # should be true
             head_pts.append(self._filtered_extra_points)
             mri_pts.append(
@@ -2014,12 +2010,12 @@ class Coregistration:
                         self._processed_high_res_mri_points[
                             getattr(
                                 self,
-                                "_nearest_transformed_high_res_mri_idx_%s" % (key,),
+                                f"_nearest_transformed_high_res_mri_idx_{key}",
                             )
                         ]
                     )
                 weights.append(
-                    np.full(len(mri_pts[-1]), getattr(self, "_%s_weight" % key))
+                    np.full(len(mri_pts[-1]), getattr(self, f"_{key}_weight"))
                 )
         if self._has_eeg_data and self._eeg_weight > 0:
             head_pts.append(self._dig_dict["dig_ch_pos_location"])

@@ -1,17 +1,19 @@
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #
-# License: Simplified BSD
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import os.path as op
+
 import pytest
+
 import mne
-from mne.utils import requires_version
 
 
 @pytest.mark.pgtest
-@requires_version("sphinx_gallery")
 def test_qt_scraper(raw, pg_backend, tmp_path):
     """Test sphinx-gallery scraping of the browser."""
+    pytest.importorskip("sphinx_gallery")
     # make sure there is only one to scrape from old tests
     fig = raw.plot(group_by="selection")
     (tmp_path / "_images").mkdir()

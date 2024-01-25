@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 """Set up bilateral hemisphere surface-based source space with subsampling.
 
 Examples
@@ -21,7 +23,7 @@ from mne.utils import _check_option
 
 def run():
     """Run command."""
-    from mne.commands.utils import get_optparser, _add_verbose_flag
+    from mne.commands.utils import _add_verbose_flag, get_optparser
 
     parser = get_optparser(__file__)
 
@@ -93,8 +95,7 @@ def run():
         "--add-dist",
         dest="add_dist",
         help='Add distances. Can be "True", "False", or "patch" '
-        "to only compute cortical patch statistics (like the "
-        "--cps option in MNE-C; requires SciPy >= 1.3)",
+        "to only compute cortical patch statistics (like the --cps option in MNE-C)",
         default="True",
     )
     parser.add_option(
@@ -119,7 +120,7 @@ def run():
     subjects_dir = options.subjects_dir
     spacing = options.spacing
     ico = options.ico
-    oct = options.oct
+    oct_ = options.oct
     surface = options.surface
     n_jobs = options.n_jobs
     add_dist = options.add_dist
@@ -129,20 +130,22 @@ def run():
     overwrite = True if options.overwrite is not None else False
 
     # Parse source spacing option
-    spacing_options = [ico, oct, spacing]
+    spacing_options = [ico, oct_, spacing]
     n_options = len([x for x in spacing_options if x is not None])
+    use_spacing = "oct6"
     if n_options > 1:
         raise ValueError("Only one spacing option can be set at the same time")
     elif n_options == 0:
         # Default to oct6
-        use_spacing = "oct6"
+        pass
     elif n_options == 1:
         if ico is not None:
             use_spacing = "ico" + str(ico)
-        elif oct is not None:
-            use_spacing = "oct" + str(oct)
+        elif oct_ is not None:
+            use_spacing = "oct" + str(oct_)
         elif spacing is not None:
             use_spacing = spacing
+    del ico, oct_, spacing
     # Generate filename
     if fname is None:
         if subject_to is None:

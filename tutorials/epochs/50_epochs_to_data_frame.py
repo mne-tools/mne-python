@@ -16,6 +16,8 @@ applied to its EEG channels. As usual we'll start by importing the modules we
 need and loading the data:
 """
 
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 # %%
 
 import matplotlib.pyplot as plt
@@ -169,7 +171,6 @@ peak_latency = (
         id_vars=["condition", "epoch"], var_name="channel", value_name="latency of peak"
     )
 )
-
 ax = sns.violinplot(
     x="channel",
     y="latency of peak",

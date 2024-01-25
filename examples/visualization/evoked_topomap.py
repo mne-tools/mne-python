@@ -16,15 +16,16 @@ additional options.
 #          Alex Rockhill <aprockhill@mailbox.org>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 # sphinx_gallery_thumbnail_number = 5
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 
-from mne.datasets import sample
 from mne import read_evokeds
+from mne.datasets import sample
 
 print(__doc__)
 
@@ -94,7 +95,7 @@ evoked.plot_topomap(times, ch_type="mag", cmap="Spectral_r", res=32, contours=4)
 # and ``'head'`` otherwise. Here we show each option:
 
 extrapolations = ["local", "head", "box"]
-fig, axes = plt.subplots(figsize=(7.5, 4.5), nrows=2, ncols=3)
+fig, axes = plt.subplots(figsize=(7.5, 4.5), nrows=2, ncols=3, layout="constrained")
 
 # Here we look at EEG channels, and use a custom head sphere to get all the
 # sensors to be well within the drawn head surface
@@ -110,8 +111,7 @@ for axes_row, ch_type in zip(axes, ("mag", "eeg")):
             colorbar=False,
             sphere=(0.0, 0.0, 0.0, 0.09),
         )
-        ax.set_title("%s %s" % (ch_type.upper(), extr), fontsize=14)
-fig.tight_layout()
+        ax.set_title(f"{ch_type.upper()} {extr}", fontsize=14)
 
 # %%
 # More advanced usage
@@ -123,7 +123,6 @@ fig.tight_layout()
 fig = evoked.plot_topomap(
     0.1, ch_type="mag", show_names=True, colorbar=False, size=6, res=128
 )
-fig.subplots_adjust(left=0.01, right=0.99, bottom=0.01, top=0.88)
 fig.suptitle("Auditory response")
 
 # %%
@@ -148,7 +147,7 @@ significant_channels = [
     ("MEG 2411", "MEG 2421"),
     ("MEG 1621"),
 ]
-_channels = [np.in1d(evoked.ch_names, ch) for ch in significant_channels]
+_channels = [np.isin(evoked.ch_names, ch) for ch in significant_channels]
 
 mask = np.zeros(evoked.data.shape, dtype="bool")
 for _chs, _time in zip(_channels, _times):

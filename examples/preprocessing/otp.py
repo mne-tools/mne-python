@@ -11,12 +11,12 @@ on data with with sensor artifacts (flux jumps) and random noise.
 # Author: Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
-
-import mne
 import numpy as np
 
+import mne
 from mne import find_events, fit_dipole
 from mne.datasets.brainstorm import bst_phantom_elekta
 from mne.io import read_raw_fif
@@ -70,7 +70,7 @@ def compute_bias(raw):
     sphere = mne.make_sphere_model(r0=(0.0, 0.0, 0.0), head_radius=None, verbose=False)
     cov = mne.compute_covariance(epochs, tmax=0, method="oas", rank=None, verbose=False)
     idx = epochs.time_as_index(0.036)[0]
-    data = epochs.get_data()[:, :, idx].T
+    data = epochs.get_data(copy=False)[:, :, idx].T
     evoked = mne.EvokedArray(data, epochs.info, tmin=0.0)
     dip = fit_dipole(evoked, cov, sphere, n_jobs=None, verbose=False)[0]
     actual_pos = mne.dipole.get_phantom_dipoles()[0][dipole_number - 1]
@@ -79,15 +79,9 @@ def compute_bias(raw):
 
 
 bias = compute_bias(raw)
-print("Raw bias: %0.1fmm (worst: %0.1fmm)" % (np.mean(bias), np.max(bias)))
+print(f"Raw bias: {np.mean(bias):0.1f}mm (worst: {np.max(bias):0.1f}mm)")
 bias_clean = compute_bias(raw_clean)
-print(
-    "OTP bias: %0.1fmm (worst: %0.1fmm)"
-    % (
-        np.mean(bias_clean),
-        np.max(bias_clean),
-    )
-)
+print(f"OTP bias: {np.mean(bias_clean):0.1f}mm (worst: {np.max(bias_clean):0.1f}m)")
 
 # %%
 # References

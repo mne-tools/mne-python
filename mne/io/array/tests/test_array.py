@@ -1,23 +1,24 @@
 # Author: Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from pathlib import Path
 
-import numpy as np
-from numpy.testing import assert_array_almost_equal, assert_allclose, assert_equal
-import pytest
 import matplotlib.pyplot as plt
+import numpy as np
+import pytest
+from numpy.testing import assert_allclose, assert_array_almost_equal, assert_equal
 
-from mne import find_events, Epochs, pick_types
+from mne import Epochs, find_events, pick_types
+from mne._fiff.meas_info import create_info
+from mne._fiff.pick import get_channel_type_constants
+from mne.channels import make_dig_montage
 from mne.io import read_raw_fif
 from mne.io.array import RawArray
 from mne.io.tests.test_raw import _test_raw_reader
-from mne.io.meas_info import create_info
-from mne.io.pick import get_channel_type_constants
-from mne.channels import make_dig_montage
 
-base_dir = Path(__file__).parent.parent.parent / "tests" / "data"
+base_dir = Path(__file__).parents[2] / "tests" / "data"
 fif_fname = base_dir / "test_raw.fif"
 
 
@@ -150,7 +151,9 @@ def test_array_raw():
 
     # plotting
     raw2.plot()
-    raw2.compute_psd(tmax=2.0, n_fft=1024).plot(average=True, spatial_colors=False)
+    raw2.compute_psd(tmax=2.0, n_fft=1024).plot(
+        average=True, amplitude=False, spatial_colors=False
+    )
     plt.close("all")
 
     # epoching
@@ -183,5 +186,5 @@ def test_array_raw():
     raw = RawArray(data, info)
     raw.set_montage(montage)
     spectrum = raw.compute_psd()
-    spectrum.plot(average=False)  # looking for nonexistent layout
+    spectrum.plot(average=False, amplitude=False)  # looking for nonexistent layout
     spectrum.plot_topo()

@@ -17,60 +17,65 @@
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
+import copy
+import itertools
 from functools import partial
 
 import numpy as np
-import itertools
+from scipy.linalg import orth
+from scipy.optimize import fmin_cobyla
+from scipy.spatial.distance import cdist
 
-from .event import find_events
-from .io.base import BaseRaw
-from .channels.channels import _get_meg_system
-from .io.kit.constants import KIT
-from .io.kit.kit import RawKIT as _RawKIT
-from .io.meas_info import _simplify_info, Info
-from .io.pick import (
-    pick_types,
+from ._fiff.constants import FIFF
+from ._fiff.meas_info import Info, _simplify_info
+from ._fiff.pick import (
+    _picks_to_idx,
     pick_channels,
     pick_channels_regexp,
     pick_info,
-    _picks_to_idx,
+    pick_types,
 )
-from .io.proj import Projection, setup_proj
-from .io.constants import FIFF
-from .io.ctf.trans import _make_ctf_coord_trans_set
-from .forward import _magnetic_dipole_field_vec, _create_meg_coils, _concatenate_coils
-from .cov import make_ad_hoc_cov, compute_whitener
+from ._fiff.proj import Projection, setup_proj
+from .channels.channels import _get_meg_system
+from .cov import compute_whitener, make_ad_hoc_cov
 from .dipole import _make_guesses
+from .event import find_events
 from .fixes import jit
+from .forward import _concatenate_coils, _create_meg_coils, _magnetic_dipole_field_vec
+from .io import BaseRaw
+from .io.ctf.trans import _make_ctf_coord_trans_set
+from .io.kit.constants import KIT
+from .io.kit.kit import RawKIT as _RawKIT
 from .preprocessing.maxwell import (
-    _sss_basis,
+    _get_mf_picks_fix_mags,
     _prep_mf_coils,
     _regularize_out,
-    _get_mf_picks_fix_mags,
+    _sss_basis,
 )
 from .transforms import (
-    apply_trans,
-    invert_transform,
     _angle_between_quats,
-    quat_to_rot,
-    rot_to_quat,
     _fit_matched_points,
     _quat_to_affine,
     als_ras_trans,
+    apply_trans,
+    invert_transform,
+    quat_to_rot,
+    rot_to_quat,
 )
 from .utils import (
-    verbose,
+    ProgressBar,
+    _check_fname,
+    _check_option,
+    _on_missing,
+    _pl,
+    _validate_type,
+    _verbose_safe_false,
     logger,
     use_log_level,
-    _check_fname,
+    verbose,
     warn,
-    _validate_type,
-    ProgressBar,
-    _check_option,
-    _pl,
-    _on_missing,
-    _verbose_safe_false,
 )
 
 # Eventually we should add:
@@ -302,7 +307,7 @@ def extract_chpi_locs_kit(raw, stim_channel="MISC 064", *, verbose=None):
     assert dtype.itemsize == header["size"], (dtype.itemsize, header["size"])
     all_data = list()
     for fname in raw._filenames:
-        with open(fname, "r") as fid:
+        with open(fname) as fid:
             fid.seek(header["offset"])
             all_data.append(
                 np.fromfile(fid, dtype, count=header["count"]).reshape(-1, n_coils)
@@ -374,8 +379,8 @@ def get_chpi_info(info, on_missing="raise", verbose=None):
     # get frequencies
     hpi_freqs = np.array([float(x["coil_freq"]) for x in hpi_coils])
     logger.info(
-        "Using %s HPI coils: %s Hz"
-        % (len(hpi_freqs), " ".join(str(int(s)) for s in hpi_freqs))
+        f"Using {len(hpi_freqs)} HPI coils: {' '.join(str(int(s)) for s in hpi_freqs)} "
+        "Hz"
     )
 
     # how cHPI active is indicated in the FIF file
@@ -413,16 +418,21 @@ def _get_hpi_initial_fit(info, adjust=False, verbose=None):
         key=lambda x: x["ident"],
     )  # ascending (dig) order
     if len(hpi_dig) == 0:  # CTF data, probably
+        msg = "HPIFIT: No HPI dig points, using hpifit result"
         hpi_dig = sorted(hpi_result["dig_points"], key=lambda x: x["ident"])
         if all(
             d["coord_frame"] in (FIFF.FIFFV_COORD_DEVICE, FIFF.FIFFV_COORD_UNKNOWN)
             for d in hpi_dig
         ):
+            # Do not modify in place!
+            hpi_dig = copy.deepcopy(hpi_dig)
+            msg += " transformed to head coords"
             for dig in hpi_dig:
                 dig.update(
                     r=apply_trans(info["dev_head_t"], dig["r"]),
                     coord_frame=FIFF.FIFFV_COORD_HEAD,
                 )
+        logger.debug(msg)
 
     # zero-based indexing, dig->info
     # CTF does not populate some entries so we use .get here
@@ -438,11 +448,11 @@ def _get_hpi_initial_fit(info, adjust=False, verbose=None):
         raise RuntimeError("cHPI coordinate frame incorrect")
     # Give the user some info
     logger.info(
-        "HPIFIT: %s coils digitized in order %s"
-        % (len(pos_order), " ".join(str(o + 1) for o in pos_order))
+        f"HPIFIT: {len(pos_order)} coils digitized in order "
+        f"{' '.join(str(o + 1) for o in pos_order)}"
     )
     logger.debug(
-        "HPIFIT: %s coils accepted: %s" % (len(used), " ".join(str(h) for h in used))
+        f"HPIFIT: {len(used)} coils accepted: {' '.join(str(h) for h in used)}"
     )
     hpi_rrs = np.array([d["r"] for d in hpi_dig])[pos_order]
     assert len(hpi_rrs) >= 3
@@ -460,11 +470,9 @@ def _get_hpi_initial_fit(info, adjust=False, verbose=None):
     if "moments" in hpi_result:
         logger.debug("Hpi coil moments (%d %d):" % hpi_result["moments"].shape[::-1])
         for moment in hpi_result["moments"]:
-            logger.debug("%g %g %g" % tuple(moment))
+            logger.debug("{:g} {:g} {:g}".format(*tuple(moment)))
     errors = np.linalg.norm(hpi_rrs - hpi_rrs_fit, axis=1)
-    logger.debug(
-        "HPIFIT errors:  %s mm." % ", ".join("%0.1f" % (1000.0 * e) for e in errors)
-    )
+    logger.debug(f"HPIFIT errors:  {', '.join(f'{1000 * e:0.1f}' for e in errors)} mm.")
     if errors.sum() < len(errors) * dist_limit:
         logger.info("HPI consistency of isotrak and hpifit is OK.")
     elif not adjust and (len(used) == len(hpi_dig)):
@@ -477,24 +485,22 @@ def _get_hpi_initial_fit(info, adjust=False, verbose=None):
             if not adjust:
                 if err >= dist_limit:
                     warn(
-                        "Discrepancy of HPI coil %d isotrak and hpifit is "
-                        "%.1f mm!" % (hi + 1, d)
+                        f"Discrepancy of HPI coil {hi + 1} isotrak and hpifit is "
+                        f"{d:.1f} mm!"
                     )
             elif hi + 1 not in used:
                 if goodness[hi] >= good_limit:
                     logger.info(
-                        "Note: HPI coil %d isotrak is adjusted by "
-                        "%.1f mm!" % (hi + 1, d)
+                        f"Note: HPI coil {hi + 1} isotrak is adjusted by {d:.1f} mm!"
                     )
                     hpi_rrs[hi] = r_fit
                 else:
                     warn(
-                        "Discrepancy of HPI coil %d isotrak and hpifit of "
-                        "%.1f mm was not adjusted!" % (hi + 1, d)
+                        f"Discrepancy of HPI coil {hi + 1} isotrak and hpifit of "
+                        f"{d:.1f} mm was not adjusted!"
                     )
     logger.debug(
-        "HP fitting limits: err = %.1f mm, gval = %.3f."
-        % (1000 * dist_limit, good_limit)
+        f"HP fitting limits: err = {1000 * dist_limit:.1f} mm, gval = {good_limit:.3f}."
     )
 
     return hpi_rrs.astype(float)
@@ -532,8 +538,6 @@ def _magnetic_dipole_delta_multi(whitened_fwd_svd, B, B2):
 
 def _fit_magnetic_dipole(B_orig, x0, too_close, whitener, coils, guesses):
     """Fit a single bit of data (x0 = pos)."""
-    from scipy.optimize import fmin_cobyla
-
     B = np.dot(whitener, B_orig)
     B2 = np.dot(B, B)
     objective = partial(
@@ -617,6 +621,16 @@ def _setup_hpi_amplitude_fitting(
     on_missing = "raise" if not allow_empty else "ignore"
     hpi_freqs, hpi_pick, hpi_ons = get_chpi_info(info, on_missing=on_missing)
 
+    # check for maxwell filtering
+    for ent in info["proc_history"]:
+        for key in ("sss_info", "max_st"):
+            if len(ent["max_info"]["sss_info"]) > 0:
+                warn(
+                    "Fitting cHPI amplitudes after Maxwell filtering may not work, "
+                    "consider fitting on the original data."
+                )
+                break
+
     _validate_type(t_window, (str, "numeric"), "t_window")
     if info["line_freq"] is not None:
         line_freqs = np.arange(
@@ -625,8 +639,9 @@ def _setup_hpi_amplitude_fitting(
     else:
         line_freqs = np.zeros([0])
     logger.info(
-        "Line interference frequencies: %s Hz"
-        % " ".join(["%d" % lf for lf in line_freqs])
+        "Line interference frequencies: {} Hz".format(
+            " ".join([f"{lf}" for lf in line_freqs])
+        )
     )
     # worry about resampled/filtered data.
     # What to do e.g. if Raw has been resampled and some of our
@@ -639,8 +654,8 @@ def _setup_hpi_amplitude_fitting(
         hpi_ons = hpi_ons[keepers]
     elif not keepers.all():
         raise RuntimeError(
-            "Found HPI frequencies %s above the lowpass "
-            "(or Nyquist) frequency %0.1f" % (hpi_freqs[~keepers].tolist(), highest)
+            f"Found HPI frequencies {hpi_freqs[~keepers].tolist()} above the lowpass ("
+            f"or Nyquist) frequency {highest:0.1f}"
         )
     # calculate optimal window length.
     if isinstance(t_window, str):
@@ -653,21 +668,23 @@ def _setup_hpi_amplitude_fitting(
             t_window = 0.2
     t_window = float(t_window)
     if t_window <= 0:
-        raise ValueError("t_window (%s) must be > 0" % (t_window,))
-    logger.info("Using time window: %0.1f ms" % (1000 * t_window,))
+        raise ValueError(f"t_window ({t_window}) must be > 0")
+    logger.info(f"Using time window: {1000 * t_window:0.1f} ms")
     window_nsamp = np.rint(t_window * info["sfreq"]).astype(int)
     model = _setup_hpi_glm(hpi_freqs, line_freqs, info["sfreq"], window_nsamp)
     inv_model = np.linalg.pinv(model)
     inv_model_reord = _reorder_inv_model(inv_model, len(hpi_freqs))
     proj, proj_op, meg_picks = _setup_ext_proj(info, ext_order)
     # include mag and grad picks separately, for SNR computations
-    mag_picks = _picks_to_idx(info, "mag", allow_empty=True)
-    grad_picks = _picks_to_idx(info, "grad", allow_empty=True)
+    mag_subpicks = _picks_to_idx(info, "mag", allow_empty=True)
+    mag_subpicks = np.searchsorted(meg_picks, mag_subpicks)
+    grad_subpicks = _picks_to_idx(info, "grad", allow_empty=True)
+    grad_subpicks = np.searchsorted(meg_picks, grad_subpicks)
     # Set up magnetic dipole fits
     hpi = dict(
         meg_picks=meg_picks,
-        mag_picks=mag_picks,
-        grad_picks=grad_picks,
+        mag_subpicks=mag_subpicks,
+        grad_subpicks=grad_subpicks,
         hpi_pick=hpi_pick,
         model=model,
         inv_model=inv_model,
@@ -708,8 +725,6 @@ def _reorder_inv_model(inv_model, n_freqs):
 
 
 def _setup_ext_proj(info, ext_order):
-    from scipy import linalg
-
     meg_picks = pick_types(info, meg=True, eeg=False, exclude="bads")
     info = pick_info(_simplify_info(info), meg_picks)  # makes a copy
     _, _, _, _, mag_or_fine = _get_mf_picks_fix_mags(
@@ -720,8 +735,8 @@ def _setup_ext_proj(info, ext_order):
         dict(origin=(0.0, 0.0, 0.0), int_order=0, ext_order=ext_order), mf_coils
     ).T
     out_removes = _regularize_out(0, 1, mag_or_fine, [])
-    ext = ext[~np.in1d(np.arange(len(ext)), out_removes)]
-    ext = linalg.orth(ext.T).T
+    ext = ext[~np.isin(np.arange(len(ext)), out_removes)]
+    ext = orth(ext.T).T
     assert ext.shape[1] == len(meg_picks)
     proj = Projection(
         kind=FIFF.FIFFV_PROJ_ITEM_HOMOG_FIELD,
@@ -779,8 +794,8 @@ def _fit_chpi_amplitudes(raw, time_sl, hpi, snr=False):
             len(hpi["freqs"]),
             hpi["model"],
             hpi["inv_model"],
-            hpi["mag_picks"],
-            hpi["grad_picks"],
+            hpi["mag_subpicks"],
+            hpi["grad_subpicks"],
         )
     return _fast_fit(
         this_data,
@@ -851,25 +866,22 @@ def _check_chpi_param(chpi_, name):
     want_keys = list(want_ndims.keys()) + extra_keys
     if set(want_keys).symmetric_difference(chpi_):
         raise ValueError(
-            "%s must be a dict with entries %s, got %s"
-            % (name, want_keys, sorted(chpi_.keys()))
+            f"{name} must be a dict with entries {want_keys}, got "
+            f"{sorted(chpi_.keys())}"
         )
     n_times = None
     for key, want_ndim in want_ndims.items():
-        key_str = "%s[%s]" % (name, key)
+        key_str = f"{name}[{key}]"
         val = chpi_[key]
         _validate_type(val, np.ndarray, key_str)
         shape = val.shape
         if val.ndim != want_ndim:
-            raise ValueError(
-                "%s must have ndim=%d, got %d" % (key_str, want_ndim, val.ndim)
-            )
+            raise ValueError(f"{key_str} must have ndim={want_ndim}, got {val.ndim}")
         if n_times is None and key != "proj":
             n_times = shape[0]
         if n_times != shape[0] and key != "proj":
             raise ValueError(
-                "%s have inconsistent number of time "
-                "points in %s" % (name, want_keys)
+                f"{name} have inconsistent number of time points in {want_keys}"
             )
     if name == "chpi_locs":
         n_coils = chpi_["rrs"].shape[1]
@@ -877,15 +889,14 @@ def _check_chpi_param(chpi_, name):
             val = chpi_[key]
             if val.shape[1] != n_coils:
                 raise ValueError(
-                    'chpi_locs["rrs"] had values for %d coils but'
-                    ' chpi_locs["%s"] had values for %d coils'
-                    % (n_coils, key, val.shape[1])
+                    f'chpi_locs["rrs"] had values for {n_coils} coils but '
+                    f'chpi_locs["{key}"] had values for {val.shape[1]} coils'
                 )
         for key in ("rrs", "moments"):
             val = chpi_[key]
             if val.shape[2] != 3:
                 raise ValueError(
-                    'chpi_locs["%s"].shape[2] must be 3, got ' "shape %s" % (key, shape)
+                    f'chpi_locs["{key}"].shape[2] must be 3, got shape {shape}'
                 )
     else:
         assert name == "chpi_amplitudes"
@@ -894,8 +905,8 @@ def _check_chpi_param(chpi_, name):
         n_ch = len(proj["data"]["col_names"])
         if slopes.shape[0] != n_times or slopes.shape[2] != n_ch:
             raise ValueError(
-                "slopes must have shape[0]==%d and shape[2]==%d,"
-                " got shape %s" % (n_times, n_ch, slopes.shape)
+                f"slopes must have shape[0]=={n_times} and shape[2]=={n_ch}, got shape "
+                f"{slopes.shape}"
             )
 
 
@@ -985,9 +996,9 @@ def compute_head_pos(
         n_good = ((g_coils >= gof_limit) & (errs < dist_limit)).sum()
         if n_good < 3:
             warn(
-                _time_prefix(fit_time) + "%s/%s good HPI fits, cannot "
-                "determine the transformation (%s mm/GOF)!"
-                % (
+                _time_prefix(fit_time)
+                + "{}/{} good HPI fits, cannot "
+                "determine the transformation ({} mm/GOF)!".format(
                     n_good,
                     n_coils,
                     ", ".join(
@@ -1050,13 +1061,13 @@ def compute_head_pos(
         v = d / dt  # m/s
         d = 100 * np.linalg.norm(this_quat[3:] - pos_0)  # dis from 1st
         logger.debug(
-            "    #t = %0.3f, #e = %0.2f cm, #g = %0.3f, "
-            "#v = %0.2f cm/s, #r = %0.2f rad/s, #d = %0.2f cm"
-            % (fit_time, 100 * errs.mean(), g, 100 * v, r, d)
+            f"    #t = {fit_time:0.3f}, #e = {100 * errs.mean():0.2f} cm, #g = {g:0.3f}"
+            f", #v = {100 * v:0.2f} cm/s, #r = {r:0.2f} rad/s, #d = {d:0.2f} cm"
         )
         logger.debug(
-            "    #t = %0.3f, #q = %s "
-            % (fit_time, " ".join(map("{:8.5f}".format, this_quat)))
+            "    #t = {:0.3f}, #q = {} ".format(
+                fit_time, " ".join(map("{:8.5f}".format, this_quat))
+            )
         )
 
         quats.append(
@@ -1245,6 +1256,8 @@ def _compute_chpi_amp_or_snr(
         #
         amps_or_snrs = _fit_chpi_amplitudes(raw, time_sl, hpi, snr)
         if snr:
+            if amps_or_snrs is None:
+                amps_or_snrs = np.full((n_freqs, grad_offset + 3), np.nan)
             # unpack the SNR estimates. mag & grad are returned in one array
             # (because of Numba) so take care with which column is which.
             # note that mean residual is a scalar (same for all HPI freqs) but
@@ -1484,7 +1497,7 @@ def filter_chpi(
         raise RuntimeError("raw data must be preloaded")
     t_step = float(t_step)
     if t_step <= 0:
-        raise ValueError("t_step (%s) must be > 0" % (t_step,))
+        raise ValueError(f"t_step ({t_step}) must be > 0")
     n_step = int(np.ceil(t_step * raw.info["sfreq"]))
     if include_line and raw.info["line_freq"] is None:
         raise RuntimeError(
@@ -1551,8 +1564,6 @@ def filter_chpi(
 
 def _compute_good_distances(hpi_coil_dists, new_pos, dist_limit=0.005):
     """Compute good coils based on distances."""
-    from scipy.spatial.distance import cdist
-
     these_dists = cdist(new_pos, new_pos)
     these_dists = np.abs(hpi_coil_dists - these_dists)
     # there is probably a better algorithm for finding the bad ones...
@@ -1599,15 +1610,12 @@ def get_active_chpi(raw, *, on_missing="raise", verbose=None):
     # check whether we have a neuromag system
     if system not in ["122m", "306m"]:
         raise NotImplementedError(
-            (
-                "Identifying active HPI channels"
-                " is not implemented for other systems"
-                " than neuromag."
-            )
+            "Identifying active HPI channels is not implemented for other systems than "
+            "neuromag."
         )
     # extract hpi info
     chpi_info = get_chpi_info(raw.info, on_missing=on_missing)
-    if len(chpi_info[2]) == 0:
+    if (len(chpi_info[2]) == 0) or (chpi_info[1] is None):
         return np.zeros_like(raw.times)
 
     # extract hpi time series and infer which one was on

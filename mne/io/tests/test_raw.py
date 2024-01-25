@@ -3,17 +3,18 @@
 #          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
-from contextlib import redirect_stdout
-from io import StringIO
 import math
 import os
+import re
+from contextlib import redirect_stdout
+from io import StringIO
 from os import path as op
 from pathlib import Path
-import re
 
-import pytest
 import numpy as np
+import pytest
 from numpy.testing import (
     assert_allclose,
     assert_array_almost_equal,
@@ -22,28 +23,26 @@ from numpy.testing import (
 )
 
 import mne
-from mne import concatenate_raws, create_info, Annotations, pick_types
-from mne.datasets import testing
+from mne import Annotations, concatenate_raws, create_info, pick_types
+from mne._fiff._digitization import DigPoint, _dig_kind_dict
+from mne._fiff.constants import FIFF
+from mne._fiff.meas_info import Info, _get_valid_units, _writing_info_hdf5
+from mne._fiff.pick import _ELECTRODE_CH_TYPES, _FNIRS_CH_TYPES_SPLIT
+from mne._fiff.proj import Projection
+from mne._fiff.utils import _mult_cal_one
 from mne.fixes import _numpy_h5py_dep
-from mne.io import read_raw_fif, RawArray, BaseRaw, Info, _writing_info_hdf5
-from mne.io._digitization import _dig_kind_dict
+from mne.io import BaseRaw, RawArray, read_raw_fif
 from mne.io.base import _get_scaling
-from mne.io.pick import _ELECTRODE_CH_TYPES, _FNIRS_CH_TYPES_SPLIT
+from mne.transforms import Transform
 from mne.utils import (
-    _TempDir,
-    catch_logging,
+    _import_h5io_funcs,
     _raw_annot,
     _stamp_to_dt,
-    object_diff,
+    _TempDir,
+    catch_logging,
     check_version,
-    requires_pandas,
-    _import_h5io_funcs,
+    object_diff,
 )
-from mne.io.meas_info import _get_valid_units
-from mne.io._digitization import DigPoint
-from mne.io.proj import Projection
-from mne.io.utils import _mult_cal_one
-from mne.io.constants import FIFF
 
 raw_fname = op.join(
     op.dirname(__file__), "..", "..", "io", "tests", "data", "test_raw.fif"
@@ -62,6 +61,25 @@ def assert_named_constants(info):
         ".*FIFF_UNITM_.*",
     ):
         assert re.match(check, r, re.DOTALL) is not None, (check, r)
+
+
+def assert_attributes(raw):
+    """Assert that the instance keeps all its extra attributes in _raw_extras."""
+    __tracebackhide__ = True
+    assert isinstance(raw, BaseRaw)
+    base_attrs = set(dir(BaseRaw(create_info(1, 1000.0, "eeg"), last_samps=[1])))
+    base_attrs = base_attrs.union(
+        [
+            "_data",  # in the case of preloaded data
+            "__slotnames__",  # something about being decorated (?)
+        ]
+    )
+    for attr in raw._extra_attributes:
+        assert attr not in base_attrs
+        base_attrs.add(attr)
+    got_attrs = set(dir(raw))
+    extra = got_attrs.difference(base_attrs)
+    assert extra == set()
 
 
 def test_orig_units():
@@ -155,7 +173,7 @@ def _test_raw_reader(
         # test projection vs cals and data units
         other_raw = reader(preload=False, **kwargs)
         other_raw.del_proj()
-        eeg = meg = fnirs = False
+        eeg = meg = fnirs = seeg = eyetrack = False
         if "eeg" in raw:
             eeg, atol = True, 1e-18
         elif "grad" in raw:
@@ -166,10 +184,23 @@ def _test_raw_reader(
             fnirs, atol = "hbo", 1e-10
         elif "hbr" in raw:
             fnirs, atol = "hbr", 1e-10
-        else:
-            assert "fnirs_cw_amplitude" in raw, "New channel type necessary?"
+        elif "fnirs_cw_amplitude" in raw:
             fnirs, atol = "fnirs_cw_amplitude", 1e-10
-        picks = pick_types(other_raw.info, meg=meg, eeg=eeg, fnirs=fnirs)
+        elif "eyegaze" in raw:
+            eyetrack = "eyegaze", 1e-3
+        else:
+            # e.g., https://github.com/mne-tools/mne-python/pull/11432/files
+            assert "seeg" in raw, "New channel type necessary? See gh-11432 for example"
+            seeg, atol = True, 1e-18
+
+        picks = pick_types(
+            other_raw.info,
+            meg=meg,
+            eeg=eeg,
+            fnirs=fnirs,
+            seeg=seeg,
+            eyetrack=eyetrack,
+        )
         col_names = [other_raw.ch_names[pick] for pick in picks]
         proj = np.ones((1, len(picks)))
         proj /= np.sqrt(proj.shape[1])
@@ -280,6 +311,7 @@ def _test_raw_reader(
         raw = reader(**kwargs)
     n_samp = len(raw.times)
     assert_named_constants(raw.info)
+    assert_attributes(raw)
     # smoke test for gh #9743
     ids = [id(ch["loc"]) for ch in raw.info["chs"]]
     assert len(set(ids)) == len(ids)
@@ -288,8 +320,8 @@ def _test_raw_reader(
     assert raw.__class__.__name__ in repr(raw)  # to test repr
     assert raw.info.__class__.__name__ in repr(raw.info)
     assert isinstance(raw.info["dig"], (type(None), list))
-    data_max = full_data.max()
-    data_min = full_data.min()
+    data_max = np.nanmax(full_data)
+    data_min = np.nanmin(full_data)
     # these limits could be relaxed if we actually find data with
     # huge values (in SI units)
     assert data_max < 1e5
@@ -303,7 +335,7 @@ def _test_raw_reader(
     assert meas_date is None or meas_date >= _stamp_to_dt((0, 0))
 
     # test repr_html
-    assert "Good channels" in raw.info._repr_html_()
+    assert "Good channels" in raw._repr_html_()
 
     # test resetting raw
     if test_kwargs:
@@ -572,7 +604,6 @@ def _test_concat(reader, *args):
                 assert_allclose(data, raw1[:, :][0])
 
 
-@testing.requires_testing_data
 def test_time_as_index():
     """Test indexing of raw times."""
     raw = read_raw_fif(raw_fname)
@@ -733,7 +764,7 @@ def test_5839():
         )
         return raw
 
-    raw_A, raw_B = [raw_factory((x, 0)) for x in [0, 2]]
+    raw_A, raw_B = (raw_factory((x, 0)) for x in [0, 2])
     raw_A.append(raw_B)
 
     assert_array_equal(raw_A.annotations.onset, EXPECTED_ONSET)
@@ -811,10 +842,10 @@ def test_describe_print():
     )
 
 
-@requires_pandas
 @pytest.mark.slowtest
 def test_describe_df():
     """Test returned data frame of describe method."""
+    pytest.importorskip("pandas")
     fname = Path(__file__).parent / "data" / "test_raw.fif"
     raw = read_raw_fif(fname)
 
@@ -972,3 +1003,29 @@ def test_get_data_tmin_tmax():
 
     with pytest.raises(TypeError, match="tmax must be .* float"):
         raw.get_data(tmax=[1, 2])
+
+
+def test_resamp_noop():
+    """Tests resampling doesn't affect data if sfreq is identical."""
+    raw = read_raw_fif(raw_fname)
+    data_before = raw.get_data()
+    data_after = raw.resample(sfreq=raw.info["sfreq"]).get_data()
+    assert_array_equal(data_before, data_after)
+
+
+def test_concatenate_raw_dev_head_t():
+    """Test concatenating raws with dev-head-t including nans."""
+    data = np.random.randn(3, 10)
+    info = create_info(3, 1000.0, ["mag", "grad", "grad"])
+    raw = RawArray(data, info)
+    raw.info["dev_head_t"] = Transform("meg", "head", np.eye(4))
+    raw.info["dev_head_t"]["trans"][0, 0] = np.nan
+    raw2 = raw.copy()
+    concatenate_raws([raw, raw2])
+
+
+def test_last_samp():
+    """Test that getting the last sample works."""
+    raw = read_raw_fif(raw_fname).crop(0, 0.1).load_data()
+    last_data = raw._data[:, [-1]]
+    assert_array_equal(raw[:, -1][0], last_data)

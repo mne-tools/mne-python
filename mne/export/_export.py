@@ -1,11 +1,12 @@
 # Authors: MNE Developers
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import os.path as op
 
+from ..utils import _check_fname, _validate_type, logger, verbose, warn
 from ._egimff import export_evokeds_mff
-from ..utils import logger, verbose, warn, _check_fname, _validate_type
 
 
 @verbose
@@ -210,9 +211,9 @@ def _infer_check_export_fmt(fmt, fname, supported_formats):
 
     if fmt not in supported_formats:
         supported = []
-        for format, extensions in supported_formats.items():
+        for supp_format, extensions in supported_formats.items():
             ext_str = ", ".join(f"*.{ext}" for ext in extensions)
-            supported.append(f"{format} ({ext_str})")
+            supported.append(f"{supp_format} ({ext_str})")
 
         supported_str = ", ".join(supported)
         raise ValueError(

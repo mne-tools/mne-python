@@ -1,13 +1,14 @@
 # Authors: Adam Li  <adam2392@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import os
 import shutil
 
+import numpy as np
 import pytest
 from numpy.testing import assert_array_equal
-import numpy as np
 
 from mne.datasets.testing import data_path, requires_testing_data
 from mne.io import read_raw_persyst
@@ -37,7 +38,7 @@ def test_persyst_lay_load():
     assert raw.preload is True
 
     # defaults channels to EEG
-    raw = raw.pick_types(eeg=True)
+    raw = raw.pick("eeg")
     assert len(raw.ch_names) == 83
 
     # no "-Ref" in channel names
@@ -53,7 +54,7 @@ def test_persyst_raw():
     raw = read_raw_persyst(fname_lay, preload=False)
 
     # defaults channels to EEG
-    raw = raw.pick_types(eeg=True)
+    raw = raw.pick("eeg")
 
     # get data
     data, times = raw.get_data(start=200, return_times=True)
@@ -84,7 +85,7 @@ def test_persyst_dates(tmp_path):
 
     # reformat the lay file to have testdate with
     # "/" character
-    with open(fname_lay, "r") as fin:
+    with open(fname_lay) as fin:
         with open(new_fname_lay, "w") as fout:
             # for each line in the input file
             for idx, line in enumerate(fin):
@@ -100,7 +101,7 @@ def test_persyst_dates(tmp_path):
     # reformat the lay file to have testdate with
     # "-" character
     os.remove(new_fname_lay)
-    with open(fname_lay, "r") as fin:
+    with open(fname_lay) as fin:
         with open(new_fname_lay, "w") as fout:
             # for each line in the input file
             for idx, line in enumerate(fin):
@@ -162,7 +163,7 @@ def test_persyst_moved_file(tmp_path):
     # to the full path, but it should still not work
     # as reader requires lay and dat file to be in
     # same directory
-    with open(fname_lay, "r") as fin:
+    with open(fname_lay) as fin:
         with open(new_fname_lay, "w") as fout:
             # for each line in the input file
             for idx, line in enumerate(fin):
@@ -215,7 +216,7 @@ def test_persyst_errors(tmp_path):
     shutil.copy(fname_dat, new_fname_dat)
 
     # reformat the lay file
-    with open(fname_lay, "r") as fin:
+    with open(fname_lay) as fin:
         with open(new_fname_lay, "w") as fout:
             # for each line in the input file
             for idx, line in enumerate(fin):
@@ -228,7 +229,7 @@ def test_persyst_errors(tmp_path):
 
     # reformat the lay file
     os.remove(new_fname_lay)
-    with open(fname_lay, "r") as fin:
+    with open(fname_lay) as fin:
         with open(new_fname_lay, "w") as fout:
             # for each line in the input file
             for idx, line in enumerate(fin):
@@ -242,7 +243,7 @@ def test_persyst_errors(tmp_path):
     # reformat the lay file to have testdate
     # improperly specified
     os.remove(new_fname_lay)
-    with open(fname_lay, "r") as fin:
+    with open(fname_lay) as fin:
         with open(new_fname_lay, "w") as fout:
             # for each line in the input file
             for idx, line in enumerate(fin):

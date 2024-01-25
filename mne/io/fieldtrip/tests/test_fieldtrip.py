@@ -3,30 +3,30 @@
 #          Dirk Gütlin <dirk.guetlin@stud.sbg.ac.at>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import copy
 import itertools
-import os
 from contextlib import nullcontext
 
-import pytest
 import numpy as np
+import pytest
 
 import mne
 from mne.datasets import testing
 from mne.io import read_raw_fieldtrip
-from mne.io.fieldtrip.utils import NOINFO_WARNING, _create_events
 from mne.io.fieldtrip.tests.helpers import (
+    assert_warning_in_record,
+    check_data,
     check_info_fields,
     get_data_paths,
-    get_raw_data,
     get_epochs,
     get_evoked,
-    pandas_not_found_warning_msg,
+    get_raw_data,
     get_raw_info,
-    check_data,
-    assert_warning_in_record,
+    pandas_not_found_warning_msg,
 )
+from mne.io.fieldtrip.utils import NOINFO_WARNING, _create_events
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.utils import _check_pandas_installed, _record_warnings
 
@@ -92,13 +92,6 @@ def test_read_evoked(cur_system, version, use_info):
 @pytest.mark.filterwarnings("ignore:.*parse meas date.*:RuntimeWarning")
 @pytest.mark.filterwarnings("ignore:.*number of bytes.*:RuntimeWarning")
 @pytest.mark.parametrize("cur_system, version, use_info", all_test_params_epochs)
-# Strange, non-deterministic Pandas errors:
-# "ValueError: cannot expose native-only dtype 'g' in non-native
-# byte order '<' via buffer interface"
-@pytest.mark.skipif(
-    os.getenv("AZURE_CI_WINDOWS", "false").lower() == "true",
-    reason="Pandas problem on Azure CI",
-)
 def test_read_epochs(cur_system, version, use_info, monkeypatch):
     """Test comparing reading an Epochs object and the FieldTrip version."""
     pandas = _check_pandas_installed(strict=False)
@@ -125,8 +118,8 @@ def test_read_epochs(cur_system, version, use_info, monkeypatch):
             if info is None:
                 assert_warning_in_record(NOINFO_WARNING, warn_record)
 
-    mne_data = mne_epoched.get_data()[:, :, :-1]
-    ft_data = epoched_ft.get_data()
+    mne_data = mne_epoched.get_data(copy=False)[:, :, :-1]
+    ft_data = epoched_ft.get_data(copy=False)
 
     check_data(mne_data, ft_data, cur_system)
     check_info_fields(mne_epoched, epoched_ft, use_info)
@@ -260,19 +253,19 @@ def test_one_channel_elec_bug(version):
 @pytest.mark.filterwarnings("ignore:.*parse meas date.*:RuntimeWarning")
 @pytest.mark.filterwarnings("ignore:.*number of bytes.*:RuntimeWarning")
 @pytest.mark.parametrize("version", all_versions)
-@pytest.mark.parametrize("type", ["averaged", "epoched", "raw"])
-def test_throw_exception_on_cellarray(version, type):
+@pytest.mark.parametrize("type_", ["averaged", "epoched", "raw"])
+def test_throw_exception_on_cellarray(version, type_):
     """Test for a meaningful exception when the data is a cell array."""
-    fname = get_data_paths("cellarray") / f"{type}_{version}.mat"
+    fname = get_data_paths("cellarray") / f"{type_}_{version}.mat"
     info = get_raw_info("CNT")
     with pytest.raises(
         RuntimeError, match="Loading of data in cell arrays " "is not supported"
     ):
-        if type == "averaged":
+        if type_ == "averaged":
             mne.read_evoked_fieldtrip(fname, info)
-        elif type == "epoched":
+        elif type_ == "epoched":
             mne.read_epochs_fieldtrip(fname, info)
-        elif type == "raw":
+        elif type_ == "raw":
             mne.io.read_raw_fieldtrip(fname, info)
 
 

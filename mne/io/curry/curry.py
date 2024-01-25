@@ -4,34 +4,35 @@
 #
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
+import os.path as op
+import re
 from collections import namedtuple
 from datetime import datetime, timezone
-import os.path as op
 from pathlib import Path
-import re
 
 import numpy as np
 
-from .._digitization import _make_dig_points
-from ..base import BaseRaw
-from ..meas_info import create_info
-from ..tag import _coil_trans_to_loc
-from ..utils import _read_segments_file, _mult_cal_one
-from ..constants import FIFF
-from ..ctf.trans import _quaternion_align
+from ..._fiff._digitization import _make_dig_points
+from ..._fiff.constants import FIFF
+from ..._fiff.meas_info import create_info
+from ..._fiff.tag import _coil_trans_to_loc
+from ..._fiff.utils import _mult_cal_one, _read_segments_file
+from ...annotations import Annotations
 from ...surface import _normal_orth
 from ...transforms import (
-    apply_trans,
     Transform,
-    get_ras_to_neuromag_trans,
-    combine_transforms,
-    invert_transform,
     _angle_between_quats,
+    apply_trans,
+    combine_transforms,
+    get_ras_to_neuromag_trans,
+    invert_transform,
     rot_to_quat,
 )
-from ...utils import check_fname, logger, verbose, _check_fname
-from ...annotations import Annotations
+from ...utils import _check_fname, check_fname, logger, verbose
+from ..base import BaseRaw
+from ..ctf.trans import _quaternion_align
 
 FILE_EXTENSIONS = {
     "Curry 7": {
@@ -196,10 +197,10 @@ def _read_curry_parameters(fname):
             if any(var_name in line for var_name in var_names):
                 key, val = line.replace(" ", "").replace("\n", "").split("=")
                 param_dict[key.lower().replace("_", "")] = val
-            for type in CHANTYPES:
-                if "DEVICE_PARAMETERS" + CHANTYPES[type] + " START" in line:
+            for key, type_ in CHANTYPES.items():
+                if f"DEVICE_PARAMETERS{type_} START" in line:
                     data_unit = next(fid)
-                    unit_dict[type] = (
+                    unit_dict[key] = (
                         data_unit.replace(" ", "").replace("\n", "").split("=")[-1]
                     )
 
@@ -463,7 +464,7 @@ def _make_trans_dig(curry_paths, info, curry_dev_dev_t):
 
 def _first_hpi(fname):
     # Get the first HPI result
-    with open(fname, "r") as fid:
+    with open(fname) as fid:
         for line in fid:
             line = line.strip()
             if any(x in line for x in ("FileVersion", "NumCoils")) or not line:
@@ -471,7 +472,7 @@ def _first_hpi(fname):
             hpi = np.array(line.split(), float)
             break
         else:
-            raise RuntimeError("Could not find valid HPI in %s" % (fname,))
+            raise RuntimeError(f"Could not find valid HPI in {fname}")
     # t is the first entry
     assert hpi.ndim == 1
     hpi = hpi[1:]
@@ -541,7 +542,7 @@ def _read_annotations_curry(fname, sfreq="auto"):
 
 
 @verbose
-def read_raw_curry(fname, preload=False, verbose=None):
+def read_raw_curry(fname, preload=False, verbose=None) -> "RawCurry":
     """Read raw data from Curry files.
 
     Parameters
@@ -595,7 +596,7 @@ class RawCurry(BaseRaw):
         last_samps = [n_samples - 1]
         raw_extras = dict(is_ascii=is_ascii)
 
-        super(RawCurry, self).__init__(
+        super().__init__(
             info,
             preload,
             filenames=[data_fname],

@@ -1,6 +1,7 @@
 # Authors: Olaf Hauk <olaf.hauk@mrc-cbu.cam.ac.uk>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 """
 Test computation of resolution matrix for LCMV beamformers.
 
@@ -9,12 +10,13 @@ be the transpose of the leadfield matrix.
 """
 
 from copy import deepcopy
+
 import numpy as np
 from numpy.testing import assert_allclose
 
 import mne
-from mne.datasets import testing
 from mne.beamformer import make_lcmv, make_lcmv_resolution_matrix
+from mne.datasets import testing
 
 data_path = testing.data_path(download=False)
 subjects_dir = data_path / "subjects"

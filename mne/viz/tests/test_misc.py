@@ -5,41 +5,42 @@
 #          Cathy Nangini <cnangini@gmail.com>
 #          Mainak Jas <mainak@neuro.hut.fi>
 #
-# License: Simplified BSD
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from pathlib import Path
 
-import numpy as np
-from numpy.testing import assert_array_equal
-import pytest
 import matplotlib.pyplot as plt
+import numpy as np
+import pytest
+from numpy.testing import assert_array_equal
 
 from mne import (
-    read_events,
-    read_cov,
-    read_source_spaces,
-    read_evokeds,
-    read_dipole,
     SourceEstimate,
     pick_events,
+    read_cov,
+    read_dipole,
+    read_events,
+    read_evokeds,
+    read_source_spaces,
 )
 from mne.chpi import compute_chpi_snr
 from mne.datasets import testing
 from mne.filter import create_filter
 from mne.io import read_raw_fif
 from mne.minimum_norm import read_inverse_operator
+from mne.time_frequency import CrossSpectralDensity
 from mne.viz import (
     plot_bem,
-    plot_events,
-    plot_source_spectrogram,
-    plot_snr_estimate,
-    plot_filter,
-    plot_csd,
     plot_chpi_snr,
+    plot_csd,
+    plot_events,
+    plot_filter,
+    plot_snr_estimate,
+    plot_source_spectrogram,
 )
 from mne.viz.misc import _handle_event_colors
 from mne.viz.utils import _get_color_list
-from mne.time_frequency import CrossSpectralDensity
 
 data_path = testing.data_path(download=False)
 subjects_dir = data_path / "subjects"
@@ -50,7 +51,7 @@ inv_fname = (
 evoked_fname = data_path / "MEG" / "sample" / "sample_audvis-ave.fif"
 dip_fname = data_path / "MEG" / "sample" / "sample_audvis_trunc_set1.dip"
 chpi_fif_fname = data_path / "SSS" / "test_move_anon_raw.fif"
-base_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
+base_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
 raw_fname = base_dir / "test_raw.fif"
 cov_fname = base_dir / "test-cov.fif"
 event_fname = base_dir / "test-eve.fif"

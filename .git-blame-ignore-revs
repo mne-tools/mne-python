@@ -1,1 +1,4 @@
 e81ec528a42ac687f3d961ed5cf8e25f236925b0  # black
+12395f9d9cf6ea3c72b225b62e052dd0d17d9889  # YAML indentation
+d6d2f8c6a2ed4a0b27357da9ddf8e0cd14931b59  # isort
+e7dd1588013179013a50d3f6b8e8f9ae0a185783  # ruff format

@@ -1,30 +1,31 @@
 # Author: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #         Daniel Strohmeier <daniel.strohmeier@gmail.com>
 #
-# License: Simplified BSD
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
-import pytest
 import numpy as np
+import pytest
 from numpy.testing import (
-    assert_array_equal,
-    assert_array_almost_equal,
     assert_allclose,
+    assert_array_almost_equal,
+    assert_array_equal,
     assert_array_less,
 )
 
 from mne.inverse_sparse.mxne_optim import (
-    mixed_norm_solver,
-    tf_mixed_norm_solver,
-    iterative_mixed_norm_solver,
-    iterative_tf_mixed_norm_solver,
-    norm_epsilon_inf,
-    norm_epsilon,
     _Phi,
     _PhiT,
     dgap_l21l1,
+    iterative_mixed_norm_solver,
+    iterative_tf_mixed_norm_solver,
+    mixed_norm_solver,
+    norm_epsilon,
+    norm_epsilon_inf,
+    tf_mixed_norm_solver,
 )
 from mne.time_frequency._stft import stft_norm2
-from mne.utils import catch_logging, _record_warnings
+from mne.utils import _record_warnings, catch_logging
 
 
 def _generate_tf_data():

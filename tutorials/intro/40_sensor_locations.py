@@ -9,16 +9,14 @@ This tutorial describes how to read and plot sensor locations, and how
 MNE-Python handles physical locations of sensors.
 As usual we'll start by importing the modules we need:
 """
-
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 # %%
 
 from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
-
-# the following import is required for matplotlib < 3.2:
-from mpl_toolkits.mplot3d import Axes3D  # noqa
 
 import mne
 

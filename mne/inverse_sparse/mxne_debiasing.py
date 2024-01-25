@@ -2,11 +2,13 @@
 #          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from math import sqrt
+
 import numpy as np
 
-from ..utils import check_random_state, logger, verbose, fill_doc
+from ..utils import check_random_state, fill_doc, logger, verbose
 
 
 @fill_doc

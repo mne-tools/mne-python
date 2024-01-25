@@ -14,12 +14,14 @@ formed through merging two labels.
 # Author: Christian Brodbeck <christianbrodbeck@nyu.edu>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 
+import matplotlib.pyplot as plt
+
 import mne
 from mne.datasets import sample
-import matplotlib.pyplot as plt
 
 print(__doc__)
 

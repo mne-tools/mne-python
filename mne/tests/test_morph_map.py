@@ -1,18 +1,19 @@
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import os
 from shutil import copyfile
 
-import pytest
 import numpy as np
+import pytest
 from numpy.testing import assert_allclose
 from scipy import sparse
 
-from mne.datasets import testing
-from mne.utils import catch_logging, _record_warnings
 from mne import read_morph_map
+from mne.datasets import testing
+from mne.utils import _record_warnings, catch_logging
 
 data_path = testing.data_path(download=False)
 subjects_dir = data_path / "subjects"

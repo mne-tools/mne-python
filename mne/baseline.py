@@ -3,10 +3,11 @@
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import numpy as np
 
-from .utils import logger, verbose, _check_option
+from .utils import _check_option, _validate_type, logger, verbose
 
 
 def _log_rescale(baseline, mode="mean"):
@@ -76,7 +77,7 @@ def rescale(data, times, baseline, mode="mean", copy=True, picks=None, verbose=N
         imin = np.where(times >= bmin)[0]
         if len(imin) == 0:
             raise ValueError(
-                "bmin is too large (%s), it exceeds the largest " "time value" % (bmin,)
+                f"bmin is too large ({bmin}), it exceeds the largest time value"
             )
         imin = int(imin[0])
     if bmax is None:
@@ -85,14 +86,13 @@ def rescale(data, times, baseline, mode="mean", copy=True, picks=None, verbose=N
         imax = np.where(times <= bmax)[0]
         if len(imax) == 0:
             raise ValueError(
-                "bmax is too small (%s), it is smaller than the "
-                "smallest time value" % (bmax,)
+                f"bmax is too small ({bmax}), it is smaller than the smallest time "
+                "value"
             )
         imax = int(imax[-1]) + 1
     if imin >= imax:
         raise ValueError(
-            "Bad rescaling slice (%s:%s) from time values %s, %s"
-            % (imin, imax, bmin, bmax)
+            f"Bad rescaling slice ({imin}:{imax}) from time values {bmin}, {bmax}"
         )
 
     # technically this is inefficient when `picks` is given, but assuming
@@ -143,14 +143,14 @@ def rescale(data, times, baseline, mode="mean", copy=True, picks=None, verbose=N
 
 
 def _check_baseline(baseline, times, sfreq, on_baseline_outside_data="raise"):
-    """Check if the baseline is valid, and adjust it if requested.
+    """Check if the baseline is valid and adjust it if requested.
 
-    ``None`` values inside the baseline parameter will be replaced with
-    ``times[0]`` and ``times[-1]``.
+    ``None`` values inside ``baseline`` will be replaced with ``times[0]`` and
+    ``times[-1]``.
 
     Parameters
     ----------
-    baseline : tuple | None
+    baseline : array-like, shape (2,) | None
         Beginning and end of the baseline period, in seconds. If ``None``,
         assume no baseline and return immediately.
     times : array
@@ -158,27 +158,27 @@ def _check_baseline(baseline, times, sfreq, on_baseline_outside_data="raise"):
     sfreq : float
         The sampling rate.
     on_baseline_outside_data : 'raise' | 'info' | 'adjust'
-        What do do if the baseline period exceeds the data.
+        What to do if the baseline period exceeds the data.
         If ``'raise'``, raise an exception (default).
         If ``'info'``, log an info message.
-        If ``'adjust'``, adjust the baseline such that it's within the data
-        range again.
+        If ``'adjust'``, adjust the baseline such that it is within the data range.
 
     Returns
     -------
     (baseline_tmin, baseline_tmax) | None
-        The baseline with ``None`` values replaced with times, and with
-        adjusted times if ``on_baseline_outside_data='adjust'``; or ``None``
-        if the ``baseline`` parameter is ``None``.
-
+        The baseline with ``None`` values replaced with times, and with adjusted times
+        if ``on_baseline_outside_data='adjust'``; or ``None``, if ``baseline`` is
+        ``None``.
     """
     if baseline is None:
         return None
 
-    if not isinstance(baseline, tuple) or len(baseline) != 2:
+    _validate_type(baseline, "array-like")
+    baseline = tuple(baseline)
+
+    if len(baseline) != 2:
         raise ValueError(
-            f"`baseline={baseline}` is an invalid argument, must "
-            f"be a tuple of length 2 or None"
+            f"baseline must have exactly two elements (got {len(baseline)})."
         )
 
     tmin, tmax = times[0], times[-1]
@@ -187,8 +187,8 @@ def _check_baseline(baseline, times, sfreq, on_baseline_outside_data="raise"):
     # check default value of baseline and `tmin=0`
     if baseline == (None, 0) and tmin == 0:
         raise ValueError(
-            "Baseline interval is only one sample. Use "
-            "`baseline=(0, 0)` if this is desired."
+            "Baseline interval is only one sample. Use `baseline=(0, 0)` if this is "
+            "desired."
         )
 
     baseline_tmin, baseline_tmax = baseline
@@ -203,15 +203,14 @@ def _check_baseline(baseline, times, sfreq, on_baseline_outside_data="raise"):
 
     if baseline_tmin > baseline_tmax:
         raise ValueError(
-            "Baseline min (%s) must be less than baseline max (%s)"
-            % (baseline_tmin, baseline_tmax)
+            f"Baseline min ({baseline_tmin}) must be less than baseline max ("
+            f"{baseline_tmax})"
         )
 
     if (baseline_tmin < tmin - tstep) or (baseline_tmax > tmax + tstep):
         msg = (
-            f"Baseline interval [{baseline_tmin}, {baseline_tmax}] s "
-            f"is outside of epochs data [{tmin}, {tmax}] s. Epochs were "
-            f"probably cropped."
+            f"Baseline interval [{baseline_tmin}, {baseline_tmax}] s is outside of "
+            f"epochs data [{tmin}, {tmax}] s. Epochs were probably cropped."
         )
         if on_baseline_outside_data == "raise":
             raise ValueError(msg)

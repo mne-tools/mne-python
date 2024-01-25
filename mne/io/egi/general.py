@@ -1,17 +1,20 @@
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import os
-from xml.dom.minidom import parse
 import re
 
 import numpy as np
 
-from ...utils import _pl
+from ...utils import _pl, _soft_import
 
 
 def _extract(tags, filepath=None, obj=None):
     """Extract info from XML."""
+    _soft_import("defusedxml", "reading EGI MFF data")
+    from defusedxml.minidom import parse
+
     if obj is not None:
         fileobj = obj
     elif filepath is not None:
@@ -29,6 +32,9 @@ def _extract(tags, filepath=None, obj=None):
 
 def _get_gains(filepath):
     """Parse gains."""
+    _soft_import("defusedxml", "reading EGI MFF data")
+    from defusedxml.minidom import parse
+
     file_obj = parse(filepath)
     objects = file_obj.getElementsByTagName("calibration")
     gains = dict()
@@ -45,6 +51,9 @@ def _get_gains(filepath):
 
 def _get_ep_info(filepath):
     """Get epoch info."""
+    _soft_import("defusedxml", "reading EGI MFF data")
+    from defusedxml.minidom import parse
+
     epochfile = filepath + "/epochs.xml"
     epochlist = parse(epochfile)
     epochs = epochlist.getElementsByTagName("epoch")
@@ -122,6 +131,9 @@ def _get_blocks(filepath):
 
 def _get_signalfname(filepath):
     """Get filenames."""
+    _soft_import("defusedxml", "reading EGI MFF data")
+    from defusedxml.minidom import parse
+
     listfiles = os.listdir(filepath)
     binfiles = list(
         f for f in listfiles if "signal" in f and f[-4:] == ".bin" and f[0] != "."
@@ -139,7 +151,7 @@ def _get_signalfname(filepath):
         elif len(infobj.getElementsByTagName("PNSData")):
             signal_type = "PNS"
         all_files[signal_type] = {
-            "signal": "signal{}.bin".format(bin_num_str),
+            "signal": f"signal{bin_num_str}.bin",
             "info": infofile,
         }
     if "EEG" not in all_files:

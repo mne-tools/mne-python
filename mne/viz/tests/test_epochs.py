@@ -5,13 +5,16 @@
 #          Jaakko Leppakangas <jaeilepp@student.jyu.fi>
 #          Daniel McCloy <dan@mccloy.info>
 #
-# License: Simplified BSD
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
+
+import platform
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 
-from mne import Epochs, create_info, EpochsArray
+from mne import Epochs, EpochsArray, create_info
 from mne.datasets import testing
 from mne.event import make_fixed_length_events
 from mne.viz import plot_drop_log
@@ -19,6 +22,8 @@ from mne.viz import plot_drop_log
 
 def test_plot_epochs_not_preloaded(epochs_unloaded, browser_backend):
     """Test plotting non-preloaded epochs."""
+    if platform.machine() == "arm64":
+        pytest.xfail("Flakey verbose behavior on macOS arm64")
     assert epochs_unloaded._data is None
     epochs_unloaded.plot()
     assert epochs_unloaded._data is None
@@ -85,9 +90,11 @@ def test_plot_epochs_colors(epochs, browser_backend):
     epoch_colors = [["r"] * len(epochs.ch_names) for _ in range(len(epochs.events))]
     epochs.plot(epoch_colors=epoch_colors)
     with pytest.raises(ValueError, match="length equal to the number of epo"):
-        epochs.plot(epoch_colors=[["r"], ["b"]])  # epochs obj has only 1 epoch
+        # epochs obj has only 1 epoch
+        epochs.plot(epoch_colors=[["r"], ["b"]])
     with pytest.raises(ValueError, match=r"epoch colors for epoch \d+ has"):
-        epochs.plot(epoch_colors=[["r"]])  # need 1 color for each channel
+        # need 1 color for each channel
+        epochs.plot(epoch_colors=[["r"]])
     # also test event_color
     epochs.plot(event_color="b")
 
@@ -108,7 +115,7 @@ def test_plot_epochs_scale_bar(epochs, browser_backend):
 
 def test_plot_epochs_clicks(epochs, epochs_full, capsys, browser_backend):
     """Test plot_epochs mouse interaction."""
-    fig = epochs.plot(events=epochs.events)
+    fig = epochs.plot(events=True)
     x = fig.mne.traces[0].get_xdata()[3]
     y = fig.mne.traces[0].get_ydata()[3]
     n_epochs = len(epochs)
@@ -200,20 +207,54 @@ def test_plot_epochs_keypresses(epochs_full, browser_backend):
     fig._fake_click([x, y], xform="data", button=3)  # remove vlines
 
 
-def test_plot_overlapping_epochs_with_events(browser_backend):
+def _get_event_lines_and_texts(fig):
+    """Get event lines and labels (helper function)."""
+    lines = fig.mne.event_lines
+    texts = fig.mne.event_texts
+    if hasattr(lines, "get_segments"):  # matplotlib backend
+        lines = lines.get_segments()
+        texts = [t.get_text() for t in texts]
+    return lines, texts
+
+
+@pytest.mark.parametrize(
+    "event_id,expected_texts",
+    [
+        (False, set("123")),
+        (True, set("abc")),
+        (dict(f=1), set("fbc")),
+        (dict(a=1), set("abc")),
+    ],
+)
+def test_plot_overlapping_epochs_with_events(browser_backend, event_id, expected_texts):
     """Test drawing of event lines in overlapping epochs."""
     data = np.zeros(shape=(3, 2, 100))  # 3 epochs, 2 channels, 100 samples
     sfreq = 100
     info = create_info(ch_names=("a", "b"), ch_types=("misc", "misc"), sfreq=sfreq)
     # 90% overlap, so all 3 events should appear in all 3 epochs when plotted:
-    events = np.column_stack(([50, 60, 70], [0, 0, 0], [1, 2, 3]))
-    epochs = EpochsArray(data, info, tmin=-0.5, events=events)
-    fig = epochs.plot(events=events, picks="misc")
+    events = np.column_stack(([40, 50, 60], [0, 0, 0], [1, 2, 3]))
+    epochs = EpochsArray(
+        data, info, tmin=-0.4, events=events, event_id=dict(a=1, b=2, c=3)
+    )
+    fig = epochs.plot(events=events, picks="misc", event_id=event_id)
+    # check that the event lines are there and the labels are correct
+    lines, texts = _get_event_lines_and_texts(fig)
+    assert len(lines) == len(epochs) * len(events)
+    # TODO: Qt browser doesn't show event names, only integers
     if browser_backend.name == "matplotlib":
-        n_event_lines = len(fig.mne.event_lines.get_segments())
-    else:
-        n_event_lines = len(fig.mne.event_lines)
-    assert n_event_lines == 9
+        assert set(texts) == expected_texts
+    # plot one epoch with its defining event plus events at its first & last sample
+    # (regression test for https://mne.discourse.group/t/6334)
+    events = np.vstack(([[0, 0, 4]], events[[0]], [[99, 0, 4]]))
+    fig = epochs[0].plot(events=events, picks="misc", event_id=event_id)
+    expected_texts.add("4")
+    for text in ("2", "3", "b", "c"):
+        expected_texts.discard(text)
+    lines, texts = _get_event_lines_and_texts(fig)
+    assert len(lines) == len(events)
+    # TODO: Qt browser doesn't show event names, only integers
+    if browser_backend.name == "matplotlib":
+        assert set(texts) == expected_texts
 
 
 def test_epochs_plot_sensors(epochs):
@@ -232,14 +273,7 @@ def test_plot_epochs_nodata(browser_backend):
 
 @pytest.mark.slowtest
 def test_plot_epochs_image(epochs):
-    """Test plotting of epochs image.
-
-    Note that some of these tests that should pass are triggering MPL
-    UserWarnings about tight_layout not being applied ("tight_layout cannot
-    make axes width small enough to accommodate all axes decorations"). Calling
-    `plt.close('all')` just before the offending test seems to prevent this
-    warning, though it's unclear why.
-    """
+    """Test plotting of epochs image."""
     figs = epochs.plot_image()
     assert len(figs) == 2  # one fig per ch_type (test data has mag, grad)
     assert len(plt.get_fignums()) == 2
@@ -362,9 +396,9 @@ def test_plot_psd_epochs(epochs):
     """Test plotting epochs psd (+topomap)."""
     spectrum = epochs.compute_psd()
     old_defaults = dict(picks="data", exclude="bads")
-    spectrum.plot(average=True, spatial_colors=False, **old_defaults)
-    spectrum.plot(average=False, spatial_colors=True, **old_defaults)
-    spectrum.plot(average=False, spatial_colors=False, **old_defaults)
+    spectrum.plot(average=True, amplitude=False, spatial_colors=False, **old_defaults)
+    spectrum.plot(average=False, amplitude=False, spatial_colors=True, **old_defaults)
+    spectrum.plot(average=False, amplitude=False, spatial_colors=False, **old_defaults)
     # test plot_psd_topomap errors
     with pytest.raises(RuntimeError, match="No frequencies in band"):
         spectrum.plot_topomap(bands=dict(foo=(0, 0.01)))
@@ -382,7 +416,7 @@ def test_plot_psd_epochs(epochs):
     fig = spectrum.plot_topomap(bands=[(20, "20 Hz"), (15, 25, "15-25 Hz")])
     # test with a flat channel
     err_str = "for channel %s" % epochs.ch_names[2]
-    epochs.get_data()[0, 2, :] = 0
+    epochs.get_data(copy=False)[0, 2, :] = 0
     for dB in [True, False]:
         with pytest.warns(UserWarning, match=err_str):
             epochs.compute_psd().plot(dB=dB)
@@ -398,18 +432,16 @@ def test_plot_psdtopo_nirs(fnirs_epochs):
 @testing.requires_testing_data
 def test_plot_epochs_ctf(raw_ctf, browser_backend):
     """Test of basic CTF plotting."""
-    raw_ctf.pick_channels(
+    raw_ctf.pick(
         [
             "UDIO001",
             "UPPT001",
             "SCLK01-177",
             "BG1-4304",
             "MLC11-4304",
-            "MLC11-4304",
             "EEG058",
             "UADC007-4302",
         ],
-        ordered=False,
     )
     evts = make_fixed_length_events(raw_ctf)
     epochs = Epochs(raw_ctf, evts, preload=True)
@@ -465,7 +497,7 @@ def test_plot_psd_epochs_ctf(raw_ctf):
         for dB in [True, False]:
             spectrum.plot(dB=dB)
     spectrum.drop_channels(["EEG060"])
-    spectrum.plot(spatial_colors=False, average=False, **old_defaults)
+    spectrum.plot(spatial_colors=False, average=False, amplitude=False, **old_defaults)
     with pytest.raises(RuntimeError, match="No frequencies in band"):
         spectrum.plot_topomap(bands=[(0, 0.01, "foo")])
     spectrum.plot_topomap()

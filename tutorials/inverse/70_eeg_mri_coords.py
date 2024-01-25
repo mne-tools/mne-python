@@ -12,12 +12,13 @@ the electrodes are in MRI voxel coordinates.
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 
 import nibabel
-from nilearn.plotting import plot_glass_brain
 import numpy as np
+from nilearn.plotting import plot_glass_brain
 
 import mne
 from mne.channels import compute_native_head_t, read_custom_montage
@@ -119,7 +120,7 @@ print(trans)  # should be mri->head, as the "native" space here is MRI
 # shown by :meth:`~mne.io.Raw.plot_sensors`.
 
 raw = mne.io.read_raw_fif(fname_raw)
-raw.pick_types(meg=False, eeg=True, stim=True, exclude=()).load_data()
+raw.pick(picks=["eeg", "stim"]).load_data()
 raw.set_montage(dig_montage)
 raw.plot_sensors(show_names=True)
 

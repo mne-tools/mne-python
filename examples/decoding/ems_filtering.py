@@ -22,17 +22,18 @@ evolution of the spatial filters.
 #         Jean-Remi King <jeanremi.king@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
+from sklearn.model_selection import StratifiedKFold
 
 import mne
-from mne import io, EvokedArray
+from mne import EvokedArray, io
 from mne.datasets import sample
 from mne.decoding import EMS, compute_ems
-from sklearn.model_selection import StratifiedKFold
 
 print(__doc__)
 
@@ -49,9 +50,7 @@ raw = io.read_raw_fif(raw_fname, preload=True)
 raw.filter(0.5, 45, fir_design="firwin")
 events = mne.read_events(event_fname)
 
-picks = mne.pick_types(
-    raw.info, meg="grad", eeg=False, stim=False, eog=True, exclude="bads"
-)
+raw.pick(["grad", "eog"], exclude="bads")
 
 epochs = mne.Epochs(
     raw,
@@ -59,16 +58,14 @@ epochs = mne.Epochs(
     event_ids,
     tmin=-0.2,
     tmax=0.5,
-    picks=picks,
     baseline=None,
     reject=dict(grad=4000e-13, eog=150e-6),
     preload=True,
 )
-epochs.drop_bad()
-epochs.pick_types(meg="grad")
+epochs.pick("grad")
 
 # Setup the data to use it a scikit-learn way:
-X = epochs.get_data()  # The MEG data
+X = epochs.get_data(copy=False)  # The MEG data
 y = epochs.events[:, 2]  # The conditions indices
 n_epochs, n_channels, n_times = X.shape
 

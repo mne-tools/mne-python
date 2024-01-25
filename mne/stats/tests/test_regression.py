@@ -3,19 +3,18 @@
 #          Jona Sassenhagen <jona.sassenhagen@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import numpy as np
-from numpy.testing import assert_array_equal, assert_allclose, assert_equal
 import pytest
-
-from scipy.signal import hann
+from numpy.testing import assert_allclose, assert_array_equal, assert_equal
+from scipy.signal.windows import hann
 
 import mne
 from mne import read_source_estimate
 from mne.datasets import testing
-from mne.stats.regression import linear_regression, linear_regression_raw
 from mne.io import RawArray
-from mne.utils import requires_sklearn
+from mne.stats.regression import linear_regression, linear_regression_raw
 
 data_path = testing.data_path(download=False)
 stc_fname = data_path / "MEG" / "sample" / "sample_audvis_trunc-meg-lh.stc"
@@ -73,6 +72,12 @@ def test_regression():
         for v1, v2 in zip(lm1[k], lm2[k]):
             assert_array_equal(v1.data, v2.data)
 
+    # Smoke test for fitting on epochs
+    epochs.load_data()
+    with pytest.warns(RuntimeWarning, match="non-data"):
+        linear_regression(epochs, design_matrix)
+    linear_regression(epochs.copy().pick("eeg"), design_matrix)
+
 
 @testing.requires_testing_data
 def test_continuous_regression_no_overlap():
@@ -91,7 +96,7 @@ def test_continuous_regression_no_overlap():
     events = mne.read_events(event_fname)
     event_id = dict(audio_l=1, audio_r=2)
 
-    raw = raw.pick_channels(raw.ch_names[:2])
+    raw = raw.pick(raw.ch_names[:2])
 
     epochs = mne.Epochs(raw, events, event_id, tmin, tmax, baseline=None, reject=None)
 
@@ -115,10 +120,10 @@ def test_continuous_regression_no_overlap():
     )
 
 
-@requires_sklearn
 @testing.requires_testing_data
 def test_continuous_regression_with_overlap():
     """Test regression with overlap correction."""
+    pytest.importorskip("sklearn")
     signal = np.zeros(100000)
     times = [1000, 2500, 3000, 5000, 5250, 7000, 7250, 8000]
     events = np.zeros((len(times), 3), int)

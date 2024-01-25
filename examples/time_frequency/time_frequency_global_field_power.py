@@ -41,6 +41,7 @@ References
 #          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 import matplotlib.pyplot as plt
@@ -77,7 +78,7 @@ frequency_map = list()
 for band, fmin, fmax in iter_freqs:
     # (re)load the data to save memory
     raw = mne.io.read_raw_fif(raw_fname)
-    raw.pick_types(meg="grad", eog=True)  # we just look at gradiometers
+    raw.pick(picks=["grad", "eog"])  # we just look at gradiometers
     raw.load_data()
 
     # bandpass filter

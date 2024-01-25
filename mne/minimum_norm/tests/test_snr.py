@@ -2,16 +2,17 @@
 #          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import os
 from os import path as op
+
 import numpy as np
 from numpy.testing import assert_allclose
 
 from mne import read_evokeds
 from mne.datasets import testing
-from mne.minimum_norm import read_inverse_operator, estimate_snr
-
+from mne.minimum_norm import estimate_snr, read_inverse_operator
 from mne.utils import requires_mne, run_subprocess
 
 s_path = op.join(testing.data_path(download=False), "MEG", "sample")

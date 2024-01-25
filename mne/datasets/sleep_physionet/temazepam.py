@@ -1,7 +1,8 @@
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Joan Massich <mailsik@gmail.com>
 #
-# License: BSD Style.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import os
 import time
@@ -10,8 +11,7 @@ import numpy as np
 
 from ...utils import verbose
 from ..utils import _log_time_size
-from ._utils import _fetch_one, _data_path, TEMAZEPAM_SLEEP_RECORDS
-from ._utils import _check_subjects
+from ._utils import TEMAZEPAM_SLEEP_RECORDS, _check_subjects, _data_path, _fetch_one
 
 data_path = _data_path  # expose _data_path(..) as data_path(..)
 
@@ -104,12 +104,12 @@ def fetch_data(
                 psg_fname, pdl = _fetch_one(
                     records["psg fname"][idx].decode(),
                     records["psg sha"][idx].decode(),
-                    *params
+                    *params,
                 )
                 hyp_fname, hdl = _fetch_one(
                     records["hyp fname"][idx].decode(),
                     records["hyp sha"][idx].decode(),
-                    *params
+                    *params,
                 )
                 fnames.append([psg_fname, hyp_fname])
                 if pdl:

@@ -1,51 +1,52 @@
 # Author: Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from pathlib import Path
 
 import numpy as np
-from numpy.testing import assert_allclose, assert_array_less, assert_array_equal
+import pytest
+from numpy.testing import assert_allclose, assert_array_equal, assert_array_less
 from scipy.interpolate import interp1d
 from scipy.spatial.distance import cdist
-import pytest
 
-from mne import pick_types, pick_info
-from mne.forward._compute_forward import _MAG_FACTOR
-from mne.io import (
-    read_raw_fif,
-    read_raw_artemis123,
-    read_raw_ctf,
-    read_info,
-    RawArray,
-    read_raw_kit,
-)
-from mne.io.constants import FIFF
+from mne import pick_info, pick_types
+from mne._fiff.constants import FIFF
 from mne.chpi import (
+    _chpi_locs_to_times_dig,
+    _compute_good_distances,
+    _get_hpi_initial_fit,
+    _setup_ext_proj,
     compute_chpi_amplitudes,
     compute_chpi_locs,
     compute_chpi_snr,
     compute_head_pos,
-    _setup_ext_proj,
-    _chpi_locs_to_times_dig,
-    _compute_good_distances,
     extract_chpi_locs_ctf,
-    head_pos_to_trans_rot_t,
-    read_head_pos,
-    write_head_pos,
+    extract_chpi_locs_kit,
     filter_chpi,
     get_active_chpi,
     get_chpi_info,
-    _get_hpi_initial_fit,
-    extract_chpi_locs_kit,
+    head_pos_to_trans_rot_t,
+    read_head_pos,
+    write_head_pos,
 )
 from mne.datasets import testing
+from mne.forward._compute_forward import _MAG_FACTOR
+from mne.io import (
+    RawArray,
+    read_info,
+    read_raw_artemis123,
+    read_raw_ctf,
+    read_raw_fif,
+    read_raw_kit,
+)
 from mne.simulation import add_chpi
-from mne.transforms import rot_to_quat, _angle_between_quats
-from mne.utils import catch_logging, assert_meg_snr, verbose, object_diff
+from mne.transforms import _angle_between_quats, rot_to_quat
+from mne.utils import assert_meg_snr, catch_logging, object_diff, verbose
 from mne.viz import plot_head_positions
 
-base_dir = Path(__file__).parent.parent / "io" / "tests" / "data"
+base_dir = Path(__file__).parents[1] / "io" / "tests" / "data"
 ctf_fname = base_dir / "test_ctf_raw.fif"
 hp_fif_fname = base_dir / "test_chpi_raw_sss.fif"
 hp_fname = base_dir / "test_chpi_raw_hp.txt"
@@ -364,7 +365,7 @@ def test_calculate_chpi_positions_vv():
             pick_types(raw_bad.info, meg=True)[::16],
         ]
     )
-    raw_bad.pick_channels([raw_bad.ch_names[pick] for pick in picks], ordered=False)
+    raw_bad.pick([raw_bad.ch_names[pick] for pick in picks])
     with pytest.warns(RuntimeWarning, match="Discrepancy"):
         with catch_logging() as log_file:
             _calculate_chpi_positions(raw_bad, t_step_min=1.0, verbose=True)
@@ -383,6 +384,12 @@ def test_calculate_chpi_positions_vv():
 def test_calculate_chpi_snr():
     """Test cHPI SNR calculation."""
     raw = read_raw_fif(chpi_fif_fname, allow_maxshield="yes")
+    # include handling of NaN (when cHPI was off at the beginning)
+    raw.load_data()
+    raw.info["bads"] = ["MEG0342", "MEG1443"]
+    stop = int(round(raw.info["sfreq"])) * 2
+    raw._data[raw.ch_names.index("STI201"), :stop] = 0
+
     result = compute_chpi_snr(raw)
     # make sure all the entries are there
     keys = {
@@ -392,10 +399,15 @@ def test_calculate_chpi_snr():
     }
     assert set(result) == keys.union({"times", "freqs"})
     # make sure the values are plausible, given the sample data file
-    assert result["mag_snr"].min() > 1
-    assert result["mag_snr"].max() < 40
-    assert result["grad_snr"].min() > 1
-    assert result["grad_snr"].max() < 40
+    n_pts = len(raw.times) // int(round(raw.info["sfreq"] * 0.01))
+    # our logic in this test for this length is not perfect
+    assert_allclose(result["mag_snr"].shape[0], n_pts, atol=5)
+    n_nan = np.where(result["times"] <= raw.first_time + 2)[0][-1]
+    assert_allclose(result["mag_snr"][:n_nan], np.nan)
+    assert result["mag_snr"][n_nan:].min() > 1
+    assert result["mag_snr"][n_nan:].max() < 40
+    assert result["grad_snr"][n_nan:].min() > 1
+    assert result["grad_snr"][n_nan:].max() < 40
 
 
 @testing.requires_testing_data
@@ -409,6 +421,15 @@ def test_calculate_chpi_positions_artemis():
     _assert_quats(
         py_quats, mf_quats, dist_tol=0.001, angle_tol=1.0, err_rtol=0.7, vel_atol=1e-2
     )
+
+
+@testing.requires_testing_data
+def test_warn_maxwell_filtered():
+    """Test that trying to compute locations on Maxwell filtered data warns."""
+    raw = read_raw_fif(sss_fif_fname).crop(0, 1)
+    with pytest.warns(RuntimeWarning, match="Maxwell filter"):
+        amps = compute_chpi_amplitudes(raw)
+    assert len(amps["times"]) > 0  # but for this file, it does work!
 
 
 @testing.requires_testing_data
@@ -682,7 +703,7 @@ def test_chpi_subtraction_filter_chpi():
     raw.crop(0, 16)
     # remove cHPI status chans
     raw_c = read_raw_fif(sss_hpisubt_fname).crop(0, 16).load_data()
-    raw_c.pick_types(meg=True, eeg=True, eog=True, ecg=True, stim=True, misc=True)
+    raw_c.pick(["meg", "eeg", "eog", "ecg", "stim", "misc"])
     assert_meg_snr(raw, raw_c, 143, 624)
     # cHPI suppressed but not line freqs (or others)
     assert_suppressed(raw, raw_orig, np.arange(83, 324, 60), [30, 60, 150])
@@ -741,7 +762,7 @@ def test_chpi_subtraction_filter_chpi():
 
 
 @testing.requires_testing_data
-def test_calculate_head_pos_ctf():
+def test_calculate_head_pos_ctf(tmp_path):
     """Test extracting of cHPI positions from CTF data."""
     raw = read_raw_ctf(ctf_chpi_fname)
     chpi_locs = extract_chpi_locs_ctf(raw)
@@ -753,9 +774,28 @@ def test_calculate_head_pos_ctf():
     )  # 7 mm/s
     plot_head_positions(quats, info=raw.info)
 
-    raw = read_raw_fif(ctf_fname)
     with pytest.raises(RuntimeError, match="Could not find"):
-        extract_chpi_locs_ctf(raw)
+        extract_chpi_locs_ctf(read_raw_fif(ctf_fname))
+
+    # save-load should not affect result
+    fname_temp = tmp_path / "test_ctf_raw.fif"
+    raw.save(fname_temp)
+    raw_read = read_raw_fif(fname_temp)
+    # the two attributes used by compute_head_pos
+    assert_allclose(
+        raw.info["dev_head_t"]["trans"], raw_read.info["dev_head_t"]["trans"]
+    )
+    with pytest.warns(RuntimeWarning, match="is poor"):
+        head_rrs = _get_hpi_initial_fit(raw.info, verbose="debug")
+    with pytest.warns(RuntimeWarning, match="is poor"):
+        head_rrs_2 = _get_hpi_initial_fit(raw_read.info, verbose="debug")
+    assert_allclose(head_rrs, head_rrs_2, atol=1e-5)
+    quats_2 = compute_head_pos(raw_read.info, chpi_locs)
+    _assert_quats(quats, quats_2, dist_tol=1e-5, angle_tol=0.1)
+    chpi_locs_2 = extract_chpi_locs_ctf(raw_read)
+    assert_allclose(chpi_locs["rrs"], chpi_locs_2["rrs"], atol=1e-5)
+    quats_3 = compute_head_pos(raw_read.info, chpi_locs_2)
+    _assert_quats(quats, quats_3, dist_tol=1e-5, angle_tol=0.1)
 
 
 @testing.requires_testing_data

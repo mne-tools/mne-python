@@ -2,9 +2,12 @@
 #          Eric Larson <larson.eric.d@gmail.com>
 #          Guillaume Favelier <guillaume.favelier@gmail.com>
 #
-# License: Simplified BSD
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 import numpy as np
+
 from ...utils import warn
+from ..ui_events import link
 
 
 class _LinkViewer:
@@ -23,37 +26,14 @@ class _LinkViewer:
         if camera:
             self.link_cameras()
 
+        events_to_link = []
         if time:
-            # link time sliders
-            self.link_widgets(
-                name="time",
-                callback=self.set_time_point,
-                signal_type="floatValueChanged",
-            )
+            events_to_link.append("time_change")
+        if colorbar:
+            events_to_link.append("colormap_range")
 
-            # link playback speed sliders
-            self.link_widgets(
-                name="playback_speed",
-                callback=self.set_playback_speed,
-                signal_type="valueChanged",
-            )
-
-            # link toggle to start/pause playback
-            self.link_widgets(
-                name="play",
-                callback=self.toggle_playback,
-                signal_type="triggered",
-                actions=True,
-            )
-
-            # link time course canvas
-            def _time_func(*args, **kwargs):
-                for brain in self.brains:
-                    brain.callbacks["time"](*args, **kwargs)
-
-            for brain in self.brains:
-                if brain.show_traces:
-                    brain.mpl_canvas.time_func = _time_func
+        for brain in brains[1:]:
+            link(self.leader, brain, include_events=events_to_link)
 
         if picking:
 
@@ -88,57 +68,23 @@ class _LinkViewer:
                     for vertex_id in initial_points[hemi]:
                         self.leader._add_vertex_glyph(hemi, mesh, vertex_id)
 
-        if colorbar:
-            fmin = self.leader._data["fmin"]
-            fmid = self.leader._data["fmid"]
-            fmax = self.leader._data["fmax"]
-            for brain in self.brains:
-                brain.callbacks["fmin"](fmin)
-                brain.callbacks["fmid"](fmid)
-                brain.callbacks["fmax"](fmax)
-            for name in ("fmin", "fmid", "fmax"):
-                func = getattr(self, "set_" + name)
-                self.link_widgets(
-                    name=name, callback=func, signal_type="floatValueChanged"
-                )
-
     def set_fmin(self, value):
-        for brain in self.brains:
-            brain.callbacks["fmin"](value)
+        self.leader.update_lut(fmin=value)
 
     def set_fmid(self, value):
-        for brain in self.brains:
-            brain.callbacks["fmid"](value)
+        self.leader.update_lut(fmid=value)
 
     def set_fmax(self, value):
-        for brain in self.brains:
-            brain.callbacks["fmax"](value)
+        self.leader.update_lut(fmax=value)
 
     def set_time_point(self, value):
-        for brain in self.brains:
-            brain.callbacks["time"](value, update_widget=True)
+        self.leader.set_time_point(value)
 
     def set_playback_speed(self, value):
-        for brain in self.brains:
-            brain.callbacks["playback_speed"](value, update_widget=True)
+        self.leader.set_playback_speed(value)
 
     def toggle_playback(self):
-        value = self.leader.callbacks["time"].widget.get_value()
-        # synchronize starting points before playback
-        self.set_time_point(value)
-        for brain in self.brains:
-            brain.toggle_playback()
-
-    def link_widgets(self, name, callback, signal_type, actions=False):
-        for brain in self.brains:
-            if actions:
-                widget = brain._renderer.actions[name]._action
-            else:
-                widget = brain.widgets[name].widget
-            if widget is not None:
-                signal = getattr(widget, signal_type)
-                signal.disconnect()
-                signal.connect(callback)
+        self.leader.toggle_playback()
 
     def link_cameras(self):
         from ..backends._pyvista import _add_camera_callback

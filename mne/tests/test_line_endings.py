@@ -2,15 +2,15 @@
 #         Adapted from vispy
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import os
-from os import path as op
 import sys
+from os import path as op
 
 import pytest
 
 from mne.utils import _get_root_dir
-
 
 skip_files = (
     # known crlf

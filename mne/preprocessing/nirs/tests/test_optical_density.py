@@ -3,16 +3,17 @@
 #          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
-import pytest as pytest
 import numpy as np
+import pytest as pytest
 from numpy.testing import assert_allclose
 
+from mne.datasets import testing
 from mne.datasets.testing import data_path
-from mne.io import read_raw_nirx, BaseRaw
+from mne.io import BaseRaw, read_raw_nirx
 from mne.preprocessing.nirs import optical_density
 from mne.utils import _validate_type
-from mne.datasets import testing
 
 fname_nirx = (
     data_path(download=False) / "NIRx" / "nirscout" / "nirx_15_2_recording_w_short"
@@ -51,7 +52,7 @@ def test_optical_density_manual():
     test_tol = 0.01
     raw = read_raw_nirx(fname_nirx, preload=True)
     # log(1) = 0
-    raw._data[4] = np.ones((145))
+    raw._data[4] = np.ones(145)
     # log(0.5)/-1 = 0.69
     # log(1.5)/-1 = -0.40
     test_data = np.tile([0.5, 1.5], 73)[:145]

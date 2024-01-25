@@ -4,26 +4,25 @@
 #         Joan Massich <mailsik@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 from os import path
 
 import numpy as np
 
-from ...utils import warn, fill_doc, _check_option
-from ...channels.layout import _topo_to_sphere
-from ..constants import FIFF
-from .._digitization import _make_dig_points
-from ..utils import _mult_cal_one, _find_channels, _create_chs, read_str
-from ..meas_info import _empty_info
-from ..base import BaseRaw
+from ..._fiff._digitization import _make_dig_points
+from ..._fiff.constants import FIFF
+from ..._fiff.meas_info import _empty_info
+from ..._fiff.utils import _create_chs, _find_channels, _mult_cal_one, read_str
 from ...annotations import Annotations
-
-
+from ...channels.layout import _topo_to_sphere
+from ...utils import _check_option, _validate_type, fill_doc, warn
+from ..base import BaseRaw
 from ._utils import (
-    _read_teeg,
-    _get_event_parser,
-    _session_date_2_meas_date,
-    _compute_robust_event_table_position,
     CNTEventType3,
+    _compute_robust_event_table_position,
+    _get_event_parser,
+    _read_teeg,
+    _session_date_2_meas_date,
 )
 
 
@@ -145,9 +144,9 @@ def _read_annotations_cnt(fname, data_format="int16"):
             event_type=type(my_events[0]),
             data_format=data_format,
         )
-        duration = np.array(
-            [getattr(e, "Latency", 0.0) for e in my_events], dtype=float
-        )
+        # There is a Latency field but it's not useful for durations, see
+        # https://github.com/mne-tools/mne-python/pull/11828
+        duration = np.zeros(len(my_events), dtype=float)
         accept_reject = _accept_reject_function(
             np.array([e.KeyPad_Accept for e in my_events])
         )
@@ -171,9 +170,11 @@ def read_raw_cnt(
     emg=(),
     data_format="auto",
     date_format="mm/dd/yy",
+    *,
+    header="auto",
     preload=False,
     verbose=None,
-):
+) -> "RawCNT":
     """Read CNT data as raw object.
 
     .. Note::
@@ -221,6 +222,13 @@ def read_raw_cnt(
         Defaults to ``'auto'``.
     date_format : ``'mm/dd/yy'`` | ``'dd/mm/yy'``
         Format of date in the header. Defaults to ``'mm/dd/yy'``.
+    header : ``'auto'`` | ``'new'`` | ``'old'``
+        Defines the header format. Used to describe how bad channels
+        are formatted. If auto, reads using old and new header and
+        if either contain a bad channel make channel bad.
+        Defaults to ``'auto'``.
+
+        .. versionadded:: 1.6
     %(preload)s
     %(verbose)s
 
@@ -246,12 +254,13 @@ def read_raw_cnt(
         emg=emg,
         data_format=data_format,
         date_format=date_format,
+        header=header,
         preload=preload,
         verbose=verbose,
     )
 
 
-def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format):
+def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format, header):
     """Read the cnt header."""
     data_offset = 900  # Size of the 'SETUP' header.
     cnt_info = dict()
@@ -342,13 +351,23 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format):
         ch_names, cals, baselines, chs, pos = (list(), list(), list(), list(), list())
 
         bads = list()
+        _validate_type(header, str, "header")
+        _check_option("header", header, ("auto", "new", "old"))
         for ch_idx in range(n_channels):  # ELECTLOC fields
             fid.seek(data_offset + 75 * ch_idx)
             ch_name = read_str(fid, 10)
             ch_names.append(ch_name)
-            fid.seek(data_offset + 75 * ch_idx + 4)
-            if np.fromfile(fid, dtype="u1", count=1).item():
-                bads.append(ch_name)
+
+            # Some files have bad channels marked differently in the header.
+            if header in ("new", "auto"):
+                fid.seek(data_offset + 75 * ch_idx + 14)
+                if np.fromfile(fid, dtype="u1", count=1).item():
+                    bads.append(ch_name)
+            if header in ("old", "auto"):
+                fid.seek(data_offset + 75 * ch_idx + 4)
+                if np.fromfile(fid, dtype="u1", count=1).item():
+                    bads.append(ch_name)
+
             fid.seek(data_offset + 75 * ch_idx + 19)
             xy = np.fromfile(fid, dtype="f4", count=2)
             xy[1] *= -1  # invert y-axis
@@ -404,12 +423,12 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format):
         meas_date=meas_date,
         dig=dig,
         description=session_label,
-        bads=bads,
         subject_info=subject_info,
         chs=chs,
     )
     info._unlocked = False
     info._update_redundant()
+    info["bads"] = bads
     return info, cnt_info
 
 
@@ -453,6 +472,11 @@ class RawCNT(BaseRaw):
         Defaults to ``'auto'``.
     date_format : ``'mm/dd/yy'`` | ``'dd/mm/yy'``
         Format of date in the header. Defaults to ``'mm/dd/yy'``.
+    header : ``'auto'`` | ``'new'`` | ``'old'``
+        Defines the header format. Used to describe how bad channels
+        are formatted. If auto, reads using old and new header and
+        if either contain a bad channel make channel bad.
+        Defaults to ``'auto'``.
     %(preload)s
     stim_channel : bool | None
         Add a stim channel from the events. Defaults to None to trigger a
@@ -480,9 +504,11 @@ class RawCNT(BaseRaw):
         emg=(),
         data_format="auto",
         date_format="mm/dd/yy",
+        *,
+        header="auto",
         preload=False,
         verbose=None,
-    ):  # noqa: D102
+    ):
         _check_option("date_format", date_format, ["mm/dd/yy", "dd/mm/yy"])
         if date_format == "dd/mm/yy":
             _date_format = "%d/%m/%y %H:%M:%S"
@@ -491,10 +517,10 @@ class RawCNT(BaseRaw):
 
         input_fname = path.abspath(input_fname)
         info, cnt_info = _get_cnt_info(
-            input_fname, eog, ecg, emg, misc, data_format, _date_format
+            input_fname, eog, ecg, emg, misc, data_format, _date_format, header
         )
         last_samps = [cnt_info["n_samples"] - 1]
-        super(RawCNT, self).__init__(
+        super().__init__(
             info,
             preload,
             filenames=[input_fname],

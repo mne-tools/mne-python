@@ -5,27 +5,28 @@
 #          Britta Westner <britta.wstnr@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 import numpy as np
 
-from ..rank import compute_rank
-from ..io.meas_info import _simplify_info
-from ..io.pick import pick_channels_cov, pick_info
+from .._fiff.meas_info import _simplify_info
+from .._fiff.pick import pick_channels_cov, pick_info
 from ..forward import _subject_from_forward
-from ..minimum_norm.inverse import combine_xyz, _check_reference, _check_depth
-from ..source_estimate import _make_stc, _get_src_type
+from ..minimum_norm.inverse import _check_depth, _check_reference, combine_xyz
+from ..rank import compute_rank
+from ..source_estimate import _get_src_type, _make_stc
 from ..utils import (
+    _check_channels_spatial_filter,
+    _check_info_inv,
+    _check_one_ch_type,
     logger,
     verbose,
-    _check_channels_spatial_filter,
-    _check_one_ch_type,
-    _check_info_inv,
 )
 from ._compute_beamformer import (
-    _prepare_beamformer_input,
-    _compute_power,
-    _compute_beamformer,
-    _check_src_type,
     Beamformer,
+    _check_src_type,
+    _compute_beamformer,
+    _compute_power,
+    _prepare_beamformer_input,
     _proj_whiten_data,
 )
 
@@ -179,12 +180,12 @@ def make_lcmv(
             key not in noise_rank or data_rank[key] != noise_rank[key]
         ) and not allow_mismatch:
             raise ValueError(
-                "%s data rank (%s) did not match the noise "
-                "rank (%s)" % (key, data_rank[key], noise_rank.get(key, None))
+                f"{key} data rank ({data_rank[key]}) did not match the noise rank ("
+                f"{noise_rank.get(key, None)})"
             )
     del noise_rank
     rank = data_rank
-    logger.info("Making LCMV beamformer with rank %s" % (rank,))
+    logger.info(f"Making LCMV beamformer with rank {rank}")
     del data_rank
     depth = _check_depth(depth, "depth_sparse")
     if inversion == "single":
@@ -207,7 +208,7 @@ def make_lcmv(
         noise_cov=noise_cov,
         rank=rank,
         pca=False,
-        **depth
+        **depth,
     )
     ch_names = list(info["ch_names"])
 
@@ -402,7 +403,7 @@ def apply_lcmv_epochs(epochs, filters, *, return_generator=False, verbose=None):
     tmin = epochs.times[0]
 
     sel = _check_channels_spatial_filter(epochs.ch_names, filters)
-    data = epochs.get_data()[:, sel, :]
+    data = epochs.get_data(sel)
     stcs = _apply_lcmv(data=data, filters=filters, info=info, tmin=tmin)
 
     if not return_generator:

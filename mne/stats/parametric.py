@@ -2,11 +2,16 @@
 #          Denis Engemann <denis.engemann@gmail.com>
 #          Eric Larson <larson.eric.d@gmail.com>
 #
-# License: Simplified BSD
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
-import numpy as np
 from functools import reduce
 from string import ascii_uppercase
+
+import numpy as np
+from scipy import stats
+from scipy.signal import detrend
+
 from ..utils import _check_option
 
 # The following function is a rewriting of scipy.stats.f_oneway
@@ -192,14 +197,13 @@ def _map_effects(n_factors, effects):
         elif "*" in effects:
             pass  # handle later
         else:
-            raise ValueError('"{}" is not a valid option for "effects"'.format(effects))
+            raise ValueError(f'"{effects}" is not a valid option for "effects"')
     if isinstance(effects, list):
         bad_names = [e for e in effects if e not in factor_names]
         if len(bad_names) > 1:
             raise ValueError(
-                "Effect names: {} are not valid. They should "
-                "the first `n_factors` ({}) characters from the"
-                "alphabet".format(bad_names, n_factors)
+                f"Effect names: {bad_names} are not valid. They should consist of the "
+                f"first `n_factors` ({n_factors}) characters from the alphabet"
             )
 
     indices = list(np.arange(2**n_factors - 1))
@@ -238,8 +242,6 @@ def _get_contrast_indices(effect_idx, n_factors):  # noqa: D401
 
 def _iter_contrasts(n_subjects, factor_levels, effect_picks):
     """Set up contrasts."""
-    from scipy.signal import detrend
-
     sc = []
     n_factors = len(factor_levels)
     # prepare computation of Kronecker products
@@ -299,13 +301,11 @@ def f_threshold_mway_rm(n_subjects, factor_levels, effects="A*B", pvalue=0.05):
     -----
     .. versionadded:: 0.10
     """
-    from scipy.stats import f
-
     effect_picks, _ = _map_effects(len(factor_levels), effects)
 
     F_threshold = []
     for _, df1, df2 in _iter_contrasts(n_subjects, factor_levels, effect_picks):
-        F_threshold.append(f(df1, df2).isf(pvalue))
+        F_threshold.append(stats.f(df1, df2).isf(pvalue))
 
     return F_threshold if len(F_threshold) > 1 else F_threshold[0]
 
@@ -366,8 +366,6 @@ def f_mway_rm(data, factor_levels, effects="all", correction=False, return_pvals
     -----
     .. versionadded:: 0.10
     """
-    from scipy.stats import f
-
     out_reshape = (-1,)
     if data.ndim == 2:  # general purpose support, e.g. behavioural data
         data = data[:, :, np.newaxis]
@@ -403,10 +401,10 @@ def f_mway_rm(data, factor_levels, effects="all", correction=False, return_pvals
             # numerical imprecision can cause eps=0.99999999999999989
             # even with a single category, so never let our degrees of
             # freedom drop below 1.
-            df1, df2 = [np.maximum(d[None, :] * eps, 1.0) for d in (df1, df2)]
+            df1, df2 = (np.maximum(d[None, :] * eps, 1.0) for d in (df1, df2))
 
         if return_pvals:
-            pvals = f(df1, df2).sf(fvals)
+            pvals = stats.f(df1, df2).sf(fvals)
         else:
             pvals = np.empty(0)
         pvalues.append(pvals)
@@ -424,7 +422,5 @@ def _parametric_ci(arr, ci=0.95):
     if len(arr) < 2:  # can't compute standard error
         sigma = np.full_like(mean, np.nan)
         return mean, sigma
-    from scipy import stats
-
     sigma = stats.sem(arr, 0)
     return stats.t.interval(ci, loc=mean, scale=sigma, df=arr.shape[0])

@@ -5,31 +5,37 @@
 #          Teon Brooks <teon.brooks@gmail.com>
 #          Daniel McCloy <dan.mccloy@gmail.com>
 #
-# License: Simplified BSD
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
-from functools import partial
 import warnings
+from functools import partial
 
 import numpy as np
+from scipy.stats import gaussian_kde
 
-from .utils import (
-    tight_layout,
-    _make_event_color_dict,
-    _get_cmap,
-    plt_show,
-    _convert_psds,
-    _compute_scalings,
-    _handle_precompute,
+from .._fiff.meas_info import create_info
+from .._fiff.pick import _picks_to_idx, pick_types
+from .._fiff.proj import _has_eeg_average_ref_proj
+from ..defaults import DEFAULTS, _handle_default
+from ..utils import (
+    _reject_data_segments,
+    _validate_type,
+    fill_doc,
+    verbose,
 )
-from .topomap import _plot_ica_topomap
 from .epochs import plot_epochs_image
 from .evoked import _butterfly_on_button_press, _butterfly_onpick
-from ..channels.channels import _get_ch_type
-from ..utils import _validate_type, fill_doc
-from ..defaults import _handle_default
-from ..io.meas_info import create_info
-from ..io.pick import pick_types, _picks_to_idx
-from ..utils import _reject_data_segments, verbose
+from .topomap import _plot_ica_topomap
+from .utils import (
+    _compute_scalings,
+    _convert_psds,
+    _get_cmap,
+    _get_plot_ch_type,
+    _handle_precompute,
+    _make_event_color_dict,
+    plt_show,
+)
 
 
 @fill_doc
@@ -49,7 +55,8 @@ def plot_ica_sources(
     use_opengl=None,
     *,
     theme=None,
-    overview_mode=None
+    overview_mode=None,
+    splash=True,
 ):
     """Plot estimated latent sources given the unmixing matrix.
 
@@ -94,6 +101,9 @@ def plot_ica_sources(
     %(overview_mode)s
 
         .. versionadded:: 1.1
+    %(splash)s
+
+        .. versionadded:: 1.6
 
     Returns
     -------
@@ -109,9 +119,9 @@ def plot_ica_sources(
 
     .. versionadded:: 0.10.0
     """
-    from ..io.base import BaseRaw
-    from ..evoked import Evoked
     from ..epochs import BaseEpochs
+    from ..evoked import Evoked
+    from ..io import BaseRaw
 
     exclude = ica.exclude
     picks = _picks_to_idx(ica.n_components_, picks, picks_on="components")
@@ -134,6 +144,7 @@ def plot_ica_sources(
             use_opengl=use_opengl,
             theme=theme,
             overview_mode=overview_mode,
+            splash=splash,
         )
     elif isinstance(inst, Evoked):
         if start is not None or stop is not None:
@@ -201,7 +212,6 @@ def _plot_ica_properties(
 ):
     """Plot ICA properties (helper)."""
     from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
-    from scipy.stats import gaussian_kde
 
     topo_ax, image_ax, erp_ax, spec_ax, var_ax = axes
 
@@ -209,11 +219,15 @@ def _plot_ica_properties(
     # --------
     # component topomap
     _plot_ica_topomap(ica, pick, show=False, axes=topo_ax, **topomap_args)
-    topo_ax._ch_type = _get_ch_type(ica, ch_type=None, allow_ref_meg=ica.allow_ref_meg)
+    topo_ax._ch_type = _get_plot_ch_type(
+        ica,
+        ch_type=None,
+        allow_ref_meg=ica.allow_ref_meg,
+    )
 
     # image and erp
     # we create a new epoch with dropped rows
-    epoch_data = epochs_src.get_data()
+    epoch_data = epochs_src.get_data(copy=False)
     epoch_data = np.insert(
         arr=epoch_data,
         obj=(dropped_indices - np.arange(len(dropped_indices))).astype(int),
@@ -233,7 +247,7 @@ def _plot_ica_properties(
         combine=None,
         colorbar=False,
         show=False,
-        **image_args
+        **image_args,
     )
 
     # spectrum
@@ -403,7 +417,7 @@ def plot_ica_properties(
     reject="auto",
     reject_by_annotation=True,
     *,
-    verbose=None
+    verbose=None,
 ):
     """Display component properties.
 
@@ -521,7 +535,7 @@ def _fast_plot_ica_properties(
     precomputed_data=None,
     reject_by_annotation=True,
     *,
-    verbose=None
+    verbose=None,
 ):
     """Display component properties."""
     from ..preprocessing import ICA
@@ -686,9 +700,8 @@ def _prepare_data_ica_properties(inst, ica, reject_by_annotation=True, reject="a
     data : array of shape (n_epochs, n_ica_sources, n_times)
         A view on epochs ICA sources data.
     """
-    from ..io.base import BaseRaw
-    from ..io import RawArray
     from ..epochs import BaseEpochs
+    from ..io import BaseRaw, RawArray
 
     _validate_type(inst, (BaseRaw, BaseEpochs), "inst", "Raw or Epochs")
     if isinstance(inst, BaseRaw):
@@ -732,7 +745,7 @@ def _prepare_data_ica_properties(inst, ica, reject_by_annotation=True, reject="a
         epochs_src = ica.get_sources(inst)
         dropped_indices = []
         kind = "Epochs"
-    return kind, dropped_indices, epochs_src, epochs_src.get_data()
+    return kind, dropped_indices, epochs_src, epochs_src.get_data(copy=False)
 
 
 def _plot_ica_sources_evoked(evoked, picks, exclude, title, show, ica, labels=None):
@@ -759,7 +772,7 @@ def _plot_ica_sources_evoked(evoked, picks, exclude, title, show, ica, labels=No
     if title is None:
         title = "Reconstructed latent sources, time-locked"
 
-    fig, axes = plt.subplots(1)
+    fig, axes = plt.subplots(1, layout="constrained")
     ax = axes
     axes = [axes]
     times = evoked.times * 1e3
@@ -824,14 +837,14 @@ def _plot_ica_sources_evoked(evoked, picks, exclude, title, show, ica, labels=No
                 style = cat_styles[label_name]
                 label_props[label_idx] = (color, style)
 
-    for exc_label, ii in zip(exclude_labels, picks):
-        color, style = label_props[ii]
+    for pick_idx, (exc_label, pick) in enumerate(zip(exclude_labels, picks)):
+        color, style = label_props[pick_idx]
         # ensure traces of excluded components are plotted on top
         zorder = 2 if exc_label is None else 10
         lines.extend(
             ax.plot(
                 times,
-                evoked.data[ii].T,
+                evoked.data[pick].T,
                 picker=True,
                 zorder=zorder,
                 color=color,
@@ -842,9 +855,8 @@ def _plot_ica_sources_evoked(evoked, picks, exclude, title, show, ica, labels=No
         lines[-1].set_pickradius(3.0)
 
     ax.set(title=title, xlim=times[[0, -1]], xlabel="Time (ms)", ylabel="(NA)")
-    if len(exclude) > 0:
-        plt.legend(loc="best")
-    tight_layout(fig=fig)
+    if len(lines):
+        ax.legend(lines, exclude_labels, loc="best")
 
     texts.append(
         ax.text(
@@ -951,7 +963,9 @@ def plot_ica_scores(
 
     if figsize is None:
         figsize = (6.4 * n_cols, 2.7 * n_rows)
-    fig, axes = plt.subplots(n_rows, n_cols, figsize=figsize, sharex=True, sharey=True)
+    fig, axes = plt.subplots(
+        n_rows, n_cols, figsize=figsize, sharex=True, sharey=True, layout="constrained"
+    )
 
     if isinstance(axes, np.ndarray):
         axes = axes.flatten()
@@ -1004,11 +1018,6 @@ def plot_ica_scores(
             ax.set_title("(%s)" % label)
         ax.set_xlabel("ICA components")
         ax.set_xlim(-0.6, len(this_scores) - 0.4)
-
-    tight_layout(fig=fig)
-
-    adjust_top = 0.8 if len(fig.axes) == 1 else 0.9
-    fig.subplots_adjust(top=adjust_top)
     fig.canvas.draw()
     plt_show(show)
     return fig
@@ -1027,7 +1036,7 @@ def plot_ica_overlay(
     n_pca_components=None,
     *,
     on_baseline="warn",
-    verbose=None
+    verbose=None,
 ):
     """Overlay of raw and cleaned signals given the unmixing matrix.
 
@@ -1038,14 +1047,13 @@ def plot_ica_overlay(
     ica : instance of mne.preprocessing.ICA
         The ICA object.
     inst : instance of Raw or Evoked
-        The signal to plot. If `~mne.io.Raw`, the raw data is displayed before
-        and after cleaning. In a second panel, the cross-channel average will
-        be displayed. Since dipolar sources will be canceled out, this
-        representation is sensitive to artifacts. If `~mne.Evoked`, butterfly
-        traces for signals before and after cleaning will be superimposed.
+        The signal to plot. If `~mne.io.Raw`, the raw data per channel type is displayed
+        before and after cleaning. A second panel with the RMS for MEG sensors and the
+        :term:`GFP` for EEG sensors is displayed. If `~mne.Evoked`, butterfly traces for
+        signals before and after cleaning will be superimposed.
     exclude : array-like of int | None (default)
-        The components marked for exclusion. If ``None`` (default), ICA.exclude
-        will be used.
+        The components marked for exclusion. If ``None`` (default), the components
+        listed in ``ICA.exclude`` will be used.
     %(picks_base)s all channels that were included during fitting.
     start, stop : float | None
        The first and last time point (in seconds) of the data to plot. If
@@ -1067,8 +1075,8 @@ def plot_ica_overlay(
         The figure.
     """
     # avoid circular imports
-    from ..io.base import BaseRaw
     from ..evoked import Evoked
+    from ..io import BaseRaw
     from ..preprocessing.ica import _check_start_stop
 
     if ica.current_fit == "unfitted":
@@ -1079,19 +1087,14 @@ def plot_ica_overlay(
         title = "Signals before (red) and after (black) cleaning"
     picks = ica.ch_names if picks is None else picks
     picks = _picks_to_idx(inst.info, picks, exclude=())
-    ch_types_used = inst.get_channel_types(picks=picks, unique=True)
     if exclude is None:
         exclude = ica.exclude
     if not isinstance(exclude, (np.ndarray, list)):
         raise TypeError("exclude must be of type list. Got %s" % type(exclude))
     if isinstance(inst, BaseRaw):
-        if start is None:
-            start = 0.0
-        if stop is None:
-            stop = 3.0
-        start_compare, stop_compare = _check_start_stop(inst, start, stop)
-        data, times = inst[picks, start_compare:stop_compare]
-
+        start = 0.0 if start is None else start
+        stop = 3.0 if stop is None else stop
+        start, stop = _check_start_stop(inst, start, stop)
         raw_cln = ica.apply(
             inst.copy(),
             exclude=exclude,
@@ -1099,13 +1102,13 @@ def plot_ica_overlay(
             stop=stop,
             n_pca_components=n_pca_components,
         )
-        data_cln, _ = raw_cln[picks, start_compare:stop_compare]
         fig = _plot_ica_overlay_raw(
-            data=data,
-            data_cln=data_cln,
-            times=times,
+            raw=inst,
+            raw_cln=raw_cln,
+            picks=picks,
+            start=start,
+            stop=stop,
             title=title,
-            ch_types_used=ch_types_used,
             show=show,
         )
     else:
@@ -1114,7 +1117,7 @@ def plot_ica_overlay(
         if picks is not None:
             with inst.info._unlock():
                 inst.info["comps"] = []  # can be safely disabled
-            inst.pick_channels([inst.ch_names[p] for p in picks])
+            inst.pick([inst.ch_names[p] for p in picks])
         evoked_cln = ica.apply(
             inst.copy(),
             exclude=exclude,
@@ -1128,15 +1131,23 @@ def plot_ica_overlay(
     return fig
 
 
-def _plot_ica_overlay_raw(data, data_cln, times, title, ch_types_used, show):
+def _plot_ica_overlay_raw(*, raw, raw_cln, picks, start, stop, title, show):
     """Plot evoked after and before ICA cleaning.
 
     Parameters
     ----------
-    ica : instance of mne.preprocessing.ICA
-        The ICA object.
-    epochs : instance of mne.Epochs
-        The Epochs to be regarded.
+    raw : Raw
+        Raw data before exclusion of ICs.
+    raw_cln : Raw
+        Data after exclusion of ICs.
+    picks : array of shape (n_channels_selected,)
+        Array of selected channel indices.
+    start : int
+        Start time to plot in samples.
+    stop : int
+        Stop time to plot in samples.
+    title : str
+        Title of the figure(s).
     show : bool
         Show figure if True.
 
@@ -1146,26 +1157,55 @@ def _plot_ica_overlay_raw(data, data_cln, times, title, ch_types_used, show):
     """
     import matplotlib.pyplot as plt
 
-    # Restore sensor space data and keep all PCA components
-    # let's now compare the date before and after cleaning.
-    # first the raw data
-    assert data.shape == data_cln.shape
-    fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True)
-    plt.suptitle(title)
-    ax1.plot(times, data.T, color="r")
-    ax1.plot(times, data_cln.T, color="k")
-    ax1.set(xlabel="Time (s)", xlim=times[[0, -1]], title="Raw data")
+    ch_types = raw.get_channel_types(picks=picks, unique=True)
+    for ch_type in ch_types:
+        if ch_type in ("mag", "grad"):
+            fig, ax = plt.subplots(3, 1, sharex=True, layout="constrained")
+        elif ch_type == "eeg" and not _has_eeg_average_ref_proj(
+            raw.info, check_active=True
+        ):
+            fig, ax = plt.subplots(3, 1, sharex=True, layout="constrained")
+        else:
+            fig, ax = plt.subplots(2, 1, sharex=True, layout="constrained")
+        fig.suptitle(title)
 
-    _ch_types = {"mag": "Magnetometers", "grad": "Gradiometers", "eeg": "EEG"}
-    ch_types = ", ".join([_ch_types[k] for k in ch_types_used])
-    ax2.set_title("Average across channels ({})".format(ch_types))
-    ax2.plot(times, data.mean(0), color="r")
-    ax2.plot(times, data_cln.mean(0), color="k")
-    ax2.set(xlabel="Time (s)", xlim=times[[0, -1]])
-    tight_layout(fig=fig)
+        # select sensors and retrieve data array
+        picks_by_type = _picks_to_idx(raw.info, ch_type, exclude=())
+        picks_ = np.intersect1d(picks, picks_by_type)
+        data, times = raw[picks_, start:stop]
+        data_cln, _ = raw_cln[picks_, start:stop]
 
-    fig.subplots_adjust(top=0.90)
-    fig.canvas.draw()
+        # plot all sensors of the same type together
+        ax[0].plot(times, data.T, color="r")
+        ax[0].plot(times, data_cln.T, color="k")
+        _ch_type = DEFAULTS["titles"].get(ch_type, ch_type)
+        ax[0].set(xlabel="Time (s)", xlim=times[[0, -1]], title=f"Raw {_ch_type} data")
+
+        # second plot for M/EEG using GFP or RMS
+        if ch_type == "eeg":  # Global Field Power
+            ax[1].plot(times, np.std(data, axis=0), color="r")
+            ax[1].plot(times, np.std(data_cln, axis=0), color="k")
+            ax[1].set(
+                xlabel="Time (s)",
+                xlim=times[[0, -1]],
+                title=f"{_ch_type} Global Field Power",
+            )
+        elif ch_type in ("mag", "grad"):  # RMS
+            ax[1].plot(times, np.sqrt((data**2).mean(axis=0)), color="r")
+            ax[1].plot(times, np.sqrt((data_cln**2).mean(axis=0)), color="k")
+            ax[1].set(xlabel="Time (s)", xlim=times[[0, -1]], title=f"{_ch_type} RMS")
+
+        # last plot with the average across all channels of the same type
+        if ch_type != "eeg" or not _has_eeg_average_ref_proj(
+            raw.info, check_active=True
+        ):
+            ax[-1].plot(times, data.mean(axis=0), color="r")
+            ax[-1].plot(times, data_cln.mean(axis=0), color="k")
+            ax[-1].set(
+                xlabel="Time (s)",
+                xlim=times[[0, -1]],
+                title=f"Average across {_ch_type} channels",
+            )
     plt_show(show)
     return fig
 
@@ -1195,11 +1235,9 @@ def _plot_ica_overlay_evoked(evoked, evoked_cln, title, show):
     ch_types_used_cln = [c for c in ["mag", "grad", "eeg"] if c in evoked_cln]
 
     if len(ch_types_used) != len(ch_types_used_cln):
-        raise ValueError(
-            "Raw and clean evokeds must match. " "Found different channels."
-        )
+        raise ValueError("Raw and clean evokeds must match. Found different channels.")
 
-    fig, axes = plt.subplots(n_rows, 1)
+    fig, axes = plt.subplots(n_rows, 1, layout="constrained")
     if title is None:
         title = "Average signal before (red) and after (black) ICA"
     fig.suptitle(title)
@@ -1211,9 +1249,6 @@ def _plot_ica_overlay_evoked(evoked, evoked_cln, title, show):
             line.set_color("r")
     fig.canvas.draw()
     evoked_cln.plot(axes=axes, show=False, time_unit="s", spatial_colors=False)
-    tight_layout(fig=fig)
-
-    fig.subplots_adjust(top=0.90)
     fig.canvas.draw()
     plt_show(show)
     return fig
@@ -1236,12 +1271,13 @@ def _plot_sources(
     use_opengl,
     *,
     theme=None,
-    overview_mode=None
+    overview_mode=None,
+    splash=True,
 ):
     """Plot the ICA components as a RawArray or EpochsArray."""
+    from ..epochs import BaseEpochs, EpochsArray
+    from ..io import BaseRaw, RawArray
     from ._figure import _get_browser
-    from .. import EpochsArray, BaseEpochs
-    from ..io import RawArray, BaseRaw
 
     # handle defaults / check arg validity
     is_raw = isinstance(inst, BaseRaw)
@@ -1302,7 +1338,7 @@ def _plot_sources(
     info["bads"] = [ch_names[x] for x in exclude if x in picks]
     if is_raw:
         inst_array = RawArray(data, info, inst.first_samp)
-        inst_array.set_annotations(inst.annotations)
+        inst_array._annotations = inst.annotations
     else:
         data = data.reshape(-1, len(inst), len(inst.times)).swapaxes(0, 1)
         inst_array = EpochsArray(data, info)
@@ -1381,6 +1417,7 @@ def _plot_sources(
         use_opengl=use_opengl,
         theme=theme,
         overview_mode=overview_mode,
+        splash=splash,
     )
     if is_epo:
         params.update(

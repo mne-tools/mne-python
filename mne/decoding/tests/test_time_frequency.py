@@ -1,19 +1,19 @@
 # Author: Jean-Remi King, <jeanremi.king@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 
 import numpy as np
-from numpy.testing import assert_array_equal
 import pytest
+from numpy.testing import assert_array_equal
 
-from mne.utils import requires_sklearn
 from mne.decoding.time_frequency import TimeFrequency
 
 
-@requires_sklearn
 def test_timefrequency():
     """Test TimeFrequency."""
+    pytest.importorskip("sklearn")
     from sklearn.base import clone
 
     # Init

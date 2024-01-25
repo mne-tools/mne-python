@@ -11,12 +11,13 @@ using a minimum-norm inverse operator.
 # Author: Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 
+from mne import read_evokeds
 from mne.datasets.sample import data_path
 from mne.minimum_norm import read_inverse_operator
-from mne import read_evokeds
 from mne.viz import plot_snr_estimate
 
 print(__doc__)

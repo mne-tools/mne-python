@@ -3,14 +3,15 @@
 #          Dirk Gütlin <dirk.guetlin@stud.sbg.ac.at>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 import numpy as np
 
-from .._digitization import DigPoint, _ensure_fiducials_head
-from ..constants import FIFF
-from ..meas_info import create_info
-from ..pick import pick_info
+from ..._fiff._digitization import DigPoint, _ensure_fiducials_head
+from ..._fiff.constants import FIFF
+from ..._fiff.meas_info import create_info
+from ..._fiff.pick import pick_info
 from ...transforms import rotation3d_align_z_axis
-from ...utils import warn, _check_pandas_installed
+from ...utils import _check_pandas_installed, warn
 
 _supported_megs = ["neuromag306"]
 

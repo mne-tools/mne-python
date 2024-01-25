@@ -12,12 +12,13 @@ functions.
 # Author: Olaf Hauk <olaf.hauk@mrc-cbu.cam.ac.uk>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 
 import mne
-from mne.datasets import sample
 from mne.beamformer import make_lcmv, make_lcmv_resolution_matrix
+from mne.datasets import sample
 from mne.minimum_norm import get_cross_talk
 
 print(__doc__)

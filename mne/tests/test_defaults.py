@@ -1,7 +1,10 @@
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 from copy import deepcopy
 
 import pytest
 from numpy.testing import assert_allclose
+
 from mne.defaults import _handle_default
 from mne.io.base import _get_scaling
 

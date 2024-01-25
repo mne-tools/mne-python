@@ -2,17 +2,19 @@
 # Authors: Alex Rockhill <aprockhill@mailbox.org>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import os
 from shutil import copyfile
+
 import numpy as np
-from numpy.testing import assert_allclose
 import pytest
+from numpy.testing import assert_allclose
 
 import mne
+from mne.datasets import testing
 from mne.preprocessing.ieeg import project_sensors_onto_brain
 from mne.preprocessing.ieeg._projection import _project_sensors_onto_inflated
-from mne.datasets import testing
 from mne.transforms import _get_trans
 
 data_path = testing.data_path(download=False)
@@ -39,7 +41,7 @@ def test_project_sensors_onto_brain(tmp_path):
             brain_surf_fname,
         )
     # now make realistic ECoG grid
-    raw.pick_types(meg=False, eeg=True)
+    raw.pick("eeg")
     raw.load_data()
     raw.set_eeg_reference([])
     raw.set_channel_types({ch: "ecog" for ch in raw.ch_names})
@@ -107,7 +109,7 @@ def test_project_sensors_onto_inflated(tmp_path):
                     tmp_path / subject / "surf" / f"{hemi}.sphere",
                 )
     # now make realistic sEEG locations, picked from T1
-    raw.pick_types(meg=False, eeg=True)
+    raw.pick("eeg")
     raw.load_data()
     raw.set_eeg_reference([])
     raw.set_channel_types({ch: "seeg" for ch in raw.ch_names})

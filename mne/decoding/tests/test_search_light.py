@@ -1,16 +1,20 @@
 # Author: Jean-Remi King, <jeanremi.king@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
+import platform
 from inspect import signature
 
 import numpy as np
-from numpy.testing import assert_array_equal, assert_equal
 import pytest
+from numpy.testing import assert_array_equal, assert_equal
 
-from mne.utils import requires_sklearn, _record_warnings, use_log_level
-from mne.decoding.search_light import SlidingEstimator, GeneralizingEstimator
+from mne.decoding.search_light import GeneralizingEstimator, SlidingEstimator
 from mne.decoding.transformer import Vectorizer
+from mne.utils import _record_warnings, check_version, use_log_level
+
+pytest.importorskip("sklearn")
 
 
 def make_data():
@@ -25,12 +29,14 @@ def make_data():
     return X, y
 
 
-@requires_sklearn
 def test_search_light():
     """Test SlidingEstimator."""
-    from sklearn.linear_model import Ridge, LogisticRegression
+    # https://github.com/scikit-learn/scikit-learn/issues/27711
+    if platform.system() == "Windows" and check_version("numpy", "2.0.0.dev0"):
+        pytest.skip("sklearn int_t / long long mismatch")
+    from sklearn.linear_model import LogisticRegression, Ridge
+    from sklearn.metrics import make_scorer, roc_auc_score
     from sklearn.pipeline import make_pipeline
-    from sklearn.metrics import roc_auc_score, make_scorer
 
     with _record_warnings():  # NumPy module import
         from sklearn.ensemble import BaggingClassifier
@@ -56,18 +62,20 @@ def test_search_light():
 
     # transforms
     pytest.raises(ValueError, sl.predict, X[:, :, :2])
+    y_trans = sl.transform(X)
+    assert X.dtype == y_trans.dtype == np.dtype(float)
     y_pred = sl.predict(X)
-    assert y_pred.dtype == int
+    assert y_pred.dtype == np.dtype(int)
     assert_array_equal(y_pred.shape, [n_epochs, n_time])
     y_proba = sl.predict_proba(X)
-    assert y_proba.dtype == float
+    assert y_proba.dtype == np.dtype(float)
     assert_array_equal(y_proba.shape, [n_epochs, n_time, 2])
 
     # score
     score = sl.score(X, y)
     assert_array_equal(score.shape, [n_time])
     assert np.sum(np.abs(score)) != 0
-    assert score.dtype == float
+    assert score.dtype == np.dtype(float)
 
     sl = SlidingEstimator(logreg)
     assert_equal(sl.scoring, None)
@@ -114,7 +122,7 @@ def test_search_light():
     X = rng.randn(*X.shape)  # randomize X to avoid AUCs in [0, 1]
     score_sl = sl1.score(X, y)
     assert_array_equal(score_sl.shape, [n_time])
-    assert score_sl.dtype == float
+    assert score_sl.dtype == np.dtype(float)
 
     # Check that scoring was applied adequately
     scoring = make_scorer(roc_auc_score, needs_threshold=True)
@@ -138,7 +146,7 @@ def test_search_light():
     # pipeline
     class _LogRegTransformer(LogisticRegression):
         def transform(self, X):
-            return super(_LogRegTransformer, self).predict_proba(X)[..., 1]
+            return super().predict_proba(X)[..., 1]
 
     logreg_transformer = _LogRegTransformer(
         random_state=0, multi_class="ovr", solver="liblinear"
@@ -167,12 +175,11 @@ def test_search_light():
         assert isinstance(pipe.estimators_[0], BaggingClassifier)
 
 
-@requires_sklearn
 def test_generalization_light():
     """Test GeneralizingEstimator."""
-    from sklearn.pipeline import make_pipeline
     from sklearn.linear_model import LogisticRegression
     from sklearn.metrics import roc_auc_score
+    from sklearn.pipeline import make_pipeline
 
     logreg = LogisticRegression(solver="liblinear", multi_class="ovr", random_state=0)
 
@@ -188,9 +195,9 @@ def test_generalization_light():
     # transforms
     y_pred = gl.predict(X)
     assert_array_equal(y_pred.shape, [n_epochs, n_time, n_time])
-    assert y_pred.dtype == int
+    assert y_pred.dtype == np.dtype(int)
     y_proba = gl.predict_proba(X)
-    assert y_proba.dtype == float
+    assert y_proba.dtype == np.dtype(float)
     assert_array_equal(y_proba.shape, [n_epochs, n_time, n_time, 2])
 
     # transform to different datasize
@@ -201,7 +208,7 @@ def test_generalization_light():
     score = gl.score(X[:, :, :3], y)
     assert_array_equal(score.shape, [n_time, 3])
     assert np.sum(np.abs(score)) != 0
-    assert score.dtype == float
+    assert score.dtype == np.dtype(float)
 
     gl = GeneralizingEstimator(logreg, scoring="roc_auc")
     gl.fit(X, y)
@@ -254,7 +261,6 @@ def test_generalization_light():
     assert_array_equal(y_preds[0], y_preds[1])
 
 
-@requires_sklearn
 @pytest.mark.parametrize(
     "n_jobs, verbose", [(1, False), (2, False), (1, True), (2, "info")]
 )
@@ -280,12 +286,11 @@ def test_verbose_arg(capsys, n_jobs, verbose):
                 assert any(len(channel) > 0 for channel in (stdout, stderr))
 
 
-@requires_sklearn
 def test_cross_val_predict():
     """Test cross_val_predict with predict_proba."""
-    from sklearn.linear_model import LinearRegression
-    from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
     from sklearn.base import BaseEstimator, clone
+    from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+    from sklearn.linear_model import LinearRegression
     from sklearn.model_selection import cross_val_predict
 
     rng = np.random.RandomState(42)
@@ -314,3 +319,26 @@ def test_cross_val_predict():
 
     estimator = SlidingEstimator(LinearDiscriminantAnalysis())
     cross_val_predict(estimator, X, y, method="predict_proba", cv=2)
+
+
+@pytest.mark.slowtest
+def test_sklearn_compliance():
+    """Test LinearModel compliance with sklearn."""
+    pytest.importorskip("sklearn")
+    from sklearn.linear_model import LogisticRegression
+    from sklearn.utils.estimator_checks import check_estimator
+
+    est = SlidingEstimator(LogisticRegression(), allow_2d=True)
+
+    ignores = (
+        "check_estimator_sparse_data",  # we densify
+        "check_classifiers_one_label_sample_weights",  # don't handle singleton
+        "check_classifiers_classes",  # dim mismatch
+        "check_classifiers_train",
+        "check_decision_proba_consistency",
+        "check_parameters_default_constructible",
+    )
+    for est, check in check_estimator(est, generate_only=True):
+        if any(ignore in str(check) for ignore in ignores):
+            continue
+        check(est)

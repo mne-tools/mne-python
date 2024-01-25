@@ -13,6 +13,7 @@ is performed on MNE sample dataset between 40 and 60 ms.
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 
@@ -20,8 +21,8 @@ import numpy as np
 
 import mne
 from mne import io
-from mne.stats import permutation_t_test
 from mne.datasets import sample
+from mne.stats import permutation_t_test
 
 print(__doc__)
 
@@ -74,7 +75,6 @@ print("Sensors names : %s" % significant_sensors_names)
 evoked = mne.EvokedArray(-np.log10(p_values)[:, np.newaxis], epochs.info, tmin=0.0)
 
 # Extract mask and indices of active sensors in the layout
-stats_picks = mne.pick_channels(evoked.ch_names, significant_sensors_names)
 mask = p_values[:, np.newaxis] <= 0.05
 
 evoked.plot_topomap(

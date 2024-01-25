@@ -3,16 +3,17 @@
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import copy as cp
 
 import numpy as np
 
+from .._fiff.pick import pick_types
+from .._fiff.reference import make_eeg_average_ref_proj
 from ..epochs import Epochs
-from ..proj import compute_proj_evoked, compute_proj_epochs
-from ..utils import logger, verbose, warn
-from ..io.pick import pick_types
-from ..io import make_eeg_average_ref_proj
+from ..proj import compute_proj_epochs, compute_proj_evoked
+from ..utils import _validate_type, logger, verbose, warn
 from .ecg import find_ecg_events
 from .eog import find_eog_events
 
@@ -111,7 +112,10 @@ def _compute_exg_proj(
     my_info["bads"] += bads
 
     # Handler rejection parameters
+    _validate_type(reject, (None, dict), "reject")
+    _validate_type(flat, (None, dict), "flat")
     if reject is not None:  # make sure they didn't pass None
+        reject = reject.copy()  # must make a copy or we modify default!
         if (
             len(
                 pick_types(
@@ -169,6 +173,7 @@ def _compute_exg_proj(
         ):
             _safe_del_key(reject, "eog")
     if flat is not None:  # make sure they didn't pass None
+        flat = flat.copy()
         if (
             len(
                 pick_types(
@@ -299,9 +304,9 @@ def compute_proj_ecg(
     filter_length="10s",
     n_jobs=None,
     ch_name=None,
-    reject=dict(grad=2000e-13, mag=3000e-15, eeg=50e-6, eog=250e-6),
+    reject=dict(grad=2000e-13, mag=3000e-15, eeg=50e-6, eog=250e-6),  # noqa: B006
     flat=None,
-    bads=[],
+    bads=(),
     avg_ref=False,
     no_proj=False,
     event_id=999,
@@ -460,9 +465,9 @@ def compute_proj_eog(
     average=True,
     filter_length="10s",
     n_jobs=None,
-    reject=dict(grad=2000e-13, mag=3000e-15, eeg=500e-6, eog=np.inf),
+    reject=dict(grad=2000e-13, mag=3000e-15, eeg=500e-6, eog=np.inf),  # noqa: B006
     flat=None,
-    bads=[],
+    bads=(),
     avg_ref=False,
     no_proj=False,
     event_id=998,

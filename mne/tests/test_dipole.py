@@ -1,50 +1,49 @@
 # Author: Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import os
 
-import numpy as np
-from numpy.testing import assert_allclose, assert_array_equal, assert_array_less
 import matplotlib.pyplot as plt
+import numpy as np
 import pytest
+from numpy.testing import assert_allclose, assert_array_equal, assert_array_less
 
 from mne import (
-    read_dipole,
-    read_forward_solution,
-    convert_forward_solution,
-    read_evokeds,
-    read_cov,
-    SourceEstimate,
-    write_evokeds,
-    fit_dipole,
-    transform_surface_to,
-    make_sphere_model,
-    pick_types,
-    pick_info,
-    EvokedArray,
-    read_source_spaces,
-    make_ad_hoc_cov,
-    make_forward_solution,
     Dipole,
     DipoleFixed,
     Epochs,
-    make_fixed_length_events,
     Evoked,
+    EvokedArray,
+    SourceEstimate,
+    convert_forward_solution,
+    fit_dipole,
     head_to_mni,
+    make_ad_hoc_cov,
+    make_fixed_length_events,
+    make_forward_solution,
+    make_sphere_model,
+    pick_info,
+    pick_types,
+    read_cov,
+    read_dipole,
+    read_evokeds,
+    read_forward_solution,
+    read_source_spaces,
+    transform_surface_to,
+    write_evokeds,
 )
-from mne.dipole import get_phantom_dipoles, _BDIP_ERROR_KEYS
-from mne.simulation import simulate_evoked
-from mne.datasets import testing
-from mne.utils import requires_mne, run_subprocess, _record_warnings
-from mne.proj import make_eeg_average_ref_proj
-
-from mne.io import read_raw_fif, read_raw_ctf
-from mne.io.constants import FIFF
-
-from mne.surface import _compute_nearest
+from mne._fiff.constants import FIFF
 from mne.bem import _bem_find_surface, read_bem_solution
-from mne.transforms import apply_trans, _get_trans
+from mne.datasets import testing
+from mne.dipole import _BDIP_ERROR_KEYS, get_phantom_dipoles
+from mne.io import read_raw_ctf, read_raw_fif
+from mne.proj import make_eeg_average_ref_proj
+from mne.simulation import simulate_evoked
+from mne.surface import _compute_nearest
+from mne.transforms import _get_trans, apply_trans
+from mne.utils import _record_warnings, requires_mne, run_subprocess
 
 data_path = testing.data_path(download=False)
 meg_path = data_path / "MEG" / "sample"
@@ -103,6 +102,7 @@ def test_io_dipoles(tmp_path):
 @testing.requires_testing_data
 def test_dipole_fitting_ctf():
     """Test dipole fitting with CTF data."""
+    pytest.importorskip("nibabel")
     raw_ctf = read_raw_ctf(fname_ctf).set_eeg_reference(projection=True)
     events = make_fixed_length_events(raw_ctf, 1)
     evoked = Epochs(raw_ctf, events, 1, 0, 0, baseline=None).average()
@@ -127,6 +127,7 @@ def test_dipole_fitting_ctf():
 @requires_mne
 def test_dipole_fitting(tmp_path):
     """Test dipole fitting."""
+    pytest.importorskip("nibabel")
     amp = 100e-9
     rng = np.random.RandomState(0)
     fname_dtemp = tmp_path / "test.dip"
@@ -152,7 +153,7 @@ def test_dipole_fitting(tmp_path):
             ]
         )
     )
-    evoked.pick_channels([evoked.ch_names[p] for p in picks])
+    evoked.pick([evoked.ch_names[p] for p in picks])
     evoked.add_proj(make_eeg_average_ref_proj(evoked.info))
     write_evokeds(fname_sim, evoked)
 
@@ -258,7 +259,7 @@ def test_dipole_fitting_fixed(tmp_path):
     tpeak = 0.073
     sphere = make_sphere_model(head_radius=0.1)
     evoked = read_evokeds(fname_evo, baseline=(None, 0))[0]
-    evoked.pick_types(meg=True)
+    evoked.pick("meg")
     t_idx = np.argmin(np.abs(tpeak - evoked.times))
     evoked_crop = evoked.copy().crop(tpeak, tpeak)
     assert len(evoked_crop.times) == 1
@@ -388,8 +389,8 @@ def test_accuracy():
         0.0,
         0.0,
     )
-    evoked.pick_types(meg=True, eeg=False)
-    evoked.pick_channels([c for c in evoked.ch_names[::4]])
+    evoked.pick("meg")
+    evoked.pick([c for c in evoked.ch_names[::4]])
     for rad, perc_90 in zip((0.09, None), (0.002, 0.004)):
         bem = make_sphere_model(
             "auto", rad, evoked.info, relative_radii=(0.999, 0.998, 0.997, 0.995)
@@ -471,21 +472,32 @@ def _check_roundtrip_fixed(dip, tmp_path):
             assert_allclose(ch_1[key], ch_2[key], err_msg=key)
 
 
-def test_get_phantom_dipoles():
+@pytest.mark.parametrize(
+    "kind, count",
+    [
+        ("vectorview", 32),
+        ("otaniemi", 32),
+        ("oyama", 50),
+    ],
+)
+def test_get_phantom_dipoles(kind, count):
     """Test getting phantom dipole locations."""
-    pytest.raises(ValueError, get_phantom_dipoles, 0)
-    pytest.raises(ValueError, get_phantom_dipoles, "foo")
-    for kind in ("vectorview", "otaniemi"):
-        pos, ori = get_phantom_dipoles(kind)
-        assert pos.shape == (32, 3)
-        assert ori.shape == (32, 3)
+    with pytest.raises(TypeError, match="must be an instance of"):
+        get_phantom_dipoles(0)
+    with pytest.raises(ValueError, match="Invalid value for"):
+        get_phantom_dipoles("foo")
+    pos, ori = get_phantom_dipoles(kind)
+    assert pos.shape == (count, 3)
+    assert ori.shape == (count, 3)
+    # pos should be orthogonal to ori for all dipoles
+    assert_allclose(np.sum(pos * ori, axis=1), 0.0, atol=1e-7)
 
 
 @testing.requires_testing_data
 def test_confidence(tmp_path):
     """Test confidence limits."""
     evoked = read_evokeds(fname_evo_full, "Left Auditory", baseline=(None, 0))
-    evoked.crop(0.08, 0.08).pick_types(meg=True)  # MEG-only
+    evoked.crop(0.08, 0.08).pick("meg")  # MEG-only
     cov = make_ad_hoc_cov(evoked.info)
     sphere = make_sphere_model((0.0, 0.0, 0.04), 0.08)
     dip_py = fit_dipole(evoked, cov, sphere)[0]

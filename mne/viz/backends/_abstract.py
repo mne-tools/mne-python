@@ -4,13 +4,13 @@
 #          Eric Larson <larson.eric.d@gmail.com>
 #          Alex Rockhill <aprockhill@mailbox.org>
 #
-# License: Simplified BSD
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
-from abc import ABC, abstractmethod, abstractclassmethod
-from contextlib import nullcontext
 import warnings
+from abc import ABC, abstractclassmethod, abstractmethod
 
-from ..utils import tight_layout
+from ..ui_events import TimeChange, publish
 
 
 class Figure3D(ABC):
@@ -128,7 +128,6 @@ class _AbstractRenderer(ABC):
         triangles,
         color,
         opacity=1.0,
-        shading=False,
         backface_culling=False,
         scalars=None,
         colormap=None,
@@ -139,7 +138,7 @@ class _AbstractRenderer(ABC):
         line_width=1.0,
         normals=None,
         polygon_offset=None,
-        **kwargs
+        **kwargs,
     ):
         """Add a mesh in the scene.
 
@@ -167,11 +166,11 @@ class _AbstractRenderer(ABC):
             The scalar valued associated to the vertices.
         vmin : float | None
             vmin is used to scale the colormap.
-            If None, the min of the data will be used
+            If None, the min of the data will be used.
         vmax : float | None
             vmax is used to scale the colormap.
-            If None, the max of the data will be used
-        colormap :
+            If None, the max of the data will be used.
+        colormap : str | np.ndarray | matplotlib.colors.Colormap | None
             The colormap to use.
         interpolate_before_map :
             Enabling makes for a smoother scalars display. Default is True.
@@ -226,17 +225,17 @@ class _AbstractRenderer(ABC):
             The opacity of the contour.
         vmin : float | None
             vmin is used to scale the colormap.
-            If None, the min of the data will be used
+            If None, the min of the data will be used.
         vmax : float | None
             vmax is used to scale the colormap.
-            If None, the max of the data will be used
-        colormap :
+            If None, the max of the data will be used.
+        colormap : str | np.ndarray | matplotlib.colors.Colormap | None
             The colormap to use.
         normalized_colormap : bool
             Specify if the values of the colormap are between 0 and 1.
         kind : 'line' | 'tube'
             The type of the primitives to use to display the contours.
-        color :
+        color : tuple | str
             The color of the mesh as a tuple (red, green, blue) of float
             values between 0 and 1 or a valid color name (i.e. 'white'
             or 'w').
@@ -271,11 +270,11 @@ class _AbstractRenderer(ABC):
             The opacity of the surface.
         vmin : float | None
             vmin is used to scale the colormap.
-            If None, the min of the data will be used
+            If None, the min of the data will be used.
         vmax : float | None
             vmax is used to scale the colormap.
-            If None, the max of the data will be used
-        colormap :
+            If None, the max of the data will be used.
+        colormap : str | np.ndarray | matplotlib.colors.Colormap | None
             The colormap to use.
         scalars : ndarray, shape (n_vertices,)
             The scalar valued associated to the vertices.
@@ -355,11 +354,11 @@ class _AbstractRenderer(ABC):
             The optional scalar data to use.
         vmin : float | None
             vmin is used to scale the colormap.
-            If None, the min of the data will be used
+            If None, the min of the data will be used.
         vmax : float | None
             vmax is used to scale the colormap.
-            If None, the max of the data will be used
-        colormap :
+            If None, the max of the data will be used.
+        colormap : str | np.ndarray | matplotlib.colors.Colormap | None
             The colormap to use.
         opacity : float
             The opacity of the tube(s).
@@ -447,7 +446,7 @@ class _AbstractRenderer(ABC):
             The optional scalar data to use.
         backface_culling : bool
             If True, enable backface culling on the quiver.
-        colormap :
+        colormap : str | np.ndarray | matplotlib.colors.Colormap | None
             The colormap to use.
         vmin : float | None
             vmin is used to scale the colormap.
@@ -519,15 +518,15 @@ class _AbstractRenderer(ABC):
 
         Parameters
         ----------
-        source :
+        source
             The object of the scene used for the colormap.
-        color :
+        color : tuple | str
             The color of the label text.
         title : str | None
             The title of the scalar bar.
         n_labels : int | None
             The number of labels to display on the scalar bar.
-        bgcolor :
+        bgcolor : tuple | str
             The color of the background when there is transparency.
         """
         pass
@@ -550,7 +549,6 @@ class _AbstractRenderer(ABC):
         distance=None,
         focalpoint=None,
         roll=None,
-        reset_camera=True,
     ):
         """Configure the camera of the scene.
 
@@ -566,14 +564,7 @@ class _AbstractRenderer(ABC):
             The focal point of the camera: (x, y, z).
         roll : float
             The rotation of the camera along its axis.
-        reset_camera : bool
-           If True, reset the camera properties beforehand.
         """
-        pass
-
-    @abstractclassmethod
-    def reset_camera(self):
-        """Reset the camera properties."""
         pass
 
     @abstractclassmethod
@@ -1075,7 +1066,7 @@ class _AbstractDock(ABC):
         style="pushbutton",
         icon=None,
         tooltip=None,
-        layout=None
+        layout=None,
     ):
         pass
 
@@ -1094,7 +1085,7 @@ class _AbstractDock(ABC):
         compact=True,
         double=False,
         tooltip=None,
-        layout=None
+        layout=None,
     ):
         pass
 
@@ -1114,7 +1105,7 @@ class _AbstractDock(ABC):
         double=True,
         step=None,
         tooltip=None,
-        layout=None
+        layout=None,
     ):
         pass
 
@@ -1145,13 +1136,13 @@ class _AbstractDock(ABC):
         desc,
         func,
         *,
-        filter=None,
+        filter_=None,
         initial_directory=None,
         save=False,
         is_directory=False,
         icon=False,
         tooltip=None,
-        layout=None
+        layout=None,
     ):
         pass
 
@@ -1218,9 +1209,9 @@ class _AbstractDialog(ABC):
         callback,
         *,
         icon="Warning",
-        buttons=[],
+        buttons=(),
         modal=True,
-        window=None
+        window=None,
     ):
         pass
 
@@ -1332,19 +1323,10 @@ class _AbstractMplInterface(ABC):
 class _AbstractMplCanvas(ABC):
     def __init__(self, width, height, dpi):
         """Initialize the MplCanvas."""
-        from matplotlib import rc_context
         from matplotlib.figure import Figure
 
-        # prefer constrained layout here but live with tight_layout otherwise
-        context = nullcontext
         self._extra_events = ("resize",)
-        try:
-            context = rc_context({"figure.constrained_layout.use": True})
-            self._extra_events = ()
-        except KeyError:
-            pass
-        with context:
-            self.fig = Figure(figsize=(width, height), dpi=dpi)
+        self.fig = Figure(figsize=(width, height), dpi=dpi, layout="constrained")
         self.axes = self.fig.add_subplot(111)
         self.axes.set(xlabel="Time (s)", ylabel="Activation (AU)")
         self.manager = None
@@ -1407,7 +1389,7 @@ class _AbstractMplCanvas(ABC):
 
     def on_resize(self, event):
         """Handle resize events."""
-        tight_layout(fig=self.axes.figure)
+        pass
 
 
 class _AbstractBrainMplCanvas(_AbstractMplCanvas):
@@ -1415,7 +1397,6 @@ class _AbstractBrainMplCanvas(_AbstractMplCanvas):
         """Initialize the MplCanvas."""
         super().__init__(width, height, dpi)
         self.brain = brain
-        self.time_func = brain.callbacks["time"]
 
     def update_plot(self):
         """Update the plot."""
@@ -1434,7 +1415,7 @@ class _AbstractBrainMplCanvas(_AbstractMplCanvas):
         # left click (and maybe drag) in progress in axes
         if event.inaxes != self.axes or event.button != 1:
             return
-        self.time_func(event.xdata, update_widget=True, time_as_index=False)
+        publish(self.brain, TimeChange(time=event.xdata))
 
     on_motion_notify = on_button_press  # for now they can be the same
 

@@ -4,36 +4,39 @@
 #          Christian Brodbeck <christianbrodbeck@nyu.edu>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
-import os
 import glob
+import os
+from copy import deepcopy
 from pathlib import Path
 
 import numpy as np
-from copy import deepcopy
+from scipy import linalg
+from scipy.spatial.distance import cdist
+from scipy.special import sph_harm
 
-from .fixes import jit, mean, _get_img_fdata
-from .io.constants import FIFF
-from .io.open import fiff_open
-from .io.tag import read_tag
-from .io.write import start_and_end_file, write_coord_trans
+from ._fiff.constants import FIFF
+from ._fiff.open import fiff_open
+from ._fiff.tag import read_tag
+from ._fiff.write import start_and_end_file, write_coord_trans
 from .defaults import _handle_default
+from .fixes import _get_img_fdata, jit
 from .utils import (
-    check_fname,
-    logger,
-    verbose,
-    _ensure_int,
-    _validate_type,
-    _path_like,
-    get_subjects_dir,
-    fill_doc,
     _check_fname,
     _check_option,
-    _require_version,
-    wrapped_stdout,
+    _ensure_int,
     _import_nibabel,
+    _path_like,
+    _require_version,
+    _validate_type,
+    check_fname,
+    fill_doc,
+    get_subjects_dir,
+    logger,
+    verbose,
+    wrapped_stdout,
 )
-
 
 # transformation from anterior/left/superior coordinate system to
 # right/anterior/superior:
@@ -108,8 +111,8 @@ class Transform(dict):
     ``'ctf_meg'``, ``'unknown'``.
     """
 
-    def __init__(self, fro, to, trans=None):  # noqa: D102
-        super(Transform, self).__init__()
+    def __init__(self, fro, to, trans=None):
+        super().__init__()
         # we could add some better sanity checks here
         fro = _to_const(fro)
         to = _to_const(to)
@@ -181,15 +184,19 @@ class Transform(dict):
         """The "to" frame as a string."""
         return _coord_frame_name(self["to"])
 
-    def save(self, fname):
+    @fill_doc
+    @verbose
+    def save(self, fname, *, overwrite=False, verbose=None):
         """Save the transform as -trans.fif file.
 
         Parameters
         ----------
         fname : path-like
             The name of the file, which should end in ``-trans.fif``.
+        %(overwrite)s
+        %(verbose)s
         """
-        write_trans(fname, self)
+        write_trans(fname, self, overwrite=overwrite, verbose=verbose)
 
     def copy(self):
         """Make a copy of the transform."""
@@ -230,13 +237,9 @@ def _find_trans(subject, subjects_dir=None):
 
     trans_fnames = glob.glob(str(subjects_dir / subject / "*-trans.fif"))
     if len(trans_fnames) < 1:
-        raise RuntimeError(
-            "Could not find the transformation for " "{subject}".format(subject=subject)
-        )
+        raise RuntimeError(f"Could not find the transformation for {subject}")
     elif len(trans_fnames) > 1:
-        raise RuntimeError(
-            "Found multiple transformations for " "{subject}".format(subject=subject)
-        )
+        raise RuntimeError(f"Found multiple transformations for {subject}")
     return Path(trans_fnames[0])
 
 
@@ -285,31 +288,8 @@ def rotation(x=0, y=0, z=0):
     r : array, shape = (4, 4)
         The rotation matrix.
     """
-    cos_x = np.cos(x)
-    cos_y = np.cos(y)
-    cos_z = np.cos(z)
-    sin_x = np.sin(x)
-    sin_y = np.sin(y)
-    sin_z = np.sin(z)
-    r = np.array(
-        [
-            [
-                cos_y * cos_z,
-                -cos_x * sin_z + sin_x * sin_y * cos_z,
-                sin_x * sin_z + cos_x * sin_y * cos_z,
-                0,
-            ],
-            [
-                cos_y * sin_z,
-                cos_x * cos_z + sin_x * sin_y * sin_z,
-                -sin_x * cos_z + cos_x * sin_y * sin_z,
-                0,
-            ],
-            [-sin_y, sin_x * cos_y, cos_x * cos_y, 0],
-            [0, 0, 0, 1],
-        ],
-        dtype=float,
-    )
+    r = np.eye(4)
+    r[:3, :3] = rotation3d(x=x, y=y, z=z)
     return r
 
 
@@ -790,7 +770,7 @@ def _cart_to_sph(cart):
         Array containing points in spherical coordinates (rad, azimuth, polar)
     """
     cart = np.atleast_2d(cart)
-    assert cart.ndim == 2 and cart.shape[1] == 3
+    assert cart.ndim == 2 and cart.shape[1] == 3, cart.shape
     out = np.empty((len(cart), 3))
     out[:, 0] = np.sqrt(np.sum(cart * cart, axis=1))
     norm = np.where(out[:, 0] > 0, out[:, 0], 1)  # protect against / 0
@@ -801,7 +781,7 @@ def _cart_to_sph(cart):
 
 
 def _sph_to_cart(sph_pts):
-    """Convert spherical coordinates to Cartesion coordinates.
+    """Convert spherical coordinates to Cartesian coordinates.
 
     Parameters
     ----------
@@ -945,8 +925,6 @@ def _sh_real_to_complex(shs, order):
 
 def _compute_sph_harm(order, az, pol):
     """Compute complex spherical harmonics of spherical coordinates."""
-    from scipy.special import sph_harm
-
     out = np.empty((len(az), _get_n_moments(order) + 1))
     # _deg_ord_idx(0, 0) = -1 so we're actually okay to use it here
     for degree in range(order + 1):
@@ -1010,9 +988,6 @@ class _TPSWarp:
     """
 
     def fit(self, source, destination, reg=1e-3):
-        from scipy import linalg
-        from scipy.spatial.distance import cdist
-
         assert source.shape[1] == destination.shape[1] == 3
         assert source.shape[0] == destination.shape[0]
         # Forward warping, different from image warping, use |dist|**2
@@ -1044,8 +1019,6 @@ class _TPSWarp:
             The transformed points.
         """
         logger.info("Transforming %s points" % (len(pts),))
-        from scipy.spatial.distance import cdist
-
         assert pts.shape[1] == 3
         # for memory reasons, we should do this in ~100 MB chunks
         out = np.zeros_like(pts)
@@ -1151,9 +1124,8 @@ class _SphericalSurfaceWarp:
         inst : instance of SphericalSurfaceWarp
             The warping object (for chaining).
         """
-        from scipy import linalg
         from .bem import _fit_sphere
-        from .source_space import _check_spacing
+        from .source_space._source_space import _check_spacing
 
         match_rr = _check_spacing(match, verbose=False)[2]["rr"]
         logger.info("Computing TPS warp")
@@ -1208,7 +1180,7 @@ class _SphericalSurfaceWarp:
         src_rad_az_pol[0] = np.abs(np.dot(match_sph, src_coeffs))
         dest_rad_az_pol = match_rad_az_pol.copy()
         dest_rad_az_pol[0] = np.abs(np.dot(match_sph, dest_coeffs))
-        # 5. Convert matched points to Cartesion coordinates and put back
+        # 5. Convert matched points to Cartesian coordinates and put back
         source = _sph_to_cart(src_rad_az_pol.T)
         source += src_center
         destination = _sph_to_cart(dest_rad_az_pol.T)
@@ -1467,16 +1439,12 @@ def _fit_matched_points(p, x, weights=None, scale=False):
     assert p.ndim == 2
     assert p.shape[1] == 3
     # (weighted) centroids
-    if weights is None:
-        mu_p = mean(p, axis=0)  # eq 23
-        mu_x = mean(x, axis=0)
-        dots = np.dot(p.T, x)
-        dots /= p.shape[0]
-    else:
-        weights_ = np.reshape(weights / weights.sum(), (weights.size, 1))
-        mu_p = np.dot(weights_.T, p)[0]
-        mu_x = np.dot(weights_.T, x)[0]
-        dots = np.dot(p.T, weights_ * x)
+    weights_ = np.full((p.shape[0], 1), 1.0 / max(p.shape[0], 1))
+    if weights is not None:
+        weights_[:] = np.reshape(weights / weights.sum(), (weights.size, 1))
+    mu_p = np.dot(weights_.T, p)[0]
+    mu_x = np.dot(weights_.T, x)[0]
+    dots = np.dot(p.T, weights_ * x)
     Sigma_px = dots - np.outer(mu_p, mu_x)  # eq 24
     # x and p should no longer be used
     A_ij = Sigma_px - Sigma_px.T
@@ -1513,8 +1481,6 @@ def _fit_matched_points(p, x, weights=None, scale=False):
 
 def _average_quats(quats, weights=None):
     """Average unit quaternions properly."""
-    from scipy import linalg
-
     assert quats.ndim == 2 and quats.shape[1] in (3, 4)
     if weights is None:
         weights = np.ones(quats.shape[0])
@@ -1540,7 +1506,7 @@ def _average_quats(quats, weights=None):
     A = np.einsum("ij,ik->jk", quats, quats)  # sum of outer product of each q
     avg_quat = linalg.eigh(A)[1][:, -1]  # largest eigenvector is the avg
     # Same as the largest eigenvector from the concatenation of all as
-    # linalg.svd(quats, full_matrices=False)[-1][0], but faster.
+    # svd(quats, full_matrices=False)[-1][0], but faster.
     #
     # By local convention we take the real term (which we remove from our
     # representation) as positive. Since it can be zero, let's just ensure
@@ -1584,7 +1550,7 @@ def read_ras_mni_t(subject, subjects_dir=None):
 def _read_fs_xfm(fname):
     """Read a Freesurfer transform from a .xfm file."""
     assert fname.endswith(".xfm")
-    with open(fname, "r") as fid:
+    with open(fname) as fid:
         logger.debug("Reading FreeSurfer talairach.xfm file:\n%s" % fname)
 
         # read lines until we get the string 'Linear_Transform', which precedes
@@ -1790,16 +1756,16 @@ def _compute_volume_registration(
     nib = _import_nibabel("SDR morph")
     _require_version("dipy", "SDR morph", "0.10.1")
     with np.testing.suppress_warnings():
-        from dipy.align.imaffine import AffineMap
         from dipy.align import (
+            affine,
             affine_registration,
             center_of_mass,
-            translation,
-            rigid,
-            affine,
             imwarp,
             metrics,
+            rigid,
+            translation,
         )
+        from dipy.align.imaffine import AffineMap
 
     # input validation
     _validate_type(moving, nib.spatialimages.SpatialImage, "moving")
@@ -1934,9 +1900,9 @@ def apply_volume_registration(
     """
     _require_version("dipy", "SDR morph", "0.10.1")
     _import_nibabel("SDR morph")
-    from nibabel.spatialimages import SpatialImage
-    from dipy.align.imwarp import DiffeomorphicMap
     from dipy.align.imaffine import AffineMap
+    from dipy.align.imwarp import DiffeomorphicMap
+    from nibabel.spatialimages import SpatialImage
 
     _validate_type(moving, SpatialImage, "moving")
     _validate_type(static, SpatialImage, "static")
@@ -2008,9 +1974,9 @@ def apply_volume_registration_points(
     from .channels import compute_native_head_t, make_dig_montage
 
     _require_version("nibabel", "volume registration", "2.1.0")
+    from dipy.align.imwarp import DiffeomorphicMap
     from nibabel import MGHImage
     from nibabel.spatialimages import SpatialImage
-    from dipy.align.imwarp import DiffeomorphicMap
 
     _validate_type(moving, SpatialImage, "moving")
     _validate_type(static, SpatialImage, "static")
@@ -2080,3 +2046,55 @@ def apply_volume_registration_points(
     info2.set_montage(montage2)  # converts to head coordinates
 
     return info2, trans2
+
+
+class _MatchedDisplacementFieldInterpolator:
+    """Interpolate from matched points using a displacement field in ND.
+
+    For a demo, see
+    https://gist.github.com/larsoner/fbe32d57996848395854d5e59dff1e10
+    and related tests.
+    """
+
+    def __init__(self, fro, to, *, extrema=None):
+        from scipy.interpolate import LinearNDInterpolator
+
+        fro = np.array(fro, float)
+        to = np.array(to, float)
+        assert fro.shape == to.shape
+        assert fro.ndim == 2
+        # this restriction is only necessary because it's what
+        # _fit_matched_points requires
+        assert fro.shape[1] == 3
+
+        # Prealign using affine + uniform scaling
+        self._quat, self._scale = _fit_matched_points(fro, to, scale=True)
+        trans = _quat_to_affine(self._quat)
+        trans[:3, :3] *= self._scale
+        self._affine = trans
+        fro = apply_trans(trans, fro)
+
+        # Add points at extrema
+        if extrema is None:
+            delta = (to.max(axis=0) - to.min(axis=0)) / 2.0
+            assert (delta > 0).all()
+            extrema = np.array([fro.min(axis=0) - delta, fro.max(axis=0) + delta])
+        assert extrema.shape == (2, 3)  # min, max
+        self._extrema = np.array(np.meshgrid(*extrema.T)).T.reshape(-1, fro.shape[-1])
+        fro_concat = np.concatenate((fro, self._extrema))
+        to_concat = np.concatenate((to, self._extrema))
+
+        # Compute the interpolator (which internally uses Delaunay)
+        self._interp = LinearNDInterpolator(fro_concat, to_concat)
+
+    def __call__(self, x):
+        assert x.ndim in (1, 2) and x.shape[-1] == 3
+        assert np.isfinite(x).all()
+        singleton = x.ndim == 1
+        x = apply_trans(self._affine, x)
+        assert np.isfinite(x).all()
+        out = self._interp(x)
+        assert np.isfinite(out).all()
+        self._last_deltas = np.linalg.norm(x - out, axis=1)
+        out = out[0] if singleton else out
+        return out

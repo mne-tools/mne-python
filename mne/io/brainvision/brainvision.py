@@ -8,6 +8,7 @@
 #          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import configparser
 import os
@@ -18,14 +19,15 @@ from io import StringIO
 
 import numpy as np
 
-from ...utils import verbose, logger, warn, fill_doc, _DefaultEventParser
-from ..constants import FIFF
-from ..meas_info import _empty_info
-from ..base import BaseRaw
-from ..utils import _read_segments_file, _mult_cal_one
+from ..._fiff.constants import FIFF
+from ..._fiff.meas_info import _empty_info
+from ..._fiff.utils import _mult_cal_one, _read_segments_file
 from ...annotations import Annotations, read_annotations
 from ...channels import make_dig_montage
 from ...defaults import HEAD_SIZE_DEFAULT
+from ...transforms import _sph_to_cart
+from ...utils import _DefaultEventParser, fill_doc, logger, verbose, warn
+from ..base import BaseRaw
 
 
 @fill_doc
@@ -60,6 +62,8 @@ class RawBrainVision(BaseRaw):
     --------
     mne.io.Raw : Documentation of attributes and methods.
     """
+
+    _extra_attributes = ("impedances",)
 
     @verbose
     def __init__(
@@ -107,7 +111,7 @@ class RawBrainVision(BaseRaw):
 
         orig_format = "single" if isinstance(fmt, dict) else fmt
         raw_extras = dict(offsets=offsets, fmt=fmt, order=order, n_samples=n_samples)
-        super(RawBrainVision, self).__init__(
+        super().__init__(
             info,
             last_samps=[n_samples - 1],
             filenames=[data_fname],
@@ -120,7 +124,7 @@ class RawBrainVision(BaseRaw):
 
         self.set_montage(montage)
 
-        settings, cfg, cinfo, _ = _aux_hdr_info(hdr_fname)
+        settings, _, _, _ = _aux_hdr_info(hdr_fname)
         split_settings = settings.splitlines()
         self.impedances = _parse_impedance(split_settings, self.info["meas_date"])
 
@@ -538,7 +542,7 @@ def _get_hdr_info(hdr_fname, eog, misc, scale):
     # Try to get measurement date from marker file
     # Usually saved with a marker "New Segment", see BrainVision documentation
     regexp = r"^Mk\d+=New Segment,.*,\d+,\d+,-?\d+,(\d{20})$"
-    with open(mrk_fname, "r") as tmp_mrk_f:
+    with open(mrk_fname) as tmp_mrk_f:
         lines = tmp_mrk_f.readlines()
 
     for line in lines:
@@ -624,8 +628,6 @@ def _get_hdr_info(hdr_fname, eog, misc, scale):
     # specified in mm
     montage = None
     if cfg.has_section("Coordinates"):
-        from ...transforms import _sph_to_cart
-
         montage_pos = list()
         montage_names = list()
         to_misc = list()
@@ -634,7 +636,7 @@ def _get_hdr_info(hdr_fname, eog, misc, scale):
             ch_name = ch_dict[ch[0]]
             montage_names.append(ch_name)
             # 1: radius, 2: theta, 3: phi
-            rad, theta, phi = [float(c) for c in ch[1].split(",")]
+            rad, theta, phi = (float(c) for c in ch[1].split(","))
             pol = np.deg2rad(theta)
             az = np.deg2rad(phi)
             # Coordinates could be "idealized" (spherical head model)
@@ -654,9 +656,9 @@ def _get_hdr_info(hdr_fname, eog, misc, scale):
         if len(to_misc) > 0:
             misc += to_misc
             warn(
-                "No coordinate information found for channels {}. "
-                "Setting channel types to misc. To avoid this warning, set "
-                "channel types explicitly.".format(to_misc)
+                f"No coordinate information found for channels {to_misc}. Setting "
+                "channel types to misc. To avoid this warning, set channel types "
+                "explicitly."
             )
 
     if np.isnan(cals).any():
@@ -764,11 +766,11 @@ def _get_hdr_info(hdr_fname, eog, misc, scale):
                 # We convert channels with disabled filters to having
                 # highpass relaxed / no filters
                 highpass = [
-                    float(filt) if filt not in ("NaN", "Off", "DC") else np.Inf
+                    float(filt) if filt not in ("NaN", "Off", "DC") else np.inf
                     for filt in highpass
                 ]
                 info["highpass"] = np.max(np.array(highpass, dtype=np.float64))
-                # Coveniently enough 1 / np.Inf = 0.0, so this works for
+                # Conveniently enough 1 / np.inf = 0.0, so this works for
                 # DC / no highpass filter
                 # filter time constant t [secs] to Hz conversion: 1/2*pi*t
                 info["highpass"] = 1.0 / (2 * np.pi * info["highpass"])
@@ -838,7 +840,7 @@ def _get_hdr_info(hdr_fname, eog, misc, scale):
                 # We convert channels with disabled filters to having
                 # infinitely relaxed / no filters
                 lowpass = [
-                    float(filt) if filt not in ("NaN", "Off", "0") else np.Inf
+                    float(filt) if filt not in ("NaN", "Off", "0") else np.inf
                     for filt in lowpass
                 ]
                 info["lowpass"] = np.max(np.array(lowpass, dtype=np.float64))
@@ -919,7 +921,7 @@ def read_raw_brainvision(
     scale=1.0,
     preload=False,
     verbose=None,
-):
+) -> RawBrainVision:
     """Reader for Brain Vision EEG file.
 
     Parameters
@@ -986,9 +988,7 @@ class _BVEventParser(_DefaultEventParser):
         elif description in _OTHER_ACCEPTED_MARKERS:
             code = _OTHER_ACCEPTED_MARKERS[description]
         else:
-            code = super(_BVEventParser, self).__call__(
-                description, offset=_OTHER_OFFSET
-            )
+            code = super().__call__(description, offset=_OTHER_OFFSET)
         return code
 
 

@@ -3,16 +3,18 @@
 #          Jean-Remi King <jeanremi.king@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import numpy as np
+from scipy import linalg
 
-from .. import EvokedArray, Evoked
+from .._fiff.pick import _pick_data_channels, pick_info
 from ..cov import Covariance, _regularized_covariance
-from ..decoding import TransformerMixin, BaseEstimator
+from ..decoding import BaseEstimator, TransformerMixin
 from ..epochs import BaseEpochs
+from ..evoked import Evoked, EvokedArray
 from ..io import BaseRaw
-from ..io.pick import _pick_data_channels, pick_info
-from ..utils import logger, _check_option
+from ..utils import _check_option, logger
 
 
 def _construct_signal_from_epochs(epochs, events, sfreq, tmin):
@@ -58,8 +60,6 @@ def _least_square_evoked(epochs_data, events, tmin, sfreq):
     toeplitz : array, shape (n_class * n_components, n_channels)
         An concatenated array of toeplitz matrix for each event type.
     """
-    from scipy import linalg
-
     n_epochs, n_channels, n_times = epochs_data.shape
     tmax = tmin + n_times / float(sfreq)
 
@@ -154,8 +154,6 @@ def _fit_xdawn(
     evokeds : array, shape (n_class, n_components, n_times)
         The independent evoked responses per condition.
     """
-    from scipy import linalg
-
     if not isinstance(epochs_data, np.ndarray) or epochs_data.ndim != 3:
         raise ValueError("epochs_data must be 3D ndarray")
 
@@ -427,9 +425,7 @@ class Xdawn(_XdawnTransformer):
         self, n_components=2, signal_cov=None, correct_overlap="auto", reg=None
     ):
         """Init."""
-        super(Xdawn, self).__init__(
-            n_components=n_components, signal_cov=signal_cov, reg=reg
-        )
+        super().__init__(n_components=n_components, signal_cov=signal_cov, reg=reg)
         self.correct_overlap = _check_option(
             "correct_overlap", correct_overlap, ["auto", True, False]
         )
@@ -454,7 +450,7 @@ class Xdawn(_XdawnTransformer):
             raise ValueError("epochs must be an Epochs object.")
         picks = _pick_data_channels(epochs.info)
         use_info = pick_info(epochs.info, picks)
-        X = epochs.get_data()[:, picks, :]
+        X = epochs.get_data(picks)
         y = epochs.events[:, 2] if y is None else y
         self.event_id_ = epochs.event_id
 
@@ -528,7 +524,7 @@ class Xdawn(_XdawnTransformer):
             Spatially filtered signals.
         """  # noqa: E501
         if isinstance(inst, BaseEpochs):
-            X = inst.get_data()
+            X = inst.get_data(copy=False)
         elif isinstance(inst, Evoked):
             X = inst.data
         elif isinstance(inst, np.ndarray):
@@ -639,7 +635,7 @@ class Xdawn(_XdawnTransformer):
 
         # special case where epochs come picked but fit was 'unpicked'.
         epochs_dict = dict()
-        data = np.hstack(epochs.get_data()[:, picks])
+        data = np.hstack(epochs.get_data(picks))
 
         for eid in event_id:
             data_r = self._pick_sources(data, include, exclude, eid)

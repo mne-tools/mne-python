@@ -3,89 +3,91 @@
 # Authors: Guillaume Favelier <guillaume.favelier@gmail.com>
 #          Alex Rockhill <aprockhill@mailbox.org>
 #
-# License: Simplified BSD
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import os
 import os.path as op
+import re
 from contextlib import contextmanager, nullcontext
 
-from IPython.display import display, clear_output
+from ipyevents import Event
+from IPython.display import clear_output, display
 from ipywidgets import (
-    Widget,
-    HBox,
-    VBox,
-    Button,
-    Dropdown,
-    IntSlider,
-    IntText,
-    Text,
-    IntProgress,
-    Play,
-    Label,
     HTML,
-    Checkbox,
-    RadioButtons,
     Accordion,
-    link,
-    Layout,
-    Select,
-    GridBox,
+    BoundedFloatText,
+    Button,
+    Checkbox,
+    Dropdown,
     # non-object-based-abstraction-only widgets, deprecate
     FloatSlider,
-    BoundedFloatText,
+    GridBox,
+    HBox,
+    IntProgress,
+    IntSlider,
+    IntText,
+    Label,
+    Layout,
+    Play,
+    RadioButtons,
+    Select,
+    Text,
+    VBox,
+    Widget,
     jsdlink,
+    link,
 )
-from ipyevents import Event
 
+from ...utils import _soft_import, check_version
 from ._abstract import (
-    _AbstractAppWindow,
-    _AbstractHBoxLayout,
-    _AbstractVBoxLayout,
-    _AbstractGridLayout,
-    _AbstractWidget,
-    _AbstractCanvas,
-    _AbstractPopup,
-    _AbstractLabel,
-    _AbstractButton,
-    _AbstractSlider,
-    _AbstractCheckBox,
-    _AbstractSpinBox,
-    _AbstractComboBox,
-    _AbstractRadioButtons,
-    _AbstractGroupBox,
-    _AbstractText,
-    _AbstractFileButton,
-    _AbstractPlayMenu,
-    _AbstractProgressBar,
-)
-from ._abstract import (
-    _AbstractDock,
-    _AbstractToolBar,
-    _AbstractMenuBar,
-    _AbstractStatusBar,
-    _AbstractLayout,
-    _AbstractWdgt,
-    _AbstractWindow,
-    _AbstractMplCanvas,
-    _AbstractPlayback,
-    _AbstractBrainMplCanvas,
-    _AbstractMplInterface,
-    _AbstractWidgetList,
     _AbstractAction,
+    _AbstractAppWindow,
+    _AbstractBrainMplCanvas,
+    _AbstractButton,
+    _AbstractCanvas,
+    _AbstractCheckBox,
+    _AbstractComboBox,
     _AbstractDialog,
+    _AbstractDock,
+    _AbstractFileButton,
+    _AbstractGridLayout,
+    _AbstractGroupBox,
+    _AbstractHBoxLayout,
     _AbstractKeyPress,
+    _AbstractLabel,
+    _AbstractLayout,
+    _AbstractMenuBar,
+    _AbstractMplCanvas,
+    _AbstractMplInterface,
+    _AbstractPlayback,
+    _AbstractPlayMenu,
+    _AbstractPopup,
+    _AbstractProgressBar,
+    _AbstractRadioButtons,
+    _AbstractSlider,
+    _AbstractSpinBox,
+    _AbstractStatusBar,
+    _AbstractText,
+    _AbstractToolBar,
+    _AbstractVBoxLayout,
+    _AbstractWdgt,
+    _AbstractWidget,
+    _AbstractWidgetList,
+    _AbstractWindow,
 )
-from ._pyvista import _PyVistaRenderer, Plotter
 from ._pyvista import (
-    _close_3d_figure,  # noqa: F401
+    Plotter,
     _check_3d_figure,  # noqa: F401
+    _close_3d_figure,  # noqa: F401
     _close_all,  # noqa: F401
-    _set_3d_view,  # noqa: F401
+    _PyVistaRenderer,
     _set_3d_title,  # noqa: F401
+    _set_3d_view,  # noqa: F401
     _take_3d_screenshot,  # noqa: F401
 )
 from ._utils import _notebook_vtk_works
-
+from .renderer import _TimeInteraction
 
 # dict values are icon names from: https://fontawesome.com/icons
 _ICON_LUT = dict(
@@ -109,6 +111,12 @@ _ICON_LUT = dict(
 
 _BASE_MIN_SIZE = "20px"
 _BASE_KWARGS = dict(layout=Layout(min_width=_BASE_MIN_SIZE, min_height=_BASE_MIN_SIZE))
+
+# TODO: We can drop ipyvtklink once we support PyVista 0.38.1+
+if check_version("pyvista", "0.38.1"):
+    _JUPYTER_BACKEND = "trame"
+else:
+    _JUPYTER_BACKEND = "ipyvtklink"
 
 # %%
 # Widgets
@@ -646,7 +654,7 @@ class _BoxLayout:
     def _add_widget(self, widget):
         # if pyvista plotter, needs to be shown
         if isinstance(widget, Plotter):
-            widget = widget.show(jupyter_backend="ipyvtklink", return_viewer=True)
+            widget = widget.show(jupyter_backend=_JUPYTER_BACKEND, return_viewer=True)
         if hasattr(widget, "layout"):
             widget.layout.width = None  # unlock the fixed layout
             widget.layout.margin = "2px 0px 2px 0px"
@@ -781,15 +789,18 @@ class _3DRenderer(_PyVistaRenderer):
             self.show()
 
     def _update(self):
-        if self.figure.display is not None:
-            self.figure.display.update_canvas()
+        if _JUPYTER_BACKEND == "ipyvtklink":
+            if self.figure.display is not None:
+                self.figure.display.update_canvas()
+        else:
+            super()._update()
 
     @contextmanager
     def _ensure_minimum_sizes(self):
         yield
 
     def show(self):
-        viewer = self.plotter.show(jupyter_backend="ipyvtklink", return_viewer=True)
+        viewer = self.plotter.show(jupyter_backend=_JUPYTER_BACKEND, return_viewer=True)
         viewer.layout.width = None  # unlock the fixed layout
         display(viewer)
 
@@ -965,7 +976,7 @@ class _IpyDialog(_AbstractDialog):
         callback,
         *,
         icon="Warning",
-        buttons=[],
+        buttons=(),
         modal=True,
         window=None,
     ):
@@ -1029,7 +1040,11 @@ class _IpyDock(_AbstractDock, _IpyLayout):
         self._dock_layout.layout.visibility = "hidden"
 
     def _dock_add_stretch(self, layout=None):
-        pass
+        layout = self._dock_layout if layout is None else layout
+        widget = HTML(value="", disabled=True)
+        widget.layout.width = "100%"
+        self._layout_add_widget(layout, widget)
+        return _IpyWidget(widget)
 
     def _dock_add_layout(self, vertical=True):
         return VBox() if vertical else HBox()
@@ -1037,6 +1052,7 @@ class _IpyDock(_AbstractDock, _IpyLayout):
     def _dock_add_label(self, value, *, align=False, layout=None, selectable=False):
         layout = self._dock_layout if layout is None else layout
         widget = HTML(value=value, disabled=True)
+        widget.layout.width = "100px"
         self._layout_add_widget(layout, widget)
         return _IpyWidget(widget)
 
@@ -1186,7 +1202,7 @@ class _IpyDock(_AbstractDock, _IpyLayout):
         desc,
         func,
         *,
-        filter=None,
+        filter_=None,
         initial_directory=None,
         save=False,
         is_directory=False,
@@ -1231,6 +1247,7 @@ class _IpyToolBar(_AbstractToolBar, _IpyLayout):
         if icon is None:
             return
         widget = Button(tooltip=desc, icon=icon)
+        widget.layout.width = "50px"
         widget.on_click(lambda x: func())
         self._layout_add_widget(self._tool_bar_layout, widget)
         self.actions[name] = _IpyAction(widget)
@@ -1247,8 +1264,8 @@ class _IpyToolBar(_AbstractToolBar, _IpyLayout):
         pass
 
     def _tool_bar_add_file_button(self, name, desc, func, *, shortcut=None):
-        def callback():
-            fname = self.actions[f"{name}_field"].value
+        def callback(name=name):
+            fname = self.actions[f"{name}_field"]._action.value
             func(None if len(fname) == 0 else fname)
 
         self._tool_bar_add_text(
@@ -1327,18 +1344,16 @@ class _IpyPlayback(_AbstractPlayback):
         play = play_widget._widget
         play.min = rng[0]
         play.max = rng[1]
-        play.value = value
+        play.value = round(value)
         slider = time_widget._widget
         jsdlink((play, "value"), (slider, "value"))
-        jsdlink((slider, "value"), (play, "value"))
 
 
 class _IpyMplInterface(_AbstractMplInterface):
     def _mpl_initialize(self):
-        from matplotlib.backends.backend_nbagg import FigureCanvasNbAgg, FigureManager
-
-        self.canvas = FigureCanvasNbAgg(self.fig)
-        self.manager = FigureManager(self.canvas, 0)
+        ipympl = _soft_import("ipympl", "Drawing figures into a notebook.", strict=True)
+        self.canvas = ipympl.backend_nbagg.Canvas(self.fig)
+        self.manager = ipympl.backend_nbagg.FigureManager(self.canvas, 0)
 
 
 class _IpyMplCanvas(_AbstractMplCanvas, _IpyMplInterface):
@@ -1361,18 +1376,21 @@ class _IpyWindow(_AbstractWindow):
 
     def _window_load_icons(self):
         # from: https://fontawesome.com/icons
-        self._icons["help"] = "question"
+        for key in (
+            "help",
+            "reset",
+            "scale",
+            "clear",
+            "movie",
+            "restore",
+            "screenshot",
+            "visibility_on",
+            "visibility_off",
+            "folder",
+        ):  # noqa: E501
+            self._icons[key] = _ICON_LUT[key]
         self._icons["play"] = None
         self._icons["pause"] = None
-        self._icons["reset"] = "history"
-        self._icons["scale"] = "magic"
-        self._icons["clear"] = "trash"
-        self._icons["movie"] = "video-camera"
-        self._icons["restore"] = "replay"
-        self._icons["screenshot"] = "camera"
-        self._icons["visibility_on"] = "eye"
-        self._icons["visibility_off"] = "eye"
-        self._icons["folder"] = "folder"
 
     def _window_close_connect(self, func, *, after=True):
         pass
@@ -1522,6 +1540,7 @@ class _Renderer(
     _IpyPlayback,
     _IpyDialog,
     _IpyKeyPress,
+    _TimeInteraction,
 ):
     _kind = "notebook"
 
@@ -1543,8 +1562,11 @@ class _Renderer(
         self._window_initialize(fullscreen=fullscreen)
 
     def _update(self):
-        if self.figure.display is not None:
-            self.figure.display.update_canvas()
+        if _JUPYTER_BACKEND == "ipyvtklink":
+            if self.figure.display is not None:
+                self.figure.display.update_canvas()
+        else:
+            super()._update()
 
     def _display_default_tool_bar(self):
         self._tool_bar_initialize()
@@ -1565,8 +1587,20 @@ class _Renderer(
         else:
             self._display_default_tool_bar()
         # viewer
-        viewer = self.plotter.show(jupyter_backend="ipyvtklink", return_viewer=True)
-        viewer.layout.width = None  # unlock the fixed layout
+        viewer = self.plotter.show(jupyter_backend=_JUPYTER_BACKEND, return_viewer=True)
+        if _JUPYTER_BACKEND == "trame":
+            # Remove scrollbars, see https://github.com/pyvista/pyvista/pull/4847
+            # which adds this to the iframe PyVista creates. Once that's merged, this
+            # workaround just becomes a redundant but is still safe. And in a worst
+            # (realistic) case, this regex will fail to do any substitution and we just
+            # live with the ugly 90's-style borders. We can probably remove once we
+            # require PyVista 0.43 (assuming the above PR is merged).
+            viewer.value = re.sub(
+                r" style=[\"'](.+)[\"']></iframe>",
+                # value taken from matplotlib's widget
+                r" style='\1; border: 1px solid rgb(221,221,221);' scrolling='no'></iframe>",  # noqa: E501
+                viewer.value,
+            )
         rendering_row = list()
         if self._docks is not None and "left" in self._docks:
             rendering_row.append(self._docks["left"][0])

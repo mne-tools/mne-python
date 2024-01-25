@@ -22,13 +22,14 @@ First we show how ``fsaverage`` can be used as a surrogate subject.
 #          Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import os.path as op
+
 import numpy as np
 
 import mne
-from mne.datasets import eegbci
-from mne.datasets import fetch_fsaverage
+from mne.datasets import eegbci, fetch_fsaverage
 
 # Download fsaverage files
 fs_dir = fetch_fsaverage(verbose=True)

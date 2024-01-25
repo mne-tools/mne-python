@@ -1,21 +1,24 @@
 # Authors: Alex Rockhill <aprockhill@mailbox.org>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from itertools import combinations
-import numpy as np
 
+import numpy as np
+from scipy.spatial.distance import pdist, squareform
+
+from ..._fiff.pick import _picks_to_idx
 from ...channels import make_dig_montage
-from ...io.pick import _picks_to_idx
 from ...surface import (
+    _compute_nearest,
     _read_mri_surface,
+    _read_patch,
     fast_cross_3d,
     read_surface,
-    _read_patch,
-    _compute_nearest,
 )
-from ...transforms import apply_trans, invert_transform, _cart_to_sph, _ensure_trans
-from ...utils import verbose, get_subjects_dir, _validate_type, _ensure_int
+from ...transforms import _cart_to_sph, _ensure_trans, apply_trans, invert_transform
+from ...utils import _ensure_int, _validate_type, get_subjects_dir, verbose
 
 
 @verbose
@@ -63,8 +66,6 @@ def project_sensors_onto_brain(
     :ref:`mne watershed_bem` using the T1 or :ref:`mne flash_bem`
     using a FLASH scan.
     """
-    from scipy.spatial.distance import pdist, squareform
-
     n_neighbors = _ensure_int(n_neighbors, "n_neighbors")
     _validate_type(copy, bool, "copy")
     if copy:

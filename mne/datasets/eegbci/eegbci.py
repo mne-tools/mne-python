@@ -1,23 +1,18 @@
 # Author: Martin Billinger <martin.billinger@tugraz.at>
 #         Adam Li <adam2392@gmail.com>
 #         Daniel McCloy <dan@mccloy.info>
-# License: BSD Style.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import os
 import re
+import time
+from importlib.resources import files
 from os import path as op
 from pathlib import Path
-import time
 
-from ...utils import _url_to_local_path, verbose, logger
-from ..utils import _do_path_update, _get_path, _log_time_size, _downloader_params
-
-# TODO: remove try/except when our min version is py 3.9
-try:
-    from importlib.resources import files
-except ImportError:
-    from importlib_resources import files
-
+from ...utils import _url_to_local_path, logger, verbose
+from ..utils import _do_path_update, _downloader_params, _get_path, _log_time_size
 
 EEGMI_URL = "https://physionet.org/files/eegmmidb/1.0.0/"
 
@@ -26,49 +21,48 @@ EEGMI_URL = "https://physionet.org/files/eegmmidb/1.0.0/"
 def data_path(url, path=None, force_update=False, update_path=None, *, verbose=None):
     """Get path to local copy of EEGMMI dataset URL.
 
-    This is a low-level function useful for getting a local copy of a
-    remote EEGBCI dataset :footcite:`SchalkEtAl2004` which is available at PhysioNet :footcite:`GoldbergerEtAl2000`.
+    This is a low-level function useful for getting a local copy of a remote EEGBCI
+    dataset :footcite:`SchalkEtAl2004`, which is also available at PhysioNet
+    :footcite:`GoldbergerEtAl2000`.
 
     Parameters
     ----------
     url : str
         The dataset to use.
-    path : None | str
-        Location of where to look for the EEGBCI data storing location.
-        If None, the environment variable or config parameter
-        ``MNE_DATASETS_EEGBCI_PATH`` is used. If it doesn't exist, the
-        "~/mne_data" directory is used. If the EEGBCI dataset
-        is not found under the given path, the data
-        will be automatically downloaded to the specified folder.
+    path : None | path-like
+        Location of where to look for the EEGBCI data. If ``None``, the environment
+        variable or config parameter ``MNE_DATASETS_EEGBCI_PATH`` is used. If neither
+        exists, the ``~/mne_data`` directory is used. If the EEGBCI dataset is not found
+        under the given path, the data will be automatically downloaded to the specified
+        folder.
     force_update : bool
         Force update of the dataset even if a local copy exists.
     update_path : bool | None
-        If True, set the MNE_DATASETS_EEGBCI_PATH in mne-python
-        config to the given path. If None, the user is prompted.
+        If ``True``, set ``MNE_DATASETS_EEGBCI_PATH`` in the configuration to the given
+        path. If ``None``, the user is prompted.
     %(verbose)s
 
     Returns
     -------
     path : list of Path
-        Local path to the given data file. This path is contained inside a list
-        of length one, for compatibility.
+        Local path to the given data file. This path is contained inside a list of
+        length one for compatibility.
 
     Notes
     -----
     For example, one could do:
 
         >>> from mne.datasets import eegbci
-        >>> url = 'http://www.physionet.org/physiobank/database/eegmmidb/'
-        >>> eegbci.data_path(url, os.getenv('HOME') + '/datasets') # doctest:+SKIP
+        >>> url = "http://www.physionet.org/physiobank/database/eegmmidb/"
+        >>> eegbci.data_path(url, "~/datasets") # doctest:+SKIP
 
-    This would download the given EEGBCI data file to the 'datasets' folder,
-    and prompt the user to save the 'datasets' path to the mne-python config,
-    if it isn't there already.
+    This would download the given EEGBCI data file to the ``~/datasets`` folder and
+    prompt the user to store this path in the config (if it does not already exist).
 
     References
     ----------
     .. footbibliography::
-    """  # noqa: E501
+    """
     import pooch
 
     key = "MNE_DATASETS_EEGBCI_PATH"
@@ -78,7 +72,7 @@ def data_path(url, path=None, force_update=False, update_path=None, *, verbose=N
     destination = _url_to_local_path(url, op.join(path, fname))
     destinations = [destination]
 
-    # Fetch the file
+    # fetch the file
     downloader = pooch.HTTPDownloader(**_downloader_params())
     if not op.isfile(destination) or force_update:
         if op.isfile(destination):
@@ -92,7 +86,7 @@ def data_path(url, path=None, force_update=False, update_path=None, *, verbose=N
             fname=fname,
         )
 
-    # Offer to update the path
+    # offer to update the path
     _do_path_update(path, update_path, key, name)
     destinations = [Path(dest) for dest in destinations]
     return destinations
@@ -110,27 +104,26 @@ def load_data(
 ):  # noqa: D301
     """Get paths to local copies of EEGBCI dataset files.
 
-    This will fetch data for the EEGBCI dataset :footcite:`SchalkEtAl2004`, which is also
-    available at PhysioNet :footcite:`GoldbergerEtAl2000`.
+    This will fetch data for the EEGBCI dataset :footcite:`SchalkEtAl2004`, which is
+    also available at PhysioNet :footcite:`GoldbergerEtAl2000`.
 
     Parameters
     ----------
     subject : int
         The subject to use. Can be in the range of 1-109 (inclusive).
     runs : int | list of int
-        The runs to use. See Notes for details.
-    path : None | str
-        Location of where to look for the EEGBCI data storing location.
-        If None, the environment variable or config parameter
-        ``MNE_DATASETS_EEGBCI_PATH`` is used. If it doesn't exist, the
-        "~/mne_data" directory is used. If the EEGBCI dataset
-        is not found under the given path, the data
-        will be automatically downloaded to the specified folder.
+        The runs to use (see Notes for details).
+    path : None | path-like
+        Location of where to look for the EEGBCI data. If ``None``, the environment
+        variable or config parameter ``MNE_DATASETS_EEGBCI_PATH`` is used. If neither
+        exists, the ``~/mne_data`` directory is used. If the EEGBCI dataset is not found
+        under the given path, the data will be automatically downloaded to the specified
+        folder.
     force_update : bool
         Force update of the dataset even if a local copy exists.
     update_path : bool | None
-        If True, set the MNE_DATASETS_EEGBCI_PATH in mne-python
-        config to the given path. If None, the user is prompted.
+        If ``True``, set ``MNE_DATASETS_EEGBCI_PATH`` in the configuration to the given
+        path. If ``None``, the user is prompted.
     base_url : str
         The URL root for the data.
     %(verbose)s
@@ -158,17 +151,16 @@ def load_data(
     For example, one could do::
 
         >>> from mne.datasets import eegbci
-        >>> eegbci.load_data(1, [4, 10, 14], os.getenv('HOME') + '/datasets') # doctest:+SKIP
+        >>> eegbci.load_data(1, [6, 10, 14], "~/datasets") # doctest:+SKIP
 
-    This would download runs 4, 10, and 14 (hand/foot motor imagery) runs from
-    subject 1 in the EEGBCI dataset to the 'datasets' folder, and prompt the
-    user to save the 'datasets' path to the  mne-python config, if it isn't
-    there already.
+    This would download runs 6, 10, and 14 (hand/foot motor imagery) runs from subject 1
+    in the EEGBCI dataset to "~/datasets" and prompt the user to store this path in the
+    config (if it does not already exist).
 
     References
     ----------
     .. footbibliography::
-    """  # noqa: E501
+    """
     import pooch
 
     t0 = time.time()
@@ -196,8 +188,8 @@ def load_data(
     fetcher = pooch.create(
         path=base_path,
         base_url=base_url,
-        version=None,  # Data versioning is decoupled from MNE-Python version.
-        registry=None,  # Registry is loaded from file, below.
+        version=None,  # data versioning is decoupled from MNE-Python version
+        registry=None,  # registry is loaded from file (below)
         retry_if_failed=2,  # 2 retries = 3 total attempts
     )
 

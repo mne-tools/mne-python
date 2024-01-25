@@ -1,21 +1,22 @@
 # Author: Adonay Nunes <adonay.s.nunes@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import numpy as np
 import pytest
-
 from numpy.testing import assert_allclose, assert_array_equal
+
+from mne import Annotations, events_from_annotations
 from mne.chpi import read_head_pos
 from mne.datasets import testing
 from mne.io import read_raw_fif
 from mne.preprocessing import (
-    annotate_movement,
-    compute_average_dev_head_t,
-    annotate_muscle_zscore,
     annotate_break,
+    annotate_movement,
+    annotate_muscle_zscore,
+    compute_average_dev_head_t,
 )
-from mne import Annotations, events_from_annotations
 from mne.tests.test_annotations import _assert_annotations_equal
 
 data_path = testing.data_path(download=False)
@@ -113,7 +114,7 @@ def test_muscle_annotation_without_meeg_data(meas_date):
     if meas_date is None:
         raw.set_meas_date(None)
     raw.crop(0, 0.1).load_data()
-    raw.pick_types(meg=False, stim=True)
+    raw.pick("stim")
     with pytest.raises(ValueError, match="No M/EEG channel types found"):
         annotate_muscle_zscore(raw, threshold=10)
 

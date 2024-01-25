@@ -1,14 +1,15 @@
 # Authors: MNE Developers
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import numpy as np
 
 from ..utils import _check_eeglabio_installed
 
 _check_eeglabio_installed()
-import eeglabio.raw  # noqa: E402
 import eeglabio.epochs  # noqa: E402
+import eeglabio.raw  # noqa: E402
 
 
 def _export_raw(fname, raw):

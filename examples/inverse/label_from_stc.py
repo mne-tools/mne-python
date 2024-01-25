@@ -15,15 +15,16 @@ label yields higher values.
 # Author: Luke Bloy <luke.bloy@gmail.com>
 #         Alex Gramfort <alexandre.gramfort@inria.fr>
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 
 import mne
-from mne.minimum_norm import read_inverse_operator, apply_inverse
 from mne.datasets import sample
+from mne.minimum_norm import apply_inverse, read_inverse_operator
 
 print(__doc__)
 

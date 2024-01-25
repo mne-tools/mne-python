@@ -1,13 +1,14 @@
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import numpy as np
 import pytest
 
 from mne import create_info
 from mne.io import RawArray
-from mne.utils import logger, catch_logging
+from mne.utils import catch_logging, logger
 
 
 def bad_1(x):

@@ -7,6 +7,8 @@
 #          Teon Brooks <teon.brooks@gmail.com>
 #
 #          simplified BSD-3 license
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import functools
 import os.path as op
@@ -15,27 +17,29 @@ from itertools import count
 
 import numpy as np
 
-from ...utils import logger, verbose, _stamp_to_dt, path_like
-from ...transforms import combine_transforms, invert_transform, Transform
-from .._digitization import _make_bti_dig_points
-from ..constants import FIFF
-from .. import BaseRaw, _coil_trans_to_loc, _loc_to_coil_trans, _empty_info
-from ..utils import _mult_cal_one, read_str
+from ..._fiff._digitization import _make_bti_dig_points
+from ..._fiff.constants import FIFF
+from ..._fiff.meas_info import _empty_info
+from ..._fiff.tag import _coil_trans_to_loc, _loc_to_coil_trans
+from ..._fiff.utils import _mult_cal_one, read_str
+from ...transforms import Transform, combine_transforms, invert_transform
+from ...utils import _stamp_to_dt, _validate_type, logger, path_like, verbose
+from ..base import BaseRaw
 from .constants import BTI
 from .read import (
-    read_int32,
-    read_int16,
-    read_float,
-    read_double,
-    read_transform,
     read_char,
+    read_dev_header,
+    read_double,
+    read_double_matrix,
+    read_float,
+    read_float_matrix,
+    read_int16,
+    read_int16_matrix,
+    read_int32,
     read_int64,
+    read_transform,
     read_uint16,
     read_uint32,
-    read_double_matrix,
-    read_float_matrix,
-    read_int16_matrix,
-    read_dev_header,
 )
 
 FIFF_INFO_DIG_FIELDS = ("kind", "ident", "r", "coord_frame")
@@ -68,13 +72,13 @@ def _instantiate_default_info_chs():
 class _bytes_io_mock_context:
     """Make a context for BytesIO."""
 
-    def __init__(self, target):  # noqa: D102
+    def __init__(self, target):
         self.target = target
 
     def __enter__(self):  # noqa: D105
         return self.target
 
-    def __exit__(self, type, value, tb):  # noqa: D105
+    def __exit__(self, exception_type, value, tb):  # noqa: D105
         pass
 
 
@@ -134,7 +138,7 @@ def _rename_channels(names, ecg_ch="E31", eog_ch=("E63", "E64")):
         List of names, channel names in Neuromag style
     """
     new = list()
-    ref_mag, ref_grad, eog, eeg, ext = [count(1) for _ in range(5)]
+    ref_mag, ref_grad, eog, eeg, ext = (count(1) for _ in range(5))
     for i, name in enumerate(names, 1):
         if name.startswith("A"):
             name = "MEG %3.3d" % i
@@ -172,7 +176,7 @@ def _read_head_shape(fname):
         dig_points = read_double_matrix(fid, _n_dig_points, 3)
 
     # reorder to lpa, rpa, nasion so = is direct.
-    nasion, lpa, rpa = [idx_points[_, :] for _ in [2, 0, 1]]
+    nasion, lpa, rpa = (idx_points[_, :] for _ in [2, 0, 1])
     hpi = idx_points[3 : len(idx_points), :]
 
     return nasion, lpa, rpa, hpi, dig_points
@@ -923,7 +927,7 @@ def _read_bti_header_pdf(pdf_fname):
         ]
 
         info["extra_data"] = fid.read(start - fid.tell())
-        info["pdf_fname"] = pdf_fname
+        info["pdf"] = pdf_fname
 
     info["total_slices"] = sum(e["pts_in_epoch"] for e in info["epochs"])
 
@@ -1073,7 +1077,8 @@ class RawBTi(BaseRaw):
         eog_ch=("E63", "E64"),
         preload=False,
         verbose=None,
-    ):  # noqa: D102
+    ):
+        _validate_type(pdf_fname, ("path-like", BytesIO), "pdf_fname")
         info, bti_info = _get_bti_info(
             pdf_fname=pdf_fname,
             config_fname=config_fname,
@@ -1086,14 +1091,15 @@ class RawBTi(BaseRaw):
             sort_by_ch_name=sort_by_ch_name,
             eog_ch=eog_ch,
         )
-        self.bti_ch_labels = [c["chan_label"] for c in bti_info["chs"]]
+        bti_info["bti_ch_labels"] = [c["chan_label"] for c in bti_info["chs"]]
         # make Raw repr work if we have a BytesIO as input
-        if isinstance(pdf_fname, BytesIO):
-            pdf_fname = repr(pdf_fname)
-        super(RawBTi, self).__init__(
+        filename = bti_info["pdf"]
+        if isinstance(filename, BytesIO):
+            filename = repr(filename)
+        super().__init__(
             info,
             preload,
-            filenames=[pdf_fname],
+            filenames=[filename],
             raw_extras=[bti_info],
             last_samps=[bti_info["total_slices"] - 1],
             verbose=verbose,
@@ -1102,7 +1108,7 @@ class RawBTi(BaseRaw):
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a segment of data from a file."""
         bti_info = self._raw_extras[fi]
-        fname = bti_info["pdf_fname"]
+        fname_or_bytes = bti_info["pdf"]
         dtype = bti_info["dtype"]
         assert len(bti_info["chs"]) == self._raw_extras[fi]["orig_nchan"]
         n_channels = len(bti_info["chs"])
@@ -1115,7 +1121,7 @@ class RawBTi(BaseRaw):
         block_size = ((int(100e6) // n_bytes) // n_channels) * n_channels
         block_size = min(data_left, block_size)
         # extract data in chunks
-        with _bti_open(fname, "rb") as fid:
+        with _bti_open(fname_or_bytes, "rb") as fid:
             fid.seek(bti_info["bytes_per_slice"] * start, 0)
             for sample_start in np.arange(0, data_left, block_size) // n_channels:
                 count = min(block_size, data_left - sample_start * n_channels)
@@ -1252,6 +1258,13 @@ def _get_bti_info(
     bti_info = _read_bti_header(
         pdf_fname, config_fname, sort_by_ch_name=sort_by_ch_name
     )
+    extras = dict(
+        pdf_fname=pdf_fname,
+        head_shape_fname=head_shape_fname,
+        config_fname=config_fname,
+    )
+    for key, val in extras.items():
+        bti_info[key] = None if isinstance(val, BytesIO) else val
 
     dev_ctf_t = Transform(
         "ctf_meg", "ctf_head", _correct_trans(bti_info["bti_transform"][0])
@@ -1422,7 +1435,7 @@ def read_raw_bti(
     eog_ch=("E63", "E64"),
     preload=False,
     verbose=None,
-):
+) -> RawBTi:
     """Raw object from 4D Neuroimaging MagnesWH3600 data.
 
     .. note::

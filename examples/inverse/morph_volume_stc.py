@@ -23,15 +23,17 @@ anatomical MRI, overlaid with the morphed volumetric source estimate.
 # Author: Tommy Clausner <tommy.clausner@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 import os
 
 import nibabel as nib
-import mne
-from mne.datasets import sample, fetch_fsaverage
-from mne.minimum_norm import apply_inverse, read_inverse_operator
 from nilearn.plotting import plot_glass_brain
+
+import mne
+from mne.datasets import fetch_fsaverage, sample
+from mne.minimum_norm import apply_inverse, read_inverse_operator
 
 print(__doc__)
 

@@ -1,33 +1,33 @@
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 from os import path as op
 from pathlib import Path
 
 import numpy as np
+import pytest
 from numpy.polynomial import legendre
 from numpy.testing import (
     assert_allclose,
+    assert_array_almost_equal,
     assert_array_equal,
     assert_equal,
-    assert_array_almost_equal,
 )
 from scipy.interpolate import interp1d
 
-import pytest
-
 import mne
+from mne import Epochs, make_fixed_length_events, pick_types, read_evokeds
+from mne.datasets import testing
 from mne.forward import _make_surface_mapping, make_field_map
+from mne.forward._field_interpolation import _setup_dots
 from mne.forward._lead_dots import (
     _comp_sum_eeg,
     _comp_sums_meg,
-    _get_legen_table,
     _do_cross_dots,
+    _get_legen_table,
 )
 from mne.forward._make_forward import _create_meg_coils
-from mne.forward._field_interpolation import _setup_dots
-from mne.surface import get_meg_helmet_surf, get_head_surf
-from mne.datasets import testing
-from mne import read_evokeds, pick_types, make_fixed_length_events, Epochs
 from mne.io import read_raw_fif
-
+from mne.surface import get_head_surf, get_meg_helmet_surf
 
 base_dir = op.join(op.dirname(__file__), "..", "..", "io", "tests", "data")
 raw_fname = op.join(base_dir, "test_raw.fif")
@@ -46,7 +46,7 @@ def test_field_map_ctf():
     raw.apply_gradient_compensation(3)
     events = make_fixed_length_events(raw, duration=0.5)
     evoked = Epochs(raw, events).average()
-    evoked.pick_channels(evoked.ch_names[:50])  # crappy mapping but faster
+    evoked.pick(evoked.ch_names[:50])  # crappy mapping but faster
     # smoke test - passing trans_fname as pathlib.Path as additional check
     make_field_map(
         evoked, trans=Path(trans_fname), subject="sample", subjects_dir=subjects_dir
@@ -128,7 +128,7 @@ def test_make_field_map_eeg():
     # we must have trans if surface is in MRI coords
     pytest.raises(ValueError, _make_surface_mapping, evoked.info, surf, "eeg")
 
-    evoked.pick_types(meg=False, eeg=True)
+    evoked.pick(picks="eeg")
     fmd = make_field_map(
         evoked, trans_fname, subject="sample", subjects_dir=subjects_dir
     )
@@ -165,7 +165,7 @@ def test_make_field_map_meg():
     # bad mode
     pytest.raises(ValueError, _make_surface_mapping, info, surf, "meg", mode="foo")
     # no picks
-    evoked_eeg = evoked.copy().pick_types(meg=False, eeg=True)
+    evoked_eeg = evoked.copy().pick(picks="eeg")
     pytest.raises(RuntimeError, _make_surface_mapping, evoked_eeg.info, surf, "meg")
     # bad surface def
     nn = surf["nn"]
@@ -178,7 +178,7 @@ def test_make_field_map_meg():
     surf["coord_frame"] = cf
 
     # now do it with make_field_map
-    evoked.pick_types(meg=True, eeg=False)
+    evoked.pick(picks="meg")
     evoked.info.normalize_proj()  # avoid projection warnings
     fmd = make_field_map(evoked, None, subject="sample", subjects_dir=subjects_dir)
     assert len(fmd) == 1
@@ -188,7 +188,7 @@ def test_make_field_map_meg():
     pytest.raises(ValueError, make_field_map, evoked, ch_type="foobar")
 
     # now test the make_field_map on head surf for MEG
-    evoked.pick_types(meg=True, eeg=False)
+    evoked.pick(picks="meg")
     evoked.info.normalize_proj()
     fmd = make_field_map(
         evoked,
@@ -217,7 +217,7 @@ def test_make_field_map_meeg():
     evoked = read_evokeds(evoked_fname, baseline=(-0.2, 0.0))[0]
     picks = pick_types(evoked.info, meg=True, eeg=True)
     picks = picks[::10]
-    evoked.pick_channels([evoked.ch_names[p] for p in picks])
+    evoked.pick([evoked.ch_names[p] for p in picks])
     evoked.info.normalize_proj()
     maps = make_field_map(
         evoked,
@@ -237,10 +237,16 @@ def test_make_field_map_meeg():
         assert_allclose(map_["data"].min(), min_, rtol=5e-2)
     # calculated from correct looking mapping on 2015/12/26
     assert_allclose(
-        np.sqrt(np.sum(maps[0]["data"] ** 2)), 19.0903, atol=1e-3, rtol=1e-3  # 16.6088,
+        np.sqrt(np.sum(maps[0]["data"] ** 2)),
+        19.0903,
+        atol=1e-3,
+        rtol=1e-3,
     )
     assert_allclose(
-        np.sqrt(np.sum(maps[1]["data"] ** 2)), 19.4748, atol=1e-3, rtol=1e-3  # 20.1245,
+        np.sqrt(np.sum(maps[1]["data"] ** 2)),
+        19.4748,
+        atol=1e-3,
+        rtol=1e-3,
     )
 
 
@@ -283,18 +289,18 @@ def test_as_meg_type_evoked():
     with pytest.raises(ValueError, match="Invalid value for the 'ch_type'"):
         evoked.as_type("meg")
     with pytest.raises(ValueError, match="Invalid value for the 'ch_type'"):
-        evoked.copy().pick_types(meg="grad").as_type("meg")
+        evoked.copy().pick(picks="grad").as_type("meg")
 
     # channel names
     ch_names = evoked.info["ch_names"]
-    virt_evoked = evoked.copy().pick_channels(ch_names=ch_names[:10:1])
+    virt_evoked = evoked.copy().pick(ch_names[:10:1])
     virt_evoked.info.normalize_proj()
     virt_evoked = virt_evoked.as_type("mag")
     assert all(ch.endswith("_v") for ch in virt_evoked.info["ch_names"])
 
     # pick from and to channels
-    evoked_from = evoked.copy().pick_channels(ch_names=ch_names[2:10:3])
-    evoked_to = evoked.copy().pick_channels(ch_names=ch_names[0:10:3])
+    evoked_from = evoked.copy().pick(ch_names[2:10:3])
+    evoked_to = evoked.copy().pick(ch_names[0:10:3])
 
     info_from, info_to = evoked_from.info, evoked_to.info
 
@@ -310,14 +316,14 @@ def test_as_meg_type_evoked():
     assert_array_almost_equal(cross_dots1, cross_dots2.T)
 
     # correlation test
-    evoked = evoked.pick_channels(ch_names=ch_names[:10:]).copy()
-    data1 = evoked.pick_types(meg="grad").data.ravel()
+    evoked = evoked.pick(ch_names[:10:]).copy()
+    data1 = evoked.pick("grad").data.ravel()
     data2 = evoked.as_type("grad").data.ravel()
     assert np.corrcoef(data1, data2)[0, 1] > 0.95
 
     # Do it with epochs
-    virt_epochs = epochs.copy().load_data().pick_channels(ch_names=ch_names[:10:1])
+    virt_epochs = epochs.copy().load_data().pick(ch_names[:10:1])
     virt_epochs.info.normalize_proj()
     virt_epochs = virt_epochs.as_type("mag")
     assert all(ch.endswith("_v") for ch in virt_epochs.info["ch_names"])
-    assert_allclose(virt_epochs.get_data().mean(0), virt_evoked.data)
+    assert_allclose(virt_epochs.get_data(copy=False).mean(0), virt_evoked.data)

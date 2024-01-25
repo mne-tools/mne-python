@@ -1,19 +1,21 @@
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
-# License: Simplified BSD
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import numpy as np
 
+from ..fixes import _safe_svd
 from ..forward import is_fixed_orient
 from ..minimum_norm.inverse import _check_reference, _log_exp_var
 from ..utils import logger, verbose, warn
 from .mxne_inverse import (
     _check_ori,
+    _compute_residual,
+    _make_dipoles_sparse,
     _make_sparse_stc,
     _prepare_gain,
     _reapply_source_weighting,
-    _compute_residual,
-    _make_dipoles_sparse,
 )
 
 
@@ -59,8 +61,6 @@ def _gamma_map_opt(
     active_set : array, shape=(n_active,)
         Indices of active sources.
     """
-    from scipy import linalg
-
     G = G.copy()
     M = M.copy()
 
@@ -112,7 +112,7 @@ def _gamma_map_opt(
         CM = np.dot(G * gammas[np.newaxis, :], G.T)
         CM.flat[:: n_sensors + 1] += alpha
         # Invert CM keeping symmetry
-        U, S, _ = linalg.svd(CM, full_matrices=False)
+        U, S, _ = _safe_svd(CM, full_matrices=False)
         S = S[np.newaxis, :]
         del CM
         CMinv = np.dot(U / (S + eps), U.T)

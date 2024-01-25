@@ -2,17 +2,18 @@
 #          Federico Raimondo <federaimondo@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import os.path as op
 
+from ..._fiff.meas_info import create_info
+from ..._fiff.utils import _file_size, _read_segments_file
+from ...utils import _check_fname, fill_doc, logger, verbose, warn
 from ..base import BaseRaw
-from ..utils import _read_segments_file, _file_size
-from ..meas_info import create_info
-from ...utils import logger, verbose, warn, fill_doc, _check_fname
 
 
 @fill_doc
-def read_raw_eximia(fname, preload=False, verbose=None):
+def read_raw_eximia(fname, preload=False, verbose=None) -> "RawEximia":
     """Reader for an eXimia EEG file.
 
     Parameters
@@ -86,12 +87,12 @@ class RawEximia(BaseRaw):
         n_samples, extra = divmod(n_bytes, (n_chan * 2))
         if extra != 0:
             warn(
-                "Incorrect number of samples in file (%s), the file is "
-                "likely truncated" % (n_samples,)
+                f"Incorrect number of samples in file ({n_samples}), the file is likely"
+                " truncated"
             )
         for ch, cal in zip(info["chs"], cals):
             ch["cal"] = cal
-        super(RawEximia, self).__init__(
+        super().__init__(
             info,
             preload=preload,
             last_samps=(n_samples - 1,),

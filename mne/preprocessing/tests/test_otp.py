@@ -1,16 +1,16 @@
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD-3-Clause
-
-import pytest
+# Copyright the MNE-Python contributors.
 
 import numpy as np
+import pytest
 from numpy.fft import rfft, rfftfreq
 
 from mne import create_info
+from mne._fiff.pick import _pick_data_channels
 from mne.datasets import testing
 from mne.io import RawArray, read_raw_fif
-from mne.io.pick import _pick_data_channels
 from mne.preprocessing import oversampled_temporal_projection
 from mne.utils import catch_logging
 
@@ -86,7 +86,7 @@ def test_otp_real():
     """Test OTP on real data."""
     for fname in (erm_fname, triux_fname):
         raw = read_raw_fif(fname, allow_maxshield="yes").crop(0, 1)
-        raw.load_data().pick_channels(raw.ch_names[:10])
+        raw.load_data().pick(raw.ch_names[:10])
         raw_otp = oversampled_temporal_projection(raw, 1.0)
         picks = _pick_data_channels(raw.info)
         reduction = np.linalg.norm(raw[picks][0], axis=-1) / np.linalg.norm(
@@ -96,5 +96,5 @@ def test_otp_real():
 
     # Handling of acquisition skips
     raw = read_raw_fif(skip_fname, preload=True)
-    raw.pick_channels(raw.ch_names[:10])
+    raw.pick(raw.ch_names[:10])
     raw_otp = oversampled_temporal_projection(raw, duration=1.0)

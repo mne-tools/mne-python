@@ -1,16 +1,19 @@
 # Authors: Denis Engemann <denis.engemann@gmail.com>
+#          Ana Radanovic <radanovica@protonmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import numpy as np
 from numpy.polynomial.legendre import legval
+from scipy.interpolate import RectBivariateSpline
+from scipy.linalg import pinv
+from scipy.spatial.distance import pdist, squareform
 
-from ..utils import logger, warn, verbose
-from ..io.meas_info import _simplify_info
-from ..io.pick import pick_types, pick_channels, pick_info
+from .._fiff.meas_info import _simplify_info
+from .._fiff.pick import pick_channels, pick_info, pick_types
 from ..surface import _normalize_vectors
-from ..forward import _map_meg_or_eeg_channels
-from ..utils import _check_option, _validate_type
+from ..utils import _validate_type, logger, verbose, warn
 
 
 def _calc_h(cosang, stiffness=4, n_legendre_terms=50):
@@ -84,8 +87,6 @@ def _make_interpolation_matrix(pos_from, pos_to, alpha=1e-5):
         Spherical splines for scalp potential and current density mapping.
         Electroencephalography Clinical Neurophysiology, Feb; 72(2):184-7.
     """
-    from scipy import linalg
-
     pos_from = pos_from.copy()
     pos_to = pos_to.copy()
     n_from = pos_from.shape[0]
@@ -112,7 +113,7 @@ def _make_interpolation_matrix(pos_from, pos_to, alpha=1e-5):
             np.hstack([np.ones((1, n_from)), [[0]]]),
         ]
     )
-    C_inv = linalg.pinv(C)
+    C_inv = pinv(C)
 
     interpolation = np.hstack([G_to_from, np.ones((n_to, 1))]) @ C_inv[:, :-1]
     assert interpolation.shape == (n_to, n_from)
@@ -121,9 +122,9 @@ def _make_interpolation_matrix(pos_from, pos_to, alpha=1e-5):
 
 def _do_interp_dots(inst, interpolation, goods_idx, bads_idx):
     """Dot product of channel mapping matrix to channel data."""
-    from ..io.base import BaseRaw
     from ..epochs import BaseEpochs
     from ..evoked import Evoked
+    from ..io import BaseRaw
 
     _validate_type(inst, (BaseRaw, BaseEpochs, Evoked), "inst")
     inst._data[..., bads_idx, :] = np.matmul(
@@ -132,13 +133,13 @@ def _do_interp_dots(inst, interpolation, goods_idx, bads_idx):
 
 
 @verbose
-def _interpolate_bads_eeg(inst, origin, exclude=None, verbose=None):
+def _interpolate_bads_eeg(inst, origin, exclude=None, ecog=False, verbose=None):
     if exclude is None:
         exclude = list()
     bads_idx = np.zeros(len(inst.ch_names), dtype=bool)
     goods_idx = np.zeros(len(inst.ch_names), dtype=bool)
 
-    picks = pick_types(inst.info, meg=False, eeg=True, exclude=exclude)
+    picks = pick_types(inst.info, meg=False, eeg=not ecog, ecog=ecog, exclude=exclude)
     inst.info._check_consistency()
     bads_idx[picks] = [inst.ch_names[ch] in inst.info["bads"] for ch in picks]
 
@@ -165,14 +166,16 @@ def _interpolate_bads_eeg(inst, origin, exclude=None, verbose=None):
 
     pos_good = pos[goods_idx_pos] - origin
     pos_bad = pos[bads_idx_pos] - origin
-    logger.info(
-        "Computing interpolation matrix from {} sensor "
-        "positions".format(len(pos_good))
-    )
+    logger.info(f"Computing interpolation matrix from {len(pos_good)} sensor positions")
     interpolation = _make_interpolation_matrix(pos_good, pos_bad)
 
-    logger.info("Interpolating {} sensors".format(len(pos_bad)))
+    logger.info(f"Interpolating {len(pos_bad)} sensors")
     _do_interp_dots(inst, interpolation, goods_idx, bads_idx)
+
+
+@verbose
+def _interpolate_bads_ecog(inst, origin, exclude=None, verbose=None):
+    _interpolate_bads_eeg(inst, origin, exclude=exclude, ecog=True, verbose=verbose)
 
 
 def _interpolate_bads_meg(
@@ -184,6 +187,26 @@ def _interpolate_bads_meg(
 
 
 @verbose
+def _interpolate_bads_nan(
+    inst,
+    ch_type,
+    ref_meg=False,
+    exclude=(),
+    *,
+    verbose=None,
+):
+    info = _simplify_info(inst.info)
+    picks_type = pick_types(info, ref_meg=ref_meg, exclude=exclude, **{ch_type: True})
+    use_ch_names = [inst.info["ch_names"][p] for p in picks_type]
+    bads_type = [ch for ch in inst.info["bads"] if ch in use_ch_names]
+    if len(bads_type) == 0 or len(picks_type) == 0:
+        return
+    # select the bad channels to be interpolated
+    picks_bad = pick_channels(inst.info["ch_names"], bads_type, exclude=[])
+    inst._data[..., picks_bad, :] = np.nan
+
+
+@verbose
 def _interpolate_bads_meeg(
     inst,
     mode="accurate",
@@ -192,8 +215,14 @@ def _interpolate_bads_meeg(
     eeg=True,
     ref_meg=False,
     exclude=(),
+    *,
+    method=None,
     verbose=None,
 ):
+    from ..forward import _map_meg_or_eeg_channels
+
+    if method is None:
+        method = {"meg": "MNE", "eeg": "MNE"}
     bools = dict(meg=meg, eeg=eeg)
     info = _simplify_info(inst.info)
     for ch_type, do in bools.items():
@@ -209,9 +238,11 @@ def _interpolate_bads_meeg(
             continue
         # select the bad channels to be interpolated
         picks_bad = pick_channels(inst.info["ch_names"], bads_type, exclude=[])
+
+        # do MNE based interpolation
         if ch_type == "eeg":
             picks_to = picks_type
-            bad_sel = np.in1d(picks_type, picks_bad)
+            bad_sel = np.isin(picks_type, picks_bad)
         else:
             picks_to = picks_bad
             bad_sel = slice(None)
@@ -223,8 +254,7 @@ def _interpolate_bads_meeg(
 
 
 @verbose
-def _interpolate_bads_nirs(inst, method="nearest", exclude=(), verbose=None):
-    from scipy.spatial.distance import pdist, squareform
+def _interpolate_bads_nirs(inst, exclude=(), verbose=None):
     from mne.preprocessing.nirs import _validate_nirs_info
 
     if len(pick_types(inst.info, fnirs=True, exclude=())) == 0:
@@ -243,22 +273,93 @@ def _interpolate_bads_nirs(inst, method="nearest", exclude=(), verbose=None):
     chs = [inst.info["chs"][i] for i in picks_nirs]
     locs3d = np.array([ch["loc"][:3] for ch in chs])
 
-    _check_option("fnirs_method", method, ["nearest"])
+    dist = pdist(locs3d)
+    dist = squareform(dist)
 
-    if method == "nearest":
-        dist = pdist(locs3d)
-        dist = squareform(dist)
+    for bad in picks_bad:
+        dists_to_bad = dist[bad]
+        # Ignore distances to self
+        dists_to_bad[dists_to_bad == 0] = np.inf
+        # Ignore distances to other bad channels
+        dists_to_bad[bads_mask] = np.inf
+        # Find closest remaining channels for same frequency
+        closest_idx = np.argmin(dists_to_bad) + (bad % 2)
+        inst._data[bad] = inst._data[closest_idx]
 
-        for bad in picks_bad:
-            dists_to_bad = dist[bad]
-            # Ignore distances to self
-            dists_to_bad[dists_to_bad == 0] = np.inf
-            # Ignore distances to other bad channels
-            dists_to_bad[bads_mask] = np.inf
-            # Find closest remaining channels for same frequency
-            closest_idx = np.argmin(dists_to_bad) + (bad % 2)
-            inst._data[bad] = inst._data[closest_idx]
-
-        inst.info["bads"] = [ch for ch in inst.info["bads"] if ch in exclude]
+    # TODO: this seems like a bug because it does not respect reset_bads
+    inst.info["bads"] = [ch for ch in inst.info["bads"] if ch in exclude]
 
     return inst
+
+
+def _find_seeg_electrode_shaft(pos, tol=2e-3):
+    # 1) find nearest neighbor to define the electrode shaft line
+    # 2) find all contacts on the same line
+
+    dist = squareform(pdist(pos))
+    np.fill_diagonal(dist, np.inf)
+
+    shafts = list()
+    for i, n1 in enumerate(pos):
+        if any([i in shaft for shaft in shafts]):
+            continue
+        n2 = pos[np.argmin(dist[i])]  # 1
+        # https://mathworld.wolfram.com/Point-LineDistance3-Dimensional.html
+        shaft_dists = np.linalg.norm(
+            np.cross((pos - n1), (pos - n2)), axis=1
+        ) / np.linalg.norm(n2 - n1)
+        shafts.append(np.where(shaft_dists < tol)[0])  # 2
+    return shafts
+
+
+@verbose
+def _interpolate_bads_seeg(inst, exclude=None, tol=2e-3, verbose=None):
+    if exclude is None:
+        exclude = list()
+    picks = pick_types(inst.info, meg=False, seeg=True, exclude=exclude)
+    inst.info._check_consistency()
+    bads_idx = np.isin(np.array(inst.ch_names)[picks], inst.info["bads"])
+
+    if len(picks) == 0 or bads_idx.sum() == 0:
+        return
+
+    pos = inst._get_channel_positions(picks)
+
+    # Make sure only sEEG are used
+    bads_idx_pos = bads_idx[picks]
+
+    shafts = _find_seeg_electrode_shaft(pos, tol=tol)
+
+    # interpolate the bad contacts
+    picks_bad = list(np.where(bads_idx_pos)[0])
+    for shaft in shafts:
+        bads_shaft = np.array([idx for idx in picks_bad if idx in shaft])
+        if bads_shaft.size == 0:
+            continue
+        goods_shaft = shaft[np.isin(shaft, bads_shaft, invert=True)]
+        if goods_shaft.size < 2:
+            raise RuntimeError(
+                f"{goods_shaft.size} good contact(s) found in a line "
+                f" with {np.array(inst.ch_names)[bads_shaft]}, "
+                "at least 2 are required for interpolation. "
+                "Dropping this channel/these channels is recommended."
+            )
+        logger.debug(
+            f"Interpolating {np.array(inst.ch_names)[bads_shaft]} using "
+            f"data from {np.array(inst.ch_names)[goods_shaft]}"
+        )
+        bads_shaft_idx = np.where(np.isin(shaft, bads_shaft))[0]
+        goods_shaft_idx = np.where(~np.isin(shaft, bads_shaft))[0]
+        n1, n2 = pos[shaft][:2]
+        ts = np.array(
+            [
+                -np.dot(n1 - n0, n2 - n1) / np.linalg.norm(n2 - n1) ** 2
+                for n0 in pos[shaft]
+            ]
+        )
+        if np.any(np.diff(ts) < 0):
+            ts *= -1
+        y = np.arange(inst._data.shape[-1])
+        inst._data[bads_shaft] = RectBivariateSpline(
+            x=ts[goods_shaft_idx], y=y, z=inst._data[goods_shaft]
+        )(x=ts[bads_shaft_idx], y=y)  # 3

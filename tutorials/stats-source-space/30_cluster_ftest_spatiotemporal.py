@@ -13,6 +13,7 @@ permutation test across space and time.
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Eric Larson <larson.eric.d@gmail.com>
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 
@@ -21,8 +22,8 @@ from scipy import stats as stats
 
 import mne
 from mne import spatial_src_adjacency
-from mne.stats import spatio_temporal_cluster_test, summarize_clusters_stc
 from mne.datasets import sample
+from mne.stats import spatio_temporal_cluster_test, summarize_clusters_stc
 
 print(__doc__)
 

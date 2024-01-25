@@ -4,6 +4,7 @@
 #         Jean-Remi King <jeanremi.king@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from pathlib import Path
 
@@ -11,11 +12,10 @@ import numpy as np
 import pytest
 from numpy.testing import assert_array_almost_equal, assert_array_equal, assert_equal
 
-from mne import io, Epochs, read_events, pick_types
-from mne.decoding.csp import CSP, _ajd_pham, SPoC
-from mne.utils import requires_sklearn
+from mne import Epochs, io, pick_types, read_events
+from mne.decoding.csp import CSP, SPoC, _ajd_pham
 
-data_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
+data_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
 raw_fname = data_dir / "test_raw.fif"
 event_name = data_dir / "test-eve.fif"
 tmin, tmax = -0.2, 0.5
@@ -124,7 +124,7 @@ def test_csp():
         preload=True,
         proj=False,
     )
-    epochs_data = epochs.get_data()
+    epochs_data = epochs.get_data(copy=False)
     n_channels = epochs_data.shape[1]
     y = epochs.events[:, -1]
 
@@ -165,7 +165,7 @@ def test_csp():
     pytest.raises(ValueError, csp.transform, epochs)
 
     # Test plots
-    epochs.pick_types(meg="mag")
+    epochs.pick(picks="mag")
     cmap = ("RdBu", True)
     components = np.arange(n_components)
     for plot in (csp.plot_patterns, csp.plot_filters):
@@ -183,7 +183,7 @@ def test_csp():
         proj=False,
         preload=True,
     )
-    epochs_data = epochs.get_data()
+    epochs_data = epochs.get_data(copy=False)
     n_channels = epochs_data.shape[1]
 
     n_channels = epochs_data.shape[1]
@@ -245,9 +245,9 @@ def test_csp():
         assert np.abs(corr) > 0.95
 
 
-@requires_sklearn
 def test_regularized_csp():
     """Test Common Spatial Patterns algorithm using regularized covariance."""
+    pytest.importorskip("sklearn")
     raw = io.read_raw_fif(raw_fname)
     events = read_events(event_name)
     picks = pick_types(
@@ -257,7 +257,7 @@ def test_regularized_csp():
     epochs = Epochs(
         raw, events, event_id, tmin, tmax, picks=picks, baseline=(None, 0), preload=True
     )
-    epochs_data = epochs.get_data()
+    epochs_data = epochs.get_data(copy=False)
     n_channels = epochs_data.shape[1]
 
     n_components = 3
@@ -281,11 +281,11 @@ def test_regularized_csp():
         assert sources.shape[1] == n_components
 
 
-@requires_sklearn
 def test_csp_pipeline():
     """Test if CSP works in a pipeline."""
-    from sklearn.svm import SVC
+    pytest.importorskip("sklearn")
     from sklearn.pipeline import Pipeline
+    from sklearn.svm import SVC
 
     csp = CSP(reg=1, norm_trace=False)
     svc = SVC()

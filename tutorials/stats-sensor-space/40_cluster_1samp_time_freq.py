@@ -5,10 +5,9 @@
 Non-parametric 1 sample cluster statistic on single trial power
 ===============================================================
 
-This script shows how to estimate significant clusters
-in time-frequency power estimates. It uses a non-parametric
-statistical procedure based on permutations and cluster
-level statistics.
+This script shows how to estimate significant clusters in time-frequency power
+estimates. It uses a non-parametric statistical procedure based on permutations and
+cluster level statistics.
 
 The procedure consists of:
 
@@ -30,17 +29,18 @@ see also: :ref:`tut-cluster-spatiotemporal-sensor`.
 #          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 import scipy.stats
 
 import mne
-from mne.time_frequency import tfr_morlet
-from mne.stats import permutation_cluster_1samp_test
 from mne.datasets import sample
+from mne.stats import permutation_cluster_1samp_test
+from mne.time_frequency import tfr_morlet
 
 # %%
 # Set parameters
@@ -57,16 +57,13 @@ events = mne.find_events(raw, stim_channel="STI 014")
 include = []
 raw.info["bads"] += ["MEG 2443", "EEG 053"]  # bads + 2 more
 
-# picks MEG gradiometers
-picks = mne.pick_types(
-    raw.info,
-    meg="grad",
-    eeg=False,
-    eog=True,
-    stim=False,
-    include=include,
-    exclude="bads",
+# for speed, we'll only look at right-temporal gradiometers (and EOG)
+picks_eog = mne.pick_types(raw.info, eog=True)
+picks_grad = mne.pick_types(raw.info, meg="grad", exclude="bads")
+picks_rtemp = mne.pick_channels(
+    raw.info["ch_names"], mne.read_vectorview_selection("Right-temporal"), ordered=True
 )
+picks = list((set(picks_rtemp) & set(picks_grad)) | set(picks_eog))
 
 # Load condition 1
 event_id = 1
@@ -82,8 +79,6 @@ epochs = mne.Epochs(
     reject=dict(grad=4000e-13, eog=150e-6),
 )
 
-# just use right temporal sensors for speed
-epochs.pick_channels(mne.read_vectorview_selection("Right-temporal"), ordered=False)
 evoked = epochs.average()
 
 # Factor to down-sample the temporal dimension of the TFR computed by
@@ -241,8 +236,7 @@ T_obs, clusters, cluster_p_values, H0 = permutation_cluster_1samp_test(
 evoked_data = evoked.data
 times = 1e3 * evoked.times
 
-plt.figure()
-plt.subplots_adjust(0.12, 0.08, 0.96, 0.94, 0.2, 0.43)
+fig, (ax, ax2) = plt.subplots(2, layout="constrained")
 
 T_obs_plot = np.nan * np.ones_like(T_obs)
 for c, p_val in zip(clusters, cluster_p_values):
@@ -258,8 +252,7 @@ ch_idx, f_idx, t_idx = np.unravel_index(
 
 vmax = np.max(np.abs(T_obs))
 vmin = -vmax
-plt.subplot(2, 1, 1)
-plt.imshow(
+ax.imshow(
     T_obs[ch_idx],
     cmap=plt.cm.gray,
     extent=[times[0], times[-1], freqs[0], freqs[-1]],
@@ -268,7 +261,7 @@ plt.imshow(
     vmin=vmin,
     vmax=vmax,
 )
-plt.imshow(
+ax.imshow(
     T_obs_plot[ch_idx],
     cmap=plt.cm.RdBu_r,
     extent=[times[0], times[-1], freqs[0], freqs[-1]],
@@ -277,11 +270,8 @@ plt.imshow(
     vmin=vmin,
     vmax=vmax,
 )
-plt.colorbar()
-plt.xlabel("Time (ms)")
-plt.ylabel("Frequency (Hz)")
-plt.title(f"Induced power ({tfr_epochs.ch_names[ch_idx]})")
+fig.colorbar(ax.images[0])
+ax.set(xlabel="Time (ms)", ylabel="Frequency (Hz)")
+ax.set(title=f"Induced power ({tfr_epochs.ch_names[ch_idx]})")
 
-ax2 = plt.subplot(2, 1, 2)
 evoked.plot(axes=[ax2], time_unit="s")
-plt.show()

@@ -24,16 +24,14 @@ clean-cache:
 
 clean: clean-build clean-pyc clean-so clean-ctags clean-cache
 
-wheel_quiet:
-	$(PYTHON) setup.py -q sdist bdist_wheel
+wheel:
+	$(PYTHON) -m build -w
 
 sample_data:
 	@python -c "import mne; mne.datasets.sample.data_path(verbose=True);"
 
 testing_data:
 	@python -c "import mne; mne.datasets.testing.data_path(verbose=True);"
-
-pytest: test
 
 test-no-network: in
 	sudo unshare -n -- sh -c 'MNE_SKIP_NETWORK_TESTS=1 py.test mne'
@@ -56,10 +54,7 @@ pep: pre-commit
 codespell:  # running manually
 	@codespell --builtin clear,rare,informal,names,usage -w -i 3 -q 3 -S $(CODESPELL_SKIPS) --ignore-words=ignore_words.txt --uri-ignore-words-list=bu $(CODESPELL_DIRS)
 
-check-manifest:
-	check-manifest -q --ignore .circleci/config.yml,doc,logo,mne/io/*/tests/data*,mne/io/tests/data,mne/preprocessing/tests/data,.DS_Store,mne/_version.py
-
-check-readme: clean wheel_quiet
+check-readme: clean wheel
 	twine check dist/*
 
 nesting:

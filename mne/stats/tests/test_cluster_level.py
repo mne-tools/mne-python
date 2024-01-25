@@ -2,33 +2,33 @@
 #          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
-from functools import partial
 import os
+from functools import partial
 
 import numpy as np
-from scipy import sparse, linalg, stats
-from numpy.testing import (
-    assert_equal,
-    assert_array_equal,
-    assert_array_almost_equal,
-    assert_allclose,
-)
 import pytest
+from numpy.testing import (
+    assert_allclose,
+    assert_array_almost_equal,
+    assert_array_equal,
+    assert_equal,
+)
+from scipy import linalg, sparse, stats
 
-from mne import SourceEstimate, VolSourceEstimate, MixedSourceEstimate, SourceSpaces
-from mne.stats import ttest_ind_no_p, combine_adjacency
+from mne import MixedSourceEstimate, SourceEstimate, SourceSpaces, VolSourceEstimate
+from mne.stats import combine_adjacency, ttest_ind_no_p
 from mne.stats.cluster_level import (
-    permutation_cluster_test,
     f_oneway,
     permutation_cluster_1samp_test,
-    spatio_temporal_cluster_test,
+    permutation_cluster_test,
     spatio_temporal_cluster_1samp_test,
-    ttest_1samp_no_p,
+    spatio_temporal_cluster_test,
     summarize_clusters_stc,
+    ttest_1samp_no_p,
 )
-from mne.utils import catch_logging, requires_sklearn, _record_warnings
-
+from mne.utils import _record_warnings, catch_logging
 
 n_space = 50
 
@@ -330,9 +330,9 @@ def test_cluster_permutation_t_test(numba_conditional, stat_fun):
             )
 
 
-@requires_sklearn
 def test_cluster_permutation_with_adjacency(numba_conditional, monkeypatch):
     """Test cluster level permutations with adjacency matrix."""
+    pytest.importorskip("sklearn")
     from sklearn.feature_extraction.image import grid_to_graph
 
     condition1_1d, condition2_1d, condition1_2d, condition2_2d = _get_conditions()
@@ -469,7 +469,8 @@ def test_cluster_permutation_with_adjacency(numba_conditional, monkeypatch):
                 X1d_3, adjacency=adjacency, threshold=dict(start=10, step=1)
             )
         if not did_warn:
-            assert len(w) == 1
+            messages = [str(ww.message) for ww in w]
+            assert any("is more extreme" in message for message in messages), messages
             did_warn = True
 
         with pytest.raises(ValueError, match="threshold.*<= 0 for tail == -1"):
@@ -566,9 +567,9 @@ def test_permutation_cluster_signs(threshold, kind):
     assert_array_equal(clu_signs, want_signs)
 
 
-@requires_sklearn
 def test_permutation_adjacency_equiv(numba_conditional):
     """Test cluster level permutations with and without adjacency."""
+    pytest.importorskip("sklearn")
     from sklearn.feature_extraction.image import grid_to_graph
 
     rng = np.random.RandomState(0)
@@ -609,7 +610,7 @@ def test_permutation_adjacency_equiv(numba_conditional):
         )
         # make sure our output datatype is correct
         assert isinstance(clusters[0], np.ndarray)
-        assert clusters[0].dtype == bool
+        assert clusters[0].dtype == np.dtype(bool)
         assert_array_equal(clusters[0].shape, X.shape[1:])
 
         # make sure all comparisons were done; for TFCE, no perm
@@ -645,9 +646,9 @@ def test_permutation_adjacency_equiv(numba_conditional):
         assert_array_equal(stat_map, this_stat_map)
 
 
-@requires_sklearn
 def test_spatio_temporal_cluster_adjacency(numba_conditional):
     """Test spatio-temporal cluster permutations."""
+    pytest.importorskip("sklearn")
     from sklearn.feature_extraction.image import grid_to_graph
 
     condition1_1d, condition2_1d, condition1_2d, condition2_2d = _get_conditions()
@@ -846,7 +847,7 @@ def test_output_equiv(shape, out_type, adjacency):
                 assert isinstance(clu[0], slice)
             else:
                 assert isinstance(clu, np.ndarray)
-                assert clu.dtype == bool
+                assert clu.dtype == np.dtype(bool)
                 assert clu.shape == shape
             got_mask[clu] = n
         else:

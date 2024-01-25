@@ -1,23 +1,25 @@
 # Author: Jaakko Leppakangas <jaeilepp@student.jyu.fi>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
+
+import calendar
+import datetime
+from os import path
 
 import numpy as np
-from os import path
-import datetime
-import calendar
 
-from ...utils import logger, fill_doc
-from ..utils import _read_segments_file, _find_channels, _create_chs
+from ..._fiff.constants import FIFF
+from ..._fiff.meas_info import _empty_info
+from ..._fiff.utils import _create_chs, _find_channels, _read_segments_file
+from ...utils import fill_doc, logger
 from ..base import BaseRaw
-from ..meas_info import _empty_info
-from ..constants import FIFF
 
 
 @fill_doc
 def read_raw_nicolet(
     input_fname, ch_type, eog=(), ecg=(), emg=(), misc=(), preload=False, verbose=None
-):
+) -> "RawNicolet":
     """Read Nicolet data as raw object.
 
     ..note:: This reader takes data files with the extension ``.data`` as an
@@ -82,7 +84,7 @@ def _get_nicolet_info(fname, ch_type, eog, ecg, emg, misc):
 
     logger.info("Reading header...")
     header_info = dict()
-    with open(header, "r") as fid:
+    with open(header) as fid:
         for line in fid:
             var, value = line.split("=")
             if var == "elec_names":
@@ -181,11 +183,11 @@ class RawNicolet(BaseRaw):
         misc=(),
         preload=False,
         verbose=None,
-    ):  # noqa: D102
+    ):
         input_fname = path.abspath(input_fname)
         info, header_info = _get_nicolet_info(input_fname, ch_type, eog, ecg, emg, misc)
         last_samps = [header_info["num_samples"] - 1]
-        super(RawNicolet, self).__init__(
+        super().__init__(
             info,
             preload,
             filenames=[input_fname],

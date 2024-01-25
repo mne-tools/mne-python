@@ -2,10 +2,11 @@
 #         Mark Wronkiewicz <wronk@uw.edu>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import numpy as np
-from numpy.testing import assert_allclose
 import pytest
+from numpy.testing import assert_allclose
 
 from mne import read_source_spaces
 from mne.datasets import testing

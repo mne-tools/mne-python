@@ -1,20 +1,6 @@
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 """Beamformers for source localization."""
+import lazy_loader as lazy
 
-from ._lcmv import (
-    make_lcmv,
-    apply_lcmv,
-    apply_lcmv_epochs,
-    apply_lcmv_raw,
-    apply_lcmv_cov,
-)
-from ._dics import (
-    make_dics,
-    apply_dics,
-    apply_dics_epochs,
-    apply_dics_tfr_epochs,
-    apply_dics_csd,
-)
-from ._rap_music import rap_music
-from ._rap_music import trap_music
-from ._compute_beamformer import Beamformer, read_beamformer
-from .resolution_matrix import make_lcmv_resolution_matrix
+(__getattr__, __dir__, __all__) = lazy.attach_stub(__name__, __file__)
