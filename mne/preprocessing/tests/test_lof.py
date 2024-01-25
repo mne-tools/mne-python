@@ -1,12 +1,12 @@
-# -*- coding: utf-8 -*-
 # Authors: Velu Prabhakar Kumaravel <vkumaravel@fbk.eu>
 # License: BSD-3-Clause
 
 from pathlib import Path
+
 import pytest
+
 from mne.io import read_raw_fif
 from mne.preprocessing import _lof
-
 
 base_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
 raw_fname = base_dir / "test_raw.fif"

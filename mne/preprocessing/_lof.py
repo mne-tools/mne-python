@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Authors: Velu Prabhakar Kumaravel <vpr.kumaravel@gmail.com>
 # License: BSD-3-Clause
 
@@ -6,7 +5,7 @@
 import numpy as np
 
 from ..io.base import BaseRaw
-from ..utils import logger, verbose, _validate_type
+from ..utils import _validate_type, logger, verbose
 
 
 @verbose
