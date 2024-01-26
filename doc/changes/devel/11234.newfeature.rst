@@ -1,1 +1,1 @@
-Detecting Bad EEG/MEG channels using the Local outlier factor (LOF) algorithm, by :newcontrib:`Velu Prabhakar Kumaravel`.
+Detecting Bad EEG/MEG channels using the local outlier factor (LOF) algorithm in :func:`mne.preprocessing.find_bad_channels_lof`, by :newcontrib:`Velu Prabhakar Kumaravel`.
