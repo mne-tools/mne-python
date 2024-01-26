@@ -64,8 +64,7 @@ dip_freq = 11.0
 fig.axes[0].axvline(dip_freq, color="r", ls="--", lw=2, zorder=4)
 
 # %%
-# Now  we can figure out our epoching parameters and epoch the data, sanity checking
-# some values along the way knowing how the stimulation was done.
+# Now  we can figure out our epoching parameters and epoch the data and plot it.
 
 tmin, tmax = -0.08, 0.18
 epochs = mne.Epochs(raw, tmin=tmin, tmax=tmax, decim=10, picks="data", preload=True)

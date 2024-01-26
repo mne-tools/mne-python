@@ -689,7 +689,7 @@ def pick_info(info, sel=(), copy=True, verbose=None):
         with info._unlock():
             info["custom_ref_applied"] = FIFF.FIFFV_MNE_CUSTOM_REF_OFF
     # remove unused projectors
-    if info.get("projs", []):
+    if info.get("projs", False):
         projs = list()
         for p in info["projs"]:
             if any(ch_name in ch_set for ch_name in p["data"]["col_names"]):
