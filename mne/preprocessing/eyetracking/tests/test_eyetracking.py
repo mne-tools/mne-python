@@ -55,7 +55,9 @@ def test_convert_units(eyetrack_raw, eyetrack_cal):
         cal_tmp["screen_distance"] = 0.1
         raw_tmp = raw.copy()
         raw_tmp._data[0, :10] = 1900  # gaze to extremity of screen
+        np.testing.assert_allclose(raw_tmp.get_data(picks=[0])[..., :10], 1900)
         mne.preprocessing.eyetracking.convert_units(raw_tmp, cal_tmp, "radians")
+        np.testing.assert_allclose(raw_tmp.get_data(picks=[0])[..., :10], 1.09867434)
 
     with pytest.raises(ValueError, match="loc array not set"):
         raw_missing = raw.copy()
