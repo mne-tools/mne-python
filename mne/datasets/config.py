@@ -87,8 +87,12 @@ I agree to the following:
 # To update the `testing` or `misc` datasets, push or merge commits to their
 # respective repos, and make a new release of the dataset on GitHub. Then
 # update the checksum in the MNE_DATASETS dict below, and change version
-# here:                  ↓↓↓↓↓         ↓↓↓
-RELEASES = dict(testing="0.151", misc="0.27")
+# here: ↓↓↓↓↓↓↓↓
+RELEASES = dict(
+    testing="0.151",
+    misc="0.27",
+    phantom_kit="0.2",
+)
 TESTING_VERSIONED = f'mne-testing-data-{RELEASES["testing"]}'
 MISC_VERSIONED = f'mne-misc-data-{RELEASES["misc"]}'
 
@@ -176,9 +180,9 @@ MNE_DATASETS["opm"] = dict(
 )
 
 MNE_DATASETS["phantom_kit"] = dict(
-    archive_name="MNE-phantom-KIT-24bit.zip",
-    hash="md5:CAF82EE978DD473C7DE6C1034D9CCD45",
-    url="https://osf.io/download/svnt3/",
+    archive_name="MNE-phantom-KIT-data.tar.gz",
+    hash="md5:7bfdf40bbeaf17a66c99c695640e0740",
+    url="https://osf.io/fb6ya/download?version=1",
     folder_name="MNE-phantom-KIT-data",
     config_key="MNE_DATASETS_PHANTOM_KIT_PATH",
 )
