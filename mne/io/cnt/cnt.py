@@ -465,7 +465,7 @@ def _get_cnt_info(
         sfreq = np.fromfile(fid, dtype="<u2", count=1).item()
         if mode == "epoch":
             fid.seek(505)
-            cnt_info['tmin'] = np.fromfile(fid, dtype="<f4", count=1).item()
+            cnt_info["tmin"] = np.fromfile(fid, dtype="<f4", count=1).item()
         if eog == "header":
             fid.seek(402)
             eog = [idx for idx in np.fromfile(fid, dtype="i2", count=2) if idx >= 0]
@@ -559,7 +559,7 @@ def _get_cnt_info(
             baselines.append(np.fromfile(fid, dtype="i2", count=1).item())
             fid.seek(data_offset + 75 * ch_idx + 59)
             sensitivity = np.fromfile(fid, dtype="f4", count=1).item()
-            print(f'sensitivity: {sensitivity}')
+            print(f"sensitivity: {sensitivity}")
             fid.seek(data_offset + 75 * ch_idx + 71)
             cal = np.fromfile(fid, dtype="f4", count=1).item()
             if mode == "evoked":
@@ -882,7 +882,6 @@ class EpochsCNT(BaseEpochs):
         header="auto",
         verbose=None,
     ):
-
         _check_option("date_format", date_format, ["mm/dd/yy", "dd/mm/yy"])
         if date_format == "dd/mm/yy":
             _date_format = "%d/%m/%y %H:%M:%S"
@@ -919,9 +918,7 @@ class EpochsCNT(BaseEpochs):
             (events is None and event_id is None)
             or (events is not None and event_id is not None)
         ):
-            raise ValueError(
-                "Both `events` and `event_id` must be "
-                "None or not None")
+            raise ValueError("Both `events` and `event_id` must be " "None or not None")
 
         assert data.shape == (
             self._raw_extras[0]["n_epochs"],
@@ -988,7 +985,8 @@ class EpochsCNT(BaseEpochs):
                 # short Reserved; /* not used */
                 f.seek(i)
                 epoch_header = np.fromfile(
-                    f, dtype=np.dtype('<c,h,h,f,h,h'),
+                    f,
+                    dtype=np.dtype("<c,h,h,f,h,h"),
                     count=1,
                 )
                 print(epoch_header)
@@ -997,26 +995,28 @@ class EpochsCNT(BaseEpochs):
                 f.seek(i + SWEEP_HEAD_SIZE)
                 # Read the data points as a 4-byte integer array
                 data_points = np.fromfile(
-                    f, dtype=np.dtype('<i4,'),  # little-endian 4-byte integer
+                    f,
+                    dtype=np.dtype("<i4,"),  # little-endian 4-byte integer
                     count=n_pnts * n_channels,
                 )
                 print(data_points)
-                data_points = data_points.reshape((n_channels, n_pnts), order='C')
+                data_points = data_points.reshape((n_channels, n_pnts), order="C")
                 # Convert the data points to physical units in Volts
                 data[epoch, :, :] = data_points * cals[0]
             print(epoch_headers)
             print(data)
             return epoch_headers, data
-  
+
     def _epoch_event_parser(self, epoch_headers, data):
         """Format neuroscan events into mne format."""
         events = []
         cnt_info = self._raw_extras[0]
         sfreq = self.info["sfreq"]
-        tmin = cnt_info['tmin']
+        tmin = cnt_info["tmin"]
         tmax = ((data.shape[2] - 1) / self.info["sfreq"]) + tmin
-        event_time = np.arange(0, len(epoch_headers)
-                               ) * np.ceil((tmax - tmin) * sfreq).astype(int)
+        event_time = np.arange(0, len(epoch_headers)) * np.ceil(
+            (tmax - tmin) * sfreq
+        ).astype(int)
         place_holder = np.array([0] * len(epoch_headers))
         event_codes = [event[1] for event in epoch_headers]
         events = np.vstack((event_time, place_holder, event_codes)).astype(int).T
