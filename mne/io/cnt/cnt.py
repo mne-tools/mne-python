@@ -965,8 +965,7 @@ class EpochsCNT(BaseEpochs):
                     dtype=np.dtype("<i4,"),  # little-endian 4-byte integer
                     count=n_pnts * n_channels,
                 )
-                data_points = data_points.reshape(
-                    (n_pnts, n_channels), order='C').T
+                data_points = data_points.reshape((n_pnts, n_channels), order="C").T
                 # Convert the data points to physical units in Volts
                 data[epoch, :, :] = data_points * cals[0]
             return epoch_headers, data

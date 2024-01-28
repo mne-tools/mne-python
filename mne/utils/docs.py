@@ -4407,9 +4407,6 @@ docdict["cnt_header"] = """\
 """
 
 
-
-
-
 # %%
 # Y
 
