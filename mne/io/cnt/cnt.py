@@ -17,6 +17,8 @@ from ...annotations import Annotations
 from ...channels.layout import _topo_to_sphere
 from ...utils import _check_option, _validate_type, fill_doc, warn
 from ..base import BaseRaw
+from ...epochs import BaseEpochs
+from ...evoked import EvokedArray
 from ._utils import (
     CNTEventType3,
     _compute_robust_event_table_position,
@@ -24,7 +26,15 @@ from ._utils import (
     _read_teeg,
     _session_date_2_meas_date,
 )
-
+from ...utils import (
+    Bunch,
+    _check_fname,
+    _check_head_radius,
+    fill_doc,
+    logger,
+    verbose,
+    warn,
+)
 
 def _read_annotations_cnt(fname, data_format="int16"):
     """CNT Annotation File Reader.
@@ -260,7 +270,141 @@ def read_raw_cnt(
     )
 
 
-def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format, header):
+@fill_doc
+def read_epochs_cnt(
+    input_fname,
+    events=None,
+    event_id=None,
+    eog=(),
+    misc=(),
+    ecg=(),
+    emg=(),
+    data_format="auto",
+    date_format="mm/dd/yy",
+    *,
+    header="auto",
+    verbose=None,
+) -> "RawCNT":
+    r"""Reader function for Neuroscan ``.eeg`` epochs files.
+
+    Parameters
+    ----------
+    input_fname : path-like
+        Path to the Neuroscan ``.eeg`` file.
+    events : ndarray, shape (n_events, 3) | None
+        Path to events file. If array, it is the events typically returned
+        by the read_events function. If some events don't match the events
+        of interest as specified by event_id, they will be marked as 'IGNORED'
+        in the drop log. If None, it is constructed from the Neuroscan (.eeg) 
+        file with each unique event encoded with a different integer.
+    event_id : int | list of int | dict | None
+        The id of the event to consider. If dict, the keys can later be used
+        to access associated events.
+        Example::
+
+            {"auditory":1, "visual":3}
+
+        If int, a dict will be created with
+        the id as string. If a list, all events with the IDs specified
+        in the list are used. If None, the event_id is constructed from the
+        Neuroscan (.eeg) file with each descriptions copied from ``eventtype``.
+    eog : list | tuple | 'auto'
+        Names or indices of channels that should be designated EOG channels.
+        If 'auto', the channel names containing ``EOG`` or ``EYE`` are used.
+        Defaults to empty tuple.
+    %(uint16_codec)s
+    %(montage_units)s
+    %(verbose)s
+
+    Returns
+    -------
+    epochs : instance of Epochs
+        The epochs.
+
+    See Also
+    --------
+    mne.Epochs : Documentation of attributes and methods.
+
+
+    """
+
+    epochs = EpochsCNT(
+        input_fname=input_fname,
+        events=events,
+        event_id=event_id,
+        eog=eog,
+        misc=misc,
+        ecg=ecg,
+        emg=emg,
+        data_format=data_format,
+        date_format=date_format,
+        header=header,
+        verbose=verbose,
+    )
+    return epochs
+
+
+def read_evoked_cnt(fname, info, comment=None):
+    """Load evoked data from a Neuroscan .avg timelocked structure.
+
+    This function expects to find timelocked data in the structure data_name is
+    pointing at.
+
+    .. warning:: FieldTrip does not normally store the original information
+                 concerning channel location, orientation, type etc. It is
+                 therefore **highly recommended** to provide the info field.
+                 This can be obtained by reading the original raw data file
+                 with MNE functions (without preload). The returned object
+                 contains the necessary info field.
+
+    Parameters
+    ----------
+    fname : path-like
+        Path and filename of the ``.mat`` file containing the data.
+    info : dict or None
+        The info dict of the raw data file corresponding to the data to import.
+        If this is set to None, information is extracted from the
+        Neuroscan structure.
+    comment : str
+        Comment on dataset. Can be the condition.
+
+    Returns
+    -------
+    evoked : instance of EvokedArray
+        An EvokedArray containing the loaded data.
+    """
+ 
+    info, cnt_info = _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format, header, mode = 'evoked')
+
+    input_fname = cnt_info["input_fname"]
+
+    # number of points 
+    n_pnts = cnt_info['n_pnts']
+    n_channels = cnt_info["orig_nchan"]
+    cals = cnt_info["cals_avg"]
+    accepted_epochs = int(cnt_info['accepted_epochs'])
+
+    data = np.empty((n_channels, n_pnts), dtype=float)
+    UNUSED_HEAD_SIZE = 5
+    DATA_POINT_SIZE = 4
+
+    with open(input_fname, 'rb') as f:
+        # Ensure the file pointer is at the beginning of the EEG data
+        data_start = 900 + n_channels * 75
+        data_end = data_start + (n_channels * (5 + n_pnts * DATA_POINT_SIZE))
+        data_step = 5 + n_pnts * DATA_POINT_SIZE
+
+        for chan, i in enumerate(range(data_start, data_end, data_step)):
+            f.seek(i)
+            data_points = np.fromfile(f, dtype='>f', count=n_pnts, offset=UNUSED_HEAD_SIZE)
+            # Scale the data to physical units in Volts
+            data[chan] = data_points * cals[chan] / accepted_epochs * 1e-6
+
+    evoked = EvokedArray(data, info, comment=comment)
+    return evoked
+
+
+def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format, header, mode = 'raw'):
     """Read the cnt header."""
     data_offset = 900  # Size of the 'SETUP' header.
     cnt_info = dict()
@@ -294,11 +438,22 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format, he
 
         session_date = "%s %s" % (read_str(fid, 10), read_str(fid, 12))
         meas_date = _session_date_2_meas_date(session_date, date_format)
+        if mode == 'epoch':
+            fid.seek(362)
+            cnt_info['n_epochs'] = np.fromfile(fid, dtype="<u2", count=1).item()
+            cnt_info['accepted_epochs'] = np.fromfile(fid, dtype="<u2", count=1).item()
+            cnt_info['rejected_epochs'] = np.fromfile(fid, dtype="<u2", count=1).item()
+            # number of points per epoch
+            cnt_info['n_pnts'] = np.fromfile(fid, dtype="<u2", count=1).item()
 
         fid.seek(370)
         n_channels = np.fromfile(fid, dtype="<u2", count=1).item()
+        cnt_info["orig_nchan"] = n_channels
         fid.seek(376)
         sfreq = np.fromfile(fid, dtype="<u2", count=1).item()
+        if mode == 'epoch':
+            fid.seek(505)
+            cnt_info['x_min'] = np.fromfile(fid, dtype="<f4", count=1).item()
         if eog == "header":
             fid.seek(402)
             eog = [idx for idx in np.fromfile(fid, dtype="i2", count=2) if idx >= 0]
@@ -347,8 +502,10 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format, he
             cnt_info["channel_offset"] //= n_bytes
         else:
             cnt_info["channel_offset"] = 1
-
-        ch_names, cals, baselines, chs, pos = (list(), list(), list(), list(), list())
+        if mode == 'evoked':
+            ch_names, cals, baselines, chs, pos, cals_avg = (list(), list(), list(), list(), list(), list())
+        else:
+            ch_names, cals, baselines, chs, pos = (list(), list(), list(), list(), list())
 
         bads = list()
         _validate_type(header, str, "header")
@@ -379,6 +536,8 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format, he
             sensitivity = np.fromfile(fid, dtype="f4", count=1).item()
             fid.seek(data_offset + 75 * ch_idx + 71)
             cal = np.fromfile(fid, dtype="f4", count=1).item()
+            if mode == 'evoked':
+                cals_avg.append(cal)
             cals.append(cal * sensitivity * 1e-6 / 204.8)
 
     info = _empty_info(sfreq)
@@ -394,6 +553,8 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format, he
         "last_name": last_name,
     }
 
+    if mode == 'evoked':
+        cnt_info['cals_avg'] = cals_avg
     if eog == "auto":
         eog = _find_channels(ch_names, "EOG")
     if ecg == "auto":
@@ -599,3 +760,219 @@ class RawCNT(BaseRaw):
 
                 one[idx] -= baselines[idx][:, None]
                 _mult_cal_one(data[:, sample_start:sample_stop], one, idx, cals, mult)
+
+
+class EpochsCNT(BaseEpochs):
+    r"""Epochs from EEGLAB .set file.
+
+    Parameters
+    ----------
+    input_fname : path-like
+        Path to the ``.eeg`` epochs file.
+    events : path-like | array, shape (n_events, 3) | None
+        Path to events file. If array, it is the events typically returned
+        by the read_events function. If some events don't match the events
+        of interest as specified by event_id, they will be marked as 'IGNORED'
+        in the drop log. If None, it is constructed from the EEGLAB (.set) file
+        with each unique event encoded with a different integer.
+    event_id : int | list of int | dict | None
+        The id of the event to consider. If dict,
+        the keys can later be used to access associated events. Example:
+        dict(auditory=1, visual=3). If int, a dict will be created with
+        the id as string. If a list, all events with the IDs specified
+        in the list are used. If None, the event_id is constructed from the
+        EEGLAB (.set) file with each descriptions copied from ``eventtype``.
+    tmin : float
+        Start time before event.
+    baseline : None or tuple of length 2 (default (None, 0))
+        The time interval to apply baseline correction.
+        If None do not apply it. If baseline is (a, b)
+        the interval is between "a (s)" and "b (s)".
+        If a is None the beginning of the data is used
+        and if b is None then b is set to the end of the interval.
+        If baseline is equal to (None, None) all the time
+        interval is used.
+        The baseline (a, b) includes both endpoints, i.e. all
+        timepoints t such that a <= t <= b.
+    reject : dict | None
+        Rejection parameters based on peak-to-peak amplitude.
+        Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg'.
+        If reject is None then no rejection is done. Example::
+
+            reject = dict(grad=4000e-13, # T / m (gradiometers)
+                          mag=4e-12, # T (magnetometers)
+                          eeg=40e-6, # V (EEG channels)
+                          eog=250e-6 # V (EOG channels)
+                          )
+    flat : dict | None
+        Rejection parameters based on flatness of signal.
+        Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg', and values
+        are floats that set the minimum acceptable peak-to-peak amplitude.
+        If flat is None then no rejection is done.
+    reject_tmin : scalar | None
+        Start of the time window used to reject epochs (with the default None,
+        the window will start with tmin).
+    reject_tmax : scalar | None
+        End of the time window used to reject epochs (with the default None,
+        the window will end with tmax).
+    eog : list | tuple | 'auto'
+        Names or indices of channels that should be designated EOG channels.
+        If 'auto', the channel names containing ``EOG`` or ``EYE`` are used.
+        Defaults to empty tuple.
+    %(uint16_codec)s
+    %(montage_units)s
+    %(verbose)s
+
+    See Also
+    --------
+    mne.Epochs : Documentation of attributes and methods.
+
+    Notes
+    -----
+    .. versionadded:: 0.11.0
+    """
+
+    @verbose
+    def __init__(
+        self,
+        input_fname,
+        events=None,
+        event_id=None,
+        tmin=0,
+        baseline=None,
+        reject=None,
+        flat=None,
+        reject_tmin=None,
+        reject_tmax=None,
+        eog=(),
+        misc=(),
+        ecg=(),
+        emg=(),
+        data_format="auto",
+        date_format="mm/dd/yy",
+        uint16_codec=None,
+        montage_units="auto",
+        *,
+        header="auto",
+        verbose=None,
+    ):
+        if isinstance(events, (str, PathLike, Path)):
+            events = read_events(events)
+        _check_option("date_format", date_format, ["mm/dd/yy", "dd/mm/yy"])
+        if date_format == "dd/mm/yy":
+            _date_format = "%d/%m/%y %H:%M:%S"
+        else:
+            _date_format = "%m/%d/%y %H:%M:%S"
+
+        input_fname = str(
+            _check_fname(fname=input_fname, must_exist=True, overwrite="read")
+        )
+        logger.info("Extracting .eeg Parameters from %s..." % input_fname)
+        self.info, cnt_info = _get_cnt_info(
+            input_fname, eog, ecg, emg, misc,
+            data_format, _date_format, header, mode='epoch'
+        )
+
+        cnt_info.update(input_fname=input_fname)
+        self._raw_extras = [cnt_info]
+        self._filenames = []
+        epoch_headers, data = self._read_cnt_epochs_data()
+        print(epoch_headers)
+        events = [event[1] for event in epoch_headers]
+        print(events)
+        if event_id is None:  # convert to int to make typing-checks happy
+            event_id = {str(e): int(e) for e in np.unique(events)}
+        print(event_id)
+        if not (
+            (events is None and event_id is None)
+            or (events is not None and event_id is not None)
+        ):
+            raise ValueError(
+                "Both `events` and `event_id` must be "
+                "None or not None")
+                
+
+        # if eeg.trials <= 1:
+        #     raise ValueError(
+        #         "The file does not seem to contain epochs "
+        #         "(trials less than 2). "
+        #         "You should try using read_raw_cnt function."
+        #     )
+
+        assert data.shape == (
+            self._raw_extras[0]["n_epochs"],
+            self.info["nchan"],
+            self._raw_extras[0]["n_pnts"],
+        )
+        tmax = ((data.shape[2] - 1) / self.info["sfreq"]) + tmin
+
+        super().__init__(
+            self.info,
+            data,
+            events,
+            event_id,
+            tmin,
+            tmax,
+            baseline,
+            reject=reject,
+            flat=flat,
+            reject_tmin=reject_tmin,
+            reject_tmax=reject_tmax,
+            filename=input_fname,
+            verbose=verbose,
+        )
+
+        # data are preloaded but _bad_dropped is not set so we do it here:
+        self._bad_dropped = True
+
+        _set_dig_montage_in_init(self, eeg_montage)
+
+        logger.info("Ready.")
+
+    def _read_cnt_epochs_data(self):
+
+        """Read epochs data from .eeg file."""
+
+        cnt_info = self._raw_extras[0]
+        info = self.info
+
+        input_fname = cnt_info["input_fname"]
+
+        n_epochs = cnt_info['n_epochs']
+        # number of points per epoch
+        n_pnts = cnt_info['n_pnts']
+        n_channels = cnt_info["orig_nchan"]
+        cals = [d['cal'] for d in info["chs"]]
+
+        data = np.empty((n_epochs, n_channels, n_pnts), dtype=float)
+        epoch_headers = []
+        SWEEP_HEAD_SIZE = 13
+        DATA_POINT_SIZE = 4
+
+        with open(input_fname, 'rb') as f:
+            # Ensure the file pointer is at the beginning of the EEG data
+            data_start = 900 + n_channels * 75
+            data_end = data_start + n_epochs * (SWEEP_HEAD_SIZE + n_pnts * n_channels * DATA_POINT_SIZE)
+            data_step = SWEEP_HEAD_SIZE + n_pnts * n_channels * DATA_POINT_SIZE
+
+            for epoch, i in enumerate(range(data_start, data_end, data_step)):
+                epoch_header = np.fromfile(
+                    f, dtype=np.dtype('<c,h,h,f,h,h'),
+                    count=1, offset=i
+                )
+                # last short not used
+                epoch_headers.append(epoch_header[0][:-1])
+                # Read the data points as a 4-byte integer array
+                data_points = np.fromfile(
+                    f, dtype=np.dtype('<i4'),  # little-endian 4-byte integer
+                    count=n_pnts * n_channels, offset=i + SWEEP_HEAD_SIZE
+                )
+                data_points = data_points.reshape(n_channels, n_pnts)
+                # Convert the data points to physical units in Volts
+                data[epoch, :, :] = data_points * np.array(cals)[:, None]
+
+            return epoch_headers, data
+    def _epoch_event_parser(epoch_headers):
+        """Parse an epoch header."""
+        accept, ttype, correct, rt, response, _ = epoch_header
+        return accept, ttype, correct, rt, response, ''
