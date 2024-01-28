@@ -1616,9 +1616,7 @@ def events_from_annotations(
         inds = values = np.array([]).astype(int)
         for annot in annotations[event_sel]:
             annot_offset = annot["onset"] + annot["duration"]
-            _onsets = np.arange(
-                start=annot["onset"], stop=annot_offset, step=chunk_duration
-            )
+            _onsets = np.arange(annot["onset"], annot_offset, chunk_duration)
             good_events = annot_offset - _onsets >= chunk_duration
             if good_events.any():
                 _onsets = _onsets[good_events]

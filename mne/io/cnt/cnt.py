@@ -15,10 +15,18 @@ from ..._fiff.meas_info import _empty_info
 from ..._fiff.utils import _create_chs, _find_channels, _mult_cal_one, read_str
 from ...annotations import Annotations
 from ...channels.layout import _topo_to_sphere
-from ...utils import _check_option, _validate_type, fill_doc, warn
-from ..base import BaseRaw
 from ...epochs import BaseEpochs
 from ...evoked import EvokedArray
+from ...utils import (
+    _check_fname,
+    _check_option,
+    _validate_type,
+    fill_doc,
+    logger,
+    verbose,
+    warn,
+)
+from ..base import BaseRaw
 from ._utils import (
     CNTEventType3,
     _compute_robust_event_table_position,
@@ -26,15 +34,7 @@ from ._utils import (
     _read_teeg,
     _session_date_2_meas_date,
 )
-from ...utils import (
-    Bunch,
-    _check_fname,
-    _check_head_radius,
-    fill_doc,
-    logger,
-    verbose,
-    warn,
-)
+
 
 def _read_annotations_cnt(fname, data_format="int16"):
     """CNT Annotation File Reader.
@@ -295,7 +295,7 @@ def read_epochs_cnt(
         Path to events file. If array, it is the events typically returned
         by the read_events function. If some events don't match the events
         of interest as specified by event_id, they will be marked as 'IGNORED'
-        in the drop log. If None, it is constructed from the Neuroscan (.eeg) 
+        in the drop log. If None, it is constructed from the Neuroscan (.eeg)
         file with each unique event encoded with a different integer.
     event_id : int | list of int | dict | None
         The id of the event to consider. If dict, the keys can later be used
@@ -327,7 +327,6 @@ def read_epochs_cnt(
 
 
     """
-
     epochs = EpochsCNT(
         input_fname=input_fname,
         events=events,
@@ -373,22 +372,31 @@ def read_evoked_cnt(fname, info, comment=None):
     evoked : instance of EvokedArray
         An EvokedArray containing the loaded data.
     """
- 
-    info, cnt_info = _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format, header, mode = 'evoked')
+    info, cnt_info = _get_cnt_info(
+        input_fname,
+        eog,
+        ecg,
+        emg,
+        misc,
+        data_format,
+        date_format,
+        header,
+        mode="evoked",
+    )
 
     input_fname = cnt_info["input_fname"]
 
-    # number of points 
-    n_pnts = cnt_info['n_pnts']
+    # number of points
+    n_pnts = cnt_info["n_pnts"]
     n_channels = cnt_info["orig_nchan"]
     cals = cnt_info["cals_avg"]
-    accepted_epochs = int(cnt_info['accepted_epochs'])
+    accepted_epochs = int(cnt_info["accepted_epochs"])
 
     data = np.empty((n_channels, n_pnts), dtype=float)
     UNUSED_HEAD_SIZE = 5
     DATA_POINT_SIZE = 4
 
-    with open(input_fname, 'rb') as f:
+    with open(input_fname, "rb") as f:
         # Ensure the file pointer is at the beginning of the EEG data
         data_start = 900 + n_channels * 75
         data_end = data_start + (n_channels * (5 + n_pnts * DATA_POINT_SIZE))
@@ -396,7 +404,9 @@ def read_evoked_cnt(fname, info, comment=None):
 
         for chan, i in enumerate(range(data_start, data_end, data_step)):
             f.seek(i)
-            data_points = np.fromfile(f, dtype='>f', count=n_pnts, offset=UNUSED_HEAD_SIZE)
+            data_points = np.fromfile(
+                f, dtype=">f", count=n_pnts, offset=UNUSED_HEAD_SIZE
+            )
             # Scale the data to physical units in Volts
             data[chan] = data_points * cals[chan] / accepted_epochs * 1e-6
 
@@ -404,7 +414,9 @@ def read_evoked_cnt(fname, info, comment=None):
     return evoked
 
 
-def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format, header, mode = 'raw'):
+def _get_cnt_info(
+    input_fname, eog, ecg, emg, misc, data_format, date_format, header, mode="raw"
+):
     """Read the cnt header."""
     data_offset = 900  # Size of the 'SETUP' header.
     cnt_info = dict()
@@ -438,20 +450,20 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format, he
 
         session_date = "%s %s" % (read_str(fid, 10), read_str(fid, 12))
         meas_date = _session_date_2_meas_date(session_date, date_format)
-        if mode == 'epoch':
+        if mode == "epoch":
             fid.seek(362)
-            cnt_info['n_epochs'] = np.fromfile(fid, dtype="<u2", count=1).item()
-            cnt_info['accepted_epochs'] = np.fromfile(fid, dtype="<u2", count=1).item()
-            cnt_info['rejected_epochs'] = np.fromfile(fid, dtype="<u2", count=1).item()
+            cnt_info["n_epochs"] = np.fromfile(fid, dtype="<u2", count=1).item()
+            cnt_info["accepted_epochs"] = np.fromfile(fid, dtype="<u2", count=1).item()
+            cnt_info["rejected_epochs"] = np.fromfile(fid, dtype="<u2", count=1).item()
             # number of points per epoch
-            cnt_info['n_pnts'] = np.fromfile(fid, dtype="<u2", count=1).item()
+            cnt_info["n_pnts"] = np.fromfile(fid, dtype="<u2", count=1).item()
 
         fid.seek(370)
         n_channels = np.fromfile(fid, dtype="<u2", count=1).item()
         cnt_info["orig_nchan"] = n_channels
         fid.seek(376)
         sfreq = np.fromfile(fid, dtype="<u2", count=1).item()
-        if mode == 'epoch':
+        if mode == "epoch":
             fid.seek(505)
             cnt_info['tmin'] = np.fromfile(fid, dtype="<f4", count=1).item()
         if eog == "header":
@@ -502,10 +514,23 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format, he
             cnt_info["channel_offset"] //= n_bytes
         else:
             cnt_info["channel_offset"] = 1
-        if mode == 'evoked':
-            ch_names, cals, baselines, chs, pos, cals_avg = (list(), list(), list(), list(), list(), list())
+        if mode == "evoked":
+            ch_names, cals, baselines, chs, pos, cals_avg = (
+                list(),
+                list(),
+                list(),
+                list(),
+                list(),
+                list(),
+            )
         else:
-            ch_names, cals, baselines, chs, pos = (list(), list(), list(), list(), list())
+            ch_names, cals, baselines, chs, pos = (
+                list(),
+                list(),
+                list(),
+                list(),
+                list(),
+            )
 
         bads = list()
         _validate_type(header, str, "header")
@@ -537,7 +562,7 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format, he
             print(f'sensitivity: {sensitivity}')
             fid.seek(data_offset + 75 * ch_idx + 71)
             cal = np.fromfile(fid, dtype="f4", count=1).item()
-            if mode == 'evoked':
+            if mode == "evoked":
                 cals_avg.append(cal)
             cals.append(cal * sensitivity * 1e-6 / 204.8)
 
@@ -554,8 +579,8 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format, he
         "last_name": last_name,
     }
 
-    if mode == 'evoked':
-        cnt_info['cals_avg'] = cals_avg
+    if mode == "evoked":
+        cnt_info["cals_avg"] = cals_avg
     if eog == "auto":
         eog = _find_channels(ch_names, "EOG")
     if ecg == "auto":
@@ -869,8 +894,15 @@ class EpochsCNT(BaseEpochs):
         )
         logger.info("Extracting .eeg Parameters from %s..." % input_fname)
         self.info, cnt_info = _get_cnt_info(
-            input_fname, eog, ecg, emg, misc,
-            data_format, _date_format, header, mode='epoch'
+            input_fname,
+            eog,
+            ecg,
+            emg,
+            misc,
+            data_format,
+            _date_format,
+            header,
+            mode="epoch",
         )
 
         cnt_info.update(input_fname=input_fname)
@@ -920,30 +952,30 @@ class EpochsCNT(BaseEpochs):
         logger.info("Ready.")
 
     def _read_cnt_epochs_data(self):
-
         """Read epochs data from .eeg file."""
-
         cnt_info = self._raw_extras[0]
         info = self.info
 
         input_fname = cnt_info["input_fname"]
 
-        n_epochs = cnt_info['n_epochs']
+        n_epochs = cnt_info["n_epochs"]
         # number of points per epoch
-        n_pnts = cnt_info['n_pnts']
+        n_pnts = cnt_info["n_pnts"]
         n_channels = cnt_info["orig_nchan"]
-        cals = [d['cal'] for d in info["chs"]]
+        cals = [d["cal"] for d in info["chs"]]
 
         data = np.empty((n_epochs, n_channels, n_pnts), dtype=float)
         epoch_headers = []
         SWEEP_HEAD_SIZE = 13
         DATA_POINT_SIZE = 4
 
-        with open(input_fname, 'rb') as f:
+        with open(input_fname, "rb") as f:
             # Ensure the file pointer is at the beginning of the EEG data
 
             data_start = 900 + n_channels * 75
-            data_end = data_start + n_epochs * (SWEEP_HEAD_SIZE + n_pnts * n_channels * DATA_POINT_SIZE)
+            data_end = data_start + n_epochs * (
+                SWEEP_HEAD_SIZE + n_pnts * n_channels * DATA_POINT_SIZE
+            )
             data_step = SWEEP_HEAD_SIZE + n_pnts * n_channels * DATA_POINT_SIZE
 
             for epoch, i in enumerate(range(data_start, data_end, data_step)):

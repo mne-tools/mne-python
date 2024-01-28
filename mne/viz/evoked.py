@@ -390,9 +390,9 @@ def _plot_evoked(
                 ax.set_xlabel("")
         ims = [ax.images[0] for ax in axes.values()]
         clims = np.array([im.get_clim() for im in ims])
-        min, max = clims.min(), clims.max()
+        min_, max_ = clims.min(), clims.max()
         for im in ims:
-            im.set_clim(min, max)
+            im.set_clim(min_, max_)
         figs = [ax.get_figure() for ax in axes.values()]
         if len(set(figs)) == 1:
             return figs[0]
@@ -1171,7 +1171,7 @@ def plot_evoked_topo(
     scalings=None,
     title=None,
     proj=False,
-    vline=[0.0],
+    vline=(0.0,),
     fig_background=None,
     merge_grads=False,
     legend=True,

@@ -925,7 +925,13 @@ def shift_time_events(events, ids, tshift, sfreq):
 
 @fill_doc
 def make_fixed_length_events(
-    raw, id=1, start=0, stop=None, duration=1.0, first_samp=True, overlap=0.0
+    raw,
+    id=1,  # noqa: A002
+    start=0,
+    stop=None,
+    duration=1.0,
+    first_samp=True,
+    overlap=0.0,
 ):
     """Make a set of :term:`events` separated by a fixed duration.
 
