@@ -1000,8 +1000,7 @@ class EpochsCNT(BaseEpochs):
                     count=n_pnts * n_channels,
                 )
                 print(data_points)
-                data_points = data_points.reshape(
-                    (n_pnts, n_channels), order='C').T
+                data_points = data_points.reshape((n_pnts, n_channels), order="C").T
                 # Convert the data points to physical units in Volts
                 data[epoch, :, :] = data_points * cals[0]
             print(epoch_headers)
