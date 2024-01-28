@@ -4377,6 +4377,39 @@ xscale : 'linear' | 'log'
     Scale of the frequency axis. Default is ``'linear'``.
 """
 
+docdict["cnt_events"] = """\
+events : array of int, shape (n_events, 3) | None
+    The array of :term:`events`. The first column contains the event time in
+    samples, with :term:`first_samp` included. The third column contains the
+    event id.
+    If some events don't match the events of interest as specified by
+    ``event_id``, they will be marked as ``IGNORED`` in the drop log.
+    If None, it is constructed from the Neuroscan (.eeg) file
+        with each unique event represented with the extracted event codes and
+        generated sample onset times.
+"""
+
+docdict["cnt_event_id"] = """\
+event_id : int | list of int | dict | None
+        The id of the event to consider. If dict,
+        the keys can later be used to access associated events. Example:
+        dict(auditory=1, visual=3). If int, a dict will be created with
+        the id as string. If a list, all events with the IDs specified
+        in the list are used. If None, the event_id is constructed from the
+        Neuroscan (.eeg) file.
+"""
+docdict["cnt_header"] = """\
+    header : ``'auto'`` | ``'new'`` | ``'old'``
+        Defines the header format. Used to describe how bad channels
+        are formatted. If auto, reads using old and new header and
+        if either contain a bad channel make channel bad.
+        Defaults to ``'auto'``.
+"""
+
+
+
+
+
 # %%
 # Y
 

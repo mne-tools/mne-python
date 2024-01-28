@@ -559,7 +559,6 @@ def _get_cnt_info(
             baselines.append(np.fromfile(fid, dtype="i2", count=1).item())
             fid.seek(data_offset + 75 * ch_idx + 59)
             sensitivity = np.fromfile(fid, dtype="f4", count=1).item()
-            print(f"sensitivity: {sensitivity}")
             fid.seek(data_offset + 75 * ch_idx + 71)
             cal = np.fromfile(fid, dtype="f4", count=1).item()
             if mode == "evoked":
@@ -659,11 +658,7 @@ class RawCNT(BaseRaw):
         Defaults to ``'auto'``.
     date_format : ``'mm/dd/yy'`` | ``'dd/mm/yy'``
         Format of date in the header. Defaults to ``'mm/dd/yy'``.
-    header : ``'auto'`` | ``'new'`` | ``'old'``
-        Defines the header format. Used to describe how bad channels
-        are formatted. If auto, reads using old and new header and
-        if either contain a bad channel make channel bad.
-        Defaults to ``'auto'``.
+    %(cnt_header)s
     %(preload)s
     stim_channel : bool | None
         Add a stim channel from the events. Defaults to None to trigger a
@@ -789,64 +784,41 @@ class RawCNT(BaseRaw):
 
 
 class EpochsCNT(BaseEpochs):
-    r"""Epochs from EEGLAB .set file.
+    """Epochs from EEGLAB .set file.
 
     Parameters
     ----------
     input_fname : path-like
         Path to the ``.eeg`` epochs file.
-    events : path-like | array, shape (n_events, 3) | None
-        Path to events file. If array, it is the events typically returned
-        by the read_events function. If some events don't match the events
-        of interest as specified by event_id, they will be marked as 'IGNORED'
-        in the drop log. If None, it is constructed from the EEGLAB (.set) file
-        with each unique event encoded with a different integer.
-    event_id : int | list of int | dict | None
-        The id of the event to consider. If dict,
-        the keys can later be used to access associated events. Example:
-        dict(auditory=1, visual=3). If int, a dict will be created with
-        the id as string. If a list, all events with the IDs specified
-        in the list are used. If None, the event_id is constructed from the
-        EEGLAB (.set) file with each descriptions copied from ``eventtype``.
-    tmin : float
-        Start time before event.
-    baseline : None or tuple of length 2 (default (None, 0))
-        The time interval to apply baseline correction.
-        If None do not apply it. If baseline is (a, b)
-        the interval is between "a (s)" and "b (s)".
-        If a is None the beginning of the data is used
-        and if b is None then b is set to the end of the interval.
-        If baseline is equal to (None, None) all the time
-        interval is used.
-        The baseline (a, b) includes both endpoints, i.e. all
-        timepoints t such that a <= t <= b.
-    reject : dict | None
-        Rejection parameters based on peak-to-peak amplitude.
-        Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg'.
-        If reject is None then no rejection is done. Example::
-
-            reject = dict(grad=4000e-13, # T / m (gradiometers)
-                          mag=4e-12, # T (magnetometers)
-                          eeg=40e-6, # V (EEG channels)
-                          eog=250e-6 # V (EOG channels)
-                          )
-    flat : dict | None
-        Rejection parameters based on flatness of signal.
-        Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg', and values
-        are floats that set the minimum acceptable peak-to-peak amplitude.
-        If flat is None then no rejection is done.
-    reject_tmin : scalar | None
-        Start of the time window used to reject epochs (with the default None,
-        the window will start with tmin).
-    reject_tmax : scalar | None
-        End of the time window used to reject epochs (with the default None,
-        the window will end with tmax).
+    %(cnt_events)s
+    %(cnt_event_id)s
+    %(tmin_epochs)s
+    %(baseline_epochs)s
+    %(reject_epochs)s
+    %(flat)s
+    %(epochs_reject_tmin_tmax)s
     eog : list | tuple | 'auto'
         Names or indices of channels that should be designated EOG channels.
         If 'auto', the channel names containing ``EOG`` or ``EYE`` are used.
         Defaults to empty tuple.
-    %(uint16_codec)s
-    %(montage_units)s
+    misc : list | tuple
+        Names or indices of channels that should be designated MISC channels.
+        Defaults to empty tuple.
+    ecg : list | tuple | 'auto'
+        Names or indices of channels that should be designated ECG channels.
+        If 'auto', the channel names containing ``ECG`` are used.
+        Defaults to empty tuple.
+    emg : list | tuple
+        Names or indices of channels that should be designated EMG channels.
+        If 'auto', the channel names containing ``EMG`` are used.
+        Defaults to empty tuple.
+    data_format : ``'auto'`` | ``'int16'`` | ``'int32'``
+        Defines the data format the data is read in. If ``'auto'``, it is
+        determined from the file header using ``numsamples`` field.
+        Defaults to ``'auto'``.
+    date_format : ``'mm/dd/yy'`` | ``'dd/mm/yy'``
+        Format of date in the header. Defaults to ``'mm/dd/yy'``.
+    %(cnt_header)s
     %(verbose)s
 
     See Also
@@ -876,8 +848,6 @@ class EpochsCNT(BaseEpochs):
         emg=(),
         data_format="auto",
         date_format="mm/dd/yy",
-        uint16_codec=None,
-        montage_units="auto",
         *,
         header="auto",
         verbose=None,
@@ -908,12 +878,9 @@ class EpochsCNT(BaseEpochs):
         self._raw_extras = [cnt_info]
         self._filenames = []
         epoch_headers, data = self._read_cnt_epochs_data()
-        print(epoch_headers)
         events = self._epoch_event_parser(epoch_headers, data)
-        print(events)
         if event_id is None:  # convert to int to make typing-checks happy
             event_id = {str(e): int(e) for e in np.unique(events.T[2])}
-        print(event_id)
         if not (
             (events is None and event_id is None)
             or (events is not None and event_id is not None)
@@ -989,7 +956,6 @@ class EpochsCNT(BaseEpochs):
                     dtype=np.dtype("<c,h,h,f,h,h"),
                     count=1,
                 )
-                print(epoch_header)
                 # last short not used
                 epoch_headers.append(epoch_header[0])
                 f.seek(i + SWEEP_HEAD_SIZE)
@@ -999,13 +965,10 @@ class EpochsCNT(BaseEpochs):
                     dtype=np.dtype("<i4,"),  # little-endian 4-byte integer
                     count=n_pnts * n_channels,
                 )
-                print(data_points)
                 data_points = data_points.reshape(
                     (n_pnts, n_channels), order='C').T
                 # Convert the data points to physical units in Volts
                 data[epoch, :, :] = data_points * cals[0]
-            print(epoch_headers)
-            print(data)
             return epoch_headers, data
 
     def _epoch_event_parser(self, epoch_headers, data):
