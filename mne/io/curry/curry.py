@@ -197,10 +197,10 @@ def _read_curry_parameters(fname):
             if any(var_name in line for var_name in var_names):
                 key, val = line.replace(" ", "").replace("\n", "").split("=")
                 param_dict[key.lower().replace("_", "")] = val
-            for type in CHANTYPES:
-                if "DEVICE_PARAMETERS" + CHANTYPES[type] + " START" in line:
+            for key, type_ in CHANTYPES.items():
+                if f"DEVICE_PARAMETERS{type_} START" in line:
                     data_unit = next(fid)
-                    unit_dict[type] = (
+                    unit_dict[key] = (
                         data_unit.replace(" ", "").replace("\n", "").split("=")[-1]
                     )
 

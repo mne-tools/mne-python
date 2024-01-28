@@ -50,6 +50,7 @@ from mne.time_frequency import tfr_multitaper
 # %%
 # First, we load and preprocess the data. We use runs 6, 10, and 14 from
 # subject 1 (these runs contains hand and feet motor imagery).
+
 fnames = eegbci.load_data(subject=1, runs=(6, 10, 14))
 raw = concatenate_raws([read_raw_edf(f, preload=True) for f in fnames])
 
@@ -59,6 +60,7 @@ raw.annotations.rename(dict(T1="hands", T2="feet"))
 
 # %%
 # Now we can create 5-second epochs around events of interest.
+
 tmin, tmax = -1, 4
 event_ids = dict(hands=2, feet=3)  # map event IDs to tasks
 

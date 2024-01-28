@@ -380,6 +380,10 @@ class EvokedField:
         if self._show_density:
             r._dock_add_label(value="max value", align=True, layout=layout)
 
+            @_auto_weakref
+            def _callback(vmax, kind, scaling):
+                self.set_vmax(vmax / scaling, kind=kind)
+
             for surf_map in self._surf_maps:
                 if surf_map["map_kind"] == "meg":
                     scaling = DEFAULTS["scalings"]["grad"]
@@ -388,10 +392,6 @@ class EvokedField:
                 rng = [0, np.max(np.abs(surf_map["data"])) * scaling]
                 hlayout = r._dock_add_layout(vertical=False)
 
-                @_auto_weakref
-                def _callback(vmax, type, scaling):
-                    self.set_vmax(vmax / scaling, type=type)
-
                 self._widgets[
                     f"vmax_slider_{surf_map['map_kind']}"
                 ] = r._dock_add_slider(
@@ -399,7 +399,7 @@ class EvokedField:
                     value=surf_map["map_vmax"] * scaling,
                     rng=rng,
                     callback=partial(
-                        _callback, type=surf_map["map_kind"], scaling=scaling
+                        _callback, kind=surf_map["map_kind"], scaling=scaling
                     ),
                     double=True,
                     layout=hlayout,
@@ -411,7 +411,7 @@ class EvokedField:
                     value=surf_map["map_vmax"] * scaling,
                     rng=rng,
                     callback=partial(
-                        _callback, type=surf_map["map_kind"], scaling=scaling
+                        _callback, kind=surf_map["map_kind"], scaling=scaling
                     ),
                     layout=hlayout,
                 )
@@ -473,17 +473,15 @@ class EvokedField:
         if self._show_density:
             surf_map["mesh"].update_overlay(name="field", rng=[vmin, vmax])
             # Update the GUI widgets
-            # TODO: type is undefined here and only avoids a flake warning because it's
-            # a builtin!
-            if type == "meg":  # noqa: E721
+            if kind == "meg":
                 scaling = DEFAULTS["scalings"]["grad"]
             else:
                 scaling = DEFAULTS["scalings"]["eeg"]
             with disable_ui_events(self):
-                widget = self._widgets.get(f"vmax_slider_{type}", None)
+                widget = self._widgets.get(f"vmax_slider_{kind}", None)
                 if widget is not None:
                     widget.set_value(vmax * scaling)
-                widget = self._widgets.get(f"vmax_spin_{type}", None)
+                widget = self._widgets.get(f"vmax_spin_{kind}", None)
                 if widget is not None:
                     widget.set_value(vmax * scaling)
 
@@ -543,28 +541,28 @@ class EvokedField:
                 ),
             )
 
-    def set_vmax(self, vmax, type="meg"):
+    def set_vmax(self, vmax, kind="meg"):
         """Change the color range of the density maps.
 
         Parameters
         ----------
         vmax : float
             The new maximum value of the color range.
-        type : 'meg' | 'eeg'
+        kind : 'meg' | 'eeg'
             Which field map to apply the new color range to.
         """
-        _check_option("type", type, ["eeg", "meg"])
+        _check_option("type", kind, ["eeg", "meg"])
         for surf_map in self._surf_maps:
-            if surf_map["map_kind"] == type:
+            if surf_map["map_kind"] == kind:
                 publish(
                     self,
                     ColormapRange(
-                        kind=f"field_strength_{type}",
+                        kind=f"field_strength_{kind}",
                         fmin=-vmax,
                         fmax=vmax,
                     ),
                 )
-            break
+                break
         else:
             raise ValueError(f"No {type.upper()} field map currently shown.")
 
@@ -573,4 +571,4 @@ class EvokedField:
         for surf_map in self._surf_maps:
             current_data = surf_map["data_interp"](self._current_time)
             vmax = float(np.max(current_data))
-            self.set_vmax(vmax, type=surf_map["map_kind"])
+            self.set_vmax(vmax, kind=surf_map["map_kind"])
