@@ -75,9 +75,7 @@ CNTEventType3 = namedtuple(
 
 EpochHeader = namedtuple(
     "EpochHeader",
-    (
-        "Accept Ttype Correct Rt Response Reserved"
-    ),
+    ("Accept Ttype Correct Rt Response Reserved"),
 )
 # char Accept; /* accept byte */
 # short Ttype; /* trial type */
@@ -97,7 +95,7 @@ def _get_event_parser(event_type):
     elif event_type == 3:
         event_maker = CNTEventType3
         struct_pattern = "<HBclhhfccc"  # Same as event type 2
-    elif event_type == 'epoch':
+    elif event_type == "epoch":
         event_maker = EpochHeader
         struct_pattern = "<chhfh"
     else:
