@@ -566,7 +566,13 @@ class RawCNT(BaseRaw):
                 # Earlier comment says n_samples is unreliable, but I think it
                 # is because it needed to be changed to unsigned int
                 # See: PR #12393
-                sample_stop = sample_start + min((n_samples, block_size // f_channels, data_left // f_channels - sample_start))
+                sample_stop = sample_start + min(
+                    (
+                        n_samples,
+                        block_size // f_channels,
+                        data_left // f_channels - sample_start,
+                    )
+                )
                 n_samps = sample_stop - sample_start
                 one = np.zeros((n_channels, n_samps))
 
