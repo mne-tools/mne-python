@@ -336,6 +336,7 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format, he
                 )
                 n_bytes = 2
                 n_samples = data_size // (n_bytes * n_channels)
+                # See: PR #12393
                 annotations = _read_annotations_cnt(input_fname, data_format="int16")
                 if annotations.onset[-1] * sfreq > n_samples:
                     n_bytes = 4

@@ -16,6 +16,7 @@ from mne.io.tests.test_raw import _test_raw_reader
 
 data_path = testing.data_path(download=False)
 fname = data_path / "CNT" / "scan41_short.cnt"
+# Contains bad spans and could not be read properly before PR #12393
 fname_bad_spans = data_path / "CNT" / "test_CNT_events_mne_JWoess_clipped.cnt"
 
 
@@ -84,6 +85,16 @@ def test_compare_events_and_annotations():
     assert len(annot) == 6
     assert_array_equal(annot.onset[:-1], events[:, 0] / raw.info["sfreq"])
     assert "STI 014" not in raw.info["ch_names"]
+
+
+@testing.requires_testing_data
+def verify_reading_bytes():
+    raw_16 = read_raw_cnt(fname, preload=True)
+    raw_32 = read_raw_cnt(fname_bad_spans, preload=True)
+
+    # Verify that the number of bytes read is correct
+    assert len(raw_16) == 3070
+    assert len(raw_32) == 90000
 
 
 @testing.requires_testing_data
