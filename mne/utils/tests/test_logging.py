@@ -63,7 +63,7 @@ def test_frame_info(capsys, monkeypatch):
 
 def test_how_to_deal_with_warnings():
     """Test filter some messages out of warning records."""
-    with pytest.warns(UserWarning, match="bb") as w:
+    with pytest.warns(Warning, match="(bb|aa) warning") as w:
         warnings.warn("aa warning", UserWarning)
         warnings.warn("bb warning", UserWarning)
         warnings.warn("bb warning", RuntimeWarning)
