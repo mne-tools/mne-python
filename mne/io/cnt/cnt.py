@@ -310,6 +310,7 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format, he
         # too reliable. That's why we have option for setting n_bytes manually.
         fid.seek(864)
         n_samples = np.fromfile(fid, dtype="<u4", count=1).item()
+        n_samples_header = n_samples
         fid.seek(869)
         lowcutoff = np.fromfile(fid, dtype="f4", count=1).item()
         fid.seek(2, 1)
@@ -335,12 +336,24 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format, he
                 )
                 n_bytes = 2
                 n_samples = data_size // (n_bytes * n_channels)
+                annotations = _read_annotations_cnt(input_fname,
+                                                    data_format='int16')
+                if annotations.onset[-1] * sfreq > n_samples:
+                    n_bytes = 4
+                    n_samples = n_samples_header
+                    warn(
+                        "Annotations are outside data range. "
+                        "Changing data format to 'int32'."
+                    )
             else:
                 n_bytes = data_size // (n_samples * n_channels)
         else:
             n_bytes = 2 if data_format == "int16" else 4
             n_samples = data_size // (n_bytes * n_channels)
 
+            # See PR #12393
+            if n_samples_header != 0:
+                n_samples = n_samples_header
         # Channel offset refers to the size of blocks per channel in the file.
         cnt_info["channel_offset"] = np.fromfile(fid, dtype="<i4", count=1).item()
         if cnt_info["channel_offset"] > 1:
