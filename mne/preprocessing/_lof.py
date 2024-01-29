@@ -25,13 +25,14 @@ def find_bad_channels_lof(
     Parameters
     ----------
     raw : instance of Raw
-        Raw data to process
+        Raw data to process.
     n_neighbors : int
         Number of neighbors defining the local neighborhood (default is 20).
         Smaller values will lead to higher LOF scores.
     %(picks_good_data)s
-    metric: {'euclidean', 'nan_euclidean', 'cosine', 'cityblock', 'manhattan'}
-        Metric to use for distance computation. Default is “euclidean”.
+    metric : str
+        Metric to use for distance computation. Default is “euclidean”,
+        see :func:`sklearn.metrics.pairwise.distance_metrics` for details.
     threshold : float
         Threshold to define outliers. Theoretical threshold ranges anywhere
         between 1.0 and any positive integer. Default: 1.5
@@ -54,16 +55,16 @@ def find_bad_channels_lof(
     maxwell_filter
     annotate_amplitude
 
-    References
-    ----------
-    .. footbibliography::
-
     Notes
     -----
     See :footcite:`KumaravelEtAl2022` and :footcite:`BreunigEtAl2000` for background on
     choosing ``threshold``.
 
     .. versionadded:: 1.7
+
+    References
+    ----------
+    .. footbibliography::
     """  # noqa: E501
     _soft_import("sklearn", "using LOF detection", strict=True)
     from sklearn.neighbors import LocalOutlierFactor
