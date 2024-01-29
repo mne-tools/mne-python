@@ -64,6 +64,7 @@ from mne.io import RawArray, read_raw_fif
 from mne.preprocessing import maxwell_filter
 from mne.utils import (
     _dt_to_stamp,
+    _record_warnings,
     assert_meg_snr,
     catch_logging,
     object_diff,
@@ -2291,7 +2292,7 @@ def test_crop(tmp_path):
         reject=reject,
         flat=flat,
     )
-    with pytest.warns(RuntimeWarning, match="tmax is set to"):
+    with _record_warnings(), pytest.warns(RuntimeWarning, match="tmax is set to"):
         epochs2.crop(-20, 200)
 
     # indices for slicing
@@ -3610,7 +3611,7 @@ def test_concatenate_epochs():
 
     # check concatenating epochs where one of the objects is empty
     epochs2 = epochs.copy()[:0]
-    with pytest.warns(RuntimeWarning, match="was empty"):
+    with _record_warnings(), pytest.warns(RuntimeWarning, match="was empty"):
         concatenate_epochs([epochs, epochs2])
 
     # check concatenating epochs results are chronologically ordered
@@ -4221,7 +4222,7 @@ def test_no_epochs(tmp_path):
     # and with no epochs remaining
     raw.info["bads"] = []
     epochs = mne.Epochs(raw, events, reject=reject)
-    with pytest.warns(RuntimeWarning, match="no data"):
+    with _record_warnings(), pytest.warns(RuntimeWarning, match="no data"):
         epochs.save(tmp_path / "sample-epo.fif", overwrite=True)
     assert len(epochs) == 0  # all dropped
 
