@@ -309,7 +309,7 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format, he
         # Header has a field for number of samples, but it does not seem to be
         # too reliable. That's why we have option for setting n_bytes manually.
         fid.seek(864)
-        n_samples = np.fromfile(fid, dtype="<i4", count=1).item()
+        n_samples = np.fromfile(fid, dtype="<u4", count=1).item()
         fid.seek(869)
         lowcutoff = np.fromfile(fid, dtype="f4", count=1).item()
         fid.seek(2, 1)
@@ -548,6 +548,7 @@ class RawCNT(BaseRaw):
         channel_offset = self._raw_extras[fi]["channel_offset"]
         baselines = self._raw_extras[fi]["baselines"]
         n_bytes = self._raw_extras[fi]["n_bytes"]
+        n_samples = self._raw_extras[fi]["n_samples"]
         dtype = "<i4" if n_bytes == 4 else "<i2"
         chunk_size = channel_offset * f_channels  # Size of chunks in file.
         # The data is divided into blocks of samples / channel.
@@ -562,9 +563,9 @@ class RawCNT(BaseRaw):
         with open(self._filenames[fi], "rb", buffering=0) as fid:
             fid.seek(900 + f_channels * (75 + (start - s_offset) * n_bytes))
             for sample_start in np.arange(0, data_left, block_size) // f_channels:
-                sample_stop = sample_start + min(
-                    (block_size // f_channels, data_left // f_channels - sample_start)
-                )
+                # Earlier comment says n_samples is unreliable, but I think it
+                # is because it needed to be changed to unsigned int.
+                sample_stop = sample_start + min((n_samples, block_size // f_channels, data_left // f_channels - sample_start))
                 n_samps = sample_stop - sample_start
                 one = np.zeros((n_channels, n_samps))
 
