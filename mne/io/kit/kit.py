@@ -43,7 +43,7 @@ UINT32 = "<u4"
 INT32 = "<i4"
 
 
-def _call_digitization(info, mrk, elp, hsp, kit_info):
+def _call_digitization(info, mrk, elp, hsp, bad_coils, kit_info):
     # Use values from kit_info only if all others are None
     if mrk is None and elp is None and hsp is None:
         mrk = kit_info.get("mrk", None)
@@ -62,7 +62,7 @@ def _call_digitization(info, mrk, elp, hsp, kit_info):
     if mrk is not None and elp is not None and hsp is not None:
         with info._unlock():
             info["dig"], info["dev_head_t"], info["hpi_results"] = _set_dig_kit(
-                mrk, elp, hsp, kit_info["eeg_dig"]
+                mrk, elp, hsp, bad_coils, kit_info["eeg_dig"]
             )
     elif mrk is not None or elp is not None or hsp is not None:
         raise ValueError(
@@ -91,6 +91,7 @@ class RawKIT(BaseRaw):
     %(kit_mrk)s
     %(kit_elp)s
     %(kit_hsp)s
+    %(kit_badcoils)s
     %(kit_stim)s
     %(kit_slope)s
     %(kit_stimthresh)s
@@ -126,6 +127,7 @@ class RawKIT(BaseRaw):
         mrk=None,
         elp=None,
         hsp=None,
+        bad_coils=[],
         stim=">",
         slope="-",
         stimthresh=1,
@@ -160,7 +162,7 @@ class RawKIT(BaseRaw):
             verbose=verbose,
         )
         self.info = _call_digitization(
-            info=self.info, mrk=mrk, elp=elp, hsp=hsp, kit_info=kit_info
+            info=self.info, mrk=mrk, elp=elp, hsp=hsp, bad_coils=bad_coils, kit_info=kit_info
         )
         logger.info("Ready.")
 
@@ -905,6 +907,7 @@ def read_raw_kit(
     mrk=None,
     elp=None,
     hsp=None,
+    bad_coils=[],
     stim=">",
     slope="-",
     stimthresh=1,
@@ -923,6 +926,7 @@ def read_raw_kit(
     %(kit_mrk)s
     %(kit_elp)s
     %(kit_hsp)s
+    %(bad_coils)s
     %(kit_stim)s
     %(kit_slope)s
     %(kit_stimthresh)s
@@ -959,6 +963,7 @@ def read_raw_kit(
         mrk=mrk,
         elp=elp,
         hsp=hsp,
+        bad_coils=bad_coils,
         stim=stim,
         slope=slope,
         stimthresh=stimthresh,

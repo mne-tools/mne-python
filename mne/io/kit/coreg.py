@@ -114,7 +114,7 @@ def read_sns(fname):
     return locs
 
 
-def _set_dig_kit(mrk, elp, hsp, eeg):
+def _set_dig_kit(mrk, elp, hsp, bad_coils, eeg):
     """Add landmark points and head shape data to the KIT instance.
 
     Digitizer data (elp and hsp) are represented in [mm] in the Polhemus
@@ -133,6 +133,9 @@ def _set_dig_kit(mrk, elp, hsp, eeg):
         Digitizer head shape points, or path to head shape file. If more
         than 10`000 points are in the head shape, they are automatically
         decimated.
+    bad_coils : list | []
+        Indices of bad marker coils (up to two). Bad coils will be excluded 
+        when computing the device-head transformation.
     eeg : dict
         Ordered dict of EEG dig points.
 
@@ -167,13 +170,23 @@ def _set_dig_kit(mrk, elp, hsp, eeg):
                 "%s." % (elp, elp_points.shape)
             )
         elp = elp_points
-    elif len(elp) not in (6, 7, 8):
+        if len(bad_coils) > 0:
+            elp = np.delete(elp, np.add(bad_coils, 3), 0)
+    # check we have at least 3 marker coils (whether read from file or passed in directly)
+    if len(elp) not in (6, 7, 8):
         raise ValueError(
             "ELP should contain 6 ~ 8 points; got shape " "%s." % (elp.shape,)
         )
+    
     if isinstance(mrk, (str, Path, PathLike)):
         mrk = read_mrk(mrk)
-
+        if len(bad_coils) > 0:
+            mrk = np.delete(mrk, bad_coils, 0)
+    if len(mrk) not in (3, 4, 5):
+        raise ValueError(
+            "MRK should contain 3 ~ 5 points; got shape " "%s." % (mrk.shape,)
+        )
+    
     mrk = apply_trans(als_ras_trans, mrk)
 
     nasion, lpa, rpa = elp[:3]
