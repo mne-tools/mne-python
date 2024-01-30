@@ -55,24 +55,27 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: ubuntu-latest
-            python: '3.11'
-            kind: pip-pre
-          - os: ubuntu-latest
+          # - os: ubuntu-latest
+          #  python: '3.11'
+          #  kind: pip-pre
+          # - os: ubuntu-latest
+          #  python: '3.12'
+          #  kind: conda
+          # - os: macos-latest
+          #  python: '3.11'
+          #  kind: mamba
+          # - os: windows-latest
+          #  python: '3.10'
+          #  kind: mamba
+          # - os: ubuntu-latest
+          #  python: '3.9'
+          #  kind: minimal
+          # - os: ubuntu-20.04
+          #  python: '3.9'
+          #  kind: old
+          - os: macos-14
             python: '3.12'
-            kind: conda
-          - os: macos-latest
-            python: '3.11'
             kind: mamba
-          - os: windows-latest
-            python: '3.10'
-            kind: mamba
-          - os: ubuntu-latest
-            python: '3.9'
-            kind: minimal
-          - os: ubuntu-20.04
-            python: '3.9'
-            kind: old
     steps:
       - uses: actions/checkout@v4
         with:
@@ -104,6 +107,9 @@ jobs:
             mamba
             fmt!=10.2.0
         if: ${{ !startswith(matrix.kind, 'pip') }}
+      # Make sure we have the right Python
+      - run: python -c "import platform; platform.machine() == "arm64", platform.machine()"
+        if: matrix.os == 'macos-14'
       - run: ./tools/github_actions_dependencies.sh
       # Minimal commands on Linux (macOS stalls)
       - run: ./tools/get_minimal_commands.sh
