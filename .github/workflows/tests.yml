@@ -55,28 +55,28 @@ jobs:
     strategy:
       matrix:
         include:
-          # - os: ubuntu-latest
-          #  python: '3.11'
-          #  kind: pip-pre
-          # - os: ubuntu-latest
-          #  python: '3.12'
-          #  kind: conda
-          # - os: macos-latest
-          #  python: '3.11'
-          #  kind: mamba
-          # - os: windows-latest
-          #  python: '3.10'
-          #  kind: mamba
-          # - os: ubuntu-latest
-          #  python: '3.9'
-          #  kind: minimal
-          # - os: ubuntu-20.04
-          #  python: '3.9'
-          #  kind: old
+          - os: ubuntu-latest
+            python: '3.11'
+            kind: pip-pre
+          - os: ubuntu-latest
+            python: '3.12'
+            kind: conda
           # 3.12 needs https://github.com/conda-forge/dipy-feedstock/pull/50
-          - os: macos-14
+          - os: macos-14  # arm64
             python: '3.11'
             kind: mamba
+          - os: macos-latest  # intel
+            python: '3.11'
+            kind: mamba
+          - os: windows-latest
+            python: '3.10'
+            kind: mamba
+          - os: ubuntu-latest
+            python: '3.9'
+            kind: minimal
+          - os: ubuntu-20.04
+            python: '3.9'
+            kind: old
     steps:
       - uses: actions/checkout@v4
         with:
