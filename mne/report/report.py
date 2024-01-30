@@ -143,7 +143,7 @@ CONTENT_ORDER = (
 html_include_dir = Path(__file__).parent / "js_and_css"
 template_dir = Path(__file__).parent / "templates"
 JAVASCRIPT = (html_include_dir / "report.js").read_text(encoding="utf-8")
-CSS = (html_include_dir / "report.sass").read_text(encoding="utf-8")
+CSS = (html_include_dir / "report.css").read_text(encoding="utf-8")
 
 MAX_IMG_RES = 100  # in dots per inch
 MAX_IMG_WIDTH = 850  # in pixels
