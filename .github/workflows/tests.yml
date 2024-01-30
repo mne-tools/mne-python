@@ -73,8 +73,9 @@ jobs:
           # - os: ubuntu-20.04
           #  python: '3.9'
           #  kind: old
+          # 3.12 needs https://github.com/conda-forge/dipy-feedstock/pull/50
           - os: macos-14
-            python: '3.12'
+            python: '3.11'
             kind: mamba
     steps:
       - uses: actions/checkout@v4
@@ -108,7 +109,7 @@ jobs:
             fmt!=10.2.0
         if: ${{ !startswith(matrix.kind, 'pip') }}
       # Make sure we have the right Python
-      - run: python -c "import platform; platform.machine() == "arm64", platform.machine()"
+      - run: python -c "import platform; platform.machine() == 'arm64', platform.machine()"
         if: matrix.os == 'macos-14'
       - run: ./tools/github_actions_dependencies.sh
       # Minimal commands on Linux (macOS stalls)

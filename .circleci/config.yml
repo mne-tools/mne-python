@@ -21,6 +21,7 @@ _check_skip: &check_skip
       circleci-agent step halt;
     fi
 
+jobs:
   build_docs:
     parameters:
       scheduled:
