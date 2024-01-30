@@ -109,7 +109,7 @@ jobs:
             fmt!=10.2.0
         if: ${{ !startswith(matrix.kind, 'pip') }}
       # Make sure we have the right Python
-      - run: python -c "import platform; platform.machine() == 'arm64', platform.machine()"
+      - run: python -c "import platform; assert platform.machine() == 'arm64', platform.machine()"
         if: matrix.os == 'macos-14'
       - run: ./tools/github_actions_dependencies.sh
       # Minimal commands on Linux (macOS stalls)
