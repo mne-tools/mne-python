@@ -1,1 +1,1 @@
-Fix bugs with :class:`mne.report.Report` CSS where TOC items could disappear at the bottom of the page, by `Eric Larson`_.
+Fix bugs with :class:`mne.Report` CSS where TOC items could disappear at the bottom of the page, by `Eric Larson`_.
