@@ -162,7 +162,12 @@ class RawKIT(BaseRaw):
             verbose=verbose,
         )
         self.info = _call_digitization(
-            info=self.info, mrk=mrk, elp=elp, hsp=hsp, bad_coils=bad_coils, kit_info=kit_info
+            info=self.info,
+            mrk=mrk,
+            elp=elp,
+            hsp=hsp,
+            bad_coils=bad_coils,
+            kit_info=kit_info,
         )
         logger.info("Ready.")
 

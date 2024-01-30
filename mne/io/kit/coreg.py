@@ -134,7 +134,7 @@ def _set_dig_kit(mrk, elp, hsp, bad_coils, eeg):
         than 10`000 points are in the head shape, they are automatically
         decimated.
     bad_coils : list | []
-        Indices of bad marker coils (up to two). Bad coils will be excluded 
+        Indices of bad marker coils (up to two). Bad coils will be excluded
         when computing the device-head transformation.
     eeg : dict
         Ordered dict of EEG dig points.
@@ -177,7 +177,7 @@ def _set_dig_kit(mrk, elp, hsp, bad_coils, eeg):
         raise ValueError(
             "ELP should contain 6 ~ 8 points; got shape " "%s." % (elp.shape,)
         )
-    
+
     if isinstance(mrk, (str, Path, PathLike)):
         mrk = read_mrk(mrk)
         if len(bad_coils) > 0:
@@ -186,7 +186,7 @@ def _set_dig_kit(mrk, elp, hsp, bad_coils, eeg):
         raise ValueError(
             "MRK should contain 3 ~ 5 points; got shape " "%s." % (mrk.shape,)
         )
-    
+
     mrk = apply_trans(als_ras_trans, mrk)
 
     nasion, lpa, rpa = elp[:3]
