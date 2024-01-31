@@ -1941,7 +1941,7 @@ mrk : path-like | array of shape (5, 3) | list | None
 
 docdict["kit_badcoils"] = """
 badcoils : list of int | None
-    Indices of (up to two) bad marker coils to be removed. 
+    Indices of (up to two) bad marker coils to be removed.
     These marker coils must be present in the elp and mrk files.
 """
 
