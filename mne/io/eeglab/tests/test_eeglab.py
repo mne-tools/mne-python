@@ -28,7 +28,7 @@ from mne.io import read_raw_eeglab
 from mne.io.eeglab._eeglab import _readmat
 from mne.io.eeglab.eeglab import _dol_to_lod, _get_montage_information
 from mne.io.tests.test_raw import _test_raw_reader
-from mne.utils import Bunch, _check_pymatreader_installed
+from mne.utils import Bunch, _check_pymatreader_installed, _record_warnings
 
 base_dir = testing.data_path(download=False) / "EEGLAB"
 raw_fname_mat = base_dir / "test_raw.set"
@@ -140,7 +140,9 @@ def test_io_set_raw_more(tmp_path):
     shutil.copyfile(
         base_dir / "test_raw.fdt", negative_latency_fname.with_suffix(".fdt")
     )
-    with pytest.warns(RuntimeWarning, match="has a sample index of -1."):
+    with _record_warnings(), pytest.warns(
+        RuntimeWarning, match="has a sample index of -1."
+    ):
         read_raw_eeglab(input_fname=negative_latency_fname, preload=True)
 
     # test negative event latencies
@@ -163,7 +165,7 @@ def test_io_set_raw_more(tmp_path):
         oned_as="row",
     )
     with pytest.raises(ValueError, match="event sample index is negative"):
-        with pytest.warns(RuntimeWarning, match="has a sample index of -1."):
+        with _record_warnings():
             read_raw_eeglab(input_fname=negative_latency_fname, preload=True)
 
     # test overlapping events
@@ -350,9 +352,9 @@ def test_io_set_raw_more(tmp_path):
 def test_io_set_epochs(fnames):
     """Test importing EEGLAB .set epochs files."""
     epochs_fname, epochs_fname_onefile = fnames
-    with pytest.warns(RuntimeWarning, match="multiple events"):
+    with _record_warnings(), pytest.warns(RuntimeWarning, match="multiple events"):
         epochs = read_epochs_eeglab(epochs_fname)
-    with pytest.warns(RuntimeWarning, match="multiple events"):
+    with _record_warnings(), pytest.warns(RuntimeWarning, match="multiple events"):
         epochs2 = read_epochs_eeglab(epochs_fname_onefile)
     # one warning for each read_epochs_eeglab because both files have epochs
     # associated with multiple events

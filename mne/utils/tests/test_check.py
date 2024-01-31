@@ -27,6 +27,7 @@ from mne.utils import (
     _check_subject,
     _on_missing,
     _path_like,
+    _record_warnings,
     _safe_input,
     _suggest,
     _validate_type,
@@ -368,7 +369,7 @@ def test_check_sphere_verbose():
     info = mne.io.read_info(fname_raw)
     with info._unlock():
         info["dig"] = info["dig"][:20]
-    with pytest.warns(RuntimeWarning, match="may be inaccurate"):
+    with _record_warnings(), pytest.warns(RuntimeWarning, match="may be inaccurate"):
         _check_sphere("auto", info)
     with mne.use_log_level("error"):
         _check_sphere("auto", info)

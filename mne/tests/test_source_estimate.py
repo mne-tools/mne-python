@@ -399,7 +399,7 @@ def test_stc_snr():
     assert (stc.data < 0).any()
     with pytest.warns(RuntimeWarning, match="nAm"):
         stc.estimate_snr(evoked.info, fwd, cov)  # dSPM
-    with pytest.warns(RuntimeWarning, match="free ori"):
+    with _record_warnings(), pytest.warns(RuntimeWarning, match="free ori"):
         abs(stc).estimate_snr(evoked.info, fwd, cov)
     stc = apply_inverse(evoked, inv, method="MNE")
     snr = stc.estimate_snr(evoked.info, fwd, cov)
