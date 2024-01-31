@@ -989,7 +989,7 @@ class BaseRaw(
         for onset, end in zip(onsets, ends):
             if onset >= end:
                 continue
-            used[onset - start : end - start] = False
+            used[onset - start: end - start] = False
         used = np.concatenate([[False], used, [False]])
         starts = np.where(~used[:-1] & used[1:])[0] + start
         stops = np.where(used[:-1] & ~used[1:])[0] + start
@@ -1144,118 +1144,6 @@ class BaseRaw(
         )
 
     @verbose
-    def notch_filter(
-        self,
-        freqs,
-        picks=None,
-        filter_length="auto",
-        notch_widths=None,
-        trans_bandwidth=1.0,
-        n_jobs=None,
-        method="fir",
-        iir_params=None,
-        mt_bandwidth=None,
-        p_value=0.05,
-        phase="zero",
-        fir_window="hamming",
-        fir_design="firwin",
-        pad="reflect_limited",
-        skip_by_annotation=("edge", "bad_acq_skip"),
-        verbose=None,
-    ):
-        """Notch filter a subset of channels.
-
-        Parameters
-        ----------
-        freqs : float | array of float | None
-            Specific frequencies to filter out from data, e.g.,
-            ``np.arange(60, 241, 60)`` in the US or ``np.arange(50, 251, 50)``
-            in Europe. ``None`` can only be used with the mode
-            ``'spectrum_fit'``, where an F test is used to find sinusoidal
-            components.
-        %(picks_all_data)s
-        %(filter_length_notch)s
-        notch_widths : float | array of float | None
-            Width of each stop band (centred at each freq in freqs) in Hz.
-            If None, ``freqs / 200`` is used.
-        trans_bandwidth : float
-            Width of the transition band in Hz.
-            Only used for ``method='fir'`` and ``method='iir'``.
-        %(n_jobs_fir)s
-        %(method_fir)s
-        %(iir_params)s
-        mt_bandwidth : float | None
-            The bandwidth of the multitaper windowing function in Hz.
-            Only used in 'spectrum_fit' mode.
-        p_value : float
-            P-value to use in F-test thresholding to determine significant
-            sinusoidal components to remove when ``method='spectrum_fit'`` and
-            ``freqs=None``. Note that this will be Bonferroni corrected for the
-            number of frequencies, so large p-values may be justified.
-        %(phase)s
-        %(fir_window)s
-        %(fir_design)s
-        %(pad_fir)s
-            The default is ``'reflect_limited'``.
-
-            .. versionadded:: 0.15
-        %(skip_by_annotation)s
-        %(verbose)s
-
-        Returns
-        -------
-        raw : instance of Raw
-            The raw instance with filtered data.
-
-        See Also
-        --------
-        mne.filter.notch_filter
-        mne.io.Raw.filter
-
-        Notes
-        -----
-        Applies a zero-phase notch filter to the channels selected by
-        "picks". By default the data of the Raw object is modified inplace.
-
-        The Raw object has to have the data loaded e.g. with ``preload=True``
-        or ``self.load_data()``.
-
-        .. note:: If n_jobs > 1, more memory is required as
-                  ``len(picks) * n_times`` additional time points need to
-                  be temporarily stored in memory.
-
-        For details, see :func:`mne.filter.notch_filter`.
-        """
-        fs = float(self.info["sfreq"])
-        picks = _picks_to_idx(self.info, picks, exclude=(), none="data_or_ica")
-        _check_preload(self, "raw.notch_filter")
-        onsets, ends = _annotations_starts_stops(self, skip_by_annotation, invert=True)
-        logger.info(
-            "Filtering raw data in %d contiguous segment%s" % (len(onsets), _pl(onsets))
-        )
-        for si, (start, stop) in enumerate(zip(onsets, ends)):
-            notch_filter(
-                self._data[:, start:stop],
-                fs,
-                freqs,
-                filter_length=filter_length,
-                notch_widths=notch_widths,
-                trans_bandwidth=trans_bandwidth,
-                method=method,
-                iir_params=iir_params,
-                mt_bandwidth=mt_bandwidth,
-                p_value=p_value,
-                picks=picks,
-                n_jobs=n_jobs,
-                copy=False,
-                phase=phase,
-                fir_window=fir_window,
-                fir_design=fir_design,
-                pad=pad,
-            )
-        return self
-
-    @verbose
     def resample(
         self,
         sfreq,
@@ -1388,7 +1276,7 @@ class BaseRaw(
         for ri, (n_orig, n_new) in enumerate(zip(self._raw_lengths, n_news)):
             this_sl = slice(new_offsets[ri], new_offsets[ri + 1])
             if self.preload:
-                data_chunk = self._data[:, offsets[ri] : offsets[ri + 1]]
+                data_chunk = self._data[:, offsets[ri]: offsets[ri + 1]]
                 new_data[:, this_sl] = resample(data_chunk, **kwargs)
                 # In empirical testing, it was faster to resample all channels
                 # (above) and then replace the stim channels than it was to
@@ -1522,7 +1410,7 @@ class BaseRaw(
         self._filenames = [self._filenames[ri] for ri in keepers]
         if self.preload:
             # slice and copy to avoid the reference to large array
-            self._data = self._data[:, smin : smax + 1].copy()
+            self._data = self._data[:, smin: smax + 1].copy()
 
         annotations = self.annotations
         # now call setter to filter out annotations outside of interval
@@ -1983,15 +1871,15 @@ class BaseRaw(
 
             # allocate the buffer
             _data = _allocate_data(preload, (nchan, nsamp), this_data.dtype)
-            _data[:, 0 : c_ns[0]] = this_data
+            _data[:, 0: c_ns[0]] = this_data
 
             for ri in range(len(raws)):
                 if not raws[ri].preload:
                     # read the data directly into the buffer
-                    data_buffer = _data[:, c_ns[ri] : c_ns[ri + 1]]
+                    data_buffer = _data[:, c_ns[ri]: c_ns[ri + 1]]
                     raws[ri]._read_segment(data_buffer=data_buffer)
                 else:
-                    _data[:, c_ns[ri] : c_ns[ri + 1]] = raws[ri]._data
+                    _data[:, c_ns[ri]: c_ns[ri + 1]] = raws[ri]._data
             self._data = _data
             self.preload = True
 
