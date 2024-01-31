@@ -238,7 +238,7 @@ for title, data in zip(["orig.", "interp."], [eeg_data, eeg_data_interp]):
     fig.suptitle(title, size="xx-large", weight="bold")
 
 # %%
-# Note that the method :meth:`~mne.io.Raw.pick()` default
+# Note that the method :meth:`~mne.io.Raw.pick` default
 # arguments includes ``exclude=()`` which ensures that bad
 # channels are not
 # automatically dropped from the selection. Here is the corresponding example

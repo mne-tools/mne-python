@@ -34,7 +34,7 @@ from mne._fiff.constants import FIFF
 from mne.datasets import testing
 from mne.io import read_raw_fif
 from mne.stats.parametric import _parametric_ci
-from mne.utils import catch_logging
+from mne.utils import _record_warnings, catch_logging
 from mne.viz import plot_compare_evokeds, plot_evoked_white
 from mne.viz.utils import _fake_click, _get_cmap
 
@@ -119,7 +119,7 @@ def test_plot_evoked_cov():
     epochs = Epochs(raw, events, picks=default_picks)
     cov = compute_covariance(epochs)
     evoked_sss = epochs.average()
-    with pytest.warns(RuntimeWarning, match="relative scaling"):
+    with _record_warnings(), pytest.warns(RuntimeWarning, match="relative scaling"):
         evoked_sss.plot(noise_cov=cov, time_unit="s")
     plt.close("all")
 
@@ -333,7 +333,7 @@ def test_plot_evoked_image():
         mask=np.ones(evoked.data.shape).astype(bool),
         time_unit="s",
     )
-    with pytest.warns(RuntimeWarning, match="not adding contour"):
+    with _record_warnings(), pytest.warns(RuntimeWarning, match="not adding contour"):
         evoked.plot_image(picks=[1, 2], mask=None, mask_style="both", time_unit="s")
     with pytest.raises(ValueError, match="must have the same shape"):
         evoked.plot_image(mask=evoked.data[1:, 1:] > 0, time_unit="s")
