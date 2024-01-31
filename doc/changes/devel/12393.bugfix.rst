@@ -1,0 +1,1 @@
+Change how samples are read using :func:`mne.io.read_raw_cnt`
