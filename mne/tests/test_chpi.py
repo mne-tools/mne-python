@@ -43,7 +43,13 @@ from mne.io import (
 )
 from mne.simulation import add_chpi
 from mne.transforms import _angle_between_quats, rot_to_quat
-from mne.utils import assert_meg_snr, catch_logging, object_diff, verbose
+from mne.utils import (
+    _record_warnings,
+    assert_meg_snr,
+    catch_logging,
+    object_diff,
+    verbose,
+)
 from mne.viz import plot_head_positions
 
 base_dir = Path(__file__).parents[1] / "io" / "tests" / "data"
@@ -363,7 +369,7 @@ def test_calculate_chpi_positions_vv():
         ]
     )
     raw_bad.pick([raw_bad.ch_names[pick] for pick in picks])
-    with pytest.warns(RuntimeWarning, match="Discrepancy"):
+    with _record_warnings(), pytest.warns(RuntimeWarning, match="Discrepancy"):
         with catch_logging() as log_file:
             _calculate_chpi_positions(raw_bad, t_step_min=1.0, verbose=True)
     # ignore HPI info header and [done] footer

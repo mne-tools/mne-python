@@ -699,7 +699,9 @@ def test_source_space_exclusive_complete(src_volume_labels):
     for si, s in enumerate(src):
         assert_allclose(src_full[0]["rr"], s["rr"], atol=1e-6)
     # also check single_volume=True -- should be the same result
-    with pytest.warns(RuntimeWarning, match="Found no usable.*Left-vessel.*"):
+    with _record_warnings(), pytest.warns(
+        RuntimeWarning, match="Found no usable.*Left-vessel.*"
+    ):
         src_single = setup_volume_source_space(
             src[0]["subject_his_id"],
             7.0,
