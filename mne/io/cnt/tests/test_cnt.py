@@ -90,6 +90,7 @@ def test_compare_events_and_annotations():
 @testing.requires_testing_data
 @pytest.mark.filterwarnings("ignore::RuntimeWarning")
 def test_reading_bytes():
+    """Test reading raw cnt files with different header."""
     raw_16 = read_raw_cnt(fname, preload=True)
     raw_32 = read_raw_cnt(fname_bad_spans, preload=True)
 
