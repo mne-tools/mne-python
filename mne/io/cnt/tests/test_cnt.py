@@ -88,7 +88,7 @@ def test_compare_events_and_annotations():
 
 
 @testing.requires_testing_data
-def verify_reading_bytes():
+def test_reading_bytes():
     raw_16 = read_raw_cnt(fname, preload=True)
     raw_32 = read_raw_cnt(fname_bad_spans, preload=True)
 
