@@ -75,7 +75,6 @@ from ..filter import (
     _check_resamp_noop,
     _resamp_ratio_len,
     _resample_stim_channels,
-    notch_filter,
     resample,
 )
 from ..html_templates import _get_html_template
@@ -96,7 +95,6 @@ from ..utils import (
     _file_like,
     _get_argvalues,
     _get_stim_channel,
-    _pl,
     _scale_dataframe_data,
     _stamp_to_dt,
     _time_mask,
@@ -989,7 +987,7 @@ class BaseRaw(
         for onset, end in zip(onsets, ends):
             if onset >= end:
                 continue
-            used[onset - start: end - start] = False
+            used[onset - start : end - start] = False
         used = np.concatenate([[False], used, [False]])
         starts = np.where(~used[:-1] & used[1:])[0] + start
         stops = np.where(used[:-1] & ~used[1:])[0] + start
@@ -1276,7 +1274,7 @@ class BaseRaw(
         for ri, (n_orig, n_new) in enumerate(zip(self._raw_lengths, n_news)):
             this_sl = slice(new_offsets[ri], new_offsets[ri + 1])
             if self.preload:
-                data_chunk = self._data[:, offsets[ri]: offsets[ri + 1]]
+                data_chunk = self._data[:, offsets[ri] : offsets[ri + 1]]
                 new_data[:, this_sl] = resample(data_chunk, **kwargs)
                 # In empirical testing, it was faster to resample all channels
                 # (above) and then replace the stim channels than it was to
@@ -1410,7 +1408,7 @@ class BaseRaw(
         self._filenames = [self._filenames[ri] for ri in keepers]
         if self.preload:
             # slice and copy to avoid the reference to large array
-            self._data = self._data[:, smin: smax + 1].copy()
+            self._data = self._data[:, smin : smax + 1].copy()
 
         annotations = self.annotations
         # now call setter to filter out annotations outside of interval
@@ -1871,15 +1869,15 @@ class BaseRaw(
 
             # allocate the buffer
             _data = _allocate_data(preload, (nchan, nsamp), this_data.dtype)
-            _data[:, 0: c_ns[0]] = this_data
+            _data[:, 0 : c_ns[0]] = this_data
 
             for ri in range(len(raws)):
                 if not raws[ri].preload:
                     # read the data directly into the buffer
-                    data_buffer = _data[:, c_ns[ri]: c_ns[ri + 1]]
+                    data_buffer = _data[:, c_ns[ri] : c_ns[ri + 1]]
                     raws[ri]._read_segment(data_buffer=data_buffer)
                 else:
-                    _data[:, c_ns[ri]: c_ns[ri + 1]] = raws[ri]._data
+                    _data[:, c_ns[ri] : c_ns[ri + 1]] = raws[ri]._data
             self._data = _data
             self.preload = True
 

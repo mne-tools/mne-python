@@ -508,9 +508,9 @@ def _firwin_design(N, freq, gain, window, sfreq):
             assert this_h.shape == (this_N,)
             offset = (N - this_N) // 2
             if this_gain == 0:
-                h[offset: N - offset] -= this_h
+                h[offset : N - offset] -= this_h
             else:
-                h[offset: N - offset] += this_h
+                h[offset : N - offset] += this_h
         prev_gain = this_gain
         prev_freq = this_freq
     return h
@@ -1761,7 +1761,7 @@ def _mt_spectrum_remove_win(
     # Define how to store a chunk of fully processed data (it's trivial)
     def store(x_):
         stop = idx[0] + x_.shape[-1]
-        x_out[..., idx[0]: stop] += x_
+        x_out[..., idx[0] : stop] += x_
         idx[0] = stop
 
     _COLA(process, store, n_times, n_samples, n_overlap, sfreq, verbose=False).feed(x)
@@ -2109,7 +2109,7 @@ def _resample_stim_channels(stim_data, up, down):
     # Use the first non-zero value in each window
     for window_i, window in enumerate(windows):
         for stim_num, stim in enumerate(stim_data):
-            nonzero = stim[window[0]: window[1]].nonzero()[0]
+            nonzero = stim[window[0] : window[1]].nonzero()[0]
             if len(nonzero) > 0:
                 val = stim[window[0] + nonzero[0]]
             else:
