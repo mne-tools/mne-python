@@ -381,7 +381,9 @@ def read_source_estimate(fname, subject=None):
     if "subject" not in kwargs:
         kwargs["subject"] = subject
     if subject is not None and subject != kwargs["subject"]:
-        raise RuntimeError(f'provided subject name "{subject}" does not match subject name from the file "{kwargs["subject"]}')
+        raise RuntimeError(
+            f'provided subject name "{subject}" does not match subject name from the file "{kwargs["subject"]}'
+        )
 
     if ftype in ("volume", "discrete"):
         klass = VolVectorSourceEstimate
@@ -486,7 +488,7 @@ def _verify_source_estimate_compat(a, b):
         )
     if a.subject != b.subject:
         raise ValueError(
-            f"source estimates do not have the same subject names, {a.subject} and {b.subject}" 
+            f"source estimates do not have the same subject names, {a.subject} and {b.subject}"
         )
 
 
@@ -506,16 +508,19 @@ class _BaseSourceEstimate(TimeMixin):
             data = None
             if kernel.shape[1] != sens_data.shape[0]:
                 raise ValueError(
-                    f"kernel ({kernel.shape}) and sens_data ({sens_data.shape}) have invalid dimensions" 
+                    f"kernel ({kernel.shape}) and sens_data ({sens_data.shape}) have invalid dimensions"
                 )
             if sens_data.ndim != 2:
-                raise ValueError(f"The sensor data must have 2 dimensions, got {sens_data.ndim}")
-
+                raise ValueError(
+                    f"The sensor data must have 2 dimensions, got {sens_data.ndim}"
+                )
 
         _validate_type(vertices, list, "vertices")
         if self._src_count is not None:
             if len(vertices) != self._src_count:
-                raise ValueError(f"vertices must be a list with {self._src_count} entries, got {len(vertices)}")
+                raise ValueError(
+                    f"vertices must be a list with {self._src_count} entries, got {len(vertices)}"
+                )
 
         vertices = [np.array(v, np.int64) for v in vertices]  # makes copy
         if any(np.any(np.diff(v) <= 0) for v in vertices):
@@ -526,7 +531,9 @@ class _BaseSourceEstimate(TimeMixin):
         # safeguard the user against doing something silly
         if data is not None:
             if data.ndim not in (self._data_ndim, self._data_ndim - 1):
-                raise ValueError(f"Data (shape {data.shape}) must have {self._data_ndim} dimensions for {self.__class__.__name__}")
+                raise ValueError(
+                    f"Data (shape {data.shape}) must have {self._data_ndim} dimensions for {self.__class__.__name__}"
+                )
 
             if data.shape[0] != n_src:
                 raise ValueError(
@@ -537,7 +544,7 @@ class _BaseSourceEstimate(TimeMixin):
                 if data.shape[1] != 3:
                     raise ValueError(
                         f"Data for VectorSourceEstimate must have "
-                        f"shape[1] == 3, got shape {data.shape}" 
+                        f"shape[1] == 3, got shape {data.shape}"
                     )
             if data.ndim == self._data_ndim - 1:  # allow upbroadcasting
                 data = data[..., np.newaxis]
@@ -556,14 +563,14 @@ class _BaseSourceEstimate(TimeMixin):
     def __repr__(self):  # noqa: D105
         s = f"{sum(len(v) for v in self.vertices)} vertices"
         if self.subject is not None:
-            s += f", subject : {self.subject}" 
-        s += f", tmin : {1e3 * self.tmin} (ms)" 
+            s += f", subject : {self.subject}"
+        s += f", tmin : {1e3 * self.tmin} (ms)"
         s += f", tmax : {1e3 * self.times[-1]} (ms)"
-        s += f", tstep : {1e3 * self.tstep} (ms)" 
-        s += f", data shape : {self.shape}" 
+        s += f", tstep : {1e3 * self.tstep} (ms)"
+        s += f", data shape : {self.shape}"
         sz = sum(object_size(x) for x in (self.vertices + [self.data]))
         s += f", ~{sizeof_fmt(sz)}"
-        return f"<{type(self).__name__} | {s}>" 
+        return f"<{type(self).__name__} | {s}>"
 
     @fill_doc
     def get_peak(
@@ -674,7 +681,6 @@ class _BaseSourceEstimate(TimeMixin):
         if ftype != "h5":
             raise ValueError(
                 f"{self.__class__.__name__} objects can only be written as HDF5 files."
-                
             )
         _, write_hdf5 = _import_h5io_funcs()
         if fname.suffix != ".h5":
@@ -894,7 +900,9 @@ class _BaseSourceEstimate(TimeMixin):
             raise ValueError("Data array should have %d dimensions." % self._data.ndim)
         n_verts = sum(len(v) for v in self.vertices)
         if value.shape[0] != n_verts:
-            raise ValueError(f"The first dimension of the data array must match the number of vertices ({value.shape[0]} != {n_verts})")
+            raise ValueError(
+                f"The first dimension of the data array must match the number of vertices ({value.shape[0]} != {n_verts})"
+            )
 
         self._data = value
         self._update_times()
@@ -1542,7 +1550,9 @@ class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
             and self.subject is not None
             and label.subject != self.subject
         ):
-            raise RuntimeError(f"label and stc must have the same subject names, currently \"{label.subject}\" and \"{self.subject}\"")
+            raise RuntimeError(
+                f'label and stc must have the same subject names, currently "{label.subject}" and "{self.subject}"'
+            )
 
         if label.hemi == "both":
             lh_vert, lh_val = self._hemilabel_stc(label.lh)
@@ -3496,7 +3506,7 @@ def _volume_labels(src, labels, mri_resolution):
     else:
         if len(labels) != 2:
             raise ValueError(
-                f"labels, if list or tuple, must have length 2,got {len(labels)}" 
+                f"labels, if list or tuple, must have length 2,got {len(labels)}"
             )
         mri, labels = labels
         infer_labels = False
@@ -3536,7 +3546,7 @@ def _volume_labels(src, labels, mri_resolution):
     atlas_shape = atlas_data.shape
     if atlas_shape != src_shape:
         raise RuntimeError(
-            f"atlas shape {atlas_shape} does not match source space MRI shape {src_shape}" 
+            f"atlas shape {atlas_shape} does not match source space MRI shape {src_shape}"
         )
     atlas_data = atlas_data.ravel(order="F")
     if mri_resolution:
@@ -3567,8 +3577,9 @@ def _volume_labels(src, labels, mri_resolution):
         nnz = sum(len(v) != 0 for v in vertices)
     logger.info(
         f"{nnz}/{len(out_labels)} atlas regions had at least one vertex "
-        f"in the source space" )
-    
+        f"in the source space"
+    )
+
     return out_labels
 
 
@@ -3637,18 +3648,16 @@ def _gen_extract_label_time_course(
         for vn, svn in zip(vertno, stc.vertices):
             if len(vn) != len(svn):
                 raise ValueError(
-                    f"stc not compatible with source space." 
-                    f"stc has {len(svn)} time series but there are {len(vn)}" 
+                    f"stc not compatible with source space."
+                    f"stc has {len(svn)} time series but there are {len(vn)}"
                     f"vertices in source space. Ensure you used"
-                    f"src from the forward or inverse operator," 
-                    f"as forward computation can exclude vertices." 
+                    f"src from the forward or inverse operator,"
+                    f"as forward computation can exclude vertices."
                 )
             if not np.array_equal(svn, vn):
                 raise ValueError("stc not compatible with source space")
 
-        logger.info(
-            f"Extracting time courses for {n_labels} labels (mode: {mode})" 
-        )
+        logger.info(f"Extracting time courses for {n_labels} labels (mode: {mode})")
 
         # do the extraction
         if mode is None:

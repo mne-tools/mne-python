@@ -196,7 +196,9 @@ def plot_head_positions(
     for ii, p in enumerate(pos):
         p = np.array(p, float)
         if p.ndim != 2 or p.shape[1] != 10:
-            raise ValueError(f"pos (or each entry in pos if a list) must be dimension (N, 10), got {p.shape}")
+            raise ValueError(
+                f"pos (or each entry in pos if a list) must be dimension (N, 10), got {p.shape}"
+            )
 
         if ii > 0:  # concatenation
             p[:, 0] += pos[ii - 1][-1, 0] - p[0, 0]
@@ -1793,10 +1795,9 @@ def _process_clim(clim, colormap, transparent, data=0.0, allow_pos_lims=True):
     if not isinstance(clim, dict):
         raise ValueError(f'"clim" must be "auto" or dict, got {clim}')
 
-
     if ("lims" in clim) + ("pos_lims" in clim) != 1:
         raise ValueError(
-            f"Exactly one of lims and pos_lims must be specified in clim, got {clim}" 
+            f"Exactly one of lims and pos_lims must be specified in clim, got {clim}"
         )
     if "pos_lims" in clim and not allow_pos_lims:
         raise ValueError('Cannot use "pos_lims" for clim, use "lims" ' "instead")
@@ -1807,7 +1808,7 @@ def _process_clim(clim, colormap, transparent, data=0.0, allow_pos_lims=True):
         raise ValueError(f"clim has shape {ctrl_pts.shape}, it must be (3,)")
     if (np.diff(ctrl_pts) < 0).any():
         raise ValueError(
-            f"colormap limits must be monotonically increasing, got {ctrl_pts}" 
+            f"colormap limits must be monotonically increasing, got {ctrl_pts}"
         )
     clim_kind = clim.get("kind", "percent")
     _check_option("clim['kind']", clim_kind, ["value", "values", "percent"])
@@ -2515,7 +2516,7 @@ def _plot_stc(
     if overlay_alpha == 0:
         smoothing_steps = 1  # Disable smoothing to save time.
 
-    title = subject if len(hemis) > 1 else f"{subject} - {hemis[0]}" 
+    title = subject if len(hemis) > 1 else f"{subject} - {hemis[0]}"
     kwargs = {
         "subject": subject,
         "hemi": hemi,
@@ -2942,7 +2943,9 @@ def plot_volume_source_estimates(
     else:  # position specified
         initial_pos = np.array(initial_pos, float)
         if initial_pos.shape != (3,):
-            raise ValueError(f"initial_pos must be float ndarray with shape (3,), got shape {initial_pos.shape}")
+            raise ValueError(
+                f"initial_pos must be float ndarray with shape (3,), got shape {initial_pos.shape}"
+            )
 
         initial_pos *= 1000
         logger.info(f"Fixing initial position: {initial_pos.tolist()} mm")
@@ -2958,9 +2961,9 @@ def plot_volume_source_estimates(
     cut_coords = _ijk_to_cut_coords(ijk, img_idx)
     np.testing.assert_allclose(_cut_coords_to_ijk(cut_coords, img_idx), ijk)
     logger.info(
-    f"Showing: t = {stc.times[time_idx]:0.3f} s, "
-    f"({cut_coords[0]:0.1f}, {cut_coords[1]:0.1f}, {cut_coords[2]:0.1f}) mm, "
-    f"[{ijk[0]}, {ijk[1]}, {ijk[2]}] vox, {vertices[loc_idx]} vertex"
+        f"Showing: t = {stc.times[time_idx]:0.3f} s, "
+        f"({cut_coords[0]:0.1f}, {cut_coords[1]:0.1f}, {cut_coords[2]:0.1f}) mm, "
+        f"[{ijk[0]}, {ijk[1]}, {ijk[2]}] vox, {vertices[loc_idx]} vertex"
     )
 
     del ijk
@@ -3989,11 +3992,11 @@ def _plot_dipole(
     coord_frame_name = "Head" if coord_frame == "head" else "MRI"
 
     if title is None:
-       title = (
-        f"Dipole #{idx + 1} / {len(dipole.times)} @ {dipole.times[idx]:.3f}s, "
-        f"GOF: {dipole.gof[idx]:.1f}%, {dipole.amplitude[idx] * 1e9:.1f}nAm\n"
-        f"{coord_frame_name}: ({xyz[idx][0]:.1f}, {xyz[idx][1]:.1f}, {xyz[idx][2]:.1f}) mm"
-    )
+        title = (
+            f"Dipole #{idx + 1} / {len(dipole.times)} @ {dipole.times[idx]:.3f}s, "
+            f"GOF: {dipole.gof[idx]:.1f}%, {dipole.amplitude[idx] * 1e9:.1f}nAm\n"
+            f"{coord_frame_name}: ({xyz[idx][0]:.1f}, {xyz[idx][1]:.1f}, {xyz[idx][2]:.1f}) mm"
+        )
 
     ax.get_figure().suptitle(title)
 

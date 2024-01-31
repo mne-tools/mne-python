@@ -79,7 +79,6 @@ def test_mne_python_vs_eeglab():
         for method in methods:
             eeglab_results_file = f"eeglab_{method}_results_{ch_type}_data.mat"
 
-
             # For comparison against eeglab, make sure the following
             # parameters have the same value in mne_python and eeglab:
             #

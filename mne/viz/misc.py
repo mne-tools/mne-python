@@ -871,7 +871,7 @@ def plot_events(
         if event_id is not None:
             event_label = f"{event_id_rev[ev]} ({count})"
         else:
-            event_label = f"N={count}" 
+            event_label = f"N={count}"
         labels.append(event_label)
         kwargs = {}
         if ev in color:
@@ -1339,7 +1339,7 @@ def plot_ideal_filter(
     my_freq, my_gain = list(), list()
     if freq[0] != 0:
         raise ValueError(
-            f"freq should start with DC (zero) and end with Nyquist, but got {freq[0]} for DC" 
+            f"freq should start with DC (zero) and end with Nyquist, but got {freq[0]} for DC"
         )
     freq = np.array(freq)
     # deal with semilogx problems @ x=0
@@ -1410,9 +1410,8 @@ def _handle_event_colors(color_dict, unique_events, event_id):
         if len(unassigned):
             unassigned_str = ", ".join(str(e) for e in unassigned)
         warn(
-        f"Color was not assigned for event{_pl(unassigned)} {unassigned_str}. Default colors will be used." 
-
-            )
+            f"Color was not assigned for event{_pl(unassigned)} {unassigned_str}. Default colors will be used."
+        )
         default_colors.update(custom_colors)
     return default_colors
 

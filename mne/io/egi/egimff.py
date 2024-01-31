@@ -64,7 +64,7 @@ def _read_mff_header(filepath):
         record_time,
     )
     if g is None:
-        raise RuntimeError(f"Could not parse recordTime {record_time}" )
+        raise RuntimeError(f"Could not parse recordTime {record_time}")
     frac = g.groups()[0]
     assert len(frac) in (6, 9) and all(f.isnumeric() for f in frac)  # regex
     div = 1000 if len(frac) == 6 else 1000000
@@ -72,7 +72,7 @@ def _read_mff_header(filepath):
         # convert from times in µS to samples
         for ei, e in enumerate(epochs[key]):
             if e % div != 0:
-                raise RuntimeError(f"Could not parse epoch time {e}" )
+                raise RuntimeError(f"Could not parse epoch time {e}")
             epochs[key][ei] = e // div
         epochs[key] = np.array(epochs[key], np.uint64)
         # I guess they refer to times in milliseconds?
@@ -105,7 +105,6 @@ def _read_mff_header(filepath):
         raise RuntimeError(
             "EGI epoch first/last samps could not be parsed:\n"
             f"{list(epochs['first_samps'])}\n{list(epochs['last_samps'])}"
-
         )
     summaryinfo.update(epochs)
     # index which samples in raw are actually readable from disk (i.e., not
@@ -159,7 +158,6 @@ def _read_mff_header(filepath):
                 "PNS and signals samples did not match:\n"
                 # "%s\nvs\n%s" % (list(pns_samples), list(signal_samples))
                 f"{list(pns_samples)}\nvs\n{list(signal_samples)}"
-
             )
 
         pns_file = op.join(filepath, "pnsSet.xml")

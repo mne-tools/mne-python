@@ -28,7 +28,9 @@ def _check_input_st(x_in, n_fft):
         # Compute next power of 2
         n_fft = 2 ** int(np.ceil(np.log2(n_times)))
     elif n_fft < n_times:
-       raise ValueError(f"n_fft cannot be smaller than signal size. Got {n_fft} < {n_times}.")
+        raise ValueError(
+            f"n_fft cannot be smaller than signal size. Got {n_fft} < {n_times}."
+        )
 
     if n_times < n_fft:
         logger.info(

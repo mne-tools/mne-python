@@ -196,7 +196,6 @@ class BaseEstimator:
                     " of their __init__ (no varargs)."
                     # " %s with constructor %s doesn't "
                     f"{cls} with constructor {init_signature} doesn't  follow this convention."
-                    
                 )
         # Extract and sort argument names excluding 'self'
         return sorted([p.name for p in parameters])
@@ -270,7 +269,7 @@ class BaseEstimator:
                         # "Invalid parameter %s for estimator %s. "
                         f"Invalid parameter{name}for estimator{self}"
                         "Check the list of available parameters "
-                        "with `estimator.get_params().keys()`." 
+                        "with `estimator.get_params().keys()`."
                     )
                 sub_object = valid_params[name]
                 sub_object.set_params(**{sub_name: value})
@@ -282,7 +281,6 @@ class BaseEstimator:
                         f"Invalid parameter {key}for estimator{self.__class__.__name__} for estimator"
                         "Check the list of available parameters "
                         "with `estimator.get_params().keys()`."
-                        
                     )
                 setattr(self, key, value)
         return self

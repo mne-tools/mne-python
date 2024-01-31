@@ -1978,9 +1978,7 @@ def _handle_decim(info, decim, lowpass):
         decim = max(int(info["sfreq"] / (lp * 3) + 1e-6), 1)
     decim = _ensure_int(decim, "decim", must_be='an int or "auto"')
     if decim <= 0:
-        raise ValueError(
-            f'decim must be "auto" or a positive integer, got {decim}' 
-        )
+        raise ValueError(f'decim must be "auto" or a positive integer, got {decim}')
     decim = _check_decim(info, decim, 0)[0]
     data_picks = _pick_data_channels(info, exclude=())
     return decim, data_picks
@@ -2212,7 +2210,7 @@ def _plot_masked_image(
     if draw_mask:
         if mask.shape != data.shape:
             raise ValueError(
-                f"The mask must have the same shape as the data,i.e., {data.shape}, not {mask.shape}" 
+                f"The mask must have the same shape as the data,i.e., {data.shape}, not {mask.shape}"
             )
         if draw_contour and yscale == "log":
             warn("Cannot draw contours with linear yscale yet ...")

@@ -154,12 +154,14 @@ def compute_fine_calibration(
         cal_list = list()
         z_list = list()
         logger.info(
-    f"Adjusting normals for {len(mag_picks)} magnetometers "
-    f"(averaging over {len(time_idxs) - 1} time intervals)"
-)
+            f"Adjusting normals for {len(mag_picks)} magnetometers "
+            f"(averaging over {len(time_idxs) - 1} time intervals)"
+        )
 
         for start, stop in zip(time_idxs[:-1], time_idxs[1:]):
-            logger.info(f"    Processing interval {start / info['sfreq']:.3f} - {stop / info['sfreq']:.3f} s")
+            logger.info(
+                f"    Processing interval {start / info['sfreq']:.3f} - {stop / info['sfreq']:.3f} s"
+            )
 
             data = raw[picks, start:stop][0]
             if ctc is not None:
@@ -193,7 +195,9 @@ def compute_fine_calibration(
 
         imb_list = list()
         for start, stop in zip(time_idxs[:-1], time_idxs[1:]):
-            logger.info(f"    Processing interval {start / info['sfreq']:.3f} - {stop / info['sfreq']:.3f} s")
+            logger.info(
+                f"    Processing interval {start / info['sfreq']:.3f} - {stop / info['sfreq']:.3f} s"
+            )
 
             data = raw[picks, start:stop][0]
             if ctc is not None:
@@ -515,9 +519,9 @@ def read_fine_calibration(fname):
             vals = line.strip().split()
             if len(vals) not in [14, 16]:
                 raise RuntimeError(
-    f"Error parsing fine calibration file, "
-    f"should have 14 or 16 entries per line but found {len(vals)} on line:\n{line}"
-)
+                    f"Error parsing fine calibration file, "
+                    f"should have 14 or 16 entries per line but found {len(vals)} on line:\n{line}"
+                )
 
             # `vals` contains channel number
             ch_name = vals[0]

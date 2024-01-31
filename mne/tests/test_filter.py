@@ -88,7 +88,9 @@ def test_estimate_ringing():
             (0.0001, (30000, 60000)),
         ):  # 37993
             n_ring = estimate_ringing_samples(butter(3, thresh, output=kind))
-            assert lims[0] <= n_ring <= lims[1], f"{kind} {thresh}: {lims[0]} <= {n_ring} <= {lims[1]}"
+            assert (
+                lims[0] <= n_ring <= lims[1]
+            ), f"{kind} {thresh}: {lims[0]} <= {n_ring} <= {lims[1]}"
 
     with pytest.warns(RuntimeWarning, match="properly estimate"):
         assert estimate_ringing_samples(butter(4, 0.00001)) == 100000
@@ -402,7 +404,7 @@ def test_resample_scipy():
     for window in ("boxcar", "hann"):
         for N in (100, 101, 102, 103):
             x = np.arange(N).astype(float)
-            err_msg = f"{N}: {window}" 
+            err_msg = f"{N}: {window}"
             x_2_sp = sp_resample(x, 2 * N, window=window)
             for n_jobs in n_jobs_test:
                 x_2 = resample(x, 2, 1, npad=0, window=window, n_jobs=n_jobs)

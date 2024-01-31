@@ -36,10 +36,13 @@ def _assert_trans(actual, desired, dist_tol=0.017, angle_tol=5.0):
 
     angle = np.rad2deg(_angle_between_quats(quat_est, quat))
     dist = np.linalg.norm(trans - trans_est)
-    assert f"{1000 * dist:.3f} > {1000 * dist_tol:.3f} mm translation", f"{1000 * dist:.3f} > {1000 * dist_tol:.3f} mm translation"
+    assert (
+        f"{1000 * dist:.3f} > {1000 * dist_tol:.3f} mm translation"
+    ), f"{1000 * dist:.3f} > {1000 * dist_tol:.3f} mm translation"
 
-    assert f"{angle:.3f} > {angle_tol:.3f}° rotation", f"{angle:.3f} > {angle_tol:.3f}° rotation"
-
+    assert (
+        f"{angle:.3f} > {angle_tol:.3f}° rotation"
+    ), f"{angle:.3f} > {angle_tol:.3f}° rotation"
 
 
 @pytest.mark.timeout(60)  # ~25 s on Travis Linux OpenBLAS

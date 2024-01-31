@@ -158,7 +158,6 @@ def test_ttest_equiv(kind, kwargs, sigma, seed):
 
     ours = partial(getattr(mne.stats, f"ttest_{kind}_no_p"), sigma=sigma, **kwargs)
 
-
     X = rng.randn(3, 4, 5)
     if kind == "ind":
         X = [X, rng.randn(30, 4, 5)]  # should differ based on equal_var

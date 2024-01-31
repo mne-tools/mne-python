@@ -502,13 +502,16 @@ def _prep_maxwell_filter(
             got_names = proj["data"]["col_names"]
             missing = sorted(set(good_names) - set(got_names))
             if missing:
-                raise ValueError(f"{item} channel names were missing some good MEG channel names:\n{', '.join(missing)}")
+                raise ValueError(
+                    f"{item} channel names were missing some good MEG channel names:\n{', '.join(missing)}"
+                )
 
             idx = [got_names.index(name) for name in good_names]
             extended_proj_.append(proj["data"]["data"][:, idx])
         extended_proj = np.concatenate(extended_proj_)
-        logger.info(f"    Extending external SSS basis using {len(extended_proj)} projection vectors")
-
+        logger.info(
+            f"    Extending external SSS basis using {len(extended_proj)} projection vectors"
+        )
 
     #
     # Fine calibration processing (load fine cal and overwrite sensor geometry)
@@ -564,8 +567,9 @@ def _prep_maxwell_filter(
         diff = 1000 * (info["dev_head_t"]["trans"][:3, 3] - recon_trans["trans"][:3, 3])
         dist = np.sqrt(np.sum(_sq(diff)))
         if dist > 25.0:
-            warn(f"Head position change is over 25 mm ({', '.join(f'{x:.1f}' for x in diff)} = {dist:.1f} mm)")
-
+            warn(
+                f"Head position change is over 25 mm ({', '.join(f'{x:.1f}' for x in diff)} = {dist:.1f} mm)"
+            )
 
     # Reconstruct raw file object with spatiotemporal processed data
     max_st = dict()
@@ -577,7 +581,9 @@ def _prep_maxwell_filter(
         max_st.update(
             job=job, subspcorr=st_correlation, buflen=st_duration / info["sfreq"]
         )
-        logger.info(f"    Processing data using tSSS with st_duration={max_st['buflen']}")
+        logger.info(
+            f"    Processing data using tSSS with st_duration={max_st['buflen']}"
+        )
 
         st_when = "before" if st_fixed else "after"  # relative to movecomp
     else:
@@ -696,7 +702,9 @@ def _run_maxwell_filter(
     onsets, ends = _annotations_starts_stops(raw_sss, skip_by_annotation, invert=True)
     max_samps = (ends - onsets).max()
     if not 0.0 < st_duration <= max_samps + 1.0:
-        raise ValueError(f"st_duration ({st_duration / sfreq:.1f}s) must be between 0 and the longest contiguous duration of the data ({max_samps / sfreq:.1f}s).")
+        raise ValueError(
+            f"st_duration ({st_duration / sfreq:.1f}s) must be between 0 and the longest contiguous duration of the data ({max_samps / sfreq:.1f}s)."
+        )
 
     # Generate time points to break up data into equal-length windows
     starts, stops = list(), list()
@@ -710,10 +718,14 @@ def _run_maxwell_filter(
             n_last_buf = read_lims[-1] - read_lims[-2]
             if st_correlation is not None and len(read_lims) > 2:
                 if n_last_buf >= st_duration:
-                    logger.info(f"    Spatiotemporal window did not fit evenly into contiguous data segment. {(n_last_buf - st_duration) / sfreq:.2f} seconds were lumped into the previous window.")
+                    logger.info(
+                        f"    Spatiotemporal window did not fit evenly into contiguous data segment. {(n_last_buf - st_duration) / sfreq:.2f} seconds were lumped into the previous window."
+                    )
 
                 else:
-                    logger.info(f"    Contiguous data segment of duration {n_last_buf / sfreq:.2f} seconds is too short to be processed with tSSS using duration {st_duration / sfreq:.2f}")
+                    logger.info(
+                        f"    Contiguous data segment of duration {n_last_buf / sfreq:.2f} seconds is too short to be processed with tSSS using duration {st_duration / sfreq:.2f}"
+                    )
 
         assert len(read_lims) >= 2
         assert read_lims[0] == onset and read_lims[-1] == end
@@ -733,7 +745,6 @@ def _run_maxwell_filter(
         rel_times = raw_sss.times[start:stop]
         t_str = f"{rel_times[0]:8.3f} - {rel_times[-1]:8.3f} s"
         t_str += f"#{ii + 1}/{len(starts)}".rjust(2 * n_sig + 5)
-
 
         # Get original data
         orig_data = raw_sss._data[meg_picks[good_mask], start:stop]
@@ -881,13 +892,13 @@ def _get_coil_scale(meg_picks, mag_picks, grad_picks, mag_scale, info):
             grad_base = {coils[pick]["base"] for pick in grad_picks}
             if len(grad_base) != 1 or list(grad_base)[0] <= 0:
                 raise RuntimeError(
-             f"Could not automatically determine mag_scale,could not find one proper gradiometer distance from: {list(grad_base)}"
-            )
+                    f"Could not automatically determine mag_scale,could not find one proper gradiometer distance from: {list(grad_base)}"
+                )
 
             grad_base = list(grad_base)[0]
             mag_scale = 1.0 / grad_base
             logger.info(
-             f"    Setting mag_scale={mag_scale:.2f} based on gradiometer distance {1000 * grad_base:.2f} mm"
+                f"    Setting mag_scale={mag_scale:.2f} based on gradiometer distance {1000 * grad_base:.2f} mm"
             )
     mag_scale = float(mag_scale)
     coil_scale = np.ones((len(meg_picks), 1))
@@ -943,8 +954,8 @@ def _check_destination(destination, info, head_frame):
         recon_trans = Transform("meg", "head", recon_trans)
     if recon_trans.to_str != "head" or recon_trans.from_str != "MEG device":
         raise RuntimeError(
-        f"Destination transform is not MEG device -> head, "
-        f"got {recon_trans.from_str} -> {recon_trans.to_str}"
+            f"Destination transform is not MEG device -> head, "
+            f"got {recon_trans.from_str} -> {recon_trans.to_str}"
         )
 
     return recon_trans
@@ -1136,16 +1147,16 @@ def _check_pos(pos, head_frame, raw, st_fixed, sfreq):
     # only out to 3 decimal places
     if not _time_mask(t, tmin=raw._first_time - 1e-3, tmax=None, sfreq=sfreq).all():
         raise ValueError(
-    f"Head position time points must be greater than first sample offset, "
-    f"but found {t[0]:.4f} < {raw._first_time:.4f}"
-    )
+            f"Head position time points must be greater than first sample offset, "
+            f"but found {t[0]:.4f} < {raw._first_time:.4f}"
+        )
 
     max_dist = np.sqrt(np.sum(pos[:, 4:7] ** 2, axis=1)).max()
     if max_dist > 1.0:
         warn(
-        f"Found a distance greater than 1 m ({max_dist:.3g} m) from the device "
-        "origin, positions may be invalid and Maxwell filtering could fail"
-      )
+            f"Found a distance greater than 1 m ({max_dist:.3g} m) from the device "
+            "origin, positions may be invalid and Maxwell filtering could fail"
+        )
 
     dev_head_ts = np.zeros((len(t), 4, 4))
     dev_head_ts[:, 3, 3] = 1.0
@@ -1282,7 +1293,7 @@ def _regularize(
     int_order, ext_order = exp["int_order"], exp["ext_order"]
     n_in = _get_n_moments(int_order)
     n_out = S_decomp.shape[1] - n_in
-    t_str = f"{t}8.3f" 
+    t_str = f"{t}8.3f"
     if regularize is not None:  # regularize='in'
         in_removes, out_removes = _regularize_in(
             int_order, ext_order, S_decomp, mag_or_fine, extended_remove
@@ -1300,9 +1311,9 @@ def _regularize(
     S_decomp = S_decomp.take(reg_moments, axis=1)
     if regularize is not None or n_use_out != n_out:
         logger.info(
-      f"        Using {n_use_in + n_use_out}/{n_in + n_out} harmonic components for {t_str} "
-      f"({n_use_in}/{n_in} in, {n_use_out}/{n_out} out)"
-      )
+            f"        Using {n_use_in + n_use_out}/{n_in + n_out} harmonic components for {t_str} "
+            f"({n_use_in}/{n_in} in, {n_use_out}/{n_out} out)"
+        )
 
     return S_decomp, reg_moments, n_use_in
 
@@ -1329,8 +1340,8 @@ def _get_mf_picks_fix_mags(info, int_order, ext_order, ignore_ref=False, verbose
     n_bases = _get_n_moments([int_order, ext_order]).sum()
     if n_bases > good_mask.sum():
         raise ValueError(
-           f"Number of requested bases ({n_bases}) exceeds number of good sensors ({good_mask.sum()})"
-         )
+            f"Number of requested bases ({n_bases}) exceeds number of good sensors ({good_mask.sum()})"
+        )
 
     recons = [ch for ch in meg_info["bads"]]
     if len(recons) > 0:
@@ -1362,7 +1373,7 @@ def _get_mf_picks_fix_mags(info, int_order, ext_order, ignore_ref=False, verbose
 
     n_kit = len(mag_picks) - mag_or_fine.sum()
     if n_kit > 0:
-        msg += f" (of which {n_kit} are actually KIT gradiometers)" 
+        msg += f" (of which {n_kit} are actually KIT gradiometers)"
     logger.info(msg)
     return meg_picks, mag_picks, grad_picks, good_mask, mag_or_fine
 
@@ -2086,8 +2097,7 @@ def _prep_fine_cal(info, fine_cal):
     meg_picks = pick_types(info, meg=True, exclude=[])
     if len(info_to_cal) != len(meg_picks):
         raise RuntimeError(
-            f"Not all MEG channels found in fine calibration file, missing:\n{sorted}"
-            (
+            f"Not all MEG channels found in fine calibration file, missing:\n{sorted}"(
                 list({ch_names[pick] for pick in meg_picks} - set(fine_cal["ch_names"]))
             )
         )
@@ -2181,7 +2191,9 @@ def _update_sensor_geometry(info, fine_cal, ignore_ref):
     ang_shift = np.array(ang_shift)
     np.clip(ang_shift, -1.0, 1.0, ang_shift)
     np.rad2deg(np.arccos(ang_shift), ang_shift)  # Convert to degrees
-    logger.info(f"        Adjusted coil positions by (μ ± σ): {np.mean(ang_shift):0.1f}° ± {np.std(ang_shift):0.1f}° (max: {np.max(np.abs(ang_shift)):0.1f}°)")
+    logger.info(
+        f"        Adjusted coil positions by (μ ± σ): {np.mean(ang_shift):0.1f}° ± {np.std(ang_shift):0.1f}° (max: {np.max(np.abs(ang_shift)):0.1f}°)"
+    )
 
     return calibration, sss_cal
 
@@ -2789,9 +2801,7 @@ def _read_cross_talk(cross_talk, ch_names):
             ch_names = _clean_names(ch_names, remove_whitespace=True)
         missing = sorted(list(set(ch_names) - set(ctc_chs)))
         if len(missing) != 0:
-            raise RuntimeError(
-                f"Missing MEG channels in cross-talk matrix:\n{missing}" 
-            )
+            raise RuntimeError(f"Missing MEG channels in cross-talk matrix:\n{missing}")
         missing = sorted(list(set(ctc_chs) - set(ch_names)))
         if len(missing) > 0:
             warn(f"Not all cross-talk channels in raw:\n{missing}")

@@ -55,9 +55,7 @@ def _prepare_weights(forward, gain, source_weighting, weights, weights_min):
         weights = np.max(np.abs(weights.data), axis=1)
     weights_max = np.max(weights)
     if weights_min > weights_max:
-        raise ValueError(
-            f"weights_min > weights_max ({weights_min} > {weights_max})" 
-        )
+        raise ValueError(f"weights_min > weights_max ({weights_min} > {weights_max})")
     weights_min = weights_min / weights_max
     weights = weights / weights_max
     n_dip_per_pos = 1 if is_fixed_orient(forward) else 3
@@ -813,7 +811,7 @@ def tf_mixed_norm(
     if len(tstep) != len(wsize):
         raise ValueError(
             "The same number of window sizes and steps must be "
-            f"passed. Got tstep = {tstep} and wsize = {wsize}" 
+            f"passed. Got tstep = {tstep} and wsize = {wsize}"
         )
 
     forward, gain, gain_info, whitener, source_weighting, mask = _prepare_gain(

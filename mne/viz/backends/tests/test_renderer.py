@@ -190,12 +190,12 @@ def test_renderer(renderer, monkeypatch):
     """Test that renderers are available on demand."""
     backend = renderer.get_3d_backend()
     cmd = [
-    sys.executable,
-    "-uc",
-    f"import mne; mne.viz.create_3d_figure((800, 600), show=True); "
-    f"backend = mne.viz.get_3d_backend(); "
-    f"assert backend == {backend!r}, backend"
-  ]
+        sys.executable,
+        "-uc",
+        f"import mne; mne.viz.create_3d_figure((800, 600), show=True); "
+        f"backend = mne.viz.get_3d_backend(); "
+        f"assert backend == {backend!r}, backend",
+    ]
 
     monkeypatch.setenv("MNE_3D_BACKEND", backend)
     run_subprocess(cmd)

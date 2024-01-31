@@ -580,7 +580,7 @@ def _plot_timeseries(
             if trunc_labels:
                 label = label if len(label) <= 10 else f"{label[:6]}..{label[-2:]}"
 
-            s += f" [{label if label else " "}] " 
+            s += f" [{label if label else " "}] "
         return s
 
     ax.format_coord = lambda x, y: _format_coord(x, y, labels=labels, ax=ax)

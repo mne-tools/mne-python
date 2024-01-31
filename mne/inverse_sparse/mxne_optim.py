@@ -243,7 +243,7 @@ def _mixed_norm_solver_bcd(
             )
 
             if gap < tol:
-                logger.debug(f"Convergence reached ! (gap: {gap} < {tol})" )
+                logger.debug(f"Convergence reached ! (gap: {gap} < {tol})")
                 break
 
         # using Anderson acceleration of the primal variable for faster
@@ -641,7 +641,7 @@ def iterative_mixed_norm_solver(
     if weight_init is not None and weight_init.shape != (G.shape[1],):
         raise ValueError(
             f"Wrong dimension for weight initialization. Got {weight_init.shape}. "
-            f"Expected {(G.shape[1],)}." 
+            f"Expected {(G.shape[1],)}."
         )
 
     weights = weight_init if weight_init is not None else np.ones(G.shape[1])
@@ -1268,7 +1268,6 @@ def _tf_mixed_norm_solver_bcd_(
             E.append(p_obj)
             logger.info(
                 f"\n    Iteration {i + 1} :: n_active {np.sum(active_set) / n_orient}"
-               
             )
             logger.info(f"dgap {gap}.2e :: p_obj {p_obj} :: d_obj {d_obj}")
 
@@ -1504,7 +1503,7 @@ def tf_mixed_norm_solver(
     if len(tstep) != len(wsize):
         raise ValueError(
             "The same number of window sizes and steps must be "
-            f"passed. Got tstep = {tstep} and wsize = {wsize}" 
+            f"passed. Got tstep = {tstep} and wsize = {wsize}"
         )
 
     n_steps = np.ceil(M.shape[1] / tstep.astype(float)).astype(int)

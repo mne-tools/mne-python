@@ -201,7 +201,7 @@ def _fit_xdawn(
             evals, evecs = linalg.eigh(evo_cov, signal_cov)
         except np.linalg.LinAlgError as exp:
             raise ValueError(
-                f"Could not compute eigenvalues, ensure proper regularization ({exp})" 
+                f"Could not compute eigenvalues, ensure proper regularization ({exp})"
             )
         evecs = evecs[:, np.argsort(evals)[::-1]]  # sort eigenvectors
         evecs /= np.apply_along_axis(np.linalg.norm, 0, evecs)

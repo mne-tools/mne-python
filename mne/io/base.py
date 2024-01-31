@@ -414,7 +414,6 @@ class BaseRaw(
             if data_buffer.shape != data_shape:
                 raise ValueError(
                     f"data_buffer has incorrect shape: {data_buffer.shape} != {data_shape}"
-                    
                 )
             data = data_buffer
         else:
@@ -1486,9 +1485,11 @@ class BaseRaw(
         if tmin > tmax:
             raise ValueError(f"tmin ({tmin}) must be less than tmax ({tmax})")
         if tmin < 0.0:
-            raise ValueError(f"tmin ({tmin}) must be >= 0" )
+            raise ValueError(f"tmin ({tmin}) must be >= 0")
         elif tmax - int(not include_tmax) / self.info["sfreq"] > max_time:
-            raise ValueError(f"tmax ({tmax}) must be less than or equal to the max time ({max_time:.4f} s)")
+            raise ValueError(
+                f"tmax ({tmax}) must be less than or equal to the max time ({max_time:.4f} s)"
+            )
 
         smin, smax = np.where(
             _time_mask(
@@ -1767,9 +1768,7 @@ class BaseRaw(
             stop = self.time_as_index(float(tmax), use_rounding=True)[0] + 1
         stop = min(stop, self.last_samp - self.first_samp + 1)
         if stop <= start or stop <= 0:
-            raise ValueError(
-                f"tmin ({tmin}) and tmax ({tmax}) yielded no samples" 
-            )
+            raise ValueError(f"tmin ({tmin}) and tmax ({tmax}) yielded no samples")
         return start, stop
 
     @copy_function_doc_to_method_doc(plot_raw)
@@ -2055,10 +2054,10 @@ class BaseRaw(
         name = self.filenames[0]
         name = "" if name is None else op.basename(name) + ", "
         size_str = str(sizeof_fmt(self._size))  # str in case it fails -> None
-        size_str += f", data{"" if self.preload else " not"} loaded" 
+        size_str += f", data{"" if self.preload else " not"} loaded"
         s = f"{name}{len(self.ch_names)} x {self.n_times} ({self.times[-1]:.1f} s), ~{size_str}"
 
-        return f"<{self.__class__.__name__} | {s}>" 
+        return f"<{self.__class__.__name__} | {s}>"
 
     @repr_html
     def _repr_html_(self, caption=None):
@@ -2111,13 +2110,13 @@ class BaseRaw(
         stim_channel = _get_stim_channel(stim_channel, self.info)
         pick = pick_channels(self.ch_names, stim_channel, ordered=False)
         if len(pick) == 0:
-            raise ValueError(f"Channel {stim_channel} not found" )
+            raise ValueError(f"Channel {stim_channel} not found")
         pick = pick[0]
         idx = events[:, 0].astype(int)
         if np.any(idx < self.first_samp) or np.any(idx > self.last_samp):
             raise ValueError(
-    f"event sample numbers must be between {self.first_samp} and {self.last_samp}"
-)
+                f"event sample numbers must be between {self.first_samp} and {self.last_samp}"
+            )
 
         if not all(idx == events[:, 0]):
             raise ValueError("event sample numbers must be integers")
@@ -2792,11 +2791,10 @@ def _write_raw_data(
             # This should occur on the first buffer write of the file, so
             # we should mention the space required for the meas info
             raise ValueError(
-    f"buffer size ({this_buff_size_bytes}) is too large for the given split size ({split_size}) "
-    f"by {overage} bytes after writing info ({pos_prev}) and leaving enough space "
-    f'for end tags ({_NEXT_FILE_BUFFER}): decrease "buffer_size_sec" or increase "split_size".'
-)
-
+                f"buffer size ({this_buff_size_bytes}) is too large for the given split size ({split_size}) "
+                f"by {overage} bytes after writing info ({pos_prev}) and leaving enough space "
+                f'for end tags ({_NEXT_FILE_BUFFER}): decrease "buffer_size_sec" or increase "split_size".'
+            )
 
         new_start = last
         # Split files if necessary, leave some space for next file info

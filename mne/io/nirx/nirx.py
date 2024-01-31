@@ -205,7 +205,7 @@ class RawNIRX(BaseRaw):
         else:
             if hdr["GeneralInfo"]["NIRStar"] not in ['"15.0"', '"15.2"', '"15.3"']:
                 raise RuntimeError(
-                    f"MNE does not support this NIRStar version({hdr["GeneralInfo"]["NIRStar"]})" 
+                    f"MNE does not support this NIRStar version({hdr["GeneralInfo"]["NIRStar"]})"
                 )
             if (
                 "NIRScout" not in hdr["GeneralInfo"]["Device"]
@@ -213,7 +213,6 @@ class RawNIRX(BaseRaw):
             ):
                 warn(
                     f"Only import of data from NIRScout devices have been thoroughly tested. You are using a {hdr["GeneralInfo"]["Device"]} device. "
-                    
                 )
 
         # Parse required header fields

@@ -1270,9 +1270,8 @@ def _plot_topomap(
 
     if len(data) != len(pos):
         raise ValueError(
-    f"Data and pos need to be of same length. Got data of length {len(data)}, pos of length {len(pos)}"
-    )
-
+            f"Data and pos need to be of same length. Got data of length {len(data)}, pos of length {len(pos)}"
+        )
 
     norm = min(data) >= 0
     vmin, vmax = _setup_vmin_vmax(data, vmin, vmax, norm)

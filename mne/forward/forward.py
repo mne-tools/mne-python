@@ -1259,7 +1259,7 @@ def compute_orient_prior(forward, loose="auto", verbose=None):
             raise ValueError(
                 "loose must be 0. with forward operator "
                 # "with fixed orientation, got %s" % (loose,)
-                f"with fixed orientation, got {loose,}" 
+                f"with fixed orientation, got {loose,}"
             )
         return orient_prior
     if all(v == 1.0 for v in loose.values()):
@@ -1270,7 +1270,7 @@ def compute_orient_prior(forward, loose="auto", verbose=None):
         raise ValueError(
             "Forward operator is not oriented in surface "
             "coordinates. loose parameter should be 1. "
-            f"not {loose,}." 
+            f"not {loose,}."
         )
     start = 0
     logged = dict()
@@ -1422,13 +1422,12 @@ def compute_depth_prior(
             raise ValueError(
                 'limit_depth_chs, if str, must be "whiten", got '
                 # "%s" % (limit_depth_chs,)
-                f"{limit_depth_chs,}" 
-
+                f"{limit_depth_chs,}"
             )
         if not isinstance(noise_cov, Covariance):
             raise ValueError(
                 'With limit_depth_chs="whiten", noise_cov must be'
-                f" a Covariance, got {type(noise_cov),}" 
+                f" a Covariance, got {type(noise_cov),}"
             )
     if combine_xyz is not False:  # private / expert option
         _check_option("combine_xyz", combine_xyz, ("fro", "spectral"))
@@ -1490,9 +1489,7 @@ def compute_depth_prior(
                 limit = ws[ind]
                 n_limit = ind
 
-        logger.info(
-            f"    limit = {n_limit + 1}/{len(d)} = {np.sqrt(limit / ws[0])}" 
-        )
+        logger.info(f"    limit = {n_limit + 1}/{len(d)} = {np.sqrt(limit / ws[0])}")
         scale = 1.0 / limit
         logger.info(f"    scale = {scale:g} exp = {exp:g}")
 
@@ -1518,7 +1515,7 @@ def _stc_src_sel(
     if not len(src) == len(vertices):
         raise RuntimeError(
             f"Mismatch between number of source spaces ({len(src)}) and "
-            f"STC vertices ({len(vertices)})" 
+            f"STC vertices ({len(vertices)})"
         )
     src_sels, stc_sels, out_vertices = [], [], []
     src_offset = stc_offset = 0

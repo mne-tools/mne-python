@@ -131,7 +131,9 @@ def _get_artemis123_info(fname, pos_fname=None):
                         tmp[k] = v
                     header_info["channels"].append(tmp)
                 elif sectionFlag == 3:
-                    header_info["comments"] = f"{header_info["comments"]},{line.strip()}" 
+                    header_info[
+                        "comments"
+                    ] = f"{header_info["comments"]},{line.strip()}"
                 elif sectionFlag == 4:
                     header_info["num_samples"] = int(line.strip())
                 elif sectionFlag == 5:

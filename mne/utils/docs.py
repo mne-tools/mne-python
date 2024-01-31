@@ -4126,7 +4126,7 @@ trans : path-like | dict | instance of Transform | ``"fsaverage"`` | None
 docdict["trans_not_none"] = f"""
 trans : str | dict | instance of Transform
     {_trans_base}
-""" 
+"""
 
 docdict["transparent"] = """
 transparent : bool | None
@@ -4738,7 +4738,6 @@ def linkcode_resolve(domain, info):
     return f"http://github.com/mne-tools/mne-python/blob/{kind}/mne/{fn}{linespec}"
 
 
-
 def open_docs(kind=None, version=None):
     """Launch a new web browser tab with the MNE documentation.
 
@@ -4769,7 +4768,6 @@ def open_docs(kind=None, version=None):
         version = get_config("MNE_DOCS_VERSION", "stable")
     _check_option("version", version, ["stable", "dev"])
     webbrowser.open_new_tab(f"https://mne.tools/{version}/{kind}")
-
 
 
 class _decorator:

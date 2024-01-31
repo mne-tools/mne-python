@@ -128,7 +128,9 @@ def _compare(a, b):
             assert isinstance(b, dict)
             for k, v in a.items():
                 if k not in b and k not in skip_types:
-                    raise ValueError(f"First one had one second one didn't:\n{k} not in {b.keys()}")
+                    raise ValueError(
+                        f"First one had one second one didn't:\n{k} not in {b.keys()}"
+                    )
 
                 if k not in skip_types:
                     last_keys.pop()
@@ -136,7 +138,9 @@ def _compare(a, b):
                     _compare(v, b[k])
             for k in b.keys():
                 if k not in a and k not in skip_types:
-                    raise ValueError(f"Second one had one first one didn't:\n{k} not in {sorted(a.keys())}")
+                    raise ValueError(
+                        f"Second one had one first one didn't:\n{k} not in {sorted(a.keys())}"
+                    )
 
         elif isinstance(a, list):
             assert len(a) == len(b)
@@ -221,10 +225,7 @@ def _compare_inverses_approx(
         stc_2 /= norms
         corr = np.corrcoef(stc_1.ravel(), stc_2.ravel())[0, 1]
         assert corr > ctol
-        assert_allclose(
-    stc_1, stc_2, rtol=rtol, atol=atol, err_msg=f"{method}: {corr}"
-)
-
+        assert_allclose(stc_1, stc_2, rtol=rtol, atol=atol, err_msg=f"{method}: {corr}")
 
 
 def _compare_io(inv_op, *, out_file_ext=".fif", tmp_path):

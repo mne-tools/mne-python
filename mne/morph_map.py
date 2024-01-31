@@ -158,7 +158,6 @@ def _write_morph_map(fname, subject_from, subject_to, mmap_1, mmap_2):
         warn(f'Could not write morph-map file "{fname}" (error: {exp})')
 
 
-
 def _write_morph_map_(fid, subject_from, subject_to, mmap_1, mmap_2):
     assert len(mmap_1) == 2
     hemis = [FIFF.FIFFV_MNE_SURF_LEFT_HEMI, FIFF.FIFFV_MNE_SURF_RIGHT_HEMI]

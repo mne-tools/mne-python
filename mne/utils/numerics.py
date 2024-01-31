@@ -493,16 +493,16 @@ def _time_mask(
         assert include_tmax  # can only be used when sfreq is known
     if raise_error and tmin > tmax:
         raise ValueError(
-            f"tmin ({orig_tmin}) must be less than or equal to tmax ({ orig_tmax})" 
+            f"tmin ({orig_tmin}) must be less than or equal to tmax ({ orig_tmax})"
         )
     mask = times >= tmin
     mask &= times <= tmax
     if raise_error and not mask.any():
         extra = "" if include_tmax else "when include_tmax=False "
         raise ValueError(
-    f"No samples remain when using tmin={orig_tmin} and tmax={orig_tmax} {extra}"
-    f"(original time bounds are [{times[0]}, {times[-1]}])"
-    )
+            f"No samples remain when using tmin={orig_tmin} and tmax={orig_tmax} {extra}"
+            f"(original time bounds are [{times[0]}, {times[-1]}])"
+        )
 
     return mask
 
@@ -525,15 +525,15 @@ def _freq_mask(freqs, sfreq, fmin=None, fmax=None, raise_error=True):
     fmax = int(round(fmax * sfreq)) / sfreq + 0.5 / sfreq
     if raise_error and fmin > fmax:
         raise ValueError(
-            f"fmin ({orig_fmin}) must be less than or equal to fmax ({orig_fmax})" 
+            f"fmin ({orig_fmin}) must be less than or equal to fmax ({orig_fmax})"
         )
     mask = freqs >= fmin
     mask &= freqs <= fmax
     if raise_error and not mask.any():
         raise ValueError(
-    f"No frequencies remain when using fmin={orig_fmin} and "
-    f"fmax={orig_fmax} (original frequency bounds are [{freqs[0]}, {freqs[-1]}])"
-   )
+            f"No frequencies remain when using fmin={orig_fmin} and "
+            f"fmax={orig_fmax} (original frequency bounds are [{freqs[0]}, {freqs[-1]}])"
+        )
 
     return mask
 
@@ -815,7 +815,7 @@ def object_diff(a, b, pre="", *, allclose=False):
 
     elif isinstance(a, (str, int, bytes, np.generic)):
         if a != b:
-           out += f"{pre} value mismatch ({a}, {b})\n"
+            out += f"{pre} value mismatch ({a}, {b})\n"
 
     elif a is None:
         if b is not None:
@@ -833,7 +833,9 @@ def object_diff(a, b, pre="", *, allclose=False):
     elif sparse.isspmatrix(a):
         # sparsity and sparse type of b vs a already checked above by type()
         if b.shape != a.shape:
-            out += f"{pre} sparse matrix a and b shape mismatch ({a.shape} vs {b.shape})"
+            out += (
+                f"{pre} sparse matrix a and b shape mismatch ({a.shape} vs {b.shape})"
+            )
 
         else:
             c = a - b
@@ -886,17 +888,16 @@ class _PCA:
                 )
         elif not 0 <= n_components <= min(n_samples, n_features):
             raise ValueError(
-    f"n_components={n_components} must be between 0 and "
-    f"min(n_samples, n_features)={min(n_samples, n_features)} with svd_solver='full'"
-)
+                f"n_components={n_components} must be between 0 and "
+                f"min(n_samples, n_features)={min(n_samples, n_features)} with svd_solver='full'"
+            )
 
         elif n_components >= 1:
             if not isinstance(n_components, (numbers.Integral, np.integer)):
                 raise ValueError(
-    f"n_components={n_components} must be of type int when greater than or equal to 1, "
-    f"was of type={type(n_components)}"
-)
-
+                    f"n_components={n_components} must be of type int when greater than or equal to 1, "
+                    f"was of type={type(n_components)}"
+                )
 
         self.mean_ = np.mean(X, axis=0)
         X -= self.mean_
@@ -1056,7 +1057,6 @@ def _check_dt(dt):
     ):
         # raise ValueError("Date must be datetime object in UTC: %r" % (dt,))
         raise ValueError(f"Date must be datetime object in UTC: {dt!r}")
-    
 
 
 def _dt_to_stamp(inp_date):

@@ -242,12 +242,15 @@ def _check_snr(actual, desired, picks, min_tol, med_tol, msg, kind="MEG"):
     # min tol
     snr = snrs.min()
     bad_count = (snrs < min_tol).sum()
-    msg = f" ({msg if msg != "" else msg})" 
-    assert bad_count == 0, f"SNR (worst {snr:.2f}) < {min_tol:.2f} for {bad_count}/{len(picks)} channels{msg}"
+    msg = f" ({msg if msg != "" else msg})"
+    assert (
+        bad_count == 0
+    ), f"SNR (worst {snr:.2f}) < {min_tol:.2f} for {bad_count}/{len(picks)} channels{msg}"
 
     # median tol
     snr = np.median(snrs)
     assert snr >= med_tol, f"{kind} SNR median {snr:0.2f} < {med_tol:0.2f}{msg}"
+
 
 def assert_meg_snr(
     actual, desired, min_tol, med_tol=500.0, chpi_med_tol=500.0, msg=None
@@ -291,7 +294,6 @@ def assert_snr(actual, desired, tol):
     with np.errstate(divide="ignore"):  # allow infinite
         snr = linalg.norm(desired, ord="fro") / linalg.norm(desired - actual, ord="fro")
     assert snr >= tol, f"{snr} < {tol}"
-
 
 
 def assert_stcs_equal(stc1, stc2):
@@ -339,8 +341,7 @@ def assert_dig_allclose(info_py, info_bin, limit=None):
             d_bin["r"],
             rtol=1e-5,
             atol=1e-5,
-            err_msg = f"Failure on {ii}:\n{d_py['r']}\n{d_bin['r']}"
-
+            err_msg=f"Failure on {ii}:\n{d_py['r']}\n{d_bin['r']}",
         )
     if any(d["kind"] == FIFF.FIFFV_POINT_EXTRA for d in dig_py) and info_py is not None:
         r_bin, o_head_bin, o_dev_bin = fit_sphere_to_headshape(

@@ -419,14 +419,14 @@ def _find_clusters(
         if show_info is True:
             if len(thresholds) == 0:
                 warn(
-                f'threshold["start"] ({threshold["start"]}) is more extreme than data '
-                f'statistics with most extreme value {stop}'
+                    f'threshold["start"] ({threshold["start"]}) is more extreme than data '
+                    f'statistics with most extreme value {stop}'
                 )
 
             else:
                 logger.info(
-                 f"Using {len(thresholds)} thresholds from {thresholds[0]:0.2f} to {thresholds[-1]:0.2f} "
-                 f"for TFCE computation (h_power={h_power:0.2f}, e_power={e_power:0.2f})"
+                    f"Using {len(thresholds)} thresholds from {thresholds[0]:0.2f} to {thresholds[-1]:0.2f} "
+                    f"for TFCE computation (h_power={h_power:0.2f}, e_power={e_power:0.2f})"
                 )
 
         scores = np.zeros(x.size)
@@ -929,9 +929,8 @@ def _permutation_cluster_test(
             and threshold < 0
         ):
             raise ValueError(
-             f"incompatible tail and threshold signs, got {tail} and {threshold}"
+                f"incompatible tail and threshold signs, got {tail} and {threshold}"
             )
-
 
     # check dimensions for each group in X (a list at this stage).
     X = [x[:, np.newaxis] if x.ndim == 1 else x for x in X]
@@ -977,9 +976,9 @@ def _permutation_cluster_test(
     # The stat should have the same shape as the samples for no adj.
     if t_obs.size != np.prod(sample_shape):
         raise ValueError(
-         f"t_obs.shape {t_obs.shape} provided by stat_fun {stat_fun} is not "
-         f"compatible with the sample shape {sample_shape}"
-         )
+            f"t_obs.shape {t_obs.shape} provided by stat_fun {stat_fun} is not "
+            f"compatible with the sample shape {sample_shape}"
+        )
 
     if adjacency is None or adjacency is False:
         t_obs.shape = sample_shape
@@ -1137,9 +1136,9 @@ def _check_fun(X, stat_fun, threshold, tail=0, kind="within"):
     if kind == "within":
         if threshold is None:
             if stat_fun is not None and stat_fun is not ttest_1samp_no_p:
-               warn(
-         f"Automatic threshold is only valid for stat_fun=None (or ttest_1samp_no_p), got {stat_fun}"
-          )
+                warn(
+                    f"Automatic threshold is only valid for stat_fun=None (or ttest_1samp_no_p), got {stat_fun}"
+                )
 
             p_thresh = 0.05 / (1 + (tail == 0))
             n_samples = len(X)
@@ -1153,8 +1152,8 @@ def _check_fun(X, stat_fun, threshold, tail=0, kind="within"):
         if threshold is None:
             if stat_fun is not None and stat_fun is not f_oneway:
                 warn(
-        f"Automatic threshold is only valid for stat_fun=None (or f_oneway), got {stat_fun}"
-        )
+                    f"Automatic threshold is only valid for stat_fun=None (or f_oneway), got {stat_fun}"
+                )
 
             elif tail != 1:
                 warn('Ignoring argument "tail", performing 1-tailed F-test')

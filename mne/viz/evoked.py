@@ -193,7 +193,7 @@ def _line_plot_onselect(
 
             method = "mean" if psd else "rms"
             this_data, _ = _merge_ch_data(this_data, ch_type, [], method=method)
-            title = f"{ch_type} {method.upper()}" 
+            title = f"{ch_type} {method.upper()}"
         else:
             title = ch_type
         this_data = np.average(this_data, axis=1)
@@ -628,9 +628,9 @@ def _plot_lines(
                 # prevent unnecessary warnings for e.g. EOG
                 if this_type in _DATA_CH_TYPES_SPLIT:
                     logger.info(
-        f"Need more than one channel to make topography for {this_type}. "
-        "Disabling interactivity."
-        )
+                        f"Need more than one channel to make topography for {this_type}. "
+                        "Disabling interactivity."
+                    )
 
                 selectables[type_idx] = False
 

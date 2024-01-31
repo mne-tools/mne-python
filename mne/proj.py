@@ -456,7 +456,7 @@ def sensitivity_map(
             gain = np.dot(proj, gain)
         elif ncomp == 0:
             raise RuntimeError(
-                f"No valid projectors found for channel type {ch_type}, cannot compute { mode}" 
+                f"No valid projectors found for channel type {ch_type}, cannot compute { mode}"
             )
     # can only run the last couple methods if there are projectors
     elif mode in residual_types:

@@ -215,8 +215,9 @@ def test_dipole_fitting(tmp_path):
     # Sanity check: do our residuals have less power than orig data?
     data_rms = np.sqrt(np.sum(evoked.data**2, axis=0))
     resi_rms = np.sqrt(np.sum(residual.data**2, axis=0))
-    assert (data_rms > resi_rms * 0.95).all(), f"{(data_rms / resi_rms).min()} (factor: 0.95)"
-
+    assert (
+        data_rms > resi_rms * 0.95
+    ).all(), f"{(data_rms / resi_rms).min()} (factor: 0.95)"
 
     # Compare to original points
     transform_surface_to(fwd["src"][0], "head", fwd["mri_head_t"])
@@ -558,7 +559,7 @@ def test_bdip(fname_dip_, fname_bdip_, tmp_path):
             b = getattr(this_bdip, key)
             if key == "khi2" and dip_has_conf:
                 if d is not None:
-                   assert_allclose(d, b, atol=atol, err_msg=f"{kind}: {key}")
+                    assert_allclose(d, b, atol=atol, err_msg=f"{kind}: {key}")
 
                 else:
                     assert b is None
@@ -573,8 +574,7 @@ def test_bdip(fname_dip_, fname_bdip_, tmp_path):
                     d,
                     b,
                     rtol=0.12,  # no so great, text I/O
-                    err_msg = f"{kind}: {key},"
-
+                    err_msg=f"{kind}: {key},",
                 )
         # Not stored
         assert this_bdip.name is None

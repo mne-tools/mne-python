@@ -497,9 +497,8 @@ def _compute_tfr(
     epoch_data = np.asarray(epoch_data)
     if epoch_data.ndim != 3:
         raise ValueError(
-    f"epoch_data must be of shape (n_epochs, n_chans, n_times), got {epoch_data.shape}"
-     )
-
+            f"epoch_data must be of shape (n_epochs, n_chans, n_times), got {epoch_data.shape}"
+        )
 
     # Check params
     freqs, sfreq, zero_mean, n_cycles, time_bandwidth, decim = _check_tfr_param(
@@ -516,8 +515,9 @@ def _compute_tfr(
 
     decim = _check_decim(decim)
     if (freqs > sfreq / 2.0).any():
-        raise ValueError(f"Cannot compute freq above Nyquist freq of the data ({sfreq / 2.0} Hz), got {freqs.max()} Hz")
-
+        raise ValueError(
+            f"Cannot compute freq above Nyquist freq of the data ({sfreq / 2.0} Hz), got {freqs.max()} Hz"
+        )
 
     # We decimate *after* decomposition, so we need to create our kernels
     # for the original sfreq
@@ -2098,7 +2098,7 @@ class AverageTFR(_BaseTFR):
                 sub_map_title = f"({time:.2f} s,\n{freq:.1f} Hz)"
 
             else:
-                sub_map_title = f"({time:.1f} \u00B1 {time_half_range:.1f} s,\n{freq:.1f} \u00B1 {freq_half_range:.1f} Hz)" 
+                sub_map_title = f"({time:.1f} \u00B1 {time_half_range:.1f} s,\n{freq:.1f} \u00B1 {freq_half_range:.1f} Hz)"
 
             tmin = time - time_half_range
             tmax = time + time_half_range
@@ -2602,7 +2602,6 @@ class AverageTFR(_BaseTFR):
         return f"<AverageTFR | {s}>"
 
 
-
 @fill_doc
 class EpochsTFR(_BaseTFR, GetEpochsMixin):
     """Container for Time-Frequency data on epochs.
@@ -2715,18 +2714,18 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
         n_epochs, n_channels, n_freqs, n_times = data.shape
         if n_channels != len(info["chs"]):
             raise ValueError(
-    f"Number of channels and data size don't match ({n_channels} != {len(info['chs'])})."
-)
+                f"Number of channels and data size don't match ({n_channels} != {len(info['chs'])})."
+            )
 
         if n_freqs != len(freqs):
             raise ValueError(
-    f"Number of frequencies and data size don't match ({n_freqs} != {len(freqs)})."
-)
+                f"Number of frequencies and data size don't match ({n_freqs} != {len(freqs)})."
+            )
 
         if n_times != len(times):
             raise ValueError(
-    f"Number of times and data size don't match ({n_times} != {len(times)})."
-)
+                f"Number of times and data size don't match ({n_times} != {len(times)})."
+            )
 
         if events is None:
             n_epochs = len(data)
@@ -2765,12 +2764,12 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
         return list()
 
     def __repr__(self):  # noqa: D105
-        s = f"time : [{self.times[0]}, {self.times[-1]}]" 
+        s = f"time : [{self.times[0]}, {self.times[-1]}]"
         s += f", freq : [{self.freqs[0]}, {self.freqs[-1]}]"
-        s += f", epochs : {self.data.shape[0]}" 
-        s += f", channels : {self.data.shape[1]}"          
-        s += f", ~{sizeof_fmt(self._size)}" 
-        return f"<EpochsTFR | {s}>" 
+        s += f", epochs : {self.data.shape[0]}"
+        s += f", channels : {self.data.shape[1]}"
+        s += f", ~{sizeof_fmt(self._size)}"
+        return f"<EpochsTFR | {s}>"
 
     def __abs__(self):
         """Take the absolute value."""
@@ -2913,11 +2912,11 @@ def combine_tfr(all_tfr, weights="nave"):
     ch_names = tfr.ch_names
     for t_ in all_tfr[1:]:
         assert t_.ch_names == ch_names, ValueError(
-    f"{tfr} and {t_} do not contain the same channels"
-    )
+            f"{tfr} and {t_} do not contain the same channels"
+        )
 
         assert np.max(np.abs(t_.times - tfr.times)) < 1e-7, ValueError(
-            f"{tfr} and {t_} do not contain the same time instants" 
+            f"{tfr} and {t_} do not contain the same time instants"
         )
 
     # use union of bad channels

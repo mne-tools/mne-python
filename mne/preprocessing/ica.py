@@ -188,7 +188,9 @@ def _check_for_unsupported_ica_channels(picks, info, allow_ref_meg=False):
     chs = info.get_channel_types(picks, unique=True, only_data_chs=False)
     check = all([ch in types for ch in chs])
     if not check:
-        raise ValueError(f"Invalid channel type{_pl(chs)} passed for ICA: {chs}. Only the following types are supported: {types}")
+        raise ValueError(
+            f"Invalid channel type{_pl(chs)} passed for ICA: {chs}. Only the following types are supported: {types}"
+        )
 
 
 _KNOWN_ICA_METHODS = ("fastica", "infomax", "picard")
@@ -3371,9 +3373,7 @@ def corrmap(
 
     # first run: use user-selected map
     threshold = np.atleast_1d(np.array(threshold, float)).ravel()
-    threshold_err = (
-    f"No component detected using when z-scoring threshold{threshold_extra} {threshold},consider using a more lenient threshold"
-)
+    threshold_err = f"No component detected using when z-scoring threshold{threshold_extra} {threshold},consider using a more lenient threshold"
 
     if len(all_maps) == 0:
         raise RuntimeError(threshold_err)

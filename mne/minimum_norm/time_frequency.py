@@ -936,7 +936,6 @@ def _compute_source_psd_epochs(
     """Generate compute_source_psd_epochs."""
     logger.info(f"Considering frequencies {fmin} ... {fmax} Hz")
 
-
     if label:
         # TODO: add multi-label support
         # since `_prepare_source_params` can handle a list of labels now,
@@ -986,13 +985,13 @@ def _compute_source_psd_epochs(
         extra = f"on at most {n_epochs} epochs"
 
     else:
-       extra = f"on at most {n_epochs} epochs"
+        extra = f"on at most {n_epochs} epochs"
 
     if isinstance(bandwidth, str):
-        bandwidth = f"{bandwidth} windowing" 
+        bandwidth = f"{bandwidth} windowing"
     else:
-       bandwidth = f"{n_tapers} tapers with bandwidth {bandwidth:.1f} Hz"
-       logger.info(f"Using {bandwidth} {extra}")
+        bandwidth = f"{n_tapers} tapers with bandwidth {bandwidth:.1f} Hz"
+        logger.info(f"Using {bandwidth} {extra}")
 
     if adaptive:
         parallel, my_psd_from_mt_adaptive, n_jobs = parallel_func(

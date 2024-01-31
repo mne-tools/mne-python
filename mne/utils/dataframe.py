@@ -20,7 +20,6 @@ def _set_pandas_dtype(df, columns, dtype, verbose=None):
         logger.info(f'Converting "{column}" to "{dtype}"...')
 
 
-
 def _scale_dataframe_data(inst, data, picks, scalings):
     ch_types = inst.get_channel_types()
     ch_types_used = list()

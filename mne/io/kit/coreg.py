@@ -88,7 +88,6 @@ def read_mrk(fname):
     if mrk_points.shape != (5, 3):
         err = f"{fname!r} is no marker file, shape is {mrk_points.shape}"
 
-        
         raise ValueError(err)
     return mrk_points
 
@@ -164,7 +163,9 @@ def _set_dig_kit(mrk, elp, hsp, eeg):
     if isinstance(elp, (str, Path, PathLike)):
         elp_points = _read_dig_kit(elp)
         if len(elp_points) != 8:
-            raise ValueError(f"File {elp!r} should contain 8 points; got shape {elp_points.shape}.")
+            raise ValueError(
+                f"File {elp!r} should contain 8 points; got shape {elp_points.shape}."
+            )
 
         elp = elp_points
     elif len(elp) not in (6, 7, 8):

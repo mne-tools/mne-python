@@ -323,9 +323,13 @@ def get_config(key=None, default=None, raise_error=False, home_dir=None, use_env
             if use_env
             else ""
         )
-        meth_file = f'mne.utils.set_config("{key}", VALUE, set_env=True) for a permanent one'
+        meth_file = (
+            f'mne.utils.set_config("{key}", VALUE, set_env=True) for a permanent one'
+        )
 
-        raise KeyError(f'Key "{key}" not found in {loc_env}the mne-python config file ({config_path}). Try {meth_env}{meth_file}.{extra_env}')
+        raise KeyError(
+            f'Key "{key}" not found in {loc_env}the mne-python config file ({config_path}). Try {meth_env}{meth_file}.{extra_env}'
+        )
 
     else:
         return config.get(key, default)

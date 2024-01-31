@@ -301,7 +301,6 @@ def _setup_bem(bem, bem_extra, neeg, mri_head_t, allow_none=False, verbose=None)
             raise RuntimeError(
                 # "BEM is in %s coordinates, should be in MRI"
                 f"BEM is in {_coord_frame_name(bem["surfs"][0]["coord_frame"]),} coordinates, should be in MRI"
-                
             )
         if neeg > 0 and len(bem["surfs"]) == 1:
             raise RuntimeError(
@@ -690,14 +689,14 @@ def make_forward_solution(
         info_extra = "instance of Info"
 
     # Report the setup
-    logger.info(f"Source space          :{src} " )
-    logger.info(f"MRI -> head transform : {trans}" )
-    logger.info(f"Measurement data      : {info_extra}" )
+    logger.info(f"Source space          :{src} ")
+    logger.info(f"MRI -> head transform : {trans}")
+    logger.info(f"Measurement data      : {info_extra}")
     if isinstance(bem, ConductorModel) and bem["is_sphere"]:
-        logger.info(f"Sphere model      : origin at {(bem["r0"],)} mm" )
+        logger.info(f"Sphere model      : origin at {(bem["r0"],)} mm")
         logger.info("Standard field computations")
     else:
-        logger.info(f"Conductor model   : { bem_extra}" )
+        logger.info(f"Conductor model   : { bem_extra}")
         logger.info("Accurate field computations")
     logger.info(
         "Do computations in %s coordinates", _coord_frame_name(FIFF.FIFFV_COORD_HEAD)

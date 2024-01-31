@@ -123,16 +123,16 @@ def _check_head_pos(head_pos, info, first_samp, times=None):
     bad = ts < 0
     if bad.any():
         raise RuntimeError(
-    f"All position times must be >= 0, found {bad.sum()}/{len(bad)} < 0"
-    )
+            f"All position times must be >= 0, found {bad.sum()}/{len(bad)} < 0"
+        )
 
     if times is not None:
         bad = ts > times[-1]
         if bad.any():
             raise RuntimeError(
-        f"All position times must be <= t_end ({times[-1]:.1f} s), "
-        f"found {bad.sum()}/{len(bad)} bad values (is this a split file?)"
-     )
+                f"All position times must be <= t_end ({times[-1]:.1f} s), "
+                f"found {bad.sum()}/{len(bad)} bad values (is this a split file?)"
+            )
 
     # If it starts close to zero, make it zero (else unique(offset) fails)
     if len(ts) > 0 and ts[0] < (0.5 / info["sfreq"]):
@@ -314,9 +314,8 @@ def simulate_raw(
     # Extract necessary info
     meeg_picks = pick_types(info, meg=True, eeg=True, exclude=[])
     logger.info(
-    f'Setting up raw simulation: {len(dev_head_ts)} position{_pl(dev_head_ts)}, "{interp}" interpolation'
+        f'Setting up raw simulation: {len(dev_head_ts)} position{_pl(dev_head_ts)}, "{interp}" interpolation'
     )
-
 
     if isinstance(stc, SourceSimulator) and stc.first_samp != first_samp:
         logger.info("SourceSimulator first_samp does not match argument.")
@@ -357,7 +356,7 @@ def simulate_raw(
             this_n = stc_counted[1].data.shape[1]
         this_stop = this_start + this_n
         logger.info(
-           f"    Interval {this_start / info['sfreq']:.3f}–{this_stop / info['sfreq']:.3f} s"
+            f"    Interval {this_start / info['sfreq']:.3f}–{this_stop / info['sfreq']:.3f} s"
         )
 
         n_doing = this_stop - this_start
@@ -704,18 +703,26 @@ def _stc_data_event(stc_counted, head_idx, sfreq, src=None, verts=None):
     del head_idx
     _validate_type(stim_data, np.ndarray, "stim_data")
     if stim_data.dtype.kind != "i":
-        raise ValueError(f"stim_data in a stc tuple must be an integer ndarray,got dtype {stim_data.dtype}")
+        raise ValueError(
+            f"stim_data in a stc tuple must be an integer ndarray,got dtype {stim_data.dtype}"
+        )
 
     if stim_data.shape != (len(stc.times),):
-        raise ValueError(f"event data had shape {stim_data.shape} but" 
-                         f"needed to be ({len(stc.times)},) to match stc")
+        raise ValueError(
+            f"event data had shape {stim_data.shape} but"
+            f"needed to be ({len(stc.times)},) to match stc"
+        )
 
     # Validate STC
     if not np.allclose(sfreq, 1.0 / stc.tstep):
-        raise ValueError(f"stc and info must have the same sample rate, got {1.0 / stc.tstep} and {sfreq}")
+        raise ValueError(
+            f"stc and info must have the same sample rate, got {1.0 / stc.tstep} and {sfreq}"
+        )
 
     if len(stc.times) <= 2:  # to ensure event encoding works
-        raise ValueError(f"stc must have at least three time points, got {len(stc.times)}")
+        raise ValueError(
+            f"stc must have at least three time points, got {len(stc.times)}"
+        )
 
     verts_ = stc.vertices
     if verts is None:
@@ -724,7 +731,9 @@ def _stc_data_event(stc_counted, head_idx, sfreq, src=None, verts=None):
         if len(verts) != len(verts_) or not all(
             np.array_equal(a, b) for a, b in zip(verts, verts_)
         ):
-            raise RuntimeError(f"Vertex mismatch for stc[{stc_idx}], all stc.vertices must match")
+            raise RuntimeError(
+                f"Vertex mismatch for stc[{stc_idx}], all stc.vertices must match"
+            )
 
     stc_data = stc.data
     if src is None:
@@ -854,7 +863,9 @@ def _iter_forward_solutions(
             else:  # only r0 provided
                 outside = np.ones(len(coil_rr), bool)
             if not outside.all():
-                raise RuntimeError(f"{np.sum(~outside)} MEG sensors collided with inner skull surface for transform {ti}")
+                raise RuntimeError(
+                    f"{np.sum(~outside)} MEG sensors collided with inner skull surface for transform {ti}"
+                )
 
             megfwd = _compute_forwards(
                 rr, sensors=sensors, bem=bem, n_jobs=n_jobs, verbose=False

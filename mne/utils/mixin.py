@@ -279,9 +279,7 @@ class GetEpochsMixin:
                         .index.values
                     )
                 except Exception as exp:
-                    msg += (
-                        f" The epochs.metadata Pandas query did not yield any results: {exp.args[0]}" 
-                    )
+                    msg += f" The epochs.metadata Pandas query did not yield any results: {exp.args[0]}"
                 else:
                     return vals
             else:

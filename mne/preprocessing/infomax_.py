@@ -148,7 +148,6 @@ def infomax(
     # logger.info("Computing%sInfomax ICA" % " Extended " if extended else " ")
     logger.info(f"Computing{' Extended ' if extended else ' '}Infomax ICA")
 
-
     # collect parameters
     nblock = n_samples // block
     lastt = (nblock - 1) * block + 1

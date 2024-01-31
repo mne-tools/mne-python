@@ -172,7 +172,7 @@ def _check_comp_ch(cch, kind, desired=None):
     if cch["grad_order_no"] != desired:
         raise RuntimeError(
             f"{kind} channel with inconsistent compensation "
-            f"grade{cch["grad_order_no"]} , should be {desired}" 
+            f"grade{cch["grad_order_no"]} , should be {desired}"
         )
     return desired
 
@@ -218,7 +218,8 @@ def _convert_channel_info(res4, t, use_eeg_pos):
                     text += " ref"
                 warn(
                     f"{text} channel {ch["ch_name"]} did not have position assigned, so "
-                    "it was changed to a MISC channel" )
+                    "it was changed to a MISC channel"
+                )
                 continue
             ch["unit"] = FIFF.FIFF_UNIT_T
             # Set up the local coordinate frame

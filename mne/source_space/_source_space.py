@@ -446,22 +446,23 @@ class SourceSpaces(list):
             r = _src_kind_dict[ss_type]
             if ss_type == "vol":
                 if "seg_name" in ss:
-                    r += f" ({ss["seg_name"]})" 
+                    r += f" ({ss["seg_name"]})"
                 else:
-                    r += f", shape={ss["shape"]}" 
+                    r += f", shape={ss["shape"]}"
             elif ss_type == "surf":
-                r += f" ({_get_hemi(ss)[0]}), n_vertices={ss["np"]}" 
-            r += f", n_used={ss["nuse"]}" 
+                r += f" ({_get_hemi(ss)[0]}), n_vertices={ss["np"]}"
+            r += f", n_used={ss["nuse"]}"
             if si == 0:
                 extra += [f"{_coord_frame_name(int(ss['coord_frame']))} coords"]
-            ss_repr.append(f"<{r}>" )
+            ss_repr.append(f"<{r}>")
         subj = self._subject
         if subj is not None:
             extra += [f"subject {subj}"]
         sz = object_size(self)
         if sz is not None:
             extra += [f"~{sizeof_fmt(sz)}"]
-        return f"<SourceSpaces: [{", ".join(ss_repr)}] {", ".join(extra)}>" 
+        return f"<SourceSpaces: [{", ".join(ss_repr)}] {", ".join(extra)}>"
+
     @property
     def _subject(self):
         return self[0].get("subject_his_id", None)
@@ -1424,7 +1425,7 @@ def _check_spacing(spacing, verbose=None):
     """Check spacing parameter."""
     # check to make sure our parameters are good, parse 'spacing'
     types = 'a string with values "ico#", "oct#", "all", or an int >= 2'
-    space_err = f'"spacing" must be {types}, got type{type(spacing)} ({spacing})' 
+    space_err = f'"spacing" must be {types}, got type{type(spacing)} ({spacing})'
     if isinstance(spacing, str):
         if spacing == "all":
             stype = "all"
@@ -1435,14 +1436,10 @@ def _check_spacing(spacing, verbose=None):
             try:
                 sval = int(sval)
             except Exception:
-                raise ValueError(
-                    f"{stype} subdivision must be an integer, got {sval}" 
-                )
+                raise ValueError(f"{stype} subdivision must be an integer, got {sval}")
             lim = 0 if stype == "ico" else 1
             if sval < lim:
-                raise ValueError(
-                    f"{stype} subdivision must be >= {lim}, got {sval}" 
-                )
+                raise ValueError(f"{stype} subdivision must be >= {lim}, got {sval}")
         else:
             raise ValueError(space_err)
     else:
@@ -1455,7 +1452,7 @@ def _check_spacing(spacing, verbose=None):
         ico_surf = None
         src_type_str = "all"
     else:
-        src_type_str = f"{stype} = {sval}" 
+        src_type_str = f"{stype} = {sval}"
         if stype == "ico":
             logger.info(f"Icosahedron subdivision grade {sval}")
             ico_surf = _get_ico_surface(sval)
@@ -1517,10 +1514,9 @@ def setup_source_space(
     setup_volume_source_space
     """
     cmd = (
-    f"setup_source_space({subject}, spacing={spacing}, surface={surface}, "
-    f"subjects_dir={subjects_dir}, add_dist={add_dist}, verbose={verbose})"
+        f"setup_source_space({subject}, spacing={spacing}, surface={surface}, "
+        f"subjects_dir={subjects_dir}, add_dist={add_dist}, verbose={verbose})"
     )
-
 
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     surfs = [
@@ -1547,7 +1543,6 @@ def setup_source_space(
     if stype not in ("spacing", "all"):
         logger.info(
             f"Doing the {(dict(ico="icosa", oct="octa")[stype],)}hedral vertex picking..."
-            
         )
     for hemi, surf in zip(["lh", "rh"], surfs):
         logger.info("Loading %s..." % surf)
@@ -1600,7 +1595,7 @@ def setup_source_space(
 
 
 def _check_volume_labels(volume_label, mri, name="volume_label"):
-    _validate_type(mri, "path-like", f"mri when {name} is not None" )
+    _validate_type(mri, "path-like", f"mri when {name} is not None")
     mri = str(_check_fname(mri, overwrite="read", must_exist=True))
     if isinstance(volume_label, str):
         volume_label = [volume_label]
@@ -1610,13 +1605,14 @@ def _check_volume_labels(volume_label, mri, name="volume_label"):
         if not mri.endswith("aseg.mgz"):
             raise RuntimeError(
                 f"Must use a *aseg.mgz file unless {name} is a dict, got {op.basename(mri)}"
-                
             )
         lut, _ = read_freesurfer_lut()
         use_volume_label = dict()
         for label in volume_label:
             if label not in lut:
-                raise ValueError(f"Volume {label!r} not found in file {mri}. Double check FreeSurfer lookup table.{_suggest(label, lut)}")
+                raise ValueError(
+                    f"Volume {label!r} not found in file {mri}. Double check FreeSurfer lookup table.{_suggest(label, lut)}"
+                )
 
             use_volume_label[label] = lut[label]
         volume_label = use_volume_label
@@ -1818,9 +1814,10 @@ def setup_volume_source_space(
             surf_extra = surface
         logger.info(f"Boundary surface file : {surf_extra}")
     else:
-        logger.info(f"Sphere                : origin at ({1000 * sphere[0]:.1f} {1000 * sphere[1]:.1f} {1000 * sphere[2]:.1f}) mm")
+        logger.info(
+            f"Sphere                : origin at ({1000 * sphere[0]:.1f} {1000 * sphere[1]:.1f} {1000 * sphere[2]:.1f}) mm"
+        )
         logger.info(f"              radius  : {1000 * sphere[3]:.1f} mm")
-
 
     # triage pos argument
     if isinstance(pos, dict):
@@ -1884,7 +1881,6 @@ def setup_volume_source_space(
             if surf["coord_frame"] != FIFF.FIFFV_COORD_MRI:
                 raise ValueError(
                     f"BEM is not in MRI coordinates, got {_coord_frame_name(surf["coord_frame"])}"
-                   
                 )
             logger.info(f"Taking inner skull from {bem}")
         elif surface is not None:
@@ -1893,9 +1889,7 @@ def setup_volume_source_space(
                 surf = read_surface(surface, return_dict=True)[-1]
             else:
                 surf = surface
-            logger.info(
-                f"Loaded bounding surface from {surface} ({surf["np"]} nodes)"
-            )
+            logger.info(f"Loaded bounding surface from {surface} ({surf["np"]} nodes)")
             surf = deepcopy(surf)
             surf["rr"] *= 1e-3  # must be converted to meters
         else:  # Load an icosahedron and use that as the surface
@@ -1994,7 +1988,6 @@ def _make_discrete_source_space(pos, coord_frame="mri"):
     if coord_frame not in _str_to_frame:  # will fail if coord_frame not string
         raise KeyError(
             f'coord_frame must be one of {list(_str_to_frame.keys())}, not "{coord_frame}"'
-            
         )
     coord_frame = _str_to_frame[coord_frame]  # now an int
 
@@ -2062,7 +2055,9 @@ def _make_volume_source_space(
         maxdist = surf["R"]
 
     # Define the sphere which fits the surface
-    logger.info(f"Surface CM = ({1000 * cm[0]:6.1f} {1000 * cm[1]:6.1f} {1000 * cm[2]:6.1f}) mm")
+    logger.info(
+        f"Surface CM = ({1000 * cm[0]:6.1f} {1000 * cm[1]:6.1f} {1000 * cm[2]:6.1f}) mm"
+    )
 
     logger.info("Surface fits inside a sphere with radius %6.1f mm" % (1000 * maxdist))
     logger.info("Surface extent:")
@@ -2086,7 +2081,6 @@ def _make_volume_source_space(
     logger.info("Grid extent:")
     for c, mi, ma in zip("xyz", minn, maxn):
         logger.info(f"    {c} = {1000 * mi * grid:.1f} ... {1000 * ma * grid:.1f} mm")
-
 
     # Now make the initial grid
     ns = tuple(maxn - minn + 1)
@@ -2625,7 +2619,7 @@ def _adjust_patch_info(s, verbose=None):
 def _ensure_src(src, kind=None, extra="", verbose=None):
     """Ensure we have a source space."""
     _check_option("kind", kind, (None, "surface", "volume", "mixed", "discrete"))
-    msg = f"src must be a string or instance of SourceSpaces{extra}" 
+    msg = f"src must be a string or instance of SourceSpaces{extra}"
     if _path_like(src):
         src = str(src)
         if not op.isfile(src):
@@ -2641,7 +2635,7 @@ def _ensure_src(src, kind=None, extra="", verbose=None):
             elif kind == "volume":
                 src = src[2:]
         if src.kind != kind:
-           raise ValueError(f"Source space must contain {kind} type, got {src.kind}")
+            raise ValueError(f"Source space must contain {kind} type, got {src.kind}")
 
     return src
 
@@ -2653,7 +2647,9 @@ def _ensure_src_subject(src, subject):
         if subject is None:
             raise ValueError("source space is too old, subject must be " "provided")
     elif src_subject is not None and subject != src_subject:
-        raise ValueError(f'Mismatch between provided subject "{subject}" and subject name "{src_subject}" in the source space')
+        raise ValueError(
+            f'Mismatch between provided subject "{subject}" and subject name "{src_subject}" in the source space'
+        )
 
     return subject
 
@@ -2718,7 +2714,9 @@ def add_source_space_distances(src, dist_limit=np.inf, n_jobs=None, *, verbose=N
 
     max_n = max(s["nuse"] for s in src)
     if not patch_only and max_n > _DIST_WARN_LIMIT:
-       warn(f"Computing distances for {max_n} source space points (in one hemisphere) will be very slow, consider using add_dist=False")
+        warn(
+            f"Computing distances for {max_n} source space points (in one hemisphere) will be very slow, consider using add_dist=False"
+        )
 
     for s in src:
         adjacency = mesh_dist(s["tris"], s["rr"])
@@ -3160,10 +3158,10 @@ def _compare_source_spaces(src0, src1, mode="exact", nearest=True, dist_tol=1.5e
             # deal with vertno, inuse, and use_tris carefully
             for ii, s in enumerate((s0, s1)):
                 assert_array_equal(
-                  s["vertno"],
-                  np.where(s["inuse"])[0],
-                  f'src{ii}[{si}]["vertno"] != np.where(src{ii}[{si}]["inuse"])[0]'
-                   )
+                    s["vertno"],
+                    np.where(s["inuse"])[0],
+                    f'src{ii}[{si}]["vertno"] != np.where(src{ii}[{si}]["inuse"])[0]',
+                )
 
             assert_equal(len(s0["vertno"]), len(s1["vertno"]))
             agreement = np.mean(s0["inuse"] == s1["inuse"])

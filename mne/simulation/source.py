@@ -177,7 +177,7 @@ def simulate_sparse_stc(
         subject = subject_src
     elif subject_src is not None and subject != subject_src:
         raise ValueError(
-            f"subject argument ({subject}) did not match the source space subject_his_id ({subject_src})" 
+            f"subject argument ({subject}) did not match the source space subject_his_id ({subject_src})"
         )
     data = np.zeros((n_dipoles, len(times)))
     for i_dip in range(n_dipoles):
@@ -194,11 +194,15 @@ def simulate_sparse_stc(
         ]
         datas = data
     elif n_dipoles > len(labels):
-        raise ValueError(f"Number of labels ({len(labels)}) smaller than n_dipoles ({n_dipoles}) is not allowed.")
+        raise ValueError(
+            f"Number of labels ({len(labels)}) smaller than n_dipoles ({n_dipoles}) is not allowed."
+        )
 
     else:
         if n_dipoles != len(labels):
-            warn(f"The number of labels is different from the number of dipoles. {min(n_dipoles, len(labels))} dipole(s) will be generated.")
+            warn(
+                f"The number of labels is different from the number of dipoles. {min(n_dipoles, len(labels))} dipole(s) will be generated."
+            )
 
         labels = labels[:n_dipoles] if n_dipoles < len(labels) else labels
 
@@ -322,7 +326,10 @@ def simulate_stc(
         for v, hemi in zip(vertno, ("left", "right")):
             d = len(v) - len(np.unique(v))
             if d > 0:
-                raise RuntimeError(f"Labels had {d} overlaps in the {hemi} hemisphere, they must be" f"non-overlapping")
+                raise RuntimeError(
+                    f"Labels had {d} overlaps in the {hemi} hemisphere, they must be"
+                    f"non-overlapping"
+                )
 
     # the data is in the order left, right
     data = list()

@@ -398,7 +398,7 @@ def test_simulate_raw_bem(raw_data):
         fits = fit_dipole(evoked, cov, bem, trans, min_dist=1.0)[0].pos
         diffs = np.sqrt(np.sum((locs - fits) ** 2, axis=-1)) * 1000
         med_diff = np.median(diffs)
-        assert med_diff < tol, f"{bem}: {med_diff}" 
+        assert med_diff < tol, f"{bem}: {med_diff}"
     # also test event timings with SourceSimulator
     first_samp = raw.first_samp
     events = find_events(raw, initial_event=True, verbose=False)
