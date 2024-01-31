@@ -555,10 +555,9 @@ class SourceMorph:
             self.subject_from = stc.subject
         if stc.subject != self.subject_from:
             raise ValueError(
-                "stc_from.subject and "
-                "morph.subject_from must match. (%s != %s)"
-                % (stc.subject, self.subject_from)
-            )
+    f"stc_from.subject and morph.subject_from must match. ({stc.subject} != {self.subject_from})"
+)
+
         out = _apply_morph_data(self, stc)
         if output != "stc":  # convert to volume
             out = _morphed_stc_as_volume(
@@ -735,8 +734,8 @@ class SourceMorph:
         return img_to
 
     def __repr__(self):  # noqa: D105
-        s = "%s" % self.kind
-        s += ", %s -> %s" % (self.subject_from, self.subject_to)
+        s = f"{self.kind}" 
+        s += f",{self.subject_from}  -> {self.subject_to}" 
         if self.kind == "volume":
             s += f", zooms : {self.zooms}"
             s += f", niter_affine : {self.niter_affine}"
@@ -746,7 +745,7 @@ class SourceMorph:
             s += f", smooth : {self.smooth}"
             s += ", xhemi" if self.xhemi else ""
 
-        return "<SourceMorph | %s>" % s
+        return f"<SourceMorph | {s}>" 
 
     @verbose
     def save(self, fname, overwrite=False, verbose=None):
@@ -800,10 +799,8 @@ def _check_zooms(mri_from, zooms, zooms_src_to):
     if zooms.shape == (1,):
         zooms = np.repeat(zooms, 3)
     if zooms.shape != (3,):
-        raise ValueError(
-            "zooms must be None, a singleton, or have shape (3,),"
-            " got shape %s" % (zooms.shape,)
-        )
+        raise ValueError(f"zooms must be None, a singleton, or have shape (3,), got shape {zooms.shape}")
+
     zooms = tuple(zooms)
     return zooms
 
@@ -839,15 +836,11 @@ def _check_subject_src(subject, src, name="subject_from", src_name="src"):
     if subject is None:
         subject = subject_check
     elif subject_check is not None and subject != subject_check:
-        raise ValueError(
-            "%s does not match %s subject (%s != %s)"
-            % (name, src_name, subject, subject_check)
-        )
+        raise ValueError(f"{name} does not match {src_name} subject ({subject} != {subject_check})")
+
     if subject is None:
-        raise ValueError(
-            "%s could not be inferred from %s, it must be "
-            "specified" % (name, src_name)
-        )
+        raise ValueError(f"{name} could not be inferred from {src_name}, it must be specified")
+
     return subject
 
 
@@ -898,8 +891,8 @@ def _check_dep(nibabel="2.1.0", dipy="0.10.1"):
 
         if not passed:
             raise ImportError(
-                "%s %s or higher must be correctly "
-                "installed and accessible from Python" % (lib, ver)
+                f"{lib} {ver} or higher must be correctly "
+                "installed and accessible from Python" 
             )
 
 
@@ -1321,12 +1314,12 @@ def grade_to_vertices(subject, grade, subjects_dir=None, n_jobs=None, verbose=No
             for verts in vertices:
                 if (np.diff(verts) == 0).any():
                     raise ValueError(
-                        "Cannot use icosahedral grade %s with subject %s, "
-                        "mapping %s vertices onto the high-resolution mesh "
-                        "yields repeated vertices, use a lower grade or a "
-                        "list of vertices from an existing source space"
-                        % (grade, subject, len(verts))
-                    )
+    f"Cannot use icosahedral grade {grade} with subject {subject}, "
+    f"mapping {len(verts)} vertices onto the high-resolution mesh "
+    "yields repeated vertices, use a lower grade or a "
+    "list of vertices from an existing source space"
+)
+
     else:  # potentially fill the surface
         vertices = [np.arange(lhs.shape[0]), np.arange(rhs.shape[0])]
 
@@ -1449,10 +1442,9 @@ def _check_vertices_match(v1, v2, name):
         if np.isin(v2, v1).all():
             ext = " Vertices were likely excluded during forward computation."
         raise ValueError(
-            "vertices do not match between morph (%s) and stc (%s) for %s:\n%s"
-            '\n%s\nPerhaps src_to=fwd["src"] needs to be passed when calling '
-            "compute_source_morph.%s" % (len(v1), len(v2), name, v1, v2, ext)
-        )
+    f"vertices do not match between morph ({len(v1)}) and stc ({len(v2)}) for {name}:\n{v1}\n{v2}\nPerhaps src_to=fwd['src'] needs to be passed when calling compute_source_morph.{ext}"
+)
+
 
 
 _VOL_MAT_CHECK_RATIO = 1.0
@@ -1461,10 +1453,8 @@ _VOL_MAT_CHECK_RATIO = 1.0
 def _apply_morph_data(morph, stc_from):
     """Morph a source estimate from one subject to another."""
     if stc_from.subject is not None and stc_from.subject != morph.subject_from:
-        raise ValueError(
-            "stc.subject (%s) != morph.subject_from (%s)"
-            % (stc_from.subject, morph.subject_from)
-        )
+        raise ValueError(f"stc.subject ({stc_from.subject}) != morph.subject_from ({morph.subject_from})")
+
     _check_option("morph.kind", morph.kind, ("surface", "volume", "mixed"))
     if morph.kind == "surface":
         _validate_type(
@@ -1540,7 +1530,7 @@ def _apply_morph_data(morph, stc_from):
         for hemi, v1, v2 in zip(
             ("left", "right"), morph.src_data["vertices_from"], stc_from.vertices[:2]
         ):
-            _check_vertices_match(v1, v2, "%s hemisphere" % (hemi,))
+            _check_vertices_match(v1, v2, f"{hemi} hemisphere")
         from_sl = slice(0, from_surf_stop)
         assert not from_used[from_sl].any()
         from_used[from_sl] = True

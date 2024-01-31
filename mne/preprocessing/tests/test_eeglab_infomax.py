@@ -77,10 +77,8 @@ def test_mne_python_vs_eeglab():
         Y = generate_data_for_comparing_against_eeglab_infomax(ch_type, random_state)
         N, T = Y.shape
         for method in methods:
-            eeglab_results_file = "eeglab_%s_results_%s_data.mat" % (
-                method,
-                dict(eeg="eeg", mag="meg")[ch_type],
-            )
+            eeglab_results_file = f"eeglab_{method}_results_{ch_type}_data.mat"
+
 
             # For comparison against eeglab, make sure the following
             # parameters have the same value in mne_python and eeglab:

@@ -223,9 +223,9 @@ def _print_coord_trans(
         scale = 1000.0 if (ti != 3 and units != "mm") else 1.0
         text = " mm" if ti != 3 else ""
         log_func(
-            "    % 8.6f % 8.6f % 8.6f    %7.2f%s"
-            % (tt[0], tt[1], tt[2], scale * tt[3], text)
-        )
+    f"    {tt[0]: 8.6f} {tt[1]: 8.6f} {tt[2]: 8.6f}    {scale * tt[3]:7.2f}{text}"
+   )
+
 
 
 def _find_trans(subject, subjects_dir=None):
@@ -661,9 +661,8 @@ def transform_surface_to(surf, dest, trans, copy=False):
     surf = deepcopy(surf) if copy else surf
     if isinstance(dest, str):
         if dest not in _str_to_frame:
-            raise KeyError(
-                'dest must be one of %s, not "%s"' % (list(_str_to_frame.keys()), dest)
-            )
+            raise KeyError(f'dest must be one of {list(_str_to_frame.keys())}, not "{dest}"')
+
         dest = _str_to_frame[dest]  # convert to integer
     if surf["coord_frame"] == dest:
         return surf
@@ -1018,7 +1017,8 @@ class _TPSWarp:
         dest : shape (n_transform, 3)
             The transformed points.
         """
-        logger.info("Transforming %s points" % (len(pts),))
+        logger.info(f"Transforming {len(pts)} points")
+
         assert pts.shape[1] == 3
         # for memory reasons, we should do this in ~100 MB chunks
         out = np.zeros_like(pts)
@@ -1138,13 +1138,8 @@ class _SphericalSurfaceWarp:
             hsp = np.array([p for p in destination if not (p[2] < 0 and p[1] > 0)])
             dest_center = _fit_sphere(hsp, disp=False)[1]
             destination = destination - dest_center
-            logger.info(
-                "    Using centers %s -> %s"
-                % (
-                    np.array_str(src_center, None, 3),
-                    np.array_str(dest_center, None, 3),
-                )
-            )
+            logger.info(f"    Using centers {np.array_str(src_center, None, 3)} -> {np.array_str(dest_center, None, 3)}")
+
         self._fit_params = dict(
             n_src=len(source),
             n_dest=len(destination),
@@ -1559,14 +1554,12 @@ def _read_fs_xfm(fname):
         for li, line in enumerate(fid):
             if li == 0:
                 kind = line.strip()
-                logger.debug("Found: %r" % (kind,))
+                logger.debug(f"Found: {kind}")
             if line[: len(comp)] == comp:
                 # we have the right line, so don't read any more
                 break
         else:
-            raise ValueError(
-                'Failed to find "Linear_Transform" string in ' "xfm file:\n%s" % fname
-            )
+            raise ValueError(f'Failed to find "Linear_Transform" string in xfm file:\n{fname}')
 
         xfm = list()
         # read the transformation matrix (3x4)

@@ -243,10 +243,8 @@ def annotate_movement(
         # compute dev to head transform for fixed points
         use_dev_head_trans = use_dev_head_trans.lower()
         if use_dev_head_trans not in ["average", "info"]:
-            raise ValueError(
-                "use_dev_head_trans must be either"
-                + " 'average' or 'info': got '%s'" % (use_dev_head_trans,)
-            )
+            raise ValueError(f"use_dev_head_trans must be either 'average' or 'info': got '{use_dev_head_trans}'")
+
 
         if use_dev_head_trans == "average":
             fixed_dev_head_t = compute_average_dev_head_t(raw, pos)

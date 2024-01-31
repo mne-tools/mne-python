@@ -89,9 +89,8 @@ def linear_regression(inst, design_matrix, names=None):
         data = np.array([i.data for i in inst])
     else:
         raise ValueError("Input must be epochs or iterable of source " "estimates")
-    logger.info(
-        msg + ", (%s targets, %s regressors)" % (np.prod(data.shape[1:]), len(names))
-    )
+    logger.info(f"{msg}, ({np.prod(data.shape[1:])} targets, {len(names)} regressors)")
+
     lm_params = _fit_lm(data, design_matrix, names)
     lm = namedtuple("lm", "beta stderr t_val p_val mlog10_p_val")
     lm_fits = {}

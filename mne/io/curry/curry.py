@@ -425,7 +425,8 @@ def _make_trans_dig(curry_paths, info, curry_dev_dev_t):
             )
         )
         dist = 1000 * np.linalg.norm(unknown_curry_t["trans"][:3, 3])
-        logger.info("   Fit a %0.1f° rotation, %0.1f mm translation" % (angle, dist))
+        logger.info(f"   Fit a {angle:.1f}° rotation, {dist:.1f} mm translation")
+
         unknown_dev_t = combine_transforms(
             unknown_curry_t, curry_dev_dev_t, "unknown", "meg"
         )

@@ -56,7 +56,7 @@ def _prepare_weights(forward, gain, source_weighting, weights, weights_min):
     weights_max = np.max(weights)
     if weights_min > weights_max:
         raise ValueError(
-            "weights_min > weights_max (%s > %s)" % (weights_min, weights_max)
+            f"weights_min > weights_max ({weights_min} > {weights_max})" 
         )
     weights_min = weights_min / weights_max
     weights = weights / weights_max
@@ -813,7 +813,7 @@ def tf_mixed_norm(
     if len(tstep) != len(wsize):
         raise ValueError(
             "The same number of window sizes and steps must be "
-            "passed. Got tstep = %s and wsize = %s" % (tstep, wsize)
+            f"passed. Got tstep = {tstep} and wsize = {wsize}" 
         )
 
     forward, gain, gain_info, whitener, source_weighting, mask = _prepare_gain(
@@ -1090,7 +1090,7 @@ def _compute_mxne_sure(
     for i, (coef1, coef2) in enumerate(zip(coefs_grid_1, coefs_grid_2)):
         sure_path[i] = _compute_sure_val(coef1, coef2, gain, M, sigma, delta, eps)
         if verbose:
-            logger.info("alpha %s :: sure %s" % (alpha_grid[i], sure_path[i]))
+            logger.info(f"alpha {alpha_grid[i]} :: sure {sure_path[i]}")
     best_alpha_ = alpha_grid[np.argmin(sure_path)]
 
     X = coefs_grid_1[np.argmin(sure_path)]

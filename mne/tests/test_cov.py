@@ -294,7 +294,8 @@ def test_cov_estimation_on_raw(method, tmp_path):
         try:
             import sklearn  # noqa: F401
         except Exception as exp:
-            pytest.skip("sklearn is required, got %s" % (exp,))
+            pytest.skip(f"sklearn is required, got {exp}")
+
     raw = read_raw_fif(raw_fname, preload=True)
     cov_mne = read_cov(erm_cov_fname)
     method_params = dict(shrunk=dict(shrinkage=[0]))
@@ -393,7 +394,8 @@ def test_cov_estimation_on_raw_reg():
 def _assert_cov(cov, cov_desired, tol=0.005, nfree=True):
     assert_equal(cov.ch_names, cov_desired.ch_names)
     err = np.linalg.norm(cov.data - cov_desired.data) / np.linalg.norm(cov.data)
-    assert err < tol, "%s >= %s" % (err, tol)
+    assert err < tol, f"{err} >= {tol}"
+
     if nfree:
         assert_equal(cov.nfree, cov_desired.nfree)
 

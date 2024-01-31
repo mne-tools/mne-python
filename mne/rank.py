@@ -100,7 +100,7 @@ def _estimate_rank_from_s(s, tol="auto", tol_kind="absolute"):
     max_s = np.amax(s, axis=-1)
     if isinstance(tol, str):
         if tol not in ("auto", "float32"):
-            raise ValueError('tol must be "auto" or float, got %r' % (tol,))
+            raise ValueError(f'tol must be "auto" or float, got {tol!r}')
         # XXX this should be float32 probably due to how we save and
         # load data, but it breaks test_make_inverse_operator (!)
         # The factor of 2 gets test_compute_covariance_auto_reg[None]
@@ -188,7 +188,7 @@ def _estimate_rank_meeg_signals(
         )
     rank = out[0] if isinstance(out, tuple) else out
     ch_type = " + ".join(list(zip(*picks_list))[0])
-    logger.info("    Estimated rank (%s): %d" % (ch_type, rank))
+    logger.info(f"    Estimated rank ({ch_type}): {rank}")
     return out
 
 
@@ -377,7 +377,7 @@ def compute_rank(
     else:
         info = inst.info
         inst_type = "data"
-    logger.info("Computing rank from %s with rank=%r" % (inst_type, rank))
+    logger.info(f"Computing rank from {inst_type}with rank={rank}")
 
     _validate_type(rank, (str, dict, None), "rank")
     if isinstance(rank, str):  # string, either 'info' or 'full'

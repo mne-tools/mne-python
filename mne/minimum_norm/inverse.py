@@ -1079,8 +1079,9 @@ def _apply_inverse(
     #   Pick the correct channels from the data
     #
     sel = _pick_channels_inverse_operator(evoked.ch_names, inv)
-    logger.info('Applying inverse operator to "%s"...' % (evoked.comment,))
-    logger.info("    Picked %d channels from the data" % len(sel))
+    logger.info(f'Applying inverse operator to "{evoked.comment}"...')
+    logger.info(f"    Picked {len(sel)} channels from the data")
+
     logger.info("    Computing inverse...")
     K, noise_norm, vertno, source_nn = _assemble_kernel(
         inv, label, method, pick_ori, use_cps=use_cps
@@ -1108,7 +1109,7 @@ def _apply_inverse(
         sol = combine_xyz(sol)
 
     if noise_norm is not None:
-        logger.info("    %s..." % (method,))
+        logger.info(f"    {method}...")
         if is_free_ori and pick_ori == "vector":
             noise_norm = noise_norm.repeat(3, axis=0)
         sol *= noise_norm

@@ -217,7 +217,7 @@ def compute_proj_epochs(
     else:
         event_id = "Multiple-events"
     if desc_prefix is None:
-        desc_prefix = "%s-%-.3f-%-.3f" % (event_id, epochs.tmin, epochs.tmax)
+        desc_prefix = f"{event_id}-{epochs.tmin:.3f}-{epochs.tmax:.3f}"
     return _compute_proj(data, epochs.info, n_grad, n_mag, n_eeg, desc_prefix, meg=meg)
 
 
@@ -273,7 +273,7 @@ def compute_proj_evoked(
     """
     data = np.dot(evoked.data, evoked.data.T)  # compute data covariance
     if desc_prefix is None:
-        desc_prefix = "%-.3f-%-.3f" % (evoked.times[0], evoked.times[-1])
+        desc_prefix = f"{evoked.times[0]:-.3f}-{evoked.times[-1]:-.3f}"
     return _compute_proj(data, evoked.info, n_grad, n_mag, n_eeg, desc_prefix, meg=meg)
 
 
@@ -368,7 +368,8 @@ def compute_proj_raw(
         start = start / raw.info["sfreq"]
         stop = stop / raw.info["sfreq"]
 
-    desc_prefix = "Raw-%-.3f-%-.3f" % (start, stop)
+    desc_prefix = f"Raw-{start:.3f}-{stop:.3f}"
+
     projs = _compute_proj(data, info, n_grad, n_mag, n_eeg, desc_prefix, meg=meg)
     return projs
 
@@ -455,8 +456,7 @@ def sensitivity_map(
             gain = np.dot(proj, gain)
         elif ncomp == 0:
             raise RuntimeError(
-                "No valid projectors found for channel type "
-                "%s, cannot compute %s" % (ch_type, mode)
+                f"No valid projectors found for channel type {ch_type}, cannot compute { mode}" 
             )
     # can only run the last couple methods if there are projectors
     elif mode in residual_types:

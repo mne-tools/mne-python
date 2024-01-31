@@ -846,7 +846,7 @@ class Report:
         self.include = []
         self.lang = "en-us"  # language setting for the HTML file
         if not isinstance(raw_psd, bool) and not isinstance(raw_psd, dict):
-            raise TypeError("raw_psd must be bool or dict, got %s" % (type(raw_psd),))
+            raise TypeError(f"raw_psd must be bool or dict, got {type(raw_psd)}")
         self.raw_psd = raw_psd
         self._init_render()  # Initialize the renderer
 

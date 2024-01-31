@@ -555,7 +555,8 @@ def _plot_timeseries(
             if "(" in xlabel and ")" in xlabel
             else "s"
         )
-        timestr = "%6.3f %s: " % (x, xunit)
+        timestr = f"{x:6.3f} {xunit}: "
+
         if not nearby:
             return "%s Nothing here" % timestr
         labels = [""] * len(nearby) if labels is None else labels
@@ -574,12 +575,12 @@ def _plot_timeseries(
         s = timestr
         for data_, label, tvec in nearby_data:
             idx = np.abs(tvec - x).argmin()
-            s += "%7.2f %s" % (data_[ch_idx, idx], yunit)
+            s += f"{data_[ch_idx, idx]:7.2f} {yunit}"
+
             if trunc_labels:
-                label = (
-                    label if len(label) <= 10 else "%s..%s" % (label[:6], label[-2:])
-                )
-            s += " [%s] " % label if label else " "
+                label = label if len(label) <= 10 else f"{label[:6]}..{label[-2:]}"
+
+            s += f" [{label if label else " "}] " 
         return s
 
     ax.format_coord = lambda x, y: _format_coord(x, y, labels=labels, ax=ax)

@@ -46,7 +46,7 @@ def equalize_bads(insts, interp_thresh=1.0, copy=True):
     """
     if not 0 <= interp_thresh <= 1:
         raise ValueError(
-            "interp_thresh must be between 0 and 1, got %s" % (interp_thresh,)
+            f"interp_thresh must be between 0 and 1, got {interp_thresh}" 
         )
 
     all_bads = list(set(chain.from_iterable([inst.info["bads"] for inst in insts])))

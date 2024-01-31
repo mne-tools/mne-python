@@ -17,7 +17,8 @@ def _set_pandas_dtype(df, columns, dtype, verbose=None):
     """Try to set the right columns to dtype."""
     for column in columns:
         df[column] = df[column].astype(dtype)
-        logger.info('Converting "%s" to "%s"...' % (column, dtype))
+        logger.info(f'Converting "{column}" to "{dtype}"...')
+
 
 
 def _scale_dataframe_data(inst, data, picks, scalings):

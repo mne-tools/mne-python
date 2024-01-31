@@ -65,15 +65,15 @@ def check_fname(fname, filetype, endings, endings_err=()):
     if len(endings_err) > 0 and not fname.endswith(endings_err):
         print_endings = " or ".join([", ".join(endings_err[:-1]), endings_err[-1]])
         raise OSError(
-            "The filename (%s) for file type %s must end with %s"
-            % (fname, filetype, print_endings)
-        )
+    f"The filename ({fname}) for file type {filetype} must end with {print_endings}"
+)
+
     print_endings = " or ".join([", ".join(endings[:-1]), endings[-1]])
     if not fname.endswith(endings):
         warn(
-            "This filename (%s) does not conform to MNE naming conventions. "
-            "All %s files should end with %s" % (fname, filetype, print_endings)
-        )
+    f"This filename ({fname}) does not conform to MNE naming conventions. "
+    f"All {filetype} files should end with {print_endings}"
+)
 
 
 def check_version(library, min_version="0.0", *, strip=True, return_version=False):
@@ -303,11 +303,11 @@ def _check_preload(inst, msg):
         name = "epochs" if isinstance(inst, BaseEpochs) else "raw"
         if not inst.preload:
             raise RuntimeError(
-                "By default, MNE does not load data into main memory to "
-                "conserve resources. " + msg + " requires %s data to be "
-                "loaded. Use preload=True (or string) in the constructor or "
-                "%s.load_data()." % (name, name)
-            )
+    f"By default, MNE does not load data into main memory to conserve resources. "
+    f"{msg} requires {name} data to be loaded. Use preload=True (or string) in the "
+    f"constructor or {name}.load_data()."
+)
+
         if name == "epochs":
             inst._handle_empty("raise", msg)
 
@@ -340,9 +340,9 @@ def _check_compensation_grade(info1, info2, name1, name2="data", ch_names=None):
     # perform check
     if grade1 != grade2:
         raise RuntimeError(
-            "Compensation grade of %s (%s) and %s (%s) do not match"
-            % (name1, grade1, name2, grade2)
-        )
+    f"Compensation grade of {name1} ({grade1}) and {name2} ({grade2}) do not match"
+)
+
 
 
 def _soft_import(name, purpose, strict=True):
@@ -745,9 +745,8 @@ def _check_rank(rank):
     _validate_type(rank, (None, dict, str), "rank")
     if isinstance(rank, str):
         if rank not in ["full", "info"]:
-            raise ValueError(
-                'rank, if str, must be "full" or "info", ' "got %s" % (rank,)
-            )
+            raise ValueError(f'rank, if str, must be "full" or "info", got {rank}')
+
     return rank
 
 
@@ -915,11 +914,8 @@ def _check_combine(mode, valid=("mean", "median", "std"), axis=0):
     elif callable(mode):
         fun = mode
     else:
-        raise ValueError(
-            "Combine option must be "
-            + ", ".join(valid)
-            + " or callable, got %s (type %s)." % (mode, type(mode))
-        )
+        raise ValueError(f"Combine option must be {', '.join(valid)} or callable, got {mode} (type {type(mode)}).")
+
     return fun
 
 
@@ -928,11 +924,7 @@ def _check_src_normal(pick_ori, src):
 
     _validate_type(src, SourceSpaces, "src")
     if pick_ori == "normal" and src.kind not in ("surface", "discrete"):
-        raise RuntimeError(
-            "Normal source orientation is supported only for "
-            "surface or discrete SourceSpaces, got type "
-            "%s" % (src.kind,)
-        )
+        raise RuntimeError(f"Normal source orientation is supported only for surface or discrete SourceSpaces, got type {src.kind}")
 
 
 def _check_stc_units(stc, threshold=1e-7):  # 100 nAm threshold for warning
@@ -1071,9 +1063,9 @@ def _check_sphere(sphere, info=None, sphere_units="m"):
     elif isinstance(sphere, ConductorModel):
         if not sphere["is_sphere"] or len(sphere["layers"]) == 0:
             raise ValueError(
-                "sphere, if a ConductorModel, must be spherical "
-                "with multiple layers, not a BEM or single-layer "
-                "sphere (got %s)" % (sphere,)
+                f"sphere, if a ConductorModel, must be spherical "
+                f"with multiple layers, not a BEM or single-layer "
+                f"sphere (got {sphere})"
             )
         sphere = tuple(sphere["r0"]) + (sphere["layers"][0]["rad"],)
         sphere_units = "m"
@@ -1081,10 +1073,8 @@ def _check_sphere(sphere, info=None, sphere_units="m"):
     if sphere.shape == ():
         sphere = np.concatenate([[0.0] * 3, [sphere]])
     if sphere.shape != (4,):
-        raise ValueError(
-            "sphere must be float or 1D array of shape (4,), got "
-            "array-like of shape %s" % (sphere.shape,)
-        )
+        raise ValueError(f"sphere must be float or 1D array of shape (4,), got array-like of shape {sphere.shape}")
+
     _check_option("sphere_units", sphere_units, ("m", "mm"))
     if sphere_units == "mm":
         sphere /= 1000.0
@@ -1152,9 +1142,9 @@ def _suggest(val, options, cutoff=0.66):
     if len(options) == 0:
         return ""
     elif len(options) == 1:
-        return " Did you mean %r?" % (options[0],)
+        return f" Did you mean {options[0]}?"
     else:
-        return " Did you mean one of %r?" % (options,)
+        return f" Did you mean one of {options}?" 
 
 
 def _check_on_missing(on_missing, name="on_missing", *, extras=()):
@@ -1226,6 +1216,6 @@ def _import_nibabel(why="use MRI files"):
         import nibabel as nib
     except ImportError as exp:
         raise exp.__class__(
-            "nibabel is required to %s, got:\n%s" % (why, exp)
+            f"nibabel is required to {why}, got:\n{exp}" 
         ) from None
     return nib

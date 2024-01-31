@@ -99,7 +99,8 @@ def _safe_svd(A, **kwargs):
     except np.linalg.LinAlgError as exp:
         from .utils import warn
 
-        warn("SVD error (%s), attempting to use GESVD instead of GESDD" % (exp,))
+        # warn("SVD error (%s), attempting to use GESVD instead of GESDD" % (exp,))
+        warn(f"SVD error ({exp}), attempting to use GESVD instend of GESDD")
         return linalg.svd(A, lapack_driver="gesvd", **kwargs)
 
 
@@ -193,8 +194,9 @@ class BaseEstimator:
                     "scikit-learn estimators should always "
                     "specify their parameters in the signature"
                     " of their __init__ (no varargs)."
-                    " %s with constructor %s doesn't "
-                    " follow this convention." % (cls, init_signature)
+                    # " %s with constructor %s doesn't "
+                    f"{cls} with constructor {init_signature} doesn't  follow this convention."
+                    
                 )
         # Extract and sort argument names excluding 'self'
         return sorted([p.name for p in parameters])
@@ -265,9 +267,10 @@ class BaseEstimator:
                 name, sub_name = split
                 if name not in valid_params:
                     raise ValueError(
-                        "Invalid parameter %s for estimator %s. "
+                        # "Invalid parameter %s for estimator %s. "
+                        f"Invalid parameter{name}for estimator{self}"
                         "Check the list of available parameters "
-                        "with `estimator.get_params().keys()`." % (name, self)
+                        "with `estimator.get_params().keys()`." 
                     )
                 sub_object = valid_params[name]
                 sub_object.set_params(**{sub_name: value})
@@ -275,10 +278,11 @@ class BaseEstimator:
                 # simple objects case
                 if key not in valid_params:
                     raise ValueError(
-                        "Invalid parameter %s for estimator %s. "
+                        # "Invalid parameter %s for estimator %s. "
+                        f"Invalid parameter {key}for estimator{self.__class__.__name__} for estimator"
                         "Check the list of available parameters "
                         "with `estimator.get_params().keys()`."
-                        % (key, self.__class__.__name__)
+                        
                     )
                 setattr(self, key, value)
         return self
@@ -288,7 +292,8 @@ class BaseEstimator:
         pprint(self.get_params(deep=False), params)
         params.seek(0)
         class_name = self.__class__.__name__
-        return "%s(%s)" % (class_name, params.read().strip())
+        #  return "%s(%s)" % (class_name, self.__class__.__name__)
+        return f"{class_name}({self.__class__.__name__})"
 
     # __getstate__ and __setstate__ are omitted because they only contain
     # conditionals that are not satisfied by our objects (e.g.,

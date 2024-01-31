@@ -56,7 +56,8 @@ def peak_finder(x0, thresh=None, extrema=1, verbose=None):
 
     if thresh is None:
         thresh = (np.max(x0) - np.min(x0)) / 4
-        logger.debug("Peak finder automatic threshold: %0.2g" % (thresh,))
+        logger.debug(f"Peak finder automatic threshold: {thresh:0.2g}")
+
 
     assert extrema in [-1, 1]
 

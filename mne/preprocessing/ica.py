@@ -188,10 +188,7 @@ def _check_for_unsupported_ica_channels(picks, info, allow_ref_meg=False):
     chs = info.get_channel_types(picks, unique=True, only_data_chs=False)
     check = all([ch in types for ch in chs])
     if not check:
-        raise ValueError(
-            "Invalid channel type%s passed for ICA: %s."
-            "Only the following types are supported: %s" % (_pl(chs), chs, types)
-        )
+        raise ValueError(f"Invalid channel type{_pl(chs)} passed for ICA: {chs}. Only the following types are supported: {types}")
 
 
 _KNOWN_ICA_METHODS = ("fastica", "infomax", "picard")
@@ -935,7 +932,7 @@ class ICA(ContainsMixin):
                 f"n_pca_components ({self.n_pca_components}) results in "
                 f"only {n_pca} components (EV={evs[1]:0.1f}%)"
             )
-        logger.info("%s: %s components" % (msg, self.n_components_))
+        logger.info(f"{msg}: {self.n_components_} components")
 
         # the things to store for PCA
         self.pca_mean_ = pca.mean_
@@ -2784,7 +2781,7 @@ def _get_target_ch(container, target):
         picks = list(set(picks) - set(ref_picks))
 
     if len(picks) == 0:
-        raise ValueError("%s not in channel list (%s)" % (target, container.ch_names))
+        raise ValueError(f"{target} not in channel list ({container.ch_names})")
     return picks
 
 
@@ -2794,7 +2791,7 @@ def _find_sources(sources, target, score_func):
         score_func = get_score_funcs().get(score_func, score_func)
 
     if not callable(score_func):
-        raise ValueError("%s is not a valid score_func." % score_func)
+        raise ValueError(f"{score_func} is not a valid score_func.")
 
     scores = (
         score_func(sources, target) if target is not None else score_func(sources, 1)
@@ -3375,10 +3372,9 @@ def corrmap(
     # first run: use user-selected map
     threshold = np.atleast_1d(np.array(threshold, float)).ravel()
     threshold_err = (
-        "No component detected using when z-scoring "
-        "threshold%s %s, consider using a more lenient "
-        "threshold" % (threshold_extra, threshold)
-    )
+    f"No component detected using when z-scoring threshold{threshold_extra} {threshold},consider using a more lenient threshold"
+)
+
     if len(all_maps) == 0:
         raise RuntimeError(threshold_err)
     paths = [_find_max_corrs(all_maps, target, t) for t in threshold]

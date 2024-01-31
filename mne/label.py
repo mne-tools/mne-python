@@ -334,14 +334,15 @@ class Label:
         else:  # isinstance(other, Label)
             if self.subject != other.subject:
                 raise ValueError(
-                    "Label subject parameters must match, got "
-                    '"%s" and "%s". Consider setting the '
-                    "subject parameter on initialization, or "
-                    "setting label.subject manually before "
-                    "combining labels." % (self.subject, other.subject)
-                )
+    f"Label subject parameters must match, got "
+    f'"{self.subject}" and "{other.subject}". Consider setting the '
+    "subject parameter on initialization, or "
+    "setting label.subject manually before "
+    "combining labels."
+)
+
             if self.hemi != other.hemi:
-                name = "%s + %s" % (self.name, other.name)
+                name = f"{self.name} + {other.name}"
                 if self.hemi == "lh":
                     lh, rh = self.copy(), other.copy()
                 else:
@@ -357,8 +358,8 @@ class Label:
             other_dup = [np.where(other.vertices == d)[0][0] for d in duplicates]
             if not np.all(self.pos[self_dup] == other.pos[other_dup]):
                 err = (
-                    "Labels %r and %r: vertices overlap but differ in "
-                    "position values" % (self.name, other.name)
+                    f"Labels {self.name!r} and {other.name!r}: vertices overlap but differ in position values"
+
                 )
                 raise ValueError(err)
 
@@ -383,11 +384,13 @@ class Label:
         indcs = np.argsort(vertices)
         vertices, pos, values = vertices[indcs], pos[indcs, :], values[indcs]
 
-        comment = "%s + %s" % (self.comment, other.comment)
+        comment = f"{self.comment} + {other.comment}"
+
 
         name0 = self.name if self.name else "unnamed"
         name1 = other.name if other.name else "unnamed"
-        name = "%s + %s" % (name0, name1)
+        name = f"{name0} + {name1}"
+
 
         color = _blend_colors(self.color, other.color)
 
@@ -407,19 +410,21 @@ class Label:
         else:  # isinstance(other, Label):
             if self.subject != other.subject:
                 raise ValueError(
-                    "Label subject parameters must match, got "
-                    '"%s" and "%s". Consider setting the '
-                    "subject parameter on initialization, or "
-                    "setting label.subject manually before "
-                    "combining labels." % (self.subject, other.subject)
-                )
+    f"Label subject parameters must match, got "
+    f'"{self.subject}" and "{other.subject}". Consider setting the '
+    "subject parameter on initialization, or "
+    "setting label.subject manually before "
+    "combining labels."
+)
+
 
         if self.hemi == other.hemi:
             keep = np.isin(self.vertices, other.vertices, True, invert=True)
         else:
             keep = np.arange(len(self.vertices))
 
-        name = "%s - %s" % (self.name or "unnamed", other.name or "unnamed")
+        name = f"{self.name or 'unnamed'} - {other.name or 'unnamed'}"
+
         return Label(
             self.vertices[keep],
             self.pos[keep],
@@ -870,7 +875,7 @@ class Label:
         .. footbibliography::
         """
         if not isinstance(surf, str):
-            raise TypeError("surf must be a string, got %s" % (type(surf),))
+            raise TypeError(f"surf must be a string, got {type(surf)}" )
         subject = _check_subject(self.subject, subject)
         if np.any(self.values < 0):
             raise ValueError("Cannot compute COM with negative values")
@@ -979,9 +984,10 @@ def _get_label_src(label, src):
     src = _ensure_src(src)
     if src.kind != "surface":
         raise RuntimeError(
-            "Cannot operate on SourceSpaces that are not "
-            "surface type, got %s" % (src.kind,)
-        )
+    f"Cannot operate on SourceSpaces that are not "
+    f"surface type, got {src.kind}"
+)
+
     if label.hemi == "lh":
         hemi_src = src[0]
     else:
@@ -1020,9 +1026,9 @@ class BiHemiLabel:
     def __init__(self, lh, rh, name=None, color=None):
         if lh.subject != rh.subject:
             raise ValueError(
-                "lh.subject (%s) and rh.subject (%s) must "
-                "agree" % (lh.subject, rh.subject)
-            )
+    f"lh.subject ({lh.subject}) and rh.subject ({rh.subject}) must agree"
+      )
+
         self.lh = lh
         self.rh = rh
         self.name = name
@@ -1031,10 +1037,10 @@ class BiHemiLabel:
         self.hemi = "both"
 
     def __repr__(self):  # noqa: D105
-        temp = "<BiHemiLabel | %s, lh : %i vertices,  rh : %i vertices>"
+        temp = f"<BiHemiLabel |{name} , lh : { len(self.lh)} vertices,  rh : {len(self.rh)} vertices>"
         name = "unknown, " if self.subject is None else self.subject + ", "
         name += repr(self.name) if self.name is not None else "unnamed"
-        return temp % (name, len(self.lh), len(self.rh))
+        return temp 
 
     def __len__(self):
         """Return the number of vertices.
@@ -1059,9 +1065,9 @@ class BiHemiLabel:
             lh = self.lh + other.lh
             rh = self.rh + other.rh
         else:
-            raise TypeError("Need: Label or BiHemiLabel. Got: %r" % other)
+            raise TypeError(f"Need: Label or BiHemiLabel. Got: {other}")
 
-        name = "%s + %s" % (self.name, other.name)
+        name = f"{self.name,} + {other.name}" 
         color = _blend_colors(self.color, other.color)
         return BiHemiLabel(lh, rh, name, color)
 
@@ -1084,8 +1090,8 @@ class BiHemiLabel:
         elif len(rh.vertices) == 0:
             return lh
         else:
-            name = "%s - %s" % (self.name, other.name)
-            return BiHemiLabel(lh, rh, name, self.color)
+          name = f"{self.name} - {other.name}"
+          return BiHemiLabel(lh, rh, name, self.color)
 
 
 @verbose
@@ -1144,7 +1150,7 @@ def read_label(filename, subject=None, color=None, *, verbose=None):
             basename_ = basename[:-6]
     else:
         basename_ = basename[:-9]
-    name = "%s-%s" % (basename_, hemi)
+    name = f"{basename_}-{hemi}" 
 
     # read the file
     with open(filename) as fid:
@@ -1240,10 +1246,9 @@ def _prep_label_split(label, subject=None, subjects_dir=None):
         pass
     elif subject != label.subject:
         raise ValueError(
-            "The label specifies a different subject (%r) from "
-            "the subject parameter (%r)." % label.subject,
-            subject,
-        )
+    f"The label specifies a different subject ({label.subject!r}) from "
+    f"the subject parameter ({subject!r})."
+)
 
     return label, subject, subjects_dir
 
@@ -1296,8 +1301,10 @@ def _split_label_contig(label_to_split, subject=None, subjects_dir=None):
     else:
         basename = label_to_split.name
         name_ext = ""
-    name_pattern = "%s_div%%i%s" % (basename, name_ext)
-    names = tuple(name_pattern % i for i in range(1, n_parts + 1))
+    # name_pattern = "%s_div%%i%s" % (basename, name_ext)
+    # names = tuple(name_pattern % i for i in range(1, n_parts + 1))
+        names = tuple(f"{name_pattern % i}" for i in range(1, n_parts + 1))
+
 
     # Colors
     if label_to_split.color is None:
@@ -1368,7 +1375,8 @@ def split_label(label, parts=2, subject=None, subjects_dir=None, freesurfer=Fals
         else:
             basename = label.name
             name_ext = ""
-        name_pattern = "%s_div%%i%s" % (basename, name_ext)
+        name_pattern = f"{basename}_div{{i}}{name_ext}"
+
         names = tuple(name_pattern % i for i in range(1, n_parts + 1))
     else:
         names = parts
@@ -1482,7 +1490,8 @@ def label_sign_flip(label, src):
         vertno_sel = np.intersect1d(rh_vertno, vertices)
         ori.append(src[1]["nn"][vertno_sel])
     if len(ori) == 0:
-        raise Exception('Unknown hemisphere type "%s"' % (label.hemi,))
+        raise Exception(f'Unknown hemisphere type "{label.hemi}"')
+
     ori = np.concatenate(ori, axis=0)
     if len(ori) == 0:
         return np.array([], int)
@@ -1707,7 +1716,8 @@ def _grow_labels(seeds, extents, hemis, names, dist, vert, subject):
             seed_repr = str(seed)
         else:
             seed_repr = ",".join(map(str, seed))
-        comment = "Circular label: seed=%s, extent=%0.1fmm" % (seed_repr, extent)
+        comment = f"Circular label: seed={seed_repr}, extent={extent:.1f}mm"
+
         label = Label(
             vertices=label_verts,
             pos=vert[hemi][label_verts],
@@ -2153,15 +2163,13 @@ def _read_annot(fname):
         dir_name = op.split(fname)[0]
         cands = _read_annot_cands(dir_name)
         if len(cands) == 0:
-            raise OSError(
-                "No such file %s, no candidate parcellations "
-                "found in directory" % fname
-            )
+            raise OSError(f"No such file {fname}, no candidate parcellations found in directory")
+
         else:
-            raise OSError(
-                "No such file %s, candidate parcellations in "
-                "that directory:\n%s" % (fname, "\n".join(cands))
-            )
+           raise OSError(
+    f"No such file {fname}, candidate parcellations in that directory:\n{', '.join(cands)}"
+)
+
     with open(fname, "rb") as fid:
         n_verts = np.fromfile(fid, ">i4", 1)[0]
         data = np.fromfile(fid, ">i4", n_verts * 2).reshape(n_verts, 2)
@@ -2231,22 +2239,21 @@ def _get_annot_fname(annot_fname, subject, hemi, parc, subjects_dir):
             hemis = [hemi]
 
         subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-        dst = str(subjects_dir / subject / "label" / ("%%s.%s.annot" % parc))
+        dst = str(subjects_dir / subject / "label" / f"{parc}.annot")
+
         annot_fname = [dst % hemi_ for hemi_ in hemis]
 
     return annot_fname, hemis
 
 
 def _load_vert_pos(subject, subjects_dir, surf_name, hemi, n_expected, extra=""):
-    fname_surf = op.join(subjects_dir, subject, "surf", "%s.%s" % (hemi, surf_name))
+    fname_surf = op.join(subjects_dir, subject, "surf", f"{hemi}.{surf_name}")
+
     vert_pos, _ = read_surface(fname_surf)
     vert_pos /= 1e3  # the positions in labels are in meters
     if len(vert_pos) != n_expected:
-        raise RuntimeError(
-            "Number of surface vertices (%s) for subject %s"
-            " does not match the expected number of vertices"
-            "(%s)%s" % (len(vert_pos), subject, n_expected, extra)
-        )
+        raise RuntimeError(f"Number of surface vertices ({len(vert_pos)}) for subject {subject} does not match the expected number of vertices ({n_expected}){extra}")
+
     return vert_pos
 
 
@@ -2387,14 +2394,14 @@ def _check_labels_subject(labels, subject, name):
             subject = label.subject
         if subject is not None:  # label.subject can be None, depending on init
             if subject != label.subject:
-                raise ValueError(
-                    "Got multiple values of %s: %s and %s"
-                    % (name, subject, label.subject)
-                )
+                raise ValueError(f"Got multiple values of {name}: {subject} and {label.subject}")
+
     if subject is None:
-        raise ValueError(
-            "if label.subject is None for all labels, " "%s must be provided" % name
-        )
+        # raise ValueError(
+        #     "if label.subject is None for all labels, " "%s must be provided" % name
+        # )
+        raise ValueError(f"If label.subject is None for all labels, {name} must be provided")
+
     return subject
 
 
@@ -2521,7 +2528,7 @@ def labels_to_stc(
     if values.ndim == 1:
         values = values[:, np.newaxis]
     if values.ndim != 2:
-        raise ValueError("values must have 1 or 2 dimensions, got %s" % (values.ndim,))
+        raise ValueError(f"values must have 1 or 2 dimensions, got {values.ndim}")
     _validate_type(src, (SourceSpaces, None))
     if src is None:
         data, vertices, subject = _labels_to_stc_surf(
@@ -2748,12 +2755,12 @@ def write_labels_to_annot(
                     )
 
                 if any(i > 255 for i in color):
-                    msg = "%s: %s (%s)" % (color, ", ".join(names), hemi)
-                    invalid_colors.append(msg)
+                  msg = f"{color}: {', '.join(names)} ({hemi})"
+                invalid_colors.append(msg)
 
                 if len(names) > 1:
-                    msg = "%s: %s (%s)" % (color, ", ".join(names), hemi)
-                    duplicate_colors.append(msg)
+                  msg = f"{color}: {', '.join(names)} ({hemi})"
+                duplicate_colors.append(msg)
 
             # replace None values (labels with unspecified color)
             if labels_by_color[no_color_rgb]:
@@ -2801,7 +2808,8 @@ def write_labels_to_annot(
                 other_indices = (annot_ids.index(i) for i in other_ids)
                 other_names = (hemi_labels[i].name for i in other_indices)
                 other_repr = ", ".join(other_names)
-                msg = "%s: %s overlaps %s" % (hemi, label.name, other_repr)
+                msg = f"{hemi}: {label.name} overlaps {other_repr}"
+
                 overlap.append(msg)
 
             annot[label.vertices] = annot_id

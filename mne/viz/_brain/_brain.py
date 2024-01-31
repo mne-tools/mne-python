@@ -1880,9 +1880,9 @@ class Brain:
                 time = np.asarray(time)
                 if time.shape != (array.shape[-1],):
                     raise ValueError(
-                        "time has shape %s, but need shape %s "
-                        "(array.shape[-1])" % (time.shape, (array.shape[-1],))
-                    )
+        f"time has shape {time.shape}, but need shape {array.shape[-1]} (array.shape[-1])"
+         )
+
             self._data["time"] = time
 
             if self._n_times is None:
@@ -3460,10 +3460,9 @@ class Brain:
                 vertices = hemi_data["vertices"]
                 if vertices is None:
                     raise ValueError(
-                        "len(data) < nvtx (%s < %s): the vertices "
-                        "parameter must not be None"
-                        % (len(hemi_data), self.geo[hemi].x.shape[0])
-                    )
+    f"len(data) < nvtx ({len(hemi_data)} < {self.geo[hemi].x.shape[0]}): the vertices parameter must not be None"
+        )
+
                 morph_n_steps = "nearest" if n_steps == -1 else n_steps
                 with use_log_level(False):
                     smooth_mat = _hemi_morph(
@@ -3932,18 +3931,18 @@ class Brain:
             tmin = self._times[0]
         elif tmin < self._times[0]:
             raise ValueError(
-                "tmin=%r is smaller than the first time point "
-                "(%r)" % (tmin, self._times[0])
-            )
+    f"tmin={tmin} is smaller than the first time point ({self._times[0]})"
+    )
+
 
         # find indexes at which to create frames
         if tmax is None:
             tmax = self._times[-1]
         elif tmax > self._times[-1]:
             raise ValueError(
-                "tmax=%r is greater than the latest time point "
-                "(%r)" % (tmax, self._times[-1])
-            )
+    f"tmax={tmax} is greater than the latest time point ({self._times[-1]})"
+    )
+
         n_frames = floor((tmax - tmin) * time_dilation * framerate)
         times = np.arange(n_frames, dtype=float)
         times /= framerate * time_dilation
@@ -3954,7 +3953,8 @@ class Brain:
         if n_times == 0:
             raise ValueError("No time points selected")
 
-        logger.debug("Save movie for time points/samples\n%s\n%s" % (times, time_idx))
+        logger.debug(f"Save movie for time points/samples\n{times}\n{time_idx}")
+
         # Sometimes the first screenshot is rendered with a different
         # resolution on OS X
         self.screenshot(time_viewer=time_viewer)
@@ -4125,9 +4125,11 @@ def _update_limits(fmin, fmid, fmax, center, array):
         fmid = (fmin + fmax) / 2.0
 
     if fmin >= fmid:
-        raise RuntimeError("min must be < mid, got %0.4g >= %0.4g" % (fmin, fmid))
+        raise RuntimeError(f"min must be < mid, got {fmin:.4g} >= {fmid:.4g}")
+
     if fmid >= fmax:
-        raise RuntimeError("mid must be < max, got %0.4g >= %0.4g" % (fmid, fmax))
+        raise RuntimeError(f"min must be < mid, got {fmin:.4g} >= {fmid:.4g}")
+
 
     return fmin, fmid, fmax
 

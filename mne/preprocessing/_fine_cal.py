@@ -154,14 +154,13 @@ def compute_fine_calibration(
         cal_list = list()
         z_list = list()
         logger.info(
-            "Adjusting normals for %s magnetometers "
-            "(averaging over %s time intervals)" % (len(mag_picks), len(time_idxs) - 1)
-        )
+    f"Adjusting normals for {len(mag_picks)} magnetometers "
+    f"(averaging over {len(time_idxs) - 1} time intervals)"
+)
+
         for start, stop in zip(time_idxs[:-1], time_idxs[1:]):
-            logger.info(
-                "    Processing interval %0.3f - %0.3f s"
-                % (start / info["sfreq"], stop / info["sfreq"])
-            )
+            logger.info(f"    Processing interval {start / info['sfreq']:.3f} - {stop / info['sfreq']:.3f} s")
+
             data = raw[picks, start:stop][0]
             if ctc is not None:
                 data = ctc.dot(data)
@@ -190,15 +189,12 @@ def compute_fine_calibration(
     #
     if len(grad_picks) > 0:
         extra = "X direction" if n_imbalance == 1 else ("XYZ directions")
-        logger.info(
-            "Computing imbalance for %s gradimeters (%s)" % (len(grad_picks), extra)
-        )
+        logger.info(f"Computing imbalance for {len(grad_picks)} gradiometers ({extra})")
+
         imb_list = list()
         for start, stop in zip(time_idxs[:-1], time_idxs[1:]):
-            logger.info(
-                "    Processing interval %0.3f - %0.3f s"
-                % (start / info["sfreq"], stop / info["sfreq"])
-            )
+            logger.info(f"    Processing interval {start / info['sfreq']:.3f} - {stop / info['sfreq']:.3f} s")
+
             data = raw[picks, start:stop][0]
             if ctc is not None:
                 data = ctc.dot(data)
@@ -519,10 +515,10 @@ def read_fine_calibration(fname):
             vals = line.strip().split()
             if len(vals) not in [14, 16]:
                 raise RuntimeError(
-                    "Error parsing fine calibration file, "
-                    "should have 14 or 16 entries per line "
-                    "but found %s on line:\n%s" % (len(vals), line)
-                )
+    f"Error parsing fine calibration file, "
+    f"should have 14 or 16 entries per line but found {len(vals)} on line:\n{line}"
+)
+
             # `vals` contains channel number
             ch_name = vals[0]
             if len(ch_name) in (3, 4):  # heuristic for Neuromag fix

@@ -4123,10 +4123,10 @@ trans : path-like | dict | instance of Transform | ``"fsaverage"`` | None
     If trans is None, an identity matrix is assumed.
 """
 
-docdict["trans_not_none"] = """
+docdict["trans_not_none"] = f"""
 trans : str | dict | instance of Transform
-    %s
-""" % (_trans_base,)
+    {_trans_base}
+""" 
 
 docdict["transparent"] = """
 transparent : bool | None
@@ -4431,7 +4431,8 @@ def fill_doc(f):
     except (TypeError, ValueError, KeyError) as exp:
         funcname = f.__name__
         funcname = docstring.split("\n")[0] if funcname is None else funcname
-        raise RuntimeError("Error documenting %s:\n%s" % (funcname, str(exp)))
+        raise RuntimeError(f"Error documenting {funcname}:\n{str(exp)}")
+
     return f
 
 
@@ -4732,12 +4733,10 @@ def linkcode_resolve(domain, info):
     if "dev" in mne.__version__:
         kind = "main"
     else:
-        kind = "maint/%s" % (".".join(mne.__version__.split(".")[:2]))
-    return "http://github.com/mne-tools/mne-python/blob/%s/mne/%s%s" % (
-        kind,
-        fn,
-        linespec,
-    )
+        kind = f"maint/{'.'.join(mne.__version__.split('.')[:2])}"
+
+    return f"http://github.com/mne-tools/mne-python/blob/{kind}/mne/{fn}{linespec}"
+
 
 
 def open_docs(kind=None, version=None):
@@ -4769,7 +4768,8 @@ def open_docs(kind=None, version=None):
     if version is None:
         version = get_config("MNE_DOCS_VERSION", "stable")
     _check_option("version", version, ["stable", "dev"])
-    webbrowser.open_new_tab("https://mne.tools/%s/%s" % (version, kind))
+    webbrowser.open_new_tab(f"https://mne.tools/{version}/{kind}")
+
 
 
 class _decorator:
@@ -4963,7 +4963,7 @@ def _docformat(docstring, docdict=None, funcname=None):
     try:
         return docstring % indented
     except (TypeError, ValueError, KeyError) as exp:
-        raise RuntimeError("Error documenting %s:\n%s" % (funcname, str(exp)))
+        raise RuntimeError(f"Error documenting {funcname}:\n{str(exp)}")
 
 
 def _indentcount_lines(lines):

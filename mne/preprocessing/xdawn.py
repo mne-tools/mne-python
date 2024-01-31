@@ -201,8 +201,7 @@ def _fit_xdawn(
             evals, evecs = linalg.eigh(evo_cov, signal_cov)
         except np.linalg.LinAlgError as exp:
             raise ValueError(
-                "Could not compute eigenvalues, ensure "
-                "proper regularization (%s)" % (exp,)
+                f"Could not compute eigenvalues, ensure proper regularization ({exp})" 
             )
         evecs = evecs[:, np.argsort(evals)[::-1]]  # sort eigenvectors
         evecs /= np.apply_along_axis(np.linalg.norm, 0, evecs)
@@ -530,7 +529,7 @@ class Xdawn(_XdawnTransformer):
         elif isinstance(inst, np.ndarray):
             X = inst
             if X.ndim not in (2, 3):
-                raise ValueError("X must be 2D or 3D, got %s" % (X.ndim,))
+                raise ValueError(f"X must be 2D or 3D, got {X.ndim}")
         else:
             raise ValueError("Data input must be of Epoch type or numpy array")
 

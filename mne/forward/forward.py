@@ -1258,7 +1258,8 @@ def compute_orient_prior(forward, loose="auto", verbose=None):
         if any(v > 0.0 for v in loose.values()):
             raise ValueError(
                 "loose must be 0. with forward operator "
-                "with fixed orientation, got %s" % (loose,)
+                # "with fixed orientation, got %s" % (loose,)
+                f"with fixed orientation, got {loose,}" 
             )
         return orient_prior
     if all(v == 1.0 for v in loose.values()):
@@ -1269,7 +1270,7 @@ def compute_orient_prior(forward, loose="auto", verbose=None):
         raise ValueError(
             "Forward operator is not oriented in surface "
             "coordinates. loose parameter should be 1. "
-            "not %s." % (loose,)
+            f"not {loose,}." 
         )
     start = 0
     logged = dict()
@@ -1420,12 +1421,14 @@ def compute_depth_prior(
         if limit_depth_chs != "whiten":
             raise ValueError(
                 'limit_depth_chs, if str, must be "whiten", got '
-                "%s" % (limit_depth_chs,)
+                # "%s" % (limit_depth_chs,)
+                f"{limit_depth_chs,}" 
+
             )
         if not isinstance(noise_cov, Covariance):
             raise ValueError(
                 'With limit_depth_chs="whiten", noise_cov must be'
-                " a Covariance, got %s" % (type(noise_cov),)
+                f" a Covariance, got {type(noise_cov),}" 
             )
     if combine_xyz is not False:  # private / expert option
         _check_option("combine_xyz", combine_xyz, ("fro", "spectral"))
@@ -1488,10 +1491,11 @@ def compute_depth_prior(
                 n_limit = ind
 
         logger.info(
-            "    limit = %d/%d = %f" % (n_limit + 1, len(d), np.sqrt(limit / ws[0]))
+            f"    limit = {n_limit + 1}/{len(d)} = {np.sqrt(limit / ws[0])}" 
         )
         scale = 1.0 / limit
-        logger.info("    scale = %g exp = %g" % (scale, exp))
+        logger.info(f"    scale = {scale:g} exp = {exp:g}")
+
         w = np.minimum(w / limit, 1)
     depth_prior = w**exp
 
@@ -1513,8 +1517,8 @@ def _stc_src_sel(
     del stc
     if not len(src) == len(vertices):
         raise RuntimeError(
-            "Mismatch between number of source spaces (%s) and "
-            "STC vertices (%s)" % (len(src), len(vertices))
+            f"Mismatch between number of source spaces ({len(src)}) and "
+            f"STC vertices ({len(vertices)})" 
         )
     src_sels, stc_sels, out_vertices = [], [], []
     src_offset = stc_offset = 0

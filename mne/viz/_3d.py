@@ -196,10 +196,8 @@ def plot_head_positions(
     for ii, p in enumerate(pos):
         p = np.array(p, float)
         if p.ndim != 2 or p.shape[1] != 10:
-            raise ValueError(
-                "pos (or each entry in pos if a list) must be "
-                "dimension (N, 10), got %s" % (p.shape,)
-            )
+            raise ValueError(f"pos (or each entry in pos if a list) must be dimension (N, 10), got {p.shape}")
+
         if ii > 0:  # concatenation
             p[:, 0] += pos[ii - 1][-1, 0] - p[0, 0]
         pos[ii] = p
@@ -233,7 +231,7 @@ def plot_head_positions(
         else:
             axes = np.array(axes)
         if axes.shape != (3, 2):
-            raise ValueError("axes must have shape (3, 2), got %s" % (axes.shape,))
+            raise ValueError(f"axes must have shape (3, 2), got {axes.shape}")
         fig = axes[0, 0].figure
 
         labels = ["xyz", ("$q_1$", "$q_2$", "$q_3$")]
@@ -1793,12 +1791,12 @@ def _process_clim(clim, colormap, transparent, data=0.0, allow_pos_lims=True):
             key = "lims"
         clim = {"kind": "percent", key: [96, 97.5, 99.95]}
     if not isinstance(clim, dict):
-        raise ValueError('"clim" must be "auto" or dict, got %s' % (clim,))
+        raise ValueError(f'"clim" must be "auto" or dict, got {clim}')
+
 
     if ("lims" in clim) + ("pos_lims" in clim) != 1:
         raise ValueError(
-            "Exactly one of lims and pos_lims must be specified "
-            "in clim, got %s" % (clim,)
+            f"Exactly one of lims and pos_lims must be specified in clim, got {clim}" 
         )
     if "pos_lims" in clim and not allow_pos_lims:
         raise ValueError('Cannot use "pos_lims" for clim, use "lims" ' "instead")
@@ -1806,17 +1804,17 @@ def _process_clim(clim, colormap, transparent, data=0.0, allow_pos_lims=True):
     ctrl_pts = np.array(clim["pos_lims" if diverging else "lims"], float)
     ctrl_pts = np.array(ctrl_pts, float)
     if ctrl_pts.shape != (3,):
-        raise ValueError("clim has shape %s, it must be (3,)" % (ctrl_pts.shape,))
+        raise ValueError(f"clim has shape {ctrl_pts.shape}, it must be (3,)")
     if (np.diff(ctrl_pts) < 0).any():
         raise ValueError(
-            "colormap limits must be monotonically " "increasing, got %s" % (ctrl_pts,)
+            f"colormap limits must be monotonically increasing, got {ctrl_pts}" 
         )
     clim_kind = clim.get("kind", "percent")
     _check_option("clim['kind']", clim_kind, ["value", "values", "percent"])
     if clim_kind == "percent":
         perc_data = np.abs(data) if diverging else data
         ctrl_pts = np.percentile(perc_data, ctrl_pts)
-        logger.info("Using control points %s" % (ctrl_pts,))
+        logger.info(f"Using control points {ctrl_pts}")
     assert len(ctrl_pts) == 3
     clim = dict(kind="value")
     clim["pos_lims" if diverging else "lims"] = ctrl_pts
@@ -2517,7 +2515,7 @@ def _plot_stc(
     if overlay_alpha == 0:
         smoothing_steps = 1  # Disable smoothing to save time.
 
-    title = subject if len(hemis) > 1 else "%s - %s" % (subject, hemis[0])
+    title = subject if len(hemis) > 1 else f"{subject} - {hemis[0]}" 
     kwargs = {
         "subject": subject,
         "hemi": hemi,
@@ -2933,7 +2931,7 @@ def plot_volume_source_estimates(
         time_sl = slice(0, None)
     else:
         initial_time = float(initial_time)
-        logger.info("Fixing initial time: %s s" % (initial_time,))
+        logger.info(f"Fixing initial time: {initial_time} s")
         initial_time = np.argmin(np.abs(stc.times - initial_time))
         time_sl = slice(initial_time, initial_time + 1)
     if initial_pos is None:  # find max pos and (maybe) time
@@ -2944,12 +2942,10 @@ def plot_volume_source_estimates(
     else:  # position specified
         initial_pos = np.array(initial_pos, float)
         if initial_pos.shape != (3,):
-            raise ValueError(
-                "initial_pos must be float ndarray with shape "
-                "(3,), got shape %s" % (initial_pos.shape,)
-            )
+            raise ValueError(f"initial_pos must be float ndarray with shape (3,), got shape {initial_pos.shape}")
+
         initial_pos *= 1000
-        logger.info("Fixing initial position: %s mm" % (initial_pos.tolist(),))
+        logger.info(f"Fixing initial position: {initial_pos.tolist()} mm")
         loc_idx = _cut_coords_to_idx(initial_pos, img)
         if initial_time is not None:  # time also specified
             time_idx = time_sl.start
@@ -2962,15 +2958,11 @@ def plot_volume_source_estimates(
     cut_coords = _ijk_to_cut_coords(ijk, img_idx)
     np.testing.assert_allclose(_cut_coords_to_ijk(cut_coords, img_idx), ijk)
     logger.info(
-        "Showing: t = %0.3f s, (%0.1f, %0.1f, %0.1f) mm, "
-        "[%d, %d, %d] vox, %d vertex"
-        % (
-            (stc.times[time_idx],)
-            + tuple(cut_coords)
-            + tuple(ijk)
-            + (vertices[loc_idx],)
-        )
+    f"Showing: t = {stc.times[time_idx]:0.3f} s, "
+    f"({cut_coords[0]:0.1f}, {cut_coords[1]:0.1f}, {cut_coords[2]:0.1f}) mm, "
+    f"[{ijk[0]}, {ijk[1]}, {ijk[2]}] vox, {vertices[loc_idx]} vertex"
     )
+
     del ijk
 
     # Plot initial figure
@@ -3997,14 +3989,11 @@ def _plot_dipole(
     coord_frame_name = "Head" if coord_frame == "head" else "MRI"
 
     if title is None:
-        title = "Dipole #%s / %s @ %.3fs, GOF: %.1f%%, %.1fnAm\n%s: " % (
-            idx + 1,
-            len(dipole.times),
-            dipole.times[idx],
-            dipole.gof[idx],
-            dipole.amplitude[idx] * 1e9,
-            coord_frame_name,
-        ) + "(%0.1f, %0.1f, %0.1f) mm" % tuple(xyz[idx])
+       title = (
+        f"Dipole #{idx + 1} / {len(dipole.times)} @ {dipole.times[idx]:.3f}s, "
+        f"GOF: {dipole.gof[idx]:.1f}%, {dipole.amplitude[idx] * 1e9:.1f}nAm\n"
+        f"{coord_frame_name}: ({xyz[idx][0]:.1f}, {xyz[idx][1]:.1f}, {xyz[idx][2]:.1f}) mm"
+    )
 
     ax.get_figure().suptitle(title)
 

@@ -193,7 +193,7 @@ def _line_plot_onselect(
 
             method = "mean" if psd else "rms"
             this_data, _ = _merge_ch_data(this_data, ch_type, [], method=method)
-            title = "%s %s" % (ch_type, method.upper())
+            title = f"{ch_type} {method.upper()}" 
         else:
             title = ch_type
         this_data = np.average(this_data, axis=1)
@@ -213,7 +213,8 @@ def _line_plot_onselect(
         )
 
     unit = "Hz" if psd else time_unit
-    fig.suptitle("Average over %.2f%s - %.2f%s" % (xmin, unit, xmax, unit), y=0.1)
+    fig.suptitle(f"Average over {xmin:.2f}{unit} - {xmax:.2f}{unit}", y=0.1)
+
     plt_show()
     if text is not None:
         text.set_visible(False)
@@ -627,9 +628,10 @@ def _plot_lines(
                 # prevent unnecessary warnings for e.g. EOG
                 if this_type in _DATA_CH_TYPES_SPLIT:
                     logger.info(
-                        "Need more than one channel to make "
-                        "topography for %s. Disabling interactivity." % (this_type,)
-                    )
+        f"Need more than one channel to make topography for {this_type}. "
+        "Disabling interactivity."
+        )
+
                 selectables[type_idx] = False
 
     if selectable:
@@ -1868,7 +1870,8 @@ def plot_evoked_joint(
     from matplotlib.patches import ConnectionPatch
 
     if ts_args is not None and not isinstance(ts_args, dict):
-        raise TypeError("ts_args must be dict or None, got type %s" % (type(ts_args),))
+        raise TypeError(f"ts_args must be dict or None, got type {type(ts_args)}")
+
     ts_args = dict() if ts_args is None else ts_args.copy()
     ts_args["time_unit"], _ = _check_time_unit(
         ts_args.get("time_unit", "s"), evoked.times
