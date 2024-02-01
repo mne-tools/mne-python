@@ -722,7 +722,7 @@ _combine_template = """
 combine : 'mean' | {literals} | callable | None
     How to aggregate across channels. If ``None``, {none}.
     If a string, ``"mean"`` uses :func:`numpy.mean`, {other_string}.
-    If :class:`callable`, it must operate on an :class:`array <numpy.ndarray>`
+    If :func:`callable`, it must operate on an :class:`array <numpy.ndarray>`
     of shape ``({shape})`` and return an array of shape
     ``({return_shape})``. {example}
     {notes}Defaults to ``None``.
