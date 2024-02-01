@@ -2927,7 +2927,7 @@ def plot_compare_evokeds(
         picked_types,
         picks=orig_picks,
         ch_names=ch_names,
-        ch_type=None if len(ch_types) > 1 else ch_types[0],
+        ch_type=ch_types[0] if len(ch_types) == 1 else None,
         combine=combine,
     )
     topo_disp_title = False
