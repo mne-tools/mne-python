@@ -110,7 +110,7 @@ full = [
 
 # Dependencies for running the test infrastructure
 test = [
-    "pytest!=8.0.0rc1,!=8.0.0rc2",
+    "pytest>=8.0.0rc2",
     "pytest-cov",
     "pytest-timeout",
     "pytest-harvest",
@@ -242,7 +242,10 @@ ignore-decorators = [
 ]
 
 [tool.pytest.ini_options]
-addopts = """--durations=20 --doctest-modules -ra --cov-report= --tb=short \
+# -r f (failed), E (error), s (skipped), x (xfail), X (xpassed), w (warnings)
+# don't put in xfail for pytest 8.0+ because then it prints the tracebacks,
+# which look like real errors
+addopts = """--durations=20 --doctest-modules -rfEXs --cov-report= --tb=short \
     --cov-branch --doctest-ignore-import-errors --junit-xml=junit-results.xml \
     --ignore=doc --ignore=logo --ignore=examples --ignore=tutorials \
     --ignore=mne/gui/_*.py --ignore=mne/icons --ignore=tools \
