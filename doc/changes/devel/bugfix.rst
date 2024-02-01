@@ -1,0 +1,1 @@
+In :func:`~mne.viz.plot_compare_evokeds`, plot RMS for MEG channels when global field power is requested by `Daniel McCloy`_.
