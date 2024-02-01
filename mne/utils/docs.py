@@ -720,8 +720,8 @@ colormap : str | np.ndarray of float, shape(n_colors, 3 | 4)
 
 _combine_template = """
 combine : 'mean' | {literals} | callable | None
-    How to aggregate across channels. If ``None``, {none}.
-    If a string, ``"mean"`` uses :func:`numpy.mean`, {other_string}.
+    How to aggregate across channels. If ``None``, {none}. If a string,
+    ``"mean"`` uses :func:`numpy.mean`, {other_string}.
     If :func:`callable`, it must operate on an :class:`array <numpy.ndarray>`
     of shape ``({shape})`` and return an array of shape
     ``({return_shape})``. {example}
@@ -733,12 +733,13 @@ _example = """For example::
 """
 _median_std_gfp = """``"median"`` computes the `marginal median
     <https://en.wikipedia.org/wiki/Median#Marginal_median>`__, ``"std"``
-    computes the standard deviation, ``"gfp"`` computes global field power"""
+    uses :func:`numpy.std`, and ``"gfp"`` computes global field power
+    for EEG channels and RMS amplitude for MEG channels"""
 docdict["combine_plot_compare_evokeds"] = _combine_template.format(
     literals="'median' | 'std' | 'gfp'",
-    none="channels are combined by computing GFP, unless ``picks`` is a single "
-    "channel (not channel type) or ``axes='topo'``, in which cases no combining is "
-    "performed.",
+    none="""channels are combined by
+    computing GFP/RMS, unless ``picks`` is a single channel (not channel type)
+    or ``axes="topo"``, in which cases no combining is performed""",
     other_string=_median_std_gfp,
     shape="n_evokeds, n_channels, n_times",
     return_shape="n_evokeds, n_times",
@@ -748,9 +749,9 @@ docdict["combine_plot_compare_evokeds"] = _combine_template.format(
 docdict["combine_plot_epochs_image"] = _combine_template.format(
     literals="'median' | 'std' | 'gfp'",
     none="""channels are combined by
-    computing GFP, unless ``group_by`` is also ``None`` and ``picks`` is a list
-    of specific channels (not channel types), in which case no combining is
-    performed and each channel gets its own figure""",
+    computing GFP/RMS, unless ``group_by`` is also ``None`` and ``picks`` is a
+    list of specific channels (not channel types), in which case no combining
+    is performed and each channel gets its own figure""",
     other_string=_median_std_gfp,
     shape="n_epochs, n_channels, n_times",
     return_shape="n_epochs, n_times",
