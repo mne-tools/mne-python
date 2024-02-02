@@ -8,6 +8,7 @@ import numpy as np
 from ..._fiff.constants import FIFF
 from ...io import BaseRaw
 from ...utils import _check_preload, _validate_type, logger, warn
+from ...annotations import _annotations_starts_stops
 
 
 def interpolate_blinks(raw, buffer=0.05, match="BAD_blink", interpolate_gaze=False):
