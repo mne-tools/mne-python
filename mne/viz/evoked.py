@@ -2571,7 +2571,6 @@ def _title_helper_pce(title, picked_types, picks, ch_names, ch_type, combine):
     do_combine = picked_types or len(ch_names) > 1
     if title is not None and len(title) and isinstance(combine, str) and do_combine:
         if combine == "gfp":
-            print(ch_type)
             _comb = "RMS" if ch_type in ("mag", "grad") else "GFP"
         elif combine == "std":
             _comb = "std. dev."
