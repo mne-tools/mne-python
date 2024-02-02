@@ -649,8 +649,6 @@ def sys_info(
         "numpy",
         "scipy",
         "matplotlib",
-        "pooch",
-        "jinja2",
         "",
         "# Numerical (optional)",
         "sklearn",
