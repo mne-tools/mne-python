@@ -216,7 +216,7 @@ class GetEpochsMixin:
                 if isinstance(reason, str):
                     reason = (reason,)
                 reason = tuple(reason)
-                for i, idx in enumerate(np.setdiff1d(inst.selection, key_selection)):
+                for idx in np.setdiff1d(inst.selection, key_selection):
                     drop_log[idx] = reason
             inst.drop_log = tuple(drop_log)
             inst.selection = key_selection
