@@ -1,1 +1,1 @@
-Change how samples are read using :func:`mne.io.read_raw_cnt`
+Change how samples are read when using ``data_format='auto'`` in :func:`mne.io.read_raw_cnt`, by `Jacob Woessner`_.
