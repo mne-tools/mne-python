@@ -3366,6 +3366,7 @@ reject : dict | str | None
 
     .. note:: If ``reject`` is a callable, than **any** criteria can be
             used to reject epochs (including maxima and minima).
+
     If ``reject`` is ``None``, no rejection is performed. If ``'existing'``
     (default), then the rejection parameters set at instantiation are used.
 """  # noqa: E501
