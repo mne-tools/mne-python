@@ -4,7 +4,6 @@ import glob
 import os
 
 import numpy as np
-from neo.core import AnalogSignal
 
 from ..._fiff.meas_info import create_info
 from ..._fiff.utils import _mult_cal_one
@@ -212,8 +211,9 @@ class RawNeuralynx(BaseRaw):
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data."""
-        from neo import Segment
+        from neo import AnalogSignal, Segment
         from neo.io import NeuralynxIO
+        from neo.io.proxyobjects import AnalogSignalProxy
 
         # quantities is a dependency of neo so we are guaranteed it exists
         from quantities import Hz
@@ -313,7 +313,7 @@ class RawNeuralynx(BaseRaw):
                 signal.load(channel_indexes=idx).magnitude[
                     samples[0] : samples[-1] + 1, :
                 ]
-                if type(signal) is not AnalogSignal  # then it's AnalogSignalProxy
+                if isinstance(signal, AnalogSignalProxy)
                 else signal.magnitude[samples[0] : samples[-1] + 1, :]
                 for seg, samples in zip(
                     segments_arr[first_seg : last_seg + 1], sel_samples_local
