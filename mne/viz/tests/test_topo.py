@@ -325,7 +325,7 @@ def test_plot_tfr_topo():
     # test opening tfr by clicking
     num_figures_before = len(plt.get_fignums())
     # could use np.reshape(fig.axes[-1].images[0].get_extent(), (2, 2)).mean(1)
-    with pytest.warns(RuntimeWarning, match="not masking"):
+    with _record_warnings(), pytest.warns(RuntimeWarning, match="not masking"):
         _fake_click(fig, fig.axes[0], (0.08, 0.65))
     assert num_figures_before + 1 == len(plt.get_fignums())
     plt.close("all")
@@ -349,7 +349,7 @@ def test_plot_tfr_topo():
     vmin, vmax = 0.0, 2.0
     fig, ax = plt.subplots()
     tmin, tmax = epochs.times[0], epochs.times[-1]
-    with pytest.warns(RuntimeWarning, match="not masking"):
+    with _record_warnings(), pytest.warns(RuntimeWarning, match="not masking"):
         _imshow_tfr(
             ax,
             3,
@@ -372,7 +372,7 @@ def test_plot_tfr_topo():
     # ValueError when freq[0] == 0 and yscale == 'log'
     these_freqs = freqs[:3].copy()
     these_freqs[0] = 0
-    with pytest.warns(RuntimeWarning, match="not masking"):
+    with _record_warnings(), pytest.warns(RuntimeWarning, match="not masking"):
         pytest.raises(
             ValueError,
             _imshow_tfr,
