@@ -1456,9 +1456,16 @@ flat : dict | None
               quality, pass the ``reject_tmin`` and ``reject_tmax`` parameters.
 """
 
-docdict["flat_drop_bad"] = f"""
+docdict["flat_drop_bad"] = """
 flat : dict | str | None
-{_flat_common}
+    Reject epochs based on **minimum** peak-to-peak signal amplitude (PTP)
+    or a custom function. Valid **keys** can be any channel type present
+    in the object. If using PTP, **values** are floats that set the minimum
+    acceptable PTP. If the PTP is smaller than this threshold, the epoch
+    will be dropped. If ``None`` then no rejection is performed based on
+    flatness of the signal. If a custom function is used than ``flat`` can be
+    used to reject epochs based on any criteria (including maxima and
+    minima).
     If ``'existing'``, then the flat parameters set during epoch creation are
     used.
 """
@@ -3291,12 +3298,43 @@ _reject_common = """\
               difference will be preserved.
 """
 
-docdict["reject_drop_bad"] = f"""
+docdict["reject_drop_bad"] = """
 reject : dict | str | None
-{_reject_common}
+    Reject epochs based on **maximum** peak-to-peak signal amplitude (PTP)
+    or custom functions. Peak-to-peak signal amplitude is defined as
+    the absolute difference between the lowest and the highest signal
+    value. In each individual epoch, the PTP is calculated for every channel.
+    If the PTP of any one channel exceeds the rejection threshold, the
+    respective epoch will be dropped.
+
+    The dictionary keys correspond to the different channel types; valid
+    **keys** can be any channel type present in the object.
+
+    Example::
+
+        reject = dict(grad=4000e-13,  # unit: T / m (gradiometers)
+                      mag=4e-12,      # unit: T (magnetometers)
+                      eeg=40e-6,      # unit: V (EEG channels)
+                      eog=250e-6      # unit: V (EOG channels)
+                      )
+
+    Custom rejection criteria can be also be used by passing a callable,
+    e.g., to check for 99th percentile of absolute values of any channel
+    across time being bigger than 1mV. The callable must return a good, reason tuple.
+    Where good must be bool and reason must be str, list, or tuple where each entry is a str.::
+
+        reject = dict(eeg=lambda x: ((np.percentile(np.abs(x), 99, axis=1) > 1e-3).any(),  "> 1mV somewhere"))
+
+    .. note:: If rejection is based on a signal **difference**
+            calculated for each channel separately, applying baseline
+            correction does not affect the rejection procedure, as the
+            difference will be preserved.
+
+    .. note:: If ``reject`` is a callable, than **any** criteria can be
+            used to reject epochs (including maxima and minima).
     If ``reject`` is ``None``, no rejection is performed. If ``'existing'``
     (default), then the rejection parameters set at instantiation are used.
-"""
+"""  # noqa: E501
 
 docdict["reject_epochs"] = f"""
 reject : dict | None
