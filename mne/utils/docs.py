@@ -1939,12 +1939,6 @@ mrk : path-like | array of shape (5, 3) | list | None
     If list, all of the markers will be averaged together.
 """
 
-docdict["kit_badcoils"] = """
-badcoils : list of int | None
-    Indices of (up to two) bad marker coils to be removed.
-    These marker coils must be present in the elp and mrk files.
-"""
-
 docdict["kit_slope"] = r"""
 slope : ``'+'`` | ``'-'``
     How to interpret values on KIT trigger channels when synthesizing a
@@ -1973,6 +1967,12 @@ docdict["kit_stimthresh"] = """
 stimthresh : float | None
     The threshold level for accepting voltage changes in KIT trigger
     channels as a trigger event. If None, stim must also be set to None.
+"""
+
+docdict["kit_badcoils"] = """
+badcoils : list of int | None
+    Indices of (up to two) bad marker coils to be removed.
+    These marker coils must be present in the elp and mrk files.
 """
 
 docdict["kwargs_fun"] = """
