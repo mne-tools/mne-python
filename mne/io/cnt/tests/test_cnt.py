@@ -54,7 +54,10 @@ def test_new_data():
 @testing.requires_testing_data
 def test_auto_data():
     """Test reading raw cnt files with automatic header."""
-    with pytest.warns(RuntimeWarning, match="Omitted 6 annot"):
+    first = pytest.warns(RuntimeWarning, match="Could not define the number of bytes.*")
+    second = pytest.warns(RuntimeWarning, match="Annotations are outside")
+    third = pytest.warns(RuntimeWarning, match="Omitted 6 annot")
+    with first, second, third:
         raw = read_raw_cnt(input_fname=fname_bad_spans)
 
     assert raw.info["bads"] == ["F8"]
