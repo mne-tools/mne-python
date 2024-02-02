@@ -550,7 +550,20 @@ def test_reject():
         preload=False,
         reject=dict(eeg=np.inf),
     )
-    for val in (None, -1):  # protect against older MNE-C types
+
+    # Good function
+    def my_reject_1(epoch_data):
+        bad_idxs = np.where(np.percentile(epoch_data, 90, axis=1) > 1e-35)
+        reasons = "a" * len(bad_idxs[0])
+        return len(bad_idxs) > 0, reasons
+
+    # Bad function
+    def my_reject_2(epoch_data):
+        bad_idxs = np.where(np.percentile(epoch_data, 90, axis=1) > 1e-35)
+        reasons = "a" * len(bad_idxs[0])
+        return len(bad_idxs), reasons
+
+    for val in (-1, -2):  # protect against older MNE-C types
         for kwarg in ("reject", "flat"):
             pytest.raises(
                 ValueError,
@@ -564,6 +577,44 @@ def test_reject():
                 preload=False,
                 **{kwarg: dict(grad=val)},
             )
+
+    # Check that reject and flat in constructor are not callables
+    val = my_reject_1
+    for kwarg in ("reject", "flat"):
+        with pytest.raises(
+            TypeError,
+            match=r".* must be an instance of numeric, got <class 'function'> instead.",
+        ):
+            Epochs(
+                raw,
+                events,
+                event_id,
+                tmin,
+                tmax,
+                picks=picks_meg,
+                preload=False,
+                **{kwarg: dict(grad=val)},
+            )
+
+    # Check if callable returns a tuple with reasons
+    bad_types = [my_reject_2, ("Hi" "Hi"), (1, 1), None]
+    for val in bad_types:  # protect against bad types
+        for kwarg in ("reject", "flat"):
+            with pytest.raises(
+                TypeError,
+                match=r".* must be an instance of .* got <class '.*'> instead.",
+            ):
+                epochs = Epochs(
+                    raw,
+                    events,
+                    event_id,
+                    tmin,
+                    tmax,
+                    picks=picks_meg,
+                    preload=True,
+                )
+                epochs.drop_bad(**{kwarg: dict(grad=val)})
+
     pytest.raises(
         KeyError,
         Epochs,
@@ -2149,6 +2200,93 @@ def test_reject_epochs(tmp_path):
     assert epochs_cleaned.flat == dict(grad=new_flat["grad"], mag=flat["mag"])
 
 
+@testing.requires_testing_data
+def test_callable_reject():
+    """Test using a callable for rejection."""
+    raw = read_raw_fif(fname_raw_testing, preload=True)
+    raw.crop(0, 5)
+    raw.del_proj()
+    chans = raw.info["ch_names"][-6:-1]
+    raw.pick(chans)
+    data = raw.get_data()
+
+    # Add some artifacts
+    new_data = data
+    new_data[0, 180:200] *= 1e7
+    new_data[0, 610:880] += 1e-3
+    edit_raw = mne.io.RawArray(new_data, raw.info)
+
+    events = mne.make_fixed_length_events(edit_raw, id=1, duration=1.0, start=0)
+    epochs = mne.Epochs(edit_raw, events, tmin=0, tmax=1, baseline=None, preload=True)
+    assert len(epochs) == 5
+
+    epochs = mne.Epochs(
+        edit_raw,
+        events,
+        tmin=0,
+        tmax=1,
+        baseline=None,
+        preload=True,
+    )
+    epochs.drop_bad(
+        reject=dict(eeg=lambda x: ((np.median(x, axis=1) > 1e-3).any(), "eeg median"))
+    )
+
+    assert epochs.drop_log[2] == ("eeg median",)
+
+    epochs = mne.Epochs(
+        edit_raw,
+        events,
+        tmin=0,
+        tmax=1,
+        baseline=None,
+        preload=True,
+    )
+    epochs.drop_bad(
+        reject=dict(eeg=lambda x: ((np.max(x, axis=1) > 1).any(), ("eeg max",)))
+    )
+
+    assert epochs.drop_log[0] == ("eeg max",)
+
+    def reject_criteria(x):
+        max_condition = np.max(x, axis=1) > 1e-2
+        median_condition = np.median(x, axis=1) > 1e-4
+        return (max_condition.any() or median_condition.any()), "eeg max or median"
+
+    epochs = mne.Epochs(
+        edit_raw,
+        events,
+        tmin=0,
+        tmax=1,
+        baseline=None,
+        preload=True,
+    )
+    epochs.drop_bad(reject=dict(eeg=reject_criteria))
+
+    assert epochs.drop_log[0] == ("eeg max or median",) and epochs.drop_log[2] == (
+        "eeg max or median",
+    )
+
+    # Test reasons must be str or tuple of str
+    with pytest.raises(
+        TypeError,
+        match=r".* must be an instance of str, got <class 'int'> instead.",
+    ):
+        epochs = mne.Epochs(
+            edit_raw,
+            events,
+            tmin=0,
+            tmax=1,
+            baseline=None,
+            preload=True,
+        )
+        epochs.drop_bad(
+            reject=dict(
+                eeg=lambda x: ((np.median(x, axis=1) > 1e-3).any(), ("eeg median", 2))
+            )
+        )
+
+
 def test_preload_epochs():
     """Test preload of epochs."""
     raw, events, picks = _get_data()
@@ -3180,9 +3318,16 @@ def test_drop_epochs():
     events1 = events[events[:, 2] == event_id]
 
     # Bound checks
-    pytest.raises(IndexError, epochs.drop, [len(epochs.events)])
-    pytest.raises(IndexError, epochs.drop, [-len(epochs.events) - 1])
-    pytest.raises(ValueError, epochs.drop, [[1, 2], [3, 4]])
+    with pytest.raises(IndexError, match=r"Epoch index .* is out of bounds"):
+        epochs.drop([len(epochs.events)])
+    with pytest.raises(IndexError, match=r"Epoch index .* is out of bounds"):
+        epochs.drop([-len(epochs.events) - 1])
+    with pytest.raises(TypeError, match="indices must be a scalar or a 1-d array"):
+        epochs.drop([[1, 2], [3, 4]])
+    with pytest.raises(
+        TypeError, match=r".* must be an instance of .* got <class '.*'> instead."
+    ):
+        epochs.drop([1], reason=("a", "b", 2))
 
     # Test selection attribute
     assert_array_equal(epochs.selection, np.where(events[:, 2] == event_id)[0])
@@ -3201,6 +3346,18 @@ def test_drop_epochs():
     assert_array_equal(events[epochs.selection], events1[[0, 1, 3, 5, 6]])
     assert_array_equal(events[epochs[3:].selection], events1[[5, 6]])
     assert_array_equal(events[epochs["1"].selection], events1[[0, 1, 3, 5, 6]])
+
+    # Test using tuple to drop epochs
+    raw, events, picks = _get_data()
+    epochs_tuple = Epochs(raw, events, event_id, tmin, tmax, picks=picks, preload=True)
+    selection_tuple = epochs_tuple.selection.copy()
+    epochs_tuple.drop((2, 3, 4), reason=("a", "b"))
+    n_events = len(epochs.events)
+    assert [epochs_tuple.drop_log[k] for k in selection_tuple[[2, 3, 4]]] == [
+        ("a", "b"),
+        ("a", "b"),
+        ("a", "b"),
+    ]
 
 
 @pytest.mark.parametrize("preload", (True, False))
