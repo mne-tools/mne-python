@@ -699,6 +699,14 @@ def sys_info(
             "sphinx-gallery",
             "pydata-sphinx-theme",
             "",
+            "# Infrastructure",
+            "decorator",
+            "jinja2",
+            # "lazy-loader",
+            "packaging",
+            "pooch",
+            "tqdm",
+            "",
         )
     try:
         unicode = unicode and (sys.stdout.encoding.lower().startswith("utf"))
