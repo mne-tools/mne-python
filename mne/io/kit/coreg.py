@@ -172,7 +172,7 @@ def _set_dig_kit(mrk, elp, hsp, eeg, *, bad_coils=()):
         elp = elp_points
         if len(bad_coils) > 0:
             elp = np.delete(elp, np.array(bad_coils) + 3, 0)
-    # check we have at least 3 marker coils (whether read from file or 
+    # check we have at least 3 marker coils (whether read from file or
     # passed in directly)
     if len(elp) not in (6, 7, 8):
         raise ValueError(
