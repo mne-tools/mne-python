@@ -12,53 +12,6 @@ from ...utils import _check_fname, _soft_import, fill_doc, logger, verbose
 from ..base import BaseRaw
 
 
-class AnalogSignalGap:
-    """Dummy object to represent gaps in Neuralynx data.
-
-    Creates a AnalogSignalProxy-like object.
-    Propagate `signal`, `units`, and `sampling_rate` attributes
-    to the `AnalogSignal` init returned by `load()`.
-
-    Parameters
-    ----------
-    signal : array-like
-        Array of shape (n_samples, n_chans) containing the data.
-    units : str
-        Units of the data. (e.g., 'uV')
-    sampling_rate : quantity
-        Sampling rate of the data. (e.g., 4000 * pq.Hz)
-
-    Returns
-    -------
-    sig : instance of AnalogSignal
-        A AnalogSignal object representing a gap in Neuralynx data.
-    """
-
-    def __init__(self, signal, units, sampling_rate):
-        self.signal = signal
-        self.units = units
-        self.sampling_rate = sampling_rate
-
-    def load(self, **kwargs):
-        """Return AnalogSignal object."""
-        _soft_import("neo", "Reading NeuralynxIO files", strict=True)
-        from neo import AnalogSignal
-
-        # `kwargs` is a dummy argument to mirror the
-        # AnalogSignalProxy.load() call signature which
-        # accepts `channel_indexes`` argument; but here we don't need
-        # any extra data selection arguments since
-        # self.signal array is already in the correct shape
-        # (channel dimension is based on `idx` variable)
-
-        sig = AnalogSignal(
-            signal=self.signal,
-            units=self.units,
-            sampling_rate=self.sampling_rate,
-        )
-        return sig
-
-
 @fill_doc
 def read_raw_neuralynx(
     fname, *, preload=False, exclude_fname_patterns=None, verbose=None
@@ -258,8 +211,9 @@ class RawNeuralynx(BaseRaw):
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data."""
-        from neo import Segment
+        from neo import AnalogSignal, Segment
         from neo.io import NeuralynxIO
+        from neo.io.proxyobjects import AnalogSignalProxy
 
         # quantities is a dependency of neo so we are guaranteed it exists
         from quantities import Hz
@@ -338,7 +292,7 @@ class RawNeuralynx(BaseRaw):
         )
 
         for seg, n in zip(gap_segments, gap_samples):
-            asig = AnalogSignalGap(
+            asig = AnalogSignal(
                 signal=np.zeros((n, n_chans)), units="uV", sampling_rate=sfreq * Hz
             )
             seg.analogsignals.append(asig)
@@ -351,13 +305,16 @@ class RawNeuralynx(BaseRaw):
         segments_arr[~isgap] = neo_block[0].segments
         segments_arr[isgap] = gap_segments
 
-        # now load data from selected segments/channels via
-        # neo.Segment.AnalogSignal.load() or AnalogSignalGap.load()
+        # now load data for selected segments/channels via
+        # neo.Segment.AnalogSignalProxy.load() or
+        # pad directly as AnalogSignal.magnitude for any gap data
         all_data = np.concatenate(
             [
                 signal.load(channel_indexes=idx).magnitude[
                     samples[0] : samples[-1] + 1, :
                 ]
+                if isinstance(signal, AnalogSignalProxy)
+                else signal.magnitude[samples[0] : samples[-1] + 1, :]
                 for seg, samples in zip(
                     segments_arr[first_seg : last_seg + 1], sel_samples_local
                 )
