@@ -50,9 +50,7 @@ def simu_data(evoked, forward, noise_cov, n_dipoles, times, nave=1):
     # Generate the two dipoles data
     mu, sigma = 0.1, 0.005
     s1 = (
-        1
-        / (sigma * np.sqrt(2 * np.pi))
-        * np.exp(-((times - mu) ** 2) / (2 * sigma**2))
+        1 / (sigma * np.sqrt(2 * np.pi)) * np.exp(-((times - mu) ** 2) / (2 * sigma**2))
     )
 
     mu, sigma = 0.075, 0.008

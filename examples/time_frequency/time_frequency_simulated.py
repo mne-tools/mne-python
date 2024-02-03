@@ -150,7 +150,7 @@ for width, ax in zip((0.2, 0.7, 3.0), axs):
     power.plot(
         [0], baseline=(0.0, 0.1), mode="mean", axes=ax, show=False, colorbar=False
     )
-    ax.set_title("Sim: Using S transform, width = {:0.1f}".format(width))
+    ax.set_title(f"Sim: Using S transform, width = {width:0.1f}")
 
 # %%
 # Morlet Wavelets

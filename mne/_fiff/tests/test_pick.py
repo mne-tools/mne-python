@@ -46,7 +46,7 @@ data_path = testing.data_path(download=False)
 fname_meeg = data_path / "MEG" / "sample" / "sample_audvis_trunc-meg-eeg-oct-4-fwd.fif"
 fname_mc = data_path / "SSS" / "test_move_anon_movecomp_raw_sss.fif"
 
-io_dir = Path(__file__).parent.parent.parent / "io"
+io_dir = Path(__file__).parents[2] / "io"
 ctf_fname = io_dir / "tests" / "data" / "test_ctf_raw.fif"
 fif_fname = io_dir / "tests" / "data" / "test_raw.fif"
 
@@ -558,11 +558,17 @@ def test_clean_info_bads():
     # simulate the bad channels
     raw.info["bads"] = eeg_bad_ch + meg_bad_ch
 
+    assert len(raw.info["projs"]) == 3
+    raw.set_eeg_reference(projection=True)
+    assert len(raw.info["projs"]) == 4
+
     # simulate the call to pick_info excluding the bad eeg channels
     info_eeg = pick_info(raw.info, picks_eeg)
+    assert len(info_eeg["projs"]) == 1
 
     # simulate the call to pick_info excluding the bad meg channels
     info_meg = pick_info(raw.info, picks_meg)
+    assert len(info_meg["projs"]) == 3
 
     assert info_eeg["bads"] == eeg_bad_ch
     assert info_meg["bads"] == meg_bad_ch

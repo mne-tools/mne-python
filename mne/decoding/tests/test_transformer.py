@@ -30,7 +30,7 @@ from mne.utils import check_version, use_log_level
 tmin, tmax = -0.2, 0.5
 event_id = dict(aud_l=1, vis_l=3)
 start, stop = 0, 8
-data_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
+data_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
 raw_fname = data_dir / "test_raw.fif"
 event_name = data_dir / "test-eve.fif"
 
@@ -62,7 +62,7 @@ def test_scaler(info, method):
     epochs_data_t = epochs_data.transpose([1, 0, 2])
     if method in ("mean", "median"):
         if not check_version("sklearn"):
-            with pytest.raises(ImportError, match="No module"):
+            with pytest.raises((ImportError, RuntimeError), match=" module "):
                 Scaler(info, method)
             return
 

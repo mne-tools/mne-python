@@ -17,7 +17,7 @@ as a decoding model, or simply stimulus reconstruction).
 .. _figure 1: https://www.frontiersin.org/articles/10.3389/fnhum.2016.00604/full#F1
 .. _figure 2: https://www.frontiersin.org/articles/10.3389/fnhum.2016.00604/full#F2
 .. _figure 5: https://www.frontiersin.org/articles/10.3389/fnhum.2016.00604/full#F5
-"""  # noqa: E501
+"""
 
 # Authors: Chris Holdgraf <choldgraf@gmail.com>
 #          Eric Larson <larson.eric.d@gmail.com>
@@ -25,9 +25,6 @@ as a decoding model, or simply stimulus reconstruction).
 #
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
-
-# %%
-# sphinx_gallery_thumbnail_number = 3
 
 from os.path import join
 
@@ -58,8 +55,8 @@ raw = data["EEG"].T
 speech = data["envelope"].T
 sfreq = float(data["Fs"].item())
 sfreq /= decim
-speech = mne.filter.resample(speech, down=decim, npad="auto")
-raw = mne.filter.resample(raw, down=decim, npad="auto")
+speech = mne.filter.resample(speech, down=decim, method="polyphase")
+raw = mne.filter.resample(raw, down=decim, method="polyphase")
 
 # Read in channel positions and create our MNE objects from the raw data
 montage = mne.channels.make_standard_montage("biosemi128")
@@ -105,7 +102,7 @@ Y = Y.T
 coefs = np.zeros((n_splits, n_channels, n_delays))
 scores = np.zeros((n_splits, n_channels))
 for ii, (train, test) in enumerate(cv.split(speech)):
-    print("split %s / %s" % (ii + 1, n_splits))
+    print(f"split {ii + 1} / {n_splits}")
     rf.fit(speech[train], Y[train])
     scores[ii] = rf.score(speech[test], Y[test])
     # coef_ is shape (n_outputs, n_features, n_delays). we only have 1 feature
@@ -130,6 +127,8 @@ ax.set(title="Mean prediction score", xlabel="Channel", ylabel="Score ($r$)")
 # referred to as beta values) are distributed across time delays as well as
 # across the scalp. We will recreate `figure 1`_ and `figure 2`_ from
 # :footcite:`CrosseEtAl2016`.
+
+# sphinx_gallery_thumbnail_number = 3
 
 # Print mean coefficients across all time delays / channels (see Fig 1)
 time_plot = 0.180  # For highlighting a specific time.
@@ -213,7 +212,7 @@ coefs = np.zeros((n_splits, n_channels, n_delays))
 patterns = coefs.copy()
 scores = np.zeros((n_splits,))
 for ii, (train, test) in enumerate(cv.split(speech)):
-    print("split %s / %s" % (ii + 1, n_splits))
+    print(f"split {ii + 1} / {n_splits}")
     sr.fit(Y[train], speech[train])
     scores[ii] = sr.score(Y[test], speech[test])[0]
     # coef_ is shape (n_outputs, n_features, n_delays). We have 128 features
@@ -273,9 +272,7 @@ mne.viz.plot_topomap(
     show=False,
     vlim=(-max_coef, max_coef),
 )
-ax[0].set(
-    title="Model coefficients\nbetween delays %s and %s" % (time_plot[0], time_plot[1])
-)
+ax[0].set(title=f"Model coefficients\nbetween delays {time_plot[0]} and {time_plot[1]}")
 
 mne.viz.plot_topomap(
     np.mean(mean_patterns[:, ix_plot], axis=1),
@@ -285,8 +282,10 @@ mne.viz.plot_topomap(
     vlim=(-max_patterns, max_patterns),
 )
 ax[1].set(
-    title="Inverse-transformed coefficients\nbetween delays %s and %s"
-    % (time_plot[0], time_plot[1])
+    title=(
+        f"Inverse-transformed coefficients\nbetween delays {time_plot[0]} and "
+        f"{time_plot[1]}"
+    )
 )
 
 # %%

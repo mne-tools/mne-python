@@ -20,7 +20,7 @@ from mne.decoding.receptive_field import (
 )
 from mne.decoding.time_delaying_ridge import _compute_corrs, _compute_reg_neighbors
 
-data_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
+data_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
 raw_fname = data_dir / "test_raw.fif"
 event_name = data_dir / "test-eve.fif"
 
@@ -73,7 +73,7 @@ def test_compute_reg_neighbors():
                     reg_direct,
                     reg_csgraph,
                     atol=1e-7,
-                    err_msg="%s: %s" % (reg_type, (n_ch_x, n_delays)),
+                    err_msg=f"{reg_type}: {(n_ch_x, n_delays)}",
                 )
 
 
@@ -155,7 +155,7 @@ def test_time_delay():
         del_zero = int(round(-tmin * isfreq))
         for ii in range(-2, 3):
             idx = del_zero + ii
-            err_msg = "[%s,%s] (%s): %s %s" % (tmin, tmax, isfreq, ii, idx)
+            err_msg = f"[{tmin},{tmax}] ({isfreq}): {ii} {idx}"
             if 0 <= idx < X_delayed.shape[-1]:
                 if ii == 0:
                     assert_array_equal(X_delayed[:, :, idx], X, err_msg=err_msg)

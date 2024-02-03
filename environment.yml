@@ -2,10 +2,11 @@ name: mne
 channels:
   - conda-forge
 dependencies:
-  - python>=3.8
+  - python>=3.9
   - pip
   - numpy
   - scipy
+  - openblas
   - matplotlib
   - tqdm
   - pooch>=1.5
@@ -14,6 +15,7 @@ dependencies:
   - packaging
   - numba
   - pandas
+  - pyarrow
   - xlrd
   - scikit-learn
   - h5py
@@ -33,7 +35,7 @@ dependencies:
   - traitlets
   - pyvista>=0.32,!=0.35.2,!=0.38.0,!=0.38.1,!=0.38.2,!=0.38.3,!=0.38.4,!=0.38.5,!=0.38.6,!=0.42.0
   - pyvistaqt>=0.4
-  - qdarkstyle
+  - qdarkstyle!=3.2.2
   - darkdetect
   - dipy
   - nibabel
@@ -56,8 +58,9 @@ dependencies:
   - mne-qt-browser
   - pymatreader
   - eeglabio
-  - edflib-python
+  - edfio>=0.2.1
   - pybv
   - mamba
   - lazy_loader
   - defusedxml
+  - python-neo

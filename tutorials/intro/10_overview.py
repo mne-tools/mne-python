@@ -5,12 +5,12 @@
 Overview of MEG/EEG analysis with MNE-Python
 ============================================
 
-This tutorial covers the basic EEG/MEG pipeline for event-related analysis:
-loading data, epoching, averaging, plotting, and estimating cortical activity
-from sensor data. It introduces the core MNE-Python data structures
-`~mne.io.Raw`, `~mne.Epochs`, `~mne.Evoked`, and `~mne.SourceEstimate`, and
-covers a lot of ground fairly quickly (at the expense of depth). Subsequent
-tutorials address each of these topics in greater detail.
+This tutorial covers the basic EEG/MEG pipeline for event-related analysis: loading
+data, epoching, averaging, plotting, and estimating cortical activity from sensor data.
+It introduces the core MNE-Python data structures `~mne.io.Raw`, `~mne.Epochs`,
+`~mne.Evoked`, and `~mne.SourceEstimate`, and covers a lot of ground fairly quickly (at
+the expense of depth). Subsequent tutorials address each of these topics in greater
+detail.
 
 We begin by importing the necessary Python modules:
 """
@@ -79,7 +79,7 @@ print(raw.info)
 # sessions, `~mne.io.Raw.plot` is interactive and allows scrolling, scaling,
 # bad channel marking, annotations, projector toggling, etc.
 
-raw.compute_psd(fmax=50).plot(picks="data", exclude="bads")
+raw.compute_psd(fmax=50).plot(picks="data", exclude="bads", amplitude=False)
 raw.plot(duration=5, n_channels=30)
 
 # %%

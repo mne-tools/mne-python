@@ -8,14 +8,12 @@ import numbers
 import operator
 import os
 import re
-from builtins import input  # no-op here but facilitates testing
+from builtins import input  # noqa: UP029
 from difflib import get_close_matches
 from importlib import import_module
-from importlib.metadata import version
 from pathlib import Path
 
 import numpy as np
-from packaging.version import parse
 
 from ..defaults import HEAD_SIZE_DEFAULT, _handle_default
 from ..fixes import _compare_version, _median_complex
@@ -368,7 +366,6 @@ def _soft_import(name, purpose, strict=True):
     # Mapping import namespaces to their pypi package name
     pip_name = dict(
         sklearn="scikit-learn",
-        EDFlib="EDFlib-Python",
         mne_bids="mne-bids",
         mne_nirs="mne-nirs",
         mne_features="mne-features",
@@ -411,21 +408,9 @@ def _check_eeglabio_installed(strict=True):
     return _soft_import("eeglabio", "exporting to EEGLab", strict=strict)
 
 
-def _check_edflib_installed(strict=True):
+def _check_edfio_installed(strict=True):
     """Aux function."""
-    out = _soft_import("EDFlib", "exporting to EDF", strict=strict)
-    if out:
-        # EDFlib-Python 1.0.7 is not compatible with NumPy 2.0
-        # https://gitlab.com/Teuniz/EDFlib-Python/-/issues/10
-        ver = version("EDFlib-Python")
-        if parse(ver) <= parse("1.0.7") and parse(np.__version__).major >= 2:
-            if strict:  # pragma: no cover
-                raise RuntimeError(
-                    f"EDFlib version={ver} is not compatible with NumPy 2.0, consider "
-                    "upgrading EDFlib-Python"
-                )
-            out = False
-    return out
+    return _soft_import("edfio", "exporting to EDF", strict=strict)
 
 
 def _check_pybv_installed(strict=True):
@@ -446,8 +431,8 @@ def _check_pandas_index_arguments(index, valid):
         index = [index]
     if not isinstance(index, list):
         raise TypeError(
-            "index must be `None` or a string or list of strings,"
-            " got type {}.".format(type(index))
+            "index must be `None` or a string or list of strings, got type "
+            f"{type(index)}."
         )
     invalid = set(index) - set(valid)
     if invalid:
@@ -467,8 +452,8 @@ def _check_time_format(time_format, valid, meas_date=None):
     if time_format not in valid and time_format is not None:
         valid_str = '", "'.join(valid)
         raise ValueError(
-            '"{}" is not a valid time format. Valid options are '
-            '"{}" and None.'.format(time_format, valid_str)
+            f'"{time_format}" is not a valid time format. Valid options are '
+            f'"{valid_str}" and None.'
         )
     # allow datetime only if meas_date available
     if time_format == "datetime" and meas_date is None:
@@ -664,10 +649,11 @@ def _path_like(item):
 def _check_if_nan(data, msg=" to be plotted"):
     """Raise if any of the values are NaN."""
     if not np.isfinite(data).all():
-        raise ValueError("Some of the values {} are NaN.".format(msg))
+        raise ValueError(f"Some of the values {msg} are NaN.")
 
 
-def _check_info_inv(info, forward, data_cov=None, noise_cov=None):
+@verbose
+def _check_info_inv(info, forward, data_cov=None, noise_cov=None, verbose=None):
     """Return good channels common to forward model and covariance matrices."""
     from .._fiff.pick import pick_types
 
@@ -710,6 +696,19 @@ def _check_info_inv(info, forward, data_cov=None, noise_cov=None):
     # handle channels from noise cov if noise cov available:
     if noise_cov is not None:
         ch_names = _compare_ch_names(ch_names, noise_cov.ch_names, noise_cov["bads"])
+
+    # inform about excluding any channels apart from bads and reference
+    all_bads = info["bads"] + ref_chs
+    if data_cov is not None:
+        all_bads += data_cov["bads"]
+    if noise_cov is not None:
+        all_bads += noise_cov["bads"]
+    dropped_nonbads = set(info["ch_names"]) - set(ch_names) - set(all_bads)
+    if dropped_nonbads:
+        logger.info(
+            f"Excluding {len(dropped_nonbads)} channel(s) missing from the "
+            "provided forward operator and/or covariance matrices"
+        )
 
     picks = [info["ch_names"].index(k) for k in ch_names if k in info["ch_names"]]
     return picks
@@ -765,7 +764,13 @@ def _check_one_ch_type(method, info, forward, data_cov=None, noise_cov=None):
         info_pick = info
     else:
         _validate_type(noise_cov, [None, Covariance], "noise_cov")
-        picks = _check_info_inv(info, forward, data_cov=data_cov, noise_cov=noise_cov)
+        picks = _check_info_inv(
+            info,
+            forward,
+            data_cov=data_cov,
+            noise_cov=noise_cov,
+            verbose=_verbose_safe_false(),
+        )
         info_pick = pick_info(info, picks)
     ch_types = [_contains_ch_type(info_pick, tt) for tt in ("mag", "grad", "eeg")]
     if sum(ch_types) > 1:

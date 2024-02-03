@@ -150,7 +150,7 @@ class RawEDF(BaseRaw):
         *,
         verbose=None,
     ):
-        logger.info("Extracting EDF parameters from {}...".format(input_fname))
+        logger.info(f"Extracting EDF parameters from {input_fname}...")
         input_fname = os.path.abspath(input_fname)
         info, edf_info, orig_units = _get_info(
             input_fname, stim_channel, eog, misc, exclude, infer_types, preload, include
@@ -284,7 +284,7 @@ class RawGDF(BaseRaw):
         include=None,
         verbose=None,
     ):
-        logger.info("Extracting EDF parameters from {}...".format(input_fname))
+        logger.info(f"Extracting EDF parameters from {input_fname}...")
         input_fname = os.path.abspath(input_fname)
         info, edf_info, orig_units = _get_info(
             input_fname, stim_channel, eog, misc, exclude, True, preload, include
@@ -846,11 +846,11 @@ def _read_edf_header(fname, exclude, infer_types, include=None):
             fid.read(8)  # skip file's meas_date
         else:
             meas_date = fid.read(8).decode("latin-1")
-            day, month, year = [int(x) for x in meas_date.split(".")]
+            day, month, year = (int(x) for x in meas_date.split("."))
             year = year + 2000 if year < 85 else year + 1900
 
         meas_time = fid.read(8).decode("latin-1")
-        hour, minute, sec = [int(x) for x in meas_time.split(".")]
+        hour, minute, sec = (int(x) for x in meas_time.split("."))
         try:
             meas_date = datetime(
                 year, month, day, hour, minute, sec, tzinfo=timezone.utc
@@ -1454,7 +1454,9 @@ def _read_gdf_header(fname, exclude, include=None):
 
 
 def _check_stim_channel(
-    stim_channel, ch_names, tal_ch_names=["EDF Annotations", "BDF Annotations"]
+    stim_channel,
+    ch_names,
+    tal_ch_names=("EDF Annotations", "BDF Annotations"),
 ):
     """Check that the stimulus channel exists in the current datafile."""
     DEFAULT_STIM_CH_NAMES = ["status", "trigger"]
@@ -1498,10 +1500,10 @@ def _check_stim_channel(
     ]
     if len(tal_ch_names_found):
         _msg = (
-            "The synthesis of the stim channel is not supported"
-            " since 0.18. Please remove {} from `stim_channel`"
-            " and use `mne.events_from_annotations` instead"
-        ).format(tal_ch_names_found)
+            "The synthesis of the stim channel is not supported since 0.18. Please "
+            f"remove {tal_ch_names_found} from `stim_channel` and use "
+            "`mne.events_from_annotations` instead."
+        )
         raise ValueError(_msg)
 
     ch_names_low = [ch.lower() for ch in ch_names]
@@ -1567,7 +1569,7 @@ def read_raw_edf(
     encoding="utf8",
     *,
     verbose=None,
-):
+) -> RawEDF:
     """Reader function for EDF and EDF+ files.
 
     Parameters
@@ -1701,7 +1703,7 @@ def read_raw_bdf(
     encoding="utf8",
     *,
     verbose=None,
-):
+) -> RawEDF:
     """Reader function for BDF files.
 
     Parameters
@@ -1828,7 +1830,7 @@ def read_raw_gdf(
     include=None,
     preload=False,
     verbose=None,
-):
+) -> RawGDF:
     """Reader function for GDF files.
 
     Parameters

@@ -7,7 +7,7 @@ import pytest
 from mne import read_vectorview_selection
 from mne.io import read_raw_fif
 
-test_path = Path(__file__).parent.parent / "io" / "tests" / "data"
+test_path = Path(__file__).parents[1] / "io" / "tests" / "data"
 raw_fname = test_path / "test_raw.fif"
 raw_new_fname = test_path / "test_chpi_raw_sss.fif"
 

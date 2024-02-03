@@ -46,12 +46,12 @@ def _check_mocked_function_calls(mocked_func, call_fname_hash_pairs, base_path):
     # order.
     for idx, current in enumerate(call_fname_hash_pairs):
         _, call_kwargs = mocked_func.call_args_list[idx]
-        hash_type, hash = call_kwargs["known_hash"].split(":")
+        hash_type, hash_ = call_kwargs["known_hash"].split(":")
         assert call_kwargs["url"] == _get_expected_url(current["name"]), idx
         assert Path(call_kwargs["path"], call_kwargs["fname"]) == _get_expected_path(
             base_path, current["name"]
         )
-        assert hash == current["hash"]
+        assert hash_ == current["hash"]
         assert hash_type == "sha1"
 
 

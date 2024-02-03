@@ -264,8 +264,6 @@ def set_3d_view(
     focalpoint=None,
     distance=None,
     roll=None,
-    *,
-    reset_camera=None,
 ):
     """Configure the view of the given scene.
 
@@ -278,8 +276,6 @@ def set_3d_view(
     %(focalpoint)s
     %(distance)s
     %(roll)s
-    reset_camera : bool
-       Deprecated, use ``distance="auto"`` instead.
     """
     backend._set_3d_view(
         figure=figure,
@@ -288,7 +284,6 @@ def set_3d_view(
         focalpoint=focalpoint,
         distance=distance,
         roll=roll,
-        reset_camera=reset_camera,
     )
 
 
@@ -396,7 +391,7 @@ class _TimeInteraction:
         current_time_func,
         times,
         init_playback_speed=0.01,
-        playback_speed_range=[0.01, 0.1],
+        playback_speed_range=(0.01, 0.1),
     ):
         from ..ui_events import (
             PlaybackSpeed,

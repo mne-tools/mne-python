@@ -73,7 +73,7 @@ from mne.minimum_norm import (
 from mne.transforms import Transform
 from mne.utils import _empty_hash, _record_warnings, assert_object_equal, catch_logging
 
-root_dir = Path(__file__).parent.parent.parent
+root_dir = Path(__file__).parents[2]
 fiducials_fname = root_dir / "data" / "fsaverage" / "fsaverage-fiducials.fif"
 base_dir = root_dir / "io" / "tests" / "data"
 raw_fname = base_dir / "test_raw.fif"
@@ -350,9 +350,10 @@ def test_read_write_info(tmp_path):
 @testing.requires_testing_data
 def test_dir_warning():
     """Test that trying to read a bad filename emits a warning before an error."""
-    with pytest.raises(OSError, match="directory"):
-        with pytest.warns(RuntimeWarning, match="foo"):
-            read_info(ctf_fname)
+    with pytest.raises(OSError, match="directory"), pytest.warns(
+        RuntimeWarning, match="does not conform"
+    ):
+        read_info(ctf_fname)
 
 
 def test_io_dig_points(tmp_path):

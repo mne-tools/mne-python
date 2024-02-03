@@ -37,22 +37,24 @@ from mne.bem import (
     _ico_downsample,
     _order_surfaces,
     distance_to_bem,
+    fit_sphere_to_headshape,
     make_scalp_surfaces,
 )
 from mne.datasets import testing
 from mne.io import read_info
-from mne.preprocessing.maxfilter import fit_sphere_to_headshape
 from mne.surface import _get_ico_surface, read_surface
 from mne.transforms import translation
-from mne.utils import catch_logging, check_version
+from mne.utils import _record_warnings, catch_logging, check_version
 
-fname_raw = Path(__file__).parent.parent / "io" / "tests" / "data" / "test_raw.fif"
+fname_raw = Path(__file__).parents[1] / "io" / "tests" / "data" / "test_raw.fif"
 subjects_dir = testing.data_path(download=False) / "subjects"
 fname_bem_3 = subjects_dir / "sample" / "bem" / "sample-320-320-320-bem.fif"
 fname_bem_1 = subjects_dir / "sample" / "bem" / "sample-320-bem.fif"
 fname_bem_sol_3 = subjects_dir / "sample" / "bem" / "sample-320-320-320-bem-sol.fif"
 fname_bem_sol_1 = subjects_dir / "sample" / "bem" / "sample-320-bem-sol.fif"
 fname_dense_head = subjects_dir / "sample" / "bem" / "sample-head-dense.fif"
+
+_few_points = pytest.warns(RuntimeWarning, match="Only .* head digitization")
 
 
 def _compare_bem_surfaces(surfs_1, surfs_2):
@@ -414,7 +416,7 @@ def test_fit_sphere_to_headshape():
 
     #  # Test with 4 points that match a perfect sphere
     dig_kinds = (FIFF.FIFFV_POINT_CARDINAL, FIFF.FIFFV_POINT_EXTRA)
-    with pytest.warns(RuntimeWarning, match="Only .* head digitization"):
+    with _few_points:
         r, oh, od = fit_sphere_to_headshape(info, dig_kinds=dig_kinds, units="m")
     kwargs = dict(rtol=1e-3, atol=1e-5)
     assert_allclose(r, rad, **kwargs)
@@ -424,7 +426,7 @@ def test_fit_sphere_to_headshape():
     # Test with all points
     dig_kinds = ("cardinal", FIFF.FIFFV_POINT_EXTRA, "eeg")
     kwargs = dict(rtol=1e-3, atol=1e-3)
-    with pytest.warns(RuntimeWarning, match="Only .* head digitization"):
+    with _few_points:
         r, oh, od = fit_sphere_to_headshape(info, dig_kinds=dig_kinds, units="m")
     assert_allclose(r, rad, **kwargs)
     assert_allclose(oh, center, **kwargs)
@@ -432,7 +434,7 @@ def test_fit_sphere_to_headshape():
 
     # Test with some noisy EEG points only.
     dig_kinds = "eeg"
-    with pytest.warns(RuntimeWarning, match="Only .* head digitization"):
+    with _few_points:
         r, oh, od = fit_sphere_to_headshape(info, dig_kinds=dig_kinds, units="m")
     kwargs = dict(rtol=1e-3, atol=1e-2)
     assert_allclose(r, rad, **kwargs)
@@ -446,7 +448,7 @@ def test_fit_sphere_to_headshape():
         d["r"] -= center
         d["r"] *= big_rad / rad
         d["r"] += center
-    with pytest.warns(RuntimeWarning, match="Estimated head radius"):
+    with _few_points, pytest.warns(RuntimeWarning, match="Estimated head radius"):
         r, oh, od = fit_sphere_to_headshape(info_big, dig_kinds=dig_kinds, units="mm")
     assert_allclose(oh, center * 1000, atol=1e-3)
     assert_allclose(r, big_rad * 1000, atol=1e-3)
@@ -459,27 +461,31 @@ def test_fit_sphere_to_headshape():
     for d in info_shift["dig"]:
         d["r"] -= center
         d["r"] += shift_center
-    with pytest.warns(RuntimeWarning, match="from head frame origin"):
+    with _record_warnings(), pytest.warns(
+        RuntimeWarning, match="from head frame origin"
+    ):
         r, oh, od = fit_sphere_to_headshape(info_shift, dig_kinds=dig_kinds, units="m")
     assert_allclose(oh, shift_center, atol=1e-6)
     assert_allclose(r, rad, atol=1e-6)
 
     # Test "auto" mode (default)
     # Should try "extra", fail, and go on to EEG
-    with pytest.warns(RuntimeWarning, match="Only .* head digitization"):
+    with _few_points:
         r, oh, od = fit_sphere_to_headshape(info, units="m")
     kwargs = dict(rtol=1e-3, atol=1e-3)
     assert_allclose(r, rad, **kwargs)
     assert_allclose(oh, center, **kwargs)
     assert_allclose(od, dev_center, **kwargs)
-    with pytest.warns(RuntimeWarning, match="Only .* head digitization"):
+    with _few_points:
         r2, oh2, od2 = fit_sphere_to_headshape(info, units="m")
     assert_allclose(r, r2, atol=1e-7)
     assert_allclose(oh, oh2, atol=1e-7)
     assert_allclose(od, od2, atol=1e-7)
     # this one should pass, 1 EXTRA point and 3 EEG (but the fit is terrible)
     info = Info(dig=dig[:7], dev_head_t=dev_head_t)
-    with pytest.warns(RuntimeWarning, match="Only .* head digitization"):
+    with _record_warnings(), pytest.warns(
+        RuntimeWarning, match="Estimated head radius"
+    ):
         r, oh, od = fit_sphere_to_headshape(info, units="m")
     # this one should fail, 1 EXTRA point and 3 EEG (but the fit is terrible)
     info = Info(dig=dig[:6], dev_head_t=dev_head_t)
@@ -499,12 +505,12 @@ def test_io_head_bem(tmp_path):
 
     with pytest.raises(ValueError, match="topological defects:"):
         write_head_bem(fname_defect, head["rr"], head["tris"])
-    with pytest.warns(RuntimeWarning, match="topological defects:"):
+    with _record_warnings(), pytest.warns(RuntimeWarning, match="topological defects:"):
         write_head_bem(fname_defect, head["rr"], head["tris"], on_defects="warn")
     # test on_defects in read_bem_surfaces
     with pytest.raises(ValueError, match="topological defects:"):
         read_bem_surfaces(fname_defect)
-    with pytest.warns(RuntimeWarning, match="topological defects:"):
+    with _record_warnings(), pytest.warns(RuntimeWarning, match="topological defects:"):
         head_defect = read_bem_surfaces(fname_defect, on_defects="warn")[0]
 
     assert head["id"] == head_defect["id"] == FIFF.FIFFV_BEM_SURF_ID_HEAD
@@ -550,12 +556,14 @@ def test_make_scalp_surfaces_topology(tmp_path, monkeypatch):
 
     # These are ignorable
     monkeypatch.setattr(mne.bem, "_tri_levels", dict(sparse=315))
-    with pytest.warns(RuntimeWarning, match=".*have fewer than three.*"):
+    with _record_warnings(), pytest.warns(
+        RuntimeWarning, match=".*have fewer than three.*"
+    ):
         make_scalp_surfaces(subject, subjects_dir, force=True, overwrite=True)
     (surf,) = read_bem_surfaces(sparse_path, on_defects="ignore")
     assert len(surf["tris"]) == 315
     monkeypatch.setattr(mne.bem, "_tri_levels", dict(sparse=319))
-    with pytest.warns(RuntimeWarning, match=".*is not complete.*"):
+    with _record_warnings(), pytest.warns(RuntimeWarning, match=".*is not complete.*"):
         make_scalp_surfaces(subject, subjects_dir, force=True, overwrite=True)
     (surf,) = read_bem_surfaces(sparse_path, on_defects="ignore")
     assert len(surf["tris"]) == 319

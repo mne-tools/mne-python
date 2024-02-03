@@ -24,7 +24,7 @@ def parse_config(fname):
     """
     reject_params = read_reject_parameters(fname)
 
-    with open(fname, "r") as f:
+    with open(fname) as f:
         lines = f.readlines()
 
     cat_ind = [i for i, x in enumerate(lines) if "category {" in x]
@@ -69,7 +69,7 @@ def read_reject_parameters(fname):
     params : dict
         The rejection parameters.
     """
-    with open(fname, "r") as f:
+    with open(fname) as f:
         lines = f.readlines()
 
     reject_names = ["gradReject", "magReject", "eegReject", "eogReject", "ecgReject"]
@@ -85,7 +85,7 @@ def read_reject_parameters(fname):
 
 def read_flat_parameters(fname):
     """Read flat channel rejection parameters from .cov or .ave config file."""
-    with open(fname, "r") as f:
+    with open(fname) as f:
         lines = f.readlines()
 
     reject_names = ["gradFlat", "magFlat", "eegFlat", "eogFlat", "ecgFlat"]

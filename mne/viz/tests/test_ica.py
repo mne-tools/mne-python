@@ -26,7 +26,7 @@ from mne.utils import _record_warnings, catch_logging
 from mne.viz.ica import _create_properties_layout, plot_ica_properties
 from mne.viz.utils import _fake_click, _fake_keypress
 
-base_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
+base_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
 evoked_fname = base_dir / "test-ave.fif"
 raw_fname = base_dir / "test_raw.fif"
 cov_fname = base_dir / "test-cov.fif"
@@ -157,7 +157,7 @@ def test_plot_ica_properties():
     )
 
     ica = ICA(noise_cov=read_cov(cov_fname), n_components=2, max_iter=1, random_state=0)
-    with pytest.warns(RuntimeWarning, match="projection"):
+    with _record_warnings(), pytest.warns(RuntimeWarning, match="projection"):
         ica.fit(raw)
 
     # test _create_properties_layout
@@ -240,7 +240,7 @@ def test_plot_ica_properties():
     # Test handling of zeros
     ica = ICA(random_state=0, max_iter=1)
     epochs.pick(pick_names)
-    with pytest.warns(UserWarning, match="did not converge"):
+    with _record_warnings(), pytest.warns(UserWarning, match="did not converge"):
         ica.fit(epochs)
     epochs._data[0] = 0
     # Usually UserWarning: Infinite value .* for epo
@@ -254,7 +254,7 @@ def test_plot_ica_properties():
     raw_annot.pick(np.arange(10))
     raw_annot.del_proj()
 
-    with pytest.warns(UserWarning, match="did not converge"):
+    with _record_warnings(), pytest.warns(UserWarning, match="did not converge"):
         ica.fit(raw_annot)
     # drop bad data segments
     fig = ica.plot_properties(raw_annot, picks=[0, 1], **topoargs)

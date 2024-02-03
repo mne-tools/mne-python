@@ -34,7 +34,9 @@ from ._localized_abbr import _localized_abbr
 
 
 @fill_doc
-def read_raw_nirx(fname, saturated="annotate", preload=False, verbose=None):
+def read_raw_nirx(
+    fname, saturated="annotate", preload=False, verbose=None
+) -> "RawNIRX":
     """Reader for a NIRX fNIRS recording.
 
     Parameters
@@ -63,7 +65,7 @@ def read_raw_nirx(fname, saturated="annotate", preload=False, verbose=None):
 
 
 def _open(fname):
-    return open(fname, "r", encoding="latin-1")
+    return open(fname, encoding="latin-1")
 
 
 @fill_doc
@@ -474,7 +476,7 @@ class RawNIRX(BaseRaw):
                 annot_mask |= mask
                 nan_mask[key] = None  # shouldn't need again
 
-        super(RawNIRX, self).__init__(
+        super().__init__(
             info,
             preload,
             filenames=[fname],

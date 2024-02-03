@@ -10,6 +10,7 @@
 
 from copy import deepcopy
 from inspect import getfullargspec
+from typing import Union
 
 import numpy as np
 
@@ -175,7 +176,7 @@ class Evoked(
         allow_maxshield=False,
         *,
         verbose=None,
-    ):  # noqa: D102
+    ):
         _validate_type(proj, bool, "'proj'")
         # Read the requested data
         fname = str(_check_fname(fname=fname, must_exist=True, overwrite="read"))
@@ -445,8 +446,8 @@ class Evoked(
             comment += "..."
         else:
             comment = self.comment
-        s = "'%s' (%s, N=%s)" % (comment, self.kind, self.nave)
-        s += ", %0.5g – %0.5g s" % (self.times[0], self.times[-1])
+        s = f"'{comment}' ({self.kind}, N={self.nave})"
+        s += f", {self.times[0]:0.5g} – {self.times[-1]:0.5g} s"
         s += ", baseline "
         if self.baseline is None:
             s += "off"
@@ -460,8 +461,8 @@ class Evoked(
             ):
                 s += " (baseline period was cropped after baseline correction)"
         s += ", %s ch" % self.data.shape[0]
-        s += ", ~%s" % (sizeof_fmt(self._size),)
-        return "<Evoked | %s>" % s
+        s += f", ~{sizeof_fmt(self._size)}"
+        return f"<Evoked | {s}>"
 
     @repr_html
     def _repr_html_(self):
@@ -594,7 +595,7 @@ class Evoked(
         scalings=None,
         title=None,
         proj=False,
-        vline=[0.0],
+        vline=(0.0,),
         fig_background=None,
         merge_grads=False,
         legend=True,
@@ -959,6 +960,8 @@ class Evoked(
         time_as_index=False,
         merge_grads=False,
         return_amplitude=False,
+        *,
+        strict=True,
     ):
         """Get location and latency of peak amplitude.
 
@@ -986,6 +989,12 @@ class Evoked(
             If True, return also the amplitude at the maximum response.
 
             .. versionadded:: 0.16
+        strict : bool
+            If True, raise an error if values are all positive when detecting
+            a minimum (mode='neg'), or all negative when detecting a maximum
+            (mode='pos'). Defaults to True.
+
+            .. versionadded:: 1.7
 
         Returns
         -------
@@ -1077,7 +1086,14 @@ class Evoked(
             data, _ = _merge_ch_data(data, ch_type, [])
             ch_names = [ch_name[:-1] + "X" for ch_name in ch_names[::2]]
 
-        ch_idx, time_idx, max_amp = _get_peak(data, self.times, tmin, tmax, mode)
+        ch_idx, time_idx, max_amp = _get_peak(
+            data,
+            self.times,
+            tmin,
+            tmax,
+            mode,
+            strict=strict,
+        )
 
         out = (ch_names[ch_idx], time_idx if time_as_index else self.times[time_idx])
 
@@ -1301,7 +1317,7 @@ class Evoked(
         data = _scale_dataframe_data(self, data, picks, scalings)
         # prepare extra columns / multiindex
         mindex = list()
-        times = _convert_times(self, times, time_format)
+        times = _convert_times(times, time_format, self.info["meas_date"])
         mindex.append(("time", times))
         # build DataFrame
         df = _build_data_frame(
@@ -1362,20 +1378,20 @@ class EvokedArray(Evoked):
         baseline=None,
         *,
         verbose=None,
-    ):  # noqa: D102
+    ):
         dtype = np.complex128 if np.iscomplexobj(data) else np.float64
         data = np.asanyarray(data, dtype=dtype)
 
         if data.ndim != 2:
             raise ValueError(
-                "Data must be a 2D array of shape (n_channels, "
-                "n_samples), got shape %s" % (data.shape,)
+                "Data must be a 2D array of shape (n_channels, n_samples), got shape "
+                f"{data.shape}"
             )
 
         if len(info["ch_names"]) != np.shape(data)[0]:
             raise ValueError(
-                "Info (%s) and data (%s) must have same number "
-                "of channels." % (len(info["ch_names"]), np.shape(data)[0])
+                f"Info ({len(info['ch_names'])}) and data ({np.shape(data)[0]}) must "
+                "have same number of channels."
             )
 
         self.data = data
@@ -1397,8 +1413,7 @@ class EvokedArray(Evoked):
         _validate_type(self.kind, "str", "kind")
         if self.kind not in _aspect_dict:
             raise ValueError(
-                'unknown kind "%s", should be "average" or '
-                '"standard_error"' % (self.kind,)
+                f'unknown kind "{self.kind}", should be "average" or "standard_error"'
             )
         self._aspect_kind = _aspect_dict[self.kind]
 
@@ -1466,18 +1481,14 @@ def _check_evokeds_ch_names_times(all_evoked):
     for ii, ev in enumerate(all_evoked[1:]):
         if ev.ch_names != ch_names:
             if set(ev.ch_names) != set(ch_names):
-                raise ValueError(
-                    "%s and %s do not contain the same channels." % (evoked, ev)
-                )
+                raise ValueError(f"{evoked} and {ev} do not contain the same channels.")
             else:
                 warn("Order of channels differs, reordering channels ...")
                 ev = ev.copy()
                 ev.reorder_channels(ch_names)
                 all_evoked[ii + 1] = ev
         if not np.max(np.abs(ev.times - evoked.times)) < 1e-7:
-            raise ValueError(
-                "%s and %s do not contain the same time instants" % (evoked, ev)
-            )
+            raise ValueError(f"{evoked} and {ev} do not contain the same time instants")
     return all_evoked
 
 
@@ -1584,7 +1595,7 @@ def read_evokeds(
     proj=True,
     allow_maxshield=False,
     verbose=None,
-):
+) -> Union[list[Evoked], Evoked]:
     """Read evoked dataset(s).
 
     Parameters
@@ -1706,17 +1717,16 @@ def _read_evoked(fname, condition=None, kind="average", allow_maxshield=False):
             found_cond = np.where(goods)[0]
             if len(found_cond) != 1:
                 raise ValueError(
-                    'condition "%s" (%s) not found, out of '
-                    "found datasets:\n%s" % (condition, kind, t)
+                    f'condition "{condition}" ({kind}) not found, out of found '
+                    f"datasets:\n{t}"
                 )
             condition = found_cond[0]
         elif condition is None:
             if len(evoked_node) > 1:
                 _, _, conditions = _get_entries(fid, evoked_node, allow_maxshield)
                 raise TypeError(
-                    "Evoked file has more than one "
-                    "condition, the condition parameters "
-                    "must be specified from:\n%s" % conditions
+                    "Evoked file has more than one condition, the condition parameters "
+                    f"must be specified from:\n{conditions}"
                 )
             else:
                 condition = 0
@@ -1850,19 +1860,18 @@ def _read_evoked(fname, condition=None, kind="average", allow_maxshield=False):
         del first, last
         if nsamp is not None and data.shape[1] != nsamp:
             raise ValueError(
-                "Incorrect number of samples (%d instead of "
-                " %d)" % (data.shape[1], nsamp)
+                f"Incorrect number of samples ({data.shape[1]} instead of {nsamp})"
             )
         logger.info("    Found the data of interest:")
         logger.info(
-            "        t = %10.2f ... %10.2f ms (%s)"
-            % (1000 * times[0], 1000 * times[-1], comment)
+            f"        t = {1000 * times[0]:10.2f} ... {1000 * times[-1]:10.2f} ms ("
+            f"{comment})"
         )
         if info["comps"] is not None:
             logger.info(
-                "        %d CTF compensation matrices available" % len(info["comps"])
+                f"        {len(info['comps'])} CTF compensation matrices available"
             )
-        logger.info("        nave = %d - aspect type = %d" % (nave, aspect_kind))
+        logger.info(f"        nave = {nave} - aspect type = {aspect_kind}")
 
     # Calibrate
     cals = np.array(
@@ -2001,7 +2010,7 @@ def _write_evokeds(fname, evoked, check=True, *, on_mismatch="raise", overwrite=
         end_block(fid, FIFF.FIFFB_MEAS)
 
 
-def _get_peak(data, times, tmin=None, tmax=None, mode="abs"):
+def _get_peak(data, times, tmin=None, tmax=None, mode="abs", *, strict=True):
     """Get feature-index and time of maximum signal from 2D array.
 
     Note. This is a 'getter', not a 'finder'. For non-evoked type
@@ -2022,6 +2031,10 @@ def _get_peak(data, times, tmin=None, tmax=None, mode="abs"):
         values will be considered. If 'neg' only negative values will
         be considered. If 'abs' absolute values will be considered.
         Defaults to 'abs'.
+    strict : bool
+        If True, raise an error if values are all positive when detecting
+        a minimum (mode='neg'), or all negative when detecting a maximum
+        (mode='pos'). Defaults to True.
 
     Returns
     -------
@@ -2060,12 +2073,12 @@ def _get_peak(data, times, tmin=None, tmax=None, mode="abs"):
 
     maxfun = np.argmax
     if mode == "pos":
-        if not np.any(data[~mask] > 0):
+        if strict and not np.any(data[~mask] > 0):
             raise ValueError(
                 "No positive values encountered. Cannot " "operate in pos mode."
             )
     elif mode == "neg":
-        if not np.any(data[~mask] < 0):
+        if strict and not np.any(data[~mask] < 0):
             raise ValueError(
                 "No negative values encountered. Cannot " "operate in neg mode."
             )

@@ -97,7 +97,13 @@ def circular_layout(
 
 
 def _plot_connectivity_circle_onpick(
-    event, fig=None, ax=None, indices=None, n_nodes=0, node_angles=None, ylim=[9, 10]
+    event,
+    fig=None,
+    ax=None,
+    indices=None,
+    n_nodes=0,
+    node_angles=None,
+    ylim=(9, 10),
 ):
     """Isolate connections around a single node when user left clicks a node.
 

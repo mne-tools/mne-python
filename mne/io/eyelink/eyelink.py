@@ -28,7 +28,7 @@ def read_raw_eyelink(
     find_overlaps=False,
     overlap_threshold=0.05,
     verbose=None,
-):
+) -> "RawEyelink":
     """Reader for an Eyelink ``.asc`` file.
 
     Parameters
@@ -99,7 +99,7 @@ class RawEyelink(BaseRaw):
         overlap_threshold=0.05,
         verbose=None,
     ):
-        logger.info("Loading {}".format(fname))
+        logger.info(f"Loading {fname}")
 
         fname = Path(fname)
 
@@ -108,7 +108,7 @@ class RawEyelink(BaseRaw):
             fname, find_overlaps, overlap_threshold, apply_offsets
         )
         # ======================== Create Raw Object =========================
-        super(RawEyelink, self).__init__(
+        super().__init__(
             info,
             preload=eye_ch_data,
             filenames=[fname],

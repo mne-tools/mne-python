@@ -92,9 +92,7 @@ def test_read_ctf(tmp_path):
             args = (
                 str(ch_num + 1),
                 raw.ch_names[ch_num],
-            ) + tuple(
-                "%0.5f" % x for x in 100 * pos[ii]
-            )  # convert to cm
+            ) + tuple("%0.5f" % x for x in 100 * pos[ii])  # convert to cm
             fid.write(("\t".join(args) + "\n").encode("ascii"))
     pos_read_old = np.array([raw.info["chs"][p]["loc"][:3] for p in picks])
     with pytest.warns(RuntimeWarning, match="RMSP .* changed to a MISC ch"):
@@ -115,7 +113,7 @@ def test_read_ctf(tmp_path):
     shutil.copytree(ctf_eeg_fname, ctf_no_hc_fname)
     remove_base = op.join(ctf_no_hc_fname, op.basename(ctf_fname_catch[:-3]))
     os.remove(remove_base + ".hc")
-    with pytest.warns(RuntimeWarning, match="MISC channel"):
+    with _record_warnings(), pytest.warns(RuntimeWarning, match="MISC channel"):
         pytest.raises(RuntimeError, read_raw_ctf, ctf_no_hc_fname)
     os.remove(remove_base + ".eeg")
     shutil.copy(

@@ -1,0 +1,1 @@
+Refresh code base to use Python 3.9 syntax using Ruff UP rules (pyupgrade), by `Clemens Brunner`_.

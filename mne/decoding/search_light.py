@@ -46,7 +46,7 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
         position=0,
         allow_2d=False,
         verbose=None,
-    ):  # noqa: D102
+    ):
         _check_estimator(base_estimator)
         self.base_estimator = base_estimator
         self.n_jobs = n_jobs
@@ -63,7 +63,7 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
         return getattr(self.base_estimator, "_estimator_type", None)
 
     def __repr__(self):  # noqa: D105
-        repr_str = "<" + super(SlidingEstimator, self).__repr__()
+        repr_str = "<" + super().__repr__()
         if hasattr(self, "estimators_"):
             repr_str = repr_str[:-1]
             repr_str += ", fitted with %i estimators" % len(self.estimators_)
@@ -320,9 +320,8 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
     def classes_(self):
         if not hasattr(self.estimators_[0], "classes_"):
             raise AttributeError(
-                "classes_ attribute available only if "
-                "base_estimator has it, and estimator %s does"
-                " not" % (self.estimators_[0],)
+                "classes_ attribute available only if base_estimator has it, and "
+                f"estimator {self.estimators_[0]} does not"
             )
         return self.estimators_[0].classes_
 
@@ -466,7 +465,7 @@ class GeneralizingEstimator(SlidingEstimator):
     """
 
     def __repr__(self):  # noqa: D105
-        repr_str = super(GeneralizingEstimator, self).__repr__()
+        repr_str = super().__repr__()
         if hasattr(self, "estimators_"):
             repr_str = repr_str[:-1]
             repr_str += ", fitted with %i estimators>" % len(self.estimators_)

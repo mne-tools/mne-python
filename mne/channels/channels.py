@@ -549,7 +549,7 @@ class UpdateChannelsMixin:
         for ch_name in ch_names:
             ii = self.ch_names.index(ch_name)
             if ii in idx:
-                raise ValueError("Channel name repeated: %s" % (ch_name,))
+                raise ValueError(f"Channel name repeated: {ch_name}")
             idx.append(ii)
         return self._pick_drop_channels(idx)
 
@@ -585,14 +585,13 @@ class UpdateChannelsMixin:
             all_str = all([isinstance(ch, str) for ch in ch_names])
         except TypeError:
             raise ValueError(
-                "'ch_names' must be iterable, got "
-                "type {} ({}).".format(type(ch_names), ch_names)
+                f"'ch_names' must be iterable, got type {type(ch_names)} ({ch_names})."
             )
 
         if not all_str:
             raise ValueError(
                 "Each element in 'ch_names' must be str, got "
-                "{}.".format([type(ch) for ch in ch_names])
+                f"{[type(ch) for ch in ch_names]}."
             )
 
         missing = [ch for ch in ch_names if ch not in self.ch_names]
@@ -871,9 +870,12 @@ class InterpolationMixin:
         .. versionadded:: 0.9.0
         """
         from .interpolation import (
+            _interpolate_bads_ecog,
             _interpolate_bads_eeg,
             _interpolate_bads_meeg,
+            _interpolate_bads_nan,
             _interpolate_bads_nirs,
+            _interpolate_bads_seeg,
         )
 
         _check_preload(self, "interpolation")
@@ -895,35 +897,48 @@ class InterpolationMixin:
             "eeg": ("spline", "MNE", "nan"),
             "meg": ("MNE", "nan"),
             "fnirs": ("nearest", "nan"),
+            "ecog": ("spline", "nan"),
+            "seeg": ("spline", "nan"),
         }
         for key in method:
-            _check_option("method[key]", key, ("meg", "eeg", "fnirs"))
+            _check_option("method[key]", key, tuple(valids))
             _check_option(f"method['{key}']", method[key], valids[key])
         logger.info("Setting channel interpolation method to %s.", method)
         idx = _picks_to_idx(self.info, list(method), exclude=(), allow_empty=True)
         if idx.size == 0 or len(pick_info(self.info, idx)["bads"]) == 0:
             warn("No bad channels to interpolate. Doing nothing...")
             return self
+        for ch_type in method.copy():
+            idx = _picks_to_idx(self.info, ch_type, exclude=(), allow_empty=True)
+            if len(pick_info(self.info, idx)["bads"]) == 0:
+                method.pop(ch_type)
         logger.info("Interpolating bad channels.")
-        origin = _check_origin(origin, self.info)
+        needs_origin = [key != "seeg" and val != "nan" for key, val in method.items()]
+        if any(needs_origin):
+            origin = _check_origin(origin, self.info)
+        for ch_type, interp in method.items():
+            if interp == "nan":
+                _interpolate_bads_nan(self, ch_type, exclude=exclude)
         if method.get("eeg", "") == "spline":
             _interpolate_bads_eeg(self, origin=origin, exclude=exclude)
-            eeg_mne = False
-        elif "eeg" not in method:
-            eeg_mne = False
-        else:
-            eeg_mne = True
-        if "meg" in method or eeg_mne:
+        meg_mne = method.get("meg", "") == "MNE"
+        eeg_mne = method.get("eeg", "") == "MNE"
+        if meg_mne or eeg_mne:
             _interpolate_bads_meeg(
                 self,
                 mode=mode,
-                origin=origin,
+                meg=meg_mne,
                 eeg=eeg_mne,
+                origin=origin,
                 exclude=exclude,
                 method=method,
             )
-        if "fnirs" in method:
-            _interpolate_bads_nirs(self, exclude=exclude, method=method["fnirs"])
+        if method.get("fnirs", "") == "nearest":
+            _interpolate_bads_nirs(self, exclude=exclude)
+        if method.get("ecog", "") == "spline":
+            _interpolate_bads_ecog(self, origin=origin, exclude=exclude)
+        if method.get("seeg", "") == "spline":
+            _interpolate_bads_seeg(self, exclude=exclude)
 
         if reset_bads is True:
             if "nan" in method.values():
@@ -967,7 +982,7 @@ def rename_channels(info, mapping, allow_duplicates=False, *, verbose=None):
     elif callable(mapping):
         new_names = [(ci, mapping(ch_name)) for ci, ch_name in enumerate(ch_names)]
     else:
-        raise ValueError("mapping must be callable or dict, not %s" % (type(mapping),))
+        raise ValueError(f"mapping must be callable or dict, not {type(mapping)}")
 
     # check we got all strings out of the mapping
     for new_name in new_names:
@@ -1057,9 +1072,7 @@ _BUILTIN_CHANNEL_ADJACENCIES = [
         name="bti248grad",
         description="BTI 248 gradiometer system",
         fname="bti248grad_neighb.mat",
-        source_url=_ft_neighbor_url_t.substitute(
-            fname="bti248grad_neighb.mat"
-        ),  # noqa: E501
+        source_url=_ft_neighbor_url_t.substitute(fname="bti248grad_neighb.mat"),
     ),
     _BuiltinChannelAdjacency(
         name="ctf64",
@@ -1083,25 +1096,19 @@ _BUILTIN_CHANNEL_ADJACENCIES = [
         name="easycap32ch-avg",
         description="",
         fname="easycap32ch-avg_neighb.mat",
-        source_url=_ft_neighbor_url_t.substitute(
-            fname="easycap32ch-avg_neighb.mat"
-        ),  # noqa: E501
+        source_url=_ft_neighbor_url_t.substitute(fname="easycap32ch-avg_neighb.mat"),
     ),
     _BuiltinChannelAdjacency(
         name="easycap64ch-avg",
         description="",
         fname="easycap64ch-avg_neighb.mat",
-        source_url=_ft_neighbor_url_t.substitute(
-            fname="easycap64ch-avg_neighb.mat"
-        ),  # noqa: E501
+        source_url=_ft_neighbor_url_t.substitute(fname="easycap64ch-avg_neighb.mat"),
     ),
     _BuiltinChannelAdjacency(
         name="easycap128ch-avg",
         description="",
         fname="easycap128ch-avg_neighb.mat",
-        source_url=_ft_neighbor_url_t.substitute(
-            fname="easycap128ch-avg_neighb.mat"
-        ),  # noqa: E501
+        source_url=_ft_neighbor_url_t.substitute(fname="easycap128ch-avg_neighb.mat"),
     ),
     _BuiltinChannelAdjacency(
         name="easycapM1",
@@ -1113,25 +1120,19 @@ _BUILTIN_CHANNEL_ADJACENCIES = [
         name="easycapM11",
         description="Easycap M11",
         fname="easycapM11_neighb.mat",
-        source_url=_ft_neighbor_url_t.substitute(
-            fname="easycapM11_neighb.mat"
-        ),  # noqa: E501
+        source_url=_ft_neighbor_url_t.substitute(fname="easycapM11_neighb.mat"),  # noqa: E501
     ),
     _BuiltinChannelAdjacency(
         name="easycapM14",
         description="Easycap M14",
         fname="easycapM14_neighb.mat",
-        source_url=_ft_neighbor_url_t.substitute(
-            fname="easycapM14_neighb.mat"
-        ),  # noqa: E501
+        source_url=_ft_neighbor_url_t.substitute(fname="easycapM14_neighb.mat"),  # noqa: E501
     ),
     _BuiltinChannelAdjacency(
         name="easycapM15",
         description="Easycap M15",
         fname="easycapM15_neighb.mat",
-        source_url=_ft_neighbor_url_t.substitute(
-            fname="easycapM15_neighb.mat"
-        ),  # noqa: E501
+        source_url=_ft_neighbor_url_t.substitute(fname="easycapM15_neighb.mat"),  # noqa: E501
     ),
     _BuiltinChannelAdjacency(
         name="KIT-157",
@@ -1179,49 +1180,37 @@ _BUILTIN_CHANNEL_ADJACENCIES = [
         name="neuromag306mag",
         description="Neuromag306, only magnetometers",
         fname="neuromag306mag_neighb.mat",
-        source_url=_ft_neighbor_url_t.substitute(
-            fname="neuromag306mag_neighb.mat"
-        ),  # noqa: E501
+        source_url=_ft_neighbor_url_t.substitute(fname="neuromag306mag_neighb.mat"),  # noqa: E501
     ),
     _BuiltinChannelAdjacency(
         name="neuromag306planar",
         description="Neuromag306, only planar gradiometers",
         fname="neuromag306planar_neighb.mat",
-        source_url=_ft_neighbor_url_t.substitute(
-            fname="neuromag306planar_neighb.mat"
-        ),  # noqa: E501
+        source_url=_ft_neighbor_url_t.substitute(fname="neuromag306planar_neighb.mat"),  # noqa: E501
     ),
     _BuiltinChannelAdjacency(
         name="neuromag122cmb",
         description="Neuromag122, only combined planar gradiometers",
         fname="neuromag122cmb_neighb.mat",
-        source_url=_ft_neighbor_url_t.substitute(
-            fname="neuromag122cmb_neighb.mat"
-        ),  # noqa: E501
+        source_url=_ft_neighbor_url_t.substitute(fname="neuromag122cmb_neighb.mat"),  # noqa: E501
     ),
     _BuiltinChannelAdjacency(
         name="neuromag306cmb",
         description="Neuromag306, only combined planar gradiometers",
         fname="neuromag306cmb_neighb.mat",
-        source_url=_ft_neighbor_url_t.substitute(
-            fname="neuromag306cmb_neighb.mat"
-        ),  # noqa: E501
+        source_url=_ft_neighbor_url_t.substitute(fname="neuromag306cmb_neighb.mat"),  # noqa: E501
     ),
     _BuiltinChannelAdjacency(
         name="ecog256",
         description="ECOG 256channels, average referenced",
         fname="ecog256_neighb.mat",
-        source_url=_ft_neighbor_url_t.substitute(
-            fname="ecog256_neighb.mat"
-        ),  # noqa: E501
+        source_url=_ft_neighbor_url_t.substitute(fname="ecog256_neighb.mat"),  # noqa: E501
     ),
     _BuiltinChannelAdjacency(
         name="ecog256bipolar",
         description="ECOG 256channels, bipolar referenced",
         fname="ecog256bipolar_neighb.mat",
-        source_url=_ft_neighbor_url_t.substitute(
-            fname="ecog256bipolar_neighb.mat"
-        ),  # noqa: E501
+        source_url=_ft_neighbor_url_t.substitute(fname="ecog256bipolar_neighb.mat"),  # noqa: E501
     ),
     _BuiltinChannelAdjacency(
         name="eeg1010_neighb",
@@ -1263,33 +1252,25 @@ _BUILTIN_CHANNEL_ADJACENCIES = [
         name="language29ch-avg",
         description="MPI for Psycholinguistic: Averaged 29-channel cap",
         fname="language29ch-avg_neighb.mat",
-        source_url=_ft_neighbor_url_t.substitute(
-            fname="language29ch-avg_neighb.mat"
-        ),  # noqa: E501
+        source_url=_ft_neighbor_url_t.substitute(fname="language29ch-avg_neighb.mat"),  # noqa: E501
     ),
     _BuiltinChannelAdjacency(
         name="mpi_59_channels",
         description="MPI for Psycholinguistic: 59-channel cap",
         fname="mpi_59_channels_neighb.mat",
-        source_url=_ft_neighbor_url_t.substitute(
-            fname="mpi_59_channels_neighb.mat"
-        ),  # noqa: E501
+        source_url=_ft_neighbor_url_t.substitute(fname="mpi_59_channels_neighb.mat"),  # noqa: E501
     ),
     _BuiltinChannelAdjacency(
         name="yokogawa160",
         description="",
         fname="yokogawa160_neighb.mat",
-        source_url=_ft_neighbor_url_t.substitute(
-            fname="yokogawa160_neighb.mat"
-        ),  # noqa: E501
+        source_url=_ft_neighbor_url_t.substitute(fname="yokogawa160_neighb.mat"),  # noqa: E501
     ),
     _BuiltinChannelAdjacency(
         name="yokogawa440",
         description="",
         fname="yokogawa440_neighb.mat",
-        source_url=_ft_neighbor_url_t.substitute(
-            fname="yokogawa440_neighb.mat"
-        ),  # noqa: E501
+        source_url=_ft_neighbor_url_t.substitute(fname="yokogawa440_neighb.mat"),  # noqa: E501
     ),
 ]
 
@@ -2129,9 +2110,7 @@ def read_vectorview_selection(name, fname=None, info=None, verbose=None):
         else:
             spacing = "old"
     elif info is not None:
-        raise TypeError(
-            "info must be an instance of Info or None, not %s" % (type(info),)
-        )
+        raise TypeError(f"info must be an instance of Info or None, not {type(info)}")
     else:  # info is None
         spacing = "old"
 
@@ -2143,7 +2122,7 @@ def read_vectorview_selection(name, fname=None, info=None, verbose=None):
 
     # use this to make sure we find at least one match for each name
     name_found = {n: False for n in name}
-    with open(fname, "r") as fid:
+    with open(fname) as fid:
         sel = []
         for line in fid:
             line = line.strip()

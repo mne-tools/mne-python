@@ -24,7 +24,7 @@ from mne.fixes import _safe_svd
 from mne.io import read_raw_fif
 from mne.preprocessing.xdawn import Xdawn, _XdawnTransformer
 
-base_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
+base_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
 raw_fname = base_dir / "test_raw.fif"
 event_name = base_dir / "test-eve.fif"
 
@@ -335,7 +335,7 @@ def _simulate_erplike_mixed_data(n_epochs=100, n_channels=10):
     events[:, 2] = y
 
     info = create_info(
-        ch_names=["C{:02d}".format(i) for i in range(n_channels)],
+        ch_names=[f"C{i:02d}" for i in range(n_channels)],
         ch_types=["eeg"] * n_channels,
         sfreq=sfreq,
     )

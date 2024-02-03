@@ -973,7 +973,7 @@ def tfr_morlet(
 
 @verbose
 def tfr_array_morlet(
-    epoch_data,
+    data,
     sfreq,
     freqs,
     n_cycles=7.0,
@@ -983,6 +983,7 @@ def tfr_array_morlet(
     output="complex",
     n_jobs=None,
     verbose=None,
+    epoch_data=None,
 ):
     """Compute Time-Frequency Representation (TFR) using Morlet wavelets.
 
@@ -991,7 +992,7 @@ def tfr_array_morlet(
 
     Parameters
     ----------
-    epoch_data : array of shape (n_epochs, n_channels, n_times)
+    data : array of shape (n_epochs, n_channels, n_times)
         The epochs.
     sfreq : float | int
         Sampling frequency of the data.
@@ -1015,11 +1016,15 @@ def tfr_array_morlet(
         The number of epochs to process at the same time. The parallelization
         is implemented across channels. Default 1.
     %(verbose)s
+    epoch_data : None
+        Deprecated parameter for providing epoched data as of 1.7, will be replaced with
+        the ``data`` parameter in 1.8. New code should use the ``data`` parameter. If
+        ``epoch_data`` is not ``None``, a warning will be raised.
 
     Returns
     -------
     out : array
-        Time frequency transform of epoch_data.
+        Time frequency transform of ``data``.
 
         - if ``output in ('complex', 'phase', 'power')``, array of shape
           ``(n_epochs, n_chans, n_freqs, n_times)``
@@ -1049,8 +1054,15 @@ def tfr_array_morlet(
     ----------
     .. footbibliography::
     """
+    if epoch_data is not None:
+        warn(
+            "The parameter for providing data will be switched from `epoch_data` to "
+            "`data` in 1.8. Use the `data` parameter to avoid this warning.",
+            FutureWarning,
+        )
+
     return _compute_tfr(
-        epoch_data=epoch_data,
+        epoch_data=data,
         freqs=freqs,
         sfreq=sfreq,
         method="morlet",
@@ -1333,7 +1345,7 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin)
         # prepare extra columns / multiindex
         mindex = list()
         times = np.tile(times, n_epochs * n_freqs)
-        times = _convert_times(self, times, time_format)
+        times = _convert_times(times, time_format, self.info["meas_date"])
         mindex.append(("time", times))
         freqs = self.freqs
         freqs = np.tile(np.repeat(freqs, n_times), n_epochs)
@@ -1401,7 +1413,7 @@ class AverageTFR(_BaseTFR):
     @verbose
     def __init__(
         self, info, data, times, freqs, nave, comment=None, method=None, verbose=None
-    ):  # noqa: D102
+    ):
         super().__init__()
         self.info = info
         if data.ndim != 3:
@@ -1456,7 +1468,7 @@ class AverageTFR(_BaseTFR):
         mask_cmap="Greys",
         mask_alpha=0.1,
         combine=None,
-        exclude=[],
+        exclude=(),
         cnorm=None,
         verbose=None,
     ):
@@ -1655,7 +1667,7 @@ class AverageTFR(_BaseTFR):
         exclude=None,
         copy=True,
         source_plot_joint=False,
-        topomap_args=dict(),
+        topomap_args=None,
         ch_type=None,
         cnorm=None,
         verbose=None,
@@ -1664,6 +1676,8 @@ class AverageTFR(_BaseTFR):
 
         See self.plot() for parameters description.
         """
+        _validate_type(topomap_args, (dict, None), "topomap_args")
+        topomap_args = {} if topomap_args is None else topomap_args
         import matplotlib.pyplot as plt
 
         # channel selection
@@ -1809,7 +1823,7 @@ class AverageTFR(_BaseTFR):
         title=None,
         yscale="auto",
         combine="mean",
-        exclude=[],
+        exclude=(),
         topomap_args=None,
         image_args=None,
         verbose=None,
@@ -2242,7 +2256,7 @@ class AverageTFR(_BaseTFR):
 
         fig = figure_nobar()
         fig.suptitle(
-            "{:.2f} s - {:.2f} s, {:.2f} Hz - {:.2f} Hz".format(tmin, tmax, fmin, fmax),
+            f"{tmin:.2f} s - {tmax:.2f} s, {fmin:.2f} Hz - {fmax:.2f} Hz",
             y=0.04,
         )
 
@@ -2699,7 +2713,6 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
         metadata=None,
         verbose=None,
     ):
-        # noqa: D102
         super().__init__()
         self.info = info
         if data.ndim != 4:
@@ -2737,7 +2750,7 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
         # check consistency:
         assert len(selection) == len(events)
         assert len(drop_log) >= len(events)
-        assert len(selection) == sum((len(dl) == 0 for dl in drop_log))
+        assert len(selection) == sum(len(dl) == 0 for dl in drop_log)
         event_id = _check_event_id(event_id, events)
         self.data = data
         self._set_times(np.array(times, dtype=float))
@@ -3153,19 +3166,19 @@ def _get_timefreqs(tfr, timefreqs):
     if isinstance(timefreqs, dict):
         for k, v in timefreqs.items():
             for item in (k, v):
-                if len(item) != 2 or any((not _is_numeric(n) for n in item)):
+                if len(item) != 2 or any(not _is_numeric(n) for n in item):
                     raise ValueError(timefreq_error_msg, item)
     elif timefreqs is not None:
         if not hasattr(timefreqs, "__len__"):
             raise ValueError(timefreq_error_msg, timefreqs)
-        if len(timefreqs) == 2 and all((_is_numeric(v) for v in timefreqs)):
+        if len(timefreqs) == 2 and all(_is_numeric(v) for v in timefreqs):
             timefreqs = [tuple(timefreqs)]  # stick a pair of numbers in a list
         else:
             for item in timefreqs:
                 if (
                     hasattr(item, "__len__")
                     and len(item) == 2
-                    and all((_is_numeric(n) for n in item))
+                    and all(_is_numeric(n) for n in item)
                 ):
                     pass
                 else:

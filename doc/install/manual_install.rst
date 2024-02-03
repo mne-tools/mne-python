@@ -67,7 +67,7 @@ others), you should run via :code:`pip`:
 
 .. code-block:: console
 
-   $ pip install mne[hdf5]
+   $ pip install "mne[hdf5]"
 
 or via :code:`conda`:
 
