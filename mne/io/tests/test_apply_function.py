@@ -68,13 +68,11 @@ def test_apply_function_verbose():
 def test_apply_function_ch_access():
     """Test apply_function is able to access channel idx."""
 
-    def bad_ch_idx(x, ch_idx):
-        """Pass."""
+    def _bad_ch_idx(x, ch_idx):
         assert x[0] == ch_idx
         return x
 
-    def bad_ch_name(x, ch_name):
-        """Pass."""
+    def _bad_ch_name(x, ch_name):
         assert isinstance(ch_name, str)
         assert x[0] == float(ch_name)
         return x
@@ -83,14 +81,14 @@ def test_apply_function_ch_access():
     raw = RawArray(data, create_info(2, 1.0, "mag"))
 
     # test ch_idx access in both code paths (parallel / 1 job)
-    raw.apply_function(bad_ch_idx)
-    raw.apply_function(bad_ch_idx, n_jobs=2)
-    raw.apply_function(bad_ch_name)
-    raw.apply_function(bad_ch_name, n_jobs=2)
+    raw.apply_function(_bad_ch_idx)
+    raw.apply_function(_bad_ch_idx, n_jobs=2)
+    raw.apply_function(_bad_ch_name)
+    raw.apply_function(_bad_ch_name, n_jobs=2)
 
     # test input catches
     with pytest.raises(
         ValueError,
-        match="apply_function cannot access ch_idx or ch_name when channel_wise=False",
+        match="cannot access.*when channel_wise=False",
     ):
-        raw.apply_function(bad_ch_idx, channel_wise=False)
+        raw.apply_function(_bad_ch_idx, channel_wise=False)

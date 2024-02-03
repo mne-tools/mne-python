@@ -1088,7 +1088,7 @@ class BaseRaw(
         if dtype is not None and dtype != self._data.dtype:
             self._data = self._data.astype(dtype)
 
-        args = getfullargspec(fun)[0] + getfullargspec(fun)[4]
+        args = getfullargspec(fun).args + getfullargspec(fun).kwonlyargs
         if channel_wise is False:
             if ("ch_idx" in args) or ("ch_name" in args):
                 raise ValueError(
@@ -1118,15 +1118,14 @@ class BaseRaw(
                     p_fun(
                         fun,
                         data_in[ch_idx],
+                        **kwargs,
                         **{
                             k: v
                             for k, v in [
                                 ("ch_name", self.info["ch_names"][ch_idx]),
                                 ("ch_idx", ch_idx),
                             ]
-                            + [(k, v) for k, v in kwargs.items()]
-                            if (k != "ch_name" or "ch_name" in args)
-                            and (k != "ch_idx" or "ch_idx" in args)
+                            if k in args
                         },
                     )
                     for ch_idx in picks

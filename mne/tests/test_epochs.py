@@ -4764,17 +4764,15 @@ def test_apply_function():
     assert_array_equal(out.get_data(non_picks), epochs.get_data(non_picks))
 
 
-def test_apply_function_ch_access():
-    """Test apply function to epoch objects."""
+def test_apply_function_epo_ch_access():
+    """Test ch-access within apply function to epoch objects."""
 
-    def bad_ch_idx(x, ch_idx):
-        """Pass."""
+    def _bad_ch_idx(x, ch_idx):
         assert x.shape == (46,)
         assert x[0] == ch_idx
         return x
 
-    def bad_ch_name(x, ch_name):
-        """Pass."""
+    def _bad_ch_name(x, ch_name):
         assert x.shape == (46,)
         assert isinstance(ch_name, str)
         assert x[0] == float(ch_name)
@@ -4786,17 +4784,17 @@ def test_apply_function_ch_access():
     ep = Epochs(raw, ev, tmin=0, tmax=45, baseline=None, preload=True)
 
     # test ch_idx access in both code paths (parallel / 1 job)
-    ep.apply_function(bad_ch_idx)
-    ep.apply_function(bad_ch_idx, n_jobs=2)
-    ep.apply_function(bad_ch_name)
-    ep.apply_function(bad_ch_name, n_jobs=2)
+    ep.apply_function(_bad_ch_idx)
+    ep.apply_function(_bad_ch_idx, n_jobs=2)
+    ep.apply_function(_bad_ch_name)
+    ep.apply_function(_bad_ch_name, n_jobs=2)
 
     # test input catches
     with pytest.raises(
         ValueError,
-        match="apply_function cannot access ch_idx or ch_name when channel_wise=False",
+        match="cannot access.*when channel_wise=False",
     ):
-        ep.apply_function(bad_ch_idx, channel_wise=False)
+        ep.apply_function(_bad_ch_idx, channel_wise=False)
 
 
 @testing.requires_testing_data
