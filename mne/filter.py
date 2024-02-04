@@ -2787,7 +2787,7 @@ class FilterMixin:
         ----------
         %(picks_all_data_noref)s
         envelope : bool
-            Compute the envelope signal of each channel/vertice. Default False.
+            Compute the envelope signal of each channel/vertex. Default False.
             See Notes.
         %(n_jobs)s
         n_fft : int | None | str
