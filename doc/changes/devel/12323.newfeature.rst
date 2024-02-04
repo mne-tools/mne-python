@@ -1,1 +1,1 @@
-Adapt :meth:`mne.filter.MixinFilter.savgol_filter`, :meth:`mne.filter.MixinFilter.filter`, :meth:`mne.filter.MixinFilter.apply_hilbert` and add :meth:`mne.source_estimates._BaseSourceEstimates.apply_function` to enable applying :class:`mne.filter.MixinFilter`, by `Hamza Abdelhedi`_.
+Add :meth:`~mne.SourceEstimate.savgol_filter`, :meth:`~mne.SourceEstimate.filter`, :meth:`~mne.SourceEstimate.apply_hilbert`, and :meth:`~mne.SourceEstimate.apply_function` methods to :class:`mne.SourceEstimate` and related classes, by `Hamza Abdelhedi`_.
