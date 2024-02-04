@@ -2690,9 +2690,6 @@ class FilterMixin:
         # and it's not a band-stop filter
         if not isinstance(self, _BaseSourceEstimate):
             _filt_update_info(self.info, update_info, l_freq, h_freq)
-        else:
-            self.l_freq = l_freq
-            self.h_freq = h_freq
         return self
 
     @verbose
