@@ -655,7 +655,7 @@ class _BaseSourceEstimate(TimeMixin, FilterMixin):
         Parameters
         ----------
         %(fun_applyfun_stc)s
-        %(picks_all_data_noref)s
+        %(picks_all)s
         %(dtype_applyfun)s
         %(n_jobs)s Ignored if ``vertice_wise=False`` as the workload
             is split across vertices.
