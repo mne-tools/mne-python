@@ -668,8 +668,7 @@ class _BaseSourceEstimate(TimeMixin, FilterMixin):
             The SourceEstimate object with transformed data.
         """
         _check_preload(self, "source_estimate.apply_function")
-
-        picks = _picks_to_idx(self._data, picks, exclude=(), with_ref_meg=False)
+        picks = _picks_to_idx(len(self._data), picks, exclude=(), with_ref_meg=False)
 
         if not callable(fun):
             raise ValueError("fun needs to be a function")
