@@ -679,7 +679,7 @@ class _BaseSourceEstimate(TimeMixin, FilterMixin):
             self._data = self._data.astype(dtype)
 
         # check the dimension of the source estimate data
-        _check_option("source_estimate.ndim", self._data.ndim, [2])
+        _check_option("source_estimate.ndim", self._data.ndim, [2, 3])
 
         parallel, p_fun, n_jobs = parallel_func(_check_fun, n_jobs)
         if n_jobs == 1:
