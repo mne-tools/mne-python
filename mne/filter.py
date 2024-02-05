@@ -2846,12 +2846,12 @@ class FilterMixin:
         """
         from .source_estimate import _BaseSourceEstimate
 
-        _check_preload(self, "inst.apply_hilbert")
         if not isinstance(self, _BaseSourceEstimate):
-            picks = _picks_to_idx(self.info, picks, exclude=(), with_ref_meg=False)
+            use_info = self.info
         else:
-            if picks is None:
-                picks = [i for i in range(self._data.shape[0])]
+            use_info = len(self._data)
+        _check_preload(self, "inst.apply_hilbert")
+        picks = _picks_to_idx(use_info, picks, exclude=(), with_ref_meg=False)
 
         if n_fft is None:
             n_fft = len(self.times)
