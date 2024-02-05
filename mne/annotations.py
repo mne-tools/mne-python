@@ -1575,9 +1575,10 @@ def events_from_annotations(
         than ``chunk_duration`` will not contribute events.
     tol : float
         The tolerance which is used to check if the calculated onsets have the
-        enough duration to the end of the annotation. If the duration from the
-        onset to the end of the annotation is smaller than ``chunk_duration``
-        minus ``tol``, the onset will be discarded.
+        enough duration to the end of the annotation when``chunk_duration`` is
+        not ``None``. If the duration from the onset to the end of the
+        annotation is smaller than ``chunk_duration`` minus ``tol``, the onset
+        will be discarded.
     %(verbose)s
 
     Returns
