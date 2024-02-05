@@ -34,7 +34,7 @@ from mne import (
 from mne._fiff.constants import FIFF
 from mne.evoked import Evoked, EvokedArray, _get_peak
 from mne.io import read_raw_fif
-from mne.utils import grand_average
+from mne.utils import _record_warnings, grand_average
 
 base_dir = Path(__file__).parents[1] / "io" / "tests" / "data"
 fname = base_dir / "test-ave.fif"
@@ -589,6 +589,24 @@ def test_get_peak():
     with pytest.raises(ValueError, match="No positive values"):
         evoked_all_neg.get_peak(mode="pos")
 
+    # Test finding minimum and maximum values
+    evoked_all_neg_outlier = evoked_all_neg.copy()
+    evoked_all_pos_outlier = evoked_all_pos.copy()
+
+    # Add an outlier to the data
+    evoked_all_neg_outlier.data[0, 15] = -1e-20
+    evoked_all_pos_outlier.data[0, 15] = 1e-20
+
+    ch_name, time_idx, max_amp = evoked_all_neg_outlier.get_peak(
+        mode="pos", return_amplitude=True, strict=False
+    )
+    assert max_amp == -1e-20
+
+    ch_name, time_idx, min_amp = evoked_all_pos_outlier.get_peak(
+        mode="neg", return_amplitude=True, strict=False
+    )
+    assert min_amp == 1e-20
+
     # Test interaction between `mode` and `tmin` / `tmax`
     # For the test, create an Evoked where half of the values are negative
     # and the rest is positive
@@ -799,7 +817,7 @@ def test_time_as_index_and_crop():
     )
     evoked.crop(evoked.tmin, evoked.tmax, include_tmax=False)
     n_times = len(evoked.times)
-    with pytest.warns(RuntimeWarning, match="tmax is set to"):
+    with _record_warnings(), pytest.warns(RuntimeWarning, match="tmax is set to"):
         evoked.crop(tmin, tmax, include_tmax=False)
     assert len(evoked.times) == n_times
     assert_allclose(evoked.times[[0, -1]], [tmin, tmax - delta], atol=atol)

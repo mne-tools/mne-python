@@ -787,7 +787,7 @@ class BaseEpochs(
         self.baseline = baseline
         return self
 
-    def _reject_setup(self, reject, flat):
+    def _reject_setup(self, reject, flat, *, allow_callable=False):
         """Set self._reject_time and self._channel_type_idx."""
         idx = channel_indices_by_type(self.info)
         reject = deepcopy(reject) if reject is not None else dict()
@@ -814,11 +814,21 @@ class BaseEpochs(
                     f"{key.upper()}."
                 )
 
-        # check for invalid values
-        for rej, kind in zip((reject, flat), ("Rejection", "Flat")):
-            for key, val in rej.items():
-                if val is None or val < 0:
-                    raise ValueError(f'{kind} value must be a number >= 0, not "{val}"')
+            # check for invalid values
+            for rej, kind in zip((reject, flat), ("Rejection", "Flat")):
+                for key, val in rej.items():
+                    name = f"{kind} dict value for {key}"
+                    if callable(val) and allow_callable:
+                        continue
+                    extra_str = ""
+                    if allow_callable:
+                        extra_str = "or callable"
+                    _validate_type(val, "numeric", name, extra=extra_str)
+                    if val is None or val < 0:
+                        raise ValueError(
+                            f"If using numerical {name} criteria, the value "
+                            f"must be >= 0, not {repr(val)}"
+                        )
 
         # now check to see if our rejection and flat are getting more
         # restrictive
@@ -836,6 +846,9 @@ class BaseEpochs(
             reject[key] = old_reject[key]
         # make sure new thresholds are at least as stringent as the old ones
         for key in reject:
+            # Skip this check if old_reject and reject are callables
+            if callable(reject[key]) and allow_callable:
+                continue
             if key in old_reject and reject[key] > old_reject[key]:
                 raise ValueError(
                     bad_msg.format(
@@ -851,6 +864,8 @@ class BaseEpochs(
         for key in set(old_flat) - set(flat):
             flat[key] = old_flat[key]
         for key in flat:
+            if callable(flat[key]) and allow_callable:
+                continue
             if key in old_flat and flat[key] < old_flat[key]:
                 raise ValueError(
                     bad_msg.format(
@@ -1393,7 +1408,7 @@ class BaseEpochs(
         Dropping bad epochs can be done multiple times with different
         ``reject`` and ``flat`` parameters. However, once an epoch is
         dropped, it is dropped forever, so if more lenient thresholds may
-        subsequently be applied, `epochs.copy <mne.Epochs.copy>` should be
+        subsequently be applied, :meth:`epochs.copy <mne.Epochs.copy>` should be
         used.
         """
         if reject == "existing":
@@ -1404,7 +1419,7 @@ class BaseEpochs(
             flat = self.flat
         if any(isinstance(rej, str) and rej != "existing" for rej in (reject, flat)):
             raise ValueError('reject and flat, if strings, must be "existing"')
-        self._reject_setup(reject, flat)
+        self._reject_setup(reject, flat, allow_callable=True)
         self._get_data(out=False, verbose=verbose)
         return self
 
@@ -1520,8 +1535,9 @@ class BaseEpochs(
             Set epochs to remove by specifying indices to remove or a boolean
             mask to apply (where True values get removed). Events are
             correspondingly modified.
-        reason : str
-            Reason for dropping the epochs ('ECG', 'timeout', 'blink' etc).
+        reason : list | tuple | str
+            Reason(s) for dropping the epochs ('ECG', 'timeout', 'blink' etc).
+            Reason(s) are applied to all indices specified.
             Default: 'USER'.
         %(verbose)s
 
@@ -1533,7 +1549,9 @@ class BaseEpochs(
         indices = np.atleast_1d(indices)
 
         if indices.ndim > 1:
-            raise ValueError("indices must be a scalar or a 1-d array")
+            raise TypeError("indices must be a scalar or a 1-d array")
+        # Check if indices and reasons are of the same length
+        # if using collection to drop epochs
 
         if indices.dtype == np.dtype(bool):
             indices = np.where(indices)[0]
@@ -3199,6 +3217,10 @@ class Epochs(BaseEpochs):
             See :meth:`~mne.Epochs.equalize_event_counts`
         - 'USER'
             For user-defined reasons (see :meth:`~mne.Epochs.drop`).
+
+        When dropping based on flat or reject parameters the tuple of
+        reasons contains a tuple of channels that satisfied the rejection
+        criteria.
     filename : str
         The filename of the object.
     times :  ndarray
@@ -3667,6 +3689,8 @@ def _is_good(
 ):
     """Test if data segment e is good according to reject and flat.
 
+    The reject and flat parameters can accept functions as values.
+
     If full_report=True, it will give True/False as well as a list of all
     offending channels.
     """
@@ -3674,30 +3698,60 @@ def _is_good(
     has_printed = False
     checkable = np.ones(len(ch_names), dtype=bool)
     checkable[np.array([c in ignore_chs for c in ch_names], dtype=bool)] = False
+
     for refl, f, t in zip([reject, flat], [np.greater, np.less], ["", "flat"]):
         if refl is not None:
-            for key, thresh in refl.items():
+            for key, refl in refl.items():
+                criterion = refl
                 idx = channel_type_idx[key]
                 name = key.upper()
                 if len(idx) > 0:
                     e_idx = e[idx]
-                    deltas = np.max(e_idx, axis=1) - np.min(e_idx, axis=1)
                     checkable_idx = checkable[idx]
-                    idx_deltas = np.where(
-                        np.logical_and(f(deltas, thresh), checkable_idx)
-                    )[0]
+                    # Check if criterion is a function and apply it
+                    if callable(criterion):
+                        result = criterion(e_idx)
+                        _validate_type(result, tuple, "reject/flat output")
+                        if len(result) != 2:
+                            raise TypeError(
+                                "Function criterion must return a tuple of length 2"
+                            )
+                        cri_truth, reasons = result
+                        _validate_type(cri_truth, (bool, np.bool_), cri_truth, "bool")
+                        _validate_type(
+                            reasons, (str, list, tuple), reasons, "str, list, or tuple"
+                        )
+                        idx_deltas = np.where(np.logical_and(cri_truth, checkable_idx))[
+                            0
+                        ]
+                    else:
+                        deltas = np.max(e_idx, axis=1) - np.min(e_idx, axis=1)
+                        idx_deltas = np.where(
+                            np.logical_and(f(deltas, criterion), checkable_idx)
+                        )[0]
 
                     if len(idx_deltas) > 0:
-                        bad_names = [ch_names[idx[i]] for i in idx_deltas]
-                        if not has_printed:
-                            logger.info(
-                                f"    Rejecting {t} epoch based on {name} : {bad_names}"
-                            )
-                            has_printed = True
-                        if not full_report:
-                            return False
+                        # Check to verify that refl is a callable that returns
+                        # (bool, reason). Reason must be a str/list/tuple.
+                        # If using tuple
+                        if callable(refl):
+                            if isinstance(reasons, str):
+                                reasons = (reasons,)
+                            for idx, reason in enumerate(reasons):
+                                _validate_type(reason, str, reason)
+                            bad_tuple += tuple(reasons)
                         else:
-                            bad_tuple += tuple(bad_names)
+                            bad_names = [ch_names[idx[i]] for i in idx_deltas]
+                            if not has_printed:
+                                logger.info(
+                                    "    Rejecting %s epoch based on %s : "
+                                    "%s" % (t, name, bad_names)
+                                )
+                                has_printed = True
+                            if not full_report:
+                                return False
+                            else:
+                                bad_tuple += tuple(bad_names)
 
     if not full_report:
         return True

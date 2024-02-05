@@ -2484,14 +2484,22 @@ def _draw_axes_pce(
     )
 
 
-def _get_data_and_ci(evoked, combine, combine_func, picks, scaling=1, ci_fun=None):
+def _get_data_and_ci(
+    evoked, combine, combine_func, ch_type, picks, scaling=1, ci_fun=None
+):
     """Compute (sensor-aggregated, scaled) time series and possibly CI."""
     picks = np.array(picks).flatten()
     # apply scalings
     data = np.array([evk.data[picks] * scaling for evk in evoked])
     # combine across sensors
     if combine is not None:
-        logger.info(f'combining channels using "{combine}"')
+        if combine == "gfp" and ch_type == "eeg":
+            msg = f"GFP ({ch_type} channels)"
+        elif combine == "gfp" and ch_type in ("mag", "grad"):
+            msg = f"RMS ({ch_type} channels)"
+        else:
+            msg = f'"{combine}"'
+        logger.info(f"combining channels using {msg}")
         data = combine_func(data)
     # get confidence band
     if ci_fun is not None:
@@ -2551,7 +2559,7 @@ def _plot_compare_evokeds(
         ax.set_title(title)
 
 
-def _title_helper_pce(title, picked_types, picks, ch_names, combine):
+def _title_helper_pce(title, picked_types, picks, ch_names, ch_type, combine):
     """Format title for plot_compare_evokeds."""
     if title is None:
         title = (
@@ -2562,8 +2570,12 @@ def _title_helper_pce(title, picked_types, picks, ch_names, combine):
     # add the `combine` modifier
     do_combine = picked_types or len(ch_names) > 1
     if title is not None and len(title) and isinstance(combine, str) and do_combine:
-        _comb = combine.upper() if combine == "gfp" else combine
-        _comb = "std. dev." if _comb == "std" else _comb
+        if combine == "gfp":
+            _comb = "RMS" if ch_type in ("mag", "grad") else "GFP"
+        elif combine == "std":
+            _comb = "std. dev."
+        else:
+            _comb = combine
         title += f" ({_comb})"
     return title
 
@@ -2744,18 +2756,7 @@ def plot_compare_evokeds(
         value of the ``combine`` parameter. Defaults to ``None``.
     show : bool
         Whether to show the figure. Defaults to ``True``.
-    %(combine)s
-        If callable, the callable must accept one positional input (data of
-        shape ``(n_evokeds, n_channels, n_times)``) and return an
-        :class:`array <numpy.ndarray>` of shape ``(n_epochs, n_times)``. For
-        example::
-
-            combine = lambda data: np.median(data, axis=1)
-
-        If ``combine`` is ``None``, channels are combined by computing GFP,
-        unless ``picks`` is a single channel (not channel type) or
-        ``axes='topo'``, in which cases no combining is performed. Defaults to
-        ``None``.
+    %(combine_plot_compare_evokeds)s
     %(sphere_topomap_auto)s
     %(time_unit)s
 
@@ -2914,11 +2915,19 @@ def plot_compare_evokeds(
     if combine is None and len(picks) > 1 and not do_topo:
         combine = "gfp"
     # convert `combine` into callable (if None or str)
-    combine_func = _make_combine_callable(combine)
+    combine_funcs = {
+        ch_type: _make_combine_callable(combine, ch_type=ch_type)
+        for ch_type in ch_types
+    }
 
     # title
     title = _title_helper_pce(
-        title, picked_types, picks=orig_picks, ch_names=ch_names, combine=combine
+        title,
+        picked_types,
+        picks=orig_picks,
+        ch_names=ch_names,
+        ch_type=ch_types[0] if len(ch_types) == 1 else None,
+        combine=combine,
     )
     topo_disp_title = False
     # setup axes
@@ -2943,9 +2952,7 @@ def plot_compare_evokeds(
             _validate_if_list_of_axes(axes, obligatory_len=len(ch_types))
 
     if len(ch_types) > 1:
-        logger.info(
-            "Multiple channel types selected, returning one figure " "per type."
-        )
+        logger.info("Multiple channel types selected, returning one figure per type.")
         figs = list()
         for ch_type, ax in zip(ch_types, axes):
             _picks = picks_by_type[ch_type]
@@ -2954,7 +2961,12 @@ def plot_compare_evokeds(
             # don't pass `combine` here; title will run through this helper
             # function a second time & it will get added then
             _title = _title_helper_pce(
-                title, picked_types, picks=_picks, ch_names=_ch_names, combine=None
+                title,
+                picked_types,
+                picks=_picks,
+                ch_names=_ch_names,
+                ch_type=ch_type,
+                combine=None,
             )
             figs.extend(
                 plot_compare_evokeds(
@@ -3003,7 +3015,7 @@ def plot_compare_evokeds(
     # some things that depend on ch_type:
     units = _handle_default("units")[ch_type]
     scalings = _handle_default("scalings")[ch_type]
-
+    combine_func = combine_funcs[ch_type]
     # prep for topo
     pos_picks = picks  # need this version of picks for sensor location inset
     info = pick_info(info, sel=picks, copy=True)
@@ -3136,6 +3148,7 @@ def plot_compare_evokeds(
                 this_evokeds,
                 combine,
                 c_func,
+                ch_type=ch_type,
                 picks=_picks,
                 scaling=scalings,
                 ci_fun=ci_fun,

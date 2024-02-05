@@ -68,6 +68,8 @@
 
 .. _Bruno Nicenboim: https://bnicenboim.github.io
 
+.. _btkcodedev: https://github.com/btkcodedev
+
 .. _buildqa: https://github.com/buildqa
 
 .. _Carlos de la Torre-Ortiz: https://ctorre.me

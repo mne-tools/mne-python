@@ -843,7 +843,7 @@ html_theme_options = {
         ),
     ],
     "icon_links_label": "External Links",  # for screen reader
-    "use_edit_page_button": True,
+    "use_edit_page_button": False,
     "navigation_with_keys": False,
     "show_toc_level": 1,
     "article_header_start": [],  # disable breadcrumbs

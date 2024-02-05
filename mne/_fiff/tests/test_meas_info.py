@@ -350,9 +350,10 @@ def test_read_write_info(tmp_path):
 @testing.requires_testing_data
 def test_dir_warning():
     """Test that trying to read a bad filename emits a warning before an error."""
-    with pytest.raises(OSError, match="directory"):
-        with pytest.warns(RuntimeWarning, match="foo"):
-            read_info(ctf_fname)
+    with pytest.raises(OSError, match="directory"), pytest.warns(
+        RuntimeWarning, match="does not conform"
+    ):
+        read_info(ctf_fname)
 
 
 def test_io_dig_points(tmp_path):
