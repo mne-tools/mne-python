@@ -36,6 +36,11 @@ def test_plot_heatmap(eyetrack_raw, eyetrack_cal, axes, unit):
         ep_bad.info["chs"][0]["unit"] = FIFF.FIFF_UNIT_NONE
         mne.viz.eyetracking.plot_gaze(ep_bad, calibration=eyetrack_cal)
 
+    # raise an error if no calibration object is provided for radian data
+    if unit == "rad":
+        with pytest.raises(ValueError, match="If gaze data are in Radians"):
+            mne.viz.eyetracking.plot_gaze(epochs, axes=axes, width=1, height=1)
+
     # Now check that we get the expected output
     if unit == "px":
         fig = mne.viz.eyetracking.plot_gaze(
