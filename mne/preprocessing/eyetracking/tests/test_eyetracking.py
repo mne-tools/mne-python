@@ -34,7 +34,7 @@ def test_convert_units(eyetrack_raw, eyetrack_cal):
     mne.preprocessing.eyetracking.convert_units(raw, cal, "pixels")
     assert raw.info["chs"][1]["unit"] == FIFF.FIFF_UNIT_PX
     data_new = raw.get_data(picks=[0])
-    np.testing.assert_allclose(data_orig, data_new)
+    assert_allclose(data_orig, data_new)
 
     # Should raise an error if we try to convert to pixels again
     with pytest.raises(ValueError, match="Data must be in"):

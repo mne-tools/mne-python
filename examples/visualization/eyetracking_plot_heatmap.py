@@ -90,10 +90,10 @@ plot_gaze(
 )
 
 # %%
-# Displaying the heatmap in with units of visual angle
-# ----------------------------------------------------
+# Displaying the heatmap in units of visual angle
+# -----------------------------------------------
 #
-# In scientific publications it is common to report report gaze data as the visual angle
+# In scientific publications it is common to report gaze data as the visual angle
 # from the participants eye to the screen. We can convert the units of our gaze data to
 # radians of visual angle before plotting the heatmap:
 

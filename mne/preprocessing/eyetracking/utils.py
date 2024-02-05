@@ -22,7 +22,7 @@ def _check_calibration(
 
 
 def get_screen_visual_angle(calibration):
-    """Calculate the radian of visual angle that the participant screen subtends.
+    """Calculate the radians of visual angle that the participant screen subtends.
 
     Parameters
     ----------
