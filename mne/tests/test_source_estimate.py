@@ -72,7 +72,7 @@ from mne.minimum_norm import (
     read_inverse_operator,
 )
 from mne.morph_map import _make_morph_map_hemi
-from mne.source_estimate import _get_vol_mask, grade_to_tris, _make_stc
+from mne.source_estimate import _get_vol_mask, _make_stc, grade_to_tris
 from mne.source_space._source_space import _get_src_nn
 from mne.transforms import apply_trans, invert_transform, transform_surface_to
 from mne.utils import (
@@ -2055,13 +2055,13 @@ def test_label_extraction_subject(kind):
         with pytest.raises(ValueError, match=r"label\.sub.*not match.* sour"):
             extract_label_time_course(stc, labels_fs, src)
 
+
 def test_apply_function_stc():
     """Check the apply_function method for source estimate data."""
-
     # Create a sample _BaseSourceEstimate object
     n_vertices = 100
     n_times = 200
-    vertices = [np.array(np.arange(50)), np.array(np.arange(50,100))]
+    vertices = [np.array(np.arange(50)), np.array(np.arange(50, 100))]
     tmin = 0.0
     tstep = 0.001
     data = np.random.rand(n_vertices, n_times)
@@ -2070,7 +2070,7 @@ def test_apply_function_stc():
 
     # A sample function to apply to the data
     def fun(data_row, **kwargs):
-        return 2 * data_row 
+        return 2 * data_row
 
     # Test applying the function to all vertices without parallelization
     stc_copy = stc.copy()
