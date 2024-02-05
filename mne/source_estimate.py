@@ -17,7 +17,7 @@ from scipy.spatial.distance import cdist, pdist
 
 from ._fiff.constants import FIFF
 from ._fiff.meas_info import Info
-from ._fiff.pick import pick_types, _picks_to_idx
+from ._fiff.pick import _picks_to_idx, pick_types
 from ._freesurfer import _get_atlas_values, _get_mri_info_data, read_freesurfer_lut
 from .baseline import rescale
 from .cov import Covariance
