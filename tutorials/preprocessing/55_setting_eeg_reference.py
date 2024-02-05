@@ -131,7 +131,7 @@ raw_new_ref.plot()
 # :meth:`~mne.io.Raw.set_eeg_reference` with ``ref_channels='average'``. Just
 # as above, this will not affect any channels marked as "bad", nor will it
 # include bad channels when computing the average. However, it does modify the
-# :class:`~mne.io.Raw` object in-place, so we'll make a copy first so we can
+# :class:`~mne.io.Raw` object in-place, so we'll make a copy first, so we can
 # still go back to the unmodified :class:`~mne.io.Raw` object later:
 
 # sphinx_gallery_thumbnail_number = 4
@@ -241,9 +241,12 @@ raw_bip_ref.plot()
 # the source modeling is performed. In contrast, applying an average reference
 # by the traditional subtraction method offers no such guarantee.
 #
-# For these reasons, when performing inverse imaging, *MNE-Python will raise
+# *For these reasons, when performing inverse imaging, MNE-Python will raise
 # a ``ValueError`` if there are EEG channels present and something other than
-# an average reference strategy has been specified*.
+# an average reference projector strategy has been specified. To ensure
+# correct functioning consider calling
+# :meth:`~mne.io.Raw.set_eeg_reference(projection=True)` to add an average
+# reference projector*.
 #
 # .. LINKS
 #
