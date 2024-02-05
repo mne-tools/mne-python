@@ -2532,8 +2532,8 @@ class FilterMixin:
         """  # noqa: E501
         from .source_estimate import _BaseSourceEstimate
 
+        _check_preload(self, "inst.savgol_filter")
         if not isinstance(self, _BaseSourceEstimate):
-            _check_preload(self, "inst.savgol_filter")
             s_freq = self.info["sfreq"]
         else:
             s_freq = 1 / self.tstep
@@ -2643,8 +2643,8 @@ class FilterMixin:
         from .io import BaseRaw
         from .source_estimate import _BaseSourceEstimate
 
+        _check_preload(self, "inst.filter")
         if not isinstance(self, _BaseSourceEstimate):
-            _check_preload(self, "inst.filter")
             update_info, picks = _filt_check_picks(self.info, picks, l_freq, h_freq)
             s_freq = self.info["sfreq"]
         else:
@@ -2846,8 +2846,8 @@ class FilterMixin:
         """
         from .source_estimate import _BaseSourceEstimate
 
+        _check_preload(self, "inst.apply_hilbert")
         if not isinstance(self, _BaseSourceEstimate):
-            _check_preload(self, "inst.apply_hilbert")
             picks = _picks_to_idx(self.info, picks, exclude=(), with_ref_meg=False)
         else:
             if picks is None:
