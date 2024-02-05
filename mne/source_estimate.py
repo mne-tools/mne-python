@@ -678,7 +678,7 @@ class _BaseSourceEstimate(TimeMixin, FilterMixin):
         if dtype is not None and dtype != self._data.dtype:
             self._data = self._data.astype(dtype)
 
-        # check the dimension of the incoming evoked data
+        # check the dimension of the source estimate data
         _check_option("source_estimate.ndim", self._data.ndim, [2])
 
         parallel, p_fun, n_jobs = parallel_func(_check_fun, n_jobs)
