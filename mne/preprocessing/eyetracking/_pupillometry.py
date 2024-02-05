@@ -107,7 +107,6 @@ def _interpolate_blinks(raw, buffer, blink_annots, interpolate_gaze):
             raw._data[ci, non_blink_indices],
         )
         # Replace the samples at the blink_indices with the interpolated values
-        assert len(blink_indices)
         raw._data[ci, blink_indices] = interpolated_samples
         interpolated_chs.append(ch_info["ch_name"])
     if interpolated_chs:
