@@ -17,7 +17,7 @@ from scipy.spatial.distance import cdist, pdist
 
 from ._fiff.constants import FIFF
 from ._fiff.meas_info import Info
-from ._fiff.pick import pick_types
+from ._fiff.pick import pick_types, _picks_to_idx
 from ._freesurfer import _get_atlas_values, _get_mri_info_data, read_freesurfer_lut
 from .baseline import rescale
 from .cov import Covariance
@@ -668,6 +668,8 @@ class _BaseSourceEstimate(TimeMixin, FilterMixin):
             The SourceEstimate object with transformed data.
         """
         _check_preload(self, "source_estimate.apply_function")
+
+        picks = _picks_to_idx(self._data, picks, exclude=(), with_ref_meg=False)
 
         if not callable(fun):
             raise ValueError("fun needs to be a function")
