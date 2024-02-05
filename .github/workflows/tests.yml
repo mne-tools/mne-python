@@ -129,5 +129,5 @@ jobs:
           path: ~/mne_data
       - run: ./tools/github_actions_download.sh
       - run: ./tools/github_actions_test.sh
-      - uses: codecov/codecov-action@v3
+      - uses: codecov/codecov-action@v4
         if: success()
