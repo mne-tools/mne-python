@@ -549,8 +549,6 @@ class _AbstractRenderer(ABC):
         distance=None,
         focalpoint=None,
         roll=None,
-        *,
-        reset_camera=None,
     ):
         """Configure the camera of the scene.
 
@@ -566,14 +564,7 @@ class _AbstractRenderer(ABC):
             The focal point of the camera: (x, y, z).
         roll : float
             The rotation of the camera along its axis.
-        reset_camera : bool
-           Deprecated, used ``distance="auto"`` instead.
         """
-        pass
-
-    @abstractclassmethod
-    def reset_camera(self):
-        """Reset the camera properties."""
         pass
 
     @abstractclassmethod
@@ -1145,7 +1136,7 @@ class _AbstractDock(ABC):
         desc,
         func,
         *,
-        filter=None,
+        filter_=None,
         initial_directory=None,
         save=False,
         is_directory=False,
@@ -1218,7 +1209,7 @@ class _AbstractDialog(ABC):
         callback,
         *,
         icon="Warning",
-        buttons=[],
+        buttons=(),
         modal=True,
         window=None,
     ):

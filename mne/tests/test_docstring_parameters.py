@@ -278,14 +278,12 @@ tddr
 whiten_evoked
 write_fiducials
 write_info
-""".split(
-    "\n"
-)
+""".split("\n")
 
 
 def test_documented():
     """Test that public functions and classes are documented."""
-    doc_dir = (Path(__file__).parent.parent.parent / "doc").absolute()
+    doc_dir = (Path(__file__).parents[2] / "doc" / "api").absolute()
     doc_file = doc_dir / "python_reference.rst"
     if not doc_file.is_file():
         pytest.skip("Documentation file not found: %s" % doc_file)
@@ -357,9 +355,9 @@ def test_docdict_order():
     from mne.utils.docs import docdict
 
     # read the file as text, and get entries via regex
-    docs_path = Path(__file__).parent.parent / "utils" / "docs.py"
+    docs_path = Path(__file__).parents[1] / "utils" / "docs.py"
     assert docs_path.is_file(), docs_path
-    with open(docs_path, "r", encoding="UTF-8") as fid:
+    with open(docs_path, encoding="UTF-8") as fid:
         docs = fid.read()
     entries = re.findall(r'docdict\[(?:\n    )?["\'](.+)["\']\n?\] = ', docs)
     # test length & uniqueness

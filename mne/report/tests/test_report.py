@@ -38,7 +38,7 @@ from mne.report.report import (
     CONTENT_ORDER,
     _webp_supported,
 )
-from mne.utils import Bunch
+from mne.utils import Bunch, _record_warnings
 from mne.utils._testing import assert_object_equal
 from mne.viz import plot_alignment
 
@@ -57,13 +57,9 @@ trans_fname = sample_meg_dir / "sample_audvis_trunc-trans.fif"
 inv_fname = sample_meg_dir / "sample_audvis_trunc-meg-eeg-oct-6-meg-inv.fif"
 stc_fname = sample_meg_dir / "sample_audvis_trunc-meg"
 mri_fname = subjects_dir / "sample" / "mri" / "T1.mgz"
-bdf_fname = (
-    Path(__file__).parent.parent.parent / "io" / "edf" / "tests" / "data" / "test.bdf"
-)
-edf_fname = (
-    Path(__file__).parent.parent.parent / "io" / "edf" / "tests" / "data" / "test.edf"
-)
-base_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
+bdf_fname = Path(__file__).parents[2] / "io" / "edf" / "tests" / "data" / "test.bdf"
+edf_fname = Path(__file__).parents[2] / "io" / "edf" / "tests" / "data" / "test.edf"
+base_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
 evoked_fname = base_dir / "test-ave.fif"
 nirs_fname = (
     data_dir / "SNIRF" / "NIRx" / "NIRSport2" / "1.0.3" / "2021-05-05_001.snirf"
@@ -1004,7 +1000,7 @@ def test_manual_report_2d(tmp_path, invisible_fig):
     for ch in evoked_no_ch_locs.info["chs"]:
         ch["loc"][:3] = np.nan
 
-    with pytest.warns(
+    with _record_warnings(), pytest.warns(
         RuntimeWarning, match="No EEG channel locations found, cannot create joint plot"
     ):
         r.add_evokeds(
@@ -1033,7 +1029,9 @@ def test_manual_report_2d(tmp_path, invisible_fig):
     for ch in ica_no_ch_locs.info["chs"]:
         ch["loc"][:3] = np.nan
 
-    with pytest.warns(RuntimeWarning, match="No Magnetometers channel locations"):
+    with _record_warnings(), pytest.warns(
+        RuntimeWarning, match="No Magnetometers channel locations"
+    ):
         r.add_ica(
             ica=ica_no_ch_locs, picks=[0], inst=raw.copy().load_data(), title="ICA"
         )
@@ -1057,7 +1055,9 @@ def test_manual_report_3d(tmp_path, renderer):
     add_kwargs = dict(
         trans=trans_fname, info=info, subject="sample", subjects_dir=subjects_dir
     )
-    with pytest.warns(RuntimeWarning, match="could not be calculated"):
+    with _record_warnings(), pytest.warns(
+        RuntimeWarning, match="could not be calculated"
+    ):
         r.add_trans(title="coreg no dig", **add_kwargs)
     with info._unlock():
         info["dig"] = dig

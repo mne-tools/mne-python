@@ -28,6 +28,10 @@ from ._logging import logger, verbose, warn
 from .check import _check_option, _validate_type
 
 
+def _identity_function(x):
+    return x
+
+
 # TODO: no longer needed when py3.9 is minimum supported version
 def _empty_hash(kind="md5"):
     func = getattr(hashlib, kind)
@@ -156,20 +160,7 @@ def run_subprocess(command, return_code=False, verbose=None, *args, **kwargs):
                     break
                 else:
                     out = out.decode("utf-8")
-                    # Strip newline at end of the string, otherwise we'll end
-                    # up with two subsequent newlines (as the logger adds one)
-                    #
-                    # XXX Once we drop support for Python <3.9, uncomment the
-                    # following line and remove the if/else block below.
-                    #
-                    # log_out = out.removesuffix('\n')
-                    if sys.version_info[:2] >= (3, 9):
-                        log_out = out.removesuffix("\n")
-                    elif out.endswith("\n"):
-                        log_out = out[:-1]
-                    else:
-                        log_out = out
-
+                    log_out = out.removesuffix("\n")
                     logger.info(log_out)
                     all_out += out
 
@@ -180,19 +171,7 @@ def run_subprocess(command, return_code=False, verbose=None, *args, **kwargs):
                     break
                 else:
                     err = err.decode("utf-8")
-                    # Strip newline at end of the string, otherwise we'll end
-                    # up with two subsequent newlines (as the logger adds one)
-                    #
-                    # XXX Once we drop support for Python <3.9, uncomment the
-                    # following line and remove the if/else block below.
-                    #
-                    # err_out = err.removesuffix('\n')
-                    if sys.version_info[:2] >= (3, 9):
-                        err_out = err.removesuffix("\n")
-                    elif err.endswith("\n"):
-                        err_out = err[:-1]
-                    else:
-                        err_out = err
+                    err_out = err.removesuffix("\n")
 
                     # Leave this as logger.warning rather than warn(...) to
                     # mirror the logger.info above for stdout. This function

@@ -31,7 +31,6 @@ from mne.commands import (
     mne_flash_bem,
     mne_kit2fiff,
     mne_make_scalp_surfaces,
-    mne_maxfilter,
     mne_prepare_bem_model,
     mne_report,
     mne_setup_forward_model,
@@ -44,7 +43,7 @@ from mne.commands import (
     mne_what,
 )
 from mne.datasets import testing
-from mne.io import read_info, read_raw_fif
+from mne.io import read_info, read_raw_fif, show_fiff
 from mne.utils import (
     ArgvSetter,
     _record_warnings,
@@ -101,13 +100,22 @@ def test_compare_fiff():
     check_usage(mne_compare_fiff)
 
 
-def test_show_fiff():
+def test_show_fiff(tmp_path):
     """Test mne compare_fiff."""
     check_usage(mne_show_fiff)
     with ArgvSetter((raw_fname,)):
         mne_show_fiff.run()
     with ArgvSetter((raw_fname, "--tag=102")):
         mne_show_fiff.run()
+    bad_fname = tmp_path / "test_bad_raw.fif"
+    with open(bad_fname, "wb") as fout:
+        with open(raw_fname, "rb") as fin:
+            fout.write(fin.read(100000))
+    with pytest.warns(RuntimeWarning, match="Invalid tag"):
+        lines = show_fiff(bad_fname, output=list)
+    last_line = lines[-1]
+    assert last_line.endswith(">>>>BAD @9015")
+    assert "302  = FIFF_EPOCH (734412b >f4)" in last_line
 
 
 @requires_mne
@@ -122,7 +130,7 @@ def test_clean_eog_ecg(tmp_path):
     with ArgvSetter(("-i", use_fname, "--quiet")):
         mne_clean_eog_ecg.run()
     for key, count in (("proj", 2), ("-eve", 3)):
-        fnames = glob.glob(op.join(tempdir, "*%s.fif" % key))
+        fnames = glob.glob(op.join(tempdir, f"*{key}.fif"))
         assert len(fnames) == count
 
 
@@ -206,32 +214,6 @@ def test_make_scalp_surfaces(tmp_path, monkeypatch):
         assert "SUBJECTS_DIR" not in os.environ
 
 
-def test_maxfilter():
-    """Test mne maxfilter."""
-    check_usage(mne_maxfilter)
-    with ArgvSetter(
-        (
-            "-i",
-            raw_fname,
-            "--st",
-            "--movecomp",
-            "--linefreq",
-            "60",
-            "--trans",
-            raw_fname,
-        )
-    ) as out:
-        with pytest.warns(RuntimeWarning, match="Don't use"):
-            os.environ["_MNE_MAXFILTER_TEST"] = "true"
-            try:
-                mne_maxfilter.run()
-            finally:
-                del os.environ["_MNE_MAXFILTER_TEST"]
-        out = out.stdout.getvalue()
-        for check in ("maxfilter", "-trans", "-movecomp"):
-            assert check in out, check
-
-
 @pytest.mark.slowtest
 @testing.requires_testing_data
 def test_report(tmp_path):
@@ -295,14 +277,14 @@ def test_watershed_bem(tmp_path):
             mne_watershed_bem.run()
     os.chmod(new_fname, old_mode)
     for s in ("outer_skin", "outer_skull", "inner_skull"):
-        assert not op.isfile(op.join(subject_path_new, "bem", "%s.surf" % s))
+        assert not op.isfile(op.join(subject_path_new, "bem", f"{s}.surf"))
     with ArgvSetter(args):
         mne_watershed_bem.run()
 
     kwargs = dict(rtol=1e-5, atol=1e-5)
     for s in ("outer_skin", "outer_skull", "inner_skull"):
         rr, tris, vol_info = read_surface(
-            op.join(subject_path_new, "bem", "%s.surf" % s), read_metadata=True
+            op.join(subject_path_new, "bem", f"{s}.surf"), read_metadata=True
         )
         assert_equal(len(tris), 20480)
         assert_equal(tris.min(), 0)
@@ -390,14 +372,12 @@ def test_flash_bem(tmp_path):
 
     kwargs = dict(rtol=1e-5, atol=1e-5)
     for s in ("outer_skin", "outer_skull", "inner_skull"):
-        rr, tris = read_surface(op.join(subject_path_new, "bem", "%s.surf" % s))
+        rr, tris = read_surface(op.join(subject_path_new, "bem", f"{s}.surf"))
         assert_equal(len(tris), 5120)
         assert_equal(tris.min(), 0)
         assert_equal(rr.shape[0], tris.max() + 1)
         # compare to the testing flash surfaces
-        rr_c, tris_c = read_surface(
-            op.join(subjects_dir, "sample", "bem", "%s.surf" % s)
-        )
+        rr_c, tris_c = read_surface(op.join(subjects_dir, "sample", "bem", f"{s}.surf"))
         assert_allclose(rr, rr_c, **kwargs)
         assert_allclose(tris, tris_c, **kwargs)
 

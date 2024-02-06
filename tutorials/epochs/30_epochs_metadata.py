@@ -116,14 +116,14 @@ print(epochs["Concreteness > 6 and WordFrequency < 1"])
 # MNE-Python will try the traditional method first before falling back on rich
 # metadata querying.
 
-epochs["solenoid"].compute_psd().plot(picks="data", exclude="bads")
+epochs["solenoid"].compute_psd().plot(picks="data", exclude="bads", amplitude=False)
 
 # %%
 # One use of the Pandas query string approach is to select specific words for
 # plotting:
 
 words = ["typhoon", "bungalow", "colossus", "drudgery", "linguist", "solenoid"]
-epochs["WORD in {}".format(words)].plot(n_channels=29, events=True)
+epochs[f"WORD in {words}"].plot(n_channels=29, events=True)
 
 # %%
 # Notice that in this dataset, each "condition" (A.K.A., each word) occurs only

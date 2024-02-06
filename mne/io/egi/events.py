@@ -7,9 +7,8 @@ from glob import glob
 from os.path import basename, join, splitext
 
 import numpy as np
-from defusedxml.ElementTree import parse
 
-from ...utils import logger
+from ...utils import _soft_import, logger
 
 
 def _read_events(input_fname, info):
@@ -82,7 +81,8 @@ def _read_mff_events(filename, sfreq):
 
 def _parse_xml(xml_file):
     """Parse XML file."""
-    xml = parse(xml_file)
+    defusedxml = _soft_import("defusedxml", "reading EGI MFF data")
+    xml = defusedxml.ElementTree.parse(xml_file)
     root = xml.getroot()
     return _xml2list(root)
 

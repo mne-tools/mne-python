@@ -68,13 +68,12 @@ def _check_color(color):
                 raise ValueError("Values out of range [0.0, 1.0].")
         else:
             raise TypeError(
-                "Expected data type is `np.int64`, `np.int32`, or "
-                "`np.float64` but {} was given.".format(np_color.dtype)
+                "Expected data type is `np.int64`, `np.int32`, or `np.float64` but "
+                f"{np_color.dtype} was given."
             )
     else:
         raise TypeError(
-            "Expected type is `str` or iterable but "
-            "{} was given.".format(type(color))
+            f"Expected type is `str` or iterable but {type(color)} was given."
         )
     return color
 
@@ -327,9 +326,7 @@ QToolBar::handle:vertical {
   height: 16px;
   image: url("%(icons_path)s/toolbar_move_vertical@2x.png");
 }
-""" % dict(
-                    icons_path=icons_path
-                )
+""" % dict(icons_path=icons_path)
         else:
             # Here we are on non-macOS (or on macOS but our sys theme does not
             # match the requested theme)
@@ -356,7 +353,7 @@ QToolBar::handle:vertical {
                     stylesheet = qdarkstyle.load_stylesheet(klass)
     else:
         try:
-            file = open(theme, "r")
+            file = open(theme)
         except OSError:
             warn(
                 "Requested theme file not found, will use light instead: "

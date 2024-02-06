@@ -66,7 +66,7 @@ fname_morph = subjects_dir / "sample" / "bem" / "sample-fsaverage-ico-5-src.fif"
 fname_src = data_path / "subjects" / "sample" / "bem" / "sample-oct-4-src.fif"
 fname_fwd = data_path / "MEG" / "sample" / "sample_audvis_trunc-meg-eeg-oct-4-fwd.fif"
 trans_fname = data_path / "MEG" / "sample" / "sample_audvis_trunc-trans.fif"
-base_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
+base_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
 fname_small = base_dir / "small-src.fif.gz"
 fname_ave = base_dir / "test-ave.fif"
 rng = np.random.RandomState(0)
@@ -699,7 +699,9 @@ def test_source_space_exclusive_complete(src_volume_labels):
     for si, s in enumerate(src):
         assert_allclose(src_full[0]["rr"], s["rr"], atol=1e-6)
     # also check single_volume=True -- should be the same result
-    with pytest.warns(RuntimeWarning, match="Found no usable.*Left-vessel.*"):
+    with _record_warnings(), pytest.warns(
+        RuntimeWarning, match="Found no usable.*Left-vessel.*"
+    ):
         src_single = setup_volume_source_space(
             src[0]["subject_his_id"],
             7.0,

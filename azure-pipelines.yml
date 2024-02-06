@@ -65,10 +65,6 @@ stages:
             displayName: make nesting
             condition: always()
           - bash: |
-              make check-manifest
-            displayName: make check-manifest
-            condition: always()
-          - bash: |
               make check-readme
             displayName: make check-readme
             condition: always()
@@ -108,7 +104,7 @@ stages:
           - bash: |
               set -e
               python -m pip install --progress-bar off --upgrade pip
-              python -m pip install --progress-bar off "mne-qt-browser[opengl] @ git+https://github.com/mne-tools/mne-qt-browser.git@main" pyvista scikit-learn pytest-error-for-skips python-picard "PyQt6!=6.5.1" "PyQt6-Qt6!=6.6.1" qtpy nibabel sphinx-gallery
+              python -m pip install --progress-bar off "mne-qt-browser[opengl] @ git+https://github.com/mne-tools/mne-qt-browser.git@main" pyvista scikit-learn pytest-error-for-skips python-picard "PyQt6!=6.5.1,!=6.6.1" "PyQt6-Qt6!=6.6.1" qtpy nibabel sphinx-gallery
               python -m pip uninstall -yq mne
               python -m pip install --progress-bar off --upgrade -e .[test]
             displayName: 'Install dependencies with pip'
@@ -187,7 +183,7 @@ stages:
             displayName: 'Get test data'
           - bash: |
               set -e
-              python -m pip install PyQt6 "PyQt6-Qt6!=6.6.1"
+              python -m pip install "PyQt6!=6.6.1" "PyQt6-Qt6!=6.6.1"
               LD_DEBUG=libs python -c "from PyQt6.QtWidgets import QApplication, QWidget; app = QApplication([]); import matplotlib; matplotlib.use('QtAgg'); import matplotlib.pyplot as plt; plt.figure()"
           - bash: |
               mne sys_info -pd

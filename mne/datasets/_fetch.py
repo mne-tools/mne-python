@@ -56,7 +56,7 @@ def fetch_dataset(
         What to do after downloading the file. ``"unzip"`` and ``"untar"`` will
         decompress the downloaded file in place; for custom extraction (e.g.,
         only extracting certain files from the archive) pass an instance of
-        :class:`pooch.Unzip` or :class:`pooch.Untar`. If ``None`` (the
+        ``pooch.Unzip`` or ``pooch.Untar``. If ``None`` (the
         default), the files are left as-is.
     path : None | str
         Directory in which to put the dataset. If ``None``, the dataset
@@ -87,10 +87,10 @@ def fetch_dataset(
         Default is ``False``.
     auth : tuple | None
         Optional authentication tuple containing the username and
-        password/token, passed to :class:`pooch.HTTPDownloader` (e.g.,
+        password/token, passed to ``pooch.HTTPDownloader`` (e.g.,
         ``auth=('foo', 012345)``).
     token : str | None
-        Optional authentication token passed to :class:`pooch.HTTPDownloader`.
+        Optional authentication token passed to ``pooch.HTTPDownloader``.
 
     Returns
     -------
