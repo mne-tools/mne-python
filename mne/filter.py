@@ -2513,10 +2513,9 @@ class FilterMixin:
 
             https://gist.github.com/larsoner/bbac101d50176611136b
 
-        .. versionadded:: 0.9.0
-
         When working on SourceEstimates the sample rate of the original data is inferred from tstep.
 
+        .. versionadded:: 0.9.0
         References
         ----------
         .. footbibliography::
