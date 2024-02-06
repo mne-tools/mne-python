@@ -285,7 +285,7 @@ def read_epochs_cnt(
     header="auto",
     verbose=None,
 ) -> "RawCNT":
-    r"""Reader function for Neuroscan ``.eeg`` epochs files.
+    """Reader function for Neuroscan ``.eeg`` epochs files.
 
     Parameters
     ----------
@@ -343,7 +343,14 @@ def read_epochs_cnt(
     return epochs
 
 
-def read_evoked_cnt(fname, info, comment=None):
+def read_evoked_cnt(
+    input_fname,
+    data_format,
+    date_format,
+    header,
+    info=None,
+    comment=None,
+):
     """Load evoked data from a Neuroscan .avg timelocked structure.
 
     This function expects to find timelocked data in the structure data_name is
@@ -372,6 +379,7 @@ def read_evoked_cnt(fname, info, comment=None):
     evoked : instance of EvokedArray
         An EvokedArray containing the loaded data.
     """
+    eog, ecg, emg, misc = (), (), (), ()
     info, cnt_info = _get_cnt_info(
         input_fname,
         eog,
@@ -926,6 +934,7 @@ class EpochsCNT(BaseEpochs):
         # number of points per epoch
         n_pnts = cnt_info["n_pnts"]
         n_channels = cnt_info["orig_nchan"]
+        # calibration factors
         cals = [d["cal"] for d in info["chs"]]
 
         data = np.empty((n_epochs, n_channels, n_pnts), dtype=float)
@@ -976,6 +985,7 @@ class EpochsCNT(BaseEpochs):
         cnt_info = self._raw_extras[0]
         sfreq = self.info["sfreq"]
         tmin = cnt_info["tmin"]
+        tmax = cnt_info["tmax"]
         tmax = ((data.shape[2] - 1) / self.info["sfreq"]) + tmin
         event_time = np.arange(0, len(epoch_headers)) * np.ceil(
             (tmax - tmin) * sfreq
