@@ -911,7 +911,7 @@ def test_hilbert():
     epochs.load_data()
     evoked = epochs.average()
     # Create SourceEstimate stc data
-    verts = [np.arange(10), np.arange(90)] 
+    verts = [np.arange(10), np.arange(90)]
     data = np.random.default_rng(0).normal(size=(100, 10))
     stc = SourceEstimate(data, verts, 0, 1e-1, "foo")
 
