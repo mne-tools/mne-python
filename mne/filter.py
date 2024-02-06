@@ -2516,6 +2516,7 @@ class FilterMixin:
         When working on SourceEstimates the sample rate of the original data is inferred from tstep.
 
         .. versionadded:: 0.9.0
+
         References
         ----------
         .. footbibliography::
