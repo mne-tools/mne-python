@@ -1552,7 +1552,7 @@ docdict["fun_applyfun_evoked"] = applyfun_fun_base.format(
     " because it will apply channel-wise"
 )
 docdict["fun_applyfun_stc"] = applyfun_fun_base.format(
-    " because it will apply vertices-wise"
+    " because it will apply vertex-wise"
 )
 
 docdict["fwd"] = """
