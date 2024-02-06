@@ -241,13 +241,12 @@ raw_bip_ref.plot()
 # the source modeling is performed. In contrast, applying an average reference
 # by the traditional subtraction method offers no such guarantee.
 #
-# !!! warning
-# For these reasons, when performing inverse imaging, MNE-Python will raise
-# a ``ValueError`` if there are EEG channels present and something other than
-# an average reference projector strategy has been specified. To ensure
-# correct functioning consider calling
-# :meth:`~mne.io.Raw.set_eeg_reference(projection=True)` to add an average
-# reference projector.
+# .. important:: For these reasons, when performing inverse imaging, MNE-Python
+#                will raise a ``ValueError`` if there are EEG channels present
+#                and something other than an average reference projector strategy
+#                has been specified. To ensure correct functioning consider
+#                calling :meth:`~mne.io.Raw.set_eeg_reference` with
+#                ``(projection=True)`` to add an average reference projector.
 #
 # .. LINKS
 #
