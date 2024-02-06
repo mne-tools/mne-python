@@ -199,6 +199,7 @@ def pytest_configure(config):
     ignore:Python 3\.14 will, by default, filter extracted tar archives.*:DeprecationWarning
     # pandas
     ignore:\n*Pyarrow will become a required dependency of pandas.*:DeprecationWarning
+    ignore:np\.find_common_type is deprecated.*:DeprecationWarning
     # pyvista <-> NumPy 2.0
     ignore:__array_wrap__ must accept context and return_scalar arguments.*:DeprecationWarning
     """  # noqa: E501
