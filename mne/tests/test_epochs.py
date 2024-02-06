@@ -4764,6 +4764,39 @@ def test_apply_function():
     assert_array_equal(out.get_data(non_picks), epochs.get_data(non_picks))
 
 
+def test_apply_function_epo_ch_access():
+    """Test ch-access within apply function to epoch objects."""
+
+    def _bad_ch_idx(x, ch_idx):
+        assert x.shape == (46,)
+        assert x[0] == ch_idx
+        return x
+
+    def _bad_ch_name(x, ch_name):
+        assert x.shape == (46,)
+        assert isinstance(ch_name, str)
+        assert x[0] == float(ch_name)
+        return x
+
+    data = np.full((2, 100), np.arange(2).reshape(-1, 1))
+    raw = RawArray(data, create_info(2, 1.0, "mag"))
+    ev = np.array([[0, 0, 33], [50, 0, 33]])
+    ep = Epochs(raw, ev, tmin=0, tmax=45, baseline=None, preload=True)
+
+    # test ch_idx access in both code paths (parallel / 1 job)
+    ep.apply_function(_bad_ch_idx)
+    ep.apply_function(_bad_ch_idx, n_jobs=2)
+    ep.apply_function(_bad_ch_name)
+    ep.apply_function(_bad_ch_name, n_jobs=2)
+
+    # test input catches
+    with pytest.raises(
+        ValueError,
+        match="cannot access.*when channel_wise=False",
+    ):
+        ep.apply_function(_bad_ch_idx, channel_wise=False)
+
+
 @testing.requires_testing_data
 def test_add_channels_picks():
     """Check that add_channels properly deals with picks."""

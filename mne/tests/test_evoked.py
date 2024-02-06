@@ -959,3 +959,33 @@ def test_apply_function_evk():
     applied = evoked.apply_function(fun, n_jobs=None, multiplier=mult)
     assert np.shape(applied.data) == np.shape(evoked_data)
     assert np.equal(applied.data, evoked_data * mult).all()
+
+
+def test_apply_function_evk_ch_access():
+    """Check ch-access within the apply_function method for evoked data."""
+
+    def _bad_ch_idx(x, ch_idx):
+        assert x[0] == ch_idx
+        return x
+
+    def _bad_ch_name(x, ch_name):
+        assert isinstance(ch_name, str)
+        assert x[0] == float(ch_name)
+        return x
+
+    # create fake evoked data to use for checking apply_function
+    data = np.full((2, 100), np.arange(2).reshape(-1, 1))
+    evoked = EvokedArray(data, create_info(2, 1000.0, "eeg"))
+
+    # test ch_idx access in both code paths (parallel / 1 job)
+    evoked.apply_function(_bad_ch_idx)
+    evoked.apply_function(_bad_ch_idx, n_jobs=2)
+    evoked.apply_function(_bad_ch_name)
+    evoked.apply_function(_bad_ch_name, n_jobs=2)
+
+    # test input catches
+    with pytest.raises(
+        ValueError,
+        match="cannot access.*when channel_wise=False",
+    ):
+        evoked.apply_function(_bad_ch_idx, channel_wise=False)
