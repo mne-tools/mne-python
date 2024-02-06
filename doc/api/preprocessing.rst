@@ -162,6 +162,8 @@ Projections:
    Calibration
    read_eyelink_calibration
    set_channel_types_eyetrack
+   convert_units
+   get_screen_visual_angle
    interpolate_blinks
 
 EEG referencing:
