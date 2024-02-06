@@ -181,6 +181,10 @@ def convert_units(inst, calibration, to="radians"):
         They will be shown  correctly in :func:`mne.viz.eyetracking.plot_gaze`.
         See :gh:`11879` for more information.
 
+    .. Important::
+       There are important considerations to keep in mind when using this function,
+       see the Notes section below.
+
     Parameters
     ----------
     inst : instance of Raw, Epochs, or Evoked
@@ -199,20 +203,19 @@ def convert_units(inst, calibration, to="radians"):
 
     Notes
     -----
-    .. Important:: There are important considerations to keep in mind when using this
-                   function:
+    There are at least two important considerations to keep in mind when using this
+    function:
 
-                   * Converting between on-screen pixels and visual angle is not a
-                     linear transformation. If the visual angle subtends less than
-                     approximately ``.44`` radians (``25`` degrees), the conversion
-                     could be considered to be approximately linear. However, as the
-                     visual angle increases, the conversion becomes increasingly
-                     non-linear. This may lead to unexpected results after converting
-                     between pixels and visual angle.
+    1. Converting between on-screen pixels and visual angle is not a linear
+       transformation. If the visual angle subtends less than approximately ``.44``
+       radians (``25`` degrees), the conversion could be considered to be approximately
+       linear. However, as the visual angle increases, the conversion becomes
+       increasingly non-linear. This may lead to unexpected results after converting
+       between pixels and visual angle.
 
-                   * This function assumes that the head is fixed in place and aligned
-                     with the center of the screen, such that gaze to the center of the
-                     screen results in a visual angle of ``0`` radians.
+    * This function assumes that the head is fixed in place and aligned with the center
+      of the screen, such that gaze to the center of the screen results in a visual
+      angle of ``0`` radians.
 
     .. versionadded:: 1.7
     """
@@ -229,43 +232,40 @@ def convert_units(inst, calibration, to="radians"):
     # loop through channels and convert units
     converted_chs = []
     for ch_dict in inst.info["chs"]:
-        if ch_dict["coil_type"] == FIFF.FIFFV_COIL_EYETRACK_POS:
-            unit = ch_dict["unit"]
-            name = ch_dict["ch_name"]
+        if ch_dict["coil_type"] != FIFF.FIFFV_COIL_EYETRACK_POS:
+            continue
+        unit = ch_dict["unit"]
+        name = ch_dict["ch_name"]
 
-            if ch_dict["loc"][4] == -1:  # x-coordinate
-                size = screen_size[0]
-                res = screen_resolution[0]
-            elif ch_dict["loc"][4] == 1:  # y-coordinate
-                size = screen_size[1]
-                res = screen_resolution[1]
-            else:
+        if ch_dict["loc"][4] == -1:  # x-coordinate
+            size = screen_size[0]
+            res = screen_resolution[0]
+        elif ch_dict["loc"][4] == 1:  # y-coordinate
+            size = screen_size[1]
+            res = screen_resolution[1]
+        else:
+            raise ValueError(
+                f"loc array not set properly for channel '{name}'. Index 4 should"
+                f"  be -1 or 1, but got {ch_dict['loc'][4]}"
+            )
+        # check unit, convert, and set new unit
+        if to == "radians":
+            if unit != FIFF.FIFF_UNIT_PX:
                 raise ValueError(
-                    f"loc array not set properly for channel '{name}'. Index 4 should"
-                    f"  be -1 or 1, but got {ch_dict['loc'][4]}"
+                    f"Data must be in pixels in order to convert to radians."
+                    f" Got {unit} for {name}"
                 )
-            # check unit, convert, and set new unit
-            if to == "radians":
-                if unit != FIFF.FIFF_UNIT_PX:
-                    raise ValueError(
-                        f"Data must be in pixels in order to convert to radians."
-                        f" Got {unit} for {name}"
-                    )
-                inst.apply_function(
-                    _pix_to_rad, picks=name, size=size, res=res, dist=dist
+            inst.apply_function(_pix_to_rad, picks=name, size=size, res=res, dist=dist)
+            ch_dict["unit"] = FIFF.FIFF_UNIT_RAD
+        elif to == "pixels":
+            if unit != FIFF.FIFF_UNIT_RAD:
+                raise ValueError(
+                    f"Data must be in radians in order to convert to pixels."
+                    f" Got {unit} for {name}"
                 )
-                ch_dict["unit"] = FIFF.FIFF_UNIT_RAD
-            elif to == "pixels":
-                if unit != FIFF.FIFF_UNIT_RAD:
-                    raise ValueError(
-                        f"Data must be in radians in order to convert to pixels."
-                        f" Got {unit} for {name}"
-                    )
-                inst.apply_function(
-                    _rad_to_pix, picks=name, size=size, res=res, dist=dist
-                )
-                ch_dict["unit"] = FIFF.FIFF_UNIT_PX
-            converted_chs.append(name)
+            inst.apply_function(_rad_to_pix, picks=name, size=size, res=res, dist=dist)
+            ch_dict["unit"] = FIFF.FIFF_UNIT_PX
+        converted_chs.append(name)
     if converted_chs:
         logger.info(f"Converted {converted_chs} to {to}.")
         if to == "radians":
