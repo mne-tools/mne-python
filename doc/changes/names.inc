@@ -390,6 +390,8 @@
 
 .. _Motofumi Fushimi: https://github.com/motofumi-fushimi/motofumi-fushimi.github.io
 
+.. _Nabil Alibou: https://github.com/nabilalibou
+
 .. _Natalie Klein: https://github.com/natalieklein
 
 .. _Nathalie Gayraud: https://github.com/ngayraud

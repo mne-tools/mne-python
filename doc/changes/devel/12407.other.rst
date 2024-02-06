@@ -1,0 +1,1 @@
+Clarify in the 55_setting_eeg_reference tutorial that inverse modeling needs an average reference projector ready to not raise an error, , by :newcontrib:`Nabil Alibou`
