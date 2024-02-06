@@ -245,8 +245,9 @@ raw_bip_ref.plot()
 #                will raise a ``ValueError`` if there are EEG channels present
 #                and something other than an average reference projector strategy
 #                has been specified. To ensure correct functioning consider
-#                calling :meth:`~mne.io.Raw.set_eeg_reference` with
-#                ``(projection=True)`` to add an average reference projector.
+#                calling :meth:`set_eeg_reference(projection=True)
+#                <mne.io.Raw.set_eeg_reference>` to add an average
+#                reference as a projector.
 #
 # .. LINKS
 #
