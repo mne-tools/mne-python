@@ -1778,6 +1778,7 @@ def test_stc_near_sensors(tmp_path):
     log = log.getvalue()
     assert "4157 volume vertices" in log
 
+
 @testing.requires_testing_data
 def test_stc_near_sensors_picks():
     """Test using picks with stc_near_sensors."""
