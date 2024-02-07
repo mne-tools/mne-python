@@ -74,7 +74,7 @@
 
 .. _Carlos de la Torre-Ortiz: https://ctorre.me
 
-.. _Carina Forster: https://github.com/carinafo
+.. _Carina Forster: https://github.com/CarinaFo
 
 .. _Cathy Nangini: https://github.com/KatiRG
 
