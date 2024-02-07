@@ -23,6 +23,7 @@ Version 1.6.dev0 (development)
 
 Enhancements
 ~~~~~~~~~~~~
+- Add equalize_event_counts method to :class:`mne.EpochsTFR` (:gh:`11776` by `Carina Forster`_)
 - Add support for Neuralynx data files with ``mne.io.read_raw_neuralynx`` (:gh:`11969` by :newcontrib:`Kristijan Armeni` and :newcontrib:`Ivan Skelin`)
 - Improve tests for saving splits with :class:`mne.Epochs` (:gh:`11884` by `Dmitrii Altukhov`_)
 - Added functionality for linking interactive figures together, such that changing one figure will affect another, see :ref:`tut-ui-events` and :mod:`mne.viz.ui_events`. Current figures implementing UI events are :func:`mne.viz.plot_topomap` and :func:`mne.viz.plot_source_estimates` (:gh:`11685` :gh:`11891` by `Marijn van Vliet`_)
