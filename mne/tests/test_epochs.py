@@ -2823,9 +2823,7 @@ def test_epoch_eq():
     )
     assert epochs_2.drop_log == ((),) * len(epochs_2.events)
     # test mintime method
-    events_1[
-        -1, 0
-    ] += 60  # hack to ensure mintime drops something other than the last trial
+    events_1[-1, 0] += 60  # hack: ensure mintime drops something other than last trial
     # now run equalize_epoch_counts with mintime method
     equalize_epoch_counts([epochs_1, epochs_2], method="mintime")
     # mintime method should give us the smallest difference between timings of epochs
@@ -2841,7 +2839,6 @@ def test_epoch_eq():
         # get from our deletion of row `idx` from events_2
         latencies = epochs_1.events[:, 0] - test_events[:, 0]
         got_mintime = np.sum(np.abs(latencies))
-        print(f"{got_mintime} >= {alleged_mintime}")
         assert got_mintime >= alleged_mintime
     # make sure the number of events is equal
     assert_equal(epochs_1.events.shape[0], epochs_2.events.shape[0])
