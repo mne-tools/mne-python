@@ -24,7 +24,7 @@ Version 1.7.dev0 (development)
 Enhancements
 ~~~~~~~~~~~~
 - Speed up export to .edf in :func:`mne.export.export_raw` by using ``edfio`` instead of ``EDFlib-Python`` (:gh:`12218` by :newcontrib:`Florian Hofer`)
-- Allow :class:`EpochsTFR` as input to :func:`mne.epoch.Epochs.equalize_epoch_counts` (:gh:`11776` by `Carina Forster`_)
+- Allow :class:`EpochsTFR` as input to :func:`mne.epoch.Epochs.equalize_epoch_counts` (:gh:`11776`, :gh: `12207` by `Carina Forster`_)
 
 Bugs
 ~~~~
