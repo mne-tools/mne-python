@@ -1,1 +1,1 @@
-Fix bad channels not handled properly in :func:`mne.stc_near_sensors` as well as default ``surface`` handling for :class:`mne.VolSourceEstimate` inputs as ``src``, by `Alex Rockhill`_.
+Fix bad channels not handled properly in :func:`mne.stc_near_sensors` by `Alex Rockhill`_.

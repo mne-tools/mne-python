@@ -1668,9 +1668,6 @@ def test_vol_mask():
 @testing.requires_testing_data
 def test_stc_near_sensors(tmp_path):
     """Test stc_near_sensors."""
-    import pdb
-
-    pdb.set_trace()
     info = read_info(fname_evoked)
     # pick the left EEG sensors
     picks = pick_types(info, meg=False, eeg=True, exclude=())
@@ -1716,7 +1713,8 @@ def test_stc_near_sensors(tmp_path):
     for s in src:
         transform_surface_to(s, "head", trans, copy=False)
     assert src[0]["coord_frame"] == FIFF.FIFFV_COORD_HEAD
-    stc_src = stc_near_sensors(evoked, src=src, **kwargs)
+    with pytest.warns(DeprecationWarning, match="instead of the pial"):
+        stc_src = stc_near_sensors(evoked, src=src, **kwargs)
     assert len(stc_src.data) == 7928
     with pytest.warns(RuntimeWarning, match="not included"):  # some removed
         stc_src_full = compute_source_morph(
@@ -1780,7 +1778,6 @@ def test_stc_near_sensors(tmp_path):
     log = log.getvalue()
     assert "4157 volume vertices" in log
 
-
 @testing.requires_testing_data
 def test_stc_near_sensors_picks():
     """Test using picks with stc_near_sensors."""
@@ -1814,10 +1811,6 @@ def test_stc_near_sensors_picks():
     data = data[data > 0]
     assert len(data) == n_pts
     assert_array_equal(data, 1.0)  # values preserved
-
-    with pytest.warns(DeprecationWarning, match="instead of the pial"):
-        with pytest.raises(FileNotFoundError):
-            stc_near_sensors(picks=picks, **dict(kwargs, surface="auto"))
 
 
 def _make_morph_map_hemi_same(subject_from, subject_to, subjects_dir, reg_from, reg_to):
