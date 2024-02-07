@@ -168,7 +168,7 @@ class RawSNIRF(BaseRaw):
                         for c in channels
                     ]
                 )
-                sources = [f"S{int(s)}" for s in sources]
+                sources = {int(s): f"S{int(s)}" for s in sources}
 
             if "detectorLabels_disabled" in dat["nirs/probe"]:
                 # This is disabled as
@@ -185,7 +185,7 @@ class RawSNIRF(BaseRaw):
                         for c in channels
                     ]
                 )
-                detectors = [f"D{int(d)}" for d in detectors]
+                detectors = {int(d): f"D{int(d)}" for d in detectors}
 
             # Extract source and detector locations
             # 3D positions are optional in SNIRF,
@@ -224,8 +224,6 @@ class RawSNIRF(BaseRaw):
                     "location information"
                 )
 
-            assert len(sources) == srcPos3D.shape[0]
-            assert len(detectors) == detPos3D.shape[0]
 
             chnames = []
             ch_types = []
@@ -248,9 +246,9 @@ class RawSNIRF(BaseRaw):
                         )[0]
                     )
                     ch_name = (
-                        sources[src_idx - 1]
+                        sources[src_idx]
                         + "_"
-                        + detectors[det_idx - 1]
+                        + detectors[det_idx]
                         + " "
                         + str(fnirs_wavelengths[wve_idx - 1])
                     )
@@ -265,7 +263,7 @@ class RawSNIRF(BaseRaw):
                     # Convert between SNIRF processed names and MNE type names
                     dt_id = dt_id.lower().replace("dod", "fnirs_od")
 
-                    ch_name = sources[src_idx - 1] + "_" + detectors[det_idx - 1]
+                    ch_name = sources[src_idx] + "_" + detectors[det_idx]
 
                     if dt_id == "fnirs_od":
                         wve_idx = int(
