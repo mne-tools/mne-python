@@ -101,3 +101,4 @@ venv/
 .hypothesis/
 .ruff_cache/
 .ipynb_checkpoints/
+mne/test_JAW.ipynb
