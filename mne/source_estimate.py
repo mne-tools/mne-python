@@ -3781,7 +3781,7 @@ def stc_near_sensors(
     subjects_dir=None,
     src=None,
     picks=None,
-    surface=None,
+    surface="auto",
     verbose=None,
 ):
     """Create a STC from ECoG, sEEG and DBS sensor data.
@@ -3876,7 +3876,20 @@ def stc_near_sensors(
     _validate_type(mode, str, "mode")
     _validate_type(src, (None, SourceSpaces), "src")
     _check_option("mode", mode, ("sum", "single", "nearest", "weighted"))
-    if src is None and surface is None:
+    if surface == "auto":
+        if src is not None:
+            pial_fname = op.join(subjects_dir, subject, "surf", "lh.pial")
+            src_surf_is_pial = op.isfile(pial_fname) and np.allclose(
+                src[0]["rr"], read_surface(pial_fname)[0]
+            )
+            if not src_surf_is_pial:
+                warn(
+                    "In version 1.8, ``surface='auto'`` will be the default "
+                    "which will use the surface in ``src`` instead of the "
+                    "pial surface when ``src != None``. Pass ``surface='pial'`` "
+                    "or ``surface=None`` to suppress this warning",
+                    DeprecationWarning,
+                )
         surface = "pial"
 
     # create a copy of Evoked using ecog, seeg and dbs

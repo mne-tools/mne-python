@@ -1668,6 +1668,9 @@ def test_vol_mask():
 @testing.requires_testing_data
 def test_stc_near_sensors(tmp_path):
     """Test stc_near_sensors."""
+    import pdb
+
+    pdb.set_trace()
     info = read_info(fname_evoked)
     # pick the left EEG sensors
     picks = pick_types(info, meg=False, eeg=True, exclude=())
@@ -1811,6 +1814,10 @@ def test_stc_near_sensors_picks():
     data = data[data > 0]
     assert len(data) == n_pts
     assert_array_equal(data, 1.0)  # values preserved
+
+    with pytest.warns(DeprecationWarning, match="instead of the pial"):
+        with pytest.raises(FileNotFoundError):
+            stc_near_sensors(picks=picks, **dict(kwargs, surface="auto"))
 
 
 def _make_morph_map_hemi_same(subject_from, subject_to, subjects_dir, reg_from, reg_to):
