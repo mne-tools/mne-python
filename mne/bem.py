@@ -4,6 +4,7 @@
 #          Lorenzo De Santis <lorenzo.de-santis@u-psud.fr>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # The computations in this code were primarily derived from Matti Hämäläinen's
 # C code.
@@ -414,8 +415,8 @@ def make_bem_solution(surfs, *, solver="mne", verbose=None):
     surfs : list of dict
         The BEM surfaces to use (from :func:`mne.make_bem_model`).
     solver : str
-        Can be ``'mne'`` (default) to use MNE-Python, or ``'openmeeg'`` to use
-        the :doc:`OpenMEEG <openmeeg:index>` package.
+        Can be ``'mne'`` (default) to use MNE-Python, or ``'openmeeg'`` to use the
+        `OpenMEEG <https://openmeeg.github.io>`__ package.
 
         .. versionadded:: 1.2
     %(verbose)s

@@ -8,6 +8,7 @@ RawKIT class is adapted from Denis Engemann et al.'s mne_bti2fiff.py.
 #          Christian Brodbeck <christianbrodbeck@nyu.edu>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from collections import OrderedDict, defaultdict
 from math import cos, sin

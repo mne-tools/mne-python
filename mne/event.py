@@ -6,6 +6,7 @@
 #          Clement Moutard <clement.moutard@polytechnique.org>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from collections.abc import Sequence
 from pathlib import Path

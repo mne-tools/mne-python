@@ -16,6 +16,7 @@ artifacts of this kind are much more pronounced in EEG than they are in MEG.
 # Authors: Alex Rockhill <aprockhill@mailbox.org>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 

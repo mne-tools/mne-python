@@ -2,6 +2,7 @@
 #          Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from pathlib import Path
 from shutil import copytree
@@ -65,7 +66,7 @@ fname_morph = subjects_dir / "sample" / "bem" / "sample-fsaverage-ico-5-src.fif"
 fname_src = data_path / "subjects" / "sample" / "bem" / "sample-oct-4-src.fif"
 fname_fwd = data_path / "MEG" / "sample" / "sample_audvis_trunc-meg-eeg-oct-4-fwd.fif"
 trans_fname = data_path / "MEG" / "sample" / "sample_audvis_trunc-trans.fif"
-base_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
+base_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
 fname_small = base_dir / "small-src.fif.gz"
 fname_ave = base_dir / "test-ave.fif"
 rng = np.random.RandomState(0)

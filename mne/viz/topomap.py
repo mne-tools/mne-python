@@ -8,7 +8,8 @@
 #          Mikołaj Magnuski <mmagnuski@swps.edu.pl>
 #          Marijn van Vliet <w.m.vanvliet@gmail.com>
 #
-# License: Simplified BSD
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import copy
 import itertools
@@ -375,8 +376,7 @@ def plot_projs_topomap(
     %(info_not_none)s Must be associated with the channels in the projectors.
 
         .. versionchanged:: 0.20
-            The positional argument ``layout`` was deprecated and replaced
-            by ``info``.
+            The positional argument ``layout`` was replaced by ``info``.
     %(sensors_topomap)s
     %(show_names_topomap)s
 

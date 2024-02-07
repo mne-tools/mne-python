@@ -11,6 +11,8 @@ For a comparison of fits between MNE-C and MNE-Python, see
 `this gist <https://gist.github.com/larsoner/ca55f791200fe1dc3dd2>`__.
 """
 
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 # %%
 
 import matplotlib.pyplot as plt

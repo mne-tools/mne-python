@@ -10,6 +10,8 @@ Examples
 """
 
 # Authors : Alexandre Gramfort, Ph.D.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import sys
 

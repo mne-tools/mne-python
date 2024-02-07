@@ -1,6 +1,7 @@
 # Authors: Chris Holdgraf <choldgraf@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from pathlib import Path
 
@@ -19,7 +20,7 @@ from mne.decoding.receptive_field import (
 )
 from mne.decoding.time_delaying_ridge import _compute_corrs, _compute_reg_neighbors
 
-data_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
+data_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
 raw_fname = data_dir / "test_raw.fif"
 event_name = data_dir / "test-eve.fif"
 

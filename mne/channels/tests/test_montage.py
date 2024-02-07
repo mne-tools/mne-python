@@ -2,6 +2,7 @@
 #         Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import shutil
 from contextlib import nullcontext
@@ -94,7 +95,7 @@ fnirs_dname = data_path / "NIRx" / "nirscout" / "nirx_15_2_recording_w_short"
 mgh70_fname = data_path / "SSS" / "mgh70_raw.fif"
 subjects_dir = data_path / "subjects"
 
-io_dir = Path(__file__).parent.parent.parent / "io"
+io_dir = Path(__file__).parents[2] / "io"
 kit_dir = io_dir / "kit" / "tests" / "data"
 elp = kit_dir / "test_elp.txt"
 hsp = kit_dir / "test_hsp.txt"

@@ -10,6 +10,8 @@ desired location(s) in a :class:`mne.SourceEstimate` and then corrupt the
 signal with point-spread by applying a forward and inverse solution.
 """
 
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 # %%
 
 import numpy as np

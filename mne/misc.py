@@ -2,6 +2,7 @@
 #          Scott Burns <sburns@nmr.mgh.harvard.edu>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 
 def parse_config(fname):

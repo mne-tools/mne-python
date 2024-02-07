@@ -2,6 +2,7 @@
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import inspect
 import os
@@ -1192,7 +1193,7 @@ docdict[
 Valid values for ``mode`` are:
 
 - ``'max'``
-    Maximum value across vertices at each time point within each label.
+    Maximum absolute value across vertices at each time point within each label.
 - ``'mean'``
     Average across vertices at each time point within each label. Ignores
     orientation of sources for standard source estimates, which varies
@@ -1202,7 +1203,7 @@ Valid values for ``mode`` are:
 - ``'mean_flip'``
     Finds the dominant direction of source space normal vector orientations
     within each label, applies a sign-flip to time series at vertices whose
-    orientation is more than 180° different from the dominant direction, and
+    orientation is more than 90° different from the dominant direction, and
     then averages across vertices at each time point within each label.
 - ``'pca_flip'``
     Applies singular value decomposition to the time courses within each label,
@@ -1462,7 +1463,7 @@ docdict[
 Supported formats:
     - BrainVision (``.vhdr``, ``.vmrk``, ``.eeg``, uses `pybv <https://github.com/bids-standard/pybv>`_)
     - EEGLAB (``.set``, uses :mod:`eeglabio`)
-    - EDF (``.edf``, uses `EDFlib-Python <https://gitlab.com/Teuniz/EDFlib-Python>`_)
+    - EDF (``.edf``, uses `edfio <https://github.com/the-siesta-group/edfio>`_)
 """  # noqa: E501
 
 docdict[
@@ -4531,7 +4532,7 @@ _theme = """\
 theme : str | path-like
     Can be "auto", "light", or "dark" or a path-like to a
     custom stylesheet. For Dark-Mode and automatic Dark-Mode-Detection,
-    :mod:`qdarkstyle` and
+    `qdarkstyle <https://github.com/ColinDuquesnoy/QDarkStyleSheet>`__ and
     `darkdetect <https://github.com/albertosottile/darkdetect>`__,
     respectively, are required.\
     If None (default), the config option {config_option} will be used,

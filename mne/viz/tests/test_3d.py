@@ -5,7 +5,8 @@
 #          Mainak Jas <mainak@neuro.hut.fi>
 #          Mark Wronkiewicz <wronk.mark@gmail.com>
 #
-# License: Simplified BSD
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from pathlib import Path
 
@@ -65,7 +66,7 @@ dip_fname = data_dir / "MEG" / "sample" / "sample_audvis_trunc_set1.dip"
 ctf_fname = data_dir / "CTF" / "testdata_ctf.ds"
 nirx_fname = data_dir / "NIRx" / "nirscout" / "nirx_15_2_recording_w_short"
 
-io_dir = Path(__file__).parent.parent.parent / "io"
+io_dir = Path(__file__).parents[2] / "io"
 base_dir = io_dir / "tests" / "data"
 evoked_fname = base_dir / "test-ave.fif"
 

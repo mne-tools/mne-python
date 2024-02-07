@@ -2,6 +2,7 @@
 #         Denis A. Engemann <denis.engemann@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import hashlib
 from copy import deepcopy
@@ -53,7 +54,7 @@ from mne.io import (
 from mne.parallel import parallel_func
 from mne.utils import requires_good_network
 
-io_dir = Path(__file__).parent.parent.parent / "io"
+io_dir = Path(__file__).parents[2] / "io"
 base_dir = io_dir / "tests" / "data"
 raw_fname = base_dir / "test_raw.fif"
 eve_fname = base_dir / "test-eve.fif"

@@ -8,7 +8,7 @@ authors = [
 maintainers = [{ name = "Dan McCloy", email = "dan@mccloy.info" }]
 license = { text = "BSD-3-Clause" }
 readme = { file = "README.rst", content-type = "text/x-rst" }
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 keywords = [
     "neuroscience",
     "neuroimaging",
@@ -41,7 +41,6 @@ dependencies = [
     "decorator",
     "packaging",
     "jinja2",
-    "importlib_resources>=5.10.2; python_version<'3.9'",
     "lazy_loader>=0.3",
     "defusedxml",
 ]
@@ -60,7 +59,8 @@ hdf5 = ["h5io", "pymatreader"]
 full = [
     "mne[hdf5]",
     "qtpy",
-    "PyQt6",
+    "PyQt6!=6.6.1",
+    "PyQt6-Qt6!=6.6.1",
     "pyobjc-framework-Cocoa>=5.2.0; platform_system=='Darwin'",
     "sip",
     "scikit-learn",
@@ -93,8 +93,13 @@ full = [
     "trame-vuetify",
     "mne-qt-browser",
     "darkdetect",
-    "qdarkstyle",
+    "qdarkstyle!=3.2.2",
     "threadpoolctl",
+    # duplicated in test_extra:
+    "eeglabio",
+    "edfio>=0.2.1",
+    "pybv",
+    "snirf",
 ]
 
 # Dependencies for running the test infrastructure
@@ -122,7 +127,7 @@ test_extra = [
     "nbclient",
     "sphinx-gallery",
     "eeglabio",
-    "EDFlib-Python",
+    "edfio>=0.2.1",
     "pybv",
     "imageio>=2.6.1",
     "imageio-ffmpeg>=0.4.1",
@@ -153,11 +158,11 @@ doc = [
     "ipython!=8.7.0",
     "selenium",
 ]
-dev = ["mne[test,doc]"]
+dev = ["mne[test,doc]", "rcssmin"]
 
 [project.urls]
 Homepage = "https://mne.tools/"
-Download = "https://pypi.org/project/scikit-learn/#files"
+Download = "https://pypi.org/project/mne/#files"
 "Bug Tracker" = "https://github.com/mne-tools/mne-python/issues/"
 Documentation = "https://mne.tools/"
 Forum = "https://mne.discourse.group/"
@@ -173,12 +178,10 @@ include = ["mne*"]
 namespaces = false
 
 [tool.setuptools_scm]
-write_to = "mne/_version.py"
 version_scheme = "release-branch-semver"
 
-[options]
-zip_safe = false            # the package can run out of an .egg file
-include_package_data = true
+[tool.setuptools]
+include-package-data = true
 
 [tool.setuptools.package-data]
 "mne" = [

@@ -1,6 +1,7 @@
 # Author: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from pathlib import Path
 
@@ -13,7 +14,7 @@ from mne._fiff.compensator import get_current_comp, make_compensator
 from mne.io import read_raw_fif
 from mne.utils import requires_mne, run_subprocess
 
-base_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
+base_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
 ctf_comp_fname = base_dir / "test_ctf_comp_raw.fif"
 
 

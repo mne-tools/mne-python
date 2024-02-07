@@ -11,6 +11,7 @@ evoked dataset.
 # Author: Annalisa Pascarella <a.pascarella@iac.cnr.it>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 

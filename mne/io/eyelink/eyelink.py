@@ -5,6 +5,7 @@
 #          Christian O'Reilly <christian.oreilly@sc.edu>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from pathlib import Path
 

@@ -22,20 +22,20 @@ else
 	echo "Numpy"
 	pip uninstall -yq numpy
 	echo "PyQt6"
-	pip install $STD_ARGS --only-binary ":all:" --default-timeout=60 --extra-index-url https://www.riverbankcomputing.com/pypi/simple PyQt6
+	pip install $STD_ARGS --only-binary ":all:" --default-timeout=60 --extra-index-url https://www.riverbankcomputing.com/pypi/simple "PyQt6!=6.6.1" "PyQt6-Qt6!=6.6.1"
 	echo "NumPy/SciPy/pandas etc."
-	# As of 2023/10/25 no pandas (or statsmodels, nilearn) because they pin to NumPy < 2
-	pip install $STD_ARGS --only-binary ":all:" --default-timeout=60 --extra-index-url "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" "numpy>=2.0.0.dev0" scipy scikit-learn matplotlib pillow
-	echo "dipy"
-	pip install $STD_ARGS --only-binary ":all:" --default-timeout=60 --extra-index-url "https://pypi.anaconda.org/scipy-wheels-nightly/simple" dipy
-	echo "H5py"
-	pip install $STD_ARGS --only-binary ":all:" -f "https://7933911d6844c6c53a7d-47bd50c35cd79bd838daf386af554a83.ssl.cf2.rackcdn.com" h5py
-	echo "OpenMEEG"
-	pip install $STD_ARGS --only-binary ":all:" --extra-index-url "https://test.pypi.org/simple" openmeeg
+	pip install $STD_ARGS --only-binary ":all:" --default-timeout=60 --extra-index-url "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" "numpy>=2.0.0.dev0" "scipy>=1.12.0.dev0" scikit-learn matplotlib pillow statsmodels
+	# No pandas, dipy, h5py, openmeeg, python-picard (needs numexpr) until they update to NumPy 2.0 compat
+	INSTALL_KIND="test_extra"
+	# echo "dipy"
+	# pip install $STD_ARGS --only-binary ":all:" --default-timeout=60 --extra-index-url "https://pypi.anaconda.org/scipy-wheels-nightly/simple" dipy
+	# echo "H5py"
+	# pip install $STD_ARGS --only-binary ":all:" -f "https://7933911d6844c6c53a7d-47bd50c35cd79bd838daf386af554a83.ssl.cf2.rackcdn.com" h5py
+	# echo "OpenMEEG"
+	# pip install $STD_ARGS --only-binary ":all:" --extra-index-url "https://test.pypi.org/simple" openmeeg
 	# No Numba because it forces an old NumPy version
-	echo "nilearn and openmeeg"
-	# pip install $STD_ARGS git+https://github.com/nilearn/nilearn
-	pip install $STD_ARGS openmeeg
+	echo "nilearn"
+	pip install $STD_ARGS git+https://github.com/nilearn/nilearn
 	echo "VTK"
 	pip install $STD_ARGS --only-binary ":all:" --extra-index-url "https://wheels.vtk.org" vtk
 	python -c "import vtk"
@@ -43,18 +43,18 @@ else
 	pip install $STD_ARGS git+https://github.com/pyvista/pyvista
 	echo "pyvistaqt"
 	pip install $STD_ARGS git+https://github.com/pyvista/pyvistaqt
-	echo "imageio-ffmpeg, xlrd, mffpy, python-picard"
-	pip install $STD_ARGS imageio-ffmpeg xlrd mffpy python-picard patsy traitlets pybv eeglabio
+	echo "imageio-ffmpeg, xlrd, mffpy"
+	pip install $STD_ARGS imageio-ffmpeg xlrd mffpy patsy traitlets pybv eeglabio
 	echo "mne-qt-browser"
 	pip install $STD_ARGS git+https://github.com/mne-tools/mne-qt-browser
 	echo "nibabel with workaround"
 	pip install $STD_ARGS git+https://github.com/nipy/nibabel.git
 	echo "joblib"
 	pip install $STD_ARGS git+https://github.com/joblib/joblib@master
-	echo "EDFlib-Python"
-	pip install $STD_ARGS git+https://gitlab.com/Teuniz/EDFlib-Python@master
-	# Until Pandas is fixed, make sure we didn't install it
-	! python -c "import pandas"
+	echo "edfio"
+	pip install $STD_ARGS git+https://github.com/the-siesta-group/edfio
+	# Make sure we're on a NumPy 2.0 variant
+	python -c "import numpy as np; assert np.__version__[0] == '2', np.__version__"
 fi
 echo ""
 

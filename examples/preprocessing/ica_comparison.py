@@ -12,6 +12,7 @@ are displayed.
 # Authors: Pierre Ablin <pierreablin@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 

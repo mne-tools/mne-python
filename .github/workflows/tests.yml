@@ -63,16 +63,16 @@ jobs:
             python: '3.11'
             kind: pip-pre
           - os: macos-latest
-            python: '3.8'
+            python: '3.9'
             kind: mamba
           - os: windows-latest
             python: '3.10'
             kind: mamba
           - os: ubuntu-latest
-            python: '3.8'
+            python: '3.9'
             kind: minimal
           - os: ubuntu-20.04
-            python: '3.8'
+            python: '3.9'
             kind: old
     steps:
       - uses: actions/checkout@v4
@@ -90,7 +90,7 @@ jobs:
           python-version: ${{ matrix.python }}
         if: startswith(matrix.kind, 'pip')
       # Python (if conda)
-      - uses: conda-incubator/setup-miniconda@v2
+      - uses: conda-incubator/setup-miniconda@v3
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           environment-file: ${{ env.CONDA_ENV }}

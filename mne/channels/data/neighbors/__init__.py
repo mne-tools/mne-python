@@ -1,3 +1,5 @@
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 """Neighbor definitions for clustering permutation analysis."""
 # This is a selection of files from http://fieldtrip.fcdonders.nl/template
 # Additional definitions can be obtained through the FieldTrip software.

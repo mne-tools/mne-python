@@ -11,7 +11,8 @@ introduction and only highlights the simplest use case.
 """
 # Author: Kostiantyn Maksymenko <kostiantyn.maksymenko@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from functools import partial
 

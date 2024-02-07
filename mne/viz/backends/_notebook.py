@@ -3,7 +3,8 @@
 # Authors: Guillaume Favelier <guillaume.favelier@gmail.com>
 #          Alex Rockhill <aprockhill@mailbox.org>
 #
-# License: Simplified BSD
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import os
 import os.path as op

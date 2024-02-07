@@ -1,47 +1,17 @@
 # Authors: MNE Developers
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
-from contextlib import contextmanager
+import datetime as dt
 
 import numpy as np
 
-from ..utils import _check_edflib_installed, warn
+from ..utils import _check_edfio_installed, warn
 
-_check_edflib_installed()
-from EDFlib.edfwriter import EDFwriter  # noqa: E402
-
-
-def _try_to_set_value(header, key, value, channel_index=None):
-    """Set key/value pairs in EDF header."""
-    # all EDFLib set functions are set<X>
-    # for example "setPatientName()"
-    func_name = f"set{key}"
-    func = getattr(header, func_name)
-
-    # some setter functions are indexed by channels
-    if channel_index is None:
-        return_val = func(value)
-    else:
-        return_val = func(channel_index, value)
-
-    # a nonzero return value indicates an error
-    if return_val != 0:
-        raise RuntimeError(
-            f"Setting {key} with {value} " f"returned an error value " f"{return_val}."
-        )
-
-
-@contextmanager
-def _auto_close(fid):
-    # try to close the handle no matter what
-    try:
-        yield fid
-    finally:
-        try:
-            fid.close()
-        except Exception:
-            pass  # we did our best
+_check_edfio_installed()
+from edfio import Edf, EdfAnnotation, EdfSignal, Patient, Recording  # noqa: E402
+from edfio._utils import round_float_to_8_characters  # noqa: E402
 
 
 def _export_raw(fname, raw, physical_range, add_ch_type):
@@ -50,9 +20,6 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
     TODO: if in future the Info object supports transducer or
     technician information, allow writing those here.
     """
-    # scale to save data in EDF
-    phys_dims = "uV"
-
     # get EEG-related data in uV
     units = dict(
         eeg="uV", ecog="uV", seeg="uV", eog="uV", ecg="uV", emg="uV", bio="uV", dbs="uV"
@@ -60,7 +27,6 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
 
     digital_min = -32767
     digital_max = 32767
-    file_type = EDFwriter.EDFLIB_FILETYPE_EDFPLUS
 
     # load data first
     raw.load_data()
@@ -72,6 +38,7 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
         stim_index = np.argwhere(np.array(orig_ch_types) == "stim")
         stim_index = np.atleast_1d(stim_index.squeeze()).tolist()
         drop_chs.extend([raw.ch_names[idx] for idx in stim_index])
+        warn(f"Exporting STIM channels is not supported, dropping indices {stim_index}")
 
     # Add warning if any channel types are not voltage based.
     # Users are expected to only export data that is voltage based,
@@ -96,8 +63,10 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
 
     ch_names = [ch for ch in raw.ch_names if ch not in drop_chs]
     ch_types = np.array(raw.get_channel_types(picks=ch_names))
-    n_channels = len(ch_names)
     n_times = raw.n_times
+
+    # get the entire dataset in uV
+    data = raw.get_data(units=units, picks=ch_names)
 
     # Sampling frequency in EDF only supports integers, so to allow for
     # float sampling rates from Raw, we adjust the output sampling rate
@@ -106,10 +75,20 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
     if float(sfreq).is_integer():
         out_sfreq = int(sfreq)
         data_record_duration = None
+        # make non-integer second durations work
+        if (pad_width := int(np.ceil(n_times / sfreq) * sfreq - n_times)) > 0:
+            warn(
+                f"EDF format requires equal-length data blocks, "
+                f"so {pad_width / sfreq} seconds of "
+                "zeros were appended to all channels when writing the "
+                "final block."
+            )
+            data = np.pad(data, (0, int(pad_width)))
     else:
-        out_sfreq = np.floor(sfreq).astype(int)
-        data_record_duration = int(np.around(out_sfreq / sfreq, decimals=6) * 1e6)
-
+        data_record_duration = round_float_to_8_characters(
+            np.floor(sfreq) / sfreq, round
+        )
+        out_sfreq = np.floor(sfreq) / data_record_duration
         warn(
             f"Data has a non-integer sampling rate of {sfreq}; writing to "
             "EDF format may cause a small change to sample times."
@@ -121,16 +100,13 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
     linefreq = raw.info["line_freq"]
     filter_str_info = f"HP:{highpass}Hz LP:{lowpass}Hz N:{linefreq}Hz"
 
-    # get the entire dataset in uV
-    data = raw.get_data(units=units, picks=ch_names)
-
     if physical_range == "auto":
         # get max and min for each channel type data
         ch_types_phys_max = dict()
         ch_types_phys_min = dict()
 
         for _type in np.unique(ch_types):
-            _picks = np.nonzero(ch_types == _type)[0]
+            _picks = [n for n, t in zip(ch_names, ch_types) if t == _type]
             _data = raw.get_data(units=units, picks=_picks)
             ch_types_phys_max[_type] = _data.max()
             ch_types_phys_min[_type] = _data.min()
@@ -156,178 +132,106 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
                 f"The minimum μV of the data {data.min()} is "
                 f"less than the physical min passed in {pmin}.",
             )
+        data = np.clip(data, pmin, pmax)
+    signals = []
+    for idx, ch in enumerate(ch_names):
+        ch_type = ch_types[idx]
+        signal_label = f"{ch_type.upper()} {ch}" if add_ch_type else ch
+        if len(signal_label) > 16:
+            raise RuntimeError(
+                f"Signal label for {ch} ({ch_type}) is "
+                f"longer than 16 characters, which is not "
+                f"supported in EDF. Please shorten the "
+                f"channel name before exporting to EDF."
+            )
 
-    # create instance of EDF Writer
-    with _auto_close(EDFwriter(fname, file_type, n_channels)) as hdl:
-        # set channel data
-        for idx, ch in enumerate(ch_names):
-            ch_type = ch_types[idx]
-            signal_label = f"{ch_type.upper()} {ch}" if add_ch_type else ch
-            if len(signal_label) > 16:
-                raise RuntimeError(
-                    f"Signal label for {ch} ({ch_type}) is "
-                    f"longer than 16 characters, which is not "
-                    f"supported in EDF. Please shorten the "
-                    f"channel name before exporting to EDF."
+        if physical_range == "auto":
+            # take the channel type minimum and maximum
+            pmin = ch_types_phys_min[ch_type]
+            pmax = ch_types_phys_max[ch_type]
+
+        signals.append(
+            EdfSignal(
+                data[idx],
+                out_sfreq,
+                label=signal_label,
+                transducer_type="",
+                physical_dimension="uV",
+                physical_range=(pmin, pmax),
+                digital_range=(digital_min, digital_max),
+                prefiltering=filter_str_info,
+            )
+        )
+
+    # set patient info
+    subj_info = raw.info.get("subject_info")
+    if subj_info is not None:
+        # get the full name of subject if available
+        first_name = subj_info.get("first_name", "")
+        middle_name = subj_info.get("middle_name", "")
+        last_name = subj_info.get("last_name", "")
+        name = "_".join(filter(None, [first_name, middle_name, last_name]))
+
+        birthday = subj_info.get("birthday")
+        if birthday is not None:
+            birthday = dt.date(*birthday)
+        hand = subj_info.get("hand")
+        weight = subj_info.get("weight")
+        height = subj_info.get("height")
+        sex = subj_info.get("sex")
+
+        additional_patient_info = []
+        for key, value in [("height", height), ("weight", weight), ("hand", hand)]:
+            if value:
+                additional_patient_info.append(f"{key}={value}")
+
+        patient = Patient(
+            code=subj_info.get("his_id") or "X",
+            sex={0: "X", 1: "M", 2: "F", None: "X"}[sex],
+            birthdate=birthday,
+            name=name or "X",
+            additional=additional_patient_info,
+        )
+    else:
+        patient = None
+
+    # set measurement date
+    if (meas_date := raw.info["meas_date"]) is not None:
+        startdate = dt.date(meas_date.year, meas_date.month, meas_date.day)
+        starttime = dt.time(
+            meas_date.hour, meas_date.minute, meas_date.second, meas_date.microsecond
+        )
+    else:
+        startdate = None
+        starttime = None
+
+    device_info = raw.info.get("device_info")
+    if device_info is not None:
+        device_type = device_info.get("type") or "X"
+        recording = Recording(startdate=startdate, equipment_code=device_type)
+    else:
+        recording = Recording(startdate=startdate)
+
+    annotations = []
+    for desc, onset, duration, ch_names in zip(
+        raw.annotations.description,
+        raw.annotations.onset,
+        raw.annotations.duration,
+        raw.annotations.ch_names,
+    ):
+        if ch_names:
+            for ch_name in ch_names:
+                annotations.append(
+                    EdfAnnotation(onset, duration, desc + f"@@{ch_name}")
                 )
+        else:
+            annotations.append(EdfAnnotation(onset, duration, desc))
 
-            if physical_range == "auto":
-                # take the channel type minimum and maximum
-                pmin = ch_types_phys_min[ch_type]
-                pmax = ch_types_phys_max[ch_type]
-            for key, val in [
-                ("PhysicalMaximum", pmax),
-                ("PhysicalMinimum", pmin),
-                ("DigitalMaximum", digital_max),
-                ("DigitalMinimum", digital_min),
-                ("PhysicalDimension", phys_dims),
-                ("SampleFrequency", out_sfreq),
-                ("SignalLabel", signal_label),
-                ("PreFilter", filter_str_info),
-            ]:
-                _try_to_set_value(hdl, key, val, channel_index=idx)
-
-        # set patient info
-        subj_info = raw.info.get("subject_info")
-        if subj_info is not None:
-            # get the full name of subject if available
-            first_name = subj_info.get("first_name", "")
-            middle_name = subj_info.get("middle_name", "")
-            last_name = subj_info.get("last_name", "")
-            name = " ".join(filter(None, [first_name, middle_name, last_name]))
-
-            birthday = subj_info.get("birthday")
-            hand = subj_info.get("hand")
-            weight = subj_info.get("weight")
-            height = subj_info.get("height")
-            sex = subj_info.get("sex")
-
-            additional_patient_info = []
-            for key, value in [("height", height), ("weight", weight), ("hand", hand)]:
-                if value:
-                    additional_patient_info.append(f"{key}={value}")
-            if len(additional_patient_info) == 0:
-                additional_patient_info = None
-            else:
-                additional_patient_info = " ".join(additional_patient_info)
-
-            if birthday is not None:
-                if hdl.setPatientBirthDate(birthday[0], birthday[1], birthday[2]) != 0:
-                    raise RuntimeError(
-                        f"Setting patient birth date to {birthday} "
-                        f"returned an error"
-                    )
-            for key, val in [
-                ("PatientCode", subj_info.get("his_id", "")),
-                ("PatientName", name),
-                ("PatientGender", sex),
-                ("AdditionalPatientInfo", additional_patient_info),
-            ]:
-                # EDFwriter compares integer encodings of sex and will
-                # raise a TypeError if value is None as returned by
-                # subj_info.get(key) if key is missing.
-                if val is not None:
-                    _try_to_set_value(hdl, key, val)
-
-        # set measurement date
-        meas_date = raw.info["meas_date"]
-        if meas_date:
-            subsecond = int(meas_date.microsecond / 100)
-            if (
-                hdl.setStartDateTime(
-                    year=meas_date.year,
-                    month=meas_date.month,
-                    day=meas_date.day,
-                    hour=meas_date.hour,
-                    minute=meas_date.minute,
-                    second=meas_date.second,
-                    subsecond=subsecond,
-                )
-                != 0
-            ):
-                raise RuntimeError(
-                    f"Setting start date time {meas_date} " f"returned an error"
-                )
-
-        device_info = raw.info.get("device_info")
-        if device_info is not None:
-            device_type = device_info.get("type")
-            _try_to_set_value(hdl, "Equipment", device_type)
-
-        # set data record duration
-        if data_record_duration is not None:
-            _try_to_set_value(hdl, "DataRecordDuration", data_record_duration)
-
-        # compute number of data records to loop over
-        n_blocks = np.ceil(n_times / out_sfreq).astype(int)
-
-        # increase the number of annotation signals if necessary
-        annots = raw.annotations
-        if annots is not None:
-            n_annotations = len(raw.annotations)
-            n_annot_chans = int(n_annotations / n_blocks) + 1
-            if n_annot_chans > 1:
-                hdl.setNumberOfAnnotationSignals(n_annot_chans)
-
-        # Write each data record sequentially
-        for idx in range(n_blocks):
-            end_samp = (idx + 1) * out_sfreq
-            if end_samp > n_times:
-                end_samp = n_times
-            start_samp = idx * out_sfreq
-
-            # then for each datarecord write each channel
-            for jdx in range(n_channels):
-                # create a buffer with sampling rate
-                buf = np.zeros(out_sfreq, np.float64, "C")
-
-                # get channel data for this block
-                ch_data = data[jdx, start_samp:end_samp]
-
-                # assign channel data to the buffer and write to EDF
-                buf[: len(ch_data)] = ch_data
-                err = hdl.writeSamples(buf)
-                if err != 0:
-                    raise RuntimeError(
-                        f"writeSamples() for channel{ch_names[jdx]} "
-                        f"returned error: {err}"
-                    )
-
-            # there was an incomplete datarecord
-            if len(ch_data) != len(buf):
-                warn(
-                    f"EDF format requires equal-length data blocks, "
-                    f"so {(len(buf) - len(ch_data)) / sfreq} seconds of "
-                    "zeros were appended to all channels when writing the "
-                    "final block."
-                )
-
-        # write annotations
-        if annots is not None:
-            for desc, onset, duration, ch_names in zip(
-                raw.annotations.description,
-                raw.annotations.onset,
-                raw.annotations.duration,
-                raw.annotations.ch_names,
-            ):
-                # annotations are written in terms of 100 microseconds
-                onset = onset * 10000
-                duration = duration * 10000
-                if ch_names:
-                    for ch_name in ch_names:
-                        if (
-                            hdl.writeAnnotation(onset, duration, desc + f"@@{ch_name}")
-                            != 0
-                        ):
-                            raise RuntimeError(
-                                f"writeAnnotation() returned an error "
-                                f"trying to write {desc}@@{ch_name} at {onset} "
-                                f"for {duration} seconds."
-                            )
-                else:
-                    if hdl.writeAnnotation(onset, duration, desc) != 0:
-                        raise RuntimeError(
-                            f"writeAnnotation() returned an error "
-                            f"trying to write {desc} at {onset} "
-                            f"for {duration} seconds."
-                        )
+    Edf(
+        signals=signals,
+        patient=patient,
+        recording=recording,
+        starttime=starttime,
+        data_record_duration=data_record_duration,
+        annotations=annotations,
+    ).write(fname)

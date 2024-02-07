@@ -8,6 +8,7 @@
 #          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import json
 import operator
@@ -2065,6 +2066,7 @@ class BaseEpochs(
             The array used to mask the epochs. True == Keep epochs,
             False = reject epochs.
         """
+        _check_preload(self, "Modifying data of epochs")
         # extract data from Epochs object
         # get absolut values
         abs_data = np.abs(self.get_data())  # (epochs X channels X (frequency) X time)

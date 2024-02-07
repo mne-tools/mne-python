@@ -1,6 +1,7 @@
 # Authors: Adonay Nunes <adonay.s.nunes@gmail.com>
 #          Luke Bloy <luke.bloy@gmail.com>
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 
 import numpy as np
@@ -303,8 +304,8 @@ def compute_average_dev_head_t(raw, pos):
 
     Returns
     -------
-    dev_head_t : array of shape (4, 4)
-        New trans matrix using the averaged good head positions.
+    dev_head_t : instance of Transform
+        New ``dev_head_t`` transformation using the averaged good head positions.
     """
     sfreq = raw.info["sfreq"]
     seg_good = np.ones(len(raw.times))

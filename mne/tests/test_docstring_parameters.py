@@ -1,6 +1,7 @@
 # Author: Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import importlib
 import inspect
@@ -284,7 +285,7 @@ write_info
 
 def test_documented():
     """Test that public functions and classes are documented."""
-    doc_dir = (Path(__file__).parent.parent.parent / "doc").absolute()
+    doc_dir = (Path(__file__).parents[2] / "doc" / "api").absolute()
     doc_file = doc_dir / "python_reference.rst"
     if not doc_file.is_file():
         pytest.skip("Documentation file not found: %s" % doc_file)
@@ -356,7 +357,7 @@ def test_docdict_order():
     from mne.utils.docs import docdict
 
     # read the file as text, and get entries via regex
-    docs_path = Path(__file__).parent.parent / "utils" / "docs.py"
+    docs_path = Path(__file__).parents[1] / "utils" / "docs.py"
     assert docs_path.is_file(), docs_path
     with open(docs_path, "r", encoding="UTF-8") as fid:
         docs = fid.read()

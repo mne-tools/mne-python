@@ -2,6 +2,7 @@
 #         Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 import os
 from pathlib import Path
 
@@ -39,7 +40,7 @@ from mne.event import (
 )
 from mne.io import RawArray, read_raw_fif
 
-base_dir = Path(__file__).parent.parent / "io" / "tests" / "data"
+base_dir = Path(__file__).parents[1] / "io" / "tests" / "data"
 fname = base_dir / "test-eve.fif"
 fname_raw = base_dir / "test_raw.fif"
 fname_gz = base_dir / "test-eve.fif.gz"

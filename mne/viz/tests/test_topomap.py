@@ -4,7 +4,8 @@
 #          Eric Larson <larson.eric.d@gmail.com>
 #          Robert Luke <mail@robertluke.net>
 #
-# License: Simplified BSD
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from functools import partial
 from pathlib import Path
@@ -62,7 +63,7 @@ subjects_dir = data_dir / "subjects"
 ecg_fname = data_dir / "MEG" / "sample" / "sample_audvis_ecg-proj.fif"
 triux_fname = data_dir / "SSS" / "TRIUX" / "triux_bmlhus_erm_raw.fif"
 
-base_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
+base_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
 evoked_fname = base_dir / "test-ave.fif"
 raw_fname = base_dir / "test_raw.fif"
 event_name = base_dir / "test-eve.fif"

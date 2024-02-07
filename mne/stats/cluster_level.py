@@ -7,7 +7,8 @@
 #          Denis Engemann <denis.engemann@gmail.com>
 #          Fernando Perez (bin_perm_rep function)
 #
-# License: Simplified BSD
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import numpy as np
 from scipy import ndimage, sparse

@@ -1,6 +1,7 @@
 # Authors: Adam Li  <adam2392@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import os
 import shutil

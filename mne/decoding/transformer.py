@@ -3,6 +3,7 @@
 #          Romain Trachel <trachelr@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import numpy as np
 
@@ -491,10 +492,9 @@ class FilterEstimator(TransformerMixin):
 
     Notes
     -----
-    This is primarily meant for use in conjunction with
-    :class:`mne_realtime.RtEpochs`. In general it is not recommended in a
-    normal processing pipeline as it may result in edge artifacts. Use with
-    caution.
+    This is primarily meant for use in realtime applications.
+    In general it is not recommended in a normal processing pipeline as it may result
+    in edge artifacts. Use with caution.
     """
 
     def __init__(

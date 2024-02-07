@@ -2,6 +2,7 @@
 #         Denis Engemann <denis.engemann@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import os
 import pathlib
@@ -51,7 +52,7 @@ fif_fname = data_dir / "sample_audvis_trunc_raw.fif"
 ms_fname = testing_path / "SSS" / "test_move_anon_raw.fif"
 skip_fname = testing_path / "misc" / "intervalrecording_raw.fif"
 
-base_dir = Path(__file__).parent.parent.parent / "tests" / "data"
+base_dir = Path(__file__).parents[2] / "tests" / "data"
 test_fif_fname = base_dir / "test_raw.fif"
 test_fif_gz_fname = base_dir / "test_raw.fif.gz"
 ctf_fname = base_dir / "test_ctf_raw.fif"

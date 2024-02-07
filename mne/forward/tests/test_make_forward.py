@@ -1,3 +1,5 @@
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 from itertools import product
 from pathlib import Path
 
@@ -51,9 +53,7 @@ from mne.utils import (
 
 data_path = testing.data_path(download=False)
 fname_meeg = data_path / "MEG" / "sample" / "sample_audvis_trunc-meg-eeg-oct-4-fwd.fif"
-fname_raw = (
-    Path(__file__).parent.parent.parent / "io" / "tests" / "data" / "test_raw.fif"
-)
+fname_raw = Path(__file__).parents[2] / "io" / "tests" / "data" / "test_raw.fif"
 fname_evo = data_path / "MEG" / "sample" / "sample_audvis_trunc-ave.fif"
 fname_cov = data_path / "MEG" / "sample" / "sample_audvis_trunc-cov.fif"
 fname_dip = data_path / "MEG" / "sample" / "sample_audvis_trunc_set1.dip"
@@ -64,7 +64,7 @@ fname_bem = subjects_dir / "sample" / "bem" / "sample-1280-1280-1280-bem-sol.fif
 fname_aseg = subjects_dir / "sample" / "mri" / "aseg.mgz"
 fname_bem_meg = subjects_dir / "sample" / "bem" / "sample-1280-bem-sol.fif"
 
-io_path = Path(__file__).parent.parent.parent / "io"
+io_path = Path(__file__).parents[2] / "io"
 bti_dir = io_path / "bti" / "tests" / "data"
 kit_dir = io_path / "kit" / "tests" / "data"
 trans_path = kit_dir / "trans-sample.fif"

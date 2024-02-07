@@ -2,6 +2,7 @@
 #          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # Many of the computations in this code were derived from Matti Hämäläinen's
 # C code.
@@ -34,13 +35,10 @@ from .._fiff.write import (
     write_int_matrix,
     write_string,
 )
-
-# Remove get_mni_fiducials in 1.6 (deprecated)
 from .._freesurfer import (
     _check_mri,
     _get_atlas_values,
     _get_mri_info_data,
-    get_mni_fiducials,  # noqa: F401
     get_volume_labels_from_aseg,
     read_freesurfer_lut,
 )
