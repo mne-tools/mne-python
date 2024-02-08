@@ -1,6 +1,13 @@
 # ruff: noqa
 # flake8: noqa
 
+from scipy import integrate
+import numpy as np
+from .channels.layout import _merge_ch_data, _pair_grad_sensors
+from .utils import (
+    _check_option,
+)
+
 
 def _erp_measure_setup(evoked, ch_type, merge_grads):
     supported = (
@@ -49,6 +56,34 @@ def _erp_measure_setup(evoked, ch_type, merge_grads):
         ch_names = [ch_name[:-1] + "X" for ch_name in ch_names[::2]]
 
     return data, ch_names
+
+
+def _restrict_time_interval(tmin, tmax, times, data):
+    if tmin is None:
+        tmin = times[0]
+    if tmax is None:
+        tmax = times[-1]
+
+    if tmin < times.min() or tmax > times.max():
+        if tmin < times.min():
+            param_name = "tmin"
+            param_val = tmin
+        else:
+            param_name = "tmax"
+            param_val = tmax
+
+        raise ValueError(
+            f"{param_name} ({param_val}) is out of bounds. It must be "
+            f"between {times.min()} and {times.max()}"
+        )
+    elif tmin > tmax:
+        raise ValueError(f"tmin ({tmin}) must be <= tmax ({tmax})")
+
+    time_win = (times >= tmin) & (times <= tmax)
+    time_mask = np.ones_like(data).astype(bool)
+    time_mask[:, time_win] = False
+
+    return time_mask
 
 
 def get_peak(
@@ -382,5 +417,15 @@ def get_area(insta, ch_type=None, tmin=None, tmax=None, mode="abs", merge_grads=
     --------
     mne.Evoked.get_peak : Get the time and value of the peak amplitude."""
     # check that the data is preloaded
+    _check_option("mode", mode, ["intg", "abs", "neg", "pos"])
+    data, ch_names = _erp_measure_setup(insta, ch_type, merge_grads)
+    time_mask = _restrict_time_interval(tmin, tmax, insta.times, data)
 
-    pass
+    if mode == "abs":
+        data = np.abs(data)
+    elif mode == "neg":
+        # Set positive values to zero
+        data[data > 0] = 0
+    elif mode == "pos":
+        # Set negative values to zero
+        data[data < 0] = 0
