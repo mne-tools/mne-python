@@ -819,55 +819,47 @@ def test_events_from_annot_onset_alingment():
     assert raw.first_samp == event_latencies[0, 0]
 
 
-def test_events_from_annot_with_tolerance():
+@pytest.mark.parametrize(
+    "use_rounding,tol,shape,onsets,descriptions",
+    [
+        pytest.param(True, 0, (2, 3), [202, 402], [0, 2], id="rounding-notol"),
+        pytest.param(True, 1e-8, (3, 3), [202, 302, 402], [0, 1, 2], id="rounding-tol"),
+        pytest.param(False, 0, (2, 3), [202, 401], [0, 2], id="norounding-notol"),
+        pytest.param(
+            False, 1e-8, (3, 3), [202, 302, 401], [0, 1, 2], id="norounding-tol"
+        ),
+        pytest.param(None, None, (3, 3), [202, 302, 402], [0, 1, 2], id="default"),
+    ],
+)
+def test_events_from_annot_with_tolerance(
+    use_rounding, tol, shape, onsets, descriptions
+):
     """Test events_from_annotations w/ and w/o tolerance."""
     info = create_info(ch_names=1, sfreq=100)
     raw = RawArray(data=np.empty((1, 1000)), info=info, first_samp=0)
     meas_date = _handle_meas_date(0)
     with raw.info._unlock(check_after=True):
         raw.info["meas_date"] = meas_date
-    annot = Annotations([2.02, 3.02, 4.02], 1, ["0", "1", "2"], 0)
+    chunk_duration = 1
+    annot = Annotations([2.02, 3.02, 4.02], chunk_duration, ["0", "1", "2"], 0)
     raw.set_annotations(annot)
+    event_id = {"0": 0, "1": 1, "2": 2}
 
-    events, _ = events_from_annotations(
-        raw,
-        event_id={"0": 0, "1": 1, "2": 2},
-        chunk_duration=1,
-        use_rounding=True,
-        tol=0,
-    )
-    assert events.shape == (2, 3)
-    assert (events[:, 0] == [202, 402]).all()
-    assert (events[:, 2] == [0, 2]).all()
-    events, _ = events_from_annotations(
-        raw,
-        event_id={"0": 0, "1": 1, "2": 2},
-        chunk_duration=1,
-        use_rounding=True,
-        tol=1e-8,
-    )
-    assert events.shape == (3, 3)
-    assert (events[:, 0] == [202, 302, 402]).all()
-    assert (events[:, 2] == [0, 1, 2]).all()
-    events, _ = events_from_annotations(
-        raw,
-        event_id={"0": 0, "1": 1, "2": 2},
-        chunk_duration=1,
-        use_rounding=False,
-        tol=1e-8,
-    )
-    assert events.shape == (3, 3)
-    assert (events[:, 0] == [202, 302, 401]).all()
-    assert (events[:, 2] == [0, 1, 2]).all()
-    # Default values of use_rounding=True, tol=1e-8
-    events, _ = events_from_annotations(
-        raw,
-        event_id={"0": 0, "1": 1, "2": 2},
-        chunk_duration=1,
-    )
-    assert events.shape == (3, 3)
-    assert (events[:, 0] == [202, 302, 402]).all()
-    assert (events[:, 2] == [0, 1, 2]).all()
+    if use_rounding is None:
+        events, _ = events_from_annotations(
+            raw, event_id=event_id, chunk_duration=chunk_duration
+        )
+    else:
+        events, _ = events_from_annotations(
+            raw,
+            event_id=event_id,
+            chunk_duration=chunk_duration,
+            use_rounding=use_rounding,
+            tol=tol,
+        )
+    assert events.shape == shape
+    assert (events[:, 0] == onsets).all()
+    assert (events[:, 2] == descriptions).all()
 
 
 def _create_annotation_based_on_descr(
