@@ -2064,7 +2064,7 @@ def test_apply_function_stc():
     vertices = [np.array(np.arange(50)), np.array(np.arange(50, 100))]
     tmin = 0.0
     tstep = 0.001
-    data = np.random.rand(n_vertices, n_times)
+    data = np.random.default_rng(0).normal(size=(n_vertices, n_times))
 
     stc = _make_stc(data, vertices, tmin=tmin, tstep=tstep, src_type="surface")
 
@@ -2076,9 +2076,9 @@ def test_apply_function_stc():
     stc_copy = stc.copy()
     stc.apply_function(fun)
     for idx in range(n_vertices):
-        assert_array_equal(stc._data[idx, :], 2 * stc_copy._data[idx, :])
+        assert_allclose(stc.data[idx, :], 2 * stc_copy.data[idx, :])
 
     # Test applying the function with parallelization
     stc.apply_function(fun, n_jobs=2)
     for idx in range(n_vertices):
-        assert_array_equal(stc._data[idx, :], 4 * stc_copy._data[idx, :])
+        assert_allclose(stc.data[idx, :], 4 * stc_copy.data[idx, :])
