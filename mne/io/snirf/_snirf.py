@@ -224,7 +224,6 @@ class RawSNIRF(BaseRaw):
                     "location information"
                 )
 
-
             chnames = []
             ch_types = []
             for chan in channels:
