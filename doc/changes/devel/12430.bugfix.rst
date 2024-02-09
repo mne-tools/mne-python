@@ -1,0 +1,1 @@
+Reformats channel and detector lookup in :class:`mne.io.RawSNIRF` from array based to dictionary based. Removes incorrect assertions that every detector and source must have data associated with every registered optode position, by :newcontrib:`Alex Kiefer`.

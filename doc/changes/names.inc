@@ -20,6 +20,8 @@
 
 .. _Alex Gramfort: https://alexandre.gramfort.net
 
+.. _Alex Kiefer: https://home.alex101.dev
+
 .. _Alex Rockhill: https://github.com/alexrockhill/
 
 .. _Alexander Rudiuk: https://github.com/ARudiuk
