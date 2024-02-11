@@ -219,7 +219,7 @@ stc = mne.stc_near_sensors(
     src=vol_src,
     surface=None,
     verbose="error",
-)  # ignore missing electrode warnings
+)
 stc = abs(stc)  # just look at magnitude
 clim = dict(kind="value", lims=np.percentile(abs(evoked.data), [10, 50, 75]))
 
