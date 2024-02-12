@@ -3893,7 +3893,7 @@ def stc_near_sensors(
                     "or ``surface=None`` to suppress this warning",
                     DeprecationWarning,
                 )
-        surface = "pial"
+        surface = "pial" if src is None or src.kind == "surface" else None
 
     # create a copy of Evoked using ecog, seeg and dbs
     if picks is None:
