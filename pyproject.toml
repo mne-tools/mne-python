@@ -205,8 +205,10 @@ builtin = "clear,rare,informal,names,usage"
 skip = "doc/references.bib"
 
 [tool.ruff]
-select = ["A", "B006", "D", "E", "F", "I", "W", "UP"]
 exclude = ["__init__.py", "constants.py", "resources.py"]
+
+[tool.ruff.lint]
+select = ["A", "B006", "D", "E", "F", "I", "W", "UP"]
 ignore = [
     "D100", # Missing docstring in public module
     "D104", # Missing docstring in public package
@@ -214,7 +216,7 @@ ignore = [
     "UP031", # Use format specifiers instead of percent format
 ]
 
-[tool.ruff.pydocstyle]
+[tool.ruff.lint.pydocstyle]
 convention = "numpy"
 ignore-decorators = [
     "property",
@@ -224,7 +226,7 @@ ignore-decorators = [
     "mne.utils.deprecated",
 ]
 
-[tool.ruff.per-file-ignores]
+[tool.ruff.lint.per-file-ignores]
 "tutorials/time-freq/10_spectrum_class.py" = [
     "E501", # line too long
 ]

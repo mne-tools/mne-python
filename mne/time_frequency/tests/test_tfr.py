@@ -1484,7 +1484,7 @@ def test_to_data_frame_index(index):
     # test index order/hierarchy preservation
     if not isinstance(index, list):
         index = [index]
-    assert df.index.names == index
+    assert list(df.index.names) == index
     # test that non-indexed data were present as columns
     non_index = list(set(["condition", "time", "freq", "epoch"]) - set(index))
     if len(non_index):

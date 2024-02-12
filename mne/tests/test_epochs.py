@@ -2855,7 +2855,6 @@ def test_epoch_eq():
         assert_equal(epochs_3.events[-2, 0], epochs_3.events.shape[-1, 0])
     elif len(epochs_3.events) < len(epochs_4.events):
         assert_equal(epochs_4.events[-2, 0], epochs_4.events[-1, 0])
-    # both mintime and truncate method sh
     assert_equal(epochs_1.events.shape[0], epochs_3.events.shape[0])
     assert_equal(epochs_3.events.shape[0], epochs_4.events.shape[0])
 
@@ -3120,7 +3119,7 @@ def test_to_data_frame_index(index):
     # test index order/hierarchy preservation
     if not isinstance(index, list):
         index = [index]
-    assert df.index.names == index
+    assert list(df.index.names) == index
     # test that non-indexed data were present as columns
     non_index = list(set(["condition", "time", "epoch"]) - set(index))
     if len(non_index):
