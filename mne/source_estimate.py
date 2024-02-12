@@ -3879,8 +3879,11 @@ def stc_near_sensors(
     if surface == "auto":
         if src is not None:
             pial_fname = op.join(subjects_dir, subject, "surf", "lh.pial")
-            src_surf_is_pial = op.isfile(pial_fname) and np.allclose(
-                src[0]["rr"], read_surface(pial_fname)[0]
+            pial_rr = read_surface(pial_fname)[0]
+            src_surf_is_pial = (
+                op.isfile(pial_fname)
+                and src[0]["rr"].shape == pial_rr.shape
+                and np.allclose(src[0]["rr"], pial_rr)
             )
             if not src_surf_is_pial:
                 warn(
@@ -3890,7 +3893,7 @@ def stc_near_sensors(
                     "or ``surface=None`` to suppress this warning",
                     DeprecationWarning,
                 )
-        surface = "pial"
+        surface = "pial" if src is None or src.kind == "surface" else None
 
     # create a copy of Evoked using ecog, seeg and dbs
     if picks is None:
