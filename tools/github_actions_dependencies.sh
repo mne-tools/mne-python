@@ -26,7 +26,9 @@ else
 	echo "Numpy"
 	pip uninstall -yq numpy
 	echo "PyQt6"
-	pip install $STD_ARGS --only-binary ":all:" --default-timeout=60 --extra-index-url https://www.riverbankcomputing.com/pypi/simple "PyQt6!=6.6.1" "PyQt6-Qt6!=6.6.1"
+	# Now broken in latest release and in the pre release:
+	# pip install $STD_ARGS --only-binary ":all:" --default-timeout=60 --extra-index-url https://www.riverbankcomputing.com/pypi/simple "PyQt6!=6.6.1" "PyQt6-Qt6!=6.6.1"
+	pip install $STD_ARGS --only-binary ":all:" --default-timeout=60 "PyQt6!=6.6.1" "PyQt6-Qt6!=6.6.1"
 	echo "NumPy/SciPy/pandas etc."
 	pip install $STD_ARGS --only-binary ":all:" --default-timeout=60 --extra-index-url "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" "numpy>=2.0.0.dev0" "scipy>=1.12.0.dev0" "scikit-learn>=1.5.dev0" matplotlib pillow statsmodels pyarrow
 	# No pandas, dipy, h5py, openmeeg, python-picard (needs numexpr) until they update to NumPy 2.0 compat
