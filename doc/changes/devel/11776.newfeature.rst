@@ -1,1 +1,0 @@
-Allow :class:`mne.time_frequency.EpochsTFR` as input to :func:`mne.epochs.equalize_epoch_counts`, by `Carina Forster`_.
