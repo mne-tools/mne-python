@@ -4147,7 +4147,10 @@ def read_tfrs(fname, condition=None, *, verbose=None):
     if "inst_type_str" in hdf5_dict:
         inst_type_str = hdf5_dict["inst_type_str"]
         Klass = dict(Epochs=EpochsTFR, Raw=RawTFR, Evoked=AverageTFR)[inst_type_str]
-        return Klass(inst=hdf5_dict)
+        out = Klass(inst=hdf5_dict)
+        if getattr(out, "metadata", None) is not None:
+            out.metadata = _prepare_read_metadata(out.metadata)
+        return out
     # maybe multiple TFRs from write_tfrs()
     return _read_multiple_tfrs(hdf5_dict, condition=condition, verbose=verbose)
 
