@@ -85,28 +85,6 @@ parametrize_inst_and_ch_type = pytest.mark.parametrize(
 )
 
 
-def _create_test_epochstfr():
-    n_epos = 3
-    ch_names = ["EEG 001", "EEG 002", "EEG 003", "EEG 004"]
-    n_picks = len(ch_names)
-    ch_types = ["eeg"] * n_picks
-    n_freqs = 5
-    n_times = 6
-    data = np.random.rand(n_epos, n_picks, n_freqs, n_times)
-    times = np.arange(6)
-    srate = 1000.0
-    freqs = np.arange(5)
-    events = np.zeros((n_epos, 3), dtype=int)
-    events[:, 0] = np.arange(n_epos)
-    events[:, 2] = np.arange(5, 5 + n_epos)
-    event_id = {k: v for v, k in zip(events[:, 2], ["ha", "he", "hu"])}
-    info = mne.create_info(ch_names, srate, ch_types)
-    tfr = mne.time_frequency.EpochsTFR(
-        info, data, times, freqs, events=events, event_id=event_id
-    )
-    return tfr
-
-
 def test_tfr_ctf():
     """Test that TFRs can be calculated on CTF data."""
     raw = read_raw_fif(raw_ctf_fname).crop(0, 1)
@@ -792,12 +770,14 @@ def test_compute_tfr_init_errors(epochs, method, freqs, match):
         epochs.compute_tfr(method=method, freqs=freqs)
 
 
-def test_equalize_epochs_tfr_counts():
+def test_equalize_epochs_tfr_counts(epochs_tfr):
     """Test equalize_epoch_counts for EpochsTFR."""
-    tfr = _create_test_epochstfr()
-    tfr2 = tfr.copy()
+    # make the fixture have 3 epochs instead of 1
+    epochs_tfr._data = np.vstack((epochs_tfr._data, epochs_tfr._data, epochs_tfr._data))
+    tfr2 = epochs_tfr.copy()
     tfr2 = tfr2[:-1]
-    equalize_epoch_counts([tfr, tfr2])
+    equalize_epoch_counts([epochs_tfr, tfr2])
+    assert epochs_tfr.shape == tfr2.shape
 
 
 def test_dB_computation():
