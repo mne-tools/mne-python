@@ -294,10 +294,11 @@ def _check_preload(inst, msg):
     """Ensure data are preloaded."""
     from ..epochs import BaseEpochs
     from ..evoked import Evoked
+    from ..source_estimate import _BaseSourceEstimate
     from ..time_frequency import _BaseTFR
     from ..time_frequency.spectrum import BaseSpectrum
 
-    if isinstance(inst, (_BaseTFR, Evoked, BaseSpectrum)):
+    if isinstance(inst, (_BaseTFR, Evoked, BaseSpectrum, _BaseSourceEstimate)):
         pass
     else:
         name = "epochs" if isinstance(inst, BaseEpochs) else "raw"
