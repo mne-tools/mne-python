@@ -69,9 +69,8 @@ freqs_linspace = np.linspace(20, 40, num=5)
 freqs_unsorted_list = [26, 33, 41, 20]
 mag_names = [f"MEG 01{n}1" for n in (1, 2, 3)]
 
-parametrize_methods = pytest.mark.parametrize("method", ("morlet", "multitaper"))
-parametrize_tfr_inst = pytest.mark.parametrize(
-    "inst", ("raw_tfr", "epochs_tfr", "average_tfr")
+parametrize_morlet_multitaper = pytest.mark.parametrize(
+    "method", ("morlet", "multitaper")
 )
 parametrize_inst_and_ch_type = pytest.mark.parametrize(
     "inst,ch_type",
@@ -625,7 +624,7 @@ def test_decim_shift_time():
     assert_allclose(tfr_ave_2.data, tfr_ave_3.data)  # data unchanged
 
 
-@parametrize_tfr_inst
+@pytest.mark.parametrize("inst", ("raw_tfr", "epochs_tfr", "average_tfr"))
 def test_tfr_io(inst, average_tfr, request, tmp_path):
     """Test TFR I/O."""
     pytest.importorskip("h5io")
@@ -748,15 +747,13 @@ def test_epochstfr_init_errors(epochs_tfr):
 def test_tfr_init_deprecation(inst, average_tfr, request):
     """Check for the deprecation warning message (not needed for RawTFR, it's new)."""
     tfr = _get_inst(inst, request, average_tfr=average_tfr)
+    kwargs = dict(info=tfr.info, data=tfr.data, times=tfr.times, freqs=tfr.freqs)
+    Klass = tfr.__class__
+    with pytest.warns(FutureWarning, match='"info", "data", "times" are deprecat'):
+        Klass(**kwargs)
     with pytest.raises(ValueError, match="Do not pass `inst` alongside deprecated"):
         with pytest.warns(FutureWarning, match='"info", "data", "times" are deprecat'):
-            tfr.__class__(
-                info=tfr.info,
-                data=tfr.data,
-                times=tfr.times,
-                freqs=tfr.freqs,
-                inst="foo",
-            )
+            Klass(**kwargs, inst="foo")
 
 
 @pytest.mark.parametrize(
@@ -1412,7 +1409,7 @@ def test_to_data_frame_time_format(time_format):
     assert isinstance(df["time"].iloc[0], dtypes[time_format])
 
 
-@parametrize_methods
+@parametrize_morlet_multitaper
 @pytest.mark.parametrize("picks", ("mag", mag_names, [2, 5, 8]))  # all 3 equivalent
 def test_raw_compute_tfr(raw, method, picks):
     """Test Raw.compute_tfr() and picks handling."""
@@ -1425,7 +1422,7 @@ def test_raw_compute_tfr(raw, method, picks):
     assert_array_equal(want, got)
 
 
-@parametrize_methods
+@parametrize_morlet_multitaper
 @pytest.mark.parametrize("freqs", (freqs_linspace, freqs_unsorted_list))
 def test_evoked_compute_tfr(full_evoked, method, freqs):
     """Test Evoked.compute_tfr(), with a few different ways of specifying freqs."""
@@ -1435,7 +1432,7 @@ def test_evoked_compute_tfr(full_evoked, method, freqs):
     assert tfr.comment == full_evoked.comment
 
 
-@parametrize_methods
+@parametrize_morlet_multitaper
 @pytest.mark.parametrize(
     "average,return_itc,dim,want_class",
     (
@@ -1472,7 +1469,7 @@ def test_epochs_compute_tfr_average_itc(
             assert avg.comment.startswith(f"mean of {len(epochs)} EpochsTFR")
 
 
-@parametrize_methods
+@parametrize_morlet_multitaper
 def test_epochs_vs_evoked_compute_tfr(epochs, method):
     """Compare result of averaging before or after the TFR computation.
 
@@ -1703,12 +1700,11 @@ def test_tfr_plot_interactivity(epochs_tfr):
     assert len(plt.get_fignums()) == 2
 
 
-@parametrize_tfr_inst
-@pytest.mark.parametrize("picks", ("mag", "grad"))  # no EEG in file
-def test_tfr_plot_topo(inst, picks, average_tfr, request):
+@parametrize_inst_and_ch_type
+def test_tfr_plot_topo(inst, ch_type, average_tfr, request):
     """Test {Raw,Epochs,Average}TFR.plot_topo()."""
     tfr = _get_inst(inst, request, average_tfr=average_tfr)
-    fig = tfr.plot_topo(picks=picks)
+    fig = tfr.plot_topo(picks=ch_type)
     assert fig is not None
 
 

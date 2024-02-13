@@ -1219,10 +1219,10 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin)
         self._picks = _picks_to_idx(inst.info, picks, "data", with_ref_meg=False)
         self.info = pick_info(inst.info, sel=self._picks, copy=True)
         # assign some attributes
+        self._method = method
         self._inst_type = type(inst)
         self._baseline = None
         self.preload = True  # needed for __getitem__, never False
-        self._method = method
         # self._dims may also get updated by child classes
         self._dims = ("channel", "freq", "time")
         # get the instance data.
@@ -3888,10 +3888,8 @@ class RawTFRArray(RawTFR):
         method=None,
     ):
         state = dict(info=info, data=data, times=times, freqs=freqs)
-        optional = dict(method=method)
-        for name, value in optional.items():
-            if value is not None:
-                state[name] = value
+        if method is not None:
+            state["method"] = method
         self.__setstate__(state)
 
 
