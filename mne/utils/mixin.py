@@ -11,7 +11,6 @@ from copy import deepcopy
 
 import numpy as np
 
-from ..utils import fill_doc
 from ._logging import verbose, warn
 from .check import _check_pandas_installed, _check_preload, _validate_type
 from .numerics import _time_mask, object_hash, object_size
@@ -75,6 +74,8 @@ class SizeMixin:
 
 class GetEpochsMixin:
     """Class to add epoch selection and metadata to certain classes."""
+
+    from ..utils import fill_doc
 
     @fill_doc
     def __getitem__(self, item):

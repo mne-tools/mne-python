@@ -51,6 +51,7 @@ from mne.time_frequency.tfr import (
     write_tfrs,
 )
 from mne.utils import catch_logging, grand_average
+from mne.utils._testing import _get_suptitle
 from mne.viz.utils import (
     _channel_type_prettyprint,
     _fake_click,
@@ -628,8 +629,7 @@ def test_decim_shift_time():
 def test_tfr_io(inst, average_tfr, request, tmp_path):
     """Test TFR I/O."""
     pytest.importorskip("h5io")
-    pytest.importorskip("pandas")
-    import pandas as pd
+    pd = pytest.importorskip("pandas")
 
     tfr = _get_inst(inst, request, average_tfr=average_tfr)
     fname = tmp_path / "temp_tfr.hdf5"
@@ -897,7 +897,7 @@ def test_tfr_plot_joint(
     popup_fig = plt.figure(fignums[-1])
     assert re.match(
         r"-?\d{1,2}\.\d{3} - -?\d{1,2}\.\d{3} s,\n\d{1,2}\.\d{2} - \d{1,2}\.\d{2} Hz",
-        popup_fig.get_suptitle(),
+        _get_suptitle(popup_fig),
     )
 
 
@@ -1644,7 +1644,7 @@ def test_tfr_plot_combine(epochs_tfr, picks, combine):
             want = rf"{'RMS' if combine == 'rms' else 'Mean'} of \d{{1,3}} {ch_type}s"
         else:
             want = epochs_tfr.ch_names[picks[ix]]
-        assert re.search(want, _fig.get_suptitle())
+        assert re.search(want, _get_suptitle(_fig))
 
 
 def test_tfr_plot_extras(epochs_tfr):
@@ -1653,7 +1653,7 @@ def test_tfr_plot_extras(epochs_tfr):
     picks = [1]
     mask = np.ones(epochs_tfr.data.shape[2:], bool)
     fig = epochs_tfr.plot(picks=picks, mask=mask, title="Foo")
-    assert fig[0].get_suptitle() == "Foo"
+    assert _get_suptitle(fig[0]) == "Foo"
     mask = np.ones(epochs_tfr.data.shape[1:], bool)
     with pytest.raises(ValueError, match="mask must have the same shape as the data"):
         epochs_tfr.plot(picks=picks, mask=mask)

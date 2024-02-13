@@ -48,6 +48,7 @@ from ..utils import (
     _is_numeric,
     _pl,
     _prepare_read_metadata,
+    _prepare_write_metadata,
     _time_mask,
     _validate_type,
     check_fname,
@@ -2577,6 +2578,8 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin)
         check_fname(fname, "time-frequency object", (".h5", ".hdf5"))
         fname = _check_fname(fname, overwrite=overwrite, verbose=verbose)
         out = self.__getstate__()
+        if "metadata" in out:
+            out["metadata"] = _prepare_write_metadata(out["metadata"])
         write_hdf5(fname, out, overwrite=overwrite, title="mnepython", slash="replace")
 
     @verbose
@@ -4092,7 +4095,10 @@ def write_tfrs(fname, tfr, overwrite=False, *, verbose=None):
         tfr = [tfr]
     for ii, tfr_ in enumerate(tfr):
         comment = ii if getattr(tfr_, "comment", None) is None else tfr_.comment
-        out.append((comment, tfr_.__getstate__()))
+        state = tfr_.__getstate__()
+        if "metadata" in state:
+            state["metadata"] = _prepare_write_metadata(state["metadata"])
+        out.append((comment, state))
     write_hdf5(fname, out, overwrite=overwrite, title="mnepython", slash="replace")
 
 
