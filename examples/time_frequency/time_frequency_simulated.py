@@ -27,13 +27,7 @@ from matplotlib import pyplot as plt
 from mne import Epochs, create_info
 from mne.baseline import rescale
 from mne.io import RawArray
-from mne.time_frequency import (
-    AverageTFRArray,
-    tfr_array_morlet,
-    tfr_morlet,
-    tfr_multitaper,
-    tfr_stockwell,
-)
+from mne.time_frequency import AverageTFRArray, tfr_array_morlet
 from mne.viz import centers_to_edges
 
 print(__doc__)
@@ -112,8 +106,8 @@ for n_cycles, time_bandwidth, ax, title in zip(
         "Sim: Less time smoothing,\nmore frequency smoothing",
     ],
 ):
-    power = tfr_multitaper(
-        epochs,
+    power = epochs.compute_tfr(
+        method="multitaper",
         freqs=freqs,
         n_cycles=n_cycles,
         time_bandwidth=time_bandwidth,
@@ -145,7 +139,7 @@ for n_cycles, time_bandwidth, ax, title in zip(
 fig, axs = plt.subplots(1, 3, figsize=(15, 5), sharey=True, layout="constrained")
 fmin, fmax = freqs[[0, -1]]
 for width, ax in zip((0.2, 0.7, 3.0), axs):
-    power = tfr_stockwell(epochs, fmin=fmin, fmax=fmax, width=width)
+    power = epochs.compute_tfr(method="stockwell", fmin=fmin, fmax=fmax, width=width)
     power.plot(
         [0], baseline=(0.0, 0.1), mode="mean", axes=ax, show=False, colorbar=False
     )
@@ -163,7 +157,9 @@ for width, ax in zip((0.2, 0.7, 3.0), axs):
 fig, axs = plt.subplots(1, 3, figsize=(15, 5), sharey=True, layout="constrained")
 all_n_cycles = [1, 3, freqs / 2.0]
 for n_cycles, ax in zip(all_n_cycles, axs):
-    power = tfr_morlet(epochs, freqs=freqs, n_cycles=n_cycles, return_itc=False)
+    power = epochs.compute_tfr(
+        method="morlet", freqs=freqs, n_cycles=n_cycles, return_itc=False
+    )
     power.plot(
         [0],
         baseline=(0.0, 0.1),
@@ -238,8 +234,8 @@ for bandwidth, ax in zip(bandwidths, axs):
 # :class:`mne.time_frequency.EpochsTFR` is returned.
 
 n_cycles = freqs / 2.0
-power = tfr_morlet(
-    epochs, freqs=freqs, n_cycles=n_cycles, return_itc=False, average=False
+power = epochs.compute_tfr(
+    method="morlet", freqs=freqs, n_cycles=n_cycles, return_itc=False, average=False
 )
 print(type(power))
 avgpower = power.average()
