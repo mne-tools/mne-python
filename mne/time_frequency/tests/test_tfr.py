@@ -126,7 +126,7 @@ def test_morlet(sfreq, freq, n_cycles):
     assert_allclose(fwhm_formula, fwhm_empirical, atol=3 / sfreq)
 
 
-def test_time_frequency():
+def test_tfr_morlet():
     """Test time-frequency transform (PSD and ITC)."""
     # Set parameters
     event_id = 1
