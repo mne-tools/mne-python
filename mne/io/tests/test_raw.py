@@ -764,7 +764,7 @@ def test_5839():
         )
         return raw
 
-    raw_A, raw_B = [raw_factory((x, 0)) for x in [0, 2]]
+    raw_A, raw_B = (raw_factory((x, 0)) for x in [0, 2])
     raw_A.append(raw_B)
 
     assert_array_equal(raw_A.annotations.onset, EXPECTED_ONSET)

@@ -157,7 +157,9 @@ raw_haemo.plot(n_channels=len(raw_haemo.ch_names), duration=500, show_scrollbars
 raw_haemo_unfiltered = raw_haemo.copy()
 raw_haemo.filter(0.05, 0.7, h_trans_bandwidth=0.2, l_trans_bandwidth=0.02)
 for when, _raw in dict(Before=raw_haemo_unfiltered, After=raw_haemo).items():
-    fig = _raw.compute_psd().plot(average=True, picks="data", exclude="bads")
+    fig = _raw.compute_psd().plot(
+        average=True, amplitude=False, picks="data", exclude="bads"
+    )
     fig.suptitle(f"{when} filtering", weight="bold", size="x-large")
 
 # %%
@@ -244,7 +246,7 @@ epochs["Control"].average().plot_image(axes=axes[:, 0], clim=clims)
 epochs["Tapping"].average().plot_image(axes=axes[:, 1], clim=clims)
 for column, condition in enumerate(["Control", "Tapping"]):
     for ax in axes[:, column]:
-        ax.set_title("{}: {}".format(condition, ax.get_title()))
+        ax.set_title(f"{condition}: {ax.get_title()}")
 
 
 # %%
@@ -344,7 +346,7 @@ evoked_diff.plot_topomap(
 
 for column, condition in enumerate(["Tapping Left", "Tapping Right", "Left-Right"]):
     for row, chroma in enumerate(["HbO", "HbR"]):
-        axes[row, column].set_title("{}: {}".format(chroma, condition))
+        axes[row, column].set_title(f"{chroma}: {condition}")
 
 # %%
 # Lastly, we can also look at the individual waveforms to see what is

@@ -68,6 +68,8 @@
 
 .. _Bruno Nicenboim: https://bnicenboim.github.io
 
+.. _btkcodedev: https://github.com/btkcodedev
+
 .. _buildqa: https://github.com/buildqa
 
 .. _Carlos de la Torre-Ortiz: https://ctorre.me
@@ -348,6 +350,8 @@
 
 .. _Martin Luessi: https://github.com/mluessi
 
+.. _Martin Oberg: https://github.com/obergmartin
+
 .. _Martin Schulz: https://github.com/marsipu
 
 .. _Mathieu Scheltienne: https://github.com/mscheltienne
@@ -384,6 +388,10 @@
 
 .. _Moritz Gerster: https://github.com/moritz-gerster
 
+.. _Motofumi Fushimi: https://github.com/motofumi-fushimi/motofumi-fushimi.github.io
+
+.. _Nabil Alibou: https://github.com/nabilalibou
+
 .. _Natalie Klein: https://github.com/natalieklein
 
 .. _Nathalie Gayraud: https://github.com/ngayraud
@@ -401,6 +409,8 @@
 .. _Niklas Wilming: https://github.com/nwilming
 
 .. _Nikolai Chapochnikov: https://github.com/chapochn
+
+.. _Nikolai Kapralov: https://github.com/ctrltz
 
 .. _Nikolas Chalas: https://github.com/Nichalas
 

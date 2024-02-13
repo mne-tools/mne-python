@@ -151,7 +151,9 @@ def test_array_raw():
 
     # plotting
     raw2.plot()
-    raw2.compute_psd(tmax=2.0, n_fft=1024).plot(average=True, spatial_colors=False)
+    raw2.compute_psd(tmax=2.0, n_fft=1024).plot(
+        average=True, amplitude=False, spatial_colors=False
+    )
     plt.close("all")
 
     # epoching
@@ -184,5 +186,5 @@ def test_array_raw():
     raw = RawArray(data, info)
     raw.set_montage(montage)
     spectrum = raw.compute_psd()
-    spectrum.plot(average=False)  # looking for nonexistent layout
+    spectrum.plot(average=False, amplitude=False)  # looking for nonexistent layout
     spectrum.plot_topo()

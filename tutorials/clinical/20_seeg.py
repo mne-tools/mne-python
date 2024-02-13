@@ -58,8 +58,7 @@ fetch_fsaverage(subjects_dir=subjects_dir, verbose=True)  # downloads if needed
 
 raw = mne.io.read_raw(misc_path / "seeg" / "sample_seeg_ieeg.fif")
 
-events, event_id = mne.events_from_annotations(raw)
-epochs = mne.Epochs(raw, events, event_id, detrend=1, baseline=None)
+epochs = mne.Epochs(raw, detrend=1, baseline=None)
 epochs = epochs["Response"][0]  # just process one epoch of data for speed
 
 # %%

@@ -23,7 +23,7 @@ from functools import partial
 from io import BytesIO, StringIO
 from pathlib import Path
 from shutil import copyfile
-from typing import Optional, Tuple
+from typing import Optional
 
 import numpy as np
 
@@ -143,7 +143,7 @@ CONTENT_ORDER = (
 html_include_dir = Path(__file__).parent / "js_and_css"
 template_dir = Path(__file__).parent / "templates"
 JAVASCRIPT = (html_include_dir / "report.js").read_text(encoding="utf-8")
-CSS = (html_include_dir / "report.sass").read_text(encoding="utf-8")
+CSS = (html_include_dir / "report.css").read_text(encoding="utf-8")
 
 MAX_IMG_RES = 100  # in dots per inch
 MAX_IMG_WIDTH = 850  # in pixels
@@ -302,11 +302,11 @@ class _ContentElement:
     name: str
     section: Optional[str]
     dom_id: str
-    tags: Tuple[str]
+    tags: tuple[str]
     html: str
 
 
-def _check_tags(tags) -> Tuple[str]:
+def _check_tags(tags) -> tuple[str]:
     # Must be iterable, but not a string
     if isinstance(tags, str):
         tags = (tags,)
@@ -1005,7 +1005,7 @@ class Report:
                 ]
                 section_htmls = [el.html for el in section_elements]
                 section_tags = tuple(
-                    sorted((set([t for el in section_elements for t in el.tags])))
+                    sorted(set([t for el in section_elements for t in el.tags]))
                 )
                 section_dom_id = self._get_dom_id(
                     section=None,  # root level of document
@@ -2271,7 +2271,7 @@ class Report:
         elif caption is None and len(figs) == 1:
             captions = [None]
         elif caption is None and len(figs) > 1:
-            captions = [f"Figure {i+1}" for i in range(len(figs))]
+            captions = [f"Figure {i + 1}" for i in range(len(figs))]
         else:
             captions = tuple(caption)
 
@@ -2383,7 +2383,7 @@ class Report:
         )
         self._add_or_replace(
             title=title,
-            section=None,
+            section=section,
             tags=tags,
             html_partial=html_partial,
             replace=replace,
@@ -2998,7 +2998,7 @@ class Report:
         """Do nothing when entering the context block."""
         return self
 
-    def __exit__(self, type, value, traceback):
+    def __exit__(self, exception_type, value, traceback):
         """Save the report when leaving the context block."""
         if self.fname is not None:
             self.save(self.fname, open_browser=False, overwrite=True)
@@ -3143,7 +3143,7 @@ class Report:
 
         del orig_annotations
 
-        captions = [f"Segment {i+1} of {len(images)}" for i in range(len(images))]
+        captions = [f"Segment {i + 1} of {len(images)}" for i in range(len(images))]
 
         self._add_slider(
             figs=None,
@@ -3218,7 +3218,9 @@ class Report:
             init_kwargs, plot_kwargs = _split_psd_kwargs(kwargs=add_psd)
             init_kwargs.setdefault("fmax", fmax)
             plot_kwargs.setdefault("show", False)
-            fig = raw.compute_psd(**init_kwargs).plot(**plot_kwargs)
+            with warnings.catch_warnings():
+                warnings.simplefilter(action="ignore", category=FutureWarning)
+                fig = raw.compute_psd(**init_kwargs).plot(**plot_kwargs)
             _constrain_fig_resolution(fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES)
             self._add_figure(
                 fig=fig,
@@ -3785,7 +3787,7 @@ class Report:
             if fmax > 0.5 * epochs.info["sfreq"]:
                 fmax = np.inf
 
-        fig = epochs_for_psd.compute_psd(fmax=fmax).plot(show=False)
+        fig = epochs_for_psd.compute_psd(fmax=fmax).plot(amplitude=False, show=False)
         _constrain_fig_resolution(fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES)
         duration = round(epoch_duration * len(epochs_for_psd), 1)
         caption = (

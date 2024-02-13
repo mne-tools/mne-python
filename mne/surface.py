@@ -1032,7 +1032,7 @@ def _read_patch(fname):
     # This is adapted from PySurfer PR #269, Bruce Fischl's read_patch.m,
     # and PyCortex (BSD)
     patch = dict()
-    with open(fname, "r") as fid:
+    with open(fname) as fid:
         ver = np.fromfile(fid, dtype=">i4", count=1).item()
         if ver != -1:
             raise RuntimeError(f"incorrect version # {ver} (not -1) found")
@@ -1802,7 +1802,7 @@ def read_tri(fname_in, swap=False, verbose=None):
     -----
     .. versionadded:: 0.13.0
     """
-    with open(fname_in, "r") as fid:
+    with open(fname_in) as fid:
         lines = fid.readlines()
     n_nodes = int(lines[0])
     n_tris = int(lines[n_nodes + 1])
@@ -1843,7 +1843,7 @@ def read_tri(fname_in, swap=False, verbose=None):
 def _get_solids(tri_rrs, fros):
     """Compute _sum_solids_div total angle in chunks."""
     # NOTE: This incorporates the division by 4PI that used to be separate
-    tot_angle = np.zeros((len(fros)))
+    tot_angle = np.zeros(len(fros))
     for ti in range(len(tri_rrs)):
         tri_rr = tri_rrs[ti]
         v1 = fros - tri_rr[0]

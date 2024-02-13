@@ -137,7 +137,7 @@ plot_sparse_source_estimates(
     forward["src"],
     stc,
     bgcolor=(1, 1, 1),
-    fig_name="%s (cond %s)" % (solver, condition),
+    fig_name=f"{solver} (cond {condition})",
     opacity=0.1,
 )
 
@@ -159,7 +159,7 @@ plot_sparse_source_estimates(
     src_fsaverage,
     stc_fsaverage,
     bgcolor=(1, 1, 1),
-    fig_name="Morphed %s (cond %s)" % (solver, condition),
+    fig_name=f"Morphed {solver} (cond {condition})",
     opacity=0.1,
 )
 

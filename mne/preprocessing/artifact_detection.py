@@ -599,7 +599,7 @@ def annotate_break(
     # Log some info
     n_breaks = len(break_annotations)
     break_times = [
-        f"{o:.1f} – {o+d:.1f} s [{d:.1f} s]"
+        f"{o:.1f} – {o + d:.1f} s [{d:.1f} s]"
         for o, d in zip(break_annotations.onset, break_annotations.duration)
     ]
     break_times = "\n    ".join(break_times)

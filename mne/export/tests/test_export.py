@@ -78,7 +78,9 @@ def test_export_raw_pybv(tmp_path, meas_date, orig_time, ext):
     raw.set_annotations(annots)
 
     temp_fname = tmp_path / ("test" + ext)
-    with pytest.warns(RuntimeWarning, match="'short' format. Converting"):
+    with _record_warnings(), pytest.warns(
+        RuntimeWarning, match="'short' format. Converting"
+    ):
         raw.export(temp_fname)
     raw_read = read_raw_brainvision(str(temp_fname).replace(".eeg", ".vhdr"))
     assert raw.ch_names == raw_read.ch_names
@@ -301,7 +303,9 @@ def test_export_edf_signal_clipping(tmp_path, physical_range, exceeded_bound):
     raw = read_raw_fif(fname_raw)
     raw.pick(picks=["eeg", "ecog", "seeg"]).load_data()
     temp_fname = tmp_path / "test.edf"
-    with pytest.warns(RuntimeWarning, match=f"The {exceeded_bound}"):
+    with _record_warnings(), pytest.warns(
+        RuntimeWarning, match=f"The {exceeded_bound}"
+    ):
         raw.export(temp_fname, physical_range=physical_range)
     raw_read = read_raw_edf(temp_fname, preload=True)
     assert raw_read.get_data().min() >= physical_range[0]
@@ -430,6 +434,7 @@ def test_export_epochs_eeglab(tmp_path, preload):
 def test_export_evokeds_to_mff(tmp_path, fmt, do_history):
     """Test exporting evoked dataset to MFF."""
     pytest.importorskip("mffpy", "0.5.7")
+    pytest.importorskip("defusedxml")
     evoked = read_evokeds_mff(egi_evoked_fname)
     export_fname = tmp_path / "evoked.mff"
     history = [
@@ -486,6 +491,7 @@ def test_export_evokeds_to_mff(tmp_path, fmt, do_history):
 def test_export_to_mff_no_device():
     """Test no device type throws ValueError."""
     pytest.importorskip("mffpy", "0.5.7")
+    pytest.importorskip("defusedxml")
     evoked = read_evokeds_mff(egi_evoked_fname, condition="Category 1")
     evoked.info["device_info"] = None
     with pytest.raises(ValueError, match="No device type."):

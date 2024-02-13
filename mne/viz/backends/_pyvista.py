@@ -108,7 +108,6 @@ class PyVistaFigure(Figure3D):
         off_screen=False,
         notebook=False,
         splash=False,
-        multi_samples=None,
     ):
         self._plotter = plotter
         self.display = None
@@ -123,7 +122,6 @@ class PyVistaFigure(Figure3D):
         self.store["shape"] = shape
         self.store["off_screen"] = off_screen
         self.store["border"] = False
-        self.store["multi_samples"] = multi_samples
         self.store["line_smoothing"] = True
         self.store["polygon_smoothing"] = True
         self.store["point_smoothing"] = True
@@ -234,12 +232,12 @@ class _PyVistaRenderer(_AbstractRenderer):
             notebook=notebook,
             smooth_shading=smooth_shading,
             splash=splash,
-            multi_samples=multi_samples,
         )
         self.font_family = "arial"
         self.tube_n_sides = 20
         self.antialias = _get_3d_option("antialias")
         self.depth_peeling = _get_3d_option("depth_peeling")
+        self.multi_samples = multi_samples
         self.smooth_shading = smooth_shading
         if isinstance(fig, int):
             saved_fig = _FIGURES.get(fig)
@@ -758,9 +756,8 @@ class _PyVistaRenderer(_AbstractRenderer):
                     actor.GetTextProperty().SetJustificationToRight()
                 else:
                     raise ValueError(
-                        "Expected values for `justification`"
-                        "are `left`, `center` or `right` but "
-                        "got {} instead.".format(justification)
+                        "Expected values for `justification` are `left`, `center` or "
+                        f"`right` but got {justification} instead."
                     )
         _hide_testing_actor(actor)
         return actor
@@ -880,7 +877,10 @@ class _PyVistaRenderer(_AbstractRenderer):
                 plotter.disable_anti_aliasing()
             else:
                 if not bad_system:
-                    plotter.enable_anti_aliasing(aa_type="msaa")
+                    plotter.enable_anti_aliasing(
+                        aa_type="msaa",
+                        multi_samples=self.multi_samples,
+                    )
 
     def remove_mesh(self, mesh_data):
         actor, _ = mesh_data

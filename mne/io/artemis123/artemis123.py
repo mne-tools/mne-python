@@ -23,7 +23,7 @@ from .utils import _load_mne_locs, _read_pos
 @verbose
 def read_raw_artemis123(
     input_fname, preload=False, verbose=None, pos_fname=None, add_head_trans=True
-):
+) -> "RawArtemis123":
     """Read Artemis123 data as raw object.
 
     Parameters
@@ -83,7 +83,7 @@ def _get_artemis123_info(fname, pos_fname=None):
     header_info["comments"] = ""
     header_info["channels"] = []
 
-    with open(header, "r") as fid:
+    with open(header) as fid:
         # section flag
         # 0 - None
         # 1 - main header
@@ -173,7 +173,7 @@ def _get_artemis123_info(fname, pos_fname=None):
     # build description
     desc = ""
     for k in ["Purpose", "Notes"]:
-        desc += "{} : {}\n".format(k, header_info[k])
+        desc += f"{k} : {header_info[k]}\n"
     desc += "Comments : {}".format(header_info["comments"])
 
     info.update(
@@ -340,7 +340,7 @@ class RawArtemis123(BaseRaw):
         verbose=None,
         pos_fname=None,
         add_head_trans=True,
-    ):  # noqa: D102
+    ):
         from ...chpi import (
             _fit_coil_order_dev_head_trans,
             compute_chpi_amplitudes,
@@ -363,7 +363,7 @@ class RawArtemis123(BaseRaw):
 
         last_samps = [header_info.get("num_samples", 1) - 1]
 
-        super(RawArtemis123, self).__init__(
+        super().__init__(
             info,
             preload,
             filenames=[input_fname],

@@ -66,7 +66,9 @@ epochs = mne.Epochs(
 
 # %%
 # Let's first check out all channel types by averaging across epochs.
-epochs.compute_psd(fmin=2.0, fmax=40.0).plot(average=True, picks="data", exclude="bads")
+epochs.compute_psd(fmin=2.0, fmax=40.0).plot(
+    average=True, amplitude=False, picks="data", exclude="bads"
+)
 
 # %%
 # Now, let's take a look at the spatial distributions of the PSD, averaged

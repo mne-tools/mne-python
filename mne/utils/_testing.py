@@ -50,7 +50,7 @@ class _TempDir(str):
         new = str.__new__(self, tempfile.mkdtemp(prefix="tmp_mne_tempdir_"))
         return new
 
-    def __init__(self):  # noqa: D102
+    def __init__(self):
         self._path = self.__str__()
 
     def __del__(self):  # noqa: D105
@@ -121,7 +121,7 @@ def run_command_if_main():
 class ArgvSetter:
     """Temporarily set sys.argv."""
 
-    def __init__(self, args=(), disable_stdout=True, disable_stderr=True):  # noqa: D102
+    def __init__(self, args=(), disable_stdout=True, disable_stderr=True):
         self.argv = list(("python",) + args)
         self.stdout = ClosingStringIO() if disable_stdout else sys.stdout
         self.stderr = ClosingStringIO() if disable_stderr else sys.stderr

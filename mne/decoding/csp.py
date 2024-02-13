@@ -181,10 +181,8 @@ class CSP(TransformerMixin, BaseEstimator):
             raise ValueError("n_classes must be >= 2.")
         if n_classes > 2 and self.component_order == "alternate":
             raise ValueError(
-                "component_order='alternate' requires two "
-                "classes, but data contains {} classes; use "
-                "component_order='mutual_info' "
-                "instead.".format(n_classes)
+                "component_order='alternate' requires two classes, but data contains "
+                f"{n_classes} classes; use component_order='mutual_info' instead."
             )
 
         covs, sample_weights = self._compute_covariance_matrices(X, y)
@@ -773,7 +771,7 @@ class SPoC(CSP):
         rank=None,
     ):
         """Init of SPoC."""
-        super(SPoC, self).__init__(
+        super().__init__(
             n_components=n_components,
             reg=reg,
             log=log,
@@ -873,4 +871,4 @@ class SPoC(CSP):
             If self.transform_into == 'csp_space' then returns the data in CSP
             space and shape is (n_epochs, n_sources, n_times).
         """
-        return super(SPoC, self).transform(X)
+        return super().transform(X)

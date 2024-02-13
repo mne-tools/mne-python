@@ -123,8 +123,7 @@ def interpolate_bridged_electrodes(inst, bridged_idx, bad_limit=4):
     pos = montage.get_positions()
     if pos["coord_frame"] != "head":
         raise RuntimeError(
-            "Montage channel positions must be in ``head``"
-            "got {}".format(pos["coord_frame"])
+            f"Montage channel positions must be in ``head`` got {pos['coord_frame']}"
         )
     # store bads orig to put back at the end
     bads_orig = inst.info["bads"]
@@ -164,7 +163,7 @@ def interpolate_bridged_electrodes(inst, bridged_idx, bad_limit=4):
         # compute centroid position in spherical "head" coordinates
         pos_virtual = _find_centroid_sphere(pos["ch_pos"], group_names)
         # create the virtual channel info and set the position
-        virtual_info = create_info([f"virtual {k+1}"], inst.info["sfreq"], "eeg")
+        virtual_info = create_info([f"virtual {k + 1}"], inst.info["sfreq"], "eeg")
         virtual_info["chs"][0]["loc"][:3] = pos_virtual
         # create virtual channel
         data = inst.get_data(picks=group_names)
@@ -183,7 +182,7 @@ def interpolate_bridged_electrodes(inst, bridged_idx, bad_limit=4):
                 nave=inst.nave,
                 kind=inst.kind,
             )
-        virtual_chs[f"virtual {k+1}"] = virtual_ch
+        virtual_chs[f"virtual {k + 1}"] = virtual_ch
 
     # add the virtual channels
     inst.add_channels(list(virtual_chs.values()), force_update_info=True)

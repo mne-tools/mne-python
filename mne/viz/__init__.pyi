@@ -18,6 +18,7 @@ __all__ = [
     "compare_fiff",
     "concatenate_images",
     "create_3d_figure",
+    "eyetracking",
     "get_3d_backend",
     "get_brain_class",
     "get_browser_backend",
@@ -86,7 +87,7 @@ __all__ = [
     "use_3d_backend",
     "use_browser_backend",
 ]
-from . import _scraper, backends, ui_events
+from . import _scraper, backends, eyetracking, ui_events
 from ._3d import (
     link_brains,
     plot_alignment,

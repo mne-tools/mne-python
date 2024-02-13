@@ -27,7 +27,7 @@ sample_data_raw_file = os.path.join(
 )
 raw = mne.io.read_raw_fif(sample_data_raw_file, verbose=False)
 raw.crop(tmax=60).load_data()
-raw.pick(["EEG 0{:02}".format(n) for n in range(41, 60)])
+raw.pick([f"EEG 0{n:02}" for n in range(41, 60)])
 
 # %%
 # Background
@@ -131,7 +131,7 @@ raw_new_ref.plot()
 # :meth:`~mne.io.Raw.set_eeg_reference` with ``ref_channels='average'``. Just
 # as above, this will not affect any channels marked as "bad", nor will it
 # include bad channels when computing the average. However, it does modify the
-# :class:`~mne.io.Raw` object in-place, so we'll make a copy first so we can
+# :class:`~mne.io.Raw` object in-place, so we'll make a copy first, so we can
 # still go back to the unmodified :class:`~mne.io.Raw` object later:
 
 # sphinx_gallery_thumbnail_number = 4
@@ -176,7 +176,7 @@ for title, proj in zip(["Original", "Average"], [False, True]):
         fig = raw.plot(proj=proj, n_channels=len(raw))
     # make room for title
     fig.subplots_adjust(top=0.9)
-    fig.suptitle("{} reference".format(title), size="xx-large", weight="bold")
+    fig.suptitle(f"{title} reference", size="xx-large", weight="bold")
 
 # %%
 # Using an infinite reference (REST)
@@ -199,7 +199,7 @@ for title, _raw in zip(["Original", "REST (∞)"], [raw, raw_rest]):
         fig = _raw.plot(n_channels=len(raw), scalings=dict(eeg=5e-5))
     # make room for title
     fig.subplots_adjust(top=0.9)
-    fig.suptitle("{} reference".format(title), size="xx-large", weight="bold")
+    fig.suptitle(f"{title} reference", size="xx-large", weight="bold")
 
 # %%
 # Using a bipolar reference
@@ -241,9 +241,13 @@ raw_bip_ref.plot()
 # the source modeling is performed. In contrast, applying an average reference
 # by the traditional subtraction method offers no such guarantee.
 #
-# For these reasons, when performing inverse imaging, *MNE-Python will raise
-# a ``ValueError`` if there are EEG channels present and something other than
-# an average reference strategy has been specified*.
+# .. important:: For these reasons, when performing inverse imaging, MNE-Python
+#                will raise a ``ValueError`` if there are EEG channels present
+#                and something other than an average reference projector strategy
+#                has been specified. To ensure correct functioning consider
+#                calling :meth:`set_eeg_reference(projection=True)
+#                <mne.io.Raw.set_eeg_reference>` to add an average
+#                reference as a projector.
 #
 # .. LINKS
 #

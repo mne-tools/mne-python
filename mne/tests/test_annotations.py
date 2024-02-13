@@ -278,7 +278,9 @@ def test_crop(tmp_path):
     assert raw_read.annotations is not None
     assert len(raw_read.annotations.onset) == 0
     # test saving and reloading cropped annotations in raw instance
-    info = create_info([f"EEG{i+1}" for i in range(3)], ch_types=["eeg"] * 3, sfreq=50)
+    info = create_info(
+        [f"EEG{i + 1}" for i in range(3)], ch_types=["eeg"] * 3, sfreq=50
+    )
     raw = RawArray(np.zeros((3, 50 * 20)), info)
     annotation = mne.Annotations([8, 12, 15], [2] * 3, [1, 2, 3])
     raw = raw.set_annotations(annotation)
@@ -425,7 +427,11 @@ def test_raw_reject(first_samp):
     with pytest.warns(RuntimeWarning, match="outside the data range"):
         raw.set_annotations(Annotations([2, 100, 105, 148], [2, 8, 5, 8], "BAD"))
     data, times = raw.get_data(
-        [0, 1, 3, 4], 100, 11200, "omit", return_times=True  # 1-112 s
+        [0, 1, 3, 4],
+        100,
+        11200,
+        "omit",
+        return_times=True,  # 1-112 s
     )
     bad_times = np.concatenate(
         [np.arange(200, 400), np.arange(10000, 10800), np.arange(10500, 11000)]
@@ -1200,7 +1206,7 @@ def test_date_none(tmp_path):
     n_chans = 139
     n_samps = 20
     data = np.random.random_sample((n_chans, n_samps))
-    ch_names = ["E{}".format(x) for x in range(n_chans)]
+    ch_names = [f"E{x}" for x in range(n_chans)]
     ch_types = ["eeg"] * n_chans
     info = create_info(ch_names=ch_names, ch_types=ch_types, sfreq=2048)
     assert info["meas_date"] is None
@@ -1246,7 +1252,7 @@ def test_crop_when_negative_orig_time(windows_like_datetime):
     assert len(annot) == 10
 
     # Crop with negative tmin, tmax
-    tmin, tmax = [orig_time_stamp + t for t in (0.25, 0.75)]
+    tmin, tmax = (orig_time_stamp + t for t in (0.25, 0.75))
     assert tmin < 0 and tmax < 0
     crop_annot = annot.crop(tmin=tmin, tmax=tmax)
     assert_allclose(crop_annot.onset, [0.3, 0.4, 0.5, 0.6, 0.7])
@@ -1349,7 +1355,7 @@ def test_annotations_from_events():
 
     # 4. Try passing callable
     # -------------------------------------------------------------------------
-    event_desc = lambda d: "event{}".format(d)  # noqa:E731
+    event_desc = lambda d: f"event{d}"  # noqa:E731
     annots = annotations_from_events(
         events,
         sfreq=raw.info["sfreq"],
@@ -1412,7 +1418,8 @@ def test_repr():
     assert r == "<Annotations | 0 segments>"
 
 
-def test_annotation_to_data_frame():
+@pytest.mark.parametrize("time_format", (None, "ms", "datetime", "timedelta"))
+def test_annotation_to_data_frame(time_format):
     """Test annotation class to data frame conversion."""
     pytest.importorskip("pandas")
     onset = np.arange(1, 10)
@@ -1423,11 +1430,15 @@ def test_annotation_to_data_frame():
         onset=onset, duration=durations, description=description, orig_time=0
     )
 
-    df = a.to_data_frame()
+    df = a.to_data_frame(time_format=time_format)
     for col in ["onset", "duration", "description"]:
         assert col in df.columns
     assert df.description[0] == "yy"
-    assert (df.onset[1] - df.onset[0]).seconds == 1
+    want = 1000 if time_format == "ms" else 1
+    got = df.onset[1] - df.onset[0]
+    if time_format in ("datetime", "timedelta"):
+        got = got.seconds
+    assert want == got
     assert df.groupby("description").count().onset["yy"] == 9
 
 

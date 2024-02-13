@@ -130,7 +130,7 @@ def plot_cov(
     fig_cov : instance of matplotlib.figure.Figure
         The covariance plot.
     fig_svd : instance of matplotlib.figure.Figure | None
-        The SVD spectra plot of the covariance.
+        The SVD plot of the covariance (i.e., the eigenvalues or "matrix spectrum").
 
     See Also
     --------
