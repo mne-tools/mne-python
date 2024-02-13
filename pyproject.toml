@@ -140,7 +140,7 @@ test_extra = [
     "mne-bids",
 ]
 
-# Dependencies for building the docuemntation
+# Dependencies for building the documentation
 doc = [
     "sphinx>=6",
     "numpydoc",
