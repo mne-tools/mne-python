@@ -1680,8 +1680,8 @@ def test_tfr_plot_extras(epochs_tfr):
         epochs_tfr.plot(picks=picks, axes={})
     with pytest.raises(RuntimeError, match="must be one axes for each picked channel"):
         epochs_tfr.plot(picks=[1, 2], axes=axs[-1:])
-    # test singleton check
-    epochs_tfr._data = np.array((epochs_tfr._data, epochs_tfr._data))
+    # test singleton check by faking having 2 epochs
+    epochs_tfr._data = np.vstack((epochs_tfr._data, epochs_tfr._data))
     with pytest.raises(NotImplementedError, match=r"Cannot call plot\(\) from"):
         epochs_tfr.plot()
 
