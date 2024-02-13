@@ -342,7 +342,7 @@ def test_constants(tmp_path):
                         break
                 else:
                     if name not in _tag_ignore_names:
-                        raise RuntimeError("Could not find %s" % (name,))
+                        raise RuntimeError(f"Could not find {name}")
             assert check in used_enums, name
             if "SSS" in check:
                 raise RuntimeError
@@ -353,13 +353,13 @@ def test_constants(tmp_path):
         else:
             unknowns.append((name, val))
         if check is not None and name not in _tag_ignore_names:
-            assert val in fif[check], "%s: %s, %s" % (check, val, name)
+            assert val in fif[check], f"{check}: {val}, {name}"
             if val in con[check]:
-                msg = "%s='%s'  ?" % (name, con[check][val])
+                msg = f"{name}='{con[check][val]}'  ?"
                 assert _aliases.get(name) == con[check][val], msg
             else:
                 con[check][val] = name
-    unknowns = "\n\t".join("%s (%s)" % u for u in unknowns)
+    unknowns = "\n\t".join("{} ({})".format(*u) for u in unknowns)
     assert len(unknowns) == 0, "Unknown types\n\t%s" % unknowns
 
     # Assert that all the FIF defs are in our constants

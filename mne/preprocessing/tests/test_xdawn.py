@@ -335,7 +335,7 @@ def _simulate_erplike_mixed_data(n_epochs=100, n_channels=10):
     events[:, 2] = y
 
     info = create_info(
-        ch_names=["C{:02d}".format(i) for i in range(n_channels)],
+        ch_names=[f"C{i:02d}" for i in range(n_channels)],
         ch_types=["eeg"] * n_channels,
         sfreq=sfreq,
     )

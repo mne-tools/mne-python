@@ -30,7 +30,7 @@ def _read_dig_montage_egi(
     defusedxml = _soft_import("defusedxml", "reading EGI montages")
     root = defusedxml.ElementTree.parse(fname).getroot()
     ns = root.tag[root.tag.index("{") : root.tag.index("}") + 1]
-    sensors = root.find("%ssensorLayout/%ssensors" % (ns, ns))
+    sensors = root.find(f"{ns}sensorLayout/{ns}sensors")
     fids = dict()
     dig_ch_pos = dict()
 

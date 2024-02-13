@@ -454,8 +454,8 @@ def _check_set(ch, projs, ch_type):
         for proj in projs:
             if ch["ch_name"] in proj["data"]["col_names"]:
                 raise RuntimeError(
-                    "Cannot change channel type for channel %s "
-                    'in projector "%s"' % (ch["ch_name"], proj["desc"])
+                    f'Cannot change channel type for channel {ch["ch_name"]} in '
+                    f'projector "{proj["desc"]}"'
                 )
     ch["kind"] = new_kind
 
@@ -482,7 +482,7 @@ class SetChannelsMixin(MontageMixin):
         n_zero = np.sum(np.sum(np.abs(pos), axis=1) == 0)
         if n_zero > 1:  # XXX some systems have origin (0, 0, 0)
             raise ValueError(
-                "Could not extract channel positions for " "{} channels".format(n_zero)
+                f"Could not extract channel positions for {n_zero} channels"
             )
         return pos
 
@@ -507,8 +507,8 @@ class SetChannelsMixin(MontageMixin):
             )
         pos = np.asarray(pos, dtype=np.float64)
         if pos.shape[-1] != 3 or pos.ndim != 2:
-            msg = "Channel positions must have the shape (n_points, 3) " "not %s." % (
-                pos.shape,
+            msg = (
+                f"Channel positions must have the shape (n_points, 3) not {pos.shape}."
             )
             raise ValueError(msg)
         for name, p in zip(names, pos):
@@ -568,9 +568,9 @@ class SetChannelsMixin(MontageMixin):
             c_ind = ch_names.index(ch_name)
             if ch_type not in _human2fiff:
                 raise ValueError(
-                    "This function cannot change to this "
-                    "channel type: %s. Accepted channel types "
-                    "are %s." % (ch_type, ", ".join(sorted(_human2unit.keys())))
+                    f"This function cannot change to this channel type: {ch_type}. "
+                    "Accepted channel types are "
+                    f"{', '.join(sorted(_human2unit.keys()))}."
                 )
             # Set sensor type
             _check_set(info["chs"][c_ind], info["projs"], ch_type)
@@ -578,8 +578,8 @@ class SetChannelsMixin(MontageMixin):
             unit_new = _human2unit[ch_type]
             if unit_old not in _unit2human:
                 raise ValueError(
-                    "Channel '%s' has unknown unit (%s). Please "
-                    "fix the measurement info of your data." % (ch_name, unit_old)
+                    f"Channel '{ch_name}' has unknown unit ({unit_old}). Please fix the"
+                    " measurement info of your data."
                 )
             if unit_old != _human2unit[ch_type]:
                 this_change = (_unit2human[unit_old], _unit2human[unit_new])
@@ -1104,9 +1104,9 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
         The transformation from 4D/CTF head coordinates to Neuromag head
         coordinates. This is only present in 4D/CTF data.
     custom_ref_applied : int
-        Whether a custom (=other than average) reference has been applied to
-        the EEG data. This flag is checked by some algorithms that require an
-        average reference to be set.
+        Whether a custom (=other than an average projector) reference has been
+        applied to the EEG data. This flag is checked by some algorithms that
+        require an average reference to be set.
     description : str | None
         String description of the recording.
     dev_ctf_t : Transform | None
@@ -1659,7 +1659,7 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
                     non_empty -= 1  # don't count as non-empty
             elif k == "bads":
                 if v:
-                    entr = "{} items (".format(len(v))
+                    entr = f"{len(v)} items ("
                     entr += ", ".join(v)
                     entr = shorten(entr, MAX_WIDTH, placeholder=" ...") + ")"
                 else:
@@ -1695,11 +1695,11 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
                 if not np.allclose(v["trans"], np.eye(v["trans"].shape[0])):
                     frame1 = _coord_frame_name(v["from"])
                     frame2 = _coord_frame_name(v["to"])
-                    entr = "%s -> %s transform" % (frame1, frame2)
+                    entr = f"{frame1} -> {frame2} transform"
                 else:
                     entr = ""
             elif k in ["sfreq", "lowpass", "highpass"]:
-                entr = "{:.1f} Hz".format(v)
+                entr = f"{v:.1f} Hz"
             elif isinstance(v, str):
                 entr = shorten(v, MAX_WIDTH, placeholder=" ...")
             elif k == "chs":
@@ -1719,7 +1719,7 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
                 try:
                     this_len = len(v)
                 except TypeError:
-                    entr = "{}".format(v) if v is not None else ""
+                    entr = f"{v}" if v is not None else ""
                 else:
                     if this_len > 0:
                         entr = "%d item%s (%s)" % (
@@ -1731,7 +1731,7 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
                         entr = ""
             if entr != "":
                 non_empty += 1
-                strs.append("%s: %s" % (k, entr))
+                strs.append(f"{k}: {entr}")
         st = "\n ".join(sorted(strs))
         st += "\n>"
         st %= non_empty
@@ -1784,12 +1784,8 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
                 or self["meas_date"].tzinfo is not datetime.timezone.utc
             ):
                 raise RuntimeError(
-                    '%sinfo["meas_date"] must be a datetime '
-                    "object in UTC or None, got %r"
-                    % (
-                        prepend_error,
-                        repr(self["meas_date"]),
-                    )
+                    f'{prepend_error}info["meas_date"] must be a datetime object in UTC'
+                    f' or None, got {repr(self["meas_date"])!r}'
                 )
 
         chs = [ch["ch_name"] for ch in self["chs"]]
@@ -1799,8 +1795,8 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
             or self["nchan"] != len(chs)
         ):
             raise RuntimeError(
-                "%sinfo channel name inconsistency detected, "
-                "please notify mne-python developers" % (prepend_error,)
+                f"{prepend_error}info channel name inconsistency detected, please "
+                "notify MNE-Python developers"
             )
 
         # make sure we have the proper datatypes
@@ -2649,16 +2645,9 @@ def _check_dates(info, prepend_error=""):
                     or value[key_2] > np.iinfo(">i4").max
                 ):
                     raise RuntimeError(
-                        "%sinfo[%s][%s] must be between "
-                        '"%r" and "%r", got "%r"'
-                        % (
-                            prepend_error,
-                            key,
-                            key_2,
-                            np.iinfo(">i4").min,
-                            np.iinfo(">i4").max,
-                            value[key_2],
-                        ),
+                        f"{prepend_error}info[{key}][{key_2}] must be between "
+                        f'"{np.iinfo(">i4").min!r}" and "{np.iinfo(">i4").max!r}", got '
+                        f'"{value[key_2]!r}"'
                     )
 
     meas_date = info.get("meas_date")
@@ -2671,14 +2660,9 @@ def _check_dates(info, prepend_error=""):
         or meas_date_stamp[0] > np.iinfo(">i4").max
     ):
         raise RuntimeError(
-            '%sinfo["meas_date"] seconds must be between "%r" '
-            'and "%r", got "%r"'
-            % (
-                prepend_error,
-                (np.iinfo(">i4").min, 0),
-                (np.iinfo(">i4").max, 0),
-                meas_date_stamp[0],
-            )
+            f'{prepend_error}info["meas_date"] seconds must be between '
+            f'"{(np.iinfo(">i4").min, 0)!r}" and "{(np.iinfo(">i4").max, 0)!r}", got '
+            f'"{meas_date_stamp[0]!r}"'
         )
 
 
@@ -2954,8 +2938,8 @@ def _merge_info_values(infos, key, verbose=None):
     """
     values = [d[key] for d in infos]
     msg = (
-        "Don't know how to merge '%s'. Make sure values are "
-        "compatible, got types:\n    %s" % (key, [type(v) for v in values])
+        f"Don't know how to merge '{key}'. Make sure values are compatible, got types:"
+        f"\n    {[type(v) for v in values]}"
     )
 
     def _flatten(lists):
@@ -3218,8 +3202,8 @@ def create_info(ch_names, sfreq, ch_types="misc", verbose=None):
     ch_types = np.atleast_1d(np.array(ch_types, np.str_))
     if ch_types.ndim != 1 or len(ch_types) != nchan:
         raise ValueError(
-            "ch_types and ch_names must be the same length "
-            "(%s != %s) for ch_types=%s" % (len(ch_types), nchan, ch_types)
+            f"ch_types and ch_names must be the same length ({len(ch_types)} != "
+            f"{nchan}) for ch_types={ch_types}"
         )
     info = _empty_info(sfreq)
     ch_types_dict = get_channel_type_constants(include_defaults=True)

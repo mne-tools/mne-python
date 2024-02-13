@@ -29,12 +29,13 @@ import mne.html_templates._templates
 from mne.tests.test_docstring_parameters import error_ignores
 from mne.utils import (
     _assert_no_instances,
-    linkcode_resolve,  # noqa, analysis:ignore
+    linkcode_resolve,
     run_subprocess,
     sizeof_fmt,
 )
 from mne.viz import Brain  # noqa
 
+assert linkcode_resolve is not None  # avoid flake warnings, used by numpydoc
 matplotlib.use("agg")
 faulthandler.enable()
 os.environ["_MNE_BROWSER_NO_BLOCK"] = "true"
@@ -62,12 +63,12 @@ td = datetime.now(tz=timezone.utc)
 
 # We need to triage which date type we use so that incremental builds work
 # (Sphinx looks at variable changes and rewrites all files if some change)
-copyright = (
+copyright = (  # noqa: A001
     f'2012–{td.year}, MNE Developers. Last updated <time datetime="{td.isoformat()}" class="localized">{td.strftime("%Y-%m-%d %H:%M %Z")}</time>\n'  # noqa: E501
     '<script type="text/javascript">$(function () { $("time.localized").each(function () { var el = $(this); el.text(new Date(el.attr("datetime")).toLocaleString([], {dateStyle: "medium", timeStyle: "long"})); }); } )</script>'  # noqa: E501
 )
 if os.getenv("MNE_FULL_DATE", "false").lower() != "true":
-    copyright = f"2012–{td.year}, MNE Developers. Last updated locally."
+    copyright = f"2012–{td.year}, MNE Developers. Last updated locally."  # noqa: A001
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -293,6 +294,7 @@ numpydoc_xref_aliases = {
     "RawNIRX": "mne.io.Raw",
     "RawPersyst": "mne.io.Raw",
     "RawSNIRF": "mne.io.Raw",
+    "Calibration": "mne.preprocessing.eyetracking.Calibration",
     # dipy
     "dipy.align.AffineMap": "dipy.align.imaffine.AffineMap",
     "dipy.align.DiffeomorphicMap": "dipy.align.imwarp.DiffeomorphicMap",
@@ -445,16 +447,18 @@ numpydoc_validation_exclude = {  # set of regex
 # -- Sphinx-gallery configuration --------------------------------------------
 
 
-class Resetter(object):
+class Resetter:
     """Simple class to make the str(obj) static for Sphinx build env hash."""
 
     def __init__(self):
         self.t0 = time.time()
 
     def __repr__(self):
+        """Make a stable repr."""
         return f"<{self.__class__.__name__}>"
 
     def __call__(self, gallery_conf, fname, when):
+        """Do the reset."""
         import matplotlib.pyplot as plt
 
         try:
@@ -839,7 +843,7 @@ html_theme_options = {
         ),
     ],
     "icon_links_label": "External Links",  # for screen reader
-    "use_edit_page_button": True,
+    "use_edit_page_button": False,
     "navigation_with_keys": False,
     "show_toc_level": 1,
     "article_header_start": [],  # disable breadcrumbs
@@ -1310,6 +1314,7 @@ def reset_warnings(gallery_conf, fname):
     for key in (
         "invalid version and will not be supported",  # pyxdf
         "distutils Version classes are deprecated",  # seaborn and neo
+        "is_categorical_dtype is deprecated",  # seaborn
         "`np.object` is a deprecated alias for the builtin `object`",  # pyxdf
         # nilearn, should be fixed in > 0.9.1
         "In future, it will be an error for 'np.bool_' scalars to",
@@ -1334,6 +1339,19 @@ def reset_warnings(gallery_conf, fname):
         r"The .* was deprecated in Matplotlib 3\.7",
         # scipy
         r"scipy.signal.morlet2 is deprecated in SciPy 1\.12",
+        # Matplotlib->tz
+        r"datetime\.datetime\.utcfromtimestamp",
+        # joblib
+        r"ast\.Num is deprecated",
+        r"Attribute n is deprecated and will be removed in Python 3\.14",
+        # numpydoc
+        r"ast\.NameConstant is deprecated and will be removed in Python 3\.14",
+        # pooch
+        r"Python 3\.14 will, by default, filter extracted tar archives.*",
+        # seaborn
+        r"DataFrameGroupBy\.apply operated on the grouping columns.*",
+        # pandas
+        r"\nPyarrow will become a required dependency of pandas.*",
     ):
         warnings.filterwarnings(  # deal with other modules having bad imports
             "ignore", message=".*%s.*" % key, category=DeprecationWarning
@@ -1372,6 +1390,7 @@ def reset_warnings(gallery_conf, fname):
         r"iteritems is deprecated.*Use \.items instead\.",
         "is_categorical_dtype is deprecated.*",
         "The default of observed=False.*",
+        "When grouping with a length-1 list-like.*",
     ):
         warnings.filterwarnings(
             "ignore",
@@ -1738,7 +1757,7 @@ REDIRECT_TEMPLATE = """\
 def check_existing_redirect(path):
     """Make sure existing HTML files are redirects, before overwriting."""
     if path.is_file():
-        with open(path, "r") as fid:
+        with open(path) as fid:
             for _ in range(8):
                 next(fid)
             line = fid.readline()

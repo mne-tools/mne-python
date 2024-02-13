@@ -314,9 +314,7 @@ epochs.set_channel_types({"EEG 060": "eeg"})
 shorter_epochs = epochs.copy().crop(tmin=-0.1, tmax=0.1, include_tmax=True)
 
 for name, obj in dict(Original=epochs, Cropped=shorter_epochs).items():
-    print(
-        "{} epochs has {} time samples".format(name, obj.get_data(copy=False).shape[-1])
-    )
+    print(f"{name} epochs has {obj.get_data(copy=False).shape[-1]} time samples")
 
 # %%
 # Cropping removed part of the baseline. When printing the
@@ -370,7 +368,7 @@ meg_data = epochs.get_data(picks=["mag", "grad"])
 channel_4_6_8 = epochs.get_data(picks=slice(4, 9, 2))
 
 for name, arr in dict(EOG=eog_data, MEG=meg_data, Slice=channel_4_6_8).items():
-    print("{} contains {} channels".format(name, arr.shape[1]))
+    print(f"{name} contains {arr.shape[1]} channels")
 
 # %%
 # Note that if your analysis requires repeatedly extracting single epochs from

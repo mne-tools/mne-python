@@ -519,8 +519,12 @@ def _prep_maxwell_filter(
     #
     sss_cal = dict()
     if calibration is not None:
+        # Modifies info in place, so make a copy for recon later
+        info_recon = info.copy()
         calibration, sss_cal = _update_sensor_geometry(info, calibration, ignore_ref)
         mag_or_fine.fill(True)  # all channels now have some mag-type data
+    else:
+        info_recon = info
 
     # Determine/check the origin of the expansion
     origin = _check_origin(origin, info, coord_frame, disp=True)
@@ -553,7 +557,8 @@ def _prep_maxwell_filter(
     #
     exp = dict(origin=origin_head, int_order=int_order, ext_order=0)
     all_coils = _prep_mf_coils(info, ignore_ref)
-    S_recon = _trans_sss_basis(exp, all_coils, recon_trans, coil_scale)
+    all_coils_recon = _prep_mf_coils(info_recon, ignore_ref)
+    S_recon = _trans_sss_basis(exp, all_coils_recon, recon_trans, coil_scale)
     exp["ext_order"] = ext_order
     exp["extended_proj"] = extended_proj
     del extended_proj

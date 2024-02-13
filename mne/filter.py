@@ -380,8 +380,8 @@ def _overlap_add_filter(
     logger.debug("FFT block length:   %s" % n_fft)
     if n_fft < min_fft:
         raise ValueError(
-            "n_fft is too short, has to be at least "
-            "2 * len(h) - 1 (%s), got %s" % (min_fft, n_fft)
+            f"n_fft is too short, has to be at least 2 * len(h) - 1 ({min_fft}), got "
+            f"{n_fft}"
         )
 
     # Figure out if we should use CUDA
@@ -493,9 +493,9 @@ def _firwin_design(N, freq, gain, window, sfreq):
             this_N += 1 - this_N % 2  # make it odd
             if this_N > N:
                 raise ValueError(
-                    "The requested filter length %s is too short "
-                    "for the requested %0.2f Hz transition band, "
-                    "which requires %s samples" % (N, transition * sfreq / 2.0, this_N)
+                    f"The requested filter length {N} is too short for the requested "
+                    f"{transition * sfreq / 2.0:0.2f} Hz transition band, which "
+                    f"requires {this_N} samples"
                 )
             # Construct a lowpass
             this_h = signal.firwin(
@@ -568,7 +568,7 @@ def _construct_fir_filter(
     freq = np.array(freq) / (sfreq / 2.0)
     if freq[0] != 0 or freq[-1] != 1:
         raise ValueError(
-            "freq must start at 0 and end an Nyquist (%s), got %s" % (sfreq / 2.0, freq)
+            f"freq must start at 0 and end an Nyquist ({sfreq / 2.0}), got {freq}"
         )
     gain = np.array(gain)
 
@@ -587,8 +587,8 @@ def _construct_fir_filter(
     if att_db < min_att_db:
         att_freq *= sfreq / 2.0
         warn(
-            "Attenuation at stop frequency %0.2f Hz is only %0.2f dB. "
-            "Increase filter_length for higher attenuation." % (att_freq, att_db)
+            f"Attenuation at stop frequency {att_freq:0.2f} Hz is only {att_db:0.2f} "
+            "dB. Increase filter_length for higher attenuation."
         )
     return h
 
@@ -597,9 +597,7 @@ def _check_zero_phase_length(N, phase, gain_nyq=0):
     N = int(N)
     if N % 2 == 0:
         if phase == "zero":
-            raise RuntimeError(
-                'filter_length must be odd if phase="zero", ' "got %s" % N
-            )
+            raise RuntimeError(f'filter_length must be odd if phase="zero", got {N}')
         elif phase == "zero-double" and gain_nyq == 1:
             N += 1
     return N
@@ -885,16 +883,15 @@ def construct_iir_filter(
         ftype = iir_params["ftype"]
         if ftype not in known_filters:
             raise RuntimeError(
-                "ftype must be in filter_dict from "
-                "scipy.signal (e.g., butter, cheby1, etc.) not "
-                "%s" % ftype
+                "ftype must be in filter_dict from scipy.signal (e.g., butter, cheby1, "
+                f"etc.) not {ftype}"
             )
 
         # use order-based design
         f_pass = np.atleast_1d(f_pass)
         if f_pass.ndim > 1:
             raise ValueError("frequencies must be 1D, got %dD" % f_pass.ndim)
-        edge_freqs = ", ".join("%0.2f" % (f,) for f in f_pass)
+        edge_freqs = ", ".join(f"{f:0.2f}" for f in f_pass)
         Wp = f_pass / (float(sfreq) / 2)
         # IT will de designed
         ftype_nice = _ftype_dict.get(ftype, ftype)
@@ -968,8 +965,8 @@ def construct_iir_filter(
         # 2 * 20 here because we do forward-backward filtering
         if phase in ("zero", "zero-double"):
             cutoffs *= 2
-        cutoffs = ", ".join(["%0.2f" % (c,) for c in cutoffs])
-        logger.info("- Cutoff%s at %s Hz: %s dB" % (_pl(f_pass), edge_freqs, cutoffs))
+        cutoffs = ", ".join([f"{c:0.2f}" for c in cutoffs])
+        logger.info(f"- Cutoff{_pl(f_pass)} at {edge_freqs} Hz: {cutoffs} dB")
     # now deal with padding
     if "padlen" not in iir_params:
         padlen = estimate_ringing_samples(system)
@@ -1254,16 +1251,15 @@ def create_filter(
     # If no data specified, sanity checking will be skipped
     if data is None:
         logger.info(
-            "No data specified. Sanity checks related to the length of"
-            " the signal relative to the filter order will be"
-            " skipped."
+            "No data specified. Sanity checks related to the length of the signal "
+            "relative to the filter order will be skipped."
         )
     if h_freq is not None:
         h_freq = np.array(h_freq, float).ravel()
         if (h_freq > (sfreq / 2.0)).any():
             raise ValueError(
-                "h_freq (%s) must be less than the Nyquist "
-                "frequency %s" % (h_freq, sfreq / 2.0)
+                f"h_freq ({h_freq}) must be less than the Nyquist frequency "
+                f"{sfreq / 2.0}"
             )
     if l_freq is not None:
         l_freq = np.array(l_freq, float).ravel()
@@ -1303,7 +1299,7 @@ def create_filter(
             gain = [1.0, 1.0]
     if l_freq is None and h_freq is not None:
         h_freq = h_freq.item()
-        logger.info("Setting up low-pass filter at %0.2g Hz" % (h_freq,))
+        logger.info(f"Setting up low-pass filter at {h_freq:0.2g} Hz")
         (
             data,
             sfreq,
@@ -1340,7 +1336,7 @@ def create_filter(
                 gain += [0]
     elif l_freq is not None and h_freq is None:
         l_freq = l_freq.item()
-        logger.info("Setting up high-pass filter at %0.2g Hz" % (l_freq,))
+        logger.info(f"Setting up high-pass filter at {l_freq:0.2g} Hz")
         (
             data,
             sfreq,
@@ -1379,7 +1375,7 @@ def create_filter(
         if (l_freq < h_freq).any():
             l_freq, h_freq = l_freq.item(), h_freq.item()
             logger.info(
-                "Setting up band-pass filter from %0.2g - %0.2g Hz" % (l_freq, h_freq)
+                f"Setting up band-pass filter from {l_freq:0.2g} - {h_freq:0.2g} Hz"
             )
             (
                 data,
@@ -1431,7 +1427,7 @@ def create_filter(
             msg = "Setting up band-stop filter"
             if len(l_freq) == 1:
                 l_freq, h_freq = l_freq.item(), h_freq.item()
-                msg += " from %0.2g - %0.2g Hz" % (h_freq, l_freq)
+                msg += f" from {h_freq:0.2g} - {l_freq:0.2g} Hz"
             logger.info(msg)
             # Note: order of outputs is intentionally switched here!
             (
@@ -1871,21 +1867,14 @@ def _check_filterable(x, kind="filtered", alternative="filter"):
             pass
         else:
             raise TypeError(
-                "This low-level function only operates on np.ndarray "
-                f"instances. To get a {kind} {name} instance, use a method "
-                f"like `inst_new = inst.copy().{alternative}(...)` "
-                "instead."
+                "This low-level function only operates on np.ndarray instances. To get "
+                f"a {kind} {name} instance, use a method like `inst_new = inst.copy()."
+                f"{alternative}(...)` instead."
             )
     _validate_type(x, (np.ndarray, list, tuple), f"Data to be {kind}")
     x = np.asanyarray(x)
     if x.dtype != np.float64:
-        raise ValueError(
-            "Data to be %s must be real floating, got %s"
-            % (
-                kind,
-                x.dtype,
-            )
-        )
+        raise ValueError(f"Data to be {kind} must be real floating, got {x.dtype}")
     return x
 
 
@@ -2279,15 +2268,12 @@ def _triage_filter_params(
     if l_freq is not None:
         l_freq = cast(l_freq)
         if np.any(l_freq <= 0):
-            raise ValueError(
-                "highpass frequency %s must be greater than zero" % (l_freq,)
-            )
+            raise ValueError(f"highpass frequency {l_freq} must be greater than zero")
     if h_freq is not None:
         h_freq = cast(h_freq)
         if np.any(h_freq >= sfreq / 2.0):
             raise ValueError(
-                "lowpass frequency %s must be less than Nyquist "
-                "(%s)" % (h_freq, sfreq / 2.0)
+                f"lowpass frequency {h_freq} must be less than Nyquist ({sfreq / 2.0})"
             )
 
     dB_cutoff = False  # meaning, don't try to compute or report
@@ -2307,12 +2293,9 @@ def _triage_filter_params(
         logger.info("FIR filter parameters")
         logger.info("---------------------")
         logger.info(
-            "Designing a %s, %s, %s %s filter:"
-            % (report_pass, report_phase, causality, kind)
+            f"Designing a {report_pass}, {report_phase}, {causality} {kind} filter:"
         )
-        logger.info(
-            "- %s design (%s) method" % (_fir_design_dict[fir_design], fir_design)
-        )
+        logger.info(f"- {_fir_design_dict[fir_design]} design ({fir_design}) method")
         this_dict = _fir_window_dict[fir_window]
         if fir_design == "firwin":
             logger.info(
@@ -2326,8 +2309,8 @@ def _triage_filter_params(
             if isinstance(l_trans_bandwidth, str):
                 if l_trans_bandwidth != "auto":
                     raise ValueError(
-                        'l_trans_bandwidth must be "auto" if '
-                        'string, got "%s"' % l_trans_bandwidth
+                        'l_trans_bandwidth must be "auto" if string, got "'
+                        f'{l_trans_bandwidth}"'
                     )
                 l_trans_bandwidth = np.minimum(np.maximum(0.25 * l_freq, 2.0), l_freq)
             l_trans_rep = np.array(l_trans_bandwidth, float)
@@ -2349,7 +2332,7 @@ def _triage_filter_params(
             l_trans_bandwidth = cast(l_trans_bandwidth)
             if np.any(l_trans_bandwidth <= 0):
                 raise ValueError(
-                    "l_trans_bandwidth must be positive, got %s" % (l_trans_bandwidth,)
+                    f"l_trans_bandwidth must be positive, got {l_trans_bandwidth}"
                 )
             l_stop = l_freq - l_trans_bandwidth
             if reverse:  # band-stop style
@@ -2357,10 +2340,9 @@ def _triage_filter_params(
                 l_freq += l_trans_bandwidth
             if np.any(l_stop < 0):
                 raise ValueError(
-                    "Filter specification invalid: Lower stop "
-                    "frequency negative (%0.2f Hz). Increase pass"
-                    " frequency or reduce the transition "
-                    "bandwidth (l_trans_bandwidth)" % l_stop
+                    "Filter specification invalid: Lower stop frequency negative ("
+                    f"{l_stop:0.2f} Hz). Increase pass frequency or reduce the "
+                    "transition bandwidth (l_trans_bandwidth)"
                 )
         if h_freq is not None:  # low-pass component
             if isinstance(h_trans_bandwidth, str):
@@ -2390,7 +2372,7 @@ def _triage_filter_params(
             h_trans_bandwidth = cast(h_trans_bandwidth)
             if np.any(h_trans_bandwidth <= 0):
                 raise ValueError(
-                    "h_trans_bandwidth must be positive, got %s" % (h_trans_bandwidth,)
+                    f"h_trans_bandwidth must be positive, got {h_trans_bandwidth}"
                 )
             h_stop = h_freq + h_trans_bandwidth
             if reverse:  # band-stop style
@@ -2398,8 +2380,8 @@ def _triage_filter_params(
                 h_freq -= h_trans_bandwidth
             if np.any(h_stop > sfreq / 2):
                 raise ValueError(
-                    "Effective band-stop frequency (%s) is too "
-                    "high (maximum based on Nyquist is %s)" % (h_stop, sfreq / 2.0)
+                    f"Effective band-stop frequency ({h_stop}) is too high (maximum "
+                    f"based on Nyquist is {sfreq / 2.0})"
                 )
 
         if isinstance(filter_length, str) and filter_length.lower() == "auto":
@@ -2410,7 +2392,7 @@ def _triage_filter_params(
             if l_freq is not None:
                 l_check = min(np.atleast_1d(l_trans_bandwidth))
             mult_fact = 2.0 if fir_design == "firwin2" else 1.0
-            filter_length = "%ss" % (
+            filter_length = "{}s".format(
                 _length_factors[fir_window] * mult_fact / float(min(h_check, l_check)),
             )
             next_pow_2 = False  # disable old behavior
@@ -2425,15 +2407,12 @@ def _triage_filter_params(
             filter_length += (filter_length - 1) % 2
 
         logger.info(
-            "- Filter length: %s samples (%0.3f s)"
-            % (filter_length, filter_length / sfreq)
+            f"- Filter length: {filter_length} samples ({filter_length / sfreq:0.3f} s)"
         )
         logger.info("")
 
         if filter_length <= 0:
-            raise ValueError(
-                "filter_length must be positive, got %s" % (filter_length,)
-            )
+            raise ValueError(f"filter_length must be positive, got {filter_length}")
 
         if next_pow_2:
             filter_length = 2 ** int(np.ceil(np.log2(filter_length)))
@@ -2448,9 +2427,8 @@ def _triage_filter_params(
             filter_length = len_x
         if filter_length > len_x and not (l_freq is None and h_freq is None):
             warn(
-                "filter_length (%s) is longer than the signal (%s), "
-                "distortion is likely. Reduce filter length or filter a "
-                "longer signal." % (filter_length, len_x)
+                f"filter_length ({filter_length}) is longer than the signal ({len_x}), "
+                "distortion is likely. Reduce filter length or filter a longer signal."
             )
 
     logger.debug("Using filter length: %s" % filter_length)
@@ -2471,10 +2449,8 @@ def _triage_filter_params(
 def _check_resamp_noop(sfreq, o_sfreq, rtol=1e-6):
     if np.isclose(sfreq, o_sfreq, atol=0, rtol=rtol):
         logger.info(
-            (
-                f"Sampling frequency of the instance is already {sfreq}, "
-                "returning unmodified."
-            )
+            f"Sampling frequency of the instance is already {sfreq}, returning "
+            "unmodified."
         )
         return True
     return False
@@ -2858,15 +2834,14 @@ class FilterMixin:
         elif isinstance(n_fft, str):
             if n_fft != "auto":
                 raise ValueError(
-                    "n_fft must be an integer, string, or None, "
-                    "got %s" % (type(n_fft),)
+                    f"n_fft must be an integer, string, or None, got {type(n_fft)}"
                 )
             n_fft = next_fast_len(len(self.times))
         n_fft = int(n_fft)
         if n_fft < len(self.times):
             raise ValueError(
-                "n_fft (%d) must be at least the number of time "
-                "points (%d)" % (n_fft, len(self.times))
+                f"n_fft ({n_fft}) must be at least the number of time points ("
+                f"{len(self.times)})"
             )
         dtype = None if envelope else np.complex128
         args, kwargs = (), dict(n_fft=n_fft, envelope=envelope)
@@ -2899,9 +2874,7 @@ def _check_fun(fun, d, *args, **kwargs):
     if not isinstance(d, np.ndarray):
         raise TypeError("Return value must be an ndarray")
     if d.shape != want_shape:
-        raise ValueError(
-            "Return data must have shape %s not %s" % (want_shape, d.shape)
-        )
+        raise ValueError(f"Return data must have shape {want_shape} not {d.shape}")
     return d
 
 

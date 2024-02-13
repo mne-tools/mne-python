@@ -85,7 +85,7 @@ def test_persyst_dates(tmp_path):
 
     # reformat the lay file to have testdate with
     # "/" character
-    with open(fname_lay, "r") as fin:
+    with open(fname_lay) as fin:
         with open(new_fname_lay, "w") as fout:
             # for each line in the input file
             for idx, line in enumerate(fin):
@@ -101,7 +101,7 @@ def test_persyst_dates(tmp_path):
     # reformat the lay file to have testdate with
     # "-" character
     os.remove(new_fname_lay)
-    with open(fname_lay, "r") as fin:
+    with open(fname_lay) as fin:
         with open(new_fname_lay, "w") as fout:
             # for each line in the input file
             for idx, line in enumerate(fin):
@@ -163,7 +163,7 @@ def test_persyst_moved_file(tmp_path):
     # to the full path, but it should still not work
     # as reader requires lay and dat file to be in
     # same directory
-    with open(fname_lay, "r") as fin:
+    with open(fname_lay) as fin:
         with open(new_fname_lay, "w") as fout:
             # for each line in the input file
             for idx, line in enumerate(fin):
@@ -216,7 +216,7 @@ def test_persyst_errors(tmp_path):
     shutil.copy(fname_dat, new_fname_dat)
 
     # reformat the lay file
-    with open(fname_lay, "r") as fin:
+    with open(fname_lay) as fin:
         with open(new_fname_lay, "w") as fout:
             # for each line in the input file
             for idx, line in enumerate(fin):
@@ -229,7 +229,7 @@ def test_persyst_errors(tmp_path):
 
     # reformat the lay file
     os.remove(new_fname_lay)
-    with open(fname_lay, "r") as fin:
+    with open(fname_lay) as fin:
         with open(new_fname_lay, "w") as fout:
             # for each line in the input file
             for idx, line in enumerate(fin):
@@ -243,7 +243,7 @@ def test_persyst_errors(tmp_path):
     # reformat the lay file to have testdate
     # improperly specified
     os.remove(new_fname_lay)
-    with open(fname_lay, "r") as fin:
+    with open(fname_lay) as fin:
         with open(new_fname_lay, "w") as fout:
             # for each line in the input file
             for idx, line in enumerate(fin):

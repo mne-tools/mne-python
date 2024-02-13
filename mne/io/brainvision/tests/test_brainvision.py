@@ -20,7 +20,7 @@ from mne.annotations import events_from_annotations
 from mne.datasets import testing
 from mne.io import read_raw_brainvision, read_raw_fif
 from mne.io.tests.test_raw import _test_raw_reader
-from mne.utils import _stamp_to_dt, object_diff
+from mne.utils import _record_warnings, _stamp_to_dt, object_diff
 
 data_dir = Path(__file__).parent / "data"
 vhdr_path = data_dir / "test.vhdr"
@@ -71,6 +71,8 @@ eog = ["HL", "HR", "Vb"]
 #       working)
 #      This should be amend in its own PR.
 montage = data_dir / "test.hpts"
+
+_no_dig = pytest.warns(RuntimeWarning, match="No info on DataPoints")
 
 
 def test_orig_units(recwarn):
@@ -133,14 +135,14 @@ def _mocked_meas_date_data(tmp_path_factory):
     """Prepare files for mocked_meas_date_file fixture."""
     # Prepare the files
     tmp_path = tmp_path_factory.mktemp("brainvision_mocked_meas_date")
-    vhdr_fname, vmrk_fname, eeg_fname = [
+    vhdr_fname, vmrk_fname, eeg_fname = (
         tmp_path / ff.name for ff in [vhdr_path, vmrk_path, eeg_path]
-    ]
+    )
     for orig, dest in zip([vhdr_path, eeg_path], [vhdr_fname, eeg_fname]):
         shutil.copyfile(orig, dest)
 
     # Get the marker information
-    with open(vmrk_path, "r") as fin:
+    with open(vmrk_path) as fin:
         lines = fin.readlines()
 
     return vhdr_fname, vmrk_fname, lines
@@ -331,7 +333,7 @@ def test_ch_names_comma(tmp_path):
         shutil.copyfile(src, tmp_path / dest)
 
     comma_vhdr = tmp_path / "test.vhdr"
-    with open(comma_vhdr, "r") as fin:
+    with open(comma_vhdr) as fin:
         lines = fin.readlines()
 
     new_lines = []
@@ -473,7 +475,7 @@ def test_brainvision_data_partially_disabled_hw_filters():
 
 def test_brainvision_data_software_filters_latin1_global_units():
     """Test reading raw Brain Vision files."""
-    with pytest.warns(RuntimeWarning, match="software filter"):
+    with _no_dig, pytest.warns(RuntimeWarning, match="software filter"):
         raw = _test_raw_reader(
             read_raw_brainvision,
             vhdr_fname=vhdr_old_path,
@@ -485,7 +487,7 @@ def test_brainvision_data_software_filters_latin1_global_units():
     assert raw.info["lowpass"] == 50.0
 
     # test sensor name with spaces (#9299)
-    with pytest.warns(RuntimeWarning, match="software filter"):
+    with _no_dig, pytest.warns(RuntimeWarning, match="software filter"):
         raw = _test_raw_reader(
             read_raw_brainvision,
             vhdr_fname=vhdr_old_longname_path,
@@ -566,7 +568,7 @@ def test_brainvision_data():
 
 def test_brainvision_vectorized_data():
     """Test reading BrainVision data files with vectorized data."""
-    with pytest.warns(RuntimeWarning, match="software filter"):
+    with _no_dig, pytest.warns(RuntimeWarning, match="software filter"):
         raw = read_raw_brainvision(vhdr_old_path, preload=True)
 
     assert_array_equal(raw._data.shape, (29, 251))
@@ -611,7 +613,9 @@ def test_brainvision_vectorized_data():
 def test_coodinates_extraction():
     """Test reading of [Coordinates] section if present."""
     # vhdr 2 has a Coordinates section
-    with pytest.warns(RuntimeWarning, match="coordinate information"):
+    with _record_warnings(), pytest.warns(
+        RuntimeWarning, match="coordinate information"
+    ):
         raw = read_raw_brainvision(vhdr_v2_path)
 
     # Basic check of extracted coordinates

@@ -589,19 +589,20 @@ def test_make_lcmv_sphere(pick_ori, weight_norm):
     fwd_sphere = mne.make_forward_solution(evoked.info, None, src, sphere)
 
     # Test that we get an error if not reducing rank
-    with pytest.raises(ValueError, match="Singular matrix detected"):
-        with pytest.warns(RuntimeWarning, match="positive semidefinite"):
-            make_lcmv(
-                evoked.info,
-                fwd_sphere,
-                data_cov,
-                reg=0.1,
-                noise_cov=noise_cov,
-                weight_norm=weight_norm,
-                pick_ori=pick_ori,
-                reduce_rank=False,
-                rank="full",
-            )
+    with pytest.raises(
+        ValueError, match="Singular matrix detected"
+    ), _record_warnings(), pytest.warns(RuntimeWarning, match="positive semidefinite"):
+        make_lcmv(
+            evoked.info,
+            fwd_sphere,
+            data_cov,
+            reg=0.1,
+            noise_cov=noise_cov,
+            weight_norm=weight_norm,
+            pick_ori=pick_ori,
+            reduce_rank=False,
+            rank="full",
+        )
 
     # Now let's reduce it
     filters = make_lcmv(

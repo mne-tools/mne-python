@@ -32,6 +32,7 @@ from mne.utils import (
     _assert_no_instances,
     _check_qt_version,
     _pl,
+    _record_warnings,
     _TempDir,
     numerics,
 )
@@ -187,6 +188,20 @@ def pytest_configure(config):
     ignore:Mesa version 10\.2\.4 is too old for translucent.*:RuntimeWarning
     # Matplotlib <-> NumPy 2.0
     ignore:`row_stack` alias is deprecated.*:DeprecationWarning
+    # Matplotlib->tz
+    ignore:datetime.datetime.utcfromtimestamp.*:DeprecationWarning
+    # joblib
+    ignore:ast\.Num is deprecated.*:DeprecationWarning
+    ignore:Attribute n is deprecated and will be removed in Python 3\.14.*:DeprecationWarning
+    # numpydoc
+    ignore:ast\.NameConstant is deprecated and will be removed in Python 3\.14.*:DeprecationWarning
+    # pooch
+    ignore:Python 3\.14 will, by default, filter extracted tar archives.*:DeprecationWarning
+    # pandas
+    ignore:\n*Pyarrow will become a required dependency of pandas.*:DeprecationWarning
+    ignore:np\.find_common_type is deprecated.*:DeprecationWarning
+    # pyvista <-> NumPy 2.0
+    ignore:__array_wrap__ must accept context and return_scalar arguments.*:DeprecationWarning
     """  # noqa: E501
     for warning_line in warning_lines.split("\n"):
         warning_line = warning_line.strip()
@@ -274,7 +289,7 @@ def matplotlib_config():
 
     class CallbackRegistryReraise(orig):
         def __init__(self, exception_handler=None, signals=None):
-            super(CallbackRegistryReraise, self).__init__(exception_handler)
+            super().__init__(exception_handler)
 
     cbook.CallbackRegistry = CallbackRegistryReraise
 
@@ -788,7 +803,9 @@ def src_volume_labels():
     """Create a 7mm source space with labels."""
     pytest.importorskip("nibabel")
     volume_labels = mne.get_volume_labels_from_aseg(fname_aseg)
-    with pytest.warns(RuntimeWarning, match="Found no usable.*Left-vessel.*"):
+    with _record_warnings(), pytest.warns(
+        RuntimeWarning, match="Found no usable.*t-vessel.*"
+    ):
         src = mne.setup_volume_source_space(
             "sample",
             7.0,
@@ -1163,3 +1180,53 @@ def pytest_runtest_makereport(item, call):
     outcome = yield
     rep = outcome.get_result()
     item.stash.setdefault(_phase_report_key, {})[rep.when] = rep
+
+
+@pytest.fixture(scope="function")
+def eyetrack_cal():
+    """Create a toy calibration instance."""
+    screen_size = (0.4, 0.225)  # width, height in meters
+    screen_resolution = (1920, 1080)
+    screen_distance = 0.7  # meters
+    onset = 0
+    model = "HV9"
+    eye = "R"
+    avg_error = 0.5
+    max_error = 1.0
+    positions = np.zeros((9, 2))
+    offsets = np.zeros((9,))
+    gaze = np.zeros((9, 2))
+    cal = mne.preprocessing.eyetracking.Calibration(
+        screen_size=screen_size,
+        screen_distance=screen_distance,
+        screen_resolution=screen_resolution,
+        eye=eye,
+        model=model,
+        positions=positions,
+        offsets=offsets,
+        gaze=gaze,
+        onset=onset,
+        avg_error=avg_error,
+        max_error=max_error,
+    )
+    return cal
+
+
+@pytest.fixture(scope="function")
+def eyetrack_raw():
+    """Create a toy raw instance with eyetracking channels."""
+    # simulate a steady fixation at the center pixel of a 1920x1080 resolution screen
+    shape = (1, 100)  # x or y, time
+    data = np.vstack([np.full(shape, 960), np.full(shape, 540), np.full(shape, 0)])
+
+    info = info = mne.create_info(
+        ch_names=["xpos", "ypos", "pupil"], sfreq=100, ch_types="eyegaze"
+    )
+    more_info = dict(
+        xpos=("eyegaze", "px", "right", "x"),
+        ypos=("eyegaze", "px", "right", "y"),
+        pupil=("pupil", "au", "right"),
+    )
+    raw = mne.io.RawArray(data, info)
+    raw = mne.preprocessing.eyetracking.set_channel_types_eyetrack(raw, more_info)
+    return raw

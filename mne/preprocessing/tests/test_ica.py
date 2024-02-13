@@ -78,6 +78,8 @@ pymatreader_mark = pytest.mark.skipif(
 )
 pytest.importorskip("sklearn")
 
+_baseline_corrected = pytest.warns(RuntimeWarning, match="were baseline-corrected")
+
 
 def ICA(*args, **kwargs):
     """Fix the random state in tests."""
@@ -171,7 +173,9 @@ def test_ica_simple(method):
     info = create_info(data.shape[-2], 1000.0, "eeg")
     cov = make_ad_hoc_cov(info)
     ica = ICA(n_components=n_components, method=method, random_state=0, noise_cov=cov)
-    with pytest.warns(RuntimeWarning, match="No average EEG.*"):
+    with pytest.warns(RuntimeWarning, match="high-pass filtered"), pytest.warns(
+        RuntimeWarning, match="No average EEG.*"
+    ):
         ica.fit(RawArray(data, info))
     transform = ica.unmixing_matrix_ @ ica.pca_components_ @ A
     amari_distance = np.mean(
@@ -649,7 +653,7 @@ def test_ica_additional(method, tmp_path, short_raw_epochs):
 
     # test if n_components=None works
     ica = ICA(n_components=None, method=method, max_iter=1)
-    with pytest.warns(UserWarning, match="did not converge"):
+    with _baseline_corrected, pytest.warns(UserWarning, match="did not converge"):
         ica.fit(epochs)
     _assert_ica_attributes(ica, epochs.get_data("data"), limits=(0.05, 20))
 
@@ -1032,7 +1036,7 @@ def test_get_explained_variance_ratio(tmp_path, short_raw_epochs):
     with pytest.raises(ValueError, match="ICA must be fitted first"):
         ica.get_explained_variance_ratio(epochs)
 
-    with pytest.warns(RuntimeWarning, match="were baseline-corrected"):
+    with _record_warnings(), _baseline_corrected:
         ica.fit(epochs)
 
     # components = int, ch_type = None
@@ -1255,7 +1259,9 @@ def test_fit_params_epochs_vs_raw(param_name, param_val, tmp_path):
     ica = ICA(n_components=n_components, max_iter=max_iter, method=method)
 
     fit_params = {param_name: param_val}
-    with pytest.warns(RuntimeWarning, match="parameters.*will be ignored"):
+    with _record_warnings(), pytest.warns(
+        RuntimeWarning, match="parameters.*will be ignored"
+    ):
         ica.fit(inst=epochs, **fit_params)
     assert ica.reject_ == reject
     _assert_ica_attributes(ica)
@@ -1448,7 +1454,7 @@ def test_ica_labels():
         assert key in raw.ch_names
     raw.set_channel_types(rename)
     ica = ICA(n_components=4, max_iter=2, method="fastica", allow_ref_meg=True)
-    with pytest.warns(UserWarning, match="did not converge"):
+    with _record_warnings(), pytest.warns(UserWarning, match="did not converge"):
         ica.fit(raw)
     _assert_ica_attributes(ica)
 
@@ -1473,7 +1479,7 @@ def test_ica_labels():
 
     # derive reference ICA components and append them to raw
     ica_rf = ICA(n_components=2, max_iter=2, allow_ref_meg=True)
-    with pytest.warns(UserWarning, match="did not converge"):
+    with _record_warnings(), pytest.warns(UserWarning, match="did not converge"):
         ica_rf.fit(raw.copy().pick("ref_meg"))
     icacomps = ica_rf.get_sources(raw)
     # rename components so they are auto-detected by find_bads_ref
@@ -1509,7 +1515,7 @@ def test_ica_labels():
     assert_allclose(scores, [0.81, 0.14, 0.37, 0.05], atol=0.03)
 
     ica = ICA(n_components=4, max_iter=2, method="fastica", allow_ref_meg=True)
-    with pytest.warns(UserWarning, match="did not converge"):
+    with _record_warnings(), pytest.warns(UserWarning, match="did not converge"):
         ica.fit(raw, picks="eeg")
     ica.find_bads_muscle(raw)
     assert "muscle" in ica.labels_

@@ -1459,8 +1459,8 @@ class _BaseSourceEstimate(TimeMixin, FilterMixin):
         kinds = ["VOL"] * len(self.vertices)
         if isinstance(self, (_BaseSurfaceSourceEstimate, _BaseMixedSourceEstimate)):
             kinds[:2] = ["LH", "RH"]
-        for ii, (kind, vertno) in enumerate(zip(kinds, self.vertices)):
-            col_names.extend(["{}_{}".format(kind, vert) for vert in vertno])
+        for kind, vertno in zip(kinds, self.vertices):
+            col_names.extend([f"{kind}_{vert}" for vert in vertno])
         # build DataFrame
         df = _build_data_frame(
             self,
@@ -2529,7 +2529,7 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
         src,
         dest="mri",
         mri_resolution=False,
-        format="nifti1",
+        format="nifti1",  # noqa: A002
         *,
         overwrite=False,
         verbose=None,
@@ -2578,7 +2578,13 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
         )
         nib.save(img, fname)
 
-    def as_volume(self, src, dest="mri", mri_resolution=False, format="nifti1"):
+    def as_volume(
+        self,
+        src,
+        dest="mri",
+        mri_resolution=False,
+        format="nifti1",  # noqa: A002
+    ):
         """Export volume source estimate as a nifti object.
 
         Parameters
@@ -3828,7 +3834,7 @@ def stc_near_sensors(
     subjects_dir=None,
     src=None,
     picks=None,
-    surface="pial",
+    surface="auto",
     verbose=None,
 ):
     """Create a STC from ECoG, sEEG and DBS sensor data.
@@ -3868,8 +3874,8 @@ def stc_near_sensors(
 
         .. versionadded:: 0.24
     surface : str | None
-        The surface to use if ``src=None``. Default is the pial surface.
-        If None, the source space surface will be used.
+        The surface to use. If ``src=None``, defaults to the pial surface.
+        Otherwise, the source space surface will be used.
 
         .. versionadded:: 0.24.1
     %(verbose)s
@@ -3923,12 +3929,30 @@ def stc_near_sensors(
     _validate_type(mode, str, "mode")
     _validate_type(src, (None, SourceSpaces), "src")
     _check_option("mode", mode, ("sum", "single", "nearest", "weighted"))
+    if surface == "auto":
+        if src is not None:
+            pial_fname = op.join(subjects_dir, subject, "surf", "lh.pial")
+            pial_rr = read_surface(pial_fname)[0]
+            src_surf_is_pial = (
+                op.isfile(pial_fname)
+                and src[0]["rr"].shape == pial_rr.shape
+                and np.allclose(src[0]["rr"], pial_rr)
+            )
+            if not src_surf_is_pial:
+                warn(
+                    "In version 1.8, ``surface='auto'`` will be the default "
+                    "which will use the surface in ``src`` instead of the "
+                    "pial surface when ``src != None``. Pass ``surface='pial'`` "
+                    "or ``surface=None`` to suppress this warning",
+                    DeprecationWarning,
+                )
+        surface = "pial" if src is None or src.kind == "surface" else None
 
     # create a copy of Evoked using ecog, seeg and dbs
     if picks is None:
         picks = pick_types(evoked.info, ecog=True, seeg=True, dbs=True)
     evoked = evoked.copy().pick(picks)
-    frames = set(evoked.info["chs"][pick]["coord_frame"] for pick in picks)
+    frames = set(ch["coord_frame"] for ch in evoked.info["chs"])
     if not frames == {FIFF.FIFFV_COORD_HEAD}:
         raise RuntimeError(
             "Channels must be in the head coordinate frame, " f"got {sorted(frames)}"

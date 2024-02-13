@@ -7,7 +7,7 @@ INSTALL_ARGS="-e"
 INSTALL_KIND="test_extra,hdf5"
 if [ ! -z "$CONDA_ENV" ]; then
 	echo "Uninstalling MNE for CONDA_ENV=${CONDA_ENV}"
-	conda remove -c conda-forge --force -yq mne
+	conda remove -c conda-forge --force -yq mne-base
 	python -m pip uninstall -y mne
 	if [[ "${RUNNER_OS}" != "Windows" ]]; then
 		INSTALL_ARGS=""
@@ -26,9 +26,11 @@ else
 	echo "Numpy"
 	pip uninstall -yq numpy
 	echo "PyQt6"
-	pip install $STD_ARGS --only-binary ":all:" --default-timeout=60 --extra-index-url https://www.riverbankcomputing.com/pypi/simple "PyQt6!=6.6.1" "PyQt6-Qt6!=6.6.1"
+	# Now broken in latest release and in the pre release:
+	# pip install $STD_ARGS --only-binary ":all:" --default-timeout=60 --extra-index-url https://www.riverbankcomputing.com/pypi/simple "PyQt6!=6.6.1" "PyQt6-Qt6!=6.6.1"
+	pip install $STD_ARGS --only-binary ":all:" --default-timeout=60 "PyQt6!=6.6.1" "PyQt6-Qt6!=6.6.1"
 	echo "NumPy/SciPy/pandas etc."
-	pip install $STD_ARGS --only-binary ":all:" --default-timeout=60 --extra-index-url "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" "numpy>=2.0.0.dev0" "scipy>=1.12.0.dev0" "scikit-learn==1.4.dev0" matplotlib pillow statsmodels
+	pip install $STD_ARGS --only-binary ":all:" --default-timeout=60 --extra-index-url "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" "numpy>=2.0.0.dev0" "scipy>=1.12.0.dev0" "scikit-learn>=1.5.dev0" matplotlib pillow statsmodels pyarrow
 	# No pandas, dipy, h5py, openmeeg, python-picard (needs numexpr) until they update to NumPy 2.0 compat
 	INSTALL_KIND="test_extra"
 	# echo "dipy"
@@ -44,7 +46,7 @@ else
 	pip install $STD_ARGS --only-binary ":all:" --extra-index-url "https://wheels.vtk.org" vtk
 	python -c "import vtk"
 	echo "PyVista"
-	pip install $STD_ARGS git+https://github.com/pyvista/pyvista
+	pip install $STD_ARGS git+https://github.com/drammock/pyvista@numpy-2-compat
 	echo "pyvistaqt"
 	pip install $STD_ARGS git+https://github.com/pyvista/pyvistaqt
 	echo "imageio-ffmpeg, xlrd, mffpy"

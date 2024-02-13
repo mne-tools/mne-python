@@ -68,11 +68,13 @@
 
 .. _Bruno Nicenboim: https://bnicenboim.github.io
 
+.. _btkcodedev: https://github.com/btkcodedev
+
 .. _buildqa: https://github.com/buildqa
 
 .. _Carlos de la Torre-Ortiz: https://ctorre.me
 
-.. _Carina Forster: https://github.com/carinafo
+.. _Carina Forster: https://github.com/CarinaFo
 
 .. _Cathy Nangini: https://github.com/KatiRG
 
@@ -385,6 +387,10 @@
 .. _Mohammad Daneshzand: https://github.com/mdaneshzand
 
 .. _Moritz Gerster: https://github.com/moritz-gerster
+
+.. _Motofumi Fushimi: https://github.com/motofumi-fushimi/motofumi-fushimi.github.io
+
+.. _Nabil Alibou: https://github.com/nabilalibou
 
 .. _Natalie Klein: https://github.com/natalieklein
 

@@ -68,8 +68,8 @@ def _check_color(color):
                 raise ValueError("Values out of range [0.0, 1.0].")
         else:
             raise TypeError(
-                "Expected data type is `np.int64`, `np.int32`, or "
-                "`np.float64` but {} was given.".format(np_color.dtype)
+                "Expected data type is `np.int64`, `np.int32`, or `np.float64` but "
+                f"{np_color.dtype} was given."
             )
     else:
         raise TypeError(
@@ -353,7 +353,7 @@ QToolBar::handle:vertical {
                     stylesheet = qdarkstyle.load_stylesheet(klass)
     else:
         try:
-            file = open(theme, "r")
+            file = open(theme)
         except OSError:
             warn(
                 "Requested theme file not found, will use light instead: "

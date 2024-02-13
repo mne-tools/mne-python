@@ -12,46 +12,6 @@ from ...utils import _check_fname, _soft_import, fill_doc, logger, verbose
 from ..base import BaseRaw
 
 
-class AnalogSignalGap(object):
-    """Dummy object to represent gaps in Neuralynx data.
-
-    Creates a AnalogSignalProxy-like object.
-    Propagate `signal`, `units`, and `sampling_rate` attributes
-    to the `AnalogSignal` init returned by `load()`.
-
-    Parameters
-    ----------
-    signal : array-like
-        Array of shape (n_channels, n_samples) containing the data.
-    units : str
-        Units of the data. (e.g., 'uV')
-    sampling_rate : quantity
-        Sampling rate of the data. (e.g., 4000 * pq.Hz)
-
-    Returns
-    -------
-    sig : instance of AnalogSignal
-        A AnalogSignal object representing a gap in Neuralynx data.
-    """
-
-    def __init__(self, signal, units, sampling_rate):
-        self.signal = signal
-        self.units = units
-        self.sampling_rate = sampling_rate
-
-    def load(self, channel_indexes):
-        """Return AnalogSignal object."""
-        _soft_import("neo", "Reading NeuralynxIO files", strict=True)
-        from neo import AnalogSignal
-
-        sig = AnalogSignal(
-            signal=self.signal[:, channel_indexes],
-            units=self.units,
-            sampling_rate=self.sampling_rate,
-        )
-        return sig
-
-
 @fill_doc
 def read_raw_neuralynx(
     fname, *, preload=False, exclude_fname_patterns=None, verbose=None
@@ -141,8 +101,7 @@ class RawNeuralynx(BaseRaw):
             sfreq=nlx_reader.get_signal_sampling_rate(),
         )
 
-        # find total number of samples per .ncs file (`channel`) by summing
-        # the sample sizes of all segments
+        # Neo reads only valid contiguous .ncs samples grouped as segments
         n_segments = nlx_reader.header["nb_segment"][0]
         block_id = 0  # assumes there's only one block of recording
 
@@ -160,7 +119,7 @@ class RawNeuralynx(BaseRaw):
         seg_diffs = next_start_times - previous_stop_times
 
         # mark as discontinuous any two segments that have
-        # start/stop delta larger than sampling period (1/sampling_rate)
+        # start/stop delta larger than sampling period (1.5/sampling_rate)
         logger.info("Checking for temporal discontinuities in Neo data segments.")
         delta = 1.5 / info["sfreq"]
         gaps = seg_diffs > delta
@@ -217,11 +176,8 @@ class RawNeuralynx(BaseRaw):
             [np.full(shape=(n,), fill_value=i) for i, n in enumerate(sizes_sorted)]
         )
 
-        # construct Annotations()
-        gap_seg_ids = np.unique(sample2segment)[gap_indicator]
-        gap_start_ids = np.array(
-            [np.where(sample2segment == seg_id)[0][0] for seg_id in gap_seg_ids]
-        )
+        # get the start sample index for each gap segment ()
+        gap_start_ids = np.cumsum(np.hstack([[0], sizes_sorted[:-1]]))[gap_indicator]
 
         # recreate time axis for gap annotations
         mne_times = np.arange(0, len(sample2segment)) / info["sfreq"]
@@ -236,7 +192,7 @@ class RawNeuralynx(BaseRaw):
             description=["BAD_ACQ_SKIP"] * len(gap_start_ids),
         )
 
-        super(RawNeuralynx, self).__init__(
+        super().__init__(
             info=info,
             last_samps=[sizes_sorted.sum() - 1],
             filenames=[fname],
@@ -255,8 +211,9 @@ class RawNeuralynx(BaseRaw):
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data."""
-        from neo import Segment
+        from neo import AnalogSignal, Segment
         from neo.io import NeuralynxIO
+        from neo.io.proxyobjects import AnalogSignalProxy
 
         # quantities is a dependency of neo so we are guaranteed it exists
         from quantities import Hz
@@ -335,7 +292,7 @@ class RawNeuralynx(BaseRaw):
         )
 
         for seg, n in zip(gap_segments, gap_samples):
-            asig = AnalogSignalGap(
+            asig = AnalogSignal(
                 signal=np.zeros((n, n_chans)), units="uV", sampling_rate=sfreq * Hz
             )
             seg.analogsignals.append(asig)
@@ -348,13 +305,16 @@ class RawNeuralynx(BaseRaw):
         segments_arr[~isgap] = neo_block[0].segments
         segments_arr[isgap] = gap_segments
 
-        # now load data from selected segments/channels via
-        # neo.Segment.AnalogSignal.load() or AnalogSignalGap.load()
+        # now load data for selected segments/channels via
+        # neo.Segment.AnalogSignalProxy.load() or
+        # pad directly as AnalogSignal.magnitude for any gap data
         all_data = np.concatenate(
             [
                 signal.load(channel_indexes=idx).magnitude[
                     samples[0] : samples[-1] + 1, :
                 ]
+                if isinstance(signal, AnalogSignalProxy)
+                else signal.magnitude[samples[0] : samples[-1] + 1, :]
                 for seg, samples in zip(
                     segments_arr[first_seg : last_seg + 1], sel_samples_local
                 )

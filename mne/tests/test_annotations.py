@@ -278,7 +278,9 @@ def test_crop(tmp_path):
     assert raw_read.annotations is not None
     assert len(raw_read.annotations.onset) == 0
     # test saving and reloading cropped annotations in raw instance
-    info = create_info([f"EEG{i+1}" for i in range(3)], ch_types=["eeg"] * 3, sfreq=50)
+    info = create_info(
+        [f"EEG{i + 1}" for i in range(3)], ch_types=["eeg"] * 3, sfreq=50
+    )
     raw = RawArray(np.zeros((3, 50 * 20)), info)
     annotation = mne.Annotations([8, 12, 15], [2] * 3, [1, 2, 3])
     raw = raw.set_annotations(annotation)
@@ -817,6 +819,49 @@ def test_events_from_annot_onset_alingment():
     assert raw.first_samp == event_latencies[0, 0]
 
 
+@pytest.mark.parametrize(
+    "use_rounding,tol,shape,onsets,descriptions",
+    [
+        pytest.param(True, 0, (2, 3), [202, 402], [0, 2], id="rounding-notol"),
+        pytest.param(True, 1e-8, (3, 3), [202, 302, 402], [0, 1, 2], id="rounding-tol"),
+        pytest.param(False, 0, (2, 3), [202, 401], [0, 2], id="norounding-notol"),
+        pytest.param(
+            False, 1e-8, (3, 3), [202, 302, 401], [0, 1, 2], id="norounding-tol"
+        ),
+        pytest.param(None, None, (3, 3), [202, 302, 402], [0, 1, 2], id="default"),
+    ],
+)
+def test_events_from_annot_with_tolerance(
+    use_rounding, tol, shape, onsets, descriptions
+):
+    """Test events_from_annotations w/ and w/o tolerance."""
+    info = create_info(ch_names=1, sfreq=100)
+    raw = RawArray(data=np.empty((1, 1000)), info=info, first_samp=0)
+    meas_date = _handle_meas_date(0)
+    with raw.info._unlock(check_after=True):
+        raw.info["meas_date"] = meas_date
+    chunk_duration = 1
+    annot = Annotations([2.02, 3.02, 4.02], chunk_duration, ["0", "1", "2"], 0)
+    raw.set_annotations(annot)
+    event_id = {"0": 0, "1": 1, "2": 2}
+
+    if use_rounding is None:
+        events, _ = events_from_annotations(
+            raw, event_id=event_id, chunk_duration=chunk_duration
+        )
+    else:
+        events, _ = events_from_annotations(
+            raw,
+            event_id=event_id,
+            chunk_duration=chunk_duration,
+            use_rounding=use_rounding,
+            tol=tol,
+        )
+    assert events.shape == shape
+    assert (events[:, 0] == onsets).all()
+    assert (events[:, 2] == descriptions).all()
+
+
 def _create_annotation_based_on_descr(
     description, annotation_start_sampl=0, duration=0, orig_time=0
 ):
@@ -1204,7 +1249,7 @@ def test_date_none(tmp_path):
     n_chans = 139
     n_samps = 20
     data = np.random.random_sample((n_chans, n_samps))
-    ch_names = ["E{}".format(x) for x in range(n_chans)]
+    ch_names = [f"E{x}" for x in range(n_chans)]
     ch_types = ["eeg"] * n_chans
     info = create_info(ch_names=ch_names, ch_types=ch_types, sfreq=2048)
     assert info["meas_date"] is None
@@ -1250,7 +1295,7 @@ def test_crop_when_negative_orig_time(windows_like_datetime):
     assert len(annot) == 10
 
     # Crop with negative tmin, tmax
-    tmin, tmax = [orig_time_stamp + t for t in (0.25, 0.75)]
+    tmin, tmax = (orig_time_stamp + t for t in (0.25, 0.75))
     assert tmin < 0 and tmax < 0
     crop_annot = annot.crop(tmin=tmin, tmax=tmax)
     assert_allclose(crop_annot.onset, [0.3, 0.4, 0.5, 0.6, 0.7])
@@ -1353,7 +1398,7 @@ def test_annotations_from_events():
 
     # 4. Try passing callable
     # -------------------------------------------------------------------------
-    event_desc = lambda d: "event{}".format(d)  # noqa:E731
+    event_desc = lambda d: f"event{d}"  # noqa:E731
     annots = annotations_from_events(
         events,
         sfreq=raw.info["sfreq"],

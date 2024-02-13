@@ -425,9 +425,7 @@ class Xdawn(_XdawnTransformer):
         self, n_components=2, signal_cov=None, correct_overlap="auto", reg=None
     ):
         """Init."""
-        super(Xdawn, self).__init__(
-            n_components=n_components, signal_cov=signal_cov, reg=reg
-        )
+        super().__init__(n_components=n_components, signal_cov=signal_cov, reg=reg)
         self.correct_overlap = _check_option(
             "correct_overlap", correct_overlap, ["auto", True, False]
         )
