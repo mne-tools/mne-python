@@ -1724,6 +1724,8 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin)
         Parameters
         ----------
         %(baseline_rescale)s
+
+            How baseline is computed is determined by the ``mode`` parameter.
         mode : 'mean' | 'ratio' | 'logratio' | 'percent' | 'zscore' | 'zlogratio'
             Perform baseline correction by
 
@@ -1865,6 +1867,7 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin)
         %(tmin_tmax_psd)s
         %(fmin_fmax_tfr)s
         %(baseline_rescale)s
+
             How baseline is computed is determined by the ``mode`` parameter.
         %(mode_tfr_plot)s
         %(dB_spectrum_plot)s
@@ -2116,6 +2119,7 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin)
         %(tmin_tmax_psd)s
         %(fmin_fmax_tfr)s
         %(baseline_rescale)s
+
             How baseline is computed is determined by the ``mode`` parameter.
         %(mode_tfr_plot)s
         %(dB_tfr_plot_topo)s
@@ -2401,6 +2405,7 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin)
         ----------
         %(picks_good_data)s
         %(baseline_rescale)s
+
             How baseline is computed is determined by the ``mode`` parameter.
         %(mode_tfr_plot)s
         %(tmin_tmax_psd)s
@@ -2751,8 +2756,7 @@ class AverageTFR(_BaseTFR):
         epochs.compute_tfr(method, freqs, average=True, ...)
 
     The new API also supports AverageTFR instantiation from a :class:`dict`, but this
-    is primarily for save/load and internal purposes, and wraps
-    :meth:`~mne.time_frequency.AverageTFR.__setstate__`.
+    is primarily for save/load and internal purposes, and wraps ``__setstate__``.
     During the transition from the old to the new API, it may be expedient to use
     :class:`~mne.time_frequency.AverageTFRArray` as a "quick-fix" approach to updating
     scripts under active development.

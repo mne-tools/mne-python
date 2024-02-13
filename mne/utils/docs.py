@@ -366,8 +366,9 @@ _axes_list = _axes_base.format(
     param="{param}",
     allowed="list of Axes | ",
     created=" with the correct number of axes",
-    list_extra="If :class:`~matplotlib.axes.Axes` are provided (either as a single "
-    "instance or a :class:`list` of axes), the number of axes provided must {must}. ",
+    list_extra="""If :class:`~matplotlib.axes.Axes`
+    are provided (either as a single instance or a :class:`list` of axes),
+    the number of axes provided must {must}. """,
     extra="{extra}",
 )
 _match_chtypes_present_in = "match the number of channel types present in the {}object."
@@ -416,8 +417,8 @@ docdict["axes_spectrum_plot_topomap"] = _axes_list.format(
 docdict["axes_tfr_plot"] = _axes_list.format(
     param="axes",
     must="match the number of picks",
-    extra="If ``combine`` is not None, ``axes`` must either be an instance of Axes, or "
-    "a list of length 1. ",
+    extra="""If ``combine`` is not None,
+    ``axes`` must either be an instance of Axes, or a list of length 1. """,
 )
 
 docdict["axis_facecolor"] = """\
@@ -478,8 +479,9 @@ baseline : None | tuple of length 2
     is ``None``, it is set to the **end** of the data.
     If ``(None, None)``, the entire time interval is used.
 
-    .. note:: The baseline ``(a, b)`` includes both endpoints, i.e. all
-                timepoints ``t`` such that ``a <= t <= b``.
+    .. note::
+        The baseline ``(a, b)`` includes both endpoints, i.e. all timepoints ``t``
+        such that ``a <= t <= b``.
 """
 
 docdict["baseline_epochs"] = f"""{_baseline_rescale_base}
@@ -755,7 +757,7 @@ docdict["cmap"] = _cmap_template.format(
 docdict["cmap_tfr_plot_topo"] = _cmap_template.format(
     allowed="", default='``"RdBu_r"``'
 )
-docdict["cmap_topomap"] = """
+docdict["cmap_topomap"] = """\
 cmap : matplotlib colormap | (colormap, bool) | 'interactive' | None
     Colormap to use. If :class:`tuple`, the first value indicates the colormap
     to use and the second value is a boolean defining interactivity. In
@@ -804,7 +806,7 @@ color : str | tuple
     white.
 """
 
-docdict["colorbar"] = """
+docdict["colorbar"] = """\
 colorbar : bool
     Whether to add a colorbar to the plot. Default is ``True``.
 """
@@ -4757,7 +4759,7 @@ views : str | list
     valid string options.
 """
 
-_vlim = """
+_vlim = """\
 vlim : tuple of length 2{}
     Colormap limits to use. If a :class:`tuple` of floats, specifies the
     lower and upper bounds of the colormap (in that order); providing
