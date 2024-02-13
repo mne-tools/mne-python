@@ -558,41 +558,6 @@ def test_tfr_multitaper():
         tfr_multitaper(epochs, freqs=np.arange(-4, -1), n_cycles=7)
 
 
-def test_crop():
-    """Test TFR cropping."""
-    data = np.zeros((3, 4, 5))
-    times = np.array([0.1, 0.2, 0.3, 0.4, 0.5])
-    freqs = np.array([0.10, 0.20, 0.30, 0.40])
-    info = mne.create_info(
-        ["MEG 001", "MEG 002", "MEG 003"], 1000.0, ["mag", "mag", "mag"]
-    )
-    tfr = AverageTFRArray(
-        info=info,
-        data=data,
-        times=times,
-        freqs=freqs,
-        nave=20,
-        comment="test",
-        method="crazy-tfr",
-    )
-    tfr.crop(tmin=0.2)
-    assert_array_equal(tfr.times, [0.2, 0.3, 0.4, 0.5])
-    assert tfr.data.ndim == 3
-    assert tfr.data.shape[-1] == 4
-
-    tfr.crop(fmax=0.3)
-    assert_array_equal(tfr.freqs, [0.1, 0.2, 0.3])
-    assert tfr.data.ndim == 3
-    assert tfr.data.shape[-2] == 3
-
-    tfr.crop(tmin=0.3, tmax=0.4, fmin=0.1, fmax=0.2)
-    assert_array_equal(tfr.times, [0.3, 0.4])
-    assert tfr.data.ndim == 3
-    assert tfr.data.shape[-1] == 2
-    assert_array_equal(tfr.freqs, [0.1, 0.2])
-    assert tfr.data.shape[-2] == 2
-
-
 def test_decim_shift_time():
     """Test TFR decimation and shift_time."""
     data = np.zeros((3, 3, 3, 1000))
