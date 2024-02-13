@@ -21,6 +21,7 @@ from mne import (
     pick_types,
     read_events,
 )
+from mne.epochs import equalize_epoch_counts
 from mne.io import read_raw_fif
 from mne.tests.test_epochs import assert_metadata_equal
 from mne.time_frequency import tfr_array_morlet, tfr_array_multitaper
@@ -45,6 +46,28 @@ data_path = Path(__file__).parents[2] / "io" / "tests" / "data"
 raw_fname = data_path / "test_raw.fif"
 event_fname = data_path / "test-eve.fif"
 raw_ctf_fname = data_path / "test_ctf_raw.fif"
+
+
+def _create_test_epochstfr():
+    n_epos = 3
+    ch_names = ["EEG 001", "EEG 002", "EEG 003", "EEG 004"]
+    n_picks = len(ch_names)
+    ch_types = ["eeg"] * n_picks
+    n_freqs = 5
+    n_times = 6
+    data = np.random.rand(n_epos, n_picks, n_freqs, n_times)
+    times = np.arange(6)
+    srate = 1000.0
+    freqs = np.arange(5)
+    events = np.zeros((n_epos, 3), dtype=int)
+    events[:, 0] = np.arange(n_epos)
+    events[:, 2] = np.arange(5, 5 + n_epos)
+    event_id = {k: v for v, k in zip(events[:, 2], ["ha", "he", "hu"])}
+    info = mne.create_info(ch_names, srate, ch_types)
+    tfr = mne.time_frequency.EpochsTFR(
+        info, data, times, freqs, events=events, event_id=event_id
+    )
+    return tfr
 
 
 def test_tfr_ctf():
@@ -721,6 +744,14 @@ def test_init_EpochsTFR():
     with pytest.raises(ValueError, match="frequencies and data size don't"):
         tfr = EpochsTFR(info, data=data, times=times_x, freqs=freqs_x)
         del tfr
+
+
+def test_equalize_epochs_tfr_counts():
+    """Test equalize_epoch_counts for EpochsTFR."""
+    tfr = _create_test_epochstfr()
+    tfr2 = tfr.copy()
+    tfr2 = tfr2[:-1]
+    equalize_epoch_counts([tfr, tfr2])
 
 
 def test_dB_computation():
