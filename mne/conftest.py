@@ -797,8 +797,6 @@ def mixed_fwd_cov_evoked(_evoked_cov_sphere, _all_src_types_fwd):
 
 
 @pytest.fixture(scope="session")
-@pytest.mark.slowtest
-@pytest.mark.parametrize(params=[testing._pytest_param()])
 def src_volume_labels():
     """Create a 7mm source space with labels."""
     pytest.importorskip("nibabel")
