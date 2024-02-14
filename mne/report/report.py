@@ -3940,7 +3940,11 @@ class Report:
 
         for ch_type in ch_types:
             with use_log_level(_verbose_safe_false(level="error")):
-                figs = epochs.copy().pick(ch_type, verbose=False).plot_image(show=False, **image_kwargs)
+                figs = (
+                    epochs.copy()
+                    .pick(ch_type, verbose=False)
+                    .plot_image(show=False, **image_kwargs)
+                )
 
             assert len(figs) == 1
             fig = figs[0]
