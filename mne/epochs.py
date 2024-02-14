@@ -2092,40 +2092,6 @@ class BaseEpochs(
         t = t.render(epochs=self, baseline=baseline, events=event_strings)
         return t
 
-    def channel_specific_epoch_rejection(self, outliers: float):
-        """Mask outlier epochs for each channel.
-
-        Parameters
-        ----------
-        data : np.ndarray
-            The data to find outliers in. The data should be in the shape
-            (epochs X channels X (frequency) X time).
-        outliers : float
-            The number of standard deviations to use as a cutoff for outliers.
-
-        Returns
-        -------
-        epochs : instance of Epochs
-            The masked epochs object, modified in-place.
-        mask: np.ndarray
-            The array used to mask the epochs. True == Keep epochs,
-            False = reject epochs.
-        """
-        _check_preload(self, "Modifying data of epochs")
-        # extract data from Epochs object
-        # get absolut values
-        abs_data = np.abs(self.get_data())  # (epochs X channels X (frequency) X time)
-        # get the maximum voltage per epoch
-        max = np.max(abs_data, axis=-1)  # (epochs X channels X (frequency))
-        # get the standard deviation per channel
-        std = np.std(abs_data, axis=(-1, 0))  # (channels X (frequency))
-        # get the mean per channel
-        mean = np.mean(abs_data, axis=(-1, 0))  # (channels X (frequency))
-        # keep epochs where the maximum voltage is smaller than the mean + (outliers * std)
-        keep = max < ((outliers * std) + mean)  # (epochs X channels X (frequency))
-        # set values to NaN where 2D mask is False in the 3D data array
-        self.get_data()[keep is False] = np.nan
-        return self, keep
 
     @verbose
     def crop(self, tmin=None, tmax=None, include_tmax=True, verbose=None):
