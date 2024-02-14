@@ -31,6 +31,7 @@ from mne.io import edf, read_raw_bdf, read_raw_edf, read_raw_fif, read_raw_gdf
 from mne.io.edf.edf import (
     _edf_str,
     _parse_prefilter_string,
+    _prefilter_float,
     _read_annotations_edf,
     _read_ch,
     _read_edf_header,
@@ -173,24 +174,26 @@ def test_bdf_data():
     # XXX BDF data for these is around 0.01 when it should be in the uV range,
     # probably some bug
     test_scaling = False
-    raw_py = _test_raw_reader(
-        read_raw_bdf,
-        input_fname=bdf_path,
-        eog=eog,
-        misc=misc,
-        exclude=["M2", "IEOG"],
-        test_scaling=test_scaling,
-    )
+    with pytest.warns(RuntimeWarning, match="Channels contain different"):
+        raw_py = _test_raw_reader(
+            read_raw_bdf,
+            input_fname=bdf_path,
+            eog=eog,
+            misc=misc,
+            exclude=["M2", "IEOG"],
+            test_scaling=test_scaling,
+        )
     assert len(raw_py.ch_names) == 71
-    raw_py = _test_raw_reader(
-        read_raw_bdf,
-        input_fname=bdf_path,
-        montage="biosemi64",
-        eog=eog,
-        misc=misc,
-        exclude=["M2", "IEOG"],
-        test_scaling=test_scaling,
-    )
+    with pytest.warns(RuntimeWarning, match="Channels contain different"):
+        raw_py = _test_raw_reader(
+            read_raw_bdf,
+            input_fname=bdf_path,
+            montage="biosemi64",
+            eog=eog,
+            misc=misc,
+            exclude=["M2", "IEOG"],
+            test_scaling=test_scaling,
+        )
     assert len(raw_py.ch_names) == 71
     assert "RawEDF" in repr(raw_py)
     picks = pick_types(raw_py.info, meg=False, eeg=True, exclude="bads")
@@ -631,27 +634,40 @@ def test_read_latin1_annotations(tmp_path):
         _read_annotations_edf(str(annot_file))  # default encoding="utf8" fails
 
 
-def test_edf_prefilter_parse():
+@pytest.mark.parametrize(
+    "prefiltering, hp, lp",
+    [
+        pytest.param(["HP: 1Hz LP: 30Hz"], ["1"], ["30"], id="basic edf"),
+        pytest.param(["LP: 30Hz HP: 1Hz"], ["1"], ["30"], id="reversed order"),
+        pytest.param(["HP: 1 LP: 30"], ["1"], ["30"], id="w/o Hz"),
+        pytest.param(["HP: 0,1 LP: 30,5"], ["0.1"], ["30.5"], id="using comma"),
+        pytest.param(
+            ["HP:0.1Hz LP:75Hz N:50Hz"], ["0.1"], ["75"], id="with notch filter"
+        ),
+        pytest.param([""], [""], [""], id="empty string"),
+        pytest.param(["HP: DC; LP: 410"], ["DC"], ["410"], id="bdf_dc"),
+        pytest.param(
+            ["", "HP:0.1Hz LP:75Hz N:50Hz", ""],
+            ["", "0.1", ""],
+            ["", "75", ""],
+            id="multi-ch",
+        ),
+    ],
+)
+def test_edf_parse_prefilter_string(prefiltering, hp, lp):
     """Test prefilter strings from header are parsed correctly."""
-    prefilter_basic = ["HP: 0Hz LP: 0Hz"]
-    highpass, lowpass = _parse_prefilter_string(prefilter_basic)
-    assert_array_equal(highpass, ["0"])
-    assert_array_equal(lowpass, ["0"])
+    highpass, lowpass = _parse_prefilter_string(prefiltering)
+    assert_array_equal(highpass, hp)
+    assert_array_equal(lowpass, lp)
 
-    prefilter_normal_multi_ch = ["HP: 1Hz LP: 30Hz"] * 10
-    highpass, lowpass = _parse_prefilter_string(prefilter_normal_multi_ch)
-    assert_array_equal(highpass, ["1"] * 10)
-    assert_array_equal(lowpass, ["30"] * 10)
 
-    prefilter_unfiltered_ch = prefilter_normal_multi_ch + [""]
-    highpass, lowpass = _parse_prefilter_string(prefilter_unfiltered_ch)
-    assert_array_equal(highpass, ["1"] * 10)
-    assert_array_equal(lowpass, ["30"] * 10)
-
-    prefilter_edf_specs_doc = ["HP:0.1Hz LP:75Hz N:50Hz"]
-    highpass, lowpass = _parse_prefilter_string(prefilter_edf_specs_doc)
-    assert_array_equal(highpass, ["0.1"])
-    assert_array_equal(lowpass, ["75"])
+@pytest.mark.parametrize(
+    "prefilter_string, expected",
+    [("0", 0), ("1.1", 1.1), ("DC", 0), ("", np.nan), ("1.1.1", np.nan)],
+)
+def test_edf_prefilter_float(prefilter_string, expected):
+    """Test to make float from prefilter string."""
+    assert_equal(_prefilter_float(prefilter_string), expected)
 
 
 @testing.requires_testing_data

@@ -681,46 +681,29 @@ def _get_info(
         info["subject_info"]["weight"] = float(edf_info["subject_info"]["weight"])
 
     # Filter settings
-    highpass = edf_info["highpass"]
-    lowpass = edf_info["lowpass"]
-    if highpass.size == 0:
-        pass
-    elif all(highpass):
-        if highpass[0] == "NaN":
-            # Placeholder for future use. Highpass set in _empty_info.
-            pass
-        elif highpass[0] == "DC":
-            info["highpass"] = 0.0
+    if "highpass" in edf_info and len(edf_info["highpass"]):
+        if not np.all(edf_info["highpass"] == edf_info["highpass"][0]):
+            warn(
+                "Channels contain different highpass filters. Highest filter "
+                "setting will be stored."
+            )
+            hp = np.nanmax([_prefilter_float(x) for x in edf_info["highpass"]])
         else:
-            hp = highpass[0]
-            try:
-                hp = float(hp)
-            except Exception:
-                hp = 0.0
+            hp = _prefilter_float(edf_info["highpass"][0])
+        if hp not in [np.nan, 0]:
             info["highpass"] = hp
-    else:
-        info["highpass"] = float(np.max(highpass))
-        warn(
-            "Channels contain different highpass filters. Highest filter "
-            "setting will be stored."
-        )
-    if np.isnan(info["highpass"]):
-        info["highpass"] = 0.0
-    if lowpass.size == 0:
-        # Placeholder for future use. Lowpass set in _empty_info.
-        pass
-    elif all(lowpass):
-        if lowpass[0] in ("NaN", "0", "0.0"):
-            # Placeholder for future use. Lowpass set in _empty_info.
-            pass
+    if "lowpass" in edf_info and len(edf_info["lowpass"]):
+        if not np.all(edf_info["lowpass"] == edf_info["lowpass"][0]):
+            warn(
+                "Channels contain different lowpass filters. Lowest filter "
+                "setting will be stored."
+            )
+            lp = np.nanmin([_prefilter_float(x) for x in edf_info["lowpass"]])
         else:
-            info["lowpass"] = float(lowpass[0])
-    else:
-        info["lowpass"] = float(np.min(lowpass))
-        warn(
-            "Channels contain different lowpass filters. Lowest filter "
-            "setting will be stored."
-        )
+            lp = _prefilter_float(edf_info["lowpass"][0])
+        if lp not in [np.nan, 0]:
+            info["lowpass"] = lp
+
     if np.isnan(info["lowpass"]):
         info["lowpass"] = info["sfreq"] / 2.0
 
@@ -760,25 +743,25 @@ def _get_info(
 
 def _parse_prefilter_string(prefiltering):
     """Parse prefilter string from EDF+ and BDF headers."""
-    highpass = np.array(
-        [
-            v
-            for hp in [
-                re.findall(r"HP:\s*([0-9]+[.]*[0-9]*)", filt) for filt in prefiltering
-            ]
-            for v in hp
-        ]
-    )
-    lowpass = np.array(
-        [
-            v
-            for hp in [
-                re.findall(r"LP:\s*([0-9]+[.]*[0-9]*)", filt) for filt in prefiltering
-            ]
-            for v in hp
-        ]
-    )
-    return highpass, lowpass
+    filter_types = ["HP", "LP"]
+    filter_strings = {t: [] for t in filter_types}
+    for filt in prefiltering:
+        for t in filter_types:
+            matches = re.findall(rf"{t}:\s*([a-zA-Z0-9,.]+)(Hz)?", filt)
+            value = ""
+            for match in matches:
+                if match[0]:
+                    value = match[0].replace("Hz", "").replace(",", ".")
+            filter_strings[t].append(value)
+    return np.array(filter_strings["HP"]), np.array(filter_strings["LP"])
+
+
+def _prefilter_float(filt):
+    if filt == "DC":
+        return 0.0
+    if filt.replace(".", "", 1).isdigit():
+        return float(filt)
+    return np.nan
 
 
 def _edf_str(x):
@@ -916,6 +899,7 @@ def _read_edf_header(fname, exclude, infer_types, include=None):
         tal_idx = _find_tal_idx(ch_names)
         exclude = np.concatenate([exclude, tal_idx])
         sel = np.setdiff1d(np.arange(len(ch_names)), exclude)
+
         for ch in channels:
             fid.read(80)  # transducer
         units = [fid.read(8).strip().decode("latin-1") for ch in channels]
@@ -951,7 +935,9 @@ def _read_edf_header(fname, exclude, infer_types, include=None):
         digital_max = np.array([float(_edf_str_num(fid.read(8))) for ch in channels])[
             sel
         ]
-        prefiltering = [_edf_str(fid.read(80)).strip() for ch in channels][:-1]
+        prefiltering = np.array([_edf_str(fid.read(80)).strip() for ch in channels])[
+            sel
+        ]
         highpass, lowpass = _parse_prefilter_string(prefiltering)
 
         # number of samples per record
@@ -1129,7 +1115,7 @@ def _read_gdf_header(fname, exclude, include=None):
             physical_max = np.fromfile(fid, FLOAT64, len(channels))
             digital_min = np.fromfile(fid, INT64, len(channels))
             digital_max = np.fromfile(fid, INT64, len(channels))
-            prefiltering = [_edf_str(fid.read(80)) for ch in channels][:-1]
+            prefiltering = [_edf_str(fid.read(80)) for ch in channels]
             highpass, lowpass = _parse_prefilter_string(prefiltering)
 
             # n samples per record
