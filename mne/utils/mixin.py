@@ -75,15 +75,12 @@ class SizeMixin:
 class GetEpochsMixin:
     """Class to add epoch selection and metadata to certain classes."""
 
-    from ..utils import fill_doc
-
-    @fill_doc
     def __getitem__(self, item):
         """Return an Epochs object with a copied subset of epochs.
 
         Parameters
         ----------
-        %(item)s
+        item : int | slice | array-like | str
             See Notes for use cases.
 
         Returns
