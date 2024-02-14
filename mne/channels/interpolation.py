@@ -205,6 +205,7 @@ def _interpolate_bads_nan(
     picks_bad = pick_channels(inst.info["ch_names"], bads_type, exclude=[])
     inst._data[..., picks_bad, :] = np.nan
 
+
 @verbose
 def _interpolate_bad_epochs_nan(
     inst,
