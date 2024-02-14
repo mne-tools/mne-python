@@ -250,8 +250,6 @@ def _interpolate_bad_epochs_nan(
     # put back into epochs structure
     inst.data = data
 
-    return inst
-
 
 @verbose
 def _interpolate_bads_meeg(
