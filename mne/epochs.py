@@ -2093,7 +2093,6 @@ class BaseEpochs(
         t = t.render(epochs=self, baseline=baseline, events=event_strings)
         return t
 
-
     @verbose
     def crop(self, tmin=None, tmax=None, include_tmax=True, verbose=None):
         """Crop a time interval from the epochs.
