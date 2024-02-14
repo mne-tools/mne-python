@@ -310,7 +310,7 @@ aud_epochs.plot_image(picks=["MEG 1332", "EEG 021"])
 
 frequencies = np.arange(7, 30, 3)
 power = aud_epochs.compute_tfr(
-    "morlet", n_cycles=2, return_itc=False, freqs=frequencies, decim=3
+    "morlet", n_cycles=2, return_itc=False, freqs=frequencies, decim=3, average=True
 )
 power.plot(["MEG 1332"])
 

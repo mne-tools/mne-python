@@ -112,6 +112,7 @@ for n_cycles, time_bandwidth, ax, title in zip(
         n_cycles=n_cycles,
         time_bandwidth=time_bandwidth,
         return_itc=False,
+        average=True,
     )
     ax.set_title(title)
     # Plot results. Baseline correct based on first 100 ms.
@@ -139,7 +140,7 @@ for n_cycles, time_bandwidth, ax, title in zip(
 fig, axs = plt.subplots(1, 3, figsize=(15, 5), sharey=True, layout="constrained")
 fmin, fmax = freqs[[0, -1]]
 for width, ax in zip((0.2, 0.7, 3.0), axs):
-    power = epochs.compute_tfr(method="stockwell", fmin=fmin, fmax=fmax, width=width)
+    power = epochs.compute_tfr(method="stockwell", freqs=(fmin, fmax), width=width)
     power.plot(
         [0], baseline=(0.0, 0.1), mode="mean", axes=ax, show=False, colorbar=False
     )
@@ -158,7 +159,7 @@ fig, axs = plt.subplots(1, 3, figsize=(15, 5), sharey=True, layout="constrained"
 all_n_cycles = [1, 3, freqs / 2.0]
 for n_cycles, ax in zip(all_n_cycles, axs):
     power = epochs.compute_tfr(
-        method="morlet", freqs=freqs, n_cycles=n_cycles, return_itc=False
+        method="morlet", freqs=freqs, n_cycles=n_cycles, return_itc=False, average=True
     )
     power.plot(
         [0],
