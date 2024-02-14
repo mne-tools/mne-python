@@ -1092,6 +1092,7 @@ class Report:
         *,
         psd=True,
         projs=None,
+        image_kwargs=None,
         topomap_kwargs=None,
         drop_log_ignore=("IGNORED",),
         tags=("epochs",),
@@ -1120,6 +1121,7 @@ class Report:
             If ``True``, add PSD plots based on all ``epochs``. If ``False``,
             do not add PSD plots.
         %(projs_report)s
+        %(image_kwargs)s
         %(topomap_kwargs)s
         drop_log_ignore : array-like of str
             The drop reasons to ignore when creating the drop log bar plot.
@@ -1138,6 +1140,7 @@ class Report:
             epochs=epochs,
             psd=psd,
             add_projs=add_projs,
+            image_kwargs=image_kwargs,
             topomap_kwargs=topomap_kwargs,
             drop_log_ignore=drop_log_ignore,
             section=title,
@@ -3900,6 +3903,7 @@ class Report:
         epochs,
         psd,
         add_projs,
+        image_kwargs,
         topomap_kwargs,
         drop_log_ignore,
         image_format,
@@ -3936,7 +3940,7 @@ class Report:
 
         for ch_type in ch_types:
             with use_log_level(_verbose_safe_false(level="error")):
-                figs = epochs.copy().pick(ch_type, verbose=False).plot_image(show=False)
+                figs = epochs.copy().pick(ch_type, verbose=False).plot_image(show=False, **image_kwargs)
 
             assert len(figs) == 1
             fig = figs[0]
