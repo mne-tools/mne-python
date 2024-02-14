@@ -216,11 +216,11 @@ Operates in place.
 # raw/epochs/evoked apply_function method
 # apply_function method summary
 applyfun_summary = """\
-The function ``fun`` is applied to the channels defined in ``picks``.
+The function ``fun`` is applied to the channels or vertices defined in ``picks``.
 The {} object's data is modified in-place. If the function returns a different
 data type (e.g. :py:obj:`numpy.complex128`) it must be specified
 using the ``dtype`` parameter, which causes the data type of **all** the data
-to change (even if the function is only applied to channels in ``picks``).{}
+to change (even if the function is only applied to channels/vertices in ``picks``).{}
 
 .. note:: If ``n_jobs`` > 1, more memory is required as
           ``len(picks) * n_times`` additional time points need to
@@ -236,6 +236,7 @@ applyfun_preload = (
 docdict["applyfun_summary_epochs"] = applyfun_summary.format("epochs", applyfun_preload)
 docdict["applyfun_summary_evoked"] = applyfun_summary.format("evoked", "")
 docdict["applyfun_summary_raw"] = applyfun_summary.format("raw", applyfun_preload)
+docdict["applyfun_summary_stc"] = applyfun_summary.format("source estimate", "")
 
 docdict["area_alpha_plot_psd"] = """\
 area_alpha : float
@@ -1599,6 +1600,9 @@ docdict["fun_applyfun"] = applyfun_fun_base.format(
 )
 docdict["fun_applyfun_evoked"] = applyfun_fun_base.format(
     " because it will apply channel-wise"
+)
+docdict["fun_applyfun_stc"] = applyfun_fun_base.format(
+    " because it will apply vertex-wise"
 )
 
 docdict["fwd"] = """

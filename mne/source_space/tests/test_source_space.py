@@ -679,6 +679,7 @@ def test_source_space_from_label(tmp_path, pass_ids):
     _compare_source_spaces(src, src_from_file, mode="approx")
 
 
+@pytest.mark.slowtest
 @testing.requires_testing_data
 def test_source_space_exclusive_complete(src_volume_labels):
     """Test that we produce exclusive and complete labels."""
