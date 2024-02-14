@@ -664,7 +664,7 @@ class _BaseSourceEstimate(TimeMixin, FilterMixin):
 
         Returns
         -------
-        self : instance of _BaseSourceEstimate
+        self : instance of SourceEstimate
             The SourceEstimate object with transformed data.
         """
         _check_preload(self, "source_estimate.apply_function")
