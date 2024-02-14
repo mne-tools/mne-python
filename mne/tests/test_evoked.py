@@ -23,6 +23,7 @@ from scipy import fftpack
 from mne import (
     Epochs,
     EpochsArray,
+    SourceEstimate,
     combine_evoked,
     create_info,
     equalize_channels,
@@ -917,7 +918,7 @@ def test_evoked_baseline(tmp_path):
 
 
 def test_hilbert():
-    """Test hilbert on raw, epochs, and evoked."""
+    """Test hilbert on raw, epochs, evoked and SourceEstimate data."""
     raw = read_raw_fif(raw_fname).load_data()
     raw.del_proj()
     raw.pick(raw.ch_names[:2])
@@ -927,10 +928,17 @@ def test_hilbert():
         epochs.apply_hilbert()
     epochs.load_data()
     evoked = epochs.average()
+    # Create SourceEstimate stc data
+    verts = [np.arange(10), np.arange(90)]
+    data = np.random.default_rng(0).normal(size=(100, 10))
+    stc = SourceEstimate(data, verts, 0, 1e-1, "foo")
+
     raw_hilb = raw.apply_hilbert()
     epochs_hilb = epochs.apply_hilbert()
     evoked_hilb = evoked.copy().apply_hilbert()
     evoked_hilb_2_data = epochs_hilb.get_data(copy=False).mean(0)
+    stc_hilb = stc.copy().apply_hilbert()
+    stc_hilb_env = stc.copy().apply_hilbert(envelope=True)
     assert_allclose(evoked_hilb.data, evoked_hilb_2_data)
     # This one is only approximate because of edge artifacts
     evoked_hilb_3 = Epochs(raw_hilb, events).average()
@@ -941,6 +949,8 @@ def test_hilbert():
     # envelope=True mode
     evoked_hilb_env = evoked.apply_hilbert(envelope=True)
     assert_allclose(evoked_hilb_env.data, np.abs(evoked_hilb.data))
+    assert len(stc_hilb.data) == len(stc.data)
+    assert_allclose(stc_hilb_env.data, np.abs(stc_hilb.data))
 
 
 def test_apply_function_evk():

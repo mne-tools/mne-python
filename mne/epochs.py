@@ -75,6 +75,7 @@ from .fixes import rng_uniform
 from .html_templates import _get_html_template
 from .parallel import parallel_func
 from .time_frequency.spectrum import EpochsSpectrum, SpectrumMixin, _validate_method
+from .time_frequency.tfr import EpochsTFR
 from .utils import (
     ExtendedTimeMixin,
     GetEpochsMixin,
@@ -2479,8 +2480,8 @@ class BaseEpochs(
         for eq in event_ids:
             eq_inds.append(self._keys_to_idx(eq))
 
-        event_times = [self.events[e, 0] for e in eq_inds]
-        indices = _get_drop_indices(event_times, method)
+        sample_nums = [self.events[e, 0] for e in eq_inds]
+        indices = _get_drop_indices(sample_nums, method)
         # need to re-index indices
         indices = np.concatenate([e[idx] for e, idx in zip(eq_inds, indices)])
         self.drop(indices, reason="EQUALIZED_COUNT")
@@ -3616,7 +3617,7 @@ def combine_event_ids(epochs, old_event_ids, new_event_id, copy=True):
 
 
 def equalize_epoch_counts(epochs_list, method="mintime"):
-    """Equalize the number of trials in multiple Epoch instances.
+    """Equalize the number of trials in multiple Epochs or EpochsTFR instances.
 
     Parameters
     ----------
@@ -3643,33 +3644,32 @@ def equalize_epoch_counts(epochs_list, method="mintime"):
     --------
     >>> equalize_epoch_counts([epochs1, epochs2])  # doctest: +SKIP
     """
-    if not all(isinstance(e, BaseEpochs) for e in epochs_list):
+    if not all(isinstance(epoch, (BaseEpochs, EpochsTFR)) for epoch in epochs_list):
         raise ValueError("All inputs must be Epochs instances")
 
     # make sure bad epochs are dropped
-    for e in epochs_list:
-        if not e._bad_dropped:
-            e.drop_bad()
-    event_times = [e.events[:, 0] for e in epochs_list]
-    indices = _get_drop_indices(event_times, method)
-    for e, inds in zip(epochs_list, indices):
-        e.drop(inds, reason="EQUALIZED_COUNT")
+    for epoch in epochs_list:
+        if not epoch._bad_dropped:
+            epoch.drop_bad()
+    sample_nums = [epoch.events[:, 0] for epoch in epochs_list]
+    indices = _get_drop_indices(sample_nums, method)
+    for epoch, inds in zip(epochs_list, indices):
+        epoch.drop(inds, reason="EQUALIZED_COUNT")
 
 
-def _get_drop_indices(event_times, method):
+def _get_drop_indices(sample_nums, method):
     """Get indices to drop from multiple event timing lists."""
-    small_idx = np.argmin([e.shape[0] for e in event_times])
-    small_e_times = event_times[small_idx]
+    small_idx = np.argmin([e.shape[0] for e in sample_nums])
+    small_epoch_indices = sample_nums[small_idx]
     _check_option("method", method, ["mintime", "truncate"])
     indices = list()
-    for e in event_times:
+    for event in sample_nums:
         if method == "mintime":
-            mask = _minimize_time_diff(small_e_times, e)
+            mask = _minimize_time_diff(small_epoch_indices, event)
         else:
-            mask = np.ones(e.shape[0], dtype=bool)
-            mask[small_e_times.shape[0] :] = False
+            mask = np.ones(event.shape[0], dtype=bool)
+            mask[small_epoch_indices.shape[0] :] = False
         indices.append(np.where(np.logical_not(mask))[0])
-
     return indices
 
 
