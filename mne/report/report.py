@@ -1123,7 +1123,8 @@ class Report:
         %(projs_report)s
         %(image_kwargs)s
             image_kwargs : dict | None
-            Keyword arguments to pass to the "epochs image"-generating function (:meth:`mne.Epochs.plot_image`).
+            Keyword arguments to pass to the "epochs image"-generating 
+            function (:meth:`mne.Epochs.plot_image`).
         %(topomap_kwargs)s
         drop_log_ignore : array-like of str
             The drop reasons to ignore when creating the drop log bar plot.
