@@ -1544,6 +1544,11 @@ def test_tfr_decim(epochs, method, freqs, decim):
     assert tfr.shape[-1] == want
     # Check that decim changes sfreq
     assert tfr.sfreq == epochs.info["sfreq"] / (decim.step or 1)
+    # check after-the-fact decimation. The mixin .decimate method doesn't allow slices
+    if isinstance(decim, int):
+        tfr2 = epochs.compute_tfr(method, freqs=freqs, decim=1)
+        tfr2.decimate(decim)
+        assert tfr == tfr2
 
 
 def test_tfr_arithmetic(epochs):
