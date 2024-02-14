@@ -1,1 +1,1 @@
-Add option to pass image_kwargs to :class:`mne.Report.add_epochs` to allow adjusting vmin and vmax of the epochs image in the report.
+Add option to pass ``image_kwargs`` to :class:`mne.Report.add_epochs` to allow adjusting e.g. ``vmin`` and ``vmax`` of the epochs image in the report.
