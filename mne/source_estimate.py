@@ -17,13 +17,14 @@ from scipy.spatial.distance import cdist, pdist
 
 from ._fiff.constants import FIFF
 from ._fiff.meas_info import Info
-from ._fiff.pick import pick_types
+from ._fiff.pick import _picks_to_idx, pick_types
 from ._freesurfer import _get_atlas_values, _get_mri_info_data, read_freesurfer_lut
 from .baseline import rescale
 from .cov import Covariance
 from .evoked import _get_peak
-from .filter import resample
+from .filter import FilterMixin, _check_fun, resample
 from .fixes import _safe_svd
+from .parallel import parallel_func
 from .source_space._source_space import (
     SourceSpaces,
     _check_volume_labels,
@@ -42,6 +43,7 @@ from .utils import (
     _check_option,
     _check_pandas_index_arguments,
     _check_pandas_installed,
+    _check_preload,
     _check_src_normal,
     _check_stc_units,
     _check_subject,
@@ -494,7 +496,7 @@ def _verify_source_estimate_compat(a, b):
         )
 
 
-class _BaseSourceEstimate(TimeMixin):
+class _BaseSourceEstimate(TimeMixin, FilterMixin):
     _data_ndim = 2
 
     @verbose
@@ -641,6 +643,57 @@ class _BaseSourceEstimate(TimeMixin):
             allow_empty=allow_empty,
             verbose=verbose,
         )
+
+    @verbose
+    def apply_function(
+        self, fun, picks=None, dtype=None, n_jobs=None, verbose=None, **kwargs
+    ):
+        """Apply a function to a subset of vertices.
+
+        %(applyfun_summary_stc)s
+
+        Parameters
+        ----------
+        %(fun_applyfun_stc)s
+        %(picks_all)s
+        %(dtype_applyfun)s
+        %(n_jobs)s Ignored if ``vertice_wise=False`` as the workload
+            is split across vertices.
+        %(verbose)s
+        %(kwargs_fun)s
+
+        Returns
+        -------
+        self : instance of _BaseSourceEstimate
+            The SourceEstimate object with transformed data.
+        """
+        _check_preload(self, "source_estimate.apply_function")
+        picks = _picks_to_idx(len(self._data), picks, exclude=(), with_ref_meg=False)
+
+        if not callable(fun):
+            raise ValueError("fun needs to be a function")
+
+        data_in = self._data
+        if dtype is not None and dtype != self._data.dtype:
+            self._data = self._data.astype(dtype)
+
+        # check the dimension of the source estimate data
+        _check_option("source_estimate.ndim", self._data.ndim, [2, 3])
+
+        parallel, p_fun, n_jobs = parallel_func(_check_fun, n_jobs)
+        if n_jobs == 1:
+            # modify data inplace to save memory
+            for idx in picks:
+                self._data[idx, :] = _check_fun(fun, data_in[idx, :], **kwargs)
+        else:
+            # use parallel function
+            data_picks_new = parallel(
+                p_fun(fun, data_in[p, :], **kwargs) for p in picks
+            )
+            for pp, p in enumerate(picks):
+                self._data[p, :] = data_picks_new[pp]
+
+        return self
 
     @verbose
     def apply_baseline(self, baseline=(None, 0), *, verbose=None):
