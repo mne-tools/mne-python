@@ -3091,6 +3091,12 @@ outlines : 'head' | dict | None
     Defaults to 'head'.
 """
 
+docdict["output_compute_tfr"] = """
+output : str
+    What kind of estimate to return. Allowed values are ``"complex"``, ``"phase"``,
+    and ``"power"``. Default is ``"power"``.
+"""
+
 docdict["overview_mode"] = """
 overview_mode : str | None
     Can be "channels", "empty", or "hidden" to set the overview bar mode

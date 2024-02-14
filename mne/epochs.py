@@ -74,7 +74,6 @@ from .filter import FilterMixin, _check_fun, detrend
 from .fixes import rng_uniform
 from .html_templates import _get_html_template
 from .parallel import parallel_func
-from .time_frequency._utils import _ensure_output_not_in_method_kw
 from .time_frequency.spectrum import EpochsSpectrum, SpectrumMixin, _validate_method
 from .time_frequency.tfr import AverageTFR, EpochsTFR
 from .utils import (
@@ -2573,6 +2572,7 @@ class BaseEpochs(
         tmax=None,
         picks=None,
         proj=False,
+        output="power",
         average="auto",
         return_itc=False,
         decim=1,
@@ -2589,13 +2589,16 @@ class BaseEpochs(
         %(tmin_tmax_psd)s
         %(picks_good_data_noref)s
         %(proj_psd)s
+        %(output_compute_tfr)s
         average : bool | "auto"
             Whether to return average power across epochs (instead of single-trial
             power). Default is "auto" which means ``True`` if method="stockwell" and
-            ``False`` otherwise.
+            ``False`` otherwise. ``average=True`` is not compatible with
+            ``output="complex"`` or ``output="phase"``.
         return_itc : bool
             Whether to return inter-trial coherence (ITC) as well as power estimates.
-            Default is ``False``.
+            If ``True`` then must specify ``average=True`` (or ``method="stockwell",
+            average="auto"``). Default is ``False``.
         %(decim_tfr)s
         %(n_jobs)s
         %(verbose)s
@@ -2621,11 +2624,11 @@ class BaseEpochs(
         ----------
         .. footbibliography::
         """
-        # construct `output` value from `average` and `return_itc`
-        method_kw = _ensure_output_not_in_method_kw(self, method_kw)
         if average == "auto":  # stockwell method *must* average
             average = method == "stockwell"
         if average:
+            # construct `output` value from `average` and `return_itc`
+            _check_option("output", output, ("power",), extra=" when average=True")
             method_kw["output"] = "avg_power_itc" if return_itc else "avg_power"
         else:
             msg = (
@@ -2636,6 +2639,10 @@ class BaseEpochs(
                 raise ValueError(msg.format("return_itc=True", "computing ITC"))
             if method == "stockwell":
                 raise ValueError(msg.format('method="stockwell"', "Stockwell method"))
+            # `average` and `return_itc` both False, so "phase" and "complex" are OK
+            _check_option("output", output, ("power", "phase", "complex"))
+            method_kw["output"] = output
+
         if method == "stockwell":
             method_kw["return_itc"] = return_itc
             method_kw.pop("output")

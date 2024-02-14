@@ -47,7 +47,6 @@ from .defaults import _BORDER_DEFAULT, _EXTRAPOLATE_DEFAULT, _INTERPOLATION_DEFA
 from .filter import FilterMixin, _check_fun, detrend
 from .html_templates import _get_html_template
 from .parallel import parallel_func
-from .time_frequency._utils import _ensure_output_not_in_method_kw
 from .time_frequency.spectrum import Spectrum, SpectrumMixin, _validate_method
 from .time_frequency.tfr import AverageTFR
 from .utils import (
@@ -1180,6 +1179,7 @@ class Evoked(
         tmax=None,
         picks=None,
         proj=False,
+        output="power",
         decim=1,
         n_jobs=None,
         verbose=None,
@@ -1194,6 +1194,7 @@ class Evoked(
         %(tmin_tmax_psd)s
         %(picks_good_data_noref)s
         %(proj_psd)s
+        %(output_compute_tfr)s
         %(decim_tfr)s
         %(n_jobs)s
         %(verbose)s
@@ -1212,7 +1213,8 @@ class Evoked(
         ----------
         .. footbibliography::
         """
-        _ensure_output_not_in_method_kw(self, method_kw)
+        _check_option("output", output, ("power", "phase", "complex"))
+        method_kw["output"] = output
         return AverageTFR(
             inst=self,
             method=method,
