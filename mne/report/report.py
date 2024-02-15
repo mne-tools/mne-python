@@ -3905,7 +3905,7 @@ class Report:
         epochs,
         psd,
         add_projs,
-        image_kwargs = None,
+        image_kwargs=None,
         topomap_kwargs,
         drop_log_ignore,
         image_format,
