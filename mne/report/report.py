@@ -3942,7 +3942,7 @@ class Report:
 
         if image_kwargs is None:
             image_kwargs = dict()
-        
+
         for ch_type in ch_types:
             with use_log_level(_verbose_safe_false(level="error")):
                 figs = (
