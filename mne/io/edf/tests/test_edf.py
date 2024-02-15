@@ -36,6 +36,7 @@ from mne.io.edf.edf import (
     _read_ch,
     _read_edf_header,
     _read_header,
+    _set_prefilter,
 )
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.tests.test_annotations import _assert_annotations_equal
@@ -663,11 +664,68 @@ def test_edf_parse_prefilter_string(prefiltering, hp, lp):
 
 @pytest.mark.parametrize(
     "prefilter_string, expected",
-    [("0", 0), ("1.1", 1.1), ("DC", 0), ("", np.nan), ("1.1.1", np.nan)],
+    [
+        ("0", 0),
+        ("1.1", 1.1),
+        ("DC", 0),
+        ("", np.nan),
+        ("1.1.1", np.nan),
+        (1.1, 1.1),
+        (1, 1),
+        (np.float32(1.1), np.float32(1.1)),
+        (np.nan, np.nan),
+    ],
 )
 def test_edf_prefilter_float(prefilter_string, expected):
     """Test to make float from prefilter string."""
     assert_equal(_prefilter_float(prefilter_string), expected)
+
+
+@pytest.mark.parametrize(
+    "edf_info, hp, lp, hp_warn, lp_warn",
+    [
+        ({"highpass": ["0"], "lowpass": ["1.1"]}, -1, 1.1, False, False),
+        ({"highpass": [""], "lowpass": [""]}, -1, -1, False, False),
+        ({"highpass": ["DC"], "lowpass": [""]}, -1, -1, False, False),
+        ({"highpass": ["1", "2"], "lowpass": ["3", "4"]}, 2, 3, True, True),
+        ({"highpass": [np.nan, 1], "lowpass": ["", 3]}, 1, 3, True, True),
+        ({"highpass": [np.nan, np.nan], "lowpass": [1, 2]}, -1, 1, False, True),
+        ({"highpass": 1, "lowpass": 2}, 1, 2, False, False),
+        ({"highpass": np.nan, "lowpass": np.nan}, -1, -1, False, False),
+        ({}, -1, -1, False, False),
+    ],
+)
+def test_edf_set_prefilter(edf_info, hp, lp, hp_warn, lp_warn):
+    """Test _set_prefilter function."""
+    info = {"lowpass": -1, "highpass": -1}
+
+    if hp_warn:
+        ctx = pytest.warns(
+            RuntimeWarning,
+            match=(
+                "Channels contain different highpass filters. "
+                "Highest filter setting will be stored."
+            ),
+        )
+    else:
+        ctx = nullcontext()
+    with ctx:
+        _set_prefilter(info, edf_info, "highpass")
+
+    if lp_warn:
+        ctx = pytest.warns(
+            RuntimeWarning,
+            match=(
+                "Channels contain different lowpass filters. "
+                "Lowest filter setting will be stored."
+            ),
+        )
+    else:
+        ctx = nullcontext()
+    with ctx:
+        _set_prefilter(info, edf_info, "lowpass")
+    assert info["highpass"] == hp
+    assert info["lowpass"] == lp
 
 
 @testing.requires_testing_data
@@ -834,14 +892,6 @@ def test_empty_chars():
 def _hp_lp_rev(*args, **kwargs):
     out, orig_units = _read_edf_header(*args, **kwargs)
     out["lowpass"], out["highpass"] = out["highpass"], out["lowpass"]
-    # this will happen for test_edf_stim_resamp.edf
-    if (
-        len(out["lowpass"])
-        and out["lowpass"][0] == "0.000"
-        and len(out["highpass"])
-        and out["highpass"][0] == "0.0"
-    ):
-        out["highpass"][0] = "10.0"
     return out, orig_units
 
 
@@ -855,7 +905,7 @@ def _hp_lp_rev(*args, **kwargs):
         pytest.param(edf_overlap_annot_path, 64, 0, False, marks=td_mark),
         pytest.param(edf_reduced, 256, 0, False, marks=td_mark),
         pytest.param(test_generator_edf, 100, 0, False, marks=td_mark),
-        pytest.param(edf_stim_resamp_path, 256, 0, True, marks=td_mark),
+        pytest.param(edf_stim_resamp_path, 256, 0, False, marks=td_mark),
     ],
 )
 def test_hp_lp_reversed(fname, lo, hi, warns, monkeypatch):

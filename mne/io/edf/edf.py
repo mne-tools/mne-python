@@ -681,28 +681,8 @@ def _get_info(
         info["subject_info"]["weight"] = float(edf_info["subject_info"]["weight"])
 
     # Filter settings
-    if "highpass" in edf_info and len(edf_info["highpass"]):
-        if not np.all(edf_info["highpass"] == edf_info["highpass"][0]):
-            warn(
-                "Channels contain different highpass filters. Highest filter "
-                "setting will be stored."
-            )
-            hp = np.nanmax([_prefilter_float(x) for x in edf_info["highpass"]])
-        else:
-            hp = _prefilter_float(edf_info["highpass"][0])
-        if hp not in [np.nan, 0]:
-            info["highpass"] = hp
-    if "lowpass" in edf_info and len(edf_info["lowpass"]):
-        if not np.all(edf_info["lowpass"] == edf_info["lowpass"][0]):
-            warn(
-                "Channels contain different lowpass filters. Lowest filter "
-                "setting will be stored."
-            )
-            lp = np.nanmin([_prefilter_float(x) for x in edf_info["lowpass"]])
-        else:
-            lp = _prefilter_float(edf_info["lowpass"][0])
-        if lp not in [np.nan, 0]:
-            info["lowpass"] = lp
+    _set_prefilter(info, edf_info, "highpass")
+    _set_prefilter(info, edf_info, "lowpass")
 
     if np.isnan(info["lowpass"]):
         info["lowpass"] = info["sfreq"] / 2.0
@@ -757,11 +737,37 @@ def _parse_prefilter_string(prefiltering):
 
 
 def _prefilter_float(filt):
+    if isinstance(filt, (int, float, np.number)):
+        return filt
     if filt == "DC":
         return 0.0
     if filt.replace(".", "", 1).isdigit():
         return float(filt)
     return np.nan
+
+
+def _set_prefilter(info, edf_info, key):
+    if key not in edf_info:
+        return
+    value = 0
+    values = edf_info[key]
+    if isinstance(values, (int, float, np.number)):
+        value = values
+    elif len(values):
+        if len(np.unique(values)) > 1:
+            warn(
+                f"Channels contain different {key} filters. "
+                f"{'Highest' if key == 'highpass' else 'Lowest'} filter "
+                "setting will be stored."
+            )
+            if key == "highpass":
+                value = np.nanmax([_prefilter_float(x) for x in values])
+            else:
+                value = np.nanmin([_prefilter_float(x) for x in values])
+        else:
+            value = _prefilter_float(values[0])
+    if not np.isnan(value) and value != 0:
+        info[key] = value
 
 
 def _edf_str(x):

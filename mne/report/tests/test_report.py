@@ -310,12 +310,13 @@ def test_render_non_fiff(tmp_path):
         fnames_out.append(fname_out)
 
     report = Report()
-    report.parse_folder(
-        data_path=tmp_path,
-        render_bem=False,
-        on_error="raise",
-        raw_butterfly=False,
-    )
+    with pytest.warns(RuntimeWarning, match="Channels contain different"):
+        report.parse_folder(
+            data_path=tmp_path,
+            render_bem=False,
+            on_error="raise",
+            raw_butterfly=False,
+        )
 
     # Check correct paths and filenames
     _, _, content_titles, _ = report._content_as_html()
