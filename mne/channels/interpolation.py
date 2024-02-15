@@ -207,52 +207,6 @@ def _interpolate_bads_nan(
 
 
 @verbose
-def _interpolate_bad_epochs_nan(
-    inst,
-    ch_type,
-    ref_meg=False,
-    exclude=(),
-    outlier_indices: list = None,
-    *,
-    verbose=None,
-):
-    """
-    Interpolate bad epochs with NaNs.
-
-    Parameters
-    ----------
-    inst : instance of Epochs
-        The epochs object to interpolate.
-    ch_type : str
-        The channel type to operate on.
-    ref_meg : bool
-        If True include CTF / 4D reference channels. Defaults to False.
-    exclude : list of str
-        List of channels to exclude. If empty do not exclude any.
-    outlier_indices : list of arrays
-        List of arrays with indices of bad epochs per channel.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
-    """
-    info = _simplify_info(inst.info)
-    picks_type = pick_types(info, ref_meg=ref_meg, exclude=exclude, **{ch_type: True})
-
-    # extract the data from the epochs object: shape (n_epochs, n_channels, n_times)
-    data = inst.get_data()
-
-    # loop over channels of specific type
-    for ch in range(data.shape[1]):
-        # skip channels that are not of the type we are interested in
-        if ch not in picks_type:
-            continue
-        # use those indices to set the epochs per channel to NaN for all timepoints
-        data[outlier_indices[ch], ch, :] = np.nan
-
-    # put back into epochs structure
-    inst.data = data
-
-
-@verbose
 def _interpolate_bads_meeg(
     inst,
     mode="accurate",
