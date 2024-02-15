@@ -558,38 +558,6 @@ def test_tfr_multitaper():
         tfr_multitaper(epochs, freqs=np.arange(-4, -1), n_cycles=7)
 
 
-def test_decim_shift_time():
-    """Test TFR decimation and shift_time."""
-    data = np.zeros((3, 3, 3, 1000))
-    times = np.linspace(0, 1, 1000)
-    freqs = np.array([0.10, 0.20, 0.30])
-    info = mne.create_info(
-        ["MEG 001", "MEG 002", "MEG 003"], 1000.0, ["mag", "mag", "mag"]
-    )
-    with info._unlock():
-        info["lowpass"] = 100
-    tfr = EpochsTFRArray(info=info, data=data, times=times, freqs=freqs)
-    tfr_ave = tfr.average()
-    assert_allclose(tfr.times, tfr_ave.times)
-    assert not hasattr(tfr_ave, "first")
-    tfr_ave.decimate(3)
-    assert not hasattr(tfr_ave, "first")
-    tfr.decimate(3)
-    assert tfr.times.size == 1000 // 3 + 1
-    assert tfr.data.shape == ((3, 3, 3, 1000 // 3 + 1))
-    tfr_ave_2 = tfr.average()
-    assert not hasattr(tfr_ave_2, "first")
-    assert_allclose(tfr.times, tfr_ave.times)
-    assert_allclose(tfr.times, tfr_ave_2.times)
-    assert_allclose(tfr_ave_2.data, tfr_ave.data)
-    tfr.shift_time(-0.1, relative=True)
-    tfr_ave.shift_time(-0.1, relative=True)
-    tfr_ave_3 = tfr.average()
-    assert_allclose(tfr_ave_3.times, tfr_ave.times)
-    assert_allclose(tfr_ave_3.data, tfr_ave.data)
-    assert_allclose(tfr_ave_2.data, tfr_ave_3.data)  # data unchanged
-
-
 @pytest.mark.parametrize("inst", ("raw_tfr", "epochs_tfr", "average_tfr"))
 def test_tfr_io(inst, average_tfr, request, tmp_path):
     """Test TFR I/O."""
@@ -1534,7 +1502,7 @@ def test_tfr_apply_baseline(average_tfr, mode):
     ),
 )
 @pytest.mark.parametrize("decim", (4, slice(0, 200), slice(1, 200, 3)))
-def test_tfr_decim(epochs, method, freqs, decim):
+def test_tfr_decim_and_shift_time(epochs, method, freqs, decim):
     """Test TFR decimation; slices must be long-ish to be longer than the wavelets."""
     tfr = epochs.compute_tfr(method, freqs=freqs, decim=decim)
     if not isinstance(decim, slice):
@@ -1549,6 +1517,14 @@ def test_tfr_decim(epochs, method, freqs, decim):
         tfr2 = epochs.compute_tfr(method, freqs=freqs, decim=1)
         tfr2.decimate(decim)
         assert tfr == tfr2
+    # test .shift_time() too
+    shift = -0.137
+    data, times, freqs = tfr.get_data(return_times=True, return_freqs=True)
+    tfr.shift_time(shift, relative=True)
+    assert_allclose(times + shift, tfr.times, rtol=0, atol=0.5 / tfr.sfreq)
+    # shift time should only affect times:
+    assert_array_equal(data, tfr.get_data())
+    assert_array_equal(freqs, tfr.freqs)
 
 
 def test_tfr_arithmetic(epochs):

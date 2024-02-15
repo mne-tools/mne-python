@@ -1508,7 +1508,7 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin)
         self._shape = (
             len(self.ch_names),
             len(self.freqs),
-            len(self.times[self._decim]),
+            len(self._raw_times[self._decim]),  # don't use self.times, not set yet
         )
 
     @verbose
@@ -1666,7 +1666,7 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin)
     @property
     def times(self):
         """The time points present in the data (in seconds)."""
-        return self._raw_times
+        return self._times_readonly
 
     @fill_doc
     def crop(self, tmin=None, tmax=None, fmin=None, fmax=None, include_tmax=True):
