@@ -3905,7 +3905,7 @@ class Report:
         epochs,
         psd,
         add_projs,
-        image_kwargs=None,
+        image_kwargs,
         topomap_kwargs,
         drop_log_ignore,
         image_format,
@@ -3941,7 +3941,7 @@ class Report:
         epochs.load_data()
 
         if image_kwargs is None:
-            image_kwargs = {}
+            image_kwargs = dict()
         
         for ch_type in ch_types:
             with use_log_level(_verbose_safe_false(level="error")):
