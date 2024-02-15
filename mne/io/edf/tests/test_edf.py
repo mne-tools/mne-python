@@ -895,26 +895,37 @@ def _hp_lp_rev(*args, **kwargs):
     return out, orig_units
 
 
+def _hp_lp_mod(*args, **kwargs):
+    out, orig_units = _read_edf_header(*args, **kwargs)
+    out["lowpass"][:] = "1"
+    out["highpass"][:] = "10"
+    return out, orig_units
+
+
 @pytest.mark.filterwarnings("ignore:.*too long.*:RuntimeWarning")
 @pytest.mark.parametrize(
-    "fname, lo, hi, warns",
+    "fname, lo, hi, warns, patch_func",
     [
-        (edf_path, 256, 0, False),
-        (edf_uneven_path, 50, 0, False),
-        (edf_stim_channel_path, 64, 0, False),
-        pytest.param(edf_overlap_annot_path, 64, 0, False, marks=td_mark),
-        pytest.param(edf_reduced, 256, 0, False, marks=td_mark),
-        pytest.param(test_generator_edf, 100, 0, False, marks=td_mark),
-        pytest.param(edf_stim_resamp_path, 256, 0, False, marks=td_mark),
+        (edf_path, 256, 0, False, "rev"),
+        (edf_uneven_path, 50, 0, False, "rev"),
+        (edf_stim_channel_path, 64, 0, False, "rev"),
+        pytest.param(edf_overlap_annot_path, 64, 0, False, "rev", marks=td_mark),
+        pytest.param(edf_reduced, 256, 0, False, "rev", marks=td_mark),
+        pytest.param(test_generator_edf, 100, 0, False, "rev", marks=td_mark),
+        pytest.param(edf_stim_resamp_path, 256, 0, False, "rev", marks=td_mark),
+        pytest.param(edf_stim_resamp_path, 256, 0, True, "mod", marks=td_mark),
     ],
 )
-def test_hp_lp_reversed(fname, lo, hi, warns, monkeypatch):
+def test_hp_lp_reversed(fname, lo, hi, warns, patch_func, monkeypatch):
     """Test HP/LP reversed (gh-8584)."""
     fname = str(fname)
     raw = read_raw_edf(fname)
     assert raw.info["lowpass"] == lo
     assert raw.info["highpass"] == hi
-    monkeypatch.setattr(edf.edf, "_read_edf_header", _hp_lp_rev)
+    if patch_func == "rev":
+        monkeypatch.setattr(edf.edf, "_read_edf_header", _hp_lp_rev)
+    elif patch_func == "mod":
+        monkeypatch.setattr(edf.edf, "_read_edf_header", _hp_lp_mod)
     if warns:
         ctx = pytest.warns(RuntimeWarning, match="greater than lowpass")
         new_lo, new_hi = raw.info["sfreq"] / 2.0, 0.0
