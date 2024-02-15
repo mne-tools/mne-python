@@ -915,8 +915,9 @@ class InterpolationMixin:
         # make sure to first set bad epochs to NaN before channel interpolation
         for interp in method.values():
             if interp == "nan_epochs":
-                _interpolate_bad_epochs_nan(self, ch_type, exclude=exclude,
-                                            outlier_indices=None)
+                _interpolate_bad_epochs_nan(
+                    self, ch_type, exclude=exclude, outlier_indices=None
+                )
         idx = _picks_to_idx(self.info, list(method), exclude=(), allow_empty=True)
         if idx.size == 0 or len(pick_info(self.info, idx)["bads"]) == 0:
             warn("No bad channels to interpolate. Doing nothing...")
