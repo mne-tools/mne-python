@@ -687,11 +687,11 @@ def test_edf_prefilter_float(prefilter_string, expected):
         ({"highpass": ["0"], "lowpass": ["1.1"]}, -1, 1.1, False, False),
         ({"highpass": [""], "lowpass": [""]}, -1, -1, False, False),
         ({"highpass": ["DC"], "lowpass": [""]}, -1, -1, False, False),
+        ({"highpass": [1], "lowpass": [2]}, 1, 2, False, False),
+        ({"highpass": [np.nan], "lowpass": [np.nan]}, -1, -1, False, False),
         ({"highpass": ["1", "2"], "lowpass": ["3", "4"]}, 2, 3, True, True),
         ({"highpass": [np.nan, 1], "lowpass": ["", 3]}, 1, 3, True, True),
         ({"highpass": [np.nan, np.nan], "lowpass": [1, 2]}, -1, 1, False, True),
-        ({"highpass": 1, "lowpass": 2}, 1, 2, False, False),
-        ({"highpass": np.nan, "lowpass": np.nan}, -1, -1, False, False),
         ({}, -1, -1, False, False),
     ],
 )

@@ -747,13 +747,8 @@ def _prefilter_float(filt):
 
 
 def _set_prefilter(info, edf_info, key):
-    if key not in edf_info:
-        return
     value = 0
-    values = edf_info[key]
-    if isinstance(values, (int, float, np.number)):
-        value = values
-    elif len(values):
+    if len(values := edf_info.get(key, [])):
         if len(np.unique(values)) > 1:
             warn(
                 f"Channels contain different {key} filters. "
