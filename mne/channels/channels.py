@@ -813,9 +813,10 @@ class InterpolationMixin:
         origin="auto",
         method=None,
         exclude=(),
+        outlier_indices=(),
         verbose=None,
     ):
-        """Interpolate bad MEG and EEG channels.
+        """Interpolate bad MEG, EEG and fNIRS channels and epochs.
 
         Operates in place.
 
@@ -836,9 +837,9 @@ class InterpolationMixin:
         method : dict | str | None
             Method to use for each channel type.
 
-            - ``"meg"`` channels support ``"MNE"`` (default) and ``"nan"``
-            - ``"eeg"`` channels support ``"spline"`` (default), ``"MNE"`` and ``"nan"``
-            - ``"fnirs"`` channels support ``"nearest"`` (default) and ``"nan"``
+            - ``"meg"`` channels support ``"MNE"`` (default), ``"nan" and "nan_epochs"``
+            - ``"eeg"`` channels support ``"spline"`` (default), ``"MNE"``, ``"nan" and "nan_epochs"``
+            - ``"fnirs"`` channels support ``"nearest"`` (default), ``"nan"`` and "nan_epochs"``
 
             None is an alias for::
 
@@ -846,7 +847,8 @@ class InterpolationMixin:
 
             If a :class:`str` is provided, the method will be applied to all channel
             types supported and available in the instance. The method ``"nan"`` will
-            replace the channel data with ``np.nan``.
+            replace the channel data with ``np.nan``. The method ``"nan_epochs"`` will
+            replace bad epochs defined by outlier_indices with ``np.nan``.
 
             .. warning::
                 Be careful when using ``method="nan"``; the default value
@@ -856,6 +858,11 @@ class InterpolationMixin:
         exclude : list | tuple
             The channels to exclude from interpolation. If excluded a bad
             channel will stay in bads.
+
+        outlier_indices: list | tuple
+            The indices of the bad epochs to exclude from the interpolation for
+            each channel.
+
         %(verbose)s
 
         Returns
@@ -870,6 +877,7 @@ class InterpolationMixin:
         .. versionadded:: 0.9.0
         """
         from .interpolation import (
+            _interpolate_bad_epochs_nan,
             _interpolate_bads_ecog,
             _interpolate_bads_eeg,
             _interpolate_bads_meeg,
@@ -894,16 +902,21 @@ class InterpolationMixin:
         for key in keys2delete:
             del method[key]
         valids = {
-            "eeg": ("spline", "MNE", "nan"),
-            "meg": ("MNE", "nan"),
-            "fnirs": ("nearest", "nan"),
-            "ecog": ("spline", "nan"),
-            "seeg": ("spline", "nan"),
+            "eeg": ("spline", "MNE", "nan", "nan_epochs"),
+            "meg": ("MNE", "nan", "nan_epochs"),
+            "fnirs": ("nearest", "nan", "nan_epochs"),
+            "ecog": ("spline", "nan", "nan_epochs"),
+            "seeg": ("spline", "nan", "nan_epochs"),
         }
         for key in method:
             _check_option("method[key]", key, tuple(valids))
             _check_option(f"method['{key}']", method[key], valids[key])
         logger.info("Setting channel interpolation method to %s.", method)
+        # make sure to first set bad epochs to NaN before channel interpolation
+        for interp in method.values():
+            if interp == "nan_epochs":
+                _interpolate_bad_epochs_nan(self, ch_type, exclude=exclude,
+                                            outlier_indices=None)
         idx = _picks_to_idx(self.info, list(method), exclude=(), allow_empty=True)
         if idx.size == 0 or len(pick_info(self.info, idx)["bads"]) == 0:
             warn("No bad channels to interpolate. Doing nothing...")
