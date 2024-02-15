@@ -1121,7 +1121,6 @@ class Report:
             If ``True``, add PSD plots based on all ``epochs``. If ``False``,
             do not add PSD plots.
         %(projs_report)s
-        %(image_kwargs)s
             image_kwargs : dict | None
             Keyword arguments to pass to the "epochs image"-generating
             function (:meth:`mne.Epochs.plot_image`).
