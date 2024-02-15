@@ -25,7 +25,14 @@ from ..transforms import (
     apply_trans,
     quat_to_rot,
 )
-from ..utils import _mask_to_onsets_offsets, _pl, _validate_type, logger, verbose
+from ..utils import (
+    _check_option,
+    _mask_to_onsets_offsets,
+    _pl,
+    _validate_type,
+    logger,
+    verbose,
+)
 
 
 @verbose
@@ -94,16 +101,13 @@ def annotate_muscle_zscore(
             ch_type = "eeg"
         else:
             raise ValueError(
-                "No M/EEG channel types found, please specify a"
-                " ch_type or provide M/EEG sensor data"
+                "No M/EEG channel types found, please specify a 'ch_type' or provide "
+                "M/EEG sensor data."
             )
-        logger.info("Using %s sensors for muscle artifact detection" % (ch_type))
-
-    if ch_type in ("mag", "grad"):
-        raw_copy.pick(ch_type)
+        logger.info("Using %s sensors for muscle artifact detection", ch_type)
     else:
-        ch_type = {"meg": False, ch_type: True}
-        raw_copy.pick(**ch_type)
+        _check_option("ch_type", ch_type, ["mag", "grad", "eeg"])
+    raw_copy.pick(ch_type)
 
     raw_copy.filter(
         filter_freq[0],
