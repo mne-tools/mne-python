@@ -18,14 +18,14 @@ from ...utils import _validate_type, warn
 from ..nirs import _validate_nirs_info, source_detector_distances
 
 
-def beer_lambert_law(raw, ppf=[6.0, 6.0]):
+def beer_lambert_law(raw, ppf=(6.0, 6.0)):
     r"""Convert NIRS optical density data to haemoglobin concentration.
 
     Parameters
     ----------
     raw : instance of Raw
         The optical density data.
-    ppf : float
+    ppf : tuple
         The partial pathlength factors for each wavelength.
 
     Returns
