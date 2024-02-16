@@ -885,7 +885,7 @@ def test_manual_report_2d(tmp_path, invisible_fig):
     raw.pick(raw.ch_names[:6]).crop(10, None)
     raw.info.normalize_proj()
     raw_non_preloaded = raw.copy()
-    raw.load_data().filter(None, 10)
+    raw.load_data()
     cov = read_cov(cov_fname)
     cov = pick_channels_cov(cov, raw.ch_names)
     events = read_events(events_fname)
@@ -906,6 +906,7 @@ def test_manual_report_2d(tmp_path, invisible_fig):
         event_id=event_id,
         baseline=None,
         decim=10,
+        verbose="error",
     )
     epochs_with_metadata = Epochs(
         raw=raw,
@@ -914,6 +915,7 @@ def test_manual_report_2d(tmp_path, invisible_fig):
         baseline=None,
         metadata=metadata,
         decim=10,
+        verbose="error",
     )
     evokeds = read_evokeds(evoked_fname)
     evoked = evokeds[0].pick("eeg").decimate(10, verbose="error")
