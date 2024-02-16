@@ -2257,6 +2257,7 @@ class BaseRaw(
         tmax=None,
         picks=None,
         proj=False,
+        output="power",
         reject_by_annotation=True,
         decim=1,
         n_jobs=None,
@@ -2272,6 +2273,7 @@ class BaseRaw(
         %(tmin_tmax_psd)s
         %(picks_good_data_noref)s
         %(proj_psd)s
+        %(output_compute_tfr)s
         %(reject_by_annotation_tfr)s
         %(decim_tfr)s
         %(n_jobs)s
@@ -2291,6 +2293,8 @@ class BaseRaw(
         ----------
         .. footbibliography::
         """
+        _check_option("output", output, ("power", "phase", "complex"))
+        method_kw["output"] = output
         return RawTFR(
             self,
             method=method,

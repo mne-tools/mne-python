@@ -81,7 +81,7 @@ from ..viz.utils import (
     figure_nobar,
     plt_show,
 )
-from ._utils import _ensure_output_not_in_method_kw, _get_instance_type_string
+from ._utils import _get_instance_type_string
 from .multitaper import dpss_windows, tfr_array_multitaper
 from .spectrum import EpochsSpectrum
 
@@ -1199,6 +1199,7 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin)
         # and `freqs` vector has been pre-computed
         if method != "stockwell":
             method_kw.update(freqs=freqs)
+            # ↓↓↓ if constructor called directly, prevents key error
             method_kw.setdefault("output", "power")
         self._freqs = np.asarray(freqs, dtype=np.float64)
         del freqs
@@ -1223,9 +1224,16 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin)
         self._method = method
         self._inst_type = type(inst)
         self._baseline = None
-        self.preload = True  # needed for __getitem__, never False
+        self.preload = True  # needed for __getitem__, never False for TFRs
         # self._dims may also get updated by child classes
-        self._dims = ("channel", "freq", "time")
+        self._dims = ["channel", "freq", "time"]
+        self._needs_taper_dim = method == "multitaper" and method_kw["output"] in (
+            "complex",
+            "phase",
+        )
+        if self._needs_taper_dim:
+            self._dims.insert(1, "taper")
+        self._dims = tuple(self._dims)
         # get the instance data.
         time_mask = _time_mask(inst.times, tmin, tmax, sfreq=self.sfreq)
         get_instance_data_kw = dict(time_mask=time_mask)
@@ -1246,16 +1254,27 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin)
         self._set_times(self._raw_times)
         self._decim = 1
         # record data type (for repr and html_repr). ITC handled in the calling method.
-        is_complex = np.iscomplexobj(self._data)
-        if is_complex:
-            self._data_type = "Complex TFR"
-        else:
+        if method == "stockwell":
             self._data_type = "Power Estimates"
-        # check for correct shape and bad values
-        self._check_values(is_complex)
+        else:
+            data_types = dict(
+                power="Power Estimates",
+                avg_power="Average Power Estimates",
+                avg_power_itc="Average Power Estimates",
+                phase="Phase",
+                complex="Complex Amplitude",
+            )
+            self._data_type = data_types[method_kw["output"]]
+        # check for correct shape and bad values. `tfr_array_stockwell` doesn't take kw
+        # `output` so it may be missing here, so use `.get()`
+        negative_ok = method_kw.get("output", "") in ("complex", "phase")
+        # if method_kw.get("output", None) in ("phase", "complex"):
+        #     raise RuntimeError
+        self._check_values(negative_ok=negative_ok)
         # we don't need these anymore, and they make save/load harder
         del self._picks
         del self._tfr_func
+        del self._needs_taper_dim
         del self._shape  # calculated from self._data henceforth
         del self.inst  # save memory
 
@@ -1463,7 +1482,7 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin)
             return
         raise ValueError(msg)
 
-    def _check_values(self, wants_complex=False):
+    def _check_values(self, negative_ok=False):
         """Check TFR results for correct shape and bad values."""
         assert len(self._dims) == self._data.ndim
         assert self._data.shape == self._shape
@@ -1473,7 +1492,7 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin)
         dims = np.arange(self._data.ndim).tolist()
         dims.pop(ch_dim)
         negative_values = self._data.min(axis=tuple(dims)) < 0
-        if negative_values.any() and not wants_complex:
+        if negative_values.any() and not negative_ok:
             chs = np.array(self.ch_names)[negative_values].tolist()
             s = _pl(negative_values.sum())
             warn(
@@ -1505,11 +1524,15 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin)
 
         # this is *expected* shape, it gets asserted later in _check_values()
         # (and then deleted afterwards)
-        self._shape = (
+        expected_shape = [
             len(self.ch_names),
             len(self.freqs),
             len(self._raw_times[self._decim]),  # don't use self.times, not set yet
-        )
+        ]
+        # deal with the "taper" dimension
+        if self._needs_taper_dim:
+            expected_shape.insert(1, self._data.shape[1])
+        self._shape = tuple(expected_shape)
 
     @verbose
     def _onselect(
@@ -2839,7 +2862,7 @@ class AverageTFR(_BaseTFR):
             n_fft = method_kw.get("n_fft", default_nfft)
             *_, freqs = _compute_freqs_st(fmin, fmax, n_fft, inst.info["sfreq"])
 
-        # use Evoked.comment or str(Epochs.event_id) as the comment...
+        # use Evoked.comment or str(Epochs.event_id) as the default comment...
         if comment is None:
             comment = getattr(inst, "comment", ",".join(getattr(inst, "event_id", "")))
         # ...but don't overwrite if it's coming in with a comment already set
@@ -3783,9 +3806,6 @@ class RawTFR(_BaseTFR):
         _validate_type(
             inst, (BaseRaw, dict), "object passed to RawTFR constructor", "Raw"
         )
-        # make sure they didn't pass "output"
-        _ensure_output_not_in_method_kw(inst, method_kw)
-
         super().__init__(
             inst,
             method,

@@ -2,23 +2,6 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-import inspect
-
-
-def _ensure_output_not_in_method_kw(inst, method_kw):
-    legacy = inspect.currentframe().f_back.f_back.f_back.f_code.co_name == "_tfr_aux"
-    if legacy:
-        return method_kw
-    if "output" in method_kw:
-        raise ValueError(
-            f"{type(inst).__name__}.compute_tfr() got an unexpected keyword argument "
-            '"output". if you need more control over the output computation, please '
-            "use the array interfaces (mne.time_frequency.tfr_array_morlet() or "
-            "mne.time_frequency.tfr_array_multitaper())."
-        )
-    method_kw["output"] = "power"
-    return method_kw
-
 
 def _get_instance_type_string(inst):
     """Get string representation of the originating instance type."""

@@ -73,6 +73,9 @@ mag_names = [f"MEG 01{n}1" for n in (1, 2, 3)]
 parametrize_morlet_multitaper = pytest.mark.parametrize(
     "method", ("morlet", "multitaper")
 )
+parametrize_power_phase_complex = pytest.mark.parametrize(
+    "output", ("power", "phase", "complex")
+)
 parametrize_inst_and_ch_type = pytest.mark.parametrize(
     "inst,ch_type",
     (
@@ -623,7 +626,7 @@ def test_tfr_io(inst, average_tfr, request, tmp_path):
 
 
 def test_raw_tfr_init(raw):
-    """Test the AverageTFR, RawTFR and RawTFRArray constructors."""
+    """Test the RawTFR and RawTFRArray constructors."""
     one = RawTFR(inst=raw, method="morlet", freqs=freqs_linspace)
     two = RawTFRArray(one.info, one.data, one.times, one.freqs, method="morlet")
     # some attributes we know won't match:
@@ -1343,11 +1346,12 @@ def test_to_data_frame_time_format(time_format):
 
 
 @parametrize_morlet_multitaper
+@parametrize_power_phase_complex
 @pytest.mark.parametrize("picks", ("mag", mag_names, [2, 5, 8]))  # all 3 equivalent
-def test_raw_compute_tfr(raw, method, picks):
+def test_raw_compute_tfr(raw, method, output, picks):
     """Test Raw.compute_tfr() and picks handling."""
-    full_tfr = raw.compute_tfr(method, freqs=freqs_linspace)
-    pick_tfr = raw.compute_tfr(method, freqs=freqs_linspace, picks=picks)
+    full_tfr = raw.compute_tfr(method, output=output, freqs=freqs_linspace)
+    pick_tfr = raw.compute_tfr(method, output=output, freqs=freqs_linspace, picks=picks)
     assert isinstance(pick_tfr, RawTFR), type(pick_tfr)
     # ↓↓↓ can't use [2,5,8] because ch0 is IAS, so indices change between raw and TFR
     want = full_tfr.get_data(picks=mag_names)
@@ -1356,10 +1360,11 @@ def test_raw_compute_tfr(raw, method, picks):
 
 
 @parametrize_morlet_multitaper
+@parametrize_power_phase_complex
 @pytest.mark.parametrize("freqs", (freqs_linspace, freqs_unsorted_list))
-def test_evoked_compute_tfr(full_evoked, method, freqs):
+def test_evoked_compute_tfr(full_evoked, method, output, freqs):
     """Test Evoked.compute_tfr(), with a few different ways of specifying freqs."""
-    tfr = full_evoked.compute_tfr(method, freqs)
+    tfr = full_evoked.compute_tfr(method, freqs, output=output)
     assert isinstance(tfr, AverageTFR), type(tfr)
     assert tfr.nave == full_evoked.nave
     assert tfr.comment == full_evoked.comment
@@ -1402,8 +1407,7 @@ def test_epochs_compute_tfr_average_itc(
             assert avg.comment.startswith(f"mean of {len(epochs)} EpochsTFR")
 
 
-@parametrize_morlet_multitaper
-def test_epochs_vs_evoked_compute_tfr(epochs, method):
+def test_epochs_vs_evoked_compute_tfr(epochs):
     """Compare result of averaging before or after the TFR computation.
 
     This is mostly a test of object structure / attribute preservation. In normal cases,
@@ -1415,8 +1419,8 @@ def test_epochs_vs_evoked_compute_tfr(epochs, method):
     The three things that will always end up different are `._comment`, `._inst_type`,
     and `._data_type`, so we ignore those here.
     """
-    avg_first = epochs.average().compute_tfr(method=method, freqs=freqs_linspace)
-    avg_second = epochs.compute_tfr(method=method, freqs=freqs_linspace).average()
+    avg_first = epochs.average().compute_tfr(method="morlet", freqs=freqs_linspace)
+    avg_second = epochs.compute_tfr(method="morlet", freqs=freqs_linspace).average()
     for attr in ("_comment", "_inst_type", "_data_type"):
         assert getattr(avg_first, attr) != getattr(avg_second, attr)
         delattr(avg_first, attr)
