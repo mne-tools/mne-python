@@ -32,6 +32,7 @@ from ..utils import (
     _validate_type,
     logger,
     verbose,
+    warn,
 )
 
 
@@ -293,7 +294,8 @@ def annotate_movement(
     return annot, disp
 
 
-def compute_average_dev_head_t(raw, pos):
+@verbose
+def compute_average_dev_head_t(raw, pos, *, verbose=None):
     """Get new device to head transform based on good segments.
 
     Segments starting with "BAD" annotations are not included for calculating
@@ -301,19 +303,59 @@ def compute_average_dev_head_t(raw, pos):
 
     Parameters
     ----------
-    raw : instance of Raw
-        Data to compute head position.
-    pos : array, shape (N, 10)
-        The position and quaternion parameters from cHPI fitting.
+    raw : instance of Raw | list of Raw
+        Data to compute head position. Can be a list containing multiple raw
+        instances.
+    pos : array, shape (N, 10) | list of ndarray
+        The position and quaternion parameters from cHPI fitting. Can be
+        a list containing multiple position arrays, one per raw instance passed.
+    %(verbose)s
 
     Returns
     -------
     dev_head_t : instance of Transform
         New ``dev_head_t`` transformation using the averaged good head positions.
+
+    Notes
+    -----
+    .. versionchanged:: 1.7
+       Support for multiple raw instances and position arrays was added.
     """
+    # Get weighted head pos trans and rot
+    if not isinstance(raw, (list, tuple)):
+        raw = [raw]
+    if not isinstance(pos, (list, tuple)):
+        pos = [pos]
+    if len(pos) != len(raw):
+        raise ValueError(
+            f"Number of head positions ({len(pos)}) must match the number of raw "
+            f"instances ({len(raw)})"
+        )
+    hp = list()
+    dt = list()
+    for ri, (r, p) in enumerate(zip(raw, pos)):
+        _validate_type(r, BaseRaw, f"raw[{ri}]")
+        _validate_type(p, np.ndarray, f"pos[{ri}]")
+        hp_, dt_ = _raw_hp_weights(r, p)
+        hp.append(hp_)
+        dt.append(dt_)
+    hp = np.concatenate(hp, axis=0)
+    dt = np.concatenate(dt, axis=0)
+    dt /= dt.sum()
+    best_q = _average_quats(hp[:, 1:4], weights=dt)
+    trans = np.eye(4)
+    trans[:3, :3] = quat_to_rot(best_q)
+    trans[:3, 3] = dt @ hp[:, 4:7]
+    dist = np.linalg.norm(trans[:3, 3])
+    if dist > 1:  # less than 1 meter is sane
+        warn(f"Implausible head position detected: {dist} meters from device origin")
+    dev_head_t = Transform("meg", "head", trans)
+    return dev_head_t
+
+
+def _raw_hp_weights(raw, pos):
     sfreq = raw.info["sfreq"]
     seg_good = np.ones(len(raw.times))
-    trans_pos = np.zeros(3)
     hp = pos.copy()
     hp_ts = hp[:, 0] - raw._first_time
 
@@ -353,19 +395,7 @@ def compute_average_dev_head_t(raw, pos):
     assert (dt >= 0).all()
     dt = dt / sfreq
     del seg_good, idx
-
-    # Get weighted head pos trans and rot
-    trans_pos += np.dot(dt, hp[:, 4:7])
-
-    rot_qs = hp[:, 1:4]
-    best_q = _average_quats(rot_qs, weights=dt)
-
-    trans = np.eye(4)
-    trans[:3, :3] = quat_to_rot(best_q)
-    trans[:3, 3] = trans_pos / dt.sum()
-    assert np.linalg.norm(trans[:3, 3]) < 1  # less than 1 meter is sane
-    dev_head_t = Transform("meg", "head", trans)
-    return dev_head_t
+    return hp, dt
 
 
 def _annotations_from_mask(times, mask, annot_name, orig_time=None):
