@@ -18,7 +18,7 @@ from ...utils import _validate_type, warn
 from ..nirs import _validate_nirs_info, source_detector_distances
 
 
-def beer_lambert_law(raw, ppf=6.0):
+def beer_lambert_law(raw, ppf=[6.0, 6.0]):
     r"""Convert NIRS optical density data to haemoglobin concentration.
 
     Parameters
@@ -26,7 +26,7 @@ def beer_lambert_law(raw, ppf=6.0):
     raw : instance of Raw
         The optical density data.
     ppf : float
-        The partial pathlength factor.
+        The partial pathlength factors for each wavelength.
 
     Returns
     -------
@@ -35,8 +35,8 @@ def beer_lambert_law(raw, ppf=6.0):
     """
     raw = raw.copy().load_data()
     _validate_type(raw, BaseRaw, "raw")
-    _validate_type(ppf, "numeric", "ppf")
-    ppf = float(ppf)
+    _validate_type(ppf, "array-like", "ppf")
+    ppf = np.array(ppf).astype(float)[:, np.newaxis]
     picks = _validate_nirs_info(raw.info, fnirs="od", which="Beer-lambert")
     # This is the one place we *really* need the actual/accurate frequencies
     freqs = np.array([raw.info["chs"][pick]["loc"][9] for pick in picks], float)

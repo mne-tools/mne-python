@@ -1,0 +1,1 @@
+Support partial pathlength facors for each wavelength in :func:`mne.preprocessing.nirs.beer_lambert_law`, by :newcontrib:`Richard Scholz`_.
