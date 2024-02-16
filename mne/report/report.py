@@ -1124,6 +1124,8 @@ class Report:
         image_kwargs : dict | None
             Keyword arguments to pass to the "epochs image"-generating
             function (:meth:`mne.Epochs.plot_image`).
+
+            .. versionadded:: 1.7
         %(topomap_kwargs)s
         drop_log_ignore : array-like of str
             The drop reasons to ignore when creating the drop log bar plot.
@@ -1134,7 +1136,7 @@ class Report:
 
         Notes
         -----
-        .. versionadded:: 0.24.0
+        .. versionadded:: 0.24
         """
         tags = _check_tags(tags)
         add_projs = self.projs if projs is None else projs
