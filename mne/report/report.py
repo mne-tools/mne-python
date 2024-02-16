@@ -3842,9 +3842,10 @@ class Report:
             index=False,
             show_dimensions=True,
             justify="unset",
-            float_format=lambda x: f"{round(x, 3):.3f}",
+            float_format=lambda x: f"{x:.3f}",
             classes="table table-hover table-striped "
             "table-sm table-responsive small",
+            na_rep="",
         )
         del metadata
 
