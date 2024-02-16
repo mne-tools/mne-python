@@ -3835,9 +3835,9 @@ class Report:
             metadata.index.name = "Epoch #"
 
         assert metadata.index.is_unique
-        index_name = metadata.index.name  # store for later use
+        data_id = metadata.index.name  # store for later use
         metadata = metadata.reset_index()  # We want "proper" columns only
-        html = _df_bootstrap_table(df=metadata, index_name=index_name)
+        html = _df_bootstrap_table(df=metadata, data_id=data_id)
         self._add_html_element(
             div_klass="epochs",
             tags=tags,
@@ -4336,7 +4336,7 @@ class _ReportScraper:
             copyfile(key, value)
 
 
-def _df_bootstrap_table(*, df, index_name):
+def _df_bootstrap_table(*, df, data_id):
     html = df.to_html(
         border=0,
         index=False,
@@ -4356,7 +4356,7 @@ def _df_bootstrap_table(*, df, index_name):
                 "<table "
                 'id="mytable" '
                 'data-toggle="table" '
-                f'data-unique-id="{index_name}" '
+                f'data-unique-id="{data_id}" '
                 'data-search="true" '  # search / filter
                 'data-search-highlight="true" '
                 'data-show-columns="true" '  # show/hide columns
