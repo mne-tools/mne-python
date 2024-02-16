@@ -42,7 +42,7 @@ def fnirs_epochs():
     """Create an fnirs epoch structure."""
     raw_intensity = read_raw_nirx(fname_nirx, preload=False)
     raw_od = optical_density(raw_intensity)
-    raw_haemo = beer_lambert_law(raw_od, ppf=6.0)
+    raw_haemo = beer_lambert_law(raw_od, ppf=(6.0, 6.0))
     evts, _ = events_from_annotations(raw_haemo, event_id={"1.0": 1})
     evts_dct = {"A": 1}
     tn, tx = -1, 2

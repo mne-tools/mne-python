@@ -228,7 +228,7 @@ def test_hitachi_basic(
     assert_allclose(distances, want, atol=0.0)
     raw_od_bad = optical_density(raw)
     with pytest.warns(RuntimeWarning, match="will be zero"):
-        beer_lambert_law(raw_od_bad, ppf=6)
+        beer_lambert_law(raw_od_bad, ppf=(6.0, 6.0))
     # bad distances (too big)
     if versions[0] == "1.18" and len(fnames) == 1:
         need = sum(([f"S{ii}", f"D{ii}"] for ii in range(1, 9)), [])[:-1]
@@ -239,7 +239,7 @@ def test_hitachi_basic(
         raw.set_montage(mon)
         raw_od_bad = optical_density(raw)
         with pytest.warns(RuntimeWarning, match="greater than 10 cm"):
-            beer_lambert_law(raw_od_bad, ppf=6)
+            beer_lambert_law(raw_od_bad, ppf=(6.0, 6.0))
     # good distances
     mon = make_standard_montage("standard_1020")
     if versions[0] == "1.18":
@@ -306,7 +306,7 @@ def test_hitachi_basic(
     assert_array_less(peaks, 1, err_msg="TDDR too big")
     # HbO/HbR
     raw_tddr.set_montage(mon)
-    raw_h = beer_lambert_law(raw_tddr, ppf=6)
+    raw_h = beer_lambert_law(raw_tddr, ppf=(6.0, 6.0))
     data = raw_h.get_data("fnirs")
     assert np.isfinite(data).all()
     assert data.shape == (n_ch - 4, n_times)

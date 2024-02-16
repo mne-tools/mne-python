@@ -76,6 +76,6 @@ def test_scalp_coupling_index(fname, fmt, tmp_path):
     assert_allclose(sci[8:12], 0, atol=1e-10)
 
     # Ensure function errors if wrong type is passed in
-    raw = beer_lambert_law(raw, ppf=6)
+    raw = beer_lambert_law(raw, ppf=(6.0, 6.0))
     with pytest.raises(RuntimeError, match="Scalp"):
         scalp_coupling_index(raw)
