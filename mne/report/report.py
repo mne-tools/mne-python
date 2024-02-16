@@ -3837,62 +3837,7 @@ class Report:
         assert metadata.index.is_unique
         index_name = metadata.index.name  # store for later use
         metadata = metadata.reset_index()  # We want "proper" columns only
-        html = metadata.to_html(
-            border=0,
-            index=False,
-            show_dimensions=True,
-            justify="unset",
-            float_format=lambda x: f"{x:.3f}",
-            classes="table table-hover table-striped "
-            "table-sm table-responsive small",
-            na_rep="",
-        )
-        del metadata
-
-        # Massage the table such that it woks nicely with bootstrap-table
-        htmls = html.split("\n")
-        header_pattern = "<th>(.*)</th>"
-
-        for idx, html in enumerate(htmls):
-            if "<table" in html:
-                htmls[idx] = html.replace(
-                    "<table",
-                    "<table "
-                    'id="mytable" '
-                    'data-toggle="table" '
-                    f'data-unique-id="{index_name}" '
-                    'data-search="true" '  # search / filter
-                    'data-search-highlight="true" '
-                    'data-show-columns="true" '  # show/hide columns
-                    'data-show-toggle="true" '  # allow card view
-                    'data-show-columns-toggle-all="true" '
-                    'data-click-to-select="true" '
-                    'data-show-copy-rows="true" '
-                    'data-show-export="true" '  # export to a file
-                    'data-export-types="[csv]" '
-                    'data-export-options=\'{"fileName": "metadata"}\' '
-                    'data-icon-size="sm" '
-                    'data-height="400"',
-                )
-                continue
-            elif "<tr" in html:
-                # Add checkbox for row selection
-                htmls[idx] = (
-                    f"{html}\n" f'<th data-field="state" data-checkbox="true"></th>'
-                )
-                continue
-
-            col_headers = re.findall(pattern=header_pattern, string=html)
-            if col_headers:
-                # Make columns sortable
-                assert len(col_headers) == 1
-                col_header = col_headers[0]
-                htmls[idx] = html.replace(
-                    "<th>",
-                    f'<th data-field="{col_header.lower()}" ' f'data-sortable="true">',
-                )
-
-        html = "\n".join(htmls)
+        html = _df_bootstrap_table(df=metadata, index_name=index_name)
         self._add_html_element(
             div_klass="epochs",
             tags=tags,
@@ -4389,3 +4334,59 @@ class _ReportScraper:
     def copyfiles(self, *args, **kwargs):
         for key, value in self.files.items():
             copyfile(key, value)
+
+
+def _df_bootstrap_table(*, df, index_name):
+    html = df.to_html(
+        border=0,
+        index=False,
+        show_dimensions=True,
+        justify="unset",
+        float_format=lambda x: f"{x:.3f}",
+        classes="table table-hover table-striped table-sm table-responsive small",
+        na_rep="",
+    )
+    htmls = html.split("\n")
+    header_pattern = "<th>(.*)</th>"
+
+    for idx, html in enumerate(htmls):
+        if "<table" in html:
+            htmls[idx] = html.replace(
+                "<table",
+                "<table "
+                'id="mytable" '
+                'data-toggle="table" '
+                f'data-unique-id="{index_name}" '
+                'data-search="true" '  # search / filter
+                'data-search-highlight="true" '
+                'data-show-columns="true" '  # show/hide columns
+                'data-show-toggle="true" '  # allow card view
+                'data-show-columns-toggle-all="true" '
+                'data-click-to-select="true" '
+                'data-show-copy-rows="true" '
+                'data-show-export="true" '  # export to a file
+                'data-export-types="[csv]" '
+                'data-export-options=\'{"fileName": "metadata"}\' '
+                'data-icon-size="sm" '
+                'data-height="400"',
+            )
+            continue
+        elif "<tr" in html:
+            # Add checkbox for row selection
+            htmls[idx] = (
+                f"{html}\n" f'<th data-field="state" data-checkbox="true"></th>'
+            )
+            continue
+
+        col_headers = re.findall(pattern=header_pattern, string=html)
+        if col_headers:
+            # Make columns sortable
+            assert len(col_headers) == 1
+            col_header = col_headers[0]
+            htmls[idx] = html.replace(
+                "<th>",
+                f'<th data-field="{col_header.lower()}" ' f'data-sortable="true">',
+            )
+
+    html = "\n".join(htmls)
+    return html
