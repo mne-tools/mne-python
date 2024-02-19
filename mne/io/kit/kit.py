@@ -43,7 +43,7 @@ UINT32 = "<u4"
 INT32 = "<i4"
 
 
-def _call_digitization(info, mrk, elp, hsp, kit_info):
+def _call_digitization(info, mrk, elp, hsp, kit_info, *, bad_coils=()):
     # Use values from kit_info only if all others are None
     if mrk is None and elp is None and hsp is None:
         mrk = kit_info.get("mrk", None)
@@ -62,7 +62,11 @@ def _call_digitization(info, mrk, elp, hsp, kit_info):
     if mrk is not None and elp is not None and hsp is not None:
         with info._unlock():
             info["dig"], info["dev_head_t"], info["hpi_results"] = _set_dig_kit(
-                mrk, elp, hsp, kit_info["eeg_dig"]
+                mrk,
+                elp,
+                hsp,
+                kit_info["eeg_dig"],
+                bad_coils=bad_coils,
             )
     elif mrk is not None or elp is not None or hsp is not None:
         raise ValueError(
@@ -91,6 +95,7 @@ class RawKIT(BaseRaw):
     %(kit_mrk)s
     %(kit_elp)s
     %(kit_hsp)s
+    %(kit_badcoils)s
     %(kit_stim)s
     %(kit_slope)s
     %(kit_stimthresh)s
@@ -133,6 +138,8 @@ class RawKIT(BaseRaw):
         stim_code="binary",
         allow_unknown_format=False,
         standardize_names=None,
+        *,
+        bad_coils=(),
         verbose=None,
     ):
         logger.info("Extracting SQD Parameters from %s..." % input_fname)
@@ -160,7 +167,12 @@ class RawKIT(BaseRaw):
             verbose=verbose,
         )
         self.info = _call_digitization(
-            info=self.info, mrk=mrk, elp=elp, hsp=hsp, kit_info=kit_info
+            info=self.info,
+            mrk=mrk,
+            elp=elp,
+            hsp=hsp,
+            kit_info=kit_info,
+            bad_coils=bad_coils,
         )
         logger.info("Ready.")
 
@@ -912,6 +924,8 @@ def read_raw_kit(
     stim_code="binary",
     allow_unknown_format=False,
     standardize_names=False,
+    *,
+    bad_coils=(),
     verbose=None,
 ) -> RawKIT:
     r"""Reader function for Ricoh/KIT conversion to FIF.
@@ -923,6 +937,7 @@ def read_raw_kit(
     %(kit_mrk)s
     %(kit_elp)s
     %(kit_hsp)s
+    %(bad_coils)s
     %(kit_stim)s
     %(kit_slope)s
     %(kit_stimthresh)s
@@ -966,6 +981,7 @@ def read_raw_kit(
         stim_code=stim_code,
         allow_unknown_format=allow_unknown_format,
         standardize_names=standardize_names,
+        bad_coils=bad_coils,
         verbose=verbose,
     )
 
