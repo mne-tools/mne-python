@@ -681,8 +681,9 @@ def _get_info(
         info["subject_info"]["weight"] = float(edf_info["subject_info"]["weight"])
 
     # Filter settings
-    _set_prefilter(info, edf_info, "highpass")
-    _set_prefilter(info, edf_info, "lowpass")
+    if filt_ch_idxs := [x for x in sel if x not in stim_channel_idxs]:
+        _set_prefilter(info, edf_info, filt_ch_idxs, "highpass")
+        _set_prefilter(info, edf_info, filt_ch_idxs, "lowpass")
 
     if np.isnan(info["lowpass"]):
         info["lowpass"] = info["sfreq"] / 2.0
@@ -746,9 +747,10 @@ def _prefilter_float(filt):
     return np.nan
 
 
-def _set_prefilter(info, edf_info, key):
+def _set_prefilter(info, edf_info, ch_idxs, key):
     value = 0
     if len(values := edf_info.get(key, [])):
+        values = [x for i, x in enumerate(values) if i in ch_idxs]
         if len(np.unique(values)) > 1:
             warn(
                 f"Channels contain different {key} filters. "
@@ -936,9 +938,7 @@ def _read_edf_header(fname, exclude, infer_types, include=None):
         digital_max = np.array([float(_edf_str_num(fid.read(8))) for ch in channels])[
             sel
         ]
-        prefiltering = np.array([_edf_str(fid.read(80)).strip() for ch in channels])[
-            sel
-        ]
+        prefiltering = np.array([_edf_str(fid.read(80)).strip() for ch in channels])
         highpass, lowpass = _parse_prefilter_string(prefiltering)
 
         # number of samples per record
