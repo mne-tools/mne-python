@@ -711,7 +711,7 @@ def test_edf_set_prefilter(edf_info, hp, lp, hp_warn, lp_warn):
         ctx = nullcontext()
     with ctx:
         _set_prefilter(
-            info, edf_info, list(range(len(edf_info["highpass"]))), "highpass"
+            info, edf_info, list(range(len(edf_info.get("highpass", [])))), "highpass"
         )
 
     if lp_warn:
@@ -725,7 +725,9 @@ def test_edf_set_prefilter(edf_info, hp, lp, hp_warn, lp_warn):
     else:
         ctx = nullcontext()
     with ctx:
-        _set_prefilter(info, edf_info, list(range(len(edf_info["lowpass"]))), "lowpass")
+        _set_prefilter(
+            info, edf_info, list(range(len(edf_info.get("lowpass", [])))), "lowpass"
+        )
     assert info["highpass"] == hp
     assert info["lowpass"] == lp
 
