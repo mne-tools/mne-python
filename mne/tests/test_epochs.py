@@ -1666,43 +1666,63 @@ def test_split_saving_and_loading_back(tmp_path, epochs_to_split, preload):
 
 
 @pytest.mark.parametrize(
-    "split_naming, dst_fname, split_fname_fn",
+    "split_naming, dst_fname, split_fname_fn, check_bids",
     [
         (
             "neuromag",
             "test_epo.fif",
             lambda i: f"test_epo-{i}.fif" if i else "test_epo.fif",
+            False,
         ),
         (
             "bids",
-            "test_epo.fif",
-            lambda i: f"test_split-{i + 1:02d}_epo.fif",
+            Path("sub-01") / "meg" / "sub-01_epo.fif",
+            lambda i: Path("sub-01") / "meg" / f"sub-01_split-{i + 1:02d}_epo.fif",
+            True,
         ),
         (
             "bids",
             "a_b-epo.fif",
             # Merely stating the fact:
             lambda i: f"a_split-{i + 1:02d}_b-epo.fif",
+            False,
         ),
     ],
     ids=["neuromag", "bids", "mix"],
 )
 def test_split_naming(
-    tmp_path, epochs_to_split, split_naming, dst_fname, split_fname_fn
+    tmp_path, epochs_to_split, split_naming, dst_fname, split_fname_fn, check_bids
 ):
     """Test naming of the split files."""
     epochs, split_size, n_files = epochs_to_split
     dst_fpath = tmp_path / dst_fname
     save_kwargs = {"split_size": split_size, "split_naming": split_naming}
     # we don't test for reserved files as it's not implemented here
+    if dst_fpath.parent != tmp_path:
+        dst_fpath.parent.mkdir(parents=True)
 
     epochs.save(dst_fpath, verbose=True, **save_kwargs)
 
     # check that the filenames match the intended pattern
-    assert len(list(tmp_path.iterdir())) == n_files
+    assert len(list(dst_fpath.parent.iterdir())) == n_files
     for i in range(n_files):
         assert (tmp_path / split_fname_fn(i)).is_file()
     assert not (tmp_path / split_fname_fn(n_files)).is_file()
+
+    if not check_bids:
+        return
+    # If we load sub-01_split-01_epo.fif we should then be able to write it
+    # without it being named sub-01_split-01_split-01_epo.fif
+    mne_bids = pytest.importorskip("mne_bids")
+    # Let's try to prevent people from making a mistake
+    bids_path = mne_bids.BIDSPath(
+        root=tmp_path, subject="01", split="01", suffix="epo", check=False
+    )
+    assert bids_path.fpath.is_file(), bids_path.fpath
+    epochs.save(bids_path, verbose=True, overwrite=True, **save_kwargs)
+    bad_path = bids_path.fpath.parent / (bids_path.fpath.stem[:-3] + "split-01_epo.fif")
+    assert str(bad_path).count("_split-01") == 2
+    assert not bad_path.is_file(), bad_path  # TODO: fails!
 
 
 @pytest.mark.parametrize(
