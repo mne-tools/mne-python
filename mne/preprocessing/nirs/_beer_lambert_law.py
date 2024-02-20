@@ -25,7 +25,7 @@ def beer_lambert_law(raw, ppf=6.0):
     ----------
     raw : instance of Raw
         The optical density data.
-    ppf : tuple
+    ppf : tuple | float
         The partial pathlength factors for each wavelength.
 
     Returns
