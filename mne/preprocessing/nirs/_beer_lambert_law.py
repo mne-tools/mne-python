@@ -39,7 +39,14 @@ def beer_lambert_law(raw, ppf=6.0):
     raw = raw.copy().load_data()
     _validate_type(raw, BaseRaw, "raw")
     _validate_type(ppf, ("numeric", "array-like"), "ppf")
-    ppf = np.array(ppf).astype(float)[:, np.newaxis]
+    ppf = np.array(ppf, float)
+    if ppf.ndim == 0:  # upcast single float to shape (2,)
+        ppf = np.array([ppf, ppf])
+    if ppf.shape != (2,):
+        raise ValueError(
+            f"ppf must be float or array-like of shape (2,), got shape {ppf.shape}"
+        )
+    ppf = ppf[:, np.newaxis]  # shape (2, 1)
     picks = _validate_nirs_info(raw.info, fnirs="od", which="Beer-lambert")
     # This is the one place we *really* need the actual/accurate frequencies
     freqs = np.array([raw.info["chs"][pick]["loc"][9] for pick in picks], float)
