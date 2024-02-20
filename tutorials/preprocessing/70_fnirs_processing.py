@@ -140,7 +140,7 @@ raw_od.info["bads"] = list(compress(raw_od.ch_names, sci < 0.5))
 # Next we convert the optical density data to haemoglobin concentration using
 # the modified Beer-Lambert law.
 
-raw_haemo = mne.preprocessing.nirs.beer_lambert_law(raw_od, ppf=0.1)
+raw_haemo = mne.preprocessing.nirs.beer_lambert_law(raw_od, ppf=(6.0, 6.0))
 raw_haemo.plot(n_channels=len(raw_haemo.ch_names), duration=500, show_scrollbars=False)
 
 
