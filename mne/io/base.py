@@ -1695,7 +1695,11 @@ class BaseRaw(
 
         # convert to str, check for overwrite a few lines later
         fname = _check_fname(
-            fname, overwrite=True, verbose="error", check_bids_split=True
+            fname,
+            overwrite=True,
+            verbose="error",
+            check_bids_split=True,
+            name="fname",
         )
         check_fname(fname, "raw", endings, endings_err=endings_err)
 
