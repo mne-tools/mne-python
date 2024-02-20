@@ -1705,24 +1705,40 @@ def test_split_naming(
 
     # check that the filenames match the intended pattern
     assert len(list(dst_fpath.parent.iterdir())) == n_files
-    for i in range(n_files):
-        assert (tmp_path / split_fname_fn(i)).is_file()
     assert not (tmp_path / split_fname_fn(n_files)).is_file()
+    want_paths = [tmp_path / split_fname_fn(i) for i in range(n_files)]
+    for want_path in want_paths:
+        assert want_path.is_file()
 
     if not check_bids:
         return
-    # If we load sub-01_split-01_epo.fif we should then be able to write it
-    # without it being named sub-01_split-01_split-01_epo.fif
+    # gh-12451
+    # If we load sub-01_split-01_epo.fif we should then we shouldn't
+    # write sub-01_split-01_split-01_epo.fif
     mne_bids = pytest.importorskip("mne_bids")
     # Let's try to prevent people from making a mistake
     bids_path = mne_bids.BIDSPath(
-        root=tmp_path, subject="01", split="01", suffix="epo", check=False
+        root=tmp_path,
+        subject="01",
+        datatype="meg",
+        split="01",
+        suffix="epo",
+        extension=".fif",
+        check=False,
     )
     assert bids_path.fpath.is_file(), bids_path.fpath
-    epochs.save(bids_path, verbose=True, overwrite=True, **save_kwargs)
+    for want_path in want_paths:
+        want_path.unlink()
+    assert not bids_path.fpath.is_file()
+    with pytest.raises(ValueError, match="Passing a BIDSPath"):
+        epochs.save(bids_path, verbose=True, **save_kwargs)
     bad_path = bids_path.fpath.parent / (bids_path.fpath.stem[:-3] + "split-01_epo.fif")
     assert str(bad_path).count("_split-01") == 2
-    assert not bad_path.is_file(), bad_path  # TODO: fails!
+    assert not bad_path.is_file(), bad_path
+    bids_path.split = None
+    epochs.save(bids_path, verbose=True, **save_kwargs)
+    for want_path in want_paths:
+        assert want_path.is_file()
 
 
 @pytest.mark.parametrize(

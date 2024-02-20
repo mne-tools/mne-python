@@ -2212,7 +2212,14 @@ class BaseEpochs(
         )
 
         # check for file existence and expand `~` if present
-        fname = str(_check_fname(fname=fname, overwrite=overwrite))
+        fname = str(
+            _check_fname(
+                fname=fname,
+                overwrite=overwrite,
+                check_bids_split=True,
+                name="fname",
+            )
+        )
 
         split_size_bytes = _get_split_size(split_size)
 

@@ -675,6 +675,32 @@ def test_split_files(tmp_path, mod, monkeypatch):
     assert not fname_3.is_file()
 
 
+def test_bids_split_files(tmp_path):
+    """Test that BIDS split files are written safely."""
+    mne_bids = pytest.importorskip("mne_bids")
+    bids_path = mne_bids.BIDSPath(
+        root=tmp_path,
+        subject="01",
+        datatype="meg",
+        split="01",
+        suffix="raw",
+        extension=".fif",
+        check=False,
+    )
+    (tmp_path / "sub-01" / "meg").mkdir(parents=True)
+    raw = read_raw_fif(test_fif_fname)
+    save_kwargs = dict(
+        buffer_size_sec=1.0, split_size="10MB", split_naming="bids", verbose=True
+    )
+    with pytest.raises(ValueError, match="Passing a BIDSPath"):
+        raw.save(bids_path, **save_kwargs)
+    bids_path.split = None
+    want_paths = [Path(bids_path.copy().update(split=ii).fpath) for ii in range(1, 3)]
+    raw.save(bids_path, **save_kwargs)
+    for want_path in want_paths:
+        assert want_path.is_file()
+
+
 def _err(*args, **kwargs):
     raise RuntimeError("Killed mid-write")
 

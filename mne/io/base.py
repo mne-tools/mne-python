@@ -1694,7 +1694,9 @@ class BaseRaw(
         endings_err = (".fif", ".fif.gz")
 
         # convert to str, check for overwrite a few lines later
-        fname = _check_fname(fname, overwrite=True, verbose="error")
+        fname = _check_fname(
+            fname, overwrite=True, verbose="error", check_bids_split=True
+        )
         check_fname(fname, "raw", endings, endings_err=endings_err)
 
         split_size = _get_split_size(split_size)

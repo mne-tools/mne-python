@@ -230,11 +230,29 @@ def _check_fname(
     name="File",
     need_dir=False,
     *,
+    check_bids_split=False,
     verbose=None,
 ):
     """Check for file existence, and return its absolute path."""
     _validate_type(fname, "path-like", name)
-    fname = Path(fname).expanduser().absolute()
+    # special case for MNE-BIDS, check split
+    fname_path = Path(fname)
+    if check_bids_split:
+        try:
+            from mne_bids import BIDSPath
+        except Exception:
+            pass
+        else:
+            if isinstance(fname, BIDSPath) and fname.split is not None:
+                raise ValueError(
+                    f"Passing a BIDSPath {name} with `{fname.split=}` is unsafe as it "
+                    "can unexpectedly lead to invalid BIDS split naming. Explicitly "
+                    f"set `{name}.split = None` to avoid ambiguity. If you want the "
+                    f"old misleading split naming, you can pass `str({name})`."
+                )
+
+    fname = fname_path.expanduser().absolute()
+    del fname_path
 
     if fname.exists():
         if not overwrite:
