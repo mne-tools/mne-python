@@ -201,7 +201,7 @@ def test_set_montage_artinis_basic():
     old_info_od = raw_od.info.copy()
     raw.set_montage(montage_octamon)
     raw_od.set_montage(montage_octamon)
-    raw_hb = beer_lambert_law(raw_od, ppf=(6.0, 6.0))  # montage needed for BLL
+    raw_hb = beer_lambert_law(raw_od, ppf=6)  # montage needed for BLL
     # Check that the montage was actually modified
     assert_raises(
         AssertionError,

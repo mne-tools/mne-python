@@ -98,7 +98,7 @@ def test_basic_reading_and_min_process(fname):
     if "fnirs_cw_amplitude" in raw:
         raw = optical_density(raw)
     if "fnirs_od" in raw:
-        raw = beer_lambert_law(raw, ppf=(6.0, 6.0))
+        raw = beer_lambert_law(raw, ppf=6)
     assert "hbo" in raw
     assert "hbr" in raw
 

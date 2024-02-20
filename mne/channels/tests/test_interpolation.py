@@ -323,7 +323,7 @@ def test_interpolation_nirs():
     raw_od.interpolate_bads()
     assert raw_od.info["bads"] == []
     assert bad_0_std_pre_interp > np.std(raw_od._data[bad_0])
-    raw_haemo = beer_lambert_law(raw_od, ppf=(6.0, 6.0))
+    raw_haemo = beer_lambert_law(raw_od, ppf=6)
     raw_haemo.info["bads"] = raw_haemo.ch_names[2:4]
     assert raw_haemo.info["bads"] == ["S1_D2 hbo", "S1_D2 hbr"]
     raw_haemo.interpolate_bads()
