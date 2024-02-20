@@ -38,7 +38,7 @@ def beer_lambert_law(raw, ppf=6.0):
     """
     raw = raw.copy().load_data()
     _validate_type(raw, BaseRaw, "raw")
-    _validate_type(ppf, "array-like", "ppf")
+    _validate_type(ppf, ("numeric", "array-like"), "ppf")
     ppf = np.array(ppf).astype(float)[:, np.newaxis]
     picks = _validate_nirs_info(raw.info, fnirs="od", which="Beer-lambert")
     # This is the one place we *really* need the actual/accurate frequencies
