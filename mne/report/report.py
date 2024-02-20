@@ -1125,9 +1125,12 @@ class Report:
             Keyword arguments to pass to the "epochs image"-generating
             function (:meth:`mne.Epochs.plot_image`).
             Needs to be one dict per channel type, for example you could want to use the 
-            rejection limits per channel type:
-            image_kwargs=dict(grad = dict(vmin=-reject['grad'], vmax=-reject['grad']), 
-                                        mag = dict(vmin=reject['mag'], vmax=reject['mag'])))
+            rejection limits per channel type::
+
+                image_kwargs=dict(
+                    grad=dict(vmin=-reject['grad'], vmax=-reject['grad']), 
+                    mag=dict(vmin=-reject['mag'], vmax=reject['mag']),
+                )
 
             .. versionadded:: 1.7
         %(topomap_kwargs)s
@@ -3946,15 +3949,17 @@ class Report:
         ch_types = _get_data_ch_types(epochs)
         epochs.load_data()
 
+        _validate_type(image_kwargs, (dict, None), 'image_kwargs')
         if image_kwargs is None:
-            image_kwargs = dict(zip(ch_types, [None]*len(ch_types)))
+            image_kwargs = dict()
+        image_kwargs = image_kwargs.copy()
 
         for ch_type in ch_types:
             with use_log_level(_verbose_safe_false(level="error")):
                 figs = (
                     epochs.copy()
                     .pick(ch_type, verbose=False)
-                    .plot_image(show=False, **image_kwargs[ch_type]) # SH: not sure if this works
+                    .plot_image(show=False, **image_kwargs.pop(ch_type, dict()))
                 )
 
             assert len(figs) == 1
