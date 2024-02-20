@@ -839,6 +839,8 @@ class InterpolationMixin:
             - ``"meg"`` channels support ``"MNE"`` (default) and ``"nan"``
             - ``"eeg"`` channels support ``"spline"`` (default), ``"MNE"`` and ``"nan"``
             - ``"fnirs"`` channels support ``"nearest"`` (default) and ``"nan"``
+            - ``"ecog"`` channels support ``"spline"`` (default) and ``"nan"``
+            - ``"seeg"`` channels support ``"spline"`` (default) and ``"nan"``
 
             None is an alias for::
 
