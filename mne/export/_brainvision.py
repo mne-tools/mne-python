@@ -65,8 +65,7 @@ def _export_mne_raw(*, raw, fname, events=None, overwrite=False):
     #      `format` so that raw.orig_format could be retained if reasonable.
     if raw.orig_format != "single":
         warn(
-            f"Encountered data in '{raw.orig_format}' format. "
-            "Converting to float32.",
+            f"Encountered data in '{raw.orig_format}' format. Converting to float32.",
             RuntimeWarning,
         )
 
@@ -77,16 +76,14 @@ def _export_mne_raw(*, raw, fname, events=None, overwrite=False):
     # if we got an ndarray, this is in MNE-Python format
     msg = "`events` must be None or array in MNE-Python format."
     if events is not None:
-        # Subtract raw.first_samp because brainvision marks events starting from the
+        # subtract raw.first_samp because brainvision marks events starting from the
         # first available data point and ignores the raw.first_samp
         assert isinstance(events, np.ndarray), msg
         assert events.ndim == 2, msg
         assert events.shape[-1] == 3, msg
         events[:, 0] -= raw.first_samp
         events = events[:, [0, 2]]  # reorder for pybv required order
-
-    # else, prepare pybv style events from raw.annotations
-    else:
+    else:  # else, prepare pybv style events from raw.annotations
         events = _mne_annots2pybv_events(raw)
 
     # no information about reference channels in mne currently
