@@ -10,6 +10,7 @@ import os.path as op
 import shutil
 import sys
 import warnings
+from collections import defaultdict
 from contextlib import contextmanager
 from pathlib import Path
 from textwrap import dedent
@@ -957,7 +958,7 @@ def pytest_sessionfinish(session, exitstatus):
         return
     print("\n")
     # get the number to print
-    files = dict()
+    files = defaultdict(lambda: 0.0)
     for item in session.items:
         report = item.stash[_phase_report_key]
         dur = sum(x.duration for x in report.values())
@@ -970,7 +971,7 @@ def pytest_sessionfinish(session, exitstatus):
         if not parts[-1].endswith(".py"):
             parts = parts + ("",)
         file_key = "/".join(parts)
-        files[file_key] = files.get(file_key, 0) + dur
+        files[file_key] += dur
     files = sorted(list(files.items()), key=lambda x: x[1])[::-1]
     # print
     _files[:] = files[:n]
