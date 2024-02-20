@@ -1,0 +1,1 @@
+``pytest-harvest`` is no longer an optional test dependency, by `Eric Larson`_.
