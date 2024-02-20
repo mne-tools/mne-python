@@ -28,6 +28,9 @@ def beer_lambert_law(raw, ppf=6.0):
     ppf : tuple | float
         The partial pathlength factors for each wavelength.
 
+        .. versionchanged:: 1.7
+           Support for different factors for the two wavelengths.
+
     Returns
     -------
     raw : instance of Raw
