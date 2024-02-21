@@ -474,6 +474,8 @@
 
 .. _Richard Koehler: https://github.com/richardkoehler
 
+.. _Richard Scholz: https://github.com/scholzri
+
 .. _Riessarius Stargardsky: https://github.com/Riessarius
 
 .. _Roan LaPlante: https://github.com/aestrivex
