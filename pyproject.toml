@@ -137,7 +137,7 @@ test_extra = [
     "imageio-ffmpeg>=0.4.1",
     "snirf",
     "neo",
-    "mne_bids",
+    "mne-bids",
 ]
 
 # Dependencies for building the docuemntation
