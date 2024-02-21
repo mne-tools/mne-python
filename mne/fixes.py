@@ -31,9 +31,8 @@ import numpy as np
 ###############################################################################
 # distutils
 
-# distutils has been deprecated since Python 3.10 and is scheduled for removal
-# from the standard library with the release of Python 3.12. For version
-# comparisons, we use setuptools's `parse_version` if available.
+# distutils has been deprecated since Python 3.10 and was removed
+# from the standard library with the release of Python 3.12.
 
 
 def _compare_version(version_a, operator, version_b):

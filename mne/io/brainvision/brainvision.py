@@ -447,7 +447,7 @@ def _aux_hdr_info(hdr_fname):
         params, settings = settings.split("[Comment]")
     else:
         params, settings = settings, ""
-    cfg = configparser.ConfigParser()
+    cfg = configparser.ConfigParser(interpolation=None)
     with StringIO(params) as fid:
         cfg.read_file(fid)
 
