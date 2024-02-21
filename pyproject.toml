@@ -113,7 +113,6 @@ test = [
     "pytest>=8.0.0rc2",
     "pytest-cov",
     "pytest-timeout",
-    "pytest-harvest",
     "pytest-qt",
     "ruff",
     "numpydoc",
@@ -138,6 +137,7 @@ test_extra = [
     "imageio-ffmpeg>=0.4.1",
     "snirf",
     "neo",
+    "mne-bids",
 ]
 
 # Dependencies for building the docuemntation
