@@ -901,12 +901,12 @@ def _check_combine(mode, valid=("mean", "median", "std"), axis=0):
     if mode == "mean":
 
         def fun(data):
-            return np.mean(data, axis=axis)
+            return np.nanmean(data, axis=axis)
 
     elif mode == "std":
 
         def fun(data):
-            return np.std(data, axis=axis)
+            return np.nanstd(data, axis=axis)
 
     elif mode == "median" or mode == np.median:
 

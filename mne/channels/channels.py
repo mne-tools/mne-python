@@ -836,8 +836,8 @@ class InterpolationMixin:
         method : dict | str | None
             Method to use for each channel type.
 
-            - ``"meg"`` channels support ``"MNE"`` (default) and ``"nan"
-            - ``"eeg"`` channels support ``"spline"`` (default), ``"MNE"`` and ``"nan"
+            - ``"meg"`` channels support ``"MNE"`` (default) and ``"nan"``
+            - ``"eeg"`` channels support ``"spline"`` (default), ``"MNE"`` and ``"nan"``
             - ``"fnirs"`` channels support ``"nearest"`` (default) and ``"nan"``
 
             None is an alias for::

@@ -5204,3 +5204,19 @@ def test_empty_error(method, epochs_empty):
         pytest.importorskip("pandas")
     with pytest.raises(RuntimeError, match="is empty."):
         getattr(epochs_empty.copy(), method[0])(**method[1])
+
+
+def test_set_bad_epochs_to_nan():
+    """Test channel specific epoch rejection."""
+    # preload=False
+    raw, ev, _ = _get_data(preload=False)
+    ep = Epochs(raw, ev, tmin=0, tmax=0.1, baseline=(0, 0))
+    bads = [[]] * ep.info["nchan"]
+    bads[0] = [1]
+    with pytest.raises(ValueError, match="must be preloaded"):
+        ep.set_bad_epochs_to_NaN(bads)
+
+    # preload=True
+    ep.load_data()
+    ep.set_bad_epochs_to_NaN(bads)
+    _ = ep.average()
