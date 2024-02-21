@@ -1,1 +1,1 @@
-Fix ambiguous and likely errant redundant use of ``BIDSPath.split`` when writing split raw and epochs data, by `Eric Larson`_.
+Fix errant redundant use of ``BIDSPath.split`` when writing split raw and epochs data, by `Eric Larson`_.
