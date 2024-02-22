@@ -10,6 +10,7 @@ import os.path as op
 import shutil
 import sys
 import warnings
+from collections import defaultdict
 from contextlib import contextmanager
 from pathlib import Path
 from textwrap import dedent
@@ -900,11 +901,8 @@ def protect_config():
 
 
 def _test_passed(request):
-    try:
-        outcome = request.node.harvest_rep_call
-    except Exception:
-        outcome = "passed"
-    return outcome == "passed"
+    report = request.node.stash[_phase_report_key]
+    return "call" in report and report["call"].outcome == "passed"
 
 
 @pytest.fixture()
@@ -931,7 +929,6 @@ def brain_gc(request):
     ignore = set(id(o) for o in gc.get_objects())
     yield
     close_func()
-    # no need to warn if the test itself failed, pytest-harvest helps us here
     if not _test_passed(request):
         return
     _assert_no_instances(Brain, "after")
@@ -960,16 +957,12 @@ def pytest_sessionfinish(session, exitstatus):
     if n is None:
         return
     print("\n")
-    try:
-        import pytest_harvest
-    except ImportError:
-        print("Module-level timings require pytest-harvest")
-        return
     # get the number to print
-    res = pytest_harvest.get_session_synthesis_dct(session)
-    files = dict()
-    for key, val in res.items():
-        parts = Path(key.split(":")[0]).parts
+    files = defaultdict(lambda: 0.0)
+    for item in session.items:
+        report = item.stash[_phase_report_key]
+        dur = sum(x.duration for x in report.values())
+        parts = Path(item.nodeid.split(":")[0]).parts
         # split mne/tests/test_whatever.py into separate categories since these
         # are essentially submodule-level tests. Keeping just [:3] works,
         # except for mne/viz where we want level-4 granulatity
@@ -978,7 +971,7 @@ def pytest_sessionfinish(session, exitstatus):
         if not parts[-1].endswith(".py"):
             parts = parts + ("",)
         file_key = "/".join(parts)
-        files[file_key] = files.get(file_key, 0) + val["pytest_duration_s"]
+        files[file_key] += dur
     files = sorted(list(files.items()), key=lambda x: x[1])[::-1]
     # print
     _files[:] = files[:n]
@@ -999,7 +992,7 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config):
             writer.line(f"{timing.ljust(15)}{name}")
 
 
-def pytest_report_header(config, startdir):
+def pytest_report_header(config, startdir=None):
     """Add information to the pytest run header."""
     return f"MNE {mne.__version__} -- {str(Path(mne.__file__).parent)}"
 
@@ -1122,7 +1115,6 @@ def pytest_runtest_call(item):
     return
 
 
-@pytest.mark.filterwarnings("ignore:.*Extraction of measurement.*:")
 @pytest.fixture(
     params=(
         [nirsport2, nirsport2_snirf, testing._pytest_param()],
@@ -1160,8 +1152,7 @@ def qt_windows_closed(request):
     if "allow_unclosed_pyside2" in marks and API_NAME.lower() == "pyside2":
         return
     # Don't check when the test fails
-    report = request.node.stash[_phase_report_key]
-    if ("call" not in report) or report["call"].failed:
+    if not _test_passed(request):
         return
     widgets = app.topLevelWidgets()
     n_after = len(widgets)
