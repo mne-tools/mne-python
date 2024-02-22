@@ -88,7 +88,7 @@ all_events, all_event_id = mne.events_from_annotations(raw)
 # i.e. starting with stimulus onset and expanding beyond the end of the epoch
 metadata_tmin, metadata_tmax = 0.0, 1.5
 
-# auto-create metadata
+# auto-create metadata:
 # this also returns a new events array and an event_id dictionary. we'll see
 # later why this is important
 metadata, events, event_id = mne.epochs.make_metadata(
