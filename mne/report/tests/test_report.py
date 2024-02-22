@@ -936,8 +936,10 @@ def test_manual_report_2d(tmp_path, invisible_fig):
         tags=("epochs",),
         psd=False,
         projs=False,
-        image_kwargs=dict(colorbar=False),
+        image_kwargs=dict(mag=dict(colorbar=False)),
     )
+    with pytest.raises(ValueError, match="map onto channel types"):
+        r.add_epochs(epochs=epochs_without_metadata, image_kwargs=dict(a=1), title="a")
     r.add_epochs(
         epochs=epochs_without_metadata, title="my epochs 2", psd=1, projs=False
     )
