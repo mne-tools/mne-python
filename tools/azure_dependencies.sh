@@ -9,7 +9,7 @@ elif [ "${TEST_MODE}" == "pip-pre" ]; then
 	# python -m pip install $STD_ARGS --only-binary ":all:" --extra-index-url "https://www.riverbankcomputing.com/pypi/simple" "PyQt6!=6.6.1,!=6.6.2" PyQt6-sip PyQt6-Qt6 "PyQt6-Qt6!=6.6.1,!=6.6.2"
 	python -m pip install $STD_ARGS --only-binary ":all:" "PyQt6!=6.6.1,!=6.6.2" PyQt6-sip PyQt6-Qt6 "PyQt6-Qt6!=6.6.1,!=6.6.2"
 	echo "Numpy etc."
-	python -m pip install $STD_ARGS --only-binary ":all:" --default-timeout=60 --extra-index-url "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" "numpy>=2.0.0.dev0" "scipy>=1.12.0.dev0" "scikit-learn>=1.5.dev0" matplotlib pillow statsmodels pyarrow h5py
+	python -m pip install $STD_ARGS --only-binary ":all:" --default-timeout=60 --extra-index-url "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" "numpy>=2.0.0.dev0" "scipy>=1.12.0.dev0" "scikit-learn>=1.5.dev0" matplotlib pillow statsmodels pyarrow h5py h5io
 	# echo "dipy"
 	# python -m pip install $STD_ARGS --only-binary ":all:" --extra-index-url "https://pypi.anaconda.org/scipy-wheels-nightly/simple" dipy
 	# echo "OpenMEEG"
