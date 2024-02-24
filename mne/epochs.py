@@ -561,7 +561,7 @@ class BaseEpochs(
                     )
 
             if n_events > 0:
-                logger.info("%d matching events found" % n_events)
+                logger.info(f"{n_events} matching events found")
             else:
                 # Allow reading empty epochs (ToDo: Maybe not anymore in the future)
                 if not self._allow_empty:
@@ -797,7 +797,7 @@ class BaseEpochs(
         for rej, kind in zip((reject, flat), ("reject", "flat")):
             if not isinstance(rej, dict):
                 raise TypeError(
-                    "reject and flat must be dict or None, not %s" % type(rej)
+                    f"reject and flat must be dict or None, not {type(rej)}"
                 )
             bads = set(rej.keys()) - set(idx.keys())
             if len(bads) > 0:
@@ -1032,11 +1032,11 @@ class BaseEpochs(
                 bad_str = ", ".join([diff_ch[ii] for ii in bad_idx])
                 raise ValueError(
                     "The following data channels are missing "
-                    "in the evoked response: %s" % bad_str
+                    f"in the evoked response: {bad_str}"
                 )
             logger.info(
                 "    The following channels are not included in the "
-                "subtraction: %s" % ", ".join(diff_ch)
+                f"subtraction: {", ".join(diff_ch)}"
             )
 
         # make sure the times match
@@ -1562,13 +1562,13 @@ class BaseEpochs(
         out_of_bounds = (try_idx < 0) | (try_idx >= len(self.events))
         if out_of_bounds.any():
             first = indices[out_of_bounds][0]
-            raise IndexError("Epoch index %d is out of bounds" % first)
+            raise IndexError(f"Epoch index {first} is out of bounds")
         keep = np.setdiff1d(np.arange(len(self.events)), try_idx)
         self._getitem(keep, reason, copy=False, drop_event_id=False)
         count = len(try_idx)
         logger.info(
-            "Dropped %d epoch%s: %s"
-            % (count, _pl(count), ", ".join(map(str, np.sort(try_idx))))
+            f"Dropped {count} "
+            f"epoch {_pl(count)}: {", ".join(map(str, np.sort(try_idx)))}"
         )
 
         return self
@@ -2469,7 +2469,7 @@ class BaseEpochs(
                 elif len({sub_id in ids for sub_id in id_}) != 1:
                     err = (
                         "Don't mix hierarchical and regular event_ids"
-                        " like in '%s'." % ", ".join(id_)
+                        f" like in '{", ".join(id_)}'."
                     )
                     raise ValueError(err)
 
@@ -3423,7 +3423,7 @@ class Epochs(BaseEpochs):
         diff = int(round((self._raw_times[-1] - reject_tmax) * sfreq))
         reject_stop = stop - diff
 
-        logger.debug("    Getting epoch for %d-%d" % (start, stop))
+        logger.debug(f"    Getting epoch for {start}-{stop}")
         data = self._raw._check_bad_segment(
             start,
             stop,
@@ -3782,8 +3782,8 @@ def _is_good(
                             bad_names = [ch_names[idx[i]] for i in idx_deltas]
                             if not has_printed:
                                 logger.info(
-                                    "    Rejecting %s epoch based on %s : "
-                                    "%s" % (t, name, bad_names)
+                                    f"    Rejecting {t} epoch based on {name} : "
+                                    f"{bad_names}"
                                 )
                                 has_printed = True
                             if not full_report:
@@ -3931,8 +3931,8 @@ def _read_one_epoch_file(f, tree, preload):
 
         if not size_actual == size_expected:
             raise ValueError(
-                "Incorrect number of samples (%d instead of %d)"
-                % (size_actual, size_expected)
+                "Incorrect number of samples "
+                f"({size_actual} instead of {size_expected})"
             )
 
         # Calibration factors
@@ -4061,7 +4061,7 @@ class EpochsFIF(BaseEpochs):
         raw = list()
         for fname in fnames:
             fname_rep = _get_fname_rep(fname)
-            logger.info("Reading %s ..." % fname_rep)
+            logger.info(f"Reading {fname_rep} ...")
             fid, tree, _ = fiff_open(fname, preload=preload)
             next_fname = _get_next_fname(fid, fname, tree)
             (
@@ -4404,8 +4404,8 @@ def _concatenate_epochs(
         metadata = None
     elif n_have != len(metadata):
         raise ValueError(
-            "%d of %d epochs instances have metadata, either "
-            "all or none must have metadata" % (n_have, len(metadata))
+            f"{n_have} of {len(metadata)} epochs instances have metadata,"
+            "either all or none must have metadata"
         )
     else:
         pd = _check_pandas_installed(strict=False)
