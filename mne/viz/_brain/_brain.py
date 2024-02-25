@@ -1570,7 +1570,7 @@ class Brain:
             except Exception:
                 mni = None
         if mni is not None:
-            mni = " MNI: " + ", ".join("%5.1f" % m for m in mni)
+            mni = " MNI: " + ", ".join(f"{m:5.1f}" for m in mni)
         else:
             mni = ""
         label = f"{hemi_str}:{str(vertex_id).ljust(6)}{mni}"
@@ -1880,8 +1880,8 @@ class Brain:
                 time = np.asarray(time)
                 if time.shape != (array.shape[-1],):
                     raise ValueError(
-                        "time has shape %s, but need shape %s "
-                        "(array.shape[-1])" % (time.shape, (array.shape[-1],))
+                        f"time has shape {time.shape}, "
+                        f"but need shape {(array.shape[-1],)} (array.shape[-1])"
                     )
             self._data["time"] = time
 
@@ -2243,7 +2243,7 @@ class Brain:
                         self._subjects_dir, self._subject, "label", subdir, label_fname
                     )
                 if not os.path.exists(filepath):
-                    raise ValueError("Label file %s does not exist" % filepath)
+                    raise ValueError(f"Label file {filepath} does not exist")
                 label = read_label(filepath)
             ids = label.vertices
             scalars = label.values
@@ -3044,7 +3044,7 @@ class Brain:
                         ".".join([hemi, annot, "annot"]),
                     )
                     if not os.path.exists(filepath):
-                        raise ValueError("Annotation file %s does not exist" % filepath)
+                        raise ValueError(f"Annotation file {filepath} does not exist")
                     filepaths += [filepath]
             annots = []
             for hemi, filepath in zip(hemis, filepaths):
@@ -3460,9 +3460,9 @@ class Brain:
                 vertices = hemi_data["vertices"]
                 if vertices is None:
                     raise ValueError(
-                        "len(data) < nvtx (%s < %s): the vertices "
-                        "parameter must not be None"
-                        % (len(hemi_data), self.geo[hemi].x.shape[0])
+                        "len(data) < nvtx "
+                        f"({len(hemi_data)} < {self.geo[hemi].x.shape[0]}):"
+                        " the vertices parameter must not be None"
                     )
                 morph_n_steps = "nearest" if n_steps == -1 else n_steps
                 with use_log_level(False):
@@ -3806,13 +3806,13 @@ class Brain:
         def frame_callback(frame, n_frames):
             if frame == n_frames:
                 # On the ImageIO step
-                self.status_msg.set_value("Saving with ImageIO: %s" % filename)
+                self.status_msg.set_value(f"Saving with ImageIO: {filename}")
                 self.status_msg.show()
                 self.status_progress.hide()
                 self._renderer._status_bar_update()
             else:
                 self.status_msg.set_value(
-                    "Rendering images (frame %d / %d) ..." % (frame + 1, n_frames)
+                    f"Rendering images (frame {frame + 1} / { n_frames}) ..."
                 )
                 self.status_msg.show()
                 self.status_progress.show()
@@ -3932,8 +3932,8 @@ class Brain:
             tmin = self._times[0]
         elif tmin < self._times[0]:
             raise ValueError(
-                "tmin=%r is smaller than the first time point "
-                "(%r)" % (tmin, self._times[0])
+                f"tmin={tmin} is smaller than the first time point "
+                f"({self._times[0]})"
             )
 
         # find indexes at which to create frames
@@ -3941,8 +3941,8 @@ class Brain:
             tmax = self._times[-1]
         elif tmax > self._times[-1]:
             raise ValueError(
-                "tmax=%r is greater than the latest time point "
-                "(%r)" % (tmax, self._times[-1])
+                f"tmax={tmax} is greater than the latest time point "
+                f"({self._times[-1]})"
             )
         n_frames = floor((tmax - tmin) * time_dilation * framerate)
         times = np.arange(n_frames, dtype=float)
@@ -3954,7 +3954,7 @@ class Brain:
         if n_times == 0:
             raise ValueError("No time points selected")
 
-        logger.debug("Save movie for time points/samples\n%s\n%s" % (times, time_idx))
+        logger.debug(f"Save movie for time points/samples\n{times}\n{time_idx}")
         # Sometimes the first screenshot is rendered with a different
         # resolution on OS X
         self.screenshot(time_viewer=time_viewer)
@@ -4125,9 +4125,9 @@ def _update_limits(fmin, fmid, fmax, center, array):
         fmid = (fmin + fmax) / 2.0
 
     if fmin >= fmid:
-        raise RuntimeError("min must be < mid, got %0.4g >= %0.4g" % (fmin, fmid))
+        raise RuntimeError(f"min must be < mid, got {fmin:0.4g} >= {fmid:0.4g}")
     if fmid >= fmax:
-        raise RuntimeError("mid must be < max, got %0.4g >= %0.4g" % (fmid, fmax))
+        raise RuntimeError(f"mid must be < max, got {fmid:0.4g} >= {fmax:0.4g}")
 
     return fmin, fmid, fmax
 

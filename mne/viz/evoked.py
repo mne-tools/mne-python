@@ -193,7 +193,7 @@ def _line_plot_onselect(
 
             method = "mean" if psd else "rms"
             this_data, _ = _merge_ch_data(this_data, ch_type, [], method=method)
-            title = "%s %s" % (ch_type, method.upper())
+            title = f"{ch_type} {method.upper()}"
         else:
             title = ch_type
         this_data = np.average(this_data, axis=1)
@@ -213,7 +213,7 @@ def _line_plot_onselect(
         )
 
     unit = "Hz" if psd else time_unit
-    fig.suptitle("Average over %.2f%s - %.2f%s" % (xmin, unit, xmax, unit), y=0.1)
+    fig.suptitle(f"Average over {xmin:.2f}{unit} - {xmax:.2f}{unit}", y=0.1)
     plt_show()
     if text is not None:
         text.set_visible(False)
@@ -478,8 +478,8 @@ def _plot_evoked(
 
     if len(axes) != len(ch_types_used):
         raise ValueError(
-            "Number of axes (%g) must match number of channel "
-            "types (%d: %s)" % (len(axes), len(ch_types_used), sorted(ch_types_used))
+            f"Number of axes ({len(axes)}) must match number of channel "
+            f"types ({len(ch_types_used)}: { sorted(ch_types_used)})"
         )
     _check_option("proj", proj, (True, False, "interactive", "reconstruct"))
     noise_cov = _check_cov(noise_cov, info)
@@ -628,7 +628,7 @@ def _plot_lines(
                 if this_type in _DATA_CH_TYPES_SPLIT:
                     logger.info(
                         "Need more than one channel to make "
-                        "topography for %s. Disabling interactivity." % (this_type,)
+                        f"topography for {this_type}. Disabling interactivity."
                     )
                 selectables[type_idx] = False
 
@@ -791,9 +791,7 @@ def _plot_lines(
                 ax.set_xlim(xlim)
             if ylim is not None and this_type in ylim:
                 ax.set_ylim(ylim[this_type])
-            ax.set(
-                title=r"%s (%d channel%s)" % (titles[this_type], len(D), _pl(len(D)))
-            )
+            ax.set(title=rf"{titles[this_type]} ({len(D)} channel{_pl(len(D))})")
             if ai == 0:
                 _add_nave(ax, nave)
             if hline is not None:
@@ -966,7 +964,7 @@ def _plot_image(
             ax.CB = DraggableColorbar(cbar, im, "evoked_image", this_type)
 
     ylabel = "Channels" if show_names else "Channel (index)"
-    t = titles[this_type] + " (%d channel%s" % (len(data), _pl(data)) + t_end
+    t = titles[this_type] + f" ({len(data)} channel{_pl(data)}" + t_end
     ax.set(ylabel=ylabel, xlabel=f"Time ({time_unit})", title=t)
     _add_nave(ax, nave)
 
@@ -1645,10 +1643,10 @@ def plot_evoked_white(
     fig = axes.flat[0].figure
     if n_columns > 1:
         suptitle = (
-            'Whitened evoked (left, best estimator = "%s")\n'
+            'Whitened evoked '
+            f'(left, best estimator = "{noise_cov[0].get("method", "empirical")}")\n'
             "and global field power "
             "(right, comparison of estimators)"
-            % noise_cov[0].get("method", "empirical")
         )
         fig.suptitle(suptitle)
 
@@ -1684,10 +1682,7 @@ def plot_evoked_white(
             ax.plot(times, evokeds_white[0].data[picks].T, color="k", lw=0.5)
             for hline in [-1.96, 1.96]:
                 ax.axhline(hline, color="red", linestyle="--", lw=2)
-            ax.set(
-                title="%s (%d channel%s)"
-                % (titles_[ch_type], len(picks), _pl(len(picks)))
-            )
+            ax.set(title=f"{titles_[ch_type]} ({len(picks)} channel{_pl(len(picks))})")
 
     # Now plot the GFP for all covs if indicated.
     for evoked_white, noise_cov, rank_, color in iter_gfp:
@@ -1704,7 +1699,7 @@ def plot_evoked_white(
 
             ax = ax_gfp[i]
             ax.set_title(
-                title if n_columns > 1 else 'Whitened GFP, method = "%s"' % label
+                title if n_columns > 1 else f'Whitened GFP, method = "{label}"'
             )
 
             data = evoked_white.data[sub_picks]
@@ -1868,7 +1863,7 @@ def plot_evoked_joint(
     from matplotlib.patches import ConnectionPatch
 
     if ts_args is not None and not isinstance(ts_args, dict):
-        raise TypeError("ts_args must be dict or None, got type %s" % (type(ts_args),))
+        raise TypeError(f"ts_args must be dict or None, got type {type(ts_args)}")
     ts_args = dict() if ts_args is None else ts_args.copy()
     ts_args["time_unit"], _ = _check_time_unit(
         ts_args.get("time_unit", "s"), evoked.times

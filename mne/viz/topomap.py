@@ -1238,7 +1238,7 @@ def _plot_topomap(
     if data.ndim > 1:
         raise ValueError(
             "Data needs to be array of shape (n_sensors,); got "
-            "shape %s." % str(data.shape)
+            f"shape {str(data.shape)}."
         )
 
     # Give a helpful error message for common mistakes regarding the position
@@ -1271,7 +1271,7 @@ def _plot_topomap(
     if len(data) != len(pos):
         raise ValueError(
             "Data and pos need to be of same length. Got data of "
-            "length %s, pos of length %s" % (len(data), len(pos))
+            f"length {len(data)}, pos of length {len(pos)}"
         )
 
     norm = min(data) >= 0
@@ -1419,7 +1419,7 @@ def _plot_ica_topomap(
     if not isinstance(axes, Axes):
         raise ValueError(
             "axis has to be an instance of matplotlib Axes, "
-            "got %s instead." % type(axes)
+            f"got {type(axes)} instead."
         )
     ch_type = _get_plot_ch_type(ica, ch_type, allow_ref_meg=ica.allow_ref_meg)
     if ch_type == "ref_meg":
@@ -3007,7 +3007,7 @@ def _onselect(
         tfr.freqs[ifmax],
     )
 
-    title = "Average over %d %s channels." % (len(chs), ch_type)
+    title = f"Average over {len(chs)} {ch_type} channels."
     ax.set_title(title)
     ax.set_xlabel("Time (ms)")
     ax.set_ylabel("Frequency (Hz)")
@@ -3156,9 +3156,9 @@ def _animate(frame, ax, ax_line, params):
     time_idx = params["frames"][frame]
 
     if params["time_unit"] == "ms":
-        title = "%6.0f ms" % (params["times"][frame] * 1e3,)
+        title = f"{params['times'][frame] * 1e3:6.0f} ms"
     else:
-        title = "%6.3f s" % (params["times"][frame],)
+        title = f"{params['times'][frame]:6.3f} s"
     if params["blit"]:
         text = params["text"]
     else:
@@ -3602,8 +3602,8 @@ def plot_arrowmap(
 
     if ch_type not in ("mag", "grad"):
         raise ValueError(
-            "Channel type '%s' not supported. Supported channel "
-            "types are 'mag' and 'grad'." % ch_type
+            f"Channel type '{ch_type}' not supported. Supported channel "
+            "types are 'mag' and 'grad'."
         )
 
     if info_to is None and ch_type == "mag":
@@ -3616,9 +3616,7 @@ def plot_arrowmap(
             ch_type = ch_type[0][0]
 
         if ch_type != "mag":
-            raise ValueError(
-                "only 'mag' channel type is supported. " "Got %s" % ch_type
-            )
+            raise ValueError("only 'mag' channel type is supported. " f"Got {ch_type}")
 
     if info_to is not info_from:
         info_to = pick_info(info_to, pick_types(info_to, meg=True))

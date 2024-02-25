@@ -182,7 +182,7 @@ def assert_labels_equal(l0, l1, decimal=5, comment=True, color=True):
     for attr in ["hemi", "subject"]:
         attr0 = getattr(l0, attr)
         attr1 = getattr(l1, attr)
-        msg = "label.%s: %r != %r" % (attr, attr0, attr1)
+        msg = f"label.{attr}: {attr0} != {attr1}"
         assert_equal(attr0, attr1, msg)
     for attr in ["vertices", "pos", "values"]:
         a0 = getattr(l0, attr)

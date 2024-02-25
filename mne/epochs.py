@@ -1036,7 +1036,7 @@ class BaseEpochs(
                 )
             logger.info(
                 "    The following channels are not included in the "
-                f"subtraction: {", ".join(diff_ch)}"
+                f"subtraction: {', '.join(diff_ch)}"
             )
 
         # make sure the times match
@@ -1568,7 +1568,7 @@ class BaseEpochs(
         count = len(try_idx)
         logger.info(
             f"Dropped {count} "
-            f"epoch {_pl(count)}: {", ".join(map(str, np.sort(try_idx)))}"
+            f"epoch {_pl(count)}: {', '.join(map(str, np.sort(try_idx)))}"
         )
 
         return self
@@ -2469,7 +2469,7 @@ class BaseEpochs(
                 elif len({sub_id in ids for sub_id in id_}) != 1:
                     err = (
                         "Don't mix hierarchical and regular event_ids"
-                        f" like in '{", ".join(id_)}'."
+                        f" like in {', '.join(id_)}."
                     )
                     raise ValueError(err)
 

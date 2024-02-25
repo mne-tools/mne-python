@@ -121,7 +121,7 @@ class _Surface:
         """
         if self.surf == "flat":  # special case
             fname = path.join(
-                self.data_path, "surf", "%s.%s" % (self.hemi, "cortex.patch.flat")
+                self.data_path, "surf", f"{self.hemi}.{'cortex.patch.flat'}"
             )
             _check_fname(
                 fname, overwrite="read", must_exist=True, name="flatmap surface file"
@@ -176,7 +176,7 @@ class _Surface:
 
     def load_curvature(self):
         """Load in curvature values from the ?h.curv file."""
-        curv_path = path.join(self.data_path, "surf", "%s.curv" % self.hemi)
+        curv_path = path.join(self.data_path, "surf", f"{self.hemi}.curv")
         if path.isfile(curv_path):
             self.curv = read_curvature(curv_path, binary=False)
             self.bin_curv = np.array(self.curv > 0, np.int64)
