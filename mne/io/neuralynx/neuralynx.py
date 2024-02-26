@@ -2,7 +2,7 @@
 # Copyright the MNE-Python contributors.
 import glob
 import os
-
+import datetime
 import numpy as np
 
 from ..._fiff.meas_info import create_info
@@ -100,6 +100,56 @@ class RawNeuralynx(BaseRaw):
             ch_names=nlx_reader.header["signal_channels"]["name"].tolist(),
             sfreq=nlx_reader.get_signal_sampling_rate(),
         )
+
+        ncs_fnames = nlx_reader.ncs_filenames.values()
+        ncs_hdrs = [
+            hdr
+            for hdr_key, hdr in nlx_reader.file_headers.items()
+            if hdr_key in ncs_fnames
+        ]
+
+        # if all files have the same recording_opened date, write it to info
+        meas_dates = np.array([hdr["recording_opened"] for hdr in ncs_hdrs])
+        # to be sure, only write if all dates are the same
+        write_meas = (meas_dates == meas_dates[0]).all()
+        if not write_meas:
+            logger.warning(
+                "Not all .ncs files have the same recording_opened date. "
+                + "Not writing meas_date to info."
+            )
+
+        # Neuarlynx allows channel specific low/highpass filters
+        # if not enabled, assume default lowpass = nyquist, highpass = 0
+        default_lowpass = info["sfreq"] / 2  # nyquist
+        default_highpass = 0
+
+        has_hp = [hdr["DSPLowCutFilterEnabled"] for hdr in ncs_hdrs]
+        has_lp = [hdr["DSPHighCutFilterEnabled"] for hdr in ncs_hdrs]
+        if not all(has_hp) or not all(has_lp):
+            logger.warning(
+                "Not all .ncs files have the same high/lowpass filter settings. "
+                + "Assuming default highpass = 0, lowpass = nyquist."
+            )
+
+        highpass_freqs = [
+            float(hdr["DspLowCutFrequency"])
+            if hdr["DSPLowCutFilterEnabled"]
+            else default_highpass
+            for hdr in ncs_hdrs
+        ]
+
+        lowpass_freqs = [
+            float(hdr["DspHighCutFrequency"])
+            if hdr["DSPHighCutFilterEnabled"]
+            else default_lowpass
+            for hdr in ncs_hdrs
+        ]
+
+        with info._unlock():
+            if write_meas:
+                info["meas_date"] = meas_dates[0].astimezone(datetime.timezone.utc)
+            info["highpass"] = np.max(highpass_freqs)
+            info["lowpass"] = np.min(lowpass_freqs)
 
         # Neo reads only valid contiguous .ncs samples grouped as segments
         n_segments = nlx_reader.header["nb_segment"][0]
