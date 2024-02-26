@@ -39,6 +39,30 @@ def read_raw_neuralynx(
     See Also
     --------
     mne.io.Raw : Documentation of attributes and methods of RawNeuralynx.
+
+    Notes
+    -----
+    Neuralynx files are read from disk using the Neo package (http://neuralensemble.org/neo/).
+    Currently, only reading of the .ncs files is supported. `raw.info["meas_date"]` is
+    determined based on the `recording_opened` property of the first .ncs file
+    in the dataset.
+
+    High/lowpass filter frequencies are determined based on the
+    `DspLowCutFrequency` and `DspHighCutFrequency` fields, respectively, in the
+    .ncs file header. If no filters were used for a channel, the default lowpass is set
+    to the Nyquist frequency and the default highpass is set to 0. `raw["highpass"]` and
+    `raw["lowpass"]` are set to the maximum and minimum of these values across all .ncs
+    files, respectively.
+
+    Other header variables can be inspected using neo directly. For example:
+
+    .. code-block:: python
+    from neo.io import NeuralynxIO
+    fname = 'path/to/your/data'
+    nlx_reader = NeuralynxIO(dirname=fname)
+    print(nlx_reader.header)
+    print(nlx_reader.file_headers.items())
+
     """
     return RawNeuralynx(
         fname,
@@ -112,11 +136,17 @@ class RawNeuralynx(BaseRaw):
         # if all files have the same recording_opened date, write it to info
         meas_dates = np.array([hdr["recording_opened"] for hdr in ncs_hdrs])
         # to be sure, only write if all dates are the same
-        write_meas = (meas_dates == meas_dates[0]).all()
-        if not write_meas:
+        meas_diff = []
+        for md in meas_dates:
+            meas_diff.append((md - meas_dates[0]).total_seconds())
+
+        # tolerate a +/-1 second meas_date difference (arbitrary threshold)
+        # else issue a warning
+        warn_meas = (np.abs(meas_diff) > 1.0).any()
+        if warn_meas:
             logger.warning(
                 "Not all .ncs files have the same recording_opened date. "
-                + "Not writing meas_date to info."
+                + "Writing meas_date based on the first .ncs file."
             )
 
         # Neuarlynx allows channel specific low/highpass filters
@@ -147,8 +177,7 @@ class RawNeuralynx(BaseRaw):
         ]
 
         with info._unlock():
-            if write_meas:
-                info["meas_date"] = meas_dates[0].astimezone(datetime.timezone.utc)
+            info["meas_date"] = meas_dates[0].astimezone(datetime.timezone.utc)
             info["highpass"] = np.max(highpass_freqs)
             info["lowpass"] = np.min(lowpass_freqs)
 
