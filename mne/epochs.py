@@ -694,8 +694,7 @@ class BaseEpochs(
         self.set_annotations(annotations, on_missing="ignore")
 
     @verbose
-    def set_bad_epochs_to_NaN(self, bad_epochs_indices: list = None,
-                              verbose=None):
+    def set_bad_epochs_to_NaN(self, bad_epochs_indices: list = None, verbose=None):
         """
         define bad epochs based on indices list and set to NaN.
 
