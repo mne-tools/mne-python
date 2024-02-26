@@ -884,6 +884,8 @@ def test_manual_report_2d(tmp_path, invisible_fig):
     raw = read_raw_fif(raw_fname)
     raw.pick(raw.ch_names[:6]).crop(10, None)
     raw.info.normalize_proj()
+    raw_non_preloaded = raw.copy()
+    raw.load_data()
     cov = read_cov(cov_fname)
     cov = pick_channels_cov(cov, raw.ch_names)
     events = read_events(events_fname)
@@ -899,7 +901,12 @@ def test_manual_report_2d(tmp_path, invisible_fig):
         events=events, event_id=event_id, tmin=-0.2, tmax=0.5, sfreq=raw.info["sfreq"]
     )
     epochs_without_metadata = Epochs(
-        raw=raw, events=events, event_id=event_id, baseline=None
+        raw=raw,
+        events=events,
+        event_id=event_id,
+        baseline=None,
+        decim=10,
+        verbose="error",
     )
     epochs_with_metadata = Epochs(
         raw=raw,
@@ -907,9 +914,11 @@ def test_manual_report_2d(tmp_path, invisible_fig):
         event_id=metadata_event_id,
         baseline=None,
         metadata=metadata,
+        decim=10,
+        verbose="error",
     )
     evokeds = read_evokeds(evoked_fname)
-    evoked = evokeds[0].pick("eeg")
+    evoked = evokeds[0].pick("eeg").decimate(10, verbose="error")
 
     with pytest.warns(ConvergenceWarning, match="did not converge"):
         ica = ICA(n_components=3, max_iter=1, random_state=42).fit(
@@ -927,7 +936,10 @@ def test_manual_report_2d(tmp_path, invisible_fig):
         tags=("epochs",),
         psd=False,
         projs=False,
+        image_kwargs=dict(mag=dict(colorbar=False)),
     )
+    with pytest.raises(ValueError, match="map onto channel types"):
+        r.add_epochs(epochs=epochs_without_metadata, image_kwargs=dict(a=1), title="a")
     r.add_epochs(
         epochs=epochs_without_metadata, title="my epochs 2", psd=1, projs=False
     )
@@ -963,11 +975,11 @@ def test_manual_report_2d(tmp_path, invisible_fig):
     )
     r.add_ica(ica=ica, title="my ica", inst=None)
     with pytest.raises(RuntimeError, match="not preloaded"):
-        r.add_ica(ica=ica, title="ica", inst=raw)
+        r.add_ica(ica=ica, title="ica", inst=raw_non_preloaded)
     r.add_ica(
         ica=ica,
         title="my ica with raw inst",
-        inst=raw.copy().load_data(),
+        inst=raw,
         picks=[2],
         ecg_evoked=ica_ecg_evoked,
         eog_evoked=ica_eog_evoked,

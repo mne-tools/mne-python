@@ -62,8 +62,8 @@ hdf5 = ["h5io", "pymatreader"]
 full = [
     "mne[hdf5]",
     "qtpy",
-    "PyQt6!=6.6.1",
-    "PyQt6-Qt6!=6.6.1",
+    "PyQt6!=6.6.1,!=6.6.2",
+    "PyQt6-Qt6!=6.6.1,!=6.6.2",
     "pyobjc-framework-Cocoa>=5.2.0; platform_system=='Darwin'",
     "sip",
     "scikit-learn",
@@ -113,7 +113,6 @@ test = [
     "pytest>=8.0.0rc2",
     "pytest-cov",
     "pytest-timeout",
-    "pytest-harvest",
     "pytest-qt",
     "ruff",
     "numpydoc",
@@ -138,6 +137,7 @@ test_extra = [
     "imageio-ffmpeg>=0.4.1",
     "snirf",
     "neo",
+    "mne-bids",
 ]
 
 # Dependencies for building the docuemntation
