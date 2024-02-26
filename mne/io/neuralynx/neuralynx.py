@@ -1,8 +1,9 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+import datetime
 import glob
 import os
-import datetime
+
 import numpy as np
 
 from ..._fiff.meas_info import create_info
