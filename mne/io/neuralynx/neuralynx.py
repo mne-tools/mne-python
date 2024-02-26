@@ -43,16 +43,16 @@ def read_raw_neuralynx(
     Notes
     -----
     Neuralynx files are read from disk using the Neo package (http://neuralensemble.org/neo/).
-    Currently, only reading of the .ncs files is supported. `raw.info["meas_date"]` is
-    determined based on the `recording_opened` property of the first .ncs file
+    Currently, only reading of the .ncs files is supported. ``raw.info["meas_date"]``
+    is determined based on the ``recording_opened`` property of the first .ncs file
     in the dataset.
 
-    High/lowpass filter frequencies are determined based on the
-    `DspLowCutFrequency` and `DspHighCutFrequency` fields, respectively, in the
-    .ncs file header. If no filters were used for a channel, the default lowpass is set
-    to the Nyquist frequency and the default highpass is set to 0. `raw["highpass"]` and
-    `raw["lowpass"]` are set to the maximum and minimum of these values across all .ncs
-    files, respectively.
+    Channel-specific high and lowpass frequencies are determined based on the
+    ``DspLowCutFrequency`` and ``DspHighCutFrequency`` header fields, respectively.
+    If no filters were used for a channel, the default lowpass is set to the Nyquist
+    frequency and the default highpass is set to 0. ``raw.info["highpass"]`` and
+    ``raw.info["lowpass"]`` are then set to the maximum and minimum values across
+    all .ncs sfiles, respectively.
 
     Other header variables can be inspected using neo directly. For example:
 
