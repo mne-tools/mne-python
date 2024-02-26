@@ -2852,7 +2852,9 @@ def make_metadata(
 
         If a string or a list of strings, the events bounding the metadata around each
         "row event". For ``tmin``, the events are assumed to occur **before** the row
-        event, and for ``tmax``, the events are assumed to occur **after**.
+        event, and for ``tmax``, the events are assumed to occur **after** – unless
+        ``tmin`` or ``tmax`` are equal to a row event, in which case the row event
+        serves as the bound.
 
         .. versionchanged:: 1.6.0
            Added support for ``None``.
