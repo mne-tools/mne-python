@@ -707,6 +707,9 @@ class BaseEpochs(
             List of arrays with indices of bad epochs per channel.
         verbose : bool, str, int, or None
         """
+        if not self.preload:
+            raise ValueError("Data must be preloaded.")
+
         if len(bad_epochs_indices) != self.get_data().shape[1]:
             raise RuntimeError(
                 "The length of the list of bad epochs indices "
@@ -1209,7 +1212,7 @@ class BaseEpochs(
                 n_events += 1
 
             if n_events > 0:
-                data = np.nanmean(data)
+                data /= n_events
             else:
                 data.fill(np.nan)
 
