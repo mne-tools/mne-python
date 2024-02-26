@@ -4297,7 +4297,7 @@ def test_make_metadata(all_event_id, row_events, tmin, tmax, keep_first, keep_la
         (["rec_start", "cue"], ["resp", "rec_end"]),
     ],
 )
-def test_make_metadata_bounded_by_row_events(tmin, tmax):
+def test_make_metadata_bounded_by_row_or_tmin_tmax_event_names(tmin, tmax):
     """Test make_metadata() with tmin, tmax set to None or strings."""
     pytest.importorskip("pandas")
 
