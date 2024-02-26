@@ -111,6 +111,7 @@ expected_lp_freq = 500.0
 expected_sfreq = 2000.0
 expected_meas_date = datetime.strptime("2023/11/02 13:39:27", "%Y/%m/%d  %H:%M:%S")
 
+
 @requires_testing_data
 def test_neuralynx():
     """Test basic reading."""

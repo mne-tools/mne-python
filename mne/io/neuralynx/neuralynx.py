@@ -62,7 +62,6 @@ def read_raw_neuralynx(
     nlx_reader = NeuralynxIO(dirname=fname)
     print(nlx_reader.header)
     print(nlx_reader.file_headers.items())
-
     """
     return RawNeuralynx(
         fname,
