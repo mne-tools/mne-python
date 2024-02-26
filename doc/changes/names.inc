@@ -594,6 +594,8 @@
 
 .. _Xiaokai Xia: https://github.com/dddd1007
 
+.. _Will Turner: https://bootstrapbill.github.io
+
 .. _Yaroslav Halchenko: http://haxbylab.dartmouth.edu/ppl/yarik.html
 
 .. _Yiping Zuo: https://github.com/frostime
