@@ -54,9 +54,8 @@ def _create_info(ft_struct, raw_info):
         if missing_channels:
             warn(
                 "The following channels are present in the FieldTrip data "
-                "but cannot be found in the provided info: %s.\n"
+                f"but cannot be found in the provided info: {str(missing_channels)}.\n"
                 "These channels will be removed from the resulting data!"
-                % (str(missing_channels),)
             )
 
             missing_chan_idx = [ch_names.index(ch) for ch in missing_channels]
@@ -174,8 +173,8 @@ def _create_info_chs_dig(ft_struct):
                 cur_ch["coil_type"] = FIFF.FIFFV_COIL_NONE
             else:
                 warn(
-                    "Cannot guess the correct type of channel %s. Making "
-                    "it a MISC channel." % (cur_channel_label,)
+                    f"Cannot guess the correct type of channel {cur_channel_label}."
+                    " Making it a MISC channel."
                 )
                 cur_ch["kind"] = FIFF.FIFFV_MISC_CH
                 cur_ch["coil_type"] = FIFF.FIFFV_COIL_NONE
@@ -363,7 +362,7 @@ def _process_channel_meg(cur_ch, grad):
         cur_ch["coil_type"] = FIFF.FIFFV_COIL_AXIAL_GRAD_5CM
         cur_ch["unit"] = FIFF.FIFF_UNIT_T
     else:
-        raise RuntimeError("Unexpected coil type: %s." % (chantype,))
+        raise RuntimeError(f"Unexpected coil type: {chantype}.")
 
     cur_ch["coord_frame"] = FIFF.FIFFV_COORD_HEAD
 

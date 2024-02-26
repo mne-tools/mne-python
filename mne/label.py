@@ -357,8 +357,8 @@ class Label:
             other_dup = [np.where(other.vertices == d)[0][0] for d in duplicates]
             if not np.all(self.pos[self_dup] == other.pos[other_dup]):
                 err = (
-                    "Labels %r and %r: vertices overlap but differ in "
-                    "position values" % (self.name, other.name)
+                    f"Labels {self.name} and {other.name}: vertices "
+                    "overlap but differ in position values"
                 )
                 raise ValueError(err)
 
@@ -1240,9 +1240,8 @@ def _prep_label_split(label, subject=None, subjects_dir=None):
         pass
     elif subject != label.subject:
         raise ValueError(
-            "The label specifies a different subject (%r) from "
-            "the subject parameter (%r)." % label.subject,
-            subject,
+            f"The label specifies a different subject ({label.subject}) from "
+            f"the subject parameter ({subject})."
         )
 
     return label, subject, subjects_dir
@@ -1296,7 +1295,7 @@ def _split_label_contig(label_to_split, subject=None, subjects_dir=None):
     else:
         basename = label_to_split.name
         name_ext = ""
-    name_pattern = f"{basename}_div%%i{name_ext}"
+    name_pattern = f"{basename}_div%i{name_ext}"
     names = tuple(name_pattern % i for i in range(1, n_parts + 1))
 
     # Colors
@@ -1368,7 +1367,7 @@ def split_label(label, parts=2, subject=None, subjects_dir=None, freesurfer=Fals
         else:
             basename = label.name
             name_ext = ""
-        name_pattern = f"{basename}_div%%i{name_ext}"
+        name_pattern = f"{basename}_div%i{name_ext}"
         names = tuple(name_pattern % i for i in range(1, n_parts + 1))
     else:
         names = parts

@@ -88,9 +88,8 @@ def oversampled_temporal_projection(raw, duration=10.0, picks=None, verbose=None
     n_samples = int(round(float(duration) * raw.info["sfreq"]))
     if n_samples < len(picks_good) - 1:
         raise ValueError(
-            "duration (%s) yielded %s samples, which is fewer "
-            "than the number of channels -1 (%s)"
-            % (n_samples / raw.info["sfreq"], n_samples, len(picks_good) - 1)
+            f"duration ({n_samples / raw.info['sfreq']}) yielded {n_samples} samples,"
+            f" which is fewer than the number of channels -1 ({len(picks_good) - 1})"
         )
     n_overlap = n_samples // 2
     raw_otp = raw.copy().load_data(verbose=False)
@@ -105,8 +104,9 @@ def oversampled_temporal_projection(raw, duration=10.0, picks=None, verbose=None
     read_lims = list(range(0, len(raw.times), n_samples)) + [len(raw.times)]
     for start, stop in zip(read_lims[:-1], read_lims[1:]):
         logger.info(
-            "    Denoising % 8.2f – % 8.2f s" % tuple(raw.times[[start, stop - 1]])
+            f"    Denoising {raw.times[start]:8.2f} - {raw.times[stop - 1]:8.2f} s"
         )
+
         otp.feed(raw[picks, start:stop][0])
     return raw_otp
 

@@ -86,7 +86,7 @@ def read_mrk(fname):
     # check output
     mrk_points = np.asarray(mrk_points)
     if mrk_points.shape != (5, 3):
-        err = "%r is no marker file, shape is " "%s" % (fname, mrk_points.shape)
+        err = f"{fname} is no marker file, shape is " f"{mrk_points.shape}"
         raise ValueError(err)
     return mrk_points
 
@@ -163,14 +163,11 @@ def _set_dig_kit(mrk, elp, hsp, eeg):
         elp_points = _read_dig_kit(elp)
         if len(elp_points) != 8:
             raise ValueError(
-                "File %r should contain 8 points; got shape "
-                "%s." % (elp, elp_points.shape)
+                f"File {elp} should contain 8 points; got shape " f"{elp_points.shape}."
             )
         elp = elp_points
     elif len(elp) not in (6, 7, 8):
-        raise ValueError(
-            "ELP should contain 6 ~ 8 points; got shape " "%s." % (elp.shape,)
-        )
+        raise ValueError("ELP should contain 6 ~ 8 points; got shape " f"{elp.shape}.")
     if isinstance(mrk, (str, Path, PathLike)):
         mrk = read_mrk(mrk)
 

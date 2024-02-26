@@ -145,7 +145,7 @@ def infomax(
     if block is None:
         block = int(math.floor(math.sqrt(n_samples / 3.0)))
 
-    logger.info("Computing%sInfomax ICA" % " Extended " if extended else " ")
+    logger.info(f"Computing{' Extended ' if extended else ' '}Infomax ICA")
 
     # collect parameters
     nblock = n_samples // block

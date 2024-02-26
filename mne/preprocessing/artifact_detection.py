@@ -250,7 +250,7 @@ def annotate_movement(
         if use_dev_head_trans not in ["average", "info"]:
             raise ValueError(
                 "use_dev_head_trans must be either"
-                + " 'average' or 'info': got '%s'" % (use_dev_head_trans,)
+                + f" 'average' or 'info': got '{use_dev_head_trans}'"
             )
 
         if use_dev_head_trans == "average":

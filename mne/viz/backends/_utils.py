@@ -298,35 +298,21 @@ def _qt_get_stylesheet(theme):
                 # the bgcolor of the window (which is the same). We also take
                 # the separator images from QDarkStyle (MIT).
                 icons_path = _qt_init_icons()
-                stylesheet = """\
-QStatusBar {
-  border: 1px solid rgb(76, 76, 75);
-  background: transparent;
-}
-QStatusBar QLabel {
-  background: transparent;
-}
-QToolBar {
-  background-color: transparent;
-  border-bottom: 1px solid rgb(99, 99, 99);
-}
-QToolBar::separator:horizontal {
-  width: 16px;
-  image: url("%(icons_path)s/toolbar_separator_horizontal@2x.png");
-}
-QToolBar::separator:vertical {
-  height: 16px;
-  image: url("%(icons_path)s/toolbar_separator_vertical@2x.png");
-}
-QToolBar::handle:horizontal {
-  width: 16px;
-  image: url("%(icons_path)s/toolbar_move_horizontal@2x.png");
-}
-QToolBar::handle:vertical {
-  height: 16px;
-  image: url("%(icons_path)s/toolbar_move_vertical@2x.png");
-}
-""" % dict(icons_path=icons_path)
+                stylesheet = (
+                    f"QStatusBar {{border: 1px solid rgb(76, 76, 75);"
+                    f"background: transparent;}}"
+                    f"QStatusBar QLabel {{background: transparent;}}"
+                    f"QToolBar {{background-color: transparent;"
+                    f"border-bottom: 1px solid rgb(99, 99, 99);}}"
+                    f"QToolBar::separator:horizontal {{width: 16px;"
+                    f"image: url('{icons_path}/toolbar_separator_horizontal@2x.png');}}"
+                    f"QToolBar::separator:vertical {{height: 16px;"
+                    f"image: url('{icons_path}/toolbar_separator_vertical@2x.png');}}"
+                    f"QToolBar::handle:horizontal {{width: 16px;"
+                    f"image: url('{icons_path}/toolbar_move_horizontal@2x.png');}}"
+                    f"QToolBar::handle:vertical {{height: 16px;"
+                    f"image: url('{icons_path}/toolbar_move_vertical@2x.png');}}"
+                )
         else:
             # Here we are on non-macOS (or on macOS but our sys theme does not
             # match the requested theme)
