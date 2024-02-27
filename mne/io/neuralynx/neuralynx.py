@@ -60,11 +60,12 @@ def read_raw_neuralynx(
     Other header variables can be inspected using Neo directly. For example:
 
     .. code-block:: python
-    from neo.io import NeuralynxIO
-    fname = 'path/to/your/data'
-    nlx_reader = NeuralynxIO(dirname=fname)
-    print(nlx_reader.header)
-    print(nlx_reader.file_headers.items())
+
+        from neo.io import NeuralynxIO
+        fname = 'path/to/your/data'
+        nlx_reader = NeuralynxIO(dirname=fname)
+        print(nlx_reader.header)
+        print(nlx_reader.file_headers.items())
 
     """
     return RawNeuralynx(
