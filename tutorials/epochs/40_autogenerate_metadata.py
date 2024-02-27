@@ -46,13 +46,11 @@ by calling `mne.events_from_annotations`.
 # Copyright the MNE-Python contributors.
 # %%
 
-from pathlib import Path
-
 import matplotlib.pyplot as plt
 
 import mne
 
-data_dir = Path(mne.datasets.erp_core.data_path())
+data_dir = mne.datasets.erp_core.data_path()
 infile = data_dir / "ERP-CORE_Subject-001_Task-Flankers_eeg.fif"
 
 raw = mne.io.read_raw(infile, preload=True)
