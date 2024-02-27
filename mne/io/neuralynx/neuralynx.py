@@ -43,18 +43,21 @@ def read_raw_neuralynx(
     Notes
     -----
     Neuralynx files are read from disk using the Neo package (http://neuralensemble.org/neo/).
-    Currently, only reading of the .ncs files is supported. ``raw.info["meas_date"]``
-    is determined based on the ``recording_opened`` property of the first .ncs file
-    in the dataset.
+    Currently, only reading of the ``.ncs files`` is supported.
 
-    Channel-specific high and lowpass frequencies are determined based on the
-    ``DspLowCutFrequency`` and ``DspHighCutFrequency`` header fields, respectively.
-    If no filters were used for a channel, the default lowpass is set to the Nyquist
-    frequency and the default highpass is set to 0. ``raw.info["highpass"]`` and
-    ``raw.info["lowpass"]`` are then set to the maximum and minimum values across
-    all .ncs sfiles, respectively.
+    ``raw.info["meas_date"]`` is read from the ``recording_opened`` property
+    of the first ``.ncs`` file (i.e. channel) in the dataset (a warning is issued
+    if files have different dates of acquisition).
 
-    Other header variables can be inspected using neo directly. For example:
+    Channel-specific high and lowpass frequencies of online filters are determined
+    based on the ``DspLowCutFrequency`` and ``DspHighCutFrequency`` header fields,
+    respectively. If no filters were used for a channel, the default lowpass is set
+    to the Nyquist frequency and the default highpass is set to 0.
+    If channels have different high/low cutoffs, ``raw.info["highpass"]`` and
+    ``raw.info["lowpass"]`` are then set to the maximum highpass and minimumlowpass
+    values across channels, respectively.
+
+    Other header variables can be inspected using Neo directly. For example:
 
     .. code-block:: python
     from neo.io import NeuralynxIO
@@ -62,6 +65,7 @@ def read_raw_neuralynx(
     nlx_reader = NeuralynxIO(dirname=fname)
     print(nlx_reader.header)
     print(nlx_reader.file_headers.items())
+
     """
     return RawNeuralynx(
         fname,
