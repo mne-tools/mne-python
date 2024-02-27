@@ -100,7 +100,7 @@ metadata
 # Fixed time window with ``keep_first``
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #
-# One workaround is using the ``keep_first`` paramter, which will create a new column
+# One workaround is using the ``keep_first`` parameter, which will create a new column
 # containing the first event of the specified type.
 
 metadata_tmin = 0.0
