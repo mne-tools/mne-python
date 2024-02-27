@@ -57,16 +57,13 @@ def read_raw_neuralynx(
     ``raw.info["lowpass"]`` are then set to the maximum highpass and minimumlowpass
     values across channels, respectively.
 
-    Other header variables can be inspected using Neo directly. For example:
-
-    .. code-block:: python
+    Other header variables can be inspected using Neo directly. For example::
 
         from neo.io import NeuralynxIO
         fname = 'path/to/your/data'
         nlx_reader = NeuralynxIO(dirname=fname)
         print(nlx_reader.header)
         print(nlx_reader.file_headers.items())
-
     """
     return RawNeuralynx(
         fname,
