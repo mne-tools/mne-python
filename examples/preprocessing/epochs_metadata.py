@@ -98,7 +98,7 @@ metadata
 # so it's difficult for us to set a fixed upper bound for the time window.
 #
 # Fixed time window with ``keep_first``
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #
 # One workaround is using the ``keep_first`` parameter, which will create a new column
 # containing the first event of the specified type.
@@ -150,7 +150,7 @@ metadata
 
 # %%
 # Variable time window (simplified)
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #
 # We can slightly simplify the above code: Since ``tmin`` shall be set to the
 # ``row_events``, we can paass ``tmin=None``, which is a more convenient way to express
