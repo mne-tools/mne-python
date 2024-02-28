@@ -706,7 +706,6 @@ class BaseEpochs(
         Notes
         -----
         This function operates in-place.
-
         """
         if not self.preload:
             raise ValueError("Data must be preloaded.")
