@@ -561,6 +561,40 @@ def test_tfr_multitaper():
         tfr_multitaper(epochs, freqs=np.arange(-4, -1), n_cycles=7)
 
 
+@pytest.mark.parametrize(
+    "method,freqs",
+    (
+        pytest.param("morlet", freqs_linspace, id="morlet"),
+        pytest.param("multitaper", freqs_linspace, id="multitaper"),
+        pytest.param("stockwell", freqs_linspace[[0, -1]], id="stockwell"),
+    ),
+)
+@pytest.mark.parametrize("decim", (4, slice(0, 200), slice(1, 200, 3)))
+def test_tfr_decim_and_shift_time(epochs, method, freqs, decim):
+    """Test TFR decimation; slices must be long-ish to be longer than the wavelets."""
+    tfr = epochs.compute_tfr(method, freqs=freqs, decim=decim)
+    if not isinstance(decim, slice):
+        decim = slice(None, None, decim)
+    # check n_times
+    want = len(range(*decim.indices(len(epochs.times))))
+    assert tfr.shape[-1] == want
+    # Check that decim changes sfreq
+    assert tfr.sfreq == epochs.info["sfreq"] / (decim.step or 1)
+    # check after-the-fact decimation. The mixin .decimate method doesn't allow slices
+    if isinstance(decim, int):
+        tfr2 = epochs.compute_tfr(method, freqs=freqs, decim=1)
+        tfr2.decimate(decim)
+        assert tfr == tfr2
+    # test .shift_time() too
+    shift = -0.137
+    data, times, freqs = tfr.get_data(return_times=True, return_freqs=True)
+    tfr.shift_time(shift, relative=True)
+    assert_allclose(times + shift, tfr.times, rtol=0, atol=0.5 / tfr.sfreq)
+    # shift time should only affect times:
+    assert_array_equal(data, tfr.get_data())
+    assert_array_equal(freqs, tfr.freqs)
+
+
 @pytest.mark.parametrize("inst", ("raw_tfr", "epochs_tfr", "average_tfr"))
 def test_tfr_io(inst, average_tfr, request, tmp_path):
     """Test TFR I/O."""
@@ -1495,40 +1529,6 @@ def test_tfr_copy(average_tfr):
 def test_tfr_apply_baseline(average_tfr, mode):
     """Test TFR baselining."""
     average_tfr.apply_baseline((-0.1, -0.05), mode=mode)
-
-
-@pytest.mark.parametrize(
-    "method,freqs",
-    (
-        pytest.param("morlet", freqs_linspace, id="morlet"),
-        pytest.param("multitaper", freqs_linspace, id="multitaper"),
-        pytest.param("stockwell", freqs_linspace[[0, -1]], id="stockwell"),
-    ),
-)
-@pytest.mark.parametrize("decim", (4, slice(0, 200), slice(1, 200, 3)))
-def test_tfr_decim_and_shift_time(epochs, method, freqs, decim):
-    """Test TFR decimation; slices must be long-ish to be longer than the wavelets."""
-    tfr = epochs.compute_tfr(method, freqs=freqs, decim=decim)
-    if not isinstance(decim, slice):
-        decim = slice(None, None, decim)
-    # check n_times
-    want = len(range(*decim.indices(len(epochs.times))))
-    assert tfr.shape[-1] == want
-    # Check that decim changes sfreq
-    assert tfr.sfreq == epochs.info["sfreq"] / (decim.step or 1)
-    # check after-the-fact decimation. The mixin .decimate method doesn't allow slices
-    if isinstance(decim, int):
-        tfr2 = epochs.compute_tfr(method, freqs=freqs, decim=1)
-        tfr2.decimate(decim)
-        assert tfr == tfr2
-    # test .shift_time() too
-    shift = -0.137
-    data, times, freqs = tfr.get_data(return_times=True, return_freqs=True)
-    tfr.shift_time(shift, relative=True)
-    assert_allclose(times + shift, tfr.times, rtol=0, atol=0.5 / tfr.sfreq)
-    # shift time should only affect times:
-    assert_array_equal(data, tfr.get_data())
-    assert_array_equal(freqs, tfr.freqs)
 
 
 def test_tfr_arithmetic(epochs):
