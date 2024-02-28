@@ -42,7 +42,8 @@ def read_raw_neuralynx(
 
     Notes
     -----
-    Neuralynx files are read from disk using the Neo package (http://neuralensemble.org/neo/).
+    Neuralynx files are read from disk using the `Neo package
+    <http://neuralensemble.org/neo/>`__.
     Currently, only reading of the ``.ncs files`` is supported.
 
     ``raw.info["meas_date"]`` is read from the ``recording_opened`` property
