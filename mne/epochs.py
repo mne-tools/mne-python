@@ -693,19 +693,20 @@ class BaseEpochs(
         self._check_consistency()
         self.set_annotations(annotations, on_missing="ignore")
 
-    @verbose
-    def set_bad_epochs_to_NaN(self, bad_epochs_indices: list = None, verbose=None):
+    def set_bad_epochs_to_NaN(self, bad_epochs_indices: list = None):
         """
-        define bad epochs based on indices list and set to NaN.
-
-        Works in-place.
+        Define bad epochs based on indices list and set to NaN.
 
         Parameters
         ----------
         self : instance of Epochs
         bad_epochs_indices : list of arrays
             List of arrays with indices of bad epochs per channel.
-        verbose : bool, str, int, or None
+
+        Notes
+        -----
+        This function operates in-place.
+
         """
         if not self.preload:
             raise ValueError("Data must be preloaded.")
