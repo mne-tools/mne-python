@@ -193,7 +193,7 @@ def tfr_array_stockwell(
             f"got {data.shape}"
         )
     decim = _ensure_slice(decim)
-    _, n_channels, n_out = data[decim].shape
+    _, n_channels, n_out = data[..., decim].shape
     data, n_fft_, zero_pad = _check_input_st(data, n_fft)
     start_f, stop_f, freqs = _compute_freqs_st(fmin, fmax, n_fft_, sfreq)
 
