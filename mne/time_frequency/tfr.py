@@ -444,7 +444,6 @@ def _compute_tfr(
     decim=1,
     output="complex",
     n_jobs=None,
-    return_mt_weights=False,
     *,
     verbose=None,
 ):
@@ -498,9 +497,6 @@ def _compute_tfr(
     %(n_jobs)s
         The number of epochs to process at the same time. The parallelization
         is implemented across channels.
-    return_mt_weights : bool
-        Whether to return taper weights as well as the TFR power estimates.
-        Ignored if method is not 'multitaper'.
     %(verbose)s
 
     Returns
@@ -514,9 +510,6 @@ def _compute_tfr(
         n_tapers, n_freqs, n_times)``. If output is ``'avg_power_itc'``, the
         real values in the ``output`` contain average power' and the imaginary
         values contain the ITC: ``out = avg_power + i * itc``.
-    mt_weights : array
-        Normalization weights for the DPSS tapers. Only returned if
-        method='multitaper' and return_mt_weights is True.
     """
     # Check data
     epoch_data = np.asarray(epoch_data)
@@ -546,9 +539,6 @@ def _compute_tfr(
             "(%0.1f Hz), got %0.1f Hz" % (sfreq / 2.0, freqs.max())
         )
 
-    # ignore this param if method is not multitaper
-    return_mt_weights = return_mt_weights and method == "multitaper"
-
     # We decimate *after* decomposition, so we need to create our kernels
     # for the original sfreq
     if method == "morlet":
@@ -562,10 +552,7 @@ def _compute_tfr(
             n_cycles=n_cycles,
             time_bandwidth=time_bandwidth,
             zero_mean=zero_mean,
-            return_weights=return_mt_weights,
         )
-        if return_mt_weights:
-            Ws, _mt_weights = Ws
 
     # Check wavelets
     if len(Ws[0][0]) > epoch_data.shape[2]:
@@ -613,8 +600,6 @@ def _compute_tfr(
             out = out.transpose(2, 0, 1, 3, 4)
         else:
             out = out.transpose(1, 0, 2, 3)
-    if return_mt_weights:
-        return out, _mt_weights
     return out
 
 
