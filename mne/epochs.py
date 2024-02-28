@@ -2613,10 +2613,9 @@ class BaseEpochs(
 
         Notes
         -----
-        If ``method="stockwell"`` the result will be an
-        :class:`~mne.time_frequency.AverageTFR` instead of an
-        :class:`~mne.time_frequency.EpochsTFR` because the Stockwell method requires
-        averaging over epochs.
+        If ``average=True`` (or ``method="stockwell", average="auto"``) the result will
+        be an :class:`~mne.time_frequency.AverageTFR` instead of an
+        :class:`~mne.time_frequency.EpochsTFR`.
 
         .. versionadded:: 1.7
 
@@ -2627,7 +2626,7 @@ class BaseEpochs(
         if average == "auto":  # stockwell method *must* average
             average = method == "stockwell"
         if average:
-            # construct `output` value from `average` and `return_itc`
+            # augment `output` value for use by tfr_array_* functions
             _check_option("output", output, ("power",), extra=" when average=True")
             method_kw["output"] = "avg_power_itc" if return_itc else "avg_power"
         else:
@@ -2673,7 +2672,7 @@ class BaseEpochs(
                     state = out.__getstate__()
                     state["data"] = out._itc
                     state["data_type"] = "Inter-trial coherence"
-                    itc = AverageTFR(inst=state, method=None, freqs=None)
+                    itc = AverageTFR(inst=state)
                     del out._itc
                     return out, itc
                 del out._itc

@@ -13,7 +13,7 @@ from scipy.fft import fft, fftfreq, ifft
 from .._fiff.pick import _pick_data_channels, pick_info
 from ..parallel import parallel_func
 from ..utils import _validate_type, legacy, logger, verbose
-from .tfr import AverageTFR, _check_decim, _get_data
+from .tfr import AverageTFRArray, _ensure_slice, _get_data
 
 
 def _check_input_st(x_in, n_fft):
@@ -82,7 +82,7 @@ def _st(x, start_f, windows):
 
 def _st_power_itc(x, start_f, compute_itc, zero_pad, decim, W):
     """Aux function."""
-    decim = _check_decim(decim)
+    decim = _ensure_slice(decim)
     n_samp = x.shape[-1]
     decim_indices = decim.indices(n_samp - zero_pad)
     n_out = len(range(*decim_indices))
@@ -192,8 +192,8 @@ def tfr_array_stockwell(
             "data must be 3D with shape (n_epochs, n_channels, n_times), "
             f"got {data.shape}"
         )
-    decim = _check_decim(decim)
-    _, n_channels, n_out = data[:, :, decim].shape
+    decim = _ensure_slice(decim)
+    _, n_channels, n_out = data[decim].shape
     data, n_fft_, zero_pad = _check_input_st(data, n_fft)
     start_f, stop_f, freqs = _compute_freqs_st(fmin, fmax, n_fft_, sfreq)
 
@@ -288,7 +288,7 @@ def tfr_stockwell(
     picks = _pick_data_channels(inst.info)
     info = pick_info(inst.info, picks)
     data = data[:, picks, :]
-    decim = _check_decim(decim)
+    decim = _ensure_slice(decim)
     power, itc, freqs = tfr_array_stockwell(
         data,
         sfreq=info["sfreq"],
@@ -302,28 +302,24 @@ def tfr_stockwell(
     )
     times = inst.times[decim].copy()
     nave = len(data)
-    out = AverageTFR(
-        inst=dict(
-            info=info,
-            data=power,
-            times=times,
-            freqs=freqs,
-            nave=nave,
-            method="stockwell-power",
-        )
+    out = AverageTFRArray(
+        info=info,
+        data=power,
+        times=times,
+        freqs=freqs,
+        nave=nave,
+        method="stockwell-power",
     )
     if return_itc:
         out = (
             out,
-            AverageTFR(
-                inst=dict(
-                    info=deepcopy(info),
-                    data=itc,
-                    times=times.copy(),
-                    freqs=freqs.copy(),
-                    nave=nave,
-                    method="stockwell-itc",
-                )
+            AverageTFRArray(
+                info=deepcopy(info),
+                data=itc,
+                times=times.copy(),
+                freqs=freqs.copy(),
+                nave=nave,
+                method="stockwell-itc",
             ),
         )
     return out

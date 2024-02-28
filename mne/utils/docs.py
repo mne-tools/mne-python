@@ -2555,11 +2555,7 @@ docdict["method_kw_tfr"] = """
     ``n_fft, width`` for Stockwell method).
     See :func:`~mne.time_frequency.tfr_array_morlet`,
     :func:`~mne.time_frequency.tfr_array_multitaper`, and
-    :func:`~mne.time_frequency.tfr_array_stockwell` for additional details; note that
-    the parameter ``output`` is not supported (use ``average`` and/or ``return_itc`` to
-    alter the output type). If you need complex output, please use the array-based
-    interfaces instead (:func:`~mne.time_frequency.tfr_array_morlet` or
-    :func:`~mne.time_frequency.tfr_array_multitaper`).
+    :func:`~mne.time_frequency.tfr_array_stockwell` for additional details.
 """
 
 _method_psd = """

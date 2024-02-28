@@ -63,6 +63,7 @@ from ..utils import (
     verbose,
     warn,
 )
+from ..utils.spectrum import _get_instance_type_string
 from ..viz.topo import _imshow_tfr, _imshow_tfr_unified, _plot_topo
 from ..viz.topomap import (
     _add_colorbar,
@@ -81,7 +82,6 @@ from ..viz.utils import (
     figure_nobar,
     plt_show,
 )
-from ._utils import _get_instance_type_string
 from .multitaper import dpss_windows, tfr_array_multitaper
 from .spectrum import EpochsSpectrum
 
@@ -378,7 +378,7 @@ def _cwt_gen(X, Ws, *, fsize=0, mode="same", decim=1, use_fft=True):
         The time-frequency transform of the signals.
     """
     _check_option("mode", mode, ["same", "valid", "full"])
-    decim = _check_decim(decim)
+    decim = _ensure_slice(decim)
     X = np.asarray(X)
 
     # Precompute wavelets for given frequency range to save time
@@ -539,7 +539,7 @@ def _compute_tfr(
         output,
     )
 
-    decim = _check_decim(decim)
+    decim = _ensure_slice(decim)
     if (freqs > sfreq / 2.0).any():
         raise ValueError(
             "Cannot compute freq above Nyquist freq of the data "
@@ -731,7 +731,7 @@ def _time_frequency_loop(X, Ws, output, use_fft, mode, decim, method=None):
         dtype = np.complex128
 
     # Init outputs
-    decim = _check_decim(decim)
+    decim = _ensure_slice(decim)
     n_tapers = len(Ws)
     n_epochs, n_times = X[:, decim].shape
     n_freqs = len(Ws[0])
@@ -823,7 +823,7 @@ def cwt(X, Ws, use_fft=True, mode="same", decim=1):
 
 
 def _cwt_array(X, Ws, nfft, mode, decim, use_fft):
-    decim = _check_decim(decim)
+    decim = _ensure_slice(decim)
     coefs = _cwt_gen(X, Ws, fsize=nfft, mode=mode, decim=decim, use_fft=use_fft)
 
     n_signals, n_times = X[:, decim].shape
@@ -1074,8 +1074,8 @@ def tfr_multitaper(
 ):
     """Compute Time-Frequency Representation (TFR) using DPSS tapers.
 
-    Same computation as `~mne.time_frequency.tfr_array_multitaper`, but
-    operates on `~mne.Epochs` or `~mne.Evoked` objects instead of
+    Same computation as :func:`~mne.time_frequency.tfr_array_multitaper`, but
+    operates on :class:`~mne.Epochs` or :class:`~mne.Evoked` objects instead of
     :class:`NumPy arrays <numpy.ndarray>`.
 
     Parameters
@@ -1241,7 +1241,7 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin)
             get_instance_data_kw.update(reject_by_annotation=reject_by_annotation)
         data = self._get_instance_data(**get_instance_data_kw)
         # compute the TFR
-        self._decim = _check_decim(decim)
+        self._decim = _ensure_slice(decim)
         self._raw_times = inst.times[time_mask]
         self._compute_tfr(data, n_jobs, verbose)
         self._update_epoch_attributes()
@@ -4074,8 +4074,7 @@ def _preproc_tfr(
     return data, times, freqs, vmin, vmax
 
 
-# TODO: Name duplication with mne/utils/mixin.py
-def _check_decim(decim):
+def _ensure_slice(decim):
     """Aux function checking the decim parameter."""
     _validate_type(decim, ("int-like", slice), "decim")
     if not isinstance(decim, slice):

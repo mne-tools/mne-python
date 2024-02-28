@@ -44,7 +44,7 @@ from ..utils.check import (
     check_fname,
 )
 from ..utils.misc import _identity_function, _pl
-from ..utils.spectrum import _split_psd_kwargs
+from ..utils.spectrum import _get_instance_type_string, _split_psd_kwargs
 from ..viz.topo import _plot_timeseries, _plot_timeseries_unified, _plot_topo
 from ..viz.topomap import _make_head_outlines, _prepare_topomap_plot, plot_psds_topomap
 from ..viz.utils import (
@@ -55,7 +55,6 @@ from ..viz.utils import (
     _prepare_sensor_names,
     plt_show,
 )
-from ._utils import _get_instance_type_string
 from .multitaper import psd_array_multitaper
 from .psd import _check_nfft, psd_array_welch
 
@@ -357,6 +356,8 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         self._data_type = (
             "Fourier Coefficients" if "taper" in self._dims else "Power Spectrum"
         )
+        # set nave (child constructor overrides this for Evoked input)
+        self._nave = None
 
     def __eq__(self, other):
         """Test equivalence of two Spectrum instances."""
@@ -374,6 +375,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
             inst_type_str=inst_type_str,
             data_type=self._data_type,
             info=self.info,
+            nave=self.nave,
         )
         return out
 
@@ -390,6 +392,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         self._sfreq = state["sfreq"]
         self.info = Info(**state["info"])
         self._data_type = state["data_type"]
+        self._nave = state.get("nave")  # objs saved before #11282 won't have `nave`
         self.preload = True
         # instance type
         inst_types = dict(Raw=Raw, Epochs=Epochs, Evoked=Evoked, Array=np.ndarray)
@@ -478,6 +481,10 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
     @property
     def method(self):
         return self._method
+
+    @property
+    def nave(self):
+        return self._nave
 
     @property
     def sfreq(self):
@@ -1060,8 +1067,10 @@ class Spectrum(BaseSpectrum):
         have been computed.
     %(info_not_none)s
     method : str
-        The method used to compute the spectrum (``'welch'`` or
-        ``'multitaper'``).
+        The method used to compute the spectrum (``'welch'`` or ``'multitaper'``).
+    nave : int | None
+        The number of trials averaged together when generating the spectrum. ``None``
+        indicates no averaging is known to have occurred.
 
     See Also
     --------
@@ -1125,6 +1134,8 @@ class Spectrum(BaseSpectrum):
             )
         else:  # Evoked
             data = self.inst.data[self._picks][:, self._time_mask]
+        # set nave
+        self._nave = getattr(inst, "nave", None)
         # compute the spectra
         self._compute_spectra(data, fmin, fmax, n_jobs, method_kw, verbose)
         # check for correct shape and bad values
@@ -1396,7 +1407,6 @@ class EpochsSpectrum(BaseSpectrum, GetEpochsMixin):
         spectrum : instance of Spectrum
             The aggregated spectrum object.
         """
-        # TODO: probably should have a `.nave` attribute?
         _validate_type(method, ("str", "callable"))
         method = _make_combine_callable(
             method, axis=0, valid=("mean", "median"), keepdims=False
@@ -1415,6 +1425,7 @@ class EpochsSpectrum(BaseSpectrum, GetEpochsMixin):
             )
         # serialize the object and update data, dims, and data type
         state = super().__getstate__()
+        state["nave"] = state["data"].shape[0]
         state["data"] = method(state["data"])
         state["dims"] = state["dims"][1:]
         state["data_type"] = f'Averaged {state["data_type"]}'

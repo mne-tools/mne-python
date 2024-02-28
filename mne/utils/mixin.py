@@ -680,12 +680,10 @@ class ExtendedTimeMixin(TimeMixin):
         # appropriately filtered to avoid aliasing
         from ..epochs import BaseEpochs
         from ..evoked import Evoked
-        from ..time_frequency import AverageTFR, EpochsTFR, RawTFR
+        from ..time_frequency import BaseTFR
 
         # This should be the list of classes that inherit
-        _validate_type(
-            self, (BaseEpochs, Evoked, RawTFR, EpochsTFR, AverageTFR), "inst"
-        )
+        _validate_type(self, (BaseEpochs, Evoked, BaseTFR), "inst")
         decim, offset, new_sfreq = _check_decim(
             self.info, decim, offset, check_filter=not hasattr(self, "freqs")
         )
