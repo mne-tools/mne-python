@@ -153,7 +153,7 @@ def equalize_channels(instances, copy=True, verbose=None):
     from ..evoked import Evoked
     from ..forward import Forward
     from ..io import BaseRaw
-    from ..time_frequency import CrossSpectralDensity, _BaseTFR
+    from ..time_frequency import BaseTFR, CrossSpectralDensity
 
     # Instances need to have a `ch_names` attribute and a `pick_channels`
     # method that supports `ordered=True`.
@@ -161,7 +161,7 @@ def equalize_channels(instances, copy=True, verbose=None):
         BaseRaw,
         BaseEpochs,
         Evoked,
-        _BaseTFR,
+        BaseTFR,
         Forward,
         Covariance,
         CrossSpectralDensity,

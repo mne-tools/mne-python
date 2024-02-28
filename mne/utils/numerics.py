@@ -260,9 +260,9 @@ def _get_inst_data(inst):
     from ..epochs import BaseEpochs
     from ..evoked import Evoked
     from ..io import BaseRaw
-    from ..time_frequency.tfr import _BaseTFR
+    from ..time_frequency.tfr import BaseTFR
 
-    _validate_type(inst, (BaseRaw, BaseEpochs, Evoked, _BaseTFR), "Instance")
+    _validate_type(inst, (BaseRaw, BaseEpochs, Evoked, BaseTFR), "Instance")
     if not inst.preload:
         inst.load_data()
     return inst._data

@@ -1,6 +1,7 @@
 __all__ = [
     "AverageTFR",
     "AverageTFRArray",
+    "BaseTFR",
     "CrossSpectralDensity",
     "EpochsSpectrum",
     "EpochsSpectrumArray",
@@ -10,7 +11,6 @@ __all__ = [
     "RawTFRArray",
     "Spectrum",
     "SpectrumArray",
-    "_BaseTFR",
     "csd_array_fourier",
     "csd_array_morlet",
     "csd_array_multitaper",
@@ -66,11 +66,11 @@ from .spectrum import (
 from .tfr import (
     AverageTFR,
     AverageTFRArray,
+    BaseTFR,
     EpochsTFR,
     EpochsTFRArray,
     RawTFR,
     RawTFRArray,
-    _BaseTFR,
     fwhm,
     morlet,
     read_tfrs,

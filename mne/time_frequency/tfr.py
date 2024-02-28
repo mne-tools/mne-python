@@ -1143,8 +1143,25 @@ def tfr_multitaper(
 # TFR(s) class
 
 
-class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
-    """Base class for RawTFR, EpochsTFR, and AverageTFR."""
+class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
+    """Base class for RawTFR, EpochsTFR, and AverageTFR (for type checking only).
+
+    .. note::
+        This class should not be instantiated directly; it is provided in the public API
+        only for type-checking purposes (e.g., ``isinstance(my_obj, BaseTFR)``). To
+        create TFR objects, use the ``.compute_tfr()`` methods on :class:`~mne.io.Raw`,
+        :class:`~mne.Epochs`, or :class:`~mne.Evoked`, or use the constructors listed
+        below under "See Also".
+
+    See Also
+    --------
+    mne.time_frequency.RawTFR
+    mne.time_frequency.RawTFRArray
+    mne.time_frequency.EpochsTFR
+    mne.time_frequency.EpochsTFRArray
+    mne.time_frequency.AverageTFR
+    mne.time_frequency.AverageTFRArray
+    """
 
     def __init__(
         self,
@@ -2692,7 +2709,7 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin)
 
 
 @fill_doc
-class AverageTFR(_BaseTFR):
+class AverageTFR(BaseTFR):
     """Data object for spectrotemporal representations of averaged data.
 
     .. warning:: The preferred means of creating AverageTFR objects is via the
@@ -2855,7 +2872,7 @@ class AverageTFR(_BaseTFR):
                 )
             method_kw.update(fmin=fmin, fmax=fmax)
             # Compute freqs. We need a couple lines of code dupe here (also in
-            # _BaseTFR.__init__) to get the subset of times to pass to _check_input_st()
+            # BaseTFR.__init__) to get the subset of times to pass to _check_input_st()
             _mask = _time_mask(inst.times, tmin, tmax, sfreq=inst.info["sfreq"])
             _times = inst.times[_mask].copy()
             _, default_nfft, _ = _check_input_st(_times, None)
@@ -2975,7 +2992,7 @@ class AverageTFRArray(AverageTFR):
 
 
 @fill_doc
-class EpochsTFR(_BaseTFR, GetEpochsMixin):
+class EpochsTFR(BaseTFR, GetEpochsMixin):
     """Data object for spectrotemporal representations of epoched data.
 
     .. important::
@@ -3437,7 +3454,7 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
             yield AverageTFR(inst=state, method=None, freqs=None, comment=str(event_id))
 
     @verbose
-    @copy_doc(_BaseTFR.plot)
+    @copy_doc(BaseTFR.plot)
     def plot(
         self,
         picks=None,
@@ -3495,7 +3512,7 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
         )
 
     @verbose
-    @copy_doc(_BaseTFR.plot_topo)
+    @copy_doc(BaseTFR.plot_topo)
     def plot_topo(
         self,
         picks=None,
@@ -3548,7 +3565,7 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
         )
 
     @verbose
-    @copy_doc(_BaseTFR.plot_joint)
+    @copy_doc(BaseTFR.plot_joint)
     def plot_joint(
         self,
         *,
@@ -3601,7 +3618,7 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
             verbose=verbose,
         )
 
-    @copy_doc(_BaseTFR.plot_topomap)
+    @copy_doc(BaseTFR.plot_topomap)
     def plot_topomap(
         self,
         tmin=None,
@@ -3738,7 +3755,7 @@ class EpochsTFRArray(EpochsTFR):
 
 
 @fill_doc
-class RawTFR(_BaseTFR):
+class RawTFR(BaseTFR):
     """Data object for spectrotemporal representations of continuous data.
 
     .. warning:: The preferred means of creating RawTFR objects from

@@ -1479,7 +1479,7 @@ def test_tfr_misc(epochs):
 
 
 def test_tfr_copy(average_tfr):
-    """Test _BaseTFR.copy() method."""
+    """Test BaseTFR.copy() method."""
     tfr_copy = average_tfr.copy()
     # check that info is independent
     tfr_copy.info["bads"] = tfr_copy.ch_names
