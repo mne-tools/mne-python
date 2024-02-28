@@ -644,7 +644,7 @@ def test_raw_tfr_init(raw):
 
 
 def test_average_tfr_init(full_evoked):
-    """Test the AverageTFR, RawTFR and RawTFRArray constructors."""
+    """Test the AverageTFR and AverageTFRArray constructors."""
     one = AverageTFR(inst=full_evoked, method="morlet", freqs=freqs_linspace)
     two = AverageTFRArray(
         one.info,
@@ -1473,8 +1473,8 @@ def test_epochstfr_iter_evoked(epochs_tfr, copy):
     assert avgs[0].comment == str(epochs_tfr.events[0, -1])
 
 
-def test_tfr_misc(epochs):
-    """Test various other constructor params (proj)."""
+def test_tfr_proj(epochs):
+    """Test `compute_tfr(proj=True)`."""
     epochs.compute_tfr(method="morlet", freqs=freqs_linspace, proj=True)
 
 

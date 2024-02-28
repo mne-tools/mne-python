@@ -3983,6 +3983,7 @@ def combine_tfr(all_tfr, weights="nave"):
 # Utils
 
 
+# ↓↓↓↓↓↓↓↓↓↓↓ this is still used in _stockwell.py
 def _get_data(inst, return_itc):
     """Get data from Epochs or Evoked instance as epochs x ch x time."""
     from ..epochs import BaseEpochs
