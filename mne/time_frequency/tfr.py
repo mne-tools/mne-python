@@ -1134,6 +1134,7 @@ def tfr_multitaper(
 # TFR(s) class
 
 
+@fill_doc
 class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
     """Base class for RawTFR, EpochsTFR, and AverageTFR (for type checking only).
 
@@ -1143,6 +1144,21 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
         create TFR objects, use the ``.compute_tfr()`` methods on :class:`~mne.io.Raw`,
         :class:`~mne.Epochs`, or :class:`~mne.Evoked`, or use the constructors listed
         below under "See Also".
+
+    Parameters
+    ----------
+    inst : instance of Raw, Epochs, or Evoked
+        The data from which to compute the time-frequency representation.
+    %(method_tfr)s
+    %(freqs_tfr)s
+    %(tmin_tmax_psd)s
+    %(picks_good_data_noref)s
+    %(proj_psd)s
+    %(decim_tfr)s
+    %(n_jobs)s
+    %(reject_by_annotation_tfr)s
+    %(verbose)s
+    %(method_kw_tfr)s
 
     See Also
     --------

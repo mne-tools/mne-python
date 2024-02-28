@@ -15,6 +15,7 @@ Time-Frequency
 
    AverageTFR
    AverageTFRArray
+   BaseTFR
    EpochsTFR
    EpochsTFRArray
    RawTFR
