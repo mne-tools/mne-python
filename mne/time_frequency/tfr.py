@@ -1105,6 +1105,9 @@ def tfr_multitaper(
 
     .. versionadded:: 0.9.0
     """
+    from ..epochs import EpochsArray
+    from ..evoked import Evoked
+
     tfr_params = dict(
         n_cycles=n_cycles,
         n_jobs=n_jobs,
@@ -1112,6 +1115,9 @@ def tfr_multitaper(
         zero_mean=True,
         time_bandwidth=time_bandwidth,
     )
+    if isinstance(inst, Evoked) and not average:
+        # convert AverageTFR to EpochsTFR for backwards compatibility
+        inst = EpochsArray(inst.data[np.newaxis], inst.info, tmin=inst.tmin, proj=False)
     return _tfr_aux(
         method="multitaper",
         inst=inst,

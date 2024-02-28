@@ -493,7 +493,7 @@ def test_tfr_multitaper():
         time_bandwidth=4.0,
         return_itc=False,
         average=False,
-    )
+    ).average()
 
     print(power_evoked)  # test repr for EpochsTFR
 
