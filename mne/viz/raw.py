@@ -313,7 +313,7 @@ def plot_raw(
     ch_names = np.array(raw.ch_names)
     ch_types = np.array(raw.get_channel_types())
 
-    picks = _picks_to_idx(info, picks)
+    picks = _picks_to_idx(info, picks, none="all")
     order = _get_channel_plotting_order(order, ch_types, picks=picks)
     n_channels = min(info["nchan"], n_channels, len(order))
     # adjust order based on channel selection, if needed
