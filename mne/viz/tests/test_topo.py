@@ -317,16 +317,12 @@ def test_plot_tfr_topo():
         nave=nave,
     )
     plt.close("all")
-    fig = tfr.plot_topo(
-        baseline=(None, 0), mode="ratio", title="Average power", vmin=0.0, vmax=14.0
-    )
+    fig = tfr.plot_topo(baseline=(None, 0), mode="ratio", vmin=0.0, vmax=14.0)
 
     # test complex
     tfr.data = tfr.data * (1 + 1j)
     plt.close("all")
-    fig = tfr.plot_topo(
-        baseline=(None, 0), mode="ratio", title="Average power", vmin=0.0, vmax=14.0
-    )
+    fig = tfr.plot_topo(baseline=(None, 0), mode="ratio", vmin=0.0, vmax=14.0)
 
     # test opening tfr by clicking
     num_figures_before = len(plt.get_fignums())
