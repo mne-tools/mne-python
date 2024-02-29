@@ -23,7 +23,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - uses: pre-commit/action@v3.0.0
+      - uses: pre-commit/action@v3.0.1
 
   bandit:
     name: Bandit
@@ -61,7 +61,11 @@ jobs:
           - os: ubuntu-latest
             python: '3.12'
             kind: conda
-          - os: macos-latest
+          # 3.12 needs https://github.com/conda-forge/dipy-feedstock/pull/50
+          - os: macos-14  # arm64
+            python: '3.11'
+            kind: mamba
+          - os: macos-latest  # intel
             python: '3.11'
             kind: mamba
           - os: windows-latest
@@ -104,6 +108,9 @@ jobs:
             mamba
             fmt!=10.2.0
         if: ${{ !startswith(matrix.kind, 'pip') }}
+      # Make sure we have the right Python
+      - run: python -c "import platform; assert platform.machine() == 'arm64', platform.machine()"
+        if: matrix.os == 'macos-14'
       - run: ./tools/github_actions_dependencies.sh
       # Minimal commands on Linux (macOS stalls)
       - run: ./tools/get_minimal_commands.sh
@@ -116,11 +123,13 @@ jobs:
         run: MNE_SKIP_TESTING_DATASET_TESTS=true pytest -m "not (ultraslowtest or pgtest)" --tb=short --cov=mne --cov-report xml -vv -rfE mne/
         if: matrix.kind == 'minimal'
       - run: ./tools/get_testing_version.sh
-      - uses: actions/cache@v3
+      - uses: actions/cache@v4
         with:
           key: ${{ env.TESTING_VERSION }}
           path: ~/mne_data
       - run: ./tools/github_actions_download.sh
       - run: ./tools/github_actions_test.sh
-      - uses: codecov/codecov-action@v3
+      - uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
         if: success()

@@ -1,0 +1,1 @@
+Fix dead links in ``README.rst`` documentation by :newcontrib:`Will Turner`.

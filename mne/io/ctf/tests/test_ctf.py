@@ -113,7 +113,7 @@ def test_read_ctf(tmp_path):
     shutil.copytree(ctf_eeg_fname, ctf_no_hc_fname)
     remove_base = op.join(ctf_no_hc_fname, op.basename(ctf_fname_catch[:-3]))
     os.remove(remove_base + ".hc")
-    with pytest.warns(RuntimeWarning, match="MISC channel"):
+    with _record_warnings(), pytest.warns(RuntimeWarning, match="MISC channel"):
         pytest.raises(RuntimeError, read_raw_ctf, ctf_no_hc_fname)
     os.remove(remove_base + ".eeg")
     shutil.copy(

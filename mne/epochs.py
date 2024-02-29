@@ -16,6 +16,7 @@ import os.path as op
 from collections import Counter
 from copy import deepcopy
 from functools import partial
+from inspect import getfullargspec
 
 import numpy as np
 from scipy.interpolate import interp1d
@@ -74,6 +75,7 @@ from .fixes import rng_uniform
 from .html_templates import _get_html_template
 from .parallel import parallel_func
 from .time_frequency.spectrum import EpochsSpectrum, SpectrumMixin, _validate_method
+from .time_frequency.tfr import EpochsTFR
 from .utils import (
     ExtendedTimeMixin,
     GetEpochsMixin,
@@ -787,7 +789,7 @@ class BaseEpochs(
         self.baseline = baseline
         return self
 
-    def _reject_setup(self, reject, flat):
+    def _reject_setup(self, reject, flat, *, allow_callable=False):
         """Set self._reject_time and self._channel_type_idx."""
         idx = channel_indices_by_type(self.info)
         reject = deepcopy(reject) if reject is not None else dict()
@@ -814,11 +816,21 @@ class BaseEpochs(
                     f"{key.upper()}."
                 )
 
-        # check for invalid values
-        for rej, kind in zip((reject, flat), ("Rejection", "Flat")):
-            for key, val in rej.items():
-                if val is None or val < 0:
-                    raise ValueError(f'{kind} value must be a number >= 0, not "{val}"')
+            # check for invalid values
+            for rej, kind in zip((reject, flat), ("Rejection", "Flat")):
+                for key, val in rej.items():
+                    name = f"{kind} dict value for {key}"
+                    if callable(val) and allow_callable:
+                        continue
+                    extra_str = ""
+                    if allow_callable:
+                        extra_str = "or callable"
+                    _validate_type(val, "numeric", name, extra=extra_str)
+                    if val is None or val < 0:
+                        raise ValueError(
+                            f"If using numerical {name} criteria, the value "
+                            f"must be >= 0, not {repr(val)}"
+                        )
 
         # now check to see if our rejection and flat are getting more
         # restrictive
@@ -836,6 +848,9 @@ class BaseEpochs(
             reject[key] = old_reject[key]
         # make sure new thresholds are at least as stringent as the old ones
         for key in reject:
+            # Skip this check if old_reject and reject are callables
+            if callable(reject[key]) and allow_callable:
+                continue
             if key in old_reject and reject[key] > old_reject[key]:
                 raise ValueError(
                     bad_msg.format(
@@ -851,6 +866,8 @@ class BaseEpochs(
         for key in set(old_flat) - set(flat):
             flat[key] = old_flat[key]
         for key in flat:
+            if callable(flat[key]) and allow_callable:
+                continue
             if key in old_flat and flat[key] < old_flat[key]:
                 raise ValueError(
                     bad_msg.format(
@@ -1393,7 +1410,7 @@ class BaseEpochs(
         Dropping bad epochs can be done multiple times with different
         ``reject`` and ``flat`` parameters. However, once an epoch is
         dropped, it is dropped forever, so if more lenient thresholds may
-        subsequently be applied, `epochs.copy <mne.Epochs.copy>` should be
+        subsequently be applied, :meth:`epochs.copy <mne.Epochs.copy>` should be
         used.
         """
         if reject == "existing":
@@ -1404,7 +1421,7 @@ class BaseEpochs(
             flat = self.flat
         if any(isinstance(rej, str) and rej != "existing" for rej in (reject, flat)):
             raise ValueError('reject and flat, if strings, must be "existing"')
-        self._reject_setup(reject, flat)
+        self._reject_setup(reject, flat, allow_callable=True)
         self._get_data(out=False, verbose=verbose)
         return self
 
@@ -1520,8 +1537,9 @@ class BaseEpochs(
             Set epochs to remove by specifying indices to remove or a boolean
             mask to apply (where True values get removed). Events are
             correspondingly modified.
-        reason : str
-            Reason for dropping the epochs ('ECG', 'timeout', 'blink' etc).
+        reason : list | tuple | str
+            Reason(s) for dropping the epochs ('ECG', 'timeout', 'blink' etc).
+            Reason(s) are applied to all indices specified.
             Default: 'USER'.
         %(verbose)s
 
@@ -1533,7 +1551,9 @@ class BaseEpochs(
         indices = np.atleast_1d(indices)
 
         if indices.ndim > 1:
-            raise ValueError("indices must be a scalar or a 1-d array")
+            raise TypeError("indices must be a scalar or a 1-d array")
+        # Check if indices and reasons are of the same length
+        # if using collection to drop epochs
 
         if indices.dtype == np.dtype(bool):
             indices = np.where(indices)[0]
@@ -1954,22 +1974,52 @@ class BaseEpochs(
         if dtype is not None and dtype != self._data.dtype:
             self._data = self._data.astype(dtype)
 
+        args = getfullargspec(fun).args + getfullargspec(fun).kwonlyargs
+        if channel_wise is False:
+            if ("ch_idx" in args) or ("ch_name" in args):
+                raise ValueError(
+                    "apply_function cannot access ch_idx or ch_name "
+                    "when channel_wise=False"
+                )
+        if "ch_idx" in args:
+            logger.info("apply_function requested to access ch_idx")
+        if "ch_name" in args:
+            logger.info("apply_function requested to access ch_name")
+
         if channel_wise:
             parallel, p_fun, n_jobs = parallel_func(_check_fun, n_jobs)
             if n_jobs == 1:
-                _fun = partial(_check_fun, fun, **kwargs)
+                _fun = partial(_check_fun, fun)
                 # modify data inplace to save memory
-                for idx in picks:
-                    self._data[:, idx, :] = np.apply_along_axis(
-                        _fun, -1, data_in[:, idx, :]
+                for ch_idx in picks:
+                    if "ch_idx" in args:
+                        kwargs.update(ch_idx=ch_idx)
+                    if "ch_name" in args:
+                        kwargs.update(ch_name=self.info["ch_names"][ch_idx])
+                    self._data[:, ch_idx, :] = np.apply_along_axis(
+                        _fun, -1, data_in[:, ch_idx, :], **kwargs
                     )
             else:
                 # use parallel function
+                _fun = partial(np.apply_along_axis, fun, -1)
                 data_picks_new = parallel(
-                    p_fun(fun, data_in[:, p, :], **kwargs) for p in picks
+                    p_fun(
+                        _fun,
+                        data_in[:, ch_idx, :],
+                        **kwargs,
+                        **{
+                            k: v
+                            for k, v in [
+                                ("ch_name", self.info["ch_names"][ch_idx]),
+                                ("ch_idx", ch_idx),
+                            ]
+                            if k in args
+                        },
+                    )
+                    for ch_idx in picks
                 )
-                for pp, p in enumerate(picks):
-                    self._data[:, p, :] = data_picks_new[pp]
+                for run_idx, ch_idx in enumerate(picks):
+                    self._data[:, ch_idx, :] = data_picks_new[run_idx]
         else:
             self._data = _check_fun(fun, data_in, **kwargs)
 
@@ -2162,7 +2212,14 @@ class BaseEpochs(
         )
 
         # check for file existence and expand `~` if present
-        fname = str(_check_fname(fname=fname, overwrite=overwrite))
+        fname = str(
+            _check_fname(
+                fname=fname,
+                overwrite=overwrite,
+                check_bids_split=True,
+                name="fname",
+            )
+        )
 
         split_size_bytes = _get_split_size(split_size)
 
@@ -2430,8 +2487,8 @@ class BaseEpochs(
         for eq in event_ids:
             eq_inds.append(self._keys_to_idx(eq))
 
-        event_times = [self.events[e, 0] for e in eq_inds]
-        indices = _get_drop_indices(event_times, method)
+        sample_nums = [self.events[e, 0] for e in eq_inds]
+        indices = _get_drop_indices(sample_nums, method)
         # need to re-index indices
         indices = np.concatenate([e[idx] for e, idx in zip(eq_inds, indices)])
         self.drop(indices, reason="EQUALIZED_COUNT")
@@ -3199,6 +3256,10 @@ class Epochs(BaseEpochs):
             See :meth:`~mne.Epochs.equalize_event_counts`
         - 'USER'
             For user-defined reasons (see :meth:`~mne.Epochs.drop`).
+
+        When dropping based on flat or reject parameters the tuple of
+        reasons contains a tuple of channels that satisfied the rejection
+        criteria.
     filename : str
         The filename of the object.
     times :  ndarray
@@ -3563,7 +3624,7 @@ def combine_event_ids(epochs, old_event_ids, new_event_id, copy=True):
 
 
 def equalize_epoch_counts(epochs_list, method="mintime"):
-    """Equalize the number of trials in multiple Epoch instances.
+    """Equalize the number of trials in multiple Epochs or EpochsTFR instances.
 
     Parameters
     ----------
@@ -3590,33 +3651,32 @@ def equalize_epoch_counts(epochs_list, method="mintime"):
     --------
     >>> equalize_epoch_counts([epochs1, epochs2])  # doctest: +SKIP
     """
-    if not all(isinstance(e, BaseEpochs) for e in epochs_list):
+    if not all(isinstance(epoch, (BaseEpochs, EpochsTFR)) for epoch in epochs_list):
         raise ValueError("All inputs must be Epochs instances")
 
     # make sure bad epochs are dropped
-    for e in epochs_list:
-        if not e._bad_dropped:
-            e.drop_bad()
-    event_times = [e.events[:, 0] for e in epochs_list]
-    indices = _get_drop_indices(event_times, method)
-    for e, inds in zip(epochs_list, indices):
-        e.drop(inds, reason="EQUALIZED_COUNT")
+    for epoch in epochs_list:
+        if not epoch._bad_dropped:
+            epoch.drop_bad()
+    sample_nums = [epoch.events[:, 0] for epoch in epochs_list]
+    indices = _get_drop_indices(sample_nums, method)
+    for epoch, inds in zip(epochs_list, indices):
+        epoch.drop(inds, reason="EQUALIZED_COUNT")
 
 
-def _get_drop_indices(event_times, method):
+def _get_drop_indices(sample_nums, method):
     """Get indices to drop from multiple event timing lists."""
-    small_idx = np.argmin([e.shape[0] for e in event_times])
-    small_e_times = event_times[small_idx]
+    small_idx = np.argmin([e.shape[0] for e in sample_nums])
+    small_epoch_indices = sample_nums[small_idx]
     _check_option("method", method, ["mintime", "truncate"])
     indices = list()
-    for e in event_times:
+    for event in sample_nums:
         if method == "mintime":
-            mask = _minimize_time_diff(small_e_times, e)
+            mask = _minimize_time_diff(small_epoch_indices, event)
         else:
-            mask = np.ones(e.shape[0], dtype=bool)
-            mask[small_e_times.shape[0] :] = False
+            mask = np.ones(event.shape[0], dtype=bool)
+            mask[small_epoch_indices.shape[0] :] = False
         indices.append(np.where(np.logical_not(mask))[0])
-
     return indices
 
 
@@ -3662,10 +3722,12 @@ def _is_good(
     reject,
     flat,
     full_report=False,
-    ignore_chs=[],
+    ignore_chs=(),
     verbose=None,
 ):
     """Test if data segment e is good according to reject and flat.
+
+    The reject and flat parameters can accept functions as values.
 
     If full_report=True, it will give True/False as well as a list of all
     offending channels.
@@ -3674,30 +3736,60 @@ def _is_good(
     has_printed = False
     checkable = np.ones(len(ch_names), dtype=bool)
     checkable[np.array([c in ignore_chs for c in ch_names], dtype=bool)] = False
+
     for refl, f, t in zip([reject, flat], [np.greater, np.less], ["", "flat"]):
         if refl is not None:
-            for key, thresh in refl.items():
+            for key, refl in refl.items():
+                criterion = refl
                 idx = channel_type_idx[key]
                 name = key.upper()
                 if len(idx) > 0:
                     e_idx = e[idx]
-                    deltas = np.max(e_idx, axis=1) - np.min(e_idx, axis=1)
                     checkable_idx = checkable[idx]
-                    idx_deltas = np.where(
-                        np.logical_and(f(deltas, thresh), checkable_idx)
-                    )[0]
+                    # Check if criterion is a function and apply it
+                    if callable(criterion):
+                        result = criterion(e_idx)
+                        _validate_type(result, tuple, "reject/flat output")
+                        if len(result) != 2:
+                            raise TypeError(
+                                "Function criterion must return a tuple of length 2"
+                            )
+                        cri_truth, reasons = result
+                        _validate_type(cri_truth, (bool, np.bool_), cri_truth, "bool")
+                        _validate_type(
+                            reasons, (str, list, tuple), reasons, "str, list, or tuple"
+                        )
+                        idx_deltas = np.where(np.logical_and(cri_truth, checkable_idx))[
+                            0
+                        ]
+                    else:
+                        deltas = np.max(e_idx, axis=1) - np.min(e_idx, axis=1)
+                        idx_deltas = np.where(
+                            np.logical_and(f(deltas, criterion), checkable_idx)
+                        )[0]
 
                     if len(idx_deltas) > 0:
-                        bad_names = [ch_names[idx[i]] for i in idx_deltas]
-                        if not has_printed:
-                            logger.info(
-                                f"    Rejecting {t} epoch based on {name} : {bad_names}"
-                            )
-                            has_printed = True
-                        if not full_report:
-                            return False
+                        # Check to verify that refl is a callable that returns
+                        # (bool, reason). Reason must be a str/list/tuple.
+                        # If using tuple
+                        if callable(refl):
+                            if isinstance(reasons, str):
+                                reasons = (reasons,)
+                            for idx, reason in enumerate(reasons):
+                                _validate_type(reason, str, reason)
+                            bad_tuple += tuple(reasons)
                         else:
-                            bad_tuple += tuple(bad_names)
+                            bad_names = [ch_names[idx[i]] for i in idx_deltas]
+                            if not has_printed:
+                                logger.info(
+                                    "    Rejecting %s epoch based on %s : "
+                                    "%s" % (t, name, bad_names)
+                                )
+                                has_printed = True
+                            if not full_report:
+                                return False
+                            else:
+                                bad_tuple += tuple(bad_names)
 
     if not full_report:
         return True
@@ -4631,7 +4723,7 @@ def make_fixed_length_epochs(
     reject_by_annotation=True,
     proj=True,
     overlap=0.0,
-    id=1,
+    id=1,  # noqa: A002
     verbose=None,
 ):
     """Divide continuous raw data into equal-sized consecutive epochs.

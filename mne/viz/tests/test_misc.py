@@ -30,6 +30,7 @@ from mne.filter import create_filter
 from mne.io import read_raw_fif
 from mne.minimum_norm import read_inverse_operator
 from mne.time_frequency import CrossSpectralDensity
+from mne.utils import _record_warnings
 from mne.viz import (
     plot_bem,
     plot_chpi_snr,
@@ -214,7 +215,9 @@ def test_plot_events():
     assert fig.axes[0].get_legend() is not None
     with pytest.warns(RuntimeWarning, match="Color was not assigned"):
         plot_events(events, raw.info["sfreq"], raw.first_samp, color=color)
-    with pytest.warns(RuntimeWarning, match=r"vent \d+ missing from event_id"):
+    with _record_warnings(), pytest.warns(
+        RuntimeWarning, match=r"vent \d+ missing from event_id"
+    ):
         plot_events(
             events,
             raw.info["sfreq"],
@@ -223,7 +226,7 @@ def test_plot_events():
             color=color,
         )
     multimatch = r"event \d+ missing from event_id|in the color dict but is"
-    with pytest.warns(RuntimeWarning, match=multimatch):
+    with _record_warnings(), pytest.warns(RuntimeWarning, match=multimatch):
         plot_events(
             events,
             raw.info["sfreq"],
@@ -243,7 +246,9 @@ def test_plot_events():
             on_missing="ignore",
         )
     extra_id = {"aud_l": 1, "missing": 111}
-    with pytest.warns(RuntimeWarning, match="from event_id is not present in"):
+    with _record_warnings(), pytest.warns(
+        RuntimeWarning, match="from event_id is not present in"
+    ):
         plot_events(
             events,
             raw.info["sfreq"],
@@ -251,7 +256,7 @@ def test_plot_events():
             event_id=extra_id,
             on_missing="warn",
         )
-    with pytest.warns(RuntimeWarning, match="event 2 missing"):
+    with _record_warnings(), pytest.warns(RuntimeWarning, match="event 2 missing"):
         plot_events(
             events,
             raw.info["sfreq"],

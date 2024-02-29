@@ -1,5 +1,6 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+import datetime
 import glob
 import os
 
@@ -10,53 +11,6 @@ from ..._fiff.utils import _mult_cal_one
 from ...annotations import Annotations
 from ...utils import _check_fname, _soft_import, fill_doc, logger, verbose
 from ..base import BaseRaw
-
-
-class AnalogSignalGap:
-    """Dummy object to represent gaps in Neuralynx data.
-
-    Creates a AnalogSignalProxy-like object.
-    Propagate `signal`, `units`, and `sampling_rate` attributes
-    to the `AnalogSignal` init returned by `load()`.
-
-    Parameters
-    ----------
-    signal : array-like
-        Array of shape (n_samples, n_chans) containing the data.
-    units : str
-        Units of the data. (e.g., 'uV')
-    sampling_rate : quantity
-        Sampling rate of the data. (e.g., 4000 * pq.Hz)
-
-    Returns
-    -------
-    sig : instance of AnalogSignal
-        A AnalogSignal object representing a gap in Neuralynx data.
-    """
-
-    def __init__(self, signal, units, sampling_rate):
-        self.signal = signal
-        self.units = units
-        self.sampling_rate = sampling_rate
-
-    def load(self, **kwargs):
-        """Return AnalogSignal object."""
-        _soft_import("neo", "Reading NeuralynxIO files", strict=True)
-        from neo import AnalogSignal
-
-        # `kwargs` is a dummy argument to mirror the
-        # AnalogSignalProxy.load() call signature which
-        # accepts `channel_indexes`` argument; but here we don't need
-        # any extra data selection arguments since
-        # self.signal array is already in the correct shape
-        # (channel dimension is based on `idx` variable)
-
-        sig = AnalogSignal(
-            signal=self.signal,
-            units=self.units,
-            sampling_rate=self.sampling_rate,
-        )
-        return sig
 
 
 @fill_doc
@@ -85,6 +39,32 @@ def read_raw_neuralynx(
     See Also
     --------
     mne.io.Raw : Documentation of attributes and methods of RawNeuralynx.
+
+    Notes
+    -----
+    Neuralynx files are read from disk using the `Neo package
+    <http://neuralensemble.org/neo/>`__.
+    Currently, only reading of the ``.ncs files`` is supported.
+
+    ``raw.info["meas_date"]`` is read from the ``recording_opened`` property
+    of the first ``.ncs`` file (i.e. channel) in the dataset (a warning is issued
+    if files have different dates of acquisition).
+
+    Channel-specific high and lowpass frequencies of online filters are determined
+    based on the ``DspLowCutFrequency`` and ``DspHighCutFrequency`` header fields,
+    respectively. If no filters were used for a channel, the default lowpass is set
+    to the Nyquist frequency and the default highpass is set to 0.
+    If channels have different high/low cutoffs, ``raw.info["highpass"]`` and
+    ``raw.info["lowpass"]`` are then set to the maximum highpass and minimumlowpass
+    values across channels, respectively.
+
+    Other header variables can be inspected using Neo directly. For example::
+
+        from neo.io import NeuralynxIO  # doctest: +SKIP
+        fname = 'path/to/your/data'  # doctest: +SKIP
+        nlx_reader = NeuralynxIO(dirname=fname)  # doctest: +SKIP
+        print(nlx_reader.header)  # doctest: +SKIP
+        print(nlx_reader.file_headers.items())  # doctest: +SKIP
     """
     return RawNeuralynx(
         fname,
@@ -147,6 +127,61 @@ class RawNeuralynx(BaseRaw):
             ch_names=nlx_reader.header["signal_channels"]["name"].tolist(),
             sfreq=nlx_reader.get_signal_sampling_rate(),
         )
+
+        ncs_fnames = nlx_reader.ncs_filenames.values()
+        ncs_hdrs = [
+            hdr
+            for hdr_key, hdr in nlx_reader.file_headers.items()
+            if hdr_key in ncs_fnames
+        ]
+
+        # if all files have the same recording_opened date, write it to info
+        meas_dates = np.array([hdr["recording_opened"] for hdr in ncs_hdrs])
+        # to be sure, only write if all dates are the same
+        meas_diff = []
+        for md in meas_dates:
+            meas_diff.append((md - meas_dates[0]).total_seconds())
+
+        # tolerate a +/-1 second meas_date difference (arbitrary threshold)
+        # else issue a warning
+        warn_meas = (np.abs(meas_diff) > 1.0).any()
+        if warn_meas:
+            logger.warning(
+                "Not all .ncs files have the same recording_opened date. "
+                + "Writing meas_date based on the first .ncs file."
+            )
+
+        # Neuarlynx allows channel specific low/highpass filters
+        # if not enabled, assume default lowpass = nyquist, highpass = 0
+        default_lowpass = info["sfreq"] / 2  # nyquist
+        default_highpass = 0
+
+        has_hp = [hdr["DSPLowCutFilterEnabled"] for hdr in ncs_hdrs]
+        has_lp = [hdr["DSPHighCutFilterEnabled"] for hdr in ncs_hdrs]
+        if not all(has_hp) or not all(has_lp):
+            logger.warning(
+                "Not all .ncs files have the same high/lowpass filter settings. "
+                + "Assuming default highpass = 0, lowpass = nyquist."
+            )
+
+        highpass_freqs = [
+            float(hdr["DspLowCutFrequency"])
+            if hdr["DSPLowCutFilterEnabled"]
+            else default_highpass
+            for hdr in ncs_hdrs
+        ]
+
+        lowpass_freqs = [
+            float(hdr["DspHighCutFrequency"])
+            if hdr["DSPHighCutFilterEnabled"]
+            else default_lowpass
+            for hdr in ncs_hdrs
+        ]
+
+        with info._unlock():
+            info["meas_date"] = meas_dates[0].astimezone(datetime.timezone.utc)
+            info["highpass"] = np.max(highpass_freqs)
+            info["lowpass"] = np.min(lowpass_freqs)
 
         # Neo reads only valid contiguous .ncs samples grouped as segments
         n_segments = nlx_reader.header["nb_segment"][0]
@@ -223,11 +258,8 @@ class RawNeuralynx(BaseRaw):
             [np.full(shape=(n,), fill_value=i) for i, n in enumerate(sizes_sorted)]
         )
 
-        # construct Annotations()
-        gap_seg_ids = np.unique(sample2segment)[gap_indicator]
-        gap_start_ids = np.array(
-            [np.where(sample2segment == seg_id)[0][0] for seg_id in gap_seg_ids]
-        )
+        # get the start sample index for each gap segment ()
+        gap_start_ids = np.cumsum(np.hstack([[0], sizes_sorted[:-1]]))[gap_indicator]
 
         # recreate time axis for gap annotations
         mne_times = np.arange(0, len(sample2segment)) / info["sfreq"]
@@ -261,8 +293,9 @@ class RawNeuralynx(BaseRaw):
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data."""
-        from neo import Segment
+        from neo import AnalogSignal, Segment
         from neo.io import NeuralynxIO
+        from neo.io.proxyobjects import AnalogSignalProxy
 
         # quantities is a dependency of neo so we are guaranteed it exists
         from quantities import Hz
@@ -341,7 +374,7 @@ class RawNeuralynx(BaseRaw):
         )
 
         for seg, n in zip(gap_segments, gap_samples):
-            asig = AnalogSignalGap(
+            asig = AnalogSignal(
                 signal=np.zeros((n, n_chans)), units="uV", sampling_rate=sfreq * Hz
             )
             seg.analogsignals.append(asig)
@@ -354,13 +387,16 @@ class RawNeuralynx(BaseRaw):
         segments_arr[~isgap] = neo_block[0].segments
         segments_arr[isgap] = gap_segments
 
-        # now load data from selected segments/channels via
-        # neo.Segment.AnalogSignal.load() or AnalogSignalGap.load()
+        # now load data for selected segments/channels via
+        # neo.Segment.AnalogSignalProxy.load() or
+        # pad directly as AnalogSignal.magnitude for any gap data
         all_data = np.concatenate(
             [
                 signal.load(channel_indexes=idx).magnitude[
                     samples[0] : samples[-1] + 1, :
                 ]
+                if isinstance(signal, AnalogSignalProxy)
+                else signal.magnitude[samples[0] : samples[-1] + 1, :]
                 for seg, samples in zip(
                     segments_arr[first_seg : last_seg + 1], sel_samples_local
                 )

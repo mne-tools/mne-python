@@ -1468,7 +1468,7 @@ class AverageTFR(_BaseTFR):
         mask_cmap="Greys",
         mask_alpha=0.1,
         combine=None,
-        exclude=[],
+        exclude=(),
         cnorm=None,
         verbose=None,
     ):
@@ -1667,7 +1667,7 @@ class AverageTFR(_BaseTFR):
         exclude=None,
         copy=True,
         source_plot_joint=False,
-        topomap_args=dict(),
+        topomap_args=None,
         ch_type=None,
         cnorm=None,
         verbose=None,
@@ -1676,6 +1676,8 @@ class AverageTFR(_BaseTFR):
 
         See self.plot() for parameters description.
         """
+        _validate_type(topomap_args, (dict, None), "topomap_args")
+        topomap_args = {} if topomap_args is None else topomap_args
         import matplotlib.pyplot as plt
 
         # channel selection
@@ -1821,7 +1823,7 @@ class AverageTFR(_BaseTFR):
         title=None,
         yscale="auto",
         combine="mean",
-        exclude=[],
+        exclude=(),
         topomap_args=None,
         image_args=None,
         verbose=None,
@@ -2762,6 +2764,8 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
         self.method = method
         self.preload = True
         self.metadata = metadata
+        # we need this to allow equalize_epoch_counts to work with EpochsTFRs
+        self._bad_dropped = True
 
     @property
     def _detrend_picks(self):
@@ -2872,6 +2876,41 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
             self._set_times(times)
             self.freqs = freqs
             return self
+
+    @verbose
+    def drop(self, indices, reason="USER", verbose=None):
+        """Drop epochs based on indices or boolean mask.
+
+        .. note:: The indices refer to the current set of undropped epochs
+                  rather than the complete set of dropped and undropped epochs.
+                  They are therefore not necessarily consistent with any
+                  external indices (e.g., behavioral logs). To drop epochs
+                  based on external criteria, do not use the ``preload=True``
+                  flag when constructing an Epochs object, and call this
+                  method before calling the :meth:`mne.Epochs.drop_bad` or
+                  :meth:`mne.Epochs.load_data` methods.
+
+        Parameters
+        ----------
+        indices : array of int or bool
+            Set epochs to remove by specifying indices to remove or a boolean
+            mask to apply (where True values get removed). Events are
+            correspondingly modified.
+        reason : str
+            Reason for dropping the epochs ('ECG', 'timeout', 'blink' etc).
+            Default: 'USER'.
+        %(verbose)s
+
+        Returns
+        -------
+        epochs : instance of Epochs or EpochsTFR
+            The epochs with indices dropped. Operates in-place.
+        """
+        from ..epochs import BaseEpochs
+
+        BaseEpochs.drop(self, indices=indices, reason=reason, verbose=verbose)
+
+        return self
 
 
 def combine_tfr(all_tfr, weights="nave"):

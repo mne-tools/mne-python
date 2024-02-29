@@ -5,6 +5,7 @@
 import logging
 
 import numpy as np
+from scipy.sparse import issparse
 
 from ..fixes import _get_check_scoring
 from ..parallel import parallel_func
@@ -254,6 +255,12 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
 
     def _check_Xy(self, X, y=None):
         """Aux. function to check input data."""
+        # Once we require sklearn 1.1+ we should do something like:
+        # from sklearn.utils import check_array
+        # X = check_array(X, ensure_2d=False, input_name="X")
+        # y = check_array(y, dtype=None, ensure_2d=False, input_name="y")
+        if issparse(X):
+            raise TypeError("X should be a dense array, got sparse instead.")
         X = np.asarray(X)
         if y is not None:
             y = np.asarray(y)
