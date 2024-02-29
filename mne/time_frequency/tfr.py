@@ -2151,7 +2151,7 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
         cnorm=None,
         cmap=None,
         colorbar=True,
-        title=None,
+        title=None,  # TODO consider deprecating this one, or adding an "auto" option
         show=True,
         topomap_args=None,
         image_args=None,
@@ -2183,11 +2183,6 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
         %(cmap_tfr_plot_topo)s
         %(colorbar_tfr_plot_joint)s
         %(title_none)s
-
-            .. deprecated:: 1.7
-                The `title` parameter will be removed in version 1.8.
-                Use the :meth:`fig.suptitle()<matplotlib.figure.Figure.suptitle>`
-                method of the returned figure object instead.
         %(show)s
         %(topomap_args)s
         %(image_args)s
@@ -2209,12 +2204,6 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
 
         # deprecations
         vlim = _warn_deprecated_vmin_vmax(vlim, vmin, vmax)
-        if title is not None:
-            warn(
-                "The `title` parameter is deprecated; use the `.suptitle()` method of "
-                "the returned Figure object instead.",
-                FutureWarning,
-            )
         # handle recursion
         picks = _picks_to_idx(
             self.info, picks, "data_or_ica", exclude=exclude, with_ref_meg=False
@@ -2453,7 +2442,7 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
         vmax=None,
         layout=None,
         cmap="RdBu_r",
-        title=None,
+        title=None,  # don't deprecate; topo titles aren't standard (color, size, just.)
         dB=False,
         colorbar=True,
         layout_scale=0.945,
@@ -2480,11 +2469,6 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
         %(layout_spectrum_plot_topo)s
         %(cmap_tfr_plot_topo)s
         %(title_none)s
-
-            .. deprecated:: 1.7
-                The `title` parameter will be removed in version 1.8.
-                Use the :meth:`fig.suptitle()<matplotlib.figure.Figure.suptitle>`
-                method of the returned figure object instead.
         %(dB_tfr_plot_topo)s
         %(colorbar)s
         %(layout_scale)s
@@ -2501,13 +2485,6 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
         fig : matplotlib.figure.Figure
             The figure containing the topography.
         """
-        # deprecations
-        if title is not None:
-            warn(
-                "The `title` parameter is deprecated; use the `.suptitle()` method of "
-                "the returned Figure object instead.",
-                FutureWarning,
-            )
         # convenience vars
         times = self.times.copy()
         freqs = self.freqs
@@ -3569,7 +3546,7 @@ class EpochsTFR(BaseTFR, GetEpochsMixin):
         vmax=None,
         layout=None,
         cmap=None,
-        title=None,
+        title=None,  # don't deprecate; topo titles aren't standard (color, size, just.)
         dB=False,
         colorbar=True,
         layout_scale=0.945,
