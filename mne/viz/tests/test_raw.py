@@ -628,7 +628,6 @@ def test_plot_raw_picks(raw, browser_backend):
     """Test functionality of picks and order arguments."""
     with raw.info._unlock():
         raw.info["lowpass"] = 10.0  # allow heavy decim during plotting
-    browser_backend._close_all()  # ensure all are closed
 
     fig = raw.plot(picks=['MEG 0112'])
     assert len(fig.mne.traces) == 1

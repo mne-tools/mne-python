@@ -1,0 +1,1 @@
+Add ``picks=`` to :meth:`mne.io.Raw.plot` to improve uniformity with :meth:`mne.io.Epochs.plot` and :meth:`mne.io.Evoked.plot`, by `Ivo de Jong`_.
