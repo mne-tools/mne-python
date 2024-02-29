@@ -850,7 +850,7 @@ docdict["combine_plot_compare_evokeds"] = _combine_template.format(
     **_none_default,
     none_sentence="""If ``None``, channels are combined by
     computing GFP/RMS, unless ``picks`` is a single channel (not channel type)
-    or ``axes="topo"``, in which cases no combining is performed.""",
+    or ``axes="topo"``, in which cases no combining is performed. """,
     other_string=_median_std_gfp,
     shape="n_evokeds, n_channels, n_times",
     return_shape="n_evokeds, n_times",
@@ -863,7 +863,7 @@ docdict["combine_plot_epochs_image"] = _combine_template.format(
     none_sentence="""If ``None``, channels are combined by
     computing GFP/RMS, unless ``group_by`` is also ``None`` and ``picks`` is a
     list of specific channels (not channel types), in which case no combining
-    is performed and each channel gets its own figure.""",
+    is performed and each channel gets its own figure. """,
     other_string=_median_std_gfp,
     shape="n_epochs, n_channels, n_times",
     return_shape="n_epochs, n_times",
@@ -873,7 +873,7 @@ docdict["combine_plot_epochs_image"] = _combine_template.format(
 docdict["combine_tfr_plot"] = _combine_template.format(
     literals="'rms'",
     **_none_default,
-    none_sentence="If ``None``, plot one figure per selected channel.",
+    none_sentence="If ``None``, plot one figure per selected channel. ",
     shape="n_channels, n_freqs, n_times",
     return_shape="n_freqs, n_times",
     other_string='``"rms"`` computes the root-mean-square',
@@ -4762,52 +4762,81 @@ views : str | list
 """
 
 _vlim = """\
-vlim : tuple of length 2{}
-    Colormap limits to use. If a :class:`tuple` of floats, specifies the
-    lower and upper bounds of the colormap (in that order); providing
-    ``None`` for either entry will set the corresponding boundary at the
-    min/max of the data{}. {}{}{}Defaults to ``(None, None)``.
+vlim : tuple of length 2{joint_param}
+    Lower and upper bounds of the colormap, typically a numeric value in the same
+    units as the data. {callable}
+    If both entries are ``None``, the bounds are set at {bounds}.
+    Providing ``None`` for just one entry will set the corresponding boundary at the
+    min/max of the data. {extra}Defaults to ``(None, None)``.
 """
-_vlim_joint = _vlim.format(
-    " | 'joint'",
-    " (separately for each {0})",
-    "{1}",
-    "If ``vlim='joint'``, will compute the colormap limits jointly across "
-    "all {0}s of the same channel type, using the min/max of the data for "
-    "that channel type. ",
-    "{2}",
-)
-_vlim_callable = (
-    "Elements of the :class:`tuple` may also be callable functions which "
-    "take in a :class:`NumPy array <numpy.ndarray>` and return a scalar. "
-)
+_joint_param = ' | "joint"'
+_callable_sentence = """Elements of the :class:`tuple` may also be callable functions
+    which take in a :class:`NumPy array <numpy.ndarray>` and return a scalar.
+"""
+_bounds_symmetric = """± the maximum absolute value
+    of the data (yielding a colormap with midpoint at 0)"""
+_bounds_minmax = "``(min(data), max(data))``"
+_bounds_norm = "``(0, max(abs(data)))``"
+_bounds_contingent = f"""{_bounds_symmetric}, or {_bounds_norm}
+    if the (possibly baselined) data are all-positive"""
+_joint_sentence = """If ``vlim="joint"``, will compute the colormap limits
+    jointly across all {what}s of the same channel type (instead of separately
+    for each {what}), using the min/max of the data for that channel type.
+    {joint_extra}"""
 
-docdict["vlim_plot_topomap"] = _vlim.format("", "", "", "", "")
-docdict["vlim_plot_topomap_proj"] = _vlim_joint.format(
-    "projector",
-    _vlim_callable,
-    "If vlim is ``'joint'``, ``info`` must not be ``None``. ",
+docdict["vlim_plot_topomap"] = _vlim.format(
+    joint_param="", callable="", bounds=_bounds_minmax, extra=""
 )
-docdict["vlim_plot_topomap_psd"] = _vlim_joint.format("topomap", _vlim_callable, "")
+docdict["vlim_plot_topomap_proj"] = _vlim.format(
+    joint_param=_joint_param,
+    callable=_callable_sentence,
+    bounds=_bounds_contingent,
+    extra=_joint_sentence.format(
+        what="projector",
+        joint_extra='If vlim is ``"joint"``, ``info`` must not be ``None``. ',
+    ),
+)
+docdict["vlim_plot_topomap_psd"] = _vlim.format(
+    joint_param=_joint_param,
+    callable=_callable_sentence,
+    bounds=_bounds_contingent,
+    extra=_joint_sentence.format(what="topomap", joint_extra=""),
+)
+docdict["vlim_tfr_plot"] = _vlim.format(
+    joint_param="", callable="", bounds=_bounds_contingent, extra=""
+)
+docdict["vlim_tfr_plot_joint"] = _vlim.format(
+    joint_param="",
+    callable="",
+    bounds=_bounds_contingent,
+    extra="""To specify the colormap separately for the topomap annotations,
+    see ``topomap_args``. """,
+)
 
 _vmin_vmax_template = """
 vmin, vmax : float | {allowed}None
     Lower and upper bounds of the colormap, in the same units as the data.
-    If ``vmin`` and ``vmax`` are both ``None``, they are set at ± the
-    maximum absolute value of the data (yielding a colormap with midpoint
-    at 0). If only one of ``vmin``, ``vmax`` is ``None``, will use
+    If ``vmin`` and ``vmax`` are both ``None``, the bounds are set at
+    {bounds}. If only one of ``vmin``, ``vmax`` is ``None``, will use
     ``min(data)`` or ``max(data)``, respectively.{extra}
 """
-docdict["vmin_vmax_tfr_plot_joint"] = _vmin_vmax_template.format(
-    allowed="",
-    extra=" To specify the colormap separately for the topomap annotations, see "
-    "``topomap_args``.",
+
+docdict["vmin_vmax_tfr_plot"] = """
+vmin, vmax : float | None
+    Lower and upper bounds of the colormap. See ``vlim``.
+
+    .. deprecated:: 1.7
+        ``vmin`` and ``vmax`` will be removed in version 1.8.
+        Use ``vlim`` parameter instead.
+"""
+# ↓↓↓ this one still used, needs helper func refactor before we can migrate to `vlim`
+docdict["vmin_vmax_tfr_plot_topo"] = _vmin_vmax_template.format(
+    allowed="", bounds=_bounds_symmetric, extra=""
 )
-
-docdict["vmin_vmax_tfr_plot_topo"] = _vmin_vmax_template.format(allowed="", extra="")
-
+# ↓↓↓ this one still used in Evoked.animate_topomap(), should migrate to `vlim`
 docdict["vmin_vmax_topomap"] = _vmin_vmax_template.format(
     allowed="callable | ",
+    bounds=_bounds_symmetric,
     extra=""" If callable, should accept
     a :class:`NumPy array <numpy.ndarray>` of data and return a :class:`float`.""",
 )

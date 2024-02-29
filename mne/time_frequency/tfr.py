@@ -1890,13 +1890,15 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
         mode="mean",
         dB=False,
         combine=None,
-        layout=None,  # TODO deprecate; not used in orig implementation
+        layout=None,  # TODO deprecate? not used in orig implementation either
         yscale="auto",
+        vmin=None,
+        vmax=None,
         vlim=(None, None),
         cnorm=None,
         cmap=None,
         colorbar=True,
-        title=None,  # don't deprecate this one? has option title="auto"
+        title=None,  # don't deprecate this one; has (useful) option title="auto"
         mask=None,
         mask_style=None,
         mask_cmap="Greys",
@@ -1926,7 +1928,8 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
         %(yscale_tfr_plot)s
 
             .. versionadded:: 0.14.0
-        %(vlim_plot_topomap)s
+        %(vmin_vmax_tfr_plot)s
+        %(vlim_tfr_plot)s
         %(cnorm)s
 
             .. versionadded:: 0.24
@@ -1954,6 +1957,8 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
         figs : list of instances of matplotlib.figure.Figure
             A list of figures containing the time-frequency power.
         """
+        # deprecations
+        vlim = _warn_deprecated_vmin_vmax(vlim, vmin, vmax)
         # the rectangle selector plots topomaps, which needs all channels uncombined,
         # so we keep a reference to that state here, and (because the topomap plotting
         # function wants an AverageTFR) update it with `comment` and `nave` values in
@@ -2140,12 +2145,13 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
         mode="mean",
         dB=False,
         yscale="auto",
-        vmin=None,  # TODO deprecate vmin, vmax and add vlim=(None, None)
+        vmin=None,
         vmax=None,
+        vlim=(None, None),
         cnorm=None,
         cmap=None,
         colorbar=True,
-        title=None,  # TODO deprecate title (as we've been doing in other plot funcs)
+        title=None,
         show=True,
         topomap_args=None,
         image_args=None,
@@ -2171,11 +2177,17 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
         %(mode_tfr_plot)s
         %(dB_tfr_plot_topo)s
         %(yscale_tfr_plot)s
-        %(vmin_vmax_tfr_plot_joint)s
+        %(vmin_vmax_tfr_plot)s
+        %(vlim_tfr_plot_joint)s
         %(cnorm)s
         %(cmap_tfr_plot_topo)s
         %(colorbar_tfr_plot_joint)s
         %(title_none)s
+
+            .. deprecated:: 1.7
+                The `title` parameter will be removed in version 1.8.
+                Use the :meth:`fig.suptitle()<matplotlib.figure.Figure.suptitle>`
+                method of the returned figure object instead.
         %(show)s
         %(topomap_args)s
         %(image_args)s
@@ -2195,6 +2207,14 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
         from matplotlib import ticker
         from matplotlib.patches import ConnectionPatch
 
+        # deprecations
+        vlim = _warn_deprecated_vmin_vmax(vlim, vmin, vmax)
+        if title is not None:
+            warn(
+                "The `title` parameter is deprecated; use the `.suptitle()` method of "
+                "the returned Figure object instead.",
+                FutureWarning,
+            )
         # handle recursion
         picks = _picks_to_idx(
             self.info, picks, "data_or_ica", exclude=exclude, with_ref_meg=False
@@ -2225,8 +2245,7 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
                         tmax=tmax,
                         fmin=fmin,
                         fmax=fmax,
-                        vmin=vmin,
-                        vmax=vmax,
+                        vlim=vlim,
                         cmap=cmap,
                         dB=dB,
                         colorbar=colorbar,
@@ -2379,7 +2398,7 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
             dB=dB,
             combine=combine,
             yscale=yscale,
-            vlim=(vmin, vmax),
+            vlim=vlim,
             cnorm=cnorm,
             cmap=cmap,
             colorbar=False,
@@ -2430,11 +2449,11 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
         tmax=None,
         fmin=None,
         fmax=None,
-        vmin=None,  # TODO deprecate vmin, vmax and add vlim=(None, None)
+        vmin=None,  # TODO deprecate in favor of `vlim` (needs helper func refactor)
         vmax=None,
         layout=None,
-        cmap=None,
-        title=None,  # TODO deprecate title (as we've been doing in other plot funcs)
+        cmap="RdBu_r",
+        title=None,
         dB=False,
         colorbar=True,
         layout_scale=0.945,
@@ -2461,6 +2480,11 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
         %(layout_spectrum_plot_topo)s
         %(cmap_tfr_plot_topo)s
         %(title_none)s
+
+            .. deprecated:: 1.7
+                The `title` parameter will be removed in version 1.8.
+                Use the :meth:`fig.suptitle()<matplotlib.figure.Figure.suptitle>`
+                method of the returned figure object instead.
         %(dB_tfr_plot_topo)s
         %(colorbar)s
         %(layout_scale)s
@@ -2477,6 +2501,14 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
         fig : matplotlib.figure.Figure
             The figure containing the topography.
         """
+        # deprecations
+        if title is not None:
+            warn(
+                "The `title` parameter is deprecated; use the `.suptitle()` method of "
+                "the returned Figure object instead.",
+                FutureWarning,
+            )
+        # convenience vars
         times = self.times.copy()
         freqs = self.freqs
         data = self.data
@@ -3477,11 +3509,13 @@ class EpochsTFR(BaseTFR, GetEpochsMixin):
         combine=None,
         layout=None,  # TODO deprecate; not used in orig implementation
         yscale="auto",
+        vmin=None,
+        vmax=None,
         vlim=(None, None),
         cnorm=None,
         cmap=None,
         colorbar=True,
-        title=None,  # don't deprecate this one? has option title="auto"
+        title=None,  # don't deprecate this one; has (useful) option title="auto"
         mask=None,
         mask_style=None,
         mask_cmap="Greys",
@@ -3504,6 +3538,8 @@ class EpochsTFR(BaseTFR, GetEpochsMixin):
             combine=combine,
             layout=layout,
             yscale=yscale,
+            vmin=vmin,
+            vmax=vmax,
             vlim=vlim,
             cnorm=cnorm,
             cmap=cmap,
@@ -3529,11 +3565,11 @@ class EpochsTFR(BaseTFR, GetEpochsMixin):
         tmax=None,
         fmin=None,
         fmax=None,
-        vmin=None,  # TODO deprecate vmin, vmax and add vlim=(None, None)
+        vmin=None,  # TODO deprecate in favor of `vlim` (needs helper func refactor)
         vmax=None,
         layout=None,
         cmap=None,
-        title=None,  # TODO deprecate title (as we've been doing in other plot funcs)
+        title=None,
         dB=False,
         colorbar=True,
         layout_scale=0.945,
@@ -3588,12 +3624,13 @@ class EpochsTFR(BaseTFR, GetEpochsMixin):
         mode="mean",
         dB=False,
         yscale="auto",
-        vmin=None,  # TODO deprecate vmin, vmax and add vlim=(None, None)
+        vmin=None,
         vmax=None,
+        vlim=(None, None),
         cnorm=None,
         cmap=None,
         colorbar=True,
-        title=None,  # TODO deprecate title (as we've been doing in other plot funcs)
+        title=None,
         show=True,
         topomap_args=None,
         image_args=None,
@@ -3615,6 +3652,7 @@ class EpochsTFR(BaseTFR, GetEpochsMixin):
             yscale=yscale,
             vmin=vmin,
             vmax=vmax,
+            vlim=vlim,
             cnorm=cnorm,
             cmap=cmap,
             colorbar=colorbar,
@@ -4347,3 +4385,19 @@ def _prep_data_for_plot(
     if dB:
         data = 10 * np.log10(data)
     return data, times, freqs
+
+
+def _warn_deprecated_vmin_vmax(vlim, vmin, vmax):
+    if vmin is not None or vmax is not None:
+        warn(
+            "Parameters `vmin` and `vmax` are deprecated, use `vlim` instead",
+            FutureWarning,
+        )
+        if vlim[0] is None and vlim[1] is None:
+            vlim = (vmin, vmax)
+        else:
+            warn(
+                'You provided either "vmin" or "vmax" (which are deprecated) as well '
+                'as "vlim". Using "vlim" and ignoring "vmin" and "vmax".'
+            )
+    return vlim
