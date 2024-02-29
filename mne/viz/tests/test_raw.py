@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 from matplotlib import backend_bases
-from numpy.testing import assert_allclose
+from numpy.testing import assert_allclose, assert_array_equal
 
 from mne import Annotations, create_info, pick_types
 from mne._fiff.pick import _DATA_CH_TYPES_ORDER_DEFAULT, _PICK_TYPES_DATA_DICT
@@ -622,6 +622,25 @@ def test_plot_raw_traces(raw, events, browser_backend):
     with pytest.raises(TypeError, match="event_color key must be an int, got"):
         raw.plot(event_color={"foo": "r"})
     plot_raw(raw, events=events, event_color={-1: "r", 998: "b"})
+
+
+def test_plot_raw_picks(raw, browser_backend):
+    """Test functionality of picks and order arguments."""
+    with raw.info._unlock():
+        raw.info["lowpass"] = 10.0  # allow heavy decim during plotting
+    browser_backend._close_all()  # ensure all are closed
+
+    fig = raw.plot(picks=['MEG 0112'])
+    assert len(fig.mne.traces) == 1
+
+    fig = raw.plot(picks=['meg'])
+    assert len(fig.mne.traces) == len(raw.get_channel_types(picks='meg'))
+
+    fig = raw.plot(order=[4, 3])
+    assert_array_equal(fig.mne.ch_order, np.array([4, 3]))
+
+    fig = raw.plot(picks=[4, 3])
+    assert_array_equal(fig.mne.ch_order, np.array([3, 4]))
 
 
 @pytest.mark.parametrize("group_by", ("position", "selection"))

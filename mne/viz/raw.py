@@ -11,7 +11,7 @@ from collections import OrderedDict
 
 import numpy as np
 
-from .._fiff.pick import pick_channels, pick_types
+from .._fiff.pick import pick_channels, pick_types, _picks_to_idx
 from ..defaults import _handle_default
 from ..filter import create_filter
 from ..utils import _check_option, _get_stim_channel, _validate_type, legacy, verbose
@@ -42,7 +42,6 @@ def plot_raw(
     event_color="cyan",
     scalings=None,
     remove_dc=True,
-    order=None,
     show_options=False,
     title=None,
     show=True,
@@ -63,7 +62,8 @@ def plot_raw(
     time_format="float",
     precompute=None,
     use_opengl=None,
-    *,
+    picks=None,
+    order=None,
     theme=None,
     overview_mode=None,
     splash=True,
@@ -310,12 +310,15 @@ def plot_raw(
     # determine trace order
     ch_names = np.array(raw.ch_names)
     ch_types = np.array(raw.get_channel_types())
-    order = _get_channel_plotting_order(order, ch_types)
-    n_channels = min(info["nchan"], n_channels, len(order))
+
+    picks = _picks_to_idx(info, picks)
+    # picks should be the ordered subset of channels here
+    order = _get_channel_plotting_order(order, ch_types, picks=picks)
+    n_channels = min(info["nchan"], n_channels, len(picks))
     # adjust order based on channel selection, if needed
     selections = None
     if group_by in ("selection", "position"):
-        selections = _setup_channel_selections(raw, group_by, order)
+        selections = _setup_channel_selections(raw, group_by, picks)
         order = np.concatenate(list(selections.values()))
         default_selection = list(selections)[0]
         n_channels = len(selections[default_selection])
