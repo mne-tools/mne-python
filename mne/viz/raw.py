@@ -11,7 +11,7 @@ from collections import OrderedDict
 
 import numpy as np
 
-from .._fiff.pick import pick_channels, pick_types, _picks_to_idx
+from .._fiff.pick import _picks_to_idx, pick_channels, pick_types
 from ..defaults import _handle_default
 from ..filter import create_filter
 from ..utils import _check_option, _get_stim_channel, _validate_type, legacy, verbose

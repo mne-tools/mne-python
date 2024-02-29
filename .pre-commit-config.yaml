@@ -1,7 +1,7 @@
 repos:
   # Ruff mne
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.1.13
+    rev: v0.2.2
     hooks:
       - id: ruff
         name: ruff lint mne
@@ -11,18 +11,14 @@ repos:
         name: ruff lint mne preview
         args: ["--fix", "--preview", "--select=NPY201"]
         files: ^mne/
-      - id: ruff-format
-        name: ruff format mne
-        files: ^mne/
       - id: ruff
-        name: ruff lint tutorials and examples
+        name: ruff lint doc, tutorials, and examples
         # D103: missing docstring in public function
         # D400: docstring first line must end with period
         args: ["--ignore=D103,D400", "--fix"]
-        files: ^tutorials/|^examples/
+        files: ^doc/|^tutorials/|^examples/
       - id: ruff-format
-        name: ruff format tutorials and examples
-        files: ^tutorials/|^examples/
+        files: ^mne/|^doc/|^tutorials/|^examples/
 
   # Codespell
   - repo: https://github.com/codespell-project/codespell
@@ -36,7 +32,7 @@ repos:
 
   # yamllint
   - repo: https://github.com/adrienverge/yamllint.git
-    rev: v1.33.0
+    rev: v1.35.1
     hooks:
       - id: yamllint
         args: [--strict, -c, .yamllint.yml]

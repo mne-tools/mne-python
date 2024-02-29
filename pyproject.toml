@@ -62,8 +62,8 @@ hdf5 = ["h5io", "pymatreader"]
 full = [
     "mne[hdf5]",
     "qtpy",
-    "PyQt6!=6.6.1",
-    "PyQt6-Qt6!=6.6.1",
+    "PyQt6!=6.6.1,!=6.6.2",
+    "PyQt6-Qt6!=6.6.1,!=6.6.2",
     "pyobjc-framework-Cocoa>=5.2.0; platform_system=='Darwin'",
     "sip",
     "scikit-learn",
@@ -72,6 +72,7 @@ full = [
     "numba",
     "h5py",
     "pandas",
+    "pyarrow",  # only needed to avoid a deprecation warning in pandas
     "numexpr",
     "jupyter",
     "python-picard",
@@ -109,10 +110,9 @@ full = [
 
 # Dependencies for running the test infrastructure
 test = [
-    "pytest!=8.0.0rc1",
+    "pytest>=8.0.0rc2",
     "pytest-cov",
     "pytest-timeout",
-    "pytest-harvest",
     "pytest-qt",
     "ruff",
     "numpydoc",
@@ -137,6 +137,7 @@ test_extra = [
     "imageio-ffmpeg>=0.4.1",
     "snirf",
     "neo",
+    "mne-bids",
 ]
 
 # Dependencies for building the docuemntation
@@ -204,8 +205,10 @@ builtin = "clear,rare,informal,names,usage"
 skip = "doc/references.bib"
 
 [tool.ruff]
-select = ["E", "F", "W", "D", "I", "UP"]
 exclude = ["__init__.py", "constants.py", "resources.py"]
+
+[tool.ruff.lint]
+select = ["A", "B006", "D", "E", "F", "I", "W", "UP"]
 ignore = [
     "D100", # Missing docstring in public module
     "D104", # Missing docstring in public package
@@ -213,7 +216,7 @@ ignore = [
     "UP031", # Use format specifiers instead of percent format
 ]
 
-[tool.ruff.pydocstyle]
+[tool.ruff.lint.pydocstyle]
 convention = "numpy"
 ignore-decorators = [
     "property",
@@ -223,7 +226,7 @@ ignore-decorators = [
     "mne.utils.deprecated",
 ]
 
-[tool.ruff.per-file-ignores]
+[tool.ruff.lint.per-file-ignores]
 "tutorials/time-freq/10_spectrum_class.py" = [
     "E501", # line too long
 ]
@@ -241,7 +244,10 @@ ignore-decorators = [
 ]
 
 [tool.pytest.ini_options]
-addopts = """--durations=20 --doctest-modules -ra --cov-report= --tb=short \
+# -r f (failed), E (error), s (skipped), x (xfail), X (xpassed), w (warnings)
+# don't put in xfail for pytest 8.0+ because then it prints the tracebacks,
+# which look like real errors
+addopts = """--durations=20 --doctest-modules -rfEXs --cov-report= --tb=short \
     --cov-branch --doctest-ignore-import-errors --junit-xml=junit-results.xml \
     --ignore=doc --ignore=logo --ignore=examples --ignore=tutorials \
     --ignore=mne/gui/_*.py --ignore=mne/icons --ignore=tools \

@@ -18,6 +18,7 @@ from contextlib import nullcontext
 from copy import deepcopy
 from dataclasses import dataclass, field
 from datetime import timedelta
+from inspect import getfullargspec
 
 import numpy as np
 
@@ -1087,19 +1088,50 @@ class BaseRaw(
         if dtype is not None and dtype != self._data.dtype:
             self._data = self._data.astype(dtype)
 
+        args = getfullargspec(fun).args + getfullargspec(fun).kwonlyargs
+        if channel_wise is False:
+            if ("ch_idx" in args) or ("ch_name" in args):
+                raise ValueError(
+                    "apply_function cannot access ch_idx or ch_name "
+                    "when channel_wise=False"
+                )
+        if "ch_idx" in args:
+            logger.info("apply_function requested to access ch_idx")
+        if "ch_name" in args:
+            logger.info("apply_function requested to access ch_name")
+
         if channel_wise:
             parallel, p_fun, n_jobs = parallel_func(_check_fun, n_jobs)
             if n_jobs == 1:
                 # modify data inplace to save memory
-                for idx in picks:
-                    self._data[idx, :] = _check_fun(fun, data_in[idx, :], **kwargs)
+                for ch_idx in picks:
+                    if "ch_idx" in args:
+                        kwargs.update(ch_idx=ch_idx)
+                    if "ch_name" in args:
+                        kwargs.update(ch_name=self.info["ch_names"][ch_idx])
+                    self._data[ch_idx, :] = _check_fun(
+                        fun, data_in[ch_idx, :], **kwargs
+                    )
             else:
                 # use parallel function
                 data_picks_new = parallel(
-                    p_fun(fun, data_in[p], **kwargs) for p in picks
+                    p_fun(
+                        fun,
+                        data_in[ch_idx],
+                        **kwargs,
+                        **{
+                            k: v
+                            for k, v in [
+                                ("ch_name", self.info["ch_names"][ch_idx]),
+                                ("ch_idx", ch_idx),
+                            ]
+                            if k in args
+                        },
+                    )
+                    for ch_idx in picks
                 )
-                for pp, p in enumerate(picks):
-                    self._data[p, :] = data_picks_new[pp]
+                for run_idx, ch_idx in enumerate(picks):
+                    self._data[ch_idx, :] = data_picks_new[run_idx]
         else:
             self._data[picks, :] = _check_fun(fun, data_in[picks, :], **kwargs)
 
@@ -1662,7 +1694,13 @@ class BaseRaw(
         endings_err = (".fif", ".fif.gz")
 
         # convert to str, check for overwrite a few lines later
-        fname = _check_fname(fname, overwrite=True, verbose="error")
+        fname = _check_fname(
+            fname,
+            overwrite=True,
+            verbose="error",
+            check_bids_split=True,
+            name="fname",
+        )
         check_fname(fname, "raw", endings, endings_err=endings_err)
 
         split_size = _get_split_size(split_size)

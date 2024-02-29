@@ -11,6 +11,7 @@ from numpy.testing import assert_array_equal
 from mne import Annotations
 from mne.time_frequency import read_spectrum
 from mne.time_frequency.spectrum import EpochsSpectrumArray, SpectrumArray
+from mne.utils import _record_warnings
 
 
 def test_compute_psd_errors(raw):
@@ -273,7 +274,7 @@ def test_spectrum_kwarg_triaging(raw):
     regex = r"legacy plot_psd\(\) method.*unexpected keyword.*'axes'.*Try rewriting"
     _, axes = plt.subplots(1, 2)
     # `axes` is the new param name: technically only valid for Spectrum.plot()
-    with pytest.warns(RuntimeWarning, match=regex):
+    with _record_warnings(), pytest.warns(RuntimeWarning, match=regex):
         raw.plot_psd(axes=axes)
     # `ax` is the correct legacy param name
     with pytest.warns(FutureWarning, match="amplitude='auto'"):

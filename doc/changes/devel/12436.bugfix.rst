@@ -1,0 +1,1 @@
+Fix :ref:`tut-working-with-seeg` use of :func:`mne.stc_near_sensors` to use the :class:`mne.VolSourceEstimate` positions and not the pial surface, by `Alex Rockhill`_

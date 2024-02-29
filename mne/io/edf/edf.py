@@ -1454,7 +1454,9 @@ def _read_gdf_header(fname, exclude, include=None):
 
 
 def _check_stim_channel(
-    stim_channel, ch_names, tal_ch_names=["EDF Annotations", "BDF Annotations"]
+    stim_channel,
+    ch_names,
+    tal_ch_names=("EDF Annotations", "BDF Annotations"),
 ):
     """Check that the stimulus channel exists in the current datafile."""
     DEFAULT_STIM_CH_NAMES = ["status", "trigger"]

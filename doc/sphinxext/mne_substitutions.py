@@ -4,12 +4,12 @@ from docutils import nodes
 from docutils.parsers.rst import Directive
 from docutils.statemachine import StringList
 
-from mne.defaults import DEFAULTS
 from mne._fiff.pick import (
-    _PICK_TYPES_DATA_DICT,
-    _DATA_CH_TYPES_SPLIT,
     _DATA_CH_TYPES_ORDER_DEFAULT,
+    _DATA_CH_TYPES_SPLIT,
+    _PICK_TYPES_DATA_DICT,
 )
+from mne.defaults import DEFAULTS
 
 
 class MNESubstitution(Directive):  # noqa: D101

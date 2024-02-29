@@ -629,11 +629,11 @@ def test_plot_raw_picks(raw, browser_backend):
     with raw.info._unlock():
         raw.info["lowpass"] = 10.0  # allow heavy decim during plotting
 
-    fig = raw.plot(picks=['MEG 0112'])
+    fig = raw.plot(picks=["MEG 0112"])
     assert len(fig.mne.traces) == 1
 
-    fig = raw.plot(picks=['meg'])
-    assert len(fig.mne.traces) == len(raw.get_channel_types(picks='meg'))
+    fig = raw.plot(picks=["meg"])
+    assert len(fig.mne.traces) == len(raw.get_channel_types(picks="meg"))
 
     fig = raw.plot(order=[4, 3])
     assert_array_equal(fig.mne.ch_order, np.array([4, 3]))
@@ -991,7 +991,9 @@ def test_plot_raw_psd(raw, raw_orig):
     # with channel information not available
     for idx in range(len(raw.info["chs"])):
         raw.info["chs"][idx]["loc"] = np.zeros(12)
-    with pytest.warns(RuntimeWarning, match="locations not available"):
+    with _record_warnings(), pytest.warns(
+        RuntimeWarning, match="locations not available"
+    ):
         raw.compute_psd().plot(spatial_colors=True, average=False)
     # with a flat channel
     raw[5, :] = 0

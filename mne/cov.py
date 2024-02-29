@@ -310,7 +310,7 @@ class Covariance(dict):
     def plot(
         self,
         info,
-        exclude=[],
+        exclude=(),
         colorbar=True,
         proj=False,
         show_svd=True,

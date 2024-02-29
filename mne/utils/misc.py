@@ -28,6 +28,10 @@ from ._logging import logger, verbose, warn
 from .check import _check_option, _validate_type
 
 
+def _identity_function(x):
+    return x
+
+
 # TODO: no longer needed when py3.9 is minimum supported version
 def _empty_hash(kind="md5"):
     func = getattr(hashlib, kind)

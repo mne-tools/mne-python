@@ -46,6 +46,7 @@ from .._fiff.pick import (
 )
 from .._fiff.proj import Projection, setup_proj
 from ..defaults import _handle_default
+from ..fixes import _median_complex
 from ..rank import compute_rank
 from ..transforms import apply_trans
 from ..utils import (
@@ -65,6 +66,7 @@ from ..utils import (
     verbose,
     warn,
 )
+from ..utils.misc import _identity_function
 from .ui_events import ColormapRange, publish, subscribe
 
 _channel_type_prettyprint = {
@@ -243,12 +245,12 @@ def _validate_if_list_of_axes(axes, obligatory_len=None, name="axes"):
             )
 
 
-def mne_analyze_colormap(limits=[5, 10, 15], format="vtk"):
+def mne_analyze_colormap(limits=(5, 10, 15), format="vtk"):  # noqa: A002
     """Return a colormap similar to that used by mne_analyze.
 
     Parameters
     ----------
-    limits : list (or array) of length 3 or 6
+    limits : array-like of length 3 or 6
         Bounds for the colormap, which will be mirrored across zero if length
         3, or completely specified (and potentially asymmetric) if length 6.
     format : str
@@ -2328,30 +2330,63 @@ def _plot_masked_image(
 
 
 @fill_doc
-def _make_combine_callable(combine):
+def _make_combine_callable(
+    combine,
+    *,
+    axis=1,
+    valid=("mean", "median", "std", "gfp"),
+    ch_type=None,
+    keepdims=False,
+):
     """Convert None or string values of ``combine`` into callables.
 
     Params
     ------
-    %(combine)s
-        If callable, the callable must accept one positional input (data of
-        shape ``(n_epochs, n_channels, n_times)`` or ``(n_evokeds, n_channels,
-        n_times)``) and return an :class:`array <numpy.ndarray>` of shape
-        ``(n_epochs, n_times)`` or ``(n_evokeds, n_times)``.
+    combine : None | str | callable
+        If callable, the callable must accept one positional input (a numpy array) and
+        return an array with one fewer dimensions (the missing dimension's position is
+        given by ``axis``).
+    axis : int
+        Axis of data array across which to combine. May vary depending on data
+        context; e.g., if data are time-domain sensor traces or TFRs, continuous
+        or epoched, etc.
+    valid : tuple
+        Valid string values for built-in combine methods
+        (may vary for, e.g., combining TFRs versus time-domain signals).
+    ch_type : str
+        Channel type. Affects whether "gfp" is allowed as a synonym for "rms".
+    keepdims : bool
+        Whether to retain the singleton dimension after collapsing across it.
     """
+    kwargs = dict(axis=axis, keepdims=keepdims)
     if combine is None:
-        combine = partial(np.squeeze, axis=1)
+        combine = _identity_function if keepdims else partial(np.squeeze, axis=axis)
     elif isinstance(combine, str):
         combine_dict = {
-            key: partial(getattr(np, key), axis=1) for key in ("mean", "median", "std")
+            key: partial(getattr(np, key), **kwargs)
+            for key in valid
+            if getattr(np, key, None) is not None
         }
-        combine_dict["gfp"] = lambda data: np.sqrt((data**2).mean(axis=1))
+        # marginal median that is safe for complex values:
+        if "median" in valid:
+            combine_dict["median"] = partial(_median_complex, axis=axis)
+
+        # RMS and GFP; if GFP requested for MEG channels, will use RMS anyway
+        def _rms(data):
+            return np.sqrt((data**2).mean(**kwargs))
+
+        if "rms" in valid:
+            combine_dict["rms"] = _rms
+        if "gfp" in valid and ch_type == "eeg":
+            combine_dict["gfp"] = lambda data: data.std(axis=axis, ddof=0)
+        elif "gfp" in valid:
+            combine_dict["gfp"] = _rms
         try:
             combine = combine_dict[combine]
         except KeyError:
             raise ValueError(
-                '"combine" must be None, a callable, or one of "mean", "median", "std",'
-                f' or "gfp"; got {combine}'
+                f'"combine" must be None, a callable, or one of "{", ".join(valid)}"; '
+                f'got {combine}'
             )
     return combine
 

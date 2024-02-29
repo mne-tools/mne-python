@@ -64,6 +64,7 @@ from mne.io import RawArray, read_raw_fif
 from mne.preprocessing import maxwell_filter
 from mne.utils import (
     _dt_to_stamp,
+    _record_warnings,
     assert_meg_snr,
     catch_logging,
     object_diff,
@@ -549,7 +550,20 @@ def test_reject():
         preload=False,
         reject=dict(eeg=np.inf),
     )
-    for val in (None, -1):  # protect against older MNE-C types
+
+    # Good function
+    def my_reject_1(epoch_data):
+        bad_idxs = np.where(np.percentile(epoch_data, 90, axis=1) > 1e-35)
+        reasons = "a" * len(bad_idxs[0])
+        return len(bad_idxs) > 0, reasons
+
+    # Bad function
+    def my_reject_2(epoch_data):
+        bad_idxs = np.where(np.percentile(epoch_data, 90, axis=1) > 1e-35)
+        reasons = "a" * len(bad_idxs[0])
+        return len(bad_idxs), reasons
+
+    for val in (-1, -2):  # protect against older MNE-C types
         for kwarg in ("reject", "flat"):
             pytest.raises(
                 ValueError,
@@ -563,6 +577,44 @@ def test_reject():
                 preload=False,
                 **{kwarg: dict(grad=val)},
             )
+
+    # Check that reject and flat in constructor are not callables
+    val = my_reject_1
+    for kwarg in ("reject", "flat"):
+        with pytest.raises(
+            TypeError,
+            match=r".* must be an instance of numeric, got <class 'function'> instead.",
+        ):
+            Epochs(
+                raw,
+                events,
+                event_id,
+                tmin,
+                tmax,
+                picks=picks_meg,
+                preload=False,
+                **{kwarg: dict(grad=val)},
+            )
+
+    # Check if callable returns a tuple with reasons
+    bad_types = [my_reject_2, ("Hi" "Hi"), (1, 1), None]
+    for val in bad_types:  # protect against bad types
+        for kwarg in ("reject", "flat"):
+            with pytest.raises(
+                TypeError,
+                match=r".* must be an instance of .* got <class '.*'> instead.",
+            ):
+                epochs = Epochs(
+                    raw,
+                    events,
+                    event_id,
+                    tmin,
+                    tmax,
+                    picks=picks_meg,
+                    preload=True,
+                )
+                epochs.drop_bad(**{kwarg: dict(grad=val)})
+
     pytest.raises(
         KeyError,
         Epochs,
@@ -1614,43 +1666,79 @@ def test_split_saving_and_loading_back(tmp_path, epochs_to_split, preload):
 
 
 @pytest.mark.parametrize(
-    "split_naming, dst_fname, split_fname_fn",
+    "split_naming, dst_fname, split_fname_fn, check_bids",
     [
         (
             "neuromag",
             "test_epo.fif",
             lambda i: f"test_epo-{i}.fif" if i else "test_epo.fif",
+            False,
         ),
         (
             "bids",
-            "test_epo.fif",
-            lambda i: f"test_split-{i + 1:02d}_epo.fif",
+            Path("sub-01") / "meg" / "sub-01_epo.fif",
+            lambda i: Path("sub-01") / "meg" / f"sub-01_split-{i + 1:02d}_epo.fif",
+            True,
         ),
         (
             "bids",
             "a_b-epo.fif",
             # Merely stating the fact:
             lambda i: f"a_split-{i + 1:02d}_b-epo.fif",
+            False,
         ),
     ],
     ids=["neuromag", "bids", "mix"],
 )
 def test_split_naming(
-    tmp_path, epochs_to_split, split_naming, dst_fname, split_fname_fn
+    tmp_path, epochs_to_split, split_naming, dst_fname, split_fname_fn, check_bids
 ):
     """Test naming of the split files."""
     epochs, split_size, n_files = epochs_to_split
     dst_fpath = tmp_path / dst_fname
     save_kwargs = {"split_size": split_size, "split_naming": split_naming}
     # we don't test for reserved files as it's not implemented here
+    if dst_fpath.parent != tmp_path:
+        dst_fpath.parent.mkdir(parents=True)
 
     epochs.save(dst_fpath, verbose=True, **save_kwargs)
 
     # check that the filenames match the intended pattern
-    assert len(list(tmp_path.iterdir())) == n_files
-    for i in range(n_files):
-        assert (tmp_path / split_fname_fn(i)).is_file()
+    assert len(list(dst_fpath.parent.iterdir())) == n_files
     assert not (tmp_path / split_fname_fn(n_files)).is_file()
+    want_paths = [tmp_path / split_fname_fn(i) for i in range(n_files)]
+    for want_path in want_paths:
+        assert want_path.is_file()
+
+    if not check_bids:
+        return
+    # gh-12451
+    # If we load sub-01_split-01_epo.fif we should then we shouldn't
+    # write sub-01_split-01_split-01_epo.fif
+    mne_bids = pytest.importorskip("mne_bids")
+    # Let's try to prevent people from making a mistake
+    bids_path = mne_bids.BIDSPath(
+        root=tmp_path,
+        subject="01",
+        datatype="meg",
+        split="01",
+        suffix="epo",
+        extension=".fif",
+        check=False,
+    )
+    assert bids_path.fpath.is_file(), bids_path.fpath
+    for want_path in want_paths:
+        want_path.unlink()
+    assert not bids_path.fpath.is_file()
+    with pytest.raises(ValueError, match="Passing a BIDSPath"):
+        epochs.save(bids_path, verbose=True, **save_kwargs)
+    bad_path = bids_path.fpath.parent / (bids_path.fpath.stem[:-3] + "split-01_epo.fif")
+    assert str(bad_path).count("_split-01") == 2
+    assert not bad_path.is_file(), bad_path
+    bids_path.split = None
+    epochs.save(bids_path, verbose=True, **save_kwargs)
+    for want_path in want_paths:
+        assert want_path.is_file()
 
 
 @pytest.mark.parametrize(
@@ -2148,6 +2236,93 @@ def test_reject_epochs(tmp_path):
     assert epochs_cleaned.flat == dict(grad=new_flat["grad"], mag=flat["mag"])
 
 
+@testing.requires_testing_data
+def test_callable_reject():
+    """Test using a callable for rejection."""
+    raw = read_raw_fif(fname_raw_testing, preload=True)
+    raw.crop(0, 5)
+    raw.del_proj()
+    chans = raw.info["ch_names"][-6:-1]
+    raw.pick(chans)
+    data = raw.get_data()
+
+    # Add some artifacts
+    new_data = data
+    new_data[0, 180:200] *= 1e7
+    new_data[0, 610:880] += 1e-3
+    edit_raw = mne.io.RawArray(new_data, raw.info)
+
+    events = mne.make_fixed_length_events(edit_raw, id=1, duration=1.0, start=0)
+    epochs = mne.Epochs(edit_raw, events, tmin=0, tmax=1, baseline=None, preload=True)
+    assert len(epochs) == 5
+
+    epochs = mne.Epochs(
+        edit_raw,
+        events,
+        tmin=0,
+        tmax=1,
+        baseline=None,
+        preload=True,
+    )
+    epochs.drop_bad(
+        reject=dict(eeg=lambda x: ((np.median(x, axis=1) > 1e-3).any(), "eeg median"))
+    )
+
+    assert epochs.drop_log[2] == ("eeg median",)
+
+    epochs = mne.Epochs(
+        edit_raw,
+        events,
+        tmin=0,
+        tmax=1,
+        baseline=None,
+        preload=True,
+    )
+    epochs.drop_bad(
+        reject=dict(eeg=lambda x: ((np.max(x, axis=1) > 1).any(), ("eeg max",)))
+    )
+
+    assert epochs.drop_log[0] == ("eeg max",)
+
+    def reject_criteria(x):
+        max_condition = np.max(x, axis=1) > 1e-2
+        median_condition = np.median(x, axis=1) > 1e-4
+        return (max_condition.any() or median_condition.any()), "eeg max or median"
+
+    epochs = mne.Epochs(
+        edit_raw,
+        events,
+        tmin=0,
+        tmax=1,
+        baseline=None,
+        preload=True,
+    )
+    epochs.drop_bad(reject=dict(eeg=reject_criteria))
+
+    assert epochs.drop_log[0] == ("eeg max or median",) and epochs.drop_log[2] == (
+        "eeg max or median",
+    )
+
+    # Test reasons must be str or tuple of str
+    with pytest.raises(
+        TypeError,
+        match=r".* must be an instance of str, got <class 'int'> instead.",
+    ):
+        epochs = mne.Epochs(
+            edit_raw,
+            events,
+            tmin=0,
+            tmax=1,
+            baseline=None,
+            preload=True,
+        )
+        epochs.drop_bad(
+            reject=dict(
+                eeg=lambda x: ((np.median(x, axis=1) > 1e-3).any(), ("eeg median", 2))
+            )
+        )
+
+
 def test_preload_epochs():
     """Test preload of epochs."""
     raw, events, picks = _get_data()
@@ -2291,7 +2466,7 @@ def test_crop(tmp_path):
         reject=reject,
         flat=flat,
     )
-    with pytest.warns(RuntimeWarning, match="tmax is set to"):
+    with _record_warnings(), pytest.warns(RuntimeWarning, match="tmax is set to"):
         epochs2.crop(-20, 200)
 
     # indices for slicing
@@ -2664,25 +2839,58 @@ def test_subtract_evoked():
 
 
 def test_epoch_eq():
-    """Test epoch count equalization and condition combining."""
+    """Test for equalize_epoch_counts and equalize_event_counts functions."""
+    # load data
     raw, events, picks = _get_data()
-    # equalizing epochs objects
+    # test equalize epoch counts
+    # create epochs with unequal counts
     events_1 = events[events[:, 2] == event_id]
     epochs_1 = Epochs(raw, events_1, event_id, tmin, tmax, picks=picks)
     events_2 = events[events[:, 2] == event_id_2]
     epochs_2 = Epochs(raw, events_2, event_id_2, tmin, tmax, picks=picks)
+    # events 2 has one more event than events 1
     epochs_1.drop_bad()  # make sure drops are logged
+    epochs_2.drop_bad()  # make sure drops are logged
+    # make sure there is a difference in the number of events
+    assert len(epochs_1) != len(epochs_2)
+    # make sure bad epochs are dropped before equalizing epoch counts
     assert_equal(
         len([log for log in epochs_1.drop_log if not log]), len(epochs_1.events)
     )
-    assert epochs_1.drop_log == ((),) * len(epochs_1.events)
-    assert_equal(len([lg for lg in epochs_1.drop_log if not lg]), len(epochs_1.events))
-    assert epochs_1.events.shape[0] != epochs_2.events.shape[0]
+    assert epochs_2.drop_log == ((),) * len(epochs_2.events)
+    # test mintime method
+    events_1[-1, 0] += 60  # hack: ensure mintime drops something other than last trial
+    # now run equalize_epoch_counts with mintime method
     equalize_epoch_counts([epochs_1, epochs_2], method="mintime")
+    # mintime method should give us the smallest difference between timings of epochs
+    alleged_mintime = np.sum(np.abs(epochs_1.events[:, 0] - epochs_2.events[:, 0]))
+    # test that "mintime" works as expected, by systematically dropping each event from
+    # events_2 and ensuring the latencies are actually smallest in the
+    # equalize_epoch_counts case. NB: len(events_2) > len(events_1)
+    for idx in range(events_2.shape[0]):
+        # delete epoch from events_2
+        test_events = np.delete(events_2.copy(), idx, axis=0)
+        assert test_events.shape == epochs_1.events.shape == epochs_2.events.shape
+        # difference (in samples) between epochs_1 event times and the event times we
+        # get from our deletion of row `idx` from events_2
+        latencies = epochs_1.events[:, 0] - test_events[:, 0]
+        got_mintime = np.sum(np.abs(latencies))
+        assert got_mintime >= alleged_mintime
+    # make sure the number of events is equal
     assert_equal(epochs_1.events.shape[0], epochs_2.events.shape[0])
+    # create new epochs with the same event ids as epochs_1 and epochs_2
     epochs_3 = Epochs(raw, events, event_id, tmin, tmax, picks=picks)
     epochs_4 = Epochs(raw, events, event_id_2, tmin, tmax, picks=picks)
+    epochs_3.drop_bad()  # make sure drops are logged
+    epochs_4.drop_bad()  # make sure drops are logged
+    # make sure there is a difference in the number of events
+    assert len(epochs_3) != len(epochs_4)
+    # test truncate method
     equalize_epoch_counts([epochs_3, epochs_4], method="truncate")
+    if len(epochs_3.events) > len(epochs_4.events):
+        assert_equal(epochs_3.events[-2, 0], epochs_3.events.shape[-1, 0])
+    elif len(epochs_3.events) < len(epochs_4.events):
+        assert_equal(epochs_4.events[-2, 0], epochs_4.events[-1, 0])
     assert_equal(epochs_1.events.shape[0], epochs_3.events.shape[0])
     assert_equal(epochs_3.events.shape[0], epochs_4.events.shape[0])
 
@@ -2947,7 +3155,7 @@ def test_to_data_frame_index(index):
     # test index order/hierarchy preservation
     if not isinstance(index, list):
         index = [index]
-    assert df.index.names == index
+    assert list(df.index.names) == index
     # test that non-indexed data were present as columns
     non_index = list(set(["condition", "time", "epoch"]) - set(index))
     if len(non_index):
@@ -3179,9 +3387,16 @@ def test_drop_epochs():
     events1 = events[events[:, 2] == event_id]
 
     # Bound checks
-    pytest.raises(IndexError, epochs.drop, [len(epochs.events)])
-    pytest.raises(IndexError, epochs.drop, [-len(epochs.events) - 1])
-    pytest.raises(ValueError, epochs.drop, [[1, 2], [3, 4]])
+    with pytest.raises(IndexError, match=r"Epoch index .* is out of bounds"):
+        epochs.drop([len(epochs.events)])
+    with pytest.raises(IndexError, match=r"Epoch index .* is out of bounds"):
+        epochs.drop([-len(epochs.events) - 1])
+    with pytest.raises(TypeError, match="indices must be a scalar or a 1-d array"):
+        epochs.drop([[1, 2], [3, 4]])
+    with pytest.raises(
+        TypeError, match=r".* must be an instance of .* got <class '.*'> instead."
+    ):
+        epochs.drop([1], reason=("a", "b", 2))
 
     # Test selection attribute
     assert_array_equal(epochs.selection, np.where(events[:, 2] == event_id)[0])
@@ -3200,6 +3415,18 @@ def test_drop_epochs():
     assert_array_equal(events[epochs.selection], events1[[0, 1, 3, 5, 6]])
     assert_array_equal(events[epochs[3:].selection], events1[[5, 6]])
     assert_array_equal(events[epochs["1"].selection], events1[[0, 1, 3, 5, 6]])
+
+    # Test using tuple to drop epochs
+    raw, events, picks = _get_data()
+    epochs_tuple = Epochs(raw, events, event_id, tmin, tmax, picks=picks, preload=True)
+    selection_tuple = epochs_tuple.selection.copy()
+    epochs_tuple.drop((2, 3, 4), reason=("a", "b"))
+    n_events = len(epochs.events)
+    assert [epochs_tuple.drop_log[k] for k in selection_tuple[[2, 3, 4]]] == [
+        ("a", "b"),
+        ("a", "b"),
+        ("a", "b"),
+    ]
 
 
 @pytest.mark.parametrize("preload", (True, False))
@@ -3610,7 +3837,7 @@ def test_concatenate_epochs():
 
     # check concatenating epochs where one of the objects is empty
     epochs2 = epochs.copy()[:0]
-    with pytest.warns(RuntimeWarning, match="was empty"):
+    with _record_warnings(), pytest.warns(RuntimeWarning, match="was empty"):
         concatenate_epochs([epochs, epochs2])
 
     # check concatenating epochs results are chronologically ordered
@@ -4221,7 +4448,7 @@ def test_no_epochs(tmp_path):
     # and with no epochs remaining
     raw.info["bads"] = []
     epochs = mne.Epochs(raw, events, reject=reject)
-    with pytest.warns(RuntimeWarning, match="no data"):
+    with _record_warnings(), pytest.warns(RuntimeWarning, match="no data"):
         epochs.save(tmp_path / "sample-epo.fif", overwrite=True)
     assert len(epochs) == 0  # all dropped
 
@@ -4604,6 +4831,39 @@ def test_apply_function():
     expected = epochs.get_data(picks).mean(axis=-1, keepdims=True)
     assert np.all(out.get_data(picks) == expected)
     assert_array_equal(out.get_data(non_picks), epochs.get_data(non_picks))
+
+
+def test_apply_function_epo_ch_access():
+    """Test ch-access within apply function to epoch objects."""
+
+    def _bad_ch_idx(x, ch_idx):
+        assert x.shape == (46,)
+        assert x[0] == ch_idx
+        return x
+
+    def _bad_ch_name(x, ch_name):
+        assert x.shape == (46,)
+        assert isinstance(ch_name, str)
+        assert x[0] == float(ch_name)
+        return x
+
+    data = np.full((2, 100), np.arange(2).reshape(-1, 1))
+    raw = RawArray(data, create_info(2, 1.0, "mag"))
+    ev = np.array([[0, 0, 33], [50, 0, 33]])
+    ep = Epochs(raw, ev, tmin=0, tmax=45, baseline=None, preload=True)
+
+    # test ch_idx access in both code paths (parallel / 1 job)
+    ep.apply_function(_bad_ch_idx)
+    ep.apply_function(_bad_ch_idx, n_jobs=2)
+    ep.apply_function(_bad_ch_name)
+    ep.apply_function(_bad_ch_name, n_jobs=2)
+
+    # test input catches
+    with pytest.raises(
+        ValueError,
+        match="cannot access.*when channel_wise=False",
+    ):
+        ep.apply_function(_bad_ch_idx, channel_wise=False)
 
 
 @testing.requires_testing_data

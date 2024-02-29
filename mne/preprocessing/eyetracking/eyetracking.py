@@ -8,6 +8,12 @@
 import numpy as np
 
 from ..._fiff.constants import FIFF
+from ...epochs import BaseEpochs
+from ...evoked import Evoked
+from ...io import BaseRaw
+from ...utils import _check_option, _validate_type, logger, warn
+from .calibration import Calibration
+from .utils import _check_calibration
 
 
 # specific function to set eyetrack channels
@@ -164,3 +170,162 @@ def _convert_mm_to_m(array):
 
 def _convert_deg_to_rad(array):
     return array * np.pi / 180.0
+
+
+def convert_units(inst, calibration, to="radians"):
+    """Convert Eyegaze data from pixels to radians of visual angle or vice versa.
+
+    .. warning::
+        Currently, depending on the units (pixels or radians), eyegaze channels may not
+        be reported correctly in visualization functions like :meth:`mne.io.Raw.plot`.
+        They will be shown  correctly in :func:`mne.viz.eyetracking.plot_gaze`.
+        See :gh:`11879` for more information.
+
+    .. Important::
+       There are important considerations to keep in mind when using this function,
+       see the Notes section below.
+
+    Parameters
+    ----------
+    inst : instance of Raw, Epochs, or Evoked
+        The Raw, Epochs, or Evoked instance with eyegaze channels.
+    calibration : Calibration
+        Instance of  Calibration, containing information about the screen size
+        (in meters), viewing distance (in meters), and the screen resolution
+        (in pixels).
+    to : str
+        Must be either ``"radians"`` or ``"pixels"``, indicating the desired unit.
+
+    Returns
+    -------
+    inst : instance of Raw | Epochs | Evoked
+        The Raw, Epochs, or Evoked instance, modified in place.
+
+    Notes
+    -----
+    There are at least two important considerations to keep in mind when using this
+    function:
+
+    1. Converting between on-screen pixels and visual angle is not a linear
+       transformation. If the visual angle subtends less than approximately ``.44``
+       radians (``25`` degrees), the conversion could be considered to be approximately
+       linear. However, as the visual angle increases, the conversion becomes
+       increasingly non-linear. This may lead to unexpected results after converting
+       between pixels and visual angle.
+
+    * This function assumes that the head is fixed in place and aligned with the center
+      of the screen, such that gaze to the center of the screen results in a visual
+      angle of ``0`` radians.
+
+    .. versionadded:: 1.7
+    """
+    _validate_type(inst, (BaseRaw, BaseEpochs, Evoked), "inst")
+    _validate_type(calibration, Calibration, "calibration")
+    _check_option("to", to, ("radians", "pixels"))
+    _check_calibration(calibration)
+
+    # get screen parameters
+    screen_size = calibration["screen_size"]
+    screen_resolution = calibration["screen_resolution"]
+    dist = calibration["screen_distance"]
+
+    # loop through channels and convert units
+    converted_chs = []
+    for ch_dict in inst.info["chs"]:
+        if ch_dict["coil_type"] != FIFF.FIFFV_COIL_EYETRACK_POS:
+            continue
+        unit = ch_dict["unit"]
+        name = ch_dict["ch_name"]
+
+        if ch_dict["loc"][4] == -1:  # x-coordinate
+            size = screen_size[0]
+            res = screen_resolution[0]
+        elif ch_dict["loc"][4] == 1:  # y-coordinate
+            size = screen_size[1]
+            res = screen_resolution[1]
+        else:
+            raise ValueError(
+                f"loc array not set properly for channel '{name}'. Index 4 should"
+                f"  be -1 or 1, but got {ch_dict['loc'][4]}"
+            )
+        # check unit, convert, and set new unit
+        if to == "radians":
+            if unit != FIFF.FIFF_UNIT_PX:
+                raise ValueError(
+                    f"Data must be in pixels in order to convert to radians."
+                    f" Got {unit} for {name}"
+                )
+            inst.apply_function(_pix_to_rad, picks=name, size=size, res=res, dist=dist)
+            ch_dict["unit"] = FIFF.FIFF_UNIT_RAD
+        elif to == "pixels":
+            if unit != FIFF.FIFF_UNIT_RAD:
+                raise ValueError(
+                    f"Data must be in radians in order to convert to pixels."
+                    f" Got {unit} for {name}"
+                )
+            inst.apply_function(_rad_to_pix, picks=name, size=size, res=res, dist=dist)
+            ch_dict["unit"] = FIFF.FIFF_UNIT_PX
+        converted_chs.append(name)
+    if converted_chs:
+        logger.info(f"Converted {converted_chs} to {to}.")
+        if to == "radians":
+            # check if any values are greaater than .44 radians
+            # (25 degrees) and warn user
+            data = inst.get_data(picks=converted_chs)
+            if np.any(np.abs(data) > 0.52):
+                warn(
+                    "Some visual angle values subtend greater than .52 radians "
+                    "(30 degrees), meaning that the conversion between pixels "
+                    "and visual angle may be very non-linear. Take caution when "
+                    "interpreting these values. Max visual angle value in data:"
+                    f" {np.nanmax(data):0.2f} radians.",
+                    UserWarning,
+                )
+    else:
+        warn("Could not find any eyegaze channels. Doing nothing.", UserWarning)
+    return inst
+
+
+def _pix_to_rad(data, size, res, dist):
+    """Convert pixel coordinates to radians of visual angle.
+
+    Parameters
+    ----------
+    data : array-like, shape (n_samples,)
+        A vector of pixel coordinates.
+    size : float
+        The width or height of the screen, in meters.
+    res : int
+        The screen resolution in pixels, along the x or y axis.
+    dist : float
+        The viewing distance from the screen, in meters.
+
+    Returns
+    -------
+    rad : ndarray, shape (n_samples)
+        the data in radians.
+    """
+    # Center the data so that 0 radians will be the center of the screen
+    data -= res / 2
+    # How many meters is the pixel width or height
+    px_size = size / res
+    # Convert to radians
+    return np.arctan((data * px_size) / dist)
+
+
+def _rad_to_pix(data, size, res, dist):
+    """Convert radians of visual angle to pixel coordinates.
+
+    See the parameters section of _pix_to_rad for more information.
+
+    Returns
+    -------
+    pix : ndarray, shape (n_samples)
+        the data in pixels.
+    """
+    # How many meters is the pixel width or height
+    px_size = size / res
+    # 1. calculate length of opposite side of triangle (in meters)
+    # 2. convert meters to pixel coordinates
+    # 3. add half of screen resolution to uncenter the pixel data (0,0 is top left)
+    return np.tan(data) * dist / px_size + res / 2
