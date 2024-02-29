@@ -318,7 +318,7 @@ def plot_raw(
     # adjust order based on channel selection, if needed
     selections = None
     if group_by in ("selection", "position"):
-        selections = _setup_channel_selections(raw, group_by, picks)
+        selections = _setup_channel_selections(raw, group_by, order)
         order = np.concatenate(list(selections.values()))
         default_selection = list(selections)[0]
         n_channels = len(selections[default_selection])
