@@ -630,11 +630,11 @@ def test_plot_raw_picks(raw, browser_backend):
         raw.info["lowpass"] = 10.0  # allow heavy decim during plotting
     browser_backend._close_all()  # ensure all are closed
 
-    fig = raw.plot(picks=['MEG 0112'])
+    fig = raw.plot(picks=["MEG 0112"])
     assert len(fig.mne.traces) == 1
 
-    fig = raw.plot(picks=['meg'])
-    assert len(fig.mne.traces) == len(raw.get_channel_types(picks='meg'))
+    fig = raw.plot(picks=["meg"])
+    assert len(fig.mne.traces) == len(raw.get_channel_types(picks="meg"))
 
     fig = raw.plot(order=[4, 3])
     assert_array_equal(fig.mne.ch_order, np.array([4, 3]))
