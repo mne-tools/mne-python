@@ -1788,6 +1788,7 @@ class BaseRaw(
         event_color="cyan",
         scalings=None,
         remove_dc=True,
+        order=None,
         show_options=False,
         title=None,
         show=True,
@@ -1814,8 +1815,6 @@ class BaseRaw(
         overview_mode=None,
         splash=True,
         verbose=None,
-        order=None,
-
     ):
         return plot_raw(
             self,
@@ -1829,6 +1828,7 @@ class BaseRaw(
             event_color,
             scalings,
             remove_dc,
+            order,
             show_options,
             title,
             show,
@@ -1854,7 +1854,6 @@ class BaseRaw(
             overview_mode=overview_mode,
             splash=splash,
             verbose=verbose,
-            order=order,
         )
 
     @property

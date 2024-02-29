@@ -42,6 +42,7 @@ def plot_raw(
     event_color="cyan",
     scalings=None,
     remove_dc=True,
+    order=None,
     show_options=False,
     title=None,
     show=True,
@@ -63,7 +64,7 @@ def plot_raw(
     precompute=None,
     use_opengl=None,
     picks=None,
-    order=None,
+    *,
     theme=None,
     overview_mode=None,
     splash=True,
@@ -312,9 +313,8 @@ def plot_raw(
     ch_types = np.array(raw.get_channel_types())
 
     picks = _picks_to_idx(info, picks)
-    # picks should be the ordered subset of channels here
     order = _get_channel_plotting_order(order, ch_types, picks=picks)
-    n_channels = min(info["nchan"], n_channels, len(picks))
+    n_channels = min(info["nchan"], n_channels, len(order))
     # adjust order based on channel selection, if needed
     selections = None
     if group_by in ("selection", "position"):
