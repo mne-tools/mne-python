@@ -23,6 +23,7 @@ from scipy import fftpack
 from mne import (
     Epochs,
     EpochsArray,
+    SourceEstimate,
     combine_evoked,
     create_info,
     equalize_channels,
@@ -917,7 +918,7 @@ def test_evoked_baseline(tmp_path):
 
 
 def test_hilbert():
-    """Test hilbert on raw, epochs, and evoked."""
+    """Test hilbert on raw, epochs, evoked and SourceEstimate data."""
     raw = read_raw_fif(raw_fname).load_data()
     raw.del_proj()
     raw.pick(raw.ch_names[:2])
@@ -927,10 +928,17 @@ def test_hilbert():
         epochs.apply_hilbert()
     epochs.load_data()
     evoked = epochs.average()
+    # Create SourceEstimate stc data
+    verts = [np.arange(10), np.arange(90)]
+    data = np.random.default_rng(0).normal(size=(100, 10))
+    stc = SourceEstimate(data, verts, 0, 1e-1, "foo")
+
     raw_hilb = raw.apply_hilbert()
     epochs_hilb = epochs.apply_hilbert()
     evoked_hilb = evoked.copy().apply_hilbert()
     evoked_hilb_2_data = epochs_hilb.get_data(copy=False).mean(0)
+    stc_hilb = stc.copy().apply_hilbert()
+    stc_hilb_env = stc.copy().apply_hilbert(envelope=True)
     assert_allclose(evoked_hilb.data, evoked_hilb_2_data)
     # This one is only approximate because of edge artifacts
     evoked_hilb_3 = Epochs(raw_hilb, events).average()
@@ -941,6 +949,8 @@ def test_hilbert():
     # envelope=True mode
     evoked_hilb_env = evoked.apply_hilbert(envelope=True)
     assert_allclose(evoked_hilb_env.data, np.abs(evoked_hilb.data))
+    assert len(stc_hilb.data) == len(stc.data)
+    assert_allclose(stc_hilb_env.data, np.abs(stc_hilb.data))
 
 
 def test_apply_function_evk():
@@ -959,3 +969,33 @@ def test_apply_function_evk():
     applied = evoked.apply_function(fun, n_jobs=None, multiplier=mult)
     assert np.shape(applied.data) == np.shape(evoked_data)
     assert np.equal(applied.data, evoked_data * mult).all()
+
+
+def test_apply_function_evk_ch_access():
+    """Check ch-access within the apply_function method for evoked data."""
+
+    def _bad_ch_idx(x, ch_idx):
+        assert x[0] == ch_idx
+        return x
+
+    def _bad_ch_name(x, ch_name):
+        assert isinstance(ch_name, str)
+        assert x[0] == float(ch_name)
+        return x
+
+    # create fake evoked data to use for checking apply_function
+    data = np.full((2, 100), np.arange(2).reshape(-1, 1))
+    evoked = EvokedArray(data, create_info(2, 1000.0, "eeg"))
+
+    # test ch_idx access in both code paths (parallel / 1 job)
+    evoked.apply_function(_bad_ch_idx)
+    evoked.apply_function(_bad_ch_idx, n_jobs=2)
+    evoked.apply_function(_bad_ch_name)
+    evoked.apply_function(_bad_ch_name, n_jobs=2)
+
+    # test input catches
+    with pytest.raises(
+        ValueError,
+        match="cannot access.*when channel_wise=False",
+    ):
+        evoked.apply_function(_bad_ch_idx, channel_wise=False)

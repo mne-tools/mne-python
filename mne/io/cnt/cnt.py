@@ -309,7 +309,8 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format, he
         # Header has a field for number of samples, but it does not seem to be
         # too reliable. That's why we have option for setting n_bytes manually.
         fid.seek(864)
-        n_samples = np.fromfile(fid, dtype="<i4", count=1).item()
+        n_samples = np.fromfile(fid, dtype="<u4", count=1).item()
+        n_samples_header = n_samples
         fid.seek(869)
         lowcutoff = np.fromfile(fid, dtype="f4", count=1).item()
         fid.seek(2, 1)
@@ -335,12 +336,24 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format, he
                 )
                 n_bytes = 2
                 n_samples = data_size // (n_bytes * n_channels)
+                # See: PR #12393
+                annotations = _read_annotations_cnt(input_fname, data_format="int16")
+                if annotations.onset[-1] * sfreq > n_samples:
+                    n_bytes = 4
+                    n_samples = n_samples_header
+                    warn(
+                        "Annotations are outside data range. "
+                        "Changing data format to 'int32'."
+                    )
             else:
                 n_bytes = data_size // (n_samples * n_channels)
         else:
             n_bytes = 2 if data_format == "int16" else 4
             n_samples = data_size // (n_bytes * n_channels)
 
+            # See PR #12393
+            if n_samples_header != 0:
+                n_samples = n_samples_header
         # Channel offset refers to the size of blocks per channel in the file.
         cnt_info["channel_offset"] = np.fromfile(fid, dtype="<i4", count=1).item()
         if cnt_info["channel_offset"] > 1:
@@ -548,6 +561,7 @@ class RawCNT(BaseRaw):
         channel_offset = self._raw_extras[fi]["channel_offset"]
         baselines = self._raw_extras[fi]["baselines"]
         n_bytes = self._raw_extras[fi]["n_bytes"]
+        n_samples = self._raw_extras[fi]["n_samples"]
         dtype = "<i4" if n_bytes == 4 else "<i2"
         chunk_size = channel_offset * f_channels  # Size of chunks in file.
         # The data is divided into blocks of samples / channel.
@@ -562,8 +576,15 @@ class RawCNT(BaseRaw):
         with open(self._filenames[fi], "rb", buffering=0) as fid:
             fid.seek(900 + f_channels * (75 + (start - s_offset) * n_bytes))
             for sample_start in np.arange(0, data_left, block_size) // f_channels:
+                # Earlier comment says n_samples is unreliable, but I think it
+                # is because it needed to be changed to unsigned int
+                # See: PR #12393
                 sample_stop = sample_start + min(
-                    (block_size // f_channels, data_left // f_channels - sample_start)
+                    (
+                        n_samples,
+                        block_size // f_channels,
+                        data_left // f_channels - sample_start,
+                    )
                 )
                 n_samps = sample_stop - sample_start
                 one = np.zeros((n_channels, n_samps))

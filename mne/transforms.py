@@ -1351,6 +1351,28 @@ def _quat_to_affine(quat):
     return affine
 
 
+def _affine_to_quat(affine):
+    assert affine.shape[-2:] == (4, 4)
+    return np.concatenate(
+        [rot_to_quat(affine[..., :3, :3]), affine[..., :3, 3]],
+        axis=-1,
+    )
+
+
+def _angle_dist_between_rigid(a, b=None, *, angle_units="rad", distance_units="m"):
+    a = _affine_to_quat(a)
+    b = np.zeros(6) if b is None else _affine_to_quat(b)
+    ang = _angle_between_quats(a[..., :3], b[..., :3])
+    dist = np.linalg.norm(a[..., 3:] - b[..., 3:], axis=-1)
+    assert isinstance(angle_units, str) and angle_units in ("rad", "deg")
+    if angle_units == "deg":
+        ang = np.rad2deg(ang)
+    assert isinstance(distance_units, str) and distance_units in ("m", "mm")
+    if distance_units == "mm":
+        dist *= 1e3
+    return ang, dist
+
+
 def _angle_between_quats(x, y=None):
     """Compute the ang between two quaternions w/3-element representations."""
     # z = conj(x) * y
@@ -1839,10 +1861,7 @@ def _compute_volume_registration(
 
             # report some useful information
             if step in ("translation", "rigid"):
-                dist = np.linalg.norm(reg_affine[:3, 3])
-                angle = np.rad2deg(
-                    _angle_between_quats(np.zeros(3), rot_to_quat(reg_affine[:3, :3]))
-                )
+                angle, dist = _angle_dist_between_rigid(reg_affine, angle_units="deg")
                 logger.info(f"    Translation: {dist:6.1f} mm")
                 if step == "rigid":
                     logger.info(f"    Rotation:    {angle:6.1f}°")

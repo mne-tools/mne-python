@@ -402,21 +402,34 @@ def test_plot_white():
     evoked_sss.plot_white(cov, time_unit="s")
 
 
+@pytest.mark.parametrize(
+    "combine,vlines,title,picks",
+    (
+        pytest.param(None, [0.1, 0.2], "MEG 0113", "MEG 0113", id="singlepick"),
+        pytest.param("mean", [], "(mean)", "mag", id="mag-mean"),
+        pytest.param("gfp", "auto", "(GFP)", "eeg", id="eeg-gfp"),
+        pytest.param(None, "auto", "(RMS)", ["MEG 0113", "MEG 0112"], id="meg-rms"),
+        pytest.param(
+            "std", "auto", "(std. dev.)", ["MEG 0113", "MEG 0112"], id="meg-std"
+        ),
+        pytest.param(
+            lambda x: np.min(x, axis=1), "auto", "MEG 0112", [0, 1], id="intpicks"
+        ),
+    ),
+)
+def test_plot_compare_evokeds_title(evoked, picks, vlines, combine, title):
+    """Test title generation by plot_compare_evokeds()."""
+    # test picks, combine, and vlines (1-channel pick also shows sensor inset)
+    fig = plot_compare_evokeds(evoked, picks=picks, vlines=vlines, combine=combine)
+    assert fig[0].axes[0].get_title().endswith(title)
+
+
 @pytest.mark.slowtest  # slow on Azure
-def test_plot_compare_evokeds():
+def test_plot_compare_evokeds(evoked):
     """Test plot_compare_evokeds."""
-    evoked = _get_epochs().average()
     # test defaults
     figs = plot_compare_evokeds(evoked)
     assert len(figs) == 3
-    # test picks, combine, and vlines (1-channel pick also shows sensor inset)
-    picks = ["MEG 0113", "mag"] + 2 * [["MEG 0113", "MEG 0112"]] + [[0, 1]]
-    vlines = [[0.1, 0.2], []] + 3 * ["auto"]
-    combine = [None, "mean", "std", None, lambda x: np.min(x, axis=1)]
-    title = ["MEG 0113", "(mean)", "(std. dev.)", "(GFP)", "MEG 0112"]
-    for _p, _v, _c, _t in zip(picks, vlines, combine, title):
-        fig = plot_compare_evokeds(evoked, picks=_p, vlines=_v, combine=_c)
-        assert fig[0].axes[0].get_title().endswith(_t)
     # test passing more than one evoked
     red, blue = evoked.copy(), evoked.copy()
     red.comment = red.comment + "*" * 100

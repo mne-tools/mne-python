@@ -649,8 +649,6 @@ def sys_info(
         "numpy",
         "scipy",
         "matplotlib",
-        "pooch",
-        "jinja2",
         "",
         "# Numerical (optional)",
         "sklearn",
@@ -700,6 +698,14 @@ def sys_info(
             "sphinx",
             "sphinx-gallery",
             "pydata-sphinx-theme",
+            "",
+            "# Infrastructure",
+            "decorator",
+            "jinja2",
+            # "lazy-loader",
+            "packaging",
+            "pooch",
+            "tqdm",
             "",
         )
     try:

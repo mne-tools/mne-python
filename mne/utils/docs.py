@@ -216,11 +216,11 @@ Operates in place.
 # raw/epochs/evoked apply_function method
 # apply_function method summary
 applyfun_summary = """\
-The function ``fun`` is applied to the channels defined in ``picks``.
+The function ``fun`` is applied to the channels or vertices defined in ``picks``.
 The {} object's data is modified in-place. If the function returns a different
 data type (e.g. :py:obj:`numpy.complex128`) it must be specified
 using the ``dtype`` parameter, which causes the data type of **all** the data
-to change (even if the function is only applied to channels in ``picks``).{}
+to change (even if the function is only applied to channels/vertices in ``picks``).{}
 
 .. note:: If ``n_jobs`` > 1, more memory is required as
           ``len(picks) * n_times`` additional time points need to
@@ -236,6 +236,7 @@ applyfun_preload = (
 docdict["applyfun_summary_epochs"] = applyfun_summary.format("epochs", applyfun_preload)
 docdict["applyfun_summary_evoked"] = applyfun_summary.format("evoked", "")
 docdict["applyfun_summary_raw"] = applyfun_summary.format("raw", applyfun_preload)
+docdict["applyfun_summary_stc"] = applyfun_summary.format("source estimate", "")
 
 docdict["area_alpha_plot_psd"] = """\
 area_alpha : float
@@ -718,12 +719,46 @@ colormap : str | np.ndarray of float, shape(n_colors, 3 | 4)
     0 and 255.
 """
 
-docdict["combine"] = """
-combine : None | str | callable
-    How to combine information across channels. If a :class:`str`, must be
-    one of 'mean', 'median', 'std' (standard deviation) or 'gfp' (global
-    field power).
+_combine_template = """
+combine : 'mean' | {literals} | callable | None
+    How to aggregate across channels. If ``None``, {none}. If a string,
+    ``"mean"`` uses :func:`numpy.mean`, {other_string}.
+    If :func:`callable`, it must operate on an :class:`array <numpy.ndarray>`
+    of shape ``({shape})`` and return an array of shape
+    ``({return_shape})``. {example}
+    {notes}Defaults to ``None``.
 """
+_example = """For example::
+
+        combine = lambda data: np.median(data, axis=1)
+"""
+_median_std_gfp = """``"median"`` computes the `marginal median
+    <https://en.wikipedia.org/wiki/Median#Marginal_median>`__, ``"std"``
+    uses :func:`numpy.std`, and ``"gfp"`` computes global field power
+    for EEG channels and RMS amplitude for MEG channels"""
+docdict["combine_plot_compare_evokeds"] = _combine_template.format(
+    literals="'median' | 'std' | 'gfp'",
+    none="""channels are combined by
+    computing GFP/RMS, unless ``picks`` is a single channel (not channel type)
+    or ``axes="topo"``, in which cases no combining is performed""",
+    other_string=_median_std_gfp,
+    shape="n_evokeds, n_channels, n_times",
+    return_shape="n_evokeds, n_times",
+    example=_example,
+    notes="",
+)
+docdict["combine_plot_epochs_image"] = _combine_template.format(
+    literals="'median' | 'std' | 'gfp'",
+    none="""channels are combined by
+    computing GFP/RMS, unless ``group_by`` is also ``None`` and ``picks`` is a
+    list of specific channels (not channel types), in which case no combining
+    is performed and each channel gets its own figure""",
+    other_string=_median_std_gfp,
+    shape="n_epochs, n_channels, n_times",
+    return_shape="n_epochs, n_times",
+    example=_example,
+    notes="See Notes for further details. ",
+)
 
 docdict["compute_proj_ecg"] = """This function will:
 
@@ -1456,9 +1491,16 @@ flat : dict | None
               quality, pass the ``reject_tmin`` and ``reject_tmax`` parameters.
 """
 
-docdict["flat_drop_bad"] = f"""
+docdict["flat_drop_bad"] = """
 flat : dict | str | None
-{_flat_common}
+    Reject epochs based on **minimum** peak-to-peak signal amplitude (PTP)
+    or a custom function. Valid **keys** can be any channel type present
+    in the object. If using PTP, **values** are floats that set the minimum
+    acceptable PTP. If the PTP is smaller than this threshold, the epoch
+    will be dropped. If ``None`` then no rejection is performed based on
+    flatness of the signal. If a custom function is used than ``flat`` can be
+    used to reject epochs based on any criteria (including maxima and
+    minima).
     If ``'existing'``, then the flat parameters set during epoch creation are
     used.
 """
@@ -1545,12 +1587,22 @@ fun : callable
     fun has to be a timeseries (:class:`numpy.ndarray`). The function must
     operate on an array of shape ``(n_times,)`` {}.
     The function must return an :class:`~numpy.ndarray` shaped like its input.
+
+    .. note::
+        If ``channel_wise=True``, one can optionally access the index and/or the
+        name of the currently processed channel within the applied function.
+        This can enable tailored computations for different channels.
+        To use this feature, add ``ch_idx`` and/or ``ch_name`` as
+        additional argument(s) to your function definition.
 """
 docdict["fun_applyfun"] = applyfun_fun_base.format(
     " if ``channel_wise=True`` and ``(len(picks), n_times)`` otherwise"
 )
 docdict["fun_applyfun_evoked"] = applyfun_fun_base.format(
     " because it will apply channel-wise"
+)
+docdict["fun_applyfun_stc"] = applyfun_fun_base.format(
+    " because it will apply vertex-wise"
 )
 
 docdict["fwd"] = """
@@ -3291,12 +3343,51 @@ _reject_common = """\
               difference will be preserved.
 """
 
-docdict["reject_drop_bad"] = f"""
+docdict["reject_drop_bad"] = """\
 reject : dict | str | None
-{_reject_common}
+    Reject epochs based on **maximum** peak-to-peak signal amplitude (PTP)
+    or custom functions. Peak-to-peak signal amplitude is defined as
+    the absolute difference between the lowest and the highest signal
+    value. In each individual epoch, the PTP is calculated for every channel.
+    If the PTP of any one channel exceeds the rejection threshold, the
+    respective epoch will be dropped.
+
+    The dictionary keys correspond to the different channel types; valid
+    **keys** can be any channel type present in the object.
+
+    Example::
+
+        reject = dict(grad=4000e-13,  # unit: T / m (gradiometers)
+                      mag=4e-12,      # unit: T (magnetometers)
+                      eeg=40e-6,      # unit: V (EEG channels)
+                      eog=250e-6      # unit: V (EOG channels)
+                      )
+
+    Custom rejection criteria can be also be used by passing a callable,
+    e.g., to check for 99th percentile of absolute values of any channel
+    across time being bigger than :unit:`1 mV`. The callable must return a
+    ``(good, reason)`` tuple: ``good`` must be :class:`bool` and ``reason``
+    must be :class:`str`, :class:`list`, or :class:`tuple` where each entry
+    is a :class:`str`::
+
+        reject = dict(
+            eeg=lambda x: (
+                (np.percentile(np.abs(x), 99, axis=1) > 1e-3).any(),
+                "signal > 1 mV somewhere",
+            )
+        )
+
+    .. note:: If rejection is based on a signal **difference**
+            calculated for each channel separately, applying baseline
+            correction does not affect the rejection procedure, as the
+            difference will be preserved.
+
+    .. note:: If ``reject`` is a callable, than **any** criteria can be
+            used to reject epochs (including maxima and minima).
+
     If ``reject`` is ``None``, no rejection is performed. If ``'existing'``
     (default), then the rejection parameters set at instantiation are used.
-"""
+"""  # noqa: E501
 
 docdict["reject_epochs"] = f"""
 reject : dict | None

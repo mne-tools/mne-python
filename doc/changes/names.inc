@@ -20,6 +20,8 @@
 
 .. _Alex Gramfort: https://alexandre.gramfort.net
 
+.. _Alex Kiefer: https://home.alex101.dev
+
 .. _Alex Rockhill: https://github.com/alexrockhill/
 
 .. _Alexander Rudiuk: https://github.com/ARudiuk
@@ -74,7 +76,7 @@
 
 .. _Carlos de la Torre-Ortiz: https://ctorre.me
 
-.. _Carina Forster: https://github.com/carinafo
+.. _Carina Forster: https://github.com/CarinaFo
 
 .. _Cathy Nangini: https://github.com/KatiRG
 
@@ -390,6 +392,8 @@
 
 .. _Motofumi Fushimi: https://github.com/motofumi-fushimi/motofumi-fushimi.github.io
 
+.. _Nabil Alibou: https://github.com/nabilalibou
+
 .. _Natalie Klein: https://github.com/natalieklein
 
 .. _Nathalie Gayraud: https://github.com/ngayraud
@@ -469,6 +473,8 @@
 .. _Richard Höchenberger: https://github.com/hoechenberger
 
 .. _Richard Koehler: https://github.com/richardkoehler
+
+.. _Richard Scholz: https://github.com/scholzri
 
 .. _Riessarius Stargardsky: https://github.com/Riessarius
 
@@ -589,6 +595,8 @@
 .. _Victoria Peterson: https://github.com/vpeterson
 
 .. _Xiaokai Xia: https://github.com/dddd1007
+
+.. _Will Turner: https://bootstrapbill.github.io
 
 .. _Yaroslav Halchenko: http://haxbylab.dartmouth.edu/ppl/yarik.html
 

@@ -143,7 +143,7 @@ CONTENT_ORDER = (
 html_include_dir = Path(__file__).parent / "js_and_css"
 template_dir = Path(__file__).parent / "templates"
 JAVASCRIPT = (html_include_dir / "report.js").read_text(encoding="utf-8")
-CSS = (html_include_dir / "report.sass").read_text(encoding="utf-8")
+CSS = (html_include_dir / "report.css").read_text(encoding="utf-8")
 
 MAX_IMG_RES = 100  # in dots per inch
 MAX_IMG_WIDTH = 850  # in pixels
@@ -1092,6 +1092,7 @@ class Report:
         *,
         psd=True,
         projs=None,
+        image_kwargs=None,
         topomap_kwargs=None,
         drop_log_ignore=("IGNORED",),
         tags=("epochs",),
@@ -1120,6 +1121,18 @@ class Report:
             If ``True``, add PSD plots based on all ``epochs``. If ``False``,
             do not add PSD plots.
         %(projs_report)s
+        image_kwargs : dict | None
+            Keyword arguments to pass to the "epochs image"-generating
+            function (:meth:`mne.Epochs.plot_image`).
+            Keys are channel types, values are dicts containing kwargs to pass.
+            For example, to use the rejection limits per channel type you could pass::
+
+                image_kwargs=dict(
+                    grad=dict(vmin=-reject['grad'], vmax=-reject['grad']),
+                    mag=dict(vmin=-reject['mag'], vmax=reject['mag']),
+                )
+
+            .. versionadded:: 1.7
         %(topomap_kwargs)s
         drop_log_ignore : array-like of str
             The drop reasons to ignore when creating the drop log bar plot.
@@ -1130,7 +1143,7 @@ class Report:
 
         Notes
         -----
-        .. versionadded:: 0.24.0
+        .. versionadded:: 0.24
         """
         tags = _check_tags(tags)
         add_projs = self.projs if projs is None else projs
@@ -1138,6 +1151,7 @@ class Report:
             epochs=epochs,
             psd=psd,
             add_projs=add_projs,
+            image_kwargs=image_kwargs,
             topomap_kwargs=topomap_kwargs,
             drop_log_ignore=drop_log_ignore,
             section=title,
@@ -3828,63 +3842,9 @@ class Report:
             metadata.index.name = "Epoch #"
 
         assert metadata.index.is_unique
-        index_name = metadata.index.name  # store for later use
+        data_id = metadata.index.name  # store for later use
         metadata = metadata.reset_index()  # We want "proper" columns only
-        html = metadata.to_html(
-            border=0,
-            index=False,
-            show_dimensions=True,
-            justify="unset",
-            float_format=lambda x: f"{round(x, 3):.3f}",
-            classes="table table-hover table-striped "
-            "table-sm table-responsive small",
-        )
-        del metadata
-
-        # Massage the table such that it woks nicely with bootstrap-table
-        htmls = html.split("\n")
-        header_pattern = "<th>(.*)</th>"
-
-        for idx, html in enumerate(htmls):
-            if "<table" in html:
-                htmls[idx] = html.replace(
-                    "<table",
-                    "<table "
-                    'id="mytable" '
-                    'data-toggle="table" '
-                    f'data-unique-id="{index_name}" '
-                    'data-search="true" '  # search / filter
-                    'data-search-highlight="true" '
-                    'data-show-columns="true" '  # show/hide columns
-                    'data-show-toggle="true" '  # allow card view
-                    'data-show-columns-toggle-all="true" '
-                    'data-click-to-select="true" '
-                    'data-show-copy-rows="true" '
-                    'data-show-export="true" '  # export to a file
-                    'data-export-types="[csv]" '
-                    'data-export-options=\'{"fileName": "metadata"}\' '
-                    'data-icon-size="sm" '
-                    'data-height="400"',
-                )
-                continue
-            elif "<tr" in html:
-                # Add checkbox for row selection
-                htmls[idx] = (
-                    f"{html}\n" f'<th data-field="state" data-checkbox="true"></th>'
-                )
-                continue
-
-            col_headers = re.findall(pattern=header_pattern, string=html)
-            if col_headers:
-                # Make columns sortable
-                assert len(col_headers) == 1
-                col_header = col_headers[0]
-                htmls[idx] = html.replace(
-                    "<th>",
-                    f'<th data-field="{col_header.lower()}" ' f'data-sortable="true">',
-                )
-
-        html = "\n".join(htmls)
+        html = _df_bootstrap_table(df=metadata, data_id=data_id)
         self._add_html_element(
             div_klass="epochs",
             tags=tags,
@@ -3900,6 +3860,7 @@ class Report:
         epochs,
         psd,
         add_projs,
+        image_kwargs,
         topomap_kwargs,
         drop_log_ignore,
         image_format,
@@ -3934,9 +3895,17 @@ class Report:
         ch_types = _get_data_ch_types(epochs)
         epochs.load_data()
 
+        _validate_type(image_kwargs, (dict, None), "image_kwargs")
+        # ensure dict with shallow copy because we will modify it
+        image_kwargs = dict() if image_kwargs is None else image_kwargs.copy()
+
         for ch_type in ch_types:
             with use_log_level(_verbose_safe_false(level="error")):
-                figs = epochs.copy().pick(ch_type, verbose=False).plot_image(show=False)
+                figs = (
+                    epochs.copy()
+                    .pick(ch_type, verbose=False)
+                    .plot_image(show=False, **image_kwargs.pop(ch_type, dict()))
+                )
 
             assert len(figs) == 1
             fig = figs[0]
@@ -3958,6 +3927,12 @@ class Report:
                 section=section,
                 replace=replace,
                 own_figure=True,
+            )
+        if image_kwargs:
+            raise ValueError(
+                f"Ensure the keys in image_kwargs map onto channel types plotted in "
+                f"epochs.plot_image() of {ch_types}, could not use: "
+                f"{list(image_kwargs)}"
             )
 
         # Drop log
@@ -4373,3 +4348,59 @@ class _ReportScraper:
     def copyfiles(self, *args, **kwargs):
         for key, value in self.files.items():
             copyfile(key, value)
+
+
+def _df_bootstrap_table(*, df, data_id):
+    html = df.to_html(
+        border=0,
+        index=False,
+        show_dimensions=True,
+        justify="unset",
+        float_format=lambda x: f"{x:.3f}",
+        classes="table table-hover table-striped table-sm table-responsive small",
+        na_rep="",
+    )
+    htmls = html.split("\n")
+    header_pattern = "<th>(.*)</th>"
+
+    for idx, html in enumerate(htmls):
+        if "<table" in html:
+            htmls[idx] = html.replace(
+                "<table",
+                "<table "
+                'id="mytable" '
+                'data-toggle="table" '
+                f'data-unique-id="{data_id}" '
+                'data-search="true" '  # search / filter
+                'data-search-highlight="true" '
+                'data-show-columns="true" '  # show/hide columns
+                'data-show-toggle="true" '  # allow card view
+                'data-show-columns-toggle-all="true" '
+                'data-click-to-select="true" '
+                'data-show-copy-rows="true" '
+                'data-show-export="true" '  # export to a file
+                'data-export-types="[csv]" '
+                'data-export-options=\'{"fileName": "metadata"}\' '
+                'data-icon-size="sm" '
+                'data-height="400"',
+            )
+            continue
+        elif "<tr" in html:
+            # Add checkbox for row selection
+            htmls[idx] = (
+                f"{html}\n" f'<th data-field="state" data-checkbox="true"></th>'
+            )
+            continue
+
+        col_headers = re.findall(pattern=header_pattern, string=html)
+        if col_headers:
+            # Make columns sortable
+            assert len(col_headers) == 1
+            col_header = col_headers[0]
+            htmls[idx] = html.replace(
+                "<th>",
+                f'<th data-field="{col_header.lower()}" ' f'data-sortable="true">',
+            )
+
+    html = "\n".join(htmls)
+    return html

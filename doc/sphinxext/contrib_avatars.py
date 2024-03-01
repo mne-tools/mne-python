@@ -15,9 +15,9 @@ def generate_contrib_avatars(app, config):
 MNE_ADD_CONTRIBUTOR_IMAGE=true in your environment to generate it.</p>"""
     else:
         from selenium import webdriver
+        from selenium.common.exceptions import WebDriverException
         from selenium.webdriver.common.by import By
         from selenium.webdriver.support.ui import WebDriverWait
-        from selenium.common.exceptions import WebDriverException
 
         try:
             options = webdriver.ChromeOptions()

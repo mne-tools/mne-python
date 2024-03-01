@@ -1104,9 +1104,9 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
         The transformation from 4D/CTF head coordinates to Neuromag head
         coordinates. This is only present in 4D/CTF data.
     custom_ref_applied : int
-        Whether a custom (=other than average) reference has been applied to
-        the EEG data. This flag is checked by some algorithms that require an
-        average reference to be set.
+        Whether a custom (=other than an average projector) reference has been
+        applied to the EEG data. This flag is checked by some algorithms that
+        require an average reference to be set.
     description : str | None
         String description of the recording.
     dev_ctf_t : Transform | None
