@@ -2573,7 +2573,7 @@ class BaseEpochs(
         picks=None,
         proj=False,
         output="power",
-        average="auto",
+        average=False,
         return_itc=False,
         decim=1,
         n_jobs=None,
@@ -2590,11 +2590,11 @@ class BaseEpochs(
         %(picks_good_data_noref)s
         %(proj_psd)s
         %(output_compute_tfr)s
-        average : bool | "auto"
+        average : bool
             Whether to return average power across epochs (instead of single-trial
-            power). Default is "auto" which means ``True`` if method="stockwell" and
-            ``False`` otherwise. ``average=True`` is not compatible with
-            ``output="complex"`` or ``output="phase"``.
+            power). ``average=True`` is not compatible with ``output="complex"`` or
+            ``output="phase"``. Ignored if ``method="stockwell"`` (Stockwell method
+            *requires* averaging). Default is ``False``.
         return_itc : bool
             Whether to return inter-trial coherence (ITC) as well as power estimates.
             If ``True`` then must specify ``average=True`` (or ``method="stockwell",
@@ -2623,8 +2623,11 @@ class BaseEpochs(
         ----------
         .. footbibliography::
         """
-        if average == "auto":  # stockwell method *must* average
-            average = method == "stockwell"
+        if method == "stockwell" and not average:  # stockwell method *must* average
+            logger.info(
+                'Requested `method="stockwell"` so ignoring parameter `average=False`.'
+            )
+            average = True
         if average:
             # augment `output` value for use by tfr_array_* functions
             _check_option("output", output, ("power",), extra=" when average=True")
