@@ -20,7 +20,7 @@
 
 .. _Alex Gramfort: https://alexandre.gramfort.net
 
-.. _Alex Kiefer: https://home.alex101.dev
+.. _Alex Kiefer: https://home.alexk101.dev
 
 .. _Alex Rockhill: https://github.com/alexrockhill/
 
@@ -418,7 +418,7 @@
 
 .. _Okba Bekhelifi: https://github.com/okbalefthanded
 
-.. _Olaf Hauk: https://www.neuroscience.cam.ac.uk/directory/profile.php?olafhauk
+.. _Olaf Hauk: https://neuroscience.cam.ac.uk/member/olafhauk
 
 .. _Oleh Kozynets: https://github.com/OlehKSS
 
