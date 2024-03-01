@@ -4,7 +4,8 @@
 #          Guillaume Favelier <guillaume.favelier@gmail.com>
 #          jona-sassenhagen <jona.sassenhagen@gmail.com>
 #
-# License: Simplified BSD
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from os import path as path
 
@@ -183,7 +184,7 @@ class _Surface:
         else:
             self.curv = None
             self.bin_curv = None
-            color = np.ones((self.coords.shape[0]))
+            color = np.ones(self.coords.shape[0])
         # morphometry (curvature) normalization in order to get gray cortex
         # TODO: delete self.grey_curv after cortex parameter
         # will be fully supported

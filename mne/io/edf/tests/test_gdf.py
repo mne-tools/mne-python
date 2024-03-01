@@ -2,6 +2,7 @@
 #          Nicolas Barascud <nicolas.barascud@ens.fr>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import shutil
 from datetime import datetime, timedelta, timezone
@@ -37,7 +38,7 @@ def test_gdf_data():
     # Test Status is added as event
     EXPECTED_EVS_ONSETS = raw._raw_extras[0]["events"][1]
     EXPECTED_EVS_ID = {
-        "{}".format(evs): i
+        f"{evs}": i
         for i, evs in enumerate(
             [
                 32769,
@@ -152,7 +153,7 @@ def test_gdf2_data():
 @testing.requires_testing_data
 def test_one_channel_gdf():
     """Test a one-channel GDF file."""
-    with pytest.warns(RuntimeWarning, match="different highpass"):
+    with pytest.warns(RuntimeWarning, match="contain different"):
         ecg = read_raw_gdf(gdf_1ch_path, preload=True)
     assert ecg["ECG"][0].shape == (1, 4500)
     assert 150.0 == ecg.info["sfreq"]

@@ -2,6 +2,7 @@
 #          Daniel McCloy <dan.mccloy@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 """
 Test the following properties for resolution metrics.
 

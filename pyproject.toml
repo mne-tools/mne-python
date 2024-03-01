@@ -1,3 +1,7 @@
+[build-system]
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
+
 [project]
 name = "mne"
 description = "MNE-Python project for MEG and EEG data analysis."
@@ -8,7 +12,7 @@ authors = [
 maintainers = [{ name = "Dan McCloy", email = "dan@mccloy.info" }]
 license = { text = "BSD-3-Clause" }
 readme = { file = "README.rst", content-type = "text/x-rst" }
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 keywords = [
     "neuroscience",
     "neuroimaging",
@@ -41,9 +45,7 @@ dependencies = [
     "decorator",
     "packaging",
     "jinja2",
-    "importlib_resources>=5.10.2; python_version<'3.9'",
     "lazy_loader>=0.3",
-    "defusedxml",
 ]
 
 [project.optional-dependencies]
@@ -60,7 +62,8 @@ hdf5 = ["h5io", "pymatreader"]
 full = [
     "mne[hdf5]",
     "qtpy",
-    "PyQt6",
+    "PyQt6!=6.6.1,!=6.6.2",
+    "PyQt6-Qt6!=6.6.1,!=6.6.2",
     "pyobjc-framework-Cocoa>=5.2.0; platform_system=='Darwin'",
     "sip",
     "scikit-learn",
@@ -69,6 +72,7 @@ full = [
     "numba",
     "h5py",
     "pandas",
+    "pyarrow",  # only needed to avoid a deprecation warning in pandas
     "numexpr",
     "jupyter",
     "python-picard",
@@ -93,26 +97,31 @@ full = [
     "trame-vuetify",
     "mne-qt-browser",
     "darkdetect",
-    "qdarkstyle",
+    "qdarkstyle!=3.2.2",
     "threadpoolctl",
+    # duplicated in test_extra:
+    "eeglabio",
+    "edfio>=0.2.1",
+    "pybv",
+    "snirf",
+    "defusedxml",
+    "neo",
 ]
 
 # Dependencies for running the test infrastructure
 test = [
-    "pytest",
+    "pytest>=8.0.0rc2",
     "pytest-cov",
     "pytest-timeout",
-    "pytest-harvest",
     "pytest-qt",
     "ruff",
     "numpydoc",
     "codespell",
-    "check-manifest",
     "tomli; python_version<'3.11'",
     "twine",
     "wheel",
     "pre-commit",
-    "black",
+    "mypy",
 ]
 
 # Dependencies for being able to run additional tests (rare/CIs/advanced devs)
@@ -122,11 +131,13 @@ test_extra = [
     "nbclient",
     "sphinx-gallery",
     "eeglabio",
-    "EDFlib-Python",
+    "edfio>=0.2.1",
     "pybv",
     "imageio>=2.6.1",
     "imageio-ffmpeg>=0.4.1",
     "snirf",
+    "neo",
+    "mne-bids",
 ]
 
 # Dependencies for building the docuemntation
@@ -136,6 +147,7 @@ doc = [
     "pydata_sphinx_theme==0.13.3",
     "sphinx-gallery",
     "sphinxcontrib-bibtex>=2.5",
+    "sphinxcontrib-towncrier",
     "memory_profiler",
     "neo",
     "seaborn!=0.11.2",
@@ -153,63 +165,39 @@ doc = [
     "ipython!=8.7.0",
     "selenium",
 ]
-dev = ["mne[test,doc]"]
+dev = ["mne[test,doc]", "rcssmin"]
 
 [project.urls]
 Homepage = "https://mne.tools/"
-Download = "https://pypi.org/project/scikit-learn/#files"
+Download = "https://pypi.org/project/mne/#files"
 "Bug Tracker" = "https://github.com/mne-tools/mne-python/issues/"
 Documentation = "https://mne.tools/"
 Forum = "https://mne.discourse.group/"
 "Source Code" = "https://github.com/mne-tools/mne-python/"
 
-[build-system]
-requires = ["setuptools>=45", "setuptools_scm[toml]>=6.2", "wheel"]
-build-backend = "setuptools.build_meta"
+[tool.hatch.build]
+exclude = [
+    "/.*",
+    "/*.yml",
+    "/*.yaml",
+    "/*.toml",
+    "/*.txt",
+    "/mne/**/tests",
+    "/logo",
+    "/doc",
+    "/tools",
+    "/tutorials",
+    "/examples",
+    "/codemeta.json",
+    "/ignore_words.txt",
+    "/Makefile",
+    "/CITATION.cff",
+    "/CONTRIBUTING.md",
+] # tracked by git, but we don't want to ship those files
 
-[tool.setuptools.packages.find]
-where = ["."]
-include = ["mne*"]
-namespaces = false
-
-[tool.setuptools_scm]
-write_to = "mne/_version.py"
-version_scheme = "release-branch-semver"
-
-[options]
-zip_safe = false            # the package can run out of an .egg file
-include_package_data = true
-
-[tool.setuptools.package-data]
-"mne" = [
-    "data/eegbci_checksums.txt",
-    "data/*.sel",
-    "data/icos.fif.gz",
-    "data/coil_def*.dat",
-    "data/helmets/*.fif.gz",
-    "data/FreeSurferColorLUT.txt",
-    "data/image/*gif",
-    "data/image/*lout",
-    "data/fsaverage/*.fif",
-    "channels/data/layouts/*.lout",
-    "channels/data/layouts/*.lay",
-    "channels/data/montages/*.sfp",
-    "channels/data/montages/*.txt",
-    "channels/data/montages/*.elc",
-    "channels/data/neighbors/*.mat",
-    "datasets/sleep_physionet/SHA1SUMS",
-    "datasets/_fsaverage/*.txt",
-    "datasets/_infant/*.txt",
-    "datasets/_phantom/*.txt",
-    "html/*.js",
-    "html/*.css",
-    "html_templates/repr/*.jinja",
-    "html_templates/report/*.jinja",
-    "icons/*.svg",
-    "icons/*.png",
-    "io/artemis123/resources/*.csv",
-    "io/edf/gdf_encodes.txt",
-]
+[tool.hatch.version]
+source = "vcs"
+raw-options = { version_scheme = "release-branch-semver" }
 
 [tool.codespell]
 ignore-words = "ignore_words.txt"
@@ -217,15 +205,18 @@ builtin = "clear,rare,informal,names,usage"
 skip = "doc/references.bib"
 
 [tool.ruff]
-select = ["E", "F", "W", "D", "I"]
 exclude = ["__init__.py", "constants.py", "resources.py"]
+
+[tool.ruff.lint]
+select = ["A", "B006", "D", "E", "F", "I", "W", "UP"]
 ignore = [
     "D100", # Missing docstring in public module
     "D104", # Missing docstring in public package
     "D413", # Missing blank line after last section
+    "UP031", # Use format specifiers instead of percent format
 ]
 
-[tool.ruff.pydocstyle]
+[tool.ruff.lint.pydocstyle]
 convention = "numpy"
 ignore-decorators = [
     "property",
@@ -235,7 +226,7 @@ ignore-decorators = [
     "mne.utils.deprecated",
 ]
 
-[tool.ruff.per-file-ignores]
+[tool.ruff.lint.per-file-ignores]
 "tutorials/time-freq/10_spectrum_class.py" = [
     "E501", # line too long
 ]
@@ -253,16 +244,16 @@ ignore-decorators = [
 ]
 
 [tool.pytest.ini_options]
-addopts = """--durations=20 --doctest-modules -ra --cov-report= --tb=short \
+# -r f (failed), E (error), s (skipped), x (xfail), X (xpassed), w (warnings)
+# don't put in xfail for pytest 8.0+ because then it prints the tracebacks,
+# which look like real errors
+addopts = """--durations=20 --doctest-modules -rfEXs --cov-report= --tb=short \
     --cov-branch --doctest-ignore-import-errors --junit-xml=junit-results.xml \
     --ignore=doc --ignore=logo --ignore=examples --ignore=tutorials \
     --ignore=mne/gui/_*.py --ignore=mne/icons --ignore=tools \
     --ignore=mne/report/js_and_css \
     --color=yes --capture=sys"""
 junit_family = "xunit2"
-
-[tool.black]
-exclude = "(dist/)|(build/)|(.*\\.ipynb)"
 
 [tool.bandit.assert_used]
 skips = ["*/test_*.py"] # assert statements are good practice with pytest
@@ -308,5 +299,79 @@ ignore_directives = [
     "toctree",
     "rst-class",
     "tab-set",
+    "towncrier-draft-entries",
 ]
 ignore_messages = "^.*(Unknown target name|Undefined substitution referenced)[^`]*$"
+
+[tool.mypy]
+ignore_errors = true
+scripts_are_modules = true
+strict = false
+
+[[tool.mypy.overrides]]
+module = ['mne.annotations', 'mne.epochs', 'mne.evoked', 'mne.io']
+ignore_errors = false
+# Ignore "attr-defined" until we fix stuff like:
+# - BunchConstNamed: '"BunchConstNamed" has no attribute "FIFFB_EVOKED"'
+# - Missing __all__: 'Module "mne.io.snirf" does not explicitly export attribute "read_raw_snirf"'
+# Ignore "no-untyped-call" until we fix stuff like:
+# - 'Call to untyped function "end_block" in typed context'
+# Ignore "no-untyped-def" until we fix stuff like:
+# - 'Function is missing a type annotation'
+# Ignore "misc" until we fix stuff like:
+# - 'Cannot determine type of "_projector" in base class "ProjMixin"'
+# Ignore "assignment" until we fix stuff like:
+# - 'Incompatible types in assignment (expression has type "tuple[str, ...]", variable has type "str")'
+# Ignore "operator" until we fix stuff like:
+# - Unsupported operand types for - ("None" and "int")
+disable_error_code = [
+    'attr-defined',
+    'no-untyped-call',
+    'no-untyped-def',
+    'misc',
+    'assignment',
+    'operator',
+]
+
+[tool.towncrier]
+package = "mne"
+directory = "doc/changes/devel/"
+filename = "doc/changes/devel.rst"
+title_format = "{version} ({project_date})"
+issue_format = "`#{issue} <https://github.com/mne-tools/mne-python/pulls/{issue}>`__"
+
+[[tool.towncrier.type]]
+directory = "notable"
+name = "Notable changes"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "dependency"
+name = "Dependencies"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "bugfix"
+name = "Bugfixes"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "apichange"
+name = "API changes by deprecation"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "newfeature"
+name = "New features"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "other"
+name = "Other changes"
+showcontent = true
+
+[tool.changelog-bot]
+[tool.changelog-bot.towncrier_changelog]
+enabled = true
+verify_pr_number = true
+changelog_skip_label = "no-changelog-entry-needed"

@@ -15,6 +15,7 @@ also using a sign flip.
 #          Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 
@@ -112,7 +113,7 @@ ax.legend(loc="upper right")
 ax.set(
     xlabel="Time (ms)",
     ylabel="Source amplitude",
-    title="Mean vector activations in Label %r" % (label.name,),
+    title=f"Mean vector activations in Label {label.name!r}",
     xlim=xlim,
     ylim=ylim,
 )

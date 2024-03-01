@@ -1,3 +1,5 @@
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 import os
 from os import path as op
 
@@ -23,7 +25,7 @@ def generate_name_links_rst(app=None):
     )
     with open(out_fname, "w", encoding="utf8") as fout:
         fout.write(":orphan:\n\n")
-        with open(names_path, "r") as fin:
+        with open(names_path) as fin:
             for line in fin:
                 if line.startswith(".. _"):
                     fout.write(f"- {line[4:]}")

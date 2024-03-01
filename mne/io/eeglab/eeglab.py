@@ -3,6 +3,7 @@
 #          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import os.path as op
 from os import PathLike
@@ -292,7 +293,7 @@ def read_raw_eeglab(
     uint16_codec=None,
     montage_units="auto",
     verbose=None,
-):
+) -> "RawEEGLAB":
     r"""Read an EEGLAB .set file.
 
     Parameters
@@ -348,7 +349,7 @@ def read_epochs_eeglab(
     uint16_codec=None,
     montage_units="auto",
     verbose=None,
-):
+) -> "EpochsEEGLAB":
     r"""Reader function for EEGLAB epochs files.
 
     Parameters
@@ -448,7 +449,7 @@ class RawEEGLAB(BaseRaw):
         uint16_codec=None,
         montage_units="auto",
         verbose=None,
-    ):  # noqa: D102
+    ):
         input_fname = str(_check_fname(input_fname, "read", True, "input_fname"))
         eeg = _check_load_mat(input_fname, uint16_codec)
         if eeg.trials != 1:
@@ -466,7 +467,7 @@ class RawEEGLAB(BaseRaw):
             data_fname = _check_eeglab_fname(input_fname, eeg.data)
             logger.info("Reading %s" % data_fname)
 
-            super(RawEEGLAB, self).__init__(
+            super().__init__(
                 info,
                 preload,
                 filenames=[data_fname],
@@ -490,7 +491,7 @@ class RawEEGLAB(BaseRaw):
             data = np.empty((n_chan, n_times), dtype=float)
             data[:n_chan] = eeg.data
             data *= CAL
-            super(RawEEGLAB, self).__init__(
+            super().__init__(
                 info,
                 data,
                 filenames=[input_fname],
@@ -601,7 +602,7 @@ class EpochsEEGLAB(BaseEpochs):
         uint16_codec=None,
         montage_units="auto",
         verbose=None,
-    ):  # noqa: D102
+    ):
         input_fname = str(
             _check_fname(fname=input_fname, must_exist=True, overwrite="read")
         )
@@ -693,7 +694,7 @@ class EpochsEEGLAB(BaseEpochs):
         assert data.shape == (eeg.trials, eeg.nbchan, eeg.pnts)
         tmin, tmax = eeg.xmin, eeg.xmax
 
-        super(EpochsEEGLAB, self).__init__(
+        super().__init__(
             info,
             data,
             events,

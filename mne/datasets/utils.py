@@ -6,7 +6,8 @@
 #          Adam Li <adam2392@gmail.com>
 #          Daniel McCloy <dan@mccloy.info>
 #
-# License: BSD Style.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import importlib
 import inspect
@@ -86,7 +87,7 @@ def _dataset_version(path, name):
     """Get the version of the dataset."""
     ver_fname = op.join(path, "version.txt")
     if op.exists(ver_fname):
-        with open(ver_fname, "r") as fid:
+        with open(ver_fname) as fid:
             version = fid.readline().strip()  # version is on first line
     else:
         logger.debug(f"Version file missing: {ver_fname}")
@@ -146,8 +147,8 @@ def _do_path_update(path, update_path, key, name):
                 answer = "y"
             else:
                 msg = (
-                    "Do you want to set the path:\n    %s\nas the default "
-                    "%s dataset path in the mne-python config [y]/n? " % (path, name)
+                    f"Do you want to set the path:\n    {path}\nas the default {name} "
+                    "dataset path in the mne-python config [y]/n? "
                 )
                 answer = _safe_input(msg, alt="pass update_path=True")
             if answer.lower() == "n":
@@ -746,7 +747,7 @@ def fetch_hcp_mmp_parcellation(
             assert used.all()
         assert len(labels_out) == 46
         for hemi, side in (("lh", "left"), ("rh", "right")):
-            table_name = "./%s.fsaverage164.label.gii" % (side,)
+            table_name = f"./{side}.fsaverage164.label.gii"
             write_labels_to_annot(
                 labels_out,
                 "fsaverage",
@@ -761,7 +762,7 @@ def fetch_hcp_mmp_parcellation(
 def _manifest_check_download(manifest_path, destination, url, hash_):
     import pooch
 
-    with open(manifest_path, "r") as fid:
+    with open(manifest_path) as fid:
         names = [name.strip() for name in fid.readlines()]
     manifest_path = op.basename(manifest_path)
     need = list()
@@ -786,18 +787,17 @@ def _manifest_check_download(manifest_path, destination, url, hash_):
                 fname=op.basename(fname_path),
             )
 
-            logger.info("Extracting missing file%s" % (_pl(need),))
+            logger.info(f"Extracting missing file{_pl(need)}")
             with zipfile.ZipFile(fname_path, "r") as ff:
                 members = set(f for f in ff.namelist() if not f.endswith("/"))
                 missing = sorted(members.symmetric_difference(set(names)))
                 if len(missing):
                     raise RuntimeError(
-                        "Zip file did not have correct names:"
-                        "\n%s" % ("\n".join(missing))
+                        "Zip file did not have correct names:\n{'\n'.join(missing)}"
                     )
                 for name in need:
                     ff.extract(name, path=destination)
-        logger.info("Successfully extracted %d file%s" % (len(need), _pl(need)))
+        logger.info(f"Successfully extracted {len(need)} file{_pl(need)}")
 
 
 def _log_time_size(t0, sz):

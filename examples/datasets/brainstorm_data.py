@@ -14,6 +14,7 @@ tutorial dataset. For comparison, see :footcite:`TadelEtAl2011` and:
 # Authors: Mainak Jas <mainak.jas@telecom-paristech.fr>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 
@@ -40,7 +41,9 @@ raw.set_channel_types({"EEG058": "eog"})
 raw.set_eeg_reference("average", projection=True)
 
 # show power line interference and remove it
-raw.compute_psd(tmax=60).plot(average=False, picks="data", exclude="bads")
+raw.compute_psd(tmax=60).plot(
+    average=False, amplitude=False, picks="data", exclude="bads"
+)
 raw.notch_filter(np.arange(60, 181, 60), fir_design="firwin")
 
 events = mne.find_events(raw, stim_channel="UPPT001")

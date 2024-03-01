@@ -1,6 +1,7 @@
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #
-# License: Simplified BSD
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import itertools
 import os
@@ -937,29 +938,33 @@ def test_plot_raw_psd(raw, raw_orig):
     spectrum = raw.compute_psd()
     # deprecation change handler
     old_defaults = dict(picks="data", exclude="bads")
-    fig = spectrum.plot(average=False)
+    fig = spectrum.plot(average=False, amplitude=False)
     # normal mode
-    fig = spectrum.plot(average=False, **old_defaults)
+    fig = spectrum.plot(average=False, amplitude=False, **old_defaults)
     fig.canvas.callbacks.process(
         "resize_event", backend_bases.ResizeEvent("resize_event", fig.canvas)
     )
     # specific mode
     picks = pick_types(spectrum.info, meg="mag", eeg=False)[:4]
-    spectrum.plot(picks=picks, ci="range", spatial_colors=True, exclude="bads")
-    raw.compute_psd(tmax=20.0).plot(color="yellow", dB=False, alpha=0.4, **old_defaults)
+    spectrum.plot(
+        picks=picks, ci="range", spatial_colors=True, exclude="bads", amplitude=False
+    )
+    raw.compute_psd(tmax=20.0).plot(
+        color="yellow", dB=False, alpha=0.4, amplitude=True, **old_defaults
+    )
     plt.close("all")
     # one axes supplied
     ax = plt.axes()
-    spectrum.plot(picks=picks, axes=ax, average=True, exclude="bads")
+    spectrum.plot(picks=picks, axes=ax, average=True, exclude="bads", amplitude=False)
     plt.close("all")
     # two axes supplied
     _, axs = plt.subplots(2)
-    spectrum.plot(axes=axs, average=True, **old_defaults)
+    spectrum.plot(axes=axs, average=True, amplitude=False, **old_defaults)
     plt.close("all")
     # need 2, got 1
     ax = plt.axes()
     with pytest.raises(ValueError, match="of length 2.*the length is 1"):
-        spectrum.plot(axes=ax, average=True, **old_defaults)
+        spectrum.plot(axes=ax, average=True, amplitude=False, **old_defaults)
     plt.close("all")
     # topo psd
     ax = plt.subplot()
@@ -968,7 +973,9 @@ def test_plot_raw_psd(raw, raw_orig):
     # with channel information not available
     for idx in range(len(raw.info["chs"])):
         raw.info["chs"][idx]["loc"] = np.zeros(12)
-    with pytest.warns(RuntimeWarning, match="locations not available"):
+    with _record_warnings(), pytest.warns(
+        RuntimeWarning, match="locations not available"
+    ):
         raw.compute_psd().plot(spatial_colors=True, average=False)
     # with a flat channel
     raw[5, :] = 0
@@ -980,14 +987,13 @@ def test_plot_raw_psd(raw, raw_orig):
         # check grad axes
         title = fig.axes[0].get_title()
         ylabel = fig.axes[0].get_ylabel()
-        ends_dB = ylabel.endswith("mathrm{(dB)}$")
         unit = r"fT/cm/\sqrt{Hz}" if amplitude else "(fT/cm)²/Hz"
         assert title == "Gradiometers", title
         assert unit in ylabel, ylabel
         if dB:
-            assert ends_dB, ylabel
+            assert "dB" in ylabel
         else:
-            assert not ends_dB, ylabel
+            assert "dB" not in ylabel
         # check mag axes
         title = fig.axes[1].get_title()
         ylabel = fig.axes[1].get_ylabel()
@@ -1005,8 +1011,8 @@ def test_plot_raw_psd(raw, raw_orig):
     raw = raw_orig.crop(0, 1)
     picks = pick_types(raw.info, meg=True)
     spectrum = raw.compute_psd(picks=picks)
-    spectrum.plot(average=False, **old_defaults)
-    spectrum.plot(average=True, **old_defaults)
+    spectrum.plot(average=False, amplitude=False, **old_defaults)
+    spectrum.plot(average=True, amplitude=False, **old_defaults)
     plt.close("all")
     raw.set_channel_types(
         {
@@ -1017,7 +1023,7 @@ def test_plot_raw_psd(raw, raw_orig):
         },
         verbose="error",
     )
-    fig = raw.compute_psd().plot(**old_defaults)
+    fig = raw.compute_psd().plot(amplitude=False, **old_defaults)
     assert len(fig.axes) == 10
     plt.close("all")
 
@@ -1028,7 +1034,7 @@ def test_plot_raw_psd(raw, raw_orig):
     raw = RawArray(data, info)
     picks = pick_types(raw.info, misc=True)
     spectrum = raw.compute_psd(picks=picks, n_fft=n_fft)
-    spectrum.plot(spatial_colors=False, picks=picks, exclude="bads")
+    spectrum.plot(spatial_colors=False, picks=picks, exclude="bads", amplitude=False)
     plt.close("all")
 
 

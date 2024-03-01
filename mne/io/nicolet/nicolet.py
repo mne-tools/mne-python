@@ -1,6 +1,7 @@
 # Author: Jaakko Leppakangas <jaeilepp@student.jyu.fi>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import calendar
 import datetime
@@ -18,7 +19,7 @@ from ..base import BaseRaw
 @fill_doc
 def read_raw_nicolet(
     input_fname, ch_type, eog=(), ecg=(), emg=(), misc=(), preload=False, verbose=None
-):
+) -> "RawNicolet":
     """Read Nicolet data as raw object.
 
     ..note:: This reader takes data files with the extension ``.data`` as an
@@ -83,7 +84,7 @@ def _get_nicolet_info(fname, ch_type, eog, ecg, emg, misc):
 
     logger.info("Reading header...")
     header_info = dict()
-    with open(header, "r") as fid:
+    with open(header) as fid:
         for line in fid:
             var, value = line.split("=")
             if var == "elec_names":
@@ -182,11 +183,11 @@ class RawNicolet(BaseRaw):
         misc=(),
         preload=False,
         verbose=None,
-    ):  # noqa: D102
+    ):
         input_fname = path.abspath(input_fname)
         info, header_info = _get_nicolet_info(input_fname, ch_type, eog, ecg, emg, misc)
         last_samps = [header_info["num_samples"] - 1]
-        super(RawNicolet, self).__init__(
+        super().__init__(
             info,
             preload,
             filenames=[input_fname],

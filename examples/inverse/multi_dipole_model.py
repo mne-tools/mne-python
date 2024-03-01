@@ -26,6 +26,7 @@ being reproducible.
 # Author: Marijn van Vliet <w.m.vanvliet@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 ###############################################################################
 # Importing everything and setting up the data paths for the MNE-Sample

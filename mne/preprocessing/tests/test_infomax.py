@@ -1,6 +1,7 @@
 # Authors: Denis A. Engemann <denis.engemann@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # Parts of this code are taken from scikit-learn
 

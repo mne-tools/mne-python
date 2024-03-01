@@ -18,6 +18,8 @@ repeatedly typing ``mne.preprocessing`` we'll directly import a few functions
 and classes from that submodule:
 """
 
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 # %%
 
 import os
@@ -565,7 +567,7 @@ for index, (ica, raw) in enumerate(zip(icas, raws)):
     with mne.viz.use_browser_backend("matplotlib"):
         fig = ica.plot_sources(raw, show_scrollbars=False)
     fig.subplots_adjust(top=0.9)  # make space for title
-    fig.suptitle("Subject {}".format(index))
+    fig.suptitle(f"Subject {index}")
 
 # %%
 # Notice that subjects 2 and 3 each seem to have *two* ICs that reflect ocular

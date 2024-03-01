@@ -7,7 +7,8 @@
 #          Mainak Jas <mainak@neuro.hut.fi>
 #          Mark Wronkiewicz <wronk.mark@gmail.com>
 #
-# License: Simplified BSD
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import os
 import os.path as op
@@ -2186,8 +2187,7 @@ def link_brains(brains, time=True, camera=False, colorbar=True, picking=False):
 
     if _get_3d_backend() != "pyvistaqt":
         raise NotImplementedError(
-            "Expected 3d backend is pyvistaqt but"
-            " {} was given.".format(_get_3d_backend())
+            f"Expected 3d backend is pyvistaqt but {_get_3d_backend()} was given."
         )
     from ._brain import Brain, _LinkViewer
 
@@ -2197,9 +2197,7 @@ def link_brains(brains, time=True, camera=False, colorbar=True, picking=False):
         raise ValueError("The collection of brains is empty.")
     for brain in brains:
         if not isinstance(brain, Brain):
-            raise TypeError(
-                "Expected type is Brain but" " {} was given.".format(type(brain))
-            )
+            raise TypeError("Expected type is Brain but" f" {type(brain)} was given.")
         # enable time viewer if necessary
         brain.setup_time_viewer()
     subjects = [brain._subject for brain in brains]

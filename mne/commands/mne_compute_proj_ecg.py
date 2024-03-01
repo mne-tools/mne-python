@@ -12,6 +12,8 @@ Examples
 """
 # Authors : Alexandre Gramfort, Ph.D.
 #           Martin Luessi, Ph.D.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import os
 import sys
@@ -254,7 +256,7 @@ def run():
             raise ValueError('qrsthr must be "auto" or a float')
 
     if bad_fname is not None:
-        with open(bad_fname, "r") as fid:
+        with open(bad_fname) as fid:
             bads = [w.rstrip() for w in fid.readlines()]
         print("Bad channels read : %s" % bads)
     else:

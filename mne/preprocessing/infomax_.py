@@ -3,6 +3,7 @@
 #          Denis A. Engeman <denis.engemann@gemail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import math
 

@@ -8,6 +8,7 @@ RawKIT class is adapted from Denis Engemann et al.'s mne_bti2fiff.py.
 #          Christian Brodbeck <christianbrodbeck@nyu.edu>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from collections import OrderedDict, defaultdict
 from math import cos, sin
@@ -74,7 +75,7 @@ def _call_digitization(info, mrk, elp, hsp, kit_info):
 class UnsupportedKITFormat(ValueError):
     """Our reader is not guaranteed to work with old files."""
 
-    def __init__(self, sqd_version, *args, **kwargs):  # noqa: D102
+    def __init__(self, sqd_version, *args, **kwargs):
         self.sqd_version = sqd_version
         ValueError.__init__(self, *args, **kwargs)
 
@@ -133,7 +134,7 @@ class RawKIT(BaseRaw):
         allow_unknown_format=False,
         standardize_names=None,
         verbose=None,
-    ):  # noqa: D102
+    ):
         logger.info("Extracting SQD Parameters from %s..." % input_fname)
         input_fname = op.abspath(input_fname)
         self.preload = False
@@ -150,7 +151,7 @@ class RawKIT(BaseRaw):
         last_samps = [kit_info["n_samples"] - 1]
         self._raw_extras = [kit_info]
         _set_stimchannels(self, info, stim, stim_code)
-        super(RawKIT, self).__init__(
+        super().__init__(
             info,
             preload,
             last_samps=last_samps,
@@ -381,7 +382,7 @@ class EpochsKIT(BaseEpochs):
         allow_unknown_format=False,
         standardize_names=None,
         verbose=None,
-    ):  # noqa: D102
+    ):
         if isinstance(events, (str, PathLike, Path)):
             events = read_events(events)
 
@@ -421,7 +422,7 @@ class EpochsKIT(BaseEpochs):
             self._raw_extras[0]["frame_length"],
         )
         tmax = ((data.shape[2] - 1) / self.info["sfreq"]) + tmin
-        super(EpochsKIT, self).__init__(
+        super().__init__(
             self.info,
             data,
             events,
@@ -912,7 +913,7 @@ def read_raw_kit(
     allow_unknown_format=False,
     standardize_names=False,
     verbose=None,
-):
+) -> RawKIT:
     r"""Reader function for Ricoh/KIT conversion to FIF.
 
     Parameters
@@ -980,7 +981,7 @@ def read_epochs_kit(
     allow_unknown_format=False,
     standardize_names=False,
     verbose=None,
-):
+) -> EpochsKIT:
     """Reader function for Ricoh/KIT epochs files.
 
     Parameters

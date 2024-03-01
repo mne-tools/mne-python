@@ -3,6 +3,7 @@
 #            Eric Larson <larson.eric.d@gmail.com>
 
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import copy
 import os.path as op
@@ -737,12 +738,12 @@ class SourceMorph:
         s = "%s" % self.kind
         s += ", %s -> %s" % (self.subject_from, self.subject_to)
         if self.kind == "volume":
-            s += ", zooms : {}".format(self.zooms)
-            s += ", niter_affine : {}".format(self.niter_affine)
-            s += ", niter_sdr : {}".format(self.niter_sdr)
+            s += f", zooms : {self.zooms}"
+            s += f", niter_affine : {self.niter_affine}"
+            s += f", niter_sdr : {self.niter_sdr}"
         elif self.kind in ("surface", "vector"):
-            s += ", spacing : {}".format(self.spacing)
-            s += ", smooth : %s" % self.smooth
+            s += f", spacing : {self.spacing}"
+            s += f", smooth : {self.smooth}"
             s += ", xhemi" if self.xhemi else ""
 
         return "<SourceMorph | %s>" % s
@@ -1294,7 +1295,7 @@ def grade_to_vertices(subject, grade, subjects_dir=None, n_jobs=None, verbose=No
     spheres_to = [
         subjects_dir / subject / "surf" / (xh + ".sphere.reg") for xh in ["lh", "rh"]
     ]
-    lhs, rhs = [read_surface(s)[0] for s in spheres_to]
+    lhs, rhs = (read_surface(s)[0] for s in spheres_to)
 
     if grade is not None:  # fill a subset of vertices
         if isinstance(grade, list):
@@ -1313,7 +1314,7 @@ def grade_to_vertices(subject, grade, subjects_dir=None, n_jobs=None, verbose=No
 
             # Compute nearest vertices in high dim mesh
             parallel, my_compute_nearest, _ = parallel_func(_compute_nearest, n_jobs)
-            lhs, rhs, rr = [a.astype(np.float32) for a in [lhs, rhs, ico["rr"]]]
+            lhs, rhs, rr = (a.astype(np.float32) for a in [lhs, rhs, ico["rr"]])
             vertices = parallel(my_compute_nearest(xhs, rr) for xhs in [lhs, rhs])
             # Make sure the vertices are ordered
             vertices = [np.sort(verts) for verts in vertices]

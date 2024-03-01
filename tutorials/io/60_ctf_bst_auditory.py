@@ -26,6 +26,7 @@ The specifications of this dataset were discussed initially on the
 #          Jaakko Leppakangas <jaeilepp@student.jyu.fi>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 
@@ -104,7 +105,7 @@ offset = n_times_run1
 for idx in [1, 2]:
     csv_fname = data_path / "MEG" / "bst_auditory" / f"events_bad_0{idx}.csv"
     df = pd.read_csv(csv_fname, header=None, names=["onset", "duration", "id", "label"])
-    print("Events from run {0}:".format(idx))
+    print(f"Events from run {idx}:")
     print(df)
 
     df["onset"] += offset * (idx - 1)
@@ -164,10 +165,14 @@ raw.plot()
 # saving mode we do the filtering at evoked stage, which is not something you
 # usually would do.
 if not use_precomputed:
-    raw.compute_psd(tmax=np.inf, picks="meg").plot(picks="data", exclude="bads")
+    raw.compute_psd(tmax=np.inf, picks="meg").plot(
+        picks="data", exclude="bads", amplitude=False
+    )
     notches = np.arange(60, 181, 60)
     raw.notch_filter(notches, phase="zero-double", fir_design="firwin2")
-    raw.compute_psd(tmax=np.inf, picks="meg").plot(picks="data", exclude="bads")
+    raw.compute_psd(tmax=np.inf, picks="meg").plot(
+        picks="data", exclude="bads", amplitude=False
+    )
 
 # %%
 # We also lowpass filter the data at 100 Hz to remove the hf components.
@@ -203,9 +208,7 @@ diffs = np.concatenate([[min_diff + 1], np.diff(onsets)])
 onsets = onsets[diffs > min_diff]
 assert len(onsets) == len(events)
 diffs = 1000.0 * (events[:, 0] - onsets) / raw.info["sfreq"]
-print(
-    "Trigger delay removed (μ ± σ): %0.1f ± %0.1f ms" % (np.mean(diffs), np.std(diffs))
-)
+print(f"Trigger delay removed (μ ± σ): {np.mean(diffs):0.1f} ± {np.std(diffs):0.1f} ms")
 events[:, 0] = onsets
 del sound_data, diffs
 

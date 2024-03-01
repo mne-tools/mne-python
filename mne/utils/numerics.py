@@ -3,6 +3,7 @@
 #          Clemens Brunner <clemens.brunner@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import inspect
 import numbers
@@ -937,7 +938,7 @@ class _PCA:
 
 def _mask_to_onsets_offsets(mask):
     """Group boolean mask into contiguous onset:offset pairs."""
-    assert mask.dtype == bool and mask.ndim == 1
+    assert mask.dtype == np.dtype(bool) and mask.ndim == 1
     mask = mask.astype(int)
     diff = np.diff(mask)
     onsets = np.where(diff > 0)[0] + 1

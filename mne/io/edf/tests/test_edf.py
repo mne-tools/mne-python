@@ -6,6 +6,7 @@
 #          Joan Massich <mailsik@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import datetime
 from contextlib import nullcontext
@@ -37,6 +38,7 @@ from mne.io.edf.edf import (
 )
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.tests.test_annotations import _assert_annotations_equal
+from mne.utils import _record_warnings
 
 td_mark = testing._pytest_mark()
 
@@ -407,7 +409,7 @@ def test_no_data_channels():
     annot_2 = raw.annotations
     _assert_annotations_equal(annot, annot_2)
     # only annotations (should warn)
-    with pytest.warns(RuntimeWarning, match="read_annotations"):
+    with _record_warnings(), pytest.warns(RuntimeWarning, match="read_annotations"):
         read_raw_edf(edf_annot_only)
 
 

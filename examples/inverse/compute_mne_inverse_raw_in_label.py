@@ -13,6 +13,7 @@ visualisation.
 # Author: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 
@@ -48,7 +49,7 @@ stc = apply_inverse_raw(
 )
 
 # Save result in stc files
-stc.save("mne_%s_raw_inverse_%s" % (method, label_name), overwrite=True)
+stc.save(f"mne_{method}_raw_inverse_{label_name}", overwrite=True)
 
 # %%
 # View activation time-series

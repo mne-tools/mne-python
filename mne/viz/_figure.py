@@ -3,7 +3,8 @@
 # Authors: Daniel McCloy <dan@mccloy.info>
 #          Martin Schulz <dev@earthman-music.de>
 #
-# License: Simplified BSD
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 import importlib
 from abc import ABC, abstractmethod
 from collections import OrderedDict

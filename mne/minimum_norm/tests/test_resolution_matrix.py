@@ -1,9 +1,9 @@
-# -*- coding: utf-8 -*-
 # Author: Olaf Hauk <olaf.hauk@mrc-cbu.cam.ac.uk>
 #         Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #         Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import os.path as op
 

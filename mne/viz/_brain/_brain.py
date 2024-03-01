@@ -5,7 +5,8 @@
 #          jona-sassenhagen <jona.sassenhagen@gmail.com>
 #          Joan Massich <mailsik@gmail.com>
 #
-# License: Simplified BSD
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import copy
 import os
@@ -1572,7 +1573,7 @@ class Brain:
             mni = " MNI: " + ", ".join("%5.1f" % m for m in mni)
         else:
             mni = ""
-        label = "{}:{}{}".format(hemi_str, str(vertex_id).ljust(6), mni)
+        label = f"{hemi_str}:{str(vertex_id).ljust(6)}{mni}"
         act_data, smooth = self.act_data_smooth[hemi]
         if smooth is not None:
             act_data = smooth[vertex_id].dot(act_data)[0]
@@ -1906,8 +1907,8 @@ class Brain:
         if array.ndim == 3:
             if array.shape[1] != 3:
                 raise ValueError(
-                    "If array has 3 dimensions, array.shape[1] "
-                    "must equal 3, got %s" % (array.shape[1],)
+                    "If array has 3 dimensions, array.shape[1] must equal 3, got "
+                    f"{array.shape[1]}"
                 )
         fmin, fmid, fmax = _update_limits(fmin, fmid, fmax, center, array)
         if colormap == "auto":
@@ -1920,13 +1921,13 @@ class Brain:
         elif isinstance(smoothing_steps, int):
             if smoothing_steps < 0:
                 raise ValueError(
-                    "Expected value of `smoothing_steps` is"
-                    " positive but {} was given.".format(smoothing_steps)
+                    "Expected value of `smoothing_steps` is positive but "
+                    f"{smoothing_steps} was given."
                 )
         else:
             raise TypeError(
-                "Expected type of `smoothing_steps` is int or"
-                " NoneType but {} was given.".format(type(smoothing_steps))
+                "Expected type of `smoothing_steps` is int or NoneType but "
+                f"{type(smoothing_steps)} was given."
             )
 
         self._data["stc"] = stc
@@ -2182,8 +2183,6 @@ class Brain:
         borders=False,
         hemi=None,
         subdir=None,
-        *,
-        reset_camera=None,
     ):
         """Add an ROI label to the image.
 
@@ -2215,8 +2214,6 @@ class Brain:
             label directory rather than in the label directory itself (e.g.
             for ``$SUBJECTS_DIR/$SUBJECT/label/aparc/lh.cuneus.label``
             ``brain.add_label('cuneus', subdir='aparc')``).
-        reset_camera : bool
-            Deprecated. Use :meth:`show_view` instead.
 
         Notes
         -----
@@ -2323,12 +2320,6 @@ class Brain:
                     keep_idx = np.unique(keep_idx)
             show[keep_idx] = 1
             scalars *= show
-        if reset_camera is not None:
-            warn(
-                "reset_camera is deprecated and will be removed in 1.7, "
-                "use show_view instead",
-                FutureWarning,
-            )
         for _, _, v in self._iter_views(hemi):
             mesh = self._layered_meshes[hemi]
             mesh.add_overlay(

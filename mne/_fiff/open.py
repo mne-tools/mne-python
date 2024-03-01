@@ -2,6 +2,7 @@
 #          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import os.path as op
 from gzip import GzipFile
@@ -12,7 +13,13 @@ from scipy.sparse import issparse
 
 from ..utils import _file_like, logger, verbose, warn
 from .constants import FIFF
-from .tag import Tag, _call_dict_names, _matrix_info, read_tag, read_tag_info
+from .tag import (
+    Tag,
+    _call_dict_names,
+    _matrix_info,
+    _read_tag_header,
+    read_tag,
+)
 from .tree import dir_tree_find, make_dir_tree
 
 
@@ -138,7 +145,7 @@ def _fiff_open(fname, fid, preload):
         with fid as fid_old:
             fid = BytesIO(fid_old.read())
 
-    tag = read_tag_info(fid)
+    tag = _read_tag_header(fid, 0)
 
     #   Check that this looks like a fif file
     prefix = f"file {repr(fname)} does not"
@@ -151,7 +158,7 @@ def _fiff_open(fname, fid, preload):
     if tag.size != 20:
         raise ValueError(f"{prefix} start with a file id tag")
 
-    tag = read_tag(fid)
+    tag = read_tag(fid, tag.next_pos)
 
     if tag.kind != FIFF.FIFF_DIR_POINTER:
         raise ValueError(f"{prefix} have a directory pointer")
@@ -175,16 +182,15 @@ def _fiff_open(fname, fid, preload):
             directory = dir_tag.data
             read_slow = False
     if read_slow:
-        fid.seek(0, 0)
+        pos = 0
+        fid.seek(pos, 0)
         directory = list()
-        while tag.next >= 0:
-            pos = fid.tell()
-            tag = read_tag_info(fid)
+        while pos is not None:
+            tag = _read_tag_header(fid, pos)
             if tag is None:
                 break  # HACK : to fix file ending with empty tag...
-            else:
-                tag.pos = pos
-                directory.append(tag)
+            pos = tag.next_pos
+            directory.append(tag)
 
     tree, _ = make_dir_tree(fid, directory)
 
@@ -257,12 +263,12 @@ def show_fiff(
             tag_id=tag,
             show_bytes=show_bytes,
         )
-    if output == str:
+    if output is str:
         out = "\n".join(out)
     return out
 
 
-def _find_type(value, fmts=["FIFF_"], exclude=["FIFF_UNIT"]):
+def _find_type(value, fmts=("FIFF_",), exclude=("FIFF_UNIT",)):
     """Find matching values."""
     value = int(value)
     vals = [
@@ -308,7 +314,7 @@ def _show_tree(
         for k, kn, size, pos, type_ in zip(kinds[:-1], kinds[1:], sizes, poss, types):
             if not tag_found and k != tag_id:
                 continue
-            tag = Tag(k, size, 0, pos)
+            tag = Tag(kind=k, type=type_, size=size, next=FIFF.FIFFV_NEXT_NONE, pos=pos)
             if read_limit is None or size <= read_limit:
                 try:
                     tag = read_tag(fid, pos)
@@ -341,17 +347,17 @@ def _show_tree(
                     elif isinstance(tag.data, (list, tuple)):
                         postpend += " ... list len=" + str(len(tag.data))
                     elif issparse(tag.data):
-                        postpend += " ... sparse (%s) shape=%s" % (
-                            tag.data.getformat(),
-                            tag.data.shape,
+                        postpend += (
+                            f" ... sparse ({tag.data.getformat()}) shape="
+                            f"{tag.data.shape}"
                         )
                     else:
                         postpend += " ... type=" + str(type(tag.data))
-                postpend = ">" * 20 + "BAD" if not good else postpend
+                postpend = ">" * 20 + f"BAD @{pos}" if not good else postpend
                 matrix_info = _matrix_info(tag)
                 if matrix_info is not None:
                     _, type_, _, _ = matrix_info
-                type_ = _call_dict_names.get(type_, "?%s?" % (type_,))
+                type_ = _call_dict_names.get(type_, f"?{type_}?")
                 this_type = "/".join(this_type)
                 out += [
                     f"{next_idt}{prepend}{str(k).ljust(4)} = "

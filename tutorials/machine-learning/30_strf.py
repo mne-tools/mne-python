@@ -16,6 +16,7 @@ that was used to create this data.
 #          Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 
@@ -169,9 +170,9 @@ ax2.set(
 # Create training and testing data
 train, test = np.arange(n_epochs - 1), n_epochs - 1
 X_train, X_test, y_train, y_test = X[train], X[test], y[train], y[test]
-X_train, X_test, y_train, y_test = [
+X_train, X_test, y_train, y_test = (
     np.rollaxis(ii, -1, 0) for ii in (X_train, X_test, y_train, y_test)
-]
+)
 # Model the simulated data as a function of the spectrogram input
 alphas = np.logspace(-3, 3, 7)
 scores = np.zeros_like(alphas)

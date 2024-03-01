@@ -3,6 +3,7 @@
 # Author: Teon Brooks <teon.brooks@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import pickle
 import re
@@ -153,12 +154,9 @@ def _set_dig_kit(mrk, elp, hsp, eeg):
         hsp = _decimate_points(hsp, res=0.005)
         n_new = len(hsp)
         warn(
-            "The selected head shape contained {n_in} points, which is "
-            "more than recommended ({n_rec}), and was automatically "
-            "downsampled to {n_new} points. The preferred way to "
-            "downsample is using FastScan.".format(
-                n_in=n_pts, n_rec=KIT.DIG_POINTS, n_new=n_new
-            )
+            f"The selected head shape contained {n_pts} points, which is more than "
+            f"recommended ({KIT.DIG_POINTS}), and was automatically downsampled to "
+            f"{n_new} points. The preferred way to downsample is using FastScan."
         )
 
     if isinstance(elp, (str, Path, PathLike)):

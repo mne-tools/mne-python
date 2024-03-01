@@ -1,3 +1,5 @@
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 import gc
 from pathlib import Path
 
@@ -35,16 +37,14 @@ from mne.forward import (
 )
 from mne.io import read_info
 from mne.label import read_label
-from mne.utils import requires_mne, run_subprocess
+from mne.utils import _record_warnings, requires_mne, run_subprocess
 
 data_path = testing.data_path(download=False)
 fname_meeg = data_path / "MEG" / "sample" / "sample_audvis_trunc-meg-eeg-oct-4-fwd.fif"
 fname_meeg_grad = (
     data_path / "MEG" / "sample" / "sample_audvis_trunc-meg-eeg-oct-2-grad-fwd.fif"
 )
-fname_evoked = (
-    Path(__file__).parent.parent.parent / "io" / "tests" / "data" / "test-ave.fif"
-)
+fname_evoked = Path(__file__).parents[2] / "io" / "tests" / "data" / "test-ave.fif"
 label_path = data_path / "MEG" / "sample" / "labels"
 
 
@@ -230,7 +230,9 @@ def test_apply_forward():
     # Evoked
     evoked = read_evokeds(fname_evoked, condition=0)
     evoked.pick(picks="meg")
-    with pytest.warns(RuntimeWarning, match="only .* positive values"):
+    with _record_warnings(), pytest.warns(
+        RuntimeWarning, match="only .* positive values"
+    ):
         evoked = apply_forward(fwd, stc, evoked.info, start=start, stop=stop)
     data = evoked.data
     times = evoked.times
@@ -248,13 +250,14 @@ def test_apply_forward():
         stc.tmin,
         stc.tstep,
     )
-    with pytest.warns(RuntimeWarning, match="very large"):
+    large_ctx = pytest.warns(RuntimeWarning, match="very large")
+    with large_ctx:
         evoked_2 = apply_forward(fwd, stc_vec, evoked.info)
     assert np.abs(evoked_2.data).mean() > 1e-5
     assert_allclose(evoked.data, evoked_2.data, atol=1e-10)
 
     # Raw
-    with pytest.warns(RuntimeWarning, match="only .* positive values"):
+    with large_ctx, pytest.warns(RuntimeWarning, match="only .* positive values"):
         raw_proj = apply_forward_raw(fwd, stc, evoked.info, start=start, stop=stop)
     data, times = raw_proj[:, :]
 

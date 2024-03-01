@@ -3,6 +3,7 @@
 #          Ross Maddox <ross.maddox@rochester.edu>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import numpy as np
 from scipy import linalg
@@ -156,12 +157,10 @@ def _compute_reg_neighbors(n_ch_x, n_delays, reg_type, method="direct", normed=F
     if isinstance(reg_type, str):
         reg_type = (reg_type,) * 2
     if len(reg_type) != 2:
-        raise ValueError("reg_type must have two elements, got %s" % (len(reg_type),))
+        raise ValueError(f"reg_type must have two elements, got {len(reg_type)}")
     for r in reg_type:
         if r not in known_types:
-            raise ValueError(
-                "reg_type entries must be one of %s, got %s" % (known_types, r)
-            )
+            raise ValueError(f"reg_type entries must be one of {known_types}, got {r}")
     reg_time = reg_type[0] == "laplacian" and n_delays > 1
     reg_chs = reg_type[1] == "laplacian" and n_ch_x > 1
     if not reg_time and not reg_chs:
@@ -289,7 +288,7 @@ class TimeDelayingRidge(BaseEstimator):
         edge_correction=True,
     ):
         if tmin > tmax:
-            raise ValueError("tmin must be <= tmax, got %s and %s" % (tmin, tmax))
+            raise ValueError(f"tmin must be <= tmax, got {tmin} and {tmax}")
         self.tmin = float(tmin)
         self.tmax = float(tmax)
         self.sfreq = float(sfreq)

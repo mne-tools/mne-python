@@ -26,6 +26,7 @@ Preprocessing
 #          Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 
@@ -57,16 +58,16 @@ raws = dict()
 raw_erms = dict()
 new_sfreq = 60.0  # Nyquist frequency (30 Hz) < line noise freq (50 Hz)
 raws["vv"] = mne.io.read_raw_fif(vv_fname, verbose="error")  # ignore naming
-raws["vv"].load_data().resample(new_sfreq)
+raws["vv"].load_data().resample(new_sfreq, method="polyphase")
 raws["vv"].info["bads"] = ["MEG2233", "MEG1842"]
 raw_erms["vv"] = mne.io.read_raw_fif(vv_erm_fname, verbose="error")
-raw_erms["vv"].load_data().resample(new_sfreq)
+raw_erms["vv"].load_data().resample(new_sfreq, method="polyphase")
 raw_erms["vv"].info["bads"] = ["MEG2233", "MEG1842"]
 
 raws["opm"] = mne.io.read_raw_fif(opm_fname)
-raws["opm"].load_data().resample(new_sfreq)
+raws["opm"].load_data().resample(new_sfreq, method="polyphase")
 raw_erms["opm"] = mne.io.read_raw_fif(opm_erm_fname)
-raw_erms["opm"].load_data().resample(new_sfreq)
+raw_erms["opm"].load_data().resample(new_sfreq, method="polyphase")
 # Make sure our assumptions later hold
 assert raws["opm"].info["sfreq"] == raws["vv"].info["sfreq"]
 
@@ -81,7 +82,7 @@ for kind in kinds:
     fig = (
         raws[kind]
         .compute_psd(n_fft=n_fft, proj=True)
-        .plot(picks="data", exclude="bads")
+        .plot(picks="data", exclude="bads", amplitude=True)
     )
     fig.suptitle(titles[kind])
 

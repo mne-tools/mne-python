@@ -1,6 +1,7 @@
 # Author: Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import glob
 import os
@@ -63,7 +64,7 @@ fwd_fname = data_path / "MEG" / "sample" / "sample_audvis_trunc-meg-eeg-oct-6-fw
 src_bad_fname = data_path / "subjects" / "fsaverage" / "bem" / "fsaverage-ico-5-src.fif"
 label_dir = subjects_dir / "sample" / "label" / "aparc"
 
-test_path = Path(__file__).parent.parent / "io" / "tests" / "data"
+test_path = Path(__file__).parents[1] / "io" / "tests" / "data"
 label_fname = test_path / "test-lh.label"
 label_rh_fname = test_path / "test-rh.label"
 

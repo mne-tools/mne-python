@@ -1,5 +1,6 @@
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import os
 import re
@@ -71,7 +72,7 @@ from mne.minimum_norm import (
     read_inverse_operator,
 )
 from mne.morph_map import _make_morph_map_hemi
-from mne.source_estimate import _get_vol_mask, grade_to_tris
+from mne.source_estimate import _get_vol_mask, _make_stc, grade_to_tris
 from mne.source_space._source_space import _get_src_nn
 from mne.transforms import apply_trans, invert_transform, transform_surface_to
 from mne.utils import (
@@ -248,6 +249,34 @@ def test_volume_stc(tmp_path):
 
 
 @testing.requires_testing_data
+def test_save_stc_as_gifti(tmp_path):
+    """Save the stc as a GIFTI file and export."""
+    nib = pytest.importorskip("nibabel")
+    surfpath_src = bem_path / "sample-oct-6-src.fif"
+    surfpath_stc = data_path / "MEG" / "sample" / "sample_audvis_trunc-meg"
+    src = read_source_spaces(surfpath_src)  # need source space
+    stc = read_source_estimate(surfpath_stc)  # need stc
+    assert isinstance(src, SourceSpaces)
+    assert isinstance(stc, SourceEstimate)
+
+    surf_fname = tmp_path / "stc_write"
+
+    stc.save_as_surface(surf_fname, src)
+
+    # did structural get written?
+    img_lh = nib.load(f"{surf_fname}-lh.gii")
+    img_rh = nib.load(f"{surf_fname}-rh.gii")
+    assert isinstance(img_lh, nib.gifti.gifti.GiftiImage)
+    assert isinstance(img_rh, nib.gifti.gifti.GiftiImage)
+
+    # did time series get written?
+    img_timelh = nib.load(f"{surf_fname}-lh.time.gii")
+    img_timerh = nib.load(f"{surf_fname}-rh.time.gii")
+    assert isinstance(img_timelh, nib.gifti.gifti.GiftiImage)
+    assert isinstance(img_timerh, nib.gifti.gifti.GiftiImage)
+
+
+@testing.requires_testing_data
 def test_stc_as_volume():
     """Test previous volume source estimate morph."""
     nib = pytest.importorskip("nibabel")
@@ -370,7 +399,7 @@ def test_stc_snr():
     assert (stc.data < 0).any()
     with pytest.warns(RuntimeWarning, match="nAm"):
         stc.estimate_snr(evoked.info, fwd, cov)  # dSPM
-    with pytest.warns(RuntimeWarning, match="free ori"):
+    with _record_warnings(), pytest.warns(RuntimeWarning, match="free ori"):
         abs(stc).estimate_snr(evoked.info, fwd, cov)
     stc = apply_inverse(evoked, inv, method="MNE")
     snr = stc.estimate_snr(evoked.info, fwd, cov)
@@ -557,61 +586,73 @@ def test_stc_arithmetic():
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
-def test_stc_methods():
+@pytest.mark.parametrize("kind", ("scalar", "vector"))
+@pytest.mark.parametrize("method", ("fft", "polyphase"))
+def test_stc_methods(kind, method):
     """Test stc methods lh_data, rh_data, bin(), resample()."""
-    stc_ = read_source_estimate(fname_stc)
+    stc = read_source_estimate(fname_stc)
 
-    # Make a vector version of the above source estimate
-    x = stc_.data[:, np.newaxis, :]
-    yz = np.zeros((x.shape[0], 2, x.shape[2]))
-    vec_stc_ = VectorSourceEstimate(
-        np.concatenate((x, yz), 1), stc_.vertices, stc_.tmin, stc_.tstep, stc_.subject
-    )
+    if kind == "vector":
+        # Make a vector version of the above source estimate
+        x = stc.data[:, np.newaxis, :]
+        yz = np.zeros((x.shape[0], 2, x.shape[2]))
+        stc = VectorSourceEstimate(
+            np.concatenate((x, yz), 1),
+            stc.vertices,
+            stc.tmin,
+            stc.tstep,
+            stc.subject,
+        )
 
-    for stc in [stc_, vec_stc_]:
-        # lh_data / rh_data
-        assert_array_equal(stc.lh_data, stc.data[: len(stc.lh_vertno)])
-        assert_array_equal(stc.rh_data, stc.data[len(stc.lh_vertno) :])
+    # lh_data / rh_data
+    assert_array_equal(stc.lh_data, stc.data[: len(stc.lh_vertno)])
+    assert_array_equal(stc.rh_data, stc.data[len(stc.lh_vertno) :])
 
-        # bin
-        binned = stc.bin(0.12)
-        a = np.mean(stc.data[..., : np.searchsorted(stc.times, 0.12)], axis=-1)
-        assert_array_equal(a, binned.data[..., 0])
+    # bin
+    binned = stc.bin(0.12)
+    a = np.mean(stc.data[..., : np.searchsorted(stc.times, 0.12)], axis=-1)
+    assert_array_equal(a, binned.data[..., 0])
 
-        stc = read_source_estimate(fname_stc)
-        stc.subject = "sample"
-        label_lh = read_labels_from_annot(
-            "sample", "aparc", "lh", subjects_dir=subjects_dir
-        )[0]
-        label_rh = read_labels_from_annot(
-            "sample", "aparc", "rh", subjects_dir=subjects_dir
-        )[0]
-        label_both = label_lh + label_rh
-        for label in (label_lh, label_rh, label_both):
-            assert isinstance(stc.shape, tuple) and len(stc.shape) == 2
-            stc_label = stc.in_label(label)
-            if label.hemi != "both":
-                if label.hemi == "lh":
-                    verts = stc_label.vertices[0]
-                else:  # label.hemi == 'rh':
-                    verts = stc_label.vertices[1]
-                n_vertices_used = len(label.get_vertices_used(verts))
-                assert_equal(len(stc_label.data), n_vertices_used)
-        stc_lh = stc.in_label(label_lh)
-        pytest.raises(ValueError, stc_lh.in_label, label_rh)
-        label_lh.subject = "foo"
-        pytest.raises(RuntimeError, stc.in_label, label_lh)
+    stc = read_source_estimate(fname_stc)
+    stc.subject = "sample"
+    label_lh = read_labels_from_annot(
+        "sample", "aparc", "lh", subjects_dir=subjects_dir
+    )[0]
+    label_rh = read_labels_from_annot(
+        "sample", "aparc", "rh", subjects_dir=subjects_dir
+    )[0]
+    label_both = label_lh + label_rh
+    for label in (label_lh, label_rh, label_both):
+        assert isinstance(stc.shape, tuple) and len(stc.shape) == 2
+        stc_label = stc.in_label(label)
+        if label.hemi != "both":
+            if label.hemi == "lh":
+                verts = stc_label.vertices[0]
+            else:  # label.hemi == 'rh':
+                verts = stc_label.vertices[1]
+            n_vertices_used = len(label.get_vertices_used(verts))
+            assert_equal(len(stc_label.data), n_vertices_used)
+    stc_lh = stc.in_label(label_lh)
+    pytest.raises(ValueError, stc_lh.in_label, label_rh)
+    label_lh.subject = "foo"
+    pytest.raises(RuntimeError, stc.in_label, label_lh)
 
-        stc_new = deepcopy(stc)
-        o_sfreq = 1.0 / stc.tstep
-        # note that using no padding for this STC reduces edge ringing...
-        stc_new.resample(2 * o_sfreq, npad=0)
-        assert stc_new.data.shape[1] == 2 * stc.data.shape[1]
-        assert stc_new.tstep == stc.tstep / 2
-        stc_new.resample(o_sfreq, npad=0)
-        assert stc_new.data.shape[1] == stc.data.shape[1]
-        assert stc_new.tstep == stc.tstep
-        assert_array_almost_equal(stc_new.data, stc.data, 5)
+    stc_new = deepcopy(stc)
+    o_sfreq = 1.0 / stc.tstep
+    # note that using no padding for this STC reduces edge ringing...
+    stc_new.resample(2 * o_sfreq, npad=0, method=method)
+    assert stc_new.data.shape[1] == 2 * stc.data.shape[1]
+    assert stc_new.tstep == stc.tstep / 2
+    stc_new.resample(o_sfreq, npad=0, method=method)
+    assert stc_new.data.shape[1] == stc.data.shape[1]
+    assert stc_new.tstep == stc.tstep
+    if method == "fft":
+        # no low-passing so survives round-trip
+        assert_allclose(stc_new.data, stc.data, atol=1e-5)
+    else:
+        # low-passing means we need something more flexible
+        corr = np.corrcoef(stc_new.data.ravel(), stc.data.ravel())[0, 1]
+        assert 0.99 < corr < 1
 
 
 @testing.requires_testing_data
@@ -1199,7 +1240,7 @@ def test_to_data_frame_index(index):
     # test index setting
     if not isinstance(index, list):
         index = [index]
-    assert df.index.names == index
+    assert list(df.index.names) == index
     # test that non-indexed data were present as columns
     non_index = list(set(["time", "subject"]) - set(index))
     if len(non_index):
@@ -1672,7 +1713,8 @@ def test_stc_near_sensors(tmp_path):
     for s in src:
         transform_surface_to(s, "head", trans, copy=False)
     assert src[0]["coord_frame"] == FIFF.FIFFV_COORD_HEAD
-    stc_src = stc_near_sensors(evoked, src=src, **kwargs)
+    with pytest.warns(DeprecationWarning, match="instead of the pial"):
+        stc_src = stc_near_sensors(evoked, src=src, **kwargs)
     assert len(stc_src.data) == 7928
     with pytest.warns(RuntimeWarning, match="not included"):  # some removed
         stc_src_full = compute_source_morph(
@@ -2013,3 +2055,31 @@ def test_label_extraction_subject(kind):
         stc.subject = None
         with pytest.raises(ValueError, match=r"label\.sub.*not match.* sour"):
             extract_label_time_course(stc, labels_fs, src)
+
+
+def test_apply_function_stc():
+    """Check the apply_function method for source estimate data."""
+    # Create a sample _BaseSourceEstimate object
+    n_vertices = 100
+    n_times = 200
+    vertices = [np.array(np.arange(50)), np.array(np.arange(50, 100))]
+    tmin = 0.0
+    tstep = 0.001
+    data = np.random.default_rng(0).normal(size=(n_vertices, n_times))
+
+    stc = _make_stc(data, vertices, tmin=tmin, tstep=tstep, src_type="surface")
+
+    # A sample function to apply to the data
+    def fun(data_row, **kwargs):
+        return 2 * data_row
+
+    # Test applying the function to all vertices without parallelization
+    stc_copy = stc.copy()
+    stc.apply_function(fun)
+    for idx in range(n_vertices):
+        assert_allclose(stc.data[idx, :], 2 * stc_copy.data[idx, :])
+
+    # Test applying the function with parallelization
+    stc.apply_function(fun, n_jobs=2)
+    for idx in range(n_vertices):
+        assert_allclose(stc.data[idx, :], 4 * stc_copy.data[idx, :])

@@ -21,6 +21,7 @@ evoked response :footcite:`RivetEtAl2009, RivetEtAl2011`.
 # Authors: Alexandre Barachant <alexandre.barachant@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 

@@ -4,6 +4,7 @@
 #          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import glob
 import importlib
@@ -67,7 +68,7 @@ def get_optparser(cmdpath, usage=None, prog_prefix="mne", version=None):
     command = command[len(prog_prefix) + 1 :]  # +1 is for `_` character
 
     # Set prog
-    prog = prog_prefix + " {}".format(command)
+    prog = prog_prefix + f" {command}"
 
     # Set version
     if version is None:
@@ -105,6 +106,6 @@ def main():
         print_help()
     else:
         cmd = sys.argv[1]
-        cmd = importlib.import_module(".mne_%s" % (cmd,), "mne.commands")
+        cmd = importlib.import_module(f".mne_{cmd}", "mne.commands")
         sys.argv = sys.argv[1:]
         cmd.run()

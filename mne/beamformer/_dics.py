@@ -6,6 +6,7 @@
 #          Roman Goj <roman.goj@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 import numpy as np
 
 from .._fiff.pick import pick_channels, pick_info
@@ -239,9 +240,8 @@ def make_dics(
             for key in csd_rank:
                 if key not in noise_rank or csd_rank[key] != noise_rank[key]:
                     raise ValueError(
-                        "%s data rank (%s) did not match the "
-                        "noise rank (%s)"
-                        % (key, csd_rank[key], noise_rank.get(key, None))
+                        f"{key} data rank ({csd_rank[key]}) did not match the noise "
+                        f"rank ({noise_rank.get(key, None)})"
                     )
         csd_int_rank.append(sum(csd_rank.values()))
 

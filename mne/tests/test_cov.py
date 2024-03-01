@@ -2,6 +2,7 @@
 #         Denis Engemann <denis.engemann@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import itertools as itt
 import sys
@@ -52,7 +53,7 @@ from mne.preprocessing import maxwell_filter
 from mne.rank import _compute_rank_int
 from mne.utils import _record_warnings, assert_snr, catch_logging
 
-base_dir = Path(__file__).parent.parent / "io" / "tests" / "data"
+base_dir = Path(__file__).parents[1] / "io" / "tests" / "data"
 cov_fname = base_dir / "test-cov.fif"
 cov_gz_fname = base_dir / "test-cov.fif.gz"
 cov_km_fname = base_dir / "test-km-cov.fif"
@@ -351,7 +352,7 @@ def test_cov_estimation_on_raw(method, tmp_path):
     assert_snr(cov.data, cov_mne.data[:5, :5], 90)  # cutoff samps
     # make sure we get a warning with too short a segment
     raw_2 = read_raw_fif(raw_fname).crop(0, 1)
-    with pytest.warns(RuntimeWarning, match="Too few samples"):
+    with _record_warnings(), pytest.warns(RuntimeWarning, match="Too few samples"):
         cov = compute_raw_covariance(raw_2, method=method, method_params=method_params)
     # no epochs found due to rejection
     pytest.raises(
@@ -383,7 +384,7 @@ def test_cov_estimation_on_raw_reg():
         raw.info["sfreq"] /= 10.0
     raw = RawArray(raw._data[:, ::10].copy(), raw.info)  # decimate for speed
     cov_mne = read_cov(erm_cov_fname)
-    with pytest.warns(RuntimeWarning, match="Too few samples"):
+    with _record_warnings(), pytest.warns(RuntimeWarning, match="Too few samples"):
         # "diagonal_fixed" is much faster. Use long epochs for speed.
         cov = compute_raw_covariance(raw, tstep=5.0, method="diagonal_fixed")
     assert_snr(cov.data, cov_mne.data, 5)
@@ -890,13 +891,13 @@ def test_cov_ctf():
     for comp in [0, 1]:
         raw.apply_gradient_compensation(comp)
         epochs = Epochs(raw, events, None, -0.2, 0.2, preload=True)
-        with pytest.warns(RuntimeWarning, match="Too few samples"):
+        with _record_warnings(), pytest.warns(RuntimeWarning, match="Too few samples"):
             noise_cov = compute_covariance(epochs, tmax=0.0, method=["empirical"])
         prepare_noise_cov(noise_cov, raw.info, ch_names)
 
     raw.apply_gradient_compensation(0)
     epochs = Epochs(raw, events, None, -0.2, 0.2, preload=True)
-    with pytest.warns(RuntimeWarning, match="Too few samples"):
+    with _record_warnings(), pytest.warns(RuntimeWarning, match="Too few samples"):
         noise_cov = compute_covariance(epochs, tmax=0.0, method=["empirical"])
     raw.apply_gradient_compensation(1)
 

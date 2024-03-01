@@ -17,6 +17,7 @@ signals.
 #          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 
@@ -28,7 +29,7 @@ from sklearn.model_selection import StratifiedKFold, cross_val_score
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import LabelEncoder
 
-from mne import Epochs, create_info, events_from_annotations
+from mne import Epochs, create_info
 from mne.datasets import eegbci
 from mne.decoding import CSP
 from mne.io import concatenate_raws, read_raw_edf
@@ -36,15 +37,14 @@ from mne.time_frequency import AverageTFR
 
 # %%
 # Set parameters and read data
-event_id = dict(hands=2, feet=3)  # motor imagery: hands vs feet
 subject = 1
 runs = [6, 10, 14]
 raw_fnames = eegbci.load_data(subject, runs)
 raw = concatenate_raws([read_raw_edf(f) for f in raw_fnames])
+raw.annotations.rename(dict(T1="hands", T2="feet"))
 
 # Extract information from the raw file
 sfreq = raw.info["sfreq"]
-events, _ = events_from_annotations(raw, event_id=dict(T1=2, T2=3))
 raw.pick(picks="eeg", exclude="bads")
 raw.load_data()
 
@@ -94,10 +94,9 @@ for freq, (fmin, fmax) in enumerate(freq_ranges):
     # Extract epochs from filtered data, padded by window size
     epochs = Epochs(
         raw_filter,
-        events,
-        event_id,
-        tmin - w_size,
-        tmax + w_size,
+        event_id=["hands", "feet"],
+        tmin=tmin - w_size,
+        tmax=tmax + w_size,
         proj=False,
         baseline=None,
         preload=True,
@@ -147,10 +146,9 @@ for freq, (fmin, fmax) in enumerate(freq_ranges):
     # Extract epochs from filtered data, padded by window size
     epochs = Epochs(
         raw_filter,
-        events,
-        event_id,
-        tmin - w_size,
-        tmax + w_size,
+        event_id=["hands", "feet"],
+        tmin=tmin - w_size,
+        tmax=tmax + w_size,
         proj=False,
         baseline=None,
         preload=True,

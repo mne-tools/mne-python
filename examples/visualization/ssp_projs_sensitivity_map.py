@@ -11,6 +11,7 @@ similar to the first SSP vector correcting for ECG.
 # Author: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 

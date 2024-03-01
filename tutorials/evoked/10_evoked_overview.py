@@ -15,6 +15,8 @@ object from (possibly simulated) data in a :class:`NumPy array
 As usual, we start by importing the modules we need:
 """
 
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 # %%
 
 import mne
@@ -334,11 +336,7 @@ for ix, trial in enumerate(epochs[:3].iter_evoked()):
     channel, latency, value = trial.get_peak(ch_type="eeg", return_amplitude=True)
     latency = int(round(latency * 1e3))  # convert to milliseconds
     value = int(round(value * 1e6))  # convert to µV
-    print(
-        "Trial {}: peak of {} µV at {} ms in channel {}".format(
-            ix, value, latency, channel
-        )
-    )
+    print(f"Trial {ix}: peak of {value} µV at {latency} ms in channel {channel}")
 
 # %%
 # .. REFERENCES

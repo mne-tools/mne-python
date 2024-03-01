@@ -1,6 +1,7 @@
 # Authors: Robert Luke <mail@robertluke.net>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import datetime
 import re
@@ -20,7 +21,9 @@ from ..nirx.nirx import _convert_fnirs_to_head
 
 
 @fill_doc
-def read_raw_snirf(fname, optode_frame="unknown", preload=False, verbose=None):
+def read_raw_snirf(
+    fname, optode_frame="unknown", preload=False, verbose=None
+) -> "RawSNIRF":
     """Reader for a continuous wave SNIRF data.
 
     .. note:: This reader supports the .snirf file type only,
@@ -56,7 +59,7 @@ def read_raw_snirf(fname, optode_frame="unknown", preload=False, verbose=None):
 
 
 def _open(fname):
-    return open(fname, "r", encoding="latin-1")
+    return open(fname, encoding="latin-1")
 
 
 @fill_doc
@@ -165,7 +168,7 @@ class RawSNIRF(BaseRaw):
                         for c in channels
                     ]
                 )
-                sources = [f"S{int(s)}" for s in sources]
+                sources = {int(s): f"S{int(s)}" for s in sources}
 
             if "detectorLabels_disabled" in dat["nirs/probe"]:
                 # This is disabled as
@@ -182,7 +185,7 @@ class RawSNIRF(BaseRaw):
                         for c in channels
                     ]
                 )
-                detectors = [f"D{int(d)}" for d in detectors]
+                detectors = {int(d): f"D{int(d)}" for d in detectors}
 
             # Extract source and detector locations
             # 3D positions are optional in SNIRF,
@@ -221,9 +224,6 @@ class RawSNIRF(BaseRaw):
                     "location information"
                 )
 
-            assert len(sources) == srcPos3D.shape[0]
-            assert len(detectors) == detPos3D.shape[0]
-
             chnames = []
             ch_types = []
             for chan in channels:
@@ -245,9 +245,9 @@ class RawSNIRF(BaseRaw):
                         )[0]
                     )
                     ch_name = (
-                        sources[src_idx - 1]
+                        sources[src_idx]
                         + "_"
-                        + detectors[det_idx - 1]
+                        + detectors[det_idx]
                         + " "
                         + str(fnirs_wavelengths[wve_idx - 1])
                     )
@@ -262,7 +262,7 @@ class RawSNIRF(BaseRaw):
                     # Convert between SNIRF processed names and MNE type names
                     dt_id = dt_id.lower().replace("dod", "fnirs_od")
 
-                    ch_name = sources[src_idx - 1] + "_" + detectors[det_idx - 1]
+                    ch_name = sources[src_idx] + "_" + detectors[det_idx]
 
                     if dt_id == "fnirs_od":
                         wve_idx = int(
@@ -412,10 +412,10 @@ class RawSNIRF(BaseRaw):
                 info["dig"] = dig
 
             str_date = _correct_shape(
-                np.array((dat.get("/nirs/metaDataTags/MeasurementDate")))
+                np.array(dat.get("/nirs/metaDataTags/MeasurementDate"))
             )[0].decode("UTF-8")
             str_time = _correct_shape(
-                np.array((dat.get("/nirs/metaDataTags/MeasurementTime")))
+                np.array(dat.get("/nirs/metaDataTags/MeasurementTime"))
             )[0].decode("UTF-8")
             str_datetime = str_date + str_time
 
@@ -457,7 +457,7 @@ class RawSNIRF(BaseRaw):
                     with info._unlock():
                         info["subject_info"]["birthday"] = birthday
 
-            super(RawSNIRF, self).__init__(
+            super().__init__(
                 info,
                 preload,
                 filenames=[fname],

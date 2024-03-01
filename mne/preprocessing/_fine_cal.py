@@ -1,6 +1,7 @@
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from collections import defaultdict
 from functools import partial
@@ -511,7 +512,7 @@ def read_fine_calibration(fname):
     fname = _check_fname(fname, overwrite="read", must_exist=True)
     check_fname(fname, "cal", (".dat",))
     ch_names, locs, imb_cals = list(), list(), list()
-    with open(fname, "r") as fid:
+    with open(fname) as fid:
         for line in fid:
             if line[0] in "#\n":
                 continue

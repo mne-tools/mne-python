@@ -3,6 +3,7 @@
 #          Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from copy import deepcopy
 
@@ -277,7 +278,9 @@ DEFAULTS = dict(
         combine_xyz="fro",
         allow_fixed_depth=True,
     ),
-    interpolation_method=dict(eeg="spline", meg="MNE", fnirs="nearest"),
+    interpolation_method=dict(
+        eeg="spline", meg="MNE", fnirs="nearest", ecog="spline", seeg="spline"
+    ),
     volume_options=dict(
         alpha=None,
         resolution=1.0,

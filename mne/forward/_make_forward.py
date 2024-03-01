@@ -4,6 +4,7 @@
 #          Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # The computations in this code were primarily derived from Matti Hämäläinen's
 # C code.
@@ -92,7 +93,7 @@ def _read_coil_def_file(fname, use_registry=True):
     if not use_registry or fname not in _coil_registry:
         big_val = 0.5
         coils = list()
-        with open(fname, "r") as fid:
+        with open(fname) as fid:
             lines = fid.readlines()
         lines = lines[::-1]
         while len(lines) > 0:
@@ -660,7 +661,7 @@ def make_forward_solution(
     followed by :func:`mne.convert_forward_solution`.
 
     .. note::
-        If the BEM solution was computed with :doc:`OpenMEEG <openmeeg:index>`
+        If the BEM solution was computed with `OpenMEEG <https://openmeeg.github.io>`__
         in :func:`mne.make_bem_solution`, then OpenMEEG will automatically
         be used to compute the forward solution.
 

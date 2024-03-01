@@ -1,9 +1,10 @@
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 import glob
 from importlib import import_module
-import os
 from pathlib import Path
 
-from mne.utils import _replace_md5, ArgvSetter
+from mne.utils import ArgvSetter, _replace_md5
 
 
 def setup(app):

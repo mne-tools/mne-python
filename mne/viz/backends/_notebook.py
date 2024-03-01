@@ -3,7 +3,8 @@
 # Authors: Guillaume Favelier <guillaume.favelier@gmail.com>
 #          Alex Rockhill <aprockhill@mailbox.org>
 #
-# License: Simplified BSD
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import os
 import os.path as op
@@ -975,7 +976,7 @@ class _IpyDialog(_AbstractDialog):
         callback,
         *,
         icon="Warning",
-        buttons=[],
+        buttons=(),
         modal=True,
         window=None,
     ):
@@ -1201,7 +1202,7 @@ class _IpyDock(_AbstractDock, _IpyLayout):
         desc,
         func,
         *,
-        filter=None,
+        filter_=None,
         initial_directory=None,
         save=False,
         is_directory=False,

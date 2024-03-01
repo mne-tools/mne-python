@@ -16,6 +16,7 @@ related synchronizations (ERS) / desynchronizations (ERD) in the beta band.
 #          Richard Höchenberger <richard.hoechenberger@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 import matplotlib.pyplot as plt
@@ -65,7 +66,9 @@ epochs = mne.Epochs(
 
 # %%
 # Let's first check out all channel types by averaging across epochs.
-epochs.compute_psd(fmin=2.0, fmax=40.0).plot(average=True, picks="data", exclude="bads")
+epochs.compute_psd(fmin=2.0, fmax=40.0).plot(
+    average=True, amplitude=False, picks="data", exclude="bads"
+)
 
 # %%
 # Now, let's take a look at the spatial distributions of the PSD, averaged

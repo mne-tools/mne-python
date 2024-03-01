@@ -1,3 +1,5 @@
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 r"""
 .. _disc-filtering:
 
@@ -248,7 +250,7 @@ f_s = f_p + trans_bandwidth  # = 50 Hz
 freq = [0.0, f_p, f_s, nyq]
 gain = [1.0, 1.0, 0.0, 0.0]
 ax = plt.subplots(1, figsize=third_height)[1]
-title = "%s Hz lowpass with a %s Hz transition" % (f_p, trans_bandwidth)
+title = f"{f_p} Hz lowpass with a {trans_bandwidth} Hz transition"
 plot_ideal_filter(freq, gain, ax, title=title, flim=flim)
 
 # %%

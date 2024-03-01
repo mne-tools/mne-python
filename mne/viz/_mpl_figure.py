@@ -33,7 +33,8 @@ matplotlib.figure.Figure
 
 # Authors: Daniel McCloy <dan@mccloy.info>
 #
-# License: Simplified BSD
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import datetime
 import platform
@@ -1846,7 +1847,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         color = "#AA3377"  # purple
         kwargs = dict(color=color, zorder=self.mne.zorder["scalebar"])
         if ch_type == "time":
-            label = f"{self.mne.boundary_times[1]/2:.2f} s"
+            label = f"{self.mne.boundary_times[1] / 2:.2f} s"
             text = self.mne.ax_main.text(
                 x[0] + 0.015,
                 y[1] - 0.05,

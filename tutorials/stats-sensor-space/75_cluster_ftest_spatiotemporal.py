@@ -28,6 +28,7 @@ see also: :ref:`tut-cluster-one-samp-tfr`
 #          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 
@@ -230,7 +231,7 @@ for i_clu, clu_idx in enumerate(good_cluster_inds):
 
     # add new axis for time courses and plot time courses
     ax_signals = divider.append_axes("right", size="300%", pad=1.2)
-    title = "Cluster #{0}, {1} sensor".format(i_clu + 1, len(ch_inds))
+    title = f"Cluster #{i_clu + 1}, {len(ch_inds)} sensor"
     if len(ch_inds) > 1:
         title += "s (mean)"
     plot_compare_evokeds(
@@ -384,7 +385,7 @@ for i_clu, clu_idx in enumerate(good_cluster_inds):
 
     # add new axis for spectrogram
     ax_spec = divider.append_axes("right", size="300%", pad=1.2)
-    title = "Cluster #{0}, {1} spectrogram".format(i_clu + 1, len(ch_inds))
+    title = f"Cluster #{i_clu + 1}, {len(ch_inds)} spectrogram"
     if len(ch_inds) > 1:
         title += " (max over channels)"
     F_obs_plot = F_obs[..., ch_inds].max(axis=-1)

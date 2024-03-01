@@ -7,7 +7,8 @@
 #          Cathy Nangini <cnangini@gmail.com>
 #          Mainak Jas <mainak@neuro.hut.fi>
 #
-# License: Simplified BSD
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import copy
 import io
@@ -129,7 +130,7 @@ def plot_cov(
     fig_cov : instance of matplotlib.figure.Figure
         The covariance plot.
     fig_svd : instance of matplotlib.figure.Figure | None
-        The SVD spectra plot of the covariance.
+        The SVD plot of the covariance (i.e., the eigenvalues or "matrix spectrum").
 
     See Also
     --------

@@ -2,13 +2,12 @@
 #          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
-import numpy as np
 
 from ..utils import logger, verbose
 from .constants import FIFF
-from .tag import Tag, read_tag
-from .write import _write, end_block, start_block, write_id
+from .tag import read_tag
 
 
 def dir_tree_find(tree, kind):
@@ -107,46 +106,3 @@ def make_dir_tree(fid, directory, start=0, indent=0, verbose=None):
     logger.debug("    " * indent + "end } %d" % block)
     last = this
     return tree, last
-
-
-###############################################################################
-# Writing
-
-
-def copy_tree(fidin, in_id, nodes, fidout):
-    """Copy directory subtrees from fidin to fidout."""
-    if len(nodes) <= 0:
-        return
-
-    if not isinstance(nodes, list):
-        nodes = [nodes]
-
-    for node in nodes:
-        start_block(fidout, node["block"])
-        if node["id"] is not None:
-            if in_id is not None:
-                write_id(fidout, FIFF.FIFF_PARENT_FILE_ID, in_id)
-
-            write_id(fidout, FIFF.FIFF_BLOCK_ID, in_id)
-            write_id(fidout, FIFF.FIFF_PARENT_BLOCK_ID, node["id"])
-
-        if node["directory"] is not None:
-            for d in node["directory"]:
-                #   Do not copy these tags
-                if (
-                    d.kind == FIFF.FIFF_BLOCK_ID
-                    or d.kind == FIFF.FIFF_PARENT_BLOCK_ID
-                    or d.kind == FIFF.FIFF_PARENT_FILE_ID
-                ):
-                    continue
-
-                #   Read and write tags, pass data through transparently
-                fidin.seek(d.pos, 0)
-                tag = Tag(*np.fromfile(fidin, (">i4,>I4,>i4,>i4"), 1)[0])
-                tag.data = np.fromfile(fidin, ">B", tag.size)
-                _write(fidout, tag.data, tag.kind, 1, tag.type, ">B")
-
-        for child in node["children"]:
-            copy_tree(fidin, in_id, child, fidout)
-
-        end_block(fidout, node["block"])

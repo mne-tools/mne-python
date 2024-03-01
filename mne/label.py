@@ -3,6 +3,7 @@
 #          Denis Engemann <denis.engemann@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import copy as cp
 import os
@@ -241,7 +242,7 @@ class Label:
         color=None,
         *,
         verbose=None,
-    ):  # noqa: D102
+    ):
         # check parameters
         if not isinstance(hemi, str):
             raise ValueError("hemi must be a string, not %s" % type(hemi))
@@ -1016,7 +1017,7 @@ class BiHemiLabel:
         The name of the subject.
     """
 
-    def __init__(self, lh, rh, name=None, color=None):  # noqa: D102
+    def __init__(self, lh, rh, name=None, color=None):
         if lh.subject != rh.subject:
             raise ValueError(
                 "lh.subject (%s) and rh.subject (%s) must "
@@ -1132,8 +1133,8 @@ def read_label(filename, subject=None, color=None, *, verbose=None):
         hemi = "rh"
     else:
         raise ValueError(
-            "Cannot find which hemisphere it is. File should end"
-            " with lh.label or rh.label: %s" % (basename,)
+            "Cannot find which hemisphere it is. File should end with lh.label or "
+            f"rh.label: {basename}"
         )
 
     # find name
@@ -1146,7 +1147,7 @@ def read_label(filename, subject=None, color=None, *, verbose=None):
     name = "%s-%s" % (basename_, hemi)
 
     # read the file
-    with open(filename, "r") as fid:
+    with open(filename) as fid:
         comment = fid.readline().replace("\n", "")[1:]
         nv = int(fid.readline())
         data = np.empty((5, nv))

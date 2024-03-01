@@ -2,6 +2,8 @@
 #          Teon Brooks <teon.brooks@gmail.com>
 #
 #          simplified BSD-3 license
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import datetime
 import time
@@ -102,7 +104,7 @@ def read_raw_egi(
     preload=False,
     channel_naming="E%d",
     verbose=None,
-):
+) -> "RawEGI":
     """Read EGI simple binary as raw object.
 
     .. note:: This function attempts to create a synthetic trigger channel.
@@ -191,7 +193,7 @@ class RawEGI(BaseRaw):
         preload=False,
         channel_naming="E%d",
         verbose=None,
-    ):  # noqa: D102
+    ):
         input_fname = str(_check_fname(input_fname, "read", True, "input_fname"))
         if eog is None:
             eog = []
@@ -305,7 +307,7 @@ class RawEGI(BaseRaw):
         orig_format = (
             egi_info["orig_format"] if egi_info["orig_format"] != "float" else "single"
         )
-        super(RawEGI, self).__init__(
+        super().__init__(
             info,
             preload,
             orig_format=orig_format,

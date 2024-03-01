@@ -1,6 +1,7 @@
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import numpy as np
 from scipy.fft import irfft, rfft
@@ -119,7 +120,7 @@ def _set_cuda_device(device_id, verbose=None):
     import cupy
 
     cupy.cuda.Device(device_id).use()
-    logger.info("Now using CUDA device {}".format(device_id))
+    logger.info(f"Now using CUDA device {device_id}")
 
 
 ###############################################################################
@@ -329,7 +330,7 @@ def _fft_resample(x, new_len, npads, to_removes, cuda_dict=None, pad="reflect_li
         Number of samples to remove after resampling.
     cuda_dict : dict
         Dictionary constructed using setup_cuda_multiply_repeated().
-    %(pad)s
+    %(pad_resample)s
         The default is ``'reflect_limited'``.
 
         .. versionadded:: 0.15

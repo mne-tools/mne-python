@@ -3,6 +3,7 @@
 #          Teon Brooks <teon.brooks@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from copy import deepcopy
 from math import sqrt
@@ -724,7 +725,7 @@ def prepare_inverse_operator(
             #
             #     w = diag(diag(R)) ** 0.5
             #
-            noise_weight = inv["reginv"] * np.sqrt((1.0 + inv["sing"] ** 2 / lambda2))
+            noise_weight = inv["reginv"] * np.sqrt(1.0 + inv["sing"] ** 2 / lambda2)
 
         noise_norm = np.zeros(inv["eigen_leads"]["nrow"])
         (nrm2,) = linalg.get_blas_funcs(("nrm2",), (noise_norm,))

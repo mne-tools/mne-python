@@ -20,11 +20,10 @@ jobs:
     timeout-minutes: 3
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - uses: psf/black@stable
-      - uses: pre-commit/action@v3.0.0
+      - uses: pre-commit/action@v3.0.1
 
   bandit:
     name: Bandit
@@ -57,22 +56,26 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            python: '3.10'
-            kind: conda
-          - os: ubuntu-latest
             python: '3.11'
             kind: pip-pre
-          - os: macos-latest
-            python: '3.8'
+          - os: ubuntu-latest
+            python: '3.12'
+            kind: conda
+          # 3.12 needs https://github.com/conda-forge/dipy-feedstock/pull/50
+          - os: macos-14  # arm64
+            python: '3.11'
+            kind: mamba
+          - os: macos-latest  # intel
+            python: '3.11'
             kind: mamba
           - os: windows-latest
             python: '3.10'
             kind: mamba
           - os: ubuntu-latest
-            python: '3.8'
+            python: '3.9'
             kind: minimal
           - os: ubuntu-20.04
-            python: '3.8'
+            python: '3.9'
             kind: old
     steps:
       - uses: actions/checkout@v4
@@ -85,25 +88,33 @@ jobs:
           qt: true
           pyvista: false
       # Python (if pip)
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python }}
         if: startswith(matrix.kind, 'pip')
       # Python (if conda)
-      - uses: conda-incubator/setup-miniconda@v2
+      - name: Remove numba and dipy
+        run: |  # TODO: Remove when numba 0.59 and dipy 1.8 land on conda-forge
+          sed -i '/numba/d' environment.yml
+          sed -i '/dipy/d' environment.yml
+          sed -i 's/- mne$/- mne-base/' environment.yml
+        if: matrix.os == 'ubuntu-latest' && startswith(matrix.kind, 'conda') && matrix.python == '3.12'
+      - uses: mamba-org/setup-micromamba@v1
         with:
-          python-version: ${{ env.PYTHON_VERSION }}
           environment-file: ${{ env.CONDA_ENV }}
-          activate-environment: mne
-          miniforge-version: latest
-          miniforge-variant: Mambaforge
-          use-mamba: ${{ matrix.kind != 'conda' }}
+          environment-name: mne
+          create-args: >-
+            python=${{ env.PYTHON_VERSION }}
+            mamba
+            fmt!=10.2.0
         if: ${{ !startswith(matrix.kind, 'pip') }}
+      # Make sure we have the right Python
+      - run: python -c "import platform; assert platform.machine() == 'arm64', platform.machine()"
+        if: matrix.os == 'macos-14'
       - run: ./tools/github_actions_dependencies.sh
       # Minimal commands on Linux (macOS stalls)
       - run: ./tools/get_minimal_commands.sh
         if: ${{ startswith(matrix.os, 'ubuntu') }}
-      - run: ./tools/github_actions_install.sh
       - run: ./tools/github_actions_infos.sh
       # Check Qt
       - run: ./tools/check_qt_import.sh $MNE_QT_BACKEND
@@ -112,11 +123,13 @@ jobs:
         run: MNE_SKIP_TESTING_DATASET_TESTS=true pytest -m "not (ultraslowtest or pgtest)" --tb=short --cov=mne --cov-report xml -vv -rfE mne/
         if: matrix.kind == 'minimal'
       - run: ./tools/get_testing_version.sh
-      - uses: actions/cache@v3
+      - uses: actions/cache@v4
         with:
           key: ${{ env.TESTING_VERSION }}
           path: ~/mne_data
       - run: ./tools/github_actions_download.sh
       - run: ./tools/github_actions_test.sh
-      - uses: codecov/codecov-action@v3
+      - uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
         if: success()

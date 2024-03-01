@@ -5,6 +5,7 @@ For each supported file format, implement a test.
 # Authors: Alex Rockhill <aprockhill@mailbox.org>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from pathlib import Path
 
@@ -27,7 +28,7 @@ eeg_fname = data_path / "test_eeg.mat"
 coords_fname = data_path / "test_eeg_pos.mat"
 csd_fname = data_path / "test_eeg_csd.mat"
 
-io_path = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
+io_path = Path(__file__).parents[2] / "io" / "tests" / "data"
 raw_fname = io_path / "test_raw.fif"
 
 

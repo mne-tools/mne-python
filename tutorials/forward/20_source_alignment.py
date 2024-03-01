@@ -13,6 +13,8 @@ understanding the different coordinate frames involved in this process.
 Let's start out by loading some data.
 """
 
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 # %%
 
 import nibabel as nib
@@ -119,8 +121,8 @@ print(
 )
 dists = mne.dig_mri_distances(raw.info, trans, "sample", subjects_dir=subjects_dir)
 print(
-    "Distance from %s digitized points to head surface: %0.1f mm"
-    % (len(dists), 1000 * np.mean(dists))
+    f"Distance from {len(dists)} digitized points to head surface: "
+    f"{1000 * np.mean(dists):0.1f} mm"
 )
 
 # %%

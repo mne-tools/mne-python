@@ -10,7 +10,8 @@ at which the fix is no longer needed.
 #          Gael Varoquaux <gael.varoquaux@normalesup.org>
 #          Fabian Pedregosa <fpedregosa@acm.org>
 #          Lars Buitinck <L.J.Buitinck@uva.nl>
-# License: BSD
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # NOTE:
 # Imports for SciPy submodules need to stay nested in this module
@@ -30,9 +31,8 @@ import numpy as np
 ###############################################################################
 # distutils
 
-# distutils has been deprecated since Python 3.10 and is scheduled for removal
-# from the standard library with the release of Python 3.12. For version
-# comparisons, we use setuptools's `parse_version` if available.
+# distutils has been deprecated since Python 3.10 and was removed
+# from the standard library with the release of Python 3.12.
 
 
 def _compare_version(version_a, operator, version_b):
@@ -222,7 +222,7 @@ class BaseEstimator:
             try:
                 with warnings.catch_warnings(record=True) as w:
                     value = getattr(self, key, None)
-                if len(w) and w[0].category == DeprecationWarning:
+                if len(w) and w[0].category is DeprecationWarning:
                     # if the parameter is deprecated, don't show it
                     continue
             finally:

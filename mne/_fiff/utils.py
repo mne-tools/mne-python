@@ -8,6 +8,7 @@
 #          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import os
 import os.path as op
@@ -238,9 +239,8 @@ def _read_segments_file(
             block = np.fromfile(fid, dtype, count)
             if block.size != count:
                 raise RuntimeError(
-                    "Incorrect number of samples (%s != %s), "
-                    "please report this error to MNE-Python "
-                    "developers" % (block.size, count)
+                    f"Incorrect number of samples ({block.size} != {count}), please "
+                    "report this error to MNE-Python developers"
                 )
             block = block.reshape(n_channels, -1, order="F")
             n_samples = block.shape[1]  # = count // n_channels
@@ -339,7 +339,7 @@ def _construct_bids_filename(base, ext, part_idx, validate=True):
         )
     suffix = deconstructed_base[-1]
     base = "_".join(deconstructed_base[:-1])
-    use_fname = "{}_split-{:02}_{}{}".format(base, part_idx + 1, suffix, ext)
+    use_fname = f"{base}_split-{part_idx + 1:02}_{suffix}{ext}"
     if dirname:
         use_fname = op.join(dirname, use_fname)
     return use_fname

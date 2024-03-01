@@ -3,6 +3,7 @@
 #          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import math
 import os
@@ -763,7 +764,7 @@ def test_5839():
         )
         return raw
 
-    raw_A, raw_B = [raw_factory((x, 0)) for x in [0, 2]]
+    raw_A, raw_B = (raw_factory((x, 0)) for x in [0, 2])
     raw_A.append(raw_B)
 
     assert_array_equal(raw_A.annotations.onset, EXPECTED_ONSET)
@@ -1021,3 +1022,10 @@ def test_concatenate_raw_dev_head_t():
     raw.info["dev_head_t"]["trans"][0, 0] = np.nan
     raw2 = raw.copy()
     concatenate_raws([raw, raw2])
+
+
+def test_last_samp():
+    """Test that getting the last sample works."""
+    raw = read_raw_fif(raw_fname).crop(0, 0.1).load_data()
+    last_data = raw._data[:, [-1]]
+    assert_array_equal(raw[:, -1][0], last_data)

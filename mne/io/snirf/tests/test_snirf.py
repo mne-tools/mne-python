@@ -1,5 +1,7 @@
 # Authors: Robert Luke  <mail@robertluke.net>
 #          simplified BSD-3 license
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import shutil
 
@@ -241,21 +243,21 @@ def test_snirf_nonstandard(tmp_path):
     fname = str(tmp_path) + "/mod.snirf"
     # Manually mark up the file to match MNE-NIRS custom tags
     with h5py.File(fname, "r+") as f:
-        f.create_dataset("nirs/metaDataTags/middleName", data=["X".encode("UTF-8")])
-        f.create_dataset("nirs/metaDataTags/lastName", data=["Y".encode("UTF-8")])
-        f.create_dataset("nirs/metaDataTags/sex", data=["1".encode("UTF-8")])
+        f.create_dataset("nirs/metaDataTags/middleName", data=[b"X"])
+        f.create_dataset("nirs/metaDataTags/lastName", data=[b"Y"])
+        f.create_dataset("nirs/metaDataTags/sex", data=[b"1"])
     raw = read_raw_snirf(fname, preload=True)
     assert raw.info["subject_info"]["middle_name"] == "X"
     assert raw.info["subject_info"]["last_name"] == "Y"
     assert raw.info["subject_info"]["sex"] == 1
     with h5py.File(fname, "r+") as f:
         del f["nirs/metaDataTags/sex"]
-        f.create_dataset("nirs/metaDataTags/sex", data=["2".encode("UTF-8")])
+        f.create_dataset("nirs/metaDataTags/sex", data=[b"2"])
     raw = read_raw_snirf(fname, preload=True)
     assert raw.info["subject_info"]["sex"] == 2
     with h5py.File(fname, "r+") as f:
         del f["nirs/metaDataTags/sex"]
-        f.create_dataset("nirs/metaDataTags/sex", data=["0".encode("UTF-8")])
+        f.create_dataset("nirs/metaDataTags/sex", data=[b"0"])
     raw = read_raw_snirf(fname, preload=True)
     assert raw.info["subject_info"]["sex"] == 0
 

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _ex-psd-ctf:
 
@@ -6,7 +5,8 @@
 Plot point-spread functions (PSFs) with added noise
 ===================================================
 
-Visualise PSF with added noise at one vertex for sLORETA.
+Visualise the point-spread of a vertex in a sLORETA source estimate when we assume the
+data to be noisy.
 """
 # Authors: Olaf Hauk <olaf.hauk@mrc-cbu.cam.ac.uk>
 #          Alexandre Gramfort <alexandre.gramfort@inria.fr>
@@ -50,13 +50,14 @@ method = "MNE"
 
 # %%
 # We compute noisy PSFs for two locations, one deep and one superficial.
-# For each location we compute two PSFs:
+# For each location we compute two PSFs::
 # 1) For a high SNR, approximating the noise-less case.
 # 2) With the SNR of regularization and the added noise matched (realistic).
 
 # vertices of a deep and a superficial source
 sources = {"deep": 2146, "super": 2209}
 
+# point-spread functions of the deep and superficial source
 stc_psf = {"deep": {}, "super": {}}
 
 # for a deep source
@@ -124,7 +125,9 @@ for source in sources:
         )
         brain_psf.show_view("ventral")
         title_str = "%s %s %s" % (method, source, psf)
-        brain_psf.add_text(0.1, 0.9, title_str, "title", font_size=16)
+        brain_psf.add_text(
+            0.1, 0.9, title_str, "title", font_size=16, color=(255, 255, 255)
+        )
         # mark true source location
         brain_psf.add_foci(
             verttrue, coords_as_verts=True, scale_factor=1.0, hemi="lh", color="green"

@@ -18,6 +18,7 @@ between subjects.
 #          Eric larson <larson.eric.d@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 

@@ -5,6 +5,7 @@
 #          Britta Westner <britta.wstnr@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 import numpy as np
 
 from .._fiff.meas_info import _simplify_info
@@ -179,12 +180,12 @@ def make_lcmv(
             key not in noise_rank or data_rank[key] != noise_rank[key]
         ) and not allow_mismatch:
             raise ValueError(
-                "%s data rank (%s) did not match the noise "
-                "rank (%s)" % (key, data_rank[key], noise_rank.get(key, None))
+                f"{key} data rank ({data_rank[key]}) did not match the noise rank ("
+                f"{noise_rank.get(key, None)})"
             )
     del noise_rank
     rank = data_rank
-    logger.info("Making LCMV beamformer with rank %s" % (rank,))
+    logger.info(f"Making LCMV beamformer with rank {rank}")
     del data_rank
     depth = _check_depth(depth, "depth_sparse")
     if inversion == "single":

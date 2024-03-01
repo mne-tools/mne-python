@@ -1,8 +1,11 @@
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 """IIR and FIR filtering and resampling functions."""
 
 from collections import Counter
 from copy import deepcopy
 from functools import partial
+from math import gcd
 
 import numpy as np
 from scipy import fft, signal
@@ -377,8 +380,8 @@ def _overlap_add_filter(
     logger.debug("FFT block length:   %s" % n_fft)
     if n_fft < min_fft:
         raise ValueError(
-            "n_fft is too short, has to be at least "
-            "2 * len(h) - 1 (%s), got %s" % (min_fft, n_fft)
+            f"n_fft is too short, has to be at least 2 * len(h) - 1 ({min_fft}), got "
+            f"{n_fft}"
         )
 
     # Figure out if we should use CUDA
@@ -490,9 +493,9 @@ def _firwin_design(N, freq, gain, window, sfreq):
             this_N += 1 - this_N % 2  # make it odd
             if this_N > N:
                 raise ValueError(
-                    "The requested filter length %s is too short "
-                    "for the requested %0.2f Hz transition band, "
-                    "which requires %s samples" % (N, transition * sfreq / 2.0, this_N)
+                    f"The requested filter length {N} is too short for the requested "
+                    f"{transition * sfreq / 2.0:0.2f} Hz transition band, which "
+                    f"requires {this_N} samples"
                 )
             # Construct a lowpass
             this_h = signal.firwin(
@@ -565,7 +568,7 @@ def _construct_fir_filter(
     freq = np.array(freq) / (sfreq / 2.0)
     if freq[0] != 0 or freq[-1] != 1:
         raise ValueError(
-            "freq must start at 0 and end an Nyquist (%s), got %s" % (sfreq / 2.0, freq)
+            f"freq must start at 0 and end an Nyquist ({sfreq / 2.0}), got {freq}"
         )
     gain = np.array(gain)
 
@@ -584,8 +587,8 @@ def _construct_fir_filter(
     if att_db < min_att_db:
         att_freq *= sfreq / 2.0
         warn(
-            "Attenuation at stop frequency %0.2f Hz is only %0.2f dB. "
-            "Increase filter_length for higher attenuation." % (att_freq, att_db)
+            f"Attenuation at stop frequency {att_freq:0.2f} Hz is only {att_db:0.2f} "
+            "dB. Increase filter_length for higher attenuation."
         )
     return h
 
@@ -594,9 +597,7 @@ def _check_zero_phase_length(N, phase, gain_nyq=0):
     N = int(N)
     if N % 2 == 0:
         if phase == "zero":
-            raise RuntimeError(
-                'filter_length must be odd if phase="zero", ' "got %s" % N
-            )
+            raise RuntimeError(f'filter_length must be odd if phase="zero", got {N}')
         elif phase == "zero-double" and gain_nyq == 1:
             N += 1
     return N
@@ -882,16 +883,15 @@ def construct_iir_filter(
         ftype = iir_params["ftype"]
         if ftype not in known_filters:
             raise RuntimeError(
-                "ftype must be in filter_dict from "
-                "scipy.signal (e.g., butter, cheby1, etc.) not "
-                "%s" % ftype
+                "ftype must be in filter_dict from scipy.signal (e.g., butter, cheby1, "
+                f"etc.) not {ftype}"
             )
 
         # use order-based design
         f_pass = np.atleast_1d(f_pass)
         if f_pass.ndim > 1:
             raise ValueError("frequencies must be 1D, got %dD" % f_pass.ndim)
-        edge_freqs = ", ".join("%0.2f" % (f,) for f in f_pass)
+        edge_freqs = ", ".join(f"{f:0.2f}" for f in f_pass)
         Wp = f_pass / (float(sfreq) / 2)
         # IT will de designed
         ftype_nice = _ftype_dict.get(ftype, ftype)
@@ -965,8 +965,8 @@ def construct_iir_filter(
         # 2 * 20 here because we do forward-backward filtering
         if phase in ("zero", "zero-double"):
             cutoffs *= 2
-        cutoffs = ", ".join(["%0.2f" % (c,) for c in cutoffs])
-        logger.info("- Cutoff%s at %s Hz: %s dB" % (_pl(f_pass), edge_freqs, cutoffs))
+        cutoffs = ", ".join([f"{c:0.2f}" for c in cutoffs])
+        logger.info(f"- Cutoff{_pl(f_pass)} at {edge_freqs} Hz: {cutoffs} dB")
     # now deal with padding
     if "padlen" not in iir_params:
         padlen = estimate_ringing_samples(system)
@@ -1251,16 +1251,15 @@ def create_filter(
     # If no data specified, sanity checking will be skipped
     if data is None:
         logger.info(
-            "No data specified. Sanity checks related to the length of"
-            " the signal relative to the filter order will be"
-            " skipped."
+            "No data specified. Sanity checks related to the length of the signal "
+            "relative to the filter order will be skipped."
         )
     if h_freq is not None:
         h_freq = np.array(h_freq, float).ravel()
         if (h_freq > (sfreq / 2.0)).any():
             raise ValueError(
-                "h_freq (%s) must be less than the Nyquist "
-                "frequency %s" % (h_freq, sfreq / 2.0)
+                f"h_freq ({h_freq}) must be less than the Nyquist frequency "
+                f"{sfreq / 2.0}"
             )
     if l_freq is not None:
         l_freq = np.array(l_freq, float).ravel()
@@ -1300,7 +1299,7 @@ def create_filter(
             gain = [1.0, 1.0]
     if l_freq is None and h_freq is not None:
         h_freq = h_freq.item()
-        logger.info("Setting up low-pass filter at %0.2g Hz" % (h_freq,))
+        logger.info(f"Setting up low-pass filter at {h_freq:0.2g} Hz")
         (
             data,
             sfreq,
@@ -1337,7 +1336,7 @@ def create_filter(
                 gain += [0]
     elif l_freq is not None and h_freq is None:
         l_freq = l_freq.item()
-        logger.info("Setting up high-pass filter at %0.2g Hz" % (l_freq,))
+        logger.info(f"Setting up high-pass filter at {l_freq:0.2g} Hz")
         (
             data,
             sfreq,
@@ -1376,7 +1375,7 @@ def create_filter(
         if (l_freq < h_freq).any():
             l_freq, h_freq = l_freq.item(), h_freq.item()
             logger.info(
-                "Setting up band-pass filter from %0.2g - %0.2g Hz" % (l_freq, h_freq)
+                f"Setting up band-pass filter from {l_freq:0.2g} - {h_freq:0.2g} Hz"
             )
             (
                 data,
@@ -1428,7 +1427,7 @@ def create_filter(
             msg = "Setting up band-stop filter"
             if len(l_freq) == 1:
                 l_freq, h_freq = l_freq.item(), h_freq.item()
-                msg += " from %0.2g - %0.2g Hz" % (h_freq, l_freq)
+                msg += f" from {h_freq:0.2g} - {l_freq:0.2g} Hz"
             logger.info(msg)
             # Note: order of outputs is intentionally switched here!
             (
@@ -1868,21 +1867,14 @@ def _check_filterable(x, kind="filtered", alternative="filter"):
             pass
         else:
             raise TypeError(
-                "This low-level function only operates on np.ndarray "
-                f"instances. To get a {kind} {name} instance, use a method "
-                f"like `inst_new = inst.copy().{alternative}(...)` "
-                "instead."
+                "This low-level function only operates on np.ndarray instances. To get "
+                f"a {kind} {name} instance, use a method like `inst_new = inst.copy()."
+                f"{alternative}(...)` instead."
             )
     _validate_type(x, (np.ndarray, list, tuple), f"Data to be {kind}")
     x = np.asanyarray(x)
     if x.dtype != np.float64:
-        raise ValueError(
-            "Data to be %s must be real floating, got %s"
-            % (
-                kind,
-                x.dtype,
-            )
-        )
+        raise ValueError(f"Data to be {kind} must be real floating, got {x.dtype}")
     return x
 
 
@@ -1896,12 +1888,13 @@ def resample(
     x,
     up=1.0,
     down=1.0,
-    npad=100,
-    axis=-1,
-    window="boxcar",
-    n_jobs=None,
-    pad="reflect_limited",
     *,
+    axis=-1,
+    window="auto",
+    n_jobs=None,
+    pad="auto",
+    npad=100,
+    method="fft",
     verbose=None,
 ):
     """Resample an array.
@@ -1916,15 +1909,18 @@ def resample(
         Factor to upsample by.
     down : float
         Factor to downsample by.
-    %(npad)s
     axis : int
         Axis along which to resample (default is the last axis).
     %(window_resample)s
     %(n_jobs_cuda)s
-    %(pad)s
-        The default is ``'reflect_limited'``.
+        ``n_jobs='cuda'`` is only supported when ``method="fft"``.
+    %(pad_resample_auto)s
 
         .. versionadded:: 0.15
+    %(npad_resample)s
+    %(method_resample)s
+
+        .. versionadded:: 1.7
     %(verbose)s
 
     Returns
@@ -1934,26 +1930,16 @@ def resample(
 
     Notes
     -----
-    This uses (hopefully) intelligent edge padding and frequency-domain
-    windowing improve scipy.signal.resample's resampling method, which
+    When using ``method="fft"`` (default),
+    this uses (hopefully) intelligent edge padding and frequency-domain
+    windowing improve :func:`scipy.signal.resample`'s resampling method, which
     we have adapted for our use here. Choices of npad and window have
     important consequences, and the default choices should work well
     for most natural signals.
-
-    Resampling arguments are broken into "up" and "down" components for future
-    compatibility in case we decide to use an upfirdn implementation. The
-    current implementation is functionally equivalent to passing
-    up=up/down and down=1.
     """
-    # check explicitly for backwards compatibility
-    if not isinstance(axis, int):
-        err = (
-            "The axis parameter needs to be an integer (got %s). "
-            "The axis parameter was missing from this function for a "
-            "period of time, you might be intending to specify the "
-            "subsequent window parameter." % repr(axis)
-        )
-        raise TypeError(err)
+    _validate_type(method, str, "method")
+    _validate_type(pad, str, "pad")
+    _check_option("method", method, ("fft", "polyphase"))
 
     # make sure our arithmetic will work
     x = _check_filterable(x, "resampled", "resample")
@@ -1961,31 +1947,89 @@ def resample(
     del up, down
     if axis < 0:
         axis = x.ndim + axis
-    orig_last_axis = x.ndim - 1
-    if axis != orig_last_axis:
-        x = x.swapaxes(axis, orig_last_axis)
-    orig_shape = x.shape
-    x_len = orig_shape[-1]
-    if x_len == 0:
-        warn("x has zero length along last axis, returning a copy of x")
+    if x.shape[axis] == 0:
+        warn(f"x has zero length along axis={axis}, returning a copy of x")
         return x.copy()
-    bad_msg = 'npad must be "auto" or an integer'
+
+    # prep for resampling along the last axis (swap axis with last then reshape)
+    out_shape = list(x.shape)
+    out_shape.pop(axis)
+    out_shape.append(final_len)
+    x = np.atleast_2d(x.swapaxes(axis, -1).reshape((-1, x.shape[axis])))
+
+    # do the resampling using FFT or polyphase methods
+    kwargs = dict(pad=pad, window=window, n_jobs=n_jobs)
+    if method == "fft":
+        y = _resample_fft(x, npad=npad, ratio=ratio, final_len=final_len, **kwargs)
+    else:
+        up, down, kwargs["window"] = _prep_polyphase(
+            ratio, x.shape[-1], final_len, window
+        )
+        half_len = len(window) // 2
+        logger.info(
+            f"Polyphase resampling neighborhood: ±{half_len} "
+            f"input sample{_pl(half_len)}"
+        )
+        y = _resample_polyphase(x, up=up, down=down, **kwargs)
+    assert y.shape[-1] == final_len
+
+    # restore dimensions (reshape then swap axis with last)
+    y = y.reshape(out_shape).swapaxes(axis, -1)
+
+    return y
+
+
+def _prep_polyphase(ratio, x_len, final_len, window):
+    if isinstance(window, str) and window == "auto":
+        window = ("kaiser", 5.0)  # SciPy default
+    up = final_len
+    down = x_len
+    g_ = gcd(up, down)
+    up = up // g_
+    down = down // g_
+    # Figure out our signal neighborhood and design window (adapted from SciPy)
+    if not isinstance(window, (list, np.ndarray)):
+        # Design a linear-phase low-pass FIR filter
+        max_rate = max(up, down)
+        f_c = 1.0 / max_rate  # cutoff of FIR filter (rel. to Nyquist)
+        half_len = 10 * max_rate  # reasonable cutoff for sinc-like function
+        window = signal.firwin(2 * half_len + 1, f_c, window=window)
+    return up, down, window
+
+
+def _resample_polyphase(x, *, up, down, pad, window, n_jobs):
+    if pad == "auto":
+        pad = "reflect"
+    kwargs = dict(padtype=pad, window=window, up=up, down=down)
+    _validate_type(
+        n_jobs, (None, "int-like"), "n_jobs", extra="when method='polyphase'"
+    )
+    parallel, p_fun, n_jobs = parallel_func(signal.resample_poly, n_jobs)
+    if n_jobs == 1:
+        y = signal.resample_poly(x, axis=-1, **kwargs)
+    else:
+        y = np.array(parallel(p_fun(x_, **kwargs) for x_ in x))
+    return y
+
+
+def _resample_fft(x_flat, *, ratio, final_len, pad, window, npad, n_jobs):
+    x_len = x_flat.shape[-1]
+    pad = "reflect_limited" if pad == "auto" else pad
+    if (isinstance(window, str) and window == "auto") or window is None:
+        window = "boxcar"
     if isinstance(npad, str):
-        if npad != "auto":
-            raise ValueError(bad_msg)
+        _check_option("npad", npad, ("auto",), extra="when a string")
         # Figure out reasonable pad that gets us to a power of 2
         min_add = min(x_len // 8, 100) * 2
         npad = 2 ** int(np.ceil(np.log2(x_len + min_add))) - x_len
         npad, extra = divmod(npad, 2)
         npads = np.array([npad, npad + extra], int)
     else:
-        if npad != int(npad):
-            raise ValueError(bad_msg)
+        npad = _ensure_int(npad, "npad", extra="or 'auto'")
         npads = np.array([npad, npad], int)
     del npad
 
     # prep for resampling now
-    x_flat = x.reshape((-1, x_len))
     orig_len = x_len + npads.sum()  # length after padding
     new_len = max(int(round(ratio * orig_len)), 1)  # length after resampling
     to_removes = [int(round(ratio * npads[0]))]
@@ -1995,15 +2039,12 @@ def resample(
     # assert np.abs(to_removes[1] - to_removes[0]) <= int(np.ceil(ratio))
 
     # figure out windowing function
-    if window is not None:
-        if callable(window):
-            W = window(fft.fftfreq(orig_len))
-        elif isinstance(window, np.ndarray) and window.shape == (orig_len,):
-            W = window
-        else:
-            W = fft.ifftshift(signal.get_window(window, orig_len))
+    if callable(window):
+        W = window(fft.fftfreq(orig_len))
+    elif isinstance(window, np.ndarray) and window.shape == (orig_len,):
+        W = window
     else:
-        W = np.ones(orig_len)
+        W = fft.ifftshift(signal.get_window(window, orig_len))
     W *= float(new_len) / float(orig_len)
 
     # figure out if we should use CUDA
@@ -2013,7 +2054,7 @@ def resample(
     # use of the 'flat' window is recommended for minimal ringing
     parallel, p_fun, n_jobs = parallel_func(_fft_resample, n_jobs)
     if n_jobs == 1:
-        y = np.zeros((len(x_flat), new_len - to_removes.sum()), dtype=x.dtype)
+        y = np.zeros((len(x_flat), new_len - to_removes.sum()), dtype=x_flat.dtype)
         for xi, x_ in enumerate(x_flat):
             y[xi] = _fft_resample(x_, new_len, npads, to_removes, cuda_dict, pad)
     else:
@@ -2021,12 +2062,6 @@ def resample(
             p_fun(x_, new_len, npads, to_removes, cuda_dict, pad) for x_ in x_flat
         )
         y = np.array(y)
-
-    # Restore the original array shape (modified for resampling)
-    y.shape = orig_shape[:-1] + (y.shape[1],)
-    if axis != orig_last_axis:
-        y = y.swapaxes(axis, orig_last_axis)
-    assert y.shape[axis] == final_len
 
     return y
 
@@ -2233,15 +2268,12 @@ def _triage_filter_params(
     if l_freq is not None:
         l_freq = cast(l_freq)
         if np.any(l_freq <= 0):
-            raise ValueError(
-                "highpass frequency %s must be greater than zero" % (l_freq,)
-            )
+            raise ValueError(f"highpass frequency {l_freq} must be greater than zero")
     if h_freq is not None:
         h_freq = cast(h_freq)
         if np.any(h_freq >= sfreq / 2.0):
             raise ValueError(
-                "lowpass frequency %s must be less than Nyquist "
-                "(%s)" % (h_freq, sfreq / 2.0)
+                f"lowpass frequency {h_freq} must be less than Nyquist ({sfreq / 2.0})"
             )
 
     dB_cutoff = False  # meaning, don't try to compute or report
@@ -2261,12 +2293,9 @@ def _triage_filter_params(
         logger.info("FIR filter parameters")
         logger.info("---------------------")
         logger.info(
-            "Designing a %s, %s, %s %s filter:"
-            % (report_pass, report_phase, causality, kind)
+            f"Designing a {report_pass}, {report_phase}, {causality} {kind} filter:"
         )
-        logger.info(
-            "- %s design (%s) method" % (_fir_design_dict[fir_design], fir_design)
-        )
+        logger.info(f"- {_fir_design_dict[fir_design]} design ({fir_design}) method")
         this_dict = _fir_window_dict[fir_window]
         if fir_design == "firwin":
             logger.info(
@@ -2280,8 +2309,8 @@ def _triage_filter_params(
             if isinstance(l_trans_bandwidth, str):
                 if l_trans_bandwidth != "auto":
                     raise ValueError(
-                        'l_trans_bandwidth must be "auto" if '
-                        'string, got "%s"' % l_trans_bandwidth
+                        'l_trans_bandwidth must be "auto" if string, got "'
+                        f'{l_trans_bandwidth}"'
                     )
                 l_trans_bandwidth = np.minimum(np.maximum(0.25 * l_freq, 2.0), l_freq)
             l_trans_rep = np.array(l_trans_bandwidth, float)
@@ -2303,7 +2332,7 @@ def _triage_filter_params(
             l_trans_bandwidth = cast(l_trans_bandwidth)
             if np.any(l_trans_bandwidth <= 0):
                 raise ValueError(
-                    "l_trans_bandwidth must be positive, got %s" % (l_trans_bandwidth,)
+                    f"l_trans_bandwidth must be positive, got {l_trans_bandwidth}"
                 )
             l_stop = l_freq - l_trans_bandwidth
             if reverse:  # band-stop style
@@ -2311,10 +2340,9 @@ def _triage_filter_params(
                 l_freq += l_trans_bandwidth
             if np.any(l_stop < 0):
                 raise ValueError(
-                    "Filter specification invalid: Lower stop "
-                    "frequency negative (%0.2f Hz). Increase pass"
-                    " frequency or reduce the transition "
-                    "bandwidth (l_trans_bandwidth)" % l_stop
+                    "Filter specification invalid: Lower stop frequency negative ("
+                    f"{l_stop:0.2f} Hz). Increase pass frequency or reduce the "
+                    "transition bandwidth (l_trans_bandwidth)"
                 )
         if h_freq is not None:  # low-pass component
             if isinstance(h_trans_bandwidth, str):
@@ -2344,7 +2372,7 @@ def _triage_filter_params(
             h_trans_bandwidth = cast(h_trans_bandwidth)
             if np.any(h_trans_bandwidth <= 0):
                 raise ValueError(
-                    "h_trans_bandwidth must be positive, got %s" % (h_trans_bandwidth,)
+                    f"h_trans_bandwidth must be positive, got {h_trans_bandwidth}"
                 )
             h_stop = h_freq + h_trans_bandwidth
             if reverse:  # band-stop style
@@ -2352,8 +2380,8 @@ def _triage_filter_params(
                 h_freq -= h_trans_bandwidth
             if np.any(h_stop > sfreq / 2):
                 raise ValueError(
-                    "Effective band-stop frequency (%s) is too "
-                    "high (maximum based on Nyquist is %s)" % (h_stop, sfreq / 2.0)
+                    f"Effective band-stop frequency ({h_stop}) is too high (maximum "
+                    f"based on Nyquist is {sfreq / 2.0})"
                 )
 
         if isinstance(filter_length, str) and filter_length.lower() == "auto":
@@ -2364,7 +2392,7 @@ def _triage_filter_params(
             if l_freq is not None:
                 l_check = min(np.atleast_1d(l_trans_bandwidth))
             mult_fact = 2.0 if fir_design == "firwin2" else 1.0
-            filter_length = "%ss" % (
+            filter_length = "{}s".format(
                 _length_factors[fir_window] * mult_fact / float(min(h_check, l_check)),
             )
             next_pow_2 = False  # disable old behavior
@@ -2379,15 +2407,12 @@ def _triage_filter_params(
             filter_length += (filter_length - 1) % 2
 
         logger.info(
-            "- Filter length: %s samples (%0.3f s)"
-            % (filter_length, filter_length / sfreq)
+            f"- Filter length: {filter_length} samples ({filter_length / sfreq:0.3f} s)"
         )
         logger.info("")
 
         if filter_length <= 0:
-            raise ValueError(
-                "filter_length must be positive, got %s" % (filter_length,)
-            )
+            raise ValueError(f"filter_length must be positive, got {filter_length}")
 
         if next_pow_2:
             filter_length = 2 ** int(np.ceil(np.log2(filter_length)))
@@ -2402,9 +2427,8 @@ def _triage_filter_params(
             filter_length = len_x
         if filter_length > len_x and not (l_freq is None and h_freq is None):
             warn(
-                "filter_length (%s) is longer than the signal (%s), "
-                "distortion is likely. Reduce filter length or filter a "
-                "longer signal." % (filter_length, len_x)
+                f"filter_length ({filter_length}) is longer than the signal ({len_x}), "
+                "distortion is likely. Reduce filter length or filter a longer signal."
             )
 
     logger.debug("Using filter length: %s" % filter_length)
@@ -2425,10 +2449,8 @@ def _triage_filter_params(
 def _check_resamp_noop(sfreq, o_sfreq, rtol=1e-6):
     if np.isclose(sfreq, o_sfreq, atol=0, rtol=rtol):
         logger.info(
-            (
-                f"Sampling frequency of the instance is already {sfreq}, "
-                "returning unmodified."
-            )
+            f"Sampling frequency of the instance is already {sfreq}, returning "
+            "unmodified."
         )
         return True
     return False
@@ -2454,7 +2476,7 @@ class FilterMixin:
 
         Returns
         -------
-        inst : instance of Epochs or Evoked
+        inst : instance of Epochs, Evoked or SourceEstimate
             The object with the filtering applied.
 
         See Also
@@ -2466,6 +2488,8 @@ class FilterMixin:
         For Savitzky-Golay low-pass approximation, see:
 
             https://gist.github.com/larsoner/bbac101d50176611136b
+
+        When working on SourceEstimates the sample rate of the original data is inferred from tstep.
 
         .. versionadded:: 0.9.0
 
@@ -2482,13 +2506,19 @@ class FilterMixin:
         >>> evoked.savgol_filter(10.)  # low-pass at around 10 Hz # doctest:+SKIP
         >>> evoked.plot()  # doctest:+SKIP
         """  # noqa: E501
+        from .source_estimate import _BaseSourceEstimate
+
         _check_preload(self, "inst.savgol_filter")
+        if not isinstance(self, _BaseSourceEstimate):
+            s_freq = self.info["sfreq"]
+        else:
+            s_freq = 1 / self.tstep
         h_freq = float(h_freq)
-        if h_freq >= self.info["sfreq"] / 2.0:
+        if h_freq >= s_freq / 2.0:
             raise ValueError("h_freq must be less than half the sample rate")
 
         # savitzky-golay filtering
-        window_length = (int(np.round(self.info["sfreq"] / h_freq)) // 2) * 2 + 1
+        window_length = (int(np.round(s_freq / h_freq)) // 2) * 2 + 1
         logger.info("Using savgol length %d" % window_length)
         self._data[:] = signal.savgol_filter(
             self._data, axis=-1, polyorder=5, window_length=window_length
@@ -2515,7 +2545,7 @@ class FilterMixin:
         *,
         verbose=None,
     ):
-        """Filter a subset of channels.
+        """Filter a subset of channels/vertices.
 
         Parameters
         ----------
@@ -2539,7 +2569,7 @@ class FilterMixin:
 
         Returns
         -------
-        inst : instance of Epochs, Evoked, or Raw
+        inst : instance of Epochs, Evoked, SourceEstimate, or Raw
             The filtered data.
 
         See Also
@@ -2576,6 +2606,9 @@ class FilterMixin:
                   ``len(picks) * n_times`` additional time points need to
                   be temporarily stored in memory.
 
+        When working on SourceEstimates the sample rate of the original
+        data is inferred from tstep.
+
         For more information, see the tutorials
         :ref:`disc-filtering` and :ref:`tut-filter-resample` and
         :func:`mne.filter.create_filter`.
@@ -2584,11 +2617,16 @@ class FilterMixin:
         """
         from .annotations import _annotations_starts_stops
         from .io import BaseRaw
+        from .source_estimate import _BaseSourceEstimate
 
         _check_preload(self, "inst.filter")
+        if not isinstance(self, _BaseSourceEstimate):
+            update_info, picks = _filt_check_picks(self.info, picks, l_freq, h_freq)
+            s_freq = self.info["sfreq"]
+        else:
+            s_freq = 1.0 / self.tstep
         if pad is None and method != "iir":
             pad = "edge"
-        update_info, picks = _filt_check_picks(self.info, picks, l_freq, h_freq)
         if isinstance(self, BaseRaw):
             # Deal with annotations
             onsets, ends = _annotations_starts_stops(
@@ -2607,7 +2645,7 @@ class FilterMixin:
             use_verbose = verbose if si == max_idx else "error"
             filter_data(
                 self._data[:, start:stop],
-                self.info["sfreq"],
+                s_freq,
                 l_freq,
                 h_freq,
                 picks,
@@ -2624,20 +2662,22 @@ class FilterMixin:
                 pad=pad,
                 verbose=use_verbose,
             )
-        # update info if filter is applied to all data channels,
+        # update info if filter is applied to all data channels/vertices,
         # and it's not a band-stop filter
-        _filt_update_info(self.info, update_info, l_freq, h_freq)
+        if not isinstance(self, _BaseSourceEstimate):
+            _filt_update_info(self.info, update_info, l_freq, h_freq)
         return self
 
     @verbose
     def resample(
         self,
         sfreq,
+        *,
         npad="auto",
-        window="boxcar",
+        window="auto",
         n_jobs=None,
         pad="edge",
-        *,
+        method="fft",
         verbose=None,
     ):
         """Resample data.
@@ -2654,11 +2694,12 @@ class FilterMixin:
         %(npad)s
         %(window_resample)s
         %(n_jobs_cuda)s
-        %(pad)s
-            The default is ``'edge'``, which pads with the edge values of each
-            vector.
+        %(pad_resample)s
 
             .. versionadded:: 0.15
+        %(method_resample)s
+
+            .. versionadded:: 1.7
         %(verbose)s
 
         Returns
@@ -2679,7 +2720,7 @@ class FilterMixin:
         from .evoked import Evoked
 
         # Should be guaranteed by our inheritance, and the fact that
-        # mne.io.BaseRaw overrides this method
+        # mne.io.BaseRaw and _BaseSourceEstimate overrides this method
         assert isinstance(self, (BaseEpochs, Evoked))
 
         sfreq = float(sfreq)
@@ -2689,7 +2730,14 @@ class FilterMixin:
 
         _check_preload(self, "inst.resample")
         self._data = resample(
-            self._data, sfreq, o_sfreq, npad, window=window, n_jobs=n_jobs, pad=pad
+            self._data,
+            sfreq,
+            o_sfreq,
+            npad=npad,
+            window=window,
+            n_jobs=n_jobs,
+            pad=pad,
+            method=method,
         )
         lowpass = self.info.get("lowpass")
         lowpass = np.inf if lowpass is None else lowpass
@@ -2709,13 +2757,13 @@ class FilterMixin:
     def apply_hilbert(
         self, picks=None, envelope=False, n_jobs=None, n_fft="auto", *, verbose=None
     ):
-        """Compute analytic signal or envelope for a subset of channels.
+        """Compute analytic signal or envelope for a subset of channels/vertices.
 
         Parameters
         ----------
         %(picks_all_data_noref)s
         envelope : bool
-            Compute the envelope signal of each channel. Default False.
+            Compute the envelope signal of each channel/vertex. Default False.
             See Notes.
         %(n_jobs)s
         n_fft : int | None | str
@@ -2727,19 +2775,19 @@ class FilterMixin:
 
         Returns
         -------
-        self : instance of Raw, Epochs, or Evoked
+        self : instance of Raw, Epochs, Evoked or SourceEstimate
             The raw object with transformed data.
 
         Notes
         -----
         **Parameters**
 
-        If ``envelope=False``, the analytic signal for the channels defined in
+        If ``envelope=False``, the analytic signal for the channels/vertices defined in
         ``picks`` is computed and the data of the Raw object is converted to
         a complex representation (the analytic signal is complex valued).
 
         If ``envelope=True``, the absolute value of the analytic signal for the
-        channels defined in ``picks`` is computed, resulting in the envelope
+        channels/vertices defined in ``picks`` is computed, resulting in the envelope
         signal.
 
         .. warning: Do not use ``envelope=True`` if you intend to compute
@@ -2772,24 +2820,30 @@ class FilterMixin:
         by computing the analytic signal in sensor space, applying the MNE
         inverse, and computing the envelope in source space.
         """
+        from .source_estimate import _BaseSourceEstimate
+
+        if not isinstance(self, _BaseSourceEstimate):
+            use_info = self.info
+        else:
+            use_info = len(self._data)
         _check_preload(self, "inst.apply_hilbert")
+        picks = _picks_to_idx(use_info, picks, exclude=(), with_ref_meg=False)
+
         if n_fft is None:
             n_fft = len(self.times)
         elif isinstance(n_fft, str):
             if n_fft != "auto":
                 raise ValueError(
-                    "n_fft must be an integer, string, or None, "
-                    "got %s" % (type(n_fft),)
+                    f"n_fft must be an integer, string, or None, got {type(n_fft)}"
                 )
             n_fft = next_fast_len(len(self.times))
         n_fft = int(n_fft)
         if n_fft < len(self.times):
             raise ValueError(
-                "n_fft (%d) must be at least the number of time "
-                "points (%d)" % (n_fft, len(self.times))
+                f"n_fft ({n_fft}) must be at least the number of time points ("
+                f"{len(self.times)})"
             )
         dtype = None if envelope else np.complex128
-        picks = _picks_to_idx(self.info, picks, exclude=(), with_ref_meg=False)
         args, kwargs = (), dict(n_fft=n_fft, envelope=envelope)
 
         data_in = self._data
@@ -2820,9 +2874,7 @@ def _check_fun(fun, d, *args, **kwargs):
     if not isinstance(d, np.ndarray):
         raise TypeError("Return value must be an ndarray")
     if d.shape != want_shape:
-        raise ValueError(
-            "Return data must have shape %s not %s" % (want_shape, d.shape)
-        )
+        raise ValueError(f"Return data must have shape {want_shape} not {d.shape}")
     return d
 
 

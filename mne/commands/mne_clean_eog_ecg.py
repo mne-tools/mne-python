@@ -11,6 +11,8 @@ Examples
 # Authors : Dr Engr. Sheraz Khan,  P.Eng, Ph.D.
 #           Engr. Nandita Shetty,  MS.
 #           Alexandre Gramfort, Ph.D.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 
 import sys

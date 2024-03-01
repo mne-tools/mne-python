@@ -4,7 +4,8 @@
 #          Eric Larson <larson.eric.d@gmail.com>
 #          Alex Rockhill <aprockhill@mailbox.org>
 #
-# License: Simplified BSD
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import os
 import platform
@@ -929,7 +930,7 @@ class _QtDialog(_AbstractDialog):
         callback,
         *,
         icon="Warning",
-        buttons=[],
+        buttons=(),
         modal=True,
         window=None,
     ):
@@ -1204,7 +1205,7 @@ class _QtDock(_AbstractDock, _QtLayout):
         desc,
         func,
         *,
-        filter=None,
+        filter_=None,
         initial_directory=None,
         save=False,
         is_directory=False,
@@ -1225,11 +1226,11 @@ class _QtDock(_AbstractDock, _QtLayout):
                 )
             elif save:
                 name = QFileDialog.getSaveFileName(
-                    parent=self._window, directory=initial_directory, filter=filter
+                    parent=self._window, directory=initial_directory, filter=filter_
                 )
             else:
                 name = QFileDialog.getOpenFileName(
-                    parent=self._window, directory=initial_directory, filter=filter
+                    parent=self._window, directory=initial_directory, filter=filter_
                 )
             name = name[0] if isinstance(name, tuple) else name
             # handle the cancel button

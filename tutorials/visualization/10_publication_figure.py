@@ -14,6 +14,7 @@ customize them for a more publication-ready look.
 #          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 # Imports
@@ -107,7 +108,7 @@ for ax, image, title in zip(
     axes, [screenshot, cropped_screenshot], ["Before", "After"]
 ):
     ax.imshow(image)
-    ax.set_title("{} cropping".format(title))
+    ax.set_title(f"{title} cropping")
 
 # %%
 # A lot of figure settings can be adjusted after the figure is created, but
