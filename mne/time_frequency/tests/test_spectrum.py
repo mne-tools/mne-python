@@ -141,7 +141,7 @@ def test_spectrum_io(inst, tmp_path, request, evoked):
     """Test save/load of spectrum objects."""
     pytest.importorskip("h5io")
     fname = tmp_path / f"{inst}-spectrum.h5"
-    inst = _get_inst(inst, request, evoked)
+    inst = _get_inst(inst, request, evoked=evoked)
     orig = inst.compute_psd()
     orig.save(fname)
     loaded = read_spectrum(fname)
@@ -218,7 +218,7 @@ def test_spectrum_to_data_frame(inst, request, evoked):
     # setup
     is_already_psd = inst in ("raw_spectrum", "epochs_spectrum")
     is_epochs = inst == "epochs_spectrum"
-    inst = _get_inst(inst, request, evoked)
+    inst = _get_inst(inst, request, evoked=evoked)
     extra_dim = () if is_epochs else (1,)
     extra_cols = ["freq", "condition", "epoch"] if is_epochs else ["freq"]
     # compute PSD
