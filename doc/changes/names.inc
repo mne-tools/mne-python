@@ -588,6 +588,8 @@
 
 .. _Valerii Chirkov: https://github.com/vagechirkov
 
+.. _Velu Prabhakar Kumaravel: https://github.com/vpKumaravel
+
 .. _Victor Ferat: https://github.com/vferat
 
 .. _Victoria Peterson: https://github.com/vpeterson
