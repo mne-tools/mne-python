@@ -125,7 +125,7 @@ def test_n_welch_windows(raw):
     )
 
 
-def _get_inst(inst, request, evoked=None, average_tfr=None):
+def _get_inst(inst, request, *, evoked=None, average_tfr=None):
     # ↓ XXX workaround:
     # ↓ parametrized fixtures are not accessible via request.getfixturevalue
     # ↓ https://github.com/pytest-dev/pytest/issues/4666#issuecomment-456593913

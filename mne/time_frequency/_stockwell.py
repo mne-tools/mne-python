@@ -130,6 +130,7 @@ def tfr_array_stockwell(
     decim=1,
     return_itc=False,
     n_jobs=None,
+    *,
     verbose=None,
 ):
     """Compute power and intertrial coherence using Stockwell (S) transform.
