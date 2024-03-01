@@ -537,7 +537,7 @@ class _BaseSourceEstimate(TimeMixin, FilterMixin):
         if data is not None:
             if data.ndim not in (self._data_ndim, self._data_ndim - 1):
                 raise ValueError(
-                    f"Data (shape {data.shape}) must have {self._data_ndim}"
+                    f"Data (shape {data.shape}) must have {self._data_ndim} "
                     f"dimensions for {self.__class__.__name__}"
                 )
             if data.shape[0] != n_src:

@@ -1535,7 +1535,7 @@ def plot_csd(
             ax.set_xticks([])
             ax.set_yticks([])
             if csd._is_sum:
-                ax.set_title(f"{np.min(freq):%.1f}-{np.max(freq):%.1f} Hz.")
+                ax.set_title(f"{np.min(freq):.1f}-{np.max(freq):.1f} Hz.")
             else:
                 ax.set_title("%.1f Hz." % freq)
 

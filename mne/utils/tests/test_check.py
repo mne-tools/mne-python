@@ -245,7 +245,7 @@ def test_suggest():
     sug = _suggest("", names)
     assert sug == ""  # nothing
     sug = _suggest("Left-cerebellum", names)
-    assert sug == " Did you mean 'Left-Cerebellum-Cortex'?"
+    assert sug == " Did you mean Left-Cerebellum-Cortex?"
     sug = _suggest("Cerebellum-Cortex", names)
     assert (
         sug

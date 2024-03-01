@@ -1612,7 +1612,7 @@ def _check_volume_labels(volume_label, mri, name="volume_label"):
         for label in volume_label:
             if label not in lut:
                 raise ValueError(
-                    f"Volume {label} not found in file {mri}. Double check "
+                    f"Volume {repr(label)} not found in file {mri}. Double check "
                     f"FreeSurfer lookup table.{_suggest(label, lut)}"
                 )
             use_volume_label[label] = lut[label]

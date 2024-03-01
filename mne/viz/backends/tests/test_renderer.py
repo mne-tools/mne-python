@@ -194,7 +194,7 @@ def test_renderer(renderer, monkeypatch):
         "-uc",
         "import mne; mne.viz.create_3d_figure((800, 600), show=True); "
         "backend = mne.viz.get_3d_backend(); "
-        f"assert backend == {backend}, backend",
+        f"assert backend == {repr(backend)}, backend",
     ]
     monkeypatch.setenv("MNE_3D_BACKEND", backend)
     run_subprocess(cmd)

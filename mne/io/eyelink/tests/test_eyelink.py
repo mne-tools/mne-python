@@ -234,16 +234,16 @@ def _simulate_eye_tracking_data(in_file, out_file):
             else:
                 fp.write("%s\n" % line)
 
-        fp.write("'START\t7452389\tRIGHT\tSAMPLES\tEVENTS'\n")
+        fp.write('"START\t7452389\tRIGHT\tSAMPLES\tEVENTS"\n')
         fp.write(f"{new_samples_line}\n")
 
         for timestamp in np.arange(7452389, 7453390):  # simulate a second block
             fp.write(
                 f"{timestamp}\t-2434.0\t-1760.0\t840.0\t100\t20\t45\t45\t127.0\t"
-                f"...\t1497\t5189\t512.5\t.............\n"
+                "...\t1497\t5189\t512.5\t.............\n"
             )
 
-        fp.write("'END\t7453390\tRIGHT\tSAMPLES\tEVENTS'\n")
+        fp.write('"END\t7453390\tRIGHT\tSAMPLES\tEVENTS"\n')
 
 
 @requires_testing_data

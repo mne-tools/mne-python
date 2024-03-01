@@ -65,7 +65,7 @@ def check_fname(fname, filetype, endings, endings_err=()):
     if len(endings_err) > 0 and not fname.endswith(endings_err):
         print_endings = " or ".join([", ".join(endings_err[:-1]), endings_err[-1]])
         raise OSError(
-            f"The filename ({fname}) for file type {filetype}"
+            f"The filename ({fname}) for file type {filetype} "
             f"must end with {print_endings}"
         )
     print_endings = " or ".join([", ".join(endings[:-1]), endings[-1]])
