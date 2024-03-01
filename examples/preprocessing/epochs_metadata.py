@@ -18,7 +18,7 @@ windows used to generate the metadata.
 # Copyright the MNE-Python contributors.
 
 # %%
-# We will use data from an EEG recording during an Eriksen flanker task task. For the
+# We will use data from an EEG recording during an Eriksen flanker task. For the
 # purpose of demonstration, we'll only load the first 60 seconds of data.
 
 import mne
@@ -33,8 +33,8 @@ raw.crop(tmax=60).filter(l_freq=0.1, h_freq=40)
 # Visualizing the events
 # ^^^^^^^^^^^^^^^^^^^^^^
 #
-# All experimental events are stored in the :class:`mne.io.Raw` instance as
-# :class:`mne.Annotations`. We first need to convert these to events and the
+# All experimental events are stored in the :class:`~mne.io.Raw` instance as
+# :class:`~mne.Annotations`. We first need to convert these to events and the
 # corresponding mapping from event codes to event names (``event_id``). We then
 # visualize the events.
 all_events, all_event_id = mne.events_from_annotations(raw)
@@ -50,8 +50,8 @@ mne.viz.plot_events(events=all_events, event_id=all_event_id, sfreq=raw.info["sf
 #
 # For the sake of this example, we will assume that during analysis our epochs will be
 # time-locked to the stimulus onset events. Hence, we would like to create metadata with
-# one row per stimulus. We can achieve this by specifying all stimulus event names as
-# ``row_events``.
+# one row per ``stimulus``. We can achieve this by specifying all stimulus event names
+# as ``row_events``.
 
 row_events = [
     "stimulus/compatible/target_left",
@@ -93,9 +93,9 @@ metadata
 # This looks good at the first glance. However, for example in the 2nd and 3rd row, we
 # have two responses listed (left and right). This is because the 3-second time window
 # is obviously a bit too wide and captures more than one trial. While we could make it
-# narrower, this could lead to a loss of events – if the window becomes **too** narrow.
-# Ultimately, this problem arises because the response time varies from trial to trial,
-# so it's difficult for us to set a fixed upper bound for the time window.
+# narrower, this could lead to a loss of events – if the window might become **too**
+# narrow. Ultimately, this problem arises because the response time varies from trial
+# to trial, so it's difficult for us to set a fixed upper bound for the time window.
 #
 # Fixed time window with ``keep_first``
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
