@@ -1,0 +1,1 @@
+- Changed default ECoG and sEEG electrode sizes in `mne/defaults.py` to better reflect real world sizes, by `Liberty Hamilton`_
