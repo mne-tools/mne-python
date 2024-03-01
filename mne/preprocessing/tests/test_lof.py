@@ -1,5 +1,7 @@
-# Authors: Velu Prabhakar Kumaravel <vkumaravel@fbk.eu>
+# Authors: Velu Prabhakar Kumaravel <vpr.kumaravel@gmail.com>
+#
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from pathlib import Path
 

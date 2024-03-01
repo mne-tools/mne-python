@@ -1,5 +1,9 @@
+"""Bad channel detection using Local Outlier Factor (LOF)."""
+
 # Authors: Velu Prabhakar Kumaravel <vpr.kumaravel@gmail.com>
+#
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 
 import numpy as np
