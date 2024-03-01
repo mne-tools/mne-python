@@ -1250,6 +1250,7 @@ def _compute_covariance_auto(
         rank,
         scalings,
         info,
+        verbose=_verbose_safe_false(),
     )
     with _scaled_array(data.T, picks_list, scalings):
         C = np.dot(data.T, data)

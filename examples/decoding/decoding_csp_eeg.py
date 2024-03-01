@@ -50,6 +50,7 @@ eegbci.standardize(raw)  # set channel names
 montage = make_standard_montage("standard_1005")
 raw.set_montage(montage)
 raw.annotations.rename(dict(T1="hands", T2="feet"))
+raw.set_eeg_reference(projection=True)
 
 # Apply band-pass filter
 raw.filter(7.0, 30.0, fir_design="firwin", skip_by_annotation="edge")
