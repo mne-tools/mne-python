@@ -208,7 +208,7 @@
 
 .. _Henrich Kolkhorst: https://github.com/hekolk
 
-.. _Hongjiang Ye: https://github.com/rubyyhj
+.. _Hongjiang Ye: https://github.com/hongjiang-ye
 
 .. _Hubert Banville: https://github.com/hubertjb
 
