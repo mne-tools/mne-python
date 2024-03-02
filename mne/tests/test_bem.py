@@ -461,8 +461,9 @@ def test_fit_sphere_to_headshape():
     for d in info_shift["dig"]:
         d["r"] -= center
         d["r"] += shift_center
-    with _record_warnings(), pytest.warns(
-        RuntimeWarning, match="from head frame origin"
+    with (
+        _record_warnings(),
+        pytest.warns(RuntimeWarning, match="from head frame origin"),
     ):
         r, oh, od = fit_sphere_to_headshape(info_shift, dig_kinds=dig_kinds, units="m")
     assert_allclose(oh, shift_center, atol=1e-6)
@@ -483,8 +484,9 @@ def test_fit_sphere_to_headshape():
     assert_allclose(od, od2, atol=1e-7)
     # this one should pass, 1 EXTRA point and 3 EEG (but the fit is terrible)
     info = Info(dig=dig[:7], dev_head_t=dev_head_t)
-    with _record_warnings(), pytest.warns(
-        RuntimeWarning, match="Estimated head radius"
+    with (
+        _record_warnings(),
+        pytest.warns(RuntimeWarning, match="Estimated head radius"),
     ):
         r, oh, od = fit_sphere_to_headshape(info, units="m")
     # this one should fail, 1 EXTRA point and 3 EEG (but the fit is terrible)
@@ -556,8 +558,9 @@ def test_make_scalp_surfaces_topology(tmp_path, monkeypatch):
 
     # These are ignorable
     monkeypatch.setattr(mne.bem, "_tri_levels", dict(sparse=315))
-    with _record_warnings(), pytest.warns(
-        RuntimeWarning, match=".*have fewer than three.*"
+    with (
+        _record_warnings(),
+        pytest.warns(RuntimeWarning, match=".*have fewer than three.*"),
     ):
         make_scalp_surfaces(subject, subjects_dir, force=True, overwrite=True)
     (surf,) = read_bem_surfaces(sparse_path, on_defects="ignore")

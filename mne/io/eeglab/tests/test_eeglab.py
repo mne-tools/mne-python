@@ -140,8 +140,9 @@ def test_io_set_raw_more(tmp_path):
     shutil.copyfile(
         base_dir / "test_raw.fdt", negative_latency_fname.with_suffix(".fdt")
     )
-    with _record_warnings(), pytest.warns(
-        RuntimeWarning, match="has a sample index of -1."
+    with (
+        _record_warnings(),
+        pytest.warns(RuntimeWarning, match="has a sample index of -1."),
     ):
         read_raw_eeglab(input_fname=negative_latency_fname, preload=True)
 
