@@ -347,9 +347,9 @@ class RawNeuralynx(BaseRaw):
         sel_samples_local[0:-1, 1] = (
             sel_samples_global[0:-1, 1] - sel_samples_global[0:-1, 0]
         )
-        sel_samples_local[
-            1::, 0
-        ] = 0  # now set the start sample for all segments after the first to 0
+        sel_samples_local[1::, 0] = (
+            0  # now set the start sample for all segments after the first to 0
+        )
 
         sel_samples_local[0, 0] = (
             start - sel_samples_global[0, 0]

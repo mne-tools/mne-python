@@ -301,8 +301,9 @@ def test_plot_epochs_image(epochs):
         picks=[0, 1], order=lambda times, data: np.arange(len(data))[::-1]
     )
     # test warning
-    with _record_warnings(), pytest.warns(
-        RuntimeWarning, match="Only one channel in group"
+    with (
+        _record_warnings(),
+        pytest.warns(RuntimeWarning, match="Only one channel in group"),
     ):
         epochs.plot_image(picks=[1], combine="mean")
     # group_by should be a dict

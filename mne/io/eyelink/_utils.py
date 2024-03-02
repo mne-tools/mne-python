@@ -3,7 +3,6 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-
 import re
 from datetime import datetime, timedelta, timezone
 

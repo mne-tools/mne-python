@@ -2099,7 +2099,7 @@ class AverageTFR(_BaseTFR):
             if (time_half_range == 0) and (freq_half_range == 0):
                 sub_map_title = "(%.2f s,\n%.1f Hz)" % (time, freq)
             else:
-                sub_map_title = "(%.1f \u00B1 %.1f s,\n%.1f \u00B1 %.1f Hz)" % (
+                sub_map_title = "(%.1f \u00b1 %.1f s,\n%.1f \u00b1 %.1f Hz)" % (
                     time,
                     time_half_range,
                     freq,
