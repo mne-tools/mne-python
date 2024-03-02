@@ -5,7 +5,6 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-
 import numpy as np
 
 from .._fiff.pick import _picks_to_idx

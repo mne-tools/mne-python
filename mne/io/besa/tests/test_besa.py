@@ -1,6 +1,7 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 """Test reading BESA fileformats."""
+
 import inspect
 from pathlib import Path
 

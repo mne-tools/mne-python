@@ -96,8 +96,9 @@ def test_thresholds(numba_conditional):
     # nan handling in TFCE
     X = np.repeat(X[0], 2, axis=1)
     X[:, 1] = 0
-    with _record_warnings(), pytest.warns(
-        RuntimeWarning, match="invalid value"
+    with (
+        _record_warnings(),
+        pytest.warns(RuntimeWarning, match="invalid value"),
     ):  # NumPy
         out = permutation_cluster_1samp_test(
             X, seed=0, threshold=dict(start=0, step=0.1), out_type="mask"
