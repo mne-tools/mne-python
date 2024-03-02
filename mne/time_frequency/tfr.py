@@ -2100,8 +2100,8 @@ class AverageTFR(_BaseTFR):
                 sub_map_title = f"({time:.2f} s,\n{freq:.1f} Hz)"
             else:
                 sub_map_title = (
-                    f"({time:.1f} \u00B1 {time_half_range:.1f} "
-                    f"s,\n{freq:.1f} \u00B1 {freq_half_range:.1f} Hz)"
+                    f"({time:.1f} \u00b1 {time_half_range:.1f} "
+                    f"s,\n{freq:.1f} \u00b1 {freq_half_range:.1f} Hz)"
                 )
 
             tmin = time - time_half_range

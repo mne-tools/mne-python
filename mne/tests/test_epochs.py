@@ -4286,8 +4286,19 @@ def test_make_metadata(all_event_id, row_events, tmin, tmax, keep_first, keep_la
     Epochs(raw, events=events, event_id=event_id, metadata=metadata, verbose="warning")
 
 
-def test_make_metadata_bounded_by_row_events():
-    """Test make_metadata() with tmin, tmax set to None."""
+@pytest.mark.parametrize(
+    ("tmin", "tmax"),
+    [
+        (None, None),
+        ("cue", "resp"),
+        (["cue"], ["resp"]),
+        (None, "resp"),
+        ("cue", None),
+        (["rec_start", "cue"], ["resp", "rec_end"]),
+    ],
+)
+def test_make_metadata_bounded_by_row_or_tmin_tmax_event_names(tmin, tmax):
+    """Test make_metadata() with tmin, tmax set to None or strings."""
     pytest.importorskip("pandas")
 
     sfreq = 100
@@ -4332,8 +4343,8 @@ def test_make_metadata_bounded_by_row_events():
     metadata, events_new, event_id_new = mne.epochs.make_metadata(
         events=events,
         event_id=event_id,
-        tmin=None,
-        tmax=None,
+        tmin=tmin,
+        tmax=tmax,
         sfreq=raw.info["sfreq"],
         row_events="cue",
     )
@@ -4356,8 +4367,15 @@ def test_make_metadata_bounded_by_row_events():
     # 2nd trial
     assert np.isnan(metadata.iloc[1]["rec_end"])
 
-    # 3rd trial until end of the recording
-    assert metadata.iloc[2]["resp"] < metadata.iloc[2]["rec_end"]
+    # 3rd trial
+    if tmax is None:
+        # until end of the recording
+        assert metadata.iloc[2]["resp"] < metadata.iloc[2]["rec_end"]
+    else:
+        # until tmax
+        assert np.isnan(metadata.iloc[2]["rec_end"])
+        last_event_name = tmax[0] if isinstance(tmax, list) else tmax
+        assert metadata.iloc[2][last_event_name] > 0
 
 
 def test_events_list():
