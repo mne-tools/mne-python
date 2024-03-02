@@ -861,9 +861,7 @@ def compute_source_psd(
     tmin = 0.0 if tmin is None else float(tmin)
     overlap = float(overlap)
     if not 0 <= overlap < 1:
-        raise ValueError(
-            "Overlap must be at least 0 and less than 1, got %s" % (overlap,)
-        )
+        raise ValueError(f"Overlap must be at least 0 and less than 1, got {overlap}")
     n_fft = int(n_fft)
     duration = ((1.0 - overlap) * n_fft) / raw.info["sfreq"]
     events = make_fixed_length_events(raw, 1, tmin, tmax, duration)
@@ -935,7 +933,7 @@ def _compute_source_psd_epochs(
     use_cps=True,
 ):
     """Generate compute_source_psd_epochs."""
-    logger.info("Considering frequencies %g ... %g Hz" % (fmin, fmax))
+    logger.info(f"Considering frequencies {fmin} ... {fmax} Hz")
 
     if label:
         # TODO: add multi-label support
@@ -987,10 +985,10 @@ def _compute_source_psd_epochs(
     else:
         extra = "on %d epochs" % (n_epochs,)
     if isinstance(bandwidth, str):
-        bandwidth = "%s windowing" % (bandwidth,)
+        bandwidth = f"{bandwidth} windowing"
     else:
         bandwidth = "%d tapers with bandwidth %0.1f Hz" % (n_tapers, bandwidth)
-    logger.info("Using %s %s" % (bandwidth, extra))
+    logger.info(f"Using {bandwidth} {extra}")
 
     if adaptive:
         parallel, my_psd_from_mt_adaptive, n_jobs = parallel_func(

@@ -869,7 +869,7 @@ def plot_events(
             continue
         y = np.full(count, idx + 1 if equal_spacing else events[ev_mask, 2][0])
         if event_id is not None:
-            event_label = "%s (%s)" % (event_id_rev[ev], count)
+            event_label = f"{event_id_rev[ev]} ({count})"
         else:
             event_label = "N=%d" % (count,)
         labels.append(event_label)
@@ -1025,7 +1025,7 @@ def _get_flim(flim, fscale, freq, sfreq=None):
 def _check_fscale(fscale):
     """Check for valid fscale."""
     if not isinstance(fscale, str) or fscale not in ("log", "linear"):
-        raise ValueError('fscale must be "log" or "linear", got %s' % (fscale,))
+        raise ValueError(f'fscale must be "log" or "linear", got {fscale}')
 
 
 _DEFAULT_ALIM = (-80, 10)
@@ -1340,7 +1340,7 @@ def plot_ideal_filter(
     if freq[0] != 0:
         raise ValueError(
             "freq should start with DC (zero) and end with "
-            "Nyquist, but got %s for DC" % (freq[0],)
+            f"Nyquist, but got {freq[0]} for DC"
         )
     freq = np.array(freq)
     # deal with semilogx problems @ x=0
@@ -1411,8 +1411,8 @@ def _handle_event_colors(color_dict, unique_events, event_id):
         if len(unassigned):
             unassigned_str = ", ".join(str(e) for e in unassigned)
             warn(
-                "Color was not assigned for event%s %s. Default colors will "
-                "be used." % (_pl(unassigned), unassigned_str)
+                f"Color was not assigned for event{_pl(unassigned)} {unassigned_str}. "
+                "Default colors will be used."
             )
         default_colors.update(custom_colors)
     return default_colors
@@ -1535,7 +1535,7 @@ def plot_csd(
             ax.set_xticks([])
             ax.set_yticks([])
             if csd._is_sum:
-                ax.set_title("%.1f-%.1f Hz." % (np.min(freq), np.max(freq)))
+                ax.set_title(f"{np.min(freq):.1f}-{np.max(freq):.1f} Hz.")
             else:
                 ax.set_title("%.1f Hz." % freq)
 

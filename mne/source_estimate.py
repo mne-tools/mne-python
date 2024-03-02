@@ -384,8 +384,8 @@ def read_source_estimate(fname, subject=None):
         kwargs["subject"] = subject
     if subject is not None and subject != kwargs["subject"]:
         raise RuntimeError(
-            'provided subject name "%s" does not match '
-            'subject name from the file "%s' % (subject, kwargs["subject"])
+            f'provided subject name "{subject}" does not match '
+            f'subject name from the file "{kwargs["subject"]}'
         )
 
     if ftype in ("volume", "discrete"):
@@ -480,7 +480,7 @@ def _verify_source_estimate_compat(a, b):
     """Make sure two SourceEstimates are compatible for arith. operations."""
     compat = False
     if type(a) != type(b):
-        raise ValueError("Cannot combine %s and %s." % (type(a), type(b)))
+        raise ValueError(f"Cannot combine {type(a)} and {type(b)}.")
     if len(a.vertices) == len(b.vertices):
         if all(np.array_equal(av, vv) for av, vv in zip(a.vertices, b.vertices)):
             compat = True
@@ -492,7 +492,7 @@ def _verify_source_estimate_compat(a, b):
     if a.subject != b.subject:
         raise ValueError(
             "source estimates do not have the same subject "
-            "names, %r and %r" % (a.subject, b.subject)
+            f"names, {repr(a.subject)} and {repr(b.subject)}"
         )
 
 
@@ -512,13 +512,12 @@ class _BaseSourceEstimate(TimeMixin, FilterMixin):
             data = None
             if kernel.shape[1] != sens_data.shape[0]:
                 raise ValueError(
-                    "kernel (%s) and sens_data (%s) have invalid "
-                    "dimensions" % (kernel.shape, sens_data.shape)
+                    f"kernel ({kernel.shape}) and sens_data ({sens_data.shape}) "
+                    "have invalid dimensions"
                 )
             if sens_data.ndim != 2:
                 raise ValueError(
-                    "The sensor data must have 2 dimensions, got "
-                    "%s" % (sens_data.ndim,)
+                    "The sensor data must have 2 dimensions, got " f"{sens_data.ndim}"
                 )
 
         _validate_type(vertices, list, "vertices")
@@ -538,8 +537,8 @@ class _BaseSourceEstimate(TimeMixin, FilterMixin):
         if data is not None:
             if data.ndim not in (self._data_ndim, self._data_ndim - 1):
                 raise ValueError(
-                    "Data (shape %s) must have %s dimensions for "
-                    "%s" % (data.shape, self._data_ndim, self.__class__.__name__)
+                    f"Data (shape {data.shape}) must have {self._data_ndim} "
+                    f"dimensions for {self.__class__.__name__}"
                 )
             if data.shape[0] != n_src:
                 raise ValueError(
@@ -550,7 +549,7 @@ class _BaseSourceEstimate(TimeMixin, FilterMixin):
                 if data.shape[1] != 3:
                     raise ValueError(
                         "Data for VectorSourceEstimate must have "
-                        "shape[1] == 3, got shape %s" % (data.shape,)
+                        f"shape[1] == 3, got shape {data.shape}"
                     )
             if data.ndim == self._data_ndim - 1:  # allow upbroadcasting
                 data = data[..., np.newaxis]
@@ -573,10 +572,10 @@ class _BaseSourceEstimate(TimeMixin, FilterMixin):
         s += ", tmin : %s (ms)" % (1e3 * self.tmin)
         s += ", tmax : %s (ms)" % (1e3 * self.times[-1])
         s += ", tstep : %s (ms)" % (1e3 * self.tstep)
-        s += ", data shape : %s" % (self.shape,)
+        s += f", data shape : {self.shape}"
         sz = sum(object_size(x) for x in (self.vertices + [self.data]))
         s += f", ~{sizeof_fmt(sz)}"
-        return "<%s | %s>" % (type(self).__name__, s)
+        return f"<{type(self).__name__} | {s}>"
 
     @fill_doc
     def get_peak(
@@ -737,8 +736,7 @@ class _BaseSourceEstimate(TimeMixin, FilterMixin):
         fname = _check_fname(fname=fname, overwrite=True)  # check below
         if ftype != "h5":
             raise ValueError(
-                "%s objects can only be written as HDF5 files."
-                % (self.__class__.__name__,)
+                f"{self.__class__.__name__} objects can only be written as HDF5 files."
             )
         _, write_hdf5 = _import_h5io_funcs()
         if fname.suffix != ".h5":
@@ -1610,7 +1608,7 @@ class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
         ):
             raise RuntimeError(
                 "label and stc must have same subject names, "
-                'currently "%s" and "%s"' % (label.subject, self.subject)
+                f'currently "{label.subject}" and "{self.subject}"'
             )
 
         if label.hemi == "both":
@@ -2103,7 +2101,7 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
         .. footbibliography::
         """
         if not isinstance(surf, str):
-            raise TypeError("surf must be a string, got %s" % (type(surf),))
+            raise TypeError(f"surf must be a string, got {type(surf)}")
         subject = _check_subject(self.subject, subject)
         if np.any(self.data < 0):
             raise ValueError("Cannot compute COM with negative values")
@@ -3565,13 +3563,12 @@ def _volume_labels(src, labels, mri_resolution):
     else:
         if len(labels) != 2:
             raise ValueError(
-                "labels, if list or tuple, must have length 2, "
-                "got %s" % (len(labels),)
+                "labels, if list or tuple, must have length 2, " f"got {len(labels)}"
             )
         mri, labels = labels
         infer_labels = False
         _validate_type(mri, "path-like", "labels[0]" + extra)
-    logger.info("Reading atlas %s" % (mri,))
+    logger.info(f"Reading atlas {mri}")
     vol_info = _get_mri_info_data(str(mri), data=True)
     atlas_data = vol_info["data"]
     atlas_values = np.unique(atlas_data)
@@ -3606,8 +3603,8 @@ def _volume_labels(src, labels, mri_resolution):
     atlas_shape = atlas_data.shape
     if atlas_shape != src_shape:
         raise RuntimeError(
-            "atlas shape %s does not match source space MRI "
-            "shape %s" % (atlas_shape, src_shape)
+            f"atlas shape {atlas_shape} does not match source space MRI "
+            f"shape {src_shape}"
         )
     atlas_data = atlas_data.ravel(order="F")
     if mri_resolution:
@@ -3709,10 +3706,10 @@ def _gen_extract_label_time_course(
             if len(vn) != len(svn):
                 raise ValueError(
                     "stc not compatible with source space. "
-                    "stc has %s time series but there are %s "
+                    f"stc has {len(svn)} time series but there are {len(vn)} "
                     "vertices in source space. Ensure you used "
                     "src from the forward or inverse operator, "
-                    "as forward computation can exclude vertices." % (len(svn), len(vn))
+                    "as forward computation can exclude vertices."
                 )
             if not np.array_equal(svn, vn):
                 raise ValueError("stc not compatible with source space")

@@ -171,8 +171,8 @@ def _check_comp_ch(cch, kind, desired=None):
         desired = cch["grad_order_no"]
     if cch["grad_order_no"] != desired:
         raise RuntimeError(
-            "%s channel with inconsistent compensation "
-            "grade %s, should be %s" % (kind, cch["grad_order_no"], desired)
+            f"{kind} channel with inconsistent compensation "
+            f"grade {cch['grad_order_no']}, should be {desired}"
         )
     return desired
 
@@ -217,8 +217,9 @@ def _convert_channel_info(res4, t, use_eeg_pos):
                 if cch["sensor_type_index"] != CTF.CTFV_MEG_CH:
                     text += " ref"
                 warn(
-                    "%s channel %s did not have position assigned, so "
-                    "it was changed to a MISC channel" % (text, ch["ch_name"])
+                    f"{text} channel {ch['ch_name']} did not have position "
+                    "assigned, so "
+                    "it was changed to a MISC channel"
                 )
                 continue
             ch["unit"] = FIFF.FIFF_UNIT_T
