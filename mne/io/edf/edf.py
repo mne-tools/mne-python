@@ -924,7 +924,7 @@ def _read_edf_header(fname, exclude, infer_types, include=None):
             if i in exclude:
                 continue
             # allow μ (greek mu), µ (micro symbol) and μ (sjis mu) codepoints
-            if unit in ("\u03BCV", "\u00B5V", "\x83\xCAV", "uV"):
+            if unit in ("\u03bcV", "\u00b5V", "\x83\xcaV", "uV"):
                 edf_info["units"].append(1e-6)
             elif unit == "mV":
                 edf_info["units"].append(1e-3)
