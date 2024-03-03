@@ -461,7 +461,7 @@ class SourceSpaces(list):
         sz = object_size(self)
         if sz is not None:
             extra += [f"~{sizeof_fmt(sz)}"]
-        return f"<SourceSpaces: [{', '.join(ss_repr)}] {repr(', '.join(extra))}>"
+        return f"<SourceSpaces: [{', '.join(ss_repr)}] {', '.join(extra)}>"
 
     @property
     def _subject(self):
