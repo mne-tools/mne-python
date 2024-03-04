@@ -31,10 +31,10 @@ else
 	pip install $STD_ARGS --only-binary ":all:" --default-timeout=60 "PyQt6!=6.6.1,!=6.6.2" "PyQt6-Qt6!=6.6.1,!=6.6.2"
 	echo "NumPy/SciPy/pandas etc."
 	pip install $STD_ARGS --only-binary ":all:" --default-timeout=60 --extra-index-url "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" "numpy<2.0.0.dev0" "scipy>=1.12.0.dev0" "scikit-learn>=1.5.dev0" matplotlib pillow statsmodels pyarrow pandas h5py
-	# No dipy, openmeeg, python-picard (needs numexpr) until they update to NumPy 2.0 compat
+	# No dipy, python-picard (needs numexpr) until they update to NumPy 2.0 compat
 	INSTALL_KIND="test_extra"
-	# echo "OpenMEEG"
-	# pip install $STD_ARGS --only-binary ":all:" --extra-index-url "https://test.pypi.org/simple" openmeeg
+	echo "OpenMEEG"
+	pip install $STD_ARGS --only-binary ":all:" --extra-index-url "https://test.pypi.org/simple" "openmeeg>=2.6.0.dev4"
 	# No Numba because it forces an old NumPy version
 	echo "nilearn"
 	pip install $STD_ARGS git+https://github.com/nilearn/nilearn
