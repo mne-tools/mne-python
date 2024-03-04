@@ -1,4 +1,5 @@
 """Utility functions for spectral and spectrotemporal analysis."""
+
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 from inspect import currentframe, getargvalues, signature
