@@ -20,7 +20,6 @@ See https://en.wikipedia.org/wiki/Common_spatial_pattern and
 
 # %%
 
-
 import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis

@@ -20,7 +20,7 @@
 
 .. _Alex Gramfort: https://alexandre.gramfort.net
 
-.. _Alex Kiefer: https://home.alex101.dev
+.. _Alex Kiefer: https://home.alexk101.dev
 
 .. _Alex Rockhill: https://github.com/alexrockhill/
 
@@ -208,7 +208,7 @@
 
 .. _Henrich Kolkhorst: https://github.com/hekolk
 
-.. _Hongjiang Ye: https://github.com/rubyyhj
+.. _Hongjiang Ye: https://github.com/hongjiang-ye
 
 .. _Hubert Banville: https://github.com/hubertjb
 
@@ -418,7 +418,7 @@
 
 .. _Okba Bekhelifi: https://github.com/okbalefthanded
 
-.. _Olaf Hauk: https://www.neuroscience.cam.ac.uk/directory/profile.php?olafhauk
+.. _Olaf Hauk: https://neuroscience.cam.ac.uk/member/olafhauk
 
 .. _Oleh Kozynets: https://github.com/OlehKSS
 
@@ -587,6 +587,8 @@
 .. _Tziona NessAiver: https://github.com/TzionaN
 
 .. _Valerii Chirkov: https://github.com/vagechirkov
+
+.. _Velu Prabhakar Kumaravel: https://github.com/vpKumaravel
 
 .. _Victor Ferat: https://github.com/vferat
 
