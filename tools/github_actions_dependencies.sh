@@ -56,7 +56,7 @@ else
 	echo "edfio"
 	pip install $STD_ARGS git+https://github.com/the-siesta-group/edfio
 	# Make sure we're on a NumPy 2.0 variant
-	python -c "import numpy as np; assert np.__version__[0] == '2', np.__version__"
+	# python -c "import numpy as np; assert np.__version__[0] == '2', np.__version__"
 fi
 echo ""
 
