@@ -46,13 +46,11 @@ by calling `mne.events_from_annotations`.
 # Copyright the MNE-Python contributors.
 # %%
 
-from pathlib import Path
-
 import matplotlib.pyplot as plt
 
 import mne
 
-data_dir = Path(mne.datasets.erp_core.data_path())
+data_dir = mne.datasets.erp_core.data_path()
 infile = data_dir / "ERP-CORE_Subject-001_Task-Flankers_eeg.fif"
 
 raw = mne.io.read_raw(infile, preload=True)
@@ -88,7 +86,7 @@ all_events, all_event_id = mne.events_from_annotations(raw)
 # i.e. starting with stimulus onset and expanding beyond the end of the epoch
 metadata_tmin, metadata_tmax = 0.0, 1.5
 
-# auto-create metadata
+# auto-create metadata:
 # this also returns a new events array and an event_id dictionary. we'll see
 # later why this is important
 metadata, events, event_id = mne.epochs.make_metadata(

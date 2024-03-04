@@ -748,6 +748,8 @@ linkcheck_ignore = [  # will be compiled to regex
     # Too slow
     "https://speakerdeck.com/dengemann/",
     "https://www.dtu.dk/english/service/phonebook/person",
+    # SSL problems sometimes
+    "http://ilabs.washington.edu",
 ]
 linkcheck_anchors = False  # saves a bit of time
 linkcheck_timeout = 15  # some can be quite slow
@@ -1192,21 +1194,21 @@ html_context = {
     "carousel": [
         dict(
             title="Source Estimation",
-            text="Distributed, sparse, mixed-norm, beam\u00ADformers, dipole fitting, and more.",  # noqa E501
+            text="Distributed, sparse, mixed-norm, beam\u00adformers, dipole fitting, and more.",  # noqa E501
             url="auto_tutorials/inverse/index.html",
             img="sphx_glr_30_mne_dspm_loreta_008.gif",
             alt="dSPM",
         ),
         dict(
             title="Machine Learning",
-            text="Advanced decoding models including time general\u00ADiza\u00ADtion.",  # noqa E501
+            text="Advanced decoding models including time general\u00adiza\u00adtion.",  # noqa E501
             url="auto_tutorials/machine-learning/50_decoding.html",
             img="sphx_glr_50_decoding_006.png",
             alt="Decoding",
         ),
         dict(
             title="Encoding Models",
-            text="Receptive field estima\u00ADtion with optional smooth\u00ADness priors.",  # noqa E501
+            text="Receptive field estima\u00adtion with optional smooth\u00adness priors.",  # noqa E501
             url="auto_tutorials/machine-learning/30_strf.html",
             img="sphx_glr_30_strf_001.png",
             alt="STRF",
@@ -1220,7 +1222,7 @@ html_context = {
         ),
         dict(
             title="Connectivity",
-            text="All-to-all spectral and effective connec\u00ADtivity measures.",  # noqa E501
+            text="All-to-all spectral and effective connec\u00adtivity measures.",  # noqa E501
             url="https://mne.tools/mne-connectivity/stable/auto_examples/mne_inverse_label_connectivity.html",  # noqa E501
             img="https://mne.tools/mne-connectivity/stable/_images/sphx_glr_mne_inverse_label_connectivity_001.png",  # noqa E501
             alt="Connectivity",

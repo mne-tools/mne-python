@@ -1012,8 +1012,12 @@ def test_manual_report_2d(tmp_path, invisible_fig):
     for ch in evoked_no_ch_locs.info["chs"]:
         ch["loc"][:3] = np.nan
 
-    with _record_warnings(), pytest.warns(
-        RuntimeWarning, match="No EEG channel locations found, cannot create joint plot"
+    with (
+        _record_warnings(),
+        pytest.warns(
+            RuntimeWarning,
+            match="No EEG channel locations found, cannot create joint plot",
+        ),
     ):
         r.add_evokeds(
             evokeds=evoked_no_ch_locs,
@@ -1041,8 +1045,9 @@ def test_manual_report_2d(tmp_path, invisible_fig):
     for ch in ica_no_ch_locs.info["chs"]:
         ch["loc"][:3] = np.nan
 
-    with _record_warnings(), pytest.warns(
-        RuntimeWarning, match="No Magnetometers channel locations"
+    with (
+        _record_warnings(),
+        pytest.warns(RuntimeWarning, match="No Magnetometers channel locations"),
     ):
         r.add_ica(
             ica=ica_no_ch_locs, picks=[0], inst=raw.copy().load_data(), title="ICA"
@@ -1067,8 +1072,9 @@ def test_manual_report_3d(tmp_path, renderer):
     add_kwargs = dict(
         trans=trans_fname, info=info, subject="sample", subjects_dir=subjects_dir
     )
-    with _record_warnings(), pytest.warns(
-        RuntimeWarning, match="could not be calculated"
+    with (
+        _record_warnings(),
+        pytest.warns(RuntimeWarning, match="could not be calculated"),
     ):
         r.add_trans(title="coreg no dig", **add_kwargs)
     with info._unlock():
