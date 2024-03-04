@@ -1,4 +1,5 @@
 """Compute resolution matrix for linear estimators."""
+
 # Authors: olaf.hauk@mrc-cbu.cam.ac.uk
 #
 # License: BSD-3-Clause
@@ -7,19 +8,18 @@ from copy import deepcopy
 
 import numpy as np
 
-from .. import (
-    EvokedArray,
-    SourceEstimate,
-    VectorSourceEstimate,
-    pick_channels_forward,
-    pick_types,
-)
+from .._fiff.pick import pick_channels_forward, pick_types
+from ..evoked import EvokedArray
 from ..forward.forward import convert_forward_solution
 from ..io.constants import FIFF
 from ..label import Label
 from ..minimum_norm import apply_inverse, apply_inverse_cov
 from ..minimum_norm.spatial_resolution import _rectify_resolution_matrix
-from ..source_estimate import _prepare_label_extraction
+from ..source_estimate import (
+    SourceEstimate,
+    VectorSourceEstimate,
+    _prepare_label_extraction,
+)
 from ..utils import logger, verbose
 
 
