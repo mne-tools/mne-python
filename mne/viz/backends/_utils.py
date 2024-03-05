@@ -33,6 +33,7 @@ VALID_3D_BACKENDS = (
     "notebook",
 )
 ALLOWED_QUIVER_MODES = ("2darrow", "arrow", "cone", "cylinder", "sphere", "oct")
+_ICONS_PATH = Path(__file__).parents[2] / "icons"
 
 
 def _get_colormap_from_array(
@@ -89,9 +90,9 @@ def _alpha_blend_background(ctable, background_color):
 def _qt_init_icons():
     from qtpy.QtGui import QIcon
 
-    icons_path = str(Path(__file__).parents[2] / "icons")
-    QIcon.setThemeSearchPaths([icons_path])
-    return icons_path
+    QIcon.setThemeSearchPaths([str(_ICONS_PATH)] + QIcon.themeSearchPaths())
+    QIcon.setFallbackThemeName("light")
+    return str(_ICONS_PATH)
 
 
 @contextmanager
