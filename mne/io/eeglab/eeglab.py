@@ -799,7 +799,7 @@ def _read_annotations_eeglab(eeg, uint16_codec=None):
             )
             duration[idx] = np.nan if is_empty_array else event.duration
 
-    # Drop events with NaN onset see PR #XXXX
+    # Drop events with NaN onset see PR #12484
     valid_indices = [
         idx for idx, onset_idx in enumerate(onset) if not np.isnan(onset_idx)
     ]
