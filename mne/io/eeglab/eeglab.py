@@ -811,6 +811,10 @@ def _read_annotations_eeglab(eeg, uint16_codec=None):
             "annotations."
         )
 
+    onset = np.array([onset[idx] for idx in valid_indices])
+    duration = np.array([duration[idx] for idx in valid_indices])
+    description = [description[idx] for idx in valid_indices]
+
     return Annotations(
         onset=np.array(onset) / eeg.srate,
         duration=duration / eeg.srate,
