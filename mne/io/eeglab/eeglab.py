@@ -799,6 +799,18 @@ def _read_annotations_eeglab(eeg, uint16_codec=None):
             )
             duration[idx] = np.nan if is_empty_array else event.duration
 
+    # Drop events with NaN onset see PR #XXXX
+    valid_indices = [
+        idx for idx, onset_idx in enumerate(onset) if not np.isnan(onset_idx)
+    ]
+    n_dropped = len(onset) - len(valid_indices)
+    if len(valid_indices) != len(onset):
+        warn(
+            f"{n_dropped} events have an onset that is NaN. These values are "
+            "usually ignored by EEGLAB and will be dropped from the "
+            "annotations."
+        )
+
     return Annotations(
         onset=np.array(onset) / eeg.srate,
         duration=duration / eeg.srate,
