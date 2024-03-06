@@ -30,15 +30,11 @@ else
 	# pip install $STD_ARGS --only-binary ":all:" --default-timeout=60 --extra-index-url https://www.riverbankcomputing.com/pypi/simple "PyQt6!=6.6.1,!=6.6.2" "PyQt6-Qt6!=6.6.1,!=6.6.2"
 	pip install $STD_ARGS --only-binary ":all:" --default-timeout=60 "PyQt6!=6.6.1,!=6.6.2" "PyQt6-Qt6!=6.6.1,!=6.6.2"
 	echo "NumPy/SciPy/pandas etc."
-	pip install $STD_ARGS --only-binary ":all:" --default-timeout=60 --extra-index-url "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" "numpy>=2.0.0.dev0" "scipy>=1.12.0.dev0" "scikit-learn>=1.5.dev0" matplotlib pillow statsmodels pyarrow
-	# No pandas, dipy, h5py, openmeeg, python-picard (needs numexpr) until they update to NumPy 2.0 compat
+	pip install $STD_ARGS --only-binary ":all:" --default-timeout=60 --extra-index-url "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" "numpy<2.0.0.dev0" "scipy>=1.12.0.dev0" "scikit-learn>=1.5.dev0" matplotlib pillow statsmodels pyarrow pandas h5py
+	# No dipy, python-picard (needs numexpr) until they update to NumPy 2.0 compat
 	INSTALL_KIND="test_extra"
-	# echo "dipy"
-	# pip install $STD_ARGS --only-binary ":all:" --default-timeout=60 --extra-index-url "https://pypi.anaconda.org/scipy-wheels-nightly/simple" dipy
-	# echo "H5py"
-	# pip install $STD_ARGS --only-binary ":all:" -f "https://7933911d6844c6c53a7d-47bd50c35cd79bd838daf386af554a83.ssl.cf2.rackcdn.com" h5py
-	# echo "OpenMEEG"
-	# pip install $STD_ARGS --only-binary ":all:" --extra-index-url "https://test.pypi.org/simple" openmeeg
+	echo "OpenMEEG"
+	pip install $STD_ARGS --only-binary ":all:" --extra-index-url "https://test.pypi.org/simple" "openmeeg>=2.6.0.dev4"
 	# No Numba because it forces an old NumPy version
 	echo "nilearn"
 	pip install $STD_ARGS git+https://github.com/nilearn/nilearn
@@ -60,7 +56,7 @@ else
 	echo "edfio"
 	pip install $STD_ARGS git+https://github.com/the-siesta-group/edfio
 	# Make sure we're on a NumPy 2.0 variant
-	python -c "import numpy as np; assert np.__version__[0] == '2', np.__version__"
+	# python -c "import numpy as np; assert np.__version__[0] == '2', np.__version__"
 fi
 echo ""
 

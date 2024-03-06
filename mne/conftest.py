@@ -902,6 +902,8 @@ def protect_config():
 
 
 def _test_passed(request):
+    if _phase_report_key not in request.node.stash:
+        return True
     report = request.node.stash[_phase_report_key]
     return "call" in report and report["call"].outcome == "passed"
 
