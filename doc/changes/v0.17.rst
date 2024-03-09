@@ -234,7 +234,7 @@ API
   In 0.19
     The ``stim_channel`` keyword arguments will be removed from ``read_raw_...`` functions.
 
-- Calling :meth:``mne.io.pick.pick_info`` removing channels that are needed by compensation matrices (``info['comps']``) no longer raises ``RuntimeException`` but instead logs an info level message. By `Luke Bloy`_
+- Calling ``mne.io.pick.pick_info`` removing channels that are needed by compensation matrices (``info['comps']``) no longer raises ``RuntimeException`` but instead logs an info level message. By `Luke Bloy`_
 
 - :meth:`mne.Epochs.save` now has the parameter ``fmt`` to specify the desired format (precision) saving epoched data, by `Stefan Repplinger`_, `Eric Larson`_ and `Alex Gramfort`_
 
@@ -274,44 +274,44 @@ Authors
 
 People who contributed to this release  (in alphabetical order):
 
-* 	Alexandre Gramfort
-* 	Antoine Gauthier
-* 	Britta Westner
-* 	Christian Brodbeck
-* 	Clemens Brunner
-* 	Daniel McCloy
-* 	David Sabbagh
-* 	Denis A. Engemann
-* 	Eric Larson
-* 	Ezequiel Mikulan
-* 	Henrich Kolkhorst
-* 	Hubert Banville
-* 	Jasper J.F. van den Bosch
-* 	Jen Evans
-* 	Joan Massich
-* 	Johan van der Meer
-* 	Jona Sassenhagen
-* 	Kambiz Tavabi
-* 	Lorenz Esch
-* 	Luke Bloy
-* 	Mainak Jas
-* 	Manu Sutela
-* 	Marcin Koculak
-* 	Marijn van Vliet
-* 	Mikolaj Magnuski
-* 	Peter J. Molfese
-* 	Sam Perry
-* 	Sara Sommariva
-* 	Sergey Antopolskiy
-* 	Sheraz Khan
-* 	Stefan Appelhoff
-* 	Stefan Repplinger
-* 	Steven Bethard
-* 	Teekuningas
-* 	Teon Brooks
-* 	Thomas Hartmann
-* 	Thomas Jochmann
-* 	Tom Dupré la Tour
-* 	Tristan Stenner
-* 	buildqa
-* 	jeythekey
+* Alexandre Gramfort
+* Antoine Gauthier
+* Britta Westner
+* Christian Brodbeck
+* Clemens Brunner
+* Daniel McCloy
+* David Sabbagh
+* Denis A. Engemann
+* Eric Larson
+* Ezequiel Mikulan
+* Henrich Kolkhorst
+* Hubert Banville
+* Jasper J.F. van den Bosch
+* Jen Evans
+* Joan Massich
+* Johan van der Meer
+* Jona Sassenhagen
+* Kambiz Tavabi
+* Lorenz Esch
+* Luke Bloy
+* Mainak Jas
+* Manu Sutela
+* Marcin Koculak
+* Marijn van Vliet
+* Mikolaj Magnuski
+* Peter J. Molfese
+* Sam Perry
+* Sara Sommariva
+* Sergey Antopolskiy
+* Sheraz Khan
+* Stefan Appelhoff
+* Stefan Repplinger
+* Steven Bethard
+* Teekuningas
+* Teon Brooks
+* Thomas Hartmann
+* Thomas Jochmann
+* Tom Dupré la Tour
+* Tristan Stenner
+* buildqa
+* jeythekey
