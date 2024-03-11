@@ -294,7 +294,7 @@ def _clean_names(names, remove_whitespace=False, before_dash=True):
         cleaned.append(name)
     if len(set(cleaned)) != len(names):
         # this was probably not a VectorView or CTF dataset, and we now broke the
-        # dataset by creating duplicates.
+        # dataset by creating duplicates, so let's use the original channel names.
         return names
     return cleaned
 
