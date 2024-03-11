@@ -208,12 +208,12 @@ skip = "doc/references.bib"
 exclude = ["__init__.py", "constants.py", "resources.py"]
 
 [tool.ruff.lint]
-select = ["A", "B006", "D", "E", "F", "I", "W", "UP"]
+select = ["A", "B006", "D", "E", "F", "I", "W", "UP", "UP031"]
 ignore = [
     "D100", # Missing docstring in public module
     "D104", # Missing docstring in public package
     "D413", # Missing blank line after last section
-    "UP031", # Use format specifiers instead of percent format
+    #"UP031", # Use format specifiers instead of percent format
 ]
 
 [tool.ruff.lint.pydocstyle]

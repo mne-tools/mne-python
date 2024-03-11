@@ -12,17 +12,20 @@ edge_size = 9
 sensor_color = "#7bbeca"
 source_color = "#ff6347"
 
-legend = """
-<<FONT POINT-SIZE="%s">
-<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="4" CELLPADDING="4">
-<TR><TD BGCOLOR="%s">    </TD><TD ALIGN="left">
-Sensor (M/EEG) space</TD></TR>
-<TR><TD BGCOLOR="%s">    </TD><TD ALIGN="left">
-Source (brain) space</TD></TR>
-</TABLE></FONT>>""" % (
-    edge_size,
-    sensor_color,
-    source_color,
+legend = (  # noqa: UP031
+    """ # noqa: UP031
+<<FONT POINT-SIZE="%s"> # noqa: UP031
+<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="4" CELLPADDING="4"> # noqa: UP031
+<TR><TD BGCOLOR="%s">    </TD><TD ALIGN="left"> # noqa: UP031
+Sensor (M/EEG) space</TD></TR> # noqa: UP031
+<TR><TD BGCOLOR="%s">    </TD><TD ALIGN="left"> # noqa: UP031
+Source (brain) space</TD></TR> # noqa: UP031
+</TABLE></FONT>>"""  # noqa: UP031
+    % (  # noqa: UP031
+        edge_size,
+        sensor_color,
+        source_color,
+    )
 )
 legend = "".join(legend.split("\n"))
 

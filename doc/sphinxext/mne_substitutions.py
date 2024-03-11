@@ -29,7 +29,7 @@ class MNESubstitution(Directive):  # noqa: D101
                 ):
                     keys.append(key)
             rst = "- " + "\n- ".join(
-                "``%r``: **%s** (scaled by %g to plot in *%s*)"
+                "``%r``: **%s** (scaled by %g to plot in *%s*)"  # noqa: UP031
                 % (
                     key,
                     DEFAULTS["titles"][key],
@@ -40,7 +40,7 @@ class MNESubstitution(Directive):  # noqa: D101
             )
         else:
             raise self.error(
-                "MNE directive unknown in %s: %r"
+                "MNE directive unknown in %s: %r"  # noqa: UP031
                 % (
                     env.doc2path(env.docname, base=None),
                     self.arguments[0],
