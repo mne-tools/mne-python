@@ -292,7 +292,10 @@ def _clean_names(names, remove_whitespace=False, before_dash=True):
         if name.endswith("_v"):
             name = name[:-2]
         cleaned.append(name)
-
+    if len(set(cleaned)) != len(names):
+        # this was probably not a VectorView or CTF dataset, and we now broke the
+        # dataset by creating duplicates.
+        return names
     return cleaned
 
 
