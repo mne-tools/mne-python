@@ -59,7 +59,7 @@ where :math:`G_{ds} \in R^{M \times N}` computes :math:`g_{m}(\boldsymbol{r_i}, 
 
 To interpolate bad channels, one can simply do:
 
-	>>> evoked.interpolate_bads(reset_bads=False)  # doctest: +SKIP
+    >>> evoked.interpolate_bads(reset_bads=False)  # doctest: +SKIP
 
 and the bad channel will be fixed.
 
@@ -67,4 +67,4 @@ and the bad channel will be fixed.
 
 .. topic:: Examples:
 
-	* :ref:`ex-interpolate-bad-channels`
+    * :ref:`ex-interpolate-bad-channels`
