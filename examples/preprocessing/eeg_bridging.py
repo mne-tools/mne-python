@@ -320,12 +320,9 @@ data_comp = raw_comp.get_data(picks=(idx0, idx1))
 # compute variance of residuals
 print(
     "Variance of residual (interpolated data - original data)\n\n"
-    "With adding virtual channel:                         {}\n"
-    "Compared to interpolation only using other channels: {}"
-    "".format(
-        np.mean(np.var(data_virtual - data_orig, axis=1)),
-        np.mean(np.var(data_comp - data_orig, axis=1)),
-    )
+    f"With adding virtual channel:                         {np.mean(np.var(data_virtual - data_orig, axis=1))}\n"
+    f"Compared to interpolation only using other channels: {np.mean(np.var(data_comp - data_orig, axis=1))}"
+    ""
 )
 
 # plot results

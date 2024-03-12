@@ -2392,9 +2392,7 @@ def _triage_filter_params(
             if l_freq is not None:
                 l_check = min(np.atleast_1d(l_trans_bandwidth))
             mult_fact = 2.0 if fir_design == "firwin2" else 1.0
-            filter_length = "{}s".format(
-                _length_factors[fir_window] * mult_fact / float(min(h_check, l_check)),
-            )
+            filter_length = f"{_length_factors[fir_window] * mult_fact / float(min(h_check, l_check))}s"
             next_pow_2 = False  # disable old behavior
         else:
             next_pow_2 = isinstance(filter_length, str) and phase == "zero-double"
