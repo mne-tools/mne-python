@@ -29,13 +29,9 @@ class MNESubstitution(Directive):  # noqa: D101
                 ):
                     keys.append(key)
             rst = "- " + "\n- ".join(
-                "``%r``: **%s** (scaled by %g to plot in *%s*)"  # noqa: UP031
-                % (
-                    key,
-                    DEFAULTS["titles"][key],
-                    DEFAULTS["scalings"][key],
-                    DEFAULTS["units"][key],
-                )
+                f"``{repr(key)}``: **{DEFAULTS['titles'][key]}** "
+                f"(scaled by {DEFAULTS['scalings'][key]} to "
+                f"plot in *{DEFAULTS['units'][key]}*)"
                 for key in keys
             )
         else:
