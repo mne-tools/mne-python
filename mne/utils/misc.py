@@ -269,9 +269,8 @@ def running_subprocess(command, after="wait", verbose=None, *args, **kwargs):
 def _clean_names(names, remove_whitespace=False, before_dash=True):
     """Remove white-space on topo matching.
 
-    This function handles different naming
-    conventions for old VS new VectorView systems (`remove_whitespace`).
-    Also it allows to remove system specific parts in CTF channel names
+    This function handles different naming conventions for old VS new VectorView systems
+    (`remove_whitespace`) and removes system specific parts in CTF channel names
     (`before_dash`).
 
     Usage
@@ -281,7 +280,6 @@ def _clean_names(names, remove_whitespace=False, before_dash=True):
 
     # for CTF
     ch_names = _clean_names(epochs.ch_names, before_dash=True)
-
     """
     cleaned = []
     for name in names:
@@ -292,7 +290,10 @@ def _clean_names(names, remove_whitespace=False, before_dash=True):
         if name.endswith("_v"):
             name = name[:-2]
         cleaned.append(name)
-
+    if len(set(cleaned)) != len(names):
+        # this was probably not a VectorView or CTF dataset, and we now broke the
+        # dataset by creating duplicates, so let's use the original channel names.
+        return names
     return cleaned
 
 

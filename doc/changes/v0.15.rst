@@ -226,7 +226,7 @@ API
 
 - ``mne.viz.decoding.plot_gat_times``, ``mne.viz.decoding.plot_gat_matrix`` are now deprecated. Use matplotlib instead as shown in the examples, by `Jean-Remi King`_ and `Alex Gramfort`_
 
-- Add ``norm_trace`` parameter to control single-epoch covariance normalization in :class:mne.decoding.CSP, by `Jean-Remi King`_
+- Add ``norm_trace`` parameter to control single-epoch covariance normalization in :class:`mne.decoding.CSP`, by `Jean-Remi King`_
 
 - Allow passing a list of channel names as ``show_names`` in function  :func:`mne.viz.plot_sensors` and methods :meth:`mne.Evoked.plot_sensors`, :meth:`mne.Epochs.plot_sensors` and :meth:`mne.io.Raw.plot_sensors` to show only a subset of channel names by `Jaakko Leppakangas`_
 
