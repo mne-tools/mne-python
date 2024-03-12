@@ -253,19 +253,18 @@ def test_rawarray_edf(tmp_path):
 
 
 @edfio_mark()
-def test_edf_export_warns_on_non_voltage_channels(tmp_path):
+def test_edf_export_non_voltage_channels(tmp_path):
     """Test saving a Raw array containing a non-voltage channel."""
     temp_fname = tmp_path / "test.edf"
 
     raw = _create_raw_for_edf_tests()
     raw.set_channel_types({"9": "hbr"}, on_unit_change="ignore")
-    with pytest.warns(RuntimeWarning, match="Non-voltage channels"):
-        raw.export(temp_fname, overwrite=True)
+    raw.export(temp_fname, overwrite=True)
 
     # data should match up to the non-accepted channel
     raw_read = read_raw_edf(temp_fname, preload=True)
     assert raw.ch_names == raw_read.ch_names
-    assert_array_almost_equal(raw.get_data()[:-1], raw_read.get_data()[:-1], decimal=10)
+    assert_array_almost_equal(raw.get_data(), raw_read.get_data(), decimal=5)
     assert_array_equal(raw.times, raw_read.times)
 
 
@@ -287,6 +286,7 @@ def test_measurement_date_outside_range_valid_for_edf(tmp_path):
         raw.export(tmp_path / "test.edf", overwrite=True)
 
 
+@pytest.mark.filterwarnings("ignore:Data has a non-integer:RuntimeWarning")
 @pytest.mark.parametrize(
     ("physical_range", "exceeded_bound"),
     [
