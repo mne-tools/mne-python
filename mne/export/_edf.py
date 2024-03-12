@@ -65,7 +65,9 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
     lowpass = raw.info["lowpass"]
     highpass = raw.info["highpass"]
     linefreq = raw.info["line_freq"]
-    filter_str_info = f"HP:{highpass}Hz LP:{lowpass}Hz N:{linefreq}Hz"
+    filter_str_info = f"HP:{highpass}Hz LP:{lowpass}Hz"
+    if linefreq is not None:
+        filter_str_info += " N:{linefreq}Hz"
 
     if physical_range == "auto":
         # get max and min for each channel type data
@@ -121,7 +123,7 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
                 out_sfreq,
                 label=signal_label,
                 transducer_type="",
-                physical_dimension="uV",
+                physical_dimension="" if ch_type == "stim" else "uV",
                 physical_range=(pmin, pmax),
                 digital_range=(digital_min, digital_max),
                 prefiltering=filter_str_info,
