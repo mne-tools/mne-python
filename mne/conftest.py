@@ -963,6 +963,8 @@ def pytest_sessionfinish(session, exitstatus):
     # get the number to print
     files = defaultdict(lambda: 0.0)
     for item in session.items:
+        if _phase_report_key not in item.stash:
+            continue
         report = item.stash[_phase_report_key]
         dur = sum(x.duration for x in report.values())
         parts = Path(item.nodeid.split(":")[0]).parts
