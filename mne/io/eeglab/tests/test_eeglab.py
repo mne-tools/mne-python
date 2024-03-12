@@ -11,6 +11,7 @@ from copy import deepcopy
 
 import numpy as np
 import pytest
+from eeglabio.raw import export_set
 from numpy.testing import (
     assert_allclose,
     assert_array_almost_equal,
@@ -26,7 +27,10 @@ from mne.channels import read_custom_montage
 from mne.datasets import testing
 from mne.io import read_raw_eeglab
 from mne.io.eeglab._eeglab import _readmat
-from mne.io.eeglab.eeglab import _dol_to_lod, _get_montage_information
+from mne.io.eeglab.eeglab import (
+    _dol_to_lod,
+    _get_montage_information,
+)
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.utils import Bunch, _check_pymatreader_installed, _record_warnings
 
@@ -719,3 +723,39 @@ def test_fidsposition_information(monkeypatch, has_type):
     assert len(pos["lpa"]) == 3
     assert len(pos["rpa"]) == 3
     assert len(raw.info["dig"]) == n_eeg + 3
+
+
+@testing.requires_testing_data
+def test_eeglab_drop_nan_annotations(tmp_path):
+    """Test reading file with NaN annotations."""
+    file_path = tmp_path / "test_nan_anno.set"
+    raw = read_raw_eeglab(raw_fname_mat, preload=True)
+    data = raw.get_data()
+    sfreq = raw.info["sfreq"]
+    ch_names = raw.ch_names
+    anno = [
+        raw.annotations.description,
+        raw.annotations.onset,
+        raw.annotations.duration,
+    ]
+    anno[1][0] = np.nan
+
+    export_set(
+        str(file_path),
+        data,
+        sfreq,
+        ch_names,
+        ch_locs=None,
+        annotations=anno,
+        ref_channels="common",
+        ch_types=np.repeat("EEG", len(ch_names)),
+    )
+
+    with pytest.raises(
+        RuntimeWarning,
+        match=(
+            r"1 events have an onset that is NaN. These values are usually "
+            r"ignored by EEGLAB and will be dropped from the annotations."
+        ),
+    ):
+        raw = read_raw_eeglab(file_path, preload=True)
