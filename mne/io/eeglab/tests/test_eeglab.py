@@ -27,10 +27,7 @@ from mne.channels import read_custom_montage
 from mne.datasets import testing
 from mne.io import read_raw_eeglab
 from mne.io.eeglab._eeglab import _readmat
-from mne.io.eeglab.eeglab import (
-    _dol_to_lod,
-    _get_montage_information,
-)
+from mne.io.eeglab.eeglab import _dol_to_lod, _get_montage_information
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.utils import Bunch, _check_pymatreader_installed, _record_warnings
 
