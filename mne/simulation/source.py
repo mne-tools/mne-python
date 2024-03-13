@@ -329,8 +329,7 @@ def simulate_stc(
             if d > 0:
                 raise RuntimeError(
                     f"Labels had {d} overlaps in the {hemi} "
-                    "hemisphere, "
-                    "they must be non-overlapping"
+                    "hemisphere, they must be non-overlapping"
                 )
     # the data is in the order left, right
     data = list()
