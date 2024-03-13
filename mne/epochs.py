@@ -2464,7 +2464,7 @@ class BaseEpochs(
             for ii, id_ in enumerate(event_ids):
                 if len(id_) == 0:
                     raise KeyError(
-                        f"{orig_ids[ii]} not found in the epoch " "object's event_id."
+                        f"{orig_ids[ii]} not found in the epoch object's event_id."
                     )
                 elif len({sub_id in ids for sub_id in id_}) != 1:
                     err = (
@@ -3593,11 +3593,11 @@ class EpochsArray(BaseEpochs):
         data = np.asanyarray(data, dtype=dtype)
         if data.ndim != 3:
             raise ValueError(
-                "Data must be a 3D array of shape (n_epochs, " "n_channels, n_samples)"
+                "Data must be a 3D array of shape (n_epochs, n_channels, n_samples)"
             )
 
         if len(info["ch_names"]) != data.shape[1]:
-            raise ValueError("Info and data must have same number of " "channels.")
+            raise ValueError("Info and data must have same number of channels.")
         if events is None:
             n_epochs = len(data)
             events = _gen_events(n_epochs)

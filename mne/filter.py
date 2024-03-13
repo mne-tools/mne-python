@@ -873,12 +873,7 @@ def construct_iir_filter(
         # ensure we have a valid ftype
         if "ftype" not in iir_params:
             raise RuntimeError(
-                "ftype must be an entry in iir_params if "
-                "b"
-                " "
-                "and "
-                "a"
-                " are not specified"
+                "ftype must be an entry in iir_params if 'b' and 'a' are not specified."
             )
         ftype = iir_params["ftype"]
         if ftype not in known_filters:
@@ -932,14 +927,7 @@ def construct_iir_filter(
             Ws = np.asanyarray(f_stop) / (float(sfreq) / 2)
             if "gpass" not in iir_params or "gstop" not in iir_params:
                 raise ValueError(
-                    "iir_params must have at least "
-                    "gstop"
-                    " and"
-                    " "
-                    "gpass"
-                    " (or "
-                    "N"
-                    ") entries"
+                    "iir_params must have at least 'gstop' and 'gpass' (or N) entries."
                 )
             system = signal.iirdesign(
                 Wp,
@@ -1488,7 +1476,7 @@ def create_filter(
                     freq = np.r_[freq, [sfreq / 2.0]]
                     gain = np.r_[gain, [1.0]]
                 if np.any(np.abs(np.diff(gain, 2)) > 1):
-                    raise ValueError("Stop bands are not sufficiently " "separated.")
+                    raise ValueError("Stop bands are not sufficiently separated.")
     if method == "fir":
         out = _construct_fir_filter(
             sfreq, freq, gain, filter_length, phase, fir_window, fir_design

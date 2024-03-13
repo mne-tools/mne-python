@@ -2454,7 +2454,7 @@ def make_scalp_surfaces(
 
     surf = check_seghead()
     if surf is None:
-        raise RuntimeError("mkheadsurf did not produce the standard output " "file.")
+        raise RuntimeError("mkheadsurf did not produce the standard output file.")
 
     bem_dir = subjects_dir / subject / "bem"
     if not bem_dir.is_dir():
