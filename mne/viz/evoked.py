@@ -2219,7 +2219,7 @@ def _validate_linestyles_pce(linestyles, conditions, tags):
     # should be a dict by now...
     if not isinstance(linestyles, dict):
         raise TypeError(
-            "'linestyles' must be a dict, list, or None; got "
+            '"linestyles" must be a dict, list, or None; got '
             f"{type(linestyles).__name__}."
         )
     # validate linestyle dict keys
