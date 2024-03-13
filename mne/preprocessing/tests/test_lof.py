@@ -28,7 +28,7 @@ raw_fname = base_dir / "test_raw.fif"
 def test_lof(n_neighbors, ch_type, n_ch, n_bad):
     """Test LOF detection."""
     pytest.importorskip("sklearn")
-    if sys.platform == "win32" and check_version("numpy", "2"):
+    if sys.platform == "win32" and check_version("sklearn", "1.5.dev"):
         pytest.skip("https://github.com/scikit-learn/scikit-learn/issues/28625")
     raw = read_raw_fif(raw_fname).load_data()
     assert raw.info["bads"] == []
