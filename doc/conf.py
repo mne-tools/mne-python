@@ -685,7 +685,7 @@ def append_attr_meth_examples(app, what, name, obj, options, lines):
             os.path.join(
                 os.path.dirname(__file__),
                 "generated",
-                "%s.examples" % (name,),  # noqa: UP031
+                f"{name}.examples",
             )
         )
         if size > 0:
