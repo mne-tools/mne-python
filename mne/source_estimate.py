@@ -517,7 +517,7 @@ class _BaseSourceEstimate(TimeMixin, FilterMixin):
                 )
             if sens_data.ndim != 2:
                 raise ValueError(
-                    "The sensor data must have 2 dimensions, got " f"{sens_data.ndim}"
+                    "The sensor data must have 2 dimensions, got {sens_data.ndim}"
                 )
 
         _validate_type(vertices, list, "vertices")
