@@ -264,7 +264,8 @@ def test_edf_export_non_voltage_channels(tmp_path):
     # data should match up to the non-accepted channel
     raw_read = read_raw_edf(temp_fname, preload=True)
     assert raw.ch_names == raw_read.ch_names
-    assert_array_almost_equal(raw.get_data(), raw_read.get_data(), decimal=5)
+    assert_array_almost_equal(raw.get_data()[:-1], raw_read.get_data()[:-1], decimal=10)
+    assert_array_almost_equal(raw.get_data()[-1], raw_read.get_data()[-1], decimal=5)
     assert_array_equal(raw.times, raw_read.times)
 
 
