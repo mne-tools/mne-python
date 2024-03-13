@@ -725,6 +725,7 @@ def test_fidsposition_information(monkeypatch, has_type):
 @testing.requires_testing_data
 def test_eeglab_drop_nan_annotations(tmp_path):
     """Test reading file with NaN annotations."""
+    pytest.importorskip("eeglabio")
     file_path = tmp_path / "test_nan_anno.set"
     raw = read_raw_eeglab(raw_fname_mat, preload=True)
     data = raw.get_data()
