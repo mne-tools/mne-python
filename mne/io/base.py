@@ -2732,7 +2732,10 @@ class _RawFidWriter:
     def _check_start_stop_within_bounds(self):
         # we've done something wrong if we hit this
         n_times_max = len(self.raw.times)
-        error_msg = f"Can't write raw file with no data: {self.start} -> {self.stop} (max: {n_times_max}) requested"
+        error_msg = (
+            f"Can't write raw file with no data: {self.start} -> {self.stop} "
+            f"(max: {n_times_max}) requested"
+        )
         if self.start >= self.stop or self.stop > n_times_max:
             raise RuntimeError(error_msg)
 

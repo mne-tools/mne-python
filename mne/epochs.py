@@ -1163,8 +1163,8 @@ class BaseEpochs(
             assert len(self.events) == len(self._data)
             if data.shape != self._data.shape[1:]:
                 raise RuntimeError(
-                    f"You passed a function that resulted n data of shape {data.shape}, "
-                    f"but it should be {self._data.shape[1:]}."
+                    f"You passed a function that resulted n data of shape "
+                    f"{data.shape}, but it should be {self._data.shape[1:]}."
                 )
         else:
             if mode not in {"mean", "std"}:

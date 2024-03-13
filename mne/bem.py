@@ -1082,7 +1082,10 @@ def get_fitting_dig(info, dig_kinds="auto", exclude_frontal=True, verbose=None):
 
     if len(hsp) <= 10:
         kinds_str = ", ".join(['"%s"' % _dig_kind_rev[d] for d in sorted(dig_kinds)])
-        msg = f"Only {len(hsp)} head digitization points of the specified kind{_pl(dig_kinds)} ({kinds_str},)"
+        msg = (
+            f"Only {len(hsp)} head digitization points of the specified "
+            f"kind{_pl(dig_kinds)} ({kinds_str},)"
+        )
         if len(hsp) < 4:
             raise ValueError(msg + ", at least 4 required")
         else:

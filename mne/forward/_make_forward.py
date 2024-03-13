@@ -819,7 +819,10 @@ def make_forward_dipole(dipole, bem, info, trans=None, n_jobs=None, *, verbose=N
         head = "The following dipoles are outside the inner skull boundary"
         msg = len(head) * "#" + "\n" + head + "\n"
         for t, pos in zip(times[np.logical_not(inuse)], pos[np.logical_not(inuse)]):
-            msg += f"    t={t * 1000.0:.0f} ms, pos=({pos[0] * 1000.0:.0f}, {pos[1] * 1000.0:.0f}, {pos[2] * 1000.0:.0f}) mm\n"
+            msg += (
+                f"    t={t * 1000.0:.0f} ms, pos=({pos[0] * 1000.0:.0f}, "
+                f"{pos[1] * 1000.0:.0f}, {pos[2] * 1000.0:.0f}) mm\n"
+            )
         msg += len(head) * "#"
         logger.error(msg)
         raise ValueError("One or more dipoles outside the inner skull.")
