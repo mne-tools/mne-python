@@ -212,8 +212,14 @@ vol_src = mne.read_source_spaces(fname_src)
 
 evoked = epochs.average()
 stc = mne.stc_near_sensors(
-    evoked, trans, "fsaverage", subjects_dir=subjects_dir, src=vol_src, verbose="error"
-)  # ignore missing electrode warnings
+    evoked,
+    trans,
+    "fsaverage",
+    subjects_dir=subjects_dir,
+    src=vol_src,
+    surface=None,
+    verbose="error",
+)
 stc = abs(stc)  # just look at magnitude
 clim = dict(kind="value", lims=np.percentile(abs(evoked.data), [10, 50, 75]))
 

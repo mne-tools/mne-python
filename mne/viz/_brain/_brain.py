@@ -2917,6 +2917,8 @@ class Brain:
         name = text if name is None else name
         if "text" in self._actors and name in self._actors["text"]:
             raise ValueError(f"Text with the name {name} already exists")
+        if color is None:
+            color = self._fg_color
         for ri, ci, _ in self._iter_views("vol"):
             if (row is None or row == ri) and (col is None or col == ci):
                 actor = self._renderer.text2d(

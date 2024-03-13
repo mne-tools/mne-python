@@ -89,7 +89,7 @@ I agree to the following:
 # update the checksum in the MNE_DATASETS dict below, and change version
 # here: ↓↓↓↓↓↓↓↓
 RELEASES = dict(
-    testing="0.151",
+    testing="0.152",
     misc="0.27",
     phantom_kit="0.2",
 )
@@ -116,7 +116,7 @@ MNE_DATASETS = dict()
 # Testing and misc are at the top as they're updated most often
 MNE_DATASETS["testing"] = dict(
     archive_name=f"{TESTING_VERSIONED}.tar.gz",
-    hash="md5:5832b4d44f0423d22305fa61cb75bc25",
+    hash="md5:df48cdabcf13ebeaafc617cb8e55b6fc",
     url=(
         "https://codeload.github.com/mne-tools/mne-testing-data/"
         f'tar.gz/{RELEASES["testing"]}'
