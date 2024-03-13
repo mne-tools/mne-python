@@ -2905,8 +2905,8 @@ def plot_compare_evokeds(
     # cannot combine a single channel
     if (len(picks) < 2) and combine is not None:
         warn(
-            f"Only {len(picks)} channel in 'picks'; cannot combine by method "
-            f"'{combine}'."
+            f'Only {len(picks)} channel in "picks"; cannot combine by method '
+            f'"{combine}".'
         )
     # `combine` defaults to GFP unless picked a single channel or axes='topo'
     do_topo = isinstance(axes, str) and axes == "topo"
