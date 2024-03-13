@@ -11,7 +11,6 @@ from copy import deepcopy
 
 import numpy as np
 import pytest
-from eeglabio.raw import export_set
 from numpy.testing import (
     assert_allclose,
     assert_array_almost_equal,
@@ -726,6 +725,8 @@ def test_fidsposition_information(monkeypatch, has_type):
 def test_eeglab_drop_nan_annotations(tmp_path):
     """Test reading file with NaN annotations."""
     pytest.importorskip("eeglabio")
+    from eeglabio.raw import export_set
+
     file_path = tmp_path / "test_nan_anno.set"
     raw = read_raw_eeglab(raw_fname_mat, preload=True)
     data = raw.get_data()
