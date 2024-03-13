@@ -86,7 +86,7 @@ def read_mrk(fname):
     # check output
     mrk_points = np.asarray(mrk_points)
     if mrk_points.shape != (5, 3):
-        err = f"{repr(fname)} is no marker file, shape is " f"{mrk_points.shape}"
+        err = f"{repr(fname)} is no marker file, shape is {mrk_points.shape}"
         raise ValueError(err)
     return mrk_points
 
