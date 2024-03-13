@@ -168,7 +168,7 @@ def _set_dig_kit(mrk, elp, hsp, eeg):
             )
         elp = elp_points
     elif len(elp) not in (6, 7, 8):
-        raise ValueError("ELP should contain 6 ~ 8 points; got shape " f"{elp.shape}.")
+        raise ValueError(f"ELP should contain 6 ~ 8 points; got shape {elp.shape}.")
     if isinstance(mrk, (str, Path, PathLike)):
         mrk = read_mrk(mrk)
 
