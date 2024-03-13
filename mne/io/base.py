@@ -2094,7 +2094,7 @@ class BaseRaw(
         name = self.filenames[0]
         name = "" if name is None else op.basename(name) + ", "
         size_str = str(sizeof_fmt(self._size))  # str in case it fails -> None
-        size_str += ", data%s loaded" % ("" if self.preload else " not")
+        size_str += f", data{'' if self.preload else ' not'} loaded"
         s = (
             f"{name}{len(self.ch_names)} x {self.n_times} "
             f"({self.times[-1]:0.1f} s), ~{size_str}"
@@ -2839,8 +2839,7 @@ def _write_raw_data(
                 f"by {overage} bytes after writing info ({pos_prev}) and "
                 "leaving enough space "
                 f'for end tags ({_NEXT_FILE_BUFFER}): decrease "buffer_size_sec" '
-                "or increase "
-                '"split_size".'
+                'or increase "split_size".'
             )
 
         new_start = last

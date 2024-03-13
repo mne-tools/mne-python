@@ -844,7 +844,7 @@ def _check_subject_src(subject, src, name="subject_from", src_name="src"):
         )
     if subject is None:
         raise ValueError(
-            f"{name} could not be inferred from {src_name}, it must be " "specified"
+            f"{name} could not be inferred from {src_name}, it must be specified"
         )
     return subject
 

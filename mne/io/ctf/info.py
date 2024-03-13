@@ -218,8 +218,7 @@ def _convert_channel_info(res4, t, use_eeg_pos):
                     text += " ref"
                 warn(
                     f"{text} channel {ch['ch_name']} did not have position "
-                    "assigned, so "
-                    "it was changed to a MISC channel"
+                    "assigned, so it was changed to a MISC channel"
                 )
                 continue
             ch["unit"] = FIFF.FIFF_UNIT_T

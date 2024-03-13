@@ -517,7 +517,7 @@ class _BaseSourceEstimate(TimeMixin, FilterMixin):
                 )
             if sens_data.ndim != 2:
                 raise ValueError(
-                    "The sensor data must have 2 dimensions, got " f"{sens_data.ndim}"
+                    "The sensor data must have 2 dimensions, got {sens_data.ndim}"
                 )
 
         _validate_type(vertices, list, "vertices")
@@ -3563,7 +3563,7 @@ def _volume_labels(src, labels, mri_resolution):
     else:
         if len(labels) != 2:
             raise ValueError(
-                "labels, if list or tuple, must have length 2, " f"got {len(labels)}"
+                "labels, if list or tuple, must have length 2, got {len(labels)}"
             )
         mri, labels = labels
         infer_labels = False

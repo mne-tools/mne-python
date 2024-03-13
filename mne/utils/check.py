@@ -764,7 +764,7 @@ def _check_rank(rank):
     _validate_type(rank, (None, dict, str), "rank")
     if isinstance(rank, str):
         if rank not in ["full", "info"]:
-            raise ValueError('rank, if str, must be "full" or "info", ' f"got {rank}")
+            raise ValueError(f'rank, if str, must be "full" or "info", got {rank}')
     return rank
 
 

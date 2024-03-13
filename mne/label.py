@@ -358,8 +358,7 @@ class Label:
             if not np.all(self.pos[self_dup] == other.pos[other_dup]):
                 err = (
                     f"Labels {repr(self.name)} and {repr(other.name)}: vertices "
-                    "overlap but differ in "
-                    "position values"
+                    "overlap but differ in position values"
                 )
                 raise ValueError(err)
 
@@ -1021,7 +1020,7 @@ class BiHemiLabel:
     def __init__(self, lh, rh, name=None, color=None):
         if lh.subject != rh.subject:
             raise ValueError(
-                f"lh.subject ({lh.subject}) and rh.subject ({rh.subject}) must " "agree"
+                f"lh.subject ({lh.subject}) and rh.subject ({rh.subject}) must agree"
             )
         self.lh = lh
         self.rh = rh

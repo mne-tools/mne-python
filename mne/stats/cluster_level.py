@@ -928,7 +928,7 @@ def _permutation_cluster_test(
             and threshold < 0
         ):
             raise ValueError(
-                "incompatible tail and threshold signs, got " f"{tail} and {threshold}"
+                f"incompatible tail and threshold signs, got {tail} and {threshold}"
             )
 
     # check dimensions for each group in X (a list at this stage).

@@ -1419,7 +1419,7 @@ def compute_depth_prior(
     if isinstance(limit_depth_chs, str):
         if limit_depth_chs != "whiten":
             raise ValueError(
-                'limit_depth_chs, if str, must be "whiten", got ' f"{limit_depth_chs}"
+                f'limit_depth_chs, if str, must be "whiten", got {limit_depth_chs}'
             )
         if not isinstance(noise_cov, Covariance):
             raise ValueError(

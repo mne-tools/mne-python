@@ -1808,7 +1808,7 @@ def _process_clim(clim, colormap, transparent, data=0.0, allow_pos_lims=True):
         raise ValueError(f"clim has shape {ctrl_pts.shape}, it must be (3,)")
     if (np.diff(ctrl_pts) < 0).any():
         raise ValueError(
-            "colormap limits must be monotonically " f"increasing, got {ctrl_pts}"
+            f"colormap limits must be monotonically increasing, got {ctrl_pts}"
         )
     clim_kind = clim.get("kind", "percent")
     _check_option("clim['kind']", clim_kind, ["value", "values", "percent"])

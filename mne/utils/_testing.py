@@ -245,8 +245,7 @@ def _check_snr(actual, desired, picks, min_tol, med_tol, msg, kind="MEG"):
     msg = " (%s)" % msg if msg != "" else msg
     assert bad_count == 0, (
         f"SNR (worst {snr:0.2f}) < {min_tol:0.2f} "
-        f"for {bad_count}/{len(picks)} "
-        f"channels{msg}"
+        f"for {bad_count}/{len(picks)} channels{msg}"
     )
     # median tol
     snr = np.median(snrs)

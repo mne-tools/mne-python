@@ -2637,7 +2637,7 @@ def _ensure_src(src, kind=None, extra="", verbose=None):
                 src = src[2:]
         if src.kind != kind:
             raise ValueError(
-                f"Source space must contain {kind} type, got " f"{src.kind}"
+                f"Source space must contain {kind} type, got {src.kind}"
             )
     return src
 
