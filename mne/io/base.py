@@ -2733,8 +2733,9 @@ class _RawFidWriter:
         # we've done something wrong if we hit this
         n_times_max = len(self.raw.times)
         error_msg = (
-            "Can't write raw file with no data: {} -> {} (max: {}) requested"
-        ).format(self.start, self.stop, n_times_max)
+            f"Can't write raw file with no data: {self.start} -> {self.stop} "
+            f"(max: {n_times_max}) requested"
+        )
         if self.start >= self.stop or self.stop > n_times_max:
             raise RuntimeError(error_msg)
 

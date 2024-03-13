@@ -241,7 +241,7 @@ def compute_source_morph(
         if src_to is None:
             if kind == "mixed":
                 raise ValueError(
-                    "src_to must be provided when using a " "mixed source space"
+                    "src_to must be provided when using a mixed source space"
                 )
         else:
             surf_offset = 2 if src_to.kind == "mixed" else 0
@@ -268,9 +268,9 @@ def compute_source_morph(
         vertices_from = src_data["vertices_from"]
         if sparse:
             if spacing is not None:
-                raise ValueError("spacing must be set to None if " "sparse=True.")
+                raise ValueError("spacing must be set to None if sparse=True.")
             if xhemi:
-                raise ValueError("xhemi=True can only be used with " "sparse=False")
+                raise ValueError("xhemi=True can only be used with sparse=False")
             vertices_to_surf, morph_mat = _compute_sparse_morph(
                 vertices_from, subject_from, subject_to, subjects_dir
             )

@@ -1709,11 +1709,9 @@ def compute_dev_head_t(montage):
 
     if not (len(hpi_head) == len(hpi_dev) and len(hpi_dev) > 0):
         raise ValueError(
-            (
-                "To compute Device-to-Head transformation, the same number of HPI"
-                " points in device and head coordinates is required. (Got {dev}"
-                " points in device and {head} points in head coordinate systems)"
-            ).format(dev=len(hpi_dev), head=len(hpi_head))
+            "To compute Device-to-Head transformation, the same number of HPI"
+            f" points in device and head coordinates is required. (Got {len(hpi_dev)}"
+            f" points in device and {len(hpi_head)} points in head coordinate systems)"
         )
 
     trans = _quat_to_affine(_fit_matched_points(hpi_dev, hpi_head)[0])
