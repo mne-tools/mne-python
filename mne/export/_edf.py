@@ -46,7 +46,7 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
         # make non-integer second durations work
         if (pad_width := int(np.ceil(n_times / sfreq) * sfreq - n_times)) > 0:
             warn(
-                f"EDF format requires equal-length data blocks, so {pad_width / sfreq} "
+                f"EDF format requires equal-length data blocks, so {pad_width / sfreq:.3g} "
                 "seconds of zeros were appended to all channels when writing the final "
                 "block."
             )
