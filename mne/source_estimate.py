@@ -3563,7 +3563,7 @@ def _volume_labels(src, labels, mri_resolution):
     else:
         if len(labels) != 2:
             raise ValueError(
-                "labels, if list or tuple, must have length 2, " f"got {len(labels)}"
+                "labels, if list or tuple, must have length 2, got {len(labels)}"
             )
         mri, labels = labels
         infer_labels = False
