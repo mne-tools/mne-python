@@ -987,7 +987,7 @@ def _compute_source_psd_epochs(
     if isinstance(bandwidth, str):
         bandwidth = f"{bandwidth} windowing"
     else:
-        bandwidth = "%d tapers with bandwidth %0.1f Hz" % (n_tapers, bandwidth)
+        bandwidth = f"{n_tapers} tapers with bandwidth {bandwidth:0.1f} Hz"
     logger.info(f"Using {bandwidth} {extra}")
 
     if adaptive:
