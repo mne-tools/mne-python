@@ -1726,7 +1726,7 @@ class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
         if not isinstance(vertices, list):
             raise TypeError("vertices must be a list")
         if not len(self.vertices) == len(vertices):
-            raise ValueError("vertices must have the same length as " "stc.vertices")
+            raise ValueError("vertices must have the same length as stc.vertices")
 
         # can no longer use kernel and sensor data
         self._remove_kernel_sens_data_()
@@ -1940,7 +1940,7 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
             )
         elif ftype == "w":
             if self.shape[1] != 1:
-                raise ValueError("w files can only contain a single time " "point")
+                raise ValueError("w files can only contain a single time point.")
             logger.info("Writing STC to disk (w format)...")
             fname_l = str(_check_fname(fname + "-lh.w", overwrite=overwrite))
             fname_r = str(_check_fname(fname + "-rh.w", overwrite=overwrite))
@@ -2498,7 +2498,7 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
         """
         if len(self.vertices) != 1:
             raise RuntimeError(
-                "This method can only be used with whole-brain " "volume source spaces"
+                "This method can only be used with whole-brain volume source spaces"
             )
         _validate_type(label, (str, "int-like"), "label")
         if isinstance(label, str):
@@ -3124,7 +3124,7 @@ def spatio_temporal_src_adjacency(src, n_times, dist=None, verbose=None):
     if src[0]["type"] == "vol":
         if dist is not None:
             raise ValueError(
-                "dist must be None for a volume " "source space. Got %s." % dist
+                f"dist must be None for a volume source space. Got {dist}."
             )
 
         adjacency = _spatio_temporal_src_adjacency_vol(src, n_times)

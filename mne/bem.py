@@ -1082,10 +1082,9 @@ def get_fitting_dig(info, dig_kinds="auto", exclude_frontal=True, verbose=None):
 
     if len(hsp) <= 10:
         kinds_str = ", ".join(['"%s"' % _dig_kind_rev[d] for d in sorted(dig_kinds)])
-        msg = "Only {} head digitization points of the specified kind{} ({},)".format(
-            len(hsp),
-            _pl(dig_kinds),
-            kinds_str,
+        msg = (
+            f"Only {len(hsp)} head digitization points of the specified "
+            f"kind{_pl(dig_kinds)} ({kinds_str},)"
         )
         if len(hsp) < 4:
             raise ValueError(msg + ", at least 4 required")
@@ -2455,7 +2454,7 @@ def make_scalp_surfaces(
 
     surf = check_seghead()
     if surf is None:
-        raise RuntimeError("mkheadsurf did not produce the standard output " "file.")
+        raise RuntimeError("mkheadsurf did not produce the standard output file.")
 
     bem_dir = subjects_dir / subject / "bem"
     if not bem_dir.is_dir():

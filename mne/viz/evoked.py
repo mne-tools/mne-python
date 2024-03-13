@@ -2219,9 +2219,8 @@ def _validate_linestyles_pce(linestyles, conditions, tags):
     # should be a dict by now...
     if not isinstance(linestyles, dict):
         raise TypeError(
-            '"linestyles" must be a dict, list, or None; got {}.'.format(
-                type(linestyles).__name__
-            )
+            '"linestyles" must be a dict, list, or None; got '
+            f"{type(linestyles).__name__}."
         )
     # validate linestyle dict keys
     if not set(linestyles).issubset(tags.union(conditions)):
@@ -2906,9 +2905,8 @@ def plot_compare_evokeds(
     # cannot combine a single channel
     if (len(picks) < 2) and combine is not None:
         warn(
-            'Only {} channel in "picks"; cannot combine by method "{}".'.format(
-                len(picks), combine
-            )
+            f'Only {len(picks)} channel in "picks"; cannot combine by method '
+            f'"{combine}".'
         )
     # `combine` defaults to GFP unless picked a single channel or axes='topo'
     do_topo = isinstance(axes, str) and axes == "topo"
