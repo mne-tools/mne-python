@@ -2838,8 +2838,7 @@ def _write_raw_data(
                 f"by {overage} bytes after writing info ({pos_prev}) and "
                 "leaving enough space "
                 f'for end tags ({_NEXT_FILE_BUFFER}): decrease "buffer_size_sec" '
-                "or increase "
-                '"split_size".'
+                'or increase "split_size".'
             )
 
         new_start = last
