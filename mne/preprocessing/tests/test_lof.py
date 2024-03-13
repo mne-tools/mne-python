@@ -3,12 +3,14 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+import sys
 from pathlib import Path
 
 import pytest
 
 from mne.io import read_raw_fif
 from mne.preprocessing import find_bad_channels_lof
+from mne.utils import check_version
 
 base_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
 raw_fname = base_dir / "test_raw.fif"
@@ -26,6 +28,8 @@ raw_fname = base_dir / "test_raw.fif"
 def test_lof(n_neighbors, ch_type, n_ch, n_bad):
     """Test LOF detection."""
     pytest.importorskip("sklearn")
+    if sys.platform == "win32" and check_version("sklearn", "1.5.dev"):
+        pytest.skip("https://github.com/scikit-learn/scikit-learn/issues/28625")
     raw = read_raw_fif(raw_fname).load_data()
     assert raw.info["bads"] == []
     bads, scores = find_bad_channels_lof(
