@@ -88,12 +88,12 @@ For full functionality, some functions require:
 - `scikit-learn <https://scikit-learn.org/stable/>`__ ≥ 1.0
 - `Joblib <https://joblib.readthedocs.io/en/latest/index.html>`__ ≥ 0.15 (for parallelization)
 - `mne-qt-browser <https://github.com/mne-tools/mne-qt-browser>`__ ≥ 0.1 (for fast raw data visualization)
-- `Qt <https://www.qt.io>`__ ≥ 5.12 via one of the following bindings (for fast raw data visualization and interactive 3D visualization):
+- `Qt <https://www.qt.io>`__ ≥ 5.15 via one of the following bindings (for fast raw data visualization and interactive 3D visualization):
 
   - `PyQt6 <https://www.riverbankcomputing.com/software/pyqt/>`__ ≥ 6.0
   - `PySide6 <https://doc.qt.io/qtforpython-6/>`__ ≥ 6.0
-  - `PyQt5 <https://www.riverbankcomputing.com/software/pyqt/>`__ ≥ 5.12
-  - `PySide2 <https://doc.qt.io/qtforpython-6/gettingstarted/porting_from2.html>`__ ≥ 5.12
+  - `PyQt5 <https://www.riverbankcomputing.com/software/pyqt/>`__ ≥ 5.15
+  - `PySide2 <https://doc.qt.io/qtforpython-6/gettingstarted/porting_from2.html>`__ ≥ 5.15
 
 - `Numba <https://numba.pydata.org>`__ ≥ 0.54.0
 - `NiBabel <https://nipy.org/nibabel/>`__ ≥ 3.2.1

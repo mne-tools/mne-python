@@ -1,0 +1,1 @@
+- Fix problem caused by onsets with NaN values using :func:`mne.io.read_raw_eeglab` by `Jacob Woessner`_

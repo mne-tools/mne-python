@@ -30,7 +30,7 @@ jobs:
     needs: style
     runs-on: ubuntu-latest
     steps:
-      - uses: davidslusser/actions_python_bandit@v1.0.0
+      - uses: davidslusser/actions_python_bandit@v1.0.1
         with:
           src: "mne"
           options: "-c pyproject.toml -ll -r"

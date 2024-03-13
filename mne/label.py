@@ -1794,10 +1794,10 @@ def grow_labels(
     n_seeds = len(seeds)
 
     if len(extents) != 1 and len(extents) != n_seeds:
-        raise ValueError("The extents parameter has to be of length 1 or " "len(seeds)")
+        raise ValueError("The extents parameter has to be of length 1 or len(seeds)")
 
     if len(hemis) != 1 and len(hemis) != n_seeds:
-        raise ValueError("The hemis parameter has to be of length 1 or " "len(seeds)")
+        raise ValueError("The hemis parameter has to be of length 1 or len(seeds)")
 
     if colors is not None:
         if len(colors.shape) == 1:  # if one color for all seeds
@@ -2393,7 +2393,7 @@ def _check_labels_subject(labels, subject, name):
                 )
     if subject is None:
         raise ValueError(
-            "if label.subject is None for all labels, " "%s must be provided" % name
+            f"if label.subject is None for all labels, {name} must be provided."
         )
     return subject
 

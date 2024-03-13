@@ -2136,12 +2136,12 @@ def _get_peak(data, times, tmin=None, tmax=None, mode="abs", *, strict=True):
     if mode == "pos":
         if strict and not np.any(data[~mask] > 0):
             raise ValueError(
-                "No positive values encountered. Cannot " "operate in pos mode."
+                "No positive values encountered. Cannot operate in pos mode."
             )
     elif mode == "neg":
         if strict and not np.any(data[~mask] < 0):
             raise ValueError(
-                "No negative values encountered. Cannot " "operate in neg mode."
+                "No negative values encountered. Cannot operate in neg mode."
             )
         maxfun = np.argmin
 

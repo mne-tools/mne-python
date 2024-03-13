@@ -12,8 +12,8 @@ elif [ "${TEST_MODE}" == "pip-pre" ]; then
 	python -m pip install $STD_ARGS --only-binary ":all:" --default-timeout=60 --extra-index-url "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" "numpy<2.0.0.dev0" "scipy>=1.12.0.dev0" "scikit-learn>=1.5.dev0" matplotlib pillow statsmodels pyarrow h5py
 	# echo "dipy"
 	# python -m pip install $STD_ARGS --only-binary ":all:" --extra-index-url "https://pypi.anaconda.org/scipy-wheels-nightly/simple" dipy
-	# echo "OpenMEEG"
-	# pip install $STD_ARGS --only-binary ":all:" --extra-index-url "https://test.pypi.org/simple" openmeeg
+	echo "OpenMEEG"
+	pip install $STD_ARGS --only-binary ":all:" --extra-index-url "https://test.pypi.org/simple" "openmeeg>=2.6.0.dev4"
 	echo "vtk"
 	python -m pip install $STD_ARGS --only-binary ":all:" --extra-index-url "https://wheels.vtk.org" vtk
 	echo "nilearn"
