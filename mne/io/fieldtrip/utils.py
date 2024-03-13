@@ -174,8 +174,7 @@ def _create_info_chs_dig(ft_struct):
             else:
                 warn(
                     f"Cannot guess the correct type of channel {cur_channel_label}. "
-                    "Making "
-                    "it a MISC channel."
+                    "Making it a MISC channel."
                 )
                 cur_ch["kind"] = FIFF.FIFFV_MISC_CH
                 cur_ch["coil_type"] = FIFF.FIFFV_COIL_NONE
