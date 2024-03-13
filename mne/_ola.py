@@ -370,8 +370,9 @@ class _COLA:
                 or self._in_buffers[di].dtype != data.dtype
             ):
                 raise TypeError(
-                    f"data must dtype {self._in_buffers[di].dtype} and shape[:-1]=={self._in_buffers[di].shape[:-1]}, got dtype {data.dtype} shape[:-1]="
-                    f"{data.shape[:-1]}"
+                    f"data must dtype {self._in_buffers[di].dtype} and "
+                    f"shape[:-1]=={self._in_buffers[di].shape[:-1]}, got dtype "
+                    f"{data.dtype} shape[:-1]={data.shape[:-1]}"
                 )
             logger.debug(
                 "    + Appending %d->%d"
