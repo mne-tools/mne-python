@@ -181,7 +181,11 @@ def _init_mne_qtapp(enable_icon=True, pg_app=False, splash=False):
     if enable_icon or splash:
         icons_path = _qt_init_icons()
 
-    if enable_icon and app.windowIcon().cacheKey() != _QT_ICON_KEYS["app"]:
+    if (
+        enable_icon
+        and app.windowIcon().cacheKey() != _QT_ICON_KEYS["app"]
+        and app.windowIcon().isNull()  # don't overwrite existing icon (e.g. MNELAB)
+    ):
         # Set icon
         kind = "bigsur_" if platform.mac_ver()[0] >= "10.16" else "default_"
         icon = QIcon(f"{icons_path}/mne_{kind}icon.png")
