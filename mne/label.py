@@ -1020,7 +1020,7 @@ class BiHemiLabel:
     def __init__(self, lh, rh, name=None, color=None):
         if lh.subject != rh.subject:
             raise ValueError(
-                f"lh.subject ({lh.subject}) and rh.subject ({rh.subject}) must " "agree"
+                f"lh.subject ({lh.subject}) and rh.subject ({rh.subject}) must agree"
             )
         self.lh = lh
         self.rh = rh
