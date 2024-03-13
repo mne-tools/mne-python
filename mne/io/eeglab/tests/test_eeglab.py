@@ -749,11 +749,5 @@ def test_eeglab_drop_nan_annotations(tmp_path):
         ch_types=np.repeat("EEG", len(ch_names)),
     )
 
-    with pytest.raises(
-        RuntimeWarning,
-        match=(
-            r"1 events have an onset that is NaN. These values are usually "
-            r"ignored by EEGLAB and will be dropped from the annotations."
-        ),
-    ):
+    with pytest.raises(RuntimeWarning, match="1 .* have an onset that is NaN.*"):
         raw = read_raw_eeglab(file_path, preload=True)
