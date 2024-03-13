@@ -516,7 +516,7 @@ Contains both EEG (EGI) and eye-tracking (ASCII format) data recorded from a
 pupillary light reflex experiment, stored in separate files. 1 participant fixated
 on the screen while short light flashes appeared. Event onsets were recorded by a
 photodiode attached to the screen and were sent to both the EEG and eye-tracking
-systems. 
+systems.
 
 .. topic:: Examples
 

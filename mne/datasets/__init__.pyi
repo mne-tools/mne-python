@@ -66,7 +66,7 @@ from . import (
 )
 from ._fetch import fetch_dataset
 from ._fsaverage.base import fetch_fsaverage
-from ._infant.base import fetch_infant_template
+from ._infant import fetch_infant_template
 from ._phantom.base import fetch_phantom
 from .utils import (
     _download_all_example_data,

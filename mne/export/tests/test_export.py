@@ -78,8 +78,9 @@ def test_export_raw_pybv(tmp_path, meas_date, orig_time, ext):
     raw.set_annotations(annots)
 
     temp_fname = tmp_path / ("test" + ext)
-    with _record_warnings(), pytest.warns(
-        RuntimeWarning, match="'short' format. Converting"
+    with (
+        _record_warnings(),
+        pytest.warns(RuntimeWarning, match="'short' format. Converting"),
     ):
         raw.export(temp_fname)
     raw_read = read_raw_brainvision(str(temp_fname).replace(".eeg", ".vhdr"))
@@ -303,8 +304,9 @@ def test_export_edf_signal_clipping(tmp_path, physical_range, exceeded_bound):
     raw = read_raw_fif(fname_raw)
     raw.pick(picks=["eeg", "ecog", "seeg"]).load_data()
     temp_fname = tmp_path / "test.edf"
-    with _record_warnings(), pytest.warns(
-        RuntimeWarning, match=f"The {exceeded_bound}"
+    with (
+        _record_warnings(),
+        pytest.warns(RuntimeWarning, match=f"The {exceeded_bound}"),
     ):
         raw.export(temp_fname, physical_range=physical_range)
     raw_read = read_raw_edf(temp_fname, preload=True)

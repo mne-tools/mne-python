@@ -29,12 +29,13 @@ import mne.html_templates._templates
 from mne.tests.test_docstring_parameters import error_ignores
 from mne.utils import (
     _assert_no_instances,
-    linkcode_resolve,  # noqa, analysis:ignore
+    linkcode_resolve,
     run_subprocess,
     sizeof_fmt,
 )
 from mne.viz import Brain  # noqa
 
+assert linkcode_resolve is not None  # avoid flake warnings, used by numpydoc
 matplotlib.use("agg")
 faulthandler.enable()
 os.environ["_MNE_BROWSER_NO_BLOCK"] = "true"
@@ -62,12 +63,12 @@ td = datetime.now(tz=timezone.utc)
 
 # We need to triage which date type we use so that incremental builds work
 # (Sphinx looks at variable changes and rewrites all files if some change)
-copyright = (
+copyright = (  # noqa: A001
     f'2012–{td.year}, MNE Developers. Last updated <time datetime="{td.isoformat()}" class="localized">{td.strftime("%Y-%m-%d %H:%M %Z")}</time>\n'  # noqa: E501
     '<script type="text/javascript">$(function () { $("time.localized").each(function () { var el = $(this); el.text(new Date(el.attr("datetime")).toLocaleString([], {dateStyle: "medium", timeStyle: "long"})); }); } )</script>'  # noqa: E501
 )
 if os.getenv("MNE_FULL_DATE", "false").lower() != "true":
-    copyright = f"2012–{td.year}, MNE Developers. Last updated locally."
+    copyright = f"2012–{td.year}, MNE Developers. Last updated locally."  # noqa: A001
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -293,6 +294,7 @@ numpydoc_xref_aliases = {
     "RawNIRX": "mne.io.Raw",
     "RawPersyst": "mne.io.Raw",
     "RawSNIRF": "mne.io.Raw",
+    "Calibration": "mne.preprocessing.eyetracking.Calibration",
     # dipy
     "dipy.align.AffineMap": "dipy.align.imaffine.AffineMap",
     "dipy.align.DiffeomorphicMap": "dipy.align.imwarp.DiffeomorphicMap",
@@ -445,16 +447,18 @@ numpydoc_validation_exclude = {  # set of regex
 # -- Sphinx-gallery configuration --------------------------------------------
 
 
-class Resetter(object):
+class Resetter:
     """Simple class to make the str(obj) static for Sphinx build env hash."""
 
     def __init__(self):
         self.t0 = time.time()
 
     def __repr__(self):
+        """Make a stable repr."""
         return f"<{self.__class__.__name__}>"
 
     def __call__(self, gallery_conf, fname, when):
+        """Do the reset."""
         import matplotlib.pyplot as plt
 
         try:
@@ -744,6 +748,8 @@ linkcheck_ignore = [  # will be compiled to regex
     # Too slow
     "https://speakerdeck.com/dengemann/",
     "https://www.dtu.dk/english/service/phonebook/person",
+    # SSL problems sometimes
+    "http://ilabs.washington.edu",
 ]
 linkcheck_anchors = False  # saves a bit of time
 linkcheck_timeout = 15  # some can be quite slow
@@ -1188,21 +1194,21 @@ html_context = {
     "carousel": [
         dict(
             title="Source Estimation",
-            text="Distributed, sparse, mixed-norm, beam\u00ADformers, dipole fitting, and more.",  # noqa E501
+            text="Distributed, sparse, mixed-norm, beam\u00adformers, dipole fitting, and more.",  # noqa E501
             url="auto_tutorials/inverse/index.html",
             img="sphx_glr_30_mne_dspm_loreta_008.gif",
             alt="dSPM",
         ),
         dict(
             title="Machine Learning",
-            text="Advanced decoding models including time general\u00ADiza\u00ADtion.",  # noqa E501
+            text="Advanced decoding models including time general\u00adiza\u00adtion.",  # noqa E501
             url="auto_tutorials/machine-learning/50_decoding.html",
             img="sphx_glr_50_decoding_006.png",
             alt="Decoding",
         ),
         dict(
             title="Encoding Models",
-            text="Receptive field estima\u00ADtion with optional smooth\u00ADness priors.",  # noqa E501
+            text="Receptive field estima\u00adtion with optional smooth\u00adness priors.",  # noqa E501
             url="auto_tutorials/machine-learning/30_strf.html",
             img="sphx_glr_30_strf_001.png",
             alt="STRF",
@@ -1216,7 +1222,7 @@ html_context = {
         ),
         dict(
             title="Connectivity",
-            text="All-to-all spectral and effective connec\u00ADtivity measures.",  # noqa E501
+            text="All-to-all spectral and effective connec\u00adtivity measures.",  # noqa E501
             url="https://mne.tools/mne-connectivity/stable/auto_examples/mne_inverse_label_connectivity.html",  # noqa E501
             img="https://mne.tools/mne-connectivity/stable/_images/sphx_glr_mne_inverse_label_connectivity_001.png",  # noqa E501
             alt="Connectivity",
@@ -1753,7 +1759,7 @@ REDIRECT_TEMPLATE = """\
 def check_existing_redirect(path):
     """Make sure existing HTML files are redirects, before overwriting."""
     if path.is_file():
-        with open(path, "r") as fid:
+        with open(path) as fid:
             for _ in range(8):
                 next(fid)
             line = fid.readline()

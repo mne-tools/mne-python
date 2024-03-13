@@ -1666,43 +1666,79 @@ def test_split_saving_and_loading_back(tmp_path, epochs_to_split, preload):
 
 
 @pytest.mark.parametrize(
-    "split_naming, dst_fname, split_fname_fn",
+    "split_naming, dst_fname, split_fname_fn, check_bids",
     [
         (
             "neuromag",
             "test_epo.fif",
             lambda i: f"test_epo-{i}.fif" if i else "test_epo.fif",
+            False,
         ),
         (
             "bids",
-            "test_epo.fif",
-            lambda i: f"test_split-{i + 1:02d}_epo.fif",
+            Path("sub-01") / "meg" / "sub-01_epo.fif",
+            lambda i: Path("sub-01") / "meg" / f"sub-01_split-{i + 1:02d}_epo.fif",
+            True,
         ),
         (
             "bids",
             "a_b-epo.fif",
             # Merely stating the fact:
             lambda i: f"a_split-{i + 1:02d}_b-epo.fif",
+            False,
         ),
     ],
     ids=["neuromag", "bids", "mix"],
 )
 def test_split_naming(
-    tmp_path, epochs_to_split, split_naming, dst_fname, split_fname_fn
+    tmp_path, epochs_to_split, split_naming, dst_fname, split_fname_fn, check_bids
 ):
     """Test naming of the split files."""
     epochs, split_size, n_files = epochs_to_split
     dst_fpath = tmp_path / dst_fname
     save_kwargs = {"split_size": split_size, "split_naming": split_naming}
     # we don't test for reserved files as it's not implemented here
+    if dst_fpath.parent != tmp_path:
+        dst_fpath.parent.mkdir(parents=True)
 
     epochs.save(dst_fpath, verbose=True, **save_kwargs)
 
     # check that the filenames match the intended pattern
-    assert len(list(tmp_path.iterdir())) == n_files
-    for i in range(n_files):
-        assert (tmp_path / split_fname_fn(i)).is_file()
+    assert len(list(dst_fpath.parent.iterdir())) == n_files
     assert not (tmp_path / split_fname_fn(n_files)).is_file()
+    want_paths = [tmp_path / split_fname_fn(i) for i in range(n_files)]
+    for want_path in want_paths:
+        assert want_path.is_file()
+
+    if not check_bids:
+        return
+    # gh-12451
+    # If we load sub-01_split-01_epo.fif we should then we shouldn't
+    # write sub-01_split-01_split-01_epo.fif
+    mne_bids = pytest.importorskip("mne_bids")
+    # Let's try to prevent people from making a mistake
+    bids_path = mne_bids.BIDSPath(
+        root=tmp_path,
+        subject="01",
+        datatype="meg",
+        split="01",
+        suffix="epo",
+        extension=".fif",
+        check=False,
+    )
+    assert bids_path.fpath.is_file(), bids_path.fpath
+    for want_path in want_paths:
+        want_path.unlink()
+    assert not bids_path.fpath.is_file()
+    with pytest.raises(ValueError, match="Passing a BIDSPath"):
+        epochs.save(bids_path, verbose=True, **save_kwargs)
+    bad_path = bids_path.fpath.parent / (bids_path.fpath.stem[:-3] + "split-01_epo.fif")
+    assert str(bad_path).count("_split-01") == 2
+    assert not bad_path.is_file(), bad_path
+    bids_path.split = None
+    epochs.save(bids_path, verbose=True, **save_kwargs)
+    for want_path in want_paths:
+        assert want_path.is_file()
 
 
 @pytest.mark.parametrize(
@@ -2803,25 +2839,58 @@ def test_subtract_evoked():
 
 
 def test_epoch_eq():
-    """Test epoch count equalization and condition combining."""
+    """Test for equalize_epoch_counts and equalize_event_counts functions."""
+    # load data
     raw, events, picks = _get_data()
-    # equalizing epochs objects
+    # test equalize epoch counts
+    # create epochs with unequal counts
     events_1 = events[events[:, 2] == event_id]
     epochs_1 = Epochs(raw, events_1, event_id, tmin, tmax, picks=picks)
     events_2 = events[events[:, 2] == event_id_2]
     epochs_2 = Epochs(raw, events_2, event_id_2, tmin, tmax, picks=picks)
+    # events 2 has one more event than events 1
     epochs_1.drop_bad()  # make sure drops are logged
+    epochs_2.drop_bad()  # make sure drops are logged
+    # make sure there is a difference in the number of events
+    assert len(epochs_1) != len(epochs_2)
+    # make sure bad epochs are dropped before equalizing epoch counts
     assert_equal(
         len([log for log in epochs_1.drop_log if not log]), len(epochs_1.events)
     )
-    assert epochs_1.drop_log == ((),) * len(epochs_1.events)
-    assert_equal(len([lg for lg in epochs_1.drop_log if not lg]), len(epochs_1.events))
-    assert epochs_1.events.shape[0] != epochs_2.events.shape[0]
+    assert epochs_2.drop_log == ((),) * len(epochs_2.events)
+    # test mintime method
+    events_1[-1, 0] += 60  # hack: ensure mintime drops something other than last trial
+    # now run equalize_epoch_counts with mintime method
     equalize_epoch_counts([epochs_1, epochs_2], method="mintime")
+    # mintime method should give us the smallest difference between timings of epochs
+    alleged_mintime = np.sum(np.abs(epochs_1.events[:, 0] - epochs_2.events[:, 0]))
+    # test that "mintime" works as expected, by systematically dropping each event from
+    # events_2 and ensuring the latencies are actually smallest in the
+    # equalize_epoch_counts case. NB: len(events_2) > len(events_1)
+    for idx in range(events_2.shape[0]):
+        # delete epoch from events_2
+        test_events = np.delete(events_2.copy(), idx, axis=0)
+        assert test_events.shape == epochs_1.events.shape == epochs_2.events.shape
+        # difference (in samples) between epochs_1 event times and the event times we
+        # get from our deletion of row `idx` from events_2
+        latencies = epochs_1.events[:, 0] - test_events[:, 0]
+        got_mintime = np.sum(np.abs(latencies))
+        assert got_mintime >= alleged_mintime
+    # make sure the number of events is equal
     assert_equal(epochs_1.events.shape[0], epochs_2.events.shape[0])
+    # create new epochs with the same event ids as epochs_1 and epochs_2
     epochs_3 = Epochs(raw, events, event_id, tmin, tmax, picks=picks)
     epochs_4 = Epochs(raw, events, event_id_2, tmin, tmax, picks=picks)
+    epochs_3.drop_bad()  # make sure drops are logged
+    epochs_4.drop_bad()  # make sure drops are logged
+    # make sure there is a difference in the number of events
+    assert len(epochs_3) != len(epochs_4)
+    # test truncate method
     equalize_epoch_counts([epochs_3, epochs_4], method="truncate")
+    if len(epochs_3.events) > len(epochs_4.events):
+        assert_equal(epochs_3.events[-2, 0], epochs_3.events.shape[-1, 0])
+    elif len(epochs_3.events) < len(epochs_4.events):
+        assert_equal(epochs_4.events[-2, 0], epochs_4.events[-1, 0])
     assert_equal(epochs_1.events.shape[0], epochs_3.events.shape[0])
     assert_equal(epochs_3.events.shape[0], epochs_4.events.shape[0])
 
@@ -3086,7 +3155,7 @@ def test_to_data_frame_index(index):
     # test index order/hierarchy preservation
     if not isinstance(index, list):
         index = [index]
-    assert df.index.names == index
+    assert list(df.index.names) == index
     # test that non-indexed data were present as columns
     non_index = list(set(["condition", "time", "epoch"]) - set(index))
     if len(non_index):
@@ -4217,8 +4286,19 @@ def test_make_metadata(all_event_id, row_events, tmin, tmax, keep_first, keep_la
     Epochs(raw, events=events, event_id=event_id, metadata=metadata, verbose="warning")
 
 
-def test_make_metadata_bounded_by_row_events():
-    """Test make_metadata() with tmin, tmax set to None."""
+@pytest.mark.parametrize(
+    ("tmin", "tmax"),
+    [
+        (None, None),
+        ("cue", "resp"),
+        (["cue"], ["resp"]),
+        (None, "resp"),
+        ("cue", None),
+        (["rec_start", "cue"], ["resp", "rec_end"]),
+    ],
+)
+def test_make_metadata_bounded_by_row_or_tmin_tmax_event_names(tmin, tmax):
+    """Test make_metadata() with tmin, tmax set to None or strings."""
     pytest.importorskip("pandas")
 
     sfreq = 100
@@ -4263,8 +4343,8 @@ def test_make_metadata_bounded_by_row_events():
     metadata, events_new, event_id_new = mne.epochs.make_metadata(
         events=events,
         event_id=event_id,
-        tmin=None,
-        tmax=None,
+        tmin=tmin,
+        tmax=tmax,
         sfreq=raw.info["sfreq"],
         row_events="cue",
     )
@@ -4287,8 +4367,15 @@ def test_make_metadata_bounded_by_row_events():
     # 2nd trial
     assert np.isnan(metadata.iloc[1]["rec_end"])
 
-    # 3rd trial until end of the recording
-    assert metadata.iloc[2]["resp"] < metadata.iloc[2]["rec_end"]
+    # 3rd trial
+    if tmax is None:
+        # until end of the recording
+        assert metadata.iloc[2]["resp"] < metadata.iloc[2]["rec_end"]
+    else:
+        # until tmax
+        assert np.isnan(metadata.iloc[2]["rec_end"])
+        last_event_name = tmax[0] if isinstance(tmax, list) else tmax
+        assert metadata.iloc[2][last_event_name] > 0
 
 
 def test_events_list():
@@ -4762,6 +4849,39 @@ def test_apply_function():
     expected = epochs.get_data(picks).mean(axis=-1, keepdims=True)
     assert np.all(out.get_data(picks) == expected)
     assert_array_equal(out.get_data(non_picks), epochs.get_data(non_picks))
+
+
+def test_apply_function_epo_ch_access():
+    """Test ch-access within apply function to epoch objects."""
+
+    def _bad_ch_idx(x, ch_idx):
+        assert x.shape == (46,)
+        assert x[0] == ch_idx
+        return x
+
+    def _bad_ch_name(x, ch_name):
+        assert x.shape == (46,)
+        assert isinstance(ch_name, str)
+        assert x[0] == float(ch_name)
+        return x
+
+    data = np.full((2, 100), np.arange(2).reshape(-1, 1))
+    raw = RawArray(data, create_info(2, 1.0, "mag"))
+    ev = np.array([[0, 0, 33], [50, 0, 33]])
+    ep = Epochs(raw, ev, tmin=0, tmax=45, baseline=None, preload=True)
+
+    # test ch_idx access in both code paths (parallel / 1 job)
+    ep.apply_function(_bad_ch_idx)
+    ep.apply_function(_bad_ch_idx, n_jobs=2)
+    ep.apply_function(_bad_ch_name)
+    ep.apply_function(_bad_ch_name, n_jobs=2)
+
+    # test input catches
+    with pytest.raises(
+        ValueError,
+        match="cannot access.*when channel_wise=False",
+    ):
+        ep.apply_function(_bad_ch_idx, channel_wise=False)
 
 
 @testing.requires_testing_data

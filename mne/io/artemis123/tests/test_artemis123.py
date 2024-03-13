@@ -97,8 +97,9 @@ def test_dev_head_t():
     assert_equal(raw.info["sfreq"], 5000.0)
 
     # test with head loc and digitization
-    with pytest.warns(RuntimeWarning, match="consistency"), pytest.warns(
-        RuntimeWarning, match="Large difference"
+    with (
+        pytest.warns(RuntimeWarning, match="consistency"),
+        pytest.warns(RuntimeWarning, match="Large difference"),
     ):
         raw = read_raw_artemis123(
             short_HPI_dip_fname, add_head_trans=True, pos_fname=dig_fname
