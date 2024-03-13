@@ -358,8 +358,7 @@ class Label:
             if not np.all(self.pos[self_dup] == other.pos[other_dup]):
                 err = (
                     f"Labels {repr(self.name)} and {repr(other.name)}: vertices "
-                    "overlap but differ in "
-                    "position values"
+                    "overlap but differ in position values"
                 )
                 raise ValueError(err)
 
