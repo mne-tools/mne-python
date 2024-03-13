@@ -868,8 +868,7 @@ def _get_hdr_info(hdr_fname, eog, misc, scale):
                 warn(
                     "Channels contain different lowpass filters. "
                     f"Highest (weakest) filter setting ({info['lowpass']:0.2f} "
-                    f"Hz{nyquist}) "
-                    "will be stored."
+                    f"Hz{nyquist}) will be stored."
                 )
 
     # Creates a list of dicts of eeg channels for raw.info
