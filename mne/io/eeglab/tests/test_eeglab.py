@@ -719,3 +719,36 @@ def test_fidsposition_information(monkeypatch, has_type):
     assert len(pos["lpa"]) == 3
     assert len(pos["rpa"]) == 3
     assert len(raw.info["dig"]) == n_eeg + 3
+
+
+@testing.requires_testing_data
+def test_eeglab_drop_nan_annotations(tmp_path):
+    """Test reading file with NaN annotations."""
+    pytest.importorskip("eeglabio")
+    from eeglabio.raw import export_set
+
+    file_path = tmp_path / "test_nan_anno.set"
+    raw = read_raw_eeglab(raw_fname_mat, preload=True)
+    data = raw.get_data()
+    sfreq = raw.info["sfreq"]
+    ch_names = raw.ch_names
+    anno = [
+        raw.annotations.description,
+        raw.annotations.onset,
+        raw.annotations.duration,
+    ]
+    anno[1][0] = np.nan
+
+    export_set(
+        str(file_path),
+        data,
+        sfreq,
+        ch_names,
+        ch_locs=None,
+        annotations=anno,
+        ref_channels="common",
+        ch_types=np.repeat("EEG", len(ch_names)),
+    )
+
+    with pytest.raises(RuntimeWarning, match="1 .* have an onset that is NaN.*"):
+        raw = read_raw_eeglab(file_path, preload=True)
