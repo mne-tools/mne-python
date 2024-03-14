@@ -2551,16 +2551,23 @@ docdict["method_kw_psd"] = """\
     :func:`~mne.time_frequency.psd_array_multitaper` for details.
 """
 
-docdict["method_kw_tfr"] = """
+_method_kw_tfr_template = """
 **method_kw
     Additional keyword arguments passed to the spectrotemporal estimation function
-    (e.g., ``n_cycles, use_fft, zero_mean`` for Morlet method,
-    ``n_cycles, use_fft, zero_mean, time_bandwidth`` for multitaper method, or
-    ``n_fft, width`` for Stockwell method).
-    See :func:`~mne.time_frequency.tfr_array_morlet`,
-    :func:`~mne.time_frequency.tfr_array_multitaper`, and
-    :func:`~mne.time_frequency.tfr_array_stockwell` for additional details.
+    (e.g., ``n_cycles, use_fft, zero_mean`` for Morlet method{stockwell}
+    or ``n_cycles, use_fft, zero_mean, time_bandwidth`` for multitaper method).
+    See :func:`~mne.time_frequency.tfr_array_morlet`{stockwell_crossref}
+    and :func:`~mne.time_frequency.tfr_array_multitaper` for additional details.
 """
+
+docdict["method_kw_epochs_tfr"] = _method_kw_tfr_template.format(
+    stockwell=", ``n_fft, width`` for Stockwell method,",
+    stockwell_crossref=", :func:`~mne.time_frequency.tfr_array_stockwell`,",
+)
+
+docdict["method_kw_tfr"] = _method_kw_tfr_template.format(
+    stockwell="", stockwell_crossref=""
+)
 
 _method_psd = """
 method : ``'welch'`` | ``'multitaper'``{}

@@ -2602,7 +2602,7 @@ class BaseEpochs(
         %(decim_tfr)s
         %(n_jobs)s
         %(verbose)s
-        %(method_kw_tfr)s
+        %(method_kw_epochs_tfr)s
 
         Returns
         -------
