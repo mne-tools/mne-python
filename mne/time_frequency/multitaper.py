@@ -491,7 +491,7 @@ def tfr_array_multitaper(
         The epochs.
     sfreq : float
         Sampling frequency of the data in Hz.
-    %(freqs_tfr)s
+    %(freqs_tfr_array)s
     %(n_cycles_tfr)s
     zero_mean : bool
         If True, make sure the wavelets have a mean of zero. Defaults to True.

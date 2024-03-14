@@ -1763,15 +1763,13 @@ forward : instance of Forward | None
 
     .. versionadded:: 0.21
 """
-
-docdict["freqs_tfr"] = """
-freqs : array-like | 'auto' | None
-    The frequencies at which to compute the power estimates. If
-    ``method='stockwell'`` this must be a length 2 iterable specifying lowest
-    and highest frequencies, or ``'auto'`` (to use all available frequencies).
-    For other methods, must be an array of shape (n_freqs,). ``None`` (the
+_freqs_tfr_template = """
+freqs : array-like |{auto} None
+    The frequencies at which to compute the power estimates.
+    {stockwell} be an array of shape (n_freqs,). ``None`` (the
     default) only works when using ``__setstate__`` and will raise an error otherwise.
 """
+docdict["freqs_tfr"] = _freqs_tfr_template.format(auto="", stockwell="Must")
 docdict["freqs_tfr_array"] = """
 freqs : ndarray, shape (n_freqs,)
     The frequencies in Hz.
@@ -1779,6 +1777,12 @@ freqs : ndarray, shape (n_freqs,)
 docdict["freqs_tfr_attr"] = """
 freqs : array
     Frequencies at which power has been computed."""
+docdict["freqs_tfr_epochs"] = _freqs_tfr_template.format(
+    auto=" 'auto' | ",
+    stockwell="""If ``method='stockwell'`` this must be a length 2 iterable specifying lowest
+    and highest frequencies, or ``'auto'`` (to use all available frequencies).
+    For other methods, must""",  # noqa E501
+)
 
 docdict["fullscreen"] = """
 fullscreen : bool

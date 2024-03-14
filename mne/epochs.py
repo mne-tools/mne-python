@@ -2585,7 +2585,7 @@ class BaseEpochs(
         Parameters
         ----------
         %(method_tfr_epochs)s
-        %(freqs_tfr)s
+        %(freqs_tfr_epochs)s
         %(tmin_tmax_psd)s
         %(picks_good_data_noref)s
         %(proj_psd)s

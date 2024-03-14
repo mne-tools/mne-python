@@ -870,7 +870,7 @@ def tfr_morlet(
     ----------
     inst : Epochs | Evoked
         The epochs or evoked object.
-    %(freqs_tfr)s
+    %(freqs_tfr_array)s
     %(n_cycles_tfr)s
     use_fft : bool, default False
         The fft based convolution or not.
@@ -960,7 +960,7 @@ def tfr_array_morlet(
         The epochs.
     sfreq : float | int
         Sampling frequency of the data.
-    %(freqs_tfr)s
+    %(freqs_tfr_array)s
     %(n_cycles_tfr)s
     zero_mean : bool
         If True, make sure the wavelets have a mean of zero. default False.
@@ -1067,7 +1067,7 @@ def tfr_multitaper(
     ----------
     inst : Epochs | Evoked
         The epochs or evoked object.
-    %(freqs_tfr)s
+    %(freqs_tfr_array)s
     %(n_cycles_tfr)s
     %(time_bandwidth_tfr)s
     use_fft : bool, default True
@@ -3037,7 +3037,7 @@ class EpochsTFR(BaseTFR, GetEpochsMixin):
             Pass an instance of :class:`~mne.Epochs` as ``inst`` instead and
             (optionally) use ``tmin`` and ``tmax`` to restrict the time domain; or use
             :class:`~mne.time_frequency.EpochsTFRArray` which retains the old API.
-    %(freqs_tfr)s
+    %(freqs_tfr_epochs)s
     inst : instance of Epochs
         The data from which to compute the time-frequency representation.
     %(method_tfr_epochs)s
