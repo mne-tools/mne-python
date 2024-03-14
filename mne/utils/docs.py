@@ -2595,9 +2595,9 @@ method : str
 _method_tfr_template = """
 method : ``'morlet'`` | ``'multitaper'``{literals} | None
     Spectrotemporal power estimation method. ``'morlet'`` uses Morlet wavelets,
-    ``'multitaper'`` uses DPSS tapers :footcite:p:`Slepian1978`{cites}. ``None`` (the
+    ``'multitaper'`` uses DPSS tapers\ :footcite:p:`Slepian1978`{cites}. ``None`` (the
     default) only works when using ``__setstate__`` and will raise an error otherwise.
-"""
+"""  # noqa W605 (invalid escape sequence)
 docdict["method_tfr"] = _method_tfr_template.format(literals="", cites="")
 docdict["method_tfr_array"] = """
 method : str | None
@@ -2611,7 +2611,7 @@ method : str
 """
 docdict["method_tfr_epochs"] = _method_tfr_template.format(
     literals=" | ``'stockwell'``",
-    cites=", and ``'stockwell'`` uses the S-transform "
+    cites=", and ``'stockwell'`` uses the S-transform\ "  # noqa W605
     ":footcite:p:`Stockwell2007,MoukademEtAl2014,WheatEtAl2010,JonesEtAl2006`",
 )
 
