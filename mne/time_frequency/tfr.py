@@ -2364,8 +2364,9 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
         norm = np.min(topomap_arrays) >= 0.0
         cmap = _setup_cmap(cmap, norm=norm)
         topomap_args.setdefault("cmap", cmap[0])  # prevent interactive cbar
-        # finalize topomap vlims and compute contour locations
-        _vlim = _setup_vmin_vmax(_data, _vmin, _vmax, norm=norm)
+        # finalize topomap vlims and compute contour locations.
+        # By passing `data=None` here ↓↓↓↓ we effectively assert vmin & vmax aren't None
+        _vlim = _setup_vmin_vmax(data=None, vmin=_vmin, vmax=_vmax, norm=norm)
         topomap_args.setdefault("vlim", _vlim)
         locator, topomap_args["contours"] = _set_contour_locator(
             *topomap_args["vlim"], topomap_args["contours"]
