@@ -15,7 +15,6 @@ Extract and average epochs accordingly. Modify some averaging parameters and get
 
 # %%
 
-
 import os
 
 import mne

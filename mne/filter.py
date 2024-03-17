@@ -873,12 +873,7 @@ def construct_iir_filter(
         # ensure we have a valid ftype
         if "ftype" not in iir_params:
             raise RuntimeError(
-                "ftype must be an entry in iir_params if "
-                "b"
-                " "
-                "and "
-                "a"
-                " are not specified"
+                "ftype must be an entry in iir_params if 'b' and 'a' are not specified."
             )
         ftype = iir_params["ftype"]
         if ftype not in known_filters:
@@ -932,14 +927,7 @@ def construct_iir_filter(
             Ws = np.asanyarray(f_stop) / (float(sfreq) / 2)
             if "gpass" not in iir_params or "gstop" not in iir_params:
                 raise ValueError(
-                    "iir_params must have at least "
-                    "gstop"
-                    " and"
-                    " "
-                    "gpass"
-                    " (or "
-                    "N"
-                    ") entries"
+                    "iir_params must have at least 'gstop' and 'gpass' (or N) entries."
                 )
             system = signal.iirdesign(
                 Wp,
@@ -1488,7 +1476,7 @@ def create_filter(
                     freq = np.r_[freq, [sfreq / 2.0]]
                     gain = np.r_[gain, [1.0]]
                 if np.any(np.abs(np.diff(gain, 2)) > 1):
-                    raise ValueError("Stop bands are not sufficiently " "separated.")
+                    raise ValueError("Stop bands are not sufficiently separated.")
     if method == "fir":
         out = _construct_fir_filter(
             sfreq, freq, gain, filter_length, phase, fir_window, fir_design
@@ -2392,9 +2380,7 @@ def _triage_filter_params(
             if l_freq is not None:
                 l_check = min(np.atleast_1d(l_trans_bandwidth))
             mult_fact = 2.0 if fir_design == "firwin2" else 1.0
-            filter_length = "{}s".format(
-                _length_factors[fir_window] * mult_fact / float(min(h_check, l_check)),
-            )
+            filter_length = f"{_length_factors[fir_window] * mult_fact / float(min(h_check, l_check))}s"  # noqa: E501
             next_pow_2 = False  # disable old behavior
         else:
             next_pow_2 = isinstance(filter_length, str) and phase == "zero-double"
@@ -2476,7 +2462,7 @@ class FilterMixin:
 
         Returns
         -------
-        inst : instance of Epochs or Evoked
+        inst : instance of Epochs, Evoked or SourceEstimate
             The object with the filtering applied.
 
         See Also
@@ -2488,6 +2474,8 @@ class FilterMixin:
         For Savitzky-Golay low-pass approximation, see:
 
             https://gist.github.com/larsoner/bbac101d50176611136b
+
+        When working on SourceEstimates the sample rate of the original data is inferred from tstep.
 
         .. versionadded:: 0.9.0
 
@@ -2504,13 +2492,19 @@ class FilterMixin:
         >>> evoked.savgol_filter(10.)  # low-pass at around 10 Hz # doctest:+SKIP
         >>> evoked.plot()  # doctest:+SKIP
         """  # noqa: E501
+        from .source_estimate import _BaseSourceEstimate
+
         _check_preload(self, "inst.savgol_filter")
+        if not isinstance(self, _BaseSourceEstimate):
+            s_freq = self.info["sfreq"]
+        else:
+            s_freq = 1 / self.tstep
         h_freq = float(h_freq)
-        if h_freq >= self.info["sfreq"] / 2.0:
+        if h_freq >= s_freq / 2.0:
             raise ValueError("h_freq must be less than half the sample rate")
 
         # savitzky-golay filtering
-        window_length = (int(np.round(self.info["sfreq"] / h_freq)) // 2) * 2 + 1
+        window_length = (int(np.round(s_freq / h_freq)) // 2) * 2 + 1
         logger.info("Using savgol length %d" % window_length)
         self._data[:] = signal.savgol_filter(
             self._data, axis=-1, polyorder=5, window_length=window_length
@@ -2537,7 +2531,7 @@ class FilterMixin:
         *,
         verbose=None,
     ):
-        """Filter a subset of channels.
+        """Filter a subset of channels/vertices.
 
         Parameters
         ----------
@@ -2561,7 +2555,7 @@ class FilterMixin:
 
         Returns
         -------
-        inst : instance of Epochs, Evoked, or Raw
+        inst : instance of Epochs, Evoked, SourceEstimate, or Raw
             The filtered data.
 
         See Also
@@ -2598,6 +2592,9 @@ class FilterMixin:
                   ``len(picks) * n_times`` additional time points need to
                   be temporarily stored in memory.
 
+        When working on SourceEstimates the sample rate of the original
+        data is inferred from tstep.
+
         For more information, see the tutorials
         :ref:`disc-filtering` and :ref:`tut-filter-resample` and
         :func:`mne.filter.create_filter`.
@@ -2606,11 +2603,16 @@ class FilterMixin:
         """
         from .annotations import _annotations_starts_stops
         from .io import BaseRaw
+        from .source_estimate import _BaseSourceEstimate
 
         _check_preload(self, "inst.filter")
+        if not isinstance(self, _BaseSourceEstimate):
+            update_info, picks = _filt_check_picks(self.info, picks, l_freq, h_freq)
+            s_freq = self.info["sfreq"]
+        else:
+            s_freq = 1.0 / self.tstep
         if pad is None and method != "iir":
             pad = "edge"
-        update_info, picks = _filt_check_picks(self.info, picks, l_freq, h_freq)
         if isinstance(self, BaseRaw):
             # Deal with annotations
             onsets, ends = _annotations_starts_stops(
@@ -2629,7 +2631,7 @@ class FilterMixin:
             use_verbose = verbose if si == max_idx else "error"
             filter_data(
                 self._data[:, start:stop],
-                self.info["sfreq"],
+                s_freq,
                 l_freq,
                 h_freq,
                 picks,
@@ -2646,9 +2648,10 @@ class FilterMixin:
                 pad=pad,
                 verbose=use_verbose,
             )
-        # update info if filter is applied to all data channels,
+        # update info if filter is applied to all data channels/vertices,
         # and it's not a band-stop filter
-        _filt_update_info(self.info, update_info, l_freq, h_freq)
+        if not isinstance(self, _BaseSourceEstimate):
+            _filt_update_info(self.info, update_info, l_freq, h_freq)
         return self
 
     @verbose
@@ -2703,7 +2706,7 @@ class FilterMixin:
         from .evoked import Evoked
 
         # Should be guaranteed by our inheritance, and the fact that
-        # mne.io.BaseRaw overrides this method
+        # mne.io.BaseRaw and _BaseSourceEstimate overrides this method
         assert isinstance(self, (BaseEpochs, Evoked))
 
         sfreq = float(sfreq)
@@ -2740,13 +2743,13 @@ class FilterMixin:
     def apply_hilbert(
         self, picks=None, envelope=False, n_jobs=None, n_fft="auto", *, verbose=None
     ):
-        """Compute analytic signal or envelope for a subset of channels.
+        """Compute analytic signal or envelope for a subset of channels/vertices.
 
         Parameters
         ----------
         %(picks_all_data_noref)s
         envelope : bool
-            Compute the envelope signal of each channel. Default False.
+            Compute the envelope signal of each channel/vertex. Default False.
             See Notes.
         %(n_jobs)s
         n_fft : int | None | str
@@ -2758,19 +2761,19 @@ class FilterMixin:
 
         Returns
         -------
-        self : instance of Raw, Epochs, or Evoked
+        self : instance of Raw, Epochs, Evoked or SourceEstimate
             The raw object with transformed data.
 
         Notes
         -----
         **Parameters**
 
-        If ``envelope=False``, the analytic signal for the channels defined in
+        If ``envelope=False``, the analytic signal for the channels/vertices defined in
         ``picks`` is computed and the data of the Raw object is converted to
         a complex representation (the analytic signal is complex valued).
 
         If ``envelope=True``, the absolute value of the analytic signal for the
-        channels defined in ``picks`` is computed, resulting in the envelope
+        channels/vertices defined in ``picks`` is computed, resulting in the envelope
         signal.
 
         .. warning: Do not use ``envelope=True`` if you intend to compute
@@ -2803,7 +2806,15 @@ class FilterMixin:
         by computing the analytic signal in sensor space, applying the MNE
         inverse, and computing the envelope in source space.
         """
+        from .source_estimate import _BaseSourceEstimate
+
+        if not isinstance(self, _BaseSourceEstimate):
+            use_info = self.info
+        else:
+            use_info = len(self._data)
         _check_preload(self, "inst.apply_hilbert")
+        picks = _picks_to_idx(use_info, picks, exclude=(), with_ref_meg=False)
+
         if n_fft is None:
             n_fft = len(self.times)
         elif isinstance(n_fft, str):
@@ -2819,7 +2830,6 @@ class FilterMixin:
                 f"{len(self.times)})"
             )
         dtype = None if envelope else np.complex128
-        picks = _picks_to_idx(self.info, picks, exclude=(), with_ref_meg=False)
         args, kwargs = (), dict(n_fft=n_fft, envelope=envelope)
 
         data_in = self._data

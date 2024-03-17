@@ -7,6 +7,7 @@
 Resolution metrics: localisation error, spatial extent, relative amplitude.
 Metrics can be computed for point-spread and cross-talk functions (PSFs/CTFs).
 """
+
 import numpy as np
 
 from ..source_estimate import SourceEstimate

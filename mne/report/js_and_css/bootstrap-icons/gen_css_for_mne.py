@@ -15,7 +15,6 @@ Generate a bootstrap-icons CSS file with embedded font.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-
 import base64
 from pathlib import Path
 

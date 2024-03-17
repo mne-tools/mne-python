@@ -1,0 +1,1 @@
+Improve compatibility with other Qt-based GUIs by handling theme icons better, by `Eric Larson`_.

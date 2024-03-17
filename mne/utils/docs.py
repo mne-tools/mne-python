@@ -216,11 +216,11 @@ Operates in place.
 # raw/epochs/evoked apply_function method
 # apply_function method summary
 applyfun_summary = """\
-The function ``fun`` is applied to the channels defined in ``picks``.
+The function ``fun`` is applied to the channels or vertices defined in ``picks``.
 The {} object's data is modified in-place. If the function returns a different
 data type (e.g. :py:obj:`numpy.complex128`) it must be specified
 using the ``dtype`` parameter, which causes the data type of **all** the data
-to change (even if the function is only applied to channels in ``picks``).{}
+to change (even if the function is only applied to channels/vertices in ``picks``).{}
 
 .. note:: If ``n_jobs`` > 1, more memory is required as
           ``len(picks) * n_times`` additional time points need to
@@ -236,6 +236,7 @@ applyfun_preload = (
 docdict["applyfun_summary_epochs"] = applyfun_summary.format("epochs", applyfun_preload)
 docdict["applyfun_summary_evoked"] = applyfun_summary.format("evoked", "")
 docdict["applyfun_summary_raw"] = applyfun_summary.format("raw", applyfun_preload)
+docdict["applyfun_summary_stc"] = applyfun_summary.format("source estimate", "")
 
 docdict["area_alpha_plot_psd"] = """\
 area_alpha : float
@@ -1586,12 +1587,22 @@ fun : callable
     fun has to be a timeseries (:class:`numpy.ndarray`). The function must
     operate on an array of shape ``(n_times,)`` {}.
     The function must return an :class:`~numpy.ndarray` shaped like its input.
+
+    .. note::
+        If ``channel_wise=True``, one can optionally access the index and/or the
+        name of the currently processed channel within the applied function.
+        This can enable tailored computations for different channels.
+        To use this feature, add ``ch_idx`` and/or ``ch_name`` as
+        additional argument(s) to your function definition.
 """
 docdict["fun_applyfun"] = applyfun_fun_base.format(
     " if ``channel_wise=True`` and ``(len(picks), n_times)`` otherwise"
 )
 docdict["fun_applyfun_evoked"] = applyfun_fun_base.format(
     " because it will apply channel-wise"
+)
+docdict["fun_applyfun_stc"] = applyfun_fun_base.format(
+    " because it will apply vertex-wise"
 )
 
 docdict["fwd"] = """
@@ -3332,7 +3343,7 @@ _reject_common = """\
               difference will be preserved.
 """
 
-docdict["reject_drop_bad"] = """
+docdict["reject_drop_bad"] = """\
 reject : dict | str | None
     Reject epochs based on **maximum** peak-to-peak signal amplitude (PTP)
     or custom functions. Peak-to-peak signal amplitude is defined as
@@ -3354,10 +3365,17 @@ reject : dict | str | None
 
     Custom rejection criteria can be also be used by passing a callable,
     e.g., to check for 99th percentile of absolute values of any channel
-    across time being bigger than 1mV. The callable must return a good, reason tuple.
-    Where good must be bool and reason must be str, list, or tuple where each entry is a str.::
+    across time being bigger than :unit:`1 mV`. The callable must return a
+    ``(good, reason)`` tuple: ``good`` must be :class:`bool` and ``reason``
+    must be :class:`str`, :class:`list`, or :class:`tuple` where each entry
+    is a :class:`str`::
 
-        reject = dict(eeg=lambda x: ((np.percentile(np.abs(x), 99, axis=1) > 1e-3).any(),  "> 1mV somewhere"))
+        reject = dict(
+            eeg=lambda x: (
+                (np.percentile(np.abs(x), 99, axis=1) > 1e-3).any(),
+                "signal > 1 mV somewhere",
+            )
+        )
 
     .. note:: If rejection is based on a signal **difference**
             calculated for each channel separately, applying baseline
@@ -3366,6 +3384,7 @@ reject : dict | str | None
 
     .. note:: If ``reject`` is a callable, than **any** criteria can be
             used to reject epochs (including maxima and minima).
+
     If ``reject`` is ``None``, no rejection is performed. If ``'existing'``
     (default), then the rejection parameters set at instantiation are used.
 """  # noqa: E501

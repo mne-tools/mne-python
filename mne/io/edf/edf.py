@@ -924,7 +924,7 @@ def _read_edf_header(fname, exclude, infer_types, include=None):
             if i in exclude:
                 continue
             # allow μ (greek mu), µ (micro symbol) and μ (sjis mu) codepoints
-            if unit in ("\u03BCV", "\u00B5V", "\x83\xCAV", "uV"):
+            if unit in ("\u03bcV", "\u00b5V", "\x83\xcaV", "uV"):
                 edf_info["units"].append(1e-6)
             elif unit == "mV":
                 edf_info["units"].append(1e-3)
@@ -1269,7 +1269,9 @@ def _read_gdf_header(fname, exclude, include=None):
             if patient["birthday"] != datetime(1, 1, 1, 0, 0, tzinfo=timezone.utc):
                 today = datetime.now(tz=timezone.utc)
                 patient["age"] = today.year - patient["birthday"].year
-                today = today.replace(year=patient["birthday"].year)
+                # fudge the day by -1 if today happens to be a leap day
+                day = 28 if today.month == 2 and today.day == 29 else today.day
+                today = today.replace(year=patient["birthday"].year, day=day)
                 if today < patient["birthday"]:
                     patient["age"] -= 1
             else:
