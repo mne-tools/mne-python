@@ -3172,6 +3172,16 @@ projs : bool | None
     the data. If ``None``, use ``projs`` from `~mne.Report` creation.
 """
 
+docdict["pupil_baseline"] = """
+baseline : tuple of length 2
+    2-element tuple of time points to use for baseline calculation.
+    If a tuple ``(a, b)``, the interval is between ``a`` and ``b`` (in seconds),
+    is used, end-inclusive. ``None`` can be used for either ``a`` or ``b``
+    to specify the beginning or end of the data. If ``(None, None)``, use all time
+    points for baseline calculation. The default is ``(None, 0)``, which uses all
+    negative time points (before stimulus onset) for baseline calculation.
+"""
+
 # %%
 # R
 
