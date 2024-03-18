@@ -25,10 +25,8 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 from mne import Epochs, create_info
-from mne.baseline import rescale
 from mne.io import RawArray
 from mne.time_frequency import AverageTFRArray, tfr_array_morlet
-from mne.viz import centers_to_edges
 
 print(__doc__)
 
@@ -253,10 +251,12 @@ avgpower.plot(
 # Operating on arrays
 # -------------------
 #
-# MNE also has versions of the functions above which operate on numpy arrays
-# instead of MNE objects. They expect inputs of the shape
-# ``(n_epochs, n_channels, n_times)``. They will also return a numpy array
-# of shape ``(n_epochs, n_channels, n_freqs, n_times)``.
+# MNE-Python also has functions that operate on :class:`NumPy arrays <numpy.ndarray>`
+# instead of MNE-Python objects. These are :func:`~mne.time_frequency.tfr_array_morlet`
+# and :func:`~mne.time_frequency.tfr_array_multitaper`. They expect inputs of the shape
+# ``(n_epochs, n_channels, n_times)`` and return an array of shape
+# ``(n_epochs, n_channels, n_freqs, n_times)`` (or optionally, can collapse the epochs
+# dimension if you want average power or inter-trial coherence; see ``output`` param).
 
 power = tfr_array_morlet(
     epochs.get_data(),
@@ -266,11 +266,14 @@ power = tfr_array_morlet(
     output="avg_power",
     zero_mean=False,
 )
-# Baseline the output
-rescale(power, epochs.times, (0.0, 0.1), mode="mean", copy=False)
-fig, ax = plt.subplots(layout="constrained")
-x, y = centers_to_edges(epochs.times * 1000, freqs)
-mesh = ax.pcolormesh(x, y, power[0], cmap="RdBu_r", vmin=vmin, vmax=vmax)
-ax.set_title("TFR calculated on a numpy array")
-ax.set(ylim=freqs[[0, -1]], xlabel="Time (ms)")
-fig.colorbar(mesh)
+# Put it into a TFR container for easy plotting
+tfr = AverageTFRArray(
+    info=epochs.info, data=power, times=epochs.times, freqs=freqs, nave=len(epochs)
+)
+tfr.plot(
+    baseline=(0.0, 0.1),
+    picks=[0],
+    mode="mean",
+    vlim=(vmin, vmax),
+    title="TFR calculated on a NumPy array",
+)
