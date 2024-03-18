@@ -1397,12 +1397,9 @@ docdict["exclude_spectrum_plot"] = _exclude_spectrum.format(
 )
 
 docdict["export_edf_note"] = """
-For EDF exports, only channels measured in Volts are allowed; in MNE-Python
-this means channel types 'eeg', 'ecog', 'seeg', 'emg', 'eog', 'ecg', 'dbs',
-'bio', and 'misc'. 'stim' channels are dropped. Although this function
-supports storing channel types in the signal label (e.g. ``EEG Fz`` or
-``MISC E``), other software may not support this (optional) feature of
-the EDF standard.
+Although this function supports storing channel types in the signal label (e.g.
+``EEG Fz`` or ``MISC E``), other software may not support this (optional) feature of the
+EDF standard.
 
 If ``add_ch_type`` is True, then channel types are written based on what
 they are currently set in MNE-Python. One should double check that all

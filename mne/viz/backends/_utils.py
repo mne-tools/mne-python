@@ -150,7 +150,8 @@ def _init_mne_qtapp(enable_icon=True, pg_app=False, splash=False):
 
             bundle = NSBundle.mainBundle()
             info = bundle.localizedInfoDictionary() or bundle.infoDictionary()
-            info["CFBundleName"] = app_name
+            if "CFBundleName" not in info:
+                info["CFBundleName"] = app_name
         except ModuleNotFoundError:
             pass
 
