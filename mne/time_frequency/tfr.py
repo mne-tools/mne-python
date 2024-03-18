@@ -1226,6 +1226,9 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
                 f'{classname} got unsupported parameter value{_pl(problem)} '
                 f'{" and ".join(problem)}.'
             )
+        # shim for tfr_array_morlet deprecation warning (TODO: remove after 1.7 release)
+        if method == "morlet":
+            method_kw.setdefault("zero_mean", True)
         # check method
         valid_methods = ["morlet", "multitaper"]
         if isinstance(inst, BaseEpochs):

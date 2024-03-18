@@ -2655,9 +2655,6 @@ class BaseEpochs(
                 _check_option(
                     "freqs", np.array(freqs).shape, ((2,),), extra=" (wrong shape)."
                 )
-        # preserve backcompat with `tfr_morlet()` function
-        if method == "morlet":
-            method_kw.setdefault("zero_mean", True)
         if average:
             out = AverageTFR(
                 inst=self,
