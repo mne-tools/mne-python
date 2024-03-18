@@ -264,6 +264,7 @@ power = tfr_array_morlet(
     freqs=freqs,
     n_cycles=n_cycles,
     output="avg_power",
+    zero_mean=False,
 )
 # Baseline the output
 rescale(power, epochs.times, (0.0, 0.1), mode="mean", copy=False)

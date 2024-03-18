@@ -941,7 +941,7 @@ def tfr_array_morlet(
     sfreq,
     freqs,
     n_cycles=7.0,
-    zero_mean=False,
+    zero_mean=None,
     use_fft=True,
     decim=1,
     output="complex",
@@ -962,8 +962,13 @@ def tfr_array_morlet(
         Sampling frequency of the data.
     %(freqs_tfr_array)s
     %(n_cycles_tfr)s
-    zero_mean : bool
+    zero_mean : bool | None
         If True, make sure the wavelets have a mean of zero. default False.
+
+        .. versionchanged:: 1.8
+            The default will change from ``zero_mean=False`` in 1.6 to ``True`` in
+            1.8, and (if not set explicitly) will raise a ``FutureWarning`` in 1.7.
+
     use_fft : bool
         Use the FFT for convolutions or not. default True.
     %(decim_tfr)s
@@ -1018,6 +1023,13 @@ def tfr_array_morlet(
     ----------
     .. footbibliography::
     """
+    if zero_mean is None:
+        warn(
+            "The default value of `zero_mean` will change from `False` to `True` "
+            "in version 1.8. Set the value explicitly to avoid this warning.",
+            FutureWarning,
+        )
+        zero_mean = False
     if epoch_data is not None:
         warn(
             "The parameter for providing data will be switched from `epoch_data` to "
