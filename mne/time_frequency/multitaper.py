@@ -285,9 +285,7 @@ def _compute_mt_params(n_times, sfreq, bandwidth, low_bias, adaptive, verbose=No
     """Triage windowing and multitaper parameters."""
     # Compute standardized half-bandwidth
     if isinstance(bandwidth, str):
-        logger.info(
-            '    Using standard spectrum estimation with "%s" window' % (bandwidth,)
-        )
+        logger.info(f'    Using standard spectrum estimation with "{bandwidth}" window')
         window_fun = get_window(bandwidth, n_times)[np.newaxis]
         return window_fun, np.ones(1), False
 
@@ -297,9 +295,8 @@ def _compute_mt_params(n_times, sfreq, bandwidth, low_bias, adaptive, verbose=No
         half_nbw = 4.0
     if half_nbw < 0.5:
         raise ValueError(
-            "bandwidth value %s yields a normalized half-bandwidth of "
-            "%s < 0.5, use a value of at least %s"
-            % (bandwidth, half_nbw, sfreq / n_times)
+            f"bandwidth value {bandwidth} yields a normalized half-bandwidth of "
+            f"{half_nbw} < 0.5, use a value of at least {sfreq / n_times}"
         )
 
     # Compute DPSS windows
@@ -315,7 +312,7 @@ def _compute_mt_params(n_times, sfreq, bandwidth, low_bias, adaptive, verbose=No
     if adaptive and len(eigvals) < 3:
         warn(
             "Not adaptively combining the spectral estimators due to a "
-            "low number of tapers (%s < 3)." % (len(eigvals),)
+            f"low number of tapers ({len(eigvals)} < 3)."
         )
         adaptive = False
 
