@@ -320,10 +320,10 @@ plot_filter(
 # compensation to achieve small delays in the pass-band.
 #
 # We can construct a minimum-phase filter from our existing linear-phase
-# filter, and note that the falloff is not as steep (though here we use a temporary
-# workaround function from ``mne.fixes`` that will be needed until SciPy 1.14.0 is
-# released with the option to pass ``half=False`` to
-# :func:`scipy.signal.minimum_phase` directly):
+# filter, and note that the falloff is not as steep. Here we do this with function
+# ``mne.fixes.minimum_phase()`` to avoid a SciPy bug; once SciPy 1.14.0 is released you
+# could directly use
+# :func:`scipy.signal.minimum_phase(..., half=False) <scipy.signal.minimum_phase>`.
 
 h_min = minimum_phase(h, half=False)
 plot_filter(h_min, sfreq, freq, gain, "Minimum-phase", **kwargs)
