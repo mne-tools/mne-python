@@ -4,11 +4,9 @@ concurrency:
   cancel-in-progress: true
 on:  # yamllint disable-line rule:truthy
   push:
-    branches:
-      - '*'
+    branches: ["main", "maint/*"]
   pull_request:
-    branches:
-      - '*'
+    branches: ["main", "maint/*"]
 
 permissions:
   contents: read
