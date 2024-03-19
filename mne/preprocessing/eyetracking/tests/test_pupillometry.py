@@ -11,7 +11,6 @@ from mne.io import RawArray, read_raw_eyelink
 from mne.preprocessing.eyetracking import deconvolve, interpolate_blinks
 
 fname = data_path(download=False) / "eyetrack" / "test_eyelink.asc"
-# pytest.importorskip("pandas")
 
 
 @requires_testing_data
@@ -26,6 +25,8 @@ fname = data_path(download=False) / "eyetrack" / "test_eyelink.asc"
 )
 def test_interpolate_blinks(buffer, match, cause_error, interpolate_gaze):
     """Test interpolating pupil data during blinks."""
+    pytest.importorskip("pandas")
+
     raw = read_raw_eyelink(fname, create_annotations=["blinks"], find_overlaps=True)
     # Create a dummy stim channel
     # this will hit a certain line in the interpolate_blinks function

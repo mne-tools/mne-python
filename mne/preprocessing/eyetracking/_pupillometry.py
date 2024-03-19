@@ -146,7 +146,7 @@ def pupil_zscores(epochs, baseline=(None, 0)):
     Returns
     -------
     pupil_data : array
-        An array of pupil size data, shape (``n_epochs``, ``n_channels``, ``n_times``).
+        An array of pupil size data, shape (n_epochs, n_channels, n_times).
     """
     # Code ported from https://github.com/pyeparse/pyeparse
     _check_preload(epochs, "Z-score normalization")
@@ -204,12 +204,12 @@ def deconvolve(
         Maximum number of iterations of minimization algorithm. Default is ``500``.
     kernel : array | None
         Kernel to assume when doing deconvolution. If ``None``, the
-        Hoeks and Levelt (1993) kernel will be used. :footcite:p:`Hoeks1993`.
+        Hoeks and Levelt (1993)\ :footcite:p:`Hoeks1993` kernel will be used.
     %(n_jobs)s
     acc : float
         The requested accuracy. Lower accuracy generally means smoother
         fits.
-    method : str
+    method : ``"minimize"`` | ``"inverse"``
         Can be ``"minimize"`` to use SLSQP or ``"inverse"`` to use
         Tikhonov-regularized pseudoinverse. Default is ``"minimize"``.
     reg : float
@@ -218,17 +218,16 @@ def deconvolve(
 
     Returns
     -------
-    fit : array
-        Array of fits, of shape (``n_epochs``, ``n_channels``, ``n_fit_times``).
-    times : array
+    fit : array,  shape (n_epochs, n_channels, n_fit_times)
+        Array of fits.
+    times : array, shape (n_fit_times,)
         The array of times at which points were fit.
 
     Notes
     -----
-    This method is adapted from:
-
-        Wierda et al., 2012, "Pupil dilation deconvolution reveals the
-        dynamics of attention at high temporal resolution." :footcite:p:`Wierda2012`
+    This method is adapted from Wierda et al., 2012, "Pupil dilation 
+    deconvolution reveals the dynamics of attention at high temporal 
+    resolution."\ :footcite:p:`Wierda2012`
 
     Our implementation does not, by default, force all weights to be
     greater than zero. It also does not do first-order detrending,
@@ -357,10 +356,10 @@ def pupil_kernel(sfreq, dur=4.0, t_max=0.930, n=10.1, s=1.0):
         Length (in seconds) of the generated kernel. Default is ``4.0`` seconds.
     t_max : float
         Time (in seconds) where the response maximum is stipulated to occur. Default is
-        ``0.930`` seconds, as in Hoeks and Levelt (1993). :footcite:p:`Hoeks1993`.
+        ``0.930`` seconds, as in Hoeks and Levelt (1993)\ :footcite:p:`Hoeks1993`.
     n : float
         Number of negative-exponential layers in the cascade defining the
-        gamma function. Default is ``10.1``, as in Hoeks and Levelt (1993).
+        gamma function. Default is ``10.1``, as in Hoeks and Levelt (1993)\
         :footcite:p:`Hoeks1993`.
     s : float | None
         Desired value for the area under the kernel. If ``None``, no scaling is
