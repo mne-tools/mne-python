@@ -117,9 +117,7 @@ def calculate_lut(lut_table, alpha, fmin, fmid, fmax, center=None, transparent=T
         Color map with transparency channel.
     """
     if not fmin <= fmid <= fmax:
-        raise ValueError(
-            "Must have fmin (%s) <= fmid (%s) <= fmax (%s)" % (fmin, fmid, fmax)
-        )
+        raise ValueError(f"Must have fmin ({fmin}) <= fmid ({fmid}) <= fmax ({fmax})")
     lut_table = create_lut(lut_table)
     assert lut_table.dtype.kind == "i"
     divergent = center is not None

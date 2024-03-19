@@ -3860,8 +3860,8 @@ def _is_good(
                             bad_names = [ch_names[idx[i]] for i in idx_deltas]
                             if not has_printed:
                                 logger.info(
-                                    "    Rejecting %s epoch based on %s : "
-                                    "%s" % (t, name, bad_names)
+                                    f"    Rejecting {t} epoch based on {name} : "
+                                    f"{bad_names}"
                                 )
                                 has_printed = True
                             if not full_report:

@@ -243,7 +243,7 @@ def _mixed_norm_solver_bcd(
             )
 
             if gap < tol:
-                logger.debug("Convergence reached ! (gap: %s < %s)" % (gap, tol))
+                logger.debug(f"Convergence reached ! (gap: {gap} < {tol})")
                 break
 
         # using Anderson acceleration of the primal variable for faster
@@ -525,7 +525,7 @@ def mixed_norm_solver(
                 )
             )
             if gap < tol:
-                logger.info("Convergence reached ! (gap: %s < %s)" % (gap, tol))
+                logger.info(f"Convergence reached ! (gap: {gap} < {tol})")
                 break
 
             # add sources if not last iteration
@@ -545,7 +545,7 @@ def mixed_norm_solver(
                 idx = np.searchsorted(idx_active_set, idx_old_active_set)
                 X_init[idx] = X
         else:
-            warn("Did NOT converge ! (gap: %s > %s)" % (gap, tol))
+            warn(f"Did NOT converge ! (gap: {gap} > {tol})")
     else:
         X, active_set, E = l21_solver(
             M, G, alpha, lc, maxit=maxit, tol=tol, n_orient=n_orient, init=None
@@ -640,8 +640,8 @@ def iterative_mixed_norm_solver(
 
     if weight_init is not None and weight_init.shape != (G.shape[1],):
         raise ValueError(
-            "Wrong dimension for weight initialization. Got %s. "
-            "Expected %s." % (weight_init.shape, (G.shape[1],))
+            f"Wrong dimension for weight initialization. Got {weight_init.shape}. "
+            f"Expected {(G.shape[1],)}."
         )
 
     weights = weight_init if weight_init is not None else np.ones(G.shape[1])
@@ -1270,7 +1270,7 @@ def _tf_mixed_norm_solver_bcd_(
                 "\n    Iteration %d :: n_active %d"
                 % (i + 1, np.sum(active_set) / n_orient)
             )
-            logger.info("    dgap %.2e :: p_obj %f :: d_obj %f" % (gap, p_obj, d_obj))
+            logger.info(f"    dgap {gap:.2e} :: p_obj {p_obj} :: d_obj {d_obj}")
 
         if converged:
             break
@@ -1504,7 +1504,7 @@ def tf_mixed_norm_solver(
     if len(tstep) != len(wsize):
         raise ValueError(
             "The same number of window sizes and steps must be "
-            "passed. Got tstep = %s and wsize = %s" % (tstep, wsize)
+            f"passed. Got tstep = {tstep} and wsize = {wsize}"
         )
 
     n_steps = np.ceil(M.shape[1] / tstep.astype(float)).astype(int)
@@ -1624,7 +1624,7 @@ def iterative_tf_mixed_norm_solver(
     if len(tstep) != len(wsize):
         raise ValueError(
             "The same number of window sizes and steps must be "
-            "passed. Got tstep = %s and wsize = %s" % (tstep, wsize)
+            f"passed. Got tstep = {tstep} and wsize = {wsize}"
         )
 
     n_steps = np.ceil(n_times / tstep.astype(float)).astype(int)

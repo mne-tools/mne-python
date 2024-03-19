@@ -89,7 +89,7 @@ def test_plot_volume_source_estimates(
     log = log.getvalue()
     want_str = "t = %0.3f s" % want_t
     assert want_str in log, (want_str, init_t)
-    want_str = "(%0.1f, %0.1f, %0.1f) mm" % want_p
+    want_str = f"({want_p[0]:0.1f}, {want_p[1]:0.1f}, {want_p[2]:0.1f}) mm"
     assert want_str in log, (want_str, init_p)
     for ax_idx in [0, 2, 3, 4]:
         _fake_click(fig, fig.axes[ax_idx], (0.3, 0.5))
