@@ -322,8 +322,8 @@ plot_filter(
 # We can construct a minimum-phase filter from our existing linear-phase
 # filter with the :func:`scipy.signal.minimum_phase` function, and note
 # that the falloff is not as steep (though here we use a temporary workaround
-# version vendored by MNE until https://github.com/scipy/scipy/pull/19706 is
-# merged and released):
+# version from ``mne.fixes`` until SciPy 1.14.0 is released where you will be able
+# to pass ``half=False`` to :func:`scipy.signal.minimum_phase` directly):
 
 h_min = minimum_phase(h, half=False)
 plot_filter(h_min, sfreq, freq, gain, "Minimum-phase", **kwargs)
