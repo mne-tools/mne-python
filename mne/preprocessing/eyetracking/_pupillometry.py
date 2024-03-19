@@ -154,9 +154,7 @@ def pupil_zscores(epochs, baseline=(None, 0)):
     _validate_type(epochs, BaseEpochs, "epochs")
     _validate_type(baseline, (tuple, list, np.ndarray), "baseline")
 
-    pupil_picks = _picks_to_idx(epochs.info, "pupil", allow_empty=True)
-    if not pupil_picks.any():
-        raise RuntimeError("no pupil data")
+    pupil_picks = _picks_to_idx(epochs.info, "pupil", allow_empty=False)
     if len(baseline) != 2:
         raise RuntimeError("baseline must be a 2-element list")
     baseline = np.array(baseline)
