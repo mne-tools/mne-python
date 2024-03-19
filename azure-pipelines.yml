@@ -274,7 +274,7 @@ stages:
             displayName: 'Print config'
           - script: python -c "import numpy; numpy.show_config()"
             displayName: Print NumPy config
-          - script: python -c "from threadpoolctl import threadpool_info; from pprint import pprint; pprint(threadpool_info())"
+          - script: python -c "import numpy; import scipy.linalg; import sklearn.neighbors; from threadpoolctl import threadpool_info; from pprint import pprint; pprint(threadpool_info())"
             displayName: Print threadpoolctl info
           - bash: source tools/get_testing_version.sh
             displayName: 'Get testing version'
