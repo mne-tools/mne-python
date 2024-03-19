@@ -5,7 +5,6 @@
 
 import numpy as np
 
-from mne import BaseEpochs
 from mne._fiff.pick import _picks_to_idx
 from mne.parallel import parallel_func
 
@@ -148,6 +147,8 @@ def pupil_zscores(epochs, baseline=(None, 0)):
     pupil_data : array
         An array of pupil size data, shape (n_epochs, n_channels, n_times).
     """
+    from mne import BaseEpochs
+
     # Code ported from https://github.com/pyeparse/pyeparse
     _check_preload(epochs, "Z-score normalization")
     _validate_type(epochs, BaseEpochs, "epochs")
