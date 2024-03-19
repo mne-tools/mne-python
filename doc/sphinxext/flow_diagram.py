@@ -12,7 +12,8 @@ edge_size = 9
 sensor_color = "#7bbeca"
 source_color = "#ff6347"
 
-legend = f"""<<FONT POINT-SIZE="{edge_size}">
+legend = f"""
+<<FONT POINT-SIZE="{edge_size}">
 <TABLE BORDER="0" CELLBORDER="0" CELLSPACING="4" CELLPADDING="4">
 <TR><TD BGCOLOR="{sensor_color}">    </TD><TD ALIGN="left">
 Sensor (M/EEG) space</TD></TR>
