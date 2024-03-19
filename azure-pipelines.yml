@@ -238,7 +238,7 @@ stages:
         variables:
           MNE_LOGGING_LEVEL: 'warning'
           MNE_FORCE_SERIAL: 'true'
-          OPENBLAS_NUM_THREADS: 2
+          OPENBLAS_NUM_THREADS: 1  # deal with OpenBLAS conflicts safely on Windows
           OMP_DYNAMIC: 'false'
           PYTHONUNBUFFERED: 1
           PYTHONIOENCODING: 'utf-8'
@@ -274,6 +274,8 @@ stages:
             displayName: 'Print config'
           - script: python -c "import numpy; numpy.show_config()"
             displayName: Print NumPy config
+          - script: python -c "from threadpoolctl import threadpool_info; from pprint import pprint; pprint(threadpool_info())"
+            displayName: Print threadpoolctl info
           - bash: source tools/get_testing_version.sh
             displayName: 'Get testing version'
           - task: Cache@2
