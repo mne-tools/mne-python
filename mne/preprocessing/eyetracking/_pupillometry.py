@@ -185,7 +185,7 @@ def deconvolve(
     method="minimize",
     reg=100,
 ):
-    """Deconvolve pupillary responses.
+    r"""Deconvolve pupillary responses.
 
     Parameters
     ----------
@@ -225,8 +225,8 @@ def deconvolve(
 
     Notes
     -----
-    This method is adapted from Wierda et al., 2012, "Pupil dilation 
-    deconvolution reveals the dynamics of attention at high temporal 
+    This method is adapted from Wierda et al., 2012, "Pupil dilation
+    deconvolution reveals the dynamics of attention at high temporal
     resolution."\ :footcite:p:`Wierda2012`
 
     Our implementation does not, by default, force all weights to be
@@ -346,7 +346,7 @@ def _score(vals, x_0, conv_mat):
 
 
 def pupil_kernel(sfreq, dur=4.0, t_max=0.930, n=10.1, s=1.0):
-    """Generate pupil response kernel modeled as an Erlang gamma function.
+    r"""Generate pupil response kernel modeled as an Erlang gamma function.
 
     Parameters
     ----------
