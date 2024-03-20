@@ -2510,6 +2510,8 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
         info, data = _prepare_picks(info, data, picks, axis=0)
         del picks
 
+        # TODO this is the only remaining call to _preproc_tfr; should be refactored
+        #      (to use _prep_data_for_plot?)
         data, times, freqs, vmin, vmax = _preproc_tfr(
             data,
             times,
