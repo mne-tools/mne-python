@@ -2050,8 +2050,8 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
 
         assert data.shape == want_shape
         # cmap handling. power may be negative depending on baseline strategy so set
-        # `norm` empirically.
-        norm = data.min() >= 0.0
+        # `norm` empirically — but only if user didn't set limits explicitly.
+        norm = False if vlim == (None, None) else data.min() >= 0.0
         vmin, vmax = _setup_vmin_vmax(data, *vlim, norm=norm)
         cmap = _setup_cmap(cmap, norm=norm)
         # prepare figure(s)
