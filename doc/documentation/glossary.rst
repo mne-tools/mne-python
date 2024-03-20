@@ -47,9 +47,9 @@ general neuroimaging concepts. If you think a term is missing, please consider
         Many functions in MNE-Python operate on "data channels" by default. These
         are channels that contain electrophysiological data from the brain,
         as opposed to other channel types such as EOG, ECG, stimulus/trigger,
-        or acquisition system status data. The set of channels considered
-        "data channels" in MNE contains the following types (together with scale
-        factors for plotting):
+        or acquisition system status data (see :term:`non-data channels`).
+        The set of channels considered "data channels" in MNE contains the
+        following types (together with scale factors for plotting):
 
         .. mne:: data channels list
 
@@ -287,6 +287,27 @@ general neuroimaging concepts. If you think a term is missing, please consider
         data into a common space for statistical analysis.
         See :ref:`ch_morph` for more details.
 
+    non-data types
+        All types of channels other than :term:`data channels`.
+        The set of channels considered "non-data channels" in MNE contains the
+        following types (together with scale factors for plotting):
+
+        .. mne:: non-data channels list
+        - 'ecg': ECG (scaled by 1e+15 to plot in fT)
+        - 'emg': EMG (scaled by 1e+13 to plot in fT/cm)
+        - 'bio': EEG (scaled by 1e+06 to plot in µV)
+        - 'stim': Current source density (scaled by 1000 to plot in mV/m²)
+        - 'resp': sEEG (scaled by 1000 to plot in mV)
+        - 'chpi': ECoG (scaled by 1e+06 to plot in µV)
+        - 'exci': DBS (scaled by 1e+06 to plot in µV)
+        - 'ias': Oxyhemoglobin (scaled by 1e+06 to plot in µM)
+        - 'syst': Deoxyhemoglobin (scaled by 1e+06 to plot in µM)
+        - 'temperature': fNIRS (CW amplitude) (scaled by 1 to plot in V)
+        - 'gsr': fNIRS (FD AC amplitude) (scaled by 1 to plot in V)
+        - 'misc': misc (FD AC amplitude) (scaled by 1 to plot in V)
+        - 'dipole': Dipole (FD AC amplitude) (scaled by 1 to plot in V)
+        - 'ref_meg': Reference Magnetometers (FD AC amplitude) (scaled by 1 to plot in V)
+
     OPM
     optically pumped magnetometer
         An optically pumped magnetometer (OPM) is a type of magnetometer
@@ -349,6 +370,10 @@ general neuroimaging concepts. If you think a term is missing, please consider
     selection
         A selection is a set of picked channels (for example, all sensors
         falling within a :term:`region of interest`).
+
+    sensor types
+        All the sensors handled by MNE-Python can be divided into two categories:
+        :term:`data channels` and :term:`non-data channels`.
 
     STC
     source estimate

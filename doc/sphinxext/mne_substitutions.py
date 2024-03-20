@@ -38,6 +38,25 @@ class MNESubstitution(Directive):  # noqa: D101
                 )
                 for key in keys
             )
+        elif self.arguments[0] == "non-data channels list":
+            keys = list()
+            for key in _DATA_CH_TYPES_ORDER_DEFAULT:
+                if key in _DATA_CH_TYPES_SPLIT:
+                    keys.append(key)
+                elif key not in ("meg", "fnirs") and _PICK_TYPES_DATA_DICT.get(
+                        key, False
+                ):
+                    keys.append(key)
+            rst = "- " + "\n- ".join(
+                "``%r``: **%s** (scaled by %g to plot in *%s*)"
+                % (
+                    key,
+                    DEFAULTS["titles"][key],
+                    DEFAULTS["scalings"][key],
+                    DEFAULTS["units"][key],
+                )
+                for key in keys
+            )
         else:
             raise self.error(
                 "MNE directive unknown in %s: %r"
