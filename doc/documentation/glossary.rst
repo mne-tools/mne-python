@@ -41,7 +41,7 @@ general neuroimaging concepts. If you think a term is missing, please consider
         Channels refer to MEG sensors, EEG electrodes or other sensors such as
         EOG, ECG, sEEG, ECoG, etc. Channels usually have
         a type (such as gradiometer), and a unit (such as T/m) used e.g. for
-        plotting. See also :term:`data channels`.
+        plotting. See also :term:`data channels` and :term:`non-data channels`.
 
     data channels
         Many functions in MNE-Python operate on "data channels" by default. These
@@ -287,26 +287,12 @@ general neuroimaging concepts. If you think a term is missing, please consider
         data into a common space for statistical analysis.
         See :ref:`ch_morph` for more details.
 
-    non-data types
+    non-data channels
         All types of channels other than :term:`data channels`.
         The set of channels considered "non-data channels" in MNE contains the
         following types (together with scale factors for plotting):
 
         .. mne:: non-data channels list
-        - 'ecg': ECG (scaled by 1e+15 to plot in fT)
-        - 'emg': EMG (scaled by 1e+13 to plot in fT/cm)
-        - 'bio': EEG (scaled by 1e+06 to plot in µV)
-        - 'stim': Current source density (scaled by 1000 to plot in mV/m²)
-        - 'resp': sEEG (scaled by 1000 to plot in mV)
-        - 'chpi': ECoG (scaled by 1e+06 to plot in µV)
-        - 'exci': DBS (scaled by 1e+06 to plot in µV)
-        - 'ias': Oxyhemoglobin (scaled by 1e+06 to plot in µM)
-        - 'syst': Deoxyhemoglobin (scaled by 1e+06 to plot in µM)
-        - 'temperature': fNIRS (CW amplitude) (scaled by 1 to plot in V)
-        - 'gsr': fNIRS (FD AC amplitude) (scaled by 1 to plot in V)
-        - 'misc': misc (FD AC amplitude) (scaled by 1 to plot in V)
-        - 'dipole': Dipole (FD AC amplitude) (scaled by 1 to plot in V)
-        - 'ref_meg': Reference Magnetometers (FD AC amplitude) (scaled by 1 to plot in V)
 
     OPM
     optically pumped magnetometer
