@@ -516,7 +516,7 @@ def _compute_tfr(
     if epoch_data.ndim != 3:
         raise ValueError(
             "epoch_data must be of shape (n_epochs, n_chans, "
-            "n_times), got %s" % (epoch_data.shape,)
+            f"n_times), got {epoch_data.shape}"
         )
 
     # Check params
@@ -536,7 +536,7 @@ def _compute_tfr(
     if (freqs > sfreq / 2.0).any():
         raise ValueError(
             "Cannot compute freq above Nyquist freq of the data "
-            "(%0.1f Hz), got %0.1f Hz" % (sfreq / 2.0, freqs.max())
+            f"({sfreq / 2.0:0.1f} Hz), got {freqs.max():0.1f} Hz"
         )
 
     # We decimate *after* decomposition, so we need to create our kernels
@@ -4019,10 +4019,10 @@ def combine_tfr(all_tfr, weights="nave"):
     ch_names = tfr.ch_names
     for t_ in all_tfr[1:]:
         assert t_.ch_names == ch_names, ValueError(
-            "%s and %s do not contain " "the same channels" % (tfr, t_)
+            f"{tfr} and {t_} do not contain the same channels"
         )
         assert np.max(np.abs(t_.times - tfr.times)) < 1e-7, ValueError(
-            "%s and %s do not contain the same time instants" % (tfr, t_)
+            f"{tfr} and {t_} do not contain the same time instants"
         )
 
     # use union of bad channels

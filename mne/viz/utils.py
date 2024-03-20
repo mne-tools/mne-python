@@ -1980,9 +1980,7 @@ def _handle_decim(info, decim, lowpass):
         decim = max(int(info["sfreq"] / (lp * 3) + 1e-6), 1)
     decim = _ensure_int(decim, "decim", must_be='an int or "auto"')
     if decim <= 0:
-        raise ValueError(
-            'decim must be "auto" or a positive integer, got %s' % (decim,)
-        )
+        raise ValueError(f'decim must be "auto" or a positive integer, got {decim}')
     decim = _check_decim(info, decim, 0)[0]
     data_picks = _pick_data_channels(info, exclude=())
     return decim, data_picks
@@ -2160,7 +2158,7 @@ def _set_title_multiple_electrodes(
 
 def _check_time_unit(time_unit, times):
     if not isinstance(time_unit, str):
-        raise TypeError("time_unit must be str, got %s" % (type(time_unit),))
+        raise TypeError(f"time_unit must be str, got {type(time_unit)}")
     if time_unit == "s":
         pass
     elif time_unit == "ms":
@@ -2222,7 +2220,7 @@ def _plot_masked_image(
         if mask.shape != data.shape:
             raise ValueError(
                 "The mask must have the same shape as the data, "
-                "i.e., %s, not %s" % (data.shape, mask.shape)
+                f"i.e., {data.shape}, not {mask.shape}"
             )
         if draw_contour and yscale == "log":
             warn("Cannot draw contours with linear yscale yet ...")
@@ -2329,7 +2327,7 @@ def _plot_masked_image(
             t_end = ", all points masked)"
         else:
             fraction = 1 - (np.float64(mask.sum()) / np.float64(mask.size))
-            t_end = ", %0.3g%% of points masked)" % (fraction * 100,)
+            t_end = f", {fraction * 100:0.3g}% of points masked)"
     else:
         t_end = ")"
 

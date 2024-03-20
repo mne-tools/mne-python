@@ -287,7 +287,7 @@ class GetEpochsMixin:
                 except Exception as exp:
                     msg += (
                         " The epochs.metadata Pandas query did not "
-                        "yield any results: %s" % (exp.args[0],)
+                        f"yield any results: {exp.args[0]}"
                     )
                 else:
                     return vals
@@ -452,7 +452,7 @@ class GetEpochsMixin:
             action += " existing"
         else:
             action = "Not setting" if metadata is None else "Adding"
-        logger.info("%s metadata%s" % (action, n_col))
+        logger.info(f"{action} metadata{n_col}")
         self._metadata = metadata
 
 

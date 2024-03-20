@@ -12,18 +12,14 @@ edge_size = 9
 sensor_color = "#7bbeca"
 source_color = "#ff6347"
 
-legend = """
-<<FONT POINT-SIZE="%s">
+legend = f"""
+<<FONT POINT-SIZE="{edge_size}">
 <TABLE BORDER="0" CELLBORDER="0" CELLSPACING="4" CELLPADDING="4">
-<TR><TD BGCOLOR="%s">    </TD><TD ALIGN="left">
+<TR><TD BGCOLOR="{sensor_color}">    </TD><TD ALIGN="left">
 Sensor (M/EEG) space</TD></TR>
-<TR><TD BGCOLOR="%s">    </TD><TD ALIGN="left">
+<TR><TD BGCOLOR="{source_color}">    </TD><TD ALIGN="left">
 Source (brain) space</TD></TR>
-</TABLE></FONT>>""" % (
-    edge_size,
-    sensor_color,
-    source_color,
-)
+</TABLE></FONT>>"""
 legend = "".join(legend.split("\n"))
 
 nodes = dict(
