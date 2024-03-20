@@ -340,6 +340,7 @@ numpydoc_xref_ignore = {
     "n_signals",
     "n_step",
     "n_freqs",
+    "n_fit_times",
     "wsize",
     "Tx",
     "M",
