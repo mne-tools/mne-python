@@ -29,7 +29,12 @@ from ..fixes import (
     svd_flip,
 )
 from ._logging import logger, verbose, warn
-from .check import _ensure_int, _validate_type, check_random_state
+from .check import (
+    _check_pandas_installed,
+    _ensure_int,
+    _validate_type,
+    check_random_state,
+)
 from .docs import fill_doc
 from .misc import _empty_hash
 
@@ -255,9 +260,9 @@ def _get_inst_data(inst):
     from ..epochs import BaseEpochs
     from ..evoked import Evoked
     from ..io import BaseRaw
-    from ..time_frequency.tfr import _BaseTFR
+    from ..time_frequency.tfr import BaseTFR
 
-    _validate_type(inst, (BaseRaw, BaseEpochs, Evoked, _BaseTFR), "Instance")
+    _validate_type(inst, (BaseRaw, BaseEpochs, Evoked, BaseTFR), "Instance")
     if not inst.preload:
         inst.load_data()
     return inst._data
@@ -776,6 +781,7 @@ def object_diff(a, b, pre="", *, allclose=False):
     diffs : str
         A string representation of the differences.
     """
+    pd = _check_pandas_installed(strict=False)
     out = ""
     if type(a) != type(b):
         # Deal with NamedInt and NamedFloat
@@ -835,6 +841,11 @@ def object_diff(a, b, pre="", *, allclose=False):
             c.eliminate_zeros()
             if c.nnz > 0:
                 out += pre + (" sparse matrix a and b differ on %s " "elements" % c.nnz)
+    elif pd and isinstance(a, pd.DataFrame):
+        try:
+            pd.testing.assert_frame_equal(a, b)
+        except AssertionError:
+            out += pre + " DataFrame mismatch\n"
     elif hasattr(a, "__getstate__") and a.__getstate__() is not None:
         out += object_diff(a.__getstate__(), b.__getstate__(), pre, allclose=allclose)
     else:

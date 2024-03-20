@@ -80,13 +80,13 @@ class GetEpochsMixin:
 
         Parameters
         ----------
-        item : slice, array-like, str, or list
-            See below for use cases.
+        item : int | slice | array-like | str
+            See Notes for use cases.
 
         Returns
         -------
         epochs : instance of Epochs
-            See below for use cases.
+            The subset of epochs.
 
         Notes
         -----
@@ -197,10 +197,9 @@ class GetEpochsMixin:
         `Epochs` or tuple(Epochs, np.ndarray) if `return_indices` is True
             subset of epochs (and optionally array with kept epoch indices)
         """
-        data = self._data
-        self._data = None
         inst = self.copy() if copy else self
-        self._data = inst._data = data
+        if self._data is not None:
+            np.copyto(inst._data, self._data, casting="no")
         del self
 
         select = inst._item_to_select(item)
@@ -681,10 +680,10 @@ class ExtendedTimeMixin(TimeMixin):
         # appropriately filtered to avoid aliasing
         from ..epochs import BaseEpochs
         from ..evoked import Evoked
-        from ..time_frequency import AverageTFR, EpochsTFR
+        from ..time_frequency import BaseTFR
 
         # This should be the list of classes that inherit
-        _validate_type(self, (BaseEpochs, Evoked, EpochsTFR, AverageTFR), "inst")
+        _validate_type(self, (BaseEpochs, Evoked, BaseTFR), "inst")
         decim, offset, new_sfreq = _check_decim(
             self.info, decim, offset, check_filter=not hasattr(self, "freqs")
         )
@@ -755,7 +754,7 @@ def _prepare_write_metadata(metadata):
     """Convert metadata to JSON for saving."""
     if metadata is not None:
         if not isinstance(metadata, list):
-            metadata = metadata.to_json(orient="records")
+            metadata = metadata.reset_index().to_json(orient="records")
         else:  # Pandas DataFrame
             metadata = json.dumps(metadata)
         assert isinstance(metadata, str)
@@ -772,5 +771,7 @@ def _prepare_read_metadata(metadata):
         assert isinstance(metadata, list)
         if pd:
             metadata = pd.DataFrame.from_records(metadata)
+            if "index" in metadata.columns:
+                metadata.set_index("index", inplace=True)
             assert isinstance(metadata, pd.DataFrame)
     return metadata
