@@ -1434,7 +1434,7 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
             dims=("epoch", "channel", "freq", "time")[-state["data"].ndim :],
             baseline=None,
             decim=1,
-            data_type="Unknown TFR",
+            data_type="TFR",
             inst_type_str="Unknown",
         )
         defaults.update(**state)
