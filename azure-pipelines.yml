@@ -238,7 +238,7 @@ stages:
         variables:
           MNE_LOGGING_LEVEL: 'warning'
           MNE_FORCE_SERIAL: 'true'
-          OPENBLAS_NUM_THREADS: '2'  # deal with OpenBLAS conflicts safely on Windows
+          OPENBLAS_NUM_THREADS: '1'  # deal with OpenBLAS conflicts safely on Windows
           OMP_DYNAMIC: 'false'
           PYTHONUNBUFFERED: 1
           PYTHONIOENCODING: 'utf-8'
