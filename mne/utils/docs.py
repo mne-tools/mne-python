@@ -1217,12 +1217,9 @@ docdict["exclude_spectrum_plot"] = _exclude_spectrum.format(
 )
 
 docdict["export_edf_note"] = """
-For EDF exports, only channels measured in Volts are allowed; in MNE-Python
-this means channel types 'eeg', 'ecog', 'seeg', 'emg', 'eog', 'ecg', 'dbs',
-'bio', and 'misc'. 'stim' channels are dropped. Although this function
-supports storing channel types in the signal label (e.g. ``EEG Fz`` or
-``MISC E``), other software may not support this (optional) feature of
-the EDF standard.
+Although this function supports storing channel types in the signal label (e.g.
+``EEG Fz`` or ``MISC E``), other software may not support this (optional) feature of the
+EDF standard.
 
 If ``add_ch_type`` is True, then channel types are written based on what
 they are currently set in MNE-Python. One should double check that all
@@ -2812,21 +2809,36 @@ per_sample : bool
 docdict["phase"] = """
 phase : str
     Phase of the filter.
-    When ``method='fir'``, symmetric linear-phase FIR filters are constructed,
-    and if ``phase='zero'`` (default), the delay of this filter is compensated
-    for, making it non-causal. If ``phase='zero-double'``,
-    then this filter is applied twice, once forward, and once backward
-    (also making it non-causal). If ``'minimum'``, then a minimum-phase filter
-    will be constructed and applied, which is causal but has weaker stop-band
-    suppression.
-    When ``method='iir'``, ``phase='zero'`` (default) or
-    ``phase='zero-double'`` constructs and applies IIR filter twice, once
-    forward, and once backward (making it non-causal) using
-    :func:`~scipy.signal.filtfilt`.
-    If ``phase='forward'``, it constructs and applies forward IIR filter using
+    When ``method='fir'``, symmetric linear-phase FIR filters are constructed
+    with the following behaviors when ``method="fir"``:
+
+    ``"zero"`` (default)
+        The delay of this filter is compensated for, making it non-causal.
+    ``"minimum"``
+        A minimum-phase filter will be constructed by decomposing the zero-phase filter
+        into a minimum-phase and all-pass systems, and then retaining only the
+        minimum-phase system (of the same length as the original zero-phase filter)
+        via :func:`scipy.signal.minimum_phase`.
+    ``"zero-double"``
+        *This is a legacy option for compatibility with MNE <= 0.13.*
+        The filter is applied twice, once forward, and once backward
+        (also making it non-causal).
+    ``"minimum-half"``
+        *This is a legacy option for compatibility with MNE <= 1.6.*
+        A minimum-phase filter will be reconstructed from the zero-phase filter with
+        half the length of the original filter.
+
+    When ``method='iir'``, ``phase='zero'`` (default) or equivalently ``'zero-double'``
+    constructs and applies IIR filter twice, once forward, and once backward (making it
+    non-causal) using :func:`~scipy.signal.filtfilt`; ``phase='forward'`` will apply
+    the filter once in the forward (causal) direction using
     :func:`~scipy.signal.lfilter`.
 
     .. versionadded:: 0.13
+    .. versionchanged:: 1.7
+
+       The behavior for ``phase="minimum"`` was fixed to use a filter of the requested
+       length and improved suppression.
 """
 
 docdict["physical_range_export_params"] = """
@@ -4214,10 +4226,10 @@ trans : path-like | dict | instance of Transform | ``"fsaverage"`` | None
     If trans is None, an identity matrix is assumed.
 """
 
-docdict["trans_not_none"] = """
+docdict["trans_not_none"] = f"""
 trans : str | dict | instance of Transform
-    %s
-""" % (_trans_base,)
+    {_trans_base}
+"""
 
 docdict["transparent"] = """
 transparent : bool | None
@@ -4522,7 +4534,7 @@ def fill_doc(f):
     except (TypeError, ValueError, KeyError) as exp:
         funcname = f.__name__
         funcname = docstring.split("\n")[0] if funcname is None else funcname
-        raise RuntimeError("Error documenting %s:\n%s" % (funcname, str(exp)))
+        raise RuntimeError(f"Error documenting {funcname}:\n{str(exp)}")
     return f
 
 
@@ -4824,11 +4836,7 @@ def linkcode_resolve(domain, info):
         kind = "main"
     else:
         kind = "maint/%s" % (".".join(mne.__version__.split(".")[:2]))
-    return "http://github.com/mne-tools/mne-python/blob/%s/mne/%s%s" % (
-        kind,
-        fn,
-        linespec,
-    )
+    return f"http://github.com/mne-tools/mne-python/blob/{kind}/mne/{fn}{linespec}"
 
 
 def open_docs(kind=None, version=None):
@@ -4860,7 +4868,7 @@ def open_docs(kind=None, version=None):
     if version is None:
         version = get_config("MNE_DOCS_VERSION", "stable")
     _check_option("version", version, ["stable", "dev"])
-    webbrowser.open_new_tab("https://mne.tools/%s/%s" % (version, kind))
+    webbrowser.open_new_tab(f"https://mne.tools/{version}/{kind}")
 
 
 class _decorator:
@@ -5054,7 +5062,7 @@ def _docformat(docstring, docdict=None, funcname=None):
     try:
         return docstring % indented
     except (TypeError, ValueError, KeyError) as exp:
-        raise RuntimeError("Error documenting %s:\n%s" % (funcname, str(exp)))
+        raise RuntimeError(f"Error documenting {funcname}:\n{str(exp)}")
 
 
 def _indentcount_lines(lines):

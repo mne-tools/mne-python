@@ -40,6 +40,7 @@ CH_TYPE_MAPPING = {
     "TEMP": FIFF.FIFFV_TEMPERATURE_CH,
     "MISC": FIFF.FIFFV_MISC_CH,
     "SAO2": FIFF.FIFFV_BIO_CH,
+    "STIM": FIFF.FIFFV_STIM_CH,
 }
 
 
@@ -369,7 +370,7 @@ def _read_segment_file(data, idx, fi, start, stop, raw_extras, filenames, cals, 
 
     # We could read this one EDF block at a time, which would be this:
     ch_offsets = np.cumsum(np.concatenate([[0], n_samps]), dtype=np.int64)
-    block_start_idx, r_lims, d_lims = _blk_read_lims(start, stop, buf_len)
+    block_start_idx, r_lims, _ = _blk_read_lims(start, stop, buf_len)
     # But to speed it up, we really need to read multiple blocks at once,
     # Otherwise we can end up with e.g. 18,181 chunks for a 20 MB file!
     # Let's do ~10 MB chunks:

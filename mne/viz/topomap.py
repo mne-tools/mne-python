@@ -1271,7 +1271,7 @@ def _plot_topomap(
     if len(data) != len(pos):
         raise ValueError(
             "Data and pos need to be of same length. Got data of "
-            "length %s, pos of length %s" % (len(data), len(pos))
+            f"length {len(data)}, pos of length { len(pos)}"
         )
 
     norm = min(data) >= 0
@@ -3156,9 +3156,9 @@ def _animate(frame, ax, ax_line, params):
     time_idx = params["frames"][frame]
 
     if params["time_unit"] == "ms":
-        title = "%6.0f ms" % (params["times"][frame] * 1e3,)
+        title = f"{params['times'][frame] * 1e3:6.0f} ms"
     else:
-        title = "%6.3f s" % (params["times"][frame],)
+        title = f"{params['times'][frame]:6.3f} s"
     if params["blit"]:
         text = params["text"]
     else:
