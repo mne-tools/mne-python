@@ -11,7 +11,6 @@ that is usually not recoverable and so the epoch must be rejected as shown in
 artifact is produced during postural maintenance. This is more appropriately
 removed by ICA otherwise there wouldn't be any epochs left! Note that muscle
 artifacts of this kind are much more pronounced in EEG than they are in MEG.
-
 """
 # Authors: Alex Rockhill <aprockhill@mailbox.org>
 #

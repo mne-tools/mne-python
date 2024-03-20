@@ -78,8 +78,9 @@ def test_export_raw_pybv(tmp_path, meas_date, orig_time, ext):
     raw.set_annotations(annots)
 
     temp_fname = tmp_path / ("test" + ext)
-    with _record_warnings(), pytest.warns(
-        RuntimeWarning, match="'short' format. Converting"
+    with (
+        _record_warnings(),
+        pytest.warns(RuntimeWarning, match="'short' format. Converting"),
     ):
         raw.export(temp_fname)
     raw_read = read_raw_brainvision(str(temp_fname).replace(".eeg", ".vhdr"))
@@ -168,16 +169,12 @@ def test_double_export_edf(tmp_path):
 
     # export once
     temp_fname = tmp_path / "test.edf"
-    with pytest.warns(RuntimeWarning, match="Exporting STIM channels"):
-        raw.export(temp_fname, add_ch_type=True)
+    raw.export(temp_fname, add_ch_type=True)
     raw_read = read_raw_edf(temp_fname, infer_types=True, preload=True)
 
     # export again
     raw_read.export(temp_fname, add_ch_type=True, overwrite=True)
     raw_read = read_raw_edf(temp_fname, infer_types=True, preload=True)
-
-    # stim channel should be dropped
-    raw.drop_channels("2")
 
     assert raw.ch_names == raw_read.ch_names
     assert_array_almost_equal(raw.get_data(), raw_read.get_data(), decimal=10)
@@ -256,19 +253,19 @@ def test_rawarray_edf(tmp_path):
 
 
 @edfio_mark()
-def test_edf_export_warns_on_non_voltage_channels(tmp_path):
+def test_edf_export_non_voltage_channels(tmp_path):
     """Test saving a Raw array containing a non-voltage channel."""
     temp_fname = tmp_path / "test.edf"
 
     raw = _create_raw_for_edf_tests()
     raw.set_channel_types({"9": "hbr"}, on_unit_change="ignore")
-    with pytest.warns(RuntimeWarning, match="Non-voltage channels"):
-        raw.export(temp_fname, overwrite=True)
+    raw.export(temp_fname, overwrite=True)
 
     # data should match up to the non-accepted channel
     raw_read = read_raw_edf(temp_fname, preload=True)
     assert raw.ch_names == raw_read.ch_names
     assert_array_almost_equal(raw.get_data()[:-1], raw_read.get_data()[:-1], decimal=10)
+    assert_array_almost_equal(raw.get_data()[-1], raw_read.get_data()[-1], decimal=5)
     assert_array_equal(raw.times, raw_read.times)
 
 
@@ -290,6 +287,7 @@ def test_measurement_date_outside_range_valid_for_edf(tmp_path):
         raw.export(tmp_path / "test.edf", overwrite=True)
 
 
+@pytest.mark.filterwarnings("ignore:Data has a non-integer:RuntimeWarning")
 @pytest.mark.parametrize(
     ("physical_range", "exceeded_bound"),
     [
@@ -303,8 +301,9 @@ def test_export_edf_signal_clipping(tmp_path, physical_range, exceeded_bound):
     raw = read_raw_fif(fname_raw)
     raw.pick(picks=["eeg", "ecog", "seeg"]).load_data()
     temp_fname = tmp_path / "test.edf"
-    with _record_warnings(), pytest.warns(
-        RuntimeWarning, match=f"The {exceeded_bound}"
+    with (
+        _record_warnings(),
+        pytest.warns(RuntimeWarning, match=f"The {exceeded_bound}"),
     ):
         raw.export(temp_fname, physical_range=physical_range)
     raw_read = read_raw_edf(temp_fname, preload=True)

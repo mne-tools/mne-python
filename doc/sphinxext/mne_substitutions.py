@@ -4,12 +4,12 @@ from docutils import nodes
 from docutils.parsers.rst import Directive
 from docutils.statemachine import StringList
 
-from mne.defaults import DEFAULTS
 from mne._fiff.pick import (
-    _PICK_TYPES_DATA_DICT,
-    _DATA_CH_TYPES_SPLIT,
     _DATA_CH_TYPES_ORDER_DEFAULT,
+    _DATA_CH_TYPES_SPLIT,
+    _PICK_TYPES_DATA_DICT,
 )
+from mne.defaults import DEFAULTS
 
 
 class MNESubstitution(Directive):  # noqa: D101
@@ -29,18 +29,14 @@ class MNESubstitution(Directive):  # noqa: D101
                 ):
                     keys.append(key)
             rst = "- " + "\n- ".join(
-                "``%r``: **%s** (scaled by %g to plot in *%s*)"
-                % (
-                    key,
-                    DEFAULTS["titles"][key],
-                    DEFAULTS["scalings"][key],
-                    DEFAULTS["units"][key],
-                )
+                f"``{repr(key)}``: **{DEFAULTS['titles'][key]}** "
+                f"(scaled by {DEFAULTS['scalings'][key]} to "
+                f"plot in *{DEFAULTS['units'][key]}*)"
                 for key in keys
             )
         else:
             raise self.error(
-                "MNE directive unknown in %s: %r"
+                "MNE directive unknown in %s: %r"  # noqa: UP031
                 % (
                     env.doc2path(env.docname, base=None),
                     self.arguments[0],

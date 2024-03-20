@@ -447,7 +447,7 @@ def _aux_hdr_info(hdr_fname):
         params, settings = settings.split("[Comment]")
     else:
         params, settings = settings, ""
-    cfg = configparser.ConfigParser()
+    cfg = configparser.ConfigParser(interpolation=None)
     with StringIO(params) as fid:
         cfg.read_file(fid)
 
@@ -867,8 +867,8 @@ def _get_hdr_info(hdr_fname, eog, misc, scale):
                     nyquist = ""
                 warn(
                     "Channels contain different lowpass filters. "
-                    "Highest (weakest) filter setting (%0.2f Hz%s) "
-                    "will be stored." % (info["lowpass"], nyquist)
+                    f"Highest (weakest) filter setting ({info['lowpass']:0.2f} "
+                    f"Hz{nyquist}) will be stored."
                 )
 
     # Creates a list of dicts of eeg channels for raw.info

@@ -104,7 +104,7 @@ stages:
           - bash: |
               set -e
               python -m pip install --progress-bar off --upgrade pip
-              python -m pip install --progress-bar off "mne-qt-browser[opengl] @ git+https://github.com/mne-tools/mne-qt-browser.git@main" pyvista scikit-learn pytest-error-for-skips python-picard "PyQt6!=6.5.1,!=6.6.1" "PyQt6-Qt6!=6.6.1" qtpy nibabel sphinx-gallery
+              python -m pip install --progress-bar off "mne-qt-browser[opengl] @ git+https://github.com/mne-tools/mne-qt-browser.git@main" pyvista scikit-learn pytest-error-for-skips python-picard "PyQt6!=6.5.1,!=6.6.1,!=6.6.2" "PyQt6-Qt6!=6.6.1,!=6.6.2" qtpy nibabel sphinx-gallery
               python -m pip uninstall -yq mne
               python -m pip install --progress-bar off --upgrade -e .[test]
             displayName: 'Install dependencies with pip'
@@ -183,7 +183,7 @@ stages:
             displayName: 'Get test data'
           - bash: |
               set -e
-              python -m pip install "PyQt6!=6.6.1" "PyQt6-Qt6!=6.6.1"
+              python -m pip install "PyQt6!=6.6.1,!=6.6.2" "PyQt6-Qt6!=6.6.1,!=6.6.2"
               LD_DEBUG=libs python -c "from PyQt6.QtWidgets import QApplication, QWidget; app = QApplication([]); import matplotlib; matplotlib.use('QtAgg'); import matplotlib.pyplot as plt; plt.figure()"
           - bash: |
               mne sys_info -pd
@@ -238,7 +238,7 @@ stages:
         variables:
           MNE_LOGGING_LEVEL: 'warning'
           MNE_FORCE_SERIAL: 'true'
-          OPENBLAS_NUM_THREADS: 2
+          OPENBLAS_NUM_THREADS: '1'  # deal with OpenBLAS conflicts safely on Windows
           OMP_DYNAMIC: 'false'
           PYTHONUNBUFFERED: 1
           PYTHONIOENCODING: 'utf-8'
@@ -274,6 +274,8 @@ stages:
             displayName: 'Print config'
           - script: python -c "import numpy; numpy.show_config()"
             displayName: Print NumPy config
+          - script: python -c "import numpy; import scipy.linalg; import sklearn.neighbors; from threadpoolctl import threadpool_info; from pprint import pprint; pprint(threadpool_info())"
+            displayName: Print threadpoolctl info
           - bash: source tools/get_testing_version.sh
             displayName: 'Get testing version'
           - task: Cache@2

@@ -10,6 +10,7 @@ import os.path as op
 import shutil
 import sys
 import warnings
+from collections import defaultdict
 from contextlib import contextmanager
 from pathlib import Path
 from textwrap import dedent
@@ -199,6 +200,7 @@ def pytest_configure(config):
     ignore:Python 3\.14 will, by default, filter extracted tar archives.*:DeprecationWarning
     # pandas
     ignore:\n*Pyarrow will become a required dependency of pandas.*:DeprecationWarning
+    ignore:np\.find_common_type is deprecated.*:DeprecationWarning
     # pyvista <-> NumPy 2.0
     ignore:__array_wrap__ must accept context and return_scalar arguments.*:DeprecationWarning
     """  # noqa: E501
@@ -396,6 +398,34 @@ def epochs_spectrum():
 
 
 @pytest.fixture()
+def epochs_tfr():
+    """Get an EpochsTFR computed from mne.io.tests.data."""
+    epochs = _get_epochs().load_data()
+    return epochs.compute_tfr(method="morlet", freqs=np.linspace(20, 40, num=5))
+
+
+@pytest.fixture()
+def average_tfr(epochs_tfr):
+    """Get an AverageTFR computed by averaging an EpochsTFR (this is small & fast)."""
+    return epochs_tfr.average()
+
+
+@pytest.fixture()
+def full_average_tfr(full_evoked):
+    """Get an AverageTFR computed from Evoked.
+
+    This is slower than the `average_tfr` fixture, but a few TFR.plot_* tests need it.
+    """
+    return full_evoked.compute_tfr(method="morlet", freqs=np.linspace(20, 40, num=5))
+
+
+@pytest.fixture()
+def raw_tfr(raw):
+    """Get a RawTFR computed from mne.io.tests.data."""
+    return raw.compute_tfr(method="morlet", freqs=np.linspace(20, 40, num=5))
+
+
+@pytest.fixture()
 def epochs_empty():
     """Get empty epochs from mne.io.tests.data."""
     epochs = _get_epochs(meg=True, eeg=True).load_data()
@@ -406,20 +436,29 @@ def epochs_empty():
 
 
 @pytest.fixture(scope="session", params=[testing._pytest_param()])
-def _evoked():
-    # This one is session scoped, so be sure not to modify it (use evoked
-    # instead)
-    evoked = mne.read_evokeds(
-        fname_evoked, condition="Left Auditory", baseline=(None, 0)
-    )
-    evoked.crop(0, 0.2)
-    return evoked
+def _full_evoked():
+    # This is session scoped, so be sure not to modify its return value (use
+    # `full_evoked` fixture instead)
+    return mne.read_evokeds(fname_evoked, condition="Left Auditory", baseline=(None, 0))
+
+
+@pytest.fixture(scope="session", params=[testing._pytest_param()])
+def _evoked(_full_evoked):
+    # This is session scoped, so be sure not to modify its return value (use `evoked`
+    # fixture instead)
+    return _full_evoked.copy().crop(0, 0.2)
 
 
 @pytest.fixture()
 def evoked(_evoked):
-    """Get evoked data."""
+    """Get truncated evoked data."""
     return _evoked.copy()
+
+
+@pytest.fixture()
+def full_evoked(_full_evoked):
+    """Get full-duration evoked data (needed for, e.g., testing TFR)."""
+    return _full_evoked.copy()
 
 
 @pytest.fixture(scope="function", params=[testing._pytest_param()])
@@ -796,14 +835,13 @@ def mixed_fwd_cov_evoked(_evoked_cov_sphere, _all_src_types_fwd):
 
 
 @pytest.fixture(scope="session")
-@pytest.mark.slowtest
-@pytest.mark.parametrize(params=[testing._pytest_param()])
 def src_volume_labels():
     """Create a 7mm source space with labels."""
     pytest.importorskip("nibabel")
     volume_labels = mne.get_volume_labels_from_aseg(fname_aseg)
-    with _record_warnings(), pytest.warns(
-        RuntimeWarning, match="Found no usable.*t-vessel.*"
+    with (
+        _record_warnings(),
+        pytest.warns(RuntimeWarning, match="Found no usable.*t-vessel.*"),
     ):
         src = mne.setup_volume_source_space(
             "sample",
@@ -901,11 +939,10 @@ def protect_config():
 
 
 def _test_passed(request):
-    try:
-        outcome = request.node.harvest_rep_call
-    except Exception:
-        outcome = "passed"
-    return outcome == "passed"
+    if _phase_report_key not in request.node.stash:
+        return True
+    report = request.node.stash[_phase_report_key]
+    return "call" in report and report["call"].outcome == "passed"
 
 
 @pytest.fixture()
@@ -932,7 +969,6 @@ def brain_gc(request):
     ignore = set(id(o) for o in gc.get_objects())
     yield
     close_func()
-    # no need to warn if the test itself failed, pytest-harvest helps us here
     if not _test_passed(request):
         return
     _assert_no_instances(Brain, "after")
@@ -961,16 +997,14 @@ def pytest_sessionfinish(session, exitstatus):
     if n is None:
         return
     print("\n")
-    try:
-        import pytest_harvest
-    except ImportError:
-        print("Module-level timings require pytest-harvest")
-        return
     # get the number to print
-    res = pytest_harvest.get_session_synthesis_dct(session)
-    files = dict()
-    for key, val in res.items():
-        parts = Path(key.split(":")[0]).parts
+    files = defaultdict(lambda: 0.0)
+    for item in session.items:
+        if _phase_report_key not in item.stash:
+            continue
+        report = item.stash[_phase_report_key]
+        dur = sum(x.duration for x in report.values())
+        parts = Path(item.nodeid.split(":")[0]).parts
         # split mne/tests/test_whatever.py into separate categories since these
         # are essentially submodule-level tests. Keeping just [:3] works,
         # except for mne/viz where we want level-4 granulatity
@@ -979,7 +1013,7 @@ def pytest_sessionfinish(session, exitstatus):
         if not parts[-1].endswith(".py"):
             parts = parts + ("",)
         file_key = "/".join(parts)
-        files[file_key] = files.get(file_key, 0) + val["pytest_duration_s"]
+        files[file_key] += dur
     files = sorted(list(files.items()), key=lambda x: x[1])[::-1]
     # print
     _files[:] = files[:n]
@@ -1000,7 +1034,7 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config):
             writer.line(f"{timing.ljust(15)}{name}")
 
 
-def pytest_report_header(config, startdir):
+def pytest_report_header(config, startdir=None):
     """Add information to the pytest run header."""
     return f"MNE {mne.__version__} -- {str(Path(mne.__file__).parent)}"
 
@@ -1123,7 +1157,6 @@ def pytest_runtest_call(item):
     return
 
 
-@pytest.mark.filterwarnings("ignore:.*Extraction of measurement.*:")
 @pytest.fixture(
     params=(
         [nirsport2, nirsport2_snirf, testing._pytest_param()],
@@ -1161,8 +1194,7 @@ def qt_windows_closed(request):
     if "allow_unclosed_pyside2" in marks and API_NAME.lower() == "pyside2":
         return
     # Don't check when the test fails
-    report = request.node.stash[_phase_report_key]
-    if ("call" not in report) or report["call"].failed:
+    if not _test_passed(request):
         return
     widgets = app.topLevelWidgets()
     n_after = len(widgets)
@@ -1179,3 +1211,53 @@ def pytest_runtest_makereport(item, call):
     outcome = yield
     rep = outcome.get_result()
     item.stash.setdefault(_phase_report_key, {})[rep.when] = rep
+
+
+@pytest.fixture(scope="function")
+def eyetrack_cal():
+    """Create a toy calibration instance."""
+    screen_size = (0.4, 0.225)  # width, height in meters
+    screen_resolution = (1920, 1080)
+    screen_distance = 0.7  # meters
+    onset = 0
+    model = "HV9"
+    eye = "R"
+    avg_error = 0.5
+    max_error = 1.0
+    positions = np.zeros((9, 2))
+    offsets = np.zeros((9,))
+    gaze = np.zeros((9, 2))
+    cal = mne.preprocessing.eyetracking.Calibration(
+        screen_size=screen_size,
+        screen_distance=screen_distance,
+        screen_resolution=screen_resolution,
+        eye=eye,
+        model=model,
+        positions=positions,
+        offsets=offsets,
+        gaze=gaze,
+        onset=onset,
+        avg_error=avg_error,
+        max_error=max_error,
+    )
+    return cal
+
+
+@pytest.fixture(scope="function")
+def eyetrack_raw():
+    """Create a toy raw instance with eyetracking channels."""
+    # simulate a steady fixation at the center pixel of a 1920x1080 resolution screen
+    shape = (1, 100)  # x or y, time
+    data = np.vstack([np.full(shape, 960), np.full(shape, 540), np.full(shape, 0)])
+
+    info = info = mne.create_info(
+        ch_names=["xpos", "ypos", "pupil"], sfreq=100, ch_types="eyegaze"
+    )
+    more_info = dict(
+        xpos=("eyegaze", "px", "right", "x"),
+        ypos=("eyegaze", "px", "right", "y"),
+        pupil=("pupil", "au", "right"),
+    )
+    raw = mne.io.RawArray(data, info)
+    raw = mne.preprocessing.eyetracking.set_channel_types_eyetrack(raw, more_info)
+    return raw

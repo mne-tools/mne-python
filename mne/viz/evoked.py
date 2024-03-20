@@ -193,7 +193,7 @@ def _line_plot_onselect(
 
             method = "mean" if psd else "rms"
             this_data, _ = _merge_ch_data(this_data, ch_type, [], method=method)
-            title = "%s %s" % (ch_type, method.upper())
+            title = f"{ch_type} {method.upper()}"
         else:
             title = ch_type
         this_data = np.average(this_data, axis=1)
@@ -213,7 +213,7 @@ def _line_plot_onselect(
         )
 
     unit = "Hz" if psd else time_unit
-    fig.suptitle("Average over %.2f%s - %.2f%s" % (xmin, unit, xmax, unit), y=0.1)
+    fig.suptitle(f"Average over {xmin:.2f}{unit} - {xmax:.2f}{unit}", y=0.1)
     plt_show()
     if text is not None:
         text.set_visible(False)
@@ -628,7 +628,7 @@ def _plot_lines(
                 if this_type in _DATA_CH_TYPES_SPLIT:
                     logger.info(
                         "Need more than one channel to make "
-                        "topography for %s. Disabling interactivity." % (this_type,)
+                        f"topography for {this_type}. Disabling interactivity."
                     )
                 selectables[type_idx] = False
 
@@ -1868,7 +1868,7 @@ def plot_evoked_joint(
     from matplotlib.patches import ConnectionPatch
 
     if ts_args is not None and not isinstance(ts_args, dict):
-        raise TypeError("ts_args must be dict or None, got type %s" % (type(ts_args),))
+        raise TypeError(f"ts_args must be dict or None, got type {type(ts_args)}")
     ts_args = dict() if ts_args is None else ts_args.copy()
     ts_args["time_unit"], _ = _check_time_unit(
         ts_args.get("time_unit", "s"), evoked.times
@@ -2219,9 +2219,8 @@ def _validate_linestyles_pce(linestyles, conditions, tags):
     # should be a dict by now...
     if not isinstance(linestyles, dict):
         raise TypeError(
-            '"linestyles" must be a dict, list, or None; got {}.'.format(
-                type(linestyles).__name__
-            )
+            '"linestyles" must be a dict, list, or None; got '
+            f"{type(linestyles).__name__}."
         )
     # validate linestyle dict keys
     if not set(linestyles).issubset(tags.union(conditions)):
@@ -2906,9 +2905,8 @@ def plot_compare_evokeds(
     # cannot combine a single channel
     if (len(picks) < 2) and combine is not None:
         warn(
-            'Only {} channel in "picks"; cannot combine by method "{}".'.format(
-                len(picks), combine
-            )
+            f'Only {len(picks)} channel in "picks"; cannot combine by method '
+            f'"{combine}".'
         )
     # `combine` defaults to GFP unless picked a single channel or axes='topo'
     do_topo = isinstance(axes, str) and axes == "topo"

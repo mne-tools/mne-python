@@ -1,0 +1,1 @@
+Change :func:`mne.stc_near_sensors` ``surface`` default from the ``'pial'`` surface to the surface in ``src`` if ``src`` is not ``None`` in version 1.8, by `Alex Rockhill`_.

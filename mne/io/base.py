@@ -18,6 +18,7 @@ from contextlib import nullcontext
 from copy import deepcopy
 from dataclasses import dataclass, field
 from datetime import timedelta
+from inspect import getfullargspec
 
 import numpy as np
 
@@ -81,6 +82,7 @@ from ..filter import (
 from ..html_templates import _get_html_template
 from ..parallel import parallel_func
 from ..time_frequency.spectrum import Spectrum, SpectrumMixin, _validate_method
+from ..time_frequency.tfr import RawTFR
 from ..utils import (
     SizeMixin,
     TimeMixin,
@@ -413,8 +415,8 @@ class BaseRaw(
         if isinstance(data_buffer, np.ndarray):
             if data_buffer.shape != data_shape:
                 raise ValueError(
-                    "data_buffer has incorrect shape: %s != %s"
-                    % (data_buffer.shape, data_shape)
+                    f"data_buffer has incorrect shape: "
+                    f"{data_buffer.shape} != {data_shape}"
                 )
             data = data_buffer
         else:
@@ -1087,19 +1089,50 @@ class BaseRaw(
         if dtype is not None and dtype != self._data.dtype:
             self._data = self._data.astype(dtype)
 
+        args = getfullargspec(fun).args + getfullargspec(fun).kwonlyargs
+        if channel_wise is False:
+            if ("ch_idx" in args) or ("ch_name" in args):
+                raise ValueError(
+                    "apply_function cannot access ch_idx or ch_name "
+                    "when channel_wise=False"
+                )
+        if "ch_idx" in args:
+            logger.info("apply_function requested to access ch_idx")
+        if "ch_name" in args:
+            logger.info("apply_function requested to access ch_name")
+
         if channel_wise:
             parallel, p_fun, n_jobs = parallel_func(_check_fun, n_jobs)
             if n_jobs == 1:
                 # modify data inplace to save memory
-                for idx in picks:
-                    self._data[idx, :] = _check_fun(fun, data_in[idx, :], **kwargs)
+                for ch_idx in picks:
+                    if "ch_idx" in args:
+                        kwargs.update(ch_idx=ch_idx)
+                    if "ch_name" in args:
+                        kwargs.update(ch_name=self.info["ch_names"][ch_idx])
+                    self._data[ch_idx, :] = _check_fun(
+                        fun, data_in[ch_idx, :], **kwargs
+                    )
             else:
                 # use parallel function
                 data_picks_new = parallel(
-                    p_fun(fun, data_in[p], **kwargs) for p in picks
+                    p_fun(
+                        fun,
+                        data_in[ch_idx],
+                        **kwargs,
+                        **{
+                            k: v
+                            for k, v in [
+                                ("ch_name", self.info["ch_names"][ch_idx]),
+                                ("ch_idx", ch_idx),
+                            ]
+                            if k in args
+                        },
+                    )
+                    for ch_idx in picks
                 )
-                for pp, p in enumerate(picks):
-                    self._data[p, :] = data_picks_new[pp]
+                for run_idx, ch_idx in enumerate(picks):
+                    self._data[ch_idx, :] = data_picks_new[run_idx]
         else:
             self._data[picks, :] = _check_fun(fun, data_in[picks, :], **kwargs)
 
@@ -1484,13 +1517,13 @@ class BaseRaw(
             tmax = max_time
 
         if tmin > tmax:
-            raise ValueError("tmin (%s) must be less than tmax (%s)" % (tmin, tmax))
+            raise ValueError(f"tmin ({tmin}) must be less than tmax ({tmax})")
         if tmin < 0.0:
-            raise ValueError("tmin (%s) must be >= 0" % (tmin,))
+            raise ValueError(f"tmin ({tmin}) must be >= 0")
         elif tmax - int(not include_tmax) / self.info["sfreq"] > max_time:
             raise ValueError(
-                "tmax (%s) must be less than or equal to the max "
-                "time (%0.4f s)" % (tmax, max_time)
+                f"tmax ({tmax}) must be less than or equal to the max "
+                f"time ({max_time:0.4f} s)"
             )
 
         smin, smax = np.where(
@@ -1662,7 +1695,13 @@ class BaseRaw(
         endings_err = (".fif", ".fif.gz")
 
         # convert to str, check for overwrite a few lines later
-        fname = _check_fname(fname, overwrite=True, verbose="error")
+        fname = _check_fname(
+            fname,
+            overwrite=True,
+            verbose="error",
+            check_bids_split=True,
+            name="fname",
+        )
         check_fname(fname, "raw", endings, endings_err=endings_err)
 
         split_size = _get_split_size(split_size)
@@ -1770,9 +1809,7 @@ class BaseRaw(
             stop = self.time_as_index(float(tmax), use_rounding=True)[0] + 1
         stop = min(stop, self.last_samp - self.first_samp + 1)
         if stop <= start or stop <= 0:
-            raise ValueError(
-                "tmin (%s) and tmax (%s) yielded no samples" % (tmin, tmax)
-            )
+            raise ValueError(f"tmin ({tmin}) and tmax ({tmax}) yielded no samples")
         return start, stop
 
     @copy_function_doc_to_method_doc(plot_raw)
@@ -2058,15 +2095,12 @@ class BaseRaw(
         name = self.filenames[0]
         name = "" if name is None else op.basename(name) + ", "
         size_str = str(sizeof_fmt(self._size))  # str in case it fails -> None
-        size_str += ", data%s loaded" % ("" if self.preload else " not")
-        s = "%s%s x %s (%0.1f s), ~%s" % (
-            name,
-            len(self.ch_names),
-            self.n_times,
-            self.times[-1],
-            size_str,
+        size_str += f", data{'' if self.preload else ' not'} loaded"
+        s = (
+            f"{name}{len(self.ch_names)} x {self.n_times} "
+            f"({self.times[-1]:0.1f} s), ~{size_str}"
         )
-        return "<%s | %s>" % (self.__class__.__name__, s)
+        return f"<{self.__class__.__name__} | {s}>"
 
     @repr_html
     def _repr_html_(self, caption=None):
@@ -2124,8 +2158,8 @@ class BaseRaw(
         idx = events[:, 0].astype(int)
         if np.any(idx < self.first_samp) or np.any(idx > self.last_samp):
             raise ValueError(
-                "event sample numbers must be between %s and %s"
-                % (self.first_samp, self.last_samp)
+                f"event sample numbers must be between {self.first_samp} "
+                f"and {self.last_samp}"
             )
         if not all(idx == events[:, 0]):
             raise ValueError("event sample numbers must be integers")
@@ -2203,6 +2237,69 @@ class BaseRaw(
             proj=proj,
             remove_dc=remove_dc,
             reject_by_annotation=reject_by_annotation,
+            n_jobs=n_jobs,
+            verbose=verbose,
+            **method_kw,
+        )
+
+    @verbose
+    def compute_tfr(
+        self,
+        method,
+        freqs,
+        *,
+        tmin=None,
+        tmax=None,
+        picks=None,
+        proj=False,
+        output="power",
+        reject_by_annotation=True,
+        decim=1,
+        n_jobs=None,
+        verbose=None,
+        **method_kw,
+    ):
+        """Compute a time-frequency representation of sensor data.
+
+        Parameters
+        ----------
+        %(method_tfr)s
+        %(freqs_tfr)s
+        %(tmin_tmax_psd)s
+        %(picks_good_data_noref)s
+        %(proj_psd)s
+        %(output_compute_tfr)s
+        %(reject_by_annotation_tfr)s
+        %(decim_tfr)s
+        %(n_jobs)s
+        %(verbose)s
+        %(method_kw_tfr)s
+
+        Returns
+        -------
+        tfr : instance of RawTFR
+            The time-frequency-resolved power estimates of the data.
+
+        Notes
+        -----
+        .. versionadded:: 1.7
+
+        References
+        ----------
+        .. footbibliography::
+        """
+        _check_option("output", output, ("power", "phase", "complex"))
+        method_kw["output"] = output
+        return RawTFR(
+            self,
+            method=method,
+            freqs=freqs,
+            tmin=tmin,
+            tmax=tmax,
+            picks=picks,
+            proj=proj,
+            reject_by_annotation=reject_by_annotation,
+            decim=decim,
             n_jobs=n_jobs,
             verbose=verbose,
             **method_kw,
@@ -2695,8 +2792,9 @@ class _RawFidWriter:
         # we've done something wrong if we hit this
         n_times_max = len(self.raw.times)
         error_msg = (
-            "Can't write raw file with no data: {} -> {} (max: {}) requested"
-        ).format(self.start, self.stop, n_times_max)
+            f"Can't write raw file with no data: {self.start} -> {self.stop} "
+            f"(max: {n_times_max}) requested"
+        )
         if self.start >= self.stop or self.stop > n_times_max:
             raise RuntimeError(error_msg)
 
@@ -2800,17 +2898,12 @@ def _write_raw_data(
             # This should occur on the first buffer write of the file, so
             # we should mention the space required for the meas info
             raise ValueError(
-                "buffer size (%s) is too large for the given split size (%s) "
-                "by %s bytes after writing info (%s) and leaving enough space "
-                'for end tags (%s): decrease "buffer_size_sec" or increase '
-                '"split_size".'
-                % (
-                    this_buff_size_bytes,
-                    split_size,
-                    overage,
-                    pos_prev,
-                    _NEXT_FILE_BUFFER,
-                )
+                f"buffer size ({this_buff_size_bytes}) is too large for the "
+                f"given split size ({split_size}) "
+                f"by {overage} bytes after writing info ({pos_prev}) and "
+                "leaving enough space "
+                f'for end tags ({_NEXT_FILE_BUFFER}): decrease "buffer_size_sec" '
+                'or increase "split_size".'
             )
 
         new_start = last

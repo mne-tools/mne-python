@@ -223,8 +223,7 @@ def _print_coord_trans(
         scale = 1000.0 if (ti != 3 and units != "mm") else 1.0
         text = " mm" if ti != 3 else ""
         log_func(
-            "    % 8.6f % 8.6f % 8.6f    %7.2f%s"
-            % (tt[0], tt[1], tt[2], scale * tt[3], text)
+            f"    {tt[0]:8.6f} {tt[1]:8.6f} {tt[2]:8.6f}    {scale * tt[3]:7.2f}{text}"
         )
 
 
@@ -662,7 +661,7 @@ def transform_surface_to(surf, dest, trans, copy=False):
     if isinstance(dest, str):
         if dest not in _str_to_frame:
             raise KeyError(
-                'dest must be one of %s, not "%s"' % (list(_str_to_frame.keys()), dest)
+                f'dest must be one of {list(_str_to_frame.keys())}, not "{dest}"'
             )
         dest = _str_to_frame[dest]  # convert to integer
     if surf["coord_frame"] == dest:
@@ -1018,7 +1017,7 @@ class _TPSWarp:
         dest : shape (n_transform, 3)
             The transformed points.
         """
-        logger.info("Transforming %s points" % (len(pts),))
+        logger.info(f"Transforming {len(pts)} points")
         assert pts.shape[1] == 3
         # for memory reasons, we should do this in ~100 MB chunks
         out = np.zeros_like(pts)
@@ -1139,11 +1138,8 @@ class _SphericalSurfaceWarp:
             dest_center = _fit_sphere(hsp, disp=False)[1]
             destination = destination - dest_center
             logger.info(
-                "    Using centers %s -> %s"
-                % (
-                    np.array_str(src_center, None, 3),
-                    np.array_str(dest_center, None, 3),
-                )
+                "    Using centers {np.array_str(src_center, None, 3)} -> "
+                "{np.array_str(dest_center, None, 3)}"
             )
         self._fit_params = dict(
             n_src=len(source),
@@ -1349,6 +1345,28 @@ def _quat_to_affine(quat):
     affine[:3, :3] = quat_to_rot(quat[:3])
     affine[:3, 3] = quat[3:]
     return affine
+
+
+def _affine_to_quat(affine):
+    assert affine.shape[-2:] == (4, 4)
+    return np.concatenate(
+        [rot_to_quat(affine[..., :3, :3]), affine[..., :3, 3]],
+        axis=-1,
+    )
+
+
+def _angle_dist_between_rigid(a, b=None, *, angle_units="rad", distance_units="m"):
+    a = _affine_to_quat(a)
+    b = np.zeros(6) if b is None else _affine_to_quat(b)
+    ang = _angle_between_quats(a[..., :3], b[..., :3])
+    dist = np.linalg.norm(a[..., 3:] - b[..., 3:], axis=-1)
+    assert isinstance(angle_units, str) and angle_units in ("rad", "deg")
+    if angle_units == "deg":
+        ang = np.rad2deg(ang)
+    assert isinstance(distance_units, str) and distance_units in ("m", "mm")
+    if distance_units == "mm":
+        dist *= 1e3
+    return ang, dist
 
 
 def _angle_between_quats(x, y=None):
@@ -1559,7 +1577,7 @@ def _read_fs_xfm(fname):
         for li, line in enumerate(fid):
             if li == 0:
                 kind = line.strip()
-                logger.debug("Found: %r" % (kind,))
+                logger.debug(f"Found: {repr(kind)}")
             if line[: len(comp)] == comp:
                 # we have the right line, so don't read any more
                 break
@@ -1839,10 +1857,7 @@ def _compute_volume_registration(
 
             # report some useful information
             if step in ("translation", "rigid"):
-                dist = np.linalg.norm(reg_affine[:3, 3])
-                angle = np.rad2deg(
-                    _angle_between_quats(np.zeros(3), rot_to_quat(reg_affine[:3, :3]))
-                )
+                angle, dist = _angle_dist_between_rigid(reg_affine, angle_units="deg")
                 logger.info(f"    Translation: {dist:6.1f} mm")
                 if step == "rigid":
                     logger.info(f"    Rotation:    {angle:6.1f}°")

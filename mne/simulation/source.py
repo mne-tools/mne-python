@@ -177,8 +177,8 @@ def simulate_sparse_stc(
         subject = subject_src
     elif subject_src is not None and subject != subject_src:
         raise ValueError(
-            "subject argument (%s) did not match the source "
-            "space subject_his_id (%s)" % (subject, subject_src)
+            f"subject argument ({subject}) did not match the source "
+            f"space subject_his_id ({subject_src})"
         )
     data = np.zeros((n_dipoles, len(times)))
     for i_dip in range(n_dipoles):
@@ -328,9 +328,8 @@ def simulate_stc(
             d = len(v) - len(np.unique(v))
             if d > 0:
                 raise RuntimeError(
-                    "Labels had %s overlaps in the %s "
-                    "hemisphere, "
-                    "they must be non-overlapping" % (d, hemi)
+                    f"Labels had {d} overlaps in the {hemi} "
+                    "hemisphere, they must be non-overlapping"
                 )
     # the data is in the order left, right
     data = list()

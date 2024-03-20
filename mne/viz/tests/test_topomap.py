@@ -44,7 +44,7 @@ from mne.channels import (
 from mne.datasets import testing
 from mne.io import RawArray, read_info, read_raw_fif
 from mne.preprocessing import compute_bridged_electrodes
-from mne.time_frequency.tfr import AverageTFR
+from mne.time_frequency.tfr import AverageTFRArray
 from mne.viz import plot_evoked_topomap, plot_projs_topomap, topomap
 from mne.viz.tests.test_raw import _proj_status
 from mne.viz.topomap import (
@@ -578,13 +578,21 @@ def test_plot_tfr_topomap():
     data = rng.randn(len(picks), n_freqs, len(times))
 
     # test complex numbers
-    tfr = AverageTFR(info, data * (1 + 1j), times, np.arange(n_freqs), nave)
+    tfr = AverageTFRArray(
+        info=info,
+        data=data * (1 + 1j),
+        times=times,
+        freqs=np.arange(n_freqs),
+        nave=nave,
+    )
     tfr.plot_topomap(
         ch_type="mag", tmin=0.05, tmax=0.150, fmin=0, fmax=10, res=res, contours=0
     )
 
     # test real numbers
-    tfr = AverageTFR(info, data, times, np.arange(n_freqs), nave)
+    tfr = AverageTFRArray(
+        info=info, data=data, times=times, freqs=np.arange(n_freqs), nave=nave
+    )
     tfr.plot_topomap(
         ch_type="mag", tmin=0.05, tmax=0.150, fmin=0, fmax=10, res=res, contours=0
     )
