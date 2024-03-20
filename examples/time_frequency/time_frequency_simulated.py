@@ -207,12 +207,14 @@ for bandwidth, ax in zip(bandwidths, axs):
         tfr_data = tfr_data * tfr_data.conj()  # compute power
         tfr_data = np.mean(tfr_data, axis=0)  # average over epochs
         data[:, idx] = tfr_data
-    power = AverageTFRArray(info, data, epochs.times, freqs, nave=n_epochs)
+    power = AverageTFRArray(
+        info, data, epochs.times, freqs, nave=n_epochs, method="hilbert"
+    )
     power.plot(
         [0],
         baseline=(0.0, 0.1),
         mode="mean",
-        vlim=(-0.1, 0.1),
+        vlim=(0, 0.1),
         axes=ax,
         show=False,
         colorbar=False,
