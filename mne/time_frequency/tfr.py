@@ -4382,15 +4382,13 @@ def _prep_data_for_plot(
 
 def _warn_deprecated_vmin_vmax(vlim, vmin, vmax):
     if vmin is not None or vmax is not None:
-        warn(
-            "Parameters `vmin` and `vmax` are deprecated, use `vlim` instead",
-            FutureWarning,
-        )
+        warning = "Parameters `vmin` and `vmax` are deprecated, use `vlim` instead."
         if vlim[0] is None and vlim[1] is None:
             vlim = (vmin, vmax)
         else:
-            warn(
-                'You provided either "vmin" or "vmax" (which are deprecated) as well '
-                'as "vlim". Using "vlim" and ignoring "vmin" and "vmax".'
+            warning += (
+                " You've also provided a (non-default) value for `vlim`, "
+                "so `vmin` and `vmax` will be ignored."
             )
+        warn(warning, FutureWarning)
     return vlim
