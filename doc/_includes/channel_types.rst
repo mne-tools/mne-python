@@ -79,13 +79,13 @@ dipole            Dipole amplitude                          Amperes
 gof               Goodness of fit (GOF)                     Goodness-of-fit
 
 cw-nirs (amp)     Continuous-wave functional near-infrared  Volts
-                   spectroscopy (CW-fNIRS) (CW amplitude)
+                  spectroscopy (CW-fNIRS) (CW amplitude)
 
 fd-nirs (ac amp)  Frequency-domain near-infrared            Volts
-                   spectroscopy (FD-NIRS AC amplitude)
+                  spectroscopy (FD-NIRS AC amplitude)
 
 fd-nirs (phase)   Frequency-domain near-infrared            Radians
-                   spectroscopy (FD-NIRS phase)
+                  spectroscopy (FD-NIRS phase)
 
 fnirs (od)        Functional near-infrared spectroscopy     Volts
                   (optical density)
