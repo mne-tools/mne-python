@@ -122,7 +122,7 @@ def _get_head_surface(subject, source, subjects_dir, on_defects, raise_error=Tru
     surf = None
     for this_source in source:
         this_head = op.realpath(
-            op.join(subjects_dir, subject, "bem", "%s-%s.fif" % (subject, this_source))
+            op.join(subjects_dir, subject, "bem", f"{subject}-{this_source}.fif")
         )
         if op.exists(this_head):
             surf = read_bem_surfaces(
@@ -137,7 +137,7 @@ def _get_head_surface(subject, source, subjects_dir, on_defects, raise_error=Tru
             path = op.join(subjects_dir, subject, "bem")
             if not op.isdir(path):
                 raise OSError('Subject bem directory "%s" does not exist.' % path)
-            files = sorted(glob(op.join(path, "%s*%s.fif" % (subject, this_source))))
+            files = sorted(glob(op.join(path, f"{subject}*{this_source}.fif")))
             for this_head in files:
                 try:
                     surf = read_bem_surfaces(
@@ -157,8 +157,8 @@ def _get_head_surface(subject, source, subjects_dir, on_defects, raise_error=Tru
     if surf is None:
         if raise_error:
             raise OSError(
-                'No file matching "%s*%s" and containing a head '
-                "surface found." % (subject, this_source)
+                f'No file matching "{subject}*{this_source}" and containing a head '
+                "surface found."
             )
         else:
             return surf
@@ -1454,9 +1454,7 @@ def _decimate_surface_sphere(rr, tris, n_triangles):
     )
     func_map = dict(ico=_get_ico_surface, oct=_tessellate_sphere_surf)
     kind, level = map_[n_triangles]
-    logger.info(
-        "Decimating using Freesurfer spherical %s%s downsampling" % (kind, level)
-    )
+    logger.info(f"Decimating using Freesurfer spherical {kind}{level} downsampling")
     ico_surf = func_map[kind](level)
     assert len(ico_surf["tris"]) == n_triangles
     tempdir = _TempDir()
@@ -1539,8 +1537,8 @@ def decimate_surface(points, triangles, n_triangles, method="quadric", *, verbos
     _check_option("method", method, sorted(method_map))
     if n_triangles > len(triangles):
         raise ValueError(
-            "Requested n_triangles (%s) exceeds number of "
-            "original triangles (%s)" % (n_triangles, len(triangles))
+            f"Requested n_triangles ({n_triangles}) exceeds number of "
+            f"original triangles ({len(triangles)})"
         )
     return method_map[method](points, triangles, n_triangles)
 
@@ -1829,8 +1827,7 @@ def read_tri(fname_in, swap=False, verbose=None):
         tris[:, [2, 1]] = tris[:, [1, 2]]
     tris -= 1
     logger.info(
-        "Loaded surface from %s with %s nodes and %s triangles."
-        % (fname_in, n_nodes, n_tris)
+        f"Loaded surface from {fname_in} with {n_nodes} nodes and {n_tris} triangles."
     )
     if n_items in [3, 4]:
         logger.info("Node normals were not included in the source file.")

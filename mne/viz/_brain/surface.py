@@ -120,9 +120,7 @@ class _Surface:
         None
         """
         if self.surf == "flat":  # special case
-            fname = path.join(
-                self.data_path, "surf", "%s.%s" % (self.hemi, "cortex.patch.flat")
-            )
+            fname = path.join(self.data_path, "surf", f"{self.hemi}.cortex.patch.flat")
             _check_fname(
                 fname, overwrite="read", must_exist=True, name="flatmap surface file"
             )
