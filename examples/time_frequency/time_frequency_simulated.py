@@ -26,7 +26,7 @@ from matplotlib import pyplot as plt
 
 from mne import Epochs, create_info
 from mne.io import RawArray
-from mne.time_frequency import AverageTFRArray, tfr_array_morlet
+from mne.time_frequency import AverageTFRArray, EpochsTFRArray, tfr_array_morlet
 
 print(__doc__)
 
@@ -183,7 +183,9 @@ for n_cycles, ax in zip(all_n_cycles, axs):
 fig, axs = plt.subplots(1, 3, figsize=(15, 5), sharey=True, layout="constrained")
 bandwidths = [1.0, 2.0, 4.0]
 for bandwidth, ax in zip(bandwidths, axs):
-    data = np.zeros((len(ch_names), freqs.size, epochs.times.size), dtype=complex)
+    data = np.zeros(
+        (len(epochs), len(ch_names), freqs.size, epochs.times.size), dtype=complex
+    )
     for idx, freq in enumerate(freqs):
         # Filter raw data and re-epoch to avoid the filter being longer than
         # the epoch data for low frequencies and short epochs, such as here.
@@ -203,14 +205,9 @@ for bandwidth, ax in zip(bandwidths, axs):
         epochs_hilb = Epochs(
             raw_filter, events, tmin=0, tmax=n_times / sfreq, baseline=(0, 0.1)
         )
-        tfr_data = epochs_hilb.get_data()
-        tfr_data = tfr_data * tfr_data.conj()  # compute power
-        tfr_data = np.mean(tfr_data, axis=0)  # average over epochs
-        data[:, idx] = tfr_data
-    power = AverageTFRArray(
-        info, data, epochs.times, freqs, nave=n_epochs, method="hilbert"
-    )
-    power.plot(
+        data[:, :, idx] = epochs_hilb.get_data()
+    power = EpochsTFRArray(epochs.info, data, epochs.times, freqs, method="hilbert")
+    power.average().plot(
         [0],
         baseline=(0.0, 0.1),
         mode="mean",
