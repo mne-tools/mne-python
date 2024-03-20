@@ -40,7 +40,7 @@ class MNESubstitution(Directive):  # noqa: D101
                 if key in _DATA_CH_TYPES_SPLIT:
                     keys.append(key)
                 elif key not in ("meg", "fnirs") and _PICK_TYPES_DATA_DICT.get(
-                        key, False
+                    key, False
                 ):
                     keys.append(key)
             rst = "- " + "\n- ".join(
