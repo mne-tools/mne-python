@@ -117,7 +117,7 @@ Bugs
 
 - Fix bug in :func:`mne.io.read_raw_brainvision` when BrainVision data are acquired with the Brain Products "V-Amp" amplifier and disabled lowpass filter is marked with value ``0`` (:gh:`10517` by :newcontrib:`Alessandro Tonin`)
 
-- Fix bug in :func:`mne.pick_types` and related methods where ``csd=True`` was not passed handled properly (:gh:`10470` by :newcontrib:`Matthias Dold`)
+- Fix bug in ``mne.pick_types`` and related methods where ``csd=True`` was not passed handled properly (:gh:`10470` by :newcontrib:`Matthias Dold`)
 
 - Fix bug where plots produced using the ``'qt'`` / ``mne_qt_browser`` backend could not be added using :meth:`mne.Report.add_figure` (:gh:`10485` by `Eric Larson`_)
 
@@ -145,7 +145,7 @@ Bugs
 
 - Fix bug in coregistration GUI that prevented it from starting up if only a high-resolution head model was available (:gh:`10543` by `Richard Höchenberger`_)
 
-- Fix bug with :class:`mne.Epochs.add_reference_channels` where attributes were not updated properly so subsequent `~mne.Epochs.pick_types` calls were broken (:gh:`10912` by `Eric Larson`_)
+- Fix bug with :class:`mne.Epochs.add_reference_channels` where attributes were not updated properly so subsequent ``mne.Epochs.pick_types`` calls were broken (:gh:`10912` by `Eric Larson`_)
 -
 - Fix bug in the :class:`mne.viz.Brain` tool bar that prevented the buttons to call the corresponding feature (:gh:`10560` by `Guillaume Favelier`_)
 
