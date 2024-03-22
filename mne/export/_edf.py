@@ -79,6 +79,8 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
             _data = raw.get_data(units=units, picks=_picks)
             ch_types_phys_max[_type] = _data.max()
             ch_types_phys_min[_type] = _data.min()
+    elif physical_range == "channelwise":
+        physical_range = None
     else:
         # get the physical min and max of the data in uV
         # Physical ranges of the data in uV are usually set by the manufacturer and
@@ -112,10 +114,10 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
                 "before exporting to EDF."
             )
 
-        if physical_range == "auto":
-            # take the channel type minimum and maximum
+        if physical_range == "auto":  # per channel type
             pmin = ch_types_phys_min[ch_type]
             pmax = ch_types_phys_max[ch_type]
+            physical_range = pmin, pmax
 
         signals.append(
             EdfSignal(
@@ -124,7 +126,7 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
                 label=signal_label,
                 transducer_type="",
                 physical_dimension="" if ch_type == "stim" else "uV",
-                physical_range=(pmin, pmax),
+                physical_range=physical_range,
                 digital_range=(digital_min, digital_max),
                 prefiltering=filter_str_info,
             )
