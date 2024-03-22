@@ -1412,11 +1412,11 @@ to store the montage separately and call :attr:`raw.set_montage()
 <mne.io.Raw.set_montage>`.
 
 The physical range of the signals is determined by signal type by default
-(``physical_range='auto'``). However, if individual channel ranges vary significantly
+(``physical_range="auto"``). However, if individual channel ranges vary significantly
 due to the presence of e.g. drifts/offsets/biases, setting
-``physical_range='channelwise'`` might be more appropriate. This will ensure a maximum
-resulution for each individual channel, but some tools might not be able to handle this
-appropriately (even though channelwise ranges are covered by the EDF standard).
+``physical_range="per-channel"`` might be more appropriate. This will ensure a maximum
+resolution for each individual channel, but some tools might not be able to handle this
+appropriately (even though channel-wise ranges are covered by the EDF standard).
 """
 
 docdict["export_eeglab_note"] = """
@@ -3210,7 +3210,7 @@ docdict["physical_range_export_params"] = """
 physical_range : str | tuple
     The physical range of the data. If 'auto' (default), the physical range is inferred
     from the data, taking the minimum and maximum values per channel type. If
-    'channelwise', the range will be defined per channel. If a tuple of minimum and
+    'per-channel', the range will be defined per channel. If a tuple of minimum and
     maximum, this manual physical range will be used. Only used for exporting EDF files.
 """
 
