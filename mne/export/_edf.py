@@ -117,8 +117,8 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
         if physical_range == "auto":  # per channel type
             pmin = ch_types_phys_min[ch_type]
             pmax = ch_types_phys_max[ch_type]
-            physical_range = pmin, pmax
 
+        prange = (pmin, pmax) if physical_range != "channelwise" else None
         signals.append(
             EdfSignal(
                 data[idx],
@@ -126,7 +126,7 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
                 label=signal_label,
                 transducer_type="",
                 physical_dimension="" if ch_type == "stim" else "uV",
-                physical_range=physical_range,
+                physical_range=prange,
                 digital_range=(digital_min, digital_max),
                 prefiltering=filter_str_info,
             )
