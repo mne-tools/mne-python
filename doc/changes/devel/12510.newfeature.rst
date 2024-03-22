@@ -1,0 +1,1 @@
+Add ``physical_range="per-channel"`` to :meth:`mne.io.Raw.export` for exporting to EDF, which can improve amplitude resolution if individual channels vary greatly in their offsets, by `Clemens Brunner`_.
