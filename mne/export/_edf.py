@@ -80,7 +80,7 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
             ch_types_phys_max[_type] = _data.max()
             ch_types_phys_min[_type] = _data.min()
     elif physical_range == "per-channel":
-        physical_range = None
+        prange = None
     else:
         # get the physical min and max of the data in uV
         # Physical ranges of the data in uV are usually set by the manufacturer and
@@ -103,6 +103,7 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
                 f" passed in {pmin}."
             )
         data = np.clip(data, pmin, pmax)
+        prange = pmin, pmax
     signals = []
     for idx, ch in enumerate(raw.ch_names):
         ch_type = ch_types[idx]
@@ -117,8 +118,8 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
         if physical_range == "auto":  # per channel type
             pmin = ch_types_phys_min[ch_type]
             pmax = ch_types_phys_max[ch_type]
+            prange = pmin, pmax
 
-        prange = (pmin, pmax) if physical_range != "per-channel" else None
         signals.append(
             EdfSignal(
                 data[idx],
