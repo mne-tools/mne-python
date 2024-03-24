@@ -1401,15 +1401,12 @@ Although this function supports storing channel types in the signal label (e.g.
 ``EEG Fz`` or ``MISC E``), other software may not support this (optional) feature of the
 EDF standard.
 
-If ``add_ch_type`` is True, then channel types are written based on what
-they are currently set in MNE-Python. One should double check that all
-their channels are set correctly. You can call
-:attr:`raw.set_channel_types <mne.io.Raw.set_channel_types>` to set
-channel types.
+If ``add_ch_type`` is True, then channel types are written based on what they are
+currently set in MNE-Python. One should double check that all their channels are set
+correctly. You can call :meth:`mne.io.Raw.set_channel_types` to set channel types.
 
-In addition, EDF does not support storing a montage. You will need
-to store the montage separately and call :attr:`raw.set_montage()
-<mne.io.Raw.set_montage>`.
+In addition, EDF does not support storing a montage. You will need to store the montage
+separately and call :meth:`mne.io.Raw.set_montage`.
 
 The physical range of the signals is determined by signal type by default
 (``physical_range="auto"``). However, if individual channel ranges vary significantly
