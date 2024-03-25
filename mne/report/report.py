@@ -1004,7 +1004,7 @@ class Report:
             The indices of the new order (as if you were reordering an array).
             For example if there are 4 elements in the report,
             ``order=[3, 0, 1, 2]`` would take the last element and move it to
-            the front. In other words, ``contents = [contents[ii] for ii in order]]``.
+            the front. In other words, ``elements = [elements[ii] for ii in order]]``.
 
         Notes
         -----
