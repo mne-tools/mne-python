@@ -31,8 +31,9 @@ else
 	pip install $STD_ARGS --only-binary ":all:" --default-timeout=60 "PyQt6!=6.6.1,!=6.6.2" "PyQt6-Qt6!=6.6.1,!=6.6.2"
 	echo "NumPy/SciPy/pandas etc."
 	# No pyarrow yet https://github.com/apache/arrow/issues/40216
+	# No dipy yet https://github.com/dipy/dipy/issues/2979
 	pip install $STD_ARGS --only-binary ":all:" --default-timeout=60 --index-url "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" "numpy>=2.1.0.dev0" h5py
-	pip install $STD_ARGS --only-binary ":all:" --default-timeout=60 --extra-index-url "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" "numpy>=2.1.0.dev0" "scipy>=1.14.0.dev0" "scikit-learn>=1.5.dev0" matplotlib pillow statsmodels pandas dipy
+	pip install $STD_ARGS --only-binary ":all:" --default-timeout=60 --extra-index-url "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" "numpy>=2.1.0.dev0" "scipy>=1.14.0.dev0" "scikit-learn>=1.5.dev0" matplotlib pillow statsmodels pandas
 	# No python-picard (needs numexpr) until they update to NumPy 2.0 compat
 	INSTALL_KIND="test_extra"
 	echo "OpenMEEG"
