@@ -9,7 +9,7 @@ elif [ "${TEST_MODE}" == "pip-pre" ]; then
 	# python -m pip install $STD_ARGS --only-binary ":all:" --extra-index-url "https://www.riverbankcomputing.com/pypi/simple" "PyQt6!=6.6.1,!=6.6.2" PyQt6-sip PyQt6-Qt6 "PyQt6-Qt6!=6.6.1,!=6.6.2"
 	python -m pip install $STD_ARGS --only-binary ":all:" "PyQt6!=6.6.1,!=6.6.2" PyQt6-sip PyQt6-Qt6 "PyQt6-Qt6!=6.6.1,!=6.6.2"
 	echo "Numpy etc."
-	python -m pip install $STD_ARGS --only-binary ":all:" --default-timeout=60 --index-url "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" "numpy>=2.1.0.dev0" h5py
+	# No h5py yet until they improve/refactor thier wheel building infrastructure for Windows
 	python -m pip install $STD_ARGS --only-binary ":all:" --default-timeout=60 --extra-index-url "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" "numpy>=2.1.0.dev0" "scipy>=1.14.0.dev0" "scikit-learn>=1.5.dev0" matplotlib pillow statsmodels pyarrow dipy
 	echo "OpenMEEG"
 	pip install $STD_ARGS --only-binary ":all:" --extra-index-url "https://test.pypi.org/simple" "openmeeg>=2.6.0.dev4"

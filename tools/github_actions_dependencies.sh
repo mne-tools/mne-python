@@ -56,8 +56,10 @@ else
 	pip install $STD_ARGS git+https://github.com/joblib/joblib@master
 	echo "edfio"
 	pip install $STD_ARGS git+https://github.com/the-siesta-group/edfio
+	echo "h5io"
+	pip install $STD_ARGS git+https://github.com/h5io/h5io
 	# Make sure we're on a NumPy 2.0 variant
-	# python -c "import numpy as np; assert np.__version__[0] == '2', np.__version__"
+	python -c "import numpy as np; assert np.__version__[0] == '2', np.__version__"
 fi
 echo ""
 
