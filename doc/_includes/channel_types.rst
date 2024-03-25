@@ -91,7 +91,7 @@ fnirs (od)        Functional near-infrared spectroscopy     Volts
                   (optical density)
 
 csd               Current source density                    Volts per square
-                                                             meter
+                                                            meter
 
 eyegaze           Eye-tracking (gaze position)              Arbitrary units
 
