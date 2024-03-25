@@ -1020,7 +1020,7 @@ class Report:
         n_elements = len(self._content)
         if not np.array_equal(np.sort(order), np.arange(n_elements)):
             raise ValueError(
-                f"order must be a permutation of range(1, {n_elements}), got:\n{order}"
+                f"order must be a permutation of range({n_elements}), got:\n{order}"
             )
         self._content = [self._content[ii] for ii in order]
 
