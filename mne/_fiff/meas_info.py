@@ -545,12 +545,12 @@ class SetChannelsMixin(MontageMixin):
 
         Notes
         -----
-        The following sensor types are accepted:
+        The following :term:`sensor types` are accepted:
 
-            ecg, eeg, emg, eog, exci, ias, misc, resp, seeg, dbs, stim, syst,
-            ecog, hbo, hbr, fnirs_cw_amplitude, fnirs_fd_ac_amplitude,
-            fnirs_fd_phase, fnirs_od, eyetrack_pos, eyetrack_pupil,
-            temperature, gsr
+            bio, chpi, csd, dbs, dipole, ecg, ecog, eeg, emg, eog, exci,
+            eyegaze, fnirs_cw_amplitude, fnirs_fd_ac_amplitude, fnirs_fd_phase,
+            fnirs_od, gof, gsr, hbo, hbr, ias, misc, pupil, ref_meg, resp,
+            seeg, stim, syst, temperature.
 
         .. versionadded:: 0.9.0
         """
