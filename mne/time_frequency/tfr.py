@@ -4222,8 +4222,12 @@ def read_tfrs(fname, condition=None, *, verbose=None):
     hdf5_dict = read_hdf5(fname, title="mnepython", slash="replace")
     # single TFR from TFR.save()
     if "inst_type_str" in hdf5_dict:
-        inst_type_str = hdf5_dict["inst_type_str"]
-        Klass = dict(Epochs=EpochsTFR, Raw=RawTFR, Evoked=AverageTFR)[inst_type_str]
+        if hdf5_dict["data"].ndim == 4:
+            Klass = EpochsTFR
+        elif "nave" in hdf5_dict:
+            Klass = AverageTFR
+        else:
+            Klass = RawTFR
         out = Klass(inst=hdf5_dict)
         if getattr(out, "metadata", None) is not None:
             out.metadata = _prepare_read_metadata(out.metadata)
