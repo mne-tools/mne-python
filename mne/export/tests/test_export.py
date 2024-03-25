@@ -190,6 +190,33 @@ def test_double_export_edf(tmp_path):
 
 
 @edfio_mark()
+def test_edf_physical_range(tmp_path):
+    """Test exporting an EDF file with different physical range settings."""
+    ch_types = ["eeg"] * 4
+    ch_names = np.arange(len(ch_types)).astype(str).tolist()
+    fs = 1000
+    info = create_info(len(ch_types), sfreq=fs, ch_types=ch_types)
+    data = np.tile(
+        np.sin(2 * np.pi * 10 * np.arange(0, 2, 1 / fs)) * 1e-5, (len(ch_names), 1)
+    )
+    data = (data.T + [0.1, 0, 0, -0.1]).T  # add offsets
+    raw = RawArray(data, info)
+
+    # export with physical range per channel type (default)
+    temp_fname = tmp_path / "test_auto.edf"
+    raw.export(temp_fname)
+    raw_read = read_raw_edf(temp_fname, preload=True)
+    with pytest.raises(AssertionError, match="Arrays are not almost equal"):
+        assert_array_almost_equal(raw.get_data(), raw_read.get_data(), decimal=10)
+
+    # export with physical range per channel
+    temp_fname = tmp_path / "test_per_channel.edf"
+    raw.export(temp_fname, physical_range="channelwise")
+    raw_read = read_raw_edf(temp_fname, preload=True)
+    assert_array_almost_equal(raw.get_data(), raw_read.get_data(), decimal=10)
+
+
+@edfio_mark()
 def test_export_edf_annotations(tmp_path):
     """Test that exporting EDF preserves annotations."""
     raw = _create_raw_for_edf_tests()
