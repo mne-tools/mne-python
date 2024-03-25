@@ -1285,6 +1285,19 @@ tmin, tmax : float
     time are included. Defaults to ``-0.2`` and ``0.5``, respectively.
 """
 
+docdict["erp_evoked_tmin_tmax"] = """
+tmin, tmax : float
+    Start and end time of the ERP computation window in seconds. Defaults to
+    ``None`` and ``None``, which corresponds to the entire Evoked object.
+"""
+docdict["erp_strict"] = """
+strict : bool
+    If True, raise an error if values are all positive when detecting
+    a minimum (mode='neg'), or all negative when detecting a maximum
+    (mode='pos'). Defaults to True.
+"""
+
+
 docdict["estimate_plot_psd"] = """\
 estimate : str, {'auto', 'power', 'amplitude'}
     Can be "power" for power spectral density (PSD), "amplitude" for
