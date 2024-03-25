@@ -967,7 +967,13 @@ class Report:
         return items, captions, comments
 
     def copy(self):
-        """Return a deepcopy of the report."""
+        """Return a deepcopy of the report.
+
+        Returns
+        -------
+        report : instance of Report
+            The copied report.
+        """
         return copy.deepcopy(self)
 
     def get_contents(self):
