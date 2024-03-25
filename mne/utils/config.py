@@ -659,6 +659,8 @@ def sys_info(
         "openmeeg",
         "cupy",
         "pandas",
+        "h5io",
+        "h5py",
         "",
         "# Visualization (optional)",
         "pyvista",
