@@ -29,8 +29,8 @@ elif [ "${TEST_MODE}" == "pip-pre" ]; then
 	python -m pip install --progress-bar off git+https://github.com/joblib/joblib@master
 	echo "EDFlib-Python"
 	python -m pip install $STD_ARGS git+https://github.com/the-siesta-group/edfio
-	echo "pysnirf2"
-	python -m pip install $STD_ARGS git+https://github.com/BUNPC/pysnirf2
+	# echo "pysnirf2"  # Needs h5py
+	# python -m pip install $STD_ARGS git+https://github.com/BUNPC/pysnirf2
 	./tools/check_qt_import.sh PyQt6
 	python -m pip install $STD_ARGS -e .[test]
 else
