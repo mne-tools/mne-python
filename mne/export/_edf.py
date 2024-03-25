@@ -79,7 +79,7 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
             _data = raw.get_data(units=units, picks=_picks)
             ch_types_phys_max[_type] = _data.max()
             ch_types_phys_min[_type] = _data.min()
-    elif physical_range == "per-channel":
+    elif physical_range == "channelwise":
         prange = None
     else:
         # get the physical min and max of the data in uV

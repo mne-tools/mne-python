@@ -211,7 +211,7 @@ def test_edf_physical_range(tmp_path):
 
     # export with physical range per channel
     temp_fname = tmp_path / "test_per_channel.edf"
-    raw.export(temp_fname, physical_range="per-channel")
+    raw.export(temp_fname, physical_range="channelwise")
     raw_read = read_raw_edf(temp_fname, preload=True)
     assert_array_almost_equal(raw.get_data(), raw_read.get_data(), decimal=10)
 
