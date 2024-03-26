@@ -17,6 +17,7 @@ from ..._fiff.proj import setup_proj
 from ..._fiff.utils import _create_chs, _mult_cal_one
 from ...annotations import Annotations
 from ...channels.montage import make_dig_montage
+from ...event import find_events
 from ...evoked import EvokedArray
 from ...utils import _check_fname, _check_option, _soft_import, logger, verbose, warn
 from ..base import BaseRaw
@@ -370,6 +371,7 @@ def _read_raw_egi_mff(
     exclude=None,
     preload=False,
     channel_naming="E%d",
+    events_as_annotations=False,
     verbose=None,
 ):
     """Read EGI mff binary as raw object.
@@ -401,6 +403,10 @@ def _read_raw_egi_mff(
         Channel naming convention for the data channels. Defaults to 'E%%d'
         (resulting in channel names 'E1', 'E2', 'E3'...). The effective default
         prior to 0.14.0 was 'EEG %%03d'.
+    events_as_annotations : bool
+        If True, annotations are created from experiment events. If False (default),
+        synthetic trigger channels are created from experiment events. See the Notes
+        section for details.
     %(verbose)s
 
     Returns
@@ -431,7 +437,15 @@ def _read_raw_egi_mff(
     .. versionadded:: 0.15.0
     """
     return RawMff(
-        input_fname, eog, misc, include, exclude, preload, channel_naming, verbose
+        input_fname,
+        eog,
+        misc,
+        include,
+        exclude,
+        preload,
+        channel_naming,
+        events_as_annotations,
+        verbose,
     )
 
 
@@ -450,6 +464,7 @@ class RawMff(BaseRaw):
         exclude=None,
         preload=False,
         channel_naming="E%d",
+        events_as_annotations=False,
         verbose=None,
     ):
         """Init the RawMff class."""
@@ -487,7 +502,7 @@ class RawMff(BaseRaw):
                             more_excludes.append(ii)
                 if len(exclude_inds) + len(more_excludes) == len(event_codes):
                     warn(
-                        "Did not find any event code with more than one " "event.",
+                        "Did not find any event code with more than one event.",
                         RuntimeWarning,
                     )
                 else:
@@ -615,7 +630,7 @@ class RawMff(BaseRaw):
             np.concatenate([idx[key] for key in keys]), np.arange(len(chs))
         ):
             raise ValueError(
-                "Currently interlacing EEG and PNS channels" "is not supported"
+                "Currently interlacing EEG and PNS channels is not supported"
             )
         egi_info["kind_bounds"] = [0]
         for key in keys:
@@ -671,6 +686,15 @@ class RawMff(BaseRaw):
 
         if len(annot["onset"]):
             self.set_annotations(Annotations(**annot, orig_time=None))
+
+        # create events from annotations
+        if events_as_annotations:
+            ev = find_events(self)
+            event_dict = {v: k for k, v in self.event_id.items()}
+            annot["onset"].extend(ev[:, 0] / self.info["sfreq"])
+            annot["duration"].extend(np.zeros(ev.shape[0]))
+            annot["description"].extend([event_dict[e] for e in ev[:, 2]])
+            self.set_annotations(Annotations(**annot))
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of data."""
