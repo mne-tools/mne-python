@@ -40,8 +40,8 @@ class MNESubstitution(Directive):  # noqa: D101
             for key in _DATA_CH_TYPES_ORDER_DEFAULT:
                 if (
                     _PICK_TYPES_DATA_DICT.get(key, False)
-                    or key in _EYETRACK_CH_TYPES_SPLIT or
-                    key == 'ref_meg'
+                    or key in _EYETRACK_CH_TYPES_SPLIT
+                    or key == "ref_meg"
                 ):
                     keys.append(key)
             rst = "- " + "\n- ".join(
