@@ -8,6 +8,7 @@
 # Copyright the MNE-Python contributors.
 
 import base64
+import copy
 import dataclasses
 import fnmatch
 import io
@@ -965,6 +966,64 @@ class Report:
             )
         return items, captions, comments
 
+    def copy(self):
+        """Return a deepcopy of the report.
+
+        Returns
+        -------
+        report : instance of Report
+            The copied report.
+        """
+        return copy.deepcopy(self)
+
+    def get_contents(self):
+        """Get the content of the report.
+
+        Returns
+        -------
+        titles : list of str
+            The title of each content element.
+        tags : list of list of str
+            The tags for each content element, one list per element.
+        htmls : list of str
+            The HTML contents for each element.
+
+        Notes
+        -----
+        .. versionadded:: 1.7
+        """
+        htmls, _, titles, tags = self._content_as_html()
+        return titles, tags, htmls
+
+    def reorder(self, order):
+        """Reorder the report content.
+
+        Parameters
+        ----------
+        order : array-like of int
+            The indices of the new order (as if you were reordering an array).
+            For example if there are 4 elements in the report,
+            ``order=[3, 0, 1, 2]`` would take the last element and move it to
+            the front. In other words, ``elements = [elements[ii] for ii in order]]``.
+
+        Notes
+        -----
+        .. versionadded:: 1.7
+        """
+        _validate_type(order, "array-like", "order")
+        order = np.array(order)
+        if order.dtype.kind != "i" or order.ndim != 1:
+            raise ValueError(
+                "order must be an array of integers, got "
+                f"{order.ndim}D array of dtype {order.dtype}"
+            )
+        n_elements = len(self._content)
+        if not np.array_equal(np.sort(order), np.arange(n_elements)):
+            raise ValueError(
+                f"order must be a permutation of range({n_elements}), got:\n{order}"
+            )
+        self._content = [self._content[ii] for ii in order]
+
     def _content_as_html(self):
         """Generate HTML representations based on the added content & sections.
 
@@ -1039,18 +1098,12 @@ class Report:
     @property
     def html(self):
         """A list of HTML representations for all content elements."""
-        htmls, _, _, _ = self._content_as_html()
-        return htmls
+        return self._content_as_html()[0]
 
     @property
     def tags(self):
-        """All tags currently used in the report."""
-        tags = []
-        for c in self._content:
-            tags.extend(c.tags)
-
-        tags = tuple(sorted(set(tags)))
-        return tags
+        """A sorted tuple of all tags currently used in the report."""
+        return tuple(sorted(set(sum(self._content_as_html()[3], ()))))
 
     def add_custom_css(self, css):
         """Add custom CSS to the report.
@@ -2875,7 +2928,7 @@ class Report:
                 )
 
         if sort_content:
-            self._content = self._sort(content=self._content, order=CONTENT_ORDER)
+            self._sort(order=CONTENT_ORDER)
 
     def __getstate__(self):
         """Get the state of the report as a dictionary."""
@@ -2954,7 +3007,7 @@ class Report:
         fname = op.realpath(fname)  # resolve symlinks
 
         if sort_content:
-            self._content = self._sort(content=self._content, order=CONTENT_ORDER)
+            self._sort(order=CONTENT_ORDER)
 
         if not overwrite and op.isfile(fname):
             msg = (
@@ -3017,30 +3070,23 @@ class Report:
         if self.fname is not None:
             self.save(self.fname, open_browser=False, overwrite=True)
 
-    @staticmethod
-    def _sort(content, order):
+    def _sort(self, *, order):
         """Reorder content to reflect "natural" ordering."""
-        content_unsorted = content.copy()
-        content_sorted = []
         content_sorted_idx = []
-        del content
 
         # First arrange content with known tags in the predefined order
         for tag in order:
-            for idx, content in enumerate(content_unsorted):
+            for idx, content in enumerate(self._content):
                 if tag in content.tags:
                     content_sorted_idx.append(idx)
-                    content_sorted.append(content)
 
         # Now simply append the rest (custom tags)
-        content_remaining = [
-            content
-            for idx, content in enumerate(content_unsorted)
-            if idx not in content_sorted_idx
-        ]
-
-        content_sorted = [*content_sorted, *content_remaining]
-        return content_sorted
+        self.reorder(
+            np.r_[
+                content_sorted_idx,
+                np.setdiff1d(np.arange(len(self._content)), content_sorted_idx),
+            ]
+        )
 
     def _render_one_bem_axis(
         self,
