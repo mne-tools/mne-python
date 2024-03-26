@@ -226,6 +226,8 @@
 
 .. _Ivana Kojcic: https://github.com/ikojcic
 
+.. _Ivo de Jong: https://github.com/ivopascal
+
 .. _Jaakko Leppakangas: https://github.com/jaeilepp
 
 .. _Jack Zhang: https://github.com/jackz314
