@@ -1,0 +1,1 @@
+Added functions for deconvolving eyetracking pupil size data: :func:`mne.preprocessing.eyetracking.deconvolve` :func:`mne.preprocessing.eyetracking.pupil_zscores`, and :func:`mne.preprocessing.eyetracking.pupil_kernel`. by `Scott Huberty`_.
