@@ -428,7 +428,6 @@ def _imshow_tfr(
     cnorm=None,
 ):
     """Show time-frequency map as two-dimensional image."""
-    from matplotlib import pyplot as plt
     from matplotlib.widgets import RectangleSelector
 
     _check_option("yscale", yscale, ["auto", "linear", "log"])
@@ -460,7 +459,7 @@ def _imshow_tfr(
         if isinstance(colorbar, DraggableColorbar):
             cbar = colorbar.cbar  # this happens with multiaxes case
         else:
-            cbar = plt.colorbar(mappable=img, ax=ax)
+            cbar = ax.get_figure().colorbar(mappable=img, ax=ax)
         if interactive_cmap:
             ax.CB = DraggableColorbar(cbar, img, kind="tfr_image", ch_type=None)
     ax.RS = RectangleSelector(ax, onselect=onselect)  # reference must be kept

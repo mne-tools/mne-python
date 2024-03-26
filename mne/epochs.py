@@ -75,7 +75,7 @@ from .fixes import rng_uniform
 from .html_templates import _get_html_template
 from .parallel import parallel_func
 from .time_frequency.spectrum import EpochsSpectrum, SpectrumMixin, _validate_method
-from .time_frequency.tfr import EpochsTFR
+from .time_frequency.tfr import AverageTFR, EpochsTFR
 from .utils import (
     ExtendedTimeMixin,
     GetEpochsMixin,
@@ -419,6 +419,8 @@ class BaseEpochs(
     filename : str | None
         The filename (if the epochs are read from disk).
     %(metadata_epochs)s
+
+        .. versionadded:: 0.16
     %(event_repeated_epochs)s
     %(raw_sfreq)s
     annotations : instance of mne.Annotations | None
@@ -2561,6 +2563,139 @@ class BaseEpochs(
         )
 
     @verbose
+    def compute_tfr(
+        self,
+        method,
+        freqs,
+        *,
+        tmin=None,
+        tmax=None,
+        picks=None,
+        proj=False,
+        output="power",
+        average=False,
+        return_itc=False,
+        decim=1,
+        n_jobs=None,
+        verbose=None,
+        **method_kw,
+    ):
+        """Compute a time-frequency representation of epoched data.
+
+        Parameters
+        ----------
+        %(method_tfr_epochs)s
+        %(freqs_tfr_epochs)s
+        %(tmin_tmax_psd)s
+        %(picks_good_data_noref)s
+        %(proj_psd)s
+        %(output_compute_tfr)s
+        average : bool
+            Whether to return average power across epochs (instead of single-trial
+            power). ``average=True`` is not compatible with ``output="complex"`` or
+            ``output="phase"``. Ignored if ``method="stockwell"`` (Stockwell method
+            *requires* averaging). Default is ``False``.
+        return_itc : bool
+            Whether to return inter-trial coherence (ITC) as well as power estimates.
+            If ``True`` then must specify ``average=True`` (or ``method="stockwell",
+            average="auto"``). Default is ``False``.
+        %(decim_tfr)s
+        %(n_jobs)s
+        %(verbose)s
+        %(method_kw_epochs_tfr)s
+
+        Returns
+        -------
+        tfr : instance of EpochsTFR or AverageTFR
+            The time-frequency-resolved power estimates.
+        itc : instance of AverageTFR
+            The inter-trial coherence (ITC). Only returned if ``return_itc=True``.
+
+        Notes
+        -----
+        If ``average=True`` (or ``method="stockwell", average="auto"``) the result will
+        be an :class:`~mne.time_frequency.AverageTFR` instead of an
+        :class:`~mne.time_frequency.EpochsTFR`.
+
+        .. versionadded:: 1.7
+
+        References
+        ----------
+        .. footbibliography::
+        """
+        if method == "stockwell" and not average:  # stockwell method *must* average
+            logger.info(
+                'Requested `method="stockwell"` so ignoring parameter `average=False`.'
+            )
+            average = True
+        if average:
+            # augment `output` value for use by tfr_array_* functions
+            _check_option("output", output, ("power",), extra=" when average=True")
+            method_kw["output"] = "avg_power_itc" if return_itc else "avg_power"
+        else:
+            msg = (
+                "compute_tfr() got incompatible parameters `average=False` and `{}` "
+                "({} requires averaging over epochs)."
+            )
+            if return_itc:
+                raise ValueError(msg.format("return_itc=True", "computing ITC"))
+            if method == "stockwell":
+                raise ValueError(msg.format('method="stockwell"', "Stockwell method"))
+            # `average` and `return_itc` both False, so "phase" and "complex" are OK
+            _check_option("output", output, ("power", "phase", "complex"))
+            method_kw["output"] = output
+
+        if method == "stockwell":
+            method_kw["return_itc"] = return_itc
+            method_kw.pop("output")
+            if isinstance(freqs, str):
+                _check_option("freqs", freqs, "auto")
+            else:
+                _validate_type(freqs, "array-like")
+                _check_option(
+                    "freqs", np.array(freqs).shape, ((2,),), extra=" (wrong shape)."
+                )
+        if average:
+            out = AverageTFR(
+                inst=self,
+                method=method,
+                freqs=freqs,
+                tmin=tmin,
+                tmax=tmax,
+                picks=picks,
+                proj=proj,
+                decim=decim,
+                n_jobs=n_jobs,
+                verbose=verbose,
+                **method_kw,
+            )
+            # tfr_array_stockwell always returns ITC (but sometimes it's None)
+            if hasattr(out, "_itc"):
+                if out._itc is not None:
+                    state = out.__getstate__()
+                    state["data"] = out._itc
+                    state["data_type"] = "Inter-trial coherence"
+                    itc = AverageTFR(inst=state)
+                    del out._itc
+                    return out, itc
+                del out._itc
+            return out
+        # now handle average=False
+        return EpochsTFR(
+            inst=self,
+            method=method,
+            freqs=freqs,
+            tmin=tmin,
+            tmax=tmax,
+            picks=picks,
+            proj=proj,
+            decim=decim,
+            n_jobs=n_jobs,
+            verbose=verbose,
+            **method_kw,
+        )
+
+    @verbose
     def plot_psd(
         self,
         fmin=0,
@@ -3303,20 +3438,18 @@ class Epochs(BaseEpochs):
     %(on_missing_epochs)s
     %(reject_by_annotation_epochs)s
     %(metadata_epochs)s
+
+        .. versionadded:: 0.16
     %(event_repeated_epochs)s
     %(verbose)s
 
     Attributes
     ----------
     %(info_not_none)s
-    event_id : dict
-        Names of conditions corresponding to event_ids.
+    %(event_id_attr)s
     ch_names : list of string
         List of channel names.
-    selection : array
-        List of indices of selected events (not dropped or ignored etc.). For
-        example, if the original event array had 4 events and the second event
-        has been dropped, this attribute would be np.array([0, 2, 3]).
+    %(selection_attr)s
     preload : bool
         Indicates whether epochs are in memory.
     drop_log : tuple of tuple
@@ -3535,6 +3668,8 @@ class EpochsArray(BaseEpochs):
     %(proj_epochs)s
     %(on_missing_epochs)s
     %(metadata_epochs)s
+
+        .. versionadded:: 0.16
     %(selection)s
     %(drop_log)s
 
