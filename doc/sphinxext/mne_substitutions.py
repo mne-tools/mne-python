@@ -7,8 +7,8 @@ from docutils.statemachine import StringList
 from mne._fiff.pick import (
     _DATA_CH_TYPES_ORDER_DEFAULT,
     _DATA_CH_TYPES_SPLIT,
+    _EYETRACK_CH_TYPES_SPLIT,
     _PICK_TYPES_DATA_DICT,
-    _EYETRACK_CH_TYPES_SPLIT
 )
 from mne.defaults import DEFAULTS
 
@@ -38,9 +38,11 @@ class MNESubstitution(Directive):  # noqa: D101
         elif self.arguments[0] == "non-data channels list":
             keys = list()
             for key in _DATA_CH_TYPES_ORDER_DEFAULT:
-                if (_PICK_TYPES_DATA_DICT.get(key, False) or
-                        key in _EYETRACK_CH_TYPES_SPLIT or
-                        key == 'ref_meg'):
+                if (
+                    _PICK_TYPES_DATA_DICT.get(key, False)
+                    or key in _EYETRACK_CH_TYPES_SPLIT or
+                    key == 'ref_meg'
+                ):
                     keys.append(key)
             rst = "- " + "\n- ".join(
                 f"``{repr(key)}``: **{DEFAULTS['titles'][key]}** "
