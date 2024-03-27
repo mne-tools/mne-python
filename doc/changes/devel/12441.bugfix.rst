@@ -1,0 +1,1 @@
+Fix prefiltering information management for EDF/BDF, by `Michiru Kaneda`_
