@@ -98,7 +98,6 @@ DEFAULTS = dict(
         temperature="C",
         eyegaze="AU",
         pupil="AU",
-        stim="AU",
     ),
     # scalings for the units
     scalings=dict(
@@ -128,7 +127,6 @@ DEFAULTS = dict(
         temperature=1.0,
         eyegaze=1.0,
         pupil=1.0,
-        stim=1.0,
     ),
     # rough guess for a good plot
     scalings_plot_raw=dict(
