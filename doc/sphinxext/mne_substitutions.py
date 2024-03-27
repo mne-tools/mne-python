@@ -45,9 +45,8 @@ class MNESubstitution(Directive):  # noqa: D101
                 ):
                     keys.append(key)
             for key in keys:
-                if (
-                    DEFAULTS['titles'].get(key, False)
-                    or DEFAULTS['scalings'].get(key, False)
+                if DEFAULTS["titles"].get(key, False) or DEFAULTS["scalings"].get(
+                    key, False
                 ):
                     rst = f"``{repr(key)}``: **{DEFAULTS['titles'][key]}** "
                 else:
