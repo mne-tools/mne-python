@@ -3182,7 +3182,8 @@ def create_info(ch_names, sfreq, ch_types="misc", verbose=None):
 
     Proper units of measure:
 
-    * V: eeg, eog, seeg, dbs, emg, ecg, bio, ecog, resp, fnirs_fd_ac_amplitude, fnirs_cw_amplitude, fnirs_od
+    * V: eeg, eog, seeg, dbs, emg, ecg, bio, ecog, resp, fnirs_fd_ac_amplitude,
+     fnirs_cw_amplitude, fnirs_od
     * T: mag, chpi, ref_meg
     * T/m: grad
     * M: hbo, hbr
