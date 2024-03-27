@@ -1,0 +1,1 @@
+Add ``orig_ch_names`` to ``mne.io.edf.edf.RawEDF._raw_extras``, and apply ``mne._fiff.meas_info._unique_channel_names`` before checking include/exclude channels , by `Michiru Kaneda`_
