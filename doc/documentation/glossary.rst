@@ -41,15 +41,15 @@ general neuroimaging concepts. If you think a term is missing, please consider
         Channels refer to MEG sensors, EEG electrodes or other sensors such as
         EOG, ECG, sEEG, ECoG, etc. Channels usually have
         a type (such as gradiometer), and a unit (such as T/m) used e.g. for
-        plotting. See also :term:`data channels`.
+        plotting. See also :term:`data channels` and :term:`non-data channels`.
 
     data channels
         Many functions in MNE-Python operate on "data channels" by default. These
         are channels that contain electrophysiological data from the brain,
         as opposed to other channel types such as EOG, ECG, stimulus/trigger,
-        or acquisition system status data. The set of channels considered
-        "data channels" in MNE contains the following types (together with scale
-        factors for plotting):
+        or acquisition system status data (see :term:`non-data channels`).
+        The set of channels considered "data channels" in MNE contains the
+        following types (together with scale factors for plotting):
 
         .. mne:: data channels list
 
@@ -287,6 +287,13 @@ general neuroimaging concepts. If you think a term is missing, please consider
         data into a common space for statistical analysis.
         See :ref:`ch_morph` for more details.
 
+    non-data channels
+        All types of channels other than :term:`data channels`.
+        The set of channels considered "non-data channels" in MNE contains the
+        following types (together with scale factors for plotting):
+
+        .. mne:: non-data channels list
+
     OPM
     optically pumped magnetometer
         An optically pumped magnetometer (OPM) is a type of magnetometer
@@ -349,6 +356,10 @@ general neuroimaging concepts. If you think a term is missing, please consider
     selection
         A selection is a set of picked channels (for example, all sensors
         falling within a :term:`region of interest`).
+
+    sensor types
+        All the sensors handled by MNE-Python can be divided into two categories:
+        :term:`data channels` and :term:`non-data channels`.
 
     STC
     source estimate
