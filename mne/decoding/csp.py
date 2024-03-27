@@ -12,7 +12,8 @@ import copy as cp
 import numpy as np
 from scipy.linalg import eigh
 
-from ..cov import _regularized_covariance
+from .._fiff.meas_info import create_info
+from ..cov import _regularized_covariance, _smart_eigh
 from ..defaults import _BORDER_DEFAULT, _EXTRAPOLATE_DEFAULT, _INTERPOLATION_DEFAULT
 from ..evoked import EvokedArray
 from ..fixes import pinv
@@ -184,6 +185,9 @@ class CSP(TransformerMixin, BaseEstimator):
                 "component_order='alternate' requires two classes, but data contains "
                 f"{n_classes} classes; use component_order='mutual_info' instead."
             )
+
+        # Convert rank to one that will run
+        _validate_type(self.rank, (dict, None), "rank")
 
         covs, sample_weights = self._compute_covariance_matrices(X, y)
         eigen_vectors, eigen_values = self._decompose_covs(covs, sample_weights)
@@ -519,6 +523,13 @@ class CSP(TransformerMixin, BaseEstimator):
         elif self.cov_est == "epoch":
             cov_estimator = self._epoch_cov
 
+        # TODO: We should allow the user to pass this, then we won't need to convert
+        self._info = create_info(n_channels, 1000.0, "mag")
+        if self.rank is None:
+            self._rank = self.rank
+        else:
+            self._rank = {"mag": sum(self.rank.values())}
+
         covs = []
         sample_weights = []
         for this_class in self._classes:
@@ -539,7 +550,11 @@ class CSP(TransformerMixin, BaseEstimator):
         x_class = np.transpose(x_class, [1, 0, 2])
         x_class = x_class.reshape(n_channels, -1)
         cov = _regularized_covariance(
-            x_class, reg=self.reg, method_params=self.cov_method_params, rank=self.rank
+            x_class,
+            reg=self.reg,
+            method_params=self.cov_method_params,
+            rank=self._rank,
+            info=self._info,
         )
         weight = x_class.shape[0]
 
@@ -552,7 +567,8 @@ class CSP(TransformerMixin, BaseEstimator):
                 this_X,
                 reg=self.reg,
                 method_params=self.cov_method_params,
-                rank=self.rank,
+                rank=self._rank,
+                info=self._info,
             )
             for this_X in x_class
         )
@@ -563,6 +579,17 @@ class CSP(TransformerMixin, BaseEstimator):
 
     def _decompose_covs(self, covs, sample_weights):
         n_classes = len(covs)
+        n_channels = covs[0].shape[0]
+        _, sub_vec, mask = _smart_eigh(
+            covs.mean(0),
+            self._info,
+            self._rank,
+            proj_subspace=True,
+            do_compute_rank=self._rank is None,
+        )
+        sub_vec = sub_vec[mask]
+        covs = np.array([sub_vec @ cov @ sub_vec.T for cov in covs], float)
+        assert covs[0].shape == (mask.sum(),) * 2
         if n_classes == 2:
             eigen_values, eigen_vectors = eigh(covs[0], covs.sum(0))
         else:
@@ -573,6 +600,9 @@ class CSP(TransformerMixin, BaseEstimator):
                 eigen_vectors.T, covs, sample_weights
             )
             eigen_values = None
+        # project back
+        eigen_vectors = sub_vec.T @ eigen_vectors
+        assert eigen_vectors.shape == (n_channels, mask.sum())
         return eigen_vectors, eigen_values
 
     def _compute_mutual_info(self, covs, sample_weights, eigen_vectors):

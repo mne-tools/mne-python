@@ -245,40 +245,51 @@ def test_csp():
         assert np.abs(corr) > 0.95
 
 
-def test_regularized_csp():
+# Even the "reg is None and rank is None" case should pass now thanks to the
+# do_compute_rank
+@pytest.mark.parametrize("ch_type", ("mag", "eeg"))
+@pytest.mark.parametrize("rank", (None, "correct"))
+@pytest.mark.parametrize("reg", [None, 0.05, "ledoit_wolf", "oas"])
+def test_regularized_csp(ch_type, rank, reg):
     """Test Common Spatial Patterns algorithm using regularized covariance."""
     pytest.importorskip("sklearn")
-    raw = io.read_raw_fif(raw_fname)
+    raw = io.read_raw_fif(raw_fname).pick(ch_type, exclude="bads")
+    raw.pick(raw.ch_names[:30]).load_data()
+    if ch_type == "eeg":
+        raw.set_eeg_reference(projection=True)
+    n_eig = len(raw.ch_names) - len(raw.info["projs"])
+    if ch_type == "eeg":
+        assert n_eig == 29
+    else:
+        assert n_eig == 27
+    if rank == "correct":
+        rank = {ch_type: n_eig}
+    else:
+        assert rank is None, rank
+    raw.info.normalize_proj()
     events = read_events(event_name)
-    picks = pick_types(
-        raw.info, meg=True, stim=False, ecg=False, eog=False, exclude="bads"
-    )
-    picks = picks[1:13:3]
-    epochs = Epochs(
-        raw, events, event_id, tmin, tmax, picks=picks, baseline=(None, 0), preload=True
-    )
+    epochs = Epochs(raw, events, event_id, tmin, tmax, baseline=(None, 0), preload=True)
     epochs_data = epochs.get_data(copy=False)
     n_channels = epochs_data.shape[1]
-
+    assert n_channels == 30
     n_components = 3
-    reg_cov = [None, 0.05, "ledoit_wolf", "oas"]
-    for reg in reg_cov:
-        csp = CSP(n_components=n_components, reg=reg, norm_trace=False, rank=None)
-        csp.fit(epochs_data, epochs.events[:, -1])
-        y = epochs.events[:, -1]
-        X = csp.fit_transform(epochs_data, y)
-        assert csp.filters_.shape == (n_channels, n_channels)
-        assert csp.patterns_.shape == (n_channels, n_channels)
-        assert_array_almost_equal(csp.fit(epochs_data, y).transform(epochs_data), X)
 
-        # test init exception
-        pytest.raises(ValueError, csp.fit, epochs_data, np.zeros_like(epochs.events))
-        pytest.raises(ValueError, csp.fit, epochs, y)
-        pytest.raises(ValueError, csp.transform, epochs)
+    csp = CSP(n_components=n_components, reg=reg, norm_trace=False, rank=rank)
+    csp.fit(epochs_data, epochs.events[:, -1])
+    y = epochs.events[:, -1]
+    X = csp.fit_transform(epochs_data, y)
+    assert csp.filters_.shape == (n_eig, n_channels)
+    assert csp.patterns_.shape == (n_eig, n_channels)
+    assert_array_almost_equal(csp.fit(epochs_data, y).transform(epochs_data), X)
 
-        csp.n_components = n_components
-        sources = csp.transform(epochs_data)
-        assert sources.shape[1] == n_components
+    # test init exception
+    pytest.raises(ValueError, csp.fit, epochs_data, np.zeros_like(epochs.events))
+    pytest.raises(ValueError, csp.fit, epochs, y)
+    pytest.raises(ValueError, csp.transform, epochs)
+
+    csp.n_components = n_components
+    sources = csp.transform(epochs_data)
+    assert sources.shape[1] == n_components
 
 
 def test_csp_pipeline():
