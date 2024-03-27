@@ -69,7 +69,6 @@ DEFAULTS = dict(
         temperature="C",
         eyegaze="AU",
         pupil="AU",
-        stim="AU",
     ),
     units=dict(
         mag="fT",
