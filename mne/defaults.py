@@ -221,6 +221,9 @@ DEFAULTS = dict(
         pupil="Eye-tracking (Pupil size)",
         resp="Respiration monitoring channel",
         chpi="Continuous head position indicator (HPI) coil channels",
+        exci="Flux excitation channel",
+        ias="Internal Active Shielding data (Triux systems)",
+        syst="System status channel information (Triux systems)",
         whitened="Whitened data"
     ),
     mask_params=dict(
