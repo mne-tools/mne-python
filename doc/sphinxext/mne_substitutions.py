@@ -37,24 +37,23 @@ class MNESubstitution(Directive):  # noqa: D101
             )
         elif self.arguments[0] == "non-data channels list":
             keys = list()
+            rst = str()
             for key in _DATA_CH_TYPES_ORDER_DEFAULT:
                 if (
-                    not _PICK_TYPES_DATA_DICT.get(key, False)
-                    or key in _EYETRACK_CH_TYPES_SPLIT
-                    or key == "ref_meg"
+                        not _PICK_TYPES_DATA_DICT.get(key, True)
+                        or key in _EYETRACK_CH_TYPES_SPLIT
+                        or key in ("ref_meg", "whitened")
                 ):
                     keys.append(key)
             for key in keys:
-                if DEFAULTS["titles"].get(key, False) or DEFAULTS["scalings"].get(
-                    key, False
+                if DEFAULTS['scalings'].get(key, False) and DEFAULTS['units'].get(
+                        key, False
                 ):
-                    rst = f"``{repr(key)}``: **{DEFAULTS['titles'][key]}** "
+                    rst += f"- ``{repr(key)}``: **{DEFAULTS['titles'][key]}** " \
+                           f"(scaled by {DEFAULTS['scalings'][key]} to " \
+                           f"plot in *{DEFAULTS['units'][key]}*)\n"
                 else:
-                    rst = "- " + "\n- ".join(
-                        f"``{repr(key)}``: **{DEFAULTS['titles'][key]}** "
-                        f"(scaled by {DEFAULTS['scalings'][key]} to "
-                        f"plot in *{DEFAULTS['units'][key]}*)"
-                    )
+                    rst += f"- ``{repr(key)}``: **{DEFAULTS['titles'][key]}**\n"
         else:
             raise self.error(
                 "MNE directive unknown in %s: %r"  # noqa: UP031
