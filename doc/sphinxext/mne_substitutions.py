@@ -39,17 +39,23 @@ class MNESubstitution(Directive):  # noqa: D101
             keys = list()
             for key in _DATA_CH_TYPES_ORDER_DEFAULT:
                 if (
-                    _PICK_TYPES_DATA_DICT.get(key, False)
+                    not _PICK_TYPES_DATA_DICT.get(key, False)
                     or key in _EYETRACK_CH_TYPES_SPLIT
                     or key == "ref_meg"
                 ):
                     keys.append(key)
-            rst = "- " + "\n- ".join(
-                f"``{repr(key)}``: **{DEFAULTS['titles'][key]}** "
-                f"(scaled by {DEFAULTS['scalings'][key]} to "
-                f"plot in *{DEFAULTS['units'][key]}*)"
-                for key in keys
-            )
+            for key in keys:
+                if (
+                    DEFAULTS['titles'].get(key, False)
+                    or DEFAULTS['scalings'].get(key, False)
+                ):
+                    rst = f"``{repr(key)}``: **{DEFAULTS['titles'][key]}** "
+                else:
+                    rst = "- " + "\n- ".join(
+                        f"``{repr(key)}``: **{DEFAULTS['titles'][key]}** "
+                        f"(scaled by {DEFAULTS['scalings'][key]} to "
+                        f"plot in *{DEFAULTS['units'][key]}*)"
+                    )
         else:
             raise self.error(
                 "MNE directive unknown in %s: %r"  # noqa: UP031

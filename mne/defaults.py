@@ -69,6 +69,7 @@ DEFAULTS = dict(
         temperature="C",
         eyegaze="AU",
         pupil="AU",
+        stim="AU"
     ),
     units=dict(
         mag="fT",
@@ -97,6 +98,7 @@ DEFAULTS = dict(
         temperature="C",
         eyegaze="AU",
         pupil="AU",
+        stim="AU"
     ),
     # scalings for the units
     scalings=dict(
@@ -126,6 +128,7 @@ DEFAULTS = dict(
         temperature=1.0,
         eyegaze=1.0,
         pupil=1.0,
+        stim=1.0,
     ),
     # rough guess for a good plot
     scalings_plot_raw=dict(
@@ -216,6 +219,9 @@ DEFAULTS = dict(
         temperature="Temperature",
         eyegaze="Eye-tracking (Gaze position)",
         pupil="Eye-tracking (Pupil size)",
+        resp="Respiration monitoring channel",
+        chpi="Continuous head position indicator (HPI) coil channels",
+        whitened="Whitened data"
     ),
     mask_params=dict(
         marker="o",
