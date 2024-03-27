@@ -37,21 +37,23 @@ class MNESubstitution(Directive):  # noqa: D101
             )
         elif self.arguments[0] == "non-data channels list":
             keys = list()
-            rst = str()
+            rst = ""
             for key in _DATA_CH_TYPES_ORDER_DEFAULT:
                 if (
-                        not _PICK_TYPES_DATA_DICT.get(key, True)
-                        or key in _EYETRACK_CH_TYPES_SPLIT
-                        or key in ("ref_meg", "whitened")
+                    not _PICK_TYPES_DATA_DICT.get(key, True)
+                    or key in _EYETRACK_CH_TYPES_SPLIT
+                    or key in ("ref_meg", "whitened")
                 ):
                     keys.append(key)
             for key in keys:
-                if DEFAULTS['scalings'].get(key, False) and DEFAULTS['units'].get(
-                        key, False
+                if DEFAULTS["scalings"].get(key, False) and DEFAULTS["units"].get(
+                    key, False
                 ):
-                    rst += f"- ``{repr(key)}``: **{DEFAULTS['titles'][key]}** " \
-                           f"(scaled by {DEFAULTS['scalings'][key]} to " \
-                           f"plot in *{DEFAULTS['units'][key]}*)\n"
+                    rst += (
+                        f"- ``{repr(key)}``: **{DEFAULTS['titles'][key]}** "
+                        f"(scaled by {DEFAULTS['scalings'][key]} to "
+                        f"plot in *{DEFAULTS['units'][key]}*)\n"
+                    )
                 else:
                     rst += f"- ``{repr(key)}``: **{DEFAULTS['titles'][key]}**\n"
         else:
