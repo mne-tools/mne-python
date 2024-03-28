@@ -1,1 +1,1 @@
-Add ``exclude_after_unique`` option to :meth:`mne.io.read_raw_edf` and :meth:`mne.io.read_raw_edf` to able to apply :meth:`mne._fiff.meas_info._unique_channel_names` after checking include/exclude channels, and add ``orig_ch_names`` to ``mne.io.edf.edf.RawEDF._raw_extras`` by `Michiru Kaneda`_
+Add ``exclude_after_unique`` option to :meth:`mne.io.read_raw_edf` and :meth:`mne.io.read_raw_edf` to able to apply :meth:`mne._fiff.meas_info._unique_channel_names` after checking include/exclude channels, by `Michiru Kaneda`_

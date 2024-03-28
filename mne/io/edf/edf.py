@@ -944,8 +944,6 @@ def _read_edf_header(
         else:
             ch_types, ch_names = ["EEG"] * nchan, ch_labels
 
-        orig_ch_names = ch_names.copy()
-
         tal_idx = _find_tal_idx(ch_names)
         if exclude_after_unique:
             # make sure channel names are unique
@@ -999,7 +997,6 @@ def _read_edf_header(
         # Populate edf_info
         edf_info.update(
             ch_names=ch_names,
-            orig_ch_names=orig_ch_names,
             ch_types=ch_types,
             data_offset=header_nbytes,
             digital_max=digital_max,
@@ -1150,7 +1147,6 @@ def _read_gdf_header(fname, exclude, include=None):
             nchan = int(np.fromfile(fid, UINT32, 1)[0])
             channels = list(range(nchan))
             ch_names = [_edf_str(fid.read(16)).strip() for ch in channels]
-            orig_ch_names = ch_names.copy()
             exclude = _find_exclude_idx(ch_names, exclude, include)
             sel = np.setdiff1d(np.arange(len(ch_names)), exclude)
             fid.seek(80 * len(channels), 1)  # transducer
@@ -1189,7 +1185,6 @@ def _read_gdf_header(fname, exclude, include=None):
             edf_info.update(
                 bytes_tot=bytes_tot,
                 ch_names=ch_names,
-                orig_ch_names=orig_ch_names,
                 data_offset=header_nbytes,
                 digital_min=digital_min,
                 digital_max=digital_max,
@@ -1348,7 +1343,6 @@ def _read_gdf_header(fname, exclude, include=None):
             # Channels (variable header)
             channels = list(range(nchan))
             ch_names = [_edf_str(fid.read(16)).strip() for ch in channels]
-            orig_ch_names = ch_names.copy()
             exclude = _find_exclude_idx(ch_names, exclude, include)
             sel = np.setdiff1d(np.arange(len(ch_names)), exclude)
 
@@ -1433,7 +1427,6 @@ def _read_gdf_header(fname, exclude, include=None):
             edf_info.update(
                 bytes_tot=bytes_tot,
                 ch_names=ch_names,
-                orig_ch_names=orig_ch_names,
                 data_offset=header_nbytes,
                 dtype_byte=dtype_byte,
                 dtype_np=dtype_np,

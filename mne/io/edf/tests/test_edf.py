@@ -318,17 +318,10 @@ def test_edf_data_broken(tmp_path):
 def test_duplicate_channel_labels_edf():
     """Test reading edf file with duplicate channel names."""
     EXPECTED_CHANNEL_NAMES = ["EEG F1-Ref-0", "EEG F2-Ref", "EEG F1-Ref-1"]
-    EXPECTED_ORIGINAL_CHANNEL_NAMES = [
-        "EEG F1-Ref",
-        "EEG F2-Ref",
-        "EEG F1-Ref",
-        "EDF Annotations",
-    ]
     with pytest.warns(RuntimeWarning, match="Channel names are not unique"):
         raw = read_raw_edf(duplicate_channel_labels_path, preload=False)
 
     assert raw.ch_names == EXPECTED_CHANNEL_NAMES
-    assert raw._raw_extras[0]["orig_ch_names"] == EXPECTED_ORIGINAL_CHANNEL_NAMES
 
 
 def test_parse_annotation(tmp_path):
