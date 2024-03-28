@@ -87,6 +87,10 @@ class RawEDF(BaseRaw):
     %(preload)s
     %(units_edf_bdf_io)s
     %(encoding_edf)s
+    exclude_after_unique : bool
+        If True, exclude channels are searched for after they have been made
+        unique. This is useful to choose channels that have been made unique
+        by adding a suffix.
     %(verbose)s
 
     See Also
@@ -148,13 +152,22 @@ class RawEDF(BaseRaw):
         include=None,
         units=None,
         encoding="utf8",
+        exclude_after_unique=False,
         *,
         verbose=None,
     ):
         logger.info(f"Extracting EDF parameters from {input_fname}...")
         input_fname = os.path.abspath(input_fname)
         info, edf_info, orig_units = _get_info(
-            input_fname, stim_channel, eog, misc, exclude, infer_types, preload, include
+            input_fname,
+            stim_channel,
+            eog,
+            misc,
+            exclude,
+            infer_types,
+            preload,
+            include,
+            exclude_after_unique,
         )
         logger.info("Creating raw.info structure...")
 
@@ -473,7 +486,7 @@ def _read_segment_file(data, idx, fi, start, stop, raw_extras, filenames, cals, 
     return tal_data
 
 
-def _read_header(fname, exclude, infer_types, include=None):
+def _read_header(fname, exclude, infer_types, include=None, exclude_after_unique=False):
     """Unify EDF, BDF and GDF _read_header call.
 
     Parameters
@@ -495,6 +508,10 @@ def _read_header(fname, exclude, infer_types, include=None):
     include : list of str | str
         Channel names to be included. A str is interpreted as a regular
         expression. 'exclude' must be empty if include is assigned.
+    exclude_after_unique : bool
+        If True, exclude channels are searched for after they have been made
+        unique. This is useful to choose channels that have been made unique
+        by adding a suffix.
 
     Returns
     -------
@@ -503,7 +520,9 @@ def _read_header(fname, exclude, infer_types, include=None):
     ext = os.path.splitext(fname)[1][1:].lower()
     logger.info("%s file detected" % ext.upper())
     if ext in ("bdf", "edf"):
-        return _read_edf_header(fname, exclude, infer_types, include)
+        return _read_edf_header(
+            fname, exclude, infer_types, include, exclude_after_unique
+        )
     elif ext == "gdf":
         return _read_gdf_header(fname, exclude, include), None
     else:
@@ -513,13 +532,23 @@ def _read_header(fname, exclude, infer_types, include=None):
 
 
 def _get_info(
-    fname, stim_channel, eog, misc, exclude, infer_types, preload, include=None
+    fname,
+    stim_channel,
+    eog,
+    misc,
+    exclude,
+    infer_types,
+    preload,
+    include=None,
+    exclude_after_unique=False,
 ):
     """Extract information from EDF+, BDF or GDF file."""
     eog = eog if eog is not None else []
     misc = misc if misc is not None else []
 
-    edf_info, orig_units = _read_header(fname, exclude, infer_types, include)
+    edf_info, orig_units = _read_header(
+        fname, exclude, infer_types, include, exclude_after_unique
+    )
 
     # XXX: `tal_ch_names` to pass to `_check_stim_channel` should be computed
     #      from `edf_info['ch_names']` and `edf_info['tal_idx']` but 'tal_idx'
@@ -790,7 +819,9 @@ def _edf_str_num(x):
     return _edf_str(x).replace(",", ".")
 
 
-def _read_edf_header(fname, exclude, infer_types, include=None):
+def _read_edf_header(
+    fname, exclude, infer_types, include=None, exclude_after_unique=False
+):
     """Read header information from EDF+ or BDF file."""
     edf_info = {"events": []}
 
@@ -913,8 +944,12 @@ def _read_edf_header(fname, exclude, infer_types, include=None):
         else:
             ch_types, ch_names = ["EEG"] * nchan, ch_labels
 
-        exclude = _find_exclude_idx(ch_names, exclude, include)
         tal_idx = _find_tal_idx(ch_names)
+        if exclude_after_unique:
+            # make sure channel names are unique
+            ch_names = _unique_channel_names(ch_names)
+
+        exclude = _find_exclude_idx(ch_names, exclude, include)
         exclude = np.concatenate([exclude, tal_idx])
         sel = np.setdiff1d(np.arange(len(ch_names)), exclude)
         for ch in channels:
@@ -936,8 +971,9 @@ def _read_edf_header(fname, exclude, infer_types, include=None):
         ch_names = [ch_names[idx] for idx in sel]
         units = [units[idx] for idx in sel]
 
-        # make sure channel names are unique
-        ch_names = _unique_channel_names(ch_names)
+        if not exclude_after_unique:
+            # make sure channel names are unique
+            ch_names = _unique_channel_names(ch_names)
         orig_units = dict(zip(ch_names, units))
 
         physical_min = np.array([float(_edf_str_num(fid.read(8))) for ch in channels])[
@@ -1570,6 +1606,7 @@ def read_raw_edf(
     preload=False,
     units=None,
     encoding="utf8",
+    exclude_after_unique=False,
     *,
     verbose=None,
 ) -> RawEDF:
@@ -1614,6 +1651,10 @@ def read_raw_edf(
     %(preload)s
     %(units_edf_bdf_io)s
     %(encoding_edf)s
+    exclude_after_unique : bool
+        If True, exclude channels are searched for after they have been made
+        unique. This is useful to choose channels that have been made unique
+        by adding a suffix.
     %(verbose)s
 
     Returns
@@ -1688,6 +1729,7 @@ def read_raw_edf(
         include=include,
         units=units,
         encoding=encoding,
+        exclude_after_unique=exclude_after_unique,
         verbose=verbose,
     )
 
@@ -1704,6 +1746,7 @@ def read_raw_bdf(
     preload=False,
     units=None,
     encoding="utf8",
+    exclude_after_unique=False,
     *,
     verbose=None,
 ) -> RawEDF:
@@ -1748,6 +1791,10 @@ def read_raw_bdf(
     %(preload)s
     %(units_edf_bdf_io)s
     %(encoding_edf)s
+    exclude_after_unique : bool
+        If True, exclude channels are searched for after they have been made
+        unique. This is useful to choose channels that have been made unique
+        by adding a suffix.
     %(verbose)s
 
     Returns
@@ -1819,6 +1866,7 @@ def read_raw_bdf(
         include=include,
         units=units,
         encoding=encoding,
+        exclude_after_unique=exclude_after_unique,
         verbose=verbose,
     )
 

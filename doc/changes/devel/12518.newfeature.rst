@@ -1,0 +1,1 @@
+Add ``exclude_after_unique`` option to :meth:`mne.io.read_raw_edf` and :meth:`mne.io.read_raw_edf` to search for exclude channels after making channels names unique, by `Michiru Kaneda`_
