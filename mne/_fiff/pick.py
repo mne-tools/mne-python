@@ -237,10 +237,9 @@ def channel_type(info, idx):
     type : str
         Type of channel. Will be one of::
 
-            {'grad', 'mag', 'eeg', 'csd', 'stim', 'eog', 'emg', 'ecg',
-             'ref_meg', 'resp', 'exci', 'ias', 'syst', 'misc', 'seeg', 'dbs',
-              'bio', 'chpi', 'dipole', 'gof', 'ecog', 'hbo', 'hbr',
-              'temperature', 'gsr', 'eyetrack'}
+            {'bio', 'chpi', 'dbs', 'dipole', 'ecg', 'ecog', 'eeg', 'emg',
+            'eog', 'exci', 'eyetrack', 'fnirs', 'gof', 'gsr', 'ias', 'misc',
+            'meg', 'ref_meg', 'resp', 'seeg', 'stim', 'syst', 'temperature'}
     """
     # This is faster than the original _channel_type_old now in test_pick.py
     # because it uses (at most!) two dict lookups plus one conditional
