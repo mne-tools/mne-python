@@ -190,7 +190,7 @@ def compute_source_morph(
     .. footbibliography::
     """
     src_data, kind, src_subject = _get_src_data(src)
-    subject_from = _check_subject_src(subject_from, src_subject)
+    subject_from = _check_subject_src(subject_from, src_subject, warn_none=True)
     del src
     _validate_type(src_to, (SourceSpaces, None), "src_to")
     _validate_type(subject_to, (str, None), "subject_to")
@@ -823,19 +823,22 @@ def _resample_from_to(img, affine, to_vox_map):
 
 ###############################################################################
 # I/O
-def _check_subject_src(subject, src, name="subject_from", src_name="src"):
+def _check_subject_src(
+    subject, src, name="subject_from", src_name="src", *, warn_none=False
+):
     if isinstance(src, str):
         subject_check = src
     elif src is None:  # assume it's correct although dangerous but unlikely
         subject_check = subject
     else:
         subject_check = src._subject
-        if subject_check is None:
-            warn(
-                "The source space does not contain the subject name, we "
-                "recommend regenerating the source space (and forward / "
-                "inverse if applicable) for better code reliability"
-            )
+        warn_none = True
+    if subject_check is None and warn_none:
+        warn(
+            "The source space does not contain the subject name, we "
+            "recommend regenerating the source space (and forward / "
+            "inverse if applicable) for better code reliability"
+        )
     if subject is None:
         subject = subject_check
     elif subject_check is not None and subject != subject_check:
