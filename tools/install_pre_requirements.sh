@@ -2,6 +2,7 @@
 
 set -eo pipefail
 
+SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 PLATFORM=$(python -c 'import platform; print(platform.system())')
 
 echo "Installing pip-pre dependencies on ${PLATFORM}"
@@ -11,7 +12,7 @@ STD_ARGS="--progress-bar off --upgrade --pre"
 # we can use strict --index-url (instead of --extra-index-url) below
 python -m pip install $STD_ARGS pip setuptools packaging \
 	threadpoolctl cycler fonttools kiwisolver pyparsing pillow python-dateutil \
-	patsy pytz tzdata nibabel tqdm trx-python
+	patsy pytz tzdata nibabel tqdm trx-python joblib
 echo "PyQt6"
 # Now broken in latest release and in the pre release:
 # pip install $STD_ARGS --only-binary ":all:" --default-timeout=60 --extra-index-url https://www.riverbankcomputing.com/pypi/simple "PyQt6!=6.6.1,!=6.6.2" "PyQt6-Qt6!=6.6.1,!=6.6.2"
@@ -78,4 +79,4 @@ python -c "import numpy as np; assert np.__version__[0] == '2', np.__version__"
 
 # And that Qt works
 echo "Checking Qt"
-./tools/check_qt_import.sh PyQt6
+${SCRIPT_DIR}/check_qt_import.sh PyQt6
