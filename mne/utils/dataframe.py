@@ -10,6 +10,7 @@ import numpy as np
 
 from ..defaults import _handle_default
 from ._logging import logger, verbose
+from .check import check_version
 
 
 @verbose
@@ -50,9 +51,17 @@ def _convert_times(times, time_format, meas_date=None, first_time=0):
 
 
 def _inplace(df, method, **kwargs):
-    """Handle transition: inplace=True (pandas <1.5) → copy=False (>=1.5)."""
+    # Handle transition: inplace=True (pandas <1.5) → copy=False (>=1.5)
+    # and 3.0 warning:
+    # E   DeprecationWarning: The copy keyword is deprecated and will be removed in a
+    #     future version. Copy-on-Write is active in pandas since 3.0 which utilizes a
+    #     lazy copy mechanism that defers copies until necessary. Use .copy() to make
+    #     an eager copy if necessary.
     _meth = getattr(df, method)  # used for set_index() and rename()
-    if "copy" in signature(_meth).parameters:
+
+    if check_version("pandas", "3.0"):
+        return _meth(**kwargs)
+    elif "copy" in signature(_meth).parameters:
         return _meth(**kwargs, copy=False)
     else:
         _meth(**kwargs, inplace=True)
