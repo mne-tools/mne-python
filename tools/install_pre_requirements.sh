@@ -18,9 +18,14 @@ python -m pip uninstall -yq numpy
 # No h5py (and thus dipy) yet until they improve/refactor thier wheel building infrastructure for Windows
 OTHERS=""
 if [[ "${PLATFORM}" == "Linux" ]]; then
-	OTHERS="h5py dipy"
+	OTHERS="h5py dipy git+https://github.com/BUNPC/pysnirf2"
 fi
-python -m pip install $STD_ARGS --only-binary ":all:" --default-timeout=60 --index-url "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" "numpy>=2.1.0.dev0" "scipy>=1.14.0.dev0" "scikit-learn>=1.5.dev0" matplotlib statsmodels pandas $OTHERS
+python -m pip install $STD_ARGS --only-binary ":all:" --default-timeout=60 \
+	--index-url "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" \
+	"numpy>=2.1.0.dev0" "scipy>=1.14.0.dev0" "scikit-learn>=1.5.dev0" \
+	matplotlib statsmodels pandas \
+	git+https://github.com/joblib/joblib@master \
+	$OTHERS
 
 # No python-picard (needs numexpr) until they update to NumPy 2.0 compat
 # No Numba because it forces an old NumPy version
@@ -50,19 +55,11 @@ pip install $STD_ARGS git+https://github.com/mne-tools/mne-qt-browser
 echo "nibabel"
 pip install $STD_ARGS git+https://github.com/nipy/nibabel.git
 
-echo "joblib"
-pip install $STD_ARGS git+https://github.com/joblib/joblib@master
-
 echo "edfio"
 pip install $STD_ARGS git+https://github.com/the-siesta-group/edfio
 
 echo "h5io"
 pip install $STD_ARGS git+https://github.com/h5io/h5io
-
-if [[ "${PLATFORM}" == "Linux" ]]; then
-	echo "pysnirf2"
-	pip install $STD_ARGS git+https://github.com/BUNPC/pysnirf2
-fi
 
 # Make sure we're on a NumPy 2.0 variant
 echo "Checking NumPy version"
