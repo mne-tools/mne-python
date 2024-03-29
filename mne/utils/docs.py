@@ -1261,15 +1261,6 @@ encoding : str
     encoding according to the EDF+ standard).
 """
 
-docdict["exclude_after_unique"] = """
-exclude_after_unique : bool
-    If True, exclude channels are searched for after they have been made
-    unique. This is useful to choose channels that have been made unique
-    by adding a suffix.  If False, the original names are checked.
-
-    .. versionchanged:: 1.7
-"""
-
 docdict["epochs_preload"] = """
     Load all epochs from disk when creating the object
     or wait before accessing each epoch (more memory
@@ -1377,6 +1368,15 @@ evoked : instance of Evoked | list of Evoked
     separate :class:`~mne.Evoked` object for each event type. The list has the
     same order as the event types as specified in the ``event_id``
     dictionary.
+"""
+
+docdict["exclude_after_unique"] = """
+exclude_after_unique : bool
+    If True, exclude channels are searched for after they have been made
+    unique. This is useful to choose channels that have been made unique
+    by adding a suffix.  If False, the original names are checked.
+
+    .. versionchanged:: 1.7
 """
 
 docdict["exclude_clust"] = """
