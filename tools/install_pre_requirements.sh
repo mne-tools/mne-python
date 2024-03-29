@@ -20,7 +20,7 @@ OTHERS=""
 if [[ "${PLATFORM}" == "Linux" ]]; then
 	OTHERS="h5py dipy"
 fi
-python -m pip install $STD_ARGS --only-binary ":all:" --default-timeout=60 --index-url "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" "numpy>=2.1.0.dev0" "scipy>=1.14.0.dev0" "scikit-learn>=1.5.dev0" matplotlib pillow statsmodels pandas $OTHERS
+python -m pip install $STD_ARGS --only-binary ":all:" --default-timeout=60 --index-url "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" "numpy>=2.1.0.dev0" "scipy>=1.14.0.dev0" "scikit-learn>=1.5.dev0" matplotlib statsmodels pandas $OTHERS
 
 # No python-picard (needs numexpr) until they update to NumPy 2.0 compat
 # No Numba because it forces an old NumPy version
