@@ -51,7 +51,7 @@ class MNESubstitution(Directive):  # noqa: D101
                 ):
                     rst += (
                         f"- ``{repr(key)}``: **{DEFAULTS['titles'][key]}** "
-                        f"(scaled by {DEFAULTS['scalings'][key]} to "
+                        f"(scaled by {DEFAULTS['scalings'][key]:g} to "
                         f"plot in *{DEFAULTS['units'][key]}*)\n"
                     )
                 else:

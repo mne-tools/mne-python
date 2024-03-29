@@ -10,6 +10,11 @@ Supported channel types
    from the include:
    channel-types-begin-content
 
+.. NOTE: In the future, this table should be automatically synchronized with
+   the sensor types listed in the glossary. Perhaps a table showing data type
+   channels as well as non-data type channels should be added to the glossary
+   and displayed here too.
+
 Channel types are represented in MNE-Python with shortened or abbreviated
 names. This page lists all supported channel types, their abbreviated names,
 and the measurement unit used to represent data of that type. Where channel
