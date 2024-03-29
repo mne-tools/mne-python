@@ -144,17 +144,9 @@ def _create_raw_for_edf_tests(stim_channel_index=None):
     return RawArray(data, info)
 
 
-bad_edfio = not _check_edfio_installed(strict=False)
-reason = "edfio not installed"
-if not bad_edfio:
-    try:
-        import edfio._utils  # noqa
-    except ModuleNotFoundError:
-        bad_edfio = True
-        reason = "unsafe use of private module"
-
-
-edfio_mark = pytest.mark.skipif(bad_edfio, reason=reason)
+edfio_mark = pytest.mark.skipif(
+    not _check_edfio_installed(strict=False), reason="unsafe use of private module"
+)
 
 
 @edfio_mark()
