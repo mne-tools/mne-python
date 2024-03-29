@@ -145,7 +145,7 @@ def _create_raw_for_edf_tests(stim_channel_index=None):
 
 
 edfio_mark = pytest.mark.skipif(
-    not _check_edfio_installed(strict=False), reason="edfio not installed"
+    not _check_edfio_installed(strict=False), reason="unsafe use of private module"
 )
 
 

@@ -4,6 +4,7 @@
 # Copyright the MNE-Python contributors.
 
 import datetime as dt
+from typing import Callable
 
 import numpy as np
 
@@ -11,7 +12,21 @@ from ..utils import _check_edfio_installed, warn
 
 _check_edfio_installed()
 from edfio import Edf, EdfAnnotation, EdfSignal, Patient, Recording  # noqa: E402
-from edfio._utils import round_float_to_8_characters  # noqa: E402
+
+
+# copied from edfio (Apache license)
+def _round_float_to_8_characters(
+    value: float,
+    round_func: Callable[[float], int],
+) -> float:
+    if isinstance(value, int) or value.is_integer():
+        return value
+    length = 8
+    integer_part_length = str(value).find(".")
+    if integer_part_length == length:
+        return round_func(value)
+    factor = 10 ** (length - 1 - integer_part_length)
+    return round_func(value * factor) / factor
 
 
 def _export_raw(fname, raw, physical_range, add_ch_type):
@@ -52,7 +67,7 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
             )
             data = np.pad(data, (0, int(pad_width)))
     else:
-        data_record_duration = round_float_to_8_characters(
+        data_record_duration = _round_float_to_8_characters(
             np.floor(sfreq) / sfreq, round
         )
         out_sfreq = np.floor(sfreq) / data_record_duration

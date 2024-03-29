@@ -238,7 +238,7 @@ stages:
         variables:
           MNE_LOGGING_LEVEL: 'warning'
           MNE_FORCE_SERIAL: 'true'
-          OPENBLAS_NUM_THREADS: '1'  # deal with OpenBLAS conflicts safely on Windows
+          OPENBLAS_NUM_THREADS: '2'
           OMP_DYNAMIC: 'false'
           PYTHONUNBUFFERED: 1
           PYTHONIOENCODING: 'utf-8'
@@ -251,9 +251,9 @@ stages:
             3.9 pip:
               TEST_MODE: 'pip'
               PYTHON_VERSION: '3.9'
-            3.11 pip pre:
+            3.12 pip pre:
               TEST_MODE: 'pip-pre'
-              PYTHON_VERSION: '3.11'
+              PYTHON_VERSION: '3.12'
         steps:
           - task: UsePythonVersion@0
             inputs:
