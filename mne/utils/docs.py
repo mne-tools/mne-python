@@ -1261,6 +1261,15 @@ encoding : str
     encoding according to the EDF+ standard).
 """
 
+docdict["exclude_after_unique"] = """
+exclude_after_unique : bool
+    If True, exclude channels are searched for after they have been made
+    unique. This is useful to choose channels that have been made unique
+    by adding a suffix.  If False, the original names are checked.
+
+    .. versionchanged:: 1.7
+"""
+
 docdict["epochs_preload"] = """
     Load all epochs from disk when creating the object
     or wait before accessing each epoch (more memory

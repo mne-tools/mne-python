@@ -87,10 +87,7 @@ class RawEDF(BaseRaw):
     %(preload)s
     %(units_edf_bdf_io)s
     %(encoding_edf)s
-    exclude_after_unique : bool
-        If True, exclude channels are searched for after they have been made
-        unique. This is useful to choose channels that have been made unique
-        by adding a suffix.
+    %(exclude_after_unique)s
     %(verbose)s
 
     See Also
@@ -486,6 +483,7 @@ def _read_segment_file(data, idx, fi, start, stop, raw_extras, filenames, cals, 
     return tal_data
 
 
+@fill_doc
 def _read_header(fname, exclude, infer_types, include=None, exclude_after_unique=False):
     """Unify EDF, BDF and GDF _read_header call.
 
@@ -508,10 +506,7 @@ def _read_header(fname, exclude, infer_types, include=None, exclude_after_unique
     include : list of str | str
         Channel names to be included. A str is interpreted as a regular
         expression. 'exclude' must be empty if include is assigned.
-    exclude_after_unique : bool
-        If True, exclude channels are searched for after they have been made
-        unique. This is useful to choose channels that have been made unique
-        by adding a suffix.
+    %(exclude_after_unique)s
 
     Returns
     -------
@@ -1651,10 +1646,7 @@ def read_raw_edf(
     %(preload)s
     %(units_edf_bdf_io)s
     %(encoding_edf)s
-    exclude_after_unique : bool
-        If True, exclude channels are searched for after they have been made
-        unique. This is useful to choose channels that have been made unique
-        by adding a suffix.
+    %(exclude_after_unique)s
     %(verbose)s
 
     Returns
@@ -1791,10 +1783,7 @@ def read_raw_bdf(
     %(preload)s
     %(units_edf_bdf_io)s
     %(encoding_edf)s
-    exclude_after_unique : bool
-        If True, exclude channels are searched for after they have been made
-        unique. This is useful to choose channels that have been made unique
-        by adding a suffix.
+    %(exclude_after_unique)s
     %(verbose)s
 
     Returns
