@@ -1370,6 +1370,15 @@ evoked : instance of Evoked | list of Evoked
     dictionary.
 """
 
+docdict["exclude_after_unique"] = """
+exclude_after_unique : bool
+    If True, exclude channels are searched for after they have been made
+    unique. This is useful to choose channels that have been made unique
+    by adding a suffix.  If False, the original names are checked.
+
+    .. versionchanged:: 1.7
+"""
+
 docdict["exclude_clust"] = """
 exclude : bool array or None
     Mask to apply to the data to exclude certain points from clustering
