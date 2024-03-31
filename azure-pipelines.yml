@@ -238,7 +238,7 @@ stages:
         variables:
           MNE_LOGGING_LEVEL: 'warning'
           MNE_FORCE_SERIAL: 'true'
-          OPENBLAS_NUM_THREADS: 2
+          OPENBLAS_NUM_THREADS: '2'
           OMP_DYNAMIC: 'false'
           PYTHONUNBUFFERED: 1
           PYTHONIOENCODING: 'utf-8'
@@ -251,9 +251,9 @@ stages:
             3.9 pip:
               TEST_MODE: 'pip'
               PYTHON_VERSION: '3.9'
-            3.11 pip pre:
+            3.12 pip pre:
               TEST_MODE: 'pip-pre'
-              PYTHON_VERSION: '3.11'
+              PYTHON_VERSION: '3.12'
         steps:
           - task: UsePythonVersion@0
             inputs:
@@ -274,6 +274,8 @@ stages:
             displayName: 'Print config'
           - script: python -c "import numpy; numpy.show_config()"
             displayName: Print NumPy config
+          - script: python -c "import numpy; import scipy.linalg; import sklearn.neighbors; from threadpoolctl import threadpool_info; from pprint import pprint; pprint(threadpool_info())"
+            displayName: Print threadpoolctl info
           - bash: source tools/get_testing_version.sh
             displayName: 'Get testing version'
           - task: Cache@2

@@ -29,7 +29,12 @@ from ..fixes import (
     svd_flip,
 )
 from ._logging import logger, verbose, warn
-from .check import _ensure_int, _validate_type, check_random_state
+from .check import (
+    _check_pandas_installed,
+    _ensure_int,
+    _validate_type,
+    check_random_state,
+)
 from .docs import fill_doc
 from .misc import _empty_hash
 
@@ -255,9 +260,9 @@ def _get_inst_data(inst):
     from ..epochs import BaseEpochs
     from ..evoked import Evoked
     from ..io import BaseRaw
-    from ..time_frequency.tfr import _BaseTFR
+    from ..time_frequency.tfr import BaseTFR
 
-    _validate_type(inst, (BaseRaw, BaseEpochs, Evoked, _BaseTFR), "Instance")
+    _validate_type(inst, (BaseRaw, BaseEpochs, Evoked, BaseTFR), "Instance")
     if not inst.preload:
         inst.load_data()
     return inst._data
@@ -321,7 +326,7 @@ def _apply_scaling_array(data, picks_list, scalings, verbose=None):
     """Scale data type-dependently for estimation."""
     scalings = _check_scaling_inputs(data, picks_list, scalings)
     if isinstance(scalings, dict):
-        logger.debug("    Scaling using mapping %s." % (scalings,))
+        logger.debug(f"    Scaling using mapping {scalings}.")
         picks_dict = dict(picks_list)
         scalings = [(picks_dict[k], v) for k, v in scalings.items() if k in picks_dict]
         for idx, scaling in scalings:
@@ -493,16 +498,15 @@ def _time_mask(
         assert include_tmax  # can only be used when sfreq is known
     if raise_error and tmin > tmax:
         raise ValueError(
-            "tmin (%s) must be less than or equal to tmax (%s)" % (orig_tmin, orig_tmax)
+            f"tmin ({orig_tmin}) must be less than or equal to tmax ({orig_tmax})"
         )
     mask = times >= tmin
     mask &= times <= tmax
     if raise_error and not mask.any():
         extra = "" if include_tmax else "when include_tmax=False "
         raise ValueError(
-            "No samples remain when using tmin=%s and tmax=%s %s"
-            "(original time bounds are [%s, %s])"
-            % (orig_tmin, orig_tmax, extra, times[0], times[-1])
+            f"No samples remain when using tmin={orig_tmin} and tmax={orig_tmax} "
+            f"{extra}(original time bounds are [{times[0]}, {times[-1]}])"
         )
     return mask
 
@@ -525,15 +529,14 @@ def _freq_mask(freqs, sfreq, fmin=None, fmax=None, raise_error=True):
     fmax = int(round(fmax * sfreq)) / sfreq + 0.5 / sfreq
     if raise_error and fmin > fmax:
         raise ValueError(
-            "fmin (%s) must be less than or equal to fmax (%s)" % (orig_fmin, orig_fmax)
+            f"fmin ({orig_fmin}) must be less than or equal to fmax ({orig_fmax})"
         )
     mask = freqs >= fmin
     mask &= freqs <= fmax
     if raise_error and not mask.any():
         raise ValueError(
-            "No frequencies remain when using fmin=%s and "
-            "fmax=%s (original frequency bounds are [%s, %s])"
-            % (orig_fmin, orig_fmax, freqs[0], freqs[-1])
+            f"No frequencies remain when using fmin={orig_fmin} and fmax={orig_fmax} "
+            f"(original frequency bounds are [{freqs[0]}, {freqs[-1]}])"
         )
     return mask
 
@@ -683,7 +686,7 @@ def object_hash(x, h=None):
         for xx in x:
             object_hash(xx, h)
     else:
-        raise RuntimeError("unsupported type: %s (%s)" % (type(x), x))
+        raise RuntimeError(f"unsupported type: {type(x)} ({x})")
     return int(h.hexdigest(), 16)
 
 
@@ -733,7 +736,7 @@ def object_size(x, memo=None):
     elif sparse.isspmatrix_csc(x) or sparse.isspmatrix_csr(x):
         size = sum(sys.getsizeof(xx) for xx in [x, x.data, x.indices, x.indptr])
     else:
-        raise RuntimeError("unsupported type: %s (%s)" % (type(x), x))
+        raise RuntimeError(f"unsupported type: {type(x)} ({x})")
     memo[id_] = size
     return size
 
@@ -778,6 +781,7 @@ def object_diff(a, b, pre="", *, allclose=False):
     diffs : str
         A string representation of the differences.
     """
+    pd = _check_pandas_installed(strict=False)
     out = ""
     if type(a) != type(b):
         # Deal with NamedInt and NamedFloat
@@ -804,16 +808,16 @@ def object_diff(a, b, pre="", *, allclose=False):
                 )
     elif isinstance(a, (list, tuple)):
         if len(a) != len(b):
-            out += pre + " length mismatch (%s, %s)\n" % (len(a), len(b))
+            out += pre + f" length mismatch ({len(a)}, {len(b)})\n"
         else:
             for ii, (xx1, xx2) in enumerate(zip(a, b)):
                 out += object_diff(xx1, xx2, pre + "[%s]" % ii, allclose=allclose)
     elif isinstance(a, float):
         if not _array_equal_nan(a, b, allclose):
-            out += pre + " value mismatch (%s, %s)\n" % (a, b)
+            out += pre + f" value mismatch ({a}, {b})\n"
     elif isinstance(a, (str, int, bytes, np.generic)):
         if a != b:
-            out += pre + " value mismatch (%s, %s)\n" % (a, b)
+            out += pre + f" value mismatch ({a}, {b})\n"
     elif a is None:
         if b is not None:
             out += pre + " left is None, right is not (%s)\n" % (b)
@@ -830,18 +834,22 @@ def object_diff(a, b, pre="", *, allclose=False):
         # sparsity and sparse type of b vs a already checked above by type()
         if b.shape != a.shape:
             out += pre + (
-                " sparse matrix a and b shape mismatch"
-                "(%s vs %s)" % (a.shape, b.shape)
+                " sparse matrix a and b shape mismatch" f"({a.shape} vs {b.shape})"
             )
         else:
             c = a - b
             c.eliminate_zeros()
             if c.nnz > 0:
                 out += pre + (" sparse matrix a and b differ on %s " "elements" % c.nnz)
+    elif pd and isinstance(a, pd.DataFrame):
+        try:
+            pd.testing.assert_frame_equal(a, b)
+        except AssertionError:
+            out += pre + " DataFrame mismatch\n"
     elif hasattr(a, "__getstate__") and a.__getstate__() is not None:
         out += object_diff(a.__getstate__(), b.__getstate__(), pre, allclose=allclose)
     else:
-        raise RuntimeError(pre + ": unsupported type %s (%s)" % (type(a), a))
+        raise RuntimeError(pre + f": unsupported type {type(a)} ({a})")
     return out
 
 
@@ -883,16 +891,16 @@ class _PCA:
                 )
         elif not 0 <= n_components <= min(n_samples, n_features):
             raise ValueError(
-                "n_components=%r must be between 0 and "
-                "min(n_samples, n_features)=%r with "
-                "svd_solver='full'" % (n_components, min(n_samples, n_features))
+                f"n_components={repr(n_components)} must be between 0 and "
+                f"min(n_samples, n_features)={repr(min(n_samples, n_features))} with "
+                "svd_solver='full'"
             )
         elif n_components >= 1:
             if not isinstance(n_components, (numbers.Integral, np.integer)):
                 raise ValueError(
-                    "n_components=%r must be of type int "
-                    "when greater than or equal to 1, "
-                    "was of type=%r" % (n_components, type(n_components))
+                    f"n_components={repr(n_components)} must be of type int "
+                    f"when greater than or equal to 1, "
+                    f"was of type={repr(type(n_components))}"
                 )
 
         self.mean_ = np.mean(X, axis=0)
@@ -1051,7 +1059,7 @@ def _check_dt(dt):
         or dt.tzinfo is None
         or dt.tzinfo is not timezone.utc
     ):
-        raise ValueError("Date must be datetime object in UTC: %r" % (dt,))
+        raise ValueError(f"Date must be datetime object in UTC: {repr(dt)}")
 
 
 def _dt_to_stamp(inp_date):
@@ -1102,7 +1110,7 @@ class _ReuseCycle:
         try:
             idx = self.popped.pop(val)
         except KeyError:
-            warn("Could not find value: %s" % (val,))
+            warn(f"Could not find value: {val}")
         else:
             loc = np.searchsorted(self.indices, idx)
             self.indices.insert(loc, idx)

@@ -912,6 +912,7 @@ def _topomap_plot_sensors(pos_x, pos_y, sensors, ax):
 def _get_pos_outlines(info, picks, sphere, to_sphere=True):
     from ..channels.layout import _find_topomap_coords
 
+    picks = _picks_to_idx(info, picks, "all", exclude=(), allow_empty=False)
     ch_type = _get_plot_ch_type(pick_info(_simplify_info(info), picks), None)
     orig_sphere = sphere
     sphere, clip_origin = _adjust_meg_sphere(sphere, info, ch_type)
@@ -1271,7 +1272,7 @@ def _plot_topomap(
     if len(data) != len(pos):
         raise ValueError(
             "Data and pos need to be of same length. Got data of "
-            "length %s, pos of length %s" % (len(data), len(pos))
+            f"length {len(data)}, pos of length { len(pos)}"
         )
 
     norm = min(data) >= 0
@@ -1891,7 +1892,6 @@ def plot_tfr_topomap(
         tfr, ch_type, sphere=sphere
     )
     outlines = _make_head_outlines(sphere, pos, outlines, clip_origin)
-
     data = tfr.data[picks, :, :]
 
     # merging grads before rescaling makes ERDs visible
@@ -1910,7 +1910,6 @@ def plot_tfr_topomap(
         itmin = idx[0]
     if tmax is not None:
         itmax = idx[-1] + 1
-
     # crop freqs
     ifmin, ifmax = None, None
     idx = np.where(_time_mask(tfr.freqs, fmin, fmax))[0]
@@ -1918,8 +1917,7 @@ def plot_tfr_topomap(
     ifmax = idx[-1] + 1
 
     data = data[:, ifmin:ifmax, itmin:itmax]
-    data = np.mean(np.mean(data, axis=2), axis=1)[:, np.newaxis]
-
+    data = data.mean(axis=(1, 2))[:, np.newaxis]
     norm = False if np.min(data) < 0 else True
     vlim = _setup_vmin_vmax(data, *vlim, norm)
     cmap = _setup_cmap(cmap, norm=norm)
@@ -3156,9 +3154,9 @@ def _animate(frame, ax, ax_line, params):
     time_idx = params["frames"][frame]
 
     if params["time_unit"] == "ms":
-        title = "%6.0f ms" % (params["times"][frame] * 1e3,)
+        title = f"{params['times'][frame] * 1e3:6.0f} ms"
     else:
-        title = "%6.3f s" % (params["times"][frame],)
+        title = f"{params['times'][frame]:6.3f} s"
     if params["blit"]:
         text = params["text"]
     else:

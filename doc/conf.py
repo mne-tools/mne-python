@@ -231,7 +231,11 @@ numpydoc_xref_aliases = {
     "EvokedArray": "mne.EvokedArray",
     "BiHemiLabel": "mne.BiHemiLabel",
     "AverageTFR": "mne.time_frequency.AverageTFR",
+    "AverageTFRArray": "mne.time_frequency.AverageTFRArray",
     "EpochsTFR": "mne.time_frequency.EpochsTFR",
+    "EpochsTFRArray": "mne.time_frequency.EpochsTFRArray",
+    "RawTFR": "mne.time_frequency.RawTFR",
+    "RawTFRArray": "mne.time_frequency.RawTFRArray",
     "Raw": "mne.io.Raw",
     "ICA": "mne.preprocessing.ICA",
     "Covariance": "mne.Covariance",
@@ -683,7 +687,9 @@ def append_attr_meth_examples(app, what, name, obj, options, lines):
     if what in ("attribute", "method"):
         size = os.path.getsize(
             os.path.join(
-                os.path.dirname(__file__), "generated", "%s.examples" % (name,)
+                os.path.dirname(__file__),
+                "generated",
+                f"{name}.examples",
             )
         )
         if size > 0:

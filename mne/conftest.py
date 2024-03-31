@@ -398,6 +398,34 @@ def epochs_spectrum():
 
 
 @pytest.fixture()
+def epochs_tfr():
+    """Get an EpochsTFR computed from mne.io.tests.data."""
+    epochs = _get_epochs().load_data()
+    return epochs.compute_tfr(method="morlet", freqs=np.linspace(20, 40, num=5))
+
+
+@pytest.fixture()
+def average_tfr(epochs_tfr):
+    """Get an AverageTFR computed by averaging an EpochsTFR (this is small & fast)."""
+    return epochs_tfr.average()
+
+
+@pytest.fixture()
+def full_average_tfr(full_evoked):
+    """Get an AverageTFR computed from Evoked.
+
+    This is slower than the `average_tfr` fixture, but a few TFR.plot_* tests need it.
+    """
+    return full_evoked.compute_tfr(method="morlet", freqs=np.linspace(20, 40, num=5))
+
+
+@pytest.fixture()
+def raw_tfr(raw):
+    """Get a RawTFR computed from mne.io.tests.data."""
+    return raw.compute_tfr(method="morlet", freqs=np.linspace(20, 40, num=5))
+
+
+@pytest.fixture()
 def epochs_empty():
     """Get empty epochs from mne.io.tests.data."""
     epochs = _get_epochs(meg=True, eeg=True).load_data()
@@ -408,20 +436,29 @@ def epochs_empty():
 
 
 @pytest.fixture(scope="session", params=[testing._pytest_param()])
-def _evoked():
-    # This one is session scoped, so be sure not to modify it (use evoked
-    # instead)
-    evoked = mne.read_evokeds(
-        fname_evoked, condition="Left Auditory", baseline=(None, 0)
-    )
-    evoked.crop(0, 0.2)
-    return evoked
+def _full_evoked():
+    # This is session scoped, so be sure not to modify its return value (use
+    # `full_evoked` fixture instead)
+    return mne.read_evokeds(fname_evoked, condition="Left Auditory", baseline=(None, 0))
+
+
+@pytest.fixture(scope="session", params=[testing._pytest_param()])
+def _evoked(_full_evoked):
+    # This is session scoped, so be sure not to modify its return value (use `evoked`
+    # fixture instead)
+    return _full_evoked.copy().crop(0, 0.2)
 
 
 @pytest.fixture()
 def evoked(_evoked):
-    """Get evoked data."""
+    """Get truncated evoked data."""
     return _evoked.copy()
+
+
+@pytest.fixture()
+def full_evoked(_full_evoked):
+    """Get full-duration evoked data (needed for, e.g., testing TFR)."""
+    return _full_evoked.copy()
 
 
 @pytest.fixture(scope="function", params=[testing._pytest_param()])
@@ -963,6 +1000,8 @@ def pytest_sessionfinish(session, exitstatus):
     # get the number to print
     files = defaultdict(lambda: 0.0)
     for item in session.items:
+        if _phase_report_key not in item.stash:
+            continue
         report = item.stash[_phase_report_key]
         dur = sum(x.duration for x in report.values())
         parts = Path(item.nodeid.split(":")[0]).parts

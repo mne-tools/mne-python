@@ -206,6 +206,8 @@
 
 .. _Hari Bharadwaj: https://github.com/haribharadwaj
 
+.. _Hasrat Ali Arzoo: https://github.com/hasrat17
+
 .. _Henrich Kolkhorst: https://github.com/hekolk
 
 .. _Hongjiang Ye: https://github.com/hongjiang-ye

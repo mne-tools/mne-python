@@ -1532,13 +1532,13 @@ def fit_dipole(
             ]
             if len(R) == 0:
                 raise RuntimeError(
-                    "No MEG channels found, but MEG-only " "sphere model used"
+                    "No MEG channels found, but MEG-only sphere model used"
                 )
             R = np.min(np.sqrt(np.sum(R * R, axis=1)))  # use dist to sensors
             kind = "max_rad"
         logger.info(
-            "Sphere model      : origin at ({: 7.2f} {: 7.2f} {: 7.2f}) mm, "
-            "{} = {:6.1f} mm".format(1000 * r0[0], 1000 * r0[1], 1000 * r0[2], kind, R)
+            f"Sphere model      : origin at ({1000 * r0[0]: 7.2f} {1000 * r0[1]: 7.2f} "
+            f"{1000 * r0[2]: 7.2f}) mm, {kind} = {R:6.1f} mm"
         )
         inner_skull = dict(R=R, r0=r0)  # NB sphere model defined in head frame
         del R, r0
@@ -1548,9 +1548,7 @@ def fit_dipole(
         fixed_position = True
         pos = np.array(pos, float)
         if pos.shape != (3,):
-            raise ValueError(
-                "pos must be None or a 3-element array-like," f" got {pos}"
-            )
+            raise ValueError(f"pos must be None or a 3-element array-like, got {pos}")
         logger.info(
             "Fixed position    : {:6.1f} {:6.1f} {:6.1f} mm".format(*tuple(1000 * pos))
         )
@@ -1558,7 +1556,7 @@ def fit_dipole(
             ori = np.array(ori, float)
             if ori.shape != (3,):
                 raise ValueError(
-                    "oris must be None or a 3-element array-like," f" got {ori}"
+                    f"oris must be None or a 3-element array-like, got {ori}"
                 )
             norm = np.sqrt(np.sum(ori * ori))
             if not np.isclose(norm, 1):

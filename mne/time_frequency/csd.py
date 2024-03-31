@@ -198,8 +198,9 @@ class CrossSpectralDensity:
             time_str = "unknown"
 
         return (
-            "<CrossSpectralDensity | " "n_channels={}, time={}, frequencies={}>"
-        ).format(self.n_channels, time_str, freq_str)
+            "<CrossSpectralDensity | "
+            f"n_channels={self.n_channels}, time={time_str}, frequencies={freq_str}>"
+        )
 
     def sum(self, fmin=None, fmax=None):
         """Calculate the sum CSD in the given frequency range(s).

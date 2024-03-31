@@ -218,7 +218,7 @@ def test_scale_mri_xfm(tmp_path, few_surfaces, subjects_dir_tmp_few):
             subjects_dir_tmp_few
             / subject_from
             / "bem"
-            / ("%s-%s-src.fif" % (subject_from, spacing))
+            / (f"{subject_from}-{spacing}-src.fif")
         )
         src_from = mne.setup_source_space(
             subject_from,
@@ -273,7 +273,7 @@ def test_scale_mri_xfm(tmp_path, few_surfaces, subjects_dir_tmp_few):
             subjects_dir_tmp_few
             / subject_to
             / "bem"
-            / ("%s-%s-src.fif" % (subject_to, spacing))
+            / (f"{subject_to}-{spacing}-src.fif")
         )
         assert src_to_fname.exists(), "Source space was not scaled"
         # Check MRI scaling
