@@ -1,1 +1,1 @@
-Remove FDT file format check for strings in EEGLAB's EEG.data in :func:_check_eeglab_fname by :newcontrib:`Seyed Yahya Shirazi`
+Remove FDT file format check for strings in EEGLAB's EEG.data in :func:`mne.io.read_raw_eeglab` and related functions by :newcontrib:`Seyed Yahya Shirazi`
