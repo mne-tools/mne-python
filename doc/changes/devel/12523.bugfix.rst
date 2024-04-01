@@ -1,0 +1,1 @@
+Remove FDT file format check for strings in EEGLAB's EEG.data in :func:_check_eeglab_fname by :newcontrib:`Seyed Yahya Shirazi`
