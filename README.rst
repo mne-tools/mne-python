@@ -1,6 +1,6 @@
 .. -*- mode: rst -*-
 
-|MNE|_
+|MNE|
 
 MNE-Python
 ==========
