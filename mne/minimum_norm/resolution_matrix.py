@@ -512,6 +512,7 @@ def _prepare_info(inverse_operator):
     with info._unlock():
         info["sfreq"] = 1000.0  # necessary
         info["projs"] = inverse_operator["projs"]
+        info["custom_ref_applied"] = False
     return info
 
 
