@@ -8,6 +8,7 @@ from pathlib import Path
 from urllib.error import URLError
 
 import pytest
+import tomllib
 
 import mne
 import mne.utils.config
@@ -100,17 +101,28 @@ def test_config(tmp_path):
     pytest.raises(TypeError, _get_stim_channel, [1], None)
 
 
-def test_sys_info():
+def test_sys_info_basic():
     """Test info-showing utility."""
     out = ClosingStringIO()
-    sys_info(fid=out, check_version=False)
+    sys_info(fid=out, check_version=False, dependencies="developer")
     out = out.getvalue()
     assert "numpy" in out
+    # replace all in-line whitespace with single space
+    out = "\n".join(" ".join(o.split()) for o in out.splitlines())
 
     if platform.system() == "Darwin":
-        assert "Platform             macOS-" in out
+        assert "Platform macOS-" in out
     elif platform.system() == "Linux":
-        assert "Platform             Linux" in out
+        assert "Platform Linux" in out
+
+    pyproject = Path(__file__).parents[3] / "pyproject.toml"
+    if not pyproject.is_file():
+        return
+    pyproject = tomllib.loads(pyproject.read_text("utf-8"))
+    deps = pyproject["project"]["optional-dependencies"]["test_extra"]
+    for dep in deps:
+        dep = dep.split("[")[0].split(">")[0]
+        assert f" {dep}" in out, f"Missing in dev config: {dep}"
 
 
 def test_sys_info_qt_browser():

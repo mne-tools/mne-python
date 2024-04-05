@@ -73,10 +73,8 @@ full = [
     "h5py",
     "pandas",
     "pyarrow",  # only needed to avoid a deprecation warning in pandas
-    "numexpr",
     "jupyter",
     "python-picard",
-    "statsmodels",
     "joblib",
     "psutil",
     "dipy",
@@ -100,6 +98,7 @@ full = [
     "qdarkstyle!=3.2.2",
     "threadpoolctl",
     # duplicated in test_extra:
+    "statsmodels",
     "eeglabio",
     "edfio>=0.2.1",
     "pybv",
@@ -130,6 +129,7 @@ test_extra = [
     "nitime",
     "nbclient",
     "sphinx-gallery",
+    "statsmodels",
     "eeglabio",
     "edfio>=0.2.1",
     "pybv",
