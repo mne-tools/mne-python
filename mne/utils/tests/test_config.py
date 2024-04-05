@@ -8,7 +8,6 @@ from pathlib import Path
 from urllib.error import URLError
 
 import pytest
-import tomllib
 
 import mne
 import mne.utils.config
@@ -104,7 +103,7 @@ def test_config(tmp_path):
 def test_sys_info_basic():
     """Test info-showing utility."""
     out = ClosingStringIO()
-    sys_info(fid=out, check_version=False, dependencies="developer")
+    sys_info(fid=out, check_version=False)
     out = out.getvalue()
     assert "numpy" in out
     # replace all in-line whitespace with single space
@@ -115,9 +114,16 @@ def test_sys_info_basic():
     elif platform.system() == "Linux":
         assert "Platform Linux" in out
 
+
+def test_sys_info_complete():
+    """Test that sys_info is sufficiently complete."""
+    tomllib = pytest.importorskip("tomllib")  # python 3.11+
     pyproject = Path(__file__).parents[3] / "pyproject.toml"
     if not pyproject.is_file():
-        return
+        pytest.skip("Does not appear to be a dev installation")
+    out = ClosingStringIO()
+    sys_info(fid=out, check_version=False, dependencies="developer")
+    out = out.getvalue()
     pyproject = tomllib.loads(pyproject.read_text("utf-8"))
     deps = pyproject["project"]["optional-dependencies"]["test_extra"]
     for dep in deps:
