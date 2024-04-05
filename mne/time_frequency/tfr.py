@@ -147,19 +147,12 @@ def morlet(sfreq, freqs, n_cycles=7.0, sigma=None, zero_mean=False):
         s = w * sfreq / (2 * freq * np.pi)  # from SciPy docs
 
         _, ax = plt.subplots(layout="constrained")
-        colors = {
-            ('MNE', 'real'): '#66CCEE',
-            ('SciPy', 'real'): '#4477AA',
-            ('MNE', 'imag'): '#EE6677',
-            ('SciPy', 'imag'): '#AA3377',
-        }
-        lw = dict(MNE=2, SciPy=4)
-        zorder = dict(MNE=5, SciPy=4)
+        colors = dict(real="#66CCEE", imag="#EE6677")
         t = np.arange(-M // 2 + 1, M // 2 + 1) / sfreq
         for kind in ('real', 'imag'):
-            ax.plot(t, getattr(wavelet, kind), label=f'{kind}',
-                    lw=lw[name], color=colors[(name, kind)],
-                    zorder=zorder[name])
+            ax.plot(
+                t, getattr(wavelet, kind), label=kind, color=colors[kind],
+            )
         ax.plot(t, np.abs(wavelet), label=f'abs', color='k', lw=1., zorder=6)
         half_max = np.max(np.abs(wavelet)) / 2.
         ax.plot([-this_fwhm / 2., this_fwhm / 2.], [half_max, half_max],

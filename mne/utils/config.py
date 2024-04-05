@@ -692,6 +692,7 @@ def sys_info(
             "# Testing",
             "pytest",
             "nbclient",
+            "statsmodels",
             "numpydoc",
             "flake8",
             "pydocstyle",
