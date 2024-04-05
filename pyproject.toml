@@ -62,8 +62,8 @@ hdf5 = ["h5io", "pymatreader"]
 full = [
     "mne[hdf5]",
     "qtpy",
-    "PyQt6!=6.6.1,!=6.6.2",
-    "PyQt6-Qt6!=6.6.1,!=6.6.2",
+    "PyQt6!=6.6.1",
+    "PyQt6-Qt6!=6.6.1,!=6.6.2,!=6.6.3",
     "pyobjc-framework-Cocoa>=5.2.0; platform_system=='Darwin'",
     "sip",
     "scikit-learn",
@@ -73,10 +73,8 @@ full = [
     "h5py",
     "pandas",
     "pyarrow",  # only needed to avoid a deprecation warning in pandas
-    "numexpr",
     "jupyter",
     "python-picard",
-    "statsmodels",
     "joblib",
     "psutil",
     "dipy",
@@ -100,6 +98,7 @@ full = [
     "qdarkstyle!=3.2.2",
     "threadpoolctl",
     # duplicated in test_extra:
+    "statsmodels",
     "eeglabio",
     "edfio>=0.2.1",
     "pybv",
@@ -130,6 +129,7 @@ test_extra = [
     "nitime",
     "nbclient",
     "sphinx-gallery",
+    "statsmodels",
     "eeglabio",
     "edfio>=0.2.1",
     "pybv",
@@ -213,7 +213,6 @@ ignore = [
     "D100", # Missing docstring in public module
     "D104", # Missing docstring in public package
     "D413", # Missing blank line after last section
-    
 ]
 
 [tool.ruff.lint.pydocstyle]
