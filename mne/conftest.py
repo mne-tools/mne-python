@@ -178,8 +178,6 @@ def pytest_configure(config):
     ignore:numpy\.core\.numeric is deprecated.*:DeprecationWarning
     ignore:numpy\.core\.multiarray is deprecated.*:DeprecationWarning
     ignore:The numpy\.fft\.helper has been made private.*:DeprecationWarning
-    # TODO: Should actually fix this one
-    ignore:The `needs_threshold` and `needs_proba`.*:FutureWarning
     # tqdm (Fedora)
     ignore:.*'tqdm_asyncio' object has no attribute 'last_print_t':pytest.PytestUnraisableExceptionWarning
     # Until mne-qt-browser > 0.5.2 is released
