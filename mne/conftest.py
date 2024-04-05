@@ -178,8 +178,7 @@ def pytest_configure(config):
     ignore:numpy\.core\.numeric is deprecated.*:DeprecationWarning
     ignore:numpy\.core\.multiarray is deprecated.*:DeprecationWarning
     ignore:The numpy\.fft\.helper has been made private.*:DeprecationWarning
-    # TODO: Should actually fix these two
-    ignore:scipy.signal.morlet2 is deprecated in SciPy.*:DeprecationWarning
+    # TODO: Should actually fix this one
     ignore:The `needs_threshold` and `needs_proba`.*:FutureWarning
     # tqdm (Fedora)
     ignore:.*'tqdm_asyncio' object has no attribute 'last_print_t':pytest.PytestUnraisableExceptionWarning
