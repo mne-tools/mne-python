@@ -140,15 +140,8 @@ def make_inverse_resolution_matrix(
 
         alpha = (3 * snr) / (alphas["eeg"] + alphas["mag"] + alphas["gra"])
 
-        # # previous attempt to compute scaling via whitened gain matrix
-        # whitener = inv['whitener']
-        # gain = np.dot(whitener, leadfield)
-        # gram_gain = np.dot(gain, gain.T)
-        # alpha = np.sqrt(np.trace(gram_gain) / gram_gain.shape[0])
-
         # Add square root of source noise power to every column, scale
         # depending on SNR
-        # EDIT
         resmat = resmat + (1 / alpha) * np.sqrt(stc.data)
 
     return resmat
@@ -212,7 +205,7 @@ def _get_psf_ctf(
     ):
         msg = (
             "Number of vertices (%d) and corresponding dimension of"
-            "resolution matrix ((%d, %d) do not match" % (n_verts, n_r, n_c)
+            "resolution matrix (%d, %d) do not match" % (n_verts, n_r, n_c)
         )
         raise ValueError(msg)
 
