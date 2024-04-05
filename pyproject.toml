@@ -62,8 +62,8 @@ hdf5 = ["h5io", "pymatreader"]
 full = [
     "mne[hdf5]",
     "qtpy",
-    "PyQt6!=6.6.1,!=6.6.2",
-    "PyQt6-Qt6!=6.6.1,!=6.6.2",
+    "PyQt6!=6.6.1",
+    "PyQt6-Qt6!=6.6.1,!=6.6.2,!=6.6.3",
     "pyobjc-framework-Cocoa>=5.2.0; platform_system=='Darwin'",
     "sip",
     "scikit-learn",
@@ -213,7 +213,6 @@ ignore = [
     "D100", # Missing docstring in public module
     "D104", # Missing docstring in public package
     "D413", # Missing blank line after last section
-    
 ]
 
 [tool.ruff.lint.pydocstyle]
