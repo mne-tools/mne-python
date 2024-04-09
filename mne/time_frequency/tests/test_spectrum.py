@@ -24,6 +24,9 @@ def test_compute_psd_errors(raw):
         raw.compute_psd(foo=None, bar=None)
     with pytest.raises(ValueError, match="Complex output is not supported in "):
         raw.compute_psd(output="complex")
+    raw.set_annotations(Annotations(onset=0.01, duration=0.01, description="bad_foo"))
+    with pytest.raises(NotImplementedError, match='Cannot use method="multitaper"'):
+        raw.compute_psd(method="multitaper", reject_by_annotation=True)
 
 
 @pytest.mark.parametrize("method", ("welch", "multitaper"))
