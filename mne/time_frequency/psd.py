@@ -11,6 +11,7 @@ from scipy.signal import spectrogram
 
 from ..parallel import parallel_func
 from ..utils import _check_option, _ensure_int, logger, verbose
+from ..utils.numerics import _mask_to_onsets_offsets
 
 
 # adapted from SciPy
@@ -224,12 +225,30 @@ def psd_array_welch(
         window=window,
         mode=mode,
     )
-    x_splits = [arr for arr in np.array_split(x, n_jobs) if arr.size != 0]
+    if np.any(np.isnan(x)):
+        good_mask = ~np.isnan(x)
+        # NaNs originate from annot, so must match for all channels. Note that we CANNOT
+        # use np.testing.assert_allclose() here; it is strict about shapes/broadcasting
+        assert np.allclose(good_mask, good_mask[[0]], equal_nan=True)
+        t_onsets, t_offsets = _mask_to_onsets_offsets(good_mask[0])
+        x_splits = [x[..., t_ons:t_off] for t_ons, t_off in zip(t_onsets, t_offsets)]
+        weights = [
+            split.shape[-1] for split in x_splits if split.shape[-1] >= n_per_seg
+        ]
+        agg_func = partial(np.average, weights=weights)
+        if n_jobs > 1:
+            logger.info(
+                f"Data split into {len(x_splits)} (probably unequal) chunks due to "
+                '"bad_*" annotations. Parallelization may be sub-optimal.'
+            )
+    else:
+        x_splits = [arr for arr in np.array_split(x, n_jobs) if arr.size != 0]
+        agg_func = np.concatenate
     f_spect = parallel(
         my_spect_func(d, func=func, freq_sl=freq_sl, average=average, output=output)
         for d in x_splits
     )
-    psds = np.concatenate(f_spect, axis=0)
+    psds = agg_func(f_spect, axis=0)
     shape = dshape + (len(freqs),)
     if average is None:
         shape = shape + (-1,)
