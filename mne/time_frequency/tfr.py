@@ -1440,7 +1440,7 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
         self._set_times(self._raw_times)
         # Handle instance type. Prior to gh-11282, Raw was not a possibility so if
         # `inst_type_str` is missing it must be Epochs or Evoked
-        unknown_class = Epochs if self._data.ndim == 4 else Evoked
+        unknown_class = Epochs if "epoch" in self._dims else Evoked
         inst_types = dict(Raw=Raw, Epochs=Epochs, Evoked=Evoked, Unknown=unknown_class)
         self._inst_type = inst_types[defaults["inst_type_str"]]
         # sanity check data/freqs/times/info agreement
@@ -3374,13 +3374,14 @@ class EpochsTFR(BaseTFR, GetEpochsMixin):
                 "EpochsTFR.average() got a method that resulted in data of shape "
                 f"{data.shape}, but it should be {expected_shape}."
             )
+        state = self.__getstate__()
         # restore singleton freqs axis (not necessary for epochs/times: class changes)
         if dim == "freqs":
             data = np.expand_dims(data, axis=axis)
-        state = self.__getstate__()
+        else:
+            state["dims"] = (*state["dims"][:axis], *state["dims"][axis + 1 :])
         state["data"] = data
         state["info"] = deepcopy(self.info)
-        state["dims"] = (*state["dims"][:axis], *state["dims"][axis + 1 :])
         state["freqs"] = freqs
         state["times"] = times
         if dim == "epochs":
