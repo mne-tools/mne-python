@@ -3064,12 +3064,12 @@ on_split_missing : str
 
 docdict["ordered"] = """
 ordered : bool
-    If True (default False), ensure that the order of the channels in
+    If True (default), ensure that the order of the channels in
     the modified instance matches the order of ``ch_names``.
 
     .. versionadded:: 0.20.0
-    .. versionchanged:: 1.5
-        The default changed from False in 1.4 to True in 1.5.
+    .. versionchanged:: 1.7
+        The default changed from False in 1.6 to True in 1.7.
 """
 
 docdict["origin_maxwell"] = """
