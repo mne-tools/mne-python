@@ -17,7 +17,6 @@ from ..utils import (
     fill_doc,
     logger,
     verbose,
-    warn,
 )
 from .constants import FIFF
 
@@ -258,7 +257,7 @@ def channel_type(info, idx):
 
 
 @verbose
-def pick_channels(ch_names, include, exclude=(), ordered=None, *, verbose=None):
+def pick_channels(ch_names, include, exclude=(), ordered=True, *, verbose=None):
     """Pick channels by names.
 
     Returns the indices of ``ch_names`` in ``include`` but not in ``exclude``.
@@ -290,7 +289,7 @@ def pick_channels(ch_names, include, exclude=(), ordered=None, *, verbose=None):
     """
     if len(np.unique(ch_names)) != len(ch_names):
         raise RuntimeError("ch_names is not a unique list, picking is unsafe")
-    _validate_type(ordered, (bool, None), "ordered")
+    _validate_type(ordered, bool, "ordered")
     _check_excludes_includes(include)
     _check_excludes_includes(exclude)
     if not isinstance(include, list):
@@ -306,34 +305,12 @@ def pick_channels(ch_names, include, exclude=(), ordered=None, *, verbose=None):
                 sel.append(ch_names.index(name))
         else:
             missing.append(name)
-    dep_msg = (
-        "The default for pick_channels will change from ordered=False to "
-        "ordered=True in 1.5"
-    )
-    if len(missing):
-        if ordered is None:
-            warn(
-                f"{dep_msg} and this will result in an error because the "
-                f"following channel names are missing:\n{missing}\n"
-                "Either fix your included names or explicitly pass "
-                "ordered=False.",
-                FutureWarning,
-            )
-        elif ordered:
-            raise ValueError(
-                f"Missing channels from ch_names required by include:\n{missing}"
-            )
+    if len(missing) and ordered:
+        raise ValueError(
+            f"Missing channels from ch_names required by include:\n{missing}"
+        )
     if not ordered:
-        out_sel = np.unique(sel)
-        if ordered is None and not np.array_equal(out_sel, sel):
-            warn(
-                f"{dep_msg} and this will result in a change of behavior "
-                "because the resulting channel order will not match. Either "
-                "use a channel order that matches your instance or "
-                "pass ordered=False.",
-                FutureWarning,
-            )
-        sel = out_sel
+        sel = np.unique(sel)
     return np.array(sel, int)
 
 
@@ -715,7 +692,7 @@ def _has_kit_refs(info, picks):
 
 @verbose
 def pick_channels_forward(
-    orig, include=(), exclude=(), ordered=None, copy=True, *, verbose=None
+    orig, include=(), exclude=(), ordered=True, copy=True, *, verbose=None
 ):
     """Pick channels from forward operator.
 
@@ -902,7 +879,7 @@ def channel_indices_by_type(info, picks=None):
 
 @verbose
 def pick_channels_cov(
-    orig, include=(), exclude="bads", ordered=None, copy=True, *, verbose=None
+    orig, include=(), exclude="bads", ordered=True, copy=True, *, verbose=None
 ):
     """Pick channels from covariance matrix.
 
