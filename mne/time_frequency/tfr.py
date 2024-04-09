@@ -1499,7 +1499,9 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
         """Check data/freqs/times/info agreement during __setstate__."""
         msg = "{} axis of data ({}) doesn't match {} attribute ({})"
         n_chan_info = len(self.info["chs"])
-        n_chan, n_freq, n_time = self._data.shape[self._dims.index("channel") :]
+        n_chan = self._data.shape[self._dims.index("channel")]
+        n_freq = self._data.shape[self._dims.index("freq")]
+        n_time = self._data.shape[self._dims.index("time")]
         if n_chan_info != n_chan:
             msg = msg.format("Channel", n_chan, "info", n_chan_info)
         elif n_freq != len(self.freqs):
@@ -4211,7 +4213,7 @@ def read_tfrs(fname, condition=None, *, verbose=None):
     hdf5_dict = read_hdf5(fname, title="mnepython", slash="replace")
     # single TFR from TFR.save()
     if "inst_type_str" in hdf5_dict:
-        if hdf5_dict["data"].ndim == 4:
+        if "epoch" in hdf5_dict["dims"]:
             Klass = EpochsTFR
         elif "nave" in hdf5_dict:
             Klass = AverageTFR
