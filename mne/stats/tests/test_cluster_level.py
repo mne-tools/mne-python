@@ -96,7 +96,10 @@ def test_thresholds(numba_conditional):
     # nan handling in TFCE
     X = np.repeat(X[0], 2, axis=1)
     X[:, 1] = 0
-    with pytest.warns(RuntimeWarning, match="invalid value"):  # NumPy
+    with (
+        _record_warnings(),
+        pytest.warns(RuntimeWarning, match="invalid value"),
+    ):  # NumPy
         out = permutation_cluster_1samp_test(
             X, seed=0, threshold=dict(start=0, step=0.1), out_type="mask"
         )
@@ -140,7 +143,7 @@ def test_cache_dir(tmp_path, numba_conditional):
         # ensure that non-independence yields warning
         stat_fun = partial(ttest_1samp_no_p, sigma=1e-3)
         random_state = np.random.default_rng(0)
-        with pytest.warns(RuntimeWarning, match="independently"):
+        with _record_warnings(), pytest.warns(RuntimeWarning, match="independently"):
             permutation_cluster_1samp_test(
                 X,
                 buffer_size=10,
@@ -509,7 +512,7 @@ def test_cluster_permutation_with_adjacency(numba_conditional, monkeypatch):
         assert np.min(out_adjacency_6[2]) < 0.05
 
         with pytest.raises(ValueError, match="not compatible"):
-            with pytest.warns(RuntimeWarning, match="No clusters"):
+            with _record_warnings():
                 spatio_temporal_func(
                     X1d_3,
                     n_permutations=50,

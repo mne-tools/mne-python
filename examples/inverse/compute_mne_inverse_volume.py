@@ -56,5 +56,5 @@ plot_stat_map(
     index_img(img, 61),
     str(t1_fname),
     threshold=8.0,
-    title="%s (t=%.1f s.)" % (method, stc.times[61]),
+    title=f"{method} (t={stc.times[61]:.1f} s.)",
 )

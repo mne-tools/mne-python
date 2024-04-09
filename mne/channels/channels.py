@@ -153,7 +153,7 @@ def equalize_channels(instances, copy=True, verbose=None):
     from ..evoked import Evoked
     from ..forward import Forward
     from ..io import BaseRaw
-    from ..time_frequency import CrossSpectralDensity, _BaseTFR
+    from ..time_frequency import BaseTFR, CrossSpectralDensity
 
     # Instances need to have a `ch_names` attribute and a `pick_channels`
     # method that supports `ordered=True`.
@@ -161,7 +161,7 @@ def equalize_channels(instances, copy=True, verbose=None):
         BaseRaw,
         BaseEpochs,
         Evoked,
-        _BaseTFR,
+        BaseTFR,
         Forward,
         Covariance,
         CrossSpectralDensity,
@@ -549,7 +549,7 @@ class UpdateChannelsMixin:
         for ch_name in ch_names:
             ii = self.ch_names.index(ch_name)
             if ii in idx:
-                raise ValueError("Channel name repeated: %s" % (ch_name,))
+                raise ValueError(f"Channel name repeated: {ch_name}")
             idx.append(ii)
         return self._pick_drop_channels(idx)
 
@@ -607,8 +607,6 @@ class UpdateChannelsMixin:
     def _pick_drop_channels(self, idx, *, verbose=None):
         # avoid circular imports
         from ..io import BaseRaw
-        from ..time_frequency import AverageTFR, EpochsTFR
-        from ..time_frequency.spectrum import BaseSpectrum
 
         msg = "adding, dropping, or reordering channels"
         if isinstance(self, BaseRaw):
@@ -633,10 +631,8 @@ class UpdateChannelsMixin:
             if mat is not None:
                 setattr(self, key, mat[idx][:, idx])
 
-        if isinstance(self, BaseSpectrum):
+        if hasattr(self, "_dims"):  # Spectrum and "new-style" TFRs
             axis = self._dims.index("channel")
-        elif isinstance(self, (AverageTFR, EpochsTFR)):
-            axis = -3
         else:  # All others (Evoked, Epochs, Raw) have chs axis=-2
             axis = -2
         if hasattr(self, "_data"):  # skip non-preloaded Raw
@@ -839,6 +835,8 @@ class InterpolationMixin:
             - ``"meg"`` channels support ``"MNE"`` (default) and ``"nan"``
             - ``"eeg"`` channels support ``"spline"`` (default), ``"MNE"`` and ``"nan"``
             - ``"fnirs"`` channels support ``"nearest"`` (default) and ``"nan"``
+            - ``"ecog"`` channels support ``"spline"`` (default) and ``"nan"``
+            - ``"seeg"`` channels support ``"spline"`` (default) and ``"nan"``
 
             None is an alias for::
 
@@ -982,7 +980,7 @@ def rename_channels(info, mapping, allow_duplicates=False, *, verbose=None):
     elif callable(mapping):
         new_names = [(ci, mapping(ch_name)) for ci, ch_name in enumerate(ch_names)]
     else:
-        raise ValueError("mapping must be callable or dict, not %s" % (type(mapping),))
+        raise ValueError(f"mapping must be callable or dict, not {type(mapping)}")
 
     # check we got all strings out of the mapping
     for new_name in new_names:
@@ -2110,9 +2108,7 @@ def read_vectorview_selection(name, fname=None, info=None, verbose=None):
         else:
             spacing = "old"
     elif info is not None:
-        raise TypeError(
-            "info must be an instance of Info or None, not %s" % (type(info),)
-        )
+        raise TypeError(f"info must be an instance of Info or None, not {type(info)}")
     else:  # info is None
         spacing = "old"
 
@@ -2124,7 +2120,7 @@ def read_vectorview_selection(name, fname=None, info=None, verbose=None):
 
     # use this to make sure we find at least one match for each name
     name_found = {n: False for n in name}
-    with open(fname, "r") as fid:
+    with open(fname) as fid:
         sel = []
         for line in fid:
             line = line.strip()

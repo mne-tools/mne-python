@@ -190,7 +190,7 @@ def compute_source_morph(
     .. footbibliography::
     """
     src_data, kind, src_subject = _get_src_data(src)
-    subject_from = _check_subject_src(subject_from, src_subject)
+    subject_from = _check_subject_src(subject_from, src_subject, warn_none=True)
     del src
     _validate_type(src_to, (SourceSpaces, None), "src_to")
     _validate_type(subject_to, (str, None), "subject_to")
@@ -241,7 +241,7 @@ def compute_source_morph(
         if src_to is None:
             if kind == "mixed":
                 raise ValueError(
-                    "src_to must be provided when using a " "mixed source space"
+                    "src_to must be provided when using a mixed source space"
                 )
         else:
             surf_offset = 2 if src_to.kind == "mixed" else 0
@@ -268,9 +268,9 @@ def compute_source_morph(
         vertices_from = src_data["vertices_from"]
         if sparse:
             if spacing is not None:
-                raise ValueError("spacing must be set to None if " "sparse=True.")
+                raise ValueError("spacing must be set to None if sparse=True.")
             if xhemi:
-                raise ValueError("xhemi=True can only be used with " "sparse=False")
+                raise ValueError("xhemi=True can only be used with sparse=False")
             vertices_to_surf, morph_mat = _compute_sparse_morph(
                 vertices_from, subject_from, subject_to, subjects_dir
             )
@@ -556,8 +556,8 @@ class SourceMorph:
         if stc.subject != self.subject_from:
             raise ValueError(
                 "stc_from.subject and "
-                "morph.subject_from must match. (%s != %s)"
-                % (stc.subject, self.subject_from)
+                "morph.subject_from "
+                f"must match. ({stc.subject} != {self.subject_from})"
             )
         out = _apply_morph_data(self, stc)
         if output != "stc":  # convert to volume
@@ -736,14 +736,14 @@ class SourceMorph:
 
     def __repr__(self):  # noqa: D105
         s = "%s" % self.kind
-        s += ", %s -> %s" % (self.subject_from, self.subject_to)
+        s += f", {self.subject_from} -> {self.subject_to}"
         if self.kind == "volume":
-            s += ", zooms : {}".format(self.zooms)
-            s += ", niter_affine : {}".format(self.niter_affine)
-            s += ", niter_sdr : {}".format(self.niter_sdr)
+            s += f", zooms : {self.zooms}"
+            s += f", niter_affine : {self.niter_affine}"
+            s += f", niter_sdr : {self.niter_sdr}"
         elif self.kind in ("surface", "vector"):
-            s += ", spacing : {}".format(self.spacing)
-            s += ", smooth : %s" % self.smooth
+            s += f", spacing : {self.spacing}"
+            s += f", smooth : {self.smooth}"
             s += ", xhemi" if self.xhemi else ""
 
         return "<SourceMorph | %s>" % s
@@ -802,7 +802,7 @@ def _check_zooms(mri_from, zooms, zooms_src_to):
     if zooms.shape != (3,):
         raise ValueError(
             "zooms must be None, a singleton, or have shape (3,),"
-            " got shape %s" % (zooms.shape,)
+            f" got shape {zooms.shape}"
         )
     zooms = tuple(zooms)
     return zooms
@@ -823,30 +823,31 @@ def _resample_from_to(img, affine, to_vox_map):
 
 ###############################################################################
 # I/O
-def _check_subject_src(subject, src, name="subject_from", src_name="src"):
+def _check_subject_src(
+    subject, src, name="subject_from", src_name="src", *, warn_none=False
+):
     if isinstance(src, str):
         subject_check = src
     elif src is None:  # assume it's correct although dangerous but unlikely
         subject_check = subject
     else:
         subject_check = src._subject
-        if subject_check is None:
-            warn(
-                "The source space does not contain the subject name, we "
-                "recommend regenerating the source space (and forward / "
-                "inverse if applicable) for better code reliability"
-            )
+        warn_none = True
+    if subject_check is None and warn_none:
+        warn(
+            "The source space does not contain the subject name, we "
+            "recommend regenerating the source space (and forward / "
+            "inverse if applicable) for better code reliability"
+        )
     if subject is None:
         subject = subject_check
     elif subject_check is not None and subject != subject_check:
         raise ValueError(
-            "%s does not match %s subject (%s != %s)"
-            % (name, src_name, subject, subject_check)
+            f"{name} does not match {src_name} subject ({subject} != {subject_check})"
         )
     if subject is None:
         raise ValueError(
-            "%s could not be inferred from %s, it must be "
-            "specified" % (name, src_name)
+            f"{name} could not be inferred from {src_name}, it must be specified"
         )
     return subject
 
@@ -898,8 +899,8 @@ def _check_dep(nibabel="2.1.0", dipy="0.10.1"):
 
         if not passed:
             raise ImportError(
-                "%s %s or higher must be correctly "
-                "installed and accessible from Python" % (lib, ver)
+                f"{lib} {ver} or higher must be correctly "
+                "installed and accessible from Python"
             )
 
 
@@ -1295,7 +1296,7 @@ def grade_to_vertices(subject, grade, subjects_dir=None, n_jobs=None, verbose=No
     spheres_to = [
         subjects_dir / subject / "surf" / (xh + ".sphere.reg") for xh in ["lh", "rh"]
     ]
-    lhs, rhs = [read_surface(s)[0] for s in spheres_to]
+    lhs, rhs = (read_surface(s)[0] for s in spheres_to)
 
     if grade is not None:  # fill a subset of vertices
         if isinstance(grade, list):
@@ -1314,18 +1315,18 @@ def grade_to_vertices(subject, grade, subjects_dir=None, n_jobs=None, verbose=No
 
             # Compute nearest vertices in high dim mesh
             parallel, my_compute_nearest, _ = parallel_func(_compute_nearest, n_jobs)
-            lhs, rhs, rr = [a.astype(np.float32) for a in [lhs, rhs, ico["rr"]]]
+            lhs, rhs, rr = (a.astype(np.float32) for a in [lhs, rhs, ico["rr"]])
             vertices = parallel(my_compute_nearest(xhs, rr) for xhs in [lhs, rhs])
             # Make sure the vertices are ordered
             vertices = [np.sort(verts) for verts in vertices]
             for verts in vertices:
                 if (np.diff(verts) == 0).any():
                     raise ValueError(
-                        "Cannot use icosahedral grade %s with subject %s, "
-                        "mapping %s vertices onto the high-resolution mesh "
+                        f"Cannot use icosahedral grade {grade} with subject "
+                        f"{subject}, mapping {len(verts)} vertices onto the "
+                        "high-resolution mesh "
                         "yields repeated vertices, use a lower grade or a "
                         "list of vertices from an existing source space"
-                        % (grade, subject, len(verts))
                     )
     else:  # potentially fill the surface
         vertices = [np.arange(lhs.shape[0]), np.arange(rhs.shape[0])]
@@ -1449,9 +1450,9 @@ def _check_vertices_match(v1, v2, name):
         if np.isin(v2, v1).all():
             ext = " Vertices were likely excluded during forward computation."
         raise ValueError(
-            "vertices do not match between morph (%s) and stc (%s) for %s:\n%s"
-            '\n%s\nPerhaps src_to=fwd["src"] needs to be passed when calling '
-            "compute_source_morph.%s" % (len(v1), len(v2), name, v1, v2, ext)
+            f"vertices do not match between morph ({len(v1)}) and stc ({len(v2)}) "
+            'for {name}:\n{v1}\n{v2}\nPerhaps src_to=fwd["src"] needs to be passed '
+            f"when calling compute_source_morph.{ext}"
         )
 
 
@@ -1462,8 +1463,8 @@ def _apply_morph_data(morph, stc_from):
     """Morph a source estimate from one subject to another."""
     if stc_from.subject is not None and stc_from.subject != morph.subject_from:
         raise ValueError(
-            "stc.subject (%s) != morph.subject_from (%s)"
-            % (stc_from.subject, morph.subject_from)
+            f"stc.subject ({stc_from.subject}) != morph.subject_from "
+            f"({morph.subject_from})"
         )
     _check_option("morph.kind", morph.kind, ("surface", "volume", "mixed"))
     if morph.kind == "surface":
@@ -1540,7 +1541,7 @@ def _apply_morph_data(morph, stc_from):
         for hemi, v1, v2 in zip(
             ("left", "right"), morph.src_data["vertices_from"], stc_from.vertices[:2]
         ):
-            _check_vertices_match(v1, v2, "%s hemisphere" % (hemi,))
+            _check_vertices_match(v1, v2, f"{hemi} hemisphere")
         from_sl = slice(0, from_surf_stop)
         assert not from_used[from_sl].any()
         from_used[from_sl] = True

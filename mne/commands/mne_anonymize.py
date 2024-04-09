@@ -52,7 +52,7 @@ def mne_anonymize(fif_fname, out_fname, keep_his, daysback, overwrite):
     dir_name = op.split(fif_fname)[0]
     if out_fname is None:
         fif_bname = op.basename(fif_fname)
-        out_fname = op.join(dir_name, "{}-{}".format(ANONYMIZE_FILE_PREFIX, fif_bname))
+        out_fname = op.join(dir_name, f"{ANONYMIZE_FILE_PREFIX}-{fif_bname}")
     elif not op.isabs(out_fname):
         out_fname = op.join(dir_name, out_fname)
 

@@ -68,7 +68,7 @@ class RawBOXY(BaseRaw):
         raw_extras["offsets"] = list()  # keep track of our offsets
         sfreq = None
         fname = str(_check_fname(fname, "read", True, "fname"))
-        with open(fname, "r") as fid:
+        with open(fname) as fid:
             line_num = 0
             i_line = fid.readline()
             while i_line:
@@ -170,7 +170,7 @@ class RawBOXY(BaseRaw):
         assert len(raw_extras["offsets"]) == delta + 1
         if filetype == "non-parsed":
             delta //= raw_extras["source_num"]
-        super(RawBOXY, self).__init__(
+        super().__init__(
             info,
             preload,
             filenames=[fname],
@@ -235,7 +235,7 @@ class RawBOXY(BaseRaw):
 
         # Loop through our data.
         one = np.zeros((len(col_names), stop_read - start_read))
-        with open(boxy_file, "r") as fid:
+        with open(boxy_file) as fid:
             # Just a more efficient version of this:
             # ii = 0
             # for line_num, i_line in enumerate(fid):

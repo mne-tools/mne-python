@@ -164,7 +164,7 @@ class RawCTF(BaseRaw):
                 f"file(s): {missing_names}, and the following file(s) had no "
                 f"valid samples: {no_samps}"
             )
-        super(RawCTF, self).__init__(
+        super().__init__(
             info,
             preload,
             first_samps=first_samps,
@@ -227,7 +227,7 @@ def _clean_names_inst(inst):
 
 def _get_sample_info(fname, res4, system_clock):
     """Determine the number of valid samples."""
-    logger.info("Finding samples for %s: " % (fname,))
+    logger.info(f"Finding samples for {fname}: ")
     if CTF.SYSTEM_CLOCK_CH in res4["ch_names"]:
         clock_ch = res4["ch_names"].index(CTF.SYSTEM_CLOCK_CH)
     else:

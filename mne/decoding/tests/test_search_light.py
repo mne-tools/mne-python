@@ -94,8 +94,13 @@ def test_search_light():
     with pytest.raises(ValueError, match="for two-class"):
         sl.score(X, y)
     # But check that valid ones should work with new enough sklearn
+    kwargs = dict()
+    if check_version("sklearn", "1.4"):
+        kwargs["response_method"] = "predict_proba"
+    else:
+        kwargs["needs_proba"] = True
     if "multi_class" in signature(roc_auc_score).parameters:
-        scoring = make_scorer(roc_auc_score, needs_proba=True, multi_class="ovo")
+        scoring = make_scorer(roc_auc_score, multi_class="ovo", **kwargs)
         sl = SlidingEstimator(logreg, scoring=scoring)
         sl.fit(X, y)
         sl.score(X, y)  # smoke test
@@ -125,7 +130,12 @@ def test_search_light():
     assert score_sl.dtype == np.dtype(float)
 
     # Check that scoring was applied adequately
-    scoring = make_scorer(roc_auc_score, needs_threshold=True)
+    kwargs = dict()
+    if check_version("sklearn", "1.4"):
+        kwargs["response_method"] = ("decision_function", "predict_proba")
+    else:
+        kwargs["needs_threshold"] = True
+    scoring = make_scorer(roc_auc_score, **kwargs)
     score_manual = [
         scoring(est, x, y) for est, x in zip(sl1.estimators_, X.transpose(2, 0, 1))
     ]
@@ -146,7 +156,7 @@ def test_search_light():
     # pipeline
     class _LogRegTransformer(LogisticRegression):
         def transform(self, X):
-            return super(_LogRegTransformer, self).predict_proba(X)[..., 1]
+            return super().predict_proba(X)[..., 1]
 
     logreg_transformer = _LogRegTransformer(
         random_state=0, multi_class="ovr", solver="liblinear"

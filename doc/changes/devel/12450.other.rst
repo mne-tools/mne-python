@@ -1,0 +1,1 @@
+Move private data preparation functions for BrainVision export from ``pybv`` to ``mne``, by `Clemens Brunner`_.

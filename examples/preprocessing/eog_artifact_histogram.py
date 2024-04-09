@@ -15,7 +15,6 @@ Compute the distribution of timing for EOG artifacts.
 
 # %%
 
-
 import matplotlib.pyplot as plt
 import numpy as np
 

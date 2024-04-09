@@ -658,9 +658,9 @@ def test_split_files(tmp_path, mod, monkeypatch):
         m.setattr(base, "MAX_N_SPLITS", 2)
         with pytest.raises(RuntimeError, match="Exceeded maximum number of splits"):
             raw.save(fname, split_naming="bids", **kwargs)
-    fname_1, fname_2, fname_3 = [
+    fname_1, fname_2, fname_3 = (
         (tmp_path / f"test_split-{ii:02d}_{mod}.fif") for ii in range(1, 4)
-    ]
+    )
     assert not fname.is_file()
     assert fname_1.is_file()
     assert fname_2.is_file()
@@ -669,10 +669,38 @@ def test_split_files(tmp_path, mod, monkeypatch):
         m.setattr(base, "MAX_N_SPLITS", 2)
         with pytest.raises(RuntimeError, match="Exceeded maximum number of splits"):
             raw.save(fname, split_naming="neuromag", **kwargs)
-    fname_2, fname_3 = [(tmp_path / f"test_{mod}-{ii}.fif") for ii in range(1, 3)]
+    fname_2, fname_3 = ((tmp_path / f"test_{mod}-{ii}.fif") for ii in range(1, 3))
     assert fname.is_file()
     assert fname_2.is_file()
     assert not fname_3.is_file()
+
+
+def test_bids_split_files(tmp_path):
+    """Test that BIDS split files are written safely."""
+    mne_bids = pytest.importorskip("mne_bids")
+    bids_path = mne_bids.BIDSPath(
+        root=tmp_path,
+        subject="01",
+        datatype="meg",
+        split="01",
+        suffix="raw",
+        extension=".fif",
+        check=False,
+    )
+    (tmp_path / "sub-01" / "meg").mkdir(parents=True)
+    raw = read_raw_fif(test_fif_fname)
+    save_kwargs = dict(
+        buffer_size_sec=1.0, split_size="10MB", split_naming="bids", verbose=True
+    )
+    with pytest.raises(ValueError, match="Passing a BIDSPath"):
+        raw.save(bids_path, **save_kwargs)
+    bids_path.split = None
+    want_paths = [Path(bids_path.copy().update(split=ii).fpath) for ii in range(1, 3)]
+    for want_path in want_paths:
+        assert not want_path.is_file()
+    raw.save(bids_path, **save_kwargs)
+    for want_path in want_paths:
+        assert want_path.is_file()
 
 
 def _err(*args, **kwargs):
@@ -901,7 +929,7 @@ def test_io_complex(tmp_path, dtype):
 @testing.requires_testing_data
 def test_getitem():
     """Test getitem/indexing of Raw."""
-    for preload in [False, True, "memmap.dat"]:
+    for preload in [False, True, "memmap1.dat"]:
         raw = read_raw_fif(fif_fname, preload=preload)
         data, times = raw[0, :]
         data1, times1 = raw[0]
@@ -1020,7 +1048,7 @@ def test_proj(tmp_path):
 
 
 @testing.requires_testing_data
-@pytest.mark.parametrize("preload", [False, True, "memmap.dat"])
+@pytest.mark.parametrize("preload", [False, True, "memmap2.dat"])
 def test_preload_modify(preload, tmp_path):
     """Test preloading and modifying data."""
     rng = np.random.RandomState(0)
@@ -1926,7 +1954,7 @@ def test_equalize_channels():
 def test_memmap(tmp_path):
     """Test some interesting memmapping cases."""
     # concatenate_raw
-    memmaps = [str(tmp_path / str(ii)) for ii in range(3)]
+    memmaps = [str(tmp_path / str(ii)) for ii in range(4)]
     raw_0 = read_raw_fif(test_fif_fname, preload=memmaps[0])
     assert raw_0._data.filename == memmaps[0]
     raw_1 = read_raw_fif(test_fif_fname, preload=memmaps[1])
@@ -1951,8 +1979,8 @@ def test_memmap(tmp_path):
     # now let's see if .copy() actually works; it does, but eventually
     # we should make it optionally memmap to a new filename rather than
     # create an in-memory version (filename=None)
-    raw_0 = read_raw_fif(test_fif_fname, preload=memmaps[0])
-    assert raw_0._data.filename == memmaps[0]
+    raw_0 = read_raw_fif(test_fif_fname, preload=memmaps[3])
+    assert raw_0._data.filename == memmaps[3]
     assert raw_0._data[:1, 3:5].all()
     raw_1 = raw_0.copy()
     assert isinstance(raw_1._data, np.memmap)
@@ -2092,7 +2120,10 @@ def test_corrupted(tmp_path, offset):
     bad_fname = tmp_path / "test_raw.fif"
     with open(bad_fname, "wb") as fid:
         fid.write(data)
-    with pytest.warns(RuntimeWarning, match=".*tag directory.*corrupt.*"):
+    with (
+        _record_warnings(),
+        pytest.warns(RuntimeWarning, match=".*tag directory.*corrupt.*"),
+    ):
         raw_bad = read_raw_fif(bad_fname)
     assert_allclose(raw.get_data(), raw_bad.get_data())
 

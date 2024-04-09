@@ -69,9 +69,8 @@ class EstimatorMixin:
                 name, sub_name = split
                 if name not in valid_params:
                     raise ValueError(
-                        "Invalid parameter %s for estimator %s. "
-                        "Check the list of available parameters "
-                        "with `estimator.get_params().keys()`." % (name, self)
+                        f"Invalid parameter {name} for estimator {self}. Check the list"
+                        " of available parameters with `estimator.get_params().keys()`."
                     )
                 sub_object = valid_params[name]
                 sub_object.set_params(**{sub_name: value})
@@ -79,10 +78,9 @@ class EstimatorMixin:
                 # simple objects case
                 if key not in valid_params:
                     raise ValueError(
-                        "Invalid parameter %s for estimator %s. "
-                        "Check the list of available parameters "
-                        "with `estimator.get_params().keys()`."
-                        % (key, self.__class__.__name__)
+                        f"Invalid parameter {key} for estimator "
+                        f"{self.__class__.__name__}. Check the list of available "
+                        "parameters with `estimator.get_params().keys()`."
                     )
                 setattr(self, key, value)
         return self

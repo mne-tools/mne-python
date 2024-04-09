@@ -17,6 +17,7 @@ Examples
     $ mne make_scalp_surfaces --overwrite --subject sample
 
 """
+
 import os
 import sys
 

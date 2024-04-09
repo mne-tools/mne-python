@@ -89,9 +89,7 @@ def linear_regression(inst, design_matrix, names=None):
         data = np.array([i.data for i in inst])
     else:
         raise ValueError("Input must be epochs or iterable of source " "estimates")
-    logger.info(
-        msg + ", (%s targets, %s regressors)" % (np.prod(data.shape[1:]), len(names))
-    )
+    logger.info(msg + f", ({np.prod(data.shape[1:])} targets, {len(names)} regressors)")
     lm_params = _fit_lm(data, design_matrix, names)
     lm = namedtuple("lm", "beta stderr t_val p_val mlog10_p_val")
     lm_fits = {}
@@ -266,7 +264,7 @@ def linear_regression_raw(
     """
     if isinstance(solver, str):
         if solver not in {"cholesky"}:
-            raise ValueError("No such solver: {}".format(solver))
+            raise ValueError(f"No such solver: {solver}")
         if solver == "cholesky":
 
             def solver(X, y):
@@ -361,7 +359,7 @@ def _prepare_rerp_preds(
     else:
         tmin_s = {cond: int(round(tmin.get(cond, -0.1) * sfreq)) for cond in conds}
     if isinstance(tmax, (float, int)):
-        tmax_s = {cond: int(round((tmax * sfreq)) + 1) for cond in conds}
+        tmax_s = {cond: int(round(tmax * sfreq) + 1) for cond in conds}
     else:
         tmax_s = {cond: int(round(tmax.get(cond, 1.0) * sfreq)) + 1 for cond in conds}
 
@@ -388,9 +386,9 @@ def _prepare_rerp_preds(
             covs = covariates[cond]
             if len(covs) != len(events):
                 error = (
-                    "Condition {0} from ``covariates`` is "
-                    "not the same length as ``events``"
-                ).format(cond)
+                    f"Condition {cond} from ``covariates`` is not the same length as "
+                    "``events``"
+                )
                 raise ValueError(error)
             onsets = -(events[np.where(covs != 0), 0] + tmin_)[0]
             v = np.asarray(covs)[np.nonzero(covs)].astype(float)

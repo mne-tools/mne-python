@@ -268,7 +268,7 @@ def show_fiff(
     return out
 
 
-def _find_type(value, fmts=["FIFF_"], exclude=["FIFF_UNIT"]):
+def _find_type(value, fmts=("FIFF_",), exclude=("FIFF_UNIT",)):
     """Find matching values."""
     value = int(value)
     vals = [
@@ -347,9 +347,9 @@ def _show_tree(
                     elif isinstance(tag.data, (list, tuple)):
                         postpend += " ... list len=" + str(len(tag.data))
                     elif issparse(tag.data):
-                        postpend += " ... sparse (%s) shape=%s" % (
-                            tag.data.getformat(),
-                            tag.data.shape,
+                        postpend += (
+                            f" ... sparse ({tag.data.getformat()}) shape="
+                            f"{tag.data.shape}"
                         )
                     else:
                         postpend += " ... type=" + str(type(tag.data))
@@ -357,7 +357,7 @@ def _show_tree(
                 matrix_info = _matrix_info(tag)
                 if matrix_info is not None:
                     _, type_, _, _ = matrix_info
-                type_ = _call_dict_names.get(type_, "?%s?" % (type_,))
+                type_ = _call_dict_names.get(type_, f"?{type_}?")
                 this_type = "/".join(this_type)
                 out += [
                     f"{next_idt}{prepend}{str(k).ljust(4)} = "

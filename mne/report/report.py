@@ -8,6 +8,7 @@
 # Copyright the MNE-Python contributors.
 
 import base64
+import copy
 import dataclasses
 import fnmatch
 import io
@@ -23,7 +24,7 @@ from functools import partial
 from io import BytesIO, StringIO
 from pathlib import Path
 from shutil import copyfile
-from typing import Optional, Tuple
+from typing import Optional
 
 import numpy as np
 
@@ -143,7 +144,7 @@ CONTENT_ORDER = (
 html_include_dir = Path(__file__).parent / "js_and_css"
 template_dir = Path(__file__).parent / "templates"
 JAVASCRIPT = (html_include_dir / "report.js").read_text(encoding="utf-8")
-CSS = (html_include_dir / "report.sass").read_text(encoding="utf-8")
+CSS = (html_include_dir / "report.css").read_text(encoding="utf-8")
 
 MAX_IMG_RES = 100  # in dots per inch
 MAX_IMG_WIDTH = 850  # in pixels
@@ -302,11 +303,11 @@ class _ContentElement:
     name: str
     section: Optional[str]
     dom_id: str
-    tags: Tuple[str]
+    tags: tuple[str]
     html: str
 
 
-def _check_tags(tags) -> Tuple[str]:
+def _check_tags(tags) -> tuple[str]:
     # Must be iterable, but not a string
     if isinstance(tags, str):
         tags = (tags,)
@@ -430,8 +431,8 @@ def _fig_to_img(fig, *, image_format="png", own_figure=True):
     if pil_kwargs:
         # matplotlib modifies the passed dict, which is a bug
         mpl_kwargs["pil_kwargs"] = pil_kwargs.copy()
-    with warnings.catch_warnings():
-        fig.savefig(output, format=image_format, dpi=dpi, **mpl_kwargs)
+
+    fig.savefig(output, format=image_format, dpi=dpi, **mpl_kwargs)
 
     if own_figure:
         plt.close(fig)
@@ -846,7 +847,7 @@ class Report:
         self.include = []
         self.lang = "en-us"  # language setting for the HTML file
         if not isinstance(raw_psd, bool) and not isinstance(raw_psd, dict):
-            raise TypeError("raw_psd must be bool or dict, got %s" % (type(raw_psd),))
+            raise TypeError(f"raw_psd must be bool or dict, got {type(raw_psd)}")
         self.raw_psd = raw_psd
         self._init_render()  # Initialize the renderer
 
@@ -965,6 +966,64 @@ class Report:
             )
         return items, captions, comments
 
+    def copy(self):
+        """Return a deepcopy of the report.
+
+        Returns
+        -------
+        report : instance of Report
+            The copied report.
+        """
+        return copy.deepcopy(self)
+
+    def get_contents(self):
+        """Get the content of the report.
+
+        Returns
+        -------
+        titles : list of str
+            The title of each content element.
+        tags : list of list of str
+            The tags for each content element, one list per element.
+        htmls : list of str
+            The HTML contents for each element.
+
+        Notes
+        -----
+        .. versionadded:: 1.7
+        """
+        htmls, _, titles, tags = self._content_as_html()
+        return titles, tags, htmls
+
+    def reorder(self, order):
+        """Reorder the report content.
+
+        Parameters
+        ----------
+        order : array-like of int
+            The indices of the new order (as if you were reordering an array).
+            For example if there are 4 elements in the report,
+            ``order=[3, 0, 1, 2]`` would take the last element and move it to
+            the front. In other words, ``elements = [elements[ii] for ii in order]]``.
+
+        Notes
+        -----
+        .. versionadded:: 1.7
+        """
+        _validate_type(order, "array-like", "order")
+        order = np.array(order)
+        if order.dtype.kind != "i" or order.ndim != 1:
+            raise ValueError(
+                "order must be an array of integers, got "
+                f"{order.ndim}D array of dtype {order.dtype}"
+            )
+        n_elements = len(self._content)
+        if not np.array_equal(np.sort(order), np.arange(n_elements)):
+            raise ValueError(
+                f"order must be a permutation of range({n_elements}), got:\n{order}"
+            )
+        self._content = [self._content[ii] for ii in order]
+
     def _content_as_html(self):
         """Generate HTML representations based on the added content & sections.
 
@@ -1005,7 +1064,7 @@ class Report:
                 ]
                 section_htmls = [el.html for el in section_elements]
                 section_tags = tuple(
-                    sorted((set([t for el in section_elements for t in el.tags])))
+                    sorted(set([t for el in section_elements for t in el.tags]))
                 )
                 section_dom_id = self._get_dom_id(
                     section=None,  # root level of document
@@ -1039,18 +1098,12 @@ class Report:
     @property
     def html(self):
         """A list of HTML representations for all content elements."""
-        htmls, _, _, _ = self._content_as_html()
-        return htmls
+        return self._content_as_html()[0]
 
     @property
     def tags(self):
-        """All tags currently used in the report."""
-        tags = []
-        for c in self._content:
-            tags.extend(c.tags)
-
-        tags = tuple(sorted(set(tags)))
-        return tags
+        """A sorted tuple of all tags currently used in the report."""
+        return tuple(sorted(set(sum(self._content_as_html()[3], ()))))
 
     def add_custom_css(self, css):
         """Add custom CSS to the report.
@@ -1092,6 +1145,7 @@ class Report:
         *,
         psd=True,
         projs=None,
+        image_kwargs=None,
         topomap_kwargs=None,
         drop_log_ignore=("IGNORED",),
         tags=("epochs",),
@@ -1120,6 +1174,18 @@ class Report:
             If ``True``, add PSD plots based on all ``epochs``. If ``False``,
             do not add PSD plots.
         %(projs_report)s
+        image_kwargs : dict | None
+            Keyword arguments to pass to the "epochs image"-generating
+            function (:meth:`mne.Epochs.plot_image`).
+            Keys are channel types, values are dicts containing kwargs to pass.
+            For example, to use the rejection limits per channel type you could pass::
+
+                image_kwargs=dict(
+                    grad=dict(vmin=-reject['grad'], vmax=-reject['grad']),
+                    mag=dict(vmin=-reject['mag'], vmax=reject['mag']),
+                )
+
+            .. versionadded:: 1.7
         %(topomap_kwargs)s
         drop_log_ignore : array-like of str
             The drop reasons to ignore when creating the drop log bar plot.
@@ -1130,7 +1196,7 @@ class Report:
 
         Notes
         -----
-        .. versionadded:: 0.24.0
+        .. versionadded:: 0.24
         """
         tags = _check_tags(tags)
         add_projs = self.projs if projs is None else projs
@@ -1138,6 +1204,7 @@ class Report:
             epochs=epochs,
             psd=psd,
             add_projs=add_projs,
+            image_kwargs=image_kwargs,
             topomap_kwargs=topomap_kwargs,
             drop_log_ignore=drop_log_ignore,
             section=title,
@@ -2861,7 +2928,7 @@ class Report:
                 )
 
         if sort_content:
-            self._content = self._sort(content=self._content, order=CONTENT_ORDER)
+            self._sort(order=CONTENT_ORDER)
 
     def __getstate__(self):
         """Get the state of the report as a dictionary."""
@@ -2940,7 +3007,7 @@ class Report:
         fname = op.realpath(fname)  # resolve symlinks
 
         if sort_content:
-            self._content = self._sort(content=self._content, order=CONTENT_ORDER)
+            self._sort(order=CONTENT_ORDER)
 
         if not overwrite and op.isfile(fname):
             msg = (
@@ -2998,35 +3065,28 @@ class Report:
         """Do nothing when entering the context block."""
         return self
 
-    def __exit__(self, type, value, traceback):
+    def __exit__(self, exception_type, value, traceback):
         """Save the report when leaving the context block."""
         if self.fname is not None:
             self.save(self.fname, open_browser=False, overwrite=True)
 
-    @staticmethod
-    def _sort(content, order):
+    def _sort(self, *, order):
         """Reorder content to reflect "natural" ordering."""
-        content_unsorted = content.copy()
-        content_sorted = []
         content_sorted_idx = []
-        del content
 
         # First arrange content with known tags in the predefined order
         for tag in order:
-            for idx, content in enumerate(content_unsorted):
+            for idx, content in enumerate(self._content):
                 if tag in content.tags:
                     content_sorted_idx.append(idx)
-                    content_sorted.append(content)
 
         # Now simply append the rest (custom tags)
-        content_remaining = [
-            content
-            for idx, content in enumerate(content_unsorted)
-            if idx not in content_sorted_idx
-        ]
-
-        content_sorted = [*content_sorted, *content_remaining]
-        return content_sorted
+        self.reorder(
+            np.r_[
+                content_sorted_idx,
+                np.setdiff1d(np.arange(len(self._content)), content_sorted_idx),
+            ]
+        )
 
     def _render_one_bem_axis(
         self,
@@ -3828,63 +3888,9 @@ class Report:
             metadata.index.name = "Epoch #"
 
         assert metadata.index.is_unique
-        index_name = metadata.index.name  # store for later use
+        data_id = metadata.index.name  # store for later use
         metadata = metadata.reset_index()  # We want "proper" columns only
-        html = metadata.to_html(
-            border=0,
-            index=False,
-            show_dimensions=True,
-            justify="unset",
-            float_format=lambda x: f"{round(x, 3):.3f}",
-            classes="table table-hover table-striped "
-            "table-sm table-responsive small",
-        )
-        del metadata
-
-        # Massage the table such that it woks nicely with bootstrap-table
-        htmls = html.split("\n")
-        header_pattern = "<th>(.*)</th>"
-
-        for idx, html in enumerate(htmls):
-            if "<table" in html:
-                htmls[idx] = html.replace(
-                    "<table",
-                    "<table "
-                    'id="mytable" '
-                    'data-toggle="table" '
-                    f'data-unique-id="{index_name}" '
-                    'data-search="true" '  # search / filter
-                    'data-search-highlight="true" '
-                    'data-show-columns="true" '  # show/hide columns
-                    'data-show-toggle="true" '  # allow card view
-                    'data-show-columns-toggle-all="true" '
-                    'data-click-to-select="true" '
-                    'data-show-copy-rows="true" '
-                    'data-show-export="true" '  # export to a file
-                    'data-export-types="[csv]" '
-                    'data-export-options=\'{"fileName": "metadata"}\' '
-                    'data-icon-size="sm" '
-                    'data-height="400"',
-                )
-                continue
-            elif "<tr" in html:
-                # Add checkbox for row selection
-                htmls[idx] = (
-                    f"{html}\n" f'<th data-field="state" data-checkbox="true"></th>'
-                )
-                continue
-
-            col_headers = re.findall(pattern=header_pattern, string=html)
-            if col_headers:
-                # Make columns sortable
-                assert len(col_headers) == 1
-                col_header = col_headers[0]
-                htmls[idx] = html.replace(
-                    "<th>",
-                    f'<th data-field="{col_header.lower()}" ' f'data-sortable="true">',
-                )
-
-        html = "\n".join(htmls)
+        html = _df_bootstrap_table(df=metadata, data_id=data_id)
         self._add_html_element(
             div_klass="epochs",
             tags=tags,
@@ -3900,6 +3906,7 @@ class Report:
         epochs,
         psd,
         add_projs,
+        image_kwargs,
         topomap_kwargs,
         drop_log_ignore,
         image_format,
@@ -3934,9 +3941,17 @@ class Report:
         ch_types = _get_data_ch_types(epochs)
         epochs.load_data()
 
+        _validate_type(image_kwargs, (dict, None), "image_kwargs")
+        # ensure dict with shallow copy because we will modify it
+        image_kwargs = dict() if image_kwargs is None else image_kwargs.copy()
+
         for ch_type in ch_types:
             with use_log_level(_verbose_safe_false(level="error")):
-                figs = epochs.copy().pick(ch_type, verbose=False).plot_image(show=False)
+                figs = (
+                    epochs.copy()
+                    .pick(ch_type, verbose=False)
+                    .plot_image(show=False, **image_kwargs.pop(ch_type, dict()))
+                )
 
             assert len(figs) == 1
             fig = figs[0]
@@ -3958,6 +3973,12 @@ class Report:
                 section=section,
                 replace=replace,
                 own_figure=True,
+            )
+        if image_kwargs:
+            raise ValueError(
+                f"Ensure the keys in image_kwargs map onto channel types plotted in "
+                f"epochs.plot_image() of {ch_types}, could not use: "
+                f"{list(image_kwargs)}"
             )
 
         # Drop log
@@ -4373,3 +4394,59 @@ class _ReportScraper:
     def copyfiles(self, *args, **kwargs):
         for key, value in self.files.items():
             copyfile(key, value)
+
+
+def _df_bootstrap_table(*, df, data_id):
+    html = df.to_html(
+        border=0,
+        index=False,
+        show_dimensions=True,
+        justify="unset",
+        float_format=lambda x: f"{x:.3f}",
+        classes="table table-hover table-striped table-sm table-responsive small",
+        na_rep="",
+    )
+    htmls = html.split("\n")
+    header_pattern = "<th>(.*)</th>"
+
+    for idx, html in enumerate(htmls):
+        if "<table" in html:
+            htmls[idx] = html.replace(
+                "<table",
+                "<table "
+                'id="mytable" '
+                'data-toggle="table" '
+                f'data-unique-id="{data_id}" '
+                'data-search="true" '  # search / filter
+                'data-search-highlight="true" '
+                'data-show-columns="true" '  # show/hide columns
+                'data-show-toggle="true" '  # allow card view
+                'data-show-columns-toggle-all="true" '
+                'data-click-to-select="true" '
+                'data-show-copy-rows="true" '
+                'data-show-export="true" '  # export to a file
+                'data-export-types="[csv]" '
+                'data-export-options=\'{"fileName": "metadata"}\' '
+                'data-icon-size="sm" '
+                'data-height="400"',
+            )
+            continue
+        elif "<tr" in html:
+            # Add checkbox for row selection
+            htmls[idx] = (
+                f"{html}\n" f'<th data-field="state" data-checkbox="true"></th>'
+            )
+            continue
+
+        col_headers = re.findall(pattern=header_pattern, string=html)
+        if col_headers:
+            # Make columns sortable
+            assert len(col_headers) == 1
+            col_header = col_headers[0]
+            htmls[idx] = html.replace(
+                "<th>",
+                f'<th data-field="{col_header.lower()}" ' f'data-sortable="true">',
+            )
+
+    html = "\n".join(htmls)
+    return html

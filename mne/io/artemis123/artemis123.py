@@ -83,7 +83,7 @@ def _get_artemis123_info(fname, pos_fname=None):
     header_info["comments"] = ""
     header_info["channels"] = []
 
-    with open(header, "r") as fid:
+    with open(header) as fid:
         # section flag
         # 0 - None
         # 1 - main header
@@ -131,10 +131,7 @@ def _get_artemis123_info(fname, pos_fname=None):
                         tmp[k] = v
                     header_info["channels"].append(tmp)
                 elif sectionFlag == 3:
-                    header_info["comments"] = "%s%s" % (
-                        header_info["comments"],
-                        line.strip(),
-                    )
+                    header_info["comments"] = f"{header_info['comments']}{line.strip()}"
                 elif sectionFlag == 4:
                     header_info["num_samples"] = int(line.strip())
                 elif sectionFlag == 5:
@@ -173,7 +170,7 @@ def _get_artemis123_info(fname, pos_fname=None):
     # build description
     desc = ""
     for k in ["Purpose", "Notes"]:
-        desc += "{} : {}\n".format(k, header_info[k])
+        desc += f"{k} : {header_info[k]}\n"
     desc += "Comments : {}".format(header_info["comments"])
 
     info.update(
@@ -363,7 +360,7 @@ class RawArtemis123(BaseRaw):
 
         last_samps = [header_info.get("num_samples", 1) - 1]
 
-        super(RawArtemis123, self).__init__(
+        super().__init__(
             info,
             preload,
             filenames=[input_fname],

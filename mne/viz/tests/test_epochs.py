@@ -17,6 +17,7 @@ import pytest
 from mne import Epochs, EpochsArray, create_info
 from mne.datasets import testing
 from mne.event import make_fixed_length_events
+from mne.utils import _record_warnings
 from mne.viz import plot_drop_log
 
 
@@ -52,13 +53,13 @@ def test_plot_epochs_basic(epochs, epochs_full, noise_cov_io, capsys, browser_ba
     browser_backend._close_all()
     # add a channel to cov['bads']
     noise_cov_io["bads"] = [epochs.ch_names[1]]
-    with pytest.warns(RuntimeWarning, match="projection"):
+    with _record_warnings(), pytest.warns(RuntimeWarning, match="projection"):
         epochs.plot(noise_cov=noise_cov_io)
     browser_backend._close_all()
     # have a data channel missing from the covariance
     noise_cov_io["names"] = noise_cov_io["names"][:306]
     noise_cov_io["data"] = noise_cov_io["data"][:306][:306]
-    with pytest.warns(RuntimeWarning, match="projection"):
+    with _record_warnings(), pytest.warns(RuntimeWarning, match="projection"):
         epochs.plot(noise_cov=noise_cov_io)
     browser_backend._close_all()
     # other options
@@ -300,7 +301,10 @@ def test_plot_epochs_image(epochs):
         picks=[0, 1], order=lambda times, data: np.arange(len(data))[::-1]
     )
     # test warning
-    with pytest.warns(RuntimeWarning, match="Only one channel in group"):
+    with (
+        _record_warnings(),
+        pytest.warns(RuntimeWarning, match="Only one channel in group"),
+    ):
         epochs.plot_image(picks=[1], combine="mean")
     # group_by should be a dict
     with pytest.raises(TypeError, match="dict or None"):
@@ -418,7 +422,7 @@ def test_plot_psd_epochs(epochs):
     err_str = "for channel %s" % epochs.ch_names[2]
     epochs.get_data(copy=False)[0, 2, :] = 0
     for dB in [True, False]:
-        with pytest.warns(UserWarning, match=err_str):
+        with _record_warnings(), pytest.warns(UserWarning, match=err_str):
             epochs.compute_psd().plot(dB=dB)
 
 
@@ -492,7 +496,7 @@ def test_plot_psd_epochs_ctf(raw_ctf):
     epochs = Epochs(raw_ctf, evts, preload=True)
     old_defaults = dict(picks="data", exclude="bads")
     # EEG060 is flat in this dataset
-    with pytest.warns(UserWarning, match="for channel EEG060"):
+    with _record_warnings(), pytest.warns(UserWarning, match="for channel EEG060"):
         spectrum = epochs.compute_psd()
         for dB in [True, False]:
             spectrum.plot(dB=dB)

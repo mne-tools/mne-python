@@ -65,15 +65,15 @@ def _check_o_d_s_c(onset, duration, description, ch_names):
     onset = np.atleast_1d(np.array(onset, dtype=float))
     if onset.ndim != 1:
         raise ValueError(
-            "Onset must be a one dimensional array, got %s "
-            "(shape %s)." % (onset.ndim, onset.shape)
+            f"Onset must be a one dimensional array, got {onset.ndim} (shape "
+            f"{onset.shape})."
         )
     duration = np.array(duration, dtype=float)
     if duration.ndim == 0 or duration.shape == (1,):
         duration = np.repeat(duration, len(onset))
     if duration.ndim != 1:
         raise ValueError(
-            "Duration must be a one dimensional array, " "got %d." % (duration.ndim,)
+            f"Duration must be a one dimensional array, got {duration.ndim}."
         )
 
     description = np.array(description, dtype=str)
@@ -81,8 +81,7 @@ def _check_o_d_s_c(onset, duration, description, ch_names):
         description = np.repeat(description, len(onset))
     if description.ndim != 1:
         raise ValueError(
-            "Description must be a one dimensional array, "
-            "got %d." % (description.ndim,)
+            f"Description must be a one dimensional array, got {description.ndim}."
         )
     _safe_name_list(description, "write", "description")
 
@@ -305,14 +304,12 @@ class Annotations:
     def __repr__(self):
         """Show the representation."""
         counter = Counter(self.description)
-        kinds = ", ".join(["%s (%s)" % k for k in sorted(counter.items())])
+        kinds = ", ".join(["{} ({})".format(*k) for k in sorted(counter.items())])
         kinds = (": " if len(kinds) > 0 else "") + kinds
         ch_specific = ", channel-specific" if self._any_ch_names() else ""
-        s = "Annotations | %s segment%s%s%s" % (
-            len(self.onset),
-            _pl(len(self.onset)),
-            ch_specific,
-            kinds,
+        s = (
+            f"Annotations | {len(self.onset)} segment"
+            f"{_pl(len(self.onset))}{ch_specific}{kinds}"
         )
         return "<" + shorten(s, width=77, placeholder=" ...") + ">"
 
@@ -341,9 +338,8 @@ class Annotations:
             self._orig_time = other.orig_time
         if self.orig_time != other.orig_time:
             raise ValueError(
-                "orig_time should be the same to "
-                "add/concatenate 2 annotations "
-                "(got %s != %s)" % (self.orig_time, other.orig_time)
+                "orig_time should be the same to add/concatenate 2 annotations (got "
+                f"{self.orig_time} != {other.orig_time})"
             )
         return self.append(
             other.onset, other.duration, other.description, other.ch_names
@@ -621,10 +617,10 @@ class Annotations:
         del tmin, tmax
         if absolute_tmin > absolute_tmax:
             raise ValueError(
-                "tmax should be greater than or equal to tmin "
-                "(%s < %s)." % (absolute_tmin, absolute_tmax)
+                f"tmax should be greater than or equal to tmin ({absolute_tmin} < "
+                f"{absolute_tmax})."
             )
-        logger.debug("Cropping annotations %s - %s" % (absolute_tmin, absolute_tmax))
+        logger.debug(f"Cropping annotations {absolute_tmin} - {absolute_tmax}")
 
         onsets, durations, descriptions, ch_names = [], [], [], []
         out_of_bounds, clip_left_elem, clip_right_elem = [], [], []
@@ -822,11 +818,10 @@ class EpochAnnotationsMixin:
         else:
             if getattr(self, "_unsafe_annot_add", False):
                 warn(
-                    "Adding annotations to Epochs created (and saved to "
-                    "disk) before 1.0 will yield incorrect results if "
-                    "decimation or resampling was performed on the instance, "
-                    "we recommend regenerating the Epochs and re-saving them "
-                    "to disk."
+                    "Adding annotations to Epochs created (and saved to disk) before "
+                    "1.0 will yield incorrect results if decimation or resampling was "
+                    "performed on the instance, we recommend regenerating the Epochs "
+                    "and re-saving them to disk."
                 )
             new_annotations = annotations.copy()
             new_annotations._prune_ch_names(self.info, on_missing)
@@ -1496,7 +1491,7 @@ def _check_event_id(event_id, raw):
     else:
         raise ValueError(
             "Invalid type for event_id (should be None, str, "
-            "dict or callable). Got {}".format(type(event_id))
+            f"dict or callable). Got {type(event_id)}."
         )
 
 
@@ -1511,16 +1506,14 @@ def _check_event_description(event_desc, events):
     elif isinstance(event_desc, Iterable):
         event_desc = np.asarray(event_desc)
         if event_desc.ndim != 1:
-            raise ValueError(
-                "event_desc must be 1D, got shape {}".format(event_desc.shape)
-            )
+            raise ValueError(f"event_desc must be 1D, got shape {event_desc.shape}")
         event_desc = dict(zip(event_desc, map(str, event_desc)))
     elif callable(event_desc):
         pass
     else:
         raise ValueError(
             "Invalid type for event_desc (should be None, list, "
-            "1darray, dict or callable). Got {}".format(type(event_desc))
+            f"1darray, dict or callable). Got {type(event_desc)}."
         )
 
     return event_desc
@@ -1533,6 +1526,7 @@ def events_from_annotations(
     regexp=r"^(?![Bb][Aa][Dd]|[Ee][Dd][Gg][Ee]).*$",
     use_rounding=True,
     chunk_duration=None,
+    tol=1e-8,
     verbose=None,
 ):
     """Get :term:`events` and ``event_id`` from an Annotations object.
@@ -1576,6 +1570,11 @@ def events_from_annotations(
         they fit within the annotation duration spaced according to
         ``chunk_duration``. As a consequence annotations with duration shorter
         than ``chunk_duration`` will not contribute events.
+    tol : float
+        The tolerance used to check if a chunk fits within an annotation when
+        ``chunk_duration`` is not ``None``. If the duration from a computed
+        chunk onset to the end of the annotation is smaller than
+        ``chunk_duration`` minus ``tol``, the onset will be discarded.
     %(verbose)s
 
     Returns
@@ -1620,10 +1619,8 @@ def events_from_annotations(
         inds = values = np.array([]).astype(int)
         for annot in annotations[event_sel]:
             annot_offset = annot["onset"] + annot["duration"]
-            _onsets = np.arange(
-                start=annot["onset"], stop=annot_offset, step=chunk_duration
-            )
-            good_events = annot_offset - _onsets >= chunk_duration
+            _onsets = np.arange(annot["onset"], annot_offset, chunk_duration)
+            good_events = annot_offset - _onsets >= chunk_duration - tol
             if good_events.any():
                 _onsets = _onsets[good_events]
                 _inds = raw.time_as_index(
@@ -1640,7 +1637,7 @@ def events_from_annotations(
 
     events = np.c_[inds, np.zeros(len(inds)), values].astype(int)
 
-    logger.info("Used Annotations descriptions: %s" % (list(event_id_.keys()),))
+    logger.info(f"Used Annotations descriptions: {list(event_id_.keys())}")
 
     return events, event_id_
 

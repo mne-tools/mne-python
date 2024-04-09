@@ -29,12 +29,13 @@ import mne.html_templates._templates
 from mne.tests.test_docstring_parameters import error_ignores
 from mne.utils import (
     _assert_no_instances,
-    linkcode_resolve,  # noqa, analysis:ignore
+    linkcode_resolve,
     run_subprocess,
     sizeof_fmt,
 )
 from mne.viz import Brain  # noqa
 
+assert linkcode_resolve is not None  # avoid flake warnings, used by numpydoc
 matplotlib.use("agg")
 faulthandler.enable()
 os.environ["_MNE_BROWSER_NO_BLOCK"] = "true"
@@ -62,12 +63,12 @@ td = datetime.now(tz=timezone.utc)
 
 # We need to triage which date type we use so that incremental builds work
 # (Sphinx looks at variable changes and rewrites all files if some change)
-copyright = (
+copyright = (  # noqa: A001
     f'2012–{td.year}, MNE Developers. Last updated <time datetime="{td.isoformat()}" class="localized">{td.strftime("%Y-%m-%d %H:%M %Z")}</time>\n'  # noqa: E501
     '<script type="text/javascript">$(function () { $("time.localized").each(function () { var el = $(this); el.text(new Date(el.attr("datetime")).toLocaleString([], {dateStyle: "medium", timeStyle: "long"})); }); } )</script>'  # noqa: E501
 )
 if os.getenv("MNE_FULL_DATE", "false").lower() != "true":
-    copyright = f"2012–{td.year}, MNE Developers. Last updated locally."
+    copyright = f"2012–{td.year}, MNE Developers. Last updated locally."  # noqa: A001
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -230,7 +231,11 @@ numpydoc_xref_aliases = {
     "EvokedArray": "mne.EvokedArray",
     "BiHemiLabel": "mne.BiHemiLabel",
     "AverageTFR": "mne.time_frequency.AverageTFR",
+    "AverageTFRArray": "mne.time_frequency.AverageTFRArray",
     "EpochsTFR": "mne.time_frequency.EpochsTFR",
+    "EpochsTFRArray": "mne.time_frequency.EpochsTFRArray",
+    "RawTFR": "mne.time_frequency.RawTFR",
+    "RawTFRArray": "mne.time_frequency.RawTFRArray",
     "Raw": "mne.io.Raw",
     "ICA": "mne.preprocessing.ICA",
     "Covariance": "mne.Covariance",
@@ -293,6 +298,7 @@ numpydoc_xref_aliases = {
     "RawNIRX": "mne.io.Raw",
     "RawPersyst": "mne.io.Raw",
     "RawSNIRF": "mne.io.Raw",
+    "Calibration": "mne.preprocessing.eyetracking.Calibration",
     # dipy
     "dipy.align.AffineMap": "dipy.align.imaffine.AffineMap",
     "dipy.align.DiffeomorphicMap": "dipy.align.imwarp.DiffeomorphicMap",
@@ -445,16 +451,18 @@ numpydoc_validation_exclude = {  # set of regex
 # -- Sphinx-gallery configuration --------------------------------------------
 
 
-class Resetter(object):
+class Resetter:
     """Simple class to make the str(obj) static for Sphinx build env hash."""
 
     def __init__(self):
         self.t0 = time.time()
 
     def __repr__(self):
+        """Make a stable repr."""
         return f"<{self.__class__.__name__}>"
 
     def __call__(self, gallery_conf, fname, when):
+        """Do the reset."""
         import matplotlib.pyplot as plt
 
         try:
@@ -679,7 +687,9 @@ def append_attr_meth_examples(app, what, name, obj, options, lines):
     if what in ("attribute", "method"):
         size = os.path.getsize(
             os.path.join(
-                os.path.dirname(__file__), "generated", "%s.examples" % (name,)
+                os.path.dirname(__file__),
+                "generated",
+                f"{name}.examples",
             )
         )
         if size > 0:
@@ -726,8 +736,8 @@ linkcheck_ignore = [  # will be compiled to regex
     "https://doi.org/10.3109/",  # www.tandfonline.com
     "https://www.researchgate.net/profile/",
     "https://www.intel.com/content/www/us/en/developer/tools/oneapi/onemkl.html",
-    "https://scholar.google.com/scholar?cites=12188330066413208874&as_ylo=2014",
-    "https://scholar.google.com/scholar?cites=1521584321377182930&as_ylo=2013",
+    r"https://scholar.google.com/scholar\?cites=12188330066413208874&as_ylo=2014",
+    r"https://scholar.google.com/scholar\?cites=1521584321377182930&as_ylo=2013",
     # 500 server error
     "https://openwetware.org/wiki/Beauchamp:FreeSurfer",
     # 503 Server error
@@ -744,6 +754,8 @@ linkcheck_ignore = [  # will be compiled to regex
     # Too slow
     "https://speakerdeck.com/dengemann/",
     "https://www.dtu.dk/english/service/phonebook/person",
+    # SSL problems sometimes
+    "http://ilabs.washington.edu",
 ]
 linkcheck_anchors = False  # saves a bit of time
 linkcheck_timeout = 15  # some can be quite slow
@@ -839,7 +851,7 @@ html_theme_options = {
         ),
     ],
     "icon_links_label": "External Links",  # for screen reader
-    "use_edit_page_button": True,
+    "use_edit_page_button": False,
     "navigation_with_keys": False,
     "show_toc_level": 1,
     "article_header_start": [],  # disable breadcrumbs
@@ -1188,21 +1200,21 @@ html_context = {
     "carousel": [
         dict(
             title="Source Estimation",
-            text="Distributed, sparse, mixed-norm, beam\u00ADformers, dipole fitting, and more.",  # noqa E501
+            text="Distributed, sparse, mixed-norm, beam\u00adformers, dipole fitting, and more.",  # noqa E501
             url="auto_tutorials/inverse/index.html",
             img="sphx_glr_30_mne_dspm_loreta_008.gif",
             alt="dSPM",
         ),
         dict(
             title="Machine Learning",
-            text="Advanced decoding models including time general\u00ADiza\u00ADtion.",  # noqa E501
+            text="Advanced decoding models including time general\u00adiza\u00adtion.",  # noqa E501
             url="auto_tutorials/machine-learning/50_decoding.html",
             img="sphx_glr_50_decoding_006.png",
             alt="Decoding",
         ),
         dict(
             title="Encoding Models",
-            text="Receptive field estima\u00ADtion with optional smooth\u00ADness priors.",  # noqa E501
+            text="Receptive field estima\u00adtion with optional smooth\u00adness priors.",  # noqa E501
             url="auto_tutorials/machine-learning/30_strf.html",
             img="sphx_glr_30_strf_001.png",
             alt="STRF",
@@ -1216,7 +1228,7 @@ html_context = {
         ),
         dict(
             title="Connectivity",
-            text="All-to-all spectral and effective connec\u00ADtivity measures.",  # noqa E501
+            text="All-to-all spectral and effective connec\u00adtivity measures.",  # noqa E501
             url="https://mne.tools/mne-connectivity/stable/auto_examples/mne_inverse_label_connectivity.html",  # noqa E501
             img="https://mne.tools/mne-connectivity/stable/_images/sphx_glr_mne_inverse_label_connectivity_001.png",  # noqa E501
             alt="Connectivity",
@@ -1333,8 +1345,19 @@ def reset_warnings(gallery_conf, fname):
         # nilearn
         "pkg_resources is deprecated as an API",
         r"The .* was deprecated in Matplotlib 3\.7",
-        # scipy
-        r"scipy.signal.morlet2 is deprecated in SciPy 1\.12",
+        # Matplotlib->tz
+        r"datetime\.datetime\.utcfromtimestamp",
+        # joblib
+        r"ast\.Num is deprecated",
+        r"Attribute n is deprecated and will be removed in Python 3\.14",
+        # numpydoc
+        r"ast\.NameConstant is deprecated and will be removed in Python 3\.14",
+        # pooch
+        r"Python 3\.14 will, by default, filter extracted tar archives.*",
+        # seaborn
+        r"DataFrameGroupBy\.apply operated on the grouping columns.*",
+        # pandas
+        r"\nPyarrow will become a required dependency of pandas.*",
     ):
         warnings.filterwarnings(  # deal with other modules having bad imports
             "ignore", message=".*%s.*" % key, category=DeprecationWarning
@@ -1373,6 +1396,7 @@ def reset_warnings(gallery_conf, fname):
         r"iteritems is deprecated.*Use \.items instead\.",
         "is_categorical_dtype is deprecated.*",
         "The default of observed=False.*",
+        "When grouping with a length-1 list-like.*",
     ):
         warnings.filterwarnings(
             "ignore",
@@ -1739,7 +1763,7 @@ REDIRECT_TEMPLATE = """\
 def check_existing_redirect(path):
     """Make sure existing HTML files are redirects, before overwriting."""
     if path.is_file():
-        with open(path, "r") as fid:
+        with open(path) as fid:
             for _ in range(8):
                 next(fid)
             line = fid.readline()

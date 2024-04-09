@@ -151,7 +151,7 @@ class RawKIT(BaseRaw):
         last_samps = [kit_info["n_samples"] - 1]
         self._raw_extras = [kit_info]
         _set_stimchannels(self, info, stim, stim_code)
-        super(RawKIT, self).__init__(
+        super().__init__(
             info,
             preload,
             last_samps=last_samps,
@@ -422,7 +422,7 @@ class EpochsKIT(BaseEpochs):
             self._raw_extras[0]["frame_length"],
         )
         tmax = ((data.shape[2] - 1) / self.info["sfreq"]) + tmin
-        super(EpochsKIT, self).__init__(
+        super().__init__(
             self.info,
             data,
             events,
@@ -535,9 +535,8 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None, verbose=
             else:
                 raise UnsupportedKITFormat(
                     version_string,
-                    "SQD file format %s is not officially supported. "
-                    "Set allow_unknown_format=True to load it anyways."
-                    % (version_string,),
+                    f"SQD file format {version_string} is not officially supported. "
+                    "Set allow_unknown_format=True to load it anyways.",
                 )
 
         sysid = np.fromfile(fid, INT32, 1)[0]

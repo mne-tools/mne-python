@@ -111,7 +111,6 @@ def _TDDR(signal, sample_rate):
     tune = 4.685
     D = np.sqrt(np.finfo(signal.dtype).eps)
     mu = np.inf
-    iter = 0
 
     # Step 1. Compute temporal derivative of the signal
     deriv = np.diff(signal_low)
@@ -120,8 +119,7 @@ def _TDDR(signal, sample_rate):
     w = np.ones(deriv.shape)
 
     # Step 3. Iterative estimation of robust weights
-    while iter < 50:
-        iter = iter + 1
+    for _ in range(50):
         mu0 = mu
 
         # Step 3a. Estimate weighted mean

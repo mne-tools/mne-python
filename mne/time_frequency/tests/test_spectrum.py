@@ -11,6 +11,7 @@ from numpy.testing import assert_array_equal
 from mne import Annotations
 from mne.time_frequency import read_spectrum
 from mne.time_frequency.spectrum import EpochsSpectrumArray, SpectrumArray
+from mne.utils import _record_warnings
 
 
 def test_compute_psd_errors(raw):
@@ -124,11 +125,15 @@ def test_n_welch_windows(raw):
     )
 
 
-def _get_inst(inst, request, evoked):
+def _get_inst(inst, request, *, evoked=None, average_tfr=None):
     # ↓ XXX workaround:
     # ↓ parametrized fixtures are not accessible via request.getfixturevalue
     # ↓ https://github.com/pytest-dev/pytest/issues/4666#issuecomment-456593913
-    return evoked if inst == "evoked" else request.getfixturevalue(inst)
+    if inst == "evoked":
+        return evoked
+    elif inst == "average_tfr":
+        return average_tfr
+    return request.getfixturevalue(inst)
 
 
 @pytest.mark.parametrize("inst", ("raw", "epochs", "evoked"))
@@ -136,7 +141,7 @@ def test_spectrum_io(inst, tmp_path, request, evoked):
     """Test save/load of spectrum objects."""
     pytest.importorskip("h5io")
     fname = tmp_path / f"{inst}-spectrum.h5"
-    inst = _get_inst(inst, request, evoked)
+    inst = _get_inst(inst, request, evoked=evoked)
     orig = inst.compute_psd()
     orig.save(fname)
     loaded = read_spectrum(fname)
@@ -213,7 +218,7 @@ def test_spectrum_to_data_frame(inst, request, evoked):
     # setup
     is_already_psd = inst in ("raw_spectrum", "epochs_spectrum")
     is_epochs = inst == "epochs_spectrum"
-    inst = _get_inst(inst, request, evoked)
+    inst = _get_inst(inst, request, evoked=evoked)
     extra_dim = () if is_epochs else (1,)
     extra_cols = ["freq", "condition", "epoch"] if is_epochs else ["freq"]
     # compute PSD
@@ -273,7 +278,7 @@ def test_spectrum_kwarg_triaging(raw):
     regex = r"legacy plot_psd\(\) method.*unexpected keyword.*'axes'.*Try rewriting"
     _, axes = plt.subplots(1, 2)
     # `axes` is the new param name: technically only valid for Spectrum.plot()
-    with pytest.warns(RuntimeWarning, match=regex):
+    with _record_warnings(), pytest.warns(RuntimeWarning, match=regex):
         raw.plot_psd(axes=axes)
     # `ax` is the correct legacy param name
     with pytest.warns(FutureWarning, match="amplitude='auto'"):

@@ -183,9 +183,9 @@ def _prepare_topomap_plot(inst, ch_type, sphere=None):
             # Modify the nirs channel names to indicate they are to be merged
             # New names will have the form  S1_D1xS2_D2
             # More than two channels can overlap and be merged
-            for set in overlapping_channels:
-                idx = ch_names.index(set[0][:-4])
-                new_name = "x".join(s[:-4] for s in set)
+            for set_ in overlapping_channels:
+                idx = ch_names.index(set_[0][:-4])
+                new_name = "x".join(s[:-4] for s in set_)
                 ch_names[idx] = new_name
 
     pos = np.array(pos)[:, :2]  # 2D plot, otherwise interpolation bugs
@@ -306,12 +306,12 @@ def _add_colorbar(
     cmap,
     *,
     title=None,
-    format=None,
+    format_=None,
     kind=None,
     ch_type=None,
 ):
     """Add a colorbar to an axis."""
-    cbar = ax.figure.colorbar(im, format=format, shrink=0.6)
+    cbar = ax.figure.colorbar(im, format=format_, shrink=0.6)
     if cmap is not None and cmap[1]:
         ax.CB = DraggableColorbar(cbar, im, kind, ch_type)
     cax = cbar.ax
@@ -597,7 +597,7 @@ def _plot_projs_topomap(
                 im,
                 cmap,
                 title=units,
-                format=cbar_fmt,
+                format_=cbar_fmt,
                 kind="projs_topomap",
                 ch_type=_ch_type,
             )
@@ -912,6 +912,7 @@ def _topomap_plot_sensors(pos_x, pos_y, sensors, ax):
 def _get_pos_outlines(info, picks, sphere, to_sphere=True):
     from ..channels.layout import _find_topomap_coords
 
+    picks = _picks_to_idx(info, picks, "all", exclude=(), allow_empty=False)
     ch_type = _get_plot_ch_type(pick_info(_simplify_info(info), picks), None)
     orig_sphere = sphere
     sphere, clip_origin = _adjust_meg_sphere(sphere, info, ch_type)
@@ -1250,9 +1251,9 @@ def _plot_topomap(
     )
     if pos.ndim != 2:
         error = (
-            "{ndim}D array supplied as electrode positions, where a 2D "
-            "array was expected"
-        ).format(ndim=pos.ndim)
+            f"{pos.ndim}D array supplied as electrode positions, where a 2D array was "
+            "expected"
+        )
         raise ValueError(error + " " + pos_help)
     elif pos.shape[1] == 3:
         error = (
@@ -1271,7 +1272,7 @@ def _plot_topomap(
     if len(data) != len(pos):
         raise ValueError(
             "Data and pos need to be of same length. Got data of "
-            "length %s, pos of length %s" % (len(data), len(pos))
+            f"length {len(data)}, pos of length { len(pos)}"
         )
 
     norm = min(data) >= 0
@@ -1470,7 +1471,7 @@ def _plot_ica_topomap(
             im,
             cmap,
             title="AU",
-            format="%3.2f",
+            format_="%3.2f",
             kind="ica_topomap",
             ch_type=ch_type,
         )
@@ -1709,7 +1710,7 @@ def plot_ica_components(
                     im,
                     cmap,
                     title="AU",
-                    format=cbar_fmt,
+                    format_=cbar_fmt,
                     kind="ica_comp_topomap",
                     ch_type=ch_type,
                 )
@@ -1891,7 +1892,6 @@ def plot_tfr_topomap(
         tfr, ch_type, sphere=sphere
     )
     outlines = _make_head_outlines(sphere, pos, outlines, clip_origin)
-
     data = tfr.data[picks, :, :]
 
     # merging grads before rescaling makes ERDs visible
@@ -1910,7 +1910,6 @@ def plot_tfr_topomap(
         itmin = idx[0]
     if tmax is not None:
         itmax = idx[-1] + 1
-
     # crop freqs
     ifmin, ifmax = None, None
     idx = np.where(_time_mask(tfr.freqs, fmin, fmax))[0]
@@ -1918,8 +1917,7 @@ def plot_tfr_topomap(
     ifmax = idx[-1] + 1
 
     data = data[:, ifmin:ifmax, itmin:itmax]
-    data = np.mean(np.mean(data, axis=2), axis=1)[:, np.newaxis]
-
+    data = data.mean(axis=(1, 2))[:, np.newaxis]
     norm = False if np.min(data) < 0 else True
     vlim = _setup_vmin_vmax(data, *vlim, norm)
     cmap = _setup_cmap(cmap, norm=norm)
@@ -1989,7 +1987,7 @@ def plot_tfr_topomap(
             im,
             cmap,
             title=units,
-            format=cbar_fmt,
+            format_=cbar_fmt,
             kind="tfr_topomap",
             ch_type=ch_type,
         )
@@ -2561,7 +2559,7 @@ def _plot_topomap_multi_cbar(
     )
 
     if colorbar:
-        cbar, cax = _add_colorbar(ax, im, cmap, title=None, format=cbar_fmt)
+        cbar, cax = _add_colorbar(ax, im, cmap, title=None, format_=cbar_fmt)
         cbar.set_ticks(_vlim)
         if unit is not None:
             cbar.ax.set_ylabel(unit, fontsize=8)
@@ -3156,9 +3154,9 @@ def _animate(frame, ax, ax_line, params):
     time_idx = params["frames"][frame]
 
     if params["time_unit"] == "ms":
-        title = "%6.0f ms" % (params["times"][frame] * 1e3,)
+        title = f"{params['times'][frame] * 1e3:6.0f} ms"
     else:
-        title = "%6.3f s" % (params["times"][frame],)
+        title = f"{params['times'][frame]:6.3f} s"
     if params["blit"]:
         text = params["text"]
     else:
@@ -3450,10 +3448,10 @@ def _plot_corrmap(
 
     for ii, data_, ax, subject, idx in zip(picks, data, axes, subjs, indices):
         if template:
-            ttl = "Subj. {}, {}".format(subject, ica._ica_names[idx])
+            ttl = f"Subj. {subject}, {ica._ica_names[idx]}"
             ax.set_title(ttl, fontsize=12)
         else:
-            ax.set_title("Subj. {}".format(subject))
+            ax.set_title(f"Subj. {subject}")
         if merge_channels:
             data_, _ = _merge_ch_data(data_, ch_type, [])
         _vlim = _setup_vmin_vmax(data_, None, None)

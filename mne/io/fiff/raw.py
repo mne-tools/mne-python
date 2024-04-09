@@ -124,7 +124,7 @@ class Raw(BaseRaw):
             fname = None  # noqa
 
         _check_raw_compatibility(raws)
-        super(Raw, self).__init__(
+        super().__init__(
             copy.deepcopy(raws[0].info),
             False,
             [r.first_samp for r in raws],

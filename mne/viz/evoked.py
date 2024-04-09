@@ -193,7 +193,7 @@ def _line_plot_onselect(
 
             method = "mean" if psd else "rms"
             this_data, _ = _merge_ch_data(this_data, ch_type, [], method=method)
-            title = "%s %s" % (ch_type, method.upper())
+            title = f"{ch_type} {method.upper()}"
         else:
             title = ch_type
         this_data = np.average(this_data, axis=1)
@@ -213,7 +213,7 @@ def _line_plot_onselect(
         )
 
     unit = "Hz" if psd else time_unit
-    fig.suptitle("Average over %.2f%s - %.2f%s" % (xmin, unit, xmax, unit), y=0.1)
+    fig.suptitle(f"Average over {xmin:.2f}{unit} - {xmax:.2f}{unit}", y=0.1)
     plt_show()
     if text is not None:
         text.set_visible(False)
@@ -390,9 +390,9 @@ def _plot_evoked(
                 ax.set_xlabel("")
         ims = [ax.images[0] for ax in axes.values()]
         clims = np.array([im.get_clim() for im in ims])
-        min, max = clims.min(), clims.max()
+        min_, max_ = clims.min(), clims.max()
         for im in ims:
-            im.set_clim(min, max)
+            im.set_clim(min_, max_)
         figs = [ax.get_figure() for ax in axes.values()]
         if len(set(figs)) == 1:
             return figs[0]
@@ -628,7 +628,7 @@ def _plot_lines(
                 if this_type in _DATA_CH_TYPES_SPLIT:
                     logger.info(
                         "Need more than one channel to make "
-                        "topography for %s. Disabling interactivity." % (this_type,)
+                        f"topography for {this_type}. Disabling interactivity."
                     )
                 selectables[type_idx] = False
 
@@ -1171,7 +1171,7 @@ def plot_evoked_topo(
     scalings=None,
     title=None,
     proj=False,
-    vline=[0.0],
+    vline=(0.0,),
     fig_background=None,
     merge_grads=False,
     legend=True,
@@ -1481,7 +1481,7 @@ def plot_evoked_image(
 
 def _plot_update_evoked(params, bools):
     """Update the plot evoked lines."""
-    picks, evoked = [params[k] for k in ("picks", "evoked")]
+    picks, evoked = (params[k] for k in ("picks", "evoked"))
     projs = [
         proj for ii, proj in enumerate(params["projs"]) if ii in np.where(bools)[0]
     ]
@@ -1695,10 +1695,10 @@ def plot_evoked_white(
 
         for ch, sub_picks in picks_list:
             this_rank = rank_[ch]
-            title = "{0} ({2}{1})".format(
+            title = "{} ({}{})".format(
                 titles_[ch] if n_columns > 1 else ch,
-                this_rank,
                 "rank " if n_columns > 1 else "",
+                this_rank,
             )
             label = noise_cov.get("method", "empirical")
 
@@ -1868,7 +1868,7 @@ def plot_evoked_joint(
     from matplotlib.patches import ConnectionPatch
 
     if ts_args is not None and not isinstance(ts_args, dict):
-        raise TypeError("ts_args must be dict or None, got type %s" % (type(ts_args),))
+        raise TypeError(f"ts_args must be dict or None, got type {type(ts_args)}")
     ts_args = dict() if ts_args is None else ts_args.copy()
     ts_args["time_unit"], _ = _check_time_unit(
         ts_args.get("time_unit", "s"), evoked.times
@@ -1878,7 +1878,7 @@ def plot_evoked_joint(
     got_axes = False
     illegal_args = {"show", "times", "exclude"}
     for args in (ts_args, topomap_args):
-        if any((x in args for x in illegal_args)):
+        if any(x in args for x in illegal_args):
             raise ValueError(
                 "Don't pass any of {} as *_args.".format(", ".join(list(illegal_args)))
             )
@@ -2106,8 +2106,8 @@ def _validate_style_keys_pce(styles, conditions, tags):
     styles = deepcopy(styles)
     if not set(styles).issubset(tags.union(conditions)):
         raise ValueError(
-            'The keys in "styles" ({}) must match the keys in '
-            '"evokeds" ({}).'.format(list(styles), conditions)
+            f'The keys in "styles" ({list(styles)}) must match the keys in '
+            f'"evokeds" ({conditions}).'
         )
     # make sure all the keys are in there
     for cond in conditions:
@@ -2145,26 +2145,20 @@ def _validate_colors_pce(colors, cmap, conditions, tags):
     if isinstance(colors, (list, tuple, np.ndarray)):
         if len(conditions) > len(colors):
             raise ValueError(
-                "Trying to plot {} conditions, but there are only"
-                " {} colors{}. Please specify colors manually.".format(
-                    len(conditions), len(colors), err_suffix
-                )
+                f"Trying to plot {len(conditions)} conditions, but there are only "
+                f"{len(colors)} colors{err_suffix}. Please specify colors manually."
             )
         colors = dict(zip(conditions, colors))
     # should be a dict by now...
     if not isinstance(colors, dict):
         raise TypeError(
-            '"colors" must be a dict, list, or None; got {}.'.format(
-                type(colors).__name__
-            )
+            f'"colors" must be a dict, list, or None; got {type(colors).__name__}.'
         )
     # validate color dict keys
     if not set(colors).issubset(tags.union(conditions)):
         raise ValueError(
-            'If "colors" is a dict its keys ({}) must '
-            'match the keys/conditions in "evokeds" ({}).'.format(
-                list(colors), conditions
-            )
+            f'If "colors" is a dict its keys ({list(colors)}) must match the '
+            f'keys/conditions in "evokeds" ({conditions}).'
         )
     # validate color dict values
     color_vals = list(colors.values())
@@ -2218,25 +2212,21 @@ def _validate_linestyles_pce(linestyles, conditions, tags):
     if isinstance(linestyles, (list, tuple, np.ndarray)):
         if len(conditions) > len(linestyles):
             raise ValueError(
-                "Trying to plot {} conditions, but there are "
-                "only {} linestyles. Please specify linestyles "
-                "manually.".format(len(conditions), len(linestyles))
+                f"Trying to plot {len(conditions)} conditions, but there are only "
+                f"{len(linestyles)} linestyles. Please specify linestyles manually."
             )
         linestyles = dict(zip(conditions, linestyles))
     # should be a dict by now...
     if not isinstance(linestyles, dict):
         raise TypeError(
-            '"linestyles" must be a dict, list, or None; got {}.'.format(
-                type(linestyles).__name__
-            )
+            '"linestyles" must be a dict, list, or None; got '
+            f"{type(linestyles).__name__}."
         )
     # validate linestyle dict keys
     if not set(linestyles).issubset(tags.union(conditions)):
         raise ValueError(
-            'If "linestyles" is a dict its keys ({}) must '
-            'match the keys/conditions in "evokeds" ({}).'.format(
-                list(linestyles), conditions
-            )
+            f'If "linestyles" is a dict its keys ({list(linestyles)}) must match the '
+            f'keys/conditions in "evokeds" ({conditions}).'
         )
     # normalize linestyle values (so we can accurately count unique linestyles
     # later). See https://github.com/matplotlib/matplotlib/blob/master/matplotlibrc.template#L131-L133  # noqa
@@ -2493,14 +2483,22 @@ def _draw_axes_pce(
     )
 
 
-def _get_data_and_ci(evoked, combine, combine_func, picks, scaling=1, ci_fun=None):
+def _get_data_and_ci(
+    evoked, combine, combine_func, ch_type, picks, scaling=1, ci_fun=None
+):
     """Compute (sensor-aggregated, scaled) time series and possibly CI."""
     picks = np.array(picks).flatten()
     # apply scalings
     data = np.array([evk.data[picks] * scaling for evk in evoked])
     # combine across sensors
     if combine is not None:
-        logger.info('combining channels using "{}"'.format(combine))
+        if combine == "gfp" and ch_type == "eeg":
+            msg = f"GFP ({ch_type} channels)"
+        elif combine == "gfp" and ch_type in ("mag", "grad"):
+            msg = f"RMS ({ch_type} channels)"
+        else:
+            msg = f'"{combine}"'
+        logger.info(f"combining channels using {msg}")
         data = combine_func(data)
     # get confidence band
     if ci_fun is not None:
@@ -2528,9 +2526,7 @@ def _get_ci_function_pce(ci, do_topo=False):
         return partial(_ci, ci=ci, method=method)
     else:
         raise TypeError(
-            '"ci" must be None, bool, float or callable, got {}'.format(
-                type(ci).__name__
-            )
+            f'"ci" must be None, bool, float or callable, got {type(ci).__name__}'
         )
 
 
@@ -2562,7 +2558,7 @@ def _plot_compare_evokeds(
         ax.set_title(title)
 
 
-def _title_helper_pce(title, picked_types, picks, ch_names, combine):
+def _title_helper_pce(title, picked_types, picks, ch_names, ch_type, combine):
     """Format title for plot_compare_evokeds."""
     if title is None:
         title = (
@@ -2573,9 +2569,13 @@ def _title_helper_pce(title, picked_types, picks, ch_names, combine):
     # add the `combine` modifier
     do_combine = picked_types or len(ch_names) > 1
     if title is not None and len(title) and isinstance(combine, str) and do_combine:
-        _comb = combine.upper() if combine == "gfp" else combine
-        _comb = "std. dev." if _comb == "std" else _comb
-        title += " ({})".format(_comb)
+        if combine == "gfp":
+            _comb = "RMS" if ch_type in ("mag", "grad") else "GFP"
+        elif combine == "std":
+            _comb = "std. dev."
+        else:
+            _comb = combine
+        title += f" ({_comb})"
     return title
 
 
@@ -2755,18 +2755,7 @@ def plot_compare_evokeds(
         value of the ``combine`` parameter. Defaults to ``None``.
     show : bool
         Whether to show the figure. Defaults to ``True``.
-    %(combine)s
-        If callable, the callable must accept one positional input (data of
-        shape ``(n_evokeds, n_channels, n_times)``) and return an
-        :class:`array <numpy.ndarray>` of shape ``(n_epochs, n_times)``. For
-        example::
-
-            combine = lambda data: np.median(data, axis=1)
-
-        If ``combine`` is ``None``, channels are combined by computing GFP,
-        unless ``picks`` is a single channel (not channel type) or
-        ``axes='topo'``, in which cases no combining is performed. Defaults to
-        ``None``.
+    %(combine_plot_compare_evokeds)s
     %(sphere_topomap_auto)s
     %(time_unit)s
 
@@ -2861,7 +2850,7 @@ def plot_compare_evokeds(
     if not isinstance(evokeds, dict):
         raise TypeError(
             '"evokeds" must be a dict, list, or instance of '
-            "mne.Evoked; got {}".format(type(evokeds).__name__)
+            f"mne.Evoked; got {type(evokeds).__name__}"
         )
     evokeds = deepcopy(evokeds)  # avoid modifying dict outside function scope
     for cond, evoked in evokeds.items():
@@ -2916,20 +2905,27 @@ def plot_compare_evokeds(
     # cannot combine a single channel
     if (len(picks) < 2) and combine is not None:
         warn(
-            'Only {} channel in "picks"; cannot combine by method "{}".'.format(
-                len(picks), combine
-            )
+            f'Only {len(picks)} channel in "picks"; cannot combine by method '
+            f'"{combine}".'
         )
     # `combine` defaults to GFP unless picked a single channel or axes='topo'
     do_topo = isinstance(axes, str) and axes == "topo"
     if combine is None and len(picks) > 1 and not do_topo:
         combine = "gfp"
     # convert `combine` into callable (if None or str)
-    combine_func = _make_combine_callable(combine)
+    combine_funcs = {
+        ch_type: _make_combine_callable(combine, ch_type=ch_type)
+        for ch_type in ch_types
+    }
 
     # title
     title = _title_helper_pce(
-        title, picked_types, picks=orig_picks, ch_names=ch_names, combine=combine
+        title,
+        picked_types,
+        picks=orig_picks,
+        ch_names=ch_names,
+        ch_type=ch_types[0] if len(ch_types) == 1 else None,
+        combine=combine,
     )
     topo_disp_title = False
     # setup axes
@@ -2954,9 +2950,7 @@ def plot_compare_evokeds(
             _validate_if_list_of_axes(axes, obligatory_len=len(ch_types))
 
     if len(ch_types) > 1:
-        logger.info(
-            "Multiple channel types selected, returning one figure " "per type."
-        )
+        logger.info("Multiple channel types selected, returning one figure per type.")
         figs = list()
         for ch_type, ax in zip(ch_types, axes):
             _picks = picks_by_type[ch_type]
@@ -2965,7 +2959,12 @@ def plot_compare_evokeds(
             # don't pass `combine` here; title will run through this helper
             # function a second time & it will get added then
             _title = _title_helper_pce(
-                title, picked_types, picks=_picks, ch_names=_ch_names, combine=None
+                title,
+                picked_types,
+                picks=_picks,
+                ch_names=_ch_names,
+                ch_type=ch_type,
+                combine=None,
             )
             figs.extend(
                 plot_compare_evokeds(
@@ -3014,7 +3013,7 @@ def plot_compare_evokeds(
     # some things that depend on ch_type:
     units = _handle_default("units")[ch_type]
     scalings = _handle_default("scalings")[ch_type]
-
+    combine_func = combine_funcs[ch_type]
     # prep for topo
     pos_picks = picks  # need this version of picks for sensor location inset
     info = pick_info(info, sel=picks, copy=True)
@@ -3147,6 +3146,7 @@ def plot_compare_evokeds(
                 this_evokeds,
                 combine,
                 c_func,
+                ch_type=ch_type,
                 picks=_picks,
                 scaling=scalings,
                 ci_fun=ci_fun,

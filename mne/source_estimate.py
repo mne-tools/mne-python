@@ -17,13 +17,14 @@ from scipy.spatial.distance import cdist, pdist
 
 from ._fiff.constants import FIFF
 from ._fiff.meas_info import Info
-from ._fiff.pick import pick_types
+from ._fiff.pick import _picks_to_idx, pick_types
 from ._freesurfer import _get_atlas_values, _get_mri_info_data, read_freesurfer_lut
 from .baseline import rescale
 from .cov import Covariance
 from .evoked import _get_peak
-from .filter import resample
+from .filter import FilterMixin, _check_fun, resample
 from .fixes import _safe_svd
+from .parallel import parallel_func
 from .source_space._source_space import (
     SourceSpaces,
     _check_volume_labels,
@@ -42,6 +43,7 @@ from .utils import (
     _check_option,
     _check_pandas_index_arguments,
     _check_pandas_installed,
+    _check_preload,
     _check_src_normal,
     _check_stc_units,
     _check_subject,
@@ -382,8 +384,8 @@ def read_source_estimate(fname, subject=None):
         kwargs["subject"] = subject
     if subject is not None and subject != kwargs["subject"]:
         raise RuntimeError(
-            'provided subject name "%s" does not match '
-            'subject name from the file "%s' % (subject, kwargs["subject"])
+            f'provided subject name "{subject}" does not match '
+            f'subject name from the file "{kwargs["subject"]}'
         )
 
     if ftype in ("volume", "discrete"):
@@ -478,7 +480,7 @@ def _verify_source_estimate_compat(a, b):
     """Make sure two SourceEstimates are compatible for arith. operations."""
     compat = False
     if type(a) != type(b):
-        raise ValueError("Cannot combine %s and %s." % (type(a), type(b)))
+        raise ValueError(f"Cannot combine {type(a)} and {type(b)}.")
     if len(a.vertices) == len(b.vertices):
         if all(np.array_equal(av, vv) for av, vv in zip(a.vertices, b.vertices)):
             compat = True
@@ -490,11 +492,11 @@ def _verify_source_estimate_compat(a, b):
     if a.subject != b.subject:
         raise ValueError(
             "source estimates do not have the same subject "
-            "names, %r and %r" % (a.subject, b.subject)
+            f"names, {repr(a.subject)} and {repr(b.subject)}"
         )
 
 
-class _BaseSourceEstimate(TimeMixin):
+class _BaseSourceEstimate(TimeMixin, FilterMixin):
     _data_ndim = 2
 
     @verbose
@@ -510,13 +512,12 @@ class _BaseSourceEstimate(TimeMixin):
             data = None
             if kernel.shape[1] != sens_data.shape[0]:
                 raise ValueError(
-                    "kernel (%s) and sens_data (%s) have invalid "
-                    "dimensions" % (kernel.shape, sens_data.shape)
+                    f"kernel ({kernel.shape}) and sens_data ({sens_data.shape}) "
+                    "have invalid dimensions"
                 )
             if sens_data.ndim != 2:
                 raise ValueError(
-                    "The sensor data must have 2 dimensions, got "
-                    "%s" % (sens_data.ndim,)
+                    "The sensor data must have 2 dimensions, got {sens_data.ndim}"
                 )
 
         _validate_type(vertices, list, "vertices")
@@ -536,8 +537,8 @@ class _BaseSourceEstimate(TimeMixin):
         if data is not None:
             if data.ndim not in (self._data_ndim, self._data_ndim - 1):
                 raise ValueError(
-                    "Data (shape %s) must have %s dimensions for "
-                    "%s" % (data.shape, self._data_ndim, self.__class__.__name__)
+                    f"Data (shape {data.shape}) must have {self._data_ndim} "
+                    f"dimensions for {self.__class__.__name__}"
                 )
             if data.shape[0] != n_src:
                 raise ValueError(
@@ -548,7 +549,7 @@ class _BaseSourceEstimate(TimeMixin):
                 if data.shape[1] != 3:
                     raise ValueError(
                         "Data for VectorSourceEstimate must have "
-                        "shape[1] == 3, got shape %s" % (data.shape,)
+                        f"shape[1] == 3, got shape {data.shape}"
                     )
             if data.ndim == self._data_ndim - 1:  # allow upbroadcasting
                 data = data[..., np.newaxis]
@@ -571,10 +572,10 @@ class _BaseSourceEstimate(TimeMixin):
         s += ", tmin : %s (ms)" % (1e3 * self.tmin)
         s += ", tmax : %s (ms)" % (1e3 * self.times[-1])
         s += ", tstep : %s (ms)" % (1e3 * self.tstep)
-        s += ", data shape : %s" % (self.shape,)
+        s += f", data shape : {self.shape}"
         sz = sum(object_size(x) for x in (self.vertices + [self.data]))
         s += f", ~{sizeof_fmt(sz)}"
-        return "<%s | %s>" % (type(self).__name__, s)
+        return f"<{type(self).__name__} | {s}>"
 
     @fill_doc
     def get_peak(
@@ -643,6 +644,57 @@ class _BaseSourceEstimate(TimeMixin):
         )
 
     @verbose
+    def apply_function(
+        self, fun, picks=None, dtype=None, n_jobs=None, verbose=None, **kwargs
+    ):
+        """Apply a function to a subset of vertices.
+
+        %(applyfun_summary_stc)s
+
+        Parameters
+        ----------
+        %(fun_applyfun_stc)s
+        %(picks_all)s
+        %(dtype_applyfun)s
+        %(n_jobs)s Ignored if ``vertice_wise=False`` as the workload
+            is split across vertices.
+        %(verbose)s
+        %(kwargs_fun)s
+
+        Returns
+        -------
+        self : instance of SourceEstimate
+            The SourceEstimate object with transformed data.
+        """
+        _check_preload(self, "source_estimate.apply_function")
+        picks = _picks_to_idx(len(self._data), picks, exclude=(), with_ref_meg=False)
+
+        if not callable(fun):
+            raise ValueError("fun needs to be a function")
+
+        data_in = self._data
+        if dtype is not None and dtype != self._data.dtype:
+            self._data = self._data.astype(dtype)
+
+        # check the dimension of the source estimate data
+        _check_option("source_estimate.ndim", self._data.ndim, [2, 3])
+
+        parallel, p_fun, n_jobs = parallel_func(_check_fun, n_jobs)
+        if n_jobs == 1:
+            # modify data inplace to save memory
+            for idx in picks:
+                self._data[idx, :] = _check_fun(fun, data_in[idx, :], **kwargs)
+        else:
+            # use parallel function
+            data_picks_new = parallel(
+                p_fun(fun, data_in[p, :], **kwargs) for p in picks
+            )
+            for pp, p in enumerate(picks):
+                self._data[p, :] = data_picks_new[pp]
+
+        return self
+
+    @verbose
     def apply_baseline(self, baseline=(None, 0), *, verbose=None):
         """Baseline correct source estimate data.
 
@@ -684,8 +736,7 @@ class _BaseSourceEstimate(TimeMixin):
         fname = _check_fname(fname=fname, overwrite=True)  # check below
         if ftype != "h5":
             raise ValueError(
-                "%s objects can only be written as HDF5 files."
-                % (self.__class__.__name__,)
+                f"{self.__class__.__name__} objects can only be written as HDF5 files."
             )
         _, write_hdf5 = _import_h5io_funcs()
         if fname.suffix != ".h5":
@@ -1406,8 +1457,8 @@ class _BaseSourceEstimate(TimeMixin):
         kinds = ["VOL"] * len(self.vertices)
         if isinstance(self, (_BaseSurfaceSourceEstimate, _BaseMixedSourceEstimate)):
             kinds[:2] = ["LH", "RH"]
-        for ii, (kind, vertno) in enumerate(zip(kinds, self.vertices)):
-            col_names.extend(["{}_{}".format(kind, vert) for vert in vertno])
+        for kind, vertno in zip(kinds, self.vertices):
+            col_names.extend([f"{kind}_{vert}" for vert in vertno])
         # build DataFrame
         df = _build_data_frame(
             self,
@@ -1557,7 +1608,7 @@ class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
         ):
             raise RuntimeError(
                 "label and stc must have same subject names, "
-                'currently "%s" and "%s"' % (label.subject, self.subject)
+                f'currently "{label.subject}" and "{self.subject}"'
             )
 
         if label.hemi == "both":
@@ -1675,7 +1726,7 @@ class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
         if not isinstance(vertices, list):
             raise TypeError("vertices must be a list")
         if not len(self.vertices) == len(vertices):
-            raise ValueError("vertices must have the same length as " "stc.vertices")
+            raise ValueError("vertices must have the same length as stc.vertices")
 
         # can no longer use kernel and sensor data
         self._remove_kernel_sens_data_()
@@ -1889,7 +1940,7 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
             )
         elif ftype == "w":
             if self.shape[1] != 1:
-                raise ValueError("w files can only contain a single time " "point")
+                raise ValueError("w files can only contain a single time point.")
             logger.info("Writing STC to disk (w format)...")
             fname_l = str(_check_fname(fname + "-lh.w", overwrite=overwrite))
             fname_r = str(_check_fname(fname + "-rh.w", overwrite=overwrite))
@@ -2050,7 +2101,7 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
         .. footbibliography::
         """
         if not isinstance(surf, str):
-            raise TypeError("surf must be a string, got %s" % (type(surf),))
+            raise TypeError(f"surf must be a string, got {type(surf)}")
         subject = _check_subject(self.subject, subject)
         if np.any(self.data < 0):
             raise ValueError("Cannot compute COM with negative values")
@@ -2447,7 +2498,7 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
         """
         if len(self.vertices) != 1:
             raise RuntimeError(
-                "This method can only be used with whole-brain " "volume source spaces"
+                "This method can only be used with whole-brain volume source spaces"
             )
         _validate_type(label, (str, "int-like"), "label")
         if isinstance(label, str):
@@ -2476,7 +2527,7 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
         src,
         dest="mri",
         mri_resolution=False,
-        format="nifti1",
+        format="nifti1",  # noqa: A002
         *,
         overwrite=False,
         verbose=None,
@@ -2525,7 +2576,13 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
         )
         nib.save(img, fname)
 
-    def as_volume(self, src, dest="mri", mri_resolution=False, format="nifti1"):
+    def as_volume(
+        self,
+        src,
+        dest="mri",
+        mri_resolution=False,
+        format="nifti1",  # noqa: A002
+    ):
         """Export volume source estimate as a nifti object.
 
         Parameters
@@ -3067,7 +3124,7 @@ def spatio_temporal_src_adjacency(src, n_times, dist=None, verbose=None):
     if src[0]["type"] == "vol":
         if dist is not None:
             raise ValueError(
-                "dist must be None for a volume " "source space. Got %s." % dist
+                f"dist must be None for a volume source space. Got {dist}."
             )
 
         adjacency = _spatio_temporal_src_adjacency_vol(src, n_times)
@@ -3506,13 +3563,12 @@ def _volume_labels(src, labels, mri_resolution):
     else:
         if len(labels) != 2:
             raise ValueError(
-                "labels, if list or tuple, must have length 2, "
-                "got %s" % (len(labels),)
+                "labels, if list or tuple, must have length 2, got {len(labels)}"
             )
         mri, labels = labels
         infer_labels = False
         _validate_type(mri, "path-like", "labels[0]" + extra)
-    logger.info("Reading atlas %s" % (mri,))
+    logger.info(f"Reading atlas {mri}")
     vol_info = _get_mri_info_data(str(mri), data=True)
     atlas_data = vol_info["data"]
     atlas_values = np.unique(atlas_data)
@@ -3547,8 +3603,8 @@ def _volume_labels(src, labels, mri_resolution):
     atlas_shape = atlas_data.shape
     if atlas_shape != src_shape:
         raise RuntimeError(
-            "atlas shape %s does not match source space MRI "
-            "shape %s" % (atlas_shape, src_shape)
+            f"atlas shape {atlas_shape} does not match source space MRI "
+            f"shape {src_shape}"
         )
     atlas_data = atlas_data.ravel(order="F")
     if mri_resolution:
@@ -3650,10 +3706,10 @@ def _gen_extract_label_time_course(
             if len(vn) != len(svn):
                 raise ValueError(
                     "stc not compatible with source space. "
-                    "stc has %s time series but there are %s "
+                    f"stc has {len(svn)} time series but there are {len(vn)} "
                     "vertices in source space. Ensure you used "
                     "src from the forward or inverse operator, "
-                    "as forward computation can exclude vertices." % (len(svn), len(vn))
+                    "as forward computation can exclude vertices."
                 )
             if not np.array_equal(svn, vn):
                 raise ValueError("stc not compatible with source space")
@@ -3775,7 +3831,7 @@ def stc_near_sensors(
     subjects_dir=None,
     src=None,
     picks=None,
-    surface="pial",
+    surface="auto",
     verbose=None,
 ):
     """Create a STC from ECoG, sEEG and DBS sensor data.
@@ -3815,8 +3871,8 @@ def stc_near_sensors(
 
         .. versionadded:: 0.24
     surface : str | None
-        The surface to use if ``src=None``. Default is the pial surface.
-        If None, the source space surface will be used.
+        The surface to use. If ``src=None``, defaults to the pial surface.
+        Otherwise, the source space surface will be used.
 
         .. versionadded:: 0.24.1
     %(verbose)s
@@ -3870,12 +3926,30 @@ def stc_near_sensors(
     _validate_type(mode, str, "mode")
     _validate_type(src, (None, SourceSpaces), "src")
     _check_option("mode", mode, ("sum", "single", "nearest", "weighted"))
+    if surface == "auto":
+        if src is not None:
+            pial_fname = op.join(subjects_dir, subject, "surf", "lh.pial")
+            pial_rr = read_surface(pial_fname)[0]
+            src_surf_is_pial = (
+                op.isfile(pial_fname)
+                and src[0]["rr"].shape == pial_rr.shape
+                and np.allclose(src[0]["rr"], pial_rr)
+            )
+            if not src_surf_is_pial:
+                warn(
+                    "In version 1.8, ``surface='auto'`` will be the default "
+                    "which will use the surface in ``src`` instead of the "
+                    "pial surface when ``src != None``. Pass ``surface='pial'`` "
+                    "or ``surface=None`` to suppress this warning",
+                    DeprecationWarning,
+                )
+        surface = "pial" if src is None or src.kind == "surface" else None
 
     # create a copy of Evoked using ecog, seeg and dbs
     if picks is None:
         picks = pick_types(evoked.info, ecog=True, seeg=True, dbs=True)
     evoked = evoked.copy().pick(picks)
-    frames = set(evoked.info["chs"][pick]["coord_frame"] for pick in picks)
+    frames = set(ch["coord_frame"] for ch in evoked.info["chs"])
     if not frames == {FIFF.FIFFV_COORD_HEAD}:
         raise RuntimeError(
             "Channels must be in the head coordinate frame, " f"got {sorted(frames)}"

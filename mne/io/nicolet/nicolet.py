@@ -84,7 +84,7 @@ def _get_nicolet_info(fname, ch_type, eog, ecg, emg, misc):
 
     logger.info("Reading header...")
     header_info = dict()
-    with open(header, "r") as fid:
+    with open(header) as fid:
         for line in fid:
             var, value = line.split("=")
             if var == "elec_names":
@@ -187,7 +187,7 @@ class RawNicolet(BaseRaw):
         input_fname = path.abspath(input_fname)
         info, header_info = _get_nicolet_info(input_fname, ch_type, eog, ecg, emg, misc)
         last_samps = [header_info["num_samples"] - 1]
-        super(RawNicolet, self).__init__(
+        super().__init__(
             info,
             preload,
             filenames=[input_fname],
