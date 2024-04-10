@@ -232,11 +232,9 @@ def psd_array_welch(
         assert np.allclose(good_mask, good_mask[[0]], equal_nan=True)
         t_onsets, t_offsets = _mask_to_onsets_offsets(good_mask[0])
         x_splits = [x[..., t_ons:t_off] for t_ons, t_off in zip(t_onsets, t_offsets)]
-        # weights reflect the number of welch windows in each span
-        stepsize = n_per_seg - n_overlap
-        weights = [(span.shape[-1] - n_overlap) // stepsize for span in x_splits]
-        # spans < n_per_seg aren't skipped: done with reduced n_per_seg (and a warning)
-        weights = [max(w, 1) for w in weights]
+        weights = [
+            split.shape[-1] for split in x_splits if split.shape[-1] >= n_per_seg
+        ]
         agg_func = partial(np.average, weights=weights)
         if n_jobs > 1:
             logger.info(
