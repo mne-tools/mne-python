@@ -1413,6 +1413,7 @@ def test_raw_compute_tfr(raw, method, output, picks, tmp_path):
     assert_array_equal(want, got)
     # make sure save/load works for phase/complex data
     if output in ("phase", "complex"):
+        pytest.importorskip("h5io")
         fname = tmp_path / "temp_tfr.hdf5"
         full_tfr.save(fname, overwrite=True)
         assert read_tfrs(fname) == full_tfr
