@@ -4,6 +4,7 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+import warnings
 from functools import partial
 
 import numpy as np
@@ -250,10 +251,18 @@ def psd_array_welch(
     else:
         x_splits = [arr for arr in np.array_split(x, n_jobs) if arr.size != 0]
         agg_func = np.concatenate
-    f_spect = parallel(
-        my_spect_func(d, func=func, freq_sl=freq_sl, average=average, output=output)
-        for d in x_splits
-    )
+    # swallow SciPy warnings
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            action="ignore",
+            module="scipy",
+            category=UserWarning,
+            message=r"nperseg = \d+ is greater than input length",
+        )
+        f_spect = parallel(
+            my_spect_func(d, func=func, freq_sl=freq_sl, average=average, output=output)
+            for d in x_splits
+        )
     psds = agg_func(f_spect, axis=0)
     shape = dshape + (len(freqs),)
     if average is None:
