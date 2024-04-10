@@ -248,6 +248,11 @@ def psd_array_welch(
                 f"Data split into {len(x_splits)} (probably unequal) chunks due to "
                 '"bad_*" annotations. Parallelization may be sub-optimal.'
             )
+        if (np.array(span_lengths) < n_per_seg).any():
+            logger.info(
+                "At least one good data span is shorter than n_per_seg, and will be "
+                "analyzed with a shorter window than the rest of the file."
+            )
     else:
         x_splits = [arr for arr in np.array_split(x, n_jobs) if arr.size != 0]
         agg_func = np.concatenate
