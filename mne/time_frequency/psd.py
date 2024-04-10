@@ -232,8 +232,14 @@ def psd_array_welch(
         assert np.allclose(good_mask, good_mask[[0]], equal_nan=True)
         t_onsets, t_offsets = _mask_to_onsets_offsets(good_mask[0])
         x_splits = [x[..., t_ons:t_off] for t_ons, t_off in zip(t_onsets, t_offsets)]
+        # weights reflect the number of samples used from each span. For spans longer
+        # than `n_per_seg`, trailing samples may be discarded. For spans shorter than
+        # `n_per_seg`, the wrapped function (`scipy.signal.spectrogram`) automatically
+        # reduces `n_per_seg` to match the span length (with a warning).
+        step = n_per_seg - n_overlap
+        span_lengths = [span.shape[-1] for span in x_splits]
         weights = [
-            split.shape[-1] for split in x_splits if split.shape[-1] >= n_per_seg
+            w if w < n_per_seg else w - ((w - n_overlap) % step) for w in span_lengths
         ]
         agg_func = partial(np.average, weights=weights)
         if n_jobs > 1:
