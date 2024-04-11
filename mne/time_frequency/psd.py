@@ -4,6 +4,7 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+import warnings
 from functools import partial
 
 import numpy as np
@@ -215,7 +216,7 @@ def psd_array_welch(
     )
 
     parallel, my_spect_func, n_jobs = parallel_func(_spect_func, n_jobs=n_jobs)
-    func = partial(
+    _func = partial(
         spectrogram,
         detrend=detrend,
         noverlap=n_overlap,
@@ -232,8 +233,14 @@ def psd_array_welch(
         assert np.allclose(good_mask, good_mask[[0]], equal_nan=True)
         t_onsets, t_offsets = _mask_to_onsets_offsets(good_mask[0])
         x_splits = [x[..., t_ons:t_off] for t_ons, t_off in zip(t_onsets, t_offsets)]
+        # weights reflect the number of samples used from each span. For spans longer
+        # than `n_per_seg`, trailing samples may be discarded. For spans shorter than
+        # `n_per_seg`, the wrapped function (`scipy.signal.spectrogram`) automatically
+        # reduces `n_per_seg` to match the span length (with a warning).
+        step = n_per_seg - n_overlap
+        span_lengths = [span.shape[-1] for span in x_splits]
         weights = [
-            split.shape[-1] for split in x_splits if split.shape[-1] >= n_per_seg
+            w if w < n_per_seg else w - ((w - n_overlap) % step) for w in span_lengths
         ]
         agg_func = partial(np.average, weights=weights)
         if n_jobs > 1:
@@ -241,9 +248,27 @@ def psd_array_welch(
                 f"Data split into {len(x_splits)} (probably unequal) chunks due to "
                 '"bad_*" annotations. Parallelization may be sub-optimal.'
             )
+        if (np.array(span_lengths) < n_per_seg).any():
+            logger.info(
+                "At least one good data span is shorter than n_per_seg, and will be "
+                "analyzed with a shorter window than the rest of the file."
+            )
+
+        def func(*args, **kwargs):
+            # swallow SciPy warnings caused by short good data spans
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
+                    action="ignore",
+                    module="scipy",
+                    category=UserWarning,
+                    message=r"nperseg = \d+ is greater than input length",
+                )
+                return _func(*args, **kwargs)
+
     else:
         x_splits = [arr for arr in np.array_split(x, n_jobs) if arr.size != 0]
         agg_func = np.concatenate
+        func = _func
     f_spect = parallel(
         my_spect_func(d, func=func, freq_sl=freq_sl, average=average, output=output)
         for d in x_splits
