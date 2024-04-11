@@ -216,16 +216,28 @@ def psd_array_welch(
     )
 
     parallel, my_spect_func, n_jobs = parallel_func(_spect_func, n_jobs=n_jobs)
-    func = partial(
-        spectrogram,
-        detrend=detrend,
-        noverlap=n_overlap,
-        nperseg=n_per_seg,
-        nfft=n_fft,
-        fs=sfreq,
-        window=window,
-        mode=mode,
-    )
+
+    def func(*args, **kwargs):
+        # swallow SciPy warnings
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                action="ignore",
+                module="scipy",
+                category=UserWarning,
+                message=r"nperseg = \d+ is greater than input length",
+            )
+            return spectrogram(
+                *args,
+                **kwargs,
+                detrend=detrend,
+                noverlap=n_overlap,
+                nperseg=n_per_seg,
+                nfft=n_fft,
+                fs=sfreq,
+                window=window,
+                mode=mode,
+            )
+
     if np.any(np.isnan(x)):
         good_mask = ~np.isnan(x)
         # NaNs originate from annot, so must match for all channels. Note that we CANNOT
@@ -256,18 +268,10 @@ def psd_array_welch(
     else:
         x_splits = [arr for arr in np.array_split(x, n_jobs) if arr.size != 0]
         agg_func = np.concatenate
-    # swallow SciPy warnings
-    with warnings.catch_warnings():
-        warnings.filterwarnings(
-            action="ignore",
-            module="scipy",
-            category=UserWarning,
-            message=r"nperseg = \d+ is greater than input length",
-        )
-        f_spect = parallel(
-            my_spect_func(d, func=func, freq_sl=freq_sl, average=average, output=output)
-            for d in x_splits
-        )
+    f_spect = parallel(
+        my_spect_func(d, func=func, freq_sl=freq_sl, average=average, output=output)
+        for d in x_splits
+    )
     psds = agg_func(f_spect, axis=0)
     shape = dshape + (len(freqs),)
     if average is None:
