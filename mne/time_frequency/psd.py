@@ -216,7 +216,7 @@ def psd_array_welch(
     )
 
     parallel, my_spect_func, n_jobs = parallel_func(_spect_func, n_jobs=n_jobs)
-    func = partial(
+    _func = partial(
         spectrogram,
         detrend=detrend,
         noverlap=n_overlap,
@@ -253,21 +253,26 @@ def psd_array_welch(
                 "At least one good data span is shorter than n_per_seg, and will be "
                 "analyzed with a shorter window than the rest of the file."
             )
+
+        def func(*args, **kwargs):
+            # swallow SciPy warnings caused by short good data spans
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
+                    action="ignore",
+                    module="scipy",
+                    category=UserWarning,
+                    message=r"nperseg = \d+ is greater than input length",
+                )
+                return _func(*args, **kwargs)
+
     else:
         x_splits = [arr for arr in np.array_split(x, n_jobs) if arr.size != 0]
         agg_func = np.concatenate
-    # swallow SciPy warnings
-    with warnings.catch_warnings():
-        warnings.filterwarnings(
-            action="ignore",
-            module="scipy",
-            category=UserWarning,
-            message=r"nperseg = \d+ is greater than input length",
-        )
-        f_spect = parallel(
-            my_spect_func(d, func=func, freq_sl=freq_sl, average=average, output=output)
-            for d in x_splits
-        )
+        func = _func
+    f_spect = parallel(
+        my_spect_func(d, func=func, freq_sl=freq_sl, average=average, output=output)
+        for d in x_splits
+    )
     psds = agg_func(f_spect, axis=0)
     shape = dshape + (len(freqs),)
     if average is None:
