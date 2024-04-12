@@ -14,12 +14,8 @@ need help installing Python, please refer to our :ref:`install-python` guide.
 Installing MNE-Python with all dependencies
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 If you use Anaconda, we suggest installing MNE-Python into its own ``conda`` environment.
-Ensure you are using a recent version of ``conda``, otherwise the dependency resolution
-may take extremely long or even fail!
 
-First, please ensure you're using a recent version of ``conda``.
-
-Run in your terminal:
+First, please ensure you're using a recent version of ``conda``. Run in your terminal:
 
 .. code-block:: console
 
