@@ -17,11 +17,21 @@ If you use Anaconda, we suggest installing MNE-Python into its own ``conda`` env
 Ensure you are using a recent version of ``conda``, otherwise the dependency resolution
 may take extremely long or even fail!
 
+First, please ensure you're using a recent version of ``conda``.
+
 Run in your terminal:
 
 .. code-block:: console
 
    $ conda update --name=base conda  # update conda
+   $ conda --version
+
+The installed ``conda`` version should be ``23.10.0`` or newer.
+
+Now, you can install MNE-Python:
+
+.. code-block:: console
+
    $ conda create --channel=conda-forge --strict-channel-priority --name=mne mne
 
 This will create a new ``conda`` environment called ``mne`` (you can adjust
