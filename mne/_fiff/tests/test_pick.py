@@ -522,8 +522,7 @@ def test_picks_by_channels():
     # duplicate check
     names = ["MEG 002", "MEG 002"]
     assert len(pick_channels(raw.info["ch_names"], names, ordered=False)) == 1
-    with pytest.warns(FutureWarning, match="ordered=False"):
-        assert len(raw.copy().pick_channels(names)[0][0]) == 1  # legacy method OK here
+    assert len(raw.copy().pick_channels(names, ordered=False)[0][0]) == 1
 
     # missing ch_name
     bad_names = names + ["BAD"]

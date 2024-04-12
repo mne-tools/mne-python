@@ -453,7 +453,7 @@ class Covariance(dict):
         )
 
     @verbose
-    def pick_channels(self, ch_names, ordered=None, *, verbose=None):
+    def pick_channels(self, ch_names, ordered=True, *, verbose=None):
         """Pick channels from this covariance matrix.
 
         Parameters

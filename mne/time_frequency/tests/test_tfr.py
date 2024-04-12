@@ -1402,7 +1402,7 @@ def test_to_data_frame_time_format(time_format):
 @parametrize_morlet_multitaper
 @parametrize_power_phase_complex
 @pytest.mark.parametrize("picks", ("mag", mag_names, [2, 5, 8]))  # all 3 equivalent
-def test_raw_compute_tfr(raw, method, output, picks):
+def test_raw_compute_tfr(raw, method, output, picks, tmp_path):
     """Test Raw.compute_tfr() and picks handling."""
     full_tfr = raw.compute_tfr(method, output=output, freqs=freqs_linspace)
     pick_tfr = raw.compute_tfr(method, output=output, freqs=freqs_linspace, picks=picks)
@@ -1411,6 +1411,12 @@ def test_raw_compute_tfr(raw, method, output, picks):
     want = full_tfr.get_data(picks=mag_names)
     got = pick_tfr.get_data()
     assert_array_equal(want, got)
+    # make sure save/load works for phase/complex data
+    if output in ("phase", "complex"):
+        pytest.importorskip("h5io")
+        fname = tmp_path / "temp_tfr.hdf5"
+        full_tfr.save(fname, overwrite=True)
+        assert read_tfrs(fname) == full_tfr
 
 
 @parametrize_morlet_multitaper

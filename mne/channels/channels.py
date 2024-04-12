@@ -447,7 +447,7 @@ class UpdateChannelsMixin:
 
     @verbose
     @legacy(alt="inst.pick(...)")
-    def pick_channels(self, ch_names, ordered=None, *, verbose=None):
+    def pick_channels(self, ch_names, ordered=True, *, verbose=None):
         """Pick some channels.
 
         Parameters
