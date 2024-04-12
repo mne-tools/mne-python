@@ -1,5 +1,5 @@
 """
-.. _ex-psd-ctf:
+.. _ex-psf-empirical:
 
 ===================================================
 Plot point-spread functions (PSFs) with added noise
