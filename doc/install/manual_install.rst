@@ -22,7 +22,7 @@ Run in your terminal:
 .. code-block:: console
 
    $ conda update --name=base conda  # update conda
-   $ conda create --strict-channel-priority --name=mne conda-forge::mne
+   $ conda create --channel=conda-forge --strict-channel-priority --name=mne mne
 
 This will create a new ``conda`` environment called ``mne`` (you can adjust
 this by passing a different name via ``--name``) and install all
@@ -45,7 +45,7 @@ or via :code:`conda`:
 
 .. code-block:: console
 
-   $ conda create --strict-channel-priority --name=mne conda-forge::mne-base
+   $ conda create --channel=conda-forge --strict-channel-priority --name=mne mne-base
 
 This will create a new ``conda`` environment called ``mne`` (you can adjust
 this by passing a different name via ``--name``).
