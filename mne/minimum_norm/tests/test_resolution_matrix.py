@@ -18,7 +18,7 @@ from numpy.testing import (
 import mne
 from mne.datasets import testing
 from mne.minimum_norm import apply_inverse_cov, prepare_inverse_operator
-from mne.minimum_norm.resolution_matrix_tmp import (
+from mne.minimum_norm.resolution_matrix import (
     _vertices_for_get_psf_ctf,
     get_cross_talk,
     get_point_spread,
