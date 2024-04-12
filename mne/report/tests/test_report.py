@@ -5,7 +5,6 @@
 # Copyright the MNE-Python contributors.
 
 import base64
-import copy
 import glob
 import os
 import pickle
@@ -638,7 +637,7 @@ def test_remove():
     r.add_figure(fig=fig2, title="figure2", tags=("slider",))
 
     # Test removal by title
-    r2 = copy.deepcopy(r)
+    r2 = r.copy()
     removed_index = r2.remove(title="figure1")
     assert removed_index == 2
     assert len(r2.html) == 3
@@ -647,7 +646,7 @@ def test_remove():
     assert r2.html[2] == r.html[3]
 
     # Test restricting to section
-    r2 = copy.deepcopy(r)
+    r2 = r.copy()
     removed_index = r2.remove(title="figure1", tags=("othertag",))
     assert removed_index == 1
     assert len(r2.html) == 3
@@ -692,7 +691,7 @@ def test_add_or_replace(tags):
     assert len(r.html) == 4
     assert len(r._content) == 4
 
-    old_r = copy.deepcopy(r)
+    old_r = r.copy()
 
     # Replace our last occurrence of title='duplicate'
     r.add_figure(
@@ -765,7 +764,7 @@ def test_add_or_replace_section():
     assert len(r.html) == 3
     assert len(r._content) == 3
 
-    old_r = copy.deepcopy(r)
+    old_r = r.copy()
     assert r.html[0] == old_r.html[0]
     assert r.html[1] == old_r.html[1]
     assert r.html[2] == old_r.html[2]
@@ -1012,8 +1011,12 @@ def test_manual_report_2d(tmp_path, invisible_fig):
     for ch in evoked_no_ch_locs.info["chs"]:
         ch["loc"][:3] = np.nan
 
-    with _record_warnings(), pytest.warns(
-        RuntimeWarning, match="No EEG channel locations found, cannot create joint plot"
+    with (
+        _record_warnings(),
+        pytest.warns(
+            RuntimeWarning,
+            match="No EEG channel locations found, cannot create joint plot",
+        ),
     ):
         r.add_evokeds(
             evokeds=evoked_no_ch_locs,
@@ -1041,8 +1044,9 @@ def test_manual_report_2d(tmp_path, invisible_fig):
     for ch in ica_no_ch_locs.info["chs"]:
         ch["loc"][:3] = np.nan
 
-    with _record_warnings(), pytest.warns(
-        RuntimeWarning, match="No Magnetometers channel locations"
+    with (
+        _record_warnings(),
+        pytest.warns(RuntimeWarning, match="No Magnetometers channel locations"),
     ):
         r.add_ica(
             ica=ica_no_ch_locs, picks=[0], inst=raw.copy().load_data(), title="ICA"
@@ -1067,8 +1071,9 @@ def test_manual_report_3d(tmp_path, renderer):
     add_kwargs = dict(
         trans=trans_fname, info=info, subject="sample", subjects_dir=subjects_dir
     )
-    with _record_warnings(), pytest.warns(
-        RuntimeWarning, match="could not be calculated"
+    with (
+        _record_warnings(),
+        pytest.warns(RuntimeWarning, match="could not be calculated"),
     ):
         r.add_trans(title="coreg no dig", **add_kwargs)
     with info._unlock():
@@ -1102,24 +1107,53 @@ def test_sorting(tmp_path):
     """Test that automated ordering based on tags works."""
     r = Report()
 
-    r.add_code(code="E = m * c**2", title="intelligence >9000", tags=("bem",))
-    r.add_code(code="a**2 + b**2 = c**2", title="Pythagoras", tags=("evoked",))
-    r.add_code(code="🧠", title="source of truth", tags=("source-estimate",))
-    r.add_code(code="🥦", title="veggies", tags=("raw",))
+    titles = ["intelligence >9000", "Pythagoras", "source of truth", "veggies"]
+    r.add_code(code="E = m * c**2", title=titles[0], tags=("bem",))
+    r.add_code(code="a**2 + b**2 = c**2", title=titles[1], tags=("evoked",))
+    r.add_code(code="🧠", title=titles[2], tags=("source-estimate",))
+    r.add_code(code="🥦", title=titles[3], tags=("raw",))
 
     # Check that repeated calls of add_* actually continuously appended to
     # the report
     orig_order = ["bem", "evoked", "source-estimate", "raw"]
     assert [c.tags[0] for c in r._content] == orig_order
 
+    # tags property behavior and get_contents
+    assert list(r.tags) == sorted(orig_order)
+    titles, tags, htmls = r.get_contents()
+    assert set(sum(tags, ())) == set(r.tags)
+    assert len(titles) == len(tags) == len(htmls) == len(r._content)
+    for title, tag, html in zip(titles, tags, htmls):
+        title = title.replace(">", "&gt;")
+        assert title in html
+        for t in tag:
+            assert t in html
+
     # Now check the actual sorting
-    content_sorted = r._sort(content=r._content, order=CONTENT_ORDER)
+    r_sorted = r.copy()
+    r_sorted._sort(order=CONTENT_ORDER)
     expected_order = ["raw", "evoked", "bem", "source-estimate"]
 
-    assert content_sorted != r._content
-    assert [c.tags[0] for c in content_sorted] == expected_order
+    assert r_sorted._content != r._content
+    assert [c.tags[0] for c in r_sorted._content] == expected_order
+    assert [c.tags[0] for c in r._content] == orig_order
 
-    r.save(fname=tmp_path / "report.html", sort_content=True, open_browser=False)
+    r.copy().save(fname=tmp_path / "report.html", sort_content=True, open_browser=False)
+
+    # Manual sorting should be the same
+    r_sorted = r.copy()
+    order = np.argsort([CONTENT_ORDER.index(t) for t in orig_order])
+    r_sorted.reorder(order)
+
+    assert r_sorted._content != r._content
+    got_order = [c.tags[0] for c in r_sorted._content]
+    assert [c.tags[0] for c in r._content] == orig_order  # original unmodified
+    assert got_order == expected_order
+
+    with pytest.raises(ValueError, match="order must be a permutation"):
+        r.reorder(np.arange(len(r._content) + 1))
+    with pytest.raises(ValueError, match="array of integers"):
+        r.reorder([1.0])
 
 
 @pytest.mark.parametrize(

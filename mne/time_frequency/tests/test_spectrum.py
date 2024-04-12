@@ -24,6 +24,9 @@ def test_compute_psd_errors(raw):
         raw.compute_psd(foo=None, bar=None)
     with pytest.raises(ValueError, match="Complex output is not supported in "):
         raw.compute_psd(output="complex")
+    raw.set_annotations(Annotations(onset=0.01, duration=0.01, description="bad_foo"))
+    with pytest.raises(NotImplementedError, match='Cannot use method="multitaper"'):
+        raw.compute_psd(method="multitaper", reject_by_annotation=True)
 
 
 @pytest.mark.parametrize("method", ("welch", "multitaper"))
@@ -125,11 +128,15 @@ def test_n_welch_windows(raw):
     )
 
 
-def _get_inst(inst, request, evoked):
+def _get_inst(inst, request, *, evoked=None, average_tfr=None):
     # ↓ XXX workaround:
     # ↓ parametrized fixtures are not accessible via request.getfixturevalue
     # ↓ https://github.com/pytest-dev/pytest/issues/4666#issuecomment-456593913
-    return evoked if inst == "evoked" else request.getfixturevalue(inst)
+    if inst == "evoked":
+        return evoked
+    elif inst == "average_tfr":
+        return average_tfr
+    return request.getfixturevalue(inst)
 
 
 @pytest.mark.parametrize("inst", ("raw", "epochs", "evoked"))
@@ -137,7 +144,7 @@ def test_spectrum_io(inst, tmp_path, request, evoked):
     """Test save/load of spectrum objects."""
     pytest.importorskip("h5io")
     fname = tmp_path / f"{inst}-spectrum.h5"
-    inst = _get_inst(inst, request, evoked)
+    inst = _get_inst(inst, request, evoked=evoked)
     orig = inst.compute_psd()
     orig.save(fname)
     loaded = read_spectrum(fname)
@@ -159,12 +166,13 @@ def test_spectrum_reject_by_annot(raw):
     Cannot use raw_spectrum fixture here because we're testing reject_by_annotation in
     .compute_psd() method.
     """
-    spect_no_annot = raw.compute_psd()
+    kw = dict(n_per_seg=512)  # smaller than shortest good span, to avoid warning
+    spect_no_annot = raw.compute_psd(**kw)
     raw.set_annotations(Annotations([1, 5], [3, 3], ["test", "test"]))
-    spect_benign_annot = raw.compute_psd()
+    spect_benign_annot = raw.compute_psd(**kw)
     raw.annotations.description = np.array(["bad_test", "bad_test"])
-    spect_reject_annot = raw.compute_psd()
-    spect_ignored_annot = raw.compute_psd(reject_by_annotation=False)
+    spect_reject_annot = raw.compute_psd(**kw)
+    spect_ignored_annot = raw.compute_psd(**kw, reject_by_annotation=False)
     # the only one that should be different is `spect_reject_annot`
     assert spect_no_annot == spect_benign_annot
     assert spect_no_annot == spect_ignored_annot
@@ -214,7 +222,7 @@ def test_spectrum_to_data_frame(inst, request, evoked):
     # setup
     is_already_psd = inst in ("raw_spectrum", "epochs_spectrum")
     is_epochs = inst == "epochs_spectrum"
-    inst = _get_inst(inst, request, evoked)
+    inst = _get_inst(inst, request, evoked=evoked)
     extra_dim = () if is_epochs else (1,)
     extra_cols = ["freq", "condition", "epoch"] if is_epochs else ["freq"]
     # compute PSD

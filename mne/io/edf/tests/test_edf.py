@@ -731,9 +731,23 @@ def test_edf_stim_ch_pick_up(test_input, EXPECTED):
 
 
 @testing.requires_testing_data
-def test_bdf_multiple_annotation_channels():
+@pytest.mark.parametrize(
+    "exclude_after_unique, warns",
+    [
+        (False, False),
+        (True, True),
+    ],
+)
+def test_bdf_multiple_annotation_channels(exclude_after_unique, warns):
     """Test BDF with multiple annotation channels."""
-    raw = read_raw_bdf(bdf_multiple_annotations_path)
+    if warns:
+        ctx = pytest.warns(RuntimeWarning, match="Channel names are not unique")
+    else:
+        ctx = nullcontext()
+    with ctx:
+        raw = read_raw_bdf(
+            bdf_multiple_annotations_path, exclude_after_unique=exclude_after_unique
+        )
     assert len(raw.annotations) == 10
     descriptions = np.array(
         [
@@ -886,6 +900,32 @@ def test_exclude():
         assert ch not in raw.ch_names
 
 
+@pytest.mark.parametrize(
+    "EXPECTED, exclude, exclude_after_unique, warns",
+    [
+        (["EEG F2-Ref"], "EEG F1-Ref", False, False),
+        (["EEG F1-Ref-0", "EEG F2-Ref", "EEG F1-Ref-1"], "EEG F1-Ref-1", False, True),
+        (["EEG F2-Ref"], ["EEG F1-Ref"], False, False),
+        (["EEG F2-Ref"], "EEG F1-Ref", True, True),
+        (["EEG F1-Ref-0", "EEG F2-Ref"], "EEG F1-Ref-1", True, True),
+        (["EEG F1-Ref-0", "EEG F2-Ref", "EEG F1-Ref-1"], ["EEG F1-Ref"], True, True),
+    ],
+)
+def test_exclude_duplicate_channel_data(exclude, exclude_after_unique, warns, EXPECTED):
+    """Test exclude parameter for duplicate channel data."""
+    if warns:
+        ctx = pytest.warns(RuntimeWarning, match="Channel names are not unique")
+    else:
+        ctx = nullcontext()
+    with ctx:
+        raw = read_raw_edf(
+            duplicate_channel_labels_path,
+            exclude=exclude,
+            exclude_after_unique=exclude_after_unique,
+        )
+    assert raw.ch_names == EXPECTED
+
+
 def test_include():
     """Test include parameter."""
     raw = read_raw_edf(edf_path, include=["I1", "I2"])
@@ -897,6 +937,32 @@ def test_include():
     with pytest.raises(ValueError) as e:
         raw = read_raw_edf(edf_path, include=["I1", "I2"], exclude="I[1-4]")
         assert str(e.value) == "'exclude' must be empty" "if 'include' is assigned."
+
+
+@pytest.mark.parametrize(
+    "EXPECTED, include, exclude_after_unique, warns",
+    [
+        (["EEG F1-Ref-0", "EEG F1-Ref-1"], "EEG F1-Ref", False, True),
+        ([], "EEG F1-Ref-1", False, False),
+        (["EEG F1-Ref-0", "EEG F1-Ref-1"], ["EEG F1-Ref"], False, True),
+        (["EEG F1-Ref-0", "EEG F1-Ref-1"], "EEG F1-Ref", True, True),
+        (["EEG F1-Ref-1"], "EEG F1-Ref-1", True, True),
+        ([], ["EEG F1-Ref"], True, True),
+    ],
+)
+def test_include_duplicate_channel_data(include, exclude_after_unique, warns, EXPECTED):
+    """Test include parameter for duplicate channel data."""
+    if warns:
+        ctx = pytest.warns(RuntimeWarning, match="Channel names are not unique")
+    else:
+        ctx = nullcontext()
+    with ctx:
+        raw = read_raw_edf(
+            duplicate_channel_labels_path,
+            include=include,
+            exclude_after_unique=exclude_after_unique,
+        )
+    assert raw.ch_names == EXPECTED
 
 
 @testing.requires_testing_data

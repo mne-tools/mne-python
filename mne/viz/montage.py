@@ -1,6 +1,7 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 """Functions to plot EEG sensor montages or digitizer montages."""
+
 from copy import deepcopy
 
 import numpy as np

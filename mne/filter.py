@@ -20,6 +20,7 @@ from .cuda import (
     _setup_cuda_fft_resample,
     _smart_pad,
 )
+from .fixes import minimum_phase
 from .parallel import parallel_func
 from .utils import (
     _check_option,
@@ -307,39 +308,7 @@ def _overlap_add_filter(
     copy=True,
     pad="reflect_limited",
 ):
-    """Filter the signal x using h with overlap-add FFTs.
-
-    Parameters
-    ----------
-    x : array, shape (n_signals, n_times)
-        Signals to filter.
-    h : 1d array
-        Filter impulse response (FIR filter coefficients). Must be odd length
-        if ``phase='linear'``.
-    n_fft : int
-        Length of the FFT. If None, the best size is determined automatically.
-    phase : str
-        If ``'zero'``, the delay for the filter is compensated (and it must be
-        an odd-length symmetric filter). If ``'linear'``, the response is
-        uncompensated. If ``'zero-double'``, the filter is applied in the
-        forward and reverse directions. If 'minimum', a minimum-phase
-        filter will be used.
-    picks : list | None
-        See calling functions.
-    n_jobs : int | str
-        Number of jobs to run in parallel. Can be ``'cuda'`` if ``cupy``
-        is installed properly.
-    copy : bool
-        If True, a copy of x, filtered, is returned. Otherwise, it operates
-        on x in place.
-    pad : str
-        Padding type for ``_smart_pad``.
-
-    Returns
-    -------
-    x : array, shape (n_signals, n_times)
-        x filtered.
-    """
+    """Filter the signal x using h with overlap-add FFTs."""
     # set up array for filtering, reshape to 2D, operate on last axis
     x, orig_shape, picks = _prep_for_filtering(x, copy, picks)
     # Extend the signal by mirroring the edges to reduce transient filter
@@ -526,34 +495,6 @@ def _construct_fir_filter(
     (windowing is a smoothing in frequency domain).
 
     If x is multi-dimensional, this operates along the last dimension.
-
-    Parameters
-    ----------
-    sfreq : float
-        Sampling rate in Hz.
-    freq : 1d array
-        Frequency sampling points in Hz.
-    gain : 1d array
-        Filter gain at frequency sampling points.
-        Must be all 0 and 1 for fir_design=="firwin".
-    filter_length : int
-        Length of the filter to use. Must be odd length if phase == "zero".
-    phase : str
-        If 'zero', the delay for the filter is compensated (and it must be
-        an odd-length symmetric filter). If 'linear', the response is
-        uncompensated. If 'zero-double', the filter is applied in the
-        forward and reverse directions. If 'minimum', a minimum-phase
-        filter will be used.
-    fir_window : str
-        The window to use in FIR design, can be "hamming" (default),
-        "hann", or "blackman".
-    fir_design : str
-        Can be "firwin2" or "firwin".
-
-    Returns
-    -------
-    h : array
-        Filter coefficients.
     """
     assert freq[0] == 0
     if fir_design == "firwin2":
@@ -562,7 +503,7 @@ def _construct_fir_filter(
         assert fir_design == "firwin"
         fir_design = partial(_firwin_design, sfreq=sfreq)
     # issue a warning if attenuation is less than this
-    min_att_db = 12 if phase == "minimum" else 20
+    min_att_db = 12 if phase == "minimum-half" else 20
 
     # normalize frequencies
     freq = np.array(freq) / (sfreq / 2.0)
@@ -575,11 +516,13 @@ def _construct_fir_filter(
     # Use overlap-add filter with a fixed length
     N = _check_zero_phase_length(filter_length, phase, gain[-1])
     # construct symmetric (linear phase) filter
-    if phase == "minimum":
+    if phase == "minimum-half":
         h = fir_design(N * 2 - 1, freq, gain, window=fir_window)
-        h = signal.minimum_phase(h)
+        h = minimum_phase(h)
     else:
         h = fir_design(N, freq, gain, window=fir_window)
+        if phase == "minimum":
+            h = minimum_phase(h, half=False)
     assert h.size == N
     att_db, att_freq = _filter_attenuation(h, freq, gain)
     if phase == "zero-double":
@@ -873,12 +816,7 @@ def construct_iir_filter(
         # ensure we have a valid ftype
         if "ftype" not in iir_params:
             raise RuntimeError(
-                "ftype must be an entry in iir_params if "
-                "b"
-                " "
-                "and "
-                "a"
-                " are not specified"
+                "ftype must be an entry in iir_params if 'b' and 'a' are not specified."
             )
         ftype = iir_params["ftype"]
         if ftype not in known_filters:
@@ -932,14 +870,7 @@ def construct_iir_filter(
             Ws = np.asanyarray(f_stop) / (float(sfreq) / 2)
             if "gpass" not in iir_params or "gstop" not in iir_params:
                 raise ValueError(
-                    "iir_params must have at least "
-                    "gstop"
-                    " and"
-                    " "
-                    "gpass"
-                    " (or "
-                    "N"
-                    ") entries"
+                    "iir_params must have at least 'gstop' and 'gpass' (or N) entries."
                 )
             system = signal.iirdesign(
                 Wp,
@@ -1488,7 +1419,7 @@ def create_filter(
                     freq = np.r_[freq, [sfreq / 2.0]]
                     gain = np.r_[gain, [1.0]]
                 if np.any(np.abs(np.diff(gain, 2)) > 1):
-                    raise ValueError("Stop bands are not sufficiently " "separated.")
+                    raise ValueError("Stop bands are not sufficiently separated.")
     if method == "fir":
         out = _construct_fir_filter(
             sfreq, freq, gain, filter_length, phase, fir_window, fir_design
@@ -2174,7 +2105,7 @@ _fir_window_dict = {
     "blackman": dict(name="Blackman", ripple=0.0017, attenuation=74),
 }
 _known_fir_windows = tuple(sorted(_fir_window_dict.keys()))
-_known_phases_fir = ("linear", "zero", "zero-double", "minimum")
+_known_phases_fir = ("linear", "zero", "zero-double", "minimum", "minimum-half")
 _known_phases_iir = ("zero", "zero-double", "forward")
 _known_fir_designs = ("firwin", "firwin2")
 _fir_design_dict = {
@@ -2392,9 +2323,7 @@ def _triage_filter_params(
             if l_freq is not None:
                 l_check = min(np.atleast_1d(l_trans_bandwidth))
             mult_fact = 2.0 if fir_design == "firwin2" else 1.0
-            filter_length = "{}s".format(
-                _length_factors[fir_window] * mult_fact / float(min(h_check, l_check)),
-            )
+            filter_length = f"{_length_factors[fir_window] * mult_fact / float(min(h_check, l_check))}s"  # noqa: E501
             next_pow_2 = False  # disable old behavior
         else:
             next_pow_2 = isinstance(filter_length, str) and phase == "zero-double"

@@ -1,0 +1,1 @@
+:meth:`~mne.io.Raw.compute_psd` and :func:`~mne.time_frequency.psd_array_welch` will now use FFT windows aligned to the onsets of good data spans when ``bad_*`` annotations are present. By `Daniel McCloy`_.

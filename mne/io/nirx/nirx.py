@@ -101,7 +101,7 @@ class RawNIRX(BaseRaw):
 
         fname = str(_check_fname(fname, "read", True, "fname", need_dir=True))
 
-        json_config = glob.glob("%s/*%s" % (fname, "config.json"))
+        json_config = glob.glob(f"{fname}/*{'config.json'}")
         if len(json_config):
             is_aurora = True
         else:
@@ -130,7 +130,7 @@ class RawNIRX(BaseRaw):
                 "config.txt",
                 "probeInfo.mat",
             )
-            n_dat = len(glob.glob("%s/*%s" % (fname, "dat")))
+            n_dat = len(glob.glob(f"{fname}/*{'dat'}"))
             if n_dat != 1:
                 warn(
                     "A single dat file was expected in the specified path, "
@@ -143,7 +143,7 @@ class RawNIRX(BaseRaw):
         files = dict()
         nan_mask = dict()
         for key in keys:
-            files[key] = glob.glob("%s/*%s" % (fname, key))
+            files[key] = glob.glob(f"{fname}/*{key}")
             fidx = 0
             if len(files[key]) != 1:
                 if key not in ("wl1", "wl2"):
@@ -202,7 +202,7 @@ class RawNIRX(BaseRaw):
             if hdr["GeneralInfo"]["NIRStar"] not in ['"15.0"', '"15.2"', '"15.3"']:
                 raise RuntimeError(
                     "MNE does not support this NIRStar version"
-                    " (%s)" % (hdr["GeneralInfo"]["NIRStar"],)
+                    f" ({hdr['GeneralInfo']['NIRStar']})"
                 )
             if (
                 "NIRScout" not in hdr["GeneralInfo"]["Device"]

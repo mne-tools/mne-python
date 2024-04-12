@@ -613,8 +613,9 @@ def test_brainvision_vectorized_data():
 def test_coodinates_extraction():
     """Test reading of [Coordinates] section if present."""
     # vhdr 2 has a Coordinates section
-    with _record_warnings(), pytest.warns(
-        RuntimeWarning, match="coordinate information"
+    with (
+        _record_warnings(),
+        pytest.warns(RuntimeWarning, match="coordinate information"),
     ):
         raw = read_raw_brainvision(vhdr_v2_path)
 

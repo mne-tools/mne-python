@@ -1980,9 +1980,7 @@ def _handle_decim(info, decim, lowpass):
         decim = max(int(info["sfreq"] / (lp * 3) + 1e-6), 1)
     decim = _ensure_int(decim, "decim", must_be='an int or "auto"')
     if decim <= 0:
-        raise ValueError(
-            'decim must be "auto" or a positive integer, got %s' % (decim,)
-        )
+        raise ValueError(f'decim must be "auto" or a positive integer, got {decim}')
     decim = _check_decim(info, decim, 0)[0]
     data_picks = _pick_data_channels(info, exclude=())
     return decim, data_picks
@@ -2140,20 +2138,27 @@ def _set_title_multiple_electrodes(
         ch_type = _channel_type_prettyprint.get(ch_type, ch_type)
         if ch_type is None:
             ch_type = "sensor"
-        if len(ch_names) > 1:
-            ch_type += "s"
-        combine = combine.capitalize() if isinstance(combine, str) else "Combination"
+        ch_type = f"{ch_type}{_pl(ch_names)}"
+        if hasattr(combine, "func"):  # functools.partial
+            combine = combine.func
+        if callable(combine):
+            combine = getattr(combine, "__name__", str(combine))
+        if not isinstance(combine, str):
+            combine = "Combination"
+        # mean → Mean, but avoid RMS → Rms and GFP → Gfp
+        if combine[0].islower():
+            combine = combine.capitalize()
         if all_:
             title = f"{combine} of {len(ch_names)} {ch_type}"
         elif len(ch_names) > max_chans and combine != "gfp":
-            logger.info("More than %i channels, truncating title ...", max_chans)
+            logger.info(f"More than {max_chans} channels, truncating title ...")
             title += f", ...\n({combine} of {len(ch_names)} {ch_type})"
     return title
 
 
 def _check_time_unit(time_unit, times):
     if not isinstance(time_unit, str):
-        raise TypeError("time_unit must be str, got %s" % (type(time_unit),))
+        raise TypeError(f"time_unit must be str, got {type(time_unit)}")
     if time_unit == "s":
         pass
     elif time_unit == "ms":
@@ -2215,7 +2220,7 @@ def _plot_masked_image(
         if mask.shape != data.shape:
             raise ValueError(
                 "The mask must have the same shape as the data, "
-                "i.e., %s, not %s" % (data.shape, mask.shape)
+                f"i.e., {data.shape}, not {mask.shape}"
             )
         if draw_contour and yscale == "log":
             warn("Cannot draw contours with linear yscale yet ...")
@@ -2322,7 +2327,7 @@ def _plot_masked_image(
             t_end = ", all points masked)"
         else:
             fraction = 1 - (np.float64(mask.sum()) / np.float64(mask.size))
-            t_end = ", %0.3g%% of points masked)" % (fraction * 100,)
+            t_end = f", {fraction * 100:0.3g}% of points masked)"
     else:
         t_end = ")"
 
@@ -2375,10 +2380,16 @@ def _make_combine_callable(
         def _rms(data):
             return np.sqrt((data**2).mean(**kwargs))
 
+        def _gfp(data):
+            return data.std(axis=axis, ddof=0)
+
+        # make them play nice with _set_title_multiple_electrodes()
+        _rms.__name__ = "RMS"
+        _gfp.__name__ = "GFP"
         if "rms" in valid:
             combine_dict["rms"] = _rms
         if "gfp" in valid and ch_type == "eeg":
-            combine_dict["gfp"] = lambda data: data.std(axis=axis, ddof=0)
+            combine_dict["gfp"] = _gfp
         elif "gfp" in valid:
             combine_dict["gfp"] = _rms
         try:

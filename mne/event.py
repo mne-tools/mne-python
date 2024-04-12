@@ -1030,7 +1030,7 @@ def concatenate_events(events, first_samps, last_samps):
     _validate_type(events, list, "events")
     if not (len(events) == len(last_samps) and len(events) == len(first_samps)):
         raise ValueError(
-            "events, first_samps, and last_samps must all have " "the same lengths"
+            "events, first_samps, and last_samps must all have the same lengths"
         )
     first_samps = np.array(first_samps)
     last_samps = np.array(last_samps)

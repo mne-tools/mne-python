@@ -75,7 +75,7 @@ from .fixes import rng_uniform
 from .html_templates import _get_html_template
 from .parallel import parallel_func
 from .time_frequency.spectrum import EpochsSpectrum, SpectrumMixin, _validate_method
-from .time_frequency.tfr import EpochsTFR
+from .time_frequency.tfr import AverageTFR, EpochsTFR
 from .utils import (
     ExtendedTimeMixin,
     GetEpochsMixin,
@@ -419,6 +419,8 @@ class BaseEpochs(
     filename : str | None
         The filename (if the epochs are read from disk).
     %(metadata_epochs)s
+
+        .. versionadded:: 0.16
     %(event_repeated_epochs)s
     %(raw_sfreq)s
     annotations : instance of mne.Annotations | None
@@ -1163,8 +1165,8 @@ class BaseEpochs(
             assert len(self.events) == len(self._data)
             if data.shape != self._data.shape[1:]:
                 raise RuntimeError(
-                    "You passed a function that resulted n data of shape {}, "
-                    "but it should be {}.".format(data.shape, self._data.shape[1:])
+                    f"You passed a function that resulted n data of shape "
+                    f"{data.shape}, but it should be {self._data.shape[1:]}."
                 )
         else:
             if mode not in {"mean", "std"}:
@@ -2464,7 +2466,7 @@ class BaseEpochs(
             for ii, id_ in enumerate(event_ids):
                 if len(id_) == 0:
                     raise KeyError(
-                        f"{orig_ids[ii]} not found in the epoch " "object's event_id."
+                        f"{orig_ids[ii]} not found in the epoch object's event_id."
                     )
                 elif len({sub_id in ids for sub_id in id_}) != 1:
                     err = (
@@ -2555,6 +2557,139 @@ class BaseEpochs(
             exclude=exclude,
             proj=proj,
             remove_dc=remove_dc,
+            n_jobs=n_jobs,
+            verbose=verbose,
+            **method_kw,
+        )
+
+    @verbose
+    def compute_tfr(
+        self,
+        method,
+        freqs,
+        *,
+        tmin=None,
+        tmax=None,
+        picks=None,
+        proj=False,
+        output="power",
+        average=False,
+        return_itc=False,
+        decim=1,
+        n_jobs=None,
+        verbose=None,
+        **method_kw,
+    ):
+        """Compute a time-frequency representation of epoched data.
+
+        Parameters
+        ----------
+        %(method_tfr_epochs)s
+        %(freqs_tfr_epochs)s
+        %(tmin_tmax_psd)s
+        %(picks_good_data_noref)s
+        %(proj_psd)s
+        %(output_compute_tfr)s
+        average : bool
+            Whether to return average power across epochs (instead of single-trial
+            power). ``average=True`` is not compatible with ``output="complex"`` or
+            ``output="phase"``. Ignored if ``method="stockwell"`` (Stockwell method
+            *requires* averaging). Default is ``False``.
+        return_itc : bool
+            Whether to return inter-trial coherence (ITC) as well as power estimates.
+            If ``True`` then must specify ``average=True`` (or ``method="stockwell",
+            average="auto"``). Default is ``False``.
+        %(decim_tfr)s
+        %(n_jobs)s
+        %(verbose)s
+        %(method_kw_epochs_tfr)s
+
+        Returns
+        -------
+        tfr : instance of EpochsTFR or AverageTFR
+            The time-frequency-resolved power estimates.
+        itc : instance of AverageTFR
+            The inter-trial coherence (ITC). Only returned if ``return_itc=True``.
+
+        Notes
+        -----
+        If ``average=True`` (or ``method="stockwell", average="auto"``) the result will
+        be an :class:`~mne.time_frequency.AverageTFR` instead of an
+        :class:`~mne.time_frequency.EpochsTFR`.
+
+        .. versionadded:: 1.7
+
+        References
+        ----------
+        .. footbibliography::
+        """
+        if method == "stockwell" and not average:  # stockwell method *must* average
+            logger.info(
+                'Requested `method="stockwell"` so ignoring parameter `average=False`.'
+            )
+            average = True
+        if average:
+            # augment `output` value for use by tfr_array_* functions
+            _check_option("output", output, ("power",), extra=" when average=True")
+            method_kw["output"] = "avg_power_itc" if return_itc else "avg_power"
+        else:
+            msg = (
+                "compute_tfr() got incompatible parameters `average=False` and `{}` "
+                "({} requires averaging over epochs)."
+            )
+            if return_itc:
+                raise ValueError(msg.format("return_itc=True", "computing ITC"))
+            if method == "stockwell":
+                raise ValueError(msg.format('method="stockwell"', "Stockwell method"))
+            # `average` and `return_itc` both False, so "phase" and "complex" are OK
+            _check_option("output", output, ("power", "phase", "complex"))
+            method_kw["output"] = output
+
+        if method == "stockwell":
+            method_kw["return_itc"] = return_itc
+            method_kw.pop("output")
+            if isinstance(freqs, str):
+                _check_option("freqs", freqs, "auto")
+            else:
+                _validate_type(freqs, "array-like")
+                _check_option(
+                    "freqs", np.array(freqs).shape, ((2,),), extra=" (wrong shape)."
+                )
+        if average:
+            out = AverageTFR(
+                inst=self,
+                method=method,
+                freqs=freqs,
+                tmin=tmin,
+                tmax=tmax,
+                picks=picks,
+                proj=proj,
+                decim=decim,
+                n_jobs=n_jobs,
+                verbose=verbose,
+                **method_kw,
+            )
+            # tfr_array_stockwell always returns ITC (but sometimes it's None)
+            if hasattr(out, "_itc"):
+                if out._itc is not None:
+                    state = out.__getstate__()
+                    state["data"] = out._itc
+                    state["data_type"] = "Inter-trial coherence"
+                    itc = AverageTFR(inst=state)
+                    del out._itc
+                    return out, itc
+                del out._itc
+            return out
+        # now handle average=False
+        return EpochsTFR(
+            inst=self,
+            method=method,
+            freqs=freqs,
+            tmin=tmin,
+            tmax=tmax,
+            picks=picks,
+            proj=proj,
+            decim=decim,
             n_jobs=n_jobs,
             verbose=verbose,
             **method_kw,
@@ -2829,14 +2964,15 @@ def make_metadata(
         A mapping from event names (keys) to event IDs (values). The event
         names will be incorporated as columns of the returned metadata
         :class:`~pandas.DataFrame`.
-    tmin, tmax : float | None
-        Start and end of the time interval for metadata generation in seconds, relative
-        to the time-locked event of the respective time window (the "row events").
+    tmin, tmax : float | str | list of str | None
+        If float, start and end of the time interval for metadata generation in seconds,
+        relative to the time-locked event of the respective time window (the "row
+        events").
 
         .. note::
            If you are planning to attach the generated metadata to
            `~mne.Epochs` and intend to include only events that fall inside
-           your epochs time interval, pass the same ``tmin`` and ``tmax``
+           your epoch's time interval, pass the same ``tmin`` and ``tmax``
            values here as you use for your epochs.
 
         If ``None``, the time window used for metadata generation is bounded by the
@@ -2849,8 +2985,17 @@ def make_metadata(
            the first row event. If ``tmax=None``, the last time window for metadata
            generation ends with the last event in ``events``.
 
+        If a string or a list of strings, the events bounding the metadata around each
+        "row event". For ``tmin``, the events are assumed to occur **before** the row
+        event, and for ``tmax``, the events are assumed to occur **after** – unless
+        ``tmin`` or ``tmax`` are equal to a row event, in which case the row event
+        serves as the bound.
+
         .. versionchanged:: 1.6.0
            Added support for ``None``.
+
+        .. versionadded:: 1.7.0
+           Added support for strings.
     sfreq : float
         The sampling frequency of the data from which the events array was
         extracted.
@@ -2936,8 +3081,8 @@ def make_metadata(
     be attached; it may well be much shorter or longer, or not overlap at all,
     if desired. This can be useful, for example, to include events that
     occurred before or after an epoch, e.g. during the inter-trial interval.
-    If either ``tmin``, ``tmax``, or both are ``None``, the time window will
-    typically vary, too.
+    If either ``tmin``, ``tmax``, or both are ``None``, or a string referring e.g. to a
+    response event, the time window will typically vary, too.
 
     .. versionadded:: 0.23
 
@@ -2950,11 +3095,11 @@ def make_metadata(
     _validate_type(events, types=("array-like",), item_name="events")
     _validate_type(event_id, types=(dict,), item_name="event_id")
     _validate_type(sfreq, types=("numeric",), item_name="sfreq")
-    _validate_type(tmin, types=("numeric", None), item_name="tmin")
-    _validate_type(tmax, types=("numeric", None), item_name="tmax")
-    _validate_type(row_events, types=(None, str, list, tuple), item_name="row_events")
-    _validate_type(keep_first, types=(None, str, list, tuple), item_name="keep_first")
-    _validate_type(keep_last, types=(None, str, list, tuple), item_name="keep_last")
+    _validate_type(tmin, types=("numeric", str, "array-like", None), item_name="tmin")
+    _validate_type(tmax, types=("numeric", str, "array-like", None), item_name="tmax")
+    _validate_type(row_events, types=(None, str, "array-like"), item_name="row_events")
+    _validate_type(keep_first, types=(None, str, "array-like"), item_name="keep_first")
+    _validate_type(keep_last, types=(None, str, "array-like"), item_name="keep_last")
 
     if not event_id:
         raise ValueError("event_id dictionary must contain at least one entry")
@@ -2970,6 +3115,19 @@ def make_metadata(
     row_events = _ensure_list(row_events)
     keep_first = _ensure_list(keep_first)
     keep_last = _ensure_list(keep_last)
+
+    # Turn tmin, tmax into a list if they're strings or arrays of strings
+    try:
+        _validate_type(tmin, types=(str, "array-like"), item_name="tmin")
+        tmin = _ensure_list(tmin)
+    except TypeError:
+        pass
+
+    try:
+        _validate_type(tmax, types=(str, "array-like"), item_name="tmax")
+        tmax = _ensure_list(tmax)
+    except TypeError:
+        pass
 
     keep_first_and_last = set(keep_first) & set(keep_last)
     if keep_first_and_last:
@@ -2990,18 +3148,40 @@ def make_metadata(
                     f"{param_name}, cannot be found in event_id dictionary"
                 )
 
-    event_name_diff = sorted(set(row_events) - set(event_id.keys()))
-    if event_name_diff:
-        raise ValueError(
-            f"Present in row_events, but missing from event_id: "
-            f'{", ".join(event_name_diff)}'
+    # If tmin, tmax are strings, ensure these event names are present in event_id
+    def _diff_input_strings_vs_event_id(input_strings, input_name, event_id):
+        event_name_diff = sorted(set(input_strings) - set(event_id.keys()))
+        if event_name_diff:
+            raise ValueError(
+                f"Present in {input_name}, but missing from event_id: "
+                f'{", ".join(event_name_diff)}'
+            )
+
+    _diff_input_strings_vs_event_id(
+        input_strings=row_events, input_name="row_events", event_id=event_id
+    )
+    if isinstance(tmin, list):
+        _diff_input_strings_vs_event_id(
+            input_strings=tmin, input_name="tmin", event_id=event_id
         )
-    del event_name_diff
+    if isinstance(tmax, list):
+        _diff_input_strings_vs_event_id(
+            input_strings=tmax, input_name="tmax", event_id=event_id
+        )
 
     # First and last sample of each epoch, relative to the time-locked event
     # This follows the approach taken in mne.Epochs
-    start_sample = None if tmin is None else int(round(tmin * sfreq))
-    stop_sample = None if tmax is None else int(round(tmax * sfreq)) + 1
+    # For strings and None, we don't know the start and stop samples in advance as the
+    # time window can vary.
+    if isinstance(tmin, (type(None), list)):
+        start_sample = None
+    else:
+        start_sample = int(round(tmin * sfreq))
+
+    if isinstance(tmax, (type(None), list)):
+        stop_sample = None
+    else:
+        stop_sample = int(round(tmax * sfreq)) + 1
 
     # Make indexing easier
     # We create the DataFrame before subsetting the events so we end up with
@@ -3055,14 +3235,47 @@ def make_metadata(
         metadata.loc[row_idx, "event_name"] = id_to_name_map[row_event.id]
 
         # Determine which events fall into the current time window
-        if start_sample is None:
+        if start_sample is None and isinstance(tmin, list):
+            # Lower bound is the the current or the closest previpus event with a name
+            # in "tmin"; if there is no such event (e.g., beginning of the recording is
+            # being approached), the upper lower becomes the last event in the
+            # recording.
+            prev_matching_events = events_df.loc[
+                (events_df["sample"] <= row_event.sample)
+                & (events_df["id"].isin([event_id[name] for name in tmin])),
+                :,
+            ]
+            if prev_matching_events.size == 0:
+                # No earlier matching event. Use the current one as the beginning of the
+                # time window. This may occur at the beginning of a recording.
+                window_start_sample = row_event.sample
+            else:
+                # At least one earlier matching event. Use the closest one.
+                window_start_sample = prev_matching_events.iloc[-1]["sample"]
+        elif start_sample is None:
             # Lower bound is the current event.
             window_start_sample = row_event.sample
         else:
             # Lower bound is determined by tmin.
             window_start_sample = row_event.sample + start_sample
 
-        if stop_sample is None:
+        if stop_sample is None and isinstance(tmax, list):
+            # Upper bound is the the current or the closest following event with a name
+            # in "tmax"; if there is no such event (e.g., end of the recording is being
+            # approached), the upper bound becomes the last event in the recording.
+            next_matching_events = events_df.loc[
+                (events_df["sample"] >= row_event.sample)
+                & (events_df["id"].isin([event_id[name] for name in tmax])),
+                :,
+            ]
+            if next_matching_events.size == 0:
+                # No matching event after the current one; use the end of the recording
+                # as upper bound. This may occur at the end of a recording.
+                window_stop_sample = events_df["sample"].iloc[-1]
+            else:
+                # At least one matching later event. Use the closest one..
+                window_stop_sample = next_matching_events.iloc[0]["sample"]
+        elif stop_sample is None:
             # Upper bound: next event of the same type, or the last event (of
             # any type) if no later event of the same type can be found.
             next_events = events_df.loc[
@@ -3225,20 +3438,18 @@ class Epochs(BaseEpochs):
     %(on_missing_epochs)s
     %(reject_by_annotation_epochs)s
     %(metadata_epochs)s
+
+        .. versionadded:: 0.16
     %(event_repeated_epochs)s
     %(verbose)s
 
     Attributes
     ----------
     %(info_not_none)s
-    event_id : dict
-        Names of conditions corresponding to event_ids.
+    %(event_id_attr)s
     ch_names : list of string
         List of channel names.
-    selection : array
-        List of indices of selected events (not dropped or ignored etc.). For
-        example, if the original event array had 4 events and the second event
-        has been dropped, this attribute would be np.array([0, 2, 3]).
+    %(selection_attr)s
     preload : bool
         Indicates whether epochs are in memory.
     drop_log : tuple of tuple
@@ -3457,6 +3668,8 @@ class EpochsArray(BaseEpochs):
     %(proj_epochs)s
     %(on_missing_epochs)s
     %(metadata_epochs)s
+
+        .. versionadded:: 0.16
     %(selection)s
     %(drop_log)s
 
@@ -3515,11 +3728,11 @@ class EpochsArray(BaseEpochs):
         data = np.asanyarray(data, dtype=dtype)
         if data.ndim != 3:
             raise ValueError(
-                "Data must be a 3D array of shape (n_epochs, " "n_channels, n_samples)"
+                "Data must be a 3D array of shape (n_epochs, n_channels, n_samples)"
             )
 
         if len(info["ch_names"]) != data.shape[1]:
-            raise ValueError("Info and data must have same number of " "channels.")
+            raise ValueError("Info and data must have same number of channels.")
         if events is None:
             n_epochs = len(data)
             events = _gen_events(n_epochs)
@@ -3782,8 +3995,8 @@ def _is_good(
                             bad_names = [ch_names[idx[i]] for i in idx_deltas]
                             if not has_printed:
                                 logger.info(
-                                    "    Rejecting %s epoch based on %s : "
-                                    "%s" % (t, name, bad_names)
+                                    f"    Rejecting {t} epoch based on {name} : "
+                                    f"{bad_names}"
                                 )
                                 has_printed = True
                             if not full_report:

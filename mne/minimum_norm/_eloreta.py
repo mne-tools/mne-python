@@ -60,8 +60,8 @@ def _compute_eloreta(inv, lambda2, options):
     logger.info("    Computing optimized source covariance (eLORETA)...")
     if n_orient == 3:
         logger.info(
-            "        Using %s orientation weights"
-            % ("uniform" if force_equal else "independent",)
+            f"        Using {'uniform' if force_equal else 'independent'} "
+            "orientation weights"
         )
     # src, sens, 3
     G_3 = _get_G_3(G, n_orient)
@@ -120,8 +120,7 @@ def _compute_eloreta(inv, lambda2, options):
             R_last.ravel()
         )
         logger.debug(
-            "            Iteration %s / %s ...%s (%0.1e)"
-            % (kk + 1, max_iter, extra, delta)
+            f"            Iteration {kk + 1} / {max_iter} ...{extra} ({delta:0.1e})"
         )
         if delta < eps:
             logger.info(
