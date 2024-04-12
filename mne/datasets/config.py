@@ -92,6 +92,7 @@ RELEASES = dict(
     testing="0.152",
     misc="0.27",
     phantom_kit="0.2",
+    ucl_opm_auditory="0.2",
 )
 TESTING_VERSIONED = f'mne-testing-data-{RELEASES["testing"]}'
 MISC_VERSIONED = f'mne-misc-data-{RELEASES["misc"]}'
@@ -149,8 +150,8 @@ MNE_DATASETS["fnirs_motor"] = dict(
 
 MNE_DATASETS["ucl_opm_auditory"] = dict(
     archive_name="auditory_OPM_stationary.zip",
-    hash="md5:9ed0d8d554894542b56f8e7c4c0041fe",
-    url="https://osf.io/download/mwrt3/?version=1",
+    hash="md5:c43080c5cd33be3dc86891c358a79c49",
+    url="https://osf.io/download/rcvgu/?version=1",
     folder_name="auditory_OPM_stationary",
     config_key="MNE_DATASETS_UCL_OPM_AUDITORY_PATH",
 )
