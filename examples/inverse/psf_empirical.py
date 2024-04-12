@@ -124,7 +124,7 @@ for source in sources:
             "sample", "inflated", "lh", subjects_dir=subjects_dir
         )
         brain_psf.show_view("ventral")
-        title_str = "%s %s %s" % (method, source, psf)
+        title_str = f"{method} {source} {psf}"
         brain_psf.add_text(
             0.1, 0.9, title_str, "title", font_size=16, color=(255, 255, 255)
         )
