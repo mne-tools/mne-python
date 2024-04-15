@@ -908,7 +908,7 @@ class _PCA:
 
         U, S, V = _safe_svd(X, full_matrices=False)
         # flip eigenvectors' sign to enforce deterministic output
-        U, V = svd_flip(U, V, u_based_decision=False)
+        U, V = svd_flip(U, V)
 
         components_ = V
 
