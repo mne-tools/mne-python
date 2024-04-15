@@ -525,11 +525,11 @@ class CSP(TransformerMixin, BaseEstimator):
 
         # Someday we could allow the user to pass this, then we wouldn't need to convert
         # but in the meantime they can use a pipeline with a scaler
-        self._info = create_info(n_channels, 1000.0, "eeg")
+        self._info = create_info(n_channels, 1000.0, "mag")
         if self.rank is None:
             self._rank = self.rank
         else:
-            self._rank = {"eeg": sum(self.rank.values())}
+            self._rank = {"mag": sum(self.rank.values())}
 
         covs = []
         sample_weights = []

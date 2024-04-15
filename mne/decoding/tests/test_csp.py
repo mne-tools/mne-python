@@ -13,7 +13,8 @@ import pytest
 from numpy.testing import assert_array_almost_equal, assert_array_equal, assert_equal
 
 from mne import Epochs, io, pick_types, read_events
-from mne.decoding.csp import CSP, SPoC, _ajd_pham
+from mne.decoding import CSP, Scaler, SPoC
+from mne.decoding.csp import _ajd_pham
 
 data_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
 raw_fname = data_dir / "test_raw.fif"
@@ -247,7 +248,7 @@ def test_csp():
 
 # Even the "reg is None and rank is None" case should pass now thanks to the
 # do_compute_rank
-@pytest.mark.parametrize("ch_type", ("mag", "eeg"))
+@pytest.mark.parametrize("ch_type", ("mag", "eeg", ("mag", "eeg")))
 @pytest.mark.parametrize("rank", (None, "correct"))
 @pytest.mark.parametrize("reg", [None, 0.001, "oas"])
 def test_regularized_csp(ch_type, rank, reg):
@@ -258,13 +259,19 @@ def test_regularized_csp(ch_type, rank, reg):
     from sklearn.pipeline import make_pipeline
 
     raw = io.read_raw_fif(raw_fname).pick(ch_type, exclude="bads").load_data()
-    if ch_type == "eeg":
+    n_orig = len(raw.ch_names)
+    ch_decim = 2
+    raw.pick_channels(raw.ch_names[::ch_decim])
+    if "eeg" in ch_type:
         raw.set_eeg_reference(projection=True)
     n_eig = len(raw.ch_names) - len(raw.info["projs"])
+    n_ch = n_orig // ch_decim
     if ch_type == "eeg":
-        assert n_eig == 59
+        assert n_eig == n_ch - 1
+    elif ch_type == "mag":
+        assert n_eig == n_ch - 3
     else:
-        assert n_eig == 99
+        assert n_eig == n_ch - 4
     if rank == "correct":
         rank = {ch_type: n_eig}
     else:
@@ -280,9 +287,11 @@ def test_regularized_csp(ch_type, rank, reg):
     assert 25 < len(epochs) < 30
     epochs_data = epochs.get_data(copy=False)
     n_channels = epochs_data.shape[1]
-    assert n_channels in (102, 60)
+    assert n_channels == n_ch
     n_components = 3
 
+    sc = Scaler(epochs.info)
+    epochs_data = sc.fit_transform(epochs_data)
     csp = CSP(n_components=n_components, reg=reg, norm_trace=False, rank=rank)
     X = csp.fit_transform(epochs_data, epochs.events[:, -1])
     y = epochs.events[:, -1]
