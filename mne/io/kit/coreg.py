@@ -181,9 +181,7 @@ def _set_dig_kit(mrk, elp, hsp, eeg, *, bad_coils=()):
         if len(bad_coils) > 0:
             mrk = np.delete(mrk, bad_coils, 0)
     if len(mrk) not in (3, 4, 5):
-        raise ValueError(
-            "MRK should contain 3 ~ 5 points; got shape " "%s." % (mrk.shape,)
-        )
+        raise ValueError(f"MRK should contain 3 ~ 5 points; got shape {mrk.shape}.")
 
     mrk = apply_trans(als_ras_trans, mrk)
 
