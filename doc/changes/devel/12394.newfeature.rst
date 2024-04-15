@@ -1,1 +1,1 @@
-Add ability to remove bad marker coils in :func:`mne.io.read_raw_kit`, by `Judy Zhu`_.
+Add ability to remove bad marker coils in :func:`mne.io.read_raw_kit`, by `Judy D Zhu`_.
