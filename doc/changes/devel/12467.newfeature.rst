@@ -1,1 +1,1 @@
-Add ``picks=`` to :meth:`mne.io.Raw.plot` to improve uniformity with :meth:`mne.Epochs.plot` and :meth:`mne.Evoked.plot`, by `Ivo de Jong`_.
+Add ``picks`` parameter to :meth:`mne.io.Raw.plot`, allowing users to select which channels to plot. This makes makes the raw data plotting API consistent with :meth:`mne.Epochs.plot` and :meth:`mne.Evoked.plot`, by `Ivo de Jong`_.
