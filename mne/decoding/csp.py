@@ -523,12 +523,13 @@ class CSP(TransformerMixin, BaseEstimator):
         elif self.cov_est == "epoch":
             cov_estimator = self._epoch_cov
 
-        # TODO: We should allow the user to pass this, then we won't need to convert
-        self._info = create_info(n_channels, 1000.0, "mag")
+        # Someday we could allow the user to pass this, then we wouldn't need to convert
+        # but in the meantime they can use a pipeline with a scaler
+        self._info = create_info(n_channels, 1000.0, "eeg")
         if self.rank is None:
             self._rank = self.rank
         else:
-            self._rank = {"mag": sum(self.rank.values())}
+            self._rank = {"eeg": sum(self.rank.values())}
 
         covs = []
         sample_weights = []

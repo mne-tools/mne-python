@@ -18,7 +18,7 @@ from mne.decoding.csp import CSP, SPoC, _ajd_pham
 data_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
 raw_fname = data_dir / "test_raw.fif"
 event_name = data_dir / "test-eve.fif"
-tmin, tmax = -0.2, 0.5
+tmin, tmax = -0.1, 0.2
 event_id = dict(aud_l=1, vis_l=3)
 # if stop is too small pca may fail in some cases, but we're okay on this file
 start, stop = 0, 8
@@ -249,35 +249,43 @@ def test_csp():
 # do_compute_rank
 @pytest.mark.parametrize("ch_type", ("mag", "eeg"))
 @pytest.mark.parametrize("rank", (None, "correct"))
-@pytest.mark.parametrize("reg", [None, 0.05, "ledoit_wolf", "oas"])
+@pytest.mark.parametrize("reg", [None, 0.001, "oas"])
 def test_regularized_csp(ch_type, rank, reg):
     """Test Common Spatial Patterns algorithm using regularized covariance."""
     pytest.importorskip("sklearn")
-    raw = io.read_raw_fif(raw_fname).pick(ch_type, exclude="bads")
-    raw.pick(raw.ch_names[:30]).load_data()
+    from sklearn.linear_model import LogisticRegression
+    from sklearn.model_selection import StratifiedKFold, cross_val_score
+    from sklearn.pipeline import make_pipeline
+
+    raw = io.read_raw_fif(raw_fname).pick(ch_type, exclude="bads").load_data()
     if ch_type == "eeg":
         raw.set_eeg_reference(projection=True)
     n_eig = len(raw.ch_names) - len(raw.info["projs"])
     if ch_type == "eeg":
-        assert n_eig == 29
+        assert n_eig == 59
     else:
-        assert n_eig == 27
+        assert n_eig == 99
     if rank == "correct":
         rank = {ch_type: n_eig}
     else:
         assert rank is None, rank
     raw.info.normalize_proj()
+    raw.filter(2, 40)
     events = read_events(event_name)
-    epochs = Epochs(raw, events, event_id, tmin, tmax, baseline=(None, 0), preload=True)
+    # map make left and right events the same
+    events[events[:, 2] == 2, 2] = 1
+    events[events[:, 2] == 4, 2] = 3
+    epochs = Epochs(raw, events, event_id, tmin, tmax, decim=5, preload=True)
+    epochs.equalize_event_counts()
+    assert 25 < len(epochs) < 30
     epochs_data = epochs.get_data(copy=False)
     n_channels = epochs_data.shape[1]
-    assert n_channels == 30
+    assert n_channels in (102, 60)
     n_components = 3
 
     csp = CSP(n_components=n_components, reg=reg, norm_trace=False, rank=rank)
-    csp.fit(epochs_data, epochs.events[:, -1])
+    X = csp.fit_transform(epochs_data, epochs.events[:, -1])
     y = epochs.events[:, -1]
-    X = csp.fit_transform(epochs_data, y)
     assert csp.filters_.shape == (n_eig, n_channels)
     assert csp.patterns_.shape == (n_eig, n_channels)
     assert_array_almost_equal(csp.fit(epochs_data, y).transform(epochs_data), X)
@@ -290,6 +298,11 @@ def test_regularized_csp(ch_type, rank, reg):
     csp.n_components = n_components
     sources = csp.transform(epochs_data)
     assert sources.shape[1] == n_components
+
+    cv = StratifiedKFold(5)
+    clf = make_pipeline(csp, LogisticRegression(solver="liblinear"))
+    score = cross_val_score(clf, epochs_data, y, cv=cv, scoring="roc_auc").mean()
+    assert 0.75 <= score <= 1.0
 
 
 def test_csp_pipeline():

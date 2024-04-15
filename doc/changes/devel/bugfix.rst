@@ -1,0 +1,1 @@
+Fixed bugs with handling of rank in :class:`mne.decoding.CSP`, by `Eric Larson`_.
