@@ -151,7 +151,7 @@ MNE_DATASETS["fnirs_motor"] = dict(
 MNE_DATASETS["ucl_opm_auditory"] = dict(
     archive_name="auditory_OPM_stationary.zip",
     hash="md5:b2d69aa2d656b960bd0c18968dc1a14d",
-    url="https://osf.io/download/tp324/?version=1",
+    url="https://osf.io/download/tp324/?version=1",  # original is mwrt3
     folder_name="auditory_OPM_stationary",
     config_key="MNE_DATASETS_UCL_OPM_AUDITORY_PATH",
 )
