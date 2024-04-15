@@ -273,7 +273,14 @@ def test_regularized_csp(ch_type, rank, reg):
     else:
         assert n_eig == n_ch - 4
     if rank == "correct":
-        rank = {ch_type: n_eig}
+        if isinstance(ch_type, str):
+            rank = {ch_type: n_eig}
+        else:
+            assert ch_type == ("mag", "eeg")
+            rank = dict(
+                mag=102 // ch_decim - 3,
+                eeg=60 // ch_decim - 1,
+            )
     else:
         assert rank is None, rank
     raw.info.normalize_proj()
