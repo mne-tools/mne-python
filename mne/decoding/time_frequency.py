@@ -150,17 +150,17 @@ class TimeFrequency(TransformerMixin, BaseEstimator):
         # Compute time-frequency
         Xt = _compute_tfr(
             X,
-            self.freqs,
-            self.sfreq,
-            self.method,
-            self.n_cycles,
-            True,
-            self.time_bandwidth,
-            self.use_fft,
-            self.decim,
-            self.output,
-            self.n_jobs,
-            self.verbose,
+            freqs=self.freqs,
+            sfreq=self.sfreq,
+            method=self.method,
+            n_cycles=self.n_cycles,
+            zero_mean=True,
+            time_bandwidth=self.time_bandwidth,
+            use_fft=self.use_fft,
+            decim=self.decim,
+            output=self.output,
+            n_jobs=self.n_jobs,
+            verbose=self.verbose,
         )
 
         # Back to original shape

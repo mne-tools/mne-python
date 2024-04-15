@@ -11,6 +11,7 @@ import datetime as dt
 import numbers
 
 import numpy as np
+from scipy.sparse import issparse
 
 from ..fixes import BaseEstimator, _check_fit_params, _get_check_scoring
 from ..parallel import parallel_func
@@ -106,6 +107,12 @@ class LinearModel(BaseEstimator):
         self : instance of LinearModel
             Returns the modified instance.
         """
+        # Once we require sklearn 1.1+ we should do:
+        # from sklearn.utils import check_array
+        # X = check_array(X, input_name="X")
+        # y = check_array(y, dtype=None, ensure_2d=False, input_name="y")
+        if issparse(X):
+            raise TypeError("X should be a dense array, got sparse instead.")
         X, y = np.asarray(X), np.asarray(y)
         if X.ndim != 2:
             raise ValueError(

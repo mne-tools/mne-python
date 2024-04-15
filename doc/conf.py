@@ -231,7 +231,11 @@ numpydoc_xref_aliases = {
     "EvokedArray": "mne.EvokedArray",
     "BiHemiLabel": "mne.BiHemiLabel",
     "AverageTFR": "mne.time_frequency.AverageTFR",
+    "AverageTFRArray": "mne.time_frequency.AverageTFRArray",
     "EpochsTFR": "mne.time_frequency.EpochsTFR",
+    "EpochsTFRArray": "mne.time_frequency.EpochsTFRArray",
+    "RawTFR": "mne.time_frequency.RawTFR",
+    "RawTFRArray": "mne.time_frequency.RawTFRArray",
     "Raw": "mne.io.Raw",
     "ICA": "mne.preprocessing.ICA",
     "Covariance": "mne.Covariance",
@@ -683,7 +687,9 @@ def append_attr_meth_examples(app, what, name, obj, options, lines):
     if what in ("attribute", "method"):
         size = os.path.getsize(
             os.path.join(
-                os.path.dirname(__file__), "generated", "%s.examples" % (name,)
+                os.path.dirname(__file__),
+                "generated",
+                f"{name}.examples",
             )
         )
         if size > 0:
@@ -730,8 +736,8 @@ linkcheck_ignore = [  # will be compiled to regex
     "https://doi.org/10.3109/",  # www.tandfonline.com
     "https://www.researchgate.net/profile/",
     "https://www.intel.com/content/www/us/en/developer/tools/oneapi/onemkl.html",
-    "https://scholar.google.com/scholar?cites=12188330066413208874&as_ylo=2014",
-    "https://scholar.google.com/scholar?cites=1521584321377182930&as_ylo=2013",
+    r"https://scholar.google.com/scholar\?cites=12188330066413208874&as_ylo=2014",
+    r"https://scholar.google.com/scholar\?cites=1521584321377182930&as_ylo=2013",
     # 500 server error
     "https://openwetware.org/wiki/Beauchamp:FreeSurfer",
     # 503 Server error
@@ -748,6 +754,8 @@ linkcheck_ignore = [  # will be compiled to regex
     # Too slow
     "https://speakerdeck.com/dengemann/",
     "https://www.dtu.dk/english/service/phonebook/person",
+    # SSL problems sometimes
+    "http://ilabs.washington.edu",
 ]
 linkcheck_anchors = False  # saves a bit of time
 linkcheck_timeout = 15  # some can be quite slow
@@ -1192,21 +1200,21 @@ html_context = {
     "carousel": [
         dict(
             title="Source Estimation",
-            text="Distributed, sparse, mixed-norm, beam\u00ADformers, dipole fitting, and more.",  # noqa E501
+            text="Distributed, sparse, mixed-norm, beam\u00adformers, dipole fitting, and more.",  # noqa E501
             url="auto_tutorials/inverse/index.html",
             img="sphx_glr_30_mne_dspm_loreta_008.gif",
             alt="dSPM",
         ),
         dict(
             title="Machine Learning",
-            text="Advanced decoding models including time general\u00ADiza\u00ADtion.",  # noqa E501
+            text="Advanced decoding models including time general\u00adiza\u00adtion.",  # noqa E501
             url="auto_tutorials/machine-learning/50_decoding.html",
             img="sphx_glr_50_decoding_006.png",
             alt="Decoding",
         ),
         dict(
             title="Encoding Models",
-            text="Receptive field estima\u00ADtion with optional smooth\u00ADness priors.",  # noqa E501
+            text="Receptive field estima\u00adtion with optional smooth\u00adness priors.",  # noqa E501
             url="auto_tutorials/machine-learning/30_strf.html",
             img="sphx_glr_30_strf_001.png",
             alt="STRF",
@@ -1220,7 +1228,7 @@ html_context = {
         ),
         dict(
             title="Connectivity",
-            text="All-to-all spectral and effective connec\u00ADtivity measures.",  # noqa E501
+            text="All-to-all spectral and effective connec\u00adtivity measures.",  # noqa E501
             url="https://mne.tools/mne-connectivity/stable/auto_examples/mne_inverse_label_connectivity.html",  # noqa E501
             img="https://mne.tools/mne-connectivity/stable/_images/sphx_glr_mne_inverse_label_connectivity_001.png",  # noqa E501
             alt="Connectivity",
@@ -1337,8 +1345,6 @@ def reset_warnings(gallery_conf, fname):
         # nilearn
         "pkg_resources is deprecated as an API",
         r"The .* was deprecated in Matplotlib 3\.7",
-        # scipy
-        r"scipy.signal.morlet2 is deprecated in SciPy 1\.12",
         # Matplotlib->tz
         r"datetime\.datetime\.utcfromtimestamp",
         # joblib

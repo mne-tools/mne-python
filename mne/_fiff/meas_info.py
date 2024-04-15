@@ -545,12 +545,12 @@ class SetChannelsMixin(MontageMixin):
 
         Notes
         -----
-        The following sensor types are accepted:
+        The following :term:`sensor types` are accepted:
 
-            ecg, eeg, emg, eog, exci, ias, misc, resp, seeg, dbs, stim, syst,
-            ecog, hbo, hbr, fnirs_cw_amplitude, fnirs_fd_ac_amplitude,
-            fnirs_fd_phase, fnirs_od, eyetrack_pos, eyetrack_pupil,
-            temperature, gsr
+            bio, chpi, csd, dbs, dipole, ecg, ecog, eeg, emg, eog, exci,
+            eyegaze, fnirs_cw_amplitude, fnirs_fd_ac_amplitude, fnirs_fd_phase,
+            fnirs_od, gof, gsr, hbo, hbr, ias, misc, pupil, ref_meg, resp,
+            seeg, stim, syst, temperature.
 
         .. versionadded:: 0.9.0
         """
@@ -3155,11 +3155,14 @@ def create_info(ch_names, sfreq, ch_types="misc", verbose=None):
     sfreq : float
         Sample rate of the data.
     ch_types : list of str | str
-        Channel types, default is ``'misc'`` which is not a
-        :term:`data channel <data channels>`.
-        Currently supported fields are 'ecg', 'bio', 'stim', 'eog', 'misc',
-        'seeg', 'dbs', 'ecog', 'mag', 'eeg', 'ref_meg', 'grad', 'emg', 'hbr'
-        'eyetrack' or 'hbo'.
+        Channel types, default is ``'misc'`` which is a
+        :term:`non-data channel <non-data channels>`.
+        Currently supported fields are 'bio', 'chpi', 'csd', 'dbs', 'dipole',
+        'ecg', 'ecog', 'eeg', 'emg', 'eog', 'exci', 'eyegaze',
+        'fnirs_cw_amplitude', 'fnirs_fd_ac_amplitude', 'fnirs_fd_phase',
+        'fnirs_od', 'gof', 'gsr', 'hbo', 'hbr', 'ias', 'misc', 'pupil',
+        'ref_meg', 'resp', 'seeg', 'stim', 'syst', 'temperature' (see also
+        :term:`sensor types`).
         If str, then all channels are assumed to be of the same type.
     %(verbose)s
 
@@ -3179,12 +3182,18 @@ def create_info(ch_names, sfreq, ch_types="misc", verbose=None):
 
     Proper units of measure:
 
-    * V: eeg, eog, seeg, dbs, emg, ecg, bio, ecog
-    * T: mag
+    * V: eeg, eog, seeg, dbs, emg, ecg, bio, ecog, resp, fnirs_fd_ac_amplitude,
+      fnirs_cw_amplitude, fnirs_od
+    * T: mag, chpi, ref_meg
     * T/m: grad
     * M: hbo, hbr
+    * rad: fnirs_fd_phase
     * Am: dipole
-    * AU: misc
+    * S: gsr
+    * C: temperature
+    * V/m²: csd
+    * GOF: gof
+    * AU: misc, stim, eyegaze, pupil
     """
     try:
         ch_names = operator.index(ch_names)  # int-like

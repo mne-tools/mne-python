@@ -167,7 +167,7 @@ def coregister_fiducials(info, fiducials, tol=0.01):
         coord_frame_to = FIFF.FIFFV_COORD_MRI
     frames_from = {d["coord_frame"] for d in info["dig"]}
     if len(frames_from) > 1:
-        raise ValueError("info contains fiducials from different coordinate " "frames")
+        raise ValueError("info contains fiducials from different coordinate frames")
     else:
         coord_frame_from = frames_from.pop()
     coords_from = _fiducial_coords(info["dig"])
@@ -220,7 +220,7 @@ def create_default_subject(fs_home=None, update=False, subjects_dir=None, verbos
     fs_src = os.path.join(fs_home, "subjects", "fsaverage")
     if not os.path.exists(fs_src):
         raise OSError(
-            "fsaverage not found at %r. Is fs_home specified " "correctly?" % fs_src
+            "fsaverage not found at %r. Is fs_home specified correctly?" % fs_src
         )
     for name in ("label", "mri", "surf"):
         dirname = os.path.join(fs_src, name)
@@ -468,7 +468,7 @@ def fit_matched_points(
         return trans
     else:
         raise ValueError(
-            "Invalid out parameter: %r. Needs to be 'params' or " "'trans'." % out
+            "Invalid out parameter: %r. Needs to be 'params' or 'trans'." % out
         )
 
 
@@ -1945,7 +1945,7 @@ class Coregistration:
         n_scale_params = self._n_scale_params
         if n_scale_params == 3:
             # enforce 1 even for 3-axis here (3 points is not enough)
-            logger.info("Enforcing 1 scaling parameter for fit " "with fiducials.")
+            logger.info("Enforcing 1 scaling parameter for fit with fiducials.")
             n_scale_params = 1
         self._lpa_weight = lpa_weight
         self._nasion_weight = nasion_weight

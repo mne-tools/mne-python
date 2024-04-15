@@ -7,8 +7,6 @@
     --pst-font-family-monospace: 'Source Code Pro', var(--pst-font-family-monospace-system);
     /* colors that aren't responsive to light/dark mode */
     --mne-color-discord: #5865F2;
-    --mne-color-primary: #007bff;
-    --mne-color-primary-highlight: #0063cc;
     /* font weight */
     --mne-font-weight-semibold: 600;
 }
@@ -25,18 +23,11 @@ html[data-theme="light"] {
     --mne-color-card-header: rgba(0, 0, 0, 0.05);
     /* section headings */
     --mne-color-heading: #003e80;
-    /* pydata-sphinx-theme overrides */
-    --pst-color-primary: var(--mne-color-primary);
-    --pst-color-primary-highlight: var(--mne-color-primary-highlight);
-    --pst-color-info: var(--pst-color-primary);
-    --pst-color-border: #ccc;
-    --pst-color-background: #fff;
-    --pst-color-link: var(--pst-color-primary-highlight);
     /* sphinx-gallery overrides */
     --sg-download-a-background-color: var(--pst-color-primary);
     --sg-download-a-background-image: unset;
     --sg-download-a-border-color: var(--pst-color-border);
-    --sg-download-a-color: #fff;
+    --sg-download-a-color: var(--sd-color-primary-text);
     --sg-download-a-hover-background-color: var(--pst-color-primary-highlight);
     --sg-download-a-hover-box-shadow-1: none;
     --sg-download-a-hover-box-shadow-2: none;
@@ -52,19 +43,11 @@ html[data-theme="dark"] {
     --mne-color-card-header: rgba(255, 255, 255, 0.2);
     /* section headings */
     --mne-color-heading: #b8cbe0;
-    /* pydata-sphinx-theme overrides */
-    --pst-color-primary: var(--mne-color-primary);
-    --pst-color-primary-highlight: var(--mne-color-primary-highlight);
-    --pst-color-info: var(--pst-color-primary);
-    --pst-color-border: #333;
-    --pst-color-background: #000;
-    --pst-color-link: #66b0ff;
-    --pst-color-on-background: #1e1e1e;
     /* sphinx-gallery overrides */
     --sg-download-a-background-color: var(--pst-color-primary);
     --sg-download-a-background-image: unset;
     --sg-download-a-border-color: var(--pst-color-border);
-    --sg-download-a-color: #000;
+    --sg-download-a-color: var(--sd-color-primary-text);
     --sg-download-a-hover-background-color: var(--pst-color-primary-highlight);
     --sg-download-a-hover-box-shadow-1: none;
     --sg-download-a-hover-box-shadow-2: none;
@@ -97,11 +80,6 @@ div[id^="examples-using-"] h2 {
 /* this is most critical for the homepage logos, but affects all images */
 html[data-theme="dark"] img {
     filter: none;
-}
-
-/* prev/next links */
-.prev-next-area a p.prev-next-title {
-    color: var(--pst-color-link);
 }
 
 /* make versionadded smaller and inline with param name */
@@ -148,7 +126,11 @@ p.sphx-glr-signature {
     border-radius: 0.5rem;
     /* ↓↓↓↓↓↓↓ these two rules copied from sphinx-design */
     box-shadow: 0 .125rem .25rem var(--sd-color-shadow) !important;
+    color: var(--sg-download-a-color);
     transition: color .15s ease-in-out,background-color .15s ease-in-out,border-color .15s ease-in-out,box-shadow .15s ease-in-out;
+}
+.sphx-glr-download a.download::before {
+    color: var(--sg-download-a-color);
 }
 /* Report embedding */
 iframe.sg_report {
@@ -242,24 +224,11 @@ aside.footnote:last-child {
 }
 /* topbar nav active */
 .bd-header.navbar-light#navbar-main .navbar-nav > li.active > .nav-link {
-    color: var(--pst-color-link);
     font-weight: var(--mne-font-weight-semibold);
 }
 /* topbar nav hover */
 .bd-header.navbar-light#navbar-main .navbar-nav li a.nav-link:focus,
 .bd-header.navbar-light#navbar-main .navbar-nav li a.nav-link:hover {
-    color: var(--pst-color-secondary);
-}
-/* sidebar nav */
-nav.bd-links .active > a,
-nav.bd-links .active:hover > a,
-.toc-entry a.nav-link.active,
-.toc-entry a.nav-link.active:hover {
-    color: var(--pst-color-link);
-}
-/* sidebar nav hover */
-nav.bd-links li > a:hover,
-.toc-entry a.nav-link:hover {
     color: var(--pst-color-secondary);
 }
 
@@ -273,10 +242,10 @@ img.logo {
 ul.quicklinks a {
     font-weight: var(--mne-font-weight-semibold);
     color: var(--pst-color-text-base);
+    text-decoration: none;
 }
 ul.quicklinks a:hover {
     text-decoration: none;
-    color: var(--pst-color-secondary);
 }
 h5.card-header {
     margin-top: 0px;
@@ -287,7 +256,6 @@ h5.card-header::before {
     height: 0px;
     margin-top: 0px;
 }
-
 /* ******************************************************* homepage carousel */
 div.frontpage-gallery {
     overflow: hidden;
@@ -342,7 +310,6 @@ div#contributor-avatars div.card img {
 div#contributor-avatars div.card img {
     width: 3em;
 }
-
 .contributor-avatar {
     clip-path: circle(closest-side);
 }

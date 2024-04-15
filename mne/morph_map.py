@@ -155,7 +155,7 @@ def _write_morph_map(fname, subject_from, subject_to, mmap_1, mmap_2):
         with start_and_end_file(fname) as fid:
             _write_morph_map_(fid, subject_from, subject_to, mmap_1, mmap_2)
     except Exception as exp:
-        warn('Could not write morph-map file "%s" (error: %s)' % (fname, exp))
+        warn(f'Could not write morph-map file "{fname}" (error: {exp})')
 
 
 def _write_morph_map_(fid, subject_from, subject_to, mmap_1, mmap_2):
