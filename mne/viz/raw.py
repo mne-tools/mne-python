@@ -193,7 +193,7 @@ def plot_raw(
     %(time_format)s
     %(precompute)s
     %(use_opengl)s
-    %(picks_good_data)s
+    %(picks_all)s
     %(theme_pg)s
 
         .. versionadded:: 1.0
