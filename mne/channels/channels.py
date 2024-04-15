@@ -153,7 +153,7 @@ def equalize_channels(instances, copy=True, verbose=None):
     from ..evoked import Evoked
     from ..forward import Forward
     from ..io import BaseRaw
-    from ..time_frequency import CrossSpectralDensity, _BaseTFR
+    from ..time_frequency import BaseTFR, CrossSpectralDensity
 
     # Instances need to have a `ch_names` attribute and a `pick_channels`
     # method that supports `ordered=True`.
@@ -161,7 +161,7 @@ def equalize_channels(instances, copy=True, verbose=None):
         BaseRaw,
         BaseEpochs,
         Evoked,
-        _BaseTFR,
+        BaseTFR,
         Forward,
         Covariance,
         CrossSpectralDensity,
@@ -447,7 +447,7 @@ class UpdateChannelsMixin:
 
     @verbose
     @legacy(alt="inst.pick(...)")
-    def pick_channels(self, ch_names, ordered=None, *, verbose=None):
+    def pick_channels(self, ch_names, ordered=True, *, verbose=None):
         """Pick some channels.
 
         Parameters
@@ -607,8 +607,6 @@ class UpdateChannelsMixin:
     def _pick_drop_channels(self, idx, *, verbose=None):
         # avoid circular imports
         from ..io import BaseRaw
-        from ..time_frequency import AverageTFR, EpochsTFR
-        from ..time_frequency.spectrum import BaseSpectrum
 
         msg = "adding, dropping, or reordering channels"
         if isinstance(self, BaseRaw):
@@ -633,10 +631,8 @@ class UpdateChannelsMixin:
             if mat is not None:
                 setattr(self, key, mat[idx][:, idx])
 
-        if isinstance(self, BaseSpectrum):
+        if hasattr(self, "_dims"):  # Spectrum and "new-style" TFRs
             axis = self._dims.index("channel")
-        elif isinstance(self, (AverageTFR, EpochsTFR)):
-            axis = -3
         else:  # All others (Evoked, Epochs, Raw) have chs axis=-2
             axis = -2
         if hasattr(self, "_data"):  # skip non-preloaded Raw
@@ -839,6 +835,8 @@ class InterpolationMixin:
             - ``"meg"`` channels support ``"MNE"`` (default) and ``"nan"``
             - ``"eeg"`` channels support ``"spline"`` (default), ``"MNE"`` and ``"nan"``
             - ``"fnirs"`` channels support ``"nearest"`` (default) and ``"nan"``
+            - ``"ecog"`` channels support ``"spline"`` (default) and ``"nan"``
+            - ``"seeg"`` channels support ``"spline"`` (default) and ``"nan"``
 
             None is an alias for::
 

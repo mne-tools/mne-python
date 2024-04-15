@@ -31,9 +31,8 @@ import numpy as np
 ###############################################################################
 # distutils
 
-# distutils has been deprecated since Python 3.10 and is scheduled for removal
-# from the standard library with the release of Python 3.12. For version
-# comparisons, we use setuptools's `parse_version` if available.
+# distutils has been deprecated since Python 3.10 and was removed
+# from the standard library with the release of Python 3.12.
 
 
 def _compare_version(version_a, operator, version_b):
@@ -99,7 +98,7 @@ def _safe_svd(A, **kwargs):
     except np.linalg.LinAlgError as exp:
         from .utils import warn
 
-        warn("SVD error (%s), attempting to use GESVD instead of GESDD" % (exp,))
+        warn(f"SVD error ({exp}), attempting to use GESVD instead of GESDD")
         return linalg.svd(A, lapack_driver="gesvd", **kwargs)
 
 
@@ -193,8 +192,8 @@ class BaseEstimator:
                     "scikit-learn estimators should always "
                     "specify their parameters in the signature"
                     " of their __init__ (no varargs)."
-                    " %s with constructor %s doesn't "
-                    " follow this convention." % (cls, init_signature)
+                    f" {cls} with constructor {init_signature} doesn't "
+                    " follow this convention."
                 )
         # Extract and sort argument names excluding 'self'
         return sorted([p.name for p in parameters])
@@ -265,9 +264,9 @@ class BaseEstimator:
                 name, sub_name = split
                 if name not in valid_params:
                     raise ValueError(
-                        "Invalid parameter %s for estimator %s. "
+                        f"Invalid parameter {name} for estimator {self}. "
                         "Check the list of available parameters "
-                        "with `estimator.get_params().keys()`." % (name, self)
+                        "with `estimator.get_params().keys()`."
                     )
                 sub_object = valid_params[name]
                 sub_object.set_params(**{sub_name: value})
@@ -275,10 +274,10 @@ class BaseEstimator:
                 # simple objects case
                 if key not in valid_params:
                     raise ValueError(
-                        "Invalid parameter %s for estimator %s. "
+                        f"Invalid parameter {key} for estimator "
+                        f"{self.__class__.__name__}. "
                         "Check the list of available parameters "
                         "with `estimator.get_params().keys()`."
-                        % (key, self.__class__.__name__)
                     )
                 setattr(self, key, value)
         return self
@@ -288,7 +287,7 @@ class BaseEstimator:
         pprint(self.get_params(deep=False), params)
         params.seek(0)
         class_name = self.__class__.__name__
-        return "%s(%s)" % (class_name, params.read().strip())
+        return f"{class_name}({params.read().strip()})"
 
     # __getstate__ and __setstate__ are omitted because they only contain
     # conditionals that are not satisfied by our objects (e.g.,
@@ -867,7 +866,7 @@ def pinvh(a, rtol=None):
 
 def pinv(a, rtol=None):
     """Compute a pseudo-inverse of a matrix."""
-    u, s, vh = np.linalg.svd(a, full_matrices=False)
+    u, s, vh = _safe_svd(a, full_matrices=False)
     del a
     maxS = np.max(s)
     if rtol is None:
@@ -890,3 +889,58 @@ def _numpy_h5py_dep():
             "ignore", "`product` is deprecated.*", DeprecationWarning
         )
         yield
+
+
+def minimum_phase(h, method="homomorphic", n_fft=None, *, half=True):
+    """Wrap scipy.signal.minimum_phase with half option."""
+    # Can be removed once
+    from scipy.fft import fft, ifft
+    from scipy.signal import minimum_phase as sp_minimum_phase
+
+    assert isinstance(method, str) and method == "homomorphic"
+
+    if "half" in inspect.getfullargspec(sp_minimum_phase).kwonlyargs:
+        return sp_minimum_phase(h, method=method, n_fft=n_fft, half=half)
+    h = np.asarray(h)
+    if np.iscomplexobj(h):
+        raise ValueError("Complex filters not supported")
+    if h.ndim != 1 or h.size <= 2:
+        raise ValueError("h must be 1-D and at least 2 samples long")
+    n_half = len(h) // 2
+    if not np.allclose(h[-n_half:][::-1], h[:n_half]):
+        warnings.warn(
+            "h does not appear to by symmetric, conversion may fail",
+            RuntimeWarning,
+            stacklevel=2,
+        )
+    if n_fft is None:
+        n_fft = 2 ** int(np.ceil(np.log2(2 * (len(h) - 1) / 0.01)))
+    n_fft = int(n_fft)
+    if n_fft < len(h):
+        raise ValueError("n_fft must be at least len(h)==%s" % len(h))
+
+    # zero-pad; calculate the DFT
+    h_temp = np.abs(fft(h, n_fft))
+    # take 0.25*log(|H|**2) = 0.5*log(|H|)
+    h_temp += 1e-7 * h_temp[h_temp > 0].min()  # don't let log blow up
+    np.log(h_temp, out=h_temp)
+    if half:  # halving of magnitude spectrum optional
+        h_temp *= 0.5
+    # IDFT
+    h_temp = ifft(h_temp).real
+    # multiply pointwise by the homomorphic filter
+    # lmin[n] = 2u[n] - d[n]
+    # i.e., double the positive frequencies and zero out the negative ones;
+    # Oppenheim+Shafer 3rd ed p991 eq13.42b and p1004 fig13.7
+    win = np.zeros(n_fft)
+    win[0] = 1
+    stop = n_fft // 2
+    win[1:stop] = 2
+    if n_fft % 2:
+        win[stop] = 1
+    h_temp *= win
+    h_temp = ifft(np.exp(fft(h_temp)))
+    h_minimum = h_temp.real
+
+    n_out = (n_half + len(h) % 2) if half else len(h)
+    return h_minimum[:n_out]

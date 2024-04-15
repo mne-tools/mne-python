@@ -74,8 +74,7 @@ def _assert_line_endings(dir_):
                     )
     if len(report) > 0:
         raise AssertionError(
-            "Found %s files with incorrect endings:\n%s"
-            % (len(report), "\n".join(report))
+            f"Found {len(report)} files with incorrect endings:\n" + "\n".join(report)
         )
 
 

@@ -3,7 +3,7 @@
 from docutils import nodes
 
 
-def unit_role(name, rawtext, text, lineno, inliner, options={}, content=[]):
+def unit_role(name, rawtext, text, lineno, inliner, options={}, content=[]):  # noqa: B006
     parts = text.split()
 
     def pass_error_to_sphinx(rawtext, text, lineno, inliner):
@@ -24,7 +24,7 @@ def unit_role(name, rawtext, text, lineno, inliner, options={}, content=[]):
     except ValueError:
         return pass_error_to_sphinx(rawtext, text, lineno, inliner)
     # input is well-formatted: proceed
-    node = nodes.Text("\u202F".join(parts))
+    node = nodes.Text("\u202f".join(parts))
     return [node], []
 
 

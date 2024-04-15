@@ -32,7 +32,6 @@ import numpy as np
 import mne
 from mne.datasets import sample
 from mne.stats import permutation_cluster_test
-from mne.time_frequency import tfr_morlet
 
 print(__doc__)
 
@@ -104,24 +103,17 @@ epochs_condition_2.pick([ch_name])
 decim = 2
 freqs = np.arange(7, 30, 3)  # define frequencies of interest
 n_cycles = 1.5
-
-tfr_epochs_1 = tfr_morlet(
-    epochs_condition_1,
-    freqs,
+tfr_kwargs = dict(
+    method="morlet",
+    freqs=freqs,
     n_cycles=n_cycles,
     decim=decim,
     return_itc=False,
     average=False,
 )
 
-tfr_epochs_2 = tfr_morlet(
-    epochs_condition_2,
-    freqs,
-    n_cycles=n_cycles,
-    decim=decim,
-    return_itc=False,
-    average=False,
-)
+tfr_epochs_1 = epochs_condition_1.compute_tfr(**tfr_kwargs)
+tfr_epochs_2 = epochs_condition_2.compute_tfr(**tfr_kwargs)
 
 tfr_epochs_1.apply_baseline(mode="ratio", baseline=(None, 0))
 tfr_epochs_2.apply_baseline(mode="ratio", baseline=(None, 0))

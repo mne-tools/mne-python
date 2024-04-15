@@ -46,6 +46,7 @@ from .._fiff.pick import (
 )
 from .._fiff.proj import Projection, setup_proj
 from ..defaults import _handle_default
+from ..fixes import _median_complex
 from ..rank import compute_rank
 from ..transforms import apply_trans
 from ..utils import (
@@ -65,6 +66,7 @@ from ..utils import (
     verbose,
     warn,
 )
+from ..utils.misc import _identity_function
 from .ui_events import ColormapRange, publish, subscribe
 
 _channel_type_prettyprint = {
@@ -1978,9 +1980,7 @@ def _handle_decim(info, decim, lowpass):
         decim = max(int(info["sfreq"] / (lp * 3) + 1e-6), 1)
     decim = _ensure_int(decim, "decim", must_be='an int or "auto"')
     if decim <= 0:
-        raise ValueError(
-            'decim must be "auto" or a positive integer, got %s' % (decim,)
-        )
+        raise ValueError(f'decim must be "auto" or a positive integer, got {decim}')
     decim = _check_decim(info, decim, 0)[0]
     data_picks = _pick_data_channels(info, exclude=())
     return decim, data_picks
@@ -2138,20 +2138,27 @@ def _set_title_multiple_electrodes(
         ch_type = _channel_type_prettyprint.get(ch_type, ch_type)
         if ch_type is None:
             ch_type = "sensor"
-        if len(ch_names) > 1:
-            ch_type += "s"
-        combine = combine.capitalize() if isinstance(combine, str) else "Combination"
+        ch_type = f"{ch_type}{_pl(ch_names)}"
+        if hasattr(combine, "func"):  # functools.partial
+            combine = combine.func
+        if callable(combine):
+            combine = getattr(combine, "__name__", str(combine))
+        if not isinstance(combine, str):
+            combine = "Combination"
+        # mean → Mean, but avoid RMS → Rms and GFP → Gfp
+        if combine[0].islower():
+            combine = combine.capitalize()
         if all_:
             title = f"{combine} of {len(ch_names)} {ch_type}"
         elif len(ch_names) > max_chans and combine != "gfp":
-            logger.info("More than %i channels, truncating title ...", max_chans)
+            logger.info(f"More than {max_chans} channels, truncating title ...")
             title += f", ...\n({combine} of {len(ch_names)} {ch_type})"
     return title
 
 
 def _check_time_unit(time_unit, times):
     if not isinstance(time_unit, str):
-        raise TypeError("time_unit must be str, got %s" % (type(time_unit),))
+        raise TypeError(f"time_unit must be str, got {type(time_unit)}")
     if time_unit == "s":
         pass
     elif time_unit == "ms":
@@ -2213,7 +2220,7 @@ def _plot_masked_image(
         if mask.shape != data.shape:
             raise ValueError(
                 "The mask must have the same shape as the data, "
-                "i.e., %s, not %s" % (data.shape, mask.shape)
+                f"i.e., {data.shape}, not {mask.shape}"
             )
         if draw_contour and yscale == "log":
             warn("Cannot draw contours with linear yscale yet ...")
@@ -2320,7 +2327,7 @@ def _plot_masked_image(
             t_end = ", all points masked)"
         else:
             fraction = 1 - (np.float64(mask.sum()) / np.float64(mask.size))
-            t_end = ", %0.3g%% of points masked)" % (fraction * 100,)
+            t_end = f", {fraction * 100:0.3g}% of points masked)"
     else:
         t_end = ")"
 
@@ -2328,30 +2335,69 @@ def _plot_masked_image(
 
 
 @fill_doc
-def _make_combine_callable(combine):
+def _make_combine_callable(
+    combine,
+    *,
+    axis=1,
+    valid=("mean", "median", "std", "gfp"),
+    ch_type=None,
+    keepdims=False,
+):
     """Convert None or string values of ``combine`` into callables.
 
     Params
     ------
-    %(combine)s
-        If callable, the callable must accept one positional input (data of
-        shape ``(n_epochs, n_channels, n_times)`` or ``(n_evokeds, n_channels,
-        n_times)``) and return an :class:`array <numpy.ndarray>` of shape
-        ``(n_epochs, n_times)`` or ``(n_evokeds, n_times)``.
+    combine : None | str | callable
+        If callable, the callable must accept one positional input (a numpy array) and
+        return an array with one fewer dimensions (the missing dimension's position is
+        given by ``axis``).
+    axis : int
+        Axis of data array across which to combine. May vary depending on data
+        context; e.g., if data are time-domain sensor traces or TFRs, continuous
+        or epoched, etc.
+    valid : tuple
+        Valid string values for built-in combine methods
+        (may vary for, e.g., combining TFRs versus time-domain signals).
+    ch_type : str
+        Channel type. Affects whether "gfp" is allowed as a synonym for "rms".
+    keepdims : bool
+        Whether to retain the singleton dimension after collapsing across it.
     """
+    kwargs = dict(axis=axis, keepdims=keepdims)
     if combine is None:
-        combine = partial(np.squeeze, axis=1)
+        combine = _identity_function if keepdims else partial(np.squeeze, axis=axis)
     elif isinstance(combine, str):
         combine_dict = {
-            key: partial(getattr(np, key), axis=1) for key in ("mean", "median", "std")
+            key: partial(getattr(np, key), **kwargs)
+            for key in valid
+            if getattr(np, key, None) is not None
         }
-        combine_dict["gfp"] = lambda data: np.sqrt((data**2).mean(axis=1))
+        # marginal median that is safe for complex values:
+        if "median" in valid:
+            combine_dict["median"] = partial(_median_complex, axis=axis)
+
+        # RMS and GFP; if GFP requested for MEG channels, will use RMS anyway
+        def _rms(data):
+            return np.sqrt((data**2).mean(**kwargs))
+
+        def _gfp(data):
+            return data.std(axis=axis, ddof=0)
+
+        # make them play nice with _set_title_multiple_electrodes()
+        _rms.__name__ = "RMS"
+        _gfp.__name__ = "GFP"
+        if "rms" in valid:
+            combine_dict["rms"] = _rms
+        if "gfp" in valid and ch_type == "eeg":
+            combine_dict["gfp"] = _gfp
+        elif "gfp" in valid:
+            combine_dict["gfp"] = _rms
         try:
             combine = combine_dict[combine]
         except KeyError:
             raise ValueError(
-                '"combine" must be None, a callable, or one of "mean", "median", "std",'
-                f' or "gfp"; got {combine}'
+                f'"combine" must be None, a callable, or one of "{", ".join(valid)}"; '
+                f'got {combine}'
             )
     return combine
 

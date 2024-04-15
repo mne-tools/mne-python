@@ -89,9 +89,10 @@ I agree to the following:
 # update the checksum in the MNE_DATASETS dict below, and change version
 # here: ↓↓↓↓↓↓↓↓
 RELEASES = dict(
-    testing="0.151",
+    testing="0.152",
     misc="0.27",
     phantom_kit="0.2",
+    ucl_opm_auditory="0.2",
 )
 TESTING_VERSIONED = f'mne-testing-data-{RELEASES["testing"]}'
 MISC_VERSIONED = f'mne-misc-data-{RELEASES["misc"]}'
@@ -116,7 +117,7 @@ MNE_DATASETS = dict()
 # Testing and misc are at the top as they're updated most often
 MNE_DATASETS["testing"] = dict(
     archive_name=f"{TESTING_VERSIONED}.tar.gz",
-    hash="md5:5832b4d44f0423d22305fa61cb75bc25",
+    hash="md5:df48cdabcf13ebeaafc617cb8e55b6fc",
     url=(
         "https://codeload.github.com/mne-tools/mne-testing-data/"
         f'tar.gz/{RELEASES["testing"]}'
@@ -149,8 +150,8 @@ MNE_DATASETS["fnirs_motor"] = dict(
 
 MNE_DATASETS["ucl_opm_auditory"] = dict(
     archive_name="auditory_OPM_stationary.zip",
-    hash="md5:9ed0d8d554894542b56f8e7c4c0041fe",
-    url="https://osf.io/download/mwrt3/?version=1",
+    hash="md5:b2d69aa2d656b960bd0c18968dc1a14d",
+    url="https://osf.io/download/tp324/?version=1",  # original is mwrt3
     folder_name="auditory_OPM_stationary",
     config_key="MNE_DATASETS_UCL_OPM_AUDITORY_PATH",
 )

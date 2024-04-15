@@ -4,11 +4,9 @@ concurrency:
   cancel-in-progress: true
 on:  # yamllint disable-line rule:truthy
   push:
-    branches:
-      - '*'
+    branches: ["main", "maint/*"]
   pull_request:
-    branches:
-      - '*'
+    branches: ["main", "maint/*"]
 
 permissions:
   contents: read
@@ -22,15 +20,15 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
-      - uses: pre-commit/action@v3.0.0
+          python-version: '3.12'
+      - uses: pre-commit/action@v3.0.1
 
   bandit:
     name: Bandit
     needs: style
     runs-on: ubuntu-latest
     steps:
-      - uses: davidslusser/actions_python_bandit@v1.0.0
+      - uses: davidslusser/actions_python_bandit@v1.0.1
         with:
           src: "mne"
           options: "-c pyproject.toml -ll -r"
@@ -56,17 +54,16 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            python: '3.11'
+            python: '3.12'
             kind: pip-pre
           - os: ubuntu-latest
             python: '3.12'
             kind: conda
-          # 3.12 needs https://github.com/conda-forge/dipy-feedstock/pull/50
           - os: macos-14  # arm64
-            python: '3.11'
+            python: '3.12'
             kind: mamba
           - os: macos-latest  # intel
-            python: '3.11'
+            python: '3.12'
             kind: mamba
           - os: windows-latest
             python: '3.10'
@@ -129,5 +126,7 @@ jobs:
           path: ~/mne_data
       - run: ./tools/github_actions_download.sh
       - run: ./tools/github_actions_test.sh
-      - uses: codecov/codecov-action@v3
+      - uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
         if: success()

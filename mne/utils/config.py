@@ -328,9 +328,9 @@ def get_config(key=None, default=None, raise_error=False, home_dir=None, use_env
             "for a permanent one" % key
         )
         raise KeyError(
-            'Key "%s" not found in %s'
-            "the mne-python config file (%s). "
-            "Try %s%s.%s" % (key, loc_env, config_path, meth_env, meth_file, extra_env)
+            f'Key "{key}" not found in {loc_env}'
+            f"the mne-python config file ({config_path}). "
+            f"Try {meth_env}{meth_file}.{extra_env}"
         )
     else:
         return config.get(key, default)
@@ -649,8 +649,6 @@ def sys_info(
         "numpy",
         "scipy",
         "matplotlib",
-        "pooch",
-        "jinja2",
         "",
         "# Numerical (optional)",
         "sklearn",
@@ -661,6 +659,8 @@ def sys_info(
         "openmeeg",
         "cupy",
         "pandas",
+        "h5io",
+        "h5py",
         "",
         "# Visualization (optional)",
         "pyvista",
@@ -685,6 +685,10 @@ def sys_info(
         "mne-icalabel",
         "mne-bids-pipeline",
         "neo",
+        "eeglabio",
+        "edfio",
+        "mffpy",
+        "pybv",
         "",
     )
     if dependencies == "developer":
@@ -692,14 +696,27 @@ def sys_info(
             "# Testing",
             "pytest",
             "nbclient",
+            "statsmodels",
             "numpydoc",
             "flake8",
             "pydocstyle",
+            "nitime",
+            "imageio",
+            "imageio-ffmpeg",
+            "snirf",
             "",
             "# Documentation",
             "sphinx",
             "sphinx-gallery",
             "pydata-sphinx-theme",
+            "",
+            "# Infrastructure",
+            "decorator",
+            "jinja2",
+            # "lazy-loader",
+            "packaging",
+            "pooch",
+            "tqdm",
             "",
         )
     try:

@@ -85,12 +85,12 @@ from .utils import (
 
 def _check_covs_algebra(cov1, cov2):
     if cov1.ch_names != cov2.ch_names:
-        raise ValueError("Both Covariance do not have the same list of " "channels.")
+        raise ValueError("Both Covariance do not have the same list of channels.")
     projs1 = [str(c) for c in cov1["projs"]]
     projs2 = [str(c) for c in cov1["projs"]]
     if projs1 != projs2:
         raise ValueError(
-            "Both Covariance do not have the same list of " "SSP projections."
+            "Both Covariance do not have the same list of SSP projections."
         )
 
 
@@ -453,7 +453,7 @@ class Covariance(dict):
         )
 
     @verbose
-    def pick_channels(self, ch_names, ordered=None, *, verbose=None):
+    def pick_channels(self, ch_names, ordered=True, *, verbose=None):
         """Pick channels from this covariance matrix.
 
         Parameters
@@ -859,7 +859,7 @@ def _check_method_params(
         for p, v in _method_params.items():
             if v.get("assume_centered", None) is False:
                 raise ValueError(
-                    "`assume_centered` must be True" " if `keep_sample_mean` is False"
+                    "`assume_centered` must be True if `keep_sample_mean` is False"
                 )
     return method, _method_params
 
@@ -1074,9 +1074,7 @@ def compute_covariance(
         and keep_sample_mean
         for epochs_t in epochs
     ):
-        warn(
-            "Epochs are not baseline corrected, covariance " "matrix may be inaccurate"
-        )
+        warn("Epochs are not baseline corrected, covariance matrix may be inaccurate")
 
     orig = epochs[0].info["dev_head_t"]
     _check_on_missing(on_mismatch, "on_mismatch")
@@ -1372,7 +1370,7 @@ def _compute_covariance_auto(
                 estimator_cov_info.append((fa, fa.get_covariance(), _info))
                 del fa
             else:
-                raise ValueError("Oh no! Your estimator does not have" " a .fit method")
+                raise ValueError("Oh no! Your estimator does not have a .fit method")
             logger.info("Done.")
 
         if len(method) > 1:
@@ -2338,7 +2336,7 @@ def _read_cov(fid, node, cov_kind, limited=False, verbose=None):
                 names = _safe_name_list(tag.data, "read", "names")
                 if len(names) != dim:
                     raise ValueError(
-                        "Number of names does not match " "covariance matrix dimension"
+                        "Number of names does not match covariance matrix dimension"
                     )
 
             tag = find_tag(fid, this, FIFF.FIFF_MNE_COV)

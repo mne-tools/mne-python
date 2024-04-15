@@ -547,9 +547,8 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None, verbose=
             else:
                 raise UnsupportedKITFormat(
                     version_string,
-                    "SQD file format %s is not officially supported. "
-                    "Set allow_unknown_format=True to load it anyways."
-                    % (version_string,),
+                    f"SQD file format {version_string} is not officially supported. "
+                    "Set allow_unknown_format=True to load it anyways.",
                 )
 
         sysid = np.fromfile(fid, INT32, 1)[0]

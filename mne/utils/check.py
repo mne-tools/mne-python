@@ -11,6 +11,7 @@ import re
 from builtins import input  # noqa: UP029
 from difflib import get_close_matches
 from importlib import import_module
+from inspect import signature
 from pathlib import Path
 
 import numpy as np
@@ -65,14 +66,14 @@ def check_fname(fname, filetype, endings, endings_err=()):
     if len(endings_err) > 0 and not fname.endswith(endings_err):
         print_endings = " or ".join([", ".join(endings_err[:-1]), endings_err[-1]])
         raise OSError(
-            "The filename (%s) for file type %s must end with %s"
-            % (fname, filetype, print_endings)
+            f"The filename ({fname}) for file type {filetype} must end "
+            f"with {print_endings}"
         )
     print_endings = " or ".join([", ".join(endings[:-1]), endings[-1]])
     if not fname.endswith(endings):
         warn(
-            "This filename (%s) does not conform to MNE naming conventions. "
-            "All %s files should end with %s" % (fname, filetype, print_endings)
+            f"This filename ({fname}) does not conform to MNE naming conventions. "
+            f"All {filetype} files should end with {print_endings}"
         )
 
 
@@ -230,11 +231,29 @@ def _check_fname(
     name="File",
     need_dir=False,
     *,
+    check_bids_split=False,
     verbose=None,
 ):
     """Check for file existence, and return its absolute path."""
     _validate_type(fname, "path-like", name)
-    fname = Path(fname).expanduser().absolute()
+    # special case for MNE-BIDS, check split
+    fname_path = Path(fname)
+    if check_bids_split:
+        try:
+            from mne_bids import BIDSPath
+        except Exception:
+            pass
+        else:
+            if isinstance(fname, BIDSPath) and fname.split is not None:
+                raise ValueError(
+                    f"Passing a BIDSPath {name} with `{fname.split=}` is unsafe as it "
+                    "can unexpectedly lead to invalid BIDS split naming. Explicitly "
+                    f"set `{name}.split = None` to avoid ambiguity. If you want the "
+                    f"old misleading split naming, you can pass `str({name})`."
+                )
+
+    fname = fname_path.expanduser().absolute()
+    del fname_path
 
     if fname.exists():
         if not overwrite:
@@ -294,19 +313,20 @@ def _check_preload(inst, msg):
     """Ensure data are preloaded."""
     from ..epochs import BaseEpochs
     from ..evoked import Evoked
-    from ..time_frequency import _BaseTFR
+    from ..source_estimate import _BaseSourceEstimate
+    from ..time_frequency import BaseTFR
     from ..time_frequency.spectrum import BaseSpectrum
 
-    if isinstance(inst, (_BaseTFR, Evoked, BaseSpectrum)):
+    if isinstance(inst, (BaseTFR, Evoked, BaseSpectrum, _BaseSourceEstimate)):
         pass
     else:
         name = "epochs" if isinstance(inst, BaseEpochs) else "raw"
         if not inst.preload:
             raise RuntimeError(
                 "By default, MNE does not load data into main memory to "
-                "conserve resources. " + msg + " requires %s data to be "
+                "conserve resources. " + msg + f" requires {name} data to be "
                 "loaded. Use preload=True (or string) in the constructor or "
-                "%s.load_data()." % (name, name)
+                f"{name}.load_data()."
             )
         if name == "epochs":
             inst._handle_empty("raise", msg)
@@ -340,8 +360,8 @@ def _check_compensation_grade(info1, info2, name1, name2="data", ch_names=None):
     # perform check
     if grade1 != grade2:
         raise RuntimeError(
-            "Compensation grade of %s (%s) and %s (%s) do not match"
-            % (name1, grade1, name2, grade2)
+            f"Compensation grade of {name1} ({grade1}) and {name2} ({grade2}) "
+            "do not match"
         )
 
 
@@ -745,9 +765,7 @@ def _check_rank(rank):
     _validate_type(rank, (None, dict, str), "rank")
     if isinstance(rank, str):
         if rank not in ["full", "info"]:
-            raise ValueError(
-                'rank, if str, must be "full" or "info", ' "got %s" % (rank,)
-            )
+            raise ValueError(f'rank, if str, must be "full" or "info", got {rank}')
     return rank
 
 
@@ -897,6 +915,7 @@ def _check_all_same_channel_names(instances):
 
 
 def _check_combine(mode, valid=("mean", "median", "std"), axis=0):
+    # XXX TODO Possibly de-duplicate with _make_combine_callable of mne/viz/utils.py
     if mode == "mean":
 
         def fun(data):
@@ -918,7 +937,7 @@ def _check_combine(mode, valid=("mean", "median", "std"), axis=0):
         raise ValueError(
             "Combine option must be "
             + ", ".join(valid)
-            + " or callable, got %s (type %s)." % (mode, type(mode))
+            + f" or callable, got {mode} (type {type(mode)})."
         )
     return fun
 
@@ -931,7 +950,7 @@ def _check_src_normal(pick_ori, src):
         raise RuntimeError(
             "Normal source orientation is supported only for "
             "surface or discrete SourceSpaces, got type "
-            "%s" % (src.kind,)
+            f"{src.kind}"
         )
 
 
@@ -1073,7 +1092,7 @@ def _check_sphere(sphere, info=None, sphere_units="m"):
             raise ValueError(
                 "sphere, if a ConductorModel, must be spherical "
                 "with multiple layers, not a BEM or single-layer "
-                "sphere (got %s)" % (sphere,)
+                f"sphere (got {sphere})"
             )
         sphere = tuple(sphere["r0"]) + (sphere["layers"][0]["rad"],)
         sphere_units = "m"
@@ -1083,7 +1102,7 @@ def _check_sphere(sphere, info=None, sphere_units="m"):
     if sphere.shape != (4,):
         raise ValueError(
             "sphere must be float or 1D array of shape (4,), got "
-            "array-like of shape %s" % (sphere.shape,)
+            f"array-like of shape {sphere.shape}"
         )
     _check_option("sphere_units", sphere_units, ("m", "mm"))
     if sphere_units == "mm":
@@ -1152,9 +1171,9 @@ def _suggest(val, options, cutoff=0.66):
     if len(options) == 0:
         return ""
     elif len(options) == 1:
-        return " Did you mean %r?" % (options[0],)
+        return f" Did you mean {repr(options[0])}?"
     else:
-        return " Did you mean one of %r?" % (options,)
+        return f" Did you mean one of {repr(options)}?"
 
 
 def _check_on_missing(on_missing, name="on_missing", *, extras=()):
@@ -1225,7 +1244,21 @@ def _import_nibabel(why="use MRI files"):
     try:
         import nibabel as nib
     except ImportError as exp:
-        raise exp.__class__(
-            "nibabel is required to %s, got:\n%s" % (why, exp)
-        ) from None
+        raise exp.__class__(f"nibabel is required to {why}, got:\n{exp}") from None
     return nib
+
+
+def _check_method_kwargs(func, kwargs, msg=None):
+    """Ensure **kwargs are compatible with the function they're passed to."""
+    from .misc import _pl
+
+    valid = list(signature(func).parameters)
+    is_invalid = np.isin(list(kwargs), valid, invert=True)
+    if is_invalid.any():
+        invalid_kw = np.array(list(kwargs))[is_invalid].tolist()
+        s = _pl(invalid_kw)
+        if msg is None:
+            msg = f'function "{func}"'
+        raise TypeError(
+            f'Got unexpected keyword argument{s} {", ".join(invalid_kw)} ' f"for {msg}."
+        )

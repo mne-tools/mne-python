@@ -299,8 +299,8 @@ def _setup_bem(bem, bem_extra, neeg, mri_head_t, allow_none=False, verbose=None)
     else:
         if bem["surfs"][0]["coord_frame"] != FIFF.FIFFV_COORD_MRI:
             raise RuntimeError(
-                "BEM is in %s coordinates, should be in MRI"
-                % (_coord_frame_name(bem["surfs"][0]["coord_frame"]),)
+                f'BEM is in {_coord_frame_name(bem["surfs"][0]["coord_frame"])} '
+                'coordinates, should be in MRI'
             )
         if neeg > 0 and len(bem["surfs"]) == 1:
             raise RuntimeError(
@@ -693,7 +693,7 @@ def make_forward_solution(
     logger.info("MRI -> head transform : %s" % trans)
     logger.info("Measurement data      : %s" % info_extra)
     if isinstance(bem, ConductorModel) and bem["is_sphere"]:
-        logger.info("Sphere model      : origin at %s mm" % (bem["r0"],))
+        logger.info(f"Sphere model      : origin at {bem['r0']} mm")
         logger.info("Standard field computations")
     else:
         logger.info("Conductor model   : %s" % bem_extra)
@@ -819,8 +819,9 @@ def make_forward_dipole(dipole, bem, info, trans=None, n_jobs=None, *, verbose=N
         head = "The following dipoles are outside the inner skull boundary"
         msg = len(head) * "#" + "\n" + head + "\n"
         for t, pos in zip(times[np.logical_not(inuse)], pos[np.logical_not(inuse)]):
-            msg += "    t={:.0f} ms, pos=({:.0f}, {:.0f}, {:.0f}) mm\n".format(
-                t * 1000.0, pos[0] * 1000.0, pos[1] * 1000.0, pos[2] * 1000.0
+            msg += (
+                f"    t={t * 1000.0:.0f} ms, pos=({pos[0] * 1000.0:.0f}, "
+                f"{pos[1] * 1000.0:.0f}, {pos[2] * 1000.0:.0f}) mm\n"
             )
         msg += len(head) * "#"
         logger.error(msg)

@@ -1,4 +1,5 @@
 """Compute resolution matrix for beamformers."""
+
 # Authors: olaf.hauk@mrc-cbu.cam.ac.uk
 #
 # License: BSD-3-Clause
