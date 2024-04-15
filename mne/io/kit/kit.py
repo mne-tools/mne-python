@@ -95,7 +95,6 @@ class RawKIT(BaseRaw):
     %(kit_mrk)s
     %(kit_elp)s
     %(kit_hsp)s
-    %(kit_badcoils)s
     %(kit_stim)s
     %(kit_slope)s
     %(kit_stimthresh)s
@@ -105,6 +104,7 @@ class RawKIT(BaseRaw):
         Force reading old data that is not officially supported. Alternatively,
         read and re-save the data with the KIT MEG Laboratory application.
     %(standardize_names)s
+    %(kit_badcoils)s
     %(verbose)s
 
     Notes
@@ -936,7 +936,6 @@ def read_raw_kit(
     %(kit_mrk)s
     %(kit_elp)s
     %(kit_hsp)s
-    %(bad_coils)s
     %(kit_stim)s
     %(kit_slope)s
     %(kit_stimthresh)s
@@ -946,6 +945,7 @@ def read_raw_kit(
         Force reading old data that is not officially supported. Alternatively,
         read and re-save the data with the KIT MEG Laboratory application.
     %(standardize_names)s
+    %(kit_badcoils)s
     %(verbose)s
 
     Returns
