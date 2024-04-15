@@ -2266,7 +2266,7 @@ stimthresh : float | None
 """
 
 docdict["kit_badcoils"] = """
-badcoils : list of int | None
+bad_coils : array-like of int | None
     Indices of (up to two) bad marker coils to be removed.
     These marker coils must be present in the elp and mrk files.
 """
