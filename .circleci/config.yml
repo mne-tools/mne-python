@@ -402,6 +402,7 @@ jobs:
         default: "false"
     docker:
       - image: cimg/base:current-22.04
+    resource_class: large
     steps:
       - restore_cache:
           keys:

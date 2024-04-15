@@ -132,13 +132,11 @@ def morlet(sfreq, freqs, n_cycles=7.0, sigma=None, zero_mean=False):
     Examples
     --------
     Let's show a simple example of the relationship between ``n_cycles`` and
-    the FWHM using :func:`mne.time_frequency.fwhm`, as well as the equivalent
-    call using :func:`scipy.signal.morlet2`:
+    the FWHM using :func:`mne.time_frequency.fwhm`:
 
     .. plot::
 
         import numpy as np
-        from scipy.signal import morlet2 as sp_morlet
         import matplotlib.pyplot as plt
         from mne.time_frequency import morlet, fwhm
 
@@ -147,24 +145,15 @@ def morlet(sfreq, freqs, n_cycles=7.0, sigma=None, zero_mean=False):
         wavelet = morlet(sfreq=sfreq, freqs=freq, n_cycles=n_cycles)
         M, w = len(wavelet), n_cycles # convert to SciPy convention
         s = w * sfreq / (2 * freq * np.pi)  # from SciPy docs
-        wavelet_sp = sp_morlet(M, s, w) * np.sqrt(2)  # match our normalization
 
         _, ax = plt.subplots(layout="constrained")
-        colors = {
-            ('MNE', 'real'): '#66CCEE',
-            ('SciPy', 'real'): '#4477AA',
-            ('MNE', 'imag'): '#EE6677',
-            ('SciPy', 'imag'): '#AA3377',
-        }
-        lw = dict(MNE=2, SciPy=4)
-        zorder = dict(MNE=5, SciPy=4)
+        colors = dict(real="#66CCEE", imag="#EE6677")
         t = np.arange(-M // 2 + 1, M // 2 + 1) / sfreq
-        for name, w in (('MNE', wavelet), ('SciPy', wavelet_sp)):
-            for kind in ('real', 'imag'):
-                ax.plot(t, getattr(w, kind), label=f'{name} {kind}',
-                        lw=lw[name], color=colors[(name, kind)],
-                        zorder=zorder[name])
-        ax.plot(t, np.abs(wavelet), label=f'MNE abs', color='k', lw=1., zorder=6)
+        for kind in ('real', 'imag'):
+            ax.plot(
+                t, getattr(wavelet, kind), label=kind, color=colors[kind],
+            )
+        ax.plot(t, np.abs(wavelet), label=f'abs', color='k', lw=1., zorder=6)
         half_max = np.max(np.abs(wavelet)) / 2.
         ax.plot([-this_fwhm / 2., this_fwhm / 2.], [half_max, half_max],
                 color='k', linestyle='-', label='FWHM', zorder=6)
@@ -1451,7 +1440,7 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
         self._set_times(self._raw_times)
         # Handle instance type. Prior to gh-11282, Raw was not a possibility so if
         # `inst_type_str` is missing it must be Epochs or Evoked
-        unknown_class = Epochs if self._data.ndim == 4 else Evoked
+        unknown_class = Epochs if "epoch" in self._dims else Evoked
         inst_types = dict(Raw=Raw, Epochs=Epochs, Evoked=Evoked, Unknown=unknown_class)
         self._inst_type = inst_types[defaults["inst_type_str"]]
         # sanity check data/freqs/times/info agreement
@@ -1510,7 +1499,9 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
         """Check data/freqs/times/info agreement during __setstate__."""
         msg = "{} axis of data ({}) doesn't match {} attribute ({})"
         n_chan_info = len(self.info["chs"])
-        n_chan, n_freq, n_time = self._data.shape[self._dims.index("channel") :]
+        n_chan = self._data.shape[self._dims.index("channel")]
+        n_freq = self._data.shape[self._dims.index("freq")]
+        n_time = self._data.shape[self._dims.index("time")]
         if n_chan_info != n_chan:
             msg = msg.format("Channel", n_chan, "info", n_chan_info)
         elif n_freq != len(self.freqs):
@@ -3383,13 +3374,14 @@ class EpochsTFR(BaseTFR, GetEpochsMixin):
                 "EpochsTFR.average() got a method that resulted in data of shape "
                 f"{data.shape}, but it should be {expected_shape}."
             )
+        state = self.__getstate__()
         # restore singleton freqs axis (not necessary for epochs/times: class changes)
         if dim == "freqs":
             data = np.expand_dims(data, axis=axis)
-        state = self.__getstate__()
+        else:
+            state["dims"] = (*state["dims"][:axis], *state["dims"][axis + 1 :])
         state["data"] = data
         state["info"] = deepcopy(self.info)
-        state["dims"] = (*state["dims"][:axis], *state["dims"][axis + 1 :])
         state["freqs"] = freqs
         state["times"] = times
         if dim == "epochs":
@@ -4222,7 +4214,7 @@ def read_tfrs(fname, condition=None, *, verbose=None):
     hdf5_dict = read_hdf5(fname, title="mnepython", slash="replace")
     # single TFR from TFR.save()
     if "inst_type_str" in hdf5_dict:
-        if hdf5_dict["data"].ndim == 4:
+        if "epoch" in hdf5_dict["dims"]:
             Klass = EpochsTFR
         elif "nave" in hdf5_dict:
             Klass = AverageTFR

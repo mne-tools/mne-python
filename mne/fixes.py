@@ -866,7 +866,7 @@ def pinvh(a, rtol=None):
 
 def pinv(a, rtol=None):
     """Compute a pseudo-inverse of a matrix."""
-    u, s, vh = np.linalg.svd(a, full_matrices=False)
+    u, s, vh = _safe_svd(a, full_matrices=False)
     del a
     maxS = np.max(s)
     if rtol is None:

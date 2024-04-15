@@ -736,8 +736,8 @@ linkcheck_ignore = [  # will be compiled to regex
     "https://doi.org/10.3109/",  # www.tandfonline.com
     "https://www.researchgate.net/profile/",
     "https://www.intel.com/content/www/us/en/developer/tools/oneapi/onemkl.html",
-    "https://scholar.google.com/scholar?cites=12188330066413208874&as_ylo=2014",
-    "https://scholar.google.com/scholar?cites=1521584321377182930&as_ylo=2013",
+    r"https://scholar.google.com/scholar\?cites=12188330066413208874&as_ylo=2014",
+    r"https://scholar.google.com/scholar\?cites=1521584321377182930&as_ylo=2013",
     # 500 server error
     "https://openwetware.org/wiki/Beauchamp:FreeSurfer",
     # 503 Server error
@@ -1345,8 +1345,6 @@ def reset_warnings(gallery_conf, fname):
         # nilearn
         "pkg_resources is deprecated as an API",
         r"The .* was deprecated in Matplotlib 3\.7",
-        # scipy
-        r"scipy.signal.morlet2 is deprecated in SciPy 1\.12",
         # Matplotlib->tz
         r"datetime\.datetime\.utcfromtimestamp",
         # joblib

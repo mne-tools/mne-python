@@ -1132,6 +1132,12 @@ class Spectrum(BaseSpectrum):
             data = self.inst.get_data(
                 self._picks, start, stop + 1, reject_by_annotation=rba
             )
+            if np.any(np.isnan(data)) and method == "multitaper":
+                raise NotImplementedError(
+                    'Cannot use method="multitaper" when reject_by_annotation=True. '
+                    'Please use method="welch" instead.'
+                )
+
         else:  # Evoked
             data = self.inst.data[self._picks][:, self._time_mask]
         # set nave

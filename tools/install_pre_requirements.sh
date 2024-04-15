@@ -12,11 +12,11 @@ STD_ARGS="--progress-bar off --upgrade --pre"
 # we can use strict --index-url (instead of --extra-index-url) below
 python -m pip install $STD_ARGS pip setuptools packaging \
 	threadpoolctl cycler fonttools kiwisolver pyparsing pillow python-dateutil \
-	patsy pytz tzdata nibabel tqdm trx-python joblib
+	patsy pytz tzdata nibabel tqdm trx-python joblib numexpr
 echo "PyQt6"
 # Now broken in latest release and in the pre release:
-# pip install $STD_ARGS --only-binary ":all:" --default-timeout=60 --extra-index-url https://www.riverbankcomputing.com/pypi/simple "PyQt6!=6.6.1,!=6.6.2" "PyQt6-Qt6!=6.6.1,!=6.6.2"
-python -m pip install $STD_ARGS --only-binary ":all:" --default-timeout=60 "PyQt6!=6.6.1,!=6.6.2" "PyQt6-Qt6!=6.6.1,!=6.6.2"
+# pip install $STD_ARGS --only-binary ":all:" --default-timeout=60 --extra-index-url https://www.riverbankcomputing.com/pypi/simple -r $SCRIPT_DIR/pyqt6_requirements.txt
+python -m pip install $STD_ARGS --only-binary ":all:" --default-timeout=60 -r $SCRIPT_DIR/pyqt6_requirements.txt
 echo "NumPy/SciPy/pandas etc."
 python -m pip uninstall -yq numpy
 # No pyarrow yet https://github.com/apache/arrow/issues/40216
@@ -28,10 +28,9 @@ fi
 python -m pip install $STD_ARGS --only-binary ":all:" --default-timeout=60 \
 	--index-url "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" \
 	"numpy>=2.1.0.dev0" "scipy>=1.14.0.dev0" "scikit-learn>=1.5.dev0" \
-	matplotlib statsmodels pandas \
+	matplotlib pandas statsmodels \
 	$OTHERS
 
-# No python-picard (needs numexpr) until they update to NumPy 2.0 compat
 # No Numba because it forces an old NumPy version
 
 echo "OpenMEEG"
@@ -46,6 +45,9 @@ python -c "import vtk"
 
 echo "PyVista"
 python -m pip install $STD_ARGS git+https://github.com/pyvista/pyvista
+
+echo "picard"
+python -m pip install $STD_ARGS git+https://github.com/pierreablin/picard
 
 echo "pyvistaqt"
 pip install $STD_ARGS git+https://github.com/pyvista/pyvistaqt

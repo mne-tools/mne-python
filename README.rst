@@ -1,6 +1,6 @@
 .. -*- mode: rst -*-
 
-|MNE|_
+|MNE|
 
 MNE-Python
 ==========
@@ -121,13 +121,13 @@ About
 ^^^^^
 
 +---------+------------+----------------+
-| CI      | |Codecov|_ | |Bandit|_      |
+| CI      | |Codecov|  | |Bandit|       |
 +---------+------------+----------------+
-| Package | |PyPI|_    | |conda-forge|_ |
+| Package | |PyPI|     | |conda-forge|  |
 +---------+------------+----------------+
-| Docs    | |Docs|_    | |Discourse|_   |
+| Docs    | |Docs|     | |Discourse|    |
 +---------+------------+----------------+
-| Meta    | |Zenodo|_  | |OpenSSF|_     |
+| Meta    | |Zenodo|   | |OpenSSF|      |
 +---------+------------+----------------+
 
 
@@ -143,28 +143,28 @@ MNE-Python is licensed under the BSD-3-Clause license.
 .. _pip: https://pip.pypa.io/en/stable/
 
 .. |PyPI| image:: https://img.shields.io/pypi/dm/mne.svg?label=PyPI
-.. _PyPI: https://pypi.org/project/mne/
+   :target: https://pypi.org/project/mne/
 
 .. |conda-forge| image:: https://img.shields.io/conda/dn/conda-forge/mne.svg?label=Conda
-.. _conda-forge: https://anaconda.org/conda-forge/mne
+   :target: https://anaconda.org/conda-forge/mne
 
 .. |Docs| image:: https://img.shields.io/badge/Docs-online-green?label=Documentation
-.. _Docs: https://mne.tools/dev/
+   :target: https://mne.tools/dev/
 
 .. |Zenodo| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.592483.svg
-.. _Zenodo: https://doi.org/10.5281/zenodo.592483
+   :target: https://doi.org/10.5281/zenodo.592483
 
 .. |Discourse| image:: https://img.shields.io/discourse/status?label=Forum&server=https%3A%2F%2Fmne.discourse.group%2F
-.. _Discourse: https://mne.discourse.group/
+   :target: https://mne.discourse.group/
 
 .. |Codecov| image:: https://img.shields.io/codecov/c/github/mne-tools/mne-python?label=Coverage
-.. _Codecov: https://codecov.io/gh/mne-tools/mne-python
+   :target: https://codecov.io/gh/mne-tools/mne-python
 
 .. |Bandit| image:: https://img.shields.io/badge/Security-Bandit-yellow.svg
-.. _Bandit: https://github.com/PyCQA/bandit
+   :target: https://github.com/PyCQA/bandit
 
 .. |OpenSSF| image:: https://www.bestpractices.dev/projects/7783/badge
-.. _OpenSSF: https://www.bestpractices.dev/projects/7783
+   :target: https://www.bestpractices.dev/projects/7783
 
 .. |MNE| image:: https://mne.tools/dev/_static/mne_logo_gray.svg
-.. _MNE: https://mne.tools/dev/
+   :target: https://mne.tools/dev/

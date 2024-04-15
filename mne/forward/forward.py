@@ -525,7 +525,7 @@ def _merge_fwds(fwds, *, verbose=None):
 
 
 @verbose
-def read_forward_solution(fname, include=(), exclude=(), *, ordered=None, verbose=None):
+def read_forward_solution(fname, include=(), exclude=(), *, ordered=True, verbose=None):
     """Read a forward solution a.k.a. lead field.
 
     Parameters

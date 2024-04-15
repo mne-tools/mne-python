@@ -15,7 +15,6 @@ from numpy.testing import (
     assert_array_equal,
     assert_equal,
 )
-from scipy.signal import morlet2
 
 import mne
 from mne import (
@@ -98,6 +97,15 @@ def test_tfr_ctf():
         method(epochs, [10], 1)  # smoke test
 
 
+# Copied from SciPy before it was removed
+def _morlet2(M, s, w=5):
+    x = np.arange(0, M) - (M - 1.0) / 2
+    x = x / s
+    wavelet = np.exp(1j * w * x) * np.exp(-0.5 * x**2) * np.pi ** (-0.25)
+    output = np.sqrt(1 / s) * wavelet
+    return output
+
+
 @pytest.mark.parametrize("sfreq", [1000.0, 100 + np.pi])
 @pytest.mark.parametrize("freq", [10.0, np.pi])
 @pytest.mark.parametrize("n_cycles", [7, 2])
@@ -118,7 +126,7 @@ def test_morlet(sfreq, freq, n_cycles):
     M = len(W)
     w = n_cycles
     s = w * sfreq / (2 * freq * np.pi)  # from SciPy docs
-    Ws = morlet2(M, s, w) * np.sqrt(2)
+    Ws = _morlet2(M, s, w) * np.sqrt(2)
     assert_allclose(W, Ws)
 
     # Check FWHM
@@ -1394,7 +1402,7 @@ def test_to_data_frame_time_format(time_format):
 @parametrize_morlet_multitaper
 @parametrize_power_phase_complex
 @pytest.mark.parametrize("picks", ("mag", mag_names, [2, 5, 8]))  # all 3 equivalent
-def test_raw_compute_tfr(raw, method, output, picks):
+def test_raw_compute_tfr(raw, method, output, picks, tmp_path):
     """Test Raw.compute_tfr() and picks handling."""
     full_tfr = raw.compute_tfr(method, output=output, freqs=freqs_linspace)
     pick_tfr = raw.compute_tfr(method, output=output, freqs=freqs_linspace, picks=picks)
@@ -1403,6 +1411,12 @@ def test_raw_compute_tfr(raw, method, output, picks):
     want = full_tfr.get_data(picks=mag_names)
     got = pick_tfr.get_data()
     assert_array_equal(want, got)
+    # make sure save/load works for phase/complex data
+    if output in ("phase", "complex"):
+        pytest.importorskip("h5io")
+        fname = tmp_path / "temp_tfr.hdf5"
+        full_tfr.save(fname, overwrite=True)
+        assert read_tfrs(fname) == full_tfr
 
 
 @parametrize_morlet_multitaper
