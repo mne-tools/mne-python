@@ -62,8 +62,8 @@ hdf5 = ["h5io", "pymatreader"]
 full = [
     "mne[hdf5]",
     "qtpy",
-    "PyQt6!=6.6.1,!=6.6.2",
-    "PyQt6-Qt6!=6.6.1,!=6.6.2",
+    "PyQt6!=6.6.1",
+    "PyQt6-Qt6!=6.6.1,!=6.6.2,!=6.6.3",
     "pyobjc-framework-Cocoa>=5.2.0; platform_system=='Darwin'",
     "sip",
     "scikit-learn",
@@ -73,10 +73,8 @@ full = [
     "h5py",
     "pandas",
     "pyarrow",  # only needed to avoid a deprecation warning in pandas
-    "numexpr",
     "jupyter",
     "python-picard",
-    "statsmodels",
     "joblib",
     "psutil",
     "dipy",
@@ -100,6 +98,7 @@ full = [
     "qdarkstyle!=3.2.2",
     "threadpoolctl",
     # duplicated in test_extra:
+    "statsmodels",
     "eeglabio",
     "edfio>=0.2.1",
     "pybv",
@@ -130,6 +129,7 @@ test_extra = [
     "nitime",
     "nbclient",
     "sphinx-gallery",
+    "statsmodels",
     "eeglabio",
     "edfio>=0.2.1",
     "pybv",
@@ -140,11 +140,11 @@ test_extra = [
     "mne-bids",
 ]
 
-# Dependencies for building the docuemntation
+# Dependencies for building the documentation
 doc = [
     "sphinx>=6",
     "numpydoc",
-    "pydata_sphinx_theme==0.13.3",
+    "pydata_sphinx_theme==0.15.2",
     "sphinx-gallery",
     "sphinxcontrib-bibtex>=2.5",
     "sphinxcontrib-towncrier",
@@ -208,12 +208,11 @@ skip = "doc/references.bib"
 exclude = ["__init__.py", "constants.py", "resources.py"]
 
 [tool.ruff.lint]
-select = ["A", "B006", "D", "E", "F", "I", "W", "UP"]
+select = ["A", "B006", "D", "E", "F", "I", "W", "UP", "UP031"]
 ignore = [
     "D100", # Missing docstring in public module
     "D104", # Missing docstring in public package
     "D413", # Missing blank line after last section
-    "UP031", # Use format specifiers instead of percent format
 ]
 
 [tool.ruff.lint.pydocstyle]
@@ -241,6 +240,9 @@ ignore-decorators = [
 ]
 "examples/*/*.py" = [
     "D205", # 1 blank line required between summary line and description
+]
+"examples/preprocessing/eeg_bridging.py" = [
+    "E501", # line too long
 ]
 
 [tool.pytest.ini_options]

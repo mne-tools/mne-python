@@ -236,7 +236,7 @@ def test_crop(tmp_path):
         assert_allclose(
             getattr(raw_concat.annotations, attr),
             getattr(raw.annotations, attr),
-            err_msg="Failed for %s:" % (attr,),
+            err_msg=f"Failed for {attr}:",
         )
 
     raw.set_annotations(None)  # undo

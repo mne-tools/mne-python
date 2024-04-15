@@ -402,6 +402,7 @@ jobs:
         default: "false"
     docker:
       - image: cimg/base:current-22.04
+    resource_class: large
     steps:
       - restore_cache:
           keys:
@@ -444,8 +445,8 @@ jobs:
 
 
   deploy:
-    machine:
-      image: ubuntu-2004:202111-01
+    docker:
+      - image: cimg/base:current-22.04
     steps:
       - attach_workspace:
           at: /tmp/build

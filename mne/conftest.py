@@ -178,9 +178,6 @@ def pytest_configure(config):
     ignore:numpy\.core\.numeric is deprecated.*:DeprecationWarning
     ignore:numpy\.core\.multiarray is deprecated.*:DeprecationWarning
     ignore:The numpy\.fft\.helper has been made private.*:DeprecationWarning
-    # TODO: Should actually fix these two
-    ignore:scipy.signal.morlet2 is deprecated in SciPy.*:DeprecationWarning
-    ignore:The `needs_threshold` and `needs_proba`.*:FutureWarning
     # tqdm (Fedora)
     ignore:.*'tqdm_asyncio' object has no attribute 'last_print_t':pytest.PytestUnraisableExceptionWarning
     # Until mne-qt-browser > 0.5.2 is released
@@ -398,6 +395,34 @@ def epochs_spectrum():
 
 
 @pytest.fixture()
+def epochs_tfr():
+    """Get an EpochsTFR computed from mne.io.tests.data."""
+    epochs = _get_epochs().load_data()
+    return epochs.compute_tfr(method="morlet", freqs=np.linspace(20, 40, num=5))
+
+
+@pytest.fixture()
+def average_tfr(epochs_tfr):
+    """Get an AverageTFR computed by averaging an EpochsTFR (this is small & fast)."""
+    return epochs_tfr.average()
+
+
+@pytest.fixture()
+def full_average_tfr(full_evoked):
+    """Get an AverageTFR computed from Evoked.
+
+    This is slower than the `average_tfr` fixture, but a few TFR.plot_* tests need it.
+    """
+    return full_evoked.compute_tfr(method="morlet", freqs=np.linspace(20, 40, num=5))
+
+
+@pytest.fixture()
+def raw_tfr(raw):
+    """Get a RawTFR computed from mne.io.tests.data."""
+    return raw.compute_tfr(method="morlet", freqs=np.linspace(20, 40, num=5))
+
+
+@pytest.fixture()
 def epochs_empty():
     """Get empty epochs from mne.io.tests.data."""
     epochs = _get_epochs(meg=True, eeg=True).load_data()
@@ -408,20 +433,29 @@ def epochs_empty():
 
 
 @pytest.fixture(scope="session", params=[testing._pytest_param()])
-def _evoked():
-    # This one is session scoped, so be sure not to modify it (use evoked
-    # instead)
-    evoked = mne.read_evokeds(
-        fname_evoked, condition="Left Auditory", baseline=(None, 0)
-    )
-    evoked.crop(0, 0.2)
-    return evoked
+def _full_evoked():
+    # This is session scoped, so be sure not to modify its return value (use
+    # `full_evoked` fixture instead)
+    return mne.read_evokeds(fname_evoked, condition="Left Auditory", baseline=(None, 0))
+
+
+@pytest.fixture(scope="session", params=[testing._pytest_param()])
+def _evoked(_full_evoked):
+    # This is session scoped, so be sure not to modify its return value (use `evoked`
+    # fixture instead)
+    return _full_evoked.copy().crop(0, 0.2)
 
 
 @pytest.fixture()
 def evoked(_evoked):
-    """Get evoked data."""
+    """Get truncated evoked data."""
     return _evoked.copy()
+
+
+@pytest.fixture()
+def full_evoked(_full_evoked):
+    """Get full-duration evoked data (needed for, e.g., testing TFR)."""
+    return _full_evoked.copy()
 
 
 @pytest.fixture(scope="function", params=[testing._pytest_param()])
@@ -802,8 +836,9 @@ def src_volume_labels():
     """Create a 7mm source space with labels."""
     pytest.importorskip("nibabel")
     volume_labels = mne.get_volume_labels_from_aseg(fname_aseg)
-    with _record_warnings(), pytest.warns(
-        RuntimeWarning, match="Found no usable.*t-vessel.*"
+    with (
+        _record_warnings(),
+        pytest.warns(RuntimeWarning, match="Found no usable.*t-vessel.*"),
     ):
         src = mne.setup_volume_source_space(
             "sample",
@@ -901,6 +936,8 @@ def protect_config():
 
 
 def _test_passed(request):
+    if _phase_report_key not in request.node.stash:
+        return True
     report = request.node.stash[_phase_report_key]
     return "call" in report and report["call"].outcome == "passed"
 

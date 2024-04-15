@@ -307,11 +307,9 @@ class Annotations:
         kinds = ", ".join(["{} ({})".format(*k) for k in sorted(counter.items())])
         kinds = (": " if len(kinds) > 0 else "") + kinds
         ch_specific = ", channel-specific" if self._any_ch_names() else ""
-        s = "Annotations | {} segment{}{}{}".format(
-            len(self.onset),
-            _pl(len(self.onset)),
-            ch_specific,
-            kinds,
+        s = (
+            f"Annotations | {len(self.onset)} segment"
+            f"{_pl(len(self.onset))}{ch_specific}{kinds}"
         )
         return "<" + shorten(s, width=77, placeholder=" ...") + ">"
 
@@ -820,11 +818,10 @@ class EpochAnnotationsMixin:
         else:
             if getattr(self, "_unsafe_annot_add", False):
                 warn(
-                    "Adding annotations to Epochs created (and saved to "
-                    "disk) before 1.0 will yield incorrect results if "
-                    "decimation or resampling was performed on the instance, "
-                    "we recommend regenerating the Epochs and re-saving them "
-                    "to disk."
+                    "Adding annotations to Epochs created (and saved to disk) before "
+                    "1.0 will yield incorrect results if decimation or resampling was "
+                    "performed on the instance, we recommend regenerating the Epochs "
+                    "and re-saving them to disk."
                 )
             new_annotations = annotations.copy()
             new_annotations._prune_ch_names(self.info, on_missing)

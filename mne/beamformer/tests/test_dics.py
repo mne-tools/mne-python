@@ -30,7 +30,7 @@ from mne.datasets import testing
 from mne.io import read_info
 from mne.proj import compute_proj_evoked, make_projector
 from mne.surface import _compute_nearest
-from mne.time_frequency import CrossSpectralDensity, EpochsTFR, csd_morlet, csd_tfr
+from mne.time_frequency import CrossSpectralDensity, EpochsTFRArray, csd_morlet, csd_tfr
 from mne.time_frequency.csd import _sym_mat_to_vector
 from mne.transforms import apply_trans, invert_transform
 from mne.utils import catch_logging, object_diff
@@ -727,7 +727,7 @@ def test_apply_dics_tfr(return_generator):
     data = rng.random((n_epochs, n_chans, len(freqs), n_times))
     data *= 1e-6
     data = data + data * 1j  # add imag. component to simulate phase
-    epochs_tfr = EpochsTFR(info, data, times=times, freqs=freqs)
+    epochs_tfr = EpochsTFRArray(info=info, data=data, times=times, freqs=freqs)
 
     # Create a DICS beamformer and convert the EpochsTFR to source space.
     csd = csd_tfr(epochs_tfr)

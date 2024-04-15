@@ -190,7 +190,7 @@
 
 .. _George O'Neill: https://georgeoneill.github.io
 
-.. _Gonzalo Reina: https://github.com/Gon-reina
+.. _Gonzalo Reina: https://orcid.org/0000-0003-4219-2306
 
 .. _Guillaume Dumas: https://mila.quebec/en/person/guillaume-dumas
 
@@ -205,6 +205,8 @@
 .. _Hakimeh Pourakbari: https://github.com/Hpakbari
 
 .. _Hari Bharadwaj: https://github.com/haribharadwaj
+
+.. _Hasrat Ali Arzoo: https://github.com/hasrat17
 
 .. _Henrich Kolkhorst: https://github.com/hekolk
 
@@ -464,7 +466,7 @@
 
 .. _Rasmus Aagaard: https://github.com/rasgaard
 
-.. _Rasmus Zetter: https://people.aalto.fi/rasmus.zetter
+.. _Rasmus Zetter: https://github.com/rzetter
 
 .. _Reza Nasri: https://github.com/rznas
 
@@ -609,3 +611,5 @@
 .. _Zhi Zhang: https://github.com/tczhangzhi/
 
 .. _Zvi Baratz: https://github.com/ZviBaratz
+
+.. _Seyed Yahya Shirazi: https://neuromechanist.github.io

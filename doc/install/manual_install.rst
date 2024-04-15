@@ -15,19 +15,20 @@ Installing MNE-Python with all dependencies
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 If you use Anaconda, we suggest installing MNE-Python into its own ``conda`` environment.
 
-The dependency stack is large and may take a long time (several tens of
-minutes) to resolve on some systems via the default ``conda`` solver. We
-therefore highly recommend using the new `libmamba <https://www.anaconda.com/blog/a-faster-conda-for-a-growing-community>`__
-solver instead, which is **much** faster. To permanently change to this solver,
-you can set ``CONDA_SOLVER=libmamba`` in your environment or run
-``conda config --set solver libmamba``. Below we just use ``--solver`` in each command.
-
-Run in your terminal:
+First, please ensure you're using a recent version of ``conda``. Run in your terminal:
 
 .. code-block:: console
 
-    $ conda install --channel=conda-forge --name=base conda-libmamba-solver
-    $ conda create --solver=libmamba --override-channels --channel=conda-forge --name=mne mne
+   $ conda update --name=base conda  # update conda
+   $ conda --version
+
+The installed ``conda`` version should be ``23.10.0`` or newer.
+
+Now, you can install MNE-Python:
+
+.. code-block:: console
+
+   $ conda create --channel=conda-forge --strict-channel-priority --name=mne mne
 
 This will create a new ``conda`` environment called ``mne`` (you can adjust
 this by passing a different name via ``--name``) and install all
@@ -50,7 +51,7 @@ or via :code:`conda`:
 
 .. code-block:: console
 
-   $ conda create --override-channels --channel=conda-forge --name=mne mne-base
+   $ conda create --channel=conda-forge --strict-channel-priority --name=mne mne-base
 
 This will create a new ``conda`` environment called ``mne`` (you can adjust
 this by passing a different name via ``--name``).
