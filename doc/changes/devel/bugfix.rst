@@ -1,0 +1,1 @@
+Fix bug with :func:`mne.SourceSpaces.export_volume` where the ``img.affine`` was not set properly, by `Eric Larson`_.
