@@ -50,7 +50,13 @@ _testing_mark = testing._pytest_mark()
         base / "tests/data/test_raw.fif",
         base / "tests/data/test_raw.fif.gz",
         base / "edf/tests/data/test.edf",
-        base / "edf/tests/data/test.bdf",
+        pytest.param(
+            base / "edf/tests/data/test.bdf",
+            marks=(
+                _testing_mark,
+                pytest.mark.filterwarnings("ignore:Channels contain different"),
+            ),
+        ),
         base / "brainvision/tests/data/test.vhdr",
         base / "kit/tests/data/test.sqd",
         pytest.param(test_base / "KIT" / "data_berlin.con", marks=_testing_mark),
