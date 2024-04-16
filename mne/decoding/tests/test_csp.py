@@ -15,6 +15,7 @@ from numpy.testing import assert_array_almost_equal, assert_array_equal, assert_
 from mne import Epochs, io, pick_types, read_events
 from mne.decoding import CSP, Scaler, SPoC
 from mne.decoding.csp import _ajd_pham
+from mne.utils import catch_logging
 
 data_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
 raw_fname = data_dir / "test_raw.fif"
@@ -300,7 +301,23 @@ def test_regularized_csp(ch_type, rank, reg):
     sc = Scaler(epochs.info)
     epochs_data = sc.fit_transform(epochs_data)
     csp = CSP(n_components=n_components, reg=reg, norm_trace=False, rank=rank)
-    X = csp.fit_transform(epochs_data, epochs.events[:, -1])
+    with catch_logging(verbose=True) as log:
+        X = csp.fit_transform(epochs_data, epochs.events[:, -1])
+    log = log.getvalue()
+    assert "Setting small MAG" not in log
+    assert "Setting small data eigen" in log
+    if rank is None:
+        assert "Computing rank from data" in log
+        assert " mag: rank" not in log.lower()
+        assert " data: rank" in log
+        assert "rank (mag)" not in log.lower()
+        assert "rank (data)" in log
+    else:  # if rank is passed no computation is done
+        assert "Computing rank" not in log
+        assert ": rank" not in log
+        assert "rank (" not in log
+    assert "reducing mag" not in log.lower()
+    assert f"Reducing data rank from {n_channels} " in log
     y = epochs.events[:, -1]
     assert csp.filters_.shape == (n_eig, n_channels)
     assert csp.patterns_.shape == (n_eig, n_channels)

@@ -13,11 +13,17 @@ import numpy as np
 from scipy.linalg import eigh
 
 from .._fiff.meas_info import create_info
-from ..cov import _regularized_covariance, _smart_eigh
+from ..cov import _compute_rank_raw_array, _regularized_covariance, _smart_eigh
 from ..defaults import _BORDER_DEFAULT, _EXTRAPOLATE_DEFAULT, _INTERPOLATION_DEFAULT
 from ..evoked import EvokedArray
 from ..fixes import pinv
-from ..utils import _check_option, _validate_type, copy_doc, fill_doc
+from ..utils import (
+    _check_option,
+    _validate_type,
+    _verbose_safe_false,
+    copy_doc,
+    fill_doc,
+)
 from .base import BaseEstimator
 from .mixin import TransformerMixin
 
@@ -527,14 +533,24 @@ class CSP(TransformerMixin, BaseEstimator):
         # but in the meantime they can use a pipeline with a scaler
         self._info = create_info(n_channels, 1000.0, "mag")
         if self.rank is None:
-            self._rank = self.rank
+            self._rank = _compute_rank_raw_array(
+                X.transpose(1, 0, 2).reshape(X.shape[1], -1),
+                self._info,
+                rank=None,
+                scalings=None,
+                log_ch_type="data",
+            )
         else:
             self._rank = {"mag": sum(self.rank.values())}
 
         covs = []
         sample_weights = []
-        for this_class in self._classes:
-            cov, weight = cov_estimator(X[y == this_class])
+        for ci, this_class in enumerate(self._classes):
+            cov, weight = cov_estimator(
+                X[y == this_class],
+                cov_kind=f"class={this_class}",
+                log_rank=ci == 0,
+            )
 
             if self.norm_trace:
                 cov /= np.trace(cov)
@@ -544,24 +560,26 @@ class CSP(TransformerMixin, BaseEstimator):
 
         return np.stack(covs), np.array(sample_weights)
 
-    def _concat_cov(self, x_class):
+    def _concat_cov(self, x_class, *, cov_kind, log_rank):
         """Concatenate epochs before computing the covariance."""
         _, n_channels, _ = x_class.shape
 
-        x_class = np.transpose(x_class, [1, 0, 2])
-        x_class = x_class.reshape(n_channels, -1)
+        x_class = x_class.transpose(1, 0, 2).reshape(n_channels, -1)
         cov = _regularized_covariance(
             x_class,
             reg=self.reg,
             method_params=self.cov_method_params,
             rank=self._rank,
             info=self._info,
+            cov_kind=cov_kind,
+            log_rank=log_rank,
+            log_ch_type="data",
         )
         weight = x_class.shape[0]
 
         return cov, weight
 
-    def _epoch_cov(self, x_class):
+    def _epoch_cov(self, x_class, *, cov_kind, log_rank):
         """Mean of per-epoch covariances."""
         cov = sum(
             _regularized_covariance(
@@ -570,8 +588,11 @@ class CSP(TransformerMixin, BaseEstimator):
                 method_params=self.cov_method_params,
                 rank=self._rank,
                 info=self._info,
+                cov_kind=cov_kind,
+                log_rank=log_rank and ii == 0,
+                log_ch_type="data",
             )
-            for this_X in x_class
+            for ii, this_X in enumerate(x_class)
         )
         cov /= len(x_class)
         weight = len(x_class)
@@ -581,12 +602,15 @@ class CSP(TransformerMixin, BaseEstimator):
     def _decompose_covs(self, covs, sample_weights):
         n_classes = len(covs)
         n_channels = covs[0].shape[0]
+        assert self._rank is not None  # should happen in _compute_covariance_matrices
         _, sub_vec, mask = _smart_eigh(
             covs.mean(0),
             self._info,
             self._rank,
             proj_subspace=True,
-            do_compute_rank=self._rank is None,
+            do_compute_rank=False,
+            log_ch_type="data",
+            verbose=_verbose_safe_false(),
         )
         sub_vec = sub_vec[mask]
         covs = np.array([sub_vec @ cov @ sub_vec.T for cov in covs], float)
@@ -855,6 +879,8 @@ class SPoC(CSP):
                 reg=self.reg,
                 method_params=self.cov_method_params,
                 rank=self.rank,
+                log_ch_type="data",
+                log_rank=ii == 0,
             )
 
         C = covs.mean(0)
