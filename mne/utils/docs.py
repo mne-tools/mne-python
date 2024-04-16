@@ -2215,6 +2215,12 @@ keep_his : bool
                  anonymized. Use with caution.
 """
 
+docdict["kit_badcoils"] = """
+bad_coils : array-like of int | None
+    Indices of (up to two) bad marker coils to be removed.
+    These marker coils must be present in the elp and mrk files.
+"""
+
 docdict["kit_elp"] = """
 elp : path-like | array of shape (8, 3) | None
     Digitizer points representing the location of the fiducials and the
