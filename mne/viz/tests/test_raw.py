@@ -541,6 +541,7 @@ def test_plot_raw_traces(raw, events, browser_backend):
     ismpl = browser_backend.name == "matplotlib"
     with raw.info._unlock():
         raw.info["lowpass"] = 10.0  # allow heavy decim during plotting
+    assert raw.info["bads"] == []
     fig = raw.plot(
         events=events, order=[1, 7, 5, 2, 3], n_channels=3, group_by="original"
     )
@@ -622,6 +623,12 @@ def test_plot_raw_traces(raw, events, browser_backend):
     with pytest.raises(TypeError, match="event_color key must be an int, got"):
         raw.plot(event_color={"foo": "r"})
     plot_raw(raw, events=events, event_color={-1: "r", 998: "b"})
+
+    # gh-12547
+    raw.info["bads"] = raw.ch_names[1:2]
+    picks = [1, 7, 5, 2, 3]
+    fig = raw.plot(events=events, order=picks, group_by="original")
+    assert_array_equal(fig.mne.picks, picks)
 
 
 def test_plot_raw_picks(raw, browser_backend):
