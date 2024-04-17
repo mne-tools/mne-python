@@ -774,6 +774,7 @@ bibtex_footbibliography_header = ""
 # -- Nitpicky ----------------------------------------------------------------
 
 nitpicky = True
+show_warning_types = True
 nitpick_ignore = [
     ("py:class", "None.  Remove all items from D."),
     ("py:class", "a set-like object providing a view on D's items"),
@@ -803,7 +804,10 @@ nitpick_ignore_regex = [
         "(filename|metadata|proj|times|tmax|tmin|annotations|ch_names|compensation_grade|filenames|first_samp|first_time|last_samp|n_times|proj|times|tmax|tmin)",
     ),  # noqa: E501
 ]
-suppress_warnings = ["image.nonlocal_uri"]  # we intentionally link outside
+suppress_warnings = [
+    "image.nonlocal_uri",  # we intentionally link outside
+    "config.cache",  # our rebuild is okay
+]
 
 
 # -- Sphinx hacks / overrides ------------------------------------------------
