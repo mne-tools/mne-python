@@ -5258,3 +5258,28 @@ def test_empty_error(method, epochs_empty):
         pytest.importorskip("pandas")
     with pytest.raises(RuntimeError, match="is empty."):
         getattr(epochs_empty.copy(), method[0])(**method[1])
+
+
+def test_repr():
+    """Test string and HTML repr with and without dropped epochs."""
+    data = np.array([[2, 3, 4], [2, 3, 4]], float)
+    info = create_info(2, sfreq=1000.0, ch_types="eeg")
+    raw = RawArray(data, info)
+    events = np.array([[0, 0, 1], [1, 0, 2]])
+    epochs = mne.Epochs(raw, events=events, baseline=(0, 0), tmin=0, tmax=1e-3)
+
+    # None dropped; not preloaded
+    assert "none dropped" in repr(epochs)
+    assert " <th>Dropped</th>\n        \n        <td>—</td>" in epochs._repr_html_()
+
+    # None dropped; preloaded
+    epochs.load_data()
+    assert "none dropped" in repr(epochs)
+    assert " <th>Dropped</th>\n        \n        <td>—</td>" in epochs._repr_html_()
+
+    # One dropped
+    epochs.drop(0)
+    assert "1 dropped" in repr(epochs)
+    assert (
+        " <th>Dropped</th>\n        \n        <td>1 of 2</td>" in epochs._repr_html_()
+    )

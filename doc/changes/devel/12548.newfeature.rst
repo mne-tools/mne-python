@@ -1,0 +1,1 @@
+Printing :class:`~mne.Epochs` in an interactive Python session now also displays the number of dropped epochs, by `Richard Höchenberger`_

@@ -19,4 +19,12 @@
         <th>Baseline</th>
         <td>{{ baseline }}</td>
     </tr>
+    <tr>
+        <th>Dropped</th>
+        {% if drop_idx|length > 0 %}
+        <td>{{ drop_idx|length }} of {{ drop_idx|length + epochs.events|length }}</td>
+        {% else %}
+        <td>—</td>
+        {% endif %}
+    </tr>
 </table>

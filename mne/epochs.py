@@ -2034,8 +2034,13 @@ class BaseEpochs(
 
     def __repr__(self):
         """Build string representation."""
+        n_dropped = len([x for x in self.drop_log if x != ()]) or "none"
         s = f" {len(self.events)} events "
-        s += "(all good)" if self._bad_dropped else "(good & bad)"
+        s += (
+            f"(all good; {n_dropped} dropped)"
+            if self._bad_dropped
+            else f"(good & bad; {n_dropped} dropped)"
+        )
         s += f", {self.tmin:g} – {self.tmax:g} s"
         s += ", baseline "
         if self.baseline is None:
@@ -2091,8 +2096,12 @@ class BaseEpochs(
         else:
             event_strings = None
 
+        drop_idx = [i for i, log in enumerate(self.drop_log) if log != ()]
+
         t = _get_html_template("repr", "epochs.html.jinja")
-        t = t.render(epochs=self, baseline=baseline, events=event_strings)
+        t = t.render(
+            epochs=self, baseline=baseline, events=event_strings, drop_idx=drop_idx
+        )
         return t
 
     @verbose
