@@ -75,6 +75,6 @@ mne.viz.set_3d_view(
 #    >>> from mne.utils import run_subprocess
 #    >>> mri_fname = subjects_dir / "sample" / "mri" / "brain.mgz"
 #    >>> run_subprocess(["freeview", "-v", str(mri_fname), "-v",
-#                        "%s:colormap=lut:opacity=0.5" % str(aseg_fname),
-#                        "-v", "%s:colormap=jet:colorscale=0,2" % nii_fname,
+#                        f"{str(aseg_fname)}:colormap=lut:opacity=0.5",
+#                        "-v", f"{nii_fname}:colormap=jet:colorscale=0,2",
 #                        "--slice", "157", "75", "105"])
