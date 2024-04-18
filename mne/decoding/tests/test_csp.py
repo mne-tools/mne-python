@@ -13,12 +13,14 @@ import pytest
 from numpy.testing import assert_array_almost_equal, assert_array_equal, assert_equal
 
 from mne import Epochs, io, pick_types, read_events
-from mne.decoding.csp import CSP, SPoC, _ajd_pham
+from mne.decoding import CSP, Scaler, SPoC
+from mne.decoding.csp import _ajd_pham
+from mne.utils import catch_logging
 
 data_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
 raw_fname = data_dir / "test_raw.fif"
 event_name = data_dir / "test-eve.fif"
-tmin, tmax = -0.2, 0.5
+tmin, tmax = -0.1, 0.2
 event_id = dict(aud_l=1, vis_l=3)
 # if stop is too small pca may fail in some cases, but we're okay on this file
 start, stop = 0, 8
@@ -245,40 +247,95 @@ def test_csp():
         assert np.abs(corr) > 0.95
 
 
-def test_regularized_csp():
+# Even the "reg is None and rank is None" case should pass now thanks to the
+# do_compute_rank
+@pytest.mark.parametrize("ch_type", ("mag", "eeg", ("mag", "eeg")))
+@pytest.mark.parametrize("rank", (None, "correct"))
+@pytest.mark.parametrize("reg", [None, 0.001, "oas"])
+def test_regularized_csp(ch_type, rank, reg):
     """Test Common Spatial Patterns algorithm using regularized covariance."""
     pytest.importorskip("sklearn")
-    raw = io.read_raw_fif(raw_fname)
+    from sklearn.linear_model import LogisticRegression
+    from sklearn.model_selection import StratifiedKFold, cross_val_score
+    from sklearn.pipeline import make_pipeline
+
+    raw = io.read_raw_fif(raw_fname).pick(ch_type, exclude="bads").load_data()
+    n_orig = len(raw.ch_names)
+    ch_decim = 2
+    raw.pick_channels(raw.ch_names[::ch_decim])
+    if "eeg" in ch_type:
+        raw.set_eeg_reference(projection=True)
+    n_eig = len(raw.ch_names) - len(raw.info["projs"])
+    n_ch = n_orig // ch_decim
+    if ch_type == "eeg":
+        assert n_eig == n_ch - 1
+    elif ch_type == "mag":
+        assert n_eig == n_ch - 3
+    else:
+        assert n_eig == n_ch - 4
+    if rank == "correct":
+        if isinstance(ch_type, str):
+            rank = {ch_type: n_eig}
+        else:
+            assert ch_type == ("mag", "eeg")
+            rank = dict(
+                mag=102 // ch_decim - 3,
+                eeg=60 // ch_decim - 1,
+            )
+    else:
+        assert rank is None, rank
+    raw.info.normalize_proj()
+    raw.filter(2, 40)
     events = read_events(event_name)
-    picks = pick_types(
-        raw.info, meg=True, stim=False, ecg=False, eog=False, exclude="bads"
-    )
-    picks = picks[1:13:3]
-    epochs = Epochs(
-        raw, events, event_id, tmin, tmax, picks=picks, baseline=(None, 0), preload=True
-    )
+    # map make left and right events the same
+    events[events[:, 2] == 2, 2] = 1
+    events[events[:, 2] == 4, 2] = 3
+    epochs = Epochs(raw, events, event_id, tmin, tmax, decim=5, preload=True)
+    epochs.equalize_event_counts()
+    assert 25 < len(epochs) < 30
     epochs_data = epochs.get_data(copy=False)
     n_channels = epochs_data.shape[1]
-
+    assert n_channels == n_ch
     n_components = 3
-    reg_cov = [None, 0.05, "ledoit_wolf", "oas"]
-    for reg in reg_cov:
-        csp = CSP(n_components=n_components, reg=reg, norm_trace=False, rank=None)
-        csp.fit(epochs_data, epochs.events[:, -1])
-        y = epochs.events[:, -1]
-        X = csp.fit_transform(epochs_data, y)
-        assert csp.filters_.shape == (n_channels, n_channels)
-        assert csp.patterns_.shape == (n_channels, n_channels)
-        assert_array_almost_equal(csp.fit(epochs_data, y).transform(epochs_data), X)
 
-        # test init exception
-        pytest.raises(ValueError, csp.fit, epochs_data, np.zeros_like(epochs.events))
-        pytest.raises(ValueError, csp.fit, epochs, y)
-        pytest.raises(ValueError, csp.transform, epochs)
+    sc = Scaler(epochs.info)
+    epochs_data = sc.fit_transform(epochs_data)
+    csp = CSP(n_components=n_components, reg=reg, norm_trace=False, rank=rank)
+    with catch_logging(verbose=True) as log:
+        X = csp.fit_transform(epochs_data, epochs.events[:, -1])
+    log = log.getvalue()
+    assert "Setting small MAG" not in log
+    assert "Setting small data eigen" in log
+    if rank is None:
+        assert "Computing rank from data" in log
+        assert " mag: rank" not in log.lower()
+        assert " data: rank" in log
+        assert "rank (mag)" not in log.lower()
+        assert "rank (data)" in log
+    else:  # if rank is passed no computation is done
+        assert "Computing rank" not in log
+        assert ": rank" not in log
+        assert "rank (" not in log
+    assert "reducing mag" not in log.lower()
+    assert f"Reducing data rank from {n_channels} " in log
+    y = epochs.events[:, -1]
+    assert csp.filters_.shape == (n_eig, n_channels)
+    assert csp.patterns_.shape == (n_eig, n_channels)
+    assert_array_almost_equal(csp.fit(epochs_data, y).transform(epochs_data), X)
 
-        csp.n_components = n_components
-        sources = csp.transform(epochs_data)
-        assert sources.shape[1] == n_components
+    # test init exception
+    pytest.raises(ValueError, csp.fit, epochs_data, np.zeros_like(epochs.events))
+    pytest.raises(ValueError, csp.fit, epochs, y)
+    pytest.raises(ValueError, csp.transform, epochs)
+
+    csp.n_components = n_components
+    sources = csp.transform(epochs_data)
+    assert sources.shape[1] == n_components
+
+    cv = StratifiedKFold(5)
+    clf = make_pipeline(csp, LogisticRegression(solver="liblinear"))
+    score = cross_val_score(clf, epochs_data, y, cv=cv, scoring="roc_auc").mean()
+    assert 0.75 <= score <= 1.0
 
 
 def test_csp_pipeline():
