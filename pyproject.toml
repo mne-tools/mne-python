@@ -142,7 +142,7 @@ test_extra = [
 
 # Dependencies for building the documentation
 doc = [
-    "sphinx>=6",
+    "sphinx>=6,<7.3",
     "numpydoc",
     "pydata_sphinx_theme==0.15.2",
     "sphinx-gallery",
