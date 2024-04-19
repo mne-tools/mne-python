@@ -113,7 +113,7 @@ def _csc_matrix_cast(x):
 
 
 def rng_uniform(rng):
-    """Get the unform/randint from the rng."""
+    """Get the uniform/randint from the rng."""
     # prefer Generator.integers, fall back to RandomState.randint
     return getattr(rng, "integers", getattr(rng, "randint", None))
 

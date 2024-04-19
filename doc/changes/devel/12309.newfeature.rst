@@ -1,1 +1,0 @@
-Add method :meth:`mne.SourceEstimate.save_as_surface` to allow saving GIFTI files from surface source estimates, by `Peter Molfese`_.

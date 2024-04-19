@@ -1,1 +1,0 @@
-Fix bug where :func:`mne.preprocessing.compute_proj_ecg` and :func:`mne.preprocessing.compute_proj_eog` could modify the default ``reject`` and ``flat`` arguments on multiple calls based on channel types present, by `Eric Larson`_.

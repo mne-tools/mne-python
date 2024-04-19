@@ -1,1 +1,0 @@
-Remove incorrect type hints in :func:`mne.io.read_raw_neuralynx`, by `Richard Höchenberger`_.

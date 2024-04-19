@@ -1,1 +1,0 @@
-Add ``tol`` parameter to :meth:`mne.events_from_annotations` so that the user can specify the tolerance to ignore rounding errors of event onsets when using ``chunk_duration`` is not None (default is 1e-8), by `Michiru Kaneda`_

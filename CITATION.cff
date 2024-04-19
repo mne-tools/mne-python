@@ -1,9 +1,9 @@
 cff-version: 1.2.0
 title: "MNE-Python"
 message: "If you use this software, please cite both the software itself, and the paper listed in the preferred-citation field."
-version: 1.6.0
-date-released: "2023-11-20"
-commit: 498cf789685ede0b29e712a1e7220c69443e8744
+version: 1.7.0
+date-released: "2024-04-19"
+commit: a3743420a8eef774dafd2908f0de89c4d37fcd01
 doi: 10.5281/zenodo.592483
 keywords:
   - MEG
@@ -35,10 +35,10 @@ authors:
     given-names: Teon
   - family-names: Sassenhagen
     given-names: Jona
-  - family-names: Luessi
-    given-names: Martin
   - family-names: McCloy
     given-names: Daniel
+  - family-names: Luessi
+    given-names: Martin
   - family-names: King
     given-names: Jean-Remi
   - family-names: Höchenberger
@@ -53,10 +53,10 @@ authors:
     given-names: Marijn
   - family-names: Wronkiewicz
     given-names: Mark
-  - family-names: Holdgraf
-    given-names: Chris
   - family-names: Rockhill
     given-names: Alex
+  - family-names: Holdgraf
+    given-names: Chris
   - family-names: Massich
     given-names: Joan
   - family-names: Bekhti
@@ -117,12 +117,12 @@ authors:
     given-names: Martin
   - family-names: Foti
     given-names: Nick
+  - family-names: Huberty
+    given-names: Scott
   - family-names: Nangini
     given-names: Cathy
   - family-names: García Alanis
     given-names: José C
-  - family-names: Huberty
-    given-names: Scott
   - family-names: Hauk
     given-names: Olaf
   - family-names: Maddox
@@ -165,6 +165,10 @@ authors:
     given-names: Christopher
   - family-names: Raimundo
     given-names: Félix
+  - family-names: Woessner
+    given-names: Jacob
+  - family-names: Kaneda
+    given-names: Michiru
   - family-names: Alday
     given-names: Phillip
   - family-names: Pari
@@ -189,6 +193,10 @@ authors:
     given-names: Alexandre
   - family-names: Gütlin
     given-names: Dirk
+  - family-names: Heinila
+    given-names: Erkka
+  - family-names: Armeni
+    given-names: Kristijan
   - name: kjs
   - family-names: Weinstein
     given-names: Alejandro
@@ -202,14 +210,10 @@ authors:
     given-names: Dmitrii
   - family-names: Peterson
     given-names: Erica
-  - family-names: Heinila
-    given-names: Erkka
   - family-names: Hanna
     given-names: Jevri
   - family-names: Houck
     given-names: Jon
-  - family-names: Kaneda
-    given-names: Michiru
   - family-names: Klein
     given-names: Natalie
   - family-names: Roujansky
@@ -220,16 +224,18 @@ authors:
     given-names: Antti
   - family-names: Maess
     given-names: Burkhard
+  - family-names: Forster
+    given-names: Carina
   - family-names: O'Reilly
     given-names: Christian
+  - family-names: Welke
+    given-names: Dominik
   - family-names: Kolkhorst
     given-names: Henrich
   - family-names: Banville
     given-names: Hubert
   - family-names: Zhang
     given-names: Jack
-  - family-names: Woessner
-    given-names: Jacob
   - family-names: Maksymenko
     given-names: Kostiantyn
   - family-names: Clarke
@@ -242,8 +248,6 @@ authors:
     given-names: Pierre-Antoine
   - family-names: Choudhary
     given-names: Saket
-  - family-names: Forster
-    given-names: Carina
   - family-names: Kim
     given-names: Cora
   - family-names: Klotzsche
@@ -268,6 +272,8 @@ authors:
     given-names: Nick
   - family-names: Ruuskanen
     given-names: Santeri
+  - family-names: Herbst
+    given-names: Sophie
   - family-names: Radanovic
     given-names: Ana
   - family-names: Quinn
@@ -276,8 +282,6 @@ authors:
     given-names: Antoine
   - family-names: Pinsard
     given-names: Basile
-  - family-names: Welke
-    given-names: Dominik
   - family-names: Welke
     given-names: Dominik
   - family-names: Stephen
@@ -294,22 +298,30 @@ authors:
     given-names: Giorgio
   - family-names: Anevar
     given-names: Hafeza
+  - family-names: Abdelhedi
+    given-names: Hamza
   - family-names: Sosulski
     given-names: Jan
   - family-names: Stout
     given-names: Jeff
   - family-names: Calder-Travis
     given-names: Joshua
+  - family-names: Zhu
+    given-names: Judy D
   - family-names: Eisenman
     given-names: Larry
   - family-names: Esch
     given-names: Lorenz
   - family-names: Dovgialo
     given-names: Marian
+  - family-names: Alibou
+    given-names: Nabil
   - family-names: Barascud
     given-names: Nicolas
   - family-names: Legrand
     given-names: Nicolas
+  - family-names: Kapralov
+    given-names: Nikolai
   - family-names: Falach
     given-names: Rotem
   - family-names: Deslauriers-Gauthier
@@ -320,6 +332,10 @@ authors:
     given-names: Steve
   - family-names: Bierer
     given-names: Steven
+  - family-names: Binns
+    given-names: Thomas Samuel
+  - family-names: Stenner
+    given-names: Tristan
   - family-names: Férat
     given-names: Victor
   - family-names: Peterson
@@ -350,8 +366,6 @@ authors:
     given-names: Gennadiy
   - family-names: O'Neill
     given-names: George
-  - family-names: Abdelhedi
-    given-names: Hamza
   - family-names: Schiratti
     given-names: Jean-Baptiste
   - family-names: Evans
@@ -362,16 +376,14 @@ authors:
     given-names: Jordan
   - family-names: Teves
     given-names: Joshua
-  - family-names: Zhu
-    given-names: Judy D
-  - family-names: Armeni
-    given-names: Kristijan
   - family-names: Mathewson
     given-names: Kyle
   - family-names: Gwilliams
     given-names: Laura
   - family-names: Varghese
     given-names: Lenny
+  - family-names: Hamilton
+    given-names: Liberty
   - family-names: Gemein
     given-names: Lukas
   - family-names: Hecker
@@ -393,6 +405,8 @@ authors:
     given-names: Niklas
   - family-names: Kozynets
     given-names: Oleh
+  - family-names: Molfese
+    given-names: Peter J
   - family-names: Ablin
     given-names: Pierre
   - family-names: Bertrand
@@ -407,24 +421,20 @@ authors:
     given-names: Sena
   - family-names: Khan
     given-names: Sheraz
-  - family-names: Herbst
-    given-names: Sophie
   - family-names: Datta
     given-names: Sumalyo
   - family-names: Papadopoulo
     given-names: Theodore
+  - family-names: Donoghue
+    given-names: Thomas
   - family-names: Jochmann
     given-names: Thomas
-  - family-names: Binns
-    given-names: Thomas Samuel
   - family-names: Merk
     given-names: Timon
   - family-names: Flak
     given-names: Tod
   - family-names: Dupré la Tour
     given-names: Tom
-  - family-names: Stenner
-    given-names: Tristan
   - family-names: NessAiver
     given-names: Tziona
   - name: akshay0724
@@ -441,6 +451,8 @@ authors:
     given-names: Adina
   - family-names: Ciok
     given-names: Alex
+  - family-names: Kiefer
+    given-names: Alexander
   - family-names: Gilbert
     given-names: Andy
   - family-names: Pradhan
@@ -515,6 +527,8 @@ authors:
     given-names: Evgeny
   - family-names: Zamberlan
     given-names: Federico
+  - family-names: Hofer
+    given-names: Florian
   - family-names: Pop
     given-names: Florin
   - family-names: Weber
@@ -530,6 +544,8 @@ authors:
     given-names: Gonzalo
   - family-names: Maymandi
     given-names: Hamid
+  - family-names: Arzoo
+    given-names: Hasrat Ali
   - family-names: Sonntag
     given-names: Hermann
   - family-names: Ye
@@ -540,10 +556,10 @@ authors:
     given-names: Hüseyin Orkun
   - family-names: Machairas
     given-names: Ilias
-  - family-names: Skelin
-    given-names: Ivan
   - family-names: Zubarev
     given-names: Ivan
+  - family-names: de Jong
+    given-names: Ivo
   - family-names: Kaczmarzyk
     given-names: Jakub
   - family-names: Zerfowski
@@ -576,8 +592,6 @@ authors:
     given-names: Lau Møller
   - family-names: Barbosa
     given-names: Leonardo S
-  - family-names: Hamilton
-    given-names: Liberty
   - family-names: Alfine
     given-names: Lorenzo
   - family-names: Hejtmánek
@@ -596,6 +610,8 @@ authors:
     given-names: Marcin
   - family-names: Henney
     given-names: Mark Alexander
+  - family-names: Oberg
+    given-names: Martin
   - family-names: Schulz
     given-names: Martin
   - family-names: van Harmelen
@@ -639,8 +655,6 @@ authors:
     given-names: Padma
   - family-names: Silva
     given-names: Pedro
-  - family-names: Molfese
-    given-names: Peter J
   - family-names: Das
     given-names: Proloy
   - family-names: Chu
@@ -660,6 +674,8 @@ authors:
   - family-names: Nasri
     given-names: Reza
   - family-names: Koehler
+    given-names: Richard
+  - family-names: Scholz
     given-names: Richard
   - family-names: Stargardsky
     given-names: Riessarius
@@ -691,6 +707,8 @@ authors:
     given-names: Senwen
   - family-names: Antopolskiy
     given-names: Sergey
+  - family-names: Shirazi
+    given-names: Seyed (Yahya)
   - family-names: Wong
     given-names: Simeon
   - family-names: Wong
@@ -711,8 +729,6 @@ authors:
     given-names: Svea Marie
   - family-names: Wang
     given-names: T
-  - family-names: Donoghue
-    given-names: Thomas
   - family-names: Moreau
     given-names: Thomas
   - family-names: Radman
@@ -727,12 +743,17 @@ authors:
     given-names: Tommy
   - family-names: Anijärv
     given-names: Toomas Erik
+  - family-names: Kumaravel
+    given-names: Velu Prabhakar
+  - family-names: Turner
+    given-names: Will
   - family-names: Xia
     given-names: Xiaokai
   - family-names: Zuo
     given-names: Yiping
   - family-names: Zhang
     given-names: Zhi
+  - name: btkcodedev
   - name: buildqa
   - name: luzpaz
 preferred-citation:

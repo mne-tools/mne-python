@@ -1,1 +1,0 @@
-Correctly handle temporal gaps in Neuralynx .ncs files via :func:`mne.io.read_raw_neuralynx`, by `Kristijan Armeni`_ and `Eric Larson`_.

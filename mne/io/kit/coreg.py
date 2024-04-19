@@ -72,7 +72,7 @@ def read_mrk(fname):
     elif fname.suffix == ".pickled":
         warn(
             "Reading pickled files is unsafe and not future compatible, save "
-            "to a standard format (text or FIF) instea, e.g. with:\n"
+            "to a standard format (text or FIF) instead, e.g. with:\n"
             r"np.savetxt(fid, pts, delimiter=\"\\t\", newline=\"\\n\")",
             FutureWarning,
         )

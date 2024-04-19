@@ -85,7 +85,7 @@ def peak_finder(x0, thresh=None, extrema=1, verbose=None):
         left_min = min_mag
 
         # Deal with first point a little differently since tacked it on
-        # Calculate the sign of the derivative since we taked the first point
+        # Calculate the sign of the derivative since we took the first point
         # on it does not necessarily alternate like the rest.
         signDx = np.sign(np.diff(x[:3]))
         if signDx[0] <= 0:  # The first point is larger or equal to the second

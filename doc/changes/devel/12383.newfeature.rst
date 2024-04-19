@@ -1,1 +1,0 @@
-Add ability to detect minima peaks found in :class:`mne.Evoked` if data is all positive and maxima if data is all negative.

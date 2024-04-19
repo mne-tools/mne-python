@@ -1,1 +1,0 @@
-Add ``picks`` parameter to :meth:`mne.io.Raw.plot`, allowing users to select which channels to plot. This makes makes the raw data plotting API consistent with :meth:`mne.Epochs.plot` and :meth:`mne.Evoked.plot`, by :newcontrib:`Ivo de Jong`.
