@@ -1,1 +1,0 @@
-Fix bug where parent directory existence was not checked properly in :meth:`mne.io.Raw.save`, by `Eric Larson`_.

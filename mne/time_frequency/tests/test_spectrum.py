@@ -24,6 +24,9 @@ def test_compute_psd_errors(raw):
         raw.compute_psd(foo=None, bar=None)
     with pytest.raises(ValueError, match="Complex output is not supported in "):
         raw.compute_psd(output="complex")
+    raw.set_annotations(Annotations(onset=0.01, duration=0.01, description="bad_foo"))
+    with pytest.raises(NotImplementedError, match='Cannot use method="multitaper"'):
+        raw.compute_psd(method="multitaper", reject_by_annotation=True)
 
 
 @pytest.mark.parametrize("method", ("welch", "multitaper"))
@@ -163,12 +166,13 @@ def test_spectrum_reject_by_annot(raw):
     Cannot use raw_spectrum fixture here because we're testing reject_by_annotation in
     .compute_psd() method.
     """
-    spect_no_annot = raw.compute_psd()
+    kw = dict(n_per_seg=512)  # smaller than shortest good span, to avoid warning
+    spect_no_annot = raw.compute_psd(**kw)
     raw.set_annotations(Annotations([1, 5], [3, 3], ["test", "test"]))
-    spect_benign_annot = raw.compute_psd()
+    spect_benign_annot = raw.compute_psd(**kw)
     raw.annotations.description = np.array(["bad_test", "bad_test"])
-    spect_reject_annot = raw.compute_psd()
-    spect_ignored_annot = raw.compute_psd(reject_by_annotation=False)
+    spect_reject_annot = raw.compute_psd(**kw)
+    spect_ignored_annot = raw.compute_psd(**kw, reject_by_annotation=False)
     # the only one that should be different is `spect_reject_annot`
     assert spect_no_annot == spect_benign_annot
     assert spect_no_annot == spect_ignored_annot

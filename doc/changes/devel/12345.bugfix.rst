@@ -1,1 +1,0 @@
-Fix clicking on an axis of :func:`mne.viz.plot_evoked_topo` when multiple vertical lines ``vlines`` are used, by `Mathieu Scheltienne`_.

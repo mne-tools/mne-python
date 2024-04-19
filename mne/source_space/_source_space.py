@@ -668,10 +668,11 @@ class SourceSpaces(list):
 
         # Figure out how to get from our input source space to output voxels
         fro_dst_t = invert_transform(transform)
-        dest = transform["to"]
         if coords == "head":
             head_mri_t = _get_trans(trans, "head", "mri")[0]
-            fro_dst_t = combine_transforms(head_mri_t, fro_dst_t, "head", dest)
+            fro_dst_t = combine_transforms(
+                head_mri_t, fro_dst_t, "head", transform["to"]
+            )
         else:
             fro_dst_t = fro_dst_t
 

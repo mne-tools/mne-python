@@ -1,1 +1,0 @@
-:meth:`mne.Annotations.to_data_frame` can now output different formats for the ``onset`` column: seconds, milliseconds, datetime objects, and timedelta objects. By `Daniel McCloy`_.

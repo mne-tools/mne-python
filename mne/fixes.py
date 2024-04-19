@@ -113,7 +113,7 @@ def _csc_matrix_cast(x):
 
 
 def rng_uniform(rng):
-    """Get the unform/randint from the rng."""
+    """Get the uniform/randint from the rng."""
     # prefer Generator.integers, fall back to RandomState.randint
     return getattr(rng, "integers", getattr(rng, "randint", None))
 
@@ -866,7 +866,7 @@ def pinvh(a, rtol=None):
 
 def pinv(a, rtol=None):
     """Compute a pseudo-inverse of a matrix."""
-    u, s, vh = np.linalg.svd(a, full_matrices=False)
+    u, s, vh = _safe_svd(a, full_matrices=False)
     del a
     maxS = np.max(s)
     if rtol is None:

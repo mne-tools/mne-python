@@ -1,2 +1,0 @@
-Replacing percent format with f-strings format specifiers , by :newcontrib:`Hasrat Ali Arzoo`.
-

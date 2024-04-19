@@ -1,1 +1,0 @@
-Speed up export to .edf in :func:`mne.export.export_raw` by using ``edfio`` instead of ``EDFlib-Python``.

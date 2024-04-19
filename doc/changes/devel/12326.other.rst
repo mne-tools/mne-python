@@ -1,1 +1,0 @@
-Updated the text in the preprocessing tutorial to use :meth:`mne.io.Raw.pick` instead of the legacy :meth:`mne.io.Raw.pick_types`, by :newcontrib:`btkcodedev`.

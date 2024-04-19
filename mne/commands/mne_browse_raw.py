@@ -84,7 +84,7 @@ def run():
         "-p",
         "--preload",
         dest="preload",
-        help="Preload raw data (for faster navigaton)",
+        help="Preload raw data (for faster navigation)",
         default=False,
         action="store_true",
     )

@@ -1292,7 +1292,7 @@ def test_crop():
         assert raw1[:][0].shape == (1, 2001)
 
     # degenerate
-    with pytest.raises(ValueError, match="No samples.*when include_tmax=Fals"):
+    with pytest.raises(ValueError, match="No samples.*when include_tmax=False"):
         raw.crop(0, 0, include_tmax=False)
 
     # edge cases cropping to exact duration +/- 1 sample

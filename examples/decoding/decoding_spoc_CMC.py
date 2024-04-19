@@ -64,7 +64,7 @@ clf = make_pipeline(spoc, Ridge())
 # Define a two fold cross-validation
 cv = KFold(n_splits=2, shuffle=False)
 
-# Run cross validaton
+# Run cross validation
 y_preds = cross_val_predict(clf, X, y, cv=cv)
 
 # Plot the True EMG power and the EMG power predicted from MEG data

@@ -1,2 +1,0 @@
-Update the list of sensor types in docstrings, tutorials and the glossary by `Nabil Alibou`_.
-

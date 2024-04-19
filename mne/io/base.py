@@ -1847,6 +1847,7 @@ class BaseRaw(
         precompute=None,
         use_opengl=None,
         *,
+        picks=None,
         theme=None,
         overview_mode=None,
         splash=True,
@@ -1885,6 +1886,7 @@ class BaseRaw(
             time_format=time_format,
             precompute=precompute,
             use_opengl=use_opengl,
+            picks=picks,
             theme=theme,
             overview_mode=overview_mode,
             splash=splash,
@@ -2197,7 +2199,9 @@ class BaseRaw(
         Parameters
         ----------
         %(method_psd)s
-            Default is ``'welch'``.
+            Note that ``"multitaper"`` cannot be used if ``reject_by_annotation=True``
+            and there are ``"bad_*"`` annotations in the :class:`~mne.io.Raw` data;
+            in such cases use ``"welch"``. Default is ``'welch'``.
         %(fmin_fmax_psd)s
         %(tmin_tmax_psd)s
         %(picks_good_data_noref)s

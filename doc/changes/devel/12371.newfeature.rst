@@ -1,1 +1,0 @@
-Speed up :func:`mne.io.read_raw_neuralynx` on large datasets with many gaps, by `Kristijan Armeni`_.

@@ -1,1 +1,0 @@
-``pytest-harvest`` is no longer used as a test dependency, by `Eric Larson`_.
