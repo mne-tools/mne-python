@@ -153,7 +153,7 @@ def equalize_channels(instances, copy=True, verbose=None):
     from ..evoked import Evoked
     from ..forward import Forward
     from ..io import BaseRaw
-    from ..time_frequency import CrossSpectralDensity, _BaseTFR
+    from ..time_frequency import BaseTFR, CrossSpectralDensity
 
     # Instances need to have a `ch_names` attribute and a `pick_channels`
     # method that supports `ordered=True`.
@@ -161,7 +161,7 @@ def equalize_channels(instances, copy=True, verbose=None):
         BaseRaw,
         BaseEpochs,
         Evoked,
-        _BaseTFR,
+        BaseTFR,
         Forward,
         Covariance,
         CrossSpectralDensity,
@@ -447,7 +447,7 @@ class UpdateChannelsMixin:
 
     @verbose
     @legacy(alt="inst.pick(...)")
-    def pick_channels(self, ch_names, ordered=None, *, verbose=None):
+    def pick_channels(self, ch_names, ordered=True, *, verbose=None):
         """Pick some channels.
 
         Parameters
@@ -549,7 +549,7 @@ class UpdateChannelsMixin:
         for ch_name in ch_names:
             ii = self.ch_names.index(ch_name)
             if ii in idx:
-                raise ValueError("Channel name repeated: %s" % (ch_name,))
+                raise ValueError(f"Channel name repeated: {ch_name}")
             idx.append(ii)
         return self._pick_drop_channels(idx)
 
@@ -607,8 +607,6 @@ class UpdateChannelsMixin:
     def _pick_drop_channels(self, idx, *, verbose=None):
         # avoid circular imports
         from ..io import BaseRaw
-        from ..time_frequency import AverageTFR, EpochsTFR
-        from ..time_frequency.spectrum import BaseSpectrum
 
         msg = "adding, dropping, or reordering channels"
         if isinstance(self, BaseRaw):
@@ -633,10 +631,8 @@ class UpdateChannelsMixin:
             if mat is not None:
                 setattr(self, key, mat[idx][:, idx])
 
-        if isinstance(self, BaseSpectrum):
+        if hasattr(self, "_dims"):  # Spectrum and "new-style" TFRs
             axis = self._dims.index("channel")
-        elif isinstance(self, (AverageTFR, EpochsTFR)):
-            axis = -3
         else:  # All others (Evoked, Epochs, Raw) have chs axis=-2
             axis = -2
         if hasattr(self, "_data"):  # skip non-preloaded Raw
@@ -839,6 +835,8 @@ class InterpolationMixin:
             - ``"meg"`` channels support ``"MNE"`` (default) and ``"nan"``
             - ``"eeg"`` channels support ``"spline"`` (default), ``"MNE"`` and ``"nan"``
             - ``"fnirs"`` channels support ``"nearest"`` (default) and ``"nan"``
+            - ``"ecog"`` channels support ``"spline"`` (default) and ``"nan"``
+            - ``"seeg"`` channels support ``"spline"`` (default) and ``"nan"``
 
             None is an alias for::
 
@@ -870,9 +868,12 @@ class InterpolationMixin:
         .. versionadded:: 0.9.0
         """
         from .interpolation import (
+            _interpolate_bads_ecog,
             _interpolate_bads_eeg,
             _interpolate_bads_meeg,
+            _interpolate_bads_nan,
             _interpolate_bads_nirs,
+            _interpolate_bads_seeg,
         )
 
         _check_preload(self, "interpolation")
@@ -894,35 +895,48 @@ class InterpolationMixin:
             "eeg": ("spline", "MNE", "nan"),
             "meg": ("MNE", "nan"),
             "fnirs": ("nearest", "nan"),
+            "ecog": ("spline", "nan"),
+            "seeg": ("spline", "nan"),
         }
         for key in method:
-            _check_option("method[key]", key, ("meg", "eeg", "fnirs"))
+            _check_option("method[key]", key, tuple(valids))
             _check_option(f"method['{key}']", method[key], valids[key])
         logger.info("Setting channel interpolation method to %s.", method)
         idx = _picks_to_idx(self.info, list(method), exclude=(), allow_empty=True)
         if idx.size == 0 or len(pick_info(self.info, idx)["bads"]) == 0:
             warn("No bad channels to interpolate. Doing nothing...")
             return self
+        for ch_type in method.copy():
+            idx = _picks_to_idx(self.info, ch_type, exclude=(), allow_empty=True)
+            if len(pick_info(self.info, idx)["bads"]) == 0:
+                method.pop(ch_type)
         logger.info("Interpolating bad channels.")
-        origin = _check_origin(origin, self.info)
+        needs_origin = [key != "seeg" and val != "nan" for key, val in method.items()]
+        if any(needs_origin):
+            origin = _check_origin(origin, self.info)
+        for ch_type, interp in method.items():
+            if interp == "nan":
+                _interpolate_bads_nan(self, ch_type, exclude=exclude)
         if method.get("eeg", "") == "spline":
             _interpolate_bads_eeg(self, origin=origin, exclude=exclude)
-            eeg_mne = False
-        elif "eeg" not in method:
-            eeg_mne = False
-        else:
-            eeg_mne = True
-        if "meg" in method or eeg_mne:
+        meg_mne = method.get("meg", "") == "MNE"
+        eeg_mne = method.get("eeg", "") == "MNE"
+        if meg_mne or eeg_mne:
             _interpolate_bads_meeg(
                 self,
                 mode=mode,
-                origin=origin,
+                meg=meg_mne,
                 eeg=eeg_mne,
+                origin=origin,
                 exclude=exclude,
                 method=method,
             )
-        if "fnirs" in method:
-            _interpolate_bads_nirs(self, exclude=exclude, method=method["fnirs"])
+        if method.get("fnirs", "") == "nearest":
+            _interpolate_bads_nirs(self, exclude=exclude)
+        if method.get("ecog", "") == "spline":
+            _interpolate_bads_ecog(self, origin=origin, exclude=exclude)
+        if method.get("seeg", "") == "spline":
+            _interpolate_bads_seeg(self, exclude=exclude)
 
         if reset_bads is True:
             if "nan" in method.values():
@@ -966,7 +980,7 @@ def rename_channels(info, mapping, allow_duplicates=False, *, verbose=None):
     elif callable(mapping):
         new_names = [(ci, mapping(ch_name)) for ci, ch_name in enumerate(ch_names)]
     else:
-        raise ValueError("mapping must be callable or dict, not %s" % (type(mapping),))
+        raise ValueError(f"mapping must be callable or dict, not {type(mapping)}")
 
     # check we got all strings out of the mapping
     for new_name in new_names:
@@ -2094,9 +2108,7 @@ def read_vectorview_selection(name, fname=None, info=None, verbose=None):
         else:
             spacing = "old"
     elif info is not None:
-        raise TypeError(
-            "info must be an instance of Info or None, not %s" % (type(info),)
-        )
+        raise TypeError(f"info must be an instance of Info or None, not {type(info)}")
     else:  # info is None
         spacing = "old"
 
@@ -2108,7 +2120,7 @@ def read_vectorview_selection(name, fname=None, info=None, verbose=None):
 
     # use this to make sure we find at least one match for each name
     name_found = {n: False for n in name}
-    with open(fname, "r") as fid:
+    with open(fname) as fid:
         sel = []
         for line in fid:
             line = line.strip()

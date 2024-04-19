@@ -16,7 +16,7 @@ from dataclasses import dataclass, is_dataclass
 from inspect import Parameter, isfunction, signature
 from numbers import Integral
 from time import time
-from typing import Dict, List, Literal, Optional, Union
+from typing import Literal, Optional, Union
 
 import numpy as np
 from scipy import linalg, stats
@@ -189,8 +189,8 @@ def _check_for_unsupported_ica_channels(picks, info, allow_ref_meg=False):
     check = all([ch in types for ch in chs])
     if not check:
         raise ValueError(
-            "Invalid channel type%s passed for ICA: %s."
-            "Only the following types are supported: %s" % (_pl(chs), chs, types)
+            f"Invalid channel type{_pl(chs)} passed for ICA: {chs}."
+            f"Only the following types are supported: {types}"
         )
 
 
@@ -508,13 +508,13 @@ class ICA(ContainsMixin):
         class _InfosForRepr:
             fit_on: Optional[Literal["raw data", "epochs"]]
             fit_method: Literal["fastica", "infomax", "extended-infomax", "picard"]
-            fit_params: Dict[str, Union[str, float]]
+            fit_params: dict[str, Union[str, float]]
             fit_n_iter: Optional[int]
             fit_n_samples: Optional[int]
             fit_n_components: Optional[int]
             fit_n_pca_components: Optional[int]
-            ch_types: List[str]
-            excludes: List[str]
+            ch_types: list[str]
+            excludes: list[str]
 
         if self.current_fit == "unfitted":
             fit_on = None
@@ -754,7 +754,7 @@ class ICA(ContainsMixin):
         var_ord = var.argsort()[::-1]
         _sort_components(self, var_ord, copy=False)
         t_stop = time()
-        logger.info("Fitting ICA took {:.1f}s.".format(t_stop - t_start))
+        logger.info(f"Fitting ICA took {t_stop - t_start:.1f}s.")
         return self
 
     def _reset(self):
@@ -818,8 +818,8 @@ class ICA(ContainsMixin):
         """Aux method."""
         if epochs.events.size == 0:
             raise RuntimeError(
-                "Tried to fit ICA with epochs, but none were "
-                'found: epochs.events is "{}".'.format(epochs.events)
+                "Tried to fit ICA with epochs, but none were found: epochs.events is "
+                f'"{epochs.events}".'
             )
 
         # this should be a copy (picks a list of int)
@@ -935,7 +935,7 @@ class ICA(ContainsMixin):
                 f"n_pca_components ({self.n_pca_components}) results in "
                 f"only {n_pca} components (EV={evs[1]:0.1f}%)"
             )
-        logger.info("%s: %s components" % (msg, self.n_components_))
+        logger.info(f"{msg}: {self.n_components_} components")
 
         # the things to store for PCA
         self.pca_mean_ = pca.mean_
@@ -1550,7 +1550,7 @@ class ICA(ContainsMixin):
             elif measure == "correlation":
                 this_idx = np.where(abs(scores[-1]) > threshold)[0]
             else:
-                raise ValueError("Unknown measure {}".format(measure))
+                raise ValueError(f"Unknown measure {measure}")
             idx += [this_idx]
             self.labels_["%s/%i/" % (prefix, ii) + ch] = list(this_idx)
 
@@ -2784,7 +2784,7 @@ def _get_target_ch(container, target):
         picks = list(set(picks) - set(ref_picks))
 
     if len(picks) == 0:
-        raise ValueError("%s not in channel list (%s)" % (target, container.ch_names))
+        raise ValueError(f"{target} not in channel list ({container.ch_names})")
     return picks
 
 
@@ -3063,7 +3063,7 @@ def read_ica(fname, verbose=None):
 
     fid.close()
 
-    ica_init, ica_misc = [_deserialize(k) for k in (ica_init, ica_misc)]
+    ica_init, ica_misc = (_deserialize(k) for k in (ica_init, ica_misc))
     n_pca_components = ica_init.pop("n_pca_components")
     current_fit = ica_init.pop("current_fit")
     max_pca_components = ica_init.pop("max_pca_components")
@@ -3341,7 +3341,7 @@ def corrmap(
     template_fig, labelled_ics = None, None
     if plot is True:
         if is_subject:  # plotting from an ICA object
-            ttl = "Template from subj. {}".format(str(template[0]))
+            ttl = f"Template from subj. {str(template[0])}"
             template_fig = icas[template[0]].plot_components(
                 picks=template[1],
                 ch_type=ch_type,
@@ -3376,8 +3376,8 @@ def corrmap(
     threshold = np.atleast_1d(np.array(threshold, float)).ravel()
     threshold_err = (
         "No component detected using when z-scoring "
-        "threshold%s %s, consider using a more lenient "
-        "threshold" % (threshold_extra, threshold)
+        f"threshold{threshold_extra} {threshold}, consider using a more lenient "
+        "threshold"
     )
     if len(all_maps) == 0:
         raise RuntimeError(threshold_err)
@@ -3393,7 +3393,7 @@ def corrmap(
     # find iteration with highest avg correlation with target
     _, median_corr, _, max_corrs = paths[np.argmax([path[1] for path in paths])]
 
-    allmaps, indices, subjs, nones = [list() for _ in range(4)]
+    allmaps, indices, subjs, nones = (list() for _ in range(4))
     logger.info("Median correlation with constructed map: %0.3f" % median_corr)
     del median_corr
     if plot is True:

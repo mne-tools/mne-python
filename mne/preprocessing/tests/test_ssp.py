@@ -11,6 +11,7 @@ from mne._fiff.proj import activate_proj, make_projector
 from mne.datasets import testing
 from mne.io import read_raw_ctf, read_raw_fif
 from mne.preprocessing.ssp import compute_proj_ecg, compute_proj_eog
+from mne.utils import _record_warnings
 
 data_path = Path(__file__).parents[2] / "io" / "tests" / "data"
 raw_fname = data_path / "test_raw.fif"
@@ -69,7 +70,10 @@ def test_compute_proj_ecg(short_raw, average):
     # XXX: better tests
 
     # without setting a bad channel, this should throw a warning
-    with pytest.warns(RuntimeWarning, match="No good epochs found"):
+    # (first with a call that makes sure we copy the mutable default "reject")
+    with pytest.warns(RuntimeWarning, match="longer than the signal"):
+        compute_proj_ecg(raw.copy().pick("mag"), l_freq=None, h_freq=None)
+    with _record_warnings(), pytest.warns(RuntimeWarning, match="No good epochs found"):
         projs, events, drop_log = compute_proj_ecg(
             raw,
             n_mag=2,
@@ -130,7 +134,7 @@ def test_compute_proj_eog(average, short_raw):
             assert proj["explained_var"] > thresh_eeg
     # XXX: better tests
 
-    with pytest.warns(RuntimeWarning, match="longer"):
+    with _record_warnings(), pytest.warns(RuntimeWarning, match="longer"):
         projs, events = compute_proj_eog(
             raw,
             n_mag=2,
@@ -147,7 +151,10 @@ def test_compute_proj_eog(average, short_raw):
     assert projs == []
 
     raw._data[raw.ch_names.index("EOG 061"), :] = 1.0
-    with pytest.warns(RuntimeWarning, match="filter.*longer than the signal"):
+    with (
+        _record_warnings(),
+        pytest.warns(RuntimeWarning, match="filter.*longer than the signal"),
+    ):
         projs, events = compute_proj_eog(raw=raw, tmax=dur_use, ch_name="EOG 061")
 
 
@@ -172,7 +179,7 @@ def test_compute_proj_parallel(short_raw):
             filter_length=100,
         )
     raw_2 = short_raw.copy()
-    with pytest.warns(RuntimeWarning, match="Attenuation"):
+    with _record_warnings(), pytest.warns(RuntimeWarning, match="Attenuation"):
         projs_2, _ = compute_proj_eog(
             raw_2,
             n_eeg=2,

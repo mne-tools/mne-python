@@ -86,7 +86,7 @@ def read_mrk(fname):
     # check output
     mrk_points = np.asarray(mrk_points)
     if mrk_points.shape != (5, 3):
-        err = "%r is no marker file, shape is " "%s" % (fname, mrk_points.shape)
+        err = f"{repr(fname)} is no marker file, shape is {mrk_points.shape}"
         raise ValueError(err)
     return mrk_points
 
@@ -114,7 +114,7 @@ def read_sns(fname):
     return locs
 
 
-def _set_dig_kit(mrk, elp, hsp, eeg):
+def _set_dig_kit(mrk, elp, hsp, eeg, *, bad_coils=()):
     """Add landmark points and head shape data to the KIT instance.
 
     Digitizer data (elp and hsp) are represented in [mm] in the Polhemus
@@ -133,6 +133,9 @@ def _set_dig_kit(mrk, elp, hsp, eeg):
         Digitizer head shape points, or path to head shape file. If more
         than 10`000 points are in the head shape, they are automatically
         decimated.
+    bad_coils : list
+        Indices of bad marker coils (up to two). Bad coils will be excluded
+        when computing the device-head transformation.
     eeg : dict
         Ordered dict of EEG dig points.
 
@@ -154,28 +157,31 @@ def _set_dig_kit(mrk, elp, hsp, eeg):
         hsp = _decimate_points(hsp, res=0.005)
         n_new = len(hsp)
         warn(
-            "The selected head shape contained {n_in} points, which is "
-            "more than recommended ({n_rec}), and was automatically "
-            "downsampled to {n_new} points. The preferred way to "
-            "downsample is using FastScan.".format(
-                n_in=n_pts, n_rec=KIT.DIG_POINTS, n_new=n_new
-            )
+            f"The selected head shape contained {n_pts} points, which is more than "
+            f"recommended ({KIT.DIG_POINTS}), and was automatically downsampled to "
+            f"{n_new} points. The preferred way to downsample is using FastScan."
         )
 
     if isinstance(elp, (str, Path, PathLike)):
         elp_points = _read_dig_kit(elp)
         if len(elp_points) != 8:
             raise ValueError(
-                "File %r should contain 8 points; got shape "
-                "%s." % (elp, elp_points.shape)
+                f"File {repr(elp)} should contain 8 points; got shape "
+                f"{elp_points.shape}."
             )
         elp = elp_points
-    elif len(elp) not in (6, 7, 8):
-        raise ValueError(
-            "ELP should contain 6 ~ 8 points; got shape " "%s." % (elp.shape,)
-        )
+        if len(bad_coils) > 0:
+            elp = np.delete(elp, np.array(bad_coils) + 3, 0)
+    # check we have at least 3 marker coils (whether read from file or
+    # passed in directly)
+    if len(elp) not in (6, 7, 8):
+        raise ValueError(f"ELP should contain 6 ~ 8 points; got shape {elp.shape}.")
     if isinstance(mrk, (str, Path, PathLike)):
         mrk = read_mrk(mrk)
+        if len(bad_coils) > 0:
+            mrk = np.delete(mrk, bad_coils, 0)
+    if len(mrk) not in (3, 4, 5):
+        raise ValueError(f"MRK should contain 3 ~ 5 points; got shape {mrk.shape}.")
 
     mrk = apply_trans(als_ras_trans, mrk)
 

@@ -321,9 +321,7 @@ def read_events(
         event_list = _mask_trigs(event_list, mask, mask_type)
         masked_len = event_list.shape[0]
         if masked_len < unmasked_len:
-            warn(
-                "{} of {} events masked".format(unmasked_len - masked_len, unmasked_len)
-            )
+            warn(f"{unmasked_len - masked_len} of {unmasked_len} events masked")
     out = event_list
     if return_event_id:
         if event_id is None:
@@ -927,7 +925,13 @@ def shift_time_events(events, ids, tshift, sfreq):
 
 @fill_doc
 def make_fixed_length_events(
-    raw, id=1, start=0, stop=None, duration=1.0, first_samp=True, overlap=0.0
+    raw,
+    id=1,  # noqa: A002
+    start=0,
+    stop=None,
+    duration=1.0,
+    first_samp=True,
+    overlap=0.0,
 ):
     """Make a set of :term:`events` separated by a fixed duration.
 
@@ -969,7 +973,7 @@ def make_fixed_length_events(
     duration, overlap = float(duration), float(overlap)
     if not 0 <= overlap < duration:
         raise ValueError(
-            "overlap must be >=0 but < duration (%s), got %s" % (duration, overlap)
+            f"overlap must be >=0 but < duration ({duration}), got {overlap}"
         )
 
     start = raw.time_as_index(start, use_rounding=True)[0]
@@ -1026,7 +1030,7 @@ def concatenate_events(events, first_samps, last_samps):
     _validate_type(events, list, "events")
     if not (len(events) == len(last_samps) and len(events) == len(first_samps)):
         raise ValueError(
-            "events, first_samps, and last_samps must all have " "the same lengths"
+            "events, first_samps, and last_samps must all have the same lengths"
         )
     first_samps = np.array(first_samps)
     last_samps = np.array(last_samps)

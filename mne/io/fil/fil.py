@@ -25,7 +25,9 @@ from .sensors import (
 
 
 @verbose
-def read_raw_fil(binfile, precision="single", preload=False, *, verbose=None):
+def read_raw_fil(
+    binfile, precision="single", preload=False, *, verbose=None
+) -> "RawFIL":
     """Raw object from FIL-OPMEG formatted data.
 
     Parameters
@@ -115,11 +117,11 @@ class RawFIL(BaseRaw):
         else:
             warn("No sensor position information found.")
 
-        with open(files["meg"], "r") as fid:
+        with open(files["meg"]) as fid:
             meg = json.load(fid)
         info = _compose_meas_info(meg, chans)
 
-        super(RawFIL, self).__init__(
+        super().__init__(
             info,
             preload,
             filenames=[files["bin"]],
@@ -129,7 +131,7 @@ class RawFIL(BaseRaw):
         )
 
         if files["coordsystem"].is_file():
-            with open(files["coordsystem"], "r") as fid:
+            with open(files["coordsystem"]) as fid:
                 csys = json.load(fid)
             hc = csys["HeadCoilCoordinates"]
 

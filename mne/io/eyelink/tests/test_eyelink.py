@@ -12,6 +12,7 @@ from mne.datasets.testing import data_path, requires_testing_data
 from mne.io import read_raw_eyelink
 from mne.io.eyelink._utils import _adjust_times, _find_overlaps
 from mne.io.tests.test_raw import _test_raw_reader
+from mne.utils import _record_warnings
 
 pd = pytest.importorskip("pandas")
 
@@ -233,19 +234,16 @@ def _simulate_eye_tracking_data(in_file, out_file):
             else:
                 fp.write("%s\n" % line)
 
-        fp.write("%s\n" % "START\t7452389\tRIGHT\tSAMPLES\tEVENTS")
-        fp.write("%s\n" % new_samples_line)
+        fp.write("START\t7452389\tRIGHT\tSAMPLES\tEVENTS\n")
+        fp.write(f"{new_samples_line}\n")
 
         for timestamp in np.arange(7452389, 7453390):  # simulate a second block
             fp.write(
-                "%s\n"
-                % (
-                    f"{timestamp}\t-2434.0\t-1760.0\t840.0\t100\t20\t45\t45\t127.0\t"
-                    "...\t1497\t5189\t512.5\t............."
-                )
+                f"{timestamp}\t-2434.0\t-1760.0\t840.0\t100\t20\t45\t45\t127.0\t"
+                "...\t1497\t5189\t512.5\t.............\n"
             )
 
-        fp.write("%s\n" % "END\t7453390\tRIGHT\tSAMPLES\tEVENTS")
+        fp.write("END\t7453390\tRIGHT\tSAMPLES\tEVENTS\n")
 
 
 @requires_testing_data
@@ -255,7 +253,10 @@ def test_multi_block_misc_channels(fname, tmp_path):
     out_file = tmp_path / "tmp_eyelink.asc"
     _simulate_eye_tracking_data(fname, out_file)
 
-    with pytest.warns(RuntimeWarning, match="Raw eyegaze coordinates"):
+    with (
+        _record_warnings(),
+        pytest.warns(RuntimeWarning, match="Raw eyegaze coordinates"),
+    ):
         raw = read_raw_eyelink(out_file, apply_offsets=True)
 
     chs_in_file = [
@@ -295,7 +296,7 @@ def test_annotations_without_offset(tmp_path):
     out_file = tmp_path / "tmp_eyelink.asc"
 
     # create fake dataset
-    with open(fname_href, "r") as file:
+    with open(fname_href) as file:
         lines = file.readlines()
     ts = lines[-3].split("\t")[0]
     line = f"MSG\t{ts} test string\n"

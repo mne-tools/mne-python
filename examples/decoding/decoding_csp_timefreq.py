@@ -21,7 +21,6 @@ signals.
 
 # %%
 
-
 import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
@@ -29,23 +28,22 @@ from sklearn.model_selection import StratifiedKFold, cross_val_score
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import LabelEncoder
 
-from mne import Epochs, create_info, events_from_annotations
+from mne import Epochs, create_info
 from mne.datasets import eegbci
 from mne.decoding import CSP
 from mne.io import concatenate_raws, read_raw_edf
-from mne.time_frequency import AverageTFR
+from mne.time_frequency import AverageTFRArray
 
 # %%
 # Set parameters and read data
-event_id = dict(hands=2, feet=3)  # motor imagery: hands vs feet
 subject = 1
 runs = [6, 10, 14]
 raw_fnames = eegbci.load_data(subject, runs)
 raw = concatenate_raws([read_raw_edf(f) for f in raw_fnames])
+raw.annotations.rename(dict(T1="hands", T2="feet"))
 
 # Extract information from the raw file
 sfreq = raw.info["sfreq"]
-events, _ = events_from_annotations(raw, event_id=dict(T1=2, T2=3))
 raw.pick(picks="eeg", exclude="bads")
 raw.load_data()
 
@@ -95,10 +93,9 @@ for freq, (fmin, fmax) in enumerate(freq_ranges):
     # Extract epochs from filtered data, padded by window size
     epochs = Epochs(
         raw_filter,
-        events,
-        event_id,
-        tmin - w_size,
-        tmax + w_size,
+        event_id=["hands", "feet"],
+        tmin=tmin - w_size,
+        tmax=tmax + w_size,
         proj=False,
         baseline=None,
         preload=True,
@@ -148,10 +145,9 @@ for freq, (fmin, fmax) in enumerate(freq_ranges):
     # Extract epochs from filtered data, padded by window size
     epochs = Epochs(
         raw_filter,
-        events,
-        event_id,
-        tmin - w_size,
-        tmax + w_size,
+        event_id=["hands", "feet"],
+        tmin=tmin - w_size,
+        tmax=tmax + w_size,
         proj=False,
         baseline=None,
         preload=True,
@@ -177,13 +173,15 @@ for freq, (fmin, fmax) in enumerate(freq_ranges):
 # Plot time-frequency results
 
 # Set up time frequency object
-av_tfr = AverageTFR(
-    create_info(["freq"], sfreq),
-    tf_scores[np.newaxis, :],
-    centered_w_times,
-    freqs[1:],
-    1,
+av_tfr = AverageTFRArray(
+    info=create_info(["freq"], sfreq),
+    data=tf_scores[np.newaxis, :],
+    times=centered_w_times,
+    freqs=freqs[1:],
+    nave=1,
 )
 
 chance = np.mean(y)  # set chance level to white in the plot
-av_tfr.plot([0], vmin=chance, title="Time-Frequency Decoding Scores", cmap=plt.cm.Reds)
+av_tfr.plot(
+    [0], vlim=(chance, None), title="Time-Frequency Decoding Scores", cmap=plt.cm.Reds
+)

@@ -16,7 +16,7 @@ from scipy import ndimage
 
 from .._fiff.pick import channel_type, pick_types
 from ..defaults import _handle_default
-from ..utils import Bunch, _check_option, _clean_names, _to_rgb, fill_doc
+from ..utils import Bunch, _check_option, _clean_names, _is_numeric, _to_rgb, fill_doc
 from .ui_events import ChannelsSelect, publish, subscribe
 from .utils import (
     DraggableColorbar,
@@ -468,7 +468,6 @@ def _imshow_tfr(
     cnorm=None,
 ):
     """Show time-frequency map as two-dimensional image."""
-    from matplotlib import pyplot as plt
     from matplotlib.widgets import RectangleSelector
 
     _check_option("yscale", yscale, ["auto", "linear", "log"])
@@ -500,7 +499,7 @@ def _imshow_tfr(
         if isinstance(colorbar, DraggableColorbar):
             cbar = colorbar.cbar  # this happens with multiaxes case
         else:
-            cbar = plt.colorbar(mappable=img, ax=ax)
+            cbar = ax.get_figure().colorbar(mappable=img, ax=ax)
         if interactive_cmap:
             ax.CB = DraggableColorbar(cbar, img, kind="tfr_image", ch_type=None)
     ax.RS = RectangleSelector(ax, onselect=onselect)  # reference must be kept
@@ -595,7 +594,7 @@ def _plot_timeseries(
             if "(" in xlabel and ")" in xlabel
             else "s"
         )
-        timestr = "%6.3f %s: " % (x, xunit)
+        timestr = f"{x:6.3f} {xunit}: "
         if not nearby:
             return "%s Nothing here" % timestr
         labels = [""] * len(nearby) if labels is None else labels
@@ -614,11 +613,9 @@ def _plot_timeseries(
         s = timestr
         for data_, label, tvec in nearby_data:
             idx = np.abs(tvec - x).argmin()
-            s += "%7.2f %s" % (data_[ch_idx, idx], yunit)
+            s += f"{data_[ch_idx, idx]:7.2f} {yunit}"
             if trunc_labels:
-                label = (
-                    label if len(label) <= 10 else "%s..%s" % (label[:6], label[-2:])
-                )
+                label = label if len(label) <= 10 else f"{label[:6]}..{label[-2:]}"
             s += " [%s] " % label if label else " "
         return s
 
@@ -671,10 +668,14 @@ def _plot_timeseries(
         else:
             ax.set_ylabel(y_label)
 
-    if vline:
-        plt.axvline(vline, color=hvline_color, linewidth=1.0, linestyle="--")
-    if hline:
-        plt.axhline(hline, color=hvline_color, linewidth=1.0, zorder=10)
+    if vline is not None:
+        vline = [vline] if _is_numeric(vline) else vline
+        for vline_ in vline:
+            plt.axvline(vline_, color=hvline_color, linewidth=1.0, linestyle="--")
+    if hline is not None:
+        hline = [hline] if _is_numeric(hline) else hline
+        for hline_ in hline:
+            plt.axhline(hline_, color=hvline_color, linewidth=1.0, zorder=10)
 
     if colorbar:
         plt.colorbar()

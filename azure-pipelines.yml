@@ -104,7 +104,7 @@ stages:
           - bash: |
               set -e
               python -m pip install --progress-bar off --upgrade pip
-              python -m pip install --progress-bar off "mne-qt-browser[opengl] @ git+https://github.com/mne-tools/mne-qt-browser.git@main" pyvista scikit-learn pytest-error-for-skips python-picard "PyQt6!=6.5.1,!=6.6.1" "PyQt6-Qt6!=6.6.1" qtpy nibabel sphinx-gallery
+              python -m pip install --progress-bar off "mne-qt-browser[opengl] @ git+https://github.com/mne-tools/mne-qt-browser.git@main" pyvista scikit-learn pytest-error-for-skips python-picard qtpy nibabel sphinx-gallery -r tools/pyqt6_requirements.txt
               python -m pip uninstall -yq mne
               python -m pip install --progress-bar off --upgrade -e .[test]
             displayName: 'Install dependencies with pip'
@@ -183,7 +183,7 @@ stages:
             displayName: 'Get test data'
           - bash: |
               set -e
-              python -m pip install "PyQt6!=6.6.1" "PyQt6-Qt6!=6.6.1"
+              python -m pip install -r tools/pyqt6_requirements.txt
               LD_DEBUG=libs python -c "from PyQt6.QtWidgets import QApplication, QWidget; app = QApplication([]); import matplotlib; matplotlib.use('QtAgg'); import matplotlib.pyplot as plt; plt.figure()"
           - bash: |
               mne sys_info -pd
@@ -193,7 +193,7 @@ stages:
             displayName: 'PyQt6'
           - bash: |
               set -e
-              python -m pip install PySide6
+              python -m pip install "PySide6!=6.7.0"
               mne sys_info -pd
               mne sys_info -pd | grep "qtpy .* (PySide6=.*)$"
               PYTEST_QT_API=PySide6 pytest -m "not slowtest" ${TEST_OPTIONS}
@@ -238,7 +238,7 @@ stages:
         variables:
           MNE_LOGGING_LEVEL: 'warning'
           MNE_FORCE_SERIAL: 'true'
-          OPENBLAS_NUM_THREADS: 2
+          OPENBLAS_NUM_THREADS: '2'
           OMP_DYNAMIC: 'false'
           PYTHONUNBUFFERED: 1
           PYTHONIOENCODING: 'utf-8'
@@ -251,9 +251,9 @@ stages:
             3.9 pip:
               TEST_MODE: 'pip'
               PYTHON_VERSION: '3.9'
-            3.11 pip pre:
+            3.12 pip pre:
               TEST_MODE: 'pip-pre'
-              PYTHON_VERSION: '3.11'
+              PYTHON_VERSION: '3.12'
         steps:
           - task: UsePythonVersion@0
             inputs:
@@ -274,6 +274,8 @@ stages:
             displayName: 'Print config'
           - script: python -c "import numpy; numpy.show_config()"
             displayName: Print NumPy config
+          - script: python -c "import numpy; import scipy.linalg; import sklearn.neighbors; from threadpoolctl import threadpool_info; from pprint import pprint; pprint(threadpool_info())"
+            displayName: Print threadpoolctl info
           - bash: source tools/get_testing_version.sh
             displayName: 'Get testing version'
           - task: Cache@2

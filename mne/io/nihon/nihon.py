@@ -24,7 +24,7 @@ def _ensure_path(fname):
 
 
 @fill_doc
-def read_raw_nihon(fname, preload=False, verbose=None):
+def read_raw_nihon(fname, preload=False, verbose=None) -> "RawNihon":
     """Reader for an Nihon Kohden EEG file.
 
     Parameters
@@ -70,7 +70,7 @@ def _read_nihon_metadata(fname):
         warn("No PNT file exists. Metadata will be blank")
         return metadata
     logger.info("Found PNT file, reading metadata.")
-    with open(pnt_fname, "r") as fid:
+    with open(pnt_fname) as fid:
         version = np.fromfile(fid, "|S16", 1).astype("U16")[0]
         if version not in _valid_headers:
             raise ValueError(f"Not a valid Nihon Kohden PNT file ({version})")
@@ -135,7 +135,7 @@ def _read_21e_file(fname):
         logger.info("Found 21E file, reading channel names.")
         for enc in _encodings:
             try:
-                with open(e_fname, "r", encoding=enc) as fid:
+                with open(e_fname, encoding=enc) as fid:
                     keep_parsing = False
                     for line in fid:
                         if line.startswith("["):
@@ -169,10 +169,10 @@ def _read_nihon_header(fname):
     _chan_labels = _read_21e_file(fname)
     header = {}
     logger.info(f"Reading header from {fname}")
-    with open(fname, "r") as fid:
+    with open(fname) as fid:
         version = np.fromfile(fid, "|S16", 1).astype("U16")[0]
         if version not in _valid_headers:
-            raise ValueError("Not a valid Nihon Kohden EEG file ({})".format(version))
+            raise ValueError(f"Not a valid Nihon Kohden EEG file ({version})")
 
         fid.seek(0x0081)
         control_block = np.fromfile(fid, "|S16", 1).astype("U16")[0]
@@ -284,10 +284,10 @@ def _read_nihon_annotations(fname):
         warn("No LOG file exists. Annotations will not be read")
         return dict(onset=[], duration=[], description=[])
     logger.info("Found LOG file, reading events.")
-    with open(log_fname, "r") as fid:
+    with open(log_fname) as fid:
         version = np.fromfile(fid, "|S16", 1).astype("U16")[0]
         if version not in _valid_headers:
-            raise ValueError("Not a valid Nihon Kohden LOG file ({})".format(version))
+            raise ValueError(f"Not a valid Nihon Kohden LOG file ({version})")
 
         fid.seek(0x91)
         n_logblocks = np.fromfile(fid, np.uint8, 1)[0]
@@ -415,7 +415,7 @@ class RawNihon(BaseRaw):
             info["chs"][i_ch]["range"] = t_range
             info["chs"][i_ch]["cal"] = 1 / t_range
 
-        super(RawNihon, self).__init__(
+        super().__init__(
             info,
             preload=preload,
             last_samps=(n_samples - 1,),

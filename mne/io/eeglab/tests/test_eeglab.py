@@ -28,7 +28,7 @@ from mne.io import read_raw_eeglab
 from mne.io.eeglab._eeglab import _readmat
 from mne.io.eeglab.eeglab import _dol_to_lod, _get_montage_information
 from mne.io.tests.test_raw import _test_raw_reader
-from mne.utils import Bunch, _check_pymatreader_installed
+from mne.utils import Bunch, _check_pymatreader_installed, _record_warnings
 
 base_dir = testing.data_path(download=False) / "EEGLAB"
 raw_fname_mat = base_dir / "test_raw.set"
@@ -71,7 +71,7 @@ montage_path = base_dir / "test_chans.locs"
 def test_io_set_raw(fname):
     """Test importing EEGLAB .set files."""
     montage = read_custom_montage(montage_path)
-    montage.ch_names = ["EEG {0:03d}".format(ii) for ii in range(len(montage.ch_names))]
+    montage.ch_names = [f"EEG {ii:03d}" for ii in range(len(montage.ch_names))]
 
     kws = dict(reader=read_raw_eeglab, input_fname=fname)
     if fname.name == "test_raw_chanloc.set":
@@ -140,7 +140,10 @@ def test_io_set_raw_more(tmp_path):
     shutil.copyfile(
         base_dir / "test_raw.fdt", negative_latency_fname.with_suffix(".fdt")
     )
-    with pytest.warns(RuntimeWarning, match="has a sample index of -1."):
+    with (
+        _record_warnings(),
+        pytest.warns(RuntimeWarning, match="has a sample index of -1."),
+    ):
         read_raw_eeglab(input_fname=negative_latency_fname, preload=True)
 
     # test negative event latencies
@@ -163,7 +166,7 @@ def test_io_set_raw_more(tmp_path):
         oned_as="row",
     )
     with pytest.raises(ValueError, match="event sample index is negative"):
-        with pytest.warns(RuntimeWarning, match="has a sample index of -1."):
+        with _record_warnings():
             read_raw_eeglab(input_fname=negative_latency_fname, preload=True)
 
     # test overlapping events
@@ -350,9 +353,9 @@ def test_io_set_raw_more(tmp_path):
 def test_io_set_epochs(fnames):
     """Test importing EEGLAB .set epochs files."""
     epochs_fname, epochs_fname_onefile = fnames
-    with pytest.warns(RuntimeWarning, match="multiple events"):
+    with _record_warnings(), pytest.warns(RuntimeWarning, match="multiple events"):
         epochs = read_epochs_eeglab(epochs_fname)
-    with pytest.warns(RuntimeWarning, match="multiple events"):
+    with _record_warnings(), pytest.warns(RuntimeWarning, match="multiple events"):
         epochs2 = read_epochs_eeglab(epochs_fname_onefile)
     # one warning for each read_epochs_eeglab because both files have epochs
     # associated with multiple events
@@ -716,3 +719,36 @@ def test_fidsposition_information(monkeypatch, has_type):
     assert len(pos["lpa"]) == 3
     assert len(pos["rpa"]) == 3
     assert len(raw.info["dig"]) == n_eeg + 3
+
+
+@testing.requires_testing_data
+def test_eeglab_drop_nan_annotations(tmp_path):
+    """Test reading file with NaN annotations."""
+    pytest.importorskip("eeglabio")
+    from eeglabio.raw import export_set
+
+    file_path = tmp_path / "test_nan_anno.set"
+    raw = read_raw_eeglab(raw_fname_mat, preload=True)
+    data = raw.get_data()
+    sfreq = raw.info["sfreq"]
+    ch_names = raw.ch_names
+    anno = [
+        raw.annotations.description,
+        raw.annotations.onset,
+        raw.annotations.duration,
+    ]
+    anno[1][0] = np.nan
+
+    export_set(
+        str(file_path),
+        data,
+        sfreq,
+        ch_names,
+        ch_locs=None,
+        annotations=anno,
+        ref_channels="common",
+        ch_types=np.repeat("EEG", len(ch_names)),
+    )
+
+    with pytest.raises(RuntimeWarning, match="1 .* have an onset that is NaN.*"):
+        raw = read_raw_eeglab(file_path, preload=True)

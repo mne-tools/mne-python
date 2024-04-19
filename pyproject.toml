@@ -63,7 +63,7 @@ full = [
     "mne[hdf5]",
     "qtpy",
     "PyQt6!=6.6.1",
-    "PyQt6-Qt6!=6.6.1",
+    "PyQt6-Qt6!=6.6.1,!=6.6.2,!=6.6.3",
     "pyobjc-framework-Cocoa>=5.2.0; platform_system=='Darwin'",
     "sip",
     "scikit-learn",
@@ -72,10 +72,9 @@ full = [
     "numba",
     "h5py",
     "pandas",
-    "numexpr",
+    "pyarrow",  # only needed to avoid a deprecation warning in pandas
     "jupyter",
     "python-picard",
-    "statsmodels",
     "joblib",
     "psutil",
     "dipy",
@@ -99,19 +98,20 @@ full = [
     "qdarkstyle!=3.2.2",
     "threadpoolctl",
     # duplicated in test_extra:
+    "statsmodels",
     "eeglabio",
     "edfio>=0.2.1",
     "pybv",
     "snirf",
     "defusedxml",
+    "neo",
 ]
 
 # Dependencies for running the test infrastructure
 test = [
-    "pytest",
+    "pytest>=8.0.0rc2",
     "pytest-cov",
     "pytest-timeout",
-    "pytest-harvest",
     "pytest-qt",
     "ruff",
     "numpydoc",
@@ -129,21 +129,25 @@ test_extra = [
     "nitime",
     "nbclient",
     "sphinx-gallery",
+    "statsmodels",
     "eeglabio",
     "edfio>=0.2.1",
     "pybv",
     "imageio>=2.6.1",
     "imageio-ffmpeg>=0.4.1",
     "snirf",
+    "neo",
+    "mne-bids",
 ]
 
-# Dependencies for building the docuemntation
+# Dependencies for building the documentation
 doc = [
-    "sphinx>=6",
+    "sphinx>=6,<7.3",
     "numpydoc",
-    "pydata_sphinx_theme==0.13.3",
+    "pydata_sphinx_theme==0.15.2",
     "sphinx-gallery",
     "sphinxcontrib-bibtex>=2.5",
+    "sphinxcontrib-towncrier",
     "memory_profiler",
     "neo",
     "seaborn!=0.11.2",
@@ -172,12 +176,6 @@ Forum = "https://mne.discourse.group/"
 "Source Code" = "https://github.com/mne-tools/mne-python/"
 
 [tool.hatch.build]
-artifacts = [
-    "/mne/data/**/*.dat",
-    "/mne/data/**/*.fif",
-    "/mne/data/**/*.fif.gz",
-    "/mne/icons/**/*.png",
-] # excluded via .gitignore, but we do want to ship those files
 exclude = [
     "/.*",
     "/*.yml",
@@ -207,15 +205,17 @@ builtin = "clear,rare,informal,names,usage"
 skip = "doc/references.bib"
 
 [tool.ruff]
-select = ["E", "F", "W", "D", "I"]
 exclude = ["__init__.py", "constants.py", "resources.py"]
+
+[tool.ruff.lint]
+select = ["A", "B006", "D", "E", "F", "I", "W", "UP", "UP031"]
 ignore = [
     "D100", # Missing docstring in public module
     "D104", # Missing docstring in public package
     "D413", # Missing blank line after last section
 ]
 
-[tool.ruff.pydocstyle]
+[tool.ruff.lint.pydocstyle]
 convention = "numpy"
 ignore-decorators = [
     "property",
@@ -225,7 +225,7 @@ ignore-decorators = [
     "mne.utils.deprecated",
 ]
 
-[tool.ruff.per-file-ignores]
+[tool.ruff.lint.per-file-ignores]
 "tutorials/time-freq/10_spectrum_class.py" = [
     "E501", # line too long
 ]
@@ -241,9 +241,15 @@ ignore-decorators = [
 "examples/*/*.py" = [
     "D205", # 1 blank line required between summary line and description
 ]
+"examples/preprocessing/eeg_bridging.py" = [
+    "E501", # line too long
+]
 
 [tool.pytest.ini_options]
-addopts = """--durations=20 --doctest-modules -ra --cov-report= --tb=short \
+# -r f (failed), E (error), s (skipped), x (xfail), X (xpassed), w (warnings)
+# don't put in xfail for pytest 8.0+ because then it prints the tracebacks,
+# which look like real errors
+addopts = """--durations=20 --doctest-modules -rfEXs --cov-report= --tb=short \
     --cov-branch --doctest-ignore-import-errors --junit-xml=junit-results.xml \
     --ignore=doc --ignore=logo --ignore=examples --ignore=tutorials \
     --ignore=mne/gui/_*.py --ignore=mne/icons --ignore=tools \
@@ -295,16 +301,17 @@ ignore_directives = [
     "toctree",
     "rst-class",
     "tab-set",
+    "towncrier-draft-entries",
 ]
 ignore_messages = "^.*(Unknown target name|Undefined substitution referenced)[^`]*$"
 
 [tool.mypy]
 ignore_errors = true
 scripts_are_modules = true
-strict = true
+strict = false
 
 [[tool.mypy.overrides]]
-module = ['mne.evoked', 'mne.io']
+module = ['mne.annotations', 'mne.epochs', 'mne.evoked', 'mne.io']
 ignore_errors = false
 # Ignore "attr-defined" until we fix stuff like:
 # - BunchConstNamed: '"BunchConstNamed" has no attribute "FIFFB_EVOKED"'
@@ -327,3 +334,46 @@ disable_error_code = [
     'assignment',
     'operator',
 ]
+
+[tool.towncrier]
+package = "mne"
+directory = "doc/changes/devel/"
+filename = "doc/changes/devel.rst"
+title_format = "{version} ({project_date})"
+issue_format = "`#{issue} <https://github.com/mne-tools/mne-python/pulls/{issue}>`__"
+
+[[tool.towncrier.type]]
+directory = "notable"
+name = "Notable changes"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "dependency"
+name = "Dependencies"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "bugfix"
+name = "Bugfixes"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "apichange"
+name = "API changes by deprecation"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "newfeature"
+name = "New features"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "other"
+name = "Other changes"
+showcontent = true
+
+[tool.changelog-bot]
+[tool.changelog-bot.towncrier_changelog]
+enabled = true
+verify_pr_number = true
+changelog_skip_label = "no-changelog-entry-needed"

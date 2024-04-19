@@ -151,8 +151,8 @@ def _compute_proj(
                 nrow=1,
                 ncol=u.size,
             )
-            desc = f"{kind}-{desc_prefix}-PCA-{k+1:02d}"
-            logger.info("Adding projection: %s", desc)
+            desc = f"{kind}-{desc_prefix}-PCA-{k + 1:02d}"
+            logger.info(f"Adding projection: {desc} (exp var={100 * float(var):0.1f}%)")
             proj = Projection(
                 active=False,
                 data=proj_data,
@@ -217,17 +217,20 @@ def compute_proj_epochs(
     else:
         event_id = "Multiple-events"
     if desc_prefix is None:
-        desc_prefix = "%s-%-.3f-%-.3f" % (event_id, epochs.tmin, epochs.tmax)
+        desc_prefix = f"{event_id}-{epochs.tmin:<.3f}-{epochs.tmax:<.3f}"
     return _compute_proj(data, epochs.info, n_grad, n_mag, n_eeg, desc_prefix, meg=meg)
 
 
-def _compute_cov_epochs(epochs, n_jobs):
+def _compute_cov_epochs(epochs, n_jobs, *, log_drops=False):
     """Compute epochs covariance."""
     parallel, p_fun, n_jobs = parallel_func(np.dot, n_jobs)
+    n_start = len(epochs.events)
     data = parallel(p_fun(e, e.T) for e in epochs)
     n_epochs = len(data)
     if n_epochs == 0:
         raise RuntimeError("No good epochs found")
+    if log_drops:
+        logger.info(f"Dropped {n_start - n_epochs}/{n_start} epochs")
 
     n_chan, n_samples = epochs.info["nchan"], len(epochs.times)
     _check_n_samples(n_samples * n_epochs, n_chan)
@@ -273,7 +276,7 @@ def compute_proj_evoked(
     """
     data = np.dot(evoked.data, evoked.data.T)  # compute data covariance
     if desc_prefix is None:
-        desc_prefix = "%-.3f-%-.3f" % (evoked.times[0], evoked.times[-1])
+        desc_prefix = f"{evoked.times[0]:<.3f}-{evoked.times[-1]:<.3f}"
     return _compute_proj(data, evoked.info, n_grad, n_mag, n_eeg, desc_prefix, meg=meg)
 
 
@@ -351,7 +354,7 @@ def compute_proj_raw(
             baseline=None,
             proj=False,
         )
-        data = _compute_cov_epochs(epochs, n_jobs)
+        data = _compute_cov_epochs(epochs, n_jobs, log_drops=True)
         info = epochs.info
         if not stop:
             stop = raw.n_times / raw.info["sfreq"]
@@ -368,7 +371,7 @@ def compute_proj_raw(
         start = start / raw.info["sfreq"]
         stop = stop / raw.info["sfreq"]
 
-    desc_prefix = "Raw-%-.3f-%-.3f" % (start, stop)
+    desc_prefix = f"Raw-{start:<.3f}-{stop:<.3f}"
     projs = _compute_proj(data, info, n_grad, n_mag, n_eeg, desc_prefix, meg=meg)
     return projs
 
@@ -456,7 +459,7 @@ def sensitivity_map(
         elif ncomp == 0:
             raise RuntimeError(
                 "No valid projectors found for channel type "
-                "%s, cannot compute %s" % (ch_type, mode)
+                f"{ch_type}, cannot compute {mode}"
             )
     # can only run the last couple methods if there are projectors
     elif mode in residual_types:

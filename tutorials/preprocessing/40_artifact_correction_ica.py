@@ -416,11 +416,10 @@ ica.plot_sources(raw, show_scrollbars=False)
 ica.plot_sources(eog_evoked)
 
 # %%
-# Note that above we used `~mne.preprocessing.ICA.plot_sources` on both
-# the original `~mne.io.Raw` instance and also on an
-# `~mne.Evoked` instance of the extracted EOG artifacts. This can be
-# another way to confirm that `~mne.preprocessing.ICA.find_bads_eog` has
-# identified the correct components.
+# Note that above we used :meth:`~mne.preprocessing.ICA.plot_sources` on both the
+# original :class:`~mne.io.Raw` instance and also on an `~mne.Evoked` instance of the
+# extracted EOG artifacts. This can be another way to confirm that
+# :meth:`~mne.preprocessing.ICA.find_bads_eog` has identified the correct components.
 #
 #
 # Using a simulated channel to select ICA components
@@ -567,7 +566,7 @@ for index, (ica, raw) in enumerate(zip(icas, raws)):
     with mne.viz.use_browser_backend("matplotlib"):
         fig = ica.plot_sources(raw, show_scrollbars=False)
     fig.subplots_adjust(top=0.9)  # make space for title
-    fig.suptitle("Subject {}".format(index))
+    fig.suptitle(f"Subject {index}")
 
 # %%
 # Notice that subjects 2 and 3 each seem to have *two* ICs that reflect ocular

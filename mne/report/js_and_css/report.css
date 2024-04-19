@@ -1,0 +1,19 @@
+#container {
+    position: relative;
+    padding-bottom: 8rem;
+}
+
+#content {
+    margin-top: 90px;
+    scroll-behavior: smooth;
+    position: relative;  /* for scrollspy */
+}
+
+#toc {
+    margin-top: 90px;
+    padding-bottom: 8rem;
+}
+
+footer {
+    margin-top: 8rem;
+}

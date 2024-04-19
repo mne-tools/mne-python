@@ -307,7 +307,7 @@ def extract_chpi_locs_kit(raw, stim_channel="MISC 064", *, verbose=None):
     assert dtype.itemsize == header["size"], (dtype.itemsize, header["size"])
     all_data = list()
     for fname in raw._filenames:
-        with open(fname, "r") as fid:
+        with open(fname) as fid:
             fid.seek(header["offset"])
             all_data.append(
                 np.fromfile(fid, dtype, count=header["count"]).reshape(-1, n_coils)
@@ -379,8 +379,8 @@ def get_chpi_info(info, on_missing="raise", verbose=None):
     # get frequencies
     hpi_freqs = np.array([float(x["coil_freq"]) for x in hpi_coils])
     logger.info(
-        "Using %s HPI coils: %s Hz"
-        % (len(hpi_freqs), " ".join(str(int(s)) for s in hpi_freqs))
+        f"Using {len(hpi_freqs)} HPI coils: {' '.join(str(int(s)) for s in hpi_freqs)} "
+        "Hz"
     )
 
     # how cHPI active is indicated in the FIF file
@@ -448,11 +448,11 @@ def _get_hpi_initial_fit(info, adjust=False, verbose=None):
         raise RuntimeError("cHPI coordinate frame incorrect")
     # Give the user some info
     logger.info(
-        "HPIFIT: %s coils digitized in order %s"
-        % (len(pos_order), " ".join(str(o + 1) for o in pos_order))
+        f"HPIFIT: {len(pos_order)} coils digitized in order "
+        f"{' '.join(str(o + 1) for o in pos_order)}"
     )
     logger.debug(
-        "HPIFIT: %s coils accepted: %s" % (len(used), " ".join(str(h) for h in used))
+        f"HPIFIT: {len(used)} coils accepted: {' '.join(str(h) for h in used)}"
     )
     hpi_rrs = np.array([d["r"] for d in hpi_dig])[pos_order]
     assert len(hpi_rrs) >= 3
@@ -470,11 +470,9 @@ def _get_hpi_initial_fit(info, adjust=False, verbose=None):
     if "moments" in hpi_result:
         logger.debug("Hpi coil moments (%d %d):" % hpi_result["moments"].shape[::-1])
         for moment in hpi_result["moments"]:
-            logger.debug("%g %g %g" % tuple(moment))
+            logger.debug("{:g} {:g} {:g}".format(*tuple(moment)))
     errors = np.linalg.norm(hpi_rrs - hpi_rrs_fit, axis=1)
-    logger.debug(
-        "HPIFIT errors:  %s mm." % ", ".join("%0.1f" % (1000.0 * e) for e in errors)
-    )
+    logger.debug(f"HPIFIT errors:  {', '.join(f'{1000 * e:0.1f}' for e in errors)} mm.")
     if errors.sum() < len(errors) * dist_limit:
         logger.info("HPI consistency of isotrak and hpifit is OK.")
     elif not adjust and (len(used) == len(hpi_dig)):
@@ -487,24 +485,22 @@ def _get_hpi_initial_fit(info, adjust=False, verbose=None):
             if not adjust:
                 if err >= dist_limit:
                     warn(
-                        "Discrepancy of HPI coil %d isotrak and hpifit is "
-                        "%.1f mm!" % (hi + 1, d)
+                        f"Discrepancy of HPI coil {hi + 1} isotrak and hpifit is "
+                        f"{d:.1f} mm!"
                     )
             elif hi + 1 not in used:
                 if goodness[hi] >= good_limit:
                     logger.info(
-                        "Note: HPI coil %d isotrak is adjusted by "
-                        "%.1f mm!" % (hi + 1, d)
+                        f"Note: HPI coil {hi + 1} isotrak is adjusted by {d:.1f} mm!"
                     )
                     hpi_rrs[hi] = r_fit
                 else:
                     warn(
-                        "Discrepancy of HPI coil %d isotrak and hpifit of "
-                        "%.1f mm was not adjusted!" % (hi + 1, d)
+                        f"Discrepancy of HPI coil {hi + 1} isotrak and hpifit of "
+                        f"{d:.1f} mm was not adjusted!"
                     )
     logger.debug(
-        "HP fitting limits: err = %.1f mm, gval = %.3f."
-        % (1000 * dist_limit, good_limit)
+        f"HP fitting limits: err = {1000 * dist_limit:.1f} mm, gval = {good_limit:.3f}."
     )
 
     return hpi_rrs.astype(float)
@@ -643,8 +639,9 @@ def _setup_hpi_amplitude_fitting(
     else:
         line_freqs = np.zeros([0])
     logger.info(
-        "Line interference frequencies: %s Hz"
-        % " ".join(["%d" % lf for lf in line_freqs])
+        "Line interference frequencies: {} Hz".format(
+            " ".join([f"{lf}" for lf in line_freqs])
+        )
     )
     # worry about resampled/filtered data.
     # What to do e.g. if Raw has been resampled and some of our
@@ -657,8 +654,8 @@ def _setup_hpi_amplitude_fitting(
         hpi_ons = hpi_ons[keepers]
     elif not keepers.all():
         raise RuntimeError(
-            "Found HPI frequencies %s above the lowpass "
-            "(or Nyquist) frequency %0.1f" % (hpi_freqs[~keepers].tolist(), highest)
+            f"Found HPI frequencies {hpi_freqs[~keepers].tolist()} above the lowpass ("
+            f"or Nyquist) frequency {highest:0.1f}"
         )
     # calculate optimal window length.
     if isinstance(t_window, str):
@@ -671,8 +668,8 @@ def _setup_hpi_amplitude_fitting(
             t_window = 0.2
     t_window = float(t_window)
     if t_window <= 0:
-        raise ValueError("t_window (%s) must be > 0" % (t_window,))
-    logger.info("Using time window: %0.1f ms" % (1000 * t_window,))
+        raise ValueError(f"t_window ({t_window}) must be > 0")
+    logger.info(f"Using time window: {1000 * t_window:0.1f} ms")
     window_nsamp = np.rint(t_window * info["sfreq"]).astype(int)
     model = _setup_hpi_glm(hpi_freqs, line_freqs, info["sfreq"], window_nsamp)
     inv_model = np.linalg.pinv(model)
@@ -869,25 +866,22 @@ def _check_chpi_param(chpi_, name):
     want_keys = list(want_ndims.keys()) + extra_keys
     if set(want_keys).symmetric_difference(chpi_):
         raise ValueError(
-            "%s must be a dict with entries %s, got %s"
-            % (name, want_keys, sorted(chpi_.keys()))
+            f"{name} must be a dict with entries {want_keys}, got "
+            f"{sorted(chpi_.keys())}"
         )
     n_times = None
     for key, want_ndim in want_ndims.items():
-        key_str = "%s[%s]" % (name, key)
+        key_str = f"{name}[{key}]"
         val = chpi_[key]
         _validate_type(val, np.ndarray, key_str)
         shape = val.shape
         if val.ndim != want_ndim:
-            raise ValueError(
-                "%s must have ndim=%d, got %d" % (key_str, want_ndim, val.ndim)
-            )
+            raise ValueError(f"{key_str} must have ndim={want_ndim}, got {val.ndim}")
         if n_times is None and key != "proj":
             n_times = shape[0]
         if n_times != shape[0] and key != "proj":
             raise ValueError(
-                "%s have inconsistent number of time "
-                "points in %s" % (name, want_keys)
+                f"{name} have inconsistent number of time points in {want_keys}"
             )
     if name == "chpi_locs":
         n_coils = chpi_["rrs"].shape[1]
@@ -895,15 +889,14 @@ def _check_chpi_param(chpi_, name):
             val = chpi_[key]
             if val.shape[1] != n_coils:
                 raise ValueError(
-                    'chpi_locs["rrs"] had values for %d coils but'
-                    ' chpi_locs["%s"] had values for %d coils'
-                    % (n_coils, key, val.shape[1])
+                    f'chpi_locs["rrs"] had values for {n_coils} coils but '
+                    f'chpi_locs["{key}"] had values for {val.shape[1]} coils'
                 )
         for key in ("rrs", "moments"):
             val = chpi_[key]
             if val.shape[2] != 3:
                 raise ValueError(
-                    'chpi_locs["%s"].shape[2] must be 3, got ' "shape %s" % (key, shape)
+                    f'chpi_locs["{key}"].shape[2] must be 3, got shape {shape}'
                 )
     else:
         assert name == "chpi_amplitudes"
@@ -912,8 +905,8 @@ def _check_chpi_param(chpi_, name):
         n_ch = len(proj["data"]["col_names"])
         if slopes.shape[0] != n_times or slopes.shape[2] != n_ch:
             raise ValueError(
-                "slopes must have shape[0]==%d and shape[2]==%d,"
-                " got shape %s" % (n_times, n_ch, slopes.shape)
+                f"slopes must have shape[0]=={n_times} and shape[2]=={n_ch}, got shape "
+                f"{slopes.shape}"
             )
 
 
@@ -1003,9 +996,9 @@ def compute_head_pos(
         n_good = ((g_coils >= gof_limit) & (errs < dist_limit)).sum()
         if n_good < 3:
             warn(
-                _time_prefix(fit_time) + "%s/%s good HPI fits, cannot "
-                "determine the transformation (%s mm/GOF)!"
-                % (
+                _time_prefix(fit_time)
+                + "{}/{} good HPI fits, cannot "
+                "determine the transformation ({} mm/GOF)!".format(
                     n_good,
                     n_coils,
                     ", ".join(
@@ -1068,13 +1061,13 @@ def compute_head_pos(
         v = d / dt  # m/s
         d = 100 * np.linalg.norm(this_quat[3:] - pos_0)  # dis from 1st
         logger.debug(
-            "    #t = %0.3f, #e = %0.2f cm, #g = %0.3f, "
-            "#v = %0.2f cm/s, #r = %0.2f rad/s, #d = %0.2f cm"
-            % (fit_time, 100 * errs.mean(), g, 100 * v, r, d)
+            f"    #t = {fit_time:0.3f}, #e = {100 * errs.mean():0.2f} cm, #g = {g:0.3f}"
+            f", #v = {100 * v:0.2f} cm/s, #r = {r:0.2f} rad/s, #d = {d:0.2f} cm"
         )
         logger.debug(
-            "    #t = %0.3f, #q = %s "
-            % (fit_time, " ".join(map("{:8.5f}".format, this_quat)))
+            "    #t = {:0.3f}, #q = {} ".format(
+                fit_time, " ".join(map("{:8.5f}".format, this_quat))
+            )
         )
 
         quats.append(
@@ -1504,7 +1497,7 @@ def filter_chpi(
         raise RuntimeError("raw data must be preloaded")
     t_step = float(t_step)
     if t_step <= 0:
-        raise ValueError("t_step (%s) must be > 0" % (t_step,))
+        raise ValueError(f"t_step ({t_step}) must be > 0")
     n_step = int(np.ceil(t_step * raw.info["sfreq"]))
     if include_line and raw.info["line_freq"] is None:
         raise RuntimeError(
@@ -1617,11 +1610,8 @@ def get_active_chpi(raw, *, on_missing="raise", verbose=None):
     # check whether we have a neuromag system
     if system not in ["122m", "306m"]:
         raise NotImplementedError(
-            (
-                "Identifying active HPI channels"
-                " is not implemented for other systems"
-                " than neuromag."
-            )
+            "Identifying active HPI channels is not implemented for other systems than "
+            "neuromag."
         )
     # extract hpi info
     chpi_info = get_chpi_info(raw.info, on_missing=on_missing)

@@ -120,9 +120,7 @@ class _Surface:
         None
         """
         if self.surf == "flat":  # special case
-            fname = path.join(
-                self.data_path, "surf", "%s.%s" % (self.hemi, "cortex.patch.flat")
-            )
+            fname = path.join(self.data_path, "surf", f"{self.hemi}.cortex.patch.flat")
             _check_fname(
                 fname, overwrite="read", must_exist=True, name="flatmap surface file"
             )
@@ -184,7 +182,7 @@ class _Surface:
         else:
             self.curv = None
             self.bin_curv = None
-            color = np.ones((self.coords.shape[0]))
+            color = np.ones(self.coords.shape[0])
         # morphometry (curvature) normalization in order to get gray cortex
         # TODO: delete self.grey_curv after cortex parameter
         # will be fully supported

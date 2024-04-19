@@ -14,7 +14,12 @@ Time-Frequency
    :toctree: ../generated/
 
    AverageTFR
+   AverageTFRArray
+   BaseTFR
    EpochsTFR
+   EpochsTFRArray
+   RawTFR
+   RawTFRArray
    CrossSpectralDensity
    Spectrum
    SpectrumArray

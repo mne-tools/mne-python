@@ -256,15 +256,13 @@ class _PyVistaRenderer(_AbstractRenderer):
         if pyvista.OFF_SCREEN:
             self.figure.store["off_screen"] = True
 
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore", category=FutureWarning)
-            # pyvista theme may enable depth peeling by default so
-            # we disable it initially to better control the value afterwards
-            with _disabled_depth_peeling():
-                self.plotter = self.figure._build()
-            self._hide_axes()
-            self._toggle_antialias()
-            self._enable_depth_peeling()
+        # pyvista theme may enable depth peeling by default so
+        # we disable it initially to better control the value afterwards
+        with _disabled_depth_peeling():
+            self.plotter = self.figure._build()
+        self._hide_axes()
+        self._toggle_antialias()
+        self._enable_depth_peeling()
 
         # FIX: https://github.com/pyvista/pyvistaqt/pull/68
         if not hasattr(self.plotter, "iren"):
@@ -307,9 +305,7 @@ class _PyVistaRenderer(_AbstractRenderer):
     def subplot(self, x, y):
         x = np.max([0, np.min([x, self.figure._nrows - 1])])
         y = np.max([0, np.min([y, self.figure._ncols - 1])])
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore", category=FutureWarning)
-            self.plotter.subplot(x, y)
+        self.plotter.subplot(x, y)
 
     def scene(self):
         return self.figure
@@ -370,58 +366,56 @@ class _PyVistaRenderer(_AbstractRenderer):
     ):
         from matplotlib.colors import to_rgba_array
 
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore", category=FutureWarning)
-            rgba = False
-            if color is not None:
-                # See if we need to convert or not
-                check_color = to_rgba_array(color)
-                if len(check_color) == mesh.n_points:
-                    scalars = (check_color * 255).astype("ubyte")
-                    color = None
-                    rgba = True
-            if isinstance(colormap, np.ndarray):
-                if colormap.dtype == np.uint8:
-                    colormap = colormap.astype(np.float64) / 255.0
-                from matplotlib.colors import ListedColormap
+        rgba = False
+        if color is not None:
+            # See if we need to convert or not
+            check_color = to_rgba_array(color)
+            if len(check_color) == mesh.n_points:
+                scalars = (check_color * 255).astype("ubyte")
+                color = None
+                rgba = True
+        if isinstance(colormap, np.ndarray):
+            if colormap.dtype == np.uint8:
+                colormap = colormap.astype(np.float64) / 255.0
+            from matplotlib.colors import ListedColormap
 
-                colormap = ListedColormap(colormap)
-            if normals is not None:
-                mesh.point_data["Normals"] = normals
-                mesh.GetPointData().SetActiveNormals("Normals")
-            else:
-                _compute_normals(mesh)
-            smooth_shading = self.smooth_shading
-            if representation == "wireframe":
-                smooth_shading = False  # never use smooth shading for wf
-            rgba = kwargs.pop("rgba", rgba)
-            actor = _add_mesh(
-                plotter=self.plotter,
-                mesh=mesh,
-                color=color,
-                scalars=scalars,
-                edge_color=color,
-                opacity=opacity,
-                cmap=colormap,
-                backface_culling=backface_culling,
-                rng=[vmin, vmax],
-                show_scalar_bar=False,
-                rgba=rgba,
-                smooth_shading=smooth_shading,
-                interpolate_before_map=interpolate_before_map,
-                style=representation,
-                line_width=line_width,
-                **kwargs,
+            colormap = ListedColormap(colormap)
+        if normals is not None:
+            mesh.point_data["Normals"] = normals
+            mesh.GetPointData().SetActiveNormals("Normals")
+        else:
+            _compute_normals(mesh)
+        smooth_shading = self.smooth_shading
+        if representation == "wireframe":
+            smooth_shading = False  # never use smooth shading for wf
+        rgba = kwargs.pop("rgba", rgba)
+        actor = _add_mesh(
+            plotter=self.plotter,
+            mesh=mesh,
+            color=color,
+            scalars=scalars,
+            edge_color=color,
+            opacity=opacity,
+            cmap=colormap,
+            backface_culling=backface_culling,
+            rng=[vmin, vmax],
+            show_scalar_bar=False,
+            rgba=rgba,
+            smooth_shading=smooth_shading,
+            interpolate_before_map=interpolate_before_map,
+            style=representation,
+            line_width=line_width,
+            **kwargs,
+        )
+
+        if polygon_offset is not None:
+            mapper = actor.GetMapper()
+            mapper.SetResolveCoincidentTopologyToPolygonOffset()
+            mapper.SetRelativeCoincidentTopologyPolygonOffsetParameters(
+                polygon_offset, polygon_offset
             )
 
-            if polygon_offset is not None:
-                mapper = actor.GetMapper()
-                mapper.SetResolveCoincidentTopologyToPolygonOffset()
-                mapper.SetRelativeCoincidentTopologyPolygonOffsetParameters(
-                    polygon_offset, polygon_offset
-                )
-
-            return actor, mesh
+        return actor, mesh
 
     def mesh(
         self,
@@ -444,11 +438,9 @@ class _PyVistaRenderer(_AbstractRenderer):
         polygon_offset=None,
         **kwargs,
     ):
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore", category=FutureWarning)
-            vertices = np.c_[x, y, z].astype(float)
-            triangles = np.c_[np.full(len(triangles), 3), triangles]
-            mesh = PolyData(vertices, triangles)
+        vertices = np.c_[x, y, z].astype(float)
+        triangles = np.c_[np.full(len(triangles), 3), triangles]
+        mesh = PolyData(vertices, triangles)
         return self.polydata(
             mesh=mesh,
             color=color,
@@ -480,33 +472,31 @@ class _PyVistaRenderer(_AbstractRenderer):
         kind="line",
         color=None,
     ):
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore", category=FutureWarning)
-            if colormap is not None:
-                colormap = _get_colormap_from_array(colormap, normalized_colormap)
-            vertices = np.array(surface["rr"])
-            triangles = np.array(surface["tris"])
-            n_triangles = len(triangles)
-            triangles = np.c_[np.full(n_triangles, 3), triangles]
-            mesh = PolyData(vertices, triangles)
-            mesh.point_data["scalars"] = scalars
-            contour = mesh.contour(isosurfaces=contours)
-            line_width = width
-            if kind == "tube":
-                contour = contour.tube(radius=width, n_sides=self.tube_n_sides)
-                line_width = 1.0
-            actor = _add_mesh(
-                plotter=self.plotter,
-                mesh=contour,
-                show_scalar_bar=False,
-                line_width=line_width,
-                color=color,
-                rng=[vmin, vmax],
-                cmap=colormap,
-                opacity=opacity,
-                smooth_shading=self.smooth_shading,
-            )
-            return actor, contour
+        if colormap is not None:
+            colormap = _get_colormap_from_array(colormap, normalized_colormap)
+        vertices = np.array(surface["rr"])
+        triangles = np.array(surface["tris"])
+        n_triangles = len(triangles)
+        triangles = np.c_[np.full(n_triangles, 3), triangles]
+        mesh = PolyData(vertices, triangles)
+        mesh.point_data["scalars"] = scalars
+        contour = mesh.contour(isosurfaces=contours)
+        line_width = width
+        if kind == "tube":
+            contour = contour.tube(radius=width, n_sides=self.tube_n_sides)
+            line_width = 1.0
+        actor = _add_mesh(
+            plotter=self.plotter,
+            mesh=contour,
+            show_scalar_bar=False,
+            line_width=line_width,
+            color=color,
+            rng=[vmin, vmax],
+            cmap=colormap,
+            opacity=opacity,
+            smooth_shading=self.smooth_shading,
+        )
+        return actor, contour
 
     def surface(
         self,
@@ -521,13 +511,11 @@ class _PyVistaRenderer(_AbstractRenderer):
         backface_culling=False,
         polygon_offset=None,
     ):
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore", category=FutureWarning)
-            normals = surface.get("nn", None)
-            vertices = np.array(surface["rr"])
-            triangles = np.array(surface["tris"])
-            triangles = np.c_[np.full(len(triangles), 3), triangles]
-            mesh = PolyData(vertices, triangles)
+        normals = surface.get("nn", None)
+        vertices = np.array(surface["rr"])
+        triangles = np.array(surface["tris"])
+        triangles = np.c_[np.full(len(triangles), 3), triangles]
+        mesh = PolyData(vertices, triangles)
         colormap = _get_colormap_from_array(colormap, normalized_colormap)
         if scalars is not None:
             mesh.point_data["scalars"] = scalars
@@ -562,26 +550,24 @@ class _PyVistaRenderer(_AbstractRenderer):
             return None, None
         _check_option("center.ndim", center.ndim, (1, 2))
         _check_option("center.shape[-1]", center.shape[-1], (3,))
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore", category=FutureWarning)
-            sphere = vtkSphereSource()
-            sphere.SetThetaResolution(resolution)
-            sphere.SetPhiResolution(resolution)
-            if radius is not None:
-                sphere.SetRadius(radius)
-            sphere.Update()
-            geom = sphere.GetOutput()
-            mesh = PolyData(center)
-            glyph = mesh.glyph(orient=False, scale=False, factor=factor, geom=geom)
-            actor = _add_mesh(
-                self.plotter,
-                mesh=glyph,
-                color=color,
-                opacity=opacity,
-                backface_culling=backface_culling,
-                smooth_shading=self.smooth_shading,
-            )
-            return actor, glyph
+        sphere = vtkSphereSource()
+        sphere.SetThetaResolution(resolution)
+        sphere.SetPhiResolution(resolution)
+        if radius is not None:
+            sphere.SetRadius(radius)
+        sphere.Update()
+        geom = sphere.GetOutput()
+        mesh = PolyData(center)
+        glyph = mesh.glyph(orient=False, scale=False, factor=factor, geom=geom)
+        actor = _add_mesh(
+            self.plotter,
+            mesh=glyph,
+            color=color,
+            opacity=opacity,
+            backface_culling=backface_culling,
+            smooth_shading=self.smooth_shading,
+        )
+        return actor, glyph
 
     def tube(
         self,
@@ -597,30 +583,28 @@ class _PyVistaRenderer(_AbstractRenderer):
         reverse_lut=False,
         opacity=None,
     ):
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore", category=FutureWarning)
-            cmap = _get_colormap_from_array(colormap, normalized_colormap)
-            for pointa, pointb in zip(origin, destination):
-                line = Line(pointa, pointb)
-                if scalars is not None:
-                    line.point_data["scalars"] = scalars[0, :]
-                    scalars = "scalars"
-                    color = None
-                else:
-                    scalars = None
-                tube = line.tube(radius, n_sides=self.tube_n_sides)
-                actor = _add_mesh(
-                    plotter=self.plotter,
-                    mesh=tube,
-                    scalars=scalars,
-                    flip_scalars=reverse_lut,
-                    rng=[vmin, vmax],
-                    color=color,
-                    show_scalar_bar=False,
-                    cmap=cmap,
-                    smooth_shading=self.smooth_shading,
-                    opacity=opacity,
-                )
+        cmap = _get_colormap_from_array(colormap, normalized_colormap)
+        for pointa, pointb in zip(origin, destination):
+            line = Line(pointa, pointb)
+            if scalars is not None:
+                line.point_data["scalars"] = scalars[0, :]
+                scalars = "scalars"
+                color = None
+            else:
+                scalars = None
+            tube = line.tube(radius, n_sides=self.tube_n_sides)
+            actor = _add_mesh(
+                plotter=self.plotter,
+                mesh=tube,
+                scalars=scalars,
+                flip_scalars=reverse_lut,
+                rng=[vmin, vmax],
+                color=color,
+                show_scalar_bar=False,
+                cmap=cmap,
+                smooth_shading=self.smooth_shading,
+                opacity=opacity,
+            )
         return actor, tube
 
     def quiver3d(
@@ -656,85 +640,83 @@ class _PyVistaRenderer(_AbstractRenderer):
         _validate_type(scale_mode, str, "scale_mode")
         scale_map = dict(none=False, scalar="scalars", vector="vec")
         _check_option("scale_mode", scale_mode, list(scale_map))
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore", category=FutureWarning)
-            factor = scale
-            vectors = np.c_[u, v, w]
-            points = np.vstack(np.c_[x, y, z])
-            n_points = len(points)
-            cell_type = np.full(n_points, VTK_VERTEX)
-            cells = np.c_[np.full(n_points, 1), range(n_points)]
-            args = (cells, cell_type, points)
-            grid = UnstructuredGrid(*args)
-            if scalars is None:
-                scalars = np.ones((n_points,))
-                mesh_scalars = None
+        factor = scale
+        vectors = np.c_[u, v, w]
+        points = np.vstack(np.c_[x, y, z])
+        n_points = len(points)
+        cell_type = np.full(n_points, VTK_VERTEX)
+        cells = np.c_[np.full(n_points, 1), range(n_points)]
+        args = (cells, cell_type, points)
+        grid = UnstructuredGrid(*args)
+        if scalars is None:
+            scalars = np.ones((n_points,))
+            mesh_scalars = None
+        else:
+            mesh_scalars = "scalars"
+        grid.point_data["scalars"] = np.array(scalars, float)
+        grid.point_data["vec"] = vectors
+        if mode == "2darrow":
+            return _arrow_glyph(grid, factor), grid
+        elif mode == "arrow":
+            alg = _glyph(grid, orient="vec", scalars="scalars", factor=factor)
+            mesh = pyvista.wrap(alg.GetOutput())
+        else:
+            tr = None
+            if mode == "cone":
+                glyph = vtkConeSource()
+                glyph.SetCenter(0.5, 0, 0)
+                if glyph_radius is not None:
+                    glyph.SetRadius(glyph_radius)
+            elif mode == "cylinder":
+                glyph = vtkCylinderSource()
+                if glyph_radius is not None:
+                    glyph.SetRadius(glyph_radius)
+            elif mode == "oct":
+                glyph = vtkPlatonicSolidSource()
+                glyph.SetSolidTypeToOctahedron()
             else:
-                mesh_scalars = "scalars"
-            grid.point_data["scalars"] = np.array(scalars, float)
-            grid.point_data["vec"] = vectors
-            if mode == "2darrow":
-                return _arrow_glyph(grid, factor), grid
-            elif mode == "arrow":
-                alg = _glyph(grid, orient="vec", scalars="scalars", factor=factor)
-                mesh = pyvista.wrap(alg.GetOutput())
-            else:
-                tr = None
-                if mode == "cone":
-                    glyph = vtkConeSource()
-                    glyph.SetCenter(0.5, 0, 0)
-                    if glyph_radius is not None:
-                        glyph.SetRadius(glyph_radius)
-                elif mode == "cylinder":
-                    glyph = vtkCylinderSource()
-                    if glyph_radius is not None:
-                        glyph.SetRadius(glyph_radius)
-                elif mode == "oct":
-                    glyph = vtkPlatonicSolidSource()
-                    glyph.SetSolidTypeToOctahedron()
-                else:
-                    assert mode == "sphere", mode  # guaranteed above
-                    glyph = vtkSphereSource()
-                if mode == "cylinder":
-                    if glyph_height is not None:
-                        glyph.SetHeight(glyph_height)
-                    if glyph_center is not None:
-                        glyph.SetCenter(glyph_center)
-                    if glyph_resolution is not None:
-                        glyph.SetResolution(glyph_resolution)
+                assert mode == "sphere", mode  # guaranteed above
+                glyph = vtkSphereSource()
+            if mode == "cylinder":
+                if glyph_height is not None:
+                    glyph.SetHeight(glyph_height)
+                if glyph_center is not None:
+                    glyph.SetCenter(glyph_center)
+                if glyph_resolution is not None:
+                    glyph.SetResolution(glyph_resolution)
+                tr = vtkTransform()
+                tr.RotateWXYZ(90, 0, 0, 1)
+            elif mode == "oct":
+                if solid_transform is not None:
+                    assert solid_transform.shape == (4, 4)
                     tr = vtkTransform()
-                    tr.RotateWXYZ(90, 0, 0, 1)
-                elif mode == "oct":
-                    if solid_transform is not None:
-                        assert solid_transform.shape == (4, 4)
-                        tr = vtkTransform()
-                        tr.SetMatrix(solid_transform.astype(np.float64).ravel())
-                if tr is not None:
-                    # fix orientation
-                    glyph.Update()
-                    trp = vtkTransformPolyDataFilter()
-                    trp.SetInputData(glyph.GetOutput())
-                    trp.SetTransform(tr)
-                    glyph = trp
+                    tr.SetMatrix(solid_transform.astype(np.float64).ravel())
+            if tr is not None:
+                # fix orientation
                 glyph.Update()
-                geom = glyph.GetOutput()
-                mesh = grid.glyph(
-                    orient="vec",
-                    scale=scale_map[scale_mode],
-                    factor=factor,
-                    geom=geom,
-                )
-            actor = _add_mesh(
-                self.plotter,
-                mesh=mesh,
-                color=color,
-                opacity=opacity,
-                scalars=mesh_scalars if colormap is not None else None,
-                colormap=colormap,
-                show_scalar_bar=False,
-                backface_culling=backface_culling,
-                clim=clim,
+                trp = vtkTransformPolyDataFilter()
+                trp.SetInputData(glyph.GetOutput())
+                trp.SetTransform(tr)
+                glyph = trp
+            glyph.Update()
+            geom = glyph.GetOutput()
+            mesh = grid.glyph(
+                orient="vec",
+                scale=scale_map[scale_mode],
+                factor=factor,
+                geom=geom,
             )
+        actor = _add_mesh(
+            self.plotter,
+            mesh=mesh,
+            color=color,
+            opacity=opacity,
+            scalars=mesh_scalars if colormap is not None else None,
+            colormap=colormap,
+            show_scalar_bar=False,
+            backface_culling=backface_culling,
+            clim=clim,
+        )
         return actor, mesh
 
     def text2d(
@@ -742,42 +724,37 @@ class _PyVistaRenderer(_AbstractRenderer):
     ):
         size = 14 if size is None else size
         position = (x_window, y_window)
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore", category=FutureWarning)
-            actor = self.plotter.add_text(
-                text, position=position, font_size=size, color=color, viewport=True
-            )
-            if isinstance(justification, str):
-                if justification == "left":
-                    actor.GetTextProperty().SetJustificationToLeft()
-                elif justification == "center":
-                    actor.GetTextProperty().SetJustificationToCentered()
-                elif justification == "right":
-                    actor.GetTextProperty().SetJustificationToRight()
-                else:
-                    raise ValueError(
-                        "Expected values for `justification`"
-                        "are `left`, `center` or `right` but "
-                        "got {} instead.".format(justification)
-                    )
+        actor = self.plotter.add_text(
+            text, position=position, font_size=size, color=color, viewport=True
+        )
+        if isinstance(justification, str):
+            if justification == "left":
+                actor.GetTextProperty().SetJustificationToLeft()
+            elif justification == "center":
+                actor.GetTextProperty().SetJustificationToCentered()
+            elif justification == "right":
+                actor.GetTextProperty().SetJustificationToRight()
+            else:
+                raise ValueError(
+                    "Expected values for `justification` are `left`, `center` or "
+                    f"`right` but got {justification} instead."
+                )
         _hide_testing_actor(actor)
         return actor
 
     def text3d(self, x, y, z, text, scale, color="white"):
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore", category=FutureWarning)
-            kwargs = dict(
-                points=np.array([x, y, z]).astype(float),
-                labels=[text],
-                point_size=scale,
-                text_color=color,
-                font_family=self.font_family,
-                name=text,
-                shape_opacity=0,
-            )
-            if "always_visible" in signature(self.plotter.add_point_labels).parameters:
-                kwargs["always_visible"] = True
-            actor = self.plotter.add_point_labels(**kwargs)
+        kwargs = dict(
+            points=np.array([x, y, z]).astype(float),
+            labels=[text],
+            point_size=scale,
+            text_color=color,
+            font_family=self.font_family,
+            name=text,
+            shape_opacity=0,
+        )
+        if "always_visible" in signature(self.plotter.add_point_labels).parameters:
+            kwargs["always_visible"] = True
+        actor = self.plotter.add_point_labels(**kwargs)
         _hide_testing_actor(actor)
         return actor
 
@@ -796,26 +773,24 @@ class _PyVistaRenderer(_AbstractRenderer):
             mapper = source.GetMapper()
         else:
             mapper = None
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore", category=FutureWarning)
-            kwargs = dict(
-                color=color,
-                title=title,
-                n_labels=n_labels,
-                use_opacity=False,
-                n_colors=256,
-                position_x=0.15,
-                position_y=0.05,
-                width=0.7,
-                shadow=False,
-                bold=True,
-                label_font_size=22,
-                font_family=self.font_family,
-                background_color=bgcolor,
-                mapper=mapper,
-            )
-            kwargs.update(extra_kwargs)
-            actor = self.plotter.add_scalar_bar(**kwargs)
+        kwargs = dict(
+            color=color,
+            title=title,
+            n_labels=n_labels,
+            use_opacity=False,
+            n_colors=256,
+            position_x=0.15,
+            position_y=0.05,
+            width=0.7,
+            shadow=False,
+            bold=True,
+            label_font_size=22,
+            font_family=self.font_family,
+            background_color=bgcolor,
+            mapper=mapper,
+        )
+        kwargs.update(extra_kwargs)
+        actor = self.plotter.add_scalar_bar(**kwargs)
         _hide_testing_actor(actor)
         return actor
 
@@ -919,13 +894,6 @@ class _PyVistaRenderer(_AbstractRenderer):
         self.plotter.picker = vtkCellPicker()
         self.plotter.picker.AddObserver(vtkCommand.EndPickEvent, on_pick)
         self.plotter.picker.SetVolumeOpacityIsovalue(0.0)
-
-    def _set_mesh_scalars(self, mesh, scalars, name):
-        # Catch:  FutureWarning: Conversion of the second argument of
-        # issubdtype from `complex` to `np.complexfloating` is deprecated.
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore", category=FutureWarning)
-            mesh.point_data[name] = scalars
 
     def _set_colormap_range(
         self, actor, ctable, scalar_bar, rng=None, background_color=None
@@ -1238,9 +1206,7 @@ def _set_3d_view(
 
 
 def _set_3d_title(figure, title, size=16):
-    with warnings.catch_warnings():
-        warnings.filterwarnings("ignore", category=FutureWarning)
-        figure.plotter.add_text(title, font_size=size, color="white", name="title")
+    figure.plotter.add_text(title, font_size=size, color="white", name="title")
     figure.plotter.update()
     _process_events(figure.plotter)
 
@@ -1250,26 +1216,22 @@ def _check_3d_figure(figure):
 
 
 def _close_3d_figure(figure):
-    with warnings.catch_warnings():
-        warnings.filterwarnings("ignore", category=FutureWarning)
-        # copy the plotter locally because figure.plotter is modified
-        plotter = figure.plotter
-        # close the window
-        plotter.close()  # additional cleaning following signal_close
-        _process_events(plotter)
-        # free memory and deregister from the scraper
-        plotter.deep_clean()  # remove internal references
-        _ALL_PLOTTERS.pop(plotter._id_name, None)
-        _process_events(plotter)
+    # copy the plotter locally because figure.plotter is modified
+    plotter = figure.plotter
+    # close the window
+    plotter.close()  # additional cleaning following signal_close
+    _process_events(plotter)
+    # free memory and deregister from the scraper
+    plotter.deep_clean()  # remove internal references
+    _ALL_PLOTTERS.pop(plotter._id_name, None)
+    _process_events(plotter)
 
 
 def _take_3d_screenshot(figure, mode="rgb", filename=None):
-    with warnings.catch_warnings():
-        warnings.filterwarnings("ignore", category=FutureWarning)
-        _process_events(figure.plotter)
-        return figure.plotter.screenshot(
-            transparent_background=(mode == "rgba"), filename=filename
-        )
+    _process_events(figure.plotter)
+    return figure.plotter.screenshot(
+        transparent_background=(mode == "rgba"), filename=filename
+    )
 
 
 def _process_events(plotter):

@@ -40,6 +40,7 @@ CH_TYPE_MAPPING = {
     "TEMP": FIFF.FIFFV_TEMPERATURE_CH,
     "MISC": FIFF.FIFFV_MISC_CH,
     "SAO2": FIFF.FIFFV_BIO_CH,
+    "STIM": FIFF.FIFFV_STIM_CH,
 }
 
 
@@ -86,6 +87,7 @@ class RawEDF(BaseRaw):
     %(preload)s
     %(units_edf_bdf_io)s
     %(encoding_edf)s
+    %(exclude_after_unique)s
     %(verbose)s
 
     See Also
@@ -147,13 +149,22 @@ class RawEDF(BaseRaw):
         include=None,
         units=None,
         encoding="utf8",
+        exclude_after_unique=False,
         *,
         verbose=None,
     ):
-        logger.info("Extracting EDF parameters from {}...".format(input_fname))
+        logger.info(f"Extracting EDF parameters from {input_fname}...")
         input_fname = os.path.abspath(input_fname)
         info, edf_info, orig_units = _get_info(
-            input_fname, stim_channel, eog, misc, exclude, infer_types, preload, include
+            input_fname,
+            stim_channel,
+            eog,
+            misc,
+            exclude,
+            infer_types,
+            preload,
+            include,
+            exclude_after_unique,
         )
         logger.info("Creating raw.info structure...")
 
@@ -284,7 +295,7 @@ class RawGDF(BaseRaw):
         include=None,
         verbose=None,
     ):
-        logger.info("Extracting EDF parameters from {}...".format(input_fname))
+        logger.info(f"Extracting EDF parameters from {input_fname}...")
         input_fname = os.path.abspath(input_fname)
         info, edf_info, orig_units = _get_info(
             input_fname, stim_channel, eog, misc, exclude, True, preload, include
@@ -369,7 +380,7 @@ def _read_segment_file(data, idx, fi, start, stop, raw_extras, filenames, cals, 
 
     # We could read this one EDF block at a time, which would be this:
     ch_offsets = np.cumsum(np.concatenate([[0], n_samps]), dtype=np.int64)
-    block_start_idx, r_lims, d_lims = _blk_read_lims(start, stop, buf_len)
+    block_start_idx, r_lims, _ = _blk_read_lims(start, stop, buf_len)
     # But to speed it up, we really need to read multiple blocks at once,
     # Otherwise we can end up with e.g. 18,181 chunks for a 20 MB file!
     # Let's do ~10 MB chunks:
@@ -472,7 +483,8 @@ def _read_segment_file(data, idx, fi, start, stop, raw_extras, filenames, cals, 
     return tal_data
 
 
-def _read_header(fname, exclude, infer_types, include=None):
+@fill_doc
+def _read_header(fname, exclude, infer_types, include=None, exclude_after_unique=False):
     """Unify EDF, BDF and GDF _read_header call.
 
     Parameters
@@ -494,6 +506,7 @@ def _read_header(fname, exclude, infer_types, include=None):
     include : list of str | str
         Channel names to be included. A str is interpreted as a regular
         expression. 'exclude' must be empty if include is assigned.
+    %(exclude_after_unique)s
 
     Returns
     -------
@@ -502,7 +515,9 @@ def _read_header(fname, exclude, infer_types, include=None):
     ext = os.path.splitext(fname)[1][1:].lower()
     logger.info("%s file detected" % ext.upper())
     if ext in ("bdf", "edf"):
-        return _read_edf_header(fname, exclude, infer_types, include)
+        return _read_edf_header(
+            fname, exclude, infer_types, include, exclude_after_unique
+        )
     elif ext == "gdf":
         return _read_gdf_header(fname, exclude, include), None
     else:
@@ -512,13 +527,23 @@ def _read_header(fname, exclude, infer_types, include=None):
 
 
 def _get_info(
-    fname, stim_channel, eog, misc, exclude, infer_types, preload, include=None
+    fname,
+    stim_channel,
+    eog,
+    misc,
+    exclude,
+    infer_types,
+    preload,
+    include=None,
+    exclude_after_unique=False,
 ):
     """Extract information from EDF+, BDF or GDF file."""
     eog = eog if eog is not None else []
     misc = misc if misc is not None else []
 
-    edf_info, orig_units = _read_header(fname, exclude, infer_types, include)
+    edf_info, orig_units = _read_header(
+        fname, exclude, infer_types, include, exclude_after_unique
+    )
 
     # XXX: `tal_ch_names` to pass to `_check_stim_channel` should be computed
     #      from `edf_info['ch_names']` and `edf_info['tal_idx']` but 'tal_idx'
@@ -681,46 +706,10 @@ def _get_info(
         info["subject_info"]["weight"] = float(edf_info["subject_info"]["weight"])
 
     # Filter settings
-    highpass = edf_info["highpass"]
-    lowpass = edf_info["lowpass"]
-    if highpass.size == 0:
-        pass
-    elif all(highpass):
-        if highpass[0] == "NaN":
-            # Placeholder for future use. Highpass set in _empty_info.
-            pass
-        elif highpass[0] == "DC":
-            info["highpass"] = 0.0
-        else:
-            hp = highpass[0]
-            try:
-                hp = float(hp)
-            except Exception:
-                hp = 0.0
-            info["highpass"] = hp
-    else:
-        info["highpass"] = float(np.max(highpass))
-        warn(
-            "Channels contain different highpass filters. Highest filter "
-            "setting will be stored."
-        )
-    if np.isnan(info["highpass"]):
-        info["highpass"] = 0.0
-    if lowpass.size == 0:
-        # Placeholder for future use. Lowpass set in _empty_info.
-        pass
-    elif all(lowpass):
-        if lowpass[0] in ("NaN", "0", "0.0"):
-            # Placeholder for future use. Lowpass set in _empty_info.
-            pass
-        else:
-            info["lowpass"] = float(lowpass[0])
-    else:
-        info["lowpass"] = float(np.min(lowpass))
-        warn(
-            "Channels contain different lowpass filters. Lowest filter "
-            "setting will be stored."
-        )
+    if filt_ch_idxs := [x for x in sel if x not in stim_channel_idxs]:
+        _set_prefilter(info, edf_info, filt_ch_idxs, "highpass")
+        _set_prefilter(info, edf_info, filt_ch_idxs, "lowpass")
+
     if np.isnan(info["lowpass"]):
         info["lowpass"] = info["sfreq"] / 2.0
 
@@ -760,25 +749,47 @@ def _get_info(
 
 def _parse_prefilter_string(prefiltering):
     """Parse prefilter string from EDF+ and BDF headers."""
-    highpass = np.array(
-        [
-            v
-            for hp in [
-                re.findall(r"HP:\s*([0-9]+[.]*[0-9]*)", filt) for filt in prefiltering
-            ]
-            for v in hp
-        ]
-    )
-    lowpass = np.array(
-        [
-            v
-            for hp in [
-                re.findall(r"LP:\s*([0-9]+[.]*[0-9]*)", filt) for filt in prefiltering
-            ]
-            for v in hp
-        ]
-    )
-    return highpass, lowpass
+    filter_types = ["HP", "LP"]
+    filter_strings = {t: [] for t in filter_types}
+    for filt in prefiltering:
+        for t in filter_types:
+            matches = re.findall(rf"{t}:\s*([a-zA-Z0-9,.]+)(Hz)?", filt)
+            value = ""
+            for match in matches:
+                if match[0]:
+                    value = match[0].replace("Hz", "").replace(",", ".")
+            filter_strings[t].append(value)
+    return np.array(filter_strings["HP"]), np.array(filter_strings["LP"])
+
+
+def _prefilter_float(filt):
+    if isinstance(filt, (int, float, np.number)):
+        return filt
+    if filt == "DC":
+        return 0.0
+    if filt.replace(".", "", 1).isdigit():
+        return float(filt)
+    return np.nan
+
+
+def _set_prefilter(info, edf_info, ch_idxs, key):
+    value = 0
+    if len(values := edf_info.get(key, [])):
+        values = [x for i, x in enumerate(values) if i in ch_idxs]
+        if len(np.unique(values)) > 1:
+            warn(
+                f"Channels contain different {key} filters. "
+                f"{'Highest' if key == 'highpass' else 'Lowest'} filter "
+                "setting will be stored."
+            )
+            if key == "highpass":
+                value = np.nanmax([_prefilter_float(x) for x in values])
+            else:
+                value = np.nanmin([_prefilter_float(x) for x in values])
+        else:
+            value = _prefilter_float(values[0])
+    if not np.isnan(value) and value != 0:
+        info[key] = value
 
 
 def _edf_str(x):
@@ -789,7 +800,9 @@ def _edf_str_num(x):
     return _edf_str(x).replace(",", ".")
 
 
-def _read_edf_header(fname, exclude, infer_types, include=None):
+def _read_edf_header(
+    fname, exclude, infer_types, include=None, exclude_after_unique=False
+):
     """Read header information from EDF+ or BDF file."""
     edf_info = {"events": []}
 
@@ -846,11 +859,11 @@ def _read_edf_header(fname, exclude, infer_types, include=None):
             fid.read(8)  # skip file's meas_date
         else:
             meas_date = fid.read(8).decode("latin-1")
-            day, month, year = [int(x) for x in meas_date.split(".")]
+            day, month, year = (int(x) for x in meas_date.split("."))
             year = year + 2000 if year < 85 else year + 1900
 
         meas_time = fid.read(8).decode("latin-1")
-        hour, minute, sec = [int(x) for x in meas_time.split(".")]
+        hour, minute, sec = (int(x) for x in meas_time.split("."))
         try:
             meas_date = datetime(
                 year, month, day, hour, minute, sec, tzinfo=timezone.utc
@@ -912,10 +925,15 @@ def _read_edf_header(fname, exclude, infer_types, include=None):
         else:
             ch_types, ch_names = ["EEG"] * nchan, ch_labels
 
-        exclude = _find_exclude_idx(ch_names, exclude, include)
         tal_idx = _find_tal_idx(ch_names)
+        if exclude_after_unique:
+            # make sure channel names are unique
+            ch_names = _unique_channel_names(ch_names)
+
+        exclude = _find_exclude_idx(ch_names, exclude, include)
         exclude = np.concatenate([exclude, tal_idx])
         sel = np.setdiff1d(np.arange(len(ch_names)), exclude)
+
         for ch in channels:
             fid.read(80)  # transducer
         units = [fid.read(8).strip().decode("latin-1") for ch in channels]
@@ -924,7 +942,7 @@ def _read_edf_header(fname, exclude, infer_types, include=None):
             if i in exclude:
                 continue
             # allow μ (greek mu), µ (micro symbol) and μ (sjis mu) codepoints
-            if unit in ("\u03BCV", "\u00B5V", "\x83\xCAV", "uV"):
+            if unit in ("\u03bcV", "\u00b5V", "\x83\xcaV", "uV"):
                 edf_info["units"].append(1e-6)
             elif unit == "mV":
                 edf_info["units"].append(1e-3)
@@ -935,8 +953,9 @@ def _read_edf_header(fname, exclude, infer_types, include=None):
         ch_names = [ch_names[idx] for idx in sel]
         units = [units[idx] for idx in sel]
 
-        # make sure channel names are unique
-        ch_names = _unique_channel_names(ch_names)
+        if not exclude_after_unique:
+            # make sure channel names are unique
+            ch_names = _unique_channel_names(ch_names)
         orig_units = dict(zip(ch_names, units))
 
         physical_min = np.array([float(_edf_str_num(fid.read(8))) for ch in channels])[
@@ -951,7 +970,7 @@ def _read_edf_header(fname, exclude, infer_types, include=None):
         digital_max = np.array([float(_edf_str_num(fid.read(8))) for ch in channels])[
             sel
         ]
-        prefiltering = [_edf_str(fid.read(80)).strip() for ch in channels][:-1]
+        prefiltering = np.array([_edf_str(fid.read(80)).strip() for ch in channels])
         highpass, lowpass = _parse_prefilter_string(prefiltering)
 
         # number of samples per record
@@ -1129,7 +1148,7 @@ def _read_gdf_header(fname, exclude, include=None):
             physical_max = np.fromfile(fid, FLOAT64, len(channels))
             digital_min = np.fromfile(fid, INT64, len(channels))
             digital_max = np.fromfile(fid, INT64, len(channels))
-            prefiltering = [_edf_str(fid.read(80)) for ch in channels][:-1]
+            prefiltering = [_edf_str(fid.read(80)) for ch in channels]
             highpass, lowpass = _parse_prefilter_string(prefiltering)
 
             # n samples per record
@@ -1269,7 +1288,9 @@ def _read_gdf_header(fname, exclude, include=None):
             if patient["birthday"] != datetime(1, 1, 1, 0, 0, tzinfo=timezone.utc):
                 today = datetime.now(tz=timezone.utc)
                 patient["age"] = today.year - patient["birthday"].year
-                today = today.replace(year=patient["birthday"].year)
+                # fudge the day by -1 if today happens to be a leap day
+                day = 28 if today.month == 2 and today.day == 29 else today.day
+                today = today.replace(year=patient["birthday"].year, day=day)
                 if today < patient["birthday"]:
                     patient["age"] -= 1
             else:
@@ -1454,7 +1475,9 @@ def _read_gdf_header(fname, exclude, include=None):
 
 
 def _check_stim_channel(
-    stim_channel, ch_names, tal_ch_names=["EDF Annotations", "BDF Annotations"]
+    stim_channel,
+    ch_names,
+    tal_ch_names=("EDF Annotations", "BDF Annotations"),
 ):
     """Check that the stimulus channel exists in the current datafile."""
     DEFAULT_STIM_CH_NAMES = ["status", "trigger"]
@@ -1498,10 +1521,10 @@ def _check_stim_channel(
     ]
     if len(tal_ch_names_found):
         _msg = (
-            "The synthesis of the stim channel is not supported"
-            " since 0.18. Please remove {} from `stim_channel`"
-            " and use `mne.events_from_annotations` instead"
-        ).format(tal_ch_names_found)
+            "The synthesis of the stim channel is not supported since 0.18. Please "
+            f"remove {tal_ch_names_found} from `stim_channel` and use "
+            "`mne.events_from_annotations` instead."
+        )
         raise ValueError(_msg)
 
     ch_names_low = [ch.lower() for ch in ch_names]
@@ -1565,9 +1588,10 @@ def read_raw_edf(
     preload=False,
     units=None,
     encoding="utf8",
+    exclude_after_unique=False,
     *,
     verbose=None,
-):
+) -> RawEDF:
     """Reader function for EDF and EDF+ files.
 
     Parameters
@@ -1609,6 +1633,7 @@ def read_raw_edf(
     %(preload)s
     %(units_edf_bdf_io)s
     %(encoding_edf)s
+    %(exclude_after_unique)s
     %(verbose)s
 
     Returns
@@ -1683,6 +1708,7 @@ def read_raw_edf(
         include=include,
         units=units,
         encoding=encoding,
+        exclude_after_unique=exclude_after_unique,
         verbose=verbose,
     )
 
@@ -1699,9 +1725,10 @@ def read_raw_bdf(
     preload=False,
     units=None,
     encoding="utf8",
+    exclude_after_unique=False,
     *,
     verbose=None,
-):
+) -> RawEDF:
     """Reader function for BDF files.
 
     Parameters
@@ -1743,6 +1770,7 @@ def read_raw_bdf(
     %(preload)s
     %(units_edf_bdf_io)s
     %(encoding_edf)s
+    %(exclude_after_unique)s
     %(verbose)s
 
     Returns
@@ -1814,6 +1842,7 @@ def read_raw_bdf(
         include=include,
         units=units,
         encoding=encoding,
+        exclude_after_unique=exclude_after_unique,
         verbose=verbose,
     )
 
@@ -1828,7 +1857,7 @@ def read_raw_gdf(
     include=None,
     preload=False,
     verbose=None,
-):
+) -> RawGDF:
     """Reader function for GDF files.
 
     Parameters

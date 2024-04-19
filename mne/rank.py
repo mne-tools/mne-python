@@ -100,7 +100,7 @@ def _estimate_rank_from_s(s, tol="auto", tol_kind="absolute"):
     max_s = np.amax(s, axis=-1)
     if isinstance(tol, str):
         if tol not in ("auto", "float32"):
-            raise ValueError('tol must be "auto" or float, got %r' % (tol,))
+            raise ValueError(f'tol must be "auto" or float, got {repr(tol)}')
         # XXX this should be float32 probably due to how we save and
         # load data, but it breaks test_make_inverse_operator (!)
         # The factor of 2 gets test_compute_covariance_auto_reg[None]
@@ -139,7 +139,13 @@ def _estimate_rank_raw(
 
 @fill_doc
 def _estimate_rank_meeg_signals(
-    data, info, scalings, tol="auto", return_singular=False, tol_kind="absolute"
+    data,
+    info,
+    scalings,
+    tol="auto",
+    return_singular=False,
+    tol_kind="absolute",
+    log_ch_type=None,
 ):
     """Estimate rank for M/EEG data.
 
@@ -187,14 +193,24 @@ def _estimate_rank_meeg_signals(
             tol_kind=tol_kind,
         )
     rank = out[0] if isinstance(out, tuple) else out
-    ch_type = " + ".join(list(zip(*picks_list))[0])
+    if log_ch_type is None:
+        ch_type = " + ".join(list(zip(*picks_list))[0])
+    else:
+        ch_type = log_ch_type
     logger.info("    Estimated rank (%s): %d" % (ch_type, rank))
     return out
 
 
 @verbose
 def _estimate_rank_meeg_cov(
-    data, info, scalings, tol="auto", return_singular=False, verbose=None
+    data,
+    info,
+    scalings,
+    tol="auto",
+    return_singular=False,
+    *,
+    log_ch_type=None,
+    verbose=None,
 ):
     """Estimate rank of M/EEG covariance data, given the covariance.
 
@@ -235,8 +251,11 @@ def _estimate_rank_meeg_cov(
         )
     out = estimate_rank(data, tol=tol, norm=False, return_singular=return_singular)
     rank = out[0] if isinstance(out, tuple) else out
-    ch_type = " + ".join(list(zip(*picks_list))[0])
-    logger.info("    Estimated rank (%s): %d" % (ch_type, rank))
+    if log_ch_type is None:
+        ch_type_ = " + ".join(list(zip(*picks_list))[0])
+    else:
+        ch_type_ = log_ch_type
+    logger.info(f"    Estimated rank ({ch_type_}): {rank}")
     _undo_scaling_cov(data, picks_list, scalings)
     return out
 
@@ -352,6 +371,32 @@ def compute_rank(
     -----
     .. versionadded:: 0.18
     """
+    return _compute_rank(
+        inst=inst,
+        rank=rank,
+        scalings=scalings,
+        info=info,
+        tol=tol,
+        proj=proj,
+        tol_kind=tol_kind,
+        on_rank_mismatch=on_rank_mismatch,
+    )
+
+
+@verbose
+def _compute_rank(
+    inst,
+    rank=None,
+    scalings=None,
+    info=None,
+    *,
+    tol="auto",
+    proj=True,
+    tol_kind="absolute",
+    on_rank_mismatch="ignore",
+    log_ch_type=None,
+    verbose=None,
+):
     from .cov import Covariance
     from .epochs import BaseEpochs
     from .io import BaseRaw
@@ -377,7 +422,7 @@ def compute_rank(
     else:
         info = inst.info
         inst_type = "data"
-    logger.info("Computing rank from %s with rank=%r" % (inst_type, rank))
+    logger.info(f"Computing rank from {inst_type} with rank={repr(rank)}")
 
     _validate_type(rank, (str, dict, None), "rank")
     if isinstance(rank, str):  # string, either 'info' or 'full'
@@ -417,25 +462,22 @@ def compute_rank(
             proj_op, n_proj, _ = make_projector(info["projs"], ch_names)
         else:
             proj_op, n_proj = None, 0
+        if log_ch_type is None:
+            ch_type_ = ch_type.upper()
+        else:
+            ch_type_ = log_ch_type
         if rank_type == "info":
             # use info
             this_rank = _info_rank(info, ch_type, picks, info_type)
             if info_type != "full":
                 this_rank -= n_proj
                 logger.info(
-                    "    %s: rank %d after %d projector%s applied to "
-                    "%d channel%s"
-                    % (
-                        ch_type.upper(),
-                        this_rank,
-                        n_proj,
-                        _pl(n_proj),
-                        n_chan,
-                        _pl(n_chan),
-                    )
+                    f"    {ch_type_}: rank {this_rank} after "
+                    f"{n_proj} projector{_pl(n_proj)} applied to "
+                    "{n_chan} channel{_pl(n_chan)}"
                 )
             else:
-                logger.info("    %s: rank %d from info" % (ch_type.upper(), this_rank))
+                logger.info(f"    {ch_type_}: rank {this_rank} from info")
         else:
             # Use empirical estimation
             assert rank_type == "estimated"
@@ -447,7 +489,13 @@ def compute_rank(
                 if proj:
                     data = np.dot(proj_op, data)
                 this_rank = _estimate_rank_meeg_signals(
-                    data, pick_info(simple_info, picks), scalings, tol, False, tol_kind
+                    data,
+                    pick_info(simple_info, picks),
+                    scalings,
+                    tol,
+                    False,
+                    tol_kind,
+                    log_ch_type=log_ch_type,
                 )
             else:
                 assert isinstance(inst, Covariance)
@@ -464,6 +512,7 @@ def compute_rank(
                         scalings,
                         tol,
                         return_singular=True,
+                        log_ch_type=log_ch_type,
                         verbose=est_verbose,
                     )
                     if ch_type in rank:
@@ -483,9 +532,9 @@ def compute_rank(
                         continue
             this_info_rank = _info_rank(info, ch_type, picks, "info")
             logger.info(
-                "    %s: rank %d computed from %d data channel%s "
-                "with %d projector%s"
-                % (ch_type.upper(), this_rank, n_chan, _pl(n_chan), n_proj, _pl(n_proj))
+                f"    {ch_type_}: rank {this_rank} computed from "
+                f"{n_chan} data channel{_pl(n_chan)} with "
+                f"{n_proj} projector{_pl(n_proj)}"
             )
             if this_rank > this_info_rank:
                 warn(

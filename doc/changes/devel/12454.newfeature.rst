@@ -1,0 +1,1 @@
+Completing PR 12453. Add option to pass ``image_kwargs`` per channel type to :class:`mne.Report.add_epochs`.

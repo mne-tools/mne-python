@@ -167,7 +167,7 @@ def coregister_fiducials(info, fiducials, tol=0.01):
         coord_frame_to = FIFF.FIFFV_COORD_MRI
     frames_from = {d["coord_frame"] for d in info["dig"]}
     if len(frames_from) > 1:
-        raise ValueError("info contains fiducials from different coordinate " "frames")
+        raise ValueError("info contains fiducials from different coordinate frames")
     else:
         coord_frame_from = frames_from.pop()
     coords_from = _fiducial_coords(info["dig"])
@@ -220,14 +220,14 @@ def create_default_subject(fs_home=None, update=False, subjects_dir=None, verbos
     fs_src = os.path.join(fs_home, "subjects", "fsaverage")
     if not os.path.exists(fs_src):
         raise OSError(
-            "fsaverage not found at %r. Is fs_home specified " "correctly?" % fs_src
+            "fsaverage not found at %r. Is fs_home specified correctly?" % fs_src
         )
     for name in ("label", "mri", "surf"):
         dirname = os.path.join(fs_src, name)
         if not os.path.isdir(dirname):
             raise OSError(
-                "Freesurfer fsaverage seems to be incomplete: No "
-                "directory named %s found in %s" % (name, fs_src)
+                "Freesurfer fsaverage seems to be incomplete: No directory named "
+                f"{name} found in {fs_src}"
             )
 
     # make sure destination does not already exist
@@ -241,9 +241,9 @@ def create_default_subject(fs_home=None, update=False, subjects_dir=None, verbos
         )
     elif (not update) and os.path.exists(dest):
         raise OSError(
-            "Can not create fsaverage because %r already exists in "
-            "subjects_dir %r. Delete or rename the existing fsaverage "
-            "subject folder." % ("fsaverage", subjects_dir)
+            "Can not create fsaverage because {!r} already exists in "
+            "subjects_dir {!r}. Delete or rename the existing fsaverage "
+            "subject folder.".format("fsaverage", subjects_dir)
         )
 
     # copy fsaverage from freesurfer
@@ -429,12 +429,8 @@ def fit_matched_points(
         weights = np.asarray(weights, src_pts.dtype)
         if weights.ndim != 1 or weights.size not in (src_pts.shape[0], 1):
             raise ValueError(
-                "weights (shape=%s) must be None or have shape "
-                "(%s,)"
-                % (
-                    weights.shape,
-                    src_pts.shape[0],
-                )
+                f"weights (shape={weights.shape}) must be None or have shape "
+                f"({src_pts.shape[0]},)"
             )
         weights = weights[:, np.newaxis]
 
@@ -472,7 +468,7 @@ def fit_matched_points(
         return trans
     else:
         raise ValueError(
-            "Invalid out parameter: %r. Needs to be 'params' or " "'trans'." % out
+            "Invalid out parameter: %r. Needs to be 'params' or 'trans'." % out
         )
 
 
@@ -541,7 +537,7 @@ def _generic_fit(src_pts, tgt_pts, param_info, weights, x0):
     else:
         raise NotImplementedError(
             "The specified parameter combination is not implemented: "
-            "rotate=%r, translate=%r, scale=%r" % param_info
+            "rotate={!r}, translate={!r}, scale={!r}".format(*param_info)
         )
 
     x, _, _, _, _ = leastsq(error, x0, full_output=True)
@@ -827,8 +823,8 @@ def read_mri_cfg(subject, subjects_dir=None):
 
     if not fname.exists():
         raise OSError(
-            "%r does not seem to be a scaled mri subject: %r does "
-            "not exist." % (subject, fname)
+            f"{subject!r} does not seem to be a scaled mri subject: {fname!r} does not"
+            "exist."
         )
 
     logger.info("Reading MRI cfg file %s" % fname)
@@ -916,8 +912,8 @@ def _scale_params(subject_to, subject_from, scale, subjects_dir):
     scale = np.atleast_1d(scale)
     if scale.ndim != 1 or scale.shape[0] not in (1, 3):
         raise ValueError(
-            "Invalid shape for scale parameter. Need scalar "
-            "or array of length 3. Got shape %s." % (scale.shape,)
+            "Invalid shape for scale parameter. Need scalar or array of length 3. Got "
+            f"shape {scale.shape}."
         )
     n_params = len(scale)
     return str(subjects_dir), subject_from, scale, n_params == 1
@@ -1105,14 +1101,14 @@ def scale_mri(
         if np.isclose(scale[1], scale[0]) and np.isclose(scale[2], scale[0]):
             scale = scale[0]  # speed up scaling conditionals using a singleton
     elif scale.shape != (1,):
-        raise ValueError("scale must have shape (3,) or (1,), got %s" % (scale.shape,))
+        raise ValueError(f"scale must have shape (3,) or (1,), got {scale.shape}")
 
     # make sure we have an empty target directory
     dest = subject_dirname.format(subject=subject_to, subjects_dir=subjects_dir)
     if os.path.exists(dest):
         if not overwrite:
             raise OSError(
-                "Subject directory for %s already exists: %r" % (subject_to, dest)
+                f"Subject directory for {subject_to} already exists: {dest!r}"
             )
         shutil.rmtree(dest)
 
@@ -1949,7 +1945,7 @@ class Coregistration:
         n_scale_params = self._n_scale_params
         if n_scale_params == 3:
             # enforce 1 even for 3-axis here (3 points is not enough)
-            logger.info("Enforcing 1 scaling parameter for fit " "with fiducials.")
+            logger.info("Enforcing 1 scaling parameter for fit with fiducials.")
             n_scale_params = 1
         self._lpa_weight = lpa_weight
         self._nasion_weight = nasion_weight
@@ -2014,12 +2010,12 @@ class Coregistration:
                         self._processed_high_res_mri_points[
                             getattr(
                                 self,
-                                "_nearest_transformed_high_res_mri_idx_%s" % (key,),
+                                f"_nearest_transformed_high_res_mri_idx_{key}",
                             )
                         ]
                     )
                 weights.append(
-                    np.full(len(mri_pts[-1]), getattr(self, "_%s_weight" % key))
+                    np.full(len(mri_pts[-1]), getattr(self, f"_{key}_weight"))
                 )
         if self._has_eeg_data and self._eeg_weight > 0:
             head_pts.append(self._dig_dict["dig_ch_pos_location"])

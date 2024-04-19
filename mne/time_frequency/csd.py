@@ -35,7 +35,7 @@ from .tfr import EpochsTFR, _cwt_array, _get_nfft, morlet
 
 @verbose
 def pick_channels_csd(
-    csd, include=[], exclude=[], ordered=None, copy=True, *, verbose=None
+    csd, include=(), exclude=(), ordered=True, copy=True, *, verbose=None
 ):
     """Pick channels from cross-spectral density matrix.
 
@@ -189,17 +189,18 @@ class CrossSpectralDensity:
             elif len(f) == 1:
                 freq_strs.append(str(f[0]))
             else:
-                freq_strs.append("{}-{}".format(np.min(f), np.max(f)))
+                freq_strs.append(f"{np.min(f)}-{np.max(f)}")
         freq_str = ", ".join(freq_strs) + " Hz."
 
         if self.tmin is not None and self.tmax is not None:
-            time_str = "{} to {} s".format(self.tmin, self.tmax)
+            time_str = f"{self.tmin} to {self.tmax} s"
         else:
             time_str = "unknown"
 
         return (
-            "<CrossSpectralDensity | " "n_channels={}, time={}, frequencies={}>"
-        ).format(self.n_channels, time_str, freq_str)
+            "<CrossSpectralDensity | "
+            f"n_channels={self.n_channels}, time={time_str}, frequencies={freq_str}>"
+        )
 
     def sum(self, fmin=None, fmax=None):
         """Calculate the sum CSD in the given frequency range(s).

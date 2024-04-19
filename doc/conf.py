@@ -6,35 +6,36 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-from datetime import datetime, timezone
 import faulthandler
 import gc
-from importlib.metadata import metadata
 import os
-from pathlib import Path
 import subprocess
 import sys
 import time
 import warnings
+from datetime import datetime, timezone
+from importlib.metadata import metadata
+from pathlib import Path
 
-import numpy as np
 import matplotlib
+import numpy as np
 import sphinx
-from sphinx.domains.changeset import versionlabels
-from sphinx_gallery.sorting import FileNameSortKey, ExplicitOrder
 from numpydoc import docscrape
+from sphinx.domains.changeset import versionlabels
+from sphinx_gallery.sorting import ExplicitOrder, FileNameSortKey
 
 import mne
 import mne.html_templates._templates
 from mne.tests.test_docstring_parameters import error_ignores
 from mne.utils import (
-    linkcode_resolve,  # noqa, analysis:ignore
     _assert_no_instances,
-    sizeof_fmt,
+    linkcode_resolve,
     run_subprocess,
+    sizeof_fmt,
 )
 from mne.viz import Brain  # noqa
 
+assert linkcode_resolve is not None  # avoid flake warnings, used by numpydoc
 matplotlib.use("agg")
 faulthandler.enable()
 os.environ["_MNE_BROWSER_NO_BLOCK"] = "true"
@@ -51,9 +52,8 @@ mne.html_templates._templates._COLLAPSED = True  # collapse info _repr_html_
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
-curdir = os.path.dirname(__file__)
-sys.path.append(os.path.abspath(os.path.join(curdir, "..", "mne")))
-sys.path.append(os.path.abspath(os.path.join(curdir, "sphinxext")))
+curpath = Path(__file__).parent.resolve(strict=True)
+sys.path.append(str(curpath / "sphinxext"))
 
 
 # -- Project information -----------------------------------------------------
@@ -63,12 +63,12 @@ td = datetime.now(tz=timezone.utc)
 
 # We need to triage which date type we use so that incremental builds work
 # (Sphinx looks at variable changes and rewrites all files if some change)
-copyright = (
+copyright = (  # noqa: A001
     f'2012–{td.year}, MNE Developers. Last updated <time datetime="{td.isoformat()}" class="localized">{td.strftime("%Y-%m-%d %H:%M %Z")}</time>\n'  # noqa: E501
     '<script type="text/javascript">$(function () { $("time.localized").each(function () { var el = $(this); el.text(new Date(el.attr("datetime")).toLocaleString([], {dateStyle: "medium", timeStyle: "long"})); }); } )</script>'  # noqa: E501
 )
 if os.getenv("MNE_FULL_DATE", "false").lower() != "true":
-    copyright = f"2012–{td.year}, MNE Developers. Last updated locally."
+    copyright = f"2012–{td.year}, MNE Developers. Last updated locally."  # noqa: A001
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -107,6 +107,7 @@ extensions = [
     "sphinx_gallery.gen_gallery",
     "sphinxcontrib.bibtex",
     "sphinxcontrib.youtube",
+    "sphinxcontrib.towncrier.ext",
     # homegrown
     "contrib_avatars",
     "gen_commands",
@@ -123,7 +124,7 @@ templates_path = ["_templates"]
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
-exclude_patterns = ["_includes"]
+exclude_patterns = ["_includes", "changes/devel"]
 
 # The suffix of source filenames.
 source_suffix = ".rst"
@@ -148,6 +149,10 @@ modindex_common_prefix = ["mne."]
 # -- Sphinx-Copybutton configuration -----------------------------------------
 copybutton_prompt_text = r">>> |\.\.\. |\$ "
 copybutton_prompt_is_regexp = True
+
+# -- sphinxcontrib-towncrier configuration -----------------------------------
+
+towncrier_draft_working_directory = str(curpath.parent)
 
 # -- Intersphinx configuration -----------------------------------------------
 
@@ -174,10 +179,7 @@ intersphinx_mapping = {
     "imageio": ("https://imageio.readthedocs.io/en/latest", None),
     "picard": ("https://pierreablin.github.io/picard/", None),
     "eeglabio": ("https://eeglabio.readthedocs.io/en/latest", None),
-    "dipy": (
-        "https://dipy.org/documentation/1.7.0/",
-        "https://dipy.org/documentation/1.7.0/objects.inv/",
-    ),
+    "dipy": ("https://docs.dipy.org/stable", None),
     "pybv": ("https://pybv.readthedocs.io/en/latest/", None),
     "pyqtgraph": ("https://pyqtgraph.readthedocs.io/en/latest/", None),
 }
@@ -229,7 +231,11 @@ numpydoc_xref_aliases = {
     "EvokedArray": "mne.EvokedArray",
     "BiHemiLabel": "mne.BiHemiLabel",
     "AverageTFR": "mne.time_frequency.AverageTFR",
+    "AverageTFRArray": "mne.time_frequency.AverageTFRArray",
     "EpochsTFR": "mne.time_frequency.EpochsTFR",
+    "EpochsTFRArray": "mne.time_frequency.EpochsTFRArray",
+    "RawTFR": "mne.time_frequency.RawTFR",
+    "RawTFRArray": "mne.time_frequency.RawTFRArray",
     "Raw": "mne.io.Raw",
     "ICA": "mne.preprocessing.ICA",
     "Covariance": "mne.Covariance",
@@ -269,6 +275,30 @@ numpydoc_xref_aliases = {
     "EOGRegression": "mne.preprocessing.EOGRegression",
     "Spectrum": "mne.time_frequency.Spectrum",
     "EpochsSpectrum": "mne.time_frequency.EpochsSpectrum",
+    "EpochsFIF": "mne.Epochs",
+    "EpochsEEGLAB": "mne.Epochs",
+    "EpochsKIT": "mne.Epochs",
+    "RawBOXY": "mne.io.Raw",
+    "RawBrainVision": "mne.io.Raw",
+    "RawBTi": "mne.io.Raw",
+    "RawCTF": "mne.io.Raw",
+    "RawCurry": "mne.io.Raw",
+    "RawEDF": "mne.io.Raw",
+    "RawEEGLAB": "mne.io.Raw",
+    "RawEGI": "mne.io.Raw",
+    "RawEximia": "mne.io.Raw",
+    "RawEyelink": "mne.io.Raw",
+    "RawFIL": "mne.io.Raw",
+    "RawGDF": "mne.io.Raw",
+    "RawHitachi": "mne.io.Raw",
+    "RawKIT": "mne.io.Raw",
+    "RawNedf": "mne.io.Raw",
+    "RawNeuralynx": "mne.io.Raw",
+    "RawNihon": "mne.io.Raw",
+    "RawNIRX": "mne.io.Raw",
+    "RawPersyst": "mne.io.Raw",
+    "RawSNIRF": "mne.io.Raw",
+    "Calibration": "mne.preprocessing.eyetracking.Calibration",
     # dipy
     "dipy.align.AffineMap": "dipy.align.imaffine.AffineMap",
     "dipy.align.DiffeomorphicMap": "dipy.align.imwarp.DiffeomorphicMap",
@@ -367,34 +397,12 @@ numpydoc_xref_ignore = {
     "n_moments",
     "n_patterns",
     "n_new_events",
-    # Undocumented (on purpose)
-    "RawKIT",
-    "RawEximia",
-    "RawEGI",
-    "RawEEGLAB",
-    "RawEDF",
-    "RawCTF",
-    "RawBTi",
-    "RawBrainVision",
-    "RawCurry",
-    "RawNIRX",
-    "RawNeuralynx",
-    "RawGDF",
-    "RawSNIRF",
-    "RawBOXY",
-    "RawPersyst",
-    "RawNihon",
-    "RawNedf",
-    "RawHitachi",
-    "RawFIL",
-    "RawEyelink",
     # sklearn subclasses
     "mapping",
     "to",
     "any",
     # unlinkable
     "CoregistrationUI",
-    "IntracranialElectrodeLocator",
     "mne_qt_browser.figure.MNEQtBrowser",
     # pooch, since its website is unreliable and users will rarely need the links
     "pooch.Unzip",
@@ -443,16 +451,18 @@ numpydoc_validation_exclude = {  # set of regex
 # -- Sphinx-gallery configuration --------------------------------------------
 
 
-class Resetter(object):
+class Resetter:
     """Simple class to make the str(obj) static for Sphinx build env hash."""
 
     def __init__(self):
         self.t0 = time.time()
 
     def __repr__(self):
+        """Make a stable repr."""
         return f"<{self.__class__.__name__}>"
 
     def __call__(self, gallery_conf, fname, when):
+        """Do the reset."""
         import matplotlib.pyplot as plt
 
         try:
@@ -480,6 +490,8 @@ class Resetter(object):
         plt.ioff()
         plt.rcParams["animation.embed_limit"] = 40.0
         plt.rcParams["figure.raise_window"] = False
+        # https://github.com/sphinx-gallery/sphinx-gallery/pull/1243#issue-2043332860
+        plt.rcParams["animation.html"] = "html5"
         # neo holds on to an exception, which in turn holds a stack frame,
         # which will keep alive the global vars during SG execution
         try:
@@ -675,7 +687,9 @@ def append_attr_meth_examples(app, what, name, obj, options, lines):
     if what in ("attribute", "method"):
         size = os.path.getsize(
             os.path.join(
-                os.path.dirname(__file__), "generated", "%s.examples" % (name,)
+                os.path.dirname(__file__),
+                "generated",
+                f"{name}.examples",
             )
         )
         if size > 0:
@@ -686,11 +700,7 @@ def append_attr_meth_examples(app, what, name, obj, options, lines):
 
 .. minigallery:: {1}
 
-""".format(
-                name.split(".")[-1], name
-            ).split(
-                "\n"
-            )
+""".format(name.split(".")[-1], name).split("\n")
 
 
 # -- Other extension configuration -------------------------------------------
@@ -726,8 +736,8 @@ linkcheck_ignore = [  # will be compiled to regex
     "https://doi.org/10.3109/",  # www.tandfonline.com
     "https://www.researchgate.net/profile/",
     "https://www.intel.com/content/www/us/en/developer/tools/oneapi/onemkl.html",
-    "https://scholar.google.com/scholar?cites=12188330066413208874&as_ylo=2014",
-    "https://scholar.google.com/scholar?cites=1521584321377182930&as_ylo=2013",
+    r"https://scholar.google.com/scholar\?cites=12188330066413208874&as_ylo=2014",
+    r"https://scholar.google.com/scholar\?cites=1521584321377182930&as_ylo=2013",
     # 500 server error
     "https://openwetware.org/wiki/Beauchamp:FreeSurfer",
     # 503 Server error
@@ -744,6 +754,8 @@ linkcheck_ignore = [  # will be compiled to regex
     # Too slow
     "https://speakerdeck.com/dengemann/",
     "https://www.dtu.dk/english/service/phonebook/person",
+    # SSL problems sometimes
+    "http://ilabs.washington.edu",
 ]
 linkcheck_anchors = False  # saves a bit of time
 linkcheck_timeout = 15  # some can be quite slow
@@ -762,6 +774,7 @@ bibtex_footbibliography_header = ""
 # -- Nitpicky ----------------------------------------------------------------
 
 nitpicky = True
+show_warning_types = True
 nitpick_ignore = [
     ("py:class", "None.  Remove all items from D."),
     ("py:class", "a set-like object providing a view on D's items"),
@@ -779,14 +792,22 @@ nitpick_ignore = [
     ("py:class", "None.  Remove all items from od."),
 ]
 nitpick_ignore_regex = [
-    ("py:.*", r"mne\.io\.BaseRaw.*"),
-    ("py:.*", r"mne\.BaseEpochs.*"),
+    # Classes whose methods we purposefully do not document
+    ("py:.*", r"mne\.io\.BaseRaw.*"),  # use mne.io.Raw
+    ("py:.*", r"mne\.BaseEpochs.*"),  # use mne.Epochs
+    # Type hints for undocumented types
+    ("py:.*", r"mne\.io\..*\.Raw.*"),  # RawEDF etc.
+    ("py:.*", r"mne\.epochs\.EpochsFIF.*"),
+    ("py:.*", r"mne\.io\..*\.Epochs.*"),  # EpochsKIT etc.
     (
         "py:obj",
         "(filename|metadata|proj|times|tmax|tmin|annotations|ch_names|compensation_grade|filenames|first_samp|first_time|last_samp|n_times|proj|times|tmax|tmin)",
     ),  # noqa: E501
 ]
-suppress_warnings = ["image.nonlocal_uri"]  # we intentionally link outside
+suppress_warnings = [
+    "image.nonlocal_uri",  # we intentionally link outside
+    "config.cache",  # our rebuild is okay
+]
 
 
 # -- Sphinx hacks / overrides ------------------------------------------------
@@ -803,7 +824,7 @@ html_theme = "pydata_sphinx_theme"
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
-switcher_version_match = "dev" if release.endswith("dev0") else version
+switcher_version_match = "dev" if ".dev" in version else version
 html_theme_options = {
     "icon_links": [
         dict(
@@ -834,7 +855,7 @@ html_theme_options = {
         ),
     ],
     "icon_links_label": "External Links",  # for screen reader
-    "use_edit_page_button": True,
+    "use_edit_page_button": False,
     "navigation_with_keys": False,
     "show_toc_level": 1,
     "article_header_start": [],  # disable breadcrumbs
@@ -1183,21 +1204,21 @@ html_context = {
     "carousel": [
         dict(
             title="Source Estimation",
-            text="Distributed, sparse, mixed-norm, beam\u00ADformers, dipole fitting, and more.",  # noqa E501
+            text="Distributed, sparse, mixed-norm, beam\u00adformers, dipole fitting, and more.",  # noqa E501
             url="auto_tutorials/inverse/index.html",
             img="sphx_glr_30_mne_dspm_loreta_008.gif",
             alt="dSPM",
         ),
         dict(
             title="Machine Learning",
-            text="Advanced decoding models including time general\u00ADiza\u00ADtion.",  # noqa E501
+            text="Advanced decoding models including time general\u00adiza\u00adtion.",  # noqa E501
             url="auto_tutorials/machine-learning/50_decoding.html",
             img="sphx_glr_50_decoding_006.png",
             alt="Decoding",
         ),
         dict(
             title="Encoding Models",
-            text="Receptive field estima\u00ADtion with optional smooth\u00ADness priors.",  # noqa E501
+            text="Receptive field estima\u00adtion with optional smooth\u00adness priors.",  # noqa E501
             url="auto_tutorials/machine-learning/30_strf.html",
             img="sphx_glr_30_strf_001.png",
             alt="STRF",
@@ -1211,7 +1232,7 @@ html_context = {
         ),
         dict(
             title="Connectivity",
-            text="All-to-all spectral and effective connec\u00ADtivity measures.",  # noqa E501
+            text="All-to-all spectral and effective connec\u00adtivity measures.",  # noqa E501
             url="https://mne.tools/mne-connectivity/stable/auto_examples/mne_inverse_label_connectivity.html",  # noqa E501
             img="https://mne.tools/mne-connectivity/stable/_images/sphx_glr_mne_inverse_label_connectivity_001.png",  # noqa E501
             alt="Connectivity",
@@ -1305,6 +1326,7 @@ def reset_warnings(gallery_conf, fname):
     for key in (
         "invalid version and will not be supported",  # pyxdf
         "distutils Version classes are deprecated",  # seaborn and neo
+        "is_categorical_dtype is deprecated",  # seaborn
         "`np.object` is a deprecated alias for the builtin `object`",  # pyxdf
         # nilearn, should be fixed in > 0.9.1
         "In future, it will be an error for 'np.bool_' scalars to",
@@ -1327,8 +1349,19 @@ def reset_warnings(gallery_conf, fname):
         # nilearn
         "pkg_resources is deprecated as an API",
         r"The .* was deprecated in Matplotlib 3\.7",
-        # scipy
-        r"scipy.signal.morlet2 is deprecated in SciPy 1\.12",
+        # Matplotlib->tz
+        r"datetime\.datetime\.utcfromtimestamp",
+        # joblib
+        r"ast\.Num is deprecated",
+        r"Attribute n is deprecated and will be removed in Python 3\.14",
+        # numpydoc
+        r"ast\.NameConstant is deprecated and will be removed in Python 3\.14",
+        # pooch
+        r"Python 3\.14 will, by default, filter extracted tar archives.*",
+        # seaborn
+        r"DataFrameGroupBy\.apply operated on the grouping columns.*",
+        # pandas
+        r"\nPyarrow will become a required dependency of pandas.*",
     ):
         warnings.filterwarnings(  # deal with other modules having bad imports
             "ignore", message=".*%s.*" % key, category=DeprecationWarning
@@ -1367,6 +1400,7 @@ def reset_warnings(gallery_conf, fname):
         r"iteritems is deprecated.*Use \.items instead\.",
         "is_categorical_dtype is deprecated.*",
         "The default of observed=False.*",
+        "When grouping with a length-1 list-like.*",
     ):
         warnings.filterwarnings(
             "ignore",
@@ -1733,7 +1767,7 @@ REDIRECT_TEMPLATE = """\
 def check_existing_redirect(path):
     """Make sure existing HTML files are redirects, before overwriting."""
     if path.is_file():
-        with open(path, "r") as fid:
+        with open(path) as fid:
             for _ in range(8):
                 next(fid)
             line = fid.readline()

@@ -249,7 +249,7 @@ def get_volume_labels_from_aseg(mgz_fname, return_colors=False, atlas_ids=None):
     if atlas_ids is None:
         atlas_ids, colors = read_freesurfer_lut()
     elif return_colors:
-        raise ValueError("return_colors must be False if atlas_ids are " "provided")
+        raise ValueError("return_colors must be False if atlas_ids are provided")
     # restrict to the ones in the MRI, sorted by label name
     keep = np.isin(list(atlas_ids.values()), want)
     keys = sorted(
@@ -554,7 +554,7 @@ def read_lta(fname, verbose=None):
         The affine transformation described by the lta file.
     """
     _check_fname(fname, "read", must_exist=True)
-    with open(fname, "r") as fid:
+    with open(fname) as fid:
         lines = fid.readlines()
     # 0 is linear vox2vox, 1 is linear ras2ras
     trans_type = int(lines[0].split("=")[1].strip()[0])
@@ -715,7 +715,7 @@ def _get_lut(fname=None):
         ("A", "<i8"),
     ]
     lut = {d[0]: list() for d in dtype}
-    with open(fname, "r") as fid:
+    with open(fname) as fid:
         for line in fid:
             line = line.strip()
             if line.startswith("#") or not line:

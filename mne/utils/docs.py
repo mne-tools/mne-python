@@ -64,6 +64,61 @@ docdict = BunchConst()
 # %%
 # A
 
+tfr_arithmetics_return_template = """
+Returns
+-------
+tfr : instance of RawTFR | instance of EpochsTFR | instance of AverageTFR
+    {}
+"""
+
+tfr_add_sub_template = """
+Parameters
+----------
+other : instance of RawTFR | instance of EpochsTFR | instance of AverageTFR
+    The TFR instance to {}. Must have the same type as ``self``, and matching
+    ``.times`` and ``.freqs`` attributes.
+
+{}
+"""
+
+tfr_mul_truediv_template = """
+Parameters
+----------
+num : int | float
+    The number to {} by.
+
+{}
+"""
+
+tfr_arithmetics_return = tfr_arithmetics_return_template.format(
+    "A new TFR instance, of the same type as ``self``."
+)
+tfr_inplace_arithmetics_return = tfr_arithmetics_return_template.format(
+    "The modified TFR instance."
+)
+
+docdict["__add__tfr"] = tfr_add_sub_template.format("add", tfr_arithmetics_return)
+docdict["__iadd__tfr"] = tfr_add_sub_template.format(
+    "add", tfr_inplace_arithmetics_return
+)
+docdict["__imul__tfr"] = tfr_mul_truediv_template.format(
+    "multiply", tfr_inplace_arithmetics_return
+)
+docdict["__isub__tfr"] = tfr_add_sub_template.format(
+    "subtract", tfr_inplace_arithmetics_return
+)
+docdict["__itruediv__tfr"] = tfr_mul_truediv_template.format(
+    "divide", tfr_inplace_arithmetics_return
+)
+docdict["__mul__tfr"] = tfr_mul_truediv_template.format(
+    "multiply", tfr_arithmetics_return
+)
+docdict["__sub__tfr"] = tfr_add_sub_template.format("subtract", tfr_arithmetics_return)
+docdict["__truediv__tfr"] = tfr_mul_truediv_template.format(
+    "divide", tfr_arithmetics_return
+)
+
+
 docdict["accept"] = """
 accept : bool
     If True (default False), accept the license terms of this dataset.
@@ -216,11 +271,11 @@ Operates in place.
 # raw/epochs/evoked apply_function method
 # apply_function method summary
 applyfun_summary = """\
-The function ``fun`` is applied to the channels defined in ``picks``.
+The function ``fun`` is applied to the channels or vertices defined in ``picks``.
 The {} object's data is modified in-place. If the function returns a different
 data type (e.g. :py:obj:`numpy.complex128`) it must be specified
 using the ``dtype`` parameter, which causes the data type of **all** the data
-to change (even if the function is only applied to channels in ``picks``).{}
+to change (even if the function is only applied to channels/vertices in ``picks``).{}
 
 .. note:: If ``n_jobs`` > 1, more memory is required as
           ``len(picks) * n_times`` additional time points need to
@@ -236,6 +291,7 @@ applyfun_preload = (
 docdict["applyfun_summary_epochs"] = applyfun_summary.format("epochs", applyfun_preload)
 docdict["applyfun_summary_evoked"] = applyfun_summary.format("evoked", "")
 docdict["applyfun_summary_raw"] = applyfun_summary.format("raw", applyfun_preload)
+docdict["applyfun_summary_stc"] = applyfun_summary.format("source estimate", "")
 
 docdict["area_alpha_plot_psd"] = """\
 area_alpha : float
@@ -302,42 +358,67 @@ average : bool, default True
 """
 
 _axes_base = """\
-{} : instance of Axes | {}None
-    The axes to plot to. If ``None``, a new :class:`~matplotlib.figure.Figure`
-    will be created{}. {}Default is ``None``.
+{param} : instance of Axes | {allowed}None
+    The axes to plot into. If ``None``, a new :class:`~matplotlib.figure.Figure`
+    will be created{created}. {list_extra}{extra}Default is ``None``.
 """
-_axes_num = (
-    "If :class:`~matplotlib.axes.Axes` are provided (either as a "
-    "single instance or a :class:`list` of axes), the number of axes "
-    "provided must {}."
-)
 _axes_list = _axes_base.format(
-    "{}", "list of Axes | ", " with the correct number of axes", _axes_num
+    param="{param}",
+    allowed="list of Axes | ",
+    created=" with the correct number of axes",
+    list_extra="""If :class:`~matplotlib.axes.Axes`
+    are provided (either as a single instance or a :class:`list` of axes),
+    the number of axes provided must {must}. """,
+    extra="{extra}",
 )
-_ch_types_present = "match the number of channel types present in the {}" "object."
-docdict["ax_plot_psd"] = _axes_list.format("ax", _ch_types_present.format(""))
-docdict["axes_cov_plot_topomap"] = _axes_list.format("axes", "be length 1")
+_match_chtypes_present_in = "match the number of channel types present in the {}object."
+docdict["ax_plot_psd"] = _axes_list.format(
+    param="ax", must=_match_chtypes_present_in.format(""), extra=""
+)
+docdict["axes_cov_plot_topomap"] = _axes_list.format(
+    param="axes", must="be length 1", extra=""
+)
 docdict["axes_evoked_plot_topomap"] = _axes_list.format(
-    "axes", "match the number of ``times`` provided (unless ``times`` is ``None``)"
+    param="axes",
+    must="match the number of ``times`` provided (unless ``times`` is ``None``)",
+    extra="",
 )
 docdict["axes_montage"] = """
 axes : instance of Axes | instance of Axes3D | None
     Axes to draw the sensors to. If ``kind='3d'``, axes must be an instance
-    of Axes3D. If None (default), a new axes will be created."""
+    of Axes3D. If None (default), a new axes will be created.
+"""
 docdict["axes_plot_projs_topomap"] = _axes_list.format(
-    "axes", "match the number of projectors"
+    param="axes",
+    must="match the number of projectors",
+    extra="",
 )
-docdict["axes_plot_topomap"] = _axes_base.format("axes", "", "", "")
+docdict["axes_plot_topomap"] = _axes_base.format(
+    param="axes",
+    allowed="",
+    created="",
+    list_extra="",
+    extra="",
+)
 docdict["axes_spectrum_plot"] = _axes_list.format(
-    "axes", _ch_types_present.format(":class:`~mne.time_frequency.Spectrum`")
+    param="axes",
+    must=_match_chtypes_present_in.format(":class:`~mne.time_frequency.Spectrum` "),
+    extra="",
 )
 docdict["axes_spectrum_plot_topo"] = _axes_list.format(
-    "axes",
-    "be length 1 (for efficiency, subplots for each channel are simulated "
+    param="axes",
+    must="be length 1 (for efficiency, subplots for each channel are simulated "
     "within a single :class:`~matplotlib.axes.Axes` object)",
+    extra="",
 )
 docdict["axes_spectrum_plot_topomap"] = _axes_list.format(
-    "axes", "match the length of ``bands``"
+    param="axes", must="match the length of ``bands``", extra=""
+)
+docdict["axes_tfr_plot"] = _axes_list.format(
+    param="axes",
+    must="match the number of picks",
+    extra="""If ``combine`` is not None,
+    ``axes`` must either be an instance of Axes, or a list of length 1. """,
 )
 
 docdict["axis_facecolor"] = """\
@@ -395,11 +476,12 @@ baseline : None | tuple of length 2
     If a tuple ``(a, b)``, the interval is between ``a`` and ``b``
     (in seconds), including the endpoints.
     If ``a`` is ``None``, the **beginning** of the data is used; and if ``b``
-    is ``None``, it is set to the **end** of the interval.
+    is ``None``, it is set to the **end** of the data.
     If ``(None, None)``, the entire time interval is used.
 
-    .. note:: The baseline ``(a, b)`` includes both endpoints, i.e. all
-                timepoints ``t`` such that ``a <= t <= b``.
+    .. note::
+        The baseline ``(a, b)`` includes both endpoints, i.e. all timepoints ``t``
+        such that ``a <= t <= b``.
 """
 
 docdict["baseline_epochs"] = f"""{_baseline_rescale_base}
@@ -447,12 +529,21 @@ docdict["baseline_stc"] = f"""{_baseline_rescale_base}
 
 """
 
+docdict["baseline_tfr_attr"] = """
+baseline : array-like, shape (2,)
+    The start and end times of the baseline period, in seconds."""
+
+
 docdict["block"] = """\
 block : bool
     Whether to halt program execution until the figure is closed.
     May not work on all systems / platforms. Defaults to ``False``.
 """
 
+docdict["border_topo"] = """
+border : str
+    Matplotlib border style to be used for each sensor plot.
+"""
 docdict["border_topomap"] = """
 border : float | 'mean'
     Value to extrapolate to on the topomap borders. If ``'mean'`` (default),
@@ -559,6 +650,9 @@ ch_names : list | None
                     description=['Start', 'BAD_flux', 'BAD_noise'],
                     ch_names=[[], ['MEG0111', 'MEG2563'], ['MEG1443']])
 """
+docdict["ch_names_tfr_attr"] = """
+ch_names : list
+    The channel names."""
 
 docdict["ch_type_set_eeg_reference"] = """
 ch_type : list of str | str
@@ -651,13 +745,19 @@ clim : str | dict
     ``pos_lims``, as the surface plot must show the magnitude.
 """
 
-docdict["cmap"] = """
-cmap : matplotlib colormap | str | None
-        The :class:`~matplotlib.colors.Colormap` to use. Defaults to ``None``, which
-        will use the matplotlib default colormap.
+_cmap_template = """
+cmap : matplotlib colormap | str{allowed}
+        The :class:`~matplotlib.colors.Colormap` to use. If a :class:`str`, must be a
+        valid Matplotlib colormap name. Default is {default}.
 """
-
-docdict["cmap_topomap"] = """
+docdict["cmap"] = _cmap_template.format(
+    allowed=" | None",
+    default="``None``, which will use the Matplotlib default colormap",
+)
+docdict["cmap_tfr_plot_topo"] = _cmap_template.format(
+    allowed="", default='``"RdBu_r"``'
+)
+docdict["cmap_topomap"] = """\
 cmap : matplotlib colormap | (colormap, bool) | 'interactive' | None
     Colormap to use. If :class:`tuple`, the first value indicates the colormap
     to use and the second value is a boolean defining interactivity. In
@@ -706,6 +806,15 @@ color : str | tuple
     white.
 """
 
+docdict["colorbar"] = """\
+colorbar : bool
+    Whether to add a colorbar to the plot. Default is ``True``.
+"""
+docdict["colorbar_tfr_plot_joint"] = """
+colorbar : bool
+    Whether to add a colorbar to the plot (for the topomap annotations). Not compatible
+    with user-defined ``axes``. Default is ``True``.
+"""
 docdict["colorbar_topomap"] = """
 colorbar : bool
     Plot a colorbar in the rightmost column of the figure.
@@ -718,12 +827,86 @@ colormap : str | np.ndarray of float, shape(n_colors, 3 | 4)
     0 and 255.
 """
 
-docdict["combine"] = """
-combine : None | str | callable
-    How to combine information across channels. If a :class:`str`, must be
-    one of 'mean', 'median', 'std' (standard deviation) or 'gfp' (global
-    field power).
+_combine_template = """
+combine : 'mean' | {literals} | callable{none}
+    How to aggregate across channels. {none_sentence}If a string,
+    ``"mean"`` uses :func:`numpy.mean`, {other_string}.
+    If :func:`callable`, it must operate on an :class:`array <numpy.ndarray>`
+    of shape ``({shape})`` and return an array of shape
+    ``({return_shape})``. {example}{notes}Defaults to {default}.
 """
+_example = """For example::
+
+        combine = lambda data: np.median(data, axis=1)
+
+    """  # ← the 4 trailing spaces are intentional here!
+_median_std_gfp = """``"median"`` computes the `marginal median
+    <https://en.wikipedia.org/wiki/Median#Marginal_median>`__, ``"std"``
+    uses :func:`numpy.std`, and ``"gfp"`` computes global field power
+    for EEG channels and RMS amplitude for MEG channels"""
+_none_default = dict(none=" | None", default="``None``")
+docdict["combine_plot_compare_evokeds"] = _combine_template.format(
+    literals="'median' | 'std' | 'gfp'",
+    **_none_default,
+    none_sentence="""If ``None``, channels are combined by
+    computing GFP/RMS, unless ``picks`` is a single channel (not channel type)
+    or ``axes="topo"``, in which cases no combining is performed. """,
+    other_string=_median_std_gfp,
+    shape="n_evokeds, n_channels, n_times",
+    return_shape="n_evokeds, n_times",
+    example=_example,
+    notes="",
+)
+docdict["combine_plot_epochs_image"] = _combine_template.format(
+    literals="'median' | 'std' | 'gfp'",
+    **_none_default,
+    none_sentence="""If ``None``, channels are combined by
+    computing GFP/RMS, unless ``group_by`` is also ``None`` and ``picks`` is a
+    list of specific channels (not channel types), in which case no combining
+    is performed and each channel gets its own figure. """,
+    other_string=_median_std_gfp,
+    shape="n_epochs, n_channels, n_times",
+    return_shape="n_epochs, n_times",
+    example=_example,
+    notes="See Notes for further details. ",
+)
+docdict["combine_tfr_plot"] = _combine_template.format(
+    literals="'rms'",
+    **_none_default,
+    none_sentence="If ``None``, plot one figure per selected channel. ",
+    shape="n_channels, n_freqs, n_times",
+    return_shape="n_freqs, n_times",
+    other_string='``"rms"`` computes the root-mean-square',
+    example="",
+    notes="",
+)
+docdict["combine_tfr_plot_joint"] = _combine_template.format(
+    literals="'rms'",
+    none="",
+    none_sentence="",
+    shape="n_channels, n_freqs, n_times",
+    return_shape="n_freqs, n_times",
+    other_string='``"rms"`` computes the root-mean-square',
+    example="",
+    notes="",
+    default='``"mean"``',
+)
+
+_comment_template = """
+comment : str{or_none}
+    Comment on the data, e.g., the experimental condition(s){avgd}.{extra}"""
+docdict["comment_averagetfr"] = _comment_template.format(
+    or_none=" | None",
+    avgd="averaged",
+    extra="""Default is ``None``
+    which is replaced with ``inst.comment`` (for :class:`~mne.Evoked` instances)
+    or a comma-separated string representation of the keys in ``inst.event_id``
+    (for :class:`~mne.Epochs` instances).""",
+)
+docdict["comment_averagetfr_attr"] = _comment_template.format(
+    or_none="", avgd=" averaged", extra=""
+)
+docdict["comment_tfr_attr"] = _comment_template.format(or_none="", avgd="", extra="")
 
 docdict["compute_proj_ecg"] = """This function will:
 
@@ -815,11 +998,13 @@ cross_talk : str | None
 # %%
 # D
 
-_dB = """\
+_dB = """
 dB : bool
     Whether to plot on a decibel-like scale. If ``True``, plots
-    10 × log₁₀(spectral power){}.{}
+    10 × log₁₀({quantity}){caveat}.{extra}
 """
+_ignored_if_normalize = " Ignored if ``normalize=True``."
+_psd = "spectral power"
 
 docdict["dB_plot_psd"] = """\
 dB : bool
@@ -832,10 +1017,21 @@ dB : bool
     ``dB=True`` and ``estimate='amplitude'``.
 """
 docdict["dB_plot_topomap"] = _dB.format(
-    " following the application of ``agg_fun``", " Ignored if ``normalize=True``."
+    quantity=_psd,
+    caveat=" following the application of ``agg_fun``",
+    extra=_ignored_if_normalize,
 )
-docdict["dB_spectrum_plot"] = _dB.format("", "")
-docdict["dB_spectrum_plot_topo"] = _dB.format("", " Ignored if ``normalize=True``.")
+docdict["dB_spectrum_plot"] = _dB.format(quantity=_psd, caveat="", extra="")
+docdict["dB_spectrum_plot_topo"] = _dB.format(
+    quantity=_psd, caveat="", extra=_ignored_if_normalize
+)
+docdict["dB_tfr_plot_topo"] = _dB.format(quantity="data", caveat="", extra="")
+
+_data_template = """
+data : ndarray, shape ({})
+    The data.
+"""
+docdict["data_tfr"] = _data_template.format("n_channels, n_freqs, n_times")
 
 docdict["daysback_anonymize_info"] = """
 daysback : int | None
@@ -881,12 +1077,13 @@ Decimation can be done multiple times. For example,
 """
 
 docdict["decim_tfr"] = """
-decim : int | slice, default 1
-    To reduce memory usage, decimation factor after time-frequency
-    decomposition.
+decim : int | slice
+    Decimation factor, applied *after* time-frequency decomposition.
 
-    - if `int`, returns ``tfr[..., ::decim]``.
-    - if `slice`, returns ``tfr[..., decim]``.
+    - if :class:`int`, returns ``tfr[..., ::decim]`` (keep only every Nth
+      sample along the time axis).
+    - if :class:`slice`, returns ``tfr[..., decim]`` (keep only the specified
+      slice along the time axis).
 
     .. note::
         Decimation is done after convolutions and may create aliasing
@@ -967,8 +1164,7 @@ distance : float | "auto" | None
 docdict["drop_log"] = """
 drop_log : tuple | None
     Tuple of tuple of strings indicating which epochs have been marked to
-    be ignored.
-"""
+    be ignored."""
 
 docdict["dtype_applyfun"] = """
 dtype : numpy.dtype
@@ -1107,18 +1303,30 @@ event_color : color object | dict | None
 """
 
 docdict["event_id"] = """
-event_id : int | list of int | dict | None
+event_id : int | list of int | dict | str | list of str | None
     The id of the :term:`events` to consider. If dict, the keys can later be
     used to access associated :term:`events`. Example:
     dict(auditory=1, visual=3). If int, a dict will be created with the id as
-    string. If a list, all :term:`events` with the IDs specified in the list
-    are used. If None, all :term:`events` will be used and a dict is created
+    string. If a list of int, all :term:`events` with the IDs specified in the list
+    are used. If a str or list of str, ``events`` must be ``None`` to use annotations
+    and then the IDs must be the name(s) of the annotations to use.
+    If None, all :term:`events` will be used and a dict is created
     with string integer names corresponding to the event id integers."""
-
+_event_id_template = """
+event_id : dict{or_none}
+    Mapping from condition descriptions (strings) to integer event codes.{extra}"""
+docdict["event_id_attr"] = _event_id_template.format(or_none="", extra="")
 docdict["event_id_ecg"] = """
 event_id : int
     The index to assign to found ECG events.
 """
+docdict["event_id_epochstfr"] = _event_id_template.format(
+    or_none=" | None",
+    extra="""If ``None``,
+    all events in ``events`` will be included, and the ``event_id`` attribute
+    will be a :class:`dict` mapping a string version of each integer event ID
+    to the corresponding integer.""",
+)
 
 docdict["event_repeated_epochs"] = """
 event_repeated : str
@@ -1130,19 +1338,28 @@ event_repeated : str
     .. versionadded:: 0.19
 """
 
-docdict["events"] = """
-events : array of int, shape (n_events, 3)
-    The array of :term:`events`. The first column contains the event time in
-    samples, with :term:`first_samp` included. The third column contains the
-    event id."""
-
-docdict["events_epochs"] = """
-events : array of int, shape (n_events, 3)
-    The array of :term:`events`. The first column contains the event time in
-    samples, with :term:`first_samp` included. The third column contains the
-    event id.
-    If some events don't match the events of interest as specified by
-    ``event_id``, they will be marked as ``IGNORED`` in the drop log."""
+_events_template = """
+events : ndarray of int, shape (n_events, 3){or_none}
+    The identity and timing of experimental events, around which the epochs were
+    created. See :term:`events` for more information.{extra}
+"""
+docdict["events"] = _events_template.format(or_none="", extra="")
+docdict["events_attr"] = """
+events : ndarray of int, shape (n_events, 3)
+    The events array."""
+docdict["events_epochs"] = _events_template.format(
+    or_none="",
+    extra="""Events that don't match
+    the events of interest as specified by ``event_id`` will be marked as
+    ``IGNORED`` in the drop log.""",
+)
+docdict["events_epochstfr"] = _events_template.format(
+    or_none=" | None",
+    extra="""If ``None``, all integer
+    event codes are set to ``1`` (i.e., all epochs are assumed to be of the same
+    type) and their corresponding sample numbers are set as arbitrary, equally
+    spaced sample numbers with a step size of ``len(times)``.""",
+)
 
 docdict["evoked_by_event_type_returns"] = """
 evoked : instance of Evoked | list of Evoked
@@ -1151,6 +1368,15 @@ evoked : instance of Evoked | list of Evoked
     separate :class:`~mne.Evoked` object for each event type. The list has the
     same order as the event types as specified in the ``event_id``
     dictionary.
+"""
+
+docdict["exclude_after_unique"] = """
+exclude_after_unique : bool
+    If True, exclude channels are searched for after they have been made
+    unique. This is useful to choose channels that have been made unique
+    by adding a suffix.  If False, the original names are checked.
+
+    .. versionchanged:: 1.7
 """
 
 docdict["exclude_clust"] = """
@@ -1180,22 +1406,23 @@ docdict["exclude_spectrum_plot"] = _exclude_spectrum.format(
 )
 
 docdict["export_edf_note"] = """
-For EDF exports, only channels measured in Volts are allowed; in MNE-Python
-this means channel types 'eeg', 'ecog', 'seeg', 'emg', 'eog', 'ecg', 'dbs',
-'bio', and 'misc'. 'stim' channels are dropped. Although this function
-supports storing channel types in the signal label (e.g. ``EEG Fz`` or
-``MISC E``), other software may not support this (optional) feature of
-the EDF standard.
+Although this function supports storing channel types in the signal label (e.g.
+``EEG Fz`` or ``MISC E``), other software may not support this (optional) feature of the
+EDF standard.
 
-If ``add_ch_type`` is True, then channel types are written based on what
-they are currently set in MNE-Python. One should double check that all
-their channels are set correctly. You can call
-:attr:`raw.set_channel_types <mne.io.Raw.set_channel_types>` to set
-channel types.
+If ``add_ch_type`` is True, then channel types are written based on what they are
+currently set in MNE-Python. One should double check that all their channels are set
+correctly. You can call :meth:`mne.io.Raw.set_channel_types` to set channel types.
 
-In addition, EDF does not support storing a montage. You will need
-to store the montage separately and call :attr:`raw.set_montage()
-<mne.io.Raw.set_montage>`.
+In addition, EDF does not support storing a montage. You will need to store the montage
+separately and call :meth:`mne.io.Raw.set_montage`.
+
+The physical range of the signals is determined by signal type by default
+(``physical_range="auto"``). However, if individual channel ranges vary significantly
+due to the presence of e.g. drifts/offsets/biases, setting
+``physical_range="channelwise"`` might be more appropriate. This will ensure a maximum
+resolution for each individual channel, but some tools might not be able to handle this
+appropriately (even though channel-wise ranges are covered by the EDF standard).
 """
 
 docdict["export_eeglab_note"] = """
@@ -1208,20 +1435,20 @@ Format of the export. Defaults to ``'auto'``, which will infer the format
     from the filename extension. See supported formats above for more
     information."""
 
-docdict["export_fmt_params_epochs"] = """
+docdict["export_fmt_params_epochs"] = f"""
 fmt : 'auto' | 'eeglab'
-    {}
-""".format(_export_fmt_params_base)
+    {_export_fmt_params_base}
+"""
 
-docdict["export_fmt_params_evoked"] = """
+docdict["export_fmt_params_evoked"] = f"""
 fmt : 'auto' | 'mff'
-    {}
-""".format(_export_fmt_params_base)
+    {_export_fmt_params_base}
+"""
 
-docdict["export_fmt_params_raw"] = """
+docdict["export_fmt_params_raw"] = f"""
 fmt : 'auto' | 'brainvision' | 'edf' | 'eeglab'
-    {}
-""".format(_export_fmt_params_base)
+    {_export_fmt_params_base}
+"""
 
 docdict["export_fmt_support_epochs"] = """\
 Supported formats:
@@ -1368,10 +1595,14 @@ fiducials : list | dict | str
     and if absent, falls back to ``'estimated'``.
 """
 
-docdict["fig_facecolor"] = """\
+docdict["fig_background"] = """
+fig_background : None | array
+    A background image for the figure. This must be a valid input to
+    :func:`matplotlib.pyplot.imshow`. Defaults to ``None``.
+"""
+docdict["fig_facecolor"] = """
 fig_facecolor : str | tuple
-    A matplotlib-compatible color to use for the figure background.
-    Defaults to black.
+    A matplotlib-compatible color to use for the figure background. Defaults to black.
 """
 
 docdict["filter_length"] = """
@@ -1454,9 +1685,16 @@ flat : dict | None
               quality, pass the ``reject_tmin`` and ``reject_tmax`` parameters.
 """
 
-docdict["flat_drop_bad"] = f"""
+docdict["flat_drop_bad"] = """
 flat : dict | str | None
-{_flat_common}
+    Reject epochs based on **minimum** peak-to-peak signal amplitude (PTP)
+    or a custom function. Valid **keys** can be any channel type present
+    in the object. If using PTP, **values** are floats that set the minimum
+    acceptable PTP. If the PTP is smaller than this threshold, the epoch
+    will be dropped. If ``None`` then no rejection is performed based on
+    flatness of the signal. If a custom function is used than ``flat`` can be
+    used to reject epochs based on any criteria (including maxima and
+    minima).
     If ``'existing'``, then the flat parameters set during epoch creation are
     used.
 """
@@ -1470,6 +1708,11 @@ docdict["fmin_fmax_psd"] = _fmin_fmax.format(
 )
 
 docdict["fmin_fmax_psd_topo"] = _fmin_fmax.format("``fmin=0, fmax=100``.")
+docdict["fmin_fmax_tfr"] = _fmin_fmax.format(
+    """``None``
+    which is equivalent to ``fmin=0, fmax=np.inf`` (spans all frequencies
+    present in the data)."""
+)
 
 docdict["fmin_fmid_fmax"] = """
 fmin : float
@@ -1519,17 +1762,37 @@ focalpoint : tuple, shape (3,) | str | None
     mass of the visible bounds.
 """
 
+docdict["font_color"] = """
+font_color : color
+    The color of tick labels in the colorbar. Defaults to white.
+"""
+
 docdict["forward_set_eeg_reference"] = """
 forward : instance of Forward | None
     Forward solution to use. Only used with ``ref_channels='REST'``.
 
     .. versionadded:: 0.21
 """
-
-docdict["freqs_tfr"] = """
-freqs : array of float, shape (n_freqs,)
-    The frequencies of interest in Hz.
+_freqs_tfr_template = """
+freqs : array-like |{auto} None
+    The frequencies at which to compute the power estimates.
+    {stockwell} be an array of shape (n_freqs,). ``None`` (the
+    default) only works when using ``__setstate__`` and will raise an error otherwise.
 """
+docdict["freqs_tfr"] = _freqs_tfr_template.format(auto="", stockwell="Must")
+docdict["freqs_tfr_array"] = """
+freqs : ndarray, shape (n_freqs,)
+    The frequencies in Hz.
+"""
+docdict["freqs_tfr_attr"] = """
+freqs : array
+    Frequencies at which power has been computed."""
+docdict["freqs_tfr_epochs"] = _freqs_tfr_template.format(
+    auto=" 'auto' | ",
+    stockwell="""If ``method='stockwell'`` this must be a length 2 iterable specifying lowest
+    and highest frequencies, or ``'auto'`` (to use all available frequencies).
+    For other methods, must""",  # noqa E501
+)
 
 docdict["fullscreen"] = """
 fullscreen : bool
@@ -1543,12 +1806,22 @@ fun : callable
     fun has to be a timeseries (:class:`numpy.ndarray`). The function must
     operate on an array of shape ``(n_times,)`` {}.
     The function must return an :class:`~numpy.ndarray` shaped like its input.
+
+    .. note::
+        If ``channel_wise=True``, one can optionally access the index and/or the
+        name of the currently processed channel within the applied function.
+        This can enable tailored computations for different channels.
+        To use this feature, add ``ch_idx`` and/or ``ch_name`` as
+        additional argument(s) to your function definition.
 """
 docdict["fun_applyfun"] = applyfun_fun_base.format(
     " if ``channel_wise=True`` and ``(len(picks), n_times)`` otherwise"
 )
 docdict["fun_applyfun_evoked"] = applyfun_fun_base.format(
     " because it will apply channel-wise"
+)
+docdict["fun_applyfun_stc"] = applyfun_fun_base.format(
+    " because it will apply vertex-wise"
 )
 
 docdict["fwd"] = """
@@ -1609,17 +1882,28 @@ time_as_index : bool
     (False, default).
 """
 
-_getitem_base = """\
+_getitem_spectrum_base = """
 data : ndarray
     The selected spectral data. Shape will be
-    ``({}n_channels, n_freqs)`` for normal power spectra,
-    ``({}n_channels, n_freqs, n_segments)`` for unaggregated
-    Welch estimates, or ``({}n_channels, n_tapers, n_freqs)``
+    ``({n_epo}n_channels, n_freqs)`` for normal power spectra,
+    ``({n_epo}n_channels, n_freqs, n_segments)`` for unaggregated
+    Welch estimates, or ``({n_epo}n_channels, n_tapers, n_freqs)``
     for unaggregated multitaper estimates.
 """
-_fill_epochs = ["n_epochs, "] * 3
-docdict["getitem_epochspectrum_return"] = _getitem_base.format(*_fill_epochs)
-docdict["getitem_spectrum_return"] = _getitem_base.format("", "", "")
+_getitem_tfr_base = """
+data : ndarray
+    The selected time-frequency data. Shape will be
+    ``({n_epo}n_channels, n_freqs, n_times)`` for Morlet, Stockwell, and aggregated
+    (``output='power'``) multitaper methods, or
+    ``({n_epo}n_channels, n_tapers, n_freqs, n_times)`` for unaggregated
+    (``output='complex'``) multitaper method.
+"""
+n_epo = "n_epochs, "
+docdict["getitem_epochspectrum_return"] = _getitem_spectrum_base.format(n_epo=n_epo)
+docdict["getitem_epochstfr_return"] = _getitem_tfr_base.format(n_epo=n_epo)
+docdict["getitem_spectrum_return"] = _getitem_spectrum_base.format(n_epo="")
+docdict["getitem_tfr_return"] = _getitem_tfr_base.format(n_epo="")
+
 
 docdict["group_by_browse"] = """
 group_by : str
@@ -1771,6 +2055,12 @@ iir_params : dict | None
     For more information, see :func:`mne.filter.construct_iir_filter`.
 """
 
+docdict["image_args"] = """
+image_args : dict | None
+    Keyword arguments to pass to :meth:`mne.time_frequency.AverageTFR.plot`. ``axes``
+    and ``show`` are ignored. Defaults to ``None`` (i.e., and empty :class:`dict`).
+"""
+
 docdict["image_format_report"] = """
 image_format : 'png' | 'svg' | 'gif' | None
     The image format to be used for the report, can be ``'png'``,
@@ -1838,6 +2128,10 @@ info : mne.Info | path-like
     (e.g. :class:`mne.io.Raw`).
 """
 
+docdict["inst_tfr"] = """
+inst : instance of RawTFR, EpochsTFR, or AverageTFR
+"""
+
 docdict["int_order_maxwell"] = """
 int_order : int
     Order of internal component of spherical expansion.
@@ -1893,6 +2187,10 @@ inversion : 'single' | 'matrix'
     Defaults to ``'matrix'``.
 """
 
+docdict["item"] = """
+item : int | slice | array-like | str
+"""
+
 # %%
 # J
 
@@ -1915,6 +2213,12 @@ keep_his : bool
 
     .. warning:: This could mean that ``info`` is not fully
                  anonymized. Use with caution.
+"""
+
+docdict["kit_badcoils"] = """
+bad_coils : array-like of int | None
+    Indices of (up to two) bad marker coils to be removed.
+    These marker coils must be present in the elp and mrk files.
 """
 
 docdict["kit_elp"] = """
@@ -2020,12 +2324,15 @@ labels : Label | BiHemiLabel | list | tuple | str
     .. versionchanged:: 0.21.0
        Support for volume source estimates.
 """
-
+docdict["layout_scale"] = """
+layout_scale : float
+    Scaling factor for adjusting the relative size of the layout on the canvas.
+"""
 docdict["layout_spectrum_plot_topo"] = """\
 layout : instance of Layout | None
     Layout instance specifying sensor positions (does not need to be
     specified for Neuromag data). If ``None`` (default), the layout is
-    inferred from the data.
+    inferred from the data (if possible).
 """
 
 docdict["line_alpha_plot_psd"] = """\
@@ -2106,14 +2413,24 @@ mask : ndarray of bool, shape {shape} | None
     with the parameters given in ``mask_params``. Defaults to ``None``,
     equivalent to an array of all ``False`` elements.
 """
-
+docdict["mask_alpha_tfr_plot"] = """
+mask_alpha : float
+    Relative opacity of the masked region versus the unmasked region, given as a
+    :class:`float` between 0 and 1 (i.e., 0 means masked areas are not visible at all).
+    Defaults to ``0.1``.
+"""
+docdict["mask_cmap_tfr_plot"] = """
+mask_cmap : matplotlib colormap | str | None
+    Colormap to use for masked areas of the plot. If a :class:`str`, must be a valid
+    Matplotlib colormap name. If None, ``cmap`` is used for both masked and unmasked
+    areas. Ignored if ``mask`` is ``None``. Default is ``'Greys'``.
+"""
 docdict["mask_evoked_topomap"] = _mask_base.format(
     shape="(n_channels, n_times)",
     shape_appendix="-time combinations",
     example=" (useful for, e.g. marking which channels at which times a "
     "statistical test of the data reaches significance)",
 )
-
 docdict["mask_params_topomap"] = """
 mask_params : dict | None
     Additional plotting parameters for plotting significant sensors.
@@ -2122,11 +2439,25 @@ mask_params : dict | None
         dict(marker='o', markerfacecolor='w', markeredgecolor='k',
                 linewidth=0, markersize=4)
 """
-
 docdict["mask_patterns_topomap"] = _mask_base.format(
     shape="(n_channels, n_patterns)", shape_appendix="-pattern combinations", example=""
 )
-
+docdict["mask_style_tfr_plot"] = """
+mask_style : None | 'both' | 'contour' | 'mask'
+    How to distinguish the masked/unmasked regions of the plot. If ``"contour"``, a
+    line is drawn around the areas where the mask is ``True``. If ``"mask"``, areas
+    where the mask is ``False`` will be (partially) transparent, as determined by
+    ``mask_alpha``. If ``"both"``, both a contour and transparency are used. Default is
+    ``None``, which is silently ignored if ``mask`` is ``None`` and is interpreted like
+    ``"both"`` otherwise.
+"""
+docdict["mask_tfr_plot"] = """
+mask : ndarray | None
+    An :class:`array <numpy.ndarray>` of :class:`boolean <bool>` values, of the same
+    shape as the data. Data that corresponds to ``False`` entries in the mask are
+    plotted differently, as determined by ``mask_style``, ``mask_alpha``, and
+    ``mask_cmap``. Useful for, e.g., highlighting areas of statistical significance.
+"""
 docdict["mask_topomap"] = _mask_base.format(
     shape="(n_channels,)", shape_appendix="(s)", example=""
 )
@@ -2199,25 +2530,46 @@ meg : str | list | dict | bool | None
        Added support for specifying alpha values as a dict.
 """
 
-docdict["metadata_epochs"] = """
+_metadata_attr_template = """
 metadata : instance of pandas.DataFrame | None
-    A :class:`pandas.DataFrame` specifying metadata about each epoch.
-    If given, ``len(metadata)`` must equal ``len(events)``. The DataFrame
-    may only contain values of type (str | int | float | bool).
-    If metadata is given, then pandas-style queries may be used to select
-    subsets of data, see :meth:`mne.Epochs.__getitem__`.
-    When a subset of the epochs is created in this (or any other
-    supported) manner, the metadata object is subsetted accordingly, and
-    the row indices will be modified to match ``epochs.selection``.
-
-    .. versionadded:: 0.16
+    A :class:`pandas.DataFrame` specifying metadata about each epoch{or_none}.{extra}
 """
+_metadata_template = _metadata_attr_template.format(
+    or_none="",
+    extra="""
+    If not ``None``, ``len(metadata)`` must equal ``len(events)``. For
+    save/load compatibility, the :class:`~pandas.DataFrame` may only contain
+    :class:`str`, :class:`int`, :class:`float`, and :class:`bool` values.
+    If not ``None``, then pandas-style queries may be used to select
+    subsets of data, see :meth:`mne.Epochs.__getitem__`. When the {obj} object
+    is subsetted, the metadata is subsetted accordingly, and the row indices
+    will be modified to match ``{obj}.selection``.""",
+)
+docdict["metadata_attr"] = _metadata_attr_template.format(
+    or_none=" (or ``None``)", extra=""
+)
+docdict["metadata_epochs"] = _metadata_template.format(obj="Epochs")
+docdict["metadata_epochstfr"] = _metadata_template.format(obj="EpochsTFR")
 
 docdict["method_fir"] = """
 method : str
     ``'fir'`` will use overlap-add FIR filtering, ``'iir'`` will use IIR
     forward-backward filtering (via :func:`~scipy.signal.filtfilt`).
 """
+
+_method_kw_tfr_template = """
+**method_kw
+    Additional keyword arguments passed to the spectrotemporal estimation function
+    (e.g., ``n_cycles, use_fft, zero_mean`` for Morlet method{stockwell}
+    or ``n_cycles, use_fft, zero_mean, time_bandwidth`` for multitaper method).
+    See :func:`~mne.time_frequency.tfr_array_morlet`{stockwell_crossref}
+    and :func:`~mne.time_frequency.tfr_array_multitaper` for additional details.
+"""
+
+docdict["method_kw_epochs_tfr"] = _method_kw_tfr_template.format(
+    stockwell=", ``n_fft, width`` for Stockwell method,",
+    stockwell_crossref=", :func:`~mne.time_frequency.tfr_array_stockwell`,",
+)
 
 docdict["method_kw_psd"] = """\
 **method_kw
@@ -2229,7 +2581,11 @@ docdict["method_kw_psd"] = """\
     :func:`~mne.time_frequency.psd_array_multitaper` for details.
 """
 
-_method_psd = r"""
+docdict["method_kw_tfr"] = _method_kw_tfr_template.format(
+    stockwell="", stockwell_crossref=""
+)
+
+_method_psd = """
 method : ``'welch'`` | ``'multitaper'``{}
     Spectral estimation method. ``'welch'`` uses Welch's
     method :footcite:p:`Welch1967`, ``'multitaper'`` uses DPSS
@@ -2252,6 +2608,29 @@ method : str
     :func:`scipy.signal.resample` and :func:`scipy.signal.resample_poly`, respectively.
 """
 
+_method_tfr_template = """
+method : ``'morlet'`` | ``'multitaper'``{literals} | None
+    Spectrotemporal power estimation method. ``'morlet'`` uses Morlet wavelets,
+    ``'multitaper'`` uses DPSS tapers :footcite:p:`Slepian1978`{cites}. ``None`` (the
+    default) only works when using ``__setstate__`` and will raise an error otherwise.
+"""
+docdict["method_tfr"] = _method_tfr_template.format(literals="", cites="")
+docdict["method_tfr_array"] = """
+method : str | None
+    Comment on the method used to compute the data, e.g., ``"hilbert"``.
+    Default is ``None``.
+"""
+docdict["method_tfr_attr"] = """
+method : str
+    The method used to compute the spectra (e.g., ``"morlet"``, ``"multitaper"``
+    or ``"stockwell"``).
+"""
+docdict["method_tfr_epochs"] = _method_tfr_template.format(
+    literals=" | ``'stockwell'``",
+    cites=", and ``'stockwell'`` uses the S-transform "
+    ":footcite:p:`Stockwell2007,MoukademEtAl2014,WheatEtAl2010,JonesEtAl2006`",
+)
+
 docdict["mode_eltc"] = """
 mode : str
     Extraction mode, see Notes.
@@ -2269,6 +2648,23 @@ mode : None | 'mean' | 'max' | 'svd'
       n_comp largest PSFs/CTFs.
     * 'svd' : SVD components across PSFs/CTFs across vertices. Returns the
       n_comp first SVD components.
+"""
+
+docdict["mode_tfr_plot"] = """
+mode : 'mean' | 'ratio' | 'logratio' | 'percent' | 'zscore' | 'zlogratio'
+    Perform baseline correction by
+
+    - subtracting the mean of baseline values ('mean') (default)
+    - dividing by the mean of baseline values ('ratio')
+    - dividing by the mean of baseline values and taking the log
+      ('logratio')
+    - subtracting the mean of baseline values followed by dividing by
+      the mean of baseline values ('percent')
+    - subtracting the mean of baseline values and dividing by the
+      standard deviation of baseline values ('zscore')
+    - dividing by the mean of baseline values, taking the log, and
+      dividing by the standard deviation of log baseline values
+      ('zlogratio')
 """
 
 docdict["montage"] = """
@@ -2395,6 +2791,13 @@ names : None | list
     names are plotted.
 """
 
+docdict["nave_tfr_attr"] = """
+nave : int
+    The number of epochs that were averaged to yield the result. This may reflect
+    epochs averaged *before* time-frequency analysis (as in
+    ``epochs.average(...).compute_tfr(...)``) or *after* time-frequency analysis (as
+    in ``epochs.compute_tfr(...).average(...)``).
+"""
 docdict["nirx_notes"] = """
 This function has only been tested with NIRScout and NIRSport devices,
 and with the NIRStar software version 15 and above and Aurora software
@@ -2484,6 +2887,25 @@ phase, model coefficients, etc) and downstream methods (such as
 :meth:`~mne.time_frequency.SpectrumArray.plot`) assume power data. If you pass in
 something other than power, at the very least axis labels will be inaccurate (and
 other things may also not work or be incorrect).
+"""
+
+docdict["notes_timefreqs_tfr_plot_joint"] = """
+``timefreqs`` has three different modes: tuples, dicts, and auto. For (list of) tuple(s)
+mode, each tuple defines a pair (time, frequency) in s and Hz on the TFR plot.
+For example, to look at 10 Hz activity 1 second into the epoch and 3 Hz activity 300 ms
+into the epoch, ::
+
+    timefreqs=((1, 10), (.3, 3))
+
+If provided as a dictionary, (time, frequency) tuples are keys and (time_window,
+frequency_window) tuples are the values — indicating the width of the windows (centered
+on the time and frequency indicated by the key) to be averaged over. For example, ::
+
+    timefreqs={(1, 10): (0.1, 2)}
+
+would translate into a window that spans 0.95 to 1.05 seconds and 9 to 11 Hz. If
+``None``, a single topomap will be plotted at the absolute peak across the
+time-frequency representation.
 """
 
 docdict["notes_tmax_included_by_default"] = """
@@ -2648,12 +3070,12 @@ on_split_missing : str
 
 docdict["ordered"] = """
 ordered : bool
-    If True (default False), ensure that the order of the channels in
+    If True (default), ensure that the order of the channels in
     the modified instance matches the order of ``ch_names``.
 
     .. versionadded:: 0.20.0
-    .. versionchanged:: 1.5
-        The default changed from False in 1.4 to True in 1.5.
+    .. versionchanged:: 1.7
+        The default changed from False in 1.6 to True in 1.7.
 """
 
 docdict["origin_maxwell"] = """
@@ -2690,6 +3112,12 @@ outlines : 'head' | dict | None
     masking options, either directly or as a function that returns patches
     (required for multi-axis plots). If None, nothing will be drawn.
     Defaults to 'head'.
+"""
+
+docdict["output_compute_tfr"] = """
+output : str
+    What kind of estimate to return. Allowed values are ``"complex"``, ``"phase"``,
+    and ``"power"``. Default is ``"power"``.
 """
 
 docdict["overview_mode"] = """
@@ -2758,30 +3186,44 @@ per_sample : bool
 docdict["phase"] = """
 phase : str
     Phase of the filter.
-    When ``method='fir'``, symmetric linear-phase FIR filters are constructed,
-    and if ``phase='zero'`` (default), the delay of this filter is compensated
-    for, making it non-causal. If ``phase='zero-double'``,
-    then this filter is applied twice, once forward, and once backward
-    (also making it non-causal). If ``'minimum'``, then a minimum-phase filter
-    will be constructed and applied, which is causal but has weaker stop-band
-    suppression.
-    When ``method='iir'``, ``phase='zero'`` (default) or
-    ``phase='zero-double'`` constructs and applies IIR filter twice, once
-    forward, and once backward (making it non-causal) using
-    :func:`~scipy.signal.filtfilt`.
-    If ``phase='forward'``, it constructs and applies forward IIR filter using
+    When ``method='fir'``, symmetric linear-phase FIR filters are constructed
+    with the following behaviors when ``method="fir"``:
+
+    ``"zero"`` (default)
+        The delay of this filter is compensated for, making it non-causal.
+    ``"minimum"``
+        A minimum-phase filter will be constructed by decomposing the zero-phase filter
+        into a minimum-phase and all-pass systems, and then retaining only the
+        minimum-phase system (of the same length as the original zero-phase filter)
+        via :func:`scipy.signal.minimum_phase`.
+    ``"zero-double"``
+        *This is a legacy option for compatibility with MNE <= 0.13.*
+        The filter is applied twice, once forward, and once backward
+        (also making it non-causal).
+    ``"minimum-half"``
+        *This is a legacy option for compatibility with MNE <= 1.6.*
+        A minimum-phase filter will be reconstructed from the zero-phase filter with
+        half the length of the original filter.
+
+    When ``method='iir'``, ``phase='zero'`` (default) or equivalently ``'zero-double'``
+    constructs and applies IIR filter twice, once forward, and once backward (making it
+    non-causal) using :func:`~scipy.signal.filtfilt`; ``phase='forward'`` will apply
+    the filter once in the forward (causal) direction using
     :func:`~scipy.signal.lfilter`.
 
     .. versionadded:: 0.13
+    .. versionchanged:: 1.7
+
+       The behavior for ``phase="minimum"`` was fixed to use a filter of the requested
+       length and improved suppression.
 """
 
 docdict["physical_range_export_params"] = """
 physical_range : str | tuple
-    The physical range of the data. If 'auto' (default), then
-    it will infer the physical min and max from the data itself,
-    taking the minimum and maximum values per channel type.
-    If it is a 2-tuple of minimum and maximum limit, then those
-    physical ranges will be used. Only used for exporting EDF files.
+    The physical range of the data. If 'auto' (default), the physical range is inferred
+    from the data, taking the minimum and maximum values per channel type. If
+    'channelwise', the range will be defined per channel. If a tuple of minimum and
+    maximum, this manual physical range will be used. Only used for exporting EDF files.
 """
 
 _pick_ori_novec = """
@@ -3265,6 +3707,14 @@ docdict["reject_by_annotation_raw"] = (
 """
 )
 
+docdict["reject_by_annotation_tfr"] = """
+reject_by_annotation : bool
+    Whether to omit bad spans of data before spectrotemporal power
+    estimation. If ``True``, spans with annotations whose description
+    begins with ``bad`` will be represented with ``np.nan`` in the
+    time-frequency representation.
+"""
+
 _reject_common = """\
     Reject epochs based on **maximum** peak-to-peak signal amplitude (PTP),
     i.e. the absolute difference between the lowest and the highest signal
@@ -3289,12 +3739,51 @@ _reject_common = """\
               difference will be preserved.
 """
 
-docdict["reject_drop_bad"] = f"""
+docdict["reject_drop_bad"] = """\
 reject : dict | str | None
-{_reject_common}
+    Reject epochs based on **maximum** peak-to-peak signal amplitude (PTP)
+    or custom functions. Peak-to-peak signal amplitude is defined as
+    the absolute difference between the lowest and the highest signal
+    value. In each individual epoch, the PTP is calculated for every channel.
+    If the PTP of any one channel exceeds the rejection threshold, the
+    respective epoch will be dropped.
+
+    The dictionary keys correspond to the different channel types; valid
+    **keys** can be any channel type present in the object.
+
+    Example::
+
+        reject = dict(grad=4000e-13,  # unit: T / m (gradiometers)
+                      mag=4e-12,      # unit: T (magnetometers)
+                      eeg=40e-6,      # unit: V (EEG channels)
+                      eog=250e-6      # unit: V (EOG channels)
+                      )
+
+    Custom rejection criteria can be also be used by passing a callable,
+    e.g., to check for 99th percentile of absolute values of any channel
+    across time being bigger than :unit:`1 mV`. The callable must return a
+    ``(good, reason)`` tuple: ``good`` must be :class:`bool` and ``reason``
+    must be :class:`str`, :class:`list`, or :class:`tuple` where each entry
+    is a :class:`str`::
+
+        reject = dict(
+            eeg=lambda x: (
+                (np.percentile(np.abs(x), 99, axis=1) > 1e-3).any(),
+                "signal > 1 mV somewhere",
+            )
+        )
+
+    .. note:: If rejection is based on a signal **difference**
+            calculated for each channel separately, applying baseline
+            correction does not affect the rejection procedure, as the
+            difference will be preserved.
+
+    .. note:: If ``reject`` is a callable, than **any** criteria can be
+            used to reject epochs (including maxima and minima).
+
     If ``reject`` is ``None``, no rejection is performed. If ``'existing'``
     (default), then the rejection parameters set at instantiation are used.
-"""
+"""  # noqa: E501
 
 docdict["reject_epochs"] = f"""
 reject : dict | None
@@ -3441,6 +3930,10 @@ selection : iterable | None
     Iterable of indices of selected epochs. If ``None``, will be
     automatically generated, corresponding to all non-zero events.
 """
+docdict["selection_attr"] = """
+selection : ndarray
+    Array of indices of *selected* epochs (i.e., epochs that were not rejected, dropped,
+    or ignored)."""
 
 docdict["sensor_colors"] = """
 sensor_colors : array-like of color | dict | None
@@ -3513,6 +4006,13 @@ References
 ----------
 .. footbibliography::
 """
+
+docdict["sfreq_tfr_attr"] = """
+sfreq : int | float
+    The sampling frequency (read from ``info``)."""
+docdict["shape_tfr_attr"] = """
+shape : tuple of int
+    The shape of the data."""
 
 docdict["show"] = """\
 show : bool
@@ -4044,12 +4544,27 @@ time_viewer : bool
     ``time_viewer=True`` and ``separate_canvas=False``.
 """
 
+docdict["timefreqs"] = """
+timefreqs : None | list of tuple | dict of tuple
+    The time-frequency point(s) for which topomaps will be plotted. See Notes.
+"""
+
+docdict["times"] = """
+times : ndarray, shape (n_times,)
+    The time values in seconds.
+"""
+
 docdict["title_none"] = """
 title : str | None
     The title of the generated figure. If ``None`` (default), no title is
     displayed.
 """
-
+docdict["title_tfr_plot"] = """
+title : str | 'auto' | None
+    Title for the plot. If ``"auto"``, will use the channel name (if ``combine`` is
+    ``None``) or state the number and method of combined channels used to generate the
+    plot. If ``None``, no title is shown. Default is ``None``.
+"""
 docdict["tmax_raw"] = """
 tmax : float
     End time of the raw data to use in seconds (cannot exceed data duration).
@@ -4105,10 +4620,20 @@ tol : float | 'auto'
     same thresholding as :func:`scipy.linalg.orth`.
 """
 
-docdict["topomap_kwargs"] = """
-topomap_kwargs : dict | None
-    Keyword arguments to pass to the topomap-generating functions.
+_topomap_args_template = """
+{param} : dict | None
+    Keyword arguments to pass to {func}.{extra}
 """
+docdict["topomap_args"] = _topomap_args_template.format(
+    param="topomap_args",
+    func=":func:`mne.viz.plot_topomap`",
+    extra=" ``axes`` and ``show`` are ignored. If ``times`` is not in this dict, "
+    "automatic peak detection is used. Beyond that, if ``None``, no customizable "
+    "arguments will be passed. Defaults to ``None`` (i.e., an empty :class:`dict`).",
+)
+docdict["topomap_kwargs"] = _topomap_args_template.format(
+    param="topomap_kwargs", func="the topomap-generating functions", extra=""
+)
 
 _trans_base = """\
 If str, the path to the head<->MRI transform ``*-trans.fif`` file produced
@@ -4121,10 +4646,10 @@ trans : path-like | dict | instance of Transform | ``"fsaverage"`` | None
     If trans is None, an identity matrix is assumed.
 """
 
-docdict["trans_not_none"] = """
+docdict["trans_not_none"] = f"""
 trans : str | dict | instance of Transform
-    %s
-""" % (_trans_base,)
+    {_trans_base}
+"""
 
 docdict["transparent"] = """
 transparent : bool | None
@@ -4277,45 +4802,86 @@ views : str | list
     valid string options.
 """
 
-_vlim = """
-vlim : tuple of length 2{}
-    Colormap limits to use. If a :class:`tuple` of floats, specifies the
-    lower and upper bounds of the colormap (in that order); providing
-    ``None`` for either entry will set the corresponding boundary at the
-    min/max of the data{}. {}{}{}Defaults to ``(None, None)``.
+_vlim = """\
+vlim : tuple of length 2{joint_param}
+    Lower and upper bounds of the colormap, typically a numeric value in the same
+    units as the data. {callable}
+    If both entries are ``None``, the bounds are set at {bounds}.
+    Providing ``None`` for just one entry will set the corresponding boundary at the
+    min/max of the data. {extra}Defaults to ``(None, None)``.
 """
-_vlim_joint = _vlim.format(
-    " | 'joint'",
-    " (separately for each {0})",
-    "{1}",
-    "If ``vlim='joint'``, will compute the colormap limits jointly across "
-    "all {0}s of the same channel type, using the min/max of the data for "
-    "that channel type. ",
-    "{2}",
+_joint_param = ' | "joint"'
+_callable_sentence = """Elements of the :class:`tuple` may also be callable functions
+    which take in a :class:`NumPy array <numpy.ndarray>` and return a scalar.
+"""
+_bounds_symmetric = """± the maximum absolute value
+    of the data (yielding a colormap with midpoint at 0)"""
+_bounds_minmax = "``(min(data), max(data))``"
+_bounds_norm = "``(0, max(abs(data)))``"
+_bounds_contingent = f"""{_bounds_symmetric}, or {_bounds_norm}
+    if the (possibly baselined) data are all-positive"""
+_joint_sentence = """If ``vlim="joint"``, will compute the colormap limits
+    jointly across all {what}s of the same channel type (instead of separately
+    for each {what}), using the min/max of the data for that channel type.
+    {joint_extra}"""
+
+docdict["vlim_plot_topomap"] = _vlim.format(
+    joint_param="", callable="", bounds=_bounds_minmax, extra=""
 )
-_vlim_callable = (
-    "Elements of the :class:`tuple` may also be callable functions which "
-    "take in a :class:`NumPy array <numpy.ndarray>` and return a scalar. "
+docdict["vlim_plot_topomap_proj"] = _vlim.format(
+    joint_param=_joint_param,
+    callable=_callable_sentence,
+    bounds=_bounds_contingent,
+    extra=_joint_sentence.format(
+        what="projector",
+        joint_extra='If vlim is ``"joint"``, ``info`` must not be ``None``. ',
+    ),
+)
+docdict["vlim_plot_topomap_psd"] = _vlim.format(
+    joint_param=_joint_param,
+    callable=_callable_sentence,
+    bounds=_bounds_contingent,
+    extra=_joint_sentence.format(what="topomap", joint_extra=""),
+)
+docdict["vlim_tfr_plot"] = _vlim.format(
+    joint_param="", callable="", bounds=_bounds_contingent, extra=""
+)
+docdict["vlim_tfr_plot_joint"] = _vlim.format(
+    joint_param="",
+    callable="",
+    bounds=_bounds_contingent,
+    extra="""To specify the colormap separately for the topomap annotations,
+    see ``topomap_args``. """,
 )
 
-docdict["vlim_plot_topomap"] = _vlim.format("", "", "", "", "")
-docdict["vlim_plot_topomap_proj"] = _vlim_joint.format(
-    "projector",
-    _vlim_callable,
-    "If vlim is ``'joint'``, ``info`` must not be ``None``. ",
-)
-docdict["vlim_plot_topomap_psd"] = _vlim_joint.format("topomap", _vlim_callable, "")
-
-docdict["vmin_vmax_topomap"] = """
-vmin, vmax : float | callable | None
+_vmin_vmax_template = """
+vmin, vmax : float | {allowed}None
     Lower and upper bounds of the colormap, in the same units as the data.
-    If ``vmin`` and ``vmax`` are both ``None``, they are set at ± the
-    maximum absolute value of the data (yielding a colormap with midpoint
-    at 0). If only one of ``vmin``, ``vmax`` is ``None``, will use
-    ``min(data)`` or ``max(data)``, respectively. If callable, should
-    accept a :class:`NumPy array <numpy.ndarray>` of data and return a
-    float.
+    If ``vmin`` and ``vmax`` are both ``None``, the bounds are set at
+    {bounds}. If only one of ``vmin``, ``vmax`` is ``None``, will use
+    ``min(data)`` or ``max(data)``, respectively.{extra}
 """
+
+docdict["vmin_vmax_tfr_plot"] = """
+vmin, vmax : float | None
+    Lower and upper bounds of the colormap. See ``vlim``.
+
+    .. deprecated:: 1.7
+        ``vmin`` and ``vmax`` will be removed in version 1.8.
+        Use ``vlim`` parameter instead.
+"""
+# ↓↓↓ this one still used, needs helper func refactor before we can migrate to `vlim`
+docdict["vmin_vmax_tfr_plot_topo"] = _vmin_vmax_template.format(
+    allowed="", bounds=_bounds_symmetric, extra=""
+)
+# ↓↓↓ this one still used in Evoked.animate_topomap(), should migrate to `vlim`
+docdict["vmin_vmax_topomap"] = _vmin_vmax_template.format(
+    allowed="callable | ",
+    bounds=_bounds_symmetric,
+    extra=""" If callable, should accept
+    a :class:`NumPy array <numpy.ndarray>` of data and return a :class:`float`.""",
+)
+
 
 # %%
 # W
@@ -4378,6 +4944,13 @@ xscale : 'linear' | 'log'
 # %%
 # Y
 
+docdict["yscale_tfr_plot"] = """
+yscale : 'auto' | 'linear' | 'log'
+    The scale of the y (frequency) axis. 'linear' gives linear y axis, 'log' gives
+    log-spaced y axis and 'auto' detects if frequencies are log-spaced and if so sets
+    the y axis to 'log'. Default is 'auto'.
+"""
+
 # %%
 # Z
 
@@ -4429,7 +5002,7 @@ def fill_doc(f):
     except (TypeError, ValueError, KeyError) as exp:
         funcname = f.__name__
         funcname = docstring.split("\n")[0] if funcname is None else funcname
-        raise RuntimeError("Error documenting %s:\n%s" % (funcname, str(exp)))
+        raise RuntimeError(f"Error documenting {funcname}:\n{str(exp)}")
     return f
 
 
@@ -4449,12 +5022,12 @@ def copy_doc(source):
     Parameters
     ----------
     source : function
-        Function to copy the docstring from
+        Function to copy the docstring from.
 
     Returns
     -------
     wrapper : function
-        The decorated function
+        The decorated function.
 
     Examples
     --------
@@ -4731,11 +5304,7 @@ def linkcode_resolve(domain, info):
         kind = "main"
     else:
         kind = "maint/%s" % (".".join(mne.__version__.split(".")[:2]))
-    return "http://github.com/mne-tools/mne-python/blob/%s/mne/%s%s" % (
-        kind,
-        fn,
-        linespec,
-    )
+    return f"http://github.com/mne-tools/mne-python/blob/{kind}/mne/{fn}{linespec}"
 
 
 def open_docs(kind=None, version=None):
@@ -4767,7 +5336,7 @@ def open_docs(kind=None, version=None):
     if version is None:
         version = get_config("MNE_DOCS_VERSION", "stable")
     _check_option("version", version, ["stable", "dev"])
-    webbrowser.open_new_tab("https://mne.tools/%s/%s" % (version, kind))
+    webbrowser.open_new_tab(f"https://mne.tools/{version}/{kind}")
 
 
 class _decorator:
@@ -4961,7 +5530,7 @@ def _docformat(docstring, docdict=None, funcname=None):
     try:
         return docstring % indented
     except (TypeError, ValueError, KeyError) as exp:
-        raise RuntimeError("Error documenting %s:\n%s" % (funcname, str(exp)))
+        raise RuntimeError(f"Error documenting {funcname}:\n{str(exp)}")
 
 
 def _indentcount_lines(lines):

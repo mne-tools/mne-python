@@ -10,6 +10,7 @@ import numpy as np
 
 from ..defaults import _handle_default
 from ._logging import logger, verbose
+from .check import check_version
 
 
 @verbose
@@ -17,7 +18,7 @@ def _set_pandas_dtype(df, columns, dtype, verbose=None):
     """Try to set the right columns to dtype."""
     for column in columns:
         df[column] = df[column].astype(dtype)
-        logger.info('Converting "%s" to "%s"...' % (column, dtype))
+        logger.info(f'Converting "{column}" to "{dtype}"...')
 
 
 def _scale_dataframe_data(inst, data, picks, scalings):
@@ -35,7 +36,7 @@ def _scale_dataframe_data(inst, data, picks, scalings):
     return data
 
 
-def _convert_times(inst, times, time_format):
+def _convert_times(times, time_format, meas_date=None, first_time=0):
     """Convert vector of time in seconds to ms, datetime, or timedelta."""
     # private function; pandas already checked in calling function
     from pandas import to_timedelta
@@ -45,14 +46,22 @@ def _convert_times(inst, times, time_format):
     elif time_format == "timedelta":
         times = to_timedelta(times, unit="s")
     elif time_format == "datetime":
-        times = to_timedelta(times + inst.first_time, unit="s") + inst.info["meas_date"]
+        times = to_timedelta(times + first_time, unit="s") + meas_date
     return times
 
 
 def _inplace(df, method, **kwargs):
-    """Handle transition: inplace=True (pandas <1.5) → copy=False (>=1.5)."""
+    # Handle transition: inplace=True (pandas <1.5) → copy=False (>=1.5)
+    # and 3.0 warning:
+    # E   DeprecationWarning: The copy keyword is deprecated and will be removed in a
+    #     future version. Copy-on-Write is active in pandas since 3.0 which utilizes a
+    #     lazy copy mechanism that defers copies until necessary. Use .copy() to make
+    #     an eager copy if necessary.
     _meth = getattr(df, method)  # used for set_index() and rename()
-    if "copy" in signature(_meth).parameters:
+
+    if check_version("pandas", "3.0"):
+        return _meth(**kwargs)
+    elif "copy" in signature(_meth).parameters:
         return _meth(**kwargs, copy=False)
     else:
         _meth(**kwargs, inplace=True)

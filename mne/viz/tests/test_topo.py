@@ -18,7 +18,7 @@ import pytest
 from mne import Epochs, compute_proj_evoked, read_cov, read_events
 from mne.channels import read_layout
 from mne.io import read_raw_fif
-from mne.time_frequency.tfr import AverageTFR
+from mne.time_frequency.tfr import AverageTFRArray
 from mne.utils import _record_warnings
 from mne.viz import (
     _get_presser,
@@ -309,23 +309,25 @@ def test_plot_tfr_topo():
     data = np.random.RandomState(0).randn(
         len(epochs.ch_names), n_freqs, len(epochs.times)
     )
-    tfr = AverageTFR(epochs.info, data, epochs.times, np.arange(n_freqs), nave)
-    plt.close("all")
-    fig = tfr.plot_topo(
-        baseline=(None, 0), mode="ratio", title="Average power", vmin=0.0, vmax=14.0
+    tfr = AverageTFRArray(
+        info=epochs.info,
+        data=data,
+        times=epochs.times,
+        freqs=np.arange(n_freqs),
+        nave=nave,
     )
+    plt.close("all")
+    fig = tfr.plot_topo(baseline=(None, 0), mode="ratio", vmin=0.0, vmax=14.0)
 
     # test complex
     tfr.data = tfr.data * (1 + 1j)
     plt.close("all")
-    fig = tfr.plot_topo(
-        baseline=(None, 0), mode="ratio", title="Average power", vmin=0.0, vmax=14.0
-    )
+    fig = tfr.plot_topo(baseline=(None, 0), mode="ratio", vmin=0.0, vmax=14.0)
 
     # test opening tfr by clicking
     num_figures_before = len(plt.get_fignums())
     # could use np.reshape(fig.axes[-1].images[0].get_extent(), (2, 2)).mean(1)
-    with pytest.warns(RuntimeWarning, match="not masking"):
+    with _record_warnings(), pytest.warns(RuntimeWarning, match="not masking"):
         _fake_click(fig, fig.axes[0], (0.08, 0.65))
     assert num_figures_before + 1 == len(plt.get_fignums())
     plt.close("all")
@@ -335,21 +337,30 @@ def test_plot_tfr_topo():
 
     # nonuniform freqs
     freqs = np.logspace(*np.log10([3, 10]), num=3)
-    tfr = AverageTFR(epochs.info, data, epochs.times, freqs, nave)
-    fig = tfr.plot([4], baseline=(None, 0), mode="mean", vmax=14.0, show=False)
+    tfr = AverageTFRArray(
+        info=epochs.info, data=data, times=epochs.times, freqs=freqs, nave=nave
+    )
+    fig = tfr.plot([4], baseline=(None, 0), mode="mean", vlim=(None, 14.0), show=False)
     assert fig[0].axes[0].get_yaxis().get_scale() == "log"
 
     # one timesample
-    tfr = AverageTFR(epochs.info, data[:, :, [0]], epochs.times[[1]], freqs, nave)
+    tfr = AverageTFRArray(
+        info=epochs.info,
+        data=data[:, :, [0]],
+        times=epochs.times[[1]],
+        freqs=freqs,
+        nave=nave,
+    )
+
     with _record_warnings():  # matplotlib equal left/right
-        tfr.plot([4], baseline=None, vmax=14.0, show=False, yscale="linear")
+        tfr.plot([4], baseline=None, vlim=(None, 14.0), show=False, yscale="linear")
 
     # one frequency bin, log scale required: as it doesn't make sense
     # to plot log scale for one value, we test whether yscale is set to linear
     vmin, vmax = 0.0, 2.0
     fig, ax = plt.subplots()
     tmin, tmax = epochs.times[0], epochs.times[-1]
-    with pytest.warns(RuntimeWarning, match="not masking"):
+    with _record_warnings(), pytest.warns(RuntimeWarning, match="not masking"):
         _imshow_tfr(
             ax,
             3,
@@ -372,7 +383,7 @@ def test_plot_tfr_topo():
     # ValueError when freq[0] == 0 and yscale == 'log'
     these_freqs = freqs[:3].copy()
     these_freqs[0] = 0
-    with pytest.warns(RuntimeWarning, match="not masking"):
+    with _record_warnings(), pytest.warns(RuntimeWarning, match="not masking"):
         pytest.raises(
             ValueError,
             _imshow_tfr,

@@ -133,6 +133,7 @@ def test_snirf_gowerlabs():
 def test_snirf_basic():
     """Test reading SNIRF files."""
     raw = read_raw_snirf(sfnirs_homer_103_wShort, preload=True)
+    assert raw.info["subject_info"]["his_id"] == "default"
 
     # Test data import
     assert raw._data.shape == (26, 145)
@@ -243,21 +244,27 @@ def test_snirf_nonstandard(tmp_path):
     fname = str(tmp_path) + "/mod.snirf"
     # Manually mark up the file to match MNE-NIRS custom tags
     with h5py.File(fname, "r+") as f:
-        f.create_dataset("nirs/metaDataTags/middleName", data=["X".encode("UTF-8")])
-        f.create_dataset("nirs/metaDataTags/lastName", data=["Y".encode("UTF-8")])
-        f.create_dataset("nirs/metaDataTags/sex", data=["1".encode("UTF-8")])
+        f.create_dataset("nirs/metaDataTags/middleName", data=[b"X"])
+        f.create_dataset("nirs/metaDataTags/lastName", data=[b"Y"])
+        f.create_dataset("nirs/metaDataTags/sex", data=[b"1"])
     raw = read_raw_snirf(fname, preload=True)
+    assert raw.info["subject_info"]["first_name"] == "default"  # pull from his_id
+    with h5py.File(fname, "r+") as f:
+        f.create_dataset("nirs/metaDataTags/firstName", data=[b"W"])
+    raw = read_raw_snirf(fname, preload=True)
+    assert raw.info["subject_info"]["first_name"] == "W"
     assert raw.info["subject_info"]["middle_name"] == "X"
     assert raw.info["subject_info"]["last_name"] == "Y"
     assert raw.info["subject_info"]["sex"] == 1
+    assert raw.info["subject_info"]["his_id"] == "default"
     with h5py.File(fname, "r+") as f:
         del f["nirs/metaDataTags/sex"]
-        f.create_dataset("nirs/metaDataTags/sex", data=["2".encode("UTF-8")])
+        f.create_dataset("nirs/metaDataTags/sex", data=[b"2"])
     raw = read_raw_snirf(fname, preload=True)
     assert raw.info["subject_info"]["sex"] == 2
     with h5py.File(fname, "r+") as f:
         del f["nirs/metaDataTags/sex"]
-        f.create_dataset("nirs/metaDataTags/sex", data=["0".encode("UTF-8")])
+        f.create_dataset("nirs/metaDataTags/sex", data=[b"0"])
     raw = read_raw_snirf(fname, preload=True)
     assert raw.info["subject_info"]["sex"] == 0
 

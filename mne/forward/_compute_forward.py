@@ -661,7 +661,7 @@ def _magnetic_dipole_field_vec(rrs, coils, too_close="raise"):
     rmags, cosmags, ws, bins = _triage_coils(coils)
     fwd, min_dist = _compute_mdfv(rrs, rmags, cosmags, ws, bins, too_close)
     if min_dist < _MIN_DIST_LIMIT:
-        msg = "Coil too close (dist = %g mm)" % (min_dist * 1000,)
+        msg = f"Coil too close (dist = {min_dist * 1000:g} mm)"
         if too_close == "raise":
             raise RuntimeError(msg)
         func = warn if too_close == "warning" else logger.info
