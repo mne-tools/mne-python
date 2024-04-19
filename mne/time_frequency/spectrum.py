@@ -633,7 +633,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         titles = _handle_default("titles", None)
         units = _handle_default("units", None)
 
-        _validate_type(amplitude, "amplitude", bool)
+        _validate_type(amplitude, bool, "amplitude")
         estimate = "amplitude" if amplitude else "power"
 
         logger.info(f"Plotting {estimate} spectral density ({dB=}).")
@@ -1406,7 +1406,7 @@ class EpochsSpectrum(BaseSpectrum, GetEpochsMixin):
         spectrum : instance of Spectrum
             The aggregated spectrum object.
         """
-        _validate_type(method, ("str", "callable"))
+        _validate_type(method, ("str", "callable"), "method")
         method = _make_combine_callable(
             method, axis=0, valid=("mean", "median"), keepdims=False
         )
