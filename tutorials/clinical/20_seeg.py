@@ -39,7 +39,21 @@ see :ref:`manual-install`.
 
 # %%
 
+import dipy.reconst.dti as dti
+import matplotlib.pyplot as plt
+import nibabel as nib
 import numpy as np
+from dipy.core.gradients import gradient_table
+from dipy.data import default_sphere
+from dipy.denoise.gibbs import gibbs_removal
+from dipy.denoise.patch2self import patch2self
+from dipy.direction import DeterministicMaximumDirectionGetter
+from dipy.direction.peaks import peaks_from_model
+from dipy.segment.mask import median_otsu
+from dipy.tracking.local_tracking import LocalTracking
+from dipy.tracking.stopping_criterion import ThresholdStoppingCriterion
+from dipy.tracking.streamline import Streamlines
+from dipy.tracking.utils import seeds_from_mask
 
 import mne
 from mne.datasets import fetch_fsaverage
@@ -159,6 +173,130 @@ for elec in electrodes:
     fig.text(0.3, 0.9, "Anatomical Labels", color="white")
 
 # %%
+# For electrode contacts in white matter, it can be helpful to visualize
+# fiber tracts that pass nearby as well. For that we need to do fiber
+# tracking on diffusion MR data.
+
+# load the diffusion MR data
+dwi = nib.load(misc_path / "seeg" / "sample_seeg_dwi.nii.gz")
+bvals = np.loadtxt(misc_path / "seeg" / "sample_seeg_dwi.bval")
+bvecs = np.loadtxt(misc_path / "seeg" / "sample_seeg_dwi.bvec")
+gtab = gradient_table(bvals, bvecs)
+
+# use B0 diffusion data to align with the T1
+b0_idx = tuple(np.where(bvals < 50)[0])
+dwi_masked, mask = median_otsu(np.array(dwi.dataobj), vol_idx=b0_idx)
+
+fig, ax = plt.subplots()
+ax.imshow(np.rot90(dwi_masked[65, ..., 0]), aspect="auto")
+
+t1 = nib.load(misc_path / "seeg" / "sample_seeg" / "mri", "T1.mgz")
+dwi_b0_register = nib.Nifti1Image(dwi_masked[..., b0_idx].mean(axis=-1), dwi.affine)
+
+# %%
+# The code below was run once to find the registration matrix, but to
+# save computer resources when building the documentation, we won't
+# run it every time::
+#
+# reg_affine = mne.transforms.compute_volume_registration(
+#     moving=dwi_b0_register, static=t1, pipeline='rigids')
+
+reg_affine = np.array(
+    [
+        [0.99804908, -0.05071631, 0.03641263, 1.36631239],
+        [0.049687, 0.99835418, 0.0286378, 36.79845134],
+        [-0.03780511, -0.02677269, 0.99892642, 8.30634414],
+        [0.0, 0.0, 0.0, 1.0],
+    ]
+)
+reg_affine_inv = np.linalg.inv(reg_affine)
+
+# use registration to move the white matter mask computed
+# by freesurfer to the diffusion space
+wm = nib.load(misc_path / "seeg" / "sample_seeg" / "mri" / "wm.mgz")
+wm_data = np.array(wm.dataobj)
+wm_mask = (wm_data == 109) | (wm_data == 110)  # white matter values
+wm = nib.MGHImage(wm_mask.astype(np.float32), wm.affine)
+del wm_data, wm_mask
+
+# apply the backward registration by using the inverse
+wm_dwi = mne.transforms.apply_volume_registration(
+    moving=wm, static=dwi_b0_register, reg_affine=reg_affine_inv
+)
+
+# check that white matter is aligned properly
+fig, ax = plt.subplots()
+ax.imshow(np.rot90(dwi_b0_register.dataobj[56]), aspect="auto")
+ax.imshow(np.rot90(wm_dwi.dataobj[56]), aspect="auto", cmap="hot", alpha=0.5)
+
+# now, preprocess the diffusion data to remove noise and do
+# fiber tracking
+denoised = patch2self(dwi_masked, bvals)
+denoised = gibbs_removal(denoised)
+
+# %%
+# You may also want to do the following, but it registers each direction
+# of the diffusion image to the T1, so it takes a lot of computational
+# resources so we'll skip it for now::
+#
+# from dipy.align import motion_correction
+# denoised = motion_correction(denoised, dwi.affine, b0_ref=0)
+
+# compute diffusion tensor imaging to find the peak direction
+# for each voxel
+tenmodel = dti.TensorModel(gtab)
+tenfit = tenmodel.fit(denoised)
+pam = peaks_from_model(
+    tenmodel,
+    denoised,
+    default_sphere,
+    relative_peak_threshold=0.5,
+    min_separation_angle=25,
+    mask=wm_dwi.dataobj,
+)
+
+# do fiber tracking
+stopping_criterion = ThresholdStoppingCriterion(
+    pam.gfa,  # use generalized fractional anisotropy from the DTI model
+    0.25,  # threshold for stopping is when FA goes below 0.25 (default)
+)
+dg = DeterministicMaximumDirectionGetter.from_shcoeff(
+    pam.shm_coeff,  # use spherical harmonic coefficients from the DTI model
+    max_angle=30.0,  # max angle fiber can change at each voxel
+    sphere=default_sphere,  # use default sphere
+    sh_to_pmf=True,  # speeds up computations, takes more memory
+)
+# use the white matter mask to seed where the fibers start,
+# with 1 mm density in all three dimensions
+seeds = seeds_from_mask(wm_dwi.dataobj, dwi.affine, density=(1, 1, 1))
+# generate streamlines to represent tracts using the stopping
+# criteria, direction getter and seeds
+streamline_generator = LocalTracking(
+    dg, stopping_criterion, seeds, dwi.affine, step_size=0.5
+)
+streamlines = Streamlines(streamline_generator)
+
+# move streamlines from diffusion space to T1 anatomical space,
+# only keep non-singleton streamlines
+streamlines = [
+    mne.transforms.apply_trans(reg_affine_inv, streamline)
+    for streamline in streamlines
+    if len(streamline) > 1
+]
+
+# now convert from scanner RAS to surface RAS
+ras2mri = mne.transforms.combine_transforms(
+    mne.transforms.Transform("ras", "mri_voxel", t1.header.get_ras2vox()),
+    mne.transforms.Transform("mri_voxel", "mri", t1.header.get_vox2ras_tkr()),
+    fro="ras",
+    to="mri",
+)
+streamlines = [
+    mne.transforms.apply_trans(ras2mri, streamline) / 1000  # mm -> m
+    for streamline in streamlines
+]
+
+# %%
 # Now, let's the electrodes and a few regions of interest that the contacts
 # of the electrode are proximal to.
 
@@ -192,6 +330,21 @@ brain = mne.viz.Brain(
     figure=fig,
 )
 brain.add_volume_labels(aseg="aparc+aseg", labels=labels)
+
+# find streamlines near LSMA1
+montage = epochs.get_montage()
+montage.apply_trans(mne.transforms.invert_transform(trans))  # head -> mri
+ch_pos = montage.get_positions()["ch_pos"]
+
+thresh = 0.05  # pick streamlines within 3 mm
+streamlines_pick = [
+    streamline
+    for streamline in streamlines
+    if np.linalg.norm(streamline - ch_pos["LPM 1"]).min() < thresh
+]
+
+brain.add_streamlines(streamlines_pick, color="white")
+
 brain.show_view(azimuth=120, elevation=90, distance=0.25)
 
 # %%

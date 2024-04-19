@@ -195,6 +195,66 @@ class _AbstractRenderer(ABC):
         pass
 
     @abstractclassmethod
+    def lines(
+        self,
+        lines,
+        colors,
+        opacity=1.0,
+        backface_culling=False,
+        scalars=None,
+        colormap=None,
+        vmin=None,
+        vmax=None,
+        interpolate_before_map=True,
+        line_width=1.0,
+        polygon_offset=None,
+        **kwargs,
+    ):
+        """Add a mesh in the scene.
+
+        Parameters
+        ----------
+        lines : list
+            A list of array-like points defining the lines.
+        colors : list of tuple | str
+            The colors of the lines as tuples (red, green, blue) of float
+            values between 0 and 1 or a valid color name (i.e. 'white'
+            or 'w').
+        opacity : float
+            The opacity of the mesh.
+        shading : bool
+            If True, enable the mesh shading.
+        backface_culling : bool
+            If True, enable backface culling on the mesh.
+        scalars : ndarray, shape (n_vertices,)
+            The scalar valued associated to the vertices.
+        vmin : float | None
+            vmin is used to scale the colormap.
+            If None, the min of the data will be used.
+        vmax : float | None
+            vmax is used to scale the colormap.
+            If None, the max of the data will be used.
+        colormap : str | np.ndarray | matplotlib.colors.Colormap | None
+            The colormap to use.
+        interpolate_before_map :
+            Enabling makes for a smoother scalars display. Default is True.
+            When False, OpenGL will interpolate the mapped colors which can
+            result is showing colors that are not present in the color map.
+        line_width : int
+            The width of the lines when representation='wireframe'.
+        polygon_offset : float
+            If not None, the factor used to resolve coincident topology.
+        kwargs : args
+            The arguments to pass to triangular_mesh
+
+        Returns
+        -------
+        lines :
+            Handle of the lines in the scene.
+        """
+        pass
+
+    @abstractclassmethod
     def contour(
         self,
         surface,

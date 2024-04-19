@@ -226,6 +226,8 @@ class Brain:
        +-------------------------------------+--------------+---------------+
        | :meth:`add_skull`                   |              | ✓             |
        +-------------------------------------+--------------+---------------+
+       | :meth:`add_streamlines`             |              | ✓             |
+       +-------------------------------------+--------------+---------------+
        | :meth:`add_text`                    | ✓            | ✓             |
        +-------------------------------------+--------------+---------------+
        | :meth:`add_volume_labels`           |              | ✓             |
@@ -253,6 +255,8 @@ class Brain:
        | :meth:`remove_sensors`              |              | ✓             |
        +-------------------------------------+--------------+---------------+
        | :meth:`remove_skull`                |              | ✓             |
+       +-------------------------------------+--------------+---------------+
+       | :meth:`remove_streamlines`          |              | ✓             |
        +-------------------------------------+--------------+---------------+
        | :meth:`remove_text`                 |              | ✓             |
        +-------------------------------------+--------------+---------------+
@@ -2529,6 +2533,46 @@ class Brain:
     def remove_skull(self):
         """Remove skull objects from the rendered scene."""
         self._remove("skull", render=True)
+
+    @fill_doc
+    def add_streamlines(self, streamlines, line_width=1, color="red", alpha=1):
+        """Add a streamlines to render fiber tracts.
+
+        Parameters
+        ----------
+        streamlines : list
+            A list of array-like points that form lines in units of m.
+        line_width : int
+            The width of the lines.
+        %(color_matplotlib)s
+        %(alpha)s
+
+        Notes
+        -----
+        .. versionadded:: 0.24
+        """
+        streamlines = [
+            streamline * (1e3 if self._units == "mm" else 1)
+            for streamline in streamlines
+        ]
+        color = _to_rgb(color)
+
+        for _ in self._iter_views("vol"):
+            actor, _ = self._renderer.lines(
+                streamlines,
+                color=color,
+                opacity=alpha,
+                line_width=line_width,
+                reset_camera=False,
+                render=False,
+            )
+            self._add_actor("streamlines", actor)
+
+        self._renderer._update()
+
+    def remove_streamlines(self):
+        """Remove streamline objects from the rendered scene."""
+        self._remove("streamlines", render=True)
 
     @fill_doc
     def add_volume_labels(
