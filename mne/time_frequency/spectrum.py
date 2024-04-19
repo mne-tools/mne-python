@@ -553,7 +553,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         picks=None,
         average=False,
         dB=True,
-        amplitude=None,
+        amplitude=False,
         xscale="linear",
         ci="sd",
         ci_alpha=0.3,
@@ -633,15 +633,8 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         titles = _handle_default("titles", None)
         units = _handle_default("units", None)
 
-        depr_message = (
-            "The value of `amplitude='auto'` will be removed in MNE 1.8.0, and the new "
-            "default will be `amplitude=False`."
-        )
-        if amplitude is None or amplitude == "auto":
-            warn(depr_message, FutureWarning)
-            estimate = "power" if dB else "amplitude"
-        else:
-            estimate = "amplitude" if amplitude else "power"
+        _validate_type(amplitude, "amplitude", bool)
+        estimate = "amplitude" if amplitude else "power"
 
         logger.info(f"Plotting {estimate} spectral density ({dB=}).")
 

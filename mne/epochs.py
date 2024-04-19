@@ -1850,13 +1850,6 @@ class BaseEpochs(
             data *= ch_factors[:, np.newaxis]
         if not data_is_self_data:
             return data
-        if copy is None:
-            warn(
-                "The current default of copy=False will change to copy=True in 1.7. "
-                "Set the value of copy explicitly to avoid this warning",
-                FutureWarning,
-            )
-            copy = False
         if copy:
             logger.debug("  Copying, copy=True")
             data = data.copy()
@@ -1880,7 +1873,7 @@ class BaseEpochs(
         tmin=None,
         tmax=None,
         *,
-        copy=None,
+        copy=True,
         verbose=None,
     ):
         """Get all epochs as a 3D array.
