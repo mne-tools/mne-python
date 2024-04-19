@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "mne"
 description = "MNE-Python project for MEG and EEG data analysis."
-dynamic = ["version"]
+version = "1.7.0"
 authors = [
     { name = "Alexandre Gramfort", email = "alexandre.gramfort@inria.fr" },
 ]
