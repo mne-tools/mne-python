@@ -193,6 +193,16 @@ const addSliderEventHandlers = () => {
       const sliderValue = parseInt(e.target.value);
       $(carousel).carousel(sliderValue);
     })
+
+    // Allow focussing the slider with a click on the slider or carousel, so keyboard
+    // controls (left / right arrow) can be enabled. Required for Safari.
+    slider.addEventListener('click', (e) => {
+      slider.focus()
+    })
+    carousel.addEventListener('click', (e) => {
+      slider.focus()
+    })
+
   })
 }
 
@@ -236,19 +246,19 @@ const disableGlobalKeysInSearchBox = () => {
 }
 
 $(document).ready(() => {
-  gatherTags();
-  updateTagCountBadges();
-  addFilterByTagsCheckboxEventHandlers();
+//   gatherTags();
+//   updateTagCountBadges();
+//   addFilterByTagsCheckboxEventHandlers();
   addSliderEventHandlers();
-  fixTopMargin();
-  fixScrollingForTocLinks();
-  hljs.highlightAll();   // enable highlight.js
-  disableGlobalKeysInSearchBox();
-  enableGlobalKeyHandler();
-  propagateScrollSpyURL();
+//   fixTopMargin();
+//   fixScrollingForTocLinks();
+//   hljs.highlightAll();   // enable highlight.js
+//   disableGlobalKeysInSearchBox();
+//   enableGlobalKeyHandler();
+//   propagateScrollSpyURL();
 });
 
-window.onresize = () => {
-  fixTopMargin();
-  refreshScrollSpy();
-};
+// window.onresize = () => {
+//   fixTopMargin();
+//   refreshScrollSpy();
+// };
