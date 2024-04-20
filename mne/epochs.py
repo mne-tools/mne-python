@@ -2036,12 +2036,15 @@ class BaseEpochs(
         """Build string representation."""
         s = f"{len(self.events)} events "
         s += "(all good)" if self._bad_dropped else "(good & bad)"
-        s += f", {self.tmin:.2f} – {self.tmax:.2f} s"
-        s += " (baseline "
+        s += f", {self.tmin:.3f}".rstrip("0").rstrip(".")
+        s += f" – {self.tmax:.3f}".rstrip("0").rstrip(".")
+        s += " s (baseline "
         if self.baseline is None:
             s += "off"
         else:
-            s += f"{self.baseline[0]:.2f} – {self.baseline[1]:.2f} s"
+            s += f"{self.baseline[0]:.3f}".rstrip("0").rstrip(".")
+            s += f" – {self.baseline[1]:.3f}".rstrip("0").rstrip(".")
+            s += " s"
             if self.baseline != _check_baseline(
                 self.baseline,
                 times=self.times,
