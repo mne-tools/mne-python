@@ -247,19 +247,19 @@ const disableGlobalKeysInSearchBox = () => {
 }
 
 $(document).ready(() => {
-//   gatherTags();
-//   updateTagCountBadges();
-//   addFilterByTagsCheckboxEventHandlers();
+  gatherTags();
+  updateTagCountBadges();
+  addFilterByTagsCheckboxEventHandlers();
   addSliderEventHandlers();
-//   fixTopMargin();
-//   fixScrollingForTocLinks();
-//   hljs.highlightAll();   // enable highlight.js
-//   disableGlobalKeysInSearchBox();
-//   enableGlobalKeyHandler();
-//   propagateScrollSpyURL();
+  fixTopMargin();
+  fixScrollingForTocLinks();
+  hljs.highlightAll();   // enable highlight.js
+  disableGlobalKeysInSearchBox();
+  enableGlobalKeyHandler();
+  propagateScrollSpyURL();
 });
 
-// window.onresize = () => {
-//   fixTopMargin();
-//   refreshScrollSpy();
-// };
+window.onresize = () => {
+  fixTopMargin();
+  refreshScrollSpy();
+};
