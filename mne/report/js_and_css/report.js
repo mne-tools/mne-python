@@ -8,8 +8,8 @@ const refreshScrollSpy = () =>{
 }
 
 const propagateScrollSpyURL = () => {
-  window.addEventListener('activate.bs.scrollspy', (event) => {
-    history.replaceState({}, "", event.relatedTarget);
+  window.addEventListener('activate.bs.scrollspy', (e) => {
+    history.replaceState({}, "", e.relatedTarget);
   });
 }
 
