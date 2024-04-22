@@ -1,4 +1,5 @@
-<div class="accordion-item slider {{ klass }}" id="{{ id }}" data-mne-tags="{% for tag in tags %} {{ tag }} {% endfor %}">
+<div class="accordion-item slider {{ klass }}" id="{{ id }}"
+  data-mne-tags="{% for tag in tags %} {{ tag }} {% endfor %}">
   <div class="accordion-header" id="accordion-header-{{ id }}">
     <button class="accordion-button pt-1 pb-1" type="button" data-bs-toggle="collapse"
       data-bs-target="#accordion-collapse-{{ id }}" aria-expanded="true" aria-controls="accordion-collapse-{{ id }}">
@@ -24,14 +25,8 @@
           id="slider-{{id}}">
       </div>
 
-      <div id="corousel-{{ id }}" class="carousel carousel-dark" data-bs-interval="false" data-bs-wrap="false">
-        {# <!-- <div class="carousel-indicators">
-          {{for idx, caption in zip(range(len(images)), captions) }}
-          <button type="button" data-bs-target="#corousel-{{id}}" data-bs-slide-to="{{idx}}" class="active"
-            aria-current="true" aria-label="{{caption}}"></button>
-          {{endfor}}
-        </div> --> #}
-
+      <div id="corousel-{{ id }}" class="carousel carousel-dark" data-bs-interval="false" data-bs-wrap="false"
+        data-bs-keyboard="true">
         <div class="carousel-inner">
           {% for idx, img, caption in range(images|length)|zip(images, captions) %}
           <div class="carousel-item {% if idx == start_idx %}active{% endif %}">
@@ -46,14 +41,14 @@
           {% endfor %}
         </div>
 
-        {# <!-- <button class="carousel-control-prev" type="button" data-bs-target="#corousel-{{id}}" data-bs-slide="prev">
+        {# <button class="carousel-control-prev" type="button" data-bs-target="#corousel-{{id}}" data-bs-slide="prev">
           <span class="carousel-control-prev-icon" aria-hidden="true"></span>
           <span class="visually-hidden">Previous</span>
         </button>
         <button class="carousel-control-next" type="button" data-bs-target="#corousel-{{id}}" data-bs-slide="next">
           <span class="carousel-control-next-icon" aria-hidden="true"></span>
           <span class="visually-hidden">Next</span>
-        </button> --> #}
+        </button> #}
       </div>
     </div>
   </div>
