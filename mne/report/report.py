@@ -457,36 +457,6 @@ def _fig_to_img(fig, *, image_format="png", own_figure=True):
     )
 
 
-def _scale_mpl_figure(fig, scale):
-    """Magic scaling helper.
-
-    Keeps font size and artist sizes constant
-    0.5 : current font - 4pt
-    2.0 : current font + 4pt
-
-    This is a heuristic but it seems to work for most cases.
-    """
-    scale = float(scale)
-    fig.set_size_inches(fig.get_size_inches() * scale)
-    fig.set_dpi(fig.get_dpi() * scale)
-    import matplotlib as mpl
-
-    if scale >= 1:
-        sfactor = scale**2
-    else:
-        sfactor = -((1.0 / scale) ** 2)
-    for text in fig.findobj(mpl.text.Text):
-        fs = text.get_fontsize()
-        new_size = fs + sfactor
-        if new_size <= 0:
-            raise ValueError(
-                "could not rescale matplotlib fonts, consider " 'increasing "scale"'
-            )
-        text.set_fontsize(new_size)
-
-    fig.canvas.draw()
-
-
 def _get_bem_contour_figs_as_arrays(
     *, sl, n_jobs, mri_fname, surfaces, orientation, src, show, show_orientation, width
 ):
@@ -697,12 +667,6 @@ def _webp_supported():
 
         good = features.check("webp")
     return good
-
-
-def _check_scale(scale):
-    """Ensure valid scale value is passed."""
-    if np.isscalar(scale) and scale <= 0:
-        raise ValueError("scale must be positive, not %s" % scale)
 
 
 def _check_image_format(rep, image_format):
