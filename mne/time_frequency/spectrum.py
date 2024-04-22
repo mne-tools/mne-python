@@ -77,7 +77,7 @@ class SpectrumMixin:
         method="auto",
         average=False,
         dB=True,
-        estimate="auto",
+        estimate="power",
         xscale="linear",
         area_mode="std",
         area_alpha=0.33,
@@ -581,14 +581,12 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
             ``ci_alpha`` control the style of the confidence band around the mean.
             Default is ``False``.
         %(dB_spectrum_plot)s
-        amplitude : bool | 'auto'
+        amplitude : bool
             Whether to plot an amplitude spectrum (``True``) or power spectrum
-            (``False``). If ``'auto'``, will plot a power spectrum when ``dB=True`` and
-            an amplitude spectrum otherwise. Default is ``'auto'``.
+            (``False``).
 
                 .. versionchanged:: 1.8
-                    In version 1.8, the value ``amplitude="auto"`` will be removed. The
-                    default value will change to ``amplitude=False``.
+                    In version 1.8, the default changed to ``amplitude=False``.
         %(xscale_plot_psd)s
         ci : float | 'sd' | 'range' | None
             Type of confidence band drawn around the mean when ``average=True``. If

@@ -379,10 +379,10 @@ def _plot_ica_properties(
     return fig
 
 
-def _get_psd_label_and_std(this_psd, dB, ica, num_std):
+def _get_psd_label_and_std(this_psd, dB, ica, num_std, *, estimate):
     """Handle setting up PSD for one component, for plot_ica_properties."""
     psd_ylabel = _convert_psds(
-        this_psd, dB, estimate="auto", scaling=1.0, unit="AU", first_dim="epoch"
+        this_psd, dB, estimate=estimate, scaling=1.0, unit="AU", first_dim="epoch"
     )
     psds_mean = this_psd.mean(axis=0)
     diffs = this_psd - psds_mean
@@ -417,6 +417,7 @@ def plot_ica_properties(
     reject="auto",
     reject_by_annotation=True,
     *,
+    estimate="power",
     verbose=None,
 ):
     """Display component properties.
@@ -487,6 +488,9 @@ def plot_ica_properties(
     %(reject_by_annotation_raw)s
 
         .. versionadded:: 0.21.0
+    %(estimate_plot_psd)s
+
+        .. versionadded:: 1.8.0
     %(verbose)s
 
     Returns
@@ -514,6 +518,7 @@ def plot_ica_properties(
         reject=reject,
         reject_by_annotation=reject_by_annotation,
         verbose=verbose,
+        estimate=estimate,
         precomputed_data=None,
     )
 
@@ -535,6 +540,7 @@ def _fast_plot_ica_properties(
     precomputed_data=None,
     reject_by_annotation=True,
     *,
+    estimate="power",
     verbose=None,
 ):
     """Display component properties."""
@@ -601,7 +607,7 @@ def _fast_plot_ica_properties(
     if "fmax" not in psd_args:
         psd_args["fmax"] = min(lp * 1.25, Nyquist)
     plot_lowpass_edge = lp < Nyquist and (psd_args["fmax"] > lp)
-    spectrum = epochs_src.compute_psd(picks=picks, **psd_args)
+    spectrum = epochs_src.compute_psd(picks=picks, estimate=estimate, **psd_args)
     # we've already restricted picks  ↑↑↑↑↑↑↑↑↑↑↑
     # in the spectrum object, so here we do picks=all  ↓↓↓↓↓↓↓↓↓↓↓
     psds, freqs = spectrum.get_data(return_freqs=True, picks="all", exclude=[])
@@ -626,7 +632,11 @@ def _fast_plot_ica_properties(
     for idx, pick in enumerate(picks):
         # calculate component-specific spectrum stuff
         psd_ylabel, psds_mean, spectrum_std = _get_psd_label_and_std(
-            psds[:, idx, :].copy(), dB, ica, num_std
+            psds[:, idx, :].copy(),
+            dB,
+            ica,
+            num_std,
+            estimate=estimate,
         )
 
         # if more than one component, spawn additional figures and axes

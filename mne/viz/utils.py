@@ -2426,9 +2426,7 @@ def _convert_psds(
             msg += "\nThese channels might be dead."
         warn(msg, UserWarning)
 
-    if estimate == "auto":
-        estimate = "power" if dB else "amplitude"
-
+    _check_option("estimate", estimate, ("power", "amplitude"))
     if estimate == "amplitude":
         np.sqrt(psds, out=psds)
         psds *= scaling
