@@ -607,7 +607,7 @@ def _fast_plot_ica_properties(
     if "fmax" not in psd_args:
         psd_args["fmax"] = min(lp * 1.25, Nyquist)
     plot_lowpass_edge = lp < Nyquist and (psd_args["fmax"] > lp)
-    spectrum = epochs_src.compute_psd(picks=picks, estimate=estimate, **psd_args)
+    spectrum = epochs_src.compute_psd(picks=picks, **psd_args)
     # we've already restricted picks  ↑↑↑↑↑↑↑↑↑↑↑
     # in the spectrum object, so here we do picks=all  ↓↓↓↓↓↓↓↓↓↓↓
     psds, freqs = spectrum.get_data(return_freqs=True, picks="all", exclude=[])
