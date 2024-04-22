@@ -195,6 +195,17 @@ const addSliderEventHandlers = () => {
       const sliderValue = parseInt(e.target.value);
       $(carousel).carousel(sliderValue);
     })
+
+    // Allow focussing the slider with a click on the slider or carousel, so keyboard
+    // controls (left / right arrow) can be enabled.
+    // This also appears to be the only way to focus the slider in Safari:
+    // https://itnext.io/fixing-focus-for-safari-b5916fef1064?gi=c1b8b043fa9b
+    slider.addEventListener('click', () => {
+      slider.focus({preventScroll: true})
+    })
+    carousel.addEventListener('click', () => {
+      slider.focus({preventScroll: true})
+    })
   })
 }
 
