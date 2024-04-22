@@ -230,9 +230,9 @@ class CSP(TransformerMixin, BaseEstimator):
         -------
         X : ndarray
             If self.transform_into == 'average_power' then returns the power of
-            CSP features averaged over time and shape (n_epochs, n_sources)
+            CSP features averaged over time and shape (n_epochs, n_components)
             If self.transform_into == 'csp_space' then returns the data in CSP
-            space and shape is (n_epochs, n_sources, n_times).
+            space and shape is (n_epochs, n_components, n_times).
         """
         if not isinstance(X, np.ndarray):
             raise ValueError("X should be of type ndarray (got %s)." % type(X))
@@ -260,13 +260,13 @@ class CSP(TransformerMixin, BaseEstimator):
 
         Parameters
         ----------
-        X : array, shape (n_epochs, n_sources)
+        X : array, shape (n_epochs, n_components)
             The data in CSP power space.
 
         Returns
         -------
         X : ndarray
-            The data in sensor space and shape (n_epochs, n_channels, n_sources).
+            The data in sensor space and shape (n_epochs, n_channels, n_components).
         """
         if self.transform_into != "average_power":
             raise NotImplementedError(
@@ -948,8 +948,8 @@ class SPoC(CSP):
         -------
         X : ndarray
             If self.transform_into == 'average_power' then returns the power of
-            CSP features averaged over time and shape (n_epochs, n_sources)
+            CSP features averaged over time and shape (n_epochs, n_components)
             If self.transform_into == 'csp_space' then returns the data in CSP
-            space and shape is (n_epochs, n_sources, n_times).
+            space and shape is (n_epochs, n_components, n_times).
         """
         return super().transform(X)
