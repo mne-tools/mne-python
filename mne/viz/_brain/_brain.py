@@ -226,7 +226,7 @@ class Brain:
        +-------------------------------------+--------------+---------------+
        | :meth:`add_skull`                   |              | ✓             |
        +-------------------------------------+--------------+---------------+
-       | :meth:`add_streamlines`             |              | ✓             |
+       | :meth:`add_streamline`              |              | ✓             |
        +-------------------------------------+--------------+---------------+
        | :meth:`add_text`                    | ✓            | ✓             |
        +-------------------------------------+--------------+---------------+
@@ -2535,34 +2535,54 @@ class Brain:
         self._remove("skull", render=True)
 
     @fill_doc
-    def add_streamlines(self, streamlines, line_width=1, color="red", alpha=1):
+    def add_streamline(
+        self,
+        streamline,
+        line_width=1,
+        color="red",
+        scalars=None,
+        colormap=None,
+        vmin=None,
+        vmax=None,
+        alpha=1,
+    ):
         """Add a streamlines to render fiber tracts.
 
         Parameters
         ----------
-        streamlines : list
-            A list of array-like points that form lines in units of m.
+        streamline : array shape=(n_points, 3)
+           An array with 3D points forming a line in units of m.
         line_width : int
-            The width of the lines.
-        %(color_matplotlib)s
+            The width of the line.
+        color : list
+            A list with entries of anything matplotlib accepts:
+            string, RGB, hex, etc.
+        scalars : list
+            A list of scalar values associated with each vertex of
+            the streamline.
+        %(colormap)s
+        vmin : None | float
+            The minimum value for color scaling.
+        vmax : None | float
+            The maximum value for color scaling.
         %(alpha)s
 
         Notes
         -----
         .. versionadded:: 0.24
         """
-        streamlines = [
-            streamline * (1e3 if self._units == "mm" else 1)
-            for streamline in streamlines
-        ]
         color = _to_rgb(color)
 
         for _ in self._iter_views("vol"):
-            actor, _ = self._renderer.lines(
-                streamlines,
+            actor, _ = self._renderer.line(
+                streamline * (1e3 if self._units == "mm" else 1),
                 color=color,
                 opacity=alpha,
                 line_width=line_width,
+                scalars=scalars,
+                colormap=colormap,
+                vmin=vmin,
+                vmax=vmax,
                 reset_camera=False,
                 render=False,
             )

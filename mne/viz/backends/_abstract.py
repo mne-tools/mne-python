@@ -195,9 +195,9 @@ class _AbstractRenderer(ABC):
         pass
 
     @abstractclassmethod
-    def lines(
+    def line(
         self,
-        lines,
+        line,
         colors,
         opacity=1.0,
         backface_culling=False,
@@ -214,10 +214,10 @@ class _AbstractRenderer(ABC):
 
         Parameters
         ----------
-        lines : list
+        line : list
             A list of array-like points defining the lines.
-        colors : list of tuple | str
-            The colors of the lines as tuples (red, green, blue) of float
+        color : tuple | str
+            The color of the mesh as a tuple (red, green, blue) of float
             values between 0 and 1 or a valid color name (i.e. 'white'
             or 'w').
         opacity : float
@@ -241,7 +241,7 @@ class _AbstractRenderer(ABC):
             When False, OpenGL will interpolate the mapped colors which can
             result is showing colors that are not present in the color map.
         line_width : int
-            The width of the lines when representation='wireframe'.
+            The width of the line.
         polygon_offset : float
             If not None, the factor used to resolve coincident topology.
         kwargs : args
@@ -249,8 +249,8 @@ class _AbstractRenderer(ABC):
 
         Returns
         -------
-        lines :
-            Handle of the lines in the scene.
+        line :
+            Handle of the line in the scene.
         """
         pass
 

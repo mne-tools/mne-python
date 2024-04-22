@@ -39,16 +39,15 @@ see :ref:`manual-install`.
 
 # %%
 
-import dipy.reconst.dti as dti
 import matplotlib.pyplot as plt
 import nibabel as nib
 import numpy as np
 from dipy.core.gradients import gradient_table
 from dipy.data import default_sphere
-from dipy.denoise.gibbs import gibbs_removal
 from dipy.denoise.patch2self import patch2self
 from dipy.direction import DeterministicMaximumDirectionGetter
 from dipy.direction.peaks import peaks_from_model
+from dipy.reconst.dti import TensorModel
 from dipy.segment.mask import median_otsu
 from dipy.tracking.local_tracking import LocalTracking
 from dipy.tracking.stopping_criterion import ThresholdStoppingCriterion
@@ -190,7 +189,7 @@ dwi_masked, mask = median_otsu(np.array(dwi.dataobj), vol_idx=b0_idx)
 fig, ax = plt.subplots()
 ax.imshow(np.rot90(dwi_masked[65, ..., 0]), aspect="auto")
 
-t1 = nib.load(misc_path / "seeg" / "sample_seeg" / "mri", "T1.mgz")
+t1 = nib.load(misc_path / "seeg" / "sample_seeg" / "mri" / "T1.mgz")
 dwi_b0_register = nib.Nifti1Image(dwi_masked[..., b0_idx].mean(axis=-1), dwi.affine)
 
 # %%
@@ -232,19 +231,24 @@ ax.imshow(np.rot90(wm_dwi.dataobj[56]), aspect="auto", cmap="hot", alpha=0.5)
 # now, preprocess the diffusion data to remove noise and do
 # fiber tracking
 denoised = patch2self(dwi_masked, bvals)
-denoised = gibbs_removal(denoised)
+
+# %%
+# Optionally, you can also remove Gibbs artifact::
+#
+#     denoised = gibbs_removal(denoised)
 
 # %%
 # You may also want to do the following, but it registers each direction
 # of the diffusion image to the T1, so it takes a lot of computational
 # resources so we'll skip it for now::
 #
-# from dipy.align import motion_correction
-# denoised = motion_correction(denoised, dwi.affine, b0_ref=0)
+#     from dipy.align import motion_correction
+#     denoised, _ = motion_correction(denoised, gtab, dwi.affine, b0_ref=0)
+#     denoised = np.array(denoised.dataobj)
 
 # compute diffusion tensor imaging to find the peak direction
 # for each voxel
-tenmodel = dti.TensorModel(gtab)
+tenmodel = TensorModel(gtab)
 tenfit = tenmodel.fit(denoised)
 pam = peaks_from_model(
     tenmodel,
@@ -277,11 +281,11 @@ streamline_generator = LocalTracking(
 streamlines = Streamlines(streamline_generator)
 
 # move streamlines from diffusion space to T1 anatomical space,
-# only keep non-singleton streamlines
+# only keep long streamlines
 streamlines = [
     mne.transforms.apply_trans(reg_affine_inv, streamline)
     for streamline in streamlines
-    if len(streamline) > 1
+    if len(streamline) > 10
 ]
 
 # now convert from scanner RAS to surface RAS
@@ -336,14 +340,15 @@ montage = epochs.get_montage()
 montage.apply_trans(mne.transforms.invert_transform(trans))  # head -> mri
 ch_pos = montage.get_positions()["ch_pos"]
 
-thresh = 0.05  # pick streamlines within 3 mm
+thresh = 0.03  # pick streamlines within 30 mm
 streamlines_pick = [
     streamline
     for streamline in streamlines
     if np.linalg.norm(streamline - ch_pos["LPM 1"]).min() < thresh
 ]
 
-brain.add_streamlines(streamlines_pick, color="white")
+for streamline in streamlines_pick:
+    brain.add_streamline(streamline, color="white")
 
 brain.show_view(azimuth=120, elevation=90, distance=0.25)
 

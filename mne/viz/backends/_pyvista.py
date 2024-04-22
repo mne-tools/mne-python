@@ -458,10 +458,10 @@ class _PyVistaRenderer(_AbstractRenderer):
             **kwargs,
         )
 
-    def lines(
+    def line(
         self,
-        lines,
-        colors,
+        line,
+        color,
         opacity=1.0,
         backface_culling=False,
         scalars=None,
@@ -473,31 +473,20 @@ class _PyVistaRenderer(_AbstractRenderer):
         polygon_offset=None,
         **kwargs,
     ):
-        actors = list()
-        meshes = list()
-        colors = colors if np.iterable(colors) else [colors] * len(lines)
-        if scalars is None:
-            scalars_lines = [None] * len(lines)
-        else:
-            scalars_lines = scalars if np.iterable(scalars) else [scalars] * len(lines)
-        for line, color, scalars in zip(lines, colors, scalars_lines):
-            actor, mesh = self.polydata(
-                mesh=pyvista.MultipleLines(line),
-                color=color,
-                opacity=opacity,
-                backface_culling=backface_culling,
-                scalars=scalars,
-                colormap=colormap,
-                vmin=vmin,
-                vmax=vmax,
-                interpolate_before_map=interpolate_before_map,
-                line_width=line_width,
-                polygon_offset=polygon_offset,
-                **kwargs,
-            )
-            actors.append(actor)
-            meshes.append(mesh)
-        return actors, meshes
+        return self.polydata(
+            mesh=pyvista.MultipleLines(line),
+            color=color,
+            opacity=opacity,
+            backface_culling=backface_culling,
+            scalars=scalars,
+            colormap=colormap,
+            vmin=vmin,
+            vmax=vmax,
+            interpolate_before_map=interpolate_before_map,
+            line_width=line_width,
+            polygon_offset=polygon_offset,
+            **kwargs,
+        )
 
     def contour(
         self,

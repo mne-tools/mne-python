@@ -4862,6 +4862,8 @@ vmin, vmax : float | {allowed}None
     ``min(data)`` or ``max(data)``, respectively.{extra}
 """
 
+docdict
+
 docdict["vmin_vmax_tfr_plot"] = """
 vmin, vmax : float | None
     Lower and upper bounds of the colormap. See ``vlim``.
