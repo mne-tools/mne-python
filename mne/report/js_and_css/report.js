@@ -165,10 +165,12 @@ const _handleTocLinkClick = (e) => {
     const targetDomId = tocLinkElement.getAttribute('href');
     const targetElement = document.querySelector(targetDomId);
     const top = $(targetElement).offset().top;
-    /* Update URL to reflect the current scroll position */
-    var url = document.URL.replace(/#.*$/, "");
-    url = url + targetDomId;
-    window.location.href = url;
+
+    // Update URL to reflect the current scroll position.
+    // We use history.pushState to change the URL without causing the browser to scroll.
+    history.pushState(null, "", targetDomId);
+
+    // Now scroll to the correct position.
     window.scrollTo(0, top - margin);
 }
 
