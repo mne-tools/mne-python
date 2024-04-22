@@ -8,13 +8,12 @@
 import os.path as op
 
 import numpy as np
-from scipy import linalg
 from scipy.interpolate import interp1d
 from scipy.io import loadmat
 
 from ..._fiff.constants import FIFF
 from ...io import BaseRaw
-from ...utils import _validate_type, warn
+from ...utils import _validate_type, pinv, warn
 from ..nirs import _validate_nirs_info, source_detector_distances
 
 
@@ -71,7 +70,7 @@ def beer_lambert_law(raw, ppf=6.0):
     rename = dict()
     for ii, jj in zip(picks[::2], picks[1::2]):
         EL = abs_coef * distances[ii] * ppf
-        iEL = linalg.pinv(EL)
+        iEL = pinv(EL)
 
         raw._data[[ii, jj]] = iEL @ raw._data[[ii, jj]] * 1e-3
 

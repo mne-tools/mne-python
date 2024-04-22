@@ -137,17 +137,6 @@ def pytest_configure(config):
     ignore:joblib not installed.*:RuntimeWarning
     # qdarkstyle
     ignore:.*Setting theme=.*:RuntimeWarning
-    # scikit-learn using this arg
-    ignore:.*The 'sym_pos' keyword is deprecated.*:DeprecationWarning
-    # Should be removable by 2022/07/08, SciPy savemat issue
-    ignore:.*elementwise comparison failed; returning scalar in.*:FutureWarning
-    # numba with NumPy dev
-    ignore:`np.MachAr` is deprecated.*:DeprecationWarning
-    # matplotlib 3.6 and pyvista/nilearn
-    ignore:.*cmap function will be deprecated.*:
-    # joblib hasn't updated to avoid distutils
-    ignore:.*distutils package is deprecated.*:DeprecationWarning
-    ignore:.*distutils Version classes are deprecated.*:DeprecationWarning
     # nbclient
     ignore:Passing a schema to Validator\.iter_errors is deprecated.*:
     ignore:Unclosed context <zmq.asyncio.Context.*:ResourceWarning
@@ -163,29 +152,14 @@ def pytest_configure(config):
     ignore:Implementing implicit namespace packages.*:DeprecationWarning
     ignore:Deprecated call to `pkg_resources.*:DeprecationWarning
     ignore:pkg_resources is deprecated as an API.*:DeprecationWarning
-    # h5py
-    ignore:`product` is deprecated as of NumPy.*:DeprecationWarning
-    # pandas
-    ignore:In the future `np.long`.*:FutureWarning
-    # https://github.com/joblib/joblib/issues/1454
-    ignore:.*`byte_bounds` is dep.*:DeprecationWarning
     # numpy distutils used by SciPy
     ignore:(\n|.)*numpy\.distutils` is deprecated since NumPy(\n|.)*:DeprecationWarning
     ignore:datetime\.utcfromtimestamp.*is deprecated:DeprecationWarning
     ignore:The numpy\.array_api submodule is still experimental.*:UserWarning
-    # numpy 2.0 <-> SciPy
-    ignore:numpy\.core\._multiarray_umath.*:DeprecationWarning
-    ignore:numpy\.core\.numeric is deprecated.*:DeprecationWarning
-    ignore:numpy\.core\.multiarray is deprecated.*:DeprecationWarning
-    ignore:The numpy\.fft\.helper has been made private.*:DeprecationWarning
     # tqdm (Fedora)
     ignore:.*'tqdm_asyncio' object has no attribute 'last_print_t':pytest.PytestUnraisableExceptionWarning
-    # Until mne-qt-browser > 0.5.2 is released
-    ignore:mne\.io\.pick.channel_indices_by_type is deprecated.*:
     # Windows CIs using MESA get this
     ignore:Mesa version 10\.2\.4 is too old for translucent.*:RuntimeWarning
-    # Matplotlib <-> NumPy 2.0
-    ignore:`row_stack` alias is deprecated.*:DeprecationWarning
     # Matplotlib->tz
     ignore:datetime.datetime.utcfromtimestamp.*:DeprecationWarning
     # joblib

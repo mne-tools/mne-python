@@ -22,7 +22,7 @@ from ._freesurfer import _get_aseg, head_to_mni, head_to_mri, read_freesurfer_lu
 from .bem import _bem_find_surface, _bem_surf_name, _fit_sphere
 from .cov import _ensure_cov, compute_whitener
 from .evoked import _aspect_rev, _read_evoked, _write_evokeds
-from .fixes import _safe_svd, pinvh
+from .fixes import _safe_svd
 from .forward._compute_forward import _compute_forwards_meeg, _prep_field_computation
 from .forward._make_forward import (
     _get_trans,
@@ -50,6 +50,7 @@ from .utils import (
     copy_function_doc_to_method_doc,
     fill_doc,
     logger,
+    pinvh,
     verbose,
     warn,
 )

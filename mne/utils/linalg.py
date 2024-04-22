@@ -28,6 +28,8 @@ import numpy as np
 from scipy import linalg
 from scipy._lib._util import _asarray_validated
 
+from ..fixes import _safe_svd
+
 # For efficiency, names should be str or tuple of str, dtype a builtin
 # NumPy dtype
 
@@ -188,3 +190,30 @@ def _sym_mat_pow(A, power, rcond=1e-7, reduce_rank=False, return_s=False):
     if return_s:
         out = (out, s)
     return out
+
+
+# SciPy deprecation of pinv + pinvh rcond (never worked properly anyway)
+def pinvh(a, rtol=None):
+    """Compute a pseudo-inverse of a Hermitian matrix."""
+    s, u = np.linalg.eigh(a)
+    del a
+    if rtol is None:
+        rtol = s.size * np.finfo(s.dtype).eps
+    maxS = np.max(np.abs(s))
+    above_cutoff = abs(s) > maxS * rtol
+    psigma_diag = 1.0 / s[above_cutoff]
+    u = u[:, above_cutoff]
+    return (u * psigma_diag) @ u.conj().T
+
+
+def pinv(a, rtol=None):
+    """Compute a pseudo-inverse of a matrix."""
+    u, s, vh = _safe_svd(a, full_matrices=False)
+    del a
+    maxS = np.max(s)
+    if rtol is None:
+        rtol = max(vh.shape + u.shape) * np.finfo(u.dtype).eps
+    rank = np.sum(s > maxS * rtol)
+    u = u[:, :rank]
+    u /= s[:rank]
+    return (u @ vh[:rank]).conj().T

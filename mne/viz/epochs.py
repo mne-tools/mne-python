@@ -25,7 +25,6 @@ from .._fiff.pick import (
     _picks_to_idx,
 )
 from ..defaults import _handle_default
-from ..fixes import _sharex
 from ..utils import _check_option, fill_doc, legacy, logger, verbose, warn
 from ..utils.spectrum import _split_psd_kwargs
 from .raw import _setup_channel_selections
@@ -631,7 +630,7 @@ def _plot_epochs_image(
         ax["evoked"].set_xlim(tmin, tmax)
         ax["evoked"].lines[0].set_clip_on(True)
         ax["evoked"].collections[0].set_clip_on(True)
-        _sharex(ax["evoked"], ax_im)
+        ax["evoked"].get_shared_x_axes().join(ax["evoked"], ax_im)
         # fix the axes for proper updating during interactivity
         loc = ax_im.xaxis.get_major_locator()
         ax["evoked"].xaxis.set_major_locator(loc)

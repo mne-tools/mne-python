@@ -16,13 +16,13 @@ from .._fiff.meas_info import create_info
 from ..cov import _compute_rank_raw_array, _regularized_covariance, _smart_eigh
 from ..defaults import _BORDER_DEFAULT, _EXTRAPOLATE_DEFAULT, _INTERPOLATION_DEFAULT
 from ..evoked import EvokedArray
-from ..fixes import pinv
 from ..utils import (
     _check_option,
     _validate_type,
     _verbose_safe_false,
     copy_doc,
     fill_doc,
+    pinv,
 )
 from .base import BaseEstimator
 from .mixin import TransformerMixin

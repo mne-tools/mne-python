@@ -22,7 +22,6 @@ from collections import defaultdict
 from contextlib import contextmanager
 from datetime import datetime
 from functools import partial
-from inspect import signature
 
 import numpy as np
 from decorator import decorator
@@ -59,7 +58,6 @@ from ..utils import (
     _pl,
     _to_rgb,
     _validate_type,
-    check_version,
     fill_doc,
     get_config,
     logger,
@@ -798,10 +796,6 @@ class ClickableImage:
         return lt
 
 
-def _old_mpl_events():
-    return not check_version("matplotlib", "3.6")
-
-
 def _fake_click(fig, ax, point, xform="ax", button=1, kind="press", key=None):
     """Fake a click at a relative point within axes."""
     from matplotlib import backend_bases
@@ -813,40 +807,23 @@ def _fake_click(fig, ax, point, xform="ax", button=1, kind="press", key=None):
     else:
         assert xform == "pix"
         x, y = point
-    # This works on 3.6+, but not on <= 3.5.1 (lasso events not propagated)
-    if _old_mpl_events():
-        if kind == "press":
-            fig.canvas.button_press_event(x=x, y=y, button=button)
-        elif kind == "release":
-            fig.canvas.button_release_event(x=x, y=y, button=button)
-        elif kind == "motion":
-            fig.canvas.motion_notify_event(x=x, y=y)
+    if kind in ("press", "release"):
+        kind = f"button_{kind}_event"
     else:
-        if kind in ("press", "release"):
-            kind = f"button_{kind}_event"
-        else:
-            assert kind == "motion"
-            kind = "motion_notify_event"
-            button = None
-        logger.debug(f"Faking {kind} @ ({x}, {y}) with button={button} and key={key}")
-        fig.canvas.callbacks.process(
-            kind,
-            backend_bases.MouseEvent(
-                name=kind, canvas=fig.canvas, x=x, y=y, button=button, key=key
-            ),
-        )
+        assert kind == "motion"
+        kind = "motion_notify_event"
+        button = None
+    logger.debug(f"Faking {kind} @ ({x}, {y}) with button={button} and key={key}")
+    fig.canvas.callbacks.process(
+        kind,
+        backend_bases.MouseEvent(
+            name=kind, canvas=fig.canvas, x=x, y=y, button=button, key=key
+        ),
+    )
 
 
 def _fake_keypress(fig, key):
-    if _old_mpl_events():
-        fig.canvas.key_press_event(key)
-    else:
-        from matplotlib import backend_bases
-
-        fig.canvas.callbacks.process(
-            "key_press_event",
-            backend_bases.KeyEvent(name="key_press_event", canvas=fig.canvas, key=key),
-        )
+    fig.canvas.key_press_event(key)
 
 
 def _fake_scroll(fig, x, y, step):
@@ -1558,7 +1535,7 @@ class DraggableColorbar:
             self.index = 0
         cmap = self.cycle[self.index]
         self.cbar.mappable.set_cmap(cmap)
-        _draw_without_rendering(self.cbar)
+        self.cbar.ax.figure.draw_without_rendering()
         self.mappable.set_cmap(cmap)
         self._publish()
 
@@ -1622,18 +1599,9 @@ class DraggableColorbar:
 
         self.cbar.set_ticks(AutoLocator())
         self.cbar.update_ticks()
-        _draw_without_rendering(self.cbar)
+        self.cbar.ax.figure.draw_without_rendering()
         self.mappable.set_norm(self.cbar.norm)
         self.cbar.ax.figure.canvas.draw()
-
-
-def _draw_without_rendering(cbar):
-    # draw_all deprecated in Matplotlib 3.6
-    try:
-        meth = cbar.ax.figure.draw_without_rendering
-    except AttributeError:
-        meth = cbar.draw_all
-    return meth()
 
 
 class SelectFromCollection:
@@ -1699,8 +1667,9 @@ class SelectFromCollection:
         self.ec[:, -1] = self.alpha_other
         self.lw = np.full(self.Npts, self.linewidth_other)
 
-        line_kw = _prop_kw("line", dict(color="red", linewidth=0.5))
-        self.lasso = LassoSelector(ax, onselect=self.on_select, **line_kw)
+        self.lasso = LassoSelector(
+            ax, onselect=self.on_select, props=dict(color="red", linewidth=0.5)
+        )
         self.selection = list()
         self.callbacks = list()
 
@@ -2770,15 +2739,6 @@ def _generate_default_filename(ext=".png"):
     return "MNE" + dt_string + ext
 
 
-def _prop_kw(kind, val):
-    # Can be removed in when we depend on matplotlib 3.5+
-    # https://github.com/matplotlib/matplotlib/pull/20585
-    from matplotlib.widgets import SpanSelector
-
-    pre = "" if "props" in signature(SpanSelector).parameters else kind
-    return {pre + "props": val}
-
-
 def _handle_precompute(precompute):
     _validate_type(precompute, (bool, str, None), "precompute")
     if precompute is None:
@@ -2837,12 +2797,7 @@ def _get_cmap(colormap, lut=None):
     elif not isinstance(colormap, colors.Colormap):
         colormap = get_cmap(colormap)
     if lut is not None:
-        # triage method for MPL 3.6 ('resampled') or older ('_resample')
-        if hasattr(colormap, "resampled"):
-            resampled = colormap.resampled
-        else:
-            resampled = colormap._resample
-        colormap = resampled(lut)
+        colormap = colormap.resampled(lut)
     return colormap
 
 
