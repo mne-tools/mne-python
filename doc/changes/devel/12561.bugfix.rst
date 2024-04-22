@@ -1,0 +1,1 @@
+Fix scrolling behavior in :class:`~mne.Report` when clicking on a TOC entry multiple times, by `Richard Höchenberger`_.

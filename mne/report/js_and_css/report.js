@@ -165,10 +165,12 @@ const _handleTocLinkClick = (e) => {
     const targetDomId = tocLinkElement.getAttribute('href');
     const targetElement = document.querySelector(targetDomId);
     const top = $(targetElement).offset().top;
-    /* Update URL to reflect the current scroll position */
-    var url = document.URL.replace(/#.*$/, "");
-    url = url + targetDomId;
-    window.location.href = url;
+
+    // Update URL to reflect the current scroll position.
+    // We use history.pushState to change the URL without causing the browser to scroll.
+    history.pushState(null, "", targetDomId);
+
+    // Now scroll to the correct position.
     window.scrollTo(0, top - margin);
 }
 
@@ -192,6 +194,17 @@ const addSliderEventHandlers = () => {
     slider.addEventListener('input', (e) => {
       const sliderValue = parseInt(e.target.value);
       $(carousel).carousel(sliderValue);
+    })
+
+    // Allow focussing the slider with a click on the slider or carousel, so keyboard
+    // controls (left / right arrow) can be enabled.
+    // This also appears to be the only way to focus the slider in Safari:
+    // https://itnext.io/fixing-focus-for-safari-b5916fef1064?gi=c1b8b043fa9b
+    slider.addEventListener('click', () => {
+      slider.focus({preventScroll: true})
+    })
+    carousel.addEventListener('click', () => {
+      slider.focus({preventScroll: true})
     })
   })
 }
