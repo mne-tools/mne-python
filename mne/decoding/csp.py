@@ -255,6 +255,30 @@ class CSP(TransformerMixin, BaseEstimator):
                 X /= self.std_
         return X
 
+    def inverse_transform(self, X):
+        """Project CSP features back to sensor space.
+
+        Parameters
+        ----------
+        X : array, shape (n_epochs, n_sources)
+            The data in CSP power space.
+
+        Returns
+        -------
+        X : ndarray
+            The data in sensor space and shape (n_epochs, n_channels, n_sources).
+        """
+        if self.transform_into != "average_power":
+            raise NotImplementedError(
+                "Can only inverse transform CSP features when transform_into is "
+                "'average_power'."
+            )
+        if not (X.ndim == 2 and X.shape[1] == self.n_components):
+            raise ValueError(
+                f"X must be 2D with X[1]={self.n_components}, got {X.shape=}"
+            )
+        return X[:, np.newaxis, :] * self.patterns_[: self.n_components].T
+
     @copy_doc(TransformerMixin.fit_transform)
     def fit_transform(self, X, y, **fit_params):  # noqa: D102
         return super().fit_transform(X, y=y, **fit_params)
