@@ -2519,6 +2519,7 @@ class ICA(ContainsMixin):
         reject="auto",
         reject_by_annotation=True,
         *,
+        estimate="power",
         verbose=None,
     ):
         return plot_ica_properties(
@@ -2536,6 +2537,7 @@ class ICA(ContainsMixin):
             show=show,
             reject=reject,
             reject_by_annotation=reject_by_annotation,
+            estimate=estimate,
             verbose=verbose,
         )
 
