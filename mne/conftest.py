@@ -200,6 +200,8 @@ def pytest_configure(config):
     ignore:np\.find_common_type is deprecated.*:DeprecationWarning
     # pyvista <-> NumPy 2.0
     ignore:__array_wrap__ must accept context and return_scalar arguments.*:DeprecationWarning
+    # nibabel <-> NumPy 2.0
+    ignore:__array__ implementation doesn't accept a copy.*:DeprecationWarning
     """  # noqa: E501
     for warning_line in warning_lines.split("\n"):
         warning_line = warning_line.strip()
