@@ -828,9 +828,9 @@ switcher_version_match = "dev" if ".dev" in version else version
 html_theme_options = {
     "icon_links": [
         dict(
-            name="GitHub",
-            url="https://github.com/mne-tools/mne-python",
-            icon="fa-brands fa-square-github fa-fw",
+            name="Discord",
+            url="https://discord.gg/rKfvxTuATa",
+            icon="fa-brands fa-discord fa-fw",
         ),
         dict(
             name="Mastodon",
@@ -844,9 +844,9 @@ html_theme_options = {
             icon="fa-brands fa-discourse fa-fw",
         ),
         dict(
-            name="Discord",
-            url="https://discord.gg/rKfvxTuATa",
-            icon="fa-brands fa-discord fa-fw",
+            name="GitHub",
+            url="https://github.com/mne-tools/mne-python",
+            icon="fa-brands fa-square-github fa-fw",
         ),
     ],
     "icon_links_label": "External Links",  # for screen reader
