@@ -830,28 +830,28 @@ html_theme_options = {
         dict(
             name="GitHub",
             url="https://github.com/mne-tools/mne-python",
-            icon="fa-brands fa-square-github",
+            icon="fa-brands fa-square-github fa-fw",
         ),
         dict(
             name="Mastodon",
             url="https://fosstodon.org/@mne",
-            icon="fa-brands fa-mastodon",
+            icon="fa-brands fa-mastodon fa-fw",
             attributes=dict(rel="me"),
         ),
         dict(
             name="Twitter",
             url="https://twitter.com/mne_python",
-            icon="fa-brands fa-square-twitter",
+            icon="fa-brands fa-square-twitter fa-fw",
         ),
         dict(
             name="Forum",
             url="https://mne.discourse.group/",
-            icon="fa-brands fa-discourse",
+            icon="fa-brands fa-discourse fa-fw",
         ),
         dict(
             name="Discord",
             url="https://discord.gg/rKfvxTuATa",
-            icon="fa-brands fa-discord",
+            icon="fa-brands fa-discord fa-fw",
         ),
     ],
     "icon_links_label": "External Links",  # for screen reader
