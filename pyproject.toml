@@ -315,7 +315,7 @@ modules = ["mne"]
 exclude = '^mne/(beamformer|channels|commands|datasets|decoding|export|forward|gui|html_templates|inverse_sparse|io|minimum_norm|preprocessing|report|simulation|source_space|stats|time_frequency|utils|viz)?/?__init__\.py$'
 
 [[tool.mypy.overrides]]
-module = ['scipy']
+module = ['scipy.*']
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
