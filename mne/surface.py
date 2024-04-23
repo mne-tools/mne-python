@@ -644,7 +644,7 @@ def _safe_query(rr, func, reduce=False, **kwargs):
 class _DistanceQuery:
     """Wrapper for fast distance queries."""
 
-    def __init__(self, xhs, method="BallTree", allow_kdtree=False):
+    def __init__(self, xhs, method="BallTree"):
         assert method in ("BallTree", "KDTree", "cdist")
 
         # Fastest for our problems: balltree
@@ -1660,7 +1660,7 @@ def _find_nearest_tri_pts(
             else:
                 use_pt_tris = s.astype(np.int64)
             pp, qq, ptt, distt = _nearest_tri_edge(
-                use_pt_tris, rr[0], pqs[s], dists[s], a, b, c
+                use_pt_tris, pqs[s], dists[s], a, b, c
             )
             if np.abs(distt) < np.abs(dist):
                 p, q, pt, dist = pp, qq, ptt, distt
@@ -1676,7 +1676,7 @@ def _find_nearest_tri_pts(
 
 
 @jit()
-def _nearest_tri_edge(pt_tris, to_pt, pqs, dist, a, b, c):  # pragma: no cover
+def _nearest_tri_edge(pt_tris, pqs, dist, a, b, c):  # pragma: no cover
     """Get nearest location from a point to the edge of a set of triangles."""
     # We might do something intelligent here. However, for now
     # it is ok to do it in the hard way

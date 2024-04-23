@@ -298,7 +298,6 @@ class Brain:
         views="auto",
         *,
         offset="auto",
-        offscreen=False,
         interaction="trackball",
         units="mm",
         view_layout="vertical",

@@ -377,3 +377,29 @@ showcontent = true
 enabled = true
 verify_pr_number = true
 changelog_skip_label = "no-changelog-entry-needed"
+
+[tool.vulture]
+min_confidence = 70
+paths = ["mne", "tools/vulture_allowlist.py"]
+ignore_names = [
+    'numba_conditional',
+    'options_3d',
+    'invisible_fig',
+    'brain_gc',
+    'windows_like_datetime',
+    'garbage_collect',
+    'renderer_notebook',
+    'qt_windows_closed',
+    'download_is_error',
+    'exitstatus',
+    'startdir',
+    'pg_backend',
+    'recwarn',
+    'verbose_debug',
+    'few_surfaces',
+    'disabled_event_channels',
+    'exc_value',
+    'exc_type',
+]
+sort_by_size = true
+verbose = false

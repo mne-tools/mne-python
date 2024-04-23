@@ -3489,8 +3489,8 @@ def plot_sparse_source_estimates(
                 linestyle=linestyle,
             )
 
-    ax.set_xlabel("Time (ms)", fontsize=18)
-    ax.set_ylabel("Source amplitude (nAm)", fontsize=18)
+    ax.set_xlabel("Time (ms)", fontsize=fontsize)
+    ax.set_ylabel("Source amplitude (nAm)", fontsize=fontsize)
 
     if fig_name is not None:
         ax.set_title(fig_name)

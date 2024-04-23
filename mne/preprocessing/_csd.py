@@ -302,7 +302,7 @@ def compute_bridged_electrodes(
         return bridged_idx, ed_matrix
 
     # kernel density estimation
-    kde = gaussian_kde(ed_flat[ed_flat < lm_cutoff])
+    kde = gaussian_kde(ed_flat[ed_flat < lm_cutoff], bw_method=bw_method)
     with np.errstate(invalid="ignore"):
         local_minimum = float(
             minimize_scalar(

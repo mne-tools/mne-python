@@ -1146,6 +1146,7 @@ def _tf_mixed_norm_solver_bcd_(
     lipschitz_constant,
     phi,
     phiT,
+    *,
     w_space=None,
     w_time=None,
     n_orient=1,
@@ -1153,8 +1154,6 @@ def _tf_mixed_norm_solver_bcd_(
     tol=1e-8,
     dgap_freq=10,
     perc=None,
-    timeit=True,
-    verbose=None,
 ):
     n_sources = G.shape[1]
     n_positions = n_sources // n_orient
@@ -1291,6 +1290,7 @@ def _tf_mixed_norm_solver_bcd_active_set(
     lipschitz_constant,
     phi,
     phiT,
+    *,
     Z_init=None,
     w_space=None,
     w_time=None,

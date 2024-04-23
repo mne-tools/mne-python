@@ -5,6 +5,8 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+from contextlib import nullcontext
+
 import numpy as np
 import pytest
 from numpy.testing import assert_almost_equal, assert_array_almost_equal
@@ -21,7 +23,7 @@ from mne.time_frequency._stft import stft_norm2
 def test_stft(T, wsize, tstep, f):
     """Test stft and istft tight frame property."""
     sfreq = 1000.0  # Hz
-    if True:  # just to minimize diff
+    with nullcontext():  # just to minimize diff
         # Test with low frequency signal
         t = np.arange(T).astype(np.float64)
         x = np.sin(2 * np.pi * f * t / sfreq)

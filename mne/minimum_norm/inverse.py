@@ -889,7 +889,7 @@ def _assemble_kernel(inv, label, method, pick_ori, use_cps=True, verbose=None):
     return K, noise_norm, vertno, source_nn
 
 
-def _check_ori(pick_ori, source_ori, src, allow_vector=True):
+def _check_ori(pick_ori, source_ori, src):
     """Check pick_ori."""
     _check_option("pick_ori", pick_ori, [None, "normal", "vector"])
     _check_src_normal(pick_ori, src)
