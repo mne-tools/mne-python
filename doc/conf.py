@@ -854,7 +854,12 @@ html_theme_options = {
     "navigation_with_keys": False,
     "show_toc_level": 1,
     "article_header_start": [],  # disable breadcrumbs
-    "navbar_end": ["theme-switcher", "version-switcher", "navbar-icon-links"],
+    "navbar_end": [
+        "search-button.html",
+        "theme-switcher",
+        "version-switcher",
+        "navbar-icon-links"
+    ],
     "footer_start": ["copyright"],
     "secondary_sidebar_items": ["page-toc", "edit-this-page"],
     "analytics": dict(google_analytics_id="G-5TBCPCRB6X"),
