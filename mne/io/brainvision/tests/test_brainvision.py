@@ -416,13 +416,10 @@ def test_brainvision_data_lowpass_filters():
         raw = _test_raw_reader(
             read_raw_brainvision, vhdr_fname=vhdr_mixed_lowpass_path, eog=eog
         )
-
-    lowpass_warning = ["different lowpass filters" in str(ww.message) for ww in w]
-    highpass_warning = ["different highpass filters" in str(ww.message) for ww in w]
-
-    expected_warnings = zip(lowpass_warning, highpass_warning)
-
-    assert all(any([lp, hp]) for lp, hp in expected_warnings)
+    assert len(w)  # not empty
+    for ww in w:  # all messages are about lowpass or highpass
+        ww = str(ww.message)
+        assert re.match(".*different (low|high)pass filters.*", ww) is not None, ww
 
     assert raw.info["highpass"] == 1.0 / (2 * np.pi * 10)
     assert raw.info["lowpass"] == 250.0
