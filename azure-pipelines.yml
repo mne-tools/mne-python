@@ -69,8 +69,10 @@ stages:
             displayName: make check-readme
             condition: always()
           - bash: mypy
+            displayName: mypy
             condition: always()
           - bash: vulture
+            displayName: vulture
             condition: always()
 
 

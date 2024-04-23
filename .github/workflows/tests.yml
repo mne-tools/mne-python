@@ -23,7 +23,7 @@ jobs:
           python-version: '3.12'
       - uses: pre-commit/action@v3.0.1
       - run: pip install mypy numpy scipy vulture
-      - run: mypy --install-types --non-interactive
+      - run: mypy
       - run: vulture
 
   bandit:
