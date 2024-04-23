@@ -35,7 +35,6 @@ from mne.report import report as report_mod
 from mne.report.report import (
     _ALLOWED_IMAGE_FORMATS,
     CONTENT_ORDER,
-    _webp_supported,
 )
 from mne.utils import Bunch, _record_warnings
 from mne.utils._testing import assert_object_equal
@@ -1195,11 +1194,6 @@ def test_tags(tags, str_or_array, wrong_dtype, invalid_chars):
 @pytest.mark.parametrize("image_format", _ALLOWED_IMAGE_FORMATS)
 def test_image_format(image_format):
     """Test image format support."""
-    if image_format == "webp":
-        if not _webp_supported():
-            with pytest.raises(ValueError, match="matplotlib"):
-                Report(image_format="webp")
-            return
     r = Report(image_format=image_format)
     fig1, _ = _get_example_figures()
     r.add_figure(fig1, "fig1")
