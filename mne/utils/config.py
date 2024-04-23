@@ -486,7 +486,7 @@ def get_subjects_dir(subjects_dir=None, raise_error=False):
             if from_config:
                 msg = (
                     "SUBJECTS_DIR in your MNE-Python configuration or environment "
-                    "does not exist, considering using mne.set_config to fix it: "
+                    "does not exist, consider using mne.set_config to fix it: "
                     f"{subjects_dir}"
                 )
                 if raise_error:
