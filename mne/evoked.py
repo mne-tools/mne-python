@@ -1242,7 +1242,7 @@ class Evoked(
         method="auto",
         average=False,
         dB=True,
-        estimate="auto",
+        estimate="power",
         xscale="linear",
         area_mode="std",
         area_alpha=0.33,

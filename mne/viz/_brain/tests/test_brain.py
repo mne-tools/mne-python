@@ -1141,8 +1141,7 @@ def test_brain_scraper(renderer_interactive_pyvistaqt, brain_gc, tmp_path):
     img = image.imread(fname)
     w = img.shape[1]
     w0 = size[0]
-    # With matplotlib 3.6 on Linux+conda we get a width of 624,
-    # similar tweak in test_brain_init above
+    # On Linux+conda we get a width of 624, similar tweak in test_brain_init above
     assert np.isclose(w, w0, atol=30) or np.isclose(
         w, w0 * 2, atol=30
     ), f"w ∉ {{{w0}, {2 * w0}}}"  # HiDPI

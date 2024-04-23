@@ -14,7 +14,7 @@ from ..decoding import BaseEstimator, TransformerMixin
 from ..epochs import BaseEpochs
 from ..evoked import Evoked, EvokedArray
 from ..io import BaseRaw
-from ..utils import _check_option, logger
+from ..utils import _check_option, logger, pinv
 
 
 def _construct_signal_from_epochs(epochs, events, sfreq, tmin):
@@ -92,7 +92,7 @@ def _least_square_evoked(epochs_data, events, tmin, sfreq):
     X = np.concatenate(toeplitz)
 
     # least square estimation
-    predictor = np.dot(linalg.pinv(np.dot(X, X.T)), X)
+    predictor = np.dot(pinv(np.dot(X, X.T)), X)
     evokeds = np.dot(predictor, raw.T)
     evokeds = np.transpose(np.vsplit(evokeds, len(classes)), (0, 2, 1))
     return evokeds, toeplitz

@@ -8,7 +8,6 @@
 import numpy as np
 
 from ..defaults import DEFAULTS
-from ..fixes import pinv
 from ..utils import (
     _check_option,
     _check_preload,
@@ -16,6 +15,7 @@ from ..utils import (
     _validate_type,
     fill_doc,
     logger,
+    pinv,
     verbose,
     warn,
 )

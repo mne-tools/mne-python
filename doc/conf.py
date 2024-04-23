@@ -1382,8 +1382,6 @@ def reset_warnings(gallery_conf, fname):
         message="The figure layout has changed to tight",
         category=UserWarning,
     )
-    # matplotlib 3.6 in nilearn and pyvista
-    warnings.filterwarnings("ignore", message=".*cmap function will be deprecated.*")
     # xarray/netcdf4
     warnings.filterwarnings(
         "ignore",

@@ -16,11 +16,12 @@ Generate a bootstrap-icons CSS file with embedded font.
 # Copyright the MNE-Python contributors.
 
 import base64
+import mne
 from pathlib import Path
 
 import rcssmin
 
-base_dir = Path(".")
+base_dir = Path(mne.__file__).parent / "report" / "js_and_css" / "bootstrap-icons"
 css_path_in = base_dir / "bootstrap-icons.css"
 css_path_out = base_dir / "bootstrap-icons.mne.css"
 css_minified_path_out = base_dir / "bootstrap-icons.mne.min.css"

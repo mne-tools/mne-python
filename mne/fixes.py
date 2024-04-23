@@ -21,7 +21,6 @@ import inspect
 import operator as operator_module
 import os
 import warnings
-from contextlib import contextmanager
 from io import StringIO
 from math import log
 from pprint import pprint
@@ -814,7 +813,6 @@ else:
 
 # workaround: plt.close() doesn't spawn close_event on Agg backend
 # https://github.com/matplotlib/matplotlib/issues/18609
-# scheduled to be fixed by MPL 3.6
 def _close_event(fig):
     """Force calling of the MPL figure close event."""
     from matplotlib import backend_bases
@@ -832,63 +830,8 @@ def _close_event(fig):
         pass  # pragma: no cover
 
 
-def _is_last_row(ax):
-    try:
-        return ax.get_subplotspec().is_last_row()  # 3.4+
-    except AttributeError:
-        return ax.is_last_row()
-    return ax.get_subplotspec().is_last_row()
-
-
-def _sharex(ax1, ax2):
-    if hasattr(ax1.axes, "sharex"):
-        ax1.axes.sharex(ax2)
-    else:
-        ax1.get_shared_x_axes().join(ax1, ax2)
-
-
 ###############################################################################
-# SciPy deprecation of pinv + pinvh rcond (never worked properly anyway) in 1.7
-
-
-def pinvh(a, rtol=None):
-    """Compute a pseudo-inverse of a Hermitian matrix."""
-    s, u = np.linalg.eigh(a)
-    del a
-    if rtol is None:
-        rtol = s.size * np.finfo(s.dtype).eps
-    maxS = np.max(np.abs(s))
-    above_cutoff = abs(s) > maxS * rtol
-    psigma_diag = 1.0 / s[above_cutoff]
-    u = u[:, above_cutoff]
-    return (u * psigma_diag) @ u.conj().T
-
-
-def pinv(a, rtol=None):
-    """Compute a pseudo-inverse of a matrix."""
-    u, s, vh = _safe_svd(a, full_matrices=False)
-    del a
-    maxS = np.max(s)
-    if rtol is None:
-        rtol = max(vh.shape + u.shape) * np.finfo(u.dtype).eps
-    rank = np.sum(s > maxS * rtol)
-    u = u[:, :rank]
-    u /= s[:rank]
-    return (u @ vh[:rank]).conj().T
-
-
-###############################################################################
-# h5py uses np.product which is deprecated in NumPy 1.25
-
-
-@contextmanager
-def _numpy_h5py_dep():
-    # h5io uses np.product
-    with warnings.catch_warnings(record=True):
-        warnings.filterwarnings(
-            "ignore", "`product` is deprecated.*", DeprecationWarning
-        )
-        yield
+# SciPy 1.14+ minimum_phase half=True option
 
 
 def minimum_phase(h, method="homomorphic", n_fft=None, *, half=True):

@@ -74,9 +74,9 @@ Dependencies
 The minimum required dependencies to run MNE-Python are:
 
 - `Python <https://www.python.org>`__ ≥ 3.9
-- `NumPy <https://numpy.org>`__ ≥ 1.21.2
-- `SciPy <https://scipy.org>`__ ≥ 1.7.1
-- `Matplotlib <https://matplotlib.org>`__ ≥ 3.5.0
+- `NumPy <https://numpy.org>`__ ≥ 1.23
+- `SciPy <https://scipy.org>`__ ≥ 1.9
+- `Matplotlib <https://matplotlib.org>`__ ≥ 3.6
 - `Pooch <https://www.fatiando.org/pooch/latest/>`__ ≥ 1.5
 - `tqdm <https://tqdm.github.io>`__
 - `Jinja2 <https://palletsprojects.com/p/jinja/>`__
@@ -85,9 +85,9 @@ The minimum required dependencies to run MNE-Python are:
 
 For full functionality, some functions require:
 
-- `scikit-learn <https://scikit-learn.org/stable/>`__ ≥ 1.0
+- `scikit-learn <https://scikit-learn.org/stable/>`__ ≥ 1.1
 - `Joblib <https://joblib.readthedocs.io/en/latest/index.html>`__ ≥ 0.15 (for parallelization)
-- `mne-qt-browser <https://github.com/mne-tools/mne-qt-browser>`__ ≥ 0.1 (for fast raw data visualization)
+- `mne-qt-browser <https://github.com/mne-tools/mne-qt-browser>`__ ≥ 0.5 (for fast raw data visualization)
 - `Qt <https://www.qt.io>`__ ≥ 5.15 via one of the following bindings (for fast raw data visualization and interactive 3D visualization):
 
   - `PyQt6 <https://www.riverbankcomputing.com/software/pyqt/>`__ ≥ 6.0

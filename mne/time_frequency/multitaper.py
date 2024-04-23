@@ -474,7 +474,6 @@ def tfr_array_multitaper(
     n_jobs=None,
     *,
     verbose=None,
-    epoch_data=None,
 ):
     """Compute Time-Frequency Representation (TFR) using DPSS tapers.
 
@@ -508,10 +507,6 @@ def tfr_array_multitaper(
     %(n_jobs)s
         The parallelization is implemented across channels.
     %(verbose)s
-    epoch_data : None
-        Deprecated parameter for providing epoched data as of 1.7, will be replaced with
-        the ``data`` parameter in 1.8. New code should use the ``data`` parameter. If
-        ``epoch_data`` is not ``None``, a warning will be raised.
 
     Returns
     -------
@@ -545,13 +540,6 @@ def tfr_array_multitaper(
     .. versionadded:: 0.14.0
     """
     from .tfr import _compute_tfr
-
-    if epoch_data is not None:
-        warn(
-            "The parameter for providing data will be switched from `epoch_data` to "
-            "`data` in 1.8. Use the `data` parameter to avoid this warning.",
-            FutureWarning,
-        )
 
     return _compute_tfr(
         data,
