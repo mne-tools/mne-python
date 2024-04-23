@@ -823,7 +823,12 @@ def _fake_click(fig, ax, point, xform="ax", button=1, kind="press", key=None):
 
 
 def _fake_keypress(fig, key):
-    fig.canvas.key_press_event(key)
+    from matplotlib import backend_bases
+
+    fig.canvas.callbacks.process(
+        "key_press_event",
+        backend_bases.KeyEvent(name="key_press_event", canvas=fig.canvas, key=key),
+    )
 
 
 def _fake_scroll(fig, x, y, step):
