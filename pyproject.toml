@@ -313,7 +313,6 @@ strict = false
 modules = ["mne"]
 # Avoid the conflict between mne/__init__.py and mne/__init__.pyi by ignoring the former
 exclude = '^mne/(beamformer|channels|commands|datasets|decoding|export|forward|gui|html_templates|inverse_sparse|io|minimum_norm|preprocessing|report|simulation|source_space|stats|time_frequency|utils|viz)?/?__init__\.py$'
-additional_dependencies = ["numpy==1.26.2"]
 
 [[tool.mypy.overrides]]
 module = ['mne.annotations', 'mne.epochs', 'mne.evoked', 'mne.io']
