@@ -1362,6 +1362,8 @@ def reset_warnings(gallery_conf, fname):
         r"DataFrameGroupBy\.apply operated on the grouping columns.*",
         # pandas
         r"\nPyarrow will become a required dependency of pandas.*",
+        # latexcodec
+        r"open_text is deprecated\. Use files.*",
     ):
         warnings.filterwarnings(  # deal with other modules having bad imports
             "ignore", message=".*%s.*" % key, category=DeprecationWarning
