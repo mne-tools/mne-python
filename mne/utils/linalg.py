@@ -194,7 +194,20 @@ def _sym_mat_pow(A, power, rcond=1e-7, reduce_rank=False, return_s=False):
 
 # SciPy deprecation of pinv + pinvh rcond (never worked properly anyway)
 def pinvh(a, rtol=None):
-    """Compute a pseudo-inverse of a Hermitian matrix."""
+    """Compute a pseudo-inverse of a Hermitian matrix.
+
+    Parameters
+    ----------
+    a : ndarray, shape (n, n)
+        The Hermitian array to invert.
+    rtol : float | None
+        The relative tolerance.
+
+    Returns
+    -------
+    a_pinv : ndarray, shape (n, n)
+        The pseudo-inverse of a.
+    """
     s, u = np.linalg.eigh(a)
     del a
     if rtol is None:
@@ -207,7 +220,20 @@ def pinvh(a, rtol=None):
 
 
 def pinv(a, rtol=None):
-    """Compute a pseudo-inverse of a matrix."""
+    """Compute a pseudo-inverse of a matrix.
+
+    Parameters
+    ----------
+    a : ndarray, shape (n, m)
+        The array to invert.
+    rtol : float | None
+        The relative tolerance.
+
+    Returns
+    -------
+    a_pinv : ndarray, shape (m, n)
+        The pseudo-inverse of a.
+    """
     u, s, vh = _safe_svd(a, full_matrices=False)
     del a
     maxS = np.max(s)
