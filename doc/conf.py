@@ -858,7 +858,7 @@ html_theme_options = {
         "search-button.html",
         "theme-switcher",
         "version-switcher",
-        "navbar-icon-links"
+        "navbar-icon-links",
     ],
     "footer_start": ["copyright"],
     "secondary_sidebar_items": ["page-toc", "edit-this-page"],
