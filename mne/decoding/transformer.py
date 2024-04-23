@@ -217,7 +217,7 @@ class Scaler(TransformerMixin, BaseEstimator):
 
         Parameters
         ----------
-        epochs_data : array, shape (n_epochs, n_channels, n_times)
+        epochs_data : array, shape ([n_epochs, ]n_channels, n_times)
             The data.
 
         Returns
@@ -230,8 +230,16 @@ class Scaler(TransformerMixin, BaseEstimator):
         This function makes a copy of the data before the operations and the
         memory usage may be large with big data.
         """
+        squeeze = False
+        # Can happen with CSP
+        if epochs_data.ndim == 2:
+            squeeze = True
+            epochs_data = epochs_data[..., np.newaxis]
         assert epochs_data.ndim == 3, epochs_data.shape
-        return _sklearn_reshape_apply(self._scaler.inverse_transform, True, epochs_data)
+        out = _sklearn_reshape_apply(self._scaler.inverse_transform, True, epochs_data)
+        if squeeze:
+            out = out[..., 0]
+        return out
 
 
 class Vectorizer(TransformerMixin):
