@@ -52,6 +52,7 @@ def test_multitaper_psd(n_times, adaptive, n_jobs):
         data, sfreq, adaptive=adaptive, jackknife=False
     )
     # compare
+    assert_array_almost_equal(freqs, freqs_ni)
     assert_array_almost_equal(psd, psd_ni, decimal=4)
     # assert_array_equal(freqs, freqs_ni)
     # ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑

@@ -1095,12 +1095,6 @@ def _fit_chpi_quat_subset(coil_dev_rrs, coil_head_rrs, use_idx):
     return quat, g, np.array(out_idx, int)
 
 
-@jit()
-def _unit_quat_constraint(x):
-    """Constrain our 3 quaternion rot params (ignoring w) to have norm <= 1."""
-    return 1 - (x * x).sum()
-
-
 @verbose
 def compute_chpi_snr(
     raw, t_step_min=0.01, t_window="auto", ext_order=1, tmin=0, tmax=None, verbose=None

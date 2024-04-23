@@ -141,7 +141,6 @@ CONTENT_ORDER = (
 )
 
 html_include_dir = Path(__file__).parent / "js_and_css"
-template_dir = Path(__file__).parent / "templates"
 JAVASCRIPT = (html_include_dir / "report.js").read_text(encoding="utf-8")
 CSS = (html_include_dir / "report.css").read_text(encoding="utf-8")
 
@@ -4253,19 +4252,10 @@ class Report:
         )
 
 
-def _clean_tags(tags):
-    if isinstance(tags, str):
-        tags = (tags,)
-
-    # Replace any whitespace characters with dashes
-    tags_cleaned = tuple(re.sub(r"[\s*]", "-", tag) for tag in tags)
-    return tags_cleaned
-
-
 def _recursive_search(path, pattern):
     """Auxiliary function for recursive_search of the directory."""
     filtered_files = list()
-    for dirpath, dirnames, files in os.walk(path):
+    for dirpath, _, files in os.walk(path):
         for f in fnmatch.filter(files, pattern):
             # only the following file types are supported
             # this ensures equitable distribution of jobs

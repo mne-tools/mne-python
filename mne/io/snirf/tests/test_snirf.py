@@ -55,7 +55,6 @@ nirx_nirsport2_103_2 = (
 snirf_nirsport2_20219 = (
     testing_path / "SNIRF" / "NIRx" / "NIRSport2" / "2021.9" / "2021-10-01_002.snirf"
 )
-nirx_nirsport2_20219 = testing_path / "NIRx" / "nirsport_v2" / "aurora_2021_9"
 
 # Kernel
 kernel_hb = testing_path / "SNIRF" / "Kernel" / "Flow50" / "Portal_2021_11" / "hb.snirf"

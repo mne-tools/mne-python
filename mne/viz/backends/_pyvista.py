@@ -1089,13 +1089,6 @@ def _to_pos(azimuth, elevation):
     return x, y, z
 
 
-def _mat_to_array(vtk_mat):
-    e = [vtk_mat.GetElement(i, j) for i in range(4) for j in range(4)]
-    arr = np.array(e, dtype=float)
-    arr.shape = (4, 4)
-    return arr
-
-
 def _3d_to_2d(plotter, xyz):
     # https://vtk.org/Wiki/VTK/Examples/Cxx/Utilities/Coordinate
     coordinate = vtkCoordinate()

@@ -1022,12 +1022,6 @@ def _get_flim(flim, fscale, freq, sfreq=None):
     return flim
 
 
-def _check_fscale(fscale):
-    """Check for valid fscale."""
-    if not isinstance(fscale, str) or fscale not in ("log", "linear"):
-        raise ValueError(f'fscale must be "log" or "linear", got {fscale}')
-
-
 _DEFAULT_ALIM = (-80, 10)
 
 

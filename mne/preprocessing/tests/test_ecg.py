@@ -36,6 +36,10 @@ def test_find_ecg():
         events, ch_ECG, average_pulse, ecg = find_ecg_events(
             raw, event_id=999, ch_name=ch_name, tstart=tstart, return_ecg=True
         )
+        if ch_name is None:
+            assert ch_ECG is None
+        else:
+            assert raw.ch_names[ch_ECG] == ch_name
         assert raw.n_times == ecg.shape[-1]
         assert 40 < average_pulse < 60
         n_events = len(events)

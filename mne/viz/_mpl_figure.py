@@ -1100,7 +1100,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         checkbox.on_clicked(self._toggle_draggable_annotations)
         fig.mne.drag_checkbox = checkbox
         # reposition & resize axes
-        width_in, height_in = fig.get_size_inches()
+        width_in, _ = fig.get_size_inches()
         width_ax = fig._inch_to_rel(
             width_in - ANNOTATION_FIG_CHECKBOX_COLUMN_W - 3 * ANNOTATION_FIG_PAD
         )

@@ -54,7 +54,7 @@ def _assert_line_endings(dir_):
         ".cov",
         ".label",
     )
-    for dirpath, dirnames, filenames in os.walk(dir_):
+    for dirpath, _, filenames in os.walk(dir_):
         for fname in filenames:
             if op.splitext(fname)[1] not in good_exts or fname in skip_files:
                 continue

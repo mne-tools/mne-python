@@ -387,7 +387,14 @@ verify_pr_number = true
 changelog_skip_label = "no-changelog-entry-needed"
 
 [tool.vulture]
-min_confidence = 70
-paths = ["mne", "tools/vulture_allowlist.py"]
-sort_by_size = true
+min_confidence = 60
+paths = ['mne', 'tools/vulture_allowlist.py']
+ignore_decorators = ['@observe']
+exclude = [
+    'conftest.py',
+    'constants.py',
+    'mne/viz/backends/_qt.py',
+    'mne/viz/backends/_abstract.py',
+    'mne/viz/backends/_notebook.py',
+]
 verbose = false

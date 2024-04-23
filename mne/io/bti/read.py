@@ -33,21 +33,6 @@ def read_char(fid, count=1):
     return _unpack_simple(fid, ">S%s" % count, "S")
 
 
-def read_bool(fid):
-    """Read bool value from bti file."""
-    return _unpack_simple(fid, ">?", bool)
-
-
-def read_uint8(fid):
-    """Read unsigned 8bit integer from bti file."""
-    return _unpack_simple(fid, ">u1", np.uint8)
-
-
-def read_int8(fid):
-    """Read 8bit integer from bti file."""
-    return _unpack_simple(fid, ">i1", np.int8)
-
-
 def read_uint16(fid):
     """Read unsigned 16bit integer from bti file."""
     return _unpack_simple(fid, ">u2", np.uint32)
@@ -66,11 +51,6 @@ def read_uint32(fid):
 def read_int32(fid):
     """Read 32bit integer from bti file."""
     return _unpack_simple(fid, ">i4", np.int32)
-
-
-def read_uint64(fid):
-    """Read unsigned 64bit integer from bti file."""
-    return _unpack_simple(fid, ">u8", np.uint64)
 
 
 def read_int64(fid):

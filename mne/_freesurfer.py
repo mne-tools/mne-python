@@ -502,23 +502,6 @@ def estimate_head_mri_t(subject, subjects_dir=None, verbose=None):
     return invert_transform(compute_native_head_t(montage))
 
 
-def _ensure_image_in_surface_RAS(image, subject, subjects_dir):
-    """Check if the image is in Freesurfer surface RAS space."""
-    nib = _import_nibabel("load a volume image")
-    if not isinstance(image, nib.spatialimages.SpatialImage):
-        image = nib.load(image)
-    image = nib.MGHImage(image.dataobj.astype(np.float32), image.affine)
-    fs_img = nib.load(op.join(subjects_dir, subject, "mri", "brain.mgz"))
-    if not np.allclose(image.affine, fs_img.affine, atol=1e-6):
-        raise RuntimeError(
-            "The `image` is not aligned to Freesurfer "
-            "surface RAS space. This space is required as "
-            "it is the space where the anatomical "
-            "segmentation and reconstructed surfaces are"
-        )
-    return image  # returns MGH image for header
-
-
 def _get_affine_from_lta_info(lines):
     """Get the vox2ras affine from lta file info."""
     volume_data = np.loadtxt([line.split("=")[1] for line in lines])

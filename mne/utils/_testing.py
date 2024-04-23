@@ -10,7 +10,6 @@ import sys
 import tempfile
 import traceback
 from functools import wraps
-from io import StringIO
 from shutil import rmtree
 from unittest import SkipTest
 
@@ -139,23 +138,6 @@ class ArgvSetter:
         sys.argv = self.orig_argv
         sys.stdout = self.orig_stdout
         sys.stderr = self.orig_stderr
-
-
-class SilenceStdout:
-    """Silence stdout."""
-
-    def __init__(self, close=True):
-        self.close = close
-
-    def __enter__(self):  # noqa: D105
-        self.stdout = sys.stdout
-        sys.stdout = StringIO()
-        return sys.stdout
-
-    def __exit__(self, *args):  # noqa: D105
-        if self.close:
-            sys.stdout.close()
-        sys.stdout = self.stdout
 
 
 def has_mne_c():

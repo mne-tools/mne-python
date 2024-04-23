@@ -970,61 +970,6 @@ def _pair_grad_sensors(
         return picks
 
 
-# this function is used to pair grad when info is not present
-# it is the case of Projection that don't have the info.
-def _pair_grad_sensors_ch_names_vectorview(ch_names):
-    """Find the indices for pairing grad channels in a Vectorview system.
-
-    Parameters
-    ----------
-    ch_names : list of str
-        A list of channel names.
-
-    Returns
-    -------
-    indexes : list of int
-        Indices of the grad channels, ordered in pairs.
-    """
-    pairs = defaultdict(list)
-    for i, name in enumerate(ch_names):
-        if name.startswith("MEG"):
-            if name.endswith(("2", "3")):
-                key = name[-4:-1]
-                pairs[key].append(i)
-
-    pairs = [p for p in pairs.values() if len(p) == 2]
-
-    grad_chs = sum(pairs, [])
-    return grad_chs
-
-
-# this function is used to pair grad when info is not present
-# it is the case of Projection that don't have the info.
-def _pair_grad_sensors_ch_names_neuromag122(ch_names):
-    """Find the indices for pairing grad channels in a Neuromag 122 system.
-
-    Parameters
-    ----------
-    ch_names : list of str
-        A list of channel names.
-
-    Returns
-    -------
-    indexes : list of int
-        Indices of the grad channels, ordered in pairs.
-    """
-    pairs = defaultdict(list)
-    for i, name in enumerate(ch_names):
-        if name.startswith("MEG"):
-            key = (int(name[-3:]) - 1) // 2
-            pairs[key].append(i)
-
-    pairs = [p for p in pairs.values() if len(p) == 2]
-
-    grad_chs = sum(pairs, [])
-    return grad_chs
-
-
 def _merge_ch_data(data, ch_type, names, method="rms"):
     """Merge data from channel pairs.
 

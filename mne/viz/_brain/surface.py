@@ -95,7 +95,6 @@ class _Surface:
         self.coords = None
         self.curv = None
         self.faces = None
-        self.grey_curv = None
         self.nn = None
         self.labels = dict()
         self.x_dir = x_dir
@@ -178,14 +177,6 @@ class _Surface:
         if path.isfile(curv_path):
             self.curv = read_curvature(curv_path, binary=False)
             self.bin_curv = np.array(self.curv > 0, np.int64)
-            color = (self.curv > 0).astype(float)
         else:
             self.curv = None
             self.bin_curv = None
-            color = np.ones(self.coords.shape[0])
-        # morphometry (curvature) normalization in order to get gray cortex
-        # TODO: delete self.grey_curv after cortex parameter
-        # will be fully supported
-        color = 0.5 - (color - 0.5) / 3
-        color = color[:, np.newaxis] * [1, 1, 1]
-        self.grey_curv = color

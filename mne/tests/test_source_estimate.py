@@ -1462,7 +1462,7 @@ def test_source_estime_project(real):
     want_nn /= np.linalg.norm(want_nn, axis=1, keepdims=True)
 
     stc = VolVectorSourceEstimate(data, [np.arange(n_src)], 0, 1)
-    stc_max, directions = stc.project("pca")
+    _, directions = stc.project("pca")
     flips = np.sign(np.sum(directions * want_nn, axis=1, keepdims=True))
     directions *= flips
     assert_allclose(directions, want_nn, atol=2e-6)
@@ -1521,9 +1521,6 @@ def invs():
     expected_nn = np.concatenate([_get_src_nn(s) for s in fwd["src"]])
     assert_allclose(fixed["source_nn"], expected_nn, atol=1e-7)
     return evoked, free, free_surf, freeish, fixed, fixedish
-
-
-bad_normal = pytest.param("normal", marks=pytest.mark.xfail(raises=AssertionError))
 
 
 @pytest.mark.parametrize("pick_ori", [None, "normal", "vector"])

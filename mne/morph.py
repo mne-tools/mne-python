@@ -808,17 +808,17 @@ def _check_zooms(mri_from, zooms, zooms_src_to):
     return zooms
 
 
-def _resample_from_to(img, affine, to_vox_map):
-    # Wrap to dipy for speed, equivalent to:
-    # from nibabel.processing import resample_from_to
-    # from nibabel.spatialimages import SpatialImage
-    # return _get_img_fdata(
-    #     resample_from_to(SpatialImage(img, affine), to_vox_map, order=1))
-    import dipy.align.imaffine
-
-    return dipy.align.imaffine.AffineMap(
-        None, to_vox_map[0], to_vox_map[1], img.shape, affine
-    ).transform(img, resample_only=True)
+# def _resample_from_to(img, affine, to_vox_map):
+#     # Wrap to dipy for speed, equivalent to:
+#     # from nibabel.processing import resample_from_to
+#     # from nibabel.spatialimages import SpatialImage
+#     # return _get_img_fdata(
+#     #     resample_from_to(SpatialImage(img, affine), to_vox_map, order=1))
+#     import dipy.align.imaffine
+#
+#     return dipy.align.imaffine.AffineMap(
+#         None, to_vox_map[0], to_vox_map[1], img.shape, affine
+#     ).transform(img, resample_only=True)
 
 
 ###############################################################################

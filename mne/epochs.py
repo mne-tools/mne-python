@@ -4482,18 +4482,6 @@ def bootstrap(epochs, random_state=None):
     return epochs_bootstrap
 
 
-def _check_merge_epochs(epochs_list):
-    """Aux function."""
-    if len({tuple(epochs.event_id.items()) for epochs in epochs_list}) != 1:
-        raise NotImplementedError("Epochs with unequal values for event_id")
-    if len({epochs.tmin for epochs in epochs_list}) != 1:
-        raise NotImplementedError("Epochs with unequal values for tmin")
-    if len({epochs.tmax for epochs in epochs_list}) != 1:
-        raise NotImplementedError("Epochs with unequal values for tmax")
-    if len({epochs.baseline for epochs in epochs_list}) != 1:
-        raise NotImplementedError("Epochs with unequal values for baseline")
-
-
 def _concatenate_epochs(
     epochs_list, *, with_data=True, add_offset=True, on_mismatch="raise"
 ):

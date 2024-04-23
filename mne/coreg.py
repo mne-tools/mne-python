@@ -760,28 +760,6 @@ def _is_mri_subject(subject, subjects_dir=None):
     )
 
 
-def _is_scaled_mri_subject(subject, subjects_dir=None):
-    """Check whether a directory in subjects_dir is a scaled mri subject.
-
-    Parameters
-    ----------
-    subject : str
-        Name of the potential subject/directory.
-    subjects_dir : None | path-like
-        Override the SUBJECTS_DIR environment variable.
-
-    Returns
-    -------
-    is_scaled_mri_subject : bool
-        Whether ``subject`` is a scaled mri subject.
-    """
-    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-    if not _is_mri_subject(subject, subjects_dir):
-        return False
-    fname = subjects_dir / subject / "MRI scaling parameters.cfg"
-    return fname.exists()
-
-
 def _mri_subject_has_bem(subject, subjects_dir=None):
     """Check whether an mri subject has a file matching the bem pattern.
 
@@ -1479,7 +1457,6 @@ class Coregistration:
         self._scale_mode = None
         self._on_defects = on_defects
 
-        self._rot_trans = None
         self._default_parameters = np.array(
             [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0]
         )
@@ -1487,7 +1464,6 @@ class Coregistration:
         self._rotation = self._default_parameters[:3]
         self._translation = self._default_parameters[3:6]
         self._scale = self._default_parameters[6:9]
-        self._icp_iterations = 20
         self._icp_angle = 0.2
         self._icp_distance = 0.2
         self._icp_scale = 0.2
@@ -1682,17 +1658,7 @@ class Coregistration:
             self._nearest_transformed_high_res_mri_idx_eeg = self._nearest_calc.query(
                 self._transformed_dig_eeg
             )[1]
-            self._nearest_transformed_high_res_mri_idx_rpa = self._nearest_calc.query(
-                apply_trans(self._head_mri_t, self._dig_dict["rpa"])
-            )[1]
-            self._nearest_transformed_high_res_mri_idx_nasion = (
-                self._nearest_calc.query(
-                    apply_trans(self._head_mri_t, self._dig_dict["nasion"])
-                )[1]
-            )
-            self._nearest_transformed_high_res_mri_idx_lpa = self._nearest_calc.query(
-                apply_trans(self._head_mri_t, self._dig_dict["lpa"])
-            )[1]
+            # LPA, Nasion, RPA also changed if we ever need them
 
     def set_scale_mode(self, scale_mode):
         """Select how to fit the scale parameters.
@@ -1842,36 +1808,8 @@ class Coregistration:
         )
 
     @property
-    def _has_lpa_data(self):
-        mri_point = self.fiducials.dig[_map_fid_name_to_idx("lpa")]
-        assert mri_point["ident"] == FIFF.FIFFV_POINT_LPA
-        has_mri_data = np.any(mri_point["r"])
-        has_head_data = np.any(self._dig_dict["lpa"])
-        return has_mri_data and has_head_data
-
-    @property
-    def _has_nasion_data(self):
-        mri_point = self.fiducials.dig[_map_fid_name_to_idx("nasion")]
-        assert mri_point["ident"] == FIFF.FIFFV_POINT_NASION
-        has_mri_data = np.any(mri_point["r"])
-        has_head_data = np.any(self._dig_dict["nasion"])
-        return has_mri_data and has_head_data
-
-    @property
-    def _has_rpa_data(self):
-        mri_point = self.fiducials.dig[_map_fid_name_to_idx("rpa")]
-        assert mri_point["ident"] == FIFF.FIFFV_POINT_RPA
-        has_mri_data = np.any(mri_point["r"])
-        has_head_data = np.any(self._dig_dict["rpa"])
-        return has_mri_data and has_head_data
-
-    @property
     def _processed_high_res_mri_points(self):
         return self._get_processed_mri_points("high")
-
-    @property
-    def _processed_low_res_mri_points(self):
-        return self._get_processed_mri_points("low")
 
     def _get_processed_mri_points(self, res):
         bem = self._bem_low_res if res == "low" else self._bem_high_res

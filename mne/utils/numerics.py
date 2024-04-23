@@ -8,8 +8,6 @@
 import inspect
 import numbers
 import operator
-import os
-import shutil
 import sys
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
@@ -62,19 +60,6 @@ def array_split_idx(ary, indices_or_sections, axis=0, n_per_split=1):
         np.arange(sp[0] * n_per_split, (sp[-1] + 1) * n_per_split) for sp in idx_split
     )
     return zip(idx_split, ary_split)
-
-
-def create_chunks(sequence, size):
-    """Generate chunks from a sequence.
-
-    Parameters
-    ----------
-    sequence : iterable
-        Any iterable object
-    size : int
-        The chunksize to be returned
-    """
-    return (sequence[p : p + size] for p in range(0, len(sequence), size))
 
 
 def sum_squared(X):
@@ -433,17 +418,6 @@ def hashfunc(fname, block_size=1048576, hash_type="md5"):  # 2 ** 20
                 break
             hasher.update(data)
     return hasher.hexdigest()
-
-
-def _replace_md5(fname):
-    """Replace a file based on MD5sum."""
-    # adapted from sphinx-gallery
-    assert fname.endswith(".new")
-    fname_old = fname[:-4]
-    if os.path.isfile(fname_old) and hashfunc(fname) == hashfunc(fname_old):
-        os.remove(fname)
-    else:
-        shutil.move(fname, fname_old)
 
 
 def create_slices(start, stop, step=None, length=1):

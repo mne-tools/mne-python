@@ -414,21 +414,12 @@ def write_float_sparse_rcs(fid, kind, mat):
     return write_float_sparse(fid, kind, mat, fmt="csr")
 
 
-def write_float_sparse_ccs(fid, kind, mat):
-    """Write a single-precision sparse compressed column matrix tag."""
-    return write_float_sparse(fid, kind, mat, fmt="csc")
-
-
 def write_float_sparse(fid, kind, mat, fmt="auto"):
     """Write a single-precision floating-point sparse matrix tag."""
     if fmt == "auto":
         fmt = "csr" if isinstance(mat, csr_matrix) else "csc"
-    if fmt == "csr":
-        need = csr_matrix
-        matrix_type = FIFF.FIFFT_SPARSE_RCS_MATRIX
-    else:
-        need = csc_matrix
-        matrix_type = FIFF.FIFFT_SPARSE_CCS_MATRIX
+    need = csr_matrix if fmt == "csr" else csc_matrix
+    matrix_type = getattr(FIFF, f"FIFFT_SPARSE_{fmt.upper()}_MATRIX")
     _validate_type(mat, need, "sparse")
     matrix_type = matrix_type | FIFF.FIFFT_MATRIX | FIFF.FIFFT_FLOAT
     nnzm = mat.nnz

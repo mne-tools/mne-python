@@ -449,6 +449,7 @@ def _process_lay_line(line, section):
         if section == "comments":
             # Persyst Comments output 5 variables "," separated
             time_sec, duration, state, var_type, text = line.split(",", 4)
+            del var_type, state
             status = 2
             key = text
             value = (time_sec, duration)

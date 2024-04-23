@@ -1424,12 +1424,6 @@ def _sq(x):
     return x * x
 
 
-def _check_finite(data):
-    """Ensure data is finite."""
-    if not np.isfinite(data).all():
-        raise RuntimeError("data contains non-finite numbers")
-
-
 def _sph_harm_norm(order, degree):
     """Compute normalization factor for spherical harmonics."""
     # we could use scipy.special.poch(degree + order + 1, -2 * order)

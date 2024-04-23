@@ -201,25 +201,6 @@ def _read_mff_header(filepath):
     return summaryinfo
 
 
-class _FixedOffset(datetime.tzinfo):
-    """Fixed offset in minutes east from UTC.
-
-    Adapted from the official Python documentation.
-    """
-
-    def __init__(self, offset):
-        self._offset = datetime.timedelta(minutes=offset)
-
-    def utcoffset(self, dt):
-        return self._offset
-
-    def tzname(self, dt):
-        return "MFF"
-
-    def dst(self, dt):
-        return datetime.timedelta(0)
-
-
 def _read_header(input_fname):
     """Obtain the headers from the file package mff.
 

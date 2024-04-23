@@ -405,7 +405,6 @@ class _TimeInteraction:
         self._times = times
         self._init_time = current_time_func()
         self._init_playback_speed = init_playback_speed
-        self._playback_speed_range = playback_speed_range
 
         if not hasattr(self, "_dock"):
             self._dock_initialize()

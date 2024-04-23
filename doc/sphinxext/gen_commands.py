@@ -1,10 +1,12 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 import glob
+import os
+import shutil
 from importlib import import_module
 from pathlib import Path
 
-from mne.utils import ArgvSetter, _replace_md5
+from mne.utils import ArgvSetter, hashfunc
 
 
 def setup(app):
@@ -104,6 +106,17 @@ def generate_commands_rst(app=None):
                 command_rst.format(cmd_name_space, "=" * len(cmd_name_space), output)
             )
     _replace_md5(str(out_fname))
+
+
+def _replace_md5(fname):
+    """Replace a file based on MD5sum."""
+    # adapted from sphinx-gallery
+    assert fname.endswith(".new")
+    fname_old = fname[:-4]
+    if os.path.isfile(fname_old) and hashfunc(fname) == hashfunc(fname_old):
+        os.remove(fname)
+    else:
+        shutil.move(fname, fname_old)
 
 
 # This is useful for testing/iterating to see what the result looks like

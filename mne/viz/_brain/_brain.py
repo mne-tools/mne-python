@@ -539,10 +539,7 @@ class Brain:
         self.default_smoothing_range = [-1, 15]
 
         # Default configuration
-        self.playback = False
         self.visibility = False
-        self.refresh_rate_ms = max(int(round(1000.0 / 60.0)), 1)
-        self.default_scaling_range = [0.2, 2.0]
         self.default_playback_speed_range = [0.01, 1]
         self.default_playback_speed_value = 0.01
         self.default_status_bar_msg = "Press ? for help"
@@ -550,7 +547,6 @@ class Brain:
             "stc": ["mean", "max"],
             "src": ["mean_flip", "pca_flip", "auto"],
         }
-        self.default_trace_modes = ("vertex", "label")
         self.annot = None
         self.label_extract_mode = None
         all_keys = ("lh", "rh", "vol")
@@ -750,30 +746,6 @@ class Brain:
             self._scalar_bar.SetHeight(0.6)
             self._scalar_bar.SetWidth(0.05)
             self._scalar_bar.SetPosition(0.02, 0.2)
-
-    def _configure_dock_time_widget(self, layout=None):
-        len_time = len(self._data["time"]) - 1
-        if len_time < 1:
-            return
-        layout = self._renderer.dock_layout if layout is None else layout
-        hlayout = self._renderer._dock_add_layout(vertical=False)
-        self.widgets["min_time"] = self._renderer._dock_add_label(
-            value="-", layout=hlayout
-        )
-        self._renderer._dock_add_stretch(hlayout)
-        self.widgets["current_time"] = self._renderer._dock_add_label(
-            value="x", layout=hlayout
-        )
-        self._renderer._dock_add_stretch(hlayout)
-        self.widgets["max_time"] = self._renderer._dock_add_label(
-            value="+", layout=hlayout
-        )
-        self._renderer._layout_add_widget(layout, hlayout)
-        min_time = float(self._data["time"][0])
-        max_time = float(self._data["time"][-1])
-        self.widgets["min_time"].set_value(f"{min_time: .3f}")
-        self.widgets["max_time"].set_value(f"{max_time: .3f}")
-        self.widgets["current_time"].set_value(f"{self._current_time: .3f}")
 
     def _configure_dock_playback_widget(self, name):
         len_time = len(self._data["time"]) - 1

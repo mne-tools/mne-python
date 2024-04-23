@@ -682,12 +682,6 @@ def _show_help_fig(col1, col2, fig_help, ax, show):
             pass
 
 
-def _show_help(col1, col2, width, height):
-    fig_help = figure_nobar(figsize=(width, height), dpi=80)
-    ax = fig_help.add_subplot(111)
-    _show_help_fig(col1, col2, fig_help, ax, show=True)
-
-
 def _key_press(event):
     """Handle key press in dialog."""
     import matplotlib.pyplot as plt

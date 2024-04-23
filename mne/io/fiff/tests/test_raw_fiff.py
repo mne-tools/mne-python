@@ -60,7 +60,6 @@ ctf_comp_fname = base_dir / "test_ctf_comp_raw.fif"
 fif_bad_marked_fname = base_dir / "test_withbads_raw.fif"
 bad_file_works = base_dir / "test_bads.txt"
 bad_file_wrong = base_dir / "test_wrong_bads.txt"
-hp_fname = base_dir / "test_chpi_raw_hp.txt"
 hp_fif_fname = base_dir / "test_chpi_raw_sss.fif"
 
 

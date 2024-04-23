@@ -36,16 +36,13 @@ raw_fname_onefile_mat = base_dir / "test_raw_onefile.set"
 raw_fname_event_duration = base_dir / "test_raw_event_duration.set"
 epochs_fname_mat = base_dir / "test_epochs.set"
 epochs_fname_onefile_mat = base_dir / "test_epochs_onefile.set"
-raw_mat_fnames = [raw_fname_mat, raw_fname_onefile_mat]
 epochs_mat_fnames = [epochs_fname_mat, epochs_fname_onefile_mat]
 raw_fname_chanloc = base_dir / "test_raw_chanloc.set"
 raw_fname_chanloc_fids = base_dir / "test_raw_chanloc_fids.set"
 raw_fname_2021 = base_dir / "test_raw_2021.set"
 raw_fname_h5 = base_dir / "test_raw_h5.set"
-raw_fname_onefile_h5 = base_dir / "test_raw_onefile_h5.set"
 epochs_fname_h5 = base_dir / "test_epochs_h5.set"
 epochs_fname_onefile_h5 = base_dir / "test_epochs_onefile_h5.set"
-raw_h5_fnames = [raw_fname_h5, raw_fname_onefile_h5]
 epochs_h5_fnames = [epochs_fname_h5, epochs_fname_onefile_h5]
 montage_path = base_dir / "test_chans.locs"
 

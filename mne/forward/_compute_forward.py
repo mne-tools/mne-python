@@ -55,7 +55,7 @@ def _check_coil_frame(coils, coord_frame, bem):
     if coord_frame != FIFF.FIFFV_COORD_MRI:
         if coord_frame == FIFF.FIFFV_COORD_HEAD:
             # Make a transformed duplicate
-            coils, coord_Frame = _dup_coil_set(coils, coord_frame, bem["head_mri_t"])
+            coils, coord_frame = _dup_coil_set(coils, coord_frame, bem["head_mri_t"])
         else:
             raise RuntimeError("Bad coil coordinate frame %s" % coord_frame)
     return coils, coord_frame

@@ -299,7 +299,6 @@ class BaseRaw(
             # unit
             orig_units = _check_orig_units(orig_units)
         self._orig_units = orig_units or dict()  # always a dict
-        self._projectors = list()
         self._projector = None
         self._dtype_ = dtype
         self.set_annotations(None)
@@ -2478,26 +2477,6 @@ def _allocate_data(preload, shape, dtype):
     return data
 
 
-def _index_as_time(index, sfreq, first_samp=0, use_first_samp=False):
-    """Convert indices to time.
-
-    Parameters
-    ----------
-    index : list-like | int
-        List of ints or int representing points in time.
-    use_first_samp : boolean
-        If True, the time returned is relative to the session onset, else
-        relative to the recording onset.
-
-    Returns
-    -------
-    times : ndarray
-        Times corresponding to the index supplied.
-    """
-    times = np.atleast_1d(index) + (first_samp if use_first_samp else 0)
-    return times / sfreq
-
-
 def _convert_slice(sel):
     if len(sel) and (np.diff(sel) == 1).all():
         return slice(sel[0], sel[-1] + 1)
@@ -2638,7 +2617,6 @@ class _RawShell:
         self._first_time = None
         self._last_time = None
         self._cals = None
-        self._rawdir = None
         self._projector = None
 
     @property

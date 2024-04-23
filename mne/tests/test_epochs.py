@@ -4332,7 +4332,7 @@ def test_make_metadata_bounded_by_row_or_tmin_tmax_event_names(tmin, tmax):
     raw.set_annotations(annots)
     events, event_id = mne.events_from_annotations(raw=raw)
 
-    metadata, events_new, event_id_new = mne.epochs.make_metadata(
+    metadata, events_new, _ = mne.epochs.make_metadata(
         events=events,
         event_id=event_id,
         tmin=tmin,
