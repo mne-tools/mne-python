@@ -2786,7 +2786,7 @@ def plot_volume_source_estimates(
     del kind
 
     # XXX this assumes zooms are uniform, should probably mult by zooms...
-    dist_to_verts = _DistanceQuery(stc_ijk, allow_kdtree=True)
+    dist_to_verts = _DistanceQuery(stc_ijk)
 
     def _cut_coords_to_idx(cut_coords, img):
         """Convert voxel coordinates to index in stc.data."""
@@ -3489,8 +3489,8 @@ def plot_sparse_source_estimates(
                 linestyle=linestyle,
             )
 
-    ax.set_xlabel("Time (ms)", fontsize=18)
-    ax.set_ylabel("Source amplitude (nAm)", fontsize=18)
+    ax.set_xlabel("Time (ms)", fontsize=fontsize)
+    ax.set_ylabel("Source amplitude (nAm)", fontsize=fontsize)
 
     if fig_name is not None:
         ax.set_title(fig_name)

@@ -33,6 +33,7 @@ from mne.bem import convert_flash_mris, make_flash_bem
 
 def _vararg_callback(option, opt_str, value, parser):
     assert value is None
+    del opt_str  # required for input but not used
     value = []
 
     for arg in parser.rargs:

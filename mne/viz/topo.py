@@ -412,6 +412,7 @@ def _imshow_tfr(
     vmin,
     vmax,
     onselect,
+    *,
     ylim=None,
     tfr=None,
     freq=None,
@@ -424,7 +425,6 @@ def _imshow_tfr(
     mask_style="both",
     mask_cmap="Greys",
     mask_alpha=0.1,
-    is_jointplot=False,
     cnorm=None,
 ):
     """Show time-frequency map as two-dimensional image."""
@@ -475,6 +475,7 @@ def _imshow_tfr_unified(
     vmin,
     vmax,
     onselect,
+    *,
     ylim=None,
     tfr=None,
     freq=None,

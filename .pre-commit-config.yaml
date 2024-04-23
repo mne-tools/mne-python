@@ -46,11 +46,14 @@ repos:
           - tomli
         files: ^doc/.*\.(rst|inc)$
 
-  # mypy
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.9.0
-    hooks:
-      - id: mypy
-        # Avoid the conflict between mne/__init__.py and mne/__init__.pyi by ignoring the former
-        exclude: ^mne/(beamformer|channels|commands|datasets|decoding|export|forward|gui|html_templates|inverse_sparse|io|minimum_norm|preprocessing|report|simulation|source_space|stats|time_frequency|utils|viz)?/?__init__\.py$
-        additional_dependencies: ["numpy==1.26.2"]
+# The following are too slow to run on local commits, so let's only run on CIs:
+#
+#   - repo: https://github.com/pre-commit/mirrors-mypy
+#     rev: v1.9.0
+#     hooks:
+#       - id: mypy
+#
+#   - repo: https://github.com/jendrikseipp/vulture
+#     rev: 'v2.11'  # or any later Vulture version
+#     hooks:
+#       - id: vulture

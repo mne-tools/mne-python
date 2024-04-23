@@ -2528,7 +2528,7 @@ def _get_ci_function_pce(ci, do_topo=False):
 
 
 def _plot_compare_evokeds(
-    ax, data_dict, conditions, times, ci_dict, styles, title, all_positive, topo
+    ax, data_dict, conditions, times, ci_dict, styles, title, topo
 ):
     """Plot evokeds (to compare them; with CIs) based on a data_dict."""
     for condition in conditions:
@@ -3181,7 +3181,7 @@ def plot_compare_evokeds(
         # plot the data
         _times = [] if idx == -1 else times
         _plot_compare_evokeds(
-            ax, data, conditions, _times, cis, _styles, title, norm, do_topo
+            ax, data, conditions, _times, cis, _styles, title, do_topo
         )
         # draw axes & vlines
         skip_axlabel = do_topo and (idx != -1)
