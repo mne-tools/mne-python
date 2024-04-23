@@ -839,11 +839,6 @@ html_theme_options = {
             attributes=dict(rel="me"),
         ),
         dict(
-            name="Twitter",
-            url="https://twitter.com/mne_python",
-            icon="fa-brands fa-square-twitter fa-fw",
-        ),
-        dict(
             name="Forum",
             url="https://mne.discourse.group/",
             icon="fa-brands fa-discourse fa-fw",
