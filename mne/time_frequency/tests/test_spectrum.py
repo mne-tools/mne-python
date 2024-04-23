@@ -285,8 +285,7 @@ def test_spectrum_kwarg_triaging(raw):
     with _record_warnings(), pytest.warns(RuntimeWarning, match=regex):
         raw.plot_psd(axes=axes)
     # `ax` is the correct legacy param name
-    with pytest.warns(FutureWarning, match="amplitude='auto'"):
-        raw.plot_psd(ax=axes)
+    raw.plot_psd(ax=axes)
 
 
 def _check_spectrum_equivalent(spect1, spect2, tmp_path):

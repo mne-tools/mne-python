@@ -16,13 +16,13 @@ from .._fiff.meas_info import create_info
 from ..cov import _compute_rank_raw_array, _regularized_covariance, _smart_eigh
 from ..defaults import _BORDER_DEFAULT, _EXTRAPOLATE_DEFAULT, _INTERPOLATION_DEFAULT
 from ..evoked import EvokedArray
-from ..fixes import pinv
 from ..utils import (
     _check_option,
     _validate_type,
     _verbose_safe_false,
     copy_doc,
     fill_doc,
+    pinv,
 )
 from .base import BaseEstimator
 from .mixin import TransformerMixin
@@ -230,9 +230,9 @@ class CSP(TransformerMixin, BaseEstimator):
         -------
         X : ndarray
             If self.transform_into == 'average_power' then returns the power of
-            CSP features averaged over time and shape (n_epochs, n_sources)
+            CSP features averaged over time and shape (n_epochs, n_components)
             If self.transform_into == 'csp_space' then returns the data in CSP
-            space and shape is (n_epochs, n_sources, n_times).
+            space and shape is (n_epochs, n_components, n_times).
         """
         if not isinstance(X, np.ndarray):
             raise ValueError("X should be of type ndarray (got %s)." % type(X))
@@ -254,6 +254,30 @@ class CSP(TransformerMixin, BaseEstimator):
                 X -= self.mean_
                 X /= self.std_
         return X
+
+    def inverse_transform(self, X):
+        """Project CSP features back to sensor space.
+
+        Parameters
+        ----------
+        X : array, shape (n_epochs, n_components)
+            The data in CSP power space.
+
+        Returns
+        -------
+        X : ndarray
+            The data in sensor space and shape (n_epochs, n_channels, n_components).
+        """
+        if self.transform_into != "average_power":
+            raise NotImplementedError(
+                "Can only inverse transform CSP features when transform_into is "
+                "'average_power'."
+            )
+        if not (X.ndim == 2 and X.shape[1] == self.n_components):
+            raise ValueError(
+                f"X must be 2D with X[1]={self.n_components}, got {X.shape=}"
+            )
+        return X[:, np.newaxis, :] * self.patterns_[: self.n_components].T
 
     @copy_doc(TransformerMixin.fit_transform)
     def fit_transform(self, X, y, **fit_params):  # noqa: D102
@@ -924,8 +948,8 @@ class SPoC(CSP):
         -------
         X : ndarray
             If self.transform_into == 'average_power' then returns the power of
-            CSP features averaged over time and shape (n_epochs, n_sources)
+            CSP features averaged over time and shape (n_epochs, n_components)
             If self.transform_into == 'csp_space' then returns the data in CSP
-            space and shape is (n_epochs, n_sources, n_times).
+            space and shape is (n_epochs, n_components, n_times).
         """
         return super().transform(X)

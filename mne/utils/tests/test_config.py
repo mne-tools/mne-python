@@ -161,6 +161,12 @@ def test_get_subjects_dir(tmp_path, monkeypatch):
     monkeypatch.setenv("USERPROFILE", str(tmp_path))  # Windows
     assert str(get_subjects_dir("~/foo")) == str(subjects_dir)
 
+    monkeypatch.setenv("SUBJECTS_DIR", str(tmp_path / "doesntexist"))
+    with pytest.warns(RuntimeWarning, match="MNE-Python config"):
+        get_subjects_dir()
+    with pytest.raises(FileNotFoundError, match="MNE-Python config"):
+        get_subjects_dir(raise_error=True)
+
 
 @pytest.mark.slowtest
 @requires_good_network

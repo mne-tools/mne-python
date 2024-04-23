@@ -77,7 +77,7 @@ class SpectrumMixin:
         method="auto",
         average=False,
         dB=True,
-        estimate="auto",
+        estimate="power",
         xscale="linear",
         area_mode="std",
         area_alpha=0.33,
@@ -553,7 +553,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         picks=None,
         average=False,
         dB=True,
-        amplitude=None,
+        amplitude=False,
         xscale="linear",
         ci="sd",
         ci_alpha=0.3,
@@ -581,14 +581,12 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
             ``ci_alpha`` control the style of the confidence band around the mean.
             Default is ``False``.
         %(dB_spectrum_plot)s
-        amplitude : bool | 'auto'
+        amplitude : bool
             Whether to plot an amplitude spectrum (``True``) or power spectrum
-            (``False``). If ``'auto'``, will plot a power spectrum when ``dB=True`` and
-            an amplitude spectrum otherwise. Default is ``'auto'``.
+            (``False``).
 
                 .. versionchanged:: 1.8
-                    In version 1.8, the value ``amplitude="auto"`` will be removed. The
-                    default value will change to ``amplitude=False``.
+                    In version 1.8, the default changed to ``amplitude=False``.
         %(xscale_plot_psd)s
         ci : float | 'sd' | 'range' | None
             Type of confidence band drawn around the mean when ``average=True``. If
@@ -633,15 +631,8 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         titles = _handle_default("titles", None)
         units = _handle_default("units", None)
 
-        depr_message = (
-            "The value of `amplitude='auto'` will be removed in MNE 1.8.0, and the new "
-            "default will be `amplitude=False`."
-        )
-        if amplitude is None or amplitude == "auto":
-            warn(depr_message, FutureWarning)
-            estimate = "power" if dB else "amplitude"
-        else:
-            estimate = "amplitude" if amplitude else "power"
+        _validate_type(amplitude, bool, "amplitude")
+        estimate = "amplitude" if amplitude else "power"
 
         logger.info(f"Plotting {estimate} spectral density ({dB=}).")
 
@@ -1413,7 +1404,7 @@ class EpochsSpectrum(BaseSpectrum, GetEpochsMixin):
         spectrum : instance of Spectrum
             The aggregated spectrum object.
         """
-        _validate_type(method, ("str", "callable"))
+        _validate_type(method, ("str", "callable"), "method")
         method = _make_combine_callable(
             method, axis=0, valid=("mean", "median"), keepdims=False
         )

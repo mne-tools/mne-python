@@ -828,30 +828,25 @@ switcher_version_match = "dev" if ".dev" in version else version
 html_theme_options = {
     "icon_links": [
         dict(
-            name="GitHub",
-            url="https://github.com/mne-tools/mne-python",
-            icon="fa-brands fa-square-github",
+            name="Discord",
+            url="https://discord.gg/rKfvxTuATa",
+            icon="fa-brands fa-discord fa-fw",
         ),
         dict(
             name="Mastodon",
             url="https://fosstodon.org/@mne",
-            icon="fa-brands fa-mastodon",
+            icon="fa-brands fa-mastodon fa-fw",
             attributes=dict(rel="me"),
-        ),
-        dict(
-            name="Twitter",
-            url="https://twitter.com/mne_python",
-            icon="fa-brands fa-square-twitter",
         ),
         dict(
             name="Forum",
             url="https://mne.discourse.group/",
-            icon="fa-brands fa-discourse",
+            icon="fa-brands fa-discourse fa-fw",
         ),
         dict(
-            name="Discord",
-            url="https://discord.gg/rKfvxTuATa",
-            icon="fa-brands fa-discord",
+            name="GitHub",
+            url="https://github.com/mne-tools/mne-python",
+            icon="fa-brands fa-square-github fa-fw",
         ),
     ],
     "icon_links_label": "External Links",  # for screen reader
@@ -859,7 +854,12 @@ html_theme_options = {
     "navigation_with_keys": False,
     "show_toc_level": 1,
     "article_header_start": [],  # disable breadcrumbs
-    "navbar_end": ["theme-switcher", "version-switcher", "navbar-icon-links"],
+    "navbar_end": [
+        "theme-switcher",
+        "version-switcher",
+        "navbar-icon-links",
+    ],
+    "navbar_persistent": ["search-button"],
     "footer_start": ["copyright"],
     "secondary_sidebar_items": ["page-toc", "edit-this-page"],
     "analytics": dict(google_analytics_id="G-5TBCPCRB6X"),
@@ -1362,6 +1362,8 @@ def reset_warnings(gallery_conf, fname):
         r"DataFrameGroupBy\.apply operated on the grouping columns.*",
         # pandas
         r"\nPyarrow will become a required dependency of pandas.*",
+        # latexcodec
+        r"open_text is deprecated\. Use files.*",
     ):
         warnings.filterwarnings(  # deal with other modules having bad imports
             "ignore", message=".*%s.*" % key, category=DeprecationWarning
@@ -1380,8 +1382,6 @@ def reset_warnings(gallery_conf, fname):
         message="The figure layout has changed to tight",
         category=UserWarning,
     )
-    # matplotlib 3.6 in nilearn and pyvista
-    warnings.filterwarnings("ignore", message=".*cmap function will be deprecated.*")
     # xarray/netcdf4
     warnings.filterwarnings(
         "ignore",

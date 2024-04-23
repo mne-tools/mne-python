@@ -5,7 +5,6 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-import pickle
 import re
 from collections import OrderedDict
 from os import SEEK_CUR, PathLike
@@ -50,8 +49,7 @@ def read_mrk(fname):
     from .kit import _read_dirs
 
     fname = Path(_check_fname(fname, "read", must_exist=True, name="mrk file"))
-    if fname.suffix != ".pickled":
-        _check_option("file extension", fname.suffix, (".sqd", ".mrk", ".txt"))
+    _check_option("file extension", fname.suffix, (".sqd", ".mrk", ".txt"))
     if fname.suffix in (".sqd", ".mrk"):
         with open(fname, "rb", buffering=0) as fid:
             dirs = _read_dirs(fid)
@@ -67,21 +65,9 @@ def read_mrk(fname):
                 if meg_done:
                     pts.append(meg_pts)
             mrk_points = np.array(pts)
-    elif fname.suffix == ".txt":
+    else:
+        assert fname.suffix == ".txt"
         mrk_points = _read_dig_kit(fname, unit="m")
-    elif fname.suffix == ".pickled":
-        warn(
-            "Reading pickled files is unsafe and not future compatible, save "
-            "to a standard format (text or FIF) instead, e.g. with:\n"
-            r"np.savetxt(fid, pts, delimiter=\"\\t\", newline=\"\\n\")",
-            FutureWarning,
-        )
-        with open(fname, "rb") as fid:
-            food = pickle.load(fid)  # nosec B301
-        try:
-            mrk_points = food["mrk"]
-        except Exception:
-            raise ValueError(f"{fname} does not contain marker points.") from None
 
     # check output
     mrk_points = np.asarray(mrk_points)

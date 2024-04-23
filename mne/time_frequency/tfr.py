@@ -930,13 +930,13 @@ def tfr_array_morlet(
     sfreq,
     freqs,
     n_cycles=7.0,
-    zero_mean=None,
+    zero_mean=True,
     use_fft=True,
     decim=1,
     output="complex",
     n_jobs=None,
+    *,
     verbose=None,
-    epoch_data=None,
 ):
     """Compute Time-Frequency Representation (TFR) using Morlet wavelets.
 
@@ -956,7 +956,7 @@ def tfr_array_morlet(
 
         .. versionchanged:: 1.8
             The default will change from ``zero_mean=False`` in 1.6 to ``True`` in
-            1.8, and (if not set explicitly) will raise a ``FutureWarning`` in 1.7.
+            1.8.
 
     use_fft : bool
         Use the FFT for convolutions or not. default True.
@@ -974,10 +974,6 @@ def tfr_array_morlet(
         The number of epochs to process at the same time. The parallelization
         is implemented across channels. Default 1.
     %(verbose)s
-    epoch_data : None
-        Deprecated parameter for providing epoched data as of 1.7, will be replaced with
-        the ``data`` parameter in 1.8. New code should use the ``data`` parameter. If
-        ``epoch_data`` is not ``None``, a warning will be raised.
 
     Returns
     -------
@@ -1012,20 +1008,6 @@ def tfr_array_morlet(
     ----------
     .. footbibliography::
     """
-    if zero_mean is None:
-        warn(
-            "The default value of `zero_mean` will change from `False` to `True` "
-            "in version 1.8. Set the value explicitly to avoid this warning.",
-            FutureWarning,
-        )
-        zero_mean = False
-    if epoch_data is not None:
-        warn(
-            "The parameter for providing data will be switched from `epoch_data` to "
-            "`data` in 1.8. Use the `data` parameter to avoid this warning.",
-            FutureWarning,
-        )
-
     return _compute_tfr(
         epoch_data=data,
         freqs=freqs,
@@ -2854,30 +2836,6 @@ class AverageTFR(BaseTFR):
         from ..epochs import BaseEpochs
         from ..evoked import Evoked
         from ._stockwell import _check_input_st, _compute_freqs_st
-
-        # deprecations. TODO remove after 1.7 release
-        depr_params = dict(info=info, data=data, times=times, nave=nave)
-        bad_params = list()
-        for name, param in depr_params.items():
-            if param is not None:
-                bad_params.append(name)
-        if len(bad_params):
-            _s = _pl(bad_params)
-            is_are = _pl(bad_params, "is", "are")
-            bad_params_list = '", "'.join(bad_params)
-            warn(
-                f'Parameter{_s} "{bad_params_list}" {is_are} deprecated and will be '
-                "removed in version 1.8. For a quick fix, use ``AverageTFRArray`` with "
-                "the same parameters. For a long-term fix, see the docstring notes.",
-                FutureWarning,
-            )
-            if inst is not None:
-                raise ValueError(
-                    "Do not pass `inst` alongside deprecated params "
-                    f'"{bad_params_list}"; see docstring of AverageTFR for guidance.'
-                )
-            inst = depr_params | dict(freqs=freqs, method=method, comment=comment)
-        # end TODO ↑↑↑↑↑↑
 
         # dict is allowed for __setstate__ compatibility, and Epochs.compute_tfr() can
         # return an AverageTFR depending on its parameters, so Epochs input is allowed
