@@ -3657,6 +3657,7 @@ class Brain:
                     scale_mode="vector",
                     scale=scale_factor,
                     opacity=vector_alpha,
+                    name=str(hemi) + "_glyph",
                 )
                 hemi_data["glyph_dataset"] = glyph_dataset
                 hemi_data["glyph_mapper"] = glyph_mapper
