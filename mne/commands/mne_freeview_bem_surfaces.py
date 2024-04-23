@@ -20,7 +20,7 @@ import mne
 from mne.utils import get_subjects_dir, run_subprocess
 
 
-def freeview_bem_surfaces(subject, subjects_dir, method):
+def freeview_bem_surfaces(subject, subjects_dir, method=None):
     """View 3-Layers BEM model with Freeview.
 
     Parameters
@@ -29,8 +29,9 @@ def freeview_bem_surfaces(subject, subjects_dir, method):
         Subject name
     subjects_dir : path-like
         Directory containing subjects data (Freesurfer SUBJECTS_DIR)
-    method : str
-        Can be ``'flash'`` or ``'watershed'``.
+    method : str | None
+        Can be ``'flash'`` or ``'watershed'``, or None to use the ``bem/`` directory
+        files.
     """
     subjects_dir = str(get_subjects_dir(subjects_dir, raise_error=True))
 
@@ -85,10 +86,6 @@ def run():
     parser = get_optparser(__file__)
 
     subject = os.environ.get("SUBJECT")
-    subjects_dir = get_subjects_dir()
-    if subjects_dir is not None:
-        subjects_dir = str(subjects_dir)
-
     parser.add_option(
         "-s", "--subject", dest="subject", help="Subject name", default=subject
     )
@@ -97,13 +94,12 @@ def run():
         "--subjects-dir",
         dest="subjects_dir",
         help="Subjects directory",
-        default=subjects_dir,
     )
     parser.add_option(
         "-m",
         "--method",
         dest="method",
-        help=("Method used to generate the BEM model. " "Can be flash or watershed."),
+        help="Method used to generate the BEM model. Can be flash or watershed.",
     )
 
     options, args = parser.parse_args()
