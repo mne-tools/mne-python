@@ -1363,7 +1363,7 @@ def reset_warnings(gallery_conf, fname):
         # pandas
         r"\nPyarrow will become a required dependency of pandas.*",
         # latexcodec
-        "open_text is deprecated. Use files.*",
+        r"open_text is deprecated\. Use files.*",
     ):
         warnings.filterwarnings(  # deal with other modules having bad imports
             "ignore", message=".*%s.*" % key, category=DeprecationWarning
