@@ -2786,7 +2786,7 @@ def plot_volume_source_estimates(
     del kind
 
     # XXX this assumes zooms are uniform, should probably mult by zooms...
-    dist_to_verts = _DistanceQuery(stc_ijk, allow_kdtree=True)
+    dist_to_verts = _DistanceQuery(stc_ijk)
 
     def _cut_coords_to_idx(cut_coords, img):
         """Convert voxel coordinates to index in stc.data."""
