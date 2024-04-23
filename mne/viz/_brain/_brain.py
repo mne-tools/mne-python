@@ -163,9 +163,7 @@ class Brain:
         .. versionchanged:: 0.23
            Default changed to "auto".
     offscreen : bool
-        If True, rendering will be done offscreen (not shown). Useful
-        mostly for generating images or screenshots, but can be buggy.
-        Use at your own risk.
+        Deprecated and will be removed in 1.9, do not use.
     interaction : str
         Can be "trackball" (default) or "terrain", i.e. a turntable-style
         camera.
@@ -298,6 +296,7 @@ class Brain:
         views="auto",
         *,
         offset="auto",
+        offscreen=None,
         interaction="trackball",
         units="mm",
         view_layout="vertical",
@@ -310,6 +309,12 @@ class Brain:
 
         _validate_type(subject, str, "subject")
         self._surf = surf
+        if offscreen is not None:
+            warn(
+                "The 'offscreen' parameter is deprecated and will be removed in 1.9. "
+                "as it has no effect",
+                FutureWarning,
+            )
         if hemi is None:
             hemi = "vol"
         hemi = self._check_hemi(hemi, extras=("both", "split", "vol"))
