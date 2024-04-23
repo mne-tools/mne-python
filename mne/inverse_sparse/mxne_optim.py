@@ -135,7 +135,6 @@ def dgap_l21(M, G, X, active_set, alpha, n_orient):
     return gap, p_obj, d_obj, R
 
 
-@verbose
 def _mixed_norm_solver_cd(
     M,
     G,
@@ -143,7 +142,6 @@ def _mixed_norm_solver_cd(
     lipschitz_constant,
     maxit=10000,
     tol=1e-8,
-    verbose=None,
     init=None,
     n_orient=1,
     dgap_freq=10,
@@ -173,7 +171,6 @@ def _mixed_norm_solver_cd(
     return X, active_set, p_obj
 
 
-@verbose
 def _mixed_norm_solver_bcd(
     M,
     G,
@@ -181,7 +178,6 @@ def _mixed_norm_solver_bcd(
     lipschitz_constant,
     maxit=200,
     tol=1e-8,
-    verbose=None,
     init=None,
     n_orient=1,
     dgap_freq=10,
@@ -667,7 +663,6 @@ def iterative_mixed_norm_solver(
                     active_set_size=active_set_size,
                     dgap_freq=dgap_freq,
                     solver=solver,
-                    verbose=verbose,
                 )
             else:
                 X, _active_set, _ = mixed_norm_solver(
@@ -681,7 +676,6 @@ def iterative_mixed_norm_solver(
                     active_set_size=None,
                     dgap_freq=dgap_freq,
                     solver=solver,
-                    verbose=verbose,
                 )
         else:
             X, _active_set, _ = mixed_norm_solver(
@@ -695,7 +689,6 @@ def iterative_mixed_norm_solver(
                 active_set_size=None,
                 dgap_freq=dgap_freq,
                 solver=solver,
-                verbose=verbose,
             )
 
         logger.info("active set size %d" % (_active_set.sum() / n_orient))
@@ -733,46 +726,6 @@ def iterative_mixed_norm_solver(
 
 ###############################################################################
 # TF-MxNE
-
-
-@verbose
-def tf_lipschitz_constant(M, G, phi, phiT, tol=1e-3, verbose=None):
-    """Compute lipschitz constant for FISTA.
-
-    It uses a power iteration method.
-    """
-    n_times = M.shape[1]
-    n_points = G.shape[1]
-    iv = np.ones((n_points, n_times), dtype=np.float64)
-    v = phi(iv)
-    L = 1e100
-    for it in range(100):
-        L_old = L
-        logger.info("Lipschitz estimation: iteration = %d" % it)
-        iv = np.real(phiT(v))
-        Gv = np.dot(G, iv)
-        GtGv = np.dot(G.T, Gv)
-        w = phi(GtGv)
-        L = np.max(np.abs(w))  # l_inf norm
-        v = w / L
-        if abs((L - L_old) / L_old) < tol:
-            break
-    return L
-
-
-def safe_max_abs(A, ia):
-    """Compute np.max(np.abs(A[ia])) possible with empty A."""
-    if np.sum(ia):  # ia is not empty
-        return np.max(np.abs(A[ia]))
-    else:
-        return 0.0
-
-
-def safe_max_abs_diff(A, ia, B, ib):
-    """Compute np.max(np.abs(A)) possible with empty A."""
-    A = A[ia] if np.sum(ia) else 0.0
-    B = B[ib] if np.sum(ia) else 0.0
-    return np.max(np.abs(A - B))
 
 
 class _Phi:
@@ -1281,7 +1234,6 @@ def _tf_mixed_norm_solver_bcd_(
     return Z, active_set, E, converged
 
 
-@verbose
 def _tf_mixed_norm_solver_bcd_active_set(
     M,
     G,
@@ -1298,7 +1250,6 @@ def _tf_mixed_norm_solver_bcd_active_set(
     maxit=200,
     tol=1e-8,
     dgap_freq=10,
-    verbose=None,
 ):
     n_sensors, n_times = M.shape
     n_sources = G.shape[1]
@@ -1344,7 +1295,6 @@ def _tf_mixed_norm_solver_bcd_active_set(
             maxit=1,
             tol=tol,
             perc=None,
-            verbose=verbose,
         )
 
         E += E_tmp
@@ -1380,7 +1330,6 @@ def _tf_mixed_norm_solver_bcd_active_set(
             tol=tol,
             dgap_freq=dgap_freq,
             perc=0.5,
-            verbose=verbose,
         )
         active = np.where(active_set[::n_orient])[0]
         active_set[active_set] = as_.copy()
@@ -1535,7 +1484,6 @@ def tf_mixed_norm_solver(
         maxit=maxit,
         tol=tol,
         dgap_freq=dgap_freq,
-        verbose=None,
     )
 
     if np.any(active_set) and debias:
@@ -1548,7 +1496,6 @@ def tf_mixed_norm_solver(
         return X, active_set, E
 
 
-@verbose
 def iterative_tf_mixed_norm_solver(
     M,
     G,
@@ -1692,7 +1639,6 @@ def iterative_tf_mixed_norm_solver(
             maxit=maxit,
             tol=tol,
             dgap_freq=dgap_freq,
-            verbose=None,
         )
 
         active_set[active_set] = active_set_
