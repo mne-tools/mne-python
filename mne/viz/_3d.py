@@ -2633,7 +2633,9 @@ def _glass_brain_crosshairs(params, x, y, z):
 
 def _cut_coords_to_ijk(cut_coords, img):
     ijk = apply_trans(np.linalg.inv(img.affine), cut_coords)
-    ijk = np.clip(np.round(ijk).astype(int), 0, np.array(img.shape[:3]) - 1)
+    ijk = np.round(ijk).astype(int)
+    logger.debug(f"{cut_coords} -> {ijk}")
+    np.clip(ijk, 0, np.array(img.shape[:3]) - 1, out=ijk)
     return ijk
 
 
@@ -2650,6 +2652,177 @@ def _load_subject_mri(mri, stc, subject, subjects_dir, name):
         subject = _check_subject(stc.subject, subject)
         mri = nib.load(_check_mri(mri, subject, subjects_dir))
     return mri
+
+
+_AX_NAME = dict(x="X (sagittal)", y="Y (coronal)", z="Z (axial)")
+
+
+def _click_to_cut_coords(event, params):
+    """Get voxel coordinates from mouse click."""
+    import nibabel as nib
+
+    if event.inaxes is params["ax_x"]:
+        ax = "x"
+        x = params["ax_z"].lines[0].get_xdata()[0]
+        y, z = event.xdata, event.ydata
+    elif event.inaxes is params["ax_y"]:
+        ax = "y"
+        y = params["ax_x"].lines[0].get_xdata()[0]
+        x, z = event.xdata, event.ydata
+    elif event.inaxes is params["ax_z"]:
+        ax = "z"
+        x, y = event.xdata, event.ydata
+        z = params["ax_x"].lines[1].get_ydata()[0]
+    else:
+        logger.debug("    Click outside axes")
+        return None
+    cut_coords = np.array((x, y, z))
+    logger.debug("")
+
+    if params["mode"] == "glass_brain":  # find idx for MIP
+        # Figure out what XYZ in world coordinates is in our voxel data
+        codes = "".join(nib.aff2axcodes(params["img_idx"].affine))
+        assert len(codes) == 3
+        # We don't care about directionality, just which is which dim
+        codes = codes.replace("L", "R").replace("P", "A").replace("I", "S")
+        idx = codes.index(dict(x="R", y="A", z="S")[ax])
+        img_data = np.abs(_get_img_fdata(params["img_idx"]))
+        ijk = _cut_coords_to_ijk(cut_coords, params["img_idx"])
+        if idx == 0:
+            ijk[0] = np.argmax(img_data[:, ijk[1], ijk[2]])
+            logger.debug("    MIP: i = %d idx" % (ijk[0],))
+        elif idx == 1:
+            ijk[1] = np.argmax(img_data[ijk[0], :, ijk[2]])
+            logger.debug("    MIP: j = %d idx" % (ijk[1],))
+        else:
+            ijk[2] = np.argmax(img_data[ijk[0], ijk[1], :])
+            logger.debug("    MIP: k = %d idx" % (ijk[2],))
+        cut_coords = _ijk_to_cut_coords(ijk, params["img_idx"])
+
+    logger.debug(
+        "    Cut coords for %s: (%0.1f, %0.1f, %0.1f) mm"
+        % ((_AX_NAME[ax],) + tuple(cut_coords))
+    )
+    return cut_coords
+
+
+def _press(event, params):
+    """Manage keypress on the plot."""
+    pos = params["lx"].get_xdata()
+    idx = params["stc"].time_as_index(pos)[0]
+    if event.key == "left":
+        idx = max(0, idx - 2)
+    elif event.key == "shift+left":
+        idx = max(0, idx - 10)
+    elif event.key == "right":
+        idx = min(params["stc"].shape[1] - 1, idx + 2)
+    elif event.key == "shift+right":
+        idx = min(params["stc"].shape[1] - 1, idx + 10)
+    _update_timeslice(idx, params)
+    params["fig"].canvas.draw()
+
+
+def _update_timeslice(idx, params):
+    from nilearn.image import index_img
+
+    params["lx"].set_xdata([idx / params["stc"].sfreq + params["stc"].tmin])
+    ax_x, ax_y, ax_z = params["ax_x"], params["ax_y"], params["ax_z"]
+    # Crosshairs are the first thing plotted in stat_map, and the last
+    # in glass_brain
+    idxs = [0, 0, 1] if params["mode"] == "stat_map" else [-2, -2, -1]
+    cut_coords = (
+        ax_y.lines[idxs[0]].get_xdata()[0],
+        ax_x.lines[idxs[1]].get_xdata()[0],
+        ax_x.lines[idxs[2]].get_ydata()[0],
+    )
+    ax_x.clear()
+    ax_y.clear()
+    ax_z.clear()
+    params.update({"img_idx": index_img(params["img"], idx)})
+    params.update({"title": "Activation (t=%.3f s.)" % params["stc"].times[idx]})
+    _plot_and_correct(params=params, cut_coords=cut_coords)
+
+
+def _update_vertlabel(loc_idx, params):
+    params["vert_legend"].get_texts()[0].set_text(f"{params['vertices'][loc_idx]}")
+
+
+@verbose_dec
+def _onclick(event, params, verbose=None):
+    """Manage clicks on the plot."""
+    ax_x, ax_y, ax_z = params["ax_x"], params["ax_y"], params["ax_z"]
+    if event.inaxes is params["ax_time"]:
+        idx = params["stc"].time_as_index(event.xdata, use_rounding=True)[0]
+        _update_timeslice(idx, params)
+
+    cut_coords = _click_to_cut_coords(event, params)
+    if cut_coords is None:
+        return  # not in any axes
+
+    ax_x.clear()
+    ax_y.clear()
+    ax_z.clear()
+    _plot_and_correct(params=params, cut_coords=cut_coords)
+    loc_idx = _cut_coords_to_idx(cut_coords, params["dist_to_verts"])
+    ydata = params["stc"].data[loc_idx]
+    if loc_idx is not None:
+        params["ax_time"].lines[0].set_ydata(ydata)
+    else:
+        params["ax_time"].lines[0].set_ydata([0.0])
+    _update_vertlabel(loc_idx, params)
+    params["fig"].canvas.draw()
+
+
+def _cut_coords_to_idx(cut_coords, dist_to_verts):
+    """Convert voxel coordinates to index in stc.data."""
+    logger.debug(f"    Starting coords: {cut_coords}")
+    cut_coords = list(cut_coords)
+    (dist,), (loc_idx,) = dist_to_verts.query([cut_coords])
+    logger.debug(f"Mapped {cut_coords=} to vertices[{loc_idx}] {dist:0.1f} mm away")
+    return loc_idx
+
+
+def _plot_and_correct(*, params, cut_coords):
+    # black_bg = True is needed because of some matplotlib
+    # peculiarity. See: https://stackoverflow.com/a/34730204
+    # Otherwise, event.inaxes does not work for ax_x and ax_z
+    from nilearn.plotting import plot_glass_brain, plot_stat_map
+
+    mode = params["mode"]
+    nil_func = dict(stat_map=plot_stat_map, glass_brain=plot_glass_brain)[mode]
+    plot_kwargs = dict(
+        threshold=None,
+        axes=params["axes"],
+        resampling_interpolation="nearest",
+        vmax=params["vmax"],
+        figure=params["fig"],
+        colorbar=params["colorbar"],
+        bg_img=params["bg_img"],
+        cmap=params["colormap"],
+        black_bg=True,
+        symmetric_cbar=True,
+        title="",
+    )
+    params["axes"].clear()
+    if params.get("fig_anat") is not None and plot_kwargs["colorbar"]:
+        params["fig_anat"]._cbar.ax.clear()
+    with warnings.catch_warnings(record=True):  # nilearn bug; ax recreated
+        warnings.simplefilter("ignore", DeprecationWarning)
+        params["fig_anat"] = nil_func(
+            params["img_idx"], cut_coords=cut_coords, **plot_kwargs
+        )
+    params["fig_anat"]._cbar.outline.set_visible(False)
+    for key in "xyz":
+        params.update({"ax_" + key: params["fig_anat"].axes[key].ax})
+    # Fix nilearn bug w/cbar background being white
+    if plot_kwargs["colorbar"]:
+        params["fig_anat"]._cbar.ax.set_facecolor("0.5")
+        # adjust one-sided colorbars
+        if not params["diverging"]:
+            _crop_colorbar(params["fig_anat"]._cbar, *params["scale_pts"][[0, -1]])
+        params["fig_anat"]._cbar.set_ticks(params["cbar_ticks"])
+    if params["mode"] == "glass_brain":
+        _glass_brain_crosshairs(params, *cut_coords)
 
 
 @verbose
@@ -2759,10 +2932,8 @@ def plot_volume_source_estimates(
         raise RuntimeError("This function requires nilearn >= 0.4")
 
     from nilearn.image import index_img
-    from nilearn.plotting import plot_glass_brain, plot_stat_map
 
     _check_option("mode", mode, ("stat_map", "glass_brain"))
-    plot_func = dict(stat_map=plot_stat_map, glass_brain=plot_glass_brain)[mode]
     _validate_type(stc, VolSourceEstimate, "stc")
     if isinstance(src, SourceMorph):
         img = src.apply(stc, "nifti1", mri_resolution=False, mri_space=False)
@@ -2780,136 +2951,6 @@ def plot_volume_source_estimates(
         level="debug",
     )
     subject = _check_subject(src_subject, subject, first_kind=kind)
-    vertices = np.hstack(stc.vertices)
-    stc_ijk = np.array(np.unravel_index(vertices, img.shape[:3], order="F")).T
-    assert stc_ijk.shape == (vertices.size, 3)
-    del kind
-
-    # XXX this assumes zooms are uniform, should probably mult by zooms...
-    dist_to_verts = _DistanceQuery(stc_ijk)
-
-    def _cut_coords_to_idx(cut_coords, img):
-        """Convert voxel coordinates to index in stc.data."""
-        ijk = _cut_coords_to_ijk(cut_coords, img)
-        del cut_coords
-        logger.debug("    Affine remapped cut coords to [%d, %d, %d] idx", tuple(ijk))
-        dist, loc_idx = dist_to_verts.query(ijk[np.newaxis])
-        dist, loc_idx = dist[0], loc_idx[0]
-        logger.debug(
-            "    Using vertex %d at a distance of %d voxels", (vertices[loc_idx], dist)
-        )
-        return loc_idx
-
-    ax_name = dict(x="X (sagittal)", y="Y (coronal)", z="Z (axial)")
-
-    def _click_to_cut_coords(event, params):
-        """Get voxel coordinates from mouse click."""
-        if event.inaxes is params["ax_x"]:
-            ax = "x"
-            x = params["ax_z"].lines[0].get_xdata()[0]
-            y, z = event.xdata, event.ydata
-        elif event.inaxes is params["ax_y"]:
-            ax = "y"
-            y = params["ax_x"].lines[0].get_xdata()[0]
-            x, z = event.xdata, event.ydata
-        elif event.inaxes is params["ax_z"]:
-            ax = "z"
-            x, y = event.xdata, event.ydata
-            z = params["ax_x"].lines[1].get_ydata()[0]
-        else:
-            logger.debug("    Click outside axes")
-            return None
-        cut_coords = np.array((x, y, z))
-        logger.debug("")
-
-        if params["mode"] == "glass_brain":  # find idx for MIP
-            # Figure out what XYZ in world coordinates is in our voxel data
-            codes = "".join(nib.aff2axcodes(params["img_idx"].affine))
-            assert len(codes) == 3
-            # We don't care about directionality, just which is which dim
-            codes = codes.replace("L", "R").replace("P", "A").replace("I", "S")
-            idx = codes.index(dict(x="R", y="A", z="S")[ax])
-            img_data = np.abs(_get_img_fdata(params["img_idx"]))
-            ijk = _cut_coords_to_ijk(cut_coords, params["img_idx"])
-            if idx == 0:
-                ijk[0] = np.argmax(img_data[:, ijk[1], ijk[2]])
-                logger.debug("    MIP: i = %d idx" % (ijk[0],))
-            elif idx == 1:
-                ijk[1] = np.argmax(img_data[ijk[0], :, ijk[2]])
-                logger.debug("    MIP: j = %d idx" % (ijk[1],))
-            else:
-                ijk[2] = np.argmax(img_data[ijk[0], ijk[1], :])
-                logger.debug("    MIP: k = %d idx" % (ijk[2],))
-            cut_coords = _ijk_to_cut_coords(ijk, params["img_idx"])
-
-        logger.debug(
-            "    Cut coords for %s: (%0.1f, %0.1f, %0.1f) mm"
-            % ((ax_name[ax],) + tuple(cut_coords))
-        )
-        return cut_coords
-
-    def _press(event, params):
-        """Manage keypress on the plot."""
-        pos = params["lx"].get_xdata()
-        idx = params["stc"].time_as_index(pos)[0]
-        if event.key == "left":
-            idx = max(0, idx - 2)
-        elif event.key == "shift+left":
-            idx = max(0, idx - 10)
-        elif event.key == "right":
-            idx = min(params["stc"].shape[1] - 1, idx + 2)
-        elif event.key == "shift+right":
-            idx = min(params["stc"].shape[1] - 1, idx + 10)
-        _update_timeslice(idx, params)
-        params["fig"].canvas.draw()
-
-    def _update_timeslice(idx, params):
-        params["lx"].set_xdata([idx / params["stc"].sfreq + params["stc"].tmin])
-        ax_x, ax_y, ax_z = params["ax_x"], params["ax_y"], params["ax_z"]
-        plot_map_callback = params["plot_func"]
-        # Crosshairs are the first thing plotted in stat_map, and the last
-        # in glass_brain
-        idxs = [0, 0, 1] if mode == "stat_map" else [-2, -2, -1]
-        cut_coords = (
-            ax_y.lines[idxs[0]].get_xdata()[0],
-            ax_x.lines[idxs[1]].get_xdata()[0],
-            ax_x.lines[idxs[2]].get_ydata()[0],
-        )
-        ax_x.clear()
-        ax_y.clear()
-        ax_z.clear()
-        params.update({"img_idx": index_img(img, idx)})
-        params.update({"title": "Activation (t=%.3f s.)" % params["stc"].times[idx]})
-        plot_map_callback(params["img_idx"], title="", cut_coords=cut_coords)
-
-    def _update_vertlabel(loc_idx):
-        vert_legend.get_texts()[0].set_text(f"{vertices[loc_idx]}")
-
-    @verbose_dec
-    def _onclick(event, params, verbose=None):
-        """Manage clicks on the plot."""
-        ax_x, ax_y, ax_z = params["ax_x"], params["ax_y"], params["ax_z"]
-        plot_map_callback = params["plot_func"]
-        if event.inaxes is params["ax_time"]:
-            idx = params["stc"].time_as_index(event.xdata, use_rounding=True)[0]
-            _update_timeslice(idx, params)
-
-        cut_coords = _click_to_cut_coords(event, params)
-        if cut_coords is None:
-            return  # not in any axes
-
-        ax_x.clear()
-        ax_y.clear()
-        ax_z.clear()
-        plot_map_callback(params["img_idx"], title="", cut_coords=cut_coords)
-        loc_idx = _cut_coords_to_idx(cut_coords, params["img_idx"])
-        ydata = stc.data[loc_idx]
-        if loc_idx is not None:
-            ax_time.lines[0].set_ydata(ydata)
-        else:
-            ax_time.lines[0].set_ydata([0.0])
-        _update_vertlabel(loc_idx)
-        params["fig"].canvas.draw()
 
     if mode == "glass_brain":
         subject = _check_subject(stc.subject, subject)
@@ -2927,6 +2968,20 @@ def plot_volume_source_estimates(
         if bg_img is None:
             bg_img = "T1.mgz"
         bg_img = _load_subject_mri(bg_img, stc, subject, subjects_dir, "bg_img")
+
+    params = dict(
+        stc=stc,
+        mode=mode,
+        img=img,
+        bg_img=bg_img,
+        colorbar=colorbar,
+    )
+    vertices = np.hstack(stc.vertices)
+    stc_ijk = np.array(np.unravel_index(vertices, img.shape[:3], order="F")).T
+    assert stc_ijk.shape == (vertices.size, 3)
+    params["dist_to_verts"] = _DistanceQuery(apply_trans(img.affine, stc_ijk))
+    params["vertices"] = vertices
+    del kind, stc_ijk
 
     if initial_time is None:
         time_sl = slice(0, None)
@@ -2949,15 +3004,15 @@ def plot_volume_source_estimates(
             )
         initial_pos *= 1000
         logger.info(f"Fixing initial position: {initial_pos.tolist()} mm")
-        loc_idx = _cut_coords_to_idx(initial_pos, img)
+        loc_idx = _cut_coords_to_idx(initial_pos, params["dist_to_verts"])
         if initial_time is not None:  # time also specified
             time_idx = time_sl.start
         else:  # find the max
             time_idx = np.argmax(np.abs(stc.data[loc_idx]))
-    img_idx = index_img(img, time_idx)
+    img_idx = params["img_idx"] = index_img(img, time_idx)
     assert img_idx.shape == img.shape[:3]
     del initial_time, initial_pos
-    ijk = stc_ijk[loc_idx]
+    ijk = np.unravel_index(vertices[loc_idx], img.shape[:3], order="F")
     cut_coords = _ijk_to_cut_coords(ijk, img_idx)
     np.testing.assert_allclose(_cut_coords_to_ijk(cut_coords, img_idx), ijk)
     logger.info(
@@ -2981,15 +3036,17 @@ def plot_volume_source_estimates(
     if len(stc.times) > 1:
         ax_time.set(xlim=stc.times[[0, -1]])
     ax_time.set(xlabel="Time (s)", ylabel="Activation")
-    vert_legend = ax_time.legend([h], [""], title="Vertex")
-    _update_vertlabel(loc_idx)
+    params["vert_legend"] = ax_time.legend([h], [""], title="Vertex")
+    _update_vertlabel(loc_idx, params)
     lx = ax_time.axvline(stc.times[time_idx], color="g")
+    params.update(fig=fig, ax_time=ax_time, lx=lx, axes=axes)
 
     allow_pos_lims = mode != "glass_brain"
     mapdata = _process_clim(clim, colormap, transparent, stc.data, allow_pos_lims)
     _separate_map(mapdata)
     diverging = "pos_lims" in mapdata["clim"]
     ticks = _get_map_ticks(mapdata)
+    params.update(cbar_ticks=ticks, diverging=diverging)
     colormap, scale_pts = _linearize_map(mapdata)
     del mapdata
 
@@ -3029,56 +3086,9 @@ def plot_volume_source_estimates(
             np.interp(np.linspace(-1, 1, 256), scale_pts / scale_pts[2], [0, 0.5, 1])
         )
         colormap = colors.ListedColormap(colormap)
-    vmax = scale_pts[-1]
+    params.update(vmax=scale_pts[-1], scale_pts=scale_pts, colormap=colormap)
 
-    # black_bg = True is needed because of some matplotlib
-    # peculiarity. See: https://stackoverflow.com/a/34730204
-    # Otherwise, event.inaxes does not work for ax_x and ax_z
-    plot_kwargs = dict(
-        threshold=None,
-        axes=axes,
-        resampling_interpolation="nearest",
-        vmax=vmax,
-        figure=fig,
-        colorbar=colorbar,
-        bg_img=bg_img,
-        cmap=colormap,
-        black_bg=True,
-        symmetric_cbar=True,
-    )
-
-    def plot_and_correct(*args, **kwargs):
-        axes.clear()
-        if params.get("fig_anat") is not None and plot_kwargs["colorbar"]:
-            params["fig_anat"]._cbar.ax.clear()
-        with warnings.catch_warnings(record=True):  # nilearn bug; ax recreated
-            warnings.simplefilter("ignore", DeprecationWarning)
-            params["fig_anat"] = partial(plot_func, **plot_kwargs)(*args, **kwargs)
-        params["fig_anat"]._cbar.outline.set_visible(False)
-        for key in "xyz":
-            params.update({"ax_" + key: params["fig_anat"].axes[key].ax})
-        # Fix nilearn bug w/cbar background being white
-        if plot_kwargs["colorbar"]:
-            params["fig_anat"]._cbar.ax.set_facecolor("0.5")
-            # adjust one-sided colorbars
-            if not diverging:
-                _crop_colorbar(params["fig_anat"]._cbar, *scale_pts[[0, -1]])
-            params["fig_anat"]._cbar.set_ticks(params["cbar_ticks"])
-        if mode == "glass_brain":
-            _glass_brain_crosshairs(params, *kwargs["cut_coords"])
-
-    params = dict(
-        stc=stc,
-        ax_time=ax_time,
-        plot_func=plot_and_correct,
-        img_idx=img_idx,
-        fig=fig,
-        lx=lx,
-        mode=mode,
-        cbar_ticks=ticks,
-    )
-
-    plot_and_correct(stat_map_img=params["img_idx"], title="", cut_coords=cut_coords)
+    _plot_and_correct(params=params, cut_coords=cut_coords)
 
     plt_show(show)
     fig.canvas.mpl_connect(
