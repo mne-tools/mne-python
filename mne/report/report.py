@@ -1739,7 +1739,10 @@ class Report:
     def _add_ica_artifact_scores(
         self, *, ica, scores, artifact_type, image_format, section, tags, replace
     ):
-        fig = ica.plot_scores(scores=scores, title=None, show=False)
+        assert artifact_type in ("EOG", "ECG")
+        fig = ica.plot_scores(
+            scores=scores, title=None, labels=artifact_type.lower(), show=False
+        )
         _constrain_fig_resolution(fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES)
         self._add_figure(
             fig=fig,
