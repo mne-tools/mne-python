@@ -1658,7 +1658,17 @@ class Coregistration:
             self._nearest_transformed_high_res_mri_idx_eeg = self._nearest_calc.query(
                 self._transformed_dig_eeg
             )[1]
-            # LPA, Nasion, RPA also changed if we ever need them
+            self._nearest_transformed_high_res_mri_idx_rpa = self._nearest_calc.query(
+                apply_trans(self._head_mri_t, self._dig_dict["rpa"])
+            )[1]
+            self._nearest_transformed_high_res_mri_idx_nasion = (
+                self._nearest_calc.query(
+                    apply_trans(self._head_mri_t, self._dig_dict["nasion"])
+                )[1]
+            )
+            self._nearest_transformed_high_res_mri_idx_lpa = self._nearest_calc.query(
+                apply_trans(self._head_mri_t, self._dig_dict["lpa"])
+            )[1]
 
     def set_scale_mode(self, scale_mode):
         """Select how to fit the scale parameters.
@@ -1806,6 +1816,30 @@ class Coregistration:
             self._has_mri_data
             and len(self._nearest_transformed_high_res_mri_idx_eeg) > 0
         )
+
+    @property
+    def _has_lpa_data(self):
+        mri_point = self.fiducials.dig[_map_fid_name_to_idx("lpa")]
+        assert mri_point["ident"] == FIFF.FIFFV_POINT_LPA
+        has_mri_data = np.any(mri_point["r"])
+        has_head_data = np.any(self._dig_dict["lpa"])
+        return has_mri_data and has_head_data
+
+    @property
+    def _has_nasion_data(self):
+        mri_point = self.fiducials.dig[_map_fid_name_to_idx("nasion")]
+        assert mri_point["ident"] == FIFF.FIFFV_POINT_NASION
+        has_mri_data = np.any(mri_point["r"])
+        has_head_data = np.any(self._dig_dict["nasion"])
+        return has_mri_data and has_head_data
+
+    @property
+    def _has_rpa_data(self):
+        mri_point = self.fiducials.dig[_map_fid_name_to_idx("rpa")]
+        assert mri_point["ident"] == FIFF.FIFFV_POINT_RPA
+        has_mri_data = np.any(mri_point["r"])
+        has_head_data = np.any(self._dig_dict["rpa"])
+        return has_mri_data and has_head_data
 
     @property
     def _processed_high_res_mri_points(self):

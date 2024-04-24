@@ -84,7 +84,7 @@ _.detectorPos3D
 _.noise_variance_
 _.n_features_
 
-# Brain and PyVista
+# Brain, Coreg, PyVista
 _._Iren
 _.active_scalars_name
 _.active_vectors_name
@@ -102,6 +102,12 @@ _.KeyReleaseEvent
 _PyVistaRenderer
 _TimeInteraction
 set_3d_options
+_._has_lpa_data
+_._has_nasion_data
+_._has_rpa_data
+_._nearest_transformed_high_res_mri_idx_rpa
+_._nearest_transformed_high_res_mri_idx_nasion
+_._nearest_transformed_high_res_mri_idx_lpa
 
 # Figures (prevent GC for example)
 _.decim_data
