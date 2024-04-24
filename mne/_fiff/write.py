@@ -419,7 +419,7 @@ def write_float_sparse(fid, kind, mat, fmt="auto"):
     if fmt == "auto":
         fmt = "csr" if isinstance(mat, csr_matrix) else "csc"
     need = csr_matrix if fmt == "csr" else csc_matrix
-    matrix_type = getattr(FIFF, f"FIFFT_SPARSE_{fmt.upper()}_MATRIX")
+    matrix_type = getattr(FIFF, f"FIFFT_SPARSE_{fmt[-1].upper()}CS_MATRIX")
     _validate_type(mat, need, "sparse")
     matrix_type = matrix_type | FIFF.FIFFT_MATRIX | FIFF.FIFFT_FLOAT
     nnzm = mat.nnz
