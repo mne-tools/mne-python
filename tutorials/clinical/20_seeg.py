@@ -197,8 +197,8 @@ dwi_b0_register = nib.Nifti1Image(dwi_masked[..., b0_idx].mean(axis=-1), dwi.aff
 # save computer resources when building the documentation, we won't
 # run it every time::
 #
-# reg_affine = mne.transforms.compute_volume_registration(
-#     moving=dwi_b0_register, static=t1, pipeline='rigids')
+#    reg_affine = mne.transforms.compute_volume_registration(
+#        moving=dwi_b0_register, static=t1, pipeline='rigids')
 
 reg_affine = np.array(
     [
@@ -235,16 +235,17 @@ denoised = patch2self(dwi_masked, bvals)
 # %%
 # Optionally, you can also remove Gibbs artifact::
 #
-#     denoised = gibbs_removal(denoised)
+#    from dipy.denoise.gibbs import gibbs_removal
+#    denoised = gibbs_removal(denoised)
 
 # %%
 # You may also want to do the following, but it registers each direction
 # of the diffusion image to the T1, so it takes a lot of computational
 # resources so we'll skip it for now::
 #
-#     from dipy.align import motion_correction
-#     denoised, _ = motion_correction(denoised, gtab, dwi.affine, b0_ref=0)
-#     denoised = np.array(denoised.dataobj)
+#    from dipy.align import motion_correction
+#    denoised, _ = motion_correction(denoised, gtab, dwi.affine, b0_ref=0)
+#    denoised = np.array(denoised.dataobj)
 
 # compute diffusion tensor imaging to find the peak direction
 # for each voxel

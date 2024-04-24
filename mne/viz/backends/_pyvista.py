@@ -477,6 +477,7 @@ class _PyVistaRenderer(_AbstractRenderer):
             mesh=pyvista.MultipleLines(line),
             color=color,
             opacity=opacity,
+            normals=np.zeros_like(np.array(line)),
             backface_culling=backface_culling,
             scalars=scalars,
             colormap=colormap,
