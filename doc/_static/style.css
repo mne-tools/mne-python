@@ -354,8 +354,10 @@ div.sphx-glr-animation video {
     height: auto;
 }
 
-/* fix sidebar vertical scrollbar */
+/* fix sidebar scrollbars */
 .sidebar-primary-items__end {
     margin-bottom: 0 !important;
     margin-top: 0 !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
 }
