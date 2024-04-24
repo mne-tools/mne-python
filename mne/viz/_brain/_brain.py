@@ -2537,7 +2537,7 @@ class Brain:
     @fill_doc
     def add_volume_labels(
         self,
-        aseg="aparc+aseg",
+        aseg="wmparc",
         labels=None,
         colors=None,
         alpha=0.5,
