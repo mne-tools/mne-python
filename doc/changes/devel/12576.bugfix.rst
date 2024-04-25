@@ -1,0 +1,1 @@
+Fix :meth:`mne.viz.Brain.add_volume_labels` to use ``aseg='wmparc'`` to match current freesurfer atlas, by `Alex Rockhill`_.
