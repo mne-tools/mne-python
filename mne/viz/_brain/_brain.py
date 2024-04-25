@@ -26,6 +26,7 @@ from ..._fiff.meas_info import Info
 from ..._fiff.pick import pick_types
 from ..._freesurfer import (
     _estimate_talxfm_rigid,
+    _get_aseg,
     _get_head_surface,
     _get_skull_surface,
     read_freesurfer_lut,
@@ -2575,8 +2576,6 @@ class Brain:
         -----
         .. versionadded:: 0.24
         """
-        from ..._freesurfer import _get_aseg
-
         aseg, aseg_data = _get_aseg(aseg, self._subject, self._subjects_dir)
 
         vox_mri_t = aseg.header.get_vox2ras_tkr()
