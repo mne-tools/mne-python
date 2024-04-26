@@ -90,7 +90,7 @@ I agree to the following:
 # here: ↓↓↓↓↓↓↓↓
 RELEASES = dict(
     testing="0.152",
-    misc="0.27",
+    misc="0.29",
     phantom_kit="0.2",
     ucl_opm_auditory="0.2",
 )
@@ -131,7 +131,7 @@ MNE_DATASETS["testing"] = dict(
 )
 MNE_DATASETS["misc"] = dict(
     archive_name=f"{MISC_VERSIONED}.tar.gz",  # 'mne-misc-data',
-    hash="md5:e343d3a00cb49f8a2f719d14f4758afe",
+    hash="md5:19535192331d9e4e99d8886028c1f447",
     url=(
         "https://codeload.github.com/mne-tools/mne-misc-data/tar.gz/"
         f'{RELEASES["misc"]}'
