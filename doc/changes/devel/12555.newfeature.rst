@@ -1,1 +1,1 @@
-Add diffusion imaging to :ref:`tut-working-with-seeg` including adding :meth:`mne.viz.Brain.add_streamlines` and :meth:`mne.viz.Brain.remove_streamlines` to visualize the fiber tracts, by `Alex Rockhill`_.
+Add diffusion imaging to :ref:`tut-working-with-seeg` including adding :meth:`mne.viz.Brain.add_streamline` and :meth:`mne.viz.Brain.remove_streamlines` to visualize the fiber tracts, by `Alex Rockhill`_.

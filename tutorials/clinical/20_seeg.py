@@ -258,6 +258,7 @@ pam = peaks_from_model(
     relative_peak_threshold=0.5,
     min_separation_angle=25,
     mask=wm_dwi.dataobj,
+    legacy=False,
 )
 
 # do fiber tracking
