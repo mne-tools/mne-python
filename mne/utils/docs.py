@@ -312,6 +312,7 @@ aseg : str
     if available and ``wmparc`` if not. This may be any anatomical
     segmentation file in the mri subdirectory of the Freesurfer subject
     directory.
+
     .. versionchanged:: 1.8
        Added support for the new default ``'auto'``.
 """
