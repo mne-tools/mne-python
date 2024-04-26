@@ -313,6 +313,7 @@ aseg : str
     segmentation file in the mri subdirectory of the Freesurfer subject
     directory.
 
+
     .. versionchanged:: 1.8
        Added support for the new default ``'auto'``.
 """
