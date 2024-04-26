@@ -159,6 +159,8 @@ __all__ = [
     "open_docs",
     "path_like",
     "pformat",
+    "pinv",
+    "pinvh",
     "random_permutation",
     "repr_html",
     "requires_freesurfer",
@@ -316,6 +318,8 @@ from .linalg import (
     _svd_lwork,
     _sym_mat_pow,
     eigh,
+    pinv,
+    pinvh,
     sqrtm_sym,
 )
 from .misc import (

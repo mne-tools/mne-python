@@ -19,7 +19,7 @@ from time import time
 from typing import Literal, Optional, Union
 
 import numpy as np
-from scipy import linalg, stats
+from scipy import stats
 from scipy.spatial import distance
 from scipy.special import expit
 
@@ -82,6 +82,7 @@ from ..utils import (
     fill_doc,
     int_like,
     logger,
+    pinv,
     repr_html,
     verbose,
     warn,
@@ -1006,7 +1007,7 @@ class ICA(ContainsMixin):
         self.current_fit = fit_type
 
     def _update_mixing_matrix(self):
-        self.mixing_matrix_ = linalg.pinv(self.unmixing_matrix_)
+        self.mixing_matrix_ = pinv(self.unmixing_matrix_)
 
     def _update_ica_names(self):
         """Update ICA names when n_components_ is set."""
@@ -2519,6 +2520,7 @@ class ICA(ContainsMixin):
         reject="auto",
         reject_by_annotation=True,
         *,
+        estimate="power",
         verbose=None,
     ):
         return plot_ica_properties(
@@ -2536,6 +2538,7 @@ class ICA(ContainsMixin):
             show=show,
             reject=reject,
             reject_by_annotation=reject_by_annotation,
+            estimate=estimate,
             verbose=verbose,
         )
 
@@ -3499,7 +3502,7 @@ def read_ica_eeglab(fname, *, montage_units="auto", verbose=None):
     # So in either case, we can use SVD to get our square whitened
     # weights matrix (u * s) and our PCA vectors (v) back:
     use = eeg.icaweights @ eeg.icasphere
-    use_check = linalg.pinv(eeg.icawinv)
+    use_check = pinv(eeg.icawinv)
     if not np.allclose(use, use_check, rtol=1e-6):
         warn(
             "Mismatch between icawinv and icaweights @ icasphere from EEGLAB "

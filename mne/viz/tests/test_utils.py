@@ -101,7 +101,6 @@ def test_add_background_image():
         # Background without changing aspect
         if ii == 0:
             ax_im = add_background_image(f, im)
-            return
             assert ax_im.get_aspect() == "auto"
             for ax in axs:
                 assert ax.get_aspect() == 1

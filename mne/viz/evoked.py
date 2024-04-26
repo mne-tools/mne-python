@@ -28,7 +28,6 @@ from .._fiff.pick import (
     pick_info,
 )
 from ..defaults import _handle_default
-from ..fixes import _is_last_row
 from ..utils import (
     _check_ch_locs,
     _check_if_nan,
@@ -66,7 +65,6 @@ from .utils import (
     _plot_masked_image,
     _prepare_joint_axes,
     _process_times,
-    _prop_kw,
     _set_title_multiple_electrodes,
     _set_window_title,
     _setup_ax_spines,
@@ -341,7 +339,7 @@ def _plot_evoked(
                 "If `group_by` is a dict, `axes` must be " "a dict of axes or None."
             )
         _validate_if_list_of_axes(list(axes.values()))
-        remove_xlabels = any([_is_last_row(ax) for ax in axes.values()])
+        remove_xlabels = any(ax.get_subplotspec().is_last_row() for ax in axes.values())
         for sel in group_by:  # ... we loop over selections
             if sel not in axes:
                 raise ValueError(
@@ -385,7 +383,7 @@ def _plot_evoked(
                 draw=False,
                 spatial_colors=spatial_colors,
             )
-            if remove_xlabels and not _is_last_row(ax):
+            if remove_xlabels and not ax.get_subplotspec().is_last_row():
                 ax.set_xticklabels([])
                 ax.set_xlabel("")
         ims = [ax.images[0] for ax in axes.values()]
@@ -848,14 +846,13 @@ def _plot_lines(
             )
             blit = False if plt.get_backend() == "MacOSX" else True
             minspan = 0 if len(times) < 2 else times[1] - times[0]
-            rect_kw = _prop_kw("rect", dict(alpha=0.5, facecolor="red"))
             ax._span_selector = SpanSelector(
                 ax,
                 callback_onselect,
                 "horizontal",
                 minspan=minspan,
                 useblit=blit,
-                **rect_kw,
+                props=dict(alpha=0.5, facecolor="red"),
             )
 
 
@@ -2531,7 +2528,7 @@ def _get_ci_function_pce(ci, do_topo=False):
 
 
 def _plot_compare_evokeds(
-    ax, data_dict, conditions, times, ci_dict, styles, title, all_positive, topo
+    ax, data_dict, conditions, times, ci_dict, styles, title, topo
 ):
     """Plot evokeds (to compare them; with CIs) based on a data_dict."""
     for condition in conditions:
@@ -3184,7 +3181,7 @@ def plot_compare_evokeds(
         # plot the data
         _times = [] if idx == -1 else times
         _plot_compare_evokeds(
-            ax, data, conditions, _times, cis, _styles, title, norm, do_topo
+            ax, data, conditions, _times, cis, _styles, title, do_topo
         )
         # draw axes & vlines
         skip_axlabel = do_topo and (idx != -1)

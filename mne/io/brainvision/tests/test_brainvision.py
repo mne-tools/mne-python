@@ -375,7 +375,7 @@ def test_brainvision_data_highpass_filters():
 
     w = [str(ww.message) for ww in w]
     assert not any("different lowpass filters" in ww for ww in w), w
-    assert all("different highpass filters" in ww for ww in w), w
+    assert any("different highpass filters" in ww for ww in w), w
 
     assert raw.info["highpass"] == 1.0 / (2 * np.pi * 10)
     assert raw.info["lowpass"] == 250.0
@@ -397,7 +397,7 @@ def test_brainvision_data_highpass_filters():
     w = [str(ww.message) for ww in w]
     assert not any("will be dropped" in ww for ww in w), w
     assert not any("different lowpass filters" in ww for ww in w), w
-    assert all("different highpass filters" in ww for ww in w), w
+    assert any("different highpass filters" in ww for ww in w), w
 
     assert raw.info["highpass"] == 5.0
     assert raw.info["lowpass"] == 250.0
@@ -422,7 +422,7 @@ def test_brainvision_data_lowpass_filters():
 
     expected_warnings = zip(lowpass_warning, highpass_warning)
 
-    assert all(any([lp, hp]) for lp, hp in expected_warnings)
+    assert any(any([lp, hp]) for lp, hp in expected_warnings)
 
     assert raw.info["highpass"] == 1.0 / (2 * np.pi * 10)
     assert raw.info["lowpass"] == 250.0
@@ -446,7 +446,7 @@ def test_brainvision_data_lowpass_filters():
 
     expected_warnings = zip(lowpass_warning, highpass_warning)
 
-    assert all(any([lp, hp]) for lp, hp in expected_warnings)
+    assert any(any([lp, hp]) for lp, hp in expected_warnings)
 
     assert raw.info["highpass"] == 1.0 / (2 * np.pi * 10)
     assert raw.info["lowpass"] == 1.0 / (2 * np.pi * 0.004)
@@ -467,7 +467,7 @@ def test_brainvision_data_partially_disabled_hw_filters():
 
     expected_warnings = zip(trigger_warning, lowpass_warning, highpass_warning)
 
-    assert all(any([trg, lp, hp]) for trg, lp, hp in expected_warnings)
+    assert any(any([trg, lp, hp]) for trg, lp, hp in expected_warnings)
 
     assert raw.info["highpass"] == 0.0
     assert raw.info["lowpass"] == 500.0

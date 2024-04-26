@@ -60,7 +60,6 @@ from ..utils import (
     _safe_input,
     _validate_type,
     _verbose_safe_false,
-    check_version,
     fill_doc,
     get_subjects_dir,
     logger,
@@ -422,12 +421,10 @@ def _fig_to_img(fig, *, image_format="png", own_figure=True):
     # https://pillow.readthedocs.io/en/stable/handbook/image-file-formats.html
     mpl_kwargs = dict()
     pil_kwargs = dict()
-    has_pillow = check_version("PIL")
-    if has_pillow:
-        if image_format == "webp":
-            pil_kwargs.update(lossless=True, method=6)
-        elif image_format == "png":
-            pil_kwargs.update(optimize=True, compress_level=9)
+    if image_format == "webp":
+        pil_kwargs.update(lossless=True, method=6)
+    elif image_format == "png":
+        pil_kwargs.update(optimize=True, compress_level=9)
     if pil_kwargs:
         # matplotlib modifies the passed dict, which is a bug
         mpl_kwargs["pil_kwargs"] = pil_kwargs.copy()
@@ -438,7 +435,7 @@ def _fig_to_img(fig, *, image_format="png", own_figure=True):
         plt.close(fig)
 
     # Remove alpha
-    if image_format != "svg" and has_pillow:
+    if image_format != "svg":
         from PIL import Image
 
         output.seek(0)
@@ -455,36 +452,6 @@ def _fig_to_img(fig, *, image_format="png", own_figure=True):
         if image_format == "svg"
         else base64.b64encode(output).decode("ascii")
     )
-
-
-def _scale_mpl_figure(fig, scale):
-    """Magic scaling helper.
-
-    Keeps font size and artist sizes constant
-    0.5 : current font - 4pt
-    2.0 : current font + 4pt
-
-    This is a heuristic but it seems to work for most cases.
-    """
-    scale = float(scale)
-    fig.set_size_inches(fig.get_size_inches() * scale)
-    fig.set_dpi(fig.get_dpi() * scale)
-    import matplotlib as mpl
-
-    if scale >= 1:
-        sfactor = scale**2
-    else:
-        sfactor = -((1.0 / scale) ** 2)
-    for text in fig.findobj(mpl.text.Text):
-        fs = text.get_fontsize()
-        new_size = fs + sfactor
-        if new_size <= 0:
-            raise ValueError(
-                "could not rescale matplotlib fonts, consider " 'increasing "scale"'
-            )
-        text.set_fontsize(new_size)
-
-    fig.canvas.draw()
 
 
 def _get_bem_contour_figs_as_arrays(
@@ -690,34 +657,16 @@ mne_logo = base64.b64encode(mne_logo_path.read_bytes()).decode("ascii")
 _ALLOWED_IMAGE_FORMATS = ("png", "svg", "webp")
 
 
-def _webp_supported():
-    good = check_version("matplotlib", "3.6") and check_version("PIL")
-    if good:
-        from PIL import features
-
-        good = features.check("webp")
-    return good
-
-
-def _check_scale(scale):
-    """Ensure valid scale value is passed."""
-    if np.isscalar(scale) and scale <= 0:
-        raise ValueError("scale must be positive, not %s" % scale)
-
-
 def _check_image_format(rep, image_format):
     """Ensure fmt is valid."""
     if rep is None or image_format is not None:
         allowed = list(_ALLOWED_IMAGE_FORMATS) + ["auto"]
         extra = ""
-        if not _webp_supported():
-            allowed.pop(allowed.index("webp"))
-            extra = '("webp" supported on matplotlib 3.6+ with PIL installed)'
         _check_option("image_format", image_format, allowed_values=allowed, extra=extra)
     else:
         image_format = rep.image_format
     if image_format == "auto":
-        image_format = "webp" if _webp_supported() else "png"
+        image_format = "webp"
     return image_format
 
 
@@ -743,7 +692,6 @@ class Report:
         ``'webp'`` if available and ``'png'`` otherwise).
         ``'svg'`` uses vector graphics, so fidelity is higher but can increase
         file size and browser image rendering time as well.
-        ``'webp'`` format requires matplotlib >= 3.6.
 
         .. versionadded:: 0.15
         .. versionchanged:: 1.3
@@ -1791,7 +1739,10 @@ class Report:
     def _add_ica_artifact_scores(
         self, *, ica, scores, artifact_type, image_format, section, tags, replace
     ):
-        fig = ica.plot_scores(scores=scores, title=None, show=False)
+        assert artifact_type in ("EOG", "ECG")
+        fig = ica.plot_scores(
+            scores=scores, title=None, labels=artifact_type.lower(), show=False
+        )
         _constrain_fig_resolution(fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES)
         self._add_figure(
             fig=fig,
@@ -3598,7 +3549,9 @@ class Report:
                 continue
 
             vmax[ch_type] = (
-                np.abs(evoked.copy().pick(ch_type, verbose=False).data).max()
+                np.abs(
+                    evoked.copy().pick(ch_type, exclude="bads", verbose=False).data
+                ).max()
             ) * scalings[ch_type]
             if ch_type == "grad":
                 vmin[ch_type] = 0

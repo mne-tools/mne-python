@@ -468,16 +468,34 @@ def get_subjects_dir(subjects_dir=None, raise_error=False):
     value : Path | None
         The SUBJECTS_DIR value.
     """
+    from_config = False
     if subjects_dir is None:
         subjects_dir = get_config("SUBJECTS_DIR", raise_error=raise_error)
+        from_config = True
     if subjects_dir is not None:
-        subjects_dir = _check_fname(
-            fname=subjects_dir,
-            overwrite="read",
-            must_exist=True,
-            need_dir=True,
-            name="subjects_dir",
-        )
+        # Emit a nice error or warning if their config is bad
+        try:
+            subjects_dir = _check_fname(
+                fname=subjects_dir,
+                overwrite="read",
+                must_exist=True,
+                need_dir=True,
+                name="subjects_dir",
+            )
+        except FileNotFoundError:
+            if from_config:
+                msg = (
+                    "SUBJECTS_DIR in your MNE-Python configuration or environment "
+                    "does not exist, consider using mne.set_config to fix it: "
+                    f"{subjects_dir}"
+                )
+                if raise_error:
+                    raise FileNotFoundError(msg) from None
+                else:
+                    warn(msg)
+            elif raise_error:
+                raise
+
     return subjects_dir
 
 

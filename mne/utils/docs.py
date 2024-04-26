@@ -1286,10 +1286,9 @@ tmin, tmax : float
 """
 
 docdict["estimate_plot_psd"] = """\
-estimate : str, {'auto', 'power', 'amplitude'}
-    Can be "power" for power spectral density (PSD), "amplitude" for
-    amplitude spectrum density (ASD), or "auto" (default), which uses
-    "power" when dB is True and "amplitude" otherwise.
+estimate : str, {'power', 'amplitude'}
+    Can be "power" for power spectral density (PSD; default), "amplitude" for
+    amplitude spectrum density (ASD).
 """
 
 docdict["event_color"] = """
