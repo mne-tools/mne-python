@@ -19,7 +19,8 @@
     <div class=" accordion-body">
       <div class="mx-auto d-block w-75">
         <label for="slider-{{ id }}" class="form-label small">
-          Move slider to change view
+          To browse through the images: Drag the slider left or right, or click on the image and 
+          use the <kbd>←</kbd> and <kbd>→</kbd> keys.
         </label>
         <input type="range" class="form-range" min="0" max="{{ images|length - 1 }}" value="{{ start_idx }}"
           id="slider-{{id}}">
