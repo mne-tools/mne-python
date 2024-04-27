@@ -50,13 +50,17 @@ def _get_aseg(aseg, subject, subjects_dir):
     """Check that the anatomical segmentation file exists and load it."""
     nib = _import_nibabel("load aseg")
     subjects_dir = Path(get_subjects_dir(subjects_dir, raise_error=True))
-    if not aseg.endswith("aseg"):
-        raise RuntimeError(f'`aseg` file path must end with "aseg", got {aseg}')
-    aseg = _check_fname(
-        subjects_dir / subject / "mri" / (aseg + ".mgz"),
-        overwrite="read",
-        must_exist=True,
-    )
+    if aseg == "auto":  # use aparc+aseg if auto
+        aseg = _check_fname(
+            subjects_dir / subject / "mri" / "aparc+aseg.mgz",
+            overwrite="read",
+            must_exist=False,
+        )
+        if not aseg:  # if doesn't exist use wmparc
+            aseg = subjects_dir / subject / "mri" / "wmparc.mgz"
+    else:
+        aseg = subjects_dir / subject / "mri" / f"{aseg}.mgz"
+    _check_fname(aseg, overwrite="read", must_exist=True)
     aseg = nib.load(aseg)
     aseg_data = np.array(aseg.dataobj)
     return aseg, aseg_data

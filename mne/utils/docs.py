@@ -308,9 +308,13 @@ area_mode : str | None
 
 docdict["aseg"] = """
 aseg : str
-    The anatomical segmentation file. Default ``aparc+aseg``. This may
-    be any anatomical segmentation file in the mri subdirectory of the
-    Freesurfer subject directory.
+    The anatomical segmentation file. Default ``auto`` uses ``aparc+aseg``
+    if available and ``wmparc`` if not. This may be any anatomical
+    segmentation file in the mri subdirectory of the Freesurfer subject
+    directory.
+
+    .. versionchanged:: 1.8
+       Added support for the new default ``'auto'``.
 """
 
 docdict["average_plot_evoked_topomap"] = """
