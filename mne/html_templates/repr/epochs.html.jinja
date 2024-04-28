@@ -6,6 +6,24 @@
     </tr>
     {% endif %}
     <tr>
+        <th>Measurement date</th>
+        {% if meas_date is not none %}
+        <td>{{ meas_date }}</td>
+        {% else %}
+        <td>Unknown</td>
+        {% endif %}
+    </tr>
+    <tr>
+        <th>Participant</th>
+        {% if subject_info is defined and subject_info is not none %}
+        {% if 'his_id' in subject_info.keys() %}
+        <td>{{ subject_info['his_id'] }}</td>
+        {% endif %}
+        {% else %}
+        <td>Unknown</td>
+        {% endif %}
+    </tr>
+    <tr>
         <th>Total number of events</th>
         <td>{{ epochs.events|length }}</td>
     </tr>

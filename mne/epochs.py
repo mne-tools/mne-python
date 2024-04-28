@@ -2086,11 +2086,16 @@ class BaseEpochs(
             event_strings = None
 
         good_channels, bad_channels, ecg, eog = self.info._get_chs_for_repr()
+        meas_date = self.info.get("meas_date")
+        if meas_date is not None:
+            meas_date = meas_date.strftime("%B %d, %Y  %H:%M:%S") + " GMT"
 
         t = _get_html_template("repr", "epochs.html.jinja")
         t = t.render(
             epochs=self,
             filename=Path(self.filename).name if self.filename is not None else None,
+            meas_date=meas_date,
+            subject_info=self.info.get("subject_info"),
             baseline=baseline,
             events=event_strings,
             good_channels=good_channels,

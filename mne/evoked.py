@@ -475,13 +475,20 @@ class Evoked(
             baseline = f"{baseline[0]} – {baseline[1]} s"
 
         good_channels, bad_channels, ecg, eog = self.info._get_chs_for_repr()
+        meas_date = self.info.get("meas_date")
+        if meas_date is not None:
+            meas_date = meas_date.strftime("%B %d, %Y  %H:%M:%S") + " GMT"
 
         t = _get_html_template("repr", "evoked.html.jinja")
         t = t.render(
             evoked=self,
-            filename=Path(self.filename).name
-            if hasattr(self, "filename") and self.filename is not None
-            else None,
+            filename=(
+                Path(self.filename).name
+                if hasattr(self, "filename") and self.filename is not None
+                else None
+            ),
+            meas_date=meas_date,
+            subject_info=self.info.get("subject_info"),
             baseline=baseline,
             good_channels=good_channels,
             bad_channels=bad_channels,
