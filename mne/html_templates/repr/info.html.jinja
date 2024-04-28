@@ -91,10 +91,12 @@
                     <td>{{ projs|join('<br />') | safe }}</td>
                 </tr>
                 {% endif %}
+                {% if time_points is not none %}
                 <tr>
                     <th>Time points</th>
                     <td>{{ time_points | format_number}}</td>
                 </tr>
+                {% endif %}
                 {% if duration %}
                 <tr>
                     <th>Duration</th>
