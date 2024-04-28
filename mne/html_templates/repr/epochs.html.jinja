@@ -1,15 +1,25 @@
 <table class="table table-hover table-striped table-sm table-responsive small">
+    {% if filename %}
     <tr>
-        <th>Number of events</th>
+        <th>Filename</th>
+        <td>{{ filename }}</td>
+    </tr>
+    {% endif %}
+    <tr>
+        <th>Total number of events</th>
         <td>{{ epochs.events|length }}</td>
     </tr>
     <tr>
-        <th>Events</th>
+        <th>Events counts</th>
         {% if events is not none %}
-        <td>{{ events|join('<br/>') | safe }}</td>
+        <td>{{ events|join('<br />') | safe }}</td>
         {% else %}
         <td>Not available</td>
         {% endif %}
+    </tr>
+    <tr>
+        <th>Time points</th>
+        <td>{{ epochs.times | length | format_number}}</td>
     </tr>
     <tr>
         <th>Time range</th>
@@ -18,5 +28,29 @@
     <tr>
         <th>Baseline</th>
         <td>{{ baseline }}</td>
+    </tr>
+    <tr>
+        <th>Digitized head and sensor positions</th>
+        {% if epochs.info["dig"] is not none %}
+        <td>{{ epochs.info["dig"] | length }} points</td>
+        {% else %}
+        <td>Not available</td>
+        {% endif %}
+    </tr>
+    <tr>
+        <th>Good channels</th>
+        <td>{{ good_channels }}</td>
+    </tr>
+    <tr>
+        <th>Bad channels</th>
+        <td>{{ bad_channels }}</td>
+    </tr>
+    <tr>
+        <th>EOG channels</th>
+        <td>{{ eog }}</td>
+    </tr>
+    <tr>
+        <th>ECG channels</th>
+        <td>{{ ecg }}</td>
     </tr>
 </table>

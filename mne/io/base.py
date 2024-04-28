@@ -19,6 +19,7 @@ from copy import deepcopy
 from dataclasses import dataclass, field
 from datetime import timedelta
 from inspect import getfullargspec
+from pathlib import Path
 
 import numpy as np
 
@@ -2095,7 +2096,7 @@ class BaseRaw(
 
     def __repr__(self):  # noqa: D105
         name = self.filenames[0]
-        name = "" if name is None else op.basename(name) + ", "
+        name = "" if name is None else Path(name).name + ", "
         size_str = str(sizeof_fmt(self._size))  # str in case it fails -> None
         size_str += f", data{'' if self.preload else ' not'} loaded"
         s = (
@@ -2106,7 +2107,7 @@ class BaseRaw(
 
     @repr_html
     def _repr_html_(self, caption=None):
-        basenames = [os.path.basename(f) for f in self._filenames if f is not None]
+        basenames = [Path(f).name for f in self._filenames if f is not None]
 
         # https://stackoverflow.com/a/10981895
         duration = timedelta(seconds=self.times[-1])
@@ -2121,6 +2122,7 @@ class BaseRaw(
             info_repr=self.info._repr_html_(
                 caption=caption,
                 filenames=basenames,
+                time_points=len(self.times),
                 duration=duration,
             )
         )

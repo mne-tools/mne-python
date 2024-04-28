@@ -10,6 +10,7 @@
 
 from copy import deepcopy
 from inspect import getfullargspec
+from pathlib import Path
 from typing import Union
 
 import numpy as np
@@ -473,8 +474,20 @@ class Evoked(
             baseline = tuple([f"{b:.3f}" for b in self.baseline])
             baseline = f"{baseline[0]} – {baseline[1]} s"
 
+        good_channels, bad_channels, ecg, eog = self.info._get_chs_for_repr()
+
         t = _get_html_template("repr", "evoked.html.jinja")
-        t = t.render(evoked=self, baseline=baseline)
+        t = t.render(
+            evoked=self,
+            filename=Path(self.filename).name
+            if hasattr(self, "filename") and self.filename is not None
+            else None,
+            baseline=baseline,
+            good_channels=good_channels,
+            bad_channels=bad_channels,
+            ecg=ecg,
+            eog=eog,
+        )
         return t
 
     @property

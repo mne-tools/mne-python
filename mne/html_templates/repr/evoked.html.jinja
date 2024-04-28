@@ -1,4 +1,10 @@
 <table class="table table-hover table-striped table-sm table-responsive small">
+    {% if filename %}
+    <tr>
+        <th>Filename</th>
+        <td>{{ filename }}</td>
+    </tr>
+    {% endif %}
     <tr>
         <th>Condition</th>
         <td>{{evoked.comment}}</td>
@@ -12,11 +18,39 @@
         <td>{{evoked.nave}}</td>
     </tr>
     <tr>
+        <th>Time points</th>
+        <td>{{ evoked.times | length | format_number}}</td>
+    </tr>
+    <tr>
         <th>Time range</th>
         <td>{{ '%.3f'|format(evoked.times[0]) }} – {{ '%.3f'|format(evoked.times[-1]) }} s</td>
     </tr>
     <tr>
         <th>Baseline</th>
         <td>{{ baseline }}</td>
+    </tr>
+    <tr>
+        <th>Digitized head and sensor positions</th>
+        {% if evoked.info["dig"] is not none %}
+        <td>{{ evoked.info["dig"] | length }} points</td>
+        {% else %}
+        <td>Not available</td>
+        {% endif %}
+    </tr>
+    <tr>
+        <th>Good channels</th>
+        <td>{{ good_channels }}</td>
+    </tr>
+    <tr>
+        <th>Bad channels</th>
+        <td>{{ bad_channels }}</td>
+    </tr>
+    <tr>
+        <th>EOG channels</th>
+        <td>{{ eog }}</td>
+    </tr>
+    <tr>
+        <th>ECG channels</th>
+        <td>{{ ecg }}</td>
     </tr>
 </table>

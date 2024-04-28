@@ -1875,7 +1875,9 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
         return good_channels, bad_channels, good_names["ecg"], good_names["eog"]
 
     @repr_html
-    def _repr_html_(self, caption=None, duration=None, filenames=None):
+    def _repr_html_(
+        self, caption=None, time_points=None, duration=None, filenames=None
+    ):
         """Summarize info for HTML representation."""
         if isinstance(caption, str):
             html = f"<h4>{caption}</h4>"
@@ -1923,6 +1925,7 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
             highpass=self.get("highpass"),
             sfreq=self.get("sfreq"),
             experimenter=self.get("experimenter"),
+            time_points=time_points,
             duration=duration,
             filenames=filenames,
         )

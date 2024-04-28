@@ -1,8 +1,14 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 import functools
+from typing import Union
 
 _COLLAPSED = False  # will override in doc build
+
+
+def _format_big_number(value: Union[int, float]) -> str:
+    """Insert thousand separators."""
+    return f"{value:,}"
 
 
 @functools.lru_cache(maxsize=2)
@@ -19,6 +25,8 @@ def _get_html_templates_env(kind):
     )
     if kind == "report":
         templates_env.filters["zip"] = zip
+
+    templates_env.filters["format_number"] = _format_big_number
     return templates_env
 
 

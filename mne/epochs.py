@@ -17,6 +17,7 @@ from collections import Counter
 from copy import deepcopy
 from functools import partial
 from inspect import getfullargspec
+from pathlib import Path
 
 import numpy as np
 from scipy.interpolate import interp1d
@@ -2084,8 +2085,19 @@ class BaseEpochs(
         else:
             event_strings = None
 
+        good_channels, bad_channels, ecg, eog = self.info._get_chs_for_repr()
+
         t = _get_html_template("repr", "epochs.html.jinja")
-        t = t.render(epochs=self, baseline=baseline, events=event_strings)
+        t = t.render(
+            epochs=self,
+            filename=Path(self.filename).name if self.filename is not None else None,
+            baseline=baseline,
+            events=event_strings,
+            good_channels=good_channels,
+            bad_channels=bad_channels,
+            ecg=ecg,
+            eog=eog,
+        )
         return t
 
     @verbose

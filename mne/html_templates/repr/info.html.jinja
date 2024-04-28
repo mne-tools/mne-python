@@ -1,6 +1,12 @@
 <details{{ "" if collapsed else " open" }}>
     <summary><strong>{{sections[0]}}</strong></summary>
     <table class="table table-hover table-striped table-sm table-responsive small">
+        {% if filenames %}
+        <tr>
+            <th>Filename(s)</th>
+            <td>{{ filenames|join('<br>') }}</td>
+        </tr>
+        {% endif %}
         <tr>
             <th>Measurement date</th>
             {% if meas_date is not none %}
@@ -33,7 +39,7 @@
         <summary><strong>{{sections[1]}}</strong></summary>
         <table class="table table-hover table-striped table-sm table-responsive small">
             <tr>
-                <th>Digitized points</th>
+                <th>Digitized head and sensor positions</th>
                 {% if dig is not none %}
                 <td>{{ dig|length }} points</td>
                 {% else %}
@@ -85,12 +91,10 @@
                     <td>{{ projs|join('<br />') | safe }}</td>
                 </tr>
                 {% endif %}
-                {% if filenames %}
                 <tr>
-                    <th>Filenames</th>
-                    <td>{{ filenames|join('<br>') }}</td>
+                    <th>Time points</th>
+                    <td>{{ time_points | format_number}}</td>
                 </tr>
-                {% endif %}
                 {% if duration %}
                 <tr>
                     <th>Duration</th>
