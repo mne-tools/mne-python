@@ -28,12 +28,14 @@
         <td>{{evoked.comment}}</td>
     </tr>
     <tr>
-        <th>Data kind</th>
-        <td>{{evoked.kind}}</td>
-    </tr>
-    <tr>
-        <th>Number of averaged epochs</th>
-        <td>{{evoked.nave}}</td>
+        <th>Data</th>
+        {% if evoked.kind == "average" %}
+        <td>average of {{evoked.nave}} epochs</td>
+        {% elif evoked.kind == "standard_error" %}
+        <td>standard error of {{evoked.nave}} epochs</td>
+        {% else %}
+        <td>{{evoked.kind}} ({{evoked.nave}} epochs)</td>
+        {% endif %}
     </tr>
     <tr>
         <th>Time points</th>
@@ -48,7 +50,7 @@
         <td>{{ baseline }}</td>
     </tr>
     <tr>
-        <th>Digitized head and sensor positions</th>
+        <th>Head shape and sensor digitization</th>
         {% if evoked.info["dig"] is not none %}
         <td>{{ evoked.info["dig"] | length }} points</td>
         {% else %}

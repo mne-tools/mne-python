@@ -16,7 +16,7 @@
     <tr>
         <th>Participant</th>
         {% if subject_info is defined and subject_info is not none %}
-        {% if 'his_id' in subject_info.keys() %}
+        {% if 'his_id' in subject_injainfo.keys() %}
         <td>{{ subject_info['his_id'] }}</td>
         {% endif %}
         {% else %}
@@ -48,7 +48,7 @@
         <td>{{ baseline }}</td>
     </tr>
     <tr>
-        <th>Digitized head and sensor positions</th>
+        <th>Head shape and sensor digitization</th>
         {% if epochs.info["dig"] is not none %}
         <td>{{ epochs.info["dig"] | length }} points</td>
         {% else %}
