@@ -26,8 +26,8 @@ def test_html_repr():
     os.environ[key] = "True"  # HTML repr on
     info = mne.create_info(10, 256)
     r = info._repr_html_()
-    assert r.startswith("<details open")
-    assert r.endswith("</details>")
+    assert r.startswith("<script type=")
+    assert r.endswith("</table>")
     os.environ[key] = "False"  # HTML repr off
     r = info._repr_html_()
     assert r.startswith("<pre>")
