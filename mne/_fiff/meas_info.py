@@ -10,10 +10,12 @@ import contextlib
 import datetime
 import operator
 import string
+import uuid
 from collections import Counter, OrderedDict, defaultdict
 from collections.abc import Mapping
 from copy import deepcopy
 from io import BytesIO
+from pathlib import Path
 from textwrap import shorten
 
 import numpy as np
@@ -1910,6 +1912,13 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
 
         info_template = _get_html_template("repr", "info.html.jinja")
         sections = ("General", "Channels", "Data")
+
+        static_includes_path = (
+            Path(__file__).parents[1] / "html_templates" / "repr" / "static"
+        )
+        css = (static_includes_path / "repr.css").read_text(encoding="utf-8")
+        js = (static_includes_path / "repr.js").read_text(encoding="utf-8")
+
         return html + info_template.render(
             sections=sections,
             caption=caption,
@@ -1928,6 +1937,9 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
             time_points=time_points,
             duration=duration,
             filenames=filenames,
+            css=css,
+            js=js,
+            uuid=uuid.uuid1(),
         )
 
     def save(self, fname):
