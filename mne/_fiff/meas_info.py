@@ -1900,7 +1900,7 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
         # meas date
         meas_date = self.get("meas_date")
         if meas_date is not None:
-            meas_date = meas_date.strftime("%B %d, %Y  %H:%M:%S") + " GMT"
+            meas_date = meas_date.strftime("%B %d, %Y  %H:%M:%S") + " UTC"
 
         projs = self.get("projs")
         if projs:
