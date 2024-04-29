@@ -1,4 +1,4 @@
-The HTML representations of :class:`~mne.Raw`, :class:`~mne.Epochs`,
+The HTML representations of :class:`~mne.io.Raw`, :class:`~mne.Epochs`,
 and :class:`~mne.Evoked` (which you will see e.g. when working with Jupyter Notebooks or
 :class:`~mne.Report`) have been updated to be more consistent and contain
 slightly more information,  by `Richard Höchenberger`_.
