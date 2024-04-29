@@ -35,7 +35,7 @@ def test_html_repr():
 
     del os.environ[key]
     if existing_value is not None:
-        os.environ[key, existing_value]
+        os.environ[key] = existing_value
 
 
 @pytest.mark.parametrize("kind", ("stdout", "stderr"))
