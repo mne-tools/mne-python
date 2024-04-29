@@ -282,7 +282,7 @@ class RawPersyst(BaseRaw):
 
         # chs * rows
         # cast as float32; more than enough precision
-        record = np.reshape(record, (n_chs, -1), "F").astype(np.float32)
+        record = np.reshape(record, (n_chs, -1), order="F").astype(np.float32)
 
         # calibrate to convert to V and handle mult
         _mult_cal_one(data, record, idx, cals, mult)
