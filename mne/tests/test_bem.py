@@ -70,7 +70,7 @@ def _compare_bem_surfaces(surfs_1, surfs_2):
                 s1[name],
                 rtol=1e-3,
                 atol=1e-6,
-                err_msg='Mismatch: "%s"' % name,
+                err_msg=f'Mismatch: "{name}"',
             )
 
 
@@ -94,7 +94,7 @@ def _compare_bem_solutions(sol_a, sol_b):
     assert sol_a["solver"] == sol_b["solver"]
     for key in names[:-1]:
         assert_allclose(
-            sol_a[key], sol_b[key], rtol=1e-3, atol=1e-5, err_msg="Mismatch: %s" % key
+            sol_a[key], sol_b[key], rtol=1e-3, atol=1e-5, err_msg=f"Mismatch: {key}"
         )
 
 

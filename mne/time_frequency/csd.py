@@ -330,7 +330,7 @@ class CrossSpectralDensity:
         index = np.argmin(distance)
         min_dist = distance[index]
         if min_dist > 1:
-            raise IndexError("Frequency %f is not available." % freq)
+            raise IndexError(f"Frequency {freq:f} is not available.")
         return index
 
     def pick_frequency(self, freq=None, index=None):

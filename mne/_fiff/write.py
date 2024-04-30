@@ -289,7 +289,7 @@ def start_file(fname, id_=None):
         ID to use for the FIFF_FILE_ID.
     """
     if _file_like(fname):
-        logger.debug("Writing using %s I/O" % type(fname))
+        logger.debug(f"Writing using {type(fname)} I/O")
         fid = fname
         fid.seek(0)
     else:

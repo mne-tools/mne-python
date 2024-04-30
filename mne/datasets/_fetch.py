@@ -219,7 +219,7 @@ def fetch_dataset(
             else:
                 # If they don't have stdin, just accept the license
                 # https://github.com/mne-tools/mne-python/issues/8513#issuecomment-726823724  # noqa: E501
-                answer = _safe_input("%sAgree (y/[n])? " % _bst_license_text, use="y")
+                answer = _safe_input(f"{_bst_license_text}Agree (y/[n])? ", use="y")
             if answer.lower() != "y":
                 raise RuntimeError(
                     "You must agree to the license to use this " "dataset"

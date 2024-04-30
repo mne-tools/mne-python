@@ -339,7 +339,7 @@ def _plot_ica_properties(
         _set_scale(spec_ax, "log")
 
     # epoch variance
-    var_ax_title = "Dropped segments: %.2f %%" % var_percent
+    var_ax_title = f"Dropped segments: {var_percent:.2f} %"
     set_title_and_labels(var_ax, var_ax_title, kind, "Variance (AU)")
 
     hist_ax.set_ylabel("")
@@ -1035,7 +1035,7 @@ def plot_ica_scores(
                 label = ", ".join([split[0], split[2]])
             elif "/" in label:
                 label = ", ".join(label.split("/"))
-            ax.set_title("(%s)" % label)
+            ax.set_title(f"({label})")
         ax.set_xlabel("ICA components")
         ax.set_xlim(-0.6, len(this_scores) - 0.4)
     fig.canvas.draw()
@@ -1110,7 +1110,7 @@ def plot_ica_overlay(
     if exclude is None:
         exclude = ica.exclude
     if not isinstance(exclude, (np.ndarray, list)):
-        raise TypeError("exclude must be of type list. Got %s" % type(exclude))
+        raise TypeError(f"exclude must be of type list. Got {type(exclude)}")
     if isinstance(inst, BaseRaw):
         start = 0.0 if start is None else start
         stop = 3.0 if stop is None else stop

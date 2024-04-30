@@ -98,7 +98,7 @@ class ConductorModel(dict):
             center = ", ".join("%0.1f" % (x * 1000.0) for x in self["r0"])
             rad = self.radius
             if rad is None:  # no radius / MEG only
-                extra = "Sphere (no layers): r0=[%s] mm" % center
+                extra = f"Sphere (no layers): r0=[{center}] mm"
             else:
                 extra = "Sphere ({} layer{}): r0=[{}] R={:1.0f} mm".format(
                     len(self["layers"]) - 1,
@@ -530,7 +530,7 @@ def _order_surfaces(surfs):
     ]
     ids = np.array([surf["id"] for surf in surfs])
     if set(ids) != set(surf_order):
-        raise RuntimeError("bad surface ids: %s" % ids)
+        raise RuntimeError(f"bad surface ids: {ids}")
     order = [np.where(ids == id_)[0][0] for id_ in surf_order]
     surfs = [surfs[idx] for idx in order]
     return surfs
@@ -1081,7 +1081,7 @@ def get_fitting_dig(info, dig_kinds="auto", exclude_frontal=True, verbose=None):
     hsp = np.array(hsp)
 
     if len(hsp) <= 10:
-        kinds_str = ", ".join(['"%s"' % _dig_kind_rev[d] for d in sorted(dig_kinds)])
+        kinds_str = ", ".join([f'"{_dig_kind_rev[d]}"' for d in sorted(dig_kinds)])
         msg = (
             f"Only {len(hsp)} head digitization points of the specified "
             f"kind{_pl(dig_kinds)} ({kinds_str},)"
@@ -1278,8 +1278,8 @@ def make_watershed_bem(
     if op.isdir(ws_dir):
         if not overwrite:
             raise RuntimeError(
-                "%s already exists. Use the --overwrite option"
-                " to recreate it." % ws_dir
+                f"{ws_dir} already exists. Use the --overwrite option"
+                " to recreate it."
             )
         else:
             shutil.rmtree(ws_dir)
@@ -1287,7 +1287,7 @@ def make_watershed_bem(
     # put together the command
     cmd = ["mri_watershed"]
     if preflood:
-        cmd += ["-h", "%s" % int(preflood)]
+        cmd += ["-h", f"{int(preflood)}"]
 
     if T1 is None:
         T1 = gcaatlas
@@ -1404,7 +1404,7 @@ def _extract_volume_info(mgz):
     version = header["version"]
     vol_info = dict()
     if version == 1:
-        version = "%s  # volume info valid" % version
+        version = f"{version}  # volume info valid"
         vol_info["valid"] = version
         vol_info["filename"] = mgz
         vol_info["volume"] = header["dims"][:3]
@@ -1694,7 +1694,7 @@ def _read_bem_solution_fif(fname):
         # Find the BEM data
         nodes = dir_tree_find(tree, FIFF.FIFFB_BEM)
         if len(nodes) == 0:
-            raise RuntimeError("No BEM data in %s" % fname)
+            raise RuntimeError(f"No BEM data in {fname}")
         bem_node = nodes[0]
 
         # Approximation method
@@ -1704,7 +1704,7 @@ def _read_bem_solution_fif(fname):
             solver = tag["solver"]
         tag = find_tag(f, bem_node, FIFF.FIFF_BEM_APPROX)
         if tag is None:
-            raise RuntimeError("No BEM solution found in %s" % fname)
+            raise RuntimeError(f"No BEM solution found in {fname}")
         method = tag.data[0]
         tag = find_tag(fid, bem_node, FIFF.FIFF_BEM_POT_SOLUTION)
         sol = tag.data
@@ -2024,7 +2024,7 @@ def convert_flash_mris(
     template = op.join(flash_dir, "mef*_*.mgz")
     files = sorted(glob.glob(template))
     if len(files) == 0:
-        raise ValueError("No suitable source files found (%s)" % template)
+        raise ValueError(f"No suitable source files found ({template})")
     if unwarp:
         logger.info("\n---- Unwarp mgz data sets ----")
         for infile in files:
@@ -2068,7 +2068,7 @@ def convert_flash_mris(
         template = "mef05_*u.mgz" if unwarp else "mef05_*.mgz"
         files = sorted(flash_dir.glob(template))
         if len(files) == 0:
-            raise ValueError("No suitable source files found (%s)" % template)
+            raise ValueError(f"No suitable source files found ({template})")
         cmd = ["mri_average", "-noconform"] + files + [pm_dir / "flash5.mgz"]
         run_subprocess_env(cmd)
         (pm_dir / "flash5_reg.mgz").unlink(missing_ok=True)
@@ -2275,8 +2275,8 @@ def make_flash_bem(
         dest = bem_dir
     logger.info(
         "\nThank you for waiting.\nThe BEM triangulations for this "
-        "subject are now available at:\n%s.\nWe hope the BEM meshes "
-        "created will facilitate your MEG and EEG data analyses." % dest
+        f"subject are now available at:\n{dest}.\nWe hope the BEM meshes "
+        "created will facilitate your MEG and EEG data analyses."
     )
     # Show computed BEM surfaces
     if show:
@@ -2293,9 +2293,8 @@ def _check_bem_size(surfs):
     """Check bem surface sizes."""
     if len(surfs) > 1 and surfs[0]["np"] > 10000:
         warn(
-            "The bem surfaces have %s data points. 5120 (ico grade=4) "
+            f"The bem surfaces have {surfs[0]['np']} data points. 5120 (ico grade=4) "
             "should be enough. Dense 3-layer bems may not save properly."
-            % surfs[0]["np"]
         )
 
 
@@ -2307,9 +2306,9 @@ def _symlink(src, dest, copy=False):
             os.symlink(src_link, dest)
         except OSError:
             warn(
-                "Could not create symbolic link %s. Check that your "
+                f"Could not create symbolic link {dest}. Check that your "
                 "partition handles symbolic links. The file will be copied "
-                "instead." % dest
+                "instead."
             )
             copy = True
     if copy:
@@ -2404,8 +2403,7 @@ def make_scalp_surfaces(
     subj_path = subjects_dir / subject
     if not subj_path.exists():
         raise RuntimeError(
-            "%s does not exist. Please check your subject "
-            "directory path." % subj_path
+            f"{subj_path} does not exist. Please check your subject " "directory path."
         )
 
     # Backward compat for old FreeSurfer (?)
@@ -2459,9 +2457,9 @@ def make_scalp_surfaces(
     bem_dir = subjects_dir / subject / "bem"
     if not bem_dir.is_dir():
         os.mkdir(bem_dir)
-    fname_template = bem_dir / ("%s-head-{}.fif" % subject)
+    fname_template = bem_dir / (f"{subject}-head-{{}}.fif")
     dense_fname = str(fname_template).format("dense")
-    logger.info("2. Creating %s ..." % dense_fname)
+    logger.info(f"2. Creating {dense_fname} ...")
     _check_file(dense_fname, overwrite)
     # Helpful message if we get a topology error
     msg = (

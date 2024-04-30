@@ -824,7 +824,7 @@ def _mask_trigs(events, mask, mask_type):
         elif mask_type != "and":
             raise ValueError(
                 "'mask_type' should be either 'and'"
-                " or 'not_and', instead of '%s'" % mask_type
+                f" or 'not_and', instead of '{mask_type}'"
             )
         events[:, 1:] = np.bitwise_and(events[:, 1:], mask)
     events = events[events[:, 1] != events[:, 2]]

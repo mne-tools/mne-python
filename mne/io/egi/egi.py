@@ -200,7 +200,7 @@ class RawEGI(BaseRaw):
         if misc is None:
             misc = []
         with open(input_fname, "rb") as fid:  # 'rb' important for py3k
-            logger.info("Reading EGI header from %s..." % input_fname)
+            logger.info(f"Reading EGI header from {input_fname}...")
             egi_info = _read_header(fid)
             logger.info("    Reading events ...")
             egi_events = _read_events(fid, egi_info)  # update info + jump
@@ -245,16 +245,16 @@ class RawEGI(BaseRaw):
                 if isinstance(v, list):
                     for k in v:
                         if k not in event_codes:
-                            raise ValueError('Could find event named "%s"' % k)
+                            raise ValueError(f'Could find event named "{k}"')
                 elif v is not None:
-                    raise ValueError("`%s` must be None or of type list" % kk)
+                    raise ValueError(f"`{kk}` must be None or of type list")
 
             event_ids = np.arange(len(include_)) + 1
             logger.info('    Synthesizing trigger channel "STI 014" ...')
-            logger.info(
-                "    Excluding events {%s} ..."
-                % ", ".join([k for i, k in enumerate(event_codes) if i not in include_])
+            excl_events = ", ".join(
+                k for i, k in enumerate(event_codes) if i not in include_
             )
+            logger.info(f"    Excluding events {{{excl_events}}} ...")
             egi_info["new_trigger"] = _combine_triggers(
                 egi_events[include_], remapping=event_ids
             )

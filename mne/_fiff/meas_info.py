@@ -281,7 +281,7 @@ def _unique_channel_names(ch_names, max_length=None, verbose=None):
         dups = {ch_names[x] for x in np.setdiff1d(range(len(ch_names)), unique_ids)}
         warn(
             "Channel names are not unique, found duplicates for: "
-            "%s. Applying running numbers for duplicates." % dups
+            f"{dups}. Applying running numbers for duplicates."
         )
         for ch_stem in dups:
             overlaps = np.where(np.array(ch_names) == ch_stem)[0]
@@ -296,7 +296,7 @@ def _unique_channel_names(ch_names, max_length=None, verbose=None):
             for idx, ch_idx in enumerate(overlaps):
                 # try idx first, then loop through lower case chars
                 for suffix in (idx,) + suffixes:
-                    ch_name = ch_stem + "-%s" % suffix
+                    ch_name = ch_stem + f"-{suffix}"
                     if ch_name not in ch_names:
                         break
                 if ch_name not in ch_names:
@@ -305,7 +305,7 @@ def _unique_channel_names(ch_names, max_length=None, verbose=None):
                     raise ValueError(
                         "Adding a single alphanumeric for a "
                         "duplicate resulted in another "
-                        "duplicate name %s" % ch_name
+                        f"duplicate name {ch_name}"
                     )
     return ch_names
 
@@ -516,7 +516,7 @@ class SetChannelsMixin(MontageMixin):
                 idx = self.ch_names.index(name)
                 info["chs"][idx]["loc"][:3] = p
             else:
-                msg = "%s was not found in the info. Cannot be updated." % name
+                msg = f"{name} was not found in the info. Cannot be updated."
                 raise ValueError(msg)
 
     @verbose
@@ -562,7 +562,7 @@ class SetChannelsMixin(MontageMixin):
         for ch_name, ch_type in mapping.items():
             if ch_name not in ch_names:
                 raise ValueError(
-                    "This channel name (%s) doesn't exist in " "info." % ch_name
+                    f"This channel name ({ch_name}) doesn't exist in " "info."
                 )
 
             c_ind = ch_names.index(ch_name)
@@ -1668,7 +1668,7 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
             elif k == "projs":
                 if v:
                     entr = ", ".join(
-                        p["desc"] + ": o%s" % {0: "ff", 1: "n"}[p["active"]] for p in v
+                        p["desc"] + ": o" + ("n" if p["active"] else "ff") for p in v
                     )
                     entr = shorten(entr, MAX_WIDTH, placeholder=" ...")
                 else:
@@ -1688,7 +1688,7 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
                     for ii in _dig_kind_ints
                     if ii in counts
                 ]
-                counts = (" (%s)" % (", ".join(counts))) if len(counts) else ""
+                counts = (" ({})".format(", ".join(counts))) if len(counts) else ""
                 entr = "%d item%s%s" % (len(v), _pl(len(v)), counts)
             elif isinstance(v, Transform):
                 # show entry only for non-identity transform
@@ -2989,9 +2989,7 @@ def _merge_info_values(infos, key, verbose=None):
         if is_qual:
             return values[0]
         elif key == "meas_date":
-            logger.info(
-                "Found multiple entries for %s. " "Setting value to `None`" % key
-            )
+            logger.info(f"Found multiple entries for {key}. " "Setting value to `None`")
             return None
         else:
             raise RuntimeError(msg)
@@ -3059,7 +3057,7 @@ def _merge_info(infos, force_update_to_first=False, verbose=None):
     if len(duplicates) > 0:
         msg = (
             "The following channels are present in more than one input "
-            "measurement info objects: %s" % list(duplicates)
+            f"measurement info objects: {list(duplicates)}"
         )
         raise ValueError(msg)
 
@@ -3078,7 +3076,7 @@ def _merge_info(infos, force_update_to_first=False, verbose=None):
         ):
             info[trans_name] = trans[0]
         else:
-            msg = "Measurement infos provide mutually inconsistent %s" % trans_name
+            msg = f"Measurement infos provide mutually inconsistent {trans_name}"
             raise ValueError(msg)
 
     # KIT system-IDs
@@ -3101,7 +3099,7 @@ def _merge_info(infos, force_update_to_first=False, verbose=None):
         elif all(object_diff(values[0], v) == "" for v in values[1:]):
             info[k] = values[0]
         else:
-            msg = "Measurement infos are inconsistent for %s" % k
+            msg = f"Measurement infos are inconsistent for {k}"
             raise ValueError(msg)
 
     # other fields
@@ -3367,7 +3365,7 @@ def _force_update_info(info_base, info_target):
     all_infos = np.hstack([info_base, info_target])
     for ii in all_infos:
         if not isinstance(ii, Info):
-            raise ValueError("Inputs must be of type Info. " "Found type %s" % type(ii))
+            raise ValueError("Inputs must be of type Info. " f"Found type {type(ii)}")
     for key, val in info_base.items():
         if key in exclude_keys:
             continue

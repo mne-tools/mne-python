@@ -136,7 +136,7 @@ class RawHitachi(BaseRaw):
 
 
 def _get_hitachi_info(fname, S_offset, D_offset, ignore_names):
-    logger.info("Loading %s" % fname)
+    logger.info(f"Loading {fname}")
     raw_extra = dict(fname=fname)
     info_extra = dict()
     subject_info = dict()

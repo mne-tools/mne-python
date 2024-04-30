@@ -46,7 +46,7 @@ def _read_eeg(directory):
             if len(line) > 0:
                 parts = line.decode("utf-8").split()
                 if len(parts) != 5:
-                    raise RuntimeError("Illegal data in EEG position file: %s" % line)
+                    raise RuntimeError(f"Illegal data in EEG position file: {line}")
                 r = np.array([float(p) for p in parts[2:]]) / 100.0
                 if (r * r).sum() > 1e-4:
                     label = parts[1]
@@ -72,7 +72,7 @@ def _read_pos(directory, transformations):
     elif len(fname) > 1:
         warn("    Found multiple pos files. Extra digitizer points not added.")
         return list()
-    logger.info("    Reading digitizer points from %s..." % fname)
+    logger.info(f"    Reading digitizer points from {fname}...")
     if transformations["t_ctf_head_head"] is None:
         warn("    No transformation found. Extra digitizer points not added.")
         return list()

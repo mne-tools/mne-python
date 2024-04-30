@@ -125,6 +125,6 @@ def fix_stim_artifact(
         _fix_artifact(data, window, picks, first_samp, last_samp, mode)
 
     else:
-        raise TypeError("Not a Raw or Epochs or Evoked (got %s)." % type(inst))
+        raise TypeError(f"Not a Raw or Epochs or Evoked (got {type(inst)}).")
 
     return inst

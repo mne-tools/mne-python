@@ -192,7 +192,7 @@ def _get_psf_ctf(
 def _check_get_psf_ctf_params(mode, n_comp, return_pca_vars):
     """Check input parameters of _get_psf_ctf() for consistency."""
     if mode in [None, "sum", "mean"] and n_comp > 1:
-        msg = "n_comp must be 1 for mode=%s." % mode
+        msg = f"n_comp must be 1 for mode={mode}."
         raise ValueError(msg)
     if mode != "pca" and return_pca_vars:
         msg = "SVD variances can only be returned if mode=" "pca" "."
@@ -513,7 +513,7 @@ def _get_matrix_from_inverse_operator(
         assert np.array_equal(v0o1, invmat[1])
         assert np.array_equal(v3o2, invmat[11])
 
-    logger.info("Dimension of Inverse Matrix: %s" % str(invmat.shape))
+    logger.info(f"Dimension of Inverse Matrix: {str(invmat.shape)}")
 
     return invmat
 

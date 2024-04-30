@@ -461,7 +461,7 @@ class Evoked(
                 on_baseline_outside_data="adjust",
             ):
                 s += " (baseline period was cropped after baseline correction)"
-        s += ", %s ch" % self.data.shape[0]
+        s += f", {self.data.shape[0]} ch"
         s += f", ~{sizeof_fmt(self._size)}"
         return f"<Evoked | {s}>"
 
@@ -1712,7 +1712,7 @@ def read_evokeds(
     """
     fname = str(_check_fname(fname, overwrite="read", must_exist=True))
     check_fname(fname, "evoked", ("-ave.fif", "-ave.fif.gz", "_ave.fif", "_ave.fif.gz"))
-    logger.info("Reading %s ..." % fname)
+    logger.info(f"Reading {fname} ...")
     return_list = True
     if condition is None:
         evoked_node = _get_evoked_node(fname)

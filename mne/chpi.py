@@ -115,7 +115,7 @@ def read_head_pos(fname):
     data = np.loadtxt(fname, skiprows=1)  # first line is header, skip it
     data.shape = (-1, 10)  # ensure it's the right size even if empty
     if np.isnan(data).any():  # make sure we didn't do something dumb
-        raise RuntimeError("positions could not be read properly from %s" % fname)
+        raise RuntimeError(f"positions could not be read properly from {fname}")
     return data
 
 
@@ -757,7 +757,7 @@ def _setup_ext_proj(info, ext_order):
 
 def _time_prefix(fit_time):
     """Format log messages."""
-    return ("    t=%0.3f:" % fit_time).ljust(17)
+    return (f"    t={fit_time:0.3f}:").ljust(17)
 
 
 def _fit_chpi_amplitudes(raw, time_sl, hpi, snr=False):
@@ -1519,11 +1519,11 @@ def filter_chpi(
     meg_picks = pick_types(raw.info, meg=True, exclude=())  # filter all chs
     n_times = len(raw.times)
 
-    msg = "Removing %s cHPI" % n_freqs
+    msg = f"Removing {n_freqs} cHPI"
     if include_line:
         n_remove += 2 * len(hpi["line_freqs"])
-        msg += " and %s line harmonic" % len(hpi["line_freqs"])
-    msg += " frequencies from %s MEG channels" % len(meg_picks)
+        msg += " and {} line harmonic".format(len(hpi["line_freqs"]))
+    msg += f" frequencies from {len(meg_picks)} MEG channels"
 
     recon = np.dot(hpi["model"][:, :n_remove], hpi["inv_model"][:n_remove]).T
     logger.info(msg)

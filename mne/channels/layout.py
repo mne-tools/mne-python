@@ -1075,7 +1075,7 @@ def _merge_grad_data(data, method="rms"):
     elif method == "rms":
         data = np.sqrt(np.sum(data**2, axis=1) / 2)
     else:
-        raise ValueError('method must be "rms" or "mean", got %s.' % method)
+        raise ValueError(f'method must be "rms" or "mean", got {method}.')
     return data.reshape(data.shape[:1] + orig_shape[1:])
 
 

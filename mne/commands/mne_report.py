@@ -80,7 +80,7 @@ from mne.utils import logger, verbose
 @verbose
 def log_elapsed(t, verbose=None):
     """Log elapsed time."""
-    logger.info("Report complete in %s seconds" % round(t, 1))
+    logger.info(f"Report complete in {round(t, 1)} seconds")
 
 
 def run():

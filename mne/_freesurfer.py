@@ -611,7 +611,7 @@ def read_talxfm(subject, subjects_dir=None, verbose=None):
     if not path.is_file():
         path = subjects_dir / subject / "mri" / "T1.mgz"
     if not path.is_file():
-        raise OSError("mri not found: %s" % path)
+        raise OSError(f"mri not found: {path}")
     _, _, mri_ras_t, _, _ = _read_mri_info(path)
     mri_mni_t = combine_transforms(mri_ras_t, ras_mni_t, "mri", "mni_tal")
     return mri_mni_t

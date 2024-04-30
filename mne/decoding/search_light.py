@@ -450,7 +450,7 @@ def _check_method(estimator, method):
     if method == "transform" and not hasattr(estimator, "transform"):
         method = "predict"
     if not hasattr(estimator, method):
-        ValueError("base_estimator does not have `%s` method." % method)
+        ValueError(f"base_estimator does not have `{method}` method.")
     return method
 
 

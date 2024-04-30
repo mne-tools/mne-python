@@ -1641,11 +1641,10 @@ def plot_evoked_white(
         raise ValueError(f"axes must have shape {want_shape}, got {axes.shape}.")
     fig = axes.flat[0].figure
     if n_columns > 1:
+        suptitle = noise_cov[0].get("method", "empirical")
         suptitle = (
-            'Whitened evoked (left, best estimator = "%s")\n'
-            "and global field power "
-            "(right, comparison of estimators)"
-            % noise_cov[0].get("method", "empirical")
+            f'Whitened evoked (left, best estimator = "{suptitle}")\n'
+            "and global field power (right, comparison of estimators)"
         )
         fig.suptitle(suptitle)
 
@@ -1701,7 +1700,7 @@ def plot_evoked_white(
 
             ax = ax_gfp[i]
             ax.set_title(
-                title if n_columns > 1 else 'Whitened GFP, method = "%s"' % label
+                title if n_columns > 1 else f'Whitened GFP, method = "{label}"'
             )
 
             data = evoked_white.data[sub_picks]

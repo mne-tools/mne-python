@@ -123,8 +123,7 @@ def _get_artemis123_info(fname, pos_fname=None):
                     values = line.strip().split("\t")
                     if len(values) != 7:
                         raise OSError(
-                            "Error parsing line \n\t:%s\n" % line
-                            + "from file %s" % header
+                            f"Error parsing line \n\t:{line}\n" + f"from file {header}"
                         )
                     tmp = dict()
                     for k, v in zip(chan_keys, values):
@@ -143,9 +142,9 @@ def _get_artemis123_info(fname, pos_fname=None):
         "Spatial Filter Active?",
     ]:
         if header_info[k] != "FALSE":
-            warn("%s - set to but is not supported" % k)
+            warn(f"{k} - set to but is not supported")
     if header_info["filter_hist"]:
-        warn("Non-Empty Filter history found, BUT is not supported" % k)
+        warn("Non-Empty Filter history found, BUT is not supported".format())
 
     # build mne info struct
     info = _empty_info(float(header_info["DAQ Sample Rate"]))
@@ -256,7 +255,7 @@ def _get_artemis123_info(fname, pos_fname=None):
                 t["kind"] = FIFF.FIFFV_MISC_CH
         else:
             raise ValueError(
-                "Channel does not match expected" + ' channel Types:"%s"' % chan["name"]
+                f'Channel does not match expected channel Types:"{chan["name"]}"'
             )
 
         # incorporate multiplier (unit_mul) into calibration
@@ -354,7 +353,7 @@ class RawArtemis123(BaseRaw):
             )
 
         if not op.exists(input_fname):
-            raise RuntimeError("%s - Not Found" % input_fname)
+            raise RuntimeError(f"{input_fname} - Not Found")
 
         info, header_info = _get_artemis123_info(input_fname, pos_fname=pos_fname)
 
@@ -461,7 +460,7 @@ class RawArtemis123(BaseRaw):
                     dist_limit = tmp_dists.max() * 1.1
 
                     msg = "HPI-Dig corrregsitration\n"
-                    msg += "\tGOF : %0.3f\n" % trans_g
+                    msg += f"\tGOF : {trans_g:0.3f}\n"
                     msg += "\tMax Coil Error : %0.3f cm\n" % (100 * tmp_dists.max())
                     logger.info(msg)
 

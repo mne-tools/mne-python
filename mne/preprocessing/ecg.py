@@ -217,7 +217,7 @@ def find_ecg_events(
     del reject_by_annotation
     idx_ecg = _get_ecg_channel_index(ch_name, raw)
     if idx_ecg is not None:
-        logger.info("Using channel %s to identify heart beats." % raw.ch_names[idx_ecg])
+        logger.info(f"Using channel {raw.ch_names[idx_ecg]} to identify heart beats.")
         ecg = raw.get_data(picks=idx_ecg)
     else:
         ecg, _ = _make_ecg(raw, start=None, stop=None)
@@ -332,8 +332,7 @@ def _get_ecg_channel_index(ch_name, inst):
 
     if len(ecg_idx) > 1:
         warn(
-            "More than one ECG channel found. Using only %s."
-            % inst.ch_names[ecg_idx[0]]
+            f"More than one ECG channel found. Using only {inst.ch_names[ecg_idx[0]]}."
         )
 
     return ecg_idx[0]

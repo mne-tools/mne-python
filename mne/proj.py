@@ -463,7 +463,7 @@ def sensitivity_map(
             )
     # can only run the last couple methods if there are projectors
     elif mode in residual_types:
-        raise ValueError("No projectors used, cannot compute %s" % mode)
+        raise ValueError(f"No projectors used, cannot compute {mode}")
 
     _, n_dipoles = gain.shape
     n_locations = n_dipoles // 3
@@ -495,7 +495,7 @@ def sensitivity_map(
                     elif mode == "dampening":
                         sensitivity_map[k] = 1.0 - p / gz
                     else:
-                        raise ValueError("Unknown mode type (got %s)" % mode)
+                        raise ValueError(f"Unknown mode type (got {mode})")
 
     # only normalize fixed and free methods
     if mode in ["fixed", "free"]:

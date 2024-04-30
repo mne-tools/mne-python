@@ -2033,7 +2033,7 @@ def _plot_mpl_stc(
 
     if hemi not in ["lh", "rh"]:
         raise ValueError(
-            "hemi must be 'lh' or 'rh' when using matplotlib. " "Got %s." % hemi
+            "hemi must be 'lh' or 'rh' when using matplotlib. " f"Got {hemi}."
         )
     lh_kwargs = {
         "lat": {"elev": 0, "azim": 180},
@@ -2879,7 +2879,7 @@ def plot_volume_source_estimates(
         ax_y.clear()
         ax_z.clear()
         params.update({"img_idx": index_img(img, idx)})
-        params.update({"title": "Activation (t=%.3f s.)" % params["stc"].times[idx]})
+        params.update({"title": f"Activation (t={params['stc'].times[idx]:.3f} s.)"})
         plot_map_callback(params["img_idx"], title="", cut_coords=cut_coords)
 
     def _update_vertlabel(loc_idx):

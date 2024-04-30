@@ -258,7 +258,7 @@ def run():
     if bad_fname is not None:
         with open(bad_fname) as fid:
             bads = [w.rstrip() for w in fid.readlines()]
-        print("Bad channels read : %s" % bads)
+        print(f"Bad channels read : {bads}")
     else:
         bads = []
 
@@ -315,17 +315,17 @@ def run():
         raw_event.close()
 
     if proj_fname is not None:
-        print("Including SSP projections from : %s" % proj_fname)
+        print(f"Including SSP projections from : {proj_fname}")
         # append the ecg projs, so they are last in the list
         projs = mne.read_proj(proj_fname) + projs
 
     if isinstance(preload, str) and os.path.exists(preload):
         os.remove(preload)
 
-    print("Writing ECG projections in %s" % ecg_proj_fname)
+    print(f"Writing ECG projections in {ecg_proj_fname}")
     mne.write_proj(ecg_proj_fname, projs)
 
-    print("Writing ECG events in %s" % ecg_event_fname)
+    print(f"Writing ECG events in {ecg_event_fname}")
     mne.write_events(ecg_event_fname, events)
 
 

@@ -116,7 +116,7 @@ class RawCTF(BaseRaw):
                 'directory must be a directory ending with ".ds", ' f"got {directory}"
             )
         _check_option("system_clock", system_clock, ["ignore", "truncate"])
-        logger.info("ds directory : %s" % directory)
+        logger.info(f"ds directory : {directory}")
         res4 = _read_res4(directory)  # Read the magical res4 file
         coils = _read_hc(directory)  # Read the coil locations
         eeg = _read_eeg(directory)  # Read the EEG electrode loc info

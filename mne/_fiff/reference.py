@@ -196,7 +196,7 @@ def add_reference_channels(inst, ref_channels, copy=True):
         ref_channels = [ref_channels]
     for ch in ref_channels:
         if ch in inst.info["ch_names"]:
-            raise ValueError("Channel %s already specified in inst." % ch)
+            raise ValueError(f"Channel {ch} already specified in inst.")
 
     # Once CAR is applied (active), don't allow adding channels
     if _has_eeg_average_ref_proj(inst.info, check_active=True):
@@ -219,7 +219,7 @@ def add_reference_channels(inst, ref_channels, copy=True):
         inst._data = data
     else:
         raise TypeError(
-            "inst should be Raw, Epochs, or Evoked instead of %s." % type(inst)
+            f"inst should be Raw, Epochs, or Evoked instead of {type(inst)}."
         )
     nchan = len(inst.info["ch_names"])
 
@@ -453,8 +453,9 @@ def _get_ch_type(inst, ch_type):
             if type_ in inst:
                 ch_type = [type_]
                 logger.info(
-                    "%s channel type selected for "
-                    "re-referencing" % DEFAULTS["titles"][type_]
+                    "{} channel type selected for " "re-referencing".format(
+                        DEFAULTS["titles"][type_]
+                    )
                 )
                 break
         # if auto comes up empty, or the user specifies a bad ch_type.
@@ -573,9 +574,9 @@ def set_bipolar_reference(
     for ch, a, c in zip(ch_name, anode, cathode):
         if ch not in [a, c] and ch in inst.ch_names:
             raise ValueError(
-                'There is already a channel named "%s", please '
+                f'There is already a channel named "{ch}", please '
                 "specify a different name for the bipolar "
-                "channel using the ch_name parameter." % ch
+                "channel using the ch_name parameter."
             )
 
     if ch_info is None:

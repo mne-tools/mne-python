@@ -246,7 +246,7 @@ def running_subprocess(command, after="wait", verbose=None, *args, **kwargs):
     else:
         command = [str(s) for s in command]
         command_str = " ".join(s for s in command)
-    logger.info("Running subprocess: %s" % command_str)
+    logger.info(f"Running subprocess: {command_str}")
     try:
         p = subprocess.Popen(command, *args, **kwargs)
     except Exception:
@@ -254,7 +254,7 @@ def running_subprocess(command, after="wait", verbose=None, *args, **kwargs):
             command_name = command.split()[0]
         else:
             command_name = command[0]
-        logger.error("Command not found: %s" % command_name)
+        logger.error(f"Command not found: {command_name}")
         raise
     try:
         with ExitStack() as stack:
@@ -340,7 +340,7 @@ def sizeof_fmt(num):
         quotient = float(num) / 1024**exponent
         unit = units[exponent]
         num_decimals = decimals[exponent]
-        format_string = "{0:.%sf} {1}" % (num_decimals)
+        format_string = f"{{0:.{num_decimals}f}} {{1}}"
         return format_string.format(quotient, unit)
     if num == 0:
         return "0 bytes"

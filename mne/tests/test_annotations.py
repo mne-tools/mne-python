@@ -791,7 +791,7 @@ def test_events_from_annot_in_raw_objects():
     assert isinstance(event_id, dict)
     assert len(event_id) > 0
     for kind in ("BAD", "EDGE"):
-        assert "%s boundary" % kind in raw_concat.annotations.description
+        assert f"{kind} boundary" in raw_concat.annotations.description
         for key in event_id.keys():
             assert kind not in key
 

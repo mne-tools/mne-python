@@ -542,7 +542,7 @@ def test_brainvision_data():
             assert ch["kind"] == FIFF.FIFFV_EEG_CH
             assert ch["unit"] == FIFF.FIFF_UNIT_V
         else:
-            raise RuntimeError("Unknown Channel: %s" % ch["ch_name"])
+            raise RuntimeError("Unknown Channel: {}".format(ch["ch_name"]))
 
     # test loading v2
     read_raw_brainvision(vhdr_v2_path, eog=eog, preload=True, verbose="error")

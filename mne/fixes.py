@@ -860,7 +860,7 @@ def minimum_phase(h, method="homomorphic", n_fft=None, *, half=True):
         n_fft = 2 ** int(np.ceil(np.log2(2 * (len(h) - 1) / 0.01)))
     n_fft = int(n_fft)
     if n_fft < len(h):
-        raise ValueError("n_fft must be at least len(h)==%s" % len(h))
+        raise ValueError(f"n_fft must be at least len(h)=={len(h)}")
 
     # zero-pad; calculate the DFT
     h_temp = np.abs(fft(h, n_fft))

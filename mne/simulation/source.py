@@ -203,7 +203,7 @@ def simulate_sparse_stc(
         if n_dipoles != len(labels):
             warn(
                 "The number of labels is different from the number of "
-                "dipoles. %s dipole(s) will be generated." % min(n_dipoles, len(labels))
+                f"dipoles. {min(n_dipoles, len(labels))} dipole(s) will be generated."
             )
         labels = labels[:n_dipoles] if n_dipoles < len(labels) else labels
 
@@ -430,7 +430,7 @@ class SourceSimulator:
             should occur.
         """
         if not isinstance(label, Label):
-            raise ValueError("label must be a Label," "not %s" % type(label))
+            raise ValueError("label must be a Label," f"not {type(label)}")
 
         # If it is not a list then make it one
         if not isinstance(waveform, list) and np.ndim(waveform) == 2:

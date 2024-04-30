@@ -224,7 +224,7 @@ def _simulate_eye_tracking_data(in_file, out_file):
                 elif event_type == "END":
                     pass
                 else:
-                    fp.write("%s\n" % line)
+                    fp.write(f"{line}\n")
                     continue
                 events.append("\t".join(tokens))
                 if event_type == "END":
@@ -232,7 +232,7 @@ def _simulate_eye_tracking_data(in_file, out_file):
                     events.clear()
                     in_recording_block = False
             else:
-                fp.write("%s\n" % line)
+                fp.write(f"{line}\n")
 
         fp.write("START\t7452389\tRIGHT\tSAMPLES\tEVENTS\n")
         fp.write(f"{new_samples_line}\n")

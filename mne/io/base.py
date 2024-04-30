@@ -211,7 +211,7 @@ class BaseRaw(
             # some functions (e.g., filtering) only work w/64-bit data
             if preload.dtype not in (np.float64, np.complex128):
                 raise RuntimeError(
-                    "datatype must be float64 or complex128, " "not %s" % preload.dtype
+                    "datatype must be float64 or complex128, " f"not {preload.dtype}"
                 )
             if preload.dtype != dtype:
                 raise ValueError("preload and dtype must match")
@@ -2155,7 +2155,7 @@ class BaseRaw(
         stim_channel = _get_stim_channel(stim_channel, self.info)
         pick = pick_channels(self.ch_names, stim_channel, ordered=False)
         if len(pick) == 0:
-            raise ValueError("Channel %s not found" % stim_channel)
+            raise ValueError(f"Channel {stim_channel} not found")
         pick = pick[0]
         idx = events[:, 0].astype(int)
         if np.any(idx < self.first_samp) or np.any(idx > self.last_samp):
@@ -2843,8 +2843,8 @@ def _write_raw_data(
         raise ValueError(
             'file is larger than "split_size" after writing '
             "measurement information, you must use a larger "
-            "value for split size: %s plus enough bytes for "
-            "the chosen buffer_size" % pos_prev
+            f"value for split size: {pos_prev} plus enough bytes for "
+            "the chosen buffer_size"
         )
 
     # Check to see if this has acquisition skips and, if so, if we can

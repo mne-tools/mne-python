@@ -1575,7 +1575,7 @@ class Brain:
             except Exception:
                 mni = None
         if mni is not None:
-            mni = " MNI: " + ", ".join("%5.1f" % m for m in mni)
+            mni = " MNI: " + ", ".join(f"{m:5.1f}" for m in mni)
         else:
             mni = ""
         label = f"{hemi_str}:{str(vertex_id).ljust(6)}{mni}"
@@ -2248,7 +2248,7 @@ class Brain:
                         self._subjects_dir, self._subject, "label", subdir, label_fname
                     )
                 if not os.path.exists(filepath):
-                    raise ValueError("Label file %s does not exist" % filepath)
+                    raise ValueError(f"Label file {filepath} does not exist")
                 label = read_label(filepath)
             ids = label.vertices
             scalars = label.values
@@ -3033,7 +3033,7 @@ class Brain:
                         ".".join([hemi, annot, "annot"]),
                     )
                     if not os.path.exists(filepath):
-                        raise ValueError("Annotation file %s does not exist" % filepath)
+                        raise ValueError(f"Annotation file {filepath} does not exist")
                     filepaths += [filepath]
             annots = []
             for hemi, filepath in zip(hemis, filepaths):
@@ -3794,7 +3794,7 @@ class Brain:
         def frame_callback(frame, n_frames):
             if frame == n_frames:
                 # On the ImageIO step
-                self.status_msg.set_value("Saving with ImageIO: %s" % filename)
+                self.status_msg.set_value(f"Saving with ImageIO: {filename}")
                 self.status_msg.show()
                 self.status_progress.hide()
                 self._renderer._status_bar_update()

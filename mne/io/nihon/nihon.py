@@ -382,7 +382,7 @@ class RawNihon(BaseRaw):
     def __init__(self, fname, preload=False, verbose=None):
         fname = _check_fname(fname, "read", True, "fname")
         data_name = fname.name
-        logger.info("Loading %s" % data_name)
+        logger.info(f"Loading {data_name}")
 
         header = _read_nihon_header(fname)
         metadata = _read_nihon_metadata(fname)

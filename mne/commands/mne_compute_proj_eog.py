@@ -255,7 +255,7 @@ def run():
     if bad_fname is not None:
         with open(bad_fname) as fid:
             bads = [w.rstrip() for w in fid.readlines()]
-        print("Bad channels read : %s" % bads)
+        print(f"Bad channels read : {bads}")
     else:
         bads = []
 
@@ -311,17 +311,17 @@ def run():
         raw_event.close()
 
     if proj_fname is not None:
-        print("Including SSP projections from : %s" % proj_fname)
+        print(f"Including SSP projections from : {proj_fname}")
         # append the eog projs, so they are last in the list
         projs = mne.read_proj(proj_fname) + projs
 
     if isinstance(preload, str) and os.path.exists(preload):
         os.remove(preload)
 
-    print("Writing EOG projections in %s" % eog_proj_fname)
+    print(f"Writing EOG projections in {eog_proj_fname}")
     mne.write_proj(eog_proj_fname, projs)
 
-    print("Writing EOG events in %s" % eog_event_fname)
+    print(f"Writing EOG events in {eog_event_fname}")
     mne.write_events(eog_event_fname, events)
 
 

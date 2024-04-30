@@ -608,8 +608,9 @@ class RawCurry(BaseRaw):
 
         if "events" in curry_paths:
             logger.info(
-                "Event file found. Extracting Annotations from"
-                " %s..." % curry_paths["events"]
+                "Event file found. Extracting Annotations from" " {}...".format(
+                    curry_paths["events"]
+                )
             )
             annots = _read_annotations_curry(
                 curry_paths["events"], sfreq=self.info["sfreq"]

@@ -59,8 +59,8 @@ def _read_dig_montage_egi(
         # Unknown
         else:
             warn(
-                "Unknown sensor type %s detected. Skipping sensor..."
-                "Proceed with caution!" % kind
+                f"Unknown sensor type {kind} detected. Skipping sensor..."
+                "Proceed with caution!"
             )
 
     return Bunch(

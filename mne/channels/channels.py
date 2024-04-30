@@ -207,7 +207,7 @@ def equalize_channels(instances, copy=True, verbose=None):
         equalized_instances.append(inst)
 
     if dropped:
-        logger.info("Dropped the following channels:\n%s" % dropped)
+        logger.info(f"Dropped the following channels:\n{dropped}")
     elif reordered:
         logger.info("Channels have been re-ordered.")
 
@@ -2145,7 +2145,7 @@ def read_vectorview_selection(name, fname=None, info=None, verbose=None):
     # make sure we found at least one match for each name
     for n, found in name_found.items():
         if not found:
-            raise ValueError('No match for selection name "%s" found' % n)
+            raise ValueError(f'No match for selection name "{n}" found')
 
     # make the selection a sorted list with unique elements
     sel = list(set(sel))

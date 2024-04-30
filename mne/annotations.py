@@ -674,14 +674,13 @@ class Annotations:
             omitted = np.array(out_of_bounds).sum()
             if omitted > 0:
                 warn(
-                    "Omitted %s annotation(s) that were outside data"
-                    " range." % omitted
+                    f"Omitted {omitted} annotation(s) that were outside data" " range."
                 )
             limited = (np.array(clip_left_elem) | np.array(clip_right_elem)).sum()
             if limited > 0:
                 warn(
-                    "Limited %s annotation(s) that were expanding outside the"
-                    " data range." % limited
+                    f"Limited {limited} annotation(s) that were expanding outside the"
+                    " data range."
                 )
 
         return self
@@ -1238,10 +1237,10 @@ def read_annotations(
     elif name.startswith("events_") and fname.endswith("mat"):
         annotations = _read_brainstorm_annotations(fname)
     else:
-        raise OSError('Unknown annotation file format "%s"' % fname)
+        raise OSError(f'Unknown annotation file format "{fname}"')
 
     if annotations is None:
-        raise OSError('No annotation data found in file "%s"' % fname)
+        raise OSError(f'No annotation data found in file "{fname}"')
     return annotations
 
 

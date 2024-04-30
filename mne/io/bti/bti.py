@@ -330,8 +330,8 @@ def _read_config(fname):
 
                     if num_channels is None:
                         raise ValueError(
-                            "Cannot find block %s to determine "
-                            "number of channels" % BTI.UB_B_WHC_CHAN_MAP_VER
+                            f"Cannot find block {BTI.UB_B_WHC_CHAN_MAP_VER} to "
+                            "determine number of channels"
                         )
 
                     dta["channels"] = list()
@@ -355,8 +355,8 @@ def _read_config(fname):
 
                     if num_subsys is None:
                         raise ValueError(
-                            "Cannot find block %s to determine"
-                            " number of subsystems" % BTI.UB_B_WHS_SUBSYS_VER
+                            f"Cannot find block {BTI.UB_B_WHS_SUBSYS_VER} to determine"
+                            " number of subsystems"
                         )
 
                     dta["subsys"] = list()
@@ -1164,7 +1164,7 @@ def _make_bti_digitization(
 ):
     with info._unlock():
         if head_shape_fname:
-            logger.info("... Reading digitization points from %s" % head_shape_fname)
+            logger.info(f"... Reading digitization points from {head_shape_fname}")
 
             nasion, lpa, rpa, hpi, dig_points = _read_head_shape(head_shape_fname)
             info["dig"], dev_head_t, ctf_head_t = _make_bti_dig_points(
@@ -1236,9 +1236,9 @@ def _get_bti_info(
                     break
         if not op.isfile(config_fname):
             raise ValueError(
-                "Could not find the config file %s. Please check"
+                f"Could not find the config file {config_fname}. Please check"
                 " whether you are in the right directory "
-                "or pass the full name" % config_fname
+                "or pass the full name"
             )
 
     if head_shape_fname is not None and not isinstance(head_shape_fname, BytesIO):
@@ -1248,13 +1248,13 @@ def _get_bti_info(
 
         if not op.isfile(head_shape_fname):
             raise ValueError(
-                'Could not find the head_shape file "%s". '
+                f'Could not find the head_shape file "{orig_name}". '
                 "You should check whether you are in the "
                 "right directory, pass the full file name, "
-                "or pass head_shape_fname=None." % orig_name
+                "or pass head_shape_fname=None."
             )
 
-    logger.info("Reading 4D PDF file %s..." % pdf_fname)
+    logger.info(f"Reading 4D PDF file {pdf_fname}...")
     bti_info = _read_bti_header(
         pdf_fname, config_fname, sort_by_ch_name=sort_by_ch_name
     )

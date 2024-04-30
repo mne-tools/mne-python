@@ -87,7 +87,7 @@ def test_plot_volume_source_estimates(
                 verbose=True,
             )
     log = log.getvalue()
-    want_str = "t = %0.3f s" % want_t
+    want_str = f"t = {want_t:0.3f} s"
     assert want_str in log, (want_str, init_t)
     want_str = f"({want_p[0]:0.1f}, {want_p[1]:0.1f}, {want_p[2]:0.1f}) mm"
     assert want_str in log, (want_str, init_p)

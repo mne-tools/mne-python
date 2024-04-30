@@ -119,7 +119,7 @@ def _check_head_pos(head_pos, info, first_samp, times=None):
         ts.sort()
         dev_head_ts = [head_pos[float(tt)] for tt in ts]
     else:
-        raise TypeError("unknown head_pos type %s" % type(head_pos))
+        raise TypeError(f"unknown head_pos type {type(head_pos)}")
     bad = ts < 0
     if bad.any():
         raise RuntimeError(
@@ -582,7 +582,7 @@ def _add_exg(raw, kind, head_pos, interp, n_jobs, random_state):
     else:
         ch = None
     src = setup_volume_source_space(pos=dict(rr=exg_rr, nn=nn), sphere_units="mm")
-    _log_ch("%s simulated and trace" % kind, info, ch)
+    _log_ch(f"{kind} simulated and trace", info, ch)
     del ch, nn, noise
 
     used = np.zeros(len(raw.times), bool)

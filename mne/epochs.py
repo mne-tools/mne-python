@@ -799,7 +799,7 @@ class BaseEpochs(
         for rej, kind in zip((reject, flat), ("reject", "flat")):
             if not isinstance(rej, dict):
                 raise TypeError(
-                    "reject and flat must be dict or None, not %s" % type(rej)
+                    f"reject and flat must be dict or None, not {type(rej)}"
                 )
             bads = set(rej.keys()) - set(idx.keys())
             if len(bads) > 0:
@@ -1034,11 +1034,11 @@ class BaseEpochs(
                 bad_str = ", ".join([diff_ch[ii] for ii in bad_idx])
                 raise ValueError(
                     "The following data channels are missing "
-                    "in the evoked response: %s" % bad_str
+                    f"in the evoked response: {bad_str}"
                 )
             logger.info(
                 "    The following channels are not included in the "
-                "subtraction: %s" % ", ".join(diff_ch)
+                "subtraction: {}".format(", ".join(diff_ch))
             )
 
         # make sure the times match
@@ -2467,7 +2467,7 @@ class BaseEpochs(
                 elif len({sub_id in ids for sub_id in id_}) != 1:
                     err = (
                         "Don't mix hierarchical and regular event_ids"
-                        " like in '%s'." % ", ".join(id_)
+                        " like in '{}'.".format(", ".join(id_))
                     )
                     raise ValueError(err)
 
@@ -4270,7 +4270,7 @@ class EpochsFIF(BaseEpochs):
         raw = list()
         for fname in fnames:
             fname_rep = _get_fname_rep(fname)
-            logger.info("Reading %s ..." % fname_rep)
+            logger.info(f"Reading {fname_rep} ...")
             fid, tree, _ = fiff_open(fname, preload=preload)
             next_fname = _get_next_fname(fid, fname, tree)
             (
@@ -4863,7 +4863,7 @@ def average_movements(
             trans = np.vstack(
                 [np.hstack([rot[use_idx], trn[[use_idx]].T]), [[0.0, 0.0, 0.0, 1.0]]]
             )
-        loc_str = ", ".join("%0.1f" % tr for tr in (trans[:3, 3] * 1000))
+        loc_str = ", ".join(f"{tr:0.1f}" for tr in (trans[:3, 3] * 1000))
         if last_trans is None or not np.allclose(last_trans, trans):
             logger.info(
                 f"    Processing epoch {ei + 1} (device location: {loc_str} mm)"

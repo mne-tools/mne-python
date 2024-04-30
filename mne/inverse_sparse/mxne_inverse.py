@@ -312,7 +312,7 @@ def make_stc_from_dipoles(dipoles, src, verbose=None):
         raise ValueError(
             "Dipoles must be an instance of Dipole or "
             "a list of instances of Dipole. "
-            "Got %s!" % type(dipoles)
+            f"Got {type(dipoles)}!"
         )
     tmin = dipoles[0].times[0]
     tstep = dipoles[0].times[1] - tmin
@@ -460,8 +460,7 @@ def mixed_norm(
         _check_option("alpha", alpha, ("sure",))
     elif not 0.0 <= alpha < 100:
         raise ValueError(
-            'If not equal to "sure" alpha must be in [0, 100). '
-            "Got alpha = %s" % alpha
+            'If not equal to "sure" alpha must be in [0, 100). ' f"Got alpha = {alpha}"
         )
     if n_mxne_iter < 1:
         raise ValueError(
@@ -470,21 +469,21 @@ def mixed_norm(
         )
     if dgap_freq <= 0.0:
         raise ValueError(
-            "dgap_freq must be a positive integer." " Got dgap_freq = %s" % dgap_freq
+            "dgap_freq must be a positive integer." f" Got dgap_freq = {dgap_freq}"
         )
     if not (
         isinstance(sure_alpha_grid, (np.ndarray, list)) or sure_alpha_grid == "auto"
     ):
         raise ValueError(
             'If not equal to "auto" sure_alpha_grid must be an '
-            "array. Got %s" % type(sure_alpha_grid)
+            f"array. Got {type(sure_alpha_grid)}"
         )
     if (isinstance(sure_alpha_grid, str) and sure_alpha_grid != "auto") and (
         isinstance(alpha, str) and alpha != "sure"
     ):
         raise Exception(
             "If sure_alpha_grid is manually specified, alpha must "
-            'be "sure". Got %s' % alpha
+            f'be "sure". Got {alpha}'
         )
     pca = True
     if not isinstance(evoked, list):
@@ -553,7 +552,7 @@ def mixed_norm(
             dgap_freq=dgap_freq,
             verbose=verbose,
         )
-        logger.info("Selected alpha: %s" % best_alpha_)
+        logger.info(f"Selected alpha: {best_alpha_}")
     else:
         if n_mxne_iter == 1:
             X, active_set, E = mixed_norm_solver(
@@ -786,11 +785,11 @@ def tf_mixed_norm(
     info = evoked.info
 
     if not (0.0 <= alpha < 100.0):
-        raise ValueError("alpha must be in [0, 100). " "Got alpha = %s" % alpha)
+        raise ValueError("alpha must be in [0, 100). " f"Got alpha = {alpha}")
 
     if not (0.0 <= l1_ratio <= 1.0):
         raise ValueError(
-            "l1_ratio must be in range [0, 1]." " Got l1_ratio = %s" % l1_ratio
+            "l1_ratio must be in range [0, 1]." f" Got l1_ratio = {l1_ratio}"
         )
     alpha_space = alpha * (1.0 - l1_ratio)
     alpha_time = alpha * l1_ratio
@@ -798,12 +797,12 @@ def tf_mixed_norm(
     if n_tfmxne_iter < 1:
         raise ValueError(
             "TF-MxNE has to be computed at least 1 time. "
-            "Requires n_tfmxne_iter >= 1, got %s" % n_tfmxne_iter
+            f"Requires n_tfmxne_iter >= 1, got {n_tfmxne_iter}"
         )
 
     if dgap_freq <= 0.0:
         raise ValueError(
-            "dgap_freq must be a positive integer." " Got dgap_freq = %s" % dgap_freq
+            "dgap_freq must be a positive integer." f" Got dgap_freq = {dgap_freq}"
         )
 
     tstep = np.atleast_1d(tstep)
@@ -1036,7 +1035,7 @@ def _compute_mxne_sure(
         # warm start - first iteration (leverages convexity)
         logger.info("Warm starting...")
         for j, alpha in enumerate(alpha_grid):
-            logger.info("alpha: %s" % alpha)
+            logger.info(f"alpha: {alpha}")
             X, a_set = _run_solver(alpha, M, 1)
             X_eps, a_set_eps = _run_solver(alpha, M_eps, 1)
             coefs_grid_1_0[j][a_set, :] = X
@@ -1051,7 +1050,7 @@ def _compute_mxne_sure(
             coefs_grid_2 = coefs_grid_2_0.copy()
             logger.info("Fitting SURE on grid.")
             for j, alpha in enumerate(alpha_grid):
-                logger.info("alpha: %s" % alpha)
+                logger.info(f"alpha: {alpha}")
                 if active_sets[j].sum() > 0:
                     w = gprime(coefs_grid_1[j])
                     X, a_set = _run_solver(alpha, M, n_mxne_iter - 1, w_init=w)

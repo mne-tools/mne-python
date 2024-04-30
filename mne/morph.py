@@ -223,7 +223,7 @@ def compute_source_morph(
         mri_subpath = op.join("mri", "brain.mgz")
         mri_path_from = op.join(subjects_dir, subject_from, mri_subpath)
 
-        logger.info('    Loading %s as "from" volume' % mri_path_from)
+        logger.info(f'    Loading {mri_path_from} as "from" volume')
         with warnings.catch_warnings():
             mri_from = nib.load(mri_path_from)
 
@@ -231,8 +231,8 @@ def compute_source_morph(
         # let's KISS and use `brain.mgz`, too
         mri_path_to = op.join(subjects_dir, subject_to, mri_subpath)
         if not op.isfile(mri_path_to):
-            raise OSError("cannot read file: %s" % mri_path_to)
-        logger.info('    Loading %s as "to" volume' % mri_path_to)
+            raise OSError(f"cannot read file: {mri_path_to}")
+        logger.info(f'    Loading {mri_path_to} as "to" volume')
         with warnings.catch_warnings():
             mri_to = nib.load(mri_path_to)
 
@@ -735,7 +735,7 @@ class SourceMorph:
         return img_to
 
     def __repr__(self):  # noqa: D105
-        s = "%s" % self.kind
+        s = f"{self.kind}"
         s += f", {self.subject_from} -> {self.subject_to}"
         if self.kind == "volume":
             s += f", zooms : {self.zooms}"
@@ -746,7 +746,7 @@ class SourceMorph:
             s += f", smooth : {self.smooth}"
             s += ", xhemi" if self.xhemi else ""
 
-        return "<SourceMorph | %s>" % s
+        return f"<SourceMorph | {s}>"
 
     @verbose
     def save(self, fname, overwrite=False, verbose=None):

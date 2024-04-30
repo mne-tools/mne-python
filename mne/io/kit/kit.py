@@ -142,7 +142,7 @@ class RawKIT(BaseRaw):
         bad_coils=(),
         verbose=None,
     ):
-        logger.info("Extracting SQD Parameters from %s..." % input_fname)
+        logger.info(f"Extracting SQD Parameters from {input_fname}...")
         input_fname = op.abspath(input_fname)
         self.preload = False
         logger.info("Creating Raw.info structure...")
@@ -276,7 +276,7 @@ def _set_stimchannels(inst, info, stim, stim_code):
                 stim = picks
             else:
                 raise ValueError(
-                    "stim needs to be list of int, '>' or " "'<', not %r" % str(stim)
+                    "stim needs to be list of int, '>' or " f"'<', not {str(stim)!r}"
                 )
         else:
             stim = np.asarray(stim, int)
@@ -327,7 +327,7 @@ def _make_stim_channel(trigger_chs, slope, threshold, stim_code, trigger_values)
         trigger_values = 2 ** np.arange(len(trigger_chs))
     elif stim_code != "channel":
         raise ValueError(
-            "stim_code must be 'binary' or 'channel', got %s" % repr(stim_code)
+            f"stim_code must be 'binary' or 'channel', got {repr(stim_code)}"
         )
     trig_chs = trig_chs_bin * trigger_values[:, np.newaxis]
     return np.array(trig_chs.sum(axis=0), ndmin=2)
@@ -401,7 +401,7 @@ class EpochsKIT(BaseEpochs):
         input_fname = str(
             _check_fname(fname=input_fname, must_exist=True, overwrite="read")
         )
-        logger.info("Extracting KIT Parameters from %s..." % input_fname)
+        logger.info(f"Extracting KIT Parameters from {input_fname}...")
         self.info, kit_info = get_kit_info(
             input_fname, allow_unknown_format, standardize_names
         )
@@ -543,7 +543,7 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None, verbose=
             version_string = "V%iR%03i" % (version, revision)
             if allow_unknown_format:
                 unsupported_format = True
-                warn("Force loading KIT format %s" % version_string)
+                warn(f"Force loading KIT format {version_string}")
             else:
                 raise UnsupportedKITFormat(
                     version_string,

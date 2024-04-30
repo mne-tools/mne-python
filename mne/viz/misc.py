@@ -81,7 +81,7 @@ def _index_info_cov(info, cov, exclude):
     idx_names = [
         (
             idx_by_type[key],
-            "%s covariance" % DEFAULTS["titles"][key],
+            "{} covariance".format(DEFAULTS["titles"][key]),
             DEFAULTS["units"][key],
             DEFAULTS["scalings"][key],
             key,
@@ -233,7 +233,7 @@ def plot_cov(
                 zorder=4,
             )
             axes[0, k].set(
-                ylabel="Noise σ (%s)" % unit,
+                ylabel=f"Noise σ ({unit})",
                 yscale="log",
                 xlabel="Eigenvalue index",
                 title=name,
@@ -702,7 +702,7 @@ def plot_bem(
                 if surf_fname.exists():
                     surfaces.append((surf_fname, "#00DD00"))
                 else:
-                    raise OSError("Surface %s does not exist." % surf_fname)
+                    raise OSError(f"Surface {surf_fname} does not exist.")
 
     # TODO: Refactor with / improve _ensure_src to do this
     if isinstance(src, (str, Path, os.PathLike)):
@@ -717,7 +717,7 @@ def plot_bem(
     elif src is not None and not isinstance(src, SourceSpaces):
         raise TypeError(
             "src needs to be None, path-like or SourceSpaces instance, "
-            "not %s" % repr(src)
+            f"not {repr(src)}"
         )
 
     if len(surfaces) == 0:
@@ -751,7 +751,7 @@ def _get_bem_plotting_surfaces(bem_path):
         surf_fname = glob(op.join(bem_path, surf_name + ".surf"))
         if len(surf_fname) > 0:
             surf_fname = surf_fname[0]
-            logger.info("Using surface: %s" % surf_fname)
+            logger.info(f"Using surface: {surf_fname}")
             surfaces.append((surf_fname, color))
     return surfaces
 
@@ -841,7 +841,7 @@ def plot_events(
 
         for this_event in unique_events:
             if this_event not in unique_events_id:
-                warn("event %s missing from event_id will be ignored" % this_event)
+                warn(f"event {this_event} missing from event_id will be ignored")
 
     else:
         unique_events_id = unique_events
@@ -1016,9 +1016,9 @@ def _get_flim(flim, fscale, freq, sfreq=None):
             flim += [freq[-1]]
     if fscale == "log":
         if flim[0] <= 0:
-            raise ValueError("flim[0] must be positive, got %s" % flim[0])
+            raise ValueError(f"flim[0] must be positive, got {flim[0]}")
     elif flim[0] < 0:
-        raise ValueError("flim[0] must be non-negative, got %s" % flim[0])
+        raise ValueError(f"flim[0] must be non-negative, got {flim[0]}")
     return flim
 
 
@@ -1403,8 +1403,8 @@ def _handle_event_colors(color_dict, unique_events, event_id):
                 custom_colors[event_id[key]] = color
             else:  # key not a valid event, warn and ignore
                 warn(
-                    "Event ID %s is in the color dict but is not "
-                    "present in events or event_id." % str(key)
+                    f"Event ID {str(key)} is in the color dict but is not "
+                    "present in events or event_id."
                 )
         # warn if color_dict is missing any entries
         unassigned = sorted(set(unique_events) - set(custom_colors))
@@ -1537,7 +1537,7 @@ def plot_csd(
             if csd._is_sum:
                 ax.set_title(f"{np.min(freq):.1f}-{np.max(freq):.1f} Hz.")
             else:
-                ax.set_title("%.1f Hz." % freq)
+                ax.set_title(f"{freq:.1f} Hz.")
 
         plt.suptitle(title)
         if colorbar:
@@ -1545,7 +1545,7 @@ def plot_csd(
             if mode == "csd":
                 label = "CSD"
                 if ch_type in units:
-                    label += " (%s)" % units[ch_type]
+                    label += f" ({units[ch_type]})"
                 cb.set_label(label)
             elif mode == "coh":
                 cb.set_label("Coherence")

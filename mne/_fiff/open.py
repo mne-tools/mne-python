@@ -164,7 +164,7 @@ def _fiff_open(fname, fid, preload):
         raise ValueError(f"{prefix} have a directory pointer")
 
     #   Read or create the directory tree
-    logger.debug("    Creating tag directory for %s..." % fname)
+    logger.debug(f"    Creating tag directory for {fname}...")
 
     dirpos = int(tag.data.item())
     read_slow = True

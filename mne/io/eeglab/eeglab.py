@@ -463,7 +463,7 @@ class RawEEGLAB(BaseRaw):
         # read the data
         if isinstance(eeg.data, str):
             data_fname = _check_eeglab_fname(input_fname, eeg.data)
-            logger.info("Reading %s" % data_fname)
+            logger.info(f"Reading {data_fname}")
 
             super().__init__(
                 info,
@@ -668,7 +668,7 @@ class EpochsEEGLAB(BaseEpochs):
         elif isinstance(events, (str, Path, PathLike)):
             events = read_events(events)
 
-        logger.info("Extracting parameters from %s..." % input_fname)
+        logger.info(f"Extracting parameters from {input_fname}...")
         info, eeg_montage, _ = _get_info(eeg, eog=eog, montage_units=montage_units)
 
         for key, val in event_id.items():

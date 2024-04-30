@@ -103,7 +103,7 @@ class _Interp2:
         # Left zero-order hold condition
         if self._position < self.control_points[self._left_idx]:
             n_use = min(self.control_points[self._left_idx] - self._position, n_pts)
-            logger.debug("  Left ZOH %s" % n_use)
+            logger.debug(f"  Left ZOH {n_use}")
             this_sl = slice(None, n_use)
             assert used[this_sl].size == n_use
             assert not used[this_sl].any()
@@ -170,7 +170,7 @@ class _Interp2:
         if self.control_points[self._left_idx] <= self._position:
             n_use = stop - self._position
             if n_use > 0:
-                logger.debug("  Right ZOH %s" % n_use)
+                logger.debug(f"  Right ZOH {n_use}")
                 this_sl = slice(n_pts - n_use, None)
                 assert not used[this_sl].any()
                 used[this_sl] = True

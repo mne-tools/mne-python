@@ -119,7 +119,7 @@ def _get_path(path, key, name):
         return path
     # 4. ~/mne_data (but use a fake home during testing so we don't
     #    unnecessarily create ~/mne_data)
-    logger.info("Using default location ~/mne_data for %s..." % name)
+    logger.info(f"Using default location ~/mne_data for {name}...")
     path = op.join(os.getenv("_MNE_FAKE_HOME_DIR", op.expanduser("~")), "mne_data")
     if not op.exists(path):
         logger.info("Creating ~/mne_data")
@@ -128,10 +128,10 @@ def _get_path(path, key, name):
         except OSError:
             raise OSError(
                 "User does not have write permissions "
-                "at '%s', try giving the path as an "
+                f"at '{path}', try giving the path as an "
                 "argument to data_path() where user has "
                 "write permissions, for ex:data_path"
-                "('/home/xyz/me2/')" % (path)
+                "('/home/xyz/me2/')"
             )
     return Path(path).expanduser()
 
@@ -464,7 +464,7 @@ def fetch_hcp_mmp_parcellation(
         if accept or "--accept-hcpmmp-license" in sys.argv:
             answer = "y"
         else:
-            answer = _safe_input("%s\nAgree (y/[n])? " % _hcp_mmp_license_text)
+            answer = _safe_input(f"{_hcp_mmp_license_text}\nAgree (y/[n])? ")
         if answer.lower() != "y":
             raise RuntimeError("You must agree to the license to use this " "dataset")
     downloader = pooch.HTTPDownloader(**_downloader_params())
@@ -481,7 +481,7 @@ def fetch_hcp_mmp_parcellation(
 
     if combine:
         fnames = [
-            op.join(destination, "%s.HCPMMP1_combined.annot" % hemi)
+            op.join(destination, f"{hemi}.HCPMMP1_combined.annot")
             for hemi in ("lh", "rh")
         ]
         if all(op.isfile(fname) for fname in fnames):

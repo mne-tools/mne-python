@@ -735,7 +735,7 @@ def isotrak_eeg(tmp_path_factory):
         )
         fid.write(f"{N_ROWS} {N_COLS}\n")
         for row in content:
-            fid.write("\t".join("%0.18e" % cell for cell in row) + "\n")
+            fid.write("\t".join(f"{cell:0.18e}" for cell in row) + "\n")
 
     return str(fname)
 

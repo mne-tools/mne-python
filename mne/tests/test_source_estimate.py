@@ -240,7 +240,7 @@ def test_volume_stc(tmp_path):
         stc.save(fname_vol, ftype="whatever", overwrite=True)
     for ftype in ["w", "h5"]:
         for _ in range(2):
-            fname_temp = tmp_path / ("temp-vol.%s" % ftype)
+            fname_temp = tmp_path / (f"temp-vol.{ftype}")
             stc_new.save(fname_temp, ftype=ftype, overwrite=True)
             stc_new = read_source_estimate(fname_temp)
             assert isinstance(stc_new, VolSourceEstimate)

@@ -453,8 +453,8 @@ class SourceSpaces(list):
                 r += " (%s), n_vertices=%i" % (_get_hemi(ss)[0], ss["np"])
             r += ", n_used=%i" % (ss["nuse"],)
             if si == 0:
-                extra += ["%s coords" % (_coord_frame_name(int(ss["coord_frame"])))]
-            ss_repr.append("<%s>" % r)
+                extra += ["{} coords".format(_coord_frame_name(int(ss["coord_frame"])))]
+            ss_repr.append(f"<{r}>")
         subj = self._subject
         if subj is not None:
             extra += [f"subject {repr(subj)}"]
@@ -636,7 +636,7 @@ class SourceSpaces(list):
             elif src["type"] in ("surf", "discrete"):
                 src_types["surface_discrete"].append(src)
             else:
-                raise ValueError("Unrecognized source type: %s." % src["type"])
+                raise ValueError("Unrecognized source type: {}.".format(src["type"]))
 
         # Raise error if there are no volume source spaces
         if len(src_types["volume"]) == 0:
@@ -1326,7 +1326,7 @@ def _write_one_source_space(fid, this, verbose=None):
     elif this["type"] == "discrete":
         src_type = FIFF.FIFFV_MNE_SPACE_DISCRETE
     else:
-        raise ValueError("Unknown source space type (%s)" % this["type"])
+        raise ValueError("Unknown source space type ({})".format(this["type"]))
     write_int(fid, FIFF.FIFF_MNE_SOURCE_SPACE_TYPE, src_type)
     if this["id"] >= 0:
         write_int(fid, FIFF.FIFF_MNE_SOURCE_SPACE_ID, this["id"])
@@ -1458,14 +1458,14 @@ def _check_spacing(spacing, verbose=None):
     else:
         src_type_str = f"{stype} = {sval}"
         if stype == "ico":
-            logger.info("Icosahedron subdivision grade %s" % sval)
+            logger.info(f"Icosahedron subdivision grade {sval}")
             ico_surf = _get_ico_surface(sval)
         elif stype == "oct":
-            logger.info("Octahedron subdivision grade %s" % sval)
+            logger.info(f"Octahedron subdivision grade {sval}")
             ico_surf = _tessellate_sphere_surf(sval)
         else:
             assert stype == "spacing"
-            logger.info("Approximate spacing %s mm" % sval)
+            logger.info(f"Approximate spacing {sval} mm")
             ico_surf = sval
     return stype, sval, ico_surf, src_type_str
 
@@ -1531,9 +1531,9 @@ def setup_source_space(
             raise OSError(f"Could not find the {hemi} surface {surf}")
 
     logger.info("Setting up the source space with the following parameters:\n")
-    logger.info("SUBJECTS_DIR = %s" % subjects_dir)
-    logger.info("Subject      = %s" % subject)
-    logger.info("Surface      = %s" % surface)
+    logger.info(f"SUBJECTS_DIR = {subjects_dir}")
+    logger.info(f"Subject      = {subject}")
+    logger.info(f"Surface      = {surface}")
     stype, sval, ico_surf, src_type_str = _check_spacing(spacing)
     logger.info("")
     del spacing
@@ -1549,7 +1549,7 @@ def setup_source_space(
             f'Doing the {dict(ico="icosa", oct="octa")[stype]}hedral vertex picking...'
         )
     for hemi, surf in zip(["lh", "rh"], surfs):
-        logger.info("Loading %s..." % surf)
+        logger.info(f"Loading {surf}...")
         # Setup the surface spacing in the MRI coord frame
         if stype != "all":
             logger.info("Mapping %s %s -> %s (%d) ..." % (hemi, subject, stype, sval))
@@ -1814,7 +1814,7 @@ def setup_volume_source_space(
             surf_extra = "dict()"
         else:
             if not op.isfile(surface):
-                raise OSError('surface file "%s" not found' % surface)
+                raise OSError(f'surface file "{surface}" not found')
             surf_extra = surface
         logger.info("Boundary surface file : %s", surf_extra)
     else:
@@ -1842,16 +1842,16 @@ def setup_volume_source_space(
         logger.info("Assuming input in MRI coordinates")
 
     if isinstance(pos, float):
-        logger.info("grid                  : %.1f mm" % pos)
-        logger.info("mindist               : %.1f mm" % mindist)
+        logger.info(f"grid                  : {pos:.1f} mm")
+        logger.info(f"mindist               : {mindist:.1f} mm")
         pos /= 1000.0  # convert pos from m to mm
     if exclude > 0.0:
-        logger.info("Exclude               : %.1f mm" % exclude)
+        logger.info(f"Exclude               : {exclude:.1f} mm")
     vol_info = dict()
     if mri is not None:
-        logger.info("MRI volume            : %s" % mri)
+        logger.info(f"MRI volume            : {mri}")
         logger.info("")
-        logger.info("Reading %s..." % mri)
+        logger.info(f"Reading {mri}...")
         vol_info = _get_mri_info_data(mri, data=volume_label is not None)
 
     exclude /= 1000.0  # convert exclude from m to mm
@@ -1883,7 +1883,7 @@ def setup_volume_source_space(
                     f"BEM is not in MRI coordinates, got "
                     f"{_coord_frame_name(surf['coord_frame'])}"
                 )
-            logger.info("Taking inner skull from %s" % bem)
+            logger.info(f"Taking inner skull from {bem}")
         elif surface is not None:
             if isinstance(surface, str):
                 # read the surface in the MRI coordinate frame
@@ -2540,7 +2540,7 @@ def _filter_source_spaces(surf, limit, mri_head_t, src, n_jobs=None, verbose=Non
     logger.info(out_str)
     out_str = "Checking that the sources are inside the surface"
     if limit > 0.0:
-        out_str += " and at least %6.1f mm away" % (limit)
+        out_str += f" and at least {limit:6.1f} mm away"
     logger.info(out_str + " (will take a few...)")
 
     # fit a sphere to a surf quickly
@@ -2625,8 +2625,8 @@ def _ensure_src(src, kind=None, extra="", verbose=None):
     if _path_like(src):
         src = str(src)
         if not op.isfile(src):
-            raise OSError('Source space file "%s" not found' % src)
-        logger.info("Reading %s..." % src)
+            raise OSError(f'Source space file "{src}" not found')
+        logger.info(f"Reading {src}...")
         src = read_source_spaces(src, verbose=False)
     if not isinstance(src, SourceSpaces):
         raise ValueError(f"{msg}, got {src} (type {type(src)})")
@@ -2867,7 +2867,7 @@ def _get_hemi(s):
     elif s["id"] == FIFF.FIFFV_MNE_SURF_RIGHT_HEMI:
         return "rh", 1, s["id"]
     else:
-        raise ValueError("unknown surface ID %s" % s["id"])
+        raise ValueError("unknown surface ID {}".format(s["id"]))
 
 
 def _get_vertex_map_nn(
@@ -3055,7 +3055,7 @@ def _get_morph_src_reordering(
         ):
             raise RuntimeError(
                 "Could not map vertices, perhaps the wrong "
-                'subject "%s" was provided?' % subject_from
+                f'subject "{subject_from}" was provided?'
             )
 
         # And our data have been implicitly remapped by the forced ascending
@@ -3086,7 +3086,7 @@ def _compare_source_spaces(src0, src1, mode="exact", nearest=True, dist_tol=1.5e
     )
 
     if mode != "exact" and "approx" not in mode:  # 'nointerp' can be appended
-        raise RuntimeError("unknown mode %s" % mode)
+        raise RuntimeError(f"unknown mode {mode}")
 
     for si, (s0, s1) in enumerate(zip(src0, src1)):
         # first check the keys
@@ -3162,7 +3162,7 @@ def _compare_source_spaces(src0, src1, mode="exact", nearest=True, dist_tol=1.5e
                 )
             assert_equal(len(s0["vertno"]), len(s1["vertno"]))
             agreement = np.mean(s0["inuse"] == s1["inuse"])
-            assert_(agreement >= 0.99, "%s < 0.99" % agreement)
+            assert_(agreement >= 0.99, f"{agreement} < 0.99")
             if agreement < 1.0:
                 # make sure mismatched vertno are within 1.5mm
                 v0 = np.setdiff1d(s0["vertno"], s1["vertno"])
@@ -3186,9 +3186,9 @@ def _compare_source_spaces(src0, src1, mode="exact", nearest=True, dist_tol=1.5e
             assert_equal(src0.info[name], src1.info[name])
         else:  # 'approx' in mode:
             if name in src0.info:
-                assert_(name in src1.info, '"%s" missing' % name)
+                assert_(name in src1.info, f'"{name}" missing')
             else:
-                assert_(name not in src1.info, '"%s" should not exist' % name)
+                assert_(name not in src1.info, f'"{name}" should not exist')
 
 
 def _set_source_space_vertices(src, vertices):

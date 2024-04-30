@@ -76,12 +76,12 @@ class Projection(dict):
         )
 
     def __repr__(self):  # noqa: D105
-        s = "%s" % self["desc"]
-        s += ", active : %s" % self["active"]
+        s = "{}".format(self["desc"])
+        s += ", active : {}".format(self["active"])
         s += f", n_channels : {len(self['data']['col_names'])}"
         if self["explained_var"] is not None:
             s += f', exp. var : {self["explained_var"] * 100:0.2f}%'
-        return "<Projection | %s>" % s
+        return f"<Projection | {s}>"
 
     # speed up info copy by taking advantage of mutability
     def __deepcopy__(self, memodict):

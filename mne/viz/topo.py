@@ -164,14 +164,12 @@ def _iter_topography(
         else:
             in_box = False
         return (
-            ("%s (click to magnify)" % ch_names[closest])
-            if in_box
-            else "No channel here"
+            (f"{ch_names[closest]} (click to magnify)") if in_box else "No channel here"
         )
 
     def format_coord_multiaxis(x, y, ch_name=None):
         """Update status bar with channel name under cursor."""
-        return "%s (click to magnify)" % ch_name
+        return f"{ch_name} (click to magnify)"
 
     fig.set_facecolor(fig_facecolor)
     if layout is None:
@@ -557,7 +555,7 @@ def _plot_timeseries(
         )
         timestr = f"{x:6.3f} {xunit}: "
         if not nearby:
-            return "%s Nothing here" % timestr
+            return f"{timestr} Nothing here"
         labels = [""] * len(nearby) if labels is None else labels
         nearby_data = [(data[n], labels[n], times[n]) for n in nearby]
         ylabel = ax.get_ylabel()
@@ -577,7 +575,7 @@ def _plot_timeseries(
             s += f"{data_[ch_idx, idx]:7.2f} {yunit}"
             if trunc_labels:
                 label = label if len(label) <= 10 else f"{label[:6]}..{label[-2:]}"
-            s += " [%s] " % label if label else " "
+            s += f" [{label}] " if label else " "
         return s
 
     ax.format_coord = lambda x, y: _format_coord(x, y, labels=labels, ax=ax)
@@ -972,7 +970,7 @@ def _plot_evoked_topo(
         picks = new_picks
         types_used = ["grad"]
         unit = _handle_default("units")["grad"] if noise_cov is None else "NA"
-        y_label = "RMS amplitude (%s)" % unit
+        y_label = f"RMS amplitude ({unit})"
 
     if layout is None:
         layout = find_layout(info, exclude=exclude)
@@ -1033,7 +1031,7 @@ def _plot_evoked_topo(
                 unit = _handle_default("units")[channel_type(info, ch_idx)]
             else:
                 unit = "NA"
-            y_label.append("Amplitude (%s)" % unit)
+            y_label.append(f"Amplitude ({unit})")
 
     if ylim is None:
         # find minima and maxima over all evoked data for each channel pick
@@ -1053,7 +1051,7 @@ def _plot_evoked_topo(
             if is_meg or is_nirs:
                 ylim_ = list(map(list, zip(*ylim_)))
     else:
-        raise TypeError("ylim must be None or a dict. Got %s." % type(ylim))
+        raise TypeError(f"ylim must be None or a dict. Got {type(ylim)}.")
 
     data = [e.data for e in evoked]
     comments = [e.comment for e in evoked]

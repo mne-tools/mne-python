@@ -255,7 +255,7 @@ def _read_elc(fname, head_size):
                 scale = dict(m=1.0, mm=1e-3)[units]
                 break
         else:
-            raise RuntimeError("Could not detect units in file %s" % fname)
+            raise RuntimeError(f"Could not detect units in file {fname}")
         for line in fid:
             if "Positions\n" in line:
                 break
