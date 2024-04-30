@@ -283,7 +283,7 @@ def test_constants(tmp_path):
     #
 
     # Version
-    mne_version = "%d.%d" % (FIFF.FIFFC_MAJOR_VERSION, FIFF.FIFFC_MINOR_VERSION)
+    mne_version = f"{FIFF.FIFFC_MAJOR_VERSION:d}.{FIFF.FIFFC_MINOR_VERSION:d}"
     assert fiff_version == mne_version
     unknowns = list()
 

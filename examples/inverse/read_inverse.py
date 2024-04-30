@@ -38,10 +38,10 @@ src = inv["src"]  # get the source space
 
 # Get access to the triangulation of the cortex
 
-print("Number of vertices on the left hemisphere: %d" % len(src[0]["rr"]))
-print("Number of triangles on left hemisphere: %d" % len(src[0]["use_tris"]))
-print("Number of vertices on the right hemisphere: %d" % len(src[1]["rr"]))
-print("Number of triangles on right hemisphere: %d" % len(src[1]["use_tris"]))
+print(f"Number of vertices on the left hemisphere:  {len(src[0]["rr"])}")
+print(f"Number of triangles on left hemisphere:     {len(src[0]["use_tris"])}")
+print(f"Number of vertices on the right hemisphere: {len(src[1]["rr"])}")
+print(f"Number of triangles on right hemisphere:    {len(src[1]["use_tris"])}")
 
 # %%
 # Show the 3D source space

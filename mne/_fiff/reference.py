@@ -552,8 +552,8 @@ def set_bipolar_reference(
 
     if len(anode) != len(cathode):
         raise ValueError(
-            "Number of anodes (got %d) must equal the number "
-            "of cathodes (got %d)." % (len(anode), len(cathode))
+            f"Number of anodes (got {len(anode)}) must equal the number "
+            f"of cathodes (got {len(cathode)})."
         )
 
     if ch_name is None:
@@ -563,7 +563,7 @@ def set_bipolar_reference(
     if len(ch_name) != len(anode):
         raise ValueError(
             "Number of channel names must equal the number of "
-            "anodes/cathodes (got %d)." % len(ch_name)
+            f"anodes/cathodes (got {len(ch_name)})."
         )
 
     # Check for duplicate channel names (it is allowed to give the name of the

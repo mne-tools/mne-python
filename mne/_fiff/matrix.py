@@ -52,13 +52,13 @@ def _read_named_matrix(fid, node, matkind, indent="    ", transpose=False):
                     break
         else:
             logger.info(
-                indent + "Desired named matrix (kind = %d) not available" % matkind
+                f"{indent}Desired named matrix (kind = {matkind}) not available"
             )
             return None
     else:
         if not has_tag(node, matkind):
             logger.info(
-                indent + "Desired named matrix (kind = %d) not available" % matkind
+                f"{indent}Desired named matrix (kind = {matkind}) not available"
             )
             return None
 

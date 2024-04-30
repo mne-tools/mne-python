@@ -25,7 +25,6 @@ from ..utils import (
     _check_on_missing,
     _check_option,
     _dt_to_stamp,
-    _is_numeric,
     _on_missing,
     _pl,
     _stamp_to_dt,
@@ -1684,12 +1683,12 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
             elif k == "dig" and v is not None:
                 counts = Counter(d["kind"] for d in v)
                 counts = [
-                    "%d %s" % (counts[ii], _dig_kind_proper[_dig_kind_rev[ii]])
+                    f"{counts[ii]} {_dig_kind_proper[_dig_kind_rev[ii]]}"
                     for ii in _dig_kind_ints
                     if ii in counts
                 ]
                 counts = f" ({', '.join(counts)})" if len(counts) else ""
-                entr = "%d item%s%s" % (len(v), _pl(len(v)), counts)
+                entr = f"{len(v)} item{_pl(v)}{counts}"
             elif isinstance(v, Transform):
                 # show entry only for non-identity transform
                 if not np.allclose(v["trans"], np.eye(v["trans"].shape[0])):
@@ -1722,11 +1721,7 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
                     entr = f"{v}" if v is not None else ""
                 else:
                     if this_len > 0:
-                        entr = "%d item%s (%s)" % (
-                            this_len,
-                            _pl(this_len),
-                            type(v).__name__,
-                        )
+                        entr = f"{this_len} item{_pl(this_len)} ({type(v).__name__})"
                     else:
                         entr = ""
             if entr != "":
@@ -1815,23 +1810,15 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
         for ci, ch in enumerate(self["chs"]):
             _check_ch_keys(ch, ci)
             ch_name = ch["ch_name"]
-            if not isinstance(ch_name, str):
-                raise TypeError(
-                    'Bad info: info["chs"][%d]["ch_name"] is not a string, '
-                    "got type %s" % (ci, type(ch_name))
-                )
+            _validate_type(ch_name, str, f'info["chs"][{ci}]["ch_name"]')
             for key in _SCALAR_CH_KEYS:
                 val = ch.get(key, 1)
-                if not _is_numeric(val):
-                    raise TypeError(
-                        'Bad info: info["chs"][%d][%r] = %s is type %s, must '
-                        "be float or int" % (ci, key, val, type(val))
-                    )
+                _validate_type(val, "numeric", f'info["chs"][{ci}][{key}]')
             loc = ch["loc"]
             if not (isinstance(loc, np.ndarray) and loc.shape == (12,)):
                 raise TypeError(
-                    'Bad info: info["chs"][%d]["loc"] must be ndarray with '
-                    "12 elements, got %r" % (ci, loc)
+                    f'Bad info: info["chs"][{ci}]["loc"] must be ndarray with '
+                    f"12 elements, got {repr(loc)}"
                 )
 
         # make sure channel names are unique

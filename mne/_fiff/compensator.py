@@ -59,7 +59,7 @@ def _make_compensator(info, grade):
             this_comp = np.dot(postsel, np.dot(this_data["data"], presel))
             return this_comp
 
-    raise ValueError("Desired compensation matrix (grade = %d) not found" % grade)
+    raise ValueError(f"Desired compensation matrix (grade = {grade:d}) not found")
 
 
 @fill_doc

@@ -38,7 +38,7 @@ subjects_dir = data_path / "subjects"
 fwd = mne.read_forward_solution(fwd_fname)
 mne.convert_forward_solution(fwd, surf_ori=True, copy=False)
 leadfield = fwd["sol"]["data"]
-print("Leadfield size : %d x %d" % leadfield.shape)
+print("Leadfield shape : {leadfield.shape}")
 
 # %%
 # Compute sensitivity maps

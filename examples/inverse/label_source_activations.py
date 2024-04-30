@@ -57,7 +57,7 @@ modes = ("mean", "mean_flip", "pca_flip")
 tcs = dict()
 for mode in modes:
     tcs[mode] = stc.extract_label_time_course(label, src, mode=mode)
-print("Number of vertices : %d" % len(stc_label.data))
+print(f"Number of vertices : {len(stc_label.data)}")
 
 # %%
 # View source activations

@@ -223,13 +223,8 @@ def _fwd_bem_lin_pot_coeff(surfs):
         rr_ord = np.arange(nps[si_1])
         for si_2, surf2 in enumerate(surfs):
             logger.info(
-                "        %s (%d) -> %s (%d) ..."
-                % (
-                    _bem_surf_name[surf1["id"]],
-                    nps[si_1],
-                    _bem_surf_name[surf2["id"]],
-                    nps[si_2],
-                )
+                f"        {_bem_surf_name[surf1['id']]} ({nps[si_1]:d}) -> "
+                f"{_bem_surf_name[surf2["id"]]} ({nps[si_2]}) ..."
             )
             tri_rr = surf2["rr"][surf2["tris"]]
             tri_nn = surf2["tri_nn"]
@@ -466,11 +461,10 @@ def _ico_downsample(surf, dest_grade):
     """Downsample the surface if isomorphic to a subdivided icosahedron."""
     n_tri = len(surf["tris"])
     bad_msg = (
-        "Cannot decimate to requested ico grade %d. The provided "
-        "BEM surface has %d triangles, which cannot be isomorphic with "
-        "a subdivided icosahedron. Consider manually decimating the "
-        "surface to a suitable density and then use ico=None in "
-        "make_bem_model." % (dest_grade, n_tri)
+        f"Cannot decimate to requested ico grade {dest_grade}. The provided "
+        f"BEM surface has {n_tri} triangles, which cannot be isomorphic with "
+        "a subdivided icosahedron. Consider manually decimating the surface to "
+        "a suitable density and then use ico=None in make_bem_model."
     )
     if n_tri % 20 != 0:
         raise RuntimeError(bad_msg)
@@ -482,8 +476,8 @@ def _ico_downsample(surf, dest_grade):
 
     if dest_grade > found:
         raise RuntimeError(
-            "For this surface, decimation grade should be %d "
-            "or less, not %s." % (found, dest_grade)
+            f"For this surface, decimation grade should be {found} or less, "
+            f"not {dest_grade}."
         )
 
     source = _get_ico_surface(found)
@@ -498,8 +492,8 @@ def _ico_downsample(surf, dest_grade):
             "triangles but ordering is wrong"
         )
     logger.info(
-        "Going from %dth to %dth subdivision of an icosahedron "
-        "(n_tri: %d -> %d)" % (found, dest_grade, len(surf["tris"]), len(dest["tris"]))
+        f"Going from {found}th to {dest_grade}th subdivision of an icosahedron "
+        f"(n_tri: {len(surf['tris'])} -> {len(dest["tris"])})"
     )
     # Find the mapping
     dest["rr"] = surf["rr"][_get_ico_map(source, dest)]
@@ -511,7 +505,7 @@ def _get_ico_map(fro, to):
     nearest, dists = _compute_nearest(fro["rr"], to["rr"], return_dists=True)
     n_bads = (dists > 5e-3).sum()
     if n_bads > 0:
-        raise RuntimeError("No matching vertex for %d destination vertices" % (n_bads))
+        raise RuntimeError(f"No matching vertex for {n_bads} destination vertices")
     return nearest
 
 
@@ -953,15 +947,8 @@ def make_sphere_model(
         rv = _fwd_eeg_fit_berg_scherg(sphere, 200, 3)
         logger.info("\nEquiv. model fitting -> RV = %g %%" % (100 * rv))
         for k in range(3):
-            logger.info(
-                "mu%d = %g    lambda%d = %g"
-                % (
-                    k + 1,
-                    sphere["mu"][k],
-                    k + 1,
-                    sphere["layers"][-1]["sigma"] * sphere["lambda"][k],
-                )
-            )
+            s_k = sphere["layers"][-1]["sigma"] * sphere["lambda"][k]
+            logger.info(f"mu{k + 1} = {sphere['mu'][k]:g}    lambda{k + 1} = {s_k:g}")
         logger.info(
             f"Set up EEG sphere model with scalp radius {1000 * head_radius:7.1f} mm\n"
         )
@@ -1057,8 +1044,7 @@ def get_fitting_dig(info, dig_kinds="auto", exclude_frontal=True, verbose=None):
         dig_kinds[di] = _dig_kind_dict.get(d, d)
         if dig_kinds[di] not in _dig_kind_ints:
             raise ValueError(
-                "dig_kinds[#%d] (%s) must be one of %s"
-                % (di, d, sorted(list(_dig_kind_dict.keys())))
+                f"dig_kinds[{di}] ({d}) must be one of {sorted(_dig_kind_dict)}"
             )
 
     # get head digization points of the specified kind(s)
@@ -1458,7 +1444,7 @@ def read_bem_surfaces(
     else:
         surf = _read_bem_surfaces_fif(fname, s_id)
     if s_id is not None and len(surf) != 1:
-        raise ValueError("surface with id %d not found" % s_id)
+        raise ValueError(f"surface with id {s_id} not found")
     for this in surf:
         if patch_stats or this["nn"] is None:
             _check_complete_surface(this, incomplete=on_defects)
@@ -1494,7 +1480,7 @@ def _read_bem_surfaces_fif(fname, s_id):
         if bemsurf is None:
             raise ValueError("BEM surface data not found")
 
-        logger.info("    %d BEM surfaces found" % len(bemsurf))
+        logger.info(f"    {len(bemsurf)} BEM surfaces found")
         # Coordinate frame possibly at the top level
         tag = find_tag(fid, bem, FIFF.FIFF_BEM_COORD_FRAME)
         if tag is not None:
@@ -1512,7 +1498,7 @@ def _read_bem_surfaces_fif(fname, s_id):
                 this = _read_bem_surface(fid, bsurf, coord_frame)
                 surf.append(this)
                 logger.info("[done]")
-            logger.info("    %d BEM surfaces read" % len(surf))
+            logger.info(f"    {len(surf)} BEM surfaces read")
     return surf
 
 
@@ -1667,12 +1653,12 @@ def read_bem_solution(fname, *, verbose=None):
         if len(dims) != 2 and solver != "openmeeg":
             raise RuntimeError(
                 "Expected a two-dimensional solution matrix "
-                "instead of a %d dimensional one" % dims[0]
+                f"instead of a {dims[0]} dimensional one"
             )
         if dims[0] != dim or dims[1] != dim:
             raise RuntimeError(
-                "Expected a %d x %d solution matrix instead of "
-                "a %d x %d one" % (dim, dim, dims[1], dims[0])
+                f"Expected a {dim} x {dim} solution matrix instead of "
+                f"a {dims[1]} x {dims[0]} one"
             )
         bem["nsol"] = bem["solution"].shape[0]
     # Gamma factors and multipliers
