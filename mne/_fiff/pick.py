@@ -638,7 +638,7 @@ def pick_info(info, sel=(), copy=True, verbose=None):
         _, comps_missing = _bad_chans_comp(info, ch_names)
         if len(comps_missing) > 0:
             logger.info(
-                f"Removing {len(info["comps"])} compensators from info because "
+                f"Removing {len(info['comps'])} compensators from info because "
                 "not all compensation channels were picked."
             )
             with info._unlock():

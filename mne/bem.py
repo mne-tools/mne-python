@@ -224,7 +224,7 @@ def _fwd_bem_lin_pot_coeff(surfs):
         for si_2, surf2 in enumerate(surfs):
             logger.info(
                 f"        {_bem_surf_name[surf1['id']]} ({nps[si_1]:d}) -> "
-                f"{_bem_surf_name[surf2["id"]]} ({nps[si_2]}) ..."
+                f"{_bem_surf_name[surf2['id']]} ({nps[si_2]}) ..."
             )
             tri_rr = surf2["rr"][surf2["tris"]]
             tri_nn = surf2["tri_nn"]
@@ -493,7 +493,7 @@ def _ico_downsample(surf, dest_grade):
         )
     logger.info(
         f"Going from {found}th to {dest_grade}th subdivision of an icosahedron "
-        f"(n_tri: {len(surf['tris'])} -> {len(dest["tris"])})"
+        f"(n_tri: {len(surf['tris'])} -> {len(dest['tris'])})"
     )
     # Find the mapping
     dest["rr"] = surf["rr"][_get_ico_map(source, dest)]
