@@ -1,6 +1,6 @@
 """
 ===============================================
-Compare simulated and estimated source activity
+Compare simulated and estimated source activity.
 ===============================================
 
 This example illustrates how to compare the simulated and estimated

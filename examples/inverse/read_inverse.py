@@ -29,10 +29,10 @@ inv_fname = meg_path / "sample_audvis-meg-oct-6-meg-inv.fif"
 
 inv = read_inverse_operator(inv_fname)
 
-print("Method: %s" % inv["methods"])
-print("fMRI prior: %s" % inv["fmri_prior"])
-print("Number of sources: %s" % inv["nsource"])
-print("Number of channels: %s" % inv["nchan"])
+print(f"Method: {inv['methods']}")
+print(f"fMRI prior: {inv['fmri_prior']}")
+print(f"Number of sources: {inv['nsource']}")
+print(f"Number of channels: {inv['nchan']}")
 
 src = inv["src"]  # get the source space
 

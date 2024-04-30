@@ -78,7 +78,7 @@ ax.legend(loc="upper right")
 ax.set(
     xlabel="Time (ms)",
     ylabel="Source amplitude",
-    title="Activations in Label %r" % (label.name),
+    title=f"Activations in Label {label.name!r}",
     xlim=xlim,
     ylim=ylim,
 )
