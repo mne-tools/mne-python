@@ -308,9 +308,13 @@ area_mode : str | None
 
 docdict["aseg"] = """
 aseg : str
-    The anatomical segmentation file. Default ``aparc+aseg``. This may
-    be any anatomical segmentation file in the mri subdirectory of the
-    Freesurfer subject directory.
+    The anatomical segmentation file. Default ``auto`` uses ``aparc+aseg``
+    if available and ``wmparc`` if not. This may be any anatomical
+    segmentation file in the mri subdirectory of the Freesurfer subject
+    directory.
+
+    .. versionchanged:: 1.8
+       Added support for the new default ``'auto'``.
 """
 
 docdict["average_plot_evoked_topomap"] = """
@@ -1700,7 +1704,8 @@ flat : dict | str | None
 
 _fmin_fmax = """\
 fmin, fmax : float
-    The lower- and upper-bound on frequencies of interest. Default is {}"""
+    The lower- and upper-bound on frequencies of interest. Default is
+    {}"""
 
 docdict["fmin_fmax_psd"] = _fmin_fmax.format(
     "``fmin=0, fmax=np.inf`` (spans all frequencies present in the data)."
@@ -2574,10 +2579,13 @@ docdict["method_kw_psd"] = """\
 **method_kw
     Additional keyword arguments passed to the spectral estimation
     function (e.g., ``n_fft, n_overlap, n_per_seg, average, window``
-    for Welch method, or
-    ``bandwidth, adaptive, low_bias, normalization`` for multitaper
-    method). See :func:`~mne.time_frequency.psd_array_welch` and
-    :func:`~mne.time_frequency.psd_array_multitaper` for details.
+    for Welch method, or ``bandwidth, adaptive, low_bias, normalization``
+    for multitaper method). See :func:`~mne.time_frequency.psd_array_welch`
+    and :func:`~mne.time_frequency.psd_array_multitaper` for details. Note
+    that for Welch method if ``n_fft`` is unspecified its default will be
+    the smaller of ``2048`` or the number of available time samples (taking into
+    account ``tmin`` and ``tmax``), not ``256`` as in
+    :func:`~mne.time_frequency.psd_array_welch`.
 """
 
 docdict["method_kw_tfr"] = _method_kw_tfr_template.format(

@@ -62,8 +62,8 @@ hdf5 = ["h5io", "pymatreader"]
 full = [
     "mne[hdf5]",
     "qtpy",
-    "PyQt6!=6.6.1",
-    "PyQt6-Qt6!=6.6.1,!=6.6.2,!=6.6.3",
+    "PyQt6!=6.6.0",
+    "PyQt6-Qt6!=6.6.0,!=6.7.0",
     "pyobjc-framework-Cocoa>=5.2.0; platform_system=='Darwin'",
     "sip",
     "scikit-learn",
@@ -143,7 +143,7 @@ test_extra = [
 
 # Dependencies for building the documentation
 doc = [
-    "sphinx>=6,<7.3",
+    "sphinx>=6",
     "numpydoc",
     "pydata_sphinx_theme==0.15.2",
     "sphinx-gallery",

@@ -2081,9 +2081,7 @@ _VOXELS_MAX = 1000  # define constant to avoid runtime issues
 
 
 @fill_doc
-def get_montage_volume_labels(
-    montage, subject, subjects_dir=None, aseg="aparc+aseg", dist=2
-):
+def get_montage_volume_labels(montage, subject, subjects_dir=None, aseg="auto", dist=2):
     """Get regions of interest near channels from a Freesurfer parcellation.
 
     .. note:: This is applicable for channels inside the brain

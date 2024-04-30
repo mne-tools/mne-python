@@ -1739,7 +1739,10 @@ class Report:
     def _add_ica_artifact_scores(
         self, *, ica, scores, artifact_type, image_format, section, tags, replace
     ):
-        fig = ica.plot_scores(scores=scores, title=None, show=False)
+        assert artifact_type in ("EOG", "ECG")
+        fig = ica.plot_scores(
+            scores=scores, title=None, labels=artifact_type.lower(), show=False
+        )
         _constrain_fig_resolution(fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES)
         self._add_figure(
             fig=fig,
@@ -3546,7 +3549,9 @@ class Report:
                 continue
 
             vmax[ch_type] = (
-                np.abs(evoked.copy().pick(ch_type, verbose=False).data).max()
+                np.abs(
+                    evoked.copy().pick(ch_type, exclude="bads", verbose=False).data
+                ).max()
             ) * scalings[ch_type]
             if ch_type == "grad":
                 vmin[ch_type] = 0
@@ -3667,6 +3672,17 @@ class Report:
         n_jobs,
         replace,
     ):
+        # Summary table
+        self._add_html_repr(
+            inst=evoked,
+            title="Info",
+            tags=tags,
+            section=section,
+            replace=replace,
+            div_klass="evoked",
+        )
+
+        # Joint plot
         ch_types = _get_data_ch_types(evoked)
         self._add_evoked_joint(
             evoked=evoked,
@@ -3677,6 +3693,8 @@ class Report:
             topomap_kwargs=topomap_kwargs,
             replace=replace,
         )
+
+        # Topomaps
         self._add_evoked_topomap_slider(
             evoked=evoked,
             ch_types=ch_types,
@@ -3688,6 +3706,8 @@ class Report:
             n_jobs=n_jobs,
             replace=replace,
         )
+
+        # GFP
         self._add_evoked_gfp(
             evoked=evoked,
             ch_types=ch_types,
@@ -3697,6 +3717,7 @@ class Report:
             replace=replace,
         )
 
+        # Whitened evoked
         if noise_cov is not None:
             self._add_evoked_whitened(
                 evoked=evoked,

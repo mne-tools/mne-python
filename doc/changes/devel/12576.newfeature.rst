@@ -1,0 +1,1 @@
+Use ``aseg='auto'`` for :meth:`mne.viz.Brain.add_volume_labels` and :func:`mne.get_montage_volume_labels` to use ``aparc+aseg`` by default or if not present use ``wmparc`` because freesurfer uses ``wmparc`` in the latest version, by `Alex Rockhill`_.
