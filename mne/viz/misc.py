@@ -81,7 +81,7 @@ def _index_info_cov(info, cov, exclude):
     idx_names = [
         (
             idx_by_type[key],
-            "{} covariance".format(DEFAULTS["titles"][key]),
+            f"{DEFAULTS['titles'][key]} covariance",
             DEFAULTS["units"][key],
             DEFAULTS["scalings"][key],
             key,

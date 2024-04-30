@@ -241,9 +241,9 @@ def create_default_subject(fs_home=None, update=False, subjects_dir=None, verbos
         )
     elif (not update) and os.path.exists(dest):
         raise OSError(
-            "Can not create fsaverage because {!r} already exists in "
-            "subjects_dir {!r}. Delete or rename the existing fsaverage "
-            "subject folder.".format("fsaverage", subjects_dir)
+            'Can not create fsaverage because "fsaverage" already exists in '
+            f"subjects_dir {repr(subjects_dir)}. Delete or rename the existing "
+            "fsaverage subject folder."
         )
 
     # copy fsaverage from FreeSurfer

@@ -1042,8 +1042,8 @@ def test_brain_traces(renderer_interactive_pyvistaqt, hemi, src, tmp_path, brain
             subject=brain._subject,
             subjects_dir=brain._subjects_dir,
         )
-        label = "{}:{} MNI: {}".format(
-            hemi_prefix, str(vertex_id).ljust(6), ", ".join(f"{m:5.1f}" for m in mni)
+        label = f"{hemi_prefix}:{str(vertex_id).ljust(6)} MNI: " + ", ".join(
+            f"{m:5.1f}" for m in mni
         )
 
         assert line.get_label() == label

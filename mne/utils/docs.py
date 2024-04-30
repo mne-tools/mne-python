@@ -5310,7 +5310,7 @@ def linkcode_resolve(domain, info):
     if "dev" in mne.__version__:
         kind = "main"
     else:
-        kind = "maint/{}".format(".".join(mne.__version__.split(".")[:2]))
+        kind = "maint/" + ".".join(mne.__version__.split(".")[:2])
     return f"http://github.com/mne-tools/mne-python/blob/{kind}/mne/{fn}{linespec}"
 
 

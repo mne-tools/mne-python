@@ -1037,8 +1037,8 @@ class BaseEpochs(
                     f"in the evoked response: {bad_str}"
                 )
             logger.info(
-                "    The following channels are not included in the "
-                "subtraction: {}".format(", ".join(diff_ch))
+                "    The following channels are not included in the subtraction: "
+                + ", ".join(diff_ch)
             )
 
         # make sure the times match
@@ -2467,7 +2467,7 @@ class BaseEpochs(
                 elif len({sub_id in ids for sub_id in id_}) != 1:
                     err = (
                         "Don't mix hierarchical and regular event_ids"
-                        " like in '{}'.".format(", ".join(id_))
+                        f" like in '{', '.join(id_)}'."
                     )
                     raise ValueError(err)
 

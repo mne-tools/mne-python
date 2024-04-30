@@ -107,14 +107,7 @@ def _get_head_surface(subject, source, subjects_dir, on_defects, raise_error=Tru
 
     # Load the head surface from the BEM
     subjects_dir = str(get_subjects_dir(subjects_dir, raise_error=True))
-    if not isinstance(subject, str):
-        raise TypeError(
-            "subject must be a string, not {}.".format(
-                type(
-                    subject,
-                )
-            )
-        )
+    _validate_type(subject, str, "subject")
     # use realpath to allow for linked surfaces (c.f. MNE manual 196-197)
     if isinstance(source, str):
         source = [source]
@@ -537,9 +530,8 @@ def complete_surface_info(
                     surf["neighbor_tri"][ni] = np.array([], int)
         if len(zero) > 0:
             logger.info(
-                "    Vertices do not have any neighboring " "triangles: [{}]".format(
-                    ", ".join(str(z) for z in zero)
-                )
+                "    Vertices do not have any neighboring triangles: "
+                f"[{', '.join(str(z) for z in zero)}]"
             )
         if len(fewer) > 0:
             fewer = ", ".join(str(f) for f in fewer)

@@ -797,8 +797,8 @@ def _get_hdr_info(hdr_fname, eog, misc, scale):
             if heterogeneous_hp_filter:
                 warn(
                     "Channels contain different highpass filters. "
-                    "Lowest (weakest) filter setting ({:0.2f} Hz) "
-                    "will be stored.".format(info["highpass"])
+                    f"Lowest (weakest) filter setting ({info['highpass']:0.2f} Hz) "
+                    "will be stored."
                 )
 
         if len(lowpass) == 0:

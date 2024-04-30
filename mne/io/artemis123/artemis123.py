@@ -144,7 +144,7 @@ def _get_artemis123_info(fname, pos_fname=None):
         if header_info[k] != "FALSE":
             warn(f"{k} - set to but is not supported")
     if header_info["filter_hist"]:
-        warn("Non-Empty Filter history found, BUT is not supported".format())
+        warn("Non-Empty Filter history found, BUT is not supported")
 
     # build mne info struct
     info = _empty_info(float(header_info["DAQ Sample Rate"]))
@@ -170,7 +170,7 @@ def _get_artemis123_info(fname, pos_fname=None):
     desc = ""
     for k in ["Purpose", "Notes"]:
         desc += f"{k} : {header_info[k]}\n"
-    desc += "Comments : {}".format(header_info["comments"])
+    desc += f"Comments : {header_info['comments']}"
 
     info.update(
         {

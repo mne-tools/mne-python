@@ -294,8 +294,8 @@ def _convert_channel_info(res4, t, use_eeg_pos):
                 if not _at_origin(ch["loc"][:3]):
                     if t["t_ctf_head_head"] is None:
                         warn(
-                            "EEG electrode ({}) location omitted because of "
-                            "missing HPI information".format(ch["ch_name"])
+                            f"EEG electrode ({ch['ch_name']}) location omitted because "
+                            "of missing HPI information"
                         )
                         ch["loc"].fill(np.nan)
                         coord_frame = FIFF.FIFFV_MNE_COORD_CTF_HEAD
@@ -465,9 +465,8 @@ def _add_eeg_pos(eeg, t, c):
             d["r"] = apply_trans(t["t_ctf_head_head"], d["r"])
         elif eeg["coord_frame"] != FIFF.FIFFV_COORD_HEAD:
             raise RuntimeError(
-                "Illegal coordinate frame for EEG electrode " "positions: {}".format(
-                    _coord_frame_name(eeg["coord_frame"])
-                )
+                "Illegal coordinate frame for EEG electrode positions: "
+                + _coord_frame_name(eeg["coord_frame"])
             )
         if eeg["kinds"][k] == FIFF.FIFFV_POINT_CARDINAL:
             fid_count += 1

@@ -453,7 +453,7 @@ class SourceSpaces(list):
                 r += " (%s), n_vertices=%i" % (_get_hemi(ss)[0], ss["np"])
             r += ", n_used=%i" % (ss["nuse"],)
             if si == 0:
-                extra += ["{} coords".format(_coord_frame_name(int(ss["coord_frame"])))]
+                extra += [_coord_frame_name(int(ss["coord_frame"])) + " coords"]
             ss_repr.append(f"<{r}>")
         subj = self._subject
         if subj is not None:
@@ -636,7 +636,7 @@ class SourceSpaces(list):
             elif src["type"] in ("surf", "discrete"):
                 src_types["surface_discrete"].append(src)
             else:
-                raise ValueError("Unrecognized source type: {}.".format(src["type"]))
+                raise ValueError(f"Unrecognized source type: {src['type']}.")
 
         # Raise error if there are no volume source spaces
         if len(src_types["volume"]) == 0:
@@ -1326,7 +1326,7 @@ def _write_one_source_space(fid, this, verbose=None):
     elif this["type"] == "discrete":
         src_type = FIFF.FIFFV_MNE_SPACE_DISCRETE
     else:
-        raise ValueError("Unknown source space type ({})".format(this["type"]))
+        raise ValueError(f"Unknown source space type ({this['type']})")
     write_int(fid, FIFF.FIFF_MNE_SOURCE_SPACE_TYPE, src_type)
     if this["id"] >= 0:
         write_int(fid, FIFF.FIFF_MNE_SOURCE_SPACE_ID, this["id"])
@@ -2867,7 +2867,7 @@ def _get_hemi(s):
     elif s["id"] == FIFF.FIFFV_MNE_SURF_RIGHT_HEMI:
         return "rh", 1, s["id"]
     else:
-        raise ValueError("unknown surface ID {}".format(s["id"]))
+        raise ValueError(f"unknown surface ID {s['id']}")
 
 
 def _get_vertex_map_nn(

@@ -345,7 +345,7 @@ def test_inverse_operator_channel_ordering(evoked, noise_cov):
             evoked.info, fwd_orig, noise_cov, loose=0.2, depth=depth, verbose=True
         )
     log = log.getvalue()
-    assert "limit = 1/{}".format(fwd_orig["nsource"]) in log
+    assert f"limit = 1/{fwd_orig['nsource']}" in log
     stc_1 = apply_inverse(evoked, inv_orig, lambda2, "dSPM")
 
     # Assume that a raw reordering applies to both evoked and noise_cov,

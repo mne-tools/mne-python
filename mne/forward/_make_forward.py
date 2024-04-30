@@ -156,7 +156,7 @@ def _create_meg_coil(coilset, ch, acc, do_es):
     """Create a coil definition using templates, transform if necessary."""
     # Also change the coordinate frame if so desired
     if ch["kind"] not in [FIFF.FIFFV_MEG_CH, FIFF.FIFFV_REF_MEG_CH]:
-        raise RuntimeError("{} is not a MEG channel".format(ch["ch_name"]))
+        raise RuntimeError(f"{ch['ch_name']} is not a MEG channel")
 
     # Simple linear search from the coil definitions
     for coil in coilset:
@@ -204,8 +204,8 @@ def _create_eeg_el(ch, t=None):
     """Create an electrode definition, transform coords if necessary."""
     if ch["kind"] != FIFF.FIFFV_EEG_CH:
         raise RuntimeError(
-            "{} is not an EEG channel. Cannot create an "
-            "electrode definition.".format(ch["ch_name"])
+            f"{ch['ch_name']} is not an EEG channel. Cannot create an electrode "
+            "definition."
         )
     if t is None:
         t = Transform("head", "head")  # identity, no change
@@ -486,7 +486,7 @@ def _prepare_for_forward(
 
     # make a new dict with the relevant information
     arg_list = [info_extra, trans, src, bem_extra, meg, eeg, mindist, n_jobs, verbose]
-    cmd = "make_forward_solution({})".format(", ".join([str(a) for a in arg_list]))
+    cmd = f"make_forward_solution({', '.join(str(a) for a in arg_list)})"
     mri_id = dict(machid=np.zeros(2, np.int32), version=0, secs=0, usecs=0)
 
     info_trans = str(trans) if isinstance(trans, Path) else trans
