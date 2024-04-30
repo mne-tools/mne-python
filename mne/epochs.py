@@ -2028,14 +2028,17 @@ class BaseEpochs(
 
     def __repr__(self):
         """Build string representation."""
-        s = f" {len(self.events)} events "
+        s = f"{len(self.events)} events "
         s += "(all good)" if self._bad_dropped else "(good & bad)"
-        s += f", {self.tmin:g} – {self.tmax:g} s"
-        s += ", baseline "
+        s += f", {self.tmin:.3f}".rstrip("0").rstrip(".")
+        s += f" – {self.tmax:.3f}".rstrip("0").rstrip(".")
+        s += " s (baseline "
         if self.baseline is None:
             s += "off"
         else:
-            s += f"{self.baseline[0]:g} – {self.baseline[1]:g} s"
+            s += f"{self.baseline[0]:.3f}".rstrip("0").rstrip(".")
+            s += f" – {self.baseline[1]:.3f}".rstrip("0").rstrip(".")
+            s += " s"
             if self.baseline != _check_baseline(
                 self.baseline,
                 times=self.times,
@@ -2044,7 +2047,7 @@ class BaseEpochs(
             ):
                 s += " (baseline period was cropped after baseline correction)"
 
-        s += f", ~{sizeof_fmt(self._size)}"
+        s += f"), ~{sizeof_fmt(self._size)}"
         s += f", data{'' if self.preload else ' not'} loaded"
         s += ", with metadata" if self.metadata is not None else ""
         max_events = 10

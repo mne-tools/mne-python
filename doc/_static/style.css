@@ -353,3 +353,11 @@ div.sphx-glr-animation video {
     max-width: 100%;
     height: auto;
 }
+
+/* fix sidebar scrollbars */
+.sidebar-primary-items__end {
+    margin-bottom: 0 !important;
+    margin-top: 0 !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+}
