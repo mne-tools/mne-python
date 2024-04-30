@@ -100,11 +100,9 @@ class ConductorModel(dict):
             if rad is None:  # no radius / MEG only
                 extra = f"Sphere (no layers): r0=[{center}] mm"
             else:
-                extra = "Sphere ({} layer{}): r0=[{}] R={:1.0f} mm".format(
-                    len(self["layers"]) - 1,
-                    _pl(self["layers"]),
-                    center,
-                    rad * 1000.0,
+                extra = (
+                    f"Sphere ({len(self['layers']) - 1} layer{_pl(self['layers'])}): "
+                    f"r0=[{center}] R={rad * 1000.0:1.0f} mm"
                 )
         else:
             extra = f"BEM ({len(self['surfs'])} layer{_pl(self['surfs'])})"
@@ -325,10 +323,9 @@ def _check_complete_surface(surf, copy=False, incomplete="raise", extra=""):
         fewer = (fewer[:80] + ["..."]) if len(fewer) > 80 else fewer
         fewer = ", ".join(str(f) for f in fewer)
         msg = (
-            "Surface {} has topological defects: {:.0f} / {:.0f} vertices "
-            "have fewer than three neighboring triangles [{}]{}".format(
-                _bem_surf_name[surf["id"]], len(fewer), len(surf["rr"]), fewer, extra
-            )
+            f"Surface {_bem_surf_name[surf['id']]} has topological defects: "
+            f"{len(fewer)} / {len(surf['rr'])} vertices have fewer than three "
+            f"neighboring triangles [{fewer}]{extra}"
         )
         _on_missing(on_missing=incomplete, msg=msg, name="on_defects")
     return surf
@@ -542,9 +539,10 @@ def _assert_complete_surface(surf, incomplete="raise"):
     # Center of mass....
     cm = surf["rr"].mean(axis=0)
     logger.info(
-        "{} CM is {:6.2f} {:6.2f} {:6.2f} mm".format(
-            _bem_surf_name[surf["id"]], 1000 * cm[0], 1000 * cm[1], 1000 * cm[2]
-        )
+        f"{_bem_surf_name[surf['id']]} CM is "
+        f"{1000 * cm[0]:6.2f} "
+        f"{1000 * cm[1]:6.2f} "
+        f"{1000 * cm[2]:6.2f} mm"
     )
     tot_angle = _get_solids(surf["rr"][surf["tris"]], cm[np.newaxis, :])[0]
     prop = tot_angle / (2 * np.pi)
@@ -1108,18 +1106,20 @@ def _fit_sphere_to_headshape(info, dig_kinds, verbose=None):
     _check_head_radius(radius)
 
     # > 2 cm away from head center in X or Y is strange
+    o_mm = origin_head * 1e3
+    o_d = origin_device * 1e3
     if np.linalg.norm(origin_head[:2]) > 0.02:
         warn(
-            "(X, Y) fit ({:0.1f}, {:0.1f}) more than 20 mm from head frame "
-            "origin".format(*tuple(1e3 * origin_head[:2]))
+            f"(X, Y) fit ({o_mm[0]:0.1f}, {o_mm[1]:0.1f}) "
+            "more than 20 mm from head frame origin"
         )
     logger.info(
         "Origin head coordinates:".ljust(30)
-        + "{:0.1f} {:0.1f} {:0.1f} mm".format(*tuple(1e3 * origin_head))
+        + f"{o_mm[0]:0.1f} {o_mm[1]:0.1f} {o_mm[2]:0.1f} mm"
     )
     logger.info(
         "Origin device coordinates:".ljust(30)
-        + "{:0.1f} {:0.1f} {:0.1f} mm".format(*tuple(1e3 * origin_device))
+        + f"{o_d[0]:0.1f} {o_d[1]:0.1f} {o_d[2]:0.1f} mm"
     )
     return radius, origin_head, origin_device
 

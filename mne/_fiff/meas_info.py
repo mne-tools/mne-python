@@ -1688,7 +1688,7 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
                     for ii in _dig_kind_ints
                     if ii in counts
                 ]
-                counts = (" ({})".format(", ".join(counts))) if len(counts) else ""
+                counts = f" ({', '.join(counts)})" if len(counts) else ""
                 entr = "%d item%s%s" % (len(v), _pl(len(v)), counts)
             elif isinstance(v, Transform):
                 # show entry only for non-identity transform

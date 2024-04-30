@@ -453,9 +453,8 @@ def _get_ch_type(inst, ch_type):
             if type_ in inst:
                 ch_type = [type_]
                 logger.info(
-                    "{} channel type selected for " "re-referencing".format(
-                        DEFAULTS["titles"][type_]
-                    )
+                    f"{DEFAULTS['titles'][type_]} channel type selected for "
+                    "re-referencing"
                 )
                 break
         # if auto comes up empty, or the user specifies a bad ch_type.

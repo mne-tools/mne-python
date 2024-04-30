@@ -76,8 +76,8 @@ class Projection(dict):
         )
 
     def __repr__(self):  # noqa: D105
-        s = "{}".format(self["desc"])
-        s += ", active : {}".format(self["active"])
+        s = str(self["desc"])
+        s += f", active : {self['active']}"
         s += f", n_channels : {len(self['data']['col_names'])}"
         if self["explained_var"] is not None:
             s += f', exp. var : {self["explained_var"] * 100:0.2f}%'

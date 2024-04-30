@@ -359,7 +359,7 @@ def test_constants(tmp_path):
                 assert _aliases.get(name) == con[check][val], msg
             else:
                 con[check][val] = name
-    unknowns = "\n\t".join("{} ({})".format(*u) for u in unknowns)
+    unknowns = "\n\t".join(f"{u[0]} ({u[1]})" for u in unknowns)
     assert len(unknowns) == 0, f"Unknown types\n\t{unknowns}"
 
     # Assert that all the FIF defs are in our constants
