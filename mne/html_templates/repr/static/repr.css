@@ -1,31 +1,31 @@
 table.repr.table.table-hover.table-striped.table-sm.table-responsive.small {
-    /* Don't make rows wider than they need to be. */
-    display: inline;
+  /* Don't make rows wider than they need to be. */
+  display: inline;
 }
 
-table>tbody>tr.repr-element>td {
-    /* Apply a tighter layout to the table cells. */
-    padding-top: 0.1rem;
-    padding-bottom: 0.1rem;
-    padding-right: 1rem;
+table > tbody > tr.repr-element > td {
+  /* Apply a tighter layout to the table cells. */
+  padding-top: 0.1rem;
+  padding-bottom: 0.1rem;
+  padding-right: 1rem;
 }
 
 .repr-section-header {
-    text-align: left;
-    vertical-align: middle;
+  text-align: left;
+  vertical-align: middle;
 }
 
 .repr-section-toggle-col button {
-    cursor: pointer;
-    font-size: smaller;
+  cursor: pointer;
+  font-size: smaller;
 }
 
 .repr-element {
-    transition: 0.5s ease;
-    opacity: 1;
-  }
+  transition: 0.5s ease;
+  opacity: 1;
+}
 
 .repr-element-hidden {
-    transition: 0.2s ease;
-    opacity: 0.2;
+  transition: 0.2s ease;
+  opacity: 0.2;
 }
