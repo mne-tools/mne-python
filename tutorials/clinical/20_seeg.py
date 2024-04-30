@@ -271,6 +271,7 @@ dg = DeterministicMaximumDirectionGetter.from_shcoeff(
     max_angle=30.0,  # max angle fiber can change at each voxel
     sphere=default_sphere,  # use default sphere
     sh_to_pmf=True,  # speeds up computations, takes more memory
+    legacy=False,  # use newer version
 )
 # use the white matter mask to seed where the fibers start,
 # with 1 mm density in all three dimensions
