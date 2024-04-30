@@ -1,10 +1,18 @@
+table.repr.table.table-hover.table-striped.table-sm.table-responsive.small {
+    /* Don't make rows wider than they need to be. */
+    display: inline;
+}
+
+table>tbody>tr.repr-element>td {
+    /* Apply a tighter layout to the table cells. */
+    padding-top: 0.1rem;
+    padding-bottom: 0.1rem;
+    padding-right: 1rem;
+}
+
 .repr-section-header {
     text-align: left;
     vertical-align: middle;
-}
-
-.repr-section-toggle-col {
-    max-width: 1.5rem;
 }
 
 .repr-section-toggle-col button {
