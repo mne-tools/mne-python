@@ -353,7 +353,7 @@ def test_report_raw_psd_and_date(tmp_path):
     assert isinstance(report.html, list)
     assert "PSD" in "".join(report.html)
     assert "Unknown" not in "".join(report.html)
-    assert "GMT" in "".join(report.html)
+    assert "UTC" in "".join(report.html)
 
     # test kwargs passed through to underlying array func
     Report(raw_psd=dict(window="boxcar"))
