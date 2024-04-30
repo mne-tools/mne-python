@@ -238,7 +238,7 @@ def _create_events(ft_struct, trialinfo_column):
 
     if trialinfo_column > (available_ti_cols - 1):
         raise ValueError(
-            "trialinfo_column is higher than the amount ofcolumns in trialinfo."
+            "trialinfo_column is higher than the amount of columns in trialinfo."
         )
 
     event_trans_val = np.zeros(len(event_type))

@@ -375,7 +375,7 @@ def set_config(key, value, home_dir=None, set_env=True):
     else:
         config = dict()
         logger.info(
-            "Attempting to create new mne-python configuration " f"file:\n{config_path}"
+            f"Attempting to create new mne-python configuration file:\n{config_path}"
         )
     if value is None:
         config.pop(key, None)

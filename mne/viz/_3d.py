@@ -763,7 +763,7 @@ def plot_alignment(
     head_keys = ("auto", "head", "outer_skin", "head-dense", "seghead")
     head = [s for s in surfaces if s in head_keys]
     if len(head) > 1:
-        raise ValueError("Can only supply one head-like surface name, " f"got {head}")
+        raise ValueError(f"Can only supply one head-like surface name, got {head}")
     head = head[0] if head else False
     if head is not False:
         surfaces.pop(surfaces.index(head))
@@ -1797,7 +1797,7 @@ def _process_clim(clim, colormap, transparent, data=0.0, allow_pos_lims=True):
 
     if ("lims" in clim) + ("pos_lims" in clim) != 1:
         raise ValueError(
-            "Exactly one of lims and pos_lims must be specified " f"in clim, got {clim}"
+            f"Exactly one of lims and pos_lims must be specified in clim, got {clim}"
         )
     if "pos_lims" in clim and not allow_pos_lims:
         raise ValueError('Cannot use "pos_lims" for clim, use "lims" ' "instead")
@@ -2031,10 +2031,7 @@ def _plot_mpl_stc(
     from ..morph import _get_subject_sphere_tris
     from ..source_space._source_space import _check_spacing, _create_surf_spacing
 
-    if hemi not in ["lh", "rh"]:
-        raise ValueError(
-            "hemi must be 'lh' or 'rh' when using matplotlib. " f"Got {hemi}."
-        )
+    _check_option("hemi", hemi, ("lh", "rh"), extra="when using matplotlib")
     lh_kwargs = {
         "lat": {"elev": 0, "azim": 180},
         "med": {"elev": 0, "azim": 0},

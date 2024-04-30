@@ -404,9 +404,7 @@ def _check_scaling_inputs(data, picks_list, scalings):
     elif scalings is None:
         pass
     else:
-        raise NotImplementedError(
-            "No way! That's not a rescaling " f"option: {scalings}"
-        )
+        raise NotImplementedError(f"Not a valid rescaling option: {scalings}")
     return scalings_
 
 

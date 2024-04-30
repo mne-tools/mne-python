@@ -211,7 +211,7 @@ class BaseRaw(
             # some functions (e.g., filtering) only work w/64-bit data
             if preload.dtype not in (np.float64, np.complex128):
                 raise RuntimeError(
-                    "datatype must be float64 or complex128, " f"not {preload.dtype}"
+                    f"datatype must be float64 or complex128, not {preload.dtype}"
                 )
             if preload.dtype != dtype:
                 raise ValueError("preload and dtype must match")
@@ -3025,7 +3025,7 @@ def _check_raw_compatibility(raw):
             a, b = raw[ri].info[key], raw[0].info[key]
             if a != b:
                 raise ValueError(
-                    f"raw[{ri}].info[{key}] must match:\n" f"{repr(a)} != {repr(b)}"
+                    f"raw[{ri}].info[{key}] must match:\n{repr(a)} != {repr(b)}"
                 )
         for kind in ("bads", "ch_names"):
             set1 = set(raw[0].info[kind])
@@ -3033,7 +3033,7 @@ def _check_raw_compatibility(raw):
             mismatch = set1.symmetric_difference(set2)
             if mismatch:
                 raise ValueError(
-                    f"raw[{ri}]['info'][{kind}] do not match: " f"{sorted(mismatch)}"
+                    f"raw[{ri}]['info'][{kind}] do not match: {sorted(mismatch)}"
                 )
         if any(raw[ri]._cals != raw[0]._cals):
             raise ValueError("raw[%d]._cals must match" % ri)

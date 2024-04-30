@@ -469,7 +469,7 @@ def mixed_norm(
         )
     if dgap_freq <= 0.0:
         raise ValueError(
-            "dgap_freq must be a positive integer." f" Got dgap_freq = {dgap_freq}"
+            f"dgap_freq must be a positive integer. Got dgap_freq = {dgap_freq}"
         )
     if not (
         isinstance(sure_alpha_grid, (np.ndarray, list)) or sure_alpha_grid == "auto"
@@ -785,12 +785,10 @@ def tf_mixed_norm(
     info = evoked.info
 
     if not (0.0 <= alpha < 100.0):
-        raise ValueError("alpha must be in [0, 100). " f"Got alpha = {alpha}")
+        raise ValueError(f"alpha must be in [0, 100). Got alpha = {alpha}")
 
     if not (0.0 <= l1_ratio <= 1.0):
-        raise ValueError(
-            "l1_ratio must be in range [0, 1]." f" Got l1_ratio = {l1_ratio}"
-        )
+        raise ValueError(f"l1_ratio must be in range [0, 1]. Got l1_ratio = {l1_ratio}")
     alpha_space = alpha * (1.0 - l1_ratio)
     alpha_time = alpha * l1_ratio
 
@@ -802,7 +800,7 @@ def tf_mixed_norm(
 
     if dgap_freq <= 0.0:
         raise ValueError(
-            "dgap_freq must be a positive integer." f" Got dgap_freq = {dgap_freq}"
+            f"dgap_freq must be a positive integer. Got dgap_freq = {dgap_freq}"
         )
 
     tstep = np.atleast_1d(tstep)

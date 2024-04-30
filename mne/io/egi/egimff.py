@@ -615,7 +615,7 @@ class RawMff(BaseRaw):
             np.concatenate([idx[key] for key in keys]), np.arange(len(chs))
         ):
             raise ValueError(
-                "Currently interlacing EEG and PNS channelsis not supported"
+                "Currently interlacing EEG and PNS channels is not supported"
             )
         egi_info["kind_bounds"] = [0]
         for key in keys:

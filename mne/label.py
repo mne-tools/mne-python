@@ -2229,7 +2229,7 @@ def _get_annot_fname(annot_fname, subject, hemi, parc, subjects_dir):
             hemis = [hemi]
 
         subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-        dst = str(subjects_dir / subject / "label" / (f"%s.{parc}.annot"))
+        dst = str(subjects_dir / subject / "label" / f"%s.{parc}.annot")
         annot_fname = [dst % hemi_ for hemi_ in hemis]
 
     return annot_fname, hemis

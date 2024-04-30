@@ -797,10 +797,7 @@ class BaseEpochs(
         reject = deepcopy(reject) if reject is not None else dict()
         flat = deepcopy(flat) if flat is not None else dict()
         for rej, kind in zip((reject, flat), ("reject", "flat")):
-            if not isinstance(rej, dict):
-                raise TypeError(
-                    f"reject and flat must be dict or None, not {type(rej)}"
-                )
+            _validate_type(rej, dict, kind)
             bads = set(rej.keys()) - set(idx.keys())
             if len(bads) > 0:
                 raise KeyError(f"Unknown channel types found in {kind}: {bads}")

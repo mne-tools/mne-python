@@ -164,7 +164,7 @@ def _iter_topography(
         else:
             in_box = False
         return (
-            (f"{ch_names[closest]} (click to magnify)") if in_box else "No channel here"
+            f"{ch_names[closest]} (click to magnify)" if in_box else "No channel here"
         )
 
     def format_coord_multiaxis(x, y, ch_name=None):

@@ -234,7 +234,7 @@ def _get_info(eeg, *, eog, montage_units):
         )
         update_ch_names = False
     else:  # if eeg.chanlocs is empty, we still need default chan names
-        ch_names = ["EEG %03d" % ii for ii in range(eeg.nbchan)]
+        ch_names = [f"EEG {ii:03d}" for ii in range(eeg.nbchan)]
         ch_types = "eeg"
         eeg_montage = None
         update_ch_names = True
@@ -452,9 +452,9 @@ class RawEEGLAB(BaseRaw):
         eeg = _check_load_mat(input_fname, uint16_codec)
         if eeg.trials != 1:
             raise TypeError(
-                "The number of trials is %d. It must be 1 for raw"
+                f"The number of trials is {eeg.trials:d}. It must be 1 for raw"
                 " files. Please use `mne.io.read_epochs_eeglab` if"
-                " the .set file contains epochs." % eeg.trials
+                " the .set file contains epochs."
             )
 
         last_samps = [eeg.pnts - 1]
@@ -674,7 +674,7 @@ class EpochsEEGLAB(BaseEpochs):
         for key, val in event_id.items():
             if val not in events[:, 2]:
                 raise ValueError(
-                    "No matching events found for %s (event id %i)" % (key, val)
+                    f"No matching events found for {key} (event id {val:i})"
                 )
 
         if isinstance(eeg.data, str):

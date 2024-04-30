@@ -162,7 +162,7 @@ def plot_cov(
 
         P, ncomp, _ = make_projector(projs, ch_names)
         if ncomp > 0:
-            logger.info("    Created an SSP operator (subspace dimension = %d)" % ncomp)
+            logger.info(f"    Created an SSP operator (subspace dimension = {ncomp:d})")
             C = np.dot(P, np.dot(C, P.T))
         else:
             logger.info("    The projection vectors do not apply to these channels.")
@@ -223,7 +223,7 @@ def plot_cov(
             axes[0, k].text(
                 this_rank - 1,
                 axes[0, k].get_ylim()[1],
-                "rank ≈ %d" % (this_rank,),
+                f"rank ≈ {this_rank:d}",
                 ha="right",
                 va="top",
                 color="r",
@@ -430,7 +430,7 @@ def _plot_mri_contours(
         raise ValueError(
             "slices must be a sorted 1D array of int with unique "
             "elements, at least one element, and no elements "
-            "greater than %d, got %s" % (n_slices - 1, slices)
+            f"greater than {n_slices - 1:d}, got {slices}"
         )
 
     # create of list of surfaces
@@ -869,7 +869,7 @@ def plot_events(
         if event_id is not None:
             event_label = f"{event_id_rev[ev]} ({count})"
         else:
-            event_label = "N=%d" % (count,)
+            event_label = f"N={count:d}"
         labels.append(event_label)
         kwargs = {}
         if ev in color:
@@ -1125,7 +1125,7 @@ def plot_filter(
     if isinstance(plot, str):
         plot = [plot]
     for xi, x in enumerate(plot):
-        _check_option("plot[%d]" % xi, x, ("magnitude", "delay", "time"))
+        _check_option(f"plot[{xi}]", x, ("magnitude", "delay", "time"))
 
     flim = _get_flim(flim, fscale, freq, sfreq)
     if fscale == "log":
@@ -1201,8 +1201,8 @@ def plot_filter(
         fig = axes[0].get_figure()
     if len(axes) != len(plot):
         raise ValueError(
-            "Length of axes (%d) must be the same as number of "
-            "requested filter properties (%d)" % (len(axes), len(plot))
+            f"Length of axes ({len(axes)}) must be the same as number of "
+            f"requested filter properties ({len(plot)})"
         )
 
     t = np.arange(len(h))

@@ -294,7 +294,7 @@ def _get_rank_sss(
         or "in_order" not in proc_info[0]["max_info"]["sss_info"]
     ):
         raise ValueError(
-            "Could not find Maxfilter information in " f'info["proc_history"]. {msg}'
+            f'Could not find Maxfilter information in info["proc_history"]. {msg}'
         )
     proc_info = proc_info[0]
     max_info = proc_info["max_info"]

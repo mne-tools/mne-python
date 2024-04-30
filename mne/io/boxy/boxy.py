@@ -105,7 +105,7 @@ class RawBOXY(BaseRaw):
                     # Check that the BOXY version is supported
                     if boxy_ver not in ["0.40", "0.84"]:
                         raise RuntimeError(
-                            "MNE has not been tested with BOXY " f"version ({boxy_ver})"
+                            f"MNE has not been tested with BOXY version ({boxy_ver})"
                         )
                 elif "Detector Channels" in i_line:
                     raw_extras["detect_num"] = int(i_line.rsplit(" ")[0])

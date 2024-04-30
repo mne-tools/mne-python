@@ -1015,9 +1015,8 @@ def test_include():
     raw = read_raw_edf(edf_path, include="I[1-4]")
     assert sorted(raw.ch_names) == ["I1", "I2", "I3", "I4"]
 
-    with pytest.raises(ValueError) as e:
+    with pytest.raises(ValueError, match="'exclude' must be empty if 'include' is "):
         raw = read_raw_edf(edf_path, include=["I1", "I2"], exclude="I[1-4]")
-        assert str(e.value) == "'exclude' must be emptyif 'include' is assigned."
 
 
 @pytest.mark.parametrize(
