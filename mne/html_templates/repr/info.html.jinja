@@ -8,21 +8,21 @@
 
 <table class="table table-hover table-striped table-sm table-responsive small">
     <tr>
-        <th class="repr-section-header">
-            <button onclick="toggleVisibility('{{ sections[0] }}-{{ uuid }}', this)"><small>➖</small></button>
+        <th class="repr-section-header repr-section-toggle-col">
+            <button title="Hide section" onclick="toggleVisibility('{{ sections[0] }}-{{ uuid }}', this)"><small>➖</small></button>
         </th>
         <th class="repr-section-header" colspan="2">
             <strong>{{ sections[0] }}</strong>
         </th>
     </tr>
     {% if filenames %}
-    <tr class="{{ sections[0] }}-{{ uuid }}">
+    <tr class="repr-element {{ sections[0] }}-{{ uuid }}">
         <td></td>
         <td>Filename(s)</td>
         <td>{{ filenames|join('<br>') }}</td>
     </tr>
     {% endif %}
-    <tr class="{{ sections[0] }}-{{ uuid }}">
+    <tr class="repr-element {{ sections[0] }}-{{ uuid }}">
         <td></td>
         <td>Measurement date</td>
         {% if meas_date is not none %}
@@ -31,7 +31,7 @@
         <td>Unknown</td>
         {% endif %}
     </tr>
-    <tr class="{{ sections[0] }}-{{ uuid }}">
+    <tr class="repr-element {{ sections[0] }}-{{ uuid }}">
         <td></td>
         <td>Participant</td>
         {% if subject_info is defined and subject_info is not none %}
@@ -42,7 +42,7 @@
         <td>Unknown</td>
         {% endif %}
     </tr>
-    <tr class="{{ sections[0] }}-{{ uuid }}">
+    <tr class="repr-element {{ sections[0] }}-{{ uuid }}">
         <td></td>
         <td>Experimenter</td>
         {% if experimenter is not none %}
@@ -52,14 +52,14 @@
         {% endif %}
     </tr>
     <tr>
-        <th class="repr-section-header">
-            <button onclick="toggleVisibility('{{ sections[1] }}-{{ uuid }}', this)"><small>➖</small></button>
+        <th class="repr-section-header repr-section-toggle-col">
+            <button title="Hide section" onclick="toggleVisibility('{{ sections[1] }}-{{ uuid }}', this)"><small>➖</small></button>
         </th>
         <th class="repr-section-header" colspan="2">
             <strong>{{ sections[1] }}</strong>
         </th>
     </tr>
-    <tr class="{{ sections[1] }}-{{ uuid }}">
+    <tr class="repr-element {{ sections[1] }}-{{ uuid }}">
         <td></td>
         <td>Head shape and sensor digitization</td>
         {% if dig is not none %}
@@ -68,71 +68,71 @@
         <td>Not available</td>
         {% endif %}
     </tr>
-    <tr class="{{ sections[1] }}-{{ uuid }}">
+    <tr class="repr-element {{ sections[1] }}-{{ uuid }}">
         <td></td>
         <td>Good channels</td>
         <td>{{ good_channels }}</td>
     </tr>
-    <tr class="{{ sections[1] }}-{{ uuid }}">
+    <tr class="repr-element {{ sections[1] }}-{{ uuid }}">
         <td></td>
         <td>Bad channels</td>
         <td>{{ bad_channels }}</td>
     </tr>
-    <tr class="{{ sections[1] }}-{{ uuid }}">
+    <tr class="repr-element {{ sections[1] }}-{{ uuid }}">
         <td></td>
         <td>EOG channels</td>
         <td>{{ eog }}</td>
     </tr>
-    <tr class="{{ sections[1] }}-{{ uuid }}">
+    <tr class="repr-element {{ sections[1] }}-{{ uuid }}">
         <td></td>
         <td>ECG channels</td>
         <td>{{ ecg }}</td>
     </tr>
     <tr>
-        <th class="repr-section-header">
-            <button onclick="toggleVisibility('{{ sections[2] }}-{{ uuid }}', this)"><small>➖</small></button>
+        <th class="repr-section-header repr-section-toggle-col">
+            <button title="Hide section" onclick="toggleVisibility('{{ sections[2] }}-{{ uuid }}', this)"><small>➖</small></button>
         </th>
         <th class="repr-section-header" colspan="2">
             <strong>{{ sections[2] }}</strong>
         </th>
     </tr>
     {% if sfreq is not none %}
-    <tr class="{{ sections[2] }}-{{ uuid }}">
+    <tr class="repr-element {{ sections[2] }}-{{ uuid }}">
         <td></td>
         <td>Sampling frequency</td>
         <td>{{ '%0.2f'|format(sfreq) }} Hz</td>
     </tr>
     {% endif %}
     {% if highpass is not none %}
-    <tr class="{{ sections[2] }}-{{ uuid }}">
+    <tr class="repr-element {{ sections[2] }}-{{ uuid }}">
         <td></td>
         <td>Highpass</td>
         <td>{{ '%0.2f'|format(highpass) }} Hz</td>
     </tr>
     {% endif %}
     {% if lowpass is not none %}
-    <tr class="{{ sections[2] }}-{{ uuid }}">
+    <tr class="repr-element {{ sections[2] }}-{{ uuid }}">
         <td></td>
         <td>Lowpass</td>
         <td>{{ '%0.2f'|format(lowpass) }} Hz</td>
     </tr>
     {% endif %}
     {% if projs is not none %}
-    <tr class="{{ sections[2] }}-{{ uuid }}">
+    <tr class="repr-element {{ sections[2] }}-{{ uuid }}">
         <td></td>
         <td>Projections</td>
         <td>{{ projs|join('<br />') | safe }}</td>
     </tr>
     {% endif %}
     {% if time_points is not none %}
-    <tr class="{{ sections[2] }}-{{ uuid }}">
+    <tr class="repr-element {{ sections[2] }}-{{ uuid }}">
         <td></td>
         <td>Time points</td>
         <td>{{ time_points | format_number}}</td>
     </tr>
     {% endif %}
     {% if duration %}
-    <tr class="{{ sections[2] }}-{{ uuid }}">
+    <tr class="repr-element {{ sections[2] }}-{{ uuid }}">
         <td></td>
         <td>Duration</td>
         <td>{{ duration }} (HH:MM:SS)</td>

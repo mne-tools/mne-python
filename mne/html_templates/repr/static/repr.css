@@ -3,6 +3,20 @@
     vertical-align: middle;
 }
 
+.repr-section-toggle-col {
+    max-width: 1.5rem;
+}
+
+.repr-section-toggle-col button {
+    cursor: pointer;
+}
+
+.repr-element {
+    transition: 0.5s ease;
+    opacity: 1;
+  }
+
 .repr-element-hidden {
-    display: none;
+    transition: 0.2s ease;
+    opacity: 0.2;
 }
