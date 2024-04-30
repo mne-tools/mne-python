@@ -1236,8 +1236,7 @@ def _plot_topomap(
     extrapolate = _check_extrapolate(extrapolate, ch_type)
     if data.ndim > 1:
         raise ValueError(
-            "Data needs to be array of shape (n_sensors,); got "
-            f"shape {str(data.shape)}."
+            f"Data needs to be array of shape (n_sensors,); got shape {data.shape}."
         )
 
     # Give a helpful error message for common mistakes regarding the position

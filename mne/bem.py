@@ -2310,7 +2310,7 @@ def _ensure_bem_surfaces(bem, extra_allow=(), name="bem"):
     _validate_type(bem, allowed, name)
     if isinstance(bem, path_like):
         # Load the surfaces
-        logger.info(f"Loading BEM surfaces from {str(bem)}...")
+        logger.info(f"Loading BEM surfaces from {bem}...")
         bem = read_bem_surfaces(bem)
         bem = ConductorModel(is_sphere=False, surfs=bem)
     elif isinstance(bem, list):

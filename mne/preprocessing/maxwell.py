@@ -1342,7 +1342,7 @@ def _get_mf_picks_fix_mags(info, int_order, ext_order, ignore_ref=False, verbose
     n_bases = _get_n_moments([int_order, ext_order]).sum()
     if n_bases > good_mask.sum():
         raise ValueError(
-            f"Number of requested bases ({str(n_bases)}) exceeds number of "
+            f"Number of requested bases ({n_bases}) exceeds number of "
             f"good sensors ({good_mask.sum()})"
         )
     recons = [ch for ch in meg_info["bads"]]

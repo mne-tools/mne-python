@@ -3342,7 +3342,7 @@ def corrmap(
     template_fig, labelled_ics = None, None
     if plot is True:
         if is_subject:  # plotting from an ICA object
-            ttl = f"Template from subj. {str(template[0])}"
+            ttl = f"Template from subj. {template[0]}"
             template_fig = icas[template[0]].plot_components(
                 picks=template[1],
                 ch_type=ch_type,

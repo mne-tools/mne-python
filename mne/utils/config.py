@@ -835,7 +835,7 @@ def _get_latest_version(timeout):
         elif "timed out" in str(err):
             return f"timeout after {timeout} sec"
         else:
-            return f"unknown error: {str(err)}"
+            return f"unknown error: {err}"
     else:
         return response["tag_name"].lstrip("v") or "version unknown"
 

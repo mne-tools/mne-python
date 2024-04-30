@@ -181,9 +181,8 @@ def _setup_cuda_fft_multiply_repeated(n_jobs, h, n_fft, kind="FFT FIR filtering"
                 logger.info(f"Using CUDA for {kind}")
             except Exception as exp:
                 logger.info(
-                    "CUDA not used, could not instantiate memory "
-                    f'(arrays may be too large: "{str(exp)}"), falling back to '
-                    "n_jobs=None"
+                    "CUDA not used, could not instantiate memory (arrays may be too "
+                    f'large: "{exp}"), falling back to n_jobs=None'
                 )
             cuda_dict.update(h_fft=h_fft, rfft=_cuda_upload_rfft, irfft=_cuda_irfft_get)
         else:

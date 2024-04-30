@@ -513,7 +513,7 @@ def _get_matrix_from_inverse_operator(
         assert np.array_equal(v0o1, invmat[1])
         assert np.array_equal(v3o2, invmat[11])
 
-    logger.info(f"Dimension of Inverse Matrix: {str(invmat.shape)}")
+    logger.info(f"Dimension of Inverse Matrix: {invmat.shape}")
 
     return invmat
 

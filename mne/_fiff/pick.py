@@ -1391,7 +1391,7 @@ def _picks_str_to_idx(
         if not allow_empty:
             raise ValueError(
                 f"picks ({repr(orig_picks) + extra_repr}) could not be interpreted as "
-                f'channel names (no channel "{str(bad_names)}"), channel types (no type'
+                f'channel names (no channel "{bad_names}"), channel types (no type'
                 f' "{bad_type}" present), or a generic type (just "all" or "data")'
             )
         picks = np.array([], int)

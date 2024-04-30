@@ -1401,7 +1401,7 @@ def _handle_event_colors(color_dict, unique_events, event_id):
                 custom_colors[event_id[key]] = color
             else:  # key not a valid event, warn and ignore
                 warn(
-                    f"Event ID {str(key)} is in the color dict but is not "
+                    f"Event ID {key} is in the color dict but is not "
                     "present in events or event_id."
                 )
         # warn if color_dict is missing any entries

@@ -2080,9 +2080,9 @@ def _do_forward_solution(
     if bem is not None:
         cmd += ["--bem", bem]
     if mri is not None:
-        cmd += ["--mri", f"{str(mri.absolute())}"]
+        cmd += ["--mri", f"{mri.absolute()}"]
     if trans is not None:
-        cmd += ["--trans", f"{str(trans.absolute())}"]
+        cmd += ["--trans", f"{trans.absolute()}"]
     if not meg:
         cmd.append("--eegonly")
     if not eeg:

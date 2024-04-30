@@ -54,7 +54,7 @@ def _create_info(ft_struct, raw_info):
         if missing_channels:
             warn(
                 "The following channels are present in the FieldTrip data "
-                f"but cannot be found in the provided info: {str(missing_channels)}.\n"
+                f"but cannot be found in the provided info: {missing_channels}.\n"
                 "These channels will be removed from the resulting data!"
             )
 
