@@ -26,6 +26,7 @@ from ..._fiff.meas_info import Info
 from ..._fiff.pick import pick_types
 from ..._freesurfer import (
     _estimate_talxfm_rigid,
+    _get_aseg,
     _get_head_surface,
     _get_skull_surface,
     read_freesurfer_lut,
@@ -2601,7 +2602,7 @@ class Brain:
     @fill_doc
     def add_volume_labels(
         self,
-        aseg="aparc+aseg",
+        aseg="auto",
         labels=None,
         colors=None,
         alpha=0.5,
@@ -2639,26 +2640,8 @@ class Brain:
         -----
         .. versionadded:: 0.24
         """
-        import nibabel as nib
+        aseg, aseg_data = _get_aseg(aseg, self._subject, self._subjects_dir)
 
-        # load anatomical segmentation image
-        if not aseg.endswith(("aseg", "parc")):
-            raise RuntimeError(f"Expected `aseg` file path, {aseg} suffix")
-        aseg = str(
-            _check_fname(
-                op.join(
-                    self._subjects_dir,
-                    self._subject,
-                    "mri",
-                    aseg + ".mgz",
-                ),
-                overwrite="read",
-                must_exist=True,
-            )
-        )
-        aseg_fname = aseg
-        aseg = nib.load(aseg_fname)
-        aseg_data = np.asarray(aseg.dataobj)
         vox_mri_t = aseg.header.get_vox2ras_tkr()
         mult = 1e-3 if self._units == "m" else 1
         vox_mri_t[:3] *= mult
@@ -2692,7 +2675,7 @@ class Brain:
             if len(verts) == 0:  # not in aseg vals
                 warn(
                     f"Value {lut[label]} not found for label "
-                    f"{repr(label)} in: {aseg_fname}"
+                    f"{repr(label)} in anatomical segmentation file "
                 )
                 continue
             verts = apply_trans(vox_mri_t, verts)

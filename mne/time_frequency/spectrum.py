@@ -279,7 +279,7 @@ class SpectrumMixin:
         This method returns ``None`` and has a side effect of (maybe) updating
         the ``method_kw`` dict.
         """
-        if method == "welch" and method_kw.get("n_fft", None) is None:
+        if method == "welch" and method_kw.get("n_fft") is None:
             tm = _time_mask(self.times, tmin, tmax, sfreq=self.info["sfreq"])
             method_kw["n_fft"] = min(np.sum(tm), 2048)
 
