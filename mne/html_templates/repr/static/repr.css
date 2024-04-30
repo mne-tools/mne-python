@@ -9,6 +9,7 @@
 
 .repr-section-toggle-col button {
     cursor: pointer;
+    font-size: smaller;
 }
 
 .repr-element {

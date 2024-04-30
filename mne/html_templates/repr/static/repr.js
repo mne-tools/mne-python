@@ -23,8 +23,6 @@ const toggleVisibility = (className, button) => {
   });
 
   // Take care of the button content and tooltip
-  button.innerHTML = button.innerHTML.replace(/➖|➕/g, (match) =>
-    match === "➖" ? "➕" : "➖"
-  )
+  button.innerText = button.innerText === "➖" ? "➕" : "➖"
   button.title = button.title === 'Hide section' ? 'Show section' : 'Hide section'
 }
