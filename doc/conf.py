@@ -757,6 +757,7 @@ html_theme_options = {
         "version-switcher",
         "navbar-icon-links",
     ],
+    "navbar_align": "left",
     "navbar_persistent": ["search-button"],
     "footer_start": ["copyright"],
     "secondary_sidebar_items": ["page-toc", "edit-this-page"],
