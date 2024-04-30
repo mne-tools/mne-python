@@ -13,6 +13,7 @@
 import json
 import operator
 import os.path as op
+import uuid
 from collections import Counter
 from copy import deepcopy
 from functools import partial
@@ -2093,6 +2094,21 @@ class BaseEpochs(
         if meas_date is not None:
             meas_date = meas_date.strftime("%B %d, %Y  %H:%M:%S") + " GMT"
 
+        projs = self.info.get("projs")
+        if projs:
+            projs = [
+                f'{p["desc"]} : {"on" if p["active"] else "off"}'
+                for p in self.info["projs"]
+            ]
+        else:
+            projs = None
+
+        static_includes_path = (
+            Path(__file__).parent / "html_templates" / "repr" / "static"
+        )
+        css = (static_includes_path / "repr.css").read_text(encoding="utf-8")
+        js = (static_includes_path / "repr.js").read_text(encoding="utf-8")
+
         t = _get_html_template("repr", "epochs.html.jinja")
         t = t.render(
             epochs=self,
@@ -2105,6 +2121,10 @@ class BaseEpochs(
             bad_channels=bad_channels,
             ecg=ecg,
             eog=eog,
+            projs=projs,
+            css=css,
+            js=js,
+            uuid=uuid.uuid1(),
         )
         return t
 

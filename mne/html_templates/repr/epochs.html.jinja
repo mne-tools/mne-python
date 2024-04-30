@@ -1,74 +1,148 @@
-<table class="table table-hover table-striped table-sm table-responsive small">
-    {% if filename %}
+<script type="text/javascript">
+    {{ js | safe }}
+</script>
+
+<style type="text/css">
+    {{ css | safe }}
+</style>
+
+
+<table class="repr table table-hover table-striped table-sm table-responsive small">
     <tr>
-        <th>Filename</th>
+        <th class="repr-section-header repr-section-toggle-col">
+            <button title="Hide section" onclick="toggleVisibility('General-{{ uuid }}', this)"><small>➖</small></button>
+        </th>
+        <th class="repr-section-header" colspan="2">
+            <strong>General</strong>
+        </th>
+    </tr>
+    {% if filename %}
+    <tr class="repr-element General-{{ uuid }}">
+        <td></td>
+        <td>Filename(</td>
         <td>{{ filename }}</td>
     </tr>
     {% endif %}
-    <tr>
-        <th>Measurement date</th>
+    <tr class="repr-element General-{{ uuid }}">
+        <td></td>
+        <td>Measurement date</td>
         {% if meas_date is not none %}
         <td>{{ meas_date }}</td>
         {% else %}
         <td>Unknown</td>
         {% endif %}
     </tr>
-    <tr>
-        <th>Participant</th>
+    <tr class="repr-element General-{{ uuid }}">
+        <td></td>
+        <td>Participant</td>
         {% if subject_info is defined and subject_info is not none %}
-        {% if 'his_id' in subject_injainfo.keys() %}
-        <td>{{ subject_info['his_id'] }}</td>
+        {% if 'his_id' in subject_info.keys() %}
+        <td>{{ subject_info['his_id'] }}-{{ uuid }}</td>
         {% endif %}
         {% else %}
         <td>Unknown</td>
         {% endif %}
     </tr>
-    <tr>
-        <th>Total number of events</th>
+    <tr class="repr-element General-{{ uuid }}">
+        <td></td>
+        <td>Experimenter</td>
+        {% if epochs.info["experimenter"] is not none %}
+        <td>{{ epochs.info["experimenter"] }}</td>
+        {% else %}
+        <td>Unknown</td>
+        {% endif %}
+    </tr>
+    <tr class="repr-element General-{{ uuid }}">
+        <td></td>
+        <td>Total number of events</td>
         <td>{{ epochs.events|length }}</td>
     </tr>
-    <tr>
-        <th>Events counts</th>
+    <tr class="repr-element General-{{ uuid }}">
+        <td></td>
+        <td>Events counts</td>
         {% if events is not none %}
         <td>{{ events|join('<br />') | safe }}</td>
         {% else %}
         <td>Not available</td>
         {% endif %}
     </tr>
-    <tr>
-        <th>Time points</th>
+    <tr class="repr-element General-{{ uuid }}">
+        <td></td>
+        <td>Time points</td>
         <td>{{ epochs.times | length | format_number}}</td>
     </tr>
-    <tr>
-        <th>Time range</th>
+    <tr class="repr-element General-{{ uuid }}">
+        <td></td>
+        <td>Time range</td>
         <td>{{ '%.3f'|format(epochs.tmin) }} – {{ '%.3f'|format(epochs.tmax) }} s</td>
     </tr>
-    <tr>
-        <th>Baseline</th>
+    <tr class="repr-element General-{{ uuid }}">
+        <td></td>
+        <td>Baseline</td>
         <td>{{ baseline }}</td>
     </tr>
     <tr>
-        <th>Head shape and sensor digitization</th>
+        <th class="repr-section-header repr-section-toggle-col">
+            <button title="Hide section" onclick="toggleVisibility('Channels-{{ uuid }}', this)"><small>➖</small></button>
+        </th>
+        <th class="repr-section-header" colspan="2">
+            <strong>Channels</strong>
+        </th>
+    </tr>
+    <tr class="repr-element Channels-{{ uuid }}">
+        <td></td>
+        <td>Head shape and sensor digitization</td>
         {% if epochs.info["dig"] is not none %}
         <td>{{ epochs.info["dig"] | length }} points</td>
         {% else %}
         <td>Not available</td>
         {% endif %}
     </tr>
-    <tr>
-        <th>Good channels</th>
+    <tr class="repr-element Channels-{{ uuid }}">
+        <td></td>
+        <td>Good channels</td>
         <td>{{ good_channels }}</td>
     </tr>
-    <tr>
-        <th>Bad channels</th>
+    <tr class="repr-element Channels-{{ uuid }}">
+        <td></td>
+        <td>Bad channels</td>
         <td>{{ bad_channels }}</td>
     </tr>
-    <tr>
-        <th>EOG channels</th>
+    <tr class="repr-element Channels-{{ uuid }}">
+        <td></td>
+        <td>EOG channels</td>
         <td>{{ eog }}</td>
     </tr>
-    <tr>
-        <th>ECG channels</th>
+    <tr class="repr-element Channels-{{ uuid }}">
+        <td></td>
+        <td>ECG channels</td>
         <td>{{ ecg }}</td>
     </tr>
+
+    <tr>
+        <th class="repr-section-header repr-section-toggle-col">
+            <button title="Hide section" onclick="toggleVisibility('Channels-{{ uuid }}', this)"><small>➖</small></button>
+        </th>
+        <th class="repr-section-header" colspan="2">
+            <strong>Data</strong>
+        </th>
+    </tr>
+    <tr class="repr-element Data-{{ uuid }}">
+        <td></td>
+        <td>Lowpass</td>
+        <td>{{ '%0.2f'|format(epochs.info["lowpass"]) }} Hz</td>
+    </tr>
+    <tr class="repr-element Data-{{ uuid }}">
+        <td></td>
+        <td>Highpass</td>
+        <td>{{ '%0.2f'|format(epochs.info["lowpass"]) }} Hz</td>
+    </tr>
+    {% if projs is not none %}
+    <tr class="repr-element Data-{{ uuid }}">
+        <td></td>
+        <td>Projections</td>
+        <td>{{ projs|join('<br />') | safe }}</td>
+    </tr>
+    {% endif %}
+
 </table>
