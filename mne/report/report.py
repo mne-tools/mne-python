@@ -3672,6 +3672,17 @@ class Report:
         n_jobs,
         replace,
     ):
+        # Summary table
+        self._add_html_repr(
+            inst=evoked,
+            title="Info",
+            tags=tags,
+            section=section,
+            replace=replace,
+            div_klass="evoked",
+        )
+
+        # Joint plot
         ch_types = _get_data_ch_types(evoked)
         self._add_evoked_joint(
             evoked=evoked,
@@ -3682,6 +3693,8 @@ class Report:
             topomap_kwargs=topomap_kwargs,
             replace=replace,
         )
+
+        # Topomaps
         self._add_evoked_topomap_slider(
             evoked=evoked,
             ch_types=ch_types,
@@ -3693,6 +3706,8 @@ class Report:
             n_jobs=n_jobs,
             replace=replace,
         )
+
+        # GFP
         self._add_evoked_gfp(
             evoked=evoked,
             ch_types=ch_types,
@@ -3702,6 +3717,7 @@ class Report:
             replace=replace,
         )
 
+        # Whitened evoked
         if noise_cov is not None:
             self._add_evoked_whitened(
                 evoked=evoked,
