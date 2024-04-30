@@ -543,9 +543,9 @@ def test_check_consistency():
     idx = 0
     ch = info["chs"][idx]
     for key, bad, match in (
-        ("ch_name", 1.0, "must be an instance"),
+        ("ch_name", 1.0, "not a string"),
         ("loc", np.zeros(15), "12 elements"),
-        ("cal", np.ones(1), "numeric"),
+        ("cal", np.ones(1), "float or int"),
     ):
         info._check_consistency()  # okay
         old = ch[key]
