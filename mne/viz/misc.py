@@ -162,12 +162,10 @@ def plot_cov(
 
         P, ncomp, _ = make_projector(projs, ch_names)
         if ncomp > 0:
-            logger.info(
-                "    Created an SSP operator (subspace dimension" " = %d)" % ncomp
-            )
+            logger.info("    Created an SSP operator (subspace dimension = %d)" % ncomp)
             C = np.dot(P, np.dot(C, P.T))
         else:
-            logger.info("    The projection vectors do not apply to these " "channels.")
+            logger.info("    The projection vectors do not apply to these channels.")
 
     if np.iscomplexobj(C):
         C = np.sqrt((C * C.conj()).real)
@@ -282,7 +280,7 @@ def plot_source_spectrogram(
     stc = stcs[0]
     if tmin is not None and tmin < stc.times[0]:
         raise ValueError(
-            "tmin cannot be smaller than the first time point " "provided in stcs"
+            "tmin cannot be smaller than the first time point provided in stcs"
         )
     if tmax is not None and tmax > stc.times[-1] + stc.tstep:
         raise ValueError(

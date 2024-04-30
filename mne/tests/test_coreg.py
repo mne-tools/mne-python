@@ -346,9 +346,7 @@ def test_fit_matched_points():
     src_pts = apply_trans(trans, tgt_pts)
     trans_est = fit_matched_points(src_pts, tgt_pts, translate=False, out="trans")
     est_pts = apply_trans(trans_est, src_pts)
-    assert_array_almost_equal(
-        tgt_pts, est_pts, 2, "fit_matched_points with " "rotation"
-    )
+    assert_array_almost_equal(tgt_pts, est_pts, 2, "fit_matched_points with rotation")
 
     # rotation & translation
     trans = np.dot(translation(2, -6, 3), rotation(2, 6, 3))
@@ -356,7 +354,7 @@ def test_fit_matched_points():
     trans_est = fit_matched_points(src_pts, tgt_pts, out="trans")
     est_pts = apply_trans(trans_est, src_pts)
     assert_array_almost_equal(
-        tgt_pts, est_pts, 2, "fit_matched_points with " "rotation and translation."
+        tgt_pts, est_pts, 2, "fit_matched_points with rotation and translation."
     )
 
     # rotation & translation & scaling
@@ -370,7 +368,7 @@ def test_fit_matched_points():
         tgt_pts,
         est_pts,
         2,
-        "fit_matched_points with " "rotation, translation and scaling.",
+        "fit_matched_points with rotation, translation and scaling.",
     )
 
     # test exceeding tolerance

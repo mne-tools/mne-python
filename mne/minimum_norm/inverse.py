@@ -396,7 +396,7 @@ def read_inverse_operator(fname, *, verbose=None):
             nuse += inv["src"][k]["nuse"]
 
         logger.info(
-            "    Source spaces transformed to the inverse solution " "coordinate frame"
+            "    Source spaces transformed to the inverse solution coordinate frame"
         )
         #
         #   Done!
@@ -692,7 +692,7 @@ def prepare_inverse_operator(
     if ncomp > 0:
         logger.info("    Created an SSP operator (subspace dimension = %d)" % ncomp)
     else:
-        logger.info("    The projection vectors do not apply to these " "channels.")
+        logger.info("    The projection vectors do not apply to these channels.")
 
     #
     #   Create the whitener
@@ -909,7 +909,7 @@ def _check_reference(inst, ch_names=None):
             "modeling, use the method set_eeg_reference(projection=True)"
         )
     if _electrode_types(info) and info.get("custom_ref_applied", False):
-        raise ValueError("Custom EEG reference is not allowed for inverse " "modeling.")
+        raise ValueError("Custom EEG reference is not allowed for inverse modeling.")
 
 
 def _subject_from_inverse(inverse_operator):

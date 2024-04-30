@@ -1539,7 +1539,7 @@ def notch_filter(
     if freqs is not None:
         freqs = np.atleast_1d(freqs)
     elif method != "spectrum_fit":
-        raise ValueError("freqs=None can only be used with method " "spectrum_fit")
+        raise ValueError("freqs=None can only be used with method spectrum_fit")
 
     # Only have to deal with notch_widths for non-autodetect
     if freqs is not None:
@@ -1553,7 +1553,7 @@ def notch_filter(
                 notch_widths = notch_widths[0] * np.ones_like(freqs)
             elif len(notch_widths) != len(freqs):
                 raise ValueError(
-                    "notch_widths must be None, scalar, or the " "same length as freqs"
+                    "notch_widths must be None, scalar, or the same length as freqs"
                 )
 
     if method in ("fir", "iir"):
@@ -2903,7 +2903,7 @@ def design_mne_c_filter(
         start = h_start - h_width + 1
         stop = start + 2 * h_width - 1
         if start < 0 or stop >= n_freqs:
-            raise RuntimeError("h_freq too high or h_trans_bandwidth too " "large")
+            raise RuntimeError("h_freq too high or h_trans_bandwidth too large")
         k = np.arange(-h_width + 1, h_width) / float(h_width) + 1.0
         freq_resp[start:stop] *= np.cos(np.pi / 4.0 * k) ** 2
         freq_resp[stop:] = 0.0

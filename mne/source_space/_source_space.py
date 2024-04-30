@@ -682,7 +682,7 @@ class SourceSpaces(list):
             # read the lookup table value for segmented volume
             if "seg_name" not in vs:
                 raise ValueError(
-                    "Volume sources should be segments, " "not the entire volume."
+                    "Volume sources should be segments, not the entire volume."
                 )
             # find the color value for this volume
             use_id = 1.0
@@ -1091,7 +1091,7 @@ def _read_one_source_space(fid, this):
 
         res["inuse"] = tag.data.astype(np.int64).T
         if len(res["inuse"]) != res["np"]:
-            raise ValueError("Incorrect number of entries in source space " "selection")
+            raise ValueError("Incorrect number of entries in source space selection")
 
         res["vertno"] = np.where(res["inuse"])[0]
 
@@ -1834,7 +1834,7 @@ def setup_volume_source_space(
             pos = float(pos)
         except (TypeError, ValueError):
             raise ValueError(
-                "pos must be a dict, or something that can be " "cast to float()"
+                "pos must be a dict, or something that can be cast to float()"
             )
     if not isinstance(pos, float):
         logger.info("Source location file  : %s", pos_extra)
@@ -2121,7 +2121,7 @@ def _make_volume_source_space(
     sp["inuse"][bads] = False
     sp["nuse"] -= len(bads)
     logger.info(
-        "%d sources after omitting infeasible sources not within " "%0.1f - %0.1f mm.",
+        "%d sources after omitting infeasible sources not within %0.1f - %0.1f mm.",
         sp["nuse"],
         1000 * exclude,
         1000 * maxdist,
@@ -2151,7 +2151,7 @@ def _make_volume_source_space(
     else:
         if not do_neighbors:
             raise RuntimeError(
-                "volume_label cannot be None unless " "do_neighbors is True"
+                "volume_label cannot be None unless do_neighbors is True"
             )
         sps = list()
         orig_sp = sp
@@ -2646,7 +2646,7 @@ def _ensure_src_subject(src, subject):
     if subject is None:
         subject = src_subject
         if subject is None:
-            raise ValueError("source space is too old, subject must be " "provided")
+            raise ValueError("source space is too old, subject must be provided")
     elif src_subject is not None and subject != src_subject:
         raise ValueError(
             f'Mismatch between provided subject "{subject}" and subject '
@@ -2704,7 +2704,7 @@ def add_source_space_distances(src, dist_limit=np.inf, n_jobs=None, *, verbose=N
         raise ValueError(f"dist_limit must be non-negative, got {dist_limit}")
     patch_only = dist_limit == 0
     if src.kind != "surface":
-        raise RuntimeError("Currently all source spaces must be of surface " "type")
+        raise RuntimeError("Currently all source spaces must be of surface type")
 
     parallel, p_fun, n_jobs = parallel_func(_do_src_distances, n_jobs)
     min_dists = list()

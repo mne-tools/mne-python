@@ -26,9 +26,7 @@ def _read_header(fid):
     if version > 6 & ~np.bitwise_and(version, 6):
         version = version.byteswap().astype(np.uint32)
     else:
-        raise ValueError(
-            "Watchout. This does not seem to be a simple " "binary EGI file."
-        )
+        raise ValueError("Watchout. This does not seem to be a simple binary EGI file.")
 
     def my_fread(*x, **y):
         return int(np.fromfile(*x, **y)[0])
@@ -226,7 +224,7 @@ class RawEGI(BaseRaw):
                             more_excludes.append(ii)
                 if len(exclude_inds) + len(more_excludes) == len(event_codes):
                     warn(
-                        "Did not find any event code with more than one " "event.",
+                        "Did not find any event code with more than one event.",
                         RuntimeWarning,
                     )
                 else:

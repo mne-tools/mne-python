@@ -350,7 +350,7 @@ def _fwd_bem_linear_collocation_solution(bem):
             logger.info("    Inverting the coefficient matrix (homog)...")
             ip_solution = _fwd_bem_homog_solution(coeff, [bem["surfs"][-1]["np"]])
             logger.info(
-                "    Modify the original solution to incorporate " "IP approach..."
+                "    Modify the original solution to incorporate IP approach..."
             )
             _fwd_bem_ip_modify_solution(bem["solution"], ip_solution, ip_mult, nps)
     bem["bem_method"] = FIFF.FIFFV_BEM_APPROX_LINEAR
@@ -2403,7 +2403,7 @@ def make_scalp_surfaces(
     subj_path = subjects_dir / subject
     if not subj_path.exists():
         raise RuntimeError(
-            f"{subj_path} does not exist. Please check your subject " "directory path."
+            f"{subj_path} does not exist. Please check your subject directory path."
         )
 
     # Backward compat for old FreeSurfer (?)

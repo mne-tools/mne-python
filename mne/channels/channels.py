@@ -168,7 +168,7 @@ def equalize_channels(instances, copy=True, verbose=None):
         Info,
     )
     allowed_types_str = (
-        "Raw, Epochs, Evoked, TFR, Forward, Covariance, " "CrossSpectralDensity or Info"
+        "Raw, Epochs, Evoked, TFR, Forward, Covariance, CrossSpectralDensity or Info"
     )
     for inst in instances:
         _validate_type(
@@ -1418,12 +1418,12 @@ def _ch_neighbor_adjacency(ch_names, neighbors):
         The adjacency matrix.
     """
     if len(ch_names) != len(neighbors):
-        raise ValueError("`ch_names` and `neighbors` must " "have the same length")
+        raise ValueError("`ch_names` and `neighbors` must have the same length")
     set_neighbors = {c for d in neighbors for c in d}
     rest = set_neighbors - set(ch_names)
     if len(rest) > 0:
         raise ValueError(
-            "Some of your neighbors are not present in the " "list of channel names"
+            "Some of your neighbors are not present in the list of channel names"
         )
 
     for neigh in neighbors:
@@ -1494,7 +1494,7 @@ def find_ch_adjacency(info, ch_type):
         picks = channel_indices_by_type(info)
         if sum([len(p) != 0 for p in picks.values()]) != 1:
             raise ValueError(
-                "info must contain only one channel type if " "ch_type is None."
+                "info must contain only one channel type if ch_type is None."
             )
         ch_type = channel_type(info, 0)
     else:

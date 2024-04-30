@@ -24,7 +24,7 @@ def _read_dig_montage_egi(
 ):
     if not _all_data_kwargs_are_none:
         raise ValueError(
-            "hsp, hpi, elp, point_names, fif must all be " "None if egi is not None"
+            "hsp, hpi, elp, point_names, fif must all be None if egi is not None"
         )
     _check_fname(fname, overwrite="read", must_exist=True)
     defusedxml = _soft_import("defusedxml", "reading EGI montages")

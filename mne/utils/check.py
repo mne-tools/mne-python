@@ -193,7 +193,7 @@ def check_random_state(seed):
     if isinstance(seed, np.random.Generator):
         return seed
     raise ValueError(
-        f"{seed!r} cannot be used to seed a " "numpy.random.mtrand.RandomState instance"
+        f"{seed!r} cannot be used to seed a numpy.random.mtrand.RandomState instance"
     )
 
 
@@ -297,9 +297,7 @@ def _check_subject(
         _validate_type(first, "str", f"Either {second_kind} subject or {first_kind}")
         return first
     elif raise_error is True:
-        raise ValueError(
-            f"Neither {second_kind} subject nor {first_kind} " "was a string"
-        )
+        raise ValueError(f"Neither {second_kind} subject nor {first_kind} was a string")
     return None
 
 
@@ -1052,7 +1050,7 @@ def _check_sphere(sphere, info=None, sphere_units="m"):
                         f"{ch_name}"
                     )
                     if ch_name == "Fpz":
-                        msg += ", and was unable to approximate its location " "from Oz"
+                        msg += ", and was unable to approximate its location from Oz"
                     raise ValueError(msg)
 
             # Calculate the radius from: T7<->T8, Fpz<->Oz

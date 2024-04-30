@@ -2824,15 +2824,11 @@ class Report:
         else:
             # only warn if relevant
             if any(_endswith(fname, "cov") for fname in fnames):
-                warn("`info_fname` not provided. Cannot render " "-cov.fif(.gz) files.")
+                warn("`info_fname` not provided. Cannot render -cov.fif(.gz) files.")
             if any(_endswith(fname, "trans") for fname in fnames):
-                warn(
-                    "`info_fname` not provided. Cannot render " "-trans.fif(.gz) files."
-                )
+                warn("`info_fname` not provided. Cannot render -trans.fif(.gz) files.")
             if any(_endswith(fname, "proj") for fname in fnames):
-                warn(
-                    "`info_fname` not provided. Cannot render " "-proj.fif(.gz) files."
-                )
+                warn("`info_fname` not provided. Cannot render -proj.fif(.gz) files.")
             info, sfreq = None, None
 
         cov = None

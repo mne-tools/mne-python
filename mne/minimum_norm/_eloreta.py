@@ -36,7 +36,7 @@ def _compute_eloreta(inv, lambda2, options):
     # Reassemble the gain matrix (should be fast enough)
     if inv["eigen_leads_weighted"]:
         # We can probably relax this if we ever need to
-        raise RuntimeError("eLORETA cannot be computed with weighted eigen " "leads")
+        raise RuntimeError("eLORETA cannot be computed with weighted eigen leads")
     G = np.dot(
         inv["eigen_fields"]["data"].T * inv["sing"], inv["eigen_leads"]["data"].T
     )

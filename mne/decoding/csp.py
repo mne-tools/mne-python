@@ -238,7 +238,7 @@ class CSP(TransformerMixin, BaseEstimator):
             raise ValueError(f"X should be of type ndarray (got {type(X)}).")
         if self.filters_ is None:
             raise RuntimeError(
-                "No filters available. Please first fit CSP " "decomposition."
+                "No filters available. Please first fit CSP decomposition."
             )
 
         pick_filters = self.filters_[: self.n_components]

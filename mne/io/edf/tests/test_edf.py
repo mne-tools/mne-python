@@ -100,7 +100,7 @@ def test_orig_units():
 def test_units_params():
     """Test enforcing original channel units."""
     with pytest.raises(
-        ValueError, match=r"Unit for channel .* is present .* cannot " "overwrite it"
+        ValueError, match=r"Unit for channel .* is present .* cannot overwrite it"
     ):
         _ = read_raw_edf(edf_path, units="V", preload=True)
 
@@ -1017,7 +1017,7 @@ def test_include():
 
     with pytest.raises(ValueError) as e:
         raw = read_raw_edf(edf_path, include=["I1", "I2"], exclude="I[1-4]")
-        assert str(e.value) == "'exclude' must be empty" "if 'include' is assigned."
+        assert str(e.value) == "'exclude' must be emptyif 'include' is assigned."
 
 
 @pytest.mark.parametrize(

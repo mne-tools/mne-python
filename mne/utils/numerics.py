@@ -178,7 +178,7 @@ def _reg_pinv(x, reg=0, rank="full", rcond=1e-15):
     # Warn the user if both all parameters were kept at their defaults and the
     # matrix is rank deficient.
     if (rank_after < n).any() and reg == 0 and rank == "full" and rcond == 1e-15:
-        warn("Covariance matrix is rank-deficient and no regularization is " "done.")
+        warn("Covariance matrix is rank-deficient and no regularization is done.")
     elif isinstance(rank, int) and rank > n:
         raise ValueError(
             "Invalid value for the rank parameter (%d) given "
@@ -373,7 +373,7 @@ def _apply_scaling_cov(data, picks_list, scalings):
             scales[idx] = scalings[ch_t]
     elif isinstance(scalings, np.ndarray):
         if len(scalings) != len(data):
-            raise ValueError("Scaling factors and data are of incompatible " "shape")
+            raise ValueError("Scaling factors and data are of incompatible shape")
         scales = scalings
     elif scalings is None:
         pass
@@ -840,7 +840,7 @@ def object_diff(a, b, pre="", *, allclose=False):
             c = a - b
             c.eliminate_zeros()
             if c.nnz > 0:
-                out += pre + (f" sparse matrix a and b differ on {c.nnz} " "elements")
+                out += pre + (f" sparse matrix a and b differ on {c.nnz} elements")
     elif pd and isinstance(a, pd.DataFrame):
         try:
             pd.testing.assert_frame_equal(a, b)
@@ -887,7 +887,7 @@ class _PCA:
         if n_components == "mle":
             if n_samples < n_features:
                 raise ValueError(
-                    "n_components='mle' is only supported " "if n_samples >= n_features"
+                    "n_components='mle' is only supported if n_samples >= n_features"
                 )
         elif not 0 <= n_components <= min(n_samples, n_features):
             raise ValueError(

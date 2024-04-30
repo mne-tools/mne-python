@@ -34,7 +34,7 @@ def run():
     parser.add_option(
         "-o",
         dest="out_fname",
-        help="Output FIF file (if not set, suffix  '_sss' will " "be used)",
+        help="Output FIF file (if not set, suffix  '_sss' will be used)",
         metavar="FILE",
         default=None,
     )
@@ -56,7 +56,7 @@ def run():
         "--frame",
         dest="frame",
         type="string",
-        help="Coordinate frame for head center ('device' or " "'head')",
+        help="Coordinate frame for head center ('device' or 'head')",
         default="device",
     )
     parser.add_option(
@@ -70,7 +70,7 @@ def run():
         "--autobad",
         dest="autobad",
         type="string",
-        help="Set automated bad channel detection ('on', 'off', " "'n')",
+        help="Set automated bad channel detection ('on', 'off', 'n')",
         default="off",
     )
     parser.add_option(
@@ -119,7 +119,7 @@ def run():
         "--movecomp",
         dest="mv_comp",
         action="store_true",
-        help="Estimates and compensates head movements in " "continuous raw data",
+        help="Estimates and compensates head movements in continuous raw data",
         default=False,
     )
     parser.add_option(
@@ -148,21 +148,21 @@ def run():
         "--hpisubt",
         dest="mv_hpisubt",
         type="string",
-        help="Subtracts hpi signals: sine amplitudes, amp + " "baseline, or switch off",
+        help="Subtracts hpi signals: sine amplitudes, amp + baseline, or switch off",
         default=None,
     )
     parser.add_option(
         "--nohpicons",
         dest="mv_hpicons",
         action="store_false",
-        help="Do not check initial consistency isotrak vs " "hpifit",
+        help="Do not check initial consistency isotrak vs hpifit",
         default=True,
     )
     parser.add_option(
         "--linefreq",
         dest="linefreq",
         type="float",
-        help="Sets the basic line interference frequency (50 or " "60 Hz)",
+        help="Sets the basic line interference frequency (50 or 60 Hz)",
         default=None,
     )
     parser.add_option(
@@ -176,7 +176,7 @@ def run():
         "--args",
         dest="mx_args",
         type="string",
-        help="Additional command line arguments to pass to " "MaxFilter",
+        help="Additional command line arguments to pass to MaxFilter",
         default="",
     )
 

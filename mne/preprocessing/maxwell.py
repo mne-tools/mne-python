@@ -944,7 +944,7 @@ def _check_destination(destination, info, head_frame):
         return info["dev_head_t"]
     if not head_frame:
         raise RuntimeError(
-            "destination can only be set if using the " "head coordinate frame"
+            "destination can only be set if using the head coordinate frame"
         )
     if isinstance(destination, (str, Path)):
         recon_trans = _get_trans(destination, "meg", "head")[0]
@@ -953,7 +953,7 @@ def _check_destination(destination, info, head_frame):
     else:
         destination = np.array(destination, float)
         if destination.shape != (3,):
-            raise ValueError("destination must be a 3-element vector, " "str, or None")
+            raise ValueError("destination must be a 3-element vector, str, or None")
         recon_trans = np.eye(4)
         recon_trans[:3, 3] = destination
         recon_trans = Transform("meg", "head", recon_trans)
@@ -1055,7 +1055,7 @@ def _do_tSSS(
         np.asarray_chkfinite(resid)
         t_proj = _overlap_projector(orig_in_data, resid, st_correlation)
     # Apply projector according to Eq. 12 in :footcite:`TauluSimola2006`
-    msg = "        Projecting %2d intersecting tSSS component%s " "for %s" % (
+    msg = "        Projecting %2d intersecting tSSS component%s for %s" % (
         t_proj.shape[1],
         _pl(t_proj.shape[1], " "),
         t_str,
@@ -1394,7 +1394,7 @@ def _check_usable(inst, ignore_ref):
     """Ensure our data are clean."""
     if inst.proj:
         raise RuntimeError(
-            "Projectors cannot be applied to data during " "Maxwell filtering."
+            "Projectors cannot be applied to data during Maxwell filtering."
         )
     current_comp = inst.compensation_grade
     if current_comp not in (0, None) and ignore_ref:

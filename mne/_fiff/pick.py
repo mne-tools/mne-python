@@ -1301,7 +1301,7 @@ def _picks_str_to_idx(
     # special case for _picks_to_idx w/no info: shouldn't really happen
     if isinstance(info, int):
         raise ValueError(
-            "picks as str can only be used when measurement " "info is available"
+            "picks as str can only be used when measurement info is available"
         )
 
     #

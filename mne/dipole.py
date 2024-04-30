@@ -1474,7 +1474,7 @@ def fit_dipole(
 
     # Determine if a list of projectors has an average EEG ref
     if _needs_eeg_average_ref_proj(evoked.info):
-        raise ValueError("EEG average reference is mandatory for dipole " "fitting.")
+        raise ValueError("EEG average reference is mandatory for dipole fitting.")
     if min_dist < 0:
         raise ValueError(f"min_dist should be positive. Got {min_dist}")
     if ori is not None and pos is None:

@@ -267,9 +267,7 @@ def compute_bridged_electrodes(
     inst = inst.copy()  # don't modify original
     picks = pick_types(inst.info, eeg=True)
     if len(picks) == 0:
-        raise RuntimeError(
-            "No EEG channels found, cannot compute " "electrode bridging"
-        )
+        raise RuntimeError("No EEG channels found, cannot compute electrode bridging")
     # first, filter
     inst.filter(l_freq=l_freq, h_freq=h_freq, picks=picks, verbose=False)
 

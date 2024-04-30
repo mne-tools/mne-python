@@ -319,7 +319,7 @@ def get_config(key=None, default=None, raise_error=False, home_dir=None, use_env
             else ""
         )
         extra_env = (
-            " You can also set the environment variable before " "running python."
+            " You can also set the environment variable before running python."
             if use_env
             else ""
         )

@@ -664,7 +664,7 @@ def _make_head_outlines(sphere, pos, outlines, clip_origin):
 
     elif isinstance(outlines, dict):
         if "mask_pos" not in outlines:
-            raise ValueError("You must specify the coordinates of the image " "mask.")
+            raise ValueError("You must specify the coordinates of the image mask.")
     else:
         raise ValueError("Invalid value for `outlines`.")
 
@@ -1212,9 +1212,7 @@ def _plot_topomap(
 
         # check if there is only 1 channel type, and n_chans matches the data
         ch_type = pos.get_channel_types(picks=None, unique=True)
-        info_help = (
-            "Pick Info with e.g. mne.pick_info and " "mne.channel_indices_by_type."
-        )
+        info_help = "Pick Info with e.g. mne.pick_info and mne.channel_indices_by_type."
         if len(ch_type) > 1:
             raise ValueError("Multiple channel types in Info structure. " + info_help)
         elif len(pos["chs"]) != data.shape[0]:
@@ -2156,7 +2154,7 @@ def plot_evoked_topomap(
     axes_given = axes is not None
     interactive = isinstance(times, str) and times == "interactive"
     if interactive and axes_given:
-        raise ValueError("User-provided axes not allowed when " "times='interactive'.")
+        raise ValueError("User-provided axes not allowed when times='interactive'.")
     # units, scalings
     key = "grad" if ch_type.startswith("planar") else ch_type
     default_scaling = _handle_default("scalings", None)[key]
@@ -3027,7 +3025,7 @@ def _prepare_topomap(pos, ax, check_nonzero=True):
     _hide_frame(ax)
     if check_nonzero and not pos.any():
         raise RuntimeError(
-            "No position information found, cannot compute " "geometries for topomap."
+            "No position information found, cannot compute geometries for topomap."
         )
 
 

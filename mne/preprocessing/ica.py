@@ -464,7 +464,7 @@ class ICA(ContainsMixin):
                 )
             if isinstance(val, int_like) and val == 1:
                 raise ValueError(
-                    f"Selecting one component with {kind}={val} is not " "supported"
+                    f"Selecting one component with {kind}={val} is not supported"
                 )
 
         self.current_fit = "unfitted"
@@ -1067,7 +1067,7 @@ class ICA(ContainsMixin):
             elif isinstance(inst, Evoked):
                 kind, do = "Evoked", "doesn't"
             else:
-                raise ValueError("Data input must be of Raw, Epochs or Evoked " "type")
+                raise ValueError("Data input must be of Raw, Epochs or Evoked type")
             raise RuntimeError(
                 "%s %s match fitted data: %i channels "
                 "fitted but %i channels supplied. \nPlease "
@@ -1263,7 +1263,7 @@ class ICA(ContainsMixin):
             )
             sources = self._sources_as_evoked(inst, add_channels)
         else:
-            raise ValueError("Data input must be of Raw, Epochs or Evoked " "type")
+            raise ValueError("Data input must be of Raw, Epochs or Evoked type")
         return sources
 
     def _sources_as_raw(self, raw, add_channels, start, stop):
@@ -1448,14 +1448,14 @@ class ICA(ContainsMixin):
             )
             sources = self._transform_evoked(inst)
         else:
-            raise ValueError("Data input must be of Raw, Epochs or Evoked " "type")
+            raise ValueError("Data input must be of Raw, Epochs or Evoked type")
 
         if target is not None:  # we can have univariate metrics without target
             target = self._check_target(target, inst, start, stop, reject_by_annotation)
 
             if sources.shape[-1] != target.shape[-1]:
                 raise ValueError(
-                    "Sources and target do not have the same " "number of time slices."
+                    "Sources and target do not have the same number of time slices."
                 )
             # auto target selection
             if isinstance(inst, BaseRaw):
@@ -1726,9 +1726,7 @@ class ICA(ContainsMixin):
             elif isinstance(inst, BaseEpochs):
                 sources = self.get_sources(inst).get_data(copy=False)
             else:
-                raise ValueError(
-                    "With `ctps` only Raw and Epochs input is " "supported"
-                )
+                raise ValueError("With `ctps` only Raw and Epochs input is supported")
             _, p_vals, _ = ctps(sources)
             scores = p_vals.max(-1)
             ecg_idx = np.where(scores >= threshold)[0]
@@ -1914,7 +1912,7 @@ class ICA(ContainsMixin):
             ref_picks = pick_types(self.info, meg=False, ref_meg=True)
             if not any(meg_picks) or not any(ref_picks):
                 raise ValueError(
-                    "ICA solution must contain both reference and" " MEG channels."
+                    "ICA solution must contain both reference and MEG channels."
                 )
             weights = self.get_components()
             # take norm of component weights on reference channels for each
@@ -2830,7 +2828,7 @@ def _ica_explained_variance(ica, inst, normalize=False):
         raise TypeError("first argument must be an instance of ICA.")
     if not isinstance(inst, (BaseRaw, BaseEpochs, Evoked)):
         raise TypeError(
-            "second argument must an instance of either Raw, " "Epochs or Evoked."
+            "second argument must an instance of either Raw, Epochs or Evoked."
         )
 
     source_data = _get_inst_data(ica.get_sources(inst))

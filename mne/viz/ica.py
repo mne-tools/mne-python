@@ -563,7 +563,7 @@ def _fast_plot_ica_properties(
         fig, axes = _create_properties_layout(figsize=figsize)
     else:
         if len(picks) > 1:
-            raise ValueError("Only a single pick can be drawn " "to a set of axes.")
+            raise ValueError("Only a single pick can be drawn to a set of axes.")
         from .utils import _validate_if_list_of_axes
 
         _validate_if_list_of_axes(axes, obligatory_len=5)
@@ -1017,7 +1017,7 @@ def plot_ica_scores(
     for label, this_scores, ax in zip(labels, scores, axes):
         if len(my_range) != len(this_scores):
             raise ValueError(
-                "The length of `scores` must equal the " "number of ICA components."
+                "The length of `scores` must equal the number of ICA components."
             )
         ax.bar(my_range, this_scores, color="gray", edgecolor="k")
         for excl in exclude:

@@ -1049,7 +1049,7 @@ def test_broken_csv(tmp_path):
 @pytest.fixture(scope="function", params=("ch_names",))
 def dummy_annotation_txt_file(tmp_path_factory, ch_names):
     """Create txt file for testing."""
-    content = "3.14, 42, AA \n" "6.28, 48, BB"
+    content = "3.14, 42, AA \n6.28, 48, BB"
     if ch_names:
         content = content.splitlines()
         content[0] = content[0].strip() + ","
@@ -1142,7 +1142,7 @@ def test_read_annotation_txt_one_segment(tmp_path):
 
 def test_read_annotation_txt_empty(tmp_path):
     """Test empty TXT input/output."""
-    content = "# MNE-Annotations\n" "# onset, duration, description\n"
+    content = "# MNE-Annotations\n# onset, duration, description\n"
     fname = tmp_path / "empty-annotations.txt"
     with open(fname, "w") as f:
         f.write(content)

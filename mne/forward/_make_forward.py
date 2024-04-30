@@ -292,7 +292,7 @@ def _setup_bem(bem, bem_extra, neeg, mri_head_t, allow_none=False, verbose=None)
         logger.info("Using the sphere model.\n")
         if len(bem["layers"]) == 0 and neeg > 0:
             raise RuntimeError(
-                "Spherical model has zero shells, cannot use " "with EEG data"
+                "Spherical model has zero shells, cannot use with EEG data"
             )
         if bem["coord_frame"] != FIFF.FIFFV_COORD_HEAD:
             raise RuntimeError("Spherical model is not in head coordinates")
@@ -308,9 +308,7 @@ def _setup_bem(bem, bem_extra, neeg, mri_head_t, allow_none=False, verbose=None)
                 "for EEG forward calculations, consider "
                 "using a 3-layer BEM instead"
             )
-        logger.info(
-            "Employing the head->MRI coordinate transform with the " "BEM model."
-        )
+        logger.info("Employing the head->MRI coordinate transform with the BEM model.")
         # fwd_bem_set_head_mri_t: Set the coordinate transformation
         bem["head_mri_t"] = _ensure_trans(mri_head_t, "head", "mri")
         logger.info(f"BEM model {op.split(bem_extra)[1]} is now set up")

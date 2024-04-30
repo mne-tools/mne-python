@@ -1261,7 +1261,7 @@ def _tf_mixed_norm_solver_bcd_active_set(
     if Z_init is not None:
         if Z_init.shape != (n_sources, phi.n_coefs.sum()):
             raise Exception(
-                "Z_init must be None or an array with shape " "(n_sources, n_coefs)."
+                "Z_init must be None or an array with shape (n_sources, n_coefs)."
             )
         for ii in range(n_positions):
             if np.any(Z_init[ii * n_orient : (ii + 1) * n_orient]):

@@ -187,7 +187,7 @@ def _check_nan_dev_head_t(dev_ctf_t):
     has_nan = np.isnan(dev_ctf_t["trans"])
     if np.any(has_nan):
         logger.info(
-            "Missing values BTI dev->head transform. " "Replacing with identity matrix."
+            "Missing values BTI dev->head transform. Replacing with identity matrix."
         )
         dev_ctf_t["trans"] = np.identity(4)
 
@@ -1217,9 +1217,7 @@ def _get_bti_info(
 
     """
     if pdf_fname is None:
-        logger.info(
-            "No pdf_fname passed, trying to construct partial info " "from config"
-        )
+        logger.info("No pdf_fname passed, trying to construct partial info from config")
     if pdf_fname is not None and not isinstance(pdf_fname, BytesIO):
         if not op.isabs(pdf_fname):
             pdf_fname = op.abspath(pdf_fname)
@@ -1339,7 +1337,7 @@ def _get_bti_info(
                 if convert:
                     if idx == 0:
                         logger.info(
-                            "... putting coil transforms in Neuromag " "coordinates"
+                            "... putting coil transforms in Neuromag coordinates"
                         )
                     t = _loc_to_coil_trans(bti_info["chs"][idx]["loc"])
                     t = _convert_coil_trans(t, dev_ctf_t, bti_dev_t)

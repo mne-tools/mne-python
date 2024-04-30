@@ -466,7 +466,7 @@ def fetch_hcp_mmp_parcellation(
         else:
             answer = _safe_input(f"{_hcp_mmp_license_text}\nAgree (y/[n])? ")
         if answer.lower() != "y":
-            raise RuntimeError("You must agree to the license to use this " "dataset")
+            raise RuntimeError("You must agree to the license to use this dataset")
     downloader = pooch.HTTPDownloader(**_downloader_params())
     for hemi, fpath in zip(("lh", "rh"), fnames):
         if not op.isfile(fpath):

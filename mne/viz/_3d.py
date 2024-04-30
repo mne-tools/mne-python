@@ -659,7 +659,7 @@ def plot_alignment(
                 user_alpha[key] = float(val)
                 if not 0 <= user_alpha[key] <= 1:
                     raise ValueError(
-                        f"surfaces[{repr(key)}] ({val}) must be" " between 0 and 1"
+                        f"surfaces[{repr(key)}] ({val}) must be between 0 and 1"
                     )
     else:
         user_alpha = {}
@@ -3108,7 +3108,7 @@ def _check_views(surf, views, hemi, stc=None, backend=None):
         if backend is not None:
             if backend not in ("pyvistaqt", "notebook"):
                 raise RuntimeError(
-                    "The PyVista 3D backend must be used to " "plot a flatmap"
+                    "The PyVista 3D backend must be used to plot a flatmap"
                 )
     if (views == ["flat"]) ^ (surf == "flat"):  # exactly only one of the two
         raise ValueError(
@@ -3743,7 +3743,7 @@ def snapshot_brain_montage(fig, montage, hide_sensors=True):
         ch_names, xyz = zip(*[(ich, ixyz) for ich, ixyz in montage.items()])
     else:
         raise TypeError(
-            "montage must be an instance of `DigMontage`, `Info`," " or `dict`"
+            "montage must be an instance of `DigMontage`, `Info`, or `dict`"
         )
 
     # initialize figure

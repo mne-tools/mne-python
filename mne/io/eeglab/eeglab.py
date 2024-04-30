@@ -610,7 +610,7 @@ class EpochsEEGLAB(BaseEpochs):
             (events is None and event_id is None)
             or (events is not None and event_id is not None)
         ):
-            raise ValueError("Both `events` and `event_id` must be " "None or not None")
+            raise ValueError("Both `events` and `event_id` must be None or not None")
 
         if eeg.trials <= 1:
             raise ValueError(
@@ -674,7 +674,7 @@ class EpochsEEGLAB(BaseEpochs):
         for key, val in event_id.items():
             if val not in events[:, 2]:
                 raise ValueError(
-                    "No matching events found for %s " "(event id %i)" % (key, val)
+                    "No matching events found for %s (event id %i)" % (key, val)
                 )
 
         if isinstance(eeg.data, str):

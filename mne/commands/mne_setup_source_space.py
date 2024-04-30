@@ -69,7 +69,7 @@ def run():
     parser.add_option(
         "--oct",
         dest="oct",
-        help="use the recursively subdivided octahedron " "to create the source space.",
+        help="use the recursively subdivided octahedron to create the source space.",
         default=None,
         type="int",
     )

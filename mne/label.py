@@ -155,7 +155,7 @@ def _n_colors(n, bytes_=False, cmap="hsv"):
     """
     n_max = 2**10
     if n > n_max:
-        raise NotImplementedError("Can't produce more than %i unique " "colors" % n_max)
+        raise NotImplementedError("Can't produce more than %i unique colors" % n_max)
 
     from .viz.utils import _get_cmap
 
@@ -809,7 +809,7 @@ class Label:
         selection = np.all(np.isin(tris, vertices_).reshape(tris.shape), axis=1)
         label_tris = tris[selection]
         if len(np.unique(label_tris)) < len(vertices_):
-            logger.info("Surprising label structure. Trying to repair " "triangles.")
+            logger.info("Surprising label structure. Trying to repair triangles.")
             dropped_vertices = np.setdiff1d(vertices_, label_tris)
             n_dropped = len(dropped_vertices)
             assert n_dropped == (len(vertices_) - len(np.unique(label_tris)))
@@ -1831,7 +1831,7 @@ def grow_labels(
             names = [names]
         if len(names) != n_seeds:
             raise ValueError(
-                "The names parameter has to be None or have " "length len(seeds)"
+                "The names parameter has to be None or have length len(seeds)"
             )
         for i, hemi in enumerate(hemis):
             if not names[i].endswith(hemi):
@@ -2817,7 +2817,7 @@ def write_labels_to_annot(
         # Assign unlabeled vertices to an "unknown" label
         unlabeled = annot == -1
         if np.any(unlabeled):
-            msg = "Assigning %i unlabeled vertices to " "'unknown-%s'" % (
+            msg = "Assigning %i unlabeled vertices to 'unknown-%s'" % (
                 unlabeled.sum(),
                 hemi,
             )

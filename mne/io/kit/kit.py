@@ -70,7 +70,7 @@ def _call_digitization(info, mrk, elp, hsp, kit_info, *, bad_coils=()):
             )
     elif mrk is not None or elp is not None or hsp is not None:
         raise ValueError(
-            "mrk, elp and hsp need to be provided as a group " "(all or none)"
+            "mrk, elp and hsp need to be provided as a group (all or none)"
         )
 
     return info
@@ -152,7 +152,7 @@ class RawKIT(BaseRaw):
         kit_info["slope"] = slope
         kit_info["stimthresh"] = stimthresh
         if kit_info["acq_type"] != KIT.CONTINUOUS:
-            raise TypeError("SQD file contains epochs, not raw data. Wrong " "reader.")
+            raise TypeError("SQD file contains epochs, not raw data. Wrong reader.")
         logger.info("Creating Info structure...")
 
         last_samps = [kit_info["n_samples"] - 1]
@@ -415,7 +415,7 @@ class EpochsKIT(BaseEpochs):
             self._raw_extras[0]["data_length"] = KIT.INT
         else:
             raise TypeError(
-                "SQD file contains raw data, not epochs or " "average. Wrong reader."
+                "SQD file contains raw data, not epochs or average. Wrong reader."
             )
 
         if event_id is None:  # convert to int to make typing-checks happy
@@ -424,7 +424,7 @@ class EpochsKIT(BaseEpochs):
         for key, val in event_id.items():
             if val not in events[:, 2]:
                 raise ValueError(
-                    "No matching events found for %s " "(event id %i)" % (key, val)
+                    "No matching events found for %s (event id %i)" % (key, val)
                 )
 
         data = self._read_kit_data()

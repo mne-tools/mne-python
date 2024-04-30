@@ -184,7 +184,7 @@ def _read_nihon_header(fname):
         fid.seek(0x17FE)
         waveform_sign = np.fromfile(fid, np.uint8, 1)[0]
         if waveform_sign != 1:
-            raise ValueError("Not a valid Nihon Kohden EEG file " "(waveform block)")
+            raise ValueError("Not a valid Nihon Kohden EEG file (waveform block)")
         header["version"] = version
 
         fid.seek(0x0091)
@@ -267,11 +267,11 @@ def _read_nihon_header(fname):
                 )
             if block_0["channels"] != t_block["channels"]:
                 raise ValueError(
-                    "Cannot read NK file with different channels in each " "datablock"
+                    "Cannot read NK file with different channels in each datablock"
                 )
             if block_0["sfreq"] != t_block["sfreq"]:
                 raise ValueError(
-                    "Cannot read NK file with different sfreq in each " "datablock"
+                    "Cannot read NK file with different sfreq in each datablock"
                 )
 
     return header

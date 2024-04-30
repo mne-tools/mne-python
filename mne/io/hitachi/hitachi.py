@@ -96,7 +96,7 @@ class RawHitachi(BaseRaw):
             info = infos[0]
         if len(set(last_samps)) != 1:
             raise RuntimeError(
-                "All files must have the same number of " "samples, got: {last_samps}"
+                "All files must have the same number of samples, got: {last_samps}"
             )
         last_samps = [last_samps[0]]
         raw_extras = [dict(probes=probes)]

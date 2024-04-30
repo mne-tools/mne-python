@@ -137,9 +137,7 @@ def _line_plot_onselect(
 
     ch_types = [type_ for type_ in ch_types if type_ in ("eeg", "grad", "mag")]
     if len(ch_types) == 0:
-        raise ValueError(
-            "Interactive topomaps only allowed for EEG " "and MEG channels."
-        )
+        raise ValueError("Interactive topomaps only allowed for EEG and MEG channels.")
     if (
         "grad" in ch_types
         and len(_pair_grad_sensors(info, topomap_coords=False, raise_error=False)) < 2
@@ -336,14 +334,14 @@ def _plot_evoked(
                 axes[sel] = plt.axes()
         if not isinstance(axes, dict):
             raise ValueError(
-                "If `group_by` is a dict, `axes` must be " "a dict of axes or None."
+                "If `group_by` is a dict, `axes` must be a dict of axes or None."
             )
         _validate_if_list_of_axes(list(axes.values()))
         remove_xlabels = any(ax.get_subplotspec().is_last_row() for ax in axes.values())
         for sel in group_by:  # ... we loop over selections
             if sel not in axes:
                 raise ValueError(
-                    sel + " present in `group_by`, but not " "found in `axes`"
+                    sel + " present in `group_by`, but not found in `axes`"
                 )
             ax = axes[sel]
             # the unwieldy dict comp below defaults the title to the sel
@@ -398,7 +396,7 @@ def _plot_evoked(
             return figs
     elif isinstance(axes, dict):
         raise ValueError(
-            "If `group_by` is not a dict, " "`axes` must not be a dict either."
+            "If `group_by` is not a dict, `axes` must not be a dict either."
         )
 
     time_unit, times = _check_time_unit(time_unit, evoked.times)
@@ -429,9 +427,7 @@ def _plot_evoked(
         if ylim is not None and not isinstance(ylim, dict):
             # The user called Evoked.plot_image() or plot_evoked_image(), the
             # clim parameters of those functions end up to be the ylim here.
-            raise ValueError(
-                "`clim` must be a dict. " "E.g. clim = dict(eeg=[-20, 20])"
-            )
+            raise ValueError("`clim` must be a dict. E.g. clim = dict(eeg=[-20, 20])")
 
     picks = _picks_to_idx(info, picks, none="all", exclude=())
     if len(picks) != len(set(picks)):
@@ -668,9 +664,7 @@ def _plot_lines(
                 # we need to use "is True" here
                 _spat_col = _check_spatial_colors(info, idx, spatial_colors)
                 if _spat_col is True and not _check_ch_locs(info=info, picks=idx):
-                    warn(
-                        "Channel locations not available. Disabling spatial " "colors."
-                    )
+                    warn("Channel locations not available. Disabling spatial colors.")
                     _spat_col = selectable = False
                 if _spat_col is True and len(idx) != 1:
                     x, y, z = locs3d.T
@@ -1271,7 +1265,7 @@ def plot_evoked_topo(
     if isinstance(color, (tuple, list)):
         if len(color) != len(evoked):
             raise ValueError(
-                "Lists of evoked objects and colors" " must have the same length"
+                "Lists of evoked objects and colors must have the same length"
             )
     elif color is None:
         if dark_background:
@@ -1596,7 +1590,7 @@ def plot_evoked_white(
     )
     if has_sss:
         logger.info(
-            "SSS has been applied to data. Showing mag and grad " "whitening jointly."
+            "SSS has been applied to data. Showing mag and grad whitening jointly."
         )
 
     # get one whitened evoked per cov

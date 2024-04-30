@@ -223,7 +223,7 @@ class BaseRaw(
         else:
             if last_samps is None:
                 raise ValueError(
-                    "last_samps must be given unless preload is " "an ndarray"
+                    "last_samps must be given unless preload is an ndarray"
                 )
             if not preload:
                 self.preload = False
@@ -781,7 +781,7 @@ class BaseRaw(
 
         if len(item) != 2:  # should be channels and time instants
             raise RuntimeError(
-                "Unable to access raw data (need both channels " "and time)"
+                "Unable to access raw data (need both channels and time)"
             )
 
         sel = _picks_to_idx(self.info, item[0])
@@ -2576,7 +2576,7 @@ def _get_scaling(ch_type, target_unit):
     unit_list = target_unit.split("/")
     if ch_type not in si_units.keys():
         raise KeyError(
-            f"{ch_type} is not a channel type that can be scaled " "from units."
+            f"{ch_type} is not a channel type that can be scaled from units."
         )
     si_unit_list = si_units_splitted[ch_type]
     if len(unit_list) != len(si_unit_list):
@@ -2890,7 +2890,7 @@ def _write_raw_data(
             data = np.dot(projector, data)
 
         if drop_small_buffer and (first > start) and (len(times) < buffer_size):
-            logger.info("Skipping data chunk due to small buffer ... " "[done]")
+            logger.info("Skipping data chunk due to small buffer ... [done]")
             break
         logger.debug(f"Writing FIF {first:6d} ... {last:6d} ...")
         _write_raw_buffer(fid, data, cals, fmt)
@@ -3092,7 +3092,7 @@ def concatenate_raws(
     if events_list is not None:
         if len(events_list) != len(raws):
             raise ValueError(
-                "`raws` and `event_list` are required " "to be of the same length"
+                "`raws` and `event_list` are required to be of the same length"
             )
         first, last = zip(*[(r.first_samp, r.last_samp) for r in raws])
         events = concatenate_events(events_list, first, last)

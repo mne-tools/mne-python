@@ -81,7 +81,7 @@ def _gamma_map_opt(
 
     if n_sources % group_size != 0:
         raise ValueError(
-            "Number of sources has to be evenly dividable by the " "group size"
+            "Number of sources has to be evenly dividable by the group size"
         )
 
     n_active = n_sources

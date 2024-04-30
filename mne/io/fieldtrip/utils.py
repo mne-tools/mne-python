@@ -216,7 +216,7 @@ def _set_tmin(ft_struct):
         tmin = times[0][0]
     else:
         raise RuntimeError(
-            "Loading data with non-uniform " "times per epoch is not supported"
+            "Loading data with non-uniform times per epoch is not supported"
         )
     return tmin
 
@@ -238,7 +238,7 @@ def _create_events(ft_struct, trialinfo_column):
 
     if trialinfo_column > (available_ti_cols - 1):
         raise ValueError(
-            "trialinfo_column is higher than the amount of" "columns in trialinfo."
+            "trialinfo_column is higher than the amount ofcolumns in trialinfo."
         )
 
     event_trans_val = np.zeros(len(event_type))

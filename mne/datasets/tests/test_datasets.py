@@ -309,9 +309,7 @@ def test_fetch_uncompressed_file(tmp_path):
     """Test downloading an uncompressed file with our fetch function."""
     dataset_dict = dict(
         dataset_name="license",
-        url=(
-            "https://raw.githubusercontent.com/mne-tools/mne-python/main/" "LICENSE.txt"
-        ),
+        url="https://raw.githubusercontent.com/mne-tools/mne-python/main/LICENSE.txt",
         archive_name="LICENSE.foo",
         folder_name=op.join(tmp_path, "foo"),
         hash=None,

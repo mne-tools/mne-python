@@ -242,7 +242,7 @@ def _get_sample_info(fname, res4, system_clock):
         fid.seek(0, 0)
         if (st_size - CTF.HEADER_SIZE) % (4 * res4["nsamp"] * res4["nchan"]) != 0:
             raise RuntimeError(
-                "The number of samples is not an even multiple " "of the trial size"
+                "The number of samples is not an even multiple of the trial size"
             )
         n_samp_tot = (st_size - CTF.HEADER_SIZE) // (4 * res4["nchan"])
         n_trial = n_samp_tot // res4["nsamp"]

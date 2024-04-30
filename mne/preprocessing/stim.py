@@ -109,7 +109,7 @@ def fix_stim_artifact(
     elif isinstance(inst, BaseEpochs):
         if inst.reject is not None:
             raise RuntimeError(
-                "Reject is already applied. Use reject=None " "in the constructor."
+                "Reject is already applied. Use reject=None in the constructor."
             )
         e_start = int(np.ceil(inst.info["sfreq"] * inst.tmin))
         first_samp = s_start - e_start

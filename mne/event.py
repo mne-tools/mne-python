@@ -995,7 +995,7 @@ def make_fixed_length_events(
     n_events = len(ts)
     if n_events == 0:
         raise ValueError(
-            "No events produced, check the values of start, " "stop, and duration"
+            "No events produced, check the values of start, stop, and duration"
         )
     events = np.c_[ts, np.zeros(n_events, dtype=int), id * np.ones(n_events, dtype=int)]
     return events

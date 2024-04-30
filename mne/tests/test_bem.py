@@ -308,7 +308,7 @@ def test_bem_solution(tmp_path, cond, fname):
     pytest.importorskip(
         "openmeeg",
         "2.5",
-        reason="OpenMEEG required to fully test BEM " "solution computation",
+        reason="OpenMEEG required to fully test BEM solution computation",
     )
     with catch_logging() as log:
         solution = make_bem_solution(model, solver="openmeeg", verbose=True)

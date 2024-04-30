@@ -428,7 +428,7 @@ def _add_eeg_pos(eeg, t, c):
         return
     if t is None or t["t_ctf_head_head"] is None:
         raise RuntimeError(
-            "No coordinate transformation available for EEG " "position data"
+            "No coordinate transformation available for EEG position data"
         )
     eeg_assigned = 0
     if eeg["assign_to_chs"]:

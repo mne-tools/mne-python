@@ -75,7 +75,7 @@ def set_channel_types_eyetrack(inst, mapping):
     # loop over channels
     for ch_name, ch_desc in mapping.items():
         if ch_name not in ch_names:
-            raise ValueError(f"This channel name ({ch_name}) doesn't exist in " "info.")
+            raise ValueError(f"This channel name ({ch_name}) doesn't exist in info.")
         c_ind = ch_names.index(ch_name)
 
         # set ch_type and unit

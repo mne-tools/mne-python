@@ -375,7 +375,7 @@ def _read_one(fid, node):
             one["sol_grad"]["data"].shape[1] != 3 * one["nsource"]
             and one["sol_grad"]["data"].shape[1] != 3 * 3 * one["nsource"]
         ):
-            raise ValueError("Forward solution gradient matrix has " "wrong dimensions")
+            raise ValueError("Forward solution gradient matrix has wrong dimensions")
 
     return one
 
@@ -600,9 +600,7 @@ def read_forward_solution(fname, include=(), exclude=(), *, ordered=True, verbos
         for k in range(len(fwds)):
             tag = find_tag(fid, fwds[k], FIFF.FIFF_MNE_INCLUDED_METHODS)
             if tag is None:
-                raise ValueError(
-                    "Methods not listed for one of the forward " "solutions"
-                )
+                raise ValueError("Methods not listed for one of the forward solutions")
 
             if tag.data == FIFF.FIFFV_MNE_MEG:
                 megnode = fwds[k]
@@ -656,7 +654,7 @@ def read_forward_solution(fname, include=(), exclude=(), *, ordered=True, verbos
                 or mri_head_t["to"] != FIFF.FIFFV_COORD_HEAD
             ):
                 fid.close()
-                raise ValueError("MRI/head coordinate transformation not " "found")
+                raise ValueError("MRI/head coordinate transformation not found")
         fwd["mri_head_t"] = mri_head_t
 
         #
@@ -705,7 +703,7 @@ def read_forward_solution(fname, include=(), exclude=(), *, ordered=True, verbos
         raise ValueError("Source spaces do not match the forward solution.")
 
     logger.info(
-        "    Source spaces transformed to the forward solution " "coordinate frame"
+        "    Source spaces transformed to the forward solution coordinate frame"
     )
     fwd["src"] = src
 
@@ -1466,7 +1464,7 @@ def compute_depth_prior(
         if not is_fixed_ori and combine_xyz is False:
             patch_areas = np.repeat(patch_areas, 3)
         d /= patch_areas**2
-        logger.info("    Patch areas taken into account in the depth " "weighting")
+        logger.info("    Patch areas taken into account in the depth weighting")
 
     w = 1.0 / d
     if limit is not None:
@@ -1532,7 +1530,7 @@ def _stc_src_sel(
     n_stc = sum(len(v) for v in vertices)
     n_joint = len(src_sel)
     if n_joint != n_stc:
-        msg = "Only %i of %i SourceEstimate %s found in " "source space%s" % (
+        msg = "Only %i of %i SourceEstimate %s found in source space%s" % (
             n_joint,
             n_stc,
             "vertex" if n_stc == 1 else "vertices",
@@ -1747,7 +1745,7 @@ def apply_forward_raw(
     for ch_name in fwd["sol"]["row_names"]:
         if ch_name not in info["ch_names"]:
             raise ValueError(
-                f"Channel {ch_name} of forward operator not present in " "info."
+                f"Channel {ch_name} of forward operator not present in info."
             )
 
     # project the source estimate to the sensor space

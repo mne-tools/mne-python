@@ -500,9 +500,7 @@ def test_make_lcmv_bem(tmp_path, reg, proj, kind):
 
     # check whether a filters object without src_type throws expected warning
     del filters["src_type"]  # emulate 0.16 behaviour to cause warning
-    with pytest.warns(
-        RuntimeWarning, match="spatial filter does not contain " "src_type"
-    ):
+    with pytest.warns(RuntimeWarning, match="spatial filter does not contain src_type"):
         apply_lcmv(evoked, filters)
 
     # Now test single trial using fixed orientation forward solution
@@ -852,7 +850,7 @@ def test_localization_bias_fixed(
 
 # Changes here should be synced with test_dics.py
 @pytest.mark.parametrize(
-    "reg, pick_ori, weight_norm, use_cov, depth, lower, upper, " "lower_ori, upper_ori",
+    "reg, pick_ori, weight_norm, use_cov, depth, lower, upper, lower_ori, upper_ori",
     [
         (
             0.05,

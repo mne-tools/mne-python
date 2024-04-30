@@ -89,7 +89,7 @@ class Layout:
         elif fname.suffix == ".lay":
             out_str = ""
         else:
-            raise ValueError("Unknown layout type. Should be of type " ".lout or .lay.")
+            raise ValueError("Unknown layout type. Should be of type .lout or .lay.")
 
         for ii in range(x.shape[0]):
             out_str += "%03d %8.2f %8.2f %8.2f %8.2f %s\n" % (

@@ -453,7 +453,7 @@ def _make_stc(
         Klass = MixedVectorSourceEstimate if vector else MixedSourceEstimate
     else:
         raise ValueError(
-            "vertices has to be either a list with one or more " "arrays or an array"
+            "vertices has to be either a list with one or more arrays or an array"
         )
 
     # Rotate back for vector source estimates
@@ -2689,7 +2689,7 @@ class VolSourceEstimate(_BaseVolSourceEstimate):
             )
         if ftype != "h5" and self.data.dtype == "complex":
             raise ValueError(
-                "Can only write non-complex data to .stc or .w" ", use .h5 instead"
+                "Can only write non-complex data to .stc or .w, use .h5 instead"
             )
         if ftype == "stc":
             logger.info("Writing STC to disk...")
@@ -3575,9 +3575,7 @@ def _volume_labels(src, labels, mri_resolution):
     if atlas_values.dtype.kind == "f":  # MGZ will be 'i'
         atlas_values = atlas_values[np.isfinite(atlas_values)]
         if not (atlas_values == np.round(atlas_values)).all():
-            raise RuntimeError(
-                "Non-integer values present in atlas, cannot " "labelize"
-            )
+            raise RuntimeError("Non-integer values present in atlas, cannot labelize")
         atlas_values = np.round(atlas_values).astype(np.int64)
     if infer_labels:
         labels = {
@@ -3597,7 +3595,7 @@ def _volume_labels(src, labels, mri_resolution):
     vox_mri_t, want = vox_mri_t["trans"], want["trans"]
     if not np.allclose(vox_mri_t, want, atol=1e-6):
         raise RuntimeError(
-            "atlas vox_mri_t does not match that used to create the source " "space"
+            "atlas vox_mri_t does not match that used to create the source space"
         )
     src_shape = tuple(src[0]["mri_" + k] for k in ("width", "height", "depth"))
     atlas_shape = atlas_data.shape

@@ -299,7 +299,7 @@ class Vectorizer(TransformerMixin):
         """
         X = np.asarray(X)
         if X.shape[1:] != self.features_shape_:
-            raise ValueError("Shape of X used in fit and transform must be " "same")
+            raise ValueError("Shape of X used in fit and transform must be same")
         return X.reshape(len(X), -1)
 
     def fit_transform(self, X, y=None):

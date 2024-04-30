@@ -503,7 +503,7 @@ class SetChannelsMixin(MontageMixin):
         info = self if isinstance(self, Info) else self.info
         if len(pos) != len(names):
             raise ValueError(
-                "Number of channel positions not equal to " "the number of names given."
+                "Number of channel positions not equal to the number of names given."
             )
         pos = np.asarray(pos, dtype=np.float64)
         if pos.shape[-1] != 3 or pos.ndim != 2:
@@ -562,7 +562,7 @@ class SetChannelsMixin(MontageMixin):
         for ch_name, ch_type in mapping.items():
             if ch_name not in ch_names:
                 raise ValueError(
-                    f"This channel name ({ch_name}) doesn't exist in " "info."
+                    f"This channel name ({ch_name}) doesn't exist in info."
                 )
 
             c_ind = ch_names.index(ch_name)
@@ -2989,7 +2989,7 @@ def _merge_info_values(infos, key, verbose=None):
         if is_qual:
             return values[0]
         elif key == "meas_date":
-            logger.info(f"Found multiple entries for {key}. " "Setting value to `None`")
+            logger.info(f"Found multiple entries for {key}. Setting value to `None`")
             return None
         else:
             raise RuntimeError(msg)
@@ -3005,10 +3005,10 @@ def _merge_info_values(infos, key, verbose=None):
         if len(unique_values) == 1:
             return list(values)[0]
         elif isinstance(list(unique_values)[0], BytesIO):
-            logger.info("Found multiple StringIO instances. " "Setting value to `None`")
+            logger.info("Found multiple StringIO instances. Setting value to `None`")
             return None
         elif isinstance(list(unique_values)[0], str):
-            logger.info("Found multiple filenames. " "Setting value to `None`")
+            logger.info("Found multiple filenames. Setting value to `None`")
             return None
         else:
             raise RuntimeError(msg)
@@ -3416,7 +3416,7 @@ def anonymize_info(info, daysback=None, keep_his=False, verbose=None):
     default_str = "mne_anonymize"
     default_subject_id = 0
     default_sex = 0
-    default_desc = "Anonymized using a time shift" " to preserve age at acquisition"
+    default_desc = "Anonymized using a time shift to preserve age at acquisition"
 
     none_meas_date = info["meas_date"] is None
 
@@ -3462,7 +3462,7 @@ def anonymize_info(info, daysback=None, keep_his=False, verbose=None):
             subject_info["id"] = default_subject_id
         if keep_his:
             logger.info(
-                "Not fully anonymizing info - keeping " "his_id, sex, and hand info"
+                "Not fully anonymizing info - keeping his_id, sex, and hand info"
             )
         else:
             if subject_info.get("his_id") is not None:
@@ -3534,7 +3534,7 @@ def anonymize_info(info, daysback=None, keep_his=False, verbose=None):
                 di[k] = default_str
 
     err_mesg = (
-        "anonymize_info generated an inconsistent info object. " "Underlying Error:\n"
+        "anonymize_info generated an inconsistent info object. Underlying Error:\n"
     )
     info._check_consistency(prepend_error=err_mesg)
     err_mesg = (

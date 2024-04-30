@@ -324,7 +324,7 @@ def make_stc_from_dipoles(dipoles, src, verbose=None):
     for i in range(len(dipoles)):
         if not np.all(dipoles[i].pos == dipoles[i].pos[0]):
             raise ValueError(
-                "Only dipoles with fixed position over time " "are supported!"
+                "Only dipoles with fixed position over time are supported!"
             )
         X[i] = dipoles[i].amplitude
         idx = np.all(source_rr == dipoles[i].pos[0], axis=1)
@@ -875,9 +875,7 @@ def tf_mixed_norm(
         )
 
     if active_set.sum() == 0:
-        raise Exception(
-            "No active dipoles found. " "alpha_space/alpha_time are too big."
-        )
+        raise Exception("No active dipoles found. alpha_space/alpha_time are too big.")
 
     # Compute estimated whitened sensor data for each dipole (dip, ch, time)
     gain_active = gain[:, active_set]

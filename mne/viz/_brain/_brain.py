@@ -1893,10 +1893,10 @@ class Brain:
             if self._n_times is None:
                 self._times = time
             elif len(time) != self._n_times:
-                raise ValueError("New n_times is different from previous " "n_times")
+                raise ValueError("New n_times is different from previous n_times")
             elif not np.array_equal(time, self._times):
                 raise ValueError(
-                    "Not all time values are consistent with " "previously set times."
+                    "Not all time values are consistent with previously set times."
                 )
 
             # initial time
@@ -4028,7 +4028,7 @@ class Brain:
         if hemi is None:
             if self._hemi not in ["lh", "rh"]:
                 raise ValueError(
-                    "hemi must not be None when both " "hemispheres are displayed"
+                    "hemi must not be None when both hemispheres are displayed"
                 )
             hemi = self._hemi
         _check_option("hemi", hemi, ("lh", "rh") + tuple(extras))

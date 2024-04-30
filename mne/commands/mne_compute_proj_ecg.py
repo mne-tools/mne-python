@@ -86,21 +86,21 @@ def run():
         "--ecg-l-freq",
         dest="ecg_l_freq",
         type="float",
-        help="Filter low cut-off frequency in Hz used " "for ECG event detection",
+        help="Filter low cut-off frequency in Hz used for ECG event detection",
         default=5,
     )
     parser.add_option(
         "--ecg-h-freq",
         dest="ecg_h_freq",
         type="float",
-        help="Filter high cut-off frequency in Hz used " "for ECG event detection",
+        help="Filter high cut-off frequency in Hz used for ECG event detection",
         default=35,
     )
     parser.add_option(
         "-p",
         "--preload",
         dest="preload",
-        help="Temporary file used during computation " "(to save memory)",
+        help="Temporary file used during computation (to save memory)",
         default=True,
     )
     parser.add_option(
@@ -133,35 +133,35 @@ def run():
         "-c",
         "--channel",
         dest="ch_name",
-        help="Channel to use for ECG detection " "(Required if no ECG found)",
+        help="Channel to use for ECG detection (Required if no ECG found)",
         default=None,
     )
     parser.add_option(
         "--rej-grad",
         dest="rej_grad",
         type="float",
-        help="Gradiometers rejection parameter " "in fT/cm (peak to peak amplitude)",
+        help="Gradiometers rejection parameter in fT/cm (peak to peak amplitude)",
         default=2000,
     )
     parser.add_option(
         "--rej-mag",
         dest="rej_mag",
         type="float",
-        help="Magnetometers rejection parameter " "in fT (peak to peak amplitude)",
+        help="Magnetometers rejection parameter in fT (peak to peak amplitude)",
         default=3000,
     )
     parser.add_option(
         "--rej-eeg",
         dest="rej_eeg",
         type="float",
-        help="EEG rejection parameter in µV " "(peak to peak amplitude)",
+        help="EEG rejection parameter in µV (peak to peak amplitude)",
         default=50,
     )
     parser.add_option(
         "--rej-eog",
         dest="rej_eog",
         type="float",
-        help="EOG rejection parameter in µV " "(peak to peak amplitude)",
+        help="EOG rejection parameter in µV (peak to peak amplitude)",
         default=250,
     )
     parser.add_option(
@@ -175,13 +175,13 @@ def run():
         "--no-proj",
         dest="no_proj",
         action="store_true",
-        help="Exclude the SSP projectors currently " "in the fiff file",
+        help="Exclude the SSP projectors currently in the fiff file",
         default=False,
     )
     parser.add_option(
         "--bad",
         dest="bad_fname",
-        help="Text file containing bad channels list " "(one per line)",
+        help="Text file containing bad channels list (one per line)",
         default=None,
     )
     parser.add_option(

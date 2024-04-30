@@ -256,7 +256,7 @@ class ProjMixin:
         if not isinstance(projs, list) and not all(
             isinstance(p, Projection) for p in projs
         ):
-            raise ValueError("Only projs can be added. You supplied " "something else.")
+            raise ValueError("Only projs can be added. You supplied something else.")
 
         # mark proj as inactive, as they have not been applied
         projs = deactivate_proj(projs, copy=True)
@@ -264,7 +264,7 @@ class ProjMixin:
             # we cannot remove the proj if they are active
             if any(p["active"] for p in self.info["projs"]):
                 raise ValueError(
-                    "Cannot remove projectors that have " "already been applied"
+                    "Cannot remove projectors that have already been applied"
                 )
             with self.info._unlock():
                 self.info["projs"] = projs
@@ -338,7 +338,7 @@ class ProjMixin:
         )
         # let's not raise a RuntimeError here, otherwise interactive plotting
         if _projector is None:  # won't be fun.
-            logger.info("The projections don't apply to these data." " Doing nothing.")
+            logger.info("The projections don't apply to these data. Doing nothing.")
             return self
         self._projector, self.info = _projector, info
         if isinstance(self, (BaseRaw, Evoked)):
@@ -642,7 +642,7 @@ def _read_proj(fid, node, *, ch_names_mapping=None, verbose=None):
 
         if data.shape[1] != len(names):
             raise ValueError(
-                "Number of channel names does not match the " "size of data matrix"
+                "Number of channel names does not match the size of data matrix"
             )
 
         # just always use this, we used to have bugs with writing the
@@ -1164,7 +1164,7 @@ def setup_proj(
     projector, nproj = make_projector_info(info)
     if nproj == 0:
         if verbose:
-            logger.info("The projection vectors do not apply to these " "channels")
+            logger.info("The projection vectors do not apply to these channels")
         projector = None
     else:
         logger.info("Created an SSP operator (subspace dimension = %d)" % nproj)

@@ -704,7 +704,7 @@ def get_ras_to_neuromag_trans(nasion, lpa, rpa):
     for pt in (nasion, lpa, rpa):
         if pt.ndim != 1 or len(pt) != 3:
             raise ValueError(
-                "Points have to be provided as one dimensional " "arrays of length 3."
+                "Points have to be provided as one dimensional arrays of length 3."
             )
 
     right = rpa - lpa

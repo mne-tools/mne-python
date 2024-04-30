@@ -77,7 +77,7 @@ def _check_before_reference(inst, ref_from, ref_to, ch_type):
             proj["desc"] == "Average EEG reference"
             or proj["kind"] == FIFF.FIFFV_PROJ_ITEM_EEG_AVREF
         ):
-            logger.info("Removing existing average EEG reference " "projection.")
+            logger.info("Removing existing average EEG reference projection.")
             # Don't remove the projection right away, but do this at the end of
             # this loop.
             projs_to_remove.append(i)
@@ -459,9 +459,7 @@ def _get_ch_type(inst, ch_type):
                 break
         # if auto comes up empty, or the user specifies a bad ch_type.
         else:
-            raise ValueError(
-                "No EEG, ECoG, sEEG or DBS channels found " "to rereference."
-            )
+            raise ValueError("No EEG, ECoG, sEEG or DBS channels found to rereference.")
     return ch_type
 
 

@@ -358,9 +358,7 @@ MNE_DATASETS["hf_sef_evoked"] = dict(
 MNE_DATASETS["fake"] = dict(
     archive_name="foo.tgz",
     hash="md5:3194e9f7b46039bb050a74f3e1ae9908",
-    url=(
-        "https://github.com/mne-tools/mne-testing-data/raw/master/" "datasets/foo.tgz"
-    ),
+    url=("https://github.com/mne-tools/mne-testing-data/raw/master/datasets/foo.tgz"),
     folder_name="foo",
     config_key="MNE_DATASETS_FAKE_PATH",
 )
