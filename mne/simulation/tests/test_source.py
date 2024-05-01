@@ -444,7 +444,7 @@ def test_source_simulator(_get_fwd_labels):
     ss = SourceSimulator(src)
     with pytest.raises(ValueError, match="No simulation parameters"):
         ss.get_stc()
-    with pytest.raises(ValueError, match="label must be a Label"):
+    with pytest.raises(TypeError, match="must be an instance of Label"):
         ss.add_data(1, wfs, events)
     with pytest.raises(ValueError, match="Number of waveforms and events should match"):
         ss.add_data(mylabels[0], wfs[:2], events)

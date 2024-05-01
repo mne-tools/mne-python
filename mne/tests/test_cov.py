@@ -620,8 +620,8 @@ def test_auto_low_rank():
     X = get_data(n_samples=n_samples, n_features=n_features, rank=rank, sigma=sigma)
     method_params = {"iter_n_components": [n_features + 5]}
     msg = (
-        f"You are trying to estimate {n_features + 5:i} components on matrix with "
-        f"{n_features:i} features."
+        f"You are trying to estimate {n_features + 5} components on matrix with "
+        f"{n_features} features."
     )
     with pytest.warns(RuntimeWarning, match=msg):
         _auto_low_rank_model(
