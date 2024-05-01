@@ -2123,7 +2123,7 @@ class BaseRaw(
 
         raw_template = _get_html_template("repr", "raw.html.jinja")
         return raw_template.render(
-            raw=self,
+            inst=self,
             filenames=basenames,
             duration=duration,
             projs=projs,

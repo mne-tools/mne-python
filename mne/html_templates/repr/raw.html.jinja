@@ -1,10 +1,10 @@
 {%include '_js_and_css.html.jinja' %}
 {% from '_macros.html.jinja' import create_general_section %}
 
-{% set info = raw.info %}
+{% set info = inst.info %}
 
 <table class="repr table table-hover table-striped table-sm table-responsive small">
-{{ create_general_section(info=info, filenames=filenames) }}
+{%include '_general.html.jinja' %}
 {%include '_channels.html.jinja' %}
 {%include '_recording.html.jinja' %}
 {%include '_filters.html.jinja' %}
