@@ -292,7 +292,7 @@ def _interpolate_bads_nirs(inst, exclude=(), verbose=None):
     return inst
 
 
-def _find_seeg_electrode_shaft(pos, tol_shaft=2e-3, tol_spacing=1):
+def _find_seeg_electrode_shaft(pos, tol_shaft=0.002, tol_spacing=1):
     # 1) find nearest neighbor to define the electrode shaft line
     # 2) find all contacts on the same line
     # 3) remove contacts with large distances
@@ -311,12 +311,25 @@ def _find_seeg_electrode_shaft(pos, tol_shaft=2e-3, tol_spacing=1):
             np.cross((pos - n1), (pos - n2)), axis=1
         ) / np.linalg.norm(n2 - n1)
         shaft = np.where(shaft_dists < tol_shaft)[0]  # 2
-        ts = np.array(
-            [
-                -np.dot(n1 - n0, n2 - n1) / np.linalg.norm(n2 - n1) ** 2
-                for n0 in pos[shaft]
-            ]
-        )
+        shaft_prev = None
+        while not np.array_equal(shaft, shaft_prev):
+            shaft_prev = shaft
+            # compute median shaft line
+            v = np.median(
+                [
+                    pos[i] - pos[j]
+                    for idx, i in enumerate(shaft)
+                    for j in shaft[idx + 1 :]
+                ],
+                axis=0,
+            )
+            c = np.median(pos[shaft], axis=0)
+            # recompute distances
+            shaft_dists = np.linalg.norm(
+                np.cross((pos - c), (pos - c + v)), axis=1
+            ) / np.linalg.norm(v)
+            shaft = np.where(shaft_dists < tol_shaft)[0]
+        ts = np.array([np.dot(c - n0, v) / np.linalg.norm(v) ** 2 for n0 in pos[shaft]])
         shaft_order = np.argsort(ts)
         shaft = shaft[shaft_order]
         ts = ts[shaft_order]
@@ -369,7 +382,7 @@ def _interpolate_bads_seeg(
             raise RuntimeError(
                 f"{msg} found in a line with {no_shaft_chs} "
                 "at least 3 good channels on the same line "
-                "are required for interpolation. "
+                f"are required for interpolation, {goods_shaft.size} found. "
                 f"Dropping {no_shaft_chs} is recommended."
             )
         logger.debug(
