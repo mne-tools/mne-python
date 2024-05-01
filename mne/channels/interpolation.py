@@ -292,7 +292,7 @@ def _interpolate_bads_nirs(inst, exclude=(), verbose=None):
     return inst
 
 
-def _find_seeg_electrode_shaft(pos, tol_shaft=2e-3, tol_spacing=0.5):
+def _find_seeg_electrode_shaft(pos, tol_shaft=2e-3, tol_spacing=1):
     # 1) find nearest neighbor to define the electrode shaft line
     # 2) find all contacts on the same line
     # 3) remove contacts with large distances
@@ -336,7 +336,7 @@ def _find_seeg_electrode_shaft(pos, tol_shaft=2e-3, tol_spacing=0.5):
 
 @verbose
 def _interpolate_bads_seeg(
-    inst, exclude=None, tol_shaft=2e-3, tol_spacing=0.5, verbose=None
+    inst, exclude=None, tol_shaft=2e-3, tol_spacing=1, verbose=None
 ):
     if exclude is None:
         exclude = list()
