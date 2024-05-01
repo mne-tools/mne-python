@@ -219,7 +219,7 @@ def compute_bridged_electrodes(
 
     Based on :footcite:`TenkeKayser2001,GreischarEtAl2004,DelormeMakeig2004`
     and the `EEGLAB implementation
-    <https://psychophysiology.cpmc.columbia.edu/software/eBridge/index.html>`_.
+    <https://psychophysiology.cpmc.columbia.edu/>`__.
 
     Parameters
     ----------
