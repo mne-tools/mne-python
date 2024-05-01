@@ -352,7 +352,7 @@ def _find_seeg_electrode_shaft(pos, tol_shaft=0.002, tol_spacing=1):
         groups.append(group)
         group = [group for group in groups if i in group][0]
         ts = ts[np.isin(shaft, group)]
-        shaft = group
+        shaft = np.array(group, dtype=int)
 
         shafts.append(shaft)
         shaft_ts.append(ts)
