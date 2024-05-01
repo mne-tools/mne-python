@@ -292,14 +292,16 @@ def _interpolate_bads_nirs(inst, exclude=(), verbose=None):
     return inst
 
 
-def _find_seeg_electrode_shaft(pos, tol=2e-3):
+def _find_seeg_electrode_shaft(pos, tol_shaft=2e-3, tol_spacing=0.1):
     # 1) find nearest neighbor to define the electrode shaft line
     # 2) find all contacts on the same line
+    # 3) remove contacts with large distances
 
     dist = squareform(pdist(pos))
     np.fill_diagonal(dist, np.inf)
 
     shafts = list()
+    shaft_ts = list()
     for i, n1 in enumerate(pos):
         if any([i in shaft for shaft in shafts]):
             continue
@@ -308,12 +310,34 @@ def _find_seeg_electrode_shaft(pos, tol=2e-3):
         shaft_dists = np.linalg.norm(
             np.cross((pos - n1), (pos - n2)), axis=1
         ) / np.linalg.norm(n2 - n1)
-        shafts.append(np.where(shaft_dists < tol)[0])  # 2
-    return shafts
+        shaft = np.where(shaft_dists < tol_shaft)[0]  # 2
+        ts = np.array(
+            [
+                -np.dot(n1 - n0, n2 - n1) / np.linalg.norm(n2 - n1) ** 2
+                for n0 in pos[shaft]
+            ]
+        )
+        shaft_order = np.argsort(ts)
+        shaft = shaft[shaft_order]
+        ts = ts[shaft_order]
+        t_diffs = list(np.diff(ts))
+        # compute spacing differences (min between two neighbors)
+        spacing_errors = (
+            np.min([[np.inf] + t_diffs, t_diffs + [np.inf]], axis=0)
+            - np.median(t_diffs)
+        ) / np.median(t_diffs)
+        rm_idx = np.where(np.abs(spacing_errors) > tol_spacing)
+        shaft = np.delete(shaft, rm_idx)
+        ts = np.delete(ts, rm_idx)
+        shafts.append(shaft)
+        shaft_ts.append(ts)
+    return shafts, shaft_ts
 
 
 @verbose
-def _interpolate_bads_seeg(inst, exclude=None, tol=2e-3, verbose=None):
+def _interpolate_bads_seeg(
+    inst, exclude=None, tol_shaft=2e-3, tol_spacing=0.1, verbose=None
+):
     if exclude is None:
         exclude = list()
     picks = pick_types(inst.info, meg=False, seeg=True, exclude=exclude)
@@ -328,11 +352,13 @@ def _interpolate_bads_seeg(inst, exclude=None, tol=2e-3, verbose=None):
     # Make sure only sEEG are used
     bads_idx_pos = bads_idx[picks]
 
-    shafts = _find_seeg_electrode_shaft(pos, tol=tol)
+    shafts, shaft_ts = _find_seeg_electrode_shaft(
+        pos, tol_shaft=tol_shaft, tol_spacing=tol_spacing
+    )
 
     # interpolate the bad contacts
     picks_bad = list(np.where(bads_idx_pos)[0])
-    for shaft in shafts:
+    for shaft, ts in zip(shafts, shaft_ts):
         bads_shaft = np.array([idx for idx in picks_bad if idx in shaft])
         if bads_shaft.size == 0:
             continue
@@ -350,15 +376,6 @@ def _interpolate_bads_seeg(inst, exclude=None, tol=2e-3, verbose=None):
         )
         bads_shaft_idx = np.where(np.isin(shaft, bads_shaft))[0]
         goods_shaft_idx = np.where(~np.isin(shaft, bads_shaft))[0]
-        n1, n2 = pos[shaft][:2]
-        ts = np.array(
-            [
-                -np.dot(n1 - n0, n2 - n1) / np.linalg.norm(n2 - n1) ** 2
-                for n0 in pos[shaft]
-            ]
-        )
-        if np.any(np.diff(ts) < 0):
-            ts *= -1
 
         z = inst._data[..., goods_shaft, :]
         is_epochs = z.ndim == 3
