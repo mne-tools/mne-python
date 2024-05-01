@@ -308,7 +308,7 @@ div#contributor-avatars div.card img {
     border-radius: unset;
 }
 div#contributor-avatars div.card img {
-    width: 3em;
+    width: 2.5em;
 }
 .contributor-avatar {
     clip-path: circle(closest-side);
