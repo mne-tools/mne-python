@@ -249,7 +249,7 @@ def _read_elp_sidecar(fname):
     """
     fname_elp = fname.parent / (fname.stem + ".elp")
     if not fname_elp.exists():
-        logger.info(f"No {fname_elp} file present containing electrode " "information.")
+        logger.info(f"No {fname_elp} file present containing electrode information.")
         return None
 
     logger.info(f"Reading electrode names and types from {fname_elp}")
@@ -264,7 +264,7 @@ def _read_elp_sidecar(fname):
         else:
             # No channel types present
             logger.info(
-                "No channel types present in .elp file. Marking all " "channels as EEG."
+                "No channel types present in .elp file. Marking all channels as EEG."
             )
             for line in lines:
                 ch_name = line.split()[:1]

@@ -91,7 +91,7 @@ class RawSNIRF(BaseRaw):
         h5py = _import_h5py()
 
         fname = str(_check_fname(fname, "read", True, "fname"))
-        logger.info("Loading %s" % fname)
+        logger.info(f"Loading {fname}")
 
         with h5py.File(fname, "r") as dat:
             if "data2" in dat["nirs"]:

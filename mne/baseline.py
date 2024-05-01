@@ -18,7 +18,7 @@ def _log_rescale(baseline, mode="mean"):
             mode,
             ["logratio", "ratio", "zscore", "mean", "percent", "zlogratio"],
         )
-        msg = "Applying baseline correction (mode: %s)" % mode
+        msg = f"Applying baseline correction (mode: {mode})"
     else:
         msg = "No baseline correction applied"
     return msg

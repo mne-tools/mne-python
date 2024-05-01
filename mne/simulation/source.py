@@ -20,6 +20,7 @@ from ..utils import (
     _check_option,
     _ensure_events,
     _ensure_int,
+    _validate_type,
     check_random_state,
     fill_doc,
     warn,
@@ -196,14 +197,14 @@ def simulate_sparse_stc(
         datas = data
     elif n_dipoles > len(labels):
         raise ValueError(
-            "Number of labels (%d) smaller than n_dipoles (%d) "
-            "is not allowed." % (len(labels), n_dipoles)
+            f"Number of labels ({len(labels)}) smaller than n_dipoles ({n_dipoles:d}) "
+            "is not allowed."
         )
     else:
         if n_dipoles != len(labels):
             warn(
                 "The number of labels is different from the number of "
-                "dipoles. %s dipole(s) will be generated." % min(n_dipoles, len(labels))
+                f"dipoles. {min(n_dipoles, len(labels))} dipole(s) will be generated."
             )
         labels = labels[:n_dipoles] if n_dipoles < len(labels) else labels
 
@@ -429,8 +430,7 @@ class SourceSimulator:
             Events associated to the waveform(s) to specify when the activity
             should occur.
         """
-        if not isinstance(label, Label):
-            raise ValueError("label must be a Label," "not %s" % type(label))
+        _validate_type(label, Label, "label")
 
         # If it is not a list then make it one
         if not isinstance(waveform, list) and np.ndim(waveform) == 2:

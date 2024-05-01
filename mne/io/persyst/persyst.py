@@ -68,7 +68,7 @@ class RawPersyst(BaseRaw):
     @verbose
     def __init__(self, fname, preload=False, verbose=None):
         fname = str(_check_fname(fname, "read", True, "fname"))
-        logger.info("Loading %s" % fname)
+        logger.info(f"Loading {fname}")
 
         # make sure filename is the Lay file
         if not fname.endswith(".lay"):
@@ -165,7 +165,7 @@ class RawPersyst(BaseRaw):
                 warn(
                     "Cannot read in the measurement date due "
                     "to incompatible format. Please set manually "
-                    "for %s " % lay_fname
+                    f"for {lay_fname} "
                 )
                 meas_date = None
             else:
@@ -297,13 +297,13 @@ def _get_subjectinfo(patient_dict):
             birthdate = datetime.strptime(birthdate, "%m/%d/%y")
         except ValueError:
             birthdate = None
-            print("Unable to process birthdate of %s " % birthdate)
+            print(f"Unable to process birthdate of {birthdate} ")
     elif "-" in birthdate:
         try:
             birthdate = datetime.strptime(birthdate, "%d-%m-%y")
         except ValueError:
             birthdate = None
-            print("Unable to process birthdate of %s " % birthdate)
+            print(f"Unable to process birthdate of {birthdate} ")
 
     subject_info = {
         "first_name": patient_dict.get("first"),
@@ -456,9 +456,9 @@ def _process_lay_line(line, section):
         else:
             if "=" not in line:
                 raise RuntimeError(
-                    "The line %s does not conform "
+                    f"The line {line} does not conform "
                     "to the standards. Please check the "
-                    ".lay file." % line
+                    ".lay file."
                 )  # noqa
             pos = line.index("=")
             status = 2

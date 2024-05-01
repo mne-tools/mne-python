@@ -221,7 +221,7 @@ def test_receptive_field_basic(n_jobs):
     with pytest.raises(ValueError, match="n_features in X does not match"):
         rf.fit(X[:, :1], y)
     # auto-naming features
-    feature_names = ["feature_%s" % ii for ii in [0, 1, 2]]
+    feature_names = [f"feature_{ii}" for ii in [0, 1, 2]]
     rf = ReceptiveField(tmin, tmax, 1, estimator=mod, feature_names=feature_names)
     assert_equal(rf.feature_names, feature_names)
     rf = ReceptiveField(tmin, tmax, 1, estimator=mod)

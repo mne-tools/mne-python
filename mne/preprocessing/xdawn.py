@@ -354,7 +354,7 @@ class _XdawnTransformer(BaseEstimator, TransformerMixin):
         # Check data
         if not isinstance(X, np.ndarray) or X.ndim != 3:
             raise ValueError(
-                "X must be an array of shape (n_epochs, " "n_channels, n_samples)."
+                "X must be an array of shape (n_epochs, n_channels, n_samples)."
             )
         if y is None:
             y = np.ones(len(X))
@@ -464,9 +464,7 @@ class Xdawn(_XdawnTransformer):
             correct_overlap = isi.min() < window
 
         if epochs.baseline and correct_overlap:
-            raise ValueError(
-                "Cannot apply correct_overlap if epochs" " were baselined."
-            )
+            raise ValueError("Cannot apply correct_overlap if epochs were baselined.")
 
         events, tmin, sfreq = None, 0.0, 1.0
         if correct_overlap:

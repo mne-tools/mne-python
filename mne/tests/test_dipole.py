@@ -244,12 +244,12 @@ def test_dipole_fitting(tmp_path):
     # XXX possibly some OpenBLAS numerical differences make
     # things slightly worse for us
     factor = 0.7
-    assert dists[0] / factor >= dists[1], "dists: %s" % dists
-    assert corrs[0] * factor <= corrs[1], "corrs: %s" % corrs
-    assert gc_dists[0] / factor >= gc_dists[1] * 0.8, "gc-dists (ori): %s" % gc_dists
-    assert amp_errs[0] / factor >= amp_errs[1], "amplitude errors: %s" % amp_errs
+    assert dists[0] / factor >= dists[1], f"dists: {dists}"
+    assert corrs[0] * factor <= corrs[1], f"corrs: {corrs}"
+    assert gc_dists[0] / factor >= gc_dists[1] * 0.8, f"gc-dists (ori): {gc_dists}"
+    assert amp_errs[0] / factor >= amp_errs[1], f"amplitude errors: {amp_errs}"
     # This one is weird because our cov/sim/picking is weird
-    assert gofs[0] * factor <= gofs[1] * 2, "gof: %s" % gofs
+    assert gofs[0] * factor <= gofs[1] * 2, f"gof: {gofs}"
 
 
 @testing.requires_testing_data

@@ -123,8 +123,7 @@ def _get_artemis123_info(fname, pos_fname=None):
                     values = line.strip().split("\t")
                     if len(values) != 7:
                         raise OSError(
-                            "Error parsing line \n\t:%s\n" % line
-                            + "from file %s" % header
+                            f"Error parsing line \n\t:{line}\nfrom file {header}"
                         )
                     tmp = dict()
                     for k, v in zip(chan_keys, values):
@@ -143,9 +142,9 @@ def _get_artemis123_info(fname, pos_fname=None):
         "Spatial Filter Active?",
     ]:
         if header_info[k] != "FALSE":
-            warn("%s - set to but is not supported" % k)
+            warn(f"{k} - set to but is not supported")
     if header_info["filter_hist"]:
-        warn("Non-Empty Filter history found, BUT is not supported" % k)
+        warn("Non-Empty Filter history found, BUT is not supported")
 
     # build mne info struct
     info = _empty_info(float(header_info["DAQ Sample Rate"]))
@@ -171,7 +170,7 @@ def _get_artemis123_info(fname, pos_fname=None):
     desc = ""
     for k in ["Purpose", "Notes"]:
         desc += f"{k} : {header_info[k]}\n"
-    desc += "Comments : {}".format(header_info["comments"])
+    desc += f"Comments : {header_info['comments']}"
 
     info.update(
         {
@@ -256,7 +255,7 @@ def _get_artemis123_info(fname, pos_fname=None):
                 t["kind"] = FIFF.FIFFV_MISC_CH
         else:
             raise ValueError(
-                "Channel does not match expected" + ' channel Types:"%s"' % chan["name"]
+                f'Channel does not match expected channel Types:"{chan["name"]}"'
             )
 
         # incorporate multiplier (unit_mul) into calibration
@@ -354,7 +353,7 @@ class RawArtemis123(BaseRaw):
             )
 
         if not op.exists(input_fname):
-            raise RuntimeError("%s - Not Found" % input_fname)
+            raise RuntimeError(f"{input_fname} - Not Found")
 
         info, header_info = _get_artemis123_info(input_fname, pos_fname=pos_fname)
 
@@ -377,8 +376,8 @@ class RawArtemis123(BaseRaw):
                     n_hpis += 1
             if n_hpis < 3:
                 warn(
-                    "%d HPIs active. At least 3 needed to perform" % n_hpis
-                    + "head localization\n *NO* head localization performed"
+                    f"{n_hpis:d} HPIs active. At least 3 needed to perform"
+                    "head localization\n *NO* head localization performed"
                 )
             else:
                 # Localized HPIs using the 1st 250 milliseconds of data.
@@ -409,11 +408,11 @@ class RawArtemis123(BaseRaw):
                 # only use HPI coils with localizaton goodness_of_fit > 0.98
                 bad_idx = []
                 for i, g in enumerate(hpi_g):
-                    msg = "HPI coil %d - location goodness of fit (%0.3f)"
+                    msg = f"HPI coil {i + 1} - location goodness of fit ({g:0.3f})"
                     if g < 0.98:
                         bad_idx.append(i)
                         msg += " *Removed from coregistration*"
-                    logger.info(msg % (i + 1, g))
+                    logger.info(msg)
                 hpi_dev = np.delete(hpi_dev, bad_idx, axis=0)
                 hpi_g = np.delete(hpi_g, bad_idx, axis=0)
 
@@ -428,12 +427,10 @@ class RawArtemis123(BaseRaw):
                     )
 
                     if len(hpi_head) != len(hpi_dev):
-                        mesg = (
-                            "number of digitized (%d) and "
-                            + "active (%d) HPI coils are "
-                            + "not the same."
+                        raise RuntimeError(
+                            f"number of digitized ({len(hpi_head)}) and active "
+                            f"({len(hpi_dev)}) HPI coils are not the same."
                         )
-                        raise RuntimeError(mesg % (len(hpi_head), len(hpi_dev)))
 
                     # compute initial head to dev transform and hpi ordering
                     head_to_dev_t, order, trans_g = _fit_coil_order_dev_head_trans(
@@ -460,10 +457,11 @@ class RawArtemis123(BaseRaw):
                     tmp_dists = np.abs(dig_dists - dev_dists)
                     dist_limit = tmp_dists.max() * 1.1
 
-                    msg = "HPI-Dig corrregsitration\n"
-                    msg += "\tGOF : %0.3f\n" % trans_g
-                    msg += "\tMax Coil Error : %0.3f cm\n" % (100 * tmp_dists.max())
-                    logger.info(msg)
+                    logger.info(
+                        "HPI-Dig corrregsitration\n"
+                        f"\tGOF : {trans_g:0.3f}\n"
+                        f"\tMax Coil Error : {100 * tmp_dists.max():0.3f} cm\n"
+                    )
 
                 else:
                     logger.info("Assuming Cardinal HPIs")
@@ -519,9 +517,9 @@ class RawArtemis123(BaseRaw):
                 if hpi_result["dist_limit"] > 0.005:
                     warn(
                         "Large difference between digitized geometry"
-                        + " and HPI geometry. Max coil to coil difference"
-                        + " is %0.2f cm\n" % (100.0 * tmp_dists.max())
-                        + "beware of *POOR* head localization"
+                        " and HPI geometry. Max coil to coil difference"
+                        f" is {100.0 * tmp_dists.max():0.2f} cm\n"
+                        "beware of *POOR* head localization"
                     )
 
                 # store it

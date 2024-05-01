@@ -113,9 +113,9 @@ def _get_blocks(filepath):
             position = fid.tell()
 
     if any([n != n_channels[0] for n in n_channels]):
-        raise RuntimeError("All the blocks don't have the same amount of " "channels.")
+        raise RuntimeError("All the blocks don't have the same amount of channels.")
     if any([f != sfreq[0] for f in sfreq]):
-        raise RuntimeError("All the blocks don't have the same sampling " "frequency.")
+        raise RuntimeError("All the blocks don't have the same sampling frequency.")
     if len(samples_block) < 1:
         raise RuntimeError("There seems to be no data")
     samples_block = np.array(samples_block)

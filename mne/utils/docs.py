@@ -3353,7 +3353,7 @@ selection : list of str
 _picks_types = "str | array-like | slice | None"
 _picks_header = f"picks : {_picks_types}"
 _picks_desc = "Channels to include."
-_picks_int = "Slices and lists of integers will be interpreted as channel " "indices."
+_picks_int = "Slices and lists of integers will be interpreted as channel indices."
 _picks_str_types = """channel *type* strings (e.g., ``['meg', 'eeg']``) will
     pick channels of those types,"""
 _picks_str_names = """channel *name* strings (e.g., ``['MEG0111', 'MEG2623']``
@@ -5009,7 +5009,7 @@ def fill_doc(f):
     except (TypeError, ValueError, KeyError) as exp:
         funcname = f.__name__
         funcname = docstring.split("\n")[0] if funcname is None else funcname
-        raise RuntimeError(f"Error documenting {funcname}:\n{str(exp)}")
+        raise RuntimeError(f"Error documenting {funcname}:\n{exp}")
     return f
 
 
@@ -5310,7 +5310,7 @@ def linkcode_resolve(domain, info):
     if "dev" in mne.__version__:
         kind = "main"
     else:
-        kind = "maint/%s" % (".".join(mne.__version__.split(".")[:2]))
+        kind = "maint/" + ".".join(mne.__version__.split(".")[:2])
     return f"http://github.com/mne-tools/mne-python/blob/{kind}/mne/{fn}{linespec}"
 
 
@@ -5537,7 +5537,7 @@ def _docformat(docstring, docdict=None, funcname=None):
     try:
         return docstring % indented
     except (TypeError, ValueError, KeyError) as exp:
-        raise RuntimeError(f"Error documenting {funcname}:\n{str(exp)}")
+        raise RuntimeError(f"Error documenting {funcname}:\n{exp}")
 
 
 def _indentcount_lines(lines):

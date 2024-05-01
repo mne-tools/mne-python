@@ -1009,7 +1009,7 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config):
 
 def pytest_report_header(config, startdir=None):
     """Add information to the pytest run header."""
-    return f"MNE {mne.__version__} -- {str(Path(mne.__file__).parent)}"
+    return f"MNE {mne.__version__} -- {Path(mne.__file__).parent}"
 
 
 @pytest.fixture(scope="function", params=("Numba", "NumPy"))

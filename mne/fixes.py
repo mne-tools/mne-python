@@ -383,7 +383,7 @@ def empirical_covariance(X, assume_centered=False):
 
     if X.shape[0] == 1:
         warnings.warn(
-            "Only one sample available. " "You may want to reshape your data array"
+            "Only one sample available. You may want to reshape your data array"
         )
 
     if assume_centered:
@@ -648,7 +648,7 @@ def _assess_dimension_(spectrum, rank, n_samples, n_features):
     from scipy.special import gammaln
 
     if rank > len(spectrum):
-        raise ValueError("The tested rank cannot exceed the rank of the" " dataset")
+        raise ValueError("The tested rank cannot exceed the rank of the dataset")
 
     pu = -rank * log(2.0)
     for i in range(rank):
@@ -860,7 +860,7 @@ def minimum_phase(h, method="homomorphic", n_fft=None, *, half=True):
         n_fft = 2 ** int(np.ceil(np.log2(2 * (len(h) - 1) / 0.01)))
     n_fft = int(n_fft)
     if n_fft < len(h):
-        raise ValueError("n_fft must be at least len(h)==%s" % len(h))
+        raise ValueError(f"n_fft must be at least len(h)=={len(h)}")
 
     # zero-pad; calculate the DFT
     h_temp = np.abs(fft(h, n_fft))

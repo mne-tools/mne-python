@@ -170,7 +170,7 @@ gain = [1, 1, 0, 0]
 
 third_height = np.array(plt.rcParams["figure.figsize"]) * [1, 1.0 / 3.0]
 ax = plt.subplots(1, figsize=third_height, layout="constrained")[1]
-plot_ideal_filter(freq, gain, ax, title="Ideal %s Hz lowpass" % f_p, flim=flim)
+plot_ideal_filter(freq, gain, ax, title=f"Ideal {f_p} Hz lowpass", flim=flim)
 
 # %%
 # This filter hypothetically achieves zero ripple in the frequency domain,
@@ -425,7 +425,7 @@ h = mne.filter.create_filter(
     l_freq=None,
     h_freq=f_p,
     h_trans_bandwidth=transition_band,
-    filter_length="%ss" % filter_dur,
+    filter_length=f"{filter_dur}s",
     fir_design="firwin2",
     verbose=True,
 )
@@ -844,7 +844,7 @@ def baseline_plot(x):
             if ri == 0:
                 ax.set(title=("No " if ci == 0 else "") + "Baseline Correction")
             ax.set(xticks=tticks, ylim=ylim, xlim=xlim, xlabel=xlabel)
-            ax.set_ylabel("%0.1f Hz" % freq, rotation=0, horizontalalignment="right")
+            ax.set_ylabel(f"{freq:0.1f} Hz", rotation=0, horizontalalignment="right")
     fig.suptitle(title)
     plt.show()
 

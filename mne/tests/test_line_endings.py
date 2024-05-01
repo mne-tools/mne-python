@@ -64,7 +64,7 @@ def _assert_line_endings(dir_):
                 with open(filename, "rb") as fid:
                     text = fid.read().decode("utf-8")
             except UnicodeDecodeError:
-                report.append("In %s found non-decodable bytes" % relfilename)
+                report.append(f"In {relfilename} found non-decodable bytes")
             else:
                 crcount = text.count("\r")
                 if crcount:

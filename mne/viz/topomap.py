@@ -164,7 +164,7 @@ def _prepare_topomap_plot(inst, ch_type, sphere=None):
             picks = pick_types(info, meg=ch_type, ref_meg=False, exclude="bads")
 
         if len(picks) == 0:
-            raise ValueError("No channels of type %r" % ch_type)
+            raise ValueError(f"No channels of type {ch_type!r}")
 
         pos = _find_topomap_coords(info, picks, sphere=sphere)
 
@@ -664,7 +664,7 @@ def _make_head_outlines(sphere, pos, outlines, clip_origin):
 
     elif isinstance(outlines, dict):
         if "mask_pos" not in outlines:
-            raise ValueError("You must specify the coordinates of the image " "mask.")
+            raise ValueError("You must specify the coordinates of the image mask.")
     else:
         raise ValueError("Invalid value for `outlines`.")
 
@@ -1212,9 +1212,7 @@ def _plot_topomap(
 
         # check if there is only 1 channel type, and n_chans matches the data
         ch_type = pos.get_channel_types(picks=None, unique=True)
-        info_help = (
-            "Pick Info with e.g. mne.pick_info and " "mne.channel_indices_by_type."
-        )
+        info_help = "Pick Info with e.g. mne.pick_info and mne.channel_indices_by_type."
         if len(ch_type) > 1:
             raise ValueError("Multiple channel types in Info structure. " + info_help)
         elif len(pos["chs"]) != data.shape[0]:
@@ -1238,8 +1236,7 @@ def _plot_topomap(
     extrapolate = _check_extrapolate(extrapolate, ch_type)
     if data.ndim > 1:
         raise ValueError(
-            "Data needs to be array of shape (n_sensors,); got "
-            "shape %s." % str(data.shape)
+            f"Data needs to be array of shape (n_sensors,); got shape {data.shape}."
         )
 
     # Give a helpful error message for common mistakes regarding the position
@@ -1420,7 +1417,7 @@ def _plot_ica_topomap(
     if not isinstance(axes, Axes):
         raise ValueError(
             "axis has to be an instance of matplotlib Axes, "
-            "got %s instead." % type(axes)
+            f"got {type(axes)} instead."
         )
     ch_type = _get_plot_ch_type(ica, ch_type, allow_ref_meg=ica.allow_ref_meg)
     if ch_type == "ref_meg":
@@ -2156,7 +2153,7 @@ def plot_evoked_topomap(
     axes_given = axes is not None
     interactive = isinstance(times, str) and times == "interactive"
     if interactive and axes_given:
-        raise ValueError("User-provided axes not allowed when " "times='interactive'.")
+        raise ValueError("User-provided axes not allowed when times='interactive'.")
     # units, scalings
     key = "grad" if ch_type.startswith("planar") else ch_type
     default_scaling = _handle_default("scalings", None)[key]
@@ -3027,7 +3024,7 @@ def _prepare_topomap(pos, ax, check_nonzero=True):
     _hide_frame(ax)
     if check_nonzero and not pos.any():
         raise RuntimeError(
-            "No position information found, cannot compute " "geometries for topomap."
+            "No position information found, cannot compute geometries for topomap."
         )
 
 
@@ -3600,8 +3597,8 @@ def plot_arrowmap(
 
     if ch_type not in ("mag", "grad"):
         raise ValueError(
-            "Channel type '%s' not supported. Supported channel "
-            "types are 'mag' and 'grad'." % ch_type
+            f"Channel type '{ch_type}' not supported. Supported channel "
+            "types are 'mag' and 'grad'."
         )
 
     if info_to is None and ch_type == "mag":
@@ -3614,9 +3611,7 @@ def plot_arrowmap(
             ch_type = ch_type[0][0]
 
         if ch_type != "mag":
-            raise ValueError(
-                "only 'mag' channel type is supported. " "Got %s" % ch_type
-            )
+            raise ValueError("only 'mag' channel type is supported. " f"Got {ch_type}")
 
     if info_to is not info_from:
         info_to = pick_info(info_to, pick_types(info_to, meg=True))

@@ -104,10 +104,10 @@ def _convert_time(date_str, time_str):
             break
     else:
         raise RuntimeError(
-            "Illegal date: %s.\nIf the language of the date does not "
+            f"Illegal date: {date_str}.\nIf the language of the date does not "
             "correspond to your local machine's language try to set the "
             "locale to the language of the date string:\n"
-            'locale.setlocale(locale.LC_ALL, "en_US")' % date_str
+            'locale.setlocale(locale.LC_ALL, "en_US")'
         )
 
     for fmt in ("%H:%M:%S", "%H:%M"):
@@ -118,7 +118,7 @@ def _convert_time(date_str, time_str):
         else:
             break
     else:
-        raise RuntimeError("Illegal time: %s" % time_str)
+        raise RuntimeError(f"Illegal time: {time_str}")
     # MNE-C uses mktime which uses local time, but here we instead decouple
     # conversion location from the process, and instead assume that the
     # acquisition was in GMT. This will be wrong for most sites, but at least
@@ -294,8 +294,8 @@ def _convert_channel_info(res4, t, use_eeg_pos):
                 if not _at_origin(ch["loc"][:3]):
                     if t["t_ctf_head_head"] is None:
                         warn(
-                            "EEG electrode (%s) location omitted because of "
-                            "missing HPI information" % ch["ch_name"]
+                            f"EEG electrode ({ch['ch_name']}) location omitted because "
+                            "of missing HPI information"
                         )
                         ch["loc"].fill(np.nan)
                         coord_frame = FIFF.FIFFV_MNE_COORD_CTF_HEAD
@@ -428,7 +428,7 @@ def _add_eeg_pos(eeg, t, c):
         return
     if t is None or t["t_ctf_head_head"] is None:
         raise RuntimeError(
-            "No coordinate transformation available for EEG " "position data"
+            "No coordinate transformation available for EEG position data"
         )
     eeg_assigned = 0
     if eeg["assign_to_chs"]:
@@ -443,7 +443,7 @@ def _add_eeg_pos(eeg, t, c):
                     elif eeg["coord_frame"] != FIFF.FIFFV_COORD_HEAD:
                         raise RuntimeError(
                             "Illegal coordinate frame for EEG electrode "
-                            "positions : %s" % _coord_frame_name(eeg["coord_frame"])
+                            f"positions : {_coord_frame_name(eeg['coord_frame'])}"
                         )
                     # Use the logical channel number as an identifier
                     eeg["ids"][k] = ch["logno"]
@@ -465,8 +465,8 @@ def _add_eeg_pos(eeg, t, c):
             d["r"] = apply_trans(t["t_ctf_head_head"], d["r"])
         elif eeg["coord_frame"] != FIFF.FIFFV_COORD_HEAD:
             raise RuntimeError(
-                "Illegal coordinate frame for EEG electrode "
-                "positions: %s" % _coord_frame_name(eeg["coord_frame"])
+                "Illegal coordinate frame for EEG electrode positions: "
+                + _coord_frame_name(eeg["coord_frame"])
             )
         if eeg["kinds"][k] == FIFF.FIFFV_POINT_CARDINAL:
             fid_count += 1
@@ -552,7 +552,7 @@ def _annotate_bad_segments(directory, start_time, meas_date):
     with open(fname) as fid:
         for f in fid.readlines():
             tmp = f.strip().split()
-            desc.append("bad_%s" % tmp[0])
+            desc.append(f"bad_{tmp[0]}")
             onsets.append(np.float64(tmp[1]) - start_time)
             durations.append(np.float64(tmp[2]) - np.float64(tmp[1]))
     # return None if there are no bad segments

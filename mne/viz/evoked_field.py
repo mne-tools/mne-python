@@ -126,7 +126,7 @@ class EvokedField:
             time = np.mean([evoked.get_peak(ch_type=t)[1] for t in types])
         self._current_time = time
         if not evoked.times[0] <= time <= evoked.times[-1]:
-            raise ValueError("`time` (%0.3f) must be inside `evoked.times`" % time)
+            raise ValueError(f"`time` ({time:0.3f}) must be inside `evoked.times`")
         self._time_label = time_label
 
         self._vmax = _validate_type(vmax, (None, "numeric", dict), "vmax")
@@ -258,10 +258,10 @@ class EvokedField:
             message = ["Channels in map and data do not match."]
             diff = map_ch_names - evoked_ch_names
             if len(diff):
-                message += ["%s not in data file. " % list(diff)]
+                message += [f"{list(diff)} not in data file. "]
             diff = evoked_ch_names - map_ch_names
             if len(diff):
-                message += ["%s not in map file." % list(diff)]
+                message += [f"{list(diff)} not in map file."]
             raise RuntimeError(" ".join(message))
 
         data = surf_map["data"] @ self._evoked.data[pick]

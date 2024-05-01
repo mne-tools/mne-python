@@ -462,7 +462,7 @@ class Evoked(
                 on_baseline_outside_data="adjust",
             ):
                 s += " (baseline period was cropped after baseline correction)"
-        s += ", %s ch" % self.data.shape[0]
+        s += f", {self.data.shape[0]} ch"
         s += f", ~{sizeof_fmt(self._size)}"
         return f"<Evoked | {s}>"
 
@@ -1525,7 +1525,7 @@ def _get_entries(fid, evoked_node, allow_maxshield=False):
     aspect_kinds = np.atleast_1d(aspect_kinds)
     if len(comments) != len(aspect_kinds) or len(comments) == 0:
         fid.close()
-        raise ValueError("Dataset names in FIF file " "could not be found.")
+        raise ValueError("Dataset names in FIF file could not be found.")
     t = [_aspect_rev[a] for a in aspect_kinds]
     t = ['"' + c + '" (' + tt + ")" for tt, c in zip(t, comments)]
     t = "\n".join(t)
@@ -1732,7 +1732,7 @@ def read_evokeds(
     """
     fname = str(_check_fname(fname, overwrite="read", must_exist=True))
     check_fname(fname, "evoked", ("-ave.fif", "-ave.fif.gz", "_ave.fif", "_ave.fif.gz"))
-    logger.info("Reading %s ..." % fname)
+    logger.info(f"Reading {fname} ...")
     return_list = True
     if condition is None:
         evoked_node = _get_evoked_node(fname)
@@ -1873,7 +1873,7 @@ def _read_evoked(fname, condition=None, kind="average", allow_maxshield=False):
         if nchan > 0:
             if chs is None:
                 raise ValueError(
-                    "Local channel information was not found " "when it was expected."
+                    "Local channel information was not found when it was expected."
                 )
 
             if len(chs) != nchan:
@@ -1886,7 +1886,7 @@ def _read_evoked(fname, condition=None, kind="average", allow_maxshield=False):
             info["chs"] = chs
             info["bads"][:] = _rename_list(info["bads"], ch_names_mapping)
             logger.info(
-                "    Found channel information in evoked data. " "nchan = %d" % nchan
+                f"    Found channel information in evoked data. nchan = {nchan}"
             )
             if sfreq > 0:
                 info["sfreq"] = sfreq

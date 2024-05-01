@@ -165,10 +165,10 @@ def morlet(sfreq, freqs, n_cycles=7.0, sigma=None, zero_mean=False):
 
     freqs = np.array(freqs, float)
     if np.any(freqs <= 0):
-        raise ValueError("all frequencies in 'freqs' must be " "greater than 0.")
+        raise ValueError("all frequencies in 'freqs' must be greater than 0.")
 
     if (n_cycles.size != 1) and (n_cycles.size != len(freqs)):
-        raise ValueError("n_cycles should be fixed or defined for " "each frequency.")
+        raise ValueError("n_cycles should be fixed or defined for each frequency.")
     _check_option("freqs.ndim", freqs.ndim, [0, 1])
     singleton = freqs.ndim == 0
     if singleton:
@@ -273,7 +273,7 @@ def _make_dpss(
 
     freqs = np.array(freqs)
     if np.any(freqs <= 0):
-        raise ValueError("all frequencies in 'freqs' must be " "greater than 0.")
+        raise ValueError("all frequencies in 'freqs' must be greater than 0.")
 
     if time_bandwidth < 2.0:
         raise ValueError("time_bandwidth should be >= 2.0 for good tapers")
@@ -281,7 +281,7 @@ def _make_dpss(
     n_cycles = np.atleast_1d(n_cycles)
 
     if n_cycles.size != 1 and n_cycles.size != len(freqs):
-        raise ValueError("n_cycles should be fixed or defined for " "each frequency.")
+        raise ValueError("n_cycles should be fixed or defined for each frequency.")
 
     for m in range(n_taps):
         Wm = list()
@@ -598,28 +598,24 @@ def _check_tfr_param(
     """Aux. function to _compute_tfr to check the params validity."""
     # Check freqs
     if not isinstance(freqs, (list, np.ndarray)):
-        raise ValueError(
-            "freqs must be an array-like, got %s " "instead." % type(freqs)
-        )
+        raise ValueError(f"freqs must be an array-like, got {type(freqs)} instead.")
     freqs = np.asarray(freqs, dtype=float)
     if freqs.ndim != 1:
         raise ValueError(
-            "freqs must be of shape (n_freqs,), got %s "
-            "instead." % np.array(freqs.shape)
+            f"freqs must be of shape (n_freqs,), got {np.array(freqs.shape)} "
+            "instead."
         )
 
     # Check sfreq
     if not isinstance(sfreq, (float, int)):
-        raise ValueError(
-            "sfreq must be a float or an int, got %s " "instead." % type(sfreq)
-        )
+        raise ValueError(f"sfreq must be a float or an int, got {type(sfreq)} instead.")
     sfreq = float(sfreq)
 
     # Default zero_mean = True if multitaper else False
     zero_mean = method == "multitaper" if zero_mean is None else zero_mean
     if not isinstance(zero_mean, bool):
         raise ValueError(
-            "zero_mean should be of type bool, got %s. instead" % type(zero_mean)
+            f"zero_mean should be of type bool, got {type(zero_mean)}. instead"
         )
     freqs = np.asarray(freqs)
 
@@ -635,7 +631,7 @@ def _check_tfr_param(
             )
     else:
         raise ValueError(
-            "n_cycles must be a float or an array, got %s " "instead." % type(n_cycles)
+            f"n_cycles must be a float or an array, got {type(n_cycles)} instead."
         )
 
     # Check time_bandwidth
@@ -646,15 +642,13 @@ def _check_tfr_param(
 
     # Check use_fft
     if not isinstance(use_fft, bool):
-        raise ValueError(
-            "use_fft must be a boolean, got %s " "instead." % type(use_fft)
-        )
+        raise ValueError(f"use_fft must be a boolean, got {type(use_fft)} instead.")
     # Check decim
     if isinstance(decim, int):
         decim = slice(None, None, decim)
     if not isinstance(decim, slice):
         raise ValueError(
-            "decim must be an integer or a slice, " "got %s instead." % type(decim)
+            "decim must be an integer or a slice, " f"got {type(decim)} instead."
         )
 
     # Check output

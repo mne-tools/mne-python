@@ -83,9 +83,7 @@ def run():
         dest="flash5",
         action="callback",
         callback=_vararg_callback,
-        help=(
-            "Path to the multiecho flash 5 images. " "Can be one file or one per echo."
-        ),
+        help=("Path to the multiecho flash 5 images. Can be one file or one per echo."),
     )
     parser.add_option(
         "-r",

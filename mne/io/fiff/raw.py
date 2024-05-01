@@ -168,7 +168,7 @@ class Raw(BaseRaw):
         self, fname, allow_maxshield, preload, do_check_ext=True, verbose=None
     ):
         """Read in header information from a raw file."""
-        logger.info("Opening raw data file %s..." % fname)
+        logger.info(f"Opening raw data file {fname}...")
 
         #   Read in the whole file if preload is on and .fif.gz (saves time)
         if not _file_like(fname):
@@ -208,7 +208,7 @@ class Raw(BaseRaw):
                 if len(raw_node) == 0:
                     raw_node = dir_tree_find(meas, FIFF.FIFFB_IAS_RAW_DATA)
                     if len(raw_node) == 0:
-                        raise ValueError("No raw data in %s" % fname_rep)
+                        raise ValueError(f"No raw data in {fname_rep}")
                     _check_maxshield(allow_maxshield)
                     with info._unlock():
                         info["maxshield"] = True

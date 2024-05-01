@@ -69,7 +69,7 @@ class SizeMixin:
             _check_preload(self, "Hashing ")
             return object_hash(dict(info=self.info, data=self._data))
         else:
-            raise RuntimeError("Hashing unknown object type: %s" % type(self))
+            raise RuntimeError(f"Hashing unknown object type: {type(self)}")
 
 
 class GetEpochsMixin:
