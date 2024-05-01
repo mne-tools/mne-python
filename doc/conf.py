@@ -655,6 +655,7 @@ linkcheck_ignore = [  # will be compiled to regex
     "https://www.dtu.dk/english/service/phonebook/person",
     # SSL problems sometimes
     "http://ilabs.washington.edu",
+    "https://psychophysiology.cpmc.columbia.edu",
 ]
 linkcheck_anchors = False  # saves a bit of time
 linkcheck_timeout = 15  # some can be quite slow
