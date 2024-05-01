@@ -23,6 +23,7 @@ table > tbody > tr.repr-element > td {
 .repr-element {
   transition: 0.5s ease;
   opacity: 1;
+  text-align: left;
 }
 
 .repr-element-hidden {

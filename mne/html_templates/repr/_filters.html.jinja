@@ -1,0 +1,33 @@
+{% set section = "Filters" %}
+{% set section_class_name = section | lower | append_uuid %}
+
+<tr>
+    <th class="repr-section-header repr-section-toggle-col">
+        <button title="Hide section"
+            onclick="toggleVisibility("{{ section_class_name }}", this)"><small>➖</small></button>
+    </th>
+    <th class="repr-section-header" colspan="2">
+        <strong>{{ section }}</strong>
+    </th>
+</tr>
+{% if info["highpass"] is defined and info["highpass"] is not none %}
+<tr class="repr-element {{ section_class_name }}">
+    <td></td>
+    <td>Highpass</td>
+    <td>{{ "%0.2f" | format(info["highpass"]) }} Hz</td>
+</tr>
+{% endif %}
+{% if info["lowpass"] is defined and info["lowpass"] is not none %}
+<tr class="repr-element {{ section_class_name }}">
+    <td></td>
+    <td>Lowpass</td>
+    <td>{{ "%0.2f" | format(info["lowpass"]) }} Hz</td>
+</tr>
+{% endif %}
+{% if projs is not none %}
+<tr class="repr-element {{ section_class_name }}">
+    <td></td>
+    <td>Projections</td>
+    <td>{{ projs|join("<br />") | safe }}</td>
+</tr>
+{% endif %}

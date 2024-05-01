@@ -2106,7 +2106,7 @@ class BaseRaw(
         return f"<{self.__class__.__name__} | {s}>"
 
     @repr_html
-    def _repr_html_(self, caption=None):
+    def _repr_html_(self):
         basenames = [Path(f).name for f in self._filenames if f is not None]
 
         # https://stackoverflow.com/a/10981895
@@ -2117,14 +2117,20 @@ class BaseRaw(
         seconds = np.ceil(seconds)  # always take full seconds
 
         duration = f"{int(hours):02d}:{int(minutes):02d}:{int(seconds):02d}"
+
+        good_channels, bad_channels, ecg, eog = self.info._get_chs_for_repr()
+        projs = self.info._get_projs_for_repr()
+
         raw_template = _get_html_template("repr", "raw.html.jinja")
         return raw_template.render(
-            info_repr=self.info._repr_html_(
-                caption=caption,
-                filenames=basenames,
-                time_points=len(self.times),
-                duration=duration,
-            )
+            raw=self,
+            filenames=basenames,
+            duration=duration,
+            projs=projs,
+            ecg=ecg,
+            eog=eog,
+            good_channels=good_channels,
+            bad_channels=bad_channels,
         )
 
     def add_events(self, events, stim_channel=None, replace=False):

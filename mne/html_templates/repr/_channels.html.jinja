@@ -1,0 +1,41 @@
+{% set section = "Channels" %}
+{% set section_class_name = section | lower | append_uuid %}
+
+<tr>
+    <th class="repr-section-header repr-section-toggle-col">
+        <button title="Hide section"
+            onclick="toggleVisibility('{{ section_class_name }}', this)"><small>➖</small></button>
+    </th>
+    <th class="repr-section-header" colspan="2">
+        <strong>{{ section }}</strong>
+    </th>
+</tr>
+<tr class="repr-element {{ section_class_name }}">
+    <td></td>
+    <td>Good channels</td>
+    <td>{{ good_channels }}</td>
+</tr>
+<tr class="repr-element {{ section_class_name }}">
+    <td></td>
+    <td>Bad channels</td>
+    <td>{{ bad_channels }}</td>
+</tr>
+<tr class="repr-element {{ section_class_name }}">
+    <td></td>
+    <td>EOG channels</td>
+    <td>{{ eog }}</td>
+</tr>
+<tr class="repr-element {{ section_class_name }}">
+    <td></td>
+    <td>ECG channels</td>
+    <td>{{ ecg }}</td>
+</tr>
+<tr class="repr-element {{ section_class_name }}">
+    <td></td>
+    <td>Head shape and sensor digitization</td>
+    {% if info["dig"] is not none %}
+    <td>{{ info["dig"] | length }} points</td>
+    {% else %}
+    <td>Not available</td>
+    {% endif %}
+</tr>

@@ -1,0 +1,33 @@
+{% set section = "Recording" %}
+{% set section_class_name = section | lower | append_uuid %}
+
+<tr>
+    <th class="repr-section-header repr-section-toggle-col">
+        <button title="Hide section" onclick="toggleVisibility(" {{ section_class_name }}",
+            this)"><small>➖</small></button>
+    </th>
+    <th class="repr-section-header" colspan="2">
+        <strong>{{ section }}</strong>
+    </th>
+</tr>
+{% if info["sfreq"] is defined and info["sfreq"] is not none %}
+<tr class="repr-element {{ section_class_name }}">
+    <td></td>
+    <td>Sampling frequency</td>
+    <td>{{ "%0.2f" | format(info["sfreq"]) }} Hz</td>
+</tr>
+{% endif %}
+{# {% if time_points is not none %}
+<tr class="repr-element {{ section_class_name }}">
+    <td></td>
+    <td>Time points</td>
+    <td>{{ time_points | format_number}}</td>
+</tr>
+{% endif %}
+{% if duration %}
+<tr class="repr-element {{ section_class_name }}">
+    <td></td>
+    <td>Duration</td>
+    <td>{{ duration }} (HH:MM:SS)</td>
+</tr>
+{% endif %} #}

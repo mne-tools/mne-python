@@ -1,0 +1,59 @@
+{#
+For Raw, Epochs, Evoked, and Info.
+
+Do not use directly, but via the create_general_section() macro provided in _macros.html.jinja
+#}
+
+{% set section = "General" %}
+{% set section_class_name = section | lower | append_uuid %}
+
+<tr>
+    <th class="repr-section-header repr-section-toggle-col">
+        <button title="Hide section"
+            onclick="toggleVisibility('{{ section_class_name }}', this)"><small>➖</small></button>
+    </th>
+    <th class="repr-section-header" colspan="2">
+        <strong>{{ section }}</strong>
+    </th>
+</tr>
+{% if filenames %}
+<tr class="repr-element {{ section_class_name }}">
+    <td></td>
+    <td>Filename(s)</td>
+    <td>{{ filenames | join('<br>') }}</td>
+</tr>
+{% endif %}
+<tr class="repr-element {{ section_class_name }}">
+    <td></td>
+    <td>Data type</td>
+    <td>{{ info | data_type }}</td>
+</tr>
+<tr class="repr-element {{ section_class_name }}">
+    <td></td>
+    <td>Measurement date</td>
+    {% if info["meas_date"] is defined and info["meas_date"] is not none %}
+    <td>{{ info["meas_date"] | dt_to_str }}</td>
+    {% else %}
+    <td>Unknown</td>
+    {% endif %}
+</tr>
+<tr class="repr-element {{ section_class_name }}">
+    <td></td>
+    <td>Participant</td>
+    {% if info["subject_info"] is defined and info["subject_info"] is not none %}
+    {% if "his_id" in info["subject_info"].keys() %}
+    <td>{{ subject_info["his_id"] }}</td>
+    {% endif %}
+    {% else %}
+    <td>Unknown</td>
+    {% endif %}
+</tr>
+<tr class="repr-element {{ section_class_name }}">
+    <td></td>
+    <td>Experimenter</td>
+    {% if info["experimenter"] is not none %}
+    <td>{{ info["experimenter"] }}</td>
+    {% else %}
+    <td>Unknown</td>
+    {% endif %}
+</tr>

@@ -1,6 +1,8 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+import datetime
 import functools
+import uuid
 from typing import Union
 
 _COLLAPSED = False  # will override in doc build
@@ -9,6 +11,20 @@ _COLLAPSED = False  # will override in doc build
 def _format_big_number(value: Union[int, float]) -> str:
     """Insert thousand separators."""
     return f"{value:,}"
+
+
+def _append_uuid(string: str, sep: str = "-") -> str:
+    """Append a UUID to a string."""
+    return f"{string}{sep}{uuid.uuid1()}"
+
+
+def _data_type(obj) -> str:
+    """Return the qualified name of a class."""
+    return obj.__class__.__qualname__
+
+
+def _dt_to_str(dt: datetime.datetime) -> str:
+    return dt.strftime("%B %d, %Y    %H:%M:%S") + " UTC"
 
 
 @functools.lru_cache(maxsize=2)
@@ -27,6 +43,9 @@ def _get_html_templates_env(kind):
         templates_env.filters["zip"] = zip
 
     templates_env.filters["format_number"] = _format_big_number
+    templates_env.filters["append_uuid"] = _append_uuid
+    templates_env.filters["data_type"] = _data_type
+    templates_env.filters["dt_to_str"] = _dt_to_str
     return templates_env
 
 

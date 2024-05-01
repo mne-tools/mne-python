@@ -10,13 +10,12 @@ import contextlib
 import datetime
 import operator
 import string
-import uuid
 from collections import Counter, OrderedDict, defaultdict
 from collections.abc import Mapping
 from copy import deepcopy
 from io import BytesIO
-from pathlib import Path
 from textwrap import shorten
+from typing import Optional
 
 import numpy as np
 
@@ -1850,58 +1849,43 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
 
     @property
     def ch_names(self):
-        return self["ch_names"]
+        try:
+            ch_names = self["ch_names"]
+        except KeyError:
+            ch_names = []
+
+        return ch_names
 
     def _get_chs_for_repr(self):
         titles = _handle_default("titles")
 
         # good channels
-        good_names = defaultdict(lambda: list())
-        for ci, ch_name in enumerate(self["ch_names"]):
-            if ch_name in self["bads"]:
-                continue
-            ch_type = channel_type(self, ci)
-            good_names[ch_type].append(ch_name)
-        good_channels = ", ".join(
-            [f"{len(v)} {titles.get(k, k.upper())}" for k, v in good_names.items()]
-        )
-        for key in ("ecg", "eog"):  # ensure these are present
-            if key not in good_names:
-                good_names[key] = list()
-        for key, val in good_names.items():
-            good_names[key] = ", ".join(val) or "Not available"
+        if self.ch_names:
+            good_names = defaultdict(lambda: list())
+            for ci, ch_name in enumerate(self.ch_names):
+                if ch_name in self["bads"]:
+                    continue
+                ch_type = channel_type(self, ci)
+                good_names[ch_type].append(ch_name)
+            good_channels = ", ".join(
+                [f"{len(v)} {titles.get(k, k.upper())}" for k, v in good_names.items()]
+            )
+            for key in ("ecg", "eog"):  # ensure these are present
+                if key not in good_names:
+                    good_names[key] = list()
+            for key, val in good_names.items():
+                good_names[key] = ", ".join(val) or "Not available"
 
-        # bad channels
-        bad_channels = ", ".join(self["bads"]) or "None"
-
-        return good_channels, bad_channels, good_names["ecg"], good_names["eog"]
-
-    @repr_html
-    def _repr_html_(
-        self, caption=None, time_points=None, duration=None, filenames=None
-    ):
-        """Summarize info for HTML representation."""
-        if isinstance(caption, str):
-            html = f"<h4>{caption}</h4>"
+            # bad channels
+            bad_channels = ", ".join(self["bads"]) or "None"
+            ecg = good_names["ecg"]
+            eog = good_names["eog"]
         else:
-            html = ""
+            good_channels = bad_channels = ecg = eog = "None"
 
-        good_channels, bad_channels, ecg, eog = self._get_chs_for_repr()
+        return good_channels, bad_channels, ecg, eog
 
-        # TODO
-        # Most of the following checks are to ensure that we get a proper repr
-        # for Forward['info'] (and probably others like
-        # InverseOperator['info']??), which doesn't seem to follow our standard
-        # Info structure used elsewhere.
-        # Proposed solution for a future refactoring:
-        # Forward['info'] should get its own Info subclass (with respective
-        # repr).
-
-        # meas date
-        meas_date = self.get("meas_date")
-        if meas_date is not None:
-            meas_date = meas_date.strftime("%B %d, %Y  %H:%M:%S") + " UTC"
-
+    def _get_projs_for_repr(self) -> Optional[list[str]]:
         projs = self.get("projs")
         if projs:
             projs = [
@@ -1910,36 +1894,21 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
         else:
             projs = None
 
+        return projs
+
+    @repr_html
+    def _repr_html_(self):
+        """Summarize info for HTML representation."""
+        good_channels, bad_channels, ecg, eog = self._get_chs_for_repr()
+        projs = self._get_projs_for_repr()
         info_template = _get_html_template("repr", "info.html.jinja")
-        sections = ("General", "Channels", "Data")
-
-        static_includes_path = (
-            Path(__file__).parents[1] / "html_templates" / "repr" / "static"
-        )
-        css = (static_includes_path / "repr.css").read_text(encoding="utf-8")
-        js = (static_includes_path / "repr.js").read_text(encoding="utf-8")
-
-        return html + info_template.render(
-            sections=sections,
-            caption=caption,
-            meas_date=meas_date,
+        return info_template.render(
+            info=self,
             projs=projs,
             ecg=ecg,
             eog=eog,
             good_channels=good_channels,
             bad_channels=bad_channels,
-            dig=self.get("dig"),
-            subject_info=self.get("subject_info"),
-            lowpass=self.get("lowpass"),
-            highpass=self.get("highpass"),
-            sfreq=self.get("sfreq"),
-            experimenter=self.get("experimenter"),
-            time_points=time_points,
-            duration=duration,
-            filenames=filenames,
-            css=css,
-            js=js,
-            uuid=uuid.uuid1(),
         )
 
     def save(self, fname):
