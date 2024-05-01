@@ -1,0 +1,1 @@
+Fix error causing :meth:`mne.Epochs.interpolate_bads` not to work for ``seeg`` channels, by `Alex Rockhill`_

@@ -359,7 +359,17 @@ def _interpolate_bads_seeg(inst, exclude=None, tol=2e-3, verbose=None):
         )
         if np.any(np.diff(ts) < 0):
             ts *= -1
-        y = np.arange(inst._data.shape[-1])
-        inst._data[bads_shaft] = RectBivariateSpline(
-            x=ts[goods_shaft_idx], y=y, z=inst._data[goods_shaft]
-        )(x=ts[bads_shaft_idx], y=y)  # 3
+
+        z = inst._data[..., goods_shaft, :]
+        is_epochs = z.ndim == 3
+        if is_epochs:
+            z = z.swapaxes(0, 1)
+            z = z.reshape(z.shape[0], -1)
+        y = np.arange(z.shape[-1])
+        out = RectBivariateSpline(x=ts[goods_shaft_idx], y=y, z=z)(
+            x=ts[bads_shaft_idx], y=y
+        )
+        if is_epochs:
+            out = out.reshape(bads_shaft.size, inst._data.shape[0], -1)
+            out = out.swapaxes(0, 1)
+        inst._data[..., bads_shaft, :] = out

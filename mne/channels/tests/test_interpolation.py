@@ -378,6 +378,17 @@ def test_interpolation_seeg():
     assert not np.all(raw_before._data[bads_mask] == raw_after._data[bads_mask])
     assert_array_equal(raw_before._data[~bads_mask], raw_after._data[~bads_mask])
 
+    # check interpolation on epochs
+    epochs_seeg.set_montage(make_dig_montage(ch_pos, **pos))
+    epochs_before = epochs_seeg.copy()
+    epochs_after = epochs_seeg.interpolate_bads(method=dict(seeg="spline"))
+    assert not np.all(
+        epochs_before._data[:, bads_mask] == epochs_after._data[:, bads_mask]
+    )
+    assert_array_equal(
+        epochs_before._data[:, ~bads_mask], epochs_after._data[:, ~bads_mask]
+    )
+
 
 def test_nan_interpolation(raw):
     """Test 'nan' method for interpolating bads."""
