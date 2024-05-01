@@ -364,8 +364,6 @@ def test_interpolation_seeg():
     # check that interpolation changes the data in raw
     raw_seeg = RawArray(data=epochs_seeg._data[0], info=epochs_seeg.info)
     raw_before = raw_seeg.copy()
-    with pytest.raises(RuntimeError, match="1 good contact"):
-        raw_seeg.interpolate_bads(method=dict(seeg="spline"))
     montage = raw_seeg.get_montage()
     pos = montage.get_positions()
     ch_pos = pos.pop("ch_pos")
@@ -388,6 +386,18 @@ def test_interpolation_seeg():
     assert_array_equal(
         epochs_before._data[:, ~bads_mask], epochs_after._data[:, ~bads_mask]
     )
+
+    # test shaft all bad
+    epochs_seeg.info["bads"] = epochs_seeg.ch_names
+    with pytest.raises(RuntimeError, match="Not enough good channels"):
+        epochs_seeg.interpolate_bads(method=dict(seeg="spline"))
+
+    # test bad not on shaft
+    ch_pos[bads[0]] = np.array([10, 10, 10])
+    epochs_seeg.info["bads"] = bads
+    epochs_seeg.set_montage(make_dig_montage(ch_pos, **pos))
+    with pytest.raises(RuntimeError, match="No shaft found"):
+        epochs_seeg.interpolate_bads(method=dict(seeg="spline"))
 
 
 def test_nan_interpolation(raw):

@@ -364,11 +364,13 @@ def _interpolate_bads_seeg(
             continue
         goods_shaft = shaft[np.isin(shaft, bads_shaft, invert=True)]
         if goods_shaft.size < 2:
+            msg = "No shaft" if shaft.size < 3 else "Not enough good channels"
+            no_shaft_chs = "and ".join(np.array(inst.ch_names)[bads_shaft])
             raise RuntimeError(
-                f"{goods_shaft.size} good contact(s) found in a line "
-                f" with {np.array(inst.ch_names)[bads_shaft]}, "
-                "at least 2 are required for interpolation. "
-                "Dropping this channel/these channels is recommended."
+                f"{msg} found in a line with {no_shaft_chs} "
+                "at least 2 good channels on the same line "
+                "are required for interpolation. "
+                f"Dropping {no_shaft_chs} is recommended."
             )
         logger.debug(
             f"Interpolating {np.array(inst.ch_names)[bads_shaft]} using "
