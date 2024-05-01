@@ -361,7 +361,7 @@ def _find_seeg_electrode_shaft(pos, tol_shaft=0.002, tol_spacing=1):
 
 @verbose
 def _interpolate_bads_seeg(
-    inst, exclude=None, tol_shaft=2e-3, tol_spacing=1, verbose=None
+    inst, exclude=None, tol_shaft=0.002, tol_spacing=1, verbose=None
 ):
     if exclude is None:
         exclude = list()
