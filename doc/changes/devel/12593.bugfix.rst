@@ -1,1 +1,1 @@
-Fix error causing :meth:`mne.Epochs.interpolate_bads` not to work for ``seeg`` channels, by `Alex Rockhill`_
+Fix error causing :meth:`mne.Epochs.interpolate_bads` not to work for ``seeg`` channels and fix a single contact on neighboring shafts sometimes being included in interpolation, by `Alex Rockhill`_

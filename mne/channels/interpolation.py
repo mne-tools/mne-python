@@ -312,7 +312,9 @@ def _find_seeg_electrode_shaft(pos, tol_shaft=0.002, tol_spacing=1):
         ) / np.linalg.norm(n2 - n1)
         shaft = np.where(shaft_dists < tol_shaft)[0]  # 2
         shaft_prev = None
-        while not np.array_equal(shaft, shaft_prev):
+        for _ in range(10):  # avoid potential cycles
+            if np.array_equal(shaft, shaft_prev):
+                break
             shaft_prev = shaft
             # compute median shaft line
             v = np.median(
@@ -333,15 +335,25 @@ def _find_seeg_electrode_shaft(pos, tol_shaft=0.002, tol_spacing=1):
         shaft_order = np.argsort(ts)
         shaft = shaft[shaft_order]
         ts = ts[shaft_order]
-        t_diffs = list(np.diff(ts))
-        # compute spacing differences (min between two neighbors)
-        spacing_errors = (
-            np.min([[np.inf] + t_diffs, t_diffs + [np.inf]], axis=0)
-            - np.median(t_diffs)
-        ) / np.median(t_diffs)
-        rm_idx = np.where(np.abs(spacing_errors) > tol_spacing)
-        shaft = np.delete(shaft, rm_idx)
-        ts = np.delete(ts, rm_idx)
+
+        # only include the largest group with spacing with the error tolerance
+        # avoid interpolating across spans between contacts
+        t_diffs = np.diff(ts)
+        t_diff_med = np.median(t_diffs)
+        spacing_errors = (t_diffs - t_diff_med) / t_diff_med
+        groups = list()
+        group = [shaft[0]]
+        for j in range(len(shaft) - 1):
+            if spacing_errors[j] > tol_spacing:
+                groups.append(group)
+                group = [shaft[j + 1]]
+            else:
+                group.append(shaft[j + 1])
+        groups.append(group)
+        group = [group for group in groups if i in group][0]
+        ts = ts[np.isin(shaft, group)]
+        shaft = group
+
         shafts.append(shaft)
         shaft_ts.append(ts)
     return shafts, shaft_ts
