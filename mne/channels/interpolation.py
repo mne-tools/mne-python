@@ -363,8 +363,8 @@ def _interpolate_bads_seeg(
         if bads_shaft.size == 0:
             continue
         goods_shaft = shaft[np.isin(shaft, bads_shaft, invert=True)]
-        if goods_shaft.size < 3:
-            msg = "No shaft" if shaft.size < 3 else "Not enough good channels"
+        if goods_shaft.size < 4:  # cubic spline requires 3 channels
+            msg = "No shaft" if shaft.size < 4 else "Not enough good channels"
             no_shaft_chs = " and ".join(np.array(inst.ch_names)[bads_shaft])
             raise RuntimeError(
                 f"{msg} found in a line with {no_shaft_chs} "
