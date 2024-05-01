@@ -44,7 +44,7 @@ def set_cache_dir(cache_dir):
         temporary file storage.
     """
     if cache_dir is not None and not op.exists(cache_dir):
-        raise OSError("Directory %s does not exist" % cache_dir)
+        raise OSError(f"Directory {cache_dir} does not exist")
 
     set_config("MNE_CACHE_DIR", cache_dir, set_env=False)
 
@@ -223,8 +223,8 @@ def _load_config(config_path, raise_error=False):
         except ValueError:
             # No JSON object could be decoded --> corrupt file?
             msg = (
-                "The MNE-Python config file (%s) is not a valid JSON "
-                "file and might be corrupted" % config_path
+                f"The MNE-Python config file ({config_path}) is not a valid JSON "
+                "file and might be corrupted"
             )
             if raise_error:
                 raise RuntimeError(msg)
@@ -314,18 +314,17 @@ def get_config(key=None, default=None, raise_error=False, home_dir=None, use_env
     elif raise_error is True and key not in config:
         loc_env = "the environment or in the " if use_env else ""
         meth_env = (
-            ('either os.environ["%s"] = VALUE for a temporary ' "solution, or " % key)
+            (f'either os.environ["{key}"] = VALUE for a temporary ' "solution, or ")
             if use_env
             else ""
         )
         extra_env = (
-            " You can also set the environment variable before " "running python."
+            " You can also set the environment variable before running python."
             if use_env
             else ""
         )
         meth_file = (
-            'mne.utils.set_config("%s", VALUE, set_env=True) '
-            "for a permanent one" % key
+            f'mne.utils.set_config("{key}", VALUE, set_env=True) ' "for a permanent one"
         )
         raise KeyError(
             f'Key "{key}" not found in {loc_env}'
@@ -367,7 +366,7 @@ def set_config(key, value, home_dir=None, set_env=True):
     if key not in _known_config_types and not any(
         key.startswith(k) for k in _known_config_wildcards
     ):
-        warn('Setting non-standard config type: "%s"' % key)
+        warn(f'Setting non-standard config type: "{key}"')
 
     # Read all previous values
     config_path = get_config_path(home_dir=home_dir)
@@ -376,8 +375,7 @@ def set_config(key, value, home_dir=None, set_env=True):
     else:
         config = dict()
         logger.info(
-            "Attempting to create new mne-python configuration "
-            "file:\n%s" % config_path
+            f"Attempting to create new mne-python configuration file:\n{config_path}"
         )
     if value is None:
         config.pop(key, None)
@@ -837,7 +835,7 @@ def _get_latest_version(timeout):
         elif "timed out" in str(err):
             return f"timeout after {timeout} sec"
         else:
-            return f"unknown error: {str(err)}"
+            return f"unknown error: {err}"
     else:
         return response["tag_name"].lstrip("v") or "version unknown"
 

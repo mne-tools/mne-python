@@ -1575,7 +1575,7 @@ class Brain:
             except Exception:
                 mni = None
         if mni is not None:
-            mni = " MNI: " + ", ".join("%5.1f" % m for m in mni)
+            mni = " MNI: " + ", ".join(f"{m:5.1f}" for m in mni)
         else:
             mni = ""
         label = f"{hemi_str}:{str(vertex_id).ljust(6)}{mni}"
@@ -1893,10 +1893,10 @@ class Brain:
             if self._n_times is None:
                 self._times = time
             elif len(time) != self._n_times:
-                raise ValueError("New n_times is different from previous " "n_times")
+                raise ValueError("New n_times is different from previous n_times")
             elif not np.array_equal(time, self._times):
                 raise ValueError(
-                    "Not all time values are consistent with " "previously set times."
+                    "Not all time values are consistent with previously set times."
                 )
 
             # initial time
@@ -2248,7 +2248,7 @@ class Brain:
                         self._subjects_dir, self._subject, "label", subdir, label_fname
                     )
                 if not os.path.exists(filepath):
-                    raise ValueError("Label file %s does not exist" % filepath)
+                    raise ValueError(f"Label file {filepath} does not exist")
                 label = read_label(filepath)
             ids = label.vertices
             scalars = label.values
@@ -3033,7 +3033,7 @@ class Brain:
                         ".".join([hemi, annot, "annot"]),
                     )
                     if not os.path.exists(filepath):
-                        raise ValueError("Annotation file %s does not exist" % filepath)
+                        raise ValueError(f"Annotation file {filepath} does not exist")
                     filepaths += [filepath]
             annots = []
             for hemi, filepath in zip(hemis, filepaths):
@@ -3794,7 +3794,7 @@ class Brain:
         def frame_callback(frame, n_frames):
             if frame == n_frames:
                 # On the ImageIO step
-                self.status_msg.set_value("Saving with ImageIO: %s" % filename)
+                self.status_msg.set_value(f"Saving with ImageIO: {filename}")
                 self.status_msg.show()
                 self.status_progress.hide()
                 self._renderer._status_bar_update()
@@ -4028,7 +4028,7 @@ class Brain:
         if hemi is None:
             if self._hemi not in ["lh", "rh"]:
                 raise ValueError(
-                    "hemi must not be None when both " "hemispheres are displayed"
+                    "hemi must not be None when both hemispheres are displayed"
                 )
             hemi = self._hemi
         _check_option("hemi", hemi, ("lh", "rh") + tuple(extras))

@@ -116,7 +116,7 @@ class RawCTF(BaseRaw):
                 'directory must be a directory ending with ".ds", ' f"got {directory}"
             )
         _check_option("system_clock", system_clock, ["ignore", "truncate"])
-        logger.info("ds directory : %s" % directory)
+        logger.info(f"ds directory : {directory}")
         res4 = _read_res4(directory)  # Read the magical res4 file
         coils = _read_hc(directory)  # Read the coil locations
         eeg = _read_eeg(directory)  # Read the EEG electrode loc info
@@ -242,7 +242,7 @@ def _get_sample_info(fname, res4, system_clock):
         fid.seek(0, 0)
         if (st_size - CTF.HEADER_SIZE) % (4 * res4["nsamp"] * res4["nchan"]) != 0:
             raise RuntimeError(
-                "The number of samples is not an even multiple " "of the trial size"
+                "The number of samples is not an even multiple of the trial size"
             )
         n_samp_tot = (st_size - CTF.HEADER_SIZE) // (4 * res4["nchan"])
         n_trial = n_samp_tot // res4["nsamp"]

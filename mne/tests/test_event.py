@@ -222,7 +222,7 @@ def test_find_events():
     raw = read_raw_fif(raw_fname, preload=True)
     # let's test the defaulting behavior while we're at it
     extra_ends = ["", "_1"]
-    orig_envs = [os.getenv("MNE_STIM_CHANNEL%s" % s) for s in extra_ends]
+    orig_envs = [os.getenv(f"MNE_STIM_CHANNEL{s}") for s in extra_ends]
     os.environ["MNE_STIM_CHANNEL"] = "STI 014"
     if "MNE_STIM_CHANNEL_1" in os.environ:
         del os.environ["MNE_STIM_CHANNEL_1"]
@@ -373,7 +373,7 @@ def test_find_events():
     # put back the env vars we trampled on
     for s, o in zip(extra_ends, orig_envs):
         if o is not None:
-            os.environ["MNE_STIM_CHANNEL%s" % s] = o
+            os.environ[f"MNE_STIM_CHANNEL{s}"] = o
 
     # Test with list of stim channels
     raw._data[stim_channel_idx, 1:101] = np.zeros(100)

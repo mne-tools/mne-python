@@ -77,7 +77,7 @@ def clean_ecg_eog(
         ecg_events, _, _ = mne.preprocessing.find_ecg_events(
             raw_in, reject_by_annotation=True
         )
-        print("Writing ECG events in %s" % ecg_event_fname)
+        print(f"Writing ECG events in {ecg_event_fname}")
         mne.write_events(ecg_event_fname, ecg_events)
         print("Computing ECG projector")
         command = (
@@ -113,7 +113,7 @@ def clean_ecg_eog(
         mne.utils.run_subprocess(command, **kwargs)
     if eog:
         eog_events = mne.preprocessing.find_eog_events(raw_in)
-        print("Writing EOG events in %s" % eog_event_fname)
+        print(f"Writing EOG events in {eog_event_fname}")
         mne.write_events(eog_event_fname, eog_events)
         print("Computing EOG projector")
         command = (
@@ -168,7 +168,7 @@ def clean_ecg_eog(
         )
         mne.utils.run_subprocess(command, **kwargs)
         print("Done removing artifacts.")
-        print("Cleaned raw data saved in: %s" % out_fif_fname)
+        print(f"Cleaned raw data saved in: {out_fif_fname}")
         print("IMPORTANT : Please eye-ball the data !!")
     else:
         print("Projection not applied to raw data.")

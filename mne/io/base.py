@@ -211,7 +211,7 @@ class BaseRaw(
             # some functions (e.g., filtering) only work w/64-bit data
             if preload.dtype not in (np.float64, np.complex128):
                 raise RuntimeError(
-                    "datatype must be float64 or complex128, " "not %s" % preload.dtype
+                    f"datatype must be float64 or complex128, not {preload.dtype}"
                 )
             if preload.dtype != dtype:
                 raise ValueError("preload and dtype must match")
@@ -223,7 +223,7 @@ class BaseRaw(
         else:
             if last_samps is None:
                 raise ValueError(
-                    "last_samps must be given unless preload is " "an ndarray"
+                    "last_samps must be given unless preload is an ndarray"
                 )
             if not preload:
                 self.preload = False
@@ -781,7 +781,7 @@ class BaseRaw(
 
         if len(item) != 2:  # should be channels and time instants
             raise RuntimeError(
-                "Unable to access raw data (need both channels " "and time)"
+                "Unable to access raw data (need both channels and time)"
             )
 
         sel = _picks_to_idx(self.info, item[0])
@@ -2155,7 +2155,7 @@ class BaseRaw(
         stim_channel = _get_stim_channel(stim_channel, self.info)
         pick = pick_channels(self.ch_names, stim_channel, ordered=False)
         if len(pick) == 0:
-            raise ValueError("Channel %s not found" % stim_channel)
+            raise ValueError(f"Channel {stim_channel} not found")
         pick = pick[0]
         idx = events[:, 0].astype(int)
         if np.any(idx < self.first_samp) or np.any(idx > self.last_samp):
@@ -2576,7 +2576,7 @@ def _get_scaling(ch_type, target_unit):
     unit_list = target_unit.split("/")
     if ch_type not in si_units.keys():
         raise KeyError(
-            f"{ch_type} is not a channel type that can be scaled " "from units."
+            f"{ch_type} is not a channel type that can be scaled from units."
         )
     si_unit_list = si_units_splitted[ch_type]
     if len(unit_list) != len(si_unit_list):
@@ -2843,8 +2843,8 @@ def _write_raw_data(
         raise ValueError(
             'file is larger than "split_size" after writing '
             "measurement information, you must use a larger "
-            "value for split size: %s plus enough bytes for "
-            "the chosen buffer_size" % pos_prev
+            f"value for split size: {pos_prev} plus enough bytes for "
+            "the chosen buffer_size"
         )
 
     # Check to see if this has acquisition skips and, if so, if we can
@@ -2890,7 +2890,7 @@ def _write_raw_data(
             data = np.dot(projector, data)
 
         if drop_small_buffer and (first > start) and (len(times) < buffer_size):
-            logger.info("Skipping data chunk due to small buffer ... " "[done]")
+            logger.info("Skipping data chunk due to small buffer ... [done]")
             break
         logger.debug(f"Writing FIF {first:6d} ... {last:6d} ...")
         _write_raw_buffer(fid, data, cals, fmt)
@@ -3025,7 +3025,7 @@ def _check_raw_compatibility(raw):
             a, b = raw[ri].info[key], raw[0].info[key]
             if a != b:
                 raise ValueError(
-                    f"raw[{ri}].info[{key}] must match:\n" f"{repr(a)} != {repr(b)}"
+                    f"raw[{ri}].info[{key}] must match:\n{repr(a)} != {repr(b)}"
                 )
         for kind in ("bads", "ch_names"):
             set1 = set(raw[0].info[kind])
@@ -3033,7 +3033,7 @@ def _check_raw_compatibility(raw):
             mismatch = set1.symmetric_difference(set2)
             if mismatch:
                 raise ValueError(
-                    f"raw[{ri}]['info'][{kind}] do not match: " f"{sorted(mismatch)}"
+                    f"raw[{ri}]['info'][{kind}] do not match: {sorted(mismatch)}"
                 )
         if any(raw[ri]._cals != raw[0]._cals):
             raise ValueError("raw[%d]._cals must match" % ri)
@@ -3092,7 +3092,7 @@ def concatenate_raws(
     if events_list is not None:
         if len(events_list) != len(raws):
             raise ValueError(
-                "`raws` and `event_list` are required " "to be of the same length"
+                "`raws` and `event_list` are required to be of the same length"
             )
         first, last = zip(*[(r.first_samp, r.last_samp) for r in raws])
         events = concatenate_events(events_list, first, last)

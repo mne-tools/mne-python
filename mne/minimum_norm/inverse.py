@@ -167,10 +167,10 @@ def _pick_channels_inverse_operator(ch_names, inv):
         except ValueError:
             raise ValueError(
                 "The inverse operator was computed with "
-                "channel %s which is not present in "
+                f"channel {name} which is not present in "
                 "the data. You should compute a new inverse "
                 "operator restricted to the good data "
-                "channels." % name
+                "channels."
             )
     return sel
 
@@ -204,7 +204,7 @@ def read_inverse_operator(fname, *, verbose=None):
     #
     #   Open the file, create directory
     #
-    logger.info("Reading inverse operator decomposition from %s..." % fname)
+    logger.info(f"Reading inverse operator decomposition from {fname}...")
     f, tree, _ = fiff_open(fname)
     with f as fid:
         #
@@ -212,7 +212,7 @@ def read_inverse_operator(fname, *, verbose=None):
         #
         invs = dir_tree_find(tree, FIFF.FIFFB_MNE_INVERSE_SOLUTION)
         if invs is None or len(invs) < 1:
-            raise Exception("No inverse solutions in %s" % fname)
+            raise Exception(f"No inverse solutions in {fname}")
 
         invs = invs[0]
         #
@@ -220,7 +220,7 @@ def read_inverse_operator(fname, *, verbose=None):
         #
         parent_mri = dir_tree_find(tree, FIFF.FIFFB_MNE_PARENT_MRI_FILE)
         if len(parent_mri) == 0:
-            raise Exception("No parent MRI information in %s" % fname)
+            raise Exception(f"No parent MRI information in {fname}")
         parent_mri = parent_mri[0]  # take only first one
 
         logger.info("    Reading inverse operator info...")
@@ -391,12 +391,12 @@ def read_inverse_operator(fname, *, verbose=None):
                     inv["src"][k], inv["coord_frame"], mri_head_t
                 )
             except Exception as inst:
-                raise Exception("Could not transform source space (%s)" % inst)
+                raise Exception(f"Could not transform source space ({inst})")
 
             nuse += inv["src"][k]["nuse"]
 
         logger.info(
-            "    Source spaces transformed to the inverse solution " "coordinate frame"
+            "    Source spaces transformed to the inverse solution coordinate frame"
         )
         #
         #   Done!
@@ -437,7 +437,7 @@ def write_inverse_operator(fname, inv, *, overwrite=False, verbose=None):
     #
     #   Open the file, create directory
     #
-    logger.info("Write inverse operator decomposition in %s..." % fname)
+    logger.info(f"Write inverse operator decomposition in {fname}...")
 
     # Create the file and save the essentials
     with start_and_end_file(fname) as fid:
@@ -585,7 +585,7 @@ def _check_ch_names(inv, info):
     if n_missing > 0:
         raise ValueError(
             "%d channels in inverse operator " % n_missing
-            + "are not present in the data (%s)" % missing_ch_names
+            + f"are not present in the data ({missing_ch_names})"
         )
     _check_compensation_grade(inv["info"], info, "inverse")
 
@@ -692,7 +692,7 @@ def prepare_inverse_operator(
     if ncomp > 0:
         logger.info("    Created an SSP operator (subspace dimension = %d)" % ncomp)
     else:
-        logger.info("    The projection vectors do not apply to these " "channels.")
+        logger.info("    The projection vectors do not apply to these channels.")
 
     #
     #   Create the whitener
@@ -709,7 +709,7 @@ def prepare_inverse_operator(
     if method == "eLORETA":
         _compute_eloreta(inv, lambda2, method_params)
     elif method != "MNE":
-        logger.info("    Computing noise-normalization factors (%s)..." % method)
+        logger.info(f"    Computing noise-normalization factors ({method})...")
         # Here we have::
         #
         #     inv['reginv'] = sing / (sing ** 2 + lambda2)
@@ -909,7 +909,7 @@ def _check_reference(inst, ch_names=None):
             "modeling, use the method set_eeg_reference(projection=True)"
         )
     if _electrode_types(info) and info.get("custom_ref_applied", False):
-        raise ValueError("Custom EEG reference is not allowed for inverse " "modeling.")
+        raise ValueError("Custom EEG reference is not allowed for inverse modeling.")
 
 
 def _subject_from_inverse(inverse_operator):
@@ -2017,7 +2017,7 @@ def make_inverse_operator(
     logger.info("Computing SVD of whitened and weighted lead field matrix.")
     eigen_fields, sing, eigen_leads = _safe_svd(gain, full_matrices=False)
     del gain
-    logger.info("    largest singular value = %g" % np.max(sing))
+    logger.info(f"    largest singular value = {np.max(sing):g}")
     logger.info(
         f"    scaling factor to adjust the trace = {trace_GRGT:g} "
         f"(nchan = {eigen_fields.shape[0]} "

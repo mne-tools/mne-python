@@ -179,8 +179,8 @@ def test_fetch_parcellations(tmp_path):
     os.mkdir(op.join(this_subjects_dir, "fsaverage", "surf"))
     for hemi in ("lh", "rh"):
         shutil.copyfile(
-            op.join(subjects_dir, "fsaverage", "surf", "%s.white" % hemi),
-            op.join(this_subjects_dir, "fsaverage", "surf", "%s.white" % hemi),
+            op.join(subjects_dir, "fsaverage", "surf", f"{hemi}.white"),
+            op.join(this_subjects_dir, "fsaverage", "surf", f"{hemi}.white"),
         )
     # speed up by prenteding we have one of them
     with open(
@@ -192,9 +192,7 @@ def test_fetch_parcellations(tmp_path):
         datasets.fetch_hcp_mmp_parcellation(subjects_dir=this_subjects_dir)
     for hemi in ("lh", "rh"):
         assert op.isfile(
-            op.join(
-                this_subjects_dir, "fsaverage", "label", "%s.aparc_sub.annot" % hemi
-            )
+            op.join(this_subjects_dir, "fsaverage", "label", f"{hemi}.aparc_sub.annot")
         )
     # test our annot round-trips here
     kwargs = dict(
@@ -235,7 +233,7 @@ def test_manifest_check_download(tmp_path, n_have, monkeypatch):
     manifest_path = op.join(str(tmp_path), "manifest.txt")
     with open(manifest_path, "w") as fid:
         for fname in _zip_fnames:
-            fid.write("%s\n" % fname)
+            fid.write(f"{fname}\n")
     assert n_have in range(len(_zip_fnames) + 1)
     assert not op.isdir(destination)
     if n_have > 0:
@@ -311,9 +309,7 @@ def test_fetch_uncompressed_file(tmp_path):
     """Test downloading an uncompressed file with our fetch function."""
     dataset_dict = dict(
         dataset_name="license",
-        url=(
-            "https://raw.githubusercontent.com/mne-tools/mne-python/main/" "LICENSE.txt"
-        ),
+        url="https://raw.githubusercontent.com/mne-tools/mne-python/main/LICENSE.txt",
         archive_name="LICENSE.foo",
         folder_name=op.join(tmp_path, "foo"),
         hash=None,

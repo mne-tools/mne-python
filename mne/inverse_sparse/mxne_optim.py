@@ -415,7 +415,7 @@ def mixed_norm_solver(
     n_positions = n_dipoles // n_orient
     _, n_times = M.shape
     alpha_max = norm_l2inf(np.dot(G.T, M), n_orient, copy=False)
-    logger.info("-- ALPHA MAX : %s" % alpha_max)
+    logger.info(f"-- ALPHA MAX : {alpha_max}")
     alpha = float(alpha)
     X = np.zeros((n_dipoles, n_times), dtype=G.dtype)
 
@@ -756,7 +756,7 @@ class _Phi:
         """Squared L2 norm if ord == 2 and L1 norm if order == 1."""
         if ord not in (1, 2):
             raise ValueError(
-                "Only supported norm order are 1 and 2. " "Got ord = %s" % ord
+                "Only supported norm order are 1 and 2. " f"Got ord = {ord}"
             )
         stft_norm = stft_norm1 if ord == 1 else stft_norm2
         norm = 0.0
@@ -1261,7 +1261,7 @@ def _tf_mixed_norm_solver_bcd_active_set(
     if Z_init is not None:
         if Z_init.shape != (n_sources, phi.n_coefs.sum()):
             raise Exception(
-                "Z_init must be None or an array with shape " "(n_sources, n_coefs)."
+                "Z_init must be None or an array with shape (n_sources, n_coefs)."
             )
         for ii in range(n_positions):
             if np.any(Z_init[ii * n_orient : (ii + 1) * n_orient]):

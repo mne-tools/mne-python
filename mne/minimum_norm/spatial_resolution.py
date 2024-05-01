@@ -79,10 +79,10 @@ def resolution_metrics(
     # Check if input options are valid
     metrics = ("peak_err", "cog_err", "sd_ext", "maxrad_ext", "peak_amp", "sum_amp")
     if metric not in metrics:
-        raise ValueError('"%s" is not a recognized metric.' % metric)
+        raise ValueError(f'"{metric}" is not a recognized metric.')
 
     if function not in ["psf", "ctf"]:
-        raise ValueError("Not a recognised resolution function: %s." % function)
+        raise ValueError(f"Not a recognised resolution function: {function}.")
 
     if metric in ("peak_err", "cog_err"):
         resolution_metric = _localisation_error(

@@ -212,7 +212,7 @@ def test_warnings():
     ica.fit(epochs)
 
     epochs.baseline = (epochs.tmin, 0)
-    with pytest.warns(RuntimeWarning, match="consider baseline-correcting.*" "again"):
+    with pytest.warns(RuntimeWarning, match="consider baseline-correcting.*again"):
         ica.apply(epochs)
 
 

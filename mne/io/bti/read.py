@@ -30,7 +30,7 @@ def _unpack_simple(fid, dtype, out_dtype):
 
 def read_char(fid, count=1):
     """Read character from bti file."""
-    return _unpack_simple(fid, ">S%s" % count, "S")
+    return _unpack_simple(fid, f">S{count}", "S")
 
 
 def read_bool(fid):

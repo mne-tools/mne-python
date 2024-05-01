@@ -53,9 +53,7 @@ def make_lcmv_resolution_matrix(filters, forward, info):
     # compute resolution matrix
     resmat = filtmat.dot(leadfield)
 
-    shape = resmat.shape
-
-    logger.info("Dimensions of LCMV resolution matrix: %d by %d." % shape)
+    logger.info(f"Dimensions of LCMV resolution matrix: {resmat.shape}.")
 
     return resmat
 

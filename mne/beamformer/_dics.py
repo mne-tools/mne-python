@@ -346,7 +346,7 @@ def _apply_dics(data, filters, info, tmin, tfr=False):
 
     for i, M in enumerate(data):
         if not one_epoch:
-            logger.info("Processing epoch : %d" % (i + 1))
+            logger.info(f"Processing epoch : {i + 1}")
 
         # Apply SSPs
         if not tfr:  # save computation, only compute once

@@ -171,7 +171,7 @@ def _plot_connectivity_circle(
 
     if node_angles is not None:
         if len(node_angles) != n_nodes:
-            raise ValueError("node_angles has to be the same length " "as node_names")
+            raise ValueError("node_angles has to be the same length as node_names")
         # convert it to radians
         node_angles = node_angles * np.pi / 180
     else:

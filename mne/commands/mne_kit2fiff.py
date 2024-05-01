@@ -82,7 +82,7 @@ def run():
             from mne_kit_gui import kit2fiff  # noqa
         except ImportError:
             raise ImportError(
-                "The mne-kit-gui package is required, install it using " "conda or pip"
+                "The mne-kit-gui package is required, install it using conda or pip"
             ) from None
         kit2fiff()
         sys.exit(0)

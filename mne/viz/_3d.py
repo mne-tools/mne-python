@@ -659,7 +659,7 @@ def plot_alignment(
                 user_alpha[key] = float(val)
                 if not 0 <= user_alpha[key] <= 1:
                     raise ValueError(
-                        f"surfaces[{repr(key)}] ({val}) must be" " between 0 and 1"
+                        f"surfaces[{repr(key)}] ({val}) must be between 0 and 1"
                     )
     else:
         user_alpha = {}
@@ -763,7 +763,7 @@ def plot_alignment(
     head_keys = ("auto", "head", "outer_skin", "head-dense", "seghead")
     head = [s for s in surfaces if s in head_keys]
     if len(head) > 1:
-        raise ValueError("Can only supply one head-like surface name, " f"got {head}")
+        raise ValueError(f"Can only supply one head-like surface name, got {head}")
     head = head[0] if head else False
     if head is not False:
         surfaces.pop(surfaces.index(head))
@@ -1797,7 +1797,7 @@ def _process_clim(clim, colormap, transparent, data=0.0, allow_pos_lims=True):
 
     if ("lims" in clim) + ("pos_lims" in clim) != 1:
         raise ValueError(
-            "Exactly one of lims and pos_lims must be specified " f"in clim, got {clim}"
+            f"Exactly one of lims and pos_lims must be specified in clim, got {clim}"
         )
     if "pos_lims" in clim and not allow_pos_lims:
         raise ValueError('Cannot use "pos_lims" for clim, use "lims" ' "instead")
@@ -2031,10 +2031,7 @@ def _plot_mpl_stc(
     from ..morph import _get_subject_sphere_tris
     from ..source_space._source_space import _check_spacing, _create_surf_spacing
 
-    if hemi not in ["lh", "rh"]:
-        raise ValueError(
-            "hemi must be 'lh' or 'rh' when using matplotlib. " "Got %s." % hemi
-        )
+    _check_option("hemi", hemi, ("lh", "rh"), extra="when using matplotlib")
     lh_kwargs = {
         "lat": {"elev": 0, "azim": 180},
         "med": {"elev": 0, "azim": 0},
@@ -2879,7 +2876,7 @@ def plot_volume_source_estimates(
         ax_y.clear()
         ax_z.clear()
         params.update({"img_idx": index_img(img, idx)})
-        params.update({"title": "Activation (t=%.3f s.)" % params["stc"].times[idx]})
+        params.update({"title": f"Activation (t={params['stc'].times[idx]:.3f} s.)"})
         plot_map_callback(params["img_idx"], title="", cut_coords=cut_coords)
 
     def _update_vertlabel(loc_idx):
@@ -3108,7 +3105,7 @@ def _check_views(surf, views, hemi, stc=None, backend=None):
         if backend is not None:
             if backend not in ("pyvistaqt", "notebook"):
                 raise RuntimeError(
-                    "The PyVista 3D backend must be used to " "plot a flatmap"
+                    "The PyVista 3D backend must be used to plot a flatmap"
                 )
     if (views == ["flat"]) ^ (surf == "flat"):  # exactly only one of the two
         raise ValueError(
@@ -3743,7 +3740,7 @@ def snapshot_brain_montage(fig, montage, hide_sensors=True):
         ch_names, xyz = zip(*[(ich, ixyz) for ich, ixyz in montage.items()])
     else:
         raise TypeError(
-            "montage must be an instance of `DigMontage`, `Info`," " or `dict`"
+            "montage must be an instance of `DigMontage`, `Info`, or `dict`"
         )
 
     # initialize figure

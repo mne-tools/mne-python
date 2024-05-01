@@ -109,7 +109,7 @@ def fix_stim_artifact(
     elif isinstance(inst, BaseEpochs):
         if inst.reject is not None:
             raise RuntimeError(
-                "Reject is already applied. Use reject=None " "in the constructor."
+                "Reject is already applied. Use reject=None in the constructor."
             )
         e_start = int(np.ceil(inst.info["sfreq"] * inst.tmin))
         first_samp = s_start - e_start
@@ -125,6 +125,6 @@ def fix_stim_artifact(
         _fix_artifact(data, window, picks, first_samp, last_samp, mode)
 
     else:
-        raise TypeError("Not a Raw or Epochs or Evoked (got %s)." % type(inst))
+        raise TypeError(f"Not a Raw or Epochs or Evoked (got {type(inst)}).")
 
     return inst

@@ -257,7 +257,7 @@ def test_throw_exception_on_cellarray(version, type_):
     fname = get_data_paths("cellarray") / f"{type_}_{version}.mat"
     info = get_raw_info("CNT")
     with pytest.raises(
-        RuntimeError, match="Loading of data in cell arrays " "is not supported"
+        RuntimeError, match="Loading of data in cell arrays is not supported"
     ):
         if type_ == "averaged":
             mne.read_evoked_fieldtrip(fname, info)
@@ -291,7 +291,7 @@ def test_throw_error_on_non_uniform_time_field():
 
     with pytest.raises(
         RuntimeError,
-        match="Loading data with non-uniform " "times per epoch is not supported",
+        match="Loading data with non-uniform times per epoch is not supported",
     ):
         mne.io.read_epochs_fieldtrip(fname, info=None)
 

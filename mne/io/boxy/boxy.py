@@ -59,7 +59,7 @@ class RawBOXY(BaseRaw):
 
     @verbose
     def __init__(self, fname, preload=False, verbose=None):
-        logger.info("Loading %s" % fname)
+        logger.info(f"Loading {fname}")
 
         # Read header file and grab some info.
         start_line = np.inf
@@ -105,8 +105,7 @@ class RawBOXY(BaseRaw):
                     # Check that the BOXY version is supported
                     if boxy_ver not in ["0.40", "0.84"]:
                         raise RuntimeError(
-                            "MNE has not been tested with BOXY "
-                            "version (%s)" % boxy_ver
+                            f"MNE has not been tested with BOXY version ({boxy_ver})"
                         )
                 elif "Detector Channels" in i_line:
                     raw_extras["detect_num"] = int(i_line.rsplit(" ")[0])

@@ -38,7 +38,7 @@ subjects_dir = data_path / "subjects"
 fwd = mne.read_forward_solution(fwd_fname)
 mne.convert_forward_solution(fwd, surf_ori=True, copy=False)
 leadfield = fwd["sol"]["data"]
-print("Leadfield size : %d x %d" % leadfield.shape)
+print("Leadfield shape : {leadfield.shape}")
 
 # %%
 # Compute sensitivity maps
@@ -107,7 +107,7 @@ brain_dep.add_text(0.1, 0.9, "Source depth (m)", "title", font_size=16)
 # sensors. To determine the strength of this relationship, we can compute the
 # correlation between source depth and sensitivity values.
 corr = np.corrcoef(depths, grad_map.data[:, 0])[0, 1]
-print("Correlation between source depth and gradiomter sensitivity values: %f." % corr)
+print(f"Correlation between source depth and gradiomter sensitivity values: {corr:f}.")
 
 # %%
 # Gradiometer sensitiviy is highest close to the sensors, and decreases rapidly

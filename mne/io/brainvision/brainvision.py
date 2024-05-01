@@ -76,7 +76,7 @@ class RawBrainVision(BaseRaw):
         verbose=None,
     ):  # noqa: D107
         # Channel info and events
-        logger.info("Extracting parameters from %s..." % vhdr_fname)
+        logger.info(f"Extracting parameters from {vhdr_fname}...")
         hdr_fname = op.abspath(vhdr_fname)
         ext = op.splitext(hdr_fname)[-1]
         ahdr_format = True if ext == ".ahdr" else False
@@ -330,7 +330,7 @@ def _read_annotations_brainvision(fname, sfreq="auto"):
         # if vhdr file does not exist assume that the format is ahdr
         if not op.exists(hdr_fname):
             hdr_fname = op.splitext(fname)[0] + ".ahdr"
-        logger.info("Finding 'sfreq' from header file: %s" % hdr_fname)
+        logger.info(f"Finding 'sfreq' from header file: {hdr_fname}")
         _, _, _, info = _aux_hdr_info(hdr_fname)
         sfreq = info["sfreq"]
 
@@ -510,7 +510,7 @@ def _get_hdr_info(hdr_fname, eog, misc, scale):
     if ext not in (".vhdr", ".ahdr"):
         raise OSError(
             "The header file must be given to read the data, "
-            "not a file with extension '%s'." % ext
+            f"not a file with extension '{ext}'."
         )
 
     settings, cfg, cinfostr, info = _aux_hdr_info(hdr_fname)
@@ -518,14 +518,14 @@ def _get_hdr_info(hdr_fname, eog, misc, scale):
 
     order = cfg.get(cinfostr, "DataOrientation")
     if order not in _orientation_dict:
-        raise NotImplementedError("Data Orientation %s is not supported" % order)
+        raise NotImplementedError(f"Data Orientation {order} is not supported")
     order = _orientation_dict[order]
 
     data_format = cfg.get(cinfostr, "DataFormat")
     if data_format == "BINARY":
         fmt = cfg.get("Binary Infos", "BinaryFormat")
         if fmt not in _fmt_dict:
-            raise NotImplementedError("Datatype %s is not supported" % fmt)
+            raise NotImplementedError(f"Datatype {fmt} is not supported")
         fmt = _fmt_dict[fmt]
     else:
         if order == "C":  # channels in rows
@@ -797,8 +797,8 @@ def _get_hdr_info(hdr_fname, eog, misc, scale):
             if heterogeneous_hp_filter:
                 warn(
                     "Channels contain different highpass filters. "
-                    "Lowest (weakest) filter setting (%0.2f Hz) "
-                    "will be stored." % info["highpass"]
+                    f"Lowest (weakest) filter setting ({info['highpass']:0.2f} Hz) "
+                    "will be stored."
                 )
 
         if len(lowpass) == 0:

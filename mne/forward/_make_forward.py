@@ -156,7 +156,7 @@ def _create_meg_coil(coilset, ch, acc, do_es):
     """Create a coil definition using templates, transform if necessary."""
     # Also change the coordinate frame if so desired
     if ch["kind"] not in [FIFF.FIFFV_MEG_CH, FIFF.FIFFV_REF_MEG_CH]:
-        raise RuntimeError("%s is not a MEG channel" % ch["ch_name"])
+        raise RuntimeError(f"{ch['ch_name']} is not a MEG channel")
 
     # Simple linear search from the coil definitions
     for coil in coilset:
@@ -204,8 +204,8 @@ def _create_eeg_el(ch, t=None):
     """Create an electrode definition, transform coords if necessary."""
     if ch["kind"] != FIFF.FIFFV_EEG_CH:
         raise RuntimeError(
-            "%s is not an EEG channel. Cannot create an "
-            "electrode definition." % ch["ch_name"]
+            f"{ch['ch_name']} is not an EEG channel. Cannot create an electrode "
+            "definition."
         )
     if t is None:
         t = Transform("head", "head")  # identity, no change
@@ -284,7 +284,7 @@ def _setup_bem(bem, bem_extra, neeg, mri_head_t, allow_none=False, verbose=None)
     logger.info("")
     _validate_type(bem, ("path-like", ConductorModel), bem)
     if not isinstance(bem, ConductorModel):
-        logger.info("Setting up the BEM model using %s...\n" % bem_extra)
+        logger.info(f"Setting up the BEM model using {bem_extra}...\n")
         bem = read_bem_solution(bem)
     else:
         bem = bem.copy()
@@ -292,7 +292,7 @@ def _setup_bem(bem, bem_extra, neeg, mri_head_t, allow_none=False, verbose=None)
         logger.info("Using the sphere model.\n")
         if len(bem["layers"]) == 0 and neeg > 0:
             raise RuntimeError(
-                "Spherical model has zero shells, cannot use " "with EEG data"
+                "Spherical model has zero shells, cannot use with EEG data"
             )
         if bem["coord_frame"] != FIFF.FIFFV_COORD_HEAD:
             raise RuntimeError("Spherical model is not in head coordinates")
@@ -308,12 +308,10 @@ def _setup_bem(bem, bem_extra, neeg, mri_head_t, allow_none=False, verbose=None)
                 "for EEG forward calculations, consider "
                 "using a 3-layer BEM instead"
             )
-        logger.info(
-            "Employing the head->MRI coordinate transform with the " "BEM model."
-        )
+        logger.info("Employing the head->MRI coordinate transform with the BEM model.")
         # fwd_bem_set_head_mri_t: Set the coordinate transformation
         bem["head_mri_t"] = _ensure_trans(mri_head_t, "head", "mri")
-        logger.info("BEM model %s is now set up" % op.split(bem_extra)[1])
+        logger.info(f"BEM model {op.split(bem_extra)[1]} is now set up")
         logger.info("")
     return bem
 
@@ -486,7 +484,7 @@ def _prepare_for_forward(
 
     # make a new dict with the relevant information
     arg_list = [info_extra, trans, src, bem_extra, meg, eeg, mindist, n_jobs, verbose]
-    cmd = "make_forward_solution(%s)" % (", ".join([str(a) for a in arg_list]))
+    cmd = f"make_forward_solution({', '.join(str(a) for a in arg_list)})"
     mri_id = dict(machid=np.zeros(2, np.int32), version=0, secs=0, usecs=0)
 
     info_trans = str(trans) if isinstance(trans, Path) else trans
@@ -527,7 +525,7 @@ def _prepare_for_forward(
     for s in src:
         transform_surface_to(s, "head", mri_head_t)
     logger.info(
-        "Source spaces are now in %s coordinates." % _coord_frame_name(s["coord_frame"])
+        f"Source spaces are now in {_coord_frame_name(s['coord_frame'])} coordinates."
     )
 
     # Prepare the BEM model
@@ -689,14 +687,14 @@ def make_forward_solution(
         info_extra = "instance of Info"
 
     # Report the setup
-    logger.info("Source space          : %s" % src)
-    logger.info("MRI -> head transform : %s" % trans)
-    logger.info("Measurement data      : %s" % info_extra)
+    logger.info(f"Source space          : {src}")
+    logger.info(f"MRI -> head transform : {trans}")
+    logger.info(f"Measurement data      : {info_extra}")
     if isinstance(bem, ConductorModel) and bem["is_sphere"]:
         logger.info(f"Sphere model      : origin at {bem['r0']} mm")
         logger.info("Standard field computations")
     else:
-        logger.info("Conductor model   : %s" % bem_extra)
+        logger.info(f"Conductor model   : {bem_extra}")
         logger.info("Accurate field computations")
     logger.info(
         "Do computations in %s coordinates", _coord_frame_name(FIFF.FIFFV_COORD_HEAD)
