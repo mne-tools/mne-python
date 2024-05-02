@@ -33,15 +33,16 @@ def _format_baseline(inst) -> str:
     if inst.baseline is None:
         baseline = "off"
     else:
-        baseline = tuple([f"{round(b, 3):.3f}" for b in inst.baseline])
-        baseline = f"{baseline[0]} – {baseline[1]} s"
+        baseline = (
+            f"{round(inst.baseline[0], 3):.3f} – {round(inst.baseline[1], 3):.3f} s"
+        )
 
     return baseline
 
 
 def _format_time_range(inst) -> str:
     """Format evoked and epochs time range."""
-    tr = f"{round(inst.tmin, 3):.3f} – {round(inst.tmax, 3):.3f}"
+    tr = f"{round(inst.tmin, 3):.3f} – {round(inst.tmax, 3):.3f} s"
     return tr
 
 

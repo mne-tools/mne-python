@@ -2085,7 +2085,11 @@ class BaseEpochs(
         t = _get_html_template("repr", "epochs.html.jinja")
         t = t.render(
             inst=self,
-            filenames=[Path(self.filename).name] if self.filename is not None else None,
+            filenames=(
+                [Path(self.filename).name]
+                if hasattr(self, "filename") and self.filename is not None
+                else None
+            ),
             event_counts=event_strings,
             projs=projs,
             good_channels=good_channels,

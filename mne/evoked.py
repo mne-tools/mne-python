@@ -468,28 +468,18 @@ class Evoked(
 
     @repr_html
     def _repr_html_(self):
-        if self.baseline is None:
-            baseline = "off"
-        else:
-            baseline = tuple([f"{b:.3f}" for b in self.baseline])
-            baseline = f"{baseline[0]} – {baseline[1]} s"
-
         good_channels, bad_channels, ecg, eog = self.info._get_chs_for_repr()
-        meas_date = self.info.get("meas_date")
-        if meas_date is not None:
-            meas_date = meas_date.strftime("%B %d, %Y  %H:%M:%S") + " GMT"
+        projs = self.info._get_projs_for_repr()
 
         t = _get_html_template("repr", "evoked.html.jinja")
         t = t.render(
-            evoked=self,
-            filename=(
-                Path(self.filename).name
+            inst=self,
+            filenames=(
+                [Path(self.filename).name]
                 if hasattr(self, "filename") and self.filename is not None
                 else None
             ),
-            meas_date=meas_date,
-            subject_info=self.info.get("subject_info"),
-            baseline=baseline,
+            projs=projs,
             good_channels=good_channels,
             bad_channels=bad_channels,
             ecg=ecg,
