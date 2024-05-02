@@ -61,7 +61,7 @@ institutions include:
     :class: only-dark
 .. |doe| image:: _static/funding/doe.svg
 .. |anr| image:: _static/funding/anr.svg
-.. |cds| image:: _static/funding/cds.png
+.. |cds| image:: _static/funding/cds.svg
 .. |goo| image:: _static/funding/google.svg
 .. |ama| image:: _static/funding/amazon.svg
 .. |czi| image:: _static/funding/czi.svg
