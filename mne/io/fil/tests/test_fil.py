@@ -10,6 +10,7 @@ import pytest
 import scipy.io
 from numpy import array, empty, isnan
 from numpy.testing import assert_array_almost_equal, assert_array_equal
+from pandas import read_csv
 
 from mne import pick_types
 from mne.datasets import testing
@@ -159,3 +160,23 @@ def test_fil_no_positions(tmp_path):
     chs = raw.info["chs"]
     locs = array([ch["loc"][:] for ch in chs])
     assert isnan(locs).all()
+
+
+@testing.requires_testing_data
+def test_fil_bad_channel_spec(tmp_path):
+    """Test FIL reader when a bad channel is specified in channels.tsv."""
+    test_path = tmp_path / "FIL"
+    shutil.copytree(fil_path, test_path)
+
+    channame = test_path / "sub-noise_ses-001_task-noise220622_run-001_channels.tsv"
+    binname = test_path / "sub-noise_ses-001_task-noise220622_run-001_meg.bin"
+    bad_chan = "G2-OG-Y"
+
+    df = read_csv(channame, delimiter="\t")
+    index = df[df["name"] == bad_chan].index
+    df.loc[index, "status"] = "bad"
+    df.to_csv(channame, sep="\t", index=False)
+
+    raw = read_raw_fil(binname)
+    bads = raw.info["bads"]
+    assert bad_chan in bads
