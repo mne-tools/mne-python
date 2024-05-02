@@ -724,7 +724,15 @@ def construct_iir_filter(
         ``iir_params`` will be set inplace (if they weren't already).
         Otherwise, a new ``iir_params`` instance will be created and
         returned with these entries.
-    %(phase)s
+    phase : str
+        Phase of the filter.
+        ``phase='zero'`` (default) or equivalently ``'zero-double'`` constructs and
+        applies IIR filter twice, once forward, and once backward (making it on-causal)
+        using :func:`~scipy.signal.filtfilt`; ``phase='forward'`` will apply
+        the filter once in the forward (causal) direction using
+        :func:`~scipy.signal.lfilter`.
+
+        .. versionadded:: 0.13
     %(verbose)s
 
     Returns
