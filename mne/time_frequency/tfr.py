@@ -2612,13 +2612,13 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
         Parameters
         ----------
         fname : path-like
-            Path of file to save to.
+            Path of file to save to, which should end with ``-tfr.h5`` or ``-tfr.hdf5``.
         %(overwrite)s
         %(verbose)s
 
         See Also
         --------
-        mne.time_frequency.read_spectrum
+        mne.time_frequency.read_tfrs
         """
         _, write_hdf5 = _import_h5io_funcs()
         check_fname(fname, "time-frequency object", (".h5", ".hdf5"))
@@ -4134,7 +4134,8 @@ def read_tfrs(fname, condition=None, *, verbose=None):
     Parameters
     ----------
     fname : path-like
-        Path to a TFR file in HDF5 format.
+        Path to a TFR file in HDF5 format, which should end with ``-tfr.h5`` or
+        ``-tfr.hdf5``.
     condition : int or str | list of int or str | None
         The condition to load. If ``None``, all conditions will be returned.
         Defaults to ``None``.
