@@ -30,8 +30,8 @@ def _keep_basename_only(paths):
 
 def _get_expected_url(name):
     base = "https://physionet.org/physiobank/database/sleep-edfx/"
-    midle = "sleep-cassette/" if name.startswith("SC") else "sleep-telemetry/"
-    return base + midle + "/" + name
+    middle = "sleep-cassette/" if name.startswith("SC") else "sleep-telemetry/"
+    return base + middle + "/" + name
 
 
 def _get_expected_path(base, name):

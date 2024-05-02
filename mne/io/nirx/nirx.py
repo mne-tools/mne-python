@@ -91,7 +91,7 @@ class RawNIRX(BaseRaw):
 
     @verbose
     def __init__(self, fname, saturated, preload=False, verbose=None):
-        logger.info("Loading %s" % fname)
+        logger.info(f"Loading {fname}")
         _validate_type(fname, "path-like", "fname")
         _validate_type(saturated, str, "saturated")
         _check_option("saturated", saturated, ("annotate", "nan", "ignore"))
@@ -210,8 +210,8 @@ class RawNIRX(BaseRaw):
             ):
                 warn(
                     "Only import of data from NIRScout devices have been "
-                    "thoroughly tested. You are using a %s device. "
-                    % hdr["GeneralInfo"]["Device"]
+                    f'thoroughly tested. You are using a {hdr["GeneralInfo"]["Device"]}'
+                    " device."
                 )
 
         # Parse required header fields

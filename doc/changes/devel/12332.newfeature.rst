@@ -1,1 +1,0 @@
-Add ability to export STIM channels to EDF in :meth:`mne.io.Raw.export`, by `Clemens Brunner`_.

@@ -121,8 +121,8 @@ with warnings.catch_warnings(record=True):
 
 expected_pos = np.array([18.0, 0.0, 49.0])
 diff = np.sqrt(np.sum((dip.pos[0] * 1000 - expected_pos) ** 2))
-print("Actual pos:     %s mm" % np.array_str(expected_pos, precision=1))
-print("Estimated pos:  %s mm" % np.array_str(dip.pos[0] * 1000, precision=1))
-print("Difference:     %0.1f mm" % diff)
+print(f"Actual pos:     {np.array_str(expected_pos, precision=1)} mm")
+print(f"Estimated pos:  {np.array_str(dip.pos[0] * 1000, precision=1)} mm")
+print(f"Difference:     {diff:0.1f} mm")
 print("Amplitude:      %0.1f nAm" % (1e9 * dip.amplitude[0]))
-print("GOF:            %0.1f %%" % dip.gof[0])
+print(f"GOF:            {dip.gof[0]:0.1f} %")

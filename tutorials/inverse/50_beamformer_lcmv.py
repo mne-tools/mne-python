@@ -290,7 +290,7 @@ peak_vox, _ = stc_vec.get_peak(tmin=0.08, tmax=0.1, vert_as_index=True)
 ori_labels = ["x", "y", "z"]
 fig, ax = plt.subplots(1)
 for ori, label in zip(stc_vec.data[peak_vox, :, :], ori_labels):
-    ax.plot(stc_vec.times, ori, label="%s component" % label)
+    ax.plot(stc_vec.times, ori, label=f"{label} component")
 ax.legend(loc="lower right")
 ax.set(
     title="Activity per orientation in the peak voxel",

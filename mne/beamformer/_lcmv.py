@@ -286,7 +286,7 @@ def _apply_lcmv(data, filters, info, tmin):
             raise ValueError("data and picks must have the same length")
 
         if not return_single:
-            logger.info("Processing epoch : %d" % (i + 1))
+            logger.info(f"Processing epoch : {i + 1}")
 
         M = _proj_whiten_data(M, info["projs"], filters)
 

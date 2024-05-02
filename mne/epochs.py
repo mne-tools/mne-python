@@ -797,10 +797,7 @@ class BaseEpochs(
         reject = deepcopy(reject) if reject is not None else dict()
         flat = deepcopy(flat) if flat is not None else dict()
         for rej, kind in zip((reject, flat), ("reject", "flat")):
-            if not isinstance(rej, dict):
-                raise TypeError(
-                    "reject and flat must be dict or None, not %s" % type(rej)
-                )
+            _validate_type(rej, dict, kind)
             bads = set(rej.keys()) - set(idx.keys())
             if len(bads) > 0:
                 raise KeyError(f"Unknown channel types found in {kind}: {bads}")
@@ -1034,11 +1031,11 @@ class BaseEpochs(
                 bad_str = ", ".join([diff_ch[ii] for ii in bad_idx])
                 raise ValueError(
                     "The following data channels are missing "
-                    "in the evoked response: %s" % bad_str
+                    f"in the evoked response: {bad_str}"
                 )
             logger.info(
-                "    The following channels are not included in the "
-                "subtraction: %s" % ", ".join(diff_ch)
+                "    The following channels are not included in the subtraction: "
+                + ", ".join(diff_ch)
             )
 
         # make sure the times match
@@ -1047,7 +1044,7 @@ class BaseEpochs(
             or np.max(np.abs(self.times - evoked.times)) >= 1e-7
         ):
             raise ValueError(
-                "Epochs and Evoked object do not contain " "the same time points."
+                "Epochs and Evoked object do not contain the same time points."
             )
 
         # handle SSPs
@@ -1147,7 +1144,7 @@ class BaseEpochs(
             check_ICA = [x.startswith("ICA") for x in self.ch_names]
             if np.all(check_ICA):
                 raise TypeError(
-                    "picks must be specified (i.e. not None) for " "ICA channel data"
+                    "picks must be specified (i.e. not None) for ICA channel data"
                 )
             elif np.any(check_ICA):
                 warn(
@@ -1850,13 +1847,6 @@ class BaseEpochs(
             data *= ch_factors[:, np.newaxis]
         if not data_is_self_data:
             return data
-        if copy is None:
-            warn(
-                "The current default of copy=False will change to copy=True in 1.7. "
-                "Set the value of copy explicitly to avoid this warning",
-                FutureWarning,
-            )
-            copy = False
         if copy:
             logger.debug("  Copying, copy=True")
             data = data.copy()
@@ -1880,7 +1870,7 @@ class BaseEpochs(
         tmin=None,
         tmax=None,
         *,
-        copy=None,
+        copy=True,
         verbose=None,
     ):
         """Get all epochs as a 3D array.
@@ -2034,14 +2024,17 @@ class BaseEpochs(
 
     def __repr__(self):
         """Build string representation."""
-        s = f" {len(self.events)} events "
+        s = f"{len(self.events)} events "
         s += "(all good)" if self._bad_dropped else "(good & bad)"
-        s += f", {self.tmin:g} – {self.tmax:g} s"
-        s += ", baseline "
+        s += f", {self.tmin:.3f}".rstrip("0").rstrip(".")
+        s += f" – {self.tmax:.3f}".rstrip("0").rstrip(".")
+        s += " s (baseline "
         if self.baseline is None:
             s += "off"
         else:
-            s += f"{self.baseline[0]:g} – {self.baseline[1]:g} s"
+            s += f"{self.baseline[0]:.3f}".rstrip("0").rstrip(".")
+            s += f" – {self.baseline[1]:.3f}".rstrip("0").rstrip(".")
+            s += " s"
             if self.baseline != _check_baseline(
                 self.baseline,
                 times=self.times,
@@ -2050,7 +2043,7 @@ class BaseEpochs(
             ):
                 s += " (baseline period was cropped after baseline correction)"
 
-        s += f", ~{sizeof_fmt(self._size)}"
+        s += f"), ~{sizeof_fmt(self._size)}"
         s += f", data{'' if self.preload else ' not'} loaded"
         s += ", with metadata" if self.metadata is not None else ""
         max_events = 10
@@ -2471,7 +2464,7 @@ class BaseEpochs(
                 elif len({sub_id in ids for sub_id in id_}) != 1:
                     err = (
                         "Don't mix hierarchical and regular event_ids"
-                        " like in '%s'." % ", ".join(id_)
+                        f" like in '{', '.join(id_)}'."
                     )
                     raise ValueError(err)
 
@@ -2708,7 +2701,7 @@ class BaseEpochs(
         method="auto",
         average=False,
         dB=True,
-        estimate="auto",
+        estimate="power",
         xscale="linear",
         area_mode="std",
         area_alpha=0.33,
@@ -3766,9 +3759,7 @@ class EpochsArray(BaseEpochs):
             len(events)
             != np.isin(self.events[:, 2], list(self.event_id.values())).sum()
         ):
-            raise ValueError(
-                "The events must only contain event numbers from " "event_id"
-            )
+            raise ValueError("The events must only contain event numbers from event_id")
         detrend_picks = self._detrend_picks
         for e in self._data:
             # This is safe without assignment b/c there is no decim
@@ -4274,7 +4265,7 @@ class EpochsFIF(BaseEpochs):
         raw = list()
         for fname in fnames:
             fname_rep = _get_fname_rep(fname)
-            logger.info("Reading %s ..." % fname_rep)
+            logger.info(f"Reading {fname_rep} ...")
             fid, tree, _ = fiff_open(fname, preload=preload)
             next_fname = _get_next_fname(fid, fname, tree)
             (
@@ -4867,7 +4858,7 @@ def average_movements(
             trans = np.vstack(
                 [np.hstack([rot[use_idx], trn[[use_idx]].T]), [[0.0, 0.0, 0.0, 1.0]]]
             )
-        loc_str = ", ".join("%0.1f" % tr for tr in (trans[:3, 3] * 1000))
+        loc_str = ", ".join(f"{tr:0.1f}" for tr in (trans[:3, 3] * 1000))
         if last_trans is None or not np.allclose(last_trans, trans):
             logger.info(
                 f"    Processing epoch {ei + 1} (device location: {loc_str} mm)"

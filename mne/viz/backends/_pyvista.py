@@ -619,6 +619,7 @@ class _PyVistaRenderer(_AbstractRenderer):
         scale,
         mode,
         resolution=8,
+        *,
         glyph_height=None,
         glyph_center=None,
         glyph_resolution=None,
@@ -627,13 +628,8 @@ class _PyVistaRenderer(_AbstractRenderer):
         scalars=None,
         colormap=None,
         backface_culling=False,
-        line_width=2.0,
-        name=None,
-        glyph_width=None,
-        glyph_depth=None,
         glyph_radius=0.15,
         solid_transform=None,
-        *,
         clim=None,
     ):
         _check_option("mode", mode, ALLOWED_QUIVER_MODES)
@@ -1274,12 +1270,12 @@ def _arrow_glyph(grid, factor):
 
 def _glyph(
     dataset,
+    *,
     scale_mode="scalar",
     orient=True,
     scalars=True,
     factor=1.0,
     geom=None,
-    tolerance=0.0,
     absolute=False,
     clamping=False,
     rng=None,

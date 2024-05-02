@@ -1,1 +1,0 @@
-Add ability reject :class:`mne.Epochs` using callables, by `Jacob Woessner`_.

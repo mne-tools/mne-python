@@ -296,8 +296,8 @@ def read_source_estimate(fname, subject=None):
                 fname = fname[:-7]
             else:
                 err = (
-                    "Invalid .stc filename: %r; needs to end with "
-                    "hemisphere tag ('...-lh.stc' or '...-rh.stc')" % fname
+                    f"Invalid .stc filename: {fname!r}; needs to end with "
+                    "hemisphere tag ('...-lh.stc' or '...-rh.stc')"
                 )
                 raise OSError(err)
         elif fname.endswith(".w"):
@@ -306,15 +306,15 @@ def read_source_estimate(fname, subject=None):
                 fname = fname[:-5]
             else:
                 err = (
-                    "Invalid .w filename: %r; needs to end with "
-                    "hemisphere tag ('...-lh.w' or '...-rh.w')" % fname
+                    f"Invalid .w filename: {fname!r}; needs to end with "
+                    "hemisphere tag ('...-lh.w' or '...-rh.w')"
                 )
                 raise OSError(err)
         elif fname.endswith(".h5"):
             ftype = "h5"
             fname = fname[:-3]
         else:
-            raise RuntimeError("Unknown extension for file %s" % fname_arg)
+            raise RuntimeError(f"Unknown extension for file {fname_arg}")
 
     if ftype != "volume":
         stc_exist = [op.exists(f) for f in [fname + "-rh.stc", fname + "-lh.stc"]]
@@ -329,9 +329,9 @@ def read_source_estimate(fname, subject=None):
             ftype = "h5"
             fname += "-stc"
         elif any(stc_exist) or any(w_exist):
-            raise OSError("Hemisphere missing for %r" % fname_arg)
+            raise OSError(f"Hemisphere missing for {fname_arg!r}")
         else:
-            raise OSError("SourceEstimate File(s) not found for: %r" % fname_arg)
+            raise OSError(f"SourceEstimate File(s) not found for: {fname_arg!r}")
 
     # read the files
     if ftype == "volume":  # volume source space
@@ -453,7 +453,7 @@ def _make_stc(
         Klass = MixedVectorSourceEstimate if vector else MixedSourceEstimate
     else:
         raise ValueError(
-            "vertices has to be either a list with one or more " "arrays or an array"
+            "vertices has to be either a list with one or more arrays or an array"
         )
 
     # Rotate back for vector source estimates
@@ -568,7 +568,7 @@ class _BaseSourceEstimate(TimeMixin, FilterMixin):
     def __repr__(self):  # noqa: D105
         s = "%d vertices" % (sum(len(v) for v in self.vertices),)
         if self.subject is not None:
-            s += ", subject : %s" % self.subject
+            s += f", subject : {self.subject}"
         s += ", tmin : %s (ms)" % (1e3 * self.tmin)
         s += ", tmax : %s (ms)" % (1e3 * self.times[-1])
         s += ", tstep : %s (ms)" % (1e3 * self.tstep)
@@ -2504,7 +2504,7 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
         if isinstance(label, str):
             volume_label = [label]
         else:
-            volume_label = {"Volume ID %s" % (label): _ensure_int(label)}
+            volume_label = {f"Volume ID {label}": _ensure_int(label)}
         label = _volume_labels(src, (mri, volume_label), mri_resolution=False)
         assert len(label) == 1
         label = label[0]
@@ -2689,7 +2689,7 @@ class VolSourceEstimate(_BaseVolSourceEstimate):
             )
         if ftype != "h5" and self.data.dtype == "complex":
             raise ValueError(
-                "Can only write non-complex data to .stc or .w" ", use .h5 instead"
+                "Can only write non-complex data to .stc or .w, use .h5 instead"
             )
         if ftype == "stc":
             logger.info("Writing STC to disk...")
@@ -3078,10 +3078,10 @@ def _spatio_temporal_src_adjacency_surf(src, n_times):
     missing = 100 * float(len(masks) - np.sum(masks)) / len(masks)
     if missing:
         warn(
-            "%0.1f%% of original source space vertices have been"
+            f"{missing:0.1f}% of original source space vertices have been"
             " omitted, tri-based adjacency will have holes.\n"
             "Consider using distance-based adjacency or "
-            "morphing data to all source space vertices." % missing
+            "morphing data to all source space vertices."
         )
         masks = np.tile(masks, n_times)
         masks = np.where(masks)[0]
@@ -3491,7 +3491,7 @@ def _prepare_label_extraction(stc, labels, src, mode, allow_empty, use_sparse):
                 this_vertices = np.intersect1d(vertno[1], slabel.vertices)
                 vertidx = nvert[0] + np.searchsorted(vertno[1], this_vertices)
             else:
-                raise ValueError("label %s has invalid hemi" % label.name)
+                raise ValueError(f"label {label.name} has invalid hemi")
             this_vertidx.append(vertidx)
 
         # convert it to an array
@@ -3575,9 +3575,7 @@ def _volume_labels(src, labels, mri_resolution):
     if atlas_values.dtype.kind == "f":  # MGZ will be 'i'
         atlas_values = atlas_values[np.isfinite(atlas_values)]
         if not (atlas_values == np.round(atlas_values)).all():
-            raise RuntimeError(
-                "Non-integer values present in atlas, cannot " "labelize"
-            )
+            raise RuntimeError("Non-integer values present in atlas, cannot labelize")
         atlas_values = np.round(atlas_values).astype(np.int64)
     if infer_labels:
         labels = {
@@ -3597,7 +3595,7 @@ def _volume_labels(src, labels, mri_resolution):
     vox_mri_t, want = vox_mri_t["trans"], want["trans"]
     if not np.allclose(vox_mri_t, want, atol=1e-6):
         raise RuntimeError(
-            "atlas vox_mri_t does not match that used to create the source " "space"
+            "atlas vox_mri_t does not match that used to create the source space"
         )
     src_shape = tuple(src[0]["mri_" + k] for k in ("width", "height", "depth"))
     atlas_shape = atlas_data.shape

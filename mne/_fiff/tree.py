@@ -50,7 +50,7 @@ def make_dir_tree(fid, directory, start=0, indent=0, verbose=None):
     else:
         block = 0
 
-    logger.debug("    " * indent + "start { %d" % block)
+    logger.debug("    " * indent + f"start {{ {block}")
 
     this = start
 
@@ -100,9 +100,8 @@ def make_dir_tree(fid, directory, start=0, indent=0, verbose=None):
 
     logger.debug(
         "    " * (indent + 1)
-        + "block = %d nent = %d nchild = %d"
-        % (tree["block"], tree["nent"], tree["nchild"])
+        + f"block = {tree['block']} nent = {tree['nent']} nchild = {tree['nchild']}"
     )
-    logger.debug("    " * indent + "end } %d" % block)
+    logger.debug("    " * indent + f"end }} {block:d}")
     last = this
     return tree, last

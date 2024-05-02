@@ -87,13 +87,6 @@ event_id_2 = np.int64(2)  # to test non Python int types
 rng = np.random.RandomState(42)
 
 
-pytestmark = [
-    pytest.mark.filterwarnings(
-        "ignore:The current default of copy=False will change to copy=.*:FutureWarning",
-    ),
-]
-
-
 def _create_epochs_with_annotations():
     """Create test dataset of Epochs with Annotations."""
     # set up a test dataset
@@ -334,8 +327,7 @@ def test_get_data_copy():
     data = epochs.get_data(copy=True)
     assert not np.shares_memory(data, epochs._data)
 
-    with pytest.warns(FutureWarning, match="The current default of copy=False will"):
-        data = epochs.get_data(verbose="debug")
+    data = epochs.get_data(copy=False, verbose="debug")
     assert np.shares_memory(data, epochs._data)
     assert data is epochs._data
     data_orig = data.copy()
@@ -597,7 +589,7 @@ def test_reject():
             )
 
     # Check if callable returns a tuple with reasons
-    bad_types = [my_reject_2, ("Hi" "Hi"), (1, 1), None]
+    bad_types = [my_reject_2, ("HiHi"), (1, 1), None]
     for val in bad_types:  # protect against bad types
         for kwarg in ("reject", "flat"):
             with pytest.raises(
@@ -5188,7 +5180,7 @@ def test_epochs_saving_with_annotations(tmp_path):
 
     # if metadata is added already, then an error will be raised
     epochs.add_annotations_to_metadata()
-    with pytest.raises(RuntimeError, match="Metadata for Epochs " "already contains"):
+    with pytest.raises(RuntimeError, match="Metadata for Epochs already contains"):
         epochs.add_annotations_to_metadata()
     # no error is raised if overwrite is True
     epochs.add_annotations_to_metadata(overwrite=True)

@@ -1,1 +1,0 @@
-In :func:`~mne.viz.plot_compare_evokeds`, actually plot GFP (not RMS amplitude) for EEG channels when global field power is requested by `Daniel McCloy`_.
