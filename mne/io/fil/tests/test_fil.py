@@ -28,12 +28,12 @@ pytestmark = pytest.mark.filterwarnings(
 def _set_bads_tsv(chanfile, badchan):
     """Update channels.tsv by setting target channel to bad."""
     data = []
-    with open(chanfile) as f:
+    with open(chanfile, encoding="utf-8") as f:
         for line in f:
             columns = line.strip().split("\t")
             data.append(columns)
 
-    with open(chanfile, "w") as f:
+    with open(chanfile, "w", encoding="utf-8") as f:
         for row in data:
             if badchan in row:
                 row[-1] = "bad"
