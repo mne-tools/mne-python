@@ -2127,10 +2127,10 @@ class BaseRaw(
             filenames=basenames,
             duration=duration,
             projs=projs,
-            ecg=ecg,
-            eog=eog,
             good_channels=good_channels,
             bad_channels=bad_channels,
+            ecg=ecg,
+            eog=eog,
         )
 
     def add_events(self, events, stim_channel=None, replace=False):
