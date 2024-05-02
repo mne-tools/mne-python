@@ -115,7 +115,7 @@ def read_head_pos(fname):
     data = np.loadtxt(fname, skiprows=1)  # first line is header, skip it
     data.shape = (-1, 10)  # ensure it's the right size even if empty
     if np.isnan(data).any():  # make sure we didn't do something dumb
-        raise RuntimeError("positions could not be read properly from %s" % fname)
+        raise RuntimeError(f"positions could not be read properly from {fname}")
     return data
 
 
@@ -470,7 +470,7 @@ def _get_hpi_initial_fit(info, adjust=False, verbose=None):
     if "moments" in hpi_result:
         logger.debug("Hpi coil moments (%d %d):" % hpi_result["moments"].shape[::-1])
         for moment in hpi_result["moments"]:
-            logger.debug("{:g} {:g} {:g}".format(*tuple(moment)))
+            logger.debug(f"{moment[0]:g} {moment[1]:g} {moment[2]:g}")
     errors = np.linalg.norm(hpi_rrs - hpi_rrs_fit, axis=1)
     logger.debug(f"HPIFIT errors:  {', '.join(f'{1000 * e:0.1f}' for e in errors)} mm.")
     if errors.sum() < len(errors) * dist_limit:
@@ -638,11 +638,8 @@ def _setup_hpi_amplitude_fitting(
         )
     else:
         line_freqs = np.zeros([0])
-    logger.info(
-        "Line interference frequencies: {} Hz".format(
-            " ".join([f"{lf}" for lf in line_freqs])
-        )
-    )
+    lfs = " ".join(f"{lf}" for lf in line_freqs)
+    logger.info(f"Line interference frequencies: {lfs} Hz")
     # worry about resampled/filtered data.
     # What to do e.g. if Raw has been resampled and some of our
     # HPI freqs would now be aliased
@@ -757,7 +754,7 @@ def _setup_ext_proj(info, ext_order):
 
 def _time_prefix(fit_time):
     """Format log messages."""
-    return ("    t=%0.3f:" % fit_time).ljust(17)
+    return (f"    t={fit_time:0.3f}:").ljust(17)
 
 
 def _fit_chpi_amplitudes(raw, time_sl, hpi, snr=False):
@@ -995,16 +992,12 @@ def compute_head_pos(
         errs = np.linalg.norm(hpi_dig_head_rrs - est_coil_head_rrs, axis=1)
         n_good = ((g_coils >= gof_limit) & (errs < dist_limit)).sum()
         if n_good < 3:
+            warn_str = ", ".join(
+                f"{1000 * e:0.1f}::{g:0.2f}" for e, g in zip(errs, g_coils)
+            )
             warn(
-                _time_prefix(fit_time)
-                + "{}/{} good HPI fits, cannot "
-                "determine the transformation ({} mm/GOF)!".format(
-                    n_good,
-                    n_coils,
-                    ", ".join(
-                        f"{1000 * e:0.1f}::{g:0.2f}" for e, g in zip(errs, g_coils)
-                    ),
-                )
+                f"{_time_prefix(fit_time)}{n_good}/{n_coils} good HPI fits, cannot "
+                f"determine the transformation ({warn_str} mm/GOF)!"
             )
             continue
 
@@ -1064,11 +1057,8 @@ def compute_head_pos(
             f"    #t = {fit_time:0.3f}, #e = {100 * errs.mean():0.2f} cm, #g = {g:0.3f}"
             f", #v = {100 * v:0.2f} cm/s, #r = {r:0.2f} rad/s, #d = {d:0.2f} cm"
         )
-        logger.debug(
-            "    #t = {:0.3f}, #q = {} ".format(
-                fit_time, " ".join(map("{:8.5f}".format, this_quat))
-            )
-        )
+        q_rep = " ".join(f"{qq:8.5f}" for qq in this_quat)
+        logger.debug(f"    #t = {fit_time:0.3f}, #q = {q_rep}")
 
         quats.append(
             np.concatenate(([fit_time], this_quat, [g], [errs[use_idx].mean()], [v]))
@@ -1519,11 +1509,11 @@ def filter_chpi(
     meg_picks = pick_types(raw.info, meg=True, exclude=())  # filter all chs
     n_times = len(raw.times)
 
-    msg = "Removing %s cHPI" % n_freqs
+    msg = f"Removing {n_freqs} cHPI"
     if include_line:
         n_remove += 2 * len(hpi["line_freqs"])
-        msg += " and %s line harmonic" % len(hpi["line_freqs"])
-    msg += " frequencies from %s MEG channels" % len(meg_picks)
+        msg += f" and {len(hpi['line_freqs'])} line harmonic"
+    msg += f" frequencies from {len(meg_picks)} MEG channels"
 
     recon = np.dot(hpi["model"][:, :n_remove], hpi["inv_model"][:n_remove]).T
     logger.info(msg)

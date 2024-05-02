@@ -50,13 +50,17 @@ def _get_aseg(aseg, subject, subjects_dir):
     """Check that the anatomical segmentation file exists and load it."""
     nib = _import_nibabel("load aseg")
     subjects_dir = Path(get_subjects_dir(subjects_dir, raise_error=True))
-    if not aseg.endswith("aseg"):
-        raise RuntimeError(f'`aseg` file path must end with "aseg", got {aseg}')
-    aseg = _check_fname(
-        subjects_dir / subject / "mri" / (aseg + ".mgz"),
-        overwrite="read",
-        must_exist=True,
-    )
+    if aseg == "auto":  # use aparc+aseg if auto
+        aseg = _check_fname(
+            subjects_dir / subject / "mri" / "aparc+aseg.mgz",
+            overwrite="read",
+            must_exist=False,
+        )
+        if not aseg:  # if doesn't exist use wmparc
+            aseg = subjects_dir / subject / "mri" / "wmparc.mgz"
+    else:
+        aseg = subjects_dir / subject / "mri" / f"{aseg}.mgz"
+    _check_fname(aseg, overwrite="read", must_exist=True)
     aseg = nib.load(aseg)
     aseg_data = np.array(aseg.dataobj)
     return aseg, aseg_data
@@ -249,7 +253,7 @@ def get_volume_labels_from_aseg(mgz_fname, return_colors=False, atlas_ids=None):
     if atlas_ids is None:
         atlas_ids, colors = read_freesurfer_lut()
     elif return_colors:
-        raise ValueError("return_colors must be False if atlas_ids are " "provided")
+        raise ValueError("return_colors must be False if atlas_ids are provided")
     # restrict to the ones in the MRI, sorted by label name
     keep = np.isin(list(atlas_ids.values()), want)
     keys = sorted(
@@ -607,7 +611,7 @@ def read_talxfm(subject, subjects_dir=None, verbose=None):
     if not path.is_file():
         path = subjects_dir / subject / "mri" / "T1.mgz"
     if not path.is_file():
-        raise OSError("mri not found: %s" % path)
+        raise OSError(f"mri not found: {path}")
     _, _, mri_ras_t, _, _ = _read_mri_info(path)
     mri_mni_t = combine_transforms(mri_ras_t, ras_mni_t, "mri", "mni_tal")
     return mri_mni_t

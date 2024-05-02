@@ -350,9 +350,11 @@ def test_read_write_info(tmp_path):
 @testing.requires_testing_data
 def test_dir_warning():
     """Test that trying to read a bad filename emits a warning before an error."""
-    with pytest.raises(OSError, match="directory"):
-        with pytest.warns(RuntimeWarning, match="foo"):
-            read_info(ctf_fname)
+    with (
+        pytest.raises(OSError, match="directory"),
+        pytest.warns(RuntimeWarning, match="does not conform"),
+    ):
+        read_info(ctf_fname)
 
 
 def test_io_dig_points(tmp_path):
@@ -541,9 +543,9 @@ def test_check_consistency():
     idx = 0
     ch = info["chs"][idx]
     for key, bad, match in (
-        ("ch_name", 1.0, "not a string"),
+        ("ch_name", 1.0, "must be an instance"),
         ("loc", np.zeros(15), "12 elements"),
-        ("cal", np.ones(1), "float or int"),
+        ("cal", np.ones(1), "numeric"),
     ):
         info._check_consistency()  # okay
         old = ch[key]

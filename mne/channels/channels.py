@@ -153,7 +153,7 @@ def equalize_channels(instances, copy=True, verbose=None):
     from ..evoked import Evoked
     from ..forward import Forward
     from ..io import BaseRaw
-    from ..time_frequency import CrossSpectralDensity, _BaseTFR
+    from ..time_frequency import BaseTFR, CrossSpectralDensity
 
     # Instances need to have a `ch_names` attribute and a `pick_channels`
     # method that supports `ordered=True`.
@@ -161,14 +161,14 @@ def equalize_channels(instances, copy=True, verbose=None):
         BaseRaw,
         BaseEpochs,
         Evoked,
-        _BaseTFR,
+        BaseTFR,
         Forward,
         Covariance,
         CrossSpectralDensity,
         Info,
     )
     allowed_types_str = (
-        "Raw, Epochs, Evoked, TFR, Forward, Covariance, " "CrossSpectralDensity or Info"
+        "Raw, Epochs, Evoked, TFR, Forward, Covariance, CrossSpectralDensity or Info"
     )
     for inst in instances:
         _validate_type(
@@ -207,7 +207,7 @@ def equalize_channels(instances, copy=True, verbose=None):
         equalized_instances.append(inst)
 
     if dropped:
-        logger.info("Dropped the following channels:\n%s" % dropped)
+        logger.info(f"Dropped the following channels:\n{dropped}")
     elif reordered:
         logger.info("Channels have been re-ordered.")
 
@@ -447,7 +447,7 @@ class UpdateChannelsMixin:
 
     @verbose
     @legacy(alt="inst.pick(...)")
-    def pick_channels(self, ch_names, ordered=None, *, verbose=None):
+    def pick_channels(self, ch_names, ordered=True, *, verbose=None):
         """Pick some channels.
 
         Parameters
@@ -607,8 +607,6 @@ class UpdateChannelsMixin:
     def _pick_drop_channels(self, idx, *, verbose=None):
         # avoid circular imports
         from ..io import BaseRaw
-        from ..time_frequency import AverageTFR, EpochsTFR
-        from ..time_frequency.spectrum import BaseSpectrum
 
         msg = "adding, dropping, or reordering channels"
         if isinstance(self, BaseRaw):
@@ -633,10 +631,8 @@ class UpdateChannelsMixin:
             if mat is not None:
                 setattr(self, key, mat[idx][:, idx])
 
-        if isinstance(self, BaseSpectrum):
+        if hasattr(self, "_dims"):  # Spectrum and "new-style" TFRs
             axis = self._dims.index("channel")
-        elif isinstance(self, (AverageTFR, EpochsTFR)):
-            axis = -3
         else:  # All others (Evoked, Epochs, Raw) have chs axis=-2
             axis = -2
         if hasattr(self, "_data"):  # skip non-preloaded Raw
@@ -839,6 +835,8 @@ class InterpolationMixin:
             - ``"meg"`` channels support ``"MNE"`` (default) and ``"nan"``
             - ``"eeg"`` channels support ``"spline"`` (default), ``"MNE"`` and ``"nan"``
             - ``"fnirs"`` channels support ``"nearest"`` (default) and ``"nan"``
+            - ``"ecog"`` channels support ``"spline"`` (default) and ``"nan"``
+            - ``"seeg"`` channels support ``"spline"`` (default) and ``"nan"``
 
             None is an alias for::
 
@@ -1420,12 +1418,12 @@ def _ch_neighbor_adjacency(ch_names, neighbors):
         The adjacency matrix.
     """
     if len(ch_names) != len(neighbors):
-        raise ValueError("`ch_names` and `neighbors` must " "have the same length")
+        raise ValueError("`ch_names` and `neighbors` must have the same length")
     set_neighbors = {c for d in neighbors for c in d}
     rest = set_neighbors - set(ch_names)
     if len(rest) > 0:
         raise ValueError(
-            "Some of your neighbors are not present in the " "list of channel names"
+            "Some of your neighbors are not present in the list of channel names"
         )
 
     for neigh in neighbors:
@@ -1496,7 +1494,7 @@ def find_ch_adjacency(info, ch_type):
         picks = channel_indices_by_type(info)
         if sum([len(p) != 0 for p in picks.values()]) != 1:
             raise ValueError(
-                "info must contain only one channel type if " "ch_type is None."
+                "info must contain only one channel type if ch_type is None."
             )
         ch_type = channel_type(info, 0)
     else:
@@ -2147,7 +2145,7 @@ def read_vectorview_selection(name, fname=None, info=None, verbose=None):
     # make sure we found at least one match for each name
     for n, found in name_found.items():
         if not found:
-            raise ValueError('No match for selection name "%s" found' % n)
+            raise ValueError(f'No match for selection name "{n}" found')
 
     # make the selection a sorted list with unique elements
     sel = list(set(sel))

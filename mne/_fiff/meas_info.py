@@ -25,7 +25,6 @@ from ..utils import (
     _check_on_missing,
     _check_option,
     _dt_to_stamp,
-    _is_numeric,
     _on_missing,
     _pl,
     _stamp_to_dt,
@@ -281,7 +280,7 @@ def _unique_channel_names(ch_names, max_length=None, verbose=None):
         dups = {ch_names[x] for x in np.setdiff1d(range(len(ch_names)), unique_ids)}
         warn(
             "Channel names are not unique, found duplicates for: "
-            "%s. Applying running numbers for duplicates." % dups
+            f"{dups}. Applying running numbers for duplicates."
         )
         for ch_stem in dups:
             overlaps = np.where(np.array(ch_names) == ch_stem)[0]
@@ -296,7 +295,7 @@ def _unique_channel_names(ch_names, max_length=None, verbose=None):
             for idx, ch_idx in enumerate(overlaps):
                 # try idx first, then loop through lower case chars
                 for suffix in (idx,) + suffixes:
-                    ch_name = ch_stem + "-%s" % suffix
+                    ch_name = ch_stem + f"-{suffix}"
                     if ch_name not in ch_names:
                         break
                 if ch_name not in ch_names:
@@ -305,7 +304,7 @@ def _unique_channel_names(ch_names, max_length=None, verbose=None):
                     raise ValueError(
                         "Adding a single alphanumeric for a "
                         "duplicate resulted in another "
-                        "duplicate name %s" % ch_name
+                        f"duplicate name {ch_name}"
                     )
     return ch_names
 
@@ -503,7 +502,7 @@ class SetChannelsMixin(MontageMixin):
         info = self if isinstance(self, Info) else self.info
         if len(pos) != len(names):
             raise ValueError(
-                "Number of channel positions not equal to " "the number of names given."
+                "Number of channel positions not equal to the number of names given."
             )
         pos = np.asarray(pos, dtype=np.float64)
         if pos.shape[-1] != 3 or pos.ndim != 2:
@@ -516,7 +515,7 @@ class SetChannelsMixin(MontageMixin):
                 idx = self.ch_names.index(name)
                 info["chs"][idx]["loc"][:3] = p
             else:
-                msg = "%s was not found in the info. Cannot be updated." % name
+                msg = f"{name} was not found in the info. Cannot be updated."
                 raise ValueError(msg)
 
     @verbose
@@ -545,12 +544,12 @@ class SetChannelsMixin(MontageMixin):
 
         Notes
         -----
-        The following sensor types are accepted:
+        The following :term:`sensor types` are accepted:
 
-            ecg, eeg, emg, eog, exci, ias, misc, resp, seeg, dbs, stim, syst,
-            ecog, hbo, hbr, fnirs_cw_amplitude, fnirs_fd_ac_amplitude,
-            fnirs_fd_phase, fnirs_od, eyetrack_pos, eyetrack_pupil,
-            temperature, gsr
+            bio, chpi, csd, dbs, dipole, ecg, ecog, eeg, emg, eog, exci,
+            eyegaze, fnirs_cw_amplitude, fnirs_fd_ac_amplitude, fnirs_fd_phase,
+            fnirs_od, gof, gsr, hbo, hbr, ias, misc, pupil, ref_meg, resp,
+            seeg, stim, syst, temperature.
 
         .. versionadded:: 0.9.0
         """
@@ -562,7 +561,7 @@ class SetChannelsMixin(MontageMixin):
         for ch_name, ch_type in mapping.items():
             if ch_name not in ch_names:
                 raise ValueError(
-                    "This channel name (%s) doesn't exist in " "info." % ch_name
+                    f"This channel name ({ch_name}) doesn't exist in info."
                 )
 
             c_ind = ch_names.index(ch_name)
@@ -1104,9 +1103,9 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
         The transformation from 4D/CTF head coordinates to Neuromag head
         coordinates. This is only present in 4D/CTF data.
     custom_ref_applied : int
-        Whether a custom (=other than average) reference has been applied to
-        the EEG data. This flag is checked by some algorithms that require an
-        average reference to be set.
+        Whether a custom (=other than an average projector) reference has been
+        applied to the EEG data. This flag is checked by some algorithms that
+        require an average reference to be set.
     description : str | None
         String description of the recording.
     dev_ctf_t : Transform | None
@@ -1668,7 +1667,7 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
             elif k == "projs":
                 if v:
                     entr = ", ".join(
-                        p["desc"] + ": o%s" % {0: "ff", 1: "n"}[p["active"]] for p in v
+                        p["desc"] + ": o" + ("n" if p["active"] else "ff") for p in v
                     )
                     entr = shorten(entr, MAX_WIDTH, placeholder=" ...")
                 else:
@@ -1684,12 +1683,12 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
             elif k == "dig" and v is not None:
                 counts = Counter(d["kind"] for d in v)
                 counts = [
-                    "%d %s" % (counts[ii], _dig_kind_proper[_dig_kind_rev[ii]])
+                    f"{counts[ii]} {_dig_kind_proper[_dig_kind_rev[ii]]}"
                     for ii in _dig_kind_ints
                     if ii in counts
                 ]
-                counts = (" (%s)" % (", ".join(counts))) if len(counts) else ""
-                entr = "%d item%s%s" % (len(v), _pl(len(v)), counts)
+                counts = f" ({', '.join(counts)})" if len(counts) else ""
+                entr = f"{len(v)} item{_pl(v)}{counts}"
             elif isinstance(v, Transform):
                 # show entry only for non-identity transform
                 if not np.allclose(v["trans"], np.eye(v["trans"].shape[0])):
@@ -1722,11 +1721,7 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
                     entr = f"{v}" if v is not None else ""
                 else:
                     if this_len > 0:
-                        entr = "%d item%s (%s)" % (
-                            this_len,
-                            _pl(this_len),
-                            type(v).__name__,
-                        )
+                        entr = f"{this_len} item{_pl(this_len)} ({type(v).__name__})"
                     else:
                         entr = ""
             if entr != "":
@@ -1815,23 +1810,15 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
         for ci, ch in enumerate(self["chs"]):
             _check_ch_keys(ch, ci)
             ch_name = ch["ch_name"]
-            if not isinstance(ch_name, str):
-                raise TypeError(
-                    'Bad info: info["chs"][%d]["ch_name"] is not a string, '
-                    "got type %s" % (ci, type(ch_name))
-                )
+            _validate_type(ch_name, str, f'info["chs"][{ci}]["ch_name"]')
             for key in _SCALAR_CH_KEYS:
                 val = ch.get(key, 1)
-                if not _is_numeric(val):
-                    raise TypeError(
-                        'Bad info: info["chs"][%d][%r] = %s is type %s, must '
-                        "be float or int" % (ci, key, val, type(val))
-                    )
+                _validate_type(val, "numeric", f'info["chs"][{ci}][{key}]')
             loc = ch["loc"]
             if not (isinstance(loc, np.ndarray) and loc.shape == (12,)):
                 raise TypeError(
-                    'Bad info: info["chs"][%d]["loc"] must be ndarray with '
-                    "12 elements, got %r" % (ci, loc)
+                    f'Bad info: info["chs"][{ci}]["loc"] must be ndarray with '
+                    f"12 elements, got {repr(loc)}"
                 )
 
         # make sure channel names are unique
@@ -2989,9 +2976,7 @@ def _merge_info_values(infos, key, verbose=None):
         if is_qual:
             return values[0]
         elif key == "meas_date":
-            logger.info(
-                "Found multiple entries for %s. " "Setting value to `None`" % key
-            )
+            logger.info(f"Found multiple entries for {key}. Setting value to `None`")
             return None
         else:
             raise RuntimeError(msg)
@@ -3007,10 +2992,10 @@ def _merge_info_values(infos, key, verbose=None):
         if len(unique_values) == 1:
             return list(values)[0]
         elif isinstance(list(unique_values)[0], BytesIO):
-            logger.info("Found multiple StringIO instances. " "Setting value to `None`")
+            logger.info("Found multiple StringIO instances. Setting value to `None`")
             return None
         elif isinstance(list(unique_values)[0], str):
-            logger.info("Found multiple filenames. " "Setting value to `None`")
+            logger.info("Found multiple filenames. Setting value to `None`")
             return None
         else:
             raise RuntimeError(msg)
@@ -3059,7 +3044,7 @@ def _merge_info(infos, force_update_to_first=False, verbose=None):
     if len(duplicates) > 0:
         msg = (
             "The following channels are present in more than one input "
-            "measurement info objects: %s" % list(duplicates)
+            f"measurement info objects: {list(duplicates)}"
         )
         raise ValueError(msg)
 
@@ -3078,7 +3063,7 @@ def _merge_info(infos, force_update_to_first=False, verbose=None):
         ):
             info[trans_name] = trans[0]
         else:
-            msg = "Measurement infos provide mutually inconsistent %s" % trans_name
+            msg = f"Measurement infos provide mutually inconsistent {trans_name}"
             raise ValueError(msg)
 
     # KIT system-IDs
@@ -3101,7 +3086,7 @@ def _merge_info(infos, force_update_to_first=False, verbose=None):
         elif all(object_diff(values[0], v) == "" for v in values[1:]):
             info[k] = values[0]
         else:
-            msg = "Measurement infos are inconsistent for %s" % k
+            msg = f"Measurement infos are inconsistent for {k}"
             raise ValueError(msg)
 
     # other fields
@@ -3155,11 +3140,14 @@ def create_info(ch_names, sfreq, ch_types="misc", verbose=None):
     sfreq : float
         Sample rate of the data.
     ch_types : list of str | str
-        Channel types, default is ``'misc'`` which is not a
-        :term:`data channel <data channels>`.
-        Currently supported fields are 'ecg', 'bio', 'stim', 'eog', 'misc',
-        'seeg', 'dbs', 'ecog', 'mag', 'eeg', 'ref_meg', 'grad', 'emg', 'hbr'
-        'eyetrack' or 'hbo'.
+        Channel types, default is ``'misc'`` which is a
+        :term:`non-data channel <non-data channels>`.
+        Currently supported fields are 'bio', 'chpi', 'csd', 'dbs', 'dipole',
+        'ecg', 'ecog', 'eeg', 'emg', 'eog', 'exci', 'eyegaze',
+        'fnirs_cw_amplitude', 'fnirs_fd_ac_amplitude', 'fnirs_fd_phase',
+        'fnirs_od', 'gof', 'gsr', 'hbo', 'hbr', 'ias', 'misc', 'pupil',
+        'ref_meg', 'resp', 'seeg', 'stim', 'syst', 'temperature' (see also
+        :term:`sensor types`).
         If str, then all channels are assumed to be of the same type.
     %(verbose)s
 
@@ -3179,12 +3167,18 @@ def create_info(ch_names, sfreq, ch_types="misc", verbose=None):
 
     Proper units of measure:
 
-    * V: eeg, eog, seeg, dbs, emg, ecg, bio, ecog
-    * T: mag
+    * V: eeg, eog, seeg, dbs, emg, ecg, bio, ecog, resp, fnirs_fd_ac_amplitude,
+      fnirs_cw_amplitude, fnirs_od
+    * T: mag, chpi, ref_meg
     * T/m: grad
     * M: hbo, hbr
+    * rad: fnirs_fd_phase
     * Am: dipole
-    * AU: misc
+    * S: gsr
+    * C: temperature
+    * V/m²: csd
+    * GOF: gof
+    * AU: misc, stim, eyegaze, pupil
     """
     try:
         ch_names = operator.index(ch_names)  # int-like
@@ -3358,7 +3352,7 @@ def _force_update_info(info_base, info_target):
     all_infos = np.hstack([info_base, info_target])
     for ii in all_infos:
         if not isinstance(ii, Info):
-            raise ValueError("Inputs must be of type Info. " "Found type %s" % type(ii))
+            raise ValueError("Inputs must be of type Info. " f"Found type {type(ii)}")
     for key, val in info_base.items():
         if key in exclude_keys:
             continue
@@ -3409,7 +3403,7 @@ def anonymize_info(info, daysback=None, keep_his=False, verbose=None):
     default_str = "mne_anonymize"
     default_subject_id = 0
     default_sex = 0
-    default_desc = "Anonymized using a time shift" " to preserve age at acquisition"
+    default_desc = "Anonymized using a time shift to preserve age at acquisition"
 
     none_meas_date = info["meas_date"] is None
 
@@ -3455,7 +3449,7 @@ def anonymize_info(info, daysback=None, keep_his=False, verbose=None):
             subject_info["id"] = default_subject_id
         if keep_his:
             logger.info(
-                "Not fully anonymizing info - keeping " "his_id, sex, and hand info"
+                "Not fully anonymizing info - keeping his_id, sex, and hand info"
             )
         else:
             if subject_info.get("his_id") is not None:
@@ -3527,7 +3521,7 @@ def anonymize_info(info, daysback=None, keep_his=False, verbose=None):
                 di[k] = default_str
 
     err_mesg = (
-        "anonymize_info generated an inconsistent info object. " "Underlying Error:\n"
+        "anonymize_info generated an inconsistent info object. Underlying Error:\n"
     )
     info._check_consistency(prepend_error=err_mesg)
     err_mesg = (

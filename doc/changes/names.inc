@@ -20,6 +20,8 @@
 
 .. _Alex Gramfort: https://alexandre.gramfort.net
 
+.. _Alex Kiefer: https://home.alexk101.dev
+
 .. _Alex Rockhill: https://github.com/alexrockhill/
 
 .. _Alexander Rudiuk: https://github.com/ARudiuk
@@ -68,11 +70,13 @@
 
 .. _Bruno Nicenboim: https://bnicenboim.github.io
 
+.. _btkcodedev: https://github.com/btkcodedev
+
 .. _buildqa: https://github.com/buildqa
 
 .. _Carlos de la Torre-Ortiz: https://ctorre.me
 
-.. _Carina Forster: https://github.com/carinafo
+.. _Carina Forster: https://github.com/CarinaFo
 
 .. _Cathy Nangini: https://github.com/KatiRG
 
@@ -186,7 +190,7 @@
 
 .. _George O'Neill: https://georgeoneill.github.io
 
-.. _Gonzalo Reina: https://github.com/Gon-reina
+.. _Gonzalo Reina: https://orcid.org/0000-0003-4219-2306
 
 .. _Guillaume Dumas: https://mila.quebec/en/person/guillaume-dumas
 
@@ -202,9 +206,11 @@
 
 .. _Hari Bharadwaj: https://github.com/haribharadwaj
 
+.. _Hasrat Ali Arzoo: https://github.com/hasrat17
+
 .. _Henrich Kolkhorst: https://github.com/hekolk
 
-.. _Hongjiang Ye: https://github.com/rubyyhj
+.. _Hongjiang Ye: https://github.com/hongjiang-ye
 
 .. _Hubert Banville: https://github.com/hubertjb
 
@@ -219,6 +225,8 @@
 .. _Ivan Zubarev: https://github.com/zubara
 
 .. _Ivana Kojcic: https://github.com/ikojcic
+
+.. _Ivo de Jong: https://github.com/ivopascal
 
 .. _Jaakko Leppakangas: https://github.com/jaeilepp
 
@@ -374,6 +382,8 @@
 
 .. _Mauricio Cespedes Tenorio: https://github.com/mcespedes99
 
+.. _Michal Žák: https://github.com/michalrzak
+
 .. _Michiru Kaneda: https://github.com/rcmdnk
 
 .. _Mikołaj Magnuski: https://github.com/mmagnuski
@@ -387,6 +397,8 @@
 .. _Moritz Gerster: https://github.com/moritz-gerster
 
 .. _Motofumi Fushimi: https://github.com/motofumi-fushimi/motofumi-fushimi.github.io
+
+.. _Nabil Alibou: https://github.com/nabilalibou
 
 .. _Natalie Klein: https://github.com/natalieklein
 
@@ -412,7 +424,7 @@
 
 .. _Okba Bekhelifi: https://github.com/okbalefthanded
 
-.. _Olaf Hauk: https://www.neuroscience.cam.ac.uk/directory/profile.php?olafhauk
+.. _Olaf Hauk: https://neuroscience.cam.ac.uk/member/olafhauk
 
 .. _Oleh Kozynets: https://github.com/OlehKSS
 
@@ -458,7 +470,7 @@
 
 .. _Rasmus Aagaard: https://github.com/rasgaard
 
-.. _Rasmus Zetter: https://people.aalto.fi/rasmus.zetter
+.. _Rasmus Zetter: https://github.com/rzetter
 
 .. _Reza Nasri: https://github.com/rznas
 
@@ -467,6 +479,8 @@
 .. _Richard Höchenberger: https://github.com/hoechenberger
 
 .. _Richard Koehler: https://github.com/richardkoehler
+
+.. _Richard Scholz: https://github.com/scholzri
 
 .. _Riessarius Stargardsky: https://github.com/Riessarius
 
@@ -580,11 +594,15 @@
 
 .. _Valerii Chirkov: https://github.com/vagechirkov
 
+.. _Velu Prabhakar Kumaravel: https://github.com/vpKumaravel
+
 .. _Victor Ferat: https://github.com/vferat
 
 .. _Victoria Peterson: https://github.com/vpeterson
 
 .. _Xiaokai Xia: https://github.com/dddd1007
+
+.. _Will Turner: https://bootstrapbill.github.io
 
 .. _Yaroslav Halchenko: http://haxbylab.dartmouth.edu/ppl/yarik.html
 
@@ -597,3 +615,5 @@
 .. _Zhi Zhang: https://github.com/tczhangzhi/
 
 .. _Zvi Baratz: https://github.com/ZviBaratz
+
+.. _Seyed Yahya Shirazi: https://neuromechanist.github.io

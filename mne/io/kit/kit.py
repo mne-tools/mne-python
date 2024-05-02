@@ -43,7 +43,7 @@ UINT32 = "<u4"
 INT32 = "<i4"
 
 
-def _call_digitization(info, mrk, elp, hsp, kit_info):
+def _call_digitization(info, mrk, elp, hsp, kit_info, *, bad_coils=()):
     # Use values from kit_info only if all others are None
     if mrk is None and elp is None and hsp is None:
         mrk = kit_info.get("mrk", None)
@@ -62,11 +62,15 @@ def _call_digitization(info, mrk, elp, hsp, kit_info):
     if mrk is not None and elp is not None and hsp is not None:
         with info._unlock():
             info["dig"], info["dev_head_t"], info["hpi_results"] = _set_dig_kit(
-                mrk, elp, hsp, kit_info["eeg_dig"]
+                mrk,
+                elp,
+                hsp,
+                kit_info["eeg_dig"],
+                bad_coils=bad_coils,
             )
     elif mrk is not None or elp is not None or hsp is not None:
         raise ValueError(
-            "mrk, elp and hsp need to be provided as a group " "(all or none)"
+            "mrk, elp and hsp need to be provided as a group (all or none)"
         )
 
     return info
@@ -100,6 +104,7 @@ class RawKIT(BaseRaw):
         Force reading old data that is not officially supported. Alternatively,
         read and re-save the data with the KIT MEG Laboratory application.
     %(standardize_names)s
+    %(kit_badcoils)s
     %(verbose)s
 
     Notes
@@ -133,9 +138,11 @@ class RawKIT(BaseRaw):
         stim_code="binary",
         allow_unknown_format=False,
         standardize_names=None,
+        *,
+        bad_coils=(),
         verbose=None,
     ):
-        logger.info("Extracting SQD Parameters from %s..." % input_fname)
+        logger.info(f"Extracting SQD Parameters from {input_fname}...")
         input_fname = op.abspath(input_fname)
         self.preload = False
         logger.info("Creating Raw.info structure...")
@@ -145,7 +152,7 @@ class RawKIT(BaseRaw):
         kit_info["slope"] = slope
         kit_info["stimthresh"] = stimthresh
         if kit_info["acq_type"] != KIT.CONTINUOUS:
-            raise TypeError("SQD file contains epochs, not raw data. Wrong " "reader.")
+            raise TypeError("SQD file contains epochs, not raw data. Wrong reader.")
         logger.info("Creating Info structure...")
 
         last_samps = [kit_info["n_samples"] - 1]
@@ -160,7 +167,12 @@ class RawKIT(BaseRaw):
             verbose=verbose,
         )
         self.info = _call_digitization(
-            info=self.info, mrk=mrk, elp=elp, hsp=hsp, kit_info=kit_info
+            info=self.info,
+            mrk=mrk,
+            elp=elp,
+            hsp=hsp,
+            kit_info=kit_info,
+            bad_coils=bad_coils,
         )
         logger.info("Ready.")
 
@@ -264,7 +276,7 @@ def _set_stimchannels(inst, info, stim, stim_code):
                 stim = picks
             else:
                 raise ValueError(
-                    "stim needs to be list of int, '>' or " "'<', not %r" % str(stim)
+                    "stim needs to be list of int, '>' or " f"'<', not {str(stim)!r}"
                 )
         else:
             stim = np.asarray(stim, int)
@@ -315,7 +327,7 @@ def _make_stim_channel(trigger_chs, slope, threshold, stim_code, trigger_values)
         trigger_values = 2 ** np.arange(len(trigger_chs))
     elif stim_code != "channel":
         raise ValueError(
-            "stim_code must be 'binary' or 'channel', got %s" % repr(stim_code)
+            f"stim_code must be 'binary' or 'channel', got {repr(stim_code)}"
         )
     trig_chs = trig_chs_bin * trigger_values[:, np.newaxis]
     return np.array(trig_chs.sum(axis=0), ndmin=2)
@@ -389,7 +401,7 @@ class EpochsKIT(BaseEpochs):
         input_fname = str(
             _check_fname(fname=input_fname, must_exist=True, overwrite="read")
         )
-        logger.info("Extracting KIT Parameters from %s..." % input_fname)
+        logger.info(f"Extracting KIT Parameters from {input_fname}...")
         self.info, kit_info = get_kit_info(
             input_fname, allow_unknown_format, standardize_names
         )
@@ -403,7 +415,7 @@ class EpochsKIT(BaseEpochs):
             self._raw_extras[0]["data_length"] = KIT.INT
         else:
             raise TypeError(
-                "SQD file contains raw data, not epochs or " "average. Wrong reader."
+                "SQD file contains raw data, not epochs or average. Wrong reader."
             )
 
         if event_id is None:  # convert to int to make typing-checks happy
@@ -412,7 +424,7 @@ class EpochsKIT(BaseEpochs):
         for key, val in event_id.items():
             if val not in events[:, 2]:
                 raise ValueError(
-                    "No matching events found for %s " "(event id %i)" % (key, val)
+                    "No matching events found for %s (event id %i)" % (key, val)
                 )
 
         data = self._read_kit_data()
@@ -531,13 +543,12 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None, verbose=
             version_string = "V%iR%03i" % (version, revision)
             if allow_unknown_format:
                 unsupported_format = True
-                warn("Force loading KIT format %s" % version_string)
+                warn(f"Force loading KIT format {version_string}")
             else:
                 raise UnsupportedKITFormat(
                     version_string,
-                    "SQD file format %s is not officially supported. "
-                    "Set allow_unknown_format=True to load it anyways."
-                    % (version_string,),
+                    f"SQD file format {version_string} is not officially supported. "
+                    "Set allow_unknown_format=True to load it anyways.",
                 )
 
         sysid = np.fromfile(fid, INT32, 1)[0]
@@ -912,6 +923,8 @@ def read_raw_kit(
     stim_code="binary",
     allow_unknown_format=False,
     standardize_names=False,
+    *,
+    bad_coils=(),
     verbose=None,
 ) -> RawKIT:
     r"""Reader function for Ricoh/KIT conversion to FIF.
@@ -932,6 +945,7 @@ def read_raw_kit(
         Force reading old data that is not officially supported. Alternatively,
         read and re-save the data with the KIT MEG Laboratory application.
     %(standardize_names)s
+    %(kit_badcoils)s
     %(verbose)s
 
     Returns
@@ -966,6 +980,7 @@ def read_raw_kit(
         stim_code=stim_code,
         allow_unknown_format=allow_unknown_format,
         standardize_names=standardize_names,
+        bad_coils=bad_coils,
         verbose=verbose,
     )
 

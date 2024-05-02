@@ -441,7 +441,7 @@ class DigMontage:
                 (
                     "Cannot add two DigMontage objects if they contain duplicated"
                     " channel names. Duplicated channel(s) found: {}."
-                ).format(", ".join(["%r" % v for v in sorted(ch_names_intersection)]))
+                ).format(", ".join([f"{v!r}" for v in sorted(ch_names_intersection)]))
             )
 
         # Check for unique matching fiducials
@@ -461,7 +461,7 @@ class DigMontage:
                     raise RuntimeError(
                         "Cannot add two DigMontage objects if "
                         "fiducial locations do not match "
-                        "(%s)" % kk
+                        f"({kk})"
                     )
 
             # keep self
@@ -1207,14 +1207,14 @@ def _set_montage(info, montage, match_case=True, match_alias=False, on_missing="
         n_dup = len(ch_pos) - len(ch_pos_use)
         if n_dup:
             raise ValueError(
-                "Cannot use match_case=False as %s montage "
-                "name(s) require case sensitivity" % n_dup
+                f"Cannot use match_case=False as {n_dup} montage "
+                "name(s) require case sensitivity"
             )
         n_dup = len(info_names_use) - len(set(info_names_use))
         if n_dup:
             raise ValueError(
-                "Cannot use match_case=False as %s channel "
-                "name(s) require case sensitivity" % n_dup
+                f"Cannot use match_case=False as {n_dup} channel "
+                "name(s) require case sensitivity"
             )
         ch_pos = ch_pos_use
         del ch_pos_use
@@ -1527,7 +1527,7 @@ def read_polhemus_fastscan(
     _check_option("fname", ext, VALID_FILE_EXT)
 
     if not _is_polhemus_fastscan(fname):
-        msg = "%s does not contain a valid Polhemus FastSCAN header" % fname
+        msg = f"{fname} does not contain a valid Polhemus FastSCAN header"
         _on_missing(on_header_missing, msg)
 
     points = _scale * np.loadtxt(fname, comments="%", ndmin=2)
@@ -1709,11 +1709,9 @@ def compute_dev_head_t(montage):
 
     if not (len(hpi_head) == len(hpi_dev) and len(hpi_dev) > 0):
         raise ValueError(
-            (
-                "To compute Device-to-Head transformation, the same number of HPI"
-                " points in device and head coordinates is required. (Got {dev}"
-                " points in device and {head} points in head coordinate systems)"
-            ).format(dev=len(hpi_dev), head=len(hpi_head))
+            "To compute Device-to-Head transformation, the same number of HPI"
+            f" points in device and head coordinates is required. (Got {len(hpi_dev)}"
+            f" points in device and {len(hpi_head)} points in head coordinate systems)"
         )
 
     trans = _quat_to_affine(_fit_matched_points(hpi_dev, hpi_head)[0])

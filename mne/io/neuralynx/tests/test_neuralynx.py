@@ -2,6 +2,7 @@
 # Copyright the MNE-Python contributors.
 import os
 from ast import literal_eval
+from datetime import datetime, timezone
 
 import numpy as np
 import pytest
@@ -103,7 +104,12 @@ def _read_nlx_mat_chan_keep_gaps(matfile: str) -> np.ndarray:
     return x
 
 
+# set known values for the Neuralynx data for testing
 expected_chan_names = ["LAHC1", "LAHC2", "LAHC3", "xAIR1", "xEKG1"]
+expected_hp_freq = 0.1
+expected_lp_freq = 500.0
+expected_sfreq = 2000.0
+expected_meas_date = datetime.strptime("2023/11/02 13:39:27", "%Y/%m/%d  %H:%M:%S")
 
 
 @requires_testing_data
@@ -124,6 +130,14 @@ def test_neuralynx():
         preload=True,
         exclude_fname_patterns=fname_patterns,
     )
+
+    # test that we picked the right info from headers
+    assert raw.info["highpass"] == expected_hp_freq, "highpass freq not set correctly"
+    assert raw.info["lowpass"] == expected_lp_freq, "lowpass freq not set correctly"
+    assert raw.info["sfreq"] == expected_sfreq, "sampling freq not set correctly"
+
+    meas_date_utc = expected_meas_date.astimezone(timezone.utc)
+    assert raw.info["meas_date"] == meas_date_utc, "meas_date not set correctly"
 
     # test that channel selection worked
     assert (

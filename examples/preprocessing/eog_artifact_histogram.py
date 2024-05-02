@@ -15,7 +15,6 @@ Compute the distribution of timing for EOG artifacts.
 
 # %%
 
-
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -53,4 +52,4 @@ data = np.sum((data.astype(int) & eog_event_id) == eog_event_id, axis=0)
 # Plot EOG artifact distribution
 fig, ax = plt.subplots(layout="constrained")
 ax.stem(1e3 * epochs.times, data)
-ax.set(xlabel="Times (ms)", ylabel="Blink counts (from %s trials)" % len(epochs))
+ax.set(xlabel="Times (ms)", ylabel=f"Blink counts (from {len(epochs)} trials)")

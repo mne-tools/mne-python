@@ -8,7 +8,7 @@ from contextlib import nullcontext
 import pytest
 
 import mne
-from mne.utils import catch_logging, run_subprocess, sizeof_fmt
+from mne.utils import _clean_names, catch_logging, run_subprocess, sizeof_fmt
 
 
 def test_sizeof_fmt():
@@ -144,3 +144,16 @@ print('bar', file=sys.{kind})
         other = stdout
     assert std == want
     assert other == ""
+
+
+def test_clean_names():
+    """Test cleaning names on OPM dataset.
+
+    This channel name list is a subset from a user OPM dataset reported on the forum
+    https://mne.discourse.group/t/error-when-trying-to-plot-projectors-ssp/8456
+    where the function _clean_names ended up creating a duplicate channel name L108_bz.
+    """
+    ch_names = ["R305_bz-s2", "L108_bz-s77", "R112_bz-s109", "L108_bz-s110"]
+    ch_names_clean = _clean_names(ch_names, before_dash=True)
+    assert ch_names == ch_names_clean
+    assert len(set(ch_names_clean)) == len(ch_names_clean)

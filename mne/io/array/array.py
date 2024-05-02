@@ -81,9 +81,8 @@ class RawArray(BaseRaw):
                 "to get to double floating point precision"
             )
         logger.info(
-            "Creating RawArray with {} data, n_channels={}, n_times={}".format(
-                dtype.__name__, data.shape[0], data.shape[1]
-            )
+            f"Creating RawArray with {dtype.__name__} data, "
+            f"n_channels={data.shape[0]}, n_times={data.shape[1]}"
         )
         super().__init__(
             info, data, first_samps=(int(first_samp),), dtype=dtype, verbose=verbose

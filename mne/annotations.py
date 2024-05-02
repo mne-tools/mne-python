@@ -307,11 +307,9 @@ class Annotations:
         kinds = ", ".join(["{} ({})".format(*k) for k in sorted(counter.items())])
         kinds = (": " if len(kinds) > 0 else "") + kinds
         ch_specific = ", channel-specific" if self._any_ch_names() else ""
-        s = "Annotations | {} segment{}{}{}".format(
-            len(self.onset),
-            _pl(len(self.onset)),
-            ch_specific,
-            kinds,
+        s = (
+            f"Annotations | {len(self.onset)} segment"
+            f"{_pl(len(self.onset))}{ch_specific}{kinds}"
         )
         return "<" + shorten(s, width=77, placeholder=" ...") + ">"
 
@@ -675,15 +673,12 @@ class Annotations:
         if emit_warning:
             omitted = np.array(out_of_bounds).sum()
             if omitted > 0:
-                warn(
-                    "Omitted %s annotation(s) that were outside data"
-                    " range." % omitted
-                )
+                warn(f"Omitted {omitted} annotation(s) that were outside data range.")
             limited = (np.array(clip_left_elem) | np.array(clip_right_elem)).sum()
             if limited > 0:
                 warn(
-                    "Limited %s annotation(s) that were expanding outside the"
-                    " data range." % limited
+                    f"Limited {limited} annotation(s) that were expanding outside the"
+                    " data range."
                 )
 
         return self
@@ -820,11 +815,10 @@ class EpochAnnotationsMixin:
         else:
             if getattr(self, "_unsafe_annot_add", False):
                 warn(
-                    "Adding annotations to Epochs created (and saved to "
-                    "disk) before 1.0 will yield incorrect results if "
-                    "decimation or resampling was performed on the instance, "
-                    "we recommend regenerating the Epochs and re-saving them "
-                    "to disk."
+                    "Adding annotations to Epochs created (and saved to disk) before "
+                    "1.0 will yield incorrect results if decimation or resampling was "
+                    "performed on the instance, we recommend regenerating the Epochs "
+                    "and re-saving them to disk."
                 )
             new_annotations = annotations.copy()
             new_annotations._prune_ch_names(self.info, on_missing)
@@ -1241,10 +1235,10 @@ def read_annotations(
     elif name.startswith("events_") and fname.endswith("mat"):
         annotations = _read_brainstorm_annotations(fname)
     else:
-        raise OSError('Unknown annotation file format "%s"' % fname)
+        raise OSError(f'Unknown annotation file format "{fname}"')
 
     if annotations is None:
-        raise OSError('No annotation data found in file "%s"' % fname)
+        raise OSError(f'No annotation data found in file "{fname}"')
     return annotations
 
 
@@ -1529,6 +1523,7 @@ def events_from_annotations(
     regexp=r"^(?![Bb][Aa][Dd]|[Ee][Dd][Gg][Ee]).*$",
     use_rounding=True,
     chunk_duration=None,
+    tol=1e-8,
     verbose=None,
 ):
     """Get :term:`events` and ``event_id`` from an Annotations object.
@@ -1572,6 +1567,11 @@ def events_from_annotations(
         they fit within the annotation duration spaced according to
         ``chunk_duration``. As a consequence annotations with duration shorter
         than ``chunk_duration`` will not contribute events.
+    tol : float
+        The tolerance used to check if a chunk fits within an annotation when
+        ``chunk_duration`` is not ``None``. If the duration from a computed
+        chunk onset to the end of the annotation is smaller than
+        ``chunk_duration`` minus ``tol``, the onset will be discarded.
     %(verbose)s
 
     Returns
@@ -1616,10 +1616,8 @@ def events_from_annotations(
         inds = values = np.array([]).astype(int)
         for annot in annotations[event_sel]:
             annot_offset = annot["onset"] + annot["duration"]
-            _onsets = np.arange(
-                start=annot["onset"], stop=annot_offset, step=chunk_duration
-            )
-            good_events = annot_offset - _onsets >= chunk_duration
+            _onsets = np.arange(annot["onset"], annot_offset, chunk_duration)
+            good_events = annot_offset - _onsets >= chunk_duration - tol
             if good_events.any():
                 _onsets = _onsets[good_events]
                 _inds = raw.time_as_index(

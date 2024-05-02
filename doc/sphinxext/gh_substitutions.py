@@ -4,7 +4,7 @@ from docutils.nodes import reference
 from docutils.parsers.rst.roles import set_classes
 
 
-def gh_role(name, rawtext, text, lineno, inliner, options={}, content=[]):
+def gh_role(name, rawtext, text, lineno, inliner, options={}, content=[]):  # noqa: B006
     """Link to a GitHub issue.
 
     adapted from

@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 from matplotlib import backend_bases
-from numpy.testing import assert_allclose
+from numpy.testing import assert_allclose, assert_array_equal
 
 from mne import Annotations, create_info, pick_types
 from mne._fiff.pick import _DATA_CH_TYPES_ORDER_DEFAULT, _PICK_TYPES_DATA_DICT
@@ -541,6 +541,7 @@ def test_plot_raw_traces(raw, events, browser_backend):
     ismpl = browser_backend.name == "matplotlib"
     with raw.info._unlock():
         raw.info["lowpass"] = 10.0  # allow heavy decim during plotting
+    assert raw.info["bads"] == []
     fig = raw.plot(
         events=events, order=[1, 7, 5, 2, 3], n_channels=3, group_by="original"
     )
@@ -622,6 +623,30 @@ def test_plot_raw_traces(raw, events, browser_backend):
     with pytest.raises(TypeError, match="event_color key must be an int, got"):
         raw.plot(event_color={"foo": "r"})
     plot_raw(raw, events=events, event_color={-1: "r", 998: "b"})
+
+    # gh-12547
+    raw.info["bads"] = raw.ch_names[1:2]
+    picks = [1, 7, 5, 2, 3]
+    fig = raw.plot(events=events, order=picks, group_by="original")
+    assert_array_equal(fig.mne.picks, picks)
+
+
+def test_plot_raw_picks(raw, browser_backend):
+    """Test functionality of picks and order arguments."""
+    with raw.info._unlock():
+        raw.info["lowpass"] = 10.0  # allow heavy decim during plotting
+
+    fig = raw.plot(picks=["MEG 0112"])
+    assert len(fig.mne.traces) == 1
+
+    fig = raw.plot(picks=["meg"])
+    assert len(fig.mne.traces) == len(raw.get_channel_types(picks="meg"))
+
+    fig = raw.plot(order=[4, 3])
+    assert_array_equal(fig.mne.ch_order, np.array([4, 3]))
+
+    fig = raw.plot(picks=[4, 3])
+    assert_array_equal(fig.mne.ch_order, np.array([3, 4]))
 
 
 @pytest.mark.parametrize("group_by", ("position", "selection"))
@@ -973,7 +998,10 @@ def test_plot_raw_psd(raw, raw_orig):
     # with channel information not available
     for idx in range(len(raw.info["chs"])):
         raw.info["chs"][idx]["loc"] = np.zeros(12)
-    with pytest.warns(RuntimeWarning, match="locations not available"):
+    with (
+        _record_warnings(),
+        pytest.warns(RuntimeWarning, match="locations not available"),
+    ):
         raw.compute_psd().plot(spatial_colors=True, average=False)
     # with a flat channel
     raw[5, :] = 0

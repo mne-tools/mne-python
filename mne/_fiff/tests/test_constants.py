@@ -283,7 +283,7 @@ def test_constants(tmp_path):
     #
 
     # Version
-    mne_version = "%d.%d" % (FIFF.FIFFC_MAJOR_VERSION, FIFF.FIFFC_MINOR_VERSION)
+    mne_version = f"{FIFF.FIFFC_MAJOR_VERSION:d}.{FIFF.FIFFC_MINOR_VERSION:d}"
     assert fiff_version == mne_version
     unknowns = list()
 
@@ -359,8 +359,8 @@ def test_constants(tmp_path):
                 assert _aliases.get(name) == con[check][val], msg
             else:
                 con[check][val] = name
-    unknowns = "\n\t".join("{} ({})".format(*u) for u in unknowns)
-    assert len(unknowns) == 0, "Unknown types\n\t%s" % unknowns
+    unknowns = "\n\t".join(f"{u[0]} ({u[1]})" for u in unknowns)
+    assert len(unknowns) == 0, f"Unknown types\n\t{unknowns}"
 
     # Assert that all the FIF defs are in our constants
     assert set(fif.keys()) == set(con.keys())
@@ -384,14 +384,14 @@ def test_constants(tmp_path):
     bad_list = []
     for key in fif["coil"]:
         if key not in _missing_coil_def and key not in coil_def:
-            bad_list.append(("    %s," % key).ljust(10) + "  # " + fif["coil"][key][1])
+            bad_list.append((f"    {key},").ljust(10) + "  # " + fif["coil"][key][1])
     assert len(bad_list) == 0, (
         "\nIn fiff-constants, missing from coil_def:\n" + "\n".join(bad_list)
     )
     # Assert that enum(coil) has all `coil_def.dat` entries
     for key, desc in zip(coil_def, coil_desc):
         if key not in fif["coil"]:
-            bad_list.append(("    %s," % key).ljust(10) + "  # " + desc)
+            bad_list.append((f"    {key},").ljust(10) + "  # " + desc)
     assert len(bad_list) == 0, (
         "In coil_def, missing  from fiff-constants:\n" + "\n".join(bad_list)
     )

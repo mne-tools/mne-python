@@ -1,1 +1,0 @@
-Allow :func:`mne.viz.plot_compare_evokeds` to plot eyetracking channels, and improve error handling, y `Scott Huberty`_.

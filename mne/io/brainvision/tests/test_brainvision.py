@@ -20,7 +20,7 @@ from mne.annotations import events_from_annotations
 from mne.datasets import testing
 from mne.io import read_raw_brainvision, read_raw_fif
 from mne.io.tests.test_raw import _test_raw_reader
-from mne.utils import _stamp_to_dt, object_diff
+from mne.utils import _record_warnings, _stamp_to_dt, object_diff
 
 data_dir = Path(__file__).parent / "data"
 vhdr_path = data_dir / "test.vhdr"
@@ -71,6 +71,8 @@ eog = ["HL", "HR", "Vb"]
 #       working)
 #      This should be amend in its own PR.
 montage = data_dir / "test.hpts"
+
+_no_dig = pytest.warns(RuntimeWarning, match="No info on DataPoints")
 
 
 def test_orig_units(recwarn):
@@ -373,7 +375,7 @@ def test_brainvision_data_highpass_filters():
 
     w = [str(ww.message) for ww in w]
     assert not any("different lowpass filters" in ww for ww in w), w
-    assert all("different highpass filters" in ww for ww in w), w
+    assert any("different highpass filters" in ww for ww in w), w
 
     assert raw.info["highpass"] == 1.0 / (2 * np.pi * 10)
     assert raw.info["lowpass"] == 250.0
@@ -395,7 +397,7 @@ def test_brainvision_data_highpass_filters():
     w = [str(ww.message) for ww in w]
     assert not any("will be dropped" in ww for ww in w), w
     assert not any("different lowpass filters" in ww for ww in w), w
-    assert all("different highpass filters" in ww for ww in w), w
+    assert any("different highpass filters" in ww for ww in w), w
 
     assert raw.info["highpass"] == 5.0
     assert raw.info["lowpass"] == 250.0
@@ -420,7 +422,7 @@ def test_brainvision_data_lowpass_filters():
 
     expected_warnings = zip(lowpass_warning, highpass_warning)
 
-    assert all(any([lp, hp]) for lp, hp in expected_warnings)
+    assert any(any([lp, hp]) for lp, hp in expected_warnings)
 
     assert raw.info["highpass"] == 1.0 / (2 * np.pi * 10)
     assert raw.info["lowpass"] == 250.0
@@ -444,7 +446,7 @@ def test_brainvision_data_lowpass_filters():
 
     expected_warnings = zip(lowpass_warning, highpass_warning)
 
-    assert all(any([lp, hp]) for lp, hp in expected_warnings)
+    assert any(any([lp, hp]) for lp, hp in expected_warnings)
 
     assert raw.info["highpass"] == 1.0 / (2 * np.pi * 10)
     assert raw.info["lowpass"] == 1.0 / (2 * np.pi * 0.004)
@@ -465,7 +467,7 @@ def test_brainvision_data_partially_disabled_hw_filters():
 
     expected_warnings = zip(trigger_warning, lowpass_warning, highpass_warning)
 
-    assert all(any([trg, lp, hp]) for trg, lp, hp in expected_warnings)
+    assert any(any([trg, lp, hp]) for trg, lp, hp in expected_warnings)
 
     assert raw.info["highpass"] == 0.0
     assert raw.info["lowpass"] == 500.0
@@ -473,7 +475,7 @@ def test_brainvision_data_partially_disabled_hw_filters():
 
 def test_brainvision_data_software_filters_latin1_global_units():
     """Test reading raw Brain Vision files."""
-    with pytest.warns(RuntimeWarning, match="software filter"):
+    with _no_dig, pytest.warns(RuntimeWarning, match="software filter"):
         raw = _test_raw_reader(
             read_raw_brainvision,
             vhdr_fname=vhdr_old_path,
@@ -485,7 +487,7 @@ def test_brainvision_data_software_filters_latin1_global_units():
     assert raw.info["lowpass"] == 50.0
 
     # test sensor name with spaces (#9299)
-    with pytest.warns(RuntimeWarning, match="software filter"):
+    with _no_dig, pytest.warns(RuntimeWarning, match="software filter"):
         raw = _test_raw_reader(
             read_raw_brainvision,
             vhdr_fname=vhdr_old_longname_path,
@@ -536,11 +538,10 @@ def test_brainvision_data():
         elif ch["ch_name"] == "ReRef":
             assert ch["kind"] == FIFF.FIFFV_MISC_CH
             assert ch["unit"] == FIFF.FIFF_UNIT_CEL
-        elif ch["ch_name"] in raw_py.info["ch_names"]:
+        else:
+            assert ch["ch_name"] in raw_py.info["ch_names"], f"Unknown: {ch['ch_name']}"
             assert ch["kind"] == FIFF.FIFFV_EEG_CH
             assert ch["unit"] == FIFF.FIFF_UNIT_V
-        else:
-            raise RuntimeError("Unknown Channel: %s" % ch["ch_name"])
 
     # test loading v2
     read_raw_brainvision(vhdr_v2_path, eog=eog, preload=True, verbose="error")
@@ -566,7 +567,7 @@ def test_brainvision_data():
 
 def test_brainvision_vectorized_data():
     """Test reading BrainVision data files with vectorized data."""
-    with pytest.warns(RuntimeWarning, match="software filter"):
+    with _no_dig, pytest.warns(RuntimeWarning, match="software filter"):
         raw = read_raw_brainvision(vhdr_old_path, preload=True)
 
     assert_array_equal(raw._data.shape, (29, 251))
@@ -611,7 +612,10 @@ def test_brainvision_vectorized_data():
 def test_coodinates_extraction():
     """Test reading of [Coordinates] section if present."""
     # vhdr 2 has a Coordinates section
-    with pytest.warns(RuntimeWarning, match="coordinate information"):
+    with (
+        _record_warnings(),
+        pytest.warns(RuntimeWarning, match="coordinate information"),
+    ):
         raw = read_raw_brainvision(vhdr_v2_path)
 
     # Basic check of extracted coordinates

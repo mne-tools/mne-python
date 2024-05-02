@@ -302,7 +302,7 @@ def test_set_eeg_reference_ch_type(ch_type, msg, projection):
     # gh-8739
     raw2 = RawArray(data, create_info(5, 1000.0, ["mag"] * 4 + ["misc"]))
     with pytest.raises(
-        ValueError, match="No EEG, ECoG, sEEG or DBS channels " "found to rereference."
+        ValueError, match="No EEG, ECoG, sEEG or DBS channels found to rereference."
     ):
         set_eeg_reference(raw2, ch_type="auto", projection=projection)
 

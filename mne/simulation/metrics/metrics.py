@@ -179,7 +179,7 @@ def _check_threshold(threshold):
     if isinstance(threshold, str):
         if not threshold.endswith("%"):
             raise ValueError(
-                "Threshold if a string must end with " '"%%". Got %s.' % threshold
+                "Threshold if a string must end with " f'"%". Got {threshold}.'
             )
         threshold = float(threshold[:-1]) / 100.0
     threshold = float(threshold)

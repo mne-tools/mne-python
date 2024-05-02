@@ -43,7 +43,13 @@ from mne.io import (
 )
 from mne.simulation import add_chpi
 from mne.transforms import _angle_between_quats, rot_to_quat
-from mne.utils import assert_meg_snr, catch_logging, object_diff, verbose
+from mne.utils import (
+    _record_warnings,
+    assert_meg_snr,
+    catch_logging,
+    object_diff,
+    verbose,
+)
 from mne.viz import plot_head_positions
 
 base_dir = Path(__file__).parents[1] / "io" / "tests" / "data"
@@ -204,7 +210,7 @@ def _assert_quats(
     # maxfilter produces some times that are implausibly large (weird)
     if not np.isclose(t[0], t_est[0], atol=1e-1):  # within 100 ms
         raise AssertionError(
-            "Start times not within 100 ms: %0.3f != %0.3f" % (t[0], t_est[0])
+            f"Start times not within 100 ms: {t[0]:0.3f} != {t_est[0]:0.3f}"
         )
     use_mask = (t >= t_est[0]) & (t <= t_est[-1])
     t = t[use_mask]
@@ -223,10 +229,9 @@ def _assert_quats(
     distances = np.sqrt(np.sum((trans - trans_est_interp) ** 2, axis=1))
     assert np.isfinite(distances).all()
     arg_worst = np.argmax(distances)
-    assert distances[arg_worst] <= dist_tol, "@ %0.3f seconds: %0.3f > %0.3f mm" % (
-        t[arg_worst],
-        1000 * distances[arg_worst],
-        1000 * dist_tol,
+    assert distances[arg_worst] <= dist_tol, (
+        f"@ {t[arg_worst]:0.3f} seconds: "
+        f"{1000 * distances[arg_worst]:0.3f} > {1000 * dist_tol:0.3f} mm"
     )
 
     # limit rotation difference between MF and our estimation
@@ -234,10 +239,9 @@ def _assert_quats(
     quats_est_interp = interp1d(t_est, quats_est, axis=0)(t)
     angles = 180 * _angle_between_quats(quats_est_interp, quats) / np.pi
     arg_worst = np.argmax(angles)
-    assert angles[arg_worst] <= angle_tol, "@ %0.3f seconds: %0.3f > %0.3f deg" % (
-        t[arg_worst],
-        angles[arg_worst],
-        angle_tol,
+    assert angles[arg_worst] <= angle_tol, (
+        f"@ {t[arg_worst]:0.3f} seconds: "
+        f"{angles[arg_worst]:0.3f} > {angle_tol:0.3f} deg"
     )
 
     # error calculation difference
@@ -366,7 +370,7 @@ def test_calculate_chpi_positions_vv():
         ]
     )
     raw_bad.pick([raw_bad.ch_names[pick] for pick in picks])
-    with pytest.warns(RuntimeWarning, match="Discrepancy"):
+    with _record_warnings(), pytest.warns(RuntimeWarning, match="Discrepancy"):
         with catch_logging() as log_file:
             _calculate_chpi_positions(raw_bad, t_step_min=1.0, verbose=True)
     # ignore HPI info header and [done] footer

@@ -25,7 +25,6 @@ from .._fiff.pick import (
     _picks_to_idx,
 )
 from ..defaults import _handle_default
-from ..fixes import _sharex
 from ..utils import _check_option, fill_doc, legacy, logger, verbose, warn
 from ..utils.spectrum import _split_psd_kwargs
 from .raw import _setup_channel_selections
@@ -145,19 +144,7 @@ def plot_epochs_image(
         ``overlay_times`` should be ordered to correspond with the
         :class:`~mne.Epochs` object (i.e., ``overlay_times[0]`` corresponds to
         ``epochs[0]``, etc).
-    %(combine)s
-        If callable, the callable must accept one positional input (data of
-        shape ``(n_epochs, n_channels, n_times)``) and return an
-        :class:`array <numpy.ndarray>` of shape ``(n_epochs, n_times)``. For
-        example::
-
-            combine = lambda data: np.median(data, axis=1)
-
-        If ``combine`` is ``None``, channels are combined by computing GFP,
-        unless ``group_by`` is also ``None`` and ``picks`` is a list of
-        specific channels (not channel types), in which case no combining is
-        performed and each channel gets its own figure. See Notes for further
-        details. Defaults to ``None``.
+    %(combine_plot_epochs_image)s
     group_by : None | dict
         Specifies which channels are aggregated into a single figure, with
         aggregation method determined by the ``combine`` parameter. If not
@@ -643,7 +630,7 @@ def _plot_epochs_image(
         ax["evoked"].set_xlim(tmin, tmax)
         ax["evoked"].lines[0].set_clip_on(True)
         ax["evoked"].collections[0].set_clip_on(True)
-        _sharex(ax["evoked"], ax_im)
+        ax["evoked"].sharex(ax_im)
         # fix the axes for proper updating during interactivity
         loc = ax_im.xaxis.get_major_locator()
         ax["evoked"].xaxis.set_major_locator(loc)
@@ -721,7 +708,7 @@ def plot_drop_log(
     percent = _drop_log_stats(drop_log, ignore)
     if percent < threshold:
         logger.info(
-            "Percent dropped epochs < supplied threshold; not " "plotting drop log."
+            "Percent dropped epochs < supplied threshold; not plotting drop log."
         )
         return
     absolute = len([x for x in drop_log if len(x) if not any(y in ignore for y in x)])
@@ -1115,7 +1102,7 @@ def plot_epochs_psd(
     area_mode="std",
     area_alpha=0.33,
     dB=True,
-    estimate="auto",
+    estimate="power",
     show=True,
     n_jobs=None,
     average=False,

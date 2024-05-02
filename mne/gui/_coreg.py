@@ -1521,7 +1521,7 @@ class CoregistrationUI(HasTraits):
             except Exception:
                 logger.error(f"Error computing {bem_name} solution")
             else:
-                self._display_message(f"Computing {bem_name} solution..." " Done!")
+                self._display_message(f"Computing {bem_name} solution... Done!")
         self._display_message(f"Saving {self._subject_to}... Done!")
         self._renderer._window_set_cursor(default_cursor)
         self._mri_scale_modified = False
@@ -1704,7 +1704,7 @@ class CoregistrationUI(HasTraits):
             desc="Load",
             func=self._set_info_file,
             icon=True,
-            tooltip="Load the FIFF file with digitization data for " "coregistration",
+            tooltip="Load the FIFF file with digitization data for coregistration",
             layout=info_file_layout,
         )
         self._renderer._layout_add_widget(
@@ -1891,7 +1891,7 @@ class CoregistrationUI(HasTraits):
         self._widgets["fit_icp"] = self._renderer._dock_add_button(
             name="Fit ICP",
             callback=self._fit_icp,
-            tooltip="Find rotation and translation to match the " "head shape points",
+            tooltip="Find rotation and translation to match the head shape points",
             layout=fit_layout,
         )
         self._renderer._layout_add_widget(param_layout, fit_layout)
@@ -1907,7 +1907,7 @@ class CoregistrationUI(HasTraits):
             func=self._save_trans,
             tooltip="Save the transform file to disk",
             layout=save_trans_layout,
-            filter="Head->MRI transformation (*-trans.fif *_trans.fif)",
+            filter_="Head->MRI transformation (*-trans.fif *_trans.fif)",
             initial_directory=str(Path(self._info_file).parent),
         )
         self._widgets["load_trans"] = self._renderer._dock_add_file_button(
@@ -1916,7 +1916,7 @@ class CoregistrationUI(HasTraits):
             func=self._load_trans,
             tooltip="Load the transform file from disk",
             layout=save_trans_layout,
-            filter="Head->MRI transformation (*-trans.fif *_trans.fif)",
+            filter_="Head->MRI transformation (*-trans.fif *_trans.fif)",
             initial_directory=str(Path(self._info_file).parent),
         )
         self._renderer._layout_add_widget(trans_layout, save_trans_layout)

@@ -7,34 +7,30 @@
 # Copyright the MNE-Python contributors.
 
 import faulthandler
-import gc
 import os
 import subprocess
 import sys
-import time
-import warnings
 from datetime import datetime, timezone
 from importlib.metadata import metadata
 from pathlib import Path
 
 import matplotlib
-import numpy as np
+import pyvista
 import sphinx
 from numpydoc import docscrape
+from sphinx.config import is_serializable
 from sphinx.domains.changeset import versionlabels
-from sphinx_gallery.sorting import ExplicitOrder, FileNameSortKey
+from sphinx_gallery.sorting import ExplicitOrder
 
 import mne
 import mne.html_templates._templates
 from mne.tests.test_docstring_parameters import error_ignores
 from mne.utils import (
-    _assert_no_instances,
-    linkcode_resolve,  # noqa, analysis:ignore
+    linkcode_resolve,
     run_subprocess,
-    sizeof_fmt,
 )
-from mne.viz import Brain  # noqa
 
+assert linkcode_resolve is not None  # avoid flake warnings, used by numpydoc
 matplotlib.use("agg")
 faulthandler.enable()
 os.environ["_MNE_BROWSER_NO_BLOCK"] = "true"
@@ -54,6 +50,7 @@ mne.html_templates._templates._COLLAPSED = True  # collapse info _repr_html_
 curpath = Path(__file__).parent.resolve(strict=True)
 sys.path.append(str(curpath / "sphinxext"))
 
+from mne_doc_utils import report_scraper, reset_warnings  # noqa: E402
 
 # -- Project information -----------------------------------------------------
 
@@ -62,12 +59,12 @@ td = datetime.now(tz=timezone.utc)
 
 # We need to triage which date type we use so that incremental builds work
 # (Sphinx looks at variable changes and rewrites all files if some change)
-copyright = (
+copyright = (  # noqa: A001
     f'2012–{td.year}, MNE Developers. Last updated <time datetime="{td.isoformat()}" class="localized">{td.strftime("%Y-%m-%d %H:%M %Z")}</time>\n'  # noqa: E501
     '<script type="text/javascript">$(function () { $("time.localized").each(function () { var el = $(this); el.text(new Date(el.attr("datetime")).toLocaleString([], {dateStyle: "medium", timeStyle: "long"})); }); } )</script>'  # noqa: E501
 )
 if os.getenv("MNE_FULL_DATE", "false").lower() != "true":
-    copyright = f"2012–{td.year}, MNE Developers. Last updated locally."
+    copyright = f"2012–{td.year}, MNE Developers. Last updated locally."  # noqa: A001
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -82,7 +79,7 @@ version = ".".join(release.split(".")[:2])
 # -- General configuration ---------------------------------------------------
 
 # If your documentation needs a minimal Sphinx version, state it here.
-needs_sphinx = "2.0"
+needs_sphinx = "6.0"
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
@@ -174,7 +171,7 @@ intersphinx_mapping = {
     "seaborn": ("https://seaborn.pydata.org/", None),
     "statsmodels": ("https://www.statsmodels.org/dev", None),
     "patsy": ("https://patsy.readthedocs.io/en/latest", None),
-    "pyvista": ("https://docs.pyvista.org", None),
+    "pyvista": ("https://docs.pyvista.org/version/stable", None),
     "imageio": ("https://imageio.readthedocs.io/en/latest", None),
     "picard": ("https://pierreablin.github.io/picard/", None),
     "eeglabio": ("https://eeglabio.readthedocs.io/en/latest", None),
@@ -230,7 +227,11 @@ numpydoc_xref_aliases = {
     "EvokedArray": "mne.EvokedArray",
     "BiHemiLabel": "mne.BiHemiLabel",
     "AverageTFR": "mne.time_frequency.AverageTFR",
+    "AverageTFRArray": "mne.time_frequency.AverageTFRArray",
     "EpochsTFR": "mne.time_frequency.EpochsTFR",
+    "EpochsTFRArray": "mne.time_frequency.EpochsTFRArray",
+    "RawTFR": "mne.time_frequency.RawTFR",
+    "RawTFRArray": "mne.time_frequency.RawTFRArray",
     "Raw": "mne.io.Raw",
     "ICA": "mne.preprocessing.ICA",
     "Covariance": "mne.Covariance",
@@ -293,6 +294,7 @@ numpydoc_xref_aliases = {
     "RawNIRX": "mne.io.Raw",
     "RawPersyst": "mne.io.Raw",
     "RawSNIRF": "mne.io.Raw",
+    "Calibration": "mne.preprocessing.eyetracking.Calibration",
     # dipy
     "dipy.align.AffineMap": "dipy.align.imaffine.AffineMap",
     "dipy.align.DiffeomorphicMap": "dipy.align.imwarp.DiffeomorphicMap",
@@ -444,120 +446,21 @@ numpydoc_validation_exclude = {  # set of regex
 
 # -- Sphinx-gallery configuration --------------------------------------------
 
-
-class Resetter(object):
-    """Simple class to make the str(obj) static for Sphinx build env hash."""
-
-    def __init__(self):
-        self.t0 = time.time()
-
-    def __repr__(self):
-        return f"<{self.__class__.__name__}>"
-
-    def __call__(self, gallery_conf, fname, when):
-        import matplotlib.pyplot as plt
-
-        try:
-            from pyvista import Plotter  # noqa
-        except ImportError:
-            Plotter = None  # noqa
-        try:
-            from pyvistaqt import BackgroundPlotter  # noqa
-        except ImportError:
-            BackgroundPlotter = None  # noqa
-        try:
-            from vtkmodules.vtkCommonDataModel import vtkPolyData  # noqa
-        except ImportError:
-            vtkPolyData = None  # noqa
-        try:
-            from mne_qt_browser._pg_figure import MNEQtBrowser
-        except ImportError:
-            MNEQtBrowser = None
-        from mne.viz.backends.renderer import backend
-
-        _Renderer = backend._Renderer if backend is not None else None
-        reset_warnings(gallery_conf, fname)
-        # in case users have interactive mode turned on in matplotlibrc,
-        # turn it off here (otherwise the build can be very slow)
-        plt.ioff()
-        plt.rcParams["animation.embed_limit"] = 40.0
-        plt.rcParams["figure.raise_window"] = False
-        # https://github.com/sphinx-gallery/sphinx-gallery/pull/1243#issue-2043332860
-        plt.rcParams["animation.html"] = "html5"
-        # neo holds on to an exception, which in turn holds a stack frame,
-        # which will keep alive the global vars during SG execution
-        try:
-            import neo
-
-            neo.io.stimfitio.STFIO_ERR = None
-        except Exception:
-            pass
-        gc.collect()
-
-        # Agg does not call close_event so let's clean up on our own :(
-        # https://github.com/matplotlib/matplotlib/issues/18609
-        mne.viz.ui_events._cleanup_agg()
-        assert len(mne.viz.ui_events._event_channels) == 0, list(
-            mne.viz.ui_events._event_channels
-        )
-
-        when = f"mne/conf.py:Resetter.__call__:{when}:{fname}"
-        # Support stuff like
-        # MNE_SKIP_INSTANCE_ASSERTIONS="Brain,Plotter,BackgroundPlotter,vtkPolyData,_Renderer" make html-memory  # noqa: E501
-        # to just test MNEQtBrowser
-        skips = os.getenv("MNE_SKIP_INSTANCE_ASSERTIONS", "").lower()
-        prefix = ""
-        if skips not in ("true", "1", "all"):
-            prefix = "Clean "
-            skips = skips.split(",")
-            if "brain" not in skips:
-                _assert_no_instances(Brain, when)  # calls gc.collect()
-            if Plotter is not None and "plotter" not in skips:
-                _assert_no_instances(Plotter, when)
-            if BackgroundPlotter is not None and "backgroundplotter" not in skips:
-                _assert_no_instances(BackgroundPlotter, when)
-            if vtkPolyData is not None and "vtkpolydata" not in skips:
-                _assert_no_instances(vtkPolyData, when)
-            if "_renderer" not in skips:
-                _assert_no_instances(_Renderer, when)
-            if MNEQtBrowser is not None and "mneqtbrowser" not in skips:
-                # Ensure any manual fig.close() events get properly handled
-                from mne_qt_browser._pg_figure import QApplication
-
-                inst = QApplication.instance()
-                if inst is not None:
-                    for _ in range(2):
-                        inst.processEvents()
-                _assert_no_instances(MNEQtBrowser, when)
-        # This will overwrite some Sphinx printing but it's useful
-        # for memory timestamps
-        if os.getenv("SG_STAMP_STARTS", "").lower() == "true":
-            import psutil
-
-            process = psutil.Process(os.getpid())
-            mem = sizeof_fmt(process.memory_info().rss)
-            print(f"{prefix}{time.time() - self.t0:6.1f} s : {mem}".ljust(22))
-
-
 examples_dirs = ["../tutorials", "../examples"]
 gallery_dirs = ["auto_tutorials", "auto_examples"]
 os.environ["_MNE_BUILDING_DOC"] = "true"
 scrapers = ("matplotlib",)
 mne.viz.set_3d_backend("pyvistaqt")
-with warnings.catch_warnings():
-    warnings.filterwarnings("ignore", category=DeprecationWarning)
-    import pyvista
 pyvista.OFF_SCREEN = False
 pyvista.BUILDING_GALLERY = True
 
-report_scraper = mne.report._ReportScraper()
 scrapers = (
     "matplotlib",
-    mne.gui._GUIScraper(),
-    mne.viz._brain._BrainScraper(),
+    "mne_doc_utils.gui_scraper",
+    "mne_doc_utils.brain_scraper",
     "pyvista",
-    report_scraper,
-    mne.viz._scraper._MNEQtBrowserScraper(),
+    "mne_doc_utils.report_scraper",
+    "mne_doc_utils.mne_qt_browser_scraper",
 )
 
 compress_images = ("images", "thumbnails")
@@ -614,12 +517,15 @@ sphinx_gallery_conf = {
     "remove_config_comments": True,
     "min_reported_time": 1.0,
     "abort_on_example_error": False,
-    "reset_modules": ("matplotlib", Resetter()),  # called w/each script
+    "reset_modules": (
+        "matplotlib",
+        "mne_doc_utils.reset_modules",
+    ),  # called w/each script
     "reset_modules_order": "both",
     "image_scrapers": scrapers,
     "show_memory": not sys.platform.startswith(("win", "darwin")),
     "line_numbers": False,  # messes with style
-    "within_subsection_order": FileNameSortKey,
+    "within_subsection_order": "FileNameSortKey",
     "capture_repr": ("_repr_html_",),
     "junit": os.path.join("..", "test-results", "sphinx-gallery", "junit.xml"),
     "matplotlib_animations": True,
@@ -666,6 +572,7 @@ sphinx_gallery_conf = {
     ),
     "copyfile_regex": r".*index\.rst",  # allow custom index.rst files
 }
+assert is_serializable(sphinx_gallery_conf)
 # Files were renamed from plot_* with:
 # find . -type f -name 'plot_*.py' -exec sh -c 'x="{}"; xn=`basename "${x}"`; git mv "$x" `dirname "${x}"`/${xn:5}' \;  # noqa
 
@@ -679,7 +586,9 @@ def append_attr_meth_examples(app, what, name, obj, options, lines):
     if what in ("attribute", "method"):
         size = os.path.getsize(
             os.path.join(
-                os.path.dirname(__file__), "generated", "%s.examples" % (name,)
+                os.path.dirname(__file__),
+                "generated",
+                f"{name}.examples",
             )
         )
         if size > 0:
@@ -726,8 +635,8 @@ linkcheck_ignore = [  # will be compiled to regex
     "https://doi.org/10.3109/",  # www.tandfonline.com
     "https://www.researchgate.net/profile/",
     "https://www.intel.com/content/www/us/en/developer/tools/oneapi/onemkl.html",
-    "https://scholar.google.com/scholar?cites=12188330066413208874&as_ylo=2014",
-    "https://scholar.google.com/scholar?cites=1521584321377182930&as_ylo=2013",
+    r"https://scholar.google.com/scholar\?cites=12188330066413208874&as_ylo=2014",
+    r"https://scholar.google.com/scholar\?cites=1521584321377182930&as_ylo=2013",
     # 500 server error
     "https://openwetware.org/wiki/Beauchamp:FreeSurfer",
     # 503 Server error
@@ -744,6 +653,9 @@ linkcheck_ignore = [  # will be compiled to regex
     # Too slow
     "https://speakerdeck.com/dengemann/",
     "https://www.dtu.dk/english/service/phonebook/person",
+    # SSL problems sometimes
+    "http://ilabs.washington.edu",
+    "https://psychophysiology.cpmc.columbia.edu",
 ]
 linkcheck_anchors = False  # saves a bit of time
 linkcheck_timeout = 15  # some can be quite slow
@@ -762,6 +674,7 @@ bibtex_footbibliography_header = ""
 # -- Nitpicky ----------------------------------------------------------------
 
 nitpicky = True
+show_warning_types = True
 nitpick_ignore = [
     ("py:class", "None.  Remove all items from D."),
     ("py:class", "a set-like object providing a view on D's items"),
@@ -791,7 +704,9 @@ nitpick_ignore_regex = [
         "(filename|metadata|proj|times|tmax|tmin|annotations|ch_names|compensation_grade|filenames|first_samp|first_time|last_samp|n_times|proj|times|tmax|tmin)",
     ),  # noqa: E501
 ]
-suppress_warnings = ["image.nonlocal_uri"]  # we intentionally link outside
+suppress_warnings = [
+    "image.nonlocal_uri",  # we intentionally link outside
+]
 
 
 # -- Sphinx hacks / overrides ------------------------------------------------
@@ -812,38 +727,39 @@ switcher_version_match = "dev" if ".dev" in version else version
 html_theme_options = {
     "icon_links": [
         dict(
-            name="GitHub",
-            url="https://github.com/mne-tools/mne-python",
-            icon="fa-brands fa-square-github",
+            name="Discord",
+            url="https://discord.gg/rKfvxTuATa",
+            icon="fa-brands fa-discord fa-fw",
         ),
         dict(
             name="Mastodon",
             url="https://fosstodon.org/@mne",
-            icon="fa-brands fa-mastodon",
+            icon="fa-brands fa-mastodon fa-fw",
             attributes=dict(rel="me"),
-        ),
-        dict(
-            name="Twitter",
-            url="https://twitter.com/mne_python",
-            icon="fa-brands fa-square-twitter",
         ),
         dict(
             name="Forum",
             url="https://mne.discourse.group/",
-            icon="fa-brands fa-discourse",
+            icon="fa-brands fa-discourse fa-fw",
         ),
         dict(
-            name="Discord",
-            url="https://discord.gg/rKfvxTuATa",
-            icon="fa-brands fa-discord",
+            name="GitHub",
+            url="https://github.com/mne-tools/mne-python",
+            icon="fa-brands fa-square-github fa-fw",
         ),
     ],
     "icon_links_label": "External Links",  # for screen reader
-    "use_edit_page_button": True,
+    "use_edit_page_button": False,
     "navigation_with_keys": False,
     "show_toc_level": 1,
     "article_header_start": [],  # disable breadcrumbs
-    "navbar_end": ["theme-switcher", "version-switcher", "navbar-icon-links"],
+    "navbar_end": [
+        "theme-switcher",
+        "version-switcher",
+        "navbar-icon-links",
+    ],
+    "navbar_align": "left",
+    "navbar_persistent": ["search-button"],
     "footer_start": ["copyright"],
     "secondary_sidebar_items": ["page-toc", "edit-this-page"],
     "analytics": dict(google_analytics_id="G-5TBCPCRB6X"),
@@ -925,7 +841,18 @@ html_context = {
         ),
         dict(img="doe.svg", size="3", title="US Department of Energy"),
         dict(img="anr.svg", size="3.5", title="Agence Nationale de la Recherche"),
-        dict(img="cds.png", size="2.25", title="Paris-Saclay Center for Data Science"),
+        dict(
+            img="cds.svg",
+            size="1.75",
+            title="Paris-Saclay Center for Data Science",
+            klass="only-light",
+        ),
+        dict(
+            img="cds-dark.svg",
+            size="1.75",
+            title="Paris-Saclay Center for Data Science",
+            klass="only-dark",
+        ),
         dict(img="google.svg", size="2.25", title="Google"),
         dict(img="amazon.svg", size="2.5", title="Amazon"),
         dict(img="czi.svg", size="2.5", title="Chan Zuckerberg Initiative"),
@@ -1188,21 +1115,21 @@ html_context = {
     "carousel": [
         dict(
             title="Source Estimation",
-            text="Distributed, sparse, mixed-norm, beam\u00ADformers, dipole fitting, and more.",  # noqa E501
+            text="Distributed, sparse, mixed-norm, beam\u00adformers, dipole fitting, and more.",  # noqa E501
             url="auto_tutorials/inverse/index.html",
             img="sphx_glr_30_mne_dspm_loreta_008.gif",
             alt="dSPM",
         ),
         dict(
             title="Machine Learning",
-            text="Advanced decoding models including time general\u00ADiza\u00ADtion.",  # noqa E501
+            text="Advanced decoding models including time general\u00adiza\u00adtion.",  # noqa E501
             url="auto_tutorials/machine-learning/50_decoding.html",
             img="sphx_glr_50_decoding_006.png",
             alt="Decoding",
         ),
         dict(
             title="Encoding Models",
-            text="Receptive field estima\u00ADtion with optional smooth\u00ADness priors.",  # noqa E501
+            text="Receptive field estima\u00adtion with optional smooth\u00adness priors.",  # noqa E501
             url="auto_tutorials/machine-learning/30_strf.html",
             img="sphx_glr_30_strf_001.png",
             alt="STRF",
@@ -1216,7 +1143,7 @@ html_context = {
         ),
         dict(
             title="Connectivity",
-            text="All-to-all spectral and effective connec\u00ADtivity measures.",  # noqa E501
+            text="All-to-all spectral and effective connec\u00adtivity measures.",  # noqa E501
             url="https://mne.tools/mne-connectivity/stable/auto_examples/mne_inverse_label_connectivity.html",  # noqa E501
             img="https://mne.tools/mne-connectivity/stable/_images/sphx_glr_mne_inverse_label_connectivity_001.png",  # noqa E501
             alt="Connectivity",
@@ -1275,138 +1202,10 @@ latex_logo = "_static/logo.png"
 # not chapters.
 latex_toplevel_sectioning = "part"
 
-_np_print_defaults = np.get_printoptions()
-
-
 # -- Warnings management -----------------------------------------------------
-
-
-def reset_warnings(gallery_conf, fname):
-    """Ensure we are future compatible and ignore silly warnings."""
-    # In principle, our examples should produce no warnings.
-    # Here we cause warnings to become errors, with a few exceptions.
-    # This list should be considered alongside
-    # setup.cfg -> [tool:pytest] -> filterwarnings
-
-    # remove tweaks from other module imports or example runs
-    warnings.resetwarnings()
-    # restrict
-    warnings.filterwarnings("error")
-    # allow these, but show them
-    warnings.filterwarnings("always", '.*non-standard config type: "foo".*')
-    warnings.filterwarnings("always", '.*config type: "MNEE_USE_CUUDAA".*')
-    warnings.filterwarnings("always", ".*cannot make axes width small.*")
-    warnings.filterwarnings("always", ".*Axes that are not compatible.*")
-    warnings.filterwarnings("always", ".*FastICA did not converge.*")
-    # ECoG BIDS spec violations:
-    warnings.filterwarnings("always", ".*Fiducial point nasion not found.*")
-    warnings.filterwarnings("always", ".*DigMontage is only a subset of.*")
-    warnings.filterwarnings(  # xhemi morph (should probably update sample)
-        "always", ".*does not exist, creating it and saving it.*"
-    )
-    # internal warnings
-    warnings.filterwarnings("default", module="sphinx")
-    # allow these warnings, but don't show them
-    for key in (
-        "invalid version and will not be supported",  # pyxdf
-        "distutils Version classes are deprecated",  # seaborn and neo
-        "is_categorical_dtype is deprecated",  # seaborn
-        "`np.object` is a deprecated alias for the builtin `object`",  # pyxdf
-        # nilearn, should be fixed in > 0.9.1
-        "In future, it will be an error for 'np.bool_' scalars to",
-        # sklearn hasn't updated to SciPy's sym_pos dep
-        "The 'sym_pos' keyword is deprecated",
-        # numba
-        "`np.MachAr` is deprecated",
-        # joblib hasn't updated to avoid distutils
-        "distutils package is deprecated",
-        # jupyter
-        "Jupyter is migrating its paths to use standard",
-        r"Widget\..* is deprecated\.",
-        # PyQt6
-        "Enum value .* is marked as deprecated",
-        # matplotlib PDF output
-        "The py23 module has been deprecated",
-        # pkg_resources
-        "Implementing implicit namespace packages",
-        "Deprecated call to `pkg_resources",
-        # nilearn
-        "pkg_resources is deprecated as an API",
-        r"The .* was deprecated in Matplotlib 3\.7",
-        # scipy
-        r"scipy.signal.morlet2 is deprecated in SciPy 1\.12",
-    ):
-        warnings.filterwarnings(  # deal with other modules having bad imports
-            "ignore", message=".*%s.*" % key, category=DeprecationWarning
-        )
-    warnings.filterwarnings(
-        "ignore",
-        message="Matplotlib is currently using agg, which is a non-GUI backend.*",
-    )
-    warnings.filterwarnings(
-        "ignore",
-        message=".*is non-interactive, and thus cannot.*",
-    )
-    # seaborn
-    warnings.filterwarnings(
-        "ignore",
-        message="The figure layout has changed to tight",
-        category=UserWarning,
-    )
-    # matplotlib 3.6 in nilearn and pyvista
-    warnings.filterwarnings("ignore", message=".*cmap function will be deprecated.*")
-    # xarray/netcdf4
-    warnings.filterwarnings(
-        "ignore",
-        message=r"numpy\.ndarray size changed, may indicate.*",
-        category=RuntimeWarning,
-    )
-    # qdarkstyle
-    warnings.filterwarnings(
-        "ignore",
-        message=r".*Setting theme=.*6 in qdarkstyle.*",
-        category=RuntimeWarning,
-    )
-    # pandas, via seaborn (examples/time_frequency/time_frequency_erds.py)
-    for message in (
-        "use_inf_as_na option is deprecated.*",
-        r"iteritems is deprecated.*Use \.items instead\.",
-        "is_categorical_dtype is deprecated.*",
-        "The default of observed=False.*",
-    ):
-        warnings.filterwarnings(
-            "ignore",
-            message=message,
-            category=FutureWarning,
-        )
-    # pandas in 50_epochs_to_data_frame.py
-    warnings.filterwarnings(
-        "ignore", message=r"invalid value encountered in cast", category=RuntimeWarning
-    )
-    # xarray _SixMetaPathImporter (?)
-    warnings.filterwarnings(
-        "ignore", message=r"falling back to find_module", category=ImportWarning
-    )
-    # Sphinx deps
-    warnings.filterwarnings(
-        "ignore", message="The str interface for _CascadingStyleSheet.*"
-    )
-    # mne-qt-browser until > 0.5.2 released
-    warnings.filterwarnings(
-        "ignore",
-        r"mne\.io\.pick.channel_indices_by_type is deprecated.*",
-    )
-
-    # In case we use np.set_printoptions in any tutorials, we only
-    # want it to affect those:
-    np.set_printoptions(**_np_print_defaults)
-
-
 reset_warnings(None, None)
 
-
 # -- Fontawesome support -----------------------------------------------------
-
 brand_icons = ("apple", "linux", "windows", "discourse", "python")
 fixed_width_icons = (
     # homepage:
@@ -1739,7 +1538,7 @@ REDIRECT_TEMPLATE = """\
 def check_existing_redirect(path):
     """Make sure existing HTML files are redirects, before overwriting."""
     if path.is_file():
-        with open(path, "r") as fid:
+        with open(path) as fid:
             for _ in range(8):
                 next(fid)
             line = fid.readline()

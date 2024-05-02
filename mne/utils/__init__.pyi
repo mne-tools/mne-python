@@ -41,6 +41,7 @@ __all__ = [
     "_check_if_nan",
     "_check_info_inv",
     "_check_integer_or_list",
+    "_check_method_kwargs",
     "_check_on_missing",
     "_check_one_ch_type",
     "_check_option",
@@ -158,6 +159,8 @@ __all__ = [
     "open_docs",
     "path_like",
     "pformat",
+    "pinv",
+    "pinvh",
     "random_permutation",
     "repr_html",
     "requires_freesurfer",
@@ -239,6 +242,7 @@ from .check import (
     _check_if_nan,
     _check_info_inv,
     _check_integer_or_list,
+    _check_method_kwargs,
     _check_on_missing,
     _check_one_ch_type,
     _check_option,
@@ -314,6 +318,8 @@ from .linalg import (
     _svd_lwork,
     _sym_mat_pow,
     eigh,
+    pinv,
+    pinvh,
     sqrtm_sym,
 )
 from .misc import (

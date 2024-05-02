@@ -198,7 +198,7 @@ def plot_head_positions(
         if p.ndim != 2 or p.shape[1] != 10:
             raise ValueError(
                 "pos (or each entry in pos if a list) must be "
-                "dimension (N, 10), got %s" % (p.shape,)
+                f"dimension (N, 10), got {p.shape}"
             )
         if ii > 0:  # concatenation
             p[:, 0] += pos[ii - 1][-1, 0] - p[0, 0]
@@ -233,7 +233,7 @@ def plot_head_positions(
         else:
             axes = np.array(axes)
         if axes.shape != (3, 2):
-            raise ValueError("axes must have shape (3, 2), got %s" % (axes.shape,))
+            raise ValueError(f"axes must have shape (3, 2), got {axes.shape}")
         fig = axes[0, 0].figure
 
         labels = ["xyz", ("$q_1$", "$q_2$", "$q_3$")]
@@ -659,7 +659,7 @@ def plot_alignment(
                 user_alpha[key] = float(val)
                 if not 0 <= user_alpha[key] <= 1:
                     raise ValueError(
-                        f"surfaces[{repr(key)}] ({val}) must be" " between 0 and 1"
+                        f"surfaces[{repr(key)}] ({val}) must be between 0 and 1"
                     )
     else:
         user_alpha = {}
@@ -763,7 +763,7 @@ def plot_alignment(
     head_keys = ("auto", "head", "outer_skin", "head-dense", "seghead")
     head = [s for s in surfaces if s in head_keys]
     if len(head) > 1:
-        raise ValueError("Can only supply one head-like surface name, " f"got {head}")
+        raise ValueError(f"Can only supply one head-like surface name, got {head}")
     head = head[0] if head else False
     if head is not False:
         surfaces.pop(surfaces.index(head))
@@ -1793,12 +1793,11 @@ def _process_clim(clim, colormap, transparent, data=0.0, allow_pos_lims=True):
             key = "lims"
         clim = {"kind": "percent", key: [96, 97.5, 99.95]}
     if not isinstance(clim, dict):
-        raise ValueError('"clim" must be "auto" or dict, got %s' % (clim,))
+        raise ValueError(f'"clim" must be "auto" or dict, got {clim}')
 
     if ("lims" in clim) + ("pos_lims" in clim) != 1:
         raise ValueError(
-            "Exactly one of lims and pos_lims must be specified "
-            "in clim, got %s" % (clim,)
+            f"Exactly one of lims and pos_lims must be specified in clim, got {clim}"
         )
     if "pos_lims" in clim and not allow_pos_lims:
         raise ValueError('Cannot use "pos_lims" for clim, use "lims" ' "instead")
@@ -1806,17 +1805,17 @@ def _process_clim(clim, colormap, transparent, data=0.0, allow_pos_lims=True):
     ctrl_pts = np.array(clim["pos_lims" if diverging else "lims"], float)
     ctrl_pts = np.array(ctrl_pts, float)
     if ctrl_pts.shape != (3,):
-        raise ValueError("clim has shape %s, it must be (3,)" % (ctrl_pts.shape,))
+        raise ValueError(f"clim has shape {ctrl_pts.shape}, it must be (3,)")
     if (np.diff(ctrl_pts) < 0).any():
         raise ValueError(
-            "colormap limits must be monotonically " "increasing, got %s" % (ctrl_pts,)
+            f"colormap limits must be monotonically increasing, got {ctrl_pts}"
         )
     clim_kind = clim.get("kind", "percent")
     _check_option("clim['kind']", clim_kind, ["value", "values", "percent"])
     if clim_kind == "percent":
         perc_data = np.abs(data) if diverging else data
         ctrl_pts = np.percentile(perc_data, ctrl_pts)
-        logger.info("Using control points %s" % (ctrl_pts,))
+        logger.info(f"Using control points {ctrl_pts}")
     assert len(ctrl_pts) == 3
     clim = dict(kind="value")
     clim["pos_lims" if diverging else "lims"] = ctrl_pts
@@ -2032,10 +2031,7 @@ def _plot_mpl_stc(
     from ..morph import _get_subject_sphere_tris
     from ..source_space._source_space import _check_spacing, _create_surf_spacing
 
-    if hemi not in ["lh", "rh"]:
-        raise ValueError(
-            "hemi must be 'lh' or 'rh' when using matplotlib. " "Got %s." % hemi
-        )
+    _check_option("hemi", hemi, ("lh", "rh"), extra="when using matplotlib")
     lh_kwargs = {
         "lat": {"elev": 0, "azim": 180},
         "med": {"elev": 0, "azim": 0},
@@ -2517,7 +2513,7 @@ def _plot_stc(
     if overlay_alpha == 0:
         smoothing_steps = 1  # Disable smoothing to save time.
 
-    title = subject if len(hemis) > 1 else "%s - %s" % (subject, hemis[0])
+    title = subject if len(hemis) > 1 else f"{subject} - {hemis[0]}"
     kwargs = {
         "subject": subject,
         "hemi": hemi,
@@ -2787,7 +2783,7 @@ def plot_volume_source_estimates(
     del kind
 
     # XXX this assumes zooms are uniform, should probably mult by zooms...
-    dist_to_verts = _DistanceQuery(stc_ijk, allow_kdtree=True)
+    dist_to_verts = _DistanceQuery(stc_ijk)
 
     def _cut_coords_to_idx(cut_coords, img):
         """Convert voxel coordinates to index in stc.data."""
@@ -2880,7 +2876,7 @@ def plot_volume_source_estimates(
         ax_y.clear()
         ax_z.clear()
         params.update({"img_idx": index_img(img, idx)})
-        params.update({"title": "Activation (t=%.3f s.)" % params["stc"].times[idx]})
+        params.update({"title": f"Activation (t={params['stc'].times[idx]:.3f} s.)"})
         plot_map_callback(params["img_idx"], title="", cut_coords=cut_coords)
 
     def _update_vertlabel(loc_idx):
@@ -2933,7 +2929,7 @@ def plot_volume_source_estimates(
         time_sl = slice(0, None)
     else:
         initial_time = float(initial_time)
-        logger.info("Fixing initial time: %s s" % (initial_time,))
+        logger.info(f"Fixing initial time: {initial_time} s")
         initial_time = np.argmin(np.abs(stc.times - initial_time))
         time_sl = slice(initial_time, initial_time + 1)
     if initial_pos is None:  # find max pos and (maybe) time
@@ -2946,10 +2942,10 @@ def plot_volume_source_estimates(
         if initial_pos.shape != (3,):
             raise ValueError(
                 "initial_pos must be float ndarray with shape "
-                "(3,), got shape %s" % (initial_pos.shape,)
+                f"(3,), got shape {initial_pos.shape}"
             )
         initial_pos *= 1000
-        logger.info("Fixing initial position: %s mm" % (initial_pos.tolist(),))
+        logger.info(f"Fixing initial position: {initial_pos.tolist()} mm")
         loc_idx = _cut_coords_to_idx(initial_pos, img)
         if initial_time is not None:  # time also specified
             time_idx = time_sl.start
@@ -3109,7 +3105,7 @@ def _check_views(surf, views, hemi, stc=None, backend=None):
         if backend is not None:
             if backend not in ("pyvistaqt", "notebook"):
                 raise RuntimeError(
-                    "The PyVista 3D backend must be used to " "plot a flatmap"
+                    "The PyVista 3D backend must be used to plot a flatmap"
                 )
     if (views == ["flat"]) ^ (surf == "flat"):  # exactly only one of the two
         raise ValueError(
@@ -3490,8 +3486,8 @@ def plot_sparse_source_estimates(
                 linestyle=linestyle,
             )
 
-    ax.set_xlabel("Time (ms)", fontsize=18)
-    ax.set_ylabel("Source amplitude (nAm)", fontsize=18)
+    ax.set_xlabel("Time (ms)", fontsize=fontsize)
+    ax.set_ylabel("Source amplitude (nAm)", fontsize=fontsize)
 
     if fig_name is not None:
         ax.set_title(fig_name)
@@ -3744,7 +3740,7 @@ def snapshot_brain_montage(fig, montage, hide_sensors=True):
         ch_names, xyz = zip(*[(ich, ixyz) for ich, ixyz in montage.items()])
     else:
         raise TypeError(
-            "montage must be an instance of `DigMontage`, `Info`," " or `dict`"
+            "montage must be an instance of `DigMontage`, `Info`, or `dict`"
         )
 
     # initialize figure
@@ -3997,14 +3993,10 @@ def _plot_dipole(
     coord_frame_name = "Head" if coord_frame == "head" else "MRI"
 
     if title is None:
-        title = "Dipole #%s / %s @ %.3fs, GOF: %.1f%%, %.1fnAm\n%s: " % (
-            idx + 1,
-            len(dipole.times),
-            dipole.times[idx],
-            dipole.gof[idx],
-            dipole.amplitude[idx] * 1e9,
-            coord_frame_name,
-        ) + "(%0.1f, %0.1f, %0.1f) mm" % tuple(xyz[idx])
+        title = f"Dipole #{idx + 1} / {len(dipole.times)} @ {dipole.times[idx]:.3f}s, "
+        f"GOF: {dipole.gof[idx]:.1f}%, {dipole.amplitude[idx] * 1e9:.1f}nAm\n"
+        f"{coord_frame_name}: " + f"({xyz[idx][0]:0.1f}, {xyz[idx][1]:0.1f}, "
+        f"{xyz[idx][2]:0.1f}) mm"
 
     ax.get_figure().suptitle(title)
 

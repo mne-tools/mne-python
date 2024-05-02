@@ -44,7 +44,7 @@ from mne.channels import (
 from mne.datasets import testing
 from mne.io import RawArray, read_info, read_raw_fif
 from mne.preprocessing import compute_bridged_electrodes
-from mne.time_frequency.tfr import AverageTFR
+from mne.time_frequency.tfr import AverageTFRArray
 from mne.viz import plot_evoked_topomap, plot_projs_topomap, topomap
 from mne.viz.tests.test_raw import _proj_status
 from mne.viz.topomap import (
@@ -257,19 +257,10 @@ def test_plot_evoked_topomap_units(evoked, units, scalings, expected_unit):
     fig = evoked.plot_topomap(
         times=0.1, res=8, contours=0, sensors=False, units=units, scalings=scalings
     )
-    # ideally we'd do this:
-    #     cbar = [ax for ax in fig.axes if hasattr(ax, '_colorbar')]
-    #     assert len(cbar) == 1
-    #     cbar = cbar[0]
-    #     assert cbar.get_title() == expected_unit
-    # ...but not all matplotlib versions support it, and we can't use
-    # check_version because it's hard figure out exactly which MPL version
-    # is the cutoff since it relies on a private attribute. Based on some
-    # basic testing it's at least matplotlib version >= 3.5.
-    # So for now we just do this:
-    for ax in fig.axes:
-        if hasattr(ax, "_colorbar"):
-            assert ax.get_title() == expected_unit
+    cbar = [ax for ax in fig.axes if hasattr(ax, "_colorbar")]
+    assert len(cbar) == 1
+    cbar = cbar[0]
+    assert cbar.get_title() == expected_unit
 
 
 @pytest.mark.parametrize("extrapolate", ("box", "local", "head"))
@@ -578,13 +569,21 @@ def test_plot_tfr_topomap():
     data = rng.randn(len(picks), n_freqs, len(times))
 
     # test complex numbers
-    tfr = AverageTFR(info, data * (1 + 1j), times, np.arange(n_freqs), nave)
+    tfr = AverageTFRArray(
+        info=info,
+        data=data * (1 + 1j),
+        times=times,
+        freqs=np.arange(n_freqs),
+        nave=nave,
+    )
     tfr.plot_topomap(
         ch_type="mag", tmin=0.05, tmax=0.150, fmin=0, fmax=10, res=res, contours=0
     )
 
     # test real numbers
-    tfr = AverageTFR(info, data, times, np.arange(n_freqs), nave)
+    tfr = AverageTFRArray(
+        info=info, data=data, times=times, freqs=np.arange(n_freqs), nave=nave
+    )
     tfr.plot_topomap(
         ch_type="mag", tmin=0.05, tmax=0.150, fmin=0, fmax=10, res=res, contours=0
     )
