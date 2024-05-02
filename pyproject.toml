@@ -145,7 +145,7 @@ test_extra = [
 doc = [
     "sphinx>=6",
     "numpydoc",
-    "pydata_sphinx_theme==0.15.2",
+    "pydata_sphinx_theme>=0.15.2",
     "sphinx-gallery>=0.16",
     "sphinxcontrib-bibtex>=2.5",
     "sphinxcontrib-towncrier",

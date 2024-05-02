@@ -266,16 +266,14 @@ def _convert_channel_info(chans):
 def _compose_meas_info(meg, chans):
     """Create info structure."""
     info = _empty_info(meg["SamplingFrequency"])
-
     # Collect all the necessary data from the structures read
     info["meas_id"] = get_new_file_id()
     tmp = _convert_channel_info(chans)
     info["chs"] = _refine_sensor_orientation(tmp)
-    # info['chs'] = _convert_channel_info(chans)
     info["line_freq"] = meg["PowerLineFrequency"]
+    info._update_redundant()
     info["bads"] = _read_bad_channels(chans)
     info._unlocked = False
-    info._update_redundant()
     return info
 
 
