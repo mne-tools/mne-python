@@ -10,7 +10,6 @@ import pytest
 import scipy.io
 from numpy import array, empty, isnan
 from numpy.testing import assert_array_almost_equal, assert_array_equal
-from pandas import read_csv
 
 from mne import pick_types
 from mne.datasets import testing
@@ -24,6 +23,21 @@ fil_path = testing.data_path(download=False) / "FIL"
 pytestmark = pytest.mark.filterwarnings(
     "ignore:.*problems later!:RuntimeWarning",
 )
+
+
+def _set_bads_tsv(chanfile, badchan):
+    """Update channels.tsv by setting target channel to bad."""
+    data = []
+    with open(chanfile) as f:
+        for line in f:
+            columns = line.strip().split("\t")
+            data.append(columns)
+
+    with open(chanfile, "w") as f:
+        for row in data:
+            if badchan in row:
+                row[-1] = "bad"
+            f.write("\t".join(row) + "\n")
 
 
 def unpack_mat(matin):
@@ -172,10 +186,7 @@ def test_fil_bad_channel_spec(tmp_path):
     binname = test_path / "sub-noise_ses-001_task-noise220622_run-001_meg.bin"
     bad_chan = "G2-OG-Y"
 
-    df = read_csv(channame, delimiter="\t")
-    index = df[df["name"] == bad_chan].index
-    df.loc[index, "status"] = "bad"
-    df.to_csv(channame, sep="\t", index=False)
+    _set_bads_tsv(channame, bad_chan)
 
     raw = read_raw_fil(binname)
     bads = raw.info["bads"]
