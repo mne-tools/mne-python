@@ -2618,7 +2618,7 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
 
         See Also
         --------
-        mne.time_frequency.read_spectrum
+        mne.time_frequency.read_tfrs
         """
         _, write_hdf5 = _import_h5io_funcs()
         check_fname(fname, "time-frequency object", (".h5", ".hdf5"))
