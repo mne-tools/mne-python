@@ -1513,7 +1513,7 @@ def read_spectrum(fname):
     Parameters
     ----------
     fname : path-like
-        Path to a spectrum file in HDF5 format, which shuold end with ``.h5`` or
+        Path to a spectrum file in HDF5 format, which should end with ``.h5`` or
         ``.hdf5``.
 
     Returns
