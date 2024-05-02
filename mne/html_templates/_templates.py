@@ -3,12 +3,12 @@
 import datetime
 import functools
 import uuid
-from typing import Union
+from typing import Any, Union
 
 _COLLAPSED = False  # will override in doc build
 
 
-def _format_big_number(value: Union[int, float]) -> str:
+def _format_number(value: Union[int, float]) -> str:
     """Insert thousand separators."""
     return f"{value:,}"
 
@@ -24,7 +24,34 @@ def _data_type(obj) -> str:
 
 
 def _dt_to_str(dt: datetime.datetime) -> str:
+    """Convert a datetime object to a human-reaable string representation."""
     return dt.strftime("%B %d, %Y    %H:%M:%S") + " UTC"
+
+
+def _format_baseline(inst) -> str:
+    """Format the baseline time period."""
+    if inst.baseline is None:
+        baseline = "off"
+    else:
+        baseline = tuple([f"{round(b, 3):.3f}" for b in inst.baseline])
+        baseline = f"{baseline[0]} – {baseline[1]} s"
+
+    return baseline
+
+
+def _format_time_range(inst) -> str:
+    """Format evoked and epochs time range."""
+    tr = f"{round(inst.tmin, 3):.3f} – {round(inst.tmax, 3):.3f}"
+    return tr
+
+
+def _has_attr(obj: Any, attr: str) -> bool:
+    """Check if an object has an attribute `obj.attr`.
+
+    This is needed because on dict-like objects, Jinja2's `obj.attr is defined` would
+    check for `obj["attr"]`, which may not be what we want.
+    """
+    return hasattr(obj, attr)
 
 
 @functools.lru_cache(maxsize=2)
@@ -42,10 +69,13 @@ def _get_html_templates_env(kind):
     if kind == "report":
         templates_env.filters["zip"] = zip
 
-    templates_env.filters["format_number"] = _format_big_number
+    templates_env.filters["format_number"] = _format_number
     templates_env.filters["append_uuid"] = _append_uuid
     templates_env.filters["data_type"] = _data_type
     templates_env.filters["dt_to_str"] = _dt_to_str
+    templates_env.filters["format_baseline"] = _format_baseline
+    templates_env.filters["format_time_range"] = _format_time_range
+    templates_env.filters["has_attr"] = _has_attr
     return templates_env
 
 

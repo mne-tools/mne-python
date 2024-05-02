@@ -1,36 +1,10 @@
-
-    {# <tr class="repr-element General-{{ uuid }}">
-        <td></td>
-        <td>Total number of events</td>
-        <td>{{ epochs.events|length }}</td>
-    </tr>
-    <tr class="repr-element General-{{ uuid }}">
-        <td></td>
-        <td>Events counts</td>
-        {% if events is not none %}
-        <td>{{ events|join('<br />') | safe }}</td>
-        {% else %}
-        <td>Not available</td>
-        {% endif %}
-    </tr>
-    <tr class="repr-element General-{{ uuid }}">
-        <td></td>
-        <td>Time range</td>
-        <td>{{ '%.3f'|format(epochs.tmin) }} – {{ '%.3f'|format(epochs.tmax) }} s</td>
-    </tr>
-    <tr class="repr-element General-{{ uuid }}">
-        <td></td>
-        <td>Baseline</td>
-        <td>{{ baseline }}</td>
-    </tr> #}
-
 {%include '_js_and_css.html.jinja' %}
 
 {% set info = inst.info %}
 
 <table class="repr table table-hover table-striped table-sm table-responsive small">
 {%include '_general.html.jinja' %}
+{%include '_data.html.jinja' %}
 {%include '_channels.html.jinja' %}
-{%include '_recording.html.jinja' %}
 {%include '_filters.html.jinja' %}
 </table>

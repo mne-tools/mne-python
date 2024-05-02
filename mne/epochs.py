@@ -2063,12 +2063,6 @@ class BaseEpochs(
 
     @repr_html
     def _repr_html_(self):
-        if self.baseline is None:
-            baseline = "off"
-        else:
-            baseline = tuple([f"{b:.3f}" for b in self.baseline])
-            baseline = f"{baseline[0]} – {baseline[1]} s"
-
         if isinstance(self.event_id, dict):
             event_strings = []
             for k, v in sorted(self.event_id.items()):
@@ -2092,8 +2086,7 @@ class BaseEpochs(
         t = t.render(
             inst=self,
             filenames=[Path(self.filename).name] if self.filename is not None else None,
-            baseline=baseline,
-            events=event_strings,
+            event_counts=event_strings,
             projs=projs,
             good_channels=good_channels,
             bad_channels=bad_channels,
