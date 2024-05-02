@@ -727,7 +727,7 @@ def construct_iir_filter(
     phase : str
         Phase of the filter.
         ``phase='zero'`` (default) or equivalently ``'zero-double'`` constructs and
-        applies IIR filter twice, once forward, and once backward (making it on-causal)
+        applies IIR filter twice, once forward, and once backward (making it non-causal)
         using :func:`~scipy.signal.filtfilt`; ``phase='forward'`` will apply
         the filter once in the forward (causal) direction using
         :func:`~scipy.signal.lfilter`.
