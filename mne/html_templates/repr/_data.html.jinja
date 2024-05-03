@@ -62,7 +62,7 @@
 </tr>
 {% endif %}
 {% if inst is defined and inst | has_attr("tmin") and inst | has_attr("tmax") %}
-<tr class="repr-element General-{{ uuid }}">
+<tr class="repr-element {{ section_class_name }}">
     <td></td>
     <td>Time range</td>
     <td>{{ inst | format_time_range }}</td>
