@@ -1845,7 +1845,6 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
     @repr_html
     def _repr_html_(self):
         """Summarize info for HTML representation."""
-
         info_template = _get_html_template("repr", "info.html.jinja")
         return info_template.render(info=self)
 
