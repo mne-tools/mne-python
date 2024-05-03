@@ -2078,7 +2078,7 @@ class BaseEpochs(
         else:
             event_strings = None
 
-        from ..html_templates import _get_html_template  # avoid circular import of Info
+        from .html_templates import _get_html_template  # avoid circular import of Info
 
         t = _get_html_template("repr", "epochs.html.jinja")
         t = t.render(
