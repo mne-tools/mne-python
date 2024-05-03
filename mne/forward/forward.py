@@ -225,18 +225,11 @@ class Forward(dict):
 
     @repr_html
     def _repr_html_(self):
-        (
-            good_chs,
-            bad_chs,
-            _,
-            _,
-        ) = self["info"]._get_chs_for_repr()
         src_descr, src_ori = self._get_src_type_and_ori_for_repr()
 
         t = _get_html_template("repr", "forward.html.jinja")
         html = t.render(
-            good_channels=good_chs,
-            bad_channels=bad_chs,
+            info=self["info"],
             source_space_descr=src_descr,
             source_orientation=src_ori,
         )

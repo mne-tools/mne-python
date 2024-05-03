@@ -1,11 +1,11 @@
 <table class="table table-hover table-striped table-sm table-responsive small">
     <tr>
         <th>Good channels</th>
-        <td>{{ good_channels }}</td>
+        <td>{{ info | format_channels("good") }}</td>
     </tr>
     <tr>
         <th>Bad channels</th>
-        <td>{{ bad_channels }}</td>
+        <td>{{ info | format_channels("bad") }}</td>
     </tr>
     <tr>
         <th>Source space</th>
