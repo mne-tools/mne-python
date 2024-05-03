@@ -154,7 +154,7 @@ towncrier_draft_working_directory = str(curpath.parent)
 # -- Intersphinx configuration -----------------------------------------------
 
 intersphinx_mapping = {
-    # Pending https://github.com/larsoner/intersphinx_registry/pull/5
+    # Pending https://github.com/Carreau/intersphinx_registry/pull/5
     "sklearn": ("https://scikit-learn.org/stable", None),
     "numba": ("https://numba.readthedocs.io/en/latest", None),
     "joblib": ("https://joblib.readthedocs.io/en/latest", None),
@@ -177,7 +177,7 @@ intersphinx_mapping.update(
     get_intersphinx_mapping(
         only=set(
             """
-imageio matplotlib numpy pandas patsy python scipy seaborn statsmodels
+imageio matplotlib numpy pandas python scipy statsmodels
 """.strip().split()
         ),
     )
