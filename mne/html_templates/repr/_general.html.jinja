@@ -51,7 +51,7 @@
 <tr class="repr-element {{ section_class_name }}">
     <td></td>
     <td>Experimenter</td>
-    {% if info["experimenter"] is defined %}
+    {% if info["experimenter"] is defined and info["experimenter"] is not none %}
     <td>{{ info["experimenter"] }}</td>
     {% else %}
     <td>Unknown</td>
