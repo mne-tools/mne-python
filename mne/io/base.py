@@ -80,7 +80,6 @@ from ..filter import (
     notch_filter,
     resample,
 )
-from ..html_templates import _get_html_template
 from ..parallel import parallel_func
 from ..time_frequency.spectrum import Spectrum, SpectrumMixin, _validate_method
 from ..time_frequency.tfr import RawTFR
@@ -2117,6 +2116,8 @@ class BaseRaw(
         seconds = np.ceil(seconds)  # always take full seconds
 
         duration = f"{int(hours):02d}:{int(minutes):02d}:{int(seconds):02d}"
+
+        from ..html_templates import _get_html_template  # avoid circular import of Info
 
         raw_template = _get_html_template("repr", "raw.html.jinja")
         return raw_template.render(

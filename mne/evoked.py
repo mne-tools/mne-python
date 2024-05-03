@@ -46,7 +46,6 @@ from .channels.channels import InterpolationMixin, ReferenceMixin, UpdateChannel
 from .channels.layout import _merge_ch_data, _pair_grad_sensors
 from .defaults import _BORDER_DEFAULT, _EXTRAPOLATE_DEFAULT, _INTERPOLATION_DEFAULT
 from .filter import FilterMixin, _check_fun, detrend
-from .html_templates import _get_html_template
 from .parallel import parallel_func
 from .time_frequency.spectrum import Spectrum, SpectrumMixin, _validate_method
 from .time_frequency.tfr import AverageTFR
@@ -468,6 +467,8 @@ class Evoked(
 
     @repr_html
     def _repr_html_(self):
+        from .html_templates import _get_html_template  # avoid circular import of Info
+
         t = _get_html_template("repr", "evoked.html.jinja")
         t = t.render(
             inst=self,
