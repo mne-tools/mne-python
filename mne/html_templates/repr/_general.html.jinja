@@ -15,7 +15,12 @@
 <tr class="repr-element {{ section_class_name }}">
     <td></td>
     <td>Filename(s)</td>
-    <td>{{ filenames | join('<br>') }}</td>
+    <td>
+        {% for f in filenames %}
+        {{ f }}
+        {% if not loop.last %}<br />{% endif %}
+        {% endfor %}
+    </td>
 </tr>
 {% endif %}
 <tr class="repr-element {{ section_class_name }}">

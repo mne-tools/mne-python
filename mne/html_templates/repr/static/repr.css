@@ -21,12 +21,15 @@ table > tbody > tr.repr-element > td {
 }
 
 .repr-element {
-  transition: 0.5s ease;
   opacity: 1;
   text-align: left;
 }
 
-.repr-element-hidden {
-  transition: 0.2s ease;
+.repr-element-faded {
+  transition: 0.3s ease;
   opacity: 0.2;
+}
+
+.repr-element-hidden {
+  display: none;
 }
