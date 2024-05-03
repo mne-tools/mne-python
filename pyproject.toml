@@ -165,6 +165,7 @@ doc = [
     "pyzmq!=24.0.0",
     "ipython!=8.7.0",
     "selenium",
+    "intersphinx_registry",
 ]
 dev = ["mne[test,doc]", "rcssmin"]
 

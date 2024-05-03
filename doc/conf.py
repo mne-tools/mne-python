@@ -17,6 +17,7 @@ from pathlib import Path
 import matplotlib
 import pyvista
 import sphinx
+from intersphinx_registry import get_intersphinx_mapping
 from numpydoc import docscrape
 from sphinx.config import is_serializable
 from sphinx.domains.changeset import versionlabels
@@ -153,32 +154,34 @@ towncrier_draft_working_directory = str(curpath.parent)
 # -- Intersphinx configuration -----------------------------------------------
 
 intersphinx_mapping = {
-    "python": ("https://docs.python.org/3", None),
-    "numpy": ("https://numpy.org/doc/stable", None),
-    "scipy": ("https://docs.scipy.org/doc/scipy", None),
-    "matplotlib": ("https://matplotlib.org/stable", None),
+    # Pending https://github.com/larsoner/intersphinx_registry/pull/5
     "sklearn": ("https://scikit-learn.org/stable", None),
     "numba": ("https://numba.readthedocs.io/en/latest", None),
     "joblib": ("https://joblib.readthedocs.io/en/latest", None),
     "nibabel": ("https://nipy.org/nibabel", None),
+    "seaborn": ("https://seaborn.pydata.org/", None),
+    "patsy": ("https://patsy.readthedocs.io/en/latest", None),
+    "pyvista": ("https://docs.pyvista.org/version/stable", None),
+    "dipy": ("https://docs.dipy.org/stable", None),
     "nilearn": ("http://nilearn.github.io/stable", None),
+    # More niche so didn't upstream
     "nitime": ("https://nipy.org/nitime/", None),
-    "surfer": ("https://pysurfer.github.io/", None),
     "mne_bids": ("https://mne.tools/mne-bids/stable", None),
     "mne-connectivity": ("https://mne.tools/mne-connectivity/stable", None),
     "mne-gui-addons": ("https://mne.tools/mne-gui-addons", None),
-    "pandas": ("https://pandas.pydata.org/pandas-docs/stable", None),
-    "seaborn": ("https://seaborn.pydata.org/", None),
-    "statsmodels": ("https://www.statsmodels.org/dev", None),
-    "patsy": ("https://patsy.readthedocs.io/en/latest", None),
-    "pyvista": ("https://docs.pyvista.org/version/stable", None),
-    "imageio": ("https://imageio.readthedocs.io/en/latest", None),
     "picard": ("https://pierreablin.github.io/picard/", None),
     "eeglabio": ("https://eeglabio.readthedocs.io/en/latest", None),
-    "dipy": ("https://docs.dipy.org/stable", None),
     "pybv": ("https://pybv.readthedocs.io/en/latest/", None),
-    "pyqtgraph": ("https://pyqtgraph.readthedocs.io/en/latest/", None),
 }
+intersphinx_mapping.update(
+    get_intersphinx_mapping(
+        only=set(
+            """
+imageio matplotlib numpy pandas patsy python scipy seaborn statsmodels
+""".strip().split()
+        ),
+    )
+)
 
 
 # NumPyDoc configuration -----------------------------------------------------
