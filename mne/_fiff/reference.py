@@ -185,7 +185,8 @@ def _apply_dict_reference(inst, ref_dict):
             ref_to_data[..., ref_to, :] -= ref_data
     # Add the data back to the instance:
     inst._data = ref_to_data
-
+    # Set that custom reference was applied:
+    inst.info["custom_ref_applied"] = FIFF.FIFFV_MNE_CUSTOM_REF_ON
     return inst
 
 
