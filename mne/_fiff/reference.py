@@ -169,12 +169,8 @@ def _apply_dict_reference(inst, ref_dict):
         "contains channels which are not in the "
         "instance!"
     )
-
-    # Copy the data instance to use as reference data:
-    ref_from_data = inst.copy()._data
-    # Copy the data instance to modify by re-referencing. Only this array is modified, the other remains untouched :
+    # Copy the data instance to re-reference:
     ref_to_data = inst.copy()._data
-
     if len(ref_dict) > 0:
         # Loop through each channel to re-reference:
         for ch in ref_dict.keys():
@@ -183,13 +179,13 @@ def _apply_dict_reference(inst, ref_dict):
             ref_from = pick_channels(inst.ch_names, ref_dict[ch], ordered=True)
             # Get indice of channel to re.reference:
             ref_to = pick_channels(inst.ch_names, ch, ordered=True)
-
             # Compute the reference data:
-            ref_data = ref_from_data[..., ref_from, :].mean(-2, keepdims=True)
+            ref_data = inst._data[..., ref_from, :].mean(-2, keepdims=True)
             # Subtract the reference data to the channel to re-reference:
             ref_to_data[..., ref_to, :] -= ref_data
     # Add the data back to the instance:
     inst._data = ref_to_data
+
     return inst
 
 
