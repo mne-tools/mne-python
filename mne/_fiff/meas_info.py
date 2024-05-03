@@ -10,12 +10,11 @@ import contextlib
 import datetime
 import operator
 import string
-from collections import Counter, OrderedDict, defaultdict
+from collections import Counter, OrderedDict
 from collections.abc import Mapping
 from copy import deepcopy
 from io import BytesIO
 from textwrap import shorten
-from typing import Optional
 
 import numpy as np
 
