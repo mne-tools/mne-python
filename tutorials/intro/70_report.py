@@ -94,7 +94,7 @@ raw = mne.io.read_raw(raw_path)
 raw.pick(picks=["eeg", "eog", "stim"]).crop(tmax=60).load_data()
 
 report = mne.Report(title="Raw example")
-# This method also accepts a path, e.g., raw=raw_path
+# This method also accepts a path, e.g., "raw=raw_path"
 report.add_raw(raw=raw, title="Raw", psd=False)  # omit PSD plot
 report.save("report_raw.html", overwrite=True)
 
