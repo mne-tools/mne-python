@@ -169,6 +169,11 @@ def _apply_dict_reference(inst, ref_dict):
         "contains channels which are not in the "
         "instance!"
     )
+    # Raise a warning if one of the reference channel is bad:
+    if any([ch in ref_dict_channels for ch in inst.info["bads"]]):
+        msg = "Channels in the reference scheme are marked as bad!"
+        _on_missing("warns", msg)
+
     # Copy the data instance to re-reference:
     ref_to_data = inst.copy()._data
     if len(ref_dict) > 0:
