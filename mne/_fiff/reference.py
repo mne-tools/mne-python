@@ -113,33 +113,31 @@ def _check_before_reference(inst, ref_from, ref_to, ch_type):
 
     return ref_to
 
-def _check_before_dict_reference(inst, ref_dict):
 
+def _check_before_dict_reference(inst, ref_dict):
     ref_from_channels = set()
     for key, value in ref_dict.items():
         # Check keys
         # Check that keys are strings
         assert isinstance(key, str), (
-            "Keys in dict-type ref_channels must be strings, "
-            f"got {type(key)}"
+            "Keys in dict-type ref_channels must be strings, " f"got {type(key)}"
         )
         # Check that keys are not repeated
         assert key not in ref_from_channels, (
-            "Keys in dict-type ref_channels must be unique, "
-            f"got repeated key {key}"
+            "Keys in dict-type ref_channels must be unique, " f"got repeated key {key}"
         )
         # Check that keys are in ch_names
-        assert key in inst.ch_names, (
-            f"Channel {key} in ref_channels is not in the instance"
-        )
+        assert (
+            key in inst.ch_names
+        ), f"Channel {key} in ref_channels is not in the instance"
         ref_from_channels.add(key)
 
         # Check values
         if isinstance(value, str):
             # Check that value is in ch_names
-            assert value in inst.ch_names, (
-                f"Channel {value} in ref_channels is not in the instance"
-            )
+            assert (
+                value in inst.ch_names
+            ), f"Channel {value} in ref_channels is not in the instance"
             # If value is a bad channel, issue a warning
             if value in inst.info["bads"]:
                 msg = f"Channel {value} in ref_channels is marked as bad!"
@@ -149,11 +147,12 @@ def _check_before_dict_reference(inst, ref_dict):
                 # Check that values are strings
                 assert isinstance(val, str), (
                     "Values in dict-type ref_channels must be strings or "
-                    f"lists of strings, got {type(val)}")
-                # Check that values are in ch_names
-                assert val in inst.ch_names, (
-                    f"Channel {val} in ref_channels is not in the instance"
+                    f"lists of strings, got {type(val)}"
                 )
+                # Check that values are in ch_names
+                assert (
+                    val in inst.ch_names
+                ), f"Channel {val} in ref_channels is not in the instance"
                 # If value is a bad channel, issue a warning
                 if val in inst.info["bads"]:
                     msg = f"Channel {val} in ref_channels is marked as bad!"
@@ -163,6 +162,7 @@ def _check_before_dict_reference(inst, ref_dict):
                 "Values in dict-type ref_channels must be strings or "
                 f"lists of strings, got {type(value)}"
             )
+
 
 def _apply_reference(inst, ref_from, ref_to=None, forward=None, ch_type="auto"):
     """Apply a custom EEG referencing scheme."""
