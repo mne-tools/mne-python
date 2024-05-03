@@ -468,7 +468,7 @@ def set_eeg_reference(
             "reference."
         )
 
-    if ref_channels is dict:
+    if isinstance(ref_channels, dict):
         return _apply_dict_reference(inst, ref_channels, ch_type=ch_type)
     else:
         return _apply_reference(inst, ref_channels, ch_sel, forward, ch_type=ch_type)
