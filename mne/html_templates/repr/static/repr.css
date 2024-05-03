@@ -30,6 +30,6 @@ table > tbody > tr.repr-element > td {
   opacity: 0.2;
 }
 
-.repr-element-hidden {
+.repr-element-collapsed {
   display: none;
 }

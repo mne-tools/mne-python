@@ -1,10 +1,23 @@
 {% set section = "Data" %}
 {% set section_class_name = section | lower | append_uuid %}
 
+{# Collapse content during documentation build. #}
+{% if collapsed %}
+{% set collapsed = "repr-element-faded repr-element-collapsed" %}
+{% else %}
+{% set collapsed = "" %}
+{% endif %}
+
 <tr>
     <th class="repr-section-header repr-section-toggle-col">
         <button title="Hide section" onclick="toggleVisibility('{{ section_class_name }}', this)">
-            <small>➖</small>
+            <small>
+                {% if collapsed %}
+                ➕
+                {% else %}
+                ➖
+                {% endif %}
+            </small>
         </button>
     </th>
     <th class="repr-section-header" colspan="2">
@@ -12,14 +25,14 @@
     </th>
 </tr>
 {% if duration %}
-<tr class="repr-element {{ section_class_name }}">
+<tr class="repr-element {{ section_class_name }} {{ collapsed }}">
     <td></td>
     <td>Duration</td>
     <td>{{ duration }} (HH:MM:SS)</td>
 </tr>
 {% endif %}
 {% if inst is defined and inst | has_attr("kind") and inst | has_attr("nave") %}
-<tr class="repr-element {{ section_class_name }}">
+<tr class="repr-element {{ section_class_name }} {{ collapsed }}">
     <td></td>
     <td>Aggregation</td>
     {% if inst.kind == "average" %}
@@ -32,21 +45,21 @@
 </tr>
 {% endif %}
 {% if inst is defined and inst | has_attr("comment") %}
-<tr class="repr-element {{ section_class_name }}">
+<tr class="repr-element {{ section_class_name }} {{ collapsed }}">
     <td></td>
     <td>Condition</td>
     <td>{{inst.comment}}</td>
 </tr>
 {% endif %}
 {% if inst is defined and inst | has_attr("events") %}
-<tr class="repr-element {{ section_class_name }}">
+<tr class="repr-element {{ section_class_name }} {{ collapsed }}">
     <td></td>
     <td>Total number of events</td>
     <td>{{ inst.events | length }}</td>
 </tr>
 {% endif %}
 {% if event_counts is defined %}
-<tr class="repr-element {{ section_class_name }}">
+<tr class="repr-element {{ section_class_name }} {{ collapsed }}">
     <td></td>
     <td>Events counts</td>
     {% if events is not none %}
@@ -62,28 +75,28 @@
 </tr>
 {% endif %}
 {% if inst is defined and inst | has_attr("tmin") and inst | has_attr("tmax") %}
-<tr class="repr-element {{ section_class_name }}">
+<tr class="repr-element {{ section_class_name }} {{ collapsed }}">
     <td></td>
     <td>Time range</td>
     <td>{{ inst | format_time_range }}</td>
 </tr>
 {% endif %}
 {% if inst is defined and inst | has_attr("baseline") %}
-<tr class="repr-element {{ section_class_name }}">
+<tr class="repr-element {{ section_class_name }} {{ collapsed }}">
     <td></td>
     <td>Baseline</td>
     <td>{{ inst | format_baseline }}</td>
 </tr>
 {% endif %}
 {% if info["sfreq"] is defined and info["sfreq"] is not none %}
-<tr class="repr-element {{ section_class_name }}">
+<tr class="repr-element {{ section_class_name }} {{ collapsed }}">
     <td></td>
     <td>Sampling frequency</td>
     <td>{{ "%0.2f" | format(info["sfreq"]) }} Hz</td>
 </tr>
 {% endif %}
 {% if inst is defined and inst.times is defined %}
-<tr class="repr-element {{ section_class_name }}">
+<tr class="repr-element {{ section_class_name }} {{ collapsed }}">
     <td></td>
     <td>Time points</td>
     <td>{{ inst.times | length | format_number }}</td>

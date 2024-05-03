@@ -1,10 +1,23 @@
 {% set section = "General" %}
 {% set section_class_name = section | lower | append_uuid %}
 
+{# Collapse content during documentation build. #}
+{% if collapsed %}
+{% set collapsed = "repr-element-faded repr-element-collapsed" %}
+{% else %}
+{% set collapsed = "" %}
+{% endif %}
+
 <tr>
     <th class="repr-section-header repr-section-toggle-col">
         <button title="Hide section" onclick="toggleVisibility('{{ section_class_name }}', this)">
-            <small>➖</small>
+            <small>
+                {% if collapsed %}
+                ➕
+                {% else %}
+                ➖
+                {% endif %}
+            </small>
         </button>
     </th>
     <th class="repr-section-header" colspan="2">
@@ -12,7 +25,7 @@
     </th>
 </tr>
 {% if filenames %}
-<tr class="repr-element {{ section_class_name }}">
+<tr class="repr-element {{ section_class_name }} {{ collapsed }}">
     <td></td>
     <td>Filename(s)</td>
     <td>
@@ -23,12 +36,12 @@
     </td>
 </tr>
 {% endif %}
-<tr class="repr-element {{ section_class_name }}">
+<tr class="repr-element {{ section_class_name }} {{ collapsed }}">
     <td></td>
     <td>Data type</td>
     <td>{{ inst | data_type }}</td>
 </tr>
-<tr class="repr-element {{ section_class_name }}">
+<tr class="repr-element {{ section_class_name }} {{ collapsed }}">
     <td></td>
     <td>Measurement date</td>
     {% if info["meas_date"] is defined and info["meas_date"] is not none %}
@@ -37,7 +50,7 @@
     <td>Unknown</td>
     {% endif %}
 </tr>
-<tr class="repr-element {{ section_class_name }}">
+<tr class="repr-element {{ section_class_name }} {{ collapsed }}">
     <td></td>
     <td>Participant</td>
     {% if info["subject_info"] is defined and info["subject_info"] is not none %}
@@ -48,7 +61,7 @@
     <td>Unknown</td>
     {% endif %}
 </tr>
-<tr class="repr-element {{ section_class_name }}">
+<tr class="repr-element {{ section_class_name }} {{ collapsed }}">
     <td></td>
     <td>Experimenter</td>
     {% if info["experimenter"] is defined and info["experimenter"] is not none %}
