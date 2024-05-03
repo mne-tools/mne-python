@@ -164,6 +164,7 @@ intersphinx_mapping = {
     "pyvista": ("https://docs.pyvista.org/version/stable", None),
     "dipy": ("https://docs.dipy.org/stable", None),
     "nilearn": ("http://nilearn.github.io/stable", None),
+    "pyqtgraph": ("https://pyqtgraph.readthedocs.io/en/latest/", None),
     # More niche so didn't upstream
     "nitime": ("https://nipy.org/nitime/", None),
     "mne_bids": ("https://mne.tools/mne-bids/stable", None),
