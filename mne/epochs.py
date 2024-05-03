@@ -73,6 +73,7 @@ from .event import _read_events_fif, make_fixed_length_events, match_event_names
 from .evoked import EvokedArray
 from .filter import FilterMixin, _check_fun, detrend
 from .fixes import rng_uniform
+from .html_templates import _get_html_template
 from .parallel import parallel_func
 from .time_frequency.spectrum import EpochsSpectrum, SpectrumMixin, _validate_method
 from .time_frequency.tfr import AverageTFR, EpochsTFR
@@ -2077,8 +2078,6 @@ class BaseEpochs(
             event_strings = [f"{self.event_id}: {n_events}"]
         else:
             event_strings = None
-
-        from .html_templates import _get_html_template  # avoid circular import of Info
 
         t = _get_html_template("repr", "epochs.html.jinja")
         t = t.render(

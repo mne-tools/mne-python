@@ -6,7 +6,6 @@ import uuid
 from collections import defaultdict
 from typing import Any, Literal, Union
 
-from .. import Info
 from .._fiff.pick import channel_type
 from ..defaults import _handle_default
 
@@ -51,13 +50,13 @@ def _format_time_range(inst) -> str:
     return tr
 
 
-def _format_projs(info: Info) -> list[str]:
+def _format_projs(info) -> list[str]:
     """Format projectors."""
     projs = [f'{p["desc"]} ({"on" if p["active"] else "off"})' for p in info["projs"]]
     return projs
 
 
-def _format_channels(info: Info, ch_type: Literal["good", "bad", "ecg", "eog"]) -> str:
+def _format_channels(info, ch_type: Literal["good", "bad", "ecg", "eog"]) -> str:
     """Format channel names."""
     titles = _handle_default("titles")
 

@@ -19,6 +19,7 @@ from textwrap import shorten
 import numpy as np
 
 from ..defaults import _handle_default
+from ..html_templates import _get_html_template
 from ..utils import (
     _check_fname,
     _check_on_missing,
@@ -1844,7 +1845,6 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
     @repr_html
     def _repr_html_(self):
         """Summarize info for HTML representation."""
-        from ..html_templates import _get_html_template  # avoid circular import of Info
 
         info_template = _get_html_template("repr", "info.html.jinja")
         return info_template.render(info=self)
