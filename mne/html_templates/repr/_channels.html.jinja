@@ -15,22 +15,22 @@
 <tr class="repr-element {{ section_class_name }}">
     <td></td>
     <td>Good channels</td>
-    <td>{{ good_channels }}</td>
+    <td>{{ info | format_channels("good") }}</td>
 </tr>
 <tr class="repr-element {{ section_class_name }}">
     <td></td>
     <td>Bad channels</td>
-    <td>{{ bad_channels }}</td>
+    <td>{{ info | format_channels("bad") }}</td>
 </tr>
 <tr class="repr-element {{ section_class_name }}">
     <td></td>
     <td>EOG channels</td>
-    <td>{{ eog }}</td>
+    <td>{{ info | format_channels("eog") }}</td>
 </tr>
 <tr class="repr-element {{ section_class_name }}">
     <td></td>
     <td>ECG channels</td>
-    <td>{{ ecg }}</td>
+    <td>{{ info | format_channels("ecg") }}</td>
 </tr>
 <tr class="repr-element {{ section_class_name }}">
     <td></td>

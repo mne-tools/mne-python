@@ -3,7 +3,12 @@
 import datetime
 import functools
 import uuid
-from typing import Any, Union
+from collections import defaultdict
+from typing import Any, Literal, Union
+
+from .. import Info
+from .._fiff.pick import channel_type
+from ..defaults import _handle_default
 
 _COLLAPSED = False  # will override in doc build
 
@@ -46,6 +51,47 @@ def _format_time_range(inst) -> str:
     return tr
 
 
+def _format_projs(info: Info) -> list[str]:
+    """Format projectors."""
+    projs = [f'{p["desc"]} ({"on" if p["active"] else "off"})' for p in info["projs"]]
+    return projs
+
+
+def _format_channels(info: Info, ch_type: Literal["good", "bad", "ecg", "eog"]) -> str:
+    """Format channel names."""
+    titles = _handle_default("titles")
+
+    if info.ch_names:
+        # good channels
+        good_names = defaultdict(lambda: list())
+        for ci, ch_name in enumerate(info.ch_names):
+            if ch_name in info["bads"]:
+                continue
+            channel_type_ = channel_type(info, ci)
+            good_names[channel_type_].append(ch_name)
+            del channel_type_
+        good_channels = ", ".join(
+            [f"{len(v)} {titles.get(k, k.upper())}" for k, v in good_names.items()]
+        )
+        for key in ("ecg", "eog"):  # ensure these are present
+            if key not in good_names:
+                good_names[key] = list()
+        for key, val in good_names.items():
+            good_names[key] = ", ".join(val) or "Not available"
+
+        # bad channels
+        bad_channels = ", ".join(info["bads"]) or "None"
+
+        # ECG and EOG
+        ecg = good_names["ecg"]
+        eog = good_names["eog"]
+    else:
+        good_channels = bad_channels = ecg = eog = "None"
+
+    channels = {"good": good_channels, "bad": bad_channels, "ecg": ecg, "eog": eog}
+    return channels[ch_type]
+
+
 def _has_attr(obj: Any, attr: str) -> bool:
     """Check if an object has an attribute `obj.attr`.
 
@@ -76,6 +122,8 @@ def _get_html_templates_env(kind):
     templates_env.filters["dt_to_str"] = _dt_to_str
     templates_env.filters["format_baseline"] = _format_baseline
     templates_env.filters["format_time_range"] = _format_time_range
+    templates_env.filters["format_projs"] = _format_projs
+    templates_env.filters["format_channels"] = _format_channels
     templates_env.filters["has_attr"] = _has_attr
     return templates_env
 

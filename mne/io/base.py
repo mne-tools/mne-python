@@ -2118,19 +2118,11 @@ class BaseRaw(
 
         duration = f"{int(hours):02d}:{int(minutes):02d}:{int(seconds):02d}"
 
-        good_channels, bad_channels, ecg, eog = self.info._get_chs_for_repr()
-        projs = self.info._get_projs_for_repr()
-
         raw_template = _get_html_template("repr", "raw.html.jinja")
         return raw_template.render(
             inst=self,
             filenames=basenames,
             duration=duration,
-            projs=projs,
-            good_channels=good_channels,
-            bad_channels=bad_channels,
-            ecg=ecg,
-            eog=eog,
         )
 
     def add_events(self, events, stim_channel=None, replace=False):

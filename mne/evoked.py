@@ -468,9 +468,6 @@ class Evoked(
 
     @repr_html
     def _repr_html_(self):
-        good_channels, bad_channels, ecg, eog = self.info._get_chs_for_repr()
-        projs = self.info._get_projs_for_repr()
-
         t = _get_html_template("repr", "evoked.html.jinja")
         t = t.render(
             inst=self,
@@ -479,11 +476,6 @@ class Evoked(
                 if hasattr(self, "filename") and self.filename is not None
                 else None
             ),
-            projs=projs,
-            good_channels=good_channels,
-            bad_channels=bad_channels,
-            ecg=ecg,
-            eog=eog,
         )
         return t
 

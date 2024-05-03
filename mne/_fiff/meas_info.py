@@ -20,7 +20,6 @@ from typing import Optional
 import numpy as np
 
 from ..defaults import _handle_default
-from ..html_templates import _get_html_template
 from ..utils import (
     _check_fname,
     _check_on_missing,
@@ -1843,60 +1842,13 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
 
         return ch_names
 
-    def _get_chs_for_repr(self):
-        titles = _handle_default("titles")
-
-        # good channels
-        if self.ch_names:
-            good_names = defaultdict(lambda: list())
-            for ci, ch_name in enumerate(self.ch_names):
-                if ch_name in self["bads"]:
-                    continue
-                ch_type = channel_type(self, ci)
-                good_names[ch_type].append(ch_name)
-            good_channels = ", ".join(
-                [f"{len(v)} {titles.get(k, k.upper())}" for k, v in good_names.items()]
-            )
-            for key in ("ecg", "eog"):  # ensure these are present
-                if key not in good_names:
-                    good_names[key] = list()
-            for key, val in good_names.items():
-                good_names[key] = ", ".join(val) or "Not available"
-
-            # bad channels
-            bad_channels = ", ".join(self["bads"]) or "None"
-            ecg = good_names["ecg"]
-            eog = good_names["eog"]
-        else:
-            good_channels = bad_channels = ecg = eog = "None"
-
-        return good_channels, bad_channels, ecg, eog
-
-    def _get_projs_for_repr(self) -> Optional[list[str]]:
-        projs = self.get("projs")
-        if projs:
-            projs = [
-                f'{p["desc"]} : {"on" if p["active"] else "off"}' for p in self["projs"]
-            ]
-        else:
-            projs = None
-
-        return projs
-
     @repr_html
     def _repr_html_(self):
         """Summarize info for HTML representation."""
-        good_channels, bad_channels, ecg, eog = self._get_chs_for_repr()
-        projs = self._get_projs_for_repr()
+        from ..html_templates import _get_html_template  # avoid circular import of Info
+
         info_template = _get_html_template("repr", "info.html.jinja")
-        return info_template.render(
-            info=self,
-            projs=projs,
-            ecg=ecg,
-            eog=eog,
-            good_channels=good_channels,
-            bad_channels=bad_channels,
-        )
+        return info_template.render(info=self)
 
     def save(self, fname):
         """Write measurement info in fif file.

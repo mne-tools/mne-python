@@ -25,10 +25,15 @@
     <td>{{ "%0.2f" | format(info["lowpass"]) }} Hz</td>
 </tr>
 {% endif %}
-{% if projs is not none %}
+{% if info.projs is defined and info.projs %}
 <tr class="repr-element {{ section_class_name }}">
     <td></td>
     <td>Projections</td>
-    <td>{{ projs|join("<br />") | safe }}</td>
+    <td>
+        {% for p in (info | format_projs) %}
+        {{ p }}
+        {% if not loop.last %}<br />{% endif %}
+        {% endfor %}
+    </td>
 </tr>
 {% endif %}

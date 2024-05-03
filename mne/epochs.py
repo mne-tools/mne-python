@@ -2079,9 +2079,6 @@ class BaseEpochs(
         else:
             event_strings = None
 
-        good_channels, bad_channels, ecg, eog = self.info._get_chs_for_repr()
-        projs = self.info._get_projs_for_repr()
-
         t = _get_html_template("repr", "epochs.html.jinja")
         t = t.render(
             inst=self,
@@ -2091,11 +2088,6 @@ class BaseEpochs(
                 else None
             ),
             event_counts=event_strings,
-            projs=projs,
-            good_channels=good_channels,
-            bad_channels=bad_channels,
-            ecg=ecg,
-            eog=eog,
         )
         return t
 
