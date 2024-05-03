@@ -155,29 +155,36 @@ def _apply_reference(inst, ref_from, ref_to=None, forward=None, ch_type="auto"):
     return inst, ref_data
 
 
-def _apply_dict_reference(inst, ref_dict, ch_type="auto"):
+def _apply_dict_reference(inst, ref_dict):
     """Apply a dict-based custom EEG referencing scheme."""
-    # ref_to = _check_before_reference(inst, ref_from, ref_to, ch_type)
 
-    # # Compute reference
-    # if len(ref_from) > 0:
-    #     # this is guaranteed below, but we should avoid the crazy pick_channels
-    #     # behavior that [] gives all. Also use ordered=True just to make sure
-    #     # that all supplied channels actually exist.
-    #     assert len(ref_to) > 0
-    #     ref_names = ref_from
-    #     ref_from = pick_channels(inst.ch_names, ref_from, ordered=True)
-    #     ref_to = pick_channels(inst.ch_names, ref_to, ordered=True)
+    # Check that ref_dict channel exist in instance:
+    ref_dict_channels = list(set(list(ref_dict.keys()) + [item for sublist in ref_dict.values() for item in sublist]))
+    assert all([ref_ch in inst.ch_names for ref_ch in ref_dict_channels]), ("The custom referencing dictionary "
+                                                                            "contains channels which are not in the "
+                                                                            "instance!")
 
-    #     data = inst._data
-    #     ref_data = data[..., ref_from, :].mean(-2, keepdims=True)
-    #     data[..., ref_to, :] -= ref_data
-    #     ref_data = ref_data[..., 0, :]
+    # Copy the data instance to use as reference data:
+    ref_from_data = inst.copy()._data
+    # Copy the data instance to modify by re-referencing. Only this array is modified, the other remains untouched :
+    ref_to_data = inst.copy()._data
 
-    # else:
-    #     ref_data = None
+    if len(ref_dict) > 0:
+        # Loop through each channel to re-reference:
+        for ch in ref_dict.keys():
+            assert len(ref_dict[ch]) > 0, "No channel to re-reference ch-{}".format(ch)
+            # Get indices of the channels to use as reference
+            ref_from = pick_channels(inst.ch_names, ref_dict[ch], ordered=True)
+            # Get indice of channel to re.reference:
+            ref_to = pick_channels(inst.ch_names, ch, ordered=True)
 
-    # return inst, ref_data
+            # Compute the reference data:
+            ref_data = ref_from_data[..., ref_from, :].mean(-2, keepdims=True)
+            # Subtract the reference data to the channel to re-reference:
+            ref_to_data[..., ref_to, :] -= ref_data
+    # Add the data back to the instance:
+    inst._data = ref_to_data
+    return inst
 
 
 @fill_doc
