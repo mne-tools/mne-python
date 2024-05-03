@@ -4002,6 +4002,17 @@ Some common referencing schemes and the corresponding value for the
     The given EEG electrodes are referenced to a point at infinity using the
     lead fields in ``forward``, which helps standardize the signals.
 
+- Different references for different channels
+    Set ``ref_channels`` to a dictionary mapping source channel names (str)
+    to the reference channel names (str or list of str). Unlike the other
+    approaches where the same reference is applied globally, you can set
+    different references for different channels with this method. For example,
+    to re-reference channel 'A1' to 'A2' and 'B1' to the average of 'B2' and
+    'B3', set ``ref_channels={'A1': 'A2', 'B1': ['B2', 'B3']}``. Keys in the
+    dictionary must be unique. Warnings are issued when a bad channel is
+    used as a reference and when a mapping involves channels of different
+    types.
+
 1. If a reference is requested that is not the average reference, this
    function removes any pre-existing average reference projections.
 

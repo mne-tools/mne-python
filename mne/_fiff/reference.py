@@ -113,6 +113,56 @@ def _check_before_reference(inst, ref_from, ref_to, ch_type):
 
     return ref_to
 
+def _check_before_dict_reference(inst, ref_dict):
+
+    ref_from_channels = set()
+    for key, value in ref_dict.items():
+        # Check keys
+        # Check that keys are strings
+        assert isinstance(key, str), (
+            "Keys in dict-type ref_channels must be strings, "
+            f"got {type(key)}"
+        )
+        # Check that keys are not repeated
+        assert key not in ref_from_channels, (
+            "Keys in dict-type ref_channels must be unique, "
+            f"got repeated key {key}"
+        )
+        # Check that keys are in ch_names
+        assert key in inst.ch_names, (
+            f"Channel {key} in ref_channels is not in the instance"
+        )
+        ref_from_channels.add(key)
+
+        # Check values
+        if isinstance(value, str):
+            # Check that value is in ch_names
+            assert value in inst.ch_names, (
+                f"Channel {value} in ref_channels is not in the instance"
+            )
+            # If value is a bad channel, issue a warning
+            if value in inst.info["bads"]:
+                msg = f"Channel {value} in ref_channels is marked as bad!"
+                _on_missing("warns", msg)
+        elif isinstance(value, list):
+            for val in value:
+                # Check that values are strings
+                assert isinstance(val, str), (
+                    "Values in dict-type ref_channels must be strings or "
+                    f"lists of strings, got {type(val)}")
+                # Check that values are in ch_names
+                assert val in inst.ch_names, (
+                    f"Channel {val} in ref_channels is not in the instance"
+                )
+                # If value is a bad channel, issue a warning
+                if val in inst.info["bads"]:
+                    msg = f"Channel {val} in ref_channels is marked as bad!"
+                    _on_missing("warns", msg)
+        else:
+            raise ValueError(
+                "Values in dict-type ref_channels must be strings or "
+                f"lists of strings, got {type(value)}"
+            )
 
 def _apply_reference(inst, ref_from, ref_to=None, forward=None, ch_type="auto"):
     """Apply a custom EEG referencing scheme."""
@@ -157,22 +207,7 @@ def _apply_reference(inst, ref_from, ref_to=None, forward=None, ch_type="auto"):
 
 def _apply_dict_reference(inst, ref_dict):
     """Apply a dict-based custom EEG referencing scheme."""
-    # Check that ref_dict channel exist in instance:
-    ref_dict_channels = list(
-        set(
-            list(ref_dict.keys())
-            + [item for sublist in ref_dict.values() for item in sublist]
-        )
-    )
-    assert all([ref_ch in inst.ch_names for ref_ch in ref_dict_channels]), (
-        "The custom referencing dictionary "
-        "contains channels which are not in the "
-        "instance!"
-    )
-    # Raise a warning if one of the reference channel is bad:
-    if any([ch in ref_dict_channels for ch in inst.info["bads"]]):
-        msg = "Channels in the reference scheme are marked as bad!"
-        _on_missing("warns", msg)
+    _check_before_dict_reference(inst, ref_dict)
 
     # Copy the data instance to re-reference:
     ref_to_data = inst.copy()._data
@@ -192,7 +227,7 @@ def _apply_dict_reference(inst, ref_dict):
     inst._data = ref_to_data
     # Set that custom reference was applied:
     inst.info["custom_ref_applied"] = FIFF.FIFFV_MNE_CUSTOM_REF_ON
-    return inst
+    return inst, ref_to_data
 
 
 @fill_doc
@@ -471,7 +506,7 @@ def set_eeg_reference(
         )
 
     if isinstance(ref_channels, dict):
-        return _apply_dict_reference(inst, ref_channels, ch_type=ch_type)
+        return _apply_dict_reference(inst, ref_channels)
     else:
         return _apply_reference(inst, ref_channels, ch_sel, forward, ch_type=ch_type)
 
