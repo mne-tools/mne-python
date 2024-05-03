@@ -157,12 +157,18 @@ def _apply_reference(inst, ref_from, ref_to=None, forward=None, ch_type="auto"):
 
 def _apply_dict_reference(inst, ref_dict):
     """Apply a dict-based custom EEG referencing scheme."""
-
     # Check that ref_dict channel exist in instance:
-    ref_dict_channels = list(set(list(ref_dict.keys()) + [item for sublist in ref_dict.values() for item in sublist]))
-    assert all([ref_ch in inst.ch_names for ref_ch in ref_dict_channels]), ("The custom referencing dictionary "
-                                                                            "contains channels which are not in the "
-                                                                            "instance!")
+    ref_dict_channels = list(
+        set(
+            list(ref_dict.keys())
+            + [item for sublist in ref_dict.values() for item in sublist]
+        )
+    )
+    assert all([ref_ch in inst.ch_names for ref_ch in ref_dict_channels]), (
+        "The custom referencing dictionary "
+        "contains channels which are not in the "
+        "instance!"
+    )
 
     # Copy the data instance to use as reference data:
     ref_from_data = inst.copy()._data
@@ -172,7 +178,7 @@ def _apply_dict_reference(inst, ref_dict):
     if len(ref_dict) > 0:
         # Loop through each channel to re-reference:
         for ch in ref_dict.keys():
-            assert len(ref_dict[ch]) > 0, "No channel to re-reference ch-{}".format(ch)
+            assert len(ref_dict[ch]) > 0, f"No channel to re-reference ch-{ch}"
             # Get indices of the channels to use as reference
             ref_from = pick_channels(inst.ch_names, ref_dict[ch], ordered=True)
             # Get indice of channel to re.reference:
