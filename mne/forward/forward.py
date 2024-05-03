@@ -51,7 +51,6 @@ from .._fiff.write import (
 )
 from ..epochs import BaseEpochs
 from ..evoked import Evoked, EvokedArray
-from ..html_templates import _get_html_template
 from ..io import BaseRaw, RawArray
 from ..label import Label
 from ..source_estimate import _BaseSourceEstimate, _BaseVectorSourceEstimate
@@ -232,6 +231,9 @@ class Forward(dict):
             _,
         ) = self["info"]._get_chs_for_repr()
         src_descr, src_ori = self._get_src_type_and_ori_for_repr()
+
+        from ..html_templates import _get_html_template  # avoid circular import of Info
+
         t = _get_html_template("repr", "forward.html.jinja")
         html = t.render(
             good_channels=good_chs,
