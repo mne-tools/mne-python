@@ -8,7 +8,7 @@
 {% set collapsed_row_class = "" %}
 {% endif %}
 
-<tr>
+<tr class="no-stripes">
     <th class="repr-section-header repr-section-toggle-col">
         <button {% if collapsed %} class="collapsed" title="Show section" {% else %} title="Hide section" {% endif %}
             onclick="toggleVisibility('{{ section_class_name }}', this)">

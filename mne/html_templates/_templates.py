@@ -9,7 +9,7 @@ from typing import Any, Literal, Union
 from .._fiff.pick import channel_type
 from ..defaults import _handle_default
 
-_COLLAPSED = False  # will override in doc build
+_COLLAPSED = True  # will override in doc build
 
 
 def _format_number(value: Union[int, float]) -> str:
