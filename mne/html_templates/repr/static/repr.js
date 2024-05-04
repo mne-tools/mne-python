@@ -20,7 +20,6 @@ const toggleVisibility = (className, button) => {
   });
 
   // Take care of the button content and tooltip
-  button.innerText = button.innerText === "➖" ? "➕" : "➖"
   button.title = button.title === 'Hide section' ? 'Show section' : 'Hide section'
-  button.classList.toggle("collapsed")
+  button.classList.toggle('collapsed')
 }
