@@ -38,10 +38,6 @@ table > tbody > tr.repr-element > td {
   border-color: transparent;
 }
 
-.collapse-uncollapse-caret.hidden {
-  display: none;
-}
-
 span.collapse-uncollapse-caret {
   display: block;
   background-repeat: no-repeat;
