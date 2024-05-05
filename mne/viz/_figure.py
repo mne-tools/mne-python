@@ -73,7 +73,7 @@ class BrowserBase(ABC):
             self.mne.instance_type = "epochs"
         else:
             raise TypeError(
-                "Expected an instance of Raw, Epochs, or ICA, " f"got {type(inst)}."
+                f"Expected an instance of Raw, Epochs, or ICA, got {type(inst)}."
             )
 
         logger.debug(f"Opening {self.mne.instance_type} browser...")

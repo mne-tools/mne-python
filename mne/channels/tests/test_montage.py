@@ -1976,7 +1976,7 @@ def test_montage_add_fiducials():
 
     # check that adding MNI fiducials fails because we're in MRI
     with pytest.raises(
-        RuntimeError, match="Montage should be in the " '"mni_tal" coordinate frame'
+        RuntimeError, match='Montage should be in the "mni_tal" coordinate frame'
     ):
         montage.add_mni_fiducials(subjects_dir=subjects_dir)
 
@@ -1991,7 +1991,7 @@ def test_montage_add_fiducials():
     # which is the FreeSurfer RAS
     montage = make_dig_montage(ch_pos=test_ch_pos, coord_frame="mni_tal")
     with pytest.raises(
-        RuntimeError, match="Montage should be in the " '"mri" coordinate frame'
+        RuntimeError, match='Montage should be in the "mri" coordinate frame'
     ):
         montage.add_estimated_fiducials(subject=subject, subjects_dir=subjects_dir)
 

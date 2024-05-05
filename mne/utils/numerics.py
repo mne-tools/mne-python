@@ -832,7 +832,7 @@ def object_diff(a, b, pre="", *, allclose=False):
         # sparsity and sparse type of b vs a already checked above by type()
         if b.shape != a.shape:
             out += pre + (
-                " sparse matrix a and b shape mismatch" f"({a.shape} vs {b.shape})"
+                f" sparse matrix a and b shape mismatch ({a.shape} vs {b.shape})"
             )
         else:
             c = a - b

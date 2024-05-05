@@ -82,7 +82,7 @@ def fix_stim_artifact(
     s_end = int(np.ceil(inst.info["sfreq"] * tmax))
     if (mode == "window") and (s_end - s_start) < 4:
         raise ValueError(
-            "Time range is too short. Use a larger interval " 'or set mode to "linear".'
+            'Time range is too short. Use a larger interval or set mode to "linear".'
         )
     window = None
     if mode == "window":

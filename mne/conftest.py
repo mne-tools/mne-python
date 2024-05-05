@@ -525,10 +525,10 @@ def _check_pyqtgraph(request):
         f_name = request.function.__name__
         if lower_2_0 and m_name in pre_2_0_skip_modules:
             pytest.skip(
-                f'Test-Module "{m_name}" was skipped for' f" mne-qt-browser < 0.2.0"
+                f'Test-Module "{m_name}" was skipped for mne-qt-browser < 0.2.0'
             )
         elif lower_2_0 and f_name in pre_2_0_skip_funcs:
-            pytest.skip(f'Test "{f_name}" was skipped for ' f"mne-qt-browser < 0.2.0")
+            pytest.skip(f'Test "{f_name}" was skipped for mne-qt-browser < 0.2.0')
     except Exception:
         pytest.skip("Requires mne_qt_browser")
     else:

@@ -77,7 +77,7 @@ class RawPersyst(BaseRaw):
         curr_path, lay_fname = op.dirname(fname), op.basename(fname)
         if not op.exists(fname):
             raise FileNotFoundError(
-                f"The path you specified, " f'"{lay_fname}",does not exist.'
+                f'The path you specified, "{lay_fname}",does not exist.'
             )
 
         # sections and subsections currently unused

@@ -123,7 +123,7 @@ def test_constants(tmp_path):
     fname = "fiff.zip"
     dest = tmp_path / fname
     pooch.retrieve(
-        url="https://codeload.github.com/" f"{REPO}/fiff-constants/zip/{COMMIT}",
+        url=f"https://codeload.github.com/{REPO}/fiff-constants/zip/{COMMIT}",
         path=tmp_path,
         fname=fname,
         known_hash=None,

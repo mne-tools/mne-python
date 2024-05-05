@@ -491,7 +491,7 @@ class ProjMixin:
                     _projs.remove(_proj)
             if len(_projs) == 0:
                 raise ValueError(
-                    "Nothing to plot (no projectors for channel " f"type {ch_type})."
+                    f"Nothing to plot (no projectors for channel type {ch_type})."
                 )
         # now we have non-empty _projs list with correct channel type(s)
         from ..viz.topomap import plot_projs_topomap

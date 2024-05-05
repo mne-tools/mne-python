@@ -1252,5 +1252,5 @@ def _check_method_kwargs(func, kwargs, msg=None):
         if msg is None:
             msg = f'function "{func}"'
         raise TypeError(
-            f'Got unexpected keyword argument{s} {", ".join(invalid_kw)} ' f"for {msg}."
+            f'Got unexpected keyword argument{s} {", ".join(invalid_kw)} for {msg}.'
         )

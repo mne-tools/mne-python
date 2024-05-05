@@ -285,7 +285,7 @@ def test_add_custom_js(tmp_path):
 
     report = Report()
     report.add_figure(fig=fig, title="Test section")
-    custom_js = "function hello() {\n" '  alert("Hello, report!");\n' "}"
+    custom_js = 'function hello() {\n  alert("Hello, report!");\n}'
     report.add_custom_js(js=custom_js)
 
     assert custom_js in report.include

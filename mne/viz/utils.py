@@ -392,9 +392,7 @@ def _get_channel_plotting_order(order, ch_types, picks=None):
             if order_type == pick_type
         ]
     elif not isinstance(order, (np.ndarray, list, tuple)):
-        raise ValueError(
-            "order should be array-like; got " f'"{order}" ({type(order)}).'
-        )
+        raise ValueError(f'order should be array-like; got "{order}" ({type(order)}).')
     if picks is not None:
         order = [ch for ch in order if ch in picks]
     return np.asarray(order, int)

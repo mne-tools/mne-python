@@ -1800,7 +1800,7 @@ def _process_clim(clim, colormap, transparent, data=0.0, allow_pos_lims=True):
             f"Exactly one of lims and pos_lims must be specified in clim, got {clim}"
         )
     if "pos_lims" in clim and not allow_pos_lims:
-        raise ValueError('Cannot use "pos_lims" for clim, use "lims" ' "instead")
+        raise ValueError('Cannot use "pos_lims" for clim, use "lims" instead')
     diverging = "pos_lims" in clim
     ctrl_pts = np.array(clim["pos_lims" if diverging else "lims"], float)
     ctrl_pts = np.array(ctrl_pts, float)
@@ -2193,7 +2193,7 @@ def link_brains(brains, time=True, camera=False, colorbar=True, picking=False):
         raise ValueError("The collection of brains is empty.")
     for brain in brains:
         if not isinstance(brain, Brain):
-            raise TypeError("Expected type is Brain but" f" {type(brain)} was given.")
+            raise TypeError(f"Expected type is Brain but {type(brain)} was given.")
         # enable time viewer if necessary
         brain.setup_time_viewer()
     subjects = [brain._subject for brain in brains]
@@ -3378,7 +3378,7 @@ def plot_sparse_source_estimates(
     if not isinstance(modes, (list, tuple)) or not all(
         mode in known_modes for mode in modes
     ):
-        raise ValueError("mode must be a list containing only " '"cone" or "sphere"')
+        raise ValueError('mode must be a list containing only "cone" or "sphere"')
     if not isinstance(stcs, list):
         stcs = [stcs]
     if labels is not None and not isinstance(labels, list):

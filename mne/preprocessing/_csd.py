@@ -136,7 +136,7 @@ def compute_current_source_density(
     n_legendre_terms = _ensure_int(n_legendre_terms, "n_legendre_terms")
     if n_legendre_terms < 1:
         raise ValueError(
-            "n_legendre_terms must be greater than 0, " f"got {n_legendre_terms}"
+            f"n_legendre_terms must be greater than 0, got {n_legendre_terms}"
         )
 
     if isinstance(sphere, str) and sphere == "auto":
@@ -148,14 +148,14 @@ def compute_current_source_density(
         x, y, z, radius = sphere
     except Exception:
         raise ValueError(
-            f'sphere must be "auto" or array-like with shape (4,), ' f"got {sphere}"
+            f'sphere must be "auto" or array-like with shape (4,), got {sphere}'
         )
     _validate_type(x, "numeric", "x")
     _validate_type(y, "numeric", "y")
     _validate_type(z, "numeric", "z")
     _validate_type(radius, "numeric", "radius")
     if radius <= 0:
-        raise ValueError("sphere radius must be greater than 0, " f"got {radius}")
+        raise ValueError("sphere radius must be greater than 0, got {radius}")
 
     pos = np.array([inst.info["chs"][pick]["loc"][:3] for pick in picks])
     if not np.isfinite(pos).all() or np.isclose(pos, 0.0).all(1).any():

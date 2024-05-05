@@ -45,7 +45,7 @@ def _get_split_size(split_size):
     if isinstance(split_size, str):
         exp = dict(MB=20, GB=30).get(split_size[-2:], None)
         if exp is None:
-            raise ValueError("split_size has to end with either" '"MB" or "GB"')
+            raise ValueError('split_size has to end with either "MB" or "GB"')
         split_size = int(float(split_size[:-2]) * 2**exp)
 
     if split_size > 2147483648:

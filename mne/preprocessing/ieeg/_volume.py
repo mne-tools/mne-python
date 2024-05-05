@@ -62,7 +62,7 @@ def warp_montage(montage, moving, static, reg_affine, sdr_morph, verbose=None):
             ]
         )
         raise RuntimeError(
-            "Coordinate frame not supported, expected " f'"mri", got {bad_coord_frames}'
+            f'Coordinate frame not supported, expected "mri", got {bad_coord_frames}'
         )
     ch_names = list(ch_dict["ch_pos"].keys())
     ch_coords = np.array([ch_dict["ch_pos"][name] for name in ch_names])
@@ -192,7 +192,7 @@ def make_montage_volume(
             ]
         )
         raise RuntimeError(
-            "Coordinate frame not supported, expected " f'"mri", got {bad_coord_frames}'
+            f'Coordinate frame not supported, expected "mri", got {bad_coord_frames}'
         )
 
     ch_names = list(ch_dict["ch_pos"].keys())

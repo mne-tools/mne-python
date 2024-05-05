@@ -2570,7 +2570,7 @@ class Report:
                     f"</script>"
                 )
             elif inc_fname.endswith(".css"):
-                include.append(f'<style type="text/css">\n' f"{file_content}\n</style>")
+                include.append(f'<style type="text/css">\n{file_content}\n</style>')
         self.include = "".join(include)
 
     def _iterate_files(
@@ -3923,7 +3923,7 @@ class Report:
                 assert "eeg" in ch_type
                 title_start = "ERP image"
 
-            title = f"{title_start} " f'({_handle_default("titles")[ch_type]})'
+            title = f'{title_start} ({_handle_default("titles")[ch_type]})'
 
             self._add_figure(
                 fig=fig,
@@ -4394,9 +4394,7 @@ def _df_bootstrap_table(*, df, data_id):
             continue
         elif "<tr" in html:
             # Add checkbox for row selection
-            htmls[idx] = (
-                f"{html}\n" f'<th data-field="state" data-checkbox="true"></th>'
-            )
+            htmls[idx] = f'{html}\n<th data-field="state" data-checkbox="true"></th>'
             continue
 
         col_headers = re.findall(pattern=header_pattern, string=html)

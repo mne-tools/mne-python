@@ -478,7 +478,7 @@ def _plot_evoked(
     _check_option("proj", proj, (True, False, "interactive", "reconstruct"))
     noise_cov = _check_cov(noise_cov, info)
     if proj == "reconstruct" and noise_cov is not None:
-        raise ValueError('Cannot use proj="reconstruct" when noise_cov is not ' "None")
+        raise ValueError('Cannot use proj="reconstruct" when noise_cov is not None')
     projector, whitened_ch_names = _setup_plot_projector(
         info, noise_cov, proj=proj is True, nave=evoked.nave
     )

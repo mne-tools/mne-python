@@ -3611,7 +3611,7 @@ def plot_arrowmap(
             ch_type = ch_type[0][0]
 
         if ch_type != "mag":
-            raise ValueError("only 'mag' channel type is supported. " f"Got {ch_type}")
+            raise ValueError(f"only 'mag' channel type is supported. Got {ch_type}")
 
     if info_to is not info_from:
         info_to = pick_info(info_to, pick_types(info_to, meg=True))

@@ -3350,7 +3350,7 @@ def _force_update_info(info_base, info_target):
     all_infos = np.hstack([info_base, info_target])
     for ii in all_infos:
         if not isinstance(ii, Info):
-            raise ValueError("Inputs must be of type Info. " f"Found type {type(ii)}")
+            raise ValueError(f"Inputs must be of type Info. Found type {type(ii)}")
     for key, val in info_base.items():
         if key in exclude_keys:
             continue

@@ -689,7 +689,7 @@ class CoregistrationUI(HasTraits):
             self._forward_widget_command(locked_widgets, "set_enabled", False)
             self._forward_widget_command(fits_widgets, "set_enabled", False)
             self._display_message(
-                "Placing MRI fiducials - " f"{self._current_fiducial.upper()}"
+                f"Placing MRI fiducials - {self._current_fiducial.upper()}"
             )
 
         self._set_sensors_visibility(self._lock_fids)
@@ -702,7 +702,7 @@ class CoregistrationUI(HasTraits):
         self._follow_fiducial_view()
         if not self._lock_fids:
             self._display_message(
-                "Placing MRI fiducials - " f"{self._current_fiducial.upper()}"
+                f"Placing MRI fiducials - {self._current_fiducial.upper()}"
             )
 
     @observe("_info_file")

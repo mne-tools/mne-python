@@ -3007,7 +3007,7 @@ def _write_raw_buffer(fid, buf, cals, fmt):
             write_function = write_complex128
         else:
             raise ValueError(
-                'only "single" and "double" supported for ' "writing complex data"
+                'only "single" and "double" supported for writing complex data'
             )
 
     buf = buf / np.ravel(cals)[:, None]

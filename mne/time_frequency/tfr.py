@@ -648,7 +648,7 @@ def _check_tfr_param(
         decim = slice(None, None, decim)
     if not isinstance(decim, slice):
         raise ValueError(
-            "decim must be an integer or a slice, " f"got {type(decim)} instead."
+            f"decim must be an integer or a slice, got {type(decim)} instead."
         )
 
     # Check output
