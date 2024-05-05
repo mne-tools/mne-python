@@ -2570,9 +2570,7 @@ class Report:
                     f"</script>"
                 )
             elif inc_fname.endswith(".css"):
-                include.append(
-                    f'<style type="text/css">\n' f"{file_content}\n</style>"
-                )
+                include.append(f'<style type="text/css">\n' f"{file_content}\n</style>")
         self.include = "".join(include)
 
     def _iterate_files(
@@ -2957,9 +2955,7 @@ class Report:
             self._sort(order=CONTENT_ORDER)
 
         if not overwrite and op.isfile(fname):
-            msg = (
-                f"Report already exists at location {fname}. Overwrite it (y/[n])? "
-            )
+            msg = f"Report already exists at location {fname}. Overwrite it (y/[n])? "
             answer = _safe_input(msg, alt="pass overwrite=True")
             if answer.lower() == "y":
                 overwrite = True

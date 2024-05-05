@@ -3205,9 +3205,7 @@ def create_info(ch_names, sfreq, ch_types="misc", verbose=None):
         _validate_type(ch_name, "str", "each entry in ch_names")
         _validate_type(ch_type, "str", "each entry in ch_types")
         if ch_type not in ch_types_dict:
-            raise KeyError(
-                f"kind must be one of {list(ch_types_dict)}, not {ch_type}"
-            )
+            raise KeyError(f"kind must be one of {list(ch_types_dict)}, not {ch_type}")
         this_ch_dict = ch_types_dict[ch_type]
         kind = this_ch_dict["kind"]
         # handle chpi, where kind is a *list* of FIFF constants:
