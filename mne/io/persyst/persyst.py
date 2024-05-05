@@ -222,7 +222,7 @@ class RawPersyst(BaseRaw):
             n_samples = f.tell()
             n_samples = n_samples // (dtype.itemsize * n_chs)
 
-            logger.debug(f"Loaded {n_samples} samples " f"for {n_chs} channels.")
+            logger.debug(f"Loaded {n_samples} samples for {n_chs} channels.")
 
         raw_extras = {"dtype": dtype, "n_chs": n_chs, "n_samples": n_samples}
         # create Raw object

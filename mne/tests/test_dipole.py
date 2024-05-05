@@ -216,7 +216,7 @@ def test_dipole_fitting(tmp_path):
     data_rms = np.sqrt(np.sum(evoked.data**2, axis=0))
     resi_rms = np.sqrt(np.sum(residual.data**2, axis=0))
     assert (data_rms > resi_rms * 0.95).all(), (
-        f"{(data_rms / resi_rms).min()} " f"(factor: {0.95})"
+        f"{(data_rms / resi_rms).min()} (factor: {0.95})"
     )
 
     # Compare to original points

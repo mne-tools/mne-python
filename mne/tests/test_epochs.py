@@ -3450,7 +3450,7 @@ def test_drop_epochs_mult(preload):
             assert isinstance(d1, tuple)
             assert isinstance(d2, tuple)
             msg = (
-                f"\nepochs1.drop_log[{di}] = {d1}, " f"\nepochs2.drop_log[{di}] = {d2}"
+                f"\nepochs1.drop_log[{di}] = {d1}, \nepochs2.drop_log[{di}] = {d2}"
             )
             if "IGNORED" in d1:
                 assert "IGNORED" in d2, msg

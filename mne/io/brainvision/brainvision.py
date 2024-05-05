@@ -351,7 +351,7 @@ def _check_bv_version(header, kind):
     # optional space, optional Core or V-Amp, optional Exchange,
     # Version/Header, optional comma, 1/2
     _data_re = (
-        r"Brain ?Vision( Core| V-Amp)? Data( Exchange)? " r"%s File,? Version %s\.0"
+        r"Brain ?Vision( Core| V-Amp)? Data( Exchange)? %s File,? Version %s\.0"
     )
 
     assert kind in ("header", "marker")

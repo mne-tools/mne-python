@@ -73,7 +73,7 @@ def run():
         type=str,
         default=None,
         dest="interaction",
-        help='Interaction style to use, can be "trackball" or ' '"terrain".',
+        help='Interaction style to use, can be "trackball" or "terrain".',
     )
     _add_verbose_flag(parser)
 

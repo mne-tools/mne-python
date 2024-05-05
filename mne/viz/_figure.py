@@ -436,7 +436,7 @@ class BrowserBase(ABC):
         if self.mne.instance_type in ("raw", "epochs"):
             self.mne.inst.info["bads"] = self.mne.info["bads"]
             logger.info(
-                f"Channels marked as bad:\n" f"{self.mne.info['bads'] or 'none'}"
+                f"Channels marked as bad:\n{self.mne.info['bads'] or 'none'}"
             )
         # ICA excludes
         elif self.mne.instance_type == "ica":

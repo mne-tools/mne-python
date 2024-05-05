@@ -1100,7 +1100,7 @@ def _has_eeg_average_ref_proj(
     missing = [name for name in want_names if name not in found_names]
     if missing:
         if found_names:  # found some but not all: warn
-            warn(f"Incomplete {ch_type} projector, " f"missing channel(s) {missing}")
+            warn(f"Incomplete {ch_type} projector, missing channel(s) {missing}")
         return False
     return True
 

@@ -77,7 +77,7 @@ def write_int(fid, kind, data):
     max_val = data.max() if data.size > 0 else 0
     if max_val > INT32_MAX:
         raise TypeError(
-            f"Value {max_val} exceeds maximum allowed ({INT32_MAX}) for " f"tag {kind}"
+            f"Value {max_val} exceeds maximum allowed ({INT32_MAX}) for tag {kind}"
         )
     data = data.astype(">i4").T
     _write(fid, data, kind, data_size, FIFF.FIFFT_INT, ">i4")

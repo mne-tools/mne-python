@@ -3206,7 +3206,7 @@ def create_info(ch_names, sfreq, ch_types="misc", verbose=None):
         _validate_type(ch_type, "str", "each entry in ch_types")
         if ch_type not in ch_types_dict:
             raise KeyError(
-                f"kind must be one of {list(ch_types_dict)}, " f"not {ch_type}"
+                f"kind must be one of {list(ch_types_dict)}, not {ch_type}"
             )
         this_ch_dict = ch_types_dict[ch_type]
         kind = this_ch_dict["kind"]

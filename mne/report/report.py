@@ -2571,7 +2571,7 @@ class Report:
                 )
             elif inc_fname.endswith(".css"):
                 include.append(
-                    f'<style type="text/css">\n' f"{file_content}\n" f"</style>"
+                    f'<style type="text/css">\n' f"{file_content}\n</style>"
                 )
         self.include = "".join(include)
 
@@ -2837,7 +2837,7 @@ class Report:
 
         # render plots in parallel; check that n_jobs <= # of files
         logger.info(
-            f"Iterating over {len(fnames)} potential files " f"(this may take some "
+            f"Iterating over {len(fnames)} potential files (this may take some "
         )
         parallel, p_fun, n_jobs = parallel_func(
             self._iterate_files, n_jobs, max_jobs=len(fnames)
@@ -2947,7 +2947,7 @@ class Report:
         if fname is None:
             if self.data_path is None:
                 self.data_path = os.getcwd()
-                warn(f"`data_path` not provided. Using {self.data_path} " f"instead")
+                warn(f"`data_path` not provided. Using {self.data_path} instead")
             fname = op.join(self.data_path, "report.html")
 
         fname = str(_check_fname(fname, overwrite=overwrite, name=fname))
@@ -2958,7 +2958,7 @@ class Report:
 
         if not overwrite and op.isfile(fname):
             msg = (
-                f"Report already exists at location {fname}. " f"Overwrite it (y/[n])? "
+                f"Report already exists at location {fname}. Overwrite it (y/[n])? "
             )
             answer = _safe_input(msg, alt="pass overwrite=True")
             if answer.lower() == "y":
@@ -3816,7 +3816,7 @@ class Report:
         _constrain_fig_resolution(fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES)
         duration = round(epoch_duration * len(epochs_for_psd), 1)
         caption = (
-            f"PSD calculated from {len(epochs_for_psd)} epochs " f"({duration:.1f} s)."
+            f"PSD calculated from {len(epochs_for_psd)} epochs ({duration:.1f} s)."
         )
         self._add_figure(
             fig=fig,
@@ -4410,7 +4410,7 @@ def _df_bootstrap_table(*, df, data_id):
             col_header = col_headers[0]
             htmls[idx] = html.replace(
                 "<th>",
-                f'<th data-field="{col_header.lower()}" ' f'data-sortable="true">',
+                f'<th data-field="{col_header.lower()}" data-sortable="true">',
             )
 
     html = "\n".join(htmls)

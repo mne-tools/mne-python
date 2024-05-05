@@ -514,7 +514,7 @@ def _check_pyqtgraph(request):
     qt_version, api = _check_qt_version(return_api=True)
     if (not qt_version) or _compare_version(qt_version, "<", "5.12"):
         pytest.skip(
-            f"Qt API {api} has version {qt_version} " f"but pyqtgraph needs >= 5.12!"
+            f"Qt API {api} has version {qt_version} but pyqtgraph needs >= 5.12!"
         )
     try:
         import mne_qt_browser  # noqa: F401

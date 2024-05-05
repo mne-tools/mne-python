@@ -257,7 +257,7 @@ mne.viz.set_3d_view(fig, azimuth=50, elevation=90, distance=0.5)
 
 layout_dir = Path(mne.__file__).parent / "channels" / "data" / "layouts"
 layouts = sorted(path.name for path in layout_dir.iterdir())
-print("\n" "BUILT-IN LAYOUTS\n" "================")
+print("\nBUILT-IN LAYOUTS\n================")
 print("\n".join(layouts))
 
 # %%

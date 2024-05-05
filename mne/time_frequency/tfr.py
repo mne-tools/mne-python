@@ -3950,7 +3950,7 @@ def combine_tfr(all_tfr, weights="nave"):
     tfr = all_tfr[0].copy()
     if isinstance(weights, str):
         if weights not in ("nave", "equal"):
-            raise ValueError('Weights must be a list of float, or "nave" or ' '"equal"')
+            raise ValueError('Weights must be a list of float, or "nave" or "equal"')
         if weights == "nave":
             weights = np.array([e.nave for e in all_tfr], float)
             weights /= weights.sum()

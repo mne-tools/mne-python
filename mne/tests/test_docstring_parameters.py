@@ -158,7 +158,7 @@ def check_parameters_match(func, *, cls=None, where):
             verbose_default = sig.parameters["verbose"].default
             if verbose_default is not None:
                 incorrect += [
-                    f"{name} : verbose default is not None, " f"got: {verbose_default}"
+                    f"{name} : verbose default is not None, got: {verbose_default}"
                 ]
     return incorrect
 

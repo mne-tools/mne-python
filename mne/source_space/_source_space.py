@@ -1808,7 +1808,7 @@ def setup_volume_source_space(
     elif surface is not None:
         if isinstance(surface, dict):
             if not all(key in surface for key in ["rr", "tris"]):
-                raise KeyError('surface, if dict, must have entries "rr" ' 'and "tris"')
+                raise KeyError('surface, if dict, must have entries "rr" and "tris"')
             # let's make sure we have geom info
             complete_surface_info(surface, copy=False, verbose=False)
             surf_extra = "dict()"

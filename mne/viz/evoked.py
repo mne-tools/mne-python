@@ -692,7 +692,7 @@ def _plot_lines(
                     z_ord = list(range(D.shape[0]))
                 elif not callable(zorder):
                     error = (
-                        '`zorder` must be a function, "std" ' 'or "unsorted", not {0}.'
+                        '`zorder` must be a function, "std" or "unsorted", not {0}.'
                     )
                     raise TypeError(error.format(type(zorder)))
                 else:

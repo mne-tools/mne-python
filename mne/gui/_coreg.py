@@ -953,7 +953,7 @@ class CoregistrationUI(HasTraits):
         self._update_plot("hsp")
         self._update_distance_estimation()
         self._display_message(
-            f"{n_omitted} head shape points omitted, " f"{n_remaining} remaining."
+            f"{n_omitted} head shape points omitted, {n_remaining} remaining."
         )
 
     def _reset_omit_hsp_filter(self):

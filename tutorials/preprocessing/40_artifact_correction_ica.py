@@ -276,7 +276,7 @@ ica
 explained_var_ratio = ica.get_explained_variance_ratio(filt_raw)
 for channel_type, ratio in explained_var_ratio.items():
     print(
-        f"Fraction of {channel_type} variance explained by all components: " f"{ratio}"
+        f"Fraction of {channel_type} variance explained by all components: {ratio}"
     )
 
 # %%
