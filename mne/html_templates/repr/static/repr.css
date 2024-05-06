@@ -36,19 +36,19 @@ table > tbody > tr.no-stripes {
 /* Collapse / uncollapse button and the caret it contains. */
 .repr-section-toggle-col button {
   cursor: pointer;
-  width: 1.75rem;
-  height: 1.75rem;
+  width: 2rem;
+  height: 2rem;
   background-color: transparent;
   border-color: transparent;
 }
 
 span.collapse-uncollapse-caret {
+  width: 1.5rem;
+  height: 1.5rem;
   display: block;
   background-repeat: no-repeat;
   background-position: center;
   background-size: contain;
-  width: 100%;
-  height: 100%;
 }
 
 .repr-section-toggle-col > button.collapsed > span.collapse-uncollapse-caret {
