@@ -44,7 +44,7 @@ table > tbody > tr.no-stripes {
 
 span.collapse-uncollapse-caret {
   width: 1.5rem;
-  height: 1.5rem;
+  height: 1rem;
   display: block;
   background-repeat: no-repeat;
   background-position: center;
