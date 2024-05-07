@@ -182,6 +182,22 @@ def test_plot_topomap_animation(capsys):
     plt.close("all")
 
 
+def test_plot_topomap_animation_csd(capsys):
+    """Test topomap plotting of CSD data."""
+    # evoked
+    evoked = read_evokeds(evoked_fname, "Left Auditory", baseline=(None, 0))
+    evoked_csd = mne.preprocessing.compute_current_source_density(evoked)
+
+    # Test animation
+    _, anim = evoked_csd.animate_topomap(
+        ch_type="csd", times=[0, 0.1], butterfly=False, time_unit="s", verbose="debug"
+    )
+    anim._func(1)  # _animate has to be tested separately on 'Agg' backend.
+    out, _ = capsys.readouterr()
+    assert "extrapolation mode local to 0" in out
+    plt.close("all")
+
+
 @pytest.mark.filterwarnings("ignore:.*No contour levels.*:UserWarning")
 def test_plot_topomap_animation_nirs(fnirs_evoked, capsys):
     """Test topomap plotting for nirs data."""
