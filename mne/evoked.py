@@ -473,7 +473,7 @@ class Evoked(
             inst=self,
             filenames=(
                 [Path(self.filename).name]
-                if hasattr(self, "filename") and self.filename is not None
+                if getattr(self, "filename", None) is not None
                 else None
             ),
         )
