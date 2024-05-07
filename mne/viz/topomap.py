@@ -3249,21 +3249,8 @@ def _topomap_animation(
     from matplotlib import pyplot as plt
 
     if ch_type is None:
-        ch_type = _picks_by_type(evoked.info)[0][0]
-    if ch_type not in (
-        "mag",
-        "grad",
-        "eeg",
-        "hbo",
-        "hbr",
-        "fnirs_od",
-        "fnirs_cw_amplitude",
-    ):
-        raise ValueError(
-            "Channel type not supported. Supported channel "
-            "types include 'mag', 'grad', 'eeg'. 'hbo', 'hbr', "
-            "'fnirs_cw_amplitude', and 'fnirs_od'."
-        )
+        ch_type = _get_plot_ch_type(evoked, ch_type)
+
     time_unit, _ = _check_time_unit(time_unit, evoked.times)
     if times is None:
         times = np.linspace(evoked.times[0], evoked.times[-1], 10)
