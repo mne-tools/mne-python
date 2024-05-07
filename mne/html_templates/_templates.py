@@ -28,7 +28,7 @@ def _data_type(obj) -> str:
 
 
 def _dt_to_str(dt: datetime.datetime) -> str:
-    """Convert a datetime object to a human-reaable string representation."""
+    """Convert a datetime object to a human-readable string representation."""
     return dt.strftime("%B %d, %Y    %H:%M:%S") + " UTC"
 
 
