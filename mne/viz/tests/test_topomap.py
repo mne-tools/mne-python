@@ -196,7 +196,7 @@ def test_plot_topomap_animation_csd(capsys):
     )
     anim._func(1)  # _animate has to be tested separately on 'Agg' backend.
     out, _ = capsys.readouterr()
-    assert "extrapolation mode local to 0" in out
+    assert "extrapolation mode head to 0" in out
     plt.close("all")
 
 
