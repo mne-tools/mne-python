@@ -2821,5 +2821,7 @@ def _get_plot_ch_type(inst, ch_type, allow_ref_meg=False):
                 ch_type = type_
                 break
         else:
-            raise RuntimeError(f"No plottable channel types found. Allowed types are: {allowed_types}")
+            raise RuntimeError(
+                f"No plottable channel types found. Allowed types are: {allowed_types}"
+            )
     return ch_type
