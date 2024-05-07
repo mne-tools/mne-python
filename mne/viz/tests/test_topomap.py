@@ -184,9 +184,11 @@ def test_plot_topomap_animation(capsys):
 
 def test_plot_topomap_animation_csd(capsys):
     """Test topomap plotting of CSD data."""
+    from mne.preprocessing import compute_current_source_density
+
     # evoked
     evoked = read_evokeds(evoked_fname, "Left Auditory", baseline=(None, 0))
-    evoked_csd = mne.preprocessing.compute_current_source_density(evoked)
+    evoked_csd = compute_current_source_density(evoked)
 
     # Test animation
     _, anim = evoked_csd.animate_topomap(
