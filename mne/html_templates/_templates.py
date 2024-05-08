@@ -29,7 +29,7 @@ def _data_type(obj) -> str:
 
 def _dt_to_str(dt: datetime.datetime) -> str:
     """Convert a datetime object to a human-readable string representation."""
-    return dt.strftime("%B %d, %Y at %H:%M:%S %Z")
+    return dt.strftime("%Y-%m-%d at %H:%M:%S %Z")
 
 
 def _format_baseline(inst) -> str:
