@@ -19,7 +19,7 @@ def _format_number(value: Union[int, float]) -> str:
 
 def _append_uuid(string: str, sep: str = "-") -> str:
     """Append a UUID to a string."""
-    return f"{string}{sep}{uuid.uuid1()}"
+    return f"{string}{sep}{uuid.uuid4()}"
 
 
 def _data_type(obj) -> str:
