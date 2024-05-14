@@ -332,6 +332,7 @@ def _find_clusters(
     partitions=None,
     t_power=1,
     show_info=False,
+    clusters_out=True,
 ):
     """Find all clusters which are above/below a certain threshold.
 
@@ -373,12 +374,14 @@ def _find_clusters(
     show_info : bool
         If True, display information about thresholds used (for TFCE). Should
         only be done for the standard permutation.
+    clusters_out : bool
+        If True, clusters are returned, otherwise None is returned instead
 
     Returns
     -------
     clusters : list of slices or list of arrays (boolean masks)
         We use slices for 1D signals and mask to multidimensional
-        arrays.
+        arrays. None is returned if clusters_out is False
     sums : array
         Sum of x values in clusters.
     """
@@ -487,18 +490,20 @@ def _find_clusters(
     # turn sums into array
     sums = np.concatenate(sums) if sums else np.array([])
     if tfce:
-        # each point gets treated independently
-        clusters = np.arange(x.size)
-        if adjacency is None or adjacency is False:
-            if x.ndim == 1:
-                # slices
-                clusters = [slice(c, c + 1) for c in clusters]
-            else:
-                # boolean masks (raveled)
-                clusters = [(clusters == ii).ravel() for ii in range(len(clusters))]
-        else:
-            clusters = [np.array([c]) for c in clusters]
         sums = scores
+    if tfce and clusters_out:
+        # each point gets treated independently
+        clusters = range(x.size)
+        if (adjacency is None or adjacency is False) and (x.ndim == 1):
+            # slices
+            clusters = [slice(c, c + 1) for c in clusters]
+        else:
+            # indices (lower memory usage than boolean mask for TFCE)
+            clusters = [np.array([c]) for c in clusters]
+    elif not clusters_out:
+        # This can strongly reduce TFCE computation time
+        clusters = None
+
     return clusters, sums
 
 
@@ -712,6 +717,7 @@ def _do_permutations(
             partitions=partitions,
             include=include,
             t_power=t_power,
+            clusters_out=False,
         )
         perm_clusters_sums = out[1]
 
@@ -800,6 +806,7 @@ def _do_1samp_permutations(
             partitions=partitions,
             include=include,
             t_power=t_power,
+            clusters_out=False,
         )
         perm_clusters_sums = out[1]
         if len(perm_clusters_sums) > 0:
@@ -1009,18 +1016,19 @@ def _permutation_cluster_test(
     t_obs.shape = sample_shape
 
     # For TFCE, return the "adjusted" statistic instead of raw scores
-    if isinstance(threshold, dict):
+    tfce = isinstance(threshold, dict)
+    if tfce:
         t_obs = cluster_stats.reshape(t_obs.shape) * np.sign(t_obs)
 
     logger.info(f"Found {len(clusters)} cluster{_pl(clusters)}")
 
     # convert clusters to old format
-    if adjacency is not None and adjacency is not False:
+    if (adjacency is not None and adjacency is not False) or (tfce and t_obs.ndim > 1):
         # our algorithms output lists of indices by default
         if out_type == "mask":
             clusters = _cluster_indices_to_mask(clusters, n_tests)
     else:
-        # ndimage outputs slices or boolean masks by default
+        # ndimage outputs slices or boolean masks by default,
         if out_type == "indices":
             clusters = _cluster_mask_to_indices(clusters, t_obs.shape)
 
