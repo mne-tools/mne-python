@@ -154,18 +154,7 @@ towncrier_draft_working_directory = str(curpath.parent)
 # -- Intersphinx configuration -----------------------------------------------
 
 intersphinx_mapping = {
-    # Pending https://github.com/Carreau/intersphinx_registry/pull/5
-    "sklearn": ("https://scikit-learn.org/stable", None),
-    "numba": ("https://numba.readthedocs.io/en/latest", None),
-    "joblib": ("https://joblib.readthedocs.io/en/latest", None),
-    "nibabel": ("https://nipy.org/nibabel", None),
-    "seaborn": ("https://seaborn.pydata.org/", None),
-    "patsy": ("https://patsy.readthedocs.io/en/latest", None),
-    "pyvista": ("https://docs.pyvista.org/version/stable", None),
-    "dipy": ("https://docs.dipy.org/stable", None),
-    "nilearn": ("http://nilearn.github.io/stable", None),
-    "pyqtgraph": ("https://pyqtgraph.readthedocs.io/en/latest/", None),
-    # More niche so didn't upstream
+    # More niche so didn't upstream to intersphinx_registry
     "nitime": ("https://nipy.org/nitime/", None),
     "mne_bids": ("https://mne.tools/mne-bids/stable", None),
     "mne-connectivity": ("https://mne.tools/mne-connectivity/stable", None),
