@@ -1,0 +1,1 @@
+Fix bug where :func:`mne.stats._permutation_cluster_test` (and related functions) uses excessive amount of memory for large 2D data when TFCE method is selected, by `Nicolas Fourcaud-Trocmé`_.
