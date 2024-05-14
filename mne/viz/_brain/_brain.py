@@ -1768,16 +1768,14 @@ class Brain:
     ):
         """Display data from a numpy array on the surface or volume.
 
-        This provides a similar interface to
-        :meth:`surfer.Brain.add_overlay`, but it displays
+        This provides a similar interface to PySurfer, but it displays
         it with a single colormap. It offers more flexibility over the
         colormap, and provides a way to display four-dimensional data
         (i.e., a timecourse) or five-dimensional data (i.e., a
         vector-valued timecourse).
 
         .. note:: ``fmin`` sets the low end of the colormap, and is separate
-                  from thresh (this is a different convention from
-                  :meth:`surfer.Brain.add_overlay`).
+                  from thresh (this is a different convention from PySurfer).
 
         Parameters
         ----------
