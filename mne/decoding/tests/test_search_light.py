@@ -36,13 +36,14 @@ def test_search_light():
         pytest.skip("sklearn int_t / long long mismatch")
     from sklearn.linear_model import LogisticRegression, Ridge
     from sklearn.metrics import make_scorer, roc_auc_score
+    from sklearn.multiclass import OneVsRestClassifier
     from sklearn.pipeline import make_pipeline
 
     with _record_warnings():  # NumPy module import
         from sklearn.ensemble import BaggingClassifier
     from sklearn.base import is_classifier
 
-    logreg = LogisticRegression(solver="liblinear", multi_class="ovr", random_state=0)
+    logreg = OneVsRestClassifier(LogisticRegression(solver="liblinear", random_state=0))
 
     X, y = make_data()
     n_epochs, _, n_time = X.shape
@@ -158,9 +159,7 @@ def test_search_light():
         def transform(self, X):
             return super().predict_proba(X)[..., 1]
 
-    logreg_transformer = _LogRegTransformer(
-        random_state=0, multi_class="ovr", solver="liblinear"
-    )
+    logreg_transformer = OneVsRestClassifier(_LogRegTransformer(random_state=0))
     pipe = make_pipeline(SlidingEstimator(logreg_transformer), logreg)
     pipe.fit(X, y)
     pipe.predict(X)
@@ -189,9 +188,10 @@ def test_generalization_light():
     """Test GeneralizingEstimator."""
     from sklearn.linear_model import LogisticRegression
     from sklearn.metrics import roc_auc_score
+    from sklearn.multiclass import OneVsRestClassifier
     from sklearn.pipeline import make_pipeline
 
-    logreg = LogisticRegression(solver="liblinear", multi_class="ovr", random_state=0)
+    logreg = OneVsRestClassifier(LogisticRegression(random_state=0))
 
     X, y = make_data()
     n_epochs, _, n_time = X.shape
@@ -199,7 +199,10 @@ def test_generalization_light():
     gl = GeneralizingEstimator(logreg)
     assert_equal(repr(gl)[:23], "<GeneralizingEstimator(")
     gl.fit(X, y)
-    gl.fit(X, y, sample_weight=np.ones_like(y))
+    # TODO: Need to fix this for 1.6+
+    # https://scikit-learn.org/stable/metadata_routing.html
+    if not check_version("sklearn", "1.6"):
+        gl.fit(X, y, sample_weight=np.ones_like(y))
 
     assert_equal(gl.__repr__()[-28:], ", fitted with 10 estimators>")
     # transforms
