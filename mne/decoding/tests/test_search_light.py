@@ -199,9 +199,9 @@ def test_generalization_light():
     gl = GeneralizingEstimator(logreg)
     assert_equal(repr(gl)[:23], "<GeneralizingEstimator(")
     gl.fit(X, y)
-    # TODO: Need to fix this for 1.6+
+    # TODO: Need to fix this for 1.4.2+
     # https://scikit-learn.org/stable/metadata_routing.html
-    if not check_version("sklearn", "1.6"):
+    if not check_version("sklearn", "1.4"):
         gl.fit(X, y, sample_weight=np.ones_like(y))
 
     assert_equal(gl.__repr__()[-28:], ", fitted with 10 estimators>")
