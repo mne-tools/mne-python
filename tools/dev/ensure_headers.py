@@ -32,8 +32,7 @@ COPYRIGHT_LINE = "# Copyright the MNE-Python contributors."
 def get_paths_from_tree(root, level=0):
     for entry in root:
         if entry.type == "tree":
-            for x in get_paths_from_tree(entry, level + 1):
-                yield x
+            yield from get_paths_from_tree(entry, level + 1)
         else:
             yield Path(entry.path)  # entry.type
 
