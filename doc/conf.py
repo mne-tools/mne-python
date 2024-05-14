@@ -167,7 +167,8 @@ intersphinx_mapping.update(
     get_intersphinx_mapping(
         only=set(
             """
-imageio matplotlib numpy pandas python scipy statsmodels
+imageio matplotlib numpy pandas python scipy statsmodels sklearn numba joblib nibabel
+seaborn patsy pyvista dipy nilearn pyqtgraph
 """.strip().split()
         ),
     )
