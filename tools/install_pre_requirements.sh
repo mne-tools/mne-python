@@ -40,7 +40,9 @@ echo "nilearn"
 python -m pip install $STD_ARGS git+https://github.com/nilearn/nilearn
 
 echo "VTK"
-python -m pip install $STD_ARGS --only-binary ":all:" --extra-index-url "https://wheels.vtk.org" vtk
+# No pre until PyVista fixes a bug
+# python -m pip install $STD_ARGS --only-binary ":all:" --extra-index-url "https://wheels.vtk.org" vtk
+python -m pip install $STD_ARGS vtk
 python -c "import vtk"
 
 echo "PyVista"
