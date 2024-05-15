@@ -305,6 +305,8 @@ def test_get_coef_multiclass(n_features, n_targets):
         (3, 1, 2),
     ],
 )
+# TODO: Need to fix this properly in LinearModel
+@pytest.mark.filterwarnings("ignore:'multi_class' was deprecated in.*:FutureWarning")
 def test_get_coef_multiclass_full(n_classes, n_channels, n_times):
     """Test a full example with pattern extraction."""
     from sklearn.linear_model import LogisticRegression
