@@ -184,7 +184,6 @@ def test_plot_topomap_animation(capsys):
     anim._func(1)  # _animate has to be tested separately on 'Agg' backend.
     out, _ = capsys.readouterr()
     assert "extrapolation mode local to 0" in out
-    plt.close("all")
 
 
 def test_plot_topomap_animation_csd(capsys):
@@ -200,7 +199,6 @@ def test_plot_topomap_animation_csd(capsys):
     anim._func(1)  # _animate has to be tested separately on 'Agg' backend.
     out, _ = capsys.readouterr()
     assert "extrapolation mode head to 0" in out
-    plt.close("all")
 
 
 @pytest.mark.filterwarnings("ignore:.*No contour levels.*:UserWarning")
@@ -211,7 +209,6 @@ def test_plot_topomap_animation_nirs(fnirs_evoked, capsys):
     out, _ = capsys.readouterr()
     assert "extrapolation mode head to 0" in out
     assert len(fig.axes) == 2
-    plt.close("all")
 
 
 def test_plot_evoked_topomap_errors(evoked, monkeypatch):
@@ -574,7 +571,6 @@ def test_plot_topomap_basic():
     orig_bads = evoked_grad.info["bads"]
     evoked_grad.plot_topomap(ch_type="grad", times=[0], time_unit="ms")
     assert_array_equal(evoked_grad.info["bads"], orig_bads)
-    plt.close("all")
 
 
 def test_plot_tfr_topomap():
@@ -706,8 +702,6 @@ def test_plot_topomap_neuromag122():
 
 def test_plot_topomap_bads():
     """Test plotting topomap with bad channels (gh-7213)."""
-    import matplotlib.pyplot as plt
-
     data = np.random.RandomState(0).randn(3, 1000)
     raw = RawArray(data, create_info(3, 1000.0, "eeg"))
     ch_pos_dict = {name: pos for name, pos in zip(raw.ch_names, np.eye(3))}
@@ -716,7 +710,6 @@ def test_plot_topomap_bads():
         raw.info["bads"] = raw.ch_names[:count]
         raw.info._check_consistency()
         plot_topomap(data[:, 0], raw.info)
-    plt.close("all")
 
 
 def test_plot_topomap_channel_distance():
@@ -734,13 +727,10 @@ def test_plot_topomap_channel_distance():
     evoked.set_montage(ten_five)
 
     evoked.plot_topomap(sphere=0.05, res=8)
-    plt.close("all")
 
 
 def test_plot_topomap_bads_grad():
     """Test plotting topomap with bad gradiometer channels (gh-8802)."""
-    import matplotlib.pyplot as plt
-
     data = np.random.RandomState(0).randn(203)
     info = read_info(evoked_fname)
     info["bads"] = ["MEG 2242"]
@@ -748,14 +738,12 @@ def test_plot_topomap_bads_grad():
     info = pick_info(info, picks)
     assert len(info["chs"]) == 203
     plot_topomap(data, info, res=8)
-    plt.close("all")
 
 
 def test_plot_topomap_nirs_overlap(fnirs_epochs):
     """Test plotting nirs topomap with overlapping channels (gh-7414)."""
     fig = fnirs_epochs["A"].average(picks="hbo").plot_topomap()
     assert len(fig.axes) == 5
-    plt.close("all")
 
 
 def test_plot_topomap_nirs_ica(fnirs_epochs):
@@ -773,7 +761,6 @@ def test_plot_topomap_nirs_ica(fnirs_epochs):
     ica = ICA().fit(fnirs_epochs)
     fig = ica.plot_components()
     assert len(fig[0].axes) == 20
-    plt.close("all")
 
 
 def test_plot_cov_topomap():
@@ -782,7 +769,6 @@ def test_plot_cov_topomap():
     info = read_info(evoked_fname)
     cov.plot_topomap(info)
     cov.plot_topomap(info, noise_cov=cov)
-    plt.close("all")
 
 
 def test_plot_topomap_cnorm():
