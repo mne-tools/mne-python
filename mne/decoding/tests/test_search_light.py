@@ -16,6 +16,8 @@ from mne.utils import _record_warnings, check_version, use_log_level
 
 pytest.importorskip("sklearn")
 
+NEW_MULTICLASS_SAMPLE_WEIGHT = check_version("sklearn", "1.4")
+
 
 def make_data():
     """Make data."""
@@ -191,7 +193,14 @@ def test_generalization_light():
     from sklearn.multiclass import OneVsRestClassifier
     from sklearn.pipeline import make_pipeline
 
-    logreg = OneVsRestClassifier(LogisticRegression(random_state=0))
+    if NEW_MULTICLASS_SAMPLE_WEIGHT:
+        logreg = OneVsRestClassifier(LogisticRegression(random_state=0))
+    else:
+        logreg = LogisticRegression(
+            solver="liblinear",
+            random_state=0,
+            multi_class="ovr",
+        )
 
     X, y = make_data()
     n_epochs, _, n_time = X.shape
@@ -201,7 +210,7 @@ def test_generalization_light():
     gl.fit(X, y)
     # TODO: Need to fix this for 1.4.2+
     # https://scikit-learn.org/stable/metadata_routing.html
-    if not check_version("sklearn", "1.4"):
+    if not NEW_MULTICLASS_SAMPLE_WEIGHT:
         gl.fit(X, y, sample_weight=np.ones_like(y))
 
     assert_equal(gl.__repr__()[-28:], ", fitted with 10 estimators>")
