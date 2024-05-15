@@ -60,7 +60,7 @@ class _ConstantScaler:
 def _sklearn_reshape_apply(func, return_result, X, *args, **kwargs):
     """Reshape epochs and apply function."""
     if not isinstance(X, np.ndarray):
-        raise ValueError("data should be an np.ndarray, got %s." % type(X))
+        raise ValueError(f"data should be an np.ndarray, got {type(X)}.")
     orig_shape = X.shape
     X = np.reshape(X.transpose(0, 2, 1), (-1, orig_shape[1]))
     X = func(X, *args, **kwargs)
@@ -115,14 +115,14 @@ class Scaler(TransformerMixin, BaseEstimator):
 
         if not (scalings is None or isinstance(scalings, (dict, str))):
             raise ValueError(
-                "scalings type should be dict, str, or None, " "got %s" % type(scalings)
+                "scalings type should be dict, str, or None, " f"got {type(scalings)}"
             )
         if isinstance(scalings, str):
             _check_option("scalings", scalings, ["mean", "median"])
         if scalings is None or isinstance(scalings, dict):
             if info is None:
                 raise ValueError(
-                    'Need to specify "info" if scalings is' "%s" % type(scalings)
+                    'Need to specify "info" if scalings is' f"{type(scalings)}"
                 )
             self._scaler = _ConstantScaler(info, scalings, self.with_std)
         elif scalings == "mean":
@@ -299,7 +299,7 @@ class Vectorizer(TransformerMixin):
         """
         X = np.asarray(X)
         if X.shape[1:] != self.features_shape_:
-            raise ValueError("Shape of X used in fit and transform must be " "same")
+            raise ValueError("Shape of X used in fit and transform must be same")
         return X.reshape(len(X), -1)
 
     def fit_transform(self, X, y=None):
@@ -417,7 +417,7 @@ class PSDEstimator(TransformerMixin):
         """
         if not isinstance(epochs_data, np.ndarray):
             raise ValueError(
-                "epochs_data should be of type ndarray (got %s)." % type(epochs_data)
+                f"epochs_data should be of type ndarray (got {type(epochs_data)})."
             )
 
         return self
@@ -437,7 +437,7 @@ class PSDEstimator(TransformerMixin):
         """
         if not isinstance(epochs_data, np.ndarray):
             raise ValueError(
-                "epochs_data should be of type ndarray (got %s)." % type(epochs_data)
+                f"epochs_data should be of type ndarray (got {type(epochs_data)})."
             )
         psd, _ = psd_array_multitaper(
             epochs_data,
@@ -548,7 +548,7 @@ class FilterEstimator(TransformerMixin):
         """
         if not isinstance(epochs_data, np.ndarray):
             raise ValueError(
-                "epochs_data should be of type ndarray (got %s)." % type(epochs_data)
+                f"epochs_data should be of type ndarray (got {type(epochs_data)})."
             )
 
         if self.picks is None:
@@ -598,7 +598,7 @@ class FilterEstimator(TransformerMixin):
         """
         if not isinstance(epochs_data, np.ndarray):
             raise ValueError(
-                "epochs_data should be of type ndarray (got %s)." % type(epochs_data)
+                f"epochs_data should be of type ndarray (got {type(epochs_data)})."
             )
         epochs_data = np.atleast_3d(epochs_data)
         return filter_data(
@@ -637,12 +637,12 @@ class UnsupervisedSpatialFilter(TransformerMixin, BaseEstimator):
             if not hasattr(estimator, attr):
                 raise ValueError(
                     "estimator must be a scikit-learn "
-                    "transformer, missing %s method" % attr
+                    f"transformer, missing {attr} method"
                 )
 
         if not isinstance(average, bool):
             raise ValueError(
-                "average parameter must be of bool type, got " "%s instead" % type(bool)
+                "average parameter must be of bool type, got " f"{type(bool)} instead"
             )
 
         self.estimator = estimator
@@ -859,7 +859,7 @@ class TemporalFilter(TransformerMixin):
 
         if not isinstance(self.n_jobs, int) and self.n_jobs == "cuda":
             raise ValueError(
-                'n_jobs must be int or "cuda", got %s instead.' % type(self.n_jobs)
+                f'n_jobs must be int or "cuda", got {type(self.n_jobs)} instead.'
             )
 
     def fit(self, X, y=None):
@@ -899,7 +899,7 @@ class TemporalFilter(TransformerMixin):
         if X.ndim > 3:
             raise ValueError(
                 "Array must be of at max 3 dimensions instead "
-                "got %s dimensional matrix" % (X.ndim)
+                f"got {X.ndim} dimensional matrix"
             )
 
         shape = X.shape

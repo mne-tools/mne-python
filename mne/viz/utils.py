@@ -1149,7 +1149,7 @@ def plot_sensors(
                 if pick in value:
                     colors[pick_idx] = color_vals[ind]
                     break
-    title = "Sensor positions (%s)" % ch_type if title is None else title
+    title = f"Sensor positions ({ch_type})" if title is None else title
     fig = _plot_sensors_2d(
         pos,
         info,
@@ -2138,7 +2138,7 @@ def _check_time_unit(time_unit, times):
     elif time_unit == "ms":
         times = 1e3 * times
     else:
-        raise ValueError("time_unit must be 's' or 'ms', got %r" % time_unit)
+        raise ValueError(f"time_unit must be 's' or 'ms', got {time_unit!r}")
     return time_unit, times
 
 

@@ -154,7 +154,7 @@ plot_sparse_source_estimates(
     stc,
     bgcolor=(1, 1, 1),
     opacity=0.1,
-    fig_name="TF-MxNE (cond %s)" % condition,
+    fig_name=f"TF-MxNE (cond {condition})",
     modes=["sphere"],
     scale_factors=[1.0],
 )

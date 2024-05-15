@@ -158,7 +158,7 @@ class CSP(TransformerMixin, BaseEstimator):
     def _check_Xy(self, X, y=None):
         """Check input data."""
         if not isinstance(X, np.ndarray):
-            raise ValueError("X should be of type ndarray (got %s)." % type(X))
+            raise ValueError(f"X should be of type ndarray (got {type(X)}).")
         if y is not None:
             if len(X) != len(y) or len(y) < 1:
                 raise ValueError("X and y must have the same length.")
@@ -235,10 +235,10 @@ class CSP(TransformerMixin, BaseEstimator):
             space and shape is (n_epochs, n_components, n_times).
         """
         if not isinstance(X, np.ndarray):
-            raise ValueError("X should be of type ndarray (got %s)." % type(X))
+            raise ValueError(f"X should be of type ndarray (got {type(X)}).")
         if self.filters_ is None:
             raise RuntimeError(
-                "No filters available. Please first fit CSP " "decomposition."
+                "No filters available. Please first fit CSP decomposition."
             )
 
         pick_filters = self.filters_[: self.n_components]

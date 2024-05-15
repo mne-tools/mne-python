@@ -74,7 +74,7 @@ def read_morph_map(
         try:
             os.mkdir(mmap_dir)
         except Exception:
-            warn('Could not find or make morph map directory "%s"' % mmap_dir)
+            warn(f'Could not find or make morph map directory "{mmap_dir}"')
 
     # filename components
     if xhemi:
@@ -102,7 +102,7 @@ def read_morph_map(
             return _read_morph_map(fname, subject_from, subject_to)
     # if file does not exist, make it
     logger.info(
-        'Morph map "%s" does not exist, creating it and saving it to ' "disk" % fname
+        f'Morph map "{fname}" does not exist, creating it and saving it to ' "disk"
     )
     logger.info(log_msg % (subject_from, subject_to))
     mmap_1 = _make_morph_map(subject_from, subject_to, subjects_dir, xhemi)
@@ -144,7 +144,7 @@ def _read_morph_map(fname, subject_from, subject_to):
                         logger.info("    Right-hemisphere map read.")
 
     if left_map is None or right_map is None:
-        raise ValueError("Could not find both hemispheres in %s" % fname)
+        raise ValueError(f"Could not find both hemispheres in {fname}")
 
     return left_map, right_map
 

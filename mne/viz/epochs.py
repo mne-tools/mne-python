@@ -708,7 +708,7 @@ def plot_drop_log(
     percent = _drop_log_stats(drop_log, ignore)
     if percent < threshold:
         logger.info(
-            "Percent dropped epochs < supplied threshold; not " "plotting drop log."
+            "Percent dropped epochs < supplied threshold; not plotting drop log."
         )
         return
     absolute = len([x for x in drop_log if len(x) if not any(y in ignore for y in x)])

@@ -382,6 +382,8 @@
 
 .. _Mauricio Cespedes Tenorio: https://github.com/mcespedes99
 
+.. _Michal Žák: https://github.com/michalrzak
+
 .. _Michiru Kaneda: https://github.com/rcmdnk
 
 .. _Mikołaj Magnuski: https://github.com/mmagnuski

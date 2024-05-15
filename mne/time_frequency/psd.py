@@ -200,7 +200,7 @@ def psd_array_welch(
     # Prep the PSD
     n_fft, n_per_seg, n_overlap = _check_nfft(n_times, n_fft, n_per_seg, n_overlap)
     win_size = n_fft / float(sfreq)
-    logger.info("Effective window size : %0.3f (s)" % win_size)
+    logger.info(f"Effective window size : {win_size:0.3f} (s)")
     freqs = np.arange(n_fft // 2 + 1, dtype=float) * (sfreq / n_fft)
     freq_mask = (freqs >= fmin) & (freqs <= fmax)
     if not freq_mask.any():

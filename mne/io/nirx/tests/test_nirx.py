@@ -396,8 +396,8 @@ def test_nirx_15_3_short():
     assert raw.info["subject_info"] == dict(
         birthday=(2020, 8, 18),
         sex=0,
-        first_name="testMontage\\0A" "TestMontage",
-        his_id="testMontage\\0A" "TestMontage",
+        first_name="testMontage\\0ATestMontage",
+        his_id="testMontage\\0ATestMontage",
     )
 
     # Test distance between optodes matches values from

@@ -178,7 +178,7 @@ def _reg_pinv(x, reg=0, rank="full", rcond=1e-15):
     # Warn the user if both all parameters were kept at their defaults and the
     # matrix is rank deficient.
     if (rank_after < n).any() and reg == 0 and rank == "full" and rcond == 1e-15:
-        warn("Covariance matrix is rank-deficient and no regularization is " "done.")
+        warn("Covariance matrix is rank-deficient and no regularization is done.")
     elif isinstance(rank, int) and rank > n:
         raise ValueError(
             "Invalid value for the rank parameter (%d) given "
@@ -373,7 +373,7 @@ def _apply_scaling_cov(data, picks_list, scalings):
             scales[idx] = scalings[ch_t]
     elif isinstance(scalings, np.ndarray):
         if len(scalings) != len(data):
-            raise ValueError("Scaling factors and data are of incompatible " "shape")
+            raise ValueError("Scaling factors and data are of incompatible shape")
         scales = scalings
     elif scalings is None:
         pass
@@ -404,9 +404,7 @@ def _check_scaling_inputs(data, picks_list, scalings):
     elif scalings is None:
         pass
     else:
-        raise NotImplementedError(
-            "No way! That's not a rescaling " "option: %s" % scalings
-        )
+        raise NotImplementedError(f"Not a valid rescaling option: {scalings}")
     return scalings_
 
 
@@ -798,20 +796,20 @@ def object_diff(a, b, pre="", *, allclose=False):
         k2s = _sort_keys(b)
         m1 = set(k2s) - set(k1s)
         if len(m1):
-            out += pre + " left missing keys %s\n" % (m1)
+            out += pre + f" left missing keys {m1}\n"
         for key in k1s:
             if key not in k2s:
-                out += pre + " right missing key %s\n" % key
+                out += pre + f" right missing key {key}\n"
             else:
                 out += object_diff(
-                    a[key], b[key], pre=(pre + "[%s]" % repr(key)), allclose=allclose
+                    a[key], b[key], pre=(pre + f"[{repr(key)}]"), allclose=allclose
                 )
     elif isinstance(a, (list, tuple)):
         if len(a) != len(b):
             out += pre + f" length mismatch ({len(a)}, {len(b)})\n"
         else:
             for ii, (xx1, xx2) in enumerate(zip(a, b)):
-                out += object_diff(xx1, xx2, pre + "[%s]" % ii, allclose=allclose)
+                out += object_diff(xx1, xx2, pre + f"[{ii}]", allclose=allclose)
     elif isinstance(a, float):
         if not _array_equal_nan(a, b, allclose):
             out += pre + f" value mismatch ({a}, {b})\n"
@@ -820,7 +818,7 @@ def object_diff(a, b, pre="", *, allclose=False):
             out += pre + f" value mismatch ({a}, {b})\n"
     elif a is None:
         if b is not None:
-            out += pre + " left is None, right is not (%s)\n" % (b)
+            out += pre + f" left is None, right is not ({b})\n"
     elif isinstance(a, np.ndarray):
         if not _array_equal_nan(a, b, allclose):
             out += pre + " array mismatch\n"
@@ -840,7 +838,7 @@ def object_diff(a, b, pre="", *, allclose=False):
             c = a - b
             c.eliminate_zeros()
             if c.nnz > 0:
-                out += pre + (" sparse matrix a and b differ on %s " "elements" % c.nnz)
+                out += pre + (f" sparse matrix a and b differ on {c.nnz} elements")
     elif pd and isinstance(a, pd.DataFrame):
         try:
             pd.testing.assert_frame_equal(a, b)
@@ -887,7 +885,7 @@ class _PCA:
         if n_components == "mle":
             if n_samples < n_features:
                 raise ValueError(
-                    "n_components='mle' is only supported " "if n_samples >= n_features"
+                    "n_components='mle' is only supported if n_samples >= n_features"
                 )
         elif not 0 <= n_components <= min(n_samples, n_features):
             raise ValueError(

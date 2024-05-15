@@ -193,7 +193,7 @@ def check_random_state(seed):
     if isinstance(seed, np.random.Generator):
         return seed
     raise ValueError(
-        "%r cannot be used to seed a " "numpy.random.mtrand.RandomState instance" % seed
+        f"{seed!r} cannot be used to seed a numpy.random.mtrand.RandomState instance"
     )
 
 
@@ -206,12 +206,10 @@ def _check_event_id(event_id, events):
         for key in event_id.keys():
             _validate_type(key, str, "Event names")
         event_id = {
-            key: _ensure_int(val, "event_id[%s]" % key) for key, val in event_id.items()
+            key: _ensure_int(val, f"event_id[{key}]") for key, val in event_id.items()
         }
     elif isinstance(event_id, list):
-        event_id = [
-            _ensure_int(v, "event_id[%s]" % vi) for vi, v in enumerate(event_id)
-        ]
+        event_id = [_ensure_int(v, f"event_id[{vi}]") for vi, v in enumerate(event_id)]
         event_id = dict(zip((str(i) for i in event_id), event_id))
     else:
         event_id = _ensure_int(event_id, "event_id")
@@ -299,9 +297,7 @@ def _check_subject(
         _validate_type(first, "str", f"Either {second_kind} subject or {first_kind}")
         return first
     elif raise_error is True:
-        raise ValueError(
-            f"Neither {second_kind} subject nor {first_kind} " "was a string"
-        )
+        raise ValueError(f"Neither {second_kind} subject nor {first_kind} was a string")
     return None
 
 
@@ -746,10 +742,10 @@ def _check_channels_spatial_filter(ch_names, filters):
     for ch_name in filters["ch_names"]:
         if ch_name not in ch_names:
             raise ValueError(
-                "The spatial filter was computed with channel %s "
+                f"The spatial filter was computed with channel {ch_name} "
                 "which is not present in the data. You should "
                 "compute a new spatial filter restricted to the "
-                "good data channels." % ch_name
+                "good data channels."
             )
     # then compare list of channels and get selection based on data:
     sel = [ii for ii, ch_name in enumerate(ch_names) if ch_name in filters["ch_names"]]
@@ -1054,7 +1050,7 @@ def _check_sphere(sphere, info=None, sphere_units="m"):
                         f"{ch_name}"
                     )
                     if ch_name == "Fpz":
-                        msg += ", and was unable to approximate its location " "from Oz"
+                        msg += ", and was unable to approximate its location from Oz"
                     raise ValueError(msg)
 
             # Calculate the radius from: T7<->T8, Fpz<->Oz

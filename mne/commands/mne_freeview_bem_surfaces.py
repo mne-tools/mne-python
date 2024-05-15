@@ -58,9 +58,9 @@ def freeview_bem_surfaces(subject, subjects_dir, method=None):
 
     if method == "watershed":
         bem_dir = op.join(bem_dir, "watershed")
-        outer_skin = op.join(bem_dir, "%s_outer_skin_surface" % subject)
-        outer_skull = op.join(bem_dir, "%s_outer_skull_surface" % subject)
-        inner_skull = op.join(bem_dir, "%s_inner_skull_surface" % subject)
+        outer_skin = op.join(bem_dir, f"{subject}_outer_skin_surface")
+        outer_skull = op.join(bem_dir, f"{subject}_outer_skull_surface")
+        inner_skull = op.join(bem_dir, f"{subject}_inner_skull_surface")
     else:
         if method == "flash":
             bem_dir = op.join(bem_dir, "flash")
@@ -71,9 +71,9 @@ def freeview_bem_surfaces(subject, subjects_dir, method=None):
     # put together the command
     cmd = ["freeview"]
     cmd += ["--volume", mri]
-    cmd += ["--surface", "%s:color=red:edgecolor=red" % inner_skull]
-    cmd += ["--surface", "%s:color=yellow:edgecolor=yellow" % outer_skull]
-    cmd += ["--surface", "%s:color=255,170,127:edgecolor=255,170,127" % outer_skin]
+    cmd += ["--surface", f"{inner_skull}:color=red:edgecolor=red"]
+    cmd += ["--surface", f"{outer_skull}:color=yellow:edgecolor=yellow"]
+    cmd += ["--surface", f"{outer_skin}:color=255,170,127:edgecolor=255,170,127"]
 
     run_subprocess(cmd, env=env, stdout=sys.stdout)
     print("[done]")

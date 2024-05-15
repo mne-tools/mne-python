@@ -77,7 +77,7 @@ def run():
         "-o",
         "--order",
         dest="group_by",
-        help="Order to use for grouping during plotting " "('type' or 'original')",
+        help="Order to use for grouping during plotting ('type' or 'original')",
         default="type",
     )
     parser.add_option(

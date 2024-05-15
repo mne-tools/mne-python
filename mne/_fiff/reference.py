@@ -77,7 +77,7 @@ def _check_before_reference(inst, ref_from, ref_to, ch_type):
             proj["desc"] == "Average EEG reference"
             or proj["kind"] == FIFF.FIFFV_PROJ_ITEM_EEG_AVREF
         ):
-            logger.info("Removing existing average EEG reference " "projection.")
+            logger.info("Removing existing average EEG reference projection.")
             # Don't remove the projection right away, but do this at the end of
             # this loop.
             projs_to_remove.append(i)
@@ -196,7 +196,7 @@ def add_reference_channels(inst, ref_channels, copy=True):
         ref_channels = [ref_channels]
     for ch in ref_channels:
         if ch in inst.info["ch_names"]:
-            raise ValueError("Channel %s already specified in inst." % ch)
+            raise ValueError(f"Channel {ch} already specified in inst.")
 
     # Once CAR is applied (active), don't allow adding channels
     if _has_eeg_average_ref_proj(inst.info, check_active=True):
@@ -219,7 +219,7 @@ def add_reference_channels(inst, ref_channels, copy=True):
         inst._data = data
     else:
         raise TypeError(
-            "inst should be Raw, Epochs, or Evoked instead of %s." % type(inst)
+            f"inst should be Raw, Epochs, or Evoked instead of {type(inst)}."
         )
     nchan = len(inst.info["ch_names"])
 
@@ -453,15 +453,13 @@ def _get_ch_type(inst, ch_type):
             if type_ in inst:
                 ch_type = [type_]
                 logger.info(
-                    "%s channel type selected for "
-                    "re-referencing" % DEFAULTS["titles"][type_]
+                    f"{DEFAULTS['titles'][type_]} channel type selected for "
+                    "re-referencing"
                 )
                 break
         # if auto comes up empty, or the user specifies a bad ch_type.
         else:
-            raise ValueError(
-                "No EEG, ECoG, sEEG or DBS channels found " "to rereference."
-            )
+            raise ValueError("No EEG, ECoG, sEEG or DBS channels found to rereference.")
     return ch_type
 
 
@@ -554,8 +552,8 @@ def set_bipolar_reference(
 
     if len(anode) != len(cathode):
         raise ValueError(
-            "Number of anodes (got %d) must equal the number "
-            "of cathodes (got %d)." % (len(anode), len(cathode))
+            f"Number of anodes (got {len(anode)}) must equal the number "
+            f"of cathodes (got {len(cathode)})."
         )
 
     if ch_name is None:
@@ -565,7 +563,7 @@ def set_bipolar_reference(
     if len(ch_name) != len(anode):
         raise ValueError(
             "Number of channel names must equal the number of "
-            "anodes/cathodes (got %d)." % len(ch_name)
+            f"anodes/cathodes (got {len(ch_name)})."
         )
 
     # Check for duplicate channel names (it is allowed to give the name of the
@@ -573,9 +571,9 @@ def set_bipolar_reference(
     for ch, a, c in zip(ch_name, anode, cathode):
         if ch not in [a, c] and ch in inst.ch_names:
             raise ValueError(
-                'There is already a channel named "%s", please '
+                f'There is already a channel named "{ch}", please '
                 "specify a different name for the bipolar "
-                "channel using the ch_name parameter." % ch
+                "channel using the ch_name parameter."
             )
 
     if ch_info is None:

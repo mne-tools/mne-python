@@ -77,7 +77,7 @@ assert raws["opm"].info["sfreq"] == raws["vv"].info["sfreq"]
 titles = dict(vv="VectorView", opm="OPM")
 kinds = ("vv", "opm")
 n_fft = next_fast_len(int(round(4 * new_sfreq)))
-print("Using n_fft=%d (%0.1f s)" % (n_fft, n_fft / raws["vv"].info["sfreq"]))
+print(f"Using n_fft={n_fft} ({n_fft / raws['vv'].info['sfreq']:0.1f} s)")
 for kind in kinds:
     fig = (
         raws[kind]
@@ -184,13 +184,8 @@ del fwd, raws, raw_erms
 
 def plot_band(kind, band):
     """Plot activity within a frequency band on the subject's brain."""
-    title = "%s %s\n(%d-%d Hz)" % (
-        (
-            titles[kind],
-            band,
-        )
-        + freq_bands[band]
-    )
+    lf, hf = freq_bands[band]
+    title = f"{titles[kind]} {band}\n({lf:d}-{hf:d} Hz)"
     topos[kind][band].plot_topomap(
         times=0.0,
         scalings=1.0,

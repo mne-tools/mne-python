@@ -629,7 +629,7 @@ def pick_info(info, sel=(), copy=True, verbose=None):
     n_unique = len(ch_set)
     if n_unique != len(sel):
         raise ValueError(
-            "Found %d / %d unique names, sel is not unique" % (n_unique, len(sel))
+            f"Found {n_unique} / {len(sel)} unique names, sel is not unique"
         )
 
     # make sure required the compensation channels are present
@@ -638,8 +638,8 @@ def pick_info(info, sel=(), copy=True, verbose=None):
         _, comps_missing = _bad_chans_comp(info, ch_names)
         if len(comps_missing) > 0:
             logger.info(
-                "Removing %d compensators from info because "
-                "not all compensation channels were picked." % (len(info["comps"]),)
+                f"Removing {len(info['comps'])} compensators from info because "
+                "not all compensation channels were picked."
             )
             with info._unlock():
                 info["comps"] = []
@@ -747,7 +747,7 @@ def pick_channels_forward(
     if nuse == 0:
         raise ValueError("Nothing remains after picking")
 
-    logger.info("    %d out of %d channels remain after picking" % (nuse, fwd["nchan"]))
+    logger.info(f"    {nuse:d} out of {fwd['nchan']} channels remain after picking")
 
     #   Pick the correct rows of the forward operator using sel_sol
     fwd["sol"]["data"] = fwd["sol"]["data"][sel_sol, :]
@@ -1233,7 +1233,7 @@ def _picks_to_idx(
     if picks is None:
         if isinstance(info, int):  # special wrapper for no real info
             picks = np.arange(n_chan)
-            extra_repr = ", treated as range(%d)" % (n_chan,)
+            extra_repr = ", treated as range({n_chan})"
         else:
             picks = none  # let _picks_str_to_idx handle it
             extra_repr = f'None, treated as "{none}"'
@@ -1283,10 +1283,10 @@ def _picks_to_idx(
             f"No appropriate {picks_on} found for the given picks ({orig_picks!r})"
         )
     if (picks < -n_chan).any():
-        raise IndexError("All picks must be >= %d, got %r" % (-n_chan, orig_picks))
+        raise IndexError(f"All picks must be >= {-n_chan}, got {repr(orig_picks)}")
     if (picks >= n_chan).any():
         raise IndexError(
-            "All picks must be < n_%s (%d), got %r" % (picks_on, n_chan, orig_picks)
+            f"All picks must be < n_{picks_on} ({n_chan}), got {repr(orig_picks)}"
         )
     picks %= n_chan  # ensure positive
     if return_kind:
@@ -1301,7 +1301,7 @@ def _picks_str_to_idx(
     # special case for _picks_to_idx w/no info: shouldn't really happen
     if isinstance(info, int):
         raise ValueError(
-            "picks as str can only be used when measurement " "info is available"
+            "picks as str can only be used when measurement info is available"
         )
 
     #
@@ -1391,7 +1391,7 @@ def _picks_str_to_idx(
         if not allow_empty:
             raise ValueError(
                 f"picks ({repr(orig_picks) + extra_repr}) could not be interpreted as "
-                f'channel names (no channel "{str(bad_names)}"), channel types (no type'
+                f'channel names (no channel "{bad_names}"), channel types (no type'
                 f' "{bad_type}" present), or a generic type (just "all" or "data")'
             )
         picks = np.array([], int)

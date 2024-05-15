@@ -155,7 +155,7 @@ def _n_colors(n, bytes_=False, cmap="hsv"):
     """
     n_max = 2**10
     if n > n_max:
-        raise NotImplementedError("Can't produce more than %i unique " "colors" % n_max)
+        raise NotImplementedError("Can't produce more than %i unique colors" % n_max)
 
     from .viz.utils import _get_cmap
 
@@ -245,7 +245,7 @@ class Label:
     ):
         # check parameters
         if not isinstance(hemi, str):
-            raise ValueError("hemi must be a string, not %s" % type(hemi))
+            raise ValueError(f"hemi must be a string, not {type(hemi)}")
         vertices = np.asarray(vertices, int)
         if np.any(np.diff(vertices.astype(int)) <= 0):
             raise ValueError("Vertices must be ordered in increasing order.")
@@ -765,7 +765,7 @@ class Label:
         else:
             raise ValueError(
                 "Need integer, tuple of strings, or string "
-                "('contiguous'). Got %s)" % type(parts)
+                f"('contiguous'). Got {type(parts)})"
             )
 
     def get_vertices_used(self, vertices=None):
@@ -809,7 +809,7 @@ class Label:
         selection = np.all(np.isin(tris, vertices_).reshape(tris.shape), axis=1)
         label_tris = tris[selection]
         if len(np.unique(label_tris)) < len(vertices_):
-            logger.info("Surprising label structure. Trying to repair " "triangles.")
+            logger.info("Surprising label structure. Trying to repair triangles.")
             dropped_vertices = np.setdiff1d(vertices_, label_tris)
             n_dropped = len(dropped_vertices)
             assert n_dropped == (len(vertices_) - len(np.unique(label_tris)))
@@ -1058,7 +1058,7 @@ class BiHemiLabel:
             lh = self.lh + other.lh
             rh = self.rh + other.rh
         else:
-            raise TypeError("Need: Label or BiHemiLabel. Got: %r" % other)
+            raise TypeError(f"Need: Label or BiHemiLabel. Got: {other!r}")
 
         name = f"{self.name} + {other.name}"
         color = _blend_colors(self.color, other.color)
@@ -1207,7 +1207,7 @@ def write_label(filename, label, verbose=None):
         name += "-" + hemi
     filename = op.join(path_head, name) + ".label"
 
-    logger.info("Saving label to : %s" % filename)
+    logger.info(f"Saving label to : {filename}")
 
     with open(filename, "wb") as fid:
         n_vertices = len(label.vertices)
@@ -1534,7 +1534,7 @@ def stc_to_label(
         If no Label is available in an hemisphere, an empty list is returned.
     """
     if not isinstance(smooth, bool):
-        raise ValueError("smooth should be True or False. Got %s." % smooth)
+        raise ValueError(f"smooth should be True or False. Got {smooth}.")
 
     src = stc.subject if src is None else src
     if src is None:
@@ -1831,7 +1831,7 @@ def grow_labels(
             names = [names]
         if len(names) != n_seeds:
             raise ValueError(
-                "The names parameter has to be None or have " "length len(seeds)"
+                "The names parameter has to be None or have length len(seeds)"
             )
         for i, hemi in enumerate(hemis):
             if not names[i].endswith(hemi):
@@ -2152,8 +2152,8 @@ def _read_annot(fname):
         cands = _read_annot_cands(dir_name)
         if len(cands) == 0:
             raise OSError(
-                "No such file %s, no candidate parcellations "
-                "found in directory" % fname
+                f"No such file {fname}, no candidate parcellations "
+                "found in directory"
             )
         else:
             raise OSError(
@@ -2229,7 +2229,7 @@ def _get_annot_fname(annot_fname, subject, hemi, parc, subjects_dir):
             hemis = [hemi]
 
         subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-        dst = str(subjects_dir / subject / "label" / ("%%s.%s.annot" % parc))
+        dst = str(subjects_dir / subject / "label" / f"%s.{parc}.annot")
         annot_fname = [dst % hemi_ for hemi_ in hemis]
 
     return annot_fname, hemis
@@ -2312,7 +2312,7 @@ def read_labels_from_annot(
     if regexp is not None:
         # allow for convenient substring match
         r_ = re.compile(
-            ".*%s.*" % regexp if regexp.replace("_", "").isalnum() else regexp
+            f".*{regexp}.*" if regexp.replace("_", "").isalnum() else regexp
         )
 
     # now we are ready to create the labels
@@ -2332,7 +2332,7 @@ def read_labels_from_annot(
             surf_name,
             hemi,
             len(annot),
-            extra="for annotation file %s" % fname,
+            extra=f"for annotation file {fname}",
         )
         for label_id, label_name, label_rgba in zip(
             label_ids, label_names, label_rgbas
@@ -2693,7 +2693,7 @@ def write_labels_to_annot(
         for fname in annot_fname:
             if op.exists(fname):
                 raise ValueError(
-                    'File %s exists. Use "overwrite=True" to ' "overwrite it" % fname
+                    f'File {fname} exists. Use "overwrite=True" to ' "overwrite it"
                 )
 
     # prepare container for data to save:
@@ -2769,7 +2769,7 @@ def write_labels_to_annot(
 
         # find number of vertices in surface
         if subject is not None and subjects_dir is not None:
-            fpath = op.join(subjects_dir, subject, "surf", "%s.white" % hemi)
+            fpath = op.join(subjects_dir, subject, "surf", f"{hemi}.white")
             points, _ = read_surface(fpath)
             n_vertices = len(points)
         else:
@@ -2817,7 +2817,7 @@ def write_labels_to_annot(
         # Assign unlabeled vertices to an "unknown" label
         unlabeled = annot == -1
         if np.any(unlabeled):
-            msg = "Assigning %i unlabeled vertices to " "'unknown-%s'" % (
+            msg = "Assigning %i unlabeled vertices to 'unknown-%s'" % (
                 unlabeled.sum(),
                 hemi,
             )

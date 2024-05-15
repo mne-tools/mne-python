@@ -160,7 +160,7 @@ def plot_t_p(t, p, title, mcc, axes=None):
         mappable=surf,
     )
     cbar.set_ticks(t_lims)
-    cbar.set_ticklabels(["%0.1f" % t_lim for t_lim in t_lims])
+    cbar.set_ticklabels([f"{t_lim:0.1f}" for t_lim in t_lims])
     cbar.set_label("t-value")
     cbar.ax.get_xaxis().set_label_coords(0.5, -0.3)
     if not show:
@@ -182,7 +182,7 @@ def plot_t_p(t, p, title, mcc, axes=None):
         mappable=img,
     )
     cbar.set_ticks(p_lims)
-    cbar.set_ticklabels(["%0.1f" % p_lim for p_lim in p_lims])
+    cbar.set_ticklabels([f"{p_lim:0.1f}" for p_lim in p_lims])
     cbar.set_label(r"$-\log_{10}(p)$")
     cbar.ax.get_xaxis().set_label_coords(0.5, -0.3)
     if show:

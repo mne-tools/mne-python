@@ -464,7 +464,7 @@ class ICA(ContainsMixin):
                 )
             if isinstance(val, int_like) and val == 1:
                 raise ValueError(
-                    f"Selecting one component with {kind}={val} is not " "supported"
+                    f"Selecting one component with {kind}={val} is not supported"
                 )
 
         self.current_fit = "unfitted"
@@ -1067,7 +1067,7 @@ class ICA(ContainsMixin):
             elif isinstance(inst, Evoked):
                 kind, do = "Evoked", "doesn't"
             else:
-                raise ValueError("Data input must be of Raw, Epochs or Evoked " "type")
+                raise ValueError("Data input must be of Raw, Epochs or Evoked type")
             raise RuntimeError(
                 "%s %s match fitted data: %i channels "
                 "fitted but %i channels supplied. \nPlease "
@@ -1263,7 +1263,7 @@ class ICA(ContainsMixin):
             )
             sources = self._sources_as_evoked(inst, add_channels)
         else:
-            raise ValueError("Data input must be of Raw, Epochs or Evoked " "type")
+            raise ValueError("Data input must be of Raw, Epochs or Evoked type")
         return sources
 
     def _sources_as_raw(self, raw, add_channels, start, stop):
@@ -1448,14 +1448,14 @@ class ICA(ContainsMixin):
             )
             sources = self._transform_evoked(inst)
         else:
-            raise ValueError("Data input must be of Raw, Epochs or Evoked " "type")
+            raise ValueError("Data input must be of Raw, Epochs or Evoked type")
 
         if target is not None:  # we can have univariate metrics without target
             target = self._check_target(target, inst, start, stop, reject_by_annotation)
 
             if sources.shape[-1] != target.shape[-1]:
                 raise ValueError(
-                    "Sources and target do not have the same " "number of time slices."
+                    "Sources and target do not have the same number of time slices."
                 )
             # auto target selection
             if isinstance(inst, BaseRaw):
@@ -1705,7 +1705,7 @@ class ICA(ContainsMixin):
         if method == "ctps":
             if threshold == "auto":
                 threshold = self._get_ctps_threshold()
-                logger.info("Using threshold: %.2f for CTPS ECG detection" % threshold)
+                logger.info(f"Using threshold: {threshold:.2f} for CTPS ECG detection")
             if isinstance(inst, BaseRaw):
                 sources = self.get_sources(
                     create_ecg_epochs(
@@ -1726,9 +1726,7 @@ class ICA(ContainsMixin):
             elif isinstance(inst, BaseEpochs):
                 sources = self.get_sources(inst).get_data(copy=False)
             else:
-                raise ValueError(
-                    "With `ctps` only Raw and Epochs input is " "supported"
-                )
+                raise ValueError("With `ctps` only Raw and Epochs input is supported")
             _, p_vals, _ = ctps(sources)
             scores = p_vals.max(-1)
             ecg_idx = np.where(scores >= threshold)[0]
@@ -1738,7 +1736,7 @@ class ICA(ContainsMixin):
             self.labels_["ecg"] = list(ecg_idx)
             if ch_name is None:
                 ch_name = "ECG-MAG"
-            self.labels_["ecg/%s" % ch_name] = list(ecg_idx)
+            self.labels_[f"ecg/{ch_name}"] = list(ecg_idx)
         elif method == "correlation":
             if threshold == "auto" and measure == "zscore":
                 threshold = 3.0
@@ -1914,7 +1912,7 @@ class ICA(ContainsMixin):
             ref_picks = pick_types(self.info, meg=False, ref_meg=True)
             if not any(meg_picks) or not any(ref_picks):
                 raise ValueError(
-                    "ICA solution must contain both reference and" " MEG channels."
+                    "ICA solution must contain both reference and MEG channels."
                 )
             weights = self.get_components()
             # take norm of component weights on reference channels for each
@@ -2423,7 +2421,7 @@ class ICA(ContainsMixin):
         )
         fname = _check_fname(fname, overwrite=overwrite)
 
-        logger.info("Writing ICA solution to %s..." % fname)
+        logger.info(f"Writing ICA solution to {fname}...")
         with start_and_end_file(fname) as fid:
             _write_ica(fid, self)
         return self
@@ -2797,7 +2795,7 @@ def _find_sources(sources, target, score_func):
         score_func = get_score_funcs().get(score_func, score_func)
 
     if not callable(score_func):
-        raise ValueError("%s is not a valid score_func." % score_func)
+        raise ValueError(f"{score_func} is not a valid score_func.")
 
     scores = (
         score_func(sources, target) if target is not None else score_func(sources, 1)
@@ -2830,7 +2828,7 @@ def _ica_explained_variance(ica, inst, normalize=False):
         raise TypeError("first argument must be an instance of ICA.")
     if not isinstance(inst, (BaseRaw, BaseEpochs, Evoked)):
         raise TypeError(
-            "second argument must an instance of either Raw, " "Epochs or Evoked."
+            "second argument must an instance of either Raw, Epochs or Evoked."
         )
 
     source_data = _get_inst_data(ica.get_sources(inst))
@@ -3007,7 +3005,7 @@ def read_ica(fname, verbose=None):
     """
     check_fname(fname, "ICA", ("-ica.fif", "-ica.fif.gz", "_ica.fif", "_ica.fif.gz"))
 
-    logger.info("Reading %s ..." % fname)
+    logger.info(f"Reading {fname} ...")
     fid, tree, _ = fiff_open(fname)
 
     try:
@@ -3344,7 +3342,7 @@ def corrmap(
     template_fig, labelled_ics = None, None
     if plot is True:
         if is_subject:  # plotting from an ICA object
-            ttl = f"Template from subj. {str(template[0])}"
+            ttl = f"Template from subj. {template[0]}"
             template_fig = icas[template[0]].plot_components(
                 picks=template[1],
                 ch_type=ch_type,
@@ -3397,7 +3395,7 @@ def corrmap(
     _, median_corr, _, max_corrs = paths[np.argmax([path[1] for path in paths])]
 
     allmaps, indices, subjs, nones = (list() for _ in range(4))
-    logger.info("Median correlation with constructed map: %0.3f" % median_corr)
+    logger.info(f"Median correlation with constructed map: {median_corr:0.3f}")
     del median_corr
     if plot is True:
         logger.info("Displaying selected ICs per subject.")

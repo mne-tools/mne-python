@@ -98,13 +98,11 @@ class ConductorModel(dict):
             center = ", ".join("%0.1f" % (x * 1000.0) for x in self["r0"])
             rad = self.radius
             if rad is None:  # no radius / MEG only
-                extra = "Sphere (no layers): r0=[%s] mm" % center
+                extra = f"Sphere (no layers): r0=[{center}] mm"
             else:
-                extra = "Sphere ({} layer{}): r0=[{}] R={:1.0f} mm".format(
-                    len(self["layers"]) - 1,
-                    _pl(self["layers"]),
-                    center,
-                    rad * 1000.0,
+                extra = (
+                    f"Sphere ({len(self['layers']) - 1} layer{_pl(self['layers'])}): "
+                    f"r0=[{center}] R={rad * 1000.0:1.0f} mm"
                 )
         else:
             extra = f"BEM ({len(self['surfs'])} layer{_pl(self['surfs'])})"
@@ -225,13 +223,8 @@ def _fwd_bem_lin_pot_coeff(surfs):
         rr_ord = np.arange(nps[si_1])
         for si_2, surf2 in enumerate(surfs):
             logger.info(
-                "        %s (%d) -> %s (%d) ..."
-                % (
-                    _bem_surf_name[surf1["id"]],
-                    nps[si_1],
-                    _bem_surf_name[surf2["id"]],
-                    nps[si_2],
-                )
+                f"        {_bem_surf_name[surf1['id']]} ({nps[si_1]:d}) -> "
+                f"{_bem_surf_name[surf2['id']]} ({nps[si_2]}) ..."
             )
             tri_rr = surf2["rr"][surf2["tris"]]
             tri_nn = surf2["tri_nn"]
@@ -325,10 +318,9 @@ def _check_complete_surface(surf, copy=False, incomplete="raise", extra=""):
         fewer = (fewer[:80] + ["..."]) if len(fewer) > 80 else fewer
         fewer = ", ".join(str(f) for f in fewer)
         msg = (
-            "Surface {} has topological defects: {:.0f} / {:.0f} vertices "
-            "have fewer than three neighboring triangles [{}]{}".format(
-                _bem_surf_name[surf["id"]], len(fewer), len(surf["rr"]), fewer, extra
-            )
+            f"Surface {_bem_surf_name[surf['id']]} has topological defects: "
+            f"{len(fewer)} / {len(surf['rr'])} vertices have fewer than three "
+            f"neighboring triangles [{fewer}]{extra}"
         )
         _on_missing(on_missing=incomplete, msg=msg, name="on_defects")
     return surf
@@ -353,7 +345,7 @@ def _fwd_bem_linear_collocation_solution(bem):
             logger.info("    Inverting the coefficient matrix (homog)...")
             ip_solution = _fwd_bem_homog_solution(coeff, [bem["surfs"][-1]["np"]])
             logger.info(
-                "    Modify the original solution to incorporate " "IP approach..."
+                "    Modify the original solution to incorporate IP approach..."
             )
             _fwd_bem_ip_modify_solution(bem["solution"], ip_solution, ip_mult, nps)
     bem["bem_method"] = FIFF.FIFFV_BEM_APPROX_LINEAR
@@ -469,11 +461,10 @@ def _ico_downsample(surf, dest_grade):
     """Downsample the surface if isomorphic to a subdivided icosahedron."""
     n_tri = len(surf["tris"])
     bad_msg = (
-        "Cannot decimate to requested ico grade %d. The provided "
-        "BEM surface has %d triangles, which cannot be isomorphic with "
-        "a subdivided icosahedron. Consider manually decimating the "
-        "surface to a suitable density and then use ico=None in "
-        "make_bem_model." % (dest_grade, n_tri)
+        f"Cannot decimate to requested ico grade {dest_grade}. The provided "
+        f"BEM surface has {n_tri} triangles, which cannot be isomorphic with "
+        "a subdivided icosahedron. Consider manually decimating the surface to "
+        "a suitable density and then use ico=None in make_bem_model."
     )
     if n_tri % 20 != 0:
         raise RuntimeError(bad_msg)
@@ -485,8 +476,8 @@ def _ico_downsample(surf, dest_grade):
 
     if dest_grade > found:
         raise RuntimeError(
-            "For this surface, decimation grade should be %d "
-            "or less, not %s." % (found, dest_grade)
+            f"For this surface, decimation grade should be {found} or less, "
+            f"not {dest_grade}."
         )
 
     source = _get_ico_surface(found)
@@ -501,8 +492,8 @@ def _ico_downsample(surf, dest_grade):
             "triangles but ordering is wrong"
         )
     logger.info(
-        "Going from %dth to %dth subdivision of an icosahedron "
-        "(n_tri: %d -> %d)" % (found, dest_grade, len(surf["tris"]), len(dest["tris"]))
+        f"Going from {found}th to {dest_grade}th subdivision of an icosahedron "
+        f"(n_tri: {len(surf['tris'])} -> {len(dest['tris'])})"
     )
     # Find the mapping
     dest["rr"] = surf["rr"][_get_ico_map(source, dest)]
@@ -514,7 +505,7 @@ def _get_ico_map(fro, to):
     nearest, dists = _compute_nearest(fro["rr"], to["rr"], return_dists=True)
     n_bads = (dists > 5e-3).sum()
     if n_bads > 0:
-        raise RuntimeError("No matching vertex for %d destination vertices" % (n_bads))
+        raise RuntimeError(f"No matching vertex for {n_bads} destination vertices")
     return nearest
 
 
@@ -530,7 +521,7 @@ def _order_surfaces(surfs):
     ]
     ids = np.array([surf["id"] for surf in surfs])
     if set(ids) != set(surf_order):
-        raise RuntimeError("bad surface ids: %s" % ids)
+        raise RuntimeError(f"bad surface ids: {ids}")
     order = [np.where(ids == id_)[0][0] for id_ in surf_order]
     surfs = [surfs[idx] for idx in order]
     return surfs
@@ -542,9 +533,10 @@ def _assert_complete_surface(surf, incomplete="raise"):
     # Center of mass....
     cm = surf["rr"].mean(axis=0)
     logger.info(
-        "{} CM is {:6.2f} {:6.2f} {:6.2f} mm".format(
-            _bem_surf_name[surf["id"]], 1000 * cm[0], 1000 * cm[1], 1000 * cm[2]
-        )
+        f"{_bem_surf_name[surf['id']]} CM is "
+        f"{1000 * cm[0]:6.2f} "
+        f"{1000 * cm[1]:6.2f} "
+        f"{1000 * cm[2]:6.2f} mm"
     )
     tot_angle = _get_solids(surf["rr"][surf["tris"]], cm[np.newaxis, :])[0]
     prop = tot_angle / (2 * np.pi)
@@ -955,15 +947,8 @@ def make_sphere_model(
         rv = _fwd_eeg_fit_berg_scherg(sphere, 200, 3)
         logger.info("\nEquiv. model fitting -> RV = %g %%" % (100 * rv))
         for k in range(3):
-            logger.info(
-                "mu%d = %g    lambda%d = %g"
-                % (
-                    k + 1,
-                    sphere["mu"][k],
-                    k + 1,
-                    sphere["layers"][-1]["sigma"] * sphere["lambda"][k],
-                )
-            )
+            s_k = sphere["layers"][-1]["sigma"] * sphere["lambda"][k]
+            logger.info(f"mu{k + 1} = {sphere['mu'][k]:g}    lambda{k + 1} = {s_k:g}")
         logger.info(
             f"Set up EEG sphere model with scalp radius {1000 * head_radius:7.1f} mm\n"
         )
@@ -1059,8 +1044,7 @@ def get_fitting_dig(info, dig_kinds="auto", exclude_frontal=True, verbose=None):
         dig_kinds[di] = _dig_kind_dict.get(d, d)
         if dig_kinds[di] not in _dig_kind_ints:
             raise ValueError(
-                "dig_kinds[#%d] (%s) must be one of %s"
-                % (di, d, sorted(list(_dig_kind_dict.keys())))
+                f"dig_kinds[{di}] ({d}) must be one of {sorted(_dig_kind_dict)}"
             )
 
     # get head digization points of the specified kind(s)
@@ -1081,7 +1065,7 @@ def get_fitting_dig(info, dig_kinds="auto", exclude_frontal=True, verbose=None):
     hsp = np.array(hsp)
 
     if len(hsp) <= 10:
-        kinds_str = ", ".join(['"%s"' % _dig_kind_rev[d] for d in sorted(dig_kinds)])
+        kinds_str = ", ".join([f'"{_dig_kind_rev[d]}"' for d in sorted(dig_kinds)])
         msg = (
             f"Only {len(hsp)} head digitization points of the specified "
             f"kind{_pl(dig_kinds)} ({kinds_str},)"
@@ -1108,18 +1092,20 @@ def _fit_sphere_to_headshape(info, dig_kinds, verbose=None):
     _check_head_radius(radius)
 
     # > 2 cm away from head center in X or Y is strange
+    o_mm = origin_head * 1e3
+    o_d = origin_device * 1e3
     if np.linalg.norm(origin_head[:2]) > 0.02:
         warn(
-            "(X, Y) fit ({:0.1f}, {:0.1f}) more than 20 mm from head frame "
-            "origin".format(*tuple(1e3 * origin_head[:2]))
+            f"(X, Y) fit ({o_mm[0]:0.1f}, {o_mm[1]:0.1f}) "
+            "more than 20 mm from head frame origin"
         )
     logger.info(
         "Origin head coordinates:".ljust(30)
-        + "{:0.1f} {:0.1f} {:0.1f} mm".format(*tuple(1e3 * origin_head))
+        + f"{o_mm[0]:0.1f} {o_mm[1]:0.1f} {o_mm[2]:0.1f} mm"
     )
     logger.info(
         "Origin device coordinates:".ljust(30)
-        + "{:0.1f} {:0.1f} {:0.1f} mm".format(*tuple(1e3 * origin_device))
+        + f"{o_d[0]:0.1f} {o_d[1]:0.1f} {o_d[2]:0.1f} mm"
     )
     return radius, origin_head, origin_device
 
@@ -1278,8 +1264,8 @@ def make_watershed_bem(
     if op.isdir(ws_dir):
         if not overwrite:
             raise RuntimeError(
-                "%s already exists. Use the --overwrite option"
-                " to recreate it." % ws_dir
+                f"{ws_dir} already exists. Use the --overwrite option"
+                " to recreate it."
             )
         else:
             shutil.rmtree(ws_dir)
@@ -1287,7 +1273,7 @@ def make_watershed_bem(
     # put together the command
     cmd = ["mri_watershed"]
     if preflood:
-        cmd += ["-h", "%s" % int(preflood)]
+        cmd += ["-h", f"{int(preflood)}"]
 
     if T1 is None:
         T1 = gcaatlas
@@ -1404,7 +1390,7 @@ def _extract_volume_info(mgz):
     version = header["version"]
     vol_info = dict()
     if version == 1:
-        version = "%s  # volume info valid" % version
+        version = f"{version}  # volume info valid"
         vol_info["valid"] = version
         vol_info["filename"] = mgz
         vol_info["volume"] = header["dims"][:3]
@@ -1458,7 +1444,7 @@ def read_bem_surfaces(
     else:
         surf = _read_bem_surfaces_fif(fname, s_id)
     if s_id is not None and len(surf) != 1:
-        raise ValueError("surface with id %d not found" % s_id)
+        raise ValueError(f"surface with id {s_id} not found")
     for this in surf:
         if patch_stats or this["nn"] is None:
             _check_complete_surface(this, incomplete=on_defects)
@@ -1494,7 +1480,7 @@ def _read_bem_surfaces_fif(fname, s_id):
         if bemsurf is None:
             raise ValueError("BEM surface data not found")
 
-        logger.info("    %d BEM surfaces found" % len(bemsurf))
+        logger.info(f"    {len(bemsurf)} BEM surfaces found")
         # Coordinate frame possibly at the top level
         tag = find_tag(fid, bem, FIFF.FIFF_BEM_COORD_FRAME)
         if tag is not None:
@@ -1512,7 +1498,7 @@ def _read_bem_surfaces_fif(fname, s_id):
                 this = _read_bem_surface(fid, bsurf, coord_frame)
                 surf.append(this)
                 logger.info("[done]")
-            logger.info("    %d BEM surfaces read" % len(surf))
+            logger.info(f"    {len(surf)} BEM surfaces read")
     return surf
 
 
@@ -1667,12 +1653,12 @@ def read_bem_solution(fname, *, verbose=None):
         if len(dims) != 2 and solver != "openmeeg":
             raise RuntimeError(
                 "Expected a two-dimensional solution matrix "
-                "instead of a %d dimensional one" % dims[0]
+                f"instead of a {dims[0]} dimensional one"
             )
         if dims[0] != dim or dims[1] != dim:
             raise RuntimeError(
-                "Expected a %d x %d solution matrix instead of "
-                "a %d x %d one" % (dim, dim, dims[1], dims[0])
+                f"Expected a {dim} x {dim} solution matrix instead of "
+                f"a {dims[1]} x {dims[0]} one"
             )
         bem["nsol"] = bem["solution"].shape[0]
     # Gamma factors and multipliers
@@ -1694,7 +1680,7 @@ def _read_bem_solution_fif(fname):
         # Find the BEM data
         nodes = dir_tree_find(tree, FIFF.FIFFB_BEM)
         if len(nodes) == 0:
-            raise RuntimeError("No BEM data in %s" % fname)
+            raise RuntimeError(f"No BEM data in {fname}")
         bem_node = nodes[0]
 
         # Approximation method
@@ -1704,7 +1690,7 @@ def _read_bem_solution_fif(fname):
             solver = tag["solver"]
         tag = find_tag(f, bem_node, FIFF.FIFF_BEM_APPROX)
         if tag is None:
-            raise RuntimeError("No BEM solution found in %s" % fname)
+            raise RuntimeError(f"No BEM solution found in {fname}")
         method = tag.data[0]
         tag = find_tag(fid, bem_node, FIFF.FIFF_BEM_POT_SOLUTION)
         sol = tag.data
@@ -2024,7 +2010,7 @@ def convert_flash_mris(
     template = op.join(flash_dir, "mef*_*.mgz")
     files = sorted(glob.glob(template))
     if len(files) == 0:
-        raise ValueError("No suitable source files found (%s)" % template)
+        raise ValueError(f"No suitable source files found ({template})")
     if unwarp:
         logger.info("\n---- Unwarp mgz data sets ----")
         for infile in files:
@@ -2068,7 +2054,7 @@ def convert_flash_mris(
         template = "mef05_*u.mgz" if unwarp else "mef05_*.mgz"
         files = sorted(flash_dir.glob(template))
         if len(files) == 0:
-            raise ValueError("No suitable source files found (%s)" % template)
+            raise ValueError(f"No suitable source files found ({template})")
         cmd = ["mri_average", "-noconform"] + files + [pm_dir / "flash5.mgz"]
         run_subprocess_env(cmd)
         (pm_dir / "flash5_reg.mgz").unlink(missing_ok=True)
@@ -2275,8 +2261,8 @@ def make_flash_bem(
         dest = bem_dir
     logger.info(
         "\nThank you for waiting.\nThe BEM triangulations for this "
-        "subject are now available at:\n%s.\nWe hope the BEM meshes "
-        "created will facilitate your MEG and EEG data analyses." % dest
+        f"subject are now available at:\n{dest}.\nWe hope the BEM meshes "
+        "created will facilitate your MEG and EEG data analyses."
     )
     # Show computed BEM surfaces
     if show:
@@ -2293,9 +2279,8 @@ def _check_bem_size(surfs):
     """Check bem surface sizes."""
     if len(surfs) > 1 and surfs[0]["np"] > 10000:
         warn(
-            "The bem surfaces have %s data points. 5120 (ico grade=4) "
+            f"The bem surfaces have {surfs[0]['np']} data points. 5120 (ico grade=4) "
             "should be enough. Dense 3-layer bems may not save properly."
-            % surfs[0]["np"]
         )
 
 
@@ -2307,9 +2292,9 @@ def _symlink(src, dest, copy=False):
             os.symlink(src_link, dest)
         except OSError:
             warn(
-                "Could not create symbolic link %s. Check that your "
+                f"Could not create symbolic link {dest}. Check that your "
                 "partition handles symbolic links. The file will be copied "
-                "instead." % dest
+                "instead."
             )
             copy = True
     if copy:
@@ -2325,7 +2310,7 @@ def _ensure_bem_surfaces(bem, extra_allow=(), name="bem"):
     _validate_type(bem, allowed, name)
     if isinstance(bem, path_like):
         # Load the surfaces
-        logger.info(f"Loading BEM surfaces from {str(bem)}...")
+        logger.info(f"Loading BEM surfaces from {bem}...")
         bem = read_bem_surfaces(bem)
         bem = ConductorModel(is_sphere=False, surfs=bem)
     elif isinstance(bem, list):
@@ -2404,8 +2389,7 @@ def make_scalp_surfaces(
     subj_path = subjects_dir / subject
     if not subj_path.exists():
         raise RuntimeError(
-            "%s does not exist. Please check your subject "
-            "directory path." % subj_path
+            f"{subj_path} does not exist. Please check your subject directory path."
         )
 
     # Backward compat for old FreeSurfer (?)
@@ -2459,9 +2443,9 @@ def make_scalp_surfaces(
     bem_dir = subjects_dir / subject / "bem"
     if not bem_dir.is_dir():
         os.mkdir(bem_dir)
-    fname_template = bem_dir / ("%s-head-{}.fif" % subject)
+    fname_template = bem_dir / (f"{subject}-head-{{}}.fif")
     dense_fname = str(fname_template).format("dense")
-    logger.info("2. Creating %s ..." % dense_fname)
+    logger.info(f"2. Creating {dense_fname} ...")
     _check_file(dense_fname, overwrite)
     # Helpful message if we get a topology error
     msg = (

@@ -704,7 +704,7 @@ def get_ras_to_neuromag_trans(nasion, lpa, rpa):
     for pt in (nasion, lpa, rpa):
         if pt.ndim != 1 or len(pt) != 3:
             raise ValueError(
-                "Points have to be provided as one dimensional " "arrays of length 3."
+                "Points have to be provided as one dimensional arrays of length 3."
             )
 
     right = rpa - lpa
@@ -1159,7 +1159,7 @@ class _SphericalSurfaceWarp:
         del match_rr
         # 2. Compute spherical harmonic coefficients for all points
         logger.info(
-            "    Computing spherical harmonic approximation with " "order %s" % order
+            "    Computing spherical harmonic approximation with " f"order {order}"
         )
         src_sph = _compute_sph_harm(order, *src_rad_az_pol[1:])
         dest_sph = _compute_sph_harm(order, *dest_rad_az_pol[1:])
@@ -1569,7 +1569,7 @@ def _read_fs_xfm(fname):
     """Read a Freesurfer transform from a .xfm file."""
     assert fname.endswith(".xfm")
     with open(fname) as fid:
-        logger.debug("Reading FreeSurfer talairach.xfm file:\n%s" % fname)
+        logger.debug(f"Reading FreeSurfer talairach.xfm file:\n{fname}")
 
         # read lines until we get the string 'Linear_Transform', which precedes
         # the data transformation matrix
@@ -1583,7 +1583,7 @@ def _read_fs_xfm(fname):
                 break
         else:
             raise ValueError(
-                'Failed to find "Linear_Transform" string in ' "xfm file:\n%s" % fname
+                'Failed to find "Linear_Transform" string in ' f"xfm file:\n{fname}"
             )
 
         xfm = list()
@@ -1606,7 +1606,7 @@ def _write_fs_xfm(fname, xfm, kind):
         fid.write((kind + "\n\nTtransform_Type = Linear;\n").encode("ascii"))
         fid.write("Linear_Transform =\n".encode("ascii"))
         for li, line in enumerate(xfm[:-1]):
-            line = " ".join(["%0.6f" % part for part in line])
+            line = " ".join([f"{part:0.6f}" for part in line])
             line += "\n" if li < 2 else ";\n"
             fid.write(line.encode("ascii"))
 

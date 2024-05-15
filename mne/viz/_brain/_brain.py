@@ -26,6 +26,7 @@ from ..._fiff.meas_info import Info
 from ..._fiff.pick import pick_types
 from ..._freesurfer import (
     _estimate_talxfm_rigid,
+    _get_aseg,
     _get_head_surface,
     _get_skull_surface,
     read_freesurfer_lut,
@@ -1574,7 +1575,7 @@ class Brain:
             except Exception:
                 mni = None
         if mni is not None:
-            mni = " MNI: " + ", ".join("%5.1f" % m for m in mni)
+            mni = " MNI: " + ", ".join(f"{m:5.1f}" for m in mni)
         else:
             mni = ""
         label = f"{hemi_str}:{str(vertex_id).ljust(6)}{mni}"
@@ -1767,16 +1768,14 @@ class Brain:
     ):
         """Display data from a numpy array on the surface or volume.
 
-        This provides a similar interface to
-        :meth:`surfer.Brain.add_overlay`, but it displays
+        This provides a similar interface to PySurfer, but it displays
         it with a single colormap. It offers more flexibility over the
         colormap, and provides a way to display four-dimensional data
         (i.e., a timecourse) or five-dimensional data (i.e., a
         vector-valued timecourse).
 
         .. note:: ``fmin`` sets the low end of the colormap, and is separate
-                  from thresh (this is a different convention from
-                  :meth:`surfer.Brain.add_overlay`).
+                  from thresh (this is a different convention from PySurfer).
 
         Parameters
         ----------
@@ -1892,10 +1891,10 @@ class Brain:
             if self._n_times is None:
                 self._times = time
             elif len(time) != self._n_times:
-                raise ValueError("New n_times is different from previous " "n_times")
+                raise ValueError("New n_times is different from previous n_times")
             elif not np.array_equal(time, self._times):
                 raise ValueError(
-                    "Not all time values are consistent with " "previously set times."
+                    "Not all time values are consistent with previously set times."
                 )
 
             # initial time
@@ -2247,7 +2246,7 @@ class Brain:
                         self._subjects_dir, self._subject, "label", subdir, label_fname
                     )
                 if not os.path.exists(filepath):
-                    raise ValueError("Label file %s does not exist" % filepath)
+                    raise ValueError(f"Label file {filepath} does not exist")
                 label = read_label(filepath)
             ids = label.vertices
             scalars = label.values
@@ -2537,7 +2536,7 @@ class Brain:
     @fill_doc
     def add_volume_labels(
         self,
-        aseg="aparc+aseg",
+        aseg="auto",
         labels=None,
         colors=None,
         alpha=0.5,
@@ -2575,26 +2574,8 @@ class Brain:
         -----
         .. versionadded:: 0.24
         """
-        import nibabel as nib
+        aseg, aseg_data = _get_aseg(aseg, self._subject, self._subjects_dir)
 
-        # load anatomical segmentation image
-        if not aseg.endswith(("aseg", "parc")):
-            raise RuntimeError(f"Expected `aseg` file path, {aseg} suffix")
-        aseg = str(
-            _check_fname(
-                op.join(
-                    self._subjects_dir,
-                    self._subject,
-                    "mri",
-                    aseg + ".mgz",
-                ),
-                overwrite="read",
-                must_exist=True,
-            )
-        )
-        aseg_fname = aseg
-        aseg = nib.load(aseg_fname)
-        aseg_data = np.asarray(aseg.dataobj)
         vox_mri_t = aseg.header.get_vox2ras_tkr()
         mult = 1e-3 if self._units == "m" else 1
         vox_mri_t[:3] *= mult
@@ -2628,7 +2609,7 @@ class Brain:
             if len(verts) == 0:  # not in aseg vals
                 warn(
                     f"Value {lut[label]} not found for label "
-                    f"{repr(label)} in: {aseg_fname}"
+                    f"{repr(label)} in anatomical segmentation file "
                 )
                 continue
             verts = apply_trans(vox_mri_t, verts)
@@ -3050,7 +3031,7 @@ class Brain:
                         ".".join([hemi, annot, "annot"]),
                     )
                     if not os.path.exists(filepath):
-                        raise ValueError("Annotation file %s does not exist" % filepath)
+                        raise ValueError(f"Annotation file {filepath} does not exist")
                     filepaths += [filepath]
             annots = []
             for hemi, filepath in zip(hemis, filepaths):
@@ -3811,7 +3792,7 @@ class Brain:
         def frame_callback(frame, n_frames):
             if frame == n_frames:
                 # On the ImageIO step
-                self.status_msg.set_value("Saving with ImageIO: %s" % filename)
+                self.status_msg.set_value(f"Saving with ImageIO: {filename}")
                 self.status_msg.show()
                 self.status_progress.hide()
                 self._renderer._status_bar_update()
@@ -4045,7 +4026,7 @@ class Brain:
         if hemi is None:
             if self._hemi not in ["lh", "rh"]:
                 raise ValueError(
-                    "hemi must not be None when both " "hemispheres are displayed"
+                    "hemi must not be None when both hemispheres are displayed"
                 )
             hemi = self._hemi
         _check_option("hemi", hemi, ("lh", "rh") + tuple(extras))
