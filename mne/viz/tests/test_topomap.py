@@ -14,6 +14,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import pytest
+from matplotlib.colors import PowerNorm, TwoSlopeNorm
 from matplotlib.patches import Circle
 from numpy.testing import assert_almost_equal, assert_array_equal, assert_equal
 
@@ -43,7 +44,11 @@ from mne.channels import (
 )
 from mne.datasets import testing
 from mne.io import RawArray, read_info, read_raw_fif
-from mne.preprocessing import compute_bridged_electrodes
+from mne.preprocessing import (
+    ICA,
+    compute_bridged_electrodes,
+    compute_current_source_density,
+)
 from mne.time_frequency.tfr import AverageTFRArray
 from mne.viz import plot_evoked_topomap, plot_projs_topomap, topomap
 from mne.viz.tests.test_raw import _proj_status
@@ -184,8 +189,6 @@ def test_plot_topomap_animation(capsys):
 
 def test_plot_topomap_animation_csd(capsys):
     """Test topomap plotting of CSD data."""
-    from mne.preprocessing import compute_current_source_density
-
     # evoked
     evoked = read_evokeds(evoked_fname, "Left Auditory", baseline=(None, 0))
     evoked_csd = compute_current_source_density(evoked)
@@ -758,8 +761,6 @@ def test_plot_topomap_nirs_overlap(fnirs_epochs):
 def test_plot_topomap_nirs_ica(fnirs_epochs):
     """Test plotting nirs ica topomap."""
     pytest.importorskip("sklearn")
-    from mne.preprocessing import ICA
-
     fnirs_epochs = fnirs_epochs.load_data().pick(picks="hbo")
     fnirs_epochs = fnirs_epochs.pick(picks=range(30))
 
@@ -786,8 +787,6 @@ def test_plot_cov_topomap():
 
 def test_plot_topomap_cnorm():
     """Test colormap normalization."""
-    from matplotlib.colors import PowerNorm, TwoSlopeNorm
-
     rng = np.random.default_rng(42)
     v = rng.uniform(low=-1, high=2.5, size=64)
     v[:3] = [-1, 0, 2.5]
