@@ -115,14 +115,14 @@ class Scaler(TransformerMixin, BaseEstimator):
 
         if not (scalings is None or isinstance(scalings, (dict, str))):
             raise ValueError(
-                "scalings type should be dict, str, or None, " f"got {type(scalings)}"
+                f"scalings type should be dict, str, or None, got {type(scalings)}"
             )
         if isinstance(scalings, str):
             _check_option("scalings", scalings, ["mean", "median"])
         if scalings is None or isinstance(scalings, dict):
             if info is None:
                 raise ValueError(
-                    'Need to specify "info" if scalings is' f"{type(scalings)}"
+                    f'Need to specify "info" if scalings is {type(scalings)}'
                 )
             self._scaler = _ConstantScaler(info, scalings, self.with_std)
         elif scalings == "mean":
@@ -339,7 +339,7 @@ class Vectorizer(TransformerMixin):
         X = np.asarray(X)
         if X.ndim not in (2, 3):
             raise ValueError(
-                "X should be of 2 or 3 dimensions but has shape " f"{X.shape}"
+                f"X should be of 2 or 3 dimensions but has shape {X.shape}"
             )
         return X.reshape(X.shape[:-1] + self.features_shape_)
 
@@ -642,7 +642,7 @@ class UnsupervisedSpatialFilter(TransformerMixin, BaseEstimator):
 
         if not isinstance(average, bool):
             raise ValueError(
-                "average parameter must be of bool type, got " f"{type(bool)} instead"
+                f"average parameter must be of bool type, got {type(bool)} instead"
             )
 
         self.estimator = estimator

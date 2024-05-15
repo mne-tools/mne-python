@@ -460,7 +460,7 @@ def mixed_norm(
         _check_option("alpha", alpha, ("sure",))
     elif not 0.0 <= alpha < 100:
         raise ValueError(
-            'If not equal to "sure" alpha must be in [0, 100). ' f"Got alpha = {alpha}"
+            f'If not equal to "sure" alpha must be in [0, 100). Got alpha = {alpha}'
         )
     if n_mxne_iter < 1:
         raise ValueError(

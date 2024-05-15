@@ -276,7 +276,7 @@ def _set_stimchannels(inst, info, stim, stim_code):
                 stim = picks
             else:
                 raise ValueError(
-                    "stim needs to be list of int, '>' or " f"'<', not {str(stim)!r}"
+                    f"stim needs to be list of int, '>' or '<', not {str(stim)!r}"
                 )
         else:
             stim = np.asarray(stim, int)

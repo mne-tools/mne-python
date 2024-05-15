@@ -755,9 +755,7 @@ class _Phi:
     def norm(self, z, ord=2):  # noqa: A002
         """Squared L2 norm if ord == 2 and L1 norm if order == 1."""
         if ord not in (1, 2):
-            raise ValueError(
-                "Only supported norm order are 1 and 2. " f"Got ord = {ord}"
-            )
+            raise ValueError(f"Only supported norm order are 1 and 2. Got ord = {ord}")
         stft_norm = stft_norm1 if ord == 1 else stft_norm2
         norm = 0.0
         if len(self.n_coefs) > 1:

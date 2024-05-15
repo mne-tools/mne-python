@@ -1769,7 +1769,7 @@ def _read_evoked(fname, condition=None, kind="average", allow_maxshield=False):
         # find string-based entry
         if isinstance(condition, str):
             if kind not in _aspect_dict.keys():
-                raise ValueError('kind must be "average" or ' '"standard_error"')
+                raise ValueError('kind must be "average" or "standard_error"')
 
             comments, aspect_kinds, t = _get_entries(fid, evoked_node, allow_maxshield)
             goods = np.isin(comments, [condition]) & np.isin(

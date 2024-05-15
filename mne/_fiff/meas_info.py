@@ -3205,9 +3205,7 @@ def create_info(ch_names, sfreq, ch_types="misc", verbose=None):
         _validate_type(ch_name, "str", "each entry in ch_names")
         _validate_type(ch_type, "str", "each entry in ch_types")
         if ch_type not in ch_types_dict:
-            raise KeyError(
-                f"kind must be one of {list(ch_types_dict)}, " f"not {ch_type}"
-            )
+            raise KeyError(f"kind must be one of {list(ch_types_dict)}, not {ch_type}")
         this_ch_dict = ch_types_dict[ch_type]
         kind = this_ch_dict["kind"]
         # handle chpi, where kind is a *list* of FIFF constants:
@@ -3352,7 +3350,7 @@ def _force_update_info(info_base, info_target):
     all_infos = np.hstack([info_base, info_target])
     for ii in all_infos:
         if not isinstance(ii, Info):
-            raise ValueError("Inputs must be of type Info. " f"Found type {type(ii)}")
+            raise ValueError(f"Inputs must be of type Info. Found type {type(ii)}")
     for key, val in info_base.items():
         if key in exclude_keys:
             continue

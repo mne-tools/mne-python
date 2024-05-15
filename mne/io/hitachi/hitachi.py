@@ -284,9 +284,7 @@ def _get_hitachi_info(fname, S_offset, D_offset, ignore_names):
         # nominal wavelength
         sidx, didx = pairs[ii // 2]
         nom_freq = fnirs_wavelengths[np.argmin(np.abs(acc_freq - fnirs_wavelengths))]
-        ch_names[idx] = (
-            f"S{S_offset + sidx + 1}_" f"D{D_offset + didx + 1} " f"{nom_freq}"
-        )
+        ch_names[idx] = f"S{S_offset + sidx + 1}_D{D_offset + didx + 1} {nom_freq}"
     offsets = np.array(pairs, int).max(axis=0) + 1
 
     # figure out bounds

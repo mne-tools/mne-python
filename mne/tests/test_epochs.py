@@ -3449,9 +3449,7 @@ def test_drop_epochs_mult(preload):
         for di, (d1, d2) in enumerate(zip(epochs1.drop_log, epochs2.drop_log)):
             assert isinstance(d1, tuple)
             assert isinstance(d2, tuple)
-            msg = (
-                f"\nepochs1.drop_log[{di}] = {d1}, " f"\nepochs2.drop_log[{di}] = {d2}"
-            )
+            msg = f"\nepochs1.drop_log[{di}] = {d1}, \nepochs2.drop_log[{di}] = {d2}"
             if "IGNORED" in d1:
                 assert "IGNORED" in d2, msg
             if "IGNORED" not in d1 and d1 != ():

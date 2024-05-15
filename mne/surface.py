@@ -291,7 +291,7 @@ def _scale_helmet_to_sensors(system, surf, info):
     logger.info(f"    1. Affine: {rot:0.1f}°, {tr:0.1f} mm, {sc:0.2f}× scale")
     deltas = interp._last_deltas * 1000
     mu, mx = np.mean(deltas), np.max(deltas)
-    logger.info(f"    2. Nonlinear displacement: " f"mean={mu:0.1f}, max={mx:0.1f} mm")
+    logger.info(f"    2. Nonlinear displacement: mean={mu:0.1f}, max={mx:0.1f} mm")
     surf["rr"] = new_rr
     complete_surface_info(surf, copy=False, verbose=False)
     return surf

@@ -623,7 +623,7 @@ class BaseEpochs(
                 reject_tmin = self.tmin
             elif reject_tmin < tmin:
                 raise ValueError(
-                    f"reject_tmin needs to be None or >= tmin " f"(got {reject_tmin})"
+                    f"reject_tmin needs to be None or >= tmin (got {reject_tmin})"
                 )
 
         if reject_tmax is not None:
@@ -632,7 +632,7 @@ class BaseEpochs(
                 reject_tmax = self.tmax
             elif reject_tmax > tmax:
                 raise ValueError(
-                    f"reject_tmax needs to be None or <= tmax " f"(got {reject_tmax})"
+                    f"reject_tmax needs to be None or <= tmax (got {reject_tmax})"
                 )
 
         if (reject_tmin is not None) and (reject_tmax is not None):

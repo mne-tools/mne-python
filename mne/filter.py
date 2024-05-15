@@ -1668,7 +1668,7 @@ def _mt_spectrum_proc(
     kind = "Detected" if line_freqs is None else "Removed"
     found_freqs = (
         "\n".join(
-            f"    {freq:6.2f} : " f"{counts[freq]:4d} window{_pl(counts[freq])}"
+            f"    {freq:6.2f} : {counts[freq]:4d} window{_pl(counts[freq])}"
             for freq in sorted(counts)
         )
         or "    None"

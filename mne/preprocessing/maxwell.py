@@ -2591,7 +2591,7 @@ def find_bad_channels_maxwell(
             logger.info(msg)
         else:
             logger.info(
-                f"Applying low-pass filter with {h_freq} Hz cutoff " f"frequency ..."
+                f"Applying low-pass filter with {h_freq} Hz cutoff frequency ..."
             )
             raw = raw.copy().load_data().filter(l_freq=None, h_freq=h_freq)
 

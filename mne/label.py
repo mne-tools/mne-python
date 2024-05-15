@@ -2693,7 +2693,7 @@ def write_labels_to_annot(
         for fname in annot_fname:
             if op.exists(fname):
                 raise ValueError(
-                    f'File {fname} exists. Use "overwrite=True" to ' "overwrite it"
+                    f'File {fname} exists. Use "overwrite=True" to overwrite it'
                 )
 
     # prepare container for data to save:
