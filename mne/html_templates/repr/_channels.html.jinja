@@ -28,13 +28,13 @@
     <td></td>
     <td>{{ channel_type }}</td>
     <td>
-        <button class="channel-names-btn" onclick="alert('{{ channel_names_good | safe }}')" title="Show good channel names">
+        <button class="channel-names-btn" onclick="alert('Good {{ channel_type}}:\n\n{{ channel_names_good | safe }}')" title="Show good channel names">
             {{ channels["good"] | length}}
         </button>
 
         {% if channels["bad"] %}
         {% set channel_names_bad = channels["bad"] | map(attribute='name_html') | join(', ') %}
-        and <button class="channel-names-btn" onclick="alert('{{ channel_names_bad | safe }}')" title="Show bad channel names">
+        and <button class="channel-names-btn" onclick="alert('Bad {{ channel_type}}:\n\n{{ channel_names_bad | safe }}')" title="Show bad channel names">
             {{ channels["bad"] | length}} bad
         </button>
         {% endif %}
