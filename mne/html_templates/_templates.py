@@ -3,7 +3,7 @@
 import datetime
 import functools
 import uuid
-from collections import defaultdict
+from dataclasses import dataclass
 from typing import Any, Literal, Union
 
 from .._fiff.pick import channel_type
@@ -56,39 +56,52 @@ def _format_projs(info) -> list[str]:
     return projs
 
 
-def _format_channels(info, ch_type: Literal["good", "bad", "ecg", "eog"]) -> str:
+@dataclass
+class _Channel:
+    """A channel in a recording."""
+
+    index: int
+    name: str
+    name_html: str
+    type: str
+    type_pretty: str
+    status: Literal["good", "bad"]
+
+
+def _format_channels(info) -> dict[str, dict[Literal["good", "bad"], list[str]]]:
     """Format channel names."""
-    titles = _handle_default("titles")
+    ch_types_pretty: dict[str, str] = _handle_default("titles")
+    channels = []
 
     if info.ch_names:
-        # good channels
-        good_names = defaultdict(lambda: list())
-        for ci, ch_name in enumerate(info.ch_names):
-            if ch_name in info["bads"]:
-                continue
-            channel_type_ = channel_type(info, ci)
-            good_names[channel_type_].append(ch_name)
-            del channel_type_
-        good_channels = ", ".join(
-            [f"{len(v)} {titles.get(k, k.upper())}" for k, v in good_names.items()]
-        )
-        for key in ("ecg", "eog"):  # ensure these are present
-            if key not in good_names:
-                good_names[key] = list()
-        for key, val in good_names.items():
-            good_names[key] = ", ".join(val) or "Not available"
+        for ch_index, ch_name in enumerate(info.ch_names):
+            ch_type = channel_type(info, ch_index)
+            ch_type_pretty = ch_types_pretty.get(ch_type, ch_type.upper())
+            ch_status = "bad" if ch_name in info["bads"] else "good"
+            channel = _Channel(
+                index=ch_index,
+                name=ch_name,
+                name_html=ch_name.replace(" ", "&nbsp;"),
+                type=ch_type,
+                type_pretty=ch_type_pretty,
+                status=ch_status,
+            )
+            channels.append(channel)
 
-        # bad channels
-        bad_channels = ", ".join(info["bads"]) or "None"
+    # Extract unique channel types and put them in the desired order.
+    ch_types = list(set([c.type_pretty for c in channels]))
+    ch_types = [c for c in ch_types_pretty.values() if c in ch_types]
 
-        # ECG and EOG
-        ecg = good_names["ecg"]
-        eog = good_names["eog"]
-    else:
-        good_channels = bad_channels = ecg = eog = "None"
+    channels_formatted = {}
+    for ch_type in ch_types:
+        goods = [c for c in channels if c.type_pretty == ch_type and c.status == "good"]
+        bads = [c for c in channels if c.type_pretty == ch_type and c.status == "bad"]
+        if ch_type not in channels_formatted:
+            channels_formatted[ch_type] = {"good": [], "bad": []}
+        channels_formatted[ch_type]["good"] = goods
+        channels_formatted[ch_type]["bad"] = bads
 
-    channels = {"good": good_channels, "bad": bad_channels, "ecg": ecg, "eog": eog}
-    return channels[ch_type]
+    return channels_formatted
 
 
 def _has_attr(obj: Any, attr: str) -> bool:

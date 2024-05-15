@@ -21,26 +21,27 @@
         <strong>{{ section }}</strong>
     </th>
 </tr>
+
+{% for channel_type, channels in (info | format_channels).items() %}
+{% set channel_names_good = channels["good"] | map(attribute='name_html') | join(', ') %}
 <tr class="repr-element {{ section_class_name }} {{ collapsed_row_class }}">
     <td></td>
-    <td>Good</td>
-    <td>{{ info | format_channels("good") }}</td>
+    <td>{{ channel_type }}</td>
+    <td>
+        <button class="channel-names-btn" onclick="alert('{{ channel_names_good | safe }}')" title="Show good channel names">
+            {{ channels["good"] | length}}
+        </button>
+
+        {% if channels["bad"] %}
+        {% set channel_names_bad = channels["bad"] | map(attribute='name_html') | join(', ') %}
+        and <button class="channel-names-btn" onclick="alert('{{ channel_names_bad | safe }}')" title="Show bad channel names">
+            {{ channels["bad"] | length}} bad
+        </button>
+        {% endif %}
+    </td>
 </tr>
-<tr class="repr-element {{ section_class_name }} {{ collapsed_row_class }}">
-    <td></td>
-    <td>Bad</td>
-    <td>{{ info | format_channels("bad") }}</td>
-</tr>
-<tr class="repr-element {{ section_class_name }} {{ collapsed_row_class }}">
-    <td></td>
-    <td>EOG</td>
-    <td>{{ info | format_channels("eog") }}</td>
-</tr>
-<tr class="repr-element {{ section_class_name }} {{ collapsed_row_class }}">
-    <td></td>
-    <td>ECG</td>
-    <td>{{ info | format_channels("ecg") }}</td>
-</tr>
+{% endfor %}
+
 <tr class="repr-element {{ section_class_name }} {{ collapsed_row_class }}">
     <td></td>
     <td>Head & sensor digitization</td>
