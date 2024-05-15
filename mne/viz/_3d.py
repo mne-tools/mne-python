@@ -2687,20 +2687,27 @@ def _click_to_cut_coords(event, params):
         ijk = _cut_coords_to_ijk(cut_coords, params["img_idx"])
         if idx == 0:
             ijk[0] = np.argmax(img_data[:, ijk[1], ijk[2]])
-            logger.debug("    MIP: i = %d idx" % (ijk[0],))
+            logger.debug(f"    MIP: i = {ijk[0]:d} idx")
         elif idx == 1:
             ijk[1] = np.argmax(img_data[ijk[0], :, ijk[2]])
-            logger.debug("    MIP: j = %d idx" % (ijk[1],))
+            logger.debug(f"    MIP: j = {ijk[1]:d} idx")
         else:
             ijk[2] = np.argmax(img_data[ijk[0], ijk[1], :])
-            logger.debug("    MIP: k = %d idx" % (ijk[2],))
+            logger.debug(f"    MIP: k = {ijk[2]} idx")
         cut_coords = _ijk_to_cut_coords(ijk, params["img_idx"])
 
-    logger.debug(
-        "    Cut coords for %s: (%0.1f, %0.1f, %0.1f) mm"
-        % ((_AX_NAME[ax],) + tuple(cut_coords))
-    )
+    logger.debug(f"    Cut coords for {_AX_NAME[ax]}: {_str_ras(cut_coords)}")
     return cut_coords
+
+
+def _str_ras(xyz):
+    x, y, z = xyz
+    return f"({x:0.1f}, {y:0.1f}, {z:0.1f}) mm"
+
+
+def _str_vox(ijk):
+    i, j, k = ijk
+    return f"[{i:d}, {j:d}, {k:d}] vox"
 
 
 def _press(event, params):
@@ -2736,7 +2743,7 @@ def _update_timeslice(idx, params):
     ax_y.clear()
     ax_z.clear()
     params.update({"img_idx": index_img(params["img"], idx)})
-    params.update({"title": "Activation (t=%.3f s.)" % params["stc"].times[idx]})
+    params.update({"title": f"Activation (t={params['stc'].times[idx]:.3f} s.)"})
     _plot_and_correct(params=params, cut_coords=cut_coords)
 
 
@@ -3013,14 +3020,10 @@ def plot_volume_source_estimates(
     cut_coords = _ijk_to_cut_coords(ijk, img_idx)
     np.testing.assert_allclose(_cut_coords_to_ijk(cut_coords, img_idx), ijk)
     logger.info(
-        "Showing: t = %0.3f s, (%0.1f, %0.1f, %0.1f) mm, "
-        "[%d, %d, %d] vox, %d vertex"
-        % (
-            (stc.times[time_idx],)
-            + tuple(cut_coords)
-            + tuple(ijk)
-            + (vertices[loc_idx],)
-        )
+        f"Showing: t = {stc.times[time_idx]:0.3f} s, "
+        f"{_str_ras(cut_coords)}, "
+        f"{_str_vox(ijk)}, "
+        f"{vertices[loc_idx]:d} vertex"
     )
     del ijk
 
@@ -4003,10 +4006,11 @@ def _plot_dipole(
     coord_frame_name = "Head" if coord_frame == "head" else "MRI"
 
     if title is None:
-        title = f"Dipole #{idx + 1} / {len(dipole.times)} @ {dipole.times[idx]:.3f}s, "
-        f"GOF: {dipole.gof[idx]:.1f}%, {dipole.amplitude[idx] * 1e9:.1f}nAm\n"
-        f"{coord_frame_name}: " + f"({xyz[idx][0]:0.1f}, {xyz[idx][1]:0.1f}, "
-        f"{xyz[idx][2]:0.1f}) mm"
+        title = (
+            f"Dipole #{idx + 1} / {len(dipole.times)} @ {dipole.times[idx]:.3f}s, "
+            f"GOF: {dipole.gof[idx]:.1f}%, {dipole.amplitude[idx] * 1e9:.1f}nAm\n"
+            f"{coord_frame_name}: {_str_ras(xyz[idx])}"
+        )
 
     ax.get_figure().suptitle(title)
 
