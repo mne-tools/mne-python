@@ -491,7 +491,7 @@ class ProjMixin:
                     _projs.remove(_proj)
             if len(_projs) == 0:
                 raise ValueError(
-                    "Nothing to plot (no projectors for channel " f"type {ch_type})."
+                    f"Nothing to plot (no projectors for channel type {ch_type})."
                 )
         # now we have non-empty _projs list with correct channel type(s)
         from ..viz.topomap import plot_projs_topomap
@@ -1100,7 +1100,7 @@ def _has_eeg_average_ref_proj(
     missing = [name for name in want_names if name not in found_names]
     if missing:
         if found_names:  # found some but not all: warn
-            warn(f"Incomplete {ch_type} projector, " f"missing channel(s) {missing}")
+            warn(f"Incomplete {ch_type} projector, missing channel(s) {missing}")
         return False
     return True
 

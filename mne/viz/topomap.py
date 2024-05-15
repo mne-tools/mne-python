@@ -3249,21 +3249,8 @@ def _topomap_animation(
     from matplotlib import pyplot as plt
 
     if ch_type is None:
-        ch_type = _picks_by_type(evoked.info)[0][0]
-    if ch_type not in (
-        "mag",
-        "grad",
-        "eeg",
-        "hbo",
-        "hbr",
-        "fnirs_od",
-        "fnirs_cw_amplitude",
-    ):
-        raise ValueError(
-            "Channel type not supported. Supported channel "
-            "types include 'mag', 'grad', 'eeg'. 'hbo', 'hbr', "
-            "'fnirs_cw_amplitude', and 'fnirs_od'."
-        )
+        ch_type = _get_plot_ch_type(evoked, ch_type)
+
     time_unit, _ = _check_time_unit(time_unit, evoked.times)
     if times is None:
         times = np.linspace(evoked.times[0], evoked.times[-1], 10)
@@ -3611,7 +3598,7 @@ def plot_arrowmap(
             ch_type = ch_type[0][0]
 
         if ch_type != "mag":
-            raise ValueError("only 'mag' channel type is supported. " f"Got {ch_type}")
+            raise ValueError(f"only 'mag' channel type is supported. Got {ch_type}")
 
     if info_to is not info_from:
         info_to = pick_info(info_to, pick_types(info_to, meg=True))

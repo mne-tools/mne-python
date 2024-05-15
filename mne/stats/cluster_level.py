@@ -396,9 +396,7 @@ def _find_clusters(
                 "threshold-free cluster enhancement"
             )
         if not all(key in threshold for key in ["start", "step"]):
-            raise KeyError(
-                "threshold, if dict, must have at least " '"start" and "step"'
-            )
+            raise KeyError('threshold, if dict, must have at least "start" and "step"')
         tfce = True
         use_x = x[np.isfinite(x)]
         if use_x.size == 0:
@@ -407,9 +405,9 @@ def _find_clusters(
             )
         if tail == -1:
             if threshold["start"] > 0:
-                raise ValueError('threshold["start"] must be <= 0 for ' "tail == -1")
+                raise ValueError('threshold["start"] must be <= 0 for tail == -1')
             if threshold["step"] >= 0:
-                raise ValueError('threshold["step"] must be < 0 for ' "tail == -1")
+                raise ValueError('threshold["step"] must be < 0 for tail == -1')
             stop = np.min(use_x)
         elif tail == 1:
             stop = np.max(use_x)

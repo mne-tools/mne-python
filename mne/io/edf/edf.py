@@ -1547,7 +1547,7 @@ def _find_exclude_idx(ch_names, exclude, include=None):
     if include:  # find other than include channels
         if exclude:
             raise ValueError(
-                "'exclude' must be empty if 'include' is assigned. " f"Got {exclude}."
+                f"'exclude' must be empty if 'include' is assigned. Got {exclude}."
             )
         if isinstance(include, str):  # regex for channel names
             indices_include = []

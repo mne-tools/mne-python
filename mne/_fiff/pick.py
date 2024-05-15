@@ -998,7 +998,7 @@ def _picks_by_type(info, meg_combined=False, ref_meg=False, exclude="bads"):
     exclude = _check_info_exclude(info, exclude)
     if meg_combined == "auto":
         meg_combined = _mag_grad_dependent(info)
-    picks_list = []
+
     picks_list = {ch_type: list() for ch_type in _DATA_CH_TYPES_SPLIT}
     for k in range(info["nchan"]):
         if info["chs"][k]["ch_name"] not in exclude:

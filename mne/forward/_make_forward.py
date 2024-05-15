@@ -127,7 +127,7 @@ def _read_coil_def_file(fname, use_registry=True):
                 vals = np.fromstring(line, sep=" ")
                 if len(vals) != 7:
                     raise RuntimeError(
-                        f"Could not interpret line {p + 1} as 7 points:\n" f"{line}"
+                        f"Could not interpret line {p + 1} as 7 points:\n{line}"
                     )
                 # Read and verify data for each integration point
                 w.append(vals[0])

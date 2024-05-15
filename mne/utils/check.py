@@ -155,7 +155,7 @@ def _require_version(lib, what, version="0.0"):
     if not ok:
         extra = f" (version >= {version})" if version != "0.0" else ""
         why = "package was not found" if got is None else f"got {repr(got)}"
-        raise ImportError(f"The {lib} package{extra} is required to {what}, " f"{why}")
+        raise ImportError(f"The {lib} package{extra} is required to {what}, {why}")
 
 
 def _import_h5py():
@@ -261,12 +261,12 @@ def _check_fname(
             if need_dir:
                 if not fname.is_dir():
                     raise OSError(
-                        f"Need a directory for {name} but found a file " f"at {fname}"
+                        f"Need a directory for {name} but found a file at {fname}"
                     )
             else:
                 if not fname.is_file():
                     raise OSError(
-                        f"Need a file for {name} but found a directory " f"at {fname}"
+                        f"Need a file for {name} but found a directory at {fname}"
                     )
             if not os.access(fname, os.R_OK):
                 raise PermissionError(f"{name} does not have read permissions: {fname}")
@@ -1252,5 +1252,5 @@ def _check_method_kwargs(func, kwargs, msg=None):
         if msg is None:
             msg = f'function "{func}"'
         raise TypeError(
-            f'Got unexpected keyword argument{s} {", ".join(invalid_kw)} ' f"for {msg}."
+            f'Got unexpected keyword argument{s} {", ".join(invalid_kw)} for {msg}.'
         )

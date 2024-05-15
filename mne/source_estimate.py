@@ -3950,7 +3950,7 @@ def stc_near_sensors(
     frames = set(ch["coord_frame"] for ch in evoked.info["chs"])
     if not frames == {FIFF.FIFFV_COORD_HEAD}:
         raise RuntimeError(
-            "Channels must be in the head coordinate frame, " f"got {sorted(frames)}"
+            f"Channels must be in the head coordinate frame, got {sorted(frames)}"
         )
 
     # get channel positions that will be used to pinpoint where
