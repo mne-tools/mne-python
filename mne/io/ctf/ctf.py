@@ -113,7 +113,7 @@ class RawCTF(BaseRaw):
         )
         if not directory.endswith(".ds"):
             raise TypeError(
-                'directory must be a directory ending with ".ds", ' f"got {directory}"
+                f'directory must be a directory ending with ".ds", got {directory}'
             )
         _check_option("system_clock", system_clock, ["ignore", "truncate"])
         logger.info(f"ds directory : {directory}")

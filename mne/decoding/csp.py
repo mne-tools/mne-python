@@ -139,13 +139,11 @@ class CSP(TransformerMixin, BaseEstimator):
         if transform_into == "average_power":
             if log is not None and not isinstance(log, bool):
                 raise ValueError(
-                    "log must be a boolean if transform_into == " '"average_power".'
+                    'log must be a boolean if transform_into == "average_power".'
                 )
         else:
             if log is not None:
-                raise ValueError(
-                    "log must be a None if transform_into == " '"csp_space".'
-                )
+                raise ValueError('log must be a None if transform_into == "csp_space".')
         self.log = log
 
         _validate_type(norm_trace, bool, "norm_trace")

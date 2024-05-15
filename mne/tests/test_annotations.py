@@ -1035,7 +1035,7 @@ def test_io_annotation(dummy_annotation_file, tmp_path, fmt, ch_names):
 def test_broken_csv(tmp_path):
     """Test broken .csv that does not use timestamps."""
     pytest.importorskip("pandas")
-    content = "onset,duration,description\n" "1.,1.0,AA\n" "3.,2.425,BB"
+    content = "onset,duration,description\n1.,1.0,AA\n3.,2.425,BB"
     fname = tmp_path / "annotations_broken.csv"
     with open(fname, "w") as f:
         f.write(content)
@@ -1132,7 +1132,7 @@ def test_read_annotation_txt_header(tmp_path):
 
 def test_read_annotation_txt_one_segment(tmp_path):
     """Test empty TXT input/output."""
-    content = "# MNE-Annotations\n" "# onset, duration, description\n" "3.14, 42, AA"
+    content = "# MNE-Annotations\n# onset, duration, description\n3.14, 42, AA"
     fname = tmp_path / "one-annotations.txt"
     with open(fname, "w") as f:
         f.write(content)

@@ -314,7 +314,7 @@ def get_config(key=None, default=None, raise_error=False, home_dir=None, use_env
     elif raise_error is True and key not in config:
         loc_env = "the environment or in the " if use_env else ""
         meth_env = (
-            (f'either os.environ["{key}"] = VALUE for a temporary ' "solution, or ")
+            (f'either os.environ["{key}"] = VALUE for a temporary solution, or ')
             if use_env
             else ""
         )
@@ -324,7 +324,7 @@ def get_config(key=None, default=None, raise_error=False, home_dir=None, use_env
             else ""
         )
         meth_file = (
-            f'mne.utils.set_config("{key}", VALUE, set_env=True) ' "for a permanent one"
+            f'mne.utils.set_config("{key}", VALUE, set_env=True) for a permanent one'
         )
         raise KeyError(
             f'Key "{key}" not found in {loc_env}'

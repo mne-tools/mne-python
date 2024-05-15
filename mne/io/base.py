@@ -1722,7 +1722,7 @@ class BaseRaw(
         data_test = self[0, 0][0]
         if fmt == "short" and np.iscomplexobj(data_test):
             raise ValueError(
-                'Complex data must be saved as "single" or ' '"double", not "short"'
+                'Complex data must be saved as "single" or "double", not "short"'
             )
 
         # check for file existence and expand `~` if present
@@ -3007,7 +3007,7 @@ def _write_raw_buffer(fid, buf, cals, fmt):
             write_function = write_complex128
         else:
             raise ValueError(
-                'only "single" and "double" supported for ' "writing complex data"
+                'only "single" and "double" supported for writing complex data'
             )
 
     buf = buf / np.ravel(cals)[:, None]

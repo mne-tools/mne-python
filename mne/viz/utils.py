@@ -392,9 +392,7 @@ def _get_channel_plotting_order(order, ch_types, picks=None):
             if order_type == pick_type
         ]
     elif not isinstance(order, (np.ndarray, list, tuple)):
-        raise ValueError(
-            "order should be array-like; got " f'"{order}" ({type(order)}).'
-        )
+        raise ValueError(f'order should be array-like; got "{order}" ({type(order)}).')
     if picks is not None:
         order = [ch for ch in order if ch in picks]
     return np.asarray(order, int)
@@ -2821,5 +2819,7 @@ def _get_plot_ch_type(inst, ch_type, allow_ref_meg=False):
                 ch_type = type_
                 break
         else:
-            raise RuntimeError("No plottable channel types found")
+            raise RuntimeError(
+                f"No plottable channel types found. Allowed types are: {allowed_types}"
+            )
     return ch_type

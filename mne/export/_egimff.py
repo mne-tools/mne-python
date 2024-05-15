@@ -54,7 +54,7 @@ def export_evokeds_mff(fname, evoked, history=None, *, overwrite=False, verbose=
     info = evoked[0].info
     if np.round(info["sfreq"]) != info["sfreq"]:
         raise ValueError(
-            "Sampling frequency must be a whole number. " f'sfreq: {info["sfreq"]}'
+            f'Sampling frequency must be a whole number. sfreq: {info["sfreq"]}'
         )
     sampling_rate = int(info["sfreq"])
 

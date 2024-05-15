@@ -648,7 +648,7 @@ def _check_tfr_param(
         decim = slice(None, None, decim)
     if not isinstance(decim, slice):
         raise ValueError(
-            "decim must be an integer or a slice, " f"got {type(decim)} instead."
+            f"decim must be an integer or a slice, got {type(decim)} instead."
         )
 
     # Check output
@@ -3950,7 +3950,7 @@ def combine_tfr(all_tfr, weights="nave"):
     tfr = all_tfr[0].copy()
     if isinstance(weights, str):
         if weights not in ("nave", "equal"):
-            raise ValueError('Weights must be a list of float, or "nave" or ' '"equal"')
+            raise ValueError('Weights must be a list of float, or "nave" or "equal"')
         if weights == "nave":
             weights = np.array([e.nave for e in all_tfr], float)
             weights /= weights.sum()
