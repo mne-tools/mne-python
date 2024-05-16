@@ -4300,7 +4300,7 @@ _SCRAPER_TEXT = """
 
         .. raw:: html
 
-            <iframe class="sg_report" sandbox="allow-scripts" src="{0}"></iframe>
+            <iframe class="sg_report" sandbox="allow-scripts allow-modals" src="{0}"></iframe>
 
 """  # noqa: E501
 # Adapted from fa-file-code
