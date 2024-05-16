@@ -67,7 +67,9 @@ echo "joblib"
 pip install $STD_ARGS git+https://github.com/joblib/joblib
 
 echo "edfio"
-pip install $STD_ARGS git+https://github.com/the-siesta-group/edfio
+# Disable protection for Azure, see
+# https://github.com/mne-tools/mne-python/pull/12609#issuecomment-2115639369
+GIT_CLONE_PROTECTION_ACTIVE=false pip install $STD_ARGS git+https://github.com/the-siesta-group/edfio
 
 if [[ "${PLATFORM}" == "Linux" ]]; then
 	echo "h5io"
