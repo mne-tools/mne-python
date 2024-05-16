@@ -69,4 +69,9 @@ span.collapse-uncollapse-caret {
   text-decoration: underline;
   text-decoration-style: dashed;
   cursor: pointer;
+  color: #0d6efd
+}
+
+.channel-names-btn:hover {
+  color: #0a58ca
 }
