@@ -332,7 +332,6 @@ def _find_clusters(
     partitions=None,
     t_power=1,
     show_info=False,
-    clusters_out=True,
 ):
     """Find all clusters which are above/below a certain threshold.
 
@@ -374,14 +373,12 @@ def _find_clusters(
     show_info : bool
         If True, display information about thresholds used (for TFCE). Should
         only be done for the standard permutation.
-    clusters_out : bool
-        If True, clusters are returned, otherwise None is returned instead
 
     Returns
     -------
     clusters : list of slices or list of arrays (boolean masks)
         We use slices for 1D signals and mask to multidimensional
-        arrays. None is returned if clusters_out is False
+        arrays. None is returned if threshold is a dict (TFCE)
     sums : array
         Sum of x values in clusters.
     """
@@ -491,18 +488,7 @@ def _find_clusters(
     sums = np.concatenate(sums) if sums else np.array([])
     if tfce:
         sums = scores
-    if tfce and clusters_out:
-        # each point gets treated independently
-        clusters = range(x.size)
-        if (adjacency is None or adjacency is False) and (x.ndim == 1):
-            # slices
-            clusters = [slice(c, c + 1) for c in clusters]
-        else:
-            # indices (lower memory usage than boolean mask for TFCE)
-            clusters = [np.array([c]) for c in clusters]
-    elif not clusters_out:
-        # This can strongly reduce TFCE computation time
-        clusters = None
+        clusters = None  # clusters construction is made in _permutation_cluster_test
 
     return clusters, sums
 
@@ -577,11 +563,16 @@ def _find_clusters_1dir(x, x_in, adjacency, max_step, t_power, ndimage):
     return clusters, np.atleast_1d(sums)
 
 
-def _cluster_indices_to_mask(components, n_tot):
-    """Convert to the old format of clusters, which were bool arrays."""
+def _cluster_indices_to_mask(components, n_tot, slice_out):
+    """Convert to the old format of clusters, which were bool arrays (or slices in 1D)."""  # noqa: E501
     for ci, c in enumerate(components):
-        components[ci] = np.zeros((n_tot), dtype=bool)
-        components[ci][c] = True
+        if not slice_out:
+            # boolean array
+            components[ci] = np.zeros((n_tot), dtype=bool)
+            components[ci][c] = True
+        else:
+            # slice (similar as ndimage.find_object output)
+            components[ci] = (slice(c.min(), c.max() + 1),)
     return components
 
 
@@ -717,7 +708,6 @@ def _do_permutations(
             partitions=partitions,
             include=include,
             t_power=t_power,
-            clusters_out=False,
         )
         perm_clusters_sums = out[1]
 
@@ -806,7 +796,6 @@ def _do_1samp_permutations(
             partitions=partitions,
             include=include,
             t_power=t_power,
-            clusters_out=False,
         )
         perm_clusters_sums = out[1]
         if len(perm_clusters_sums) > 0:
@@ -1016,17 +1005,20 @@ def _permutation_cluster_test(
     t_obs.shape = sample_shape
 
     # For TFCE, return the "adjusted" statistic instead of raw scores
+    # and for clusters, each point gets treated independently
     tfce = isinstance(threshold, dict)
     if tfce:
         t_obs = cluster_stats.reshape(t_obs.shape) * np.sign(t_obs)
+        clusters = [np.array([c]) for c in range(t_obs.size)]
 
     logger.info(f"Found {len(clusters)} cluster{_pl(clusters)}")
 
     # convert clusters to old format
-    if (adjacency is not None and adjacency is not False) or (tfce and t_obs.ndim > 1):
+    if (adjacency is not None and adjacency is not False) or tfce:
         # our algorithms output lists of indices by default
         if out_type == "mask":
-            clusters = _cluster_indices_to_mask(clusters, n_tests)
+            slice_out = (adjacency is None) & (len(sample_shape) == 1)
+            clusters = _cluster_indices_to_mask(clusters, n_tests, slice_out)
     else:
         # ndimage outputs slices or boolean masks by default,
         if out_type == "indices":
