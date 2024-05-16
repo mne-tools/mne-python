@@ -641,7 +641,7 @@ for i_win, win in enumerate(window_lengths):
     ].mean(axis=1)
 
 fig, ax = plt.subplots(1)
-ax.boxplot(window_snrs, tick_labels=window_lengths, orientation="vertical")
+ax.boxplot(window_snrs, tick_labels=window_lengths, vert=True)
 ax.set(
     title="Effect of trial duration on 12 Hz SNR",
     ylabel="Average SNR",
