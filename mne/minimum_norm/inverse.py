@@ -1764,7 +1764,7 @@ def _prepare_forward(
         exp = float(exp)
         if exp < 0:
             raise ValueError(
-                "depth exponent should be greater than or " f"equal to 0, got {exp}"
+                f"depth exponent should be greater than or equal to 0, got {exp}"
             )
         exp = exp or None  # alias 0. -> None
 

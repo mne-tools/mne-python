@@ -1905,7 +1905,7 @@ class Coregistration:
     def _log_dig_mri_distance(self, prefix):
         errs_nearest = self.compute_dig_mri_distances()
         logger.info(
-            f"{prefix} median distance: " f"{np.median(errs_nearest * 1000):6.2f} mm"
+            f"{prefix} median distance: {np.median(errs_nearest * 1000):6.2f} mm"
         )
 
     @property

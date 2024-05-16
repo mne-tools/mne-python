@@ -109,7 +109,7 @@ def _read_evoked_besa_avr(fname, verbose):
         fields["DI"] = float(fields["DI"])
     else:
         raise RuntimeError(
-            'No "DI" field present. Could not determine ' "sampling frequency."
+            'No "DI" field present. Could not determine sampling frequency.'
         )
     if "TSB" in fields:
         fields["TSB"] = float(fields["TSB"])

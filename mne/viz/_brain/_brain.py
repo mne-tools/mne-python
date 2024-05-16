@@ -351,7 +351,7 @@ class Brain:
         size = tuple(np.atleast_1d(size).round(0).astype(int).flat)
         if len(size) not in (1, 2):
             raise ValueError(
-                '"size" parameter must be an int or length-2 ' "sequence of ints."
+                '"size" parameter must be an int or length-2 sequence of ints.'
             )
         size = size if len(size) == 2 else size * 2  # 1-tuple to 2-tuple
         subjects_dir = get_subjects_dir(subjects_dir)
@@ -1768,16 +1768,14 @@ class Brain:
     ):
         """Display data from a numpy array on the surface or volume.
 
-        This provides a similar interface to
-        :meth:`surfer.Brain.add_overlay`, but it displays
+        This provides a similar interface to PySurfer, but it displays
         it with a single colormap. It offers more flexibility over the
         colormap, and provides a way to display four-dimensional data
         (i.e., a timecourse) or five-dimensional data (i.e., a
         vector-valued timecourse).
 
         .. note:: ``fmin`` sets the low end of the colormap, and is separate
-                  from thresh (this is a different convention from
-                  :meth:`surfer.Brain.add_overlay`).
+                  from thresh (this is a different convention from PySurfer).
 
         Parameters
         ----------
@@ -1864,7 +1862,7 @@ class Brain:
             time_label_size = float(time_label_size)
             if time_label_size < 0:
                 raise ValueError(
-                    "time_label_size must be positive, got " f"{time_label_size}"
+                    f"time_label_size must be positive, got {time_label_size}"
                 )
 
         hemi = self._check_hemi(hemi, extras=["vol"])
@@ -2362,7 +2360,7 @@ class Brain:
         if scale is None:
             scale = 1.5 if self._units == "mm" else 1.5e-3
         error_msg = (
-            "Unexpected forward model coordinate frame " '{}, must be "head" or "mri"'
+            'Unexpected forward model coordinate frame {}, must be "head" or "mri"'
         )
         if fwd["coord_frame"] in _frame_to_str:
             fwd_frame = _frame_to_str[fwd["coord_frame"]]
