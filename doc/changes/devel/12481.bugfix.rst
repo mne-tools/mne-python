@@ -1,1 +1,0 @@
-- Fix reading segmented recordings with :func:`mne.io.read_raw_eyelink` by `Dominik Welke`_.

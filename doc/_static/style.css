@@ -308,7 +308,7 @@ div#contributor-avatars div.card img {
     border-radius: unset;
 }
 div#contributor-avatars div.card img {
-    width: 3em;
+    width: 2.5em;
 }
 .contributor-avatar {
     clip-path: circle(closest-side);
@@ -352,4 +352,12 @@ td.justify {
 div.sphx-glr-animation video {
     max-width: 100%;
     height: auto;
+}
+
+/* fix sidebar scrollbars */
+.sidebar-primary-items__end {
+    margin-bottom: 0 !important;
+    margin-top: 0 !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
 }

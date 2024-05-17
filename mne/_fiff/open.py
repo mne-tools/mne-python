@@ -93,12 +93,13 @@ def _get_next_fname(fid, fname, tree):
                 if idx2 < 0 and next_num == 1:
                     # this is the first file, which may not be numbered
                     next_fname = op.join(
-                        path, "%s-%d.%s" % (base[:idx], next_num, base[idx + 1 :])
+                        path,
+                        f"{base[:idx]}-{next_num:d}.{base[idx + 1 :]}",
                     )
                     continue
 
                 next_fname = op.join(
-                    path, "%s-%d.%s" % (base[:idx2], next_num, base[idx + 1 :])
+                    path, f"{base[:idx2]}-{next_num:d}.{base[idx + 1 :]}"
                 )
         if next_fname is not None:
             break
@@ -164,7 +165,7 @@ def _fiff_open(fname, fid, preload):
         raise ValueError(f"{prefix} have a directory pointer")
 
     #   Read or create the directory tree
-    logger.debug("    Creating tag directory for %s..." % fname)
+    logger.debug(f"    Creating tag directory for {fname}...")
 
     dirpos = int(tag.data.item())
     read_slow = True

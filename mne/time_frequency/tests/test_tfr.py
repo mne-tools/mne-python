@@ -733,19 +733,6 @@ def test_epochstfr_init_errors(epochs_tfr):
         EpochsTFR(inst=state | dict(freqs=epochs_tfr.freqs[:-1]))
 
 
-@pytest.mark.parametrize("inst", ("epochs_tfr", "average_tfr"))
-def test_tfr_init_deprecation(inst, average_tfr, request):
-    """Check for the deprecation warning message (not needed for RawTFR, it's new)."""
-    tfr = _get_inst(inst, request, average_tfr=average_tfr)
-    kwargs = dict(info=tfr.info, data=tfr.data, times=tfr.times, freqs=tfr.freqs)
-    Klass = tfr.__class__
-    with pytest.warns(FutureWarning, match='"info", "data", "times" are deprecat'):
-        Klass(**kwargs)
-    with pytest.raises(ValueError, match="Do not pass `inst` alongside deprecated"):
-        with pytest.warns(FutureWarning, match='"info", "data", "times" are deprecat'):
-            Klass(**kwargs, inst="foo")
-
-
 @pytest.mark.parametrize(
     "method,freqs,match",
     (

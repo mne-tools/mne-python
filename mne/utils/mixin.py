@@ -69,7 +69,7 @@ class SizeMixin:
             _check_preload(self, "Hashing ")
             return object_hash(dict(info=self.info, data=self._data))
         else:
-            raise RuntimeError("Hashing unknown object type: %s" % type(self))
+            raise RuntimeError(f"Hashing unknown object type: {type(self)}")
 
 
 class GetEpochsMixin:
@@ -465,7 +465,7 @@ def _check_decim(info, decim, offset, check_filter=True):
     offset = int(offset)
     if not 0 <= offset < decim:
         raise ValueError(
-            f"decim must be at least 0 and less than {decim}, " f"got {offset}"
+            f"decim must be at least 0 and less than {decim}, got {offset}"
         )
     if check_filter:
         lowpass = info["lowpass"]

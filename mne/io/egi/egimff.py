@@ -462,7 +462,7 @@ class RawMff(BaseRaw):
                 need_dir=True,
             )
         )
-        logger.info("Reading EGI MFF Header from %s..." % input_fname)
+        logger.info(f"Reading EGI MFF Header from {input_fname}...")
         egi_info = _read_header(input_fname)
         if eog is None:
             eog = []
@@ -487,7 +487,7 @@ class RawMff(BaseRaw):
                             more_excludes.append(ii)
                 if len(exclude_inds) + len(more_excludes) == len(event_codes):
                     warn(
-                        "Did not find any event code with more than one " "event.",
+                        "Did not find any event code with more than one event.",
                         RuntimeWarning,
                     )
                 else:
@@ -508,12 +508,12 @@ class RawMff(BaseRaw):
                         if k not in event_codes:
                             raise ValueError(f"Could not find event named {repr(k)}")
                 elif v is not None:
-                    raise ValueError("`%s` must be None or of type list" % kk)
+                    raise ValueError(f"`{kk}` must be None or of type list")
             logger.info('    Synthesizing trigger channel "STI 014" ...')
-            logger.info(
-                "    Excluding events {%s} ..."
-                % ", ".join([k for i, k in enumerate(event_codes) if i not in include_])
+            excl_events = ", ".join(
+                k for i, k in enumerate(event_codes) if i not in include_
             )
+            logger.info(f"    Excluding events {{{excl_events}}} ...")
             if all(ch.startswith("D") for ch in include_names):
                 # support the DIN format DIN1, DIN2, ..., DIN9, DI10, DI11, ... DI99,
                 # D100, D101, ..., D255 that we get when sending 0-255 triggers on a
@@ -615,7 +615,7 @@ class RawMff(BaseRaw):
             np.concatenate([idx[key] for key in keys]), np.arange(len(chs))
         ):
             raise ValueError(
-                "Currently interlacing EEG and PNS channels" "is not supported"
+                "Currently interlacing EEG and PNS channels is not supported"
             )
         egi_info["kind_bounds"] = [0]
         for key in keys:

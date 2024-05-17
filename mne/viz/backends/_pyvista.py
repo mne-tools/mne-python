@@ -19,6 +19,9 @@ from contextlib import contextmanager
 from inspect import signature
 
 import numpy as np
+import pyvista
+from pyvista import Line, Plotter, PolyData, UnstructuredGrid, close_all
+from pyvistaqt import BackgroundPlotter
 
 from ...fixes import _compare_version
 from ...transforms import _cart_to_sph, _sph_to_cart, apply_trans
@@ -36,16 +39,10 @@ from ._utils import (
     _init_mne_qtapp,
 )
 
-with warnings.catch_warnings():
-    warnings.filterwarnings("ignore", category=DeprecationWarning)
-    import pyvista
-    from pyvista import Line, Plotter, PolyData, UnstructuredGrid, close_all
-    from pyvistaqt import BackgroundPlotter
-
-    try:
-        from pyvista.plotting.plotter import _ALL_PLOTTERS
-    except Exception:  # PV < 0.40
-        from pyvista.plotting.plotting import _ALL_PLOTTERS
+try:
+    from pyvista.plotting.plotter import _ALL_PLOTTERS
+except Exception:  # PV < 0.40
+    from pyvista.plotting.plotting import _ALL_PLOTTERS
 
 from vtkmodules.util.numpy_support import numpy_to_vtk
 from vtkmodules.vtkCommonCore import VTK_UNSIGNED_CHAR, vtkCommand, vtkLookupTable
@@ -619,6 +616,7 @@ class _PyVistaRenderer(_AbstractRenderer):
         scale,
         mode,
         resolution=8,
+        *,
         glyph_height=None,
         glyph_center=None,
         glyph_resolution=None,
@@ -627,13 +625,8 @@ class _PyVistaRenderer(_AbstractRenderer):
         scalars=None,
         colormap=None,
         backface_culling=False,
-        line_width=2.0,
-        name=None,
-        glyph_width=None,
-        glyph_depth=None,
         glyph_radius=0.15,
         solid_transform=None,
-        *,
         clim=None,
     ):
         _check_option("mode", mode, ALLOWED_QUIVER_MODES)
@@ -1274,12 +1267,12 @@ def _arrow_glyph(grid, factor):
 
 def _glyph(
     dataset,
+    *,
     scale_mode="scalar",
     orient=True,
     scalars=True,
     factor=1.0,
     geom=None,
-    tolerance=0.0,
     absolute=False,
     clamping=False,
     rng=None,

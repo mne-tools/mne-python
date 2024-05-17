@@ -60,7 +60,6 @@ from ..utils import (
     _safe_input,
     _validate_type,
     _verbose_safe_false,
-    check_version,
     fill_doc,
     get_subjects_dir,
     logger,
@@ -422,12 +421,10 @@ def _fig_to_img(fig, *, image_format="png", own_figure=True):
     # https://pillow.readthedocs.io/en/stable/handbook/image-file-formats.html
     mpl_kwargs = dict()
     pil_kwargs = dict()
-    has_pillow = check_version("PIL")
-    if has_pillow:
-        if image_format == "webp":
-            pil_kwargs.update(lossless=True, method=6)
-        elif image_format == "png":
-            pil_kwargs.update(optimize=True, compress_level=9)
+    if image_format == "webp":
+        pil_kwargs.update(lossless=True, method=6)
+    elif image_format == "png":
+        pil_kwargs.update(optimize=True, compress_level=9)
     if pil_kwargs:
         # matplotlib modifies the passed dict, which is a bug
         mpl_kwargs["pil_kwargs"] = pil_kwargs.copy()
@@ -438,7 +435,7 @@ def _fig_to_img(fig, *, image_format="png", own_figure=True):
         plt.close(fig)
 
     # Remove alpha
-    if image_format != "svg" and has_pillow:
+    if image_format != "svg":
         from PIL import Image
 
         output.seek(0)
@@ -455,36 +452,6 @@ def _fig_to_img(fig, *, image_format="png", own_figure=True):
         if image_format == "svg"
         else base64.b64encode(output).decode("ascii")
     )
-
-
-def _scale_mpl_figure(fig, scale):
-    """Magic scaling helper.
-
-    Keeps font size and artist sizes constant
-    0.5 : current font - 4pt
-    2.0 : current font + 4pt
-
-    This is a heuristic but it seems to work for most cases.
-    """
-    scale = float(scale)
-    fig.set_size_inches(fig.get_size_inches() * scale)
-    fig.set_dpi(fig.get_dpi() * scale)
-    import matplotlib as mpl
-
-    if scale >= 1:
-        sfactor = scale**2
-    else:
-        sfactor = -((1.0 / scale) ** 2)
-    for text in fig.findobj(mpl.text.Text):
-        fs = text.get_fontsize()
-        new_size = fs + sfactor
-        if new_size <= 0:
-            raise ValueError(
-                "could not rescale matplotlib fonts, consider " 'increasing "scale"'
-            )
-        text.set_fontsize(new_size)
-
-    fig.canvas.draw()
 
 
 def _get_bem_contour_figs_as_arrays(
@@ -665,11 +632,11 @@ def open_report(fname, **params):
         state = read_hdf5(fname, title="mnepython")
         for param in params.keys():
             if param not in state:
-                raise ValueError("The loaded report has no attribute %s" % param)
+                raise ValueError(f"The loaded report has no attribute {param}")
             if params[param] != state[param]:
                 raise ValueError(
-                    "Attribute '%s' of loaded report does not "
-                    "match the given parameter." % param
+                    f"Attribute '{param}' of loaded report does not "
+                    "match the given parameter."
                 )
         report = Report()
         report.__setstate__(state)
@@ -690,34 +657,16 @@ mne_logo = base64.b64encode(mne_logo_path.read_bytes()).decode("ascii")
 _ALLOWED_IMAGE_FORMATS = ("png", "svg", "webp")
 
 
-def _webp_supported():
-    good = check_version("matplotlib", "3.6") and check_version("PIL")
-    if good:
-        from PIL import features
-
-        good = features.check("webp")
-    return good
-
-
-def _check_scale(scale):
-    """Ensure valid scale value is passed."""
-    if np.isscalar(scale) and scale <= 0:
-        raise ValueError("scale must be positive, not %s" % scale)
-
-
 def _check_image_format(rep, image_format):
     """Ensure fmt is valid."""
     if rep is None or image_format is not None:
         allowed = list(_ALLOWED_IMAGE_FORMATS) + ["auto"]
         extra = ""
-        if not _webp_supported():
-            allowed.pop(allowed.index("webp"))
-            extra = '("webp" supported on matplotlib 3.6+ with PIL installed)'
         _check_option("image_format", image_format, allowed_values=allowed, extra=extra)
     else:
         image_format = rep.image_format
     if image_format == "auto":
-        image_format = "webp" if _webp_supported() else "png"
+        image_format = "webp"
     return image_format
 
 
@@ -743,7 +692,6 @@ class Report:
         ``'webp'`` if available and ``'png'`` otherwise).
         ``'svg'`` uses vector graphics, so fidelity is higher but can increase
         file size and browser image rendering time as well.
-        ``'webp'`` format requires matplotlib >= 3.6.
 
         .. versionadded:: 0.15
         .. versionchanged:: 1.3
@@ -1791,7 +1739,10 @@ class Report:
     def _add_ica_artifact_scores(
         self, *, ica, scores, artifact_type, image_format, section, tags, replace
     ):
-        fig = ica.plot_scores(scores=scores, title=None, show=False)
+        assert artifact_type in ("EOG", "ECG")
+        fig = ica.plot_scores(
+            scores=scores, title=None, labels=artifact_type.lower(), show=False
+        )
         _constrain_fig_resolution(fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES)
         self._add_figure(
             fig=fig,
@@ -2619,9 +2570,7 @@ class Report:
                     f"</script>"
                 )
             elif inc_fname.endswith(".css"):
-                include.append(
-                    f'<style type="text/css">\n' f"{file_content}\n" f"</style>"
-                )
+                include.append(f'<style type="text/css">\n{file_content}\n</style>')
         self.include = "".join(include)
 
     def _iterate_files(
@@ -2873,15 +2822,11 @@ class Report:
         else:
             # only warn if relevant
             if any(_endswith(fname, "cov") for fname in fnames):
-                warn("`info_fname` not provided. Cannot render " "-cov.fif(.gz) files.")
+                warn("`info_fname` not provided. Cannot render -cov.fif(.gz) files.")
             if any(_endswith(fname, "trans") for fname in fnames):
-                warn(
-                    "`info_fname` not provided. Cannot render " "-trans.fif(.gz) files."
-                )
+                warn("`info_fname` not provided. Cannot render -trans.fif(.gz) files.")
             if any(_endswith(fname, "proj") for fname in fnames):
-                warn(
-                    "`info_fname` not provided. Cannot render " "-proj.fif(.gz) files."
-                )
+                warn("`info_fname` not provided. Cannot render -proj.fif(.gz) files.")
             info, sfreq = None, None
 
         cov = None
@@ -2890,7 +2835,7 @@ class Report:
 
         # render plots in parallel; check that n_jobs <= # of files
         logger.info(
-            f"Iterating over {len(fnames)} potential files " f"(this may take some "
+            f"Iterating over {len(fnames)} potential files (this may take some "
         )
         parallel, p_fun, n_jobs = parallel_func(
             self._iterate_files, n_jobs, max_jobs=len(fnames)
@@ -3000,7 +2945,7 @@ class Report:
         if fname is None:
             if self.data_path is None:
                 self.data_path = os.getcwd()
-                warn(f"`data_path` not provided. Using {self.data_path} " f"instead")
+                warn(f"`data_path` not provided. Using {self.data_path} instead")
             fname = op.join(self.data_path, "report.html")
 
         fname = str(_check_fname(fname, overwrite=overwrite, name=fname))
@@ -3010,9 +2955,7 @@ class Report:
             self._sort(order=CONTENT_ORDER)
 
         if not overwrite and op.isfile(fname):
-            msg = (
-                f"Report already exists at location {fname}. " f"Overwrite it (y/[n])? "
-            )
+            msg = f"Report already exists at location {fname}. Overwrite it (y/[n])? "
             answer = _safe_input(msg, alt="pass overwrite=True")
             if answer.lower() == "y":
                 overwrite = True
@@ -3598,7 +3541,9 @@ class Report:
                 continue
 
             vmax[ch_type] = (
-                np.abs(evoked.copy().pick(ch_type, verbose=False).data).max()
+                np.abs(
+                    evoked.copy().pick(ch_type, exclude="bads", verbose=False).data
+                ).max()
             ) * scalings[ch_type]
             if ch_type == "grad":
                 vmin[ch_type] = 0
@@ -3719,6 +3664,17 @@ class Report:
         n_jobs,
         replace,
     ):
+        # Summary table
+        self._add_html_repr(
+            inst=evoked,
+            title="Info",
+            tags=tags,
+            section=section,
+            replace=replace,
+            div_klass="evoked",
+        )
+
+        # Joint plot
         ch_types = _get_data_ch_types(evoked)
         self._add_evoked_joint(
             evoked=evoked,
@@ -3729,6 +3685,8 @@ class Report:
             topomap_kwargs=topomap_kwargs,
             replace=replace,
         )
+
+        # Topomaps
         self._add_evoked_topomap_slider(
             evoked=evoked,
             ch_types=ch_types,
@@ -3740,6 +3698,8 @@ class Report:
             n_jobs=n_jobs,
             replace=replace,
         )
+
+        # GFP
         self._add_evoked_gfp(
             evoked=evoked,
             ch_types=ch_types,
@@ -3749,6 +3709,7 @@ class Report:
             replace=replace,
         )
 
+        # Whitened evoked
         if noise_cov is not None:
             self._add_evoked_whitened(
                 evoked=evoked,
@@ -3851,7 +3812,7 @@ class Report:
         _constrain_fig_resolution(fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES)
         duration = round(epoch_duration * len(epochs_for_psd), 1)
         caption = (
-            f"PSD calculated from {len(epochs_for_psd)} epochs " f"({duration:.1f} s)."
+            f"PSD calculated from {len(epochs_for_psd)} epochs ({duration:.1f} s)."
         )
         self._add_figure(
             fig=fig,
@@ -3962,7 +3923,7 @@ class Report:
                 assert "eeg" in ch_type
                 title_start = "ERP image"
 
-            title = f"{title_start} " f'({_handle_default("titles")[ch_type]})'
+            title = f'{title_start} ({_handle_default("titles")[ch_type]})'
 
             self._add_figure(
                 fig=fig,
@@ -4433,9 +4394,7 @@ def _df_bootstrap_table(*, df, data_id):
             continue
         elif "<tr" in html:
             # Add checkbox for row selection
-            htmls[idx] = (
-                f"{html}\n" f'<th data-field="state" data-checkbox="true"></th>'
-            )
+            htmls[idx] = f'{html}\n<th data-field="state" data-checkbox="true"></th>'
             continue
 
         col_headers = re.findall(pattern=header_pattern, string=html)
@@ -4445,7 +4404,7 @@ def _df_bootstrap_table(*, df, data_id):
             col_header = col_headers[0]
             htmls[idx] = html.replace(
                 "<th>",
-                f'<th data-field="{col_header.lower()}" ' f'data-sortable="true">',
+                f'<th data-field="{col_header.lower()}" data-sortable="true">',
             )
 
     html = "\n".join(htmls)

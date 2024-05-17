@@ -1,1 +1,0 @@
-Include date of acquisition and filter parameters in ``raw.info`` for :func:`mne.io.read_raw_neuralynx` by `Kristijan Armeni`_.

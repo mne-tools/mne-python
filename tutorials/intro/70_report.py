@@ -156,7 +156,7 @@ report.save("report_epochs.html", overwrite=True)
 # noise covariance, we can add plots evokeds that were "whitened" using this
 # covariance matrix.
 #
-# By default, this method will produce snapshots at 21 equally-spaced time
+# By default, this method will produce topographic plots at 21 equally-spaced time
 # points (or fewer, if the data contains fewer time points). We can adjust this
 # via the ``n_time_points`` parameter.
 

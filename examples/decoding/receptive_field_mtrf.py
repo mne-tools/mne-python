@@ -160,7 +160,7 @@ fig, ax = plt.subplots(layout="constrained")
 mne.viz.plot_topomap(
     mean_coefs[:, ix_plot], pos=info, axes=ax, show=False, vlim=(-max_coef, max_coef)
 )
-ax.set(title="Topomap of model coefficients\nfor delay %s" % time_plot)
+ax.set(title=f"Topomap of model coefficients\nfor delay {time_plot}")
 
 # %%
 # Create and fit a stimulus reconstruction model

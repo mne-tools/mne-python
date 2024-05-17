@@ -15,7 +15,7 @@ from scipy.sparse import issparse
 
 from ..fixes import BaseEstimator, _check_fit_params, _get_check_scoring
 from ..parallel import parallel_func
-from ..utils import verbose, warn
+from ..utils import _pl, logger, verbose, warn
 
 
 class LinearModel(BaseEstimator):
@@ -207,31 +207,47 @@ def _check_estimator(estimator, get_params=True):
 
 def _get_inverse_funcs(estimator, terminal=True):
     """Retrieve the inverse functions of an pipeline or an estimator."""
-    inverse_func = [False]
+    inverse_func = list()
+    estimators = list()
     if hasattr(estimator, "steps"):
         # if pipeline, retrieve all steps by nesting
-        inverse_func = list()
         for _, est in estimator.steps:
             inverse_func.extend(_get_inverse_funcs(est, terminal=False))
+            estimators.append(est.__class__.__name__)
     elif hasattr(estimator, "inverse_transform"):
         # if not pipeline attempt to retrieve inverse function
-        inverse_func = [estimator.inverse_transform]
+        inverse_func.append(estimator.inverse_transform)
+        estimators.append(estimator.__class__.__name__)
+    else:
+        inverse_func.append(False)
+        estimators.append("Unknown")
 
     # If terminal node, check that that the last estimator is a classifier,
     # and remove it from the transformers.
     if terminal:
         last_is_estimator = inverse_func[-1] is False
-        all_invertible = False not in inverse_func[:-1]
-        if last_is_estimator and all_invertible:
+        logger.debug(f"  Last estimator is an estimator: {last_is_estimator}")
+        non_invertible = np.where(
+            [inv_func is False for inv_func in inverse_func[:-1]]
+        )[0]
+        if last_is_estimator and len(non_invertible) == 0:
             # keep all inverse transformation and remove last estimation
+            logger.debug("  Removing inverse transformation from inverse list.")
             inverse_func = inverse_func[:-1]
         else:
+            if len(non_invertible):
+                bad = ", ".join(estimators[ni] for ni in non_invertible)
+                warn(
+                    f"Cannot inverse transform non-invertible "
+                    f"estimator{_pl(non_invertible)}: {bad}."
+                )
             inverse_func = list()
 
     return inverse_func
 
 
-def get_coef(estimator, attr="filters_", inverse_transform=False):
+@verbose
+def get_coef(estimator, attr="filters_", inverse_transform=False, *, verbose=None):
     """Retrieve the coefficients of an estimator ending with a Linear Model.
 
     This is typically useful to retrieve "spatial filters" or "spatial
@@ -247,6 +263,7 @@ def get_coef(estimator, attr="filters_", inverse_transform=False):
     inverse_transform : bool
         If True, returns the coefficients after inverse transforming them with
         the transformer steps of the estimator.
+    %(verbose)s
 
     Returns
     -------
@@ -259,6 +276,7 @@ def get_coef(estimator, attr="filters_", inverse_transform=False):
     """
     # Get the coefficients of the last estimator in case of nested pipeline
     est = estimator
+    logger.debug(f"Getting coefficients from estimator: {est.__class__.__name__}")
     while hasattr(est, "steps"):
         est = est.steps[-1][1]
 
@@ -267,7 +285,9 @@ def get_coef(estimator, attr="filters_", inverse_transform=False):
     # If SlidingEstimator, loop across estimators
     if hasattr(est, "estimators_"):
         coef = list()
-        for this_est in est.estimators_:
+        for ei, this_est in enumerate(est.estimators_):
+            if ei == 0:
+                logger.debug("  Extracting coefficients from SlidingEstimator.")
             coef.append(get_coef(this_est, attr, inverse_transform))
         coef = np.transpose(coef)
         coef = coef[np.newaxis]  # fake a sample dimension
@@ -290,9 +310,11 @@ def get_coef(estimator, attr="filters_", inverse_transform=False):
         # The inverse_transform parameter will call this method on any
         # estimator contained in the pipeline, in reverse order.
         for inverse_func in _get_inverse_funcs(estimator)[::-1]:
+            logger.debug(f"  Applying inverse transformation: {inverse_func}.")
             coef = inverse_func(coef)
 
     if squeeze_first_dim:
+        logger.debug("  Squeezing first dimension of coefficients.")
         coef = coef[0]
 
     return coef

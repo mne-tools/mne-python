@@ -600,14 +600,12 @@ def test_real(_load_forward, idx):
 
     # check whether a filters object without src_type throws expected warning
     del filters_vol["src_type"]  # emulate 0.16 behaviour to cause warning
-    with pytest.warns(
-        RuntimeWarning, match="spatial filter does not contain " "src_type"
-    ):
+    with pytest.warns(RuntimeWarning, match="spatial filter does not contain src_type"):
         apply_dics_csd(csd, filters_vol)
 
 
 @pytest.mark.filterwarnings(
-    "ignore:The use of several sensor types with the" ":RuntimeWarning"
+    "ignore:The use of several sensor types with the:RuntimeWarning"
 )
 @idx_param
 def test_apply_dics_timeseries(_load_forward, idx):

@@ -9,8 +9,7 @@ import numbers
 import numpy as np
 from scipy.stats import pearsonr
 
-from ..fixes import pinv
-from ..utils import _validate_type, fill_doc, verbose
+from ..utils import _validate_type, fill_doc, pinv, verbose
 from .base import BaseEstimator, _check_estimator, get_coef
 from .time_delaying_ridge import TimeDelayingRidge
 
@@ -382,7 +381,7 @@ class ReceptiveField(BaseEstimator):
                     y = y[:, :, np.newaxis]  # Add an outputs dim
                 elif y.ndim != 3:
                     raise ValueError(
-                        "If X has 3 dimensions, " "y must have 2 or 3 dimensions"
+                        "If X has 3 dimensions, y must have 2 or 3 dimensions"
                     )
         else:
             raise ValueError(

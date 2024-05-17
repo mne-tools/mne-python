@@ -192,7 +192,7 @@ def assert_and_remove_boundary_annot(annotations, n=1):
     if isinstance(annotations, BaseRaw):  # allow either input
         annotations = annotations.annotations
     for key in ("EDGE", "BAD"):
-        idx = np.where(annotations.description == "%s boundary" % key)[0]
+        idx = np.where(annotations.description == f"{key} boundary")[0]
         assert len(idx) == n
         annotations.delete(idx)
 
@@ -242,7 +242,7 @@ def _check_snr(actual, desired, picks, min_tol, med_tol, msg, kind="MEG"):
     # min tol
     snr = snrs.min()
     bad_count = (snrs < min_tol).sum()
-    msg = " (%s)" % msg if msg != "" else msg
+    msg = f" ({msg})" if msg != "" else msg
     assert bad_count == 0, (
         f"SNR (worst {snr:0.2f}) < {min_tol:0.2f} "
         f"for {bad_count}/{len(picks)} channels{msg}"

@@ -137,17 +137,6 @@ def pytest_configure(config):
     ignore:joblib not installed.*:RuntimeWarning
     # qdarkstyle
     ignore:.*Setting theme=.*:RuntimeWarning
-    # scikit-learn using this arg
-    ignore:.*The 'sym_pos' keyword is deprecated.*:DeprecationWarning
-    # Should be removable by 2022/07/08, SciPy savemat issue
-    ignore:.*elementwise comparison failed; returning scalar in.*:FutureWarning
-    # numba with NumPy dev
-    ignore:`np.MachAr` is deprecated.*:DeprecationWarning
-    # matplotlib 3.6 and pyvista/nilearn
-    ignore:.*cmap function will be deprecated.*:
-    # joblib hasn't updated to avoid distutils
-    ignore:.*distutils package is deprecated.*:DeprecationWarning
-    ignore:.*distutils Version classes are deprecated.*:DeprecationWarning
     # nbclient
     ignore:Passing a schema to Validator\.iter_errors is deprecated.*:
     ignore:Unclosed context <zmq.asyncio.Context.*:ResourceWarning
@@ -163,29 +152,14 @@ def pytest_configure(config):
     ignore:Implementing implicit namespace packages.*:DeprecationWarning
     ignore:Deprecated call to `pkg_resources.*:DeprecationWarning
     ignore:pkg_resources is deprecated as an API.*:DeprecationWarning
-    # h5py
-    ignore:`product` is deprecated as of NumPy.*:DeprecationWarning
-    # pandas
-    ignore:In the future `np.long`.*:FutureWarning
-    # https://github.com/joblib/joblib/issues/1454
-    ignore:.*`byte_bounds` is dep.*:DeprecationWarning
     # numpy distutils used by SciPy
     ignore:(\n|.)*numpy\.distutils` is deprecated since NumPy(\n|.)*:DeprecationWarning
     ignore:datetime\.utcfromtimestamp.*is deprecated:DeprecationWarning
     ignore:The numpy\.array_api submodule is still experimental.*:UserWarning
-    # numpy 2.0 <-> SciPy
-    ignore:numpy\.core\._multiarray_umath.*:DeprecationWarning
-    ignore:numpy\.core\.numeric is deprecated.*:DeprecationWarning
-    ignore:numpy\.core\.multiarray is deprecated.*:DeprecationWarning
-    ignore:The numpy\.fft\.helper has been made private.*:DeprecationWarning
     # tqdm (Fedora)
     ignore:.*'tqdm_asyncio' object has no attribute 'last_print_t':pytest.PytestUnraisableExceptionWarning
-    # Until mne-qt-browser > 0.5.2 is released
-    ignore:mne\.io\.pick.channel_indices_by_type is deprecated.*:
     # Windows CIs using MESA get this
     ignore:Mesa version 10\.2\.4 is too old for translucent.*:RuntimeWarning
-    # Matplotlib <-> NumPy 2.0
-    ignore:`row_stack` alias is deprecated.*:DeprecationWarning
     # Matplotlib->tz
     ignore:datetime.datetime.utcfromtimestamp.*:DeprecationWarning
     # joblib
@@ -200,6 +174,8 @@ def pytest_configure(config):
     ignore:np\.find_common_type is deprecated.*:DeprecationWarning
     # pyvista <-> NumPy 2.0
     ignore:__array_wrap__ must accept context and return_scalar arguments.*:DeprecationWarning
+    # nibabel <-> NumPy 2.0
+    ignore:__array__ implementation doesn't accept a copy.*:DeprecationWarning
     """  # noqa: E501
     for warning_line in warning_lines.split("\n"):
         warning_line = warning_line.strip()
@@ -538,7 +514,7 @@ def _check_pyqtgraph(request):
     qt_version, api = _check_qt_version(return_api=True)
     if (not qt_version) or _compare_version(qt_version, "<", "5.12"):
         pytest.skip(
-            f"Qt API {api} has version {qt_version} " f"but pyqtgraph needs >= 5.12!"
+            f"Qt API {api} has version {qt_version} but pyqtgraph needs >= 5.12!"
         )
     try:
         import mne_qt_browser  # noqa: F401
@@ -549,10 +525,10 @@ def _check_pyqtgraph(request):
         f_name = request.function.__name__
         if lower_2_0 and m_name in pre_2_0_skip_modules:
             pytest.skip(
-                f'Test-Module "{m_name}" was skipped for' f" mne-qt-browser < 0.2.0"
+                f'Test-Module "{m_name}" was skipped for mne-qt-browser < 0.2.0'
             )
         elif lower_2_0 and f_name in pre_2_0_skip_funcs:
-            pytest.skip(f'Test "{f_name}" was skipped for ' f"mne-qt-browser < 0.2.0")
+            pytest.skip(f'Test "{f_name}" was skipped for mne-qt-browser < 0.2.0')
     except Exception:
         pytest.skip("Requires mne_qt_browser")
     else:
@@ -1033,7 +1009,7 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config):
 
 def pytest_report_header(config, startdir=None):
     """Add information to the pytest run header."""
-    return f"MNE {mne.__version__} -- {str(Path(mne.__file__).parent)}"
+    return f"MNE {mne.__version__} -- {Path(mne.__file__).parent}"
 
 
 @pytest.fixture(scope="function", params=("Numba", "NumPy"))

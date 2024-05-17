@@ -28,7 +28,6 @@ from .._fiff.pick import (
     pick_info,
 )
 from ..defaults import _handle_default
-from ..fixes import _is_last_row
 from ..utils import (
     _check_ch_locs,
     _check_if_nan,
@@ -66,7 +65,6 @@ from .utils import (
     _plot_masked_image,
     _prepare_joint_axes,
     _process_times,
-    _prop_kw,
     _set_title_multiple_electrodes,
     _set_window_title,
     _setup_ax_spines,
@@ -139,9 +137,7 @@ def _line_plot_onselect(
 
     ch_types = [type_ for type_ in ch_types if type_ in ("eeg", "grad", "mag")]
     if len(ch_types) == 0:
-        raise ValueError(
-            "Interactive topomaps only allowed for EEG " "and MEG channels."
-        )
+        raise ValueError("Interactive topomaps only allowed for EEG and MEG channels.")
     if (
         "grad" in ch_types
         and len(_pair_grad_sensors(info, topomap_coords=False, raise_error=False)) < 2
@@ -338,14 +334,14 @@ def _plot_evoked(
                 axes[sel] = plt.axes()
         if not isinstance(axes, dict):
             raise ValueError(
-                "If `group_by` is a dict, `axes` must be " "a dict of axes or None."
+                "If `group_by` is a dict, `axes` must be a dict of axes or None."
             )
         _validate_if_list_of_axes(list(axes.values()))
-        remove_xlabels = any([_is_last_row(ax) for ax in axes.values()])
+        remove_xlabels = any(ax.get_subplotspec().is_last_row() for ax in axes.values())
         for sel in group_by:  # ... we loop over selections
             if sel not in axes:
                 raise ValueError(
-                    sel + " present in `group_by`, but not " "found in `axes`"
+                    sel + " present in `group_by`, but not found in `axes`"
                 )
             ax = axes[sel]
             # the unwieldy dict comp below defaults the title to the sel
@@ -385,7 +381,7 @@ def _plot_evoked(
                 draw=False,
                 spatial_colors=spatial_colors,
             )
-            if remove_xlabels and not _is_last_row(ax):
+            if remove_xlabels and not ax.get_subplotspec().is_last_row():
                 ax.set_xticklabels([])
                 ax.set_xlabel("")
         ims = [ax.images[0] for ax in axes.values()]
@@ -400,7 +396,7 @@ def _plot_evoked(
             return figs
     elif isinstance(axes, dict):
         raise ValueError(
-            "If `group_by` is not a dict, " "`axes` must not be a dict either."
+            "If `group_by` is not a dict, `axes` must not be a dict either."
         )
 
     time_unit, times = _check_time_unit(time_unit, evoked.times)
@@ -431,9 +427,7 @@ def _plot_evoked(
         if ylim is not None and not isinstance(ylim, dict):
             # The user called Evoked.plot_image() or plot_evoked_image(), the
             # clim parameters of those functions end up to be the ylim here.
-            raise ValueError(
-                "`clim` must be a dict. " "E.g. clim = dict(eeg=[-20, 20])"
-            )
+            raise ValueError("`clim` must be a dict. E.g. clim = dict(eeg=[-20, 20])")
 
     picks = _picks_to_idx(info, picks, none="all", exclude=())
     if len(picks) != len(set(picks)):
@@ -484,7 +478,7 @@ def _plot_evoked(
     _check_option("proj", proj, (True, False, "interactive", "reconstruct"))
     noise_cov = _check_cov(noise_cov, info)
     if proj == "reconstruct" and noise_cov is not None:
-        raise ValueError('Cannot use proj="reconstruct" when noise_cov is not ' "None")
+        raise ValueError('Cannot use proj="reconstruct" when noise_cov is not None')
     projector, whitened_ch_names = _setup_plot_projector(
         info, noise_cov, proj=proj is True, nave=evoked.nave
     )
@@ -670,9 +664,7 @@ def _plot_lines(
                 # we need to use "is True" here
                 _spat_col = _check_spatial_colors(info, idx, spatial_colors)
                 if _spat_col is True and not _check_ch_locs(info=info, picks=idx):
-                    warn(
-                        "Channel locations not available. Disabling spatial " "colors."
-                    )
+                    warn("Channel locations not available. Disabling spatial colors.")
                     _spat_col = selectable = False
                 if _spat_col is True and len(idx) != 1:
                     x, y, z = locs3d.T
@@ -699,9 +691,7 @@ def _plot_lines(
                 elif zorder == "unsorted":
                     z_ord = list(range(D.shape[0]))
                 elif not callable(zorder):
-                    error = (
-                        '`zorder` must be a function, "std" ' 'or "unsorted", not {0}.'
-                    )
+                    error = '`zorder` must be a function, "std" or "unsorted", not {0}.'
                     raise TypeError(error.format(type(zorder)))
                 else:
                     z_ord = zorder(D)
@@ -848,14 +838,13 @@ def _plot_lines(
             )
             blit = False if plt.get_backend() == "MacOSX" else True
             minspan = 0 if len(times) < 2 else times[1] - times[0]
-            rect_kw = _prop_kw("rect", dict(alpha=0.5, facecolor="red"))
             ax._span_selector = SpanSelector(
                 ax,
                 callback_onselect,
                 "horizontal",
                 minspan=minspan,
                 useblit=blit,
-                **rect_kw,
+                props=dict(alpha=0.5, facecolor="red"),
             )
 
 
@@ -1279,7 +1268,7 @@ def plot_evoked_topo(
     if isinstance(color, (tuple, list)):
         if len(color) != len(evoked):
             raise ValueError(
-                "Lists of evoked objects and colors" " must have the same length"
+                "Lists of evoked objects and colors must have the same length"
             )
     elif color is None:
         if dark_background:
@@ -1605,7 +1594,7 @@ def plot_evoked_white(
     )
     if has_sss:
         logger.info(
-            "SSS has been applied to data. Showing mag and grad " "whitening jointly."
+            "SSS has been applied to data. Showing mag and grad whitening jointly."
         )
 
     # get one whitened evoked per cov
@@ -1650,11 +1639,10 @@ def plot_evoked_white(
         raise ValueError(f"axes must have shape {want_shape}, got {axes.shape}.")
     fig = axes.flat[0].figure
     if n_columns > 1:
+        suptitle = noise_cov[0].get("method", "empirical")
         suptitle = (
-            'Whitened evoked (left, best estimator = "%s")\n'
-            "and global field power "
-            "(right, comparison of estimators)"
-            % noise_cov[0].get("method", "empirical")
+            f'Whitened evoked (left, best estimator = "{suptitle}")\n'
+            "and global field power (right, comparison of estimators)"
         )
         fig.suptitle(suptitle)
 
@@ -1710,7 +1698,7 @@ def plot_evoked_white(
 
             ax = ax_gfp[i]
             ax.set_title(
-                title if n_columns > 1 else 'Whitened GFP, method = "%s"' % label
+                title if n_columns > 1 else f'Whitened GFP, method = "{label}"'
             )
 
             data = evoked_white.data[sub_picks]
@@ -2537,7 +2525,7 @@ def _get_ci_function_pce(ci, do_topo=False):
 
 
 def _plot_compare_evokeds(
-    ax, data_dict, conditions, times, ci_dict, styles, title, all_positive, topo
+    ax, data_dict, conditions, times, ci_dict, styles, title, topo
 ):
     """Plot evokeds (to compare them; with CIs) based on a data_dict."""
     for condition in conditions:
@@ -3190,7 +3178,7 @@ def plot_compare_evokeds(
         # plot the data
         _times = [] if idx == -1 else times
         _plot_compare_evokeds(
-            ax, data, conditions, _times, cis, _styles, title, norm, do_topo
+            ax, data, conditions, _times, cis, _styles, title, do_topo
         )
         # draw axes & vlines
         skip_axlabel = do_topo and (idx != -1)

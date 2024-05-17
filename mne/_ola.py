@@ -103,7 +103,7 @@ class _Interp2:
         # Left zero-order hold condition
         if self._position < self.control_points[self._left_idx]:
             n_use = min(self.control_points[self._left_idx] - self._position, n_pts)
-            logger.debug("  Left ZOH %s" % n_use)
+            logger.debug(f"  Left ZOH {n_use}")
             this_sl = slice(None, n_use)
             assert used[this_sl].size == n_use
             assert not used[this_sl].any()
@@ -170,7 +170,7 @@ class _Interp2:
         if self.control_points[self._left_idx] <= self._position:
             n_use = stop - self._position
             if n_use > 0:
-                logger.debug("  Right ZOH %s" % n_use)
+                logger.debug(f"  Right ZOH {n_use}")
                 this_sl = slice(n_pts - n_use, None)
                 assert not used[this_sl].any()
                 used[this_sl] = True
@@ -293,8 +293,8 @@ class _COLA:
         del n_samples, n_overlap
         if n_total < self._n_samples:
             raise ValueError(
-                "Number of samples per window (%d) must be at "
-                "most the total number of samples (%s)" % (self._n_samples, n_total)
+                f"Number of samples per window ({self._n_samples}) must be at "
+                f"most the total number of samples ({n_total})"
             )
         if not callable(process):
             raise TypeError(f"process must be callable, got type {type(process)}")
@@ -348,16 +348,12 @@ class _COLA:
             self._in_buffers = [None] * len(datas)
         if len(datas) != len(self._in_buffers):
             raise ValueError(
-                "Got %d array(s), needed %d" % (len(datas), len(self._in_buffers))
+                f"Got {len(datas)} array(s), needed {len(self._in_buffers)}"
             )
         for di, data in enumerate(datas):
             if not isinstance(data, np.ndarray) or data.ndim < 1:
                 raise TypeError(
-                    "data entry %d must be an 2D ndarray, got %s"
-                    % (
-                        di,
-                        type(data),
-                    )
+                    f"data entry {di} must be an 2D ndarray, got {type(data)}"
                 )
             if self._in_buffers[di] is None:
                 # In practice, users can give large chunks, so we use
@@ -375,8 +371,8 @@ class _COLA:
                     f"{data.dtype} shape[:-1]={data.shape[:-1]}"
                 )
             logger.debug(
-                "    + Appending %d->%d"
-                % (self._in_offset, self._in_offset + data.shape[-1])
+                f"    + Appending {self._in_offset:d}->"
+                f"{self._in_offset + data.shape[-1]:d}"
             )
             self._in_buffers[di] = np.concatenate([self._in_buffers[di], data], -1)
             if self._in_offset > self.stops[-1]:
@@ -422,7 +418,7 @@ class _COLA:
             delta = next_start - self.starts[self._idx - 1]
             for di in range(len(self._in_buffers)):
                 self._in_buffers[di] = self._in_buffers[di][..., delta:]
-            logger.debug("    - Shifting input/output buffers by %d samples" % (delta,))
+            logger.debug(f"    - Shifting input/output buffers by {delta:d} samples")
             self._store(*[o[..., :delta] for o in self._out_buffers])
             for ob in self._out_buffers:
                 ob[..., :-delta] = ob[..., delta:]
@@ -441,9 +437,9 @@ def _check_cola(win, nperseg, step, window_name, tol=1e-10):
     deviation = np.max(np.abs(binsums - const))
     if deviation > tol:
         raise ValueError(
-            "segment length %d with step %d for %s window "
+            f"segment length {nperseg:d} with step {step:d} for {window_name} window "
             "type does not provide a constant output "
-            "(%g%% deviation)" % (nperseg, step, window_name, 100 * deviation / const)
+            f"({100 * deviation / const:g}% deviation)"
         )
     return const
 
