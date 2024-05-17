@@ -821,7 +821,7 @@ def test_scraper(tmp_path):
     assert not out_html.is_file()
     scraper.copyfiles()
     assert out_html.is_file()
-    assert rst.count('"') == 6
+    assert rst.count('"') == 8
     assert "<iframe" in rst
     assert img_fname.with_suffix(".svg").is_file()
 
