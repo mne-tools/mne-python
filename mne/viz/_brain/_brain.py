@@ -4161,7 +4161,7 @@ def _get_range(brain):
     if 1e-02 <= fmax <= 1e02:
         fscale_power = 0
     else:
-        fscale_power = int(np.log10(max(fmax, np.finfo("float32").min)))
+        fscale_power = int(np.log10(max(fmax, np.finfo("float32").smallest_normal)))
         if fscale_power < 0:
             fscale_power -= 1
     fscale = 10**-fscale_power
