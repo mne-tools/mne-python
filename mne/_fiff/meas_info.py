@@ -874,13 +874,16 @@ class ContainsMixin:
             False
 
         """
-        info = self if isinstance(self, Info) else self.info
+        # this method is not supported by Info object. An Info object inherits from a
+        # dictionary and the 'key' in Info call is present all across MNE codebase, e.g.
+        # to check for the presence of a key:
+        # >>> 'bads' in info
         if ch_type == "meg":
-            has_ch_type = _contains_ch_type(info, "mag") or _contains_ch_type(
-                info, "grad"
+            has_ch_type = _contains_ch_type(self.info, "mag") or _contains_ch_type(
+                self.info, "grad"
             )
         else:
-            has_ch_type = _contains_ch_type(info, ch_type)
+            has_ch_type = _contains_ch_type(self.info, ch_type)
         return has_ch_type
 
     @property
