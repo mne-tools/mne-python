@@ -1,1 +1,1 @@
-Fix adding channels to :class:`mne.time_frequency.EpochsTFR` objects, by `Clemens Brunner`_.
+Fix adding channels to :class:`~mne.time_frequency.EpochsTFR` objects, by `Clemens Brunner`_.
