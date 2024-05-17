@@ -562,7 +562,7 @@ with mne.open_report("report_partial.hdf5") as report:
 # =================================== =========================================
 #
 # Alternatively, the dash ``-`` in the filename may be replaced with an
-# underscore ``_`` (exceot for the ``.stc`` files).
+# underscore ``_`` (except for the ``.stc`` files).
 #
 # For our first example, we'll generate a barebones report for all the
 # :file:`.fif` files containing raw data in the sample dataset, by passing the
