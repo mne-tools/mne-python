@@ -45,7 +45,7 @@ def _get_split_size(split_size):
     if isinstance(split_size, str):
         exp = dict(MB=20, GB=30).get(split_size[-2:], None)
         if exp is None:
-            raise ValueError("split_size has to end with either" '"MB" or "GB"')
+            raise ValueError('split_size has to end with either "MB" or "GB"')
         split_size = int(float(split_size[:-2]) * 2**exp)
 
     if split_size > 2147483648:
@@ -77,7 +77,7 @@ def write_int(fid, kind, data):
     max_val = data.max() if data.size > 0 else 0
     if max_val > INT32_MAX:
         raise TypeError(
-            f"Value {max_val} exceeds maximum allowed ({INT32_MAX}) for " f"tag {kind}"
+            f"Value {max_val} exceeds maximum allowed ({INT32_MAX}) for tag {kind}"
         )
     data = data.astype(">i4").T
     _write(fid, data, kind, data_size, FIFF.FIFFT_INT, ">i4")
@@ -289,7 +289,7 @@ def start_file(fname, id_=None):
         ID to use for the FIFF_FILE_ID.
     """
     if _file_like(fname):
-        logger.debug("Writing using %s I/O" % type(fname))
+        logger.debug(f"Writing using {type(fname)} I/O")
         fid = fname
         fid.seek(0)
     else:

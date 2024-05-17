@@ -628,7 +628,7 @@ def test_read_dig_montage_using_polhemus_fastscan():
     )
 
     assert repr(montage) == (
-        "<DigMontage | " "500 extras (headshape), 5 HPIs, 3 fiducials, 10 channels>"
+        "<DigMontage | 500 extras (headshape), 5 HPIs, 3 fiducials, 10 channels>"
     )
 
     assert set([d["coord_frame"] for d in montage.dig]) == {FIFF.FIFFV_COORD_UNKNOWN}
@@ -673,7 +673,7 @@ def test_read_dig_polhemus_isotrak_hsp():
     }
     montage = read_dig_polhemus_isotrak(fname=kit_dir / "test.hsp", ch_names=None)
     assert repr(montage) == (
-        "<DigMontage | " "500 extras (headshape), 0 HPIs, 3 fiducials, 0 channels>"
+        "<DigMontage | 500 extras (headshape), 0 HPIs, 3 fiducials, 0 channels>"
     )
 
     fiducials, fid_coordframe = _get_fid_coords(montage.dig)
@@ -692,7 +692,7 @@ def test_read_dig_polhemus_isotrak_elp():
     }
     montage = read_dig_polhemus_isotrak(fname=kit_dir / "test.elp", ch_names=None)
     assert repr(montage) == (
-        "<DigMontage | " "0 extras (headshape), 5 HPIs, 3 fiducials, 0 channels>"
+        "<DigMontage | 0 extras (headshape), 5 HPIs, 3 fiducials, 0 channels>"
     )
     fiducials, fid_coordframe = _get_fid_coords(montage.dig)
 
@@ -729,7 +729,7 @@ def isotrak_eeg(tmp_path_factory):
         )
         fid.write(f"{N_ROWS} {N_COLS}\n")
         for row in content:
-            fid.write("\t".join("%0.18e" % cell for cell in row) + "\n")
+            fid.write("\t".join(f"{cell:0.18e}" for cell in row) + "\n")
 
     return str(fname)
 
@@ -750,7 +750,7 @@ def test_read_dig_polhemus_isotrak_eeg(isotrak_eeg):
 
     montage = read_dig_polhemus_isotrak(fname=isotrak_eeg, ch_names=ch_names)
     assert repr(montage) == (
-        "<DigMontage | " "0 extras (headshape), 0 HPIs, 3 fiducials, 5 channels>"
+        "<DigMontage | 0 extras (headshape), 0 HPIs, 3 fiducials, 5 channels>"
     )
 
     fiducials, fid_coordframe = _get_fid_coords(montage.dig)
@@ -829,7 +829,7 @@ def test_combining_digmontage_objects():
         + ch_pos3
     )
     assert repr(montage) == (
-        "<DigMontage | " "6 extras (headshape), 6 HPIs, 3 fiducials, 9 channels>"
+        "<DigMontage | 6 extras (headshape), 6 HPIs, 3 fiducials, 9 channels>"
     )
 
     EXPECTED_MONTAGE = make_dig_montage(
@@ -1247,7 +1247,7 @@ def test_read_dig_captrak(tmp_path):
 
     assert montage.ch_names == EXPECTED_CH_NAMES
     assert repr(montage) == (
-        "<DigMontage | " "0 extras (headshape), 0 HPIs, 3 fiducials, 66 channels>"
+        "<DigMontage | 0 extras (headshape), 0 HPIs, 3 fiducials, 66 channels>"
     )
 
     montage = transform_to_head(montage)  # transform_to_head has to be tested
@@ -1751,7 +1751,7 @@ def test_set_montage_with_missing_coordinates():
         rpa=[-1, 0, 0],
     )
 
-    with pytest.raises(ValueError, match="DigMontage is " "only a subset of info"):
+    with pytest.raises(ValueError, match="DigMontage is only a subset of info"):
         raw.set_montage(montage_in_mri)
 
     with pytest.raises(ValueError, match="Invalid value"):
@@ -1760,7 +1760,7 @@ def test_set_montage_with_missing_coordinates():
     with pytest.raises(TypeError, match="must be an instance"):
         raw.set_montage(montage_in_mri, on_missing=True)
 
-    with pytest.warns(RuntimeWarning, match="DigMontage is " "only a subset of info"):
+    with pytest.warns(RuntimeWarning, match="DigMontage is only a subset of info"):
         raw.set_montage(montage_in_mri, on_missing="warn")
 
     raw.set_montage(montage_in_mri, on_missing="ignore")
@@ -1877,7 +1877,7 @@ def test_read_dig_hpts():
     fname = io_dir / "brainvision" / "tests" / "data" / "test.hpts"
     montage = read_dig_hpts(fname)
     assert repr(montage) == (
-        "<DigMontage | " "0 extras (headshape), 5 HPIs, 3 fiducials, 34 channels>"
+        "<DigMontage | 0 extras (headshape), 5 HPIs, 3 fiducials, 34 channels>"
     )
 
 
@@ -1944,7 +1944,7 @@ def test_montage_add_fiducials():
 
     # check that adding MNI fiducials fails because we're in MRI
     with pytest.raises(
-        RuntimeError, match="Montage should be in the " '"mni_tal" coordinate frame'
+        RuntimeError, match='Montage should be in the "mni_tal" coordinate frame'
     ):
         montage.add_mni_fiducials(subjects_dir=subjects_dir)
 
@@ -1959,7 +1959,7 @@ def test_montage_add_fiducials():
     # which is the FreeSurfer RAS
     montage = make_dig_montage(ch_pos=test_ch_pos, coord_frame="mni_tal")
     with pytest.raises(
-        RuntimeError, match="Montage should be in the " '"mri" coordinate frame'
+        RuntimeError, match='Montage should be in the "mri" coordinate frame'
     ):
         montage.add_estimated_fiducials(subject=subject, subjects_dir=subjects_dir)
 

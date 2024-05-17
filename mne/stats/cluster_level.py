@@ -393,9 +393,7 @@ def _find_clusters(
                 "threshold-free cluster enhancement"
             )
         if not all(key in threshold for key in ["start", "step"]):
-            raise KeyError(
-                "threshold, if dict, must have at least " '"start" and "step"'
-            )
+            raise KeyError('threshold, if dict, must have at least "start" and "step"')
         tfce = True
         use_x = x[np.isfinite(x)]
         if use_x.size == 0:
@@ -404,9 +402,9 @@ def _find_clusters(
             )
         if tail == -1:
             if threshold["start"] > 0:
-                raise ValueError('threshold["start"] must be <= 0 for ' "tail == -1")
+                raise ValueError('threshold["start"] must be <= 0 for tail == -1')
             if threshold["step"] >= 0:
-                raise ValueError('threshold["step"] must be < 0 for ' "tail == -1")
+                raise ValueError('threshold["step"] must be < 0 for tail == -1')
             stop = np.min(use_x)
         elif tail == 1:
             stop = np.max(use_x)
@@ -556,7 +554,7 @@ def _find_clusters_1dir(x, x_in, adjacency, max_step, t_power, ndimage):
     else:
         if x.ndim > 1:
             raise Exception(
-                "Data should be 1D when using a adjacency " "to define clusters."
+                "Data should be 1D when using a adjacency to define clusters."
             )
         if isinstance(adjacency, sparse.spmatrix) or adjacency is False:
             clusters = _get_components(x_in, adjacency)
@@ -619,7 +617,7 @@ def _pval_from_histogram(T, H0, tail):
 def _setup_adjacency(adjacency, n_tests, n_times):
     if not sparse.issparse(adjacency):
         raise ValueError(
-            "If adjacency matrix is given, it must be a " "SciPy sparse matrix."
+            "If adjacency matrix is given, it must be a SciPy sparse matrix."
         )
     if adjacency.shape[0] == n_tests:  # use global algorithm
         adjacency = adjacency.tocoo()

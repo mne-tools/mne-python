@@ -541,9 +541,7 @@ def annotate_break(
         )
 
     if not annotations:
-        raise ValueError(
-            "Could not find (or generate) any annotations in " "your data."
-        )
+        raise ValueError("Could not find (or generate) any annotations in your data.")
 
     # Only keep annotations of interest and extract annotated time periods
     # Ignore case

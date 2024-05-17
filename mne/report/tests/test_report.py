@@ -285,7 +285,7 @@ def test_add_custom_js(tmp_path):
 
     report = Report()
     report.add_figure(fig=fig, title="Test section")
-    custom_js = "function hello() {\n" '  alert("Hello, report!");\n' "}"
+    custom_js = 'function hello() {\n  alert("Hello, report!");\n}'
     report.add_custom_js(js=custom_js)
 
     assert custom_js in report.include
@@ -924,6 +924,13 @@ def test_manual_report_2d(tmp_path, invisible_fig):
         )
     ica_ecg_scores = ica_eog_scores = np.array([3, 0, 0])
     ica_ecg_evoked = ica_eog_evoked = epochs_without_metadata.average()
+
+    # Normally, ICA.find_bads_*() assembles the labels_ dict; since we didn't run any
+    # of these methods, fill in some fake values manually.
+    ica.labels_ = {
+        "ecg/0/fake ECG channel": [0],
+        "eog/0/fake EOG channel": [1],
+    }
 
     r.add_raw(raw=raw, title="my raw data", tags=("raw",), psd=True, projs=False)
     r.add_raw(raw=raw, title="my raw data 2", psd=False, projs=False, butterfly=1)

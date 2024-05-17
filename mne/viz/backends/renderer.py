@@ -44,7 +44,7 @@ def _reload_backend(backend_name):
     backend = importlib.import_module(
         name=_backend_name_map[backend_name], package="mne.viz.backends"
     )
-    logger.info("Using %s 3d backend.\n" % backend_name)
+    logger.info(f"Using {backend_name} 3d backend.")
 
 
 def _get_backend():

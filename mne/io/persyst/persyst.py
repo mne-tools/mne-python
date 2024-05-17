@@ -68,7 +68,7 @@ class RawPersyst(BaseRaw):
     @verbose
     def __init__(self, fname, preload=False, verbose=None):
         fname = str(_check_fname(fname, "read", True, "fname"))
-        logger.info("Loading %s" % fname)
+        logger.info(f"Loading {fname}")
 
         # make sure filename is the Lay file
         if not fname.endswith(".lay"):
@@ -77,7 +77,7 @@ class RawPersyst(BaseRaw):
         curr_path, lay_fname = op.dirname(fname), op.basename(fname)
         if not op.exists(fname):
             raise FileNotFoundError(
-                f"The path you specified, " f'"{lay_fname}",does not exist.'
+                f'The path you specified, "{lay_fname}",does not exist.'
             )
 
         # sections and subsections currently unused
@@ -165,7 +165,7 @@ class RawPersyst(BaseRaw):
                 warn(
                     "Cannot read in the measurement date due "
                     "to incompatible format. Please set manually "
-                    "for %s " % lay_fname
+                    f"for {lay_fname} "
                 )
                 meas_date = None
             else:
@@ -222,7 +222,7 @@ class RawPersyst(BaseRaw):
             n_samples = f.tell()
             n_samples = n_samples // (dtype.itemsize * n_chs)
 
-            logger.debug(f"Loaded {n_samples} samples " f"for {n_chs} channels.")
+            logger.debug(f"Loaded {n_samples} samples for {n_chs} channels.")
 
         raw_extras = {"dtype": dtype, "n_chs": n_chs, "n_samples": n_samples}
         # create Raw object
@@ -282,7 +282,7 @@ class RawPersyst(BaseRaw):
 
         # chs * rows
         # cast as float32; more than enough precision
-        record = np.reshape(record, (n_chs, -1), "F").astype(np.float32)
+        record = np.reshape(record, (n_chs, -1), order="F").astype(np.float32)
 
         # calibrate to convert to V and handle mult
         _mult_cal_one(data, record, idx, cals, mult)
@@ -297,13 +297,13 @@ def _get_subjectinfo(patient_dict):
             birthdate = datetime.strptime(birthdate, "%m/%d/%y")
         except ValueError:
             birthdate = None
-            print("Unable to process birthdate of %s " % birthdate)
+            print(f"Unable to process birthdate of {birthdate} ")
     elif "-" in birthdate:
         try:
             birthdate = datetime.strptime(birthdate, "%d-%m-%y")
         except ValueError:
             birthdate = None
-            print("Unable to process birthdate of %s " % birthdate)
+            print(f"Unable to process birthdate of {birthdate} ")
 
     subject_info = {
         "first_name": patient_dict.get("first"),
@@ -457,9 +457,9 @@ def _process_lay_line(line, section):
         else:
             if "=" not in line:
                 raise RuntimeError(
-                    "The line %s does not conform "
+                    f"The line {line} does not conform "
                     "to the standards. Please check the "
-                    ".lay file." % line
+                    ".lay file."
                 )  # noqa
             pos = line.index("=")
             status = 2

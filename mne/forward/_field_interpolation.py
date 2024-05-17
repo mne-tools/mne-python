@@ -351,7 +351,7 @@ def _make_surface_mapping(
         raise KeyError('surf must have both "rr" and "nn"')
     if "coord_frame" not in surf:
         raise KeyError(
-            "The surface coordinate frame must be specified " 'in surf["coord_frame"]'
+            'The surface coordinate frame must be specified in surf["coord_frame"]'
         )
     _check_option("mode", mode, ["accurate", "fast"])
 

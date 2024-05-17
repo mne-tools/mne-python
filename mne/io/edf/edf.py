@@ -513,7 +513,7 @@ def _read_header(fname, exclude, infer_types, include=None, exclude_after_unique
     (edf_info, orig_units) : tuple
     """
     ext = os.path.splitext(fname)[1][1:].lower()
-    logger.info("%s file detected" % ext.upper())
+    logger.info(f"{ext.upper()} file detected")
     if ext in ("bdf", "edf"):
         return _read_edf_header(
             fname, exclude, infer_types, include, exclude_after_unique
@@ -1547,7 +1547,7 @@ def _find_exclude_idx(ch_names, exclude, include=None):
     if include:  # find other than include channels
         if exclude:
             raise ValueError(
-                "'exclude' must be empty if 'include' is assigned. " f"Got {exclude}."
+                f"'exclude' must be empty if 'include' is assigned. Got {exclude}."
             )
         if isinstance(include, str):  # regex for channel names
             indices_include = []

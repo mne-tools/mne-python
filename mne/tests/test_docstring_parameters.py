@@ -157,7 +157,7 @@ def check_parameters_match(func, *, cls=None, where):
             verbose_default = sig.parameters["verbose"].default
             if verbose_default is not None:
                 incorrect += [
-                    f"{name} : verbose default is not None, " f"got: {verbose_default}"
+                    f"{name} : verbose default is not None, got: {verbose_default}"
                 ]
     return incorrect
 
@@ -218,8 +218,8 @@ def test_tabs():
                 continue
             source = inspect.getsource(mod)
             assert "\t" not in source, (
-                '"%s" has tabs, please remove them '
-                "or add it to the ignore list" % modname
+                f'"{modname}" has tabs, please remove them '
+                "or add it to the ignore list"
             )
 
 
@@ -284,7 +284,7 @@ def test_documented():
     doc_dir = (Path(__file__).parents[2] / "doc" / "api").absolute()
     doc_file = doc_dir / "python_reference.rst"
     if not doc_file.is_file():
-        pytest.skip("Documentation file not found: %s" % doc_file)
+        pytest.skip(f"Documentation file not found: {doc_file}")
     api_files = (
         "covariance",
         "creating_from_arrays",

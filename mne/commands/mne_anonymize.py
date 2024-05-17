@@ -119,7 +119,7 @@ def run():
     daysback = options.daysback
     overwrite = options.overwrite
     if not fname.endswith(".fif"):
-        raise ValueError("%s does not seem to be a .fif file." % fname)
+        raise ValueError(f"{fname} does not seem to be a .fif file.")
 
     mne_anonymize(fname, out_fname, keep_his, daysback, overwrite)
 

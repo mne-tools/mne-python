@@ -62,7 +62,7 @@ def _read_one_coil_point(fid):
             continue
         sp = sp.split(" ")
         if len(sp) != 3 or sp[0] != coord or sp[1] != "=":
-            raise RuntimeError("Bad line: %s" % one)
+            raise RuntimeError(f"Bad line: {one}")
         # We do not deal with centimeters
         p["r"][ii] = float(sp[2]) / 100.0
     return p

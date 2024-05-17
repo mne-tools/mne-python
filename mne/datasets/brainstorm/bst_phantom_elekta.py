@@ -40,7 +40,7 @@ _data_path_doc = _data_path_doc_accept.format(
     name="brainstorm", conf="MNE_DATASETS_BRAINSTORM_DATA_PATH"
 )
 _data_path_doc = _data_path_doc.replace(
-    "brainstorm dataset", "brainstorm (bst_phantom_elekta) " "dataset"
+    "brainstorm dataset", "brainstorm (bst_phantom_elekta) dataset"
 )
 data_path.__doc__ = _data_path_doc
 

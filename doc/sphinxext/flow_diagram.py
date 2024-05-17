@@ -73,8 +73,8 @@ subgraphs = (
     [
         ("T1", "flashes", "recon", "bem", "src"),
         (
-            '<Structural information<BR/><FONT POINT-SIZE="%s"><I>'
-            "Freesurfer / MNE-C</I></FONT>>" % node_small_size
+            f'<Structural information<BR/><FONT POINT-SIZE="{node_small_size}"><I>'
+            "Freesurfer / MNE-C</I></FONT>>"
         ),
     ],
 )
@@ -107,10 +107,10 @@ def generate_flow_diagram(app):
     for key, label in nodes.items():
         label = label.split("\n")
         if len(label) > 1:
-            label[0] = '<<FONT POINT-SIZE="%s">' % node_size + label[0] + "</FONT>"
+            label[0] = f'<<FONT POINT-SIZE="{node_size}">' + label[0] + "</FONT>"
             for li in range(1, len(label)):
                 label[li] = (
-                    '<FONT POINT-SIZE="%s"><I>' % node_small_size
+                    f'<FONT POINT-SIZE="{node_small_size}"><I>'
                     + label[li]
                     + "</I></FONT>"
                 )
@@ -142,7 +142,7 @@ def generate_flow_diagram(app):
 
     # Create subgraphs
     for si, subgraph in enumerate(subgraphs):
-        g.add_subgraph(subgraph[0], "cluster%s" % si, label=subgraph[1], color="black")
+        g.add_subgraph(subgraph[0], f"cluster{si}", label=subgraph[1], color="black")
 
     # Format (sub)graphs
     for gr in g.subgraphs() + [g]:

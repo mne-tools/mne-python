@@ -46,7 +46,7 @@ def run():
         type=float,
         default=None,
         dest="head_opacity",
-        help="The opacity of the head surface, in the range " "[0, 1].",
+        help="The opacity of the head surface, in the range [0, 1].",
     )
     parser.add_option(
         "--high-res-head",
@@ -73,7 +73,7 @@ def run():
         type=str,
         default=None,
         dest="interaction",
-        help='Interaction style to use, can be "trackball" or ' '"terrain".',
+        help='Interaction style to use, can be "trackball" or "terrain".',
     )
     _add_verbose_flag(parser)
 
@@ -82,7 +82,7 @@ def run():
     if options.low_res_head:
         if options.high_res_head:
             raise ValueError(
-                "Can't specify --high-res-head and " "--low-res-head at the same time."
+                "Can't specify --high-res-head and --low-res-head at the same time."
             )
         head_high_res = False
     elif options.high_res_head:

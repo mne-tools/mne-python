@@ -144,7 +144,7 @@ for ((freq_name, fmin, fmax), average), color, ax in zip(
     ax.grid(True)
     ax.set_ylabel("GFP")
     ax.annotate(
-        "%s (%d-%dHz)" % (freq_name, fmin, fmax),
+        f"{freq_name} ({fmin:d}-{fmax:d}Hz)",
         xy=(0.95, 0.8),
         horizontalalignment="right",
         xycoords="axes fraction",

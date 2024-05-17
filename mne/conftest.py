@@ -514,7 +514,7 @@ def _check_pyqtgraph(request):
     qt_version, api = _check_qt_version(return_api=True)
     if (not qt_version) or _compare_version(qt_version, "<", "5.12"):
         pytest.skip(
-            f"Qt API {api} has version {qt_version} " f"but pyqtgraph needs >= 5.12!"
+            f"Qt API {api} has version {qt_version} but pyqtgraph needs >= 5.12!"
         )
     try:
         import mne_qt_browser  # noqa: F401
@@ -525,10 +525,10 @@ def _check_pyqtgraph(request):
         f_name = request.function.__name__
         if lower_2_0 and m_name in pre_2_0_skip_modules:
             pytest.skip(
-                f'Test-Module "{m_name}" was skipped for' f" mne-qt-browser < 0.2.0"
+                f'Test-Module "{m_name}" was skipped for mne-qt-browser < 0.2.0'
             )
         elif lower_2_0 and f_name in pre_2_0_skip_funcs:
-            pytest.skip(f'Test "{f_name}" was skipped for ' f"mne-qt-browser < 0.2.0")
+            pytest.skip(f'Test "{f_name}" was skipped for mne-qt-browser < 0.2.0')
     except Exception:
         pytest.skip("Requires mne_qt_browser")
     else:
@@ -1009,7 +1009,7 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config):
 
 def pytest_report_header(config, startdir=None):
     """Add information to the pytest run header."""
-    return f"MNE {mne.__version__} -- {str(Path(mne.__file__).parent)}"
+    return f"MNE {mne.__version__} -- {Path(mne.__file__).parent}"
 
 
 @pytest.fixture(scope="function", params=("Numba", "NumPy"))
