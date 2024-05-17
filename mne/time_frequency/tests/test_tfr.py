@@ -945,20 +945,20 @@ def test_add_channels():
 
     # Test for EpochsTFR(Array)
     tfr1 = EpochsTFRArray(
-        info=mne.create_info(["EEG 001", "EEG 002"], 1000, "eeg"),
-        data=np.zeros((5, 2, 2, 3)),  # epochs, channels, freqs, times
+        info=mne.create_info(["EEG 001"], 1000, "eeg"),
+        data=np.zeros((5, 1, 2, 3)),  # epochs, channels, freqs, times
         times=[0.1, 0.2, 0.3],
         freqs=[0.1, 0.2],
     )
     tfr2 = EpochsTFRArray(
-        info=mne.create_info(["EEG 003", "EEG 004"], 1000, "eeg"),
+        info=mne.create_info(["EEG 002", "EEG 003"], 1000, "eeg"),
         data=np.zeros((5, 2, 2, 3)),  # epochs, channels, freqs, times
         times=[0.1, 0.2, 0.3],
         freqs=[0.1, 0.2],
     )
     tfr1.add_channels([tfr2])
-    assert tfr1.ch_names == ["EEG 001", "EEG 002", "EEG 003", "EEG 004"]
-    assert tfr1.data.shape == (5, 4, 2, 3)
+    assert tfr1.ch_names == ["EEG 001", "EEG 002", "EEG 003"]
+    assert tfr1.data.shape == (5, 3, 2, 3)
 
 
 def test_compute_tfr():
