@@ -12,6 +12,8 @@ table > tbody > tr.repr-element > td {
 
 table > tbody > tr.no-stripes {
   background-color: transparent;
+  --bs-table-striped-bg: transparent;
+  border-color: transparent;
 }
 
 .repr-section-header {
