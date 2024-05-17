@@ -869,8 +869,8 @@ class Brain:
         )
 
     def _configure_dock_colormap_widget(self, name):
-        fmin, fmax, fscale, fscale_power = _get_range(self)
-        rng = [fmin * fscale, fmax * fscale]
+        fmax, fscale, fscale_power = _get_range(self)
+        rng = [0, fmax * fscale]
         self._data["fscale"] = fscale
 
         layout = self._renderer._dock_add_group_box(name)
@@ -4157,16 +4157,15 @@ def _get_range(brain):
     multiplied by the scaling factor and when getting a value, this value
     should be divided by the scaling factor.
     """
-    val = np.abs(np.concatenate(list(brain._current_act_data.values())))
-    fmin, fmax = np.min(val), np.max(val)
+    fmax = brain._data["fmax"]
     if 1e-02 <= fmax <= 1e02:
         fscale_power = 0
     else:
-        fscale_power = int(np.log10(fmax))
+        fscale_power = int(np.log10(max(fmax, np.finfo("float32").min)))
         if fscale_power < 0:
             fscale_power -= 1
     fscale = 10**-fscale_power
-    return fmin, fmax, fscale, fscale_power
+    return fmax, fscale, fscale_power
 
 
 class _FakeIren:
