@@ -63,7 +63,7 @@ subjects_dir = data_path / "subjects"
 # ===================================== =========================================
 #
 # Alternatively, the dash ``-`` in the filename may be replaced with an
-# underscore ``_``.
+# underscore ``_`` (exceot for the ``.stc`` files).
 #
 # The basic process for creating an HTML report is to instantiate the
 # :class:`~mne.Report` class and then use one or more of its many methods to
