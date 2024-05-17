@@ -233,7 +233,6 @@ class ChannelsSelect(UIEvent):
     """
 
     ch_names: list[str]
-    contours: list[str]
 
 
 def _get_event_channel(fig):
