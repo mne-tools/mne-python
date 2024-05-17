@@ -38,33 +38,6 @@ sample_dir = data_path / "MEG" / "sample"
 subjects_dir = data_path / "subjects"
 
 # %%
-# Before getting started with :class:`mne.Report`, make sure the files you want
-# to render follow the filename conventions defined by MNE:
-#
-# .. cssclass:: table-bordered
-# .. rst-class:: midvalign
-#
-# =================================== =========================================
-# Data object                         Filename convention (ends with)
-# =================================== =========================================
-# `~mne.io.Raw`                       ``-raw.fif(.gz)``, ``-raw_sss.fif(.gz)``,
-#                                     ``-raw_tsss.fif(.gz)``,
-#                                     ``_meg.fif(.gz)``, ``_eeg.fif(.gz)``,
-#                                     ``_ieeg.fif(.gz)``
-# events                              ``-eve.fif(.gz)``
-# `~mne.Epochs`                       ``-epo.fif(.gz)``
-# `~mne.Evoked`                       ``-ave.fif(.gz)``
-# `~mne.Covariance`                   ``-cov.fif(.gz)``
-# `~mne.Projection`                   ``-proj.fif(.gz)``
-# `~mne.transforms.Transform`         ``-trans.fif(.gz)``
-# `~mne.Forward`                      ``-fwd.fif(.gz)``
-# `~mne.minimum_norm.InverseOperator` ``-inv.fif(.gz)``
-# `~mne.SourceEstimate`               ``-lh.stc``, ``-rh.stc``
-# =================================== =========================================
-#
-# Alternatively, the dash ``-`` in the filename may be replaced with an
-# underscore ``_`` (exceot for the ``.stc`` files).
-#
 # The basic process for creating an HTML report is to instantiate the
 # :class:`~mne.Report` class and then use one or more of its many methods to
 # add content, one element at a time.
@@ -563,6 +536,33 @@ with mne.open_report("report_partial.hdf5") as report:
 # once, without having to invoke the individual ``add_*`` methods outlined
 # above for each file. This approach, while convenient, provides less
 # flexibility with respect to content ordering, tags, titles, etc.
+#
+# Before getting started with :class:`mne.Report`, make sure the files you want
+# to render follow the filename conventions defined by MNE:
+#
+# .. cssclass:: table-bordered
+# .. rst-class:: midvalign
+#
+# =================================== =========================================
+# Data object                         Filename convention (ends with)
+# =================================== =========================================
+# `~mne.io.Raw`                       ``-raw.fif(.gz)``, ``-raw_sss.fif(.gz)``,
+#                                     ``-raw_tsss.fif(.gz)``,
+#                                     ``_meg.fif(.gz)``, ``_eeg.fif(.gz)``,
+#                                     ``_ieeg.fif(.gz)``
+# events                              ``-eve.fif(.gz)``
+# `~mne.Epochs`                       ``-epo.fif(.gz)``
+# `~mne.Evoked`                       ``-ave.fif(.gz)``
+# `~mne.Covariance`                   ``-cov.fif(.gz)``
+# `~mne.Projection`                   ``-proj.fif(.gz)``
+# `~mne.transforms.Transform`         ``-trans.fif(.gz)``
+# `~mne.Forward`                      ``-fwd.fif(.gz)``
+# `~mne.minimum_norm.InverseOperator` ``-inv.fif(.gz)``
+# `~mne.SourceEstimate`               ``-lh.stc``, ``-rh.stc``
+# =================================== =========================================
+#
+# Alternatively, the dash ``-`` in the filename may be replaced with an
+# underscore ``_`` (exceot for the ``.stc`` files).
 #
 # For our first example, we'll generate a barebones report for all the
 # :file:`.fif` files containing raw data in the sample dataset, by passing the
