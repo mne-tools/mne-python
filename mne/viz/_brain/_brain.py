@@ -4157,7 +4157,7 @@ def _get_range(brain):
     multiplied by the scaling factor and when getting a value, this value
     should be divided by the scaling factor.
     """
-    fmax = brain._data["fmax"]
+    fmax = abs(brain._data["fmax"])
     if 1e-02 <= fmax <= 1e02:
         fscale_power = 0
     else:
