@@ -10,13 +10,6 @@ table > tbody > tr.repr-element > td {
   padding-right: 1rem;
 }
 
-table > tbody > tr.no-stripes {
-  /* Remove stripes from section header rows */
-  background-color: transparent;
-  border-color: transparent;
-  --bs-table-striped-bg: transparent;
-}
-
 table > tbody > tr > td.repr-section-toggle-col {
   /* Remove background and border of the first cell in every row
      (this row is only used for the collapse / uncollapse caret)
@@ -27,7 +20,15 @@ table > tbody > tr > td.repr-section-toggle-col {
   --bs-table-accent-bg: transparent;
 }
 
-.repr-section-header {
+tr.repr-section-header {
+  /* Remove stripes from section header rows */
+  background-color: transparent;
+  border-color: transparent;
+  --bs-table-striped-bg: transparent;
+  cursor: pointer;
+}
+
+tr.repr-section-header > th {
   text-align: left;
   vertical-align: middle;
 }

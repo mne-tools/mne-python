@@ -8,20 +8,18 @@
 {% set collapsed_row_class = "" %}
 {% endif %}
 
-<tr class="no-stripes">
-    <th class="repr-section-header repr-section-toggle-col">
-        <button {% if collapsed %} class="collapsed" title="Show section" {% else %} title="Hide section" {% endif %}
-            onclick="toggleVisibility('{{ section_class_name }}', this)">
+<tr class="repr-section-header {{ section_class_name }}" {% if collapsed %} title="Show section" {% else %} title="Hide section" {% endif %}
+    onclick="toggleVisibility('{{ section_class_name }}')">
+    <th class="repr-section-toggle-col">
+        <button>
             {# This span is for the background SVG icon #}
             <span class="collapse-uncollapse-caret"></span>
         </button>
     </th>
-    </th>
-    <th class="repr-section-header" colspan="2">
+    <th colspan="2">
         <strong>{{ section }}</strong>
     </th>
 </tr>
-
 {% for channel_type, channels in (info | format_channels).items() %}
 {% set channel_names_good = channels["good"] | map(attribute='name_html') | join(', ') %}
 <tr class="repr-element {{ section_class_name }} {{ collapsed_row_class }}">
