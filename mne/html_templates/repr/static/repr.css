@@ -12,8 +12,15 @@ table > tbody > tr.repr-element > td {
 
 table > tbody > tr.no-stripes {
   background-color: transparent;
-  --bs-table-striped-bg: transparent;
   border-color: transparent;
+  --bs-table-striped-bg: transparent;
+}
+
+table > tbody > tr > td.repr-section-toggle-col {
+  /* Remove background and border of the first cell in every row
+     (this row is only used for the collapse / uncollapse caret) */
+  border-color: transparent;
+  --bs-table-accent-bg: transparent;
 }
 
 .repr-section-header {

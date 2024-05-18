@@ -22,7 +22,7 @@
 </tr>
 {% if filenames %}
 <tr class="repr-element {{ section_class_name }} {{ collapsed_row_class }}">
-    <td></td>
+    <td class="repr-section-toggle-col"></td>
     <td>Filename(s)</td>
     <td>
         {% for f in filenames %}
@@ -33,12 +33,12 @@
 </tr>
 {% endif %}
 <tr class="repr-element {{ section_class_name }} {{ collapsed_row_class }}">
-    <td></td>
+    <td class="repr-section-toggle-col"></td>
     <td>MNE object type</td>
     <td>{{ inst | data_type }}</td>
 </tr>
 <tr class="repr-element {{ section_class_name }} {{ collapsed_row_class }}">
-    <td></td>
+    <td class="repr-section-toggle-col"></td>
     <td>Measurement date</td>
     {% if info["meas_date"] is defined and info["meas_date"] is not none %}
     <td>{{ info["meas_date"] | dt_to_str }}</td>
@@ -47,7 +47,7 @@
     {% endif %}
 </tr>
 <tr class="repr-element {{ section_class_name }} {{ collapsed_row_class }}">
-    <td></td>
+    <td class="repr-section-toggle-col"></td>
     <td>Participant</td>
     {% if info["subject_info"] is defined and info["subject_info"] is not none %}
     {% if info["subject_info"]["his_id"] is defined %}
@@ -58,7 +58,7 @@
     {% endif %}
 </tr>
 <tr class="repr-element {{ section_class_name }} {{ collapsed_row_class }}">
-    <td></td>
+    <td class="repr-section-toggle-col"></td>
     <td>Experimenter</td>
     {% if info["experimenter"] is defined and info["experimenter"] is not none %}
     <td>{{ info["experimenter"] }}</td>
