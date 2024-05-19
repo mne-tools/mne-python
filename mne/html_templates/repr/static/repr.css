@@ -29,7 +29,7 @@ tr.repr-section-header {
 }
 
 tr.repr-section-header > th {
-  text-align: left;
+  text-align: left !important;
   vertical-align: middle;
 }
 
