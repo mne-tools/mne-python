@@ -352,7 +352,8 @@ def test_sklearn_compliance():
     from sklearn.linear_model import LogisticRegression
     from sklearn.utils.estimator_checks import check_estimator
 
-    sklearn.set_config(enable_metadata_routing=False)
+    if NEW_MULTICLASS_SAMPLE_WEIGHT:
+        sklearn.set_config(enable_metadata_routing=False)
     est = SlidingEstimator(LogisticRegression(), allow_2d=True)
 
     ignores = (
