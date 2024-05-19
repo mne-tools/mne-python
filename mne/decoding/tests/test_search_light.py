@@ -188,13 +188,17 @@ def test_search_light():
 
 def test_generalization_light():
     """Test GeneralizingEstimator."""
+    import sklearn
     from sklearn.linear_model import LogisticRegression
     from sklearn.metrics import roc_auc_score
     from sklearn.multiclass import OneVsRestClassifier
     from sklearn.pipeline import make_pipeline
 
     if NEW_MULTICLASS_SAMPLE_WEIGHT:
-        logreg = OneVsRestClassifier(LogisticRegression(random_state=0))
+        sklearn.set_config(enable_metadata_routing=True)
+        clf = LogisticRegression(random_state=0)
+        clf.set_fit_request(sample_weight=True)
+        logreg = OneVsRestClassifier(clf)
     else:
         logreg = LogisticRegression(
             solver="liblinear",
@@ -208,10 +212,7 @@ def test_generalization_light():
     gl = GeneralizingEstimator(logreg)
     assert_equal(repr(gl)[:23], "<GeneralizingEstimator(")
     gl.fit(X, y)
-    # TODO: Need to fix this for 1.4.2+
-    # https://scikit-learn.org/stable/metadata_routing.html
-    if not NEW_MULTICLASS_SAMPLE_WEIGHT:
-        gl.fit(X, y, sample_weight=np.ones_like(y))
+    gl.fit(X, y, sample_weight=np.ones_like(y))
 
     assert_equal(gl.__repr__()[-28:], ", fitted with 10 estimators>")
     # transforms
@@ -347,9 +348,11 @@ def test_cross_val_predict():
 def test_sklearn_compliance():
     """Test LinearModel compliance with sklearn."""
     pytest.importorskip("sklearn")
+    import sklearn
     from sklearn.linear_model import LogisticRegression
     from sklearn.utils.estimator_checks import check_estimator
 
+    sklearn.set_config(enable_metadata_routing=False)
     est = SlidingEstimator(LogisticRegression(), allow_2d=True)
 
     ignores = (
