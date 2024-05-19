@@ -33,9 +33,9 @@ tr.repr-section-header > th {
   vertical-align: middle;
 }
 
-.repr-element {
+.repr-element, tr.repr-element > td {
   opacity: 1;
-  text-align: left;
+  text-align: left !important;
 }
 
 .repr-element-faded {
