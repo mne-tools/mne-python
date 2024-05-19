@@ -14,7 +14,7 @@ from mne.decoding.search_light import GeneralizingEstimator, SlidingEstimator
 from mne.decoding.transformer import Vectorizer
 from mne.utils import _record_warnings, check_version, use_log_level
 
-pytest.importorskip("sklearn")
+sklearn = pytest.importorskip("sklearn")
 
 NEW_MULTICLASS_SAMPLE_WEIGHT = check_version("sklearn", "1.4")
 
@@ -189,13 +189,9 @@ def test_search_light():
 @pytest.fixture()
 def metadata_routing():
     """Temporarily enable metadata routing for new sklearn."""
-    import sklearn
-
     if NEW_MULTICLASS_SAMPLE_WEIGHT:
         sklearn.set_config(enable_metadata_routing=True)
-
     yield
-
     if NEW_MULTICLASS_SAMPLE_WEIGHT:
         sklearn.set_config(enable_metadata_routing=False)
 
@@ -359,7 +355,6 @@ def test_cross_val_predict():
 @pytest.mark.slowtest
 def test_sklearn_compliance():
     """Test LinearModel compliance with sklearn."""
-    pytest.importorskip("sklearn")
     from sklearn.linear_model import LogisticRegression
     from sklearn.utils.estimator_checks import check_estimator
 
