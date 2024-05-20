@@ -15,6 +15,7 @@ recwarn
 verbose_debug
 few_surfaces
 disabled_event_channels
+metadata_routing
 
 # Others
 exc_value
