@@ -9,7 +9,7 @@ This example shows how to use a custom atlas when performing source reconstructi
 We showcase on the sample dataset how to apply the Yeo atlas during source reconstruction.
 You should replace the atlas with your own atlas and your own subject.
 
-Any atlas can be used instead of Yeo, provided each region contains a single label (ie: no probabilistic atlas). 
+Any atlas can be used instead of Yeo, provided each region contains a single label (ie: no probabilistic atlas).
 
 .. warning:: This tutorial uses FSL and FreeSurfer to perform MRI coregistrations. If you use a different software, replace the coregistration function appropriately.
 """
@@ -21,18 +21,21 @@ Any atlas can be used instead of Yeo, provided each region contains a single lab
 
 # %%
 
-import mne
-import mne.datasets
-
-import nilearn.datasets
 import os
 from pathlib import Path as Path
+
+import nilearn.datasets
+
+import mne
+import mne.datasets
 
 # The atlas is in a template space. We download here as an example Yeo 2011's atlas, which is in the MNI152 1mm template space.
 # Replace this part with your atlas and the template space you used.
 
-nilearn.datasets.fetch_atlas_yeo_2011() # Download Yeo 2011
-yeo_path = Path(nilearn.datasets.get_data_dirs()[0], "yeo_2011", "Yeo_JNeurophysiol11_MNI152")
+nilearn.datasets.fetch_atlas_yeo_2011()  # Download Yeo 2011
+yeo_path = Path(
+    nilearn.datasets.get_data_dirs()[0], "yeo_2011", "Yeo_JNeurophysiol11_MNI152"
+)
 atlas_path = Path(yeo_path, "Yeo2011_7Networks_MNI152_FreeSurferConformed1mm.nii.gz")
 atlas_template_T1_path = Path(yeo_path, "FSL_MNI152_FreeSurferConformed_1mm.nii.gz")
 
@@ -48,7 +51,7 @@ assert os.path.exists(atlas_path)
 assert os.path.exists(atlas_template_T1_path)
 assert os.path.exists(T1_participant_path)
 
-#%%
+# %%
 # The first step is to put the atlas in subject space.
 # We show this step with FSL and freesurfer with linear coregistration. If your atlas is already in participant space,
 # you can skip this step. Coregistration is done in two steps: compute the atlas template to subject T1 transform and apply this transform
@@ -57,51 +60,66 @@ assert os.path.exists(T1_participant_path)
 # FSL does not know how to read .mgz, so we need to convert the T1 to nifti format
 # With FreeSurfer:
 T1_participant_nifti = str(T1_participant_path).replace("mgz", "nii.gz")
-os.system("mri_convert {} {}".format(T1_participant_path, T1_participant_nifti))
+os.system(f"mri_convert {T1_participant_path} {T1_participant_nifti}")
 
 # Compute template to subject anatomical transform
 template_to_anat_transform_path = Path(mri_path, "template_to_anat.mat")
-os.system("flirt -in {} -ref {} -out {} -omat {}".format(atlas_template_T1_path, T1_participant_nifti, Path(mri_path, "T1_atlas_coreg"), template_to_anat_transform_path))
+os.system(
+    "flirt -in {} -ref {} -out {} -omat {}".format(
+        atlas_template_T1_path,
+        T1_participant_nifti,
+        Path(mri_path, "T1_atlas_coreg"),
+        template_to_anat_transform_path,
+    )
+)
 
 # Apply the transform to the atlas
 atlas_participant = Path(mri_path, "yeo_atlas.nii.gz")
-os.system("flirt -in {} -ref {} -out {} -applyxfm -init {} -interp nearestneighbour".format(atlas_path, T1_participant_nifti, atlas_participant, template_to_anat_transform_path))
+os.system(
+    f"flirt -in {atlas_path} -ref {T1_participant_nifti} -out {atlas_participant} -applyxfm -init {template_to_anat_transform_path} -interp nearestneighbour"
+)
 
 # Convert resulting atlas from nifti to mgz
 # The filename must finish with aseg, to indicate to MNE that it is a proper atlas segmentation.
 atlas_converted = str(atlas_participant).replace(".nii.gz", "aseg.mgz")
-os.system("mri_convert {} {}".format(atlas_participant, atlas_converted))
+os.system(f"mri_convert {atlas_participant} {atlas_converted}")
 
 assert os.path.exists(T1_participant_nifti)
 assert os.path.exists(template_to_anat_transform_path)
 assert os.path.exists(atlas_participant)
 assert os.path.exists(atlas_converted)
 
-#%%
+# %%
 # With the atlas in participant space, we're still missing one ingredient.
 # We need a dictionary mapping label to region ID / value in the fMRI.
 # In FreeSurfer and atlases, these typically take the form of lookup tables.
 # You can also build the dictionary by hand.
 
 from mne._freesurfer import read_freesurfer_lut
+
 atlas_labels = read_freesurfer_lut(Path(yeo_path, "Yeo2011_7Networks_ColorLUT.txt"))[0]
 print(atlas_labels)
 
 # Drop the key corresponding to outer region
 del atlas_labels["NONE"]
 
-#%%
+# %%
 # For the purpose of source reconstruction, let's create a volumetric source estimate and source reconstruction with e.g eLORETA.
 from mne.minimum_norm import apply_inverse, make_inverse_operator
 
-vol_src = mne.setup_volume_source_space("sample", subjects_dir=subjects_mri_dir,
-                                                surface=Path(subject_mri_path, "bem", "inner_skull.surf"))
+vol_src = mne.setup_volume_source_space(
+    "sample",
+    subjects_dir=subjects_mri_dir,
+    surface=Path(subject_mri_path, "bem", "inner_skull.surf"),
+)
 
 fif_path = Path(data_path, "MEG", "sample")
 fname_trans = Path(fif_path, "sample_audvis_raw-trans.fif")
 raw_fname = Path(fif_path, "sample_audvis_filt-0-40_raw.fif")
 
-model = mne.make_bem_model(subject="sample", subjects_dir=subjects_mri_dir, ico=4, conductivity=(0.33,))  
+model = mne.make_bem_model(
+    subject="sample", subjects_dir=subjects_mri_dir, ico=4, conductivity=(0.33,)
+)
 bem_sol = mne.make_bem_solution(model)
 
 info = mne.io.read_info(raw_fname)
@@ -161,7 +179,9 @@ stc, residual = apply_inverse(
     verbose=True,
 )
 
-#%%
+# %%
 # Then, we can finally use our atlas!
-label_tcs = stc.extract_label_time_course(labels=(atlas_converted,atlas_labels),src=vol_src)
+label_tcs = stc.extract_label_time_course(
+    labels=(atlas_converted, atlas_labels), src=vol_src
+)
 label_tcs.shape
