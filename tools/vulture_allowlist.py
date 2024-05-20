@@ -29,6 +29,7 @@ f4
 set_channel_types_eyetrack
 _use_test_3d_backend
 verbose_debug
+metadata_routing
 
 # Backward compat or rarely used
 RawFIF

@@ -822,7 +822,8 @@ def test_tfce_thresholds(numba_conditional):
 @pytest.mark.parametrize("shape", ((11,), (11, 3), (11, 1, 2)))
 @pytest.mark.parametrize("out_type", ("mask", "indices"))
 @pytest.mark.parametrize("adjacency", (None, "sparse"))
-def test_output_equiv(shape, out_type, adjacency):
+@pytest.mark.parametrize("threshold", (None, dict(start=0, step=0.1)))
+def test_output_equiv(shape, out_type, adjacency, threshold):
     """Test equivalence of output types."""
     rng = np.random.RandomState(0)
     n_subjects = 10
@@ -830,14 +831,22 @@ def test_output_equiv(shape, out_type, adjacency):
     data -= data.mean(axis=0, keepdims=True)
     data[:, 2:4] += 2
     data[:, 6:9] += 2
+    tfce = isinstance(threshold, dict)
     want_mask = np.zeros(shape, int)
-    want_mask[2:4] = 1
-    want_mask[6:9] = 2
+    if not tfce:
+        want_mask[2:4] = 1
+        want_mask[6:9] = 2
+    else:
+        want_mask = np.arange(want_mask.size).reshape(shape) + 1
     if adjacency is not None:
         assert adjacency == "sparse"
         adjacency = combine_adjacency(*shape)
     clusters = permutation_cluster_1samp_test(
-        X=data, n_permutations=1, adjacency=adjacency, out_type=out_type
+        X=data,
+        n_permutations=1,
+        adjacency=adjacency,
+        out_type=out_type,
+        threshold=threshold,
     )[1]
     got_mask = np.zeros_like(want_mask)
     for n, clu in enumerate(clusters, 1):

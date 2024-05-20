@@ -4129,11 +4129,11 @@ def _get_range(brain):
     multiplied by the scaling factor and when getting a value, this value
     should be divided by the scaling factor.
     """
-    fmax = brain._data["fmax"]
+    fmax = abs(brain._data["fmax"])
     if 1e-02 <= fmax <= 1e02:
         fscale_power = 0
     else:
-        fscale_power = int(np.log10(max(fmax, np.finfo("float32").min)))
+        fscale_power = int(np.log10(max(fmax, np.finfo("float32").smallest_normal)))
         if fscale_power < 0:
             fscale_power -= 1
     fscale = 10**-fscale_power

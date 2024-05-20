@@ -14,7 +14,7 @@ from mne.decoding.search_light import GeneralizingEstimator, SlidingEstimator
 from mne.decoding.transformer import Vectorizer
 from mne.utils import _record_warnings, check_version, use_log_level
 
-pytest.importorskip("sklearn")
+sklearn = pytest.importorskip("sklearn")
 
 NEW_MULTICLASS_SAMPLE_WEIGHT = check_version("sklearn", "1.4")
 
@@ -186,7 +186,17 @@ def test_search_light():
         assert isinstance(pipe.estimators_[0], BaggingClassifier)
 
 
-def test_generalization_light():
+@pytest.fixture()
+def metadata_routing():
+    """Temporarily enable metadata routing for new sklearn."""
+    if NEW_MULTICLASS_SAMPLE_WEIGHT:
+        sklearn.set_config(enable_metadata_routing=True)
+    yield
+    if NEW_MULTICLASS_SAMPLE_WEIGHT:
+        sklearn.set_config(enable_metadata_routing=False)
+
+
+def test_generalization_light(metadata_routing):
     """Test GeneralizingEstimator."""
     from sklearn.linear_model import LogisticRegression
     from sklearn.metrics import roc_auc_score
@@ -194,7 +204,9 @@ def test_generalization_light():
     from sklearn.pipeline import make_pipeline
 
     if NEW_MULTICLASS_SAMPLE_WEIGHT:
-        logreg = OneVsRestClassifier(LogisticRegression(random_state=0))
+        clf = LogisticRegression(random_state=0)
+        clf.set_fit_request(sample_weight=True)
+        logreg = OneVsRestClassifier(clf)
     else:
         logreg = LogisticRegression(
             solver="liblinear",
@@ -208,10 +220,7 @@ def test_generalization_light():
     gl = GeneralizingEstimator(logreg)
     assert_equal(repr(gl)[:23], "<GeneralizingEstimator(")
     gl.fit(X, y)
-    # TODO: Need to fix this for 1.4.2+
-    # https://scikit-learn.org/stable/metadata_routing.html
-    if not NEW_MULTICLASS_SAMPLE_WEIGHT:
-        gl.fit(X, y, sample_weight=np.ones_like(y))
+    gl.fit(X, y, sample_weight=np.ones_like(y))
 
     assert_equal(gl.__repr__()[-28:], ", fitted with 10 estimators>")
     # transforms
@@ -346,7 +355,6 @@ def test_cross_val_predict():
 @pytest.mark.slowtest
 def test_sklearn_compliance():
     """Test LinearModel compliance with sklearn."""
-    pytest.importorskip("sklearn")
     from sklearn.linear_model import LogisticRegression
     from sklearn.utils.estimator_checks import check_estimator
 
