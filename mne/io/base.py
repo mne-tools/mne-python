@@ -19,6 +19,7 @@ from copy import deepcopy
 from dataclasses import dataclass, field
 from datetime import timedelta
 from inspect import getfullargspec
+from pathlib import Path
 
 import numpy as np
 
@@ -2095,7 +2096,7 @@ class BaseRaw(
 
     def __repr__(self):  # noqa: D105
         name = self.filenames[0]
-        name = "" if name is None else op.basename(name) + ", "
+        name = "" if name is None else Path(name).name + ", "
         size_str = str(sizeof_fmt(self._size))  # str in case it fails -> None
         size_str += f", data{'' if self.preload else ' not'} loaded"
         s = (
@@ -2105,8 +2106,8 @@ class BaseRaw(
         return f"<{self.__class__.__name__} | {s}>"
 
     @repr_html
-    def _repr_html_(self, caption=None):
-        basenames = [os.path.basename(f) for f in self._filenames if f is not None]
+    def _repr_html_(self):
+        basenames = [Path(f).name for f in self._filenames if f is not None]
 
         # https://stackoverflow.com/a/10981895
         duration = timedelta(seconds=self.times[-1])
@@ -2116,13 +2117,12 @@ class BaseRaw(
         seconds = np.ceil(seconds)  # always take full seconds
 
         duration = f"{int(hours):02d}:{int(minutes):02d}:{int(seconds):02d}"
+
         raw_template = _get_html_template("repr", "raw.html.jinja")
         return raw_template.render(
-            info_repr=self.info._repr_html_(
-                caption=caption,
-                filenames=basenames,
-                duration=duration,
-            )
+            inst=self,
+            filenames=basenames,
+            duration=duration,
         )
 
     def add_events(self, events, stim_channel=None, replace=False):

@@ -1,12 +1,29 @@
+{%include '_js_and_css.html.jinja' %}
+
 <table class="table table-hover table-striped table-sm table-responsive small">
-    <tr>
-        <th>Good channels</th>
-        <td>{{ good_channels }}</td>
+    {% for channel_type, channels in (info | format_channels).items() %}
+    {% set channel_names_good = channels["good"] | map(attribute='name_html') | join(', ') %}
+    <tr class="repr-element {{ section_class_name }} {{ collapsed_row_class }}">
+        <th>{{ channel_type }}</th>
+        <td>
+            <button class="channel-names-btn"
+                onclick="alert('Good {{ channel_type}}:\n\n{{ channel_names_good | safe }}')"
+                title="Show good channel names">
+                {{ channels["good"] | length}}
+            </button>
+
+            {% if channels["bad"] %}
+            {% set channel_names_bad = channels["bad"] | map(attribute='name_html') | join(', ') %}
+            and <button class="channel-names-btn"
+                onclick="alert('Bad {{ channel_type}}:\n\n{{ channel_names_bad | safe }}')"
+                title="Show bad channel names">
+                {{ channels["bad"] | length}} bad
+            </button>
+            {% endif %}
+        </td>
     </tr>
-    <tr>
-        <th>Bad channels</th>
-        <td>{{ bad_channels }}</td>
-    </tr>
+    {% endfor %}
+
     <tr>
         <th>Source space</th>
         <td>{{ source_space_descr }}</td>

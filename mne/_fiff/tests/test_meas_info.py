@@ -896,18 +896,17 @@ def test_repr_html():
         info["projs"] = []
     assert "Projections" not in info._repr_html_()
     info["bads"] = []
-    assert "None" in info._repr_html_()
+    assert "bad" not in info._repr_html_()
     info["bads"] = ["MEG 2443", "EEG 053"]
-    assert "MEG 2443" in info._repr_html_()
-    assert "EEG 053" in info._repr_html_()
+    assert "1 bad" in info._repr_html_()  # 1 for each channel type
 
     html = info._repr_html_()
     for ch in [  # good channel counts
-        "203 Gradiometers",
-        "102 Magnetometers",
-        "9 Stimulus",
-        "59 EEG",
-        "1 EOG",
+        "203",  # grad
+        "102",  # mag
+        "9",  # stim
+        "59",  # eeg
+        "1",  # eog
     ]:
         assert ch in html
 
