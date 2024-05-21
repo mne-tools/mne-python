@@ -87,10 +87,6 @@ bv_fif_fname = data_path / "montage" / "bv_dig_raw.fif"
 locs_montage_fname = data_path / "EEGLAB" / "test_chans.locs"
 evoked_fname = data_path / "montage" / "level2_raw-ave.fif"
 eeglab_fname = data_path / "EEGLAB" / "test_raw.set"
-bdf_fname1 = data_path / "BDF" / "test_generator_2.bdf"
-bdf_fname2 = data_path / "BDF" / "test_bdf_stim_channel.bdf"
-egi_fname1 = data_path / "EGI" / "test_egi.mff"
-cnt_fname = data_path / "CNT" / "scan41_short.cnt"
 fnirs_dname = data_path / "NIRx" / "nirscout" / "nirx_15_2_recording_w_short"
 mgh70_fname = data_path / "SSS" / "mgh70_raw.fif"
 subjects_dir = data_path / "subjects"
@@ -104,10 +100,8 @@ bv_fname = io_dir / "brainvision" / "tests" / "data" / "test.vhdr"
 fif_fname = io_dir / "tests" / "data" / "test_raw.fif"
 edf_path = io_dir / "edf" / "tests" / "data" / "test.edf"
 bdf_path = io_dir / "edf" / "tests" / "data" / "test_bdf_eeglab.mat"
-egi_fname2 = io_dir / "egi" / "tests" / "data" / "test_egi.raw"
 vhdr_path = io_dir / "brainvision" / "tests" / "data" / "test.vhdr"
 ctf_fif_fname = io_dir / "tests" / "data" / "test_ctf_comp_raw.fif"
-nicolet_fname = io_dir / "nicolet" / "tests" / "data" / "test_nicolet_raw.data"
 
 
 def _make_toy_raw(n_channels):
@@ -1108,17 +1102,6 @@ def test_egi_dig_montage(tmp_path):
     _check_roundtrip(dig_montage_in_head, fname_temp)
 
 
-def _pop_montage(dig_montage, ch_name):
-    # remove reference that was not used in old API
-    name_idx = dig_montage.ch_names.index(ch_name)
-    dig_idx = dig_montage._get_dig_names().index(ch_name)
-
-    del dig_montage.dig[dig_idx]
-    del dig_montage.ch_names[name_idx]
-    for k in range(dig_idx, len(dig_montage.dig)):
-        dig_montage.dig[k]["ident"] -= 1
-
-
 @testing.requires_testing_data
 def test_read_dig_captrak(tmp_path):
     """Test reading a captrak montage file."""
@@ -1442,21 +1425,6 @@ def _check_roundtrip(montage, fname, coord_frame="head"):
     assert_equal(repr(montage), repr(montage_read))
     assert_equal(_check_get_coord_frame(montage_read.dig), coord_frame)
     assert_dig_allclose(montage, montage_read)
-
-
-def _fake_montage(ch_names):
-    pos = np.random.RandomState(42).randn(len(ch_names), 3)
-    return make_dig_montage(ch_pos=dict(zip(ch_names, pos)), coord_frame="head")
-
-
-cnt_ignore_warns = [
-    pytest.mark.filterwarnings(
-        "ignore:.*Could not parse meas date from the header. Setting to None."
-    ),
-    pytest.mark.filterwarnings(
-        "ignore:.*Could not define the number of bytes automatically. Defaulting to 2."
-    ),
-]
 
 
 def test_digmontage_constructor_errors():
@@ -1966,7 +1934,7 @@ def test_montage_add_fiducials():
     subjects_dir = data_path / "subjects"
     subject = "sample"
     fid_fname = subjects_dir / subject / "bem" / "sample-fiducials.fif"
-    test_fids, test_coord_frame = read_fiducials(fid_fname)
+    test_fids, _ = read_fiducials(fid_fname)
     test_fids = np.array([f["r"] for f in test_fids])
 
     # create test montage and add estimated fiducials

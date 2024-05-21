@@ -55,7 +55,6 @@ from mne.viz import plot_head_positions
 base_dir = Path(__file__).parents[1] / "io" / "tests" / "data"
 ctf_fname = base_dir / "test_ctf_raw.fif"
 hp_fif_fname = base_dir / "test_chpi_raw_sss.fif"
-hp_fname = base_dir / "test_chpi_raw_hp.txt"
 raw_fname = base_dir / "test_raw.fif"
 
 data_path = testing.data_path(download=False)

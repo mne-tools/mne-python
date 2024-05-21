@@ -1183,7 +1183,6 @@ class _SphericalSurfaceWarp:
         destination += dest_center
         # 6. Compute TPS warp of matched points from smoothed surfaces
         self._warp = _TPSWarp().fit(source, destination, reg)
-        self._matched = np.array([source, destination])
         logger.info("[done]")
         return self
 

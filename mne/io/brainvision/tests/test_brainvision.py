@@ -59,9 +59,6 @@ vamp_ahdr = data_path / "Brainvision" / "test_VAmp.ahdr"
 # Test for nanovolts as unit
 vhdr_units_path = data_dir / "test_units.vhdr"
 
-# Test bad date
-vhdr_bad_date = data_dir / "test_bad_date.vhdr"
-
 eeg_bin = data_dir / "test_bin_raw.fif"
 eog = ["HL", "HR", "Vb"]
 

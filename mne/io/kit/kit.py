@@ -560,6 +560,7 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None, verbose=
         sqd["nchan"] = channel_count = int(np.fromfile(fid, INT32, 1)[0])
         comment = _read_name(fid, n=256)
         create_time, last_modified_time = np.fromfile(fid, INT32, 2)
+        del last_modified_time
         fid.seek(KIT.INT * 3, SEEK_CUR)  # reserved
         dewar_style = np.fromfile(fid, INT32, 1)[0]
         fid.seek(KIT.INT * 3, SEEK_CUR)  # spare
@@ -575,6 +576,7 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None, verbose=
         else:
             adc_range = np.fromfile(fid, FLOAT64, 1)[0]
         adc_polarity, adc_allocated, adc_stored = np.fromfile(fid, INT32, 3)
+        del adc_polarity
         system_name = system_name.replace("\x00", "")
         system_name = system_name.strip().replace("\n", "/")
         model_name = model_name.replace("\x00", "")
@@ -793,6 +795,7 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None, verbose=
                     mri_type, meg_type, mri_done, this_meg_done = np.fromfile(
                         fid, INT32, 4
                     )
+                    del mri_type, meg_type, mri_done
                     meg_done[mi] = bool(this_meg_done)
                     fid.seek(3 * KIT.DOUBLE, SEEK_CUR)  # mri_pos
                     mrk[mi] = np.fromfile(fid, FLOAT64, 3)

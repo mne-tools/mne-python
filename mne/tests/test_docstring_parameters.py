@@ -70,7 +70,6 @@ docstring_ignores = {
     "mne.fixes",
     "mne.io.meas_info.Info",
 }
-char_limit = 800  # XX eventually we should probably get this lower
 tab_ignores = [
     "mne.channels.tests.test_montage",
     "mne.io.curry.tests.test_curry",
@@ -257,7 +256,6 @@ find_tag
 get_score_funcs
 get_version
 invert_transform
-is_power2
 is_fixed_orient
 make_eeg_average_ref_proj
 make_projector

@@ -1007,7 +1007,7 @@ def csd_array_multitaper(
     n_times = len(times)
     n_fft = n_times if n_fft is None else n_fft
 
-    window_fun, eigvals, mt_adaptive = _compute_mt_params(
+    window_fun, eigvals, adaptive = _compute_mt_params(
         n_times, sfreq, bandwidth, low_bias, adaptive
     )
 

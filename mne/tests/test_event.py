@@ -45,8 +45,6 @@ fname = base_dir / "test-eve.fif"
 fname_raw = base_dir / "test_raw.fif"
 fname_gz = base_dir / "test-eve.fif.gz"
 fname_1 = base_dir / "test-1-eve.fif"
-fname_txt = base_dir / "test-eve.eve"
-fname_txt_1 = base_dir / "test-eve-1.eve"
 fname_c_annot = base_dir / "test_raw-annot.fif"
 
 # for testing Elekta averager

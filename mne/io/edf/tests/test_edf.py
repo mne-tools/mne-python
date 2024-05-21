@@ -51,8 +51,6 @@ edf_path = data_dir / "test.edf"
 duplicate_channel_labels_path = data_dir / "duplicate_channel_labels.edf"
 edf_uneven_path = data_dir / "test_uneven_samp.edf"
 bdf_eeglab_path = data_dir / "test_bdf_eeglab.mat"
-edf_eeglab_path = data_dir / "test_edf_eeglab.mat"
-edf_uneven_eeglab_path = data_dir / "test_uneven_samp.mat"
 edf_stim_channel_path = data_dir / "test_edf_stim_channel.edf"
 edf_txt_stim_channel_path = data_dir / "test_edf_stim_channel.txt"
 
