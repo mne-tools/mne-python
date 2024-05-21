@@ -1,3 +1,5 @@
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 """Linear inverse solvers based on L2 Minimum Norm Estimates (MNE)."""
 import lazy_loader as lazy
 

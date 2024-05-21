@@ -13,6 +13,8 @@ minimum-norm inverse solution. For more information, see
 :ref:`minimum_norm_estimates`.
 """
 
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 # %%
 
 import mne

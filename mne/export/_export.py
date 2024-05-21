@@ -1,6 +1,7 @@
 # Authors: MNE Developers
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import os.path as op
 
@@ -205,14 +206,14 @@ def _infer_check_export_fmt(fmt, fname, supported_formats):
             )  # default to original fmt for raising error later
         else:
             raise ValueError(
-                f"Couldn't infer format from filename {fname}" " (no extension found)"
+                f"Couldn't infer format from filename {fname} (no extension found)"
             )
 
     if fmt not in supported_formats:
         supported = []
-        for format, extensions in supported_formats.items():
+        for supp_format, extensions in supported_formats.items():
             ext_str = ", ".join(f"*.{ext}" for ext in extensions)
-            supported.append(f"{format} ({ext_str})")
+            supported.append(f"{supp_format} ({ext_str})")
 
         supported_str = ", ".join(supported)
         raise ValueError(

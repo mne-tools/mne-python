@@ -1,5 +1,7 @@
 # Authors: Guillaume Favelier <guillaume.favelier@gmail.com>
 #          Eric Larson <larson.eric.d@gmail.com>
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # NOTE: Tests in this directory must be self-contained because they are
 # executed in a separate IPython kernel.

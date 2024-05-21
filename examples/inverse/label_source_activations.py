@@ -15,6 +15,7 @@ also using a sign flip.
 #          Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 
@@ -56,7 +57,7 @@ modes = ("mean", "mean_flip", "pca_flip")
 tcs = dict()
 for mode in modes:
     tcs[mode] = stc.extract_label_time_course(label, src, mode=mode)
-print("Number of vertices : %d" % len(stc_label.data))
+print(f"Number of vertices : {len(stc_label.data)}")
 
 # %%
 # View source activations
@@ -77,7 +78,7 @@ ax.legend(loc="upper right")
 ax.set(
     xlabel="Time (ms)",
     ylabel="Source amplitude",
-    title="Activations in Label %r" % (label.name),
+    title=f"Activations in Label {label.name!r}",
     xlim=xlim,
     ylim=ylim,
 )
@@ -112,7 +113,7 @@ ax.legend(loc="upper right")
 ax.set(
     xlabel="Time (ms)",
     ylabel="Source amplitude",
-    title="Mean vector activations in Label %r" % (label.name,),
+    title=f"Mean vector activations in Label {label.name!r}",
     xlim=xlim,
     ylim=ylim,
 )

@@ -70,7 +70,7 @@ this by writing :math:`R' = R/ \lambda^2 = R \lambda^{-2}`, which yields the
 inverse operator
 
 .. math::
-   :label: inv_m
+   :name: inv_m
 
     M &= R' G^\top (G R' G^\top + C)^{-1} \\
       &= R \lambda^{-2} G^\top (G R \lambda^{-2} G^\top + C)^{-1} \\
@@ -106,12 +106,12 @@ The MNE software employs data whitening so that a 'whitened' inverse operator
 assumes the form
 
 .. math::    \tilde{M} = M C^{^1/_2} = R \tilde{G}^\top (\tilde{G} R \tilde{G}^\top + \lambda^2 I)^{-1}\ ,
-   :label: inv_m_tilde
+   :name: inv_m_tilde
 
 where
 
 .. math:: \tilde{G} = C^{-^1/_2}G
-   :label: inv_g_tilde
+   :name: inv_g_tilde
 
 is the spatially whitened gain matrix. We arrive at the whitened inverse
 operator equation :eq:`inv_m_tilde` by making the substitution for
@@ -128,7 +128,7 @@ operator equation :eq:`inv_m_tilde` by making the substitution for
 The expected current values are
 
 .. math::
-   :label: inv_j_hat_t
+   :name: inv_j_hat_t
 
     \hat{j}(t) &= Mx(t) \\
                &= M C^{^1/_2} C^{-^1/_2} x(t) \\
@@ -137,7 +137,7 @@ The expected current values are
 knowing :eq:`inv_m_tilde` and taking
 
 .. math::
-   :label: inv_tilde_x_t
+   :name: inv_tilde_x_t
 
     \tilde{x}(t) = C^{-^1/_2}x(t)
 
@@ -151,7 +151,7 @@ to raw data. To reflect the decrease of noise due to averaging, this matrix,
 C_0 / L`.
 
 .. note::
-   When EEG data are included, the gain matrix :math:`G` needs to be average referenced when computing the linear inverse operator :math:`M`. This is incorporated during creating the spatial whitening operator :math:`C^{-^1/_2}`, which includes any projectors on the data. EEG data average reference (using a projector) is mandatory for source modeling and is checked when calculating the inverse operator. 
+   When EEG data are included, the gain matrix :math:`G` needs to be average referenced when computing the linear inverse operator :math:`M`. This is incorporated during creating the spatial whitening operator :math:`C^{-^1/_2}`, which includes any projectors on the data. EEG data average reference (using a projector) is mandatory for source modeling and is checked when calculating the inverse operator.
 
 As shown above, regularization of the inverse solution is equivalent to a
 change in the variance of the current amplitudes in the Bayesian *a priori*
@@ -224,7 +224,7 @@ computational convenience we prefer to take another route, which employs the
 singular-value decomposition (SVD) of the matrix
 
 .. math::
-   :label: inv_a
+   :name: inv_a
 
     A &= \tilde{G} R^{^1/_2} \\
       &= U \Lambda V^\top
@@ -238,7 +238,7 @@ Combining the SVD from :eq:`inv_a` with the inverse equation :eq:`inv_m` it is
 easy to show that
 
 .. math::
-   :label: inv_m_tilde_svd
+   :name: inv_m_tilde_svd
 
     \tilde{M} &= R \tilde{G}^\top (\tilde{G} R \tilde{G}^\top + \lambda^2 I)^{-1} \\
               &= R^{^1/_2} A^\top (A A^\top + \lambda^2 I)^{-1} \\
@@ -253,7 +253,7 @@ where the elements of the diagonal matrix :math:`\Gamma` are simply
 .. `reginv` in our code:
 
 .. math::
-   :label: inv_gamma_k
+   :name: inv_gamma_k
 
     \gamma_k = \frac{\lambda_k}{\lambda_k^2 + \lambda^2}\ .
 
@@ -261,7 +261,7 @@ From our expected current equation :eq:`inv_j_hat_t` and our whitened
 measurement equation :eq:`inv_tilde_x_t`, if we take
 
 .. math::
-   :label: inv_w_t
+   :name: inv_w_t
 
     w(t) &= U^\top \tilde{x}(t) \\
          &= U^\top C^{-^1/_2} x(t)\ ,
@@ -269,7 +269,7 @@ measurement equation :eq:`inv_tilde_x_t`, if we take
 we can see that the expression for the expected current is just
 
 .. math::
-   :label: inv_j_hat_t_svd
+   :name: inv_j_hat_t_svd
 
     \hat{j}(t) &= R^{^1/_2} V \Gamma w(t) \\
                &= \sum_k {\bar{v_k} \gamma_k w_k(t)}\ ,
@@ -314,7 +314,7 @@ normalization factors, it's convenient to reuse our "weighted eigenleads"
 definition from equation :eq:`inv_j_hat_t` in matrix form as
 
 .. math::
-   :label: inv_eigenleads_weighted
+   :name: inv_eigenleads_weighted
 
     \bar{V} = R^{^1/_2} V\ .
 

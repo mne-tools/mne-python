@@ -18,6 +18,7 @@ and 'slowly-processed' face stimuli.
 # Authors: Denis Engemann <denis.engemann@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 
@@ -99,7 +100,7 @@ epochs = mne.Epochs(
 
 # average epochs and get an Evoked dataset.
 
-early, late = [epochs[k].average() for k in event_id]
+early, late = (epochs[k].average() for k in event_id)
 
 # %%
 # View evoked response

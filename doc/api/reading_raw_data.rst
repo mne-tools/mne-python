@@ -40,6 +40,7 @@ Reading raw data
    read_raw_nihon
    read_raw_fil
    read_raw_nsx
+   read_raw_neuralynx
 
 Base class:
 

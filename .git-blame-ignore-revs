@@ -1,3 +1,7 @@
 e81ec528a42ac687f3d961ed5cf8e25f236925b0  # black
 12395f9d9cf6ea3c72b225b62e052dd0d17d9889  # YAML indentation
 d6d2f8c6a2ed4a0b27357da9ddf8e0cd14931b59  # isort
+e7dd1588013179013a50d3f6b8e8f9ae0a185783  # ruff format
+e39995d9be6fc831c7a4a59f09b7a7c0a41ae315  # percent formatting
+940ac9553ce42c15b4c16ecd013824ca3ea7244a  # whitespace
+1c5b39ff1d99bbcb2fc0e0071a989b3f3845ff30  # ruff UP028

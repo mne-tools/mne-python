@@ -1,4 +1,5 @@
-# -*- coding: utf-8 -*-
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 r"""
 .. _tut-importing-eyetracking-data:
 

@@ -1,29 +1,24 @@
 repos:
-  - repo: https://github.com/psf/black
-    rev: 23.10.1
-    hooks:
-      - id: black
-        args: [--quiet]
-
   # Ruff mne
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.1.4
+    rev: v0.4.4
     hooks:
       - id: ruff
-        name: ruff mne
+        name: ruff lint mne
         args: ["--fix"]
         files: ^mne/
-
-  # Ruff tutorials and examples
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.1.4
-    hooks:
       - id: ruff
-        name: ruff tutorials and examples
+        name: ruff lint mne preview
+        args: ["--fix", "--preview", "--select=NPY201"]
+        files: ^mne/
+      - id: ruff
+        name: ruff lint doc, tutorials, and examples
         # D103: missing docstring in public function
         # D400: docstring first line must end with period
-        args: ["--ignore=D103,D400"]
-        files: ^tutorials/|^examples/
+        args: ["--ignore=D103,D400", "--fix"]
+        files: ^doc/|^tutorials/|^examples/
+      - id: ruff-format
+        files: ^mne/|^doc/|^tutorials/|^examples/
 
   # Codespell
   - repo: https://github.com/codespell-project/codespell
@@ -37,7 +32,7 @@ repos:
 
   # yamllint
   - repo: https://github.com/adrienverge/yamllint.git
-    rev: v1.32.0
+    rev: v1.35.1
     hooks:
       - id: yamllint
         args: [--strict, -c, .yamllint.yml]
@@ -47,7 +42,18 @@ repos:
     rev: v6.2.0
     hooks:
       - id: rstcheck
+        additional_dependencies:
+          - tomli
         files: ^doc/.*\.(rst|inc)$
-        # https://github.com/rstcheck/rstcheck/issues/199
-        # https://github.com/rstcheck/rstcheck/issues/200
-        exclude: ^doc/(help/faq|install/manual_install|install/mne_c|install/advanced|install/updating|_includes/channel_interpolation|_includes/inverse|_includes/ssp)\.rst$
+
+# The following are too slow to run on local commits, so let's only run on CIs:
+#
+#   - repo: https://github.com/pre-commit/mirrors-mypy
+#     rev: v1.9.0
+#     hooks:
+#       - id: mypy
+#
+#   - repo: https://github.com/jendrikseipp/vulture
+#     rev: 'v2.11'  # or any later Vulture version
+#     hooks:
+#       - id: vulture

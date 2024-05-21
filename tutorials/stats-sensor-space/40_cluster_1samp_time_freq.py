@@ -29,6 +29,7 @@ see also: :ref:`tut-cluster-spatiotemporal-sensor`.
 #          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 
@@ -39,7 +40,6 @@ import scipy.stats
 import mne
 from mne.datasets import sample
 from mne.stats import permutation_cluster_1samp_test
-from mne.time_frequency import tfr_morlet
 
 # %%
 # Set parameters
@@ -91,8 +91,8 @@ decim = 5
 freqs = np.arange(8, 40, 2)
 
 # run the TFR decomposition
-tfr_epochs = tfr_morlet(
-    epochs,
+tfr_epochs = epochs.compute_tfr(
+    "morlet",
     freqs,
     n_cycles=4.0,
     decim=decim,

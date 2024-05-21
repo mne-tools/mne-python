@@ -1,3 +1,5 @@
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 import itertools
 from pathlib import Path
 
@@ -27,7 +29,7 @@ from mne.rank import (
     estimate_rank,
 )
 
-base_dir = Path(__file__).parent.parent / "io" / "tests" / "data"
+base_dir = Path(__file__).parents[1] / "io" / "tests" / "data"
 cov_fname = base_dir / "test-cov.fif"
 raw_fname = base_dir / "test_raw.fif"
 ave_fname = base_dir / "test-ave.fif"
@@ -175,7 +177,7 @@ def test_cov_rank_estimation(rank_method, proj, meg):
 
             # count channel types
             ch_types = this_info.get_channel_types()
-            n_eeg, n_mag, n_grad = [ch_types.count(k) for k in ["eeg", "mag", "grad"]]
+            n_eeg, n_mag, n_grad = (ch_types.count(k) for k in ["eeg", "mag", "grad"])
             n_meg = n_mag + n_grad
             has_sss = n_meg > 0 and len(this_info["proc_history"]) > 0
             if has_sss:

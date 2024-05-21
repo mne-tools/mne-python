@@ -19,6 +19,7 @@ because the noise is less spatially correlated in MEG than EEG.
 #          Jean-Remi King <jeanremi.king@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 

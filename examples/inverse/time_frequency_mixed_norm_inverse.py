@@ -23,6 +23,7 @@ The benefit of this approach is that:
 #         Daniel Strohmeier <daniel.strohmeier@tu-ilmenau.de>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 
@@ -153,7 +154,7 @@ plot_sparse_source_estimates(
     stc,
     bgcolor=(1, 1, 1),
     opacity=0.1,
-    fig_name="TF-MxNE (cond %s)" % condition,
+    fig_name=f"TF-MxNE (cond {condition})",
     modes=["sphere"],
     scale_factors=[1.0],
 )

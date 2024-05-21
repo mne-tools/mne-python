@@ -19,12 +19,16 @@
 .. _`MNE-BIDS-Pipeline`: https://mne.tools/mne-bids-pipeline
 .. _`MNE-HCP`: http://mne.tools/mne-hcp
 .. _`MNE-Realtime`: https://mne.tools/mne-realtime
+.. _`MNE-LSL`: https://mne.tools/mne-lsl
+.. _`MNE-gui-addons`: https://mne.tools/mne-gui-addons
 .. _`MNE-MATLAB`: https://github.com/mne-tools/mne-matlab
 .. _`MNE-Docker`: https://github.com/mne-tools/mne-docker
 .. _`MNE-ICAlabel`: https://github.com/mne-tools/mne-icalabel
 .. _`MNE-Connectivity`: https://github.com/mne-tools/mne-connectivity
 .. _`MNE-NIRS`: https://github.com/mne-tools/mne-nirs
-.. _OpenMEEG: http://openmeeg.github.io
+.. _PICARD: https://pierreablin.github.io/picard/
+.. _OpenMEEG: https://openmeeg.github.io
+.. _openneuro-py: https://pypi.org/project/openneuro-py
 .. _EOSS2: https://chanzuckerberg.com/eoss/proposals/improving-usability-of-core-neuroscience-analysis-tools-with-mne-python
 .. _EOSS4: https://chanzuckerberg.com/eoss/proposals/building-pediatric-and-clinical-data-pipelines-for-mne-python/
 .. _`code of conduct`: https://github.com/mne-tools/.github/blob/main/CODE_OF_CONDUCT.md
@@ -92,6 +96,7 @@
 .. _PIL: https://pypi.python.org/pypi/PIL
 .. _tqdm: https://tqdm.github.io/
 .. _pooch: https://www.fatiando.org/pooch/latest/
+.. _towncrier: https://towncrier.readthedocs.io/
 
 .. python editors
 
@@ -104,14 +109,13 @@
 .. _anaconda: https://www.anaconda.com/products/individual
 .. _miniconda: https://conda.io/en/latest/miniconda.html
 .. _miniforge: https://github.com/conda-forge/miniforge
-.. _mambaforge: https://mamba.readthedocs.io/en/latest/mamba-installation.html#mamba-install
+.. _mambaforge: https://mamba.readthedocs.io/en/latest/installation/mamba-installation.html
 .. _installation instructions for Anaconda: http://docs.continuum.io/anaconda/install
 .. _installation instructions for Miniconda: https://conda.io/projects/conda/en/latest/user-guide/install/index.html
 .. _Anaconda troubleshooting guide: http://conda.pydata.org/docs/troubleshooting.html
 
 .. installation links
 
-.. _requirements file:  https://raw.githubusercontent.com/mne-tools/mne-python/main/requirements.txt
 .. _NVIDIA CUDA GPU processing: https://developer.nvidia.com/cuda-zone
 .. _NVIDIA proprietary drivers: https://www.geforce.com/drivers
 

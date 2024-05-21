@@ -1,6 +1,7 @@
 # Author: Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import glob
 import os
@@ -56,16 +57,14 @@ subjects_dir = data_path / "subjects"
 src_fname = subjects_dir / "sample" / "bem" / "sample-oct-6-src.fif"
 stc_fname = data_path / "MEG" / "sample" / "sample_audvis_trunc-meg-lh.stc"
 real_label_fname = data_path / "MEG" / "sample" / "labels" / "Aud-lh.label"
-real_label_rh_fname = data_path / "MEG" / "sample" / "labels" / "Aud-rh.label"
 v1_label_fname = subjects_dir / "sample" / "label" / "lh.V1.label"
 
 fwd_fname = data_path / "MEG" / "sample" / "sample_audvis_trunc-meg-eeg-oct-6-fwd.fif"
 src_bad_fname = data_path / "subjects" / "fsaverage" / "bem" / "fsaverage-ico-5-src.fif"
 label_dir = subjects_dir / "sample" / "label" / "aparc"
 
-test_path = Path(__file__).parent.parent / "io" / "tests" / "data"
+test_path = Path(__file__).parents[1] / "io" / "tests" / "data"
 label_fname = test_path / "test-lh.label"
-label_rh_fname = test_path / "test-rh.label"
 
 # This code was used to generate the "fake" test labels:
 # for hemi in ['lh', 'rh']:
@@ -181,7 +180,7 @@ def assert_labels_equal(l0, l1, decimal=5, comment=True, color=True):
     for attr in ["hemi", "subject"]:
         attr0 = getattr(l0, attr)
         attr1 = getattr(l1, attr)
-        msg = "label.%s: %r != %r" % (attr, attr0, attr1)
+        msg = f"label.{attr}: {repr(attr0)} != {repr(attr1)}"
         assert_equal(attr0, attr1, msg)
     for attr in ["vertices", "pos", "values"]:
         a0 = getattr(l0, attr)

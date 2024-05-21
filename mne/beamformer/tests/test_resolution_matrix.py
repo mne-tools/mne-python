@@ -1,6 +1,7 @@
 # Authors: Olaf Hauk <olaf.hauk@mrc-cbu.cam.ac.uk>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 """
 Test computation of resolution matrix for LCMV beamformers.
 

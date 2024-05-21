@@ -1,6 +1,7 @@
 # Authors: Denis A. Engemann <denis.engemann@gmail.com>
 #          Eric Larson <larson.eric.d@gmail.com>
-# License: Simplified BSD
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from pathlib import Path
 
@@ -10,7 +11,7 @@ from numpy.testing import assert_array_equal
 from mne._fiff.constants import FIFF
 from mne.io import read_info
 
-base_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
+base_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
 raw_fname = base_dir / "test_chpi_raw_sss.fif"
 
 

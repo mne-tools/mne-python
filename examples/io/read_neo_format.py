@@ -11,6 +11,8 @@ information on creating MNE-Python's data objects from NumPy arrays, see
 :ref:`tut-creating-data-structures`.
 """
 
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 # %%
 
 import neo

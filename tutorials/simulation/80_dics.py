@@ -16,6 +16,7 @@ simulated sources.
 # Author: Marijn van Vliet <w.m.vanvliet@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 # Setup

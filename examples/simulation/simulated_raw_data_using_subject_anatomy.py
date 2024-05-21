@@ -17,6 +17,7 @@ using dynamic statistical parametric mapping (dSPM) inverse operator.
 #         Samuel Deslauriers-Gauthier <sam.deslauriers@gmail.com>
 
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 

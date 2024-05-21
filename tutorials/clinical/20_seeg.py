@@ -21,10 +21,9 @@ fsaverage space, you must apply the FreeSurfer's talairach.xfm transform
 for your dataset. You can take a look at :ref:`tut-freesurfer-mne` for more
 information.
 
-For an example that involves ECoG data, channel locations in a
-subject-specific MRI, or projection into a surface, see
-:ref:`tut-working-with-ecog`. In the ECoG example, we show
-how to visualize surface grid channels on the brain.
+For an example that involves ECoG data, channel locations in a subject-specific MRI, or
+projection into a surface, see :ref:`tut-working-with-ecog`. In the ECoG example, we
+show how to visualize surface grid channels on the brain.
 
 Please note that this tutorial requires 3D plotting dependencies,
 see :ref:`manual-install`.
@@ -35,6 +34,7 @@ see :ref:`manual-install`.
 #          Alex Rockhill <aprockhill@mailbox.org>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 
@@ -57,8 +57,7 @@ fetch_fsaverage(subjects_dir=subjects_dir, verbose=True)  # downloads if needed
 
 raw = mne.io.read_raw(misc_path / "seeg" / "sample_seeg_ieeg.fif")
 
-events, event_id = mne.events_from_annotations(raw)
-epochs = mne.Epochs(raw, events, event_id, detrend=1, baseline=None)
+epochs = mne.Epochs(raw, detrend=1, baseline=None)
 epochs = epochs["Response"][0]  # just process one epoch of data for speed
 
 # %%
@@ -212,8 +211,14 @@ vol_src = mne.read_source_spaces(fname_src)
 
 evoked = epochs.average()
 stc = mne.stc_near_sensors(
-    evoked, trans, "fsaverage", subjects_dir=subjects_dir, src=vol_src, verbose="error"
-)  # ignore missing electrode warnings
+    evoked,
+    trans,
+    "fsaverage",
+    subjects_dir=subjects_dir,
+    src=vol_src,
+    surface=None,
+    verbose="error",
+)
 stc = abs(stc)  # just look at magnitude
 clim = dict(kind="value", lims=np.percentile(abs(evoked.data), [10, 50, 75]))
 

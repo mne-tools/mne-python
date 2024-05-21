@@ -1,6 +1,7 @@
 # Author: Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import os
 
@@ -214,10 +215,9 @@ def test_dipole_fitting(tmp_path):
     # Sanity check: do our residuals have less power than orig data?
     data_rms = np.sqrt(np.sum(evoked.data**2, axis=0))
     resi_rms = np.sqrt(np.sum(residual.data**2, axis=0))
-    assert (data_rms > resi_rms * 0.95).all(), "%s (factor: %s)" % (
-        (data_rms / resi_rms).min(),
-        0.95,
-    )
+    assert (
+        data_rms > resi_rms * 0.95
+    ).all(), f"{(data_rms / resi_rms).min()} (factor: {0.95})"
 
     # Compare to original points
     transform_surface_to(fwd["src"][0], "head", fwd["mri_head_t"])
@@ -244,12 +244,12 @@ def test_dipole_fitting(tmp_path):
     # XXX possibly some OpenBLAS numerical differences make
     # things slightly worse for us
     factor = 0.7
-    assert dists[0] / factor >= dists[1], "dists: %s" % dists
-    assert corrs[0] * factor <= corrs[1], "corrs: %s" % corrs
-    assert gc_dists[0] / factor >= gc_dists[1] * 0.8, "gc-dists (ori): %s" % gc_dists
-    assert amp_errs[0] / factor >= amp_errs[1], "amplitude errors: %s" % amp_errs
+    assert dists[0] / factor >= dists[1], f"dists: {dists}"
+    assert corrs[0] * factor <= corrs[1], f"corrs: {corrs}"
+    assert gc_dists[0] / factor >= gc_dists[1] * 0.8, f"gc-dists (ori): {gc_dists}"
+    assert amp_errs[0] / factor >= amp_errs[1], f"amplitude errors: {amp_errs}"
     # This one is weird because our cov/sim/picking is weird
-    assert gofs[0] * factor <= gofs[1] * 2, "gof: %s" % gofs
+    assert gofs[0] * factor <= gofs[1] * 2, f"gof: {gofs}"
 
 
 @testing.requires_testing_data
@@ -471,14 +471,25 @@ def _check_roundtrip_fixed(dip, tmp_path):
             assert_allclose(ch_1[key], ch_2[key], err_msg=key)
 
 
-def test_get_phantom_dipoles():
+@pytest.mark.parametrize(
+    "kind, count",
+    [
+        ("vectorview", 32),
+        ("otaniemi", 32),
+        ("oyama", 50),
+    ],
+)
+def test_get_phantom_dipoles(kind, count):
     """Test getting phantom dipole locations."""
-    pytest.raises(ValueError, get_phantom_dipoles, 0)
-    pytest.raises(ValueError, get_phantom_dipoles, "foo")
-    for kind in ("vectorview", "otaniemi"):
-        pos, ori = get_phantom_dipoles(kind)
-        assert pos.shape == (32, 3)
-        assert ori.shape == (32, 3)
+    with pytest.raises(TypeError, match="must be an instance of"):
+        get_phantom_dipoles(0)
+    with pytest.raises(ValueError, match="Invalid value for"):
+        get_phantom_dipoles("foo")
+    pos, ori = get_phantom_dipoles(kind)
+    assert pos.shape == (count, 3)
+    assert ori.shape == (count, 3)
+    # pos should be orthogonal to ori for all dipoles
+    assert_allclose(np.sum(pos * ori, axis=1), 0.0, atol=1e-7)
 
 
 @testing.requires_testing_data
@@ -548,7 +559,7 @@ def test_bdip(fname_dip_, fname_bdip_, tmp_path):
             b = getattr(this_bdip, key)
             if key == "khi2" and dip_has_conf:
                 if d is not None:
-                    assert_allclose(d, b, atol=atol, err_msg="%s: %s" % (kind, key))
+                    assert_allclose(d, b, atol=atol, err_msg=f"{kind}: {key}")
                 else:
                     assert b is None
         if dip_has_conf:
@@ -562,7 +573,7 @@ def test_bdip(fname_dip_, fname_bdip_, tmp_path):
                     d,
                     b,
                     rtol=0.12,  # no so great, text I/O
-                    err_msg="%s: %s" % (kind, key),
+                    err_msg=f"{kind}: {key}",
                 )
         # Not stored
         assert this_bdip.name is None

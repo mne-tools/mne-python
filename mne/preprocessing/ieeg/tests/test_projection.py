@@ -2,6 +2,7 @@
 # Authors: Alex Rockhill <aprockhill@mailbox.org>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import os
 from shutil import copyfile

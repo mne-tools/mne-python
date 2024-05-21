@@ -14,6 +14,7 @@ recording is of a short parallel auditory response (pABR) experiment
 #          Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 

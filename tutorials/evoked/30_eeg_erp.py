@@ -17,6 +17,8 @@ the events from an external events file. Finally, to speed up computations
 we'll crop the raw data from ~4.5 minutes down to 90 seconds.
 """
 
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 # %%
 
 import matplotlib.pyplot as plt

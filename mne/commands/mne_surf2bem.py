@@ -13,6 +13,7 @@ Examples
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import sys
 
@@ -45,7 +46,7 @@ def run():
         parser.print_help()
         sys.exit(1)
 
-    print("Converting %s to BEM FIF file." % options.surf)
+    print(f"Converting {options.surf} to BEM FIF file.")
     surf = mne.bem._surfaces_to_bem([options.surf], [int(options.id)], sigmas=[1])
     mne.write_bem_surfaces(options.fif, surf)
 

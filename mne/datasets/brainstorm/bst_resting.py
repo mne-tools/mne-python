@@ -1,6 +1,7 @@
 # Authors: Mainak Jas <mainak.jas@telecom-paristech.fr>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 from ...utils import verbose
 from ..utils import (
     _data_path_doc_accept,

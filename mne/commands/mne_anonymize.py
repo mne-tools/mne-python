@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # Authors : Dominik Krzeminski
 #           Luke Bloy <luke.bloy@gmail.com>
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 """Anonymize raw fif file.
 
@@ -50,7 +52,7 @@ def mne_anonymize(fif_fname, out_fname, keep_his, daysback, overwrite):
     dir_name = op.split(fif_fname)[0]
     if out_fname is None:
         fif_bname = op.basename(fif_fname)
-        out_fname = op.join(dir_name, "{}-{}".format(ANONYMIZE_FILE_PREFIX, fif_bname))
+        out_fname = op.join(dir_name, f"{ANONYMIZE_FILE_PREFIX}-{fif_bname}")
     elif not op.isabs(out_fname):
         out_fname = op.join(dir_name, out_fname)
 
@@ -117,7 +119,7 @@ def run():
     daysback = options.daysback
     overwrite = options.overwrite
     if not fname.endswith(".fif"):
-        raise ValueError("%s does not seem to be a .fif file." % fname)
+        raise ValueError(f"{fname} does not seem to be a .fif file.")
 
     mne_anonymize(fname, out_fname, keep_his, daysback, overwrite)
 

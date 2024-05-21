@@ -26,6 +26,7 @@ source estimate.
 # Author: Tommy Clausner <tommy.clausner@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 import mne

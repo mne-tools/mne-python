@@ -1,5 +1,6 @@
 # Authors: Denis Engemann <denis.engemann@gmail.com>
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import numpy as np
 from scipy.stats import zscore
@@ -39,7 +40,7 @@ def _find_outliers(X, threshold=3.0, max_iter=2, tail=0):
         elif tail == -1:
             this_z = -zscore(X)
         else:
-            raise ValueError("Tail parameter %s not recognised." % tail)
+            raise ValueError(f"Tail parameter {tail} not recognised.")
         local_bad = this_z > threshold
         my_mask = np.max([my_mask, local_bad], 0)
         if not np.any(local_bad):

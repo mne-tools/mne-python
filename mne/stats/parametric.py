@@ -2,7 +2,8 @@
 #          Denis Engemann <denis.engemann@gmail.com>
 #          Eric Larson <larson.eric.d@gmail.com>
 #
-# License: Simplified BSD
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from functools import reduce
 from string import ascii_uppercase
@@ -196,14 +197,13 @@ def _map_effects(n_factors, effects):
         elif "*" in effects:
             pass  # handle later
         else:
-            raise ValueError('"{}" is not a valid option for "effects"'.format(effects))
+            raise ValueError(f'"{effects}" is not a valid option for "effects"')
     if isinstance(effects, list):
         bad_names = [e for e in effects if e not in factor_names]
         if len(bad_names) > 1:
             raise ValueError(
-                "Effect names: {} are not valid. They should "
-                "the first `n_factors` ({}) characters from the"
-                "alphabet".format(bad_names, n_factors)
+                f"Effect names: {bad_names} are not valid. They should consist of the "
+                f"first `n_factors` ({n_factors}) characters from the alphabet"
             )
 
     indices = list(np.arange(2**n_factors - 1))
@@ -401,7 +401,7 @@ def f_mway_rm(data, factor_levels, effects="all", correction=False, return_pvals
             # numerical imprecision can cause eps=0.99999999999999989
             # even with a single category, so never let our degrees of
             # freedom drop below 1.
-            df1, df2 = [np.maximum(d[None, :] * eps, 1.0) for d in (df1, df2)]
+            df1, df2 = (np.maximum(d[None, :] * eps, 1.0) for d in (df1, df2))
 
         if return_pvals:
             pvals = stats.f(df1, df2).sf(fvals)

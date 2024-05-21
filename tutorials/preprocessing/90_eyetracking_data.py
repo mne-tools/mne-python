@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _tut-eyetrack:
 
@@ -16,6 +15,7 @@ the ERP and pupil response to the light flashes (i.e. the pupillary light reflex
 #
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 # Data loading

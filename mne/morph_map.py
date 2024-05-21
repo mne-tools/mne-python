@@ -4,6 +4,7 @@
 #          Denis A. Engemann <denis.engemann@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # Many of the computations in this code were derived from Matti Hämäläinen's
 # C code.
@@ -73,7 +74,7 @@ def read_morph_map(
         try:
             os.mkdir(mmap_dir)
         except Exception:
-            warn('Could not find or make morph map directory "%s"' % mmap_dir)
+            warn(f'Could not find or make morph map directory "{mmap_dir}"')
 
     # filename components
     if xhemi:
@@ -101,7 +102,7 @@ def read_morph_map(
             return _read_morph_map(fname, subject_from, subject_to)
     # if file does not exist, make it
     logger.info(
-        'Morph map "%s" does not exist, creating it and saving it to ' "disk" % fname
+        f'Morph map "{fname}" does not exist, creating it and saving it to disk'
     )
     logger.info(log_msg % (subject_from, subject_to))
     mmap_1 = _make_morph_map(subject_from, subject_to, subjects_dir, xhemi)
@@ -143,7 +144,7 @@ def _read_morph_map(fname, subject_from, subject_to):
                         logger.info("    Right-hemisphere map read.")
 
     if left_map is None or right_map is None:
-        raise ValueError("Could not find both hemispheres in %s" % fname)
+        raise ValueError(f"Could not find both hemispheres in {fname}")
 
     return left_map, right_map
 
@@ -154,7 +155,7 @@ def _write_morph_map(fname, subject_from, subject_to, mmap_1, mmap_2):
         with start_and_end_file(fname) as fid:
             _write_morph_map_(fid, subject_from, subject_to, mmap_1, mmap_2)
     except Exception as exp:
-        warn('Could not write morph-map file "%s" (error: %s)' % (fname, exp))
+        warn(f'Could not write morph-map file "{fname}" (error: {exp})')
 
 
 def _write_morph_map_(fid, subject_from, subject_to, mmap_1, mmap_2):

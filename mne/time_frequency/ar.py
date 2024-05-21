@@ -2,6 +2,7 @@
 #          The statsmodels folks for AR yule_walker
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import numpy as np
 from scipy import linalg

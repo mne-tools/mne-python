@@ -1,3 +1,5 @@
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 from pathlib import Path
 
 import numpy as np
@@ -6,7 +8,7 @@ from mne import pick_types
 from mne.io import read_raw_fif
 from mne.preprocessing import create_ecg_epochs, find_ecg_events
 
-data_path = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
+data_path = Path(__file__).parents[2] / "io" / "tests" / "data"
 raw_fname = data_path / "test_raw.fif"
 event_fname = data_path / "test-eve.fif"
 proj_fname = data_path / "test-proj.fif"
@@ -34,6 +36,10 @@ def test_find_ecg():
         events, ch_ECG, average_pulse, ecg = find_ecg_events(
             raw, event_id=999, ch_name=ch_name, tstart=tstart, return_ecg=True
         )
+        if ch_name is None:
+            assert ch_ECG is None
+        else:
+            assert raw.ch_names[ch_ECG] == ch_name
         assert raw.n_times == ecg.shape[-1]
         assert 40 < average_pulse < 60
         n_events = len(events)

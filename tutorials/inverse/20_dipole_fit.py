@@ -11,6 +11,8 @@ For a comparison of fits between MNE-C and MNE-Python, see
 `this gist <https://gist.github.com/larsoner/ca55f791200fe1dc3dd2>`__.
 """
 
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 # %%
 
 import matplotlib.pyplot as plt
@@ -90,8 +92,8 @@ pred_evoked = simulate_evoked(fwd, stc, evoked.info, cov=None, nave=np.inf)
 best_idx = np.argmax(dip.gof)
 best_time = dip.times[best_idx]
 print(
-    "Highest GOF %0.1f%% at t=%0.1f ms with confidence volume %0.1f cm^3"
-    % (dip.gof[best_idx], best_time * 1000, dip.conf["vol"][best_idx] * 100**3)
+    f"Highest GOF {dip.gof[best_idx]:0.1f}% at t={best_time * 1000:0.1f} ms with "
+    f"confidence volume {dip.conf['vol'][best_idx] * 100**3:0.1f} cm^3"
 )
 # remember to create a subplot for the colorbar
 fig, axes = plt.subplots(
@@ -115,8 +117,7 @@ diff = combine_evoked([evoked, pred_evoked], weights=[1, -1])
 plot_params["colorbar"] = True
 diff.plot_topomap(time_format="Difference", axes=axes[2:], **plot_params)
 fig.suptitle(
-    "Comparison of measured and predicted fields "
-    "at {:.0f} ms".format(best_time * 1000.0),
+    f"Comparison of measured and predicted fields at {best_time * 1000:.0f} ms",
     fontsize=16,
 )
 

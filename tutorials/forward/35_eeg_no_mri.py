@@ -22,6 +22,7 @@ First we show how ``fsaverage`` can be used as a surrogate subject.
 #          Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import os.path as op
 

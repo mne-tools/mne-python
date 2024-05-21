@@ -1,3 +1,5 @@
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 """EGI NetStation Load Function."""
 
 import datetime
@@ -8,7 +10,6 @@ from collections import OrderedDict
 from pathlib import Path
 
 import numpy as np
-from defusedxml.minidom import parse
 
 from ..._fiff.constants import FIFF
 from ..._fiff.meas_info import _empty_info, _ensure_meas_date_none_or_dt, create_info
@@ -17,7 +18,7 @@ from ..._fiff.utils import _create_chs, _mult_cal_one
 from ...annotations import Annotations
 from ...channels.montage import make_dig_montage
 from ...evoked import EvokedArray
-from ...utils import _check_fname, _check_option, logger, verbose, warn
+from ...utils import _check_fname, _check_option, _soft_import, logger, verbose, warn
 from ..base import BaseRaw
 from .events import _combine_triggers, _read_events
 from .general import (
@@ -34,6 +35,9 @@ REFERENCE_NAMES = ("VREF", "Vertex Reference")
 
 def _read_mff_header(filepath):
     """Read mff header."""
+    _soft_import("defusedxml", "reading EGI MFF data")
+    from defusedxml.minidom import parse
+
     all_files = _get_signalfname(filepath)
     eeg_file = all_files["EEG"]["signal"]
     eeg_info_file = all_files["EEG"]["info"]
@@ -60,7 +64,7 @@ def _read_mff_header(filepath):
         record_time,
     )
     if g is None:
-        raise RuntimeError("Could not parse recordTime %r" % (record_time,))
+        raise RuntimeError(f"Could not parse recordTime {repr(record_time)}")
     frac = g.groups()[0]
     assert len(frac) in (6, 9) and all(f.isnumeric() for f in frac)  # regex
     div = 1000 if len(frac) == 6 else 1000000
@@ -68,7 +72,7 @@ def _read_mff_header(filepath):
         # convert from times in µS to samples
         for ei, e in enumerate(epochs[key]):
             if e % div != 0:
-                raise RuntimeError("Could not parse epoch time %s" % (e,))
+                raise RuntimeError(f"Could not parse epoch time {e}")
             epochs[key][ei] = e // div
         epochs[key] = np.array(epochs[key], np.uint64)
         # I guess they refer to times in milliseconds?
@@ -100,7 +104,7 @@ def _read_mff_header(filepath):
     if bad:
         raise RuntimeError(
             "EGI epoch first/last samps could not be parsed:\n"
-            "%s\n%s" % (list(epochs["first_samps"]), list(epochs["last_samps"]))
+            f'{list(epochs["first_samps"])}\n{list(epochs["last_samps"])}'
         )
     summaryinfo.update(epochs)
     # index which samples in raw are actually readable from disk (i.e., not
@@ -152,7 +156,7 @@ def _read_mff_header(filepath):
         if not same_blocks:
             raise RuntimeError(
                 "PNS and signals samples did not match:\n"
-                "%s\nvs\n%s" % (list(pns_samples), list(signal_samples))
+                f"{list(pns_samples)}\nvs\n{list(signal_samples)}"
             )
 
         pns_file = op.join(filepath, "pnsSet.xml")
@@ -195,25 +199,6 @@ def _read_mff_header(filepath):
     )
 
     return summaryinfo
-
-
-class _FixedOffset(datetime.tzinfo):
-    """Fixed offset in minutes east from UTC.
-
-    Adapted from the official Python documentation.
-    """
-
-    def __init__(self, offset):
-        self._offset = datetime.timedelta(minutes=offset)
-
-    def utcoffset(self, dt):
-        return self._offset
-
-    def tzname(self, dt):
-        return "MFF"
-
-    def dst(self, dt):
-        return datetime.timedelta(0)
 
 
 def _read_header(input_fname):
@@ -287,6 +272,9 @@ def _get_eeg_calibration_info(filepath, egi_info):
 
 def _read_locs(filepath, egi_info, channel_naming):
     """Read channel locations."""
+    _soft_import("defusedxml", "reading EGI MFF data")
+    from defusedxml.minidom import parse
+
     fname = op.join(filepath, "coordinates.xml")
     if not op.exists(fname):
         logger.warn("File coordinates.xml not found, not setting channel locations")
@@ -455,7 +443,7 @@ class RawMff(BaseRaw):
                 need_dir=True,
             )
         )
-        logger.info("Reading EGI MFF Header from %s..." % input_fname)
+        logger.info(f"Reading EGI MFF Header from {input_fname}...")
         egi_info = _read_header(input_fname)
         if eog is None:
             eog = []
@@ -480,7 +468,7 @@ class RawMff(BaseRaw):
                             more_excludes.append(ii)
                 if len(exclude_inds) + len(more_excludes) == len(event_codes):
                     warn(
-                        "Did not find any event code with more than one " "event.",
+                        "Did not find any event code with more than one event.",
                         RuntimeWarning,
                     )
                 else:
@@ -501,12 +489,12 @@ class RawMff(BaseRaw):
                         if k not in event_codes:
                             raise ValueError(f"Could not find event named {repr(k)}")
                 elif v is not None:
-                    raise ValueError("`%s` must be None or of type list" % kk)
+                    raise ValueError(f"`{kk}` must be None or of type list")
             logger.info('    Synthesizing trigger channel "STI 014" ...')
-            logger.info(
-                "    Excluding events {%s} ..."
-                % ", ".join([k for i, k in enumerate(event_codes) if i not in include_])
+            excl_events = ", ".join(
+                k for i, k in enumerate(event_codes) if i not in include_
             )
+            logger.info(f"    Excluding events {{{excl_events}}} ...")
             if all(ch.startswith("D") for ch in include_names):
                 # support the DIN format DIN1, DIN2, ..., DIN9, DI10, DI11, ... DI99,
                 # D100, D101, ..., D255 that we get when sending 0-255 triggers on a
@@ -608,7 +596,7 @@ class RawMff(BaseRaw):
             np.concatenate([idx[key] for key in keys]), np.arange(len(chs))
         ):
             raise ValueError(
-                "Currently interlacing EEG and PNS channels" "is not supported"
+                "Currently interlacing EEG and PNS channels is not supported"
             )
         egi_info["kind_bounds"] = [0]
         for key in keys:
@@ -640,7 +628,7 @@ class RawMff(BaseRaw):
         self._filenames = [file_bin]
         self._raw_extras = [egi_info]
 
-        super(RawMff, self).__init__(
+        super().__init__(
             info,
             preload=preload,
             orig_format="single",

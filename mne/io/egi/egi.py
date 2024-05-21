@@ -2,6 +2,8 @@
 #          Teon Brooks <teon.brooks@gmail.com>
 #
 #          simplified BSD-3 license
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import datetime
 import time
@@ -24,9 +26,7 @@ def _read_header(fid):
     if version > 6 & ~np.bitwise_and(version, 6):
         version = version.byteswap().astype(np.uint32)
     else:
-        raise ValueError(
-            "Watchout. This does not seem to be a simple " "binary EGI file."
-        )
+        raise ValueError("Watchout. This does not seem to be a simple binary EGI file.")
 
     def my_fread(*x, **y):
         return int(np.fromfile(*x, **y)[0])
@@ -102,7 +102,7 @@ def read_raw_egi(
     preload=False,
     channel_naming="E%d",
     verbose=None,
-):
+) -> "RawEGI":
     """Read EGI simple binary as raw object.
 
     .. note:: This function attempts to create a synthetic trigger channel.
@@ -191,14 +191,14 @@ class RawEGI(BaseRaw):
         preload=False,
         channel_naming="E%d",
         verbose=None,
-    ):  # noqa: D102
+    ):
         input_fname = str(_check_fname(input_fname, "read", True, "input_fname"))
         if eog is None:
             eog = []
         if misc is None:
             misc = []
         with open(input_fname, "rb") as fid:  # 'rb' important for py3k
-            logger.info("Reading EGI header from %s..." % input_fname)
+            logger.info(f"Reading EGI header from {input_fname}...")
             egi_info = _read_header(fid)
             logger.info("    Reading events ...")
             egi_events = _read_events(fid, egi_info)  # update info + jump
@@ -224,7 +224,7 @@ class RawEGI(BaseRaw):
                             more_excludes.append(ii)
                 if len(exclude_inds) + len(more_excludes) == len(event_codes):
                     warn(
-                        "Did not find any event code with more than one " "event.",
+                        "Did not find any event code with more than one event.",
                         RuntimeWarning,
                     )
                 else:
@@ -243,16 +243,16 @@ class RawEGI(BaseRaw):
                 if isinstance(v, list):
                     for k in v:
                         if k not in event_codes:
-                            raise ValueError('Could find event named "%s"' % k)
+                            raise ValueError(f'Could find event named "{k}"')
                 elif v is not None:
-                    raise ValueError("`%s` must be None or of type list" % kk)
+                    raise ValueError(f"`{kk}` must be None or of type list")
 
             event_ids = np.arange(len(include_)) + 1
             logger.info('    Synthesizing trigger channel "STI 014" ...')
-            logger.info(
-                "    Excluding events {%s} ..."
-                % ", ".join([k for i, k in enumerate(event_codes) if i not in include_])
+            excl_events = ", ".join(
+                k for i, k in enumerate(event_codes) if i not in include_
             )
+            logger.info(f"    Excluding events {{{excl_events}}} ...")
             egi_info["new_trigger"] = _combine_triggers(
                 egi_events[include_], remapping=event_ids
             )
@@ -305,7 +305,7 @@ class RawEGI(BaseRaw):
         orig_format = (
             egi_info["orig_format"] if egi_info["orig_format"] != "float" else "single"
         )
-        super(RawEGI, self).__init__(
+        super().__init__(
             info,
             preload,
             orig_format=orig_format,

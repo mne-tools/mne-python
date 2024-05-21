@@ -1,7 +1,7 @@
 """Helper functions for reading eyelink ASCII files."""
 # Authors: Scott Huberty <seh33@uw.edu>
 # License: BSD-3-Clause
-
+# Copyright the MNE-Python contributors.
 
 import re
 from datetime import datetime, timedelta, timezone
@@ -507,7 +507,7 @@ def _adjust_times(
         np.arange(first, last + step / 2, step), columns=[time_col]
     )
     return pd.merge_asof(
-        new_times, df, on=time_col, direction="nearest", tolerance=step / 10
+        new_times, df, on=time_col, direction="nearest", tolerance=step / 2
     )
 
 

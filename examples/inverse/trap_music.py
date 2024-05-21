@@ -12,6 +12,7 @@ Compute a Truncated Recursively Applied and Projected MUltiple Signal Classifica
 # Author: Théodore Papadopoulo <Theodore.Papadopoulo@inria.fr>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 

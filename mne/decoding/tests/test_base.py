@@ -2,6 +2,9 @@
 #         Marijn van Vliet, <w.m.vanvliet@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
+
+from contextlib import nullcontext
 
 import numpy as np
 import pytest
@@ -131,16 +134,23 @@ def test_get_coef():
         assert expected_n == len(_get_inverse_funcs(est))
 
     bad_estimators = [
-        Clf(),  # no preprocessing
-        Inv(),  # final estimator isn't classifier
-        make_pipeline(NoInv(), Clf()),  # first step isn't invertible
+        Clf(),  # 0: no preprocessing
+        Inv(),  # 1: final estimator isn't classifier
+        make_pipeline(NoInv(), Clf()),  # 2: first step isn't invertible
         make_pipeline(
             Inv(), make_pipeline(Inv(), NoInv()), Clf()
-        ),  # nested step isn't invertible
+        ),  # 3: nested step isn't invertible
     ]
-    for est in bad_estimators:
+    # It's the NoInv that triggers the warning, but too hard to context manage just
+    # the correct part of the bad_estimators loop
+    for ei, est in enumerate(bad_estimators):
         est.fit(X, y)
-        invs = _get_inverse_funcs(est)
+        if ei in (2, 3):  # the NoInv indices
+            ctx = pytest.warns(RuntimeWarning, match="Cannot inverse transform")
+        else:
+            ctx = nullcontext()
+        with ctx:
+            invs = _get_inverse_funcs(est)
         assert_equal(invs, list())
 
     # II. Test get coef for classification/regression estimators and pipelines
@@ -295,6 +305,8 @@ def test_get_coef_multiclass(n_features, n_targets):
         (3, 1, 2),
     ],
 )
+# TODO: Need to fix this properly in LinearModel
+@pytest.mark.filterwarnings("ignore:'multi_class' was deprecated in.*:FutureWarning")
 def test_get_coef_multiclass_full(n_classes, n_channels, n_times):
     """Test a full example with pattern extraction."""
     from sklearn.linear_model import LogisticRegression

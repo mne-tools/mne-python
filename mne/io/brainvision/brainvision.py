@@ -8,6 +8,7 @@
 #          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import configparser
 import os
@@ -75,7 +76,7 @@ class RawBrainVision(BaseRaw):
         verbose=None,
     ):  # noqa: D107
         # Channel info and events
-        logger.info("Extracting parameters from %s..." % vhdr_fname)
+        logger.info(f"Extracting parameters from {vhdr_fname}...")
         hdr_fname = op.abspath(vhdr_fname)
         ext = op.splitext(hdr_fname)[-1]
         ahdr_format = True if ext == ".ahdr" else False
@@ -110,7 +111,7 @@ class RawBrainVision(BaseRaw):
 
         orig_format = "single" if isinstance(fmt, dict) else fmt
         raw_extras = dict(offsets=offsets, fmt=fmt, order=order, n_samples=n_samples)
-        super(RawBrainVision, self).__init__(
+        super().__init__(
             info,
             last_samps=[n_samples - 1],
             filenames=[data_fname],
@@ -123,7 +124,7 @@ class RawBrainVision(BaseRaw):
 
         self.set_montage(montage)
 
-        settings, cfg, cinfo, _ = _aux_hdr_info(hdr_fname)
+        settings, _, _, _ = _aux_hdr_info(hdr_fname)
         split_settings = settings.splitlines()
         self.impedances = _parse_impedance(split_settings, self.info["meas_date"])
 
@@ -329,7 +330,7 @@ def _read_annotations_brainvision(fname, sfreq="auto"):
         # if vhdr file does not exist assume that the format is ahdr
         if not op.exists(hdr_fname):
             hdr_fname = op.splitext(fname)[0] + ".ahdr"
-        logger.info("Finding 'sfreq' from header file: %s" % hdr_fname)
+        logger.info(f"Finding 'sfreq' from header file: {hdr_fname}")
         _, _, _, info = _aux_hdr_info(hdr_fname)
         sfreq = info["sfreq"]
 
@@ -343,25 +344,25 @@ def _read_annotations_brainvision(fname, sfreq="auto"):
 
 def _check_bv_version(header, kind):
     """Check the header version."""
-    _data_err = """\
-    MNE-Python currently only supports %s versions 1.0 and 2.0, got unparsable\
-     %r. Contact MNE-Python developers for support."""
+    _data_err = (
+        "MNE-Python currently only supports %s versions 1.0 and 2.0, got unparsable "
+        "%r. Contact MNE-Python developers for support."
+    )
     # optional space, optional Core or V-Amp, optional Exchange,
     # Version/Header, optional comma, 1/2
-    _data_re = (
-        r"Brain ?Vision( Core| V-Amp)? Data( Exchange)? " r"%s File,? Version %s\.0"
-    )
+    _data_re = r"Brain ?Vision( Core| V-Amp)? Data( Exchange)? %s File,? Version %s\.0"
 
     assert kind in ("header", "marker")
 
-    if header == "":
-        warn(f"Missing header in {kind} file.")
     for version in range(1, 3):
         this_re = _data_re % (kind.capitalize(), version)
         if re.search(this_re, header) is not None:
             return version
     else:
-        warn(_data_err % (kind, header))
+        if header == "":
+            warn(f"Missing header in {kind} file.")
+        else:
+            warn(_data_err % (kind, header))
 
 
 _orientation_dict = dict(MULTIPLEXED="F", VECTORIZED="C")
@@ -444,7 +445,7 @@ def _aux_hdr_info(hdr_fname):
         params, settings = settings.split("[Comment]")
     else:
         params, settings = settings, ""
-    cfg = configparser.ConfigParser()
+    cfg = configparser.ConfigParser(interpolation=None)
     with StringIO(params) as fid:
         cfg.read_file(fid)
 
@@ -507,7 +508,7 @@ def _get_hdr_info(hdr_fname, eog, misc, scale):
     if ext not in (".vhdr", ".ahdr"):
         raise OSError(
             "The header file must be given to read the data, "
-            "not a file with extension '%s'." % ext
+            f"not a file with extension '{ext}'."
         )
 
     settings, cfg, cinfostr, info = _aux_hdr_info(hdr_fname)
@@ -515,14 +516,14 @@ def _get_hdr_info(hdr_fname, eog, misc, scale):
 
     order = cfg.get(cinfostr, "DataOrientation")
     if order not in _orientation_dict:
-        raise NotImplementedError("Data Orientation %s is not supported" % order)
+        raise NotImplementedError(f"Data Orientation {order} is not supported")
     order = _orientation_dict[order]
 
     data_format = cfg.get(cinfostr, "DataFormat")
     if data_format == "BINARY":
         fmt = cfg.get("Binary Infos", "BinaryFormat")
         if fmt not in _fmt_dict:
-            raise NotImplementedError("Datatype %s is not supported" % fmt)
+            raise NotImplementedError(f"Datatype {fmt} is not supported")
         fmt = _fmt_dict[fmt]
     else:
         if order == "C":  # channels in rows
@@ -541,7 +542,7 @@ def _get_hdr_info(hdr_fname, eog, misc, scale):
     # Try to get measurement date from marker file
     # Usually saved with a marker "New Segment", see BrainVision documentation
     regexp = r"^Mk\d+=New Segment,.*,\d+,\d+,-?\d+,(\d{20})$"
-    with open(mrk_fname, "r") as tmp_mrk_f:
+    with open(mrk_fname) as tmp_mrk_f:
         lines = tmp_mrk_f.readlines()
 
     for line in lines:
@@ -635,7 +636,7 @@ def _get_hdr_info(hdr_fname, eog, misc, scale):
             ch_name = ch_dict[ch[0]]
             montage_names.append(ch_name)
             # 1: radius, 2: theta, 3: phi
-            rad, theta, phi = [float(c) for c in ch[1].split(",")]
+            rad, theta, phi = (float(c) for c in ch[1].split(","))
             pol = np.deg2rad(theta)
             az = np.deg2rad(phi)
             # Coordinates could be "idealized" (spherical head model)
@@ -655,9 +656,9 @@ def _get_hdr_info(hdr_fname, eog, misc, scale):
         if len(to_misc) > 0:
             misc += to_misc
             warn(
-                "No coordinate information found for channels {}. "
-                "Setting channel types to misc. To avoid this warning, set "
-                "channel types explicitly.".format(to_misc)
+                f"No coordinate information found for channels {to_misc}. Setting "
+                "channel types to misc. To avoid this warning, set channel types "
+                "explicitly."
             )
 
     if np.isnan(cals).any():
@@ -794,8 +795,8 @@ def _get_hdr_info(hdr_fname, eog, misc, scale):
             if heterogeneous_hp_filter:
                 warn(
                     "Channels contain different highpass filters. "
-                    "Lowest (weakest) filter setting (%0.2f Hz) "
-                    "will be stored." % info["highpass"]
+                    f"Lowest (weakest) filter setting ({info['highpass']:0.2f} Hz) "
+                    "will be stored."
                 )
 
         if len(lowpass) == 0:
@@ -864,8 +865,8 @@ def _get_hdr_info(hdr_fname, eog, misc, scale):
                     nyquist = ""
                 warn(
                     "Channels contain different lowpass filters. "
-                    "Highest (weakest) filter setting (%0.2f Hz%s) "
-                    "will be stored." % (info["lowpass"], nyquist)
+                    f"Highest (weakest) filter setting ({info['lowpass']:0.2f} "
+                    f"Hz{nyquist}) will be stored."
                 )
 
     # Creates a list of dicts of eeg channels for raw.info
@@ -920,7 +921,7 @@ def read_raw_brainvision(
     scale=1.0,
     preload=False,
     verbose=None,
-):
+) -> RawBrainVision:
     """Reader for Brain Vision EEG file.
 
     Parameters
@@ -987,9 +988,7 @@ class _BVEventParser(_DefaultEventParser):
         elif description in _OTHER_ACCEPTED_MARKERS:
             code = _OTHER_ACCEPTED_MARKERS[description]
         else:
-            code = super(_BVEventParser, self).__call__(
-                description, offset=_OTHER_OFFSET
-            )
+            code = super().__call__(description, offset=_OTHER_OFFSET)
         return code
 
 

@@ -7,7 +7,8 @@
 #          Denis Engemann <denis.engemann@gmail.com>
 #          Fernando Perez (bin_perm_rep function)
 #
-# License: Simplified BSD
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import numpy as np
 from scipy import ndimage, sparse
@@ -377,7 +378,7 @@ def _find_clusters(
     -------
     clusters : list of slices or list of arrays (boolean masks)
         We use slices for 1D signals and mask to multidimensional
-        arrays.
+        arrays. None is returned if threshold is a dict (TFCE)
     sums : array
         Sum of x values in clusters.
     """
@@ -392,9 +393,7 @@ def _find_clusters(
                 "threshold-free cluster enhancement"
             )
         if not all(key in threshold for key in ["start", "step"]):
-            raise KeyError(
-                "threshold, if dict, must have at least " '"start" and "step"'
-            )
+            raise KeyError('threshold, if dict, must have at least "start" and "step"')
         tfce = True
         use_x = x[np.isfinite(x)]
         if use_x.size == 0:
@@ -403,9 +402,9 @@ def _find_clusters(
             )
         if tail == -1:
             if threshold["start"] > 0:
-                raise ValueError('threshold["start"] must be <= 0 for ' "tail == -1")
+                raise ValueError('threshold["start"] must be <= 0 for tail == -1')
             if threshold["step"] >= 0:
-                raise ValueError('threshold["step"] must be < 0 for ' "tail == -1")
+                raise ValueError('threshold["step"] must be < 0 for tail == -1')
             stop = np.min(use_x)
         elif tail == 1:
             stop = np.max(use_x)
@@ -418,8 +417,8 @@ def _find_clusters(
         if show_info is True:
             if len(thresholds) == 0:
                 warn(
-                    'threshold["start"] (%s) is more extreme than data '
-                    "statistics with most extreme value %s" % (threshold["start"], stop)
+                    f'threshold["start"] ({threshold["start"]}) is more extreme '
+                    f"than data statistics with most extreme value {stop}"
                 )
             else:
                 logger.info(
@@ -478,7 +477,7 @@ def _find_clusters(
                     len_c = c.stop - c.start
                 elif isinstance(c, tuple):
                     len_c = len(c)
-                elif c.dtype == bool:
+                elif c.dtype == np.dtype(bool):
                     len_c = np.sum(c)
                 else:
                     len_c = len(c)
@@ -486,18 +485,9 @@ def _find_clusters(
     # turn sums into array
     sums = np.concatenate(sums) if sums else np.array([])
     if tfce:
-        # each point gets treated independently
-        clusters = np.arange(x.size)
-        if adjacency is None or adjacency is False:
-            if x.ndim == 1:
-                # slices
-                clusters = [slice(c, c + 1) for c in clusters]
-            else:
-                # boolean masks (raveled)
-                clusters = [(clusters == ii).ravel() for ii in range(len(clusters))]
-        else:
-            clusters = [np.array([c]) for c in clusters]
         sums = scores
+        clusters = None  # clusters construction is made in _permutation_cluster_test
+
     return clusters, sums
 
 
@@ -555,7 +545,7 @@ def _find_clusters_1dir(x, x_in, adjacency, max_step, t_power, ndimage):
     else:
         if x.ndim > 1:
             raise Exception(
-                "Data should be 1D when using a adjacency " "to define clusters."
+                "Data should be 1D when using a adjacency to define clusters."
             )
         if isinstance(adjacency, sparse.spmatrix) or adjacency is False:
             clusters = _get_components(x_in, adjacency)
@@ -571,11 +561,16 @@ def _find_clusters_1dir(x, x_in, adjacency, max_step, t_power, ndimage):
     return clusters, np.atleast_1d(sums)
 
 
-def _cluster_indices_to_mask(components, n_tot):
-    """Convert to the old format of clusters, which were bool arrays."""
+def _cluster_indices_to_mask(components, n_tot, slice_out):
+    """Convert to the old format of clusters, which were bool arrays (or slices in 1D)."""  # noqa: E501
     for ci, c in enumerate(components):
-        components[ci] = np.zeros((n_tot), dtype=bool)
-        components[ci][c] = True
+        if not slice_out:
+            # boolean array
+            components[ci] = np.zeros((n_tot), dtype=bool)
+            components[ci][c] = True
+        else:
+            # slice (similar as ndimage.find_object output)
+            components[ci] = (slice(c.min(), c.max() + 1),)
     return components
 
 
@@ -618,7 +613,7 @@ def _pval_from_histogram(T, H0, tail):
 def _setup_adjacency(adjacency, n_tests, n_times):
     if not sparse.issparse(adjacency):
         raise ValueError(
-            "If adjacency matrix is given, it must be a " "SciPy sparse matrix."
+            "If adjacency matrix is given, it must be a SciPy sparse matrix."
         )
     if adjacency.shape[0] == n_tests:  # use global algorithm
         adjacency = adjacency.tocoo()
@@ -927,8 +922,7 @@ def _permutation_cluster_test(
             and threshold < 0
         ):
             raise ValueError(
-                "incompatible tail and threshold signs, got "
-                "%s and %s" % (tail, threshold)
+                f"incompatible tail and threshold signs, got {tail} and {threshold}"
             )
 
     # check dimensions for each group in X (a list at this stage).
@@ -955,7 +949,7 @@ def _permutation_cluster_test(
     # -------------------------------------------------------------
     t_obs = stat_fun(*X)
     _validate_type(t_obs, np.ndarray, "return value of stat_fun")
-    logger.info("stat_fun(H1): min=%f max=%f" % (np.min(t_obs), np.max(t_obs)))
+    logger.info(f"stat_fun(H1): min={np.min(t_obs)} max={np.max(t_obs)}")
 
     # test if stat_fun treats variables independently
     if buffer_size is not None:
@@ -975,9 +969,8 @@ def _permutation_cluster_test(
     # The stat should have the same shape as the samples for no adj.
     if t_obs.size != np.prod(sample_shape):
         raise ValueError(
-            "t_obs.shape %s provided by stat_fun %s is not "
-            "compatible with the sample shape %s"
-            % (t_obs.shape, stat_fun, sample_shape)
+            f"t_obs.shape {t_obs.shape} provided by stat_fun {stat_fun} is not "
+            f"compatible with the sample shape {sample_shape}"
         )
     if adjacency is None or adjacency is False:
         t_obs.shape = sample_shape
@@ -1010,18 +1003,22 @@ def _permutation_cluster_test(
     t_obs.shape = sample_shape
 
     # For TFCE, return the "adjusted" statistic instead of raw scores
-    if isinstance(threshold, dict):
+    # and for clusters, each point gets treated independently
+    tfce = isinstance(threshold, dict)
+    if tfce:
         t_obs = cluster_stats.reshape(t_obs.shape) * np.sign(t_obs)
+        clusters = [np.array([c]) for c in range(t_obs.size)]
 
     logger.info(f"Found {len(clusters)} cluster{_pl(clusters)}")
 
     # convert clusters to old format
-    if adjacency is not None and adjacency is not False:
+    if (adjacency is not None and adjacency is not False) or tfce:
         # our algorithms output lists of indices by default
         if out_type == "mask":
-            clusters = _cluster_indices_to_mask(clusters, n_tests)
+            slice_out = (adjacency is None) & (len(sample_shape) == 1)
+            clusters = _cluster_indices_to_mask(clusters, n_tests, slice_out)
     else:
-        # ndimage outputs slices or boolean masks by default
+        # ndimage outputs slices or boolean masks by default,
         if out_type == "indices":
             clusters = _cluster_mask_to_indices(clusters, t_obs.shape)
 
@@ -1137,14 +1134,14 @@ def _check_fun(X, stat_fun, threshold, tail=0, kind="within"):
             if stat_fun is not None and stat_fun is not ttest_1samp_no_p:
                 warn(
                     "Automatic threshold is only valid for stat_fun=None "
-                    "(or ttest_1samp_no_p), got %s" % (stat_fun,)
+                    f"(or ttest_1samp_no_p), got {stat_fun}"
                 )
             p_thresh = 0.05 / (1 + (tail == 0))
             n_samples = len(X)
             threshold = -tstat.ppf(p_thresh, n_samples - 1)
             if np.sign(tail) < 0:
                 threshold = -threshold
-            logger.info("Using a threshold of {:.6f}".format(threshold))
+            logger.info(f"Using a threshold of {threshold:.6f}")
         stat_fun = ttest_1samp_no_p if stat_fun is None else stat_fun
     else:
         assert kind == "between"
@@ -1152,7 +1149,7 @@ def _check_fun(X, stat_fun, threshold, tail=0, kind="within"):
             if stat_fun is not None and stat_fun is not f_oneway:
                 warn(
                     "Automatic threshold is only valid for stat_fun=None "
-                    "(or f_oneway), got %s" % (stat_fun,)
+                    f"(or f_oneway), got {stat_fun}"
                 )
             elif tail != 1:
                 warn('Ignoring argument "tail", performing 1-tailed F-test')
@@ -1160,7 +1157,7 @@ def _check_fun(X, stat_fun, threshold, tail=0, kind="within"):
             dfn = len(X) - 1
             dfd = np.sum([len(x) for x in X]) - len(X)
             threshold = fstat.ppf(1.0 - p_thresh, dfn, dfd)
-            logger.info("Using a threshold of {:.6f}".format(threshold))
+            logger.info(f"Using a threshold of {threshold:.6f}")
         stat_fun = f_oneway if stat_fun is None else stat_fun
     return stat_fun, threshold
 
@@ -1633,7 +1630,7 @@ def _reshape_clusters(clusters, sample_shape):
     """Reshape cluster masks or indices to be of the correct shape."""
     # format of the bool mask and indices are ndarrays
     if len(clusters) > 0 and isinstance(clusters[0], np.ndarray):
-        if clusters[0].dtype == bool:  # format of mask
+        if clusters[0].dtype == np.dtype(bool):  # format of mask
             clusters = [c.reshape(sample_shape) for c in clusters]
         else:  # format of indices
             clusters = [np.unravel_index(c, sample_shape) for c in clusters]

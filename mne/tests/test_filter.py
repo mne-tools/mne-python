@@ -1,3 +1,5 @@
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 import numpy as np
 import pytest
 from numpy.fft import fft, fftfreq
@@ -29,6 +31,8 @@ from mne.filter import (
 )
 from mne.io import RawArray, read_raw_fif
 from mne.utils import catch_logging, requires_mne, run_subprocess, sum_squared
+
+resample_method_parametrize = pytest.mark.parametrize("method", ("fft", "polyphase"))
 
 
 def test_filter_array():
@@ -84,13 +88,9 @@ def test_estimate_ringing():
             (0.0001, (30000, 60000)),
         ):  # 37993
             n_ring = estimate_ringing_samples(butter(3, thresh, output=kind))
-            assert lims[0] <= n_ring <= lims[1], "%s %s: %s <= %s <= %s" % (
-                kind,
-                thresh,
-                lims[0],
-                n_ring,
-                lims[1],
-            )
+            assert (
+                lims[0] <= n_ring <= lims[1]
+            ), f"{kind} {thresh}: {lims[0]} <= {n_ring} <= {lims[1]}"
     with pytest.warns(RuntimeWarning, match="properly estimate"):
         assert estimate_ringing_samples(butter(4, 0.00001)) == 100000
 
@@ -370,20 +370,27 @@ def test_notch_filters(method, filter_length, line_freq, tol):
     assert_almost_equal(new_power, orig_power, tol)
 
 
-def test_resample():
+@resample_method_parametrize
+def test_resample(method):
     """Test resampling."""
     rng = np.random.RandomState(0)
     x = rng.normal(0, 1, (10, 10, 10))
-    x_rs = resample(x, 1, 2, 10)
+    with catch_logging() as log:
+        x_rs = resample(x, 1, 2, npad=10, method=method, verbose=True)
+    log = log.getvalue()
+    if method == "fft":
+        assert "neighborhood" not in log
+    else:
+        assert "neighborhood" in log
     assert x.shape == (10, 10, 10)
     assert x_rs.shape == (10, 10, 5)
 
     x_2 = x.swapaxes(0, 1)
-    x_2_rs = resample(x_2, 1, 2, 10)
+    x_2_rs = resample(x_2, 1, 2, npad=10, method=method)
     assert_array_equal(x_2_rs.swapaxes(0, 1), x_rs)
 
     x_3 = x.swapaxes(0, 2)
-    x_3_rs = resample(x_3, 1, 2, 10, 0)
+    x_3_rs = resample(x_3, 1, 2, npad=10, axis=0, method=method)
     assert_array_equal(x_3_rs.swapaxes(0, 2), x_rs)
 
     # make sure we cast to array if necessary
@@ -396,15 +403,15 @@ def test_resample_scipy():
     for window in ("boxcar", "hann"):
         for N in (100, 101, 102, 103):
             x = np.arange(N).astype(float)
-            err_msg = "%s: %s" % (N, window)
+            err_msg = f"{N}: {window}"
             x_2_sp = sp_resample(x, 2 * N, window=window)
             for n_jobs in n_jobs_test:
-                x_2 = resample(x, 2, 1, 0, window=window, n_jobs=n_jobs)
+                x_2 = resample(x, 2, 1, npad=0, window=window, n_jobs=n_jobs)
                 assert_allclose(x_2, x_2_sp, atol=1e-12, err_msg=err_msg)
             new_len = int(round(len(x) * (1.0 / 2.0)))
             x_p5_sp = sp_resample(x, new_len, window=window)
             for n_jobs in n_jobs_test:
-                x_p5 = resample(x, 1, 2, 0, window=window, n_jobs=n_jobs)
+                x_p5 = resample(x, 1, 2, npad=0, window=window, n_jobs=n_jobs)
                 assert_allclose(x_p5, x_p5_sp, atol=1e-12, err_msg=err_msg)
 
 
@@ -448,23 +455,25 @@ def test_resamp_stim_channel():
         assert new_data.shape[1] == new_data_len
 
 
-def test_resample_raw():
+@resample_method_parametrize
+def test_resample_raw(method):
     """Test resampling using RawArray."""
     x = np.zeros((1, 1001))
     sfreq = 2048.0
     raw = RawArray(x, create_info(1, sfreq, "eeg"))
-    raw.resample(128, npad=10)
+    raw.resample(128, npad=10, method=method)
     data = raw.get_data()
     assert data.shape == (1, 63)
 
 
-def test_resample_below_1_sample():
+@resample_method_parametrize
+def test_resample_below_1_sample(method):
     """Test resampling doesn't yield datapoints."""
     # Raw
     x = np.zeros((1, 100))
     sfreq = 1000.0
     raw = RawArray(x, create_info(1, sfreq, "eeg"))
-    raw.resample(5)
+    raw.resample(5, method=method)
     assert len(raw.times) == 1
     assert raw.get_data().shape[1] == 1
 
@@ -485,7 +494,13 @@ def test_resample_below_1_sample():
         preload=True,
         verbose=False,
     )
-    epochs.resample(1)
+    with catch_logging() as log:
+        epochs.resample(1, method=method, verbose=True)
+    log = log.getvalue()
+    if method == "fft":
+        assert "neighborhood" not in log
+    else:
+        assert "neighborhood" in log
     assert len(epochs.times) == 1
     assert epochs.get_data(copy=False).shape[2] == 1
 
@@ -591,12 +606,12 @@ def test_filters():
     # try new default and old default
     freqs = fftfreq(a.shape[-1], 1.0 / sfreq)
     A = np.abs(fft(a))
-    kwargs = dict(fir_design="firwin")
+    kw = dict(fir_design="firwin")
     for fl in ["auto", "10s", "5000ms", 1024, 1023]:
-        bp = filter_data(a, sfreq, 4, 8, None, fl, 1.0, 1.0, **kwargs)
-        bs = filter_data(a, sfreq, 8 + 1.0, 4 - 1.0, None, fl, 1.0, 1.0, **kwargs)
-        lp = filter_data(a, sfreq, None, 8, None, fl, 10, 1.0, n_jobs=2, **kwargs)
-        hp = filter_data(lp, sfreq, 4, None, None, fl, 1.0, 10, **kwargs)
+        bp = filter_data(a, sfreq, 4, 8, None, fl, 1.0, 1.0, **kw)
+        bs = filter_data(a, sfreq, 8 + 1.0, 4 - 1.0, None, fl, 1.0, 1.0, **kw)
+        lp = filter_data(a, sfreq, None, 8, None, fl, 10, 1.0, n_jobs=2, **kw)
+        hp = filter_data(lp, sfreq, 4, None, None, fl, 1.0, 10, **kw)
         assert_allclose(hp, bp, rtol=1e-3, atol=2e-3)
         assert_allclose(bp + bs, a, rtol=1e-3, atol=1e-3)
         # Sanity check ttenuation
@@ -604,12 +619,18 @@ def test_filters():
         assert_allclose(np.mean(np.abs(fft(bp)[:, mask]) / A[:, mask]), 1.0, atol=0.02)
         assert_allclose(np.mean(np.abs(fft(bs)[:, mask]) / A[:, mask]), 0.0, atol=0.2)
         # now the minimum-phase versions
-        bp = filter_data(a, sfreq, 4, 8, None, fl, 1.0, 1.0, phase="minimum", **kwargs)
+        bp = filter_data(a, sfreq, 4, 8, None, fl, 1.0, 1.0, phase="minimum-half", **kw)
         bs = filter_data(
-            a, sfreq, 8 + 1.0, 4 - 1.0, None, fl, 1.0, 1.0, phase="minimum", **kwargs
+            a, sfreq, 8 + 1.0, 4 - 1.0, None, fl, 1.0, 1.0, phase="minimum-half", **kw
         )
         assert_allclose(np.mean(np.abs(fft(bp)[:, mask]) / A[:, mask]), 1.0, atol=0.11)
         assert_allclose(np.mean(np.abs(fft(bs)[:, mask]) / A[:, mask]), 0.0, atol=0.3)
+        bp = filter_data(a, sfreq, 4, 8, None, fl, 1.0, 1.0, phase="minimum", **kw)
+        bs = filter_data(
+            a, sfreq, 8 + 1.0, 4 - 1.0, None, fl, 1.0, 1.0, phase="minimum", **kw
+        )
+        assert_allclose(np.mean(np.abs(fft(bp)[:, mask]) / A[:, mask]), 1.0, atol=0.12)
+        assert_allclose(np.mean(np.abs(fft(bs)[:, mask]) / A[:, mask]), 0.0, atol=0.27)
 
     # and since these are low-passed, downsampling/upsampling should be close
     n_resamp_ignore = 10
@@ -892,7 +913,7 @@ def test_reporting_iir(phase, ftype, btype, order, output):
         dB_cutoff = -7.58
     dB_cutoff *= order_mult
     if btype == "lowpass":
-        keys += ["%0.2f dB" % (dB_cutoff,)]
+        keys += [f"{dB_cutoff:0.2f} dB"]
     for key in keys:
         assert key.lower() in log.lower()
     # Verify some of the filter properties
@@ -1035,3 +1056,45 @@ def test_filter_picks():
                 raw.filter(picks=picks, **kwargs)
                 want = want[1:]
                 assert_allclose(raw.get_data(), want)
+
+
+def test_filter_minimum_phase_bug():
+    """Test gh-12267 is fixed."""
+    sfreq = 1000.0
+    n_taps = 1001
+    l_freq = 10.0  # Hz
+    kwargs = dict(
+        data=None,
+        sfreq=sfreq,
+        l_freq=l_freq,
+        h_freq=None,
+        filter_length=n_taps,
+        l_trans_bandwidth=l_freq / 2.0,
+    )
+    h = create_filter(phase="zero", **kwargs)
+    h_min = create_filter(phase="minimum", **kwargs)
+    h_min_half = create_filter(phase="minimum-half", **kwargs)
+    assert h_min.size == h.size
+    kwargs = dict(worN=10000, fs=sfreq)
+    w, H = freqz(h, **kwargs)
+    assert w[0] == 0
+    dc_dB = 20 * np.log10(np.abs(H[0]))
+    assert dc_dB < -100
+    # good
+    w_min, H_min = freqz(h_min, **kwargs)
+    assert_allclose(w, w_min)
+    dc_dB_min = 20 * np.log10(np.abs(H_min[0]))
+    assert dc_dB_min < -100
+    mask = w < 5
+    assert 10 < mask.sum() < 101
+    assert_allclose(np.abs(H[mask]), np.abs(H_min[mask]), atol=1e-3, rtol=1e-3)
+    assert_array_less(20 * np.log10(np.abs(H[mask])), -40)
+    assert_array_less(20 * np.log10(np.abs(H_min[mask])), -40)
+    # bad
+    w_min_half, H_min_half = freqz(h_min_half, **kwargs)
+    assert_allclose(w, w_min_half)
+    dc_dB_min_half = 20 * np.log10(np.abs(H_min_half[0]))
+    assert -80 < dc_dB_min_half < 40
+    dB_min_half = 20 * np.log10(np.abs(H_min_half[mask]))
+    assert_array_less(dB_min_half, -20)
+    assert not (dB_min_half < -30).all()

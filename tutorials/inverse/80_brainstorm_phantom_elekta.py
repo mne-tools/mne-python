@@ -15,6 +15,7 @@ tutorial dataset. For comparison, see :footcite:`TadelEtAl2011` and
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 
@@ -52,7 +53,9 @@ raw.info["bads"] = ["MEG1933", "MEG2421"]
 # noise (five peaks around 300 Hz). Here, we use only the first 30 seconds
 # to save memory:
 
-raw.compute_psd(tmax=30).plot(average=False, picks="data", exclude="bads")
+raw.compute_psd(tmax=30).plot(
+    average=False, amplitude=False, picks="data", exclude="bads"
+)
 
 # %%
 # Our phantom produces sinusoidal bursts at 20 Hz:
@@ -148,19 +151,19 @@ fig, (ax1, ax2, ax3) = plt.subplots(
 )
 
 diffs = 1000 * np.sqrt(np.sum((dip.pos - actual_pos) ** 2, axis=-1))
-print("mean(position error) = %0.1f mm" % (np.mean(diffs),))
+print(f"mean(position error) = {np.mean(diffs):0.1f} mm")
 ax1.bar(event_id, diffs)
 ax1.set_xlabel("Dipole index")
 ax1.set_ylabel("Loc. error (mm)")
 
 angles = np.rad2deg(np.arccos(np.abs(np.sum(dip.ori * actual_ori, axis=1))))
-print("mean(angle error) = %0.1f°" % (np.mean(angles),))
+print(f"mean(angle error) = {np.mean(angles):0.1f}°")
 ax2.bar(event_id, angles)
 ax2.set_xlabel("Dipole index")
 ax2.set_ylabel("Angle error (°)")
 
 amps = actual_amp - dip.amplitude / 1e-9
-print("mean(abs amplitude error) = %0.1f nAm" % (np.mean(np.abs(amps)),))
+print(f"mean(abs amplitude error) = {np.mean(np.abs(amps)):0.1f} nAm")
 ax3.bar(event_id, amps)
 ax3.set_xlabel("Dipole index")
 ax3.set_ylabel("Amplitude error (nAm)")

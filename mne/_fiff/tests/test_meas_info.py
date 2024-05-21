@@ -2,6 +2,7 @@
 #            Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import pickle
 import string
@@ -72,7 +73,7 @@ from mne.minimum_norm import (
 from mne.transforms import Transform
 from mne.utils import _empty_hash, _record_warnings, assert_object_equal, catch_logging
 
-root_dir = Path(__file__).parent.parent.parent
+root_dir = Path(__file__).parents[2]
 fiducials_fname = root_dir / "data" / "fsaverage" / "fsaverage-fiducials.fif"
 base_dir = root_dir / "io" / "tests" / "data"
 raw_fname = base_dir / "test_raw.fif"
@@ -349,9 +350,11 @@ def test_read_write_info(tmp_path):
 @testing.requires_testing_data
 def test_dir_warning():
     """Test that trying to read a bad filename emits a warning before an error."""
-    with pytest.raises(OSError, match="directory"):
-        with pytest.warns(RuntimeWarning, match="foo"):
-            read_info(ctf_fname)
+    with (
+        pytest.raises(OSError, match="directory"),
+        pytest.warns(RuntimeWarning, match="does not conform"),
+    ):
+        read_info(ctf_fname)
 
 
 def test_io_dig_points(tmp_path):
@@ -540,9 +543,9 @@ def test_check_consistency():
     idx = 0
     ch = info["chs"][idx]
     for key, bad, match in (
-        ("ch_name", 1.0, "not a string"),
+        ("ch_name", 1.0, "must be an instance"),
         ("loc", np.zeros(15), "12 elements"),
-        ("cal", np.ones(1), "float or int"),
+        ("cal", np.ones(1), "numeric"),
     ):
         info._check_consistency()  # okay
         old = ch[key]
@@ -893,18 +896,17 @@ def test_repr_html():
         info["projs"] = []
     assert "Projections" not in info._repr_html_()
     info["bads"] = []
-    assert "None" in info._repr_html_()
+    assert "bad" not in info._repr_html_()
     info["bads"] = ["MEG 2443", "EEG 053"]
-    assert "MEG 2443" in info._repr_html_()
-    assert "EEG 053" in info._repr_html_()
+    assert "1 bad" in info._repr_html_()  # 1 for each channel type
 
     html = info._repr_html_()
     for ch in [  # good channel counts
-        "203 Gradiometers",
-        "102 Magnetometers",
-        "9 Stimulus",
-        "59 EEG",
-        "1 EOG",
+        "203",  # grad
+        "102",  # mag
+        "9",  # stim
+        "59",  # eeg
+        "1",  # eog
     ]:
         assert ch in html
 

@@ -15,6 +15,7 @@ Data are provided by Jean-Michel Badier from MEG center in Marseille, France.
 # Authors: Alex Gramfort <alexandre.gramfort@inria.fr>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 
@@ -65,7 +66,7 @@ actual_pos = 0.01 * np.array(
 actual_pos = np.dot(actual_pos, [[0, 1, 0], [-1, 0, 0], [0, 0, 1]])
 
 errors = 1e3 * np.linalg.norm(actual_pos - pos, axis=1)
-print("errors (mm) : %s" % errors)
+print(f"errors (mm) : {errors}")
 
 # %%
 # Plot the dipoles in 3D

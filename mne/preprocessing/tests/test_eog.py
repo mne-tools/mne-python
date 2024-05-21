@@ -1,10 +1,12 @@
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 from pathlib import Path
 
 from mne import Annotations
 from mne.io import read_raw_fif
 from mne.preprocessing.eog import find_eog_events
 
-data_path = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
+data_path = Path(__file__).parents[2] / "io" / "tests" / "data"
 raw_fname = data_path / "test_raw.fif"
 event_fname = data_path / "test-eve.fif"
 proj_fname = data_path / "test-proj.fif"

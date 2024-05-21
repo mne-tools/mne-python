@@ -3,6 +3,7 @@
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import re
 from copy import deepcopy
@@ -16,7 +17,6 @@ from ..utils import (
     fill_doc,
     logger,
     verbose,
-    warn,
 )
 from .constants import FIFF
 
@@ -236,10 +236,9 @@ def channel_type(info, idx):
     type : str
         Type of channel. Will be one of::
 
-            {'grad', 'mag', 'eeg', 'csd', 'stim', 'eog', 'emg', 'ecg',
-             'ref_meg', 'resp', 'exci', 'ias', 'syst', 'misc', 'seeg', 'dbs',
-              'bio', 'chpi', 'dipole', 'gof', 'ecog', 'hbo', 'hbr',
-              'temperature', 'gsr', 'eyetrack'}
+            {'bio', 'chpi', 'dbs', 'dipole', 'ecg', 'ecog', 'eeg', 'emg',
+            'eog', 'exci', 'eyetrack', 'fnirs', 'gof', 'gsr', 'ias', 'misc',
+            'meg', 'ref_meg', 'resp', 'seeg', 'stim', 'syst', 'temperature'}
     """
     # This is faster than the original _channel_type_old now in test_pick.py
     # because it uses (at most!) two dict lookups plus one conditional
@@ -249,7 +248,7 @@ def channel_type(info, idx):
         first_kind = _first_rule[ch["kind"]]
     except KeyError:
         raise ValueError(
-            'Unknown channel type (%s) for channel "%s"' % (ch["kind"], ch["ch_name"])
+            f'Unknown channel type ({ch["kind"]}) for channel "{ch["ch_name"]}"'
         )
     if first_kind in _second_rules:
         key, second_rule = _second_rules[first_kind]
@@ -258,7 +257,7 @@ def channel_type(info, idx):
 
 
 @verbose
-def pick_channels(ch_names, include, exclude=[], ordered=None, *, verbose=None):
+def pick_channels(ch_names, include, exclude=(), ordered=True, *, verbose=None):
     """Pick channels by names.
 
     Returns the indices of ``ch_names`` in ``include`` but not in ``exclude``.
@@ -290,7 +289,7 @@ def pick_channels(ch_names, include, exclude=[], ordered=None, *, verbose=None):
     """
     if len(np.unique(ch_names)) != len(ch_names):
         raise RuntimeError("ch_names is not a unique list, picking is unsafe")
-    _validate_type(ordered, (bool, None), "ordered")
+    _validate_type(ordered, bool, "ordered")
     _check_excludes_includes(include)
     _check_excludes_includes(exclude)
     if not isinstance(include, list):
@@ -306,35 +305,12 @@ def pick_channels(ch_names, include, exclude=[], ordered=None, *, verbose=None):
                 sel.append(ch_names.index(name))
         else:
             missing.append(name)
-    dep_msg = (
-        "The default for pick_channels will change from ordered=False to "
-        "ordered=True in 1.5"
-    )
-    if len(missing):
-        if ordered is None:
-            warn(
-                f"{dep_msg} and this will result in an error because the "
-                f"following channel names are missing:\n{missing}\n"
-                "Either fix your included names or explicitly pass "
-                "ordered=False.",
-                FutureWarning,
-            )
-        elif ordered:
-            raise ValueError(
-                "Missing channels from ch_names required by "
-                "include:\n%s" % (missing,)
-            )
+    if len(missing) and ordered:
+        raise ValueError(
+            f"Missing channels from ch_names required by include:\n{missing}"
+        )
     if not ordered:
-        out_sel = np.unique(sel)
-        if ordered is None and not np.array_equal(out_sel, sel):
-            warn(
-                f"{dep_msg} and this will result in a change of behavior "
-                "because the resulting channel order will not match. Either "
-                "use a channel order that matches your instance or "
-                "pass ordered=False.",
-                FutureWarning,
-            )
-        sel = out_sel
+        sel = np.unique(sel)
     return np.array(sel, int)
 
 
@@ -435,7 +411,7 @@ def _check_meg_type(meg, allow_auto=False):
         allowed_types += ["auto"] if allow_auto else []
         if meg not in allowed_types:
             raise ValueError(
-                "meg value must be one of %s or bool, not %s" % (allowed_types, meg)
+                f"meg value must be one of {allowed_types} or bool, not {meg}"
             )
 
 
@@ -649,10 +625,11 @@ def pick_info(info, sel=(), copy=True, verbose=None):
         return info
     elif len(sel) == 0:
         raise ValueError("No channels match the selection.")
-    n_unique = len(np.unique(np.arange(len(info["ch_names"]))[sel]))
+    ch_set = set(info["ch_names"][k] for k in sel)
+    n_unique = len(ch_set)
     if n_unique != len(sel):
         raise ValueError(
-            "Found %d / %d unique names, sel is not unique" % (n_unique, len(sel))
+            f"Found {n_unique} / {len(sel)} unique names, sel is not unique"
         )
 
     # make sure required the compensation channels are present
@@ -661,8 +638,8 @@ def pick_info(info, sel=(), copy=True, verbose=None):
         _, comps_missing = _bad_chans_comp(info, ch_names)
         if len(comps_missing) > 0:
             logger.info(
-                "Removing %d compensators from info because "
-                "not all compensation channels were picked." % (len(info["comps"]),)
+                f"Removing {len(info['comps'])} compensators from info because "
+                "not all compensation channels were picked."
             )
             with info._unlock():
                 info["comps"] = []
@@ -687,6 +664,15 @@ def pick_info(info, sel=(), copy=True, verbose=None):
     if info.get("custom_ref_applied", False) and not _electrode_types(info):
         with info._unlock():
             info["custom_ref_applied"] = FIFF.FIFFV_MNE_CUSTOM_REF_OFF
+    # remove unused projectors
+    if info.get("projs", False):
+        projs = list()
+        for p in info["projs"]:
+            if any(ch_name in ch_set for ch_name in p["data"]["col_names"]):
+                projs.append(p)
+        if len(projs) != len(info["projs"]):
+            with info._unlock():
+                info["projs"] = projs
     info._check_consistency()
 
     return info
@@ -706,7 +692,7 @@ def _has_kit_refs(info, picks):
 
 @verbose
 def pick_channels_forward(
-    orig, include=[], exclude=[], ordered=None, copy=True, *, verbose=None
+    orig, include=(), exclude=(), ordered=True, copy=True, *, verbose=None
 ):
     """Pick channels from forward operator.
 
@@ -761,7 +747,7 @@ def pick_channels_forward(
     if nuse == 0:
         raise ValueError("Nothing remains after picking")
 
-    logger.info("    %d out of %d channels remain after picking" % (nuse, fwd["nchan"]))
+    logger.info(f"    {nuse:d} out of {fwd['nchan']} channels remain after picking")
 
     #   Pick the correct rows of the forward operator using sel_sol
     fwd["sol"]["data"] = fwd["sol"]["data"][sel_sol, :]
@@ -797,8 +783,8 @@ def pick_types_forward(
     seeg=False,
     ecog=False,
     dbs=False,
-    include=[],
-    exclude=[],
+    include=(),
+    exclude=(),
 ):
     """Pick by channel type and names from a forward operator.
 
@@ -893,7 +879,7 @@ def channel_indices_by_type(info, picks=None):
 
 @verbose
 def pick_channels_cov(
-    orig, include=[], exclude="bads", ordered=None, copy=True, *, verbose=None
+    orig, include=(), exclude="bads", ordered=True, copy=True, *, verbose=None
 ):
     """Pick channels from covariance matrix.
 
@@ -982,8 +968,7 @@ def _contains_ch_type(info, ch_type):
     _check_option("ch_type", ch_type, valid_channel_types)
     if info is None:
         raise ValueError(
-            'Cannot check for channels of type "%s" because info '
-            "is None" % (ch_type,)
+            f'Cannot check for channels of type "{ch_type}" because info is None'
         )
     return any(ch_type == channel_type(info, ii) for ii in range(info["nchan"]))
 
@@ -1013,7 +998,7 @@ def _picks_by_type(info, meg_combined=False, ref_meg=False, exclude="bads"):
     exclude = _check_info_exclude(info, exclude)
     if meg_combined == "auto":
         meg_combined = _mag_grad_dependent(info)
-    picks_list = []
+
     picks_list = {ch_type: list() for ch_type in _DATA_CH_TYPES_SPLIT}
     for k in range(info["nchan"]):
         if info["chs"][k]["ch_name"] not in exclude:
@@ -1077,8 +1062,8 @@ def _check_excludes_includes(chs, info=None, allow_bads=False):
                 chs = info["bads"]
         else:
             raise ValueError(
-                'include/exclude must be list, tuple, ndarray, or "bads". '
-                + "You provided type {}".format(type(chs))
+                'include/exclude must be list, tuple, ndarray, or "bads". You provided '
+                f"type {type(chs)}."
             )
     return chs
 
@@ -1248,10 +1233,10 @@ def _picks_to_idx(
     if picks is None:
         if isinstance(info, int):  # special wrapper for no real info
             picks = np.arange(n_chan)
-            extra_repr = ", treated as range(%d)" % (n_chan,)
+            extra_repr = ", treated as range({n_chan})"
         else:
             picks = none  # let _picks_str_to_idx handle it
-            extra_repr = 'None, treated as "%s"' % (none,)
+            extra_repr = f'None, treated as "{none}"'
 
     #
     # slice
@@ -1265,7 +1250,7 @@ def _picks_to_idx(
     picks = np.atleast_1d(picks)  # this works even for picks == 'something'
     picks = np.array([], dtype=int) if len(picks) == 0 else picks
     if picks.ndim != 1:
-        raise ValueError("picks must be 1D, got %sD" % (picks.ndim,))
+        raise ValueError(f"picks must be 1D, got {picks.ndim}D")
     if picks.dtype.char in ("S", "U"):
         picks = _picks_str_to_idx(
             info,
@@ -1295,14 +1280,13 @@ def _picks_to_idx(
     #
     if len(picks) == 0 and not allow_empty:
         raise ValueError(
-            "No appropriate %s found for the given picks "
-            "(%r)" % (picks_on, orig_picks)
+            f"No appropriate {picks_on} found for the given picks ({orig_picks!r})"
         )
     if (picks < -n_chan).any():
-        raise ValueError("All picks must be >= %d, got %r" % (-n_chan, orig_picks))
+        raise IndexError(f"All picks must be >= {-n_chan}, got {repr(orig_picks)}")
     if (picks >= n_chan).any():
-        raise ValueError(
-            "All picks must be < n_%s (%d), got %r" % (picks_on, n_chan, orig_picks)
+        raise IndexError(
+            f"All picks must be < n_{picks_on} ({n_chan}), got {repr(orig_picks)}"
         )
     picks %= n_chan  # ensure positive
     if return_kind:
@@ -1317,7 +1301,7 @@ def _picks_str_to_idx(
     # special case for _picks_to_idx w/no info: shouldn't really happen
     if isinstance(info, int):
         raise ValueError(
-            "picks as str can only be used when measurement " "info is available"
+            "picks as str can only be used when measurement info is available"
         )
 
     #
@@ -1340,8 +1324,8 @@ def _picks_str_to_idx(
                 picks_generic = _pick_data_or_ica(info, exclude=exclude)
             if len(picks_generic) == 0 and orig_picks is None and not allow_empty:
                 raise ValueError(
-                    "picks (%s) yielded no channels, consider "
-                    "passing picks explicitly" % (repr(orig_picks) + extra_repr,)
+                    f"picks ({repr(orig_picks) + extra_repr}) yielded no channels, "
+                    "consider passing picks explicitly"
                 )
 
     #
@@ -1406,10 +1390,9 @@ def _picks_str_to_idx(
     if sum(any_found) == 0:
         if not allow_empty:
             raise ValueError(
-                "picks (%s) could not be interpreted as "
-                'channel names (no channel "%s"), channel types (no '
-                'type "%s" present), or a generic type (just "all" or "data")'
-                % (repr(orig_picks) + extra_repr, str(bad_names), bad_type)
+                f"picks ({repr(orig_picks) + extra_repr}) could not be interpreted as "
+                f'channel names (no channel "{bad_names}"), channel types (no type'
+                f' "{bad_type}" present), or a generic type (just "all" or "data")'
             )
         picks = np.array([], int)
     elif sum(any_found) > 1:

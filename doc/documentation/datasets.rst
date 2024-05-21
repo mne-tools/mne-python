@@ -282,6 +282,18 @@ are richly annotated, and can be used for e.g. multiple regression estimation
 of EEG correlates of printed word processing.
 
 
+KIT phantom dataset
+=============================
+:func:`mne.datasets.phantom_kit.data_path`.
+
+This dataset was obtained with a phantom on a KIT system at
+Macquarie University in Sydney, Australia.
+
+.. topic:: Examples
+
+    * :ref:`tut-phantom-KIT`
+
+
 4D Neuroimaging / BTi dataset
 =============================
 :func:`mne.datasets.phantom_4dbti.data_path`.
@@ -504,7 +516,7 @@ Contains both EEG (EGI) and eye-tracking (ASCII format) data recorded from a
 pupillary light reflex experiment, stored in separate files. 1 participant fixated
 on the screen while short light flashes appeared. Event onsets were recorded by a
 photodiode attached to the screen and were sent to both the EEG and eye-tracking
-systems. 
+systems.
 
 .. topic:: Examples
 

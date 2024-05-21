@@ -19,6 +19,7 @@ rERPs are described in :footcite:t:`SmithKutas2015`.
 # Authors: Jona Sassenhagen <jona.sassenhagen@gmail.de>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 

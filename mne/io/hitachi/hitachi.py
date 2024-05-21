@@ -1,6 +1,7 @@
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import datetime as dt
 import re
@@ -16,7 +17,7 @@ from ..nirx.nirx import _read_csv_rows_cols
 
 
 @fill_doc
-def read_raw_hitachi(fname, preload=False, verbose=None):
+def read_raw_hitachi(fname, preload=False, verbose=None) -> "RawHitachi":
     """Reader for a Hitachi fNIRS recording.
 
     Parameters
@@ -95,7 +96,7 @@ class RawHitachi(BaseRaw):
             info = infos[0]
         if len(set(last_samps)) != 1:
             raise RuntimeError(
-                "All files must have the same number of " "samples, got: {last_samps}"
+                "All files must have the same number of samples, got: {last_samps}"
             )
         last_samps = [last_samps[0]]
         raw_extras = [dict(probes=probes)]
@@ -135,7 +136,7 @@ class RawHitachi(BaseRaw):
 
 
 def _get_hitachi_info(fname, S_offset, D_offset, ignore_names):
-    logger.info("Loading %s" % fname)
+    logger.info(f"Loading {fname}")
     raw_extra = dict(fname=fname)
     info_extra = dict()
     subject_info = dict()
@@ -267,7 +268,7 @@ def _get_hitachi_info(fname, S_offset, D_offset, ignore_names):
         "3x11": "ETG-4000",
     }
     _check_option("Hitachi mode", mode, sorted(names))
-    n_row, n_col = [int(x) for x in mode.split("x")]
+    n_row, n_col = (int(x) for x in mode.split("x"))
     logger.info(f"Constructing pairing matrix for {names[mode]} ({mode})")
     pairs = _compute_pairs(n_row, n_col, n=1 + (mode == "3x3"))
     assert n_nirs == len(pairs) * 2
@@ -283,9 +284,7 @@ def _get_hitachi_info(fname, S_offset, D_offset, ignore_names):
         # nominal wavelength
         sidx, didx = pairs[ii // 2]
         nom_freq = fnirs_wavelengths[np.argmin(np.abs(acc_freq - fnirs_wavelengths))]
-        ch_names[idx] = (
-            f"S{S_offset + sidx + 1}_" f"D{D_offset + didx + 1} " f"{nom_freq}"
-        )
+        ch_names[idx] = f"S{S_offset + sidx + 1}_D{D_offset + didx + 1} {nom_freq}"
     offsets = np.array(pairs, int).max(axis=0) + 1
 
     # figure out bounds

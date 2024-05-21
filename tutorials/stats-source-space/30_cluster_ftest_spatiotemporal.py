@@ -13,6 +13,7 @@ permutation test across space and time.
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Eric Larson <larson.eric.d@gmail.com>
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 

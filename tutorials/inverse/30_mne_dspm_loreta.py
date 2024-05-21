@@ -9,6 +9,8 @@ The aim of this tutorial is to teach you how to compute and apply a linear
 minimum-norm inverse method on evoked/raw/epochs data.
 """
 
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 # %%
 
 import matplotlib.pyplot as plt
@@ -127,7 +129,7 @@ stc, residual = apply_inverse(
 
 fig, ax = plt.subplots()
 ax.plot(1e3 * stc.times, stc.data[::100, :].T)
-ax.set(xlabel="time (ms)", ylabel="%s value" % method)
+ax.set(xlabel="time (ms)", ylabel=f"{method} value")
 
 # %%
 # Examine the original data and the residual after fitting:

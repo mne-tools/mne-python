@@ -1,6 +1,7 @@
 # Author: Denis A. Engemann <d.engemann@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from pathlib import Path
 
@@ -11,7 +12,7 @@ from numpy.testing import assert_array_almost_equal, assert_equal
 from mne import Epochs, io, pick_types, read_events
 from mne.decoding import EMS, compute_ems
 
-data_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
+data_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
 raw_fname = data_dir / "test_raw.fif"
 event_name = data_dir / "test-eve.fif"
 tmin, tmax = -0.2, 0.5

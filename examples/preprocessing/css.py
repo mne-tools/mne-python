@@ -16,6 +16,8 @@ density of the raw and processed data.
 
 """
 # Author: John G Samuelsson <johnsam@mit.edu>
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -73,9 +75,9 @@ stc = simulate_sparse_stc(
     labels=[postcenlab, hiplab],
     data_fun=cortical_waveform,
 )
-stc.data[
-    np.where(np.isin(stc.vertices[0], hiplab.vertices))[0], :
-] = subcortical_waveform(times)
+stc.data[np.where(np.isin(stc.vertices[0], hiplab.vertices))[0], :] = (
+    subcortical_waveform(times)
+)
 evoked = simulate_evoked(fwd, stc, raw.info, cov, nave=15)
 
 ###############################################################################

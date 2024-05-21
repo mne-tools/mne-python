@@ -76,6 +76,6 @@ doctest:
 	      "results in _build/doctest/output.txt."
 
 view:
-	@python -c "import webbrowser; webbrowser.open_new_tab('file://$(PWD)/_build/html/index.html')"
+	@python -c "import webbrowser; webbrowser.open_new_tab('file://$(PWD)/_build/html/sg_execution_times.html')"
 
 show: view

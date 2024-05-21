@@ -1,6 +1,7 @@
 # Authors: Adam Li <adam2392@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 import os
 import os.path as op
 from collections import OrderedDict
@@ -17,7 +18,7 @@ from ..base import BaseRaw
 
 
 @fill_doc
-def read_raw_persyst(fname, preload=False, verbose=None):
+def read_raw_persyst(fname, preload=False, verbose=None) -> "RawPersyst":
     """Reader for a Persyst (.lay/.dat) recording.
 
     Parameters
@@ -67,7 +68,7 @@ class RawPersyst(BaseRaw):
     @verbose
     def __init__(self, fname, preload=False, verbose=None):
         fname = str(_check_fname(fname, "read", True, "fname"))
-        logger.info("Loading %s" % fname)
+        logger.info(f"Loading {fname}")
 
         # make sure filename is the Lay file
         if not fname.endswith(".lay"):
@@ -76,7 +77,7 @@ class RawPersyst(BaseRaw):
         curr_path, lay_fname = op.dirname(fname), op.basename(fname)
         if not op.exists(fname):
             raise FileNotFoundError(
-                f"The path you specified, " f'"{lay_fname}",does not exist.'
+                f'The path you specified, "{lay_fname}",does not exist.'
             )
 
         # sections and subsections currently unused
@@ -164,7 +165,7 @@ class RawPersyst(BaseRaw):
                 warn(
                     "Cannot read in the measurement date due "
                     "to incompatible format. Please set manually "
-                    "for %s " % lay_fname
+                    f"for {lay_fname} "
                 )
                 meas_date = None
             else:
@@ -221,11 +222,11 @@ class RawPersyst(BaseRaw):
             n_samples = f.tell()
             n_samples = n_samples // (dtype.itemsize * n_chs)
 
-            logger.debug(f"Loaded {n_samples} samples " f"for {n_chs} channels.")
+            logger.debug(f"Loaded {n_samples} samples for {n_chs} channels.")
 
         raw_extras = {"dtype": dtype, "n_chs": n_chs, "n_samples": n_samples}
         # create Raw object
-        super(RawPersyst, self).__init__(
+        super().__init__(
             info,
             preload,
             filenames=[dat_fpath],
@@ -281,7 +282,7 @@ class RawPersyst(BaseRaw):
 
         # chs * rows
         # cast as float32; more than enough precision
-        record = np.reshape(record, (n_chs, -1), "F").astype(np.float32)
+        record = np.reshape(record, (n_chs, -1), order="F").astype(np.float32)
 
         # calibrate to convert to V and handle mult
         _mult_cal_one(data, record, idx, cals, mult)
@@ -296,13 +297,13 @@ def _get_subjectinfo(patient_dict):
             birthdate = datetime.strptime(birthdate, "%m/%d/%y")
         except ValueError:
             birthdate = None
-            print("Unable to process birthdate of %s " % birthdate)
+            print(f"Unable to process birthdate of {birthdate} ")
     elif "-" in birthdate:
         try:
             birthdate = datetime.strptime(birthdate, "%d-%m-%y")
         except ValueError:
             birthdate = None
-            print("Unable to process birthdate of %s " % birthdate)
+            print(f"Unable to process birthdate of {birthdate} ")
 
     subject_info = {
         "first_name": patient_dict.get("first"),
@@ -350,7 +351,7 @@ def _read_lay_contents(fname):
 
     # initialize all section to empty str
     section = ""
-    with open(fname, "r") as fin:
+    with open(fname) as fin:
         for line in fin:
             # break a line into a status, key and value
             status, key, val = _process_lay_line(line, section)
@@ -448,6 +449,7 @@ def _process_lay_line(line, section):
         if section == "comments":
             # Persyst Comments output 5 variables "," separated
             time_sec, duration, state, var_type, text = line.split(",", 4)
+            del var_type, state
             status = 2
             key = text
             value = (time_sec, duration)
@@ -455,9 +457,9 @@ def _process_lay_line(line, section):
         else:
             if "=" not in line:
                 raise RuntimeError(
-                    "The line %s does not conform "
+                    f"The line {line} does not conform "
                     "to the standards. Please check the "
-                    ".lay file." % line
+                    ".lay file."
                 )  # noqa
             pos = line.index("=")
             status = 2

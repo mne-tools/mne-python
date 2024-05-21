@@ -14,6 +14,8 @@ Examples
 """
 
 # Authors : Eric Larson, PhD
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import sys
 
@@ -75,14 +77,14 @@ def run():
         "-o",
         "--order",
         dest="group_by",
-        help="Order to use for grouping during plotting " "('type' or 'original')",
+        help="Order to use for grouping during plotting ('type' or 'original')",
         default="type",
     )
     parser.add_option(
         "-p",
         "--preload",
         dest="preload",
-        help="Preload raw data (for faster navigaton)",
+        help="Preload raw data (for faster navigation)",
         default=False,
         action="store_true",
     )
@@ -123,7 +125,8 @@ def run():
     parser.add_option(
         "--clipping",
         dest="clipping",
-        help="Enable trace clipping mode, either 'clamp' or " "'transparent'",
+        help="Enable trace clipping mode. Can be 'clamp', 'transparent', a float, "
+        "or 'none'.",
         default=_RAW_CLIP_DEF,
     )
     parser.add_option(
