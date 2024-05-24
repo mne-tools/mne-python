@@ -50,6 +50,7 @@ _._get_tags
 _.mahalanobis
 exc_type
 exc_value
+_.name_html
 
 # Unused but for compat or CIs
 fit_params_  # search_light
