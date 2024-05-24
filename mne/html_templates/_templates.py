@@ -61,7 +61,6 @@ class _Channel:
     """A channel in a recording."""
 
     index: int
-    name: str
     name_html: str
     type: str
     type_pretty: str
@@ -80,7 +79,6 @@ def _format_channels(info) -> dict[str, dict[Literal["good", "bad"], list[str]]]
             ch_status = "bad" if ch_name in info["bads"] else "good"
             channel = _Channel(
                 index=ch_index,
-                name=ch_name,
                 name_html=ch_name.replace(" ", "&nbsp;"),
                 type=ch_type,
                 type_pretty=ch_type_pretty,
