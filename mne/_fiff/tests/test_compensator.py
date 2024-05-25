@@ -88,7 +88,7 @@ def test_compensation_mne(tmp_path):
 
     def compensate_mne(fname, comp):
         """Compensate using MNE-C."""
-        tmp_fname = "%s-%d-ave.fif" % (fname.stem, comp)
+        tmp_fname = f"{fname.stem}-{comp}-ave.fif"
         cmd = [
             "mne_compensate_data",
             "--in",

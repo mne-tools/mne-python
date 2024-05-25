@@ -190,7 +190,7 @@ phase_coh = limo_epochs.metadata["phase-coherence"]
 # get levels of phase coherence
 levels = sorted(phase_coh.unique())
 # create labels for levels of phase coherence (i.e., 0 - 85%)
-labels = ["{0:.2f}".format(i) for i in np.arange(0.0, 0.90, 0.05)]
+labels = [f"{i:.2f}" for i in np.arange(0.0, 0.90, 0.05)]
 
 # create dict of evokeds for each level of phase-coherence
 evokeds = {

@@ -236,7 +236,7 @@ def test_crop(tmp_path):
         assert_allclose(
             getattr(raw_concat.annotations, attr),
             getattr(raw.annotations, attr),
-            err_msg="Failed for %s:" % (attr,),
+            err_msg=f"Failed for {attr}:",
         )
 
     raw.set_annotations(None)  # undo
@@ -278,7 +278,9 @@ def test_crop(tmp_path):
     assert raw_read.annotations is not None
     assert len(raw_read.annotations.onset) == 0
     # test saving and reloading cropped annotations in raw instance
-    info = create_info([f"EEG{i+1}" for i in range(3)], ch_types=["eeg"] * 3, sfreq=50)
+    info = create_info(
+        [f"EEG{i + 1}" for i in range(3)], ch_types=["eeg"] * 3, sfreq=50
+    )
     raw = RawArray(np.zeros((3, 50 * 20)), info)
     annotation = mne.Annotations([8, 12, 15], [2] * 3, [1, 2, 3])
     raw = raw.set_annotations(annotation)
@@ -789,7 +791,7 @@ def test_events_from_annot_in_raw_objects():
     assert isinstance(event_id, dict)
     assert len(event_id) > 0
     for kind in ("BAD", "EDGE"):
-        assert "%s boundary" % kind in raw_concat.annotations.description
+        assert f"{kind} boundary" in raw_concat.annotations.description
         for key in event_id.keys():
             assert kind not in key
 
@@ -815,6 +817,49 @@ def test_events_from_annot_onset_alingment():
     event_latencies, event_id = events_from_annotations(raw)
     assert event_latencies[0, 0] == 10
     assert raw.first_samp == event_latencies[0, 0]
+
+
+@pytest.mark.parametrize(
+    "use_rounding,tol,shape,onsets,descriptions",
+    [
+        pytest.param(True, 0, (2, 3), [202, 402], [0, 2], id="rounding-notol"),
+        pytest.param(True, 1e-8, (3, 3), [202, 302, 402], [0, 1, 2], id="rounding-tol"),
+        pytest.param(False, 0, (2, 3), [202, 401], [0, 2], id="norounding-notol"),
+        pytest.param(
+            False, 1e-8, (3, 3), [202, 302, 401], [0, 1, 2], id="norounding-tol"
+        ),
+        pytest.param(None, None, (3, 3), [202, 302, 402], [0, 1, 2], id="default"),
+    ],
+)
+def test_events_from_annot_with_tolerance(
+    use_rounding, tol, shape, onsets, descriptions
+):
+    """Test events_from_annotations w/ and w/o tolerance."""
+    info = create_info(ch_names=1, sfreq=100)
+    raw = RawArray(data=np.empty((1, 1000)), info=info, first_samp=0)
+    meas_date = _handle_meas_date(0)
+    with raw.info._unlock(check_after=True):
+        raw.info["meas_date"] = meas_date
+    chunk_duration = 1
+    annot = Annotations([2.02, 3.02, 4.02], chunk_duration, ["0", "1", "2"], 0)
+    raw.set_annotations(annot)
+    event_id = {"0": 0, "1": 1, "2": 2}
+
+    if use_rounding is None:
+        events, _ = events_from_annotations(
+            raw, event_id=event_id, chunk_duration=chunk_duration
+        )
+    else:
+        events, _ = events_from_annotations(
+            raw,
+            event_id=event_id,
+            chunk_duration=chunk_duration,
+            use_rounding=use_rounding,
+            tol=tol,
+        )
+    assert events.shape == shape
+    assert (events[:, 0] == onsets).all()
+    assert (events[:, 2] == descriptions).all()
 
 
 def _create_annotation_based_on_descr(
@@ -990,7 +1035,7 @@ def test_io_annotation(dummy_annotation_file, tmp_path, fmt, ch_names):
 def test_broken_csv(tmp_path):
     """Test broken .csv that does not use timestamps."""
     pytest.importorskip("pandas")
-    content = "onset,duration,description\n" "1.,1.0,AA\n" "3.,2.425,BB"
+    content = "onset,duration,description\n1.,1.0,AA\n3.,2.425,BB"
     fname = tmp_path / "annotations_broken.csv"
     with open(fname, "w") as f:
         f.write(content)
@@ -1004,7 +1049,7 @@ def test_broken_csv(tmp_path):
 @pytest.fixture(scope="function", params=("ch_names",))
 def dummy_annotation_txt_file(tmp_path_factory, ch_names):
     """Create txt file for testing."""
-    content = "3.14, 42, AA \n" "6.28, 48, BB"
+    content = "3.14, 42, AA \n6.28, 48, BB"
     if ch_names:
         content = content.splitlines()
         content[0] = content[0].strip() + ","
@@ -1087,7 +1132,7 @@ def test_read_annotation_txt_header(tmp_path):
 
 def test_read_annotation_txt_one_segment(tmp_path):
     """Test empty TXT input/output."""
-    content = "# MNE-Annotations\n" "# onset, duration, description\n" "3.14, 42, AA"
+    content = "# MNE-Annotations\n# onset, duration, description\n3.14, 42, AA"
     fname = tmp_path / "one-annotations.txt"
     with open(fname, "w") as f:
         f.write(content)
@@ -1097,7 +1142,7 @@ def test_read_annotation_txt_one_segment(tmp_path):
 
 def test_read_annotation_txt_empty(tmp_path):
     """Test empty TXT input/output."""
-    content = "# MNE-Annotations\n" "# onset, duration, description\n"
+    content = "# MNE-Annotations\n# onset, duration, description\n"
     fname = tmp_path / "empty-annotations.txt"
     with open(fname, "w") as f:
         f.write(content)
@@ -1204,7 +1249,7 @@ def test_date_none(tmp_path):
     n_chans = 139
     n_samps = 20
     data = np.random.random_sample((n_chans, n_samps))
-    ch_names = ["E{}".format(x) for x in range(n_chans)]
+    ch_names = [f"E{x}" for x in range(n_chans)]
     ch_types = ["eeg"] * n_chans
     info = create_info(ch_names=ch_names, ch_types=ch_types, sfreq=2048)
     assert info["meas_date"] is None
@@ -1250,7 +1295,7 @@ def test_crop_when_negative_orig_time(windows_like_datetime):
     assert len(annot) == 10
 
     # Crop with negative tmin, tmax
-    tmin, tmax = [orig_time_stamp + t for t in (0.25, 0.75)]
+    tmin, tmax = (orig_time_stamp + t for t in (0.25, 0.75))
     assert tmin < 0 and tmax < 0
     crop_annot = annot.crop(tmin=tmin, tmax=tmax)
     assert_allclose(crop_annot.onset, [0.3, 0.4, 0.5, 0.6, 0.7])
@@ -1353,7 +1398,7 @@ def test_annotations_from_events():
 
     # 4. Try passing callable
     # -------------------------------------------------------------------------
-    event_desc = lambda d: "event{}".format(d)  # noqa:E731
+    event_desc = lambda d: f"event{d}"  # noqa:E731
     annots = annotations_from_events(
         events,
         sfreq=raw.info["sfreq"],

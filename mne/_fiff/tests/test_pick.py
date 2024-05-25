@@ -522,8 +522,7 @@ def test_picks_by_channels():
     # duplicate check
     names = ["MEG 002", "MEG 002"]
     assert len(pick_channels(raw.info["ch_names"], names, ordered=False)) == 1
-    with pytest.warns(FutureWarning, match="ordered=False"):
-        assert len(raw.copy().pick_channels(names)[0][0]) == 1  # legacy method OK here
+    assert len(raw.copy().pick_channels(names, ordered=False)[0][0]) == 1
 
     # missing ch_name
     bad_names = names + ["BAD"]
@@ -558,11 +557,17 @@ def test_clean_info_bads():
     # simulate the bad channels
     raw.info["bads"] = eeg_bad_ch + meg_bad_ch
 
+    assert len(raw.info["projs"]) == 3
+    raw.set_eeg_reference(projection=True)
+    assert len(raw.info["projs"]) == 4
+
     # simulate the call to pick_info excluding the bad eeg channels
     info_eeg = pick_info(raw.info, picks_eeg)
+    assert len(info_eeg["projs"]) == 1
 
     # simulate the call to pick_info excluding the bad meg channels
     info_meg = pick_info(raw.info, picks_meg)
+    assert len(info_meg["projs"]) == 3
 
     assert info_eeg["bads"] == eeg_bad_ch
     assert info_meg["bads"] == meg_bad_ch

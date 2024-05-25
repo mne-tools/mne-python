@@ -107,22 +107,14 @@ def _get_head_surface(subject, source, subjects_dir, on_defects, raise_error=Tru
 
     # Load the head surface from the BEM
     subjects_dir = str(get_subjects_dir(subjects_dir, raise_error=True))
-    if not isinstance(subject, str):
-        raise TypeError(
-            "subject must be a string, not %s."
-            % (
-                type(
-                    subject,
-                )
-            )
-        )
+    _validate_type(subject, str, "subject")
     # use realpath to allow for linked surfaces (c.f. MNE manual 196-197)
     if isinstance(source, str):
         source = [source]
     surf = None
     for this_source in source:
         this_head = op.realpath(
-            op.join(subjects_dir, subject, "bem", "%s-%s.fif" % (subject, this_source))
+            op.join(subjects_dir, subject, "bem", f"{subject}-{this_source}.fif")
         )
         if op.exists(this_head):
             surf = read_bem_surfaces(
@@ -136,8 +128,8 @@ def _get_head_surface(subject, source, subjects_dir, on_defects, raise_error=Tru
             # let's do a more sophisticated search
             path = op.join(subjects_dir, subject, "bem")
             if not op.isdir(path):
-                raise OSError('Subject bem directory "%s" does not exist.' % path)
-            files = sorted(glob(op.join(path, "%s*%s.fif" % (subject, this_source))))
+                raise OSError(f'Subject bem directory "{path}" does not exist.')
+            files = sorted(glob(op.join(path, f"{subject}*{this_source}.fif")))
             for this_head in files:
                 try:
                     surf = read_bem_surfaces(
@@ -157,12 +149,12 @@ def _get_head_surface(subject, source, subjects_dir, on_defects, raise_error=Tru
     if surf is None:
         if raise_error:
             raise OSError(
-                'No file matching "%s*%s" and containing a head '
-                "surface found." % (subject, this_source)
+                f'No file matching "{subject}*{this_source}" and containing a head '
+                "surface found."
             )
         else:
             return surf
-    logger.info("Using surface from %s." % this_head)
+    logger.info(f"Using surface from {this_head}.")
     return surf
 
 
@@ -212,7 +204,7 @@ def get_meg_helmet_surf(info, trans=None, *, verbose=None):
 
     system, have_helmet = _get_meg_system(info)
     if have_helmet:
-        logger.info("Getting helmet for system %s" % system)
+        logger.info(f"Getting helmet for system {system}")
         fname = _helmet_path / f"{system}.fif.gz"
         surf = read_bem_surfaces(
             fname, False, FIFF.FIFFV_MNE_SURF_MEG_HELMET, verbose=False
@@ -299,7 +291,7 @@ def _scale_helmet_to_sensors(system, surf, info):
     logger.info(f"    1. Affine: {rot:0.1f}°, {tr:0.1f} mm, {sc:0.2f}× scale")
     deltas = interp._last_deltas * 1000
     mu, mx = np.mean(deltas), np.max(deltas)
-    logger.info(f"    2. Nonlinear displacement: " f"mean={mu:0.1f}, max={mx:0.1f} mm")
+    logger.info(f"    2. Nonlinear displacement: mean={mu:0.1f}, max={mx:0.1f} mm")
     surf["rr"] = new_rr
     complete_surface_info(surf, copy=False, verbose=False)
     return surf
@@ -516,7 +508,7 @@ def complete_surface_info(
     surf["tri_area"] = _normalize_vectors(surf["tri_nn"]) / 2.0
     zidx = np.where(surf["tri_area"] == 0)[0]
     if len(zidx) > 0:
-        logger.info("    Warning: zero size triangles: %s" % zidx)
+        logger.info(f"    Warning: zero size triangles: {zidx}")
 
     #    Find neighboring triangles, accumulate vertex normals, normalize
     logger.info("    Triangle neighbors and vertex normals...")
@@ -538,13 +530,14 @@ def complete_surface_info(
                     surf["neighbor_tri"][ni] = np.array([], int)
         if len(zero) > 0:
             logger.info(
-                "    Vertices do not have any neighboring "
-                "triangles: [%s]" % ", ".join(str(z) for z in zero)
+                "    Vertices do not have any neighboring triangles: "
+                f"[{', '.join(str(z) for z in zero)}]"
             )
         if len(fewer) > 0:
+            fewer = ", ".join(str(f) for f in fewer)
             logger.info(
-                "    Vertices have fewer than three neighboring "
-                "triangles, removing neighbors: [%s]" % ", ".join(str(f) for f in fewer)
+                "    Vertices have fewer than three neighboring triangles, removing "
+                f"neighbors: [{fewer}]"
             )
 
     #   Determine the neighboring vertices and fix errors
@@ -644,7 +637,7 @@ def _safe_query(rr, func, reduce=False, **kwargs):
 class _DistanceQuery:
     """Wrapper for fast distance queries."""
 
-    def __init__(self, xhs, method="BallTree", allow_kdtree=False):
+    def __init__(self, xhs, method="BallTree"):
         assert method in ("BallTree", "KDTree", "cdist")
 
         # Fastest for our problems: balltree
@@ -852,12 +845,6 @@ def _fread3(fobj):
     return (b1 << 16) + (b2 << 8) + b3
 
 
-def _fread3_many(fobj, n):
-    """Read 3-byte ints from an open binary file object."""
-    b1, b2, b3 = np.fromfile(fobj, ">u1", 3 * n).reshape(-1, 3).astype(np.int64).T
-    return (b1 << 16) + (b2 << 8) + b3
-
-
 def read_curvature(filepath, binary=True):
     """Load in curvature values from the ?h.curv file.
 
@@ -1032,7 +1019,7 @@ def _read_patch(fname):
     # This is adapted from PySurfer PR #269, Bruce Fischl's read_patch.m,
     # and PyCortex (BSD)
     patch = dict()
-    with open(fname, "r") as fid:
+    with open(fname) as fid:
         ver = np.fromfile(fid, dtype=">i4", count=1).item()
         if ver != -1:
             raise RuntimeError(f"incorrect version # {ver} (not -1) found")
@@ -1224,7 +1211,7 @@ def _create_surf_spacing(surf, hemi, subject, stype, ico_surf, subjects_dir):
     else:  # ico or oct
         # ## from mne_ico_downsample.c ## #
         surf_name = subjects_dir / subject / "surf" / f"{hemi}.sphere"
-        logger.info("Loading geometry from %s..." % surf_name)
+        logger.info(f"Loading geometry from {surf_name}...")
         from_surf = read_surface(surf_name, return_dict=True)[-1]
         _normalize_vectors(from_surf["rr"])
         if from_surf["np"] != surf["np"]:
@@ -1246,7 +1233,7 @@ def _create_surf_spacing(surf, hemi, subject, stype, ico_surf, subjects_dir):
                 inds = np.where(np.logical_not(surf["inuse"][neigh]))[0]
                 if len(inds) == 0:
                     raise RuntimeError(
-                        "Could not find neighbor for vertex " "%d / %d" % (k, nmap)
+                        "Could not find neighbor for vertex %d / %d" % (k, nmap)
                     )
                 else:
                     mmap[k] = neigh[inds[-1]]
@@ -1265,7 +1252,7 @@ def _create_surf_spacing(surf, hemi, subject, stype, ico_surf, subjects_dir):
                 )
             surf["inuse"][mmap[k]] = True
 
-        logger.info("Setting up the triangulation for the decimated " "surface...")
+        logger.info("Setting up the triangulation for the decimated surface...")
         surf["use_tris"] = np.array([mmap[ist] for ist in ico_surf["tris"]], np.int32)
     if surf["use_tris"] is not None:
         surf["nuse_tri"] = len(surf["use_tris"])
@@ -1411,10 +1398,10 @@ def _decimate_surface_vtk(points, triangles, n_triangles):
         from vtkmodules.vtkCommonDataModel import vtkCellArray, vtkPolyData
         from vtkmodules.vtkFiltersCore import vtkQuadricDecimation
     except ImportError:
-        raise ValueError("This function requires the VTK package to be " "installed")
+        raise ValueError("This function requires the VTK package to be installed")
     if triangles.max() > len(points) - 1:
         raise ValueError(
-            "The triangles refer to undefined points. " "Please check your mesh."
+            "The triangles refer to undefined points. Please check your mesh."
         )
     src = vtkPolyData()
     vtkpoints = vtkPoints()
@@ -1454,9 +1441,7 @@ def _decimate_surface_sphere(rr, tris, n_triangles):
     )
     func_map = dict(ico=_get_ico_surface, oct=_tessellate_sphere_surf)
     kind, level = map_[n_triangles]
-    logger.info(
-        "Decimating using Freesurfer spherical %s%s downsampling" % (kind, level)
-    )
+    logger.info(f"Decimating using Freesurfer spherical {kind}{level} downsampling")
     ico_surf = func_map[kind](level)
     assert len(ico_surf["tris"]) == n_triangles
     tempdir = _TempDir()
@@ -1539,8 +1524,8 @@ def decimate_surface(points, triangles, n_triangles, method="quadric", *, verbos
     _check_option("method", method, sorted(method_map))
     if n_triangles > len(triangles):
         raise ValueError(
-            "Requested n_triangles (%s) exceeds number of "
-            "original triangles (%s)" % (n_triangles, len(triangles))
+            f"Requested n_triangles ({n_triangles}) exceeds number of "
+            f"original triangles ({len(triangles)})"
         )
     return method_map[method](points, triangles, n_triangles)
 
@@ -1662,7 +1647,7 @@ def _find_nearest_tri_pts(
             else:
                 use_pt_tris = s.astype(np.int64)
             pp, qq, ptt, distt = _nearest_tri_edge(
-                use_pt_tris, rr[0], pqs[s], dists[s], a, b, c
+                use_pt_tris, pqs[s], dists[s], a, b, c
             )
             if np.abs(distt) < np.abs(dist):
                 p, q, pt, dist = pp, qq, ptt, distt
@@ -1678,7 +1663,7 @@ def _find_nearest_tri_pts(
 
 
 @jit()
-def _nearest_tri_edge(pt_tris, to_pt, pqs, dist, a, b, c):  # pragma: no cover
+def _nearest_tri_edge(pt_tris, pqs, dist, a, b, c):  # pragma: no cover
     """Get nearest location from a point to the edge of a set of triangles."""
     # We might do something intelligent here. However, for now
     # it is ok to do it in the hard way
@@ -1802,7 +1787,7 @@ def read_tri(fname_in, swap=False, verbose=None):
     -----
     .. versionadded:: 0.13.0
     """
-    with open(fname_in, "r") as fid:
+    with open(fname_in) as fid:
         lines = fid.readlines()
     n_nodes = int(lines[0])
     n_tris = int(lines[n_nodes + 1])
@@ -1829,8 +1814,7 @@ def read_tri(fname_in, swap=False, verbose=None):
         tris[:, [2, 1]] = tris[:, [1, 2]]
     tris -= 1
     logger.info(
-        "Loaded surface from %s with %s nodes and %s triangles."
-        % (fname_in, n_nodes, n_tris)
+        f"Loaded surface from {fname_in} with {n_nodes} nodes and {n_tris} triangles."
     )
     if n_items in [3, 4]:
         logger.info("Node normals were not included in the source file.")
@@ -1843,7 +1827,7 @@ def read_tri(fname_in, swap=False, verbose=None):
 def _get_solids(tri_rrs, fros):
     """Compute _sum_solids_div total angle in chunks."""
     # NOTE: This incorporates the division by 4PI that used to be separate
-    tot_angle = np.zeros((len(fros)))
+    tot_angle = np.zeros(len(fros))
     for ti in range(len(tri_rrs)):
         tri_rr = tri_rrs[ti]
         v1 = fros - tri_rr[0]
@@ -2084,9 +2068,7 @@ _VOXELS_MAX = 1000  # define constant to avoid runtime issues
 
 
 @fill_doc
-def get_montage_volume_labels(
-    montage, subject, subjects_dir=None, aseg="aparc+aseg", dist=2
-):
+def get_montage_volume_labels(montage, subject, subjects_dir=None, aseg="auto", dist=2):
     """Get regions of interest near channels from a Freesurfer parcellation.
 
     .. note:: This is applicable for channels inside the brain

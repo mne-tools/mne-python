@@ -85,11 +85,11 @@ class Layout:
         height = self.pos[:, 3]
         fname = _check_fname(fname, overwrite=overwrite, name=fname)
         if fname.suffix == ".lout":
-            out_str = "%8.2f %8.2f %8.2f %8.2f\n" % self.box
+            out_str = "{:8.2f} {:8.2f} {:8.2f} {:8.2f}\n".format(*self.box)
         elif fname.suffix == ".lay":
             out_str = ""
         else:
-            raise ValueError("Unknown layout type. Should be of type " ".lout or .lay.")
+            raise ValueError("Unknown layout type. Should be of type .lout or .lay.")
 
         for ii in range(x.shape[0]):
             out_str += "%03d %8.2f %8.2f %8.2f %8.2f %s\n" % (
@@ -107,7 +107,7 @@ class Layout:
 
     def __repr__(self):
         """Return the string representation."""
-        return "<Layout | %s - Channels: %s ...>" % (
+        return "<Layout | {} - Channels: {} ...>".format(
             self.kind,
             ", ".join(self.names[:3]),
         )
@@ -970,61 +970,6 @@ def _pair_grad_sensors(
         return picks
 
 
-# this function is used to pair grad when info is not present
-# it is the case of Projection that don't have the info.
-def _pair_grad_sensors_ch_names_vectorview(ch_names):
-    """Find the indices for pairing grad channels in a Vectorview system.
-
-    Parameters
-    ----------
-    ch_names : list of str
-        A list of channel names.
-
-    Returns
-    -------
-    indexes : list of int
-        Indices of the grad channels, ordered in pairs.
-    """
-    pairs = defaultdict(list)
-    for i, name in enumerate(ch_names):
-        if name.startswith("MEG"):
-            if name.endswith(("2", "3")):
-                key = name[-4:-1]
-                pairs[key].append(i)
-
-    pairs = [p for p in pairs.values() if len(p) == 2]
-
-    grad_chs = sum(pairs, [])
-    return grad_chs
-
-
-# this function is used to pair grad when info is not present
-# it is the case of Projection that don't have the info.
-def _pair_grad_sensors_ch_names_neuromag122(ch_names):
-    """Find the indices for pairing grad channels in a Neuromag 122 system.
-
-    Parameters
-    ----------
-    ch_names : list of str
-        A list of channel names.
-
-    Returns
-    -------
-    indexes : list of int
-        Indices of the grad channels, ordered in pairs.
-    """
-    pairs = defaultdict(list)
-    for i, name in enumerate(ch_names):
-        if name.startswith("MEG"):
-            key = (int(name[-3:]) - 1) // 2
-            pairs[key].append(i)
-
-    pairs = [p for p in pairs.values() if len(p) == 2]
-
-    grad_chs = sum(pairs, [])
-    return grad_chs
-
-
 def _merge_ch_data(data, ch_type, names, method="rms"):
     """Merge data from channel pairs.
 
@@ -1075,7 +1020,7 @@ def _merge_grad_data(data, method="rms"):
     elif method == "rms":
         data = np.sqrt(np.sum(data**2, axis=1) / 2)
     else:
-        raise ValueError('method must be "rms" or "mean", got %s.' % method)
+        raise ValueError(f'method must be "rms" or "mean", got {method}.')
     return data.reshape(data.shape[:1] + orig_shape[1:])
 
 
@@ -1181,7 +1126,7 @@ def generate_2d_layout(
     if ch_indices is None:
         ch_indices = np.arange(xy.shape[0])
     if ch_names is None:
-        ch_names = ["{}".format(i) for i in ch_indices]
+        ch_names = list(map(str, ch_indices))
 
     if len(ch_names) != len(ch_indices):
         raise ValueError("# channel names and indices must be equal")
@@ -1205,7 +1150,7 @@ def generate_2d_layout(
     # Create box and pos variable
     box = _box_size(np.vstack([x, y]).T, padding=pad)
     box = (0, 0, box[0], box[1])
-    w, h = [np.array([i] * x.shape[0]) for i in [w, h]]
+    w, h = (np.array([i] * x.shape[0]) for i in [w, h])
     loc_params = np.vstack([x, y, w, h]).T
 
     layout = Layout(box, loc_params, ch_names, ch_indices, name)

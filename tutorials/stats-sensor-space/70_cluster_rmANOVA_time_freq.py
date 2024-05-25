@@ -36,7 +36,6 @@ import numpy as np
 import mne
 from mne.datasets import sample
 from mne.stats import f_mway_rm, f_threshold_mway_rm, fdr_correction
-from mne.time_frequency import tfr_morlet
 
 print(__doc__)
 
@@ -105,8 +104,8 @@ zero_mean = False  # don't correct morlet wavelet to be of mean zero
 # ---------------------------------------------
 epochs_power = list()
 for condition in [epochs[k] for k in event_id]:
-    this_tfr = tfr_morlet(
-        condition,
+    this_tfr = condition.compute_tfr(
+        "morlet",
         freqs,
         n_cycles=n_cycles,
         decim=decim,

@@ -72,7 +72,7 @@ def realign_raw(raw, other, t_raw, t_other, verbose=None):
     converted = poly.convert(domain=(-1, 1))
     [zero_ord, first_ord] = converted.coef
     logger.info(
-        f"Zero order coefficient: {zero_ord} \n" f"First order coefficient: {first_ord}"
+        f"Zero order coefficient: {zero_ord} \nFirst order coefficient: {first_ord}"
     )
     r, p = pearsonr(t_other, t_raw)
     msg = f"Linear correlation computed as R={r:0.3f} and p={p:0.2e}"

@@ -22,7 +22,7 @@ from ._freesurfer import _get_aseg, head_to_mni, head_to_mri, read_freesurfer_lu
 from .bem import _bem_find_surface, _bem_surf_name, _fit_sphere
 from .cov import _ensure_cov, compute_whitener
 from .evoked import _aspect_rev, _read_evoked, _write_evokeds
-from .fixes import _safe_svd, pinvh
+from .fixes import _safe_svd
 from .forward._compute_forward import _compute_forwards_meeg, _prep_field_computation
 from .forward._make_forward import (
     _get_trans,
@@ -50,6 +50,7 @@ from .utils import (
     copy_function_doc_to_method_doc,
     fill_doc,
     logger,
+    pinvh,
     verbose,
     warn,
 )
@@ -145,10 +146,10 @@ class Dipole(TimeMixin):
         self.nfree = np.array(nfree) if nfree is not None else None
 
     def __repr__(self):  # noqa: D105
-        s = "n_times : %s" % len(self.times)
-        s += ", tmin : %0.3f" % np.min(self.times)
-        s += ", tmax : %0.3f" % np.max(self.times)
-        return "<Dipole | %s>" % s
+        s = f"n_times : {len(self.times)}"
+        s += f", tmin : {np.min(self.times):0.3f}"
+        s += f", tmax : {np.max(self.times):0.3f}"
+        return f"<Dipole | {s}>"
 
     @verbose
     def save(self, fname, overwrite=False, *, verbose=None):
@@ -434,7 +435,7 @@ class Dipole(TimeMixin):
 
 def _read_dipole_fixed(fname):
     """Read a fixed dipole FIF file."""
-    logger.info("Reading %s ..." % fname)
+    logger.info(f"Reading {fname} ...")
     info, nave, aspect_kind, comment, times, data, _ = _read_evoked(fname)
     return DipoleFixed(info, data, times, nave, aspect_kind, comment=comment)
 
@@ -493,10 +494,10 @@ class DipoleFixed(ExtendedTimeMixin):
         self._update_first_last()
 
     def __repr__(self):  # noqa: D105
-        s = "n_times : %s" % len(self.times)
-        s += ", tmin : %s" % np.min(self.times)
-        s += ", tmax : %s" % np.max(self.times)
-        return "<DipoleFixed | %s>" % s
+        s = f"n_times : {len(self.times)}"
+        s += f", tmin : {np.min(self.times)}"
+        s += f", tmax : {np.max(self.times)}"
+        return f"<DipoleFixed | {s}>"
 
     def copy(self):
         """Copy the DipoleFixed object.
@@ -626,7 +627,7 @@ def _read_dipole_text(fname):
     # There is a bug in older np.loadtxt regarding skipping fields,
     # so just read the data ourselves (need to get name and header anyway)
     data = list()
-    with open(fname, "r") as fid:
+    with open(fname) as fid:
         for line in fid:
             if not (line.startswith("%") or line.startswith("#")):
                 need_header = False
@@ -642,8 +643,8 @@ def _read_dipole_text(fname):
     data = np.atleast_2d(np.array(data, float))
     if def_line is None:
         raise OSError(
-            "Dipole text file is missing field definition "
-            "comment, cannot parse %s" % (fname,)
+            "Dipole text file is missing field definition comment, cannot parse "
+            f"{fname}"
         )
     # actually parse the fields
     def_line = def_line.lstrip("%").lstrip("#").strip()
@@ -690,20 +691,20 @@ def _read_dipole_text(fname):
     missing_fields = sorted(set(required_fields) - set(fields))
     if len(missing_fields) > 0:
         raise RuntimeError(
-            "Could not find necessary fields in header: %s" % (missing_fields,)
+            f"Could not find necessary fields in header: {missing_fields}"
         )
     handled_fields = set(required_fields) | set(optional_fields)
     assert len(handled_fields) == len(required_fields) + len(optional_fields)
     ignored_fields = sorted(set(fields) - set(handled_fields) - {"end/ms"})
     if len(ignored_fields) > 0:
-        warn("Ignoring extra fields in dipole file: %s" % (ignored_fields,))
+        warn(f"Ignoring extra fields in dipole file: {ignored_fields}")
     if len(fields) != data.shape[1]:
         raise OSError(
-            "More data fields (%s) found than data columns (%s): %s"
-            % (len(fields), data.shape[1], fields)
+            f"More data fields ({len(fields)}) found than data columns ({data.shape[1]}"
+            f"): {fields}"
         )
 
-    logger.info("%d dipole(s) found" % len(data))
+    logger.info(f"{len(data)} dipole(s) found")
 
     if "end/ms" in fields:
         if np.diff(
@@ -776,13 +777,11 @@ def _write_dipole_text(fname, dip):
 
     # NB CoordinateSystem is hard-coded as Head here
     with open(fname, "wb") as fid:
-        fid.write('# CoordinateSystem "Head"\n'.encode("utf-8"))
+        fid.write(b'# CoordinateSystem "Head"\n')
         fid.write((header + "\n").encode("utf-8"))
         np.savetxt(fid, out, fmt=fmt)
         if dip.name is not None:
-            fid.write(
-                ('## Name "%s dipoles" Style "Dipoles"' % dip.name).encode("utf-8")
-            )
+            fid.write((f'## Name "{dip.name} dipoles" Style "Dipoles"').encode())
 
 
 _BDIP_ERROR_KEYS = ("depth", "long", "trans", "qlong", "qtrans")
@@ -888,13 +887,15 @@ def _make_guesses(surf, grid, exclude, mindist, n_jobs=None, verbose=None):
     """Make a guess space inside a sphere or BEM surface."""
     if "rr" in surf:
         logger.info(
-            "Guess surface (%s) is in %s coordinates"
-            % (_bem_surf_name[surf["id"]], _coord_frame_name(surf["coord_frame"]))
+            "Guess surface ({}) is in {} coordinates".format(
+                _bem_surf_name[surf["id"]], _coord_frame_name(surf["coord_frame"])
+            )
         )
     else:
         logger.info(
-            "Making a spherical guess space with radius %7.1f mm..."
-            % (1000 * surf["R"])
+            "Making a spherical guess space with radius {:7.1f} mm...".format(
+                1000 * surf["R"]
+            )
         )
     logger.info("Filtering (grid = %6.f mm)..." % (1000 * grid))
     src = _make_volume_source_space(
@@ -1255,7 +1256,7 @@ def _fit_dipole(
     # Find a good starting point (find_best_guess in C)
     B2 = np.dot(B, B)
     if B2 == 0:
-        warn("Zero field found for time %s" % t)
+        warn(f"Zero field found for time {t}")
         return np.zeros(3), 0, np.zeros(3), 0, B
 
     idx = np.argmin(
@@ -1350,7 +1351,7 @@ def _fit_dipole_fixed(
     B = np.dot(whitener, B_orig)
     B2 = np.dot(B, B)
     if B2 == 0:
-        warn("Zero field found for time %s" % t)
+        warn(f"Zero field found for time {t}")
         return np.zeros(3), 0, np.zeros(3), 0, np.zeros(6)
     # Compute the dipole moment
     Q, gof, residual_noproj = _fit_Q(
@@ -1473,9 +1474,9 @@ def fit_dipole(
 
     # Determine if a list of projectors has an average EEG ref
     if _needs_eeg_average_ref_proj(evoked.info):
-        raise ValueError("EEG average reference is mandatory for dipole " "fitting.")
+        raise ValueError("EEG average reference is mandatory for dipole fitting.")
     if min_dist < 0:
-        raise ValueError("min_dist should be positive. Got %s" % min_dist)
+        raise ValueError(f"min_dist should be positive. Got {min_dist}")
     if ori is not None and pos is None:
         raise ValueError("pos must be provided if ori is not None")
 
@@ -1496,9 +1497,9 @@ def fit_dipole(
         bem_extra = bem
     else:
         bem_extra = repr(bem)
-        logger.info("BEM               : %s" % bem_extra)
+        logger.info(f"BEM               : {bem_extra}")
     mri_head_t, trans = _get_trans(trans)
-    logger.info("MRI transform     : %s" % trans)
+    logger.info(f"MRI transform     : {trans}")
     safe_false = _verbose_safe_false()
     bem = _setup_bem(bem, bem_extra, neeg, mri_head_t, verbose=safe_false)
     if not bem["is_sphere"]:
@@ -1510,9 +1511,8 @@ def fit_dipole(
         r0 = apply_trans(mri_head_t["trans"], r0[np.newaxis, :])[0]
         inner_skull["r0"] = r0
         logger.info(
-            "Head origin       : "
-            "%6.1f %6.1f %6.1f mm rad = %6.1f mm."
-            % (1000 * r0[0], 1000 * r0[1], 1000 * r0[2], 1000 * R)
+            f"Head origin       : {1000 * r0[0]:6.1f} {1000 * r0[1]:6.1f} "
+            f"{1000 * r0[2]:6.1f} mm rad = {1000 * R:6.1f} mm."
         )
         del R, r0
     else:
@@ -1531,13 +1531,13 @@ def fit_dipole(
             ]
             if len(R) == 0:
                 raise RuntimeError(
-                    "No MEG channels found, but MEG-only " "sphere model used"
+                    "No MEG channels found, but MEG-only sphere model used"
                 )
             R = np.min(np.sqrt(np.sum(R * R, axis=1)))  # use dist to sensors
             kind = "max_rad"
         logger.info(
-            "Sphere model      : origin at (% 7.2f % 7.2f % 7.2f) mm, "
-            "%s = %6.1f mm" % (1000 * r0[0], 1000 * r0[1], 1000 * r0[2], kind, R)
+            f"Sphere model      : origin at ({1000 * r0[0]: 7.2f} {1000 * r0[1]: 7.2f} "
+            f"{1000 * r0[2]: 7.2f}) mm, {kind} = {R:6.1f} mm"
         )
         inner_skull = dict(R=R, r0=r0)  # NB sphere model defined in head frame
         del R, r0
@@ -1547,20 +1547,22 @@ def fit_dipole(
         fixed_position = True
         pos = np.array(pos, float)
         if pos.shape != (3,):
-            raise ValueError(
-                "pos must be None or a 3-element array-like," " got %s" % (pos,)
-            )
-        logger.info("Fixed position    : %6.1f %6.1f %6.1f mm" % tuple(1000 * pos))
+            raise ValueError(f"pos must be None or a 3-element array-like, got {pos}")
+        logger.info(
+            "Fixed position    : {:6.1f} {:6.1f} {:6.1f} mm".format(*tuple(1000 * pos))
+        )
         if ori is not None:
             ori = np.array(ori, float)
             if ori.shape != (3,):
                 raise ValueError(
-                    "oris must be None or a 3-element array-like," " got %s" % (ori,)
+                    f"oris must be None or a 3-element array-like, got {ori}"
                 )
             norm = np.sqrt(np.sum(ori * ori))
             if not np.isclose(norm, 1):
-                raise ValueError("ori must be a unit vector, got length %s" % (norm,))
-            logger.info("Fixed orientation  : %6.4f %6.4f %6.4f mm" % tuple(ori))
+                raise ValueError(f"ori must be a unit vector, got length {norm}")
+            logger.info(
+                "Fixed orientation  : {:6.4f} {:6.4f} {:6.4f} mm".format(*tuple(ori))
+            )
         else:
             logger.info("Free orientation   : <time-varying>")
         fit_n_jobs = 1  # only use 1 job to do the guess fitting
@@ -1572,11 +1574,11 @@ def fit_dipole(
         guess_mindist = max(0.005, min_dist_to_inner_skull)
         guess_exclude = 0.02
 
-        logger.info("Guess grid        : %6.1f mm" % (1000 * guess_grid,))
+        logger.info(f"Guess grid        : {1000 * guess_grid:6.1f} mm")
         if guess_mindist > 0.0:
-            logger.info("Guess mindist     : %6.1f mm" % (1000 * guess_mindist,))
+            logger.info(f"Guess mindist     : {1000 * guess_mindist:6.1f} mm")
         if guess_exclude > 0:
-            logger.info("Guess exclude     : %6.1f mm" % (1000 * guess_exclude,))
+            logger.info(f"Guess exclude     : {1000 * guess_exclude:6.1f} mm")
         logger.info(f"Using {accuracy} MEG coil definitions.")
         fit_n_jobs = n_jobs
     cov = _ensure_cov(cov)
@@ -1584,7 +1586,7 @@ def fit_dipole(
 
     _print_coord_trans(mri_head_t)
     _print_coord_trans(info["dev_head_t"])
-    logger.info("%d bad channels total" % len(info["bads"]))
+    logger.info(f"{len(info['bads'])} bad channels total")
 
     # Forward model setup (setup_forward_model from setup.c)
     ch_types = evoked.get_channel_types()
@@ -1645,8 +1647,8 @@ def fit_dipole(
             )
         if check <= 0:
             raise ValueError(
-                "fixed position is %0.1fmm outside the inner "
-                "skull boundary" % (-1000 * check,)
+                f"fixed position is {-1000 * check:0.1f}mm outside the inner skull "
+                "boundary"
             )
 
     # C code computes guesses w/sphere model for speed, don't bother here

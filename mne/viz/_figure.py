@@ -73,7 +73,7 @@ class BrowserBase(ABC):
             self.mne.instance_type = "epochs"
         else:
             raise TypeError(
-                "Expected an instance of Raw, Epochs, or ICA, " f"got {type(inst)}."
+                f"Expected an instance of Raw, Epochs, or ICA, got {type(inst)}."
             )
 
         logger.debug(f"Opening {self.mne.instance_type} browser...")
@@ -435,9 +435,7 @@ class BrowserBase(ABC):
         # proj checkboxes are for viz only and shouldn't modify the instance)
         if self.mne.instance_type in ("raw", "epochs"):
             self.mne.inst.info["bads"] = self.mne.info["bads"]
-            logger.info(
-                f"Channels marked as bad:\n" f"{self.mne.info['bads'] or 'none'}"
-            )
+            logger.info(f"Channels marked as bad:\n{self.mne.info['bads'] or 'none'}")
         # ICA excludes
         elif self.mne.instance_type == "ica":
             self.mne.ica.exclude = [

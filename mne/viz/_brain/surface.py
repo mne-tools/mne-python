@@ -95,7 +95,6 @@ class _Surface:
         self.coords = None
         self.curv = None
         self.faces = None
-        self.grey_curv = None
         self.nn = None
         self.labels = dict()
         self.x_dir = x_dir
@@ -120,9 +119,7 @@ class _Surface:
         None
         """
         if self.surf == "flat":  # special case
-            fname = path.join(
-                self.data_path, "surf", "%s.%s" % (self.hemi, "cortex.patch.flat")
-            )
+            fname = path.join(self.data_path, "surf", f"{self.hemi}.cortex.patch.flat")
             _check_fname(
                 fname, overwrite="read", must_exist=True, name="flatmap surface file"
             )
@@ -176,18 +173,10 @@ class _Surface:
 
     def load_curvature(self):
         """Load in curvature values from the ?h.curv file."""
-        curv_path = path.join(self.data_path, "surf", "%s.curv" % self.hemi)
+        curv_path = path.join(self.data_path, "surf", f"{self.hemi}.curv")
         if path.isfile(curv_path):
             self.curv = read_curvature(curv_path, binary=False)
             self.bin_curv = np.array(self.curv > 0, np.int64)
-            color = (self.curv > 0).astype(float)
         else:
             self.curv = None
             self.bin_curv = None
-            color = np.ones((self.coords.shape[0]))
-        # morphometry (curvature) normalization in order to get gray cortex
-        # TODO: delete self.grey_curv after cortex parameter
-        # will be fully supported
-        color = 0.5 - (color - 0.5) / 3
-        color = color[:, np.newaxis] * [1, 1, 1]
-        self.grey_curv = color

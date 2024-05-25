@@ -249,7 +249,7 @@ def _check_min_duration(min_duration, raw_duration):
 
 def _reject_short_segments(arr, min_duration_samples):
     """Check if flat or peak segments are longer than the minimum duration."""
-    assert arr.dtype == bool and arr.ndim == 2
+    assert arr.dtype == np.dtype(bool) and arr.ndim == 2
     for k, ch in enumerate(arr):
         onsets, offsets = _mask_to_onsets_offsets(ch)
         _mark_inner(arr[k], onsets, offsets, min_duration_samples)

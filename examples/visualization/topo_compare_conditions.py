@@ -19,7 +19,6 @@ layout plot of the related evoked responses.
 
 # %%
 
-
 import matplotlib.pyplot as plt
 
 import mne

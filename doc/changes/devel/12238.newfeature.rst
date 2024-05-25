@@ -1,1 +1,0 @@
-Inform the user about channel discrepancy between provided info, forward operator, and/or covariance matrices in :func:`mne.beamformer.make_lcmv`, by :newcontrib:`Nikolai Kapralov`.

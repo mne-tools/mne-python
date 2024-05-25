@@ -112,8 +112,7 @@ class SSD(BaseEstimator, TransformerMixin):
             key = ("signal", "noise")[dd]
             if param + "_freq" not in dicts[key]:
                 raise ValueError(
-                    "%s must be defined in filter parameters for %s"
-                    % (param + "_freq", key)
+                    f"{param + '_freq'} must be defined in filter parameters for {key}"
                 )
             val = dicts[key][param + "_freq"]
             if not isinstance(val, (int, float)):

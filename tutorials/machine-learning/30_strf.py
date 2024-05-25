@@ -170,9 +170,9 @@ ax2.set(
 # Create training and testing data
 train, test = np.arange(n_epochs - 1), n_epochs - 1
 X_train, X_test, y_train, y_test = X[train], X[test], y[train], y[test]
-X_train, X_test, y_train, y_test = [
+X_train, X_test, y_train, y_test = (
     np.rollaxis(ii, -1, 0) for ii in (X_train, X_test, y_train, y_test)
-]
+)
 # Model the simulated data as a function of the spectrogram input
 alphas = np.logspace(-3, 3, 7)
 scores = np.zeros_like(alphas)
@@ -238,7 +238,7 @@ ax.annotate(
     (ix_best_alpha, scores[ix_best_alpha] - 0.1),
     arrowprops={"arrowstyle": "->"},
 )
-plt.xticks(np.arange(len(alphas)), ["%.0e" % ii for ii in alphas])
+plt.xticks(np.arange(len(alphas)), [f"{ii:.0e}" for ii in alphas])
 ax.set(
     xlabel="Ridge regularization value",
     ylabel="Score ($R^2$)",
@@ -321,7 +321,7 @@ ax.annotate(
     (ix_best_alpha, scores[ix_best_alpha] - 0.1),
     arrowprops={"arrowstyle": "->"},
 )
-plt.xticks(np.arange(len(alphas)), ["%.0e" % ii for ii in alphas])
+plt.xticks(np.arange(len(alphas)), [f"{ii:.0e}" for ii in alphas])
 ax.set(
     xlabel="Laplacian regularization value",
     ylabel="Score ($R^2$)",
