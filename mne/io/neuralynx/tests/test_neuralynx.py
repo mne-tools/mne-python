@@ -2,7 +2,7 @@
 # Copyright the MNE-Python contributors.
 import os
 from ast import literal_eval
-from typing import Dict
+from datetime import datetime, timezone
 
 import numpy as np
 import pytest
@@ -18,7 +18,7 @@ testing_path = data_path(download=False) / "neuralynx"
 pytest.importorskip("neo")
 
 
-def _nlxheader_to_dict(matdict: Dict) -> Dict:
+def _nlxheader_to_dict(matdict: dict) -> dict:
     """Convert the read-in "Header" field into a dict.
 
     All the key-value pairs of Header entries are formatted as strings
@@ -104,7 +104,12 @@ def _read_nlx_mat_chan_keep_gaps(matfile: str) -> np.ndarray:
     return x
 
 
+# set known values for the Neuralynx data for testing
 expected_chan_names = ["LAHC1", "LAHC2", "LAHC3", "xAIR1", "xEKG1"]
+expected_hp_freq = 0.1
+expected_lp_freq = 500.0
+expected_sfreq = 2000.0
+expected_meas_date = datetime.strptime("2023/11/02 13:39:27", "%Y/%m/%d  %H:%M:%S")
 
 
 @requires_testing_data
@@ -126,12 +131,20 @@ def test_neuralynx():
         exclude_fname_patterns=fname_patterns,
     )
 
+    # test that we picked the right info from headers
+    assert raw.info["highpass"] == expected_hp_freq, "highpass freq not set correctly"
+    assert raw.info["lowpass"] == expected_lp_freq, "lowpass freq not set correctly"
+    assert raw.info["sfreq"] == expected_sfreq, "sampling freq not set correctly"
+
+    meas_date_utc = expected_meas_date.astimezone(timezone.utc)
+    assert raw.info["meas_date"] == meas_date_utc, "meas_date not set correctly"
+
     # test that channel selection worked
     assert (
         raw.ch_names == expected_chan_names
     ), "labels in raw.ch_names don't match expected channel names"
 
-    mne_y, mne_t = raw.get_data(return_times=True)  # in V
+    mne_y = raw.get_data()  # in V
 
     # ==== NeuralynxIO ==== #
     nlx_reader = NeuralynxIO(dirname=testing_path, exclude_filename=excluded_ncs_files)
@@ -220,3 +233,14 @@ def test_neuralynx_gaps():
     assert_allclose(
         mne_y, mat_y, rtol=1e-6, err_msg="MNE and Nlx2MatCSC.m not all close"
     )
+
+    # test that channel selection works
+    raw = read_raw_neuralynx(
+        fname=testing_path,
+        preload=False,
+        exclude_fname_patterns=ignored_ncs_files,
+    )
+
+    raw.pick("LAHC2")
+    assert raw.ch_names == ["LAHC2"]
+    raw.load_data()  # before gh-12357 this would fail

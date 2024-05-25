@@ -44,6 +44,7 @@ from mne.source_space._source_space import (
 from mne.surface import _get_ico_surface
 from mne.transforms import Transform
 from mne.utils import (
+    _record_warnings,
     catch_logging,
     requires_mne,
     requires_mne_mark,
@@ -198,7 +199,7 @@ def test_magnetic_dipole():
     r0 = coils[0]["rmag"][[0]]
     with pytest.raises(RuntimeError, match="Coil too close"):
         _magnetic_dipole_field_vec(r0, coils[:1])
-    with pytest.warns(RuntimeWarning, match="Coil too close"):
+    with _record_warnings(), pytest.warns(RuntimeWarning, match="Coil too close"):
         fwd = _magnetic_dipole_field_vec(r0, coils[:1], too_close="warning")
     assert not np.isfinite(fwd).any()
     with np.errstate(invalid="ignore"):

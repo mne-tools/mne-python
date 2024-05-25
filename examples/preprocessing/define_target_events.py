@@ -100,7 +100,7 @@ epochs = mne.Epochs(
 
 # average epochs and get an Evoked dataset.
 
-early, late = [epochs[k].average() for k in event_id]
+early, late = (epochs[k].average() for k in event_id)
 
 # %%
 # View evoked response

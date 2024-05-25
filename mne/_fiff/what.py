@@ -65,7 +65,7 @@ def what(fname):
         try:
             func(fname, **kwargs)
         except Exception as exp:
-            logger.debug("Not %s: %s" % (what, exp))
+            logger.debug(f"Not {what}: {exp}")
         else:
             return what
     return "unknown"

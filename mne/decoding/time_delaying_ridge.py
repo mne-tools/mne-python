@@ -40,8 +40,9 @@ def _compute_corrs(
     assert X.shape[:2] == y.shape[:2]
     len_trf = smax - smin
     len_x, n_epochs, n_ch_x = X.shape
-    len_y, n_epcohs, n_ch_y = y.shape
+    len_y, n_epochs_y, n_ch_y = y.shape
     assert len_x == len_y
+    assert n_epochs == n_epochs_y
 
     n_fft = next_fast_len(2 * X.shape[0] - 1)
 
@@ -157,12 +158,10 @@ def _compute_reg_neighbors(n_ch_x, n_delays, reg_type, method="direct", normed=F
     if isinstance(reg_type, str):
         reg_type = (reg_type,) * 2
     if len(reg_type) != 2:
-        raise ValueError("reg_type must have two elements, got %s" % (len(reg_type),))
+        raise ValueError(f"reg_type must have two elements, got {len(reg_type)}")
     for r in reg_type:
         if r not in known_types:
-            raise ValueError(
-                "reg_type entries must be one of %s, got %s" % (known_types, r)
-            )
+            raise ValueError(f"reg_type entries must be one of {known_types}, got {r}")
     reg_time = reg_type[0] == "laplacian" and n_delays > 1
     reg_chs = reg_type[1] == "laplacian" and n_ch_x > 1
     if not reg_time and not reg_chs:
@@ -290,7 +289,7 @@ class TimeDelayingRidge(BaseEstimator):
         edge_correction=True,
     ):
         if tmin > tmax:
-            raise ValueError("tmin must be <= tmax, got %s and %s" % (tmin, tmax))
+            raise ValueError(f"tmin must be <= tmax, got {tmin} and {tmax}")
         self.tmin = float(tmin)
         self.tmax = float(tmax)
         self.sfreq = float(sfreq)

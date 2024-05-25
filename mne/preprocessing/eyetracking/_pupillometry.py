@@ -29,7 +29,8 @@ def interpolate_blinks(raw, buffer=0.05, match="BAD_blink", interpolate_gaze=Fal
     match : str | list of str
         The description of annotations to interpolate over. If a list, the data within
         all annotations that match any of the strings in the list will be interpolated
-        over. Defaults to ``'BAD_blink'``.
+        over. If a ``match`` starts with ``'BAD_'``, that part will be removed from the
+        annotation description after interpolation. Defaults to ``'BAD_blink'``.
     interpolate_gaze : bool
         If False, only apply interpolation to ``'pupil channels'``. If True, interpolate
         over ``'eyegaze'`` channels as well. Defaults to False, because eye position can
@@ -60,14 +61,14 @@ def interpolate_blinks(raw, buffer=0.05, match="BAD_blink", interpolate_gaze=Fal
     # get the blink annotations
     blink_annots = [annot for annot in raw.annotations if annot["description"] in match]
     if not blink_annots:
-        warn("No annotations matching {} found. Aborting.".format(match))
+        warn(f"No annotations matching {match} found. Aborting.")
         return raw
     _interpolate_blinks(raw, buffer, blink_annots, interpolate_gaze=interpolate_gaze)
 
     # remove bad from the annotation description
     for desc in match:
         if desc.startswith("BAD_"):
-            logger.info("Removing 'BAD_' from {}.".format(desc))
+            logger.info(f"Removing 'BAD_' from {desc}.")
             raw.annotations.rename({desc: desc.replace("BAD_", "")})
     return raw
 
@@ -77,6 +78,7 @@ def _interpolate_blinks(raw, buffer, blink_annots, interpolate_gaze):
     logger.info("Interpolating missing data during blinks...")
     pre_buffer, post_buffer = buffer
     # iterate over each eyetrack channel and interpolate the blinks
+    interpolated_chs = []
     for ci, ch_info in enumerate(raw.info["chs"]):
         if interpolate_gaze:  # interpolate over all eyetrack channels
             if ch_info["kind"] != FIFF.FIFFV_EYETRACK_CH:
@@ -107,3 +109,10 @@ def _interpolate_blinks(raw, buffer, blink_annots, interpolate_gaze):
         )
         # Replace the samples at the blink_indices with the interpolated values
         raw._data[ci, blink_indices] = interpolated_samples
+        interpolated_chs.append(ch_info["ch_name"])
+    if interpolated_chs:
+        logger.info(
+            f"Interpolated {len(interpolated_chs)} channels: {interpolated_chs}"
+        )
+    else:
+        warn("No channels were interpolated.")

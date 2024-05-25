@@ -219,6 +219,6 @@ def read_eyelink_calibration(
         each eye of every calibration that was performed during the recording session.
     """
     fname = _check_fname(fname, overwrite="read", must_exist=True, name="fname")
-    logger.info("Reading calibration data from {}".format(fname))
+    logger.info(f"Reading calibration data from {fname}")
     lines = fname.read_text(encoding="ASCII").splitlines()
     return _parse_calibration(lines, screen_size, screen_distance, screen_resolution)

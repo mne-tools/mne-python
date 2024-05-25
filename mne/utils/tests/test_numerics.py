@@ -318,7 +318,7 @@ def test_object_size():
         (200, 900, sparse.eye(20, format="csr")),
     ):
         size = object_size(obj)
-        assert lower < size < upper, "%s < %s < %s:\n%s" % (lower, size, upper, obj)
+        assert lower < size < upper, f"{lower} < {size} < {upper}:\n{obj}"
     # views work properly
     x = dict(a=1)
     assert object_size(x) < 1000
@@ -450,7 +450,7 @@ def test_pca(n_components, whiten):
     assert_array_equal(X, X_orig)
     X_mne = pca_mne.fit_transform(X)
     assert_array_equal(X, X_orig)
-    assert_allclose(X_skl, X_mne)
+    assert_allclose(X_skl, X_mne * np.sign(np.sum(X_skl * X_mne, axis=0)))
     assert pca_mne.n_components_ == pca_skl.n_components_
     for key in (
         "mean_",
@@ -459,6 +459,10 @@ def test_pca(n_components, whiten):
         "explained_variance_ratio_",
     ):
         val_skl, val_mne = getattr(pca_skl, key), getattr(pca_mne, key)
+        if key == "components_":
+            val_mne = val_mne * np.sign(
+                np.sum(val_skl * val_mne, axis=1, keepdims=True)
+            )
         assert_allclose(val_skl, val_mne)
     if isinstance(n_components, float):
         assert pca_mne.n_components_ == n_dim - 1

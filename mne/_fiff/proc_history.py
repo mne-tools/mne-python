@@ -105,7 +105,7 @@ def _read_proc_history(fid, tree):
                         record[key] = cast(tag.data)
                         break
                 else:
-                    warn("Unknown processing history item %s" % kind)
+                    warn(f"Unknown processing history item {kind}")
             record["max_info"] = _read_maxfilter_record(fid, proc_record)
             iass = dir_tree_find(proc_record, FIFF.FIFFB_IAS)
             if len(iass) > 0:
@@ -212,7 +212,7 @@ def _read_ctc(fname):
     f, tree, _ = fiff_open(fname)
     with f as fid:
         sss_ctc = _read_maxfilter_record(fid, tree)["sss_ctc"]
-        bad_str = "Invalid cross-talk FIF: %s" % fname
+        bad_str = f"Invalid cross-talk FIF: {fname}"
         if len(sss_ctc) == 0:
             raise ValueError(bad_str)
         node = dir_tree_find(tree, FIFF.FIFFB_DATA_CORRECTION)[0]

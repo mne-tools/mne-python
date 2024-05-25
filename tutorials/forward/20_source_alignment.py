@@ -121,8 +121,8 @@ print(
 )
 dists = mne.dig_mri_distances(raw.info, trans, "sample", subjects_dir=subjects_dir)
 print(
-    "Distance from %s digitized points to head surface: %0.1f mm"
-    % (len(dists), 1000 * np.mean(dists))
+    f"Distance from {len(dists)} digitized points to head surface: "
+    f"{1000 * np.mean(dists):0.1f} mm"
 )
 
 # %%

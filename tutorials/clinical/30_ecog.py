@@ -100,15 +100,11 @@ montage.add_mni_fiducials(subjects_dir)
 # at the posterior commissure)
 raw.set_montage(montage)
 
-# Find the annotated events
-events, event_id = mne.events_from_annotations(raw)
-
 # Make a 25 second epoch that spans before and after the seizure onset
 epoch_length = 25  # seconds
 epochs = mne.Epochs(
     raw,
-    events,
-    event_id=event_id["onset"],
+    event_id="onset",
     tmin=13,
     tmax=13 + epoch_length,
     baseline=None,

@@ -52,13 +52,13 @@ def _read_named_matrix(fid, node, matkind, indent="    ", transpose=False):
                     break
         else:
             logger.info(
-                indent + "Desired named matrix (kind = %d) not " "available" % matkind
+                f"{indent}Desired named matrix (kind = {matkind}) not available"
             )
             return None
     else:
         if not has_tag(node, matkind):
             logger.info(
-                indent + "Desired named matrix (kind = %d) not " "available" % matkind
+                f"{indent}Desired named matrix (kind = {matkind}) not available"
             )
             return None
 
@@ -73,13 +73,13 @@ def _read_named_matrix(fid, node, matkind, indent="    ", transpose=False):
     tag = find_tag(fid, node, FIFF.FIFF_MNE_NROW)
     if tag is not None and tag.data != nrow:
         raise ValueError(
-            "Number of rows in matrix data and FIFF_MNE_NROW " "tag do not match"
+            "Number of rows in matrix data and FIFF_MNE_NROW tag do not match"
         )
 
     tag = find_tag(fid, node, FIFF.FIFF_MNE_NCOL)
     if tag is not None and tag.data != ncol:
         raise ValueError(
-            "Number of columns in matrix data and " "FIFF_MNE_NCOL tag do not match"
+            "Number of columns in matrix data and FIFF_MNE_NCOL tag do not match"
         )
 
     tag = find_tag(fid, node, FIFF.FIFF_MNE_ROW_NAMES)

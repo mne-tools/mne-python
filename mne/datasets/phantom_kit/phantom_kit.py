@@ -10,7 +10,7 @@ def data_path(
 ):  # noqa: D103
     return _download_mne_dataset(
         name="phantom_kit",
-        processor="unzip",
+        processor="untar",
         path=path,
         force_update=force_update,
         update_path=update_path,

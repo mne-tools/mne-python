@@ -23,6 +23,8 @@ array to use when converting the continuous data to epochs:
 
 import os
 
+import numpy as np
+
 import mne
 
 sample_data_folder = mne.datasets.sample.data_path()
@@ -205,8 +207,8 @@ raw.plot(events=events_subset)
 # %%
 # .. _`tut-reject-epochs-section`:
 #
-# Rejecting Epochs based on channel amplitude
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# Rejecting Epochs based on peak-to-peak channel amplitude
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
 # Besides "bad" annotations, the :class:`mne.Epochs` class constructor has
 # another means of rejecting epochs, based on signal amplitude thresholds for
@@ -327,6 +329,108 @@ stronger_reject_criteria = dict(
 
 epochs.drop_bad(reject=stronger_reject_criteria)
 print(epochs.drop_log)
+
+# %%
+# .. _`tut-reject-epochs-func-section`:
+#
+# Rejecting Epochs using callables (functions)
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# Sometimes it is useful to reject epochs based criteria other than
+# peak-to-peak amplitudes. For example, we might want to reject epochs
+# based on the maximum or minimum amplitude of a channel.
+# In this case, the `mne.Epochs.drop_bad` function also accepts
+# callables (functions) in the ``reject`` and ``flat`` parameters. This
+# allows us to define functions to reject epochs based on our desired criteria.
+#
+# Let's begin by generating Epoch data with large artifacts in one eeg channel
+# in order to demonstrate the versatility of this approach.
+
+raw.crop(0, 5)
+raw.del_proj()
+chans = raw.info["ch_names"][-5:-1]
+raw.pick(chans)
+data = raw.get_data()
+
+new_data = data
+new_data[0, 180:200] *= 1e3
+new_data[0, 460:580] += 1e-3
+edit_raw = mne.io.RawArray(new_data, raw.info)
+
+# Create fixed length epochs of 1 second
+events = mne.make_fixed_length_events(edit_raw, id=1, duration=1.0, start=0)
+epochs = mne.Epochs(edit_raw, events, tmin=0, tmax=1, baseline=None)
+epochs.plot(scalings=dict(eeg=50e-5))
+
+# %%
+# As you can see, we have two large artifacts in the first channel. One large
+# spike in amplitude and one large increase in amplitude.
+
+# Let's try to reject the epoch containing the spike in amplitude based on the
+# maximum amplitude of the first channel. Please note that the callable in
+# ``reject`` must return a (good, reason) tuple. Where the good must be bool
+# and reason must be a str, list, or tuple where each entry is a str.
+
+epochs = mne.Epochs(
+    edit_raw,
+    events,
+    tmin=0,
+    tmax=1,
+    baseline=None,
+    preload=True,
+)
+
+epochs.drop_bad(
+    reject=dict(eeg=lambda x: ((np.max(x, axis=1) > 1e-2).any(), "max amp"))
+)
+epochs.plot(scalings=dict(eeg=50e-5))
+
+# %%
+# Here, the epoch containing the spike in amplitude was rejected for having a
+# maximum amplitude greater than 1e-2 Volts. Notice the use of the ``any()``
+# function to check if any of the channels exceeded the threshold. We could
+# have also used the ``all()`` function to check if all channels exceeded the
+# threshold.
+
+# Next, let's try to reject the epoch containing the increase in amplitude
+# using the median.
+
+epochs = mne.Epochs(
+    edit_raw,
+    events,
+    tmin=0,
+    tmax=1,
+    baseline=None,
+    preload=True,
+)
+
+epochs.drop_bad(
+    reject=dict(eeg=lambda x: ((np.median(x, axis=1) > 1e-4).any(), "median amp"))
+)
+epochs.plot(scalings=dict(eeg=50e-5))
+
+# %%
+# Finally, let's try to reject both epochs using a combination of the maximum
+# and median. We'll define a custom function and use boolean operators to
+# combine the two criteria.
+
+
+def reject_criteria(x):
+    max_condition = np.max(x, axis=1) > 1e-2
+    median_condition = np.median(x, axis=1) > 1e-4
+    return ((max_condition.any() or median_condition.any()), ["max amp", "median amp"])
+
+
+epochs = mne.Epochs(
+    edit_raw,
+    events,
+    tmin=0,
+    tmax=1,
+    baseline=None,
+    preload=True,
+)
+
+epochs.drop_bad(reject=dict(eeg=reject_criteria))
+epochs.plot(events=True)
 
 # %%
 # Note that a complementary Python module, the `autoreject package`_, uses

@@ -1,6 +1,7 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 """Functions to plot EEG sensor montages or digitizer montages."""
+
 from copy import deepcopy
 
 import numpy as np
@@ -72,9 +73,9 @@ def plot_montage(
         n_chans = pos.shape[0]
         n_dupes = dupes.shape[0]
         idx = np.setdiff1d(np.arange(len(pos)), dupes[:, 1]).tolist()
-        logger.info("{} duplicate electrode labels found:".format(n_dupes))
+        logger.info(f"{n_dupes} duplicate electrode labels found:")
         logger.info(", ".join([ch_names[d[0]] + "/" + ch_names[d[1]] for d in dupes]))
-        logger.info("Plotting {} unique labels.".format(n_chans - n_dupes))
+        logger.info(f"Plotting {n_chans - n_dupes} unique labels.")
         ch_names = [ch_names[i] for i in idx]
         ch_pos = dict(zip(ch_names, pos[idx, :]))
         # XXX: this might cause trouble if montage was originally in head
