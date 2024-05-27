@@ -97,7 +97,7 @@ cover
 .venv/
 venv/
 *.json
-!/.devcontainer/devcontainer.json
+!/.devcontainer/**/*
 !codemeta.json
 .hypothesis/
 .ruff_cache/
