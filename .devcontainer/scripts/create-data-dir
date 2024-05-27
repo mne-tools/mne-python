@@ -1,0 +1,19 @@
+#!/bin/bash
+
+# Path to the directory you want to create
+DIR=~/mne_data
+
+# Check if the directory already exists
+if [ -d "$DIR" ]; then
+    echo "Directory already exists: $DIR"
+else
+    # Create the directory since it does not exist
+    mkdir -p "$DIR"
+    # Check if the directory creation was successful
+    if [ $? -eq 0 ]; then
+        echo "Directory created: $DIR"
+    else
+        echo "Failed to create directory: $DIR"
+        exit 1
+    fi
+fi

@@ -145,9 +145,19 @@
   },
   // Set `remoteUser` to `root` to connect as root instead. More info: https://aka.ms/vscode-remote/containers/non-root.
   "remoteUser": "mne-user",
+  "initializeCommand": {
+    // These commands are run on the host.
+    //
+    // We will mount the mne_data directory from the host inside the container to avoid having
+    // to dowload testing and sample data on container (re)creation.
+    // Note: On Windows, the .ps1 suffix will be appended automatically to the script name.
+    "create-mne-data-dir": ".devcontainer/scripts/create-data-dir"
+  },
   "postStartCommand": {
+    // These commands are run inside the container.
+    //
     // Do all git-config-related things here, otherwise we may run into problems; see:
     // https://github.com/microsoft/vscode-remote-release/issues/6810
-    "configure-git": "${containerWorkspaceFolder}/.devcontainer/configure-git.sh"
+    "configure-git": "${containerWorkspaceFolder}/.devcontainer/scripts/configure-git.sh"
   }
 }
