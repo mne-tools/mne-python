@@ -56,12 +56,12 @@
         "editor.formatOnSaveMode": "modificationsIfAvailable",
         "editor.renderWhitespace": "trailing",
         // General Python settings
+        "python.defaultInterpreterPath": "/opt/conda/bin/python",
         "python.analysis.typeCheckingMode": "basic",
         "python.testing.pytestEnabled": true,
         "python.testing.pytestArgs": ["--color=yes"],
         "ruff.nativeServer": true,
         "ruff.importStrategy": "fromEnvironment",
-        // "python.defaultInterpreterPath": "/opt/conda/bin/python",
         // Python modules and scripts
         "[python]": {
           "editor.defaultFormatter": "charliermarsh.ruff",
