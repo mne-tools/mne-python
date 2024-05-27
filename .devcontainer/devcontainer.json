@@ -15,9 +15,16 @@
     // See https://containers.dev/features
     // User & shell setup
     "ghcr.io/devcontainers/features/common-utils:2": {
-      "username": "mne-user"
+      "username": "mne-user",
+      "configureZshAsDefaultShell": true
+    },
+    // Git
+    "ghcr.io/devcontainers/features/git:1": {
+      "version": "os-provided",
+      "ppa": "true"
     },
     // APT packages
+    // We need those for 3D rendering.
     "ghcr.io/rocker-org/devcontainer-features/apt-packages:1": {
       "packages": "mesa-utils,libegl1,^libxcb.*-dev,libx11-xcb-dev,libglu1-mesa-dev,libxrender-dev,libxi-dev,libxkbcommon-dev,libxkbcommon-x11-dev"
     },
@@ -43,28 +50,38 @@
     // Configure properties specific to VS Code.
     "vscode": {
       "settings": {
+        // Work around an issue when installing extensions on Apple Silicon chips
+        // running an Intel Docker image, https://github.com/microsoft/vscode/issues/174632
+        "extensions.verifySignature": false,
+        // Editor settings
         "editor.formatOnSave": true,
-        "editor.formatOnSaveMode": "file",
+        "editor.formatOnSaveMode": "modificationsIfAvailable",
         "editor.renderWhitespace": "trailing",
+        // General Python settings
+        "python.analysis.typeCheckingMode": "basic",
+        "python.testing.pytestEnabled": true,
+        "python.testing.pytestArgs": ["--color=yes"],
+        "ruff.nativeServer": true,
+        // "python.defaultInterpreterPath": "/opt/conda/bin/python",
+        // Python modules and scripts
         "[python]": {
+          "editor.defaultFormatter": "charliermarsh.ruff",
           "editor.codeActionsOnSave": {
-            "source.fixAll": true,
-            "source.organizeImports": true
-          },
-          "editor.defaultFormatter": "charliermarsh.ruff"
+            "source.fixAll": "explicit",
+            "source.organizeImports": "explicit"
+          }
         },
+        // Jupyter notebooks
         "notebook.formatOnSave.enabled": true,
         "notebook.codeActionsOnSave": {
-          "source.fixAll": true,
-          "source.organizeImports": true
+          "source.fixAll": "explicit",
+          "source.organizeImports": "explicit"
         },
+        // JavaScript
         "[javascript]": {
           "editor.defaultFormatter": "esbenp.prettier-vscode"
         },
         "editor.rulers": [88],
-        "python.analysis.typeCheckingMode": "basic",
-        "python.testing.pytestEnabled": true,
-        "python.defaultInterpreterPath": "/opt/conda/bin/python",
         "debugpy.debugJustMyCode": false,
         // Screencast settings
         "screencastMode.keyboardOverlayTimeout": 5000,
@@ -81,12 +98,11 @@
       "extensions": [
         // Python Development
         "ms-python.python",
-        "ms-python.vscode-pylance",
         "ms-toolsai.jupyter",
         "charliermarsh.ruff",
+        "samuelcolvin.jinjahtml",
         // MNE-Python snippets
         "hoechenberger.mne-python-extension",
-        // "ms-python.debugpy@prerelease", // TODO remove prerelease tag once stable release is published
         // JavaScript & TypeScript Development
         "dbaeumer.vscode-eslint",
         "esbenp.prettier-vscode",
@@ -109,13 +125,10 @@
     }
   },
   // Use 'forwardPorts' to make a list of ports inside the container available locally.
-  "forwardPorts": [5901, 6080],
+  "forwardPorts": [6080],
   "portsAttributes": {
-    "5901": {
-      "label": "vnc"
-    },
     "6080": {
-      "label": "vnc web"
+      "label": "Web VNC"
     }
   },
   // Use 'postCreateCommand' to run commands after the container is created.
@@ -135,21 +148,6 @@
   "postStartCommand": {
     // Do all git-config-related things here, otherwise we may run into problems; see:
     // https://github.com/microsoft/vscode-remote-release/issues/6810
-    //
-    // Set git default branch name
-    "set-git-default-branch-name": "git config --global init.defaultBranch main",
-    // Work around "dubious ownership in repository" error
-    "fix-git-ownership-issue": "git config --global --add safe.directory ${containerWorkspaceFolder}",
-    // Use VS Code as default git editor, diff, and merge tool
-    "set-vscode-as-git-editor": "git config --global core.editor 'code --wait --reuse-window'",
-    "add-vscode-as-git-difftool": "git config --global --replace-all difftool.default-difftool.cmd 'code --wait --diff $LOCAL $REMOTE'",
-    "set-vscode-as-git-difftool": "git config --global --replace-all diff.tool default-difftool",
-    "add-vscode-as-git-mergetool": "git config --global --replace-all mergetool.code.cmd 'code --wait --merge $REMOTE $LOCAL $BASE $MERGED'",
-    "set-vscode-as-git-mergetool": "git config --global --replace-all merge.tool code",
-    // Show indicator for "dirty" git repositories in the shell prompt.
-    // This can be slow on large repositories and should be disabled in that case.
-    "enable-dirty-git-repo-indicator": "git config --global --replace-all devcontainers-theme.show-dirty 1",
-    // Make "git blame" ignore certain commits
-    "set-git-blame-ignore-revs": "git config --local blame.ignoreRevsFile .git-blame-ignore-revs"
+    "configure-git": "${containerWorkspaceFolder}/.devcontainer/configure-git.sh"
   }
 }
