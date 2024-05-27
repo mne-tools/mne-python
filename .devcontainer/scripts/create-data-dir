@@ -5,15 +5,15 @@ DIR=~/mne_data
 
 # Check if the directory already exists
 if [ -d "$DIR" ]; then
-    echo "Directory already exists: $DIR"
+    echo "Found existing MNE data directory: $DIR"
 else
     # Create the directory since it does not exist
     mkdir -p "$DIR"
     # Check if the directory creation was successful
     if [ $? -eq 0 ]; then
-        echo "Directory created: $DIR"
+        echo "MNE data directory created: $DIR"
     else
-        echo "Failed to create directory: $DIR"
+        echo "Failed to create MNE data directory: $DIR"
         exit 1
     fi
 fi

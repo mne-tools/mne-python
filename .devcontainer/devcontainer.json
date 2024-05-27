@@ -161,5 +161,8 @@
     // Do all git-config-related things here, otherwise we may run into problems; see:
     // https://github.com/microsoft/vscode-remote-release/issues/6810
     "configure-git": "${containerWorkspaceFolder}/.devcontainer/scripts/configure-git.sh"
-  }
+  },
+  "mounts": [
+    "source=${localEnv:HOME}${localEnv:USERPROFILE}/mne_data,target=/home/mne-user/mne_data,type=bind"
+  ]
 }
