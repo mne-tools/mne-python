@@ -1,0 +1,60 @@
+{
+    "id": "desktop-lite",
+    "version": "1.2.0",
+    "name": "Light-weight Desktop",
+    "documentationURL": "https://github.com/devcontainers/features/tree/main/src/desktop-lite",
+    "description": "Adds a lightweight Fluxbox based desktop to the container that can be accessed using a VNC viewer or the web. GUI-based commands executed from the built-in VS code terminal will open on the desktop automatically.",
+    "options": {
+        "version": {
+            "type": "string",
+            "proposals": [
+                "latest"
+            ],
+            "default": "latest",
+            "description": "Currently Unused!"
+        },
+        "noVncVersion": {
+            "type": "string",
+            "proposals": [
+                "1.2.0"
+            ],
+            "default": "1.2.0",
+            "description": "The noVNC version to use"
+        },
+        "password": {
+            "type": "string",
+            "proposals": [
+                "vscode",
+                "codespaces",
+                "password",
+                "noPassword"
+            ],
+            "default": "vscode",
+            "description": "Enter a password for desktop connections. If \"noPassword\", connections from the local host can be established without entering a password"
+        },
+        "webPort": {
+            "type": "string",
+            "proposals": [
+                "6080"
+            ],
+            "default": "6080",
+            "description": "Enter a port for the VNC web client (noVNC)"
+        },
+        "vncPort": {
+            "type": "string",
+            "proposals": [
+                "5901"
+            ],
+            "default": "5901",
+            "description": "Enter a port for the desktop VNC server (TigerVNC)"
+        }
+    },
+    "init": true,
+    "entrypoint": "/usr/local/share/desktop-init.sh",
+    "containerEnv": {
+        "DISPLAY": ":1"
+    },
+    "installsAfter": [
+        "ghcr.io/devcontainers/features/common-utils"
+    ]
+}

@@ -16,6 +16,14 @@
       "username": "mne-user",
       "configureZshAsDefaultShell": true
     },
+    // Desktop and VNC access
+    // "ghcr.io/devcontainers/features/desktop-lite:1": {
+    //   "password": "mne"
+    // },
+    // Replace once https://github.com/devcontainers/features/pull/982 has been merged
+    "./desktop-lite": {
+      "password": "noPassword"
+    },
     // Git
     "ghcr.io/devcontainers/features/git:1": {
       "version": "os-provided",
@@ -29,7 +37,7 @@
     // Conda and Mamba
     "ghcr.io/mamba-org/devcontainer-features/micromamba:1": {
       "channels": "conda-forge",
-      "packages": "conda mamba python ipython jupyterlab pre-commit mne"
+      "packages": "conda mamba python ipython jupyterlab pre-commit h5py pyside6"
     },
     // Docker interface with host's Docker service
     "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {},
@@ -37,10 +45,6 @@
     "ghcr.io/devcontainers-contrib/features/zsh-plugins:0": {
       "plugins": "git pip zsh-autosuggestions zsh-syntax-highlighting history-substring-search",
       "omzPlugins": "https://github.com/zsh-users/zsh-autosuggestions https://github.com/zsh-users/zsh-syntax-highlighting"
-    },
-    // Desktop and VNC access
-    "ghcr.io/devcontainers/features/desktop-lite:1": {
-      "password": "mne"
     }
   },
   // Configure tool-specific properties.
@@ -152,8 +156,6 @@
     "disable-pip-user-installs": "pip config set install.system true",
     // Install MNE in editabe mode
     // "install-mne-editable": "pip install -e '.[full,dev,test_extra]'",
-    // Install MNE pre-commit hooks
-    "install-pre-commit-hooks": "pre-commit install",
     // Create XDG_RUNTIME_DIR
     "create-xdg-runtime-dir": "mkdir -p -m 0700 $XDG_RUNTIME_DIR"
   },
@@ -162,7 +164,7 @@
     //
     // Do all git-config-related things here, otherwise we may run into problems; see:
     // https://github.com/microsoft/vscode-remote-release/issues/6810
-    "configure-git": "${containerWorkspaceFolder}/.devcontainer/scripts/configure-git.sh"
+    "configure-git-and-pre-commit-hooks": "${containerWorkspaceFolder}/.devcontainer/scripts/configure-git.sh && pre-commit install"
   },
   "mounts": [
     "source=${localEnv:HOME}${localEnv:USERPROFILE}/mne_data,target=/home/mne-user/mne_data,type=bind"

@@ -6,10 +6,9 @@ set -ex
 git config --global init.defaultBranch main
 
 # Work around "dubious ownership in repository" error
-
 git config --global --add safe.directory /workspaces/*
-# Use VS Code as default git editor, diff, and merge tool
 
+# Use VS Code as default git editor, diff, and merge tool
 git config --global core.editor 'code --wait --reuse-window'
 git config --global --replace-all difftool.default-difftool.cmd 'code --wait --diff $LOCAL $REMOTE'
 git config --global --replace-all diff.tool default-difftool
