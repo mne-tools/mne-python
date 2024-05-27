@@ -90,7 +90,10 @@
         "redhat.telemetry.enabled": false,
         "workbench.enableExperiments": false, // Should not be necessary if telemetry is off, but let's make it explicit.
         // Avoid accumulation of unused forwarded ports.
-        "remote.restoreForwardedPorts": false
+        "remote.restoreForwardedPorts": false,
+        // Git
+        "git.allowNoVerifyCommit": true,  // Allow omitting pre-commit hooks
+        "git.allowForcePush": true
       },
       // Add the IDs of extensions you want installed when the container is created.
       "extensions": [
