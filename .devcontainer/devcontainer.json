@@ -4,9 +4,7 @@
   // https://github.com/devcontainers/images/tree/main/src/base-debian
   // All features listed in the repository's devcontainer configuration are actually
   // built into the image.
-  //
-  // "image": "mcr.microsoft.com/devcontainers/base:debian-11",
-  "build": { "dockerfile": "Dockerfile" }, // Only through the Dockerfile we can enforce ARM64
+  "image": "mcr.microsoft.com/devcontainers/base:debian-12",
   "containerEnv": {
     "PYTHONNOUSERSITE": "true", // Make Python ignore the user's site-packages folder if it exists
     "XDG_RUNTIME_DIR": "/home/mne-user/.cache/xdgr" // For VNC
