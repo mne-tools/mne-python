@@ -93,7 +93,7 @@
         // Avoid accumulation of unused forwarded ports.
         "remote.restoreForwardedPorts": false,
         // Git
-        "git.allowNoVerifyCommit": true,  // Allow omitting pre-commit hooks
+        "git.allowNoVerifyCommit": true, // Allow omitting pre-commit hooks
         "git.allowForcePush": true
       },
       // Add the IDs of extensions you want installed when the container is created.
