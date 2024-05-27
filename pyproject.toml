@@ -70,7 +70,7 @@ full-no-qt = [
     "sip",
     "scikit-learn",
     "nibabel",
-    # "openmeeg>=2.5.5",
+    "openmeeg>=2.5.5",
     "numba",
     "h5py",
     "pandas",
