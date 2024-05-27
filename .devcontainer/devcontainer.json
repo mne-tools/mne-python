@@ -133,18 +133,6 @@
       "label": "Web VNC"
     }
   },
-  // Use 'postCreateCommand' to run commands after the container is created.
-  "postCreateCommand": {
-    // Initialize shells to use conda and mamba
-    "init-mamba-shell": "mamba init --quiet zsh bash",
-    // Force pip to always install "globally": This will work in a virtual environment, but fail with the system Python, which is
-    // precicely what we want: prevent users from accidentally cluttering their user site-packages folder
-    "disable-pip-user-installs": "pip config set install.system true",
-    // Install MNE in editabe mode, and set up pre-commit hooks
-    "install-mne-editable": "pip install -e '.[full,dev,test_extra]' && pre-commit install",
-    // Create XDG_RUNTIME_DIR
-    "create-xdg-runtime-dir": "mkdir -p -m 0700 $XDG_RUNTIME_DIR"
-  },
   // Set `remoteUser` to `root` to connect as root instead. More info: https://aka.ms/vscode-remote/containers/non-root.
   "remoteUser": "mne-user",
   "initializeCommand": {
@@ -154,6 +142,18 @@
     // to dowload testing and sample data on container (re)creation.
     // Note: On Windows, the .ps1 suffix will be appended automatically to the script name.
     "create-mne-data-dir": ".devcontainer/scripts/create-data-dir"
+  },
+  // Use 'postCreateCommand' to run commands after the container is created.
+  "postCreateCommand": {
+    // Initialize shells to use conda and mamba
+    // "init-mamba-shell": "mamba init --quiet zsh bash",
+    // Force pip to always install "globally": This will work in a virtual environment, but fail with the system Python, which is
+    // precisely what we want: prevent users from accidentally cluttering their user site-packages folder
+    "disable-pip-user-installs": "pip config set install.system true",
+    // Install MNE in editabe mode, and set up pre-commit hooks
+    // "install-mne-editable": "pip install -e '.[full,dev,test_extra]' && pre-commit install",
+    // Create XDG_RUNTIME_DIR
+    "create-xdg-runtime-dir": "mkdir -p -m 0700 $XDG_RUNTIME_DIR"
   },
   "postStartCommand": {
     // These commands are run inside the container.
