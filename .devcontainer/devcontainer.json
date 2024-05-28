@@ -34,10 +34,10 @@
     "ghcr.io/rocker-org/devcontainer-features/apt-packages:1": {
       "packages": "mesa-utils,libegl1,^libxcb.*-dev,libx11-xcb-dev,libglu1-mesa-dev,libxrender-dev,libxi-dev,libxkbcommon-dev,libxkbcommon-x11-dev"
     },
-    // Conda and Mamba
+    // Conda
     "ghcr.io/mamba-org/devcontainer-features/micromamba:1": {
       "channels": "conda-forge",
-      "packages": "conda mamba python h5py vtk pyside6"
+      "packages": "conda python h5py vtk pyside6"
     },
     // Docker interface with host's Docker service
     "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {},
@@ -59,6 +59,7 @@
         "editor.formatOnSave": true,
         "editor.formatOnSaveMode": "modificationsIfAvailable",
         "editor.renderWhitespace": "trailing",
+        "editor.rulers": [88],
         // General Python settings
         "python.defaultInterpreterPath": "/opt/conda/bin/python",
         "python.analysis.typeCheckingMode": "basic",
@@ -66,6 +67,7 @@
         "python.testing.pytestArgs": ["--color=yes"],
         "ruff.nativeServer": true,
         "ruff.importStrategy": "fromEnvironment",
+        "debugpy.debugJustMyCode": false,
         // Python modules and scripts
         "[python]": {
           "editor.defaultFormatter": "charliermarsh.ruff",
@@ -84,8 +86,9 @@
         "[javascript]": {
           "editor.defaultFormatter": "esbenp.prettier-vscode"
         },
-        "editor.rulers": [88],
-        "debugpy.debugJustMyCode": false,
+        // Git
+        "git.allowNoVerifyCommit": true, // Allow omitting pre-commit hooks
+        "git.allowForcePush": true,
         // Screencast settings
         "screencastMode.keyboardOverlayTimeout": 5000,
         "screencastMode.mouseIndicatorSize": 50,
@@ -95,10 +98,7 @@
         "redhat.telemetry.enabled": false,
         "workbench.enableExperiments": false, // Should not be necessary if telemetry is off, but let's make it explicit.
         // Avoid accumulation of unused forwarded ports.
-        "remote.restoreForwardedPorts": false,
-        // Git
-        "git.allowNoVerifyCommit": true, // Allow omitting pre-commit hooks
-        "git.allowForcePush": true
+        "remote.restoreForwardedPorts": false
       },
       // Add the IDs of extensions you want installed when the container is created.
       "extensions": [
@@ -150,7 +150,7 @@
   // Use 'postCreateCommand' to run commands after the container is created.
   "postCreateCommand": {
     // Initialize shells to use conda and mamba
-    "init-mamba-shell": "mamba init --quiet zsh bash",
+    "init-conda-shell": "conda init --quiet zsh bash",
     // Force pip to always install "globally": This will work in a virtual environment, but fail with the system Python, which is
     // precisely what we want: prevent users from accidentally cluttering their user site-packages folder
     "disable-pip-user-installs": "pip config set install.system true",
