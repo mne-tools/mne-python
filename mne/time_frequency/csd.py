@@ -810,9 +810,10 @@ def csd_array_fourier(
     n_fft = n_times if n_fft is None else n_fft
 
     # Preparing frequencies of interest
-    # orig_frequencies = fftfreq(n_fft, 1. / sfreq)
     orig_frequencies = rfftfreq(n_fft, 1.0 / sfreq)
-    freq_mask = (orig_frequencies > fmin) & (orig_frequencies < fmax)
+    freq_mask = (
+        (orig_frequencies > 0) & (orig_frequencies >= fmin) & (orig_frequencies <= fmax)
+    )
     frequencies = orig_frequencies[freq_mask]
 
     if len(frequencies) == 0:
@@ -1013,7 +1014,9 @@ def csd_array_multitaper(
 
     # Preparing frequencies of interest
     orig_frequencies = rfftfreq(n_fft, 1.0 / sfreq)
-    freq_mask = (orig_frequencies > fmin) & (orig_frequencies < fmax)
+    freq_mask = (
+        (orig_frequencies > 0) & (orig_frequencies >= fmin) & (orig_frequencies <= fmax)
+    )
     frequencies = orig_frequencies[freq_mask]
 
     if len(frequencies) == 0:
