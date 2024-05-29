@@ -68,7 +68,7 @@ def get_optparser(cmdpath, usage=None, prog_prefix="mne", version=None):
     command = command[len(prog_prefix) + 1 :]  # +1 is for `_` character
 
     # Set prog
-    prog = prog_prefix + " {}".format(command)
+    prog = prog_prefix + f" {command}"
 
     # Set version
     if version is None:
@@ -93,19 +93,19 @@ def main():
         print("Usage : mne command options\n")
         print("Accepted commands :\n")
         for c in valid_commands:
-            print("\t- %s" % c)
+            print(f"\t- {c}")
         print("\nExample : mne browse_raw --raw sample_audvis_raw.fif")
         print("\nGetting help example : mne compute_proj_eog -h")
 
     if len(sys.argv) == 1 or "help" in sys.argv[1] or "-h" in sys.argv[1]:
         print_help()
     elif sys.argv[1] == "--version":
-        print("MNE %s" % mne.__version__)
+        print(f"MNE {mne.__version__}")
     elif sys.argv[1] not in valid_commands:
-        print('Invalid command: "%s"\n' % sys.argv[1])
+        print(f'Invalid command: "{sys.argv[1]}"\n')
         print_help()
     else:
         cmd = sys.argv[1]
-        cmd = importlib.import_module(".mne_%s" % (cmd,), "mne.commands")
+        cmd = importlib.import_module(f".mne_{cmd}", "mne.commands")
         sys.argv = sys.argv[1:]
         cmd.run()

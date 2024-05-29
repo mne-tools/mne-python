@@ -17,6 +17,7 @@ Examples
     $ mne make_scalp_surfaces --overwrite --subject sample
 
 """
+
 import os
 import sys
 
@@ -76,7 +77,7 @@ def run():
         "-n",
         "--no-decimate",
         dest="no_decimate",
-        help="Disable medium and sparse decimations " "(dense only)",
+        help="Disable medium and sparse decimations (dense only)",
         action="store_true",
     )
     _add_verbose_flag(parser)

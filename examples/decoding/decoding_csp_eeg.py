@@ -20,7 +20,6 @@ See https://en.wikipedia.org/wiki/Common_spatial_pattern and
 
 # %%
 
-
 import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
@@ -50,6 +49,7 @@ eegbci.standardize(raw)  # set channel names
 montage = make_standard_montage("standard_1005")
 raw.set_montage(montage)
 raw.annotations.rename(dict(T1="hands", T2="feet"))
+raw.set_eeg_reference(projection=True)
 
 # Apply band-pass filter
 raw.filter(7.0, 30.0, fir_design="firwin", skip_by_annotation="edge")
@@ -92,9 +92,7 @@ scores = cross_val_score(clf, epochs_data_train, labels, cv=cv, n_jobs=None)
 # Printing the results
 class_balance = np.mean(labels == labels[0])
 class_balance = max(class_balance, 1.0 - class_balance)
-print(
-    "Classification accuracy: %f / Chance level: %f" % (np.mean(scores), class_balance)
-)
+print(f"Classification accuracy: {np.mean(scores)} / Chance level: {class_balance}")
 
 # plot CSP patterns estimated on full data for visualization
 csp.fit_transform(epochs_data, labels)

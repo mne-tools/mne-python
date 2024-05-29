@@ -56,7 +56,7 @@ class RawEximia(BaseRaw):
     def __init__(self, fname, preload=False, verbose=None):
         fname = str(_check_fname(fname, "read", True, "fname"))
         data_name = op.basename(fname)
-        logger.info("Loading %s" % data_name)
+        logger.info(f"Loading {data_name}")
         # Create vhdr and vmrk files so that we can use mne_brain_vision2fiff
         n_chan = 64
         sfreq = 1450.0
@@ -87,12 +87,12 @@ class RawEximia(BaseRaw):
         n_samples, extra = divmod(n_bytes, (n_chan * 2))
         if extra != 0:
             warn(
-                "Incorrect number of samples in file (%s), the file is "
-                "likely truncated" % (n_samples,)
+                f"Incorrect number of samples in file ({n_samples}), the file is likely"
+                " truncated"
             )
         for ch, cal in zip(info["chs"], cals):
             ch["cal"] = cal
-        super(RawEximia, self).__init__(
+        super().__init__(
             info,
             preload=preload,
             last_samps=(n_samples - 1,),

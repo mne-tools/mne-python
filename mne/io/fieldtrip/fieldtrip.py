@@ -76,7 +76,7 @@ def read_raw_fieldtrip(fname, info, data_name="data") -> RawArray:
 
     if data.ndim != 2:
         raise RuntimeError(
-            "The data you are trying to load does not seem to " "be raw data"
+            "The data you are trying to load does not seem to be raw data"
         )
 
     raw = RawArray(data, info)  # create an MNE RawArray

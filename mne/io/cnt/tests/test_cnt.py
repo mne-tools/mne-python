@@ -16,13 +16,17 @@ from mne.io.tests.test_raw import _test_raw_reader
 
 data_path = testing.data_path(download=False)
 fname = data_path / "CNT" / "scan41_short.cnt"
+# Contains bad spans and could not be read properly before PR #12393
 fname_bad_spans = data_path / "CNT" / "test_CNT_events_mne_JWoess_clipped.cnt"
+
+
+_no_parse = pytest.warns(RuntimeWarning, match="Could not parse")
 
 
 @testing.requires_testing_data
 def test_old_data():
     """Test reading raw cnt files."""
-    with pytest.warns(RuntimeWarning, match="number of bytes"):
+    with _no_parse, pytest.warns(RuntimeWarning, match="number of bytes"):
         raw = _test_raw_reader(
             read_raw_cnt, input_fname=fname, eog="auto", misc=["NA1", "LEFT_EAR"]
         )
@@ -50,12 +54,15 @@ def test_new_data():
 @testing.requires_testing_data
 def test_auto_data():
     """Test reading raw cnt files with automatic header."""
-    with pytest.warns(RuntimeWarning):
+    first = pytest.warns(RuntimeWarning, match="Could not define the number of bytes.*")
+    second = pytest.warns(RuntimeWarning, match="Annotations are outside")
+    third = pytest.warns(RuntimeWarning, match="Omitted 6 annot")
+    with first, second, third:
         raw = read_raw_cnt(input_fname=fname_bad_spans)
 
     assert raw.info["bads"] == ["F8"]
 
-    with pytest.warns(RuntimeWarning, match="number of bytes"):
+    with _no_parse, pytest.warns(RuntimeWarning, match="number of bytes"):
         raw = _test_raw_reader(
             read_raw_cnt, input_fname=fname, eog="auto", misc=["NA1", "LEFT_EAR"]
         )
@@ -74,7 +81,7 @@ def test_auto_data():
 @testing.requires_testing_data
 def test_compare_events_and_annotations():
     """Test comparing annotations and events."""
-    with pytest.warns(RuntimeWarning, match="Could not parse meas date"):
+    with _no_parse, pytest.warns(RuntimeWarning, match="Could not define the num"):
         raw = read_raw_cnt(fname)
     events = np.array(
         [[333, 0, 7], [1010, 0, 7], [1664, 0, 109], [2324, 0, 7], [2984, 0, 109]]
@@ -84,6 +91,18 @@ def test_compare_events_and_annotations():
     assert len(annot) == 6
     assert_array_equal(annot.onset[:-1], events[:, 0] / raw.info["sfreq"])
     assert "STI 014" not in raw.info["ch_names"]
+
+
+@testing.requires_testing_data
+@pytest.mark.filterwarnings("ignore::RuntimeWarning")
+def test_reading_bytes():
+    """Test reading raw cnt files with different header."""
+    raw_16 = read_raw_cnt(fname, preload=True)
+    raw_32 = read_raw_cnt(fname_bad_spans, preload=True)
+
+    # Verify that the number of bytes read is correct
+    assert len(raw_16) == 3070
+    assert len(raw_32) == 90000
 
 
 @testing.requires_testing_data

@@ -41,7 +41,6 @@ import mne
 from mne.channels import find_ch_adjacency
 from mne.datasets import sample
 from mne.stats import combine_adjacency, spatio_temporal_cluster_test
-from mne.time_frequency import tfr_morlet
 from mne.viz import plot_compare_evokeds
 
 # %%
@@ -231,7 +230,7 @@ for i_clu, clu_idx in enumerate(good_cluster_inds):
 
     # add new axis for time courses and plot time courses
     ax_signals = divider.append_axes("right", size="300%", pad=1.2)
-    title = "Cluster #{0}, {1} sensor".format(i_clu + 1, len(ch_inds))
+    title = f"Cluster #{i_clu + 1}, {len(ch_inds)} sensor"
     if len(ch_inds) > 1:
         title += "s (mean)"
     plot_compare_evokeds(
@@ -269,9 +268,9 @@ n_cycles = freqs / freqs[0]
 
 epochs_power = list()
 for condition in [epochs[k] for k in ("Aud/L", "Vis/L")]:
-    this_tfr = tfr_morlet(
-        condition,
-        freqs,
+    this_tfr = condition.compute_tfr(
+        method="morlet",
+        freqs=freqs,
         n_cycles=n_cycles,
         decim=decim,
         average=False,
@@ -385,7 +384,7 @@ for i_clu, clu_idx in enumerate(good_cluster_inds):
 
     # add new axis for spectrogram
     ax_spec = divider.append_axes("right", size="300%", pad=1.2)
-    title = "Cluster #{0}, {1} spectrogram".format(i_clu + 1, len(ch_inds))
+    title = f"Cluster #{i_clu + 1}, {len(ch_inds)} spectrogram"
     if len(ch_inds) > 1:
         title += " (max over channels)"
     F_obs_plot = F_obs[..., ch_inds].max(axis=-1)

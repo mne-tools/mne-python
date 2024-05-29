@@ -114,8 +114,8 @@ with mne.use_coil_def(coil_def_fname):
     )
 idx = np.argmax(dip_opm.gof)
 print(
-    "Best dipole at t=%0.1f ms with %0.1f%% GOF"
-    % (1000 * dip_opm.times[idx], dip_opm.gof[idx])
+    f"Best dipole at t={1000 * dip_opm.times[idx]:0.1f} ms with "
+    f"{dip_opm.gof[idx]:0.1f}% GOF"
 )
 
 # Plot N20m dipole as an example

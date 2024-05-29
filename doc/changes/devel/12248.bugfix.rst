@@ -1,1 +1,0 @@
-Fix bug with accessing the last data sample using ``raw[:, -1]`` where an empty array was returned, by `Eric Larson`_.

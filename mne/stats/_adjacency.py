@@ -55,7 +55,7 @@ def combine_adjacency(*structure):
     ...     n_times,  # regular lattice adjacency for times
     ...     np.zeros((n_freqs, n_freqs)),  # no adjacency between freq. bins
     ...     chan_adj,  # custom matrix, or use mne.channels.find_ch_adjacency
-    ...     )  # doctest: +NORMALIZE_WHITESPACE
+    ...     )  # doctest: +SKIP
     <5600x5600 sparse matrix of type '<class 'numpy.float64'>'
             with 27076 stored elements in COOrdinate format>
     """

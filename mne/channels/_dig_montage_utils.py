@@ -24,13 +24,13 @@ def _read_dig_montage_egi(
 ):
     if not _all_data_kwargs_are_none:
         raise ValueError(
-            "hsp, hpi, elp, point_names, fif must all be " "None if egi is not None"
+            "hsp, hpi, elp, point_names, fif must all be None if egi is not None"
         )
     _check_fname(fname, overwrite="read", must_exist=True)
     defusedxml = _soft_import("defusedxml", "reading EGI montages")
     root = defusedxml.ElementTree.parse(fname).getroot()
     ns = root.tag[root.tag.index("{") : root.tag.index("}") + 1]
-    sensors = root.find("%ssensorLayout/%ssensors" % (ns, ns))
+    sensors = root.find(f"{ns}sensorLayout/{ns}sensors")
     fids = dict()
     dig_ch_pos = dict()
 
@@ -59,8 +59,8 @@ def _read_dig_montage_egi(
         # Unknown
         else:
             warn(
-                "Unknown sensor type %s detected. Skipping sensor..."
-                "Proceed with caution!" % kind
+                f"Unknown sensor type {kind} detected. Skipping sensor..."
+                "Proceed with caution!"
             )
 
     return Bunch(

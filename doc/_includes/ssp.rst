@@ -101,12 +101,12 @@ The EEG average reference is the mean signal over all the sensors. It is
 typical in EEG analysis to subtract the average reference from all the sensor
 signals :math:`b^{1}(t), ..., b^{n}(t)`. That is:
 
-.. math::	{b}^{j}_{s}(t) = b^{j}(t) - \frac{1}{n}\sum_{k}{b^k(t)}
+.. math:: {b}^{j}_{s}(t) = b^{j}(t) - \frac{1}{n}\sum_{k}{b^k(t)}
    :name: eeg_proj
 
 where the noise term :math:`b_{n}^{j}(t)` is given by
 
-.. math:: 	b_{n}^{j}(t) = \frac{1}{n}\sum_{k}{b^k(t)}
+.. math:: b_{n}^{j}(t) = \frac{1}{n}\sum_{k}{b^k(t)}
    :name: noise_term
 
 Thus, the projector vector :math:`P_{\perp}` will be given by

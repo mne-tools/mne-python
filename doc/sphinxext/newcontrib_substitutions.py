@@ -3,7 +3,7 @@
 from docutils.nodes import reference, strong, target
 
 
-def newcontrib_role(name, rawtext, text, lineno, inliner, options={}, content=[]):
+def newcontrib_role(name, rawtext, text, lineno, inliner, options={}, content=[]):  # noqa: B006
     """Create a role to highlight new contributors in changelog entries."""
     newcontrib = f"new contributor {text}"
     alias_text = f" <{text}_>"

@@ -22,8 +22,7 @@ the extent of the bridging so as not to introduce bias into the data from this
 effect and exclude subjects with bridging that might effect the outcome of a
 study. Preventing electrode bridging is ideal but awareness of the problem at
 least will mitigate its potential as a confound to a study. This tutorial
-follows
-https://psychophysiology.cpmc.columbia.edu/software/eBridge/tutorial.html.
+follows the eBridge tutorial from https://psychophysiology.cpmc.columbia.edu.
 
 .. _electrodes.tsv: https://bids-specification.readthedocs.io/en/stable/04-modality-specific-files/03-electroencephalography.html#electrodes-description-_electrodestsv
 """  # noqa: E501
@@ -320,12 +319,9 @@ data_comp = raw_comp.get_data(picks=(idx0, idx1))
 # compute variance of residuals
 print(
     "Variance of residual (interpolated data - original data)\n\n"
-    "With adding virtual channel:                         {}\n"
-    "Compared to interpolation only using other channels: {}"
-    "".format(
-        np.mean(np.var(data_virtual - data_orig, axis=1)),
-        np.mean(np.var(data_comp - data_orig, axis=1)),
-    )
+    f"With adding virtual channel:                         {np.mean(np.var(data_virtual - data_orig, axis=1))}\n"
+    f"Compared to interpolation only using other channels: {np.mean(np.var(data_comp - data_orig, axis=1))}"
+    ""
 )
 
 # plot results
@@ -384,16 +380,7 @@ rng = np.random.default_rng(11)  # seed for reproducibility
 raw = raw_data[1]
 # typically impedances < 25 kOhm are acceptable for active systems and
 # impedances < 5 kOhm are desirable for a passive system
-impedances = (
-    rng.random(
-        (
-            len(
-                raw.ch_names,
-            )
-        )
-    )
-    * 30
-)
+impedances = rng.random(len(raw.ch_names)) * 30
 impedances[10] = 80  # set a few bad impendances
 impedances[25] = 99
 cmap = LinearSegmentedColormap.from_list(
