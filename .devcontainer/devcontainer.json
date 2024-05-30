@@ -17,11 +17,7 @@
       "configureZshAsDefaultShell": true
     },
     // Desktop and VNC access
-    // "ghcr.io/devcontainers/features/desktop-lite:1": {
-    //   "password": "mne"
-    // },
-    // Replace once https://github.com/devcontainers/features/pull/982 has been merged
-    "./desktop-lite": {
+    "ghcr.io/devcontainers/features/desktop-lite:1": {
       "password": "noPassword"
     },
     // Git
