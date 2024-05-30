@@ -150,8 +150,8 @@
     // Force pip to always install "globally": This will work in a virtual environment, but fail with the system Python, which is
     // precisely what we want: prevent users from accidentally cluttering their user site-packages folder
     "disable-pip-user-installs": "pip config set install.system true",
-    // Install MNE in editabe mode
-    "install-mne": "pip install -e '.[full-pyside6,dev,test_extra]'",
+    // Install MNE in editabe mode. Create a log file for debugging.
+    "install-mne": "pip install --log=/tmp/pip.log.txt -ve '.[full-pyside6,dev,test_extra]'",
     // Create XDG_RUNTIME_DIR
     "create-xdg-runtime-dir": "mkdir -p -m 0700 $XDG_RUNTIME_DIR"
   },
