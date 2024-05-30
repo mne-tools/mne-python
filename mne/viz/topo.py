@@ -14,7 +14,7 @@ from functools import partial
 import numpy as np
 from scipy import ndimage
 
-from .._fiff.pick import channel_type, pick_types
+from .._fiff.pick import _picks_to_idx, channel_type, pick_types
 from ..defaults import _handle_default
 from ..utils import Bunch, _check_option, _clean_names, _is_numeric, _to_rgb, fill_doc
 from .utils import (
@@ -974,6 +974,16 @@ def _plot_evoked_topo(
 
     if layout is None:
         layout = find_layout(info, exclude=exclude)
+    else:
+        layout = layout.pick(
+            "all",
+            exclude=_picks_to_idx(
+                info,
+                exclude if exclude != "bads" else info["bads"],
+                exclude=(),
+                allow_empty=True,
+            ),
+        )
 
     if not merge_channels:
         # XXX. at the moment we are committed to 1- / 2-sensor-types layouts
