@@ -61,7 +61,7 @@
         "python.analysis.typeCheckingMode": "basic",
         "python.testing.pytestEnabled": true,
         "python.testing.pytestArgs": ["--color=yes"],
-        "ruff.nativeServer": true,
+        "ruff.nativeServer": false,
         "ruff.importStrategy": "fromEnvironment",
         "debugpy.debugJustMyCode": false,
         // Python modules and scripts
