@@ -1362,6 +1362,11 @@ def reset_warnings(gallery_conf, fname):
         r"DataFrameGroupBy\.apply operated on the grouping columns.*",
         # pandas
         r"\nPyarrow will become a required dependency of pandas.*",
+        # matplotlib
+        "The 'labels' parameter of boxplot.*",
+        "vert: bool was deprecated in.*",
+        # bibtex latexcodec
+        "open_text is deprecated.*",
     ):
         warnings.filterwarnings(  # deal with other modules having bad imports
             "ignore", message=".*%s.*" % key, category=DeprecationWarning
@@ -1401,6 +1406,7 @@ def reset_warnings(gallery_conf, fname):
         "is_categorical_dtype is deprecated.*",
         "The default of observed=False.*",
         "When grouping with a length-1 list-like.*",
+        "'multi_class' was deprecated in version.*",
     ):
         warnings.filterwarnings(
             "ignore",
