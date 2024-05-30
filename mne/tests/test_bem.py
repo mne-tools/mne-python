@@ -202,7 +202,7 @@ def test_make_bem_model(tmp_path, kwargs, fname):
     if len(kwargs.get("conductivity", (0, 0, 0))) == 1:
         assert "distance" not in log
     else:
-        assert re.search(r"urfaces is approximately *3\.4 mm", log) is not None
+        assert re.search(r"surfaces is approximately *3\.4 mm", log) is not None
     assert re.search(r"inner skull CM is *0\.65 *-9\.62 *43\.85 mm", log) is not None
     model_c = read_bem_surfaces(fname)
     _compare_bem_surfaces(model, model_c)

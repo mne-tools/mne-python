@@ -165,7 +165,7 @@ intersphinx_mapping = {
 }
 intersphinx_mapping.update(
     get_intersphinx_mapping(
-        only=set(
+        packages=set(
             """
 imageio matplotlib numpy pandas python scipy statsmodels sklearn numba joblib nibabel
 seaborn patsy pyvista dipy nilearn pyqtgraph
