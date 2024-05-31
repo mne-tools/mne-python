@@ -115,14 +115,11 @@ def _check_before_reference(inst, ref_from, ref_to, ch_type):
 
 
 def _check_before_dict_reference(inst, ref_dict):
-
     def check_value_str(inst, value, key_ch_type):
         # Check that value is in ch_names
         assert (
             value in inst.ch_names
-        ), (
-            f"Channel {value} in ref_channels is not in the instance"
-        )
+        ), f"Channel {value} in ref_channels is not in the instance"
         # If value is a bad channel, issue a warning
         if value in inst.info["bads"]:
             msg = f"Channel {value} in ref_channels is marked as bad!"
@@ -153,9 +150,7 @@ def _check_before_dict_reference(inst, ref_dict):
         # Check that keys are in ch_names
         assert (
             key in inst.ch_names
-        ), (
-            f"Channel {key} in ref_channels is not in the instance"
-        )
+        ), f"Channel {key} in ref_channels is not in the instance"
         key_pick = pick_channels(inst.ch_names, [key], ordered=True)
         key_ch_type = inst.get_channel_types(picks=key_pick)[0]
         ref_from_channels.add(key)
@@ -229,7 +224,7 @@ def _apply_dict_reference(inst, ref_dict):
     if len(ref_dict) > 0:
         for key, value in ref_dict.items():
             if isinstance(value, str):
-                value = [value] # pick_channels expects a list
+                value = [value]  # pick_channels expects a list
             ref_from = pick_channels(inst.ch_names, value, ordered=True)
             ref_to = pick_channels(inst.ch_names, [key], ordered=True)
             ref_data = inst._data[..., ref_from, :].mean(-2, keepdims=True)
@@ -445,9 +440,7 @@ def set_eeg_reference(
     _check_can_reref(inst)
 
     if isinstance(ref_channels, dict):
-        logger.info(
-            "Applying a custom dict-based reference."
-        )
+        logger.info("Applying a custom dict-based reference.")
         return _apply_dict_reference(inst, ref_channels)
 
     ch_type = _get_ch_type(inst, ch_type)
