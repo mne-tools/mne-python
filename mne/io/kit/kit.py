@@ -1025,8 +1025,12 @@ def read_epochs_kit(
 
     Returns
     -------
-    epochs : instance of Epochs
-        The epochs.
+    EpochsKIT : instance of BaseEpochs
+        The epochs EpochsKIT (subclass of BaseEpochs).
+
+    See Also
+    --------
+    mne.Epochs : Documentation of attributes and methods.
 
     Notes
     -----
