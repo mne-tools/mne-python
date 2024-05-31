@@ -363,6 +363,21 @@ def test_set_eeg_reference_rest():
     exp_var = 1 - np.linalg.norm(evoked.data[:, idx] - want) / norm
     assert 0.995 < exp_var <= 1
 
+@testing.requires_testing_data
+@pytest.mark.parametrize(
+    "ref_channels, expectation",
+    [
+        ({'EEG 999': 'EEG 001'}, pytest.raises(AssertionError, match='Channel EEE 999 in ref_channels is not in the instance')),
+        ({'EEG 001': 'EEG 999'}, pytest.raises(AssertionError, match='Channel EEE 999 in ref_channels is not in the instance')),
+        ({'EEG 001': 'EEG 002'}, nullcontext()),
+    ],
+)
+def test_set_eeg_reference_dict(ref_channels, expectation):
+    """Test setting dict-based reference."""
+    raw = read_raw_fif(fif_fname).crop(0, 1).pick(picks="eeg").load_data()
+    raw.info["bads"] = ["EEG 057"]
+    with expectation:
+        raw.set_eeg_reference(ref_channels=ref_channels)
 
 @testing.requires_testing_data
 @pytest.mark.parametrize("inst_type", ("raw", "epochs", "evoked"))
