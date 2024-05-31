@@ -119,8 +119,6 @@
         "redhat.vscode-yaml",
         // Spell checking
         "streetsidesoftware.code-spell-checker",
-        // Resource monitor
-        "mutantdino.resourcemonitor",
         // Path / filename autocomplete
         "ionutvmi.path-autocomplete"
       ]
