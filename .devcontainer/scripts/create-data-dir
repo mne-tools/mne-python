@@ -1,4 +1,6 @@
-#!/bin/bash
+#!/usr/bin/env bash
+
+set -eu
 
 # Path to the directory you want to create
 DIR=~/mne_data
