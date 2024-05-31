@@ -19,7 +19,7 @@ else
     pip install -e ".[full-pyside6,dev,test_extra]"
     echo -e "\n✅ $package_name has been installed.\n"
     echo -e "💡 Installing pre-commit hooks…"
-    pre-commit install
+    pre-commit install --install-hooks
     echo -e "✅ pre-commit hooks installed.\n"
 fi
 
