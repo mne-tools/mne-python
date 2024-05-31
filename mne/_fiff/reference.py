@@ -115,52 +115,68 @@ def _check_before_reference(inst, ref_from, ref_to, ch_type):
 
 
 def _check_before_dict_reference(inst, ref_dict):
+
+    def check_value_str(inst, value, key_ch_type):
+        # Check that value is in ch_names
+        assert (
+            value in inst.ch_names
+        ), (
+            f"Channel {value} in ref_channels is not in the instance"
+        )
+        # If value is a bad channel, issue a warning
+        if value in inst.info["bads"]:
+            msg = f"Channel {value} in ref_channels is marked as bad!"
+            _on_missing("warn", msg)
+        # If key and value are of different channel types, issue a warning
+        value_pick = pick_channels(inst.ch_names, [value], ordered=True)
+        value_ch_type = inst.get_channel_types(picks=value_pick)[0]
+        if key_ch_type != value_ch_type:
+            msg = (
+                f"Channel {key} is of type {DEFAULTS['titles'][key_ch_type]}, "
+                f"but reference channel {value} is of type "
+                f"{DEFAULTS['titles'][value_ch_type]}."
+            )
+            _on_missing("warn", msg)
+
     ref_from_channels = set()
     for key, value in ref_dict.items():
-        # Check keys
         # Check that keys are strings
         assert isinstance(key, str), (
-            "Keys in dict-type ref_channels must be strings, " f"got {type(key)}"
+            "Keys in dict-type ref_channels must be strings. You provided "
+            f"{type(key)}."
         )
-        # Check that keys are not repeated
+        # Check that keys are unique
         assert key not in ref_from_channels, (
-            "Keys in dict-type ref_channels must be unique, " f"got repeated key {key}"
+            "Keys in dict-type ref_channels must be unique. You provided repeated key "
+            f"{key}"
         )
         # Check that keys are in ch_names
         assert (
             key in inst.ch_names
-        ), f"Channel {key} in ref_channels is not in the instance"
+        ), (
+            f"Channel {key} in ref_channels is not in the instance"
+        )
+        key_pick = pick_channels(inst.ch_names, [key], ordered=True)
+        key_ch_type = inst.get_channel_types(picks=key_pick)[0]
         ref_from_channels.add(key)
 
         # Check values
         if isinstance(value, str):
-            # Check that value is in ch_names
-            assert (
-                value in inst.ch_names
-            ), f"Channel {value} in ref_channels is not in the instance"
-            # If value is a bad channel, issue a warning
-            if value in inst.info["bads"]:
-                msg = f"Channel {value} in ref_channels is marked as bad!"
-                _on_missing("warns", msg)
+            check_value_str(inst, value, key_ch_type)
         elif isinstance(value, list):
             for val in value:
                 # Check that values are strings
                 assert isinstance(val, str), (
                     "Values in dict-type ref_channels must be strings or "
-                    f"lists of strings, got {type(val)}"
+                    "lists of strings. You provided a list of "
+                    f"{type(val)}"
                 )
-                # Check that values are in ch_names
-                assert (
-                    val in inst.ch_names
-                ), f"Channel {val} in ref_channels is not in the instance"
-                # If value is a bad channel, issue a warning
-                if val in inst.info["bads"]:
-                    msg = f"Channel {val} in ref_channels is marked as bad!"
-                    _on_missing("warns", msg)
+                check_value_str(inst, val, key_ch_type)
         else:
             raise ValueError(
                 "Values in dict-type ref_channels must be strings or "
-                f"lists of strings, got {type(value)}"
+                "lists of strings. You provided "
+                f"{type(value)}"
             )
 
 
@@ -209,24 +225,19 @@ def _apply_dict_reference(inst, ref_dict):
     """Apply a dict-based custom EEG referencing scheme."""
     _check_before_dict_reference(inst, ref_dict)
 
-    # Copy the data instance to re-reference:
     ref_to_data = inst.copy()._data
     if len(ref_dict) > 0:
-        # Loop through each channel to re-reference:
-        for ch in ref_dict.keys():
-            assert len(ref_dict[ch]) > 0, f"No channel to re-reference ch-{ch}"
-            # Get indices of the channels to use as reference
-            ref_from = pick_channels(inst.ch_names, ref_dict[ch], ordered=True)
-            # Get indice of channel to re.reference:
-            ref_to = pick_channels(inst.ch_names, ch, ordered=True)
-            # Compute the reference data:
+        for key, value in ref_dict.items():
+            if isinstance(value, str):
+                value = [value] # pick_channels expects a list
+            ref_from = pick_channels(inst.ch_names, value, ordered=True)
+            ref_to = pick_channels(inst.ch_names, [key], ordered=True)
             ref_data = inst._data[..., ref_from, :].mean(-2, keepdims=True)
-            # Subtract the reference data to the channel to re-reference:
             ref_to_data[..., ref_to, :] -= ref_data
-    # Add the data back to the instance:
+
     inst._data = ref_to_data
-    # Set that custom reference was applied:
-    inst.info["custom_ref_applied"] = FIFF.FIFFV_MNE_CUSTOM_REF_ON
+    with inst.info._unlock():
+        inst.info["custom_ref_applied"] = FIFF.FIFFV_MNE_CUSTOM_REF_ON
     return inst, ref_to_data
 
 
@@ -433,6 +444,12 @@ def set_eeg_reference(
 
     _check_can_reref(inst)
 
+    if isinstance(ref_channels, dict):
+        logger.info(
+            "Applying a custom dict-based reference."
+        )
+        return _apply_dict_reference(inst, ref_channels)
+
     ch_type = _get_ch_type(inst, ch_type)
 
     if projection:  # average reference projector
@@ -505,10 +522,7 @@ def set_eeg_reference(
             "reference."
         )
 
-    if isinstance(ref_channels, dict):
-        return _apply_dict_reference(inst, ref_channels)
-    else:
-        return _apply_reference(inst, ref_channels, ch_sel, forward, ch_type=ch_type)
+    _apply_reference(inst, ref_channels, ch_sel, forward, ch_type=ch_type)
 
 
 def _get_ch_type(inst, ch_type):
