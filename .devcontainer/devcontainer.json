@@ -33,7 +33,7 @@
     // Conda
     "ghcr.io/mamba-org/devcontainer-features/micromamba:1": {
       "channels": "conda-forge",
-      "packages": "conda python h5py vtk pyside6 cftime psutil openmeeg"
+      "packages": "conda python h5py vtk pyside6 cftime nitime psutil openmeeg"
     },
     // Docker interface with host's Docker service
     "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {},
