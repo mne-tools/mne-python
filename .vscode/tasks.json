@@ -1,0 +1,26 @@
+{
+  // See https://go.microsoft.com/fwlink/?LinkId=733558
+  // for the documentation about the tasks.json format
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Install MNE-Python (dev)",
+      "type": "shell",
+      "command": ".devcontainer/scripts/install.sh",
+      "problemMatcher": [],
+      "runOptions": {
+        "runOn": "folderOpen"
+      }
+    },
+    {
+      "label": "Open VNC Desktop in Browser",
+      "type": "shell",
+      "command": ".devcontainer/scripts/open-vnc-browser.sh",
+      "problemMatcher": [],
+      "runOptions": {
+        "runOn": "folderOpen"
+      },
+      "dependsOn": ["Install MNE-Python (dev)"]
+    }
+  ]
+}

@@ -148,8 +148,6 @@
     // Force pip to always install "globally": This will work in a virtual environment, but fail with the system Python, which is
     // precisely what we want: prevent users from accidentally cluttering their user site-packages folder
     "disable-pip-user-installs": "pip config set install.system true",
-    // Install MNE in editabe mode. Create a log file for debugging.
-    "install-mne": "pip install --log=/tmp/pip.log.txt -ve '.[full-pyside6,dev,test_extra]'",
     // Create XDG_RUNTIME_DIR
     "create-xdg-runtime-dir": "mkdir -p -m 0700 $XDG_RUNTIME_DIR"
   },
@@ -158,7 +156,7 @@
     //
     // Do all git-config-related things here, otherwise we may run into problems; see:
     // https://github.com/microsoft/vscode-remote-release/issues/6810
-    "configure-git-and-pre-commit-hooks": "${containerWorkspaceFolder}/.devcontainer/scripts/configure-git.sh && pre-commit install"
+    "configure-git": "${containerWorkspaceFolder}/.devcontainer/scripts/configure-git.sh"
   },
   "mounts": [
     "source=${localEnv:HOME}${localEnv:USERPROFILE}/mne_data,target=/home/mne-user/mne_data,type=bind"
