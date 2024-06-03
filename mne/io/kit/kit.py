@@ -1026,7 +1026,7 @@ def read_epochs_kit(
     Returns
     -------
     EpochsKIT : instance of BaseEpochs
-        The epochs EpochsKIT (subclass of BaseEpochs).
+        The epochs.
 
     See Also
     --------

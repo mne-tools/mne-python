@@ -386,7 +386,7 @@ def read_epochs_eeglab(
     Returns
     -------
     EpochsEEGLAB : instance of BaseEpochs
-        The epochs EpochsEEGLAB (subclass of BaseEpochs).
+        The epochs.
 
     See Also
     --------
