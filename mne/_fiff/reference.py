@@ -519,7 +519,7 @@ def set_eeg_reference(
             "reference."
         )
 
-    _apply_reference(inst, ref_channels, ch_sel, forward, ch_type=ch_type)
+    return _apply_reference(inst, ref_channels, ch_sel, forward, ch_type=ch_type)
 
 
 def _get_ch_type(inst, ch_type):
