@@ -7,7 +7,8 @@
   "image": "mcr.microsoft.com/devcontainers/base:debian-12",
   "containerEnv": {
     "PYTHONNOUSERSITE": "true", // Make Python ignore the user's site-packages folder if it exists
-    "XDG_RUNTIME_DIR": "/home/mne-user/.cache/xdgr" // For VNC
+    "XDG_RUNTIME_DIR": "/home/mne-user/.cache/xdgr", // For VNC
+    "RUNNING_IN_DEV_CONTAINER": "true"
   },
   "features": {
     // See https://containers.dev/features
@@ -33,7 +34,7 @@
     // Conda
     "ghcr.io/mamba-org/devcontainer-features/micromamba:1": {
       "channels": "conda-forge",
-      "packages": "conda python h5py vtk pyside6 cftime psutil openmeeg"
+      "packages": "conda python h5py vtk pyside6 cftime psutil"
     },
     // Docker interface with host's Docker service
     "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {},

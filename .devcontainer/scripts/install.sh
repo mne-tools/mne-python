@@ -2,6 +2,12 @@
 
 set -eu
 
+# Exit immediately if not running inside a Dev Container
+if [ -z "${RUNNING_IN_DEV_CONTAINER+x}" ]; then
+  echo -e "👋 Not running in a dev container, not auto-installing MNE-Python.\n"
+  exit
+fi
+
 package_name="MNE-Python (dev)"
 import_name="mne"
 
