@@ -115,6 +115,10 @@ def _check_before_reference(inst, ref_from, ref_to, ch_type):
 
 
 def _check_before_dict_reference(inst, ref_dict):
+    """Prepare instance for dict-based referencing."""
+    # Check to see that data is preloaded
+    _check_preload(inst, "Applying a reference")
+
     def check_value_str(inst, value, key_ch_type):
         # Check that value is in ch_names
         assert (
@@ -220,20 +224,20 @@ def _apply_dict_reference(inst, ref_dict):
     """Apply a dict-based custom EEG referencing scheme."""
     _check_before_dict_reference(inst, ref_dict)
 
-    ref_to_data = inst.copy()._data
+    orig_data = inst.copy()._data
+    data = inst._data
     if len(ref_dict) > 0:
         for key, value in ref_dict.items():
             if isinstance(value, str):
                 value = [value]  # pick_channels expects a list
             ref_from = pick_channels(inst.ch_names, value, ordered=True)
             ref_to = pick_channels(inst.ch_names, [key], ordered=True)
-            ref_data = inst._data[..., ref_from, :].mean(-2, keepdims=True)
-            ref_to_data[..., ref_to, :] -= ref_data
+            ref_data = orig_data[..., ref_from, :].mean(-2, keepdims=True)
+            data[..., ref_to, :] -= ref_data
 
-    inst._data = ref_to_data
     with inst.info._unlock():
         inst.info["custom_ref_applied"] = FIFF.FIFFV_MNE_CUSTOM_REF_ON
-    return inst, ref_to_data
+    return inst, data
 
 
 @fill_doc
