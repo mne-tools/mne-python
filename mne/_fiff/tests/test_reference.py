@@ -389,9 +389,12 @@ def test_set_eeg_reference_dict(ref_channels, expectation):
     """Test setting dict-based reference."""
     raw = read_raw_fif(fif_fname).crop(0, 1).pick(picks="eeg")
 
-    with pytest.raises(RuntimeError, match="By default, MNE does not load data into main memory*Applying a reference requires*"):
+    with pytest.raises(
+        RuntimeError,
+        match="By default, MNE does not load data into main memory*Applying a reference requires*",
+    ):
         raw.set_eeg_reference(ref_channels=ref_channels)
-    
+
     raw.load_data()
     raw.info["bads"] = ["EEG 057"]
     with expectation:
