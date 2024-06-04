@@ -30,7 +30,6 @@ from mne._fiff.meas_info import Info, _get_valid_units, _writing_info_hdf5
 from mne._fiff.pick import _ELECTRODE_CH_TYPES, _FNIRS_CH_TYPES_SPLIT
 from mne._fiff.proj import Projection
 from mne._fiff.utils import _mult_cal_one
-from mne.fixes import _numpy_h5py_dep
 from mne.io import BaseRaw, RawArray, read_raw_fif
 from mne.io.base import _get_scaling
 from mne.transforms import Transform
@@ -441,7 +440,7 @@ def _test_raw_reader(
     if check_version("h5io"):
         read_hdf5, write_hdf5 = _import_h5io_funcs()
         fname_h5 = op.join(tempdir, "info.h5")
-        with _writing_info_hdf5(raw.info), _numpy_h5py_dep():
+        with _writing_info_hdf5(raw.info):
             write_hdf5(fname_h5, raw.info)
             new_info = Info(read_hdf5(fname_h5))
         assert object_diff(new_info, raw.info) == ""

@@ -1,1 +1,0 @@
-Calling :meth:`~mne.io.Raw.compute_psd` with ``method="multitaper"`` is now expressly disallowed when ``reject_by_annotation=True`` and ``bad_*`` annotations are present (previously this was nominally allowed but resulted in ``nan`` values in the PSD). By `Daniel McCloy`_.

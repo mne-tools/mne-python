@@ -359,7 +359,7 @@ class WrapStdOut:
         if hasattr(sys.stdout, name):
             return getattr(sys.stdout, name)
         else:
-            raise AttributeError("'file' object has not attribute '%s'" % name)
+            raise AttributeError(f"'file' object has not attribute '{name}'")
 
 
 _verbose_dec_re = re.compile("^<decorator-gen-[0-9]+>$")

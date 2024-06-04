@@ -55,7 +55,7 @@ def _update_old_psd_kwargs(kwargs):
         "ci_alpha", _pop_with_fallback(kwargs, "area_alpha", fallback_fun)
     )
     est = _pop_with_fallback(kwargs, "estimate", fallback_fun)
-    kwargs.setdefault("amplitude", "auto" if est == "auto" else (est == "amplitude"))
+    kwargs.setdefault("amplitude", est == "amplitude")
     area_mode = _pop_with_fallback(kwargs, "area_mode", fallback_fun)
     kwargs.setdefault("ci", "sd" if area_mode == "std" else area_mode)
 

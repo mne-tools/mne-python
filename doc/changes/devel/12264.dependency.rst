@@ -1,1 +1,0 @@
-``defusedxml`` is now an optional (rather than required) dependency and needed when reading EGI-MFF data, NEDF data, and BrainVision montages, by `Eric Larson`_.

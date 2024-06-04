@@ -205,7 +205,7 @@ def get_evoked(system):
     return epochs.average(picks=np.arange(len(epochs.ch_names)))
 
 
-def check_info_fields(expected, actual, has_raw_info, ignore_long=True):
+def check_info_fields(expected, actual, has_raw_info):
     """
     Check if info fields are equal.
 

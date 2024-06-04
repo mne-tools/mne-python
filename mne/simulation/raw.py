@@ -119,11 +119,11 @@ def _check_head_pos(head_pos, info, first_samp, times=None):
         ts.sort()
         dev_head_ts = [head_pos[float(tt)] for tt in ts]
     else:
-        raise TypeError("unknown head_pos type %s" % type(head_pos))
+        raise TypeError(f"unknown head_pos type {type(head_pos)}")
     bad = ts < 0
     if bad.any():
         raise RuntimeError(
-            f"All position times must be >= 0, found {bad.sum()}/{len(bad)}" "< 0"
+            f"All position times must be >= 0, found {bad.sum()}/{len(bad)}< 0"
         )
     if times is not None:
         bad = ts > times[-1]
@@ -379,7 +379,7 @@ def simulate_raw(
             break
         del fwd
     else:
-        raise RuntimeError("Maximum number of STC iterations (%d) " "exceeded" % (n,))
+        raise RuntimeError("Maximum number of STC iterations (%d) exceeded" % (n,))
     raw_data = np.concatenate(raw_datas, axis=-1)
     raw = RawArray(raw_data, info, first_samp=first_samp, verbose=False)
     raw.set_annotations(raw.annotations)
@@ -544,7 +544,7 @@ def _add_exg(raw, kind, head_pos, interp, n_jobs, random_state):
     else:
         if len(meg_picks) == 0:
             raise RuntimeError(
-                "Can only add ECG artifacts if MEG data " "channels are present"
+                "Can only add ECG artifacts if MEG data channels are present"
             )
         exg_rr = np.array([[-R, 0, -3 * R]])
         max_beats = int(np.ceil(times[-1] * 80.0 / 60.0))
@@ -582,7 +582,7 @@ def _add_exg(raw, kind, head_pos, interp, n_jobs, random_state):
     else:
         ch = None
     src = setup_volume_source_space(pos=dict(rr=exg_rr, nn=nn), sphere_units="mm")
-    _log_ch("%s simulated and trace" % kind, info, ch)
+    _log_ch(f"{kind} simulated and trace", info, ch)
     del ch, nn, noise
 
     used = np.zeros(len(raw.times), bool)

@@ -57,7 +57,7 @@ def _check_coil_frame(coils, coord_frame, bem):
             # Make a transformed duplicate
             coils, coord_Frame = _dup_coil_set(coils, coord_frame, bem["head_mri_t"])
         else:
-            raise RuntimeError("Bad coil coordinate frame %s" % coord_frame)
+            raise RuntimeError(f"Bad coil coordinate frame {coord_frame}")
     return coils, coord_frame
 
 

@@ -89,7 +89,7 @@ class Layout:
         elif fname.suffix == ".lay":
             out_str = ""
         else:
-            raise ValueError("Unknown layout type. Should be of type " ".lout or .lay.")
+            raise ValueError("Unknown layout type. Should be of type .lout or .lay.")
 
         for ii in range(x.shape[0]):
             out_str += "%03d %8.2f %8.2f %8.2f %8.2f %s\n" % (
@@ -1075,7 +1075,7 @@ def _merge_grad_data(data, method="rms"):
     elif method == "rms":
         data = np.sqrt(np.sum(data**2, axis=1) / 2)
     else:
-        raise ValueError('method must be "rms" or "mean", got %s.' % method)
+        raise ValueError(f'method must be "rms" or "mean", got {method}.')
     return data.reshape(data.shape[:1] + orig_shape[1:])
 
 

@@ -1,1 +1,0 @@
-:func:`mne.epochs.make_metadata` now accepts strings as ``tmin`` and ``tmax`` parameter values, simplifying metadata creation based on time-varying events such as responses to a stimulus, by `Richard Höchenberger`_.

@@ -1,0 +1,1 @@
+In :class:`~mne.Report` you can now easily navigate through images and figures connected to a slider with the left and right arrow keys. Clicking on the slider or respective image will focus the slider, enabling keyboard navigation, by `Richard Höchenberger`_

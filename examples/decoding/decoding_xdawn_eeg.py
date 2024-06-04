@@ -22,6 +22,7 @@ import numpy as np
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import classification_report, confusion_matrix
 from sklearn.model_selection import StratifiedKFold
+from sklearn.multiclass import OneVsRestClassifier
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import MinMaxScaler
 
@@ -73,7 +74,7 @@ clf = make_pipeline(
     Xdawn(n_components=n_filter),
     Vectorizer(),
     MinMaxScaler(),
-    LogisticRegression(penalty="l1", solver="liblinear", multi_class="auto"),
+    OneVsRestClassifier(LogisticRegression(penalty="l1", solver="liblinear")),
 )
 
 # Get the labels

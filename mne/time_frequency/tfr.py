@@ -165,10 +165,10 @@ def morlet(sfreq, freqs, n_cycles=7.0, sigma=None, zero_mean=False):
 
     freqs = np.array(freqs, float)
     if np.any(freqs <= 0):
-        raise ValueError("all frequencies in 'freqs' must be " "greater than 0.")
+        raise ValueError("all frequencies in 'freqs' must be greater than 0.")
 
     if (n_cycles.size != 1) and (n_cycles.size != len(freqs)):
-        raise ValueError("n_cycles should be fixed or defined for " "each frequency.")
+        raise ValueError("n_cycles should be fixed or defined for each frequency.")
     _check_option("freqs.ndim", freqs.ndim, [0, 1])
     singleton = freqs.ndim == 0
     if singleton:
@@ -273,7 +273,7 @@ def _make_dpss(
 
     freqs = np.array(freqs)
     if np.any(freqs <= 0):
-        raise ValueError("all frequencies in 'freqs' must be " "greater than 0.")
+        raise ValueError("all frequencies in 'freqs' must be greater than 0.")
 
     if time_bandwidth < 2.0:
         raise ValueError("time_bandwidth should be >= 2.0 for good tapers")
@@ -281,7 +281,7 @@ def _make_dpss(
     n_cycles = np.atleast_1d(n_cycles)
 
     if n_cycles.size != 1 and n_cycles.size != len(freqs):
-        raise ValueError("n_cycles should be fixed or defined for " "each frequency.")
+        raise ValueError("n_cycles should be fixed or defined for each frequency.")
 
     for m in range(n_taps):
         Wm = list()
@@ -598,28 +598,24 @@ def _check_tfr_param(
     """Aux. function to _compute_tfr to check the params validity."""
     # Check freqs
     if not isinstance(freqs, (list, np.ndarray)):
-        raise ValueError(
-            "freqs must be an array-like, got %s " "instead." % type(freqs)
-        )
+        raise ValueError(f"freqs must be an array-like, got {type(freqs)} instead.")
     freqs = np.asarray(freqs, dtype=float)
     if freqs.ndim != 1:
         raise ValueError(
-            "freqs must be of shape (n_freqs,), got %s "
-            "instead." % np.array(freqs.shape)
+            f"freqs must be of shape (n_freqs,), got {np.array(freqs.shape)} "
+            "instead."
         )
 
     # Check sfreq
     if not isinstance(sfreq, (float, int)):
-        raise ValueError(
-            "sfreq must be a float or an int, got %s " "instead." % type(sfreq)
-        )
+        raise ValueError(f"sfreq must be a float or an int, got {type(sfreq)} instead.")
     sfreq = float(sfreq)
 
     # Default zero_mean = True if multitaper else False
     zero_mean = method == "multitaper" if zero_mean is None else zero_mean
     if not isinstance(zero_mean, bool):
         raise ValueError(
-            "zero_mean should be of type bool, got %s. instead" % type(zero_mean)
+            f"zero_mean should be of type bool, got {type(zero_mean)}. instead"
         )
     freqs = np.asarray(freqs)
 
@@ -635,7 +631,7 @@ def _check_tfr_param(
             )
     else:
         raise ValueError(
-            "n_cycles must be a float or an array, got %s " "instead." % type(n_cycles)
+            f"n_cycles must be a float or an array, got {type(n_cycles)} instead."
         )
 
     # Check time_bandwidth
@@ -646,15 +642,13 @@ def _check_tfr_param(
 
     # Check use_fft
     if not isinstance(use_fft, bool):
-        raise ValueError(
-            "use_fft must be a boolean, got %s " "instead." % type(use_fft)
-        )
+        raise ValueError(f"use_fft must be a boolean, got {type(use_fft)} instead.")
     # Check decim
     if isinstance(decim, int):
         decim = slice(None, None, decim)
     if not isinstance(decim, slice):
         raise ValueError(
-            "decim must be an integer or a slice, " "got %s instead." % type(decim)
+            f"decim must be an integer or a slice, got {type(decim)} instead."
         )
 
     # Check output
@@ -930,13 +924,13 @@ def tfr_array_morlet(
     sfreq,
     freqs,
     n_cycles=7.0,
-    zero_mean=None,
+    zero_mean=True,
     use_fft=True,
     decim=1,
     output="complex",
     n_jobs=None,
+    *,
     verbose=None,
-    epoch_data=None,
 ):
     """Compute Time-Frequency Representation (TFR) using Morlet wavelets.
 
@@ -956,7 +950,7 @@ def tfr_array_morlet(
 
         .. versionchanged:: 1.8
             The default will change from ``zero_mean=False`` in 1.6 to ``True`` in
-            1.8, and (if not set explicitly) will raise a ``FutureWarning`` in 1.7.
+            1.8.
 
     use_fft : bool
         Use the FFT for convolutions or not. default True.
@@ -974,10 +968,6 @@ def tfr_array_morlet(
         The number of epochs to process at the same time. The parallelization
         is implemented across channels. Default 1.
     %(verbose)s
-    epoch_data : None
-        Deprecated parameter for providing epoched data as of 1.7, will be replaced with
-        the ``data`` parameter in 1.8. New code should use the ``data`` parameter. If
-        ``epoch_data`` is not ``None``, a warning will be raised.
 
     Returns
     -------
@@ -1012,20 +1002,6 @@ def tfr_array_morlet(
     ----------
     .. footbibliography::
     """
-    if zero_mean is None:
-        warn(
-            "The default value of `zero_mean` will change from `False` to `True` "
-            "in version 1.8. Set the value explicitly to avoid this warning.",
-            FutureWarning,
-        )
-        zero_mean = False
-    if epoch_data is not None:
-        warn(
-            "The parameter for providing data will be switched from `epoch_data` to "
-            "`data` in 1.8. Use the `data` parameter to avoid this warning.",
-            FutureWarning,
-        )
-
     return _compute_tfr(
         epoch_data=data,
         freqs=freqs,
@@ -2636,13 +2612,13 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
         Parameters
         ----------
         fname : path-like
-            Path of file to save to.
+            Path of file to save to, which should end with ``-tfr.h5`` or ``-tfr.hdf5``.
         %(overwrite)s
         %(verbose)s
 
         See Also
         --------
-        mne.time_frequency.read_spectrum
+        mne.time_frequency.read_tfrs
         """
         _, write_hdf5 = _import_h5io_funcs()
         check_fname(fname, "time-frequency object", (".h5", ".hdf5"))
@@ -2854,30 +2830,6 @@ class AverageTFR(BaseTFR):
         from ..epochs import BaseEpochs
         from ..evoked import Evoked
         from ._stockwell import _check_input_st, _compute_freqs_st
-
-        # deprecations. TODO remove after 1.7 release
-        depr_params = dict(info=info, data=data, times=times, nave=nave)
-        bad_params = list()
-        for name, param in depr_params.items():
-            if param is not None:
-                bad_params.append(name)
-        if len(bad_params):
-            _s = _pl(bad_params)
-            is_are = _pl(bad_params, "is", "are")
-            bad_params_list = '", "'.join(bad_params)
-            warn(
-                f'Parameter{_s} "{bad_params_list}" {is_are} deprecated and will be '
-                "removed in version 1.8. For a quick fix, use ``AverageTFRArray`` with "
-                "the same parameters. For a long-term fix, see the docstring notes.",
-                FutureWarning,
-            )
-            if inst is not None:
-                raise ValueError(
-                    "Do not pass `inst` alongside deprecated params "
-                    f'"{bad_params_list}"; see docstring of AverageTFR for guidance.'
-                )
-            inst = depr_params | dict(freqs=freqs, method=method, comment=comment)
-        # end TODO ↑↑↑↑↑↑
 
         # dict is allowed for __setstate__ compatibility, and Epochs.compute_tfr() can
         # return an AverageTFR depending on its parameters, so Epochs input is allowed
@@ -3998,7 +3950,7 @@ def combine_tfr(all_tfr, weights="nave"):
     tfr = all_tfr[0].copy()
     if isinstance(weights, str):
         if weights not in ("nave", "equal"):
-            raise ValueError('Weights must be a list of float, or "nave" or ' '"equal"')
+            raise ValueError('Weights must be a list of float, or "nave" or "equal"')
         if weights == "nave":
             weights = np.array([e.nave for e in all_tfr], float)
             weights /= weights.sum()
@@ -4182,7 +4134,8 @@ def read_tfrs(fname, condition=None, *, verbose=None):
     Parameters
     ----------
     fname : path-like
-        Path to a TFR file in HDF5 format.
+        Path to a TFR file in HDF5 format, which should end with ``-tfr.h5`` or
+        ``-tfr.hdf5``.
     condition : int or str | list of int or str | None
         The condition to load. If ``None``, all conditions will be returned.
         Defaults to ``None``.

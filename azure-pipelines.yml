@@ -68,6 +68,13 @@ stages:
               make check-readme
             displayName: make check-readme
             condition: always()
+          - bash: mypy
+            displayName: mypy
+            condition: always()
+          - bash: vulture
+            displayName: vulture
+            condition: always()
+
 
   - stage: Test
     condition: and(succeeded(), eq(dependencies.Check.outputs['Skip.result.start_main'], 'true'))

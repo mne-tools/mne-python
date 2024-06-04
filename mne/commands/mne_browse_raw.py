@@ -77,14 +77,14 @@ def run():
         "-o",
         "--order",
         dest="group_by",
-        help="Order to use for grouping during plotting " "('type' or 'original')",
+        help="Order to use for grouping during plotting ('type' or 'original')",
         default="type",
     )
     parser.add_option(
         "-p",
         "--preload",
         dest="preload",
-        help="Preload raw data (for faster navigaton)",
+        help="Preload raw data (for faster navigation)",
         default=False,
         action="store_true",
     )

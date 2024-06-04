@@ -1,1 +1,0 @@
-Add :meth:`~mne.SourceEstimate.savgol_filter`, :meth:`~mne.SourceEstimate.filter`, :meth:`~mne.SourceEstimate.apply_hilbert`, and :meth:`~mne.SourceEstimate.apply_function` methods to :class:`mne.SourceEstimate` and related classes, by `Hamza Abdelhedi`_.
