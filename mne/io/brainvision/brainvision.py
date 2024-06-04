@@ -793,10 +793,9 @@ def _get_hdr_info(hdr_fname, eog, misc, scale):
                     heterogeneous_hp_filter = False
 
             if heterogeneous_hp_filter:
-                warn(
-                    "Channels contain different highpass filters. "
-                    f"Lowest (weakest) filter setting ({info['highpass']:0.2f} Hz) "
-                    "will be stored."
+                logger.info(
+                    "Channels contain different highpass filters. Lowest (weakest) "
+                    f"filter setting ({info['highpass']:0.2f} Hz) will be stored."
                 )
 
         if len(lowpass) == 0:
@@ -863,7 +862,7 @@ def _get_hdr_info(hdr_fname, eog, misc, scale):
                     nyquist = ", Nyquist limit"
                 else:
                     nyquist = ""
-                warn(
+                logger.info(
                     "Channels contain different lowpass filters. "
                     f"Highest (weakest) filter setting ({info['lowpass']:0.2f} "
                     f"Hz{nyquist}) will be stored."

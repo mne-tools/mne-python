@@ -777,7 +777,7 @@ def _set_prefilter(info, edf_info, ch_idxs, key):
     if len(values := edf_info.get(key, [])):
         values = [x for i, x in enumerate(values) if i in ch_idxs]
         if len(np.unique(values)) > 1:
-            warn(
+            logger.info(
                 f"Channels contain different {key} filters. "
                 f"{'Highest' if key == 'highpass' else 'Lowest'} filter "
                 "setting will be stored."
