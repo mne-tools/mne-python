@@ -678,20 +678,20 @@ def test_edf_prefilter_float(prefilter_string, expected):
 
 
 @pytest.mark.parametrize(
-    "edf_info, hp, lp, hp_warn, lp_warn",
+    "edf_info, hp, lp",
     [
-        ({"highpass": ["0"], "lowpass": ["1.1"]}, -1, 1.1, False, False),
-        ({"highpass": [""], "lowpass": [""]}, -1, -1, False, False),
-        ({"highpass": ["DC"], "lowpass": [""]}, -1, -1, False, False),
-        ({"highpass": [1], "lowpass": [2]}, 1, 2, False, False),
-        ({"highpass": [np.nan], "lowpass": [np.nan]}, -1, -1, False, False),
-        ({"highpass": ["1", "2"], "lowpass": ["3", "4"]}, 2, 3, True, True),
-        ({"highpass": [np.nan, 1], "lowpass": ["", 3]}, 1, 3, True, True),
-        ({"highpass": [np.nan, np.nan], "lowpass": [1, 2]}, -1, 1, False, True),
-        ({}, -1, -1, False, False),
+        ({"highpass": ["0"], "lowpass": ["1.1"]}, -1, 1.1),
+        ({"highpass": [""], "lowpass": [""]}, -1, -1),
+        ({"highpass": ["DC"], "lowpass": [""]}, -1, -1),
+        ({"highpass": [1], "lowpass": [2]}, 1, 2),
+        ({"highpass": [np.nan], "lowpass": [np.nan]}, -1, -1),
+        ({"highpass": ["1", "2"], "lowpass": ["3", "4"]}, 2, 3),
+        ({"highpass": [np.nan, 1], "lowpass": ["", 3]}, 1, 3),
+        ({"highpass": [np.nan, np.nan], "lowpass": [1, 2]}, -1, 1),
+        ({}, -1, -1),
     ],
 )
-def test_edf_set_prefilter(edf_info, hp, lp, hp_warn, lp_warn):
+def test_edf_set_prefilter(edf_info, hp, lp):
     """Test _set_prefilter function."""
     info = {"lowpass": -1, "highpass": -1}
 
