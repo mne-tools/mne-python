@@ -378,7 +378,7 @@ class DipoleFitUI:
         """Show sensor data and allow sensor selection."""
         if self._fig_sensors is not None:
             return
-        fig = self._evoked.plot_topo()
+        fig = self._evoked.plot_topo(select=True)
         fig.canvas.mpl_connect("close_event", self._on_sensor_data_close)
         subscribe(fig, "channels_select", self._on_channels_select)
         self._fig_sensors = fig
