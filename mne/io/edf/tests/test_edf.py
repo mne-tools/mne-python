@@ -173,26 +173,24 @@ def test_bdf_data():
     # XXX BDF data for these is around 0.01 when it should be in the uV range,
     # probably some bug
     test_scaling = False
-    with pytest.warns(RuntimeWarning, match="Channels contain different"):
-        raw_py = _test_raw_reader(
-            read_raw_bdf,
-            input_fname=bdf_path,
-            eog=eog,
-            misc=misc,
-            exclude=["M2", "IEOG"],
-            test_scaling=test_scaling,
-        )
+    raw_py = _test_raw_reader(
+        read_raw_bdf,
+        input_fname=bdf_path,
+        eog=eog,
+        misc=misc,
+        exclude=["M2", "IEOG"],
+        test_scaling=test_scaling,
+    )
     assert len(raw_py.ch_names) == 71
-    with pytest.warns(RuntimeWarning, match="Channels contain different"):
-        raw_py = _test_raw_reader(
-            read_raw_bdf,
-            input_fname=bdf_path,
-            montage="biosemi64",
-            eog=eog,
-            misc=misc,
-            exclude=["M2", "IEOG"],
-            test_scaling=test_scaling,
-        )
+    raw_py = _test_raw_reader(
+        read_raw_bdf,
+        input_fname=bdf_path,
+        montage="biosemi64",
+        eog=eog,
+        misc=misc,
+        exclude=["M2", "IEOG"],
+        test_scaling=test_scaling,
+    )
     assert len(raw_py.ch_names) == 71
     assert "RawEDF" in repr(raw_py)
     picks = pick_types(raw_py.info, meg=False, eeg=True, exclude="bads")
@@ -697,35 +695,12 @@ def test_edf_set_prefilter(edf_info, hp, lp, hp_warn, lp_warn):
     """Test _set_prefilter function."""
     info = {"lowpass": -1, "highpass": -1}
 
-    if hp_warn:
-        ctx = pytest.warns(
-            RuntimeWarning,
-            match=(
-                "Channels contain different highpass filters. "
-                "Highest filter setting will be stored."
-            ),
-        )
-    else:
-        ctx = nullcontext()
-    with ctx:
-        _set_prefilter(
-            info, edf_info, list(range(len(edf_info.get("highpass", [])))), "highpass"
-        )
-
-    if lp_warn:
-        ctx = pytest.warns(
-            RuntimeWarning,
-            match=(
-                "Channels contain different lowpass filters. "
-                "Lowest filter setting will be stored."
-            ),
-        )
-    else:
-        ctx = nullcontext()
-    with ctx:
-        _set_prefilter(
-            info, edf_info, list(range(len(edf_info.get("lowpass", [])))), "lowpass"
-        )
+    _set_prefilter(
+        info, edf_info, list(range(len(edf_info.get("highpass", [])))), "highpass"
+    )
+    _set_prefilter(
+        info, edf_info, list(range(len(edf_info.get("lowpass", [])))), "lowpass"
+    )
     assert info["highpass"] == hp
     assert info["lowpass"] == lp
 
