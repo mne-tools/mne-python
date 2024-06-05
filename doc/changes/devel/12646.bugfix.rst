@@ -1,0 +1,3 @@
+Output types of sparse arrays were changed from ``matrix`` to ``array``
+to comply with the pending deprecation of ``np.matrix`` types in scipy,
+by `Eric Larson`_.
