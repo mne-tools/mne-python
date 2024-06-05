@@ -369,37 +369,72 @@ def test_set_eeg_reference_rest():
     "ref_channels, expectation",
     [
         (
+            {2: "EEG 001"},
+            pytest.raises(
+                AssertionError, match=f"Keys in dict-type.*You provided {int}"
+            ),
+        ),
+        (
+            {"EEG 001": (1, 2)},
+            pytest.raises(
+                ValueError, match=f"Values in dict-type.*You provided {type((1,2))}"
+            ),
+        ),
+        (
+            {"EEG 001": [1, 2]},
+            pytest.raises(
+                AssertionError, match=f"Values in dict-type.*You provided a list of <class 'int'>"
+            ),
+        ),
+        (
             {"EEG 999": "EEG 001"},
             pytest.raises(
                 AssertionError,
-                match="Channel EEE 999 in ref_channels is not in the instance",
+                match="Channel EEG 999 in ref_channels is not in the instance",
             ),
         ),
         (
             {"EEG 001": "EEG 999"},
             pytest.raises(
                 AssertionError,
-                match="Channel EEE 999 in ref_channels is not in the instance",
+                match="Channel EEG 999 in ref_channels is not in the instance",
             ),
         ),
-        ({"EEG 001": "EEG 002"}, nullcontext()),
+        (
+            {"EEG 001": "EEG 057"},
+            pytest.warns(
+                RuntimeWarning,
+                match="Channel EEG 057 in ref_channels is marked as bad!",
+            ),
+        ),
+        (
+            {"EEG 001": "STI 001"},
+            pytest.warns(
+                RuntimeWarning,
+                match="Channel EEG 001 is of type EEG, but reference channel STI 001 is of type Stimulus.",
+            ),
+        ),
+        (
+            {"EEG 001": "EEG 002", "EEG 002": "EEG 002", "EEG 003": "EEG 005"},
+            nullcontext(),
+        ),
     ],
 )
 def test_set_eeg_reference_dict(ref_channels, expectation):
     """Test setting dict-based reference."""
-    raw = read_raw_fif(fif_fname).crop(0, 1).pick(picks="eeg")
-
+    raw = read_raw_fif(fif_fname).crop(0, 1).pick(picks=["eeg", "stim"])
     with pytest.raises(
         RuntimeError,
-        match="By default, MNE does not load data*Applying a reference requires*",
+        match="By default, MNE does not load data.*Applying a reference requires.*",
     ):
         raw.set_eeg_reference(ref_channels=ref_channels)
-
     raw.load_data()
     raw.info["bads"] = ["EEG 057"]
     with expectation:
         raw.set_eeg_reference(ref_channels=ref_channels)
-
+    
+    # Data testing goes below here @Alex
+    # if expectation == nullcontext():
 
 @testing.requires_testing_data
 @pytest.mark.parametrize("inst_type", ("raw", "epochs", "evoked"))
