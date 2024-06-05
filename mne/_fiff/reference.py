@@ -139,17 +139,11 @@ def _check_before_dict_reference(inst, ref_dict):
             )
             _on_missing("warn", msg)
 
-    ref_from_channels = set()
     for key, value in ref_dict.items():
         # Check that keys are strings
         assert isinstance(key, str), (
             "Keys in dict-type ref_channels must be strings. You provided "
             f"{type(key)}."
-        )
-        # Check that keys are unique
-        assert key not in ref_from_channels, (
-            "Keys in dict-type ref_channels must be unique. You provided repeated key "
-            f"{key}"
         )
         # Check that keys are in ch_names
         assert (
@@ -157,8 +151,6 @@ def _check_before_dict_reference(inst, ref_dict):
         ), f"Channel {key} in ref_channels is not in the instance"
         key_pick = pick_channels(inst.ch_names, [key], ordered=True)
         key_ch_type = inst.get_channel_types(picks=key_pick)[0]
-        ref_from_channels.add(key)
-
         # Check values
         if isinstance(value, str):
             check_value_str(inst, value, key_ch_type)
