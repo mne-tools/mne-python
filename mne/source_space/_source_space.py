@@ -1403,7 +1403,9 @@ def _write_one_source_space(fid, this, verbose=None):
     if this["dist"] is not None:
         # Save only upper triangular portion of the matrix
         dists = this["dist"].copy()
-        dists = triu(dists, format=dists.format)
+        # Shouldn't need this cast but on SciPy 1.9.3 at least this returns a csr_matrix
+        # instead of csr_array
+        dists = csr_array(triu(dists, format=dists.format))
         write_float_sparse_rcs(fid, FIFF.FIFF_MNE_SOURCE_SPACE_DIST, dists)
         write_float_matrix(
             fid,
