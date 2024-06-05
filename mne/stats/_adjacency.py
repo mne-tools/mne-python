@@ -65,8 +65,9 @@ def combine_adjacency(*structure):
         _validate_type(dim, ("int-like", np.ndarray, sparse.spmatrix), name)
         if isinstance(dim, int_like):
             # Don't add the diagonal, because we explicitly remove it later
-            dim = sparse.diags_array(
-                [1, 1], offsets=(-1, 1), shape=(int(dim), int(dim)), dtype=float
+            dim = sparse.dia_array(
+                (np.ones((2, dim)), [-1, 1]),
+                shape=(dim, dim),
             ).tocoo()
         else:
             _check_option(f"{name}.ndim", dim.ndim, [2])

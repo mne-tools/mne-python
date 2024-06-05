@@ -2573,7 +2573,7 @@ def _labels_to_stc_surf(labels, values, tmin, tstep, subject):
         cols = np.arange(len(vertices[hemi]))
         vertices[hemi], rows = np.unique(vertices[hemi], return_inverse=True)
         mat = sparse.coo_array((np.ones(len(rows)), (rows, cols))).tocsr()
-        mat = mat @ sparse.diags_array(1.0 / np.asarray(mat.sum(axis=-1)))
+        mat *= 1.0 / mat.sum(axis=-1)
         data[hemi] = mat @ data[hemi]
     vertices = [vertices[hemi] for hemi in hemis]
     data = np.concatenate([data[hemi] for hemi in hemis], axis=0)

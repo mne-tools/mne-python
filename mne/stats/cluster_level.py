@@ -549,7 +549,7 @@ def _find_clusters_1dir(x, x_in, adjacency, max_step, t_power, ndimage):
             )
         if isinstance(adjacency, sparse.spmatrix):
             adjacency = sparse.coo_array(adjacency)
-        if isinstance(adjacency, sparse.sparray) or adjacency is False:
+        if sparse.issparse(adjacency) or adjacency is False:
             clusters = _get_components(x_in, adjacency)
         elif isinstance(adjacency, list):  # use temporal adjacency
             clusters = _get_clusters_st(x_in, adjacency, max_step)

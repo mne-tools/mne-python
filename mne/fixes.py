@@ -111,10 +111,7 @@ def _csc_array_cast(x):
 def _eye_array(n, *, format="csr"):  # noqa: A002
     from scipy import sparse
 
-    indptr = np.arange(n + 1)
-    indices = np.arange(n)
-    data = np.ones(n)
-    return sparse.csr_array((data, indices, indptr), (n, n)).asformat(format)
+    return sparse.dia_array((np.ones(n), 0), shape=(n, n)).asformat(format)
 
 
 ###############################################################################
