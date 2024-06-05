@@ -517,7 +517,8 @@ sphinx_gallery_conf = {
     ),  # called w/each script
     "reset_modules_order": "both",
     "image_scrapers": scrapers,
-    "show_memory": not sys.platform.startswith(("win", "darwin")),
+    "show_memory": False,
+    "parallel": True,
     "line_numbers": False,  # messes with style
     "within_subsection_order": "FileNameSortKey",
     "capture_repr": ("_repr_html_",),

@@ -2,12 +2,13 @@
 #
 
 # You can set these variables from the command line.
+SPHINXJOBS    = 1
 SPHINXOPTS    = -nWT --keep-going
 SPHINXBUILD   = sphinx-build
 MPROF         = SG_STAMP_STARTS=true mprof run -E --python sphinx
 
 # Internal variables.
-ALLSPHINXOPTS   = -d _build/doctrees $(SPHINXOPTS) .
+ALLSPHINXOPTS   = -d _build/doctrees $(SPHINXOPTS) -j$(SPHINXJOBS) .
 
 .PHONY: help clean html html-noplot html-pattern linkcheck linkcheck-grep doctest
 

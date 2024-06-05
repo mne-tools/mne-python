@@ -10,7 +10,7 @@ sudo apt install ./google-chrome-stable_current_amd64.deb
 python3.10 -m venv ~/python_env
 echo "set -e" >> $BASH_ENV
 echo "set -o pipefail" >> $BASH_ENV
-echo "export OPENBLAS_NUM_THREADS=4" >> $BASH_ENV
+echo "export OPENBLAS_NUM_THREADS=1" >> $BASH_ENV
 echo "export XDG_RUNTIME_DIR=/tmp/runtime-circleci" >> $BASH_ENV
 echo "export MNE_FULL_DATE=true" >> $BASH_ENV
 source tools/get_minimal_commands.sh
