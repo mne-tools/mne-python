@@ -383,7 +383,8 @@ def test_set_eeg_reference_rest():
         (
             {"EEG 001": [1, 2]},
             pytest.raises(
-                AssertionError, match=f"Values in dict-type.*You provided a list of <class 'int'>"
+                AssertionError,
+                match="Values in dict-type.*You provided a list of <class 'int'>",
             ),
         ),
         (
@@ -432,9 +433,10 @@ def test_set_eeg_reference_dict(ref_channels, expectation):
     raw.info["bads"] = ["EEG 057"]
     with expectation:
         raw.set_eeg_reference(ref_channels=ref_channels)
-    
+
     # Data testing goes below here @Alex
     # if expectation == nullcontext():
+
 
 @testing.requires_testing_data
 @pytest.mark.parametrize("inst_type", ("raw", "epochs", "evoked"))
