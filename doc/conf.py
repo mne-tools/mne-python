@@ -97,7 +97,6 @@ extensions = [
     "sphinx.ext.mathjax",
     "sphinx.ext.todo",
     # contrib
-    "matplotlib.sphinxext.plot_directive",
     "numpydoc",
     "sphinx_copybutton",
     "sphinx_design",
@@ -1155,32 +1154,6 @@ html_context = {
 
 # Output file base name for HTML help builder.
 htmlhelp_basename = "mne-doc"
-
-
-# -- Options for plot_directive ----------------------------------------------
-
-# Adapted from SciPy
-plot_include_source = True
-plot_formats = [("png", 96)]
-plot_html_show_formats = False
-plot_html_show_source_link = False
-font_size = 13 * 72 / 96.0  # 13 px
-plot_rcparams = {
-    "font.size": font_size,
-    "axes.titlesize": font_size,
-    "axes.labelsize": font_size,
-    "xtick.labelsize": font_size,
-    "ytick.labelsize": font_size,
-    "legend.fontsize": font_size,
-    "figure.figsize": (6, 5),
-    "figure.subplot.bottom": 0.2,
-    "figure.subplot.left": 0.2,
-    "figure.subplot.right": 0.9,
-    "figure.subplot.top": 0.85,
-    "figure.subplot.wspace": 0.4,
-    "text.usetex": False,
-}
-
 
 # -- Options for LaTeX output ------------------------------------------------
 
