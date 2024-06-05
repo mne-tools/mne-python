@@ -1534,7 +1534,7 @@ class Brain:
                 xfm["trans"][:3, 3] *= 1000.0
             ijk = np.unravel_index(vertex_id, self._data[hemi]["grid_shape"], order="F")
             src_mri_t = self._data[hemi]["grid_src_mri_t"]
-            mni = apply_trans(np.dot(xfm["trans"], src_mri_t), ijk)
+            mni = apply_trans(xfm["trans"] @ src_mri_t, ijk)
         else:
             hemi_str = "L" if hemi == "lh" else "R"
             try:
@@ -1553,7 +1553,7 @@ class Brain:
         label = f"{hemi_str}:{str(vertex_id).ljust(6)}{mni}"
         act_data, smooth = self.act_data_smooth[hemi]
         if smooth is not None:
-            act_data = smooth[vertex_id].dot(act_data)[0]
+            act_data = (smooth[[vertex_id]] @ act_data)[0]
         else:
             act_data = act_data[vertex_id].copy()
         line = self.mpl_canvas.plot(

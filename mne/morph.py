@@ -1394,7 +1394,7 @@ def _surf_upsampling_mat(idx_from, e, smooth):
         # compute row sums + output indices
         if recompute_idx_sum:
             if len(idx) == n_tot:
-                row_sum = np.asarray(e.sum(-1))[:, 0]
+                row_sum = np.asarray(e.sum(-1))
                 idx = np.arange(n_tot)
                 recompute_idx_sum = False
             else:

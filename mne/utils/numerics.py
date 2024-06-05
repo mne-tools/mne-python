@@ -705,12 +705,18 @@ def object_size(x, memo=None):
         size = sys.getsizeof(x) + sum(object_size(xx, memo) for xx in x)
     elif isinstance(x, datetime):
         size = object_size(_dt_to_stamp(x), memo)
-    elif sparse.isspmatrix_csc(x) or sparse.isspmatrix_csr(x):
+    elif _is_sparse_cs(x):
         size = sum(sys.getsizeof(xx) for xx in [x, x.data, x.indices, x.indptr])
     else:
         raise RuntimeError(f"unsupported type: {type(x)} ({x})")
     memo[id_] = size
     return size
+
+
+def _is_sparse_cs(x):
+    return isinstance(
+        x, (sparse.csr_matrix, sparse.csc_matrix, sparse.csr_array, sparse.csc_array)
+    )
 
 
 def _sort_keys(x):
@@ -802,7 +808,7 @@ def object_diff(a, b, pre="", *, allclose=False):
     elif isinstance(a, datetime):
         if (a - b).total_seconds() != 0:
             out += pre + " datetime mismatch\n"
-    elif sparse.isspmatrix(a):
+    elif sparse.issparse(a):
         # sparsity and sparse type of b vs a already checked above by type()
         if b.shape != a.shape:
             out += pre + (
