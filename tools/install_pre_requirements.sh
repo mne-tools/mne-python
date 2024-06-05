@@ -60,6 +60,9 @@ pip install $STD_ARGS imageio-ffmpeg xlrd mffpy traitlets pybv eeglabio
 echo "mne-qt-browser"
 pip install $STD_ARGS git+https://github.com/mne-tools/mne-qt-browser
 
+echo "mne-bids"
+pip install $STD_ARGS git+https://github.com/mne-tools/mne-bids
+
 echo "nibabel"
 pip install $STD_ARGS git+https://github.com/nipy/nibabel
 
