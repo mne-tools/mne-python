@@ -23,7 +23,7 @@ from .baseline import rescale
 from .cov import Covariance
 from .evoked import _get_peak
 from .filter import FilterMixin, _check_fun, resample
-from .fixes import _safe_svd
+from .fixes import _eye_array, _safe_svd
 from .parallel import parallel_func
 from .source_space._source_space import (
     SourceSpaces,
@@ -3186,7 +3186,7 @@ def spatio_temporal_tris_adjacency(tris, n_times, remap_vertices=False, verbose=
         tris = np.searchsorted(np.unique(tris), tris)
 
     edges = mesh_edges(tris)
-    edges = (edges + sparse.eye_array(edges.shape[0], format="csr")).tocoo()
+    edges = (edges + _eye_array(edges.shape[0])).tocoo()
     return _get_adjacency_from_edges(edges, n_times)
 
 

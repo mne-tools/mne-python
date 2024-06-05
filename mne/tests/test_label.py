@@ -19,7 +19,6 @@ from numpy.testing import (
     assert_array_less,
     assert_equal,
 )
-from scipy import sparse
 
 from mne import (
     grow_labels,
@@ -37,6 +36,7 @@ from mne import (
     write_labels_to_annot,
 )
 from mne.datasets import testing
+from mne.fixes import _eye_array
 from mne.label import (
     Label,
     _blend_colors,
@@ -131,7 +131,7 @@ def _stc_to_label(stc, src, smooth, subjects_dir=None):
         e = mesh_edges(this_tris)
         e.data[e.data == 2] = 1
         n_vertices = e.shape[0]
-        e = e + sparse.eye_array(n_vertices, n_vertices)
+        e = e + _eye_array(n_vertices)
 
         clusters = [this_vertno[np.any(this_data, axis=1)]]
 
@@ -148,7 +148,7 @@ def _stc_to_label(stc, src, smooth, subjects_dir=None):
                 idx_use = c
                 for k in range(smooth):
                     e_use = e[:, idx_use]
-                    data1 = e_use * np.ones(len(idx_use))
+                    data1 = e_use @ np.ones(len(idx_use))
                     idx_use = np.where(data1)[0]
 
                 label = Label(

@@ -547,12 +547,16 @@ def _find_clusters_1dir(x, x_in, adjacency, max_step, t_power, ndimage):
             raise Exception(
                 "Data should be 1D when using a adjacency to define clusters."
             )
-        if isinstance(adjacency, sparse.spmatrix) or adjacency is False:
+        if isinstance(adjacency, sparse.spmatrix):
+            adjacency = sparse.coo_array(adjacency)
+        if isinstance(adjacency, sparse.sparray) or adjacency is False:
             clusters = _get_components(x_in, adjacency)
         elif isinstance(adjacency, list):  # use temporal adjacency
             clusters = _get_clusters_st(x_in, adjacency, max_step)
         else:
-            raise ValueError("adjacency must be a sparse matrix or list")
+            raise TypeError(
+                f"adjacency must be a sparse array or list, got {type(adjacency)}"
+            )
         if t_power == 1:
             sums = [_masked_sum(x, c) for c in clusters]
         else:

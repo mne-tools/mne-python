@@ -12,7 +12,7 @@
 import os
 
 import numpy as np
-from scipy.sparse import csr_array, eye_array
+from scipy.sparse import csr_array
 
 from ._fiff.constants import FIFF
 from ._fiff.open import fiff_open
@@ -26,6 +26,7 @@ from ._fiff.write import (
     write_int,
     write_string,
 )
+from .fixes import _eye_array
 from .surface import (
     _compute_nearest,
     _find_nearest_tri_pts,
@@ -213,7 +214,7 @@ def _make_morph_map_hemi(subject_from, subject_to, subjects_dir, reg_from, reg_t
     if subject_from == subject_to and reg_from == reg_to:
         fname = subjects_dir / subject_from / "surf" / reg_from
         n_pts = len(read_surface(fname, verbose=False)[0])
-        return eye_array(n_pts, n_pts, format="csr")
+        return _eye_array(n_pts, format="csr")
 
     # load surfaces and normalize points to be on unit sphere
     fname = subjects_dir / subject_from / "surf" / reg_from

@@ -107,6 +107,16 @@ def _csc_array_cast(x):
     return csc_array(x)
 
 
+# Can be replaced with sparse.eye_array once we depend on SciPy >= 1.12
+def _eye_array(n, *, format="csr"):  # noqa: A002
+    from scipy import sparse
+
+    indptr = np.arange(n + 1)
+    indices = np.arange(n)
+    data = np.ones(n)
+    return sparse.csr_array((data, indices, indptr), (n, n)).asformat(format)
+
+
 ###############################################################################
 # NumPy Generator (NumPy 1.17)
 

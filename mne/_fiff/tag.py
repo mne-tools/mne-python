@@ -197,41 +197,34 @@ def _read_matrix(fid, tag, shape, rlims):
         # We need to make a copy so that we can own the data, otherwise we get:
         #     _sparsetools.csr_sort_indices(len(self.indptr) - 1, self.indptr,
         # E   ValueError: WRITEBACKIFCOPY base is read-only
-        data = np.frombuffer(fid.read(bit * nnz), dtype=dtype).copy()
+        data = np.frombuffer(fid.read(bit * nnz), dtype=dtype).astype(np.float32)
         shape = (dims[1], dims[2])
         if matrix_coding == "sparse CCS":
             tmp_indices = fid.read(4 * nnz)
             indices = np.frombuffer(tmp_indices, dtype=">i4")
             tmp_ptr = fid.read(4 * (ncol + 1))
             indptr = np.frombuffer(tmp_ptr, dtype=">i4")
-            if indptr[-1] > len(indices) or np.any(indptr < 0):
-                # There was a bug in MNE-C that caused some data to be
-                # stored without byte swapping
-                indices = np.concatenate(
-                    (
-                        np.frombuffer(tmp_indices[: 4 * (nrow + 1)], dtype=">i4"),
-                        np.frombuffer(tmp_indices[4 * (nrow + 1) :], dtype="<i4"),
-                    )
-                )
-                indptr = np.frombuffer(tmp_ptr, dtype="<i4")
-            data = csc_array((data, indices, indptr), shape=shape)
+            swap = nrow
+            klass = csc_array
         else:
             assert matrix_coding == "sparse RCS", matrix_coding
             tmp_indices = fid.read(4 * nnz)
             indices = np.frombuffer(tmp_indices, dtype=">i4")
             tmp_ptr = fid.read(4 * (nrow + 1))
             indptr = np.frombuffer(tmp_ptr, dtype=">i4")
-            if indptr[-1] > len(indices) or np.any(indptr < 0):
-                # There was a bug in MNE-C that caused some data to be
-                # stored without byte swapping
-                indices = np.concatenate(
-                    (
-                        np.frombuffer(tmp_indices[: 4 * (ncol + 1)], dtype=">i4"),
-                        np.frombuffer(tmp_indices[4 * (ncol + 1) :], dtype="<i4"),
-                    )
+            swap = ncol
+            klass = csr_array
+        if indptr[-1] > len(indices) or np.any(indptr < 0):
+            # There was a bug in MNE-C that caused some data to be
+            # stored without byte swapping
+            indices = np.concatenate(
+                (
+                    np.frombuffer(tmp_indices[: 4 * (swap + 1)], dtype=">i4"),
+                    np.frombuffer(tmp_indices[4 * (swap + 1) :], dtype="<i4"),
                 )
-                indptr = np.frombuffer(tmp_ptr, dtype="<i4")
-            data = csr_array((data, indices, indptr), shape=shape)
+            )
+            indptr = np.frombuffer(tmp_ptr, dtype="<i4")
+        data = klass((data, indices, indptr), shape=shape)
     return data
 
 

@@ -19,7 +19,7 @@ def combine_adjacency(*structure):
     *structure : list
         The adjacency along each dimension. Each entry can be:
 
-        - ndarray or scipy.sparse.spmatrix
+        - ndarray or scipy.sparse.sparray
             A square binary adjacency matrix for the given dimension.
             For example created by :func:`mne.channels.find_ch_adjacency`.
         - int
@@ -56,7 +56,7 @@ def combine_adjacency(*structure):
     ...     np.zeros((n_freqs, n_freqs)),  # no adjacency between freq. bins
     ...     chan_adj,  # custom matrix, or use mne.channels.find_ch_adjacency
     ...     )  # doctest: +SKIP
-    <5600x5600 sparse matrix of type '<class 'numpy.float64'>'
+    <5600x5600 sparse array of type '<class 'numpy.float64'>'
             with 27076 stored elements in COOrdinate format>
     """
     structure = list(structure)
@@ -65,7 +65,7 @@ def combine_adjacency(*structure):
         _validate_type(dim, ("int-like", np.ndarray, sparse.spmatrix), name)
         if isinstance(dim, int_like):
             # Don't add the diagonal, because we explicitly remove it later
-            dim = sparse.diags(
+            dim = sparse.diags_array(
                 [1, 1], offsets=(-1, 1), shape=(int(dim), int(dim)), dtype=float
             ).tocoo()
         else:
