@@ -760,28 +760,6 @@ def _is_mri_subject(subject, subjects_dir=None):
     )
 
 
-def _is_scaled_mri_subject(subject, subjects_dir=None):
-    """Check whether a directory in subjects_dir is a scaled mri subject.
-
-    Parameters
-    ----------
-    subject : str
-        Name of the potential subject/directory.
-    subjects_dir : None | path-like
-        Override the SUBJECTS_DIR environment variable.
-
-    Returns
-    -------
-    is_scaled_mri_subject : bool
-        Whether ``subject`` is a scaled mri subject.
-    """
-    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-    if not _is_mri_subject(subject, subjects_dir):
-        return False
-    fname = subjects_dir / subject / "MRI scaling parameters.cfg"
-    return fname.exists()
-
-
 def _mri_subject_has_bem(subject, subjects_dir=None):
     """Check whether an mri subject has a file matching the bem pattern.
 
@@ -1479,7 +1457,6 @@ class Coregistration:
         self._scale_mode = None
         self._on_defects = on_defects
 
-        self._rot_trans = None
         self._default_parameters = np.array(
             [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0]
         )
@@ -1487,7 +1464,6 @@ class Coregistration:
         self._rotation = self._default_parameters[:3]
         self._translation = self._default_parameters[3:6]
         self._scale = self._default_parameters[6:9]
-        self._icp_iterations = 20
         self._icp_angle = 0.2
         self._icp_distance = 0.2
         self._icp_scale = 0.2
@@ -1869,10 +1845,6 @@ class Coregistration:
     def _processed_high_res_mri_points(self):
         return self._get_processed_mri_points("high")
 
-    @property
-    def _processed_low_res_mri_points(self):
-        return self._get_processed_mri_points("low")
-
     def _get_processed_mri_points(self, res):
         bem = self._bem_low_res if res == "low" else self._bem_high_res
         points = bem["rr"].copy()
@@ -1905,7 +1877,7 @@ class Coregistration:
     def _log_dig_mri_distance(self, prefix):
         errs_nearest = self.compute_dig_mri_distances()
         logger.info(
-            f"{prefix} median distance: " f"{np.median(errs_nearest * 1000):6.2f} mm"
+            f"{prefix} median distance: {np.median(errs_nearest * 1000):6.2f} mm"
         )
 
     @property

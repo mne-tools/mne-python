@@ -98,7 +98,7 @@ def _remove_missing_channels_from_trial(trial, missing_chan_idx):
             trial = np.delete(trial, missing_chan_idx, axis=0)
     else:
         raise ValueError(
-            '"trial" field of the FieldTrip structure ' "has an unknown format."
+            '"trial" field of the FieldTrip structure has an unknown format.'
         )
 
     return trial

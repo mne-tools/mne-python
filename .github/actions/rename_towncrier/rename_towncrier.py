@@ -11,22 +11,22 @@ from pathlib import Path
 from github import Github
 from tomllib import loads
 
-event_name = os.getenv('GITHUB_EVENT_NAME', 'pull_request')
-if not event_name.startswith('pull_request'):
-    print(f'No-op for {event_name}')
+event_name = os.getenv("GITHUB_EVENT_NAME", "pull_request")
+if not event_name.startswith("pull_request"):
+    print(f"No-op for {event_name}")
     sys.exit(0)
-if 'GITHUB_EVENT_PATH' in os.environ:
-    with open(os.environ['GITHUB_EVENT_PATH'], encoding='utf-8') as fin:
+if "GITHUB_EVENT_PATH" in os.environ:
+    with open(os.environ["GITHUB_EVENT_PATH"], encoding="utf-8") as fin:
         event = json.load(fin)
-    pr_num = event['number']
-    basereponame = event['pull_request']['base']['repo']['full_name']
+    pr_num = event["number"]
+    basereponame = event["pull_request"]["base"]["repo"]["full_name"]
     real = True
 else:  # local testing
     pr_num = 12318  # added some towncrier files
     basereponame = "mne-tools/mne-python"
     real = False
 
-g = Github(os.environ.get('GITHUB_TOKEN'))
+g = Github(os.environ.get("GITHUB_TOKEN"))
 baserepo = g.get_repo(basereponame)
 
 # Grab config from upstream's default branch
@@ -45,9 +45,7 @@ directory = toml_cfg["tool"]["towncrier"]["directory"]
 assert directory.endswith("/"), directory
 
 file_re = re.compile(rf"^{directory}({type_pipe})\.rst$")
-found_stubs = [
-    f for f in modified_files if file_re.match(f)
-]
+found_stubs = [f for f in modified_files if file_re.match(f)]
 for stub in found_stubs:
     fro = stub
     to = file_re.sub(rf"{directory}{pr_num}.\1.rst", fro)

@@ -291,7 +291,7 @@ def _scale_helmet_to_sensors(system, surf, info):
     logger.info(f"    1. Affine: {rot:0.1f}°, {tr:0.1f} mm, {sc:0.2f}× scale")
     deltas = interp._last_deltas * 1000
     mu, mx = np.mean(deltas), np.max(deltas)
-    logger.info(f"    2. Nonlinear displacement: " f"mean={mu:0.1f}, max={mx:0.1f} mm")
+    logger.info(f"    2. Nonlinear displacement: mean={mu:0.1f}, max={mx:0.1f} mm")
     surf["rr"] = new_rr
     complete_surface_info(surf, copy=False, verbose=False)
     return surf
@@ -842,12 +842,6 @@ class _CheckInside:
 def _fread3(fobj):
     """Read 3 bytes and adjust."""
     b1, b2, b3 = np.fromfile(fobj, ">u1", 3).astype(np.int64)
-    return (b1 << 16) + (b2 << 8) + b3
-
-
-def _fread3_many(fobj, n):
-    """Read 3-byte ints from an open binary file object."""
-    b1, b2, b3 = np.fromfile(fobj, ">u1", 3 * n).reshape(-1, 3).astype(np.int64).T
     return (b1 << 16) + (b2 << 8) + b3
 
 

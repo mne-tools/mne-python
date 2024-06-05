@@ -2883,7 +2883,7 @@ def plot_layout(layout, picks=None, show_axes=False, show=True):
     ----------
     layout : None | Layout
         Layout instance specifying sensor positions.
-    %(picks_nostr)s
+    %(picks_layout)s
     show_axes : bool
             Show layout axes if True. Defaults to False.
     show : bool
@@ -2907,10 +2907,8 @@ def plot_layout(layout, picks=None, show_axes=False, show=True):
     ax.set(xticks=[], yticks=[], aspect="equal")
     outlines = dict(border=([0, 1, 1, 0, 0], [0, 0, 1, 1, 0]))
     _draw_outlines(ax, outlines)
-    picks = _picks_to_idx(len(layout.names), picks)
-    pos = layout.pos[picks]
-    names = np.array(layout.names)[picks]
-    for ii, (p, ch_id) in enumerate(zip(pos, names)):
+    layout = layout.copy().pick(picks)
+    for ii, (p, ch_id) in enumerate(zip(layout.pos, layout.names)):
         center_pos = np.array((p[0] + p[2] / 2.0, p[1] + p[3] / 2.0))
         ax.annotate(
             ch_id,
@@ -3249,21 +3247,8 @@ def _topomap_animation(
     from matplotlib import pyplot as plt
 
     if ch_type is None:
-        ch_type = _picks_by_type(evoked.info)[0][0]
-    if ch_type not in (
-        "mag",
-        "grad",
-        "eeg",
-        "hbo",
-        "hbr",
-        "fnirs_od",
-        "fnirs_cw_amplitude",
-    ):
-        raise ValueError(
-            "Channel type not supported. Supported channel "
-            "types include 'mag', 'grad', 'eeg'. 'hbo', 'hbr', "
-            "'fnirs_cw_amplitude', and 'fnirs_od'."
-        )
+        ch_type = _get_plot_ch_type(evoked, ch_type)
+
     time_unit, _ = _check_time_unit(time_unit, evoked.times)
     if times is None:
         times = np.linspace(evoked.times[0], evoked.times[-1], 10)
@@ -3611,7 +3596,7 @@ def plot_arrowmap(
             ch_type = ch_type[0][0]
 
         if ch_type != "mag":
-            raise ValueError("only 'mag' channel type is supported. " f"Got {ch_type}")
+            raise ValueError(f"only 'mag' channel type is supported. Got {ch_type}")
 
     if info_to is not info_from:
         info_to = pick_info(info_to, pick_types(info_to, meg=True))

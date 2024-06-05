@@ -478,7 +478,7 @@ def _plot_evoked(
     _check_option("proj", proj, (True, False, "interactive", "reconstruct"))
     noise_cov = _check_cov(noise_cov, info)
     if proj == "reconstruct" and noise_cov is not None:
-        raise ValueError('Cannot use proj="reconstruct" when noise_cov is not ' "None")
+        raise ValueError('Cannot use proj="reconstruct" when noise_cov is not None')
     projector, whitened_ch_names = _setup_plot_projector(
         info, noise_cov, proj=proj is True, nave=evoked.nave
     )
@@ -691,9 +691,7 @@ def _plot_lines(
                 elif zorder == "unsorted":
                     z_ord = list(range(D.shape[0]))
                 elif not callable(zorder):
-                    error = (
-                        '`zorder` must be a function, "std" ' 'or "unsorted", not {0}.'
-                    )
+                    error = '`zorder` must be a function, "std" or "unsorted", not {0}.'
                     raise TypeError(error.format(type(zorder)))
                 else:
                     z_ord = zorder(D)

@@ -17,14 +17,12 @@ from mne.channels import DigMontage
 from mne.coreg import Coregistration
 from mne.datasets import testing
 from mne.io import read_info
-from mne.io.kit.tests import data_dir as kit_data_dir
 from mne.utils import catch_logging, get_config
 from mne.viz import _3d
 
 data_path = testing.data_path(download=False)
 raw_path = data_path / "MEG" / "sample" / "sample_audvis_trunc_raw.fif"
 fname_trans = data_path / "MEG" / "sample" / "sample_audvis_trunc-trans.fif"
-kit_raw_path = kit_data_dir / "test_bin_raw.fif"
 subjects_dir = data_path / "subjects"
 fid_fname = subjects_dir / "sample" / "bem" / "sample-fiducials.fif"
 ctf_raw_path = data_path / "CTF" / "catch-alp-good-f.ds"

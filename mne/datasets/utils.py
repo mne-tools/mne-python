@@ -813,7 +813,7 @@ def _log_time_size(t0, sz):
 
 
 def _downloader_params(*, auth=None, token=None):
-    params = dict()
+    params = dict(timeout=15)
     params["progressbar"] = (
         logger.level <= logging.INFO and get_config("MNE_TQDM", "tqdm.auto") != "off"
     )

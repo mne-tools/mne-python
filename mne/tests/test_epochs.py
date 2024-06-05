@@ -3449,9 +3449,7 @@ def test_drop_epochs_mult(preload):
         for di, (d1, d2) in enumerate(zip(epochs1.drop_log, epochs2.drop_log)):
             assert isinstance(d1, tuple)
             assert isinstance(d2, tuple)
-            msg = (
-                f"\nepochs1.drop_log[{di}] = {d1}, " f"\nepochs2.drop_log[{di}] = {d2}"
-            )
+            msg = f"\nepochs1.drop_log[{di}] = {d1}, \nepochs2.drop_log[{di}] = {d2}"
             if "IGNORED" in d1:
                 assert "IGNORED" in d2, msg
             if "IGNORED" not in d1 and d1 != ():
@@ -4332,7 +4330,7 @@ def test_make_metadata_bounded_by_row_or_tmin_tmax_event_names(tmin, tmax):
     raw.set_annotations(annots)
     events, event_id = mne.events_from_annotations(raw=raw)
 
-    metadata, events_new, event_id_new = mne.epochs.make_metadata(
+    metadata, events_new, _ = mne.epochs.make_metadata(
         events=events,
         event_id=event_id,
         tmin=tmin,

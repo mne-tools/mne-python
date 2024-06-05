@@ -696,6 +696,7 @@ class UpdateChannelsMixin:
         # avoid circular imports
         from ..epochs import BaseEpochs
         from ..io import BaseRaw
+        from ..time_frequency import EpochsTFR
 
         _validate_type(add_list, (list, tuple), "Input")
 
@@ -708,6 +709,9 @@ class UpdateChannelsMixin:
         elif isinstance(self, BaseEpochs):
             con_axis = 1
             comp_class = BaseEpochs
+        elif isinstance(self, EpochsTFR):
+            con_axis = 1
+            comp_class = EpochsTFR
         else:
             con_axis = 0
             comp_class = type(self)
@@ -1902,7 +1906,7 @@ def combine_channels(
     # Instantiate channel info and data
     new_ch_names, new_ch_types, new_data = [], [], []
     if not isinstance(keep_stim, bool):
-        raise TypeError('"keep_stim" must be of type bool, not ' f"{type(keep_stim)}.")
+        raise TypeError(f'"keep_stim" must be of type bool, not {type(keep_stim)}.')
     if keep_stim:
         stim_ch_idx = list(pick_types(inst.info, meg=False, stim=True))
         if stim_ch_idx:
@@ -1915,7 +1919,7 @@ def combine_channels(
     # Get indices of bad channels
     ch_idx_bad = []
     if not isinstance(drop_bad, bool):
-        raise TypeError('"drop_bad" must be of type bool, not ' f"{type(drop_bad)}.")
+        raise TypeError(f'"drop_bad" must be of type bool, not {type(drop_bad)}.')
     if drop_bad and inst.info["bads"]:
         ch_idx_bad = pick_channels(ch_names, inst.info["bads"])
 
@@ -1937,7 +1941,7 @@ def combine_channels(
         this_picks = [idx for idx in this_picks if idx not in ch_idx_bad]
         if these_bads:
             logger.info(
-                "Dropped the following channels in group " f"{this_group}: {these_bads}"
+                f"Dropped the following channels in group {this_group}: {these_bads}"
             )
         #  Check if combining less than 2 channel
         if len(set(this_picks)) < 2:
@@ -2130,9 +2134,7 @@ def read_vectorview_selection(name, fname=None, info=None, verbose=None):
             # get the name of the selection in the file
             pos = line.find(":")
             if pos < 0:
-                logger.info(
-                    '":" delimiter not found in selections file, ' "skipping line"
-                )
+                logger.info('":" delimiter not found in selections file, skipping line')
                 continue
             sel_name_file = line[:pos]
             # search for substring match with name provided

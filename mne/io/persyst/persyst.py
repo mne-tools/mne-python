@@ -77,7 +77,7 @@ class RawPersyst(BaseRaw):
         curr_path, lay_fname = op.dirname(fname), op.basename(fname)
         if not op.exists(fname):
             raise FileNotFoundError(
-                f"The path you specified, " f'"{lay_fname}",does not exist.'
+                f'The path you specified, "{lay_fname}",does not exist.'
             )
 
         # sections and subsections currently unused
@@ -222,7 +222,7 @@ class RawPersyst(BaseRaw):
             n_samples = f.tell()
             n_samples = n_samples // (dtype.itemsize * n_chs)
 
-            logger.debug(f"Loaded {n_samples} samples " f"for {n_chs} channels.")
+            logger.debug(f"Loaded {n_samples} samples for {n_chs} channels.")
 
         raw_extras = {"dtype": dtype, "n_chs": n_chs, "n_samples": n_samples}
         # create Raw object
@@ -449,6 +449,7 @@ def _process_lay_line(line, section):
         if section == "comments":
             # Persyst Comments output 5 variables "," separated
             time_sec, duration, state, var_type, text = line.split(",", 4)
+            del var_type, state
             status = 2
             key = text
             value = (time_sec, duration)

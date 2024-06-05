@@ -560,7 +560,7 @@ class ICA(ContainsMixin):
         """ICA fit information."""
         infos = self._get_infos_for_repr()
 
-        s = f'{infos.fit_on or "no"} decomposition, ' f"method: {infos.fit_method}"
+        s = f'{infos.fit_on or "no"} decomposition, method: {infos.fit_method}'
 
         if infos.fit_on is not None:
             s += (

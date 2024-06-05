@@ -285,7 +285,7 @@ def test_add_custom_js(tmp_path):
 
     report = Report()
     report.add_figure(fig=fig, title="Test section")
-    custom_js = "function hello() {\n" '  alert("Hello, report!");\n' "}"
+    custom_js = 'function hello() {\n  alert("Hello, report!");\n}'
     report.add_custom_js(js=custom_js)
 
     assert custom_js in report.include
@@ -353,7 +353,7 @@ def test_report_raw_psd_and_date(tmp_path):
     assert isinstance(report.html, list)
     assert "PSD" in "".join(report.html)
     assert "Unknown" not in "".join(report.html)
-    assert "GMT" in "".join(report.html)
+    assert "UTC" in "".join(report.html)
 
     # test kwargs passed through to underlying array func
     Report(raw_psd=dict(window="boxcar"))
@@ -821,7 +821,7 @@ def test_scraper(tmp_path):
     assert not out_html.is_file()
     scraper.copyfiles()
     assert out_html.is_file()
-    assert rst.count('"') == 6
+    assert rst.count('"') == 8
     assert "<iframe" in rst
     assert img_fname.with_suffix(".svg").is_file()
 

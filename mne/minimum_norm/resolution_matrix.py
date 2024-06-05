@@ -195,7 +195,7 @@ def _check_get_psf_ctf_params(mode, n_comp, return_pca_vars):
         msg = f"n_comp must be 1 for mode={mode}."
         raise ValueError(msg)
     if mode != "pca" and return_pca_vars:
-        msg = "SVD variances can only be returned if mode=" "pca" "."
+        msg = "SVD variances can only be returned if mode=pca."
         raise ValueError(msg)
 
 

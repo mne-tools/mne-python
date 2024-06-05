@@ -444,7 +444,7 @@ def _ensure_trans(trans, fro="mri", to="head"):
         to_str = _frame_to_str[to]
         to_const = to
     del to
-    err_str = "trans must be a Transform between " f"{from_str}<->{to_str}, got"
+    err_str = f"trans must be a Transform between {from_str}<->{to_str}, got"
     if not isinstance(trans, (list, tuple)):
         trans = [trans]
     # Ensure that we have exactly one match
@@ -1159,7 +1159,7 @@ class _SphericalSurfaceWarp:
         del match_rr
         # 2. Compute spherical harmonic coefficients for all points
         logger.info(
-            "    Computing spherical harmonic approximation with " f"order {order}"
+            f"    Computing spherical harmonic approximation with order {order}"
         )
         src_sph = _compute_sph_harm(order, *src_rad_az_pol[1:])
         dest_sph = _compute_sph_harm(order, *dest_rad_az_pol[1:])
@@ -1183,7 +1183,6 @@ class _SphericalSurfaceWarp:
         destination += dest_center
         # 6. Compute TPS warp of matched points from smoothed surfaces
         self._warp = _TPSWarp().fit(source, destination, reg)
-        self._matched = np.array([source, destination])
         logger.info("[done]")
         return self
 
@@ -1583,7 +1582,7 @@ def _read_fs_xfm(fname):
                 break
         else:
             raise ValueError(
-                'Failed to find "Linear_Transform" string in ' f"xfm file:\n{fname}"
+                f'Failed to find "Linear_Transform" string in xfm file:\n{fname}'
             )
 
         xfm = list()

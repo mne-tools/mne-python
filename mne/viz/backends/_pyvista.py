@@ -19,6 +19,9 @@ from contextlib import contextmanager
 from inspect import signature
 
 import numpy as np
+import pyvista
+from pyvista import Line, Plotter, PolyData, UnstructuredGrid, close_all
+from pyvistaqt import BackgroundPlotter
 
 from ...fixes import _compare_version
 from ...transforms import _cart_to_sph, _sph_to_cart, apply_trans
@@ -36,16 +39,10 @@ from ._utils import (
     _init_mne_qtapp,
 )
 
-with warnings.catch_warnings():
-    warnings.filterwarnings("ignore", category=DeprecationWarning)
-    import pyvista
-    from pyvista import Line, Plotter, PolyData, UnstructuredGrid, close_all
-    from pyvistaqt import BackgroundPlotter
-
-    try:
-        from pyvista.plotting.plotter import _ALL_PLOTTERS
-    except Exception:  # PV < 0.40
-        from pyvista.plotting.plotting import _ALL_PLOTTERS
+try:
+    from pyvista.plotting.plotter import _ALL_PLOTTERS
+except Exception:  # PV < 0.40
+    from pyvista.plotting.plotting import _ALL_PLOTTERS
 
 from vtkmodules.util.numpy_support import numpy_to_vtk
 from vtkmodules.vtkCommonCore import VTK_UNSIGNED_CHAR, vtkCommand, vtkLookupTable
@@ -1087,13 +1084,6 @@ def _to_pos(azimuth, elevation):
     y = np.cos(phi)
     z = np.cos(theta) * np.sin(phi)
     return x, y, z
-
-
-def _mat_to_array(vtk_mat):
-    e = [vtk_mat.GetElement(i, j) for i in range(4) for j in range(4)]
-    arr = np.array(e, dtype=float)
-    arr.shape = (4, 4)
-    return arr
 
 
 def _3d_to_2d(plotter, xyz):

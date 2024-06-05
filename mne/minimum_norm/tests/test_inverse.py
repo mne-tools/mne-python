@@ -85,7 +85,6 @@ fname_trans = s_path / "sample_audvis_trunc-trans.fif"
 subjects_dir = test_path / "subjects"
 s_path_bem = subjects_dir / "sample" / "bem"
 fname_bem = s_path_bem / "sample-320-320-320-bem-sol.fif"
-fname_bem_homog = s_path_bem / "sample-320-bem-sol.fif"
 src_fname = s_path_bem / "sample-oct-4-src.fif"
 
 snr = 3.0

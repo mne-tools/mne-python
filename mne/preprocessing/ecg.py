@@ -199,8 +199,8 @@ def find_ecg_events(
     -------
     ecg_events : array
         The events corresponding to the peaks of the R waves.
-    ch_ecg : string
-        Name of channel used.
+    ch_ecg : int | None
+        Index of channel used.
     average_pulse : float
         The estimated average pulse. If no ECG events could be found, this will
         be zero.
@@ -299,6 +299,7 @@ def find_ecg_events(
             event_id * np.ones(n_events, int),
         ]
     ).T
+
     out = (ecg_events, idx_ecg, average_pulse)
     ecg = ecg[np.newaxis]  # backward compat output 2D
     if return_ecg:

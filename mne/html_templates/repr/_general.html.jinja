@@ -1,0 +1,68 @@
+{% set section = "General" %}
+{% set section_class_name = section | lower | append_uuid %}
+
+{# Collapse content during documentation build. #}
+{% if collapsed %}
+{% set collapsed_row_class = "repr-element-faded repr-element-collapsed" %}
+{% else %}
+{% set collapsed_row_class = "" %}
+{% endif %}
+
+<tr class="repr-section-header {{ section_class_name }}" {% if collapsed %} title="Show section" {% else %} title="Hide section" {% endif %}
+    onclick="toggleVisibility('{{ section_class_name }}')">
+    <th class="repr-section-toggle-col">
+        <button>
+            {# This span is for the background SVG icon #}
+            <span class="collapse-uncollapse-caret"></span>
+        </button>
+    </th>
+    <th colspan="2">
+        <strong>{{ section }}</strong>
+    </th>
+</tr>
+{% if filenames %}
+<tr class="repr-element {{ section_class_name }} {{ collapsed_row_class }}">
+    <td class="repr-section-toggle-col"></td>
+    <td>Filename(s)</td>
+    <td>
+        {% for f in filenames %}
+        {{ f }}
+        {% if not loop.last %}<br />{% endif %}
+        {% endfor %}
+    </td>
+</tr>
+{% endif %}
+<tr class="repr-element {{ section_class_name }} {{ collapsed_row_class }}">
+    <td class="repr-section-toggle-col"></td>
+    <td>MNE object type</td>
+    <td>{{ inst | data_type }}</td>
+</tr>
+<tr class="repr-element {{ section_class_name }} {{ collapsed_row_class }}">
+    <td class="repr-section-toggle-col"></td>
+    <td>Measurement date</td>
+    {% if info["meas_date"] is defined and info["meas_date"] is not none %}
+    <td>{{ info["meas_date"] | dt_to_str }}</td>
+    {% else %}
+    <td>Unknown</td>
+    {% endif %}
+</tr>
+<tr class="repr-element {{ section_class_name }} {{ collapsed_row_class }}">
+    <td class="repr-section-toggle-col"></td>
+    <td>Participant</td>
+    {% if info["subject_info"] is defined and info["subject_info"] is not none %}
+    {% if info["subject_info"]["his_id"] is defined %}
+    <td>{{ info["subject_info"]["his_id"] }}</td>
+    {% endif %}
+    {% else %}
+    <td>Unknown</td>
+    {% endif %}
+</tr>
+<tr class="repr-element {{ section_class_name }} {{ collapsed_row_class }}">
+    <td class="repr-section-toggle-col"></td>
+    <td>Experimenter</td>
+    {% if info["experimenter"] is defined and info["experimenter"] is not none %}
+    <td>{{ info["experimenter"] }}</td>
+    {% else %}
+    <td>Unknown</td>
+    {% endif %}
+</tr>

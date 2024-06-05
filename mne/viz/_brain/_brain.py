@@ -351,7 +351,7 @@ class Brain:
         size = tuple(np.atleast_1d(size).round(0).astype(int).flat)
         if len(size) not in (1, 2):
             raise ValueError(
-                '"size" parameter must be an int or length-2 ' "sequence of ints."
+                '"size" parameter must be an int or length-2 sequence of ints.'
             )
         size = size if len(size) == 2 else size * 2  # 1-tuple to 2-tuple
         subjects_dir = get_subjects_dir(subjects_dir)
@@ -540,10 +540,7 @@ class Brain:
         self.default_smoothing_range = [-1, 15]
 
         # Default configuration
-        self.playback = False
         self.visibility = False
-        self.refresh_rate_ms = max(int(round(1000.0 / 60.0)), 1)
-        self.default_scaling_range = [0.2, 2.0]
         self.default_playback_speed_range = [0.01, 1]
         self.default_playback_speed_value = 0.01
         self.default_status_bar_msg = "Press ? for help"
@@ -551,7 +548,6 @@ class Brain:
             "stc": ["mean", "max"],
             "src": ["mean_flip", "pca_flip", "auto"],
         }
-        self.default_trace_modes = ("vertex", "label")
         self.annot = None
         self.label_extract_mode = None
         all_keys = ("lh", "rh", "vol")
@@ -752,30 +748,6 @@ class Brain:
             self._scalar_bar.SetWidth(0.05)
             self._scalar_bar.SetPosition(0.02, 0.2)
 
-    def _configure_dock_time_widget(self, layout=None):
-        len_time = len(self._data["time"]) - 1
-        if len_time < 1:
-            return
-        layout = self._renderer.dock_layout if layout is None else layout
-        hlayout = self._renderer._dock_add_layout(vertical=False)
-        self.widgets["min_time"] = self._renderer._dock_add_label(
-            value="-", layout=hlayout
-        )
-        self._renderer._dock_add_stretch(hlayout)
-        self.widgets["current_time"] = self._renderer._dock_add_label(
-            value="x", layout=hlayout
-        )
-        self._renderer._dock_add_stretch(hlayout)
-        self.widgets["max_time"] = self._renderer._dock_add_label(
-            value="+", layout=hlayout
-        )
-        self._renderer._layout_add_widget(layout, hlayout)
-        min_time = float(self._data["time"][0])
-        max_time = float(self._data["time"][-1])
-        self.widgets["min_time"].set_value(f"{min_time: .3f}")
-        self.widgets["max_time"].set_value(f"{max_time: .3f}")
-        self.widgets["current_time"].set_value(f"{self._current_time: .3f}")
-
     def _configure_dock_playback_widget(self, name):
         len_time = len(self._data["time"]) - 1
 
@@ -869,8 +841,8 @@ class Brain:
         )
 
     def _configure_dock_colormap_widget(self, name):
-        fmin, fmax, fscale, fscale_power = _get_range(self)
-        rng = [fmin * fscale, fmax * fscale]
+        fmax, fscale, fscale_power = _get_range(self)
+        rng = [0, fmax * fscale]
         self._data["fscale"] = fscale
 
         layout = self._renderer._dock_add_group_box(name)
@@ -1768,16 +1740,14 @@ class Brain:
     ):
         """Display data from a numpy array on the surface or volume.
 
-        This provides a similar interface to
-        :meth:`surfer.Brain.add_overlay`, but it displays
+        This provides a similar interface to PySurfer, but it displays
         it with a single colormap. It offers more flexibility over the
         colormap, and provides a way to display four-dimensional data
         (i.e., a timecourse) or five-dimensional data (i.e., a
         vector-valued timecourse).
 
         .. note:: ``fmin`` sets the low end of the colormap, and is separate
-                  from thresh (this is a different convention from
-                  :meth:`surfer.Brain.add_overlay`).
+                  from thresh (this is a different convention from PySurfer).
 
         Parameters
         ----------
@@ -1864,7 +1834,7 @@ class Brain:
             time_label_size = float(time_label_size)
             if time_label_size < 0:
                 raise ValueError(
-                    "time_label_size must be positive, got " f"{time_label_size}"
+                    f"time_label_size must be positive, got {time_label_size}"
                 )
 
         hemi = self._check_hemi(hemi, extras=["vol"])
@@ -2362,7 +2332,7 @@ class Brain:
         if scale is None:
             scale = 1.5 if self._units == "mm" else 1.5e-3
         error_msg = (
-            "Unexpected forward model coordinate frame " '{}, must be "head" or "mri"'
+            'Unexpected forward model coordinate frame {}, must be "head" or "mri"'
         )
         if fwd["coord_frame"] in _frame_to_str:
             fwd_frame = _frame_to_str[fwd["coord_frame"]]
@@ -4159,16 +4129,15 @@ def _get_range(brain):
     multiplied by the scaling factor and when getting a value, this value
     should be divided by the scaling factor.
     """
-    val = np.abs(np.concatenate(list(brain._current_act_data.values())))
-    fmin, fmax = np.min(val), np.max(val)
+    fmax = abs(brain._data["fmax"])
     if 1e-02 <= fmax <= 1e02:
         fscale_power = 0
     else:
-        fscale_power = int(np.log10(fmax))
+        fscale_power = int(np.log10(max(fmax, np.finfo("float32").smallest_normal)))
         if fscale_power < 0:
             fscale_power -= 1
     fscale = 10**-fscale_power
-    return fmin, fmax, fscale, fscale_power
+    return fmax, fscale, fscale_power
 
 
 class _FakeIren:

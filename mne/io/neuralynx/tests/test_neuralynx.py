@@ -144,7 +144,7 @@ def test_neuralynx():
         raw.ch_names == expected_chan_names
     ), "labels in raw.ch_names don't match expected channel names"
 
-    mne_y, mne_t = raw.get_data(return_times=True)  # in V
+    mne_y = raw.get_data()  # in V
 
     # ==== NeuralynxIO ==== #
     nlx_reader = NeuralynxIO(dirname=testing_path, exclude_filename=excluded_ncs_files)

@@ -10,7 +10,7 @@ import contextlib
 import datetime
 import operator
 import string
-from collections import Counter, OrderedDict, defaultdict
+from collections import Counter, OrderedDict
 from collections.abc import Mapping
 from copy import deepcopy
 from io import BytesIO
@@ -874,13 +874,16 @@ class ContainsMixin:
             False
 
         """
-        info = self if isinstance(self, Info) else self.info
+        # this method is not supported by Info object. An Info object inherits from a
+        # dictionary and the 'key' in Info call is present all across MNE codebase, e.g.
+        # to check for the presence of a key:
+        # >>> 'bads' in info
         if ch_type == "meg":
-            has_ch_type = _contains_ch_type(info, "mag") or _contains_ch_type(
-                info, "grad"
+            has_ch_type = _contains_ch_type(self.info, "mag") or _contains_ch_type(
+                self.info, "grad"
             )
         else:
-            has_ch_type = _contains_ch_type(info, ch_type)
+            has_ch_type = _contains_ch_type(self.info, ch_type)
         return has_ch_type
 
     @property
@@ -1835,84 +1838,18 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
 
     @property
     def ch_names(self):
-        return self["ch_names"]
+        try:
+            ch_names = self["ch_names"]
+        except KeyError:
+            ch_names = []
 
-    def _get_chs_for_repr(self):
-        titles = _handle_default("titles")
-
-        # good channels
-        good_names = defaultdict(lambda: list())
-        for ci, ch_name in enumerate(self["ch_names"]):
-            if ch_name in self["bads"]:
-                continue
-            ch_type = channel_type(self, ci)
-            good_names[ch_type].append(ch_name)
-        good_channels = ", ".join(
-            [f"{len(v)} {titles.get(k, k.upper())}" for k, v in good_names.items()]
-        )
-        for key in ("ecg", "eog"):  # ensure these are present
-            if key not in good_names:
-                good_names[key] = list()
-        for key, val in good_names.items():
-            good_names[key] = ", ".join(val) or "Not available"
-
-        # bad channels
-        bad_channels = ", ".join(self["bads"]) or "None"
-
-        return good_channels, bad_channels, good_names["ecg"], good_names["eog"]
+        return ch_names
 
     @repr_html
-    def _repr_html_(self, caption=None, duration=None, filenames=None):
+    def _repr_html_(self):
         """Summarize info for HTML representation."""
-        if isinstance(caption, str):
-            html = f"<h4>{caption}</h4>"
-        else:
-            html = ""
-
-        good_channels, bad_channels, ecg, eog = self._get_chs_for_repr()
-
-        # TODO
-        # Most of the following checks are to ensure that we get a proper repr
-        # for Forward['info'] (and probably others like
-        # InverseOperator['info']??), which doesn't seem to follow our standard
-        # Info structure used elsewhere.
-        # Proposed solution for a future refactoring:
-        # Forward['info'] should get its own Info subclass (with respective
-        # repr).
-
-        # meas date
-        meas_date = self.get("meas_date")
-        if meas_date is not None:
-            meas_date = meas_date.strftime("%B %d, %Y  %H:%M:%S") + " GMT"
-
-        projs = self.get("projs")
-        if projs:
-            projs = [
-                f'{p["desc"]} : {"on" if p["active"] else "off"}' for p in self["projs"]
-            ]
-        else:
-            projs = None
-
         info_template = _get_html_template("repr", "info.html.jinja")
-        sections = ("General", "Channels", "Data")
-        return html + info_template.render(
-            sections=sections,
-            caption=caption,
-            meas_date=meas_date,
-            projs=projs,
-            ecg=ecg,
-            eog=eog,
-            good_channels=good_channels,
-            bad_channels=bad_channels,
-            dig=self.get("dig"),
-            subject_info=self.get("subject_info"),
-            lowpass=self.get("lowpass"),
-            highpass=self.get("highpass"),
-            sfreq=self.get("sfreq"),
-            experimenter=self.get("experimenter"),
-            duration=duration,
-            filenames=filenames,
-        )
+        return info_template.render(info=self)
 
     def save(self, fname):
         """Write measurement info in fif file.
@@ -3205,9 +3142,7 @@ def create_info(ch_names, sfreq, ch_types="misc", verbose=None):
         _validate_type(ch_name, "str", "each entry in ch_names")
         _validate_type(ch_type, "str", "each entry in ch_types")
         if ch_type not in ch_types_dict:
-            raise KeyError(
-                f"kind must be one of {list(ch_types_dict)}, " f"not {ch_type}"
-            )
+            raise KeyError(f"kind must be one of {list(ch_types_dict)}, not {ch_type}")
         this_ch_dict = ch_types_dict[ch_type]
         kind = this_ch_dict["kind"]
         # handle chpi, where kind is a *list* of FIFF constants:
@@ -3352,7 +3287,7 @@ def _force_update_info(info_base, info_target):
     all_infos = np.hstack([info_base, info_target])
     for ii in all_infos:
         if not isinstance(ii, Info):
-            raise ValueError("Inputs must be of type Info. " f"Found type {type(ii)}")
+            raise ValueError(f"Inputs must be of type Info. Found type {type(ii)}")
     for key, val in info_base.items():
         if key in exclude_keys:
             continue

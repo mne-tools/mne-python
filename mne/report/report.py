@@ -141,7 +141,6 @@ CONTENT_ORDER = (
 )
 
 html_include_dir = Path(__file__).parent / "js_and_css"
-template_dir = Path(__file__).parent / "templates"
 JAVASCRIPT = (html_include_dir / "report.js").read_text(encoding="utf-8")
 CSS = (html_include_dir / "report.css").read_text(encoding="utf-8")
 
@@ -2570,9 +2569,7 @@ class Report:
                     f"</script>"
                 )
             elif inc_fname.endswith(".css"):
-                include.append(
-                    f'<style type="text/css">\n' f"{file_content}\n" f"</style>"
-                )
+                include.append(f'<style type="text/css">\n{file_content}\n</style>')
         self.include = "".join(include)
 
     def _iterate_files(
@@ -2837,7 +2834,7 @@ class Report:
 
         # render plots in parallel; check that n_jobs <= # of files
         logger.info(
-            f"Iterating over {len(fnames)} potential files " f"(this may take some "
+            f"Iterating over {len(fnames)} potential files (this may take some "
         )
         parallel, p_fun, n_jobs = parallel_func(
             self._iterate_files, n_jobs, max_jobs=len(fnames)
@@ -2947,7 +2944,7 @@ class Report:
         if fname is None:
             if self.data_path is None:
                 self.data_path = os.getcwd()
-                warn(f"`data_path` not provided. Using {self.data_path} " f"instead")
+                warn(f"`data_path` not provided. Using {self.data_path} instead")
             fname = op.join(self.data_path, "report.html")
 
         fname = str(_check_fname(fname, overwrite=overwrite, name=fname))
@@ -2957,9 +2954,7 @@ class Report:
             self._sort(order=CONTENT_ORDER)
 
         if not overwrite and op.isfile(fname):
-            msg = (
-                f"Report already exists at location {fname}. " f"Overwrite it (y/[n])? "
-            )
+            msg = f"Report already exists at location {fname}. Overwrite it (y/[n])? "
             answer = _safe_input(msg, alt="pass overwrite=True")
             if answer.lower() == "y":
                 overwrite = True
@@ -3816,7 +3811,7 @@ class Report:
         _constrain_fig_resolution(fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES)
         duration = round(epoch_duration * len(epochs_for_psd), 1)
         caption = (
-            f"PSD calculated from {len(epochs_for_psd)} epochs " f"({duration:.1f} s)."
+            f"PSD calculated from {len(epochs_for_psd)} epochs ({duration:.1f} s)."
         )
         self._add_figure(
             fig=fig,
@@ -3927,7 +3922,7 @@ class Report:
                 assert "eeg" in ch_type
                 title_start = "ERP image"
 
-            title = f"{title_start} " f'({_handle_default("titles")[ch_type]})'
+            title = f'{title_start} ({_handle_default("titles")[ch_type]})'
 
             self._add_figure(
                 fig=fig,
@@ -4270,19 +4265,10 @@ class Report:
         )
 
 
-def _clean_tags(tags):
-    if isinstance(tags, str):
-        tags = (tags,)
-
-    # Replace any whitespace characters with dashes
-    tags_cleaned = tuple(re.sub(r"[\s*]", "-", tag) for tag in tags)
-    return tags_cleaned
-
-
 def _recursive_search(path, pattern):
     """Auxiliary function for recursive_search of the directory."""
     filtered_files = list()
-    for dirpath, dirnames, files in os.walk(path):
+    for dirpath, _, files in os.walk(path):
         for f in fnmatch.filter(files, pattern):
             # only the following file types are supported
             # this ensures equitable distribution of jobs
@@ -4300,11 +4286,10 @@ _SCRAPER_TEXT = """
 
     .. container:: row
 
-        .. rubric:: The `HTML document <{0}>`__ written by :meth:`mne.Report.save`:
-
         .. raw:: html
 
-            <iframe class="sg_report" sandbox="allow-scripts" src="{0}"></iframe>
+            <strong><a href="{0}">The generated HTML document.</a></strong>
+            <iframe class="sg_report" sandbox="allow-scripts allow-modals" src="{0}"></iframe>
 
 """  # noqa: E501
 # Adapted from fa-file-code
@@ -4398,9 +4383,7 @@ def _df_bootstrap_table(*, df, data_id):
             continue
         elif "<tr" in html:
             # Add checkbox for row selection
-            htmls[idx] = (
-                f"{html}\n" f'<th data-field="state" data-checkbox="true"></th>'
-            )
+            htmls[idx] = f'{html}\n<th data-field="state" data-checkbox="true"></th>'
             continue
 
         col_headers = re.findall(pattern=header_pattern, string=html)
@@ -4410,7 +4393,7 @@ def _df_bootstrap_table(*, df, data_id):
             col_header = col_headers[0]
             htmls[idx] = html.replace(
                 "<th>",
-                f'<th data-field="{col_header.lower()}" ' f'data-sortable="true">',
+                f'<th data-field="{col_header.lower()}" data-sortable="true">',
             )
 
     html = "\n".join(htmls)

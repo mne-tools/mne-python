@@ -38,30 +38,6 @@ from .utils import (
 _length_factors = dict(hann=3.1, hamming=3.3, blackman=5.0)
 
 
-def is_power2(num):
-    """Test if number is a power of 2.
-
-    Parameters
-    ----------
-    num : int
-        Number.
-
-    Returns
-    -------
-    b : bool
-        True if is power of 2.
-
-    Examples
-    --------
-    >>> is_power2(2 ** 3)
-    True
-    >>> is_power2(5)
-    False
-    """
-    num = int(num)
-    return num != 0 and ((num & (num - 1)) == 0)
-
-
 def next_fast_len(target):
     """Find the next fast size of input data to `fft`, for zero-padding, etc.
 
@@ -1668,7 +1644,7 @@ def _mt_spectrum_proc(
     kind = "Detected" if line_freqs is None else "Removed"
     found_freqs = (
         "\n".join(
-            f"    {freq:6.2f} : " f"{counts[freq]:4d} window{_pl(counts[freq])}"
+            f"    {freq:6.2f} : {counts[freq]:4d} window{_pl(counts[freq])}"
             for freq in sorted(counts)
         )
         or "    None"

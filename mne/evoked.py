@@ -10,6 +10,7 @@
 
 from copy import deepcopy
 from inspect import getfullargspec
+from pathlib import Path
 from typing import Union
 
 import numpy as np
@@ -467,14 +468,15 @@ class Evoked(
 
     @repr_html
     def _repr_html_(self):
-        if self.baseline is None:
-            baseline = "off"
-        else:
-            baseline = tuple([f"{b:.3f}" for b in self.baseline])
-            baseline = f"{baseline[0]} – {baseline[1]} s"
-
         t = _get_html_template("repr", "evoked.html.jinja")
-        t = t.render(evoked=self, baseline=baseline)
+        t = t.render(
+            inst=self,
+            filenames=(
+                [Path(self.filename).name]
+                if getattr(self, "filename", None) is not None
+                else None
+            ),
+        )
         return t
 
     @property
@@ -1769,7 +1771,7 @@ def _read_evoked(fname, condition=None, kind="average", allow_maxshield=False):
         # find string-based entry
         if isinstance(condition, str):
             if kind not in _aspect_dict.keys():
-                raise ValueError('kind must be "average" or ' '"standard_error"')
+                raise ValueError('kind must be "average" or "standard_error"')
 
             comments, aspect_kinds, t = _get_entries(fid, evoked_node, allow_maxshield)
             goods = np.isin(comments, [condition]) & np.isin(

@@ -414,6 +414,8 @@
 
 .. _Nicolas Barascud: https://github.com/nbara
 
+.. _Nicolas Fourcaud-Trocmé: https://www.crnl.fr/fr/user/316
+
 .. _Niels Focke: https://neurologie.umg.eu/forschung/arbeitsgruppen/epilepsie-und-bildgebungsforschung
 
 .. _Niklas Wilming: https://github.com/nwilming

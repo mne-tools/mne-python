@@ -1026,7 +1026,7 @@ def get_fitting_dig(info, dig_kinds="auto", exclude_frontal=True, verbose=None):
     _validate_type(info, "info")
     if info["dig"] is None:
         raise RuntimeError(
-            "Cannot fit headshape without digitization " ', info["dig"] is None'
+            'Cannot fit headshape without digitization, info["dig"] is None'
         )
     if isinstance(dig_kinds, str):
         if dig_kinds == "auto":
