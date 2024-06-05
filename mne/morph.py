@@ -658,7 +658,7 @@ class SourceMorph:
             for attr in attrs:
                 # transform from source space to mri_from resolution/space
                 if vols is None:
-                    img_real = interp[:, ii]
+                    img_real = interp[:, [ii]]
                 else:
                     img_real = interp @ getattr(vols[:, ii], attr)
                 _debug_img(img_real, from_affine, "From", src_shape)
