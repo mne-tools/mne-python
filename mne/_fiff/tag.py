@@ -197,7 +197,7 @@ def _read_matrix(fid, tag, shape, rlims):
         # We need to make a copy so that we can own the data, otherwise we get:
         #     _sparsetools.csr_sort_indices(len(self.indptr) - 1, self.indptr,
         # E   ValueError: WRITEBACKIFCOPY base is read-only
-        data = np.frombuffer(fid.read(bit * nnz), dtype=dtype).copy()
+        data = np.frombuffer(fid.read(bit * nnz), dtype=dtype).astype(np.float32)
         shape = (dims[1], dims[2])
         if matrix_coding == "sparse CCS":
             tmp_indices = fid.read(4 * nnz)
