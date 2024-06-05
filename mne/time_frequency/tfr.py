@@ -128,11 +128,6 @@ def morlet(sfreq, freqs, n_cycles=7.0, sigma=None, zero_mean=False):
     References
     ----------
     .. footbibliography::
-
-    Notes
-    -----
-    See :ref:`ex-morlet-fwhm` for an example of the relationship between ``n_cycles``
-    and the FWHM using :func:`mne.time_frequency.fwhm`
     """
     Ws = list()
     n_cycles = np.array(n_cycles, float).ravel()

@@ -1863,6 +1863,9 @@ to get an array of values for ``n_cycles`` that yield the desired FWHM at each
 frequency in ``freqs``.  If you want different FWHM values at each frequency,
 do the same computation with ``desired_fwhm`` as an array of the same shape as
 ``freqs``.
+
+See :ref:`ex-morlet-fwhm` for an example of the relationship between ``n_cycles``
+and the FWHM.
 """
 
 # %%
