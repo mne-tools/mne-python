@@ -1338,6 +1338,15 @@ def _surf_nearest(vertices, adj_mat):
     # Vertices can be out of order, so sort them to start ...
     order = np.argsort(vertices)
     vertices = vertices[order]
+    # work around https://github.com/scipy/scipy/issues/20904
+    adj_mat = sparse.csr_array(
+        (
+            adj_mat.data,
+            adj_mat.indices.astype(np.int32),
+            adj_mat.indptr.astype(np.int32),
+        ),
+        shape=adj_mat.shape,
+    )
     _, _, sources = sparse.csgraph.dijkstra(
         adj_mat, False, indices=vertices, min_only=True, return_predecessors=True
     )

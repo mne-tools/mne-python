@@ -3470,7 +3470,7 @@ def _prepare_label_extraction(stc, labels, src, mode, allow_empty, use_sparse):
             # Efficiency shortcut: use linearity early to avoid redundant
             # calculations
             elif mode == "mean":
-                vertidx = sparse.csr_array(vertidx.mean(axis=0))
+                vertidx = sparse.csr_array(vertidx.mean(axis=0)[np.newaxis])
             label_vertidx.append(vertidx)
             label_flip.append(None)
             continue
