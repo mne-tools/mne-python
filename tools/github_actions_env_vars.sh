@@ -18,6 +18,7 @@ else  # conda-like
     else  # conda, mamba (use warning level for completeness)
         echo "CONDA_ENV=environment.yml" >> $GITHUB_ENV
         echo "MNE_LOGGING_LEVEL=warning" >> $GITHUB_ENV
+    fi
     echo "MNE_QT_BACKEND=PyQt5" >> $GITHUB_ENV
 fi
 set +x
