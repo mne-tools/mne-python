@@ -15,7 +15,6 @@ from importlib.metadata import metadata
 from pathlib import Path
 
 import matplotlib
-import pyvista
 import sphinx
 from intersphinx_registry import get_intersphinx_mapping
 from numpydoc import docscrape
@@ -443,9 +442,6 @@ examples_dirs = ["../tutorials", "../examples"]
 gallery_dirs = ["auto_tutorials", "auto_examples"]
 os.environ["_MNE_BUILDING_DOC"] = "true"
 scrapers = ("matplotlib",)
-mne.viz.set_3d_backend("pyvistaqt")
-pyvista.OFF_SCREEN = False
-pyvista.BUILDING_GALLERY = True
 
 scrapers = (
     "matplotlib",

@@ -158,13 +158,18 @@ def reset_modules(gallery_conf, fname, when):
     import matplotlib.pyplot as plt
 
     try:
-        from pyvista import Plotter  # noqa
+        import pyvista
     except ImportError:
-        Plotter = None  # noqa
+        pyvista = None  # noqa
+    else:
+        pyvista.OFF_SCREEN = False
+        pyvista.BUILDING_GALLERY = True
     try:
-        from pyvistaqt import BackgroundPlotter  # noqa
+        import pyvistaqt
     except ImportError:
-        BackgroundPlotter = None  # noqa
+        pyvistaqt = None  # noqa
+    else:
+        mne.viz.set_3d_backend("pyvistaqt")
     try:
         from vtkmodules.vtkCommonDataModel import vtkPolyData  # noqa
     except ImportError:
@@ -212,10 +217,10 @@ def reset_modules(gallery_conf, fname, when):
         skips = skips.split(",")
         if "brain" not in skips:
             _assert_no_instances(Brain, when)  # calls gc.collect()
-        if Plotter is not None and "plotter" not in skips:
-            _assert_no_instances(Plotter, when)
-        if BackgroundPlotter is not None and "backgroundplotter" not in skips:
-            _assert_no_instances(BackgroundPlotter, when)
+        if pyvista is not None and "plotter" not in skips:
+            _assert_no_instances(pyvista.Plotter, when)
+        if pyvistaqt is not None and "backgroundplotter" not in skips:
+            _assert_no_instances(pyvistaqt.BackgroundPlotter, when)
         if vtkPolyData is not None and "vtkpolydata" not in skips:
             _assert_no_instances(vtkPolyData, when)
         if "_renderer" not in skips:
