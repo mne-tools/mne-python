@@ -12,7 +12,7 @@
 import os
 
 import numpy as np
-from scipy.sparse import csr_matrix, eye
+from scipy.sparse import csr_array, eye_array
 
 from ._fiff.constants import FIFF
 from ._fiff.open import fiff_open
@@ -63,7 +63,7 @@ def read_morph_map(
 
     Returns
     -------
-    left_map, right_map : ~scipy.sparse.csr_matrix
+    left_map, right_map : ~scipy.sparse.csr_array
         The morph maps for the 2 hemispheres.
     """
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
@@ -213,7 +213,7 @@ def _make_morph_map_hemi(subject_from, subject_to, subjects_dir, reg_from, reg_t
     if subject_from == subject_to and reg_from == reg_to:
         fname = subjects_dir / subject_from / "surf" / reg_from
         n_pts = len(read_surface(fname, verbose=False)[0])
-        return eye(n_pts, n_pts, format="csr")
+        return eye_array(n_pts, n_pts, format="csr")
 
     # load surfaces and normalize points to be on unit sphere
     fname = subjects_dir / subject_from / "surf" / reg_from
@@ -244,7 +244,7 @@ def _make_morph_map_hemi(subject_from, subject_to, subjects_dir, reg_from, reg_t
     weights = np.array(weights)
 
     row_ind = np.repeat(np.arange(len(to_rr)), 3)
-    this_map = csr_matrix(
+    this_map = csr_array(
         (weights.ravel(), (row_ind, nn_idx.ravel())), shape=(len(to_rr), len(from_rr))
     )
     return this_map

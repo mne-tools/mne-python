@@ -21,7 +21,7 @@ from pathlib import Path
 
 import numpy as np
 from scipy.ndimage import binary_dilation
-from scipy.sparse import coo_matrix, csr_matrix
+from scipy.sparse import coo_array, csr_array
 from scipy.spatial import ConvexHull, Delaunay
 from scipy.spatial.distance import cdist
 
@@ -398,7 +398,7 @@ def _triangle_neighbors(tris, npts):
     rows = tris.ravel()
     cols = np.repeat(np.arange(len(tris)), 3)
     data = np.ones(len(cols))
-    csr = coo_matrix((data, (rows, cols)), shape=(npts, len(tris))).tocsr()
+    csr = coo_array((data, (rows, cols)), shape=(npts, len(tris))).tocsr()
     neighbor_tri = [
         csr.indices[start:stop] for start, stop in zip(csr.indptr[:-1], csr.indptr[1:])
     ]
@@ -1725,7 +1725,7 @@ def _mesh_edges(tris=None):
     a, b, c = tris.T
     x = np.concatenate((a, b, c))
     y = np.concatenate((b, c, a))
-    edges = coo_matrix((ones_ntris, (x, y)), shape=(npoints, npoints))
+    edges = coo_array((ones_ntris, (x, y)), shape=(npoints, npoints))
     edges = edges.tocsr()
     edges = edges + edges.T
     return edges
@@ -1746,14 +1746,14 @@ def mesh_dist(tris, vert):
 
     Returns
     -------
-    dist_matrix : scipy.sparse.csr_matrix
+    dist_matrix : scipy.sparse.csr_array
         Sparse matrix with distances between adjacent vertices.
     """
     edges = mesh_edges(tris).tocoo()
 
     # Euclidean distances between neighboring vertices
     dist = np.linalg.norm(vert[edges.row, :] - vert[edges.col, :], axis=1)
-    dist_matrix = csr_matrix((dist, (edges.row, edges.col)), shape=edges.shape)
+    dist_matrix = csr_array((dist, (edges.row, edges.col)), shape=edges.shape)
     return dist_matrix
 
 

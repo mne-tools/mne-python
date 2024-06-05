@@ -23,7 +23,7 @@ from scipy.interpolate import (
     LinearNDInterpolator,
     NearestNDInterpolator,
 )
-from scipy.sparse import csr_matrix
+from scipy.sparse import csr_array
 from scipy.spatial import Delaunay, Voronoi
 from scipy.spatial.distance import pdist, squareform
 
@@ -3769,8 +3769,8 @@ def plot_ch_adjacency(info, adjacency, ch_names, kind="2d", edit=False):
     import matplotlib.pyplot as plt
 
     _validate_type(info, Info, "info")
-    _validate_type(adjacency, (np.ndarray, csr_matrix), "adjacency")
-    has_sparse = isinstance(adjacency, csr_matrix)
+    _validate_type(adjacency, (np.ndarray, csr_array), "adjacency")
+    has_sparse = isinstance(adjacency, csr_array)
 
     if edit and kind == "3d":
         raise ValueError("Editing a 3d adjacency plot is not supported.")

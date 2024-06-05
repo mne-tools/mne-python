@@ -59,4 +59,4 @@ def test_make_morph_maps(tmp_path):
     with _record_warnings():
         mmap = read_morph_map("sample", "sample", subjects_dir=tmp_path)
     for mm in mmap:
-        assert (mm - sparse.eye(mm.shape[0], mm.shape[0])).sum() == 0
+        assert (mm - sparse.eye_array(mm.shape[0], mm.shape[0])).sum() == 0

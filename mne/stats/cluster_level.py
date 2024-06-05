@@ -306,7 +306,7 @@ def _get_components(x_in, adjacency, return_list=True):
         row = np.concatenate((row, idx))
         col = np.concatenate((col, idx))
         data = np.concatenate((data, np.ones(len(idx), dtype=data.dtype)))
-        adjacency = sparse.coo_matrix((data, (row, col)), shape=shape)
+        adjacency = sparse.coo_array((data, (row, col)), shape=shape)
         _, components = connected_components(adjacency)
     if return_list:
         start = np.min(components)
@@ -348,7 +348,7 @@ def _find_clusters(
         threshold-free cluster enhancement.
     tail : -1 | 0 | 1
         Type of comparison
-    adjacency : scipy.sparse.coo_matrix, None, or list
+    adjacency : scipy.sparse.coo_array, None, or list
         Defines adjacency between features. The matrix is assumed to
         be symmetric and only the upper triangular half is used.
         If adjacency is a list, it is assumed that each entry stores the
@@ -1606,7 +1606,7 @@ def _get_partitions_from_adjacency(adjacency, n_times, verbose=None):
         test_adj = np.zeros((len(adjacency), len(adjacency)), dtype="bool")
         for vi in range(len(adjacency)):
             test_adj[adjacency[vi], vi] = True
-        test_adj = sparse.coo_matrix(test_adj, dtype="float")
+        test_adj = sparse.coo_array(test_adj, dtype="float")
     else:
         test = np.ones(adjacency.shape[0])
         test_adj = adjacency

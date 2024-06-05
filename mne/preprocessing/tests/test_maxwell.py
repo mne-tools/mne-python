@@ -881,15 +881,15 @@ def test_cross_talk(tmp_path):
         maxwell_filter(raw, cross_talk=raw_fname)
     mf_ctc = sss_ctc.info["proc_history"][0]["max_info"]["sss_ctc"]
     del mf_ctc["block_id"]  # we don't write this
-    assert isinstance(py_ctc["decoupler"], sparse.csc_matrix)
-    assert isinstance(mf_ctc["decoupler"], sparse.csc_matrix)
+    assert isinstance(py_ctc["decoupler"], sparse.csc_array)
+    assert isinstance(mf_ctc["decoupler"], sparse.csc_array)
     assert_array_equal(py_ctc["decoupler"].toarray(), mf_ctc["decoupler"].toarray())
     # I/O roundtrip
     fname = tmp_path / "test_sss_raw.fif"
     sss_ctc.save(fname)
     sss_ctc_read = read_raw_fif(fname)
     mf_ctc_read = sss_ctc_read.info["proc_history"][0]["max_info"]["sss_ctc"]
-    assert isinstance(mf_ctc_read["decoupler"], sparse.csc_matrix)
+    assert isinstance(mf_ctc_read["decoupler"], sparse.csc_array)
     assert_array_equal(
         mf_ctc_read["decoupler"].toarray(), mf_ctc["decoupler"].toarray()
     )

@@ -101,10 +101,10 @@ def _safe_svd(A, **kwargs):
         return linalg.svd(A, lapack_driver="gesvd", **kwargs)
 
 
-def _csc_matrix_cast(x):
-    from scipy.sparse import csc_matrix
+def _csc_array_cast(x):
+    from scipy.sparse import csc_array
 
-    return csc_matrix(x)
+    return csc_array(x)
 
 
 ###############################################################################

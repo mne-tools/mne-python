@@ -12,7 +12,7 @@ from functools import partial
 from typing import Any
 
 import numpy as np
-from scipy.sparse import csc_matrix, csr_matrix
+from scipy.sparse import csc_array, csr_array
 
 from ..utils import _check_option, warn
 from ..utils.numerics import _julian_to_cal
@@ -214,7 +214,7 @@ def _read_matrix(fid, tag, shape, rlims):
                     )
                 )
                 indptr = np.frombuffer(tmp_ptr, dtype="<i4")
-            data = csc_matrix((data, indices, indptr), shape=shape)
+            data = csc_array((data, indices, indptr), shape=shape)
         else:
             assert matrix_coding == "sparse RCS", matrix_coding
             tmp_indices = fid.read(4 * nnz)
@@ -231,7 +231,7 @@ def _read_matrix(fid, tag, shape, rlims):
                     )
                 )
                 indptr = np.frombuffer(tmp_ptr, dtype="<i4")
-            data = csr_matrix((data, indices, indptr), shape=shape)
+            data = csr_array((data, indices, indptr), shape=shape)
     return data
 
 

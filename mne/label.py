@@ -1648,7 +1648,7 @@ def _verts_within_dist(graph, sources, max_dist):
 
     Parameters
     ----------
-    graph : scipy.sparse.csr_matrix
+    graph : scipy.sparse.csr_array
         Sparse matrix with distances between adjacent vertices.
     sources : list of int
         Source vertices.
@@ -2572,9 +2572,9 @@ def _labels_to_stc_surf(labels, values, tmin, tstep, subject):
         data[hemi] = np.concatenate(data[hemi], axis=0).astype(float)
         cols = np.arange(len(vertices[hemi]))
         vertices[hemi], rows = np.unique(vertices[hemi], return_inverse=True)
-        mat = sparse.coo_matrix((np.ones(len(rows)), (rows, cols))).tocsr()
-        mat = mat * sparse.diags(1.0 / np.asarray(mat.sum(axis=-1))[:, 0])
-        data[hemi] = mat.dot(data[hemi])
+        mat = sparse.coo_array((np.ones(len(rows)), (rows, cols))).tocsr()
+        mat = mat @ sparse.diags_array(1.0 / np.asarray(mat.sum(axis=-1))[:, 0])
+        data[hemi] = mat @ data[hemi]
     vertices = [vertices[hemi] for hemi in hemis]
     data = np.concatenate([data[hemi] for hemi in hemis], axis=0)
     return data, vertices, subject

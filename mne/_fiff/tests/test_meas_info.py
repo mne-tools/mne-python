@@ -803,23 +803,23 @@ def test_csr_csc(tmp_path):
     sss_ctc = info["proc_history"][0]["max_info"]["sss_ctc"]
     ct = sss_ctc["decoupler"].copy()
     # CSC
-    assert isinstance(ct, sparse.csc_matrix)
+    assert isinstance(ct, sparse.csc_array)
     fname = tmp_path / "test.fif"
     write_info(fname, info)
     info_read = read_info(fname)
     ct_read = info_read["proc_history"][0]["max_info"]["sss_ctc"]["decoupler"]
-    assert isinstance(ct_read, sparse.csc_matrix)
+    assert isinstance(ct_read, sparse.csc_array)
     assert_array_equal(ct_read.toarray(), ct.toarray())
     # Now CSR
     csr = ct.tocsr()
-    assert isinstance(csr, sparse.csr_matrix)
+    assert isinstance(csr, sparse.csr_array)
     assert_array_equal(csr.toarray(), ct.toarray())
     info["proc_history"][0]["max_info"]["sss_ctc"]["decoupler"] = csr
     fname = tmp_path / "test1.fif"
     write_info(fname, info)
     info_read = read_info(fname)
     ct_read = info_read["proc_history"][0]["max_info"]["sss_ctc"]["decoupler"]
-    assert isinstance(ct_read, sparse.csc_matrix)  # this gets cast to CSC
+    assert isinstance(ct_read, sparse.csc_array)  # this gets cast to CSC
     assert_array_equal(ct_read.toarray(), ct.toarray())
 
 

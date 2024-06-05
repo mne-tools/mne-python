@@ -314,8 +314,8 @@ def test_object_size():
         (150, 500, np.ones(20)),
         (30, 400, dict()),
         (400, 1000, dict(a=np.ones(50))),
-        (200, 900, sparse.eye(20, format="csc")),
-        (200, 900, sparse.eye(20, format="csr")),
+        (200, 900, sparse.eye_array(20, format="csc")),
+        (200, 900, sparse.eye_array(20, format="csr")),
     ):
         size = object_size(obj)
         assert lower < size < upper, f"{lower} < {size} < {upper}:\n{obj}"
@@ -416,14 +416,14 @@ def test_hash():
     pytest.raises(RuntimeError, object_diff, d1, d2)
     pytest.raises(RuntimeError, object_hash, d1)
 
-    x = sparse.eye(2, 2, format="csc")
-    y = sparse.eye(2, 2, format="csr")
+    x = sparse.eye_array(2, 2, format="csc")
+    y = sparse.eye_array(2, 2, format="csr")
     assert "type mismatch" in object_diff(x, y)
-    y = sparse.eye(2, 2, format="csc")
+    y = sparse.eye_array(2, 2, format="csc")
     assert len(object_diff(x, y)) == 0
     y[1, 1] = 2
     assert "elements" in object_diff(x, y)
-    y = sparse.eye(3, 3, format="csc")
+    y = sparse.eye_array(3, 3, format="csc")
     assert "shape" in object_diff(x, y)
     y = 0
     assert "type mismatch" in object_diff(x, y)
@@ -604,10 +604,10 @@ def test_custom_lru_cache():
     assert my_fun(1, np.array([2]), 3) == "int, ndarray, int"
     assert n_calls == [2, 1]
     assert len(_LRU_CACHES[fun_hash]) == 2
-    assert my_fun_2(1, sparse.eye(1, format="csc")) == "int, csc_matrix"
+    assert my_fun_2(1, sparse.eye_array(1, format="csc")) == "int, csc_array"
     assert n_calls == [2, 2]
     assert len(_LRU_CACHES[fun_2_hash]) == 1  # other got popped
     # we could add support for this eventually, but don't bother for now
     with pytest.raises(RuntimeError, match="Unsupported sparse type"):
-        my_fun_2(1, sparse.eye(1, format="coo"))
+        my_fun_2(1, sparse.eye_array(1, format="coo"))
     assert n_calls == [2, 2]  # never did any computation

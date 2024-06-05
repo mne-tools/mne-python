@@ -48,7 +48,7 @@ def test_permutation_t_test():
     assert_array_equal(is_significant, [True, True, False, False, False])
 
     # check equivalence with spatio_temporal_cluster_test
-    for adjacency in (sparse.eye(n_tests), False):
+    for adjacency in (sparse.eye_array(n_tests), False):
         t_obs_clust, _, p_values_clust, _ = permutation_cluster_1samp_test(
             X, n_permutations=999, seed=0, adjacency=adjacency, out_type="mask"
         )

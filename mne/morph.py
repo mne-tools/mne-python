@@ -340,7 +340,7 @@ def _compute_sparse_morph(vertices_from, subject_from, subject_to, subjects_dir=
     cols = np.concatenate(cols)
     rows = np.arange(len(cols))
     data = np.ones(len(cols))
-    morph_mat = sparse.coo_matrix(
+    morph_mat = sparse.coo_array(
         (data, (rows, cols)), shape=(len(cols), len(cols))
     ).tocsr()
     return vertices, morph_mat
@@ -404,7 +404,7 @@ class SourceMorph:
         See :func:`mne.compute_source_morph`.
     xhemi : bool
         Morph across hemisphere.
-    morph_mat : scipy.sparse.csr_matrix
+    morph_mat : scipy.sparse.csr_array
         The sparse surface morphing matrix for spherical surface
         based morphing :footcite:`GreveEtAl2013`.
     vertices_to : list of ndarray
@@ -420,7 +420,7 @@ class SourceMorph:
         (SDR) morph.
     src_data : dict
         Additional source data necessary to perform morphing.
-    vol_morph_mat : scipy.sparse.csr_matrix | None
+    vol_morph_mat : scipy.sparse.csr_array | None
         The volumetric morph matrix, if :meth:`compute_vol_morph_mat`
         was used.
     %(verbose)s
@@ -587,7 +587,7 @@ class SourceMorph:
         -----
         For a volumetric morph, this will compute the morph for an identity
         source volume, i.e., with one source vertex active at a time, and store
-        the result as a :class:`sparse <scipy.sparse.csr_matrix>`
+        the result as a :class:`sparse <scipy.sparse.csr_array>`
         morphing matrix. This takes a long time (minutes) to compute initially,
         but drastically speeds up :meth:`apply` for STCs, so it can be
         beneficial when many time points or many morphs (i.e., greater than
@@ -728,7 +728,7 @@ class SourceMorph:
                         img_to[:, ii] = img_to[:, ii] + 1j * img_real
 
         if vols is None:
-            img_to = sparse.csc_matrix(img_to, shape=(len(vol_verts), n_vols)).tocsr()
+            img_to = sparse.csc_array(img_to, shape=(len(vol_verts), n_vols)).tocsr()
 
         return img_to
 
@@ -1216,7 +1216,7 @@ def _compute_morph_matrix(
     data = np.concatenate(data)
     # this is equivalent to morpher = sparse_block_diag(morpher).tocsr(),
     # but works for xhemi mode
-    morpher = sparse.csr_matrix((data, indices, indptr), shape=shape)
+    morpher = sparse.csr_array((data, indices, indptr), shape=shape)
     logger.info("[done]")
     return morpher
 
@@ -1224,16 +1224,16 @@ def _compute_morph_matrix(
 def _hemi_morph(tris, vertices_to, vertices_from, smooth, maps, warn):
     _validate_type(smooth, (str, None, "int-like"), "smoothing steps")
     if len(vertices_from) == 0:
-        return sparse.csr_matrix((len(vertices_to), 0))
+        return sparse.csr_array((len(vertices_to), 0))
     e = mesh_edges(tris)
     e.data[e.data == 2] = 1
     n_vertices = e.shape[0]
-    e += sparse.eye(n_vertices, format="csr")
+    e += sparse.eye_array(n_vertices, format="csr")
     if isinstance(smooth, str):
         _check_option("smooth", smooth, ("nearest",), extra=" when used as a string.")
         mm = _surf_nearest(vertices_from, e).tocsr()
     elif smooth == 0:
-        mm = sparse.csc_matrix(
+        mm = sparse.csc_array(
             (
                 np.ones(len(vertices_from)),  # data, indices, indptr
                 vertices_from,
@@ -1251,7 +1251,7 @@ def _hemi_morph(tris, vertices_to, vertices_from, smooth, maps, warn):
         logger.info(f"    {n_iter} smooth iterations done.")
     assert mm.shape == (n_vertices, len(vertices_from))
     if maps is not None:
-        mm = maps[vertices_to] * mm
+        mm = maps[vertices_to] @ mm
     else:  # to == from
         mm = mm[vertices_to]
     assert mm.shape == (len(vertices_to), len(vertices_from))
@@ -1346,7 +1346,7 @@ def _surf_nearest(vertices, adj_mat):
     col = order[col]
     row = np.arange(len(col))
     data = np.ones(len(col))
-    mat = sparse.coo_matrix((data, (row, col)))
+    mat = sparse.coo_array((data, (row, col)))
     assert mat.shape == (adj_mat.shape[0], len(vertices)), mat.shape
     return mat
 
@@ -1364,12 +1364,12 @@ def _csr_row_norm(data, row_norm):
 def _surf_upsampling_mat(idx_from, e, smooth):
     """Upsample data on a subject's surface given mesh edges."""
     # we're in CSR format and it's to==from
-    assert isinstance(e, sparse.csr_matrix)
+    assert isinstance(e, sparse.csr_array)
     n_tot = e.shape[0]
     assert e.shape == (n_tot, n_tot)
     # our output matrix starts out as a smaller matrix, and will gradually
     # increase in size
-    data = sparse.eye(len(idx_from), format="csr")
+    data = sparse.eye_array(len(idx_from), format="csr")
     _validate_type(smooth, ("int-like", str, None), "smoothing steps")
     if smooth is not None:  # number of steps
         smooth = _ensure_int(smooth, "smoothing steps")
@@ -1389,7 +1389,7 @@ def _surf_upsampling_mat(idx_from, e, smooth):
             data = data[idx]
         # smoothing multiplication
         use_e = e[:, idx] if len(idx) < n_tot else e
-        data = use_e * data
+        data = use_e @ data
         del use_e
         # compute row sums + output indices
         if recompute_idx_sum:
@@ -1399,7 +1399,7 @@ def _surf_upsampling_mat(idx_from, e, smooth):
                 recompute_idx_sum = False
             else:
                 mult[idx] = 1
-                row_sum = e * mult
+                row_sum = e @ mult
                 idx = np.where(row_sum)[0]
         # do row normalization
         _csr_row_norm(data, row_sum)

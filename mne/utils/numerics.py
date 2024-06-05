@@ -647,7 +647,7 @@ def object_hash(x, h=None):
         object_hash(_dt_to_stamp(x))
     elif sparse.issparse(x):
         h.update(str(type(x)).encode("utf-8"))
-        if not isinstance(x, (sparse.csr_matrix, sparse.csc_matrix)):
+        if not isinstance(x, (sparse.csr_array, sparse.csc_array)):
             raise RuntimeError(f"Unsupported sparse type {type(x)}")
         h.update(x.data.tobytes())
         h.update(x.indices.tobytes())

@@ -131,7 +131,7 @@ def _stc_to_label(stc, src, smooth, subjects_dir=None):
         e = mesh_edges(this_tris)
         e.data[e.data == 2] = 1
         n_vertices = e.shape[0]
-        e = e + sparse.eye(n_vertices, n_vertices)
+        e = e + sparse.eye_array(n_vertices, n_vertices)
 
         clusters = [this_vertno[np.any(this_data, axis=1)]]
 

@@ -19,7 +19,7 @@ from io import BytesIO
 
 import numpy as np
 from scipy.interpolate import interp1d
-from scipy.sparse import csr_matrix
+from scipy.sparse import csr_array
 from scipy.spatial.distance import cdist
 
 from ..._fiff.meas_info import Info
@@ -1100,7 +1100,7 @@ class Brain:
                 vertices = hemi_data["vertices"]
                 if hemi == "vol":
                     assert smooth_mat is None
-                    smooth_mat = csr_matrix(
+                    smooth_mat = csr_array(
                         (np.ones(len(vertices)), (vertices, np.arange(len(vertices))))
                     )
                 self.act_data_smooth[hemi] = (act_data, smooth_mat)
