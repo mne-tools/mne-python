@@ -2341,7 +2341,10 @@ class BaseEpochs(
 
         export_epochs(fname, self, fmt, overwrite=overwrite, verbose=verbose)
 
-    def equalize_event_counts(self, event_ids=None, method="mintime"):
+    @fill_doc
+    def equalize_event_counts(
+        self, event_ids=None, method="mintime", *, random_state=None
+    ):
         """Equalize the number of trials in each condition.
 
         It tries to make the remaining epochs occurring as close as possible in
@@ -2381,10 +2384,8 @@ class BaseEpochs(
             matched by the provided tags had been supplied instead.
             The ``event_ids`` must identify non-overlapping subsets of the
             epochs.
-        method : str
-            If ``'truncate'``, events will be truncated from the end of each
-            type of events. If ``'mintime'``, timing differences between each
-            event type will be minimized.
+        %(equalize_events_method)s
+        %(random_state)s Used only if ``method='random'``.
 
         Returns
         -------
@@ -2486,7 +2487,7 @@ class BaseEpochs(
             eq_inds.append(self._keys_to_idx(eq))
 
         sample_nums = [self.events[e, 0] for e in eq_inds]
-        indices = _get_drop_indices(sample_nums, method)
+        indices = _get_drop_indices(sample_nums, method, random_state)
         # need to re-index indices
         indices = np.concatenate([e[idx] for e, idx in zip(eq_inds, indices)])
         self.drop(indices, reason="EQUALIZED_COUNT")
@@ -3830,24 +3831,22 @@ def combine_event_ids(epochs, old_event_ids, new_event_id, copy=True):
     return epochs
 
 
-def equalize_epoch_counts(epochs_list, method="mintime"):
+@fill_doc
+def equalize_epoch_counts(epochs_list, method="mintime", *, random_state=None):
     """Equalize the number of trials in multiple Epochs or EpochsTFR instances.
 
     Parameters
     ----------
     epochs_list : list of Epochs instances
         The Epochs instances to equalize trial counts for.
-    method : ``'truncate'`` | ``'mintime'`` | ``'random'``
-        If ``'truncate'``, events will be truncated from the end of each event
-        list. If ``'mintime'``, timing differences between each event list will be
-        minimized. If ``'random'``, events will be randomly selected from each event
-        list.
+    %(equalize_events_method)s
+    %(random_state)s Used only if ``method='random'``.
 
     Notes
     -----
     The method ``'mintime'`` tries to make the remaining epochs occurring as close as
-    possible in time. This method works based on the idea that if there happened to be
-    some time-varying (like on the scale of minutes) noise characteristics during
+    possible in time. This method is motivated by the possibility that if there happened
+    to be some time-varying (like on the scale of minutes) noise characteristics during
     a recording, they could be compensated for (to some extent) in the
     equalization process. This method thus seeks to reduce any of those effects
     by minimizing the differences in the times of the events in the two sets of
@@ -3871,7 +3870,7 @@ def equalize_epoch_counts(epochs_list, method="mintime"):
         epoch.drop(inds, reason="EQUALIZED_COUNT")
 
 
-def _get_drop_indices(sample_nums, method):
+def _get_drop_indices(sample_nums, method, random_state):
     """Get indices to drop from multiple event timing lists."""
     small_idx = np.argmin([e.size for e in sample_nums])
     small_epoch_indices = sample_nums[small_idx]
@@ -3884,7 +3883,7 @@ def _get_drop_indices(sample_nums, method):
             mask = np.ones(event.size, dtype=bool)
             mask[small_epoch_indices.size :] = False
         elif method == "random":
-            rng = np.random.default_rng()
+            rng = check_random_state(random_state)
             mask = np.zeros(event.size, dtype=bool)
             idx = rng.choice(
                 np.arange(event.size), size=small_epoch_indices.size, replace=False
