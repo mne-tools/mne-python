@@ -3865,7 +3865,7 @@ def equalize_epoch_counts(epochs_list, method="mintime", *, random_state=None):
         if not epoch._bad_dropped:
             epoch.drop_bad()
     sample_nums = [epoch.events[:, 0] for epoch in epochs_list]
-    indices = _get_drop_indices(sample_nums, method)
+    indices = _get_drop_indices(sample_nums, method, random_state)
     for epoch, inds in zip(epochs_list, indices):
         epoch.drop(inds, reason="EQUALIZED_COUNT")
 
