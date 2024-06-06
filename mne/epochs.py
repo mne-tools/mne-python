@@ -3837,16 +3837,17 @@ def equalize_epoch_counts(epochs_list, method="mintime"):
     ----------
     epochs_list : list of Epochs instances
         The Epochs instances to equalize trial counts for.
-    method : str
-        If 'truncate', events will be truncated from the end of each event
-        list. If 'mintime', timing differences between each event list will be
-        minimized.
+    method : ``'truncate'`` | ``'mintime'`` | ``'random'``
+        If ``'truncate'``, events will be truncated from the end of each event
+        list. If ``'mintime'``, timing differences between each event list will be
+        minimized. If ``'random'``, events will be randomly selected from each event
+        list.
 
     Notes
     -----
-    This tries to make the remaining epochs occurring as close as possible in
-    time. This method works based on the idea that if there happened to be some
-    time-varying (like on the scale of minutes) noise characteristics during
+    The method ``'mintime'`` tries to make the remaining epochs occurring as close as
+    possible in time. This method works based on the idea that if there happened to be
+    some time-varying (like on the scale of minutes) noise characteristics during
     a recording, they could be compensated for (to some extent) in the
     equalization process. This method thus seeks to reduce any of those effects
     by minimizing the differences in the times of the events in the two sets of
@@ -3875,14 +3876,16 @@ def _get_drop_indices(sample_nums, method):
     """Get indices to drop from multiple event timing lists."""
     small_idx = np.argmin([e.shape[0] for e in sample_nums])
     small_epoch_indices = sample_nums[small_idx]
-    _check_option("method", method, ["mintime", "truncate"])
+    _check_option("method", method, ["mintime", "truncate", "random"])
     indices = list()
     for event in sample_nums:
         if method == "mintime":
             mask = _minimize_time_diff(small_epoch_indices, event)
-        else:
+        elif method == "truncate":
             mask = np.ones(event.shape[0], dtype=bool)
             mask[small_epoch_indices.shape[0] :] = False
+        elif method == "random":
+            raise NotImplementedError
         indices.append(np.where(np.logical_not(mask))[0])
     return indices
 
