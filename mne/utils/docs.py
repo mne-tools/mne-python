@@ -1265,14 +1265,6 @@ encoding : str
     encoding according to the EDF+ standard).
 """
 
-docdict["equalize_events_method"] = """
-method : ``'truncate'`` | ``'mintime'`` | ``'random'``
-    If ``'truncate'``, events will be truncated from the end of each event
-    list. If ``'mintime'``, timing differences between each event list will be
-    minimized. If ``'random'``, events will be randomly selected from each event
-    list.
-"""
-
 docdict["epochs_preload"] = """
     Load all epochs from disk when creating the object
     or wait before accessing each epoch (more memory
@@ -1295,6 +1287,14 @@ tmin, tmax : float
     Start and end time of the epochs in seconds, relative to the time-locked
     event. The closest or matching samples corresponding to the start and end
     time are included. Defaults to ``-0.2`` and ``0.5``, respectively.
+"""
+
+docdict["equalize_events_method"] = """
+method : ``'truncate'`` | ``'mintime'`` | ``'random'``
+    If ``'truncate'``, events will be truncated from the end of each event
+    list. If ``'mintime'``, timing differences between each event list will be
+    minimized. If ``'random'``, events will be randomly selected from each event
+    list.
 """
 
 docdict["estimate_plot_psd"] = """\
