@@ -21,10 +21,10 @@ if python -c "import $import_name" &> /dev/null; then
     cd "${orig_dir}"
 else
     cd "${orig_dir}"
-    echo -e "💡 $package_name is not installed. Installing now…\n"
+    echo -e "💡 $package_name is not installed. Installing now …\n"
     pipx run uv pip install -e ".[full-pyside6,dev,test_extra]"
     echo -e "\n✅ $package_name has been installed.\n"
-    echo -e "💡 Installing pre-commit hooks…"
+    echo -e "💡 Installing pre-commit hooks …"
     pre-commit install --install-hooks
     echo -e "✅ pre-commit hooks installed.\n"
 fi
