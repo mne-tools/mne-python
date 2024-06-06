@@ -3861,7 +3861,6 @@ def equalize_epoch_counts(epochs_list, method="mintime"):
     """
     if not all(isinstance(epoch, (BaseEpochs, EpochsTFR)) for epoch in epochs_list):
         raise ValueError("All inputs must be Epochs instances")
-
     # make sure bad epochs are dropped
     for epoch in epochs_list:
         if not epoch._bad_dropped:
@@ -3874,7 +3873,7 @@ def equalize_epoch_counts(epochs_list, method="mintime"):
 
 def _get_drop_indices(sample_nums, method):
     """Get indices to drop from multiple event timing lists."""
-    small_idx = np.argmin([e.shape[0] for e in sample_nums])
+    small_idx = np.argmin([e.size for e in sample_nums])
     small_epoch_indices = sample_nums[small_idx]
     _check_option("method", method, ["mintime", "truncate", "random"])
     indices = list()
@@ -3882,10 +3881,15 @@ def _get_drop_indices(sample_nums, method):
         if method == "mintime":
             mask = _minimize_time_diff(small_epoch_indices, event)
         elif method == "truncate":
-            mask = np.ones(event.shape[0], dtype=bool)
-            mask[small_epoch_indices.shape[0] :] = False
+            mask = np.ones(event.size, dtype=bool)
+            mask[small_epoch_indices.size :] = False
         elif method == "random":
-            raise NotImplementedError
+            rng = np.random.default_rng()
+            mask = np.zeros(event.size, dtype=bool)
+            idx = rng.choice(
+                np.arange(event.size), size=small_epoch_indices.size, replace=False
+            )
+            mask[idx] = True
         indices.append(np.where(np.logical_not(mask))[0])
     return indices
 
