@@ -1056,8 +1056,12 @@ decim : int
     .. warning:: Low-pass filtering is not performed, this simply selects
                  every Nth sample (where N is the value passed to
                  ``decim``), i.e., it compresses the signal (see Notes).
-                 If the data are not properly filtered, aliasing artifacts
-                 may occur.
+                 To avoid aliasing artifacts, the raw data should be
+                 sufficiently low-passed before decimation. It is recommended
+                 to use :func:`mne.io.Raw.filter` with `l_freq` set to
+                 half the new sampling rate (fs/2N), as per the Nyquist
+                 criterion, to ensure effective attenuation of frequency
+                 content above this threshold.
 """
 
 docdict["decim_notes"] = """
