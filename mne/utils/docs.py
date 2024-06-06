@@ -1058,10 +1058,10 @@ decim : int
                  ``decim``), i.e., it compresses the signal (see Notes).
                  To avoid aliasing artifacts, the raw data should be
                  sufficiently low-passed before decimation. It is recommended
-                 to use :func:`mne.io.Raw.filter` with ``l_freq`` set to
-                 half the new sampling rate (fs/2N), as per the Nyquist
-                 criterion, to ensure effective attenuation of frequency
-                 content above this threshold.
+                 to use :func:`mne.io.Raw.filter` with ``h_freq`` set to
+                 half the new sampling rate (fs/2N) or lower, as per the
+                 Nyquist criterion, to ensure effective attenuation of
+                 frequency content above this threshold.
 """
 
 docdict["decim_notes"] = """
