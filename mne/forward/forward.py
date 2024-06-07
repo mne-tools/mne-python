@@ -832,7 +832,7 @@ def convert_forward_solution(
             fwd["sol"]["ncol"] = fwd["nsource"]
             if fwd["sol_grad"] is not None:
                 x = sparse.block_diag([fix_rot] * 3)
-                fwd["sol_grad"]["data"] = fwd["_orig_sol_grad"] * x  # dot prod
+                fwd["sol_grad"]["data"] = fwd["_orig_sol_grad"] @ x
                 fwd["sol_grad"]["ncol"] = 3 * fwd["nsource"]
             fwd["source_ori"] = FIFF.FIFFV_MNE_FIXED_ORI
             fwd["surf_ori"] = True
@@ -842,7 +842,7 @@ def convert_forward_solution(
             fwd["sol"]["ncol"] = 3 * fwd["nsource"]
             if fwd["sol_grad"] is not None:
                 x = sparse.block_diag([surf_rot] * 3)
-                fwd["sol_grad"]["data"] = fwd["_orig_sol_grad"] @ x  # dot prod
+                fwd["sol_grad"]["data"] = fwd["_orig_sol_grad"] @ x
                 fwd["sol_grad"]["ncol"] = 9 * fwd["nsource"]
             fwd["source_ori"] = FIFF.FIFFV_MNE_FREE_ORI
             fwd["surf_ori"] = True
