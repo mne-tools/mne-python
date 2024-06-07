@@ -13,7 +13,7 @@ from copy import deepcopy
 from functools import partial
 
 import numpy as np
-from scipy.sparse import csr_matrix, triu
+from scipy.sparse import csr_array, triu
 from scipy.sparse.csgraph import dijkstra
 from scipy.spatial.distance import cdist
 
@@ -191,7 +191,7 @@ class SourceSpaces(list):
             The number of triangles in the subsampled surface.
         use_tris : ndarray, shape (nuse_tri, 3)
             The subsampled surface triangulation.
-        dist : scipy.sparse.csr_matrix, shape (n_src, n_src) | None
+        dist : scipy.sparse.csr_array, shape (n_src, n_src) | None
             The distances (euclidean for volume, along the cortical surface for
             surfaces) between source points.
         dist_limit : float
@@ -262,7 +262,7 @@ class SourceSpaces(list):
             The MRI dimensions (in voxels).
         neighbor_vert : ndarray
             The 26-neighborhood information for each vertex.
-        interpolator : scipy.sparse.csr_matrix | None
+        interpolator : scipy.sparse.csr_array | None
             The linear interpolator to go from the subsampled volume vertices
             to the high-resolution volume.
         shape : tuple of int
@@ -1378,7 +1378,7 @@ def _write_one_source_space(fid, this, verbose=None):
         mri_width, mri_height, mri_depth, nvox = _src_vol_dims(this)
         interpolator = this.get("interpolator")
         if interpolator is None:
-            interpolator = csr_matrix((nvox, this["np"]))
+            interpolator = csr_array((nvox, this["np"]))
         write_float_sparse_rcs(
             fid, FIFF.FIFF_MNE_SOURCE_SPACE_INTERPOLATOR, interpolator
         )
@@ -1403,7 +1403,9 @@ def _write_one_source_space(fid, this, verbose=None):
     if this["dist"] is not None:
         # Save only upper triangular portion of the matrix
         dists = this["dist"].copy()
-        dists = triu(dists, format=dists.format)
+        # Shouldn't need this cast but on SciPy 1.9.3 at least this returns a csr_matrix
+        # instead of csr_array
+        dists = csr_array(triu(dists, format=dists.format))
         write_float_sparse_rcs(fid, FIFF.FIFF_MNE_SOURCE_SPACE_DIST, dists)
         write_float_matrix(
             fid,
@@ -2356,7 +2358,7 @@ def _add_interpolator(sp):
         order=1,
         inuse=inuse,
     )
-    assert isinstance(interp, csr_matrix)
+    assert isinstance(interp, csr_array)
 
     # Compose the sparse matrices
     for si, s in enumerate(sp):
@@ -2381,7 +2383,7 @@ def _add_interpolator(sp):
             indices = interp.indices[mask]
             data = interp.data[mask]
             assert data.shape == indices.shape == (indptr[-1],)
-            this_interp = csr_matrix((data, indices, indptr), shape=interp.shape)
+            this_interp = csr_array((data, indices, indptr), shape=interp.shape)
         s["interpolator"] = this_interp
         logger.info(
             "    %d/%d nonzero values for %s"
@@ -2406,7 +2408,7 @@ def _grid_interp(from_shape, to_shape, trans, order=1, inuse=None):
     data = np.concatenate(data)
     indices = np.concatenate(indices)
     indptr = np.cumsum(indptr)
-    interp = csr_matrix((data, indices, indptr), shape=shape)
+    interp = csr_array((data, indices, indptr), shape=shape)
     return interp
 
 
@@ -2748,7 +2750,7 @@ def add_source_space_distances(src, dist_limit=np.inf, n_jobs=None, *, verbose=N
             i, j = np.meshgrid(s["vertno"], s["vertno"])
             i = i.ravel()[idx]
             j = j.ravel()[idx]
-            s["dist"] = csr_matrix(
+            s["dist"] = csr_array(
                 (d, (i, j)), shape=(s["np"], s["np"]), dtype=np.float32
             )
             s["dist_limit"] = np.array([dist_limit], np.float32)
