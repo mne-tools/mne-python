@@ -1289,6 +1289,16 @@ tmin, tmax : float
     time are included. Defaults to ``-0.2`` and ``0.5``, respectively.
 """
 
+docdict["equalize_events_method"] = """
+method : ``'truncate'`` | ``'mintime'`` | ``'random'``
+    If ``'truncate'``, events will be truncated from the end of each event
+    list. If ``'mintime'``, timing differences between each event list will be
+    minimized. If ``'random'``, events will be randomly selected from each event
+    list.
+
+    .. versionadded:: 1.8
+"""
+
 docdict["estimate_plot_psd"] = """\
 estimate : str, {'power', 'amplitude'}
     Can be "power" for power spectral density (PSD; default), "amplitude" for
