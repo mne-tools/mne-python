@@ -464,9 +464,11 @@ def test_set_eeg_reference_dict(ref_channels, expectation):
         for val in ref_channels.values():
             if isinstance(val, str):
                 val = [val]  # pick_channels expects a list
-            ref_data.append(_data[..., pick_channels(raw.ch_names, val, ordered=True), :].mean(
+            ref_data.append(
+                _data[..., pick_channels(raw.ch_names, val, ordered=True), :].mean(
                     -2, keepdims=True
-                ))
+                )
+            )
         ref_data = np.squeeze(np.array(ref_data))
         assert_allclose(
             _data[ch_reref, :], _reref[ch_reref, :] + ref_data, 1e-6, atol=1e-15
