@@ -15,7 +15,6 @@ from inspect import signature
 from pathlib import Path
 
 import numpy as np
-from scipy import sparse
 
 from ..defaults import HEAD_SIZE_DEFAULT, _handle_default
 from ..fixes import _compare_version, _median_complex
@@ -537,6 +536,8 @@ class _Callable:
 class _Sparse:
     @classmethod
     def __instancecheck__(cls, other):
+        from scipy import sparse
+
         return sparse.issparse(other)
 
 
