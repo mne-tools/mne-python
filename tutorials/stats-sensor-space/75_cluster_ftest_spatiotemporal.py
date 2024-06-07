@@ -20,7 +20,7 @@ See the `FieldTrip tutorial <ft_cluster_>`_ for a caveat regarding
 the possible interpretation of "significant" clusters.
 
 For more information on cluster-based permutation testing in MNE-Python,
-see also: :ref:`tut-cluster-one-samp-tfr`
+see also: :ref:`tut-cluster-one-samp-tfr`.
 """
 # Authors: Denis Engemann <denis.engemann@gmail.com>
 #          Jona Sassenhagen <jona.sassenhagen@gmail.com>

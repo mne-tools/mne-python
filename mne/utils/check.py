@@ -15,6 +15,7 @@ from inspect import signature
 from pathlib import Path
 
 import numpy as np
+from scipy import sparse
 
 from ..defaults import HEAD_SIZE_DEFAULT, _handle_default
 from ..fixes import _compare_version, _median_complex
@@ -533,6 +534,12 @@ class _Callable:
         return callable(other)
 
 
+class _Sparse:
+    @classmethod
+    def __instancecheck__(cls, other):
+        return sparse.issparse(other)
+
+
 _multi = {
     "str": (str,),
     "numeric": (np.floating, float, int_like),
@@ -540,6 +547,7 @@ _multi = {
     "int-like": (int_like,),
     "callable": (_Callable(),),
     "array-like": (list, tuple, set, np.ndarray),
+    "sparse": (_Sparse(),),
 }
 
 
