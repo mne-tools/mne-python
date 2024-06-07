@@ -1295,6 +1295,8 @@ method : ``'truncate'`` | ``'mintime'`` | ``'random'``
     list. If ``'mintime'``, timing differences between each event list will be
     minimized. If ``'random'``, events will be randomly selected from each event
     list.
+
+    .. versionadded:: 1.8
 """
 
 docdict["estimate_plot_psd"] = """\
