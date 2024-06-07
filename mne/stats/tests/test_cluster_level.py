@@ -376,7 +376,7 @@ def test_cluster_permutation_with_adjacency(numba_conditional, monkeypatch):
             assert np.all(a[b])
 
         # test spatio-temporal w/o time adjacency (repeat spatial pattern)
-        adjacency_2 = sparse.coo_matrix(
+        adjacency_2 = sparse.coo_array(
             linalg.block_diag(
                 adjacency.asfptype().todense(), adjacency.asfptype().todense()
             )

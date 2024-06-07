@@ -7,7 +7,7 @@ from inspect import signature
 import numpy as np
 import pytest
 from numpy.testing import assert_allclose, assert_array_equal, assert_array_less
-from scipy.sparse import csr_matrix
+from scipy.sparse import csr_array
 from scipy.sparse import eye as speye
 from scipy.spatial.distance import cdist
 
@@ -671,7 +671,7 @@ def test_volume_source_morph_round_trip(
         morph_to_from.compute_vol_morph_mat(verbose=True)
         morph_to_from.save(fname, overwrite=True)
         morph_to_from = read_source_morph(fname)
-        assert isinstance(morph_to_from.vol_morph_mat, csr_matrix), "csr"
+        assert isinstance(morph_to_from.vol_morph_mat, csr_array), "csr"
         # equivalence (plus automatic calling)
         assert morph_from_to.vol_morph_mat is None
         monkeypatch.setattr(mne.morph, "_VOL_MAT_CHECK_RATIO", 0.0)
@@ -680,7 +680,7 @@ def test_volume_source_morph_round_trip(
                 stc_from_rt_lin = morph_to_from.apply(
                     morph_from_to.apply(stc_from, verbose="debug")
                 )
-        assert isinstance(morph_from_to.vol_morph_mat, csr_matrix), "csr"
+        assert isinstance(morph_from_to.vol_morph_mat, csr_array), "csr"
         log = log.getvalue()
         assert "sparse volume morph matrix" in log
         assert_allclose(stc_from_rt.data, stc_from_rt_lin.data)

@@ -23,7 +23,7 @@ from scipy.interpolate import (
     LinearNDInterpolator,
     NearestNDInterpolator,
 )
-from scipy.sparse import csr_matrix
+from scipy.sparse import csr_array
 from scipy.spatial import Delaunay, Voronoi
 from scipy.spatial.distance import pdist, squareform
 
@@ -3769,8 +3769,8 @@ def plot_ch_adjacency(info, adjacency, ch_names, kind="2d", edit=False):
     import matplotlib.pyplot as plt
 
     _validate_type(info, Info, "info")
-    _validate_type(adjacency, (np.ndarray, csr_matrix), "adjacency")
-    has_sparse = isinstance(adjacency, csr_matrix)
+    _validate_type(adjacency, (np.ndarray, csr_array), "adjacency")
+    has_sparse = isinstance(adjacency, csr_array)
 
     if edit and kind == "3d":
         raise ValueError("Editing a 3d adjacency plot is not supported.")
@@ -3809,7 +3809,7 @@ def plot_ch_adjacency(info, adjacency, ch_names, kind="2d", edit=False):
         path_collection[0].set_zorder(10)
 
         # scale node size with number of connections
-        n_connections = [np.sum(adjacency[i]) - 1 for i in range(adjacency.shape[0])]
+        n_connections = [np.sum(adjacency[[i]]) - 1 for i in range(adjacency.shape[0])]
         node_size = [max(x, 3) ** 2.5 for x in n_connections]
         path_collection[0].set_sizes(node_size)
     else:
@@ -3825,7 +3825,7 @@ def plot_ch_adjacency(info, adjacency, ch_names, kind="2d", edit=False):
     n_channels = adjacency.shape[0]
     for ch_idx in range(n_channels):
         # make sure we don't repeat channels
-        row = adjacency[ch_idx, ch_idx + 1 :]
+        row = adjacency[[ch_idx], ch_idx + 1 :]
         if has_sparse:
             ch_neighbours = row.nonzero()[1]
         else:
@@ -3921,7 +3921,7 @@ def _onpick_ch_adjacency(
 
             # update node sizes
             n_connections = [
-                np.sum(adjacency[idx]) - 1 + n_conn_change for idx in both_nodes
+                np.sum(adjacency[[idx]]) - 1 + n_conn_change for idx in both_nodes
             ]
             for idx, n_conn in zip(both_nodes, n_connections):
                 node_size[idx] = max(n_conn, 3) ** 2.5

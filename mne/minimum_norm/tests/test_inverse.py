@@ -145,7 +145,7 @@ def _compare(a, b):
             assert len(a) == len(b)
             for i, j in zip(a, b):
                 _compare(i, j)
-        elif isinstance(a, sparse.csr_matrix):
+        elif isinstance(a, sparse.csr_array):
             assert_array_almost_equal(a.data, b.data)
             assert_equal(a.indices, b.indices)
             assert_equal(a.indptr, b.indptr)
