@@ -419,6 +419,10 @@ def test_set_eeg_reference_rest():
             {"EEG 001": "EEG 002", "EEG 002": "EEG 002", "EEG 003": "EEG 005"},
             nullcontext(),
         ),
+        (
+            {"EEG 001": ["EEG 002", "EEG 003"], "EEG 002": "EEG 002", "EEG 003": "EEG 005"},
+            nullcontext(),
+        ),
     ],
 )
 def test_set_eeg_reference_dict(ref_channels, expectation):
@@ -432,10 +436,29 @@ def test_set_eeg_reference_dict(ref_channels, expectation):
     raw.load_data()
     raw.info["bads"] = ["EEG 057"]
     with expectation:
-        raw.set_eeg_reference(ref_channels=ref_channels)
+        reref = set_eeg_reference(raw.copy(), ref_channels, copy=False)
+        # raw.set_eeg_reference(ref_channels=ref_channels)
 
-    # Data testing goes below here @Alex
-    # if expectation == nullcontext():
+    if expectation == nullcontext():
+        # Get data
+        _data = raw._data
+        _reref = reref._data
+
+        # Get that channels that were and weren't re-referenced:
+        ch_raw = pick_channels(raw.ch_names, [ch for ch in raw.ch_names
+                                                if ch not in list(ref_channels.keys())])
+        ch_reref = pick_channels(raw.ch_names, list(ref_channels.keys()), ordered=True)
+
+        # Check that the non re-reference channels are untouched:
+        assert_allclose(_data[ch_raw, :], _reref[ch_raw, :], 1e-6, atol=1e-15)
+
+        # Compute the reference data:
+        ref_data = np.array([
+            _data[..., pick_channels(raw.ch_names, val, ordered=True), :].mean(-2, keepdims=True)
+            for val in ref_channels.values()
+        ])
+        ref_data = np.array(ref_data)
+        assert_allclose(_data[ch_reref, :], _reref[ch_reref, :] + ref_data, 1e-6, atol=1e-15)
 
 
 @testing.requires_testing_data
