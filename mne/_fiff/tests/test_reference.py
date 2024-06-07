@@ -440,13 +440,14 @@ def test_set_eeg_reference_dict(ref_channels, expectation):
     raw.load_data()
     raw.info["bads"] = ["EEG 057"]
     with expectation:
-        reref = set_eeg_reference(raw.copy(), ref_channels, copy=False)
-        # raw.set_eeg_reference(ref_channels=ref_channels)
+        reref, _reref = set_eeg_reference(raw.copy(), ref_channels, copy=False)
 
-    if expectation == nullcontext():
-        # Get data
+    if isinstance(expectation, nullcontext):
+        # Check that the custom_ref_applied is set correctly:
+        assert reref.info["custom_ref_applied"] == FIFF.FIFFV_MNE_CUSTOM_REF_ON
+
+        # Get raw data
         _data = raw._data
-        _reref = reref._data
 
         # Get that channels that were and weren't re-referenced:
         ch_raw = pick_channels(
@@ -459,15 +460,14 @@ def test_set_eeg_reference_dict(ref_channels, expectation):
         assert_allclose(_data[ch_raw, :], _reref[ch_raw, :], 1e-6, atol=1e-15)
 
         # Compute the reference data:
-        ref_data = np.array(
-            [
-                _data[..., pick_channels(raw.ch_names, val, ordered=True), :].mean(
+        ref_data = []
+        for val in ref_channels.values():
+            if isinstance(val, str):
+                val = [val]  # pick_channels expects a list
+            ref_data.append(_data[..., pick_channels(raw.ch_names, val, ordered=True), :].mean(
                     -2, keepdims=True
-                )
-                for val in ref_channels.values()
-            ]
-        )
-        ref_data = np.array(ref_data)
+                ))
+        ref_data = np.squeeze(np.array(ref_data))
         assert_allclose(
             _data[ch_reref, :], _reref[ch_reref, :] + ref_data, 1e-6, atol=1e-15
         )
