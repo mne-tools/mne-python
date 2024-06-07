@@ -9,13 +9,14 @@ stay in-sync.
 
 Authors: Marijn van Vliet <w.m.vanvliet@gmail.com>
 """
+
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 import contextlib
 import re
 import weakref
 from dataclasses import dataclass
-from typing import List, Optional, Union
+from typing import Optional, Union
 
 from matplotlib.colors import Colormap
 
@@ -211,7 +212,7 @@ class Contours(UIEvent):
     """
 
     kind: str
-    contours: List[str]
+    contours: list[str]
     line_width: Optional[float]
 
 
@@ -232,7 +233,7 @@ class ChannelsSelect(UIEvent):
         The names of the channels that were selected.
     """
 
-    ch_names: List[str]
+    ch_names: list[str]
 
 
 def _get_event_channel(fig):

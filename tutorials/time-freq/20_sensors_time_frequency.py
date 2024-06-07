@@ -10,7 +10,7 @@ of your data (frequency and time-frequency). Here we'll work on Epochs.
 
 We will use this dataset: :ref:`somato-dataset`. It contains so-called event
 related synchronizations (ERS) / desynchronizations (ERD) in the beta band.
-"""
+"""  # noqa D400
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #          Richard Höchenberger <richard.hoechenberger@gmail.com>
@@ -24,7 +24,6 @@ import numpy as np
 
 import mne
 from mne.datasets import somato
-from mne.time_frequency import tfr_morlet
 
 # %%
 # Set parameters
@@ -190,14 +189,13 @@ print(welch_unagg.shape)
 # define frequencies of interest (log-spaced)
 freqs = np.logspace(*np.log10([6, 35]), num=8)
 n_cycles = freqs / 2.0  # different number of cycle per frequency
-power, itc = tfr_morlet(
-    epochs,
+power, itc = epochs.compute_tfr(
+    method="morlet",
     freqs=freqs,
     n_cycles=n_cycles,
-    use_fft=True,
+    average=True,
     return_itc=True,
     decim=3,
-    n_jobs=None,
 )
 
 # %%
@@ -210,7 +208,7 @@ power, itc = tfr_morlet(
 #     You can also select a portion in the time-frequency plane to
 #     obtain a topomap for a certain time-frequency region.
 power.plot_topo(baseline=(-0.5, 0), mode="logratio", title="Average power")
-power.plot([82], baseline=(-0.5, 0), mode="logratio", title=power.ch_names[82])
+power.plot(picks=[82], baseline=(-0.5, 0), mode="logratio", title=power.ch_names[82])
 
 fig, axes = plt.subplots(1, 2, figsize=(7, 4), layout="constrained")
 topomap_kw = dict(

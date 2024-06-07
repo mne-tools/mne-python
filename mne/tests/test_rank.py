@@ -177,7 +177,7 @@ def test_cov_rank_estimation(rank_method, proj, meg):
 
             # count channel types
             ch_types = this_info.get_channel_types()
-            n_eeg, n_mag, n_grad = [ch_types.count(k) for k in ["eeg", "mag", "grad"]]
+            n_eeg, n_mag, n_grad = (ch_types.count(k) for k in ["eeg", "mag", "grad"])
             n_meg = n_mag + n_grad
             has_sss = n_meg > 0 and len(this_info["proc_history"]) > 0
             if has_sss:

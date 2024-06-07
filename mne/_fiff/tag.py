@@ -7,10 +7,12 @@
 import html
 import re
 import struct
+from dataclasses import dataclass
 from functools import partial
+from typing import Any
 
 import numpy as np
-from scipy.sparse import csc_matrix, csr_matrix
+from scipy.sparse import csc_array, csr_array
 
 from ..utils import _check_option, warn
 from ..utils.numerics import _julian_to_cal
@@ -28,40 +30,16 @@ from .constants import (
 # HELPERS
 
 
+@dataclass
 class Tag:
-    """Tag in FIF tree structure.
+    """Tag in FIF tree structure."""
 
-    Parameters
-    ----------
-    kind : int
-        Kind of Tag.
-    type_ : int
-        Type of Tag.
-    size : int
-        Size in bytes.
-    int : next
-        Position of next Tag.
-    pos : int
-        Position of Tag is the original file.
-    """
-
-    def __init__(self, kind, type_, size, next, pos=None):
-        self.kind = int(kind)
-        self.type = int(type_)
-        self.size = int(size)
-        self.next = int(next)
-        self.pos = pos if pos is not None else next
-        self.pos = int(self.pos)
-        self.data = None
-
-    def __repr__(self):  # noqa: D105
-        attrs = list()
-        for attr in ("kind", "type", "size", "next", "pos", "data"):
-            try:
-                attrs.append(f"{attr} {getattr(self, attr)}")
-            except AttributeError:
-                pass
-        return "<Tag | " + " - ".join(attrs) + ">"
+    kind: int
+    type: int
+    size: int
+    next: int
+    pos: int
+    data: Any = None
 
     def __eq__(self, tag):  # noqa: D105
         return int(
@@ -73,17 +51,15 @@ class Tag:
             and self.data == tag.data
         )
 
-
-def read_tag_info(fid):
-    """Read Tag info (or header)."""
-    tag = _read_tag_header(fid)
-    if tag is None:
-        return None
-    if tag.next == 0:
-        fid.seek(tag.size, 1)
-    elif tag.next > 0:
-        fid.seek(tag.next, 0)
-    return tag
+    @property
+    def next_pos(self):
+        """The next tag position."""
+        if self.next == FIFF.FIFFV_NEXT_SEQ:  # 0
+            return self.pos + 16 + self.size
+        elif self.next > 0:
+            return self.next
+        else:  # self.next should be -1 if we get here
+            return None  # safest to return None so that things like fid.seek die
 
 
 def _frombuffer_rows(fid, tag_size, dtype=None, shape=None, rlims=None):
@@ -157,16 +133,18 @@ def _loc_to_eeg_loc(loc):
 # by the function names.
 
 
-def _read_tag_header(fid):
+def _read_tag_header(fid, pos):
     """Read only the header of a Tag."""
-    s = fid.read(4 * 4)
+    fid.seek(pos, 0)
+    s = fid.read(16)
     if len(s) != 16:
         where = fid.tell() - len(s)
         extra = f" in file {fid.name}" if hasattr(fid, "name") else ""
         warn(f"Invalid tag with only {len(s)}/16 bytes at position {where}{extra}")
         return None
     # struct.unpack faster than np.frombuffer, saves ~10% of time some places
-    return Tag(*struct.unpack(">iIii", s))
+    kind, type_, size, next_ = struct.unpack(">iIii", s)
+    return Tag(kind, type_, size, next_, pos)
 
 
 def _read_matrix(fid, tag, shape, rlims):
@@ -178,10 +156,10 @@ def _read_matrix(fid, tag, shape, rlims):
 
     matrix_coding, matrix_type, bit, dtype = _matrix_info(tag)
 
+    pos = tag.pos + 16
+    fid.seek(pos + tag.size - 4, 0)
     if matrix_coding == "dense":
         # Find dimensions and return to the beginning of tag data
-        pos = fid.tell()
-        fid.seek(tag.size - 4, 1)
         ndim = int(np.frombuffer(fid.read(4), dtype=">i4").item())
         fid.seek(-(ndim + 1) * 4, 1)
         dims = np.frombuffer(fid.read(4 * ndim), dtype=">i4")[::-1]
@@ -205,8 +183,6 @@ def _read_matrix(fid, tag, shape, rlims):
         data.shape = dims
     else:
         # Find dimensions and return to the beginning of tag data
-        pos = fid.tell()
-        fid.seek(tag.size - 4, 1)
         ndim = int(np.frombuffer(fid.read(4), dtype=">i4").item())
         fid.seek(-(ndim + 2) * 4, 1)
         dims = np.frombuffer(fid.read(4 * (ndim + 1)), dtype=">i4")
@@ -221,41 +197,34 @@ def _read_matrix(fid, tag, shape, rlims):
         # We need to make a copy so that we can own the data, otherwise we get:
         #     _sparsetools.csr_sort_indices(len(self.indptr) - 1, self.indptr,
         # E   ValueError: WRITEBACKIFCOPY base is read-only
-        data = np.frombuffer(fid.read(bit * nnz), dtype=dtype).copy()
+        data = np.frombuffer(fid.read(bit * nnz), dtype=dtype).astype(np.float32)
         shape = (dims[1], dims[2])
         if matrix_coding == "sparse CCS":
             tmp_indices = fid.read(4 * nnz)
             indices = np.frombuffer(tmp_indices, dtype=">i4")
             tmp_ptr = fid.read(4 * (ncol + 1))
             indptr = np.frombuffer(tmp_ptr, dtype=">i4")
-            if indptr[-1] > len(indices) or np.any(indptr < 0):
-                # There was a bug in MNE-C that caused some data to be
-                # stored without byte swapping
-                indices = np.concatenate(
-                    (
-                        np.frombuffer(tmp_indices[: 4 * (nrow + 1)], dtype=">i4"),
-                        np.frombuffer(tmp_indices[4 * (nrow + 1) :], dtype="<i4"),
-                    )
-                )
-                indptr = np.frombuffer(tmp_ptr, dtype="<i4")
-            data = csc_matrix((data, indices, indptr), shape=shape)
+            swap = nrow
+            klass = csc_array
         else:
             assert matrix_coding == "sparse RCS", matrix_coding
             tmp_indices = fid.read(4 * nnz)
             indices = np.frombuffer(tmp_indices, dtype=">i4")
             tmp_ptr = fid.read(4 * (nrow + 1))
             indptr = np.frombuffer(tmp_ptr, dtype=">i4")
-            if indptr[-1] > len(indices) or np.any(indptr < 0):
-                # There was a bug in MNE-C that caused some data to be
-                # stored without byte swapping
-                indices = np.concatenate(
-                    (
-                        np.frombuffer(tmp_indices[: 4 * (ncol + 1)], dtype=">i4"),
-                        np.frombuffer(tmp_indices[4 * (ncol + 1) :], dtype="<i4"),
-                    )
+            swap = ncol
+            klass = csr_array
+        if indptr[-1] > len(indices) or np.any(indptr < 0):
+            # There was a bug in MNE-C that caused some data to be
+            # stored without byte swapping
+            indices = np.concatenate(
+                (
+                    np.frombuffer(tmp_indices[: 4 * (swap + 1)], dtype=">i4"),
+                    np.frombuffer(tmp_indices[4 * (swap + 1) :], dtype="<i4"),
                 )
-                indptr = np.frombuffer(tmp_ptr, dtype="<i4")
-            data = csr_matrix((data, indices, indptr), shape=shape)
+            )
+            indptr = np.frombuffer(tmp_ptr, dtype="<i4")
+        data = klass((data, indices, indptr), shape=shape)
     return data
 
 
@@ -388,7 +357,16 @@ def _read_old_pack(fid, tag, shape, rlims):
 
 def _read_dir_entry_struct(fid, tag, shape, rlims):
     """Read dir entry struct tag."""
-    return [_read_tag_header(fid) for _ in range(tag.size // 16 - 1)]
+    pos = tag.pos + 16
+    entries = list()
+    for offset in range(1, tag.size // 16):
+        ent = _read_tag_header(fid, pos + offset * 16)
+        # The position of the real tag on disk is stored in the "next" entry within the
+        # directory, so we need to overwrite ent.pos. For safety let's also overwrite
+        # ent.next to point nowhere
+        ent.pos, ent.next = ent.next, FIFF.FIFFV_NEXT_NONE
+        entries.append(ent)
+    return entries
 
 
 def _read_julian(fid, tag, shape, rlims):
@@ -439,7 +417,7 @@ for key, dtype in _simple_dict.items():
     _call_dict_names[key] = dtype
 
 
-def read_tag(fid, pos=None, shape=None, rlims=None):
+def read_tag(fid, pos, shape=None, rlims=None):
     """Read a Tag from a file at a given position.
 
     Parameters
@@ -462,9 +440,7 @@ def read_tag(fid, pos=None, shape=None, rlims=None):
     tag : Tag
         The Tag read.
     """
-    if pos is not None:
-        fid.seek(pos, 0)
-    tag = _read_tag_header(fid)
+    tag = _read_tag_header(fid, pos)
     if tag is None:
         return tag
     if tag.size > 0:
@@ -477,10 +453,6 @@ def read_tag(fid, pos=None, shape=None, rlims=None):
             except KeyError:
                 raise Exception(f"Unimplemented tag data type {tag.type}") from None
             tag.data = fun(fid, tag, shape, rlims)
-    if tag.next != FIFF.FIFFV_NEXT_SEQ:
-        # f.seek(tag.next,0)
-        fid.seek(tag.next, 1)  # XXX : fix? pb when tag.next < 0
-
     return tag
 
 

@@ -216,6 +216,12 @@ DEFAULTS = dict(
         temperature="Temperature",
         eyegaze="Eye-tracking (Gaze position)",
         pupil="Eye-tracking (Pupil size)",
+        resp="Respiration monitoring channel",
+        chpi="Continuous head position indicator (HPI) coil channels",
+        exci="Flux excitation channel",
+        ias="Internal Active Shielding data (Triux systems)",
+        syst="System status channel information (Triux systems)",
+        whitened="Whitened data",
     ),
     mask_params=dict(
         marker="o",
@@ -235,8 +241,8 @@ DEFAULTS = dict(
         eeg_scale=4e-3,
         eegp_scale=20e-3,
         eegp_height=0.1,
-        ecog_scale=5e-3,
-        seeg_scale=5e-3,
+        ecog_scale=2e-3,
+        seeg_scale=2e-3,
         meg_scale=1.0,  # sensors are already in SI units
         ref_meg_scale=1.0,
         dbs_scale=5e-3,
@@ -278,7 +284,9 @@ DEFAULTS = dict(
         combine_xyz="fro",
         allow_fixed_depth=True,
     ),
-    interpolation_method=dict(eeg="spline", meg="MNE", fnirs="nearest"),
+    interpolation_method=dict(
+        eeg="spline", meg="MNE", fnirs="nearest", ecog="spline", seeg="spline"
+    ),
     volume_options=dict(
         alpha=None,
         resolution=1.0,

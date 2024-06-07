@@ -55,9 +55,9 @@ def data_fun(times):
     global n
     n_samp = len(times)
     window = np.zeros(n_samp)
-    start, stop = [
+    start, stop = (
         int(ii * float(n_samp) / (2 * n_dipoles)) for ii in (2 * n, 2 * n + 1)
-    ]
+    )
     window[start:stop] = 1.0
     n += 1
     data = 25e-9 * np.sin(2.0 * np.pi * 10.0 * n * times)

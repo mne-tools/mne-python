@@ -62,11 +62,11 @@ MNE-Python, including packages for:
 - automatic multi-dipole localization and uncertainty quantification with
   the Bayesian algorithm SESAME (`sesameeg`_)
 - GLM and group level analysis of near-infrared spectroscopy data (`MNE-NIRS`_)
-- high-level EEG Python library for all kinds of EEG inverse solutions (`invertmeeg`_)
 - All-Resolutions Inference (ARI) for statistically valid circular inference
   and effect localization (`MNE-ARI`_)
 - real-time analysis (`MNE-Realtime`_)
 - non-parametric sequential analyses and adaptive sample size determination (`niseq`_)
+- a graphical user interface for multi-subject MEG/EEG analysis with plugin support (`Meggie`_)
 
 What should I install?
 ^^^^^^^^^^^^^^^^^^^^^^
@@ -111,5 +111,6 @@ Help with installation is available through the `MNE Forum`_. See the
 .. _invertmeeg: https://github.com/LukeTheHecker/invert
 .. _MNE-ARI: https://github.com/john-veillette/mne_ari
 .. _niseq: https://github.com/john-veillette/niseq
+.. _Meggie: https://github.com/cibr-jyu/meggie
 
 .. include:: ../links.inc

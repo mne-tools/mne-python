@@ -59,7 +59,7 @@ class RawBOXY(BaseRaw):
 
     @verbose
     def __init__(self, fname, preload=False, verbose=None):
-        logger.info("Loading %s" % fname)
+        logger.info(f"Loading {fname}")
 
         # Read header file and grab some info.
         start_line = np.inf
@@ -68,7 +68,7 @@ class RawBOXY(BaseRaw):
         raw_extras["offsets"] = list()  # keep track of our offsets
         sfreq = None
         fname = str(_check_fname(fname, "read", True, "fname"))
-        with open(fname, "r") as fid:
+        with open(fname) as fid:
             line_num = 0
             i_line = fid.readline()
             while i_line:
@@ -105,8 +105,7 @@ class RawBOXY(BaseRaw):
                     # Check that the BOXY version is supported
                     if boxy_ver not in ["0.40", "0.84"]:
                         raise RuntimeError(
-                            "MNE has not been tested with BOXY "
-                            "version (%s)" % boxy_ver
+                            f"MNE has not been tested with BOXY version ({boxy_ver})"
                         )
                 elif "Detector Channels" in i_line:
                     raw_extras["detect_num"] = int(i_line.rsplit(" ")[0])
@@ -170,7 +169,7 @@ class RawBOXY(BaseRaw):
         assert len(raw_extras["offsets"]) == delta + 1
         if filetype == "non-parsed":
             delta //= raw_extras["source_num"]
-        super(RawBOXY, self).__init__(
+        super().__init__(
             info,
             preload,
             filenames=[fname],
@@ -235,7 +234,7 @@ class RawBOXY(BaseRaw):
 
         # Loop through our data.
         one = np.zeros((len(col_names), stop_read - start_read))
-        with open(boxy_file, "r") as fid:
+        with open(boxy_file) as fid:
             # Just a more efficient version of this:
             # ii = 0
             # for line_num, i_line in enumerate(fid):

@@ -69,24 +69,24 @@ def _get_legen_table(
         # Updated due to API change (GH 1167)
         os.makedirs(fname)
     if ch_type == "meg":
-        fname = op.join(fname, "legder_%s_%s.bin" % (n_coeff, n_interp))
+        fname = op.join(fname, f"legder_{n_coeff}_{n_interp}.bin")
         leg_fun = _get_legen_der
         extra_str = " derivative"
         lut_shape = (n_interp + 1, n_coeff, 3)
     else:  # 'eeg'
-        fname = op.join(fname, "legval_%s_%s.bin" % (n_coeff, n_interp))
+        fname = op.join(fname, f"legval_{n_coeff}_{n_interp}.bin")
         leg_fun = _get_legen
         extra_str = ""
         lut_shape = (n_interp + 1, n_coeff)
     if not op.isfile(fname) or force_calc:
-        logger.info("Generating Legendre%s table..." % extra_str)
+        logger.info(f"Generating Legendre{extra_str} table...")
         x_interp = np.linspace(-1, 1, n_interp + 1)
         lut = leg_fun(x_interp, n_coeff).astype(np.float32)
         if not force_calc:
             with open(fname, "wb") as fid:
                 fid.write(lut.tobytes())
     else:
-        logger.info("Reading Legendre%s table..." % extra_str)
+        logger.info(f"Reading Legendre{extra_str} table...")
         with open(fname, "rb", buffering=0) as fid:
             lut = np.fromfile(fid, np.float32)
     lut.shape = lut_shape

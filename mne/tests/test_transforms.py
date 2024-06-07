@@ -503,6 +503,7 @@ def test_fit_matched_points(quats, scaling, do_scale):
     fro = rng.randn(10, 3)
     translation = rng.randn(3)
     for qi, quat in enumerate(quats):
+        print(qi)
         to = scaling * np.dot(quat_to_rot(quat), fro.T).T + translation
         for corrupted in (False, True):
             # mess up a point

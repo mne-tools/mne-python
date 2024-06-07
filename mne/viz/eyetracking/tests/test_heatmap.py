@@ -4,33 +4,57 @@
 # Copyright the MNE-Python contributors.
 
 import matplotlib.pyplot as plt
-import numpy as np
 import pytest
 
 import mne
+from mne._fiff.constants import FIFF
 
 
-@pytest.mark.parametrize("axes", [None, True])
-def test_plot_heatmap(axes):
+@pytest.mark.parametrize("axes, unit", [(None, "px"), (True, "rad")])
+def test_plot_heatmap(eyetrack_raw, eyetrack_cal, axes, unit):
     """Test plot_gaze."""
-    # Create a toy epochs instance
-    info = info = mne.create_info(
-        ch_names=["xpos", "ypos"], sfreq=100, ch_types="eyegaze"
-    )
-    # simulate a steady fixation at the center of the screen
-    width, height = (1920, 1080)
-    shape = (1, 100)  # x or y, time
-    data = np.vstack([np.full(shape, width / 2), np.full(shape, height / 2)])
-    epochs = mne.EpochsArray(data[None, ...], info)
-    epochs.info["chs"][0]["loc"][4] = -1
-    epochs.info["chs"][1]["loc"][4] = 1
+    epochs = mne.make_fixed_length_epochs(eyetrack_raw, duration=1.0)
+    epochs.load_data()
+    width, height = eyetrack_cal["screen_resolution"]  # 1920, 1080
+    if unit == "rad":
+        mne.preprocessing.eyetracking.convert_units(epochs, eyetrack_cal, to="radians")
 
     if axes:
         axes = plt.subplot()
-    fig = mne.viz.eyetracking.plot_gaze(
-        epochs, width=width, height=height, axes=axes, cmap="Greys", sigma=None
-    )
+
+    # First check that we raise errors when we should
+    with pytest.raises(ValueError, match="If no calibration is provided"):
+        mne.viz.eyetracking.plot_gaze(epochs)
+
+    with pytest.raises(ValueError, match="If a calibration is provided"):
+        mne.viz.eyetracking.plot_gaze(
+            epochs, width=width, height=height, calibration=eyetrack_cal
+        )
+
+    with pytest.raises(ValueError, match="Invalid unit"):
+        ep_bad = epochs.copy()
+        ep_bad.info["chs"][0]["unit"] = FIFF.FIFF_UNIT_NONE
+        mne.viz.eyetracking.plot_gaze(ep_bad, calibration=eyetrack_cal)
+
+    # raise an error if no calibration object is provided for radian data
+    if unit == "rad":
+        with pytest.raises(ValueError, match="If gaze data are in Radians"):
+            mne.viz.eyetracking.plot_gaze(epochs, axes=axes, width=1, height=1)
+
+    # Now check that we get the expected output
+    if unit == "px":
+        fig = mne.viz.eyetracking.plot_gaze(
+            epochs, width=width, height=height, axes=axes, cmap="Greys", sigma=None
+        )
+    elif unit == "rad":
+        fig = mne.viz.eyetracking.plot_gaze(
+            epochs,
+            calibration=eyetrack_cal,
+            axes=axes,
+            cmap="Greys",
+            sigma=None,
+        )
     img = fig.axes[0].images[0].get_array()
     # We simulated a 2D histogram where only the central pixel (960, 540) was active
-    assert img.T[width // 2, height // 2] == 1  # central pixel is active
-    assert np.sum(img) == 1  # only the central pixel should be active
+    # so regardless of the unit, we should have a heatmap with the central bin active
+    assert img.T[width // 2, height // 2] == 1

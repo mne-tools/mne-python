@@ -14,9 +14,9 @@ from functools import partial
 import numpy as np
 from scipy import ndimage
 
-from .._fiff.pick import channel_type, pick_types
+from .._fiff.pick import _picks_to_idx, channel_type, pick_types
 from ..defaults import _handle_default
-from ..utils import Bunch, _check_option, _clean_names, _to_rgb, fill_doc
+from ..utils import Bunch, _check_option, _clean_names, _is_numeric, _to_rgb, fill_doc
 from .ui_events import ChannelsSelect, publish, subscribe
 from .utils import (
     DraggableColorbar,
@@ -173,14 +173,12 @@ def _iter_topography(
         else:
             in_box = False
         return (
-            ("%s (click to magnify)" % ch_names[closest])
-            if in_box
-            else "No channel here"
+            f"{ch_names[closest]} (click to magnify)" if in_box else "No channel here"
         )
 
     def format_coord_multiaxis(x, y, ch_name=None):
         """Update status bar with channel name under cursor."""
-        return "%s (click to magnify)" % ch_name
+        return f"{ch_name} (click to magnify)"
 
     fig.set_facecolor(fig_facecolor)
     if layout is None:
@@ -452,6 +450,7 @@ def _imshow_tfr(
     vmin,
     vmax,
     onselect,
+    *,
     ylim=None,
     tfr=None,
     freq=None,
@@ -464,11 +463,9 @@ def _imshow_tfr(
     mask_style="both",
     mask_cmap="Greys",
     mask_alpha=0.1,
-    is_jointplot=False,
     cnorm=None,
 ):
     """Show time-frequency map as two-dimensional image."""
-    from matplotlib import pyplot as plt
     from matplotlib.widgets import RectangleSelector
 
     _check_option("yscale", yscale, ["auto", "linear", "log"])
@@ -500,7 +497,7 @@ def _imshow_tfr(
         if isinstance(colorbar, DraggableColorbar):
             cbar = colorbar.cbar  # this happens with multiaxes case
         else:
-            cbar = plt.colorbar(mappable=img, ax=ax)
+            cbar = ax.get_figure().colorbar(mappable=img, ax=ax)
         if interactive_cmap:
             ax.CB = DraggableColorbar(cbar, img, kind="tfr_image", ch_type=None)
     ax.RS = RectangleSelector(ax, onselect=onselect)  # reference must be kept
@@ -516,6 +513,7 @@ def _imshow_tfr_unified(
     vmin,
     vmax,
     onselect,
+    *,
     ylim=None,
     tfr=None,
     freq=None,
@@ -595,9 +593,9 @@ def _plot_timeseries(
             if "(" in xlabel and ")" in xlabel
             else "s"
         )
-        timestr = "%6.3f %s: " % (x, xunit)
+        timestr = f"{x:6.3f} {xunit}: "
         if not nearby:
-            return "%s Nothing here" % timestr
+            return f"{timestr} Nothing here"
         labels = [""] * len(nearby) if labels is None else labels
         nearby_data = [(data[n], labels[n], times[n]) for n in nearby]
         ylabel = ax.get_ylabel()
@@ -614,12 +612,10 @@ def _plot_timeseries(
         s = timestr
         for data_, label, tvec in nearby_data:
             idx = np.abs(tvec - x).argmin()
-            s += "%7.2f %s" % (data_[ch_idx, idx], yunit)
+            s += f"{data_[ch_idx, idx]:7.2f} {yunit}"
             if trunc_labels:
-                label = (
-                    label if len(label) <= 10 else "%s..%s" % (label[:6], label[-2:])
-                )
-            s += " [%s] " % label if label else " "
+                label = label if len(label) <= 10 else f"{label[:6]}..{label[-2:]}"
+            s += f" [{label}] " if label else " "
         return s
 
     ax.format_coord = lambda x, y: _format_coord(x, y, labels=labels, ax=ax)
@@ -671,10 +667,14 @@ def _plot_timeseries(
         else:
             ax.set_ylabel(y_label)
 
-    if vline:
-        plt.axvline(vline, color=hvline_color, linewidth=1.0, linestyle="--")
-    if hline:
-        plt.axhline(hline, color=hvline_color, linewidth=1.0, zorder=10)
+    if vline is not None:
+        vline = [vline] if _is_numeric(vline) else vline
+        for vline_ in vline:
+            plt.axvline(vline_, color=hvline_color, linewidth=1.0, linestyle="--")
+    if hline is not None:
+        hline = [hline] if _is_numeric(hline) else hline
+        for hline_ in hline:
+            plt.axhline(hline_, color=hvline_color, linewidth=1.0, zorder=10)
 
     if colorbar:
         plt.colorbar()
@@ -1015,10 +1015,20 @@ def _plot_evoked_topo(
         picks = new_picks
         types_used = ["grad"]
         unit = _handle_default("units")["grad"] if noise_cov is None else "NA"
-        y_label = "RMS amplitude (%s)" % unit
+        y_label = f"RMS amplitude ({unit})"
 
     if layout is None:
         layout = find_layout(info, exclude=exclude)
+    else:
+        layout = layout.pick(
+            "all",
+            exclude=_picks_to_idx(
+                info,
+                exclude if exclude != "bads" else info["bads"],
+                exclude=(),
+                allow_empty=True,
+            ),
+        )
 
     if not merge_channels:
         # XXX. at the moment we are committed to 1- / 2-sensor-types layouts
@@ -1076,7 +1086,7 @@ def _plot_evoked_topo(
                 unit = _handle_default("units")[channel_type(info, ch_idx)]
             else:
                 unit = "NA"
-            y_label.append("Amplitude (%s)" % unit)
+            y_label.append(f"Amplitude ({unit})")
 
     if ylim is None:
         # find minima and maxima over all evoked data for each channel pick
@@ -1096,7 +1106,7 @@ def _plot_evoked_topo(
             if is_meg or is_nirs:
                 ylim_ = list(map(list, zip(*ylim_)))
     else:
-        raise TypeError("ylim must be None or a dict. Got %s." % type(ylim))
+        raise TypeError(f"ylim must be None or a dict. Got {type(ylim)}.")
 
     data = [e.data for e in evoked]
     comments = [e.comment for e in evoked]

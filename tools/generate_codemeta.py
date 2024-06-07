@@ -44,6 +44,7 @@ compound_surnames = (
     "De Santis",
     "Dupré la Tour",
     "de la Torre",
+    "de Jong",
     "de Montalivet",
     "van den Bosch",
     "Van den Bossche",

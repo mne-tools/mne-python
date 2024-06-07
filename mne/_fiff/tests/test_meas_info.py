@@ -350,9 +350,11 @@ def test_read_write_info(tmp_path):
 @testing.requires_testing_data
 def test_dir_warning():
     """Test that trying to read a bad filename emits a warning before an error."""
-    with pytest.raises(OSError, match="directory"):
-        with pytest.warns(RuntimeWarning, match="foo"):
-            read_info(ctf_fname)
+    with (
+        pytest.raises(OSError, match="directory"),
+        pytest.warns(RuntimeWarning, match="does not conform"),
+    ):
+        read_info(ctf_fname)
 
 
 def test_io_dig_points(tmp_path):
@@ -541,9 +543,9 @@ def test_check_consistency():
     idx = 0
     ch = info["chs"][idx]
     for key, bad, match in (
-        ("ch_name", 1.0, "not a string"),
+        ("ch_name", 1.0, "must be an instance"),
         ("loc", np.zeros(15), "12 elements"),
-        ("cal", np.ones(1), "float or int"),
+        ("cal", np.ones(1), "numeric"),
     ):
         info._check_consistency()  # okay
         old = ch[key]
@@ -801,23 +803,23 @@ def test_csr_csc(tmp_path):
     sss_ctc = info["proc_history"][0]["max_info"]["sss_ctc"]
     ct = sss_ctc["decoupler"].copy()
     # CSC
-    assert isinstance(ct, sparse.csc_matrix)
+    assert isinstance(ct, sparse.csc_array)
     fname = tmp_path / "test.fif"
     write_info(fname, info)
     info_read = read_info(fname)
     ct_read = info_read["proc_history"][0]["max_info"]["sss_ctc"]["decoupler"]
-    assert isinstance(ct_read, sparse.csc_matrix)
+    assert isinstance(ct_read, sparse.csc_array)
     assert_array_equal(ct_read.toarray(), ct.toarray())
     # Now CSR
     csr = ct.tocsr()
-    assert isinstance(csr, sparse.csr_matrix)
+    assert isinstance(csr, sparse.csr_array)
     assert_array_equal(csr.toarray(), ct.toarray())
     info["proc_history"][0]["max_info"]["sss_ctc"]["decoupler"] = csr
     fname = tmp_path / "test1.fif"
     write_info(fname, info)
     info_read = read_info(fname)
     ct_read = info_read["proc_history"][0]["max_info"]["sss_ctc"]["decoupler"]
-    assert isinstance(ct_read, sparse.csc_matrix)  # this gets cast to CSC
+    assert isinstance(ct_read, sparse.csc_array)  # this gets cast to CSC
     assert_array_equal(ct_read.toarray(), ct.toarray())
 
 
@@ -894,18 +896,17 @@ def test_repr_html():
         info["projs"] = []
     assert "Projections" not in info._repr_html_()
     info["bads"] = []
-    assert "None" in info._repr_html_()
+    assert "Bad " not in info._repr_html_()
     info["bads"] = ["MEG 2443", "EEG 053"]
-    assert "MEG 2443" in info._repr_html_()
-    assert "EEG 053" in info._repr_html_()
+    assert "Bad " in info._repr_html_()  # 1 for each channel type
 
     html = info._repr_html_()
     for ch in [  # good channel counts
-        "203 Gradiometers",
-        "102 Magnetometers",
-        "9 Stimulus",
-        "59 EEG",
-        "1 EOG",
+        "203",  # grad
+        "102",  # mag
+        "9",  # stim
+        "59",  # eeg
+        "1",  # eog
     ]:
         assert ch in html
 

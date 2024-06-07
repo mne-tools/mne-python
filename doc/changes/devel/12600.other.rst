@@ -1,0 +1,1 @@
+Fixed issue template links by :newcontrib:`Michal Žák`

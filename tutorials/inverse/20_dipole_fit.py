@@ -92,8 +92,8 @@ pred_evoked = simulate_evoked(fwd, stc, evoked.info, cov=None, nave=np.inf)
 best_idx = np.argmax(dip.gof)
 best_time = dip.times[best_idx]
 print(
-    "Highest GOF %0.1f%% at t=%0.1f ms with confidence volume %0.1f cm^3"
-    % (dip.gof[best_idx], best_time * 1000, dip.conf["vol"][best_idx] * 100**3)
+    f"Highest GOF {dip.gof[best_idx]:0.1f}% at t={best_time * 1000:0.1f} ms with "
+    f"confidence volume {dip.conf['vol'][best_idx] * 100**3:0.1f} cm^3"
 )
 # remember to create a subplot for the colorbar
 fig, axes = plt.subplots(
