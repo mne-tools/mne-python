@@ -1058,6 +1058,7 @@ decim : int
                  ``decim``), i.e., it compresses the signal (see Notes).
                  If the data are not properly filtered, aliasing artifacts
                  may occur.
+                 See :ref:`resampling-and-decimating` for more information.
 """
 
 docdict["decim_notes"] = """
