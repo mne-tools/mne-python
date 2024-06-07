@@ -291,6 +291,7 @@ def test_basics(this_fname):
     _test_raw_reader(read_raw_eyelink, fname=this_fname, test_preloading=False)
 
 
+@requires_testing_data
 def test_annotations_without_offset(tmp_path):
     """Test read of annotations without offset."""
     out_file = tmp_path / "tmp_eyelink.asc"

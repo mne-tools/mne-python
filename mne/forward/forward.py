@@ -292,7 +292,7 @@ def _block_diag(A, n):
 
     Returns
     -------
-    bd : scipy.sparse.spmatrix
+    bd : scipy.sparse.csc_array
         The block diagonal matrix
     """
     if sparse.issparse(A):  # then make block sparse
@@ -311,7 +311,7 @@ def _block_diag(A, n):
     jj = jj * np.ones(ma, dtype=np.int64)[:, None]
     jj = jj.T.ravel()  # column indices foreach sparse bd
 
-    bd = sparse.coo_matrix((A.T.ravel(), np.c_[ii, jj].T)).tocsc()
+    bd = sparse.coo_array((A.T.ravel(), np.c_[ii, jj].T)).tocsc()
 
     return bd
 
@@ -797,11 +797,11 @@ def convert_forward_solution(
             fix_rot = _block_diag(fwd["source_nn"].T, 1)
             # newer versions of numpy require explicit casting here, so *= no
             # longer works
-            fwd["sol"]["data"] = (fwd["_orig_sol"] * fix_rot).astype("float32")
+            fwd["sol"]["data"] = (fwd["_orig_sol"] @ fix_rot).astype("float32")
             fwd["sol"]["ncol"] = fwd["nsource"]
             if fwd["sol_grad"] is not None:
                 x = sparse.block_diag([fix_rot] * 3)
-                fwd["sol_grad"]["data"] = fwd["_orig_sol_grad"] * x  # dot prod
+                fwd["sol_grad"]["data"] = fwd["_orig_sol_grad"] @ x
                 fwd["sol_grad"]["ncol"] = 3 * fwd["nsource"]
         fwd["source_ori"] = FIFF.FIFFV_MNE_FIXED_ORI
         fwd["surf_ori"] = True
@@ -828,21 +828,21 @@ def convert_forward_solution(
             fix_rot = _block_diag(fwd["source_nn"].T, 1)
             # newer versions of numpy require explicit casting here, so *= no
             # longer works
-            fwd["sol"]["data"] = (fwd["_orig_sol"] * fix_rot).astype("float32")
+            fwd["sol"]["data"] = (fwd["_orig_sol"] @ fix_rot).astype("float32")
             fwd["sol"]["ncol"] = fwd["nsource"]
             if fwd["sol_grad"] is not None:
                 x = sparse.block_diag([fix_rot] * 3)
-                fwd["sol_grad"]["data"] = fwd["_orig_sol_grad"] * x  # dot prod
+                fwd["sol_grad"]["data"] = fwd["_orig_sol_grad"] @ x
                 fwd["sol_grad"]["ncol"] = 3 * fwd["nsource"]
             fwd["source_ori"] = FIFF.FIFFV_MNE_FIXED_ORI
             fwd["surf_ori"] = True
         else:
             surf_rot = _block_diag(fwd["source_nn"].T, 3)
-            fwd["sol"]["data"] = fwd["_orig_sol"] * surf_rot
+            fwd["sol"]["data"] = fwd["_orig_sol"] @ surf_rot
             fwd["sol"]["ncol"] = 3 * fwd["nsource"]
             if fwd["sol_grad"] is not None:
                 x = sparse.block_diag([surf_rot] * 3)
-                fwd["sol_grad"]["data"] = fwd["_orig_sol_grad"] * x  # dot prod
+                fwd["sol_grad"]["data"] = fwd["_orig_sol_grad"] @ x
                 fwd["sol_grad"]["ncol"] = 9 * fwd["nsource"]
             fwd["source_ori"] = FIFF.FIFFV_MNE_FREE_ORI
             fwd["surf_ori"] = True
