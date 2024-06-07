@@ -188,7 +188,6 @@ class Contours(UIEvent):
     Parameters
     ----------
     kind : str
-        The kind of contours lines being changed. The Notes section of the
         drawing routine publishing this event should mention the possible
         kinds.
     contours : list of float

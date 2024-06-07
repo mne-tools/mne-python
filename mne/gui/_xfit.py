@@ -536,16 +536,27 @@ class DipoleFitUI:
             stc = apply_inverse(
                 self._evoked, inv, method="MNE", lambda2=0, pick_ori="vector"
             )
-            timecourses = np.linalg.norm(stc.data, axis=1)
+
+            timecourses = stc.magnitude().data
+            fixed_timecourses = stc.project(
+                np.array([dip["dip"].ori[0] for dip in active_dips])
+            )[0].data
             orientations = stc.data / timecourses[:, np.newaxis, :]
+
+            for i, dip in enumerate(active_dips):
+                if dip["fix_ori"]:
+                    timecourses[i] = fixed_timecourses[i]
+                    orientations[i] = np.array([dip["dip"].ori[0]] * len(stc.times)).T
         elif self._multi_dipole_method == "LCMV":
             lcmv = make_lcmv(
                 self._evoked.info, fwd, self._cov_data, reg=0.05, noise_cov=self._cov
             )
             stc = apply_lcmv(self._evoked, lcmv)
             timecourses = stc.data
+            orientations = [dip["dip"].ori[0] for dip in active_dips]
         elif self._multi_dipole_method == "Single-dipole":
             timecourses = list()
+            orientations = list()
             for dip in active_dips:
                 dip_timecourse = fit_dipole(
                     self._evoked,
@@ -557,6 +568,9 @@ class DipoleFitUI:
                     verbose=False,
                 )[0].data[0]
                 timecourses.append(dip_timecourse)
+                orientations.append(
+                    np.array([dip["dip"].ori[0]] * len(dip_timecourse)).T
+                )
 
         # Update matplotlib canvas at the bottom of the window
         canvas = self._setup_mplcanvas()

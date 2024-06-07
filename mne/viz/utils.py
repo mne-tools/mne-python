@@ -1691,6 +1691,7 @@ class SelectFromCollection:
             self.ec = np.tile(self.ec, self.Npts).reshape(self.Npts, -1)
         self.lw = np.full(self.Npts, float(self.linewidth_nonselected))
 
+        # Initialize the lasso selector
         self.lasso = LassoSelector(
             ax, onselect=self.on_select, props=dict(color="red", linewidth=0.5)
         )

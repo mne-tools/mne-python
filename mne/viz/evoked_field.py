@@ -613,7 +613,7 @@ class EvokedField:
         for surf_map in self._surf_maps:
             current_data = surf_map["data_interp"](self._current_time)
             vmax = float(np.max(current_data))
-            self.set_vmax(vmax, type=surf_map["map_kind"])
+            self.set_vmax(vmax, kind=surf_map["map_kind"])
 
     def set_contour_line_width(self, line_width):
         """Set the line_width of the contour lines.
