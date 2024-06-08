@@ -602,6 +602,8 @@
 
 .. _Victoria Peterson: https://github.com/vpeterson
 
+.. _Xabier de Zuazo: https://github.com/zuazo
+
 .. _Xiaokai Xia: https://github.com/dddd1007
 
 .. _Will Turner: https://bootstrapbill.github.io
