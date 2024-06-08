@@ -7,20 +7,28 @@
       "label": "Install MNE-Python (dev)",
       "type": "shell",
       "command": ".devcontainer/scripts/install.sh",
-      "problemMatcher": [],
       "runOptions": {
         "runOn": "folderOpen"
+      },
+      "presentation": {
+        "showReuseMessage": false,
+        "reveal": "silent",
+        "close": true
       }
     },
     {
       "label": "Open VNC Desktop in Browser",
       "type": "shell",
       "command": ".devcontainer/scripts/open-vnc-browser.sh",
-      "problemMatcher": [],
       "runOptions": {
         "runOn": "folderOpen"
       },
-      "dependsOn": ["Install MNE-Python (dev)"]
+      "dependsOn": ["Install MNE-Python (dev)"],
+      "presentation": {
+        "showReuseMessage": false,
+        "reveal": "silent",
+        "close": true
+      }
     }
   ]
 }

@@ -19,8 +19,10 @@ cd ~
 if python -c "import $import_name" &> /dev/null; then
     echo -e "✅ $package_name is already installed.\n"
     cd "${orig_dir}"
+    exit
 else
     cd "${orig_dir}"
+    code .devcontainer/Welcome.md
     echo -e "💡 $package_name is not installed. Installing now …\n"
     pipx run uv pip install -e ".[full-pyside6,dev,test_extra]"
     echo -e "\n✅ $package_name has been installed.\n"

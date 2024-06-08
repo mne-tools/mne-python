@@ -34,7 +34,7 @@
     // Conda
     "ghcr.io/mamba-org/devcontainer-features/micromamba:1": {
       "channels": "conda-forge",
-      "packages": "conda python h5py vtk pyside6 cftime psutil pipx"
+      "packages": "conda python h5py vtk pyside6 psutil pipx"
     },
     // Docker interface with host's Docker service
     "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {},
@@ -95,7 +95,11 @@
         "redhat.telemetry.enabled": false,
         "workbench.enableExperiments": false, // Should not be necessary if telemetry is off, but let's make it explicit.
         // Avoid accumulation of unused forwarded ports.
-        "remote.restoreForwardedPorts": false
+        "remote.restoreForwardedPorts": false,
+        // Always open Markdown files in the preview (i.e., rendered); double-clicking on a line openes the editor.
+        "workbench.editorAssociations": {
+          "*.md": "vscode.markdown.preview.editor"
+        }
       },
       // Add the IDs of extensions you want installed when the container is created.
       "extensions": [
