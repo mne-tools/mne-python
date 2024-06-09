@@ -14,3 +14,31 @@ Once installation is finished, that terminal window will close and your browser 
 open to connect you to a VNC desktop. This is where interactive plots will appear.
 
 Enjoy, have a great day, and: **Happy hacking!** 🚀🚀🚀
+
+### Some technical background
+
+The Dev Container is based on Debian 12 ("bookworm") GNU/Linux.
+
+Python is installed in a `conda` environment (named `base`), together with a few
+dependencies that are currently not available from PyPI for all platforms:
+
+- `h5py`
+- `psutil`
+- `pyside6`
+- `vtk`
+
+Everything else is pulled and installed from PyPI through `uv`. Specifically, the command
+that is run to install MNE-Python is:
+
+```shell
+pipx run uv pip install -e ".[full-pyside6,dev,test_extra]
+```
+It is totally acceptable and safe to install or update dependencies via `pip` if you
+wish.
+
+All `git` pre-commit hooks are automatically installed.
+
+The noVNC server (for connecting to the VNC desktop via a browser) is exposed on TCP
+port 6080.
+
+The host's `mne_data` directory is mounted at `~/mne_data` inside the container.
