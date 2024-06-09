@@ -27,7 +27,7 @@
       "ppa": "true"
     },
     // APT packages
-    // We need those for 3D rendering.
+    // We need those for 3D rendering and building the docs.
     "ghcr.io/rocker-org/devcontainer-features/apt-packages:1": {
       "packages": "mesa-utils,libegl1,^libxcb.*-dev,libx11-xcb-dev,libglu1-mesa-dev,libxrender-dev,libxi-dev,libxkbcommon-dev,libxkbcommon-x11-dev,optipng,graphviz"
     },
