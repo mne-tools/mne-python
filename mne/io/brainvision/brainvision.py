@@ -63,6 +63,10 @@ class RawBrainVision(BaseRaw):
     impedances : dict
         A dictionary of all electrodes and their impedances.
 
+    See Also
+    --------
+    mne.io.Raw : Documentation of attributes and methods.
+
     Notes
     -----
     BrainVision markers consist of a type and a description (in addition to other fields
@@ -71,10 +75,6 @@ class RawBrainVision(BaseRaw):
     converted to an annotation "Stimulus/S  1" by default. If you want to ignore the
     type and instead only use the description, set ``ignore_marker_types=True``, which
     will convert the same marker to an annotation "S  1".
-
-    See Also
-    --------
-    mne.io.Raw : Documentation of attributes and methods.
     """
 
     _extra_attributes = ("impedances",)
@@ -977,6 +977,10 @@ def read_raw_brainvision(
         A Raw object containing BrainVision data.
         See :class:`mne.io.Raw` for documentation of attributes and methods.
 
+    See Also
+    --------
+    mne.io.Raw : Documentation of attributes and methods of RawBrainVision.
+
     Notes
     -----
     BrainVision markers consist of a type and a description (in addition to other fields
@@ -985,10 +989,6 @@ def read_raw_brainvision(
     converted to an annotation "Stimulus/S  1" by default. If you want to ignore the
     type and instead only use the description, set ``ignore_marker_types=True``, which
     will convert the same marker to an annotation "S  1".
-
-    See Also
-    --------
-    mne.io.Raw : Documentation of attributes and methods of RawBrainVision.
     """
     return RawBrainVision(
         vhdr_fname=vhdr_fname,
