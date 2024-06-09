@@ -29,7 +29,7 @@
     // APT packages
     // We need those for 3D rendering.
     "ghcr.io/rocker-org/devcontainer-features/apt-packages:1": {
-      "packages": "mesa-utils,libegl1,^libxcb.*-dev,libx11-xcb-dev,libglu1-mesa-dev,libxrender-dev,libxi-dev,libxkbcommon-dev,libxkbcommon-x11-dev"
+      "packages": "mesa-utils,libegl1,^libxcb.*-dev,libx11-xcb-dev,libglu1-mesa-dev,libxrender-dev,libxi-dev,libxkbcommon-dev,libxkbcommon-x11-dev,optipng,graphviz"
     },
     // Conda
     "ghcr.io/mamba-org/devcontainer-features/micromamba:1": {
