@@ -124,7 +124,8 @@ def test_export_raw_eeglab(tmp_path):
 
 @pytest.mark.parametrize("tmin", (0, 1, 5, 10))
 def test_export_raw_eeglab_annotations(tmp_path, tmin):
-    """Test that exporting EEGLAB preserves annotations and corects for raw.first_time."""
+    """Test that exporting EEGLAB preserves annotations
+    and corrects for raw.first_time."""
     pytest.importorskip("eeglabio")
     raw = read_raw_fif(fname_raw, preload=True)
     raw.apply_proj()
@@ -297,7 +298,8 @@ def test_edf_padding(tmp_path, pad_width):
 @edfio_mark()
 @pytest.mark.parametrize("tmin", (0, 0.005, 0.03, 1))
 def test_export_edf_annotations(tmp_path, tmin):
-    """Test that exporting EDF preserves annotations and corects for raw.first_time."""
+    """Test that exporting EDF preserves annotations
+    and corrects for raw.first_time."""
     raw = _create_raw_for_edf_tests()
     annotations = Annotations(
         onset=[0.01, 0.05, 0.90, 1.05],
