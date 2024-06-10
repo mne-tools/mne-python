@@ -533,6 +533,14 @@ class _Callable:
         return callable(other)
 
 
+class _Sparse:
+    @classmethod
+    def __instancecheck__(cls, other):
+        from scipy import sparse
+
+        return sparse.issparse(other)
+
+
 _multi = {
     "str": (str,),
     "numeric": (np.floating, float, int_like),
@@ -540,6 +548,7 @@ _multi = {
     "int-like": (int_like,),
     "callable": (_Callable(),),
     "array-like": (list, tuple, set, np.ndarray),
+    "sparse": (_Sparse(),),
 }
 
 
