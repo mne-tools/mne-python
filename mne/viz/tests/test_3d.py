@@ -113,7 +113,7 @@ def test_plot_head_positions():
     fig, ax = plt.subplots(subplot_kw=dict(projection="3d"))
     plot_head_positions(pos, mode="field", info=info, axes=ax)
     with pytest.raises(TypeError, match="must be an instance of ndarray"):
-        plot_head_positions(["pos"])
+        plot_head_positions(["foo"])
     with pytest.raises(ValueError, match="must be dim"):
         plot_head_positions(pos[:, :9])
     with pytest.raises(ValueError, match="Allowed values"):
