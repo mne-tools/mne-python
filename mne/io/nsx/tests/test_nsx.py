@@ -29,13 +29,15 @@ def test_decode_online_filters():
     info = _empty_info(100.0)
     highpass = np.array([0.0, 0.1])
     lowpass = np.array([50, 50])
-    _decode_online_filters(info, highpass, lowpass)
+    with pytest.warns(RuntimeWarning, match="different highpass filters"):
+        _decode_online_filters(info, highpass, lowpass)
     assert info["highpass"] == 0.1
 
     info = _empty_info(100.0)
     highpass = np.array([0.0, 0.0])
     lowpass = np.array([40, 50])
-    _decode_online_filters(info, highpass, lowpass)
+    with pytest.warns(RuntimeWarning, match="different lowpass filters"):
+        _decode_online_filters(info, highpass, lowpass)
     assert info["lowpass"] == 40
 
     info = _empty_info(100.0)

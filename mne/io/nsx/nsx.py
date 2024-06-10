@@ -470,7 +470,7 @@ def _decode_online_filters(info, highpass, lowpass):
             info["highpass"] = hp
     else:
         info["highpass"] = float(np.max(highpass))
-        logger.info(
+        warn(
             "Channels contain different highpass filters. Highest filter "
             "setting will be stored."
         )
@@ -483,7 +483,7 @@ def _decode_online_filters(info, highpass, lowpass):
             info["lowpass"] = float(lowpass[0])
     else:
         info["lowpass"] = float(np.min(lowpass))
-        logger.info(
+        warn(
             "Channels contain different lowpass filters. Lowest filter "
             "setting will be stored."
         )

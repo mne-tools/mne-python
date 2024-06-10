@@ -365,9 +365,14 @@ def test_brainvision_data_highpass_filters():
     assert raw.info["lowpass"] == 250.0
 
     # Heterogeneous highpass in seconds (default measurement unit)
-    raw = _test_raw_reader(
-        read_raw_brainvision, vhdr_fname=vhdr_mixed_highpass_path, eog=eog
-    )
+    with pytest.warns(RuntimeWarning, match="different .*pass filters") as w:
+        raw = _test_raw_reader(
+            read_raw_brainvision, vhdr_fname=vhdr_mixed_highpass_path, eog=eog
+        )
+
+    w = [str(ww.message) for ww in w]
+    assert not any("different lowpass filters" in ww for ww in w), w
+    assert any("different highpass filters" in ww for ww in w), w
 
     assert raw.info["highpass"] == 1.0 / (2 * np.pi * 10)
     assert raw.info["lowpass"] == 250.0
@@ -381,9 +386,15 @@ def test_brainvision_data_highpass_filters():
     assert raw.info["lowpass"] == 250.0
 
     # Heterogeneous highpass in Hertz
-    raw = _test_raw_reader(
-        read_raw_brainvision, vhdr_fname=vhdr_mixed_highpass_hz_path, eog=eog
-    )
+    with pytest.warns(RuntimeWarning, match="different .*pass filters") as w:
+        raw = _test_raw_reader(
+            read_raw_brainvision, vhdr_fname=vhdr_mixed_highpass_hz_path, eog=eog
+        )
+
+    w = [str(ww.message) for ww in w]
+    assert not any("will be dropped" in ww for ww in w), w
+    assert not any("different lowpass filters" in ww for ww in w), w
+    assert any("different highpass filters" in ww for ww in w), w
 
     assert raw.info["highpass"] == 5.0
     assert raw.info["lowpass"] == 250.0
@@ -398,9 +409,17 @@ def test_brainvision_data_lowpass_filters():
     assert raw.info["lowpass"] == 250.0
 
     # Heterogeneous lowpass in Hertz (default measurement unit)
-    raw = _test_raw_reader(
-        read_raw_brainvision, vhdr_fname=vhdr_mixed_lowpass_path, eog=eog
-    )
+    with pytest.warns(RuntimeWarning) as w:  # event parsing
+        raw = _test_raw_reader(
+            read_raw_brainvision, vhdr_fname=vhdr_mixed_lowpass_path, eog=eog
+        )
+
+    lowpass_warning = ["different lowpass filters" in str(ww.message) for ww in w]
+    highpass_warning = ["different highpass filters" in str(ww.message) for ww in w]
+
+    expected_warnings = zip(lowpass_warning, highpass_warning)
+
+    assert any(any([lp, hp]) for lp, hp in expected_warnings)
 
     assert raw.info["highpass"] == 1.0 / (2 * np.pi * 10)
     assert raw.info["lowpass"] == 250.0
@@ -413,9 +432,18 @@ def test_brainvision_data_lowpass_filters():
     assert raw.info["highpass"] == 1.0 / (2 * np.pi * 10)
     assert raw.info["lowpass"] == 1.0 / (2 * np.pi * 0.004)
 
-    raw = _test_raw_reader(
-        read_raw_brainvision, vhdr_fname=vhdr_mixed_lowpass_s_path, eog=eog
-    )
+    # Heterogeneous lowpass in seconds
+    with pytest.warns(RuntimeWarning) as w:  # filter settings
+        raw = _test_raw_reader(
+            read_raw_brainvision, vhdr_fname=vhdr_mixed_lowpass_s_path, eog=eog
+        )
+
+    lowpass_warning = ["different lowpass filters" in str(ww.message) for ww in w]
+    highpass_warning = ["different highpass filters" in str(ww.message) for ww in w]
+
+    expected_warnings = zip(lowpass_warning, highpass_warning)
+
+    assert any(any([lp, hp]) for lp, hp in expected_warnings)
 
     assert raw.info["highpass"] == 1.0 / (2 * np.pi * 10)
     assert raw.info["lowpass"] == 1.0 / (2 * np.pi * 0.004)
@@ -423,11 +451,20 @@ def test_brainvision_data_lowpass_filters():
 
 def test_brainvision_data_partially_disabled_hw_filters():
     """Test heterogeneous filter settings including non-numeric values."""
-    raw = _test_raw_reader(
-        read_raw_brainvision,
-        vhdr_fname=vhdr_partially_disabled_hw_filter_path,
-        eog=eog,
-    )
+    with pytest.warns(RuntimeWarning) as w:  # event parsing
+        raw = _test_raw_reader(
+            read_raw_brainvision,
+            vhdr_fname=vhdr_partially_disabled_hw_filter_path,
+            eog=eog,
+        )
+
+    trigger_warning = ["will be dropped" in str(ww.message) for ww in w]
+    lowpass_warning = ["different lowpass filters" in str(ww.message) for ww in w]
+    highpass_warning = ["different highpass filters" in str(ww.message) for ww in w]
+
+    expected_warnings = zip(trigger_warning, lowpass_warning, highpass_warning)
+
+    assert any(any([trg, lp, hp]) for trg, lp, hp in expected_warnings)
 
     assert raw.info["highpass"] == 0.0
     assert raw.info["lowpass"] == 500.0
@@ -874,9 +911,10 @@ def test_parse_impedance():
         for i, elec in enumerate(expected_electrodes)
     }
 
-    raw = read_raw_brainvision(
-        vhdr_mixed_lowpass_path, eog=["HEOG", "VEOG"], misc=["ECG"]
-    )
+    with pytest.warns(RuntimeWarning, match="different .*pass filters"):
+        raw = read_raw_brainvision(
+            vhdr_mixed_lowpass_path, eog=["HEOG", "VEOG"], misc=["ECG"]
+        )
     assert object_diff(expected_impedances, raw.impedances) == ""
 
 
