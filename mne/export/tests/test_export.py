@@ -121,6 +121,7 @@ def test_export_raw_eeglab(tmp_path):
     with pytest.warns(RuntimeWarning, match="Raw instance has unapplied projectors."):
         raw.export(temp_fname, overwrite=True)
 
+
 @pytest.mark.parametrize("tmin", (0, 1, 5, 10))
 def test_export_raw_eeglab_annotations(tmp_path, tmin):
     """Test that exporting EEGLAB preserves annotations and corects for raw.first_time."""
