@@ -126,7 +126,7 @@ def test_export_raw_eeglab(tmp_path):
 def test_export_raw_eeglab_annotations(tmp_path, tmin):
     """Test annotations in the exported EEGLAB file
 
-    All annotations should be perserved and onset corrected
+    All annotations should be preserved and onset corrected
     """
     pytest.importorskip("eeglabio")
     raw = read_raw_fif(fname_raw, preload=True)
@@ -302,7 +302,7 @@ def test_edf_padding(tmp_path, pad_width):
 def test_export_edf_annotations(tmp_path, tmin):
     """Test annotations in the exported EDF file
 
-    All annotations should be perserved and onset corrected
+    All annotations should be preserved and onset corrected
     """
     raw = _create_raw_for_edf_tests()
     annotations = Annotations(
