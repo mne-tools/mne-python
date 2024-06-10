@@ -49,9 +49,6 @@
     // Configure properties specific to VS Code.
     "vscode": {
       "settings": {
-        // Work around an issue when installing extensions on Apple Silicon chips
-        // running an Intel Docker image, https://github.com/microsoft/vscode/issues/174632
-        "extensions.verifySignature": false,
         // Editor settings
         "editor.formatOnSave": true,
         "editor.formatOnSaveMode": "modificationsIfAvailable",
