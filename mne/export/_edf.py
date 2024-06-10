@@ -204,7 +204,9 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
 
     for desc, onset, duration, ch_names in zip(
         raw.annotations.description,
-        raw.annotations.onset,
+        # subtract raw.first_time because EDF marks events starting from the first
+        # available data point and ignores raw.first_time
+        raw.annotations.onset - raw.first_time,
         raw.annotations.duration,
         raw.annotations.ch_names,
     ):

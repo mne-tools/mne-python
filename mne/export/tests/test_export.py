@@ -121,6 +121,42 @@ def test_export_raw_eeglab(tmp_path):
     with pytest.warns(RuntimeWarning, match="Raw instance has unapplied projectors."):
         raw.export(temp_fname, overwrite=True)
 
+@pytest.mark.parametrize("tmin", (0, 1, 5, 10))
+def test_export_raw_eeglab_annotations(tmp_path, tmin):
+    """Test that exporting EEGLAB preserves annotations and corects for raw.first_time."""
+    pytest.importorskip("eeglabio")
+    raw = read_raw_fif(fname_raw, preload=True)
+    raw.apply_proj()
+    annotations = Annotations(
+        onset=[0.01, 0.05, 0.90, 1.05],
+        duration=[0, 1, 0, 0],
+        description=["test1", "test2", "test3", "test4"],
+        ch_names=[["MEG 0113"], ["MEG 0113", "MEG 0132"], [], ["MEG 0143"]],
+    )
+    raw.set_annotations(annotations)
+    raw.crop(tmin)
+
+    # export
+    temp_fname = tmp_path / "test.set"
+    raw.export(temp_fname)
+
+    # read in the file
+    with pytest.warns(RuntimeWarning, match="is above the 99th percentile"):
+        raw_read = read_raw_eeglab(temp_fname, preload=True, montage_units="m")
+    assert raw_read.first_time == 0
+
+    valid_annot = raw.annotations.onset >= tmin
+    assert_array_almost_equal(
+        raw.annotations.onset[valid_annot] - raw.first_time,
+        raw_read.annotations.onset - raw_read.first_time,
+    )
+    assert_array_equal(
+        raw.annotations.duration[valid_annot], raw_read.annotations.duration
+    )
+    assert_array_equal(
+        raw.annotations.description[valid_annot], raw_read.annotations.description
+    )
+
 
 def _create_raw_for_edf_tests(stim_channel_index=None):
     rng = np.random.RandomState(12345)
@@ -258,8 +294,9 @@ def test_edf_padding(tmp_path, pad_width):
 
 
 @edfio_mark()
-def test_export_edf_annotations(tmp_path):
-    """Test that exporting EDF preserves annotations."""
+@pytest.mark.parametrize("tmin", (0, 0.005, 0.03, 1))
+def test_export_edf_annotations(tmp_path, tmin):
+    """Test that exporting EDF preserves annotations and corects for raw.first_time."""
     raw = _create_raw_for_edf_tests()
     annotations = Annotations(
         onset=[0.01, 0.05, 0.90, 1.05],
@@ -268,17 +305,39 @@ def test_export_edf_annotations(tmp_path):
         ch_names=[["0"], ["0", "1"], [], ["1"]],
     )
     raw.set_annotations(annotations)
+    raw.crop(tmin)
+    assert raw.first_time == tmin
+
+    if tmin % 1 == 0:
+        expectation = nullcontext()
+    else:
+        expectation = pytest.warns(
+            RuntimeWarning, match="EDF format requires equal-length data blocks"
+        )
 
     # export
     temp_fname = tmp_path / "test.edf"
-    raw.export(temp_fname)
+    with expectation:
+        raw.export(temp_fname, physical_range=(0, 10))
 
     # read in the file
     raw_read = read_raw_edf(temp_fname, preload=True)
-    assert_array_equal(raw.annotations.onset, raw_read.annotations.onset)
-    assert_array_equal(raw.annotations.duration, raw_read.annotations.duration)
-    assert_array_equal(raw.annotations.description, raw_read.annotations.description)
-    assert_array_equal(raw.annotations.ch_names, raw_read.annotations.ch_names)
+    assert raw_read.first_time == 0
+
+    valid_annot = raw.annotations.onset >= tmin
+    assert_array_almost_equal(
+        raw.annotations.onset[valid_annot] - raw.first_time,
+        raw_read.annotations.onset - raw_read.first_time,
+    )
+    assert_array_equal(
+        raw.annotations.duration[valid_annot], raw_read.annotations.duration
+    )
+    assert_array_equal(
+        raw.annotations.description[valid_annot], raw_read.annotations.description
+    )
+    assert_array_equal(
+        raw.annotations.ch_names[valid_annot], raw_read.annotations.ch_names
+    )
 
 
 @edfio_mark()

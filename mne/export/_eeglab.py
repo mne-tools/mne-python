@@ -26,7 +26,9 @@ def _export_raw(fname, raw):
 
     annotations = [
         raw.annotations.description,
-        raw.annotations.onset,
+        # subtract raw.first_time because EEGLAB marks events starting from the first
+        # available data point and ignores raw.first_time
+        raw.annotations.onset - raw.first_time,
         raw.annotations.duration,
     ]
     eeglabio.raw.export_set(
