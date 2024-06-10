@@ -419,8 +419,10 @@ def test_set_eeg_reference_rest():
             "raw",
             pytest.warns(
                 RuntimeWarning,
-                match=("Channel EEG 001 is of type EEG, "
-                       "but reference channel STI 001 is of type Stimulus."),
+                match=(
+                    "Channel EEG 001 is of type EEG, "
+                    "but reference channel STI 001 is of type Stimulus."
+                ),
             ),
         ),
         (
@@ -488,8 +490,10 @@ def test_set_eeg_reference_rest():
             "epochs",
             pytest.warns(
                 RuntimeWarning,
-                match=("Channel EEG 001 is of type EEG, "
-                       "but reference channel STI 001 is of type Stimulus."),
+                match=(
+                    "Channel EEG 001 is of type EEG, "
+                    "but reference channel STI 001 is of type Stimulus."
+                ),
             ),
         ),
         (
