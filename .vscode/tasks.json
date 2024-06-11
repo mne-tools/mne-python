@@ -14,7 +14,8 @@
         "showReuseMessage": false,
         "reveal": "silent",
         "close": true
-      }
+      },
+      "problemMatcher": []
     },
     {
       "label": "Open VNC Desktop in Browser",
@@ -28,7 +29,8 @@
         "showReuseMessage": false,
         "reveal": "silent",
         "close": true
-      }
+      },
+      "problemMatcher": []
     }
   ]
 }
