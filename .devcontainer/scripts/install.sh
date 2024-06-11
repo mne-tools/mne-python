@@ -24,7 +24,8 @@ else
     cd "${orig_dir}"
     code .devcontainer/Welcome.md
     echo -e "💡 $package_name is not installed. Installing now …\n"
-    pipx run uv pip install -e ".[full-pyside6,dev,test_extra]"
+    pipx install uv
+    uv pip install -e ".[full-pyside6,dev,test_extra]"
     echo -e "\n✅ $package_name has been installed.\n"
     echo -e "💡 Installing pre-commit hooks …"
     pre-commit install --install-hooks
