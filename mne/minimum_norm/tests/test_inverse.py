@@ -85,7 +85,6 @@ fname_trans = s_path / "sample_audvis_trunc-trans.fif"
 subjects_dir = test_path / "subjects"
 s_path_bem = subjects_dir / "sample" / "bem"
 fname_bem = s_path_bem / "sample-320-320-320-bem-sol.fif"
-fname_bem_homog = s_path_bem / "sample-320-bem-sol.fif"
 src_fname = s_path_bem / "sample-oct-4-src.fif"
 
 snr = 3.0
@@ -146,7 +145,7 @@ def _compare(a, b):
             assert len(a) == len(b)
             for i, j in zip(a, b):
                 _compare(i, j)
-        elif isinstance(a, sparse.csr_matrix):
+        elif isinstance(a, sparse.csr_array):
             assert_array_almost_equal(a.data, b.data)
             assert_equal(a.indices, b.indices)
             assert_equal(a.indptr, b.indptr)
@@ -345,7 +344,7 @@ def test_inverse_operator_channel_ordering(evoked, noise_cov):
             evoked.info, fwd_orig, noise_cov, loose=0.2, depth=depth, verbose=True
         )
     log = log.getvalue()
-    assert "limit = 1/%s" % fwd_orig["nsource"] in log
+    assert f"limit = 1/{fwd_orig['nsource']}" in log
     stc_1 = apply_inverse(evoked, inv_orig, lambda2, "dSPM")
 
     # Assume that a raw reordering applies to both evoked and noise_cov,

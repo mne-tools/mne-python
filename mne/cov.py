@@ -1777,9 +1777,7 @@ def prepare_noise_cov(
         else:
             missing.append(c)
     if len(missing):
-        raise RuntimeError(
-            "Not all channels present in noise covariance:\n%s" % missing
-        )
+        raise RuntimeError(f"Not all channels present in noise covariance:\n{missing}")
     C = noise_cov._get_square()[np.ix_(noise_cov_idx, noise_cov_idx)]
     info = pick_info(info, pick_channels(info["ch_names"], ch_names, ordered=False))
     projs = info["projs"] + noise_cov["projs"]
@@ -2054,7 +2052,7 @@ def regularize(
                 idx_cov[ch_type].append(i)
                 break
         else:
-            raise Exception("channel %s is unknown type" % ch)
+            raise Exception(f"channel {ch} is unknown type")
 
     C = cov_good["data"]
 

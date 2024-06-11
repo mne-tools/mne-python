@@ -155,7 +155,7 @@ def _require_version(lib, what, version="0.0"):
     if not ok:
         extra = f" (version >= {version})" if version != "0.0" else ""
         why = "package was not found" if got is None else f"got {repr(got)}"
-        raise ImportError(f"The {lib} package{extra} is required to {what}, " f"{why}")
+        raise ImportError(f"The {lib} package{extra} is required to {what}, {why}")
 
 
 def _import_h5py():
@@ -193,7 +193,7 @@ def check_random_state(seed):
     if isinstance(seed, np.random.Generator):
         return seed
     raise ValueError(
-        "%r cannot be used to seed a " "numpy.random.mtrand.RandomState instance" % seed
+        f"{seed!r} cannot be used to seed a numpy.random.mtrand.RandomState instance"
     )
 
 
@@ -206,12 +206,10 @@ def _check_event_id(event_id, events):
         for key in event_id.keys():
             _validate_type(key, str, "Event names")
         event_id = {
-            key: _ensure_int(val, "event_id[%s]" % key) for key, val in event_id.items()
+            key: _ensure_int(val, f"event_id[{key}]") for key, val in event_id.items()
         }
     elif isinstance(event_id, list):
-        event_id = [
-            _ensure_int(v, "event_id[%s]" % vi) for vi, v in enumerate(event_id)
-        ]
+        event_id = [_ensure_int(v, f"event_id[{vi}]") for vi, v in enumerate(event_id)]
         event_id = dict(zip((str(i) for i in event_id), event_id))
     else:
         event_id = _ensure_int(event_id, "event_id")
@@ -263,12 +261,12 @@ def _check_fname(
             if need_dir:
                 if not fname.is_dir():
                     raise OSError(
-                        f"Need a directory for {name} but found a file " f"at {fname}"
+                        f"Need a directory for {name} but found a file at {fname}"
                     )
             else:
                 if not fname.is_file():
                     raise OSError(
-                        f"Need a file for {name} but found a directory " f"at {fname}"
+                        f"Need a file for {name} but found a directory at {fname}"
                     )
             if not os.access(fname, os.R_OK):
                 raise PermissionError(f"{name} does not have read permissions: {fname}")
@@ -299,9 +297,7 @@ def _check_subject(
         _validate_type(first, "str", f"Either {second_kind} subject or {first_kind}")
         return first
     elif raise_error is True:
-        raise ValueError(
-            f"Neither {second_kind} subject nor {first_kind} " "was a string"
-        )
+        raise ValueError(f"Neither {second_kind} subject nor {first_kind} was a string")
     return None
 
 
@@ -537,6 +533,14 @@ class _Callable:
         return callable(other)
 
 
+class _Sparse:
+    @classmethod
+    def __instancecheck__(cls, other):
+        from scipy import sparse
+
+        return sparse.issparse(other)
+
+
 _multi = {
     "str": (str,),
     "numeric": (np.floating, float, int_like),
@@ -544,6 +548,7 @@ _multi = {
     "int-like": (int_like,),
     "callable": (_Callable(),),
     "array-like": (list, tuple, set, np.ndarray),
+    "sparse": (_Sparse(),),
 }
 
 
@@ -746,10 +751,10 @@ def _check_channels_spatial_filter(ch_names, filters):
     for ch_name in filters["ch_names"]:
         if ch_name not in ch_names:
             raise ValueError(
-                "The spatial filter was computed with channel %s "
+                f"The spatial filter was computed with channel {ch_name} "
                 "which is not present in the data. You should "
                 "compute a new spatial filter restricted to the "
-                "good data channels." % ch_name
+                "good data channels."
             )
     # then compare list of channels and get selection based on data:
     sel = [ii for ii, ch_name in enumerate(ch_names) if ch_name in filters["ch_names"]]
@@ -1054,7 +1059,7 @@ def _check_sphere(sphere, info=None, sphere_units="m"):
                         f"{ch_name}"
                     )
                     if ch_name == "Fpz":
-                        msg += ", and was unable to approximate its location " "from Oz"
+                        msg += ", and was unable to approximate its location from Oz"
                     raise ValueError(msg)
 
             # Calculate the radius from: T7<->T8, Fpz<->Oz
@@ -1256,5 +1261,5 @@ def _check_method_kwargs(func, kwargs, msg=None):
         if msg is None:
             msg = f'function "{func}"'
         raise TypeError(
-            f'Got unexpected keyword argument{s} {", ".join(invalid_kw)} ' f"for {msg}."
+            f'Got unexpected keyword argument{s} {", ".join(invalid_kw)} for {msg}.'
         )

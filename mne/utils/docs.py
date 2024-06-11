@@ -1058,6 +1058,7 @@ decim : int
                  ``decim``), i.e., it compresses the signal (see Notes).
                  If the data are not properly filtered, aliasing artifacts
                  may occur.
+                 See :ref:`resampling-and-decimating` for more information.
 """
 
 docdict["decim_notes"] = """
@@ -1287,6 +1288,16 @@ tmin, tmax : float
     Start and end time of the epochs in seconds, relative to the time-locked
     event. The closest or matching samples corresponding to the start and end
     time are included. Defaults to ``-0.2`` and ``0.5``, respectively.
+"""
+
+docdict["equalize_events_method"] = """
+method : ``'truncate'`` | ``'mintime'`` | ``'random'``
+    If ``'truncate'``, events will be truncated from the end of each event
+    list. If ``'mintime'``, timing differences between each event list will be
+    minimized. If ``'random'``, events will be randomly selected from each event
+    list.
+
+    .. versionadded:: 1.8
 """
 
 docdict["estimate_plot_psd"] = """\
@@ -3353,13 +3364,13 @@ selection : list of str
 _picks_types = "str | array-like | slice | None"
 _picks_header = f"picks : {_picks_types}"
 _picks_desc = "Channels to include."
-_picks_int = "Slices and lists of integers will be interpreted as channel " "indices."
+_picks_int = "Slices and lists of integers will be interpreted as channel indices."
 _picks_str_types = """channel *type* strings (e.g., ``['meg', 'eeg']``) will
     pick channels of those types,"""
 _picks_str_names = """channel *name* strings (e.g., ``['MEG0111', 'MEG2623']``
     will pick the given channels."""
-_picks_str_values = """Can also be the string values "all" to pick
-    all channels, or "data" to pick :term:`data channels`."""
+_picks_str_values = """Can also be the string values ``'all'`` to pick
+    all channels, or ``'data'`` to pick :term:`data channels`."""
 _picks_str = f"""In lists, {_picks_str_types} {_picks_str_names}
     {_picks_str_values}
     None (default) will pick"""
@@ -3400,8 +3411,13 @@ picks : int | list of int | slice | None
     If an integer, represents the index of the IC to pick.
     Multiple ICs can be selected using a list of int or a slice.
     The indices are 0-indexed, so ``picks=1`` will pick the second
-    IC: ``ICA001``. ``None`` will pick all independent components in the order
-    fitted.
+    IC: ``ICA001``. ``None`` will pick all independent components in the order fitted.
+"""
+docdict["picks_layout"] = """
+picks : array-like of str or int | slice | ``'all'`` | None
+    Channels to include in the layout. Slices and lists of integers will be interpreted
+    as channel indices. Can also be the string value ``'all'`` to pick all channels.
+    None (default) will pick all channels.
 """
 docdict["picks_nostr"] = f"""picks : list | slice | None
     {_picks_desc} {_picks_int}
@@ -3490,7 +3506,7 @@ precompute : bool | str
 
     .. versionadded:: 0.24
     .. versionchanged:: 1.0
-       Support for the MNE_BROWSER_PRECOMPUTE config variable.
+       Support for the ``MNE_BROWSER_PRECOMPUTE`` config variable.
 """
 
 docdict["preload"] = """
@@ -3528,9 +3544,9 @@ proj : bool | 'delayed'
 
 docdict["proj_plot"] = """
 proj : bool | 'interactive' | 'reconstruct'
-    If true SSP projections are applied before display. If 'interactive',
+    If true SSP projections are applied before display. If ``'interactive'``,
     a check box for reversible selection of SSP projection vectors will
-    be shown. If 'reconstruct', projection vectors will be applied and then
+    be shown. If ``'reconstruct'``, projection vectors will be applied and then
     M/EEG data will be reconstructed via field mapping to reduce the signal
     bias caused by projection.
 
@@ -3823,9 +3839,8 @@ res : int
 docdict["return_pca_vars_pctf"] = """
 return_pca_vars : bool
     Whether or not to return the explained variances across the specified
-    vertices for individual SVD components. This is only valid if
-    mode='svd'.
-    Default return_pca_vars=False.
+    vertices for individual SVD components. This is only valid if ``mode='svd'``.
+    Default to False.
 """
 
 docdict["roll"] = """
@@ -5009,7 +5024,7 @@ def fill_doc(f):
     except (TypeError, ValueError, KeyError) as exp:
         funcname = f.__name__
         funcname = docstring.split("\n")[0] if funcname is None else funcname
-        raise RuntimeError(f"Error documenting {funcname}:\n{str(exp)}")
+        raise RuntimeError(f"Error documenting {funcname}:\n{exp}")
     return f
 
 
@@ -5203,43 +5218,6 @@ def copy_function_doc_to_method_doc(source):
     return wrapper
 
 
-def copy_base_doc_to_subclass_doc(subclass):
-    """Use the docstring from a parent class methods in derived class.
-
-    The docstring of a parent class method is prepended to the
-    docstring of the method of the class wrapped by this decorator.
-
-    Parameters
-    ----------
-    subclass : wrapped class
-        Class to copy the docstring to.
-
-    Returns
-    -------
-    subclass : Derived class
-        The decorated class with copied docstrings.
-    """
-    ancestors = subclass.mro()[1:-1]
-
-    for source in ancestors:
-        methodList = [
-            method for method in dir(source) if callable(getattr(source, method))
-        ]
-        for method_name in methodList:
-            # discard private methods
-            if method_name[0] == "_":
-                continue
-            base_method = getattr(source, method_name)
-            sub_method = getattr(subclass, method_name)
-            if base_method is not None and sub_method is not None:
-                doc = base_method.__doc__
-                if sub_method.__doc__ is not None:
-                    doc += "\n" + sub_method.__doc__
-                sub_method.__doc__ = doc
-
-    return subclass
-
-
 def linkcode_resolve(domain, info):
     """Determine the URL corresponding to a Python object.
 
@@ -5310,7 +5288,7 @@ def linkcode_resolve(domain, info):
     if "dev" in mne.__version__:
         kind = "main"
     else:
-        kind = "maint/%s" % (".".join(mne.__version__.split(".")[:2]))
+        kind = "maint/" + ".".join(mne.__version__.split(".")[:2])
     return f"http://github.com/mne-tools/mne-python/blob/{kind}/mne/{fn}{linespec}"
 
 
@@ -5537,7 +5515,7 @@ def _docformat(docstring, docdict=None, funcname=None):
     try:
         return docstring % indented
     except (TypeError, ValueError, KeyError) as exp:
-        raise RuntimeError(f"Error documenting {funcname}:\n{str(exp)}")
+        raise RuntimeError(f"Error documenting {funcname}:\n{exp}")
 
 
 def _indentcount_lines(lines):

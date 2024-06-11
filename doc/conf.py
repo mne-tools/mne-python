@@ -17,6 +17,7 @@ from pathlib import Path
 import matplotlib
 import pyvista
 import sphinx
+from intersphinx_registry import get_intersphinx_mapping
 from numpydoc import docscrape
 from sphinx.config import is_serializable
 from sphinx.domains.changeset import versionlabels
@@ -153,32 +154,25 @@ towncrier_draft_working_directory = str(curpath.parent)
 # -- Intersphinx configuration -----------------------------------------------
 
 intersphinx_mapping = {
-    "python": ("https://docs.python.org/3", None),
-    "numpy": ("https://numpy.org/doc/stable", None),
-    "scipy": ("https://docs.scipy.org/doc/scipy", None),
-    "matplotlib": ("https://matplotlib.org/stable", None),
-    "sklearn": ("https://scikit-learn.org/stable", None),
-    "numba": ("https://numba.readthedocs.io/en/latest", None),
-    "joblib": ("https://joblib.readthedocs.io/en/latest", None),
-    "nibabel": ("https://nipy.org/nibabel", None),
-    "nilearn": ("http://nilearn.github.io/stable", None),
+    # More niche so didn't upstream to intersphinx_registry
     "nitime": ("https://nipy.org/nitime/", None),
-    "surfer": ("https://pysurfer.github.io/", None),
     "mne_bids": ("https://mne.tools/mne-bids/stable", None),
     "mne-connectivity": ("https://mne.tools/mne-connectivity/stable", None),
     "mne-gui-addons": ("https://mne.tools/mne-gui-addons", None),
-    "pandas": ("https://pandas.pydata.org/pandas-docs/stable", None),
-    "seaborn": ("https://seaborn.pydata.org/", None),
-    "statsmodels": ("https://www.statsmodels.org/dev", None),
-    "patsy": ("https://patsy.readthedocs.io/en/latest", None),
-    "pyvista": ("https://docs.pyvista.org", None),
-    "imageio": ("https://imageio.readthedocs.io/en/latest", None),
     "picard": ("https://pierreablin.github.io/picard/", None),
     "eeglabio": ("https://eeglabio.readthedocs.io/en/latest", None),
-    "dipy": ("https://docs.dipy.org/stable", None),
     "pybv": ("https://pybv.readthedocs.io/en/latest/", None),
-    "pyqtgraph": ("https://pyqtgraph.readthedocs.io/en/latest/", None),
 }
+intersphinx_mapping.update(
+    get_intersphinx_mapping(
+        packages=set(
+            """
+imageio matplotlib numpy pandas python scipy statsmodels sklearn numba joblib nibabel
+seaborn patsy pyvista dipy nilearn pyqtgraph
+""".strip().split()
+        ),
+    )
+)
 
 
 # NumPyDoc configuration -----------------------------------------------------
@@ -655,6 +649,7 @@ linkcheck_ignore = [  # will be compiled to regex
     "https://www.dtu.dk/english/service/phonebook/person",
     # SSL problems sometimes
     "http://ilabs.washington.edu",
+    "https://psychophysiology.cpmc.columbia.edu",
 ]
 linkcheck_anchors = False  # saves a bit of time
 linkcheck_timeout = 15  # some can be quite slow
@@ -840,7 +835,18 @@ html_context = {
         ),
         dict(img="doe.svg", size="3", title="US Department of Energy"),
         dict(img="anr.svg", size="3.5", title="Agence Nationale de la Recherche"),
-        dict(img="cds.png", size="2.25", title="Paris-Saclay Center for Data Science"),
+        dict(
+            img="cds.svg",
+            size="1.75",
+            title="Paris-Saclay Center for Data Science",
+            klass="only-light",
+        ),
+        dict(
+            img="cds-dark.svg",
+            size="1.75",
+            title="Paris-Saclay Center for Data Science",
+            klass="only-dark",
+        ),
         dict(img="google.svg", size="2.25", title="Google"),
         dict(img="amazon.svg", size="2.5", title="Amazon"),
         dict(img="czi.svg", size="2.5", title="Chan Zuckerberg Initiative"),

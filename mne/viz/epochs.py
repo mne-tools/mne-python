@@ -708,7 +708,7 @@ def plot_drop_log(
     percent = _drop_log_stats(drop_log, ignore)
     if percent < threshold:
         logger.info(
-            "Percent dropped epochs < supplied threshold; not " "plotting drop log."
+            "Percent dropped epochs < supplied threshold; not plotting drop log."
         )
         return
     absolute = len([x for x in drop_log if len(x) if not any(y in ignore for y in x)])
@@ -719,7 +719,7 @@ def plot_drop_log(
     counts = np.array(list(scores.values()))
     # init figure, handle easy case (no drops)
     fig, ax = plt.subplots(layout="constrained")
-    title = f"{absolute} of {n_epochs_before_drop} epochs removed " f"({percent:.1f}%)"
+    title = f"{absolute} of {n_epochs_before_drop} epochs removed ({percent:.1f}%)"
     if subject is not None:
         title = f"{subject}: {title}"
     ax.set_title(title)

@@ -240,7 +240,7 @@ def test_volume_stc(tmp_path):
         stc.save(fname_vol, ftype="whatever", overwrite=True)
     for ftype in ["w", "h5"]:
         for _ in range(2):
-            fname_temp = tmp_path / ("temp-vol.%s" % ftype)
+            fname_temp = tmp_path / f"temp-vol.{ftype}"
             stc_new.save(fname_temp, ftype=ftype, overwrite=True)
             stc_new = read_source_estimate(fname_temp)
             assert isinstance(stc_new, VolSourceEstimate)
@@ -1462,7 +1462,7 @@ def test_source_estime_project(real):
     want_nn /= np.linalg.norm(want_nn, axis=1, keepdims=True)
 
     stc = VolVectorSourceEstimate(data, [np.arange(n_src)], 0, 1)
-    stc_max, directions = stc.project("pca")
+    _, directions = stc.project("pca")
     flips = np.sign(np.sum(directions * want_nn, axis=1, keepdims=True))
     directions *= flips
     assert_allclose(directions, want_nn, atol=2e-6)
@@ -1521,9 +1521,6 @@ def invs():
     expected_nn = np.concatenate([_get_src_nn(s) for s in fwd["src"]])
     assert_allclose(fixed["source_nn"], expected_nn, atol=1e-7)
     return evoked, free, free_surf, freeish, fixed, fixedish
-
-
-bad_normal = pytest.param("normal", marks=pytest.mark.xfail(raises=AssertionError))
 
 
 @pytest.mark.parametrize("pick_ori", [None, "normal", "vector"])
@@ -1610,7 +1607,7 @@ def test_vol_adjacency():
     n_vertices = vol[0]["inuse"].sum()
     assert_equal(adjacency.shape, (n_vertices, n_vertices))
     assert np.all(adjacency.data == 1)
-    assert isinstance(adjacency, sparse.coo_matrix)
+    assert isinstance(adjacency, sparse.coo_array)
 
     adjacency2 = spatio_temporal_src_adjacency(vol, n_times=2)
     assert_equal(adjacency2.shape, (2 * n_vertices, 2 * n_vertices))

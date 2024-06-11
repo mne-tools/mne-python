@@ -86,7 +86,7 @@ def reset_warnings(gallery_conf, fname):
         r"open_text is deprecated\. Use files.*",
     ):
         warnings.filterwarnings(  # deal with other modules having bad imports
-            "ignore", message=".*%s.*" % key, category=DeprecationWarning
+            "ignore", message=f".*{key}.*", category=DeprecationWarning
         )
     warnings.filterwarnings(
         "ignore",

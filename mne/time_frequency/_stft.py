@@ -62,9 +62,7 @@ def stft(x, wsize, tstep=None, verbose=None):
         )
 
     if tstep > wsize / 2:
-        raise ValueError(
-            "The step size must be smaller than half the " "window length."
-        )
+        raise ValueError("The step size must be smaller than half the window length.")
 
     n_step = int(ceil(T / float(tstep)))
     n_freq = wsize // 2 + 1

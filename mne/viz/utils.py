@@ -392,9 +392,7 @@ def _get_channel_plotting_order(order, ch_types, picks=None):
             if order_type == pick_type
         ]
     elif not isinstance(order, (np.ndarray, list, tuple)):
-        raise ValueError(
-            "order should be array-like; got " f'"{order}" ({type(order)}).'
-        )
+        raise ValueError(f'order should be array-like; got "{order}" ({type(order)}).')
     if picks is not None:
         order = [ch for ch in order if ch in picks]
     return np.asarray(order, int)
@@ -680,12 +678,6 @@ def _show_help_fig(col1, col2, fig_help, ax, show):
             plt_show(fig=fig_help, warn=False)
         except Exception:
             pass
-
-
-def _show_help(col1, col2, width, height):
-    fig_help = figure_nobar(figsize=(width, height), dpi=80)
-    ax = fig_help.add_subplot(111)
-    _show_help_fig(col1, col2, fig_help, ax, show=True)
 
 
 def _key_press(event):
@@ -1149,7 +1141,7 @@ def plot_sensors(
                 if pick in value:
                     colors[pick_idx] = color_vals[ind]
                     break
-    title = "Sensor positions (%s)" % ch_type if title is None else title
+    title = f"Sensor positions ({ch_type})" if title is None else title
     fig = _plot_sensors_2d(
         pos,
         info,
@@ -2138,7 +2130,7 @@ def _check_time_unit(time_unit, times):
     elif time_unit == "ms":
         times = 1e3 * times
     else:
-        raise ValueError("time_unit must be 's' or 'ms', got %r" % time_unit)
+        raise ValueError(f"time_unit must be 's' or 'ms', got {time_unit!r}")
     return time_unit, times
 
 
@@ -2821,5 +2813,7 @@ def _get_plot_ch_type(inst, ch_type, allow_ref_meg=False):
                 ch_type = type_
                 break
         else:
-            raise RuntimeError("No plottable channel types found")
+            raise RuntimeError(
+                f"No plottable channel types found. Allowed types are: {allowed_types}"
+            )
     return ch_type

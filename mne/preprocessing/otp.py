@@ -114,7 +114,7 @@ def oversampled_temporal_projection(raw, duration=10.0, picks=None, verbose=None
 def _otp(data, picks_good, picks_bad):
     """Perform OTP on one segment of data."""
     if not np.isfinite(data).all():
-        raise RuntimeError("non-finite data (inf or nan) found in raw " "instance")
+        raise RuntimeError("non-finite data (inf or nan) found in raw instance")
     # demean our data
     data_means = np.mean(data, axis=-1, keepdims=True)
     data -= data_means

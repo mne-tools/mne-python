@@ -19,6 +19,7 @@ from copy import deepcopy
 from dataclasses import dataclass, field
 from datetime import timedelta
 from inspect import getfullargspec
+from pathlib import Path
 
 import numpy as np
 
@@ -211,7 +212,7 @@ class BaseRaw(
             # some functions (e.g., filtering) only work w/64-bit data
             if preload.dtype not in (np.float64, np.complex128):
                 raise RuntimeError(
-                    "datatype must be float64 or complex128, " "not %s" % preload.dtype
+                    f"datatype must be float64 or complex128, not {preload.dtype}"
                 )
             if preload.dtype != dtype:
                 raise ValueError("preload and dtype must match")
@@ -223,7 +224,7 @@ class BaseRaw(
         else:
             if last_samps is None:
                 raise ValueError(
-                    "last_samps must be given unless preload is " "an ndarray"
+                    "last_samps must be given unless preload is an ndarray"
                 )
             if not preload:
                 self.preload = False
@@ -299,7 +300,6 @@ class BaseRaw(
             # unit
             orig_units = _check_orig_units(orig_units)
         self._orig_units = orig_units or dict()  # always a dict
-        self._projectors = list()
         self._projector = None
         self._dtype_ = dtype
         self.set_annotations(None)
@@ -781,7 +781,7 @@ class BaseRaw(
 
         if len(item) != 2:  # should be channels and time instants
             raise RuntimeError(
-                "Unable to access raw data (need both channels " "and time)"
+                "Unable to access raw data (need both channels and time)"
             )
 
         sel = _picks_to_idx(self.info, item[0])
@@ -1721,7 +1721,7 @@ class BaseRaw(
         data_test = self[0, 0][0]
         if fmt == "short" and np.iscomplexobj(data_test):
             raise ValueError(
-                'Complex data must be saved as "single" or ' '"double", not "short"'
+                'Complex data must be saved as "single" or "double", not "short"'
             )
 
         # check for file existence and expand `~` if present
@@ -2095,7 +2095,7 @@ class BaseRaw(
 
     def __repr__(self):  # noqa: D105
         name = self.filenames[0]
-        name = "" if name is None else op.basename(name) + ", "
+        name = "" if name is None else Path(name).name + ", "
         size_str = str(sizeof_fmt(self._size))  # str in case it fails -> None
         size_str += f", data{'' if self.preload else ' not'} loaded"
         s = (
@@ -2105,8 +2105,8 @@ class BaseRaw(
         return f"<{self.__class__.__name__} | {s}>"
 
     @repr_html
-    def _repr_html_(self, caption=None):
-        basenames = [os.path.basename(f) for f in self._filenames if f is not None]
+    def _repr_html_(self):
+        basenames = [Path(f).name for f in self._filenames if f is not None]
 
         # https://stackoverflow.com/a/10981895
         duration = timedelta(seconds=self.times[-1])
@@ -2116,13 +2116,12 @@ class BaseRaw(
         seconds = np.ceil(seconds)  # always take full seconds
 
         duration = f"{int(hours):02d}:{int(minutes):02d}:{int(seconds):02d}"
+
         raw_template = _get_html_template("repr", "raw.html.jinja")
         return raw_template.render(
-            info_repr=self.info._repr_html_(
-                caption=caption,
-                filenames=basenames,
-                duration=duration,
-            )
+            inst=self,
+            filenames=basenames,
+            duration=duration,
         )
 
     def add_events(self, events, stim_channel=None, replace=False):
@@ -2155,7 +2154,7 @@ class BaseRaw(
         stim_channel = _get_stim_channel(stim_channel, self.info)
         pick = pick_channels(self.ch_names, stim_channel, ordered=False)
         if len(pick) == 0:
-            raise ValueError("Channel %s not found" % stim_channel)
+            raise ValueError(f"Channel {stim_channel} not found")
         pick = pick[0]
         idx = events[:, 0].astype(int)
         if np.any(idx < self.first_samp) or np.any(idx > self.last_samp):
@@ -2478,26 +2477,6 @@ def _allocate_data(preload, shape, dtype):
     return data
 
 
-def _index_as_time(index, sfreq, first_samp=0, use_first_samp=False):
-    """Convert indices to time.
-
-    Parameters
-    ----------
-    index : list-like | int
-        List of ints or int representing points in time.
-    use_first_samp : boolean
-        If True, the time returned is relative to the session onset, else
-        relative to the recording onset.
-
-    Returns
-    -------
-    times : ndarray
-        Times corresponding to the index supplied.
-    """
-    times = np.atleast_1d(index) + (first_samp if use_first_samp else 0)
-    return times / sfreq
-
-
 def _convert_slice(sel):
     if len(sel) and (np.diff(sel) == 1).all():
         return slice(sel[0], sel[-1] + 1)
@@ -2576,7 +2555,7 @@ def _get_scaling(ch_type, target_unit):
     unit_list = target_unit.split("/")
     if ch_type not in si_units.keys():
         raise KeyError(
-            f"{ch_type} is not a channel type that can be scaled " "from units."
+            f"{ch_type} is not a channel type that can be scaled from units."
         )
     si_unit_list = si_units_splitted[ch_type]
     if len(unit_list) != len(si_unit_list):
@@ -2638,7 +2617,6 @@ class _RawShell:
         self._first_time = None
         self._last_time = None
         self._cals = None
-        self._rawdir = None
         self._projector = None
 
     @property
@@ -2843,8 +2821,8 @@ def _write_raw_data(
         raise ValueError(
             'file is larger than "split_size" after writing '
             "measurement information, you must use a larger "
-            "value for split size: %s plus enough bytes for "
-            "the chosen buffer_size" % pos_prev
+            f"value for split size: {pos_prev} plus enough bytes for "
+            "the chosen buffer_size"
         )
 
     # Check to see if this has acquisition skips and, if so, if we can
@@ -2890,7 +2868,7 @@ def _write_raw_data(
             data = np.dot(projector, data)
 
         if drop_small_buffer and (first > start) and (len(times) < buffer_size):
-            logger.info("Skipping data chunk due to small buffer ... " "[done]")
+            logger.info("Skipping data chunk due to small buffer ... [done]")
             break
         logger.debug(f"Writing FIF {first:6d} ... {last:6d} ...")
         _write_raw_buffer(fid, data, cals, fmt)
@@ -3007,7 +2985,7 @@ def _write_raw_buffer(fid, buf, cals, fmt):
             write_function = write_complex128
         else:
             raise ValueError(
-                'only "single" and "double" supported for ' "writing complex data"
+                'only "single" and "double" supported for writing complex data'
             )
 
     buf = buf / np.ravel(cals)[:, None]
@@ -3025,7 +3003,7 @@ def _check_raw_compatibility(raw):
             a, b = raw[ri].info[key], raw[0].info[key]
             if a != b:
                 raise ValueError(
-                    f"raw[{ri}].info[{key}] must match:\n" f"{repr(a)} != {repr(b)}"
+                    f"raw[{ri}].info[{key}] must match:\n{repr(a)} != {repr(b)}"
                 )
         for kind in ("bads", "ch_names"):
             set1 = set(raw[0].info[kind])
@@ -3033,7 +3011,7 @@ def _check_raw_compatibility(raw):
             mismatch = set1.symmetric_difference(set2)
             if mismatch:
                 raise ValueError(
-                    f"raw[{ri}]['info'][{kind}] do not match: " f"{sorted(mismatch)}"
+                    f"raw[{ri}]['info'][{kind}] do not match: {sorted(mismatch)}"
                 )
         if any(raw[ri]._cals != raw[0]._cals):
             raise ValueError("raw[%d]._cals must match" % ri)
@@ -3092,7 +3070,7 @@ def concatenate_raws(
     if events_list is not None:
         if len(events_list) != len(raws):
             raise ValueError(
-                "`raws` and `event_list` are required " "to be of the same length"
+                "`raws` and `event_list` are required to be of the same length"
             )
         first, last = zip(*[(r.first_samp, r.last_samp) for r in raws])
         events = concatenate_events(events_list, first, last)

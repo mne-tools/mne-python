@@ -38,30 +38,6 @@ from .utils import (
 _length_factors = dict(hann=3.1, hamming=3.3, blackman=5.0)
 
 
-def is_power2(num):
-    """Test if number is a power of 2.
-
-    Parameters
-    ----------
-    num : int
-        Number.
-
-    Returns
-    -------
-    b : bool
-        True if is power of 2.
-
-    Examples
-    --------
-    >>> is_power2(2 ** 3)
-    True
-    >>> is_power2(5)
-    False
-    """
-    num = int(num)
-    return num != 0 and ((num & (num - 1)) == 0)
-
-
 def next_fast_len(target):
     """Find the next fast size of input data to `fft`, for zero-padding, etc.
 
@@ -317,7 +293,7 @@ def _overlap_add_filter(
     if len(h) == 1:
         return x * h**2 if phase == "zero-double" else x * h
     n_edge = max(min(len(h), x.shape[1]) - 1, 0)
-    logger.debug("Smart-padding with:  %s samples on each edge" % n_edge)
+    logger.debug(f"Smart-padding with:  {n_edge} samples on each edge")
     n_x = x.shape[1] + 2 * n_edge
 
     if phase == "zero-double":
@@ -346,7 +322,7 @@ def _overlap_add_filter(
         else:
             # Use only a single block
             n_fft = next_fast_len(min_fft)
-    logger.debug("FFT block length:   %s" % n_fft)
+    logger.debug(f"FFT block length:   {n_fft}")
     if n_fft < min_fft:
         raise ValueError(
             f"n_fft is too short, has to be at least 2 * len(h) - 1 ({min_fft}), got "
@@ -724,7 +700,15 @@ def construct_iir_filter(
         ``iir_params`` will be set inplace (if they weren't already).
         Otherwise, a new ``iir_params`` instance will be created and
         returned with these entries.
-    %(phase)s
+    phase : str
+        Phase of the filter.
+        ``phase='zero'`` (default) or equivalently ``'zero-double'`` constructs and
+        applies IIR filter twice, once forward, and once backward (making it non-causal)
+        using :func:`~scipy.signal.filtfilt`; ``phase='forward'`` will apply
+        the filter once in the forward (causal) direction using
+        :func:`~scipy.signal.lfilter`.
+
+        .. versionadded:: 0.13
     %(verbose)s
 
     Returns
@@ -801,7 +785,7 @@ def construct_iir_filter(
         "elliptic",
     )
     if not isinstance(iir_params, dict):
-        raise TypeError("iir_params must be a dict, got %s" % type(iir_params))
+        raise TypeError(f"iir_params must be a dict, got {type(iir_params)}")
     # if the filter has been designed, we're good to go
     Wp = None
     if "sos" in iir_params:
@@ -1539,7 +1523,7 @@ def notch_filter(
     if freqs is not None:
         freqs = np.atleast_1d(freqs)
     elif method != "spectrum_fit":
-        raise ValueError("freqs=None can only be used with method " "spectrum_fit")
+        raise ValueError("freqs=None can only be used with method spectrum_fit")
 
     # Only have to deal with notch_widths for non-autodetect
     if freqs is not None:
@@ -1553,7 +1537,7 @@ def notch_filter(
                 notch_widths = notch_widths[0] * np.ones_like(freqs)
             elif len(notch_widths) != len(freqs):
                 raise ValueError(
-                    "notch_widths must be None, scalar, or the " "same length as freqs"
+                    "notch_widths must be None, scalar, or the same length as freqs"
                 )
 
     if method in ("fir", "iir"):
@@ -1660,7 +1644,7 @@ def _mt_spectrum_proc(
     kind = "Detected" if line_freqs is None else "Removed"
     found_freqs = (
         "\n".join(
-            f"    {freq:6.2f} : " f"{counts[freq]:4d} window{_pl(counts[freq])}"
+            f"    {freq:6.2f} : {counts[freq]:4d} window{_pl(counts[freq])}"
             for freq in sorted(counts)
         )
         or "    None"
@@ -2121,7 +2105,7 @@ def _to_samples(filter_length, sfreq, phase, fir_design):
         err_msg = (
             "filter_length, if a string, must be a "
             'human-readable time, e.g. "10s", or "auto", not '
-            '"%s"' % filter_length
+            f'"{filter_length}"'
         )
         if filter_length.lower().endswith("ms"):
             mult_fact = 1e-3
@@ -2280,7 +2264,7 @@ def _triage_filter_params(
                 if h_trans_bandwidth != "auto":
                     raise ValueError(
                         'h_trans_bandwidth must be "auto" if '
-                        'string, got "%s"' % h_trans_bandwidth
+                        f'string, got "{h_trans_bandwidth}"'
                     )
                 h_trans_bandwidth = np.minimum(
                     np.maximum(0.25 * h_freq, 2.0), sfreq / 2.0 - h_freq
@@ -2360,7 +2344,7 @@ def _triage_filter_params(
                 "distortion is likely. Reduce filter length or filter a longer signal."
             )
 
-    logger.debug("Using filter length: %s" % filter_length)
+    logger.debug(f"Using filter length: {filter_length}")
     return (
         x,
         sfreq,
@@ -2903,7 +2887,7 @@ def design_mne_c_filter(
         start = h_start - h_width + 1
         stop = start + 2 * h_width - 1
         if start < 0 or stop >= n_freqs:
-            raise RuntimeError("h_freq too high or h_trans_bandwidth too " "large")
+            raise RuntimeError("h_freq too high or h_trans_bandwidth too large")
         k = np.arange(-h_width + 1, h_width) / float(h_width) + 1.0
         freq_resp[start:stop] *= np.cos(np.pi / 4.0 * k) ** 2
         freq_resp[stop:] = 0.0

@@ -60,7 +60,6 @@ ctf_comp_fname = base_dir / "test_ctf_comp_raw.fif"
 fif_bad_marked_fname = base_dir / "test_withbads_raw.fif"
 bad_file_works = base_dir / "test_bads.txt"
 bad_file_wrong = base_dir / "test_wrong_bads.txt"
-hp_fname = base_dir / "test_chpi_raw_hp.txt"
 hp_fif_fname = base_dir / "test_chpi_raw_sss.fif"
 
 
@@ -695,12 +694,14 @@ def test_bids_split_files(tmp_path):
     with pytest.raises(ValueError, match="Passing a BIDSPath"):
         raw.save(bids_path, **save_kwargs)
     bids_path.split = None
-    want_paths = [Path(bids_path.copy().update(split=ii).fpath) for ii in range(1, 3)]
+    want_paths = [
+        Path(bids_path.copy().update(split=f"{ii:02d}").fpath) for ii in range(1, 3)
+    ]
     for want_path in want_paths:
         assert not want_path.is_file()
     raw.save(bids_path, **save_kwargs)
     for want_path in want_paths:
-        assert want_path.is_file()
+        assert want_path.is_file(), want_path
 
 
 def _err(*args, **kwargs):

@@ -14,7 +14,9 @@ from mne.decoding.search_light import GeneralizingEstimator, SlidingEstimator
 from mne.decoding.transformer import Vectorizer
 from mne.utils import _record_warnings, check_version, use_log_level
 
-pytest.importorskip("sklearn")
+sklearn = pytest.importorskip("sklearn")
+
+NEW_MULTICLASS_SAMPLE_WEIGHT = check_version("sklearn", "1.4")
 
 
 def make_data():
@@ -36,13 +38,14 @@ def test_search_light():
         pytest.skip("sklearn int_t / long long mismatch")
     from sklearn.linear_model import LogisticRegression, Ridge
     from sklearn.metrics import make_scorer, roc_auc_score
+    from sklearn.multiclass import OneVsRestClassifier
     from sklearn.pipeline import make_pipeline
 
     with _record_warnings():  # NumPy module import
         from sklearn.ensemble import BaggingClassifier
     from sklearn.base import is_classifier
 
-    logreg = LogisticRegression(solver="liblinear", multi_class="ovr", random_state=0)
+    logreg = OneVsRestClassifier(LogisticRegression(solver="liblinear", random_state=0))
 
     X, y = make_data()
     n_epochs, _, n_time = X.shape
@@ -158,9 +161,7 @@ def test_search_light():
         def transform(self, X):
             return super().predict_proba(X)[..., 1]
 
-    logreg_transformer = _LogRegTransformer(
-        random_state=0, multi_class="ovr", solver="liblinear"
-    )
+    logreg_transformer = OneVsRestClassifier(_LogRegTransformer(random_state=0))
     pipe = make_pipeline(SlidingEstimator(logreg_transformer), logreg)
     pipe.fit(X, y)
     pipe.predict(X)
@@ -185,13 +186,33 @@ def test_search_light():
         assert isinstance(pipe.estimators_[0], BaggingClassifier)
 
 
-def test_generalization_light():
+@pytest.fixture()
+def metadata_routing():
+    """Temporarily enable metadata routing for new sklearn."""
+    if NEW_MULTICLASS_SAMPLE_WEIGHT:
+        sklearn.set_config(enable_metadata_routing=True)
+    yield
+    if NEW_MULTICLASS_SAMPLE_WEIGHT:
+        sklearn.set_config(enable_metadata_routing=False)
+
+
+def test_generalization_light(metadata_routing):
     """Test GeneralizingEstimator."""
     from sklearn.linear_model import LogisticRegression
     from sklearn.metrics import roc_auc_score
+    from sklearn.multiclass import OneVsRestClassifier
     from sklearn.pipeline import make_pipeline
 
-    logreg = LogisticRegression(solver="liblinear", multi_class="ovr", random_state=0)
+    if NEW_MULTICLASS_SAMPLE_WEIGHT:
+        clf = LogisticRegression(random_state=0)
+        clf.set_fit_request(sample_weight=True)
+        logreg = OneVsRestClassifier(clf)
+    else:
+        logreg = LogisticRegression(
+            solver="liblinear",
+            random_state=0,
+            multi_class="ovr",
+        )
 
     X, y = make_data()
     n_epochs, _, n_time = X.shape
@@ -334,7 +355,6 @@ def test_cross_val_predict():
 @pytest.mark.slowtest
 def test_sklearn_compliance():
     """Test LinearModel compliance with sklearn."""
-    pytest.importorskip("sklearn")
     from sklearn.linear_model import LogisticRegression
     from sklearn.utils.estimator_checks import check_estimator
 

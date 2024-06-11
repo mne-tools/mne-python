@@ -199,8 +199,8 @@ def find_ecg_events(
     -------
     ecg_events : array
         The events corresponding to the peaks of the R waves.
-    ch_ecg : string
-        Name of channel used.
+    ch_ecg : int | None
+        Index of channel used.
     average_pulse : float
         The estimated average pulse. If no ECG events could be found, this will
         be zero.
@@ -217,7 +217,7 @@ def find_ecg_events(
     del reject_by_annotation
     idx_ecg = _get_ecg_channel_index(ch_name, raw)
     if idx_ecg is not None:
-        logger.info("Using channel %s to identify heart beats." % raw.ch_names[idx_ecg])
+        logger.info(f"Using channel {raw.ch_names[idx_ecg]} to identify heart beats.")
         ecg = raw.get_data(picks=idx_ecg)
     else:
         ecg, _ = _make_ecg(raw, start=None, stop=None)
@@ -299,6 +299,7 @@ def find_ecg_events(
             event_id * np.ones(n_events, int),
         ]
     ).T
+
     out = (ecg_events, idx_ecg, average_pulse)
     ecg = ecg[np.newaxis]  # backward compat output 2D
     if return_ecg:
@@ -332,8 +333,7 @@ def _get_ecg_channel_index(ch_name, inst):
 
     if len(ecg_idx) > 1:
         warn(
-            "More than one ECG channel found. Using only %s."
-            % inst.ch_names[ecg_idx[0]]
+            f"More than one ECG channel found. Using only {inst.ch_names[ecg_idx[0]]}."
         )
 
     return ecg_idx[0]

@@ -59,9 +59,6 @@ vamp_ahdr = data_path / "Brainvision" / "test_VAmp.ahdr"
 # Test for nanovolts as unit
 vhdr_units_path = data_dir / "test_units.vhdr"
 
-# Test bad date
-vhdr_bad_date = data_dir / "test_bad_date.vhdr"
-
 eeg_bin = data_dir / "test_bin_raw.fif"
 eog = ["HL", "HR", "Vb"]
 
@@ -538,11 +535,10 @@ def test_brainvision_data():
         elif ch["ch_name"] == "ReRef":
             assert ch["kind"] == FIFF.FIFFV_MISC_CH
             assert ch["unit"] == FIFF.FIFF_UNIT_CEL
-        elif ch["ch_name"] in raw_py.info["ch_names"]:
+        else:
+            assert ch["ch_name"] in raw_py.info["ch_names"], f"Unknown: {ch['ch_name']}"
             assert ch["kind"] == FIFF.FIFFV_EEG_CH
             assert ch["unit"] == FIFF.FIFF_UNIT_V
-        else:
-            raise RuntimeError("Unknown Channel: %s" % ch["ch_name"])
 
     # test loading v2
     read_raw_brainvision(vhdr_v2_path, eog=eog, preload=True, verbose="error")

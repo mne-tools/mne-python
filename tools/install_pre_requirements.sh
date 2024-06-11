@@ -40,11 +40,13 @@ echo "nilearn"
 python -m pip install $STD_ARGS git+https://github.com/nilearn/nilearn
 
 echo "VTK"
-python -m pip install $STD_ARGS --only-binary ":all:" --extra-index-url "https://wheels.vtk.org" vtk
+# No pre until PyVista fixes a bug
+# python -m pip install $STD_ARGS --only-binary ":all:" --extra-index-url "https://wheels.vtk.org" vtk
+python -m pip install $STD_ARGS vtk
 python -c "import vtk"
 
 echo "PyVista"
-python -m pip install $STD_ARGS git+https://github.com/pyvista/pyvista
+python -m pip install $STD_ARGS "git+https://github.com/pyvista/pyvista"
 
 echo "picard"
 python -m pip install $STD_ARGS git+https://github.com/pierreablin/picard
@@ -58,6 +60,9 @@ pip install $STD_ARGS imageio-ffmpeg xlrd mffpy traitlets pybv eeglabio
 echo "mne-qt-browser"
 pip install $STD_ARGS git+https://github.com/mne-tools/mne-qt-browser
 
+echo "mne-bids"
+pip install $STD_ARGS git+https://github.com/mne-tools/mne-bids
+
 echo "nibabel"
 pip install $STD_ARGS git+https://github.com/nipy/nibabel
 
@@ -65,7 +70,9 @@ echo "joblib"
 pip install $STD_ARGS git+https://github.com/joblib/joblib
 
 echo "edfio"
-pip install $STD_ARGS git+https://github.com/the-siesta-group/edfio
+# Disable protection for Azure, see
+# https://github.com/mne-tools/mne-python/pull/12609#issuecomment-2115639369
+GIT_CLONE_PROTECTION_ACTIVE=false pip install $STD_ARGS git+https://github.com/the-siesta-group/edfio
 
 if [[ "${PLATFORM}" == "Linux" ]]; then
 	echo "h5io"

@@ -40,8 +40,9 @@ def _compute_corrs(
     assert X.shape[:2] == y.shape[:2]
     len_trf = smax - smin
     len_x, n_epochs, n_ch_x = X.shape
-    len_y, n_epcohs, n_ch_y = y.shape
+    len_y, n_epochs_y, n_ch_y = y.shape
     assert len_x == len_y
+    assert n_epochs == n_epochs_y
 
     n_fft = next_fast_len(2 * X.shape[0] - 1)
 

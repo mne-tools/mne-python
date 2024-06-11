@@ -36,7 +36,7 @@ def _compute_eloreta(inv, lambda2, options):
     # Reassemble the gain matrix (should be fast enough)
     if inv["eigen_leads_weighted"]:
         # We can probably relax this if we ever need to
-        raise RuntimeError("eLORETA cannot be computed with weighted eigen " "leads")
+        raise RuntimeError("eLORETA cannot be computed with weighted eigen leads")
     G = np.dot(
         inv["eigen_fields"]["data"].T * inv["sing"], inv["eigen_leads"]["data"].T
     )
@@ -128,7 +128,7 @@ def _compute_eloreta(inv, lambda2, options):
             )
             break
     else:
-        warn("eLORETA weight fitting did not converge (>= %s)" % eps)
+        warn(f"eLORETA weight fitting did not converge (>= {eps})")
     del G_R_Gt
     logger.info("        Updating inverse with weighted eigen leads")
     G /= source_std  # undo our biasing
