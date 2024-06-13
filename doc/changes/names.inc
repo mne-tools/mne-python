@@ -218,9 +218,9 @@
 
 .. _Hyonyoung Shin: https://github.com/mcvain
 
-.. _Ilias Machairas: https://github.com/JungleHippo
-
 .. _Ilian Azz: https://github.com/ilianAZZ
+
+.. _Ilias Machairas: https://github.com/JungleHippo
 
 .. _Ivan Skelin: https://github.com/ivan-skelin
 
