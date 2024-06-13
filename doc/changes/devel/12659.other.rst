@@ -1,1 +1,1 @@
-Adding MEM localization method to MNE-tools. by `Ilian Azz`_.
+Add link to BEst-Python in the list of related software. by `Ilian Azz`_.
