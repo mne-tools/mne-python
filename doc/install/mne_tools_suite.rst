@@ -67,6 +67,8 @@ MNE-Python, including packages for:
 - real-time analysis (`MNE-Realtime`_)
 - non-parametric sequential analyses and adaptive sample size determination (`niseq`_)
 - a graphical user interface for multi-subject MEG/EEG analysis with plugin support (`Meggie`_)
+- A method to localize the superficial generators together with their spatial extent
+  using the Maximum Entropy on the Mean (`MEM`_)
 
 What should I install?
 ^^^^^^^^^^^^^^^^^^^^^^
@@ -112,5 +114,5 @@ Help with installation is available through the `MNE Forum`_. See the
 .. _MNE-ARI: https://github.com/john-veillette/mne_ari
 .. _niseq: https://github.com/john-veillette/niseq
 .. _Meggie: https://github.com/cibr-jyu/meggie
-
+.. _MEM: https://github.com/multifunkim/best-python
 .. include:: ../links.inc
