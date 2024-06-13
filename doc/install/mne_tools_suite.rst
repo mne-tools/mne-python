@@ -115,4 +115,5 @@ Help with installation is available through the `MNE Forum`_. See the
 .. _niseq: https://github.com/john-veillette/niseq
 .. _Meggie: https://github.com/cibr-jyu/meggie
 .. _MEM: https://github.com/multifunkim/best-python
+
 .. include:: ../links.inc
