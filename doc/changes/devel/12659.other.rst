@@ -1,0 +1,1 @@
+Adding MEM localization method to MNE-tools. by `Ilian Azz`_.
