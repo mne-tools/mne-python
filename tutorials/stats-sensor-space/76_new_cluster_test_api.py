@@ -1,13 +1,16 @@
 from pathlib import Path
+
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from mpl_toolkits.axes_grid1 import make_axes_locatable
+
 import mne
 
 
 # import and load dataset
 path_to_p3 = Path("C:/Users/Carina/mne_data/ERP_CORE_P3")
+
 
 def prep_sample_data(plot_evokeds: bool = False):
     """
