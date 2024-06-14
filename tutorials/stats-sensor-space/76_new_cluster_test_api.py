@@ -7,6 +7,8 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 import mne
 
+# TODO: implement formulaic design matrix for paired t-test
+# TODO: @erik: add dataset to mne-data
 
 # import and load dataset
 path_to_p3 = Path("C:/Users/Carina/mne_data/ERP_CORE_P3")
@@ -234,8 +236,6 @@ df = prepare_dataframe_for_cluster_function(evokeds=shuffled_evoked_data,
                                             condition=shuffled_conditions,
                                         subject_index=shuffled_participant_ids)
 
-
-cluster_test(df)
 
 def cluster_test(
     df: pd.DataFrame,
@@ -471,3 +471,5 @@ def plot_cluster(
     plt.show()
 
     return None
+
+cluster_test(df)
