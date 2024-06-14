@@ -1797,12 +1797,6 @@
         },
         {
            "@type":"Person",
-           "email":"",
-           "givenName":"Lumberbot (aka",
-           "familyName": "Jack)"
-        },
-        {
-           "@type":"Person",
            "email":"mbalatsko@gmail.com",
            "givenName":"Maksym",
            "familyName": "Balatsko"

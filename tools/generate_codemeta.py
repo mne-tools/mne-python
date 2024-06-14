@@ -98,7 +98,8 @@ assert len(split_version) == 3, msg
 args = ["git", "shortlog", "-nse"]
 result = subprocess.run(args, capture_output=True, text=True)
 lines = result.stdout.strip().split("\n")
-all_names = [parse_name(line) for line in lines if "[bot]" not in line]
+exclude = ["[bot]", "Lumberbot (aka Jack)"]
+all_names = [parse_name(line) for line in lines if not any(x in line for x in exclude)]
 
 
 # CONSTRUCT JSON AUTHORS LIST

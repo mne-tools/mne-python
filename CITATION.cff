@@ -3,7 +3,7 @@ title: "MNE-Python"
 message: "If you use this software, please cite both the software itself, and the paper listed in the preferred-citation field."
 version: 1.7.1
 date-released: "2024-06-14"
-commit: a1e2cea4d7489026a3fd99de9c28701d6d4bcc9f
+commit: 7c00b56d077eaf6a2ca691eadd567d974865a03c
 doi: 10.5281/zenodo.592483
 keywords:
   - MEG
@@ -596,8 +596,6 @@ authors:
     given-names: Lorenzo
   - family-names: Hejtmánek
     given-names: Lukáš
-  - family-names: Jack)
-    given-names: Lumberbot (aka
   - family-names: Balatsko
     given-names: Maksym
   - family-names: Kitzbichler
