@@ -1,10 +1,11 @@
-import mne
 from pathlib import Path
-import pandas as pd
-import numpy as np
+
 import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
 from mpl_toolkits.axes_grid1 import make_axes_locatable
-from mne.stats import cluster_level # gives you all functions (also private functions)
+
+import mne
 
 # import and load dataset
 path_to_p3 = Path("C:/Users/Carina/mne_data/ERP_CORE_P3")
@@ -39,7 +40,10 @@ mne.grand_average(non_target_only).plot()
 mne.grand_average(contrast).plot()
 
 # create contrast from evokeds target and non-target
-diff_evoked = [mne.combine_evoked([evokeds_a, evokeds_b], weights=[1, -1]) for evokeds_a, evokeds_b in zip(target_only, non_target_only)]
+diff_evoked = [
+    mne.combine_evoked([evokeds_a, evokeds_b], weights=[1, -1])
+    for evokeds_a, evokeds_b in zip(target_only, non_target_only)
+]
 
 mne.grand_average(diff_evoked).plot()
 
@@ -59,7 +63,7 @@ data = data.transpose(0, 2, 1)
 
 data.shape
 
-adjacency, _ = mne.channels.find_ch_adjacency(contrast[0].info, ch_type='eeg')
+adjacency, _ = mne.channels.find_ch_adjacency(contrast[0].info, ch_type="eeg")
 
 # We want a two-tailed test
 tail = 0
@@ -127,9 +131,7 @@ divider = make_axes_locatable(ax_topo)
 # add axes for colorbar
 ax_colorbar = divider.append_axes("right", size="5%", pad=0.05)
 plt.colorbar(image, cax=ax_colorbar)
-ax_topo.set_xlabel(
-    "Averaged t-map ({:0.3f} - {:0.3f} s)".format(*sig_times[[0, -1]])
-)
+ax_topo.set_xlabel("Averaged t-map ({:0.3f} - {:0.3f} s)".format(*sig_times[[0, -1]]))
 
 # add new axis for time courses and plot time courses
 ax_signals = divider.append_axes("right", size="300%", pad=1.2)
@@ -162,13 +164,16 @@ metadata = epochs.metadata
 
 # Create a new column 'condition' to mark long and short words, with NaN for median values
 contrast = metadata[name].apply(
-    lambda x: 1 if x > float(median_value) else (0 if x < float(median_value) else np.nan)
+    lambda x: 1
+    if x > float(median_value)
+    else (0 if x < float(median_value) else np.nan)
 )
 
 # paired t-test for subjects P300 datasets
 
+
 # external function for MNE user
-def setup_dataframe(data: mne.Epochs | mne.Evokeds , events: list, contrast: list):
+def setup_dataframe(data: mne.Epochs | mne.Evokeds, events: list, contrast: list):
     """
     prepare dataframe for input to cluster_test() function.
 
@@ -180,18 +185,18 @@ def setup_dataframe(data: mne.Epochs | mne.Evokeds , events: list, contrast: lis
     # add a column containing the event_id for each epoch
     df["events"] = events
 
-
     return df
+
 
 # internal function
 import mne.stats.cluster_level
 
+
 def cluster_test(df: pd.Dataframe, paired: bool):
-    
     all_data = {}
 
     # separate epochs for n conditions
-    for ci,cond in enumerate(conditions):
+    for ci, cond in enumerate(conditions):
         # Separate the epochs based on the condition
         all_data[cond] = epochs.data[ci]
 
@@ -202,11 +207,15 @@ def cluster_test(df: pd.Dataframe, paired: bool):
 
         if num_long > num_short:
             # Randomly select indices to drop from long words epochs
-            drop_indices = np.random.choice(num_long, num_long - num_short, replace=True)
+            drop_indices = np.random.choice(
+                num_long, num_long - num_short, replace=True
+            )
             long_words_epochs = long_words_epochs.drop(drop_indices, inplace=True)
         elif num_short > num_long:
             # Randomly select indices to drop from short words epochs
-            drop_indices = np.random.choice(num_short, num_short - num_long, replace=True)
+            drop_indices = np.random.choice(
+                num_short, num_short - num_long, replace=True
+            )
             short_words_epochs = short_words_epochs.drop(drop_indices, inplace=True)
 
         assert len(short_words_epochs) == len(long_words_epochs)
@@ -222,10 +231,11 @@ def cluster_test(df: pd.Dataframe, paired: bool):
         tail=tail,
         adjacency=adjacency,
         verbose=True,
-        seed=123
+        seed=123,
     )
 
     return cluster_out
+
 
 print(min(cluster_p_values))
 
@@ -278,9 +288,7 @@ divider = make_axes_locatable(ax_topo)
 # add axes for colorbar
 ax_colorbar = divider.append_axes("right", size="5%", pad=0.05)
 plt.colorbar(image, cax=ax_colorbar)
-ax_topo.set_xlabel(
-    "Averaged t-map ({:0.3f} - {:0.3f} s)".format(*sig_times[[0, -1]])
-)
+ax_topo.set_xlabel("Averaged t-map ({:0.3f} - {:0.3f} s)".format(*sig_times[[0, -1]]))
 
 # add new axis for time courses and plot time courses
 ax_signals = divider.append_axes("right", size="300%", pad=1.2)
