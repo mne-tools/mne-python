@@ -10,7 +10,6 @@ from mne.stats import cluster_level # gives you all functions (also private func
 # import and load dataset
 path_to_p3 = Path("C:/Users/Carina/mne_data/ERP_CORE_P3")
 
-
 def prep_sample_data(plot_evokeds: bool = False):
     """
     Load the P3 dataset and extract the target, non-target and contrast evokeds.
