@@ -251,6 +251,7 @@ df = prepare_dataframe_for_cluster_function(
 
 cluster_test(df)
 
+
 def cluster_test(
     df: pd.DataFrame,
     contrast: bool = True,
@@ -485,5 +486,6 @@ def plot_cluster(
     plt.show()
 
     return None
+
 
 cluster_test(df)
