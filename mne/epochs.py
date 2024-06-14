@@ -693,37 +693,6 @@ class BaseEpochs(
         self._check_consistency()
         self.set_annotations(annotations, on_missing="ignore")
 
-    def set_bad_epochs_to_NaN(self, bad_epochs_indices: list = None):
-        """
-        Define bad epochs based on indices list and set to NaN.
-
-        Parameters
-        ----------
-        self : instance of Epochs
-        bad_epochs_indices : list of arrays
-            List of arrays with indices of bad epochs per channel.
-
-        Notes
-        -----
-        This function operates in-place.
-        """
-        if not self.preload:
-            raise ValueError("Data must be preloaded.")
-
-        if len(bad_epochs_indices) != self.get_data().shape[1]:
-            raise RuntimeError(
-                "The length of the list of bad epochs indices "
-                "must match the number of channels."
-            )
-        # extract the data from the epochs object: shape (n_epochs, n_channels, n_times)
-        data = self.get_data()
-        # loop over channels of specific type
-        for ch in range(data.shape[1]):
-            # use those indices to set the epochs per channel to NaN for all timepoints
-            data[bad_epochs_indices[ch], ch, :] = np.nan
-        # put back into epochs structure
-        self.data = data
-
     def _check_consistency(self):
         """Check invariants of epochs object."""
         if hasattr(self, "events"):
