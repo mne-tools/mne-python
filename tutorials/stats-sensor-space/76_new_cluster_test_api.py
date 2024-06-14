@@ -118,6 +118,7 @@ def old_api_cluster(n_permutations: int = 10000, seed: int = 1234):
 
     return T_obs, clusters, cluster_p_values, H0
 
+
 def create_random_evokeds_id_condition_list():
     """
     Create a list of shuffled participant IDs, conditions, and evoked data.
@@ -125,7 +126,7 @@ def create_random_evokeds_id_condition_list():
     """
     import random
 
-    _ , evoked_data_a, evoked_data_b = prep_sample_data()
+    _, evoked_data_a, evoked_data_b = prep_sample_data()
 
     # Example participant IDs
     participant_ids = ["p1", "p2", "p3", "p4", "p5"] * 2
@@ -160,11 +161,14 @@ def create_random_paired_evokeds_list():
     Create a list of shuffled evoked data where each pair of target and non-target evoked data is shuffled together.
     """
     import random
+
     _, evoked_data_a, evoked_data_b = prep_sample_data()
 
     # Ensure evoked_data_a and evoked_data_b are of the same length
-    assert len(evoked_data_a) == len(evoked_data_b), "evoked_data_a and evoked_data_b must have the same length"
-    
+    assert len(evoked_data_a) == len(
+        evoked_data_b
+    ), "evoked_data_a and evoked_data_b must have the same length"
+
     # Create a list of participant indices
     participant_indices = list(range(len(evoked_data_a)))
 
@@ -188,7 +192,10 @@ def create_random_paired_evokeds_list():
 original_evoked_data, shuffled_evoked_data = create_random_paired_evokeds_list()
 # shouldn't change the results (p-value is different though?)
 
-shuffled_participant_ids, shuffled_conditions, shuffled_evoked_data = create_random_evokeds_id_condition_list()
+shuffled_participant_ids, shuffled_conditions, shuffled_evoked_data = (
+    create_random_evokeds_id_condition_list()
+)
+
 
 def prepare_dataframe_for_cluster_function(
     evokeds: list = None,
@@ -215,26 +222,31 @@ def prepare_dataframe_for_cluster_function(
         The prepared DataFrame for the cluster test function.
     """
     # Initialize the DataFrame with evoked data
-    df = pd.DataFrame({
-        "evoked": evokeds,
-        "condition": condition if condition is not None else np.nan,
-        "subject_index": subject_index if subject_index is not None else np.nan
-    })
+    df = pd.DataFrame(
+        {
+            "evoked": evokeds,
+            "condition": condition if condition is not None else np.nan,
+            "subject_index": subject_index if subject_index is not None else np.nan,
+        }
+    )
 
     return df
 
+
 # run with original data
-df = prepare_dataframe_for_cluster_function(evokeds=original_evoked_data,
-                                            condition=None,
-                                            subject_index=None)
+df = prepare_dataframe_for_cluster_function(
+    evokeds=original_evoked_data, condition=None, subject_index=None
+)
 
-df = prepare_dataframe_for_cluster_function(evokeds=shuffled_evoked_data,
-                                            condition=None,
-                                            subject_index=None)
+df = prepare_dataframe_for_cluster_function(
+    evokeds=shuffled_evoked_data, condition=None, subject_index=None
+)
 
-df = prepare_dataframe_for_cluster_function(evokeds=shuffled_evoked_data,
-                                            condition=shuffled_conditions,
-                                        subject_index=shuffled_participant_ids)
+df = prepare_dataframe_for_cluster_function(
+    evokeds=shuffled_evoked_data,
+    condition=shuffled_conditions,
+    subject_index=shuffled_participant_ids,
+)
 
 
 def cluster_test(
@@ -269,8 +281,8 @@ def cluster_test(
         The permuted test statistics.
     """
     # Check if conditions and subject_index are present and valid
-    conditions_present = pd.notna(df['condition']).all()
-    subject_index_present = pd.notna(df['subject_index']).all()
+    conditions_present = pd.notna(df["condition"]).all()
+    subject_index_present = pd.notna(df["subject_index"]).all()
 
     if contrast == 1:
         if conditions_present:
@@ -471,5 +483,6 @@ def plot_cluster(
     plt.show()
 
     return None
+
 
 cluster_test(df)
