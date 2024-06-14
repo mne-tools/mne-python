@@ -5,7 +5,6 @@ import pandas as pd
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import mne
 
-# eventually we want to use the _permutation_cluster_test function
 
 # import and load dataset
 path_to_p3 = Path("C:/Users/Carina/mne_data/ERP_CORE_P3")
@@ -85,7 +84,6 @@ def old_api_cluster(n_permutations: int = 10000, seed: int = 1234):
         X=data, stat_fun=None, threshold=None, tail=0, kind="within"
     )
 
-    # adjacency = mne.channels.find_ch_adjacency(contrast[0].info, ch_type='eeg')
     # Run the analysis
     T_obs, clusters, cluster_p_values, H0 = (
         mne.stats.cluster_level._permutation_cluster_test(
@@ -115,24 +113,14 @@ def old_api_cluster(n_permutations: int = 10000, seed: int = 1234):
 
     return T_obs, clusters, cluster_p_values, H0
 
-
-# fit cluster test with dataframe as input
-# create condition list that repeats 5times 1 and then 5 times 0
-# 1 = target, 0 = non-target
-# condition = 5 * [1] + 5 * [0]
-
-# 1 = target, 0 = non-target
-# contrast, target_only, non_target_only = prep_sample_data()
-
-# evokeds_list = target_only + non_target_only
-
-
-def create_random_evokeds_id_condition_list(evoked_data_a: list, evoked_data_b: list):
+def create_random_evokeds_id_condition_list():
     """
     Create a list of shuffled participant IDs, conditions, and evoked data.
     # Keep the participant IDs and conditions paired but shuffle the order of the evoked data.
     """
     import random
+
+    _ , evoked_data_a, evoked_data_b = prep_sample_data()
 
     # Example participant IDs
     participant_ids = ["p1", "p2", "p3", "p4", "p5"] * 2
@@ -162,42 +150,42 @@ def create_random_evokeds_id_condition_list(evoked_data_a: list, evoked_data_b: 
     return shuffled_participant_ids, shuffled_conditions, shuffled_evoked_data
 
 
-def create_random_paired_evokeds_list(evoked_data_a: list, evoked_data_b: list):
+def create_random_paired_evokeds_list():
     """
     Create a list of shuffled evoked data where each pair of target and non-target evoked data is shuffled together.
     """
     import random
+    _, evoked_data_a, evoked_data_b = prep_sample_data()
 
-    # Create a list of tuples where each tuple contains an evoked data and its corresponding label
-    evoked_pairs = [(evoked, 1) for evoked in evoked_data_a] + [
-        (evoked, 0) for evoked in evoked_data_b
-    ]
+    # Ensure evoked_data_a and evoked_data_b are of the same length
+    assert len(evoked_data_a) == len(evoked_data_b), "evoked_data_a and evoked_data_b must have the same length"
+    
+    # Create a list of participant indices
+    participant_indices = list(range(len(evoked_data_a)))
 
-    # Shuffle the list of tuples
-    random.shuffle(evoked_pairs)
+    # Shuffle the list of participant indices
+    random.shuffle(participant_indices)
 
-    # Separate the shuffled list back into evoked data and labels
-    shuffled_evoked_data, shuffled_labels = zip(*evoked_pairs)
+    # Reorder evoked data according to the shuffled participant indices
+    shuffled_evoked_data_a = [evoked_data_a[i] for i in participant_indices]
+    shuffled_evoked_data_b = [evoked_data_b[i] for i in participant_indices]
 
-    # Convert the tuples back to lists
-    shuffled_evoked_data = list(shuffled_evoked_data)
+    # Combine the shuffled evoked data into a single list
+    shuffled_evoked_data = shuffled_evoked_data_a + shuffled_evoked_data_b
 
-    return shuffled_evoked_data
+    # Combine the original evoked data into a single list
+    original_evoked_data = evoked_data_a + evoked_data_b
+
+    return original_evoked_data, shuffled_evoked_data
 
 
 # shuffle order of pairs
-shuffled_evokeds_list = create_random_paired_evokeds_list(target_only, non_target_only)
+original_evoked_data, shuffled_evoked_data = create_random_paired_evokeds_list()
 # shouldn't change the results (p-value is different though?)
 
-shuffled_participant_ids, shuffled_conditions, shuffled_evoked_data = (
-    create_random_evokeds_id_condition_list(
-        evoked_data_a=target_only, evoked_data_b=non_target_only
-    )
-)
-
+shuffled_participant_ids, shuffled_conditions, shuffled_evoked_data = create_random_evokeds_id_condition_list()
 
 def prepare_dataframe_for_cluster_function(
-    contrast: bool = False,
     evokeds: list = None,
     condition: list = None,
     subject_index: list = None,
@@ -216,29 +204,39 @@ def prepare_dataframe_for_cluster_function(
     subject_index : list, optional
         List of subject IDs. Default is None.
 
+    Returns
+    -------
+    df : DataFrame
+        The prepared DataFrame for the cluster test function.
     """
-    # create an empty dataframe
-    df = pd.DataFrame()
+    # Initialize the DataFrame with evoked data
+    df = pd.DataFrame({
+        "evoked": evokeds,
+        "condition": condition if condition is not None else np.nan,
+        "subject_index": subject_index if subject_index is not None else np.nan
+    })
 
-    if contrast == True:
-        # check if evoked list is dividable by 2
-        if len(evokeds) % 2 != 0:
-            raise ValueError("evokeds list needs to be dividable by 2")
-        if condition is not None:
-            # Convert lists to DataFrame for easier manipulation
-            df = pd.DataFrame(
-                {
-                    "evoked": evokeds,
-                    "condition": condition,
-                    "subject_index": subject_index,
-                }
-            )
+    return df
 
-        return df
+# run with original data
+df = prepare_dataframe_for_cluster_function(evokeds=original_evoked_data,
+                                            condition=None,
+                                            subject_index=None)
 
+df = prepare_dataframe_for_cluster_function(evokeds=shuffled_evoked_data,
+                                            condition=None,
+                                            subject_index=None)
+
+df = prepare_dataframe_for_cluster_function(evokeds=shuffled_evoked_data,
+                                            condition=shuffled_conditions,
+                                        subject_index=shuffled_participant_ids)
+
+
+cluster_test(df)
 
 def cluster_test(
     df: pd.DataFrame,
+    contrast: bool = True,
     n_permutations: int = 10000,
     seed: int = 1234,
     contrast_weights: list = [1, -1],
@@ -267,43 +265,47 @@ def cluster_test(
     H0 : array
         The permuted test statistics.
     """
-    if df.condition is not None:
-        # Extract unique conditions
-        unique_conditions = np.unique(df.condition)
-        if len(unique_conditions) != 2:
-            raise ValueError("Condition list needs to contain 2 unique values")
-        if df.subject_index is not None:
+    # Check if conditions and subject_index are present and valid
+    conditions_present = pd.notna(df['condition']).all()
+    subject_index_present = pd.notna(df['subject_index']).all()
+
+    if contrast == 1:
+        if conditions_present:
+            # Extract unique conditions
+            unique_conditions = np.unique(df.condition)
+            if len(unique_conditions) != 2:
+                raise ValueError("Condition list needs to contain 2 unique values")
             # Initialize a list to hold the combined evoked data
             evokeds_data = []
+            if subject_index_present:
+                # Process each subject's evoked data
+                for sub_id in df.subject_index.unique():
+                    sub_df = df[df.subject_index == sub_id]
 
-            # Process each subject's evoked data
-            for sub_id in df.subject_index.unique():
-                sub_df = df[df.subject_index == sub_id]
+                    # Split evokeds list based on condition list for this subject
+                    evokeds_a = sub_df[sub_df.condition == unique_conditions[0]][
+                        "evoked"
+                    ].tolist()
+                    evokeds_b = sub_df[sub_df.condition == unique_conditions[1]][
+                        "evoked"
+                    ].tolist()
 
-                # Split evokeds list based on condition list for this subject
-                evokeds_a = sub_df[sub_df.condition == unique_conditions[0]][
-                    "evoked"
-                ].tolist()
-                evokeds_b = sub_df[sub_df.condition == unique_conditions[1]][
-                    "evoked"
-                ].tolist()
+                    if len(evokeds_a) != 1 or len(evokeds_b) != 1:
+                        raise ValueError(
+                            f"Subject {sub_id}: Each subject must have exactly one evoked for each condition"
+                        )
 
-                if len(evokeds_a) != 1 or len(evokeds_b) != 1:
-                    raise ValueError(
-                        f"Subject {sub_id}: Each subject must have exactly one evoked for each condition"
+                    # Calculate contrast based on condition list
+                    diff_evoked = mne.combine_evoked(
+                        [evokeds_a[0], evokeds_b[0]], weights=contrast_weights
                     )
-
-                # Calculate contrast based on condition list
-                diff_evoked = mne.combine_evoked(
-                    [evokeds_a[0], evokeds_b[0]], weights=contrast_weights
-                )
-                evokeds_data.append(diff_evoked)
+                    evokeds_data.append(diff_evoked)
         else:
             # calculate length of evokeds list
-            n_evokeds = len(df.evokeds)
+            n_evokeds = len(df.evoked)
             # now split evokeds list in two lists
-            evokeds_a = df.evokeds[: n_evokeds // 2]
-            evokeds_b = df.evokeds[n_evokeds // 2 :]
+            evokeds_a = df.evoked[: n_evokeds // 2]
+            evokeds_b = df.evoked[n_evokeds // 2 :]
             # create contrast from evokeds_a and evokeds_b
             diff_evoked = [
                 mne.combine_evoked([evo_a, evo_b], weights=contrast_weights)
@@ -311,7 +313,7 @@ def cluster_test(
             ]
             evokeds_data = diff_evoked
     else:
-        evokeds_data = df.evokeds
+        evokeds_data = df.evoked.tolist()
 
     # extract number of channels
     n_channels = evokeds_data[0].info["nchan"]
@@ -330,19 +332,20 @@ def cluster_test(
         X=data, stat_fun=None, threshold=None, tail=0, kind="within"
     )
 
+    # Run the analysis
     T_obs, clusters, cluster_p_values, H0 = (
         mne.stats.cluster_level._permutation_cluster_test(
             [data],
             threshold=threshold,
             stat_fun=stat_fun,
-            n_jobs=-1,
-            max_step=1,
-            exclude=None,
-            step_down_p=0.05,
-            t_power=1,
+            n_jobs=-1,  # takes all CPU cores
+            max_step=1,  # maximum distance between samples (time points)
+            exclude=None,  # exclude no time points or channels
+            step_down_p=0,  # step down in jumps test
+            t_power=1,  # weigh each location by its stats score
             out_type="indices",
-            check_disjoint=True,
-            buffer_size=None,
+            check_disjoint=False,
+            buffer_size=None,  # block size for chunking the data
             n_permutations=n_permutations,
             tail=0,
             adjacency=adjacency,
