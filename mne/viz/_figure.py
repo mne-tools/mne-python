@@ -15,7 +15,6 @@ from itertools import cycle
 import numpy as np
 
 from .._fiff.pick import _DATA_CH_TYPES_SPLIT
-from ..annotations import Annotations
 from ..defaults import _handle_default
 from ..filter import _iir_filter, _overlap_add_filter
 from ..fixes import _compare_version
@@ -240,33 +239,13 @@ class BrowserBase(ABC):
 
         return color, pick, marked_bad
 
-    def _toggle_single_channel_annotation(self, ch_idx, annot_idx):
-        ch_pick = self.mne.picks[ch_idx]
-        annot_pick = self.mne.inst.annotations[annot_idx]
-
-        # Make a copy of Annotations instance
-        # annots = self.mne.inst.annotations.copy()
-
-        # Make a copy of annotation in question
-        annot_copy = annot_pick.copy()
-
-        # Toggle ch_name in that annotation
-        annot_copy["ch_names"] = list(annot_copy["ch_names"])
-        if ch_pick in annot_copy["ch_names"]:
-            annot_copy.pop(annot_copy["ch_names"].index(ch_pick))
+    def _toggle_single_channel_annotation(self, ch_pick, annot_idx):
+        current_ch_names = list(self.mne.inst.annotations.ch_names[annot_idx])
+        if ch_pick in current_ch_names:
+            current_ch_names.remove(ch_pick)
         else:
-            annot_copy["ch_names"].append(ch_pick)
-
-        # Create new annotation instances
-        new_annot = Annotations(
-            [annot_copy["onset"]],
-            [annot_copy["duration"]],
-            [annot_copy["description"]],
-            ch_names=[annot_copy["ch_names"]],
-        )
-        new_annot._orig_time = annot_copy["orig_time"]
-
-        self.mne.inst.annotations += new_annot
+            current_ch_names.append(ch_pick)
+        self.mne.inst.annotations.ch_names[annot_idx] = tuple(current_ch_names)
 
     def _toggle_bad_epoch(self, xtime):
         epoch_num = self._get_epoch_num_from_time(xtime)
