@@ -1648,7 +1648,7 @@ def _verts_within_dist(graph, sources, max_dist):
 
     Parameters
     ----------
-    graph : scipy.sparse.csr_matrix
+    graph : scipy.sparse.csr_array
         Sparse matrix with distances between adjacent vertices.
     sources : list of int
         Source vertices.
@@ -1673,7 +1673,7 @@ def _verts_within_dist(graph, sources, max_dist):
         verts_added = []
         for i in verts_added_last:
             v_dist = dist_map[i]
-            row = graph[i, :]
+            row = graph[[i], :]
             neighbor_vert = row.indices
             neighbor_dist = row.data
             for j, d in zip(neighbor_vert, neighbor_dist):
@@ -1914,7 +1914,7 @@ def _grow_nonoverlapping_labels(
             label, old_dist = sources[vert_from]
 
             # add neighbors within allowable distance
-            row = graph[vert_from, :]
+            row = graph[[vert_from], :]
             for vert_to, dist in zip(row.indices, row.data):
                 # Prevent adding a point that has already been used
                 # (prevents infinite loop)
@@ -2572,9 +2572,9 @@ def _labels_to_stc_surf(labels, values, tmin, tstep, subject):
         data[hemi] = np.concatenate(data[hemi], axis=0).astype(float)
         cols = np.arange(len(vertices[hemi]))
         vertices[hemi], rows = np.unique(vertices[hemi], return_inverse=True)
-        mat = sparse.coo_matrix((np.ones(len(rows)), (rows, cols))).tocsr()
-        mat = mat * sparse.diags(1.0 / np.asarray(mat.sum(axis=-1))[:, 0])
-        data[hemi] = mat.dot(data[hemi])
+        mat = sparse.coo_array((np.ones(len(rows)), (rows, cols))).tocsr()
+        mat *= 1.0 / mat.sum(axis=-1)
+        data[hemi] = mat @ data[hemi]
     vertices = [vertices[hemi] for hemi in hemis]
     data = np.concatenate([data[hemi] for hemi in hemis], axis=0)
     return data, vertices, subject

@@ -472,7 +472,7 @@ def test_find_ch_adjacency():
     for ch_type in ["mag", "grad", "eeg"]:
         conn, ch_names = find_ch_adjacency(raw.info, ch_type)
         # Silly test for checking the number of neighbors.
-        assert_equal(conn.getnnz(), sizes[ch_type])
+        assert_equal(conn.astype(bool).sum(), sizes[ch_type])
         assert_equal(len(ch_names), nchans[ch_type])
         kwargs = dict(exclude=())
         if ch_type in ("mag", "grad"):
@@ -485,7 +485,7 @@ def test_find_ch_adjacency():
 
     # Test computing the conn matrix with gradiometers.
     conn, ch_names = _compute_ch_adjacency(raw.info, "grad")
-    assert_equal(conn.getnnz(), 2680)
+    assert_equal(conn.astype(bool).sum(), 2680)
 
     # Test ch_type=None.
     raw.pick(picks="mag")
@@ -516,7 +516,7 @@ def test_neuromag122_adjacency():
     nm122_fname = testing_path / "misc" / "neuromag122_test_file-raw.fif"
     raw = read_raw_fif(nm122_fname)
     conn, ch_names = find_ch_adjacency(raw.info, "grad")
-    assert conn.getnnz() == 1564
+    assert conn.astype(bool).sum() == 1564
     assert len(ch_names) == 122
     assert conn.shape == (122, 122)
 

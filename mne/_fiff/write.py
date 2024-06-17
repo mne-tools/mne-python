@@ -12,7 +12,7 @@ from contextlib import contextmanager
 from gzip import GzipFile
 
 import numpy as np
-from scipy.sparse import csc_matrix, csr_matrix
+from scipy.sparse import csc_array, csr_array
 
 from ..utils import _file_like, _validate_type, logger
 from ..utils.numerics import _cal_to_julian
@@ -417,8 +417,8 @@ def write_float_sparse_rcs(fid, kind, mat):
 def write_float_sparse(fid, kind, mat, fmt="auto"):
     """Write a single-precision floating-point sparse matrix tag."""
     if fmt == "auto":
-        fmt = "csr" if isinstance(mat, csr_matrix) else "csc"
-    need = csr_matrix if fmt == "csr" else csc_matrix
+        fmt = "csr" if isinstance(mat, csr_array) else "csc"
+    need = csr_array if fmt == "csr" else csc_array
     matrix_type = getattr(FIFF, f"FIFFT_SPARSE_{fmt[-1].upper()}CS_MATRIX")
     _validate_type(mat, need, "sparse")
     matrix_type = matrix_type | FIFF.FIFFT_MATRIX | FIFF.FIFFT_FLOAT

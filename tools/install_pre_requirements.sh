@@ -46,7 +46,7 @@ python -m pip install $STD_ARGS vtk
 python -c "import vtk"
 
 echo "PyVista"
-python -m pip install $STD_ARGS git+https://github.com/pyvista/pyvista
+python -m pip install $STD_ARGS "git+https://github.com/pyvista/pyvista"
 
 echo "picard"
 python -m pip install $STD_ARGS git+https://github.com/pierreablin/picard

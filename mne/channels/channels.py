@@ -24,7 +24,7 @@ from typing import Union
 
 import numpy as np
 from scipy.io import loadmat
-from scipy.sparse import csr_matrix, lil_matrix
+from scipy.sparse import csr_array, lil_array
 from scipy.spatial import Delaunay
 from scipy.stats import zscore
 
@@ -1336,7 +1336,7 @@ def read_ch_adjacency(fname, picks=None):
 
     Returns
     -------
-    ch_adjacency : scipy.sparse.csr_matrix, shape (n_channels, n_channels)
+    ch_adjacency : scipy.sparse.csr_array, shape (n_channels, n_channels)
         The adjacency matrix.
     ch_names : list
         The list of channel names present in adjacency matrix.
@@ -1437,7 +1437,7 @@ def _ch_neighbor_adjacency(ch_names, neighbors):
     ch_adjacency = np.eye(len(ch_names), dtype=bool)
     for ii, neigbs in enumerate(neighbors):
         ch_adjacency[ii, [ch_names.index(i) for i in neigbs]] = True
-    ch_adjacency = csr_matrix(ch_adjacency)
+    ch_adjacency = csr_array(ch_adjacency)
     return ch_adjacency
 
 
@@ -1459,7 +1459,7 @@ def find_ch_adjacency(info, ch_type):
 
     Returns
     -------
-    ch_adjacency : scipy.sparse.csr_matrix, shape (n_channels, n_channels)
+    ch_adjacency : scipy.sparse.csr_array, shape (n_channels, n_channels)
         The adjacency matrix.
     ch_names : list
         The list of channel names present in adjacency matrix.
@@ -1572,7 +1572,7 @@ def _compute_ch_adjacency(info, ch_type):
 
     Returns
     -------
-    ch_adjacency : scipy.sparse.csr_matrix, shape (n_channels, n_channels)
+    ch_adjacency : scipy.sparse.csr_array, shape (n_channels, n_channels)
         The adjacency matrix.
     ch_names : list
         The list of channel names present in adjacency matrix.
@@ -1611,9 +1611,9 @@ def _compute_ch_adjacency(info, ch_type):
                 for jj in range(2):
                     ch_adjacency[idx * 2 + ii, neigbs * 2 + jj] = True
                     ch_adjacency[idx * 2 + ii, idx * 2 + jj] = True  # pair
-        ch_adjacency = csr_matrix(ch_adjacency)
+        ch_adjacency = csr_array(ch_adjacency)
     else:
-        ch_adjacency = lil_matrix(neighbors)
+        ch_adjacency = lil_array(neighbors)
         ch_adjacency.setdiag(np.repeat(1, ch_adjacency.shape[0]))
         ch_adjacency = ch_adjacency.tocsr()
 

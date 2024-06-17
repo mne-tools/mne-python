@@ -101,10 +101,17 @@ def _safe_svd(A, **kwargs):
         return linalg.svd(A, lapack_driver="gesvd", **kwargs)
 
 
-def _csc_matrix_cast(x):
-    from scipy.sparse import csc_matrix
+def _csc_array_cast(x):
+    from scipy.sparse import csc_array
 
-    return csc_matrix(x)
+    return csc_array(x)
+
+
+# Can be replaced with sparse.eye_array once we depend on SciPy >= 1.12
+def _eye_array(n, *, format="csr"):  # noqa: A002
+    from scipy import sparse
+
+    return sparse.dia_array((np.ones(n), 0), shape=(n, n)).asformat(format)
 
 
 ###############################################################################

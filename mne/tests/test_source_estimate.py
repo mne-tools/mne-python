@@ -1607,7 +1607,7 @@ def test_vol_adjacency():
     n_vertices = vol[0]["inuse"].sum()
     assert_equal(adjacency.shape, (n_vertices, n_vertices))
     assert np.all(adjacency.data == 1)
-    assert isinstance(adjacency, sparse.coo_matrix)
+    assert isinstance(adjacency, sparse.coo_array)
 
     adjacency2 = spatio_temporal_src_adjacency(vol, n_times=2)
     assert_equal(adjacency2.shape, (2 * n_vertices, 2 * n_vertices))
