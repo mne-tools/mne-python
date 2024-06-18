@@ -104,7 +104,7 @@ stages:
             displayName: 'Test minimal commands'
           - task: UsePythonVersion@0
             inputs:
-              versionSpec: '3.9'
+              versionSpec: '3.12'
               architecture: 'x64'
               addToPath: true
             displayName: 'Get Python'
@@ -255,9 +255,9 @@ stages:
         strategy:
           maxParallel: 4
           matrix:
-            3.9 pip:
+            3.10 pip:
               TEST_MODE: 'pip'
-              PYTHON_VERSION: '3.9'
+              PYTHON_VERSION: '3.10'
             3.12 pip pre:
               TEST_MODE: 'pip-pre'
               PYTHON_VERSION: '3.12'
