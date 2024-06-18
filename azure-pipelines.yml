@@ -200,7 +200,7 @@ stages:
             displayName: 'PyQt6'
           - bash: |
               set -e
-              python -m pip install "PySide6!=6.7.0,!=6.7.1"
+              python -m pip install "PySide6!=6.7.0,!=6.7.1,!=6.7.2"
               mne sys_info -pd
               mne sys_info -pd | grep "qtpy .* (PySide6=.*)$"
               PYTEST_QT_API=PySide6 pytest -m "not slowtest" ${TEST_OPTIONS}
