@@ -1367,6 +1367,7 @@ def reset_warnings(gallery_conf, fname):
         "vert: bool was deprecated in.*",
         # bibtex latexcodec
         "open_text is deprecated.*",
+        r"numpy\.core is deprecated and has been renamed to numpy\._core",
     ):
         warnings.filterwarnings(  # deal with other modules having bad imports
             "ignore", message=".*%s.*" % key, category=DeprecationWarning
