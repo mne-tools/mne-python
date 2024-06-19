@@ -124,11 +124,9 @@ def _check_before_dict_reference(inst, ref_dict):
         ), f"Channel {key} in ref_channels is not in the instance"
         # Throw a warning if the key and value are the same:
         if isinstance(value, str) and key == value:
-            msg = (
-                f"Channel {key} is re-referenced by itself, which will nullify that channel"
-            )
+            msg = f"Channel {key} is re-referenced by itself, which will nullify that channel"
             _on_missing("warn", msg)
-            
+
         key_pick = pick_channels(inst.ch_names, [key], ordered=True)
         key_ch_type = inst.get_channel_types(picks=key_pick)[0]
         # Check values

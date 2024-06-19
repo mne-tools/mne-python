@@ -431,7 +431,7 @@ def test_set_eeg_reference_rest():
             pytest.warns(
                 RuntimeWarning,
                 match=(
-                        "Channel EEG 001 is re-referenced by itself, which will nullify that channel"
+                    "Channel EEG 001 is re-referenced by itself, which will nullify that channel"
                 ),
             ),
         ),
@@ -512,7 +512,7 @@ def test_set_eeg_reference_rest():
             pytest.warns(
                 RuntimeWarning,
                 match=(
-                        "Channel EEG 001 is re-referenced by itself, which will nullify that channel"
+                    "Channel EEG 001 is re-referenced by itself, which will nullify that channel"
                 ),
             ),
         ),
