@@ -366,25 +366,28 @@ def test_set_eeg_reference_rest():
 
 @testing.requires_testing_data
 @pytest.mark.parametrize(
-    "ref_channels, inst_type, expectation",
+    "inst_type",
+    [
+        "raw", "epochs"
+    ]
+)
+@pytest.mark.parametrize(
+    "ref_channels, expectation",
     [
         (
             {2: "EEG 001"},
-            "raw",
             pytest.raises(
                 AssertionError, match=f"Keys in dict-type.*You provided {int}"
             ),
         ),
         (
             {"EEG 001": (1, 2)},
-            "raw",
             pytest.raises(
                 ValueError, match=f"Values in dict-type.*You provided {type((1,2))}"
             ),
         ),
         (
             {"EEG 001": [1, 2]},
-            "raw",
             pytest.raises(
                 AssertionError,
                 match="Values in dict-type.*You provided a list of <class 'int'>",
@@ -392,7 +395,6 @@ def test_set_eeg_reference_rest():
         ),
         (
             {"EEG 999": "EEG 001"},
-            "raw",
             pytest.raises(
                 AssertionError,
                 match="Channel EEG 999 in ref_channels is not in the instance",
@@ -400,7 +402,6 @@ def test_set_eeg_reference_rest():
         ),
         (
             {"EEG 001": "EEG 999"},
-            "raw",
             pytest.raises(
                 AssertionError,
                 match="Channel EEG 999 in ref_channels is not in the instance",
@@ -408,7 +409,6 @@ def test_set_eeg_reference_rest():
         ),
         (
             {"EEG 001": "EEG 057"},
-            "raw",
             pytest.warns(
                 RuntimeWarning,
                 match="Channel EEG 057 in ref_channels is marked as bad!",
@@ -416,7 +416,6 @@ def test_set_eeg_reference_rest():
         ),
         (
             {"EEG 001": "STI 001"},
-            "raw",
             pytest.warns(
                 RuntimeWarning,
                 match=(
@@ -427,7 +426,6 @@ def test_set_eeg_reference_rest():
         ),
         (
             {"EEG 001": "EEG 001"},
-            "raw",
             pytest.warns(
                 RuntimeWarning,
                 match=(
@@ -437,7 +435,6 @@ def test_set_eeg_reference_rest():
         ),
         (
             {"EEG 001": "EEG 002", "EEG 002": "EEG 003", "EEG 003": "EEG 005"},
-            "raw",
             nullcontext(),
         ),
         (
@@ -446,88 +443,6 @@ def test_set_eeg_reference_rest():
                 "EEG 002": "EEG 003",
                 "EEG 003": "EEG 005",
             },
-            "raw",
-            nullcontext(),
-        ),
-        (
-            {2: "EEG 001"},
-            "epochs",
-            pytest.raises(
-                AssertionError, match=f"Keys in dict-type.*You provided {int}"
-            ),
-        ),
-        (
-            {"EEG 001": (1, 2)},
-            "epochs",
-            pytest.raises(
-                ValueError, match=f"Values in dict-type.*You provided {type((1, 2))}"
-            ),
-        ),
-        (
-            {"EEG 001": [1, 2]},
-            "epochs",
-            pytest.raises(
-                AssertionError,
-                match="Values in dict-type.*You provided a list of <class 'int'>",
-            ),
-        ),
-        (
-            {"EEG 999": "EEG 001"},
-            "epochs",
-            pytest.raises(
-                AssertionError,
-                match="Channel EEG 999 in ref_channels is not in the instance",
-            ),
-        ),
-        (
-            {"EEG 001": "EEG 999"},
-            "epochs",
-            pytest.raises(
-                AssertionError,
-                match="Channel EEG 999 in ref_channels is not in the instance",
-            ),
-        ),
-        (
-            {"EEG 001": "EEG 057"},
-            "epochs",
-            pytest.warns(
-                RuntimeWarning,
-                match="Channel EEG 057 in ref_channels is marked as bad!",
-            ),
-        ),
-        (
-            {"EEG 001": "STI 001"},
-            "epochs",
-            pytest.warns(
-                RuntimeWarning,
-                match=(
-                    "Channel EEG 001 is of type EEG, "
-                    "but reference channel STI 001 is of type Stimulus."
-                ),
-            ),
-        ),
-        (
-            {"EEG 001": "EEG 001"},
-            "epochs",
-            pytest.warns(
-                RuntimeWarning,
-                match=(
-                    "Channel EEG 001 is re-referenced by itself, which will nullify that channel"
-                ),
-            ),
-        ),
-        (
-            {"EEG 001": "EEG 002", "EEG 002": "EEG 003", "EEG 003": "EEG 005"},
-            "epochs",
-            nullcontext(),
-        ),
-        (
-            {
-                "EEG 001": ["EEG 002", "EEG 003"],
-                "EEG 002": "EEG 003",
-                "EEG 003": "EEG 005",
-            },
-            "epochs",
             nullcontext(),
         ),
     ],
