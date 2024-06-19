@@ -225,8 +225,8 @@ def prepare_dataframe_for_cluster_function(
     df = pd.DataFrame(
         {
             "evoked": evokeds,
-            "condition": condition if condition is not None else np.nan,
-            "subject_index": subject_index if subject_index is not None else np.nan,
+            "condition": condition if condition is not None else pd.NA,
+            "subject_index": subject_index if subject_index is not None else pd.NA,
         }
     )
 
@@ -249,15 +249,13 @@ df = prepare_dataframe_for_cluster_function(
 )
 
 
-cluster_test(df)
-
-
 def cluster_test(
     df: pd.DataFrame,
-    contrast: bool = True,
+    formula: str = None, # Wilkinson notation formula for design matrix
+    contrast: bool = True, # will be replaced by formulaic design matrix
     n_permutations: int = 10000,
-    seed: int = 1234,
-    contrast_weights: list = [1, -1],
+    seed: None | int | np.random.RandomState = None,
+    contrast_weights: list = [1, -1], # will be replaced by formulaic design matrix
 ):
     """
     Run the cluster test using the new API.
@@ -286,6 +284,22 @@ def cluster_test(
     # Check if conditions and subject_index are present and valid
     conditions_present = pd.notna(df["condition"]).all()
     subject_index_present = pd.notna(df["subject_index"]).all()
+
+    # add a data column to the dataframe (numpy array)
+    df["data"] = [evoked.data for evoked in df.evoked]
+
+    # convert wide format to long format
+    df_long = convert_wide_to_long(df)
+
+    # check if formula is present
+    if formula is not None:
+        import formulaic
+
+        # create design matrix based on formula
+        # Create the design matrix using formulaic
+        y, X = formulaic.model_matrix(formula, df_long)
+
+        # what to do with the design matrix?
 
     if contrast == 1:
         if conditions_present:
@@ -380,6 +394,29 @@ def cluster_test(
     plot_cluster(contrast, evokeds_a, evokeds_b, T_obs, clusters, cluster_p_values)
 
     return T_obs, clusters, cluster_p_values, H0
+
+# Convert wide format to long format
+def convert_wide_to_long(df):
+    long_format_data = []
+    for idx, row in df.iterrows():
+        condition = row['condition']
+        subject_index = row['subject_index']
+        data_2d = row['data']
+        
+        for channel in range(data_2d.shape[0]):
+            for timepoint in range(data_2d.shape[1]):
+                long_format_data.append({
+                    'condition': condition,
+                    'subject_index': subject_index,
+                    'channel': channel,
+                    'timepoint': timepoint,
+                    'value': data_2d[channel, timepoint]
+                })
+    
+    df_long = pd.DataFrame(long_format_data)
+    return df_long
+
+df_long = convert_wide_to_long(df)
 
 
 def plot_cluster(
@@ -485,7 +522,6 @@ def plot_cluster(
 
     plt.show()
 
-    return None
 
 
 cluster_test(df)
