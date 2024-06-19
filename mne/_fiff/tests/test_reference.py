@@ -371,34 +371,32 @@ def test_set_eeg_reference_rest():
     [
         (
             {2: "EEG 001"},
-            pytest.raises(
-                AssertionError, match=f"Keys in dict-type.*You provided {int}"
-            ),
+            pytest.raises(TypeError, match=f"Keys in dict-type.*You provided {int}"),
         ),
         (
             {"EEG 001": (1, 2)},
             pytest.raises(
-                ValueError, match=f"Values in dict-type.*You provided {type((1,2))}"
+                TypeError, match=f"Values in dict-type.*You provided {type((1,2))}"
             ),
         ),
         (
             {"EEG 001": [1, 2]},
             pytest.raises(
-                AssertionError,
-                match="Values in dict-type.*You provided a list of <class 'int'>",
+                TypeError,
+                match="Values in dict-type.*You provided <class 'int'>",
             ),
         ),
         (
             {"EEG 999": "EEG 001"},
             pytest.raises(
-                AssertionError,
+                ValueError,
                 match="Channel EEG 999 in ref_channels is not in the instance",
             ),
         ),
         (
             {"EEG 001": "EEG 999"},
             pytest.raises(
-                AssertionError,
+                ValueError,
                 match="Channel EEG 999 in ref_channels is not in the instance",
             ),
         ),
@@ -424,7 +422,8 @@ def test_set_eeg_reference_rest():
             pytest.warns(
                 RuntimeWarning,
                 match=(
-                    "Channel EEG 001 is re-referenced by itself, which will nullify that channel"
+                    "Channel EEG 001 is re-referenced by itself, "
+                    "which will nullify that channel"
                 ),
             ),
         ),

@@ -92,16 +92,28 @@ def _check_before_dict_reference(inst, ref_dict):
     # Check to see that data is preloaded
     _check_preload(inst, "Applying a reference")
 
-    def check_value_str(inst, value, key_ch_type):
-        # Check that value is in ch_names
-        assert (
-            value in inst.ch_names
-        ), f"Channel {value} in ref_channels is not in the instance"
-        # If value is a bad channel, issue a warning
+    def _check_item(inst, item, item_type):
+        """Check if item (key or value) is string and in instance."""
+        if not isinstance(item, str):
+            if item_type == "key":
+                raise TypeError(
+                    f"Keys in dict-type ref_channels must be strings. "
+                    f"You provided {type(item)}"
+                )
+            else:
+                raise TypeError(
+                    f"Values in dict-type ref_channels must be strings or "
+                    f"lists of strings. You provided {type(item)}"
+                )
+        if item not in inst.ch_names:
+            raise ValueError(f"Channel {item} in ref_channels is not in the instance")
+
+    def _value_warning(inst, value, key_ch_type):
+        # Add warnings for bad channels are present
         if value in inst.info["bads"]:
             msg = f"Channel {value} in ref_channels is marked as bad!"
             _on_missing("warn", msg)
-        # If key and value are of different channel types, issue a warning
+        # Add warnings if channel types don't match
         value_pick = pick_channels(inst.ch_names, [value], ordered=True)
         value_ch_type = inst.get_channel_types(picks=value_pick)[0]
         if key_ch_type != value_ch_type:
@@ -113,40 +125,25 @@ def _check_before_dict_reference(inst, ref_dict):
             _on_missing("warn", msg)
 
     for key, value in ref_dict.items():
-        # Check that keys are strings
-        assert isinstance(key, str), (
-            "Keys in dict-type ref_channels must be strings. You provided "
-            f"{type(key)}."
-        )
-        # Check that keys are in ch_names
-        assert (
-            key in inst.ch_names
-        ), f"Channel {key} in ref_channels is not in the instance"
-        # Throw a warning if the key and value are the same:
-        if isinstance(value, str) and key == value:
-            msg = f"Channel {key} is re-referenced by itself, which will nullify that channel"
-            _on_missing("warn", msg)
-
+        # Check key
+        _check_item(inst, key, "key")
         key_pick = pick_channels(inst.ch_names, [key], ordered=True)
         key_ch_type = inst.get_channel_types(picks=key_pick)[0]
-        # Check values
-        if isinstance(value, str):
-            check_value_str(inst, value, key_ch_type)
-        elif isinstance(value, list):
+
+        # Check value
+        if isinstance(value, list):
             for val in value:
-                # Check that values are strings
-                assert isinstance(val, str), (
-                    "Values in dict-type ref_channels must be strings or "
-                    "lists of strings. You provided a list of "
-                    f"{type(val)}"
-                )
-                check_value_str(inst, val, key_ch_type)
+                _check_item(inst, val, "value")
+                _value_warning(inst, val, key_ch_type)
         else:
-            raise ValueError(
-                "Values in dict-type ref_channels must be strings or "
-                "lists of strings. You provided "
-                f"{type(value)}"
-            )
+            _check_item(inst, value, "value")
+            _value_warning(inst, value, key_ch_type)
+            if key == value:
+                msg = (
+                    f"Channel {key} is re-referenced by itself, "
+                    "which will nullify that channel"
+                )
+                _on_missing("warn", msg)
 
 
 def _apply_reference(inst, ref_from, ref_to=None, forward=None, ch_type="auto"):
