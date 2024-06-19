@@ -365,12 +365,7 @@ def test_set_eeg_reference_rest():
 
 
 @testing.requires_testing_data
-@pytest.mark.parametrize(
-    "inst_type",
-    [
-        "raw", "epochs"
-    ]
-)
+@pytest.mark.parametrize("inst_type", ["raw", "epochs"])
 @pytest.mark.parametrize(
     "ref_channels, expectation",
     [
