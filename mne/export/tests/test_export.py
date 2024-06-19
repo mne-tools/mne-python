@@ -215,6 +215,33 @@ def test_edf_physical_range(tmp_path):
     raw_read = read_raw_edf(temp_fname, preload=True)
     assert_array_almost_equal(raw.get_data(), raw_read.get_data(), decimal=10)
 
+@edfio_mark()
+@pytest.mark.parametrize('pad_width', (1, 10, 100, 500, 999))
+def test_edf_padding(tmp_path, pad_width):
+    """Test exporting an EDF file with not-equal-length data blocks"""
+    ch_types = ["eeg"] * 4
+    ch_names = np.arange(len(ch_types)).astype(str).tolist()
+    fs = 1000
+    info = create_info(len(ch_types), sfreq=fs, ch_types=ch_types)
+    data = np.tile(
+        np.sin(2 * np.pi * 10 * np.arange(0, 2, 1 / fs)) * 1e-5, (len(ch_names), 1)
+    )[:, 0:-pad_width]  # remove last pad_width samples
+    raw = RawArray(data, info)
+
+    # export with physical range per channel type (default)
+    temp_fname = tmp_path / "test.edf"
+    with pytest.warns(
+        RuntimeWarning,
+        match=("EDF format requires equal-length data blocks.*"
+               f"{pad_width/1000:.3g} seconds of edge values were appended.*")
+        ):
+        raw.export(temp_fname)
+
+    # read in the file
+    raw_read = read_raw_edf(temp_fname, preload=True)
+    edge_data = raw_read.get_data()[:, -pad_width-1]
+    pad_data = raw_read.get_data()[:, -pad_width:]
+    assert_array_almost_equal(pad_data, np.tile(edge_data, (pad_width, 1)).T, decimal=10)
 
 @edfio_mark()
 def test_export_edf_annotations(tmp_path):

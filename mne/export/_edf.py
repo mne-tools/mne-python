@@ -62,10 +62,10 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
         if (pad_width := int(np.ceil(n_times / sfreq) * sfreq - n_times)) > 0:
             warn(
                 "EDF format requires equal-length data blocks, so "
-                f"{pad_width / sfreq:.3g} seconds of zeros were appended to all "
+                f"{pad_width / sfreq:.3g} seconds of edge values were appended to all "
                 "channels when writing the final block."
             )
-            data = np.pad(data, (0, int(pad_width)))
+            data = np.pad(data, (0, int(pad_width)), "edge")
     else:
         data_record_duration = _round_float_to_8_characters(
             np.floor(sfreq) / sfreq, round
