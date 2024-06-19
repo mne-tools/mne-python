@@ -426,14 +426,24 @@ def test_set_eeg_reference_rest():
             ),
         ),
         (
-            {"EEG 001": "EEG 002", "EEG 002": "EEG 002", "EEG 003": "EEG 005"},
+            {"EEG 001": "EEG 001"},
+            "raw",
+            pytest.warns(
+                RuntimeWarning,
+                match=(
+                        "Channel EEG 001 is re-referenced by itself, which will nullify that channel"
+                ),
+            ),
+        ),
+        (
+            {"EEG 001": "EEG 002", "EEG 002": "EEG 003", "EEG 003": "EEG 005"},
             "raw",
             nullcontext(),
         ),
         (
             {
                 "EEG 001": ["EEG 002", "EEG 003"],
-                "EEG 002": "EEG 002",
+                "EEG 002": "EEG 003",
                 "EEG 003": "EEG 005",
             },
             "raw",
@@ -497,14 +507,24 @@ def test_set_eeg_reference_rest():
             ),
         ),
         (
-            {"EEG 001": "EEG 002", "EEG 002": "EEG 002", "EEG 003": "EEG 005"},
+            {"EEG 001": "EEG 001"},
+            "epochs",
+            pytest.warns(
+                RuntimeWarning,
+                match=(
+                        "Channel EEG 001 is re-referenced by itself, which will nullify that channel"
+                ),
+            ),
+        ),
+        (
+            {"EEG 001": "EEG 002", "EEG 002": "EEG 003", "EEG 003": "EEG 005"},
             "epochs",
             nullcontext(),
         ),
         (
             {
                 "EEG 001": ["EEG 002", "EEG 003"],
-                "EEG 002": "EEG 002",
+                "EEG 002": "EEG 003",
                 "EEG 003": "EEG 005",
             },
             "epochs",
