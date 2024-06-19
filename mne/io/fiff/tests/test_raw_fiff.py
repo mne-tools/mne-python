@@ -60,7 +60,6 @@ ctf_comp_fname = base_dir / "test_ctf_comp_raw.fif"
 fif_bad_marked_fname = base_dir / "test_withbads_raw.fif"
 bad_file_works = base_dir / "test_bads.txt"
 bad_file_wrong = base_dir / "test_wrong_bads.txt"
-hp_fname = base_dir / "test_chpi_raw_hp.txt"
 hp_fif_fname = base_dir / "test_chpi_raw_sss.fif"
 
 
@@ -675,6 +674,36 @@ def test_split_files(tmp_path, mod, monkeypatch):
     assert not fname_3.is_file()
 
 
+def test_bids_split_files(tmp_path):
+    """Test that BIDS split files are written safely."""
+    mne_bids = pytest.importorskip("mne_bids")
+    bids_path = mne_bids.BIDSPath(
+        root=tmp_path,
+        subject="01",
+        datatype="meg",
+        split="01",
+        suffix="raw",
+        extension=".fif",
+        check=False,
+    )
+    (tmp_path / "sub-01" / "meg").mkdir(parents=True)
+    raw = read_raw_fif(test_fif_fname)
+    save_kwargs = dict(
+        buffer_size_sec=1.0, split_size="10MB", split_naming="bids", verbose=True
+    )
+    with pytest.raises(ValueError, match="Passing a BIDSPath"):
+        raw.save(bids_path, **save_kwargs)
+    bids_path.split = None
+    want_paths = [
+        Path(bids_path.copy().update(split=f"{ii:02d}").fpath) for ii in range(1, 3)
+    ]
+    for want_path in want_paths:
+        assert not want_path.is_file()
+    raw.save(bids_path, **save_kwargs)
+    for want_path in want_paths:
+        assert want_path.is_file(), want_path
+
+
 def _err(*args, **kwargs):
     raise RuntimeError("Killed mid-write")
 
@@ -1264,7 +1293,7 @@ def test_crop():
         assert raw1[:][0].shape == (1, 2001)
 
     # degenerate
-    with pytest.raises(ValueError, match="No samples.*when include_tmax=Fals"):
+    with pytest.raises(ValueError, match="No samples.*when include_tmax=False"):
         raw.crop(0, 0, include_tmax=False)
 
     # edge cases cropping to exact duration +/- 1 sample
@@ -2092,8 +2121,9 @@ def test_corrupted(tmp_path, offset):
     bad_fname = tmp_path / "test_raw.fif"
     with open(bad_fname, "wb") as fid:
         fid.write(data)
-    with _record_warnings(), pytest.warns(
-        RuntimeWarning, match=".*tag directory.*corrupt.*"
+    with (
+        _record_warnings(),
+        pytest.warns(RuntimeWarning, match=".*tag directory.*corrupt.*"),
     ):
         raw_bad = read_raw_fif(bad_fname)
     assert_allclose(raw.get_data(), raw_bad.get_data())

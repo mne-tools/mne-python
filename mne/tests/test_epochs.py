@@ -87,13 +87,6 @@ event_id_2 = np.int64(2)  # to test non Python int types
 rng = np.random.RandomState(42)
 
 
-pytestmark = [
-    pytest.mark.filterwarnings(
-        "ignore:The current default of copy=False will change to copy=.*:FutureWarning",
-    ),
-]
-
-
 def _create_epochs_with_annotations():
     """Create test dataset of Epochs with Annotations."""
     # set up a test dataset
@@ -334,8 +327,7 @@ def test_get_data_copy():
     data = epochs.get_data(copy=True)
     assert not np.shares_memory(data, epochs._data)
 
-    with pytest.warns(FutureWarning, match="The current default of copy=False will"):
-        data = epochs.get_data(verbose="debug")
+    data = epochs.get_data(copy=False, verbose="debug")
     assert np.shares_memory(data, epochs._data)
     assert data is epochs._data
     data_orig = data.copy()
@@ -597,7 +589,7 @@ def test_reject():
             )
 
     # Check if callable returns a tuple with reasons
-    bad_types = [my_reject_2, ("Hi" "Hi"), (1, 1), None]
+    bad_types = [my_reject_2, ("HiHi"), (1, 1), None]
     for val in bad_types:  # protect against bad types
         for kwarg in ("reject", "flat"):
             with pytest.raises(
@@ -1666,43 +1658,79 @@ def test_split_saving_and_loading_back(tmp_path, epochs_to_split, preload):
 
 
 @pytest.mark.parametrize(
-    "split_naming, dst_fname, split_fname_fn",
+    "split_naming, dst_fname, split_fname_fn, check_bids",
     [
         (
             "neuromag",
             "test_epo.fif",
             lambda i: f"test_epo-{i}.fif" if i else "test_epo.fif",
+            False,
         ),
         (
             "bids",
-            "test_epo.fif",
-            lambda i: f"test_split-{i + 1:02d}_epo.fif",
+            Path("sub-01") / "meg" / "sub-01_epo.fif",
+            lambda i: Path("sub-01") / "meg" / f"sub-01_split-{i + 1:02d}_epo.fif",
+            True,
         ),
         (
             "bids",
             "a_b-epo.fif",
             # Merely stating the fact:
             lambda i: f"a_split-{i + 1:02d}_b-epo.fif",
+            False,
         ),
     ],
     ids=["neuromag", "bids", "mix"],
 )
 def test_split_naming(
-    tmp_path, epochs_to_split, split_naming, dst_fname, split_fname_fn
+    tmp_path, epochs_to_split, split_naming, dst_fname, split_fname_fn, check_bids
 ):
     """Test naming of the split files."""
     epochs, split_size, n_files = epochs_to_split
     dst_fpath = tmp_path / dst_fname
     save_kwargs = {"split_size": split_size, "split_naming": split_naming}
     # we don't test for reserved files as it's not implemented here
+    if dst_fpath.parent != tmp_path:
+        dst_fpath.parent.mkdir(parents=True)
 
     epochs.save(dst_fpath, verbose=True, **save_kwargs)
 
     # check that the filenames match the intended pattern
-    assert len(list(tmp_path.iterdir())) == n_files
-    for i in range(n_files):
-        assert (tmp_path / split_fname_fn(i)).is_file()
+    assert len(list(dst_fpath.parent.iterdir())) == n_files
     assert not (tmp_path / split_fname_fn(n_files)).is_file()
+    want_paths = [tmp_path / split_fname_fn(i) for i in range(n_files)]
+    for want_path in want_paths:
+        assert want_path.is_file()
+
+    if not check_bids:
+        return
+    # gh-12451
+    # If we load sub-01_split-01_epo.fif we should then we shouldn't
+    # write sub-01_split-01_split-01_epo.fif
+    mne_bids = pytest.importorskip("mne_bids")
+    # Let's try to prevent people from making a mistake
+    bids_path = mne_bids.BIDSPath(
+        root=tmp_path,
+        subject="01",
+        datatype="meg",
+        split="01",
+        suffix="epo",
+        extension=".fif",
+        check=False,
+    )
+    assert bids_path.fpath.is_file(), bids_path.fpath
+    for want_path in want_paths:
+        want_path.unlink()
+    assert not bids_path.fpath.is_file()
+    with pytest.raises(ValueError, match="Passing a BIDSPath"):
+        epochs.save(bids_path, verbose=True, **save_kwargs)
+    bad_path = bids_path.fpath.parent / (bids_path.fpath.stem[:-3] + "split-01_epo.fif")
+    assert str(bad_path).count("_split-01") == 2
+    assert not bad_path.is_file(), bad_path
+    bids_path.split = None
+    epochs.save(bids_path, verbose=True, **save_kwargs)
+    for want_path in want_paths:
+        assert want_path.is_file()
 
 
 @pytest.mark.parametrize(
@@ -2973,6 +3001,21 @@ def test_epoch_eq():
         epochs.equalize_event_counts(1.5)
 
 
+def test_equalize_epoch_counts_random():
+    """Test random equalization of epochs."""
+    raw, events, picks = _get_data()
+    # create epochs with unequal counts
+    events_1 = events[events[:, 2] == event_id]
+    epochs_1 = Epochs(raw, events_1, event_id, tmin, tmax, picks=picks)
+    events_2 = events[events[:, 2] == event_id_2]
+    epochs_2 = Epochs(raw, events_2, event_id_2, tmin, tmax, picks=picks)
+    epochs_1.drop_bad()
+    epochs_2.drop_bad()
+    assert len(epochs_1) != len(epochs_2)
+    equalize_epoch_counts([epochs_1, epochs_2], method="random")
+    assert len(epochs_1) == len(epochs_2)
+
+
 def test_access_by_name(tmp_path):
     """Test accessing epochs by event name and on_missing for rare events."""
     raw, events, picks = _get_data()
@@ -3421,9 +3464,7 @@ def test_drop_epochs_mult(preload):
         for di, (d1, d2) in enumerate(zip(epochs1.drop_log, epochs2.drop_log)):
             assert isinstance(d1, tuple)
             assert isinstance(d2, tuple)
-            msg = (
-                f"\nepochs1.drop_log[{di}] = {d1}, " f"\nepochs2.drop_log[{di}] = {d2}"
-            )
+            msg = f"\nepochs1.drop_log[{di}] = {d1}, \nepochs2.drop_log[{di}] = {d2}"
             if "IGNORED" in d1:
                 assert "IGNORED" in d2, msg
             if "IGNORED" not in d1 and d1 != ():
@@ -4250,8 +4291,19 @@ def test_make_metadata(all_event_id, row_events, tmin, tmax, keep_first, keep_la
     Epochs(raw, events=events, event_id=event_id, metadata=metadata, verbose="warning")
 
 
-def test_make_metadata_bounded_by_row_events():
-    """Test make_metadata() with tmin, tmax set to None."""
+@pytest.mark.parametrize(
+    ("tmin", "tmax"),
+    [
+        (None, None),
+        ("cue", "resp"),
+        (["cue"], ["resp"]),
+        (None, "resp"),
+        ("cue", None),
+        (["rec_start", "cue"], ["resp", "rec_end"]),
+    ],
+)
+def test_make_metadata_bounded_by_row_or_tmin_tmax_event_names(tmin, tmax):
+    """Test make_metadata() with tmin, tmax set to None or strings."""
     pytest.importorskip("pandas")
 
     sfreq = 100
@@ -4293,11 +4345,11 @@ def test_make_metadata_bounded_by_row_events():
     raw.set_annotations(annots)
     events, event_id = mne.events_from_annotations(raw=raw)
 
-    metadata, events_new, event_id_new = mne.epochs.make_metadata(
+    metadata, events_new, _ = mne.epochs.make_metadata(
         events=events,
         event_id=event_id,
-        tmin=None,
-        tmax=None,
+        tmin=tmin,
+        tmax=tmax,
         sfreq=raw.info["sfreq"],
         row_events="cue",
     )
@@ -4320,8 +4372,15 @@ def test_make_metadata_bounded_by_row_events():
     # 2nd trial
     assert np.isnan(metadata.iloc[1]["rec_end"])
 
-    # 3rd trial until end of the recording
-    assert metadata.iloc[2]["resp"] < metadata.iloc[2]["rec_end"]
+    # 3rd trial
+    if tmax is None:
+        # until end of the recording
+        assert metadata.iloc[2]["resp"] < metadata.iloc[2]["rec_end"]
+    else:
+        # until tmax
+        assert np.isnan(metadata.iloc[2]["rec_end"])
+        last_event_name = tmax[0] if isinstance(tmax, list) else tmax
+        assert metadata.iloc[2][last_event_name] > 0
 
 
 def test_events_list():
@@ -5134,7 +5193,7 @@ def test_epochs_saving_with_annotations(tmp_path):
 
     # if metadata is added already, then an error will be raised
     epochs.add_annotations_to_metadata()
-    with pytest.raises(RuntimeError, match="Metadata for Epochs " "already contains"):
+    with pytest.raises(RuntimeError, match="Metadata for Epochs already contains"):
         epochs.add_annotations_to_metadata()
     # no error is raised if overwrite is True
     epochs.add_annotations_to_metadata(overwrite=True)

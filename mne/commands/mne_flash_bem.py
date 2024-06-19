@@ -33,6 +33,7 @@ from mne.bem import convert_flash_mris, make_flash_bem
 
 def _vararg_callback(option, opt_str, value, parser):
     assert value is None
+    del opt_str  # required for input but not used
     value = []
 
     for arg in parser.rargs:
@@ -82,9 +83,7 @@ def run():
         dest="flash5",
         action="callback",
         callback=_vararg_callback,
-        help=(
-            "Path to the multiecho flash 5 images. " "Can be one file or one per echo."
-        ),
+        help=("Path to the multiecho flash 5 images. Can be one file or one per echo."),
     )
     parser.add_option(
         "-r",

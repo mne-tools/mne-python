@@ -68,7 +68,7 @@ SI_UNIT_SCALE = dict(c=1e-2, m=1e-3, u=1e-6, µ=1e-6, n=1e-9, p=1e-12, f=1e-15)
 
 CurryParameters = namedtuple(
     "CurryParameters",
-    "n_samples, sfreq, is_ascii, unit_dict, " "n_chans, dt_start, chanidx_in_file",
+    "n_samples, sfreq, is_ascii, unit_dict, n_chans, dt_start, chanidx_in_file",
 )
 
 
@@ -425,7 +425,7 @@ def _make_trans_dig(curry_paths, info, curry_dev_dev_t):
             )
         )
         dist = 1000 * np.linalg.norm(unknown_curry_t["trans"][:3, 3])
-        logger.info("   Fit a %0.1f° rotation, %0.1f mm translation" % (angle, dist))
+        logger.info(f"   Fit a {angle:0.1f}° rotation, {dist:0.1f} mm translation")
         unknown_dev_t = combine_transforms(
             unknown_curry_t, curry_dev_dev_t, "unknown", "meg"
         )
@@ -608,8 +608,8 @@ class RawCurry(BaseRaw):
 
         if "events" in curry_paths:
             logger.info(
-                "Event file found. Extracting Annotations from"
-                " %s..." % curry_paths["events"]
+                "Event file found. Extracting Annotations from "
+                f"{curry_paths['events']}..."
             )
             annots = _read_annotations_curry(
                 curry_paths["events"], sfreq=self.info["sfreq"]

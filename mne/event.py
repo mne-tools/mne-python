@@ -824,7 +824,7 @@ def _mask_trigs(events, mask, mask_type):
         elif mask_type != "and":
             raise ValueError(
                 "'mask_type' should be either 'and'"
-                " or 'not_and', instead of '%s'" % mask_type
+                f" or 'not_and', instead of '{mask_type}'"
             )
         events[:, 1:] = np.bitwise_and(events[:, 1:], mask)
     events = events[events[:, 1] != events[:, 2]]
@@ -995,7 +995,7 @@ def make_fixed_length_events(
     n_events = len(ts)
     if n_events == 0:
         raise ValueError(
-            "No events produced, check the values of start, " "stop, and duration"
+            "No events produced, check the values of start, stop, and duration"
         )
     events = np.c_[ts, np.zeros(n_events, dtype=int), id * np.ones(n_events, dtype=int)]
     return events
@@ -1030,7 +1030,7 @@ def concatenate_events(events, first_samps, last_samps):
     _validate_type(events, list, "events")
     if not (len(events) == len(last_samps) and len(events) == len(first_samps)):
         raise ValueError(
-            "events, first_samps, and last_samps must all have " "the same lengths"
+            "events, first_samps, and last_samps must all have the same lengths"
         )
     first_samps = np.array(first_samps)
     last_samps = np.array(last_samps)

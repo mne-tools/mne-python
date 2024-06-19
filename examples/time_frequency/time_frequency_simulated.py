@@ -25,16 +25,8 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 from mne import Epochs, create_info
-from mne.baseline import rescale
 from mne.io import RawArray
-from mne.time_frequency import (
-    AverageTFR,
-    tfr_array_morlet,
-    tfr_morlet,
-    tfr_multitaper,
-    tfr_stockwell,
-)
-from mne.viz import centers_to_edges
+from mne.time_frequency import AverageTFRArray, EpochsTFRArray, tfr_array_morlet
 
 print(__doc__)
 
@@ -112,12 +104,13 @@ for n_cycles, time_bandwidth, ax, title in zip(
         "Sim: Less time smoothing,\nmore frequency smoothing",
     ],
 ):
-    power = tfr_multitaper(
-        epochs,
+    power = epochs.compute_tfr(
+        method="multitaper",
         freqs=freqs,
         n_cycles=n_cycles,
         time_bandwidth=time_bandwidth,
         return_itc=False,
+        average=True,
     )
     ax.set_title(title)
     # Plot results. Baseline correct based on first 100 ms.
@@ -125,8 +118,7 @@ for n_cycles, time_bandwidth, ax, title in zip(
         [0],
         baseline=(0.0, 0.1),
         mode="mean",
-        vmin=vmin,
-        vmax=vmax,
+        vlim=(vmin, vmax),
         axes=ax,
         show=False,
         colorbar=False,
@@ -146,7 +138,7 @@ for n_cycles, time_bandwidth, ax, title in zip(
 fig, axs = plt.subplots(1, 3, figsize=(15, 5), sharey=True, layout="constrained")
 fmin, fmax = freqs[[0, -1]]
 for width, ax in zip((0.2, 0.7, 3.0), axs):
-    power = tfr_stockwell(epochs, fmin=fmin, fmax=fmax, width=width)
+    power = epochs.compute_tfr(method="stockwell", freqs=(fmin, fmax), width=width)
     power.plot(
         [0], baseline=(0.0, 0.1), mode="mean", axes=ax, show=False, colorbar=False
     )
@@ -164,13 +156,14 @@ for width, ax in zip((0.2, 0.7, 3.0), axs):
 fig, axs = plt.subplots(1, 3, figsize=(15, 5), sharey=True, layout="constrained")
 all_n_cycles = [1, 3, freqs / 2.0]
 for n_cycles, ax in zip(all_n_cycles, axs):
-    power = tfr_morlet(epochs, freqs=freqs, n_cycles=n_cycles, return_itc=False)
+    power = epochs.compute_tfr(
+        method="morlet", freqs=freqs, n_cycles=n_cycles, return_itc=False, average=True
+    )
     power.plot(
         [0],
         baseline=(0.0, 0.1),
         mode="mean",
-        vmin=vmin,
-        vmax=vmax,
+        vlim=(vmin, vmax),
         axes=ax,
         show=False,
         colorbar=False,
@@ -190,7 +183,9 @@ for n_cycles, ax in zip(all_n_cycles, axs):
 fig, axs = plt.subplots(1, 3, figsize=(15, 5), sharey=True, layout="constrained")
 bandwidths = [1.0, 2.0, 4.0]
 for bandwidth, ax in zip(bandwidths, axs):
-    data = np.zeros((len(ch_names), freqs.size, epochs.times.size), dtype=complex)
+    data = np.zeros(
+        (len(epochs), len(ch_names), freqs.size, epochs.times.size), dtype=complex
+    )
     for idx, freq in enumerate(freqs):
         # Filter raw data and re-epoch to avoid the filter being longer than
         # the epoch data for low frequencies and short epochs, such as here.
@@ -210,17 +205,13 @@ for bandwidth, ax in zip(bandwidths, axs):
         epochs_hilb = Epochs(
             raw_filter, events, tmin=0, tmax=n_times / sfreq, baseline=(0, 0.1)
         )
-        tfr_data = epochs_hilb.get_data()
-        tfr_data = tfr_data * tfr_data.conj()  # compute power
-        tfr_data = np.mean(tfr_data, axis=0)  # average over epochs
-        data[:, idx] = tfr_data
-    power = AverageTFR(info, data, epochs.times, freqs, nave=n_epochs)
-    power.plot(
+        data[:, :, idx] = epochs_hilb.get_data()
+    power = EpochsTFRArray(epochs.info, data, epochs.times, freqs, method="hilbert")
+    power.average().plot(
         [0],
         baseline=(0.0, 0.1),
         mode="mean",
-        vmin=-0.1,
-        vmax=0.1,
+        vlim=(0, 0.1),
         axes=ax,
         show=False,
         colorbar=False,
@@ -241,8 +232,8 @@ for bandwidth, ax in zip(bandwidths, axs):
 # :class:`mne.time_frequency.EpochsTFR` is returned.
 
 n_cycles = freqs / 2.0
-power = tfr_morlet(
-    epochs, freqs=freqs, n_cycles=n_cycles, return_itc=False, average=False
+power = epochs.compute_tfr(
+    method="morlet", freqs=freqs, n_cycles=n_cycles, return_itc=False, average=False
 )
 print(type(power))
 avgpower = power.average()
@@ -250,8 +241,7 @@ avgpower.plot(
     [0],
     baseline=(0.0, 0.1),
     mode="mean",
-    vmin=vmin,
-    vmax=vmax,
+    vlim=(vmin, vmax),
     title="Using Morlet wavelets and EpochsTFR",
     show=False,
 )
@@ -260,10 +250,12 @@ avgpower.plot(
 # Operating on arrays
 # -------------------
 #
-# MNE also has versions of the functions above which operate on numpy arrays
-# instead of MNE objects. They expect inputs of the shape
-# ``(n_epochs, n_channels, n_times)``. They will also return a numpy array
-# of shape ``(n_epochs, n_channels, n_freqs, n_times)``.
+# MNE-Python also has functions that operate on :class:`NumPy arrays <numpy.ndarray>`
+# instead of MNE-Python objects. These are :func:`~mne.time_frequency.tfr_array_morlet`
+# and :func:`~mne.time_frequency.tfr_array_multitaper`. They expect inputs of the shape
+# ``(n_epochs, n_channels, n_times)`` and return an array of shape
+# ``(n_epochs, n_channels, n_freqs, n_times)`` (or optionally, can collapse the epochs
+# dimension if you want average power or inter-trial coherence; see ``output`` param).
 
 power = tfr_array_morlet(
     epochs.get_data(),
@@ -271,12 +263,16 @@ power = tfr_array_morlet(
     freqs=freqs,
     n_cycles=n_cycles,
     output="avg_power",
+    zero_mean=False,
 )
-# Baseline the output
-rescale(power, epochs.times, (0.0, 0.1), mode="mean", copy=False)
-fig, ax = plt.subplots(layout="constrained")
-x, y = centers_to_edges(epochs.times * 1000, freqs)
-mesh = ax.pcolormesh(x, y, power[0], cmap="RdBu_r", vmin=vmin, vmax=vmax)
-ax.set_title("TFR calculated on a numpy array")
-ax.set(ylim=freqs[[0, -1]], xlabel="Time (ms)")
-fig.colorbar(mesh)
+# Put it into a TFR container for easy plotting
+tfr = AverageTFRArray(
+    info=epochs.info, data=power, times=epochs.times, freqs=freqs, nave=len(epochs)
+)
+tfr.plot(
+    baseline=(0.0, 0.1),
+    picks=[0],
+    mode="mean",
+    vlim=(vmin, vmax),
+    title="TFR calculated on a NumPy array",
+)

@@ -8,8 +8,6 @@
 import inspect
 import numbers
 import operator
-import os
-import shutil
 import sys
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
@@ -29,7 +27,12 @@ from ..fixes import (
     svd_flip,
 )
 from ._logging import logger, verbose, warn
-from .check import _ensure_int, _validate_type, check_random_state
+from .check import (
+    _check_pandas_installed,
+    _ensure_int,
+    _validate_type,
+    check_random_state,
+)
 from .docs import fill_doc
 from .misc import _empty_hash
 
@@ -57,19 +60,6 @@ def array_split_idx(ary, indices_or_sections, axis=0, n_per_split=1):
         np.arange(sp[0] * n_per_split, (sp[-1] + 1) * n_per_split) for sp in idx_split
     )
     return zip(idx_split, ary_split)
-
-
-def create_chunks(sequence, size):
-    """Generate chunks from a sequence.
-
-    Parameters
-    ----------
-    sequence : iterable
-        Any iterable object
-    size : int
-        The chunksize to be returned
-    """
-    return (sequence[p : p + size] for p in range(0, len(sequence), size))
 
 
 def sum_squared(X):
@@ -173,7 +163,7 @@ def _reg_pinv(x, reg=0, rank="full", rcond=1e-15):
     # Warn the user if both all parameters were kept at their defaults and the
     # matrix is rank deficient.
     if (rank_after < n).any() and reg == 0 and rank == "full" and rcond == 1e-15:
-        warn("Covariance matrix is rank-deficient and no regularization is " "done.")
+        warn("Covariance matrix is rank-deficient and no regularization is done.")
     elif isinstance(rank, int) and rank > n:
         raise ValueError(
             "Invalid value for the rank parameter (%d) given "
@@ -255,9 +245,9 @@ def _get_inst_data(inst):
     from ..epochs import BaseEpochs
     from ..evoked import Evoked
     from ..io import BaseRaw
-    from ..time_frequency.tfr import _BaseTFR
+    from ..time_frequency.tfr import BaseTFR
 
-    _validate_type(inst, (BaseRaw, BaseEpochs, Evoked, _BaseTFR), "Instance")
+    _validate_type(inst, (BaseRaw, BaseEpochs, Evoked, BaseTFR), "Instance")
     if not inst.preload:
         inst.load_data()
     return inst._data
@@ -321,7 +311,7 @@ def _apply_scaling_array(data, picks_list, scalings, verbose=None):
     """Scale data type-dependently for estimation."""
     scalings = _check_scaling_inputs(data, picks_list, scalings)
     if isinstance(scalings, dict):
-        logger.debug("    Scaling using mapping %s." % (scalings,))
+        logger.debug(f"    Scaling using mapping {scalings}.")
         picks_dict = dict(picks_list)
         scalings = [(picks_dict[k], v) for k, v in scalings.items() if k in picks_dict]
         for idx, scaling in scalings:
@@ -368,7 +358,7 @@ def _apply_scaling_cov(data, picks_list, scalings):
             scales[idx] = scalings[ch_t]
     elif isinstance(scalings, np.ndarray):
         if len(scalings) != len(data):
-            raise ValueError("Scaling factors and data are of incompatible " "shape")
+            raise ValueError("Scaling factors and data are of incompatible shape")
         scales = scalings
     elif scalings is None:
         pass
@@ -399,9 +389,7 @@ def _check_scaling_inputs(data, picks_list, scalings):
     elif scalings is None:
         pass
     else:
-        raise NotImplementedError(
-            "No way! That's not a rescaling " "option: %s" % scalings
-        )
+        raise NotImplementedError(f"Not a valid rescaling option: {scalings}")
     return scalings_
 
 
@@ -428,17 +416,6 @@ def hashfunc(fname, block_size=1048576, hash_type="md5"):  # 2 ** 20
                 break
             hasher.update(data)
     return hasher.hexdigest()
-
-
-def _replace_md5(fname):
-    """Replace a file based on MD5sum."""
-    # adapted from sphinx-gallery
-    assert fname.endswith(".new")
-    fname_old = fname[:-4]
-    if os.path.isfile(fname_old) and hashfunc(fname) == hashfunc(fname_old):
-        os.remove(fname)
-    else:
-        shutil.move(fname, fname_old)
 
 
 def create_slices(start, stop, step=None, length=1):
@@ -493,16 +470,15 @@ def _time_mask(
         assert include_tmax  # can only be used when sfreq is known
     if raise_error and tmin > tmax:
         raise ValueError(
-            "tmin (%s) must be less than or equal to tmax (%s)" % (orig_tmin, orig_tmax)
+            f"tmin ({orig_tmin}) must be less than or equal to tmax ({orig_tmax})"
         )
     mask = times >= tmin
     mask &= times <= tmax
     if raise_error and not mask.any():
         extra = "" if include_tmax else "when include_tmax=False "
         raise ValueError(
-            "No samples remain when using tmin=%s and tmax=%s %s"
-            "(original time bounds are [%s, %s])"
-            % (orig_tmin, orig_tmax, extra, times[0], times[-1])
+            f"No samples remain when using tmin={orig_tmin} and tmax={orig_tmax} "
+            f"{extra}(original time bounds are [{times[0]}, {times[-1]}])"
         )
     return mask
 
@@ -525,15 +501,14 @@ def _freq_mask(freqs, sfreq, fmin=None, fmax=None, raise_error=True):
     fmax = int(round(fmax * sfreq)) / sfreq + 0.5 / sfreq
     if raise_error and fmin > fmax:
         raise ValueError(
-            "fmin (%s) must be less than or equal to fmax (%s)" % (orig_fmin, orig_fmax)
+            f"fmin ({orig_fmin}) must be less than or equal to fmax ({orig_fmax})"
         )
     mask = freqs >= fmin
     mask &= freqs <= fmax
     if raise_error and not mask.any():
         raise ValueError(
-            "No frequencies remain when using fmin=%s and "
-            "fmax=%s (original frequency bounds are [%s, %s])"
-            % (orig_fmin, orig_fmax, freqs[0], freqs[-1])
+            f"No frequencies remain when using fmin={orig_fmin} and fmax={orig_fmax} "
+            f"(original frequency bounds are [{freqs[0]}, {freqs[-1]}])"
         )
     return mask
 
@@ -672,7 +647,7 @@ def object_hash(x, h=None):
         object_hash(_dt_to_stamp(x))
     elif sparse.issparse(x):
         h.update(str(type(x)).encode("utf-8"))
-        if not isinstance(x, (sparse.csr_matrix, sparse.csc_matrix)):
+        if not isinstance(x, (sparse.csr_array, sparse.csc_array)):
             raise RuntimeError(f"Unsupported sparse type {type(x)}")
         h.update(x.data.tobytes())
         h.update(x.indices.tobytes())
@@ -683,7 +658,7 @@ def object_hash(x, h=None):
         for xx in x:
             object_hash(xx, h)
     else:
-        raise RuntimeError("unsupported type: %s (%s)" % (type(x), x))
+        raise RuntimeError(f"unsupported type: {type(x)} ({x})")
     return int(h.hexdigest(), 16)
 
 
@@ -730,12 +705,18 @@ def object_size(x, memo=None):
         size = sys.getsizeof(x) + sum(object_size(xx, memo) for xx in x)
     elif isinstance(x, datetime):
         size = object_size(_dt_to_stamp(x), memo)
-    elif sparse.isspmatrix_csc(x) or sparse.isspmatrix_csr(x):
+    elif _is_sparse_cs(x):
         size = sum(sys.getsizeof(xx) for xx in [x, x.data, x.indices, x.indptr])
     else:
-        raise RuntimeError("unsupported type: %s (%s)" % (type(x), x))
+        raise RuntimeError(f"unsupported type: {type(x)} ({x})")
     memo[id_] = size
     return size
+
+
+def _is_sparse_cs(x):
+    return isinstance(
+        x, (sparse.csr_matrix, sparse.csc_matrix, sparse.csr_array, sparse.csc_array)
+    )
 
 
 def _sort_keys(x):
@@ -778,6 +759,7 @@ def object_diff(a, b, pre="", *, allclose=False):
     diffs : str
         A string representation of the differences.
     """
+    pd = _check_pandas_installed(strict=False)
     out = ""
     if type(a) != type(b):
         # Deal with NamedInt and NamedFloat
@@ -794,29 +776,29 @@ def object_diff(a, b, pre="", *, allclose=False):
         k2s = _sort_keys(b)
         m1 = set(k2s) - set(k1s)
         if len(m1):
-            out += pre + " left missing keys %s\n" % (m1)
+            out += pre + f" left missing keys {m1}\n"
         for key in k1s:
             if key not in k2s:
-                out += pre + " right missing key %s\n" % key
+                out += pre + f" right missing key {key}\n"
             else:
                 out += object_diff(
-                    a[key], b[key], pre=(pre + "[%s]" % repr(key)), allclose=allclose
+                    a[key], b[key], pre=(pre + f"[{repr(key)}]"), allclose=allclose
                 )
     elif isinstance(a, (list, tuple)):
         if len(a) != len(b):
-            out += pre + " length mismatch (%s, %s)\n" % (len(a), len(b))
+            out += pre + f" length mismatch ({len(a)}, {len(b)})\n"
         else:
             for ii, (xx1, xx2) in enumerate(zip(a, b)):
-                out += object_diff(xx1, xx2, pre + "[%s]" % ii, allclose=allclose)
+                out += object_diff(xx1, xx2, pre + f"[{ii}]", allclose=allclose)
     elif isinstance(a, float):
         if not _array_equal_nan(a, b, allclose):
-            out += pre + " value mismatch (%s, %s)\n" % (a, b)
+            out += pre + f" value mismatch ({a}, {b})\n"
     elif isinstance(a, (str, int, bytes, np.generic)):
         if a != b:
-            out += pre + " value mismatch (%s, %s)\n" % (a, b)
+            out += pre + f" value mismatch ({a}, {b})\n"
     elif a is None:
         if b is not None:
-            out += pre + " left is None, right is not (%s)\n" % (b)
+            out += pre + f" left is None, right is not ({b})\n"
     elif isinstance(a, np.ndarray):
         if not _array_equal_nan(a, b, allclose):
             out += pre + " array mismatch\n"
@@ -826,22 +808,26 @@ def object_diff(a, b, pre="", *, allclose=False):
     elif isinstance(a, datetime):
         if (a - b).total_seconds() != 0:
             out += pre + " datetime mismatch\n"
-    elif sparse.isspmatrix(a):
+    elif sparse.issparse(a):
         # sparsity and sparse type of b vs a already checked above by type()
         if b.shape != a.shape:
             out += pre + (
-                " sparse matrix a and b shape mismatch"
-                "(%s vs %s)" % (a.shape, b.shape)
+                f" sparse matrix a and b shape mismatch ({a.shape} vs {b.shape})"
             )
         else:
             c = a - b
             c.eliminate_zeros()
             if c.nnz > 0:
-                out += pre + (" sparse matrix a and b differ on %s " "elements" % c.nnz)
+                out += pre + (f" sparse matrix a and b differ on {c.nnz} elements")
+    elif pd and isinstance(a, pd.DataFrame):
+        try:
+            pd.testing.assert_frame_equal(a, b)
+        except AssertionError:
+            out += pre + " DataFrame mismatch\n"
     elif hasattr(a, "__getstate__") and a.__getstate__() is not None:
         out += object_diff(a.__getstate__(), b.__getstate__(), pre, allclose=allclose)
     else:
-        raise RuntimeError(pre + ": unsupported type %s (%s)" % (type(a), a))
+        raise RuntimeError(pre + f": unsupported type {type(a)} ({a})")
     return out
 
 
@@ -879,20 +865,20 @@ class _PCA:
         if n_components == "mle":
             if n_samples < n_features:
                 raise ValueError(
-                    "n_components='mle' is only supported " "if n_samples >= n_features"
+                    "n_components='mle' is only supported if n_samples >= n_features"
                 )
         elif not 0 <= n_components <= min(n_samples, n_features):
             raise ValueError(
-                "n_components=%r must be between 0 and "
-                "min(n_samples, n_features)=%r with "
-                "svd_solver='full'" % (n_components, min(n_samples, n_features))
+                f"n_components={repr(n_components)} must be between 0 and "
+                f"min(n_samples, n_features)={repr(min(n_samples, n_features))} with "
+                "svd_solver='full'"
             )
         elif n_components >= 1:
             if not isinstance(n_components, (numbers.Integral, np.integer)):
                 raise ValueError(
-                    "n_components=%r must be of type int "
-                    "when greater than or equal to 1, "
-                    "was of type=%r" % (n_components, type(n_components))
+                    f"n_components={repr(n_components)} must be of type int "
+                    f"when greater than or equal to 1, "
+                    f"was of type={repr(type(n_components))}"
                 )
 
         self.mean_ = np.mean(X, axis=0)
@@ -1051,7 +1037,7 @@ def _check_dt(dt):
         or dt.tzinfo is None
         or dt.tzinfo is not timezone.utc
     ):
-        raise ValueError("Date must be datetime object in UTC: %r" % (dt,))
+        raise ValueError(f"Date must be datetime object in UTC: {repr(dt)}")
 
 
 def _dt_to_stamp(inp_date):
@@ -1102,7 +1088,7 @@ class _ReuseCycle:
         try:
             idx = self.popped.pop(val)
         except KeyError:
-            warn("Could not find value: %s" % (val,))
+            warn(f"Could not find value: {val}")
         else:
             loc = np.searchsorted(self.indices, idx)
             self.indices.insert(loc, idx)

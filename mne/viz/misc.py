@@ -81,7 +81,7 @@ def _index_info_cov(info, cov, exclude):
     idx_names = [
         (
             idx_by_type[key],
-            "%s covariance" % DEFAULTS["titles"][key],
+            f"{DEFAULTS['titles'][key]} covariance",
             DEFAULTS["units"][key],
             DEFAULTS["scalings"][key],
             key,
@@ -162,12 +162,10 @@ def plot_cov(
 
         P, ncomp, _ = make_projector(projs, ch_names)
         if ncomp > 0:
-            logger.info(
-                "    Created an SSP operator (subspace dimension" " = %d)" % ncomp
-            )
+            logger.info(f"    Created an SSP operator (subspace dimension = {ncomp:d})")
             C = np.dot(P, np.dot(C, P.T))
         else:
-            logger.info("    The projection vectors do not apply to these " "channels.")
+            logger.info("    The projection vectors do not apply to these channels.")
 
     if np.iscomplexobj(C):
         C = np.sqrt((C * C.conj()).real)
@@ -225,7 +223,7 @@ def plot_cov(
             axes[0, k].text(
                 this_rank - 1,
                 axes[0, k].get_ylim()[1],
-                "rank ≈ %d" % (this_rank,),
+                f"rank ≈ {this_rank:d}",
                 ha="right",
                 va="top",
                 color="r",
@@ -233,7 +231,7 @@ def plot_cov(
                 zorder=4,
             )
             axes[0, k].set(
-                ylabel="Noise σ (%s)" % unit,
+                ylabel=f"Noise σ ({unit})",
                 yscale="log",
                 xlabel="Eigenvalue index",
                 title=name,
@@ -282,7 +280,7 @@ def plot_source_spectrogram(
     stc = stcs[0]
     if tmin is not None and tmin < stc.times[0]:
         raise ValueError(
-            "tmin cannot be smaller than the first time point " "provided in stcs"
+            "tmin cannot be smaller than the first time point provided in stcs"
         )
     if tmax is not None and tmax > stc.times[-1] + stc.tstep:
         raise ValueError(
@@ -432,7 +430,7 @@ def _plot_mri_contours(
         raise ValueError(
             "slices must be a sorted 1D array of int with unique "
             "elements, at least one element, and no elements "
-            "greater than %d, got %s" % (n_slices - 1, slices)
+            f"greater than {n_slices - 1:d}, got {slices}"
         )
 
     # create of list of surfaces
@@ -702,7 +700,7 @@ def plot_bem(
                 if surf_fname.exists():
                     surfaces.append((surf_fname, "#00DD00"))
                 else:
-                    raise OSError("Surface %s does not exist." % surf_fname)
+                    raise OSError(f"Surface {surf_fname} does not exist.")
 
     # TODO: Refactor with / improve _ensure_src to do this
     if isinstance(src, (str, Path, os.PathLike)):
@@ -717,7 +715,7 @@ def plot_bem(
     elif src is not None and not isinstance(src, SourceSpaces):
         raise TypeError(
             "src needs to be None, path-like or SourceSpaces instance, "
-            "not %s" % repr(src)
+            f"not {repr(src)}"
         )
 
     if len(surfaces) == 0:
@@ -751,7 +749,7 @@ def _get_bem_plotting_surfaces(bem_path):
         surf_fname = glob(op.join(bem_path, surf_name + ".surf"))
         if len(surf_fname) > 0:
             surf_fname = surf_fname[0]
-            logger.info("Using surface: %s" % surf_fname)
+            logger.info(f"Using surface: {surf_fname}")
             surfaces.append((surf_fname, color))
     return surfaces
 
@@ -841,7 +839,7 @@ def plot_events(
 
         for this_event in unique_events:
             if this_event not in unique_events_id:
-                warn("event %s missing from event_id will be ignored" % this_event)
+                warn(f"event {this_event} missing from event_id will be ignored")
 
     else:
         unique_events_id = unique_events
@@ -869,9 +867,9 @@ def plot_events(
             continue
         y = np.full(count, idx + 1 if equal_spacing else events[ev_mask, 2][0])
         if event_id is not None:
-            event_label = "%s (%s)" % (event_id_rev[ev], count)
+            event_label = f"{event_id_rev[ev]} ({count})"
         else:
-            event_label = "N=%d" % (count,)
+            event_label = f"N={count:d}"
         labels.append(event_label)
         kwargs = {}
         if ev in color:
@@ -1016,16 +1014,10 @@ def _get_flim(flim, fscale, freq, sfreq=None):
             flim += [freq[-1]]
     if fscale == "log":
         if flim[0] <= 0:
-            raise ValueError("flim[0] must be positive, got %s" % flim[0])
+            raise ValueError(f"flim[0] must be positive, got {flim[0]}")
     elif flim[0] < 0:
-        raise ValueError("flim[0] must be non-negative, got %s" % flim[0])
+        raise ValueError(f"flim[0] must be non-negative, got {flim[0]}")
     return flim
-
-
-def _check_fscale(fscale):
-    """Check for valid fscale."""
-    if not isinstance(fscale, str) or fscale not in ("log", "linear"):
-        raise ValueError('fscale must be "log" or "linear", got %s' % (fscale,))
 
 
 _DEFAULT_ALIM = (-80, 10)
@@ -1127,7 +1119,7 @@ def plot_filter(
     if isinstance(plot, str):
         plot = [plot]
     for xi, x in enumerate(plot):
-        _check_option("plot[%d]" % xi, x, ("magnitude", "delay", "time"))
+        _check_option(f"plot[{xi}]", x, ("magnitude", "delay", "time"))
 
     flim = _get_flim(flim, fscale, freq, sfreq)
     if fscale == "log":
@@ -1203,8 +1195,8 @@ def plot_filter(
         fig = axes[0].get_figure()
     if len(axes) != len(plot):
         raise ValueError(
-            "Length of axes (%d) must be the same as number of "
-            "requested filter properties (%d)" % (len(axes), len(plot))
+            f"Length of axes ({len(axes)}) must be the same as number of "
+            f"requested filter properties ({len(plot)})"
         )
 
     t = np.arange(len(h))
@@ -1340,7 +1332,7 @@ def plot_ideal_filter(
     if freq[0] != 0:
         raise ValueError(
             "freq should start with DC (zero) and end with "
-            "Nyquist, but got %s for DC" % (freq[0],)
+            f"Nyquist, but got {freq[0]} for DC"
         )
     freq = np.array(freq)
     # deal with semilogx problems @ x=0
@@ -1403,16 +1395,16 @@ def _handle_event_colors(color_dict, unique_events, event_id):
                 custom_colors[event_id[key]] = color
             else:  # key not a valid event, warn and ignore
                 warn(
-                    "Event ID %s is in the color dict but is not "
-                    "present in events or event_id." % str(key)
+                    f"Event ID {key} is in the color dict but is not "
+                    "present in events or event_id."
                 )
         # warn if color_dict is missing any entries
         unassigned = sorted(set(unique_events) - set(custom_colors))
         if len(unassigned):
             unassigned_str = ", ".join(str(e) for e in unassigned)
             warn(
-                "Color was not assigned for event%s %s. Default colors will "
-                "be used." % (_pl(unassigned), unassigned_str)
+                f"Color was not assigned for event{_pl(unassigned)} {unassigned_str}. "
+                "Default colors will be used."
             )
         default_colors.update(custom_colors)
     return default_colors
@@ -1535,9 +1527,9 @@ def plot_csd(
             ax.set_xticks([])
             ax.set_yticks([])
             if csd._is_sum:
-                ax.set_title("%.1f-%.1f Hz." % (np.min(freq), np.max(freq)))
+                ax.set_title(f"{np.min(freq):.1f}-{np.max(freq):.1f} Hz.")
             else:
-                ax.set_title("%.1f Hz." % freq)
+                ax.set_title(f"{freq:.1f} Hz.")
 
         plt.suptitle(title)
         if colorbar:
@@ -1545,7 +1537,7 @@ def plot_csd(
             if mode == "csd":
                 label = "CSD"
                 if ch_type in units:
-                    label += " (%s)" % units[ch_type]
+                    label += f" ({units[ch_type]})"
                 cb.set_label(label)
             elif mode == "coh":
                 cb.set_label("Coherence")

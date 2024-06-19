@@ -2,6 +2,7 @@
 
 author: Marijn van Vliet <w.m.vanvliet@gmail.com>
 """
+
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 from functools import partial
@@ -125,7 +126,7 @@ class EvokedField:
             time = np.mean([evoked.get_peak(ch_type=t)[1] for t in types])
         self._current_time = time
         if not evoked.times[0] <= time <= evoked.times[-1]:
-            raise ValueError("`time` (%0.3f) must be inside `evoked.times`" % time)
+            raise ValueError(f"`time` ({time:0.3f}) must be inside `evoked.times`")
         self._time_label = time_label
 
         self._vmax = _validate_type(vmax, (None, "numeric", dict), "vmax")
@@ -257,10 +258,10 @@ class EvokedField:
             message = ["Channels in map and data do not match."]
             diff = map_ch_names - evoked_ch_names
             if len(diff):
-                message += ["%s not in data file. " % list(diff)]
+                message += [f"{list(diff)} not in data file. "]
             diff = evoked_ch_names - map_ch_names
             if len(diff):
-                message += ["%s not in map file." % list(diff)]
+                message += [f"{list(diff)} not in map file."]
             raise RuntimeError(" ".join(message))
 
         data = surf_map["data"] @ self._evoked.data[pick]
@@ -392,28 +393,28 @@ class EvokedField:
                 rng = [0, np.max(np.abs(surf_map["data"])) * scaling]
                 hlayout = r._dock_add_layout(vertical=False)
 
-                self._widgets[
-                    f"vmax_slider_{surf_map['map_kind']}"
-                ] = r._dock_add_slider(
-                    name=surf_map["map_kind"].upper(),
-                    value=surf_map["map_vmax"] * scaling,
-                    rng=rng,
-                    callback=partial(
-                        _callback, kind=surf_map["map_kind"], scaling=scaling
-                    ),
-                    double=True,
-                    layout=hlayout,
+                self._widgets[f"vmax_slider_{surf_map['map_kind']}"] = (
+                    r._dock_add_slider(
+                        name=surf_map["map_kind"].upper(),
+                        value=surf_map["map_vmax"] * scaling,
+                        rng=rng,
+                        callback=partial(
+                            _callback, kind=surf_map["map_kind"], scaling=scaling
+                        ),
+                        double=True,
+                        layout=hlayout,
+                    )
                 )
-                self._widgets[
-                    f"vmax_spin_{surf_map['map_kind']}"
-                ] = r._dock_add_spin_box(
-                    name="",
-                    value=surf_map["map_vmax"] * scaling,
-                    rng=rng,
-                    callback=partial(
-                        _callback, kind=surf_map["map_kind"], scaling=scaling
-                    ),
-                    layout=hlayout,
+                self._widgets[f"vmax_spin_{surf_map['map_kind']}"] = (
+                    r._dock_add_spin_box(
+                        name="",
+                        value=surf_map["map_vmax"] * scaling,
+                        rng=rng,
+                        callback=partial(
+                            _callback, kind=surf_map["map_kind"], scaling=scaling
+                        ),
+                        layout=hlayout,
+                    )
                 )
                 r._layout_add_widget(layout, hlayout)
 

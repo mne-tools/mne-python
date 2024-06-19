@@ -104,13 +104,20 @@ def test_plot_head_positions():
     pos = np.random.RandomState(0).randn(4, 10)
     pos[:, 0] = np.arange(len(pos))
     destination = (0.0, 0.0, 0.04)
-    with _record_warnings():  # old MPL will cause a warning
-        plot_head_positions(pos)
-        plot_head_positions(pos, mode="field", info=info, destination=destination)
-        plot_head_positions([pos, pos])  # list support
-        pytest.raises(ValueError, plot_head_positions, ["pos"])
-        pytest.raises(ValueError, plot_head_positions, pos[:, :9])
-    pytest.raises(ValueError, plot_head_positions, pos, "foo")
+    plot_head_positions(pos)
+    plot_head_positions(pos, mode="field", info=info, destination=destination)
+    plot_head_positions([pos, pos])  # list support
+    fig, ax = plt.subplots()
+    with pytest.raises(TypeError, match="instance of Axes3D"):
+        plot_head_positions(pos, mode="field", info=info, axes=ax)
+    fig, ax = plt.subplots(subplot_kw=dict(projection="3d"))
+    plot_head_positions(pos, mode="field", info=info, axes=ax)
+    with pytest.raises(TypeError, match="must be an instance of ndarray"):
+        plot_head_positions(["foo"])
+    with pytest.raises(ValueError, match="must be dim"):
+        plot_head_positions(pos[:, :9])
+    with pytest.raises(ValueError, match="Allowed values"):
+        plot_head_positions(pos, "foo")
     with pytest.raises(ValueError, match="shape"):
         plot_head_positions(pos, axes=1.0)
 
@@ -128,9 +135,9 @@ def test_plot_sparse_source_estimates(renderer_interactive, brain_gc):
     n_verts = sum(len(v) for v in vertices)
     stc_data = np.zeros(n_verts * n_time)
     stc_size = stc_data.size
-    stc_data[
-        (np.random.rand(stc_size // 20) * stc_size).astype(int)
-    ] = np.random.RandomState(0).rand(stc_data.size // 20)
+    stc_data[(np.random.rand(stc_size // 20) * stc_size).astype(int)] = (
+        np.random.RandomState(0).rand(stc_data.size // 20)
+    )
     stc_data.shape = (n_verts, n_time)
     stc = SourceEstimate(stc_data, vertices, 1, 1)
 
@@ -1209,9 +1216,9 @@ def test_link_brains(renderer_interactive):
     n_verts = sum(len(v) for v in vertices)
     stc_data = np.zeros(n_verts * n_time)
     stc_size = stc_data.size
-    stc_data[
-        (np.random.rand(stc_size // 20) * stc_size).astype(int)
-    ] = np.random.RandomState(0).rand(stc_data.size // 20)
+    stc_data[(np.random.rand(stc_size // 20) * stc_size).astype(int)] = (
+        np.random.RandomState(0).rand(stc_data.size // 20)
+    )
     stc_data.shape = (n_verts, n_time)
     stc = SourceEstimate(stc_data, vertices, 1, 1)
 

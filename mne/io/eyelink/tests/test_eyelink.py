@@ -224,7 +224,7 @@ def _simulate_eye_tracking_data(in_file, out_file):
                 elif event_type == "END":
                     pass
                 else:
-                    fp.write("%s\n" % line)
+                    fp.write(f"{line}\n")
                     continue
                 events.append("\t".join(tokens))
                 if event_type == "END":
@@ -232,21 +232,18 @@ def _simulate_eye_tracking_data(in_file, out_file):
                     events.clear()
                     in_recording_block = False
             else:
-                fp.write("%s\n" % line)
+                fp.write(f"{line}\n")
 
-        fp.write("%s\n" % "START\t7452389\tRIGHT\tSAMPLES\tEVENTS")
-        fp.write("%s\n" % new_samples_line)
+        fp.write("START\t7452389\tRIGHT\tSAMPLES\tEVENTS\n")
+        fp.write(f"{new_samples_line}\n")
 
         for timestamp in np.arange(7452389, 7453390):  # simulate a second block
             fp.write(
-                "%s\n"
-                % (
-                    f"{timestamp}\t-2434.0\t-1760.0\t840.0\t100\t20\t45\t45\t127.0\t"
-                    "...\t1497\t5189\t512.5\t............."
-                )
+                f"{timestamp}\t-2434.0\t-1760.0\t840.0\t100\t20\t45\t45\t127.0\t"
+                "...\t1497\t5189\t512.5\t.............\n"
             )
 
-        fp.write("%s\n" % "END\t7453390\tRIGHT\tSAMPLES\tEVENTS")
+        fp.write("END\t7453390\tRIGHT\tSAMPLES\tEVENTS\n")
 
 
 @requires_testing_data
@@ -256,8 +253,9 @@ def test_multi_block_misc_channels(fname, tmp_path):
     out_file = tmp_path / "tmp_eyelink.asc"
     _simulate_eye_tracking_data(fname, out_file)
 
-    with _record_warnings(), pytest.warns(
-        RuntimeWarning, match="Raw eyegaze coordinates"
+    with (
+        _record_warnings(),
+        pytest.warns(RuntimeWarning, match="Raw eyegaze coordinates"),
     ):
         raw = read_raw_eyelink(out_file, apply_offsets=True)
 
@@ -293,6 +291,7 @@ def test_basics(this_fname):
     _test_raw_reader(read_raw_eyelink, fname=this_fname, test_preloading=False)
 
 
+@requires_testing_data
 def test_annotations_without_offset(tmp_path):
     """Test read of annotations without offset."""
     out_file = tmp_path / "tmp_eyelink.asc"

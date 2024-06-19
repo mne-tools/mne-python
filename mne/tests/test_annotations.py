@@ -236,7 +236,7 @@ def test_crop(tmp_path):
         assert_allclose(
             getattr(raw_concat.annotations, attr),
             getattr(raw.annotations, attr),
-            err_msg="Failed for %s:" % (attr,),
+            err_msg=f"Failed for {attr}:",
         )
 
     raw.set_annotations(None)  # undo
@@ -791,7 +791,7 @@ def test_events_from_annot_in_raw_objects():
     assert isinstance(event_id, dict)
     assert len(event_id) > 0
     for kind in ("BAD", "EDGE"):
-        assert "%s boundary" % kind in raw_concat.annotations.description
+        assert f"{kind} boundary" in raw_concat.annotations.description
         for key in event_id.keys():
             assert kind not in key
 
@@ -1035,7 +1035,7 @@ def test_io_annotation(dummy_annotation_file, tmp_path, fmt, ch_names):
 def test_broken_csv(tmp_path):
     """Test broken .csv that does not use timestamps."""
     pytest.importorskip("pandas")
-    content = "onset,duration,description\n" "1.,1.0,AA\n" "3.,2.425,BB"
+    content = "onset,duration,description\n1.,1.0,AA\n3.,2.425,BB"
     fname = tmp_path / "annotations_broken.csv"
     with open(fname, "w") as f:
         f.write(content)
@@ -1049,7 +1049,7 @@ def test_broken_csv(tmp_path):
 @pytest.fixture(scope="function", params=("ch_names",))
 def dummy_annotation_txt_file(tmp_path_factory, ch_names):
     """Create txt file for testing."""
-    content = "3.14, 42, AA \n" "6.28, 48, BB"
+    content = "3.14, 42, AA \n6.28, 48, BB"
     if ch_names:
         content = content.splitlines()
         content[0] = content[0].strip() + ","
@@ -1132,7 +1132,7 @@ def test_read_annotation_txt_header(tmp_path):
 
 def test_read_annotation_txt_one_segment(tmp_path):
     """Test empty TXT input/output."""
-    content = "# MNE-Annotations\n" "# onset, duration, description\n" "3.14, 42, AA"
+    content = "# MNE-Annotations\n# onset, duration, description\n3.14, 42, AA"
     fname = tmp_path / "one-annotations.txt"
     with open(fname, "w") as f:
         f.write(content)
@@ -1142,7 +1142,7 @@ def test_read_annotation_txt_one_segment(tmp_path):
 
 def test_read_annotation_txt_empty(tmp_path):
     """Test empty TXT input/output."""
-    content = "# MNE-Annotations\n" "# onset, duration, description\n"
+    content = "# MNE-Annotations\n# onset, duration, description\n"
     fname = tmp_path / "empty-annotations.txt"
     with open(fname, "w") as f:
         f.write(content)

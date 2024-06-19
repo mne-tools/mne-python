@@ -93,6 +93,7 @@ Projections:
    cortical_signal_suppression
    create_ecg_epochs
    create_eog_epochs
+   find_bad_channels_lof
    find_bad_channels_maxwell
    find_ecg_events
    find_eog_events

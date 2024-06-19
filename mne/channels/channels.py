@@ -24,7 +24,7 @@ from typing import Union
 
 import numpy as np
 from scipy.io import loadmat
-from scipy.sparse import csr_matrix, lil_matrix
+from scipy.sparse import csr_array, lil_array
 from scipy.spatial import Delaunay
 from scipy.stats import zscore
 
@@ -153,7 +153,7 @@ def equalize_channels(instances, copy=True, verbose=None):
     from ..evoked import Evoked
     from ..forward import Forward
     from ..io import BaseRaw
-    from ..time_frequency import CrossSpectralDensity, _BaseTFR
+    from ..time_frequency import BaseTFR, CrossSpectralDensity
 
     # Instances need to have a `ch_names` attribute and a `pick_channels`
     # method that supports `ordered=True`.
@@ -161,14 +161,14 @@ def equalize_channels(instances, copy=True, verbose=None):
         BaseRaw,
         BaseEpochs,
         Evoked,
-        _BaseTFR,
+        BaseTFR,
         Forward,
         Covariance,
         CrossSpectralDensity,
         Info,
     )
     allowed_types_str = (
-        "Raw, Epochs, Evoked, TFR, Forward, Covariance, " "CrossSpectralDensity or Info"
+        "Raw, Epochs, Evoked, TFR, Forward, Covariance, CrossSpectralDensity or Info"
     )
     for inst in instances:
         _validate_type(
@@ -207,7 +207,7 @@ def equalize_channels(instances, copy=True, verbose=None):
         equalized_instances.append(inst)
 
     if dropped:
-        logger.info("Dropped the following channels:\n%s" % dropped)
+        logger.info(f"Dropped the following channels:\n{dropped}")
     elif reordered:
         logger.info("Channels have been re-ordered.")
 
@@ -447,7 +447,7 @@ class UpdateChannelsMixin:
 
     @verbose
     @legacy(alt="inst.pick(...)")
-    def pick_channels(self, ch_names, ordered=None, *, verbose=None):
+    def pick_channels(self, ch_names, ordered=True, *, verbose=None):
         """Pick some channels.
 
         Parameters
@@ -607,8 +607,6 @@ class UpdateChannelsMixin:
     def _pick_drop_channels(self, idx, *, verbose=None):
         # avoid circular imports
         from ..io import BaseRaw
-        from ..time_frequency import AverageTFR, EpochsTFR
-        from ..time_frequency.spectrum import BaseSpectrum
 
         msg = "adding, dropping, or reordering channels"
         if isinstance(self, BaseRaw):
@@ -633,10 +631,8 @@ class UpdateChannelsMixin:
             if mat is not None:
                 setattr(self, key, mat[idx][:, idx])
 
-        if isinstance(self, BaseSpectrum):
+        if hasattr(self, "_dims"):  # Spectrum and "new-style" TFRs
             axis = self._dims.index("channel")
-        elif isinstance(self, (AverageTFR, EpochsTFR)):
-            axis = -3
         else:  # All others (Evoked, Epochs, Raw) have chs axis=-2
             axis = -2
         if hasattr(self, "_data"):  # skip non-preloaded Raw
@@ -700,6 +696,7 @@ class UpdateChannelsMixin:
         # avoid circular imports
         from ..epochs import BaseEpochs
         from ..io import BaseRaw
+        from ..time_frequency import EpochsTFR
 
         _validate_type(add_list, (list, tuple), "Input")
 
@@ -712,6 +709,9 @@ class UpdateChannelsMixin:
         elif isinstance(self, BaseEpochs):
             con_axis = 1
             comp_class = BaseEpochs
+        elif isinstance(self, EpochsTFR):
+            con_axis = 1
+            comp_class = EpochsTFR
         else:
             con_axis = 0
             comp_class = type(self)
@@ -839,6 +839,8 @@ class InterpolationMixin:
             - ``"meg"`` channels support ``"MNE"`` (default) and ``"nan"``
             - ``"eeg"`` channels support ``"spline"`` (default), ``"MNE"`` and ``"nan"``
             - ``"fnirs"`` channels support ``"nearest"`` (default) and ``"nan"``
+            - ``"ecog"`` channels support ``"spline"`` (default) and ``"nan"``
+            - ``"seeg"`` channels support ``"spline"`` (default) and ``"nan"``
 
             None is an alias for::
 
@@ -1334,7 +1336,7 @@ def read_ch_adjacency(fname, picks=None):
 
     Returns
     -------
-    ch_adjacency : scipy.sparse.csr_matrix, shape (n_channels, n_channels)
+    ch_adjacency : scipy.sparse.csr_array, shape (n_channels, n_channels)
         The adjacency matrix.
     ch_names : list
         The list of channel names present in adjacency matrix.
@@ -1420,12 +1422,12 @@ def _ch_neighbor_adjacency(ch_names, neighbors):
         The adjacency matrix.
     """
     if len(ch_names) != len(neighbors):
-        raise ValueError("`ch_names` and `neighbors` must " "have the same length")
+        raise ValueError("`ch_names` and `neighbors` must have the same length")
     set_neighbors = {c for d in neighbors for c in d}
     rest = set_neighbors - set(ch_names)
     if len(rest) > 0:
         raise ValueError(
-            "Some of your neighbors are not present in the " "list of channel names"
+            "Some of your neighbors are not present in the list of channel names"
         )
 
     for neigh in neighbors:
@@ -1435,7 +1437,7 @@ def _ch_neighbor_adjacency(ch_names, neighbors):
     ch_adjacency = np.eye(len(ch_names), dtype=bool)
     for ii, neigbs in enumerate(neighbors):
         ch_adjacency[ii, [ch_names.index(i) for i in neigbs]] = True
-    ch_adjacency = csr_matrix(ch_adjacency)
+    ch_adjacency = csr_array(ch_adjacency)
     return ch_adjacency
 
 
@@ -1457,7 +1459,7 @@ def find_ch_adjacency(info, ch_type):
 
     Returns
     -------
-    ch_adjacency : scipy.sparse.csr_matrix, shape (n_channels, n_channels)
+    ch_adjacency : scipy.sparse.csr_array, shape (n_channels, n_channels)
         The adjacency matrix.
     ch_names : list
         The list of channel names present in adjacency matrix.
@@ -1496,7 +1498,7 @@ def find_ch_adjacency(info, ch_type):
         picks = channel_indices_by_type(info)
         if sum([len(p) != 0 for p in picks.values()]) != 1:
             raise ValueError(
-                "info must contain only one channel type if " "ch_type is None."
+                "info must contain only one channel type if ch_type is None."
             )
         ch_type = channel_type(info, 0)
     else:
@@ -1570,7 +1572,7 @@ def _compute_ch_adjacency(info, ch_type):
 
     Returns
     -------
-    ch_adjacency : scipy.sparse.csr_matrix, shape (n_channels, n_channels)
+    ch_adjacency : scipy.sparse.csr_array, shape (n_channels, n_channels)
         The adjacency matrix.
     ch_names : list
         The list of channel names present in adjacency matrix.
@@ -1609,9 +1611,9 @@ def _compute_ch_adjacency(info, ch_type):
                 for jj in range(2):
                     ch_adjacency[idx * 2 + ii, neigbs * 2 + jj] = True
                     ch_adjacency[idx * 2 + ii, idx * 2 + jj] = True  # pair
-        ch_adjacency = csr_matrix(ch_adjacency)
+        ch_adjacency = csr_array(ch_adjacency)
     else:
-        ch_adjacency = lil_matrix(neighbors)
+        ch_adjacency = lil_array(neighbors)
         ch_adjacency.setdiag(np.repeat(1, ch_adjacency.shape[0]))
         ch_adjacency = ch_adjacency.tocsr()
 
@@ -1904,7 +1906,7 @@ def combine_channels(
     # Instantiate channel info and data
     new_ch_names, new_ch_types, new_data = [], [], []
     if not isinstance(keep_stim, bool):
-        raise TypeError('"keep_stim" must be of type bool, not ' f"{type(keep_stim)}.")
+        raise TypeError(f'"keep_stim" must be of type bool, not {type(keep_stim)}.')
     if keep_stim:
         stim_ch_idx = list(pick_types(inst.info, meg=False, stim=True))
         if stim_ch_idx:
@@ -1917,7 +1919,7 @@ def combine_channels(
     # Get indices of bad channels
     ch_idx_bad = []
     if not isinstance(drop_bad, bool):
-        raise TypeError('"drop_bad" must be of type bool, not ' f"{type(drop_bad)}.")
+        raise TypeError(f'"drop_bad" must be of type bool, not {type(drop_bad)}.')
     if drop_bad and inst.info["bads"]:
         ch_idx_bad = pick_channels(ch_names, inst.info["bads"])
 
@@ -1939,7 +1941,7 @@ def combine_channels(
         this_picks = [idx for idx in this_picks if idx not in ch_idx_bad]
         if these_bads:
             logger.info(
-                "Dropped the following channels in group " f"{this_group}: {these_bads}"
+                f"Dropped the following channels in group {this_group}: {these_bads}"
             )
         #  Check if combining less than 2 channel
         if len(set(this_picks)) < 2:
@@ -2132,9 +2134,7 @@ def read_vectorview_selection(name, fname=None, info=None, verbose=None):
             # get the name of the selection in the file
             pos = line.find(":")
             if pos < 0:
-                logger.info(
-                    '":" delimiter not found in selections file, ' "skipping line"
-                )
+                logger.info('":" delimiter not found in selections file, skipping line')
                 continue
             sel_name_file = line[:pos]
             # search for substring match with name provided
@@ -2147,7 +2147,7 @@ def read_vectorview_selection(name, fname=None, info=None, verbose=None):
     # make sure we found at least one match for each name
     for n, found in name_found.items():
         if not found:
-            raise ValueError('No match for selection name "%s" found' % n)
+            raise ValueError(f'No match for selection name "{n}" found')
 
     # make the selection a sorted list with unique elements
     sel = list(set(sel))

@@ -92,6 +92,7 @@ RELEASES = dict(
     testing="0.152",
     misc="0.27",
     phantom_kit="0.2",
+    ucl_opm_auditory="0.2",
 )
 TESTING_VERSIONED = f'mne-testing-data-{RELEASES["testing"]}'
 MISC_VERSIONED = f'mne-misc-data-{RELEASES["misc"]}'
@@ -149,8 +150,8 @@ MNE_DATASETS["fnirs_motor"] = dict(
 
 MNE_DATASETS["ucl_opm_auditory"] = dict(
     archive_name="auditory_OPM_stationary.zip",
-    hash="md5:9ed0d8d554894542b56f8e7c4c0041fe",
-    url="https://osf.io/download/mwrt3/?version=1",
+    hash="md5:b2d69aa2d656b960bd0c18968dc1a14d",
+    url="https://osf.io/download/tp324/?version=1",  # original is mwrt3
     folder_name="auditory_OPM_stationary",
     config_key="MNE_DATASETS_UCL_OPM_AUDITORY_PATH",
 )
@@ -357,9 +358,7 @@ MNE_DATASETS["hf_sef_evoked"] = dict(
 MNE_DATASETS["fake"] = dict(
     archive_name="foo.tgz",
     hash="md5:3194e9f7b46039bb050a74f3e1ae9908",
-    url=(
-        "https://github.com/mne-tools/mne-testing-data/raw/master/" "datasets/foo.tgz"
-    ),
+    url="https://github.com/mne-tools/mne-testing-data/raw/master/datasets/foo.tgz",
     folder_name="foo",
     config_key="MNE_DATASETS_FAKE_PATH",
 )

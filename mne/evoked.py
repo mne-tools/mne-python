@@ -10,6 +10,7 @@
 
 from copy import deepcopy
 from inspect import getfullargspec
+from pathlib import Path
 from typing import Union
 
 import numpy as np
@@ -48,6 +49,7 @@ from .filter import FilterMixin, _check_fun, detrend
 from .html_templates import _get_html_template
 from .parallel import parallel_func
 from .time_frequency.spectrum import Spectrum, SpectrumMixin, _validate_method
+from .time_frequency.tfr import AverageTFR
 from .utils import (
     ExtendedTimeMixin,
     SizeMixin,
@@ -460,20 +462,21 @@ class Evoked(
                 on_baseline_outside_data="adjust",
             ):
                 s += " (baseline period was cropped after baseline correction)"
-        s += ", %s ch" % self.data.shape[0]
+        s += f", {self.data.shape[0]} ch"
         s += f", ~{sizeof_fmt(self._size)}"
         return f"<Evoked | {s}>"
 
     @repr_html
     def _repr_html_(self):
-        if self.baseline is None:
-            baseline = "off"
-        else:
-            baseline = tuple([f"{b:.3f}" for b in self.baseline])
-            baseline = f"{baseline[0]} – {baseline[1]} s"
-
         t = _get_html_template("repr", "evoked.html.jinja")
-        t = t.render(evoked=self, baseline=baseline)
+        t = t.render(
+            inst=self,
+            filenames=(
+                [Path(self.filename).name]
+                if getattr(self, "filename", None) is not None
+                else None
+            ),
+        )
         return t
 
     @property
@@ -1169,6 +1172,66 @@ class Evoked(
         )
 
     @verbose
+    def compute_tfr(
+        self,
+        method,
+        freqs,
+        *,
+        tmin=None,
+        tmax=None,
+        picks=None,
+        proj=False,
+        output="power",
+        decim=1,
+        n_jobs=None,
+        verbose=None,
+        **method_kw,
+    ):
+        """Compute a time-frequency representation of evoked data.
+
+        Parameters
+        ----------
+        %(method_tfr)s
+        %(freqs_tfr)s
+        %(tmin_tmax_psd)s
+        %(picks_good_data_noref)s
+        %(proj_psd)s
+        %(output_compute_tfr)s
+        %(decim_tfr)s
+        %(n_jobs)s
+        %(verbose)s
+        %(method_kw_tfr)s
+
+        Returns
+        -------
+        tfr : instance of AverageTFR
+            The time-frequency-resolved power estimates of the data.
+
+        Notes
+        -----
+        .. versionadded:: 1.7
+
+        References
+        ----------
+        .. footbibliography::
+        """
+        _check_option("output", output, ("power", "phase", "complex"))
+        method_kw["output"] = output
+        return AverageTFR(
+            inst=self,
+            method=method,
+            freqs=freqs,
+            tmin=tmin,
+            tmax=tmax,
+            picks=picks,
+            proj=proj,
+            decim=decim,
+            n_jobs=n_jobs,
+            verbose=verbose,
+            **method_kw,
+        )
+
+    @verbose
     def plot_psd(
         self,
         fmin=0,
@@ -1181,7 +1244,7 @@ class Evoked(
         method="auto",
         average=False,
         dB=True,
-        estimate="auto",
+        estimate="power",
         xscale="linear",
         area_mode="std",
         area_alpha=0.33,
@@ -1444,7 +1507,7 @@ def _get_entries(fid, evoked_node, allow_maxshield=False):
     aspect_kinds = np.atleast_1d(aspect_kinds)
     if len(comments) != len(aspect_kinds) or len(comments) == 0:
         fid.close()
-        raise ValueError("Dataset names in FIF file " "could not be found.")
+        raise ValueError("Dataset names in FIF file could not be found.")
     t = [_aspect_rev[a] for a in aspect_kinds]
     t = ['"' + c + '" (' + tt + ")" for tt, c in zip(t, comments)]
     t = "\n".join(t)
@@ -1651,7 +1714,7 @@ def read_evokeds(
     """
     fname = str(_check_fname(fname, overwrite="read", must_exist=True))
     check_fname(fname, "evoked", ("-ave.fif", "-ave.fif.gz", "_ave.fif", "_ave.fif.gz"))
-    logger.info("Reading %s ..." % fname)
+    logger.info(f"Reading {fname} ...")
     return_list = True
     if condition is None:
         evoked_node = _get_evoked_node(fname)
@@ -1708,7 +1771,7 @@ def _read_evoked(fname, condition=None, kind="average", allow_maxshield=False):
         # find string-based entry
         if isinstance(condition, str):
             if kind not in _aspect_dict.keys():
-                raise ValueError('kind must be "average" or ' '"standard_error"')
+                raise ValueError('kind must be "average" or "standard_error"')
 
             comments, aspect_kinds, t = _get_entries(fid, evoked_node, allow_maxshield)
             goods = np.isin(comments, [condition]) & np.isin(
@@ -1792,7 +1855,7 @@ def _read_evoked(fname, condition=None, kind="average", allow_maxshield=False):
         if nchan > 0:
             if chs is None:
                 raise ValueError(
-                    "Local channel information was not found " "when it was expected."
+                    "Local channel information was not found when it was expected."
                 )
 
             if len(chs) != nchan:
@@ -1805,7 +1868,7 @@ def _read_evoked(fname, condition=None, kind="average", allow_maxshield=False):
             info["chs"] = chs
             info["bads"][:] = _rename_list(info["bads"], ch_names_mapping)
             logger.info(
-                "    Found channel information in evoked data. " "nchan = %d" % nchan
+                f"    Found channel information in evoked data. nchan = {nchan}"
             )
             if sfreq > 0:
                 info["sfreq"] = sfreq
@@ -2075,12 +2138,12 @@ def _get_peak(data, times, tmin=None, tmax=None, mode="abs", *, strict=True):
     if mode == "pos":
         if strict and not np.any(data[~mask] > 0):
             raise ValueError(
-                "No positive values encountered. Cannot " "operate in pos mode."
+                "No positive values encountered. Cannot operate in pos mode."
             )
     elif mode == "neg":
         if strict and not np.any(data[~mask] < 0):
             raise ValueError(
-                "No negative values encountered. Cannot " "operate in neg mode."
+                "No negative values encountered. Cannot operate in neg mode."
             )
         maxfun = np.argmin
 

@@ -344,13 +344,13 @@ def _get_fid_coords(dig, raise_error=True):
     if len(fid_coord_frames) > 0 and raise_error:
         if set(fid_coord_frames.keys()) != set(["nasion", "lpa", "rpa"]):
             raise ValueError(
-                "Some fiducial points are missing (got %s)." % fid_coord_frames.keys()
+                f"Some fiducial points are missing (got {fid_coord_frames.keys()})."
             )
 
         if len(set(fid_coord_frames.values())) > 1:
             raise ValueError(
                 "All fiducial points must be in the same coordinate system "
-                "(got %s)" % len(fid_coord_frames)
+                f"(got {len(fid_coord_frames)})"
             )
 
     coord_frame = fid_coord_frames.popitem()[1] if fid_coord_frames else None

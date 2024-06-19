@@ -294,7 +294,7 @@ def test_cov_estimation_on_raw(method, tmp_path):
         try:
             import sklearn  # noqa: F401
         except Exception as exp:
-            pytest.skip("sklearn is required, got %s" % (exp,))
+            pytest.skip(f"sklearn is required, got {exp}")
     raw = read_raw_fif(raw_fname, preload=True)
     cov_mne = read_cov(erm_cov_fname)
     method_params = dict(shrunk=dict(shrinkage=[0]))
@@ -393,7 +393,7 @@ def test_cov_estimation_on_raw_reg():
 def _assert_cov(cov, cov_desired, tol=0.005, nfree=True):
     assert_equal(cov.ch_names, cov_desired.ch_names)
     err = np.linalg.norm(cov.data - cov_desired.data) / np.linalg.norm(cov.data)
-    assert err < tol, "%s >= %s" % (err, tol)
+    assert err < tol, f"{err} >= {tol}"
     if nfree:
         assert_equal(cov.nfree, cov_desired.nfree)
 
@@ -620,8 +620,9 @@ def test_auto_low_rank():
     X = get_data(n_samples=n_samples, n_features=n_features, rank=rank, sigma=sigma)
     method_params = {"iter_n_components": [n_features + 5]}
     msg = (
-        "You are trying to estimate %i components on matrix " "with %i features."
-    ) % (n_features + 5, n_features)
+        f"You are trying to estimate {n_features + 5} components on matrix with "
+        f"{n_features} features."
+    )
     with pytest.warns(RuntimeWarning, match=msg):
         _auto_low_rank_model(
             X, mode=mode, n_jobs=n_jobs, method_params=method_params, cv=cv

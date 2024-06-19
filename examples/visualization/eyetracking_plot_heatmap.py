@@ -24,7 +24,6 @@ This tutorial covers plotting eye-tracking position data as a heatmap.
 # :ref:`example data <eyelink-dataset>`: eye-tracking data recorded from SR research's
 # ``'.asc'`` file format.
 
-
 import matplotlib.pyplot as plt
 
 import mne

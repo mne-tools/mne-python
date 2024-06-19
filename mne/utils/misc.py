@@ -246,7 +246,7 @@ def running_subprocess(command, after="wait", verbose=None, *args, **kwargs):
     else:
         command = [str(s) for s in command]
         command_str = " ".join(s for s in command)
-    logger.info("Running subprocess: %s" % command_str)
+    logger.info(f"Running subprocess: {command_str}")
     try:
         p = subprocess.Popen(command, *args, **kwargs)
     except Exception:
@@ -254,7 +254,7 @@ def running_subprocess(command, after="wait", verbose=None, *args, **kwargs):
             command_name = command.split()[0]
         else:
             command_name = command[0]
-        logger.error("Command not found: %s" % command_name)
+        logger.error(f"Command not found: {command_name}")
         raise
     try:
         with ExitStack() as stack:
@@ -269,9 +269,8 @@ def running_subprocess(command, after="wait", verbose=None, *args, **kwargs):
 def _clean_names(names, remove_whitespace=False, before_dash=True):
     """Remove white-space on topo matching.
 
-    This function handles different naming
-    conventions for old VS new VectorView systems (`remove_whitespace`).
-    Also it allows to remove system specific parts in CTF channel names
+    This function handles different naming conventions for old VS new VectorView systems
+    (`remove_whitespace`) and removes system specific parts in CTF channel names
     (`before_dash`).
 
     Usage
@@ -281,7 +280,6 @@ def _clean_names(names, remove_whitespace=False, before_dash=True):
 
     # for CTF
     ch_names = _clean_names(epochs.ch_names, before_dash=True)
-
     """
     cleaned = []
     for name in names:
@@ -292,7 +290,10 @@ def _clean_names(names, remove_whitespace=False, before_dash=True):
         if name.endswith("_v"):
             name = name[:-2]
         cleaned.append(name)
-
+    if len(set(cleaned)) != len(names):
+        # this was probably not a VectorView or CTF dataset, and we now broke the
+        # dataset by creating duplicates, so let's use the original channel names.
+        return names
     return cleaned
 
 
@@ -339,7 +340,7 @@ def sizeof_fmt(num):
         quotient = float(num) / 1024**exponent
         unit = units[exponent]
         num_decimals = decimals[exponent]
-        format_string = "{0:.%sf} {1}" % (num_decimals)
+        format_string = f"{{0:.{num_decimals}f}} {{1}}"
         return format_string.format(quotient, unit)
     if num == 0:
         return "0 bytes"

@@ -22,7 +22,6 @@ from collections import defaultdict
 from contextlib import contextmanager
 from datetime import datetime
 from functools import partial
-from inspect import signature
 
 import numpy as np
 from decorator import decorator
@@ -59,7 +58,6 @@ from ..utils import (
     _pl,
     _to_rgb,
     _validate_type,
-    check_version,
     fill_doc,
     get_config,
     logger,
@@ -394,9 +392,7 @@ def _get_channel_plotting_order(order, ch_types, picks=None):
             if order_type == pick_type
         ]
     elif not isinstance(order, (np.ndarray, list, tuple)):
-        raise ValueError(
-            "order should be array-like; got " f'"{order}" ({type(order)}).'
-        )
+        raise ValueError(f'order should be array-like; got "{order}" ({type(order)}).')
     if picks is not None:
         order = [ch for ch in order if ch in picks]
     return np.asarray(order, int)
@@ -684,12 +680,6 @@ def _show_help_fig(col1, col2, fig_help, ax, show):
             pass
 
 
-def _show_help(col1, col2, width, height):
-    fig_help = figure_nobar(figsize=(width, height), dpi=80)
-    ax = fig_help.add_subplot(111)
-    _show_help_fig(col1, col2, fig_help, ax, show=True)
-
-
 def _key_press(event):
     """Handle key press in dialog."""
     import matplotlib.pyplot as plt
@@ -798,10 +788,6 @@ class ClickableImage:
         return lt
 
 
-def _old_mpl_events():
-    return not check_version("matplotlib", "3.6")
-
-
 def _fake_click(fig, ax, point, xform="ax", button=1, kind="press", key=None):
     """Fake a click at a relative point within axes."""
     from matplotlib import backend_bases
@@ -813,40 +799,28 @@ def _fake_click(fig, ax, point, xform="ax", button=1, kind="press", key=None):
     else:
         assert xform == "pix"
         x, y = point
-    # This works on 3.6+, but not on <= 3.5.1 (lasso events not propagated)
-    if _old_mpl_events():
-        if kind == "press":
-            fig.canvas.button_press_event(x=x, y=y, button=button)
-        elif kind == "release":
-            fig.canvas.button_release_event(x=x, y=y, button=button)
-        elif kind == "motion":
-            fig.canvas.motion_notify_event(x=x, y=y)
+    if kind in ("press", "release"):
+        kind = f"button_{kind}_event"
     else:
-        if kind in ("press", "release"):
-            kind = f"button_{kind}_event"
-        else:
-            assert kind == "motion"
-            kind = "motion_notify_event"
-            button = None
-        logger.debug(f"Faking {kind} @ ({x}, {y}) with button={button} and key={key}")
-        fig.canvas.callbacks.process(
-            kind,
-            backend_bases.MouseEvent(
-                name=kind, canvas=fig.canvas, x=x, y=y, button=button, key=key
-            ),
-        )
+        assert kind == "motion"
+        kind = "motion_notify_event"
+        button = None
+    logger.debug(f"Faking {kind} @ ({x}, {y}) with button={button} and key={key}")
+    fig.canvas.callbacks.process(
+        kind,
+        backend_bases.MouseEvent(
+            name=kind, canvas=fig.canvas, x=x, y=y, button=button, key=key
+        ),
+    )
 
 
 def _fake_keypress(fig, key):
-    if _old_mpl_events():
-        fig.canvas.key_press_event(key)
-    else:
-        from matplotlib import backend_bases
+    from matplotlib import backend_bases
 
-        fig.canvas.callbacks.process(
-            "key_press_event",
-            backend_bases.KeyEvent(name="key_press_event", canvas=fig.canvas, key=key),
-        )
+    fig.canvas.callbacks.process(
+        "key_press_event",
+        backend_bases.KeyEvent(name="key_press_event", canvas=fig.canvas, key=key),
+    )
 
 
 def _fake_scroll(fig, x, y, step):
@@ -1167,7 +1141,7 @@ def plot_sensors(
                 if pick in value:
                     colors[pick_idx] = color_vals[ind]
                     break
-    title = "Sensor positions (%s)" % ch_type if title is None else title
+    title = f"Sensor positions ({ch_type})" if title is None else title
     fig = _plot_sensors_2d(
         pos,
         info,
@@ -1558,7 +1532,7 @@ class DraggableColorbar:
             self.index = 0
         cmap = self.cycle[self.index]
         self.cbar.mappable.set_cmap(cmap)
-        _draw_without_rendering(self.cbar)
+        self.cbar.ax.figure.draw_without_rendering()
         self.mappable.set_cmap(cmap)
         self._publish()
 
@@ -1622,18 +1596,9 @@ class DraggableColorbar:
 
         self.cbar.set_ticks(AutoLocator())
         self.cbar.update_ticks()
-        _draw_without_rendering(self.cbar)
+        self.cbar.ax.figure.draw_without_rendering()
         self.mappable.set_norm(self.cbar.norm)
         self.cbar.ax.figure.canvas.draw()
-
-
-def _draw_without_rendering(cbar):
-    # draw_all deprecated in Matplotlib 3.6
-    try:
-        meth = cbar.ax.figure.draw_without_rendering
-    except AttributeError:
-        meth = cbar.draw_all
-    return meth()
 
 
 class SelectFromCollection:
@@ -1699,8 +1664,9 @@ class SelectFromCollection:
         self.ec[:, -1] = self.alpha_other
         self.lw = np.full(self.Npts, self.linewidth_other)
 
-        line_kw = _prop_kw("line", dict(color="red", linewidth=0.5))
-        self.lasso = LassoSelector(ax, onselect=self.on_select, **line_kw)
+        self.lasso = LassoSelector(
+            ax, onselect=self.on_select, props=dict(color="red", linewidth=0.5)
+        )
         self.selection = list()
         self.callbacks = list()
 
@@ -1980,9 +1946,7 @@ def _handle_decim(info, decim, lowpass):
         decim = max(int(info["sfreq"] / (lp * 3) + 1e-6), 1)
     decim = _ensure_int(decim, "decim", must_be='an int or "auto"')
     if decim <= 0:
-        raise ValueError(
-            'decim must be "auto" or a positive integer, got %s' % (decim,)
-        )
+        raise ValueError(f'decim must be "auto" or a positive integer, got {decim}')
     decim = _check_decim(info, decim, 0)[0]
     data_picks = _pick_data_channels(info, exclude=())
     return decim, data_picks
@@ -2140,26 +2104,33 @@ def _set_title_multiple_electrodes(
         ch_type = _channel_type_prettyprint.get(ch_type, ch_type)
         if ch_type is None:
             ch_type = "sensor"
-        if len(ch_names) > 1:
-            ch_type += "s"
-        combine = combine.capitalize() if isinstance(combine, str) else "Combination"
+        ch_type = f"{ch_type}{_pl(ch_names)}"
+        if hasattr(combine, "func"):  # functools.partial
+            combine = combine.func
+        if callable(combine):
+            combine = getattr(combine, "__name__", str(combine))
+        if not isinstance(combine, str):
+            combine = "Combination"
+        # mean → Mean, but avoid RMS → Rms and GFP → Gfp
+        if combine[0].islower():
+            combine = combine.capitalize()
         if all_:
             title = f"{combine} of {len(ch_names)} {ch_type}"
         elif len(ch_names) > max_chans and combine != "gfp":
-            logger.info("More than %i channels, truncating title ...", max_chans)
+            logger.info(f"More than {max_chans} channels, truncating title ...")
             title += f", ...\n({combine} of {len(ch_names)} {ch_type})"
     return title
 
 
 def _check_time_unit(time_unit, times):
     if not isinstance(time_unit, str):
-        raise TypeError("time_unit must be str, got %s" % (type(time_unit),))
+        raise TypeError(f"time_unit must be str, got {type(time_unit)}")
     if time_unit == "s":
         pass
     elif time_unit == "ms":
         times = 1e3 * times
     else:
-        raise ValueError("time_unit must be 's' or 'ms', got %r" % time_unit)
+        raise ValueError(f"time_unit must be 's' or 'ms', got {time_unit!r}")
     return time_unit, times
 
 
@@ -2215,7 +2186,7 @@ def _plot_masked_image(
         if mask.shape != data.shape:
             raise ValueError(
                 "The mask must have the same shape as the data, "
-                "i.e., %s, not %s" % (data.shape, mask.shape)
+                f"i.e., {data.shape}, not {mask.shape}"
             )
         if draw_contour and yscale == "log":
             warn("Cannot draw contours with linear yscale yet ...")
@@ -2322,7 +2293,7 @@ def _plot_masked_image(
             t_end = ", all points masked)"
         else:
             fraction = 1 - (np.float64(mask.sum()) / np.float64(mask.size))
-            t_end = ", %0.3g%% of points masked)" % (fraction * 100,)
+            t_end = f", {fraction * 100:0.3g}% of points masked)"
     else:
         t_end = ")"
 
@@ -2375,10 +2346,16 @@ def _make_combine_callable(
         def _rms(data):
             return np.sqrt((data**2).mean(**kwargs))
 
+        def _gfp(data):
+            return data.std(axis=axis, ddof=0)
+
+        # make them play nice with _set_title_multiple_electrodes()
+        _rms.__name__ = "RMS"
+        _gfp.__name__ = "GFP"
         if "rms" in valid:
             combine_dict["rms"] = _rms
         if "gfp" in valid and ch_type == "eeg":
-            combine_dict["gfp"] = lambda data: data.std(axis=axis, ddof=0)
+            combine_dict["gfp"] = _gfp
         elif "gfp" in valid:
             combine_dict["gfp"] = _rms
         try:
@@ -2415,9 +2392,7 @@ def _convert_psds(
             msg += "\nThese channels might be dead."
         warn(msg, UserWarning)
 
-    if estimate == "auto":
-        estimate = "power" if dB else "amplitude"
-
+    _check_option("estimate", estimate, ("power", "amplitude"))
     if estimate == "amplitude":
         np.sqrt(psds, out=psds)
         psds *= scaling
@@ -2761,15 +2736,6 @@ def _generate_default_filename(ext=".png"):
     return "MNE" + dt_string + ext
 
 
-def _prop_kw(kind, val):
-    # Can be removed in when we depend on matplotlib 3.5+
-    # https://github.com/matplotlib/matplotlib/pull/20585
-    from matplotlib.widgets import SpanSelector
-
-    pre = "" if "props" in signature(SpanSelector).parameters else kind
-    return {pre + "props": val}
-
-
 def _handle_precompute(precompute):
     _validate_type(precompute, (bool, str, None), "precompute")
     if precompute is None:
@@ -2828,12 +2794,7 @@ def _get_cmap(colormap, lut=None):
     elif not isinstance(colormap, colors.Colormap):
         colormap = get_cmap(colormap)
     if lut is not None:
-        # triage method for MPL 3.6 ('resampled') or older ('_resample')
-        if hasattr(colormap, "resampled"):
-            resampled = colormap.resampled
-        else:
-            resampled = colormap._resample
-        colormap = resampled(lut)
+        colormap = colormap.resampled(lut)
     return colormap
 
 
@@ -2852,5 +2813,7 @@ def _get_plot_ch_type(inst, ch_type, allow_ref_meg=False):
                 ch_type = type_
                 break
         else:
-            raise RuntimeError("No plottable channel types found")
+            raise RuntimeError(
+                f"No plottable channel types found. Allowed types are: {allowed_types}"
+            )
     return ch_type

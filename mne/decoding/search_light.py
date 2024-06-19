@@ -5,6 +5,7 @@
 import logging
 
 import numpy as np
+from scipy.sparse import issparse
 
 from ..fixes import _get_check_scoring
 from ..parallel import parallel_func
@@ -143,7 +144,7 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
         X = self._check_Xy(X)
         method = _check_method(self.base_estimator, method)
         if X.shape[-1] != len(self.estimators_):
-            raise ValueError("The number of estimators does not match " "X.shape[-1]")
+            raise ValueError("The number of estimators does not match X.shape[-1]")
         # For predictions/transforms the parallelization is across the data and
         # not across the estimators to avoid memory load.
         parallel, p_func, n_jobs = parallel_func(
@@ -254,6 +255,12 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
 
     def _check_Xy(self, X, y=None):
         """Aux. function to check input data."""
+        # Once we require sklearn 1.1+ we should do something like:
+        # from sklearn.utils import check_array
+        # X = check_array(X, ensure_2d=False, input_name="X")
+        # y = check_array(y, dtype=None, ensure_2d=False, input_name="y")
+        if issparse(X):
+            raise TypeError("X should be a dense array, got sparse instead.")
         X = np.asarray(X)
         if y is not None:
             y = np.asarray(y)
@@ -297,7 +304,7 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
 
         X = self._check_Xy(X, y)
         if X.shape[-1] != len(self.estimators_):
-            raise ValueError("The number of estimators does not match " "X.shape[-1]")
+            raise ValueError("The number of estimators does not match X.shape[-1]")
 
         scoring = check_scoring(self.base_estimator, self.scoring)
         y = _fix_auc(scoring, y)
@@ -443,7 +450,7 @@ def _check_method(estimator, method):
     if method == "transform" and not hasattr(estimator, "transform"):
         method = "predict"
     if not hasattr(estimator, method):
-        ValueError("base_estimator does not have `%s` method." % method)
+        ValueError(f"base_estimator does not have `{method}` method.")
     return method
 
 
@@ -725,7 +732,7 @@ def _fix_auc(scoring, y):
         ):
             if np.ndim(y) != 1 or len(set(y)) != 2:
                 raise ValueError(
-                    "roc_auc scoring can only be computed for " "two-class problems."
+                    "roc_auc scoring can only be computed for two-class problems."
                 )
             y = LabelEncoder().fit_transform(y)
     return y

@@ -50,6 +50,11 @@ class RawBrainVision(BaseRaw):
     scale : float
         The scaling factor for EEG data. Unless specified otherwise by
         header file, units are in microvolts. Default scale factor is 1.
+    ignore_marker_types : bool
+        If ``True``, ignore marker types and only use marker descriptions. Default is
+        ``False``.
+
+        .. versionadded:: 1.8
     %(preload)s
     %(verbose)s
 
@@ -61,6 +66,15 @@ class RawBrainVision(BaseRaw):
     See Also
     --------
     mne.io.Raw : Documentation of attributes and methods.
+
+    Notes
+    -----
+    BrainVision markers consist of a type and a description (in addition to other fields
+    like onset and duration). In contrast, annotations in MNE only have a description.
+    Therefore, a BrainVision marker of type "Stimulus" and description "S  1" will be
+    converted to an annotation "Stimulus/S  1" by default. If you want to ignore the
+    type and instead only use the description, set ``ignore_marker_types=True``, which
+    will convert the same marker to an annotation "S  1".
     """
 
     _extra_attributes = ("impedances",)
@@ -72,11 +86,12 @@ class RawBrainVision(BaseRaw):
         eog=("HEOGL", "HEOGR", "VEOGb"),
         misc="auto",
         scale=1.0,
+        ignore_marker_types=False,
         preload=False,
         verbose=None,
     ):  # noqa: D107
         # Channel info and events
-        logger.info("Extracting parameters from %s..." % vhdr_fname)
+        logger.info(f"Extracting parameters from {vhdr_fname}...")
         hdr_fname = op.abspath(vhdr_fname)
         ext = op.splitext(hdr_fname)[-1]
         ahdr_format = True if ext == ".ahdr" else False
@@ -129,7 +144,9 @@ class RawBrainVision(BaseRaw):
         self.impedances = _parse_impedance(split_settings, self.info["meas_date"])
 
         # Get annotations from marker file
-        annots = read_annotations(mrk_fname, info["sfreq"])
+        annots = read_annotations(
+            mrk_fname, info["sfreq"], ignore_marker_types=ignore_marker_types
+        )
         self.set_annotations(annots)
 
         # Drop the fake ahdr channel if needed
@@ -207,13 +224,15 @@ def _read_segments_c(raw, data, idx, fi, start, stop, cals, mult):
     _mult_cal_one(data, block, idx, cals, mult)
 
 
-def _read_mrk(fname):
+def _read_mrk(fname, ignore_marker_types=False):
     """Read annotations from a vmrk/amrk file.
 
     Parameters
     ----------
     fname : str
         vmrk/amrk file to be read.
+    ignore_marker_types : bool
+        If True, ignore marker types and only use marker descriptions. Default is False.
 
     Returns
     -------
@@ -293,36 +312,41 @@ def _read_mrk(fname):
         this_duration = int(this_duration) if this_duration.isdigit() else 0
         duration.append(this_duration)
         onset.append(int(this_onset) - 1)  # BV is 1-indexed, not 0-indexed
-        description.append(mtype + "/" + mdesc)
+        if not ignore_marker_types:
+            description.append(mtype + "/" + mdesc)
+        else:
+            description.append(mdesc)
 
     return np.array(onset), np.array(duration), np.array(description), date_str
 
 
-def _read_annotations_brainvision(fname, sfreq="auto"):
+def _read_annotations_brainvision(fname, sfreq="auto", ignore_marker_types=False):
     """Create Annotations from BrainVision vmrk/amrk.
 
-    This function reads a .vmrk or .amrk file and makes an
-    :class:`mne.Annotations` object.
+    This function reads a .vmrk or .amrk file and creates an :class:`mne.Annotations`
+    object.
 
     Parameters
     ----------
     fname : str | object
         The path to the .vmrk/.amrk file.
     sfreq : float | 'auto'
-        The sampling frequency in the file. It's necessary
-        as Annotations are expressed in seconds and vmrk/amrk
-        files are in samples. If set to 'auto' then
-        the sfreq is taken from the .vhdr/.ahdr file that
-        has the same name (without file extension). So
-        data.vmrk/amrk looks for sfreq in data.vhdr or,
-        if it does not exist, in data.ahdr.
+        The sampling frequency in the file. This is necessary because Annotations are
+        expressed in seconds and vmrk/amrk files are in samples. If set to 'auto' then
+        the sfreq is taken from the .vhdr/.ahdr file with the same name (without file
+        extension). So data.vmrk/amrk looks for sfreq in data.vhdr or, if it does not
+        exist, in data.ahdr.
+    ignore_marker_types : bool
+        If True, ignore marker types and only use marker descriptions. Default is False.
 
     Returns
     -------
     annotations : instance of Annotations
         The annotations present in the file.
     """
-    onset, duration, description, date_str = _read_mrk(fname)
+    onset, duration, description, date_str = _read_mrk(
+        fname, ignore_marker_types=ignore_marker_types
+    )
     orig_time = _str_to_meas_date(date_str)
 
     if sfreq == "auto":
@@ -330,7 +354,7 @@ def _read_annotations_brainvision(fname, sfreq="auto"):
         # if vhdr file does not exist assume that the format is ahdr
         if not op.exists(hdr_fname):
             hdr_fname = op.splitext(fname)[0] + ".ahdr"
-        logger.info("Finding 'sfreq' from header file: %s" % hdr_fname)
+        logger.info(f"Finding 'sfreq' from header file: {hdr_fname}")
         _, _, _, info = _aux_hdr_info(hdr_fname)
         sfreq = info["sfreq"]
 
@@ -350,9 +374,7 @@ def _check_bv_version(header, kind):
     )
     # optional space, optional Core or V-Amp, optional Exchange,
     # Version/Header, optional comma, 1/2
-    _data_re = (
-        r"Brain ?Vision( Core| V-Amp)? Data( Exchange)? " r"%s File,? Version %s\.0"
-    )
+    _data_re = r"Brain ?Vision( Core| V-Amp)? Data( Exchange)? %s File,? Version %s\.0"
 
     assert kind in ("header", "marker")
 
@@ -447,7 +469,7 @@ def _aux_hdr_info(hdr_fname):
         params, settings = settings.split("[Comment]")
     else:
         params, settings = settings, ""
-    cfg = configparser.ConfigParser()
+    cfg = configparser.ConfigParser(interpolation=None)
     with StringIO(params) as fid:
         cfg.read_file(fid)
 
@@ -510,7 +532,7 @@ def _get_hdr_info(hdr_fname, eog, misc, scale):
     if ext not in (".vhdr", ".ahdr"):
         raise OSError(
             "The header file must be given to read the data, "
-            "not a file with extension '%s'." % ext
+            f"not a file with extension '{ext}'."
         )
 
     settings, cfg, cinfostr, info = _aux_hdr_info(hdr_fname)
@@ -518,14 +540,14 @@ def _get_hdr_info(hdr_fname, eog, misc, scale):
 
     order = cfg.get(cinfostr, "DataOrientation")
     if order not in _orientation_dict:
-        raise NotImplementedError("Data Orientation %s is not supported" % order)
+        raise NotImplementedError(f"Data Orientation {order} is not supported")
     order = _orientation_dict[order]
 
     data_format = cfg.get(cinfostr, "DataFormat")
     if data_format == "BINARY":
         fmt = cfg.get("Binary Infos", "BinaryFormat")
         if fmt not in _fmt_dict:
-            raise NotImplementedError("Datatype %s is not supported" % fmt)
+            raise NotImplementedError(f"Datatype {fmt} is not supported")
         fmt = _fmt_dict[fmt]
     else:
         if order == "C":  # channels in rows
@@ -797,8 +819,8 @@ def _get_hdr_info(hdr_fname, eog, misc, scale):
             if heterogeneous_hp_filter:
                 warn(
                     "Channels contain different highpass filters. "
-                    "Lowest (weakest) filter setting (%0.2f Hz) "
-                    "will be stored." % info["highpass"]
+                    f"Lowest (weakest) filter setting ({info['highpass']:0.2f} Hz) "
+                    "will be stored."
                 )
 
         if len(lowpass) == 0:
@@ -867,8 +889,8 @@ def _get_hdr_info(hdr_fname, eog, misc, scale):
                     nyquist = ""
                 warn(
                     "Channels contain different lowpass filters. "
-                    "Highest (weakest) filter setting (%0.2f Hz%s) "
-                    "will be stored." % (info["lowpass"], nyquist)
+                    f"Highest (weakest) filter setting ({info['lowpass']:0.2f} "
+                    f"Hz{nyquist}) will be stored."
                 )
 
     # Creates a list of dicts of eeg channels for raw.info
@@ -921,6 +943,7 @@ def read_raw_brainvision(
     eog=("HEOGL", "HEOGR", "VEOGb"),
     misc="auto",
     scale=1.0,
+    ignore_marker_types=False,
     preload=False,
     verbose=None,
 ) -> RawBrainVision:
@@ -942,6 +965,9 @@ def read_raw_brainvision(
     scale : float
         The scaling factor for EEG data. Unless specified otherwise by
         header file, units are in microvolts. Default scale factor is 1.
+    ignore_marker_types : bool
+        If ``True``, ignore marker types and only use marker descriptions. Default is
+        ``False``.
     %(preload)s
     %(verbose)s
 
@@ -954,12 +980,22 @@ def read_raw_brainvision(
     See Also
     --------
     mne.io.Raw : Documentation of attributes and methods of RawBrainVision.
+
+    Notes
+    -----
+    BrainVision markers consist of a type and a description (in addition to other fields
+    like onset and duration). In contrast, annotations in MNE only have a description.
+    Therefore, a BrainVision marker of type "Stimulus" and description "S  1" will be
+    converted to an annotation "Stimulus/S  1" by default. If you want to ignore the
+    type and instead only use the description, set ``ignore_marker_types=True``, which
+    will convert the same marker to an annotation "S  1".
     """
     return RawBrainVision(
         vhdr_fname=vhdr_fname,
         eog=eog,
         misc=misc,
         scale=scale,
+        ignore_marker_types=ignore_marker_types,
         preload=preload,
         verbose=verbose,
     )

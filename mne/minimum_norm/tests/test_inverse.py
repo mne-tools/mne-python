@@ -55,7 +55,7 @@ from mne.minimum_norm import (
 from mne.source_estimate import VolSourceEstimate, read_source_estimate
 from mne.source_space._source_space import _get_src_nn
 from mne.surface import _normal_orth
-from mne.time_frequency import EpochsTFR
+from mne.time_frequency import EpochsTFRArray
 from mne.utils import _record_warnings, catch_logging
 
 test_path = testing.data_path(download=False)
@@ -85,7 +85,6 @@ fname_trans = s_path / "sample_audvis_trunc-trans.fif"
 subjects_dir = test_path / "subjects"
 s_path_bem = subjects_dir / "sample" / "bem"
 fname_bem = s_path_bem / "sample-320-320-320-bem-sol.fif"
-fname_bem_homog = s_path_bem / "sample-320-bem-sol.fif"
 src_fname = s_path_bem / "sample-oct-4-src.fif"
 
 snr = 3.0
@@ -130,7 +129,7 @@ def _compare(a, b):
                 if k not in b and k not in skip_types:
                     raise ValueError(
                         "First one had one second one didn't:\n"
-                        "%s not in %s" % (k, b.keys())
+                        f"{k} not in {b.keys()}"
                     )
                 if k not in skip_types:
                     last_keys.pop()
@@ -140,13 +139,13 @@ def _compare(a, b):
                 if k not in a and k not in skip_types:
                     raise ValueError(
                         "Second one had one first one didn't:\n"
-                        "%s not in %s" % (k, sorted(a.keys()))
+                        f"{k} not in {sorted(a.keys())}"
                     )
         elif isinstance(a, list):
             assert len(a) == len(b)
             for i, j in zip(a, b):
                 _compare(i, j)
-        elif isinstance(a, sparse.csr_matrix):
+        elif isinstance(a, sparse.csr_array):
             assert_array_almost_equal(a.data, b.data)
             assert_equal(a.indices, b.indices)
             assert_equal(a.indptr, b.indptr)
@@ -225,9 +224,7 @@ def _compare_inverses_approx(
         stc_2 /= norms
         corr = np.corrcoef(stc_1.ravel(), stc_2.ravel())[0, 1]
         assert corr > ctol
-        assert_allclose(
-            stc_1, stc_2, rtol=rtol, atol=atol, err_msg="%s: %s" % (method, corr)
-        )
+        assert_allclose(stc_1, stc_2, rtol=rtol, atol=atol, err_msg=f"{method}: {corr}")
 
 
 def _compare_io(inv_op, *, out_file_ext=".fif", tmp_path):
@@ -347,7 +344,7 @@ def test_inverse_operator_channel_ordering(evoked, noise_cov):
             evoked.info, fwd_orig, noise_cov, loose=0.2, depth=depth, verbose=True
         )
     log = log.getvalue()
-    assert "limit = 1/%s" % fwd_orig["nsource"] in log
+    assert f"limit = 1/{fwd_orig['nsource']}" in log
     stc_1 = apply_inverse(evoked, inv_orig, lambda2, "dSPM")
 
     # Assume that a raw reordering applies to both evoked and noise_cov,
@@ -1377,11 +1374,11 @@ def test_apply_inverse_tfr(return_generator):
     times = np.arange(sfreq) / sfreq  # make epochs 1s long
     data = rng.random((n_epochs, len(info.ch_names), freqs.size, times.size))
     data = data + 1j * data  # make complex to simulate amplitude + phase
-    epochs_tfr = EpochsTFR(info, data, times=times, freqs=freqs)
+    epochs_tfr = EpochsTFRArray(info=info, data=data, times=times, freqs=freqs)
     epochs_tfr.apply_baseline((0, 0.5))
     pick_ori = "vector"
 
-    with pytest.raises(ValueError, match="Expected 2 inverse operators, " "got 3"):
+    with pytest.raises(ValueError, match="Expected 2 inverse operators, got 3"):
         apply_inverse_tfr_epochs(epochs_tfr, [inverse_operator] * 3, lambda2)
 
     # test epochs

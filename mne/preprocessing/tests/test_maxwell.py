@@ -173,11 +173,7 @@ def _assert_n_free(raw_sss, lower, upper=None):
     """Check the DOF."""
     upper = lower if upper is None else upper
     n_free = raw_sss.info["proc_history"][0]["max_info"]["sss_info"]["nfree"]
-    assert lower <= n_free <= upper, "nfree fail: %s <= %s <= %s" % (
-        lower,
-        n_free,
-        upper,
-    )
+    assert lower <= n_free <= upper, f"nfree fail: {lower} <= {n_free} <= {upper}"
 
 
 def _assert_mag_coil_type(info, coil_type):
@@ -885,15 +881,15 @@ def test_cross_talk(tmp_path):
         maxwell_filter(raw, cross_talk=raw_fname)
     mf_ctc = sss_ctc.info["proc_history"][0]["max_info"]["sss_ctc"]
     del mf_ctc["block_id"]  # we don't write this
-    assert isinstance(py_ctc["decoupler"], sparse.csc_matrix)
-    assert isinstance(mf_ctc["decoupler"], sparse.csc_matrix)
+    assert isinstance(py_ctc["decoupler"], sparse.csc_array)
+    assert isinstance(mf_ctc["decoupler"], sparse.csc_array)
     assert_array_equal(py_ctc["decoupler"].toarray(), mf_ctc["decoupler"].toarray())
     # I/O roundtrip
     fname = tmp_path / "test_sss_raw.fif"
     sss_ctc.save(fname)
     sss_ctc_read = read_raw_fif(fname)
     mf_ctc_read = sss_ctc_read.info["proc_history"][0]["max_info"]["sss_ctc"]
-    assert isinstance(mf_ctc_read["decoupler"], sparse.csc_matrix)
+    assert isinstance(mf_ctc_read["decoupler"], sparse.csc_array)
     assert_array_equal(
         mf_ctc_read["decoupler"].toarray(), mf_ctc["decoupler"].toarray()
     )
@@ -985,9 +981,9 @@ def _assert_shielding(raw_sss, erm_power, min_factor, max_factor=np.inf, meg="ma
     sss_power = raw_sss[picks][0].ravel()
     sss_power = np.sqrt(np.sum(sss_power * sss_power))
     factor = erm_power / sss_power
-    assert min_factor <= factor < max_factor, (
-        "Shielding factor not %0.3f <= %0.3f < %0.3f" % (min_factor, factor, max_factor)
-    )
+    assert (
+        min_factor <= factor < max_factor
+    ), f"Shielding factor not {min_factor:0.3f} <= {factor:0.3f} < {max_factor:0.3f}"
 
 
 @buggy_mkl_svd

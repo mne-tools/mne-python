@@ -206,7 +206,7 @@ def _infer_check_export_fmt(fmt, fname, supported_formats):
             )  # default to original fmt for raising error later
         else:
             raise ValueError(
-                f"Couldn't infer format from filename {fname}" " (no extension found)"
+                f"Couldn't infer format from filename {fname} (no extension found)"
             )
 
     if fmt not in supported_formats:

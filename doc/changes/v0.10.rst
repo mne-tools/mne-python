@@ -91,7 +91,7 @@ BUG
 
 - Fix dropping of events after downsampling stim channels by `Marijn van Vliet`_
 
-- Fix scaling in :func:``mne.viz.utils._setup_vmin_vmax`` by `Jaakko Leppakangas`_
+- Fix scaling in ``mne.viz.utils._setup_vmin_vmax`` by `Jaakko Leppakangas`_
 
 - Fix order of component selection in :class:`mne.decoding.CSP` by `Clemens Brunner`_
 

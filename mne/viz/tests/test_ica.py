@@ -362,12 +362,15 @@ def test_plot_ica_sources(raw_orig, browser_backend, monkeypatch):
     ica.plot_sources(epochs)
     ica.plot_sources(epochs.average())
     evoked = epochs.average()
+    ica.exclude = [0]
     fig = ica.plot_sources(evoked)
     # Test a click
     ax = fig.get_axes()[0]
     line = ax.lines[0]
     _fake_click(fig, ax, [line.get_xdata()[0], line.get_ydata()[0]], "data")
     _fake_click(fig, ax, [ax.get_xlim()[0], ax.get_ylim()[1]], "data")
+    leg = ax.get_legend()
+    assert len(leg.get_texts()) == len(ica.exclude) == 1
 
     # plot with bad channels excluded
     ica.exclude = [0]

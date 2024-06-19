@@ -129,7 +129,7 @@ stc, residual = apply_inverse(
 
 fig, ax = plt.subplots()
 ax.plot(1e3 * stc.times, stc.data[::100, :].T)
-ax.set(xlabel="time (ms)", ylabel="%s value" % method)
+ax.set(xlabel="time (ms)", ylabel=f"{method} value")
 
 # %%
 # Examine the original data and the residual after fitting:

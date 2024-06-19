@@ -151,8 +151,9 @@ def test_compute_proj_eog(average, short_raw):
     assert projs == []
 
     raw._data[raw.ch_names.index("EOG 061"), :] = 1.0
-    with _record_warnings(), pytest.warns(
-        RuntimeWarning, match="filter.*longer than the signal"
+    with (
+        _record_warnings(),
+        pytest.warns(RuntimeWarning, match="filter.*longer than the signal"),
     ):
         projs, events = compute_proj_eog(raw=raw, tmax=dur_use, ch_name="EOG 061")
 

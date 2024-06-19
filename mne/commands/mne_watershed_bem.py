@@ -57,7 +57,7 @@ def run():
         "-g",
         "--gcaatlas",
         dest="gcaatlas",
-        help="Specify the --brain_atlas option for " "mri_watershed",
+        help="Specify the --brain_atlas option for mri_watershed",
         default=False,
         action="store_true",
     )
