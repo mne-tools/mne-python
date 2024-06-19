@@ -251,11 +251,11 @@ df = prepare_dataframe_for_cluster_function(
 
 def cluster_test(
     df: pd.DataFrame,
-    formula: str = None, # Wilkinson notation formula for design matrix
-    contrast: bool = True, # will be replaced by formulaic design matrix
+    formula: str = None,  # Wilkinson notation formula for design matrix
+    contrast: bool = True,  # will be replaced by formulaic design matrix
     n_permutations: int = 10000,
     seed: None | int | np.random.RandomState = None,
-    contrast_weights: list = [1, -1], # will be replaced by formulaic design matrix
+    contrast_weights: list = [1, -1],  # will be replaced by formulaic design matrix
 ):
     """
     Run the cluster test using the new API.
@@ -395,26 +395,30 @@ def cluster_test(
 
     return T_obs, clusters, cluster_p_values, H0
 
+
 # Convert wide format to long format
 def convert_wide_to_long(df):
     long_format_data = []
     for idx, row in df.iterrows():
-        condition = row['condition']
-        subject_index = row['subject_index']
-        data_2d = row['data']
-        
+        condition = row["condition"]
+        subject_index = row["subject_index"]
+        data_2d = row["data"]
+
         for channel in range(data_2d.shape[0]):
             for timepoint in range(data_2d.shape[1]):
-                long_format_data.append({
-                    'condition': condition,
-                    'subject_index': subject_index,
-                    'channel': channel,
-                    'timepoint': timepoint,
-                    'value': data_2d[channel, timepoint]
-                })
-    
+                long_format_data.append(
+                    {
+                        "condition": condition,
+                        "subject_index": subject_index,
+                        "channel": channel,
+                        "timepoint": timepoint,
+                        "value": data_2d[channel, timepoint],
+                    }
+                )
+
     df_long = pd.DataFrame(long_format_data)
     return df_long
+
 
 df_long = convert_wide_to_long(df)
 
@@ -521,7 +525,6 @@ def plot_cluster(
     )
 
     plt.show()
-
 
 
 cluster_test(df)
