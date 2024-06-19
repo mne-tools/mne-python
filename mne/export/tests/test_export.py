@@ -219,7 +219,7 @@ def test_edf_physical_range(tmp_path):
 @edfio_mark()
 @pytest.mark.parametrize("pad_width", (1, 10, 100, 500, 999))
 def test_edf_padding(tmp_path, pad_width):
-    """Test exporting an EDF file with not-equal-length data blocks"""
+    """Test exporting an EDF file with not-equal-length data blocks."""
     ch_types = ["eeg"] * 4
     ch_names = np.arange(len(ch_types)).astype(str).tolist()
     fs = 1000
