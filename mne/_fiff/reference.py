@@ -194,9 +194,9 @@ def _apply_dict_reference(inst, ref_dict):
     """Apply a dict-based custom EEG referencing scheme."""
     _check_before_dict_reference(inst, ref_dict)
 
-    orig_data = inst.copy()._data
     data = inst._data
-    if len(ref_dict) > 0:
+    orig_data = data.copy()
+    if ref_dict:
         for key, value in ref_dict.items():
             if isinstance(value, str):
                 value = [value]  # pick_channels expects a list

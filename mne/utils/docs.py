@@ -3673,12 +3673,12 @@ ref_channels : list of str | str | dict
     - ``'average'`` to apply an average reference (default)
     - ``'REST'`` to use the Reference Electrode Standardization Technique
       infinity reference :footcite:`Yao2001`.
-    - A dictionary mapping names of channels to be referenced to (a list of)
-      names of channels to use as reference. This is the most flexible
-      re-referencing approaching. For example, {'A1': 'A3'} would replace the
+    - A dictionary mapping names of data channels to (lists of) names of
+      reference channels. For example, {'A1': 'A3'} would replace the
       data in channel 'A1' with the difference between 'A1' and 'A3'. To take
       the average of multiple channels as reference, supply a list of channel
-      names as the dictionary value, e.g. {'A1': ['A2', 'A3']}.
+      names as the dictionary value, e.g. {'A1': ['A2', 'A3']} would replace
+      channel A1 with ``A1 - mean(A2 + A3)``.
     - An empty list, in which case MNE will not attempt any re-referencing of
       the data
 """
