@@ -41,6 +41,7 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
     )
 
     digital_min, digital_max = -32767, 32767
+    annotations = []
 
     # load data first
     raw.load_data()
@@ -66,6 +67,11 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
                 "channels when writing the final block."
             )
             data = np.pad(data, (0, int(pad_width)), "edge")
+            annotations.append(
+                EdfAnnotation(
+                    raw.times[-1] + 1 / sfreq, pad_width / sfreq, "BAD_ACQ_SKIP"
+                )
+            )
     else:
         data_record_duration = _round_float_to_8_characters(
             np.floor(sfreq) / sfreq, round
@@ -197,7 +203,6 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
     else:
         recording = Recording(startdate=startdate)
 
-    annotations = []
     for desc, onset, duration, ch_names in zip(
         raw.annotations.description,
         raw.annotations.onset,
