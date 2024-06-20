@@ -246,6 +246,9 @@ def test_edf_padding(tmp_path, pad_width):
     edge_data = raw_read.get_data()[:, -pad_width - 1]
     pad_data = raw_read.get_data()[:, -pad_width:]
     assert_array_almost_equal(
+        raw.get_data(), raw_read.get_data()[:, :-pad_width], decimal=10
+    )
+    assert_array_almost_equal(
         pad_data, np.tile(edge_data, (pad_width, 1)).T, decimal=10
     )
 
