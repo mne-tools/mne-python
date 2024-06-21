@@ -4,4 +4,3 @@ changelog:
       - dependabot
       - pre-commit-ci
       - github-actions
-      - meeseeksmachine
