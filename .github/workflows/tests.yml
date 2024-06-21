@@ -103,7 +103,6 @@ jobs:
         with:
           environment-file: ${{ env.CONDA_ENV }}
           environment-name: mne
-          # Pin to VTK 9.2.6 to avoid PyQt5 conflict
           create-args: >-
             python=${{ env.PYTHON_VERSION }}
             mamba
