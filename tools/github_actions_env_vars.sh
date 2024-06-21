@@ -15,7 +15,7 @@ elif [[ "$MNE_CI_KIND" == "minimal" ]]; then
 elif [[ "$MNE_CI_KIND" != "pip"* ]]; then  # conda, mamba (use warning level for completeness)
     echo "Setting conda env vars for $MNE_CI_KIND"
     echo "CONDA_ENV=environment.yml" >> $GITHUB_ENV
-    echo "MNE_QT_BACKEND=PyQt5" >> $GITHUB_ENV
+    echo "MNE_QT_BACKEND=PySide6" >> $GITHUB_ENV
     echo "MNE_LOGGING_LEVEL=warning" >> $GITHUB_ENV
 else  # pip-like
     echo "Setting pip env vars for $MNE_CI_KIND"
