@@ -84,6 +84,8 @@ def reset_warnings(gallery_conf, fname):
         r"\nPyarrow will become a required dependency of pandas.*",
         # latexcodec
         r"open_text is deprecated\. Use files.*",
+        # python-quantities, via neo
+        r"numpy\.core is deprecated and has been renamed to numpy\._core",
     ):
         warnings.filterwarnings(  # deal with other modules having bad imports
             "ignore", message=f".*{key}.*", category=DeprecationWarning
