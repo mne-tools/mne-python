@@ -1058,6 +1058,7 @@ decim : int
                  ``decim``), i.e., it compresses the signal (see Notes).
                  If the data are not properly filtered, aliasing artifacts
                  may occur.
+                 See :ref:`resampling-and-decimating` for more information.
 """
 
 docdict["decim_notes"] = """
@@ -1287,6 +1288,16 @@ tmin, tmax : float
     Start and end time of the epochs in seconds, relative to the time-locked
     event. The closest or matching samples corresponding to the start and end
     time are included. Defaults to ``-0.2`` and ``0.5``, respectively.
+"""
+
+docdict["equalize_events_method"] = """
+method : ``'truncate'`` | ``'mintime'`` | ``'random'``
+    If ``'truncate'``, events will be truncated from the end of each event
+    list. If ``'mintime'``, timing differences between each event list will be
+    minimized. If ``'random'``, events will be randomly selected from each event
+    list.
+
+    .. versionadded:: 1.8
 """
 
 docdict["estimate_plot_psd"] = """\
