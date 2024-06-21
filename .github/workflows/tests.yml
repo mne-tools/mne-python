@@ -62,10 +62,10 @@ jobs:
           - os: ubuntu-latest
             python: '3.12'
             kind: conda
-          - os: macos-14  # arm64
+          - os: macos-latest  # arm64 (Apple Silicon)
             python: '3.12'
             kind: mamba
-          - os: macos-latest  # intel
+          - os: macos-13  # latest Intel release
             python: '3.12'
             kind: mamba
           - os: windows-latest
