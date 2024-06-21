@@ -696,6 +696,7 @@ class UpdateChannelsMixin:
         # avoid circular imports
         from ..epochs import BaseEpochs
         from ..io import BaseRaw
+        from ..time_frequency import EpochsTFR
 
         _validate_type(add_list, (list, tuple), "Input")
 
@@ -708,6 +709,9 @@ class UpdateChannelsMixin:
         elif isinstance(self, BaseEpochs):
             con_axis = 1
             comp_class = BaseEpochs
+        elif isinstance(self, EpochsTFR):
+            con_axis = 1
+            comp_class = EpochsTFR
         else:
             con_axis = 0
             comp_class = type(self)
