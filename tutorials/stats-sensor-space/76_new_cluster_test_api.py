@@ -6,6 +6,7 @@ import pandas as pd
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 import mne
+from mne.utils import _soft_import_
 
 # TODO: implement formulaic design matrix for paired t-test
 # TODO: @erik: add dataset to mne-data
@@ -15,9 +16,7 @@ path_to_p3 = Path("C:/Users/Carina/mne_data/ERP_CORE_P3")
 
 
 def prep_sample_data(plot_evokeds: bool = False):
-    """
-    Load the P3 dataset and extract the target, non-target and contrast evokeds.
-    """
+    """Load the P3 dataset."""
     # Define the range of participant IDs
     participant_ids = range(15, 20)  # This will cover 015 to 019
 
@@ -25,7 +24,7 @@ def prep_sample_data(plot_evokeds: bool = False):
 
     # Loop over each participant ID and generate the corresponding filename
     for pid in participant_ids:
-        # Create the filename using an f-string, ensuring the participant ID is zero-padded to 3 digits
+        # Create the filename using an f-string, ID is zero-padded to 3 digits
         filename_p3 = f"sub-{pid:03d}_ses-P3_task-P3_ave.fif"
 
         # Print the filename (or perform your desired operations on it)
@@ -67,7 +66,8 @@ def prep_sample_data(plot_evokeds: bool = False):
 
 def old_api_cluster(n_permutations: int = 10000, seed: int = 1234):
     """
-    Run the cluster test using the old API to get a bechmark result for the new API.
+    Run the cluster test using the old API to get a benchmark result for the new API.
+
     Currently implementing a paired t-test with contrast between participants.
     """
     contrast, target_only, non_target_only = prep_sample_data()
@@ -122,7 +122,8 @@ def old_api_cluster(n_permutations: int = 10000, seed: int = 1234):
 def create_random_evokeds_id_condition_list():
     """
     Create a list of shuffled participant IDs, conditions, and evoked data.
-    # Keep the participant IDs and conditions paired but shuffle the order of the evoked data.
+
+    # Keep the participant IDs and conditions paired but shuffle the order of the data.
     """
     import random
 
@@ -158,7 +159,10 @@ def create_random_evokeds_id_condition_list():
 
 def create_random_paired_evokeds_list():
     """
-    Create a list of shuffled evoked data where each pair of target and non-target evoked data is shuffled together.
+    Create shuffled paired evoked data.
+
+    Create a list of shuffled evoked data where each pair of target
+    and non-target evoked data is shuffled together.
     """
     import random
 
@@ -255,10 +259,11 @@ def cluster_test(
     contrast: bool = True,  # will be replaced by formulaic design matrix
     n_permutations: int = 10000,
     seed: None | int | np.random.RandomState = None,
-    contrast_weights: list = [1, -1],  # will be replaced by formulaic design matrix
+    contrast_weights: list = (1, -1),  # will be replaced by formulaic design matrix
 ):
     """
     Run the cluster test using the new API.
+
     # currently supports paired t-test with contrast or with list of conditions
 
     Parameters
@@ -293,11 +298,13 @@ def cluster_test(
 
     # check if formula is present
     if formula is not None:
-        import formulaic
+        formulaic = _soft_import_("formulaic")  # soft import
 
         # create design matrix based on formula
         # Create the design matrix using formulaic
         y, X = formulaic.model_matrix(formula, df_long)
+
+        # sign flip for paired t-test
 
         # what to do with the design matrix?
 
@@ -324,7 +331,7 @@ def cluster_test(
 
                     if len(evokeds_a) != 1 or len(evokeds_b) != 1:
                         raise ValueError(
-                            f"Subject {sub_id}: Each subject must have exactly one evoked for each condition"
+                            f"Subject {sub_id}: subject must have one evoked per cond"
                         )
 
                     # Calculate contrast based on condition list
@@ -398,6 +405,14 @@ def cluster_test(
 
 # Convert wide format to long format
 def convert_wide_to_long(df):
+    """
+    Convert a DataFrame from wide to long.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        DataFrame in wide format.
+    """
     long_format_data = []
     for idx, row in df.iterrows():
         condition = row["condition"]
