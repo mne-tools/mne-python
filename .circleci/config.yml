@@ -27,8 +27,8 @@ jobs:
       scheduled:
         type: string
         default: "false"
-    docker:
-      - image: cimg/base:current-22.04
+    machine:
+      image: ubuntu-2404:current
     # large 4 vCPUs 15GB mem
     # https://discuss.circleci.com/t/changes-to-remote-docker-reporting-pricing/47759
     resource_class: large
