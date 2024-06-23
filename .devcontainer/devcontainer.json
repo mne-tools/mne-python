@@ -36,8 +36,6 @@
       "channels": "conda-forge",
       "packages": "conda python h5py vtk pyside6 pipx"
     },
-    // Docker interface with host's Docker service
-    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {},
     // Zsh plugins
     "ghcr.io/devcontainers-contrib/features/zsh-plugins:0": {
       "plugins": "git pip zsh-autosuggestions zsh-syntax-highlighting history-substring-search",
@@ -113,8 +111,6 @@
         // Git
         "GitHub.vscode-pull-request-github",
         "eamodio.gitlens",
-        // Docker
-        "ms-azuretools.vscode-docker",
         // TOML
         "tamasfe.even-better-toml",
         // YAML
