@@ -8,3 +8,5 @@ updates:
       actions:
         patterns:
           - "*"
+    labels:
+      - no-changelog-entry-needed
