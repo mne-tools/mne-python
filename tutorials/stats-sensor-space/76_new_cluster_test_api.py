@@ -6,13 +6,12 @@ import pandas as pd
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 import mne
-from mne.utils import _soft_import_
+from mne.utils import _soft_import
 
 # TODO: implement formulaic design matrix for paired t-test
-# TODO: @erik: add dataset to mne-data
 
 # import and load dataset
-path_to_p3 = Path("C:/Users/Carina/mne_data/ERP_CORE_P3")
+path_to_p3 = mne.datasets.misc.data_path() / "ERP_CORE" / "P3"
 
 
 def prep_sample_data(plot_evokeds: bool = False):
@@ -298,7 +297,7 @@ def cluster_test(
 
     # check if formula is present
     if formula is not None:
-        formulaic = _soft_import_("formulaic")  # soft import
+        formulaic = _soft_import("formulaic")  # soft import
 
         # create design matrix based on formula
         # Create the design matrix using formulaic
