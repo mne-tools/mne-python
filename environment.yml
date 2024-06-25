@@ -64,3 +64,4 @@ dependencies:
   - lazy_loader
   - defusedxml
   - python-neo
+  - formulaic
