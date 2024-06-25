@@ -1,3 +1,15 @@
+"""
+.. _tut-new-cluster-test-api:
+
+====================
+New cluster test API
+====================
+
+This tutorial shows how to use the new API for cluster testing.
+"""
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
+
 from pathlib import Path
 
 import matplotlib.pyplot as plt
