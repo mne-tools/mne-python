@@ -774,7 +774,7 @@ def test_plot_annotations(raw, browser_backend):
     # Check if single annotation toggle works
     ch_pick = fig.mne.inst.ch_names[0]
     fig._toggle_single_channel_annotation(ch_pick, 0)
-    assert fig.mne.inst.annotations.ch_names[0] == tuple([ch_pick])
+    assert fig.mne.inst.annotations.ch_names[0] == (ch_pick,)
 
 
 @pytest.mark.parametrize("active_annot_idx", (0, 1, 2))
