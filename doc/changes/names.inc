@@ -426,6 +426,8 @@
 
 .. _Nikolas Chalas: https://github.com/Nichalas
 
+.. _Noah Markowitz: https://github.com/nmarkowitz
+
 .. _Okba Bekhelifi: https://github.com/okbalefthanded
 
 .. _Olaf Hauk: https://neuroscience.cam.ac.uk/member/olafhauk
