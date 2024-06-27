@@ -25,11 +25,9 @@ OTHERS=""
 if [[ "${PLATFORM}" == "Linux" ]]; then
 	OTHERS="h5py dipy"
 fi
-# Pin SciPy until https://github.com/scipy/scipy/issues/21016 is fixed
-python -m pip install $STD_ARGS --only-binary ":all:" "scipy==1.14.0rc2"
 python -m pip install $STD_ARGS --only-binary ":all:" --default-timeout=60 \
 	--index-url "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" \
-	"numpy>=2.1.0.dev0" "scikit-learn>=1.5.dev0" \
+	"numpy>=2.1.0.dev0" "scikit-learn>=1.6.dev0" "scipy>=1.15.0.dev0" \
 	matplotlib pandas statsmodels \
 	$OTHERS
 
