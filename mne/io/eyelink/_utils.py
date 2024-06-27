@@ -187,8 +187,13 @@ def _get_recording_datetime(fname):
                     # Eyelink measdate timestamps are timezone naive.
                     # Force datetime to be in UTC.
                     # Even though dt is probably in local time zone.
-                    dt_naive = datetime.strptime(dt_str, fmt)
-                    return dt_naive.replace(tzinfo=tz)  # make it dt aware
+                    try:
+                        dt_naive = datetime.strptime(dt_str, fmt)
+                        return dt_naive.replace(tzinfo=tz)  # make it dt aware
+                    except ValueError:
+                        # date string is missing or in an unexpected format
+                        logger.debug("Could not detect date in file.")
+                        return
 
 
 def _get_metadata(raw_extras):
@@ -332,6 +337,10 @@ def _drop_status_col(samples_df):
             continue
         if len(samples_df[col][0]) in [3, 5, 13, 17]:
             status_cols.append(col)
+    if isinstance(col, str) and col.startswith(".."):
+        import pdb
+
+        pdb.set_trace()
     return samples_df.drop(columns=status_cols)
 
 
