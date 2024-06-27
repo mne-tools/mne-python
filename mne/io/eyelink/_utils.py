@@ -191,10 +191,13 @@ def _get_recording_datetime(fname):
                         dt_naive = datetime.strptime(dt_str, fmt)
                     except ValueError:
                         # date string is missing or in an unexpected format
-                        logger.info(f"Could not detect date from file with date entry: {repr(dt_str)}")
+                        logger.info(
+                            "Could not detect date from file with date entry: "
+                            f"{repr(dt_str)}"
+                        )
                         return
                     else:
-                        return dt_naive.replace(tzinfo=tz)  # make it dt aware 
+                        return dt_naive.replace(tzinfo=tz)  # make it dt aware
         return
 
 
