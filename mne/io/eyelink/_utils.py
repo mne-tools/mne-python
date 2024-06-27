@@ -194,6 +194,7 @@ def _get_recording_datetime(fname):
                         # date string is missing or in an unexpected format
                         logger.debug("Could not detect date in file.")
                         return
+        return
 
 
 def _get_metadata(raw_extras):
@@ -337,10 +338,6 @@ def _drop_status_col(samples_df):
             continue
         if len(samples_df[col][0]) in [3, 5, 13, 17]:
             status_cols.append(col)
-    if isinstance(col, str) and col.startswith(".."):
-        import pdb
-
-        pdb.set_trace()
     return samples_df.drop(columns=status_cols)
 
 
