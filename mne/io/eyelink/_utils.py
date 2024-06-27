@@ -189,11 +189,12 @@ def _get_recording_datetime(fname):
                     # Even though dt is probably in local time zone.
                     try:
                         dt_naive = datetime.strptime(dt_str, fmt)
-                        return dt_naive.replace(tzinfo=tz)  # make it dt aware
                     except ValueError:
                         # date string is missing or in an unexpected format
-                        logger.debug("Could not detect date in file.")
+                        logger.info(f"Could not detect date from file with date entry: {repr(dt_str)}")
                         return
+                    else:
+                        return dt_naive.replace(tzinfo=tz)  # make it dt aware 
         return
 
 

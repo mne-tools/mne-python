@@ -325,7 +325,7 @@ def test_no_datetime(tmp_path):
     with open(fname) as file:
         lines = file.readlines()
     # remove the timestamp from the datetime line
-    lines[1] = lines[1].split(":")[0]
+    lines[1] = lines[1].split(":")[0] + ":"
     with open(out_file, "w") as file:
         file.writelines(lines)
     raw = read_raw_eyelink(out_file)
