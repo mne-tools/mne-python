@@ -1,0 +1,1 @@
+Disable the "Back to top" button in the documentation, by `Richar Höchenberger`_.
