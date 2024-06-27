@@ -1,1 +1,1 @@
-Disable the "Back to top" button in the documentation, by `Richar Höchenberger`_.
+Disable the "Back to top" button in the documentation, by `Richard Höchenberger`_.
