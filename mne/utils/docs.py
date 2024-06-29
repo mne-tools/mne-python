@@ -276,7 +276,7 @@ The {data_type} object's data is modified in-place. If the function returns a di
 data type (e.g. :py:obj:`numpy.complex128`) it must be specified
 using the ``dtype`` parameter, which causes the data type of **all** the data
 to change (even if the function is only applied to {applies_to} in
-``picks``). {preload}
+``picks``).{preload}
 
 .. note:: If ``n_jobs`` > 1, more memory is required as
           ``len(picks) * n_times`` additional time points need to
