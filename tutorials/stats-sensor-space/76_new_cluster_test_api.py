@@ -15,12 +15,13 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import scipy
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 import mne
 from mne.utils import _soft_import
 
-# TODO: implement formulaic design matrix for paired t-test
+# TODO: test function and update docstrings
 
 # import and load dataset
 path_to_p3 = mne.datasets.misc.data_path() / "ERP_CORE" / "P3"
@@ -248,15 +249,6 @@ def prepare_dataframe_for_cluster_function(
     return df
 
 
-# run with original data
-df = prepare_dataframe_for_cluster_function(
-    evokeds=original_evoked_data, condition=None, subject_index=None
-)
-
-df = prepare_dataframe_for_cluster_function(
-    evokeds=shuffled_evoked_data, condition=None, subject_index=None
-)
-
 df = prepare_dataframe_for_cluster_function(
     evokeds=shuffled_evoked_data,
     condition=shuffled_conditions,
@@ -267,24 +259,56 @@ df = prepare_dataframe_for_cluster_function(
 def cluster_test(
     df: pd.DataFrame,
     formula: str = None,  # Wilkinson notation formula for design matrix
-    contrast: bool = True,  # will be replaced by formulaic design matrix
     n_permutations: int = 10000,
     seed: None | int | np.random.RandomState = None,
-    contrast_weights: list = (1, -1),  # will be replaced by formulaic design matrix
+    tail: int = 0,  # 0 for two-tailed, 1 for greater, -1 for less
+    n_jobs: int = 1,  # how many cores to use
+    adjacency: tuple = None,
+    max_step: int = 1,  # maximum distance between samples (time points)
+    exclude: list = None,  # exclude no time points or channels
+    step_down_p: int = 0,  # step down in jumps test
+    t_power: int = 1,  # weigh each location by its stats score
+    out_type: str = "indices",
+    check_disjoint: bool = False,
+    buffer_size: int = None,  # block size for chunking the data
 ):
     """
     Run the cluster test using the new API.
 
-    # currently supports paired t-test with contrast or with list of conditions
+    # currently supports paired t-test
 
     Parameters
     ----------
     dataframe : pd.DataFrame
         Dataframe with evoked data, conditions and subject IDs.
+    formula : str, optional
+        Wilkinson notation formula for design matrix. Default is None.
     n_permutations : int, optional
         Number of permutations. Default is 10000.
+    seed : None | int | np.random.RandomState, optional
+        Seed for the random number generator. Default is None.
+    tail : int, optional
+        0 for two-tailed, 1 for greater, -1 for less. Default is 0.
+    n_jobs : int, optional
+        How many cores to use. Default is 1.
+    adjacency : None, optional
+        Adjacency matrix. Default is None.
+    max_step : int, optional
+        Maximum distance between samples (time points). Default is 1.
+    exclude : np.Array, optional
+        Exclude no time points or channels. Default is None.
+    step_down_p : int, optional
+        Step down in jumps test. Default is 0.
+    t_power : int, optional
+        Weigh each location by its stats score. Default is 1.
+    out_type : str, optional
+        Output type. Default is "indices".
+    check_disjoint : bool, optional
+        Check if clusters are disjoint. Default is False.
+    buffer_size : int, optional
+        Block size for chunking the data. Default is None.
     seed : int, optional
-        Random seed. Default is 1234.
+        Seed for the random number generator. Default is None.
 
     Returns
     -------
@@ -297,108 +321,78 @@ def cluster_test(
     H0 : array
         The permuted test statistics.
     """
-    # Check if conditions and subject_index are present and valid
-    conditions_present = pd.notna(df["condition"]).all()
-    subject_index_present = pd.notna(df["subject_index"]).all()
-
+    # for now this assumes a dataframe with a column for evoked data
     # add a data column to the dataframe (numpy array)
     df["data"] = [evoked.data for evoked in df.evoked]
 
-    # convert wide format to long format
-    df_long = convert_wide_to_long(df)
+    # extract number of channels and timepoints
+    # (eventually should also allow for frequency)
+    n_channels, n_timepoints = df["data"][0].shape
+
+    # convert wide format to long format for formulaic
+    df_long = unpack_time_and_channels(df)
+
+    # Pivot the DataFrame
+    pivot_df = df_long.pivot_table(
+        index=["subject_index", "channel", "timepoint"],
+        columns="condition",
+        values="value",
+    ).reset_index()
+
+    # if not 2 unique conditions raise error
+    if len(pd.unique(df.condition)) != 2:
+        raise ValueError("Condition list needs to contain 2 unique values")
+
+    # Compute the difference (assuming there are only 2 conditions)
+    pivot_df["y"] = pivot_df[0] - pivot_df[1]
+
+    # Optional: Clean up the DataFrame
+    pivot_df = pivot_df[["subject_index", "channel", "timepoint", "y"]]
 
     # check if formula is present
     if formula is not None:
-        formulaic = _soft_import("formulaic")  # soft import
+        formulaic = _soft_import(
+            "formulaic", purpose="set up Design Matrix"
+        )  # soft import (not a dependency for MNE)
 
-        # create design matrix based on formula
+        # for the paired t-test y is the difference between conditions
+        # X is the design matrix with a column with 1s and 0s for each participant
         # Create the design matrix using formulaic
-        y, X = formulaic.model_matrix(formula, df_long)
-
-        # sign flip for paired t-test
-
-        # what to do with the design matrix?
-
-    if contrast == 1:
-        if conditions_present:
-            # Extract unique conditions
-            unique_conditions = np.unique(df.condition)
-            if len(unique_conditions) != 2:
-                raise ValueError("Condition list needs to contain 2 unique values")
-            # Initialize a list to hold the combined evoked data
-            evokeds_data = []
-            if subject_index_present:
-                # Process each subject's evoked data
-                for sub_id in df.subject_index.unique():
-                    sub_df = df[df.subject_index == sub_id]
-
-                    # Split evokeds list based on condition list for this subject
-                    evokeds_a = sub_df[sub_df.condition == unique_conditions[0]][
-                        "evoked"
-                    ].tolist()
-                    evokeds_b = sub_df[sub_df.condition == unique_conditions[1]][
-                        "evoked"
-                    ].tolist()
-
-                    if len(evokeds_a) != 1 or len(evokeds_b) != 1:
-                        raise ValueError(
-                            f"Subject {sub_id}: subject must have one evoked per cond"
-                        )
-
-                    # Calculate contrast based on condition list
-                    diff_evoked = mne.combine_evoked(
-                        [evokeds_a[0], evokeds_b[0]], weights=contrast_weights
-                    )
-                    evokeds_data.append(diff_evoked)
-        else:
-            # calculate length of evokeds list
-            n_evokeds = len(df.evoked)
-            # now split evokeds list in two lists
-            evokeds_a = df.evoked[: n_evokeds // 2]
-            evokeds_b = df.evoked[n_evokeds // 2 :]
-            # create contrast from evokeds_a and evokeds_b
-            diff_evoked = [
-                mne.combine_evoked([evo_a, evo_b], weights=contrast_weights)
-                for evo_a, evo_b in zip(evokeds_a, evokeds_b)
-            ]
-            evokeds_data = diff_evoked
+        y, X = formulaic.model_matrix(formula, pivot_df)
     else:
-        evokeds_data = df.evoked.tolist()
+        raise ValueError(
+            "Formula is required and needs to be a string in Wilkinson notation."
+        )
 
-    # extract number of channels
-    n_channels = evokeds_data[0].info["nchan"]
+    # now prep design matrix outcome variable for input into MNE cluster function
+    # we initially had first channels, then timepoints,
+    # now we need first timepoints, then channels
+    y_for_cluster = y.values.reshape(-1, n_channels, n_timepoints).transpose(0, 2, 1)
 
-    # loop over rows and extract data from evokeds
-    data_array = np.array([evoked.data for evoked in evokeds_data])
+    adjacency, _ = mne.channels.find_ch_adjacency(df["evoked"][0].info, ch_type="eeg")
 
-    # find the dimension that is equal to n_channels
-    if data_array.shape[1] == n_channels:
-        # reshape to channels as last dimension
-        data = data_array.transpose(0, 2, 1)
-
-    adjacency, _ = mne.channels.find_ch_adjacency(evokeds_data[0].info, ch_type="eeg")
-
+    # define stat function and threshold
     stat_fun, threshold = mne.stats.cluster_level._check_fun(
-        X=data, stat_fun=None, threshold=None, tail=0, kind="within"
+        X=y_for_cluster, stat_fun=None, threshold=None, tail=0, kind="within"
     )
 
-    # Run the analysis
+    # Run the cluster-based permutation test
     T_obs, clusters, cluster_p_values, H0 = (
         mne.stats.cluster_level._permutation_cluster_test(
-            [data],
+            [y_for_cluster],
+            n_permutations=10000,
             threshold=threshold,
             stat_fun=stat_fun,
-            n_jobs=-1,  # takes all CPU cores
-            max_step=1,  # maximum distance between samples (time points)
-            exclude=None,  # exclude no time points or channels
-            step_down_p=0,  # step down in jumps test
-            t_power=1,  # weigh each location by its stats score
-            out_type="indices",
-            check_disjoint=False,
-            buffer_size=None,  # block size for chunking the data
-            n_permutations=n_permutations,
-            tail=0,
+            tail=tail,
+            n_jobs=n_jobs,
             adjacency=adjacency,
+            max_step=max_step,  # maximum distance between samples (time points)
+            exclude=exclude,  # exclude no time points or channels
+            step_down_p=step_down_p,  # step down in jumps test
+            t_power=t_power,  # weigh each location by its stats score
+            out_type=out_type,
+            check_disjoint=check_disjoint,
+            buffer_size=buffer_size,  # block size for chunking the data
             seed=seed,
         )
     )
@@ -414,39 +408,44 @@ def cluster_test(
     return T_obs, clusters, cluster_p_values, H0
 
 
-# Convert wide format to long format
-def convert_wide_to_long(df):
+def unpack_time_and_channels(df):
     """
-    Convert a DataFrame from wide to long.
+    Extract the time and channel data from the DataFrame.
 
     Parameters
     ----------
     df : pd.DataFrame
         DataFrame in wide format.
     """
-    long_format_data = []
-    for idx, row in df.iterrows():
-        condition = row["condition"]
-        subject_index = row["subject_index"]
-        data_2d = row["data"]
+    # Extracting all necessary data using list comprehensions for better performance
+    long_format_data = [
+        {
+            "condition": row["condition"],
+            "subject_index": row["subject_index"],
+            "channel": channel,
+            "timepoint": timepoint,
+            "value": row["data"][channel, timepoint],
+        }
+        for idx, row in df.iterrows()
+        for channel in range(row["data"].shape[0])
+        for timepoint in range(row["data"].shape[1])
+    ]
 
-        for channel in range(data_2d.shape[0]):
-            for timepoint in range(data_2d.shape[1]):
-                long_format_data.append(
-                    {
-                        "condition": condition,
-                        "subject_index": subject_index,
-                        "channel": channel,
-                        "timepoint": timepoint,
-                        "value": data_2d[channel, timepoint],
-                    }
-                )
-
+    # Creating the long format DataFrame
     df_long = pd.DataFrame(long_format_data)
+
     return df_long
 
 
-df_long = convert_wide_to_long(df)
+# Example usage
+# Sample wide format DataFrame
+df_wide = pd.DataFrame(
+    {
+        "condition": ["A", "B"],
+        "subject_index": [1, 2],
+        "data": [np.array([[1, 2, 3], [4, 5, 6]]), np.array([[7, 8, 9], [10, 11, 12]])],
+    }
+)
 
 
 def plot_cluster(
@@ -553,4 +552,111 @@ def plot_cluster(
     plt.show()
 
 
-cluster_test(df)
+# translated the limo permutation ttest from matlab to python
+def limo_ttest_permute(Data, n_perm=None):
+    """
+    Pseudo one-sample t-test using sign-test with permutations.
+
+    Parameters
+    ----------
+    Data (numpy.ndarray): A matrix of data for the one-sample t-test.
+                          Shape can be (n_channels, n_var, n_obs) or
+                          (n_var, n_obs).
+                        n_perm (int, optional): Number of permutations to perform.
+    If None, it defaults based on the number of observations.
+
+    Returns
+    -------
+    t_vals (numpy.ndarray): t-values under H0.
+    p_vals (numpy.ndarray): p-values under H0.
+    dfe (int): Degrees of freedom.
+    """
+    # Check inputs and reshape if necessary
+    if Data.ndim == 3:
+        n_channels, n_var, n_obs = Data.shape
+    else:
+        n_channels = 1
+        n_var, n_obs = Data.shape
+        Data = Data[np.newaxis, ...]
+
+    # Warn if the number of observations is very small
+    if n_obs < 7:
+        n_psbl_prms = 2**n_obs
+        print(
+            f"Due to the very limited number of observations, "
+            f"the total number of possible permutations is small ({n_psbl_prms}). "
+            "Thus, only a limited number of p-values are possible "
+            "and the test might be overly conservative."
+        )
+
+    # Set up permutation test
+    if n_obs <= 12:
+        n_perm = 2**n_obs  # total number of possible permutations
+        exact = True
+        print(
+            "Due to the limited number of observations, all possible permutations "
+            "of the data will be computed instead of random permutations."
+        )
+    else:
+        exact = False
+        if n_perm is None:
+            n_perm = 1000
+
+    print(f"Executing permutation test with {n_perm} permutations...")
+
+    # Initialize variables
+    t_vals = np.full(
+        (n_channels, n_var, n_perm), np.nan
+    )  # Array to store t-values for each permutation
+    sqrt_nXnM1 = np.sqrt(
+        n_obs * (n_obs - 1)
+    )  # Precompute constant for t-value calculation
+    dfe = n_obs - 1  # Degrees of freedom
+
+    if exact:
+        # Use all possible permutations
+        for perm in range(n_perm):
+            # Set sign of each trial / participant's data
+            temp = np.array(
+                [int(x) for x in bin(perm)[2:].zfill(n_obs)]
+            )  # Convert perm index to binary array
+            sn = np.where(temp == 0, -1, 1)  # Map 0 to -1 and 1 to 1
+            sn_mtrx = np.tile(sn, (n_var, 1)).T  # Repeat sn for each variable
+
+            for c in range(n_channels):
+                data = Data[c, :, :]
+                d_perm = data * sn_mtrx  # Apply sign flip to data
+
+                # Compute t-score of permuted data
+                sm = np.sum(d_perm, axis=1)  # Sum of permuted data
+                mn = sm / n_obs  # Mean of permuted data
+                sm_sqrs = (
+                    np.sum(d_perm**2, axis=1) - (sm**2) / n_obs
+                )  # Sum of squares for standard error
+                stder = np.sqrt(sm_sqrs) / sqrt_nXnM1  # Standard error
+                t_vals[c, :, perm] = mn / stder  # Compute t-values
+
+    else:
+        # Use random permutations
+        for perm in range(n_perm):
+            # Randomly set sign of each trial / participant's data
+            sn = (np.random.rand(n_obs) > 0.5) * 2 - 1  # Generate random sign flips
+            sn_mtrx = np.tile(sn, (n_var, 1))  # Repeat sn for each variable
+
+            for c in range(n_channels):
+                data = Data[c, :, :]
+                d_perm = data * sn_mtrx  # Apply sign flip to data
+
+                # Compute t-score of permuted data
+                sm = np.sum(d_perm, axis=1)  # Sum of permuted data
+                mn = sm / n_obs  # Mean of permuted data
+                sm_sqrs = (
+                    np.sum(d_perm**2, axis=1) - (sm**2) / n_obs
+                )  # Sum of squares for standard error
+                stder = np.sqrt(sm_sqrs) / sqrt_nXnM1  # Standard error
+                t_vals[c, :, perm] = mn / stder  # Compute t-values
+
+    # Compute p-values from t-values
+    p_vals = 2 * scipy.stats.cdf(-np.abs(t_vals), dfe)
+
+    return t_vals, p_vals, dfe
