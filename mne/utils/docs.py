@@ -1395,10 +1395,11 @@ evoked : instance of Evoked | list of Evoked
 
 docdict["evoked_ylim_plot"] = """
 ylim : dict | None
-    Limits for the Y-axis of the plots (after scaling has been applied). e.g.
-    ``ylim = dict(eeg=[-20, 20])``. Example of valid keys: ``eeg``, ``grad``,
-    ``mag``, ``csd``, ``misc``, ... If None, the ``ylim`` parameter for each channel
-    is set to the pyplot default."""
+    Y-axis limits for plots (after scaling has been applied). :class:`dict`
+    keys should match channel types; valid keys are for instance ``eeg``, ``mag``,
+    ``grad``, ``misc``, ``csd``, .. (example: ``ylim=dict(eeg=[-20, 20])``). If
+    ``None``, the y-axis limits will be set automatically by matplotlib. Defaults to
+    ``None``."""
 
 docdict["exclude_after_unique"] = """
 exclude_after_unique : bool

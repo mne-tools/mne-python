@@ -2618,7 +2618,7 @@ def plot_compare_evokeds(
         series and the parametric confidence interval is plotted as a shaded
         area. All instances must have the same shape - channel numbers, time
         points etc.
-        If dict, keys must be of type str.
+        If dict, keys must be of type :class:`str`.
     %(picks_all_data)s
 
         * If picks is None or a (collection of) data channel types, the
@@ -2673,9 +2673,9 @@ def plot_compare_evokeds(
         .. versionchanged:: 0.19
             Support for passing :class:`~matplotlib.colors.Colormap` instances.
 
-    vlines : "auto" | list of float
+    vlines : ``"auto"`` | list of float
         A list in seconds at which to plot dashed vertical lines.
-        If "auto" and the supplied data includes 0, it is set to [0.]
+        If ``"auto"`` and the supplied data includes 0, it is set to ``[0.]``
         and a vertical bar is plotted at time 0. If an empty list is passed,
         no vertical lines are plotted.
     ci : float | bool | callable | None
@@ -2687,22 +2687,18 @@ def plot_compare_evokeds(
         (i.e., the 95%% confidence band is drawn). If a callable, it must take
         a single array (n_observations × n_times) as input and return upper and
         lower confidence margins (2 × n_times). Defaults to ``True``.
-    truncate_yaxis : bool | 'auto'
-        Whether to shorten the y-axis spine. If 'auto', the spine is truncated
+    truncate_yaxis : bool | ``'auto'``
+        Whether to shorten the y-axis spine. If ``'auto'``, the spine is truncated
         at the minimum and maximum ticks. If ``True``, it is truncated at the
         multiple of 0.25 nearest to half the maximum absolute value of the
         data. If ``truncate_xaxis=False``, only the far bound of the y-axis
-        will be truncated. Defaults to 'auto'.
+        will be truncated. Defaults to ``'auto'``.
     truncate_xaxis : bool
         Whether to shorten the x-axis spine. If ``True``, the spine is
         truncated at the minimum and maximum ticks. If
         ``truncate_yaxis=False``, only the far bound of the x-axis will be
         truncated. Defaults to ``True``.
-    ylim : dict | None
-        Y-axis limits for plots (after scaling has been applied). :class:`dict`
-        keys should match channel types; valid keys are eeg, mag, grad, misc
-        (example: ``ylim=dict(eeg=[-20, 20])``). If ``None``, the y-axis limits
-        will be set automatically by matplotlib. Defaults to ``None``.
+    %(evoked_ylim_plot)s
     invert_y : bool
         Whether to plot negative values upward (as is sometimes done
         for ERPs out of tradition). Defaults to ``False``.
@@ -2722,7 +2718,7 @@ def plot_compare_evokeds(
         Whether to separate color and linestyle in the legend. If ``None``,
         a separate linestyle legend will still be shown if ``cmap`` is
         specified. Defaults to ``None``.
-    axes : None | Axes instance | list of Axes | 'topo'
+    axes : None | Axes instance | list of Axes | ``'topo'``
         :class:`~matplotlib.axes.Axes` object to plot into. If plotting
         multiple channel types (or multiple channels when ``combine=None``),
         ``axes`` should be a list of appropriate length containing
