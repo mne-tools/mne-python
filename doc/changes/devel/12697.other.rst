@@ -1,0 +1,1 @@
+Improve argument ``ylim`` documentation through :class:`~mne.Evoked` plotting function and validate type to :class:`dict` or ``None`` to prevent misuage, by `Mathieu Scheltienne`_.
