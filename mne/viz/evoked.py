@@ -428,6 +428,8 @@ def _plot_evoked(
             # The user called Evoked.plot_image() or plot_evoked_image(), the
             # clim parameters of those functions end up to be the ylim here.
             raise ValueError("`clim` must be a dict. E.g. clim = dict(eeg=[-20, 20])")
+    else:
+        _validate_type(ylim, (dict, None), "ylim")
 
     picks = _picks_to_idx(info, picks, none="all", exclude=())
     if len(picks) != len(set(picks)):
@@ -1013,12 +1015,12 @@ def plot_evoked(
     show : bool
         Show figure if True.
     ylim : dict | None
-        Y limits for plots (after scaling has been applied). e.g.
-        ylim = dict(eeg=[-20, 20])
-        Valid keys are eeg, mag, grad, misc. If None, the ylim parameter
-        for each channel equals the pyplot default.
-    xlim : 'tight' | tuple | None
-        X limits for plots.
+        Limits for the Y-axis of the plots (after scaling has been applied). e.g.
+        ``ylim = dict(eeg=[-20, 20])``. Example of valid keys: ``eeg``, ``grad``,
+        ``mag``, ``csd``, ``misc``, ... If None, the ``ylim`` parameter for each channel
+        is set to the pyplot default.
+    xlim : ``'tight'`` | tuple | None
+        Limits for the X-axis of the plots.
     %(proj_plot)s
     hline : list of float | None
         The values at which to show an horizontal line.
@@ -1035,7 +1037,7 @@ def plot_evoked(
         The axes to plot to. If list, the list must be a list of Axes of
         the same length as the number of channel types. If instance of
         Axes, there must be only one channel type plotted.
-    gfp : bool | 'only'
+    gfp : bool | ``'only'``
         Plot the global field power (GFP) or the root mean square (RMS) of the
         data. For MEG data, this will plot the RMS. For EEG, it plots GFP,
         i.e. the standard deviation of the signal across channels. The GFP is
