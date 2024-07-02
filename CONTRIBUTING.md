@@ -5,5 +5,5 @@ MNE-Python is maintained by a community of scientists and research labs. The pro
 
 Users and contributors to MNE-Python are expected to follow our [code of conduct](https://github.com/mne-tools/.github/blob/main/CODE_OF_CONDUCT.md).
 
-The [contributing guide](https://mne.tools/dev/development/contributing.html) has details on the preferred contribution workflow
+The [contributing guide](https://mne.tools/stable/development/contributing.html) has details on the preferred contribution workflow
 and the recommended system configuration for a smooth contribution/development experience.
