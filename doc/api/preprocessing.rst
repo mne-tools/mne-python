@@ -166,6 +166,9 @@ Projections:
    convert_units
    get_screen_visual_angle
    interpolate_blinks
+   deconvolve
+   pupil_zscores
+   pupil_kernel
 
 EEG referencing:
 
