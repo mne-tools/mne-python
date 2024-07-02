@@ -61,15 +61,7 @@ def test_permutation_t_test():
 
 @pytest.mark.parametrize(
     "tail_name,tail_code",
-    [
-        ("two-sided", 0),
-        pytest.param(
-            "less", -1, marks=pytest.mark.xfail(reason="Bug in permutation function")
-        ),
-        pytest.param(
-            "greater", 1, marks=pytest.mark.xfail(reason="Bug in permutation function")
-        ),
-    ],
+    [("two-sided", 0), ("less", -1), ("greater", 1)],
 )
 def test_permutation_t_test_tail(tail_name, tail_code):
     """Test that tails work properly."""
