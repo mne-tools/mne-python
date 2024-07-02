@@ -1007,18 +1007,14 @@ def plot_evoked(
     evoked : instance of Evoked
         The evoked data.
     %(picks_all)s
-    exclude : list of str | 'bads'
-        Channels names to exclude from being shown. If 'bads', the
+    exclude : list of str | ``'bads'``
+        Channels names to exclude from being shown. If ``'bads'``, the
         bad channels are excluded.
     unit : bool
         Scale plot with channel (SI) unit.
     show : bool
         Show figure if True.
-    ylim : dict | None
-        Limits for the Y-axis of the plots (after scaling has been applied). e.g.
-        ``ylim = dict(eeg=[-20, 20])``. Example of valid keys: ``eeg``, ``grad``,
-        ``mag``, ``csd``, ``misc``, ... If None, the ``ylim`` parameter for each channel
-        is set to the pyplot default.
+    %(evoked_ylim_plot)s
     xlim : ``'tight'`` | tuple | None
         Limits for the X-axis of the plots.
     %(proj_plot)s
@@ -1152,6 +1148,7 @@ def plot_evoked(
     )
 
 
+@fill_doc
 def plot_evoked_topo(
     evoked,
     layout=None,
@@ -1194,26 +1191,21 @@ def plot_evoked_topo(
         automatically drawn.
     border : str
         Matplotlib borders style to be used for each sensor plot.
-    ylim : dict | None
-        Y limits for plots (after scaling has been applied). The value
-        determines the upper and lower subplot limits. e.g.
-        ylim = dict(eeg=[-20, 20]). Valid keys are eeg, mag, grad, misc.
-        If None, the ylim parameter for each channel type is determined by
-        the minimum and maximum peak.
+    %(evoked_ylim_plot)s
     scalings : dict | None
         The scalings of the channel types to be applied for plotting. If None,`
         defaults to ``dict(eeg=1e6, grad=1e13, mag=1e15)``.
     title : str
         Title of the figure.
-    proj : bool | 'interactive'
-        If true SSP projections are applied before display. If 'interactive',
+    proj : bool | ``'interactive'``
+        If true SSP projections are applied before display. If ``'interactive'``,
         a check box for reversible selection of SSP projection vectors will
         be shown.
-    vline : list of float | float| None
+    vline : list of float | float | None
         The values at which to show a vertical line.
     fig_background : None | ndarray
         A background image for the figure. This must work with a call to
-        plt.imshow. Defaults to None.
+        ``plt.imshow``. Defaults to None.
     merge_grads : bool
         Whether to use RMS value of gradiometer pairs. Only works for Neuromag
         data. Defaults to False.
@@ -1222,13 +1214,13 @@ def plot_evoked_topo(
         legend. Otherwise, the legend is created and the parameter value is
         passed as the location parameter to the matplotlib legend call. It can
         be an integer (e.g. 0 corresponds to upper right corner of the plot),
-        a string (e.g. 'upper right'), or a tuple (x, y coordinates of the
+        a string (e.g. ``'upper right'``), or a tuple (x, y coordinates of the
         lower left corner of the legend in the axes coordinate system).
         See matplotlib documentation for more details.
     axes : instance of matplotlib Axes | None
         Axes to plot into. If None, axes will be created.
     background_color : color
-        Background color. Typically 'k' (black) or 'w' (white; default).
+        Background color. Typically ``'k'`` (black) or ``'w'`` (white; default).
 
         .. versionadded:: 0.15.0
     noise_cov : instance of Covariance | str | None
@@ -1237,9 +1229,9 @@ def plot_evoked_topo(
         Can be a string to load a covariance from disk.
 
         .. versionadded:: 0.16.0
-    exclude : list of str | 'bads'
-        Channels names to exclude from the plot. If 'bads', the
-        bad channels are excluded. By default, exclude is set to 'bads'.
+    exclude : list of str | ``'bads'``
+        Channels names to exclude from the plot. If ``'bads'``, the
+        bad channels are excluded. By default, exclude is set to ``'bads'``.
     show : bool
         Show figure if True.
 

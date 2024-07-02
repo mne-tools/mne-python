@@ -1393,6 +1393,13 @@ evoked : instance of Evoked | list of Evoked
     dictionary.
 """
 
+docdict["evoked_ylim_plot"] = """
+ylim : dict | None
+    Limits for the Y-axis of the plots (after scaling has been applied). e.g.
+    ``ylim = dict(eeg=[-20, 20])``. Example of valid keys: ``eeg``, ``grad``,
+    ``mag``, ``csd``, ``misc``, ... If None, the ``ylim`` parameter for each channel
+    is set to the pyplot default."""
+
 docdict["exclude_after_unique"] = """
 exclude_after_unique : bool
     If True, exclude channels are searched for after they have been made
