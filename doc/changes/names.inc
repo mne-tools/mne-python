@@ -22,6 +22,8 @@
 
 .. _Alex Kiefer: https://home.alexk101.dev
 
+.. _Alex Lepauvre: https://github.com/AlexLepauvre
+
 .. _Alex Rockhill: https://github.com/alexrockhill/
 
 .. _Alexander Rudiuk: https://github.com/ARudiuk

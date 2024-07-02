@@ -87,6 +87,65 @@ def _check_before_reference(inst, ref_from, ref_to, ch_type):
     return ref_to
 
 
+def _check_before_dict_reference(inst, ref_dict):
+    """Prepare instance for dict-based referencing."""
+    # Check to see that data is preloaded
+    _check_preload(inst, "Applying a reference")
+
+    def _check_item(inst, item, item_type):
+        """Check if item (key or value) is string and in instance."""
+        if not isinstance(item, str):
+            if item_type == "key":
+                raise TypeError(
+                    f"Keys in dict-type ref_channels must be strings. "
+                    f"You provided {type(item)}"
+                )
+            else:
+                raise TypeError(
+                    f"Values in dict-type ref_channels must be strings or "
+                    f"lists of strings. You provided {type(item)}"
+                )
+        if item not in inst.ch_names:
+            raise ValueError(f"Channel {item} in ref_channels is not in the instance")
+
+    def _value_warning(inst, value, key_ch_type):
+        # Add warnings for bad channels are present
+        if value in inst.info["bads"]:
+            msg = f"Channel {value} in ref_channels is marked as bad!"
+            _on_missing("warn", msg)
+        # Add warnings if channel types don't match
+        value_pick = pick_channels(inst.ch_names, [value], ordered=True)
+        value_ch_type = inst.get_channel_types(picks=value_pick)[0]
+        if key_ch_type != value_ch_type:
+            msg = (
+                f"Channel {key} is of type {DEFAULTS['titles'][key_ch_type]}, "
+                f"but reference channel {value} is of type "
+                f"{DEFAULTS['titles'][value_ch_type]}."
+            )
+            _on_missing("warn", msg)
+
+    for key, value in ref_dict.items():
+        # Check key
+        _check_item(inst, key, "key")
+        key_pick = pick_channels(inst.ch_names, [key], ordered=True)
+        key_ch_type = inst.get_channel_types(picks=key_pick)[0]
+
+        # Check value
+        if isinstance(value, list):
+            for val in value:
+                _check_item(inst, val, "value")
+                _value_warning(inst, val, key_ch_type)
+        else:
+            _check_item(inst, value, "value")
+            _value_warning(inst, value, key_ch_type)
+            if key == value:
+                msg = (
+                    f"Channel {key} is re-referenced by itself, "
+                    "which will nullify that channel"
+                )
+                _on_missing("warn", msg)
+
+
 def _apply_reference(inst, ref_from, ref_to=None, forward=None, ch_type="auto"):
     """Apply a custom EEG referencing scheme."""
     ref_to = _check_before_reference(inst, ref_from, ref_to, ch_type)
@@ -126,6 +185,26 @@ def _apply_reference(inst, ref_from, ref_to=None, forward=None, ch_type="auto"):
         ref_data = None
 
     return inst, ref_data
+
+
+def _apply_dict_reference(inst, ref_dict):
+    """Apply a dict-based custom EEG referencing scheme."""
+    _check_before_dict_reference(inst, ref_dict)
+
+    data = inst._data
+    orig_data = data.copy()
+    if ref_dict:
+        for key, value in ref_dict.items():
+            if isinstance(value, str):
+                value = [value]  # pick_channels expects a list
+            ref_from = pick_channels(inst.ch_names, value, ordered=True)
+            ref_to = pick_channels(inst.ch_names, [key], ordered=True)
+            ref_data = orig_data[..., ref_from, :].mean(-2, keepdims=True)
+            data[..., ref_to, :] -= ref_data
+
+    with inst.info._unlock():
+        inst.info["custom_ref_applied"] = FIFF.FIFFV_MNE_CUSTOM_REF_ON
+    return inst, data
 
 
 @fill_doc
@@ -330,6 +409,10 @@ def set_eeg_reference(
     from ..forward import Forward
 
     _check_can_reref(inst)
+
+    if isinstance(ref_channels, dict):
+        logger.info("Applying a custom dict-based reference.")
+        return _apply_dict_reference(inst, ref_channels)
 
     ch_type = _get_ch_type(inst, ch_type)
 
