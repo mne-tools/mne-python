@@ -428,6 +428,8 @@ def _plot_evoked(
             # The user called Evoked.plot_image() or plot_evoked_image(), the
             # clim parameters of those functions end up to be the ylim here.
             raise ValueError("`clim` must be a dict. E.g. clim = dict(eeg=[-20, 20])")
+    else:
+        _validate_type(ylim, (dict, None), "ylim")
 
     picks = _picks_to_idx(info, picks, none="all", exclude=())
     if len(picks) != len(set(picks)):
@@ -1005,20 +1007,16 @@ def plot_evoked(
     evoked : instance of Evoked
         The evoked data.
     %(picks_all)s
-    exclude : list of str | 'bads'
-        Channels names to exclude from being shown. If 'bads', the
+    exclude : list of str | ``'bads'``
+        Channels names to exclude from being shown. If ``'bads'``, the
         bad channels are excluded.
     unit : bool
         Scale plot with channel (SI) unit.
     show : bool
         Show figure if True.
-    ylim : dict | None
-        Y limits for plots (after scaling has been applied). e.g.
-        ylim = dict(eeg=[-20, 20])
-        Valid keys are eeg, mag, grad, misc. If None, the ylim parameter
-        for each channel equals the pyplot default.
-    xlim : 'tight' | tuple | None
-        X limits for plots.
+    %(evoked_ylim_plot)s
+    xlim : ``'tight'`` | tuple | None
+        Limits for the X-axis of the plots.
     %(proj_plot)s
     hline : list of float | None
         The values at which to show an horizontal line.
@@ -1035,7 +1033,7 @@ def plot_evoked(
         The axes to plot to. If list, the list must be a list of Axes of
         the same length as the number of channel types. If instance of
         Axes, there must be only one channel type plotted.
-    gfp : bool | 'only'
+    gfp : bool | ``'only'``
         Plot the global field power (GFP) or the root mean square (RMS) of the
         data. For MEG data, this will plot the RMS. For EEG, it plots GFP,
         i.e. the standard deviation of the signal across channels. The GFP is
@@ -1150,6 +1148,7 @@ def plot_evoked(
     )
 
 
+@fill_doc
 def plot_evoked_topo(
     evoked,
     layout=None,
@@ -1192,26 +1191,21 @@ def plot_evoked_topo(
         automatically drawn.
     border : str
         Matplotlib borders style to be used for each sensor plot.
-    ylim : dict | None
-        Y limits for plots (after scaling has been applied). The value
-        determines the upper and lower subplot limits. e.g.
-        ylim = dict(eeg=[-20, 20]). Valid keys are eeg, mag, grad, misc.
-        If None, the ylim parameter for each channel type is determined by
-        the minimum and maximum peak.
+    %(evoked_ylim_plot)s
     scalings : dict | None
         The scalings of the channel types to be applied for plotting. If None,`
         defaults to ``dict(eeg=1e6, grad=1e13, mag=1e15)``.
     title : str
         Title of the figure.
-    proj : bool | 'interactive'
-        If true SSP projections are applied before display. If 'interactive',
+    proj : bool | ``'interactive'``
+        If true SSP projections are applied before display. If ``'interactive'``,
         a check box for reversible selection of SSP projection vectors will
         be shown.
-    vline : list of float | float| None
+    vline : list of float | float | None
         The values at which to show a vertical line.
     fig_background : None | ndarray
         A background image for the figure. This must work with a call to
-        plt.imshow. Defaults to None.
+        ``plt.imshow``. Defaults to None.
     merge_grads : bool
         Whether to use RMS value of gradiometer pairs. Only works for Neuromag
         data. Defaults to False.
@@ -1220,13 +1214,13 @@ def plot_evoked_topo(
         legend. Otherwise, the legend is created and the parameter value is
         passed as the location parameter to the matplotlib legend call. It can
         be an integer (e.g. 0 corresponds to upper right corner of the plot),
-        a string (e.g. 'upper right'), or a tuple (x, y coordinates of the
+        a string (e.g. ``'upper right'``), or a tuple (x, y coordinates of the
         lower left corner of the legend in the axes coordinate system).
         See matplotlib documentation for more details.
     axes : instance of matplotlib Axes | None
         Axes to plot into. If None, axes will be created.
     background_color : color
-        Background color. Typically 'k' (black) or 'w' (white; default).
+        Background color. Typically ``'k'`` (black) or ``'w'`` (white; default).
 
         .. versionadded:: 0.15.0
     noise_cov : instance of Covariance | str | None
@@ -1235,9 +1229,9 @@ def plot_evoked_topo(
         Can be a string to load a covariance from disk.
 
         .. versionadded:: 0.16.0
-    exclude : list of str | 'bads'
-        Channels names to exclude from the plot. If 'bads', the
-        bad channels are excluded. By default, exclude is set to 'bads'.
+    exclude : list of str | ``'bads'``
+        Channels names to exclude from the plot. If ``'bads'``, the
+        bad channels are excluded. By default, exclude is set to ``'bads'``.
     show : bool
         Show figure if True.
 
@@ -2624,7 +2618,7 @@ def plot_compare_evokeds(
         series and the parametric confidence interval is plotted as a shaded
         area. All instances must have the same shape - channel numbers, time
         points etc.
-        If dict, keys must be of type str.
+        If dict, keys must be of type :class:`str`.
     %(picks_all_data)s
 
         * If picks is None or a (collection of) data channel types, the
@@ -2679,9 +2673,9 @@ def plot_compare_evokeds(
         .. versionchanged:: 0.19
             Support for passing :class:`~matplotlib.colors.Colormap` instances.
 
-    vlines : "auto" | list of float
+    vlines : ``"auto"`` | list of float
         A list in seconds at which to plot dashed vertical lines.
-        If "auto" and the supplied data includes 0, it is set to [0.]
+        If ``"auto"`` and the supplied data includes 0, it is set to ``[0.]``
         and a vertical bar is plotted at time 0. If an empty list is passed,
         no vertical lines are plotted.
     ci : float | bool | callable | None
@@ -2693,22 +2687,18 @@ def plot_compare_evokeds(
         (i.e., the 95%% confidence band is drawn). If a callable, it must take
         a single array (n_observations × n_times) as input and return upper and
         lower confidence margins (2 × n_times). Defaults to ``True``.
-    truncate_yaxis : bool | 'auto'
-        Whether to shorten the y-axis spine. If 'auto', the spine is truncated
+    truncate_yaxis : bool | ``'auto'``
+        Whether to shorten the y-axis spine. If ``'auto'``, the spine is truncated
         at the minimum and maximum ticks. If ``True``, it is truncated at the
         multiple of 0.25 nearest to half the maximum absolute value of the
         data. If ``truncate_xaxis=False``, only the far bound of the y-axis
-        will be truncated. Defaults to 'auto'.
+        will be truncated. Defaults to ``'auto'``.
     truncate_xaxis : bool
         Whether to shorten the x-axis spine. If ``True``, the spine is
         truncated at the minimum and maximum ticks. If
         ``truncate_yaxis=False``, only the far bound of the x-axis will be
         truncated. Defaults to ``True``.
-    ylim : dict | None
-        Y-axis limits for plots (after scaling has been applied). :class:`dict`
-        keys should match channel types; valid keys are eeg, mag, grad, misc
-        (example: ``ylim=dict(eeg=[-20, 20])``). If ``None``, the y-axis limits
-        will be set automatically by matplotlib. Defaults to ``None``.
+    %(evoked_ylim_plot)s
     invert_y : bool
         Whether to plot negative values upward (as is sometimes done
         for ERPs out of tradition). Defaults to ``False``.
@@ -2728,7 +2718,7 @@ def plot_compare_evokeds(
         Whether to separate color and linestyle in the legend. If ``None``,
         a separate linestyle legend will still be shown if ``cmap`` is
         specified. Defaults to ``None``.
-    axes : None | Axes instance | list of Axes | 'topo'
+    axes : None | Axes instance | list of Axes | ``'topo'``
         :class:`~matplotlib.axes.Axes` object to plot into. If plotting
         multiple channel types (or multiple channels when ``combine=None``),
         ``axes`` should be a list of appropriate length containing
