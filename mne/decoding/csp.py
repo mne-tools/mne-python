@@ -191,7 +191,7 @@ class CSP(TransformerMixin, BaseEstimator):
             )
 
         # Convert rank to one that will run
-        _validate_type(self.rank, (dict, None), "rank")
+        _validate_type(self.rank, (dict, None, str), "rank")
 
         covs, sample_weights = self._compute_covariance_matrices(X, y)
         eigen_vectors, eigen_values = self._decompose_covs(covs, sample_weights)
@@ -554,16 +554,16 @@ class CSP(TransformerMixin, BaseEstimator):
         # Someday we could allow the user to pass this, then we wouldn't need to convert
         # but in the meantime they can use a pipeline with a scaler
         self._info = create_info(n_channels, 1000.0, "mag")
-        if self.rank is None:
+        if isinstance(self.rank, dict):
+            self._rank = {"mag": sum(self.rank.values())}
+        else:
             self._rank = _compute_rank_raw_array(
                 X.transpose(1, 0, 2).reshape(X.shape[1], -1),
                 self._info,
-                rank=None,
+                rank=self.rank,
                 scalings=None,
                 log_ch_type="data",
             )
-        else:
-            self._rank = {"mag": sum(self.rank.values())}
 
         covs = []
         sample_weights = []

@@ -951,7 +951,8 @@ def test_manual_report_2d(tmp_path, invisible_fig):
     r.add_epochs(
         epochs=epochs_without_metadata, title="my epochs 2", psd=True, projs=False
     )
-    assert "Metadata" not in r.html[-1]
+    assert "Metadata" in r.html[-1]
+    assert "No metadata set" in r.html[-1]
 
     # Try with metadata
     r.add_epochs(
@@ -961,6 +962,7 @@ def test_manual_report_2d(tmp_path, invisible_fig):
         projs=False,
     )
     assert "Metadata" in r.html[-1]
+    assert "25 rows × 7 columns" in r.html[-1]
 
     with pytest.raises(ValueError, match="requested to calculate PSD on a duration"):
         r.add_epochs(

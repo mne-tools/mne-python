@@ -271,11 +271,12 @@ Operates in place.
 # raw/epochs/evoked apply_function method
 # apply_function method summary
 applyfun_summary = """\
-The function ``fun`` is applied to the channels or vertices defined in ``picks``.
-The {} object's data is modified in-place. If the function returns a different
+The function ``fun`` is applied to the {applies_to} defined in ``picks``.
+The {data_type} object's data is modified in-place. If the function returns a different
 data type (e.g. :py:obj:`numpy.complex128`) it must be specified
 using the ``dtype`` parameter, which causes the data type of **all** the data
-to change (even if the function is only applied to channels/vertices in ``picks``).{}
+to change (even if the function is only applied to {applies_to} in
+``picks``).{preload}
 
 .. note:: If ``n_jobs`` > 1, more memory is required as
           ``len(picks) * n_times`` additional time points need to
@@ -288,10 +289,18 @@ applyfun_preload = (
     " The object has to have the data loaded e.g. with "
     "``preload=True`` or ``self.load_data()``."
 )
-docdict["applyfun_summary_epochs"] = applyfun_summary.format("epochs", applyfun_preload)
-docdict["applyfun_summary_evoked"] = applyfun_summary.format("evoked", "")
-docdict["applyfun_summary_raw"] = applyfun_summary.format("raw", applyfun_preload)
-docdict["applyfun_summary_stc"] = applyfun_summary.format("source estimate", "")
+docdict["applyfun_summary_epochs"] = applyfun_summary.format(
+    applies_to="channels", data_type="epochs", preload=applyfun_preload
+)
+docdict["applyfun_summary_evoked"] = applyfun_summary.format(
+    applies_to="channels", data_type="evoked", preload=""
+)
+docdict["applyfun_summary_raw"] = applyfun_summary.format(
+    applies_to="channels", data_type="raw", preload=applyfun_preload
+)
+docdict["applyfun_summary_stc"] = applyfun_summary.format(
+    applies_to="vertices", data_type="source estimate", preload=""
+)
 
 docdict["area_alpha_plot_psd"] = """\
 area_alpha : float
