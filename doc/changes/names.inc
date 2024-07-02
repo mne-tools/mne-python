@@ -232,6 +232,8 @@
 
 .. _Jaakko Leppakangas: https://github.com/jaeilepp
 
+.. _Jack Lin: https://github.com/th3linja
+
 .. _Jack Zhang: https://github.com/jackz314
 
 .. _Jacob Woessner: https://github.com/withmywoessner
