@@ -92,58 +92,61 @@ def _check_before_dict_reference(inst, ref_dict):
     # Check to see that data is preloaded
     _check_preload(inst, "Applying a reference")
 
-    def _check_item(inst, item, item_type):
-        """Check if item (key or value) is string and in instance."""
-        if not isinstance(item, str):
-            if item_type == "key":
-                raise TypeError(
-                    f"Keys in dict-type ref_channels must be strings. "
-                    f"You provided {type(item)}"
-                )
-            else:
-                raise TypeError(
-                    f"Values in dict-type ref_channels must be strings or "
-                    f"lists of strings. You provided {type(item)}"
-                )
-        if item not in inst.ch_names:
-            raise ValueError(f"Channel {item} in ref_channels is not in the instance")
+    # Promote all values to list-like. This simplifies our logic and also helps catch
+    # self-referencing cases like `{"Cz": ["Cz"]}`
+    _refdict = {k: [v] if isinstance(v, str) else list(v) for k, v in ref_dict.items()}
 
-    def _value_warning(inst, value, key_ch_type):
-        # Add warnings for bad channels are present
-        if value in inst.info["bads"]:
-            msg = f"Channel {value} in ref_channels is marked as bad!"
-            _on_missing("warn", msg)
-        # Add warnings if channel types don't match
-        value_pick = pick_channels(inst.ch_names, [value], ordered=True)
-        value_ch_type = inst.get_channel_types(picks=value_pick)[0]
-        if key_ch_type != value_ch_type:
-            msg = (
-                f"Channel {key} is of type {DEFAULTS['titles'][key_ch_type]}, "
-                f"but reference channel {value} is of type "
-                f"{DEFAULTS['titles'][value_ch_type]}."
+    # Check that keys are strings and values are (lists-of-)strings
+    key_types = {type(k) for k in _refdict}
+    value_types = {type(v) for val in _refdict.values() for v in val}
+    for elem_name, elem in dict(key=key_types, value=value_types).items():
+        if bad_elem := elem - {str}:
+            raise TypeError(
+                f"{elem_name.capitalize()}s in the ref_channels dict must be strings. "
+                f"Your dict has {elem_name}s of type "
+                f'{", ".join(map(lambda x: x.__name__, bad_elem))}.'
             )
-            _on_missing("warn", msg)
 
-    for key, value in ref_dict.items():
-        # Check key
-        _check_item(inst, key, "key")
-        key_pick = pick_channels(inst.ch_names, [key], ordered=True)
-        key_ch_type = inst.get_channel_types(picks=key_pick)[0]
-
-        # Check value
-        if isinstance(value, list):
-            for val in value:
-                _check_item(inst, val, "value")
-                _value_warning(inst, val, key_ch_type)
-        else:
-            _check_item(inst, value, "value")
-            _value_warning(inst, value, key_ch_type)
-            if key == value:
-                msg = (
-                    f"Channel {key} is re-referenced by itself, "
-                    "which will nullify that channel"
+    # Check that keys are valid channels and values are (lists-of-)valid channels
+    ch_set = set(inst.ch_names)
+    bad_ch_set = set(inst.info["bads"])
+    keys = set(_refdict)
+    values = {(x,) if isinstance(x, str) else tuple(x) for x in _refdict.values()}
+    values = set(sum(values, ()))
+    for elem_name, elem in dict(key=keys, value=values).items():
+        if bad_elem := elem - ch_set:
+            raise ValueError(
+                f'ref_channels dict contains invalid {elem_name}(s) '
+                f'({", ".join(bad_elem)}) '
+                "that are not names of channels in the instance."
+            )
+        # Check that values are not bad channels
+        if bad_elem := elem.intersection(bad_ch_set):
+            if elem_name == "value":
+                warn(
+                    f"ref_channels dict contains {elem_name}(s) "
+                    f"({', '.join(bad_elem)}) "
+                    "that are marked as bad channels."
                 )
-                _on_missing("warn", msg)
+
+    # Check for self-referencing
+    self_ref = [[k] == v for k, v in _refdict.items()]
+    if any(self_ref):
+        which = np.array(list(_refdict))[np.nonzero(self_ref)]
+        for ch in which:
+            warn(f"Channel {ch} is self-referenced, which will nullify the channel.")
+
+    # Check that channel types match
+    ch_map = dict(zip(inst.ch_names, inst.get_channel_types()))
+    pairs = [(k, v) for k in _refdict for v in _refdict[k]]  # unpack vals
+    mismatch = [ch_map[k] != ch_map[v] for k, v in pairs]
+    mismatch_pairs = np.array(pairs)[mismatch]
+    if any(mismatch):
+        for k, v in mismatch_pairs:
+            warn(
+                f"Channel {k} ({ch_map[k]}) is referenced to channel {v} which is a "
+                f"different channel type ({ch_map[v]})."
+            )
 
 
 def _apply_reference(inst, ref_from, ref_to=None, forward=None, ch_type="auto"):

@@ -371,40 +371,50 @@ def test_set_eeg_reference_rest():
     [
         (
             {2: "EEG 001"},
-            pytest.raises(TypeError, match=f"Keys in dict-type.*You provided {int}"),
+            pytest.raises(
+                TypeError,
+                match="Keys in the ref_channels dict must be strings. "
+                "Your dict has keys of type int.",
+            ),
         ),
         (
             {"EEG 001": (1, 2)},
             pytest.raises(
-                TypeError, match=f"Values in dict-type.*You provided {type((1,2))}"
+                TypeError,
+                match="Values in the ref_channels dict must be strings. "
+                "Your dict has values of type int.",
             ),
         ),
         (
             {"EEG 001": [1, 2]},
             pytest.raises(
                 TypeError,
-                match="Values in dict-type.*You provided <class 'int'>",
+                match="Values in the ref_channels dict must be strings. "
+                "Your dict has values of type int.",
             ),
         ),
         (
             {"EEG 999": "EEG 001"},
             pytest.raises(
                 ValueError,
-                match="Channel EEG 999 in ref_channels is not in the instance",
+                match=r"ref_channels dict contains invalid key\(s\) \(EEG 999\) "
+                "that are not names of channels in the instance.",
             ),
         ),
         (
             {"EEG 001": "EEG 999"},
             pytest.raises(
                 ValueError,
-                match="Channel EEG 999 in ref_channels is not in the instance",
+                match=r"ref_channels dict contains invalid value\(s\) \(EEG 999\) "
+                "that are not names of channels in the instance.",
             ),
         ),
         (
             {"EEG 001": "EEG 057"},
             pytest.warns(
                 RuntimeWarning,
-                match="Channel EEG 057 in ref_channels is marked as bad!",
+                match=r"ref_channels dict contains value\(s\) \(EEG 057\) "
+                "that are marked as bad channels.",
             ),
         ),
         (
@@ -412,8 +422,8 @@ def test_set_eeg_reference_rest():
             pytest.warns(
                 RuntimeWarning,
                 match=(
-                    "Channel EEG 001 is of type EEG, "
-                    "but reference channel STI 001 is of type Stimulus."
+                    r"Channel EEG 001 \(eeg\) is referenced to channel "
+                    r"STI 001 which is a different channel type \(stim\)."
                 ),
             ),
         ),
@@ -422,8 +432,8 @@ def test_set_eeg_reference_rest():
             pytest.warns(
                 RuntimeWarning,
                 match=(
-                    "Channel EEG 001 is re-referenced by itself, "
-                    "which will nullify that channel"
+                    "Channel EEG 001 is self-referenced, "
+                    "which will nullify the channel."
                 ),
             ),
         ),
