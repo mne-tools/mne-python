@@ -27,7 +27,7 @@ if [[ "${PLATFORM}" == "Linux" ]]; then
 fi
 python -m pip install $STD_ARGS --only-binary ":all:" --default-timeout=60 \
 	--index-url "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" \
-	"numpy>=2.1.0.dev0" "scipy>=1.14.0.dev0" "scikit-learn>=1.5.dev0" \
+	"numpy>=2.1.0.dev0" "scikit-learn>=1.6.dev0" "scipy>=1.15.0.dev0" \
 	matplotlib pandas statsmodels \
 	$OTHERS
 
@@ -46,7 +46,7 @@ python -m pip install $STD_ARGS vtk
 python -c "import vtk"
 
 echo "PyVista"
-python -m pip install $STD_ARGS "git+https://github.com/adeak/pyvista.git@fix_numpy_2"  # pyvista/pyvista
+python -m pip install $STD_ARGS "git+https://github.com/pyvista/pyvista"
 
 echo "picard"
 python -m pip install $STD_ARGS git+https://github.com/pierreablin/picard

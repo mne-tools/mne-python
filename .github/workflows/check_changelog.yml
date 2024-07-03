@@ -3,6 +3,7 @@ name: Changelog
 on:  # yamllint disable-line rule:truthy
   pull_request:
     types: [opened, synchronize, labeled, unlabeled]
+    branches: ["main"]
 
 jobs:
   changelog_checker:

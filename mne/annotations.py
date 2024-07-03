@@ -1143,7 +1143,7 @@ def _write_annotations_txt(fname, annot):
 
 @fill_doc
 def read_annotations(
-    fname, sfreq="auto", uint16_codec=None, encoding="utf8"
+    fname, sfreq="auto", uint16_codec=None, encoding="utf8", ignore_marker_types=False
 ) -> Annotations:
     r"""Read annotations from a file.
 
@@ -1174,6 +1174,9 @@ def read_annotations(
         arrays and can therefore help you solve this problem.
     %(encoding_edf)s
         Only used when reading EDF annotations.
+    ignore_marker_types : bool
+        If ``True``, ignore marker types in BrainVision files (and only use their
+        descriptions). Defaults to ``False``.
 
     Returns
     -------
@@ -1212,7 +1215,9 @@ def read_annotations(
         annotations = _read_annotations_txt(fname)
 
     elif name.endswith(("vmrk", "amrk")):
-        annotations = _read_annotations_brainvision(fname, sfreq=sfreq)
+        annotations = _read_annotations_brainvision(
+            fname, sfreq=sfreq, ignore_marker_types=ignore_marker_types
+        )
 
     elif name.endswith("csv"):
         annotations = _read_annotations_csv(fname)

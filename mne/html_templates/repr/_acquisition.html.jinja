@@ -8,8 +8,8 @@
 {% set collapsed_row_class = "" %}
 {% endif %}
 
-<tr class="repr-section-header {{ section_class_name }}" {% if collapsed %} title="Show section" {% else %} title="Hide section" {% endif %}
-    onclick="toggleVisibility('{{ section_class_name }}')">
+<tr class="repr-section-header {{ section_class_name }}" {% if collapsed %} title="Show section" {% else %}
+    title="Hide section" {% endif %} onclick="toggleVisibility('{{ section_class_name }}')">
     <th class="repr-section-toggle-col">
         <button>
             {# This span is for the background SVG icon #}
@@ -96,5 +96,12 @@
     <td class="repr-section-toggle-col"></td>
     <td>Time points</td>
     <td>{{ inst.times | length | format_number }}</td>
+</tr>
+{% endif %}
+{% if inst is defined and inst | has_attr("metadata") %}
+<tr class="repr-element {{ section_class_name }} {{ collapsed_row_class }}">
+    <td class="repr-section-toggle-col"></td>
+    <td>Metadata</td>
+    <td>{{ inst | format_metadata }}</td>
 </tr>
 {% endif %}

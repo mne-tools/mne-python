@@ -661,6 +661,49 @@ def test_read_vmrk_annotations(tmp_path):
     read_annotations(fname, sfreq=sfreq)
 
 
+def test_ignore_marker_types():
+    """Test ignore marker types."""
+    # default behavior (do not ignore marker types)
+    raw = read_raw_brainvision(vhdr_path)
+    expected_descriptions = [
+        "New Segment/",
+        "Stimulus/S253",
+        "Stimulus/S255",
+        "Event/254",
+        "Stimulus/S255",
+        "Event/254",
+        "Stimulus/S255",
+        "Stimulus/S253",
+        "Stimulus/S255",
+        "Response/R255",
+        "Event/254",
+        "Stimulus/S255",
+        "SyncStatus/Sync On",
+        "Optic/O  1",
+    ]
+    assert_array_equal(raw.annotations.description, expected_descriptions)
+
+    # ignore marker types
+    raw = read_raw_brainvision(vhdr_path, ignore_marker_types=True)
+    expected_descriptions = [
+        "",
+        "S253",
+        "S255",
+        "254",
+        "S255",
+        "254",
+        "S255",
+        "S253",
+        "S255",
+        "R255",
+        "254",
+        "S255",
+        "Sync On",
+        "O  1",
+    ]
+    assert_array_equal(raw.annotations.description, expected_descriptions)
+
+
 @testing.requires_testing_data
 def test_read_vhdr_annotations_and_events(tmp_path):
     """Test load brainvision annotations and parse them to events."""

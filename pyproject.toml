@@ -110,7 +110,7 @@ full-no-qt = [
 ]
 full = ["mne[full-no-qt]", "PyQt6!=6.6.0", "PyQt6-Qt6!=6.6.0,!=6.7.0"]
 full-pyqt6 = ["mne[full]"]
-full-pyside6 = ["mne[full-no-qt]", "PySide6"]
+full-pyside6 = ["mne[full-no-qt]", "PySide6!=6.7.0"]
 
 
 # Dependencies for running the test infrastructure

@@ -130,6 +130,7 @@ def plot_head_positions(
     mode="traces",
     cmap="viridis",
     direction="z",
+    *,
     show=True,
     destination=None,
     info=None,
@@ -169,9 +170,11 @@ def plot_head_positions(
 
         .. versionadded:: 0.16
     axes : array-like, shape (3, 2)
-        The matplotlib axes to use. Only used for ``mode == 'traces'``.
+        The matplotlib axes to use.
 
         .. versionadded:: 0.16
+        .. versionchanged:: 1.8
+           Added support for making use of this argument when ``mode="field"``.
 
     Returns
     -------
@@ -193,7 +196,9 @@ def plot_head_positions(
 
     if not isinstance(pos, (list, tuple)):
         pos = [pos]
+    pos = list(pos)  # make our own mutable copy
     for ii, p in enumerate(pos):
+        _validate_type(p, np.ndarray, f"pos[{ii}]")
         p = np.array(p, float)
         if p.ndim != 2 or p.shape[1] != 10:
             raise ValueError(
@@ -315,9 +320,15 @@ def plot_head_positions(
         from mpl_toolkits.mplot3d import Axes3D  # noqa: F401, analysis:ignore
         from mpl_toolkits.mplot3d.art3d import Line3DCollection
 
-        fig, ax = plt.subplots(
-            1, subplot_kw=dict(projection="3d"), layout="constrained"
-        )
+        _validate_type(axes, (Axes3D, None), "ax", extra="when mode='field'")
+        if axes is None:
+            _, ax = plt.subplots(
+                1, subplot_kw=dict(projection="3d"), layout="constrained"
+            )
+        else:
+            ax = axes
+        fig = ax.get_figure()
+        del axes
 
         # First plot the trajectory as a colormap:
         # http://matplotlib.org/examples/pylab_examples/multicolored_line.html

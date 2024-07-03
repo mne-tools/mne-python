@@ -44,6 +44,16 @@ def _format_baseline(inst) -> str:
     return baseline
 
 
+def _format_metadata(inst) -> str:
+    """Format metadata representation."""
+    if inst.metadata is None:
+        metadata = "No metadata set"
+    else:
+        metadata = f"{inst.metadata.shape[0]} rows × {inst.metadata.shape[1]} columns"
+
+    return metadata
+
+
 def _format_time_range(inst) -> str:
     """Format evoked and epochs time range."""
     tr = f"{round(inst.tmin, 3):.3f} – {round(inst.tmax, 3):.3f} s"
@@ -131,6 +141,7 @@ def _get_html_templates_env(kind):
     templates_env.filters["data_type"] = _data_type
     templates_env.filters["dt_to_str"] = _dt_to_str
     templates_env.filters["format_baseline"] = _format_baseline
+    templates_env.filters["format_metadata"] = _format_metadata
     templates_env.filters["format_time_range"] = _format_time_range
     templates_env.filters["format_projs"] = _format_projs
     templates_env.filters["format_channels"] = _format_channels

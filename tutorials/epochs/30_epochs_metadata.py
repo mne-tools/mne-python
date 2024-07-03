@@ -88,7 +88,6 @@ print(epochs.metadata.iloc[2:4])
 # groups.
 
 epochs.metadata["NumberOfLetters"] = epochs.metadata["NumberOfLetters"].map(int)
-
 epochs.metadata["HighComplexity"] = epochs.metadata["VisualComplexity"] > 65
 epochs.metadata.head()
 
