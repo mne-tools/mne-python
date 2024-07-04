@@ -3083,25 +3083,27 @@ def concatenate_raws(
 
 
 @fill_doc
-def match_channel_orders(raws, copy=True):
-    """Ensure consistent channel order across raws.
+def match_channel_orders(insts, copy=True):
+    """Ensure consistent channel order across instances (Raw, Epochs, or Evoked).
 
     Parameters
     ----------
-    raws : list
-        List of :class:`~mne.io.Raw` instances to order.
+    insts : list
+        List of :class:`~mne.io.Raw`, :class:`~mne.io.Epochs`,
+        or :class:`~mne.io.Evoked` instances to order.
     %(copy_df)s
 
     Returns
     -------
-    list of Raw
-        List of Raws with matched channel orders.
+    list of inst
+        List of instances (Raw, Epochs, or Evoked) with matched
+        channel orders.
     """
-    raws = deepcopy(raws) if copy else raws
-    ch_order = raws[0].ch_names
-    for raw in raws[1:]:
-        raw.reorder_channels(ch_order)
-    return raws
+    insts = deepcopy(insts) if copy else insts
+    ch_order = insts[0].ch_names
+    for inst in insts[1:]:
+        inst.reorder_channels(ch_order)
+    return insts
 
 
 def _check_maxshield(allow_maxshield):
