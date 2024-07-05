@@ -3089,13 +3089,13 @@ def match_channel_orders(insts, copy=True):
     Parameters
     ----------
     insts : list
-        List of :class:`~mne.io.Raw`, :class:`~mne.io.Epochs`,
-        or :class:`~mne.io.Evoked` instances to order.
+        List of :class:`~mne.io.Raw`, :class:`~mne.Epochs`,
+        or :class:`~mne.Evoked` instances to order.
     %(copy_df)s
 
     Returns
     -------
-    list of inst
+    list of Raw | list of Epochs | list of Evoked
         List of instances (Raw, Epochs, or Evoked) with matched
         channel orders.
     """
