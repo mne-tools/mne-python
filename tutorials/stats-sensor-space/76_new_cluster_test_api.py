@@ -125,6 +125,8 @@ formula = "evoked ~ 1 + C(subject_index)"
 T_obs, clusters, cluster_p_values, H0 = mne.stats.cluster_level.cluster_test(
     df=df, formula=formula
 )
+# set up conditions dictionary for cluster plots
+conditions_dict = {"target": target_only, "non-target": non_target_only}
 
 # finally let's plot the results
 # we plot the cluster with the lowest p-value
@@ -133,6 +135,4 @@ T_obs, clusters, cluster_p_values, H0 = mne.stats.cluster_level.cluster_test(
 # in the visual channels
 # however the cluster is not significant which is not surprising
 # given the small sample size (only 5 subjects)
-mne.stats.cluster_level.plot_cluster(
-    diff_evoked, target_only, non_target_only, T_obs, clusters, cluster_p_values
-)
+mne.stats.cluster_level.plot_cluster(conditions_dict, T_obs, clusters, cluster_p_values)
