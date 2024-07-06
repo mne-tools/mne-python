@@ -6,6 +6,7 @@
 #          Eric Larson <larson.eric.d@gmail.com>
 #          Denis Engemann <denis.engemann@gmail.com>
 #          Fernando Perez (bin_perm_rep function)
+#          Carina Forster <carina.forster0611@gmail.com>
 #
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
