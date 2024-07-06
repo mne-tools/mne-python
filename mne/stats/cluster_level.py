@@ -1755,14 +1755,14 @@ def cluster_test(
     buffer_size: int = None,  # block size for chunking the data
 ):
     """
-    Run the cluster test using the new API.
+    Run a cluster permutation test based on formulaic input.
 
-    # currently supports paired t-test
+    # currently only supports paired t-test on evokeds or epochs
 
     Parameters
     ----------
     dataframe : pd.DataFrame
-        Dataframe with evoked data, conditions and subject IDs.
+        Dataframe with evoked/epoched data, conditions and subject IDs.
     formula : str, optional
         Wilkinson notation formula for design matrix. Default is None.
     n_permutations : int, optional
@@ -1794,6 +1794,7 @@ def cluster_test(
 
     Returns
     -------
+    TODO: turn this into a class for further plotting
     T_obs : array
         The observed test statistic.
     clusters : list
@@ -1814,7 +1815,7 @@ def cluster_test(
     # convert wide format to long format for formulaic
     df_long = unpack_time_and_channels(df)
 
-    # Pivot the DataFrame
+    # pivot the DataFrame
     pivot_df = df_long.pivot_table(
         index=["subject_index", "channel", "timepoint"],
         columns="condition",
@@ -1825,7 +1826,7 @@ def cluster_test(
     if len(pd.unique(df.condition)) != 2:
         raise ValueError("Condition list needs to contain 2 unique values")
 
-    # Get the unique conditions
+    # get the unique conditions
     conditions = np.unique(df.condition)
 
     # Compute the difference (assuming there are only 2 conditions)
@@ -1849,9 +1850,8 @@ def cluster_test(
             "Formula is required and needs to be a string in Wilkinson notation."
         )
 
-    # now prep design matrix outcome variable for input into MNE cluster function
-    # we initially had first channels, then timepoints,
-    # now we need first timepoints, then channels
+    # now prep design matrix for input into MNE cluster function
+    # cluster functions expects channels as list dimension
     y_for_cluster = y.values.reshape(-1, n_channels, n_timepoints).transpose(0, 2, 1)
 
     adjacency, _ = find_ch_adjacency(df["evoked"][0].info, ch_type="eeg")
@@ -1864,7 +1864,7 @@ def cluster_test(
     # Run the cluster-based permutation test
     T_obs, clusters, cluster_p_values, H0 = _permutation_cluster_test(
         [y_for_cluster],
-        n_permutations=10000,
+        n_permutations=n_permutations,
         threshold=threshold,
         stat_fun=stat_fun,
         tail=tail,
@@ -1880,19 +1880,24 @@ def cluster_test(
         seed=seed,
     )
 
-    print(min(cluster_p_values))
+    print(f"smallest cluster p-value: {min(cluster_p_values)}")
 
     return T_obs, clusters, cluster_p_values, H0
 
 
-def unpack_time_and_channels(df):
+def unpack_time_and_channels(df: pd.DataFrame = None) -> pd.DataFrame:
     """
-    Extract the time and channel data from the DataFrame.
+    Extract timepoints and channels and convert to long.
 
     Parameters
     ----------
     df : pd.DataFrame
         DataFrame in wide format.
+
+    Returns
+    -------
+    df_long : pd.DataFrame
+        DataFrame in long format.
     """
     # Extracting all necessary data using list comprehensions for better performance
     long_format_data = [
@@ -1914,20 +1919,18 @@ def unpack_time_and_channels(df):
     return df_long
 
 
-def plot_cluster(
-    contrast, target_only, non_target_only, T_obs, clusters, cluster_p_values
-):
+def plot_cluster(cond_dict, T_obs, clusters, cluster_p_values):
     """
     Plot the cluster with the lowest p-value.
 
+    2D cluster plotted with topoplot on the left and evoked signals on the right.
+    Timepoints that are part of the cluster are
+    highlighted in green on the evoked signals.
+
     Parameters
     ----------
-    contrast : list
-        List of contrast evoked objects.
-    target_only : list
-        List of target evoked objects.
-    non_target_only : list
-        List of non-target evoked objects.
+    cond_dict : dict
+        Dictionary with conditions as keys and evoked data as values.
     T_obs : array
         The observed test statistic.
     clusters : list
@@ -1940,11 +1943,13 @@ def plot_cluster(
     None
 
     """
-    # configure variables for visualization
-    colors = {"target": "crimson", "non-target": "steelblue"}
+    # extract condition labels from the dictionary
+    cond_keys = list(cond_dict.keys())
+    # extract the evokeds from the dictionary
+    cond_values = list(cond_dict.values())
 
-    # organize data for plotting
-    evokeds = {"target": target_only, "non-target": non_target_only}
+    # configure variables for visualization
+    colors = {cond_keys[0]: "crimson", cond_keys[1]: "steelblue"}
 
     lowest_p_cluster = np.argmin(cluster_p_values)
 
@@ -1957,7 +1962,7 @@ def plot_cluster(
     t_map = T_obs[time_inds, ...].mean(axis=0)
 
     # get signals at the sensors contributing to the cluster
-    sig_times = contrast[0].times[time_inds]
+    sig_times = cond_values[0][0].times[time_inds]
 
     # create spatial mask
     mask = np.zeros((t_map.shape[0], 1), dtype=bool)
@@ -1967,7 +1972,7 @@ def plot_cluster(
     fig, ax_topo = plt.subplots(1, 1, figsize=(10, 3), layout="constrained")
 
     # plot average test statistic and mark significant sensors
-    t_evoked = EvokedArray(t_map[:, np.newaxis], contrast[0].info, tmin=0)
+    t_evoked = EvokedArray(t_map[:, np.newaxis], cond_values[0][0].info, tmin=0)
     t_evoked.plot_topomap(
         times=0,
         mask=mask,
@@ -2005,7 +2010,7 @@ def plot_cluster(
     if len(ch_inds) > 1:
         title += "s (mean)"
         plot_compare_evokeds(
-            evokeds,
+            cond_dict,
             title=title,
             picks=ch_inds,
             axes=ax_signals,
