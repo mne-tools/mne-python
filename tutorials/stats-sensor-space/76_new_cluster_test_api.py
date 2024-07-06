@@ -15,7 +15,8 @@ The procedure consists of:
 
   - loading evoked data from multiple subjects
   - construct a dataframe that contains the difference between conditions
-  - run the new cluster test function
+  - run the new cluster test function with formula in Wilkinson notation
+  - plot the results with the ClusterResults Class
 
 Here, the unit of observation are evokeds from multiple subjects (2nd level analysis).
 
@@ -121,18 +122,20 @@ df = pd.DataFrame(
 # let's first define the formula based on Wilkinson notation
 formula = "evoked ~ 1 + C(subject_index)"
 
-# run the cluster test
-T_obs, clusters, cluster_p_values, H0 = mne.stats.cluster_level.cluster_test(
-    df=df, formula=formula
-)
+# run the cluster test and return the cluster_result object
+cluster_result = mne.stats.cluster_level.cluster_test(df=df, formula=formula)
+
+# note that we ran an exact test due to the small sample size (only 15 permutations)
+
 # set up conditions dictionary for cluster plots
 conditions_dict = {"target": target_only, "non-target": non_target_only}
 
-# finally let's plot the results
+# finally let's plot the results using the ClusterResults class
+
 # we plot the cluster with the lowest p-value
-# and the topomap of the significant cluster
+
 # we can see that there is something going on around 400 ms
-# in the visual channels
-# however the cluster is not significant which is not surprising
+# in the visual channels (topomap on the left)
+# however the cluster is not significant which is unsurprising
 # given the small sample size (only 5 subjects)
-mne.stats.cluster_level.plot_cluster(conditions_dict, T_obs, clusters, cluster_p_values)
+cluster_result.plot_cluster(cond_dict=conditions_dict)

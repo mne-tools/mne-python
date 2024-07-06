@@ -1788,15 +1788,8 @@ def cluster_test(
 
     Returns
     -------
-    TODO: turn this into a class for further plotting
-    T_obs : array
-        The observed test statistic.
-    clusters : list
-        List of clusters.
-    cluster_p_values : array
-        Array of cluster p-values.
-    H0 : array
-        The permuted test statistics.
+    ClusterResult
+        Object containing the results of the cluster permutation test.
     """
     # for now this assumes a dataframe with a column for evoked data or epochs
     # add a data column to the dataframe (numpy array)
@@ -1876,7 +1869,7 @@ def cluster_test(
 
     print(f"smallest cluster p-value: {min(cluster_p_values)}")
 
-    return T_obs, clusters, cluster_p_values, H0
+    return ClusterResult(T_obs, clusters, cluster_p_values, H0)
 
 
 def unpack_time_and_channels(df: pd.DataFrame = None) -> pd.DataFrame:
@@ -1913,111 +1906,127 @@ def unpack_time_and_channels(df: pd.DataFrame = None) -> pd.DataFrame:
     return df_long
 
 
-def plot_cluster(cond_dict, T_obs, clusters, cluster_p_values):
+class ClusterResult:
     """
-    Plot the cluster with the lowest p-value.
-
-    2D cluster plotted with topoplot on the left and evoked signals on the right.
-    Timepoints that are part of the cluster are
-    highlighted in green on the evoked signals.
+    Object containing the results of the cluster permutation test.
 
     Parameters
     ----------
-    cond_dict : dict
-        Dictionary with conditions as keys and evoked data as values.
-    T_obs : array
+    T_obs : np.ndarray
         The observed test statistic.
     clusters : list
         List of clusters.
-    cluster_p_values : array
-        Array of cluster p-values.
-
-    Returns
-    -------
-    None
-
+    cluster_p_values : np.ndarray
+        P-values for each cluster.
+    H0 : np.ndarray
+        Max cluster level stats observed under permutation.
     """
-    # extract condition labels from the dictionary
-    cond_keys = list(cond_dict.keys())
-    # extract the evokeds from the dictionary
-    cond_values = list(cond_dict.values())
 
-    # configure variables for visualization
-    colors = {cond_keys[0]: "crimson", cond_keys[1]: "steelblue"}
+    def __init__(self, T_obs, clusters, cluster_p_values, H0):
+        self.T_obs = T_obs
+        self.clusters = clusters
+        self.cluster_p_values = cluster_p_values
+        self.H0 = H0
 
-    lowest_p_cluster = np.argmin(cluster_p_values)
+    def plot_cluster(self, cond_dict: dict = None):
+        """
+        Plot the cluster with the lowest p-value.
 
-    # plot the cluster with the lowest p-value
-    time_inds, space_inds = np.squeeze(clusters[lowest_p_cluster])
-    ch_inds = np.unique(space_inds)
-    time_inds = np.unique(time_inds)
+        2D cluster plotted with topoplot on the left and evoked signals on the right.
+        Timepoints that are part of the cluster are
+        highlighted in green on the evoked signals.
 
-    # get topography for F stat
-    t_map = T_obs[time_inds, ...].mean(axis=0)
+        Parameters
+        ----------
+        cond_dict : dict
+            Dictionary with condition labels as keys and evoked objects as values.
 
-    # get signals at the sensors contributing to the cluster
-    sig_times = cond_values[0][0].times[time_inds]
+        Returns
+        -------
+        None
 
-    # create spatial mask
-    mask = np.zeros((t_map.shape[0], 1), dtype=bool)
-    mask[ch_inds, :] = True
+        """
+        # extract condition labels from the dictionary
+        cond_keys = list(cond_dict.keys())
+        # extract the evokeds from the dictionary
+        cond_values = list(cond_dict.values())
 
-    # initialize figure
-    fig, ax_topo = plt.subplots(1, 1, figsize=(10, 3), layout="constrained")
+        # configure variables for visualization
+        colors = {cond_keys[0]: "crimson", cond_keys[1]: "steelblue"}
 
-    # plot average test statistic and mark significant sensors
-    t_evoked = EvokedArray(t_map[:, np.newaxis], cond_values[0][0].info, tmin=0)
-    t_evoked.plot_topomap(
-        times=0,
-        mask=mask,
-        axes=ax_topo,
-        cmap="Reds",
-        vlim=(np.min, np.max),
-        show=False,
-        colorbar=False,
-        mask_params=dict(markersize=10),
-    )
-    image = ax_topo.images[0]
+        lowest_p_cluster = np.argmin(self.cluster_p_values)
 
-    # remove the title that would otherwise say "0.000 s"
-    ax_topo.set_title("")
+        # plot the cluster with the lowest p-value
+        time_inds, space_inds = np.squeeze(self.clusters[lowest_p_cluster])
+        ch_inds = np.unique(space_inds)
+        time_inds = np.unique(time_inds)
 
-    # soft import?
-    # make_axes_locatable = _soft_import(
-    #    "mpl_toolkits.axes_grid1.make_axes_locatable",
-    #    purpose="plot cluster results"
-    # )  # soft import (not a dependency for MNE)
+        # get topography for F stat
+        t_map = self.T_obs[time_inds, ...].mean(axis=0)
 
-    # create additional axes (for ERF and colorbar)
-    divider = make_axes_locatable(ax_topo)
+        # get signals at the sensors contributing to the cluster
+        sig_times = cond_values[0][0].times[time_inds]
 
-    # add axes for colorbar
-    ax_colorbar = divider.append_axes("right", size="5%", pad=0.05)
-    plt.colorbar(image, cax=ax_colorbar)
-    ax_topo.set_xlabel(
-        "Averaged t-map ({:0.3f} - {:0.3f} s)".format(*sig_times[[0, -1]])
-    )
+        # create spatial mask
+        mask = np.zeros((t_map.shape[0], 1), dtype=bool)
+        mask[ch_inds, :] = True
 
-    # add new axis for time courses and plot time courses
-    ax_signals = divider.append_axes("right", size="300%", pad=1.2)
-    title = f"Cluster #1, {len(ch_inds)} sensor"
-    if len(ch_inds) > 1:
-        title += "s (mean)"
-        plot_compare_evokeds(
-            cond_dict,
-            title=title,
-            picks=ch_inds,
-            axes=ax_signals,
-            colors=colors,
+        # initialize figure
+        fig, ax_topo = plt.subplots(1, 1, figsize=(10, 3), layout="constrained")
+
+        # plot average test statistic and mark significant sensors
+        t_evoked = EvokedArray(t_map[:, np.newaxis], cond_values[0][0].info, tmin=0)
+        t_evoked.plot_topomap(
+            times=0,
+            mask=mask,
+            axes=ax_topo,
+            cmap="Reds",
+            vlim=(np.min, np.max),
             show=False,
-            split_legend=True,
-            truncate_yaxis="auto",
+            colorbar=False,
+            mask_params=dict(markersize=10),
+        )
+        image = ax_topo.images[0]
+
+        # remove the title that would otherwise say "0.000 s"
+        ax_topo.set_title("")
+
+        # soft import?
+        # make_axes_locatable = _soft_import(
+        #    "mpl_toolkits.axes_grid1.make_axes_locatable",
+        #    purpose="plot cluster results"
+        # )  # soft import (not a dependency for MNE)
+
+        # create additional axes (for ERF and colorbar)
+        divider = make_axes_locatable(ax_topo)
+
+        # add axes for colorbar
+        ax_colorbar = divider.append_axes("right", size="5%", pad=0.05)
+        plt.colorbar(image, cax=ax_colorbar)
+        ax_topo.set_xlabel(
+            "Averaged t-map ({:0.3f} - {:0.3f} s)".format(*sig_times[[0, -1]])
         )
 
-    # plot temporal cluster extent
-    ymin, ymax = ax_signals.get_ylim()
-    ax_signals.fill_betweenx(
-        (ymin, ymax), sig_times[0], sig_times[-1], color="green", alpha=0.3
-    )
+        # add new axis for time courses and plot time courses
+        ax_signals = divider.append_axes("right", size="300%", pad=1.2)
+        title = f"Cluster #1, {len(ch_inds)} sensor"
+        if len(ch_inds) > 1:
+            title += "s (mean)"
+            plot_compare_evokeds(
+                cond_dict,
+                title=title,
+                picks=ch_inds,
+                axes=ax_signals,
+                colors=colors,
+                show=False,
+                split_legend=True,
+                truncate_yaxis="auto",
+            )
 
-    plt.show()
+        # plot temporal cluster extent
+        ymin, ymax = ax_signals.get_ylim()
+        ax_signals.fill_betweenx(
+            (ymin, ymax), sig_times[0], sig_times[-1], color="green", alpha=0.3
+        )
+
+        plt.show()
