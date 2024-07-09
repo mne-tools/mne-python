@@ -146,6 +146,11 @@ def _check_before_dict_reference(inst, ref_dict):
                 f"a different channel type ({ch_type_map[v]})."
             )
 
+    # convert channel names to indices
+    keys_ix = pick_channels(inst.ch_names, list(_refdict), ordered=True)
+    vals_ix = (pick_channels(inst.ch_names, v, ordered=True) for v in _refdict.values())
+    return dict(zip(keys_ix, vals_ix))
+
 
 def _apply_reference(inst, ref_from, ref_to=None, forward=None, ch_type="auto"):
     """Apply a custom EEG referencing scheme."""
@@ -190,18 +195,14 @@ def _apply_reference(inst, ref_from, ref_to=None, forward=None, ch_type="auto"):
 
 def _apply_dict_reference(inst, ref_dict):
     """Apply a dict-based custom EEG referencing scheme."""
-    _check_before_dict_reference(inst, ref_dict)
+    # this converts all keys to channel indices and all values to arrays of ch. indices:
+    ref_dict = _check_before_dict_reference(inst, ref_dict)
 
     data = inst._data
     orig_data = data.copy()
-    if ref_dict:
-        for key, value in ref_dict.items():
-            if isinstance(value, str):
-                value = [value]  # pick_channels expects a list
-            ref_from = pick_channels(inst.ch_names, value, ordered=True)
-            ref_to = pick_channels(inst.ch_names, [key], ordered=True)
-            ref_data = orig_data[..., ref_from, :].mean(-2, keepdims=True)
-            data[..., ref_to, :] -= ref_data
+    for ref_to, ref_from in ref_dict.items():
+        ref_data = orig_data[..., ref_from, :].mean(-2, keepdims=True)
+        data[..., [ref_to], :] -= ref_data
 
     with inst.info._unlock():
         inst.info["custom_ref_applied"] = FIFF.FIFFV_MNE_CUSTOM_REF_ON
