@@ -96,7 +96,7 @@ def _check_before_dict_reference(inst, ref_dict):
     # self-referencing cases like `{"Cz": ["Cz"]}`
     _refdict = {k: [v] if isinstance(v, str) else list(v) for k, v in ref_dict.items()}
 
-    # Check that keys are strings and values are (lists-of-)strings
+    # Check that keys are strings and values are lists-of-strings
     key_types = {type(k) for k in _refdict}
     value_types = {type(v) for val in _refdict.values() for v in val}
     for elem_name, elem in dict(key=key_types, value=value_types).items():
@@ -107,12 +107,11 @@ def _check_before_dict_reference(inst, ref_dict):
                 f'{", ".join(map(lambda x: x.__name__, bad_elem))}.'
             )
 
-    # Check that keys are valid channels and values are (lists-of-)valid channels
+    # Check that keys are valid channels and values are lists-of-valid-channels
     ch_set = set(inst.ch_names)
     bad_ch_set = set(inst.info["bads"])
     keys = set(_refdict)
-    values = {(x,) if isinstance(x, str) else tuple(x) for x in _refdict.values()}
-    values = set(sum(values, ()))
+    values = set(sum(_refdict.values(), []))
     for elem_name, elem in dict(key=keys, value=values).items():
         if bad_elem := elem - ch_set:
             raise ValueError(
