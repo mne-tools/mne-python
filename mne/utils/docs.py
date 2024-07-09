@@ -3706,7 +3706,7 @@ ref_channels : list of str | str | dict
       data in channel 'A1' with the difference between 'A1' and 'A3'. To take
       the average of multiple channels as reference, supply a list of channel
       names as the dictionary value, e.g. {'A1': ['A2', 'A3']} would replace
-      channel A1 with ``A1 - mean(A2 + A3)``.
+      channel A1 with ``A1 - mean(A2, A3)``.
     - An empty list, in which case MNE will not attempt any re-referencing of
       the data
 """
