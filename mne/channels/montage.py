@@ -369,7 +369,7 @@ class DigMontage:
     @copy_function_doc_to_method_doc(plot_montage)
     def plot(
         self,
-        scale_factor=20,
+        scale_factor=1,
         show_names=True,
         kind="topomap",
         show=True,

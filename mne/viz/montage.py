@@ -16,7 +16,7 @@ from .utils import plot_sensors
 @verbose
 def plot_montage(
     montage,
-    scale_factor=20,
+    scale_factor=1,
     show_names=True,
     kind="topomap",
     show=True,
@@ -51,6 +51,8 @@ def plot_montage(
     fig : instance of matplotlib.figure.Figure
         The figure object.
     """
+    import matplotlib.pyplot as plt
+
     from ..channels import DigMontage, make_dig_montage
 
     _check_option("kind", kind, ["topomap", "3d"])
@@ -93,6 +95,20 @@ def plot_montage(
         sphere=sphere,
         axes=axes,
     )
+
+    # scale points
     collection = fig.axes[0].collections[0]
-    collection.set_sizes([scale_factor])
+    collection.set_sizes([scale_factor * 10])
+
+    # scale labels
+    labels = fig.findobj(match=plt.Text)
+    x_label, y_label = fig.axes[0].xaxis.label, fig.axes[0].yaxis.label
+    z_label = fig.axes[0].zaxis.label if kind == "3d" else None
+    tick_labels = fig.axes[0].get_xticklabels() + fig.axes[0].get_yticklabels()
+    if kind == "3d":
+        tick_labels += fig.axes[0].get_zticklabels()
+    for label in labels:
+        if label not in [x_label, y_label, z_label] + tick_labels:
+            label.set_fontsize(label.get_fontsize() * scale_factor)
+
     return fig
