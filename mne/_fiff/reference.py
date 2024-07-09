@@ -134,16 +134,16 @@ def _check_before_dict_reference(inst, ref_dict):
         for ch in which:
             warn(f"Channel {ch} is self-referenced, which will nullify the channel.")
 
-    # Check that channel types match
-    ch_map = dict(zip(inst.ch_names, inst.get_channel_types()))
-    pairs = [(k, v) for k in _refdict for v in _refdict[k]]  # unpack vals
-    mismatch = [ch_map[k] != ch_map[v] for k, v in pairs]
-    mismatch_pairs = np.array(pairs)[mismatch]
+    # Check that channel types match. First unpack list-like vals into separate items:
+    pairs = [(k, v) for k in _refdict for v in _refdict[k]]
+    ch_type_map = dict(zip(inst.ch_names, inst.get_channel_types()))
+    mismatch = [ch_type_map[k] != ch_type_map[v] for k, v in pairs]
     if any(mismatch):
+        mismatch_pairs = np.array(pairs)[mismatch]
         for k, v in mismatch_pairs:
             warn(
-                f"Channel {k} ({ch_map[k]}) is referenced to channel {v} which is a "
-                f"different channel type ({ch_map[v]})."
+                f"Channel {k} ({ch_type_map[k]}) is referenced to channel {v} which is "
+                f"a different channel type ({ch_type_map[v]})."
             )
 
 
