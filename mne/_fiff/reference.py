@@ -121,12 +121,11 @@ def _check_before_dict_reference(inst, ref_dict):
             )
         # Check that values are not bad channels
         if bad_elem := elem.intersection(bad_ch_set):
-            if elem_name == "value":
-                warn(
-                    f"ref_channels dict contains {elem_name}(s) "
-                    f"({', '.join(bad_elem)}) "
-                    "that are marked as bad channels."
-                )
+            warn(
+                f"ref_channels dict contains {elem_name}(s) "
+                f"({', '.join(bad_elem)}) "
+                "that are marked as bad channels."
+            )
 
     # Check for self-referencing
     self_ref = [[k] == v for k, v in _refdict.items()]
