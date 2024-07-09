@@ -475,7 +475,7 @@ def test_set_eeg_reference_dict(ref_channels, inst_type, expectation):
     inst.load_data()
     inst.info["bads"] = ["EEG 057"]
     with expectation:
-        reref, _reref = set_eeg_reference(inst.copy(), ref_channels, copy=False)
+        reref, _ = set_eeg_reference(inst.copy(), ref_channels, copy=False)
 
     if isinstance(expectation, nullcontext):
         # Check that the custom_ref_applied is set correctly:
@@ -492,7 +492,9 @@ def test_set_eeg_reference_dict(ref_channels, inst_type, expectation):
         ch_reref = pick_channels(inst.ch_names, list(ref_channels.keys()), ordered=True)
 
         # Check that the non re-reference channels are untouched:
-        assert_allclose(_data[..., ch_raw, :], _reref[..., ch_raw, :], 1e-6, atol=1e-15)
+        assert_allclose(
+            _data[..., ch_raw, :], reref._data[..., ch_raw, :], 1e-6, atol=1e-15
+        )
 
         # Compute the reference data:
         ref_data = []
@@ -510,7 +512,7 @@ def test_set_eeg_reference_dict(ref_channels, inst_type, expectation):
             ref_data = np.squeeze(np.array(ref_data))
         assert_allclose(
             _data[..., ch_reref, :],
-            _reref[..., ch_reref, :] + ref_data,
+            reref._data[..., ch_reref, :] + ref_data,
             1e-6,
             atol=1e-15,
         )

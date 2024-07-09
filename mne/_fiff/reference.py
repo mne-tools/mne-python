@@ -206,7 +206,7 @@ def _apply_dict_reference(inst, ref_dict):
 
     with inst.info._unlock():
         inst.info["custom_ref_applied"] = FIFF.FIFFV_MNE_CUSTOM_REF_ON
-    return inst, data
+    return inst, None
 
 
 @fill_doc
@@ -400,12 +400,13 @@ def set_eeg_reference(
     Returns
     -------
     inst : instance of Raw | Epochs | Evoked
-        Data with EEG channels re-referenced. If ``ref_channels='average'`` and
+        Data with EEG channels re-referenced. If ``ref_channels="average"`` and
         ``projection=True`` a projection will be added instead of directly
         re-referencing the data.
     ref_data : array
         Array of reference data subtracted from EEG channels. This will be
-        ``None`` if ``projection=True`` or ``ref_channels='REST'``.
+        ``None`` if ``projection=True``, or if ``ref_channels`` is ``"REST"`` or a
+        :class:`dict`.
     %(set_eeg_reference_see_also_notes)s
     """
     from ..forward import Forward
