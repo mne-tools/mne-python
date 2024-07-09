@@ -623,22 +623,28 @@ class EpochsEEGLAB(BaseEpochs):
             """
             Generate boundary events for epoched data without events.
 
-            Parameters:
+            Parameters
+            ----------
             n_trials (int): Number of trials (epochs)
 
-            Returns:
+            Returns
+            -------
             numpy.ndarray: Array of boundary events
             dict: Event id dictionary
             """
             events = np.zeros((n_trials, 3), dtype=np.int64)  # Explicitly use int64
-            events[:, 0] = np.arange(n_trials, dtype=np.int64)  # Start from 0 for sample numbers
+            events[:, 0] = np.arange(
+                n_trials, dtype=np.int64
+            )  # Start from 0 for sample numbers
             events[:, 1] = 0  # Previous event value
             events[:, 2] = 1  # Boundary marker
 
-            event_id = {'boundary': 1}
+            event_id = {"boundary": 1}
 
             # Double-check the array type
-            assert events.dtype == np.int64, f"Events dtype is {events.dtype}, expected np.int64"
+            assert (
+                events.dtype == np.int64
+            ), f"Events dtype is {events.dtype}, expected np.int64"
 
             return events, event_id
 
@@ -681,13 +687,15 @@ class EpochsEEGLAB(BaseEpochs):
             # now fill up the event array
             if event_id is None and not event_name and not event_latencies:
                 # account for EEGLAB with trials but no events
-                events,event_id = generate_boundary_events(eeg.trials)
+                events, event_id = generate_boundary_events(eeg.trials)
             else:
                 events = np.zeros((eeg.trials, 3), dtype=int)
                 for idx in range(0, eeg.trials):
                     if idx == 0:
                         prev_stim = 0
-                    elif idx > 0 and event_latencies[idx] - event_latencies[idx - 1] == 1:
+                    elif (
+                        idx > 0 and event_latencies[idx] - event_latencies[idx - 1] == 1
+                    ):
                         prev_stim = event_id[event_name[idx - 1]]
                     events[idx, 0] = event_latencies[idx]
                     events[idx, 1] = prev_stim
