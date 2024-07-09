@@ -1,7 +1,7 @@
 repos:
   # Ruff mne
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.4.10
+    rev: v0.5.1
     hooks:
       - id: ruff
         name: ruff lint mne
@@ -39,7 +39,7 @@ repos:
 
   # rstcheck
   - repo: https://github.com/rstcheck/rstcheck.git
-    rev: v6.2.0
+    rev: v6.2.4
     hooks:
       - id: rstcheck
         additional_dependencies:

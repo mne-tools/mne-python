@@ -636,6 +636,9 @@ def test_plot_ctf():
     )
     evoked = epochs.average()
     evoked.plot_joint(times=[0.1])
+    # test plotting with invalid ylim argument
+    with pytest.raises(TypeError, match="ylim must be an instance of dict or None"):
+        evoked.plot_joint(times=[0.1], ts_args=dict(ylim=(-10, 10)))
     mne.viz.plot_compare_evokeds([evoked, evoked])
 
     # make sure axes position is "almost" unchanged
