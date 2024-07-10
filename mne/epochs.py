@@ -1281,13 +1281,13 @@ class BaseEpochs(
             warn("evoked object is empty (based on less than 1 epoch)")
 
         return evoked
-    
+
     def compute_sme(self, start=None, stop=None):
         """Compute standardized measurement error (SME).
-        
+
         The standardized measurement error :footcite:`LuckEtAl2021` can be used as a
         universal measure of data quality in ERP studies.
-        
+
         Parameters
         ----------
         start : int | float | None
@@ -1296,19 +1296,19 @@ class BaseEpochs(
         stop : int | float | None
             Stop time (in s) of the time window used for SME computation. If ``None``,
             use the end of the epoch.
-        
+
         Returns
         -------
         sme : array, shape (n_channels,)
             SME in given time window for each channel.
-        
+
         Note
         ----
         Currently, only the mean value in the given time window is supported, meaning
         that the resulting SME is only valid in studies which quantify the amplitude of
         an ERP component as the mean within the time window (as opposed to e.g. the
         peak, which would require bootstrapping).
-        
+
         References
         ----------
         .. footbibliography::
@@ -1321,7 +1321,7 @@ class BaseEpochs(
             raise ValueError("start is out of bounds.")
         if stop > self.tmax:
             raise ValueError("stop is out of bounds.")
-        
+
         data = self.get_data(tmin=start, tmax=stop)
         return data.mean(axis=2).std(axis=0) / np.sqrt(data.shape[0])
 
