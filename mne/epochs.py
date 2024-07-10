@@ -1302,8 +1302,8 @@ class BaseEpochs(
         sme : array, shape (n_channels,)
             SME in given time window for each channel.
 
-        Note
-        ----
+        Notes
+        -----
         Currently, only the mean value in the given time window is supported, meaning
         that the resulting SME is only valid in studies which quantify the amplitude of
         an ERP component as the mean within the time window (as opposed to e.g. the
