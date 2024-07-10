@@ -513,7 +513,7 @@ sphinx_gallery_conf = {
     ),  # called w/each script
     "reset_modules_order": "both",
     "image_scrapers": scrapers,
-    "show_memory": sphinx_gallery_parallel == 1,
+    "show_memory": sys.platform == "linux" and sphinx_gallery_parallel == 1,
     "line_numbers": False,  # messes with style
     "within_subsection_order": "FileNameSortKey",
     "capture_repr": ("_repr_html_",),
