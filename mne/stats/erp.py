@@ -11,7 +11,7 @@ def compute_sme(epochs, start=None, stop=None):
 
     Parameters
     ----------
-    epochs: mne.Epochs
+    epochs : mne.Epochs
         The epochs containing the data for which to compute the SME.
     start : int | float | None
         Start time (in s) of the time window used for SME computation. If ``None``, use
@@ -31,6 +31,10 @@ def compute_sme(epochs, start=None, stop=None):
     the resulting SME is only valid in studies which quantify the amplitude of an ERP
     component as the mean within the time window (as opposed to e.g. the peak, which
     would require bootstrapping).
+
+    References
+    ----------
+    .. footbibliography::
 
     Examples
     --------
@@ -62,10 +66,6 @@ def compute_sme(epochs, start=None, stop=None):
         >>> compute_sme(epochs["oddball"].pick("Pz"), 0.3, 0.5)  # doctest: +SKIP
 
     In any case, the output will be a NumPy array with the SME value for each channel.
-
-    References
-    ----------
-    .. footbibliography::
     """
     _validate_type(start, ("numeric", None), "start", "int or float")
     _validate_type(stop, ("numeric", None), "stop", "int or float")
