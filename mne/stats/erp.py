@@ -11,6 +11,8 @@ def compute_sme(epochs, start=None, stop=None):
 
     Parameters
     ----------
+    epochs: mne.Epochs
+        The epochs containing the data for which to compute the SME.
     start : int | float | None
         Start time (in s) of the time window used for SME computation. If ``None``, use
         the start of the epoch.
