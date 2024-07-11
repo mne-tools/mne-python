@@ -32,6 +32,37 @@ def compute_sme(epochs, start=None, stop=None):
     component as the mean within the time window (as opposed to e.g. the peak, which
     would require bootstrapping).
 
+    Examples
+    --------
+    Given an ``epochs`` object, the SME for the entire epoch duration can be computed as
+    follows:
+
+        >>> compute_sme(epochs)  # doctest: +SKIP
+
+    However, the SME is best used to estimate the precision of a specific ERP measure,
+    specifically the mean amplitude of an ERP component in a time window of interest.
+    For example, the SME for the mean amplitude of the P3 component in the 300-500 ms
+    time window could be computed as follows:
+
+        >>> compute_sme(epochs, start=0.3, stop=0.5)  # doctest: +SKIP
+
+    Usually, it will be more informative to compute the SME for specific conditions
+    separately. This can be done by selecting the epochs of interest as follows:
+
+        >>> compute_sme(epochs["oddball"], 0.3, 0.5)  # doctest: +SKIP
+
+    Note that the SME will be reported for each channel separately. If you are only
+    interested in a single channel (or a subset of channels), select the channels
+    before computing the SME:
+
+        >>> compute_sme(epochs.pick("Pz"), 0.3, 0.5)  # doctest: +SKIP
+
+    Selecting both conditions and channels is also possible:
+
+        >>> compute_sme(epochs["oddball"].pick("Pz"), 0.3, 0.5)  # doctest: +SKIP
+
+    In any case, the output will be a NumPy array with the SME value for each channel.
+
     References
     ----------
     .. footbibliography::
