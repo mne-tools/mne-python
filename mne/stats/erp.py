@@ -34,8 +34,8 @@ def compute_sme(epochs, start=None, stop=None):
 
     Examples
     --------
-    Given an ``epochs`` object, the SME for the entire epoch duration can be computed as
-    follows:
+    Given an :class:`~mne.Epochs` object, the SME for the entire epoch duration can be
+    computed as follows:
 
         >>> compute_sme(epochs)  # doctest: +SKIP
 
