@@ -5,7 +5,7 @@ __all__ = [
     "bonferroni_correction",
     "bootstrap_confidence_interval",
     "combine_adjacency",
-    "compute_sme",
+    "erp",
     "f_mway_rm",
     "f_oneway",
     "f_threshold_mway_rm",
@@ -21,6 +21,7 @@ __all__ = [
     "ttest_1samp_no_p",
     "ttest_ind_no_p",
 ]
+from . import erp
 from ._adjacency import combine_adjacency
 from .cluster_level import (
     _st_mask_from_s_inds,
@@ -30,7 +31,6 @@ from .cluster_level import (
     spatio_temporal_cluster_test,
     summarize_clusters_stc,
 )
-from .erp import compute_sme
 from .multi_comp import bonferroni_correction, fdr_correction
 from .parametric import (
     _parametric_ci,

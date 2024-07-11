@@ -53,7 +53,7 @@ ERP-related statistics:
 .. autosummary::
    :toctree: ../generated/
 
-   compute_sme
+   erp.compute_sme
 
 Compute ``adjacency`` matrices for cluster-level statistics:
 
