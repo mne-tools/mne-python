@@ -62,6 +62,7 @@ from mne.epochs import (
 from mne.event import merge_events
 from mne.io import RawArray, read_raw_fif
 from mne.preprocessing import maxwell_filter
+from mne.stats.erp import compute_sme
 from mne.utils import (
     _dt_to_stamp,
     _record_warnings,
@@ -5269,14 +5270,14 @@ def test_epochs_sme():
     """Test SME computation."""
     raw, events, _ = _get_data()
     epochs = Epochs(raw, events)
-    sme = epochs.compute_sme(start=0, stop=0.1)
+    sme = compute_sme(epochs, start=0, stop=0.1)
     assert sme.shape == (376,)
 
     with pytest.raises(TypeError, match="int or float"):
-        epochs.compute_sme("0", 0.1)
+        compute_sme(epochs, "0", 0.1)
     with pytest.raises(TypeError, match="int or float"):
-        epochs.compute_sme(0, "0.1")
+        compute_sme(epochs, 0, "0.1")
     with pytest.raises(ValueError, match="out of bounds"):
-        epochs.compute_sme(-1.2, 0.3)
+        compute_sme(epochs, -1.2, 0.3)
     with pytest.raises(ValueError, match="out of bounds"):
-        epochs.compute_sme(-0.1, 0.8)
+        compute_sme(epochs, -0.1, 0.8)
