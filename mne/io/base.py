@@ -3094,7 +3094,7 @@ def match_channel_orders(insts=None, copy=True, *, raws=None):
     %(copy_df)s
     raws : list
         This parameter is deprecated and will be removed in mne version 1.9.
-        Please use `insts` instead.
+        Please use ``insts`` instead.
 
     Returns
     -------
