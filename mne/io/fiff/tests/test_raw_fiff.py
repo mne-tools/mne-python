@@ -482,6 +482,10 @@ def test_concatenate_raws_order():
     with pytest.raises(DeprecationWarning, match="``raws`` parameter is deprecated"):
         match_channel_orders(raws=raws)
 
+    # XXX: remove in version 1.9
+    with pytest.raises(ValueError, match="need to pass a list"):
+        match_channel_orders()
+
     # Now passes because all raws have the same order
     match_channel_orders(insts=raws, copy=False)
     raw_concat = concatenate_raws(raws)

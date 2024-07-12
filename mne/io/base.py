@@ -3083,7 +3083,7 @@ def concatenate_raws(
 
 
 @fill_doc
-def match_channel_orders(insts, copy=True, *, raws=None):
+def match_channel_orders(insts=None, copy=True, *, raws=None):
     """Ensure consistent channel order across instances (Raw, Epochs, or Evoked).
 
     Parameters
@@ -3102,6 +3102,8 @@ def match_channel_orders(insts, copy=True, *, raws=None):
         List of instances (Raw, Epochs, or Evoked) with channel orders matched
         according to the order they had in the first item in the `insts` list.
     """
+    # XXX: remove "raws" parameter and logic below with MNE version 1.9
+    #      and remove default parameter value of insts
     if raws is not None:
         warn(
             "The ``raws`` parameter is deprecated and will be removed in version "
@@ -3109,6 +3111,11 @@ def match_channel_orders(insts, copy=True, *, raws=None):
             DeprecationWarning,
         )
         insts = raws
+    elif insts is None:
+        # both insts and raws is None
+        raise ValueError(
+            "You need to pass a list of Raw, Epochs, or Evoked to ``insts``."
+        )
     insts = deepcopy(insts) if copy else insts
     ch_order = insts[0].ch_names
     for inst in insts[1:]:
