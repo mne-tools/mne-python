@@ -114,8 +114,7 @@ def plot_montage(
         # scale points
         collection = fig.axes[0].collections[0]
         collection.set_sizes([scale_factor])
-
-    if scale is not None:
+    elif scale is not None:
         # scale points
         collection = fig.axes[0].collections[0]
         collection.set_sizes([scale * 10])
