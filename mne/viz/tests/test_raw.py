@@ -771,6 +771,11 @@ def test_plot_annotations(raw, browser_backend):
         fig._update_regions_visible()
         assert fig.mne.regions[0].isVisible()
 
+    # Check if single annotation toggle works
+    ch_pick = fig.mne.inst.ch_names[0]
+    fig._toggle_single_channel_annotation(ch_pick, 0)
+    assert fig.mne.inst.annotations.ch_names[0] == (ch_pick,)
+
 
 @pytest.mark.parametrize("active_annot_idx", (0, 1, 2))
 def test_overlapping_annotation_deletion(raw, browser_backend, active_annot_idx):

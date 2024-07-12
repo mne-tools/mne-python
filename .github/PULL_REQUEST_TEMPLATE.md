@@ -1,3 +1,5 @@
+<!--
+
 Thanks for contributing a pull request! Please make sure you have read the
 [contribution guidelines](https://mne.tools/dev/development/contributing.html)
 before submitting.
@@ -10,6 +12,8 @@ convincing, etc. or more likely the reviewers are simply busy. In either
 case, we ask for your understanding during the review process.
 
 Again, thanks for contributing!
+
+-->
 
 #### Reference issue
 Example: Fixes #1234.

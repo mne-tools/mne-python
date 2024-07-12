@@ -1,0 +1,1 @@
+Enhance documentation on decimation filtering to prevent aliasing, by :newcontrib:`Xabier de Zuazo`.

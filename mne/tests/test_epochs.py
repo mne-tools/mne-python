@@ -3001,6 +3001,21 @@ def test_epoch_eq():
         epochs.equalize_event_counts(1.5)
 
 
+def test_equalize_epoch_counts_random():
+    """Test random equalization of epochs."""
+    raw, events, picks = _get_data()
+    # create epochs with unequal counts
+    events_1 = events[events[:, 2] == event_id]
+    epochs_1 = Epochs(raw, events_1, event_id, tmin, tmax, picks=picks)
+    events_2 = events[events[:, 2] == event_id_2]
+    epochs_2 = Epochs(raw, events_2, event_id_2, tmin, tmax, picks=picks)
+    epochs_1.drop_bad()
+    epochs_2.drop_bad()
+    assert len(epochs_1) != len(epochs_2)
+    equalize_epoch_counts([epochs_1, epochs_2], method="random")
+    assert len(epochs_1) == len(epochs_2)
+
+
 def test_access_by_name(tmp_path):
     """Test accessing epochs by event name and on_missing for rare events."""
     raw, events, picks = _get_data()

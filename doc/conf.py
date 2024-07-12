@@ -15,7 +15,6 @@ from importlib.metadata import metadata
 from pathlib import Path
 
 import matplotlib
-import pyvista
 import sphinx
 from intersphinx_registry import get_intersphinx_mapping
 from numpydoc import docscrape
@@ -443,10 +442,6 @@ numpydoc_validation_exclude = {  # set of regex
 examples_dirs = ["../tutorials", "../examples"]
 gallery_dirs = ["auto_tutorials", "auto_examples"]
 os.environ["_MNE_BUILDING_DOC"] = "true"
-scrapers = ("matplotlib",)
-mne.viz.set_3d_backend("pyvistaqt")
-pyvista.OFF_SCREEN = False
-pyvista.BUILDING_GALLERY = True
 
 scrapers = (
     "matplotlib",
@@ -466,6 +461,7 @@ if sys.platform.startswith("win"):
     except Exception:
         compress_images = ()
 
+sphinx_gallery_parallel = int(os.getenv("MNE_DOC_BUILD_N_JOBS", "1"))
 sphinx_gallery_conf = {
     "doc_module": ("mne",),
     "reference_url": dict(mne=None),
@@ -517,7 +513,7 @@ sphinx_gallery_conf = {
     ),  # called w/each script
     "reset_modules_order": "both",
     "image_scrapers": scrapers,
-    "show_memory": not sys.platform.startswith(("win", "darwin")),
+    "show_memory": sys.platform == "linux" and sphinx_gallery_parallel == 1,
     "line_numbers": False,  # messes with style
     "within_subsection_order": "FileNameSortKey",
     "capture_repr": ("_repr_html_",),
@@ -565,6 +561,7 @@ sphinx_gallery_conf = {
         ".*.remove.*|.*.write.*)"
     ),
     "copyfile_regex": r".*index\.rst",  # allow custom index.rst files
+    "parallel": sphinx_gallery_parallel,
 }
 assert is_serializable(sphinx_gallery_conf)
 # Files were renamed from plot_* with:
@@ -1650,8 +1647,8 @@ def make_version(app, exception):
 def setup(app):
     """Set up the Sphinx app."""
     app.connect("autodoc-process-docstring", append_attr_meth_examples)
-    report_scraper.app = app
-    app.connect("builder-inited", report_scraper.copyfiles)
+    # High prio, will happen before SG
+    app.connect("builder-inited", report_scraper.set_dirs, priority=20)
     app.connect("build-finished", make_gallery_redirects)
     app.connect("build-finished", make_api_redirects)
     app.connect("build-finished", make_custom_redirects)

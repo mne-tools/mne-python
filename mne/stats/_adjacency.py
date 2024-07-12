@@ -62,7 +62,7 @@ def combine_adjacency(*structure):
     structure = list(structure)
     for di, dim in enumerate(structure):
         name = f"structure[{di}]"
-        _validate_type(dim, ("int-like", np.ndarray, sparse.spmatrix), name)
+        _validate_type(dim, ("int-like", np.ndarray, "sparse"), name)
         if isinstance(dim, int_like):
             # Don't add the diagonal, because we explicitly remove it later
             dim = sparse.dia_array(
