@@ -1,3 +1,8 @@
+"""ERP-related statistics."""
+
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
+
 import numpy as np
 
 from mne.utils import _validate_type
