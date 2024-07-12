@@ -3100,7 +3100,7 @@ def match_channel_orders(insts=None, copy=True, *, raws=None):
     -------
     list of Raw | list of Epochs | list of Evoked
         List of instances (Raw, Epochs, or Evoked) with channel orders matched
-        according to the order they had in the first item in the `insts` list.
+        according to the order they had in the first item in the ``insts`` list.
     """
     # XXX: remove "raws" parameter and logic below with MNE version 1.9
     #      and remove default parameter value of insts
