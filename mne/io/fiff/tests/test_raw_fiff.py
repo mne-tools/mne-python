@@ -475,11 +475,15 @@ def test_concatenate_raws_order():
 
     with pytest.raises(ValueError, match="Channel order must match."):
         # still fails, because raws is copied and not changed in place
-        match_channel_orders(raws, copy=True)
+        match_channel_orders(insts=raws, copy=True)
         raw_concat = concatenate_raws(raws)
 
+    # XXX: remove in version 1.9
+    with pytest.raises(DeprecationWarning, match="``raws`` parameter is deprecated"):
+        match_channel_orders(raws=raws)
+
     # Now passes because all raws have the same order
-    match_channel_orders(raws, copy=False)
+    match_channel_orders(insts=raws, copy=False)
     raw_concat = concatenate_raws(raws)
     ch0 = raw_concat.get_data(picks=["0"])
     assert np.all(ch0 == 0)
