@@ -58,7 +58,6 @@ from ..utils import (
     _validate_type,
     copy_function_doc_to_method_doc,
     fill_doc,
-    logger,
     verbose,
     warn,
 )

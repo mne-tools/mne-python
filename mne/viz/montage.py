@@ -60,9 +60,7 @@ def plot_montage(
     from ..channels import DigMontage, make_dig_montage
 
     if scale_factor is not None:
-        msg = (
-            "scale_factor has been deprecated and will be removed. Use scale instead."
-        )
+        msg = "scale_factor has been deprecated and will be removed. Use scale instead."
         if scale is not None:
             raise ValueError(
                 " ".join(["scale and scale_factor cannot be used together.", msg])
