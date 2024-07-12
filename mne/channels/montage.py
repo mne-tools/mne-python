@@ -58,6 +58,7 @@ from ..utils import (
     _validate_type,
     copy_function_doc_to_method_doc,
     fill_doc,
+    logger,
     verbose,
     warn,
 )
@@ -369,17 +370,19 @@ class DigMontage:
     @copy_function_doc_to_method_doc(plot_montage)
     def plot(
         self,
-        scale_factor=1,
+        *,
+        scale=None,
+        scale_factor=None,
         show_names=True,
         kind="topomap",
         show=True,
         sphere=None,
-        *,
         axes=None,
         verbose=None,
     ):
         return plot_montage(
             self,
+            scale=scale,
             scale_factor=scale_factor,
             show_names=show_names,
             kind=kind,

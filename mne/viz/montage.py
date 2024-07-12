@@ -16,12 +16,13 @@ from .utils import plot_sensors
 @verbose
 def plot_montage(
     montage,
-    scale_factor=1,
+    *,
+    scale=None,
+    scale_factor=None,
     show_names=True,
     kind="topomap",
     show=True,
     sphere=None,
-    *,
     axes=None,
     verbose=None,
 ):
@@ -31,8 +32,11 @@ def plot_montage(
     ----------
     montage : instance of DigMontage
         The montage to visualize.
+    scale : float
+        Determines the scale of the channel points and labels; values < 1 will scale
+        down, whereas values > 1 will scale up. Default to None, which implies 1.
     scale_factor : float
-        Determines the size of the points.
+        Determines the size of the points. Deprecated, use scale instead.
     show_names : bool | list
         Whether to display all channel names. If a list, only the channel
         names in the list are shown. Defaults to True.
@@ -54,6 +58,18 @@ def plot_montage(
     import matplotlib.pyplot as plt
 
     from ..channels import DigMontage, make_dig_montage
+
+    if scale_factor is not None:
+        msg = (
+            "scale_factor has been deprecated and will be removed. Use scale instead."
+        )
+        if scale is not None:
+            raise ValueError(
+                " ".join(["scale and scale_factor cannot be used together.", msg])
+            )
+        logger.info(msg)
+    if scale is None:
+        scale = 1
 
     _check_option("kind", kind, ["topomap", "3d"])
     _validate_type(montage, DigMontage, item_name="montage")
@@ -96,19 +112,25 @@ def plot_montage(
         axes=axes,
     )
 
-    # scale points
-    collection = fig.axes[0].collections[0]
-    collection.set_sizes([scale_factor * 10])
+    if scale_factor is not None:
+        # scale points
+        collection = fig.axes[0].collections[0]
+        collection.set_sizes([scale_factor])
 
-    # scale labels
-    labels = fig.findobj(match=plt.Text)
-    x_label, y_label = fig.axes[0].xaxis.label, fig.axes[0].yaxis.label
-    z_label = fig.axes[0].zaxis.label if kind == "3d" else None
-    tick_labels = fig.axes[0].get_xticklabels() + fig.axes[0].get_yticklabels()
-    if kind == "3d":
-        tick_labels += fig.axes[0].get_zticklabels()
-    for label in labels:
-        if label not in [x_label, y_label, z_label] + tick_labels:
-            label.set_fontsize(label.get_fontsize() * scale_factor)
+    if scale is not None:
+        # scale points
+        collection = fig.axes[0].collections[0]
+        collection.set_sizes([scale * 10])
+
+        # scale labels
+        labels = fig.findobj(match=plt.Text)
+        x_label, y_label = fig.axes[0].xaxis.label, fig.axes[0].yaxis.label
+        z_label = fig.axes[0].zaxis.label if kind == "3d" else None
+        tick_labels = fig.axes[0].get_xticklabels() + fig.axes[0].get_yticklabels()
+        if kind == "3d":
+            tick_labels += fig.axes[0].get_zticklabels()
+        for label in labels:
+            if label not in [x_label, y_label, z_label] + tick_labels:
+                label.set_fontsize(label.get_fontsize() * scale)
 
     return fig
