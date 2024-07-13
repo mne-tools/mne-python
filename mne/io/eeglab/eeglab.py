@@ -690,7 +690,7 @@ class EpochsEEGLAB(BaseEpochs):
             # now fill up the event array
             if event_id is None and not event_name and not event_latencies:
                 # account for EEGLAB with trials but no events
-                events, event_id = generate_boundary_events(eeg.trials)
+                events, event_id = _generate_boundary_events(eeg.trials)
             else:
                 events = np.zeros((eeg.trials, 3), dtype=int)
                 for idx in range(0, eeg.trials):
