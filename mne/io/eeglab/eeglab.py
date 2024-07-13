@@ -630,8 +630,10 @@ class EpochsEEGLAB(BaseEpochs):
 
             Returns
             -------
-            numpy.ndarray: Array of boundary events
-            dict: Event id dictionary
+            events: ndarray
+                Array of boundary events
+            event_id: dict
+                Event id dictionary
             """
             events = np.zeros((n_trials, 3), dtype=np.int64)  # Explicitly use int64
             events[:, 0] = np.arange(
