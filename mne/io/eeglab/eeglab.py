@@ -625,7 +625,8 @@ class EpochsEEGLAB(BaseEpochs):
 
             Parameters
             ----------
-            n_trials (int): Number of trials (epochs)
+            n_epochs: int
+                Number of epochs (trials).
 
             Returns
             -------
