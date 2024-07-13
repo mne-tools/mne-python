@@ -619,7 +619,7 @@ class EpochsEEGLAB(BaseEpochs):
                 "You should try using read_raw_eeglab function."
             )
 
-        def generate_boundary_events(n_trials):
+        def _generate_boundary_events(n_trials):
             """
             Generate boundary events for epoched data without events.
 
