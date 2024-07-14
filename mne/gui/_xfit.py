@@ -4,7 +4,8 @@ import numpy as np
 import pyvista
 
 from .. import pick_types
-from ..beamformer import apply_lcmv, make_lcmv
+
+# from ..beamformer import apply_lcmv, make_lcmv
 from ..bem import (
     ConductorModel,
     _ensure_bem_surfaces,
@@ -113,7 +114,7 @@ class DipoleFitUI:
         self,
         evoked,
         cov=None,
-        cov_data=None,
+        # cov_data=None,
         bem=None,
         initial_time=None,
         trans=None,
@@ -162,13 +163,13 @@ class DipoleFitUI:
         self._bem = bem
         self._ch_type = ch_type
         self._cov = cov
-        self._cov_data = cov_data
+        # self._cov_data = cov_data
         self._current_time = initial_time
         self._dipoles = list()
         self._evoked = evoked
         self._field_map = field_map
         self._fig_sensors = None
-        self._multi_dipole_method = "MNE"
+        self._multi_dipole_method = "Multi dipole (MNE)"
         self._n_jobs = n_jobs
         self._show_density = show_density
         self._subjects_dir = subjects_dir
@@ -181,6 +182,11 @@ class DipoleFitUI:
         # Configure the GUI
         self._renderer = self._configure_main_display()
         self._configure_dock()
+
+    @property
+    def dipoles(self):
+        """A list of the fitted dipoles."""
+        return [d["dip"] for d in self._dipoles]
 
     def _configure_main_display(self):
         """Configure main 3D display of the GUI."""
@@ -287,35 +293,35 @@ class DipoleFitUI:
                 layout=layout,
             )
 
-        # Add view buttons
-        layout = r._dock_add_group_box("Views")
-        hlayout = None
-        views = zip(
-            [7, 8, 9, 4, 5, 6, 1, 2, 3],  # numpad order
-            ["🢆", "🢃", "🢇", "🢂", "⊙", "🢀", "🢅", "🢁", "🢄"],
-        )
-        for i, (view, label) in enumerate(views):
-            if i % 3 == 0:  # show in groups of 3
-                hlayout = r._dock_add_layout(vertical=False)
-                r._layout_add_widget(layout, hlayout)
-            r._dock_add_button(
-                label,
-                callback=partial(self._set_view, view=view),
-                layout=hlayout,
-                style="pushbutton",
-            )
-            r.plotter.add_key_event(str(view), partial(self._set_view, view=view))
+        # # Add view buttons
+        # layout = r._dock_add_group_box("Views")
+        # hlayout = None
+        # views = zip(
+        #     [7, 8, 9, 4, 5, 6, 1, 2, 3],  # numpad order
+        #     ["🢆", "🢃", "🢇", "🢂", "⊙", "🢀", "🢅", "🢁", "🢄"],
+        # )
+        # for i, (view, label) in enumerate(views):
+        #     if i % 3 == 0:  # show in groups of 3
+        #         hlayout = r._dock_add_layout(vertical=False)
+        #         r._layout_add_widget(layout, hlayout)
+        #     r._dock_add_button(
+        #         label,
+        #         callback=partial(self._set_view, view=view),
+        #         layout=hlayout,
+        #         style="pushbutton",
+        #     )
+        #     r.plotter.add_key_event(str(view), partial(self._set_view, view=view))
 
         # Right dock
         r._dock_initialize(name="Dipole fitting", area="right")
         r._dock_add_button("Sensor data", self._on_sensor_data)
         r._dock_add_button("Fit dipole", self._on_fit_dipole)
-        methods = ["MNE", "Single-dipole"]
-        if self._cov_data is not None:
-            methods.append("LCMV")
+        methods = ["Multi dipole (MNE)", "Single dipole"]
+        # if self._cov_data is not None:
+        #     methods.append("LCMV")
         r._dock_add_combo_box(
             "Dipole model",
-            value="MNE",
+            value="Multi dipole (MNE)",
             rng=methods,
             callback=self._on_select_method,
         )
@@ -344,27 +350,27 @@ class DipoleFitUI:
             act.SetVisibility(show)
         self._renderer._update()
 
-    def _set_view(self, view):
-        kwargs = dict()
-        if view == 1:
-            kwargs = dict(azimuth=-135, roll=45, elevation=60, distance="auto")
-        elif view == 2:
-            kwargs = dict(azimuth=270, roll=180, elevation=90, distance="auto")
-        elif view == 3:
-            kwargs = dict(azimuth=-45, roll=-45, elevation=60, distance="auto")
-        elif view == 4:
-            kwargs = dict(azimuth=180, roll=90, elevation=90, distance="auto")
-        elif view == 5:
-            kwargs = dict(azimuth=0, roll=0, elevation=0, distance="auto")
-        elif view == 6:
-            kwargs = dict(azimuth=0, roll=-90, elevation=90, distance="auto")
-        elif view == 7:
-            kwargs = dict(azimuth=135, roll=90, elevation=60, distance="auto")
-        elif view == 8:
-            kwargs = dict(azimuth=90, roll=0, elevation=90, distance="auto")
-        elif view == 9:
-            kwargs = dict(azimuth=45, roll=-90, elevation=60, distance="auto")
-        self._renderer.set_camera(**kwargs)
+    # def _set_view(self, view):
+    #     kwargs = dict()
+    #     if view == 1:
+    #         kwargs = dict(azimuth=-135, roll=45, elevation=60, distance="auto")
+    #     elif view == 2:
+    #         kwargs = dict(azimuth=270, roll=180, elevation=90, distance="auto")
+    #     elif view == 3:
+    #         kwargs = dict(azimuth=-45, roll=-45, elevation=60, distance="auto")
+    #     elif view == 4:
+    #         kwargs = dict(azimuth=180, roll=90, elevation=90, distance="auto")
+    #     elif view == 5:
+    #         kwargs = dict(azimuth=0, roll=0, elevation=0, distance="auto")
+    #     elif view == 6:
+    #         kwargs = dict(azimuth=0, roll=-90, elevation=90, distance="auto")
+    #     elif view == 7:
+    #         kwargs = dict(azimuth=135, roll=90, elevation=60, distance="auto")
+    #     elif view == 8:
+    #         kwargs = dict(azimuth=90, roll=0, elevation=90, distance="auto")
+    #     elif view == 9:
+    #         kwargs = dict(azimuth=45, roll=-90, elevation=60, distance="auto")
+    #     self._renderer.set_camera(**kwargs)
 
     def _on_time_change(self, event):
         new_time = np.clip(event.time, self._evoked.times[0], self._evoked.times[-1])
@@ -430,7 +436,7 @@ class DipoleFitUI:
         # Collect all relevant information on the dipole in a dict
         colors = _get_color_list()
         dip_num = len(self._dipoles)
-        dip_name = f"dip{dip_num}"
+        dip.name = f"dip{dip_num}"
         dip_color = colors[dip_num % len(colors)]
         if helmet_coords is not None:
             arrow_mesh = pyvista.PolyData(*_arrow_mesh())
@@ -446,8 +452,8 @@ class DipoleFitUI:
             fix_position=True,
             helmet_coords=helmet_coords,
             helmet_pos=helmet_pos,
-            name=dip_name,
             num=dip_num,
+            fit_time=self._current_time,
         )
         self._dipoles.append(dipole_dict)
 
@@ -455,21 +461,28 @@ class DipoleFitUI:
         r = self._renderer
         hlayout = r._dock_add_layout(vertical=False)
         r._dock_add_check_box(
-            name=dip_name,
+            name="",
             value=True,
-            callback=partial(self._on_dipole_toggle, dip_name=dip_name),
+            callback=partial(self._on_dipole_toggle, dip_num=dip_num),
             layout=hlayout,
         )
-        r._dock_add_check_box(
-            name="Fix pos",
-            value=True,
-            callback=partial(self._on_dipole_toggle_fix_position, dip_name=dip_name),
+        r._dock_add_text(
+            name=dip.name,
+            value=dip.name,
+            placeholder="name",
+            callback=partial(self._on_dipole_set_name, dip_num=dip_num),
             layout=hlayout,
         )
+        # r._dock_add_check_box(
+        #     name="Fix pos",
+        #     value=True,
+        #     callback=partial(self._on_dipole_toggle_fix_position, dip_name=dip_name),
+        #     layout=hlayout,
+        # )
         r._dock_add_check_box(
             name="Fix ori",
             value=True,
-            callback=partial(self._on_dipole_toggle_fix_orientation, dip_name=dip_name),
+            callback=partial(self._on_dipole_toggle_fix_orientation, dip_num=dip_num),
             layout=hlayout,
         )
         r._layout_add_widget(self._dipole_box, hlayout)
@@ -511,10 +524,18 @@ class DipoleFitUI:
         return helmet_coords, helmet_pos
 
     def _fit_timecourses(self):
-        """Compute dipole timecourses using a multi-dipole model."""
+        """Compute (or re-compute) dipole timecourses.
+
+        Called whenever a dipole is (de)-activated or the "Fix pos" box is toggled.
+        """
         active_dips = [d for d in self._dipoles if d["active"]]
+        print([d["dip"] for d in active_dips])
         if len(active_dips) == 0:
             return
+
+        # Restrict the dipoles to only the time at which they were fitted.
+        for d in active_dips:
+            d["dip"] = d["dip"].crop(d["fit_time"], d["fit_time"])
 
         fwd, _ = make_forward_dipole(
             [d["dip"] for d in active_dips],
@@ -524,7 +545,7 @@ class DipoleFitUI:
         )
         fwd = convert_forward_solution(fwd, surf_ori=False)
 
-        if self._multi_dipole_method == "MNE":
+        if self._multi_dipole_method == "Multi dipole (MNE)":
             inv = make_inverse_operator(
                 self._evoked.info,
                 fwd,
@@ -538,23 +559,24 @@ class DipoleFitUI:
             )
 
             timecourses = stc.magnitude().data
+            orientations = stc.data / timecourses[:, np.newaxis, :]
+            print(orientations.shape)
             fixed_timecourses = stc.project(
                 np.array([dip["dip"].ori[0] for dip in active_dips])
             )[0].data
-            orientations = stc.data / timecourses[:, np.newaxis, :]
 
             for i, dip in enumerate(active_dips):
                 if dip["fix_ori"]:
                     timecourses[i] = fixed_timecourses[i]
-                    orientations[i] = np.array([dip["dip"].ori[0]] * len(stc.times)).T
-        elif self._multi_dipole_method == "LCMV":
-            lcmv = make_lcmv(
-                self._evoked.info, fwd, self._cov_data, reg=0.05, noise_cov=self._cov
-            )
-            stc = apply_lcmv(self._evoked, lcmv)
-            timecourses = stc.data
-            orientations = [dip["dip"].ori[0] for dip in active_dips]
-        elif self._multi_dipole_method == "Single-dipole":
+                    orientations[i] = dip["dip"].ori.repeat(len(stc.times), axis=0).T
+        # elif self._multi_dipole_method == "LCMV":
+        #     lcmv = make_lcmv(
+        #         self._evoked.info, fwd, self._cov_data, reg=0.05, noise_cov=self._cov
+        #     )
+        #     stc = apply_lcmv(self._evoked, lcmv)
+        #     timecourses = stc.data
+        #     orientations = [dip["dip"].ori[0] for dip in active_dips]
+        elif self._multi_dipole_method == "Single dipole":
             timecourses = list()
             orientations = list()
             for dip in active_dips:
@@ -562,29 +584,43 @@ class DipoleFitUI:
                     self._evoked,
                     self._cov,
                     self._bem,
-                    pos=dip["dip"].pos[0],
-                    ori=dip["dip"].ori[0],
+                    pos=dip["dip"].pos[0],  # position is always fixed
+                    ori=dip["dip"].ori[0] if dip["fix_ori"] else None,
                     trans=self._trans,
                     verbose=False,
                 )[0].data[0]
                 timecourses.append(dip_timecourse)
-                orientations.append(
-                    np.array([dip["dip"].ori[0]] * len(dip_timecourse)).T
-                )
+
+                if dip["fix_ori"]:
+                    orientations.append(
+                        dip["dip"].ori.repeat(len(dip_timecourse), axis=0)
+                    )
+                else:
+                    orientations.append(dip["dip"].ori)
+
+        for o in orientations:
+            print(o.shape)
+
+        # Store the timecourse and orientation in the Dipole object
+        for d, timecourse, orientation in zip(active_dips, timecourses, orientations):
+            dip = d["dip"]
+            dip.amplitude = timecourse
+            dip.ori = orientation.T
+            dip._set_times(self._evoked.times)
+            if len(dip.pos) != len(dip.times):
+                dip.pos = dip.pos[[0]].repeat(len(dip.times), axis=0)
 
         # Update matplotlib canvas at the bottom of the window
         canvas = self._setup_mplcanvas()
         ymin, ymax = 0, 0
-        for d, ori, timecourse in zip(active_dips, orientations, timecourses):
-            d["ori"] = ori
-            d["timecourse"] = timecourse
+        for d in active_dips:
             if "line_artist" in d:
                 d["line_artist"].set_ydata(timecourse)
             else:
                 d["line_artist"] = canvas.plot(
                     self._evoked.times,
-                    timecourse,
-                    label=d["name"],
+                    d["dip"].amplitude,
+                    label=d["dip"].name,
                     color=d["color"],
                 )
             ymin = min(ymin, 1.1 * timecourse.min())
@@ -598,15 +634,15 @@ class DipoleFitUI:
         active_dips = [d for d in self._dipoles if d["active"]]
         if len(active_dips) == 0:
             return
-        orientations = [d["ori"] for d in active_dips]
-        timecourses = [d["timecourse"] for d in active_dips]
+        orientations = [d["dip"].ori for d in active_dips]
+        timecourses = [d["dip"].amplitude for d in active_dips]
         arrow_scaling = 0.05 / np.max(np.abs(timecourses))
         for d, ori, timecourse in zip(active_dips, orientations, timecourses):
             helmet_coords = d["helmet_coords"]
             if helmet_coords is None:
                 continue
             dip_ori = [
-                np.interp(self._current_time, self._evoked.times, o) for o in ori
+                np.interp(self._current_time, self._evoked.times, o) for o in ori.T
             ]
             dip_moment = np.interp(self._current_time, self._evoked.times, timecourse)
             arrow_size = dip_moment * arrow_scaling
@@ -633,14 +669,9 @@ class DipoleFitUI:
         self._multi_dipole_method = method
         self._fit_timecourses()
 
-    def _on_dipole_toggle(self, active, dip_name):
+    def _on_dipole_toggle(self, active, dip_num):
         """Toggle a dipole on or off."""
-        for d in self._dipoles:
-            if d["name"] == dip_name:
-                dipole = d
-                break
-        else:
-            raise ValueError(f"Unknown dipole {dip_name}")
+        dipole = self._dipoles[dip_num]
         active = bool(active)
         dipole["active"] = active
         dipole["line_artist"].set_visible(active)
@@ -649,26 +680,28 @@ class DipoleFitUI:
         self._renderer._update()
         self._renderer._mplcanvas.update_plot()
 
-    def _on_dipole_toggle_fix_position(self, fix, dip_name):
-        """Fix dipole position when fitting timecourse."""
-        for d in self._dipoles:
-            if d["name"] == dip_name:
-                dipole = d
-                break
-        else:
-            raise ValueError(f"Unknown dipole {dip_name}")
-        dipole["fix_position"] = bool(fix)
-        self._fit_timecourses()
+    def _on_dipole_set_name(self, name, dip_num):
+        """Set the name of a dipole."""
+        self._dipoles[dip_num]["dip"].name = name
+        self._dipoles[dip_num]["line_artist"].set_label(name)
+        self._renderer._mplcanvas.update_plot()
 
-    def _on_dipole_toggle_fix_orientation(self, fix, dip_name):
+    # def _on_dipole_toggle_fix_position(self, fix, dip_name):
+    #     """Fix dipole position when fitting timecourse."""
+    #     for d in self._dipoles:
+    #         if d["name"] == dip_name:
+    #             dipole = d
+    #             break
+    #     else:
+    #         raise ValueError(f"Unknown dipole {dip_name}")
+    #     dipole["fix_position"] = bool(fix)
+    #     self._fit_timecourses()
+
+    def _on_dipole_toggle_fix_orientation(self, fix, dip_num):
         """Fix dipole orientation when fitting timecourse."""
-        for d in self._dipoles:
-            if d["name"] == dip_name:
-                dipole = d
-                break
-        else:
-            raise ValueError(f"Unknown dipole {dip_name}")
-        dipole["fix_ori"] = bool(fix)
+        self._dipoles[dip_num]["fix_ori"] = bool(fix)
+        active_dips = [d for d in self._dipoles if d["active"]]
+        print([d["dip"] for d in active_dips])
         self._fit_timecourses()
 
     def _setup_mplcanvas(self):
