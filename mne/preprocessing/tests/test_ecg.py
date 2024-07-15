@@ -3,6 +3,7 @@
 from pathlib import Path
 
 import numpy as np
+import pytest
 
 from mne import pick_types
 from mne.io import read_raw_fif
@@ -114,3 +115,7 @@ def test_find_ecg():
     assert ecg_events.size == 0
     assert average_pulse == 0
     assert np.allclose(ecg, np.zeros_like(ecg))
+
+    # Needs MEG
+    with pytest.raises(ValueError, match="Generating an artificial"):
+        find_ecg_events(read_raw_fif(raw_fname, preload=False).pick("eeg"))

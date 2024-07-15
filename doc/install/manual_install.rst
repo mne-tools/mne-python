@@ -94,8 +94,10 @@ the development version, etc). The :ref:`contributing` has additional
 installation instructions for (future) contributors to MNE-Python (e.g, extra
 dependencies for running our tests and building our documentation).
 
-Python IDEs
-===========
+.. _ide_setup:
+
+Python IDE integration
+======================
 
 Most users find it convenient to write and run their code in an `Integrated
 Development Environment`_ (IDE). Some popular choices for scientific
@@ -109,43 +111,33 @@ Python development are:
   <https://marketplace.visualstudio.com/items?itemName=ms-python.python>`__ is
   enough to get most Python users up and running. VS Code is free and
   open-source.
+
 - `Spyder`_ is a free and open-source IDE developed by and for scientists who
-  use Python. It is included by default in the ``base`` environment when you
-  install Anaconda, and can be started from a terminal with the command
-  ``spyder`` (or on Windows or macOS, launched from the Anaconda Navigator GUI).
-  It can also be installed with `dedicated installers <https://www.spyder-ide.org/#section-download>`_.
+  use Python. It can be installed via a
+  `standalone Spyder installer <https://docs.spyder-ide.org/current/installation.html#downloading-and-installing>`__.
   To avoid dependency conflicts with Spyder, you should install ``mne`` in a
-  separate environment, as explained in previous sections. Then, instruct
-  Spyder to use the ``mne`` environment as its default interpreter by opening
-  Spyder and navigating to
+  separate environment, as explained in previous sections or using our dedicated
+  installer. Then, instruct
+  Spyder to use the MNE-Python interpreter by opening
+  Spyder and `navigating to <https://docs.spyder-ide.org/current/faq.html#using-existing-environment>`__
   :samp:`Tools > Preferences > Python Interpreter > Use the following interpreter`.
-  There, paste the output of the following terminal commands:
-
-  .. code-block:: console
-
-      $ conda activate mne
-      $ python -c "import sys; print(sys.executable)"
-
-  It should be something like ``C:\Users\user\anaconda3\envs\mne\python.exe``
-  (Windows) or ``/Users/user/opt/anaconda3/envs/mne/bin/python`` (macOS).
-
-  If the Spyder console can not start because ``spyder-kernels`` is missing,
-  install the required version in the ``mne`` environment with the following
-  commands in the terminal, where you replace ``...`` with the exact version of
-  ``spyder-kernels`` that Spyder tells you it requires.
-
-  .. code-block:: console
-
-      $ conda activate mne
-      $ conda install --override-channels --channel=conda-forge spyder-kernels=...
-
-  Refer to the `Spyder documentation <https://docs.spyder-ide.org/current/troubleshooting/common-illnesses.html#spyder-kernels-not-installed-incompatible>`_
-  for more information about ``spyder-kernels`` and the version matching.
-
-  If the Spyder graphic backend is not set to ``inline`` but to e.g. ``Qt5``,
-  ``PyQt5`` (``pip``) or ``pyqt`` (``conda``) must be installed in the ``mne``
-  environment.
 
 - `PyCharm`_ is an IDE specifically for Python development that provides an
   all-in-one solution (no extension packages needed). PyCharm comes in a
   free and open-source Community edition as well as a paid Professional edition.
+
+For these IDEs, you'll need to provide the path to the Python interpreter you want it
+to use. To find that path, open the Python interpreter you want to use (e.g., the one
+from the MNE-Python installer, or a ``conda`` environment that you have activated)
+and run::
+
+   >>> import sys
+   >>> print(sys.executable)
+
+This should print something like
+``C:\Program Files\MNE-Python\1.7.0_0\bin\python.exe`` (Windows) or
+``/Users/user/Applications/MNE-Python/1.7.0_0/.mne-python/bin/python`` (macOS).
+
+For Spyder, if the console cannot start because ``spyder-kernels`` is missing,
+install the required version in the conda environment. For example, with the
+environment you want to use activated, run ``conda install spyder-kernels``.

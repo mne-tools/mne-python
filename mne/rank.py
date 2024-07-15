@@ -340,7 +340,7 @@ def compute_rank(
 
     This function will normalize the rows of the data (typically
     channels or vertices) such that non-zero singular values
-    should be close to one.
+    should be close to one. It operates on :term:`data channels` only.
 
     Parameters
     ----------
