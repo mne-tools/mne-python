@@ -578,7 +578,7 @@ class RawMff(BaseRaw):
                 annot["description"].extend([code] * len(samples))
 
         if len(annot["onset"]):
-            self.set_annotations(Annotations(**annot, orig_time=None))
+            self.set_annotations(Annotations(**annot))
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of data."""

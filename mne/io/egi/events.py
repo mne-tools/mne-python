@@ -180,7 +180,9 @@ def _triage_include_exclude(include, exclude, egi_events, egi_info):
             what = f"{name}[{ii}]"
             _validate_type(item, str, what)
             if item not in event_codes:
-                raise ValueError(f"Could not find event named {what}={repr(item)}")
+                raise ValueError(
+                    f"Could not find event channel named {what}={repr(item)}"
+                )
     if include is None:
         if exclude is None:
             default_exclude = ["sync", "TREV"]

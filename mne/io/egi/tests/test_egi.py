@@ -236,10 +236,10 @@ def test_io_egi():
     data = data[1:]
     data *= 1e-6  # µV
 
-    raw = read_raw_egi(egi_fname)
+    raw = read_raw_egi(egi_fname, events_as_annotations=False)
 
     # The reader should accept a Path, too.
-    raw = read_raw_egi(Path(egi_fname))
+    raw_annot = read_raw_egi(Path(egi_fname), events_as_annotations=True)
 
     assert "RawEGI" in repr(raw)
     data_read, t_read = raw[:256]
@@ -276,11 +276,18 @@ def test_io_egi():
     new_trigger = _combine_triggers(triggers, events_ids)
     assert_array_equal(np.unique(new_trigger), np.unique([0, 12, 24]))
 
-    pytest.raises(ValueError, read_raw_egi, egi_fname, include=["Foo"], preload=False)
-    pytest.raises(ValueError, read_raw_egi, egi_fname, exclude=["Bar"], preload=False)
+    with pytest.raises(ValueError, match="Could not find.*include.*"):
+        read_raw_egi(egi_fname, include=["Foo"])
+    with pytest.raises(ValueError, match="Could not find.*exclude.*"):
+        read_raw_egi(egi_fname, exclude=["Bar"])
     for ii, k in enumerate(include, 1):
         assert k in raw.event_id
         assert raw.event_id[k] == ii
+    assert raw_annot.event_id is None
+    events, event_id = events_from_annotations(raw_annot, event_id=raw.event_id)
+    assert event_id == raw.event_id
+    events_2 = find_events(raw)
+    assert_array_equal(events, events_2)
 
 
 @requires_testing_data

@@ -13,6 +13,7 @@ import numpy as np
 from ..._fiff.constants import FIFF
 from ..._fiff.meas_info import _empty_info
 from ..._fiff.utils import _create_chs, _read_segments_file
+from ...annotations import Annotations
 from ...utils import _check_fname, _validate_type, logger, verbose, warn
 from ..base import BaseRaw
 from .egimff import _read_raw_egi_mff
@@ -156,15 +157,16 @@ def read_raw_egi(
 
     Notes
     -----
-    The trigger channel names are based on the arbitrary user dependent event
-    codes used. However, when ``events_as_annotations=False``,
-    this function will attempt to generate a **synthetic trigger channel**
-    named ``STI 014``. The event_id assignment equals ``np.arange(n_events) + 1``.
-    The resulting ``event_id`` mapping is stored as attribute to the resulting raw
-    object but will be ignored when saving to disk. The trigger channel is
-    artificially constructed based on timestamps received by the Netstation.
-    As a consequence, triggers have only short durations. This step will also fail
-    if events are not mutually exclusive.
+    When ``events_from_annotations=True``, event codes on stimulus channels like
+    ``DIN1`` are stored as annotations with the ``description`` set to the stimulus
+    channel name.
+
+    When ``events_from_annotations=False`` and events are present on the included
+    stimulus channels, a new stim channel ``STI014`` will be synthesized from the
+    events. It will contain 1-sample pulses where the Netstation file had event
+    timestamps. A ``raw.event_id`` dictionary is added to the raw object that will have
+    arbitrary sequential integer IDs for the events. This will fail if any timestamps
+    are duplicated. The ``event_id`` will also not survive a save/load roundtrip.
 
     For these reasons, it is recommended to use ``events_as_annotations=True``.
     """
@@ -305,7 +307,16 @@ class RawEGI(BaseRaw):
             verbose=verbose,
         )
         if events_as_annotations:
-            raise NotImplementedError
+            annot = dict(onset=list(), duration=list(), description=list())
+            for code, row in zip(egi_info["event_codes"], egi_events):
+                if code not in include:
+                    continue
+                onset = np.where(row)[0] / self.info["sfreq"]
+                annot["onset"].extend(onset)
+                annot["duration"].extend([0.0] * len(onset))
+                annot["description"].extend([code] * len(onset))
+            if annot:
+                self.set_annotations(Annotations(**annot))
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a segment of data from a file."""
