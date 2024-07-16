@@ -6,6 +6,7 @@
 import itertools
 import os
 from copy import deepcopy
+from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -13,6 +14,7 @@ import pytest
 from matplotlib import backend_bases
 from numpy.testing import assert_allclose, assert_array_equal
 
+import mne
 from mne import Annotations, create_info, pick_types
 from mne._fiff.pick import _DATA_CH_TYPES_ORDER_DEFAULT, _PICK_TYPES_DATA_DICT
 from mne.annotations import _sync_onset
@@ -28,6 +30,9 @@ from mne.utils import (
 )
 from mne.viz import plot_raw, plot_sensors
 from mne.viz.utils import _fake_click, _fake_keypress
+
+base_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
+raw_fname = base_dir / "test_raw.fif"
 
 
 def _get_button_xy(buttons, idx):
@@ -1214,3 +1219,31 @@ def test_plotting_memory_garbage_collection(raw, pg_backend):
 
     assert len(mne_qt_browser._browser_instances) == 0
     _assert_no_instances(MNEQtBrowser, "after closing")
+
+
+def test_plotting_scalebars(browser_backend, qtbot):
+    """Test that raw scalebars are not overplotted."""
+    ismpl = browser_backend.name == "matplotlib"
+    raw = mne.io.read_raw_fif(raw_fname).crop(0, 1).load_data()
+    fig = raw.plot(butterfly=True)
+    qtbot.wait_exposed(fig)
+    if ismpl:
+        ch_types = [text.get_text() for text in fig.mne.ax_main.get_yticklabels()]
+        assert ch_types == ["mag", "grad", "eeg", "eog", "stim"]
+        delta = 0.25
+        offset = 0
+    else:
+        ch_types = list(fig.mne.channel_axis.ch_texts)  # keys
+        # the grad/mag difference here is intentional in _pg_figure.py
+        assert ch_types == ["grad", "mag", "eeg", "eog", "stim"]
+        delta = 0.5  # TODO: Probably should also be 0.25?
+        offset = 1
+    assert ch_types.pop(-1) == "stim"
+    for ci, ch_type in enumerate(ch_types, offset):
+        err_msg = f"{ch_type=} should be centered around y={ci}"
+        this_bar = fig.mne.scalebars[ch_type]
+        if ismpl:
+            yvals = this_bar.get_data()[1]
+        else:
+            yvals = this_bar.get_ydata()
+        assert_allclose(yvals, [ci - delta, ci + delta], err_msg=err_msg)
