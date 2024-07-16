@@ -1074,7 +1074,11 @@ def test_egi_dig_montage(tmp_path):
     )
 
     # Test accuracy and embedding within raw object
-    raw_egi = read_raw_egi(egi_raw_fname, channel_naming="EEG %03d")
+    raw_egi = read_raw_egi(
+        egi_raw_fname,
+        channel_naming="EEG %03d",
+        events_as_annotations=True,
+    )
 
     raw_egi.set_montage(dig_montage)
     test_raw_egi = read_raw_fif(egi_fif_fname)

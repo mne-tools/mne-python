@@ -454,6 +454,8 @@
 
 .. _Pierre-Antoine Bannier: https://github.com/PABannier
 
+.. _Ping-Keng Jao: https://github.com/nafraw
+
 .. _Proloy Das: https://github.com/proloyd
 
 .. _Qian Chu: https://github.com/qian-chu
