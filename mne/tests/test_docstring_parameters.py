@@ -70,7 +70,6 @@ docstring_ignores = {
     "mne.fixes",
     "mne.io.meas_info.Info",
 }
-char_limit = 800  # XX eventually we should probably get this lower
 tab_ignores = [
     "mne.channels.tests.test_montage",
     "mne.io.curry.tests.test_curry",
@@ -158,7 +157,7 @@ def check_parameters_match(func, *, cls=None, where):
             verbose_default = sig.parameters["verbose"].default
             if verbose_default is not None:
                 incorrect += [
-                    f"{name} : verbose default is not None, " f"got: {verbose_default}"
+                    f"{name} : verbose default is not None, got: {verbose_default}"
                 ]
     return incorrect
 
@@ -219,8 +218,8 @@ def test_tabs():
                 continue
             source = inspect.getsource(mod)
             assert "\t" not in source, (
-                '"%s" has tabs, please remove them '
-                "or add it to the ignore list" % modname
+                f'"{modname}" has tabs, please remove them '
+                "or add it to the ignore list"
             )
 
 
@@ -257,7 +256,6 @@ find_tag
 get_score_funcs
 get_version
 invert_transform
-is_power2
 is_fixed_orient
 make_eeg_average_ref_proj
 make_projector
@@ -286,7 +284,7 @@ def test_documented():
     doc_dir = (Path(__file__).parents[2] / "doc" / "api").absolute()
     doc_file = doc_dir / "python_reference.rst"
     if not doc_file.is_file():
-        pytest.skip("Documentation file not found: %s" % doc_file)
+        pytest.skip(f"Documentation file not found: {doc_file}")
     api_files = (
         "covariance",
         "creating_from_arrays",
@@ -357,7 +355,7 @@ def test_docdict_order():
     # read the file as text, and get entries via regex
     docs_path = Path(__file__).parents[1] / "utils" / "docs.py"
     assert docs_path.is_file(), docs_path
-    with open(docs_path, "r", encoding="UTF-8") as fid:
+    with open(docs_path, encoding="UTF-8") as fid:
         docs = fid.read()
     entries = re.findall(r'docdict\[(?:\n    )?["\'](.+)["\']\n?\] = ', docs)
     # test length & uniqueness

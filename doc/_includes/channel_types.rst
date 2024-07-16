@@ -10,6 +10,11 @@ Supported channel types
    from the include:
    channel-types-begin-content
 
+.. NOTE: In the future, this table should be automatically synchronized with
+   the sensor types listed in the glossary. Perhaps a table showing data type
+   channels as well as non-data type channels should be added to the glossary
+   and displayed here too.
+
 Channel types are represented in MNE-Python with shortened or abbreviated
 names. This page lists all supported channel types, their abbreviated names,
 and the measurement unit used to represent data of that type. Where channel
@@ -23,50 +28,77 @@ parentheses. More information about measurement units is given in the
 .. cssclass:: table-bordered
 .. rst-class:: midvalign
 
-=============  ========================================= =================
-Channel type    Description                              Measurement unit
-=============  ========================================= =================
-eeg            scalp electroencephalography (EEG)        Volts
+================= ========================================= =================
+Channel type      Description                               Measurement unit
+================= ========================================= =================
+eeg               scalp electroencephalography (EEG)        Volts
 
-meg (mag)      Magnetoencephalography (magnetometers)    Teslas
+meg (mag)         Magnetoencephalography (magnetometers)    Teslas
 
-meg (grad)     Magnetoencephalography (gradiometers)     Teslas/meter
+meg (grad)        Magnetoencephalography (gradiometers)     Teslas/meter
 
-ecg            Electrocardiography (ECG)                 Volts
+ecg               Electrocardiography (ECG)                 Volts
 
-seeg           Stereotactic EEG channels                 Volts
+seeg              Stereotactic EEG channels                 Volts
 
-dbs            Deep brain stimulation (DBS)              Volts
+dbs               Deep brain stimulation (DBS)              Volts
 
-ecog           Electrocorticography (ECoG)               Volts
+ecog              Electrocorticography (ECoG)               Volts
 
-fnirs (hbo)    Functional near-infrared spectroscopy     Moles/liter
-               (oxyhemoglobin)
+fnirs (hbo)       Functional near-infrared spectroscopy     Moles/liter
+                  (oxyhemoglobin)
 
-fnirs (hbr)    Functional near-infrared spectroscopy     Moles/liter
-               (deoxyhemoglobin)
+fnirs (hbr)       Functional near-infrared spectroscopy     Moles/liter
+                  (deoxyhemoglobin)
 
-emg            Electromyography (EMG)                    Volts
+emg               Electromyography (EMG)                    Volts
 
-bio            Miscellaneous biological channels (e.g.,  Arbitrary units
-               skin conductance)
+eog               Electrooculography  (EOG)                 Volts
 
-stim           stimulus (a.k.a. trigger) channels        Arbitrary units
+bio               Miscellaneous biological channels (e.g.,  Arbitrary units
+                  skin conductance)
 
-resp           respiration monitoring channel            Volts
+stim              stimulus (a.k.a. trigger) channels        Arbitrary units
 
-chpi           continuous head position indicator        Teslas
-               (HPI) coil channels
+resp              respiration monitoring channel            Volts
 
-exci           Flux excitation channel
+chpi              continuous head position indicator        Teslas
+                  (HPI) coil channels
 
-ias            Internal Active Shielding data
-               (Triux systems only?)
+exci              Flux excitation channel
 
-syst           System status channel information
-               (Triux systems only)
+ias               Internal Active Shielding data
+                  (Triux systems only?)
 
-temperature    Temperature                               Degrees Celsius
+syst              System status channel information
+                  (Triux systems only)
 
-gsr            Galvanic skin response                    Siemens
-=============  ========================================= =================
+temperature       Temperature                               Degrees Celsius
+
+gsr               Galvanic skin response                    Siemens
+
+ref_meg           Reference Magnetometers                   Teslas
+
+dipole            Dipole amplitude                          Amperes
+
+gof               Goodness of fit (GOF)                     Goodness-of-fit
+
+cw-nirs (amp)     Continuous-wave functional near-infrared  Volts
+                  spectroscopy (CW-fNIRS) (CW amplitude)
+
+fd-nirs (ac amp)  Frequency-domain near-infrared            Volts
+                  spectroscopy (FD-NIRS AC amplitude)
+
+fd-nirs (phase)   Frequency-domain near-infrared            Radians
+                  spectroscopy (FD-NIRS phase)
+
+fnirs (od)        Functional near-infrared spectroscopy     Volts
+                  (optical density)
+
+csd               Current source density                    Volts per square
+                                                            meter
+
+eyegaze           Eye-tracking (gaze position)              Arbitrary units
+
+pupil             Eye-tracking (pupil size)                 Arbitrary units
+================= ========================================= =================

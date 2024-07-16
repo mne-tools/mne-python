@@ -18,6 +18,8 @@ from contextlib import nullcontext
 from copy import deepcopy
 from dataclasses import dataclass, field
 from datetime import timedelta
+from inspect import getfullargspec
+from pathlib import Path
 
 import numpy as np
 
@@ -81,6 +83,7 @@ from ..filter import (
 from ..html_templates import _get_html_template
 from ..parallel import parallel_func
 from ..time_frequency.spectrum import Spectrum, SpectrumMixin, _validate_method
+from ..time_frequency.tfr import RawTFR
 from ..utils import (
     SizeMixin,
     TimeMixin,
@@ -209,7 +212,7 @@ class BaseRaw(
             # some functions (e.g., filtering) only work w/64-bit data
             if preload.dtype not in (np.float64, np.complex128):
                 raise RuntimeError(
-                    "datatype must be float64 or complex128, " "not %s" % preload.dtype
+                    f"datatype must be float64 or complex128, not {preload.dtype}"
                 )
             if preload.dtype != dtype:
                 raise ValueError("preload and dtype must match")
@@ -221,7 +224,7 @@ class BaseRaw(
         else:
             if last_samps is None:
                 raise ValueError(
-                    "last_samps must be given unless preload is " "an ndarray"
+                    "last_samps must be given unless preload is an ndarray"
                 )
             if not preload:
                 self.preload = False
@@ -297,7 +300,6 @@ class BaseRaw(
             # unit
             orig_units = _check_orig_units(orig_units)
         self._orig_units = orig_units or dict()  # always a dict
-        self._projectors = list()
         self._projector = None
         self._dtype_ = dtype
         self.set_annotations(None)
@@ -413,8 +415,8 @@ class BaseRaw(
         if isinstance(data_buffer, np.ndarray):
             if data_buffer.shape != data_shape:
                 raise ValueError(
-                    "data_buffer has incorrect shape: %s != %s"
-                    % (data_buffer.shape, data_shape)
+                    f"data_buffer has incorrect shape: "
+                    f"{data_buffer.shape} != {data_shape}"
                 )
             data = data_buffer
         else:
@@ -658,8 +660,7 @@ class BaseRaw(
             delta = 0
         elif self.info["meas_date"] is None:
             raise ValueError(
-                'origin must be None when info["meas_date"] '
-                "is None, got %s" % (origin,)
+                f'origin must be None when info["meas_date"] is None, got {origin}'
             )
         else:
             first_samp_in_abs_time = self.info["meas_date"] + timedelta(
@@ -668,7 +669,7 @@ class BaseRaw(
             delta = (origin - first_samp_in_abs_time).total_seconds()
         times = np.atleast_1d(times) + delta
 
-        return super(BaseRaw, self).time_as_index(times, use_rounding)
+        return super().time_as_index(times, use_rounding)
 
     @property
     def _raw_lengths(self):
@@ -780,7 +781,7 @@ class BaseRaw(
 
         if len(item) != 2:  # should be channels and time instants
             raise RuntimeError(
-                "Unable to access raw data (need both channels " "and time)"
+                "Unable to access raw data (need both channels and time)"
             )
 
         sel = _picks_to_idx(self.info, item[0])
@@ -1088,19 +1089,50 @@ class BaseRaw(
         if dtype is not None and dtype != self._data.dtype:
             self._data = self._data.astype(dtype)
 
+        args = getfullargspec(fun).args + getfullargspec(fun).kwonlyargs
+        if channel_wise is False:
+            if ("ch_idx" in args) or ("ch_name" in args):
+                raise ValueError(
+                    "apply_function cannot access ch_idx or ch_name "
+                    "when channel_wise=False"
+                )
+        if "ch_idx" in args:
+            logger.info("apply_function requested to access ch_idx")
+        if "ch_name" in args:
+            logger.info("apply_function requested to access ch_name")
+
         if channel_wise:
             parallel, p_fun, n_jobs = parallel_func(_check_fun, n_jobs)
             if n_jobs == 1:
                 # modify data inplace to save memory
-                for idx in picks:
-                    self._data[idx, :] = _check_fun(fun, data_in[idx, :], **kwargs)
+                for ch_idx in picks:
+                    if "ch_idx" in args:
+                        kwargs.update(ch_idx=ch_idx)
+                    if "ch_name" in args:
+                        kwargs.update(ch_name=self.info["ch_names"][ch_idx])
+                    self._data[ch_idx, :] = _check_fun(
+                        fun, data_in[ch_idx, :], **kwargs
+                    )
             else:
                 # use parallel function
                 data_picks_new = parallel(
-                    p_fun(fun, data_in[p], **kwargs) for p in picks
+                    p_fun(
+                        fun,
+                        data_in[ch_idx],
+                        **kwargs,
+                        **{
+                            k: v
+                            for k, v in [
+                                ("ch_name", self.info["ch_names"][ch_idx]),
+                                ("ch_idx", ch_idx),
+                            ]
+                            if k in args
+                        },
+                    )
+                    for ch_idx in picks
                 )
-                for pp, p in enumerate(picks):
-                    self._data[p, :] = data_picks_new[pp]
+                for run_idx, ch_idx in enumerate(picks):
+                    self._data[ch_idx, :] = data_picks_new[run_idx]
         else:
             self._data[picks, :] = _check_fun(fun, data_in[picks, :], **kwargs)
 
@@ -1485,13 +1517,13 @@ class BaseRaw(
             tmax = max_time
 
         if tmin > tmax:
-            raise ValueError("tmin (%s) must be less than tmax (%s)" % (tmin, tmax))
+            raise ValueError(f"tmin ({tmin}) must be less than tmax ({tmax})")
         if tmin < 0.0:
-            raise ValueError("tmin (%s) must be >= 0" % (tmin,))
+            raise ValueError(f"tmin ({tmin}) must be >= 0")
         elif tmax - int(not include_tmax) / self.info["sfreq"] > max_time:
             raise ValueError(
-                "tmax (%s) must be less than or equal to the max "
-                "time (%0.4f s)" % (tmax, max_time)
+                f"tmax ({tmax}) must be less than or equal to the max "
+                f"time ({max_time:0.4f} s)"
             )
 
         smin, smax = np.where(
@@ -1663,7 +1695,13 @@ class BaseRaw(
         endings_err = (".fif", ".fif.gz")
 
         # convert to str, check for overwrite a few lines later
-        fname = _check_fname(fname, overwrite=True, verbose="error")
+        fname = _check_fname(
+            fname,
+            overwrite=True,
+            verbose="error",
+            check_bids_split=True,
+            name="fname",
+        )
         check_fname(fname, "raw", endings, endings_err=endings_err)
 
         split_size = _get_split_size(split_size)
@@ -1683,7 +1721,7 @@ class BaseRaw(
         data_test = self[0, 0][0]
         if fmt == "short" and np.iscomplexobj(data_test):
             raise ValueError(
-                'Complex data must be saved as "single" or ' '"double", not "short"'
+                'Complex data must be saved as "single" or "double", not "short"'
             )
 
         # check for file existence and expand `~` if present
@@ -1771,9 +1809,7 @@ class BaseRaw(
             stop = self.time_as_index(float(tmax), use_rounding=True)[0] + 1
         stop = min(stop, self.last_samp - self.first_samp + 1)
         if stop <= start or stop <= 0:
-            raise ValueError(
-                "tmin (%s) and tmax (%s) yielded no samples" % (tmin, tmax)
-            )
+            raise ValueError(f"tmin ({tmin}) and tmax ({tmax}) yielded no samples")
         return start, stop
 
     @copy_function_doc_to_method_doc(plot_raw)
@@ -1811,6 +1847,7 @@ class BaseRaw(
         precompute=None,
         use_opengl=None,
         *,
+        picks=None,
         theme=None,
         overview_mode=None,
         splash=True,
@@ -1849,6 +1886,7 @@ class BaseRaw(
             time_format=time_format,
             precompute=precompute,
             use_opengl=use_opengl,
+            picks=picks,
             theme=theme,
             overview_mode=overview_mode,
             splash=splash,
@@ -2057,21 +2095,18 @@ class BaseRaw(
 
     def __repr__(self):  # noqa: D105
         name = self.filenames[0]
-        name = "" if name is None else op.basename(name) + ", "
+        name = "" if name is None else Path(name).name + ", "
         size_str = str(sizeof_fmt(self._size))  # str in case it fails -> None
-        size_str += ", data%s loaded" % ("" if self.preload else " not")
-        s = "%s%s x %s (%0.1f s), ~%s" % (
-            name,
-            len(self.ch_names),
-            self.n_times,
-            self.times[-1],
-            size_str,
+        size_str += f", data{'' if self.preload else ' not'} loaded"
+        s = (
+            f"{name}{len(self.ch_names)} x {self.n_times} "
+            f"({self.times[-1]:0.1f} s), ~{size_str}"
         )
-        return "<%s | %s>" % (self.__class__.__name__, s)
+        return f"<{self.__class__.__name__} | {s}>"
 
     @repr_html
-    def _repr_html_(self, caption=None):
-        basenames = [os.path.basename(f) for f in self._filenames if f is not None]
+    def _repr_html_(self):
+        basenames = [Path(f).name for f in self._filenames if f is not None]
 
         # https://stackoverflow.com/a/10981895
         duration = timedelta(seconds=self.times[-1])
@@ -2081,13 +2116,12 @@ class BaseRaw(
         seconds = np.ceil(seconds)  # always take full seconds
 
         duration = f"{int(hours):02d}:{int(minutes):02d}:{int(seconds):02d}"
+
         raw_template = _get_html_template("repr", "raw.html.jinja")
         return raw_template.render(
-            info_repr=self.info._repr_html_(
-                caption=caption,
-                filenames=basenames,
-                duration=duration,
-            )
+            inst=self,
+            filenames=basenames,
+            duration=duration,
         )
 
     def add_events(self, events, stim_channel=None, replace=False):
@@ -2120,13 +2154,13 @@ class BaseRaw(
         stim_channel = _get_stim_channel(stim_channel, self.info)
         pick = pick_channels(self.ch_names, stim_channel, ordered=False)
         if len(pick) == 0:
-            raise ValueError("Channel %s not found" % stim_channel)
+            raise ValueError(f"Channel {stim_channel} not found")
         pick = pick[0]
         idx = events[:, 0].astype(int)
         if np.any(idx < self.first_samp) or np.any(idx > self.last_samp):
             raise ValueError(
-                "event sample numbers must be between %s and %s"
-                % (self.first_samp, self.last_samp)
+                f"event sample numbers must be between {self.first_samp} "
+                f"and {self.last_samp}"
             )
         if not all(idx == events[:, 0]):
             raise ValueError("event sample numbers must be integers")
@@ -2164,7 +2198,9 @@ class BaseRaw(
         Parameters
         ----------
         %(method_psd)s
-            Default is ``'welch'``.
+            Note that ``"multitaper"`` cannot be used if ``reject_by_annotation=True``
+            and there are ``"bad_*"`` annotations in the :class:`~mne.io.Raw` data;
+            in such cases use ``"welch"``. Default is ``'welch'``.
         %(fmin_fmax_psd)s
         %(tmin_tmax_psd)s
         %(picks_good_data_noref)s
@@ -2204,6 +2240,69 @@ class BaseRaw(
             proj=proj,
             remove_dc=remove_dc,
             reject_by_annotation=reject_by_annotation,
+            n_jobs=n_jobs,
+            verbose=verbose,
+            **method_kw,
+        )
+
+    @verbose
+    def compute_tfr(
+        self,
+        method,
+        freqs,
+        *,
+        tmin=None,
+        tmax=None,
+        picks=None,
+        proj=False,
+        output="power",
+        reject_by_annotation=True,
+        decim=1,
+        n_jobs=None,
+        verbose=None,
+        **method_kw,
+    ):
+        """Compute a time-frequency representation of sensor data.
+
+        Parameters
+        ----------
+        %(method_tfr)s
+        %(freqs_tfr)s
+        %(tmin_tmax_psd)s
+        %(picks_good_data_noref)s
+        %(proj_psd)s
+        %(output_compute_tfr)s
+        %(reject_by_annotation_tfr)s
+        %(decim_tfr)s
+        %(n_jobs)s
+        %(verbose)s
+        %(method_kw_tfr)s
+
+        Returns
+        -------
+        tfr : instance of RawTFR
+            The time-frequency-resolved power estimates of the data.
+
+        Notes
+        -----
+        .. versionadded:: 1.7
+
+        References
+        ----------
+        .. footbibliography::
+        """
+        _check_option("output", output, ("power", "phase", "complex"))
+        method_kw["output"] = output
+        return RawTFR(
+            self,
+            method=method,
+            freqs=freqs,
+            tmin=tmin,
+            tmax=tmax,
+            picks=picks,
+            proj=proj,
+            reject_by_annotation=reject_by_annotation,
+            decim=decim,
             n_jobs=n_jobs,
             verbose=verbose,
             **method_kw,
@@ -2378,26 +2477,6 @@ def _allocate_data(preload, shape, dtype):
     return data
 
 
-def _index_as_time(index, sfreq, first_samp=0, use_first_samp=False):
-    """Convert indices to time.
-
-    Parameters
-    ----------
-    index : list-like | int
-        List of ints or int representing points in time.
-    use_first_samp : boolean
-        If True, the time returned is relative to the session onset, else
-        relative to the recording onset.
-
-    Returns
-    -------
-    times : ndarray
-        Times corresponding to the index supplied.
-    """
-    times = np.atleast_1d(index) + (first_samp if use_first_samp else 0)
-    return times / sfreq
-
-
 def _convert_slice(sel):
     if len(sel) and (np.diff(sel) == 1).all():
         return slice(sel[0], sel[-1] + 1)
@@ -2476,7 +2555,7 @@ def _get_scaling(ch_type, target_unit):
     unit_list = target_unit.split("/")
     if ch_type not in si_units.keys():
         raise KeyError(
-            f"{ch_type} is not a channel type that can be scaled " "from units."
+            f"{ch_type} is not a channel type that can be scaled from units."
         )
     si_unit_list = si_units_splitted[ch_type]
     if len(unit_list) != len(si_unit_list):
@@ -2538,7 +2617,6 @@ class _RawShell:
         self._first_time = None
         self._last_time = None
         self._cals = None
-        self._rawdir = None
         self._projector = None
 
     @property
@@ -2696,8 +2774,9 @@ class _RawFidWriter:
         # we've done something wrong if we hit this
         n_times_max = len(self.raw.times)
         error_msg = (
-            "Can't write raw file with no data: {0} -> {1} (max: {2}) requested"
-        ).format(self.start, self.stop, n_times_max)
+            f"Can't write raw file with no data: {self.start} -> {self.stop} "
+            f"(max: {n_times_max}) requested"
+        )
         if self.start >= self.stop or self.stop > n_times_max:
             raise RuntimeError(error_msg)
 
@@ -2742,8 +2821,8 @@ def _write_raw_data(
         raise ValueError(
             'file is larger than "split_size" after writing '
             "measurement information, you must use a larger "
-            "value for split size: %s plus enough bytes for "
-            "the chosen buffer_size" % pos_prev
+            f"value for split size: {pos_prev} plus enough bytes for "
+            "the chosen buffer_size"
         )
 
     # Check to see if this has acquisition skips and, if so, if we can
@@ -2789,7 +2868,7 @@ def _write_raw_data(
             data = np.dot(projector, data)
 
         if drop_small_buffer and (first > start) and (len(times) < buffer_size):
-            logger.info("Skipping data chunk due to small buffer ... " "[done]")
+            logger.info("Skipping data chunk due to small buffer ... [done]")
             break
         logger.debug(f"Writing FIF {first:6d} ... {last:6d} ...")
         _write_raw_buffer(fid, data, cals, fmt)
@@ -2801,17 +2880,12 @@ def _write_raw_data(
             # This should occur on the first buffer write of the file, so
             # we should mention the space required for the meas info
             raise ValueError(
-                "buffer size (%s) is too large for the given split size (%s) "
-                "by %s bytes after writing info (%s) and leaving enough space "
-                'for end tags (%s): decrease "buffer_size_sec" or increase '
-                '"split_size".'
-                % (
-                    this_buff_size_bytes,
-                    split_size,
-                    overage,
-                    pos_prev,
-                    _NEXT_FILE_BUFFER,
-                )
+                f"buffer size ({this_buff_size_bytes}) is too large for the "
+                f"given split size ({split_size}) "
+                f"by {overage} bytes after writing info ({pos_prev}) and "
+                "leaving enough space "
+                f'for end tags ({_NEXT_FILE_BUFFER}): decrease "buffer_size_sec" '
+                'or increase "split_size".'
             )
 
         new_start = last
@@ -2911,7 +2985,7 @@ def _write_raw_buffer(fid, buf, cals, fmt):
             write_function = write_complex128
         else:
             raise ValueError(
-                'only "single" and "double" supported for ' "writing complex data"
+                'only "single" and "double" supported for writing complex data'
             )
 
     buf = buf / np.ravel(cals)[:, None]
@@ -2929,7 +3003,7 @@ def _check_raw_compatibility(raw):
             a, b = raw[ri].info[key], raw[0].info[key]
             if a != b:
                 raise ValueError(
-                    f"raw[{ri}].info[{key}] must match:\n" f"{repr(a)} != {repr(b)}"
+                    f"raw[{ri}].info[{key}] must match:\n{repr(a)} != {repr(b)}"
                 )
         for kind in ("bads", "ch_names"):
             set1 = set(raw[0].info[kind])
@@ -2937,7 +3011,7 @@ def _check_raw_compatibility(raw):
             mismatch = set1.symmetric_difference(set2)
             if mismatch:
                 raise ValueError(
-                    f"raw[{ri}]['info'][{kind}] do not match: " f"{sorted(mismatch)}"
+                    f"raw[{ri}]['info'][{kind}] do not match: {sorted(mismatch)}"
                 )
         if any(raw[ri]._cals != raw[0]._cals):
             raise ValueError("raw[%d]._cals must match" % ri)
@@ -2996,7 +3070,7 @@ def concatenate_raws(
     if events_list is not None:
         if len(events_list) != len(raws):
             raise ValueError(
-                "`raws` and `event_list` are required " "to be of the same length"
+                "`raws` and `event_list` are required to be of the same length"
             )
         first, last = zip(*[(r.first_samp, r.last_samp) for r in raws])
         events = concatenate_events(events_list, first, last)
@@ -3009,25 +3083,44 @@ def concatenate_raws(
 
 
 @fill_doc
-def match_channel_orders(raws, copy=True):
-    """Ensure consistent channel order across raws.
+def match_channel_orders(insts=None, copy=True, *, raws=None):
+    """Ensure consistent channel order across instances (Raw, Epochs, or Evoked).
 
     Parameters
     ----------
-    raws : list
-        List of :class:`~mne.io.Raw` instances to order.
+    insts : list
+        List of :class:`~mne.io.Raw`, :class:`~mne.Epochs`,
+        or :class:`~mne.Evoked` instances to order.
     %(copy_df)s
+    raws : list
+        This parameter is deprecated and will be removed in mne version 1.9.
+        Please use ``insts`` instead.
 
     Returns
     -------
-    list of Raw
-        List of Raws with matched channel orders.
+    list of Raw | list of Epochs | list of Evoked
+        List of instances (Raw, Epochs, or Evoked) with channel orders matched
+        according to the order they had in the first item in the ``insts`` list.
     """
-    raws = deepcopy(raws) if copy else raws
-    ch_order = raws[0].ch_names
-    for raw in raws[1:]:
-        raw.reorder_channels(ch_order)
-    return raws
+    # XXX: remove "raws" parameter and logic below with MNE version 1.9
+    #      and remove default parameter value of insts
+    if raws is not None:
+        warn(
+            "The ``raws`` parameter is deprecated and will be removed in version "
+            "1.9. Use the ``insts`` parameter to suppress this warning.",
+            DeprecationWarning,
+        )
+        insts = raws
+    elif insts is None:
+        # both insts and raws is None
+        raise ValueError(
+            "You need to pass a list of Raw, Epochs, or Evoked to ``insts``."
+        )
+    insts = deepcopy(insts) if copy else insts
+    ch_order = insts[0].ch_names
+    for inst in insts[1:]:
+        inst.reorder_channels(ch_order)
+    return insts
 
 
 def _check_maxshield(allow_maxshield):

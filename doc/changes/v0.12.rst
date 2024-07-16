@@ -129,7 +129,7 @@ BUG
 
 - Fix bug in :func:`mne.io.Raw.save` where, in rare cases, automatically split files could end up writing an extra empty file that wouldn't be read properly by `Eric Larson`_
 
-- Fix :class:``mne.realtime.StimServer`` by removing superfluous argument ``ip`` used while initializing the object by `Mainak Jas`_.
+- Fix ``mne.realtime.StimServer`` by removing superfluous argument ``ip`` used while initializing the object by `Mainak Jas`_.
 
 - Fix removal of projectors in :func:`mne.preprocessing.maxwell_filter` in ``st_only=True`` mode by `Eric Larson`_
 
@@ -175,37 +175,37 @@ Authors
 
 The committer list for this release is the following (preceded by number of commits):
 
-* 348	Eric Larson
-* 347	Jaakko Leppakangas
-* 157	Alexandre Gramfort
-* 139	Jona Sassenhagen
-* 67	Jean-Remi King
-* 32	Chris Holdgraf
-* 31	Denis A. Engemann
-* 30	Mainak Jas
-* 16	Christopher J. Bailey
-* 13	Marijn van Vliet
-* 10	Mark Wronkiewicz
-* 9	Teon Brooks
-* 9	kaichogami
-* 8	Clément Moutard
-* 5	Camilo Lamus
-* 5	mmagnuski
-* 4	Christian Brodbeck
-* 4	Daniel McCloy
-* 4	Yousra Bekhti
-* 3	Fede Raimondo
-* 1	Jussi Nurminen
-* 1	MartinBaBer
-* 1	Mikolaj Magnuski
-* 1	Natalie Klein
-* 1	Niklas Wilming
-* 1	Richard Höchenberger
-* 1	Sagun Pai
-* 1	Sourav Singh
-* 1	Tom Dupré la Tour
-* 1	jona-sassenhagen@
-* 1	kambysese
-* 1	pbnsilva
-* 1	sviter
-* 1	zuxfoucault
+* 348 Eric Larson
+* 347 Jaakko Leppakangas
+* 157 Alexandre Gramfort
+* 139 Jona Sassenhagen
+* 67 Jean-Remi King
+* 32 Chris Holdgraf
+* 31 Denis A. Engemann
+* 30 Mainak Jas
+* 16 Christopher J. Bailey
+* 13 Marijn van Vliet
+* 10 Mark Wronkiewicz
+* 9 Teon Brooks
+* 9 kaichogami
+* 8 Clément Moutard
+* 5 Camilo Lamus
+* 5 mmagnuski
+* 4 Christian Brodbeck
+* 4 Daniel McCloy
+* 4 Yousra Bekhti
+* 3 Fede Raimondo
+* 1 Jussi Nurminen
+* 1 MartinBaBer
+* 1 Mikolaj Magnuski
+* 1 Natalie Klein
+* 1 Niklas Wilming
+* 1 Richard Höchenberger
+* 1 Sagun Pai
+* 1 Sourav Singh
+* 1 Tom Dupré la Tour
+* 1 jona-sassenhagen@
+* 1 kambysese
+* 1 pbnsilva
+* 1 sviter
+* 1 zuxfoucault

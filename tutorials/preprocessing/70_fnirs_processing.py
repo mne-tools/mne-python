@@ -5,10 +5,10 @@
 Preprocessing functional near-infrared spectroscopy (fNIRS) data
 ================================================================
 
-This tutorial covers how to convert functional near-infrared spectroscopy
-(fNIRS) data from raw measurements to relative oxyhaemoglobin (HbO) and
-deoxyhaemoglobin (HbR) concentration, view the average waveform, and
-topographic representation of the response.
+This tutorial covers how to convert functional near-infrared spectroscopy (fNIRS) data
+from raw measurements to relative oxyhaemoglobin (HbO) and deoxyhaemoglobin (HbR)
+concentration, view the average waveform, and topographic representation of the
+response.
 
 Here we will work with the :ref:`fNIRS motor data <fnirs-motor-dataset>`.
 """
@@ -246,7 +246,7 @@ epochs["Control"].average().plot_image(axes=axes[:, 0], clim=clims)
 epochs["Tapping"].average().plot_image(axes=axes[:, 1], clim=clims)
 for column, condition in enumerate(["Control", "Tapping"]):
     for ax in axes[:, column]:
-        ax.set_title("{}: {}".format(condition, ax.get_title()))
+        ax.set_title(f"{condition}: {ax.get_title()}")
 
 
 # %%
@@ -346,7 +346,7 @@ evoked_diff.plot_topomap(
 
 for column, condition in enumerate(["Tapping Left", "Tapping Right", "Left-Right"]):
     for row, chroma in enumerate(["HbO", "HbR"]):
-        axes[row, column].set_title("{}: {}".format(chroma, condition))
+        axes[row, column].set_title(f"{chroma}: {condition}")
 
 # %%
 # Lastly, we can also look at the individual waveforms to see what is

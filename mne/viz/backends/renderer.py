@@ -44,7 +44,7 @@ def _reload_backend(backend_name):
     backend = importlib.import_module(
         name=_backend_name_map[backend_name], package="mne.viz.backends"
     )
-    logger.info("Using %s 3d backend.\n" % backend_name)
+    logger.info(f"Using {backend_name} 3d backend.")
 
 
 def _get_backend():
@@ -391,7 +391,7 @@ class _TimeInteraction:
         current_time_func,
         times,
         init_playback_speed=0.01,
-        playback_speed_range=[0.01, 0.1],
+        playback_speed_range=(0.01, 0.1),
     ):
         from ..ui_events import (
             PlaybackSpeed,
@@ -405,7 +405,6 @@ class _TimeInteraction:
         self._times = times
         self._init_time = current_time_func()
         self._init_playback_speed = init_playback_speed
-        self._playback_speed_range = playback_speed_range
 
         if not hasattr(self, "_dock"):
             self._dock_initialize()

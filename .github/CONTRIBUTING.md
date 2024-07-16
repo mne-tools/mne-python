@@ -10,4 +10,4 @@ This project and everyone participating in it is governed by the [MNE-Python's C
 
 ## How to contribute
 
-Before contributing make sure you are familiar with [our contributing guide](https://mne.tools/dev/install/contributing.html).
+Before contributing make sure you are familiar with [our contributing guide](https://mne.tools/dev/development/contributing.html).

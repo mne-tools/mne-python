@@ -63,3 +63,32 @@ def test_apply_function_verbose():
         assert out is raw
         raw.apply_function(printer, verbose=True)
         assert sio.getvalue().count("\n") == n_chan
+
+
+def test_apply_function_ch_access():
+    """Test apply_function is able to access channel idx."""
+
+    def _bad_ch_idx(x, ch_idx):
+        assert x[0] == ch_idx
+        return x
+
+    def _bad_ch_name(x, ch_name):
+        assert isinstance(ch_name, str)
+        assert x[0] == float(ch_name)
+        return x
+
+    data = np.full((2, 10), np.arange(2).reshape(-1, 1))
+    raw = RawArray(data, create_info(2, 1.0, "mag"))
+
+    # test ch_idx access in both code paths (parallel / 1 job)
+    raw.apply_function(_bad_ch_idx)
+    raw.apply_function(_bad_ch_idx, n_jobs=2)
+    raw.apply_function(_bad_ch_name)
+    raw.apply_function(_bad_ch_name, n_jobs=2)
+
+    # test input catches
+    with pytest.raises(
+        ValueError,
+        match="cannot access.*when channel_wise=False",
+    ):
+        raw.apply_function(_bad_ch_idx, channel_wise=False)

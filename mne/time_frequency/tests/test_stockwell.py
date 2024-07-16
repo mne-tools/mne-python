@@ -87,7 +87,7 @@ def test_stockwell_core():
     width = 0.5
     freqs = fftpack.fftfreq(len(pulse), 1.0 / sfreq)
     fmin, fmax = 1.0, 100.0
-    start_f, stop_f = [np.abs(freqs - f).argmin() for f in (fmin, fmax)]
+    start_f, stop_f = (np.abs(freqs - f).argmin() for f in (fmin, fmax))
     W = _precompute_st_windows(n_samp, start_f, stop_f, sfreq, width)
 
     st_pulse = _st(pulse, start_f, W)

@@ -1,0 +1,21 @@
+name: autofix.ci
+
+on:  # yamllint disable-line rule:truthy
+  pull_request:
+    types: [opened, synchronize, labeled, unlabeled]
+
+permissions:
+  contents: read
+
+jobs:
+  autofix:
+    name: Autoupdate changelog entry
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install --upgrade towncrier pygithub
+      - run: python ./.github/actions/rename_towncrier/rename_towncrier.py
+      - uses: autofix-ci/action@dd55f44df8f7cdb7a6bf74c78677eb8acd40cd0a

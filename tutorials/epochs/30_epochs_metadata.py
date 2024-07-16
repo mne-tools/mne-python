@@ -88,7 +88,6 @@ print(epochs.metadata.iloc[2:4])
 # groups.
 
 epochs.metadata["NumberOfLetters"] = epochs.metadata["NumberOfLetters"].map(int)
-
 epochs.metadata["HighComplexity"] = epochs.metadata["VisualComplexity"] > 65
 epochs.metadata.head()
 
@@ -123,7 +122,7 @@ epochs["solenoid"].compute_psd().plot(picks="data", exclude="bads", amplitude=Fa
 # plotting:
 
 words = ["typhoon", "bungalow", "colossus", "drudgery", "linguist", "solenoid"]
-epochs["WORD in {}".format(words)].plot(n_channels=29, events=True)
+epochs[f"WORD in {words}"].plot(n_channels=29, events=True)
 
 # %%
 # Notice that in this dataset, each "condition" (A.K.A., each word) occurs only

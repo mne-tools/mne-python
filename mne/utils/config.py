@@ -44,7 +44,7 @@ def set_cache_dir(cache_dir):
         temporary file storage.
     """
     if cache_dir is not None and not op.exists(cache_dir):
-        raise OSError("Directory %s does not exist" % cache_dir)
+        raise OSError(f"Directory {cache_dir} does not exist")
 
     set_config("MNE_CACHE_DIR", cache_dir, set_env=False)
 
@@ -217,14 +217,14 @@ _known_config_wildcards = (
 
 def _load_config(config_path, raise_error=False):
     """Safely load a config file."""
-    with open(config_path, "r") as fid:
+    with open(config_path) as fid:
         try:
             config = json.load(fid)
         except ValueError:
             # No JSON object could be decoded --> corrupt file?
             msg = (
-                "The MNE-Python config file (%s) is not a valid JSON "
-                "file and might be corrupted" % config_path
+                f"The MNE-Python config file ({config_path}) is not a valid JSON "
+                "file and might be corrupted"
             )
             if raise_error:
                 raise RuntimeError(msg)
@@ -314,23 +314,22 @@ def get_config(key=None, default=None, raise_error=False, home_dir=None, use_env
     elif raise_error is True and key not in config:
         loc_env = "the environment or in the " if use_env else ""
         meth_env = (
-            ('either os.environ["%s"] = VALUE for a temporary ' "solution, or " % key)
+            (f'either os.environ["{key}"] = VALUE for a temporary solution, or ')
             if use_env
             else ""
         )
         extra_env = (
-            " You can also set the environment variable before " "running python."
+            " You can also set the environment variable before running python."
             if use_env
             else ""
         )
         meth_file = (
-            'mne.utils.set_config("%s", VALUE, set_env=True) '
-            "for a permanent one" % key
+            f'mne.utils.set_config("{key}", VALUE, set_env=True) for a permanent one'
         )
         raise KeyError(
-            'Key "%s" not found in %s'
-            "the mne-python config file (%s). "
-            "Try %s%s.%s" % (key, loc_env, config_path, meth_env, meth_file, extra_env)
+            f'Key "{key}" not found in {loc_env}'
+            f"the mne-python config file ({config_path}). "
+            f"Try {meth_env}{meth_file}.{extra_env}"
         )
     else:
         return config.get(key, default)
@@ -367,7 +366,7 @@ def set_config(key, value, home_dir=None, set_env=True):
     if key not in _known_config_types and not any(
         key.startswith(k) for k in _known_config_wildcards
     ):
-        warn('Setting non-standard config type: "%s"' % key)
+        warn(f'Setting non-standard config type: "{key}"')
 
     # Read all previous values
     config_path = get_config_path(home_dir=home_dir)
@@ -376,8 +375,7 @@ def set_config(key, value, home_dir=None, set_env=True):
     else:
         config = dict()
         logger.info(
-            "Attempting to create new mne-python configuration "
-            "file:\n%s" % config_path
+            f"Attempting to create new mne-python configuration file:\n{config_path}"
         )
     if value is None:
         config.pop(key, None)
@@ -468,16 +466,34 @@ def get_subjects_dir(subjects_dir=None, raise_error=False):
     value : Path | None
         The SUBJECTS_DIR value.
     """
+    from_config = False
     if subjects_dir is None:
         subjects_dir = get_config("SUBJECTS_DIR", raise_error=raise_error)
+        from_config = True
     if subjects_dir is not None:
-        subjects_dir = _check_fname(
-            fname=subjects_dir,
-            overwrite="read",
-            must_exist=True,
-            need_dir=True,
-            name="subjects_dir",
-        )
+        # Emit a nice error or warning if their config is bad
+        try:
+            subjects_dir = _check_fname(
+                fname=subjects_dir,
+                overwrite="read",
+                must_exist=True,
+                need_dir=True,
+                name="subjects_dir",
+            )
+        except FileNotFoundError:
+            if from_config:
+                msg = (
+                    "SUBJECTS_DIR in your MNE-Python configuration or environment "
+                    "does not exist, consider using mne.set_config to fix it: "
+                    f"{subjects_dir}"
+                )
+                if raise_error:
+                    raise FileNotFoundError(msg) from None
+                else:
+                    warn(msg)
+            elif raise_error:
+                raise
+
     return subjects_dir
 
 
@@ -649,8 +665,6 @@ def sys_info(
         "numpy",
         "scipy",
         "matplotlib",
-        "pooch",
-        "jinja2",
         "",
         "# Numerical (optional)",
         "sklearn",
@@ -661,6 +675,8 @@ def sys_info(
         "openmeeg",
         "cupy",
         "pandas",
+        "h5io",
+        "h5py",
         "",
         "# Visualization (optional)",
         "pyvista",
@@ -684,6 +700,11 @@ def sys_info(
         "mne-connectivity",
         "mne-icalabel",
         "mne-bids-pipeline",
+        "neo",
+        "eeglabio",
+        "edfio",
+        "mffpy",
+        "pybv",
         "",
     )
     if dependencies == "developer":
@@ -691,14 +712,27 @@ def sys_info(
             "# Testing",
             "pytest",
             "nbclient",
+            "statsmodels",
             "numpydoc",
             "flake8",
             "pydocstyle",
+            "nitime",
+            "imageio",
+            "imageio-ffmpeg",
+            "snirf",
             "",
             "# Documentation",
             "sphinx",
             "sphinx-gallery",
             "pydata-sphinx-theme",
+            "",
+            "# Infrastructure",
+            "decorator",
+            "jinja2",
+            # "lazy-loader",
+            "packaging",
+            "pooch",
+            "tqdm",
             "",
         )
     try:
@@ -801,7 +835,7 @@ def _get_latest_version(timeout):
         elif "timed out" in str(err):
             return f"timeout after {timeout} sec"
         else:
-            return f"unknown error: {str(err)}"
+            return f"unknown error: {err}"
     else:
         return response["tag_name"].lstrip("v") or "version unknown"
 

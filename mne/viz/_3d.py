@@ -130,6 +130,7 @@ def plot_head_positions(
     mode="traces",
     cmap="viridis",
     direction="z",
+    *,
     show=True,
     destination=None,
     info=None,
@@ -169,9 +170,11 @@ def plot_head_positions(
 
         .. versionadded:: 0.16
     axes : array-like, shape (3, 2)
-        The matplotlib axes to use. Only used for ``mode == 'traces'``.
+        The matplotlib axes to use.
 
         .. versionadded:: 0.16
+        .. versionchanged:: 1.8
+           Added support for making use of this argument when ``mode="field"``.
 
     Returns
     -------
@@ -193,12 +196,14 @@ def plot_head_positions(
 
     if not isinstance(pos, (list, tuple)):
         pos = [pos]
+    pos = list(pos)  # make our own mutable copy
     for ii, p in enumerate(pos):
+        _validate_type(p, np.ndarray, f"pos[{ii}]")
         p = np.array(p, float)
         if p.ndim != 2 or p.shape[1] != 10:
             raise ValueError(
                 "pos (or each entry in pos if a list) must be "
-                "dimension (N, 10), got %s" % (p.shape,)
+                f"dimension (N, 10), got {p.shape}"
             )
         if ii > 0:  # concatenation
             p[:, 0] += pos[ii - 1][-1, 0] - p[0, 0]
@@ -233,7 +238,7 @@ def plot_head_positions(
         else:
             axes = np.array(axes)
         if axes.shape != (3, 2):
-            raise ValueError("axes must have shape (3, 2), got %s" % (axes.shape,))
+            raise ValueError(f"axes must have shape (3, 2), got {axes.shape}")
         fig = axes[0, 0].figure
 
         labels = ["xyz", ("$q_1$", "$q_2$", "$q_3$")]
@@ -315,9 +320,15 @@ def plot_head_positions(
         from mpl_toolkits.mplot3d import Axes3D  # noqa: F401, analysis:ignore
         from mpl_toolkits.mplot3d.art3d import Line3DCollection
 
-        fig, ax = plt.subplots(
-            1, subplot_kw=dict(projection="3d"), layout="constrained"
-        )
+        _validate_type(axes, (Axes3D, None), "ax", extra="when mode='field'")
+        if axes is None:
+            _, ax = plt.subplots(
+                1, subplot_kw=dict(projection="3d"), layout="constrained"
+            )
+        else:
+            ax = axes
+        fig = ax.get_figure()
+        del axes
 
         # First plot the trajectory as a colormap:
         # http://matplotlib.org/examples/pylab_examples/multicolored_line.html
@@ -659,7 +670,7 @@ def plot_alignment(
                 user_alpha[key] = float(val)
                 if not 0 <= user_alpha[key] <= 1:
                     raise ValueError(
-                        f"surfaces[{repr(key)}] ({val}) must be" " between 0 and 1"
+                        f"surfaces[{repr(key)}] ({val}) must be between 0 and 1"
                     )
     else:
         user_alpha = {}
@@ -763,7 +774,7 @@ def plot_alignment(
     head_keys = ("auto", "head", "outer_skin", "head-dense", "seghead")
     head = [s for s in surfaces if s in head_keys]
     if len(head) > 1:
-        raise ValueError("Can only supply one head-like surface name, " f"got {head}")
+        raise ValueError(f"Can only supply one head-like surface name, got {head}")
     head = head[0] if head else False
     if head is not False:
         surfaces.pop(surfaces.index(head))
@@ -1793,30 +1804,29 @@ def _process_clim(clim, colormap, transparent, data=0.0, allow_pos_lims=True):
             key = "lims"
         clim = {"kind": "percent", key: [96, 97.5, 99.95]}
     if not isinstance(clim, dict):
-        raise ValueError('"clim" must be "auto" or dict, got %s' % (clim,))
+        raise ValueError(f'"clim" must be "auto" or dict, got {clim}')
 
     if ("lims" in clim) + ("pos_lims" in clim) != 1:
         raise ValueError(
-            "Exactly one of lims and pos_lims must be specified "
-            "in clim, got %s" % (clim,)
+            f"Exactly one of lims and pos_lims must be specified in clim, got {clim}"
         )
     if "pos_lims" in clim and not allow_pos_lims:
-        raise ValueError('Cannot use "pos_lims" for clim, use "lims" ' "instead")
+        raise ValueError('Cannot use "pos_lims" for clim, use "lims" instead')
     diverging = "pos_lims" in clim
     ctrl_pts = np.array(clim["pos_lims" if diverging else "lims"], float)
     ctrl_pts = np.array(ctrl_pts, float)
     if ctrl_pts.shape != (3,):
-        raise ValueError("clim has shape %s, it must be (3,)" % (ctrl_pts.shape,))
+        raise ValueError(f"clim has shape {ctrl_pts.shape}, it must be (3,)")
     if (np.diff(ctrl_pts) < 0).any():
         raise ValueError(
-            "colormap limits must be monotonically " "increasing, got %s" % (ctrl_pts,)
+            f"colormap limits must be monotonically increasing, got {ctrl_pts}"
         )
     clim_kind = clim.get("kind", "percent")
     _check_option("clim['kind']", clim_kind, ["value", "values", "percent"])
     if clim_kind == "percent":
         perc_data = np.abs(data) if diverging else data
         ctrl_pts = np.percentile(perc_data, ctrl_pts)
-        logger.info("Using control points %s" % (ctrl_pts,))
+        logger.info(f"Using control points {ctrl_pts}")
     assert len(ctrl_pts) == 3
     clim = dict(kind="value")
     clim["pos_lims" if diverging else "lims"] = ctrl_pts
@@ -2032,10 +2042,7 @@ def _plot_mpl_stc(
     from ..morph import _get_subject_sphere_tris
     from ..source_space._source_space import _check_spacing, _create_surf_spacing
 
-    if hemi not in ["lh", "rh"]:
-        raise ValueError(
-            "hemi must be 'lh' or 'rh' when using matplotlib. " "Got %s." % hemi
-        )
+    _check_option("hemi", hemi, ("lh", "rh"), extra="when using matplotlib")
     lh_kwargs = {
         "lat": {"elev": 0, "azim": 180},
         "med": {"elev": 0, "azim": 0},
@@ -2197,9 +2204,7 @@ def link_brains(brains, time=True, camera=False, colorbar=True, picking=False):
         raise ValueError("The collection of brains is empty.")
     for brain in brains:
         if not isinstance(brain, Brain):
-            raise TypeError(
-                "Expected type is Brain but" " {} was given.".format(type(brain))
-            )
+            raise TypeError(f"Expected type is Brain but {type(brain)} was given.")
         # enable time viewer if necessary
         brain.setup_time_viewer()
     subjects = [brain._subject for brain in brains]
@@ -2519,7 +2524,7 @@ def _plot_stc(
     if overlay_alpha == 0:
         smoothing_steps = 1  # Disable smoothing to save time.
 
-    title = subject if len(hemis) > 1 else "%s - %s" % (subject, hemis[0])
+    title = subject if len(hemis) > 1 else f"{subject} - {hemis[0]}"
     kwargs = {
         "subject": subject,
         "hemi": hemi,
@@ -2636,7 +2641,9 @@ def _glass_brain_crosshairs(params, x, y, z):
 
 def _cut_coords_to_ijk(cut_coords, img):
     ijk = apply_trans(np.linalg.inv(img.affine), cut_coords)
-    ijk = np.clip(np.round(ijk).astype(int), 0, np.array(img.shape[:3]) - 1)
+    ijk = np.round(ijk).astype(int)
+    logger.debug(f"{cut_coords} -> {ijk}")
+    np.clip(ijk, 0, np.array(img.shape[:3]) - 1, out=ijk)
     return ijk
 
 
@@ -2653,6 +2660,184 @@ def _load_subject_mri(mri, stc, subject, subjects_dir, name):
         subject = _check_subject(stc.subject, subject)
         mri = nib.load(_check_mri(mri, subject, subjects_dir))
     return mri
+
+
+_AX_NAME = dict(x="X (sagittal)", y="Y (coronal)", z="Z (axial)")
+
+
+def _click_to_cut_coords(event, params):
+    """Get voxel coordinates from mouse click."""
+    import nibabel as nib
+
+    if event.inaxes is params["ax_x"]:
+        ax = "x"
+        x = params["ax_z"].lines[0].get_xdata()[0]
+        y, z = event.xdata, event.ydata
+    elif event.inaxes is params["ax_y"]:
+        ax = "y"
+        y = params["ax_x"].lines[0].get_xdata()[0]
+        x, z = event.xdata, event.ydata
+    elif event.inaxes is params["ax_z"]:
+        ax = "z"
+        x, y = event.xdata, event.ydata
+        z = params["ax_x"].lines[1].get_ydata()[0]
+    else:
+        logger.debug("    Click outside axes")
+        return None
+    cut_coords = np.array((x, y, z))
+    logger.debug("")
+
+    if params["mode"] == "glass_brain":  # find idx for MIP
+        # Figure out what XYZ in world coordinates is in our voxel data
+        codes = "".join(nib.aff2axcodes(params["img_idx"].affine))
+        assert len(codes) == 3
+        # We don't care about directionality, just which is which dim
+        codes = codes.replace("L", "R").replace("P", "A").replace("I", "S")
+        idx = codes.index(dict(x="R", y="A", z="S")[ax])
+        img_data = np.abs(_get_img_fdata(params["img_idx"]))
+        ijk = _cut_coords_to_ijk(cut_coords, params["img_idx"])
+        if idx == 0:
+            ijk[0] = np.argmax(img_data[:, ijk[1], ijk[2]])
+            logger.debug(f"    MIP: i = {ijk[0]:d} idx")
+        elif idx == 1:
+            ijk[1] = np.argmax(img_data[ijk[0], :, ijk[2]])
+            logger.debug(f"    MIP: j = {ijk[1]:d} idx")
+        else:
+            ijk[2] = np.argmax(img_data[ijk[0], ijk[1], :])
+            logger.debug(f"    MIP: k = {ijk[2]} idx")
+        cut_coords = _ijk_to_cut_coords(ijk, params["img_idx"])
+
+    logger.debug(f"    Cut coords for {_AX_NAME[ax]}: {_str_ras(cut_coords)}")
+    return cut_coords
+
+
+def _str_ras(xyz):
+    x, y, z = xyz
+    return f"({x:0.1f}, {y:0.1f}, {z:0.1f}) mm"
+
+
+def _str_vox(ijk):
+    i, j, k = ijk
+    return f"[{i:d}, {j:d}, {k:d}] vox"
+
+
+def _press(event, params):
+    """Manage keypress on the plot."""
+    pos = params["lx"].get_xdata()
+    idx = params["stc"].time_as_index(pos)[0]
+    if event.key == "left":
+        idx = max(0, idx - 2)
+    elif event.key == "shift+left":
+        idx = max(0, idx - 10)
+    elif event.key == "right":
+        idx = min(params["stc"].shape[1] - 1, idx + 2)
+    elif event.key == "shift+right":
+        idx = min(params["stc"].shape[1] - 1, idx + 10)
+    _update_timeslice(idx, params)
+    params["fig"].canvas.draw()
+
+
+def _update_timeslice(idx, params):
+    from nilearn.image import index_img
+
+    params["lx"].set_xdata([idx / params["stc"].sfreq + params["stc"].tmin])
+    ax_x, ax_y, ax_z = params["ax_x"], params["ax_y"], params["ax_z"]
+    # Crosshairs are the first thing plotted in stat_map, and the last
+    # in glass_brain
+    idxs = [0, 0, 1] if params["mode"] == "stat_map" else [-2, -2, -1]
+    cut_coords = (
+        ax_y.lines[idxs[0]].get_xdata()[0],
+        ax_x.lines[idxs[1]].get_xdata()[0],
+        ax_x.lines[idxs[2]].get_ydata()[0],
+    )
+    ax_x.clear()
+    ax_y.clear()
+    ax_z.clear()
+    params.update({"img_idx": index_img(params["img"], idx)})
+    params.update({"title": f"Activation (t={params['stc'].times[idx]:.3f} s.)"})
+    _plot_and_correct(params=params, cut_coords=cut_coords)
+
+
+def _update_vertlabel(loc_idx, params):
+    params["vert_legend"].get_texts()[0].set_text(f"{params['vertices'][loc_idx]}")
+
+
+@verbose_dec
+def _onclick(event, params, verbose=None):
+    """Manage clicks on the plot."""
+    ax_x, ax_y, ax_z = params["ax_x"], params["ax_y"], params["ax_z"]
+    if event.inaxes is params["ax_time"]:
+        idx = params["stc"].time_as_index(event.xdata, use_rounding=True)[0]
+        _update_timeslice(idx, params)
+
+    cut_coords = _click_to_cut_coords(event, params)
+    if cut_coords is None:
+        return  # not in any axes
+
+    ax_x.clear()
+    ax_y.clear()
+    ax_z.clear()
+    _plot_and_correct(params=params, cut_coords=cut_coords)
+    loc_idx = _cut_coords_to_idx(cut_coords, params["dist_to_verts"])
+    ydata = params["stc"].data[loc_idx]
+    if loc_idx is not None:
+        params["ax_time"].lines[0].set_ydata(ydata)
+    else:
+        params["ax_time"].lines[0].set_ydata([0.0])
+    _update_vertlabel(loc_idx, params)
+    params["fig"].canvas.draw()
+
+
+def _cut_coords_to_idx(cut_coords, dist_to_verts):
+    """Convert voxel coordinates to index in stc.data."""
+    logger.debug(f"    Starting coords: {cut_coords}")
+    cut_coords = list(cut_coords)
+    (dist,), (loc_idx,) = dist_to_verts.query([cut_coords])
+    logger.debug(f"Mapped {cut_coords=} to vertices[{loc_idx}] {dist:0.1f} mm away")
+    return loc_idx
+
+
+def _plot_and_correct(*, params, cut_coords):
+    # black_bg = True is needed because of some matplotlib
+    # peculiarity. See: https://stackoverflow.com/a/34730204
+    # Otherwise, event.inaxes does not work for ax_x and ax_z
+    from nilearn.plotting import plot_glass_brain, plot_stat_map
+
+    mode = params["mode"]
+    nil_func = dict(stat_map=plot_stat_map, glass_brain=plot_glass_brain)[mode]
+    plot_kwargs = dict(
+        threshold=None,
+        axes=params["axes"],
+        resampling_interpolation="nearest",
+        vmax=params["vmax"],
+        figure=params["fig"],
+        colorbar=params["colorbar"],
+        bg_img=params["bg_img"],
+        cmap=params["colormap"],
+        black_bg=True,
+        symmetric_cbar=True,
+        title="",
+    )
+    params["axes"].clear()
+    if params.get("fig_anat") is not None and plot_kwargs["colorbar"]:
+        params["fig_anat"]._cbar.ax.clear()
+    with warnings.catch_warnings(record=True):  # nilearn bug; ax recreated
+        warnings.simplefilter("ignore", DeprecationWarning)
+        params["fig_anat"] = nil_func(
+            params["img_idx"], cut_coords=cut_coords, **plot_kwargs
+        )
+    params["fig_anat"]._cbar.outline.set_visible(False)
+    for key in "xyz":
+        params.update({"ax_" + key: params["fig_anat"].axes[key].ax})
+    # Fix nilearn bug w/cbar background being white
+    if plot_kwargs["colorbar"]:
+        params["fig_anat"]._cbar.ax.set_facecolor("0.5")
+        # adjust one-sided colorbars
+        if not params["diverging"]:
+            _crop_colorbar(params["fig_anat"]._cbar, *params["scale_pts"][[0, -1]])
+        params["fig_anat"]._cbar.set_ticks(params["cbar_ticks"])
+    if params["mode"] == "glass_brain":
+        _glass_brain_crosshairs(params, *cut_coords)
 
 
 @verbose
@@ -2762,10 +2947,8 @@ def plot_volume_source_estimates(
         raise RuntimeError("This function requires nilearn >= 0.4")
 
     from nilearn.image import index_img
-    from nilearn.plotting import plot_glass_brain, plot_stat_map
 
     _check_option("mode", mode, ("stat_map", "glass_brain"))
-    plot_func = dict(stat_map=plot_stat_map, glass_brain=plot_glass_brain)[mode]
     _validate_type(stc, VolSourceEstimate, "stc")
     if isinstance(src, SourceMorph):
         img = src.apply(stc, "nifti1", mri_resolution=False, mri_space=False)
@@ -2783,136 +2966,6 @@ def plot_volume_source_estimates(
         level="debug",
     )
     subject = _check_subject(src_subject, subject, first_kind=kind)
-    vertices = np.hstack(stc.vertices)
-    stc_ijk = np.array(np.unravel_index(vertices, img.shape[:3], order="F")).T
-    assert stc_ijk.shape == (vertices.size, 3)
-    del kind
-
-    # XXX this assumes zooms are uniform, should probably mult by zooms...
-    dist_to_verts = _DistanceQuery(stc_ijk, allow_kdtree=True)
-
-    def _cut_coords_to_idx(cut_coords, img):
-        """Convert voxel coordinates to index in stc.data."""
-        ijk = _cut_coords_to_ijk(cut_coords, img)
-        del cut_coords
-        logger.debug("    Affine remapped cut coords to [%d, %d, %d] idx", tuple(ijk))
-        dist, loc_idx = dist_to_verts.query(ijk[np.newaxis])
-        dist, loc_idx = dist[0], loc_idx[0]
-        logger.debug(
-            "    Using vertex %d at a distance of %d voxels", (vertices[loc_idx], dist)
-        )
-        return loc_idx
-
-    ax_name = dict(x="X (sagittal)", y="Y (coronal)", z="Z (axial)")
-
-    def _click_to_cut_coords(event, params):
-        """Get voxel coordinates from mouse click."""
-        if event.inaxes is params["ax_x"]:
-            ax = "x"
-            x = params["ax_z"].lines[0].get_xdata()[0]
-            y, z = event.xdata, event.ydata
-        elif event.inaxes is params["ax_y"]:
-            ax = "y"
-            y = params["ax_x"].lines[0].get_xdata()[0]
-            x, z = event.xdata, event.ydata
-        elif event.inaxes is params["ax_z"]:
-            ax = "z"
-            x, y = event.xdata, event.ydata
-            z = params["ax_x"].lines[1].get_ydata()[0]
-        else:
-            logger.debug("    Click outside axes")
-            return None
-        cut_coords = np.array((x, y, z))
-        logger.debug("")
-
-        if params["mode"] == "glass_brain":  # find idx for MIP
-            # Figure out what XYZ in world coordinates is in our voxel data
-            codes = "".join(nib.aff2axcodes(params["img_idx"].affine))
-            assert len(codes) == 3
-            # We don't care about directionality, just which is which dim
-            codes = codes.replace("L", "R").replace("P", "A").replace("I", "S")
-            idx = codes.index(dict(x="R", y="A", z="S")[ax])
-            img_data = np.abs(_get_img_fdata(params["img_idx"]))
-            ijk = _cut_coords_to_ijk(cut_coords, params["img_idx"])
-            if idx == 0:
-                ijk[0] = np.argmax(img_data[:, ijk[1], ijk[2]])
-                logger.debug("    MIP: i = %d idx" % (ijk[0],))
-            elif idx == 1:
-                ijk[1] = np.argmax(img_data[ijk[0], :, ijk[2]])
-                logger.debug("    MIP: j = %d idx" % (ijk[1],))
-            else:
-                ijk[2] = np.argmax(img_data[ijk[0], ijk[1], :])
-                logger.debug("    MIP: k = %d idx" % (ijk[2],))
-            cut_coords = _ijk_to_cut_coords(ijk, params["img_idx"])
-
-        logger.debug(
-            "    Cut coords for %s: (%0.1f, %0.1f, %0.1f) mm"
-            % ((ax_name[ax],) + tuple(cut_coords))
-        )
-        return cut_coords
-
-    def _press(event, params):
-        """Manage keypress on the plot."""
-        pos = params["lx"].get_xdata()
-        idx = params["stc"].time_as_index(pos)[0]
-        if event.key == "left":
-            idx = max(0, idx - 2)
-        elif event.key == "shift+left":
-            idx = max(0, idx - 10)
-        elif event.key == "right":
-            idx = min(params["stc"].shape[1] - 1, idx + 2)
-        elif event.key == "shift+right":
-            idx = min(params["stc"].shape[1] - 1, idx + 10)
-        _update_timeslice(idx, params)
-        params["fig"].canvas.draw()
-
-    def _update_timeslice(idx, params):
-        params["lx"].set_xdata([idx / params["stc"].sfreq + params["stc"].tmin])
-        ax_x, ax_y, ax_z = params["ax_x"], params["ax_y"], params["ax_z"]
-        plot_map_callback = params["plot_func"]
-        # Crosshairs are the first thing plotted in stat_map, and the last
-        # in glass_brain
-        idxs = [0, 0, 1] if mode == "stat_map" else [-2, -2, -1]
-        cut_coords = (
-            ax_y.lines[idxs[0]].get_xdata()[0],
-            ax_x.lines[idxs[1]].get_xdata()[0],
-            ax_x.lines[idxs[2]].get_ydata()[0],
-        )
-        ax_x.clear()
-        ax_y.clear()
-        ax_z.clear()
-        params.update({"img_idx": index_img(img, idx)})
-        params.update({"title": "Activation (t=%.3f s.)" % params["stc"].times[idx]})
-        plot_map_callback(params["img_idx"], title="", cut_coords=cut_coords)
-
-    def _update_vertlabel(loc_idx):
-        vert_legend.get_texts()[0].set_text(f"{vertices[loc_idx]}")
-
-    @verbose_dec
-    def _onclick(event, params, verbose=None):
-        """Manage clicks on the plot."""
-        ax_x, ax_y, ax_z = params["ax_x"], params["ax_y"], params["ax_z"]
-        plot_map_callback = params["plot_func"]
-        if event.inaxes is params["ax_time"]:
-            idx = params["stc"].time_as_index(event.xdata, use_rounding=True)[0]
-            _update_timeslice(idx, params)
-
-        cut_coords = _click_to_cut_coords(event, params)
-        if cut_coords is None:
-            return  # not in any axes
-
-        ax_x.clear()
-        ax_y.clear()
-        ax_z.clear()
-        plot_map_callback(params["img_idx"], title="", cut_coords=cut_coords)
-        loc_idx = _cut_coords_to_idx(cut_coords, params["img_idx"])
-        ydata = stc.data[loc_idx]
-        if loc_idx is not None:
-            ax_time.lines[0].set_ydata(ydata)
-        else:
-            ax_time.lines[0].set_ydata([0.0])
-        _update_vertlabel(loc_idx)
-        params["fig"].canvas.draw()
 
     if mode == "glass_brain":
         subject = _check_subject(stc.subject, subject)
@@ -2931,11 +2984,25 @@ def plot_volume_source_estimates(
             bg_img = "T1.mgz"
         bg_img = _load_subject_mri(bg_img, stc, subject, subjects_dir, "bg_img")
 
+    params = dict(
+        stc=stc,
+        mode=mode,
+        img=img,
+        bg_img=bg_img,
+        colorbar=colorbar,
+    )
+    vertices = np.hstack(stc.vertices)
+    stc_ijk = np.array(np.unravel_index(vertices, img.shape[:3], order="F")).T
+    assert stc_ijk.shape == (vertices.size, 3)
+    params["dist_to_verts"] = _DistanceQuery(apply_trans(img.affine, stc_ijk))
+    params["vertices"] = vertices
+    del kind, stc_ijk
+
     if initial_time is None:
         time_sl = slice(0, None)
     else:
         initial_time = float(initial_time)
-        logger.info("Fixing initial time: %s s" % (initial_time,))
+        logger.info(f"Fixing initial time: {initial_time} s")
         initial_time = np.argmin(np.abs(stc.times - initial_time))
         time_sl = slice(initial_time, initial_time + 1)
     if initial_pos is None:  # find max pos and (maybe) time
@@ -2948,30 +3015,26 @@ def plot_volume_source_estimates(
         if initial_pos.shape != (3,):
             raise ValueError(
                 "initial_pos must be float ndarray with shape "
-                "(3,), got shape %s" % (initial_pos.shape,)
+                f"(3,), got shape {initial_pos.shape}"
             )
         initial_pos *= 1000
-        logger.info("Fixing initial position: %s mm" % (initial_pos.tolist(),))
-        loc_idx = _cut_coords_to_idx(initial_pos, img)
+        logger.info(f"Fixing initial position: {initial_pos.tolist()} mm")
+        loc_idx = _cut_coords_to_idx(initial_pos, params["dist_to_verts"])
         if initial_time is not None:  # time also specified
             time_idx = time_sl.start
         else:  # find the max
             time_idx = np.argmax(np.abs(stc.data[loc_idx]))
-    img_idx = index_img(img, time_idx)
+    img_idx = params["img_idx"] = index_img(img, time_idx)
     assert img_idx.shape == img.shape[:3]
     del initial_time, initial_pos
-    ijk = stc_ijk[loc_idx]
+    ijk = np.unravel_index(vertices[loc_idx], img.shape[:3], order="F")
     cut_coords = _ijk_to_cut_coords(ijk, img_idx)
     np.testing.assert_allclose(_cut_coords_to_ijk(cut_coords, img_idx), ijk)
     logger.info(
-        "Showing: t = %0.3f s, (%0.1f, %0.1f, %0.1f) mm, "
-        "[%d, %d, %d] vox, %d vertex"
-        % (
-            (stc.times[time_idx],)
-            + tuple(cut_coords)
-            + tuple(ijk)
-            + (vertices[loc_idx],)
-        )
+        f"Showing: t = {stc.times[time_idx]:0.3f} s, "
+        f"{_str_ras(cut_coords)}, "
+        f"{_str_vox(ijk)}, "
+        f"{vertices[loc_idx]:d} vertex"
     )
     del ijk
 
@@ -2984,15 +3047,17 @@ def plot_volume_source_estimates(
     if len(stc.times) > 1:
         ax_time.set(xlim=stc.times[[0, -1]])
     ax_time.set(xlabel="Time (s)", ylabel="Activation")
-    vert_legend = ax_time.legend([h], [""], title="Vertex")
-    _update_vertlabel(loc_idx)
+    params["vert_legend"] = ax_time.legend([h], [""], title="Vertex")
+    _update_vertlabel(loc_idx, params)
     lx = ax_time.axvline(stc.times[time_idx], color="g")
+    params.update(fig=fig, ax_time=ax_time, lx=lx, axes=axes)
 
     allow_pos_lims = mode != "glass_brain"
     mapdata = _process_clim(clim, colormap, transparent, stc.data, allow_pos_lims)
     _separate_map(mapdata)
     diverging = "pos_lims" in mapdata["clim"]
     ticks = _get_map_ticks(mapdata)
+    params.update(cbar_ticks=ticks, diverging=diverging)
     colormap, scale_pts = _linearize_map(mapdata)
     del mapdata
 
@@ -3032,56 +3097,9 @@ def plot_volume_source_estimates(
             np.interp(np.linspace(-1, 1, 256), scale_pts / scale_pts[2], [0, 0.5, 1])
         )
         colormap = colors.ListedColormap(colormap)
-    vmax = scale_pts[-1]
+    params.update(vmax=scale_pts[-1], scale_pts=scale_pts, colormap=colormap)
 
-    # black_bg = True is needed because of some matplotlib
-    # peculiarity. See: https://stackoverflow.com/a/34730204
-    # Otherwise, event.inaxes does not work for ax_x and ax_z
-    plot_kwargs = dict(
-        threshold=None,
-        axes=axes,
-        resampling_interpolation="nearest",
-        vmax=vmax,
-        figure=fig,
-        colorbar=colorbar,
-        bg_img=bg_img,
-        cmap=colormap,
-        black_bg=True,
-        symmetric_cbar=True,
-    )
-
-    def plot_and_correct(*args, **kwargs):
-        axes.clear()
-        if params.get("fig_anat") is not None and plot_kwargs["colorbar"]:
-            params["fig_anat"]._cbar.ax.clear()
-        with warnings.catch_warnings(record=True):  # nilearn bug; ax recreated
-            warnings.simplefilter("ignore", DeprecationWarning)
-            params["fig_anat"] = partial(plot_func, **plot_kwargs)(*args, **kwargs)
-        params["fig_anat"]._cbar.outline.set_visible(False)
-        for key in "xyz":
-            params.update({"ax_" + key: params["fig_anat"].axes[key].ax})
-        # Fix nilearn bug w/cbar background being white
-        if plot_kwargs["colorbar"]:
-            params["fig_anat"]._cbar.ax.set_facecolor("0.5")
-            # adjust one-sided colorbars
-            if not diverging:
-                _crop_colorbar(params["fig_anat"]._cbar, *scale_pts[[0, -1]])
-            params["fig_anat"]._cbar.set_ticks(params["cbar_ticks"])
-        if mode == "glass_brain":
-            _glass_brain_crosshairs(params, *kwargs["cut_coords"])
-
-    params = dict(
-        stc=stc,
-        ax_time=ax_time,
-        plot_func=plot_and_correct,
-        img_idx=img_idx,
-        fig=fig,
-        lx=lx,
-        mode=mode,
-        cbar_ticks=ticks,
-    )
-
-    plot_and_correct(stat_map_img=params["img_idx"], title="", cut_coords=cut_coords)
+    _plot_and_correct(params=params, cut_coords=cut_coords)
 
     plt_show(show)
     fig.canvas.mpl_connect(
@@ -3111,7 +3129,7 @@ def _check_views(surf, views, hemi, stc=None, backend=None):
         if backend is not None:
             if backend not in ("pyvistaqt", "notebook"):
                 raise RuntimeError(
-                    "The PyVista 3D backend must be used to " "plot a flatmap"
+                    "The PyVista 3D backend must be used to plot a flatmap"
                 )
     if (views == ["flat"]) ^ (surf == "flat"):  # exactly only one of the two
         raise ValueError(
@@ -3384,7 +3402,7 @@ def plot_sparse_source_estimates(
     if not isinstance(modes, (list, tuple)) or not all(
         mode in known_modes for mode in modes
     ):
-        raise ValueError("mode must be a list containing only " '"cone" or "sphere"')
+        raise ValueError('mode must be a list containing only "cone" or "sphere"')
     if not isinstance(stcs, list):
         stcs = [stcs]
     if labels is not None and not isinstance(labels, list):
@@ -3492,8 +3510,8 @@ def plot_sparse_source_estimates(
                 linestyle=linestyle,
             )
 
-    ax.set_xlabel("Time (ms)", fontsize=18)
-    ax.set_ylabel("Source amplitude (nAm)", fontsize=18)
+    ax.set_xlabel("Time (ms)", fontsize=fontsize)
+    ax.set_ylabel("Source amplitude (nAm)", fontsize=fontsize)
 
     if fig_name is not None:
         ax.set_title(fig_name)
@@ -3746,7 +3764,7 @@ def snapshot_brain_montage(fig, montage, hide_sensors=True):
         ch_names, xyz = zip(*[(ich, ixyz) for ich, ixyz in montage.items()])
     else:
         raise TypeError(
-            "montage must be an instance of `DigMontage`, `Info`," " or `dict`"
+            "montage must be an instance of `DigMontage`, `Info`, or `dict`"
         )
 
     # initialize figure
@@ -3999,14 +4017,11 @@ def _plot_dipole(
     coord_frame_name = "Head" if coord_frame == "head" else "MRI"
 
     if title is None:
-        title = "Dipole #%s / %s @ %.3fs, GOF: %.1f%%, %.1fnAm\n%s: " % (
-            idx + 1,
-            len(dipole.times),
-            dipole.times[idx],
-            dipole.gof[idx],
-            dipole.amplitude[idx] * 1e9,
-            coord_frame_name,
-        ) + "(%0.1f, %0.1f, %0.1f) mm" % tuple(xyz[idx])
+        title = (
+            f"Dipole #{idx + 1} / {len(dipole.times)} @ {dipole.times[idx]:.3f}s, "
+            f"GOF: {dipole.gof[idx]:.1f}%, {dipole.amplitude[idx] * 1e9:.1f}nAm\n"
+            f"{coord_frame_name}: {_str_ras(xyz[idx])}"
+        )
 
     ax.get_figure().suptitle(title)
 

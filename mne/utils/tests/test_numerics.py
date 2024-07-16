@@ -8,11 +8,11 @@ from pathlib import Path
 import numpy as np
 import pytest
 from numpy.testing import assert_allclose, assert_array_equal
-from scipy import sparse
 
 from mne import pick_types, read_cov, read_evokeds
 from mne._fiff.pick import _picks_by_type
 from mne.epochs import make_fixed_length_epochs
+from mne.fixes import _eye_array
 from mne.io import read_raw_fif
 from mne.time_frequency import tfr_morlet
 from mne.utils import (
@@ -314,11 +314,11 @@ def test_object_size():
         (150, 500, np.ones(20)),
         (30, 400, dict()),
         (400, 1000, dict(a=np.ones(50))),
-        (200, 900, sparse.eye(20, format="csc")),
-        (200, 900, sparse.eye(20, format="csr")),
+        (200, 900, _eye_array(20, format="csc")),
+        (200, 900, _eye_array(20, format="csr")),
     ):
         size = object_size(obj)
-        assert lower < size < upper, "%s < %s < %s:\n%s" % (lower, size, upper, obj)
+        assert lower < size < upper, f"{lower} < {size} < {upper}:\n{obj}"
     # views work properly
     x = dict(a=1)
     assert object_size(x) < 1000
@@ -416,14 +416,14 @@ def test_hash():
     pytest.raises(RuntimeError, object_diff, d1, d2)
     pytest.raises(RuntimeError, object_hash, d1)
 
-    x = sparse.eye(2, 2, format="csc")
-    y = sparse.eye(2, 2, format="csr")
+    x = _eye_array(2, format="csc")
+    y = _eye_array(2, format="csr")
     assert "type mismatch" in object_diff(x, y)
-    y = sparse.eye(2, 2, format="csc")
+    y = _eye_array(2, format="csc")
     assert len(object_diff(x, y)) == 0
     y[1, 1] = 2
     assert "elements" in object_diff(x, y)
-    y = sparse.eye(3, 3, format="csc")
+    y = _eye_array(3, format="csc")
     assert "shape" in object_diff(x, y)
     y = 0
     assert "type mismatch" in object_diff(x, y)
@@ -450,7 +450,7 @@ def test_pca(n_components, whiten):
     assert_array_equal(X, X_orig)
     X_mne = pca_mne.fit_transform(X)
     assert_array_equal(X, X_orig)
-    assert_allclose(X_skl, X_mne)
+    assert_allclose(X_skl, X_mne * np.sign(np.sum(X_skl * X_mne, axis=0)))
     assert pca_mne.n_components_ == pca_skl.n_components_
     for key in (
         "mean_",
@@ -459,6 +459,10 @@ def test_pca(n_components, whiten):
         "explained_variance_ratio_",
     ):
         val_skl, val_mne = getattr(pca_skl, key), getattr(pca_mne, key)
+        if key == "components_":
+            val_mne = val_mne * np.sign(
+                np.sum(val_skl * val_mne, axis=1, keepdims=True)
+            )
         assert_allclose(val_skl, val_mne)
     if isinstance(n_components, float):
         assert pca_mne.n_components_ == n_dim - 1
@@ -600,10 +604,10 @@ def test_custom_lru_cache():
     assert my_fun(1, np.array([2]), 3) == "int, ndarray, int"
     assert n_calls == [2, 1]
     assert len(_LRU_CACHES[fun_hash]) == 2
-    assert my_fun_2(1, sparse.eye(1, format="csc")) == "int, csc_matrix"
+    assert my_fun_2(1, _eye_array(1, format="csc")) == "int, csc_array"
     assert n_calls == [2, 2]
     assert len(_LRU_CACHES[fun_2_hash]) == 1  # other got popped
     # we could add support for this eventually, but don't bother for now
     with pytest.raises(RuntimeError, match="Unsupported sparse type"):
-        my_fun_2(1, sparse.eye(1, format="coo"))
+        my_fun_2(1, _eye_array(1, format="coo"))
     assert n_calls == [2, 2]  # never did any computation

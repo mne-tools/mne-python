@@ -12,6 +12,7 @@ from mne.datasets.testing import data_path, requires_testing_data
 from mne.io import read_raw_eyelink
 from mne.io.eyelink._utils import _adjust_times, _find_overlaps
 from mne.io.tests.test_raw import _test_raw_reader
+from mne.utils import _record_warnings
 
 pd = pytest.importorskip("pandas")
 
@@ -223,7 +224,7 @@ def _simulate_eye_tracking_data(in_file, out_file):
                 elif event_type == "END":
                     pass
                 else:
-                    fp.write("%s\n" % line)
+                    fp.write(f"{line}\n")
                     continue
                 events.append("\t".join(tokens))
                 if event_type == "END":
@@ -231,21 +232,18 @@ def _simulate_eye_tracking_data(in_file, out_file):
                     events.clear()
                     in_recording_block = False
             else:
-                fp.write("%s\n" % line)
+                fp.write(f"{line}\n")
 
-        fp.write("%s\n" % "START\t7452389\tRIGHT\tSAMPLES\tEVENTS")
-        fp.write("%s\n" % new_samples_line)
+        fp.write("START\t7452389\tRIGHT\tSAMPLES\tEVENTS\n")
+        fp.write(f"{new_samples_line}\n")
 
         for timestamp in np.arange(7452389, 7453390):  # simulate a second block
             fp.write(
-                "%s\n"
-                % (
-                    f"{timestamp}\t-2434.0\t-1760.0\t840.0\t100\t20\t45\t45\t127.0\t"
-                    "...\t1497\t5189\t512.5\t............."
-                )
+                f"{timestamp}\t-2434.0\t-1760.0\t840.0\t100\t20\t45\t45\t127.0\t"
+                "...\t1497\t5189\t512.5\t.............\n"
             )
 
-        fp.write("%s\n" % "END\t7453390\tRIGHT\tSAMPLES\tEVENTS")
+        fp.write("END\t7453390\tRIGHT\tSAMPLES\tEVENTS\n")
 
 
 @requires_testing_data
@@ -255,7 +253,10 @@ def test_multi_block_misc_channels(fname, tmp_path):
     out_file = tmp_path / "tmp_eyelink.asc"
     _simulate_eye_tracking_data(fname, out_file)
 
-    with pytest.warns(RuntimeWarning, match="Raw eyegaze coordinates"):
+    with (
+        _record_warnings(),
+        pytest.warns(RuntimeWarning, match="Raw eyegaze coordinates"),
+    ):
         raw = read_raw_eyelink(out_file, apply_offsets=True)
 
     chs_in_file = [
@@ -290,17 +291,17 @@ def test_basics(this_fname):
     _test_raw_reader(read_raw_eyelink, fname=this_fname, test_preloading=False)
 
 
+@requires_testing_data
 def test_annotations_without_offset(tmp_path):
     """Test read of annotations without offset."""
     out_file = tmp_path / "tmp_eyelink.asc"
 
     # create fake dataset
-    with open(fname_href, "r") as file:
+    with open(fname_href) as file:
         lines = file.readlines()
     ts = lines[-3].split("\t")[0]
     line = f"MSG\t{ts} test string\n"
     lines = lines[:-3] + [line] + lines[-3:]
-
     with open(out_file, "w") as file:
         file.writelines(lines)
 
@@ -315,3 +316,20 @@ def test_annotations_without_offset(tmp_path):
     assert raw.annotations[1]["description"] == "SYNCTIME"
     assert_allclose(raw.annotations[-1]["onset"], onset1)
     assert_allclose(raw.annotations[1]["onset"], onset2 - 2 / raw.info["sfreq"])
+
+
+@requires_testing_data
+def test_no_datetime(tmp_path):
+    """Test reading a file with no datetime."""
+    out_file = tmp_path / "tmp_eyelink.asc"
+    with open(fname) as file:
+        lines = file.readlines()
+    # remove the timestamp from the datetime line
+    lines[1] = lines[1].split(":")[0] + ":"
+    with open(out_file, "w") as file:
+        file.writelines(lines)
+    raw = read_raw_eyelink(out_file)
+    assert raw.info["meas_date"] is None
+    # Sanity check that a None meas_date doesn't change annotation times
+    # First annotation in this file is a fixation at 0.004 seconds
+    np.testing.assert_allclose(raw.annotations.onset[0], 0.004)

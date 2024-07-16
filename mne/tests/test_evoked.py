@@ -23,6 +23,7 @@ from scipy import fftpack
 from mne import (
     Epochs,
     EpochsArray,
+    SourceEstimate,
     combine_evoked,
     create_info,
     equalize_channels,
@@ -34,7 +35,7 @@ from mne import (
 from mne._fiff.constants import FIFF
 from mne.evoked import Evoked, EvokedArray, _get_peak
 from mne.io import read_raw_fif
-from mne.utils import grand_average
+from mne.utils import _record_warnings, grand_average
 
 base_dir = Path(__file__).parents[1] / "io" / "tests" / "data"
 fname = base_dir / "test-ave.fif"
@@ -589,6 +590,24 @@ def test_get_peak():
     with pytest.raises(ValueError, match="No positive values"):
         evoked_all_neg.get_peak(mode="pos")
 
+    # Test finding minimum and maximum values
+    evoked_all_neg_outlier = evoked_all_neg.copy()
+    evoked_all_pos_outlier = evoked_all_pos.copy()
+
+    # Add an outlier to the data
+    evoked_all_neg_outlier.data[0, 15] = -1e-20
+    evoked_all_pos_outlier.data[0, 15] = 1e-20
+
+    ch_name, time_idx, max_amp = evoked_all_neg_outlier.get_peak(
+        mode="pos", return_amplitude=True, strict=False
+    )
+    assert max_amp == -1e-20
+
+    ch_name, time_idx, min_amp = evoked_all_pos_outlier.get_peak(
+        mode="neg", return_amplitude=True, strict=False
+    )
+    assert min_amp == 1e-20
+
     # Test interaction between `mode` and `tmin` / `tmax`
     # For the test, create an Evoked where half of the values are negative
     # and the rest is positive
@@ -799,7 +818,7 @@ def test_time_as_index_and_crop():
     )
     evoked.crop(evoked.tmin, evoked.tmax, include_tmax=False)
     n_times = len(evoked.times)
-    with pytest.warns(RuntimeWarning, match="tmax is set to"):
+    with _record_warnings(), pytest.warns(RuntimeWarning, match="tmax is set to"):
         evoked.crop(tmin, tmax, include_tmax=False)
     assert len(evoked.times) == n_times
     assert_allclose(evoked.times[[0, -1]], [tmin, tmax - delta], atol=atol)
@@ -899,7 +918,7 @@ def test_evoked_baseline(tmp_path):
 
 
 def test_hilbert():
-    """Test hilbert on raw, epochs, and evoked."""
+    """Test hilbert on raw, epochs, evoked and SourceEstimate data."""
     raw = read_raw_fif(raw_fname).load_data()
     raw.del_proj()
     raw.pick(raw.ch_names[:2])
@@ -909,10 +928,17 @@ def test_hilbert():
         epochs.apply_hilbert()
     epochs.load_data()
     evoked = epochs.average()
+    # Create SourceEstimate stc data
+    verts = [np.arange(10), np.arange(90)]
+    data = np.random.default_rng(0).normal(size=(100, 10))
+    stc = SourceEstimate(data, verts, 0, 1e-1, "foo")
+
     raw_hilb = raw.apply_hilbert()
     epochs_hilb = epochs.apply_hilbert()
     evoked_hilb = evoked.copy().apply_hilbert()
     evoked_hilb_2_data = epochs_hilb.get_data(copy=False).mean(0)
+    stc_hilb = stc.copy().apply_hilbert()
+    stc_hilb_env = stc.copy().apply_hilbert(envelope=True)
     assert_allclose(evoked_hilb.data, evoked_hilb_2_data)
     # This one is only approximate because of edge artifacts
     evoked_hilb_3 = Epochs(raw_hilb, events).average()
@@ -923,6 +949,8 @@ def test_hilbert():
     # envelope=True mode
     evoked_hilb_env = evoked.apply_hilbert(envelope=True)
     assert_allclose(evoked_hilb_env.data, np.abs(evoked_hilb.data))
+    assert len(stc_hilb.data) == len(stc.data)
+    assert_allclose(stc_hilb_env.data, np.abs(stc_hilb.data))
 
 
 def test_apply_function_evk():
@@ -941,3 +969,33 @@ def test_apply_function_evk():
     applied = evoked.apply_function(fun, n_jobs=None, multiplier=mult)
     assert np.shape(applied.data) == np.shape(evoked_data)
     assert np.equal(applied.data, evoked_data * mult).all()
+
+
+def test_apply_function_evk_ch_access():
+    """Check ch-access within the apply_function method for evoked data."""
+
+    def _bad_ch_idx(x, ch_idx):
+        assert x[0] == ch_idx
+        return x
+
+    def _bad_ch_name(x, ch_name):
+        assert isinstance(ch_name, str)
+        assert x[0] == float(ch_name)
+        return x
+
+    # create fake evoked data to use for checking apply_function
+    data = np.full((2, 100), np.arange(2).reshape(-1, 1))
+    evoked = EvokedArray(data, create_info(2, 1000.0, "eeg"))
+
+    # test ch_idx access in both code paths (parallel / 1 job)
+    evoked.apply_function(_bad_ch_idx)
+    evoked.apply_function(_bad_ch_idx, n_jobs=2)
+    evoked.apply_function(_bad_ch_name)
+    evoked.apply_function(_bad_ch_name, n_jobs=2)
+
+    # test input catches
+    with pytest.raises(
+        ValueError,
+        match="cannot access.*when channel_wise=False",
+    ):
+        evoked.apply_function(_bad_ch_idx, channel_wise=False)

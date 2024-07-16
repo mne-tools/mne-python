@@ -16,10 +16,10 @@ from dataclasses import dataclass, is_dataclass
 from inspect import Parameter, isfunction, signature
 from numbers import Integral
 from time import time
-from typing import Dict, List, Literal, Optional, Union
+from typing import Literal, Optional, Union
 
 import numpy as np
-from scipy import linalg, stats
+from scipy import stats
 from scipy.spatial import distance
 from scipy.special import expit
 
@@ -82,6 +82,7 @@ from ..utils import (
     fill_doc,
     int_like,
     logger,
+    pinv,
     repr_html,
     verbose,
     warn,
@@ -189,8 +190,8 @@ def _check_for_unsupported_ica_channels(picks, info, allow_ref_meg=False):
     check = all([ch in types for ch in chs])
     if not check:
         raise ValueError(
-            "Invalid channel type%s passed for ICA: %s."
-            "Only the following types are supported: %s" % (_pl(chs), chs, types)
+            f"Invalid channel type{_pl(chs)} passed for ICA: {chs}."
+            f"Only the following types are supported: {types}"
         )
 
 
@@ -463,7 +464,7 @@ class ICA(ContainsMixin):
                 )
             if isinstance(val, int_like) and val == 1:
                 raise ValueError(
-                    f"Selecting one component with {kind}={val} is not " "supported"
+                    f"Selecting one component with {kind}={val} is not supported"
                 )
 
         self.current_fit = "unfitted"
@@ -508,13 +509,13 @@ class ICA(ContainsMixin):
         class _InfosForRepr:
             fit_on: Optional[Literal["raw data", "epochs"]]
             fit_method: Literal["fastica", "infomax", "extended-infomax", "picard"]
-            fit_params: Dict[str, Union[str, float]]
+            fit_params: dict[str, Union[str, float]]
             fit_n_iter: Optional[int]
             fit_n_samples: Optional[int]
             fit_n_components: Optional[int]
             fit_n_pca_components: Optional[int]
-            ch_types: List[str]
-            excludes: List[str]
+            ch_types: list[str]
+            excludes: list[str]
 
         if self.current_fit == "unfitted":
             fit_on = None
@@ -559,7 +560,7 @@ class ICA(ContainsMixin):
         """ICA fit information."""
         infos = self._get_infos_for_repr()
 
-        s = f'{infos.fit_on or "no"} decomposition, ' f"method: {infos.fit_method}"
+        s = f'{infos.fit_on or "no"} decomposition, method: {infos.fit_method}'
 
         if infos.fit_on is not None:
             s += (
@@ -754,7 +755,7 @@ class ICA(ContainsMixin):
         var_ord = var.argsort()[::-1]
         _sort_components(self, var_ord, copy=False)
         t_stop = time()
-        logger.info("Fitting ICA took {:.1f}s.".format(t_stop - t_start))
+        logger.info(f"Fitting ICA took {t_stop - t_start:.1f}s.")
         return self
 
     def _reset(self):
@@ -818,8 +819,8 @@ class ICA(ContainsMixin):
         """Aux method."""
         if epochs.events.size == 0:
             raise RuntimeError(
-                "Tried to fit ICA with epochs, but none were "
-                'found: epochs.events is "{}".'.format(epochs.events)
+                "Tried to fit ICA with epochs, but none were found: epochs.events is "
+                f'"{epochs.events}".'
             )
 
         # this should be a copy (picks a list of int)
@@ -935,7 +936,7 @@ class ICA(ContainsMixin):
                 f"n_pca_components ({self.n_pca_components}) results in "
                 f"only {n_pca} components (EV={evs[1]:0.1f}%)"
             )
-        logger.info("%s: %s components" % (msg, self.n_components_))
+        logger.info(f"{msg}: {self.n_components_} components")
 
         # the things to store for PCA
         self.pca_mean_ = pca.mean_
@@ -1006,7 +1007,7 @@ class ICA(ContainsMixin):
         self.current_fit = fit_type
 
     def _update_mixing_matrix(self):
-        self.mixing_matrix_ = linalg.pinv(self.unmixing_matrix_)
+        self.mixing_matrix_ = pinv(self.unmixing_matrix_)
 
     def _update_ica_names(self):
         """Update ICA names when n_components_ is set."""
@@ -1066,7 +1067,7 @@ class ICA(ContainsMixin):
             elif isinstance(inst, Evoked):
                 kind, do = "Evoked", "doesn't"
             else:
-                raise ValueError("Data input must be of Raw, Epochs or Evoked " "type")
+                raise ValueError("Data input must be of Raw, Epochs or Evoked type")
             raise RuntimeError(
                 "%s %s match fitted data: %i channels "
                 "fitted but %i channels supplied. \nPlease "
@@ -1262,7 +1263,7 @@ class ICA(ContainsMixin):
             )
             sources = self._sources_as_evoked(inst, add_channels)
         else:
-            raise ValueError("Data input must be of Raw, Epochs or Evoked " "type")
+            raise ValueError("Data input must be of Raw, Epochs or Evoked type")
         return sources
 
     def _sources_as_raw(self, raw, add_channels, start, stop):
@@ -1447,14 +1448,14 @@ class ICA(ContainsMixin):
             )
             sources = self._transform_evoked(inst)
         else:
-            raise ValueError("Data input must be of Raw, Epochs or Evoked " "type")
+            raise ValueError("Data input must be of Raw, Epochs or Evoked type")
 
         if target is not None:  # we can have univariate metrics without target
             target = self._check_target(target, inst, start, stop, reject_by_annotation)
 
             if sources.shape[-1] != target.shape[-1]:
                 raise ValueError(
-                    "Sources and target do not have the same " "number of time slices."
+                    "Sources and target do not have the same number of time slices."
                 )
             # auto target selection
             if isinstance(inst, BaseRaw):
@@ -1550,7 +1551,7 @@ class ICA(ContainsMixin):
             elif measure == "correlation":
                 this_idx = np.where(abs(scores[-1]) > threshold)[0]
             else:
-                raise ValueError("Unknown measure {}".format(measure))
+                raise ValueError(f"Unknown measure {measure}")
             idx += [this_idx]
             self.labels_["%s/%i/" % (prefix, ii) + ch] = list(this_idx)
 
@@ -1704,7 +1705,7 @@ class ICA(ContainsMixin):
         if method == "ctps":
             if threshold == "auto":
                 threshold = self._get_ctps_threshold()
-                logger.info("Using threshold: %.2f for CTPS ECG detection" % threshold)
+                logger.info(f"Using threshold: {threshold:.2f} for CTPS ECG detection")
             if isinstance(inst, BaseRaw):
                 sources = self.get_sources(
                     create_ecg_epochs(
@@ -1725,9 +1726,7 @@ class ICA(ContainsMixin):
             elif isinstance(inst, BaseEpochs):
                 sources = self.get_sources(inst).get_data(copy=False)
             else:
-                raise ValueError(
-                    "With `ctps` only Raw and Epochs input is " "supported"
-                )
+                raise ValueError("With `ctps` only Raw and Epochs input is supported")
             _, p_vals, _ = ctps(sources)
             scores = p_vals.max(-1)
             ecg_idx = np.where(scores >= threshold)[0]
@@ -1737,7 +1736,7 @@ class ICA(ContainsMixin):
             self.labels_["ecg"] = list(ecg_idx)
             if ch_name is None:
                 ch_name = "ECG-MAG"
-            self.labels_["ecg/%s" % ch_name] = list(ecg_idx)
+            self.labels_[f"ecg/{ch_name}"] = list(ecg_idx)
         elif method == "correlation":
             if threshold == "auto" and measure == "zscore":
                 threshold = 3.0
@@ -1913,7 +1912,7 @@ class ICA(ContainsMixin):
             ref_picks = pick_types(self.info, meg=False, ref_meg=True)
             if not any(meg_picks) or not any(ref_picks):
                 raise ValueError(
-                    "ICA solution must contain both reference and" " MEG channels."
+                    "ICA solution must contain both reference and MEG channels."
                 )
             weights = self.get_components()
             # take norm of component weights on reference channels for each
@@ -2422,7 +2421,7 @@ class ICA(ContainsMixin):
         )
         fname = _check_fname(fname, overwrite=overwrite)
 
-        logger.info("Writing ICA solution to %s..." % fname)
+        logger.info(f"Writing ICA solution to {fname}...")
         with start_and_end_file(fname) as fid:
             _write_ica(fid, self)
         return self
@@ -2519,6 +2518,7 @@ class ICA(ContainsMixin):
         reject="auto",
         reject_by_annotation=True,
         *,
+        estimate="power",
         verbose=None,
     ):
         return plot_ica_properties(
@@ -2536,6 +2536,7 @@ class ICA(ContainsMixin):
             show=show,
             reject=reject,
             reject_by_annotation=reject_by_annotation,
+            estimate=estimate,
             verbose=verbose,
         )
 
@@ -2784,7 +2785,7 @@ def _get_target_ch(container, target):
         picks = list(set(picks) - set(ref_picks))
 
     if len(picks) == 0:
-        raise ValueError("%s not in channel list (%s)" % (target, container.ch_names))
+        raise ValueError(f"{target} not in channel list ({container.ch_names})")
     return picks
 
 
@@ -2794,7 +2795,7 @@ def _find_sources(sources, target, score_func):
         score_func = get_score_funcs().get(score_func, score_func)
 
     if not callable(score_func):
-        raise ValueError("%s is not a valid score_func." % score_func)
+        raise ValueError(f"{score_func} is not a valid score_func.")
 
     scores = (
         score_func(sources, target) if target is not None else score_func(sources, 1)
@@ -2827,7 +2828,7 @@ def _ica_explained_variance(ica, inst, normalize=False):
         raise TypeError("first argument must be an instance of ICA.")
     if not isinstance(inst, (BaseRaw, BaseEpochs, Evoked)):
         raise TypeError(
-            "second argument must an instance of either Raw, " "Epochs or Evoked."
+            "second argument must an instance of either Raw, Epochs or Evoked."
         )
 
     source_data = _get_inst_data(ica.get_sources(inst))
@@ -3004,7 +3005,7 @@ def read_ica(fname, verbose=None):
     """
     check_fname(fname, "ICA", ("-ica.fif", "-ica.fif.gz", "_ica.fif", "_ica.fif.gz"))
 
-    logger.info("Reading %s ..." % fname)
+    logger.info(f"Reading {fname} ...")
     fid, tree, _ = fiff_open(fname)
 
     try:
@@ -3063,7 +3064,7 @@ def read_ica(fname, verbose=None):
 
     fid.close()
 
-    ica_init, ica_misc = [_deserialize(k) for k in (ica_init, ica_misc)]
+    ica_init, ica_misc = (_deserialize(k) for k in (ica_init, ica_misc))
     n_pca_components = ica_init.pop("n_pca_components")
     current_fit = ica_init.pop("current_fit")
     max_pca_components = ica_init.pop("max_pca_components")
@@ -3341,7 +3342,7 @@ def corrmap(
     template_fig, labelled_ics = None, None
     if plot is True:
         if is_subject:  # plotting from an ICA object
-            ttl = "Template from subj. {}".format(str(template[0]))
+            ttl = f"Template from subj. {template[0]}"
             template_fig = icas[template[0]].plot_components(
                 picks=template[1],
                 ch_type=ch_type,
@@ -3376,8 +3377,8 @@ def corrmap(
     threshold = np.atleast_1d(np.array(threshold, float)).ravel()
     threshold_err = (
         "No component detected using when z-scoring "
-        "threshold%s %s, consider using a more lenient "
-        "threshold" % (threshold_extra, threshold)
+        f"threshold{threshold_extra} {threshold}, consider using a more lenient "
+        "threshold"
     )
     if len(all_maps) == 0:
         raise RuntimeError(threshold_err)
@@ -3393,8 +3394,8 @@ def corrmap(
     # find iteration with highest avg correlation with target
     _, median_corr, _, max_corrs = paths[np.argmax([path[1] for path in paths])]
 
-    allmaps, indices, subjs, nones = [list() for _ in range(4)]
-    logger.info("Median correlation with constructed map: %0.3f" % median_corr)
+    allmaps, indices, subjs, nones = (list() for _ in range(4))
+    logger.info(f"Median correlation with constructed map: {median_corr:0.3f}")
     del median_corr
     if plot is True:
         logger.info("Displaying selected ICs per subject.")
@@ -3499,7 +3500,7 @@ def read_ica_eeglab(fname, *, montage_units="auto", verbose=None):
     # So in either case, we can use SVD to get our square whitened
     # weights matrix (u * s) and our PCA vectors (v) back:
     use = eeg.icaweights @ eeg.icasphere
-    use_check = linalg.pinv(eeg.icawinv)
+    use_check = pinv(eeg.icawinv)
     if not np.allclose(use, use_check, rtol=1e-6):
         warn(
             "Mismatch between icawinv and icaweights @ icasphere from EEGLAB "

@@ -29,19 +29,19 @@ inv_fname = meg_path / "sample_audvis-meg-oct-6-meg-inv.fif"
 
 inv = read_inverse_operator(inv_fname)
 
-print("Method: %s" % inv["methods"])
-print("fMRI prior: %s" % inv["fmri_prior"])
-print("Number of sources: %s" % inv["nsource"])
-print("Number of channels: %s" % inv["nchan"])
+print(f"Method: {inv['methods']}")
+print(f"fMRI prior: {inv['fmri_prior']}")
+print(f"Number of sources: {inv['nsource']}")
+print(f"Number of channels: {inv['nchan']}")
 
 src = inv["src"]  # get the source space
 
 # Get access to the triangulation of the cortex
 
-print("Number of vertices on the left hemisphere: %d" % len(src[0]["rr"]))
-print("Number of triangles on left hemisphere: %d" % len(src[0]["use_tris"]))
-print("Number of vertices on the right hemisphere: %d" % len(src[1]["rr"]))
-print("Number of triangles on right hemisphere: %d" % len(src[1]["use_tris"]))
+print(f"Number of vertices on the left hemisphere:  {len(src[0]['rr'])}")
+print(f"Number of triangles on left hemisphere:     {len(src[0]['use_tris'])}")
+print(f"Number of vertices on the right hemisphere: {len(src[1]['rr'])}")
+print(f"Number of triangles on right hemisphere:    {len(src[1]['use_tris'])}")
 
 # %%
 # Show the 3D source space
