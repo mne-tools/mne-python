@@ -260,7 +260,7 @@ def unify_bad_channels(insts):
     valid_types = (BaseRaw, Epochs, Evoked, BaseSpectrum)
     for inst in insts:
         _validate_type(inst, valid_types, "each object in insts")
-        if type(inst) != inst_type:
+        if type(inst) is not inst_type:
             raise ValueError("All insts must be the same type")
 
     # ensure all insts have the same channels and channel order

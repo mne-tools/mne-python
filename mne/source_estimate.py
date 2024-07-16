@@ -479,7 +479,7 @@ def _make_stc(
 def _verify_source_estimate_compat(a, b):
     """Make sure two SourceEstimates are compatible for arith. operations."""
     compat = False
-    if type(a) != type(b):
+    if type(a) is not type(b):
         raise ValueError(f"Cannot combine {type(a)} and {type(b)}.")
     if len(a.vertices) == len(b.vertices):
         if all(np.array_equal(av, vv) for av, vv in zip(a.vertices, b.vertices)):
