@@ -1345,10 +1345,10 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
             Helium level (%) after position correction.
         orig_file_guid : str
             Original file GUID.
-        meas_date : instance of datetime.datetime
+        meas_date : datetime.datetime
             The helium level meas date.
 
-            .. versionchanged:: 1.7
+            .. versionchanged:: 1.8
                This is stored as a :class:`~python:datetime.datetime` object
                instead of a tuple of seconds/microseconds.
 
@@ -1464,10 +1464,10 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
             First name.
         middle_name : str
             Middle name.
-        meas_date : instance of datetime.date
+        meas_date : datetime.date
             The subject birthday.
 
-            .. versionchanged:: 1.7
+            .. versionchanged:: 1.8
                This is stored as a :class:`~python:datetime.date` object
                instead of a tuple of seconds/microseconds.
         sex : int
