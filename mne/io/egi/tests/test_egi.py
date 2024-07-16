@@ -15,7 +15,7 @@ import pytest
 from numpy.testing import assert_allclose, assert_array_equal
 from scipy import io as sio
 
-from mne import find_events, pick_types
+from mne import events_from_annotations, find_events, pick_types
 from mne._fiff.constants import FIFF
 from mne.datasets.testing import data_path, requires_testing_data
 from mne.io import read_evokeds_mff, read_raw_egi, read_raw_fif
@@ -57,6 +57,9 @@ egi_eprime_pause_skips = [(1344000.0, 1804000.0)]
 
 egi_pause_w1337_events = None
 egi_pause_w1337_skips = [(21956000.0, 40444000.0), (60936000.0, 89332000.0)]
+
+# TODO: Remove once complete deprecation / FutureWarning about events_as_annonations
+pytestmark = pytest.mark.filterwarnings("ignore:.*events_as_annotation.*:FutureWarning")
 
 
 @requires_testing_data
@@ -185,21 +188,29 @@ def test_io_egi_mff(events_as_annotations):
     # test our custom channel naming logic functionality
     eeg_chan = [c for c in raw.ch_names if "EEG" in c]
     assert len(eeg_chan) == n_eeg  # 128: VREF will not match in comprehension
-    assert "STI 014" in raw.ch_names
+    if events_as_annotations:
+        assert "STI 014" not in raw.ch_names
+        assert raw.event_id is None
+        event_id = {"DIN1": 1, "DIN2": 2, "DIN3": 3, "DIN4": 4, "DIN5": 5, "DIN7": 7}
+        events, _ = events_from_annotations(raw, event_id=event_id)
+    else:
+        assert "STI 014" in raw.ch_names
+        events = find_events(raw, stim_channel="STI 014")
+        event_id = raw.event_id
 
-    events = find_events(raw, stim_channel="STI 014")
     assert len(events) == 8
     assert np.unique(events[:, 1])[0] == 0
     assert np.unique(events[:, 0])[0] != 0
     assert np.unique(events[:, 2])[0] != 0
+    assert "DIN1" in event_id
 
     with pytest.raises(ValueError, match="Could not find event"):
         read_raw_egi(egi_mff_fname, include=["Foo"])
     with pytest.raises(ValueError, match="Could not find event"):
         read_raw_egi(egi_mff_fname, exclude=["Bar"])
     for ch in include:
-        assert ch in raw.event_id
-        assert raw.event_id[ch] == int(ch[-1])
+        assert ch in event_id
+        assert event_id[ch] == int(ch[-1])
     # test converting stim triggers to annotations
     if events_as_annotations:
         # Grab the first annotation. Should be the first "DIN1" event.
@@ -225,12 +236,10 @@ def test_io_egi():
     data = data[1:]
     data *= 1e-6  # µV
 
-    with pytest.warns(RuntimeWarning, match="Did not find any event code"):
-        raw = read_raw_egi(egi_fname, include=None)
+    raw = read_raw_egi(egi_fname)
 
     # The reader should accept a Path, too.
-    with pytest.warns(RuntimeWarning, match="Did not find any event code"):
-        raw = read_raw_egi(Path(egi_fname), include=None)
+    raw = read_raw_egi(Path(egi_fname))
 
     assert "RawEGI" in repr(raw)
     data_read, t_read = raw[:256]
@@ -387,7 +396,6 @@ def test_io_egi_crop_no_preload():
     assert_allclose(raw._data, raw_preload._data)
 
 
-@pytest.mark.filterwarnings("ignore::FutureWarning")
 @requires_testing_data
 @pytest.mark.parametrize(
     "idx, cond, tmax, signals, bads",
@@ -469,7 +477,6 @@ def test_io_egi_evokeds_mff(idx, cond, tmax, signals, bads):
     assert evoked_cond.info["device_info"]["type"] == "HydroCel GSN 256 1.0"
 
 
-@pytest.mark.filterwarnings("ignore::FutureWarning")
 @requires_testing_data
 def test_read_evokeds_mff_bad_input():
     """Test errors are thrown when reading invalid input file."""
