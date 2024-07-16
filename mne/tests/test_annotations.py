@@ -1171,7 +1171,7 @@ def test_annotations_simple_iteration():
             elements.values(), EXPECTED_ELEMENTS_TYPE, expected_values
         ):
             assert np.isscalar(elem)
-            assert type(elem) == expected_type
+            assert isinstance(elem, expected_type)
             assert elem == expected_value
 
 

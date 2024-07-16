@@ -761,7 +761,7 @@ def object_diff(a, b, pre="", *, allclose=False):
     """
     pd = _check_pandas_installed(strict=False)
     out = ""
-    if type(a) != type(b):
+    if type(a) is not type(b):
         # Deal with NamedInt and NamedFloat
         for sub in (int, float):
             if isinstance(a, sub) and isinstance(b, sub):
