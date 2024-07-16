@@ -93,7 +93,7 @@ bundles to the ``Applications`` folder on macOS.
 .. rst-class:: mt-4
 .. rst-class:: mb-5
 
-- |code| |ensp| Set up an :ref:`IDE <ide_setup>` to start writing your own analysis scripts right away, or to run one of our examples from this website.
+- |code| |ensp| Set up **Visual Studio Code** or another IDE (:ref:`instructions here <ide_setup>`) to start writing your own analysis scripts right away, or to run one of our examples from this website.
 
   .. rst-class:: mt-3
 - |desktop| |ensp| With **System Info**, list the versions of all installed MNE-Python-related packages.

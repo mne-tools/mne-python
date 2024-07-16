@@ -127,9 +127,17 @@ Python development are:
   free and open-source Community edition as well as a paid Professional edition.
 
 For these IDEs, you'll need to provide the path to the Python interpreter you want it
-to use. To find that path, open the Python interpreter you want to use (e.g., the one
-from the MNE-Python installer, or a ``conda`` environment that you have activated)
-and run::
+to use. If you're using the MNE-Python installers, on Linux and macOS opening the
+**Prompt** will display several lines of information, including a line that will read
+something like:
+
+.. code-block:: output
+
+   Using Python: /some/directory/mne-python_1.7.1_0/bin/python
+
+Altertatively (or on Windows), you can find that path by opening the Python interpreter
+you want to use (e.g., the one from the MNE-Python installer, or a ``conda`` environment
+that you have activated) and running::
 
    >>> import sys
    >>> print(sys.executable)
