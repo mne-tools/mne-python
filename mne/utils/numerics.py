@@ -10,7 +10,7 @@ import numbers
 import operator
 import sys
 from contextlib import contextmanager
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from io import BytesIO, StringIO
 from math import ceil, sqrt
 from pathlib import Path
@@ -705,6 +705,8 @@ def object_size(x, memo=None):
         size = sys.getsizeof(x) + sum(object_size(xx, memo) for xx in x)
     elif isinstance(x, datetime):
         size = object_size(_dt_to_stamp(x), memo)
+    elif isinstance(x, date):
+        size = 24  # 3 8-byte integers
     elif _is_sparse_cs(x):
         size = sum(sys.getsizeof(xx) for xx in [x, x.data, x.indices, x.indptr])
     else:
@@ -805,9 +807,9 @@ def object_diff(a, b, pre="", *, allclose=False):
     elif isinstance(a, (StringIO, BytesIO)):
         if a.getvalue() != b.getvalue():
             out += pre + " StringIO mismatch\n"
-    elif isinstance(a, datetime):
+    elif isinstance(a, (datetime, date)):
         if (a - b).total_seconds() != 0:
-            out += pre + " datetime mismatch\n"
+            out += pre + f" {a.__class__.__name__} mismatch\n"
     elif sparse.issparse(a):
         # sparsity and sparse type of b vs a already checked above by type()
         if b.shape != a.shape:
@@ -937,8 +939,8 @@ def _mask_to_onsets_offsets(mask):
     return onsets, offsets
 
 
-def _julian_to_dt(jd):
-    """Convert Julian integer to a datetime object.
+def _julian_to_date(jd):
+    """Convert Julian integer to a date object.
 
     Parameters
     ----------
@@ -960,15 +962,15 @@ def _julian_to_dt(jd):
     datetime_t0 = datetime(1970, 1, 1, 12, 0, 0, 0, tzinfo=timezone.utc)
 
     dt = timedelta(days=(jd - jd_t0))
-    return datetime_t0 + dt
+    return (datetime_t0 + dt).date()
 
 
-def _dt_to_julian(jd_date):
+def _date_to_julian(jd_date):
     """Convert datetime object to a Julian integer.
 
     Parameters
     ----------
-    jd_date : datetime
+    jd_date : date
 
     Returns
     -------
@@ -983,52 +985,9 @@ def _dt_to_julian(jd_date):
     # https://aa.usno.navy.mil/data/docs/JulianDate.php
     # Thursday, A.D. 1970 Jan 1 12:00:00.0  2440588.000000
     jd_t0 = 2440588
-    datetime_t0 = datetime(1970, 1, 1, 12, 0, 0, 0, tzinfo=timezone.utc)
-
-    dt = jd_date - datetime_t0
+    date_t0 = date(1970, 1, 1)
+    dt = jd_date - date_t0
     return jd_t0 + dt.days
-
-
-def _cal_to_julian(year, month, day):
-    """Convert calendar date (year, month, day) to a Julian integer.
-
-    Parameters
-    ----------
-    year : int
-        Year as an integer.
-    month : int
-        Month as an integer.
-    day : int
-        Day as an integer.
-
-    Returns
-    -------
-    jd: int
-        Julian date.
-    """
-    return int(_dt_to_julian(datetime(year, month, day, 12, 0, 0, tzinfo=timezone.utc)))
-
-
-def _julian_to_cal(jd):
-    """Convert calendar date (year, month, day) to a Julian integer.
-
-    Parameters
-    ----------
-    jd: int, float
-        Julian date.
-
-    Returns
-    -------
-    year : int
-        Year as an integer.
-    month : int
-        Month as an integer.
-    day : int
-        Day as an integer.
-
-    """
-    tmp_date = _julian_to_dt(jd)
-    return tmp_date.year, tmp_date.month, tmp_date.day
 
 
 def _check_dt(dt):
