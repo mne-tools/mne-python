@@ -1269,6 +1269,11 @@ emit_warning : bool
     Whether to emit warnings when cropping or omitting annotations.
 """
 
+docdict["encoding_nirx"] = """
+encoding : str
+    Text encoding of the NIRX header file. See :std:label:`standard-encodings`.
+"""
+
 docdict["encoding_edf"] = """
 encoding : str
     Encoding of annotations channel(s). Default is "utf8" (the only correct

@@ -35,7 +35,7 @@ from ._localized_abbr import _localized_abbr
 
 @fill_doc
 def read_raw_nirx(
-    fname, saturated="annotate", preload=False, verbose=None
+    fname, saturated="annotate", *, preload=False, encoding=None, verbose=None
 ) -> "RawNIRX":
     """Reader for a NIRX fNIRS recording.
 
@@ -45,6 +45,7 @@ def read_raw_nirx(
         Path to the NIRX data folder or header file.
     %(saturated)s
     %(preload)s
+    %(encoding_nirx)s
     %(verbose)s
 
     Returns
@@ -61,7 +62,9 @@ def read_raw_nirx(
     -----
     %(nirx_notes)s
     """
-    return RawNIRX(fname, saturated, preload, verbose)
+    return RawNIRX(
+        fname, saturated, preload=preload, encoding=encoding, verbose=verbose
+    )
 
 
 def _open(fname):
@@ -78,6 +81,7 @@ class RawNIRX(BaseRaw):
         Path to the NIRX data folder or header file.
     %(saturated)s
     %(preload)s
+    %(encoding_nirx)s
     %(verbose)s
 
     See Also
@@ -90,7 +94,7 @@ class RawNIRX(BaseRaw):
     """
 
     @verbose
-    def __init__(self, fname, saturated, preload=False, verbose=None):
+    def __init__(self, fname, saturated, *, preload=False, encoding=None, verbose=None):
         logger.info(f"Loading {fname}")
         _validate_type(fname, "path-like", "fname")
         _validate_type(saturated, str, "saturated")
@@ -178,7 +182,7 @@ class RawNIRX(BaseRaw):
         # Read header file
         # The header file isn't compliant with the configparser. So all the
         # text between comments must be removed before passing to parser
-        with _open(files["hdr"]) as f:
+        with open(files["hdr"], encoding=encoding) as f:
             hdr_str_all = f.read()
         hdr_str = re.sub("#.*?#", "", hdr_str_all, flags=re.DOTALL)
         if is_aurora:
