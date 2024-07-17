@@ -106,10 +106,7 @@ class RawNIRX(BaseRaw):
         fname = str(_check_fname(fname, "read", True, "fname", need_dir=True))
 
         json_config = glob.glob(f"{fname}/*{'config.json'}")
-        if len(json_config):
-            is_aurora = True
-        else:
-            is_aurora = False
+        is_aurora = len(json_config)
 
         if is_aurora:
             # NIRSport2 devices using Aurora software
