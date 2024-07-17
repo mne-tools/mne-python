@@ -32,7 +32,7 @@ events = mne.find_events(raw, stim_channel="STI 014")
 event_id = dict(aud_l=1)  # event trigger and conditions
 tmin = -0.2  # start of each epoch (200ms before the trigger)
 tmax = 0.5  # end of each epoch (500ms after the trigger)
-raw.info["bads"] = ["MEG 2443", "EEG 053"]
+raw.info["bads"] = ["MEG 2443", "EEG 053"]  # mark known bad channels
 baseline = (None, 0)  # means from the first instant to t = 0
 reject = dict(grad=4000e-13, mag=4e-12, eog=150e-6)
 

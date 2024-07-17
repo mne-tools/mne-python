@@ -376,7 +376,7 @@ def test_plot_white():
         evoked.plot_white(cov, rank={"mag": 10})
     evoked.plot_white(cov, rank={"mag": 1, "grad": 8, "eeg": 2}, time_unit="s")
     fig = evoked.plot_white(cov, rank={"mag": 1}, time_unit="s")  # test rank
-    evoked.plot_white(cov, rank={"grad": 8}, time_unit="s", axes=fig.axes)
+    evoked.plot_white(cov, rank={"grad": 8}, time_unit="s", axes=fig.axes[:4])
     with pytest.raises(ValueError, match=r"must have shape \(4,\), got \(2,"):
         evoked.plot_white(cov, axes=fig.axes[:2])
     with pytest.raises(ValueError, match="When not using SSS"):
@@ -385,18 +385,19 @@ def test_plot_white():
     plt.close("all")
 
     fig = plot_evoked_white(evoked, [cov, cov])
-    assert len(fig.axes) == 3 * 2
-    axes = np.array(fig.axes).reshape(3, 2)
+    assert len(fig.axes) == 3 * 3
+    axes = np.array(fig.axes[:6]).reshape(3, 2)
     plot_evoked_white(evoked, [cov, cov], axes=axes)
     with pytest.raises(ValueError, match=r"have shape \(3, 2\), got"):
         plot_evoked_white(evoked, [cov, cov], axes=axes[:, :1])
 
     # Hack to test plotting of maxfiltered data
-    evoked_sss = _get_epochs(picks="meg").average()
+    evoked_sss = _get_epochs(picks=("meg", "eeg")).average()
+    evoked_sss.set_eeg_reference(projection=True).apply_proj()
     sss = dict(sss_info=dict(in_order=80, components=np.arange(80)))
     with evoked_sss.info._unlock():
         evoked_sss.info["proc_history"] = [dict(max_info=sss)]
-    evoked_sss.plot_white(cov, rank={"meg": 64})
+    evoked_sss.plot_white([cov, cov], rank={"meg": 64})
     with pytest.raises(ValueError, match="When using SSS"):
         evoked_sss.plot_white(cov, rank={"grad": 201})
     evoked_sss.plot_white(cov, rank={"meg": 302}, time_unit="s")
