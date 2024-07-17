@@ -246,6 +246,7 @@ class RawNIRX(BaseRaw):
                 '"%a %d %b %Y""%H:%M:%S.%f"',
                 '"%a, %d %b %Y""%H:%M:%S.%f"',
                 "%Y-%m-%d %H:%M:%S.%f",
+                '"%Y年%m月%d日""%H:%M:%S.%f"',
             ]:
                 try:
                     meas_date = dt.datetime.strptime(loc_datetime_str, dt_code)
