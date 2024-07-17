@@ -4,6 +4,7 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+import datetime
 import os
 import pathlib
 import pickle
@@ -189,7 +190,7 @@ def test_subject_info(tmp_path):
     assert raw.info["subject_info"] is None
     # fake some subject data
     keys = ["id", "his_id", "last_name", "first_name", "birthday", "sex", "hand"]
-    vals = [1, "foobar", "bar", "foo", (1901, 2, 3), 0, 1]
+    vals = [1, "foobar", "bar", "foo", datetime.date(1901, 2, 3), 0, 1]
     subject_info = dict()
     for key, val in zip(keys, vals):
         subject_info[key] = val
