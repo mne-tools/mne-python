@@ -21,7 +21,7 @@ import mne
 from mne.datasets import sample
 
 # %%
-# Source estimation method such as MNE require a noise estimations from the
+# Source estimation methods such as MNE require noise estimates from the
 # recordings. In this tutorial we cover the basics of noise covariance and
 # construct a noise covariance matrix that can be used when computing the
 # inverse solution. For more information, see :ref:`minimum_norm_estimates`.
