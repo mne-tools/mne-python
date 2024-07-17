@@ -1226,13 +1226,14 @@ def test_plotting_scalebars(browser_backend, qtbot):
     ismpl = browser_backend.name == "matplotlib"
     raw = mne.io.read_raw_fif(raw_fname).crop(0, 1).load_data()
     fig = raw.plot(butterfly=True)
-    qtbot.wait_exposed(fig)
     if ismpl:
         ch_types = [text.get_text() for text in fig.mne.ax_main.get_yticklabels()]
         assert ch_types == ["mag", "grad", "eeg", "eog", "stim"]
         delta = 0.25
         offset = 0
     else:
+        qtbot.wait_exposed(fig)
+        qtbot.wait(100)
         ch_types = list(fig.mne.channel_axis.ch_texts)  # keys
         # the grad/mag difference here is intentional in _pg_figure.py
         assert ch_types == ["grad", "mag", "eeg", "eog", "stim"]
