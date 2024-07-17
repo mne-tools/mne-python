@@ -397,11 +397,6 @@ def _compute_ax_scalings(bn, xlim, ylim):
     bn.y_t = pos[1] - bn.y_s * ylim[0]
 
 
-def _check_vlim(vlim):
-    """Check the vlim."""
-    return not np.isscalar(vlim) and vlim is not None
-
-
 def _imshow_tfr(
     ax,
     ch_idx,
@@ -1008,13 +1003,11 @@ def _plot_evoked_topo(
             > 0
         )
         if is_meg:
-            types_used = list(types_used)[::-1]  # -> restore kwarg order
             picks = [
                 pick_types(info, meg=kk, ref_meg=False, exclude=exclude)
                 for kk in types_used
             ]
         elif is_nirs:
-            types_used = list(types_used)[::-1]  # -> restore kwarg order
             picks = [
                 pick_types(info, fnirs=kk, ref_meg=False, exclude=exclude)
                 for kk in types_used
