@@ -1233,8 +1233,11 @@ def test_plotting_scalebars(browser_backend, qtbot):
         offset = 0
     else:
         qtbot.wait_exposed(fig)
-        qtbot.wait(100)
-        ch_types = list(fig.mne.channel_axis.ch_texts)  # keys
+        for _ in range(10):
+            ch_types = list(fig.mne.channel_axis.ch_texts)  # keys
+            if len(ch_types) > 0:
+                break
+            qtbot.wait(100)  # pragma: no cover
         # the grad/mag difference here is intentional in _pg_figure.py
         assert ch_types == ["grad", "mag", "eeg", "eog", "stim"]
         delta = 0.5  # TODO: Probably should also be 0.25?
