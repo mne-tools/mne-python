@@ -1185,6 +1185,7 @@ def test_ch_types():
     assert_allclose(data, data_units)
 
 
+@testing.requires_testing_data
 def test_anonymization():
     """Test that RawEDF anonymizes data in memory."""
     # gh-11966
