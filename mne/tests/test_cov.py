@@ -118,6 +118,20 @@ def test_compute_whitener(proj, pca):
     n_reduced = rank if pca is True else n_channels
     assert W3.shape == C3.shape[::-1] == (n_reduced, n_channels)
 
+    # ensure that computing a whitener when there is a huge amplitude mismatch
+    # emits a warning
+    raw.pick("grad")
+    raw.info["bads"] = []
+    assert len(raw.info["projs"]) == 0
+    assert len(raw.ch_names) == 204
+    cov = make_ad_hoc_cov(raw.info)
+    assert cov["data"].ndim == 1
+    cov["data"][0] *= 1e12  # make one channel 6 orders of magnitude larger
+    with pytest.warns(RuntimeWarning, match="orders of magnitude"):
+        W, _ = compute_whitener(cov, raw.info)
+    assert_allclose(np.diag(np.diag(W)), W, atol=1e-20)
+    assert_allclose(np.diag(W), 1.0 / np.sqrt(cov["data"]))
+
 
 def test_cov_mismatch():
     """Test estimation with MEG<->Head mismatch."""
@@ -894,7 +908,8 @@ def test_cov_ctf():
         epochs = Epochs(raw, events, None, -0.2, 0.2, preload=True)
         with _record_warnings(), pytest.warns(RuntimeWarning, match="Too few samples"):
             noise_cov = compute_covariance(epochs, tmax=0.0, method=["empirical"])
-        prepare_noise_cov(noise_cov, raw.info, ch_names)
+        with pytest.warns(RuntimeWarning, match="orders of magnitude"):
+            prepare_noise_cov(noise_cov, raw.info, ch_names)
 
     raw.apply_gradient_compensation(0)
     epochs = Epochs(raw, events, None, -0.2, 0.2, preload=True)
@@ -903,7 +918,8 @@ def test_cov_ctf():
     raw.apply_gradient_compensation(1)
 
     # TODO This next call in principle should fail.
-    prepare_noise_cov(noise_cov, raw.info, ch_names)
+    with pytest.warns(RuntimeWarning, match="orders of magnitude"):
+        prepare_noise_cov(noise_cov, raw.info, ch_names)
 
     # make sure comps matrices was not removed from raw
     assert raw.info["comps"], "Comps matrices removed"
@@ -941,6 +957,9 @@ def test_compute_whitener_rank():
     assert rank == 305
     assert compute_rank(cov, info=info, verbose=True) == dict(meg=rank)
     # this should emit a warning
-    with pytest.warns(RuntimeWarning, match="exceeds the estimated"):
+    with (
+        pytest.warns(RuntimeWarning, match="orders of magnitude"),
+        pytest.warns(RuntimeWarning, match="exceeds the estimated"),
+    ):
         _, _, rank = compute_whitener(cov, info, rank=dict(meg=306), return_rank=True)
     assert rank == 306
