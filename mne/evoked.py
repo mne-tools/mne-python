@@ -745,6 +745,8 @@ class Evoked(
         time_unit="s",
         sphere=None,
         axes=None,
+        *,
+        spatial_colors="auto",
         verbose=None,
     ):
         return plot_evoked_white(
@@ -755,6 +757,7 @@ class Evoked(
             time_unit=time_unit,
             sphere=sphere,
             axes=axes,
+            spatial_colors=spatial_colors,
             verbose=verbose,
         )
 

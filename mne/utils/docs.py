@@ -4131,6 +4131,17 @@ smooth : float in [0, 1)
     The smoothing factor to be applied. Default 0 is no smoothing.
 """
 
+docdict["spatial_colors"] = """\
+spatial_colors : bool | 'auto'
+    If True, the lines are color coded by mapping physical sensor
+    coordinates into color values. Spatially similar channels will have
+    similar colors. Bad channels will be dotted. If False, the good
+    channels are plotted black and bad channels red. If ``'auto'``, uses
+    True if channel locations are present, and False if channel locations
+    are missing or if the data contains only a single channel. Defaults to
+    ``'auto'``.
+"""
+
 docdict["spatial_colors_psd"] = """\
 spatial_colors : bool
     Whether to color spectrum lines by channel location. Ignored if
