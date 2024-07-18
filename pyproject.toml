@@ -176,6 +176,7 @@ doc = [
 dev = ["mne[test,doc]", "rcssmin"]
 doc_related = [
     "alphaCSC",
+    "autoreject",
     "bycycle",
     "conpy",
     "emd",

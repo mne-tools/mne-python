@@ -225,6 +225,8 @@ class RelatedSoftwareDirective(Directive):
 
 def setup(app):
     app.add_directive("related-software", RelatedSoftwareDirective)
+    # Run it as soon as this is added as a Sphinx extension so that any errors
+    # / new packages are reported early. The next call in run() will be cached.
     _get_packages()
     return {
         "version": "0.1",
