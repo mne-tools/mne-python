@@ -792,14 +792,18 @@ def test_scraper(tmp_path):
     r.add_figure(fig=fig1, title="a")
     r.add_figure(fig=fig2, title="b")
     # Mock a Sphinx + sphinx_gallery config
-    app = Bunch(builder=Bunch(srcdir=tmp_path, outdir=tmp_path / "_build" / "html"))
+    srcdir = tmp_path
+    outdir = tmp_path / "_build" / "html"
     scraper = _ReportScraper()
-    scraper.app = app
-    gallery_conf = dict(src_dir=app.builder.srcdir, builder_name="html")
-    img_fname = app.builder.srcdir / "auto_examples" / "images" / "sg_img.png"
-    target_file = app.builder.srcdir / "auto_examples" / "sg.py"
+    gallery_conf = dict(builder_name="html", src_dir=srcdir)
+    app = Bunch(
+        builder=Bunch(outdir=outdir),
+        config=Bunch(sphinx_gallery_conf=gallery_conf),
+    )
+    scraper.set_dirs(app)
+    img_fname = srcdir / "auto_examples" / "images" / "sg_img.png"
+    target_file = srcdir / "auto_examples" / "sg.py"
     os.makedirs(img_fname.parent)
-    os.makedirs(app.builder.outdir)
     block_vars = dict(
         image_path_iterator=(img for img in [str(img_fname)]),
         example_globals=dict(a=1),
@@ -814,12 +818,11 @@ def test_scraper(tmp_path):
     rst = scraper(block, block_vars, gallery_conf)
     # Once it's saved, add it
     assert rst == ""
-    fname = tmp_path / "my_html.html"
+    fname = srcdir / "my_html.html"
     r.save(fname, open_browser=False)
-    rst = scraper(block, block_vars, gallery_conf)
-    out_html = app.builder.outdir / "auto_examples" / "my_html.html"
+    out_html = outdir / "auto_examples" / "my_html.html"
     assert not out_html.is_file()
-    scraper.copyfiles()
+    rst = scraper(block, block_vars, gallery_conf)
     assert out_html.is_file()
     assert rst.count('"') == 8
     assert "<iframe" in rst
@@ -951,7 +954,8 @@ def test_manual_report_2d(tmp_path, invisible_fig):
     r.add_epochs(
         epochs=epochs_without_metadata, title="my epochs 2", psd=True, projs=False
     )
-    assert "Metadata" not in r.html[-1]
+    assert "Metadata" in r.html[-1]
+    assert "No metadata set" in r.html[-1]
 
     # Try with metadata
     r.add_epochs(
@@ -961,6 +965,7 @@ def test_manual_report_2d(tmp_path, invisible_fig):
         projs=False,
     )
     assert "Metadata" in r.html[-1]
+    assert "25 rows × 7 columns" in r.html[-1]
 
     with pytest.raises(ValueError, match="requested to calculate PSD on a duration"):
         r.add_epochs(

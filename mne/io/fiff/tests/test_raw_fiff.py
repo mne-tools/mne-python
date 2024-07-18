@@ -4,6 +4,7 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+import datetime
 import os
 import pathlib
 import pickle
@@ -189,7 +190,7 @@ def test_subject_info(tmp_path):
     assert raw.info["subject_info"] is None
     # fake some subject data
     keys = ["id", "his_id", "last_name", "first_name", "birthday", "sex", "hand"]
-    vals = [1, "foobar", "bar", "foo", (1901, 2, 3), 0, 1]
+    vals = [1, "foobar", "bar", "foo", datetime.date(1901, 2, 3), 0, 1]
     subject_info = dict()
     for key, val in zip(keys, vals):
         subject_info[key] = val
@@ -475,11 +476,19 @@ def test_concatenate_raws_order():
 
     with pytest.raises(ValueError, match="Channel order must match."):
         # still fails, because raws is copied and not changed in place
-        match_channel_orders(raws, copy=True)
+        match_channel_orders(insts=raws, copy=True)
         raw_concat = concatenate_raws(raws)
 
+    # XXX: remove in version 1.9
+    with pytest.warns(DeprecationWarning, match="``raws`` parameter is deprecated"):
+        match_channel_orders(raws=raws)
+
+    # XXX: remove in version 1.9
+    with pytest.raises(ValueError, match="need to pass a list"):
+        match_channel_orders()
+
     # Now passes because all raws have the same order
-    match_channel_orders(raws, copy=False)
+    match_channel_orders(insts=raws, copy=False)
     raw_concat = concatenate_raws(raws)
     ch0 = raw_concat.get_data(picks=["0"])
     assert np.all(ch0 == 0)

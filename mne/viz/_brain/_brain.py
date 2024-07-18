@@ -180,7 +180,8 @@ class Brain:
     show : bool
         Display the window as soon as it is ready. Defaults to True.
     block : bool
-        If True, start the Qt application event loop. Default to False.
+        Deprecated and will be removed in 1.9, do not use. Consider using
+        :func:`matplotlib.pyplot.show` with ``block=True`` instead.
 
     Attributes
     ----------
@@ -304,7 +305,7 @@ class Brain:
         silhouette=False,
         theme=None,
         show=True,
-        block=False,
+        block=None,
     ):
         from ..backends.renderer import _get_renderer, backend
 
@@ -357,6 +358,11 @@ class Brain:
         subjects_dir = get_subjects_dir(subjects_dir)
         if subjects_dir is not None:
             subjects_dir = str(subjects_dir)
+        if block is not None:
+            warn(
+                "block is deprecated and will be removed in 1.9, use "
+                "plt.show(block=True) instead"
+            )
 
         self.time_viewer = False
         self._hash = time.time_ns()

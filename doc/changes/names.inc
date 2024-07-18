@@ -426,6 +426,8 @@
 
 .. _Nikolas Chalas: https://github.com/Nichalas
 
+.. _Noah Markowitz: https://github.com/nmarkowitz
+
 .. _Okba Bekhelifi: https://github.com/okbalefthanded
 
 .. _Olaf Hauk: https://neuroscience.cam.ac.uk/member/olafhauk
@@ -451,6 +453,8 @@
 .. _Pierre Ablin: https://pierreablin.com
 
 .. _Pierre-Antoine Bannier: https://github.com/PABannier
+
+.. _Ping-Keng Jao: https://github.com/nafraw
 
 .. _Proloy Das: https://github.com/proloyd
 

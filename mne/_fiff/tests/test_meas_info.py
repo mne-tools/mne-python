@@ -592,7 +592,7 @@ def _test_anonymize_info(base_info):
             his_id="foobar",
             last_name="bar",
             first_name="bar",
-            birthday=(1987, 4, 8),
+            birthday=date(1987, 4, 8),
             sex=0,
             hand=1,
         )
@@ -616,7 +616,7 @@ def _test_anonymize_info(base_info):
     # this bday is 3653 days different. the change in day is due to a
     # different number of leap days between 1987 and 1977 than between
     # 2010 and 2000.
-    exp_info["subject_info"]["birthday"] = (1977, 4, 7)
+    exp_info["subject_info"]["birthday"] = date(1977, 4, 7)
     exp_info["meas_date"] = default_anon_dos
     exp_info._unlocked = False
 
@@ -644,7 +644,7 @@ def _test_anonymize_info(base_info):
     # exp 3 tests is a supplied daysback
     delta_t_2 = timedelta(days=43)
     with exp_info_3._unlock():
-        exp_info_3["subject_info"]["birthday"] = (1987, 2, 24)
+        exp_info_3["subject_info"]["birthday"] = date(1987, 2, 24)
         exp_info_3["meas_date"] = meas_date - delta_t_2
     for key in ("file_id", "meas_id"):
         value = exp_info_3.get(key)
@@ -860,12 +860,19 @@ def test_field_round_trip(tmp_path):
             info[key] = _generate_meas_id()
         info["device_info"] = dict(type="a", model="b", serial="c", site="d")
         info["helium_info"] = dict(
-            he_level_raw=1.0, helium_level=2.0, orig_file_guid="e", meas_date=(1, 2)
+            he_level_raw=1.0,
+            helium_level=2.0,
+            orig_file_guid="e",
+            meas_date=_stamp_to_dt((1, 2)),
         )
     fname = tmp_path / "temp-info.fif"
     write_info(fname, info)
     info_read = read_info(fname)
     assert_object_equal(info, info_read)
+    info["helium_info"]["meas_date"] = (1, 2)
+    with pytest.raises(TypeError, match="datetime"):
+        # trigger the check
+        info["helium_info"] = info["helium_info"]
 
 
 def test_equalize_channels():
