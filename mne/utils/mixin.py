@@ -8,6 +8,7 @@ import json
 import logging
 from collections import OrderedDict
 from copy import deepcopy
+from typing import TypeVar
 
 import numpy as np
 
@@ -72,10 +73,16 @@ class SizeMixin:
             raise RuntimeError(f"Hashing unknown object type: {type(self)}")
 
 
+SelfEpochs = TypeVar("SelfEpochs", bound="GetEpochsMixin")
+
+
 class GetEpochsMixin:
     """Class to add epoch selection and metadata to certain classes."""
 
-    def __getitem__(self, item):
+    def __getitem__(
+        self: SelfEpochs,
+        item,
+    ) -> SelfEpochs:  # Can be replaced with typing.Self in Python >=3.11
         """Return an Epochs object with a copied subset of epochs.
 
         Parameters
