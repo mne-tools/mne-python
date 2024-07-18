@@ -15,14 +15,7 @@ import numpy as np
 from ._logging import verbose, warn
 from .check import _check_pandas_installed, _check_preload, _validate_type
 from .numerics import _time_mask, object_hash, object_size
-
-if sys.version_info >= (3, 11):
-    from typing import Self
-else:
-    from typing import TypeVar
-
-    Self = TypeVar("Self")
-
+from .typing import Self
 
 logger = logging.getLogger("mne")  # one selection here used across mne-python
 logger.propagate = False  # don't propagate (in case of multiple imports)
