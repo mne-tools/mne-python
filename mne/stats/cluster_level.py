@@ -1820,8 +1820,14 @@ def cluster_test(
     if len(pd.unique(df.condition)) != 2:
         raise ValueError("Condition list needs to contain 2 unique values")
 
-    # get the unique conditions
-    conditions = np.unique(df.condition)
+    # Get unique elements and the indices of their first occurrences
+    unique_elements, indices = np.unique(df.condition, return_index=True)
+
+    # Sort unique elements by the indices of their first occurrences
+    conditions = unique_elements[np.argsort(indices)]
+
+    # print the contrast used for the paired t-test
+    print(f"Contrast used for paired t-test: {conditions[0]} - {conditions[1]}")
 
     # Compute the difference (assuming there are only 2 conditions)
     pivot_df["evoked"] = pivot_df[conditions[0]] - pivot_df[conditions[1]]
@@ -1968,8 +1974,8 @@ class ClusterResult:
         ch_inds = np.unique(space_inds)
         time_inds = np.unique(time_inds)
 
-        # get topography for F stat
-        t_map = self.T_obs[time_inds, ...].mean(axis=0)
+        # get topography for t stat
+        t_map = self.T_obs[time_inds, ...].mean(axis=0).astype(int)
 
         # get signals at the sensors contributing to the cluster
         sig_times = cond_values[0][0].times[time_inds]
@@ -1987,11 +1993,11 @@ class ClusterResult:
             times=0,
             mask=mask,
             axes=ax_topo,
-            cmap="Reds",
-            vlim=(np.min, np.max),
+            cmap="RdBu_r",
             show=False,
             colorbar=False,
             mask_params=dict(markersize=10),
+            scalings=1.00,
         )
         image = ax_topo.images[0]
 
@@ -2008,32 +2014,33 @@ class ClusterResult:
         divider = make_axes_locatable(ax_topo)
 
         # add axes for colorbar
-        ax_colorbar = divider.append_axes("right", size="5%", pad=0.05)
-        plt.colorbar(image, cax=ax_colorbar)
+        ax_colorbar = divider.append_axes("right", size="5%", pad=0.1)
+        cbar = plt.colorbar(image, cax=ax_colorbar)
+        cbar.set_label("t-value")
         ax_topo.set_xlabel(
-            "Averaged t-map ({:0.3f} - {:0.3f} s)".format(*sig_times[[0, -1]])
+            "average from {:0.3f} to {:0.3f} s".format(*sig_times[[0, -1]])
         )
 
         # add new axis for time courses and plot time courses
-        ax_signals = divider.append_axes("right", size="300%", pad=1.2)
-        title = f"Cluster #1, {len(ch_inds)} sensor"
-        if len(ch_inds) > 1:
-            title += "s (mean)"
-            plot_compare_evokeds(
-                cond_dict,
-                title=title,
-                picks=ch_inds,
-                axes=ax_signals,
-                colors=colors,
-                show=False,
-                split_legend=True,
-                truncate_yaxis="auto",
-            )
+        ax_signals = divider.append_axes("right", size="300%", pad=1.3)
+        title = f"Signal averaged over {len(ch_inds)} sensor(s)"
+        plot_compare_evokeds(
+            cond_dict,
+            title=title,
+            picks=ch_inds,
+            axes=ax_signals,
+            colors=colors,
+            show=False,
+            split_legend=True,
+            truncate_yaxis="auto",
+            truncate_xaxis=False,
+        )
+        plt.legend(frameon=False, loc="upper left")
 
         # plot temporal cluster extent
         ymin, ymax = ax_signals.get_ylim()
         ax_signals.fill_betweenx(
-            (ymin, ymax), sig_times[0], sig_times[-1], color="green", alpha=0.3
+            (ymin, ymax), sig_times[0], sig_times[-1], color="grey", alpha=0.3
         )
 
         plt.show()
