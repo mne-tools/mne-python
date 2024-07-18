@@ -9,7 +9,7 @@ import sys
 import time
 from pathlib import Path
 from shutil import rmtree
-from typing import Literal, Union, overload
+from typing import Union
 
 from .. import __version__ as mne_version
 from ..fixes import _compare_version
@@ -29,38 +29,6 @@ from .utils import (
 )
 
 _FAKE_VERSION = None  # used for monkeypatching while testing versioning
-
-
-@overload
-def fetch_dataset(
-    dataset_params,
-    processor=None,
-    path=None,
-    force_update=False,
-    update_path=True,
-    download=True,
-    check_version=False,
-    return_version: Literal[False] = False,
-    accept=False,
-    auth=None,
-    token=None,
-) -> Path: ...
-
-
-@overload
-def fetch_dataset(
-    dataset_params,
-    processor=None,
-    path=None,
-    force_update=False,
-    update_path=True,
-    download=True,
-    check_version=False,
-    return_version: Literal[True] = True,
-    accept=False,
-    auth=None,
-    token=None,
-) -> tuple[Path, str]: ...
 
 
 def fetch_dataset(

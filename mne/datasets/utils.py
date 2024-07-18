@@ -210,7 +210,7 @@ def _check_in_testing_and_raise(name, download):
 
 def _download_mne_dataset(
     name, processor, path, force_update, update_path, download, accept=False
-):
+) -> Path:
     """Aux function for downloading internal MNE datasets."""
     import pooch
 
@@ -243,7 +243,7 @@ def _download_mne_dataset(
             this_dataset["dataset_name"] = name
             dataset_params.append(this_dataset)
 
-    return fetch_dataset(
+    path = fetch_dataset(
         dataset_params=dataset_params,
         processor=processor_,
         path=path,
@@ -252,6 +252,8 @@ def _download_mne_dataset(
         download=download,
         accept=accept,
     )
+    assert isinstance(path, Path)
+    return path
 
 
 def _get_version(name):
