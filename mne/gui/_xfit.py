@@ -226,8 +226,6 @@ class DipoleFitUI:
         picks = np.concatenate((meg_picks, eeg_picks))
         self._ch_names = [self._evoked.ch_names[i] for i in picks]
 
-        print(f"{show_meg=} {show_eeg=}")
-
         for m in self._field_map:
             if m["kind"] == "eeg":
                 head_surf = m["surf"]
@@ -443,7 +441,9 @@ class DipoleFitUI:
         )
         if arrow_mesh is not None:
             dipole_dict["arrow_actor"] = self._renderer.plotter.add_mesh(
-                arrow_mesh, color=dip_color
+                arrow_mesh,
+                color=dip_color,
+                culling="front",
             )
 
     def _get_helmet_coords(self, dip):
@@ -476,13 +476,13 @@ class DipoleFitUI:
         Called whenever a dipole is (de)-activated or the "Fix pos" box is toggled.
         """
         active_dips = [d for d in self._dipoles if d["active"]]
-        print([d["dip"] for d in active_dips])
         if len(active_dips) == 0:
             return
 
         # Restrict the dipoles to only the time at which they were fitted.
         for d in active_dips:
-            d["dip"] = d["dip"].crop(d["fit_time"], d["fit_time"])
+            if len(d["dip"].times) > 1:
+                d["dip"] = d["dip"].crop(d["fit_time"], d["fit_time"])
 
         fwd, _ = make_forward_dipole(
             [d["dip"] for d in active_dips],
@@ -507,7 +507,6 @@ class DipoleFitUI:
 
             timecourses = stc.magnitude().data
             orientations = stc.data / timecourses[:, np.newaxis, :]
-            print(orientations.shape)
             fixed_timecourses = stc.project(
                 np.array([dip["dip"].ori[0] for dip in active_dips])
             )[0].data
@@ -538,24 +537,28 @@ class DipoleFitUI:
                 else:
                     orientations.append(dip["dip"].ori)
 
-        for o in orientations:
-            print(o.shape)
-
         # Store the timecourse and orientation in the Dipole object
         for d, timecourse, orientation in zip(active_dips, timecourses, orientations):
             dip = d["dip"]
             dip.amplitude = timecourse
             dip.ori = orientation.T
             dip._set_times(self._evoked.times)
-            if len(dip.pos) != len(dip.times):
-                dip.pos = dip.pos[[0]].repeat(len(dip.times), axis=0)
+
+            # Pad out all the other values to be defined for each timepoint.
+            for attr in ["pos", "gof", "khi2", "nfree"]:
+                setattr(
+                    dip, attr, getattr(dip, attr)[[0]].repeat(len(dip.times), axis=0)
+                )
+            for key in dip.conf.keys():
+                dip.conf[key] = dip.conf[key][[0]].repeat(len(dip.times), axis=0)
 
         # Update matplotlib canvas at the bottom of the window
         canvas = self._setup_mplcanvas()
         ymin, ymax = 0, 0
         for d in active_dips:
+            dip = d["dip"]
             if "line_artist" in d:
-                d["line_artist"].set_ydata(timecourse)
+                d["line_artist"].set_ydata(dip.amplitude)
             else:
                 d["line_artist"] = canvas.plot(
                     self._evoked.times,
@@ -563,8 +566,8 @@ class DipoleFitUI:
                     label=d["dip"].name,
                     color=d["color"],
                 )
-            ymin = min(ymin, 1.1 * timecourse.min())
-            ymax = max(ymax, 1.1 * timecourse.max())
+            ymin = min(ymin, 1.1 * dip.amplitude.min())
+            ymax = max(ymax, 1.1 * dip.amplitude.max())
         canvas.axes.set_ylim(ymin, ymax)
         canvas.update_plot()
         self._update_arrows()
@@ -629,8 +632,6 @@ class DipoleFitUI:
     def _on_dipole_toggle_fix_orientation(self, fix, dip_num):
         """Fix dipole orientation when fitting timecourse."""
         self._dipoles[dip_num]["fix_ori"] = bool(fix)
-        active_dips = [d for d in self._dipoles if d["active"]]
-        print([d["dip"] for d in active_dips])
         self._fit_timecourses()
 
     def _setup_mplcanvas(self):
