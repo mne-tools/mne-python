@@ -32,11 +32,6 @@ PYPI_PACKAGES = {
 
 # If it's not available on PyPI, add it to this dict:
 MANUAL_PACKAGES = {
-    # Not available on PyPI
-    "dcm2niix": {
-        "Home-page": "https://github.com/rordenlab/dcm2niix",
-        "Summary": "DICOM to NIfTI converter",
-    },
     # TODO: These packages are not pip-installable as of 2024/07/17, so we have to
     # manually populate them -- should open issues on their package repos.
     "best-python": {
@@ -67,6 +62,11 @@ MANUAL_PACKAGES = {
     "fsleyes": {
         "Home-page": "https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/FSLeyes",
         "Summary": "FSLeyes is the FSL image viewer.",
+    },
+    # dcm2niix must be built from source
+    "dcm2niix": {
+        "Home-page": "https://github.com/rordenlab/dcm2niix",
+        "Summary": "DICOM to NIfTI converter",
     },
     # TODO: mnelab forces PySide6, it can be added to doc_related when we use PySide6
     # for doc building. Also its package does not set the Home-page property.
@@ -131,7 +131,6 @@ def _get_installer_packages():
 @functools.lru_cache
 def _get_packages():
     packages = _get_installer_packages()
-    print(packages)
     for name in MANUAL_PACKAGES:
         if name not in packages:
             packages.append(name)
@@ -139,7 +138,9 @@ def _get_packages():
     packages = sorted(packages, key=lambda x: x.lower())
     packages = [RENAMES.get(package, package) for package in packages]
     out = dict()
-    for package in status_iterator(packages, "Adding related software: "):
+    for package in status_iterator(
+        packages, f"Adding {len(packages)} related software packages: "
+    ):
         out[package] = dict()
         try:
             if package in MANUAL_PACKAGES:
@@ -219,5 +220,7 @@ def setup(app):
 
 
 if __name__ == "__main__":  # pragma: no cover
-    for item in RelatedSoftwareDirective.run(None)[0].children:
-        print(item.astext())
+    items = list(RelatedSoftwareDirective.run(None)[0].children)
+    print(f"Got {len(items)} related software packages:")
+    for item in items:
+        print(f"- {item.astext()}")
