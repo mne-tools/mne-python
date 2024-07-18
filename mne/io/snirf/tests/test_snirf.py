@@ -3,6 +3,7 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+import datetime
 import shutil
 
 import numpy as np
@@ -515,7 +516,10 @@ def test_birthday(tmp_path, monkeypatch):
         a.save()
 
     raw = read_raw_snirf(fname)
-    assert raw.info["subject_info"]["birthday"] == (1950, 1, 1)
+    assert raw.info["subject_info"]["birthday"] == datetime.date(1950, 1, 1)
+    # TODO: trigger some setting checkers that should maybe be in the reader (like
+    # those for subject_info)
+    raw.info.copy()
 
 
 @requires_testing_data
