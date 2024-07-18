@@ -36,10 +36,7 @@ MNE-Python, including:
     :class: sidebar
 
     If you know of a package that is related but not listed here, feel free to
-    :ref:`make a pull request <contributing>` to add it to this list, ideally by
-    making it available on PyPI, conda-forge, and then adding it to the
-    `mne-installers <https://github.com/mne-tools/mne-installers/>`__ will add
-    it to this list! Alternatively, you can manually add it to the list by updating
+    to add it to this list by :ref:`making a pull request <contributing>` to update
     `doc/sphinxext/related_software.py <https://github.com/mne-tools/mne-python/blob/main/doc/sphinxext/related_software.py>`__.
 
 .. related-software::
