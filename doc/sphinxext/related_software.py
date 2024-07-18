@@ -167,8 +167,7 @@ def _get_packages():
             else:
                 md = importlib.metadata.metadata(package)
         except importlib.metadata.PackageNotFoundError:
-            if REQUIRE_METADATA:
-                raise
+            pass  # raise a complete error later
         else:
             # Every project should really have this
             for key in ("Summary",):
@@ -195,6 +194,10 @@ def _get_packages():
                     )
             out[package]["url"] = url
             out[package]["description"] = md["Summary"].replace("\n", "")
+    bad = [package for package in packages if not out[package]]
+    if bad and REQUIRE_METADATA:
+        raise ExtensionError(f"Could not find metadata for:\n{' '.join(bad)}")
+
     return out
 
 
