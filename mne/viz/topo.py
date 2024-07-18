@@ -330,7 +330,7 @@ def _plot_topo(
 
     for ax, ch_idx in my_topo_plot:
         if layout.kind == "Vectorview-all" and ylim is not None:
-            ylim_ = ylim.get(channel_type(info, ch_idx), None)
+            ylim_ = ylim.get(channel_type(info, ch_idx))
         else:
             ylim_ = ylim
 
