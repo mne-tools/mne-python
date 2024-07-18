@@ -47,7 +47,7 @@ epochs = mne.read_epochs(kiloword_data_file)
 #    reloading the `~mne.Epochs` object to/from disk.
 #
 # The metadata attached to `~mne.Epochs` objects is stored as a
-# :class:`pandas.DataFrame`.
+# :class:`pandas.DataFrame`:
 
 assert isinstance(epochs.metadata, pd.DataFrame)
 
