@@ -91,8 +91,6 @@ class DipoleFitUI:
         Evoked data to show fieldmap of and fit dipoles to.
     cov : instance of Covariance | None
         Noise covariance matrix. If None, an ad-hoc covariance matrix is used.
-    cov_data : instance of Covariance | None
-        Data covariance matrix. If None, LCMV method will be unavailable.
     bem : instance of ConductorModel | None
         Boundary element model. If None, a spherical model is used.
     initial_time : float | None
@@ -163,7 +161,6 @@ class DipoleFitUI:
         self._bem = bem
         self._ch_type = ch_type
         self._cov = cov
-        # self._cov_data = cov_data
         self._current_time = initial_time
         self._dipoles = list()
         self._evoked = evoked
@@ -265,7 +262,6 @@ class DipoleFitUI:
             surf=None,
             check_inside=None,
             nearest=None,
-            # sensor_colors=dict(meg="white", eeg="white"),
             sensor_colors=dict(
                 meg=["white" for _ in meg_picks],
                 eeg=["white" for _ in eeg_picks],
@@ -293,32 +289,11 @@ class DipoleFitUI:
                 layout=layout,
             )
 
-        # # Add view buttons
-        # layout = r._dock_add_group_box("Views")
-        # hlayout = None
-        # views = zip(
-        #     [7, 8, 9, 4, 5, 6, 1, 2, 3],  # numpad order
-        #     ["🢆", "🢃", "🢇", "🢂", "⊙", "🢀", "🢅", "🢁", "🢄"],
-        # )
-        # for i, (view, label) in enumerate(views):
-        #     if i % 3 == 0:  # show in groups of 3
-        #         hlayout = r._dock_add_layout(vertical=False)
-        #         r._layout_add_widget(layout, hlayout)
-        #     r._dock_add_button(
-        #         label,
-        #         callback=partial(self._set_view, view=view),
-        #         layout=hlayout,
-        #         style="pushbutton",
-        #     )
-        #     r.plotter.add_key_event(str(view), partial(self._set_view, view=view))
-
         # Right dock
         r._dock_initialize(name="Dipole fitting", area="right")
         r._dock_add_button("Sensor data", self._on_sensor_data)
         r._dock_add_button("Fit dipole", self._on_fit_dipole)
         methods = ["Multi dipole (MNE)", "Single dipole"]
-        # if self._cov_data is not None:
-        #     methods.append("LCMV")
         r._dock_add_combo_box(
             "Dipole model",
             value="Multi dipole (MNE)",
@@ -349,28 +324,6 @@ class DipoleFitUI:
         for act in actors:
             act.SetVisibility(show)
         self._renderer._update()
-
-    # def _set_view(self, view):
-    #     kwargs = dict()
-    #     if view == 1:
-    #         kwargs = dict(azimuth=-135, roll=45, elevation=60, distance="auto")
-    #     elif view == 2:
-    #         kwargs = dict(azimuth=270, roll=180, elevation=90, distance="auto")
-    #     elif view == 3:
-    #         kwargs = dict(azimuth=-45, roll=-45, elevation=60, distance="auto")
-    #     elif view == 4:
-    #         kwargs = dict(azimuth=180, roll=90, elevation=90, distance="auto")
-    #     elif view == 5:
-    #         kwargs = dict(azimuth=0, roll=0, elevation=0, distance="auto")
-    #     elif view == 6:
-    #         kwargs = dict(azimuth=0, roll=-90, elevation=90, distance="auto")
-    #     elif view == 7:
-    #         kwargs = dict(azimuth=135, roll=90, elevation=60, distance="auto")
-    #     elif view == 8:
-    #         kwargs = dict(azimuth=90, roll=0, elevation=90, distance="auto")
-    #     elif view == 9:
-    #         kwargs = dict(azimuth=45, roll=-90, elevation=60, distance="auto")
-    #     self._renderer.set_camera(**kwargs)
 
     def _on_time_change(self, event):
         new_time = np.clip(event.time, self._evoked.times[0], self._evoked.times[-1])
@@ -473,12 +426,6 @@ class DipoleFitUI:
             callback=partial(self._on_dipole_set_name, dip_num=dip_num),
             layout=hlayout,
         )
-        # r._dock_add_check_box(
-        #     name="Fix pos",
-        #     value=True,
-        #     callback=partial(self._on_dipole_toggle_fix_position, dip_name=dip_name),
-        #     layout=hlayout,
-        # )
         r._dock_add_check_box(
             name="Fix ori",
             value=True,
@@ -569,13 +516,6 @@ class DipoleFitUI:
                 if dip["fix_ori"]:
                     timecourses[i] = fixed_timecourses[i]
                     orientations[i] = dip["dip"].ori.repeat(len(stc.times), axis=0).T
-        # elif self._multi_dipole_method == "LCMV":
-        #     lcmv = make_lcmv(
-        #         self._evoked.info, fwd, self._cov_data, reg=0.05, noise_cov=self._cov
-        #     )
-        #     stc = apply_lcmv(self._evoked, lcmv)
-        #     timecourses = stc.data
-        #     orientations = [dip["dip"].ori[0] for dip in active_dips]
         elif self._multi_dipole_method == "Single dipole":
             timecourses = list()
             orientations = list()
@@ -686,17 +626,6 @@ class DipoleFitUI:
         self._dipoles[dip_num]["line_artist"].set_label(name)
         self._renderer._mplcanvas.update_plot()
 
-    # def _on_dipole_toggle_fix_position(self, fix, dip_name):
-    #     """Fix dipole position when fitting timecourse."""
-    #     for d in self._dipoles:
-    #         if d["name"] == dip_name:
-    #             dipole = d
-    #             break
-    #     else:
-    #         raise ValueError(f"Unknown dipole {dip_name}")
-    #     dipole["fix_position"] = bool(fix)
-    #     self._fit_timecourses()
-
     def _on_dipole_toggle_fix_orientation(self, fix, dip_num):
         """Fix dipole orientation when fitting timecourse."""
         self._dipoles[dip_num]["fix_ori"] = bool(fix)
@@ -721,7 +650,7 @@ class DipoleFitUI:
 
 
 def _arrow_mesh():
-    """Obtain a PyVista mesh of an arrow."""
+    """Obtain a mesh of an arrow."""
     vertices = np.array(
         [
             [0.0, 1.0, 0.0],
