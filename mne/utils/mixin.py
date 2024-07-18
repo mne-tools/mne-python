@@ -20,6 +20,9 @@ logger = logging.getLogger("mne")  # one selection here used across mne-python
 logger.propagate = False  # don't propagate (in case of multiple imports)
 
 
+Self = TypeVar("Self")  # Can be replaced with typing.Self in Python >=3.11
+
+
 class SizeMixin:
     """Estimate MNE object sizes."""
 
@@ -73,16 +76,13 @@ class SizeMixin:
             raise RuntimeError(f"Hashing unknown object type: {type(self)}")
 
 
-SelfEpochs = TypeVar("SelfEpochs", bound="GetEpochsMixin")
-
-
 class GetEpochsMixin:
     """Class to add epoch selection and metadata to certain classes."""
 
     def __getitem__(
-        self: SelfEpochs,
+        self: Self,
         item,
-    ) -> SelfEpochs:  # Can be replaced with typing.Self in Python >=3.11
+    ) -> Self:
         """Return an Epochs object with a copied subset of epochs.
 
         Parameters
