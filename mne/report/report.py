@@ -4303,10 +4303,6 @@ class _ReportScraper:
     is written to the same directory as the example script.
     """
 
-    def __init__(self):
-        self.app = None
-        self.files = dict()
-
     def __repr__(self):
         return "<ReportScraper>"
 
@@ -4325,25 +4321,25 @@ class _ReportScraper:
                 with open(img_fname, "w") as fid:
                     fid.write(_FA_FILE_CODE)
                 # copy HTML file
-                html_fname = op.basename(report.fname)
-                out_dir = op.join(
-                    self.app.builder.outdir,
-                    op.relpath(
-                        op.dirname(block_vars["target_file"]), self.app.builder.srcdir
-                    ),
+                html_fname = Path(report.fname).name
+                srcdir = Path(gallery_conf["src_dir"])
+                outdir = Path(gallery_conf["out_dir"])
+                out_dir = outdir / Path(block_vars["target_file"]).parent.relative_to(
+                    srcdir
                 )
                 os.makedirs(out_dir, exist_ok=True)
-                out_fname = op.join(out_dir, html_fname)
+                out_fname = out_dir / html_fname
+                copyfile(report.fname, out_fname)
                 assert op.isfile(report.fname)
-                self.files[report.fname] = out_fname
                 # embed links/iframe
                 data = _SCRAPER_TEXT.format(html_fname)
                 return data
         return ""
 
-    def copyfiles(self, *args, **kwargs):
-        for key, value in self.files.items():
-            copyfile(key, value)
+    def set_dirs(self, app):
+        # Inject something into sphinx_gallery_conf as this gets pickled properly
+        # during parallel example generation
+        app.config.sphinx_gallery_conf["out_dir"] = app.builder.outdir
 
 
 def _df_bootstrap_table(*, df, data_id):

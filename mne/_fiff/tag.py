@@ -15,7 +15,7 @@ import numpy as np
 from scipy.sparse import csc_array, csr_array
 
 from ..utils import _check_option, warn
-from ..utils.numerics import _julian_to_cal
+from ..utils.numerics import _julian_to_date
 from .constants import (
     FIFF,
     _ch_coil_type_named,
@@ -371,7 +371,7 @@ def _read_dir_entry_struct(fid, tag, shape, rlims):
 
 def _read_julian(fid, tag, shape, rlims):
     """Read julian tag."""
-    return _julian_to_cal(int(np.frombuffer(fid.read(4), dtype=">i4").item()))
+    return _julian_to_date(int(np.frombuffer(fid.read(4), dtype=">i4").item()))
 
 
 # Read types call dict

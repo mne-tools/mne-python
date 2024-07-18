@@ -5,7 +5,7 @@
 # Copyright the MNE-Python contributors.
 
 import shutil
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 
 import numpy as np
 import scipy.io as sio
@@ -99,11 +99,10 @@ def test_gdf2_birthday(tmp_path):
         fid.seek(176, 0)
         assert np.fromfile(fid, np.uint64, 1)[0] == d
     raw = read_raw_gdf(new_fname, eog=None, misc=None, preload=True)
-    assert raw._raw_extras[0]["subject_info"]["age"] == 44
+    assert "subject_info" not in raw._raw_extras[0]
     assert raw.info["subject_info"] is not None
-
     birthdate = datetime(1, 1, 1, tzinfo=timezone.utc) + offset_44_yr
-    assert raw.info["subject_info"]["birthday"] == (
+    assert raw.info["subject_info"]["birthday"] == date(
         birthdate.year,
         birthdate.month,
         birthdate.day,
@@ -119,7 +118,7 @@ def test_gdf2_data():
         misc=None,
         preload=True,
     )
-    assert raw._raw_extras[0]["subject_info"]["age"] is None
+    assert raw.info["subject_info"]["birthday"] == date(1, 1, 1)
 
     picks = pick_types(raw.info, meg=False, eeg=True, exclude="bads")
     data, _ = raw[picks]
