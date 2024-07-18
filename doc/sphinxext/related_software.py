@@ -1,27 +1,42 @@
+"""Create a list of related software.
+
+To add a package to the list:
+
+1. Add it to the MNE-installers if possible, and it will automatically appear.
+2. If it's on PyPI and not in the MNE-installers, add it to the PYPI_PACKAGES set.
+3. If it's not on PyPI, add it to the MANUAL_PACKAGES dictionary.
+"""
+
 import functools
 import importlib.metadata
 import os
 import pathlib
-import re
 import urllib.request
 
 import joblib
-import yaml
 from docutils import nodes
 from docutils.parsers.rst import Directive
 from sphinx.errors import ExtensionError
 from sphinx.util.display import status_iterator
 
-REQUIRE_METADATA = os.getenv("MNE_REQUIRE_RELATED_SOFTWARE_INSTALLED", "false").lower()
-REQUIRE_METADATA = REQUIRE_METADATA in ("true", "1")
+# If a package is in MNE-Installers, it will be automatically added!
 
-# These packages pip-install with a different name than the package name
-RENAMES = {
-    "python-neo": "neo",
-    "matplotlib-base": "matplotlib",
+# If it's available on PyPI, add it to this set:
+PYPI_PACKAGES = {
+    "alphaCSC",
+    "conpy",
+    "meggie",
+    "niseq",
+    "sesameeg",
 }
 
+# If it's not available on PyPI, add it to this dict:
 MANUAL_PACKAGES = {
+    # Not available on PyPI
+    "dcm2niix": {
+        "Home-page": "https://github.com/rordenlab/dcm2niix",
+        "Summary": "DICOM to NIfTI converter",
+    },
     # TODO: These packages are not pip-installable as of 2024/07/17, so we have to
     # manually populate them -- should open issues on their package repos.
     "best-python": {
@@ -59,7 +74,7 @@ MANUAL_PACKAGES = {
         "Home-page": "https://github.com/cbrnr/mnelab",
         "Summary": "A graphical user interface for MNE",
     },
-    # TODO: these do not set a valid homepage or documentation page
+    # TODO: these do not set a valid homepage or documentation page on PyPI
     "mne-features": {
         "Home-page": "https://mne.tools/mne-features",
         "Summary": "MNE-Features software for extracting features from multivariate time series",  # noqa: E501
@@ -77,87 +92,52 @@ MANUAL_PACKAGES = {
         "Summary": "Empirical Mode Decomposition in Python.",
     },
 }
-# TODO: Missing and we should eventually add them to mne-installers,
-# but at least alphacsc and eelbrain haven't been rebuilt for Python 3.12.
-ALLOW_MISSING_FROM_INSTALLERS = set(
-    """
-alphaCSC best-python conpy eelbrain meggie niseq sesameeg
-""".strip().split()
-)
 
-# mne-realtime was removed from this list because it's deprecated in favor of mne-lsl
-OLD_LIST = set(
-    """
-autoreject alphaCSC best-python conpy eelbrain meggie mnelab mne-ari mne-bids
-mne-connectivity mne-hcp mne-icalabel mne-microstates mne-nirs mne-rsa
-niseq openmeeg pactools posthoc pyprep python-picard sesameeg""".strip().split()
-)
+REQUIRE_METADATA = os.getenv("MNE_REQUIRE_RELATED_SOFTWARE_INSTALLED", "false").lower()
+REQUIRE_METADATA = REQUIRE_METADATA in ("true", "1")
+
+# These packages pip-install with a different name than the package name
+RENAMES = {
+    "python-neo": "neo",
+    "matplotlib-base": "matplotlib",
+}
 
 _memory = joblib.Memory(location=pathlib.Path(__file__).parent / ".joblib", verbose=0)
-_ignore_re = re.compile(
-    "^("
-    # root stuff
-    "python|mne|mne-installer-menus|pip|conda|mamba|"
-    # tools that are not domain specific enough
-    "git|gh|make|vulture|hatch.*|mypy|twine|.*_profiler|polars|openblas|libblas|"
-    "spyder.*|pingouin|jupyter.*|dcm2niix|mayavi|traits.*|pyface|pyside.*|qt6-.+|"
-    "pqdm|ipy.*|plotly|trame.*|questionary|pyobjc.+|seaborn|pyvista.*|vtk|qtpy|"
-    "xlrd|openpyxl|pyxdf|cython|numba|qdarkstyle|darkdetect|scipy|numpy|pandas|"
-    "imageio.*|matplotlib.*|tornado.*|termcolor.*|"
-    # doc building and development
-    "intersphinx-registry|sphinxcontrib-youtube|sphinx-copybutton|py-spy|ruff|uv|"
-    ".*sphinx.*|selenium|.*graphviz|numpydoc|towncrier|check-manifest|codespell|"
-    "pre-commit|pytest.*|setuptools.*|defusedxml|"
-    ")$"
-)
 
 
 @_memory.cache(cache_validation_callback=joblib.expires_after(days=7))
-def _get_installer_yaml():
+def _get_installer_packages():
     """Get the MNE-Python installer package list YAML."""
     with urllib.request.urlopen(
-        "https://raw.githubusercontent.com/mne-tools/mne-installers/main/recipes/mne-python/construct.yaml"
+        # TODO: Set to upstream main once mne-installers reorg PR is merged
+        "https://raw.githubusercontent.com/larsoner/mne-installers/related/recipes/mne-python/construct.yaml"
     ) as url:
-        return yaml.safe_load(url.read().decode("utf-8"))
-
-
-# We need a final allowed packages to prevent cruft from leaking in, e.g., if we add
-# some new dependency not at all neuroscience related to the installer we should
-# modify our ignore list above, or add it here.
-ALLOWED_PACKAGES = set(
-    """
-autoreject best-python bycycle dipy eeglabio eelbrain emd fooof fsleyes mffpy
-mne-ari mne-bids mne-bids-pipeline mne-connectivity mne-faster mne-features
-mne-gui-addons mne-hcp mne-icalabel mne-kit-gui mne-lsl mne-microstates mne-nirs
-mne-qt-browser mne-rsa mnelab neurodsp neurokit2 nitime openmeeg openneuro-py pactools
-posthoc pybv pycrostates pyprep pyriemann python-picard neo sleepecg snirf tensorpac
-yasa
-""".strip().split()
-)
+        data = url.read().decode("utf-8")
+    # Parse data for list of names of packages
+    lines = [line.strip() for line in data.splitlines()]
+    start_idx = lines.index("# <<< BEGIN RELATED SOFTWARE LIST >>>") + 1
+    stop_idx = lines.index("# <<< END RELATED SOFTWARE LIST >>>")
+    packages = [
+        # Lines look like
+        # - mne-ari =0.0.0
+        # or similar.
+        line.split()[1]
+        for line in lines[start_idx:stop_idx]
+        if not line.startswith("#")
+    ]
+    return packages
 
 
 @functools.lru_cache
 def _get_packages():
-    packages = _get_installer_yaml()["specs"]
-    packages = [package.split()[0] for package in packages]
-    packages = [package for package in packages if not _ignore_re.match(package)]
+    packages = _get_installer_packages()
+    print(packages)
     for name in MANUAL_PACKAGES:
         if name not in packages:
             packages.append(name)
     # Simple alphabetical order
     packages = sorted(packages, key=lambda x: x.lower())
-    missing = sorted(OLD_LIST - set(packages) - ALLOW_MISSING_FROM_INSTALLERS)
-    if missing:
-        raise ExtensionError(f"Missing packages from old list:\n{' '.join(missing)}")
     packages = [RENAMES.get(package, package) for package in packages]
-    new = set(packages) - set(ALLOWED_PACKAGES)
-    if new:
-        raise ExtensionError(
-            f"New packages from mne-installers not found in ALLOWED_PACKAGES:\n\n"
-            f"{'\n'.join(sorted(new))}\n\n"
-            "Please add them to ALLOWED_PACKAGES or _ignore_re"
-            "in doc/related_software.py"
-        )
     out = dict()
     for package in status_iterator(packages, "Adding related software: "):
         out[package] = dict()
