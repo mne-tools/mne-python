@@ -7,7 +7,7 @@ python -m pip install --upgrade --progress-bar off \
     -ve .[full,test,doc] "numpy==1.26.4" "dipy!=1.9.0" \
     "git+https://github.com/larsoner/pyvista.git@refcycle" \
     git+https://github.com/sphinx-gallery/sphinx-gallery.git \
-    # related software
+    \
     alphaCSC autoreject bycycle conpy emd fooof meggie \
     mne-ari mne-bids-pipeline mne-faster mne-features \
     mne-icalabel mne-lsl mne-microstates mne-nirs mne-rsa \
