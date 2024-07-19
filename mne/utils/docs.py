@@ -1277,7 +1277,7 @@ encoding : str
 
 docdict["encoding_nirx"] = """
 encoding : str
-    Text encoding of the NIRX header file. See :std:label:`standard-encodings`.
+    Text encoding of the NIRX header file. See :ref:`standard-encodings`.
 """
 
 docdict["epochs_preload"] = """
