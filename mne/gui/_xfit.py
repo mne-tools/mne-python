@@ -506,7 +506,7 @@ class DipoleFitUI:
             )
 
             timecourses = stc.magnitude().data
-            orientations = stc.data / timecourses[:, np.newaxis, :]
+            orientations = (stc.data / timecourses[:, np.newaxis, :]).transpose(0, 2, 1)
             fixed_timecourses = stc.project(
                 np.array([dip["dip"].ori[0] for dip in active_dips])
             )[0].data
@@ -514,12 +514,12 @@ class DipoleFitUI:
             for i, dip in enumerate(active_dips):
                 if dip["fix_ori"]:
                     timecourses[i] = fixed_timecourses[i]
-                    orientations[i] = dip["dip"].ori.repeat(len(stc.times), axis=0).T
+                    orientations[i] = dip["dip"].ori.repeat(len(stc.times), axis=0)
         elif self._multi_dipole_method == "Single dipole":
             timecourses = list()
             orientations = list()
             for dip in active_dips:
-                dip_timecourse = fit_dipole(
+                dip_with_timecourse, _ = fit_dipole(
                     self._evoked,
                     self._cov,
                     self._bem,
@@ -527,21 +527,21 @@ class DipoleFitUI:
                     ori=dip["dip"].ori[0] if dip["fix_ori"] else None,
                     trans=self._trans,
                     verbose=False,
-                )[0].data[0]
-                timecourses.append(dip_timecourse)
-
+                )
                 if dip["fix_ori"]:
+                    timecourses.append(dip_with_timecourse.data[0])
                     orientations.append(
-                        dip["dip"].ori.repeat(len(dip_timecourse), axis=0)
+                        dip["dip"].ori.repeat(len(dip_with_timecourse.times), axis=0)
                     )
                 else:
-                    orientations.append(dip["dip"].ori)
+                    timecourses.append(dip_with_timecourse.amplitude)
+                    orientations.append(dip_with_timecourse.ori)
 
         # Store the timecourse and orientation in the Dipole object
         for d, timecourse, orientation in zip(active_dips, timecourses, orientations):
             dip = d["dip"]
             dip.amplitude = timecourse
-            dip.ori = orientation.T
+            dip.ori = orientation
             dip._set_times(self._evoked.times)
 
             # Pad out all the other values to be defined for each timepoint.
