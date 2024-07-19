@@ -252,7 +252,7 @@ def _download_mne_dataset(
         download=download,
         accept=accept,
     )
-    assert isinstance(path, Path)
+    assert isinstance(path, Path)  # help the type checker
     return path
 
 
