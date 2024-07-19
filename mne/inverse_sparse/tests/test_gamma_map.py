@@ -70,7 +70,7 @@ def test_gamma_map_standard():
     evoked.crop(tmin=0.1, tmax=0.14)  # crop to window around peak
 
     cov = read_cov(fname_cov)
-    cov = regularize(cov, evoked.info, rank=dict(eeg=58))
+    cov = regularize(cov, evoked.info)
 
     alpha = 0.5
     with catch_logging() as log:

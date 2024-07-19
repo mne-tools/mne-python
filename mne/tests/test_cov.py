@@ -963,3 +963,18 @@ def test_compute_whitener_rank():
     ):
         _, _, rank = compute_whitener(cov, info, rank=dict(meg=306), return_rank=True)
     assert rank == 306
+
+
+def test_reg_rank():
+    """Test simple rank for cov regularization."""
+    evoked = read_evokeds(ave_fname, condition=0, baseline=(None, 0), proj=False)
+    assert evoked.info["bads"] == []
+    cov = read_cov(cov_fname)
+    assert len(cov["names"]) == 366
+    cov["bads"] = ["MEG 2443", "EEG 053"]
+    want_ranks = dict(meg=302, eeg=58)  # one bad and one avg ref
+    ranks = compute_rank(cov, info=evoked.info, rank=None)
+    assert ranks == want_ranks
+    cov = regularize(cov, evoked.info)
+    ranks = compute_rank(cov, info=evoked.info, rank=None)
+    assert ranks == want_ranks
