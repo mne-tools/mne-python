@@ -10,7 +10,7 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-from __future__ import annotations  # Only needed for Python 3.9
+from __future__ import annotations  # only needed for Python ≤ 3.9
 
 import os
 import os.path as op
