@@ -140,7 +140,7 @@ def _get_packages():
     dups = set(PYPI_PACKAGES) & set(packages)
     assert (
         not dups
-    ), f"Duplicates in PYPI_PACKAGES and installer packages: {sorted(dups)}"  # noqa: E501
+    ), f"Duplicates in PYPI_PACKAGES and installer packages: {sorted(dups)}"
     for name in PYPI_PACKAGES | set(MANUAL_PACKAGES):
         if name not in packages:
             packages.append(name)
