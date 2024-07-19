@@ -3,13 +3,14 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+from __future__ import annotations  # Only needed for Python 3.9
+
 import os
 import os.path as op
 import sys
 import time
 from pathlib import Path
 from shutil import rmtree
-from typing import Union
 
 from .. import __version__ as mne_version
 from ..fixes import _compare_version
@@ -43,7 +44,7 @@ def fetch_dataset(
     accept=False,
     auth=None,
     token=None,
-) -> Union[Path, tuple[Path, str]]:
+) -> Path | tuple[Path, str]:
     """Fetch an MNE-compatible dataset using pooch.
 
     Parameters
