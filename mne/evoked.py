@@ -8,10 +8,11 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+from __future__ import annotations  # Only needed for Python 3.9
+
 from copy import deepcopy
 from inspect import getfullargspec
 from pathlib import Path
-from typing import Union
 
 import numpy as np
 
@@ -1661,7 +1662,7 @@ def read_evokeds(
     proj=True,
     allow_maxshield=False,
     verbose=None,
-) -> Union[list[Evoked], Evoked]:
+) -> list[Evoked] | Evoked:
     """Read evoked dataset(s).
 
     Parameters

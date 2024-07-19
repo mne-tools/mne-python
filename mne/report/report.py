@@ -7,6 +7,8 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+from __future__ import annotations  # Only needed for Python 3.9
+
 import base64
 import copy
 import dataclasses
@@ -24,7 +26,6 @@ from functools import partial
 from io import BytesIO, StringIO
 from pathlib import Path
 from shutil import copyfile
-from typing import Optional
 
 import numpy as np
 
@@ -299,7 +300,7 @@ def _html_element(*, id_, div_klass, html, title, tags):
 @dataclass
 class _ContentElement:
     name: str
-    section: Optional[str]
+    section: str | None
     dom_id: str
     tags: tuple[str]
     html: str

@@ -12,11 +12,12 @@ Authors: Marijn van Vliet <w.m.vanvliet@gmail.com>
 
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+from __future__ import annotations  # Only needed for Python 3.9
+
 import contextlib
 import re
 import weakref
 from dataclasses import dataclass
-from typing import Optional, Union
 
 from matplotlib.colors import Colormap
 
@@ -145,12 +146,12 @@ class ColormapRange(UIEvent):
     """
 
     kind: str
-    ch_type: Optional[str] = None
-    fmin: Optional[float] = None
-    fmid: Optional[float] = None
-    fmax: Optional[float] = None
-    alpha: Optional[bool] = None
-    cmap: Optional[Union[Colormap, str]] = None
+    ch_type: str | None = None
+    fmin: float | None = None
+    fmid: float | None = None
+    fmax: float | None = None
+    alpha: bool | None = None
+    cmap: Colormap | str | None = None
 
 
 @dataclass

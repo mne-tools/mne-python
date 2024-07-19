@@ -10,6 +10,8 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+from __future__ import annotations  # Only needed for Python 3.9
+
 import os
 import os.path as op
 import warnings
@@ -19,7 +21,6 @@ from dataclasses import dataclass
 from functools import partial
 from itertools import cycle
 from pathlib import Path
-from typing import Optional
 
 import numpy as np
 from scipy.spatial import ConvexHull, Delaunay
@@ -2880,7 +2881,7 @@ def plot_volume_source_estimates(
         Can also be a string to use the ``bg_img`` file in the subject's
         MRI directory (default is ``'T1.mgz'``).
         Not used in "glass brain" plotting.
-    colorbar : bool, optional
+    colorbar : bool
         If True, display a colorbar on the right of the plots.
     %(colormap)s
     %(clim)s
@@ -4108,10 +4109,10 @@ def plot_brain_colorbar(
 
 @dataclass()
 class _3d_Options:
-    antialias: Optional[bool]
-    depth_peeling: Optional[bool]
-    smooth_shading: Optional[bool]
-    multi_samples: Optional[int]
+    antialias: bool | None
+    depth_peeling: bool | None
+    smooth_shading: bool | None
+    multi_samples: int | None
 
 
 _3d_options = _3d_Options(
