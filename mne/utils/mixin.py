@@ -6,23 +6,15 @@
 
 import json
 import logging
-import sys
 from collections import OrderedDict
 from copy import deepcopy
 
 import numpy as np
 
 from ._logging import verbose, warn
+from ._typing import Self
 from .check import _check_pandas_installed, _check_preload, _validate_type
 from .numerics import _time_mask, object_hash, object_size
-
-if sys.version_info >= (3, 11):
-    from typing import Self
-else:
-    from typing import TypeVar
-
-    Self = TypeVar("Self")
-
 
 logger = logging.getLogger("mne")  # one selection here used across mne-python
 logger.propagate = False  # don't propagate (in case of multiple imports)
