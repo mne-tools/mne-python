@@ -20,6 +20,7 @@ import time
 import zipfile
 from collections import OrderedDict
 from pathlib import Path
+from typing import cast
 
 import numpy as np
 
@@ -210,7 +211,7 @@ def _check_in_testing_and_raise(name, download):
 
 def _download_mne_dataset(
     name, processor, path, force_update, update_path, download, accept=False
-):
+) -> Path:
     """Aux function for downloading internal MNE datasets."""
     import pooch
 
@@ -243,14 +244,17 @@ def _download_mne_dataset(
             this_dataset["dataset_name"] = name
             dataset_params.append(this_dataset)
 
-    return fetch_dataset(
-        dataset_params=dataset_params,
-        processor=processor_,
-        path=path,
-        force_update=force_update,
-        update_path=update_path,
-        download=download,
-        accept=accept,
+    return cast(
+        Path,
+        fetch_dataset(
+            dataset_params=dataset_params,
+            processor=processor_,
+            path=path,
+            force_update=force_update,
+            update_path=update_path,
+            download=download,
+            accept=accept,
+        ),
     )
 
 
