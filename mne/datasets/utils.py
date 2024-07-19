@@ -20,6 +20,7 @@ import time
 import zipfile
 from collections import OrderedDict
 from pathlib import Path
+from typing import cast
 
 import numpy as np
 
@@ -243,17 +244,18 @@ def _download_mne_dataset(
             this_dataset["dataset_name"] = name
             dataset_params.append(this_dataset)
 
-    path = fetch_dataset(
-        dataset_params=dataset_params,
-        processor=processor_,
-        path=path,
-        force_update=force_update,
-        update_path=update_path,
-        download=download,
-        accept=accept,
+    return cast(
+        Path,
+        fetch_dataset(
+            dataset_params=dataset_params,
+            processor=processor_,
+            path=path,
+            force_update=force_update,
+            update_path=update_path,
+            download=download,
+            accept=accept,
+        ),
     )
-    assert isinstance(path, Path)
-    return path
 
 
 def _get_version(name):
