@@ -47,8 +47,8 @@ MANUAL_PACKAGES = {
         "Summary": "post-hoc modification of linear models",
     },
     # This package does not provide wheels, so don't force CircleCI to build it.
-    # If it eventually provides binary wheels we could add it to doc_related in
-    # pyproject.toml and remove from here.
+    # If it eventually provides binary wheels we could add it to
+    # `tools/circleci_dependencies.sh` and remove from here.
     "eelbrain": {
         "Home-page": "https://eelbrain.readthedocs.io/en/stable/",
         "Summary": "Open-source Python toolkit for MEG and EEG data analysis.",
@@ -68,8 +68,9 @@ MANUAL_PACKAGES = {
         "Home-page": "https://github.com/rordenlab/dcm2niix",
         "Summary": "DICOM to NIfTI converter",
     },
-    # TODO: mnelab forces PySide6, it can be added to doc_related when we use PySide6
-    # for doc building. Also its package does not set the Home-page property.
+    # TODO: mnelab forces PySide6, it can be added to `tools/circleci_dependencies.sh`
+    # when we use PySide6 for doc building. Also its package does not set the Home-page
+    # property.
     "mnelab": {
         "Home-page": "https://github.com/cbrnr/mnelab",
         "Summary": "A graphical user interface for MNE",
@@ -109,7 +110,7 @@ _memory = joblib.Memory(location=pathlib.Path(__file__).parent / ".joblib", verb
 def _get_installer_packages():
     """Get the MNE-Python installer package list YAML."""
     with urllib.request.urlopen(
-        # TODO: Set to upstream main once mne-installers reorg PR is merged
+        # TODO: Set to upstream main once mne-tools/mne-installers#285 is merged
         "https://raw.githubusercontent.com/larsoner/mne-installers/related/recipes/mne-python/construct.yaml"
     ) as url:
         data = url.read().decode("utf-8")
@@ -131,7 +132,7 @@ def _get_installer_packages():
 @functools.lru_cache
 def _get_packages():
     packages = _get_installer_packages()
-    for name in MANUAL_PACKAGES:
+    for name in PYPI_PACKAGES | set(MANUAL_PACKAGES):
         if name not in packages:
             packages.append(name)
     # Simple alphabetical order
@@ -187,7 +188,6 @@ class RelatedSoftwareDirective(Directive):
 
     def run(self):
         """Run the directive."""
-        # TODO: Consider a definition list maybe?
         my_list = nodes.bullet_list(bullet="*")
         for package, data in _get_packages().items():
             item = nodes.list_item()
