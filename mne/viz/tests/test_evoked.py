@@ -399,8 +399,8 @@ def test_plot_white():
         evoked_sss.info["proc_history"] = [dict(max_info=sss)]
     evoked_sss.plot_white([cov, cov], rank={"meg": 64})
     with pytest.raises(ValueError, match="When using SSS"):
-        evoked_sss.plot_white(cov, rank={"grad": 201})
-    evoked_sss.plot_white(cov, time_unit="s")
+        evoked_sss.plot_white(cov, rank={"grad": 201}, verbose="error")
+    evoked_sss.plot_white(cov, rank={"meg": 302}, time_unit="s")
 
 
 @pytest.mark.parametrize(
