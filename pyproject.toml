@@ -174,39 +174,6 @@ doc = [
     "intersphinx_registry>=0.2405.27",
 ]
 dev = ["mne[test,doc]", "rcssmin"]
-doc_related = [
-    "alphaCSC",
-    "autoreject",
-    "bycycle",
-    "conpy",
-    "emd",
-    "fooof",
-    "meggie",
-    "mne-ari",
-    "mne-bids-pipeline",
-    "mne-faster",
-    "mne-features",
-    "mne-icalabel",
-    "mne-lsl",
-    "mne-microstates",
-    "mne-nirs",
-    "mne-rsa",
-    "neurodsp",
-    "neurokit2",
-    "niseq",
-    "nitime",
-    "openneuro-py",
-    "pactools",
-    "plotly",
-    "pycrostates",
-    "pyprep",
-    "pyriemann",
-    "python-picard",
-    "sesameeg",
-    "sleepecg",
-    "tensorpac",
-    "yasa",
-]
 
 [project.urls]
 Homepage = "https://mne.tools/"

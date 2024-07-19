@@ -110,8 +110,7 @@ _memory = joblib.Memory(location=pathlib.Path(__file__).parent / ".joblib", verb
 def _get_installer_packages():
     """Get the MNE-Python installer package list YAML."""
     with urllib.request.urlopen(
-        # TODO: Set to upstream main once mne-tools/mne-installers#285 is merged
-        "https://raw.githubusercontent.com/larsoner/mne-installers/related/recipes/mne-python/construct.yaml"
+        "https://raw.githubusercontent.com/mne-tools/mne-installers/main/recipes/mne-python/construct.yaml"
     ) as url:
         data = url.read().decode("utf-8")
     # Parse data for list of names of packages
@@ -132,6 +131,16 @@ def _get_installer_packages():
 @functools.lru_cache
 def _get_packages():
     packages = _get_installer_packages()
+    # There can be duplicates in manual and installer packages because some of the
+    # PyPI entries for installer packages are incorrect or unusable (see above), so
+    # we don't enforce that. But PyPI and manual should be disjoint:
+    dups = set(MANUAL_PACKAGES) & set(PYPI_PACKAGES)
+    assert not dups, f"Duplicates in MANUAL_PACKAGES and PYPI_PACKAGES: {sorted(dups)}"
+    # And the installer and PyPI-only should be disjoint:
+    dups = set(PYPI_PACKAGES) & set(packages)
+    assert (
+        not dups
+    ), f"Duplicates in PYPI_PACKAGES and installer packages: {sorted(dups)}"  # noqa: E501
     for name in PYPI_PACKAGES | set(MANUAL_PACKAGES):
         if name not in packages:
             packages.append(name)
