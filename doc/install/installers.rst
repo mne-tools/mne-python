@@ -5,8 +5,7 @@ MNE-Python installers
 
 MNE-Python installers are the easiest way to install MNE-Python and
 all dependencies. They also provide many additional
-Python packages and tools, including the `Spyder`_ development environment.
-Got any questions? Let us know on the `MNE Forum`_!
+Python packages and tools. Got any questions? Let us know on the `MNE Forum`_!
 
 .. tab-set::
     :class: platform-selector-tabset
@@ -94,7 +93,7 @@ bundles to the ``Applications`` folder on macOS.
 .. rst-class:: mt-4
 .. rst-class:: mb-5
 
-- |code| |ensp| Use **Spyder** to start writing your own analysis scripts right away, or to run one of our examples from this website.
+- |code| |ensp| Set up **Visual Studio Code** or another IDE (:ref:`instructions here <ide_setup>`) to start writing your own analysis scripts right away, or to run one of our examples from this website.
 
   .. rst-class:: mt-3
 - |desktop| |ensp| With **System Info**, list the versions of all installed MNE-Python-related packages.
@@ -108,22 +107,3 @@ bundles to the ``Applications`` folder on macOS.
    applications to start, especially on the very first run – which may take
    particularly long on Apple Silicon-based computers. Subsequent runs should
    usually be much faster.
-
-
-VS Code Setup
-^^^^^^^^^^^^^
-
-If you want to use MNE-Python with `Visual Studio Code`_, you need to tell the
-VS Code Python extension where to find the respective Python executable. To do
-so, simply start the **Prompt**. It will display several lines of
-information, including a line that will read something like:
-
-.. code-block::
-
-   Using Python: /some/directory/mne-python_1.7.1_0/bin/python
-
-This path is what you need to enter in VS Code when selecting the Python
-interpreter.
-
-.. note::
-   This information is currently not displayed on the Windows platform.
