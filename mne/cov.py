@@ -1878,6 +1878,15 @@ def _smart_eigh(
             # Choose the subspace the same way we do for projections
             e, ev = _eigvec_subspace(e, ev, m)
         eig[picks], eigvec[np.ix_(picks, picks)], mask[picks] = e, ev, m
+        largest, smallest = e[-1], e[m][0]
+        if largest > 1e10 * smallest:
+            warn(
+                f"The largest eigenvalue of the {len(picks)}-channel {ch_type} "
+                f"covariance (rank={this_rank}) is over 10 orders of magnitude "
+                f"larger than the smallest ({largest:0.3g} > 1e10 * {smallest:0.3g}), "
+                "the resulting whitener will likely be unstable"
+            )
+
         # XXX : also handle ref for sEEG and ECoG
         if (
             ch_type == "eeg"
