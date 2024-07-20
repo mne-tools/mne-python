@@ -22,11 +22,13 @@ from inspect import getfullargspec
 from pathlib import Path
 
 import numpy as np
+from numpy.typing import NDArray
 
 from .._fiff.compensator import make_compensator, set_current_comp
 from .._fiff.constants import FIFF
 from .._fiff.meas_info import (
     ContainsMixin,
+    Info,
     SetChannelsMixin,
     _ensure_infos_match,
     _unit2human,
@@ -194,7 +196,7 @@ class BaseRaw(
     @verbose
     def __init__(
         self,
-        info,
+        info: Info,
         preload=False,
         first_samps=(0,),
         last_samps=None,
@@ -890,7 +892,7 @@ class BaseRaw(
         tmin=None,
         tmax=None,
         verbose=None,
-    ):
+    ) -> NDArray[np.float64] | tuple[NDArray[np.float64], NDArray[np.float64]]:
         """Get data in the given range.
 
         Parameters
