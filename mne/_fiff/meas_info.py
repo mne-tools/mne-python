@@ -1464,7 +1464,7 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
             First name.
         middle_name : str
             Middle name.
-        meas_date : datetime.date
+        birthday : datetime.date
             The subject birthday.
 
             .. versionchanged:: 1.8
