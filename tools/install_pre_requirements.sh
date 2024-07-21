@@ -28,8 +28,11 @@ fi
 python -m pip install $STD_ARGS --only-binary ":all:" --default-timeout=60 \
 	--index-url "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" \
 	"numpy>=2.1.0.dev0" "scikit-learn>=1.6.dev0" "scipy>=1.15.0.dev0" \
-	matplotlib pandas statsmodels \
+	matplotlib pandas \
 	$OTHERS
+
+# Wait for
+pip install --pre --upgrade statsmodels
 
 # No Numba because it forces an old NumPy version
 
