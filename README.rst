@@ -93,8 +93,7 @@ For full functionality, some functions require:
   - `PyQt6 <https://www.riverbankcomputing.com/software/pyqt/>`__ ≥ 6.0
   - `PySide6 <https://doc.qt.io/qtforpython-6/>`__ ≥ 6.0
   - `PyQt5 <https://www.riverbankcomputing.com/software/pyqt/>`__ ≥ 5.15
-  - `PySide2 <https://doc.qt.io/qtforpython-6/gettingstarted/porting_from2.html>`__ ≥ 5.15
-
+  
 - `Numba <https://numba.pydata.org>`__ ≥ 0.54.0
 - `NiBabel <https://nipy.org/nibabel/>`__ ≥ 3.2.1
 - `OpenMEEG <https://openmeeg.github.io>`__ ≥ 2.5.6
