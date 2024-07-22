@@ -7,13 +7,14 @@ PLATFORM=$(python -c 'import platform; print(platform.system())')
 
 echo "Installing pip-pre dependencies on ${PLATFORM}"
 STD_ARGS="--progress-bar off --upgrade --pre"
+QT_BINDING="PyQt6"
 
 # Dependencies of scientific-python-nightly-wheels are installed here so that
 # we can use strict --index-url (instead of --extra-index-url) below
 echo "PyQt6 and scientific-python-nightly-wheels dependencies"
 python -m pip install $STD_ARGS pip setuptools packaging \
 	threadpoolctl cycler fonttools kiwisolver pyparsing pillow python-dateutil \
-	patsy pytz tzdata nibabel tqdm trx-python joblib numexpr PyQt6
+	patsy pytz tzdata nibabel tqdm trx-python joblib numexpr "$QT_BINDING"
 echo "NumPy/SciPy/pandas etc."
 python -m pip uninstall -yq numpy
 # No pyarrow yet https://github.com/apache/arrow/issues/40216
@@ -88,4 +89,4 @@ python -c "import numpy as np; assert np.__version__[0] == '2', np.__version__"
 
 # And that Qt works
 echo "Checking Qt"
-${SCRIPT_DIR}/check_qt_import.sh PyQt6
+${SCRIPT_DIR}/check_qt_import.sh "$QT_BINDING"
