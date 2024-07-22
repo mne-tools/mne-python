@@ -109,7 +109,7 @@ del fwd
 # We can use this to compute the inverse solution and obtain source time
 # courses:
 
-method = "dSPM"
+method = "dSPM"  # could choose MNE, sLORETA, or eLORETA instead
 snr = 3.0
 lambda2 = 1.0 / snr**2
 stc, residual = apply_inverse(

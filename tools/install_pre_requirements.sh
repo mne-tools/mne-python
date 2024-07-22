@@ -7,16 +7,14 @@ PLATFORM=$(python -c 'import platform; print(platform.system())')
 
 echo "Installing pip-pre dependencies on ${PLATFORM}"
 STD_ARGS="--progress-bar off --upgrade --pre"
+QT_BINDING="PyQt6"
 
 # Dependencies of scientific-python-nightly-wheels are installed here so that
 # we can use strict --index-url (instead of --extra-index-url) below
+echo "PyQt6 and scientific-python-nightly-wheels dependencies"
 python -m pip install $STD_ARGS pip setuptools packaging \
 	threadpoolctl cycler fonttools kiwisolver pyparsing pillow python-dateutil \
-	patsy pytz tzdata nibabel tqdm trx-python joblib numexpr
-echo "PyQt6"
-# Now broken in latest release and in the pre release:
-# pip install $STD_ARGS --only-binary ":all:" --default-timeout=60 --extra-index-url https://www.riverbankcomputing.com/pypi/simple -r $SCRIPT_DIR/pyqt6_requirements.txt
-python -m pip install $STD_ARGS --only-binary ":all:" --default-timeout=60 -r $SCRIPT_DIR/pyqt6_requirements.txt
+	patsy pytz tzdata nibabel tqdm trx-python joblib numexpr "$QT_BINDING"
 echo "NumPy/SciPy/pandas etc."
 python -m pip uninstall -yq numpy
 # No pyarrow yet https://github.com/apache/arrow/issues/40216
@@ -28,8 +26,11 @@ fi
 python -m pip install $STD_ARGS --only-binary ":all:" --default-timeout=60 \
 	--index-url "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" \
 	"numpy>=2.1.0.dev0" "scikit-learn>=1.6.dev0" "scipy>=1.15.0.dev0" \
-	matplotlib pandas statsmodels \
+	"statsmodels>=0.15.0.dev0" "pandas>=3.0.0.dev0" "matplotlib>=3.10.0.dev0" \
 	$OTHERS
+
+# Wait for
+pip install --pre --upgrade statsmodels
 
 # No Numba because it forces an old NumPy version
 
@@ -88,4 +89,4 @@ python -c "import numpy as np; assert np.__version__[0] == '2', np.__version__"
 
 # And that Qt works
 echo "Checking Qt"
-${SCRIPT_DIR}/check_qt_import.sh PyQt6
+${SCRIPT_DIR}/check_qt_import.sh "$QT_BINDING"
