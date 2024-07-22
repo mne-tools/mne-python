@@ -86,3 +86,7 @@ fi
 # Make sure we're on a NumPy 2.0 variant
 echo "Checking NumPy version"
 python -c "import numpy as np; assert np.__version__[0] == '2', np.__version__"
+
+# And that Qt works
+echo "Checking Qt"
+${SCRIPT_DIR}/check_qt_import.sh "$QT_BINDING"
