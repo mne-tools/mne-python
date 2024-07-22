@@ -29,13 +29,15 @@ see also: :ref:`tut-cluster-one-samp-tfr`.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-# %%
+# %% Load the required packages
 
 from pathlib import Path
 
 import pandas as pd
 
 import mne
+
+# %% Load the P3 dataset
 
 # Set parameters
 # --------------
@@ -69,6 +71,8 @@ for pid in participant_ids:
 # the conditions of interest are the target (rare visual stimuli)
 # and non-target stimuli (frequent visual stimuli)
 
+# %% visually inspect the evoked data for each condition
+
 # let's extract the target and non-target evokeds
 target_only = [evoked[0] for evoked in evokeds_allsubs]
 non_target_only = [evoked[1] for evoked in evokeds_allsubs]
@@ -89,7 +93,8 @@ mne.grand_average(diff_evoked).plot_topomap()
 # we can see that the strongest difference is around 400 ms in
 # central-parietal channels with a stronger evoked signal for target stimuli
 
-# Next we prepare a dataframe for the cluster test function
+# %% Prepare the dataframe for the new cluster test API
+
 # the dataframe should contain the contrast evoked data and the subject index
 # each row in the dataframe should represent one observation (evoked data)
 
@@ -114,7 +119,8 @@ df = pd.DataFrame(
     }
 )
 
-# now we can run the cluster test function
+# %% run the cluster test function with formulaic input
+
 # we will use the new API that allows for Wilkinson style formulas
 # the formula should be a string in Wilkinson notation
 
@@ -123,12 +129,21 @@ df = pd.DataFrame(
 # we will use a cluster-based permutation paired t-test for this
 
 # let's first define the formula based on Wilkinson notation
+# we want to predict the evoked difference signal based on the subject
+# the cluster test randomly permutes the subject label
+# the 1 in the formula represents the intercept which is always included
+# C is a categorical variable that will be dummy coded
 formula = "evoked ~ 1 + C(subject_index)"
 
 # run the new cluster test API and return the new cluster_result object
-cluster_result = mne.stats.cluster_level.cluster_test(df=df, formula=formula)
+cluster_result = mne.stats.cluster_level.cluster_test(
+    df=df, formula=formula, paired_test=True, adjacency=None
+)
 
-# note that we ran an exact test due to the small sample size (only 15 permutations)
+# note that we ran an exact test due to the small sample size
+# (only 15 permutations)
+
+# %% plot the results
 
 # set up conditions dictionary for cluster plots
 # this is necessary for plotting the evoked data and the cluster result on top
@@ -137,7 +152,7 @@ conditions_dict = {"target": target_only, "non-target": non_target_only}
 # finally let's plot the results using the ClusterResults class
 
 # we plot the cluster with the lowest p-value
-cluster_result.plot_cluster(cond_dict=conditions_dict)
+cluster_result.plot_cluster(condition_labels=conditions_dict)
 # we can see that there is something going on around 400 ms
 # with a stronger signal for target trials in right central-parietal channels
 
