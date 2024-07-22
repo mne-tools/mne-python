@@ -8,6 +8,7 @@ import os
 from functools import partial
 
 import numpy as np
+import pandas as pd
 import pytest
 from numpy.testing import (
     assert_allclose,
@@ -17,10 +18,20 @@ from numpy.testing import (
 )
 from scipy import linalg, sparse, stats
 
-from mne import MixedSourceEstimate, SourceEstimate, SourceSpaces, VolSourceEstimate
+from mne import (
+    EvokedArray,
+    MixedSourceEstimate,
+    SourceEstimate,
+    SourceSpaces,
+    VolSourceEstimate,
+    create_info,
+)
 from mne.fixes import _eye_array
 from mne.stats import combine_adjacency, ttest_ind_no_p
 from mne.stats.cluster_level import (
+    _check_fun,
+    _permutation_cluster_test,
+    cluster_test,
     f_oneway,
     permutation_cluster_1samp_test,
     permutation_cluster_test,
@@ -29,6 +40,7 @@ from mne.stats.cluster_level import (
     summarize_clusters_stc,
     ttest_1samp_no_p,
 )
+from mne.time_frequency import AverageTFRArray
 from mne.utils import _record_warnings, catch_logging
 
 n_space = 50
@@ -869,3 +881,139 @@ def test_output_equiv(shape, out_type, adjacency, threshold):
             assert out_type == "indices"
             got_mask[np.ix_(*clu)] = n
     assert_array_equal(got_mask, want_mask)
+
+
+def create_sample_data_cluster_test():
+    """Create sample data to test new cluster API."""
+    # Prepare some dummy data
+    n_subjects = 20
+    n_conditions = 2
+    n_channels = 5
+    n_timepoints = 8
+    n_freqs = 3
+
+    # Create dummy data
+    dummy_data_2d = [
+        np.random.rand(n_channels, n_timepoints)
+        for _ in range(n_subjects * n_conditions)
+    ]
+    dummy_data_3d = [
+        np.random.rand(n_channels, n_freqs, n_timepoints)
+        for _ in range(n_subjects * n_conditions)
+    ]
+
+    # Create a DataFrame with dummy data
+    df_2d = pd.DataFrame(
+        {
+            "subject_index": np.repeat(range(n_subjects), n_conditions),
+            "condition": np.tile(["cond1", "cond2"], n_subjects),
+            "data": dummy_data_2d,
+        }
+    )
+
+    df_3d = pd.DataFrame(
+        {
+            "subject_index": np.repeat(range(n_subjects), n_conditions),
+            "condition": np.tile(["cond1", "cond2"], n_subjects),
+            "data": dummy_data_3d,
+        }
+    )
+
+    return df_2d, df_3d
+
+
+def compare_old_and_new_cluster_api():
+    """Make sure old and new cluster API results are the same."""
+    # load sample data
+    df_2d, df_3d = create_sample_data_cluster_test()
+
+    # mandatory parameters for new cluster API
+    formula = "evoked ~ 1 + C(subject_index)"
+
+    data_to_test = [df_2d, df_3d]
+
+    # save 2D and 3D data results for both old and new API
+    result_old_api_all = []
+    result_new_api_all = []
+    d_all = []
+
+    for df in data_to_test:
+        # Pivot the DataFrame to have conditions as columns for old API
+        pivot_df = df.pivot(index="subject_index", columns="condition", values="data")
+
+        # Subtract condition 2 data from condition 1 data for each subject
+        pivot_df["cond_diff"] = pivot_df.apply(
+            lambda row: row["cond1"] - row["cond1"], axis=1
+        )
+
+        # Extract the 'cond_diff' column as a numpy array
+        cond_diff_array = np.stack(pivot_df["cond_diff"].values)
+
+        # extract data and reshape for old API
+        if pivot_df.cond_diff[0].ndim == 2:
+            # reshape to channels as last dimension
+            d = cond_diff_array.transpose(0, 2, 1)
+        else:
+            # reshape 3D data to channels as last dimension
+            d = cond_diff_array.transpose(0, 3, 2, 1)
+
+        # define test statistic
+        stat_fun, threshold = _check_fun(
+            X=d, stat_fun=None, threshold=None, tail=0, kind="within"
+        )
+
+        # Run old cluster api
+        result_old_api = _permutation_cluster_test(
+            [d],
+            threshold=threshold,
+            stat_fun=stat_fun,
+            n_jobs=-1,  # takes all CPU cores
+            max_step=1,  # maximum distance between samples (time points)
+            exclude=None,  # exclude no time points or channels
+            step_down_p=0,  # step down in jumps test
+            t_power=1,  # weigh each location by its stats score
+            out_type="indices",
+            check_disjoint=False,
+            buffer_size=None,  # block size for chunking the data
+            n_permutations=1024,
+            tail=0,
+            adjacency=None,
+            seed=42,
+        )
+        result_old_api_all.append(result_old_api)
+        d_all.append(d)
+
+        if df.data[0].ndim == 2:
+            # convert each row in data column into evoked object
+            df["evoked"] = df["data"].apply(
+                lambda x: EvokedArray(
+                    x, create_info(df.data[0].shape[0], 1000.0, "eeg")
+                )
+            )
+        else:
+            # convert each row in data column into evoked object
+            df["evoked"] = df["data"].apply(
+                lambda x: AverageTFRArray(
+                    create_info(df.data[0].shape[0], 1000.0, "eeg"),
+                    x,
+                    times=np.arange(df.data[0].shape[2]),
+                    freqs=np.arange(df.data[0].shape[1]),
+                )
+            )
+
+        # run the new cluster test API and return the new cluster_result object
+        cluster_result = cluster_test(
+            df=df, formula=formula, paired_test=True, adjacency=None, seed=42
+        )
+        result_new_api_all.append(cluster_result)
+
+    # compare old and new API results both for 2D and 3D data
+    for result_old_api, result_new_api in zip(result_old_api_all, result_new_api_all):
+        # compare the cluster statistics
+        assert_array_equal(result_old_api[0], result_new_api.T_obs)
+
+        # compare the cluster indices
+        assert_array_equal(result_old_api[1], result_new_api.clusters)
+
+        # compare the cluster p-values
+        assert_array_equal(result_old_api[2], result_new_api.cluster_p_values)
