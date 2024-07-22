@@ -6,10 +6,12 @@ from functools import partial
 import numpy as np
 import pytest
 from matplotlib.colors import same_color
-from numpy.testing import assert_array_equal
+from numpy.testing import assert_allclose, assert_array_equal
 
-from mne import Annotations
+from mne import Annotations, create_info, make_fixed_length_epochs
+from mne.io import RawArray
 from mne.time_frequency import read_spectrum
+from mne.time_frequency.multitaper import _psd_from_mt
 from mne.time_frequency.spectrum import EpochsSpectrumArray, SpectrumArray
 from mne.utils import _record_warnings
 
@@ -22,8 +24,6 @@ def test_compute_psd_errors(raw):
         raw.compute_psd(foo=None)
     with pytest.raises(TypeError, match="keyword arguments foo, bar for"):
         raw.compute_psd(foo=None, bar=None)
-    with pytest.raises(ValueError, match="Complex output is not supported in "):
-        raw.compute_psd(output="complex")
     raw.set_annotations(Annotations(onset=0.01, duration=0.01, description="bad_foo"))
     with pytest.raises(NotImplementedError, match='Cannot use method="multitaper"'):
         raw.compute_psd(method="multitaper", reject_by_annotation=True)
@@ -33,7 +33,7 @@ def test_compute_psd_errors(raw):
 @pytest.mark.parametrize(
     (
         "fmin, fmax, tmin, tmax, picks, proj, n_fft, n_overlap, n_per_seg, "
-        "average, window, bandwidth, adaptive, low_bias, normalization"
+        "average, window, bandwidth, adaptive, low_bias, normalization, output"
     ),
     [
         [
@@ -52,6 +52,7 @@ def test_compute_psd_errors(raw):
             False,
             True,
             "length",
+            "power",
         ],  # defaults
         [
             5,
@@ -69,7 +70,26 @@ def test_compute_psd_errors(raw):
             True,
             False,
             "full",
+            "power",  # XXX: technically a default
         ],  # non-defaults
+        [
+            0,
+            np.inf,
+            None,
+            None,
+            None,
+            False,
+            256,
+            0,
+            None,
+            "mean",
+            "hamming",
+            None,
+            False,
+            True,
+            "length",
+            "complex",
+        ],  # complex  XXX: need to also test with non-defaults?
     ],
 )
 def test_spectrum_params(
@@ -89,6 +109,7 @@ def test_spectrum_params(
     adaptive,
     low_bias,
     normalization,
+    output,
     raw,
 ):
     """Test valid parameter combinations in the .compute_psd() method."""
@@ -100,6 +121,7 @@ def test_spectrum_params(
         tmax=tmax,
         picks=picks,
         proj=proj,
+        output=output,
     )
     if method == "welch":
         kwargs.update(
@@ -260,6 +282,69 @@ def test_spectrum_to_data_frame(inst, request, evoked):
     assert_frame_equal(_pick_first, _pick_last)
 
 
+def _complex_helper(df, weights, group_cols):
+    """Convert complex spectrum to power after conversion to DataFrame."""
+    from pandas import Series
+
+    unagged_columns = df[group_cols].iloc[0].values.tolist()
+    x = df.drop(columns=group_cols).values[np.newaxis].T
+    if weights is None:
+        psd = np.mean((x * x.conj()).real * 2, axis=1)
+    else:
+        psd = _psd_from_mt(x, weights)
+    psd = np.atleast_1d(np.squeeze(psd)).tolist()
+    _df = dict(zip(df.columns, unagged_columns + psd))
+    return Series(_df)
+
+
+@pytest.mark.parametrize("long_format", (False, True))
+@pytest.mark.parametrize(
+    "method, output",
+    [("welch", "complex"), ("welch", "power"), ("multitaper", "complex")],
+)
+def test_unaggregated_spectrum_to_data_frame(raw, long_format, method, output):
+    """Test converting unaggregated spectra (multiple segments/tapers) to data frame."""
+    pytest.importorskip("pandas")
+    from pandas.testing import assert_frame_equal
+
+    from mne.utils.dataframe import _inplace
+
+    # aggregated spectrum → dataframe
+    orig_df = raw.compute_psd(method=method).to_data_frame(long_format=long_format)
+    # unaggregated welch or complex multitaper →
+    #   aggregate w/ pandas (to make sure we did reshaping right)
+    kwargs = dict()
+    if method == "welch":
+        kwargs.update(average=False)
+    spectrum = raw.compute_psd(method=method, output=output, **kwargs)
+    df = spectrum.to_data_frame(long_format=long_format)
+    grouping_cols = ["freq"]
+    drop_cols = ["segment"] if method == "welch" else ["taper"]
+    if long_format:
+        grouping_cols.append("channel")
+        drop_cols.append("ch_type")
+        orig_df.drop(columns="ch_type", inplace=True)
+    # only do a couple freq bins, otherwise test takes forever for multitaper
+    subset = partial(np.isin, test_elements=spectrum.freqs[:2])
+    df = df.loc[subset(df["freq"])]
+    orig_df = orig_df.loc[subset(orig_df["freq"])]
+    # sort orig_df, because at present we can't actually prevent pandas from
+    # sorting at the agg step *sigh*
+    _inplace(orig_df, "sort_values", by=grouping_cols, ignore_index=True)
+    # aggregate
+    df = df.drop(columns=drop_cols)
+    gb = df.groupby(grouping_cols, as_index=False, observed=False)
+    if output == "complex":
+        gb = gb[df.columns]  # https://github.com/pandas-dev/pandas/pull/52477
+        agg_df = gb.apply(_complex_helper, spectrum.mt_weights, grouping_cols)
+    else:
+        agg_df = gb.mean()  # excludes missing values itself
+    # even with check_categorical=False, we know that the *data* matches;
+    # what may differ is the order of the "levels" in the *metadata* for the
+    # channel name column
+    assert_frame_equal(agg_df, orig_df, check_categorical=False)
+
+
 # not testing with Evoked because it already has projs applied
 @pytest.mark.parametrize("inst", ("raw", "epochs"))
 def test_spectrum_proj(inst, request):
@@ -273,6 +358,58 @@ def test_spectrum_proj(inst, request):
     with has_proj.info._unlock():
         has_proj.info["projs"] = no_proj.info["projs"]
     assert has_proj == no_proj
+
+
+@pytest.mark.parametrize(
+    "method, average", [("welch", False), ("welch", "mean"), ("multitaper", None)]
+)
+def test_spectrum_complex(method, average):
+    """Test output='complex' support."""
+    sfreq = 100
+    n = 10 * sfreq
+    freq = 3.0
+    phase = np.pi / 4  # should be recoverable
+    data = np.cos(2 * np.pi * freq * np.arange(n) / sfreq + phase)[np.newaxis]
+    raw = RawArray(data, create_info(1, sfreq, "eeg"))
+    epochs = make_fixed_length_epochs(raw, duration=2.0, preload=True)
+    assert len(epochs) == 5
+    assert len(epochs.times) == 2 * sfreq
+    kwargs = dict(output="complex", method=method)
+    if method == "welch":
+        kwargs["n_fft"] = sfreq
+        want_dims = ("epoch", "channel", "freq")
+        want_shape = (5, 1, sfreq // 2 + 1)
+        if not average:
+            want_dims = want_dims + ("segment",)
+            want_shape = want_shape + (2,)
+            kwargs["average"] = average
+    else:
+        assert method == "multitaper"
+        assert not average
+        want_dims = ("epoch", "channel", "taper", "freq")
+        want_shape = (5, 1, 7, sfreq + 1)
+    spectrum = epochs.compute_psd(**kwargs)
+    idx = np.argmin(np.abs(spectrum.freqs - freq))
+    assert spectrum.freqs[idx] == freq
+    assert spectrum._dims == want_dims
+    assert spectrum.shape == want_shape
+    data = spectrum.get_data()
+    assert data.dtype == np.complex128
+    coef = spectrum.get_data(fmin=freq, fmax=freq).mean(0)
+    if method == "multitaper":
+        coef = coef[..., 0, :]  # first taper
+    elif not average:
+        coef = coef.mean(-1)  # over segments
+    coef = coef.item()
+    # Test phase matches what was simulated
+    assert_allclose(np.angle(coef), phase, rtol=1e-4)
+    # Now test that it warns appropriately
+    epochs._data[0, 0, :] = 0  # actually zero for one epoch and ch
+    with pytest.warns(UserWarning, match="Zero value.*channel 0"):
+        epochs.compute_psd(**kwargs)
+    # But not if we mark that channel as bad
+    epochs.info["bads"] = epochs.ch_names[:1]
+    epochs.compute_psd(**kwargs)
 
 
 def test_spectrum_kwarg_triaging(raw):
@@ -295,44 +432,135 @@ def _check_spectrum_equivalent(spect1, spect2, tmp_path):
     assert_array_equal(spect1.freqs, spect2.freqs)
 
 
-def test_spectrum_array_errors(epochs_spectrum):
-    """Test EpochsSpectrumArray constructor errors."""
-    data, freqs = epochs_spectrum.get_data(return_freqs=True)
-    info = epochs_spectrum.info
-    with pytest.raises(ValueError, match="Data must be a 3D array"):
-        EpochsSpectrumArray(np.empty((2, 3, 4, 5)), info, freqs)
+@pytest.mark.parametrize("kind", ("raw", "epochs"))
+@pytest.mark.parametrize(
+    "method, output, average",
+    [
+        ("welch", "power", "mean"),  # test with precomputed spectrum
+        ("welch", "power", False),  # unaggregated segments
+        ("multitaper", "complex", None),  # unaggregated tapers
+    ],
+)
+def test_spectrum_array_errors(kind, method, output, average, request):
+    """Test (Epochs)SpectrumArray constructor errors."""
+    if method == "welch" and output == "power" and average:
+        spectrum = request.getfixturevalue(f"{kind}_spectrum")
+    else:
+        data = request.getfixturevalue(kind)
+        kwargs = dict()
+        if method == "welch":
+            kwargs.update(average=average)
+        spectrum = data.compute_psd(method=method, output=output, **kwargs)
+    data, freqs = spectrum.get_data(return_freqs=True)
+    info = spectrum.info
+    mt_weights = spectrum.mt_weights
+    Klass = SpectrumArray if kind == "raw" else EpochsSpectrumArray
+    # test mismatching number of channels
+    bad_n_chans = data[:-1] if kind == "raw" else data[:, :-1]
     with pytest.raises(ValueError, match=r"number of channels.*good data channels"):
-        EpochsSpectrumArray(data[:, :-1], info, freqs)
-    with pytest.raises(ValueError, match=r"last dimension.*same number of elements"):
-        EpochsSpectrumArray(data[..., :-1], info, freqs)
+        Klass(bad_n_chans, info, freqs)
+    # test mismatching number of frequencies
+    bad_n_freqs = (
+        data[..., :-1, :] if method == "welch" and not average else data[..., :-1]
+    )
+    with pytest.raises(ValueError, match=r"number of frequencies.*number of elements"):
+        Klass(bad_n_freqs, info, freqs, method=method, mt_weights=mt_weights)
     # test mismatching events shape
-    n_epo = data.shape[0] + 1  # +1 so they purposely don't match
-    events = np.vstack(
-        (np.arange(n_epo), np.zeros(n_epo, dtype=int), np.ones(n_epo, dtype=int))
-    ).T
-    with pytest.raises(ValueError, match=r"first dimension.*dimension of `events`"):
-        EpochsSpectrumArray(data, info, freqs, events)
+    if kind == "epochs":
+        n_epo = data.shape[0] + 1  # +1 so they purposely don't match
+        events = np.vstack(
+            (np.arange(n_epo), np.zeros(n_epo, dtype=int), np.ones(n_epo, dtype=int))
+        ).T
+        with pytest.raises(ValueError, match=r"first dimension.*dimension of `events`"):
+            Klass(data, info, freqs, events)
+    # test unspecified method for unaggregated spectra (i.e. with segments or tapers)
+    if (
+        method == "welch"
+        and not average
+        or method == "multitaper"
+        and output == "complex"
+    ):
+        with pytest.raises(
+            ValueError, match="Invalid value for the 'method' parameter"
+        ):
+            Klass(data, info, freqs, method="unknown", mt_weights=mt_weights)
+    # test unspecified/mismatched multitaper weights
+    if method == "multitaper" and output == "complex":
+        with pytest.raises(
+            ValueError, match=r"Expected size of `mt_weights` to be.*, got"
+        ):
+            Klass(data, info, freqs, method=method, mt_weights=None)
+        with pytest.raises(
+            ValueError, match=r"Expected size of `mt_weights` to be.*, got"
+        ):
+            Klass(data, info, freqs, method=method, mt_weights=mt_weights[:, :-1])
 
 
 @pytest.mark.parametrize("kind", ("raw", "epochs"))
-def test_spectrum_array(kind, tmp_path, request):
+@pytest.mark.parametrize(
+    "method, output, average",
+    [
+        ("welch", "power", "mean"),  # test with precomputed spectrum
+        ("welch", "power", False),
+        ("welch", "complex", False),
+        ("welch", "complex", "mean"),
+        ("multitaper", "complex", None),
+    ],
+)
+def test_spectrum_array(kind, method, output, average, tmp_path, request):
     """Test EpochsSpectrumArray and SpectrumArray constructors."""
-    spectrum = request.getfixturevalue(f"{kind}_spectrum")
+    if method == "welch" and output == "power" and average:
+        spectrum = request.getfixturevalue(f"{kind}_spectrum")
+    else:
+        data = request.getfixturevalue(kind)
+        kwargs = dict()
+        if method == "welch":
+            kwargs.update(average=average)
+        spectrum = data.compute_psd(method=method, output=output, **kwargs)
     data, freqs = spectrum.get_data(return_freqs=True)
     Klass = SpectrumArray if kind == "raw" else EpochsSpectrumArray
-    spect_arr = Klass(data=data, info=spectrum.info, freqs=freqs)
+    spect_arr = Klass(
+        data=data,
+        info=spectrum.info,
+        freqs=freqs,
+        method=method,
+        mt_weights=spectrum.mt_weights,
+    )
     _check_spectrum_equivalent(spectrum, spect_arr, tmp_path)
 
 
 @pytest.mark.parametrize("kind", ("raw", "epochs"))
 @pytest.mark.parametrize("array", (False, True))
-def test_plot_spectrum(kind, array, request):
+@pytest.mark.parametrize(
+    "method, output, average",
+    [
+        ("welch", "power", "mean"),  # test with precomputed spectrum
+        ("welch", "power", False),
+        ("welch", "complex", False),
+        ("welch", "complex", "mean"),
+        ("multitaper", "complex", None),
+    ],
+)
+def test_plot_spectrum(kind, array, method, output, average, request):
     """Test plotting (Epochs)Spectrum(Array)."""
-    spectrum = request.getfixturevalue(f"{kind}_spectrum")
+    if method == "welch" and output == "power" and average:
+        spectrum = request.getfixturevalue(f"{kind}_spectrum")
+    else:
+        data = request.getfixturevalue(kind)
+        kwargs = dict()
+        if method == "welch":
+            kwargs.update(average=average)
+        spectrum = data.compute_psd(method=method, output=output, **kwargs)
     if array:
         data, freqs = spectrum.get_data(return_freqs=True)
         Klass = SpectrumArray if kind == "raw" else EpochsSpectrumArray
-        spectrum = Klass(data=data, info=spectrum.info, freqs=freqs)
+        spectrum = Klass(
+            data=data,
+            info=spectrum.info,
+            freqs=freqs,
+            method=spectrum.method,
+            mt_weights=spectrum.mt_weights,
+        )
     spectrum.info["bads"] = spectrum.ch_names[:1]  # one grad channel
     spectrum.plot(average=True, amplitude=True, spatial_colors=True)
     spectrum.plot(average=True, amplitude=False, spatial_colors=False)
