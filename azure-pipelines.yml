@@ -189,17 +189,18 @@ stages:
           - script: python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
             displayName: 'Get test data'
           - bash: |
-              set -e
+              set -eo pipefail
               python -m pip install -r tools/pyqt6_requirements.txt
               LD_DEBUG=libs python -c "from PyQt6.QtWidgets import QApplication, QWidget; app = QApplication([]); import matplotlib; matplotlib.use('QtAgg'); import matplotlib.pyplot as plt; plt.figure()"
           - bash: |
+              set -eo pipefail
               mne sys_info -pd
               mne sys_info -pd | grep "qtpy .* (PyQt6=.*)$"
               PYTEST_QT_API=PyQt6 pytest -m "not slowtest" ${TEST_OPTIONS}
               python -m pip uninstall -yq PyQt6 PyQt6-sip PyQt6-Qt6
             displayName: 'PyQt6'
           - bash: |
-              set -e
+              set -eo pipefail
               python -m pip install "PySide6!=6.7.0"
               mne sys_info -pd
               mne sys_info -pd | grep "qtpy .* (PySide6=.*)$"
@@ -208,7 +209,7 @@ stages:
             displayName: 'PySide6'
           # PyQt5 leaves cruft behind, so run it last
           - bash: |
-              set -e
+              set -eo pipefail
               python -m pip install PyQt5
               mne sys_info -pd
               mne sys_info -pd | grep "qtpy .* (PyQt5=.*)$"
