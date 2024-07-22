@@ -8,10 +8,11 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+from __future__ import annotations  # only needed for Python ≤ 3.9
+
 from copy import deepcopy
 from inspect import getfullargspec
 from pathlib import Path
-from typing import Union
 
 import numpy as np
 
@@ -747,6 +748,8 @@ class Evoked(
         time_unit="s",
         sphere=None,
         axes=None,
+        *,
+        spatial_colors="auto",
         verbose=None,
     ):
         return plot_evoked_white(
@@ -757,6 +760,7 @@ class Evoked(
             time_unit=time_unit,
             sphere=sphere,
             axes=axes,
+            spatial_colors=spatial_colors,
             verbose=verbose,
         )
 
@@ -1660,7 +1664,7 @@ def read_evokeds(
     proj=True,
     allow_maxshield=False,
     verbose=None,
-) -> Union[list[Evoked], Evoked]:
+) -> list[Evoked] | Evoked:
     """Read evoked dataset(s).
 
     Parameters

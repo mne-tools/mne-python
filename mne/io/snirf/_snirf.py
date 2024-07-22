@@ -456,7 +456,7 @@ class RawSNIRF(BaseRaw):
                 )
                 birth_matched = re.fullmatch(r"(\d+)-(\d+)-(\d+)", str_birth)
                 if birth_matched is not None:
-                    birthday = (
+                    birthday = datetime.date(
                         int(birth_matched.groups()[0]),
                         int(birth_matched.groups()[1]),
                         int(birth_matched.groups()[2]),

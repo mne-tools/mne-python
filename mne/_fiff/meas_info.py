@@ -1021,6 +1021,13 @@ def _check_line_freq(line_freq, *, info):
 
 def _check_subject_info(subject_info, *, info):
     _validate_type(subject_info, (None, dict), "subject_info")
+    if isinstance(subject_info, dict):
+        if "birthday" in subject_info:
+            _validate_type(
+                subject_info["birthday"],
+                (datetime.date, None),
+                "subject_info['birthday']",
+            )
     return subject_info
 
 
@@ -1045,6 +1052,13 @@ def _check_helium_info(helium_info, *, info):
         ),
         "helium_info",
     )
+    if isinstance(helium_info, dict):
+        if "meas_date" in helium_info:
+            _validate_type(
+                helium_info["meas_date"],
+                datetime.datetime,
+                "helium_info['meas_date']",
+            )
     return helium_info
 
 
@@ -1331,8 +1345,12 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
             Helium level (%) after position correction.
         orig_file_guid : str
             Original file GUID.
-        meas_date : tuple of int
+        meas_date : datetime.datetime
             The helium level meas date.
+
+            .. versionchanged:: 1.8
+               This is stored as a :class:`~python:datetime.datetime` object
+               instead of a tuple of seconds/microseconds.
 
     * ``hpi_meas`` list of dict:
 
@@ -1446,8 +1464,12 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
             First name.
         middle_name : str
             Middle name.
-        birthday : tuple of int
-            Birthday in (year, month, day) format.
+        birthday : datetime.date
+            The subject birthday.
+
+            .. versionchanged:: 1.8
+               This is stored as a :class:`~python:datetime.date` object
+               instead of a tuple of seconds/microseconds.
         sex : int
             Subject sex (0=unknown, 1=male, 2=female).
         hand : int
@@ -2406,7 +2428,9 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
                 hi["orig_file_guid"] = str(tag.data)
             elif kind == FIFF.FIFF_MEAS_DATE:
                 tag = read_tag(fid, pos)
-                hi["meas_date"] = tuple(int(t) for t in tag.data)
+                hi["meas_date"] = _ensure_meas_date_none_or_dt(
+                    tuple(int(t) for t in tag.data),
+                )
     info["helium_info"] = hi
     del hi
 
@@ -2792,7 +2816,7 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
             write_float(fid, FIFF.FIFF_HELIUM_LEVEL, hi["helium_level"])
         if hi.get("orig_file_guid") is not None:
             write_string(fid, FIFF.FIFF_ORIG_FILE_GUID, hi["orig_file_guid"])
-        write_int(fid, FIFF.FIFF_MEAS_DATE, hi["meas_date"])
+        write_int(fid, FIFF.FIFF_MEAS_DATE, _dt_to_stamp(hi["meas_date"]))
         end_block(fid, FIFF.FIFFB_HELIUM)
         del hi
 
@@ -3402,13 +3426,7 @@ def anonymize_info(info, daysback=None, keep_his=False, verbose=None):
         if none_meas_date:
             subject_info.pop("birthday", None)
         elif subject_info.get("birthday") is not None:
-            dob = datetime.datetime(
-                subject_info["birthday"][0],
-                subject_info["birthday"][1],
-                subject_info["birthday"][2],
-            )
-            dob -= delta_t
-            subject_info["birthday"] = dob.year, dob.month, dob.day
+            subject_info["birthday"] = subject_info["birthday"] - delta_t
 
         for key in ("weight", "height"):
             if subject_info.get(key) is not None:
@@ -3445,9 +3463,11 @@ def anonymize_info(info, daysback=None, keep_his=False, verbose=None):
         if hi.get("orig_file_guid") is not None:
             hi["orig_file_guid"] = default_str
         if none_meas_date and hi.get("meas_date") is not None:
-            hi["meas_date"] = DATE_NONE
+            hi["meas_date"] = _ensure_meas_date_none_or_dt(DATE_NONE)
         elif hi.get("meas_date") is not None:
-            hi["meas_date"] = _add_timedelta_to_stamp(hi["meas_date"], -delta_t)
+            hi["meas_date"] = _ensure_meas_date_none_or_dt(
+                _add_timedelta_to_stamp(hi["meas_date"], -delta_t)
+            )
 
     di = info.get("device_info")
     if di is not None:

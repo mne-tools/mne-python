@@ -46,7 +46,7 @@ raw = read_raw_fif(raw_fname)
 
 events = find_events(raw, "STI201")
 raw.plot(events=events)
-raw.info["bads"] = ["MEG1933", "MEG2421"]
+raw.info["bads"] = ["MEG1933", "MEG2421"]  # known bad channels
 
 # %%
 # The data has strong line frequency (60 Hz and harmonics) and cHPI coil

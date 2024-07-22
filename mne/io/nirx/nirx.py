@@ -343,7 +343,7 @@ class RawNIRX(BaseRaw):
         else:
             subject_info["sex"] = FIFF.FIFFV_SUBJ_SEX_UNKNOWN
         if inf["age"] != "":
-            subject_info["birthday"] = (
+            subject_info["birthday"] = dt.date(
                 meas_date.year - int(inf["age"]),
                 meas_date.month,
                 meas_date.day,

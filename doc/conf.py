@@ -112,6 +112,7 @@ extensions = [
     "mne_substitutions",
     "newcontrib_substitutions",
     "unit_role",
+    "related_software",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -758,6 +759,7 @@ html_theme_options = {
         "json_url": "https://mne.tools/dev/_static/versions.json",
         "version_match": switcher_version_match,
     },
+    "back_to_top_button": False,
 }
 
 # The name of an image file (relative to this directory) to place at the top

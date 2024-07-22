@@ -6,6 +6,8 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+from __future__ import annotations  # only needed for Python ≤ 3.9
+
 import json
 import math
 import warnings
@@ -16,7 +18,7 @@ from dataclasses import dataclass, is_dataclass
 from inspect import Parameter, isfunction, signature
 from numbers import Integral
 from time import time
-from typing import Literal, Optional, Union
+from typing import Literal
 
 import numpy as np
 from scipy import stats
@@ -507,13 +509,13 @@ class ICA(ContainsMixin):
     def _get_infos_for_repr(self):
         @dataclass
         class _InfosForRepr:
-            fit_on: Optional[Literal["raw data", "epochs"]]
+            fit_on: Literal["raw data", "epochs"] | None
             fit_method: Literal["fastica", "infomax", "extended-infomax", "picard"]
-            fit_params: dict[str, Union[str, float]]
-            fit_n_iter: Optional[int]
-            fit_n_samples: Optional[int]
-            fit_n_components: Optional[int]
-            fit_n_pca_components: Optional[int]
+            fit_params: dict[str, str | float]
+            fit_n_iter: int | None
+            fit_n_samples: int | None
+            fit_n_components: int | None
+            fit_n_pca_components: int | None
             ch_types: list[str]
             excludes: list[str]
 
