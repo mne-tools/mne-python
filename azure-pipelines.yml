@@ -118,7 +118,7 @@ stages:
           - bash: |
               set -e
               mne sys_info -pd
-              mne sys_info -pd | grep "qtpy .*(PySide66=.*)$"
+              mne sys_info -pd | grep "qtpy .*(PySide6=.*)$"
             displayName: Print config
           - bash: |
               set -e
