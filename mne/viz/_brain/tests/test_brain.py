@@ -1105,10 +1105,7 @@ something
 def test_brain_scraper(renderer_interactive_pyvistaqt, brain_gc, tmp_path):
     """Test a simple scraping example."""
     pytest.importorskip("sphinx_gallery")
-    from qtpy import API_NAME
 
-    if API_NAME.lower() == "pyside6":
-        pytest.skip("Error in event loop on PySidie6")
     stc = read_source_estimate(fname_stc, subject="sample")
     size = (600, 400)
     brain = stc.plot(
@@ -1128,7 +1125,7 @@ def test_brain_scraper(renderer_interactive_pyvistaqt, brain_gc, tmp_path):
         src_dir=str(tmp_path),
         compress_images=[],
         image_srcset=[],
-        matplotlib_animations=False,
+        matplotlib_animations=(False, None),
     )
     scraper = _BrainScraper()
     rst = scraper(block, block_vars, gallery_conf)
