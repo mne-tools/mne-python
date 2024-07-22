@@ -1080,7 +1080,7 @@ something
         src_dir=str(tmp_path),
         compress_images=[],
         image_srcset=[],
-        matplotlib_animations=False,
+        matplotlib_animations=(False, None),
     )
     scraper = _BrainScraper()
     rst = scraper(block, block_vars, gallery_conf)
