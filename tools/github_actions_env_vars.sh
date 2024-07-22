@@ -4,7 +4,7 @@ set -eo pipefail -x
 # old and minimal use conda
 if [[ "$MNE_CI_KIND" == "pip"* ]]; then
     echo "Setting pip env vars for $MNE_CI_KIND"
-    echo "MNE_QT_BACKEND=PyQt6" >> $GITHUB_ENV
+    echo "MNE_QT_BACKEND=PySide6" >> $GITHUB_ENV
     # We should test an eager import somewhere, might as well be here
     echo "EAGER_IMPORT=true" >> $GITHUB_ENV
 else  # conda-like

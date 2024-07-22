@@ -111,7 +111,7 @@ stages:
           - bash: |
               set -e
               python -m pip install --progress-bar off --upgrade pip
-              python -m pip install --progress-bar off "mne-qt-browser[opengl] @ git+https://github.com/mne-tools/mne-qt-browser.git@main" pyvista scikit-learn pytest-error-for-skips python-picard qtpy nibabel sphinx-gallery -r tools/pyqt6_requirements.txt
+              python -m pip install --progress-bar off "mne-qt-browser[opengl] @ git+https://github.com/mne-tools/mne-qt-browser.git@main" pyvista scikit-learn pytest-error-for-skips python-picard qtpy nibabel sphinx-gallery PySide6
               python -m pip uninstall -yq mne
               python -m pip install --progress-bar off --upgrade -e .[test]
             displayName: 'Install dependencies with pip'
@@ -190,7 +190,7 @@ stages:
             displayName: 'Get test data'
           - bash: |
               set -eo pipefail
-              python -m pip install -r tools/pyqt6_requirements.txt
+              python -m pip install PyQt6
               LD_DEBUG=libs python -c "from PyQt6.QtWidgets import QApplication, QWidget; app = QApplication([]); import matplotlib; matplotlib.use('QtAgg'); import matplotlib.pyplot as plt; plt.figure()"
           - bash: |
               set -eo pipefail
@@ -201,7 +201,7 @@ stages:
             displayName: 'PyQt6'
           - bash: |
               set -eo pipefail
-              python -m pip install "PySide6!=6.7.0"
+              python -m pip install PySide6
               mne sys_info -pd
               mne sys_info -pd | grep "qtpy .* (PySide6=.*)$"
               PYTEST_QT_API=PySide6 pytest ${TEST_OPTIONS}

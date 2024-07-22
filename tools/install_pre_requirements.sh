@@ -10,13 +10,10 @@ STD_ARGS="--progress-bar off --upgrade --pre"
 
 # Dependencies of scientific-python-nightly-wheels are installed here so that
 # we can use strict --index-url (instead of --extra-index-url) below
+echo "PySide6 and scientific-python-nightly-wheels dependencies"
 python -m pip install $STD_ARGS pip setuptools packaging \
 	threadpoolctl cycler fonttools kiwisolver pyparsing pillow python-dateutil \
-	patsy pytz tzdata nibabel tqdm trx-python joblib numexpr
-echo "PyQt6"
-# Now broken in latest release and in the pre release:
-# pip install $STD_ARGS --only-binary ":all:" --default-timeout=60 --extra-index-url https://www.riverbankcomputing.com/pypi/simple -r $SCRIPT_DIR/pyqt6_requirements.txt
-python -m pip install $STD_ARGS --only-binary ":all:" --default-timeout=60 -r $SCRIPT_DIR/pyqt6_requirements.txt
+	patsy pytz tzdata nibabel tqdm trx-python joblib numexpr PySide6
 echo "NumPy/SciPy/pandas etc."
 python -m pip uninstall -yq numpy
 # No pyarrow yet https://github.com/apache/arrow/issues/40216
@@ -91,4 +88,4 @@ python -c "import numpy as np; assert np.__version__[0] == '2', np.__version__"
 
 # And that Qt works
 echo "Checking Qt"
-${SCRIPT_DIR}/check_qt_import.sh PyQt6
+${SCRIPT_DIR}/check_qt_import.sh PySide6

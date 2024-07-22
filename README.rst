@@ -90,10 +90,10 @@ For full functionality, some functions require:
 - `mne-qt-browser <https://github.com/mne-tools/mne-qt-browser>`__ ≥ 0.5 (for fast raw data visualization)
 - `Qt <https://www.qt.io>`__ ≥ 5.15 via one of the following bindings (for fast raw data visualization and interactive 3D visualization):
 
-  - `PyQt6 <https://www.riverbankcomputing.com/software/pyqt/>`__ ≥ 6.0
   - `PySide6 <https://doc.qt.io/qtforpython-6/>`__ ≥ 6.0
+  - `PyQt6 <https://www.riverbankcomputing.com/software/pyqt/>`__ ≥ 6.0
   - `PyQt5 <https://www.riverbankcomputing.com/software/pyqt/>`__ ≥ 5.15
-  
+
 - `Numba <https://numba.pydata.org>`__ ≥ 0.54.0
 - `NiBabel <https://nipy.org/nibabel/>`__ ≥ 3.2.1
 - `OpenMEEG <https://openmeeg.github.io>`__ ≥ 2.5.6
