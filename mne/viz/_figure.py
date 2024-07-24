@@ -503,7 +503,7 @@ class BrowserBase(ABC):
         # highlight desired channel & disable interactivity
         fig.lasso.selection_inds = np.isin(fig.lasso.names, [ch_name])
         fig.lasso.disconnect()
-        fig.lasso.alpha_other = 0.3
+        fig.lasso.alpha_nonselected = 0.3
         fig.lasso.linewidth_selected = 3
         fig.lasso.style_objects()
 
