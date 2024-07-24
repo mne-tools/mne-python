@@ -1,6 +1,7 @@
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
-# License: Simplified BSD
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import numpy as np
 
@@ -80,7 +81,7 @@ def _gamma_map_opt(
 
     if n_sources % group_size != 0:
         raise ValueError(
-            "Number of sources has to be evenly dividable by the " "group size"
+            "Number of sources has to be evenly dividable by the group size"
         )
 
     n_active = n_sources

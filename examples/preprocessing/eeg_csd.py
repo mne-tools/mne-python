@@ -15,6 +15,7 @@ or more distinct topography, reducing the negative impact of volume conduction.
 # Authors: Alex Rockhill <aprockhill@mailbox.org>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 
@@ -48,8 +49,8 @@ raw_csd.plot()
 # %%
 # Also look at the power spectral densities:
 
-raw.compute_psd().plot(picks="data", exclude="bads")
-raw_csd.compute_psd().plot(picks="data", exclude="bads")
+raw.compute_psd().plot(picks="data", exclude="bads", amplitude=False)
+raw_csd.compute_psd().plot(picks="data", exclude="bads", amplitude=False)
 
 # %%
 # CSD can also be computed on Evoked (averaged) data.

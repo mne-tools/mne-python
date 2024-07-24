@@ -1,3 +1,5 @@
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 """Metrics module for compute stc-based metrics."""
 
 from .metrics import (

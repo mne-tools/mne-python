@@ -1,6 +1,7 @@
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import datetime as dt
 
@@ -21,9 +22,7 @@ from mne.preprocessing.nirs import (
 )
 
 CONTENTS = dict()
-CONTENTS[
-    "1.18"
-] = b"""\
+CONTENTS["1.18"] = b"""\
 Header,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 File Version,1.18,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 Patient Information,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
@@ -128,9 +127,7 @@ Probe1,CH1(700.1),CH1(829.1),CH2(699.3),CH2(827.9),CH3(699.3),CH3(827.9),CH4(698
 """  # noqa: E501
 
 
-CONTENTS[
-    "1.25"
-] = b"""\
+CONTENTS["1.25"] = b"""\
 Header
 File Version,1.25
 Patient Information

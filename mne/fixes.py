@@ -10,7 +10,8 @@ at which the fix is no longer needed.
 #          Gael Varoquaux <gael.varoquaux@normalesup.org>
 #          Fabian Pedregosa <fpedregosa@acm.org>
 #          Lars Buitinck <L.J.Buitinck@uva.nl>
-# License: BSD
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # NOTE:
 # Imports for SciPy submodules need to stay nested in this module
@@ -20,7 +21,6 @@ import inspect
 import operator as operator_module
 import os
 import warnings
-from contextlib import contextmanager
 from io import StringIO
 from math import log
 from pprint import pprint
@@ -30,9 +30,8 @@ import numpy as np
 ###############################################################################
 # distutils
 
-# distutils has been deprecated since Python 3.10 and is scheduled for removal
-# from the standard library with the release of Python 3.12. For version
-# comparisons, we use setuptools's `parse_version` if available.
+# distutils has been deprecated since Python 3.10 and was removed
+# from the standard library with the release of Python 3.12.
 
 
 def _compare_version(version_a, operator, version_b):
@@ -98,14 +97,21 @@ def _safe_svd(A, **kwargs):
     except np.linalg.LinAlgError as exp:
         from .utils import warn
 
-        warn("SVD error (%s), attempting to use GESVD instead of GESDD" % (exp,))
+        warn(f"SVD error ({exp}), attempting to use GESVD instead of GESDD")
         return linalg.svd(A, lapack_driver="gesvd", **kwargs)
 
 
-def _csc_matrix_cast(x):
-    from scipy.sparse import csc_matrix
+def _csc_array_cast(x):
+    from scipy.sparse import csc_array
 
-    return csc_matrix(x)
+    return csc_array(x)
+
+
+# Can be replaced with sparse.eye_array once we depend on SciPy >= 1.12
+def _eye_array(n, *, format="csr"):  # noqa: A002
+    from scipy import sparse
+
+    return sparse.dia_array((np.ones(n), 0), shape=(n, n)).asformat(format)
 
 
 ###############################################################################
@@ -113,7 +119,7 @@ def _csc_matrix_cast(x):
 
 
 def rng_uniform(rng):
-    """Get the unform/randint from the rng."""
+    """Get the uniform/randint from the rng."""
     # prefer Generator.integers, fall back to RandomState.randint
     return getattr(rng, "integers", getattr(rng, "randint", None))
 
@@ -192,8 +198,8 @@ class BaseEstimator:
                     "scikit-learn estimators should always "
                     "specify their parameters in the signature"
                     " of their __init__ (no varargs)."
-                    " %s with constructor %s doesn't "
-                    " follow this convention." % (cls, init_signature)
+                    f" {cls} with constructor {init_signature} doesn't "
+                    " follow this convention."
                 )
         # Extract and sort argument names excluding 'self'
         return sorted([p.name for p in parameters])
@@ -222,7 +228,7 @@ class BaseEstimator:
             try:
                 with warnings.catch_warnings(record=True) as w:
                     value = getattr(self, key, None)
-                if len(w) and w[0].category == DeprecationWarning:
+                if len(w) and w[0].category is DeprecationWarning:
                     # if the parameter is deprecated, don't show it
                     continue
             finally:
@@ -264,9 +270,9 @@ class BaseEstimator:
                 name, sub_name = split
                 if name not in valid_params:
                     raise ValueError(
-                        "Invalid parameter %s for estimator %s. "
+                        f"Invalid parameter {name} for estimator {self}. "
                         "Check the list of available parameters "
-                        "with `estimator.get_params().keys()`." % (name, self)
+                        "with `estimator.get_params().keys()`."
                     )
                 sub_object = valid_params[name]
                 sub_object.set_params(**{sub_name: value})
@@ -274,10 +280,10 @@ class BaseEstimator:
                 # simple objects case
                 if key not in valid_params:
                     raise ValueError(
-                        "Invalid parameter %s for estimator %s. "
+                        f"Invalid parameter {key} for estimator "
+                        f"{self.__class__.__name__}. "
                         "Check the list of available parameters "
                         "with `estimator.get_params().keys()`."
-                        % (key, self.__class__.__name__)
                     )
                 setattr(self, key, value)
         return self
@@ -287,7 +293,7 @@ class BaseEstimator:
         pprint(self.get_params(deep=False), params)
         params.seek(0)
         class_name = self.__class__.__name__
-        return "%s(%s)" % (class_name, params.read().strip())
+        return f"{class_name}({params.read().strip()})"
 
     # __getstate__ and __setstate__ are omitted because they only contain
     # conditionals that are not satisfied by our objects (e.g.,
@@ -384,7 +390,7 @@ def empirical_covariance(X, assume_centered=False):
 
     if X.shape[0] == 1:
         warnings.warn(
-            "Only one sample available. " "You may want to reshape your data array"
+            "Only one sample available. You may want to reshape your data array"
         )
 
     if assume_centered:
@@ -649,7 +655,7 @@ def _assess_dimension_(spectrum, rank, n_samples, n_features):
     from scipy.special import gammaln
 
     if rank > len(spectrum):
-        raise ValueError("The tested rank cannot exceed the rank of the" " dataset")
+        raise ValueError("The tested rank cannot exceed the rank of the dataset")
 
     pu = -rank * log(2.0)
     for i in range(rank):
@@ -814,7 +820,6 @@ else:
 
 # workaround: plt.close() doesn't spawn close_event on Agg backend
 # https://github.com/matplotlib/matplotlib/issues/18609
-# scheduled to be fixed by MPL 3.6
 def _close_event(fig):
     """Force calling of the MPL figure close event."""
     from matplotlib import backend_bases
@@ -832,60 +837,60 @@ def _close_event(fig):
         pass  # pragma: no cover
 
 
-def _is_last_row(ax):
-    try:
-        return ax.get_subplotspec().is_last_row()  # 3.4+
-    except AttributeError:
-        return ax.is_last_row()
-    return ax.get_subplotspec().is_last_row()
-
-
-def _sharex(ax1, ax2):
-    if hasattr(ax1.axes, "sharex"):
-        ax1.axes.sharex(ax2)
-    else:
-        ax1.get_shared_x_axes().join(ax1, ax2)
-
-
 ###############################################################################
-# SciPy deprecation of pinv + pinvh rcond (never worked properly anyway) in 1.7
+# SciPy 1.14+ minimum_phase half=True option
 
 
-def pinvh(a, rtol=None):
-    """Compute a pseudo-inverse of a Hermitian matrix."""
-    s, u = np.linalg.eigh(a)
-    del a
-    if rtol is None:
-        rtol = s.size * np.finfo(s.dtype).eps
-    maxS = np.max(np.abs(s))
-    above_cutoff = abs(s) > maxS * rtol
-    psigma_diag = 1.0 / s[above_cutoff]
-    u = u[:, above_cutoff]
-    return (u * psigma_diag) @ u.conj().T
+def minimum_phase(h, method="homomorphic", n_fft=None, *, half=True):
+    """Wrap scipy.signal.minimum_phase with half option."""
+    # Can be removed once
+    from scipy.fft import fft, ifft
+    from scipy.signal import minimum_phase as sp_minimum_phase
 
+    assert isinstance(method, str) and method == "homomorphic"
 
-def pinv(a, rtol=None):
-    """Compute a pseudo-inverse of a matrix."""
-    u, s, vh = np.linalg.svd(a, full_matrices=False)
-    del a
-    maxS = np.max(s)
-    if rtol is None:
-        rtol = max(vh.shape + u.shape) * np.finfo(u.dtype).eps
-    rank = np.sum(s > maxS * rtol)
-    u = u[:, :rank]
-    u /= s[:rank]
-    return (u @ vh[:rank]).conj().T
-
-
-###############################################################################
-# h5py uses np.product which is deprecated in NumPy 1.25
-
-
-@contextmanager
-def _numpy_h5py_dep():
-    # h5io uses np.product
-    with warnings.catch_warnings(record=True):
-        warnings.filterwarnings(
-            "ignore", "`product` is deprecated.*", DeprecationWarning
+    if "half" in inspect.getfullargspec(sp_minimum_phase).kwonlyargs:
+        return sp_minimum_phase(h, method=method, n_fft=n_fft, half=half)
+    h = np.asarray(h)
+    if np.iscomplexobj(h):
+        raise ValueError("Complex filters not supported")
+    if h.ndim != 1 or h.size <= 2:
+        raise ValueError("h must be 1-D and at least 2 samples long")
+    n_half = len(h) // 2
+    if not np.allclose(h[-n_half:][::-1], h[:n_half]):
+        warnings.warn(
+            "h does not appear to by symmetric, conversion may fail",
+            RuntimeWarning,
+            stacklevel=2,
         )
-        yield
+    if n_fft is None:
+        n_fft = 2 ** int(np.ceil(np.log2(2 * (len(h) - 1) / 0.01)))
+    n_fft = int(n_fft)
+    if n_fft < len(h):
+        raise ValueError(f"n_fft must be at least len(h)=={len(h)}")
+
+    # zero-pad; calculate the DFT
+    h_temp = np.abs(fft(h, n_fft))
+    # take 0.25*log(|H|**2) = 0.5*log(|H|)
+    h_temp += 1e-7 * h_temp[h_temp > 0].min()  # don't let log blow up
+    np.log(h_temp, out=h_temp)
+    if half:  # halving of magnitude spectrum optional
+        h_temp *= 0.5
+    # IDFT
+    h_temp = ifft(h_temp).real
+    # multiply pointwise by the homomorphic filter
+    # lmin[n] = 2u[n] - d[n]
+    # i.e., double the positive frequencies and zero out the negative ones;
+    # Oppenheim+Shafer 3rd ed p991 eq13.42b and p1004 fig13.7
+    win = np.zeros(n_fft)
+    win[0] = 1
+    stop = n_fft // 2
+    win[1:stop] = 2
+    if n_fft % 2:
+        win[stop] = 1
+    h_temp *= win
+    h_temp = ifft(np.exp(fft(h_temp)))
+    h_minimum = h_temp.real
+
+    n_out = (n_half + len(h) % 2) if half else len(h)
+    return h_minimum[:n_out]

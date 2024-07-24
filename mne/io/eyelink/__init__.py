@@ -4,5 +4,6 @@
 #          Scott Huberty <seh33@uw.edu>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from .eyelink import read_raw_eyelink

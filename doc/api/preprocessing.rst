@@ -93,6 +93,7 @@ Projections:
    cortical_signal_suppression
    create_ecg_epochs
    create_eog_epochs
+   find_bad_channels_lof
    find_bad_channels_maxwell
    find_ecg_events
    find_eog_events
@@ -162,6 +163,8 @@ Projections:
    Calibration
    read_eyelink_calibration
    set_channel_types_eyetrack
+   convert_units
+   get_screen_visual_angle
    interpolate_blinks
 
 EEG referencing:

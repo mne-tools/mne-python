@@ -21,6 +21,7 @@ electromyogram from MEG beta activity using data from
 #         Jean-Remi King <jeanremi.king@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 import matplotlib.pyplot as plt
@@ -63,7 +64,7 @@ clf = make_pipeline(spoc, Ridge())
 # Define a two fold cross-validation
 cv = KFold(n_splits=2, shuffle=False)
 
-# Run cross validaton
+# Run cross validation
 y_preds = cross_val_predict(clf, X, y, cv=cv)
 
 # Plot the True EMG power and the EMG power predicted from MEG data

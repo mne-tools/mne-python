@@ -1,6 +1,7 @@
 # Authors: Daniel Strohmeier <daniel.strohmeier@tu-ilmenau.de>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import numpy as np
 from scipy.interpolate import interp1d
@@ -81,7 +82,7 @@ def fix_stim_artifact(
     s_end = int(np.ceil(inst.info["sfreq"] * tmax))
     if (mode == "window") and (s_end - s_start) < 4:
         raise ValueError(
-            "Time range is too short. Use a larger interval " 'or set mode to "linear".'
+            'Time range is too short. Use a larger interval or set mode to "linear".'
         )
     window = None
     if mode == "window":
@@ -108,7 +109,7 @@ def fix_stim_artifact(
     elif isinstance(inst, BaseEpochs):
         if inst.reject is not None:
             raise RuntimeError(
-                "Reject is already applied. Use reject=None " "in the constructor."
+                "Reject is already applied. Use reject=None in the constructor."
             )
         e_start = int(np.ceil(inst.info["sfreq"] * inst.tmin))
         first_samp = s_start - e_start
@@ -124,6 +125,6 @@ def fix_stim_artifact(
         _fix_artifact(data, window, picks, first_samp, last_samp, mode)
 
     else:
-        raise TypeError("Not a Raw or Epochs or Evoked (got %s)." % type(inst))
+        raise TypeError(f"Not a Raw or Epochs or Evoked (got {type(inst)}).")
 
     return inst

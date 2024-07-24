@@ -11,6 +11,7 @@ See :footcite:`WipfNagarajan2009` for details.
 #         Daniel Strohmeier <daniel.strohmeier@tu-ilmenau.de>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 
@@ -24,8 +25,6 @@ from mne.viz import (
     plot_dipole_locations,
     plot_sparse_source_estimates,
 )
-
-print(__doc__)
 
 data_path = sample.data_path()
 subjects_dir = data_path / "subjects"

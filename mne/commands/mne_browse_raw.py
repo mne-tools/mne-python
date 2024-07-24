@@ -14,6 +14,8 @@ Examples
 """
 
 # Authors : Eric Larson, PhD
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import sys
 
@@ -75,14 +77,14 @@ def run():
         "-o",
         "--order",
         dest="group_by",
-        help="Order to use for grouping during plotting " "('type' or 'original')",
+        help="Order to use for grouping during plotting ('type' or 'original')",
         default="type",
     )
     parser.add_option(
         "-p",
         "--preload",
         dest="preload",
-        help="Preload raw data (for faster navigaton)",
+        help="Preload raw data (for faster navigation)",
         default=False,
         action="store_true",
     )
@@ -123,7 +125,8 @@ def run():
     parser.add_option(
         "--clipping",
         dest="clipping",
-        help="Enable trace clipping mode, either 'clamp' or " "'transparent'",
+        help="Enable trace clipping mode. Can be 'clamp', 'transparent', a float, "
+        "or 'none'.",
         default=_RAW_CLIP_DEF,
     )
     parser.add_option(
@@ -131,6 +134,13 @@ def run():
         dest="filterchpi",
         help="Enable filtering cHPI signals.",
         default=None,
+        action="store_true",
+    )
+    parser.add_option(
+        "--butterfly",
+        dest="butterfly",
+        help="Plot in butterfly mode",
+        default=False,
         action="store_true",
     )
     _add_verbose_flag(parser)
@@ -164,6 +174,7 @@ def run():
                 pass
     filterchpi = options.filterchpi
     verbose = options.verbose
+    butterfly = options.butterfly
 
     if raw_in is None:
         parser.print_help()
@@ -199,6 +210,7 @@ def run():
         lowpass=lowpass,
         filtorder=filtorder,
         clipping=clipping,
+        butterfly=butterfly,
         proj=not proj_off,
         verbose=verbose,
         show=True,

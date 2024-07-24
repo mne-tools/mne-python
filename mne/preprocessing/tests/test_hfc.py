@@ -1,6 +1,7 @@
 # Authors: George O'Neill <g.o'neill@ucl.ac.uk>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from pathlib import Path
 
@@ -17,7 +18,7 @@ from mne.preprocessing.hfc import compute_proj_hfc
 fil_path = testing.data_path(download=False) / "FIL"
 fname_root = "sub-noise_ses-001_task-noise220622_run-001"
 
-io_dir = Path(__file__).parent.parent.parent / "io"
+io_dir = Path(__file__).parents[2] / "io"
 ctf_fname = io_dir / "tests" / "data" / "test_ctf_raw.fif"
 fif_fname = io_dir / "tests" / "data" / "test_raw.fif"
 

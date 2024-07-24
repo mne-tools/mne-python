@@ -17,6 +17,7 @@ synchronization (ERS) of beta band activity in the
 #         Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 

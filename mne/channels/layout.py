@@ -7,10 +7,12 @@
 #          Teon Brooks <teon.brooks@gmail.com>
 #          Robert Luke <mail@robertluke.net>
 #
-# License: Simplified BSD
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import logging
 from collections import defaultdict
+from copy import deepcopy
 from itertools import combinations
 from pathlib import Path
 
@@ -27,8 +29,10 @@ from ..utils import (
     _check_option,
     _check_sphere,
     _clean_names,
+    _ensure_int,
     fill_doc,
     logger,
+    verbose,
     warn,
 )
 from ..viz.topomap import plot_layout
@@ -49,20 +53,36 @@ class Layout:
     pos : array, shape=(n_channels, 4)
         The unit-normalized positions of the channels in 2d
         (x, y, width, height).
-    names : list
+    names : list of str
         The channel names.
-    ids : list
+    ids : array-like of int
         The channel ids.
     kind : str
         The type of Layout (e.g. 'Vectorview-all').
     """
 
-    def __init__(self, box, pos, names, ids, kind):  # noqa: D102
+    def __init__(self, box, pos, names, ids, kind):
         self.box = box
         self.pos = pos
         self.names = names
-        self.ids = ids
+        self.ids = np.array(ids)
+        if self.ids.ndim != 1:
+            raise ValueError("The channel indices should be a 1D array-like.")
         self.kind = kind
+
+    def copy(self):
+        """Return a copy of the layout.
+
+        Returns
+        -------
+        layout : instance of Layout
+            A deepcopy of the layout.
+
+        Notes
+        -----
+        .. versionadded:: 1.7
+        """
+        return deepcopy(self)
 
     def save(self, fname, overwrite=False):
         """Save Layout to disk.
@@ -84,11 +104,11 @@ class Layout:
         height = self.pos[:, 3]
         fname = _check_fname(fname, overwrite=overwrite, name=fname)
         if fname.suffix == ".lout":
-            out_str = "%8.2f %8.2f %8.2f %8.2f\n" % self.box
+            out_str = "{:8.2f} {:8.2f} {:8.2f} {:8.2f}\n".format(*self.box)
         elif fname.suffix == ".lay":
             out_str = ""
         else:
-            raise ValueError("Unknown layout type. Should be of type " ".lout or .lay.")
+            raise ValueError("Unknown layout type. Should be of type .lout or .lay.")
 
         for ii in range(x.shape[0]):
             out_str += "%03d %8.2f %8.2f %8.2f %8.2f %s\n" % (
@@ -106,7 +126,7 @@ class Layout:
 
     def __repr__(self):
         """Return the string representation."""
-        return "<Layout | %s - Channels: %s ...>" % (
+        return "<Layout | {} - Channels: {} ...>".format(
             self.kind,
             ", ".join(self.names[:3]),
         )
@@ -133,6 +153,119 @@ class Layout:
         .. versionadded:: 0.12.0
         """
         return plot_layout(self, picks=picks, show_axes=show_axes, show=show)
+
+    @verbose
+    def pick(self, picks=None, exclude=(), *, verbose=None):
+        """Pick a subset of channels.
+
+        Parameters
+        ----------
+        %(picks_layout)s
+        exclude : str | int | array-like of str or int
+            Set of channels to exclude, only used when ``picks`` is set to ``'all'`` or
+            ``None``. Exclude will not drop channels explicitly provided in ``picks``.
+        %(verbose)s
+
+        Returns
+        -------
+        layout : instance of Layout
+            The modified layout.
+
+        Notes
+        -----
+        .. versionadded:: 1.7
+        """
+        # TODO: all the picking functions operates on an 'info' object which is missing
+        # for a layout, thus we have to do the extra work here. The logic below can be
+        # replaced when https://github.com/mne-tools/mne-python/issues/11913 is solved.
+        if (isinstance(picks, str) and picks == "all") or (picks is None):
+            picks = deepcopy(self.names)
+            apply_exclude = True
+        elif isinstance(picks, str):
+            picks = [picks]
+            apply_exclude = False
+        elif isinstance(picks, slice):
+            try:
+                picks = np.arange(len(self.names))[picks]
+            except TypeError:
+                raise TypeError(
+                    "If a slice is provided, it must be a slice of integers."
+                )
+            apply_exclude = False
+        else:
+            try:
+                picks = [_ensure_int(picks)]
+            except TypeError:
+                picks = (
+                    list(picks) if isinstance(picks, (tuple, set)) else deepcopy(picks)
+                )
+            apply_exclude = False
+        if apply_exclude:
+            if isinstance(exclude, str):
+                exclude = [exclude]
+            else:
+                try:
+                    exclude = [_ensure_int(exclude)]
+                except TypeError:
+                    exclude = (
+                        list(exclude)
+                        if isinstance(exclude, (tuple, set))
+                        else deepcopy(exclude)
+                    )
+        for var, var_name in ((picks, "picks"), (exclude, "exclude")):
+            if var_name == "exclude" and not apply_exclude:
+                continue
+            if not isinstance(var, (list, tuple, set, np.ndarray)):
+                raise TypeError(
+                    f"'{var_name}' must be a list, tuple, set or ndarray. "
+                    f"Got {type(var)} instead."
+                )
+            if isinstance(var, np.ndarray) and var.ndim != 1:
+                raise ValueError(
+                    f"'{var_name}' must be a 1D array-like. Got {var.ndim}D instead."
+                )
+            for k, elt in enumerate(var):
+                if isinstance(elt, str) and elt in self.names:
+                    var[k] = self.names.index(elt)
+                    continue
+                elif isinstance(elt, str):
+                    raise ValueError(
+                        f"The channel name {elt} provided in {var_name} does not match "
+                        "any channels from the layout."
+                    )
+                try:
+                    var[k] = _ensure_int(elt)
+                except TypeError:
+                    raise TypeError(
+                        f"All elements in '{var_name}' must be integers or strings."
+                    )
+                if not (0 <= var[k] < len(self.names)):
+                    raise ValueError(
+                        f"The value {elt} provided in {var_name} does not match any "
+                        f"channels from the layout. The layout has {len(self.names)} "
+                        "channels."
+                    )
+            if len(var) != len(set(var)):
+                warn(
+                    f"The provided '{var_name}' has duplicates which will be ignored.",
+                    RuntimeWarning,
+                )
+        picks = picks.astype(int) if isinstance(picks, np.ndarray) else picks
+        exclude = exclude.astype(int) if isinstance(exclude, np.ndarray) else exclude
+        if apply_exclude:
+            picks = np.array(list(set(picks) - set(exclude)), dtype=int)
+            if len(picks) == 0:
+                raise RuntimeError(
+                    "The channel selection yielded no remaining channels. Please edit "
+                    "the arguments 'picks' and 'exclude' to include at least one "
+                    "channel."
+                )
+        else:
+            picks = np.array(list(set(picks)), dtype=int)
+        self.pos = self.pos[picks]
+        self.ids = self.ids[picks]
+        self.names = [self.names[k] for k in picks]
+        return self
 
 
 def _read_lout(fname):
@@ -532,7 +665,7 @@ def find_layout(info, ch_type=None, exclude="bads"):
     idx = [ii for ii, name in enumerate(layout.names) if name not in exclude]
     layout.names = [layout.names[ii] for ii in idx]
     layout.pos = layout.pos[idx]
-    layout.ids = [layout.ids[ii] for ii in idx]
+    layout.ids = layout.ids[idx]
 
     return layout
 
@@ -969,61 +1102,6 @@ def _pair_grad_sensors(
         return picks
 
 
-# this function is used to pair grad when info is not present
-# it is the case of Projection that don't have the info.
-def _pair_grad_sensors_ch_names_vectorview(ch_names):
-    """Find the indices for pairing grad channels in a Vectorview system.
-
-    Parameters
-    ----------
-    ch_names : list of str
-        A list of channel names.
-
-    Returns
-    -------
-    indexes : list of int
-        Indices of the grad channels, ordered in pairs.
-    """
-    pairs = defaultdict(list)
-    for i, name in enumerate(ch_names):
-        if name.startswith("MEG"):
-            if name.endswith(("2", "3")):
-                key = name[-4:-1]
-                pairs[key].append(i)
-
-    pairs = [p for p in pairs.values() if len(p) == 2]
-
-    grad_chs = sum(pairs, [])
-    return grad_chs
-
-
-# this function is used to pair grad when info is not present
-# it is the case of Projection that don't have the info.
-def _pair_grad_sensors_ch_names_neuromag122(ch_names):
-    """Find the indices for pairing grad channels in a Neuromag 122 system.
-
-    Parameters
-    ----------
-    ch_names : list of str
-        A list of channel names.
-
-    Returns
-    -------
-    indexes : list of int
-        Indices of the grad channels, ordered in pairs.
-    """
-    pairs = defaultdict(list)
-    for i, name in enumerate(ch_names):
-        if name.startswith("MEG"):
-            key = (int(name[-3:]) - 1) // 2
-            pairs[key].append(i)
-
-    pairs = [p for p in pairs.values() if len(p) == 2]
-
-    grad_chs = sum(pairs, [])
-    return grad_chs
-
-
 def _merge_ch_data(data, ch_type, names, method="rms"):
     """Merge data from channel pairs.
 
@@ -1074,7 +1152,7 @@ def _merge_grad_data(data, method="rms"):
     elif method == "rms":
         data = np.sqrt(np.sum(data**2, axis=1) / 2)
     else:
-        raise ValueError('method must be "rms" or "mean", got %s.' % method)
+        raise ValueError(f'method must be "rms" or "mean", got {method}.')
     return data.reshape(data.shape[:1] + orig_shape[1:])
 
 
@@ -1180,7 +1258,7 @@ def generate_2d_layout(
     if ch_indices is None:
         ch_indices = np.arange(xy.shape[0])
     if ch_names is None:
-        ch_names = ["{}".format(i) for i in ch_indices]
+        ch_names = list(map(str, ch_indices))
 
     if len(ch_names) != len(ch_indices):
         raise ValueError("# channel names and indices must be equal")
@@ -1204,7 +1282,7 @@ def generate_2d_layout(
     # Create box and pos variable
     box = _box_size(np.vstack([x, y]).T, padding=pad)
     box = (0, 0, box[0], box[1])
-    w, h = [np.array([i] * x.shape[0]) for i in [w, h]]
+    w, h = (np.array([i] * x.shape[0]) for i in [w, h])
     loc_params = np.vstack([x, y, w, h]).T
 
     layout = Layout(box, loc_params, ch_names, ch_indices, name)

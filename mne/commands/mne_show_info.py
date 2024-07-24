@@ -10,6 +10,8 @@ Examples
 """
 
 # Authors : Alexandre Gramfort, Ph.D.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import sys
 
@@ -27,10 +29,10 @@ def run():
     fname = args[0]
 
     if not fname.endswith(".fif"):
-        raise ValueError("%s does not seem to be a .fif file." % fname)
+        raise ValueError(f"{fname} does not seem to be a .fif file.")
 
     info = mne.io.read_info(fname)
-    print("File : %s" % fname)
+    print(f"File : {fname}")
     print(info)
 
 

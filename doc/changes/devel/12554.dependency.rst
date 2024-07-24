@@ -1,0 +1,6 @@
+Minimum versions for dependencies were bumped to those ~2 years old at the time of release (by `Eric Larson`_), including:
+
+- NumPy ≥ 1.23
+- SciPy ≥ 1.9
+- Matplotlib ≥ 3.6
+- scikit-learn ≥ 1.1

@@ -12,6 +12,8 @@ As usual we'll start by importing the modules we need, and loading some example
 data:
 """
 
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 # %%
 
 import os
@@ -236,8 +238,9 @@ for title, data in zip(["orig.", "interp."], [eeg_data, eeg_data_interp]):
     fig.suptitle(title, size="xx-large", weight="bold")
 
 # %%
-# Note that we used the ``exclude=[]`` trick in the call to
-# :meth:`~mne.io.Raw.pick_types` to make sure the bad channels were not
+# Note that the method :meth:`~mne.io.Raw.pick` default
+# arguments includes ``exclude=()`` which ensures that bad
+# channels are not
 # automatically dropped from the selection. Here is the corresponding example
 # with the interpolated gradiometer channel; since there are more channels
 # we'll use a more transparent gray color this time:

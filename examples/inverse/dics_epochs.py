@@ -15,13 +15,14 @@ synchronization (ERS) of beta band activity in the :ref:`somato dataset
 #          Alex Rockhill <aprockhill@mailbox.org>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import numpy as np
 
 import mne
 from mne.beamformer import apply_dics_tfr_epochs, make_dics
 from mne.datasets import somato
-from mne.time_frequency import csd_tfr, tfr_morlet
+from mne.time_frequency import csd_tfr
 
 print(__doc__)
 
@@ -66,8 +67,8 @@ freqs = np.linspace(13, 31, 5)
 # decomposition for each epoch. We must pass ``output='complex'`` if we wish to
 # use this TFR later with a DICS beamformer. We also pass ``average=False`` to
 # compute the TFR for each individual epoch.
-epochs_tfr = tfr_morlet(
-    epochs, freqs, n_cycles=5, return_itc=False, output="complex", average=False
+epochs_tfr = epochs.compute_tfr(
+    "morlet", freqs, n_cycles=5, return_itc=False, output="complex", average=False
 )
 
 # crop either side to use a buffer to remove edge artifact

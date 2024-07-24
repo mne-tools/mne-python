@@ -10,6 +10,7 @@ In this example, we'll show how to use :class:`mne.viz.Brain`.
 # Author: Alex Rockhill <aprockhill@mailbox.org>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 # Load data

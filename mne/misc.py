@@ -2,6 +2,7 @@
 #          Scott Burns <sburns@nmr.mgh.harvard.edu>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 
 def parse_config(fname):
@@ -23,7 +24,7 @@ def parse_config(fname):
     """
     reject_params = read_reject_parameters(fname)
 
-    with open(fname, "r") as f:
+    with open(fname) as f:
         lines = f.readlines()
 
     cat_ind = [i for i, x in enumerate(lines) if "category {" in x]
@@ -68,7 +69,7 @@ def read_reject_parameters(fname):
     params : dict
         The rejection parameters.
     """
-    with open(fname, "r") as f:
+    with open(fname) as f:
         lines = f.readlines()
 
     reject_names = ["gradReject", "magReject", "eegReject", "eogReject", "ecgReject"]
@@ -80,19 +81,3 @@ def read_reject_parameters(fname):
             reject[reject_pynames[reject_names.index(words[0])]] = float(words[1])
 
     return reject
-
-
-def read_flat_parameters(fname):
-    """Read flat channel rejection parameters from .cov or .ave config file."""
-    with open(fname, "r") as f:
-        lines = f.readlines()
-
-    reject_names = ["gradFlat", "magFlat", "eegFlat", "eogFlat", "ecgFlat"]
-    reject_pynames = ["grad", "mag", "eeg", "eog", "ecg"]
-    flat = dict()
-    for line in lines:
-        words = line.split()
-        if words[0] in reject_names:
-            flat[reject_pynames[reject_names.index(words[0])]] = float(words[1])
-
-    return flat

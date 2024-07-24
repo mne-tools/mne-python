@@ -9,6 +9,7 @@ Shifting time-scale in evoked data
 # Author: Mainak Jas <mainak@neuro.hut.fi>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 

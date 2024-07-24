@@ -2,7 +2,8 @@
 
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
-# License: Simplified BSD
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from math import sqrt
 
@@ -145,7 +146,7 @@ def bootstrap_confidence_interval(
     rng = check_random_state(random_state)
     boot_indices = rng.choice(indices, replace=True, size=(n_bootstraps, len(indices)))
     stat = np.array([stat_fun(arr[inds]) for inds in boot_indices])
-    ci = (((1 - ci) / 2) * 100, ((1 - ((1 - ci) / 2))) * 100)
+    ci = (((1 - ci) / 2) * 100, (1 - ((1 - ci) / 2)) * 100)
     ci_low, ci_up = np.percentile(stat, ci, axis=0)
     return np.array([ci_low, ci_up])
 

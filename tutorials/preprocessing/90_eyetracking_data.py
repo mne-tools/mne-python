@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _tut-eyetrack:
 
@@ -16,6 +15,7 @@ the ERP and pupil response to the light flashes (i.e. the pupillary light reflex
 #
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 # Data loading
@@ -37,7 +37,7 @@ et_fpath = data_path() / "eeg-et" / "sub-01_task-plr_eyetrack.asc"
 eeg_fpath = data_path() / "eeg-et" / "sub-01_task-plr_eeg.mff"
 
 raw_et = mne.io.read_raw_eyelink(et_fpath, create_annotations=["blinks"])
-raw_eeg = mne.io.read_raw_egi(eeg_fpath, preload=True, verbose="warning")
+raw_eeg = mne.io.read_raw_egi(eeg_fpath, events_as_annotations=True).load_data()
 raw_eeg.filter(1, 30)
 
 # %%

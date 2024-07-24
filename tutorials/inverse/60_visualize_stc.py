@@ -12,6 +12,8 @@ Surface Source Estimates
 First, we get the paths for the evoked data and the source time courses (stcs).
 """
 
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 # %%
 
 import matplotlib.pyplot as plt

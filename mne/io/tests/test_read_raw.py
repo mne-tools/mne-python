@@ -3,6 +3,7 @@
 # Authors: Clemens Brunner <clemens.brunner@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from pathlib import Path
 from shutil import copyfile
@@ -13,7 +14,7 @@ from mne.datasets import testing
 from mne.io import read_raw
 from mne.io._read_raw import _get_readers, split_name_ext
 
-base = Path(__file__).parent.parent
+base = Path(__file__).parents[1]
 test_base = Path(testing.data_path(download=False))
 
 
@@ -49,7 +50,13 @@ _testing_mark = testing._pytest_mark()
         base / "tests/data/test_raw.fif",
         base / "tests/data/test_raw.fif.gz",
         base / "edf/tests/data/test.edf",
-        base / "edf/tests/data/test.bdf",
+        pytest.param(
+            base / "edf/tests/data/test.bdf",
+            marks=(
+                _testing_mark,
+                pytest.mark.filterwarnings("ignore:Channels contain different"),
+            ),
+        ),
         base / "brainvision/tests/data/test.vhdr",
         base / "kit/tests/data/test.sqd",
         pytest.param(test_base / "KIT" / "data_berlin.con", marks=_testing_mark),

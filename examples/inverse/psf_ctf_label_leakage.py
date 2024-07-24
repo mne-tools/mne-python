@@ -17,6 +17,7 @@ which is ordered based on the locations of the regions in the axial plane.
 #          Nicolas P. Rougier (graph code borrowed from his matplotlib gallery)
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 

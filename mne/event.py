@@ -6,6 +6,7 @@
 #          Clement Moutard <clement.moutard@polytechnique.org>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from collections.abc import Sequence
 from pathlib import Path
@@ -25,6 +26,7 @@ from .utils import (
     _check_option,
     _get_stim_channel,
     _on_missing,
+    _pl,
     _validate_type,
     check_fname,
     fill_doc,
@@ -319,9 +321,7 @@ def read_events(
         event_list = _mask_trigs(event_list, mask, mask_type)
         masked_len = event_list.shape[0]
         if masked_len < unmasked_len:
-            warn(
-                "{} of {} events masked".format(unmasked_len - masked_len, unmasked_len)
-            )
+            warn(f"{unmasked_len - masked_len} of {unmasked_len} events masked")
     out = event_list
     if return_event_id:
         if event_id is None:
@@ -482,6 +482,7 @@ def find_stim_steps(raw, pad_start=None, pad_stop=None, merge=0, stim_channel=No
 def _find_events(
     data,
     first_samp,
+    *,
     verbose=None,
     output="onset",
     consecutive="increasing",
@@ -490,6 +491,7 @@ def _find_events(
     uint_cast=False,
     mask_type="and",
     initial_event=False,
+    ch_name=None,
 ):
     """Help find events."""
     assert data.shape[0] == 1  # data should be only a row vector
@@ -520,9 +522,9 @@ def _find_events(
             events = np.insert(events, 0, [first_samp, 0, initial_value], axis=0)
         else:
             logger.info(
-                "Trigger channel has a non-zero initial value of {} "
-                "(consider using initial_event=True to detect this "
-                "event)".format(initial_value)
+                f"Trigger channel {ch_name} has a non-zero initial value of "
+                "{initial_value} (consider using initial_event=True to detect this "
+                "event)"
             )
 
     events = _mask_trigs(events, mask, mask_type)
@@ -555,22 +557,22 @@ def _find_events(
         logger.info("Removing orphaned onset at the end of the file.")
         onset_idx = np.delete(onset_idx, -1)
 
+    _check_option("output", output, ("onset", "step", "offset"))
     if output == "onset":
         events = events[onset_idx]
     elif output == "step":
         idx = np.union1d(onset_idx, offset_idx)
         events = events[idx]
-    elif output == "offset":
+    else:
+        assert output == "offset"
         event_id = events[onset_idx, 2]
         events = events[offset_idx]
         events[:, 1] = events[:, 2]
         events[:, 2] = event_id
         events[:, 0] -= 1
-    else:
-        raise ValueError("Invalid output parameter %r" % output)
 
-    logger.info("%s events found" % len(events))
-    logger.info("Event IDs: %s" % np.unique(events[:, 2]))
+    logger.info(f"{len(events)} event{_pl(events)} found on stim channel {ch_name}")
+    logger.info(f"Event IDs: {np.unique(events[:, 2])}")
 
     return events
 
@@ -772,7 +774,7 @@ def find_events(
     data, _ = raw[picks, :]
 
     events_list = []
-    for d in data:
+    for d, ch_name in zip(data, stim_channel):
         events = _find_events(
             d[np.newaxis, :],
             raw.first_samp,
@@ -784,6 +786,7 @@ def find_events(
             uint_cast=uint_cast,
             mask_type=mask_type,
             initial_event=initial_event,
+            ch_name=ch_name,
         )
         # add safety check for spurious events (for ex. from neuromag syst.) by
         # checking the number of low sample events
@@ -821,7 +824,7 @@ def _mask_trigs(events, mask, mask_type):
         elif mask_type != "and":
             raise ValueError(
                 "'mask_type' should be either 'and'"
-                " or 'not_and', instead of '%s'" % mask_type
+                f" or 'not_and', instead of '{mask_type}'"
             )
         events[:, 1:] = np.bitwise_and(events[:, 1:], mask)
     events = events[events[:, 1] != events[:, 2]]
@@ -922,7 +925,13 @@ def shift_time_events(events, ids, tshift, sfreq):
 
 @fill_doc
 def make_fixed_length_events(
-    raw, id=1, start=0, stop=None, duration=1.0, first_samp=True, overlap=0.0
+    raw,
+    id=1,  # noqa: A002
+    start=0,
+    stop=None,
+    duration=1.0,
+    first_samp=True,
+    overlap=0.0,
 ):
     """Make a set of :term:`events` separated by a fixed duration.
 
@@ -964,7 +973,7 @@ def make_fixed_length_events(
     duration, overlap = float(duration), float(overlap)
     if not 0 <= overlap < duration:
         raise ValueError(
-            "overlap must be >=0 but < duration (%s), got %s" % (duration, overlap)
+            f"overlap must be >=0 but < duration ({duration}), got {overlap}"
         )
 
     start = raw.time_as_index(start, use_rounding=True)[0]
@@ -986,7 +995,7 @@ def make_fixed_length_events(
     n_events = len(ts)
     if n_events == 0:
         raise ValueError(
-            "No events produced, check the values of start, " "stop, and duration"
+            "No events produced, check the values of start, stop, and duration"
         )
     events = np.c_[ts, np.zeros(n_events, dtype=int), id * np.ones(n_events, dtype=int)]
     return events
@@ -1021,7 +1030,7 @@ def concatenate_events(events, first_samps, last_samps):
     _validate_type(events, list, "events")
     if not (len(events) == len(last_samps) and len(events) == len(first_samps)):
         raise ValueError(
-            "events, first_samps, and last_samps must all have " "the same lengths"
+            "events, first_samps, and last_samps must all have the same lengths"
         )
     first_samps = np.array(first_samps)
     last_samps = np.array(last_samps)
@@ -1139,7 +1148,7 @@ class AcqParserFIF:
         "OldMask",
     )
 
-    def __init__(self, info):  # noqa: D102
+    def __init__(self, info):
         acq_pars = info["acq_pars"]
         if not acq_pars:
             raise ValueError("No acquisition parameters")

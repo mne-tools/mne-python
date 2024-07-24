@@ -26,6 +26,7 @@ images of faces and body parts.
 #          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 
@@ -36,6 +37,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.manifold import MDS
 from sklearn.metrics import roc_auc_score
 from sklearn.model_selection import StratifiedKFold
+from sklearn.multiclass import OneVsRestClassifier
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 
@@ -121,7 +123,8 @@ epochs["not-face"].average().plot()
 # Classify using the average signal in the window 50ms to 300ms
 # to focus the classifier on the time interval with best SNR.
 clf = make_pipeline(
-    StandardScaler(), LogisticRegression(C=1, solver="liblinear", multi_class="auto")
+    StandardScaler(),
+    OneVsRestClassifier(LogisticRegression(C=1)),
 )
 X = epochs.copy().crop(0.05, 0.3).get_data().mean(axis=2)
 y = epochs.events[:, 2]

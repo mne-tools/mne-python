@@ -3,6 +3,7 @@
 #          Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from copy import deepcopy
 from pathlib import Path
@@ -58,9 +59,7 @@ from mne.surface import _get_ico_surface
 from mne.tests.test_chpi import _assert_quats
 from mne.utils import catch_logging
 
-raw_fname_short = (
-    Path(__file__).parent.parent.parent / "io" / "tests" / "data" / "test_raw.fif"
-)
+raw_fname_short = Path(__file__).parents[2] / "io" / "tests" / "data" / "test_raw.fif"
 
 data_path = testing.data_path(download=False)
 raw_fname = data_path / "MEG" / "sample" / "sample_audvis_trunc_raw.fif"
@@ -399,7 +398,7 @@ def test_simulate_raw_bem(raw_data):
         fits = fit_dipole(evoked, cov, bem, trans, min_dist=1.0)[0].pos
         diffs = np.sqrt(np.sum((locs - fits) ** 2, axis=-1)) * 1000
         med_diff = np.median(diffs)
-        assert med_diff < tol, "%s: %s" % (bem, med_diff)
+        assert med_diff < tol, f"{bem}: {med_diff}"
     # also test event timings with SourceSimulator
     first_samp = raw.first_samp
     events = find_events(raw, initial_event=True, verbose=False)

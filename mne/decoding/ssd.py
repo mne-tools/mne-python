@@ -2,6 +2,7 @@
 #         Victoria Peterson <victoriapeterson09@gmail.com>
 #         Thomas S. Binns <t.s.binns@outlook.com>
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import numpy as np
 from scipy.linalg import eigh
@@ -111,8 +112,7 @@ class SSD(BaseEstimator, TransformerMixin):
             key = ("signal", "noise")[dd]
             if param + "_freq" not in dicts[key]:
                 raise ValueError(
-                    "%s must be defined in filter parameters for %s"
-                    % (param + "_freq", key)
+                    f"{param + '_freq'} must be defined in filter parameters for {key}"
                 )
             val = dicts[key][param + "_freq"]
             if not isinstance(val, (int, float)):
@@ -177,8 +177,8 @@ class SSD(BaseEstimator, TransformerMixin):
             The input data from which to estimate the SSD. Either 2D array
             obtained from continuous data or 3D array obtained from epoched
             data.
-        y : None | array, shape (n_samples,)
-            Used for scikit-learn compatibility.
+        y : None
+            Ignored; exists for compatibility with scikit-learn pipelines.
 
         Returns
         -------

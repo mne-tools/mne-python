@@ -2,6 +2,7 @@
 #         Victoria Peterson <victoriapeterson09@gmail.com>
 #         Thomas S. Binns <t.s.binns@outlook.com>
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import numpy as np
 import pytest
@@ -18,7 +19,7 @@ freqs_noise = 8, 13
 
 
 def simulate_data(
-    freqs_sig=[9, 12],
+    freqs_sig=(9, 12),
     n_trials=100,
     n_channels=20,
     n_samples=500,

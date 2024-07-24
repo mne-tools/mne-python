@@ -2,19 +2,19 @@
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import numbers
 import operator
 import os
 import re
-from builtins import input  # no-op here but facilitates testing
+from builtins import input  # noqa: UP029
 from difflib import get_close_matches
 from importlib import import_module
-from importlib.metadata import version
+from inspect import signature
 from pathlib import Path
 
 import numpy as np
-from packaging.version import parse
 
 from ..defaults import HEAD_SIZE_DEFAULT, _handle_default
 from ..fixes import _compare_version, _median_complex
@@ -66,14 +66,14 @@ def check_fname(fname, filetype, endings, endings_err=()):
     if len(endings_err) > 0 and not fname.endswith(endings_err):
         print_endings = " or ".join([", ".join(endings_err[:-1]), endings_err[-1]])
         raise OSError(
-            "The filename (%s) for file type %s must end with %s"
-            % (fname, filetype, print_endings)
+            f"The filename ({fname}) for file type {filetype} must end "
+            f"with {print_endings}"
         )
     print_endings = " or ".join([", ".join(endings[:-1]), endings[-1]])
     if not fname.endswith(endings):
         warn(
-            "This filename (%s) does not conform to MNE naming conventions. "
-            "All %s files should end with %s" % (fname, filetype, print_endings)
+            f"This filename ({fname}) does not conform to MNE naming conventions. "
+            f"All {filetype} files should end with {print_endings}"
         )
 
 
@@ -155,7 +155,7 @@ def _require_version(lib, what, version="0.0"):
     if not ok:
         extra = f" (version >= {version})" if version != "0.0" else ""
         why = "package was not found" if got is None else f"got {repr(got)}"
-        raise ImportError(f"The {lib} package{extra} is required to {what}, " f"{why}")
+        raise ImportError(f"The {lib} package{extra} is required to {what}, {why}")
 
 
 def _import_h5py():
@@ -190,14 +190,10 @@ def check_random_state(seed):
         return np.random.mtrand.RandomState(seed)
     if isinstance(seed, np.random.mtrand.RandomState):
         return seed
-    try:
-        # Generator is only available in numpy >= 1.17
-        if isinstance(seed, np.random.Generator):
-            return seed
-    except AttributeError:
-        pass
+    if isinstance(seed, np.random.Generator):
+        return seed
     raise ValueError(
-        "%r cannot be used to seed a " "numpy.random.mtrand.RandomState instance" % seed
+        f"{seed!r} cannot be used to seed a numpy.random.mtrand.RandomState instance"
     )
 
 
@@ -210,12 +206,10 @@ def _check_event_id(event_id, events):
         for key in event_id.keys():
             _validate_type(key, str, "Event names")
         event_id = {
-            key: _ensure_int(val, "event_id[%s]" % key) for key, val in event_id.items()
+            key: _ensure_int(val, f"event_id[{key}]") for key, val in event_id.items()
         }
     elif isinstance(event_id, list):
-        event_id = [
-            _ensure_int(v, "event_id[%s]" % vi) for vi, v in enumerate(event_id)
-        ]
+        event_id = [_ensure_int(v, f"event_id[{vi}]") for vi, v in enumerate(event_id)]
         event_id = dict(zip((str(i) for i in event_id), event_id))
     else:
         event_id = _ensure_int(event_id, "event_id")
@@ -231,11 +225,29 @@ def _check_fname(
     name="File",
     need_dir=False,
     *,
+    check_bids_split=False,
     verbose=None,
 ):
     """Check for file existence, and return its absolute path."""
     _validate_type(fname, "path-like", name)
-    fname = Path(fname).expanduser().absolute()
+    # special case for MNE-BIDS, check split
+    fname_path = Path(fname)
+    if check_bids_split:
+        try:
+            from mne_bids import BIDSPath
+        except Exception:
+            pass
+        else:
+            if isinstance(fname, BIDSPath) and fname.split is not None:
+                raise ValueError(
+                    f"Passing a BIDSPath {name} with `{fname.split=}` is unsafe as it "
+                    "can unexpectedly lead to invalid BIDS split naming. Explicitly "
+                    f"set `{name}.split = None` to avoid ambiguity. If you want the "
+                    f"old misleading split naming, you can pass `str({name})`."
+                )
+
+    fname = fname_path.expanduser().absolute()
+    del fname_path
 
     if fname.exists():
         if not overwrite:
@@ -249,12 +261,12 @@ def _check_fname(
             if need_dir:
                 if not fname.is_dir():
                     raise OSError(
-                        f"Need a directory for {name} but found a file " f"at {fname}"
+                        f"Need a directory for {name} but found a file at {fname}"
                     )
             else:
                 if not fname.is_file():
                     raise OSError(
-                        f"Need a file for {name} but found a directory " f"at {fname}"
+                        f"Need a file for {name} but found a directory at {fname}"
                     )
             if not os.access(fname, os.R_OK):
                 raise PermissionError(f"{name} does not have read permissions: {fname}")
@@ -285,9 +297,7 @@ def _check_subject(
         _validate_type(first, "str", f"Either {second_kind} subject or {first_kind}")
         return first
     elif raise_error is True:
-        raise ValueError(
-            f"Neither {second_kind} subject nor {first_kind} " "was a string"
-        )
+        raise ValueError(f"Neither {second_kind} subject nor {first_kind} was a string")
     return None
 
 
@@ -295,19 +305,20 @@ def _check_preload(inst, msg):
     """Ensure data are preloaded."""
     from ..epochs import BaseEpochs
     from ..evoked import Evoked
-    from ..time_frequency import _BaseTFR
+    from ..source_estimate import _BaseSourceEstimate
+    from ..time_frequency import BaseTFR
     from ..time_frequency.spectrum import BaseSpectrum
 
-    if isinstance(inst, (_BaseTFR, Evoked, BaseSpectrum)):
+    if isinstance(inst, (BaseTFR, Evoked, BaseSpectrum, _BaseSourceEstimate)):
         pass
     else:
         name = "epochs" if isinstance(inst, BaseEpochs) else "raw"
         if not inst.preload:
             raise RuntimeError(
                 "By default, MNE does not load data into main memory to "
-                "conserve resources. " + msg + " requires %s data to be "
+                "conserve resources. " + msg + f" requires {name} data to be "
                 "loaded. Use preload=True (or string) in the constructor or "
-                "%s.load_data()." % (name, name)
+                f"{name}.load_data()."
             )
         if name == "epochs":
             inst._handle_empty("raise", msg)
@@ -341,8 +352,8 @@ def _check_compensation_grade(info1, info2, name1, name2="data", ch_names=None):
     # perform check
     if grade1 != grade2:
         raise RuntimeError(
-            "Compensation grade of %s (%s) and %s (%s) do not match"
-            % (name1, grade1, name2, grade2)
+            f"Compensation grade of {name1} ({grade1}) and {name2} ({grade2}) "
+            "do not match"
         )
 
 
@@ -367,7 +378,6 @@ def _soft_import(name, purpose, strict=True):
     # Mapping import namespaces to their pypi package name
     pip_name = dict(
         sklearn="scikit-learn",
-        EDFlib="EDFlib-Python",
         mne_bids="mne-bids",
         mne_nirs="mne-nirs",
         mne_features="mne-features",
@@ -410,21 +420,9 @@ def _check_eeglabio_installed(strict=True):
     return _soft_import("eeglabio", "exporting to EEGLab", strict=strict)
 
 
-def _check_edflib_installed(strict=True):
+def _check_edfio_installed(strict=True):
     """Aux function."""
-    out = _soft_import("EDFlib", "exporting to EDF", strict=strict)
-    if out:
-        # EDFlib-Python 1.0.7 is not compatible with NumPy 2.0
-        # https://gitlab.com/Teuniz/EDFlib-Python/-/issues/10
-        ver = version("EDFlib-Python")
-        if parse(ver) <= parse("1.0.7") and parse(np.__version__).major >= 2:
-            if strict:  # pragma: no cover
-                raise RuntimeError(
-                    f"EDFlib version={ver} is not compatible with NumPy 2.0, consider "
-                    "upgrading EDFlib-Python"
-                )
-            out = False
-    return out
+    return _soft_import("edfio", "exporting to EDF", strict=strict)
 
 
 def _check_pybv_installed(strict=True):
@@ -445,8 +443,8 @@ def _check_pandas_index_arguments(index, valid):
         index = [index]
     if not isinstance(index, list):
         raise TypeError(
-            "index must be `None` or a string or list of strings,"
-            " got type {}.".format(type(index))
+            "index must be `None` or a string or list of strings, got type "
+            f"{type(index)}."
         )
     invalid = set(index) - set(valid)
     if invalid:
@@ -466,8 +464,8 @@ def _check_time_format(time_format, valid, meas_date=None):
     if time_format not in valid and time_format is not None:
         valid_str = '", "'.join(valid)
         raise ValueError(
-            '"{}" is not a valid time format. Valid options are '
-            '"{}" and None.'.format(time_format, valid_str)
+            f'"{time_format}" is not a valid time format. Valid options are '
+            f'"{valid_str}" and None.'
         )
     # allow datetime only if meas_date available
     if time_format == "datetime" and meas_date is None:
@@ -535,6 +533,14 @@ class _Callable:
         return callable(other)
 
 
+class _Sparse:
+    @classmethod
+    def __instancecheck__(cls, other):
+        from scipy import sparse
+
+        return sparse.issparse(other)
+
+
 _multi = {
     "str": (str,),
     "numeric": (np.floating, float, int_like),
@@ -542,6 +548,7 @@ _multi = {
     "int-like": (int_like,),
     "callable": (_Callable(),),
     "array-like": (list, tuple, set, np.ndarray),
+    "sparse": (_Sparse(),),
 }
 
 
@@ -663,10 +670,11 @@ def _path_like(item):
 def _check_if_nan(data, msg=" to be plotted"):
     """Raise if any of the values are NaN."""
     if not np.isfinite(data).all():
-        raise ValueError("Some of the values {} are NaN.".format(msg))
+        raise ValueError(f"Some of the values {msg} are NaN.")
 
 
-def _check_info_inv(info, forward, data_cov=None, noise_cov=None):
+@verbose
+def _check_info_inv(info, forward, data_cov=None, noise_cov=None, verbose=None):
     """Return good channels common to forward model and covariance matrices."""
     from .._fiff.pick import pick_types
 
@@ -710,6 +718,19 @@ def _check_info_inv(info, forward, data_cov=None, noise_cov=None):
     if noise_cov is not None:
         ch_names = _compare_ch_names(ch_names, noise_cov.ch_names, noise_cov["bads"])
 
+    # inform about excluding any channels apart from bads and reference
+    all_bads = info["bads"] + ref_chs
+    if data_cov is not None:
+        all_bads += data_cov["bads"]
+    if noise_cov is not None:
+        all_bads += noise_cov["bads"]
+    dropped_nonbads = set(info["ch_names"]) - set(ch_names) - set(all_bads)
+    if dropped_nonbads:
+        logger.info(
+            f"Excluding {len(dropped_nonbads)} channel(s) missing from the "
+            "provided forward operator and/or covariance matrices"
+        )
+
     picks = [info["ch_names"].index(k) for k in ch_names if k in info["ch_names"]]
     return picks
 
@@ -730,10 +751,10 @@ def _check_channels_spatial_filter(ch_names, filters):
     for ch_name in filters["ch_names"]:
         if ch_name not in ch_names:
             raise ValueError(
-                "The spatial filter was computed with channel %s "
+                f"The spatial filter was computed with channel {ch_name} "
                 "which is not present in the data. You should "
                 "compute a new spatial filter restricted to the "
-                "good data channels." % ch_name
+                "good data channels."
             )
     # then compare list of channels and get selection based on data:
     sel = [ii for ii, ch_name in enumerate(ch_names) if ch_name in filters["ch_names"]]
@@ -745,9 +766,7 @@ def _check_rank(rank):
     _validate_type(rank, (None, dict, str), "rank")
     if isinstance(rank, str):
         if rank not in ["full", "info"]:
-            raise ValueError(
-                'rank, if str, must be "full" or "info", ' "got %s" % (rank,)
-            )
+            raise ValueError(f'rank, if str, must be "full" or "info", got {rank}')
     return rank
 
 
@@ -764,7 +783,13 @@ def _check_one_ch_type(method, info, forward, data_cov=None, noise_cov=None):
         info_pick = info
     else:
         _validate_type(noise_cov, [None, Covariance], "noise_cov")
-        picks = _check_info_inv(info, forward, data_cov=data_cov, noise_cov=noise_cov)
+        picks = _check_info_inv(
+            info,
+            forward,
+            data_cov=data_cov,
+            noise_cov=noise_cov,
+            verbose=_verbose_safe_false(),
+        )
         info_pick = pick_info(info, picks)
     ch_types = [_contains_ch_type(info_pick, tt) for tt in ("mag", "grad", "eeg")]
     if sum(ch_types) > 1:
@@ -891,6 +916,7 @@ def _check_all_same_channel_names(instances):
 
 
 def _check_combine(mode, valid=("mean", "median", "std"), axis=0):
+    # XXX TODO Possibly de-duplicate with _make_combine_callable of mne/viz/utils.py
     if mode == "mean":
 
         def fun(data):
@@ -912,7 +938,7 @@ def _check_combine(mode, valid=("mean", "median", "std"), axis=0):
         raise ValueError(
             "Combine option must be "
             + ", ".join(valid)
-            + " or callable, got %s (type %s)." % (mode, type(mode))
+            + f" or callable, got {mode} (type {type(mode)})."
         )
     return fun
 
@@ -925,7 +951,7 @@ def _check_src_normal(pick_ori, src):
         raise RuntimeError(
             "Normal source orientation is supported only for "
             "surface or discrete SourceSpaces, got type "
-            "%s" % (src.kind,)
+            f"{src.kind}"
         )
 
 
@@ -1033,7 +1059,7 @@ def _check_sphere(sphere, info=None, sphere_units="m"):
                         f"{ch_name}"
                     )
                     if ch_name == "Fpz":
-                        msg += ", and was unable to approximate its location " "from Oz"
+                        msg += ", and was unable to approximate its location from Oz"
                     raise ValueError(msg)
 
             # Calculate the radius from: T7<->T8, Fpz<->Oz
@@ -1067,7 +1093,7 @@ def _check_sphere(sphere, info=None, sphere_units="m"):
             raise ValueError(
                 "sphere, if a ConductorModel, must be spherical "
                 "with multiple layers, not a BEM or single-layer "
-                "sphere (got %s)" % (sphere,)
+                f"sphere (got {sphere})"
             )
         sphere = tuple(sphere["r0"]) + (sphere["layers"][0]["rad"],)
         sphere_units = "m"
@@ -1077,7 +1103,7 @@ def _check_sphere(sphere, info=None, sphere_units="m"):
     if sphere.shape != (4,):
         raise ValueError(
             "sphere must be float or 1D array of shape (4,), got "
-            "array-like of shape %s" % (sphere.shape,)
+            f"array-like of shape {sphere.shape}"
         )
     _check_option("sphere_units", sphere_units, ("m", "mm"))
     if sphere_units == "mm":
@@ -1146,9 +1172,9 @@ def _suggest(val, options, cutoff=0.66):
     if len(options) == 0:
         return ""
     elif len(options) == 1:
-        return " Did you mean %r?" % (options[0],)
+        return f" Did you mean {repr(options[0])}?"
     else:
-        return " Did you mean one of %r?" % (options,)
+        return f" Did you mean one of {repr(options)}?"
 
 
 def _check_on_missing(on_missing, name="on_missing", *, extras=()):
@@ -1219,7 +1245,21 @@ def _import_nibabel(why="use MRI files"):
     try:
         import nibabel as nib
     except ImportError as exp:
-        raise exp.__class__(
-            "nibabel is required to %s, got:\n%s" % (why, exp)
-        ) from None
+        raise exp.__class__(f"nibabel is required to {why}, got:\n{exp}") from None
     return nib
+
+
+def _check_method_kwargs(func, kwargs, msg=None):
+    """Ensure **kwargs are compatible with the function they're passed to."""
+    from .misc import _pl
+
+    valid = list(signature(func).parameters)
+    is_invalid = np.isin(list(kwargs), valid, invert=True)
+    if is_invalid.any():
+        invalid_kw = np.array(list(kwargs))[is_invalid].tolist()
+        s = _pl(invalid_kw)
+        if msg is None:
+            msg = f'function "{func}"'
+        raise TypeError(
+            f'Got unexpected keyword argument{s} {", ".join(invalid_kw)} for {msg}.'
+        )

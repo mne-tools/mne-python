@@ -8,6 +8,7 @@
 #          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import os
 import os.path as op
@@ -238,9 +239,8 @@ def _read_segments_file(
             block = np.fromfile(fid, dtype, count)
             if block.size != count:
                 raise RuntimeError(
-                    "Incorrect number of samples (%s != %s), "
-                    "please report this error to MNE-Python "
-                    "developers" % (block.size, count)
+                    f"Incorrect number of samples ({block.size} != {count}), please "
+                    "report this error to MNE-Python developers"
                 )
             block = block.reshape(n_channels, -1, order="F")
             n_samples = block.shape[1]  # = count // n_channels
@@ -301,31 +301,6 @@ def _create_chs(ch_names, cals, ch_coil, ch_kind, eog, ecg, emg, misc):
     return chs
 
 
-def _synthesize_stim_channel(events, n_samples):
-    """Synthesize a stim channel from events read from an event file.
-
-    Parameters
-    ----------
-    events : array, shape (n_events, 3)
-        Each row representing an event.
-    n_samples : int
-        The number of samples.
-
-    Returns
-    -------
-    stim_channel : array, shape (n_samples,)
-        An array containing the whole recording's event marking.
-    """
-    # select events overlapping buffer
-    events = events.copy()
-    events[events[:, 1] < 1, 1] = 1
-    # create output buffer
-    stim_channel = np.zeros(n_samples, int)
-    for onset, duration, trigger in events:
-        stim_channel[onset : onset + duration] = trigger
-    return stim_channel
-
-
 def _construct_bids_filename(base, ext, part_idx, validate=True):
     """Construct a BIDS compatible filename for split files."""
     # insert index in filename
@@ -339,7 +314,7 @@ def _construct_bids_filename(base, ext, part_idx, validate=True):
         )
     suffix = deconstructed_base[-1]
     base = "_".join(deconstructed_base[:-1])
-    use_fname = "{}_split-{:02}_{}{}".format(base, part_idx + 1, suffix, ext)
+    use_fname = f"{base}_split-{part_idx + 1:02}_{suffix}{ext}"
     if dirname:
         use_fname = op.join(dirname, use_fname)
     return use_fname

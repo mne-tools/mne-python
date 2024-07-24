@@ -3,6 +3,7 @@
 #          Denis A. Engeman <denis.engemann@gemail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import math
 
@@ -144,7 +145,7 @@ def infomax(
     if block is None:
         block = int(math.floor(math.sqrt(n_samples / 3.0)))
 
-    logger.info("Computing%sInfomax ICA" % " Extended " if extended else " ")
+    logger.info(f"Computing{' Extended ' if extended else ' '}Infomax ICA")
 
     # collect parameters
     nblock = n_samples // block
@@ -319,8 +320,8 @@ def infomax(
             if l_rate > min_l_rate:
                 if verbose:
                     logger.info(
-                        "... lowering learning rate to %g"
-                        "\n... re-starting..." % l_rate
+                        f"... lowering learning rate to {l_rate:g}"
+                        "\n... re-starting..."
                     )
             else:
                 raise ValueError(

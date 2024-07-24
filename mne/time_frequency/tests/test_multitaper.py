@@ -1,3 +1,5 @@
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 import numpy as np
 import pytest
 from numpy.testing import assert_array_almost_equal
@@ -51,6 +53,7 @@ def test_multitaper_psd(n_times, adaptive, n_jobs):
     )
     # compare
     assert_array_almost_equal(psd, psd_ni, decimal=4)
+    del freqs, freqs_ni
     # assert_array_equal(freqs, freqs_ni)
     # ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑
     # this is commented out because nitime's freq calculations differ from ours

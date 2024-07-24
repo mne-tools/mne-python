@@ -21,6 +21,7 @@ https://github.com/ezemikulan/blender_freesurfer by Ezequiel Mikulan.
 #          Manorama Kadwani <manorama.kadwani@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 

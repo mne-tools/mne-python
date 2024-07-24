@@ -1,3 +1,5 @@
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 """Jinja2 HTML templates."""
 import lazy_loader as lazy
 

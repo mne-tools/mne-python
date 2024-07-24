@@ -1,7 +1,8 @@
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Eric Larson <larson.eric.d@gmail.com>
-# License: BSD Style.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from functools import partial
 

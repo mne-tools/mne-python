@@ -1,6 +1,9 @@
 # Authors: Adam Li <adam2392@gmail.com>
 #
-# License: BSD Style.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
+
+from __future__ import annotations  # only needed for Python ≤ 3.9
 
 import os
 import os.path as op
@@ -41,7 +44,7 @@ def fetch_dataset(
     accept=False,
     auth=None,
     token=None,
-):
+) -> Path | tuple[Path, str]:
     """Fetch an MNE-compatible dataset using pooch.
 
     Parameters
@@ -55,7 +58,7 @@ def fetch_dataset(
         What to do after downloading the file. ``"unzip"`` and ``"untar"`` will
         decompress the downloaded file in place; for custom extraction (e.g.,
         only extracting certain files from the archive) pass an instance of
-        :class:`pooch.Unzip` or :class:`pooch.Untar`. If ``None`` (the
+        ``pooch.Unzip`` or ``pooch.Untar``. If ``None`` (the
         default), the files are left as-is.
     path : None | str
         Directory in which to put the dataset. If ``None``, the dataset
@@ -86,10 +89,10 @@ def fetch_dataset(
         Default is ``False``.
     auth : tuple | None
         Optional authentication tuple containing the username and
-        password/token, passed to :class:`pooch.HTTPDownloader` (e.g.,
+        password/token, passed to ``pooch.HTTPDownloader`` (e.g.,
         ``auth=('foo', 012345)``).
     token : str | None
-        Optional authentication token passed to :class:`pooch.HTTPDownloader`.
+        Optional authentication token passed to ``pooch.HTTPDownloader``.
 
     Returns
     -------
@@ -218,11 +221,9 @@ def fetch_dataset(
             else:
                 # If they don't have stdin, just accept the license
                 # https://github.com/mne-tools/mne-python/issues/8513#issuecomment-726823724  # noqa: E501
-                answer = _safe_input("%sAgree (y/[n])? " % _bst_license_text, use="y")
+                answer = _safe_input(f"{_bst_license_text}Agree (y/[n])? ", use="y")
             if answer.lower() != "y":
-                raise RuntimeError(
-                    "You must agree to the license to use this " "dataset"
-                )
+                raise RuntimeError("You must agree to the license to use this dataset")
     # downloader & processors
     download_params = _downloader_params(auth=auth, token=token)
     if name == "fake":

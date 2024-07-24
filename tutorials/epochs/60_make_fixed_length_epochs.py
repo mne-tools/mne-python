@@ -28,6 +28,8 @@ the signal.
         $ pip install mne-connectivity
 """
 
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 # %%
 
 import matplotlib.pyplot as plt

@@ -1,5 +1,6 @@
 # Authors: Eric Larson <larson.eric.d@gmail.com>
-# License: BSD Style.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 import os
 import os.path as op

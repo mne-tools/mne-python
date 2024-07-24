@@ -20,6 +20,7 @@ References
 #          Denis A. Engemann <denis.engemann@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 
@@ -83,7 +84,7 @@ noise_covs = compute_covariance(
 
 print("Covariance estimates sorted from best to worst")
 for c in noise_covs:
-    print("%s : %s" % (c["method"], c["loglik"]))
+    print(f'{c["method"]} : {c["loglik"]}')
 
 # %%
 # Show the evoked data:

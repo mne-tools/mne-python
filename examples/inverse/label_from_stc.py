@@ -15,6 +15,7 @@ label yields higher values.
 # Author: Luke Bloy <luke.bloy@gmail.com>
 #         Alex Gramfort <alexandre.gramfort@inria.fr>
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 
@@ -97,10 +98,10 @@ pca_func *= np.sign(pca_func[np.argmax(np.abs(pca_anat))])
 # plot the time courses....
 plt.figure()
 plt.plot(
-    1e3 * stc_anat_label.times, pca_anat, "k", label="Anatomical %s" % aparc_label_name
+    1e3 * stc_anat_label.times, pca_anat, "k", label=f"Anatomical {aparc_label_name}"
 )
 plt.plot(
-    1e3 * stc_func_label.times, pca_func, "b", label="Functional %s" % aparc_label_name
+    1e3 * stc_func_label.times, pca_func, "b", label=f"Functional {aparc_label_name}"
 )
 plt.legend()
 plt.show()

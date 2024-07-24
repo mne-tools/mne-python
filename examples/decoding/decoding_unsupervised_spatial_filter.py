@@ -14,6 +14,7 @@ visualized on the average of all the epochs.
 #          Asish Panda <asishrocks95@gmail.com>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 # %%
 

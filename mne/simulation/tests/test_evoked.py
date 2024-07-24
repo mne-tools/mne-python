@@ -1,6 +1,7 @@
 # Author: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
 # License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
 
 from pathlib import Path
 
@@ -33,15 +34,9 @@ from mne.utils import catch_logging
 
 data_path = testing.data_path(download=False)
 fwd_fname = data_path / "MEG" / "sample" / "sample_audvis_trunc-meg-eeg-oct-6-fwd.fif"
-raw_fname = (
-    Path(__file__).parent.parent.parent / "io" / "tests" / "data" / "test_raw.fif"
-)
-ave_fname = (
-    Path(__file__).parent.parent.parent / "io" / "tests" / "data" / "test-ave.fif"
-)
-cov_fname = (
-    Path(__file__).parent.parent.parent / "io" / "tests" / "data" / "test-cov.fif"
-)
+raw_fname = Path(__file__).parents[2] / "io" / "tests" / "data" / "test_raw.fif"
+ave_fname = Path(__file__).parents[2] / "io" / "tests" / "data" / "test-ave.fif"
+cov_fname = Path(__file__).parents[2] / "io" / "tests" / "data" / "test-cov.fif"
 
 
 @testing.requires_testing_data
