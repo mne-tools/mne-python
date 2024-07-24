@@ -140,7 +140,7 @@ you want to use (e.g., the one from the MNE-Python installer, or a ``conda`` env
 that you have activated) and running::
 
    >>> import sys
-   >>> print(sys.executable)
+   >>> print(sys.executable) # doctest:+SKIP
 
 This should print something like
 ``C:\Program Files\MNE-Python\1.7.0_0\bin\python.exe`` (Windows) or
