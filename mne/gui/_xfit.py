@@ -484,15 +484,15 @@ class DipoleFitUI:
             if len(d["dip"].times) > 1:
                 d["dip"] = d["dip"].crop(d["fit_time"], d["fit_time"])
 
-        fwd, _ = make_forward_dipole(
-            [d["dip"] for d in active_dips],
-            self._bem,
-            self._evoked.info,
-            trans=self._trans,
-        )
-        fwd = convert_forward_solution(fwd, surf_ori=False)
-
         if self._multi_dipole_method == "Multi dipole (MNE)":
+            fwd, _ = make_forward_dipole(
+                [d["dip"] for d in active_dips],
+                self._bem,
+                self._evoked.info,
+                trans=self._trans,
+            )
+            fwd = convert_forward_solution(fwd, surf_ori=False)
+
             inv = make_inverse_operator(
                 self._evoked.info,
                 fwd,
@@ -502,7 +502,7 @@ class DipoleFitUI:
                 depth=0,
             )
             stc = apply_inverse(
-                self._evoked, inv, method="MNE", lambda2=0, pick_ori="vector"
+                self._evoked, inv, method="MNE", lambda2=1e-6, pick_ori="vector"
             )
 
             timecourses = stc.magnitude().data
