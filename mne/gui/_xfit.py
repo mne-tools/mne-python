@@ -1,4 +1,5 @@
 from functools import partial
+from pathlib import Path
 
 import numpy as np
 import pyvista
@@ -22,7 +23,7 @@ from ..transforms import (
     _get_transforms_to_coord_frame,
     transform_surface_to,
 )
-from ..utils import _check_option, fill_doc, verbose
+from ..utils import _check_option, fill_doc, logger, verbose
 from ..viz import EvokedField, create_3d_figure
 from ..viz._3d import _plot_head_surface, _plot_sensors_3d
 from ..viz.ui_events import subscribe
@@ -299,6 +300,15 @@ class DipoleFitUI:
             callback=self._on_select_method,
         )
         self._dipole_box = r._dock_add_group_box(name="Dipoles")
+        r._dock_add_file_button(
+            name="save_dipoles",
+            desc="Save dipoles",
+            save=True,
+            func=self.save,
+            tooltip="Save the dipoles to disk",
+            filter_="Dipole files (*.bdip)",
+            initial_directory=".",
+        )
         r._dock_add_stretch()
 
     def toggle_mesh(self, name, show=None):
@@ -571,6 +581,14 @@ class DipoleFitUI:
         canvas.axes.set_ylim(ymin, ymax)
         canvas.update_plot()
         self._update_arrows()
+
+    def save(self, fname):
+        logger.info("Saving dipoles as:")
+        fname = Path(fname)
+        for dip in self.dipoles:
+            dip_fname = fname.parent / f"{fname.stem}-{dip.name}{fname.suffix}"
+            logger.info(f"    {dip_fname}")
+            dip.save(dip_fname)
 
     def _update_arrows(self):
         """Update the arrows to have the correct size and orientation."""
