@@ -1359,6 +1359,7 @@ class BaseEpochs(
         fig_facecolor="k",
         fig_background=None,
         font_color="w",
+        select=False,
         show=True,
     ):
         return plot_topo_image_epochs(
@@ -1377,6 +1378,7 @@ class BaseEpochs(
             fig_facecolor=fig_facecolor,
             fig_background=fig_background,
             font_color=font_color,
+            select=select,
             show=show,
         )
 

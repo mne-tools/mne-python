@@ -17,8 +17,10 @@ from scipy import ndimage
 from .._fiff.pick import _picks_to_idx, channel_type, pick_types
 from ..defaults import _handle_default
 from ..utils import Bunch, _check_option, _clean_names, _is_numeric, _to_rgb, fill_doc
+from .ui_events import ChannelsSelect, publish, subscribe
 from .utils import (
     DraggableColorbar,
+    SelectFromCollection,
     _check_cov,
     _check_delayed_ssp,
     _draw_proj_checkbox,
@@ -41,6 +43,7 @@ def iter_topography(
     axis_spinecolor="k",
     layout_scale=None,
     legend=False,
+    select=False,
 ):
     """Create iterator over channel positions.
 
@@ -76,6 +79,10 @@ def iter_topography(
         If True, an additional axis is created in the bottom right corner
         that can be used to, e.g., construct a legend. The index of this
         axis will be -1.
+    select : bool
+        Whether to enable the lasso-selection tool to enable the user to select
+        channels. The selected channels will be available in
+        ``fig.lasso.selection``.
 
     Returns
     -------
@@ -97,6 +104,7 @@ def iter_topography(
         axis_spinecolor,
         layout_scale,
         legend=legend,
+        select=select,
     )
 
 
@@ -132,6 +140,7 @@ def _iter_topography(
     img=False,
     axes=None,
     legend=False,
+    select=False,
 ):
     """Iterate over topography.
 
@@ -197,8 +206,11 @@ def _iter_topography(
         under_ax.set(xlim=[0, 1], ylim=[0, 1])
 
         axs = list()
+
+    shown_ch_names = []
     for idx, name in iter_ch:
         ch_idx = ch_names.index(name)
+        shown_ch_names.append(name)
         if not unified:  # old, slow way
             ax = plt.axes(pos[idx])
             ax.patch.set_facecolor(axis_facecolor)
@@ -230,24 +242,47 @@ def _iter_topography(
     if unified:
         under_ax._mne_axs = axs
         # Create a PolyCollection for the axis backgrounds
+        sel_pos = pos[[i[0] for i in iter_ch]]
         verts = np.transpose(
             [
-                pos[:, :2],
-                pos[:, :2] + pos[:, 2:] * [1, 0],
-                pos[:, :2] + pos[:, 2:],
-                pos[:, :2] + pos[:, 2:] * [0, 1],
+                sel_pos[:, :2],
+                sel_pos[:, :2] + sel_pos[:, 2:] * [1, 0],
+                sel_pos[:, :2] + sel_pos[:, 2:],
+                sel_pos[:, :2] + sel_pos[:, 2:] * [0, 1],
             ],
             [1, 0, 2],
         )
-        if not img:
-            under_ax.add_collection(
-                collections.PolyCollection(
-                    verts,
-                    facecolor=axis_facecolor,
-                    edgecolor=axis_spinecolor,
-                    linewidth=1.0,
+        if not img:  # Not needed for image plots.
+            collection = collections.PolyCollection(
+                verts,
+                facecolor=axis_facecolor,
+                edgecolor=axis_spinecolor,
+                linewidth=1.0,
+            )
+            under_ax.add_collection(collection)
+
+            if select:
+                # Configure the lasso-selection tool
+                fig.lasso = SelectFromCollection(
+                    ax=under_ax,
+                    collection=collection,
+                    names=shown_ch_names,
+                    alpha_nonselected=0,
+                    alpha_selected=1,
+                    linewidth_nonselected=0,
+                    linewidth_selected=0.7,
                 )
-            )  # Not needed for image plots.
+
+                def on_select():
+                    publish(fig, ChannelsSelect(ch_names=fig.lasso.selection))
+
+                def on_channels_select(event):
+                    ch_inds = {name: i for i, name in enumerate(ch_names)}
+                    selection_inds = [ch_inds[name] for name in event.ch_names]
+                    fig.lasso.select_many(selection_inds)
+
+                fig.lasso.callbacks.append(on_select)
+                subscribe(fig, "channels_select", on_channels_select)
         for ax in axs:
             yield ax, ax._mne_ch_idx
 
@@ -274,6 +309,7 @@ def _plot_topo(
     unified=False,
     img=False,
     axes=None,
+    select=False,
 ):
     """Plot on sensor layout."""
     import matplotlib.pyplot as plt
@@ -326,6 +362,7 @@ def _plot_topo(
         unified=unified,
         img=img,
         axes=axes,
+        select=select,
     )
 
     for ax, ch_idx in my_topo_plot:
@@ -346,6 +383,9 @@ def _plot_topo_onpick(event, show_func):
     """Onpick callback that shows a single channel in a new figure."""
     # make sure that the swipe gesture in OS-X doesn't open many figures
     orig_ax = event.inaxes
+    if orig_ax.figure.canvas._key in ["shift", "alt"]:
+        return
+
     import matplotlib.pyplot as plt
 
     try:
@@ -842,9 +882,10 @@ def _plot_evoked_topo(
     merge_channels=False,
     legend=True,
     axes=None,
-    exclude="bads",
-    show=True,
     noise_cov=None,
+    exclude="bads",
+    select=False,
+    show=True,
 ):
     """Plot 2D topography of evoked responses.
 
@@ -916,6 +957,10 @@ def _plot_evoked_topo(
     exclude : list of str | 'bads'
         Channels names to exclude from being shown. If 'bads', the
         bad channels are excluded. By default, exclude is set to 'bads'.
+    select : bool
+        Whether to enable the lasso-selection tool to enable the user to select
+        channels. The selected channels will be available in
+        ``fig.lasso.selection``.
     show : bool
         Show figure if True.
 
@@ -1095,6 +1140,7 @@ def _plot_evoked_topo(
         y_label=y_label,
         unified=True,
         axes=axes,
+        select=select,
     )
 
     add_background_image(fig, fig_background)
@@ -1102,7 +1148,10 @@ def _plot_evoked_topo(
     if legend is not False:
         legend_loc = 0 if legend is True else legend
         labels = [e.comment if e.comment else "Unknown" for e in evoked]
-        handles = fig.axes[0].lines[: len(evoked)]
+        if select:
+            handles = fig.axes[0].lines[1 : len(evoked) + 1]
+        else:
+            handles = fig.axes[0].lines[: len(evoked)]
         legend = plt.legend(
             labels=labels, handles=handles, loc=legend_loc, prop={"size": 10}
         )
@@ -1161,6 +1210,7 @@ def plot_topo_image_epochs(
     fig_facecolor="k",
     fig_background=None,
     font_color="w",
+    select=False,
     show=True,
 ):
     """Plot Event Related Potential / Fields image on topographies.
@@ -1208,6 +1258,10 @@ def plot_topo_image_epochs(
         :func:`matplotlib.pyplot.imshow`. Defaults to ``None``.
     font_color : color
         The color of tick labels in the colorbar. Defaults to white.
+    select : bool
+        Whether to enable the lasso-selection tool to enable the user to select
+        channels. The selected channels will be available in
+        ``fig.lasso.selection``.
     show : bool
         Whether to show the figure. Defaults to ``True``.
 
@@ -1297,6 +1351,7 @@ def plot_topo_image_epochs(
         y_label="Epoch",
         unified=True,
         img=True,
+        select=select,
     )
     add_background_image(fig, fig_background)
     plt_show(show)
