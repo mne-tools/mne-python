@@ -51,19 +51,20 @@ def dipolefit(
     evoked : instance of Evoked
         Evoked data to show fieldmap of and fit dipoles to.
     cov : instance of Covariance | None
-        Noise covariance matrix. If None, an ad-hoc covariance matrix is used.
+        Noise covariance matrix. If ``None``, an ad-hoc covariance matrix is used.
     bem : instance of ConductorModel | None
-        Boundary element model. If None, a spherical model is used.
+        Boundary element model to use in forward calculations. If ``None``, a spherical
+        model is used.
     initial_time : float | None
-        Initial time point to show. If None, the time point of the maximum
-        field strength is used.
+        Initial time point to show. If None, the time point of the maximum field
+        strength is used.
     trans : instance of Transform | None
-        The transformation from head coordinates to MRI coordinates. If None,
+        The transformation from head coordinates to MRI coordinates. If ``None``,
         the identity matrix is used.
     show_density : bool
         Whether to show the density of the fieldmap.
     subject : str | None
-        The subject name. If None, no MRI data is shown.
+        The subject name. If ``None``, no MRI data is shown.
     %(subjects_dir)s
     %(n_jobs)s
     %(verbose)s
@@ -91,19 +92,20 @@ class DipoleFitUI:
     evoked : instance of Evoked
         Evoked data to show fieldmap of and fit dipoles to.
     cov : instance of Covariance | None
-        Noise covariance matrix. If None, an ad-hoc covariance matrix is used.
+        Noise covariance matrix. If ``None``, an ad-hoc covariance matrix is used.
     bem : instance of ConductorModel | None
-        Boundary element model. If None, a spherical model is used.
+        Boundary element model to use in forward calculations. If ``None``, a spherical
+        model is used.
     initial_time : float | None
-        Initial time point to show. If None, the time point of the maximum
-        field strength is used.
+        Initial time point to show. If ``None``, the time point of the maximum field
+        strength is used.
     trans : instance of Transform | None
-        The transformation from head coordinates to MRI coordinates. If None,
+        The transformation from head coordinates to MRI coordinates. If ``None``,
         the identity matrix is used.
     show_density : bool
         Whether to show the density of the fieldmap.
     subject : str | None
-        The subject name. If None, no MRI data is shown.
+        The subject name. If ``None``, no MRI data is shown.
     %(subjects_dir)s
     %(n_jobs)s
     %(verbose)s
@@ -113,7 +115,6 @@ class DipoleFitUI:
         self,
         evoked,
         cov=None,
-        # cov_data=None,
         bem=None,
         initial_time=None,
         trans=None,
@@ -141,22 +142,24 @@ class DipoleFitUI:
         )
 
         if initial_time is None:
+            # Set initial time to moment of maximum field power.
             data = evoked.copy().pick(field_map[0]["ch_names"]).data
             initial_time = evoked.times[np.argmax(np.mean(data**2, axis=0))]
 
-        # Get transforms to convert all the various meshes to head space
+        # Get transforms to convert all the various meshes to head space.
         head_mri_t = _get_trans(trans, "head", "mri")[0]
         to_cf_t = _get_transforms_to_coord_frame(
             evoked.info, head_mri_t, coord_frame="head"
         )
 
-        # Transform the fieldmap surfaces to head space if needed
+        # Transform the fieldmap surfaces to head space if needed.
         if trans is not None:
             for fm in field_map:
                 fm["surf"] = transform_surface_to(
                     fm["surf"], "head", [to_cf_t["mri"], to_cf_t["head"]], copy=False
                 )
 
+        # Initialize all the private attributes.
         self._actors = dict()
         self._arrows = list()
         self._bem = bem
@@ -177,14 +180,14 @@ class DipoleFitUI:
         self._trans = trans
         self._verbose = verbose
 
-        # Configure the GUI
+        # Configure the GUI.
         self._renderer = self._configure_main_display()
         self._configure_dock()
 
     @property
     def dipoles(self):
-        """A list of the fitted dipoles."""
-        return [d["dip"] for d in self._dipoles]
+        """A list of all the fitted dipoles that are enabled in the GUI."""
+        return [d["dip"] for d in self._dipoles if d["active"]]
 
     def _configure_main_display(self):
         """Configure main 3D display of the GUI."""
@@ -372,13 +375,13 @@ class DipoleFitUI:
     def _on_fit_dipole(self):
         """Fit a single dipole."""
         evoked_picked = self._evoked.copy()
-        cov_picked = self._cov
+        cov_picked = self._cov.copy()
         if self._fig_sensors is not None:
             picks = self._fig_sensors.lasso.selection
             if len(picks) > 0:
-                evoked_picked = evoked_picked.copy().pick(picks)
+                evoked_picked = evoked_picked.pick(picks)
                 evoked_picked.info.normalize_proj()
-                cov_picked = cov_picked.copy().pick_channels(picks, ordered=False)
+                cov_picked = cov_picked.pick_channels(picks, ordered=False)
                 cov_picked["projs"] = evoked_picked.info["projs"]
         evoked_picked.crop(self._current_time, self._current_time)
 
@@ -394,7 +397,7 @@ class DipoleFitUI:
         # Coordinates needed to draw the big arrow on the helmet.
         helmet_coords, helmet_pos = self._get_helmet_coords(dip)
 
-        # Collect all relevant information on the dipole in a dict
+        # Collect all relevant information on the dipole in a dict.
         colors = _get_color_list()
         dip_num = len(self._dipoles)
         dip.name = f"dip{dip_num}"
@@ -442,10 +445,10 @@ class DipoleFitUI:
         )
         r._layout_add_widget(self._dipole_box, hlayout)
 
-        # Compute dipole timecourse, update arrow size
+        # Compute dipole timecourse, update arrow size.
         self._fit_timecourses()
 
-        # Show the dipole and arrow in the 3D view
+        # Show the dipole and arrow in the 3D view.
         self._renderer.plotter.add_arrows(
             dip.pos[0], dip.ori[0], color=dip_color, mag=0.05
         )
