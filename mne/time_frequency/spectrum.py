@@ -43,7 +43,7 @@ from ..utils.check import (
     _is_numeric,
     check_fname,
 )
-from ..utils.misc import _identity_function, _pl
+from ..utils.misc import _pl
 from ..utils.spectrum import _get_instance_type_string, _split_psd_kwargs
 from ..viz.topo import _plot_timeseries, _plot_timeseries_unified, _plot_topo
 from ..viz.topomap import _make_head_outlines, _prepare_topomap_plot, plot_psds_topomap
