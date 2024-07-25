@@ -146,3 +146,6 @@ _.fake_keypress
 _qt_raise_window
 _qt_disable_paint
 _qt_get_stylesheet
+
+# used in tutorial, not sure why shows up
+plot_cluster
