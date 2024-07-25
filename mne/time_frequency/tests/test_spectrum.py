@@ -346,7 +346,10 @@ def test_unaggregated_spectrum_to_data_frame(raw, long_format, method, output):
     # even with check_categorical=False, we know that the *data* matches;
     # what may differ is the order of the "levels" in the *metadata* for the
     # channel name column
-    assert_frame_equal(agg_df, orig_df, check_categorical=False)
+    agg_df.sort_values(by=grouping_cols, ignore_index=True, inplace=True)
+    orig_df.sort_values(by=grouping_cols, ignore_index=True, inplace=True)
+    # One can have categorical dtype and the other plain object, so don't check that
+    assert_frame_equal(agg_df, orig_df, check_categorical=False, check_dtype=False)
 
 
 # not testing with Evoked because it already has projs applied
