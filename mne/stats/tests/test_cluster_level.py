@@ -17,6 +17,7 @@ from numpy.testing import (
 from scipy import linalg, sparse, stats
 
 from mne import (
+    EpochsArray,
     EvokedArray,
     MixedSourceEstimate,
     SourceEstimate,
@@ -27,8 +28,6 @@ from mne import (
 from mne.fixes import _eye_array
 from mne.stats import combine_adjacency, ttest_ind_no_p
 from mne.stats.cluster_level import (
-    _check_fun,
-    _permutation_cluster_test,
     cluster_test,
     f_oneway,
     permutation_cluster_1samp_test,
@@ -38,7 +37,7 @@ from mne.stats.cluster_level import (
     summarize_clusters_stc,
     ttest_1samp_no_p,
 )
-from mne.time_frequency import AverageTFRArray
+from mne.time_frequency import AverageTFRArray, EpochsTFRArray
 from mne.utils import _record_warnings, catch_logging
 
 n_space = 50
@@ -920,98 +919,45 @@ def create_sample_data_cluster_test():
     return df_2d, df_3d
 
 
-def compare_old_and_new_cluster_api():
-    """Make sure old and new cluster API results are the same."""
-    # load sample data
-    df_2d, df_3d = create_sample_data_cluster_test()
-
-    # mandatory parameters for new cluster API
-    formula = "evoked ~ 1 + C(subject_index)"
-
-    data_to_test = [df_2d, df_3d]
-
-    # save 2D and 3D data results for both old and new API
-    result_old_api_all = []
-    result_new_api_all = []
-    d_all = []
-
-    for df in data_to_test:
-        # Pivot the DataFrame to have conditions as columns for old API
-        pivot_df = df.pivot(index="subject_index", columns="condition", values="data")
-
-        # Subtract condition 2 data from condition 1 data for each subject
-        pivot_df["cond_diff"] = pivot_df.apply(
-            lambda row: row["cond1"] - row["cond1"], axis=1
+def test_compare_old_and_new_cluster_api():
+    """Test for same results from old and new APIs."""
+    condition1_1d, condition2_1d, condition1_2d, condition2_2d = _get_conditions()
+    df_1d = pd.DataFrame(
+        dict(
+            data=[condition1_1d, condition2_1d],
+            condition=["a", "b"],
         )
+    )
+    kwargs = dict(n_permutations=100, tail=1, seed=1, buffer_size=None, out_type="mask")
+    F_obs, clusters, cluster_pvals, H0 = permutation_cluster_test(
+        [condition1_1d, condition2_1d], **kwargs
+    )
+    formula = "data ~ condition"
+    cluster_result = cluster_test(df_1d, formula, **kwargs)
+    assert_array_equal(cluster_result.H0, H0)
+    assert_array_equal(cluster_result.stat_obs, F_obs)
+    assert_array_equal(cluster_result.cluster_p_values, cluster_pvals)
+    assert cluster_result.clusters == clusters
 
-        # Extract the 'cond_diff' column as a numpy array
-        cond_diff_array = np.stack(pivot_df["cond_diff"].values)
 
-        # extract data and reshape for old API
-        if pivot_df.cond_diff[0].ndim == 2:
-            # reshape to channels as last dimension
-            d = cond_diff_array.transpose(0, 2, 1)
-        else:
-            # reshape 3D data to channels as last dimension
-            d = cond_diff_array.transpose(0, 3, 2, 1)
+@pytest.mark.parametrize(
+    "Inst", (EpochsArray, EvokedArray, EpochsTFRArray, AverageTFRArray)
+)
+def test_new_cluster_api(Inst):
+    """Test handling different MNE objects in the cluster API."""
+    pd = pytest.importorskip("pandas")
 
-        # define test statistic
-        stat_fun, threshold = _check_fun(
-            X=d, stat_fun=None, threshold=None, tail=0, kind="within"
-        )
+    n_epo, n_chan, n_freq, n_times = 2, 3, 5, 7
+    shape = (n_chan, n_times)
+    if Inst in (EpochsArray, EpochsTFRArray):
+        shape = (n_epo,) + shape
+    if Inst in (EpochsTFRArray, AverageTFRArray):
+        shape = shape[:-1] + (n_freq, shape[-1])
 
-        # Run old cluster api
-        result_old_api = _permutation_cluster_test(
-            [d],
-            threshold=threshold,
-            stat_fun=stat_fun,
-            n_jobs=-1,  # takes all CPU cores
-            max_step=1,  # maximum distance between samples (time points)
-            exclude=None,  # exclude no time points or channels
-            step_down_p=0,  # step down in jumps test
-            t_power=1,  # weigh each location by its stats score
-            out_type="indices",
-            check_disjoint=False,
-            buffer_size=None,  # block size for chunking the data
-            n_permutations=1024,
-            tail=0,
-            adjacency=None,
-            seed=42,
-        )
-        result_old_api_all.append(result_old_api)
-        d_all.append(d)
+    info = create_info(...)
+    inst1 = Inst(np.random.normal(shape, ...), info=info)
+    inst2 = Inst(np.random.normal(shape, ...), info=info)
 
-        if df.data[0].ndim == 2:
-            # convert each row in data column into evoked object
-            df["evoked"] = df["data"].apply(
-                lambda x: EvokedArray(
-                    x, create_info(df.data[0].shape[0], 1000.0, "eeg")
-                )
-            )
-        else:
-            # convert each row in data column into evoked object
-            df["evoked"] = df["data"].apply(
-                lambda x: AverageTFRArray(
-                    create_info(df.data[0].shape[0], 1000.0, "eeg"),
-                    x,
-                    times=np.arange(df.data[0].shape[2]),
-                    freqs=np.arange(df.data[0].shape[1]),
-                )
-            )
-
-        # run the new cluster test API and return the new cluster_result object
-        cluster_result = cluster_test(
-            df=df, formula=formula, paired_test=True, adjacency=None, seed=42
-        )
-        result_new_api_all.append(cluster_result)
-
-    # compare old and new API results both for 2D and 3D data
-    for result_old_api, result_new_api in zip(result_old_api_all, result_new_api_all):
-        # compare the cluster statistics
-        assert_array_equal(result_old_api[0], result_new_api.T_obs)
-
-        # compare the cluster indices
-        assert_array_equal(result_old_api[1], result_new_api.clusters)
-
-        # compare the cluster p-values
-        assert_array_equal(result_old_api[2], result_new_api.cluster_p_values)
+    df = pd.DataFrame(dict(data=[inst1, inst2], condition=["a", "b"]))
+    result = cluster_test(df, "data~condition", ...)
+    assert result  # TODO do something more interesting here
