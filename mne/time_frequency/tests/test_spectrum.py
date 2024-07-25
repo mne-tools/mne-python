@@ -282,16 +282,13 @@ def test_spectrum_to_data_frame(inst, request, evoked):
     assert_frame_equal(_pick_first, _pick_last)
 
 
-def _complex_helper(df, weights, group_cols):
-    """Convert complex spectrum to power after conversion to DataFrame."""
+def _agg_helper(df, weights, group_cols):
+    """Aggregate complex multitaper spectrum after conversion to DataFrame."""
     from pandas import Series
 
     unagged_columns = df[group_cols].iloc[0].values.tolist()
-    x = df.drop(columns=group_cols).values[np.newaxis].T
-    if weights is None:
-        psd = np.mean((x * x.conj()).real * 2, axis=1)
-    else:
-        psd = _psd_from_mt(x, weights)
+    x_mt = df.drop(columns=group_cols).values[np.newaxis].T
+    psd = _psd_from_mt(x_mt, weights)
     psd = np.atleast_1d(np.squeeze(psd)).tolist()
     _df = dict(zip(df.columns, unagged_columns + psd))
     return Series(_df)
@@ -334,11 +331,18 @@ def test_unaggregated_spectrum_to_data_frame(raw, long_format, method, output):
     # aggregate
     df = df.drop(columns=drop_cols)
     gb = df.groupby(grouping_cols, as_index=False, observed=False)
-    if output == "complex":
-        gb = gb[df.columns]  # https://github.com/pandas-dev/pandas/pull/52477
-        agg_df = gb.apply(_complex_helper, spectrum.mt_weights, grouping_cols)
+    if method == "welch":
+        if output == "complex":
+
+            def _fun(x):
+                return np.nanmean(np.real(x * np.conj(x)))
+
+            agg_df = gb.agg(_fun)
+        else:
+            agg_df = gb.mean()  # excludes missing values itself
     else:
-        agg_df = gb.mean()  # excludes missing values itself
+        gb = gb[df.columns]  # https://github.com/pandas-dev/pandas/pull/52477
+        agg_df = gb.apply(_agg_helper, spectrum.mt_weights, grouping_cols)
     # even with check_categorical=False, we know that the *data* matches;
     # what may differ is the order of the "levels" in the *metadata* for the
     # channel name column
