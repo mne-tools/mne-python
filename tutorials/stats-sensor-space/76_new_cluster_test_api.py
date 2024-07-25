@@ -133,11 +133,11 @@ df = pd.DataFrame(
 # the cluster test randomly permutes the subject label
 # the 1 in the formula represents the intercept which is always included
 # C is a categorical variable that will be dummy coded
-formula = "evoked ~ 1 + C(subject_index)"
+formula = "evoked ~ condition"
 
 # run the new cluster test API and return the new cluster_result object
 cluster_result = mne.stats.cluster_level.cluster_test(
-    df=df, formula=formula, paired_test=True, adjacency=None
+    df=df, formula=formula, within_id="subject_index"
 )
 
 # note that we ran an exact test due to the small sample size
