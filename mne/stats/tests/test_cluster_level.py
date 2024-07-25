@@ -880,45 +880,6 @@ def test_output_equiv(shape, out_type, adjacency, threshold):
     assert_array_equal(got_mask, want_mask)
 
 
-def create_sample_data_cluster_test():
-    """Create sample data to test new cluster API."""
-    # Prepare some dummy data
-    n_subjects = 20
-    n_conditions = 2
-    n_channels = 5
-    n_timepoints = 8
-    n_freqs = 3
-
-    # Create dummy data
-    dummy_data_2d = [
-        np.random.rand(n_channels, n_timepoints)
-        for _ in range(n_subjects * n_conditions)
-    ]
-    dummy_data_3d = [
-        np.random.rand(n_channels, n_freqs, n_timepoints)
-        for _ in range(n_subjects * n_conditions)
-    ]
-
-    # Create a DataFrame with dummy data
-    df_2d = pd.DataFrame(
-        {
-            "subject_index": np.repeat(range(n_subjects), n_conditions),
-            "condition": np.tile(["cond1", "cond2"], n_subjects),
-            "data": dummy_data_2d,
-        }
-    )
-
-    df_3d = pd.DataFrame(
-        {
-            "subject_index": np.repeat(range(n_subjects), n_conditions),
-            "condition": np.tile(["cond1", "cond2"], n_subjects),
-            "data": dummy_data_3d,
-        }
-    )
-
-    return df_2d, df_3d
-
-
 def test_compare_old_and_new_cluster_api():
     """Test for same results from old and new APIs."""
     condition1_1d, condition2_1d, condition1_2d, condition2_2d = _get_conditions()
