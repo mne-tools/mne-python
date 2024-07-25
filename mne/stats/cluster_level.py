@@ -24,13 +24,12 @@ from scipy.sparse.csgraph import connected_components
 from scipy.stats import f as fstat
 from scipy.stats import t as tstat
 
-from .. import Epochs, Evoked
-from ..epochs import EpochsArray, EvokedArray
+from .. import BaseEpochs, Evoked, EvokedArray
 from ..fixes import has_numba, jit
 from ..parallel import parallel_func
 from ..source_estimate import MixedSourceEstimate, SourceEstimate, VolSourceEstimate
 from ..source_space import SourceSpaces
-from ..time_frequency import AverageTFR, AverageTFRArray, EpochsTFR, EpochsTFRArray
+from ..time_frequency import BaseTFR
 from ..utils import (
     ProgressBar,
     _check_option,
@@ -1744,191 +1743,65 @@ def summarize_clusters_stc(
     return klass(data_summary, vertices, tmin, tstep, subject)
 
 
-def validate_input_dataframe(df: pd.DataFrame, formula: str):
-    """
-    Validate the input dataframe for the cluster permutation test.
-
-    Parameters
-    ----------
-    df : pd.DataFrame
-        Dataframe with 3 columns (subject_index, condition, data).
-    formula : formulaic.ModelSpec
-        Wilkinson style Formula for the design matrix.
-
-    Returns
-    -------
-    dv_name : str
-        Name of the dependent variable.
-    """
-    # extract dependent variable name from formula
-    formulaic = _soft_import(
-        "formulaic", purpose="set up Design Matrix"
-    )  # soft import (not a dependency for MNE)
-    formula = formulaic.Formula(formula)
-    dv_name = str(formula.lhs)
-
+def _validate_cluster_df(df: pd.DataFrame, dv_name: str, iv_name: str):
     # check if all necessary columns are present
-    if dv_name not in df.columns:
-        raise ValueError("""DataFrame needs to contain a column
-                        with the dependent variable name
-                        as defined in the formula""")
-    if "condition" not in df.columns:
-        raise ValueError("DataFrame needs to contain a condition column")
-    if "subject_index" not in df.columns:
-        raise ValueError("DataFrame needs to contain a subject_index column")
-
-    # check if the data column contains only valid types
-    check_column_types(df[dv_name])
-
+    missing = ({dv_name} | {iv_name}) - set(df.columns)
+    sep = '", "'
+    if missing:
+        raise ValueError(
+            f"DataFrame must contain a column named for each term in `formula`. "
+            f"Column{_pl(missing)} missing for term{_pl(missing)} "
+            f'"{sep.join(missing)}".'
+        )
+    # check if the data column contains valid (and consistent) instance types
+    inst = df[dv_name].iloc[0]
+    valid_types = (Evoked, BaseEpochs, BaseTFR, np.ndarray)
+    _validate_type(inst, valid_types, f"Data in dependent variable column '{dv_name}'")
+    all_types = set(df[dv_name].map(type))
+    all_type_names = ", ".join([type(x).__name__ for x in all_types])
+    prologue = f"Data in dependent variable column '{dv_name}' must all have "
+    if len(all_types) > 1:
+        raise ValueError(
+            f"{prologue} the same type, but found types {{{all_type_names}}}."
+        )
     # check if the shape of the data is consistent
-    if not all(data.data.shape == df[dv_name][0].data.shape for data in df[dv_name]):
-        raise ValueError("Data objects need to have the same shape")
-
-    # check if the condition column contains only 2 unique values
-    if len(pd.unique(df.condition)) != 2:
-        raise ValueError("currently only supports 2 conditions.")
-
-    return dv_name
-
-
-def check_column_types(input_data: np.ndarray):
-    """
-    Check if the column types are valid for the cluster permutation test.
-
-    Parameters
-    ----------
-    input_data : np.Array
-        Data to be checked for the cluster permutation test.
-    """
-    # Get the type of the first element
-    first_type = type(input_data.iloc[0])
-
-    # Define the possible valid types
-    valid_types = (
-        Evoked,
-        EvokedArray,
-        Epochs,
-        EpochsArray,
-        AverageTFR,
-        EpochsTFR,
-        EpochsTFRArray,
-        AverageTFRArray,
-    )
-
-    # Check if the type of the first element is a valid type
-    if first_type not in valid_types:
-        raise ValueError(f"Object type '{first_type}' is not a valid type.")
-
-    # Check if all elements are of the same type as the first one
-    if not all(isinstance(data, first_type) for data in input_data):
-        raise ValueError("Data column must contain objects of the same type.")
+    if isinstance(inst, np.ndarray):
+        all_shapes = set(df[dv_name].map(lambda x: x.shape[1:]))  # first dim may vary
+    elif isinstance(inst, BaseEpochs):
+        all_shapes = set(df[dv_name].map(lambda x: x.get_data().shape[1:]))
+    else:
+        all_shapes = set(df[dv_name].map(lambda x: x.get_data().shape))
+    if len(all_shapes) > 1:
+        raise ValueError(
+            f"{prologue} consistent shape, but {len(all_shapes)} different "
+            f"shapes were found: {'; '.join(all_shapes)}."
+        )
+    return all_types.pop()
 
 
-def prepare_data_for_cluster_test(input_df: pd.DataFrame, dv_name: str):
-    """
-    Prepare the data for the cluster permutation test.
-
-    Parameters
-    ----------
-    input_data : np.ndarray
-        Data to be prepared for the cluster permutation test.
-
-    Returns
-    -------
-    data : np.Array
-        Data prepared for the cluster permutation test.
-    """
-    # extract data and add to dataframe
-    input_df["data"] = [data.data for data in input_df[dv_name]]
-
-    # extract dimensions from time series or time-frequency data
-    first_data_obj = input_df["data"].iloc[0]
-    if isinstance(first_data_obj, (Epochs, Evoked, EpochsArray, EvokedArray)):
-        n_channels, n_timepoints = first_data_obj.get_data().shape
-    if isinstance(
-        first_data_obj, (AverageTFR, EpochsTFR, AverageTFRArray, EpochsTFRArray)
-    ):
-        n_channels, n_freqs, n_timepoints = first_data_obj.get_data().shape
-
-    reshaped_data = []
-
-    for idx, row in input_df.iterrows():
-        subject_index = row["subject_index"]
-        condition = row["condition"]
-        data_array = row["data"]
-
-        if data_array.ndim == 2:
-            n_channels, n_timepoints = data_array.shape
-            # timepoints are the columns
-            df_temp = pd.DataFrame(
-                data_array, columns=[f"timepoint_{i}" for i in range(n_timepoints)]
-            )
-            df_temp["channel"] = range(n_channels)
-            df_temp["subject_index"] = subject_index
-            df_temp["condition"] = condition
-
-            reshaped_data.append(df_temp)
-
-        elif data_array.ndim == 3:
-            n_channels, n_freqs, n_timepoints = data_array.shape
-            # timepoints are the columns
-            df_temp = pd.DataFrame(
-                data_array.reshape(-1, n_timepoints),
-                columns=[f"timepoint_{i}" for i in range(n_timepoints)],
-            )
-            df_temp["frequency"] = np.repeat(range(n_freqs), n_channels)
-            df_temp["channel"] = np.tile(range(n_channels), n_freqs)
-            df_temp["subject_index"] = subject_index
-            df_temp["condition"] = condition
-
-            reshaped_data.append(df_temp)
-
-        else:
-            raise ValueError(f"Unsupported data array dimensions: {data_array.ndim}")
-    # combine the reshaped data
-    combined_df = pd.concat(reshaped_data, ignore_index=True)
-    # Convert the dataframe to long format
-    id_vars = ["subject_index", "condition", "channel"]
-    if "frequency" in combined_df.columns:
-        id_vars.append("frequency")
-
-    reshaped_df = pd.melt(
-        combined_df, id_vars=id_vars, var_name="timepoint", value_name="value"
-    )
-
-    # rename column and convert to integer
-    reshaped_df["timepoint"] = (
-        reshaped_df["timepoint"].str.replace("timepoint_", "").astype(int)
-    )
-
-    # return the reshaped dataframe and dimensions
-    if data_array.ndim == 2:
-        return reshaped_df, data_array.ndim, n_channels, n_timepoints
-    elif data_array.ndim == 3:
-        return reshaped_df, data_array.ndim, n_channels, n_freqs, n_timepoints
-
-
+@verbose
 def cluster_test(
     df: pd.DataFrame,
-    formula: str,  # Wilkinson notation formula for design matrix
-    paired_test: bool,  # whether to run a paired t-test or unpaired test
-    n_permutations: int = 1024,  # same default as in old API
-    seed: None | int | np.random.RandomState = None,
-    tail: Literal[-1, 0, 1] = 0,  # 0 for two-tailed, 1 for greater, -1 for less
-    n_jobs: int = 1,  # how many cores to use
+    formula: str,
+    *,
+    within_id: str | None = None,
+    stat_fun: callable | None = None,
+    tail: Literal[-1, 0, 1] = 0,
+    threshold=None,
+    n_permutations: int = 1024,
     adjacency: tuple | None = None,
-    max_step: int = 1,  # maximum distance between samples (time points)
-    exclude: list | None = None,  # exclude no time points or channels
-    step_down_p: int = 0,  # step down in jumps test
-    t_power: int = 1,  # weigh each location by its stats score
-    out_type: Literal["indices", "mask"] = "indices",
+    max_step: int = 1,
+    exclude: list | None = None,
+    step_down_p: int = 0,
+    t_power: int = 1,
     check_disjoint: bool = False,
-    buffer_size: int | None = None,  # block size for chunking the data
+    out_type: Literal["indices", "mask"] = "indices",
+    seed: None | int | np.random.RandomState = None,
+    buffer_size: int | None = None,
+    n_jobs: int = 1,
+    verbose=None,
 ):
-    """
-    Run a cluster permutation test based on formulaic input.
-
-    # currently only supports paired t-test on evokeds or epochs
+    """Run a cluster permutation test from a DataFrame and a formula.
 
     Parameters
     ----------
@@ -1936,16 +1809,14 @@ def cluster_test(
         Dataframe with 3 columns (subject_index, condition, evoked).
     formula : str
         Wilkinson notation formula for design matrix.
-    paired_test: bool
-        Whether to run a paired t-test.
-    n_permutations : int, optional
-        Number of permutations. Default is 1024.
-    seed : None | int | np.random.RandomState, optional
-        Seed for the random number generator. Default is None.
+    within_id : None | str
+        Name of column in ``df`` to use in identifying within-group contrasts.
+    stat_fun : None | callable
+        Statistical function to use.
     tail : int, optional
         0 for two-tailed, 1 for greater, -1 for less. Default is 0.
-    n_jobs : int, optional
-        How many cores to use. Default is 1.
+    n_permutations : int, optional
+        Number of permutations. Default is 1024.
     adjacency : None, optional
         Provide a adjacency matrix. Default is None.
     max_step : int, optional
@@ -1956,107 +1827,86 @@ def cluster_test(
         Step down in jumps test. Default is 0.
     t_power : int, optional
         Weigh each location by its stats score. Default is 1.
-    out_type : str, optional
-        Output type. Default is "indices".
     check_disjoint : bool, optional
         Check if clusters are disjoint. Default is False.
+    out_type : str, optional
+        Output type. Default is "indices".
+    seed : None | int | np.random.RandomState, optional
+        Seed for the random number generator. Default is None.
     buffer_size : int, optional
         Block size for chunking the data. Default is None.
-    seed : int, optional
-        Seed for the random number generator. Default is None.
+    n_jobs : int, optional
+        How many cores to use. Default is 1.
+    %(verbose)s
 
     Returns
     -------
     ClusterResult
         Object containing the results of the cluster permutation test.
     """
-    # check if formula is present
-    if formula is None:
-        raise ValueError("Wilkinson style formula is required.")
+    # parse formula
+    formulaic = _soft_import("formulaic", purpose="parse formula for clustering")
+    parser = formulaic.parser.DefaultFormulaParser(include_intercept=False)
+    formula = formulaic.Formula(formula, _parser=parser)
+    dv_name = str(np.array(formula.lhs.root).item())
+    iv_name = str(np.array(formula.rhs.root).item())
+    # validate the input dataframe and return the type of the data column entries
+    _dtype = _validate_cluster_df(df, dv_name, iv_name)
 
-    # validate the input dataframe and return name of dependent variable
-    dv_name = validate_input_dataframe(df, formula)
+    # for within_subject
+    _validate_type(within_id, (str, None), "within_id")
+    if within_id:
+        df = df.copy(deep=False)  # Don't mutate input dataframe row order!
+        df.sort_values([iv_name, within_id], inplace=True)
+        counts = df[within_id].value_counts()
+        if any(counts != 2):
+            raise ValueError("Badness 10000")
 
-    # prepare the data for the cluster permutation test
-    prep_result = prepare_data_for_cluster_test(df, dv_name)
+    # extract the data
 
-    if prep_result[1] == 2:
-        # pivot the dataframe based on condition for later subtraction
-        pivot_df = (
-            prep_result[0]
-            .pivot_table(
-                index=["subject_index", "channel", "timepoint"],
-                columns="condition",
-                values="value",
-            )
-            .reset_index()
-        )
-    elif prep_result[1] == 3:
-        # pivot the dataframe based on condition for later subtraction
-        pivot_df = (
-            prep_result[0]
-            .pivot_table(
-                index=["subject_index", "channel", "frequency", "timepoint"],
-                columns="condition",
-                values="value",
-            )
-            .reset_index()
+    def _extract_data_array(series):
+        return np.concatenate(series.values)
+
+    def _extract_data_mne(series):
+        return np.array(
+            series.map(lambda inst: inst.get_data().swapaxes(-2, -1)).to_list()
         )
 
-    # Get unique elements and the indices of their first occurrences
-    unique_elements, indices = np.unique(df.condition, return_index=True)
+    def _extract_data_tfr(series):
+        return series.map(lambda inst: inst.get_data().swapaxes(-3, -1)).to_list()
 
-    # Sort unique elements by the indices of their first occurrences
-    conditions = unique_elements[np.argsort(indices)]
-
-    # store the contrast for the clusterResults object
-    contrast = f"{conditions[0]} - {conditions[1]}"
-
-    # print the contrast used for the paired t-test so the user knows
-    # what is subtracted from what
-    logger.info(f"Contrast used for paired t-test: {contrast}")
-
-    # Compute the difference (assuming there are only 2 conditions)
-    pivot_df[dv_name] = pivot_df[conditions[0]] - pivot_df[conditions[1]]
-
-    # for the paired t-test y is the difference between conditions
-    # X is the design matrix with a column with 1s and 0s for each participant
-    # Create the design matrix using formulaic
-    formulaic = _soft_import(
-        "formulaic", purpose="set up Design Matrix"
-    )  # soft import (not a dependency for MNE)
-    y, X = formulaic.model_matrix(formula, pivot_df)
-
-    # Prepare design matrix for input into MNE cluster function
-    # MNE cluster functions expect channels as the last dimension
-
-    if prep_result[1] == 2:
-        # Reshape y.values into a 3D array: (participants, n_channels, n_timepoints)
-        y_reshaped = y.values.reshape(-1, prep_result[2], prep_result[3])
-        # Transpose the array to have channels as the last dimension
-        y_for_cluster = y_reshaped.transpose(0, 2, 1)
-    elif prep_result[1] == 3:
-        # Reshape y.values into a 4D array:
-        # (participants, n_channels, n_freqs, n_timepoints)
-        y_reshaped = y.values.reshape(
-            -1, prep_result[2], prep_result[3], prep_result[4]
-        )
-        # Transpose the array to have channels as the last dimension
-        y_for_cluster = y_reshaped.transpose(0, 3, 2, 1)
-
-    if paired_test:
-        # define stat function and threshold
-        stat_fun, threshold = _check_fun(
-            X=y_for_cluster, stat_fun=None, threshold=None, tail=0, kind="within"
-        )
+    if _dtype is np.ndarray:
+        func = _extract_data_array
+    elif _dtype is BaseTFR:
+        func = _extract_data_tfr
     else:
-        # define stat function and threshold
-        stat_fun, threshold = _check_fun(
-            X=y_for_cluster, stat_fun=None, threshold=None, tail=0, kind="between"
-        )
+        func = _extract_data_mne
+    # convert to a list-like X for clustering
+    X = df.groupby(iv_name).agg({dv_name: func})[dv_name].to_list()
+
+    # determine test type
+    if len(X) == 1:
+        kind = "within"
+    elif len(X) > 2:
+        kind = "between"
+    elif len(set(x.shape for x in X)) > 1:
+        kind = "between"
+    # by now we know there are exactly 2 elements in X, and their shapes match
+    elif within_id in df:
+        kind = "within"
+        X = X[0] - X[1]
+    else:
+        kind = "between"
+
+    # define stat function and threshold
+    stat_fun, threshold = _check_fun(
+        X=X, stat_fun=stat_fun, threshold=threshold, tail=tail, kind=kind
+    )
+    if kind == "within":
+        X = [X]
     # Run the cluster-based permutation test
-    T_obs, clusters, cluster_p_values, H0 = _permutation_cluster_test(
-        [y_for_cluster],
+    stat_obs, clusters, cluster_p_values, H0 = _permutation_cluster_test(
+        X,
         n_permutations=n_permutations,
         threshold=threshold,
         stat_fun=stat_fun,
@@ -2073,9 +1923,9 @@ def cluster_test(
         seed=seed,
     )
 
-    print(f"smallest cluster p-value: {min(cluster_p_values)}")
+    # print(f"smallest cluster p-value: {min(cluster_p_values)}")
 
-    return ClusterResult(T_obs, clusters, cluster_p_values, H0)
+    return ClusterResult(stat_obs, clusters, cluster_p_values, H0, stat_fun)
 
 
 class ClusterResult:
@@ -2084,7 +1934,7 @@ class ClusterResult:
 
     Parameters
     ----------
-    T_obs : np.ndarray
+    stat_obs : np.ndarray
         The observed test statistic.
     clusters : list
         List of clusters.
@@ -2096,15 +1946,24 @@ class ClusterResult:
 
     def __init__(
         self,
-        T_obs: np.typing.NDArray,
+        stat_obs: np.typing.NDArray,
         clusters: list,
         cluster_p_values: np.typing.NDArray,
         H0: np.typing.NDArray,
+        stat_fun: callable,
     ):
-        self.T_obs = T_obs
+        self.stat_obs = stat_obs
         self.clusters = clusters
         self.cluster_p_values = cluster_p_values
         self.H0 = H0
+        self.stat_fun = stat_fun
+        # TODO improve detection of stat name (e.g. unpaired T)?
+        if stat_fun is f_oneway:
+            self.stat_name = "F-statistic"
+        elif stat_fun is ttest_1samp_no_p:
+            self.stat_name = "paired T-statistic"
+        else:
+            self.stat_name = "test statistic"
 
     def plot_cluster(self, condition_labels: dict):
         """
@@ -2135,7 +1994,7 @@ class ClusterResult:
         time_inds = np.unique(time_inds)
 
         # get topography for t stat
-        t_map = self.T_obs[time_inds, ...].mean(axis=0).astype(int)
+        t_map = self.stat_obs[time_inds, ...].mean(axis=0).astype(int)
 
         # get signals at the sensors contributing to the cluster
         sig_times = cond_values[0][0].times[time_inds]
@@ -2176,7 +2035,7 @@ class ClusterResult:
         # add axes for colorbar
         ax_colorbar = divider.append_axes("right", size="5%", pad=0.1)
         cbar = plt.colorbar(image, cax=ax_colorbar)
-        cbar.set_label("t-value")
+        cbar.set_label(self.stat_name)
         ax_topo.set_xlabel(
             "average from {:0.3f} to {:0.3f} s".format(*sig_times[[0, -1]])
         )
