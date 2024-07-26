@@ -847,16 +847,18 @@ def _read_edf_header(
                 meas_date = datetime.strptime(rec_info[1], "%d-%b-%Y").replace(
                     tzinfo=timezone.utc
                 )
-                fid.read(16)  # skip the file's meas_date
             except Exception:
                 meas_date = None
+            else:
+                fid.read(16)  # skip the file's meas_date
         if meas_date is None:
             try:
                 meas_date = fid.read(8).decode("latin-1")
                 day, month, year = (int(x) for x in meas_date.split("."))
-                year = year + 2000 if year < 85 else year + 1900
             except Exception:
                 meas_date = None
+            else:
+                year = year + 2000 if year < 85 else year + 1900
             try:
                 meas_time = fid.read(8).decode("latin-1")
                 hour, minute, sec = (int(x) for x in meas_time.split("."))
