@@ -839,7 +839,7 @@ def _read_edf_header(
 
         # Recording ID
         rec_info = fid.read(80).decode("latin-1").rstrip().split(" ")
-        # if the measurement date is avaialble in the recording info, it's used instead
+        # if the measurement date is available in the recording info, it's used instead
         # of the file's meas_date since it contains all 4 digits of the year.
         meas_date = None
         if len(rec_info) == 5:
