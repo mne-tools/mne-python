@@ -1587,6 +1587,8 @@ class Report:
         color : dict | None
             Dictionary of event_id integers as keys and colors as values. This
             parameter is directly passed to :func:`mne.viz.plot_events`.
+
+            .. versionadded:: 1.8.0
         %(tags_report)s
         %(replace_report)s
 
