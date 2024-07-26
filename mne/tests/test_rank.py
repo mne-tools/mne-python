@@ -28,6 +28,7 @@ from mne.rank import (
     compute_rank,
     estimate_rank,
 )
+from mne.utils import catch_logging
 
 base_dir = Path(__file__).parents[1] / "io" / "tests" / "data"
 cov_fname = base_dir / "test-cov.fif"
@@ -208,7 +209,10 @@ def test_rank_epochs(rank_method, proj):
     raw = read_raw_fif(raw_fname, preload=True)
     epochs = make_fixed_length_epochs(raw, preload=True, proj=False)
     rank_raw = compute_rank(raw, rank_method, proj=proj)
-    rank_epochs = compute_rank(epochs, rank_method, proj=proj)
+    with catch_logging(verbose=True) as log:
+        rank_epochs = compute_rank(epochs, rank_method, proj=proj)
+    log = log.getvalue()
+    assert "{" not in log
     assert rank_raw == rank_epochs
 
 
