@@ -477,7 +477,7 @@ def _compute_rank(
                 logger.info(
                     f"    {ch_type_}: rank {this_rank} after "
                     f"{n_proj} projector{_pl(n_proj)} applied to "
-                    "{n_chan} channel{_pl(n_chan)}"
+                    f"{n_chan} channel{_pl(n_chan)}"
                 )
             else:
                 logger.info(f"    {ch_type_}: rank {this_rank} from info")
