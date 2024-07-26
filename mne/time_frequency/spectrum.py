@@ -391,7 +391,9 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         self.info = Info(**state["info"])
         self._data_type = state["data_type"]
         self._nave = state.get("nave")  # objs saved before #11282 won't have `nave`
-        self._mt_weights = state.get("mt_weights")  # objs saved before #12747 won't have
+        self._mt_weights = state.get(
+            "mt_weights"
+        )  # objs saved before #12747 won't have
         self.preload = True
         # instance type
         inst_types = dict(Raw=Raw, Epochs=Epochs, Evoked=Evoked, Array=np.ndarray)
