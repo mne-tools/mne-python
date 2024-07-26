@@ -844,33 +844,32 @@ def _read_edf_header(
         meas_date = None
         if len(rec_info) == 5:
             try:
-                meas_date = datetime.strptime(rec_info[1], "%d-%b-%Y").replace(
-                    tzinfo=timezone.utc
-                )
+                meas_date = datetime.strptime(rec_info[1], "%d-%b-%Y")
             except Exception:
                 meas_date = None
             else:
-                fid.read(16)  # skip the file's meas_date
+                fid.read(8)  # skip the file's meas_date
         if meas_date is None:
             try:
                 meas_date = fid.read(8).decode("latin-1")
                 day, month, year = (int(x) for x in meas_date.split("."))
+                year = year + 2000 if year < 85 else year + 1900
+                meas_date = datetime(year, month, day)
             except Exception:
                 meas_date = None
-            else:
-                year = year + 2000 if year < 85 else year + 1900
+        if meas_date is not None:
+            # try to get the hour/minute/sec from the recording info
             try:
                 meas_time = fid.read(8).decode("latin-1")
-                hour, minute, sec = (int(x) for x in meas_time.split("."))
+                hour, minute, second = (int(x) for x in meas_time.split("."))
             except Exception:
-                hour, minute, sec = 0, 0, 0
-            try:
-                meas_date = datetime(
-                    year, month, day, hour, minute, sec, tzinfo=timezone.utc
-                )
-            except ValueError:
-                warn("Invalid measurement date encountered in the header.")
-                meas_date = None
+                hour, minute, second = 0, 0, 0
+            meas_date = meas_date.replace(
+                hour=hour, minute=minute, second=second, tzinfo=timezone.utc
+            )
+        else:
+            fid.read(8)  # skip the file's measurement time
+            warn("Invalid measurement date encountered in the header.")
 
         header_nbytes = int(_edf_str(fid.read(8)))
         # The following 44 bytes sometimes identify the file type, but this is
