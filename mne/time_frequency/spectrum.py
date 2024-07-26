@@ -391,7 +391,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         self.info = Info(**state["info"])
         self._data_type = state["data_type"]
         self._nave = state.get("nave")  # objs saved before #11282 won't have `nave`
-        self._mt_weights = state.get("mt_weights")  # objs saved before #XXX won't have
+        self._mt_weights = state.get("mt_weights")  # objs saved before #12747 won't have
         self.preload = True
         # instance type
         inst_types = dict(Raw=Raw, Epochs=Epochs, Evoked=Evoked, Array=np.ndarray)
@@ -440,7 +440,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
             warn(f'Zero value in spectrum for channel{s} {", ".join(chs)}', UserWarning)
 
     def _returns_complex_tapers(self, **method_kw):
-        return self.method == "multitaper" and method_kw.get("output", "") == "complex"
+        return self.method == "multitaper" and method_kw.get("output") == "complex"
 
     def _compute_spectra(self, data, fmin, fmax, n_jobs, method_kw, verbose):
         # make the spectra
@@ -462,7 +462,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         # (and then deleted afterwards)
         self._shape = (len(self.ch_names), len(self.freqs))
         # append n_welch_segments
-        if method_kw.get("average", "") in (None, False):
+        if method_kw.get("average") in (None, False):
             n_welch_segments = _compute_n_welch_segments(data.shape[-1], method_kw)
             self._shape += (n_welch_segments,)
         # insert n_tapers
