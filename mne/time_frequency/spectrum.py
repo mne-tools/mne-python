@@ -350,8 +350,9 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
             self._dims = self._dims[:-1] + ("taper",) + self._dims[-1:]
         # record data type (for repr and html_repr)
         self._data_type = (
-            f"{'Complex' if method_kw.get('output', '') == 'complex' else 'Real'} "
-            "Spectrum"
+            "Fourier Coefficients"
+            if method_kw.get("output") == "complex"
+            else "Power Spectrum"
         )
         # set nave (child constructor overrides this for Evoked input)
         self._nave = None
@@ -391,9 +392,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         self.info = Info(**state["info"])
         self._data_type = state["data_type"]
         self._nave = state.get("nave")  # objs saved before #11282 won't have `nave`
-        self._mt_weights = state.get(
-            "mt_weights"
-        )  # objs saved before #12747 won't have
+        self._mt_weights = state.get("mt_weights")  # objs before #12747 won't have
         self.preload = True
         # instance type
         inst_types = dict(Raw=Raw, Epochs=Epochs, Evoked=Evoked, Array=np.ndarray)
@@ -463,8 +462,8 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         # this is *expected* shape, it gets asserted later in _check_values()
         # (and then deleted afterwards)
         self._shape = (len(self.ch_names), len(self.freqs))
-        # append n_welch_segments
-        if method_kw.get("average") in (None, False):
+        # append n_welch_segments (use "" as .get() default since None considered valid)
+        if method_kw.get("average", "") in (None, False):
             n_welch_segments = _compute_n_welch_segments(data.shape[-1], method_kw)
             self._shape += (n_welch_segments,)
         # insert n_tapers
