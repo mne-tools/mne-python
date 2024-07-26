@@ -1820,8 +1820,9 @@ def test_prepare_emptyroom_bads(bads):
 @pytest.mark.parametrize("set_annot_when", ("before", "after"))
 @pytest.mark.parametrize("raw_meas_date", ("orig", None))
 @pytest.mark.parametrize("raw_er_meas_date", ("orig", None))
+@pytest.mark.parametrize("equal_sfreq", (False, True))
 def test_prepare_emptyroom_annot_first_samp(
-    set_annot_when, raw_meas_date, raw_er_meas_date
+    set_annot_when, raw_meas_date, raw_er_meas_date, equal_sfreq
 ):
     """Test prepare_emptyroom."""
     raw = read_raw_fif(raw_fname, allow_maxshield="yes", verbose=False)
@@ -1861,6 +1862,9 @@ def test_prepare_emptyroom_annot_first_samp(
         assert set_annot_when == "after"
         meas_date = "from_raw"
         want_date = raw.info["meas_date"]
+    if not equal_sfreq:
+        with raw_er.info._unlock():
+            raw_er.info["sfreq"] += 100
     raw_er_prepared = maxwell_filter_prepare_emptyroom(
         raw_er=raw_er, raw=raw, meas_date=meas_date, emit_warning=True
     )
