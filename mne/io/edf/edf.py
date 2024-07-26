@@ -838,48 +838,39 @@ def _read_edf_header(
                                 warn(f"Invalid patient information {key}")
 
         # Recording ID
-        meas_id = {}
         rec_info = fid.read(80).decode("latin-1").rstrip().split(" ")
-        valid_startdate = False
+        # if the measurement date is avaialble in the recording info, it's used instead
+        # of the file's meas_date since it contains all 4 digits of the year.
+        meas_date = None
         if len(rec_info) == 5:
             try:
-                startdate = datetime.strptime(rec_info[1], "%d-%b-%Y")
+                meas_date = datetime.strptime(rec_info[1], "%d-%b-%Y").replace(
+                    tzinfo=timezone.utc
+                )
+                fid.read(16)  # skip the file's meas_date
+            except Exception:
+                meas_date = None
+        if meas_date is None:
+            try:
+                meas_date = fid.read(8).decode("latin-1")
+                day, month, year = (int(x) for x in meas_date.split("."))
+                year = year + 2000 if year < 85 else year + 1900
+            except Exception:
+                meas_date = None
+            try:
+                meas_time = fid.read(8).decode("latin-1")
+                hour, minute, sec = (int(x) for x in meas_time.split("."))
+            except Exception:
+                hour, minute, sec = 0, 0, 0
+            try:
+                meas_date = datetime(
+                    year, month, day, hour, minute, sec, tzinfo=timezone.utc
+                )
             except ValueError:
-                startdate = "X"
-            else:
-                valid_startdate = True
-            meas_id["startdate"] = startdate
-            meas_id["study_id"] = rec_info[2]
-            meas_id["technician"] = rec_info[3]
-            meas_id["equipment"] = rec_info[4]
-
-        # If startdate available in recording info, use it instead of the
-        # file's meas_date since it contains all 4 digits of the year
-        if valid_startdate:
-            day = meas_id["startdate"].day
-            month = meas_id["startdate"].month
-            year = meas_id["startdate"].year
-            fid.read(8)  # skip file's meas_date
-        else:
-            meas_date = fid.read(8).decode("latin-1")
-            day, month, year = (int(x) for x in meas_date.split("."))
-            year = year + 2000 if year < 85 else year + 1900
-
-        meas_time = fid.read(8).decode("latin-1")
-        hour, minute, sec = (int(x) for x in meas_time.split("."))
-        try:
-            meas_date = datetime(
-                year, month, day, hour, minute, sec, tzinfo=timezone.utc
-            )
-        except ValueError:
-            warn(
-                f"Invalid date encountered ({year:04d}-{month:02d}-"
-                f"{day:02d} {hour:02d}:{minute:02d}:{sec:02d})."
-            )
-            meas_date = None
+                warn("Invalid measurement date encountered in the header.")
+                meas_date = None
 
         header_nbytes = int(_edf_str(fid.read(8)))
-
         # The following 44 bytes sometimes identify the file type, but this is
         # not guaranteed. Therefore, we skip this field and use the file
         # extension to determine the subtype (EDF or BDF, which differ in the
