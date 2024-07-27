@@ -121,7 +121,7 @@ def test_event_repeated():
     """Test epochs takes into account repeated events."""
     n_samples = 100
     n_channels = 2
-    ch_names = ["chan%i" % i for i in range(n_channels)]
+    ch_names = [f"chan{i}" for i in range(n_channels)]
     info = mne.create_info(ch_names=ch_names, sfreq=1000.0)
     data = np.zeros((n_channels, n_samples))
     raw = mne.io.RawArray(data, info)
@@ -3702,7 +3702,7 @@ def test_array_epochs(tmp_path, browser_backend):
     # creating
     data = rng.random_sample((10, 20, 300))
     sfreq = 1e3
-    ch_names = ["EEG %03d" % (i + 1) for i in range(20)]
+    ch_names = ["EEG {i + 1:03}" for i in range(20)]
     types = ["eeg"] * 20
     info = create_info(ch_names, sfreq, types)
     events = np.c_[np.arange(1, 600, 60), np.zeros(10, int), [1, 2] * 5]

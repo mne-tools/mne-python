@@ -715,17 +715,19 @@ def plot_alignment(
         # Some stuff is natively in head coords, others in MRI coords
         msg = (
             "A head<->mri transformation matrix (trans) is required "
-            f"to plot %s in {coord_frame} coordinates, "
+            f"to plot {{}} in {coord_frame} coordinates, "
             "`trans=None` is not allowed"
         )
         if fwd is not None:
             fwd_frame = _frame_to_str[fwd["coord_frame"]]
             if fwd_frame != coord_frame:
-                raise ValueError(msg % f"a {fwd_frame}-coordinate forward solution")
+                raise ValueError(
+                    msg.format(f"a {fwd_frame}-coordinate forward solution")
+                )
         if src is not None:
             src_frame = _frame_to_str[src[0]["coord_frame"]]
             if src_frame != coord_frame:
-                raise ValueError(msg % f"a {src_frame}-coordinate source space")
+                raise ValueError(msg.format(f"a {src_frame}-coordinate source space"))
         if mri_fiducials is not False and coord_frame != "mri":
             raise ValueError(msg % "mri fiducials")
         # only enforce needing `trans` if there are channels in "head"/"device"
@@ -735,11 +737,11 @@ def plot_alignment(
         if bem is not None:
             if not bem["is_sphere"]:
                 if coord_frame != "mri":
-                    raise ValueError(msg % "a BEM")
+                    raise ValueError(msg.format("a BEM"))
             elif surfaces not in (["brain"], []):  # can only plot these
-                raise ValueError(msg % (", ".join(surfaces) + " surfaces"))
+                raise ValueError(msg.format(", ".join(surfaces) + " surfaces"))
         elif len(surfaces) > 0 and coord_frame != "mri":
-            raise ValueError(msg % (", ".join(surfaces) + " surfaces"))
+            raise ValueError(msg.format(", ".join(surfaces) + " surfaces"))
         trans = Transform("head", "mri")  # not used so just use identity
     # get transforms
     head_mri_t = _get_trans(trans, "head", "mri")[0]
@@ -3458,7 +3460,7 @@ def plot_sparse_source_estimates(
 
     colors = cycle(colors)
 
-    logger.info("Total number of active sources: %d" % len(unique_vertnos))
+    logger.info(f"Total number of active sources: {unique_vertnos}")
 
     if labels is not None:
         colors = [

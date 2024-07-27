@@ -1707,7 +1707,7 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
                 else:
                     entr = v.strftime("%Y-%m-%d %H:%M:%S %Z")
             elif k == "kit_system_id" and v is not None:
-                entr = "%i (%s)" % (v, KIT_SYSNAMES.get(v, "unknown"))
+                entr = f"{v} ({KIT_SYSNAMES.get(v, "unknown")})"
             elif k == "dig" and v is not None:
                 counts = Counter(d["kind"] for d in v)
                 counts = [

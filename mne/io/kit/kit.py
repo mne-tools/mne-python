@@ -423,9 +423,7 @@ class EpochsKIT(BaseEpochs):
 
         for key, val in event_id.items():
             if val not in events[:, 2]:
-                raise ValueError(
-                    "No matching events found for %s (event id %i)" % (key, val)
-                )
+                raise ValueError(f"No matching events found for {key} (event id {val})")
 
         data = self._read_kit_data()
         assert data.shape == (

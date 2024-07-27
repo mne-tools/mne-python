@@ -474,8 +474,8 @@ def _plot_evoked(
 
     if len(axes) != len(ch_types_used):
         raise ValueError(
-            "Number of axes (%g) must match number of channel "
-            "types (%d: %s)" % (len(axes), len(ch_types_used), sorted(ch_types_used))
+            f"Number of axes ({len(axes):g}) must match number of channel "
+            f"types ({len(ch_types_used)}: {sorted(ch_types_used)})"
         )
     _check_option("proj", proj, (True, False, "interactive", "reconstruct"))
     noise_cov = _check_cov(noise_cov, info)
@@ -783,9 +783,7 @@ def _plot_lines(
                 ax.set_xlim(xlim)
             if ylim is not None and this_type in ylim:
                 ax.set_ylim(ylim[this_type])
-            ax.set(
-                title=r"%s (%d channel%s)" % (titles[this_type], len(D), _pl(len(D)))
-            )
+            ax.set(title=rf"{titles[this_type]} ({len(D)} channel{_pl(len(D))})")
             if ai == 0:
                 _add_nave(ax, nave)
             if hline is not None:
@@ -957,7 +955,7 @@ def _plot_image(
             ax.CB = DraggableColorbar(cbar, im, "evoked_image", this_type)
 
     ylabel = "Channels" if show_names else "Channel (index)"
-    t = titles[this_type] + " (%d channel%s" % (len(data), _pl(data)) + t_end
+    t = titles[this_type] + f" ({len(data)} channel{_pl(data)}" + t_end
     ax.set(ylabel=ylabel, xlabel=f"Time ({time_unit})", title=t)
     _add_nave(ax, nave)
 
@@ -1620,7 +1618,7 @@ def plot_evoked_white(
     else:
         axes = np.array(axes)
     for ai, ax in enumerate(axes.flat):
-        _validate_type(ax, plt.Axes, "axes.flat[%d]" % (ai,))
+        _validate_type(ax, plt.Axes, f"axes.flat[{ai}]")
     if axes.shape != want_shape:
         raise ValueError(f"axes must have shape {want_shape}, got {axes.shape}.")
     fig = axes.flat[0].figure

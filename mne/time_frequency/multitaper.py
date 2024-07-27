@@ -305,8 +305,7 @@ def _compute_mt_params(n_times, sfreq, bandwidth, low_bias, adaptive, verbose=No
         n_times, half_nbw, n_tapers_max, sym=False, low_bias=low_bias
     )
     logger.info(
-        "    Using multitaper spectrum estimation with %d DPSS "
-        "windows" % len(eigvals)
+        f"    Using multitaper spectrum estimation with {len(eigvals)} DPSS windows"
     )
 
     if adaptive and len(eigvals) < 3:

@@ -225,7 +225,7 @@ def write_dig(fname, pts, coord_frame=None, *, overwrite=False, verbose=None):
         if len(bad_frames) > 0:
             raise ValueError(
                 "Points have coord_frame entries that are incompatible with "
-                "coord_frame=%i: %s." % (coord_frame, str(tuple(bad_frames)))
+                f"coord_frame={coord_frame}: {str(tuple(bad_frames))}."
             )
 
     with start_and_end_file(fname) as fid:

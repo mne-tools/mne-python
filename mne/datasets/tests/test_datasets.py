@@ -251,7 +251,7 @@ def test_manifest_check_download(tmp_path, n_have, monkeypatch):
             _manifest_check_download(manifest_path, destination, url, hash_)
     log = log.getvalue()
     n_missing = 3 - n_have
-    assert ("%d file%s missing from" % (n_missing, _pl(n_missing))) in log
+    assert (f"{n_missing} file{_pl(n_missing)} missing from") in log
     for want in ("Extracting missing", "Successfully "):
         if n_missing > 0:
             assert want in log

@@ -570,9 +570,7 @@ def test_setup_source_space_spacing(tmp_path, spacing, monkeypatch):
     monkeypatch.setenv("SUBJECTS_DIR", str(tmp_path))
     monkeypatch.setenv("SUBJECT", "sample")
     run_subprocess(["mne_setup_source_space"] + args)
-    src = read_source_spaces(
-        tmp_path / "sample" / "bem" / ("sample-%d-src.fif" % spacing)
-    )
+    src = read_source_spaces(tmp_path / "sample" / "bem" / f"sample-{spacing}-src.fif")
     # No need to pass subjects_dir here because we've setenv'ed it
     src_new = setup_source_space("sample", spacing=spacing, add_dist=False)
     _compare_source_spaces(src, src_new, mode="approx", nearest=True)

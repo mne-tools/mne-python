@@ -60,7 +60,7 @@ def linear_regression(inst, design_matrix, names=None):
         ``(n_channels, n_timepoints)``.
     """
     if names is None:
-        names = ["x%i" % i for i in range(design_matrix.shape[1])]
+        names = [f"x{i}" for i in range(design_matrix.shape[1])]
 
     if isinstance(inst, BaseEpochs):
         picks = pick_types(

@@ -1900,7 +1900,7 @@ def _read_evoked(fname, condition=None, kind="average", allow_maxshield=False):
         if nepoch != 1 and nepoch != info["nchan"]:
             raise ValueError(
                 "Number of epoch tags is unreasonable "
-                "(nepoch = %d nchan = %d)" % (nepoch, info["nchan"])
+                f"(nepoch = {nepoch} nchan = {info["nchan"]})"
             )
 
         if nepoch == 1:

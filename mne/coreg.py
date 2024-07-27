@@ -815,7 +815,7 @@ def read_mri_cfg(subject, subjects_dir=None):
         scale_str = config.get("MRI Scaling", "scale")
         scale = np.array([float(s) for s in scale_str.split()])
     else:
-        raise ValueError("Invalid n_params value in MRI cfg: %i" % n_params)
+        raise ValueError(f"Invalid n_params value in MRI cfg: {n_params}")
 
     out = {
         "subject_from": config.get("MRI Scaling", "subject_from"),
