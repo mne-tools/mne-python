@@ -2538,7 +2538,7 @@ def _filter_source_spaces(surf, limit, mri_head_t, src, n_jobs=None, verbose=Non
     elif src[0]["coord_frame"] == FIFF.FIFFV_COORD_MRI:
         out_str += "MRI coordinates."
     else:
-        out_str += f"unknown ({src[0]["coord_frame"]}) coordinates."
+        out_str += f"unknown ({src[0]['coord_frame']}) coordinates."
     logger.info(out_str)
     out_str = "Checking that the sources are inside the surface"
     if limit > 0.0:

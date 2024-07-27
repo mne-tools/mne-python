@@ -468,7 +468,7 @@ def _get_hpi_initial_fit(info, adjust=False, verbose=None):
     assert hpi_result["coord_trans"]["to"] == FIFF.FIFFV_COORD_HEAD
     hpi_rrs_fit = apply_trans(hpi_result["coord_trans"]["trans"], hpi_rrs_fit)
     if "moments" in hpi_result:
-        logger.debug(f"Hpi coil moments ({hpi_result["moments"].shape[::-1]}):")
+        logger.debug(f"Hpi coil moments {hpi_result["moments"].shape[::-1]}:")
         for moment in hpi_result["moments"]:
             logger.debug(f"{moment[0]:g} {moment[1]:g} {moment[2]:g}")
     errors = np.linalg.norm(hpi_rrs - hpi_rrs_fit, axis=1)

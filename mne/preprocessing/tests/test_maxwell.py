@@ -669,7 +669,7 @@ def test_spatiotemporal():
     kwargs = dict(origin=mf_head_origin, regularize=None, bad_condition="ignore")
     for st_duration, tol in zip(st_durations, tols):
         # Load tSSS data depending on st_duration and get data
-        tSSS_fname = sss_path / f"test_move_anon_st{st_duration}s_raw_sss.fif"
+        tSSS_fname = sss_path / f"test_move_anon_st{int(st_duration)}s_raw_sss.fif"
         tsss_bench = read_crop(tSSS_fname)
         # Because Elekta's tSSS sometimes(!) lumps the tail window of data
         # onto the previous buffer if it's shorter than st_duration, we have to

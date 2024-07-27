@@ -1541,7 +1541,7 @@ class Coregistration:
             # This should be very rare!
             warn(
                 "No low-resolution head found, decimating high resolution "
-                f"mesh ({len(self._bem_high_res["rr"])} vertices): {high_res_path}"
+                f"mesh ({len(self._bem_high_res['rr'])} vertices): {high_res_path}"
             )
             # Create one from the high res one, which we know we have
             rr, tris = decimate_surface(
