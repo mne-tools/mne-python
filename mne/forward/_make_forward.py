@@ -165,7 +165,7 @@ def _create_meg_coil(coilset, ch, acc, do_es):
     else:
         raise RuntimeError(
             "Desired coil definition not found "
-            f"(type = {ch["coil_type"]} acc = {acc})"
+            f"(type = {ch['coil_type']} acc = {acc})"
         )
 
     # Apply a coordinate transformation if so desired
