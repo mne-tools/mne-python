@@ -342,7 +342,7 @@ def test_unaggregated_spectrum_to_data_frame(raw, long_format, method, output):
             agg_df = gb.mean()  # excludes missing values itself
     else:
         gb = gb[df.columns]  # XXX: try removing when minimum pandas >= 2.1 is required
-        agg_df = gb.apply(_agg_helper, spectrum.mt_weights, grouping_cols)
+        agg_df = gb.apply(_agg_helper, spectrum.weights, grouping_cols)
     # even with check_categorical=False, we know that the *data* matches;
     # what may differ is the order of the "levels" in the *metadata* for the
     # channel name column
@@ -439,85 +439,122 @@ def _check_spectrum_equivalent(spect1, spect2, tmp_path):
     assert_array_equal(spect1.freqs, spect2.freqs)
 
 
-@pytest.mark.parametrize(
-    "method, output, average",
-    [
-        ("welch", "power", "mean"),  # test with precomputed spectrum
-        ("welch", "power", False),  # unaggregated segments
-        ("multitaper", "complex", None),  # unaggregated tapers
-    ],
-)
-def test_spectrum_array_errors(method, output, average, request):
-    """Test EpochsSpectrumArray constructor errors."""
-    if method == "welch" and output == "power" and average:
-        spectrum = request.getfixturevalue("epochs_spectrum")
-    else:
-        data = request.getfixturevalue("epochs")
-        kwargs = dict()
-        if method == "welch":
-            kwargs.update(average=average)
-        spectrum = data.compute_psd(method=method, output=output, **kwargs)
-    data, freqs = spectrum.get_data(return_freqs=True)
-    info = spectrum.info
-    mt_weights = spectrum.mt_weights
-    # test mismatching number of channels
-    with pytest.raises(ValueError, match=r"number of channels.*good data channels"):
-        EpochsSpectrumArray(data[:, :-1], info, freqs)
-    # test mismatching number of frequencies
-    bad_n_freqs = (
-        data[..., :-1, :] if method == "welch" and not average else data[..., :-1]
-    )
-    with pytest.raises(ValueError, match=r"number of frequencies.*number of elements"):
+def _get_dimnames(kind, method, output, average):
+    dimnames = ("epoch", "channel") if kind == "epochs" else ("channel",)
+    if method == "welch":
+        dimnames += ("freq",) if average else ("freq", "segment")
+    else:  # i.e. multitaper
+        dimnames += ("freq",) if output == "power" else ("taper", "freq")
+    return dimnames
+
+
+def test_spectrum_array_errors():
+    """Test (Epochs)SpectrumArray constructor errors."""
+    n_epochs = 10
+    n_chans = 5
+    n_freqs = 50
+    freqs = np.arange(n_freqs)
+    sfreq = 100
+    rng = np.random.default_rng(44)
+    data = rng.random((n_epochs, n_chans, n_freqs))
+    dimnames = ("epoch", "channel", "freq")
+    info = create_info(n_chans, sfreq, "eeg")
+    # test incorrect ndims (for SpectrumArray; allows 2-3D data)
+    with pytest.raises(ValueError, match="Invalid value for the 'data.ndim' parameter"):
+        SpectrumArray(data[0, 0, :], info, freqs, dimnames=dimnames)
+    with pytest.raises(ValueError, match="Invalid value for the 'data.ndim' parameter"):
+        SpectrumArray(np.expand_dims(data, axis=3), info, freqs, dimnames=dimnames)
+    # test incorrect ndims (for EpochsSpectrumArray; allows 3-4D data)
+    with pytest.raises(ValueError, match="Invalid value for the 'data.ndim' parameter"):
+        EpochsSpectrumArray(data[0, :, :], info, freqs, dimnames=dimnames)
+    with pytest.raises(ValueError, match="Invalid value for the 'data.ndim' parameter"):
         EpochsSpectrumArray(
-            bad_n_freqs, info, freqs, method=method, mt_weights=mt_weights
+            np.expand_dims(data, axis=(3, 4)), info, freqs, dimnames=dimnames
         )
+    # test incorrect epochs location
+    with pytest.raises(ValueError, match="'epoch' must be the first dimension"):
+        EpochsSpectrumArray(data, info, freqs, dimnames=("channel", "epoch", "freq"))
     # test mismatching events shape
-    n_epo = data.shape[0] + 1  # +1 so they purposely don't match
     events = np.vstack(
-        (np.arange(n_epo), np.zeros(n_epo, dtype=int), np.ones(n_epo, dtype=int))
+        (
+            np.arange(n_epochs + 1),
+            np.zeros(n_epochs + 1, dtype=int),
+            np.ones(n_epochs + 1, dtype=int),
+        )
     ).T
     with pytest.raises(ValueError, match=r"first dimension.*dimension of `events`"):
-        EpochsSpectrumArray(data, info, freqs, events)
-    # test unspecified method for unaggregated spectra (i.e. with segments or tapers)
-    if (
-        method == "welch"
-        and not average
-        or method == "multitaper"
-        and output == "complex"
-    ):
-        with pytest.raises(
-            ValueError, match="Invalid value for the 'method' parameter"
-        ):
-            EpochsSpectrumArray(
-                data, info, freqs, method="unknown", mt_weights=mt_weights
-            )
-    # test unspecified/mismatched multitaper weights
-    if method == "multitaper" and output == "complex":
-        with pytest.raises(
-            ValueError, match=r"Expected size of `mt_weights` to be.*, got"
-        ):
-            EpochsSpectrumArray(data, info, freqs, method=method, mt_weights=None)
-        with pytest.raises(
-            ValueError, match=r"Expected size of `mt_weights` to be.*, got"
-        ):
-            EpochsSpectrumArray(
-                data, info, freqs, method=method, mt_weights=mt_weights[:, :-1]
-            )
+        EpochsSpectrumArray(data, info, freqs, events, dimnames=dimnames)
+    # test data-dimname mismatch
+    with pytest.raises(ValueError, match=r"Expected data to have.*dimensions, got.*"):
+        EpochsSpectrumArray(data, info, freqs, dimnames=dimnames[:-1])
+    # test unrecognised dimnames (for SpectrumArray; epoch not allowed)
+    with pytest.raises(ValueError, match="`data` must not be epoched"):
+        SpectrumArray(data[0, :, :], info, freqs, dimnames=("epoch", "channel"))
+    # test unrecognised dimnames (for EpochsSpectrumArray)
+    with pytest.raises(ValueError, match=r"entries of `dimnames` must be in.*, got,*"):
+        EpochsSpectrumArray(data, info, freqs, dimnames=("epoch", "channel", "notfreq"))
+    # test missing dimnames
+    with pytest.raises(ValueError, match="Both 'channel' and 'freq' must be present"):
+        EpochsSpectrumArray(data, info, freqs, dimnames=("epoch", "channel", "channel"))
+    with pytest.raises(ValueError, match="Both 'channel' and 'freq' must be present"):
+        EpochsSpectrumArray(data, info, freqs, dimnames=("epoch", "freq", "freq"))
+    with pytest.raises(ValueError, match="Both 'channel' and 'freq' must be present"):
+        EpochsSpectrumArray(data, info, freqs, dimnames=("epoch", "epoch", "epoch"))
+    # test incorrect channel location (for SpectrumArray; must be 1st dim)
+    with pytest.raises(ValueError, match="'channel' must be the first dimension"):
+        SpectrumArray(data[0, :, :], info, freqs, dimnames=("freq", "channel"))
+    # test incorrect channel location (for EpochsSpectrumArray; must be 2nd dim)
+    with pytest.raises(ValueError, match="'channel' must be the second dimension"):
+        EpochsSpectrumArray(data, info, freqs, dimnames=("epoch", "freq", "channel"))
+    # test mismatching number of channels
+    with pytest.raises(ValueError, match=r"number of channels.*good data channels"):
+        EpochsSpectrumArray(data[:, :-1, :], info, freqs, dimnames=dimnames)
+    # test incorrect taper position
+    with pytest.raises(ValueError, match="'taper' must be the second to last dim"):
+        EpochsSpectrumArray(
+            np.expand_dims(data, axis=3), info, freqs, dimnames=dimnames + ("taper",)
+        )
+    # test incorrect weight size
+    with pytest.raises(ValueError, match=r"Expected size of `weights` to be.*, got.*"):
+        EpochsSpectrumArray(
+            np.expand_dims(data, axis=2),
+            info,
+            freqs,
+            dimnames=("epoch", "channel", "taper", "freq"),
+            weights=None,
+        )
+    with pytest.raises(ValueError, match=r"Expected size of `weights` to be.*, got.*"):
+        EpochsSpectrumArray(
+            np.expand_dims(data, axis=2),
+            info,
+            freqs,
+            dimnames=("epoch", "channel", "taper", "freq"),
+            weights=np.ones((1, 2, 1)),
+        )
+    # test incorrect segment position
+    with pytest.raises(ValueError, match="'segment' must be the last dim"):
+        EpochsSpectrumArray(
+            np.expand_dims(data, axis=2),
+            info,
+            freqs,
+            dimnames=("epoch", "channel", "segment", "freq"),
+        )
+    # test mismatching number of frequencies
+    with pytest.raises(ValueError, match=r"number of frequencies.*number of elements"):
+        EpochsSpectrumArray(data[:, :, :-1], info, freqs, dimnames=dimnames)
 
 
-@pytest.mark.parametrize("kind", ("raw", "epochs"))
 @pytest.mark.parametrize(
-    "method, output, average",
+    "kind, method, output, average",
     [
-        ("welch", "power", "mean"),  # test with precomputed spectrum
-        ("welch", "power", False),
-        ("welch", "complex", False),
-        ("welch", "complex", "mean"),
-        ("multitaper", "complex", None),
-    ],
+        ("raw", "welch", "power", "mean"),  # test with precomputed spectrum
+        ("epochs", "welch", "power", False),  # test with segments
+        ("epochs", "multitaper", "complex", None),  # test with tapers
+    ],  # additional variants don't improve coverage
 )
 def test_spectrum_array(kind, method, output, average, tmp_path, request):
     """Test EpochsSpectrumArray and SpectrumArray constructors."""
+    dimnames = _get_dimnames(kind, method, output, average)
     if method == "welch" and output == "power" and average:
         spectrum = request.getfixturevalue(f"{kind}_spectrum")
     else:
@@ -532,44 +569,33 @@ def test_spectrum_array(kind, method, output, average, tmp_path, request):
         data=data,
         info=spectrum.info,
         freqs=freqs,
-        method=method,
-        mt_weights=spectrum.mt_weights,
+        dimnames=dimnames,
+        weights=spectrum.weights,
     )
     _check_spectrum_equivalent(spectrum, spect_arr, tmp_path)
 
 
-@pytest.mark.parametrize("kind", ("raw", "epochs"))
-@pytest.mark.parametrize("array", (False, True))
 @pytest.mark.parametrize(
     "method, output, average",
     [
         ("welch", "power", "mean"),  # test with precomputed spectrum
-        ("welch", "power", False),
-        ("welch", "complex", False),
-        ("welch", "complex", "mean"),
-        ("multitaper", "complex", None),
-    ],
+        ("welch", "complex", False),  # test aggr over segments & conversion to power
+        ("multitaper", "complex", None),  # test aggr over tapers & conversion to power
+    ],  # additional variants don't improve coverage
 )
-def test_plot_spectrum(kind, array, method, output, average, request):
-    """Test plotting (Epochs)Spectrum(Array)."""
+def test_plot_spectrum(method, output, average, request):
+    """Test plotting EpochsSpectrum(Array).
+
+    Testing Spectrum(Array) with raw data doesn't improve coverage.
+    """
     if method == "welch" and output == "power" and average:
-        spectrum = request.getfixturevalue(f"{kind}_spectrum")
+        spectrum = request.getfixturevalue("epochs_spectrum")
     else:
-        data = request.getfixturevalue(kind)
+        data = request.getfixturevalue("epochs")
         kwargs = dict()
         if method == "welch":
             kwargs.update(average=average)
         spectrum = data.compute_psd(method=method, output=output, **kwargs)
-    if array:
-        data, freqs = spectrum.get_data(return_freqs=True)
-        Klass = SpectrumArray if kind == "raw" else EpochsSpectrumArray
-        spectrum = Klass(
-            data=data,
-            info=spectrum.info,
-            freqs=freqs,
-            method=spectrum.method,
-            mt_weights=spectrum.mt_weights,
-        )
     spectrum.info["bads"] = spectrum.ch_names[:1]  # one grad channel
     spectrum.plot(average=True, amplitude=True, spatial_colors=True)
     spectrum.plot(average=True, amplitude=False, spatial_colors=False)
