@@ -260,7 +260,7 @@ print(f'After:  {fwd["src"]}')
 # the gain matrix.
 
 leadfield = fwd["sol"]["data"]
-print("Leadfield size : %d sensors x %d dipoles" % leadfield.shape)
+print(f"Leadfield size : {leadfield.shape[0]} sensors x {leadfield.shape[1]} dipoles")
 
 # %%
 # To extract the numpy array containing the forward operator corresponding to
@@ -271,7 +271,7 @@ fwd_fixed = mne.convert_forward_solution(
     fwd, surf_ori=True, force_fixed=True, use_cps=True
 )
 leadfield = fwd_fixed["sol"]["data"]
-print("Leadfield size : %d sensors x %d dipoles" % leadfield.shape)
+print(f"Leadfield size : {leadfield.shape[0]} sensors x {leadfield.shape[1]} dipoles")
 
 # %%
 # This is equivalent to the following code that explicitly applies the

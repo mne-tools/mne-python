@@ -1060,7 +1060,7 @@ data_path = mne.datasets.sample.data_path()
 src = mne.setup_source_space('sample', fname=None, spacing='oct5')
 hemis = ['lh', 'rh']
 fnames = [
-    str(data_path) + '/subjects/sample/surf/%s.decimated' % h for h in hemis]
+    str(data_path) + f'/subjects/sample/surf/{h}.decimated' for h in hemis]
 
 vs = list()
 for s, fname in zip(src, fnames):
@@ -1074,7 +1074,7 @@ for s, fname in zip(src, fnames):
 
 # we need to move sphere surfaces
 spheres = [
-    str(data_path) + '/subjects/sample/surf/%s.sphere' % h for h in hemis]
+    str(data_path) + f'/subjects/sample/surf/{h}.sphere' for h in hemis]
 for s in spheres:
     os.rename(s, s + '.bak')
 try:

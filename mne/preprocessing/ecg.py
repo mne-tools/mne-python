@@ -288,8 +288,8 @@ def find_ecg_events(
     duration_min = duration_sec / 60.0
     average_pulse = n_events / duration_min
     logger.info(
-        "Number of ECG events detected : %d (average pulse %d / "
-        "min.)" % (n_events, average_pulse)
+        f"Number of ECG events detected : {n_events} "
+        f"(average pulse {average_pulse} / min.)"
     )
 
     ecg_events = np.array(

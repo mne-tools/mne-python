@@ -729,10 +729,10 @@ def plot_alignment(
             if src_frame != coord_frame:
                 raise ValueError(msg.format(f"a {src_frame}-coordinate source space"))
         if mri_fiducials is not False and coord_frame != "mri":
-            raise ValueError(msg % "mri fiducials")
+            raise ValueError(msg.format("mri fiducials"))
         # only enforce needing `trans` if there are channels in "head"/"device"
         if picks.size and coord_frame == "mri":
-            raise ValueError(msg % "sensors")
+            raise ValueError(msg.format("sensors"))
         # if only plotting sphere model no trans needed
         if bem is not None:
             if not bem["is_sphere"]:

@@ -3702,7 +3702,7 @@ def test_array_epochs(tmp_path, browser_backend):
     # creating
     data = rng.random_sample((10, 20, 300))
     sfreq = 1e3
-    ch_names = ["EEG {i + 1:03}" for i in range(20)]
+    ch_names = [f"EEG {i + 1:03}" for i in range(20)]
     types = ["eeg"] * 20
     info = create_info(ch_names, sfreq, types)
     events = np.c_[np.arange(1, 600, 60), np.zeros(10, int), [1, 2] * 5]

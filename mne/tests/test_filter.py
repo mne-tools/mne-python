@@ -895,7 +895,7 @@ def test_reporting_iir(phase, ftype, btype, order, output):
         "IIR",
         btype,
         ftype,
-        f"Filter order {order_eff * order_mult}",
+        f"Filter order {int(order_eff * order_mult)}",
         "Cutoff " if btype == "lowpass" else "Cutoffs ",
     ]
     if phase == "forward":

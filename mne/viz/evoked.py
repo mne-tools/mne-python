@@ -852,7 +852,7 @@ def _add_nave(ax, nave):
     """Add nave to axes."""
     if nave is not None:
         ax.annotate(
-            r"N$_{\mathrm{ave}}$=%d" % nave,
+            f'{r"N$_{\mathrm{ave}}$="}{nave}',
             ha="right",
             va="bottom",
             xy=(1, 1),

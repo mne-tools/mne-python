@@ -64,7 +64,9 @@ def make_inverse_resolution_matrix(
     leadfield = fwd["sol"]["data"]
     invmat = _get_matrix_from_inverse_operator(inv, fwd, method=method, lambda2=lambda2)
     resmat = invmat.dot(leadfield)
-    logger.info("Dimensions of resolution matrix: %d by %d." % resmat.shape)
+    logger.info(
+        f"Dimensions of resolution matrix: {resmat.shape[0]} by {resmat.shape[1]}."
+    )
     return resmat
 
 
@@ -116,8 +118,8 @@ def _get_psf_ctf(
         (n_verts != n_c) and (n_c / 3 != n_verts)
     ):
         msg = (
-            "Number of vertices (%d) and corresponding dimension of"
-            "resolution matrix (%d, %d) do not match" % (n_verts, n_r, n_c)
+            f"Number of vertices ({n_verts}) and corresponding dimension of"
+            f"resolution matrix ({n_r}, {n_c}) do not match"
         )
         raise ValueError(msg)
 

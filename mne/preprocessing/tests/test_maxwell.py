@@ -455,7 +455,7 @@ def test_multipolar_bases():
     sss_data = loadmat(bases_fname)
     exp = dict(int_order=int_order, ext_order=ext_order)
     for origin in ((0, 0, 0.04), (0, 0.02, 0.02)):
-        o_str = "".join("%d" % (1000 * n) for n in origin)
+        o_str = "".join(f"{int(1000 * n)}" for n in origin)
         exp.update(origin=origin)
         S_tot = _sss_basis_basic(exp, coils, method="alternative")
         # Test our real<->complex conversion functions
@@ -669,7 +669,7 @@ def test_spatiotemporal():
     kwargs = dict(origin=mf_head_origin, regularize=None, bad_condition="ignore")
     for st_duration, tol in zip(st_durations, tols):
         # Load tSSS data depending on st_duration and get data
-        tSSS_fname = sss_path / ("test_move_anon_st%0ds_raw_sss.fif" % st_duration)
+        tSSS_fname = sss_path / f"test_move_anon_st{st_duration}s_raw_sss.fif"
         tsss_bench = read_crop(tSSS_fname)
         # Because Elekta's tSSS sometimes(!) lumps the tail window of data
         # onto the previous buffer if it's shorter than st_duration, we have to
