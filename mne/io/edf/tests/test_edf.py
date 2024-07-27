@@ -874,7 +874,7 @@ def test_invalid_date(tmp_path):
     edf[172] = ord("2")
     with open(fname, "wb") as f:
         f.write(edf)
-    with pytest.warns(RuntimeWarning, match="Invalid date"):
+    with pytest.warns(RuntimeWarning, match="Invalid measurement date"):
         read_raw_edf(fname)
 
     # another invalid date 29.00.14 (0 is not a month)
@@ -882,7 +882,7 @@ def test_invalid_date(tmp_path):
     edf[172] = ord("0")
     with open(fname, "wb") as f:
         f.write(edf)
-    with pytest.warns(RuntimeWarning, match="Invalid date"):
+    with pytest.warns(RuntimeWarning, match="Invalid measurement date"):
         read_raw_edf(fname)
 
 
