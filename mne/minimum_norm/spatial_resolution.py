@@ -310,16 +310,14 @@ def _rectify_resolution_matrix(resmat):
     if not shape[0] == shape[1]:
         if shape[0] < shape[1]:
             raise ValueError(
-                "Number of target sources (%d) cannot be lower "
-                "than number of input sources (%d)" % shape[0],
-                shape[1],
+                f"Number of target sources ({shape[0]}) cannot be lower "
+                f"than number of input sources ({shape[1]})"
             )
 
         if np.mod(shape[0], shape[1]):  # if ratio not integer
             raise ValueError(
-                "Number of target sources (%d) must be a "
-                "multiple of the number of input sources (%d)" % shape[0],
-                shape[1],
+                f"Number of target sources ({shape[0]}) must be a "
+                f"multiple of the number of input sources ({shape[1]})"
             )
 
         ns = shape[0] // shape[1]  # number of source components per vertex

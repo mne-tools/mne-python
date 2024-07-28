@@ -1349,9 +1349,9 @@ def _read_gdf_header(fname, exclude, include=None):
                     edf_info["units"].append(1)  # unrecognized
                 else:
                     warn(
-                        "Unsupported physical dimension for channel %d "
+                        f"Unsupported physical dimension for channel {i} "
                         "(assuming dimensionless). Please contact the "
-                        "MNE-Python developers for support." % i
+                        "MNE-Python developers for support."
                     )
                     edf_info["units"].append(1)
             edf_info["units"] = np.array(edf_info["units"], float)

@@ -960,7 +960,7 @@ def test_extract_label_time_course_volume(
             assert repr(missing) in log
         else:
             assert "does not contain" not in log
-        assert "\n%d/%d atlas regions had at least" % (n_want, n_tot) in log
+        assert f"\n{n_want}/{n_tot} atlas regions had at least" in log
         assert len(label_tc) == 1
         label_tc = label_tc[0]
         assert label_tc.shape == (n_tot,) + end_shape

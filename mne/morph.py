@@ -994,8 +994,8 @@ def _get_src_data(src, mri_resolution=True):
             if s.get("interpolator", None) is None:
                 if mri_resolution:
                     raise RuntimeError(
-                        "MRI interpolator not present in src[%d], "
-                        "cannot use mri_resolution=True" % (si,)
+                        f"MRI interpolator not present in src[{si}], "
+                        "cannot use mri_resolution=True"
                     )
                 interpolator = None
                 break
@@ -1520,7 +1520,7 @@ def _apply_morph_data(morph, stc_from):
         stc_from_vertices = stc_from.vertices[vol_src_offset:]
         vertices_from = morph._vol_vertices_from
         for ii, (v1, v2) in enumerate(zip(vertices_from, stc_from_vertices)):
-            _check_vertices_match(v1, v2, "volume[%d]" % (ii,))
+            _check_vertices_match(v1, v2, f"volume[{ii}]")
         from_sl = slice(from_surf_stop, from_vol_stop)
         assert not from_used[from_sl].any()
         from_used[from_sl] = True

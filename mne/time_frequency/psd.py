@@ -80,24 +80,17 @@ def _check_nfft(n, n_fft, n_per_seg, n_overlap):
     """Ensure n_fft, n_per_seg and n_overlap make sense."""
     if n_per_seg is None and n_fft > n:
         raise ValueError(
-            (
-                "If n_per_seg is None n_fft is not allowed to be > "
-                "n_times. If you want zero-padding, you have to set "
-                "n_per_seg to relevant length. Got n_fft of %d while"
-                " signal length is %d."
-            )
-            % (n_fft, n)
+            "If n_per_seg is None n_fft is not allowed to be > "
+            "n_times. If you want zero-padding, you have to set "
+            f"n_per_seg to relevant length. Got n_fft of {n_fft} while"
+            f" signal length is {n}."
         )
     n_per_seg = n_fft if n_per_seg is None or n_per_seg > n_fft else n_per_seg
     n_per_seg = n if n_per_seg > n else n_per_seg
     if n_overlap >= n_per_seg:
         raise ValueError(
-            (
-                "n_overlap cannot be greater than n_per_seg (or "
-                "n_fft). Got n_overlap of %d while n_per_seg is "
-                "%d."
-            )
-            % (n_overlap, n_per_seg)
+            "n_overlap cannot be greater than n_per_seg (or n_fft). Got n_overlap "
+            f"of {n_overlap} while n_per_seg is {n_per_seg}."
         )
     return n_fft, n_per_seg, n_overlap
 

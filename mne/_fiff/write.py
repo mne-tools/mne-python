@@ -225,7 +225,7 @@ def get_machid():
     ids : array (length 2, int32)
         The machine identifier used in MNE.
     """
-    mac = b"%012x" % uuid.getnode()  # byte conversion for Py3
+    mac = f"{uuid.getnode():012x}".encode()  # byte conversion for Py3
     mac = re.findall(b"..", mac)  # split string
     mac += [b"00", b"00"]  # add two more fields
 
