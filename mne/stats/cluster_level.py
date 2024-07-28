@@ -1994,7 +1994,7 @@ class ClusterResult:
             Dictionary with condition labels as keys and evoked objects as values.
         """
         # define colorblind friendly colors
-        colorblind_palette = ["#4daf4a", "#f781bf"]
+        colorblind_palette = ["#4daf4a", "#984ea3"]
 
         # extract condition labels from the dictionary
         cond_keys = list(condition_labels.keys())
