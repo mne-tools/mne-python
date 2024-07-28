@@ -1744,18 +1744,24 @@ def summarize_clusters_stc(
 
 
 def _validate_cluster_df(df: pd.DataFrame, dv_name: str, iv_name: str):
+    """Validate the input DataFrame for cluster tests."""
     # check if all necessary columns are present
-    missing = ({dv_name} | {iv_name}) - set(df.columns)
+    missing = ({dv_name} | {iv_name}) - set(df.columns)  # should be empty
     sep = '", "'
-    if missing:
+    if missing:  # if not empty, there are missing columns
         raise ValueError(
             f"DataFrame must contain a column named for each term in `formula`. "
-            f"Column{_pl(missing)} missing for term{_pl(missing)} "
+            f"Column{_pl(missing)} missing for term{_pl(missing)} "  # _pl = pluralize
             f'"{sep.join(missing)}".'
         )
     # check if the data column contains valid (and consistent) instance types
     inst = df[dv_name].iloc[0]
-    valid_types = (Evoked, BaseEpochs, BaseTFR, np.ndarray)
+    valid_types = (
+        Evoked,
+        BaseEpochs,
+        BaseTFR,
+        np.ndarray,
+    )  # Base covers all Epochs and TFRs
     _validate_type(inst, valid_types, f"Data in dependent variable column '{dv_name}'")
     all_types = set(df[dv_name].map(type))
     all_type_names = ", ".join([type(x).__name__ for x in all_types])
@@ -1766,8 +1772,10 @@ def _validate_cluster_df(df: pd.DataFrame, dv_name: str, iv_name: str):
         )
     # check if the shape of the data is consistent
     if isinstance(inst, np.ndarray):
-        all_shapes = set(df[dv_name].map(lambda x: x.shape[1:]))  # first dim may vary
-    elif isinstance(inst, BaseEpochs):
+        all_shapes = set(
+            df[dv_name].map(lambda x: x.shape[1:])
+        )  # first dim may vary (participants or epochs)
+    elif isinstance(inst, (BaseEpochs | BaseTFR)):  # should include BaseTFR?
         all_shapes = set(df[dv_name].map(lambda x: x.get_data().shape[1:]))
     else:
         all_shapes = set(df[dv_name].map(lambda x: x.get_data().shape))
@@ -1776,14 +1784,14 @@ def _validate_cluster_df(df: pd.DataFrame, dv_name: str, iv_name: str):
             f"{prologue} consistent shape, but {len(all_shapes)} different "
             f"shapes were found: {'; '.join(all_shapes)}."
         )
-    return all_types.pop()
+    return all_types.pop()  # return the type of the data column entries
 
 
 @verbose
 def cluster_test(
     df: pd.DataFrame,
     formula: str,
-    *,
+    *,  # end of positional-only parameters
     within_id: str | None = None,
     stat_fun: callable | None = None,
     tail: Literal[-1, 0, 1] = 0,
@@ -1806,9 +1814,10 @@ def cluster_test(
     Parameters
     ----------
     df : pd.DataFrame
-        Dataframe with 3 columns (subject_index, condition, evoked).
+        Dataframe containing the data, dependent and independent variables.
     formula : str
-        Wilkinson notation formula for design matrix.
+        Wilkinson notation formula for design matrix. The names of the dependent
+        and independent variable should match the columns in the dataframe.
     within_id : None | str
         Name of column in ``df`` to use in identifying within-group contrasts.
     stat_fun : None | callable
@@ -1848,8 +1857,10 @@ def cluster_test(
     formulaic = _soft_import("formulaic", purpose="parse formula for clustering")
     parser = formulaic.parser.DefaultFormulaParser(include_intercept=False)
     formula = formulaic.Formula(formula, _parser=parser)
+    # extract the dependent and independent variable names
     dv_name = str(np.array(formula.lhs.root).item())
     iv_name = str(np.array(formula.rhs.root).item())
+
     # validate the input dataframe and return the type of the data column entries
     _dtype = _validate_cluster_df(df, dv_name, iv_name)
 
@@ -1860,10 +1871,9 @@ def cluster_test(
         df.sort_values([iv_name, within_id], inplace=True)
         counts = df[within_id].value_counts()
         if any(counts != 2):
-            raise ValueError("Badness 10000")
+            raise ValueError("for paired tttest, each subject must have 2 observations")
 
-    # extract the data
-
+    # extract the data from the dataframe
     def _extract_data_array(series):
         return np.concatenate(series.values)
 
@@ -1881,15 +1891,16 @@ def cluster_test(
         func = _extract_data_tfr
     else:
         func = _extract_data_mne
+
     # convert to a list-like X for clustering
     X = df.groupby(iv_name).agg({dv_name: func})[dv_name].to_list()
 
     # determine test type
     if len(X) == 1:
-        kind = "within"
+        kind = "within"  # data already subtracted
     elif len(X) > 2:
         kind = "between"
-    elif len(set(x.shape for x in X)) > 1:
+    elif len(set(x.shape for x in X)) > 1:  # check if shapes match
         kind = "between"
     # by now we know there are exactly 2 elements in X, and their shapes match
     elif within_id in df:
@@ -1922,8 +1933,6 @@ def cluster_test(
         buffer_size=buffer_size,  # block size for chunking the data
         seed=seed,
     )
-
-    # print(f"smallest cluster p-value: {min(cluster_p_values)}")
 
     return ClusterResult(stat_obs, clusters, cluster_p_values, H0, stat_fun)
 
