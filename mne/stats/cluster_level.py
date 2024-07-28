@@ -1864,7 +1864,7 @@ def cluster_test(
     # validate the input dataframe and return the type of the data column entries
     _dtype = _validate_cluster_df(df, dv_name, iv_name)
 
-    # for within_subject
+    # for within_subject designs, check if each subject has 2 observations
     _validate_type(within_id, (str, None), "within_id")
     if within_id:
         df = df.copy(deep=False)  # Don't mutate input dataframe row order!
@@ -1877,7 +1877,7 @@ def cluster_test(
     def _extract_data_array(series):
         return np.concatenate(series.values)
 
-    def _extract_data_mne(series):
+    def _extract_data_mne(series):  # 2D data
         return np.array(
             series.map(lambda inst: inst.get_data().swapaxes(-2, -1)).to_list()
         )
@@ -1900,21 +1900,26 @@ def cluster_test(
         kind = "within"  # data already subtracted
     elif len(X) > 2:
         kind = "between"
-    elif len(set(x.shape for x in X)) > 1:  # check if shapes match
+    elif (
+        len(set(x.shape for x in X)) > 1
+    ):  # check if there are unequal observations in each group
         kind = "between"
     # by now we know there are exactly 2 elements in X, and their shapes match
     elif within_id in df:
         kind = "within"
         X = X[0] - X[1]
-    else:
+    else:  # what would be another else cas
         kind = "between"
 
     # define stat function and threshold
     stat_fun, threshold = _check_fun(
         X=X, stat_fun=stat_fun, threshold=threshold, tail=tail, kind=kind
     )
-    if kind == "within":
+
+    # check_fun doesn't work with list input`
+    if kind == "within":  # will this create an issue for already subtracted data?
         X = [X]
+
     # Run the cluster-based permutation test
     stat_obs, clusters, cluster_p_values, H0 = _permutation_cluster_test(
         X,
