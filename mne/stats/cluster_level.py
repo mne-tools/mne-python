@@ -1964,7 +1964,8 @@ class ClusterResult:
         self.cluster_p_values = cluster_p_values
         self.H0 = H0
         self.stat_fun = stat_fun
-        # TODO improve detection of stat name (e.g. unpaired T)?
+
+        # unpaired t-test is f_oneway
         if stat_fun is f_oneway:
             self.stat_name = "F-statistic"
         elif stat_fun is ttest_1samp_no_p:
@@ -1972,7 +1973,7 @@ class ClusterResult:
         else:
             self.stat_name = "test statistic"
 
-    def plot_cluster(self, condition_labels: dict):
+    def plot_cluster_time_sensor(self, condition_labels: dict):
         """
         Plot the cluster with the lowest p-value.
 
@@ -1985,13 +1986,20 @@ class ClusterResult:
         condition_labels : dict
             Dictionary with condition labels as keys and evoked objects as values.
         """
+        # define colorblind friendly colors
+        colorblind_palette = ["#4daf4a", "#f781bf"]
+
         # extract condition labels from the dictionary
         cond_keys = list(condition_labels.keys())
         # extract the evokeds from the dictionary
         cond_values = list(condition_labels.values())
 
         # configure variables for visualization
-        colors = {cond_keys[0]: "crimson", cond_keys[1]: "steelblue"}
+        colors = {
+            cond_keys[0]: colorblind_palette[0],
+            cond_keys[1]: colorblind_palette[1],
+        }
+        line_styles = {cond_keys[0]: "-", cond_keys[1]: "--"}
 
         lowest_p_cluster = np.argmin(self.cluster_p_values)
 
@@ -2044,18 +2052,23 @@ class ClusterResult:
         cbar = plt.colorbar(image, cax=ax_colorbar)
         cbar.set_label(self.stat_name)
         ax_topo.set_xlabel(
-            "average from {:0.3f} to {:0.3f} s".format(*sig_times[[0, -1]])
+            "Spatial cluster extent:\n averaged from {:0.3f} to {:0.3f} s".format(
+                *sig_times[[0, -1]]
+            )
         )
 
         # add new axis for time courses and plot time courses
         ax_signals = divider.append_axes("right", size="300%", pad=1.3)
-        title = f"Signal averaged over {len(ch_inds)} sensor(s)"
+        title = (
+            f"Temporal cluster extent:\nSignal averaged over {len(ch_inds)} sensor(s)"
+        )
         plot_compare_evokeds(
             condition_labels,
             title=title,
             picks=ch_inds,
             axes=ax_signals,
             colors=colors,
+            linestyles=line_styles,
             show=False,
             split_legend=True,
             truncate_yaxis="auto",
