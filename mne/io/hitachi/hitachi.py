@@ -292,7 +292,7 @@ def _get_hitachi_info(fname, S_offset, D_offset, ignore_names):
     last_samp = len(bounds) - 2
 
     if age is not None and meas_date is not None:
-        subject_info["birthday"] = (
+        subject_info["birthday"] = dt.date(
             meas_date.year - age,
             meas_date.month,
             meas_date.day,

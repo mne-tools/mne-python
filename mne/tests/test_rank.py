@@ -298,21 +298,25 @@ def test_explicit_bads_pick():
     # Default picks=None
     raw.info["bads"] = list()
     noise_cov_1 = compute_raw_covariance(raw, picks=None)
+    assert noise_cov_1["bads"] == raw.info["bads"]
     rank = compute_rank(noise_cov_1, info=raw.info)
     assert rank == dict(meg=303, eeg=60)
     assert raw.info["bads"] == []
 
     raw.info["bads"] = ["EEG 002", "EEG 012", "EEG 015", "MEG 0122"]
     noise_cov = compute_raw_covariance(raw, picks=None)
+    assert noise_cov["bads"] == []
+    assert not any(bad in noise_cov["names"] for bad in raw.info["bads"])
     rank = compute_rank(noise_cov, info=raw.info)
-    assert rank == dict(meg=302, eeg=57)
+    want_rank = dict(meg=302, eeg=57)
     assert raw.info["bads"] == ["EEG 002", "EEG 012", "EEG 015", "MEG 0122"]
 
     # Explicit picks
     picks = pick_types(raw.info, meg=True, eeg=True, exclude=[])
     noise_cov_2 = compute_raw_covariance(raw, picks=picks)
+    assert noise_cov_2["bads"] == raw.info["bads"]  # correctly populated
     rank = compute_rank(noise_cov_2, info=raw.info)
-    assert rank == dict(meg=303, eeg=60)
+    assert rank == want_rank
     assert raw.info["bads"] == ["EEG 002", "EEG 012", "EEG 015", "MEG 0122"]
 
     assert_array_equal(noise_cov_1["data"], noise_cov_2["data"])
@@ -325,4 +329,4 @@ def test_explicit_bads_pick():
 
     raw.info["bads"] = ["EEG 002", "EEG 012", "EEG 015", "MEG 0122"]
     rank = compute_rank(raw)
-    assert rank == dict(meg=302, eeg=57)
+    assert rank == want_rank

@@ -12,6 +12,7 @@ from copy import deepcopy
 import numpy as np
 
 from ._logging import verbose, warn
+from ._typing import Self
 from .check import _check_pandas_installed, _check_preload, _validate_type
 from .numerics import _time_mask, object_hash, object_size
 
@@ -75,7 +76,10 @@ class SizeMixin:
 class GetEpochsMixin:
     """Class to add epoch selection and metadata to certain classes."""
 
-    def __getitem__(self, item):
+    def __getitem__(
+        self: Self,
+        item,
+    ) -> Self:
         """Return an Epochs object with a copied subset of epochs.
 
         Parameters

@@ -3707,7 +3707,7 @@ class EpochsArray(BaseEpochs):
         data,
         info,
         events=None,
-        tmin=0,
+        tmin=0.0,
         event_id=None,
         reject=None,
         flat=None,

@@ -1053,14 +1053,7 @@ def plot_evoked(
            Plot GFP for EEG instead of RMS. Label RMS traces correctly as such.
     window_title : str | None
         The title to put at the top of the figure.
-    spatial_colors : bool | 'auto'
-        If True, the lines are color coded by mapping physical sensor
-        coordinates into color values. Spatially similar channels will have
-        similar colors. Bad channels will be dotted. If False, the good
-        channels are plotted black and bad channels red. If ``'auto'``, uses
-        True if channel locations are present, and False if channel locations
-        are missing or if the data contains only a single channel. Defaults to
-        ``'auto'``.
+    %(spatial_colors)s
     zorder : str | callable
         Which channels to put in the front or back. Only matters if
         ``spatial_colors`` is used.
@@ -1500,6 +1493,8 @@ def plot_evoked_white(
     time_unit="s",
     sphere=None,
     axes=None,
+    *,
+    spatial_colors="auto",
     verbose=None,
 ):
     """Plot whitened evoked response.
@@ -1528,6 +1523,9 @@ def plot_evoked_white(
         List of axes to plot into.
 
         .. versionadded:: 0.21.0
+    %(spatial_colors)s
+
+        .. versionadded:: 1.8.0
     %(verbose)s
 
     Returns
@@ -1650,32 +1648,38 @@ def plot_evoked_white(
         raise RuntimeError("Wrong axes inputs")
 
     titles_ = _handle_default("titles")
-    if has_sss:
-        titles_["meg"] = "MEG (combined)"
-
     colors = [plt.cm.Set1(i) for i in np.linspace(0, 0.5, len(noise_cov))]
     ch_colors = _handle_default("color", None)
     iter_gfp = zip(evokeds_white, noise_cov, rank_list, colors)
 
-    # the first is by law the best noise cov, on the left we plot that one.
-    if not has_sss:
-        evokeds_white[0].plot(
-            unit=False,
-            axes=axes_evoked,
-            hline=[-1.96, 1.96],
-            show=False,
-            time_unit=time_unit,
-            spatial_colors=False,
-        )
-    else:
-        for (ch_type, picks), ax in zip(picks_list, axes_evoked):
-            ax.plot(times, evokeds_white[0].data[picks].T, color="k", lw=0.5)
-            for hline in [-1.96, 1.96]:
-                ax.axhline(hline, color="red", linestyle="--", lw=2)
-            ax.set(
-                title="%s (%d channel%s)"
-                % (titles_[ch_type], len(picks), _pl(len(picks)))
-            )
+    # The first is by law the best noise cov, on the left we plot that one.
+    # When we have data in SSS / MEG-combined mode, we have to do some info
+    # hacks to get it to plot all channels in the same axes, namely setting
+    # the channel unit (most important) and coil type (for consistency) of
+    # all MEG channels to be the same.
+    meg_idx = sss_title = None
+    if has_sss:
+        titles_["meg"] = "MEG (combined)"
+        meg_idx = [
+            pi for pi, (ch_type, _) in enumerate(picks_list) if ch_type == "meg"
+        ][0]
+        # Hack the MEG channels to all be the same type so they get plotted together
+        picks = picks_list[meg_idx][1]
+        for key in ("coil_type", "unit"):  # update both
+            use = evokeds_white[0].info["chs"][picks[0]][key]
+            for pick in picks:
+                evokeds_white[0].info["chs"][pick][key] = use
+        sss_title = f"{titles_['meg']} ({len(picks)} channel{_pl(picks)})"
+    evokeds_white[0].plot(
+        unit=False,
+        axes=axes_evoked,
+        hline=[-1.96, 1.96],
+        show=False,
+        time_unit=time_unit,
+        spatial_colors=spatial_colors,
+    )
+    if has_sss:
+        axes_evoked[meg_idx].set(title=sss_title)
 
     # Now plot the GFP for all covs if indicated.
     for evoked_white, noise_cov, rank_, color in iter_gfp:

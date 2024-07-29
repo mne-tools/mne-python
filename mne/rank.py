@@ -340,7 +340,7 @@ def compute_rank(
 
     This function will normalize the rows of the data (typically
     channels or vertices) such that non-zero singular values
-    should be close to one.
+    should be close to one. It operates on :term:`data channels` only.
 
     Parameters
     ----------
@@ -413,7 +413,10 @@ def _compute_rank(
         info = info.copy()
         info["bads"] = []
         inst = pick_channels_cov(
-            inst, set(inst["names"]) & set(info["ch_names"]), exclude=[], ordered=False
+            inst,
+            set(inst["names"]) & set(info["ch_names"]),
+            exclude=info["bads"] + inst["bads"],
+            ordered=False,
         )
         if info["ch_names"] != inst["names"]:
             info = pick_info(

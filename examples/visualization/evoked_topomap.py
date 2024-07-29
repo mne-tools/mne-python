@@ -19,6 +19,7 @@ additional options.
 # Copyright the MNE-Python contributors.
 
 # %%
+
 # sphinx_gallery_thumbnail_number = 5
 
 import matplotlib.pyplot as plt

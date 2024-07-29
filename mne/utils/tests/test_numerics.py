@@ -1,7 +1,7 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 from copy import deepcopy
-from datetime import datetime, timezone
+from datetime import date
 from io import StringIO
 from pathlib import Path
 
@@ -20,13 +20,11 @@ from mne.utils import (
     _apply_scaling_array,
     _apply_scaling_cov,
     _array_equal_nan,
-    _cal_to_julian,
     _custom_lru_cache,
-    _dt_to_julian,
+    _date_to_julian,
     _freq_mask,
     _get_inst_data,
-    _julian_to_cal,
-    _julian_to_dt,
+    _julian_to_date,
     _reg_pinv,
     _ReuseCycle,
     _time_mask,
@@ -493,19 +491,12 @@ def test_julian_conversions():
     # A.D. 2018 Oct 3   12:00:00.0  2458395.000000
 
     jds = [2423219, 2458395, 2445701]
-    dds = [
-        datetime(1922, 6, 13, 12, 0, 0, tzinfo=timezone.utc),
-        datetime(2018, 10, 3, 12, 0, 0, tzinfo=timezone.utc),
-        datetime(1984, 1, 1, 12, 0, 0, tzinfo=timezone.utc),
-    ]
     cals = [(1922, 6, 13), (2018, 10, 3), (1984, 1, 1)]
+    dds = [date(*c) for c in cals]
 
     for dd, cal, jd in zip(dds, cals, jds):
-        assert dd == _julian_to_dt(jd)
-        assert cal == _julian_to_cal(jd)
-
-        assert jd == _dt_to_julian(dd)
-        assert jd == _cal_to_julian(cal[0], cal[1], cal[2])
+        assert dd == _julian_to_date(jd)
+        assert jd == _date_to_julian(dd)
 
 
 def test_grand_average_empty_sequence():

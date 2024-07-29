@@ -13,7 +13,7 @@
 
 import os
 import re
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 
 import numpy as np
 from scipy.interpolate import interp1d
@@ -690,7 +690,7 @@ def _get_info(
             info["subject_info"]["last_name"] = sub_names[2]
     # Birthday in (year, month, day) format.
     if isinstance(edf_info["subject_info"].get("birthday"), datetime):
-        info["subject_info"]["birthday"] = (
+        info["subject_info"]["birthday"] = date(
             edf_info["subject_info"]["birthday"].year,
             edf_info["subject_info"]["birthday"].month,
             edf_info["subject_info"]["birthday"].day,
@@ -704,6 +704,9 @@ def _get_info(
     # Weight in kilograms.
     if edf_info["subject_info"].get("weight") is not None:
         info["subject_info"]["weight"] = float(edf_info["subject_info"]["weight"])
+    # Remove values after conversion to help with in-memory anonymization
+    for key in ("subject_info", "meas_date"):
+        del edf_info[key]
 
     # Filter settings
     if filt_ch_idxs := [x for x in range(len(sel)) if x not in stim_channel_idxs]:
