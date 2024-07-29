@@ -1820,8 +1820,9 @@ def test_prepare_emptyroom_bads(bads):
 @pytest.mark.parametrize("set_annot_when", ("before", "after"))
 @pytest.mark.parametrize("raw_meas_date", ("orig", None))
 @pytest.mark.parametrize("raw_er_meas_date", ("orig", None))
+@pytest.mark.parametrize("equal_sfreq", (False, True))
 def test_prepare_emptyroom_annot_first_samp(
-    set_annot_when, raw_meas_date, raw_er_meas_date
+    set_annot_when, raw_meas_date, raw_er_meas_date, equal_sfreq
 ):
     """Test prepare_emptyroom."""
     raw = read_raw_fif(raw_fname, allow_maxshield="yes", verbose=False)
@@ -1861,12 +1862,15 @@ def test_prepare_emptyroom_annot_first_samp(
         assert set_annot_when == "after"
         meas_date = "from_raw"
         want_date = raw.info["meas_date"]
+    if not equal_sfreq:
+        with raw_er.info._unlock():
+            raw_er.info["sfreq"] -= 100
     raw_er_prepared = maxwell_filter_prepare_emptyroom(
         raw_er=raw_er, raw=raw, meas_date=meas_date, emit_warning=True
     )
     assert raw_er.first_samp == raw_er_first_samp_orig
     assert raw_er_prepared.info["meas_date"] == want_date
-    assert raw_er_prepared.first_samp == raw.first_samp
+    assert raw_er_prepared.first_time == raw.first_time
 
     # Ensure (movement) annotations carry over regardless of whether they're
     # set before or after preparation
@@ -1878,7 +1882,8 @@ def test_prepare_emptyroom_annot_first_samp(
     prop_bad = np.isnan(raw.get_data([0], reject_by_annotation="nan")).mean()
     assert 0.3 < prop_bad < 0.4
     assert len(raw_er_prepared.annotations) == want_annot
-    prop_bad_er = np.isnan(
-        raw_er_prepared.get_data([0], reject_by_annotation="nan")
-    ).mean()
-    assert_allclose(prop_bad, prop_bad_er)
+    if equal_sfreq:
+        prop_bad_er = np.isnan(
+            raw_er_prepared.get_data([0], reject_by_annotation="nan")
+        ).mean()
+        assert_allclose(prop_bad, prop_bad_er)
