@@ -37,6 +37,7 @@ def dipolefit(
     bem=None,
     initial_time=None,
     trans=None,
+    rank=None,
     show_density=True,
     subject=None,
     subjects_dir=None,
@@ -59,6 +60,7 @@ def dipolefit(
     trans : instance of Transform | None
         The transformation from head coordinates to MRI coordinates. If None,
         the identity matrix is used.
+    %(rank)s
     show_density : bool
         Whether to show the density of the fieldmap.
     subject : str | None
@@ -73,6 +75,7 @@ def dipolefit(
         bem=bem,
         initial_time=initial_time,
         trans=trans,
+        rank=rank,
         show_density=show_density,
         subject=subject,
         subjects_dir=subjects_dir,
@@ -99,6 +102,7 @@ class DipoleFitUI:
     trans : instance of Transform | None
         The transformation from head coordinates to MRI coordinates. If None,
         the identity matrix is used.
+    %(rank)s
     show_density : bool
         Whether to show the density of the fieldmap.
     subject : str | None
@@ -116,6 +120,7 @@ class DipoleFitUI:
         bem=None,
         initial_time=None,
         trans=None,
+        rank=None,
         show_density=True,
         subject=None,
         subjects_dir=None,
@@ -174,6 +179,7 @@ class DipoleFitUI:
         self._time_line = None
         self._to_cf_t = to_cf_t
         self._trans = trans
+        self._rank = rank
         self._verbose = verbose
 
         # Configure the GUI
@@ -500,6 +506,7 @@ class DipoleFitUI:
                 fixed=False,
                 loose=1.0,
                 depth=0,
+                rank=self._rank,
             )
             stc = apply_inverse(
                 self._evoked, inv, method="MNE", lambda2=0, pick_ori="vector"
