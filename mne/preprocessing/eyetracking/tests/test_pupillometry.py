@@ -30,7 +30,7 @@ def test_interpolate_blinks(buffer, match, cause_error, interpolate_gaze, crop):
     raw = read_raw_eyelink(fname, create_annotations=["blinks"], find_overlaps=True)
     if crop:
         raw.crop(tmin=2)
-        np.testing.assert_equal(raw.first_time, 2.0)
+        assert raw.first_time == 2.0
     # Create a dummy stim channel
     # this will hit a certain line in the interpolate_blinks function
     info = create_info(["STI"], raw.info["sfreq"], ["stim"])
