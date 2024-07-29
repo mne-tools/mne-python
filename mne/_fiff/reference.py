@@ -24,6 +24,7 @@ from .meas_info import _check_ch_keys
 from .pick import _ELECTRODE_CH_TYPES, pick_channels, pick_channels_forward, pick_types
 from .proj import _has_eeg_average_ref_proj, make_eeg_average_ref_proj, setup_proj
 
+
 def _check_ssp(inst, ref_items):
     """Check for SSPs that may block re-referencing."""
     projs_to_remove = []
@@ -41,10 +42,7 @@ def _check_ssp(inst, ref_items):
         # Inactive SSPs may block re-referencing
         elif (
             not proj["active"]
-            and len(
-                [ch for ch in ref_items if ch in proj["data"]["col_names"]]
-            )
-            > 0
+            and len([ch for ch in ref_items if ch in proj["data"]["col_names"]]) > 0
         ):
             raise RuntimeError(
                 "Inactive signal space projection (SSP) operators are "
@@ -59,6 +57,7 @@ def _check_ssp(inst, ref_items):
 
     # Need to call setup_proj after changing the projs:
     inst._projector, _ = setup_proj(inst.info, add_eeg_ref=False, activate=False)
+
 
 def _check_before_reference(inst, ref_from, ref_to, ch_type):
     """Prepare instance for referencing."""
@@ -76,7 +75,7 @@ def _check_before_reference(inst, ref_from, ref_to, ch_type):
         extra = "channels supplied"
     if len(ref_to) == 0:
         raise ValueError(f"No {extra} to apply the reference to")
-    
+
     _check_ssp(inst, ref_from + ref_to)
 
     # If the reference touches EEG/ECoG/sEEG/DBS electrodes, note in the
@@ -128,7 +127,7 @@ def _check_before_dict_reference(inst, ref_dict):
                 f"({', '.join(bad_elem)}) "
                 "that are marked as bad channels."
             )
-    
+
     _check_ssp(inst, keys.union(values))
 
     # Check for self-referencing
