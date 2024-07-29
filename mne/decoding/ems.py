@@ -42,9 +42,9 @@ class EMS(TransformerMixin, EstimatorMixin):
 
     def __repr__(self):  # noqa: D105
         if hasattr(self, "filters_"):
-            return "<EMS: fitted with %i filters on %i classes.>" % (
-                len(self.filters_),
-                len(self.classes_),
+            return (
+                f"<EMS: fitted with {len(self.filters_)} filters "
+                f"on {len(self.classes_)} classes.>"
             )
         else:
             return "<EMS: not fitted.>"
@@ -168,7 +168,7 @@ def compute_ems(
     if len(conditions) != 2:
         raise ValueError(
             "Currently this function expects exactly 2 "
-            "conditions but you gave me %i" % len(conditions)
+            f"conditions but you gave me {len(conditions)}"
         )
 
     ev = epochs.events[:, 2]

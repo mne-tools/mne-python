@@ -492,19 +492,19 @@ for i, f in enumerate(freq_plot):
         SNR_tmp,
         width / len(freq_plot),
         yerr=np.std(SNR_tmp),
-        label="%i Hz SNR" % f,
+        label=f"{f} Hz SNR",
         color=color_plot[i],
     )
     # store results for statistical comparison
-    res["stim_12hz_snrs_%ihz" % f] = stim_12hz_tmp
-    res["stim_15hz_snrs_%ihz" % f] = stim_15hz_tmp
+    res[f"stim_12hz_snrs_{f}hz"] = stim_12hz_tmp
+    res[f"stim_15hz_snrs_{f}hz"] = stim_15hz_tmp
 
 # Add some text for labels, title and custom x-axis tick labels, etc.
 ax.set_ylabel("SNR")
 ax.set_title("Average SNR at target frequencies")
 ax.set_xticks(x)
 ax.set_xticklabels(labels)
-ax.legend(["%i Hz" % f for f in freq_plot], title="SNR at:")
+ax.legend([f"{f} Hz" for f in freq_plot], title="SNR at:")
 ax.set_ylim([0, 70])
 ax.axhline(1, ls="--", c="r")
 fig.show()
@@ -729,7 +729,7 @@ colors = plt.colormaps["Greys"](np.linspace(0, 1, 10))
 for i in range(10):
     ax.plot(window_starts, np.array(window_snrs)[:, i], color=colors[i])
 ax.set(
-    title="Time resolved 12 Hz SNR - %is sliding window" % window_length,
+    title=f"Time resolved 12 Hz SNR - {window_length}s sliding window",
     ylabel="Average SNR",
     xlabel="t0 of analysis window [s]",
 )
