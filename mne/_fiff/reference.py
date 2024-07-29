@@ -24,6 +24,41 @@ from .meas_info import _check_ch_keys
 from .pick import _ELECTRODE_CH_TYPES, pick_channels, pick_channels_forward, pick_types
 from .proj import _has_eeg_average_ref_proj, make_eeg_average_ref_proj, setup_proj
 
+def _check_ssp(inst, ref_items):
+    """Check for SSPs that may block re-referencing."""
+    projs_to_remove = []
+    for i, proj in enumerate(inst.info["projs"]):
+        # Remove any average reference projections
+        if (
+            proj["desc"] == "Average EEG reference"
+            or proj["kind"] == FIFF.FIFFV_PROJ_ITEM_EEG_AVREF
+        ):
+            logger.info("Removing existing average EEG reference projection.")
+            # Don't remove the projection right away, but do this at the end of
+            # this loop.
+            projs_to_remove.append(i)
+
+        # Inactive SSPs may block re-referencing
+        elif (
+            not proj["active"]
+            and len(
+                [ch for ch in ref_items if ch in proj["data"]["col_names"]]
+            )
+            > 0
+        ):
+            raise RuntimeError(
+                "Inactive signal space projection (SSP) operators are "
+                "present that operate on sensors involved in the desired "
+                "referencing scheme. These projectors need to be applied "
+                "using the apply_proj() method function before the desired "
+                "reference can be set."
+            )
+
+    for i in projs_to_remove:
+        del inst.info["projs"][i]
+
+    # Need to call setup_proj after changing the projs:
+    inst._projector, _ = setup_proj(inst.info, add_eeg_ref=False, activate=False)
 
 def _check_before_reference(inst, ref_from, ref_to, ch_type):
     """Prepare instance for referencing."""
@@ -41,41 +76,8 @@ def _check_before_reference(inst, ref_from, ref_to, ch_type):
         extra = "channels supplied"
     if len(ref_to) == 0:
         raise ValueError(f"No {extra} to apply the reference to")
-
-    # After referencing, existing SSPs might not be valid anymore.
-    projs_to_remove = []
-    for i, proj in enumerate(inst.info["projs"]):
-        # Remove any average reference projections
-        if (
-            proj["desc"] == "Average EEG reference"
-            or proj["kind"] == FIFF.FIFFV_PROJ_ITEM_EEG_AVREF
-        ):
-            logger.info("Removing existing average EEG reference projection.")
-            # Don't remove the projection right away, but do this at the end of
-            # this loop.
-            projs_to_remove.append(i)
-
-        # Inactive SSPs may block re-referencing
-        elif (
-            not proj["active"]
-            and len(
-                [ch for ch in (ref_from + ref_to) if ch in proj["data"]["col_names"]]
-            )
-            > 0
-        ):
-            raise RuntimeError(
-                "Inactive signal space projection (SSP) operators are "
-                "present that operate on sensors involved in the desired "
-                "referencing scheme. These projectors need to be applied "
-                "using the apply_proj() method function before the desired "
-                "reference can be set."
-            )
-
-    for i in projs_to_remove:
-        del inst.info["projs"][i]
-
-    # Need to call setup_proj after changing the projs:
-    inst._projector, _ = setup_proj(inst.info, add_eeg_ref=False, activate=False)
+    
+    _check_ssp(inst, ref_from + ref_to)
 
     # If the reference touches EEG/ECoG/sEEG/DBS electrodes, note in the
     # info that a non-CAR has been applied.
@@ -126,6 +128,8 @@ def _check_before_dict_reference(inst, ref_dict):
                 f"({', '.join(bad_elem)}) "
                 "that are marked as bad channels."
             )
+    
+    _check_ssp(inst, keys.union(values))
 
     # Check for self-referencing
     self_ref = [[k] == v for k, v in _refdict.items()]
