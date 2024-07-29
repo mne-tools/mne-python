@@ -67,7 +67,7 @@ def _str_names(ch_names):
 def _safe_np_loadtxt(fname, **kwargs):
     out = np.genfromtxt(fname, **kwargs)
     ch_names = _str_names(out["f0"])
-    others = tuple(out["f%d" % ii] for ii in range(1, len(out.dtype.fields)))
+    others = tuple(out[f"f{ii}"] for ii in range(1, len(out.dtype.fields)))
     return (ch_names,) + others
 
 

@@ -1617,7 +1617,7 @@ def _get_partitions_from_adjacency(adjacency, n_times, verbose=None):
 
     part_clusts = _find_clusters(test, 0, 1, test_adj)[0]
     if len(part_clusts) > 1:
-        logger.info("%i disjoint adjacency sets found" % len(part_clusts))
+        logger.info(f"{len(part_clusts)} disjoint adjacency sets found")
         partitions = np.zeros(len(test), dtype="int")
         for ii, pc in enumerate(part_clusts):
             partitions[pc] = ii

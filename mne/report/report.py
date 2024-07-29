@@ -1565,6 +1565,7 @@ class Report:
         event_id=None,
         sfreq,
         first_samp=0,
+        color=None,
         tags=("events",),
         replace=False,
     ):
@@ -1583,6 +1584,11 @@ class Report:
         first_samp : int
             The first sample point in the recording. This corresponds to
             ``raw.first_samp`` on files created with Elekta/Neuromag systems.
+        color : dict | None
+            Dictionary of event_id integers as keys and colors as values. This
+            parameter is directly passed to :func:`mne.viz.plot_events`.
+
+            .. versionadded:: 1.8.0
         %(tags_report)s
         %(replace_report)s
 
@@ -1596,6 +1602,7 @@ class Report:
             event_id=event_id,
             sfreq=sfreq,
             first_samp=first_samp,
+            color=color,
             title=title,
             section=None,
             image_format=self.image_format,
@@ -3740,6 +3747,7 @@ class Report:
         *,
         events,
         event_id,
+        color,
         sfreq,
         first_samp,
         title,
@@ -3757,6 +3765,7 @@ class Report:
             event_id=event_id,
             sfreq=sfreq,
             first_samp=first_samp,
+            color=color,
             show=False,
         )
         _constrain_fig_resolution(fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES)

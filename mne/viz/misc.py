@@ -997,7 +997,7 @@ def _filter_ticks(lims, fscale):
         ticks += (base * (10**exp)).tolist()
     ticks = np.array(ticks)
     ticks = ticks[(ticks >= lims[0]) & (ticks <= lims[1])]
-    ticklabels = [("%g" if t < 1 else "%d") % t for t in ticks]
+    ticklabels = [(f"{t:g}" if t < 1 else f"{t}") for t in ticks]
     return ticks, ticklabels
 
 

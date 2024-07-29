@@ -1204,7 +1204,7 @@ class AcqParserFIF:
         if self.categories:
             s += "\nAveraging categories:"
             for cat in self.categories:
-                s += '\n%d: "%s"' % (cat["index"], cat["comment"])
+                s += f'\n{cat["index"]}: "{cat["comment"]}"'
         s += ">"
         return s
 

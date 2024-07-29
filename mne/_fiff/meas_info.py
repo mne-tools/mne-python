@@ -551,6 +551,9 @@ class SetChannelsMixin(MontageMixin):
             fnirs_od, gof, gsr, hbo, hbr, ias, misc, pupil, ref_meg, resp,
             seeg, stim, syst, temperature.
 
+        When working with eye-tracking data, see
+        :func:`mne.preprocessing.eyetracking.set_channel_types_eyetrack`.
+
         .. versionadded:: 0.9.0
         """
         info = self if isinstance(self, Info) else self.info
@@ -1704,7 +1707,7 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
                 else:
                     entr = v.strftime("%Y-%m-%d %H:%M:%S %Z")
             elif k == "kit_system_id" and v is not None:
-                entr = "%i (%s)" % (v, KIT_SYSNAMES.get(v, "unknown"))
+                entr = f"{v} ({KIT_SYSNAMES.get(v, 'unknown')})"
             elif k == "dig" and v is not None:
                 counts = Counter(d["kind"] for d in v)
                 counts = [
