@@ -212,7 +212,7 @@ def test_warnings():
     ica.fit(epochs)
 
     epochs.baseline = (epochs.tmin, 0)
-    with pytest.warns(RuntimeWarning, match="consider baseline-correcting.*" "again"):
+    with pytest.warns(RuntimeWarning, match="consider baseline-correcting.*again"):
         ica.apply(epochs)
 
 
@@ -1481,7 +1481,7 @@ def test_ica_labels():
 
     # derive reference ICA components and append them to raw
     ica_rf = ICA(n_components=2, max_iter=2, allow_ref_meg=True)
-    with _record_warnings(), pytest.warns(UserWarning, match="did not converge"):
+    with _record_warnings():  # high pass and/or no convergence
         ica_rf.fit(raw.copy().pick("ref_meg"))
     icacomps = ica_rf.get_sources(raw)
     # rename components so they are auto-detected by find_bads_ref

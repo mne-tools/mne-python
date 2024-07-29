@@ -26,8 +26,6 @@ from mne.viz import (
     plot_sparse_source_estimates,
 )
 
-print(__doc__)
-
 data_path = sample.data_path()
 subjects_dir = data_path / "subjects"
 meg_path = data_path / "MEG" / "sample"

@@ -292,7 +292,7 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format, he
         fid.seek(205)
         session_label = read_str(fid, 20)
 
-        session_date = "%s %s" % (read_str(fid, 10), read_str(fid, 12))
+        session_date = f"{read_str(fid, 10)} {read_str(fid, 12)}"
         meas_date = _session_date_2_meas_date(session_date, date_format)
 
         fid.seek(370)

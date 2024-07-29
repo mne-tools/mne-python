@@ -18,4 +18,4 @@ jobs:
           python-version: '3.12'
       - run: pip install --upgrade towncrier pygithub
       - run: python ./.github/actions/rename_towncrier/rename_towncrier.py
-      - uses: autofix-ci/action@ea32e3a12414e6d3183163c3424a7d7a8631ad84
+      - uses: autofix-ci/action@dd55f44df8f7cdb7a6bf74c78677eb8acd40cd0a

@@ -59,7 +59,7 @@ from .fixes import (
     empirical_covariance,
     log_likelihood,
 )
-from .rank import compute_rank
+from .rank import _compute_rank
 from .utils import (
     _array_repr,
     _check_fname,
@@ -453,7 +453,7 @@ class Covariance(dict):
         )
 
     @verbose
-    def pick_channels(self, ch_names, ordered=None, *, verbose=None):
+    def pick_channels(self, ch_names, ordered=True, *, verbose=None):
         """Pick channels from this covariance matrix.
 
         Parameters
@@ -708,7 +708,7 @@ def compute_raw_covariance(
 
     # don't exclude any bad channels, inverses expect all channels present
     if picks is None:
-        # Need to include all channels e.g. if eog rejection is to be used
+        # Need to include all good channels e.g. if eog rejection is to be used
         picks = np.arange(raw.info["nchan"])
         pick_mask = np.isin(picks, _pick_data_channels(raw.info, with_ref_meg=False))
     else:
@@ -1226,6 +1226,21 @@ def _eigvec_subspace(eig, eigvec, mask):
     return eig, eigvec
 
 
+@verbose
+def _compute_rank_raw_array(
+    data, info, rank, scalings, *, log_ch_type=None, verbose=None
+):
+    from .io import RawArray
+
+    return _compute_rank(
+        RawArray(data, info, copy=None, verbose=_verbose_safe_false()),
+        rank,
+        scalings,
+        info,
+        log_ch_type=log_ch_type,
+    )
+
+
 def _compute_covariance_auto(
     data,
     method,
@@ -1237,22 +1252,31 @@ def _compute_covariance_auto(
     stop_early,
     picks_list,
     rank,
+    *,
+    cov_kind="",
+    log_ch_type=None,
+    log_rank=True,
 ):
     """Compute covariance auto mode."""
-    from .io import RawArray
-
     # rescale to improve numerical stability
     orig_rank = rank
-    rank = compute_rank(
-        RawArray(data.T, info, copy=None, verbose=_verbose_safe_false()),
-        rank,
-        scalings,
+    rank = _compute_rank_raw_array(
+        data.T,
         info,
+        rank=rank,
+        scalings=scalings,
+        verbose=_verbose_safe_false(),
     )
     with _scaled_array(data.T, picks_list, scalings):
         C = np.dot(data.T, data)
         _, eigvec, mask = _smart_eigh(
-            C, info, rank, proj_subspace=True, do_compute_rank=False
+            C,
+            info,
+            rank,
+            proj_subspace=True,
+            do_compute_rank=False,
+            log_ch_type=log_ch_type,
+            verbose=None if log_rank else _verbose_safe_false(),
         )
         eigvec = eigvec[mask]
         data = np.dot(data, eigvec.T)
@@ -1261,21 +1285,24 @@ def _compute_covariance_auto(
             (key, np.searchsorted(used, picks)) for key, picks in picks_list
         ]
         sub_info = pick_info(info, used) if len(used) != len(mask) else info
-        logger.info(f"Reducing data rank from {len(mask)} -> {eigvec.shape[0]}")
+        if log_rank:
+            logger.info(f"Reducing data rank from {len(mask)} -> {eigvec.shape[0]}")
         estimator_cov_info = list()
-        msg = "Estimating covariance using {}"
 
         ok_sklearn = check_version("sklearn")
         if not ok_sklearn and (len(method) != 1 or method[0] != "empirical"):
             raise ValueError(
-                "scikit-learn is not installed, `method` must be `empirical`, got "
-                f"{method}"
+                'scikit-learn is not installed, `method` must be "empirical", got '
+                f"{repr(method)}"
             )
 
         for method_ in method:
             data_ = data.copy()
             name = method_.__name__ if callable(method_) else method_
-            logger.info(msg.format(name.upper()))
+            logger.info(
+                f'Estimating {cov_kind + (" " if cov_kind else "")}'
+                f"covariance using {name.upper()}"
+            )
             mp = method_params[method_]
             _info = {}
 
@@ -1691,9 +1718,8 @@ def _get_ch_whitener(A, pca, ch_type, rank):
     mask[:-rank] = False
 
     logger.info(
-        "    Setting small {} eigenvalues to zero ({})".format(
-            ch_type, "using PCA" if pca else "without PCA"
-        )
+        f"    Setting small {ch_type} eigenvalues to zero "
+        f'({"using" if pca else "without"} PCA)'
     )
     if pca:  # No PCA case.
         # This line will reduce the actual number of variables in data
@@ -1751,9 +1777,7 @@ def prepare_noise_cov(
         else:
             missing.append(c)
     if len(missing):
-        raise RuntimeError(
-            "Not all channels present in noise covariance:\n%s" % missing
-        )
+        raise RuntimeError(f"Not all channels present in noise covariance:\n{missing}")
     C = noise_cov._get_square()[np.ix_(noise_cov_idx, noise_cov_idx)]
     info = pick_info(info, pick_channels(info["ch_names"], ch_names, ordered=False))
     projs = info["projs"] + noise_cov["projs"]
@@ -1791,6 +1815,8 @@ def _smart_eigh(
     proj_subspace=False,
     do_compute_rank=True,
     on_rank_mismatch="ignore",
+    *,
+    log_ch_type=None,
     verbose=None,
 ):
     """Compute eigh of C taking into account rank and ch_type scalings."""
@@ -1813,8 +1839,13 @@ def _smart_eigh(
 
     noise_cov = Covariance(C, ch_names, [], projs, 0)
     if do_compute_rank:  # if necessary
-        rank = compute_rank(
-            noise_cov, rank, scalings, info, on_rank_mismatch=on_rank_mismatch
+        rank = _compute_rank(
+            noise_cov,
+            rank,
+            scalings,
+            info,
+            on_rank_mismatch=on_rank_mismatch,
+            log_ch_type=log_ch_type,
         )
     assert C.ndim == 2 and C.shape[0] == C.shape[1]
 
@@ -1838,11 +1869,24 @@ def _smart_eigh(
         else:
             this_rank = rank[ch_type]
 
-        e, ev, m = _get_ch_whitener(this_C, False, ch_type.upper(), this_rank)
+        if log_ch_type is not None:
+            ch_type_ = log_ch_type
+        else:
+            ch_type_ = ch_type.upper()
+        e, ev, m = _get_ch_whitener(this_C, False, ch_type_, this_rank)
         if proj_subspace:
             # Choose the subspace the same way we do for projections
             e, ev = _eigvec_subspace(e, ev, m)
         eig[picks], eigvec[np.ix_(picks, picks)], mask[picks] = e, ev, m
+        largest, smallest = e[-1], e[m][0]
+        if largest > 1e10 * smallest:
+            warn(
+                f"The largest eigenvalue of the {len(picks)}-channel {ch_type} "
+                f"covariance (rank={this_rank}) is over 10 orders of magnitude "
+                f"larger than the smallest ({largest:0.3g} > 1e10 * {smallest:0.3g}), "
+                "the resulting whitener will likely be unstable"
+            )
+
         # XXX : also handle ref for sEEG and ECoG
         if (
             ch_type == "eeg"
@@ -1995,7 +2039,7 @@ def regularize(
     else:
         regs.update(mag=mag, grad=grad)
     if rank != "full":
-        rank = compute_rank(cov, rank, scalings, info)
+        rank = _compute_rank(cov, rank, scalings, info)
 
     info_ch_names = info["ch_names"]
     ch_names_by_type = dict()
@@ -2017,7 +2061,7 @@ def regularize(
                 idx_cov[ch_type].append(i)
                 break
         else:
-            raise Exception("channel %s is unknown type" % ch)
+            raise Exception(f"channel {ch} is unknown type")
 
     C = cov_good["data"]
 
@@ -2071,7 +2115,17 @@ def regularize(
     return cov
 
 
-def _regularized_covariance(data, reg=None, method_params=None, info=None, rank=None):
+def _regularized_covariance(
+    data,
+    reg=None,
+    method_params=None,
+    info=None,
+    rank=None,
+    *,
+    log_ch_type=None,
+    log_rank=None,
+    cov_kind="",
+):
     """Compute a regularized covariance from data using sklearn.
 
     This is a convenience wrapper for mne.decoding functions, which
@@ -2114,6 +2168,9 @@ def _regularized_covariance(data, reg=None, method_params=None, info=None, rank=
         picks_list=picks_list,
         scalings=scalings,
         rank=rank,
+        cov_kind=cov_kind,
+        log_ch_type=log_ch_type,
+        log_rank=log_rank,
     )[reg]["data"]
     return cov
 

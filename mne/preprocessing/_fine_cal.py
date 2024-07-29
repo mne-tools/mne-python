@@ -154,13 +154,13 @@ def compute_fine_calibration(
         cal_list = list()
         z_list = list()
         logger.info(
-            "Adjusting normals for %s magnetometers "
-            "(averaging over %s time intervals)" % (len(mag_picks), len(time_idxs) - 1)
+            f"Adjusting normals for {len(mag_picks)} magnetometers "
+            f"(averaging over {len(time_idxs) - 1} time intervals)"
         )
         for start, stop in zip(time_idxs[:-1], time_idxs[1:]):
             logger.info(
-                "    Processing interval %0.3f - %0.3f s"
-                % (start / info["sfreq"], stop / info["sfreq"])
+                f"    Processing interval {start / info['sfreq']:0.3f} - "
+                f"{stop / info['sfreq']:0.3f} s"
             )
             data = raw[picks, start:stop][0]
             if ctc is not None:
@@ -190,14 +190,12 @@ def compute_fine_calibration(
     #
     if len(grad_picks) > 0:
         extra = "X direction" if n_imbalance == 1 else ("XYZ directions")
-        logger.info(
-            "Computing imbalance for %s gradimeters (%s)" % (len(grad_picks), extra)
-        )
+        logger.info(f"Computing imbalance for {len(grad_picks)} gradimeters ({extra})")
         imb_list = list()
         for start, stop in zip(time_idxs[:-1], time_idxs[1:]):
             logger.info(
-                "    Processing interval %0.3f - %0.3f s"
-                % (start / info["sfreq"], stop / info["sfreq"])
+                f"    Processing interval {start / info['sfreq']:0.3f} - "
+                f"{stop / info['sfreq']:0.3f} s"
             )
             data = raw[picks, start:stop][0]
             if ctc is not None:
@@ -521,7 +519,7 @@ def read_fine_calibration(fname):
                 raise RuntimeError(
                     "Error parsing fine calibration file, "
                     "should have 14 or 16 entries per line "
-                    "but found %s on line:\n%s" % (len(vals), line)
+                    f"but found {len(vals)} on line:\n{line}"
                 )
             # `vals` contains channel number
             ch_name = vals[0]
@@ -531,7 +529,7 @@ def read_fine_calibration(fname):
                 except ValueError:  # something other than e.g. 113 or 2642
                     pass
                 else:
-                    ch_name = "MEG" + "%04d" % ch_name
+                    ch_name = f"MEG{int(ch_name):04}"
             # (x, y, z), x-norm 3-vec, y-norm 3-vec, z-norm 3-vec
             # and 1 or 3 imbalance terms
             ch_names.append(ch_name)

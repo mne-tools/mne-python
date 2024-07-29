@@ -173,11 +173,7 @@ def _assert_n_free(raw_sss, lower, upper=None):
     """Check the DOF."""
     upper = lower if upper is None else upper
     n_free = raw_sss.info["proc_history"][0]["max_info"]["sss_info"]["nfree"]
-    assert lower <= n_free <= upper, "nfree fail: %s <= %s <= %s" % (
-        lower,
-        n_free,
-        upper,
-    )
+    assert lower <= n_free <= upper, f"nfree fail: {lower} <= {n_free} <= {upper}"
 
 
 def _assert_mag_coil_type(info, coil_type):
@@ -459,7 +455,7 @@ def test_multipolar_bases():
     sss_data = loadmat(bases_fname)
     exp = dict(int_order=int_order, ext_order=ext_order)
     for origin in ((0, 0, 0.04), (0, 0.02, 0.02)):
-        o_str = "".join("%d" % (1000 * n) for n in origin)
+        o_str = "".join(f"{int(1000 * n)}" for n in origin)
         exp.update(origin=origin)
         S_tot = _sss_basis_basic(exp, coils, method="alternative")
         # Test our real<->complex conversion functions
@@ -673,7 +669,7 @@ def test_spatiotemporal():
     kwargs = dict(origin=mf_head_origin, regularize=None, bad_condition="ignore")
     for st_duration, tol in zip(st_durations, tols):
         # Load tSSS data depending on st_duration and get data
-        tSSS_fname = sss_path / ("test_move_anon_st%0ds_raw_sss.fif" % st_duration)
+        tSSS_fname = sss_path / f"test_move_anon_st{int(st_duration)}s_raw_sss.fif"
         tsss_bench = read_crop(tSSS_fname)
         # Because Elekta's tSSS sometimes(!) lumps the tail window of data
         # onto the previous buffer if it's shorter than st_duration, we have to
@@ -885,15 +881,15 @@ def test_cross_talk(tmp_path):
         maxwell_filter(raw, cross_talk=raw_fname)
     mf_ctc = sss_ctc.info["proc_history"][0]["max_info"]["sss_ctc"]
     del mf_ctc["block_id"]  # we don't write this
-    assert isinstance(py_ctc["decoupler"], sparse.csc_matrix)
-    assert isinstance(mf_ctc["decoupler"], sparse.csc_matrix)
+    assert isinstance(py_ctc["decoupler"], sparse.csc_array)
+    assert isinstance(mf_ctc["decoupler"], sparse.csc_array)
     assert_array_equal(py_ctc["decoupler"].toarray(), mf_ctc["decoupler"].toarray())
     # I/O roundtrip
     fname = tmp_path / "test_sss_raw.fif"
     sss_ctc.save(fname)
     sss_ctc_read = read_raw_fif(fname)
     mf_ctc_read = sss_ctc_read.info["proc_history"][0]["max_info"]["sss_ctc"]
-    assert isinstance(mf_ctc_read["decoupler"], sparse.csc_matrix)
+    assert isinstance(mf_ctc_read["decoupler"], sparse.csc_array)
     assert_array_equal(
         mf_ctc_read["decoupler"].toarray(), mf_ctc["decoupler"].toarray()
     )
@@ -985,9 +981,9 @@ def _assert_shielding(raw_sss, erm_power, min_factor, max_factor=np.inf, meg="ma
     sss_power = raw_sss[picks][0].ravel()
     sss_power = np.sqrt(np.sum(sss_power * sss_power))
     factor = erm_power / sss_power
-    assert min_factor <= factor < max_factor, (
-        "Shielding factor not %0.3f <= %0.3f < %0.3f" % (min_factor, factor, max_factor)
-    )
+    assert (
+        min_factor <= factor < max_factor
+    ), f"Shielding factor not {min_factor:0.3f} <= {factor:0.3f} < {max_factor:0.3f}"
 
 
 @buggy_mkl_svd

@@ -25,6 +25,7 @@ Let's start by loading data for a simple two-class problem:
 """
 
 # %%
+
 # sphinx_gallery_thumbnail_number = 6
 
 import matplotlib.pyplot as plt

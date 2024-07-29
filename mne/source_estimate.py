@@ -23,7 +23,7 @@ from .baseline import rescale
 from .cov import Covariance
 from .evoked import _get_peak
 from .filter import FilterMixin, _check_fun, resample
-from .fixes import _safe_svd
+from .fixes import _eye_array, _safe_svd
 from .parallel import parallel_func
 from .source_space._source_space import (
     SourceSpaces,
@@ -296,8 +296,8 @@ def read_source_estimate(fname, subject=None):
                 fname = fname[:-7]
             else:
                 err = (
-                    "Invalid .stc filename: %r; needs to end with "
-                    "hemisphere tag ('...-lh.stc' or '...-rh.stc')" % fname
+                    f"Invalid .stc filename: {fname!r}; needs to end with "
+                    "hemisphere tag ('...-lh.stc' or '...-rh.stc')"
                 )
                 raise OSError(err)
         elif fname.endswith(".w"):
@@ -306,15 +306,15 @@ def read_source_estimate(fname, subject=None):
                 fname = fname[:-5]
             else:
                 err = (
-                    "Invalid .w filename: %r; needs to end with "
-                    "hemisphere tag ('...-lh.w' or '...-rh.w')" % fname
+                    f"Invalid .w filename: {fname!r}; needs to end with "
+                    "hemisphere tag ('...-lh.w' or '...-rh.w')"
                 )
                 raise OSError(err)
         elif fname.endswith(".h5"):
             ftype = "h5"
             fname = fname[:-3]
         else:
-            raise RuntimeError("Unknown extension for file %s" % fname_arg)
+            raise RuntimeError(f"Unknown extension for file {fname_arg}")
 
     if ftype != "volume":
         stc_exist = [op.exists(f) for f in [fname + "-rh.stc", fname + "-lh.stc"]]
@@ -329,9 +329,9 @@ def read_source_estimate(fname, subject=None):
             ftype = "h5"
             fname += "-stc"
         elif any(stc_exist) or any(w_exist):
-            raise OSError("Hemisphere missing for %r" % fname_arg)
+            raise OSError(f"Hemisphere missing for {fname_arg!r}")
         else:
-            raise OSError("SourceEstimate File(s) not found for: %r" % fname_arg)
+            raise OSError(f"SourceEstimate File(s) not found for: {fname_arg!r}")
 
     # read the files
     if ftype == "volume":  # volume source space
@@ -384,8 +384,8 @@ def read_source_estimate(fname, subject=None):
         kwargs["subject"] = subject
     if subject is not None and subject != kwargs["subject"]:
         raise RuntimeError(
-            'provided subject name "%s" does not match '
-            'subject name from the file "%s' % (subject, kwargs["subject"])
+            f'provided subject name "{subject}" does not match '
+            f'subject name from the file "{kwargs["subject"]}'
         )
 
     if ftype in ("volume", "discrete"):
@@ -453,7 +453,7 @@ def _make_stc(
         Klass = MixedVectorSourceEstimate if vector else MixedSourceEstimate
     else:
         raise ValueError(
-            "vertices has to be either a list with one or more " "arrays or an array"
+            "vertices has to be either a list with one or more arrays or an array"
         )
 
     # Rotate back for vector source estimates
@@ -479,8 +479,8 @@ def _make_stc(
 def _verify_source_estimate_compat(a, b):
     """Make sure two SourceEstimates are compatible for arith. operations."""
     compat = False
-    if type(a) != type(b):
-        raise ValueError("Cannot combine %s and %s." % (type(a), type(b)))
+    if type(a) is not type(b):
+        raise ValueError(f"Cannot combine {type(a)} and {type(b)}.")
     if len(a.vertices) == len(b.vertices):
         if all(np.array_equal(av, vv) for av, vv in zip(a.vertices, b.vertices)):
             compat = True
@@ -492,7 +492,7 @@ def _verify_source_estimate_compat(a, b):
     if a.subject != b.subject:
         raise ValueError(
             "source estimates do not have the same subject "
-            "names, %r and %r" % (a.subject, b.subject)
+            f"names, {repr(a.subject)} and {repr(b.subject)}"
         )
 
 
@@ -512,13 +512,12 @@ class _BaseSourceEstimate(TimeMixin, FilterMixin):
             data = None
             if kernel.shape[1] != sens_data.shape[0]:
                 raise ValueError(
-                    "kernel (%s) and sens_data (%s) have invalid "
-                    "dimensions" % (kernel.shape, sens_data.shape)
+                    f"kernel ({kernel.shape}) and sens_data ({sens_data.shape}) "
+                    "have invalid dimensions"
                 )
             if sens_data.ndim != 2:
                 raise ValueError(
-                    "The sensor data must have 2 dimensions, got "
-                    "%s" % (sens_data.ndim,)
+                    "The sensor data must have 2 dimensions, got {sens_data.ndim}"
                 )
 
         _validate_type(vertices, list, "vertices")
@@ -538,8 +537,8 @@ class _BaseSourceEstimate(TimeMixin, FilterMixin):
         if data is not None:
             if data.ndim not in (self._data_ndim, self._data_ndim - 1):
                 raise ValueError(
-                    "Data (shape %s) must have %s dimensions for "
-                    "%s" % (data.shape, self._data_ndim, self.__class__.__name__)
+                    f"Data (shape {data.shape}) must have {self._data_ndim} "
+                    f"dimensions for {self.__class__.__name__}"
                 )
             if data.shape[0] != n_src:
                 raise ValueError(
@@ -550,7 +549,7 @@ class _BaseSourceEstimate(TimeMixin, FilterMixin):
                 if data.shape[1] != 3:
                     raise ValueError(
                         "Data for VectorSourceEstimate must have "
-                        "shape[1] == 3, got shape %s" % (data.shape,)
+                        f"shape[1] == 3, got shape {data.shape}"
                     )
             if data.ndim == self._data_ndim - 1:  # allow upbroadcasting
                 data = data[..., np.newaxis]
@@ -569,14 +568,14 @@ class _BaseSourceEstimate(TimeMixin, FilterMixin):
     def __repr__(self):  # noqa: D105
         s = "%d vertices" % (sum(len(v) for v in self.vertices),)
         if self.subject is not None:
-            s += ", subject : %s" % self.subject
+            s += f", subject : {self.subject}"
         s += ", tmin : %s (ms)" % (1e3 * self.tmin)
         s += ", tmax : %s (ms)" % (1e3 * self.times[-1])
         s += ", tstep : %s (ms)" % (1e3 * self.tstep)
-        s += ", data shape : %s" % (self.shape,)
+        s += f", data shape : {self.shape}"
         sz = sum(object_size(x) for x in (self.vertices + [self.data]))
         s += f", ~{sizeof_fmt(sz)}"
-        return "<%s | %s>" % (type(self).__name__, s)
+        return f"<{type(self).__name__} | {s}>"
 
     @fill_doc
     def get_peak(
@@ -737,8 +736,7 @@ class _BaseSourceEstimate(TimeMixin, FilterMixin):
         fname = _check_fname(fname=fname, overwrite=True)  # check below
         if ftype != "h5":
             raise ValueError(
-                "%s objects can only be written as HDF5 files."
-                % (self.__class__.__name__,)
+                f"{self.__class__.__name__} objects can only be written as HDF5 files."
             )
         _, write_hdf5 = _import_h5io_funcs()
         if fname.suffix != ".h5":
@@ -1610,7 +1608,7 @@ class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
         ):
             raise RuntimeError(
                 "label and stc must have same subject names, "
-                'currently "%s" and "%s"' % (label.subject, self.subject)
+                f'currently "{label.subject}" and "{self.subject}"'
             )
 
         if label.hemi == "both":
@@ -2103,7 +2101,7 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
         .. footbibliography::
         """
         if not isinstance(surf, str):
-            raise TypeError("surf must be a string, got %s" % (type(surf),))
+            raise TypeError(f"surf must be a string, got {type(surf)}")
         subject = _check_subject(self.subject, subject)
         if np.any(self.data < 0):
             raise ValueError("Cannot compute COM with negative values")
@@ -2506,7 +2504,7 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
         if isinstance(label, str):
             volume_label = [label]
         else:
-            volume_label = {"Volume ID %s" % (label): _ensure_int(label)}
+            volume_label = {f"Volume ID {label}": _ensure_int(label)}
         label = _volume_labels(src, (mri, volume_label), mri_resolution=False)
         assert len(label) == 1
         label = label[0]
@@ -2691,7 +2689,7 @@ class VolSourceEstimate(_BaseVolSourceEstimate):
             )
         if ftype != "h5" and self.data.dtype == "complex":
             raise ValueError(
-                "Can only write non-complex data to .stc or .w" ", use .h5 instead"
+                "Can only write non-complex data to .stc or .w, use .h5 instead"
             )
         if ftype == "stc":
             logger.info("Writing STC to disk...")
@@ -3080,10 +3078,10 @@ def _spatio_temporal_src_adjacency_surf(src, n_times):
     missing = 100 * float(len(masks) - np.sum(masks)) / len(masks)
     if missing:
         warn(
-            "%0.1f%% of original source space vertices have been"
+            f"{missing:0.1f}% of original source space vertices have been"
             " omitted, tri-based adjacency will have holes.\n"
             "Consider using distance-based adjacency or "
-            "morphing data to all source space vertices." % missing
+            "morphing data to all source space vertices."
         )
         masks = np.tile(masks, n_times)
         masks = np.where(masks)[0]
@@ -3114,7 +3112,7 @@ def spatio_temporal_src_adjacency(src, n_times, dist=None, verbose=None):
 
     Returns
     -------
-    adjacency : ~scipy.sparse.coo_matrix
+    adjacency : ~scipy.sparse.coo_array
         The adjacency matrix describing the spatio-temporal
         graph structure. If N is the number of vertices in the
         source space, the N first nodes in the graph are the
@@ -3176,7 +3174,7 @@ def spatio_temporal_tris_adjacency(tris, n_times, remap_vertices=False, verbose=
 
     Returns
     -------
-    adjacency : ~scipy.sparse.coo_matrix
+    adjacency : ~scipy.sparse.coo_array
         The adjacency matrix describing the spatio-temporal
         graph structure. If N is the number of vertices in the
         source space, the N first nodes in the graph are the
@@ -3188,7 +3186,7 @@ def spatio_temporal_tris_adjacency(tris, n_times, remap_vertices=False, verbose=
         tris = np.searchsorted(np.unique(tris), tris)
 
     edges = mesh_edges(tris)
-    edges = (edges + sparse.eye(edges.shape[0], format="csr")).tocoo()
+    edges = (edges + _eye_array(edges.shape[0])).tocoo()
     return _get_adjacency_from_edges(edges, n_times)
 
 
@@ -3212,7 +3210,7 @@ def spatio_temporal_dist_adjacency(src, n_times, dist, verbose=None):
 
     Returns
     -------
-    adjacency : ~scipy.sparse.coo_matrix
+    adjacency : ~scipy.sparse.coo_array
         The adjacency matrix describing the spatio-temporal
         graph structure. If N is the number of vertices in the
         source space, the N first nodes in the graph are the
@@ -3257,7 +3255,7 @@ def spatial_src_adjacency(src, dist=None, verbose=None):
 
     Returns
     -------
-    adjacency : ~scipy.sparse.coo_matrix
+    adjacency : ~scipy.sparse.coo_array
         The adjacency matrix describing the spatial graph structure.
     """
     return spatio_temporal_src_adjacency(src, 1, dist)
@@ -3278,7 +3276,7 @@ def spatial_tris_adjacency(tris, remap_vertices=False, verbose=None):
 
     Returns
     -------
-    adjacency : ~scipy.sparse.coo_matrix
+    adjacency : ~scipy.sparse.coo_array
         The adjacency matrix describing the spatial graph structure.
     """
     return spatio_temporal_tris_adjacency(tris, 1, remap_vertices)
@@ -3302,7 +3300,7 @@ def spatial_dist_adjacency(src, dist, verbose=None):
 
     Returns
     -------
-    adjacency : ~scipy.sparse.coo_matrix
+    adjacency : ~scipy.sparse.coo_array
         The adjacency matrix describing the spatial graph structure.
     """
     return spatio_temporal_dist_adjacency(src, 1, dist)
@@ -3323,7 +3321,7 @@ def spatial_inter_hemi_adjacency(src, dist, verbose=None):
 
     Returns
     -------
-    adjacency : ~scipy.sparse.coo_matrix
+    adjacency : ~scipy.sparse.coo_array
         The adjacency matrix describing the spatial graph structure.
         Typically this should be combined (addititively) with another
         existing intra-hemispheric adjacency matrix, e.g. computed
@@ -3331,8 +3329,8 @@ def spatial_inter_hemi_adjacency(src, dist, verbose=None):
     """
     src = _ensure_src(src, kind="surface")
     adj = cdist(src[0]["rr"][src[0]["vertno"]], src[1]["rr"][src[1]["vertno"]])
-    adj = sparse.csr_matrix(adj <= dist, dtype=int)
-    empties = [sparse.csr_matrix((nv, nv), dtype=int) for nv in adj.shape]
+    adj = sparse.csr_array(adj <= dist, dtype=int)
+    empties = [sparse.csr_array((nv, nv), dtype=int) for nv in adj.shape]
     adj = sparse.vstack(
         [sparse.hstack([empties[0], adj]), sparse.hstack([adj.T, empties[1]])]
     )
@@ -3361,7 +3359,7 @@ def _get_adjacency_from_edges(edges, n_times, verbose=None):
     data = np.ones(
         edges.data.size * n_times + 2 * n_vertices * (n_times - 1), dtype=np.int64
     )
-    adjacency = sparse.coo_matrix((data, (row, col)), shape=(n_times * n_vertices,) * 2)
+    adjacency = sparse.coo_array((data, (row, col)), shape=(n_times * n_vertices,) * 2)
     return adjacency
 
 
@@ -3472,7 +3470,7 @@ def _prepare_label_extraction(stc, labels, src, mode, allow_empty, use_sparse):
             # Efficiency shortcut: use linearity early to avoid redundant
             # calculations
             elif mode == "mean":
-                vertidx = sparse.csr_matrix(vertidx.mean(axis=0))
+                vertidx = sparse.csr_array(vertidx.mean(axis=0)[np.newaxis])
             label_vertidx.append(vertidx)
             label_flip.append(None)
             continue
@@ -3493,7 +3491,7 @@ def _prepare_label_extraction(stc, labels, src, mode, allow_empty, use_sparse):
                 this_vertices = np.intersect1d(vertno[1], slabel.vertices)
                 vertidx = nvert[0] + np.searchsorted(vertno[1], this_vertices)
             else:
-                raise ValueError("label %s has invalid hemi" % label.name)
+                raise ValueError(f"label {label.name} has invalid hemi")
             this_vertidx.append(vertidx)
 
         # convert it to an array
@@ -3565,22 +3563,19 @@ def _volume_labels(src, labels, mri_resolution):
     else:
         if len(labels) != 2:
             raise ValueError(
-                "labels, if list or tuple, must have length 2, "
-                "got %s" % (len(labels),)
+                "labels, if list or tuple, must have length 2, got {len(labels)}"
             )
         mri, labels = labels
         infer_labels = False
         _validate_type(mri, "path-like", "labels[0]" + extra)
-    logger.info("Reading atlas %s" % (mri,))
+    logger.info(f"Reading atlas {mri}")
     vol_info = _get_mri_info_data(str(mri), data=True)
     atlas_data = vol_info["data"]
     atlas_values = np.unique(atlas_data)
     if atlas_values.dtype.kind == "f":  # MGZ will be 'i'
         atlas_values = atlas_values[np.isfinite(atlas_values)]
         if not (atlas_values == np.round(atlas_values)).all():
-            raise RuntimeError(
-                "Non-integer values present in atlas, cannot " "labelize"
-            )
+            raise RuntimeError("Non-integer values present in atlas, cannot labelize")
         atlas_values = np.round(atlas_values).astype(np.int64)
     if infer_labels:
         labels = {
@@ -3600,14 +3595,14 @@ def _volume_labels(src, labels, mri_resolution):
     vox_mri_t, want = vox_mri_t["trans"], want["trans"]
     if not np.allclose(vox_mri_t, want, atol=1e-6):
         raise RuntimeError(
-            "atlas vox_mri_t does not match that used to create the source " "space"
+            "atlas vox_mri_t does not match that used to create the source space"
         )
     src_shape = tuple(src[0]["mri_" + k] for k in ("width", "height", "depth"))
     atlas_shape = atlas_data.shape
     if atlas_shape != src_shape:
         raise RuntimeError(
-            "atlas shape %s does not match source space MRI "
-            "shape %s" % (atlas_shape, src_shape)
+            f"atlas shape {atlas_shape} does not match source space MRI "
+            f"shape {src_shape}"
         )
     atlas_data = atlas_data.ravel(order="F")
     if mri_resolution:
@@ -3709,10 +3704,10 @@ def _gen_extract_label_time_course(
             if len(vn) != len(svn):
                 raise ValueError(
                     "stc not compatible with source space. "
-                    "stc has %s time series but there are %s "
+                    f"stc has {len(svn)} time series but there are {len(vn)} "
                     "vertices in source space. Ensure you used "
                     "src from the forward or inverse operator, "
-                    "as forward computation can exclude vertices." % (len(svn), len(vn))
+                    "as forward computation can exclude vertices."
                 )
             if not np.array_equal(svn, vn):
                 raise ValueError("stc not compatible with source space")
@@ -3730,7 +3725,7 @@ def _gen_extract_label_time_course(
             label_tc = np.zeros((n_labels,) + stc.data.shape[1:], dtype=stc.data.dtype)
         for i, (vertidx, flip) in enumerate(zip(label_vertidx, src_flip)):
             if vertidx is not None:
-                if isinstance(vertidx, sparse.csr_matrix):
+                if isinstance(vertidx, sparse.csr_array):
                     assert mri_resolution
                     assert vertidx.shape[1] == stc.data.shape[0]
                     this_data = np.reshape(stc.data, (stc.data.shape[0], -1))
@@ -3955,7 +3950,7 @@ def stc_near_sensors(
     frames = set(ch["coord_frame"] for ch in evoked.info["chs"])
     if not frames == {FIFF.FIFFV_COORD_HEAD}:
         raise RuntimeError(
-            "Channels must be in the head coordinate frame, " f"got {sorted(frames)}"
+            f"Channels must be in the head coordinate frame, got {sorted(frames)}"
         )
 
     # get channel positions that will be used to pinpoint where

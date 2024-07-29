@@ -77,14 +77,14 @@ def run():
         "-o",
         "--order",
         dest="group_by",
-        help="Order to use for grouping during plotting " "('type' or 'original')",
+        help="Order to use for grouping during plotting ('type' or 'original')",
         default="type",
     )
     parser.add_option(
         "-p",
         "--preload",
         dest="preload",
-        help="Preload raw data (for faster navigaton)",
+        help="Preload raw data (for faster navigation)",
         default=False,
         action="store_true",
     )
@@ -136,6 +136,13 @@ def run():
         default=None,
         action="store_true",
     )
+    parser.add_option(
+        "--butterfly",
+        dest="butterfly",
+        help="Plot in butterfly mode",
+        default=False,
+        action="store_true",
+    )
     _add_verbose_flag(parser)
     options, args = parser.parse_args()
 
@@ -167,6 +174,7 @@ def run():
                 pass
     filterchpi = options.filterchpi
     verbose = options.verbose
+    butterfly = options.butterfly
 
     if raw_in is None:
         parser.print_help()
@@ -202,6 +210,7 @@ def run():
         lowpass=lowpass,
         filtorder=filtorder,
         clipping=clipping,
+        butterfly=butterfly,
         proj=not proj_off,
         verbose=verbose,
         show=True,

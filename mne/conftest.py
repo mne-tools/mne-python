@@ -88,7 +88,6 @@ def pytest_configure(config):
         "pgtest",
         "pvtest",
         "allow_unclosed",
-        "allow_unclosed_pyside2",
     ):
         config.addinivalue_line("markers", marker)
 
@@ -137,17 +136,6 @@ def pytest_configure(config):
     ignore:joblib not installed.*:RuntimeWarning
     # qdarkstyle
     ignore:.*Setting theme=.*:RuntimeWarning
-    # scikit-learn using this arg
-    ignore:.*The 'sym_pos' keyword is deprecated.*:DeprecationWarning
-    # Should be removable by 2022/07/08, SciPy savemat issue
-    ignore:.*elementwise comparison failed; returning scalar in.*:FutureWarning
-    # numba with NumPy dev
-    ignore:`np.MachAr` is deprecated.*:DeprecationWarning
-    # matplotlib 3.6 and pyvista/nilearn
-    ignore:.*cmap function will be deprecated.*:
-    # joblib hasn't updated to avoid distutils
-    ignore:.*distutils package is deprecated.*:DeprecationWarning
-    ignore:.*distutils Version classes are deprecated.*:DeprecationWarning
     # nbclient
     ignore:Passing a schema to Validator\.iter_errors is deprecated.*:
     ignore:Unclosed context <zmq.asyncio.Context.*:ResourceWarning
@@ -159,36 +147,19 @@ def pytest_configure(config):
     # PySide6
     ignore:Enum value .* is marked as deprecated:DeprecationWarning
     ignore:Function.*is marked as deprecated, please check the documentation.*:DeprecationWarning
+    ignore:Failed to disconnect.*:RuntimeWarning
     # pkg_resources usage bug
     ignore:Implementing implicit namespace packages.*:DeprecationWarning
     ignore:Deprecated call to `pkg_resources.*:DeprecationWarning
     ignore:pkg_resources is deprecated as an API.*:DeprecationWarning
-    # h5py
-    ignore:`product` is deprecated as of NumPy.*:DeprecationWarning
-    # pandas
-    ignore:In the future `np.long`.*:FutureWarning
-    # https://github.com/joblib/joblib/issues/1454
-    ignore:.*`byte_bounds` is dep.*:DeprecationWarning
     # numpy distutils used by SciPy
     ignore:(\n|.)*numpy\.distutils` is deprecated since NumPy(\n|.)*:DeprecationWarning
     ignore:datetime\.utcfromtimestamp.*is deprecated:DeprecationWarning
     ignore:The numpy\.array_api submodule is still experimental.*:UserWarning
-    # numpy 2.0 <-> SciPy
-    ignore:numpy\.core\._multiarray_umath.*:DeprecationWarning
-    ignore:numpy\.core\.numeric is deprecated.*:DeprecationWarning
-    ignore:numpy\.core\.multiarray is deprecated.*:DeprecationWarning
-    ignore:The numpy\.fft\.helper has been made private.*:DeprecationWarning
-    # TODO: Should actually fix these two
-    ignore:scipy.signal.morlet2 is deprecated in SciPy.*:DeprecationWarning
-    ignore:The `needs_threshold` and `needs_proba`.*:FutureWarning
     # tqdm (Fedora)
     ignore:.*'tqdm_asyncio' object has no attribute 'last_print_t':pytest.PytestUnraisableExceptionWarning
-    # Until mne-qt-browser > 0.5.2 is released
-    ignore:mne\.io\.pick.channel_indices_by_type is deprecated.*:
     # Windows CIs using MESA get this
     ignore:Mesa version 10\.2\.4 is too old for translucent.*:RuntimeWarning
-    # Matplotlib <-> NumPy 2.0
-    ignore:`row_stack` alias is deprecated.*:DeprecationWarning
     # Matplotlib->tz
     ignore:datetime.datetime.utcfromtimestamp.*:DeprecationWarning
     # joblib
@@ -203,6 +174,8 @@ def pytest_configure(config):
     ignore:np\.find_common_type is deprecated.*:DeprecationWarning
     # pyvista <-> NumPy 2.0
     ignore:__array_wrap__ must accept context and return_scalar arguments.*:DeprecationWarning
+    # nibabel <-> NumPy 2.0
+    ignore:__array__ implementation doesn't accept a copy.*:DeprecationWarning
     """  # noqa: E501
     for warning_line in warning_lines.split("\n"):
         warning_line = warning_line.strip()
@@ -398,6 +371,34 @@ def epochs_spectrum():
 
 
 @pytest.fixture()
+def epochs_tfr():
+    """Get an EpochsTFR computed from mne.io.tests.data."""
+    epochs = _get_epochs().load_data()
+    return epochs.compute_tfr(method="morlet", freqs=np.linspace(20, 40, num=5))
+
+
+@pytest.fixture()
+def average_tfr(epochs_tfr):
+    """Get an AverageTFR computed by averaging an EpochsTFR (this is small & fast)."""
+    return epochs_tfr.average()
+
+
+@pytest.fixture()
+def full_average_tfr(full_evoked):
+    """Get an AverageTFR computed from Evoked.
+
+    This is slower than the `average_tfr` fixture, but a few TFR.plot_* tests need it.
+    """
+    return full_evoked.compute_tfr(method="morlet", freqs=np.linspace(20, 40, num=5))
+
+
+@pytest.fixture()
+def raw_tfr(raw):
+    """Get a RawTFR computed from mne.io.tests.data."""
+    return raw.compute_tfr(method="morlet", freqs=np.linspace(20, 40, num=5))
+
+
+@pytest.fixture()
 def epochs_empty():
     """Get empty epochs from mne.io.tests.data."""
     epochs = _get_epochs(meg=True, eeg=True).load_data()
@@ -408,20 +409,29 @@ def epochs_empty():
 
 
 @pytest.fixture(scope="session", params=[testing._pytest_param()])
-def _evoked():
-    # This one is session scoped, so be sure not to modify it (use evoked
-    # instead)
-    evoked = mne.read_evokeds(
-        fname_evoked, condition="Left Auditory", baseline=(None, 0)
-    )
-    evoked.crop(0, 0.2)
-    return evoked
+def _full_evoked():
+    # This is session scoped, so be sure not to modify its return value (use
+    # `full_evoked` fixture instead)
+    return mne.read_evokeds(fname_evoked, condition="Left Auditory", baseline=(None, 0))
+
+
+@pytest.fixture(scope="session", params=[testing._pytest_param()])
+def _evoked(_full_evoked):
+    # This is session scoped, so be sure not to modify its return value (use `evoked`
+    # fixture instead)
+    return _full_evoked.copy().crop(0, 0.2)
 
 
 @pytest.fixture()
 def evoked(_evoked):
-    """Get evoked data."""
+    """Get truncated evoked data."""
     return _evoked.copy()
+
+
+@pytest.fixture()
+def full_evoked(_full_evoked):
+    """Get full-duration evoked data (needed for, e.g., testing TFR)."""
+    return _full_evoked.copy()
 
 
 @pytest.fixture(scope="function", params=[testing._pytest_param()])
@@ -504,7 +514,7 @@ def _check_pyqtgraph(request):
     qt_version, api = _check_qt_version(return_api=True)
     if (not qt_version) or _compare_version(qt_version, "<", "5.12"):
         pytest.skip(
-            f"Qt API {api} has version {qt_version} " f"but pyqtgraph needs >= 5.12!"
+            f"Qt API {api} has version {qt_version} but pyqtgraph needs >= 5.12!"
         )
     try:
         import mne_qt_browser  # noqa: F401
@@ -515,10 +525,10 @@ def _check_pyqtgraph(request):
         f_name = request.function.__name__
         if lower_2_0 and m_name in pre_2_0_skip_modules:
             pytest.skip(
-                f'Test-Module "{m_name}" was skipped for' f" mne-qt-browser < 0.2.0"
+                f'Test-Module "{m_name}" was skipped for mne-qt-browser < 0.2.0'
             )
         elif lower_2_0 and f_name in pre_2_0_skip_funcs:
-            pytest.skip(f'Test "{f_name}" was skipped for ' f"mne-qt-browser < 0.2.0")
+            pytest.skip(f'Test "{f_name}" was skipped for mne-qt-browser < 0.2.0')
     except Exception:
         pytest.skip("Requires mne_qt_browser")
     else:
@@ -999,7 +1009,7 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config):
 
 def pytest_report_header(config, startdir=None):
     """Add information to the pytest run header."""
-    return f"MNE {mne.__version__} -- {str(Path(mne.__file__).parent)}"
+    return f"MNE {mne.__version__} -- {Path(mne.__file__).parent}"
 
 
 @pytest.fixture(scope="function", params=("Numba", "NumPy"))
@@ -1143,7 +1153,6 @@ def qt_windows_closed(request):
     """Ensure that no new Qt windows are open after a test."""
     _check_skip_backend("pyvistaqt")
     app = _init_mne_qtapp()
-    from qtpy import API_NAME
 
     app.processEvents()
     gc.collect()
@@ -1153,8 +1162,6 @@ def qt_windows_closed(request):
     app.processEvents()
     gc.collect()
     if "allow_unclosed" in marks:
-        return
-    if "allow_unclosed_pyside2" in marks and API_NAME.lower() == "pyside2":
         return
     # Don't check when the test fails
     if not _test_passed(request):

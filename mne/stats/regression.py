@@ -60,7 +60,7 @@ def linear_regression(inst, design_matrix, names=None):
         ``(n_channels, n_timepoints)``.
     """
     if names is None:
-        names = ["x%i" % i for i in range(design_matrix.shape[1])]
+        names = [f"x{i}" for i in range(design_matrix.shape[1])]
 
     if isinstance(inst, BaseEpochs):
         picks = pick_types(
@@ -75,7 +75,7 @@ def linear_regression(inst, design_matrix, names=None):
             exclude=["bads"],
         )
         if [inst.ch_names[p] for p in picks] != inst.ch_names:
-            warn("Fitting linear model to non-data or bad channels. " "Check picking")
+            warn("Fitting linear model to non-data or bad channels. Check picking")
         msg = "Fitting linear model to epochs"
         data = inst.get_data(copy=False)
         out = EvokedArray(np.zeros(data.shape[1:]), inst.info, inst.tmin)
@@ -88,10 +88,8 @@ def linear_regression(inst, design_matrix, names=None):
         out = inst[0]
         data = np.array([i.data for i in inst])
     else:
-        raise ValueError("Input must be epochs or iterable of source " "estimates")
-    logger.info(
-        msg + ", (%s targets, %s regressors)" % (np.prod(data.shape[1:]), len(names))
-    )
+        raise ValueError("Input must be epochs or iterable of source estimates")
+    logger.info(msg + f", ({np.prod(data.shape[1:])} targets, {len(names)} regressors)")
     lm_params = _fit_lm(data, design_matrix, names)
     lm = namedtuple("lm", "beta stderr t_val p_val mlog10_p_val")
     lm_fits = {}
@@ -118,7 +116,7 @@ def _fit_lm(data, design_matrix, names):
 
     if n_samples != n_rows:
         raise ValueError(
-            "Number of rows in design matrix must be equal " "to number of observations"
+            "Number of rows in design matrix must be equal to number of observations"
         )
     if n_predictors != len(names):
         raise ValueError(

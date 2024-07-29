@@ -5,7 +5,7 @@
 # Copyright the MNE-Python contributors.
 
 from contextlib import nullcontext
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from pathlib import Path
 
 import numpy as np
@@ -145,7 +145,7 @@ def _create_raw_for_edf_tests(stim_channel_index=None):
 
 
 edfio_mark = pytest.mark.skipif(
-    not _check_edfio_installed(strict=False), reason="edfio not installed"
+    not _check_edfio_installed(strict=False), reason="unsafe use of private module"
 )
 
 
@@ -160,7 +160,7 @@ def test_double_export_edf(tmp_path):
         his_id="12345",
         first_name="mne",
         last_name="python",
-        birthday=(1992, 1, 20),
+        birthday=date(1992, 1, 20),
         sex=1,
         weight=78.3,
         height=1.75,
@@ -169,16 +169,12 @@ def test_double_export_edf(tmp_path):
 
     # export once
     temp_fname = tmp_path / "test.edf"
-    with pytest.warns(RuntimeWarning, match="Exporting STIM channels"):
-        raw.export(temp_fname, add_ch_type=True)
+    raw.export(temp_fname, add_ch_type=True)
     raw_read = read_raw_edf(temp_fname, infer_types=True, preload=True)
 
     # export again
     raw_read.export(temp_fname, add_ch_type=True, overwrite=True)
     raw_read = read_raw_edf(temp_fname, infer_types=True, preload=True)
-
-    # stim channel should be dropped
-    raw.drop_channels("2")
 
     assert raw.ch_names == raw_read.ch_names
     assert_array_almost_equal(raw.get_data(), raw_read.get_data(), decimal=10)
@@ -191,6 +187,74 @@ def test_double_export_edf(tmp_path):
     orig_ch_types = raw.get_channel_types()
     read_ch_types = raw_read.get_channel_types()
     assert_array_equal(orig_ch_types, read_ch_types)
+
+
+@edfio_mark()
+def test_edf_physical_range(tmp_path):
+    """Test exporting an EDF file with different physical range settings."""
+    ch_types = ["eeg"] * 4
+    ch_names = np.arange(len(ch_types)).astype(str).tolist()
+    fs = 1000
+    info = create_info(len(ch_types), sfreq=fs, ch_types=ch_types)
+    data = np.tile(
+        np.sin(2 * np.pi * 10 * np.arange(0, 2, 1 / fs)) * 1e-5, (len(ch_names), 1)
+    )
+    data = (data.T + [0.1, 0, 0, -0.1]).T  # add offsets
+    raw = RawArray(data, info)
+
+    # export with physical range per channel type (default)
+    temp_fname = tmp_path / "test_auto.edf"
+    raw.export(temp_fname)
+    raw_read = read_raw_edf(temp_fname, preload=True)
+    with pytest.raises(AssertionError, match="Arrays are not almost equal"):
+        assert_array_almost_equal(raw.get_data(), raw_read.get_data(), decimal=10)
+
+    # export with physical range per channel
+    temp_fname = tmp_path / "test_per_channel.edf"
+    raw.export(temp_fname, physical_range="channelwise")
+    raw_read = read_raw_edf(temp_fname, preload=True)
+    assert_array_almost_equal(raw.get_data(), raw_read.get_data(), decimal=10)
+
+
+@edfio_mark()
+@pytest.mark.parametrize("pad_width", (1, 10, 100, 500, 999))
+def test_edf_padding(tmp_path, pad_width):
+    """Test exporting an EDF file with not-equal-length data blocks."""
+    ch_types = ["eeg"] * 4
+    ch_names = np.arange(len(ch_types)).astype(str).tolist()
+    fs = 1000
+    info = create_info(len(ch_types), sfreq=fs, ch_types=ch_types)
+    data = np.tile(
+        np.sin(2 * np.pi * 10 * np.arange(0, 2, 1 / fs)) * 1e-5, (len(ch_names), 1)
+    )[:, 0:-pad_width]  # remove last pad_width samples
+    raw = RawArray(data, info)
+
+    # export with physical range per channel type (default)
+    temp_fname = tmp_path / "test.edf"
+    with pytest.warns(
+        RuntimeWarning,
+        match=(
+            "EDF format requires equal-length data blocks.*"
+            f"{pad_width/1000:.3g} seconds of edge values were appended.*"
+        ),
+    ):
+        raw.export(temp_fname)
+
+    # read in the file
+    raw_read = read_raw_edf(temp_fname, preload=True)
+    assert raw.n_times == raw_read.n_times - pad_width
+    edge_data = raw_read.get_data()[:, -pad_width - 1]
+    pad_data = raw_read.get_data()[:, -pad_width:]
+    assert_array_almost_equal(
+        raw.get_data(), raw_read.get_data()[:, :-pad_width], decimal=10
+    )
+    assert_array_almost_equal(
+        pad_data, np.tile(edge_data, (pad_width, 1)).T, decimal=10
+    )
+
+    assert "BAD_ACQ_SKIP" in raw_read.annotations.description
+    assert_array_almost_equal(raw_read.annotations.onset[0], raw.times[-1] + 1 / fs)
+    assert_array_almost_equal(raw_read.annotations.duration[0], pad_width / fs)
 
 
 @edfio_mark()
@@ -226,7 +290,7 @@ def test_rawarray_edf(tmp_path):
     raw.info["subject_info"] = dict(
         first_name="mne",
         last_name="python",
-        birthday=(1992, 1, 20),
+        birthday=date(1992, 1, 20),
         sex=1,
         hand=3,
     )
@@ -257,19 +321,19 @@ def test_rawarray_edf(tmp_path):
 
 
 @edfio_mark()
-def test_edf_export_warns_on_non_voltage_channels(tmp_path):
+def test_edf_export_non_voltage_channels(tmp_path):
     """Test saving a Raw array containing a non-voltage channel."""
     temp_fname = tmp_path / "test.edf"
 
     raw = _create_raw_for_edf_tests()
     raw.set_channel_types({"9": "hbr"}, on_unit_change="ignore")
-    with pytest.warns(RuntimeWarning, match="Non-voltage channels"):
-        raw.export(temp_fname, overwrite=True)
+    raw.export(temp_fname, overwrite=True)
 
     # data should match up to the non-accepted channel
     raw_read = read_raw_edf(temp_fname, preload=True)
     assert raw.ch_names == raw_read.ch_names
     assert_array_almost_equal(raw.get_data()[:-1], raw_read.get_data()[:-1], decimal=10)
+    assert_array_almost_equal(raw.get_data()[-1], raw_read.get_data()[-1], decimal=5)
     assert_array_equal(raw.times, raw_read.times)
 
 
@@ -291,6 +355,7 @@ def test_measurement_date_outside_range_valid_for_edf(tmp_path):
         raw.export(tmp_path / "test.edf", overwrite=True)
 
 
+@pytest.mark.filterwarnings("ignore:Data has a non-integer:RuntimeWarning")
 @pytest.mark.parametrize(
     ("physical_range", "exceeded_bound"),
     [

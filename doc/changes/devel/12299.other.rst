@@ -1,1 +1,0 @@
-Adopted towncrier_ for changelog entries, by `Eric Larson`_.

@@ -225,7 +225,7 @@ def write_dig(fname, pts, coord_frame=None, *, overwrite=False, verbose=None):
         if len(bad_frames) > 0:
             raise ValueError(
                 "Points have coord_frame entries that are incompatible with "
-                "coord_frame=%i: %s." % (coord_frame, str(tuple(bad_frames)))
+                f"coord_frame={coord_frame}: {tuple(bad_frames)}."
             )
 
     with start_and_end_file(fname) as fid:
@@ -344,13 +344,13 @@ def _get_fid_coords(dig, raise_error=True):
     if len(fid_coord_frames) > 0 and raise_error:
         if set(fid_coord_frames.keys()) != set(["nasion", "lpa", "rpa"]):
             raise ValueError(
-                "Some fiducial points are missing (got %s)." % fid_coord_frames.keys()
+                f"Some fiducial points are missing (got {fid_coord_frames.keys()})."
             )
 
         if len(set(fid_coord_frames.values())) > 1:
             raise ValueError(
                 "All fiducial points must be in the same coordinate system "
-                "(got %s)" % len(fid_coord_frames)
+                f"(got {len(fid_coord_frames)})"
             )
 
     coord_frame = fid_coord_frames.popitem()[1] if fid_coord_frames else None

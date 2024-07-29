@@ -197,7 +197,7 @@ def test_receptive_field_basic(n_jobs):
     y = np.dot(X_del, w)
 
     # Fit the model and test values
-    feature_names = ["feature_%i" % ii for ii in [0, 1, 2]]
+    feature_names = [f"feature_{ii}" for ii in [0, 1, 2]]
     rf = ReceptiveField(tmin, tmax, 1, feature_names, estimator=mod, patterns=True)
     rf.fit(X, y)
     assert_array_equal(rf.delays_, np.arange(tmin, tmax + 1))
@@ -221,7 +221,7 @@ def test_receptive_field_basic(n_jobs):
     with pytest.raises(ValueError, match="n_features in X does not match"):
         rf.fit(X[:, :1], y)
     # auto-naming features
-    feature_names = ["feature_%s" % ii for ii in [0, 1, 2]]
+    feature_names = [f"feature_{ii}" for ii in [0, 1, 2]]
     rf = ReceptiveField(tmin, tmax, 1, estimator=mod, feature_names=feature_names)
     assert_equal(rf.feature_names, feature_names)
     rf = ReceptiveField(tmin, tmax, 1, estimator=mod)

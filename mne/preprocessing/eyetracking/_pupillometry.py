@@ -15,7 +15,7 @@ def interpolate_blinks(raw, buffer=0.05, match="BAD_blink", interpolate_gaze=Fal
     """Interpolate eyetracking signals during blinks.
 
     This function uses the timing of blink annotations to estimate missing
-    data. Operates in place.
+    data. Missing values are then interpolated linearly. Operates in place.
 
     Parameters
     ----------
@@ -30,7 +30,8 @@ def interpolate_blinks(raw, buffer=0.05, match="BAD_blink", interpolate_gaze=Fal
     match : str | list of str
         The description of annotations to interpolate over. If a list, the data within
         all annotations that match any of the strings in the list will be interpolated
-        over. Defaults to ``'BAD_blink'``.
+        over. If a ``match`` starts with ``'BAD_'``, that part will be removed from the
+        annotation description after interpolation. Defaults to ``'BAD_blink'``.
     interpolate_gaze : bool
         If False, only apply interpolation to ``'pupil channels'``. If True, interpolate
         over ``'eyegaze'`` channels as well. Defaults to False, because eye position can

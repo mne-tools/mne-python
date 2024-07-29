@@ -223,8 +223,7 @@ def _print_coord_trans(
         scale = 1000.0 if (ti != 3 and units != "mm") else 1.0
         text = " mm" if ti != 3 else ""
         log_func(
-            "    % 8.6f % 8.6f % 8.6f    %7.2f%s"
-            % (tt[0], tt[1], tt[2], scale * tt[3], text)
+            f"    {tt[0]:8.6f} {tt[1]:8.6f} {tt[2]:8.6f}    {scale * tt[3]:7.2f}{text}"
         )
 
 
@@ -445,7 +444,7 @@ def _ensure_trans(trans, fro="mri", to="head"):
         to_str = _frame_to_str[to]
         to_const = to
     del to
-    err_str = "trans must be a Transform between " f"{from_str}<->{to_str}, got"
+    err_str = f"trans must be a Transform between {from_str}<->{to_str}, got"
     if not isinstance(trans, (list, tuple)):
         trans = [trans]
     # Ensure that we have exactly one match
@@ -662,7 +661,7 @@ def transform_surface_to(surf, dest, trans, copy=False):
     if isinstance(dest, str):
         if dest not in _str_to_frame:
             raise KeyError(
-                'dest must be one of %s, not "%s"' % (list(_str_to_frame.keys()), dest)
+                f'dest must be one of {list(_str_to_frame.keys())}, not "{dest}"'
             )
         dest = _str_to_frame[dest]  # convert to integer
     if surf["coord_frame"] == dest:
@@ -705,7 +704,7 @@ def get_ras_to_neuromag_trans(nasion, lpa, rpa):
     for pt in (nasion, lpa, rpa):
         if pt.ndim != 1 or len(pt) != 3:
             raise ValueError(
-                "Points have to be provided as one dimensional " "arrays of length 3."
+                "Points have to be provided as one dimensional arrays of length 3."
             )
 
     right = rpa - lpa
@@ -1018,7 +1017,7 @@ class _TPSWarp:
         dest : shape (n_transform, 3)
             The transformed points.
         """
-        logger.info("Transforming %s points" % (len(pts),))
+        logger.info(f"Transforming {len(pts)} points")
         assert pts.shape[1] == 3
         # for memory reasons, we should do this in ~100 MB chunks
         out = np.zeros_like(pts)
@@ -1139,11 +1138,8 @@ class _SphericalSurfaceWarp:
             dest_center = _fit_sphere(hsp, disp=False)[1]
             destination = destination - dest_center
             logger.info(
-                "    Using centers %s -> %s"
-                % (
-                    np.array_str(src_center, None, 3),
-                    np.array_str(dest_center, None, 3),
-                )
+                "    Using centers {np.array_str(src_center, None, 3)} -> "
+                "{np.array_str(dest_center, None, 3)}"
             )
         self._fit_params = dict(
             n_src=len(source),
@@ -1163,7 +1159,7 @@ class _SphericalSurfaceWarp:
         del match_rr
         # 2. Compute spherical harmonic coefficients for all points
         logger.info(
-            "    Computing spherical harmonic approximation with " "order %s" % order
+            f"    Computing spherical harmonic approximation with order {order}"
         )
         src_sph = _compute_sph_harm(order, *src_rad_az_pol[1:])
         dest_sph = _compute_sph_harm(order, *dest_rad_az_pol[1:])
@@ -1174,7 +1170,7 @@ class _SphericalSurfaceWarp:
         # 4. Smooth both surfaces using these coefficients, and evaluate at
         #     the "shape" points
         logger.info(
-            "    Matching %d points (%s) on smoothed surfaces" % (len(match_sph), match)
+            f"    Matching {len(match_sph)} points ({match}) on smoothed surfaces"
         )
         src_rad_az_pol = match_rad_az_pol.copy()
         src_rad_az_pol[0] = np.abs(np.dot(match_sph, src_coeffs))
@@ -1187,7 +1183,6 @@ class _SphericalSurfaceWarp:
         destination += dest_center
         # 6. Compute TPS warp of matched points from smoothed surfaces
         self._warp = _TPSWarp().fit(source, destination, reg)
-        self._matched = np.array([source, destination])
         logger.info("[done]")
         return self
 
@@ -1573,7 +1568,7 @@ def _read_fs_xfm(fname):
     """Read a Freesurfer transform from a .xfm file."""
     assert fname.endswith(".xfm")
     with open(fname) as fid:
-        logger.debug("Reading FreeSurfer talairach.xfm file:\n%s" % fname)
+        logger.debug(f"Reading FreeSurfer talairach.xfm file:\n{fname}")
 
         # read lines until we get the string 'Linear_Transform', which precedes
         # the data transformation matrix
@@ -1581,13 +1576,13 @@ def _read_fs_xfm(fname):
         for li, line in enumerate(fid):
             if li == 0:
                 kind = line.strip()
-                logger.debug("Found: %r" % (kind,))
+                logger.debug(f"Found: {repr(kind)}")
             if line[: len(comp)] == comp:
                 # we have the right line, so don't read any more
                 break
         else:
             raise ValueError(
-                'Failed to find "Linear_Transform" string in ' "xfm file:\n%s" % fname
+                f'Failed to find "Linear_Transform" string in xfm file:\n{fname}'
             )
 
         xfm = list()
@@ -1610,7 +1605,7 @@ def _write_fs_xfm(fname, xfm, kind):
         fid.write((kind + "\n\nTtransform_Type = Linear;\n").encode("ascii"))
         fid.write("Linear_Transform =\n".encode("ascii"))
         for li, line in enumerate(xfm[:-1]):
-            line = " ".join(["%0.6f" % part for part in line])
+            line = " ".join([f"{part:0.6f}" for part in line])
             line += "\n" if li < 2 else ";\n"
             fid.write(line.encode("ascii"))
 

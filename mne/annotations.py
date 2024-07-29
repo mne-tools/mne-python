@@ -673,15 +673,12 @@ class Annotations:
         if emit_warning:
             omitted = np.array(out_of_bounds).sum()
             if omitted > 0:
-                warn(
-                    "Omitted %s annotation(s) that were outside data"
-                    " range." % omitted
-                )
+                warn(f"Omitted {omitted} annotation(s) that were outside data range.")
             limited = (np.array(clip_left_elem) | np.array(clip_right_elem)).sum()
             if limited > 0:
                 warn(
-                    "Limited %s annotation(s) that were expanding outside the"
-                    " data range." % limited
+                    f"Limited {limited} annotation(s) that were expanding outside the"
+                    " data range."
                 )
 
         return self
@@ -1146,7 +1143,7 @@ def _write_annotations_txt(fname, annot):
 
 @fill_doc
 def read_annotations(
-    fname, sfreq="auto", uint16_codec=None, encoding="utf8"
+    fname, sfreq="auto", uint16_codec=None, encoding="utf8", ignore_marker_types=False
 ) -> Annotations:
     r"""Read annotations from a file.
 
@@ -1177,6 +1174,9 @@ def read_annotations(
         arrays and can therefore help you solve this problem.
     %(encoding_edf)s
         Only used when reading EDF annotations.
+    ignore_marker_types : bool
+        If ``True``, ignore marker types in BrainVision files (and only use their
+        descriptions). Defaults to ``False``.
 
     Returns
     -------
@@ -1215,7 +1215,9 @@ def read_annotations(
         annotations = _read_annotations_txt(fname)
 
     elif name.endswith(("vmrk", "amrk")):
-        annotations = _read_annotations_brainvision(fname, sfreq=sfreq)
+        annotations = _read_annotations_brainvision(
+            fname, sfreq=sfreq, ignore_marker_types=ignore_marker_types
+        )
 
     elif name.endswith("csv"):
         annotations = _read_annotations_csv(fname)
@@ -1238,10 +1240,10 @@ def read_annotations(
     elif name.startswith("events_") and fname.endswith("mat"):
         annotations = _read_brainstorm_annotations(fname)
     else:
-        raise OSError('Unknown annotation file format "%s"' % fname)
+        raise OSError(f'Unknown annotation file format "{fname}"')
 
     if annotations is None:
-        raise OSError('No annotation data found in file "%s"' % fname)
+        raise OSError(f'No annotation data found in file "{fname}"')
     return annotations
 
 

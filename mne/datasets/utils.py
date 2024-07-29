@@ -20,6 +20,7 @@ import time
 import zipfile
 from collections import OrderedDict
 from pathlib import Path
+from typing import cast
 
 import numpy as np
 
@@ -119,7 +120,7 @@ def _get_path(path, key, name):
         return path
     # 4. ~/mne_data (but use a fake home during testing so we don't
     #    unnecessarily create ~/mne_data)
-    logger.info("Using default location ~/mne_data for %s..." % name)
+    logger.info(f"Using default location ~/mne_data for {name}...")
     path = op.join(os.getenv("_MNE_FAKE_HOME_DIR", op.expanduser("~")), "mne_data")
     if not op.exists(path):
         logger.info("Creating ~/mne_data")
@@ -128,10 +129,10 @@ def _get_path(path, key, name):
         except OSError:
             raise OSError(
                 "User does not have write permissions "
-                "at '%s', try giving the path as an "
+                f"at '{path}', try giving the path as an "
                 "argument to data_path() where user has "
                 "write permissions, for ex:data_path"
-                "('/home/xyz/me2/')" % (path)
+                "('/home/xyz/me2/')"
             )
     return Path(path).expanduser()
 
@@ -210,7 +211,7 @@ def _check_in_testing_and_raise(name, download):
 
 def _download_mne_dataset(
     name, processor, path, force_update, update_path, download, accept=False
-):
+) -> Path:
     """Aux function for downloading internal MNE datasets."""
     import pooch
 
@@ -243,14 +244,17 @@ def _download_mne_dataset(
             this_dataset["dataset_name"] = name
             dataset_params.append(this_dataset)
 
-    return fetch_dataset(
-        dataset_params=dataset_params,
-        processor=processor_,
-        path=path,
-        force_update=force_update,
-        update_path=update_path,
-        download=download,
-        accept=accept,
+    return cast(
+        Path,
+        fetch_dataset(
+            dataset_params=dataset_params,
+            processor=processor_,
+            path=path,
+            force_update=force_update,
+            update_path=update_path,
+            download=download,
+            accept=accept,
+        ),
     )
 
 
@@ -464,9 +468,9 @@ def fetch_hcp_mmp_parcellation(
         if accept or "--accept-hcpmmp-license" in sys.argv:
             answer = "y"
         else:
-            answer = _safe_input("%s\nAgree (y/[n])? " % _hcp_mmp_license_text)
+            answer = _safe_input(f"{_hcp_mmp_license_text}\nAgree (y/[n])? ")
         if answer.lower() != "y":
-            raise RuntimeError("You must agree to the license to use this " "dataset")
+            raise RuntimeError("You must agree to the license to use this dataset")
     downloader = pooch.HTTPDownloader(**_downloader_params())
     for hemi, fpath in zip(("lh", "rh"), fnames):
         if not op.isfile(fpath):
@@ -481,7 +485,7 @@ def fetch_hcp_mmp_parcellation(
 
     if combine:
         fnames = [
-            op.join(destination, "%s.HCPMMP1_combined.annot" % hemi)
+            op.join(destination, f"{hemi}.HCPMMP1_combined.annot")
             for hemi in ("lh", "rh")
         ]
         if all(op.isfile(fname) for fname in fnames):
@@ -813,7 +817,7 @@ def _log_time_size(t0, sz):
 
 
 def _downloader_params(*, auth=None, token=None):
-    params = dict()
+    params = dict(timeout=15)
     params["progressbar"] = (
         logger.level <= logging.INFO and get_config("MNE_TQDM", "tqdm.auto") != "off"
     )

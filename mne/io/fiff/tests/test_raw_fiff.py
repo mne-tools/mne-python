@@ -4,6 +4,7 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+import datetime
 import os
 import pathlib
 import pickle
@@ -60,7 +61,6 @@ ctf_comp_fname = base_dir / "test_ctf_comp_raw.fif"
 fif_bad_marked_fname = base_dir / "test_withbads_raw.fif"
 bad_file_works = base_dir / "test_bads.txt"
 bad_file_wrong = base_dir / "test_wrong_bads.txt"
-hp_fname = base_dir / "test_chpi_raw_hp.txt"
 hp_fif_fname = base_dir / "test_chpi_raw_sss.fif"
 
 
@@ -190,7 +190,7 @@ def test_subject_info(tmp_path):
     assert raw.info["subject_info"] is None
     # fake some subject data
     keys = ["id", "his_id", "last_name", "first_name", "birthday", "sex", "hand"]
-    vals = [1, "foobar", "bar", "foo", (1901, 2, 3), 0, 1]
+    vals = [1, "foobar", "bar", "foo", datetime.date(1901, 2, 3), 0, 1]
     subject_info = dict()
     for key, val in zip(keys, vals):
         subject_info[key] = val
@@ -476,11 +476,19 @@ def test_concatenate_raws_order():
 
     with pytest.raises(ValueError, match="Channel order must match."):
         # still fails, because raws is copied and not changed in place
-        match_channel_orders(raws, copy=True)
+        match_channel_orders(insts=raws, copy=True)
         raw_concat = concatenate_raws(raws)
 
+    # XXX: remove in version 1.9
+    with pytest.warns(DeprecationWarning, match="``raws`` parameter is deprecated"):
+        match_channel_orders(raws=raws)
+
+    # XXX: remove in version 1.9
+    with pytest.raises(ValueError, match="need to pass a list"):
+        match_channel_orders()
+
     # Now passes because all raws have the same order
-    match_channel_orders(raws, copy=False)
+    match_channel_orders(insts=raws, copy=False)
     raw_concat = concatenate_raws(raws)
     ch0 = raw_concat.get_data(picks=["0"])
     assert np.all(ch0 == 0)
@@ -695,12 +703,14 @@ def test_bids_split_files(tmp_path):
     with pytest.raises(ValueError, match="Passing a BIDSPath"):
         raw.save(bids_path, **save_kwargs)
     bids_path.split = None
-    want_paths = [Path(bids_path.copy().update(split=ii).fpath) for ii in range(1, 3)]
+    want_paths = [
+        Path(bids_path.copy().update(split=f"{ii:02d}").fpath) for ii in range(1, 3)
+    ]
     for want_path in want_paths:
         assert not want_path.is_file()
     raw.save(bids_path, **save_kwargs)
     for want_path in want_paths:
-        assert want_path.is_file()
+        assert want_path.is_file(), want_path
 
 
 def _err(*args, **kwargs):
@@ -1292,7 +1302,7 @@ def test_crop():
         assert raw1[:][0].shape == (1, 2001)
 
     # degenerate
-    with pytest.raises(ValueError, match="No samples.*when include_tmax=Fals"):
+    with pytest.raises(ValueError, match="No samples.*when include_tmax=False"):
         raw.crop(0, 0, include_tmax=False)
 
     # edge cases cropping to exact duration +/- 1 sample

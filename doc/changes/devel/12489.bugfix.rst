@@ -1,1 +1,0 @@
-Fix cleaning of channel names for non vectorview or CTF dataset including whitespaces or dash in their channel names, by `Mathieu Scheltienne`_.

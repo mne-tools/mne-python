@@ -12,6 +12,7 @@ from copy import deepcopy
 import numpy as np
 
 from ._logging import verbose, warn
+from ._typing import Self
 from .check import _check_pandas_installed, _check_preload, _validate_type
 from .numerics import _time_mask, object_hash, object_size
 
@@ -69,24 +70,27 @@ class SizeMixin:
             _check_preload(self, "Hashing ")
             return object_hash(dict(info=self.info, data=self._data))
         else:
-            raise RuntimeError("Hashing unknown object type: %s" % type(self))
+            raise RuntimeError(f"Hashing unknown object type: {type(self)}")
 
 
 class GetEpochsMixin:
     """Class to add epoch selection and metadata to certain classes."""
 
-    def __getitem__(self, item):
+    def __getitem__(
+        self: Self,
+        item,
+    ) -> Self:
         """Return an Epochs object with a copied subset of epochs.
 
         Parameters
         ----------
-        item : slice, array-like, str, or list
-            See below for use cases.
+        item : int | slice | array-like | str
+            See Notes for use cases.
 
         Returns
         -------
         epochs : instance of Epochs
-            See below for use cases.
+            The subset of epochs.
 
         Notes
         -----
@@ -197,10 +201,9 @@ class GetEpochsMixin:
         `Epochs` or tuple(Epochs, np.ndarray) if `return_indices` is True
             subset of epochs (and optionally array with kept epoch indices)
         """
-        data = self._data
-        self._data = None
         inst = self.copy() if copy else self
-        self._data = inst._data = data
+        if self._data is not None:
+            np.copyto(inst._data, self._data, casting="no")
         del self
 
         select = inst._item_to_select(item)
@@ -288,7 +291,7 @@ class GetEpochsMixin:
                 except Exception as exp:
                     msg += (
                         " The epochs.metadata Pandas query did not "
-                        "yield any results: %s" % (exp.args[0],)
+                        f"yield any results: {exp.args[0]}"
                     )
                 else:
                     return vals
@@ -416,7 +419,7 @@ class GetEpochsMixin:
                 if len(metadata) != len(self.events):
                     raise ValueError(
                         "metadata must have the same number of "
-                        "rows (%d) as events (%d)" % (len(metadata), len(self.events))
+                        f"rows ({len(metadata)}) as events ({len(self.events)})"
                     )
                 if reset_index:
                     if hasattr(self, "selection"):
@@ -445,7 +448,7 @@ class GetEpochsMixin:
                 n_col = metadata.shape[1]
             else:
                 n_col = len(metadata[0])
-            n_col = " with %d columns" % n_col
+            n_col = f" with {n_col} columns"
         else:
             n_col = ""
         if hasattr(self, "_metadata") and self._metadata is not None:
@@ -453,7 +456,7 @@ class GetEpochsMixin:
             action += " existing"
         else:
             action = "Not setting" if metadata is None else "Adding"
-        logger.info("%s metadata%s" % (action, n_col))
+        logger.info(f"{action} metadata{n_col}")
         self._metadata = metadata
 
 
@@ -466,7 +469,7 @@ def _check_decim(info, decim, offset, check_filter=True):
     offset = int(offset)
     if not 0 <= offset < decim:
         raise ValueError(
-            f"decim must be at least 0 and less than {decim}, " f"got {offset}"
+            f"decim must be at least 0 and less than {decim}, got {offset}"
         )
     if check_filter:
         lowpass = info["lowpass"]
@@ -681,10 +684,10 @@ class ExtendedTimeMixin(TimeMixin):
         # appropriately filtered to avoid aliasing
         from ..epochs import BaseEpochs
         from ..evoked import Evoked
-        from ..time_frequency import AverageTFR, EpochsTFR
+        from ..time_frequency import BaseTFR
 
         # This should be the list of classes that inherit
-        _validate_type(self, (BaseEpochs, Evoked, EpochsTFR, AverageTFR), "inst")
+        _validate_type(self, (BaseEpochs, Evoked, BaseTFR), "inst")
         decim, offset, new_sfreq = _check_decim(
             self.info, decim, offset, check_filter=not hasattr(self, "freqs")
         )
@@ -755,7 +758,7 @@ def _prepare_write_metadata(metadata):
     """Convert metadata to JSON for saving."""
     if metadata is not None:
         if not isinstance(metadata, list):
-            metadata = metadata.to_json(orient="records")
+            metadata = metadata.reset_index().to_json(orient="records")
         else:  # Pandas DataFrame
             metadata = json.dumps(metadata)
         assert isinstance(metadata, str)
@@ -772,5 +775,7 @@ def _prepare_read_metadata(metadata):
         assert isinstance(metadata, list)
         if pd:
             metadata = pd.DataFrame.from_records(metadata)
+            if "index" in metadata.columns:
+                metadata.set_index("index", inplace=True)
             assert isinstance(metadata, pd.DataFrame)
     return metadata

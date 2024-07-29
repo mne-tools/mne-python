@@ -14,7 +14,7 @@ from ..decoding import BaseEstimator, TransformerMixin
 from ..epochs import BaseEpochs
 from ..evoked import Evoked, EvokedArray
 from ..io import BaseRaw
-from ..utils import _check_option, logger
+from ..utils import _check_option, logger, pinv
 
 
 def _construct_signal_from_epochs(epochs, events, sfreq, tmin):
@@ -92,7 +92,7 @@ def _least_square_evoked(epochs_data, events, tmin, sfreq):
     X = np.concatenate(toeplitz)
 
     # least square estimation
-    predictor = np.dot(linalg.pinv(np.dot(X, X.T)), X)
+    predictor = np.dot(pinv(np.dot(X, X.T)), X)
     evokeds = np.dot(predictor, raw.T)
     evokeds = np.transpose(np.vsplit(evokeds, len(classes)), (0, 2, 1))
     return evokeds, toeplitz
@@ -202,7 +202,7 @@ def _fit_xdawn(
         except np.linalg.LinAlgError as exp:
             raise ValueError(
                 "Could not compute eigenvalues, ensure "
-                "proper regularization (%s)" % (exp,)
+                f"proper regularization ({exp})"
             )
         evecs = evecs[:, np.argsort(evals)[::-1]]  # sort eigenvectors
         evecs /= np.apply_along_axis(np.linalg.norm, 0, evecs)
@@ -354,7 +354,7 @@ class _XdawnTransformer(BaseEstimator, TransformerMixin):
         # Check data
         if not isinstance(X, np.ndarray) or X.ndim != 3:
             raise ValueError(
-                "X must be an array of shape (n_epochs, " "n_channels, n_samples)."
+                "X must be an array of shape (n_epochs, n_channels, n_samples)."
             )
         if y is None:
             y = np.ones(len(X))
@@ -464,9 +464,7 @@ class Xdawn(_XdawnTransformer):
             correct_overlap = isi.min() < window
 
         if epochs.baseline and correct_overlap:
-            raise ValueError(
-                "Cannot apply correct_overlap if epochs" " were baselined."
-            )
+            raise ValueError("Cannot apply correct_overlap if epochs were baselined.")
 
         events, tmin, sfreq = None, 0.0, 1.0
         if correct_overlap:
@@ -530,7 +528,7 @@ class Xdawn(_XdawnTransformer):
         elif isinstance(inst, np.ndarray):
             X = inst
             if X.ndim not in (2, 3):
-                raise ValueError("X must be 2D or 3D, got %s" % (X.ndim,))
+                raise ValueError(f"X must be 2D or 3D, got {X.ndim}")
         else:
             raise ValueError("Data input must be of Epoch type or numpy array")
 
@@ -671,11 +669,11 @@ class Xdawn(_XdawnTransformer):
             mask = np.ones(len(sources), dtype=bool)
             mask[np.unique(include)] = False
             sources[mask] = 0.0
-            logger.info("Zeroing out %i Xdawn components" % mask.sum())
+            logger.info(f"Zeroing out {int(mask.sum())} Xdawn components")
         elif exclude not in (None, list()):
             exclude_ = np.unique(exclude)
             sources[exclude_] = 0.0
-            logger.info("Zeroing out %i Xdawn components" % len(exclude_))
+            logger.info(f"Zeroing out {len(exclude_)} Xdawn components")
         logger.info("Inverse transforming to sensor space")
         data = np.dot(self.patterns_[eid].T, sources)
 

@@ -87,10 +87,6 @@ bv_fif_fname = data_path / "montage" / "bv_dig_raw.fif"
 locs_montage_fname = data_path / "EEGLAB" / "test_chans.locs"
 evoked_fname = data_path / "montage" / "level2_raw-ave.fif"
 eeglab_fname = data_path / "EEGLAB" / "test_raw.set"
-bdf_fname1 = data_path / "BDF" / "test_generator_2.bdf"
-bdf_fname2 = data_path / "BDF" / "test_bdf_stim_channel.bdf"
-egi_fname1 = data_path / "EGI" / "test_egi.mff"
-cnt_fname = data_path / "CNT" / "scan41_short.cnt"
 fnirs_dname = data_path / "NIRx" / "nirscout" / "nirx_15_2_recording_w_short"
 mgh70_fname = data_path / "SSS" / "mgh70_raw.fif"
 subjects_dir = data_path / "subjects"
@@ -104,10 +100,8 @@ bv_fname = io_dir / "brainvision" / "tests" / "data" / "test.vhdr"
 fif_fname = io_dir / "tests" / "data" / "test_raw.fif"
 edf_path = io_dir / "edf" / "tests" / "data" / "test.edf"
 bdf_path = io_dir / "edf" / "tests" / "data" / "test_bdf_eeglab.mat"
-egi_fname2 = io_dir / "egi" / "tests" / "data" / "test_egi.raw"
 vhdr_path = io_dir / "brainvision" / "tests" / "data" / "test.vhdr"
 ctf_fif_fname = io_dir / "tests" / "data" / "test_ctf_comp_raw.fif"
-nicolet_fname = io_dir / "nicolet" / "tests" / "data" / "test_nicolet_raw.data"
 
 
 def _make_toy_raw(n_channels):
@@ -634,7 +628,7 @@ def test_read_dig_montage_using_polhemus_fastscan():
     )
 
     assert repr(montage) == (
-        "<DigMontage | " "500 extras (headshape), 5 HPIs, 3 fiducials, 10 channels>"
+        "<DigMontage | 500 extras (headshape), 5 HPIs, 3 fiducials, 10 channels>"
     )
 
     assert set([d["coord_frame"] for d in montage.dig]) == {FIFF.FIFFV_COORD_UNKNOWN}
@@ -679,7 +673,7 @@ def test_read_dig_polhemus_isotrak_hsp():
     }
     montage = read_dig_polhemus_isotrak(fname=kit_dir / "test.hsp", ch_names=None)
     assert repr(montage) == (
-        "<DigMontage | " "500 extras (headshape), 0 HPIs, 3 fiducials, 0 channels>"
+        "<DigMontage | 500 extras (headshape), 0 HPIs, 3 fiducials, 0 channels>"
     )
 
     fiducials, fid_coordframe = _get_fid_coords(montage.dig)
@@ -698,7 +692,7 @@ def test_read_dig_polhemus_isotrak_elp():
     }
     montage = read_dig_polhemus_isotrak(fname=kit_dir / "test.elp", ch_names=None)
     assert repr(montage) == (
-        "<DigMontage | " "0 extras (headshape), 5 HPIs, 3 fiducials, 0 channels>"
+        "<DigMontage | 0 extras (headshape), 5 HPIs, 3 fiducials, 0 channels>"
     )
     fiducials, fid_coordframe = _get_fid_coords(montage.dig)
 
@@ -735,7 +729,7 @@ def isotrak_eeg(tmp_path_factory):
         )
         fid.write(f"{N_ROWS} {N_COLS}\n")
         for row in content:
-            fid.write("\t".join("%0.18e" % cell for cell in row) + "\n")
+            fid.write("\t".join(f"{cell:0.18e}" for cell in row) + "\n")
 
     return str(fname)
 
@@ -756,7 +750,7 @@ def test_read_dig_polhemus_isotrak_eeg(isotrak_eeg):
 
     montage = read_dig_polhemus_isotrak(fname=isotrak_eeg, ch_names=ch_names)
     assert repr(montage) == (
-        "<DigMontage | " "0 extras (headshape), 0 HPIs, 3 fiducials, 5 channels>"
+        "<DigMontage | 0 extras (headshape), 0 HPIs, 3 fiducials, 5 channels>"
     )
 
     fiducials, fid_coordframe = _get_fid_coords(montage.dig)
@@ -835,7 +829,7 @@ def test_combining_digmontage_objects():
         + ch_pos3
     )
     assert repr(montage) == (
-        "<DigMontage | " "6 extras (headshape), 6 HPIs, 3 fiducials, 9 channels>"
+        "<DigMontage | 6 extras (headshape), 6 HPIs, 3 fiducials, 9 channels>"
     )
 
     EXPECTED_MONTAGE = make_dig_montage(
@@ -1080,7 +1074,11 @@ def test_egi_dig_montage(tmp_path):
     )
 
     # Test accuracy and embedding within raw object
-    raw_egi = read_raw_egi(egi_raw_fname, channel_naming="EEG %03d")
+    raw_egi = read_raw_egi(
+        egi_raw_fname,
+        channel_naming="EEG %03d",
+        events_as_annotations=True,
+    )
 
     raw_egi.set_montage(dig_montage)
     test_raw_egi = read_raw_fif(egi_fif_fname)
@@ -1106,17 +1104,6 @@ def test_egi_dig_montage(tmp_path):
     fname_temp = tmp_path / "egi_test.fif"
     _check_roundtrip(dig_montage, fname_temp, "unknown")
     _check_roundtrip(dig_montage_in_head, fname_temp)
-
-
-def _pop_montage(dig_montage, ch_name):
-    # remove reference that was not used in old API
-    name_idx = dig_montage.ch_names.index(ch_name)
-    dig_idx = dig_montage._get_dig_names().index(ch_name)
-
-    del dig_montage.dig[dig_idx]
-    del dig_montage.ch_names[name_idx]
-    for k in range(dig_idx, len(dig_montage.dig)):
-        dig_montage.dig[k]["ident"] -= 1
 
 
 @testing.requires_testing_data
@@ -1264,7 +1251,7 @@ def test_read_dig_captrak(tmp_path):
 
     assert montage.ch_names == EXPECTED_CH_NAMES
     assert repr(montage) == (
-        "<DigMontage | " "0 extras (headshape), 0 HPIs, 3 fiducials, 66 channels>"
+        "<DigMontage | 0 extras (headshape), 0 HPIs, 3 fiducials, 66 channels>"
     )
 
     montage = transform_to_head(montage)  # transform_to_head has to be tested
@@ -1442,21 +1429,6 @@ def _check_roundtrip(montage, fname, coord_frame="head"):
     assert_equal(repr(montage), repr(montage_read))
     assert_equal(_check_get_coord_frame(montage_read.dig), coord_frame)
     assert_dig_allclose(montage, montage_read)
-
-
-def _fake_montage(ch_names):
-    pos = np.random.RandomState(42).randn(len(ch_names), 3)
-    return make_dig_montage(ch_pos=dict(zip(ch_names, pos)), coord_frame="head")
-
-
-cnt_ignore_warns = [
-    pytest.mark.filterwarnings(
-        "ignore:.*Could not parse meas date from the header. Setting to None."
-    ),
-    pytest.mark.filterwarnings(
-        "ignore:.*Could not define the number of bytes automatically. Defaulting to 2."
-    ),
-]
 
 
 def test_digmontage_constructor_errors():
@@ -1783,7 +1755,7 @@ def test_set_montage_with_missing_coordinates():
         rpa=[-1, 0, 0],
     )
 
-    with pytest.raises(ValueError, match="DigMontage is " "only a subset of info"):
+    with pytest.raises(ValueError, match="DigMontage is only a subset of info"):
         raw.set_montage(montage_in_mri)
 
     with pytest.raises(ValueError, match="Invalid value"):
@@ -1792,7 +1764,7 @@ def test_set_montage_with_missing_coordinates():
     with pytest.raises(TypeError, match="must be an instance"):
         raw.set_montage(montage_in_mri, on_missing=True)
 
-    with pytest.warns(RuntimeWarning, match="DigMontage is " "only a subset of info"):
+    with pytest.warns(RuntimeWarning, match="DigMontage is only a subset of info"):
         raw.set_montage(montage_in_mri, on_missing="warn")
 
     raw.set_montage(montage_in_mri, on_missing="ignore")
@@ -1909,7 +1881,7 @@ def test_read_dig_hpts():
     fname = io_dir / "brainvision" / "tests" / "data" / "test.hpts"
     montage = read_dig_hpts(fname)
     assert repr(montage) == (
-        "<DigMontage | " "0 extras (headshape), 5 HPIs, 3 fiducials, 34 channels>"
+        "<DigMontage | 0 extras (headshape), 5 HPIs, 3 fiducials, 34 channels>"
     )
 
 
@@ -1966,7 +1938,7 @@ def test_montage_add_fiducials():
     subjects_dir = data_path / "subjects"
     subject = "sample"
     fid_fname = subjects_dir / subject / "bem" / "sample-fiducials.fif"
-    test_fids, test_coord_frame = read_fiducials(fid_fname)
+    test_fids, _ = read_fiducials(fid_fname)
     test_fids = np.array([f["r"] for f in test_fids])
 
     # create test montage and add estimated fiducials
@@ -1976,7 +1948,7 @@ def test_montage_add_fiducials():
 
     # check that adding MNI fiducials fails because we're in MRI
     with pytest.raises(
-        RuntimeError, match="Montage should be in the " '"mni_tal" coordinate frame'
+        RuntimeError, match='Montage should be in the "mni_tal" coordinate frame'
     ):
         montage.add_mni_fiducials(subjects_dir=subjects_dir)
 
@@ -1991,7 +1963,7 @@ def test_montage_add_fiducials():
     # which is the FreeSurfer RAS
     montage = make_dig_montage(ch_pos=test_ch_pos, coord_frame="mni_tal")
     with pytest.raises(
-        RuntimeError, match="Montage should be in the " '"mri" coordinate frame'
+        RuntimeError, match='Montage should be in the "mri" coordinate frame'
     ):
         montage.add_estimated_fiducials(subject=subject, subjects_dir=subjects_dir)
 

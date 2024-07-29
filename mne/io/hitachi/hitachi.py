@@ -96,7 +96,7 @@ class RawHitachi(BaseRaw):
             info = infos[0]
         if len(set(last_samps)) != 1:
             raise RuntimeError(
-                "All files must have the same number of " "samples, got: {last_samps}"
+                "All files must have the same number of samples, got: {last_samps}"
             )
         last_samps = [last_samps[0]]
         raw_extras = [dict(probes=probes)]
@@ -136,7 +136,7 @@ class RawHitachi(BaseRaw):
 
 
 def _get_hitachi_info(fname, S_offset, D_offset, ignore_names):
-    logger.info("Loading %s" % fname)
+    logger.info(f"Loading {fname}")
     raw_extra = dict(fname=fname)
     info_extra = dict()
     subject_info = dict()
@@ -284,9 +284,7 @@ def _get_hitachi_info(fname, S_offset, D_offset, ignore_names):
         # nominal wavelength
         sidx, didx = pairs[ii // 2]
         nom_freq = fnirs_wavelengths[np.argmin(np.abs(acc_freq - fnirs_wavelengths))]
-        ch_names[idx] = (
-            f"S{S_offset + sidx + 1}_" f"D{D_offset + didx + 1} " f"{nom_freq}"
-        )
+        ch_names[idx] = f"S{S_offset + sidx + 1}_D{D_offset + didx + 1} {nom_freq}"
     offsets = np.array(pairs, int).max(axis=0) + 1
 
     # figure out bounds
@@ -294,7 +292,7 @@ def _get_hitachi_info(fname, S_offset, D_offset, ignore_names):
     last_samp = len(bounds) - 2
 
     if age is not None and meas_date is not None:
-        subject_info["birthday"] = (
+        subject_info["birthday"] = dt.date(
             meas_date.year - age,
             meas_date.month,
             meas_date.day,

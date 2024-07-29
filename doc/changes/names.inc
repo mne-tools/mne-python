@@ -190,7 +190,7 @@
 
 .. _George O'Neill: https://georgeoneill.github.io
 
-.. _Gonzalo Reina: https://github.com/Gon-reina
+.. _Gonzalo Reina: https://orcid.org/0000-0003-4219-2306
 
 .. _Guillaume Dumas: https://mila.quebec/en/person/guillaume-dumas
 
@@ -206,6 +206,8 @@
 
 .. _Hari Bharadwaj: https://github.com/haribharadwaj
 
+.. _Hasrat Ali Arzoo: https://github.com/hasrat17
+
 .. _Henrich Kolkhorst: https://github.com/hekolk
 
 .. _Hongjiang Ye: https://github.com/hongjiang-ye
@@ -216,6 +218,8 @@
 
 .. _Hyonyoung Shin: https://github.com/mcvain
 
+.. _Ilian Azz: https://github.com/ilianAZZ
+
 .. _Ilias Machairas: https://github.com/JungleHippo
 
 .. _Ivan Skelin: https://github.com/ivan-skelin
@@ -223,6 +227,8 @@
 .. _Ivan Zubarev: https://github.com/zubara
 
 .. _Ivana Kojcic: https://github.com/ikojcic
+
+.. _Ivo de Jong: https://github.com/ivopascal
 
 .. _Jaakko Leppakangas: https://github.com/jaeilepp
 
@@ -378,6 +384,8 @@
 
 .. _Mauricio Cespedes Tenorio: https://github.com/mcespedes99
 
+.. _Michal Žák: https://github.com/michalrzak
+
 .. _Michiru Kaneda: https://github.com/rcmdnk
 
 .. _Mikołaj Magnuski: https://github.com/mmagnuski
@@ -406,6 +414,8 @@
 
 .. _Nicolas Barascud: https://github.com/nbara
 
+.. _Nicolas Fourcaud-Trocmé: https://www.crnl.fr/fr/user/316
+
 .. _Niels Focke: https://neurologie.umg.eu/forschung/arbeitsgruppen/epilepsie-und-bildgebungsforschung
 
 .. _Niklas Wilming: https://github.com/nwilming
@@ -415,6 +425,8 @@
 .. _Nikolai Kapralov: https://github.com/ctrltz
 
 .. _Nikolas Chalas: https://github.com/Nichalas
+
+.. _Noah Markowitz: https://github.com/nmarkowitz
 
 .. _Okba Bekhelifi: https://github.com/okbalefthanded
 
@@ -442,6 +454,8 @@
 
 .. _Pierre-Antoine Bannier: https://github.com/PABannier
 
+.. _Ping-Keng Jao: https://github.com/nafraw
+
 .. _Proloy Das: https://github.com/proloyd
 
 .. _Qian Chu: https://github.com/qian-chu
@@ -464,7 +478,7 @@
 
 .. _Rasmus Aagaard: https://github.com/rasgaard
 
-.. _Rasmus Zetter: https://people.aalto.fi/rasmus.zetter
+.. _Rasmus Zetter: https://github.com/rzetter
 
 .. _Reza Nasri: https://github.com/rznas
 
@@ -594,6 +608,8 @@
 
 .. _Victoria Peterson: https://github.com/vpeterson
 
+.. _Xabier de Zuazo: https://github.com/zuazo
+
 .. _Xiaokai Xia: https://github.com/dddd1007
 
 .. _Will Turner: https://bootstrapbill.github.io
@@ -609,3 +625,5 @@
 .. _Zhi Zhang: https://github.com/tczhangzhi/
 
 .. _Zvi Baratz: https://github.com/ZviBaratz
+
+.. _Seyed Yahya Shirazi: https://neuromechanist.github.io

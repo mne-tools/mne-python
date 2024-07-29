@@ -1,1 +1,0 @@
-Fix bug where section parameter in :meth:`mne.Report.add_html` was not being utilized resulting in improper formatting, by :newcontrib:`Martin Oberg`.

@@ -19,13 +19,14 @@ from io import BytesIO
 
 import numpy as np
 from scipy.interpolate import interp1d
-from scipy.sparse import csr_matrix
+from scipy.sparse import csr_array
 from scipy.spatial.distance import cdist
 
 from ..._fiff.meas_info import Info
 from ..._fiff.pick import pick_types
 from ..._freesurfer import (
     _estimate_talxfm_rigid,
+    _get_aseg,
     _get_head_surface,
     _get_skull_surface,
     read_freesurfer_lut,
@@ -163,9 +164,7 @@ class Brain:
         .. versionchanged:: 0.23
            Default changed to "auto".
     offscreen : bool
-        If True, rendering will be done offscreen (not shown). Useful
-        mostly for generating images or screenshots, but can be buggy.
-        Use at your own risk.
+        Deprecated and will be removed in 1.9, do not use.
     interaction : str
         Can be "trackball" (default) or "terrain", i.e. a turntable-style
         camera.
@@ -181,7 +180,8 @@ class Brain:
     show : bool
         Display the window as soon as it is ready. Defaults to True.
     block : bool
-        If True, start the Qt application event loop. Default to False.
+        Deprecated and will be removed in 1.9, do not use. Consider using
+        :func:`matplotlib.pyplot.show` with ``block=True`` instead.
 
     Attributes
     ----------
@@ -298,19 +298,25 @@ class Brain:
         views="auto",
         *,
         offset="auto",
-        offscreen=False,
+        offscreen=None,
         interaction="trackball",
         units="mm",
         view_layout="vertical",
         silhouette=False,
         theme=None,
         show=True,
-        block=False,
+        block=None,
     ):
         from ..backends.renderer import _get_renderer, backend
 
         _validate_type(subject, str, "subject")
         self._surf = surf
+        if offscreen is not None:
+            warn(
+                "The 'offscreen' parameter is deprecated and will be removed in 1.9. "
+                "as it has no effect",
+                FutureWarning,
+            )
         if hemi is None:
             hemi = "vol"
         hemi = self._check_hemi(hemi, extras=("both", "split", "vol"))
@@ -346,12 +352,17 @@ class Brain:
         size = tuple(np.atleast_1d(size).round(0).astype(int).flat)
         if len(size) not in (1, 2):
             raise ValueError(
-                '"size" parameter must be an int or length-2 ' "sequence of ints."
+                '"size" parameter must be an int or length-2 sequence of ints.'
             )
         size = size if len(size) == 2 else size * 2  # 1-tuple to 2-tuple
         subjects_dir = get_subjects_dir(subjects_dir)
         if subjects_dir is not None:
             subjects_dir = str(subjects_dir)
+        if block is not None:
+            warn(
+                "block is deprecated and will be removed in 1.9, use "
+                "plt.show(block=True) instead"
+            )
 
         self.time_viewer = False
         self._hash = time.time_ns()
@@ -535,10 +546,7 @@ class Brain:
         self.default_smoothing_range = [-1, 15]
 
         # Default configuration
-        self.playback = False
         self.visibility = False
-        self.refresh_rate_ms = max(int(round(1000.0 / 60.0)), 1)
-        self.default_scaling_range = [0.2, 2.0]
         self.default_playback_speed_range = [0.01, 1]
         self.default_playback_speed_value = 0.01
         self.default_status_bar_msg = "Press ? for help"
@@ -546,7 +554,6 @@ class Brain:
             "stc": ["mean", "max"],
             "src": ["mean_flip", "pca_flip", "auto"],
         }
-        self.default_trace_modes = ("vertex", "label")
         self.annot = None
         self.label_extract_mode = None
         all_keys = ("lh", "rh", "vol")
@@ -747,30 +754,6 @@ class Brain:
             self._scalar_bar.SetWidth(0.05)
             self._scalar_bar.SetPosition(0.02, 0.2)
 
-    def _configure_dock_time_widget(self, layout=None):
-        len_time = len(self._data["time"]) - 1
-        if len_time < 1:
-            return
-        layout = self._renderer.dock_layout if layout is None else layout
-        hlayout = self._renderer._dock_add_layout(vertical=False)
-        self.widgets["min_time"] = self._renderer._dock_add_label(
-            value="-", layout=hlayout
-        )
-        self._renderer._dock_add_stretch(hlayout)
-        self.widgets["current_time"] = self._renderer._dock_add_label(
-            value="x", layout=hlayout
-        )
-        self._renderer._dock_add_stretch(hlayout)
-        self.widgets["max_time"] = self._renderer._dock_add_label(
-            value="+", layout=hlayout
-        )
-        self._renderer._layout_add_widget(layout, hlayout)
-        min_time = float(self._data["time"][0])
-        max_time = float(self._data["time"][-1])
-        self.widgets["min_time"].set_value(f"{min_time: .3f}")
-        self.widgets["max_time"].set_value(f"{max_time: .3f}")
-        self.widgets["current_time"].set_value(f"{self._current_time: .3f}")
-
     def _configure_dock_playback_widget(self, name):
         len_time = len(self._data["time"]) - 1
 
@@ -864,8 +847,8 @@ class Brain:
         )
 
     def _configure_dock_colormap_widget(self, name):
-        fmin, fmax, fscale, fscale_power = _get_range(self)
-        rng = [fmin * fscale, fmax * fscale]
+        fmax, fscale, fscale_power = _get_range(self)
+        rng = [0, fmax * fscale]
         self._data["fscale"] = fscale
 
         layout = self._renderer._dock_add_group_box(name)
@@ -1123,7 +1106,7 @@ class Brain:
                 vertices = hemi_data["vertices"]
                 if hemi == "vol":
                     assert smooth_mat is None
-                    smooth_mat = csr_matrix(
+                    smooth_mat = csr_array(
                         (np.ones(len(vertices)), (vertices, np.arange(len(vertices))))
                     )
                 self.act_data_smooth[hemi] = (act_data, smooth_mat)
@@ -1557,7 +1540,7 @@ class Brain:
                 xfm["trans"][:3, 3] *= 1000.0
             ijk = np.unravel_index(vertex_id, self._data[hemi]["grid_shape"], order="F")
             src_mri_t = self._data[hemi]["grid_src_mri_t"]
-            mni = apply_trans(np.dot(xfm["trans"], src_mri_t), ijk)
+            mni = apply_trans(xfm["trans"] @ src_mri_t, ijk)
         else:
             hemi_str = "L" if hemi == "lh" else "R"
             try:
@@ -1570,13 +1553,13 @@ class Brain:
             except Exception:
                 mni = None
         if mni is not None:
-            mni = " MNI: " + ", ".join("%5.1f" % m for m in mni)
+            mni = " MNI: " + ", ".join(f"{m:5.1f}" for m in mni)
         else:
             mni = ""
         label = f"{hemi_str}:{str(vertex_id).ljust(6)}{mni}"
         act_data, smooth = self.act_data_smooth[hemi]
         if smooth is not None:
-            act_data = smooth[vertex_id].dot(act_data)[0]
+            act_data = (smooth[[vertex_id]] @ act_data)[0]
         else:
             act_data = act_data[vertex_id].copy()
         line = self.mpl_canvas.plot(
@@ -1763,16 +1746,14 @@ class Brain:
     ):
         """Display data from a numpy array on the surface or volume.
 
-        This provides a similar interface to
-        :meth:`surfer.Brain.add_overlay`, but it displays
+        This provides a similar interface to PySurfer, but it displays
         it with a single colormap. It offers more flexibility over the
         colormap, and provides a way to display four-dimensional data
         (i.e., a timecourse) or five-dimensional data (i.e., a
         vector-valued timecourse).
 
         .. note:: ``fmin`` sets the low end of the colormap, and is separate
-                  from thresh (this is a different convention from
-                  :meth:`surfer.Brain.add_overlay`).
+                  from thresh (this is a different convention from PySurfer).
 
         Parameters
         ----------
@@ -1859,7 +1840,7 @@ class Brain:
             time_label_size = float(time_label_size)
             if time_label_size < 0:
                 raise ValueError(
-                    "time_label_size must be positive, got " f"{time_label_size}"
+                    f"time_label_size must be positive, got {time_label_size}"
                 )
 
         hemi = self._check_hemi(hemi, extras=["vol"])
@@ -1880,18 +1861,18 @@ class Brain:
                 time = np.asarray(time)
                 if time.shape != (array.shape[-1],):
                     raise ValueError(
-                        "time has shape %s, but need shape %s "
-                        "(array.shape[-1])" % (time.shape, (array.shape[-1],))
+                        f"time has shape {time.shape}, but need shape "
+                        f"{(array.shape[-1],)} (array.shape[-1])"
                     )
             self._data["time"] = time
 
             if self._n_times is None:
                 self._times = time
             elif len(time) != self._n_times:
-                raise ValueError("New n_times is different from previous " "n_times")
+                raise ValueError("New n_times is different from previous n_times")
             elif not np.array_equal(time, self._times):
                 raise ValueError(
-                    "Not all time values are consistent with " "previously set times."
+                    "Not all time values are consistent with previously set times."
                 )
 
             # initial time
@@ -2243,7 +2224,7 @@ class Brain:
                         self._subjects_dir, self._subject, "label", subdir, label_fname
                     )
                 if not os.path.exists(filepath):
-                    raise ValueError("Label file %s does not exist" % filepath)
+                    raise ValueError(f"Label file {filepath} does not exist")
                 label = read_label(filepath)
             ids = label.vertices
             scalars = label.values
@@ -2357,7 +2338,7 @@ class Brain:
         if scale is None:
             scale = 1.5 if self._units == "mm" else 1.5e-3
         error_msg = (
-            "Unexpected forward model coordinate frame " '{}, must be "head" or "mri"'
+            'Unexpected forward model coordinate frame {}, must be "head" or "mri"'
         )
         if fwd["coord_frame"] in _frame_to_str:
             fwd_frame = _frame_to_str[fwd["coord_frame"]]
@@ -2533,7 +2514,7 @@ class Brain:
     @fill_doc
     def add_volume_labels(
         self,
-        aseg="aparc+aseg",
+        aseg="auto",
         labels=None,
         colors=None,
         alpha=0.5,
@@ -2571,26 +2552,8 @@ class Brain:
         -----
         .. versionadded:: 0.24
         """
-        import nibabel as nib
+        aseg, aseg_data = _get_aseg(aseg, self._subject, self._subjects_dir)
 
-        # load anatomical segmentation image
-        if not aseg.endswith(("aseg", "parc")):
-            raise RuntimeError(f"Expected `aseg` file path, {aseg} suffix")
-        aseg = str(
-            _check_fname(
-                op.join(
-                    self._subjects_dir,
-                    self._subject,
-                    "mri",
-                    aseg + ".mgz",
-                ),
-                overwrite="read",
-                must_exist=True,
-            )
-        )
-        aseg_fname = aseg
-        aseg = nib.load(aseg_fname)
-        aseg_data = np.asarray(aseg.dataobj)
         vox_mri_t = aseg.header.get_vox2ras_tkr()
         mult = 1e-3 if self._units == "m" else 1
         vox_mri_t[:3] *= mult
@@ -2624,7 +2587,7 @@ class Brain:
             if len(verts) == 0:  # not in aseg vals
                 warn(
                     f"Value {lut[label]} not found for label "
-                    f"{repr(label)} in: {aseg_fname}"
+                    f"{repr(label)} in anatomical segmentation file "
                 )
                 continue
             verts = apply_trans(vox_mri_t, verts)
@@ -3046,7 +3009,7 @@ class Brain:
                         ".".join([hemi, annot, "annot"]),
                     )
                     if not os.path.exists(filepath):
-                        raise ValueError("Annotation file %s does not exist" % filepath)
+                        raise ValueError(f"Annotation file {filepath} does not exist")
                     filepaths += [filepath]
             annots = []
             for hemi, filepath in zip(hemis, filepaths):
@@ -3462,9 +3425,9 @@ class Brain:
                 vertices = hemi_data["vertices"]
                 if vertices is None:
                     raise ValueError(
-                        "len(data) < nvtx (%s < %s): the vertices "
+                        f"len(data) < nvtx ({len(hemi_data)} < "
+                        f"{self.geo[hemi].x.shape[0]}): the vertices "
                         "parameter must not be None"
-                        % (len(hemi_data), self.geo[hemi].x.shape[0])
                     )
                 morph_n_steps = "nearest" if n_steps == -1 else n_steps
                 with use_log_level(False):
@@ -3657,7 +3620,6 @@ class Brain:
                     scale_mode="vector",
                     scale=scale_factor,
                     opacity=vector_alpha,
-                    name=str(hemi) + "_glyph",
                 )
                 hemi_data["glyph_dataset"] = glyph_dataset
                 hemi_data["glyph_mapper"] = glyph_mapper
@@ -3808,13 +3770,13 @@ class Brain:
         def frame_callback(frame, n_frames):
             if frame == n_frames:
                 # On the ImageIO step
-                self.status_msg.set_value("Saving with ImageIO: %s" % filename)
+                self.status_msg.set_value(f"Saving with ImageIO: {filename}")
                 self.status_msg.show()
                 self.status_progress.hide()
                 self._renderer._status_bar_update()
             else:
                 self.status_msg.set_value(
-                    "Rendering images (frame %d / %d) ..." % (frame + 1, n_frames)
+                    f"Rendering images (frame {frame + 1} / {n_frames}) ..."
                 )
                 self.status_msg.show()
                 self.status_progress.show()
@@ -3934,8 +3896,8 @@ class Brain:
             tmin = self._times[0]
         elif tmin < self._times[0]:
             raise ValueError(
-                "tmin=%r is smaller than the first time point "
-                "(%r)" % (tmin, self._times[0])
+                f"tmin={repr(tmin)} is smaller than the first time point "
+                f"({repr(self._times[0])})"
             )
 
         # find indexes at which to create frames
@@ -3943,8 +3905,8 @@ class Brain:
             tmax = self._times[-1]
         elif tmax > self._times[-1]:
             raise ValueError(
-                "tmax=%r is greater than the latest time point "
-                "(%r)" % (tmax, self._times[-1])
+                f"tmax={repr(tmax)} is greater than the latest time point "
+                f"({repr(self._times[-1])})"
             )
         n_frames = floor((tmax - tmin) * time_dilation * framerate)
         times = np.arange(n_frames, dtype=float)
@@ -3956,7 +3918,7 @@ class Brain:
         if n_times == 0:
             raise ValueError("No time points selected")
 
-        logger.debug("Save movie for time points/samples\n%s\n%s" % (times, time_idx))
+        logger.debug(f"Save movie for time points/samples\n{times}\n{time_idx}")
         # Sometimes the first screenshot is rendered with a different
         # resolution on OS X
         self.screenshot(time_viewer=time_viewer)
@@ -4042,7 +4004,7 @@ class Brain:
         if hemi is None:
             if self._hemi not in ["lh", "rh"]:
                 raise ValueError(
-                    "hemi must not be None when both " "hemispheres are displayed"
+                    "hemi must not be None when both hemispheres are displayed"
                 )
             hemi = self._hemi
         _check_option("hemi", hemi, ("lh", "rh") + tuple(extras))
@@ -4127,9 +4089,9 @@ def _update_limits(fmin, fmid, fmax, center, array):
         fmid = (fmin + fmax) / 2.0
 
     if fmin >= fmid:
-        raise RuntimeError("min must be < mid, got %0.4g >= %0.4g" % (fmin, fmid))
+        raise RuntimeError(f"min must be < mid, got {fmin:0.4g} >= {fmid:0.4g}")
     if fmid >= fmax:
-        raise RuntimeError("mid must be < max, got %0.4g >= %0.4g" % (fmid, fmax))
+        raise RuntimeError(f"mid must be < max, got {fmid:0.4g} >= {fmax:0.4g}")
 
     return fmin, fmid, fmax
 
@@ -4173,16 +4135,15 @@ def _get_range(brain):
     multiplied by the scaling factor and when getting a value, this value
     should be divided by the scaling factor.
     """
-    val = np.abs(np.concatenate(list(brain._current_act_data.values())))
-    fmin, fmax = np.min(val), np.max(val)
+    fmax = abs(brain._data["fmax"])
     if 1e-02 <= fmax <= 1e02:
         fscale_power = 0
     else:
-        fscale_power = int(np.log10(fmax))
+        fscale_power = int(np.log10(max(fmax, np.finfo("float32").smallest_normal)))
         if fscale_power < 0:
             fscale_power -= 1
     fscale = 10**-fscale_power
-    return fmin, fmax, fscale, fscale_power
+    return fmax, fscale, fscale_power
 
 
 class _FakeIren:

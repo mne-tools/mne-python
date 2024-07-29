@@ -13,7 +13,7 @@ from mne.viz import plot_channel_labels_circle
 
 
 @pytest.mark.filterwarnings(
-    "ignore:invalid value encountered in greater_equal" ":RuntimeWarning"
+    "ignore:invalid value encountered in greater_equal:RuntimeWarning"
 )
 def test_plot_channel_labels_circle():
     """Test plotting channel labels in a circle."""

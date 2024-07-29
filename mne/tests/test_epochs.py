@@ -87,13 +87,6 @@ event_id_2 = np.int64(2)  # to test non Python int types
 rng = np.random.RandomState(42)
 
 
-pytestmark = [
-    pytest.mark.filterwarnings(
-        "ignore:The current default of copy=False will change to copy=.*:FutureWarning",
-    ),
-]
-
-
 def _create_epochs_with_annotations():
     """Create test dataset of Epochs with Annotations."""
     # set up a test dataset
@@ -128,7 +121,7 @@ def test_event_repeated():
     """Test epochs takes into account repeated events."""
     n_samples = 100
     n_channels = 2
-    ch_names = ["chan%i" % i for i in range(n_channels)]
+    ch_names = [f"chan{i}" for i in range(n_channels)]
     info = mne.create_info(ch_names=ch_names, sfreq=1000.0)
     data = np.zeros((n_channels, n_samples))
     raw = mne.io.RawArray(data, info)
@@ -334,8 +327,7 @@ def test_get_data_copy():
     data = epochs.get_data(copy=True)
     assert not np.shares_memory(data, epochs._data)
 
-    with pytest.warns(FutureWarning, match="The current default of copy=False will"):
-        data = epochs.get_data(verbose="debug")
+    data = epochs.get_data(copy=False, verbose="debug")
     assert np.shares_memory(data, epochs._data)
     assert data is epochs._data
     data_orig = data.copy()
@@ -597,7 +589,7 @@ def test_reject():
             )
 
     # Check if callable returns a tuple with reasons
-    bad_types = [my_reject_2, ("Hi" "Hi"), (1, 1), None]
+    bad_types = [my_reject_2, ("HiHi"), (1, 1), None]
     for val in bad_types:  # protect against bad types
         for kwarg in ("reject", "flat"):
             with pytest.raises(
@@ -3009,6 +3001,21 @@ def test_epoch_eq():
         epochs.equalize_event_counts(1.5)
 
 
+def test_equalize_epoch_counts_random():
+    """Test random equalization of epochs."""
+    raw, events, picks = _get_data()
+    # create epochs with unequal counts
+    events_1 = events[events[:, 2] == event_id]
+    epochs_1 = Epochs(raw, events_1, event_id, tmin, tmax, picks=picks)
+    events_2 = events[events[:, 2] == event_id_2]
+    epochs_2 = Epochs(raw, events_2, event_id_2, tmin, tmax, picks=picks)
+    epochs_1.drop_bad()
+    epochs_2.drop_bad()
+    assert len(epochs_1) != len(epochs_2)
+    equalize_epoch_counts([epochs_1, epochs_2], method="random")
+    assert len(epochs_1) == len(epochs_2)
+
+
 def test_access_by_name(tmp_path):
     """Test accessing epochs by event name and on_missing for rare events."""
     raw, events, picks = _get_data()
@@ -3457,9 +3464,7 @@ def test_drop_epochs_mult(preload):
         for di, (d1, d2) in enumerate(zip(epochs1.drop_log, epochs2.drop_log)):
             assert isinstance(d1, tuple)
             assert isinstance(d2, tuple)
-            msg = (
-                f"\nepochs1.drop_log[{di}] = {d1}, " f"\nepochs2.drop_log[{di}] = {d2}"
-            )
+            msg = f"\nepochs1.drop_log[{di}] = {d1}, \nepochs2.drop_log[{di}] = {d2}"
             if "IGNORED" in d1:
                 assert "IGNORED" in d2, msg
             if "IGNORED" not in d1 and d1 != ():
@@ -3697,7 +3702,7 @@ def test_array_epochs(tmp_path, browser_backend):
     # creating
     data = rng.random_sample((10, 20, 300))
     sfreq = 1e3
-    ch_names = ["EEG %03d" % (i + 1) for i in range(20)]
+    ch_names = [f"EEG {i + 1:03}" for i in range(20)]
     types = ["eeg"] * 20
     info = create_info(ch_names, sfreq, types)
     events = np.c_[np.arange(1, 600, 60), np.zeros(10, int), [1, 2] * 5]
@@ -4340,7 +4345,7 @@ def test_make_metadata_bounded_by_row_or_tmin_tmax_event_names(tmin, tmax):
     raw.set_annotations(annots)
     events, event_id = mne.events_from_annotations(raw=raw)
 
-    metadata, events_new, event_id_new = mne.epochs.make_metadata(
+    metadata, events_new, _ = mne.epochs.make_metadata(
         events=events,
         event_id=event_id,
         tmin=tmin,
@@ -5188,7 +5193,7 @@ def test_epochs_saving_with_annotations(tmp_path):
 
     # if metadata is added already, then an error will be raised
     epochs.add_annotations_to_metadata()
-    with pytest.raises(RuntimeError, match="Metadata for Epochs " "already contains"):
+    with pytest.raises(RuntimeError, match="Metadata for Epochs already contains"):
         epochs.add_annotations_to_metadata()
     # no error is raised if overwrite is True
     epochs.add_annotations_to_metadata(overwrite=True)

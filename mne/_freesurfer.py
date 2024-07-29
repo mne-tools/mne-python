@@ -50,13 +50,17 @@ def _get_aseg(aseg, subject, subjects_dir):
     """Check that the anatomical segmentation file exists and load it."""
     nib = _import_nibabel("load aseg")
     subjects_dir = Path(get_subjects_dir(subjects_dir, raise_error=True))
-    if not aseg.endswith("aseg"):
-        raise RuntimeError(f'`aseg` file path must end with "aseg", got {aseg}')
-    aseg = _check_fname(
-        subjects_dir / subject / "mri" / (aseg + ".mgz"),
-        overwrite="read",
-        must_exist=True,
-    )
+    if aseg == "auto":  # use aparc+aseg if auto
+        aseg = _check_fname(
+            subjects_dir / subject / "mri" / "aparc+aseg.mgz",
+            overwrite="read",
+            must_exist=False,
+        )
+        if not aseg:  # if doesn't exist use wmparc
+            aseg = subjects_dir / subject / "mri" / "wmparc.mgz"
+    else:
+        aseg = subjects_dir / subject / "mri" / f"{aseg}.mgz"
+    _check_fname(aseg, overwrite="read", must_exist=True)
     aseg = nib.load(aseg)
     aseg_data = np.array(aseg.dataobj)
     return aseg, aseg_data
@@ -502,23 +506,6 @@ def estimate_head_mri_t(subject, subjects_dir=None, verbose=None):
     return invert_transform(compute_native_head_t(montage))
 
 
-def _ensure_image_in_surface_RAS(image, subject, subjects_dir):
-    """Check if the image is in Freesurfer surface RAS space."""
-    nib = _import_nibabel("load a volume image")
-    if not isinstance(image, nib.spatialimages.SpatialImage):
-        image = nib.load(image)
-    image = nib.MGHImage(image.dataobj.astype(np.float32), image.affine)
-    fs_img = nib.load(op.join(subjects_dir, subject, "mri", "brain.mgz"))
-    if not np.allclose(image.affine, fs_img.affine, atol=1e-6):
-        raise RuntimeError(
-            "The `image` is not aligned to Freesurfer "
-            "surface RAS space. This space is required as "
-            "it is the space where the anatomical "
-            "segmentation and reconstructed surfaces are"
-        )
-    return image  # returns MGH image for header
-
-
 def _get_affine_from_lta_info(lines):
     """Get the vox2ras affine from lta file info."""
     volume_data = np.loadtxt([line.split("=")[1] for line in lines])
@@ -607,7 +594,7 @@ def read_talxfm(subject, subjects_dir=None, verbose=None):
     if not path.is_file():
         path = subjects_dir / subject / "mri" / "T1.mgz"
     if not path.is_file():
-        raise OSError("mri not found: %s" % path)
+        raise OSError(f"mri not found: {path}")
     _, _, mri_ras_t, _, _ = _read_mri_info(path)
     mri_mni_t = combine_transforms(mri_ras_t, ras_mni_t, "mri", "mni_tal")
     return mri_mni_t

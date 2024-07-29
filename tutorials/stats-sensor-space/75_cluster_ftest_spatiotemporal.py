@@ -20,7 +20,7 @@ See the `FieldTrip tutorial <ft_cluster_>`_ for a caveat regarding
 the possible interpretation of "significant" clusters.
 
 For more information on cluster-based permutation testing in MNE-Python,
-see also: :ref:`tut-cluster-one-samp-tfr`
+see also: :ref:`tut-cluster-one-samp-tfr`.
 """
 # Authors: Denis Engemann <denis.engemann@gmail.com>
 #          Jona Sassenhagen <jona.sassenhagen@gmail.com>
@@ -41,7 +41,6 @@ import mne
 from mne.channels import find_ch_adjacency
 from mne.datasets import sample
 from mne.stats import combine_adjacency, spatio_temporal_cluster_test
-from mne.time_frequency import tfr_morlet
 from mne.viz import plot_compare_evokeds
 
 # %%
@@ -269,9 +268,9 @@ n_cycles = freqs / freqs[0]
 
 epochs_power = list()
 for condition in [epochs[k] for k in ("Aud/L", "Vis/L")]:
-    this_tfr = tfr_morlet(
-        condition,
-        freqs,
+    this_tfr = condition.compute_tfr(
+        method="morlet",
+        freqs=freqs,
         n_cycles=n_cycles,
         decim=decim,
         average=False,

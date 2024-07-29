@@ -82,13 +82,13 @@ def init_cuda(ignore_config=False, verbose=None):
     except Exception:
         warn(
             "so CUDA device could be initialized, likely a hardware error, "
-            "CUDA not enabled%s" % _explain_exception()
+            f"CUDA not enabled{_explain_exception()}"
         )
         return
 
     _cuda_capable = True
     # Figure out limit for CUDA FFT calculations
-    logger.info("Enabling CUDA with %s available memory" % get_cuda_memory())
+    logger.info(f"Enabling CUDA with {get_cuda_memory()} available memory")
 
 
 @verbose
@@ -178,12 +178,11 @@ def _setup_cuda_fft_multiply_repeated(n_jobs, h, n_fft, kind="FFT FIR filtering"
             try:
                 # do the IFFT normalization now so we don't have to later
                 h_fft = cupy.array(cuda_dict["h_fft"])
-                logger.info("Using CUDA for %s" % kind)
+                logger.info(f"Using CUDA for {kind}")
             except Exception as exp:
                 logger.info(
-                    "CUDA not used, could not instantiate memory "
-                    '(arrays may be too large: "%s"), falling back to '
-                    "n_jobs=None" % str(exp)
+                    "CUDA not used, could not instantiate memory (arrays may be too "
+                    f'large: "{exp}"), falling back to n_jobs=None'
                 )
             cuda_dict.update(h_fft=h_fft, rfft=_cuda_upload_rfft, irfft=_cuda_irfft_get)
         else:
