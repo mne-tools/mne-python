@@ -890,7 +890,7 @@ def test_add_reorder(n_ref):
     # gh-8300
     raw = read_raw_fif(raw_fname).crop(0, 0.1).del_proj().pick("eeg")
     assert len(raw.ch_names) == 60
-    chs = ["EEG %03d" % (60 + ii) for ii in range(1, n_ref)] + ["EEG 000"]
+    chs = [f"EEG {60 + ii:03}" for ii in range(1, n_ref)] + ["EEG 000"]
     with pytest.raises(RuntimeError, match="preload"):
         with _record_warnings():  # ignore multiple warning
             add_reference_channels(raw, chs, copy=False)
@@ -906,7 +906,7 @@ def test_add_reorder(n_ref):
     assert_array_equal(data[-1], 0.0)
     assert raw.ch_names[-n_ref:] == chs
     raw.reorder_channels(raw.ch_names[-1:] + raw.ch_names[:-1])
-    assert raw.ch_names == ["EEG %03d" % ii for ii in range(60 + n_ref)]
+    assert raw.ch_names == [f"EEG {ii:03}" for ii in range(60 + n_ref)]
     data_new = raw.get_data()
     data_new = np.concatenate([data_new[1:], data_new[:1]])
     assert_allclose(data, data_new)

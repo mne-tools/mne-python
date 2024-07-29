@@ -923,7 +923,7 @@ def _process_times(inst, use_times, n_peaks=None, few=False):
     use_times = np.array(use_times, float)
 
     if use_times.ndim != 1:
-        raise ValueError("times must be 1D, got %d dimensions" % use_times.ndim)
+        raise ValueError(f"times must be 1D, got {use_times.ndim} dimensions")
 
     if len(use_times) > 25:
         warn("More than 25 topomaps plots requested. This might take a while.")

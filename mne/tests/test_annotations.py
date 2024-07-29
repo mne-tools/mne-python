@@ -194,7 +194,7 @@ def test_crop(tmp_path):
     events = mne.find_events(raw)
     onset = events[events[:, 2] == 1, 0] / raw.info["sfreq"]
     duration = np.full_like(onset, 0.5)
-    description = ["bad %d" % k for k in range(len(onset))]
+    description = [f"bad {k}" for k in range(len(onset))]
     annot = mne.Annotations(
         onset, duration, description, orig_time=raw.info["meas_date"]
     )
@@ -1171,7 +1171,7 @@ def test_annotations_simple_iteration():
             elements.values(), EXPECTED_ELEMENTS_TYPE, expected_values
         ):
             assert np.isscalar(elem)
-            assert type(elem) == expected_type
+            assert isinstance(elem, expected_type)
             assert elem == expected_value
 
 

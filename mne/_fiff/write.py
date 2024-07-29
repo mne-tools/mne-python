@@ -4,6 +4,7 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+import datetime
 import os.path as op
 import re
 import time
@@ -15,7 +16,7 @@ import numpy as np
 from scipy.sparse import csc_array, csr_array
 
 from ..utils import _file_like, _validate_type, logger
-from ..utils.numerics import _cal_to_julian
+from ..utils.numerics import _date_to_julian
 from .constants import FIFF
 
 # We choose a "magic" date to store (because meas_date is obligatory)
@@ -120,9 +121,9 @@ def write_complex128(fid, kind, data):
 
 def write_julian(fid, kind, data):
     """Write a Julian-formatted date to a FIF file."""
-    assert len(data) == 3
+    assert isinstance(data, datetime.date), type(data)
     data_size = 4
-    jd = np.sum(_cal_to_julian(*data))
+    jd = _date_to_julian(data)
     data = np.array(jd, dtype=">i4")
     _write(fid, data, kind, data_size, FIFF.FIFFT_JULIAN, ">i4")
 
@@ -224,7 +225,7 @@ def get_machid():
     ids : array (length 2, int32)
         The machine identifier used in MNE.
     """
-    mac = b"%012x" % uuid.getnode()  # byte conversion for Py3
+    mac = f"{uuid.getnode():012x}".encode()  # byte conversion for Py3
     mac = re.findall(b"..", mac)  # split string
     mac += [b"00", b"00"]  # add two more fields
 

@@ -6,6 +6,7 @@ import time
 import warnings
 
 import numpy as np
+import pyvista
 
 import mne
 from mne.utils import (
@@ -86,6 +87,8 @@ def reset_warnings(gallery_conf, fname):
         r"open_text is deprecated\. Use files.*",
         # python-quantities, via neo
         r"numpy\.core is deprecated and has been renamed to numpy\._core",
+        # matplotlib
+        "__array_wrap__ must accept context and return_scalar.*",
     ):
         warnings.filterwarnings(  # deal with other modules having bad imports
             "ignore", message=f".*{key}.*", category=DeprecationWarning
@@ -146,6 +149,12 @@ def reset_warnings(gallery_conf, fname):
         "ignore",
         r"mne\.io\.pick.channel_indices_by_type is deprecated.*",
     )
+    # parallel building
+    warnings.filterwarnings(
+        "ignore",
+        "A worker stopped while some jobs were given to the executor.*",
+        category=UserWarning,
+    )
 
     # In case we use np.set_printoptions in any tutorials, we only
     # want it to affect those:
@@ -159,10 +168,12 @@ def reset_modules(gallery_conf, fname, when):
     """Do the reset."""
     import matplotlib.pyplot as plt
 
-    try:
-        from pyvista import Plotter  # noqa
-    except ImportError:
-        Plotter = None  # noqa
+    mne.viz.set_3d_backend("pyvistaqt")
+    pyvista.OFF_SCREEN = False
+    pyvista.BUILDING_GALLERY = True
+
+    from pyvista import Plotter  # noqa
+
     try:
         from pyvistaqt import BackgroundPlotter  # noqa
     except ImportError:

@@ -1275,6 +1275,11 @@ encoding : str
     encoding according to the EDF+ standard).
 """
 
+docdict["encoding_nirx"] = """
+encoding : str
+    Text encoding of the NIRX header file. See :ref:`standard-encodings`.
+"""
+
 docdict["epochs_preload"] = """
     Load all epochs from disk when creating the object
     or wait before accessing each epoch (more memory
@@ -4148,6 +4153,17 @@ smooth : float in [0, 1)
     The smoothing factor to be applied. Default 0 is no smoothing.
 """
 
+docdict["spatial_colors"] = """\
+spatial_colors : bool | 'auto'
+    If True, the lines are color coded by mapping physical sensor
+    coordinates into color values. Spatially similar channels will have
+    similar colors. Bad channels will be dotted. If False, the good
+    channels are plotted black and bad channels red. If ``'auto'``, uses
+    True if channel locations are present, and False if channel locations
+    are missing or if the data contains only a single channel. Defaults to
+    ``'auto'``.
+"""
+
 docdict["spatial_colors_psd"] = """\
 spatial_colors : bool
     Whether to color spectrum lines by channel location. Ignored if
@@ -5315,7 +5331,7 @@ def linkcode_resolve(domain, info):
         lineno = None
 
     if lineno:
-        linespec = "#L%d-L%d" % (lineno, lineno + len(source) - 1)
+        linespec = f"#L{lineno}-L{lineno + len(source) - 1}"
     else:
         linespec = ""
 

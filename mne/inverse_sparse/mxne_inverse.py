@@ -63,7 +63,7 @@ def _prepare_weights(forward, gain, source_weighting, weights, weights_min):
     if len(weights) != gain.shape[1]:
         raise ValueError(
             "weights do not have the correct dimension "
-            " (%d != %d)" % (len(weights), gain.shape[1])
+            f" ({len(weights)} != {gain.shape[1]})"
         )
     if len(source_weighting.shape) == 1:
         source_weighting *= weights
@@ -75,7 +75,7 @@ def _prepare_weights(forward, gain, source_weighting, weights, weights_min):
         mask = weights > weights_min
         gain = gain[:, mask]
         n_sources = np.sum(mask) // n_dip_per_pos
-        logger.info("Reducing source space to %d sources" % n_sources)
+        logger.info(f"Reducing source space to {n_sources} sources")
 
     return gain, source_weighting, mask
 
@@ -465,7 +465,7 @@ def mixed_norm(
     if n_mxne_iter < 1:
         raise ValueError(
             "MxNE has to be computed at least 1 time. "
-            "Requires n_mxne_iter >= 1, got %d" % n_mxne_iter
+            f"Requires n_mxne_iter >= 1, got {n_mxne_iter}"
         )
     if dgap_freq <= 0.0:
         raise ValueError(

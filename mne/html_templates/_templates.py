@@ -1,10 +1,13 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
+
+from __future__ import annotations  # only needed for Python ≤ 3.9
+
 import datetime
 import functools
 import uuid
 from dataclasses import dataclass
-from typing import Any, Literal, Union
+from typing import Any, Literal
 
 from .._fiff.pick import channel_type
 from ..defaults import _handle_default
@@ -12,7 +15,7 @@ from ..defaults import _handle_default
 _COLLAPSED = False  # will override in doc build
 
 
-def _format_number(value: Union[int, float]) -> str:
+def _format_number(value: int | float) -> str:
     """Insert thousand separators."""
     return f"{value:,}"
 

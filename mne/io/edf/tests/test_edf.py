@@ -129,23 +129,11 @@ def test_subject_info(tmp_path):
     want = {
         "his_id": "X",
         "sex": 1,
-        "birthday": (1967, 10, 9),
+        "birthday": datetime.date(1967, 10, 9),
         "last_name": "X",
     }
     for key, val in want.items():
         assert raw.info["subject_info"][key] == val, key
-
-    # check "subject_info" from `_raw_extras`
-    edf_info = raw._raw_extras[0]
-    assert edf_info["subject_info"] is not None
-    want = {
-        "id": "X",
-        "sex": "M",
-        "birthday": datetime.datetime(1967, 10, 9, 0, 0),
-        "name": "X",
-    }
-    for key, val in want.items():
-        assert edf_info["subject_info"][key] == val, key
 
     # add information
     raw.info["subject_info"]["hand"] = 0
@@ -160,7 +148,7 @@ def test_subject_info(tmp_path):
     want = {
         "his_id": "X",
         "sex": 1,
-        "birthday": (1967, 10, 9),
+        "birthday": datetime.date(1967, 10, 9),
         "last_name": "X",
         "hand": 0,
     }
@@ -886,7 +874,7 @@ def test_invalid_date(tmp_path):
     edf[172] = ord("2")
     with open(fname, "wb") as f:
         f.write(edf)
-    with pytest.warns(RuntimeWarning, match="Invalid date"):
+    with pytest.warns(RuntimeWarning, match="Invalid measurement date"):
         read_raw_edf(fname)
 
     # another invalid date 29.00.14 (0 is not a month)
@@ -894,7 +882,7 @@ def test_invalid_date(tmp_path):
     edf[172] = ord("0")
     with open(fname, "wb") as f:
         f.write(edf)
-    with pytest.warns(RuntimeWarning, match="Invalid date"):
+    with pytest.warns(RuntimeWarning, match="Invalid measurement date"):
         read_raw_edf(fname)
 
 
@@ -1195,3 +1183,16 @@ def test_ch_types():
     raw = read_raw_edf(edf_chtypes_path, units="uV")  # should be okay
     data_units = raw.get_data()
     assert_allclose(data, data_units)
+
+
+@testing.requires_testing_data
+def test_anonymization():
+    """Test that RawEDF anonymizes data in memory."""
+    # gh-11966
+    raw = read_raw_edf(edf_stim_resamp_path)
+    for key in ("meas_date", "subject_info"):
+        assert key not in raw._raw_extras[0]
+    bday = raw.info["subject_info"]["birthday"]
+    assert bday == datetime.date(1967, 10, 9)
+    raw.anonymize()
+    assert raw.info["subject_info"]["birthday"] != bday

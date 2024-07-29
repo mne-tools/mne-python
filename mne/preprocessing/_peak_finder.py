@@ -177,6 +177,6 @@ def peak_finder(x0, thresh=None, extrema=1, verbose=None):
     if len(peak_inds) == 0:
         logger.info("No significant peaks found")
     else:
-        logger.info("Found %d significant peak%s" % (len(peak_inds), _pl(peak_inds)))
+        logger.info(f"Found {len(peak_inds)} significant peak{_pl(peak_inds)}")
 
     return peak_inds, peak_mags
