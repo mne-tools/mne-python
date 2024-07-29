@@ -532,7 +532,7 @@ def _get_stim_channel(stim_channel, info, raise_error=True):
     while ch is not None and ch in info["ch_names"]:
         stim_channel.append(ch)
         ch_count += 1
-        ch = get_config("MNE_STIM_CHANNEL_%d" % ch_count)
+        ch = get_config(f"MNE_STIM_CHANNEL_{ch_count}")
     if ch_count > 0:
         return stim_channel
 

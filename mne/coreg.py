@@ -815,7 +815,7 @@ def read_mri_cfg(subject, subjects_dir=None):
         scale_str = config.get("MRI Scaling", "scale")
         scale = np.array([float(s) for s in scale_str.split()])
     else:
-        raise ValueError("Invalid n_params value in MRI cfg: %i" % n_params)
+        raise ValueError(f"Invalid n_params value in MRI cfg: {n_params}")
 
     out = {
         "subject_from": config.get("MRI Scaling", "subject_from"),
@@ -1541,11 +1541,7 @@ class Coregistration:
             # This should be very rare!
             warn(
                 "No low-resolution head found, decimating high resolution "
-                "mesh (%d vertices): %s"
-                % (
-                    len(self._bem_high_res["rr"]),
-                    high_res_path,
-                )
+                f"mesh ({len(self._bem_high_res['rr'])} vertices): {high_res_path}"
             )
             # Create one from the high res one, which we know we have
             rr, tris = decimate_surface(

@@ -58,7 +58,7 @@ terminal and type:
 
 .. code-block:: console
 
-    $ pip install --upgrade git+https://github.com/mne-tools/mne-python@main
+    $ pip install --upgrade https://github.com/mne-tools/mne-python/archive/refs/heads/main.zip
 
 To clone the repository with `git <https://git-scm.com/>`__, open a terminal
 and type:

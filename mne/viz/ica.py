@@ -1010,9 +1010,7 @@ def plot_ica_scores(
         labels = (None,) * n_scores
 
     if len(labels) != n_scores:
-        raise ValueError(
-            "Need as many labels (%i) as scores (%i)" % (len(labels), n_scores)
-        )
+        raise ValueError(f"Need as many labels ({len(labels)}) as scores ({n_scores})")
 
     for label, this_scores, ax in zip(labels, scores, axes):
         if len(my_range) != len(this_scores):

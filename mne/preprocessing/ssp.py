@@ -69,7 +69,7 @@ def _compute_exg_proj(
         projs = []
     else:
         projs = cp.deepcopy(raw.info["projs"])
-        logger.info("Including %d SSP projectors from raw file" % len(projs))
+        logger.info(f"Including {len(projs)} SSP projectors from raw file")
 
     if avg_ref:
         eeg_proj = make_eeg_average_ref_proj(raw.info)

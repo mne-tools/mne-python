@@ -627,7 +627,7 @@ def _check_tfr_param(
         if len(n_cycles) != len(freqs):
             raise ValueError(
                 "n_cycles must be a float or an array of length "
-                "%i frequencies, got %i cycles instead." % (len(freqs), len(n_cycles))
+                f"{len(freqs)} frequencies, got {len(n_cycles)} cycles instead."
             )
     else:
         raise ValueError(

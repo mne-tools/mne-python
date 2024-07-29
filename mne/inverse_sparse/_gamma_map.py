@@ -158,8 +158,8 @@ def _gamma_map_opt(
         breaking = err < tol or n_active == 0
         if len(gammas) != last_size or breaking:
             logger.info(
-                "Iteration: %d\t active set size: %d\t convergence: "
-                "%0.3e" % (itno, len(gammas), err)
+                f"Iteration: {itno}\t active set size: {len(gammas)}\t convergence: "
+                f"{err:.3e}"
             )
             last_size = len(gammas)
 
