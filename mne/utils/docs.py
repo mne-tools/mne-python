@@ -4046,8 +4046,7 @@ Some common referencing schemes and the corresponding value for the
     different references for different channels with this method. For example,
     to re-reference channel 'A1' to 'A2' and 'B1' to the average of 'B2' and
     'B3', set ``ref_channels={'A1': 'A2', 'B1': ['B2', 'B3']}``. Warnings are
-    issued when a bad channel is used as a reference or when a mapping involves
-    channels of different types.
+    issued when a mapping involves bad channels or channels of different types.
 
 1. If a reference is requested that is not the average reference, this
    function removes any pre-existing average reference projections.
