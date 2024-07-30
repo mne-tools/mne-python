@@ -1098,6 +1098,8 @@ class Spectrum(BaseSpectrum):
         The weights for each taper. Only present if spectra computed with
         ``method='multitaper'`` and ``output='complex'``.
 
+        .. versionadded:: 1.8
+
     See Also
     --------
     EpochsSpectrum
@@ -1214,28 +1216,28 @@ class Spectrum(BaseSpectrum):
         return BaseRaw._getitem(self, item, return_times=False)
 
 
-def _check_data_shape(data, info, freqs, dimnames, weights, is_epoched):
-    if data.ndim != len(dimnames):
+def _check_data_shape(data, info, freqs, dim_names, weights, is_epoched):
+    if data.ndim != len(dim_names):
         raise ValueError(
-            f"Expected data to have {len(dimnames)} dimensions, got {data.ndim}."
+            f"Expected data to have {len(dim_names)} dimensions, got {data.ndim}."
         )
 
     allowed_dims = ["epoch", "channel", "freq", "segment", "taper"]
     if not is_epoched:
         allowed_dims.remove("epoch")
     # TODO maybe we should be nice and allow plural versions of each dimname?
-    for dim in dimnames:
-        _check_option("dimnames", dim, allowed_dims)
-    if "channel" not in dimnames or "freq" not in dimnames:
-        raise ValueError("Both 'channel' and 'freq' must be present in `dimnames`.")
+    for dim in dim_names:
+        _check_option("dim_names", dim, allowed_dims)
+    if "channel" not in dim_names or "freq" not in dim_names:
+        raise ValueError("Both 'channel' and 'freq' must be present in `dim_names`.")
 
-    if list(dimnames).index("channel") != int(is_epoched):
+    if list(dim_names).index("channel") != int(is_epoched):
         raise ValueError(
             f"'channel' must be the {'second' if is_epoched else 'first'} dimension of "
             "the data."
         )
     want_n_chan = _pick_data_channels(info).size
-    got_n_chan = data.shape[list(dimnames).index("channel")]
+    got_n_chan = data.shape[list(dim_names).index("channel")]
     if got_n_chan != want_n_chan:
         raise ValueError(
             f"The number of channels in `data` ({got_n_chan}) must match the number of "
@@ -1244,25 +1246,25 @@ def _check_data_shape(data, info, freqs, dimnames, weights, is_epoched):
 
     # given we limit max array size and ensure channel & freq dims present, only one of
     # taper or segment can be present
-    if "taper" in dimnames:
-        if dimnames[-2] != "taper":  # _psd_from_mt assumes this (called when plotting)
+    if "taper" in dim_names:
+        if dim_names[-2] != "taper":  # _psd_from_mt assumes this (called when plotting)
             raise ValueError(
                 "'taper' must be the second to last dimension of the data."
             )
         # expect weights for each taper
         actual = None if weights is None else weights.size
-        expected = data.shape[list(dimnames).index("taper")]
+        expected = data.shape[list(dim_names).index("taper")]
         if actual != expected:
             raise ValueError(
                 f"Expected size of `weights` to be {expected} to match 'n_tapers' in "
                 f"`data`, got {actual}."
             )
-    elif "segment" in dimnames and dimnames[-1] != "segment":
+    elif "segment" in dim_names and dim_names[-1] != "segment":
         raise ValueError("'segment' must be the last dimension of the data.")
 
     # freq being in wrong position ruled out by above checks
     want_n_freq = freqs.size
-    got_n_freq = data.shape[list(dimnames).index("freq")]
+    got_n_freq = data.shape[list(dim_names).index("freq")]
     if got_n_freq != want_n_freq:
         raise ValueError(
             f"The number of frequencies in `data` ({got_n_freq}) must match the number "
@@ -1280,14 +1282,18 @@ class SpectrumArray(Spectrum):
         The spectra for each channel.
     %(info_not_none)s
     %(freqs_tfr_array)s
-    dimnames : tuple of str
+    dim_names : tuple of str
         The name of the dimensions in the data, in the order they occur. Must contain
         ``'channel'`` and ``'freq'``;  if data are unaggregated estimates, also include
         either a ``'segment'`` (e.g., Welch-like algorithms) or ``'taper'`` (e.g.,
         multitaper algorithms) dimension. If including ``'taper'``, you should also pass
         a ``weights`` parameter.
+
+        .. versionadded:: 1.8
     weights : ndarray | None
-        Weights for the ``'taper'`` dimension, if present (see ``dimnames``).
+        Weights for the ``'taper'`` dimension, if present (see ``dim_names``).
+
+        .. versionadded:: 1.8
     %(verbose)s
 
     See Also
@@ -1310,7 +1316,7 @@ class SpectrumArray(Spectrum):
         data,
         info,
         freqs,
-        dimnames=("channel", "freq"),
+        dim_names=("channel", "freq"),
         weights=None,
         *,
         verbose=None,
@@ -1318,14 +1324,14 @@ class SpectrumArray(Spectrum):
         # (channel, [taper], freq, [segment])
         _check_option("data.ndim", data.ndim, (2, 3))  # only allow one extra dimension
 
-        _check_data_shape(data, info, freqs, dimnames, weights, is_epoched=False)
+        _check_data_shape(data, info, freqs, dim_names, weights, is_epoched=False)
 
         self.__setstate__(
             dict(
                 method="unknown",
                 data=data,
                 sfreq=info["sfreq"],
-                dims=dimnames,
+                dims=dim_names,
                 freqs=freqs,
                 inst_type_str="Array",
                 data_type=(
@@ -1375,6 +1381,8 @@ class EpochsSpectrum(BaseSpectrum, GetEpochsMixin):
     weights : array | None
         The weights for each taper. Only present if spectra computed with
         ``method='multitaper'`` and ``output='complex'``.
+
+        .. versionadded:: 1.8
 
     See Also
     --------
@@ -1554,14 +1562,18 @@ class EpochsSpectrumArray(EpochsSpectrum):
     %(freqs_tfr_array)s
     %(events_epochs)s
     %(event_id)s
-    dimnames : tuple of str
+    dim_names : tuple of str
         The name of the dimensions in the data, in the order they occur. Must contain
         ``'channel'`` and ``'freq'``;  if data are unaggregated estimates, also include
         either a ``'segment'`` (e.g., Welch-like algorithms) or ``'taper'`` (e.g.,
         multitaper algorithms) dimension. If including ``'taper'``, you should also pass
         a ``weights`` parameter.
+
+        .. versionadded:: 1.8
     weights : ndarray | None
-        Weights for the ``'taper'`` dimension, if present (see ``dimnames``).
+        Weights for the ``'taper'`` dimension, if present (see ``dim_names``).
+
+        .. versionadded:: 1.8
     %(verbose)s
 
     See Also
@@ -1585,7 +1597,7 @@ class EpochsSpectrumArray(EpochsSpectrum):
         freqs,
         events=None,
         event_id=None,
-        dimnames=("epoch", "channel", "freq"),
+        dim_names=("epoch", "channel", "freq"),
         weights=None,
         *,
         verbose=None,
@@ -1593,7 +1605,7 @@ class EpochsSpectrumArray(EpochsSpectrum):
         # (epoch, channel, [taper], freq, [segment])
         _check_option("data.ndim", data.ndim, (3, 4))  # only allow one extra dimension
 
-        if list(dimnames).index("epoch") != 0:
+        if list(dim_names).index("epoch") != 0:
             raise ValueError("'epoch' must be the first dimension of `data`.")
         if events is not None and data.shape[0] != events.shape[0]:
             raise ValueError(
@@ -1601,14 +1613,14 @@ class EpochsSpectrumArray(EpochsSpectrum):
                 f"dimension of `events` ({events.shape[0]})."
             )
 
-        _check_data_shape(data, info, freqs, dimnames, weights, is_epoched=True)
+        _check_data_shape(data, info, freqs, dim_names, weights, is_epoched=True)
 
         self.__setstate__(
             dict(
                 method="unknown",
                 data=data,
                 sfreq=info["sfreq"],
-                dims=dimnames,
+                dims=dim_names,
                 freqs=freqs,
                 inst_type_str="Array",
                 data_type=(
