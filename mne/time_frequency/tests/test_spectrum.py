@@ -488,10 +488,10 @@ def test_spectrum_array_errors():
     with pytest.raises(ValueError, match=r"Expected data to have.*dimensions, got.*"):
         EpochsSpectrumArray(data, info, freqs, dimnames=dimnames[:-1])
     # test unrecognised dimnames (for SpectrumArray; epoch not allowed)
-    with pytest.raises(ValueError, match="`data` must not be epoched"):
+    with pytest.raises(ValueError, match="Invalid value for the 'dimnames' parameter"):
         SpectrumArray(data[0, :, :], info, freqs, dimnames=("epoch", "channel"))
     # test unrecognised dimnames (for EpochsSpectrumArray)
-    with pytest.raises(ValueError, match=r"entries of `dimnames` must be in.*, got,*"):
+    with pytest.raises(ValueError, match="Invalid value for the 'dimnames' parameter"):
         EpochsSpectrumArray(data, info, freqs, dimnames=("epoch", "channel", "notfreq"))
     # test missing dimnames
     with pytest.raises(ValueError, match="Both 'channel' and 'freq' must be present"):
