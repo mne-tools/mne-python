@@ -318,7 +318,7 @@ power_approach2, f = apply_dics_csd(csd_signal, filters_approach2)
 
 def plot_approach(power, n):
     """Plot the results on a brain."""
-    title = "DICS power map, approach %d" % n
+    title = f"DICS power map, approach {n}"
     brain = power_approach1.plot(
         "sample",
         subjects_dir=subjects_dir,

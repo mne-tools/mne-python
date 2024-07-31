@@ -61,7 +61,7 @@ def _compute_corrs(
     x_xt = np.zeros([n_ch_x * len_trf] * 2)
     x_y = np.zeros((len_trf, n_ch_x, n_ch_y), order="F")
     n = n_epochs * (n_ch_x * (n_ch_x + 1) // 2 + n_ch_x)
-    logger.info("Fitting %d epochs, %d channels" % (n_epochs, n_ch_x))
+    logger.info(f"Fitting {n_epochs} epochs, {n_ch_x} channels")
     pb = ProgressBar(n, mesg="Sample")
     count = 0
     pb.update(count)

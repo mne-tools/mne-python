@@ -73,7 +73,7 @@ def _uniform_stc(stc1, stc2):
     if len(stc1.vertices) != len(stc2.vertices):
         raise ValueError(
             "Data in stcs must have the same number of vertices "
-            "components. Got %d != %d." % (len(stc1.vertices), len(stc2.vertices))
+            f"components. Got {len(stc1.vertices)} != {len(stc2.vertices)}."
         )
     idx_start1 = 0
     idx_start2 = 0
@@ -440,9 +440,7 @@ def _prepare_ppe_sd(stc_true, stc_est, src, threshold="50%"):
             n_dipoles += len(v)
             r_true = src[i]["rr"][v]
     if n_dipoles != 1:
-        raise ValueError(
-            "True source must contain only one dipole, got %d." % n_dipoles
-        )
+        raise ValueError(f"True source must contain only one dipole, got {n_dipoles}.")
 
     _, stc_est = _thresholding(None, stc_est, threshold)
 

@@ -399,8 +399,8 @@ def test_plot_white():
         evoked_sss.info["proc_history"] = [dict(max_info=sss)]
     evoked_sss.plot_white([cov, cov], rank={"meg": 64})
     with pytest.raises(ValueError, match="When using SSS"):
-        evoked_sss.plot_white(cov, rank={"grad": 201})
-    evoked_sss.plot_white(cov, time_unit="s")
+        evoked_sss.plot_white(cov, rank={"grad": 201}, verbose="error")
+    evoked_sss.plot_white(cov, rank={"meg": 302}, time_unit="s")
 
 
 @pytest.mark.parametrize(
@@ -604,7 +604,7 @@ def test_plot_compare_evokeds_neuromag122():
     evoked = mne.read_evokeds(evoked_fname, "Left Auditory", baseline=(None, 0))
     evoked.pick(picks="grad")
     evoked.pick(evoked.ch_names[:122])
-    ch_names = ["MEG %03d" % k for k in range(1, 123)]
+    ch_names = [f"MEG {k:03}" for k in range(1, 123)]
     for c in evoked.info["chs"]:
         c["coil_type"] = FIFF.FIFFV_COIL_NM_122
     evoked.rename_channels(

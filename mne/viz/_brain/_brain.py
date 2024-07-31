@@ -3776,7 +3776,7 @@ class Brain:
                 self._renderer._status_bar_update()
             else:
                 self.status_msg.set_value(
-                    "Rendering images (frame %d / %d) ..." % (frame + 1, n_frames)
+                    f"Rendering images (frame {frame + 1} / {n_frames}) ..."
                 )
                 self.status_msg.show()
                 self.status_progress.show()

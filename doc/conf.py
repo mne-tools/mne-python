@@ -112,6 +112,7 @@ extensions = [
     "mne_substitutions",
     "newcontrib_substitutions",
     "unit_role",
+    "related_software",
 ]
 
 # Add any paths that contain templates here, relative to this directory.

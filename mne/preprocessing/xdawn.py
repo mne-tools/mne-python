@@ -669,11 +669,11 @@ class Xdawn(_XdawnTransformer):
             mask = np.ones(len(sources), dtype=bool)
             mask[np.unique(include)] = False
             sources[mask] = 0.0
-            logger.info("Zeroing out %i Xdawn components" % mask.sum())
+            logger.info(f"Zeroing out {int(mask.sum())} Xdawn components")
         elif exclude not in (None, list()):
             exclude_ = np.unique(exclude)
             sources[exclude_] = 0.0
-            logger.info("Zeroing out %i Xdawn components" % len(exclude_))
+            logger.info(f"Zeroing out {len(exclude_)} Xdawn components")
         logger.info("Inverse transforming to sensor space")
         data = np.dot(self.patterns_[eid].T, sources)
 

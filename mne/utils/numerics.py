@@ -166,8 +166,8 @@ def _reg_pinv(x, reg=0, rank="full", rcond=1e-15):
         warn("Covariance matrix is rank-deficient and no regularization is done.")
     elif isinstance(rank, int) and rank > n:
         raise ValueError(
-            "Invalid value for the rank parameter (%d) given "
-            "the shape of the input matrix (%d x %d)." % (rank, x.shape[0], x.shape[1])
+            f"Invalid value for the rank parameter ({rank}) given "
+            f"the shape of the input matrix ({x.shape[0]} x {x.shape[1]})."
         )
 
     # Pick the requested number of singular values
@@ -228,7 +228,7 @@ def _reject_data_segments(data, reject, flat, decim, info, tstep):
             data_clean[:, this_start:this_stop] = data_buffer
             this_start += data_buffer.shape[1]
         else:
-            logger.info("Artifact detected in [%d, %d]" % (first, last))
+            logger.info(f"Artifact detected in [{first}, {last}]")
             drop_inds.append((first, last))
     data = data_clean[:, :this_stop]
     if not data.any():
@@ -592,7 +592,7 @@ def grand_average(all_inst, interpolate_bads=True, drop_bads=True):
     # change the grand_average.nave to the number of Evokeds
     grand_average.nave = len(all_inst)
     # change comment field
-    grand_average.comment = "Grand average (n = %d)" % grand_average.nave
+    grand_average.comment = f"Grand average (n = {grand_average.nave})"
     return grand_average
 
 

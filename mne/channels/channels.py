@@ -12,6 +12,8 @@
 # Copyright the MNE-Python contributors.
 
 
+from __future__ import annotations  # only needed for Python ≤ 3.9
+
 import os.path as op
 import string
 import sys
@@ -20,7 +22,6 @@ from copy import deepcopy
 from dataclasses import dataclass
 from functools import partial
 from pathlib import Path
-from typing import Union
 
 import numpy as np
 from scipy.io import loadmat
@@ -1032,7 +1033,7 @@ class _BuiltinChannelAdjacency:
     name: str
     description: str
     fname: str
-    source_url: Union[str, None]
+    source_url: str | None
 
 
 _ft_neighbor_url_t = string.Template(
