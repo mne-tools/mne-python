@@ -30,45 +30,16 @@ Related software
   C++ and is primarily intended for embedded and real-time applications.
 
 There is also a growing ecosystem of other Python packages that work alongside
-MNE-Python, including packages for:
+MNE-Python, including:
 
 .. note:: Something missing?
     :class: sidebar
 
     If you know of a package that is related but not listed here, feel free to
-    :ref:`make a pull request <contributing>` to add it to this list.
+    to add it to this list by :ref:`making a pull request <contributing>` to update
+    `doc/sphinxext/related_software.py <https://github.com/mne-tools/mne-python/blob/main/doc/sphinxext/related_software.py>`__.
 
-- a graphical user interface for MNE-Python (`MNELAB`_)
-- easily importing MEG data from the Human Connectome Project for
-  use with MNE-Python (`MNE-HCP`_)
-- managing MNE projects so that they comply with the `Brain
-  Imaging Data Structure`_ specification (`MNE-BIDS`_)
-- automatic bad channel detection and interpolation (`autoreject`_)
-- convolutional sparse dictionary learning and waveform shape estimation
-  (`alphaCSC`_)
-- independent component analysis (ICA) with good performance on real data
-  (`PICARD`_)
-- automatic labeling of ICA components (`MNE-ICAlabel`_)
-- phase-amplitude coupling (`pactools`_)
-- representational similarity analysis (`rsa`_)
-- microstate analysis (`microstate`_)
-- connectivity analysis using dynamic imaging of coherent sources (DICS)
-  (`conpy`_)
-- other connectivity algorithms (`MNE-Connectivity`_)
-- general-purpose statistical analysis of M/EEG data (`eelbrain`_)
-- post-hoc modification of linear models (`posthoc`_)
-- a python implementation of the Preprocessing Pipeline (PREP) for EEG data
-  (`pyprep`_)
-- automatic multi-dipole localization and uncertainty quantification with
-  the Bayesian algorithm SESAME (`sesameeg`_)
-- GLM and group level analysis of near-infrared spectroscopy data (`MNE-NIRS`_)
-- All-Resolutions Inference (ARI) for statistically valid circular inference
-  and effect localization (`MNE-ARI`_)
-- real-time analysis (`MNE-Realtime`_)
-- non-parametric sequential analyses and adaptive sample size determination (`niseq`_)
-- a graphical user interface for multi-subject MEG/EEG analysis with plugin support (`Meggie`_)
-- A method to localize the superficial generators together with their spatial extent
-  using the Maximum Entropy on the Mean (`MEM`_)
+.. related-software::
 
 What should I install?
 ^^^^^^^^^^^^^^^^^^^^^^

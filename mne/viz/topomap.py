@@ -3000,7 +3000,7 @@ def _onselect(
         tfr.freqs[ifmax],
     )
 
-    title = "Average over %d %s channels." % (len(chs), ch_type)
+    title = f"Average over {len(chs)} {ch_type} channels."
     ax.set_title(title)
     ax.set_xlabel("Time (ms)")
     ax.set_ylabel("Frequency (Hz)")
@@ -3255,7 +3255,7 @@ def _topomap_animation(
     times = np.array(times)
 
     if times.ndim != 1:
-        raise ValueError("times must be 1D, got %d dimensions" % times.ndim)
+        raise ValueError(f"times must be 1D, got {times.ndim} dimensions")
     if max(times) > evoked.times[-1] or min(times) < evoked.times[0]:
         raise ValueError("All times must be inside the evoked time series.")
     frames = [np.abs(evoked.times - time).argmin() for time in times]

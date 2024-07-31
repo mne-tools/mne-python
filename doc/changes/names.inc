@@ -627,3 +627,5 @@
 .. _Zvi Baratz: https://github.com/ZviBaratz
 
 .. _Seyed Yahya Shirazi: https://neuromechanist.github.io
+
+.. _Sammi Chekroud: https://github.com/schekroud

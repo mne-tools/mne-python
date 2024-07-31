@@ -965,6 +965,11 @@ def test_inverse_operator_noise_cov_rank(evoked, noise_cov):
     inv = make_inverse_operator(evoked.info, fwd_op, noise_cov, rank=dict(meg=64))
     assert compute_rank_inverse(inv) == 64
 
+    bad_cov = noise_cov.copy()
+    bad_cov["data"][0, 0] *= 1e12
+    with pytest.warns(RuntimeWarning, match="orders of magnitude"):
+        make_inverse_operator(evoked.info, fwd_op, bad_cov, rank=dict(meg=64))
+
     fwd_op = read_forward_solution_eeg(fname_fwd, surf_ori=True)
     inv = make_inverse_operator(evoked.info, fwd_op, noise_cov, rank=dict(eeg=20))
     assert compute_rank_inverse(inv) == 20

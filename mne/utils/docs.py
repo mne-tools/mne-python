@@ -1275,6 +1275,11 @@ encoding : str
     encoding according to the EDF+ standard).
 """
 
+docdict["encoding_nirx"] = """
+encoding : str
+    Text encoding of the NIRX header file. See :ref:`standard-encodings`.
+"""
+
 docdict["epochs_preload"] = """
     Load all epochs from disk when creating the object
     or wait before accessing each epoch (more memory
@@ -5309,7 +5314,7 @@ def linkcode_resolve(domain, info):
         lineno = None
 
     if lineno:
-        linespec = "#L%d-L%d" % (lineno, lineno + len(source) - 1)
+        linespec = f"#L{lineno}-L{lineno + len(source) - 1}"
     else:
         linespec = ""
 

@@ -37,7 +37,7 @@ classifiers = [
 ]
 scripts = { mne = "mne.commands.utils:main" }
 dependencies = [
-    "numpy>=1.23",
+    "numpy>=1.23,<3",
     "scipy>=1.9",
     "matplotlib>=3.6",
     "tqdm",
@@ -310,6 +310,7 @@ ignore_directives = [
     "minigallery",
     "tabularcolumns",
     "toctree",
+    "related-software",
     "rst-class",
     "tab-set",
     "towncrier-draft-entries",

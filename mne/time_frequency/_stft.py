@@ -66,8 +66,8 @@ def stft(x, wsize, tstep=None, verbose=None):
 
     n_step = int(ceil(T / float(tstep)))
     n_freq = wsize // 2 + 1
-    logger.info("Number of frequencies: %d" % n_freq)
-    logger.info("Number of time steps: %d" % n_step)
+    logger.info(f"Number of frequencies: {n_freq}")
+    logger.info(f"Number of time steps: {n_step}")
 
     X = np.zeros((n_signals, n_freq, n_step), dtype=np.complex128)
 

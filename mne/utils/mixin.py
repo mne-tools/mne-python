@@ -419,7 +419,7 @@ class GetEpochsMixin:
                 if len(metadata) != len(self.events):
                     raise ValueError(
                         "metadata must have the same number of "
-                        "rows (%d) as events (%d)" % (len(metadata), len(self.events))
+                        f"rows ({len(metadata)}) as events ({len(self.events)})"
                     )
                 if reset_index:
                     if hasattr(self, "selection"):
@@ -448,7 +448,7 @@ class GetEpochsMixin:
                 n_col = metadata.shape[1]
             else:
                 n_col = len(metadata[0])
-            n_col = " with %d columns" % n_col
+            n_col = f" with {n_col} columns"
         else:
             n_col = ""
         if hasattr(self, "_metadata") and self._metadata is not None:

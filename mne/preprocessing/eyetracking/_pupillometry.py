@@ -6,6 +6,7 @@
 import numpy as np
 
 from ..._fiff.constants import FIFF
+from ...annotations import _annotations_starts_stops
 from ...io import BaseRaw
 from ...utils import _check_preload, _validate_type, logger, warn
 
@@ -14,7 +15,7 @@ def interpolate_blinks(raw, buffer=0.05, match="BAD_blink", interpolate_gaze=Fal
     """Interpolate eyetracking signals during blinks.
 
     This function uses the timing of blink annotations to estimate missing
-    data. Operates in place.
+    data. Missing values are then interpolated linearly. Operates in place.
 
     Parameters
     ----------
@@ -88,12 +89,15 @@ def _interpolate_blinks(raw, buffer, blink_annots, interpolate_gaze):
                 continue
         # Create an empty boolean mask
         mask = np.zeros_like(raw.times, dtype=bool)
-        for annot in blink_annots:
+        starts, ends = _annotations_starts_stops(raw, "BAD_blink")
+        starts = np.divide(starts, raw.info["sfreq"])
+        ends = np.divide(ends, raw.info["sfreq"])
+        for annot, start, end in zip(blink_annots, starts, ends):
             if "ch_names" not in annot or not annot["ch_names"]:
                 msg = f"Blink annotation missing values for 'ch_names' key: {annot}"
                 raise ValueError(msg)
-            start = annot["onset"] - pre_buffer
-            end = annot["onset"] + annot["duration"] + post_buffer
+            start -= pre_buffer
+            end += post_buffer
             if ch_info["ch_name"] not in annot["ch_names"]:
                 continue  # skip if the channel is not in the blink annotation
             # Update the mask for times within the current blink period

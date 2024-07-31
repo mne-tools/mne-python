@@ -375,11 +375,11 @@ def simulate_raw(
         try:
             stc_counted = next(stc_enum)
         except StopIteration:
-            logger.info("    %d STC iteration%s provided" % (n + 1, _pl(n + 1)))
+            logger.info(f"    {n + 1} STC iteration{_pl(n + 1)} provided")
             break
         del fwd
     else:
-        raise RuntimeError("Maximum number of STC iterations (%d) exceeded" % (n,))
+        raise RuntimeError(f"Maximum number of STC iterations ({n}) exceeded")
     raw_data = np.concatenate(raw_datas, axis=-1)
     raw = RawArray(raw_data, info, first_samp=first_samp, verbose=False)
     raw.set_annotations(raw.annotations)
@@ -730,8 +730,7 @@ def _stc_data_event(stc_counted, head_idx, sfreq, src=None, verts=None):
             np.array_equal(a, b) for a, b in zip(verts, verts_)
         ):
             raise RuntimeError(
-                "Vertex mismatch for stc[%d], "
-                "all stc.vertices must match" % (stc_idx,)
+                f"Vertex mismatch for stc[{stc_idx}], all stc.vertices must match"
             )
     stc_data = stc.data
     if src is None:

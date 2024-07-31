@@ -808,8 +808,8 @@ def _compute_forwards_meeg(rr, *, sensors, fwd_data, n_jobs, silent=False):
         # Do the actual forward calculation for a list MEG/EEG sensors
         if not silent:
             logger.info(
-                "Computing %s at %d source location%s "
-                "(free orientations)..." % (coil_type.upper(), len(rr), _pl(rr))
+                f"Computing {coil_type.upper()} at {len(rr)} source location{_pl(rr)} "
+                "(free orientations)..."
             )
         # Calculate forward solution using spherical or BEM model
         B = fun(
