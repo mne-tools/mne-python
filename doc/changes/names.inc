@@ -168,6 +168,8 @@
 
 .. _Fahimeh Mamashli: https://github.com/fmamashli
 
+.. _Farzin Negahbani: https://github.com/Farzin-Negahbani
+
 .. _Federico Raimondo: https://github.com/fraimondo
 
 .. _Federico Zamberlan: https://github.com/fzamberlan
@@ -508,6 +510,8 @@
 
 .. _Rotem Falach: https://github.com/Falach
 
+.. _Sammi Chekroud: https://github.com/schekroud
+
 .. _Samu Taulu: https://phys.washington.edu/people/samu-taulu
 
 .. _Samuel Deslauriers-Gauthier: https://github.com/sdeslauriers
@@ -535,6 +539,8 @@
 .. _Sena Er: https://github.com/sena-neuro
 
 .. _Senwen Deng: https://snwn.de
+
+.. _Seyed Yahya Shirazi: https://neuromechanist.github.io
 
 .. _Sheraz Khan: https://github.com/SherazKhan
 
@@ -625,7 +631,3 @@
 .. _Zhi Zhang: https://github.com/tczhangzhi/
 
 .. _Zvi Baratz: https://github.com/ZviBaratz
-
-.. _Seyed Yahya Shirazi: https://neuromechanist.github.io
-
-.. _Sammi Chekroud: https://github.com/schekroud

@@ -539,6 +539,8 @@ def test_drop_channels():
         raw.drop_channels(m_chs, on_missing="warn")
     # ...or ignored altogether
     raw.drop_channels(m_chs, on_missing="ignore")
+    with pytest.raises(ValueError, match="All channels"):
+        raw.drop_channels(raw.ch_names)
 
 
 def test_pick_channels():
