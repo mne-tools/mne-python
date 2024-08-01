@@ -629,3 +629,5 @@
 .. _Seyed Yahya Shirazi: https://neuromechanist.github.io
 
 .. _Sammi Chekroud: https://github.com/schekroud
+
+.. _Farzin Negahbani: https://github.com/Farzin-Negahbani
