@@ -600,11 +600,10 @@ class UpdateChannelsMixin:
             msg = "Channel(s) {0} not found, nothing dropped."
             _on_missing(on_missing, msg.format(", ".join(missing)))
 
-        if set(ch_names) == set(self.ch_names):
-            raise ValueError("All channel(s) would be dropped.")
-
         bad_idx = [self.ch_names.index(ch) for ch in ch_names if ch in self.ch_names]
         idx = np.setdiff1d(np.arange(len(self.ch_names)), bad_idx)
+        if len(idx) == 0:
+            raise ValueError("All channel(s) would be dropped.")
         return self._pick_drop_channels(idx)
 
     @verbose
