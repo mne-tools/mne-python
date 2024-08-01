@@ -24,7 +24,6 @@ from sphinx.util.display import status_iterator
 # If it's available on PyPI, add it to this set:
 PYPI_PACKAGES = {
     "alphaCSC",
-    "conpy",
     "meggie",
     "niseq",
     "sesameeg",
@@ -96,6 +95,11 @@ MANUAL_PACKAGES = {
     "pycrostates": {
         "Home-page": "https://pycrostates.readthedocs.io",
         "Summary": "A simple open source Python package for EEG microstate segmentation.",  # noqa: E501
+    },
+    # not on PyPI
+    "conpy": {
+        "Home-page": "https://github.com/aaltoimaginglanguage/conpy",
+        "Summary": "Functions and classes for performing connectivity analysis on MEG data.",  # noqa: E501
     },
 }
 
