@@ -92,6 +92,11 @@ MANUAL_PACKAGES = {
         "Home-page": "https://emd.readthedocs.io/en/stable",
         "Summary": "Empirical Mode Decomposition in Python.",
     },
+    # Needs https://github.com/vferat/pycrostates/pull/188 and a release
+    "pycrostates": {
+        "Home-page": "https://pycrostates.readthedocs.io",
+        "Summary": "A simple open source Python package for EEG microstate segmentation.",  # noqa: E501
+    },
 }
 
 REQUIRE_METADATA = os.getenv("MNE_REQUIRE_RELATED_SOFTWARE_INSTALLED", "false").lower()
