@@ -46,6 +46,14 @@ repos:
           - tomli
         files: ^doc/.*\.(rst|inc)$
 
+  # sorting
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: file-contents-sorter
+        files: ^doc/changes/names.inc
+        args: ["--ignore-case"]
+
 # The following are too slow to run on local commits, so let's only run on CIs:
 #
 #   - repo: https://github.com/pre-commit/mirrors-mypy
