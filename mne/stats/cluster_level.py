@@ -1796,12 +1796,12 @@ def cluster_test(
     stat_fun: callable | None = None,
     tail: Literal[-1, 0, 1] = 0,
     threshold=None,
-    n_permutations: int = 1024,
-    adjacency: tuple | None = None,
-    max_step: int = 1,
-    exclude: list | None = None,
-    step_down_p: int = 0,
-    t_power: int = 1,
+    n_permutations: str | int = 1024,
+    adjacency: sparse.spmatrix | False = False,
+    max_step: int = 1,  # TODO may need to provide `max_step_time` and `max_step_freq`
+    exclude: list | None = None,  # TODO needs rethink because user passes MNE objects
+    step_down_p: float = 0.0,
+    t_power: float = 1.0,
     check_disjoint: bool = False,
     out_type: Literal["indices", "mask"] = "indices",
     seed: None | int | np.random.RandomState = None,
@@ -1819,34 +1819,40 @@ def cluster_test(
         Wilkinson notation formula for design matrix. The names of the dependent
         and independent variable should match the columns in the dataframe.
     within_id : None | str
-        Name of column in ``df`` to use in identifying within-group contrasts.
-    stat_fun : None | callable
-        Statistical function to use.
-    tail : int, optional
-        0 for two-tailed, 1 for greater, -1 for less. Default is 0.
-    n_permutations : int, optional
-        Number of permutations. Default is 1024.
-    adjacency : None, optional
-        Provide a adjacency matrix. Default is None.
+        Name of column in ``df`` to use in identifying within-group contrasts. If
+        ``None``, will perform a between-group test. Ignored if the number of groups
+        (unique values in the independent variable column of ``df``) is greater than 2.
+    %(stat_fun_clust_both)s
+    %(tail_clust)s
+    %(threshold_clust_both)s
+    %(n_permutations_clust_all)s
+    %(adjacency_clust_both)s
     max_step : int, optional
         Maximum distance between samples (time points). Default is 1.
-    exclude : np.Array, optional
-        Exclude no time points or channels. Default is None.
-    step_down_p : int, optional
-        Step down in jumps test. Default is 0.
-    t_power : int, optional
-        Weigh each location by its stats score. Default is 1.
-    check_disjoint : bool, optional
-        Check if clusters are disjoint. Default is False.
-    out_type : str, optional
-        Output type. Default is "indices".
-    seed : None | int | np.random.RandomState, optional
-        Seed for the random number generator. Default is None.
-    buffer_size : int, optional
-        Block size for chunking the data. Default is None.
-    n_jobs : int, optional
-        How many cores to use. Default is 1.
+    exclude : array-like of bool | None
+        Mask to apply to the data to exclude certain points from clustering
+        (e.g., medial wall vertices). Should be the same shape as the channels/vertices
+        dimension of the data objects. If ``None``, no points are excluded.
+    %(step_down_p_clust)s
+    %(t_power_clust)s
+    check_disjoint : bool
+        Whether to check if the ``adjacency`` matrix can be separated into disjoint
+        sets before clustering. This may lead to faster clustering, especially if
+        the "time" and/or "frequency" dimensions are large.
+    %(out_type_clust)s
+    %(seed)s
+    buffer_size : int | None
+        Block size to use when computing test statistics. This can significantly
+        reduce memory usage when ``n_jobs > 1`` and memory sharing between
+        processes is enabled (see :func:`mne.set_cache_dir`), because the data will be
+        shared between processes and each process only needs to allocate space for
+        a small block of locations at a time.
+    %(n_jobs)s
     %(verbose)s
+
+    Notes
+    -----
+    %(threshold_clust_t_or_f_notes)s
 
     Returns
     -------
