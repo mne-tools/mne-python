@@ -654,6 +654,7 @@ linkcheck_ignore = [  # will be compiled to regex
 linkcheck_anchors = False  # saves a bit of time
 linkcheck_timeout = 15  # some can be quite slow
 linkcheck_retries = 3
+linkcheck_report_timeouts_as_broken = False
 
 # autodoc / autosummary
 autosummary_generate = True
