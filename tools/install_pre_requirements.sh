@@ -21,16 +21,13 @@ python -m pip uninstall -yq numpy
 # No h5py (and thus dipy) yet until they improve/refactor thier wheel building infrastructure for Windows
 OTHERS=""
 if [[ "${PLATFORM}" == "Linux" ]]; then
-	OTHERS="h5py dipy"
+	OTHERS="h5py dipy https://gitlab.com/obob/pymatreader/-/archive/master/pymatreader-master.zip"
 fi
 python -m pip install $STD_ARGS --only-binary ":all:" --default-timeout=60 \
 	--index-url "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" \
 	"numpy>=2.1.0.dev0" "scikit-learn>=1.6.dev0" "scipy>=1.15.0.dev0" \
 	"statsmodels>=0.15.0.dev0" "pandas>=3.0.0.dev0" "matplotlib>=3.10.0.dev0" \
 	$OTHERS
-
-# Wait for
-pip install --pre --upgrade statsmodels
 
 # No Numba because it forces an old NumPy version
 
