@@ -4,7 +4,7 @@ python -m pip install --upgrade "pip!=20.3.0" build
 python -m pip install --upgrade --progress-bar off \
     --only-binary "numpy,dipy,scipy,matplotlib,pandas,statsmodels" \
     -ve .[full,test,doc] "numpy>=2" "dipy>1.9.0" \
-    --extra-index-url "https://pypi.anaconda.org/scientific-python-nightly/simple" \
+    --extra-index-url "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" \
     "git+https://github.com/larsoner/pyvista.git@refcycle" \
     git+https://github.com/sphinx-gallery/sphinx-gallery.git \
     \
