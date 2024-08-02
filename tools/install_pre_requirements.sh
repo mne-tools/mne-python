@@ -29,10 +29,12 @@ python -m pip install $STD_ARGS --only-binary ":all:" --default-timeout=60 \
 	"statsmodels>=0.15.0.dev0" "pandas>=3.0.0.dev0" "matplotlib>=3.10.0.dev0" \
 	$OTHERS
 
-# Wait for
-pip install --pre --upgrade statsmodels
-
 # No Numba because it forces an old NumPy version
+
+if [[ "${PLATFORM}" == "Linux" ]]; then
+	echo "pymatreader"
+	pip install https://gitlab.com/obob/pymatreader/-/archive/master/pymatreader-master.zip
+fi
 
 echo "OpenMEEG"
 python -m pip install $STD_ARGS --only-binary ":all:" --extra-index-url "https://test.pypi.org/simple" "openmeeg>=2.6.0.dev4"

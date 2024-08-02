@@ -401,8 +401,8 @@ jobs:
       scheduled:
         type: string
         default: "false"
-    docker:
-      - image: cimg/base:current-22.04
+    machine:
+      image: ubuntu-2404:current
     resource_class: large
     steps:
       - restore_cache:
@@ -446,8 +446,8 @@ jobs:
 
 
   deploy:
-    docker:
-      - image: cimg/base:current-22.04
+    machine:
+      image: ubuntu-2404:current
     steps:
       - attach_workspace:
           at: /tmp/build

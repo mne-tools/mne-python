@@ -65,7 +65,7 @@ html_dev-noplot: html-noplot
 html_dev-front: html-front
 
 linkcheck:
-	@$(SPHINXBUILD) -b linkcheck -D nitpicky=0 -D plot_gallery=0 -D exclude_patterns="cited.rst,whats_new.rst,configure_git.rst" -d _build/doctrees . _build/linkcheck
+	@$(SPHINXBUILD) -b linkcheck -D nitpicky=0 -D plot_gallery=0 -D exclude_patterns="cited.rst,whats_new.rst,configure_git.rst,_includes,changes/devel" -d _build/doctrees . _build/linkcheck
 
 linkcheck-grep:
 	@! grep -h "^.*:.*: \[\(\(local\)\|\(broken\)\)\]" _build/linkcheck/output.txt

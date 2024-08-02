@@ -617,6 +617,7 @@ linkcheck_ignore = [  # will be compiled to regex
     "https://doi.org/10.1111/",  # onlinelibrary.wiley.com/doi/10.1111/psyp
     "https://doi.org/10.1126/",  # www.science.org
     "https://doi.org/10.1137/",  # epubs.siam.org
+    "https://doi.org/10.1155/",  # www.hindawi.com/journals/cin
     "https://doi.org/10.1161/",  # www.ahajournals.org
     "https://doi.org/10.1162/",  # direct.mit.edu/neco/article/
     "https://doi.org/10.1167/",  # jov.arvojournals.org
@@ -629,6 +630,7 @@ linkcheck_ignore = [  # will be compiled to regex
     "https://www.intel.com/content/www/us/en/developer/tools/oneapi/onemkl.html",
     r"https://scholar.google.com/scholar\?cites=12188330066413208874&as_ylo=2014",
     r"https://scholar.google.com/scholar\?cites=1521584321377182930&as_ylo=2013",
+    "https://www.research.chop.edu/imaging",
     # 500 server error
     "https://openwetware.org/wiki/Beauchamp:FreeSurfer",
     # 503 Server error
@@ -652,6 +654,7 @@ linkcheck_ignore = [  # will be compiled to regex
 linkcheck_anchors = False  # saves a bit of time
 linkcheck_timeout = 15  # some can be quite slow
 linkcheck_retries = 3
+linkcheck_report_timeouts_as_broken = False
 
 # autodoc / autosummary
 autosummary_generate = True
