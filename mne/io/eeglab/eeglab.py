@@ -418,7 +418,8 @@ class DataContainerEEGLAB:
         various attributes associated with the EEG dataset.
 
         Attributes:
-            eeg (Bunch): The Bunch object containing EEG data loaded from an EEGLAB .set file.
+            eeg (Bunch): The Bunch object containing EEG data loaded from an EEGLAB .set
+            file.
             setname (str): The name of the dataset.
             filename (str): The name of the file.
             filepath (str): The path to the file.
