@@ -285,12 +285,12 @@ def _handle_montage_units(montage_units, mean_radius):
 
 @fill_doc
 def read_raw_eeglab(
-        input_fname,
-        eog=(),
-        preload=False,
-        uint16_codec=None,
-        montage_units="auto",
-        verbose=None,
+    input_fname,
+    eog=(),
+    preload=False,
+    uint16_codec=None,
+    montage_units="auto",
+    verbose=None,
 ) -> "RawEEGLAB":
     r"""Read an EEGLAB .set file.
 
@@ -339,14 +339,14 @@ def read_raw_eeglab(
 
 @fill_doc
 def read_epochs_eeglab(
-        input_fname,
-        events=None,
-        event_id=None,
-        eog=(),
-        *,
-        uint16_codec=None,
-        montage_units="auto",
-        verbose=None,
+    input_fname,
+    events=None,
+    event_id=None,
+    eog=(),
+    *,
+    uint16_codec=None,
+    montage_units="auto",
+    verbose=None,
 ) -> "EpochsEEGLAB":
     r"""Reader function for EEGLAB epochs files.
 
@@ -410,110 +410,112 @@ def read_epochs_eeglab(
 
 class DataContainerEEGLAB:
     """
-        A container class for storing all relevant fields from an EEGLAB .set file.
+    A container class for storing all relevant fields from an EEGLAB .set file.
 
-        This class initializes with a Bunch object containing EEG data, and
-        extracts and stores all possible fields that might be present in an
-        EEGLAB .set file. This allows for easy and organized access to the
-        various attributes associated with the EEG dataset.
+    This class initializes with a Bunch object containing EEG data, and
+    extracts and stores all possible fields that might be present in an
+    EEGLAB .set file. This allows for easy and organized access to the
+    various attributes associated with the EEG dataset.
 
-        Attributes:
-            eeg (Bunch): The Bunch object containing EEG data loaded from an EEGLAB .set
-            file.
-            setname (str): The name of the dataset.
-            filename (str): The name of the file.
-            filepath (str): The path to the file.
-            subject (str): The subject associated with the dataset.
-            group (str): The group the subject belongs to.
-            condition (str): The experimental condition.
-            session (str): The session number.
-            comments (str): Any comments associated with the dataset.
-            nbchan (int): The number of channels.
-            trials (int): The number of trials.
-            pnts (int): The number of points per trial.
-            srate (float): The sampling rate.
-            xmin (float): The minimum time value.
-            xmax (float): The maximum time value.
-            times (array): The time values.
-            data (array): The EEG data.
-            icaact (array): The ICA activations.
-            icawinv (array): The ICA weights inverse.
-            icasphere (array): The ICA sphere matrix.
-            icaweights (array): The ICA weights matrix.
-            icachansind (array): The ICA channels indices.
-            chanlocs (list): The channel locations.
-            urchanlocs (list): The original unprocessed channel locations.
-            chaninfo (dict): The channel information.
-            ref (str): The reference used.
-            event (list): The events present in the dataset.
-            urevent (list): The original unprocessed events.
-            eventdescription (list): Descriptions of the events.
-            epoch (list): The epochs present in the dataset.
-            epochdescription (list): Descriptions of the epochs.
-            reject (dict): Rejection criteria for the dataset.
-            stats (dict): Statistical information about the dataset.
-            specdata (array): The spectral data.
-            specicaact (array): The ICA spectral data.
-            splinefile (str): The spline file.
-            icasplinefile (str): The ICA spline file.
-            dipfit (dict): The dipole fitting information.
-            history (str): The processing history.
-            saved (str): The save status of the dataset.
-            etc (dict): Miscellaneous additional information.
-            run (int): The run number.
-            roi (dict): The regions of interest information.
-            datfile (str): The data file associated with the dataset.
+    Attributes
+    ----------
+        eeg (Bunch): The Bunch object containing EEG data loaded from an EEGLAB .set
+        file.
+        setname (str): The name of the dataset.
+        filename (str): The name of the file.
+        filepath (str): The path to the file.
+        subject (str): The subject associated with the dataset.
+        group (str): The group the subject belongs to.
+        condition (str): The experimental condition.
+        session (str): The session number.
+        comments (str): Any comments associated with the dataset.
+        nbchan (int): The number of channels.
+        trials (int): The number of trials.
+        pnts (int): The number of points per trial.
+        srate (float): The sampling rate.
+        xmin (float): The minimum time value.
+        xmax (float): The maximum time value.
+        times (array): The time values.
+        data (array): The EEG data.
+        icaact (array): The ICA activations.
+        icawinv (array): The ICA weights inverse.
+        icasphere (array): The ICA sphere matrix.
+        icaweights (array): The ICA weights matrix.
+        icachansind (array): The ICA channels indices.
+        chanlocs (list): The channel locations.
+        urchanlocs (list): The original unprocessed channel locations.
+        chaninfo (dict): The channel information.
+        ref (str): The reference used.
+        event (list): The events present in the dataset.
+        urevent (list): The original unprocessed events.
+        eventdescription (list): Descriptions of the events.
+        epoch (list): The epochs present in the dataset.
+        epochdescription (list): Descriptions of the epochs.
+        reject (dict): Rejection criteria for the dataset.
+        stats (dict): Statistical information about the dataset.
+        specdata (array): The spectral data.
+        specicaact (array): The ICA spectral data.
+        splinefile (str): The spline file.
+        icasplinefile (str): The ICA spline file.
+        dipfit (dict): The dipole fitting information.
+        history (str): The processing history.
+        saved (str): The save status of the dataset.
+        etc (dict): Miscellaneous additional information.
+        run (int): The run number.
+        roi (dict): The regions of interest information.
+        datfile (str): The data file associated with the dataset.
 
-        Methods:
-            __init__: Initializes the DataContainerEEGLAB class by extracting and
-                      storing all fields from the provided Bunch object.
-        """
+    Methods
+    -------
+        __init__: Initializes the DataContainerEEGLAB class by extracting and
+                  storing all fields from the provided Bunch object.
+    """
 
     def __init__(self, eeg: Bunch):
         self.eeg = eeg
-        self.setname = getattr(self.eeg, 'setname', None)
-        self.filename = getattr(self.eeg, 'filename', None)
-        self.filepath = getattr(self.eeg, 'filepath', None)
-        self.subject = getattr(self.eeg, 'subject', None)
-        self.group = getattr(self.eeg, 'group', None)
-        self.condition = getattr(self.eeg, 'condition', None)
-        self.session = getattr(self.eeg, 'session', None)
-        self.comments = getattr(self.eeg, 'comments', None)
-        self.nbchan = getattr(self.eeg, 'nbchan', None)
-        self.trials = getattr(self.eeg, 'trials', None)
-        self.pnts = getattr(self.eeg, 'pnts', None)
-        self.srate = getattr(self.eeg, 'srate', None)
-        self.xmin = getattr(self.eeg, 'xmin', None)
-        self.xmax = getattr(self.eeg, 'xmax', None)
-        self.times = getattr(self.eeg, 'times', None)
-        self.data = getattr(self.eeg, 'data', None)
-        self.icaact = getattr(self.eeg, 'icaact', None)
-        self.icawinv = getattr(self.eeg, 'icawinv', None)
-        self.icasphere = getattr(self.eeg, 'icasphere', None)
-        self.icaweights = getattr(self.eeg, 'icaweights', None)
-        self.icachansind = getattr(self.eeg, 'icachansind', None)
-        self.chanlocs = getattr(self.eeg, 'chanlocs', None)
-        self.urchanlocs = getattr(self.eeg, 'urchanlocs', None)
-        self.chaninfo = getattr(self.eeg, 'chaninfo', None)
-        self.ref = getattr(self.eeg, 'ref', None)
-        self.event = getattr(self.eeg, 'event', None)
-        self.urevent = getattr(self.eeg, 'urevent', None)
-        self.eventdescription = getattr(self.eeg, 'eventdescription', None)
-        self.epoch = getattr(self.eeg, 'epoch', None)
-        self.epochdescription = getattr(self.eeg, 'epochdescription', None)
-        self.reject = getattr(self.eeg, 'reject', None)
-        self.stats = getattr(self.eeg, 'stats', None)
-        self.specdata = getattr(self.eeg, 'specdata', None)
-        self.specicaact = getattr(self.eeg, 'specicaact', None)
-        self.splinefile = getattr(self.eeg, 'splinefile', None)
-        self.icasplinefile = getattr(self.eeg, 'icasplinefile', None)
-        self.dipfit = getattr(self.eeg, 'dipfit', None)
-        self.history = getattr(self.eeg, 'history', None)
-        self.saved = getattr(self.eeg, 'saved', None)
-        self.etc = getattr(self.eeg, 'etc', None)
-        self.run = getattr(self.eeg, 'run', None)
-        self.roi = getattr(self.eeg, 'roi', None)
-        self.datfile = getattr(self.eeg, 'datfile', None)
+        self.setname = getattr(self.eeg, "setname", None)
+        self.filename = getattr(self.eeg, "filename", None)
+        self.filepath = getattr(self.eeg, "filepath", None)
+        self.subject = getattr(self.eeg, "subject", None)
+        self.group = getattr(self.eeg, "group", None)
+        self.condition = getattr(self.eeg, "condition", None)
+        self.session = getattr(self.eeg, "session", None)
+        self.comments = getattr(self.eeg, "comments", None)
+        self.nbchan = getattr(self.eeg, "nbchan", None)
+        self.trials = getattr(self.eeg, "trials", None)
+        self.pnts = getattr(self.eeg, "pnts", None)
+        self.srate = getattr(self.eeg, "srate", None)
+        self.xmin = getattr(self.eeg, "xmin", None)
+        self.xmax = getattr(self.eeg, "xmax", None)
+        self.times = getattr(self.eeg, "times", None)
+        self.data = getattr(self.eeg, "data", None)
+        self.icaact = getattr(self.eeg, "icaact", None)
+        self.icawinv = getattr(self.eeg, "icawinv", None)
+        self.icasphere = getattr(self.eeg, "icasphere", None)
+        self.icaweights = getattr(self.eeg, "icaweights", None)
+        self.icachansind = getattr(self.eeg, "icachansind", None)
+        self.chanlocs = getattr(self.eeg, "chanlocs", None)
+        self.urchanlocs = getattr(self.eeg, "urchanlocs", None)
+        self.chaninfo = getattr(self.eeg, "chaninfo", None)
+        self.ref = getattr(self.eeg, "ref", None)
+        self.event = getattr(self.eeg, "event", None)
+        self.urevent = getattr(self.eeg, "urevent", None)
+        self.eventdescription = getattr(self.eeg, "eventdescription", None)
+        self.epoch = getattr(self.eeg, "epoch", None)
+        self.epochdescription = getattr(self.eeg, "epochdescription", None)
+        self.reject = getattr(self.eeg, "reject", None)
+        self.stats = getattr(self.eeg, "stats", None)
+        self.specdata = getattr(self.eeg, "specdata", None)
+        self.specicaact = getattr(self.eeg, "specicaact", None)
+        self.splinefile = getattr(self.eeg, "splinefile", None)
+        self.icasplinefile = getattr(self.eeg, "icasplinefile", None)
+        self.dipfit = getattr(self.eeg, "dipfit", None)
+        self.history = getattr(self.eeg, "history", None)
+        self.saved = getattr(self.eeg, "saved", None)
+        self.etc = getattr(self.eeg, "etc", None)
+        self.run = getattr(self.eeg, "run", None)
+        self.roi = getattr(self.eeg, "roi", None)
+        self.datfile = getattr(self.eeg, "datfile", None)
 
 
 @fill_doc
@@ -547,14 +549,14 @@ class RawEEGLAB(BaseRaw):
 
     @verbose
     def __init__(
-            self,
-            input_fname,
-            eog=(),
-            preload=False,
-            *,
-            uint16_codec=None,
-            montage_units="auto",
-            verbose=None,
+        self,
+        input_fname,
+        eog=(),
+        preload=False,
+        *,
+        uint16_codec=None,
+        montage_units="auto",
+        verbose=None,
     ):
         input_fname = str(_check_fname(input_fname, "read", True, "input_fname"))
         eeg = _check_load_mat(input_fname, uint16_codec)
@@ -696,20 +698,20 @@ class EpochsEEGLAB(BaseEpochs):
 
     @verbose
     def __init__(
-            self,
-            input_fname,
-            events=None,
-            event_id=None,
-            tmin=0,
-            baseline=None,
-            reject=None,
-            flat=None,
-            reject_tmin=None,
-            reject_tmax=None,
-            eog=(),
-            uint16_codec=None,
-            montage_units="auto",
-            verbose=None,
+        self,
+        input_fname,
+        events=None,
+        event_id=None,
+        tmin=0,
+        baseline=None,
+        reject=None,
+        flat=None,
+        reject_tmin=None,
+        reject_tmax=None,
+        eog=(),
+        uint16_codec=None,
+        montage_units="auto",
+        verbose=None,
     ):
         input_fname = str(
             _check_fname(fname=input_fname, must_exist=True, overwrite="read")
@@ -718,8 +720,8 @@ class EpochsEEGLAB(BaseEpochs):
         self.data_container = DataContainerEEGLAB(eeg=eeg)
 
         if not (
-                (events is None and event_id is None)
-                or (events is not None and event_id is not None)
+            (events is None and event_id is None)
+            or (events is not None and event_id is not None)
         ):
             raise ValueError("Both `events` and `event_id` must be None or not None")
 
@@ -902,7 +904,7 @@ def _read_annotations_eeglab(eeg, uint16_codec=None):
         for idx, event in enumerate(events):
             # empty duration fields are read as empty arrays
             is_empty_array = (
-                    isinstance(event.duration, np.ndarray) and len(event.duration) == 0
+                isinstance(event.duration, np.ndarray) and len(event.duration) == 0
             )
             duration[idx] = np.nan if is_empty_array else event.duration
 
