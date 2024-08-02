@@ -3,8 +3,7 @@
 python -m pip install --upgrade "pip!=20.3.0" build
 python -m pip install --upgrade --progress-bar off \
     --only-binary "numpy,dipy,scipy,matplotlib,pandas,statsmodels" \
-    -ve .[full,test,doc] "numpy>=2" "dipy>1.9.0" \
-    --extra-index-url "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" \
+    -ve .[full,test,doc] "numpy>=2" \
     "git+https://github.com/larsoner/pyvista.git@refcycle" \
     git+https://github.com/sphinx-gallery/sphinx-gallery.git \
     \
@@ -14,3 +13,7 @@ python -m pip install --upgrade --progress-bar off \
     neurodsp neurokit2 niseq nitime openneuro-py pactools \
     plotly pycrostates pyprep pyriemann python-picard sesameeg \
     sleepecg tensorpac yasa
+# This can be removed once dipy > 1.9.0 is released
+python -m pip install --pre --progress-bar off --only-binary dipy \
+    --index-url "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" \
+    "dipy>1.9"
