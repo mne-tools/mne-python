@@ -21,7 +21,7 @@ python -m pip uninstall -yq numpy
 # No h5py (and thus dipy) yet until they improve/refactor thier wheel building infrastructure for Windows
 OTHERS=""
 if [[ "${PLATFORM}" == "Linux" ]]; then
-	OTHERS="h5py dipy https://gitlab.com/obob/pymatreader/-/archive/master/pymatreader-master.zip"
+	OTHERS="h5py dipy"
 fi
 python -m pip install $STD_ARGS --only-binary ":all:" --default-timeout=60 \
 	--index-url "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" \
@@ -30,6 +30,11 @@ python -m pip install $STD_ARGS --only-binary ":all:" --default-timeout=60 \
 	$OTHERS
 
 # No Numba because it forces an old NumPy version
+
+if [[ "${PLATFORM}" == "Linux" ]]; then
+	echo "pymatreader"
+	pip install https://gitlab.com/obob/pymatreader/-/archive/master/pymatreader-master.zip
+fi
 
 echo "OpenMEEG"
 python -m pip install $STD_ARGS --only-binary ":all:" --extra-index-url "https://test.pypi.org/simple" "openmeeg>=2.6.0.dev4"
