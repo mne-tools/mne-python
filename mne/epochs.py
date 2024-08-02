@@ -1109,8 +1109,8 @@ class BaseEpochs(
             How to average the data across epochs, time-point by time-point.
             Pass ``"mean"`` for the arithmeic mean, or ``"median"`` for the median.
 
-        .. note:: In typical ERP and ERF analyses, ``"mean"`` (the default) should
-                  be used.
+            .. note:: In typical ERP and ERF analyses, ``"mean"`` (the default) should
+                      be used.
 
             Can also be a function accepting an array of shape
             ``(n_epochs, n_channels, n_time)`` and returning an array of shape
