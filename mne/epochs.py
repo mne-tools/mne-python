@@ -1080,7 +1080,7 @@ class BaseEpochs(
         self,
         picks=None,
         method: Literal["mean", "median"]
-        | Callable[[NDArray[np.float_]], NDArray[np.float_]] = "mean",
+        | Callable[[NDArray[np.float64]], NDArray[np.float64]] = "mean",
         by_event_type: Literal[False] = False,
     ) -> EvokedArray: ...
 
@@ -1090,7 +1090,7 @@ class BaseEpochs(
         self,
         picks=None,
         method: Literal["mean", "median"]
-        | Callable[[NDArray[np.float_]], NDArray[np.float_]] = "mean",
+        | Callable[[NDArray[np.float64]], NDArray[np.float64]] = "mean",
         by_event_type: Literal[True] = True,
     ) -> list[EvokedArray]: ...
 
@@ -1099,7 +1099,7 @@ class BaseEpochs(
         self,
         picks=None,
         method: Literal["mean", "median"]
-        | Callable[[NDArray[np.float_]], NDArray[np.float_]] = "mean",
+        | Callable[[NDArray[np.float64]], NDArray[np.float64]] = "mean",
         by_event_type: bool = False,
     ) -> EvokedArray | list[EvokedArray]:
         """Compute an average over epochs.
@@ -4235,7 +4235,7 @@ def _read_one_epoch_file(f, tree, preload):
 
 
 @verbose
-def read_epochs(fname, proj=True, preload=True, verbose=None) -> "EpochsFIF":
+def read_epochs(fname, proj=True, preload=True, verbose=None) -> EpochsFIF:
     """Read epochs from a fif file.
 
     Parameters
