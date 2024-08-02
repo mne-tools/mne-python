@@ -1075,7 +1075,6 @@ class BaseEpochs(
         return self
 
     @overload
-    @fill_doc
     def average(
         self,
         picks=None,
@@ -1085,7 +1084,6 @@ class BaseEpochs(
     ) -> EvokedArray: ...
 
     @overload
-    @fill_doc
     def average(
         self,
         picks=None,
