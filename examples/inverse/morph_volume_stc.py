@@ -16,9 +16,9 @@ Transformation is estimated from the subject's anatomical T1 weighted MRI
 (brain) to `FreeSurfer's 'fsaverage' T1 weighted MRI (brain)
 <https://surfer.nmr.mgh.harvard.edu/fswiki/FsAverage>`__.
 
-Afterwards the transformation will be applied to the volumetric source
-estimate. The result will be plotted, showing the fsaverage T1 weighted
-anatomical MRI, overlaid with the morphed volumetric source estimate.
+Afterwards the transformation will be applied to the volumetric source estimate. The
+result will be plotted, showing the fsaverage T1 weighted anatomical MRI, overlaid with
+the morphed volumetric source estimate.
 """
 # Author: Tommy Clausner <tommy.clausner@gmail.com>
 #
