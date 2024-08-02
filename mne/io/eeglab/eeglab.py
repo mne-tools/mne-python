@@ -408,6 +408,54 @@ def read_epochs_eeglab(
     return epochs
 
 
+class DataContainerEEGLAB:
+    def __init__(self, eeg: Bunch):
+        self.eeg = eeg
+        self.setname = getattr(self.eeg, 'setname', None)
+        self.filename = getattr(self.eeg, 'filename', None)
+        self.filepath = getattr(self.eeg, 'filepath', None)
+        self.subject = getattr(self.eeg, 'subject', None)
+        self.group = getattr(self.eeg, 'group', None)
+        self.condition = getattr(self.eeg, 'condition', None)
+        self.session = getattr(self.eeg, 'session', None)
+        self.comments = getattr(self.eeg, 'comments', None)
+        self.nbchan = getattr(self.eeg, 'nbchan', None)
+        self.trials = getattr(self.eeg, 'trials', None)
+        self.pnts = getattr(self.eeg, 'pnts', None)
+        self.srate = getattr(self.eeg, 'srate', None)
+        self.xmin = getattr(self.eeg, 'xmin', None)
+        self.xmax = getattr(self.eeg, 'xmax', None)
+        self.times = getattr(self.eeg, 'times', None)
+        self.data = getattr(self.eeg, 'data', None)
+        self.icaact = getattr(self.eeg, 'icaact', None)
+        self.icawinv = getattr(self.eeg, 'icawinv', None)
+        self.icasphere = getattr(self.eeg, 'icasphere', None)
+        self.icaweights = getattr(self.eeg, 'icaweights', None)
+        self.icachansind = getattr(self.eeg, 'icachansind', None)
+        self.chanlocs = getattr(self.eeg, 'chanlocs', None)
+        self.urchanlocs = getattr(self.eeg, 'urchanlocs', None)
+        self.chaninfo = getattr(self.eeg, 'chaninfo', None)
+        self.ref = getattr(self.eeg, 'ref', None)
+        self.event = getattr(self.eeg, 'event', None)
+        self.urevent = getattr(self.eeg, 'urevent', None)
+        self.eventdescription = getattr(self.eeg, 'eventdescription', None)
+        self.epoch = getattr(self.eeg, 'epoch', None)
+        self.epochdescription = getattr(self.eeg, 'epochdescription', None)
+        self.reject = getattr(self.eeg, 'reject', None)
+        self.stats = getattr(self.eeg, 'stats', None)
+        self.specdata = getattr(self.eeg, 'specdata', None)
+        self.specicaact = getattr(self.eeg, 'specicaact', None)
+        self.splinefile = getattr(self.eeg, 'splinefile', None)
+        self.icasplinefile = getattr(self.eeg, 'icasplinefile', None)
+        self.dipfit = getattr(self.eeg, 'dipfit', None)
+        self.history = getattr(self.eeg, 'history', None)
+        self.saved = getattr(self.eeg, 'saved', None)
+        self.etc = getattr(self.eeg, 'etc', None)
+        self.run = getattr(self.eeg, 'run', None)
+        self.roi = getattr(self.eeg, 'roi', None)
+        self.datfile = getattr(self.eeg, 'datfile', None)
+
+
 @fill_doc
 class RawEEGLAB(BaseRaw):
     r"""Raw object from EEGLAB .set file.
@@ -450,6 +498,8 @@ class RawEEGLAB(BaseRaw):
     ):
         input_fname = str(_check_fname(input_fname, "read", True, "input_fname"))
         eeg = _check_load_mat(input_fname, uint16_codec)
+        self.data_container = DataContainerEEGLAB(eeg=eeg)
+
         if eeg.trials != 1:
             raise TypeError(
                 f"The number of trials is {eeg.trials:d}. It must be 1 for raw"
@@ -605,6 +655,7 @@ class EpochsEEGLAB(BaseEpochs):
             _check_fname(fname=input_fname, must_exist=True, overwrite="read")
         )
         eeg = _check_load_mat(input_fname, uint16_codec)
+        self.data_container = DataContainerEEGLAB(eeg=eeg)
 
         if not (
             (events is None and event_id is None)
