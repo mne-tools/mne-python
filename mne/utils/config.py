@@ -470,6 +470,8 @@ def get_subjects_dir(subjects_dir=None, raise_error=False):
     if subjects_dir is None:
         subjects_dir = get_config("SUBJECTS_DIR", raise_error=raise_error)
         from_config = True
+        if subjects_dir is not None:
+            subjects_dir = Path(subjects_dir)
     if subjects_dir is not None:
         # Emit a nice error or warning if their config is bad
         try:
