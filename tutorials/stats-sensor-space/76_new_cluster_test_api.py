@@ -152,7 +152,7 @@ conditions_dict = {"target": target_only, "non-target": non_target_only}
 # finally let's plot the results using the ClusterResults class
 
 # we plot the cluster with the lowest p-value
-cluster_result.plot_cluster_time_sensor(condition_labels=conditions_dict)
+cluster_result.plot_cluster_time_sensor(condition_labels=conditions_dict, ci=True)
 # we can see that there is something going on around 400 ms
 # with a stronger signal for target trials in right central-parietal channels
 
