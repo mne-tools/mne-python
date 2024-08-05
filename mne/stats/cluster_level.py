@@ -1775,7 +1775,7 @@ def _validate_cluster_df(df: pd.DataFrame, dv_name: str, iv_name: str):
         all_shapes = set(
             df[dv_name].map(lambda x: x.shape[1:])
         )  # first dim may vary (participants or epochs)
-    elif isinstance(inst, (BaseEpochs | BaseTFR)):  # should include BaseTFR?
+    elif isinstance(inst, (BaseEpochs | BaseTFR)):
         all_shapes = set(df[dv_name].map(lambda x: x.get_data().shape[1:]))
     else:
         all_shapes = set(df[dv_name].map(lambda x: x.get_data().shape))
@@ -1797,7 +1797,7 @@ def cluster_test(
     tail: Literal[-1, 0, 1] = 0,
     threshold=None,
     n_permutations: str | int = 1024,
-    adjacency: sparse.spmatrix | False = False,
+    adjacency: sparse.spmatrix | None | False = None,  # should be None (default)
     max_step: int = 1,  # TODO may need to provide `max_step_time` and `max_step_freq`
     exclude: list | None = None,  # TODO needs rethink because user passes MNE objects
     step_down_p: float = 0.0,
@@ -1817,7 +1817,7 @@ def cluster_test(
         Dataframe containing the data, dependent and independent variables.
     formula : str
         Wilkinson notation formula for design matrix. The names of the dependent
-        and independent variable should match the columns in the dataframe.
+        and independent variable should match the columns in ``df``.
     within_id : None | str
         Name of column in ``df`` to use in identifying within-group contrasts. If
         ``None``, will perform a between-group test. Ignored if the number of groups
@@ -1877,7 +1877,7 @@ def cluster_test(
         df.sort_values([iv_name, within_id], inplace=True)
         counts = df[within_id].value_counts()
         if any(counts != 2):
-            raise ValueError("for paired tttest, each subject must have 2 observations")
+            raise ValueError("for paired t-test, each subject must have 2 observations")
 
     # extract the data from the dataframe
     def _extract_data_array(series):
@@ -1914,7 +1914,7 @@ def cluster_test(
     elif within_id in df:
         kind = "within"
         X = X[0] - X[1]
-    else:  # what would be another else cas
+    else:  # 2 elements in X but no within_id provided → unpaired test
         kind = "between"
 
     # define stat function and threshold
@@ -1978,7 +1978,7 @@ class ClusterResult:
         self.H0 = H0
         self.stat_fun = stat_fun
 
-        # unpaired t-test is f_oneway
+        # unpaired t-test equivalent to f_oneway w/ 2 groups
         if stat_fun is f_oneway:
             self.stat_name = "F-statistic"
         elif stat_fun is ttest_1samp_no_p:
@@ -1986,7 +1986,15 @@ class ClusterResult:
         else:
             self.stat_name = "test statistic"
 
-    def plot_cluster_time_sensor(self, condition_labels: dict):
+    def plot_cluster_time_sensor(
+        self,
+        condition_labels: dict,
+        colors: list | dict | None = None,
+        linestyles: list | dict | None = None,
+        cmap_evokeds: None | str | tuple = None,
+        cmap_topo: None | str | tuple = None,
+        ci: float | bool | callable() | None = None,
+    ):
         """
         Plot the cluster with the lowest p-value.
 
@@ -1998,21 +2006,23 @@ class ClusterResult:
         ----------
         condition_labels : dict
             Dictionary with condition labels as keys and evoked objects as values.
+        colors : list|dict|None
+            Colors to use when plotting the ERP lines and confidence bands.
+        linestyles : list|dict|None
+            Styles to use when plotting the ERP lines.
+        cmap_evokeds : None|str|tuple
+            Colormap from which to draw color values when plotting the ERP lines.
+        cmap_topo: matplotlib colormap
+            Colormap to use for the topomap.
+        ci : float|bool|callable()|None
+            Confidence band around each ERP time series.
         """
-        # define colorblind friendly colors
-        colorblind_palette = ["#4daf4a", "#984ea3"]
-
         # extract condition labels from the dictionary
         cond_keys = list(condition_labels.keys())
         # extract the evokeds from the dictionary
         cond_values = list(condition_labels.values())
 
-        # configure variables for visualization
-        colors = {
-            cond_keys[0]: colorblind_palette[0],
-            cond_keys[1]: colorblind_palette[1],
-        }
-        line_styles = {cond_keys[0]: "-", cond_keys[1]: "--"}
+        linestyles = {cond_keys[0]: "-", cond_keys[1]: "--"}
 
         lowest_p_cluster = np.argmin(self.cluster_p_values)
 
@@ -2040,7 +2050,7 @@ class ClusterResult:
             times=0,
             mask=mask,
             axes=ax_topo,
-            cmap="RdBu_r",
+            cmap=cmap_topo,
             show=False,
             colorbar=False,
             mask_params=dict(markersize=10),
@@ -2049,13 +2059,11 @@ class ClusterResult:
         image = ax_topo.images[0]
 
         # remove the title that would otherwise say "0.000 s"
-        ax_topo.set_title("")
-
-        # soft import?
-        # make_axes_locatable = _soft_import(
-        #    "mpl_toolkits.axes_grid1.make_axes_locatable",
-        #    purpose="plot cluster results"
-        # )  # soft import (not a dependency for MNE)
+        ax_topo.set_title(
+            "Spatial cluster extent:\n averaged from {:0.3f} to {:0.3f} s".format(
+                *sig_times[[0, -1]]
+            )
+        )
 
         # create additional axes (for ERF and colorbar)
         divider = make_axes_locatable(ax_topo)
@@ -2064,11 +2072,6 @@ class ClusterResult:
         ax_colorbar = divider.append_axes("right", size="5%", pad=0.1)
         cbar = plt.colorbar(image, cax=ax_colorbar)
         cbar.set_label(self.stat_name)
-        ax_topo.set_xlabel(
-            "Spatial cluster extent:\n averaged from {:0.3f} to {:0.3f} s".format(
-                *sig_times[[0, -1]]
-            )
-        )
 
         # add new axis for time courses and plot time courses
         ax_signals = divider.append_axes("right", size="300%", pad=1.3)
@@ -2081,11 +2084,13 @@ class ClusterResult:
             picks=ch_inds,
             axes=ax_signals,
             colors=colors,
-            linestyles=line_styles,
+            linestyles=linestyles,
+            cmap=cmap_evokeds,
             show=False,
             split_legend=True,
             truncate_yaxis="auto",
             truncate_xaxis=False,
+            ci=ci,
         )
         plt.legend(frameon=False, loc="upper left")
 
