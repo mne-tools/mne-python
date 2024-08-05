@@ -906,21 +906,100 @@ def test_compare_old_and_new_cluster_api():
 @pytest.mark.parametrize(
     "Inst", (EpochsArray, EvokedArray, EpochsTFRArray, AverageTFRArray)
 )
+@pytest.mark.filterwarnings('ignore:Ignoring argument "tail":RuntimeWarning')
 def test_new_cluster_api(Inst):
     """Test handling different MNE objects in the cluster API."""
     pd = pytest.importorskip("pandas")
 
-    n_epo, n_chan, n_freq, n_times = 2, 3, 5, 7
-    shape = (n_chan, n_times)
-    if Inst in (EpochsArray, EpochsTFRArray):
-        shape = (n_epo,) + shape
-    if Inst in (EpochsTFRArray, AverageTFRArray):
-        shape = shape[:-1] + (n_freq, shape[-1])
+    n_epo, n_chan, n_freq, n_times = 2, 3, 4, 5
+    info = create_info(ch_names=n_chan, sfreq=1000, ch_types="eeg")
+    # Introduce a significant difference in a specific region, time, and frequency
+    region_start = 1
+    region_end = 2
+    time_start = 2
+    time_end = 4
+    freq_start = 2
+    freq_end = 4
 
-    info = create_info(...)
-    inst1 = Inst(np.random.normal(shape, ...), info=info)
-    inst2 = Inst(np.random.normal(shape, ...), info=info)
+    if Inst == EpochsArray:
+        # Create random data for EpochsArray
+        inst1 = Inst(np.random.randn(n_epo, n_chan, n_times), info=info)
+        # Adding a constant to create a difference
+        data_copy = inst1.get_data().copy()  # no data attribute for EpochsArray
+        data_copy[:, region_start:region_end, time_start:time_end] += (
+            2  # Modify the copy
+        )
+        inst2 = Inst(
+            data=data_copy, info=info
+        )  # Use the modified copy as a new instance
 
+    elif Inst == EvokedArray:
+        # Create random data for EvokedArray
+        inst1 = Inst(np.random.randn(n_chan, n_times), info=info)
+        data_copy = inst1.data.copy()
+        data_copy[region_start:region_end, time_start:time_end] += 2
+        inst2 = Inst(data=data_copy, info=info)
+
+    elif Inst == EpochsTFRArray:
+        # Create random data for EpochsTFRArray
+        data_tfr1 = np.random.randn(n_epo, n_chan, n_freq, n_times)
+        data_tfr2 = np.random.randn(n_epo, n_chan, n_freq, n_times)
+        inst1 = Inst(
+            data=data_tfr1, info=info, times=np.arange(n_times), freqs=np.arange(n_freq)
+        )
+        inst2 = Inst(
+            data=data_tfr2, info=info, times=np.arange(n_times), freqs=np.arange(n_freq)
+        )
+        data_tfr2 = inst2.data.copy()
+        data_tfr2[
+            :, region_start:region_end, freq_start:freq_end, time_start:time_end
+        ] += 2
+        inst2 = Inst(
+            data=data_tfr2, info=info, times=np.arange(n_times), freqs=np.arange(n_freq)
+        )
+
+    elif Inst == AverageTFRArray:
+        # Create random data for AverageTFRArray
+        data_tfr1 = np.random.randn(n_chan, n_freq, n_times)
+        data_tfr2 = np.random.randn(n_chan, n_freq, n_times)
+        inst1 = Inst(
+            data=data_tfr1, info=info, times=np.arange(n_times), freqs=np.arange(n_freq)
+        )
+        inst2 = Inst(
+            data=data_tfr2, info=info, times=np.arange(n_times), freqs=np.arange(n_freq)
+        )
+        data_tfr2 = inst2.data.copy()
+        data_tfr2[
+            region_start:region_end, freq_start:freq_end, time_start:time_end
+        ] += 2
+        inst2 = Inst(
+            data=data_tfr2, info=info, times=np.arange(n_times), freqs=np.arange(n_freq)
+        )
+
+    # test old and new API with sample data
     df = pd.DataFrame(dict(data=[inst1, inst2], condition=["a", "b"]))
-    result = cluster_test(df, "data~condition", ...)
-    assert result  # TODO do something more interesting here
+    kwargs = dict(n_permutations=100, seed=1, tail=1, buffer_size=None, out_type="mask")
+
+    result_new_api = cluster_test(df, "data~condition", **kwargs)
+
+    # make sure channels are last dimension for old API
+    if Inst == EpochsArray:
+        inst1 = inst1.get_data().transpose(0, 2, 1)
+        inst2 = inst2.get_data().transpose(0, 2, 1)
+    elif Inst == EpochsTFRArray:
+        inst1 = inst1.data.transpose(0, 3, 2, 1)
+        inst2 = inst2.data.transpose(0, 3, 2, 1)
+    elif Inst == AverageTFRArray:
+        inst1 = inst1.data.transpose(2, 1, 0)
+        inst2 = inst2.data.transpose(2, 1, 0)
+    else:
+        inst1 = inst1.data.transpose(1, 0)
+        inst2 = inst2.data.transpose(1, 0)
+
+    F_obs, clusters, cluster_pvals, H0 = permutation_cluster_test(
+        [inst1, inst2], **kwargs
+    )
+    assert_array_equal(result_new_api.H0, H0)
+    assert_array_equal(result_new_api.stat_obs, F_obs)
+    assert_array_equal(result_new_api.cluster_p_values, cluster_pvals)
+    assert result_new_api.clusters == clusters
