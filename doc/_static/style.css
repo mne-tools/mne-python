@@ -244,6 +244,9 @@ ul.quicklinks a {
     color: var(--pst-color-text-base);
     text-decoration: none;
 }
+ul.quicklinks a svg {
+    color: var(--pst-color-text-muted);
+}
 ul.quicklinks a:hover {
     text-decoration: none;
 }
