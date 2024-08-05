@@ -204,16 +204,16 @@ aside.footnote:last-child {
 }
 
 /* ******************************************************* navbar icon links */
-.navbar-icon-links i.fa-square-github::before {
+.navbar-icon-links svg.fa-square-github {
     color: var(--mne-color-github);
 }
-.navbar-icon-links i.fa-discourse::before {
+.navbar-icon-links svg.fa-discourse {
     color: var(--mne-color-discourse);
 }
-.navbar-icon-links i.fa-discord::before {
+.navbar-icon-links svg.fa-discord {
     color: var(--mne-color-discord);
 }
-.navbar-icon-links i.fa-mastodon::before {
+.navbar-icon-links svg.fa-mastodon {
     color: var(--mne-color-mastodon);
 }
 
