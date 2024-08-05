@@ -126,8 +126,11 @@ p.sphx-glr-signature {
     border-radius: 0.5rem;
     /* ↓↓↓↓↓↓↓ these two rules copied from sphinx-design */
     box-shadow: 0 .125rem .25rem var(--sd-color-shadow) !important;
-    color: var(--sg-download-a-color);
+    text-decoration: none;
     transition: color .15s ease-in-out,background-color .15s ease-in-out,border-color .15s ease-in-out,box-shadow .15s ease-in-out;
+}
+.sphx-glr-download a.download code {
+    color: var(--sg-download-a-color);
 }
 .sphx-glr-download a.download::before {
     color: var(--sg-download-a-color);
