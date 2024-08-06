@@ -911,7 +911,7 @@ def test_new_cluster_api(Inst):
     """Test handling different MNE objects in the cluster API."""
     pd = pytest.importorskip("pandas")
 
-    n_epo, n_chan, n_freq, n_times = 2, 3, 4, 5
+    n_subs, n_epo, n_chan, n_freq, n_times = 2, 2, 3, 4, 5
     info = create_info(ch_names=n_chan, sfreq=1000, ch_types="eeg")
     # Introduce a significant difference in a specific region, time, and frequency
     region_start = 1
@@ -976,9 +976,25 @@ def test_new_cluster_api(Inst):
             data=data_tfr2, info=info, times=np.arange(n_times), freqs=np.arange(n_freq)
         )
 
-    # test old and new API with sample data
-    df = pd.DataFrame(dict(data=[inst1, inst2], condition=["a", "b"]))
-    kwargs = dict(n_permutations=100, seed=1, tail=1, buffer_size=None, out_type="mask")
+    if Inst == EvokedArray or Inst == AverageTFRArray:
+        # Generate random noise
+        noise = np.random.normal(loc=0, scale=0.1, size=inst1.data.shape)
+        # add noise to the data of the second subject
+        inst1_n = inst1.copy()
+        inst1_n.data = inst1.data + noise
+        inst2_n = inst2.copy()
+        inst2_n.data = inst2.data + noise
+        data = [inst1, inst2, inst1_n, inst2_n]
+        conds = ["a", "b"] * n_subs
+    else:
+        data = [inst1, inst2]
+        conds = ["a", "b"]
+
+    df = pd.DataFrame(dict(data=data, condition=conds))
+
+    kwargs = dict(
+        n_permutations=100, seed=42, tail=1, buffer_size=None, out_type="mask"
+    )
 
     result_new_api = cluster_test(df, "data~condition", **kwargs)
 
@@ -992,14 +1008,24 @@ def test_new_cluster_api(Inst):
     elif Inst == AverageTFRArray:
         inst1 = inst1.data.transpose(2, 1, 0)
         inst2 = inst2.data.transpose(2, 1, 0)
+        inst1_n = inst1_n.data.transpose(2, 1, 0)
+        inst2_n = inst2_n.data.transpose(2, 1, 0)
+        # combine the data of the two subjects
+        inst1 = np.concatenate([inst1[np.newaxis, :], inst1_n[np.newaxis, :]], axis=0)
+        inst2 = np.concatenate([inst2[np.newaxis, :], inst2_n[np.newaxis, :]], axis=0)
     else:
         inst1 = inst1.data.transpose(1, 0)
         inst2 = inst2.data.transpose(1, 0)
+        inst1_n = inst1_n.data.transpose(1, 0)
+        inst2_n = inst2_n.data.transpose(1, 0)
+        # combine the data of the two subjects
+        inst1 = np.concatenate([inst1[np.newaxis, :], inst1_n[np.newaxis, :]], axis=0)
+        inst2 = np.concatenate([inst2[np.newaxis, :], inst2_n[np.newaxis, :]], axis=0)
 
     F_obs, clusters, cluster_pvals, H0 = permutation_cluster_test(
         [inst1, inst2], **kwargs
     )
-    assert_array_equal(result_new_api.H0, H0)
-    assert_array_equal(result_new_api.stat_obs, F_obs)
-    assert_array_equal(result_new_api.cluster_p_values, cluster_pvals)
+    assert_array_almost_equal(result_new_api.H0, H0)
+    assert_array_almost_equal(result_new_api.stat_obs, F_obs)
+    assert_array_almost_equal(result_new_api.cluster_p_values, cluster_pvals)
     assert result_new_api.clusters == clusters
