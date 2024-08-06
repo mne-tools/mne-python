@@ -24,8 +24,6 @@ First we show how ``fsaverage`` can be used as a surrogate subject.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-import os.path as op
-
 import numpy as np
 
 import mne
@@ -33,13 +31,13 @@ from mne.datasets import eegbci, fetch_fsaverage
 
 # Download fsaverage files
 fs_dir = fetch_fsaverage(verbose=True)
-subjects_dir = op.dirname(fs_dir)
+subjects_dir = fs_dir.parent
 
 # The files live in:
 subject = "fsaverage"
 trans = "fsaverage"  # MNE has a built-in fsaverage transformation
-src = op.join(fs_dir, "bem", "fsaverage-ico-5-src.fif")
-bem = op.join(fs_dir, "bem", "fsaverage-5120-5120-5120-bem-sol.fif")
+src = fs_dir / "bem" / "fsaverage-ico-5-src.fif"
+bem = fs_dir / "bem" / "fsaverage-5120-5120-5120-bem-sol.fif"
 
 ##############################################################################
 # Load the data
@@ -110,7 +108,7 @@ subject = mne.datasets.fetch_infant_template("6mo", subjects_dir, verbose=True)
 # It comes with several helpful built-in files, including a 10-20 montage
 # in the MRI coordinate frame, which can be used to compute the
 # MRI<->head transform ``trans``:
-fname_1020 = op.join(subjects_dir, subject, "montages", "10-20-montage.fif")
+fname_1020 = subjects_dir / subject / "montages" / "10-20-montage.fif"
 mon = mne.channels.read_dig_fif(fname_1020)
 mon.rename_channels({f"EEG{ii:03d}": ch_name for ii, ch_name in enumerate(ch_names, 1)})
 trans = mne.channels.compute_native_head_t(mon)
@@ -120,11 +118,11 @@ print(trans)
 ##############################################################################
 # There are also BEM and source spaces:
 
-bem_dir = op.join(subjects_dir, subject, "bem")
-fname_src = op.join(bem_dir, f"{subject}-oct-6-src.fif")
+bem_dir = subjects_dir / subject / "bem"
+fname_src = bem_dir / f"{subject}-oct-6-src.fif"
 src = mne.read_source_spaces(fname_src)
 print(src)
-fname_bem = op.join(bem_dir, f"{subject}-5120-5120-5120-bem-sol.fif")
+fname_bem = bem_dir / f"{subject}-5120-5120-5120-bem-sol.fif"
 bem = mne.read_bem_solution(fname_bem)
 
 ##############################################################################
