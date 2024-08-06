@@ -2922,11 +2922,15 @@ docdict["notes_plot_*_psd_func"] = _notes_plot_psd.format("function")
 docdict["notes_plot_psd_meth"] = _notes_plot_psd.format("method")
 
 docdict["notes_spectrum_array"] = """
-It is assumed that the data passed in represent spectral *power* (not amplitude,
-phase, model coefficients, etc) and downstream methods (such as
+If the data passed in is real-valued, it is assumed to represent spectral *power* (not
+amplitude, phase, etc), and downstream methods (such as
 :meth:`~mne.time_frequency.SpectrumArray.plot`) assume power data. If you pass in
-something other than power, at the very least axis labels will be inaccurate (and
-other things may also not work or be incorrect).
+real-valued data that is not power, axis labels will be incorrect.
+
+If the data passed in is complex-valued, it is assumed to represent Fourier
+coefficients. Downstream plotting methods will treat the data as such, attempting to
+convert this to power before visualisation. If you pass in complex-valued data that is
+not Fourier coefficients, axis labels will be incorrect.
 """
 
 docdict["notes_timefreqs_tfr_plot_joint"] = """
