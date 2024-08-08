@@ -51,6 +51,7 @@ curpath = Path(__file__).parent.resolve(strict=True)
 sys.path.append(str(curpath / "sphinxext"))
 
 from mne_doc_utils import report_scraper, reset_warnings  # noqa: E402
+from update_credit_rst import get_credit_rst  # noqa: E402
 
 # -- Project information -----------------------------------------------------
 
@@ -571,6 +572,16 @@ assert is_serializable(sphinx_gallery_conf)
 # find . -type f -name 'plot_*.py' -exec sh -c 'x="{}"; xn=`basename "${x}"`; git mv "$x" `dirname "${x}"`/${xn:5}' \;  # noqa
 
 
+# https://www.sphinx-doc.org/en/master/extdev/event_callbacks.html#event-source-read
+def update_credit(app, docname, content):
+    if docname != "credit":
+        return
+    lines = content[0].splitlines()
+    start = lines.index("   code-credit-begin-content") + 1
+    lines.insert(start, get_credit_rst())
+    content[0] = "\n".join(lines)
+
+
 def append_attr_meth_examples(app, what, name, obj, options, lines):
     """Append SG examples backreferences to method and attr docstrings."""
     # NumpyDoc nicely embeds method and attribute docstrings for us, but it
@@ -616,6 +627,7 @@ linkcheck_ignore = [  # will be compiled to regex
     "https://doi.org/10.1073/",  # pnas.org
     "https://doi.org/10.1093/",  # academic.oup.com/sleep/
     "https://doi.org/10.1098/",  # royalsocietypublishing.org
+    "https://doi.org/10.1101/",  # www.biorxiv.org
     "https://doi.org/10.1111/",  # onlinelibrary.wiley.com/doi/10.1111/psyp
     "https://doi.org/10.1126/",  # www.science.org
     "https://doi.org/10.1137/",  # epubs.siam.org
@@ -1654,6 +1666,7 @@ def make_version(app, exception):
 def setup(app):
     """Set up the Sphinx app."""
     app.connect("autodoc-process-docstring", append_attr_meth_examples)
+    app.connect("source-read", update_credit)
     # High prio, will happen before SG
     app.connect("builder-inited", report_scraper.set_dirs, priority=20)
     app.connect("build-finished", make_gallery_redirects)

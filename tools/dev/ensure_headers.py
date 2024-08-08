@@ -30,6 +30,7 @@ COPYRIGHT_LINE = "# Copyright the MNE-Python contributors."
 
 
 def get_paths_from_tree(root, level=0):
+    """Get paths from a GitPython tree."""
     for entry in root:
         if entry.type == "tree":
             yield from get_paths_from_tree(entry, level + 1)
