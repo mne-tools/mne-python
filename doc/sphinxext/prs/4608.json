@@ -1,0 +1,87 @@
+{
+  "merge_commit_sha": "76afe82e742a97719cba58b8c4cba76068f29996",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 5,
+      "d": 4
+    },
+    "examples/decoding/plot_decoding_csp_eeg.py": {
+      "a": 2,
+      "d": 2
+    },
+    "examples/decoding/plot_decoding_xdawn_eeg.py": {
+      "a": 3,
+      "d": 3
+    },
+    "examples/io/plot_elekta_epochs.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/preprocessing/plot_virtual_evoked.py": {
+      "a": 2,
+      "d": 2
+    },
+    "examples/realtime/plot_compute_rt_decoder.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/stats/plot_sensor_permutation_test.py": {
+      "a": 2,
+      "d": 2
+    },
+    "examples/stats/plot_sensor_regression.py": {
+      "a": 8,
+      "d": 7
+    },
+    "examples/time_frequency/plot_compute_raw_data_spectrum.py": {
+      "a": 5,
+      "d": 5
+    },
+    "mne/decoding/csp.py": {
+      "a": 15,
+      "d": 13
+    },
+    "mne/decoding/transformer.py": {
+      "a": 12,
+      "d": 2
+    },
+    "mne/evoked.py": {
+      "a": 6,
+      "d": 5
+    },
+    "mne/filter.py": {
+      "a": 5,
+      "d": 5
+    },
+    "mne/forward/_field_interpolation.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/forward/tests/test_field_interpolation.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/base.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/utils.py": {
+      "a": 2,
+      "d": 2
+    },
+    "tutorials/plot_brainstorm_auditory.py": {
+      "a": 8,
+      "d": 13
+    },
+    "tutorials/plot_stats_cluster_time_frequency_repeated_measures_anova.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

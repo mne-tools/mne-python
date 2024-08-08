@@ -1,0 +1,55 @@
+{
+  "merge_commit_sha": "3677baf21a6d8a82d64eb9683b980c9d16907ad0",
+  "authors": [
+    {
+      "n": "Martin G. Schulz",
+      "e": "dev@mgschulz.de"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/conftest.py": {
+      "a": 14,
+      "d": 4
+    },
+    "mne/epochs.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/report/tests/test_report.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/surface.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/_figure.py": {
+      "a": 22,
+      "d": 24
+    },
+    "mne/viz/_mpl_figure.py": {
+      "a": 12,
+      "d": 2
+    },
+    "mne/viz/epochs.py": {
+      "a": 12,
+      "d": 7
+    },
+    "mne/viz/tests/test_epochs.py": {
+      "a": 35,
+      "d": 38
+    },
+    "mne/viz/tests/test_raw.py": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

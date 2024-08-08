@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "4c19b12ad4e79f16c4d39c0e0679f60100e5ad2b",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "doc/source/whats_new.rst": {
+      "a": 3,
+      "d": 0
+    },
+    "examples/inverse/plot_compute_mne_inverse.py": {
+      "a": 7,
+      "d": 0
+    },
+    "mne/source_estimate.py": {
+      "a": 50,
+      "d": 0
+    },
+    "mne/viz.py": {
+      "a": 83,
+      "d": 1
+    }
+  }
+}

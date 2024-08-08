@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "b005ea698a1ef53e0a4bbc2e3d411201bd94307c",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/preprocessing/tests/test_ica.py": {
+      "a": 19,
+      "d": 9
+    },
+    "mne/utils/tests/test_docs.py": {
+      "a": 16,
+      "d": 4
+    }
+  }
+}

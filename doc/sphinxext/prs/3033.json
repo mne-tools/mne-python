@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "96ed572d38921e6305b686a8dbdc426da2833dd9",
+  "authors": [
+    {
+      "n": "jaeilepp",
+      "e": "jaeilepp@student.jyu.fi"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/epochs.py": {
+      "a": 60,
+      "d": 1
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 14,
+      "d": 10
+    },
+    "mne/viz/raw.py": {
+      "a": 8,
+      "d": 4
+    },
+    "mne/viz/tests/test_topo.py": {
+      "a": 9,
+      "d": 5
+    },
+    "mne/viz/topo.py": {
+      "a": 123,
+      "d": 70
+    }
+  }
+}

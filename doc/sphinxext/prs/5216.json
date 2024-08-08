@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "424e768ea43fac9e4f9adf920ee30d0d5adaf949",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "ignore_words.txt": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/forward/forward.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/preprocessing/tests/test_eeglab_infomax.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/time_frequency/_stockwell.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/_3d.py": {
+      "a": 6,
+      "d": 6
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 4,
+      "d": 1
+    },
+    "tutorials/plot_background_filtering.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/plot_dipole_fit.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

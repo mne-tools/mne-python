@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "aa0b303ce87bbd32d3496812f74c4264c5268ba9",
+  "authors": [
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    }
+  ],
+  "changes": {
+    "README.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/install/advanced.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/install/check_installation.rst": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/preprocessing/eyetracking/_pupillometry.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

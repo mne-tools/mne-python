@@ -1,0 +1,59 @@
+{
+  "merge_commit_sha": "2f9873e7759e62f8471326e37a2ad1cdd2c2e65d",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/documentation.rst": {
+      "a": 7,
+      "d": 7
+    },
+    "tutorials/epochs/plot_epoching_and_averaging.py": {
+      "a": 0,
+      "d": 0
+    },
+    "tutorials/intro/plot_10_overview.py": {
+      "a": 5,
+      "d": 4
+    },
+    "tutorials/intro/plot_20_events_from_raw.py": {
+      "a": 10,
+      "d": 8
+    },
+    "tutorials/intro/plot_30_info.py": {
+      "a": 3,
+      "d": 3
+    },
+    "tutorials/intro/plot_40_projectors_background.py": {
+      "a": 3,
+      "d": 1
+    },
+    "tutorials/intro/plot_50_configure_mne.py": {
+      "a": 1,
+      "d": 0
+    },
+    "tutorials/preprocessing/plot_artifacts_correction_rejection.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/raw/plot_10_raw_overview.py": {
+      "a": 5,
+      "d": 5
+    },
+    "tutorials/raw/plot_20_event_arrays.py": {
+      "a": 5,
+      "d": 3
+    },
+    "tutorials/raw/plot_30_annotate_raw.py": {
+      "a": 3,
+      "d": 1
+    },
+    "tutorials/raw/plot_40_visualize_raw.py": {
+      "a": 3,
+      "d": 1
+    }
+  }
+}

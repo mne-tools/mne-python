@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "9f3b76f0c9ef71e997b522492d28d0a09c76c4bd",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    ".circleci/config.yml": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/conf.py": {
+      "a": 1,
+      "d": 0
+    },
+    "tutorials/epochs/plot_10_epochs_overview.py": {
+      "a": 16,
+      "d": 11
+    },
+    "tutorials/epochs/plot_40_epochs_to_data_frame.py": {
+      "a": 155,
+      "d": 0
+    },
+    "tutorials/epochs/plot_epochs_to_data_frame.py": {
+      "a": 0,
+      "d": 252
+    },
+    "tutorials/stats-sensor-space/plot_stats_cluster_erp.py": {
+      "a": 4,
+      "d": 3
+    }
+  }
+}

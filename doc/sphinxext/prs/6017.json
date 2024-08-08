@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "40f3fa070b82ade35d33ae3ec53e19efd92b7152",
+  "authors": [
+    {
+      "n": "Fede Raimondo",
+      "e": "f.raimondo@fz-juelich.de"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/conf.py": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/python_reference.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/__init__.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/nihon/__init__.py": {
+      "a": 7,
+      "d": 0
+    },
+    "mne/io/nihon/nihon.py": {
+      "a": 377,
+      "d": 0
+    },
+    "mne/io/nihon/tests/test_nihon.py": {
+      "a": 65,
+      "d": 0
+    }
+  }
+}

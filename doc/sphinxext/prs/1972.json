@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "6d785f170055e033e22f841ab0e1ae6284329dfa",
+  "authors": [
+    {
+      "n": "Denis A. Engemann",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/epochs.py": {
+      "a": 11,
+      "d": 2
+    },
+    "mne/evoked.py": {
+      "a": 7,
+      "d": 3
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 11,
+      "d": 2
+    },
+    "mne/viz/tests/test_topomap.py": {
+      "a": 14,
+      "d": 2
+    },
+    "mne/viz/topomap.py": {
+      "a": 116,
+      "d": 58
+    }
+  }
+}

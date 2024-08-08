@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "cd735c4d18918c4e0b1fa336d7d91fb828b32c4e",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/viz/_brain/tests/test_brain.py": {
+      "a": 1,
+      "d": 3
+    },
+    "server_environment.yml": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

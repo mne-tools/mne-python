@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "fbd75733e1d57f3fdbb65b01500de18d05185fc5",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "tutorials/epochs/plot_10_epochs_overview.py": {
+      "a": 413,
+      "d": 0
+    },
+    "tutorials/epochs/plot_object_epochs.py": {
+      "a": 0,
+      "d": 167
+    },
+    "tutorials/epochs/plot_visualize_epochs.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/preprocessing/plot_20_rejecting_bad_data.py": {
+      "a": 2,
+      "d": 0
+    },
+    "tutorials/raw/plot_20_event_arrays.py": {
+      "a": 6,
+      "d": 4
+    }
+  }
+}

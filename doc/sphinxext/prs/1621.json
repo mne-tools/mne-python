@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "ef1325503c020ca49c8e568f067597421776c8ba",
+  "authors": [
+    {
+      "n": "marmaduke woodman",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/fixes.py": {
+      "a": 10,
+      "d": 1
+    }
+  }
+}

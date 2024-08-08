@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "6d156371994920c6b7294b9eeef4712da4582589",
+  "authors": [
+    {
+      "n": "Martin Luessi",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/label.py": {
+      "a": 198,
+      "d": 25
+    },
+    "mne/tests/test_label.py": {
+      "a": 47,
+      "d": 2
+    }
+  }
+}

@@ -1,0 +1,83 @@
+{
+  "merge_commit_sha": "8dc6485155f3571325a9f1cde3299cd2288ecf8e",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".travis.yml": {
+      "a": 4,
+      "d": 4
+    },
+    "appveyor.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/sphinxext/gen_commands.py": {
+      "a": 4,
+      "d": 2
+    },
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/bem.py": {
+      "a": 84,
+      "d": 72
+    },
+    "mne/channels/tests/test_interpolation.py": {
+      "a": 28,
+      "d": 24
+    },
+    "mne/commands/mne_flash_bem.py": {
+      "a": 7,
+      "d": 1
+    },
+    "mne/commands/tests/test_commands.py": {
+      "a": 29,
+      "d": 12
+    },
+    "mne/inverse_sparse/tests/test_mxne_inverse.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/inverse_sparse/tests/test_mxne_optim.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/artemis123/tests/test_artemis123.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/eeglab/tests/test_eeglab.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/tests/test_coreg.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/tests/test_import_nesting.py": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/tests/test_source_space.py": {
+      "a": 2,
+      "d": 0
+    },
+    "requirements.txt": {
+      "a": 2,
+      "d": 0
+    },
+    "setup.cfg": {
+      "a": 4,
+      "d": 1
+    }
+  }
+}

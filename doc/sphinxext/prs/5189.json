@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "563867c2fb3560f06fae786e43b5e2dd8fb3cf60",
+  "authors": [
+    {
+      "n": "Mainak Jas",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/documentation.rst": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

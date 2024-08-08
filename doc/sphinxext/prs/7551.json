@@ -1,0 +1,59 @@
+{
+  "merge_commit_sha": "2a74f551890bcbbc058ad3be5536f827ca9a1196",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/conftest.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/decoding/tests/test_receptive_field.py": {
+      "a": 0,
+      "d": 6
+    },
+    "mne/dipole.py": {
+      "a": 14,
+      "d": 14
+    },
+    "mne/event.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/externals/h5io/_h5io.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/fixes.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/forward/_lead_dots.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/tag.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/write.py": {
+      "a": 83,
+      "d": 83
+    },
+    "mne/source_estimate.py": {
+      "a": 9,
+      "d": 9
+    },
+    "mne/surface.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/utils/numerics.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

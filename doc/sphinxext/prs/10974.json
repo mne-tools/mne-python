@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "f4e6f971c43327ec5cc4100b7e026b33303de860",
+  "authors": [
+    {
+      "n": "Ilias Machairas",
+      "e": null
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 3,
+      "d": 1
+    },
+    "doc/changes/names.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/channels/_standard_montage_utils.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/channels/data/montages/brainproducts-RNP-BA-128.txt": {
+      "a": 131,
+      "d": 0
+    },
+    "mne/channels/montage.py": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/channels/tests/test_montage.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/channels/tests/test_standard_montage.py": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

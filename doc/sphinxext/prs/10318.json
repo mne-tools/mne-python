@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "92393e880316d5ba07f67cd62571fbe80d37cc36",
+  "authors": [
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/icons/README.rst": {
+      "a": 5,
+      "d": 0
+    }
+  }
+}

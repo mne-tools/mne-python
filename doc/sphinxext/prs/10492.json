@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "7796a9316c825ae007be3476f64eae4e0e1dde49",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/viz/_figure.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "93da0582c09eebd6778df97e994e4dc27d89202b",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/decoding/receptive_field.py": {
+      "a": 3,
+      "d": 5
+    },
+    "mne/inverse_sparse/mxne_optim.py": {
+      "a": 1,
+      "d": 3
+    },
+    "mne/utils/docs.py": {
+      "a": 4,
+      "d": 3
+    }
+  }
+}

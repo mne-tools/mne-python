@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "1692365eab0d92ec33e37efac27a26249b90c4ca",
+  "authors": [
+    {
+      "n": "Martin Luessi",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/source/whats_new.rst": {
+      "a": 3,
+      "d": 0
+    },
+    "examples/inverse/plot_mixed_norm_L21_inverse.py": {
+      "a": 3,
+      "d": 3
+    },
+    "examples/inverse/plot_time_frequency_mixed_norm_inverse.py": {
+      "a": 6,
+      "d": 7
+    },
+    "examples/plot_read_evoked.py": {
+      "a": 3,
+      "d": 5
+    },
+    "mne/fiff/evoked.py": {
+      "a": 8,
+      "d": 3
+    },
+    "mne/tests/test_viz.py": {
+      "a": 6,
+      "d": 1
+    },
+    "mne/viz.py": {
+      "a": 37,
+      "d": 5
+    }
+  }
+}

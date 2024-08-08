@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "43f44da622cf2990b4b6f0441b3a39dce0fcb397",
+  "authors": [
+    {
+      "n": "Martin Luessi",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/source/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/stats/plot_cluster_stats_spatio_temporal.py": {
+      "a": 9,
+      "d": 8
+    },
+    "mne/source_estimate.py": {
+      "a": 7,
+      "d": 4
+    },
+    "mne/viz.py": {
+      "a": 47,
+      "d": 30
+    }
+  }
+}

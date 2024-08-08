@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "b9859ed6cc20cc5f006e00ae72621aa513f0cc9a",
+  "authors": [
+    {
+      "n": "Britta Westner",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 3,
+      "d": 0
+    },
+    "examples/inverse/plot_tf_dics.py": {
+      "a": 0,
+      "d": 124
+    },
+    "mne/beamformer/_dics.py": {
+      "a": 4,
+      "d": 1
+    },
+    "mne/beamformer/tests/test_dics.py": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

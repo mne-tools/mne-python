@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "65c4e60444da276ed09f086b81ee45bd13cb0375",
+  "authors": [
+    {
+      "n": "Theodore Papadopoulo",
+      "e": "Theodore.Papadopoulo@inria.fr"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/io/edf/edf.py": {
+      "a": 1,
+      "d": 3
+    },
+    "mne/io/edf/tests/test_gdf.py": {
+      "a": 6,
+      "d": 1
+    }
+  }
+}

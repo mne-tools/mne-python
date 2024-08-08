@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "3db7d50866ae625a40749ca353b0f067b2575e23",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/install/mne_python.rst": {
+      "a": 92,
+      "d": 37
+    },
+    "doc/sphinxext/sphinx_bootstrap_divs/__init__.py": {
+      "a": 72,
+      "d": 36
+    }
+  }
+}

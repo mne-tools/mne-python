@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "30800ad71edcd1ae569c39083cd8d7dcc01c92ee",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/preprocessing/artifact_detection.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

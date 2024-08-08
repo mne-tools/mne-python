@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "078149bf980943e84c8b7fd9950e7dc89f3b7745",
+  "authors": [
+    {
+      "n": "Ben Beasley",
+      "e": "code@musicinmybrain.net"
+    }
+  ],
+  "changes": {
+    "mne/tests/test_proj.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

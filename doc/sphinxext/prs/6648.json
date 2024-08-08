@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "dcf01314bc2895a60bb26cb83ade53ad50f9ad95",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "tutorials/preprocessing/plot_55_setting_eeg_reference.py": {
+      "a": 211,
+      "d": 0
+    }
+  }
+}

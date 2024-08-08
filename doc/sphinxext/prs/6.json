@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "a280a289a55bcec49e62cd3675d52f40994a2ed0",
+  "authors": [
+    {
+      "n": "Yaroslav Halchenko",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/source/command_line_tutorial.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/source/manual/AppInstall.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/source/manual/cookbook.rst": {
+      "a": 3,
+      "d": 3
+    },
+    "doc/source/manual/forward.rst": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/source/manual/intro.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/source/manual/matlab.rst": {
+      "a": 3,
+      "d": 3
+    },
+    "doc/source/manual/mne.rst": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

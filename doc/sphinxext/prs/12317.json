@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "0f59894a2491797c996272c23c39412a62369f5b",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "tools/azure_dependencies.sh": {
+      "a": 5,
+      "d": 4
+    }
+  }
+}

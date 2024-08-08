@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "e138e9779dc5f003670effe30a62c3abd6a9e376",
+  "authors": [
+    {
+      "n": "mathurinm",
+      "e": "mathurin.massias@gmail.com"
+    }
+  ],
+  "changes": {
+    "tutorials/plot_forward.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

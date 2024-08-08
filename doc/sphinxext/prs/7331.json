@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "61382c1805efa5c6333d83ad27d24268b6fd2e13",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/overview/migrating.rst": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 12,
+      "d": 5
+    },
+    "tutorials/preprocessing/plot_40_artifact_correction_ica.py": {
+      "a": 27,
+      "d": 18
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "c25aeee579fabdc2533c5ee591d9654e6d40f063",
+  "authors": [
+    {
+      "n": "Giorgio_M",
+      "e": "giorgio.marinato@unitn.it"
+    }
+  ],
+  "changes": {
+    "examples/time_frequency/plot_time_frequency_global_field_power.py": {
+      "a": 8,
+      "d": 12
+    }
+  }
+}

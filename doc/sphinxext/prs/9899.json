@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "d336828ffaba5095950cbcb7691073a466f7a258",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/conf.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/fixes.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/utils/linalg.py": {
+      "a": 6,
+      "d": 2
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

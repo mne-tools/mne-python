@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "3078533f8704820a168797578f5b47ddff4be347",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    },
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    },
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/viz/epochs.py": {
+      "a": 23,
+      "d": 10
+    },
+    "mne/viz/tests/test_epochs.py": {
+      "a": 13,
+      "d": 0
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "fc851c21f64741571b123541d212c2d5072e99f6",
+  "authors": [
+    {
+      "n": "Mainak Jas",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/io/meas_info.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

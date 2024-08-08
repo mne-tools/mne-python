@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "72f5de257385b9b5f423ea4243ac6a7130306496",
+  "authors": [
+    {
+      "n": "Martin Luessi",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/stats/cluster_level.py": {
+      "a": 12,
+      "d": 0
+    },
+    "mne/stats/tests/test_cluster_level.py": {
+      "a": 35,
+      "d": 27
+    }
+  }
+}

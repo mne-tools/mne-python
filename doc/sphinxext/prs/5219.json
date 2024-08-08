@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "197a8418672a8e69c65a1940e45da4966decf45f",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/decoding/plot_decoding_time_generalization_conditions.py": {
+      "a": 5,
+      "d": 1
+    },
+    "mne/decoding/search_light.py": {
+      "a": 64,
+      "d": 25
+    },
+    "mne/parallel.py": {
+      "a": 66,
+      "d": 69
+    },
+    "mne/stats/cluster_level.py": {
+      "a": 13,
+      "d": 22
+    },
+    "mne/tests/test_utils.py": {
+      "a": 70,
+      "d": 1
+    },
+    "mne/utils.py": {
+      "a": 88,
+      "d": 8
+    },
+    "tutorials/plot_sensors_decoding.py": {
+      "a": 5,
+      "d": 4
+    },
+    "tutorials/plot_stats_cluster_spatio_temporal.py": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

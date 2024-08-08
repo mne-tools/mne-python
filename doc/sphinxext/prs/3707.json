@@ -1,0 +1,63 @@
+{
+  "merge_commit_sha": "7c51e252cc90602c91be6df0763baab62083d159",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 4,
+      "d": 0
+    },
+    "examples/visualization/plot_eeg_on_scalp.py": {
+      "a": 25,
+      "d": 0
+    },
+    "mne/dipole.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/forward/_compute_forward.py": {
+      "a": 15,
+      "d": 23
+    },
+    "mne/forward/_make_forward.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/forward/tests/test_make_forward.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/bti/bti.py": {
+      "a": 5,
+      "d": 8
+    },
+    "mne/io/ctf/trans.py": {
+      "a": 5,
+      "d": 5
+    },
+    "mne/io/meas_info.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/surface.py": {
+      "a": 37,
+      "d": 12
+    },
+    "mne/transforms.py": {
+      "a": 6,
+      "d": 5
+    },
+    "mne/viz/_3d.py": {
+      "a": 93,
+      "d": 57
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 20,
+      "d": 12
+    }
+  }
+}

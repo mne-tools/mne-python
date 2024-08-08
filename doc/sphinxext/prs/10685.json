@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "bd452f34c2a25f2f65e66ec4ee1ee9f0b0a05062",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/evoked.py": {
+      "a": 3,
+      "d": 2
+    }
+  }
+}

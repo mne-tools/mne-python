@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "3bc4bebf8cd1a2c52bea27b94c9c8c6d40bfcdd5",
+  "authors": [
+    {
+      "n": "Jona Sassenhagen",
+      "e": "jona.sassenhagen@gmail.com"
+    }
+  ],
+  "changes": {
+    ".gitignore": {
+      "a": 5,
+      "d": 0
+    }
+  }
+}

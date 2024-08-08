@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "a525db9e7c6f8f0939094699dd01ab98d791dce6",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    }
+  ],
+  "changes": {
+    "environment.yml": {
+      "a": 7,
+      "d": 8
+    }
+  }
+}

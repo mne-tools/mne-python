@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "08691929b5a56cd1e6d3a33b9642e59afd05f5ae",
+  "authors": [
+    {
+      "n": "Jona Sassenhagen",
+      "e": "jona.sassenhagen@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/python_reference.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/viz/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/evoked.py": {
+      "a": 446,
+      "d": 2
+    },
+    "mne/viz/tests/test_evoked.py": {
+      "a": 42,
+      "d": 1
+    },
+    "tutorials/plot_visualize_evoked.py": {
+      "a": 27,
+      "d": 0
+    }
+  }
+}

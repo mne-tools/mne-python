@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "a23c62b8e405f05a628c0fa05929b5c1fb01abc5",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/datasets/config.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

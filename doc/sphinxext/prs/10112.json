@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "f19fe3cd0089101f209b968f1fe66a2a8eae6c1f",
+  "authors": [
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/epochs.py": {
+      "a": 17,
+      "d": 3
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 32,
+      "d": 8
+    }
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "a92d798744035a304e307f0c5170db6268d75079",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/12536.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/time_frequency/psd.py": {
+      "a": 21,
+      "d": 2
+    },
+    "mne/time_frequency/tests/test_psd.py": {
+      "a": 20,
+      "d": 0
+    },
+    "mne/time_frequency/tests/test_spectrum.py": {
+      "a": 5,
+      "d": 4
+    }
+  }
+}

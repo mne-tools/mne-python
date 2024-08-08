@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "108e165b600635ad1990d612c3503f5cc1001432",
+  "authors": [
+    {
+      "n": "Mikolaj Magnuski",
+      "e": "mmagnuski@swps.edu.pl"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/io/eeglab/eeglab.py": {
+      "a": 5,
+      "d": 1
+    },
+    "mne/io/eeglab/tests/test_eeglab.py": {
+      "a": 18,
+      "d": 0
+    }
+  }
+}

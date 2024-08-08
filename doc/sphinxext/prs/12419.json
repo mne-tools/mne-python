@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "4c84b3e1f94a2772deb363d4298a078e64f55139",
+  "authors": [
+    {
+      "n": "dependabot[bot]",
+      "e": "49699333+dependabot[bot]@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    ".github/workflows/tests.yml": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

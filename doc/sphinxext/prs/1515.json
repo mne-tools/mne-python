@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "55b53d5c7d5b7eeabde307f5fce8d7e8554fd6f3",
+  "authors": [
+    {
+      "n": "Alan Leggitt",
+      "e": "leggitta3@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/source/python_reference.rst": {
+      "a": 25,
+      "d": 0
+    },
+    "doc/source/whats_new.rst": {
+      "a": 10,
+      "d": 0
+    },
+    "examples/plot_left_cerebellum_volume_source.py": {
+      "a": 1,
+      "d": 2
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "352d3f04d7f2472a75e9738994bb8064f7edf2e0",
+  "authors": [
+    {
+      "n": "Joan Massich",
+      "e": "mailsik@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/io/cnt/cnt.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/io/cnt/tests/test_cnt.py": {
+      "a": 25,
+      "d": 0
+    }
+  }
+}

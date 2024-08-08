@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "d4f99de184f80a069a42302e9427f2e9b0aad8fb",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 4,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/connectivity/plot_mne_inverse_envelope_correlation.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/connectivity/envelope.py": {
+      "a": 33,
+      "d": 6
+    },
+    "mne/connectivity/tests/test_envelope.py": {
+      "a": 40,
+      "d": 14
+    }
+  }
+}

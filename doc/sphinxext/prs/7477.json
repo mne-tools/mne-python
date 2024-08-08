@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "94f8ecf49fe8be427ffe9a3636fbc5cc4789da46",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "mne/io/_digitization.py": {
+      "a": 7,
+      "d": 0
+    },
+    "mne/io/cnt/cnt.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/fieldtrip/utils.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/io/meas_info.py": {
+      "a": 62,
+      "d": 3
+    },
+    "mne/io/proj.py": {
+      "a": 14,
+      "d": 0
+    },
+    "mne/io/tests/test_meas_info.py": {
+      "a": 17,
+      "d": 0
+    }
+  }
+}

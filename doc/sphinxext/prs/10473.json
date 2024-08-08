@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "1a58d7c5def8ee46d939f461811ff8fbf1283538",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "tutorials/evoked/30_eeg_erp.py": {
+      "a": 191,
+      "d": 180
+    }
+  }
+}

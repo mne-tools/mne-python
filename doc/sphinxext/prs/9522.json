@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "8b4ed3cc0ef7c1e6ddac899992cddcdbc86a9a7b",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/preprocessing/nirs/_optical_density.py": {
+      "a": 18,
+      "d": 10
+    },
+    "mne/preprocessing/nirs/_scalp_coupling_index.py": {
+      "a": 14,
+      "d": 11
+    },
+    "mne/preprocessing/nirs/_tddr.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/preprocessing/nirs/tests/test_optical_density.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/preprocessing/nirs/tests/test_scalp_coupling_index.py": {
+      "a": 7,
+      "d": 1
+    },
+    "mne/preprocessing/nirs/tests/test_temporal_derivative_distribution_repair.py": {
+      "a": 6,
+      "d": 0
+    }
+  }
+}

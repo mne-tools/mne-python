@@ -1,0 +1,59 @@
+{
+  "merge_commit_sha": "e5fb9e9e0d3e72dfdab19d987ed0cc2304dd479d",
+  "authors": [
+    {
+      "n": "Nick Foti",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/python_reference.rst": {
+      "a": 2,
+      "d": 1
+    },
+    "doc/whats_new.rst": {
+      "a": 6,
+      "d": 0
+    },
+    "examples/inverse/plot_dics_beamformer.py": {
+      "a": 5,
+      "d": 5
+    },
+    "examples/inverse/plot_dics_source_power.py": {
+      "a": 6,
+      "d": 6
+    },
+    "examples/inverse/plot_tf_dics.py": {
+      "a": 5,
+      "d": 5
+    },
+    "mne/beamformer/_dics.py": {
+      "a": 8,
+      "d": 8
+    },
+    "mne/beamformer/tests/test_dics.py": {
+      "a": 19,
+      "d": 19
+    },
+    "mne/time_frequency/__init__.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/time_frequency/csd.py": {
+      "a": 239,
+      "d": 54
+    },
+    "mne/time_frequency/multitaper.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/time_frequency/psd.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/time_frequency/tests/test_csd.py": {
+      "a": 225,
+      "d": 70
+    }
+  }
+}

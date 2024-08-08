@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "38ed57443a45131f9dee5e7a21ca39c2c1fcd78b",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/chpi.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/tests/test_chpi.py": {
+      "a": 14,
+      "d": 4
+    }
+  }
+}

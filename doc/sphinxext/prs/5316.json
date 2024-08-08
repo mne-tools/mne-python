@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "1f70786a6bcef53568585d4984acbb9eab5034a8",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/tutorial_links.inc": {
+      "a": 4,
+      "d": 0
+    },
+    "tutorials/plot_background_statistics.py": {
+      "a": 128,
+      "d": 121
+    }
+  }
+}

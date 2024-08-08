@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "a7b4502fdbc6a41e22ced21a87a62c53146e897a",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "doc/source/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/time_frequency/plot_temporal_whitening.py": {
+      "a": 63,
+      "d": 0
+    },
+    "mne/time_frequency/__init__.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/time_frequency/ar.py": {
+      "a": 111,
+      "d": 0
+    },
+    "mne/time_frequency/tests/test_ar.py": {
+      "a": 42,
+      "d": 0
+    }
+  }
+}

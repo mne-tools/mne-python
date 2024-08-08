@@ -1,0 +1,119 @@
+{
+  "merge_commit_sha": "eabc924be4f0ee23bcf52f16c4e580a77e8cbdd7",
+  "authors": [
+    {
+      "n": "Marijn van Vliet",
+      "e": "w.m.vanvliet@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/source/python_reference.rst": {
+      "a": 11,
+      "d": 0
+    },
+    "doc/source/whats_new.rst": {
+      "a": 3,
+      "d": 0
+    },
+    "examples/plot_rereference_eeg.py": {
+      "a": 63,
+      "d": 0
+    },
+    "mne/beamformer/_dics.py": {
+      "a": 4,
+      "d": 1
+    },
+    "mne/beamformer/_lcmv.py": {
+      "a": 5,
+      "d": 1
+    },
+    "mne/forward/forward.py": {
+      "a": 5,
+      "d": 0
+    },
+    "mne/inverse_sparse/_gamma_map.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/inverse_sparse/mxne_inverse.py": {
+      "a": 5,
+      "d": 0
+    },
+    "mne/io/__init__.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/io/base.py": {
+      "a": 13,
+      "d": 73
+    },
+    "mne/io/brainvision/brainvision.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/bti/bti.py": {
+      "a": 15,
+      "d": 14
+    },
+    "mne/io/constants.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/edf/edf.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/egi/egi.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/fiff/raw.py": {
+      "a": 9,
+      "d": 4
+    },
+    "mne/io/fiff/tests/test_raw.py": {
+      "a": 1,
+      "d": 35
+    },
+    "mne/io/kit/kit.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/meas_info.py": {
+      "a": 13,
+      "d": 4
+    },
+    "mne/io/proj.py": {
+      "a": 29,
+      "d": 13
+    },
+    "mne/io/reference.py": {
+      "a": 302,
+      "d": 0
+    },
+    "mne/io/tests/test_reference.py": {
+      "a": 181,
+      "d": 0
+    },
+    "mne/minimum_norm/inverse.py": {
+      "a": 14,
+      "d": 0
+    },
+    "mne/minimum_norm/tests/test_inverse.py": {
+      "a": 7,
+      "d": 0
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 6,
+      "d": 0
+    },
+    "mne/tests/test_proj.py": {
+      "a": 52,
+      "d": 3
+    },
+    "mne/viz/raw.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

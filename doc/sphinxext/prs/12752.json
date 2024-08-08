@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "6e4cadf61b748415fd3b8e27e3326520de2cc981",
+  "authors": [
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    }
+  ],
+  "changes": {
+    "mne/report/report.py": {
+      "a": 9,
+      "d": 0
+    }
+  }
+}

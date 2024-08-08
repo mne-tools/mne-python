@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "abaaccf5572dacc91415a47f01efb567edd15132",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/utils/progressbar.py": {
+      "a": 11,
+      "d": 9
+    }
+  }
+}

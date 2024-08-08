@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "7d2ae7f33928dd6d8f612290579495aff3f3da3a",
+  "authors": [
+    {
+      "n": "jaeilepp",
+      "e": "jaeilepp@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/base.py": {
+      "a": 17,
+      "d": 0
+    },
+    "mne/io/fiff/tests/test_raw_fiff.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/tests/test_raw.py": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/tests/test_annotations.py": {
+      "a": 5,
+      "d": 1
+    }
+  }
+}

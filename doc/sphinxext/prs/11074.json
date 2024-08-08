@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "86f38376a75fbe3d3e894eb4348b653e4340a6b3",
+  "authors": [
+    {
+      "n": "Sebastiaan Mathot",
+      "e": "s.mathot@cogsci.nl"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/eeglab/eeglab.py": {
+      "a": 5,
+      "d": 7
+    },
+    "mne/io/eeglab/tests/test_eeglab.py": {
+      "a": 18,
+      "d": 1
+    }
+  }
+}

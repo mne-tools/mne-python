@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "368c7fcee60a55d76d26c6d77bfec08b4cad658b",
+  "authors": [
+    {
+      "n": "Scott Huberty",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/utils/check.py": {
+      "a": 23,
+      "d": 2
+    },
+    "mne/viz/backends/renderer.py": {
+      "a": 11,
+      "d": 2
+    }
+  }
+}

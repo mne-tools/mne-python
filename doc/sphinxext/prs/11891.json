@@ -1,0 +1,67 @@
+{
+  "merge_commit_sha": "f3fac153135d6f2aa2ab53e08a7f443511550711",
+  "authors": [
+    {
+      "n": "Marijn van Vliet",
+      "e": "w.m.vanvliet@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/conf.py": {
+      "a": 8,
+      "d": 0
+    },
+    "doc/visualization.rst": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/utils/docs.py": {
+      "a": 12,
+      "d": 2
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 238,
+      "d": 137
+    },
+    "mne/viz/_brain/_linkviewer.py": {
+      "a": 13,
+      "d": 69
+    },
+    "mne/viz/_brain/callback.py": {
+      "a": 0,
+      "d": 118
+    },
+    "mne/viz/_brain/tests/test_brain.py": {
+      "a": 60,
+      "d": 28
+    },
+    "mne/viz/backends/_abstract.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/tests/test_ui_events.py": {
+      "a": 25,
+      "d": 6
+    },
+    "mne/viz/topomap.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/ui_events.py": {
+      "a": 166,
+      "d": 42
+    },
+    "tutorials/visualization/20_ui_events.py": {
+      "a": 55,
+      "d": 43
+    }
+  }
+}

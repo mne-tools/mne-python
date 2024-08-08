@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "fe6775b7069812e8589bbf6819d4d55e72d19fb6",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 11,
+      "d": 9
+    },
+    "mne/viz/evoked.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/source-modeling/plot_mne_dspm_source_localization.py": {
+      "a": 4,
+      "d": 1
+    }
+  }
+}

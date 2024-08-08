@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "714ba90ec44cef321a6ffe4c9d9efd02ca9d89d6",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "mne/forward/forward.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/forward/tests/test_forward.py": {
+      "a": 4,
+      "d": 1
+    }
+  }
+}

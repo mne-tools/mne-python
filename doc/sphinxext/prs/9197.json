@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "4ba386be39394ac1406e0e4366b27a5e416e8f03",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/simulation/plot_source_simulator.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/epochs.py": {
+      "a": 2,
+      "d": 12
+    },
+    "mne/simulation/source.py": {
+      "a": 8,
+      "d": 5
+    },
+    "mne/simulation/tests/test_source.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/utils/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/check.py": {
+      "a": 16,
+      "d": 1
+    }
+  }
+}

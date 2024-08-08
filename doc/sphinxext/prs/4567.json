@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "a36dec28cea9b123102b082af95c3f69c180f878",
+  "authors": [
+    {
+      "n": "Britta Westner",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/beamformer/_lcmv.py": {
+      "a": 35,
+      "d": 10
+    }
+  }
+}

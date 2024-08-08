@@ -1,0 +1,55 @@
+{
+  "merge_commit_sha": "7fcace5d8ebe6f56a05fcaf269e26512d034de1f",
+  "authors": [
+    {
+      "n": "Rob Luke",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 4,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/channels/tests/test_interpolation.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/datasets/config.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/nirx/nirx.py": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/io/nirx/tests/test_nirx.py": {
+      "a": 68,
+      "d": 62
+    },
+    "mne/io/snirf/_snirf.py": {
+      "a": 73,
+      "d": 33
+    },
+    "mne/io/snirf/tests/test_snirf.py": {
+      "a": 41,
+      "d": 24
+    },
+    "mne/preprocessing/nirs/tests/test_beer_lambert_law.py": {
+      "a": 13,
+      "d": 4
+    },
+    "mne/preprocessing/nirs/tests/test_temporal_derivative_distribution_repair.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/io/30_reading_fnirs_data.py": {
+      "a": 3,
+      "d": 2
+    }
+  }
+}

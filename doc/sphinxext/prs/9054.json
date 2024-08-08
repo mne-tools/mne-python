@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "eec545f5c6a94877cd87060a7f2f12adc1c7fcba",
+  "authors": [
+    {
+      "n": "Felix Klotzsche",
+      "e": "klotzsche@cbs.mpg.de"
+    }
+  ],
+  "changes": {
+    "examples/time_frequency/plot_time_frequency_erds.py": {
+      "a": 5,
+      "d": 12
+    }
+  }
+}

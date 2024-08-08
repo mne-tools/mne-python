@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "194e2e3dc98dd3b545421d5750eff458263c25e7",
+  "authors": [
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/inverse/plot_custom_inverse_solver.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/backends/_pysurfer_mayavi.py": {
+      "a": 5,
+      "d": 1
+    }
+  }
+}

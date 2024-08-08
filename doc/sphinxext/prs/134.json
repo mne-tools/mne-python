@@ -1,0 +1,71 @@
+{
+  "merge_commit_sha": "71b988a21b4f2fcff9b799dacc4d85e4e68fe6e7",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/__init__.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/fiff/constants.py": {
+      "a": 5,
+      "d": 2
+    },
+    "mne/fiff/tests/data/fsaverage_audvis-meg-cropped-lh.stc": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/fiff/tests/data/fsaverage_audvis-meg-cropped-rh.stc": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/forward.py": {
+      "a": 5,
+      "d": 2
+    },
+    "mne/label.py": {
+      "a": 45,
+      "d": 2
+    },
+    "mne/source_estimate.py": {
+      "a": 325,
+      "d": 77
+    },
+    "mne/source_space.py": {
+      "a": 141,
+      "d": 18
+    },
+    "mne/stats/__init__.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/stats/cluster_level.py": {
+      "a": 686,
+      "d": 101
+    },
+    "mne/stats/tests/test_cluster_level.py": {
+      "a": 118,
+      "d": 33
+    },
+    "mne/surface.py": {
+      "a": 14,
+      "d": 7
+    },
+    "mne/tests/test_source_estimate.py": {
+      "a": 58,
+      "d": 11
+    },
+    "mne/tests/test_source_space.py": {
+      "a": 21,
+      "d": 2
+    },
+    "mne/utils.py": {
+      "a": 18,
+      "d": 2
+    }
+  }
+}

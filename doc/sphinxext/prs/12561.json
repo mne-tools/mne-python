@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "6e2ecad41bad6b19474173e38b6e3df1efd3e863",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/12561.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/report/js_and_css/report.js": {
+      "a": 6,
+      "d": 4
+    }
+  }
+}

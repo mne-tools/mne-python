@@ -1,0 +1,55 @@
+{
+  "merge_commit_sha": "952de45498c3b108ac5f854335f98fb3bb5eec69",
+  "authors": [
+    {
+      "n": "jaeilepp",
+      "e": "jaeilepp@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/time_frequency/plot_time_frequency_simulated.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/channels/channels.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/decoding/tests/test_time_gen.py": {
+      "a": 4,
+      "d": 3
+    },
+    "mne/io/pick.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/tests/test_source_estimate.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 2,
+      "d": 4
+    },
+    "mne/utils.py": {
+      "a": 1,
+      "d": 1
+    },
+    "setup.cfg": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/plot_dipole_fit.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/plot_python_intro.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/plot_stats_spatio_temporal_cluster_sensors.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

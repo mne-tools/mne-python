@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "aabc501d988298f286381bd94ec3ec628a9d4dac",
+  "authors": [
+    {
+      "n": "Henrich Kolkhorst",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 4,
+      "d": 0
+    },
+    "examples/realtime/ftclient_rt_average.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/epochs.py": {
+      "a": 9,
+      "d": 0
+    },
+    "mne/realtime/client.py": {
+      "a": 3,
+      "d": 4
+    },
+    "mne/realtime/epochs.py": {
+      "a": 7,
+      "d": 2
+    },
+    "mne/realtime/fieldtrip_client.py": {
+      "a": 6,
+      "d": 4
+    },
+    "mne/realtime/tests/test_fieldtrip_client.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/realtime/tests/test_mockclient.py": {
+      "a": 4,
+      "d": 0
+    }
+  }
+}

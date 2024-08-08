@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "c74e60a00825bbe3bbb977369df53b1f2287b00f",
+  "authors": [
+    {
+      "n": "Mathieu Scheltienne",
+      "e": "mathieu.scheltienne@fcbg.ch"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/epochs.py": {
+      "a": 7,
+      "d": 3
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 4,
+      "d": 0
+    }
+  }
+}

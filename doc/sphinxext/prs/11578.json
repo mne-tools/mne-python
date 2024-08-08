@@ -1,0 +1,187 @@
+{
+  "merge_commit_sha": "6ccd1123ed10cdda2a34d0d4104fbad8f9bae23f",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".github/workflows/compat_minimal.yml": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/_freesurfer.py": {
+      "a": 7,
+      "d": 22
+    },
+    "mne/beamformer/tests/test_dics.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/bem.py": {
+      "a": 6,
+      "d": 6
+    },
+    "mne/commands/tests/test_commands.py": {
+      "a": 4,
+      "d": 3
+    },
+    "mne/coreg.py": {
+      "a": 2,
+      "d": 6
+    },
+    "mne/datasets/tests/test_datasets.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/forward/tests/test_make_forward.py": {
+      "a": 5,
+      "d": 4
+    },
+    "mne/gui/_core.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/gui/tests/test_core.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/gui/tests/test_coreg.py": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/gui/tests/test_gui_api.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/gui/tests/test_ieeg_locate.py": {
+      "a": 3,
+      "d": 5
+    },
+    "mne/morph.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/preprocessing/ieeg/tests/test_projection.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/report/report.py": {
+      "a": 2,
+      "d": 3
+    },
+    "mne/report/tests/test_report.py": {
+      "a": 7,
+      "d": 6
+    },
+    "mne/simulation/tests/test_raw.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/simulation/tests/test_source.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/source_estimate.py": {
+      "a": 4,
+      "d": 5
+    },
+    "mne/source_space.py": {
+      "a": 2,
+      "d": 6
+    },
+    "mne/surface.py": {
+      "a": 2,
+      "d": 5
+    },
+    "mne/tests/test_bem.py": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/tests/test_coreg.py": {
+      "a": 15,
+      "d": 14
+    },
+    "mne/tests/test_dipole.py": {
+      "a": 1,
+      "d": 3
+    },
+    "mne/tests/test_freesurfer.py": {
+      "a": 5,
+      "d": 6
+    },
+    "mne/tests/test_label.py": {
+      "a": 14,
+      "d": 0
+    },
+    "mne/tests/test_morph.py": {
+      "a": 15,
+      "d": 15
+    },
+    "mne/tests/test_morph_map.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/tests/test_source_estimate.py": {
+      "a": 9,
+      "d": 9
+    },
+    "mne/tests/test_source_space.py": {
+      "a": 11,
+      "d": 8
+    },
+    "mne/tests/test_surface.py": {
+      "a": 4,
+      "d": 6
+    },
+    "mne/tests/test_transforms.py": {
+      "a": 2,
+      "d": 4
+    },
+    "mne/transforms.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/utils/__init__.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/utils/_testing.py": {
+      "a": 0,
+      "d": 45
+    },
+    "mne/utils/check.py": {
+      "a": 9,
+      "d": 0
+    },
+    "mne/utils/tests/test_check.py": {
+      "a": 2,
+      "d": 3
+    },
+    "mne/viz/_3d.py": {
+      "a": 2,
+      "d": 3
+    },
+    "mne/viz/_brain/tests/test_brain.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 11,
+      "d": 4
+    },
+    "mne/viz/tests/test_3d_mpl.py": {
+      "a": 7,
+      "d": 8
+    },
+    "mne/viz/tests/test_misc.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/viz/tests/test_topomap.py": {
+      "a": 5,
+      "d": 7
+    }
+  }
+}

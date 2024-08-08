@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "20078a124a135e5fce7b55f00f1659be2df137fe",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "mne/io/proj.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/tests/test_proj.py": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "c12a02000776adb9df18da55ea60c50cbf83827d",
+  "authors": [
+    {
+      "n": "Jean-Rémi KING",
+      "e": null
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/ctf/info.py": {
+      "a": 6,
+      "d": 0
+    },
+    "mne/io/ctf/tests/test_ctf.py": {
+      "a": 17,
+      "d": 0
+    }
+  }
+}

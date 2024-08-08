@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "87c9eafdaf8fdab33ff1063d0d7bb03afac60bb5",
+  "authors": [
+    {
+      "n": "Alex Rockhill",
+      "e": "aprockhill@mailbox.org"
+    }
+  ],
+  "changes": {
+    "mne/preprocessing/_csd.py": {
+      "a": 1,
+      "d": 5
+    }
+  }
+}

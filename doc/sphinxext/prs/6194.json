@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "7b6998094dcbccf53594cd1e2b4662acd8dece0f",
+  "authors": [
+    {
+      "n": "Deleted user",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/realtime/lsl_client.py": {
+      "a": 2,
+      "d": 0
+    }
+  }
+}

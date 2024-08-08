@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "025ac9c3517e589588784d32312722be4bd1ed1f",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "mne/data/icos.fif.gz": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/source_estimate.py": {
+      "a": 10,
+      "d": 27
+    },
+    "setup.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

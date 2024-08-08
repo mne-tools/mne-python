@@ -1,0 +1,59 @@
+{
+  "merge_commit_sha": "5a9d6c608907166aab72dbf94d7bf31aeea5e81a",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "circle.yml": {
+      "a": 4,
+      "d": 0
+    },
+    "doc/documentation.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/manual/datasets_index.rst": {
+      "a": 8,
+      "d": 0
+    },
+    "doc/python_reference.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/whats_new.rst": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/datasets/__init__.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/datasets/phantom_4dbti/__init__.py": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/datasets/phantom_4dbti/phantom_4dbti.py": {
+      "a": 29,
+      "d": 0
+    },
+    "mne/datasets/utils.py": {
+      "a": 9,
+      "d": 3
+    },
+    "mne/utils.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/viz/_3d.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/plot_phantom_4DBTi.py": {
+      "a": 77,
+      "d": 0
+    }
+  }
+}

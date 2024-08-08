@@ -1,0 +1,55 @@
+{
+  "merge_commit_sha": "6c9f5af6dc0e07c209d3bc8f0d1b964a80e7ad71",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".github/workflows/compat_minimal.yml": {
+      "a": 3,
+      "d": 1
+    },
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/datasets/utils.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/artemis123/tests/test_artemis123.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/egi/tests/test_egi.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/kit/kit.py": {
+      "a": 8,
+      "d": 2
+    },
+    "mne/io/kit/tests/test_kit.py": {
+      "a": 8,
+      "d": 3
+    },
+    "mne/tests/test_chpi.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/viz/misc.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/viz/tests/test_misc.py": {
+      "a": 1,
+      "d": 0
+    },
+    "tools/github_actions_test.sh": {
+      "a": 0,
+      "d": 9
+    }
+  }
+}

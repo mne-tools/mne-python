@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "0e12d7806d0cc11766928c2bff648de67ae93065",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "bin/mne_surf2bem.py": {
+      "a": 34,
+      "d": 0
+    },
+    "mne/surface.py": {
+      "a": 3,
+      "d": 2
+    },
+    "setup.py": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}
