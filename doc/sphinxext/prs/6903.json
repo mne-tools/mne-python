@@ -1,0 +1,95 @@
+{
+  "merge_commit_sha": "32156db6c0819617791c23e389c3c088cfbe6f68",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/_digitization/__init__.py": {
+      "a": 0,
+      "d": 5
+    },
+    "mne/_digitization/base.py": {
+      "a": 0,
+      "d": 124
+    },
+    "mne/bem.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/channels/montage.py": {
+      "a": 4,
+      "d": 6
+    },
+    "mne/channels/tests/test_montage.py": {
+      "a": 3,
+      "d": 4
+    },
+    "mne/channels/tests/test_standard_montage.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/io/_digitization.py": {
+      "a": 127,
+      "d": 24
+    },
+    "mne/io/artemis123/artemis123.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/artemis123/utils.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/bti/bti.py": {
+      "a": 1,
+      "d": 3
+    },
+    "mne/io/bti/tests/test_bti.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/ctf/ctf.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/io/kit/coreg.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/kit/kit.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/kit/tests/test_coreg.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/meas_info.py": {
+      "a": 5,
+      "d": 10
+    },
+    "mne/io/tests/test_digitization.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/io/tests/test_meas_info.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/tests/test_raw.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/montage.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

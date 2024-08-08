@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "84ec00016f7ae354ef4bbbe7aeb4c5e91cfd9b64",
+  "authors": [
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    }
+  ],
+  "changes": {
+    ".github/workflows/linux_conda.yml": {
+      "a": 44,
+      "d": 3
+    },
+    "azure-pipelines.yml": {
+      "a": 0,
+      "d": 46
+    },
+    "server_environment.yml": {
+      "a": 1,
+      "d": 2
+    }
+  }
+}

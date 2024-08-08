@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "5d1f34ce0ae4f5b2d6175f67eb598daf70df30f7",
+  "authors": [
+    {
+      "n": "Mathieu Scheltienne",
+      "e": "mathieu.scheltienne@fcbg.ch"
+    }
+  ],
+  "changes": {
+    "mne/preprocessing/ica.py": {
+      "a": 6,
+      "d": 5
+    }
+  }
+}

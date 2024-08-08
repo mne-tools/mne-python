@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "7096a3dbf38e6722f1e6383baea24df55e615aad",
+  "authors": [
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/icons/mne.qrc": {
+      "a": 10,
+      "d": 10
+    },
+    "mne/icons/movie-black-18dp.svg": {
+      "a": 72,
+      "d": 1
+    },
+    "mne/icons/resources.py": {
+      "a": 332,
+      "d": 182
+    }
+  }
+}

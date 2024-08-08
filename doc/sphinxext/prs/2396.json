@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "319ba7a281e73af160667d84796f1644a473c5d4",
+  "authors": [
+    {
+      "n": "Jaakko Leppakangas",
+      "e": "jaeilepp@student.jyu.fi"
+    }
+  ],
+  "changes": {
+    "mne/time_frequency/tfr.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/viz/tests/test_topomap.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

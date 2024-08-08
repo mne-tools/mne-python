@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "61b058d9b7387713bf6f165c69230cd475ded4e4",
+  "authors": [
+    {
+      "n": "Alex Rockhill",
+      "e": "aprockhill@mailbox.org"
+    },
+    {
+      "n": "Alex",
+      "e": "aprockhill206@gmail.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "tutorials/source-modeling/plot_source_alignment.py": {
+      "a": 182,
+      "d": 64
+    }
+  }
+}

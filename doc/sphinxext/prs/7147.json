@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "6c73272e1f057e4cdfb3e43063036f3d459c5d27",
+  "authors": [
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/inverse/plot_time_frequency_mixed_norm_inverse.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 19,
+      "d": 10
+    },
+    "mne/viz/_brain/tests/test_brain.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/backends/_pysurfer_mayavi.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/viz/backends/_pyvista.py": {
+      "a": 13,
+      "d": 6
+    },
+    "mne/viz/backends/base_renderer.py": {
+      "a": 12,
+      "d": 4
+    },
+    "mne/viz/backends/tests/test_renderer.py": {
+      "a": 3,
+      "d": 1
+    }
+  }
+}

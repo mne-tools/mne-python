@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "ab1580266d01561b6e273ee3c3c90c042a182d6b",
+  "authors": [
+    {
+      "n": "Maksymenko Kostiantyn",
+      "e": "makkostya@ukr.net"
+    }
+  ],
+  "changes": {
+    "mne/annotations.py": {
+      "a": 1,
+      "d": 2
+    }
+  }
+}

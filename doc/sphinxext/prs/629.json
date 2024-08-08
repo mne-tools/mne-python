@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "dc8eccbfcee3a7e520c77552f60afb24da041955",
+  "authors": [
+    {
+      "n": "Christian Brodbeck",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/tests/test_viz.py": {
+      "a": 76,
+      "d": 11
+    },
+    "mne/viz.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

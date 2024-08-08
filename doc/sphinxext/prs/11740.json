@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "f48398a141ac4ed0ec4ec1f2cef766afd8605696",
+  "authors": [
+    {
+      "n": "Scott Huberty",
+      "e": null
+    },
+    {
+      "n": "Britta Westner",
+      "e": "britta.wstnr@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/preprocessing.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/preprocessing/eyetracking/__init__.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/preprocessing/eyetracking/_pupillometry.py": {
+      "a": 108,
+      "d": 0
+    },
+    "mne/preprocessing/eyetracking/eyetracking.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/preprocessing/eyetracking/tests/test_pupillometry.py": {
+      "a": 69,
+      "d": 0
+    },
+    "tutorials/preprocessing/90_eyetracking_data.py": {
+      "a": 69,
+      "d": 15
+    }
+  }
+}

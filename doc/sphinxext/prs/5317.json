@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "e60cc0ab0be847a47f61f6f1f31a9ff7e961e611",
+  "authors": [
+    {
+      "n": "Britta Westner",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/beamformer/_compute_beamformer.py": {
+      "a": 10,
+      "d": 0
+    },
+    "mne/beamformer/_dics.py": {
+      "a": 30,
+      "d": 14
+    },
+    "mne/beamformer/_lcmv.py": {
+      "a": 32,
+      "d": 23
+    },
+    "mne/beamformer/tests/test_dics.py": {
+      "a": 27,
+      "d": 2
+    },
+    "mne/beamformer/tests/test_lcmv.py": {
+      "a": 17,
+      "d": 1
+    },
+    "mne/minimum_norm/inverse.py": {
+      "a": 7,
+      "d": 4
+    },
+    "mne/source_estimate.py": {
+      "a": 11,
+      "d": 5
+    }
+  }
+}

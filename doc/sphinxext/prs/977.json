@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "2ff835f644f3fc751f84398e1758da06ea631fb8",
+  "authors": [
+    {
+      "n": "Martin Luessi",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/Makefile": {
+      "a": 12,
+      "d": 1
+    },
+    "doc/source/_templates/layout.html": {
+      "a": 6,
+      "d": 3
+    },
+    "doc/source/_templates/sidebar.html": {
+      "a": 5,
+      "d": 0
+    },
+    "doc/source/conf.py": {
+      "a": 5,
+      "d": 2
+    },
+    "doc/sphinxext/gen_rst.py": {
+      "a": 14,
+      "d": 10
+    },
+    "doc/upload_html.sh": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

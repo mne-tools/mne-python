@@ -1,0 +1,79 @@
+{
+  "merge_commit_sha": "7e0e09f4c2bdfc9d938fb709a6c07e055957ba4f",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/inverse/plot_lcmv_beamformer.py": {
+      "a": 17,
+      "d": 10
+    },
+    "mne/beamformer/_compute_beamformer.py": {
+      "a": 83,
+      "d": 102
+    },
+    "mne/beamformer/_dics.py": {
+      "a": 22,
+      "d": 109
+    },
+    "mne/beamformer/_lcmv.py": {
+      "a": 50,
+      "d": 58
+    },
+    "mne/beamformer/_rap_music.py": {
+      "a": 7,
+      "d": 13
+    },
+    "mne/beamformer/tests/test_dics.py": {
+      "a": 48,
+      "d": 38
+    },
+    "mne/beamformer/tests/test_lcmv.py": {
+      "a": 53,
+      "d": 24
+    },
+    "mne/cov.py": {
+      "a": 3,
+      "d": 5
+    },
+    "mne/forward/__init__.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/forward/forward.py": {
+      "a": 41,
+      "d": 33
+    },
+    "mne/minimum_norm/inverse.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/minimum_norm/tests/test_inverse.py": {
+      "a": 35,
+      "d": 25
+    },
+    "mne/rank.py": {
+      "a": 7,
+      "d": 7
+    },
+    "mne/tests/test_cov.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/check.py": {
+      "a": 9,
+      "d": 3
+    },
+    "mne/utils/docs.py": {
+      "a": 5,
+      "d": 4
+    }
+  }
+}

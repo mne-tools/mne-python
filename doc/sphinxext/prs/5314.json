@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "f49022a6cf0a3d9617d7050838f09bff3e2757fd",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "mne/channels/data/layouts/KIT-160.lay": {
+      "a": 162,
+      "d": 0
+    },
+    "mne/channels/layout.py": {
+      "a": 4,
+      "d": 1
+    },
+    "mne/io/kit/constants.py": {
+      "a": 3,
+      "d": 0
+    }
+  }
+}

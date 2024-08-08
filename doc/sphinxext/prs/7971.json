@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "2965cc3644538c97b297f131bbb46ce9f954ea6f",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    ".circleci/config.yml": {
+      "a": 1,
+      "d": 1
+    },
+    ".travis.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "azure-pipelines.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/install/advanced.rst": {
+      "a": 7,
+      "d": 0
+    },
+    "doc/install/mne_python.rst": {
+      "a": 94,
+      "d": 57
+    },
+    "doc/install/pre_install.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "environment.yml": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

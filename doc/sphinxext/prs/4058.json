@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "a5f0dc9f2f2571c08f75df4e4e92734f29cabbbc",
+  "authors": [
+    {
+      "n": "jaeilepp",
+      "e": "jaeilepp@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/viz/tests/test_topomap.py": {
+      "a": 7,
+      "d": 1
+    },
+    "mne/viz/topomap.py": {
+      "a": 1,
+      "d": 2
+    }
+  }
+}

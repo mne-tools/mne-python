@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "9ca938ea6a6d1765e5e617b0efb064f1d0ea21f9",
+  "authors": [
+    {
+      "n": "rcmdnk",
+      "e": "rcmdnk@gmail.com"
+    },
+    {
+      "n": "Alexandre Gramfort",
+      "e": "agramfort@fb.com"
+    }
+  ],
+  "changes": {
+    "tutorials/clinical/60_sleep.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

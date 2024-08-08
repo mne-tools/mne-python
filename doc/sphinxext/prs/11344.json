@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "275a9879a058cc5b9eb48a39c46c6ec1d18b6248",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Felix Klotzsche",
+      "e": "klotzsche@cbs.mpg.de"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/channels/channels.py": {
+      "a": 8,
+      "d": 1
+    },
+    "mne/channels/tests/test_montage.py": {
+      "a": 6,
+      "d": 3
+    },
+    "mne/io/pick.py": {
+      "a": 6,
+      "d": 6
+    },
+    "mne/viz/epochs.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/evoked.py": {
+      "a": 6,
+      "d": 1
+    },
+    "mne/viz/tests/test_epochs.py": {
+      "a": 4,
+      "d": 0
+    }
+  }
+}

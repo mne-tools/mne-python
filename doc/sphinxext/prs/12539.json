@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "e6dedb326910ddcd30acd207aa8f35491e14ca94",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/datasets/config.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/preprocessing/tests/test_ica.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/tests/test_numerics.py": {
+      "a": 5,
+      "d": 1
+    },
+    "tutorials/preprocessing/80_opm_processing.py": {
+      "a": 60,
+      "d": 8
+    }
+  }
+}

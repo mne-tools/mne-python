@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "4cae8234a6d2c02982f1210907059ab944f8cc56",
+  "authors": [
+    {
+      "n": "Rob Luke",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/channels/channels.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/viz/tests/test_raw.py": {
+      "a": 5,
+      "d": 0
+    },
+    "mne/viz/utils.py": {
+      "a": 8,
+      "d": 6
+    }
+  }
+}

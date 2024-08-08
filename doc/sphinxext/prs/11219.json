@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "db0d02b72fc5246f3b5e8bd6a8d713b2801aa31b",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/utils/misc.py": {
+      "a": 30,
+      "d": 2
+    }
+  }
+}

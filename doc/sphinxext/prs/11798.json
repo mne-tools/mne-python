@@ -1,0 +1,67 @@
+{
+  "merge_commit_sha": "c9d20060d74b8f384aedfeb02c122ca7c31986fa",
+  "authors": [
+    {
+      "n": "Scott Huberty",
+      "e": null
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Mathieu Scheltienne",
+      "e": "mathieu.scheltienne@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/api/visualization.rst": {
+      "a": 15,
+      "d": 0
+    },
+    "doc/documentation/datasets.rst": {
+      "a": 23,
+      "d": 5
+    },
+    "examples/visualization/eyetracking_plot_heatmap.py": {
+      "a": 89,
+      "d": 0
+    },
+    "mne/datasets/config.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/utils/docs.py": {
+      "a": 8,
+      "d": 0
+    },
+    "mne/viz/eyetracking/__init__.py": {
+      "a": 5,
+      "d": 0
+    },
+    "mne/viz/eyetracking/heatmap.py": {
+      "a": 155,
+      "d": 0
+    },
+    "mne/viz/eyetracking/tests/__init__.py": {
+      "a": 0,
+      "d": 0
+    },
+    "mne/viz/eyetracking/tests/test_heatmap.py": {
+      "a": 35,
+      "d": 0
+    },
+    "tutorials/preprocessing/90_eyetracking_data.py": {
+      "a": 23,
+      "d": 5
+    }
+  }
+}

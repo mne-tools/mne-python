@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "6840bb56ccbc642f77607072cc549ce7e5c86794",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    }
+  ],
+  "changes": {
+    "tutorials/plot_artifacts_correction_filtering.py": {
+      "a": 6,
+      "d": 3
+    }
+  }
+}

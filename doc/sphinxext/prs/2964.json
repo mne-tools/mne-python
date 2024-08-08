@@ -1,0 +1,155 @@
+{
+  "merge_commit_sha": "10c20e72c41fcc58cc3a2e7807c6765d9b3c8889",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/advanced_setup.rst": {
+      "a": 0,
+      "d": 163
+    },
+    "doc/cite.rst": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/cited.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/conf.py": {
+      "a": 12,
+      "d": 11
+    },
+    "doc/contributing.rst": {
+      "a": 4,
+      "d": 4
+    },
+    "doc/faq.rst": {
+      "a": 54,
+      "d": 1
+    },
+    "doc/getting_started.rst": {
+      "a": 325,
+      "d": 104
+    },
+    "doc/git_links.inc": {
+      "a": 2,
+      "d": 6
+    },
+    "doc/index.rst": {
+      "a": 38,
+      "d": 33
+    },
+    "doc/manual/datasets_index.rst": {
+      "a": 6,
+      "d": 5
+    },
+    "doc/manual/index.rst": {
+      "a": 2,
+      "d": 5
+    },
+    "doc/manual/migrating.rst": {
+      "a": 4,
+      "d": 4
+    },
+    "doc/manual/preprocessing/maxwell.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/manual/preprocessing/ssp.rst": {
+      "a": 3,
+      "d": 3
+    },
+    "doc/manual/time_frequency.rst": {
+      "a": 4,
+      "d": 4
+    },
+    "doc/martinos.rst": {
+      "a": 35,
+      "d": 0
+    },
+    "doc/mne_cpp.rst": {
+      "a": 9,
+      "d": 1
+    },
+    "doc/python_reference.rst": {
+      "a": 3,
+      "d": 10
+    },
+    "doc/this_project.inc": {
+      "a": 4,
+      "d": 1
+    },
+    "doc/tutorials/command_line.rst": {
+      "a": 2,
+      "d": 1
+    },
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/datasets/plot_brainstorm_data.py": {
+      "a": 6,
+      "d": 5
+    },
+    "mne/__init__.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/evoked.py": {
+      "a": 18,
+      "d": 2
+    },
+    "mne/io/meas_info.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/label.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/maxwell.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/time_frequency/multitaper.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/utils.py": {
+      "a": 31,
+      "d": 2
+    },
+    "mne/viz/__init__.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/viz/ica.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/plot_cluster_stats_time_frequency_repeated_measures_anova.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/plot_creating_data_structures.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/plot_introduction.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/plot_raw_objects.py": {
+      "a": 3,
+      "d": 3
+    }
+  }
+}

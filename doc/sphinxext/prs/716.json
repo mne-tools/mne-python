@@ -1,0 +1,59 @@
+{
+  "merge_commit_sha": "608e33bd310045ce30725e573aa6f0cd7b091b9a",
+  "authors": [
+    {
+      "n": "Romek Goj",
+      "e": "roman.goj@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/source/python_reference.rst": {
+      "a": 3,
+      "d": 0
+    },
+    "doc/source/whats_new.rst": {
+      "a": 4,
+      "d": 0
+    },
+    "examples/inverse/plot_dics_beamformer.py": {
+      "a": 11,
+      "d": 9
+    },
+    "examples/inverse/plot_dics_source_power.py": {
+      "a": 79,
+      "d": 0
+    },
+    "mne/beamformer/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/beamformer/_dics.py": {
+      "a": 161,
+      "d": 77
+    },
+    "mne/beamformer/_lcmv.py": {
+      "a": 60,
+      "d": 42
+    },
+    "mne/beamformer/tests/test_dics.py": {
+      "a": 94,
+      "d": 24
+    },
+    "mne/time_frequency/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/time_frequency/csd.py": {
+      "a": 52,
+      "d": 28
+    },
+    "mne/time_frequency/tests/test_csd.py": {
+      "a": 40,
+      "d": 21
+    },
+    "mne/viz.py": {
+      "a": 11,
+      "d": 6
+    }
+  }
+}

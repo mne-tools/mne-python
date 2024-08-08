@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "c5e683eac98803c6ba7bdbb8af439a2766f86a94",
+  "authors": [
+    {
+      "n": "Dominik Welke",
+      "e": "dominik.welke@web.de"
+    }
+  ],
+  "changes": {
+    "examples/preprocessing/movement_detection.py": {
+      "a": 5,
+      "d": 8
+    },
+    "examples/preprocessing/muscle_detection.py": {
+      "a": 1,
+      "d": 2
+    },
+    "examples/preprocessing/muscle_ica.py": {
+      "a": 1,
+      "d": 2
+    }
+  }
+}

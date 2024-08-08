@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "80471f114bdcb80be6d66f62f18a9ab060e80a1e",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/0.15.inc": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/simulation/evoked.py": {
+      "a": 3,
+      "d": 5
+    },
+    "mne/utils/docs.py": {
+      "a": 6,
+      "d": 6
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "9a65a1bd5a9cec2cf5fc0a016db6d4d16e53ef3b",
+  "authors": [
+    {
+      "n": "Kaisu Lankinen",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/source_space.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "4cab7a555b2430e1de11799a22b949607987603e",
+  "authors": [
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/viz/backends/_qt.py": {
+      "a": 2,
+      "d": 3
+    }
+  }
+}

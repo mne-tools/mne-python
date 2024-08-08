@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "fc6ebb04890cf53b3be85e43f33d4adfaada4fe2",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/_static/style.css": {
+      "a": 6,
+      "d": 1
+    },
+    "tutorials/epochs/plot_30_epochs_metadata.py": {
+      "a": 9,
+      "d": 9
+    }
+  }
+}

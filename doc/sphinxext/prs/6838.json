@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "713de842ffc17be20f0d6de67b2bd6e1fd4020b5",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/beamformer/tests/test_dics.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/forward/forward.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/inverse_sparse/mxne_inverse.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/minimum_norm/inverse.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/morph.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/simulation/source.py": {
+      "a": 2,
+      "d": 3
+    },
+    "mne/source_space.py": {
+      "a": 17,
+      "d": 6
+    },
+    "mne/tests/test_morph.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/_3d.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

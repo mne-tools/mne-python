@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "241e11944787476271d45bb9c6bc946bf731104a",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/viz/evoked.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/viz/tests/test_raw.py": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/viz/utils.py": {
+      "a": 5,
+      "d": 10
+    }
+  }
+}

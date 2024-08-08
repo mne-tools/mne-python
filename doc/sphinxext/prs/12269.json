@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "d00cbb12b9b6070a713ac67fcba19e7443c71ef7",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "MANIFEST.in": {
+      "a": 0,
+      "d": 86
+    },
+    "Makefile": {
+      "a": 1,
+      "d": 4
+    },
+    "azure-pipelines.yml": {
+      "a": 0,
+      "d": 4
+    },
+    "doc/changes/devel.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "pyproject.toml": {
+      "a": 26,
+      "d": 45
+    }
+  }
+}

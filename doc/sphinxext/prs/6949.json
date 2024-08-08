@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "eb8d4a9ef5147a22b6945754be8bb651dd04b99e",
+  "authors": [
+    {
+      "n": "Mainak Jas",
+      "e": null
+    }
+  ],
+  "changes": {
+    "tutorials/source-modeling/plot_dipole_fit.py": {
+      "a": 8,
+      "d": 1
+    }
+  }
+}

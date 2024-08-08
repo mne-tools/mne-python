@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "3ea72bee527cc3e451733f80a8ca377144b185dc",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/documentation.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/whats_new.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/time_frequency/plot_source_power_spectrum.py": {
+      "a": 5,
+      "d": 5
+    },
+    "examples/time_frequency/plot_source_power_spectrum_opm.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/decoding/transformer.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/minimum_norm/time_frequency.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/time_frequency/multitaper.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/sample-datasets/plot_sleep.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

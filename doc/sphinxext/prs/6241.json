@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "ce9953a72bbd54109168f5a0fb2ff79a0969cf6c",
+  "authors": [
+    {
+      "n": "Denis A. Engemann",
+      "e": null
+    }
+  ],
+  "changes": {
+    "tutorials/plot_epochs_to_data_frame.py": {
+      "a": 3,
+      "d": 1
+    }
+  }
+}

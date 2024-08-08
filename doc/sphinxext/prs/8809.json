@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "32402f9000aba9ca7ad62fc0439ba8a8c9f8020f",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/datasets/tests/test_datasets.py": {
+      "a": 13,
+      "d": 9
+    },
+    "mne/datasets/utils.py": {
+      "a": 5,
+      "d": 0
+    }
+  }
+}

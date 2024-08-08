@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "7f2066fe4d1ed0c59c5ae0105485479352163ec4",
+  "authors": [
+    {
+      "n": "Jon Houck",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/commands/mne_surf2bem.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

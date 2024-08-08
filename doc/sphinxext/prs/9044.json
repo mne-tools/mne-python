@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "0d8a7b0717dc33e75dc20c9cdd356f51a515309d",
+  "authors": [
+    {
+      "n": "Johann Benerradi",
+      "e": null
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "tutorials/sample-datasets/plot_sleep.py": {
+      "a": 10,
+      "d": 23
+    }
+  }
+}

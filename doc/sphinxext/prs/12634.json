@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "704f3e25b8fedbeda0443ff623d2c3bfde210bb1",
+  "authors": [
+    {
+      "n": "Lumberbot (aka Jack)",
+      "e": null
+    },
+    {
+      "n": "Thomas S. Binns",
+      "e": "t.s.binns@outlook.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/12633.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/time_frequency/csd.py": {
+      "a": 6,
+      "d": 3
+    },
+    "mne/time_frequency/tests/test_csd.py": {
+      "a": 3,
+      "d": 3
+    }
+  }
+}

@@ -1,0 +1,83 @@
+{
+  "merge_commit_sha": "90d297e918e28f8eab1f7d364d47f064abb66d32",
+  "authors": [
+    {
+      "n": "Denis A. Engemann",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/source/python_reference.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/source/whats_new.rst": {
+      "a": 5,
+      "d": 0
+    },
+    "examples/time_frequency/plot_compute_raw_data_spectrum.py": {
+      "a": 7,
+      "d": 7
+    },
+    "examples/time_frequency/plot_epochs_spectra.py": {
+      "a": 45,
+      "d": 0
+    },
+    "examples/time_frequency/plot_single_trial_spectra.py": {
+      "a": 0,
+      "d": 99
+    },
+    "mne/epochs.py": {
+      "a": 126,
+      "d": 1
+    },
+    "mne/io/array/tests/test_array.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/base.py": {
+      "a": 26,
+      "d": 6
+    },
+    "mne/time_frequency/psd.py": {
+      "a": 68,
+      "d": 42
+    },
+    "mne/time_frequency/tests/test_psd.py": {
+      "a": 59,
+      "d": 4
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 17,
+      "d": 8
+    },
+    "mne/viz/__init__.py": {
+      "a": 4,
+      "d": 3
+    },
+    "mne/viz/epochs.py": {
+      "a": 94,
+      "d": 0
+    },
+    "mne/viz/raw.py": {
+      "a": 81,
+      "d": 49
+    },
+    "mne/viz/tests/test_epochs.py": {
+      "a": 12,
+      "d": 1
+    },
+    "mne/viz/tests/test_raw.py": {
+      "a": 5,
+      "d": 5
+    },
+    "mne/viz/tests/test_topo.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/viz/topomap.py": {
+      "a": 214,
+      "d": 0
+    }
+  }
+}

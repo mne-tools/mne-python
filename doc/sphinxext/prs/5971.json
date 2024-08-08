@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "b9ab993c6e34195499d2c4406dca7a54d58eaa4f",
+  "authors": [
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/viz/_3d.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/backends/_pysurfer_mayavi.py": {
+      "a": 3,
+      "d": 3
+    },
+    "tutorials/plot_visualize_evoked.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

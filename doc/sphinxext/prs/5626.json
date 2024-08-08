@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "6ec77282ce7e1d5b74d96eb44daa6e1287eadd09",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/minimum_norm/inverse.py": {
+      "a": 11,
+      "d": 11
+    }
+  }
+}

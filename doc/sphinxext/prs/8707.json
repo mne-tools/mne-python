@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "01b8b364698f86630d22fad573058233ab6a58a5",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/rank.py": {
+      "a": 0,
+      "d": 19
+    },
+    "mne/utils/docs.py": {
+      "a": 41,
+      "d": 5
+    }
+  }
+}

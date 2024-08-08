@@ -1,0 +1,91 @@
+{
+  "merge_commit_sha": "8dc463497f160e0c7fde772c7effec76beaa7f32",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "Makefile": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/manual/c_reference.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/python_reference.rst": {
+      "a": 4,
+      "d": 1
+    },
+    "mne/beamformer/_compute_beamformer.py": {
+      "a": 2,
+      "d": 7
+    },
+    "mne/beamformer/_dics.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/beamformer/tests/test_lcmv.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/channels/channels.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/cov.py": {
+      "a": 77,
+      "d": 56
+    },
+    "mne/forward/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/forward/forward.py": {
+      "a": 151,
+      "d": 36
+    },
+    "mne/inverse_sparse/mxne_inverse.py": {
+      "a": 20,
+      "d": 56
+    },
+    "mne/inverse_sparse/tests/test_mxne_inverse.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/minimum_norm/inverse.py": {
+      "a": 176,
+      "d": 221
+    },
+    "mne/minimum_norm/tests/test_inverse.py": {
+      "a": 7,
+      "d": 5
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 7,
+      "d": 7
+    },
+    "mne/simulation/evoked.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/simulation/tests/test_evoked.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/tests/test_cov.py": {
+      "a": 32,
+      "d": 0
+    },
+    "mne/tests/test_docstring_parameters.py": {
+      "a": 5,
+      "d": 0
+    },
+    "mne/utils/check.py": {
+      "a": 18,
+      "d": 17
+    }
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "30d67493fb9231b3277d8470e006636e62084cc2",
+  "authors": [
+    {
+      "n": "Jona Sassenhagen",
+      "e": "jona.sassenhagen@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/manual/c_reference.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/channels/layout.py": {
+      "a": 16,
+      "d": 16
+    },
+    "mne/io/artemis123/artemis123.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

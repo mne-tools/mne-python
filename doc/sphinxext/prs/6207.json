@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "5a9ae3c3d66b6275fffec217cf560acf651913d7",
+  "authors": [
+    {
+      "n": "Mainak Jas",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/evoked.py": {
+      "a": 7,
+      "d": 1
+    },
+    "tutorials/plot_eeg_erp.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/plot_introduction.py": {
+      "a": 1,
+      "d": 2
+    }
+  }
+}

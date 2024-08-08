@@ -1,0 +1,103 @@
+{
+  "merge_commit_sha": "875df8285e25ca4964566f2b900b808be65845d7",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    },
+    {
+      "n": "Mathieu Scheltienne",
+      "e": "mathieu.scheltienne@gmail.com"
+    },
+    {
+      "n": "Scott Huberty",
+      "e": "52462026+scott-huberty@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    "doc/api/covariance.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/api/creating_from_arrays.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/api/datasets.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/api/decoding.rst": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/api/events.rst": {
+      "a": 3,
+      "d": 3
+    },
+    "doc/api/export.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/api/file_io.rst": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/api/forward.rst": {
+      "a": 3,
+      "d": 3
+    },
+    "doc/api/inverse.rst": {
+      "a": 5,
+      "d": 5
+    },
+    "doc/api/logging.rst": {
+      "a": 3,
+      "d": 3
+    },
+    "doc/api/most_used_classes.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/api/mri.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/api/preprocessing.rst": {
+      "a": 11,
+      "d": 11
+    },
+    "doc/api/reading_raw_data.rst": {
+      "a": 3,
+      "d": 3
+    },
+    "doc/api/report.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/api/sensor_space.rst": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/api/simulation.rst": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/api/source_space.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/api/statistics.rst": {
+      "a": 4,
+      "d": 4
+    },
+    "doc/api/time_frequency.rst": {
+      "a": 4,
+      "d": 4
+    },
+    "doc/api/visualization.rst": {
+      "a": 3,
+      "d": 3
+    }
+  }
+}

@@ -1,0 +1,203 @@
+{
+  "merge_commit_sha": "81b7ddfe3fc33f83ba7d472a6a67e714850d7c73",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "MANIFEST.in": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/__init__.py": {
+      "a": 1,
+      "d": 274
+    },
+    "mne/__init__.pyi": {
+      "a": 426,
+      "d": 0
+    },
+    "mne/beamformer/__init__.py": {
+      "a": 1,
+      "d": 32
+    },
+    "mne/beamformer/__init__.pyi": {
+      "a": 34,
+      "d": 0
+    },
+    "mne/channels/__init__.py": {
+      "a": 1,
+      "d": 47
+    },
+    "mne/channels/__init__.pyi": {
+      "a": 76,
+      "d": 0
+    },
+    "mne/commands/__init__.py": {
+      "a": 1,
+      "d": 6
+    },
+    "mne/commands/__init__.pyi": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/datasets/__init__.py": {
+      "a": 1,
+      "d": 42
+    },
+    "mne/datasets/__init__.pyi": {
+      "a": 72,
+      "d": 0
+    },
+    "mne/decoding/__init__.py": {
+      "a": 1,
+      "d": 23
+    },
+    "mne/decoding/__init__.pyi": {
+      "a": 40,
+      "d": 0
+    },
+    "mne/export/__init__.py": {
+      "a": 1,
+      "d": 9
+    },
+    "mne/export/__init__.pyi": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/forward/__init__.py": {
+      "a": 2,
+      "d": 53
+    },
+    "mne/forward/__init__.pyi": {
+      "a": 86,
+      "d": 0
+    },
+    "mne/gui/__init__.py": {
+      "a": 1,
+      "d": 6
+    },
+    "mne/gui/__init__.pyi": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/html_templates/__init__.py": {
+      "a": 1,
+      "d": 6
+    },
+    "mne/html_templates/__init__.pyi": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/inverse_sparse/__init__.py": {
+      "a": 1,
+      "d": 10
+    },
+    "mne/inverse_sparse/__init__.pyi": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/io/__init__.py": {
+      "a": 1,
+      "d": 52
+    },
+    "mne/io/__init__.pyi": {
+      "a": 87,
+      "d": 0
+    },
+    "mne/minimum_norm/__init__.py": {
+      "a": 1,
+      "d": 34
+    },
+    "mne/minimum_norm/__init__.pyi": {
+      "a": 50,
+      "d": 0
+    },
+    "mne/preprocessing/__init__.py": {
+      "a": 1,
+      "d": 51
+    },
+    "mne/preprocessing/__init__.pyi": {
+      "a": 91,
+      "d": 0
+    },
+    "mne/report/__init__.py": {
+      "a": 1,
+      "d": 8
+    },
+    "mne/report/__init__.pyi": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/simulation/__init__.py": {
+      "a": 1,
+      "d": 15
+    },
+    "mne/simulation/__init__.pyi": {
+      "a": 22,
+      "d": 0
+    },
+    "mne/source_space/__init__.py": {
+      "a": 1,
+      "d": 19
+    },
+    "mne/source_space/__init__.pyi": {
+      "a": 22,
+      "d": 0
+    },
+    "mne/stats/__init__.py": {
+      "a": 1,
+      "d": 31
+    },
+    "mne/stats/__init__.pyi": {
+      "a": 42,
+      "d": 0
+    },
+    "mne/time_frequency/__init__.py": {
+      "a": 1,
+      "d": 54
+    },
+    "mne/time_frequency/__init__.pyi": {
+      "a": 73,
+      "d": 0
+    },
+    "mne/utils/__init__.py": {
+      "a": 1,
+      "d": 206
+    },
+    "mne/utils/__init__.pyi": {
+      "a": 384,
+      "d": 0
+    },
+    "mne/viz/__init__.py": {
+      "a": 1,
+      "d": 106
+    },
+    "mne/viz/__init__.pyi": {
+      "a": 178,
+      "d": 0
+    },
+    "tools/dev/Makefile": {
+      "a": 0,
+      "d": 0
+    },
+    "tools/dev/check_steering_committee.py": {
+      "a": 0,
+      "d": 0
+    },
+    "tools/dev/generate_pyi_files.py": {
+      "a": 76,
+      "d": 0
+    },
+    "tools/dev/unacknowledged-bug-reports.jq": {
+      "a": 0,
+      "d": 0
+    }
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "2953c77a907905311ac81205b03f4d3138f0a07d",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "mne/conftest.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/utils/tests/test_numerics.py": {
+      "a": 0,
+      "d": 7
+    }
+  }
+}

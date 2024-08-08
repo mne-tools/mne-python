@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "3ed097155ce04da18fab2873ea2574e0c7b8576f",
+  "authors": [
+    {
+      "n": "Martin Luessi",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/source/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/time_frequency/plot_compute_source_psd_epochs.py": {
+      "a": 88,
+      "d": 0
+    },
+    "mne/minimum_norm/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/minimum_norm/tests/test_time_frequency.py": {
+      "a": 64,
+      "d": 2
+    },
+    "mne/minimum_norm/time_frequency.py": {
+      "a": 202,
+      "d": 0
+    },
+    "mne/time_frequency/__init__.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/time_frequency/multitaper.py": {
+      "a": 480,
+      "d": 0
+    },
+    "mne/time_frequency/tests/test_multitaper.py": {
+      "a": 43,
+      "d": 0
+    }
+  }
+}

@@ -1,0 +1,175 @@
+{
+  "merge_commit_sha": "0ec28e9ad8e234ea51266644ae1ac35a2bc11f46",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "doc/changes/0.12.inc": {
+      "a": 4,
+      "d": 4
+    },
+    "doc/changes/0.14.inc": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/changes/0.15.inc": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/changes/0.19.inc": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/changes/0.20.inc": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/changes/0.21.inc": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/changes/0.22.inc": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/time_frequency.rst": {
+      "a": 0,
+      "d": 2
+    },
+    "mne/_freesurfer.py": {
+      "a": 5,
+      "d": 9
+    },
+    "mne/cov.py": {
+      "a": 4,
+      "d": 19
+    },
+    "mne/decoding/csp.py": {
+      "a": 13,
+      "d": 7
+    },
+    "mne/decoding/transformer.py": {
+      "a": 4,
+      "d": 1
+    },
+    "mne/epochs.py": {
+      "a": 2,
+      "d": 55
+    },
+    "mne/evoked.py": {
+      "a": 11,
+      "d": 14
+    },
+    "mne/fixes.py": {
+      "a": 0,
+      "d": 20
+    },
+    "mne/preprocessing/_regress.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/simulation/__init__.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/simulation/_metrics.py": {
+      "a": 0,
+      "d": 49
+    },
+    "mne/simulation/metrics/__init__.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/simulation/tests/test_metrics.py": {
+      "a": 12,
+      "d": 15
+    },
+    "mne/tests/test_coreg.py": {
+      "a": 3,
+      "d": 4
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 1,
+      "d": 5
+    },
+    "mne/time_frequency/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/time_frequency/multitaper.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/time_frequency/psd.py": {
+      "a": 1,
+      "d": 152
+    },
+    "mne/time_frequency/tests/test_psd.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 10,
+      "d": 30
+    },
+    "mne/utils/docs.py": {
+      "a": 7,
+      "d": 68
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 8,
+      "d": 26
+    },
+    "mne/viz/_brain/tests/test_brain.py": {
+      "a": 1,
+      "d": 4
+    },
+    "mne/viz/_mpl_figure.py": {
+      "a": 3,
+      "d": 73
+    },
+    "mne/viz/backends/_pyvista.py": {
+      "a": 11,
+      "d": 11
+    },
+    "mne/viz/ica.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/tests/test_figure.py": {
+      "a": 0,
+      "d": 7
+    },
+    "mne/viz/tests/test_topomap.py": {
+      "a": 1,
+      "d": 13
+    },
+    "mne/viz/topomap.py": {
+      "a": 24,
+      "d": 147
+    },
+    "mne/viz/utils.py": {
+      "a": 0,
+      "d": 14
+    },
+    "tutorials/preprocessing/20_rejecting_bad_data.py": {
+      "a": 1,
+      "d": 2
+    },
+    "tutorials/time-freq/10_spectrum_class.py": {
+      "a": 2,
+      "d": 2
+    },
+    "tutorials/time-freq/20_sensors_time_frequency.py": {
+      "a": 4,
+      "d": 4
+    }
+  }
+}

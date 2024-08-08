@@ -1,0 +1,95 @@
+{
+  "merge_commit_sha": "5bfde4dc14e643e30a009316437ee424c77b6b9d",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/python_reference.rst": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/__init__.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/bem.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/channels/channels.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/channels/layout.py": {
+      "a": 6,
+      "d": 6
+    },
+    "mne/cov.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/dipole.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/forward/_field_interpolation.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/forward/_make_forward.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/forward/forward.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/io/meas_info.py": {
+      "a": 5,
+      "d": 5
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/surface.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/time_frequency/tests/test_tfr.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/topo.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/plot_creating_data_structures.py": {
+      "a": 4,
+      "d": 4
+    },
+    "tutorials/plot_info.py": {
+      "a": 4,
+      "d": 4
+    },
+    "tutorials/plot_object_epochs.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/plot_object_evoked.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/plot_object_raw.py": {
+      "a": 3,
+      "d": 3
+    }
+  }
+}

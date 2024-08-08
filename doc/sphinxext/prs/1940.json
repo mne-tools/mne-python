@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "981995260f78317334b924a41ab7bb3f11cab354",
+  "authors": [
+    {
+      "n": "Hafeza Anevar",
+      "e": "hafiza.taj@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/fixes.py": {
+      "a": 104,
+      "d": 0
+    },
+    "mne/utils.py": {
+      "a": 4,
+      "d": 2
+    }
+  }
+}

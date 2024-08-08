@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "16ac16d99850f4cc473ccceeab0fc56a10b7b196",
+  "authors": [
+    {
+      "n": "Mark Wronkiewicz",
+      "e": "wronk.mark@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/dipole.py": {
+      "a": 16,
+      "d": 4
+    },
+    "mne/forward/_make_forward.py": {
+      "a": 149,
+      "d": 71
+    },
+    "mne/io/write.py": {
+      "a": 12,
+      "d": 2
+    },
+    "mne/preprocessing/maxwell.py": {
+      "a": 25,
+      "d": 86
+    },
+    "mne/preprocessing/tests/test_maxwell.py": {
+      "a": 27,
+      "d": 5
+    }
+  }
+}

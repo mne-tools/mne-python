@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "6733cae2a0765da9ec1b67a98937839d4cd9aadf",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "autofix-ci[bot]",
+      "e": "114827586+autofix-ci[bot]@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    ".github/actions/rename_towncrier/rename_towncrier.py": {
+      "a": 56,
+      "d": 0
+    },
+    ".github/workflows/autofix.yml": {
+      "a": 21,
+      "d": 0
+    },
+    ".pre-commit-config.yaml": {
+      "a": 0,
+      "d": 3
+    },
+    "doc/changes/devel/12318.other.rst": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

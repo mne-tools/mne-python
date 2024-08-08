@@ -1,0 +1,179 @@
+{
+  "merge_commit_sha": "b9f34a994136c81b10b91bf1b3afc1c96e2d1ead",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".travis.yml": {
+      "a": 8,
+      "d": 0
+    },
+    "Makefile": {
+      "a": 8,
+      "d": 4
+    },
+    "dictionary.txt": {
+      "a": 254,
+      "d": 19
+    },
+    "doc/manual/c_reference.rst": {
+      "a": 3,
+      "d": 3
+    },
+    "doc/manual/io.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/manual/preprocessing/maxwell.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/manual/time_frequency.rst": {
+      "a": 3,
+      "d": 3
+    },
+    "doc/references.rst": {
+      "a": 7,
+      "d": 7
+    },
+    "doc/tutorials/seven_stories_about_mne.rst": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 2
+    },
+    "examples/inverse/plot_compute_mne_inverse_epochs_in_label.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/preprocessing/plot_resample.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/decoding/base.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/decoding/csp.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/decoding/ems.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/decoding/time_gen.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/epochs.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/evoked.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/forward/_compute_forward.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/forward/_field_interpolation.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/base.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/eeglab/eeglab.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/egi/egi.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/kit/constants.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/kit/kit.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/pick.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/reference.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/ecg.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/preprocessing/infomax_.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/preprocessing/maxwell.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/tests/test_eeglab_infomax.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/preprocessing/xdawn.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/source_estimate.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/stats/cluster_level.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/circle.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/evoked.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/viz/topomap.py": {
+      "a": 3,
+      "d": 3
+    },
+    "tutorials/plot_epoching_and_averaging.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/plot_forward.py": {
+      "a": 2,
+      "d": 2
+    },
+    "tutorials/plot_stats_spatio_temporal_cluster_sensors.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

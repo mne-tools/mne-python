@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "1f42cd617522a04432172f93cca364aa308f1542",
+  "authors": [
+    {
+      "n": "Denis A. Engemann",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/cov.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

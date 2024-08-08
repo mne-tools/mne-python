@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "10211c039a8c37f98f4172ae1af196b0041a3c6d",
+  "authors": [
+    {
+      "n": "Tal Linzen",
+      "e": "linzen@nyu.edu"
+    }
+  ],
+  "changes": {
+    "mne/fiff/evoked.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

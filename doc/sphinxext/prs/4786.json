@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "7ff5d64cb8b772e868087e56352563ea21952f0b",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/stats/plot_sensor_permutation_test.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/stats/permutations.py": {
+      "a": 4,
+      "d": 3
+    },
+    "mne/stats/tests/test_permutations.py": {
+      "a": 20,
+      "d": 7
+    }
+  }
+}

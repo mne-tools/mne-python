@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "62be106bae5b0f7b9cf455f1efd3186e88ef70b5",
+  "authors": [
+    {
+      "n": "jaeilepp",
+      "e": "jaeilepp@student.jyu.fi"
+    }
+  ],
+  "changes": {
+    "circle.yml": {
+      "a": 4,
+      "d": 6
+    },
+    "doc/Makefile": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "f060e6b470704823dad6120cd685ad7390c1eae6",
+  "authors": [
+    {
+      "n": "btkcodedev",
+      "e": "btk.codedev@gmail.com"
+    },
+    {
+      "n": "Marijn van Vliet",
+      "e": "w.m.vanvliet@gmail.com"
+    },
+    {
+      "n": "Mathieu Scheltienne",
+      "e": "mathieu.scheltienne@fcbg.ch"
+    },
+    {
+      "n": "Mathieu Scheltienne",
+      "e": "mathieu.scheltienne@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/devel/12326.other.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "tutorials/preprocessing/15_handling_bad_channels.py": {
+      "a": 3,
+      "d": 2
+    }
+  }
+}

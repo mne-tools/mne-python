@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "6c3a159824c41ffac40e289da601fb57de3649ba",
+  "authors": [
+    {
+      "n": "Mauricio Cespedes",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/_brain/tests/test_brain.py": {
+      "a": 7,
+      "d": 1
+    }
+  }
+}

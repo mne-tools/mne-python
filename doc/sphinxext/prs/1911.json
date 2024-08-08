@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "47ec75c3a1c2ba4f16d0398c479707af65c3b7d9",
+  "authors": [
+    {
+      "n": "Jona Sassenhagen",
+      "e": "jona.sassenhagen@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/decoding/classifier.py": {
+      "a": 10,
+      "d": 6
+    },
+    "mne/epochs.py": {
+      "a": 8,
+      "d": 2
+    }
+  }
+}

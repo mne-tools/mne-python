@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "132d1da7a3bebbb265fc5b23c440abacbfd33de2",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    }
+  ],
+  "changes": {
+    ".github/workflows/compat_minimal.yml": {
+      "a": 2,
+      "d": 2
+    },
+    ".github/workflows/compat_old.yml": {
+      "a": 3,
+      "d": 3
+    },
+    "README.rst": {
+      "a": 3,
+      "d": 2
+    },
+    "doc/install/contributing.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/install/manual_install_python.rst": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 8,
+      "d": 7
+    },
+    "requirements.txt": {
+      "a": 1,
+      "d": 1
+    },
+    "requirements_base.txt": {
+      "a": 1,
+      "d": 2
+    },
+    "setup.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

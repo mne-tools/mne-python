@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "b5fb30aac5ead825727d7d83db51378101941868",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/sphinxext/gen_commands.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/export/tests/test_export.py": {
+      "a": 15,
+      "d": 4
+    }
+  }
+}

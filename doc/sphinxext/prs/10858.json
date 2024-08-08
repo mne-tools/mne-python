@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "7f11a236a54e2175c6e871a88d69803e3281b99a",
+  "authors": [
+    {
+      "n": "ashdrew",
+      "e": "ashdrew@uw.edu"
+    }
+  ],
+  "changes": {
+    "examples/inverse/snr_estimate.py": {
+      "a": 3,
+      "d": 5
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "bf94f340c6f8da8f48e23af3cec7f853fd6cdca3",
+  "authors": [
+    {
+      "n": "Mikolaj Magnuski",
+      "e": "mmagnuski@swps.edu.pl"
+    }
+  ],
+  "changes": {
+    "mne/io/eeglab/eeglab.py": {
+      "a": 25,
+      "d": 9
+    },
+    "mne/io/eeglab/tests/test_eeglab.py": {
+      "a": 26,
+      "d": 2
+    }
+  }
+}

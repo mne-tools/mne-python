@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "53669a18d1f7ae19b01ae4cedb1b5b27289b9b08",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".travis.yml": {
+      "a": 42,
+      "d": 46
+    },
+    "mne/datasets/utils.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/tests/test_bem.py": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

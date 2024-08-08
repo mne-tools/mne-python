@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "54259a8e151163381b0bb72de691607839c27236",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/channels/_standard_montage_utils.py": {
+      "a": 32,
+      "d": 10
+    },
+    "mne/channels/montage.py": {
+      "a": 5,
+      "d": 2
+    },
+    "mne/channels/tests/test_montage.py": {
+      "a": 81,
+      "d": 19
+    },
+    "mne/preprocessing/_csd.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/preprocessing/tests/test_csd.py": {
+      "a": 20,
+      "d": 2
+    },
+    "mne/viz/montage.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

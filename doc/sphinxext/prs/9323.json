@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "ec1d69950f94047c91a92e9c53b521304cba6a9c",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/names.inc": {
+      "a": 15,
+      "d": 15
+    },
+    "doc/conf.py": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/sphinxext/gen_names.py": {
+      "a": 30,
+      "d": 0
+    }
+  }
+}

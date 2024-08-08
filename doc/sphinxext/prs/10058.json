@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "eff12c448bea2d9acb1c9483f05ec32ba24ffae1",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/export/tests/test_export.py": {
+      "a": 12,
+      "d": 17
+    },
+    "mne/io/edf/edf.py": {
+      "a": 81,
+      "d": 51
+    },
+    "mne/io/edf/tests/test_edf.py": {
+      "a": 37,
+      "d": 14
+    },
+    "mne/io/nihon/tests/test_nihon.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "62c0af865811cb4a2d22e231c2519a6e06f4bac4",
+  "authors": [
+    {
+      "n": "Guillaume Favelier",
+      "e": "guillaume.favelier@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/preprocessing/maxwell.py": {
+      "a": 38,
+      "d": 35
+    },
+    "mne/viz/backends/renderer.py": {
+      "a": 49,
+      "d": 2
+    }
+  }
+}

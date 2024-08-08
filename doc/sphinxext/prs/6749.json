@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "affc6854168e32e73a075a0104e7af8bddd7eefe",
+  "authors": [
+    {
+      "n": "Victor Férat",
+      "e": "victor.ferat@live.Fr"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/commands/mne_setup_source_space.py": {
+      "a": 135,
+      "d": 0
+    },
+    "mne/commands/tests/test_commands.py": {
+      "a": 33,
+      "d": 2
+    }
+  }
+}

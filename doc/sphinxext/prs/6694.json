@@ -1,0 +1,147 @@
+{
+  "merge_commit_sha": "d247e5577f30e8d101f400c49f17d1a71c0cfd35",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/_includes/channel_types.rst": {
+      "a": 66,
+      "d": 0
+    },
+    "doc/_includes/data_formats.rst": {
+      "a": 9,
+      "d": 5
+    },
+    "doc/_includes/precision.rst": {
+      "a": 6,
+      "d": 5
+    },
+    "doc/_includes/units.rst": {
+      "a": 6,
+      "d": 5
+    },
+    "doc/conf.py": {
+      "a": 4,
+      "d": 4
+    },
+    "doc/documentation.rst": {
+      "a": 0,
+      "d": 440
+    },
+    "doc/glossary.rst": {
+      "a": 12,
+      "d": 8
+    },
+    "doc/install/contributing.rst": {
+      "a": 11,
+      "d": 9
+    },
+    "doc/install/index.rst": {
+      "a": 4,
+      "d": 3
+    },
+    "doc/install/pre_install.rst": {
+      "a": 3,
+      "d": 9
+    },
+    "doc/manual/index.rst": {
+      "a": 39,
+      "d": 0
+    },
+    "doc/manual/io.rst": {
+      "a": 12,
+      "d": 6
+    },
+    "doc/overview/cite.rst": {
+      "a": 31,
+      "d": 0
+    },
+    "doc/overview/command_line.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/overview/design_philosophy.rst": {
+      "a": 94,
+      "d": 0
+    },
+    "doc/overview/faq.rst": {
+      "a": 110,
+      "d": 92
+    },
+    "doc/overview/get_help.rst": {
+      "a": 16,
+      "d": 0
+    },
+    "doc/overview/implementation.rst": {
+      "a": 46,
+      "d": 0
+    },
+    "doc/overview/index.rst": {
+      "a": 60,
+      "d": 0
+    },
+    "doc/overview/learn_python.rst": {
+      "a": 29,
+      "d": 0
+    },
+    "doc/sphinxext/gen_commands.py": {
+      "a": 3,
+      "d": 1
+    },
+    "doc/tutorials/_images/plot_read_and_write_raw_data.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/tutorials/_images/plot_read_epochs.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/tutorials/_images/plot_time_frequency.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/tutorials/mne-report.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/tutorials/philosophy.rst": {
+      "a": 0,
+      "d": 153
+    },
+    "doc/tutorials/report.rst": {
+      "a": 0,
+      "d": 172
+    },
+    "examples/README.txt": {
+      "a": 11,
+      "d": 5
+    },
+    "examples/visualization/plot_make_report.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/commands/mne_report.py": {
+      "a": 59,
+      "d": 5
+    },
+    "mne/report.py": {
+      "a": 20,
+      "d": 12
+    },
+    "tutorials/README.txt": {
+      "a": 9,
+      "d": 1
+    },
+    "tutorials/misc/plot_report.py": {
+      "a": 197,
+      "d": 0
+    },
+    "tutorials/raw/plot_10_raw_overview.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

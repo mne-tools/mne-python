@@ -1,0 +1,83 @@
+{
+  "merge_commit_sha": "dbf108ba9cf563fdd9def67b07447998840f8f46",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/_static/mne_logo.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/mne_logo_small.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/style.css": {
+      "a": 43,
+      "d": 7
+    },
+    "doc/_templates/layout.html": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/cite.rst": {
+      "a": 0,
+      "d": 17
+    },
+    "doc/conf.py": {
+      "a": 84,
+      "d": 19
+    },
+    "doc/faq.rst": {
+      "a": 48,
+      "d": 0
+    },
+    "doc/getting_started.rst": {
+      "a": 91,
+      "d": 73
+    },
+    "doc/index.rst": {
+      "a": 119,
+      "d": 148
+    },
+    "doc/manual/appendix/c_release_notes.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/manual/index.rst": {
+      "a": 37,
+      "d": 50
+    },
+    "doc/mne_cpp.rst": {
+      "a": 1,
+      "d": 3
+    },
+    "doc/tutorials.rst": {
+      "a": 0,
+      "d": 19
+    },
+    "examples/connectivity/plot_cwt_sensor_connectivity.py": {
+      "a": 4,
+      "d": 4
+    },
+    "logo/generate_mne_logos.py": {
+      "a": 12,
+      "d": 10
+    },
+    "tutorials/plot_background_filtering.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/plot_introduction.py": {
+      "a": 2,
+      "d": 3
+    },
+    "tutorials/plot_stats_cluster_methods.py": {
+      "a": 17,
+      "d": 15
+    }
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "68218218a9066afa8d2dc65222e5d9a4b8c48079",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/base.py": {
+      "a": 17,
+      "d": 13
+    },
+    "mne/io/fiff/tests/test_raw_fiff.py": {
+      "a": 27,
+      "d": 0
+    },
+    "mne/io/pick.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

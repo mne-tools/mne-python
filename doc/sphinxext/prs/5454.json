@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "f6d4084bf0d304fe49a23545b34c4c2cf998951b",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".circleci/config.yml": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/advanced_setup.rst": {
+      "a": 17,
+      "d": 1
+    },
+    "doc/contributing.rst": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/faq.rst": {
+      "a": 3,
+      "d": 27
+    },
+    "doc/install_mne_python.rst": {
+      "a": 26,
+      "d": 2
+    },
+    "environment.yml": {
+      "a": 3,
+      "d": 5
+    }
+  }
+}

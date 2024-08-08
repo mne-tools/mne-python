@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "1334bfcdbdd2c3fa70d4e0cff8d24cdb64ce9ff7",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    }
+  ],
+  "changes": {
+    "pyproject.toml": {
+      "a": 6,
+      "d": 1
+    }
+  }
+}

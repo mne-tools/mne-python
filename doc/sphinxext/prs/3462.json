@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "f28a3d54d5f30335359fc2b49a5784314c9a028b",
+  "authors": [
+    {
+      "n": "Jean-Rémi KING",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/epochs.py": {
+      "a": 8,
+      "d": 2
+    }
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "8eba56032b93e2f51030c4ddcd28c9ae3addafb1",
+  "authors": [
+    {
+      "n": "Richard Höchenberger",
+      "e": "richard.hoechenberger@gmail.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/stats/cluster_level.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/stats/tests/test_cluster_level.py": {
+      "a": 4,
+      "d": 0
+    }
+  }
+}

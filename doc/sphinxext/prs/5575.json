@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "6521476a878ac71e2ffd27a701f3fd88595fd823",
+  "authors": [
+    {
+      "n": "Mainak Jas",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/channels/layout.py": {
+      "a": 2,
+      "d": 3
+    },
+    "mne/utils.py": {
+      "a": 13,
+      "d": 0
+    },
+    "mne/viz/evoked.py": {
+      "a": 8,
+      "d": 7
+    }
+  }
+}

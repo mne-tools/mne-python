@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "4b282c833b9d6b86ab390b374863e2323fee131d",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "examples/visualization/plot_evoked_arrowmap.py": {
+      "a": 4,
+      "d": 7
+    },
+    "mne/viz/topomap.py": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

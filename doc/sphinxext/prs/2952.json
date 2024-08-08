@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "da42e7f395cd4a3bcf43725870a16548d4fbfdf3",
+  "authors": [
+    {
+      "n": "Alexandre Gramfort",
+      "e": "alexandre.gramfort@m4x.org"
+    }
+  ],
+  "changes": {
+    "doc/python_reference.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/whats_new.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "examples/inverse/plot_dipole_fit.py": {
+      "a": 40,
+      "d": 1
+    },
+    "mne/dipole.py": {
+      "a": 14,
+      "d": 9
+    },
+    "mne/forward/__init__.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/forward/_make_forward.py": {
+      "a": 135,
+      "d": 4
+    },
+    "mne/forward/tests/test_make_forward.py": {
+      "a": 111,
+      "d": 4
+    },
+    "mne/source_space.py": {
+      "a": 11,
+      "d": 3
+    }
+  }
+}

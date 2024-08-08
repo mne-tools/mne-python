@@ -1,0 +1,59 @@
+{
+  "merge_commit_sha": "a622a467074ea9ba0f1d1168c4ec3b8c6af74323",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": null
+    }
+  ],
+  "changes": {
+    "doc/_includes/channel_interpolation.rst": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/_includes/forward.rst": {
+      "a": 35,
+      "d": 35
+    },
+    "doc/_includes/ssp.rst": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/api/events.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/api/file_io.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/changes/v0.10.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/changes/v0.12.rst": {
+      "a": 35,
+      "d": 35
+    },
+    "doc/changes/v0.13.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/changes/v0.15.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/changes/v0.17.rst": {
+      "a": 42,
+      "d": 42
+    },
+    "doc/changes/v1.2.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/documentation/datasets.rst": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

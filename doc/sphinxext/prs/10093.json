@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "59af71a7e37e8b6af80de28fd3d1ec344fc38a7b",
+  "authors": [
+    {
+      "n": "Adina Wagner",
+      "e": "adina.wagner@t-online.de"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "doc/changes/latest.inc": {
+      "a": 5,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/io/bti/bti.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/bti/tests/test_bti.py": {
+      "a": 9,
+      "d": 0
+    }
+  }
+}

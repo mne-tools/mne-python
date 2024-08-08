@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "6498dd9871124776c71f4065fe22e70683c9de26",
+  "authors": [
+    {
+      "n": "Hari Bharadwaj",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/channels/layout.py": {
+      "a": 10,
+      "d": 7
+    },
+    "mne/channels/tests/test_montage.py": {
+      "a": 6,
+      "d": 6
+    }
+  }
+}

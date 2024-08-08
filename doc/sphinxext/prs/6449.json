@@ -1,0 +1,283 @@
+{
+  "merge_commit_sha": "0f9910f96c2ee82ff815ca4ab3758788c1a4dd1d",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "Makefile": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/_static/institution_logos/Aalto.svg": {
+      "a": 2466,
+      "d": 0
+    },
+    "doc/_static/institution_logos/Aarhus.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/institution_logos/BIDS.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/institution_logos/BU.svg": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/_static/institution_logos/CEA.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/institution_logos/Graz.jpg": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/institution_logos/Harvard.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/institution_logos/ICM.jpg": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/institution_logos/Ilmenau.gif": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/institution_logos/Inserm.svg": {
+      "a": 46,
+      "d": 0
+    },
+    "doc/_static/institution_logos/Julich.svg": {
+      "a": 41,
+      "d": 0
+    },
+    "doc/_static/institution_logos/MGH.svg": {
+      "a": 18,
+      "d": 0
+    },
+    "doc/_static/institution_logos/MIT.svg": {
+      "a": 9,
+      "d": 0
+    },
+    "doc/_static/institution_logos/Martinos.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/institution_logos/NYU.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/institution_logos/Telecom_Paris_Tech.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/institution_logos/Washington.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/institution_logos/inria.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/institutions.png": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/_static/style.css": {
+      "a": 26,
+      "d": 6
+    },
+    "doc/_templates/layout.html": {
+      "a": 20,
+      "d": 1
+    },
+    "doc/whats_new.rst": {
+      "a": 11,
+      "d": 1
+    },
+    "mne/__init__.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/annotations.py": {
+      "a": 27,
+      "d": 6
+    },
+    "mne/conftest.py": {
+      "a": 2,
+      "d": 5
+    },
+    "mne/cov.py": {
+      "a": 2,
+      "d": 4
+    },
+    "mne/decoding/base.py": {
+      "a": 3,
+      "d": 4
+    },
+    "mne/decoding/ems.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/decoding/search_light.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/decoding/time_frequency.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/dipole.py": {
+      "a": 2,
+      "d": 3
+    },
+    "mne/epochs.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/forward/_compute_forward.py": {
+      "a": 10,
+      "d": 13
+    },
+    "mne/forward/_lead_dots.py": {
+      "a": 5,
+      "d": 5
+    },
+    "mne/forward/_make_forward.py": {
+      "a": 2,
+      "d": 4
+    },
+    "mne/inverse_sparse/mxne_debiasing.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/io/brainvision/brainvision.py": {
+      "a": 11,
+      "d": 16
+    },
+    "mne/io/brainvision/tests/test_brainvision.py": {
+      "a": 14,
+      "d": 0
+    },
+    "mne/label.py": {
+      "a": 10,
+      "d": 12
+    },
+    "mne/minimum_norm/time_frequency.py": {
+      "a": 6,
+      "d": 8
+    },
+    "mne/morph.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 7,
+      "d": 6
+    },
+    "mne/preprocessing/infomax_.py": {
+      "a": 1,
+      "d": 4
+    },
+    "mne/preprocessing/ssp.py": {
+      "a": 2,
+      "d": 4
+    },
+    "mne/proj.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/report.py": {
+      "a": 3,
+      "d": 4
+    },
+    "mne/simulation/evoked.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/simulation/raw.py": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/simulation/source.py": {
+      "a": 5,
+      "d": 5
+    },
+    "mne/source_estimate.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/source_space.py": {
+      "a": 4,
+      "d": 6
+    },
+    "mne/stats/cluster_level.py": {
+      "a": 8,
+      "d": 16
+    },
+    "mne/stats/permutations.py": {
+      "a": 2,
+      "d": 4
+    },
+    "mne/tests/test_annotations.py": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/time_frequency/_stockwell.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/time_frequency/csd.py": {
+      "a": 7,
+      "d": 14
+    },
+    "mne/time_frequency/multitaper.py": {
+      "a": 2,
+      "d": 3
+    },
+    "mne/time_frequency/psd.py": {
+      "a": 3,
+      "d": 6
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 4,
+      "d": 6
+    },
+    "mne/utils/__init__.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/utils/docs.py": {
+      "a": 19,
+      "d": 5
+    },
+    "mne/utils/misc.py": {
+      "a": 10,
+      "d": 6
+    },
+    "mne/utils/numerics.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/viz/_3d.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/viz/epochs.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/viz/raw.py": {
+      "a": 2,
+      "d": 4
+    },
+    "mne/viz/topomap.py": {
+      "a": 1,
+      "d": 2
+    }
+  }
+}

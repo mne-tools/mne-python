@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "3591c2e8f05878432cd95169e653fc2b5d0e30a0",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/event.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/externals/tempita/__init__.py": {
+      "a": 3,
+      "d": 1
+    }
+  }
+}

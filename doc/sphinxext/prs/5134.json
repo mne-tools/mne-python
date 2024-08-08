@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "b659764133b00ee3d47eefa1214a5b14125a9ed1",
+  "authors": [
+    {
+      "n": "Britta Westner",
+      "e": null
+    }
+  ],
+  "changes": {
+    "mne/beamformer/_compute_beamformer.py": {
+      "a": 241,
+      "d": 0
+    },
+    "mne/beamformer/_dics.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/beamformer/_lcmv.py": {
+      "a": 6,
+      "d": 237
+    },
+    "mne/beamformer/_rap_music.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/beamformer/tests/test_lcmv.py": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}
